@@ -2168,29 +2168,28 @@ soup_socket_server_new (const gint port)
 
 		/* Get the flags (should all be 0?) */
 		flags = fcntl (s->sockfd, F_GETFL, 0);
-		if (flags == -1) goto ERROR;
+		if (flags == -1) goto SETUP_ERROR;
 
 		/* Make the socket non-blocking */
 		if (fcntl (s->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
-			goto ERROR;
+			goto SETUP_ERROR;
 	}
 #endif
 
 	/* Bind */
 	if (bind (s->sockfd, &s->addr->sa, sizeof (s->addr->sa)) != 0)
-		goto BIND_ERROR;
+		goto SETUP_ERROR;
 
 	/* Get the socket name - don't care if it fails */
 	socklen = sizeof (s->addr->sa);
 	getsockname (s->sockfd, &s->addr->sa, &socklen);
 
 	/* Listen */
-	if (listen (s->sockfd, 10) != 0) goto LISTEN_ERROR;
+	if (listen (s->sockfd, 10) != 0) goto SETUP_ERROR;
 
 	return s;
 
- BIND_ERROR:
- LISTEN_ERROR:
+ SETUP_ERROR:
 	close (s->sockfd);
 	g_free (s->addr);
 	g_free (s);

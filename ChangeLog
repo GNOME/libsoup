@@ -1,5 +1,10 @@
 2001-07-09  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-socket.c (soup_socket_server_new): Typo to go
+	to SETUP_ERROR on error.
+
+2001-07-09  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-uri.c (soup_uri_get_protocol): Use
 	g_strncasecmp.
 
