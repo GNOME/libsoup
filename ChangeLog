@@ -1,3 +1,8 @@
+2003-12-17  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/Makefile.am: install soup-message-queue.h with the rest
+	of the headers.
+
 2003-12-17  Dan Winship  <danw@ximian.com>
 
 	* configure.in: Add gthread to glib check

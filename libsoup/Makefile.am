@@ -32,6 +32,7 @@ libsoupinclude_HEADERS =	\
 	soup-connection.h	\
 	soup-headers.h		\
 	soup-message.h		\
+	soup-message-queue.h	\
 	soup-method.h		\
 	soup-misc.h     	\
 	soup-server-auth.h	\
@@ -81,7 +82,6 @@ libsoup_2_2_la_SOURCES =		\
 	soup-message-io.c		\
 	soup-message-private.h		\
 	soup-message-queue.c		\
-	soup-message-queue.h		\
 	soup-message-server-io.c	\
 	soup-method.c			\
 	soup-misc.c     		\
