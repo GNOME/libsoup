@@ -5,7 +5,7 @@
  * Authors:
  *      Alex Graveley (alex@ximian.com)
  *
- * soup_base64_encode() written by Chris Blizzard <blizzard@appliedtheory.com>,
+ * soup_base64_encode() written by Chris Blizzard <blizzard@mozilla.org>,
  * and is Copyright (C) 1998 Free Software Foundation.
  *
  * All else Copyright (C) 2000, Helix Code, Inc.
