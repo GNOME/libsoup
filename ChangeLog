@@ -1,5 +1,9 @@
 2001-03-02  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/gionspr.c: remove, as this is not used.
+
+2001-03-02  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: remove gmodule dependency. Fix OPENSSL_LIBS and
 	NSS_LIBS to include the library name and not only the path.
 
