@@ -1,5 +1,13 @@
 2001-07-02  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-digest.c: Formatting fixes.
+	(digest_md5_challenge): Use string auth_header instead of
+	GByteArray for token.
+	(soup_digest_challenge): Free response GByteArray after adding
+	Authorization header.
+
+2001-07-02  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-private.h: Remove _SoupMessagePrivate bits
 	covered by soup-transfer.
 
