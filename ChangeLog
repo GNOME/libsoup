@@ -1,3 +1,16 @@
+2001-06-04  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-schema.c: A new error message
+	mechanism for reporting schema parse errors to the calling code
+
+	* src/soup-wsdl-runtime/wsdl-schema-glib.c
+	(wsdl_schema_glib_parse_struct, wsdl_schema_glib_start_element,
+	wsdl_schema_glib_end_element): Use new error message mechanism
+
+	* src/soup-wsdl/wsdl-parse.c (wsdl_parse_warning,
+	wsdl_parse_error, wsdl_parse_fatal): Log messages via wsdl_debug,
+	so the module selection works
+
 2001-06-01  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-misc.c: Correctly note copyright for
