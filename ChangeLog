@@ -1,5 +1,12 @@
 2002-03-13  Alex Graveley  <alex@ximian.com>
 
+	* tests/stockquote2-server.c: Update for new server API.
+
+	* tests/server-test.c (soup_server_init): Use auth_callback to
+	validate requests to /hello.
+
+2002-03-13  Alex Graveley  <alex@ximian.com>
+
 	* src/libwsdl/wsdl-soap-parse.c (wsdl_soap_headers): Use
 	soup_env_add_recv_header to add the new header to the incoming
 	headers.
