@@ -16,6 +16,7 @@
 #include <config.h>
 #endif
 
+#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glib.h>
@@ -23,11 +24,6 @@
 
 #include "soup-private.h"
 #include "soup-socket.h"
-
-#include <unistd.h>
-#ifndef socklen_t
-#  define socklen_t size_t
-#endif
 
 typedef struct {
 	SoupSocketConnectFn  func;
