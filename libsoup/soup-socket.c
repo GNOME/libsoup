@@ -2032,7 +2032,7 @@ soup_socket_new (SoupAddress     *addr,
 		s->sockfd = sockfd;
 		s->addr = addr;
 
-		(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
+		(*func) (s, SOUP_SOCKET_NEW_STATUS_OK, data);
 		return NULL;
 	}
 
