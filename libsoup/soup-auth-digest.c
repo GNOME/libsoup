@@ -334,11 +334,11 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	guchar d[16];
 	MD5Context md5;
 	char *url;
-	SoupContext *ctx;
+	const SoupUri *uri;
 
-	ctx = soup_message_get_context (msg);
-	g_return_val_if_fail (ctx != NULL, NULL);
-	url = soup_uri_to_string (soup_context_get_uri (ctx), TRUE);
+	uri = soup_message_get_uri (msg);
+	g_return_val_if_fail (uri != NULL, NULL);
+	url = soup_uri_to_string (uri, TRUE);
 
 	/* compute A2 */
 	md5_init (&md5);
@@ -404,11 +404,11 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	char *nc;
 	char *url;
 	char *out;
-	SoupContext *ctx;
+	const SoupUri *uri;
 
-	ctx = soup_message_get_context (msg);
-	g_return_val_if_fail (ctx != NULL, NULL);
-	url = soup_uri_to_string (soup_context_get_uri (ctx), TRUE);
+	uri = soup_message_get_uri (msg);
+	g_return_val_if_fail (uri != NULL, NULL);
+	url = soup_uri_to_string (uri, TRUE);
 
 	response = compute_response (digest, msg);
 

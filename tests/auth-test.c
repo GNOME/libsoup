@@ -5,6 +5,7 @@
 #include "libsoup/soup.h"
 #include "libsoup/soup-auth.h"
 #include "libsoup/soup-private.h"
+#include "libsoup/soup-message-private.h"
 
 int errors = 0;
 
@@ -162,7 +163,7 @@ identify_auth (SoupMessage *msg)
 	char *header;
 	int num;
 
-	auth = soup_context_lookup_auth (msg->context, msg);
+	auth = soup_context_lookup_auth (msg->priv->context, msg);
 	if (!auth || !soup_auth_is_authenticated (auth))
 		return 0;
 
@@ -215,7 +216,6 @@ handler (SoupMessage *msg, gpointer data)
 int
 main (int argc, char **argv)
 {
-        SoupContext *ctx;
         SoupMessage *msg;
 	char *expected;
 	int i;
@@ -226,13 +226,12 @@ main (int argc, char **argv)
 		printf ("Test %d: %s\n", i + 1, tests[i].explanation);
 
 		printf ("  GET %s\n", tests[i].url);
-		ctx = soup_context_get (tests[i].url);
-		if (!ctx) {
+
+		msg = soup_message_new (SOUP_METHOD_GET, tests[i].url);
+		if (!msg) {
 			fprintf (stderr, "auth-test: Could not parse URI\n");
 			exit (1);
 		}
-
-		msg = soup_message_new (ctx, SOUP_METHOD_GET);
 
 		expected = g_strdup (tests[i].expected);
 		soup_message_add_error_code_handler (
@@ -263,10 +262,9 @@ main (int argc, char **argv)
 
 		printf ("\n");
 
-		g_object_unref (msg);
-		/* We don't free ctx because if we did, we'd end up
-		 * discarding the cached auth info at the end of each
-		 * test.
+		/* We don't free the message, because if we did, we'd
+		 * end up freeing the context and discarding the
+		 * cached auth info at the end of each test.
 		 */
 	}
 

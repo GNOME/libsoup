@@ -24,6 +24,7 @@
 #include "soup-auth.h"
 #include "soup-auth-ntlm.h"
 #include "soup-context.h"
+#include "soup-message-private.h"
 #include "soup-private.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
@@ -225,7 +226,7 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
  * Return value: a #SoupContext representing @uri.
  */
 SoupContext *
-soup_context_from_uri (SoupUri *suri)
+soup_context_from_uri (const SoupUri *suri)
 {
 	SoupHost *serv = NULL;
 	SoupContext *ctx = NULL;

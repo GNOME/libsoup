@@ -27,7 +27,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 {
 	char *uristr;
 
-	uristr = soup_uri_to_string (soup_context_get_uri (msg->context), FALSE);
+	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 	printf ("%s %s HTTP/1.%d\n", msg->method, uristr,
 		soup_message_get_http_version (msg));
 

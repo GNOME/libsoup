@@ -7,9 +7,9 @@
 #define SOUP_MESSAGE_H 1
 
 #include <glib-object.h>
-#include <libsoup/soup-context.h>
 #include <libsoup/soup-error.h>
 #include <libsoup/soup-method.h>
+#include <libsoup/soup-uri.h>
 
 #define SOUP_TYPE_MESSAGE            (soup_message_get_type ())
 #define SOUP_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_MESSAGE, SoupMessage))
@@ -43,8 +43,6 @@ typedef struct {
 
 	SoupMessagePrivate *priv;
 
-	SoupContext        *context;
-
 	const char         *method;
 
 	guint               errorcode;
@@ -73,14 +71,22 @@ GType soup_message_get_type (void);
 
 typedef void (*SoupCallbackFn) (SoupMessage *req, gpointer user_data);
 
-SoupMessage   *soup_message_new                 (SoupContext       *context,
-						 const char        *method);
+SoupMessage   *soup_message_new                 (const char        *method,
+						 const char        *uri);
+SoupMessage   *soup_message_new_from_uri        (const char        *method,
+						 const SoupUri     *uri);
 
-SoupMessage   *soup_message_new_full            (SoupContext       *context,
-						 const char        *method,
+void           soup_message_set_request         (SoupMessage       *msg,
+						 const char        *content_type,
 						 SoupOwnership      req_owner,
 						 char              *req_body,
-						 gulong             req_length);
+						 gulong             req_len);
+
+void           soup_message_set_response        (SoupMessage       *msg,
+						 const char        *content_type,
+						 SoupOwnership      resp_owner,
+						 char              *resp_body,
+						 gulong             resp_len);
 
 void           soup_message_cancel              (SoupMessage       *req);
 
@@ -124,14 +130,7 @@ SoupHttpVersion  soup_message_get_http_version    (SoupMessage       *msg);
 
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
-void             soup_message_set_context         (SoupMessage       *msg,
-						   SoupContext       *new_ctx);
-SoupContext     *soup_message_get_context         (SoupMessage       *msg);
-
-void             soup_message_set_connection      (SoupMessage       *msg,
-						   SoupConnection    *conn);
-SoupConnection  *soup_message_get_connection      (SoupMessage       *msg);
-SoupSocket      *soup_message_get_socket          (SoupMessage       *msg);
+const SoupUri   *soup_message_get_uri             (SoupMessage       *msg);
 
 typedef enum {
 	/*
@@ -211,16 +210,12 @@ void           soup_message_remove_handler      (SoupMessage       *msg,
 						 gpointer           user_data);
 
 /*
- * Error Setting (for use by Handlers)
+ * Error Setting
  */
 void           soup_message_set_error           (SoupMessage       *msg, 
 						 SoupKnownErrorCode errcode);
 
 void           soup_message_set_error_full      (SoupMessage       *msg, 
-						 guint              errcode, 
-						 const char        *errphrase);
-
-void           soup_message_set_handler_error   (SoupMessage       *msg, 
 						 guint              errcode, 
 						 const char        *errphrase);
 

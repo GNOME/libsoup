@@ -19,6 +19,8 @@
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
 
+static void cleanup_message (SoupMessage *req);
+
 static void
 init (GObject *object)
 {
@@ -42,10 +44,10 @@ finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 
-	soup_message_cleanup (msg);
+	cleanup_message (msg);
 
-	if (msg->context)
-		g_object_unref (msg->context);
+	if (msg->priv->context)
+		g_object_unref (msg->priv->context);
 
 	if (msg->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (msg->request.body);
@@ -82,73 +84,116 @@ SOUP_MAKE_TYPE (soup_message, SoupMessage, class_init, init, PARENT_TYPE)
 
 /**
  * soup_message_new:
- * @context: a #SoupContext for the destination endpoint.
- * @method: a string which will be used as the HTTP method for the
- * created request
+ * @method: the HTTP method for the created request
+ * @uri: the destination endpoint (as a string)
  * 
- * Creates a new empty #SoupMessage, which will connect to the URL
- * represented by @context. A reference will be added to @context.
- * 
- * Return value: the new #SoupMessage.
+ * Creates a new empty #SoupMessage, which will connect to @uri
+ *
+ * Return value: the new #SoupMessage (or %NULL if @uri could not
+ * be parsed).
  */
 SoupMessage *
-soup_message_new (SoupContext *context, const char *method)
+soup_message_new (const char *method, const char *uri)
 {
 	SoupMessage *msg;
+	SoupContext *ctx;
 
-	msg          = g_object_new (SOUP_TYPE_MESSAGE, NULL);
-	msg->method  = method ? method : SOUP_METHOD_GET;
+	ctx = soup_context_get (uri);
+	if (!ctx)
+		return NULL;
 
-	soup_message_set_context (msg, context);
+	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
+	msg->method = method ? method : SOUP_METHOD_GET;
+	msg->priv->context = ctx;
 
 	return msg;
 }
 
 /**
- * soup_message_new_full:
- * @context: a #SoupContext for the destination endpoint.
- * @method: a string which will be used as the HTTP method for the
- * created request.
+ * soup_message_new_from_uri:
+ * @method: the HTTP method for the created request
+ * @uri: the destination endpoint (as a #SoupUri)
+ * 
+ * Creates a new empty #SoupMessage, which will connect to @uri
+ *
+ * Return value: the new #SoupMessage (or %NULL if @uri is invalid)
+ */
+SoupMessage *
+soup_message_new_from_uri (const char *method, const SoupUri *uri)
+{
+	SoupMessage *msg;
+	SoupContext *ctx;
+
+	ctx = soup_context_from_uri (uri);
+	if (!ctx)
+		return NULL;
+
+	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
+	msg->method = method ? method : SOUP_METHOD_GET;
+	msg->priv->context = ctx;
+
+	return msg;
+}
+
+/**
+ * soup_message_set_request:
+ * @msg: the message
+ * @content_type: MIME Content-Type of the body
  * @req_owner: the #SoupOwnership of the passed data buffer.
  * @req_body: a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
- * Creates a new #SoupMessage, which will connect to the URL
- * represented by @context. A reference is added to @context. The
- * request data buffer will be filled from @req_owner, @req_body, and
- * @req_length.
- *
- * Return value: the new #SoupMessage.
+ * Convenience function to set the request body of a #SoupMessage
  */
-SoupMessage *
-soup_message_new_full (SoupContext   *context,
-		       const char    *method,
-		       SoupOwnership  req_owner,
-		       char          *req_body,
-		       gulong         req_length)
+void
+soup_message_set_request (SoupMessage   *msg,
+			  const char    *content_type,
+			  SoupOwnership  req_owner,
+			  char          *req_body,
+			  gulong         req_length)
 {
-	SoupMessage *msg = soup_message_new (context, method);
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (content_type != NULL);
+	g_return_if_fail (req_body != NULL || req_length == 0);
 
+	soup_message_add_header (msg->request_headers,
+				 "Content-Type", content_type);
 	msg->request.owner = req_owner;
 	msg->request.body = req_body;
 	msg->request.length = req_length;
-
-	return msg;
 }
 
 /**
- * soup_message_cleanup:
- * @req: a #SoupMessage.
+ * soup_message_set_response:
+ * @msg: the message
+ * @content_type: MIME Content-Type of the body
+ * @req_owner: the #SoupOwnership of the passed data buffer.
+ * @req_body: a data buffer containing the body of the message response.
+ * @req_length: the byte length of @req_body.
  * 
- * Frees any temporary resources created in the processing of @req.
- * Also releases the active connection, if one exists. Request and
- * response data buffers are left intact.
+ * Convenience function to set the response body of a #SoupMessage
  */
 void
-soup_message_cleanup (SoupMessage *req)
+soup_message_set_response (SoupMessage   *msg,
+			   const char    *content_type,
+			   SoupOwnership  resp_owner,
+			   char          *resp_body,
+			   gulong         resp_length)
 {
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (content_type != NULL);
+	g_return_if_fail (resp_body != NULL || resp_length == 0);
 
+	soup_message_add_header (msg->response_headers,
+				 "Content-Type", content_type);
+	msg->response.owner = resp_owner;
+	msg->response.body = resp_body;
+	msg->response.length = resp_length;
+}
+
+static void
+cleanup_message (SoupMessage *req)
+{
 	if (req->priv->read_state)
 		soup_message_read_cancel (req);
 
@@ -186,7 +231,7 @@ soup_message_issue_callback (SoupMessage *req)
 	 * runs the main loop, and the connection has some data or error
 	 * which causes the callback to be run again.
 	 */
-	soup_message_cleanup (req);
+	cleanup_message (req);
 
 	if (req->priv->callback) {
 		(*req->priv->callback) (req, req->priv->user_data);
@@ -354,6 +399,54 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 	g_hash_table_foreach (hash, foreach_value_in_list, &data);
 }
 
+static void
+queue_message (SoupMessage *req)
+{
+	if (!req->priv->context) {
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_CANCELLED,
+					     "Attempted to queue a message "
+					     "with no destination context");
+		soup_message_issue_callback (req);
+		return;
+	}
+
+	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
+		cleanup_message (req);
+
+	switch (req->response.owner) {
+	case SOUP_BUFFER_USER_OWNED:
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_CANCELLED,
+					     "Attempted to queue a message "
+					     "with a user owned response "
+					     "buffer.");
+		soup_message_issue_callback (req);
+		return;
+	case SOUP_BUFFER_SYSTEM_OWNED:
+		g_free (req->response.body);
+		break;
+	case SOUP_BUFFER_STATIC:
+		break;
+	}
+
+	req->response.owner = 0;
+	req->response.body = NULL;
+	req->response.length = 0;
+
+	soup_message_clear_headers (req->response_headers);
+
+	req->errorcode = 0;
+	req->errorclass = 0;
+
+	if (req->errorphrase) {
+		g_free ((char *) req->errorphrase);
+		req->errorphrase = NULL;
+	}
+
+	soup_queue_message (req);
+}
+
 /**
  * soup_message_queue:
  * @req: a #SoupMessage.
@@ -381,16 +474,18 @@ soup_message_queue (SoupMessage    *req,
 		    gpointer        user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
-	soup_queue_message (req, callback, user_data);
+
+	req->priv->callback = callback;
+	req->priv->user_data = user_data;
+
+	queue_message (req);
 }
 
 static void
 requeue_read_error (SoupMessage *msg)
 {
 	soup_message_disconnect (msg);
-	soup_queue_message (msg,
-			    msg->priv->callback,
-			    msg->priv->user_data);
+	queue_message (msg);
 }
 
 static void
@@ -410,9 +505,7 @@ requeue_read_finished (SoupMessage *msg, char *body, guint len)
 		conn = NULL;
 	}
 
-	soup_queue_message (msg,
-			    msg->priv->callback,
-			    msg->priv->user_data);
+	queue_message (msg);
 	soup_message_set_connection (msg, conn);
 }
 
@@ -435,11 +528,8 @@ soup_message_requeue (SoupMessage *req)
 
 		if (req->priv->write_state)
 			soup_message_write_cancel (req);
-	} else {
-		soup_queue_message (req,
-				    req->priv->callback,
-				    req->priv->user_data);
-	}
+	} else
+		queue_message (req);
 }
 
 /**
@@ -544,32 +634,31 @@ soup_message_set_context (SoupMessage *msg, SoupContext *new_ctx)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	if (msg->context && new_ctx) {
+	if (msg->priv->context && new_ctx) {
 		const SoupUri *old, *new;
 
-		old = soup_context_get_uri (msg->context);
+		old = soup_context_get_uri (msg->priv->context);
 		new = soup_context_get_uri (new_ctx);
 		if (strcmp (old->host, new->host) != 0)
-			soup_message_cleanup (msg);
+			cleanup_message (msg);
 	} else if (!new_ctx)
-		soup_message_cleanup (msg);
+		cleanup_message (msg);
 
 	if (new_ctx)
 		g_object_ref (new_ctx);
-	if (msg->context)
-		g_object_unref (msg->context);
+	if (msg->priv->context)
+		g_object_unref (msg->priv->context);
 
-	msg->context = new_ctx;
+	msg->priv->context = new_ctx;
 }
 
-SoupContext *
-soup_message_get_context (SoupMessage *msg)
+const SoupUri *
+soup_message_get_uri (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return g_object_ref (msg->context);
+	return soup_context_get_uri (msg->priv->context);
 }
-
 
 void
 soup_message_set_connection (SoupMessage *msg, SoupConnection *conn)
@@ -636,21 +725,5 @@ soup_message_set_error_full (SoupMessage *msg,
 
 	msg->errorcode = errcode;
 	msg->errorclass = soup_error_get_class (errcode);
-	msg->errorphrase = g_strdup (errphrase);
-}
-
-void
-soup_message_set_handler_error (SoupMessage *msg,
-				guint        errcode,
-				const char  *errphrase)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (errcode != 0);
-	g_return_if_fail (errphrase != NULL);
-
-	g_free ((char *) msg->errorphrase);
-
-	msg->errorcode = errcode;
-	msg->errorclass = SOUP_ERROR_CLASS_HANDLER;
 	msg->errorphrase = g_strdup (errphrase);
 }

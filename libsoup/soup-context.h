@@ -42,7 +42,7 @@ typedef gpointer SoupConnectId;
 
 SoupContext   *soup_context_get               (const char           *uri);
 
-SoupContext   *soup_context_from_uri          (SoupUri              *suri);
+SoupContext   *soup_context_from_uri          (const SoupUri        *suri);
 
 SoupConnectId  soup_context_get_connection    (SoupContext          *ctx,
 					       SoupConnectCallbackFn cb,

@@ -14,10 +14,9 @@
 #include <glib.h>
 
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-context.h>
 
-void         soup_queue_message        (SoupMessage          *req,
-					SoupCallbackFn        callback, 
-					gpointer              user_data);
+void         soup_queue_message        (SoupMessage          *req);
 
 void         soup_queue_connect_cb     (SoupContext          *ctx,
 					SoupKnownErrorCode    err,

@@ -76,7 +76,7 @@ soup_queue_error_cb (SoupMessage *req)
 
 	case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
 	case SOUP_MESSAGE_STATUS_READING_HEADERS:
-		uri = soup_context_get_uri (req->context);
+		uri = soup_message_get_uri (req);
 
 		if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
 			/* FIXME: what does this really do? */
@@ -247,7 +247,7 @@ soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 	SoupContext *ctx;
 	char *token;
 
-	ctx = proxy_auth ? soup_get_proxy () : msg->context;
+	ctx = proxy_auth ? soup_get_proxy () : msg->priv->context;
 
 	auth = soup_context_lookup_auth (ctx, msg);
 	if (!auth)
@@ -340,7 +340,7 @@ soup_queue_get_request_header_cb (SoupMessage *req, GString *header)
 
 	hdrs.out = header;
 	proxy = soup_get_proxy ();
-	suri = soup_context_get_uri (req->context);
+	suri = soup_message_get_uri (req);
 
 	if (!g_strcasecmp (req->method, "CONNECT")) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -431,7 +431,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 		else
 			phrase = "Unable to create data channel";
 
-		if (ctx != req->context)
+		if (ctx != req->priv->context)
 			soup_message_set_error_full (
 				req, 
 				SOUP_ERROR_CANT_CONNECT_PROXY,
@@ -478,7 +478,8 @@ proxy_https_connect (SoupContext    *proxy,
 	    proxy_proto != SOUP_PROTOCOL_HTTPS) 
 		return FALSE;
 
-	connect_msg = soup_message_new (dest_ctx, SOUP_METHOD_CONNECT);
+	connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
+						 soup_context_get_uri (dest_ctx));
 	soup_message_set_connection (connect_msg, conn);
 	soup_message_add_handler (connect_msg, 
 				  SOUP_HANDLER_POST_BODY,
@@ -499,16 +500,16 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 	 * Only attempt proxy connect if the connection's context is different
 	 * from the requested context, and if the connection is new 
 	 */
-	if (ctx == req->context || !soup_connection_is_new (conn))
+	if (ctx == req->priv->context || !soup_connection_is_new (conn))
 		return FALSE;
 
 	proto = soup_context_get_uri (ctx)->protocol;
-	dest_proto = soup_context_get_uri (req->context)->protocol;
+	dest_proto = soup_context_get_uri (req->priv->context)->protocol;
 	
 	/* Handle HTTPS tunnel setup via proxy CONNECT request. */
 	if (dest_proto == SOUP_PROTOCOL_HTTPS) {
 		/* Syncronously send CONNECT request */
-		if (!proxy_https_connect (ctx, conn, req->context)) {
+		if (!proxy_https_connect (ctx, conn, req->priv->context)) {
 			soup_message_set_error_full (
 				req, 
 				SOUP_ERROR_CANT_CONNECT_PROXY,
@@ -546,7 +547,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		break;
 
 	case SOUP_ERROR_CANT_RESOLVE:
-		if (ctx == req->context)
+		if (ctx == req->priv->context)
 			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE);
 		else
 			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE_PROXY);
@@ -554,7 +555,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		break;
 
 	default:
-		if (ctx == req->context)
+		if (ctx == req->priv->context)
 			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
 		else
 			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT_PROXY);
@@ -623,7 +624,7 @@ soup_idle_handle_new_requests (gpointer unused)
 			continue;
 
 		proxy = soup_get_proxy ();
-		ctx = proxy ? proxy : req->context;
+		ctx = proxy ? proxy : req->priv->context;
 
 		req->priv->status = SOUP_MESSAGE_STATUS_CONNECTING;
 
@@ -660,61 +661,12 @@ soup_queue_initialize (void)
 }
 
 void 
-soup_queue_message (SoupMessage    *req,
-		    SoupCallbackFn  callback, 
-		    gpointer        user_data)
+soup_queue_message (SoupMessage *req)
 {
-	g_return_if_fail (req != NULL);
-
-	req->priv->callback = callback;
-	req->priv->user_data = user_data;
-
-	if (!req->context) {
-		soup_message_set_error_full (req, 
-					     SOUP_ERROR_CANCELLED,
-					     "Attempted to queue a message "
-					     "with no destination context");
-		soup_message_issue_callback (req);
-		return;
-	}
-
-	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
-		soup_message_cleanup (req);
-
-	switch (req->response.owner) {
-	case SOUP_BUFFER_USER_OWNED:
-		soup_message_set_error_full (req, 
-					     SOUP_ERROR_CANCELLED,
-					     "Attempted to queue a message "
-					     "with a user owned response "
-					     "buffer.");
-		soup_message_issue_callback (req);
-		return;
-	case SOUP_BUFFER_SYSTEM_OWNED:
-		g_free (req->response.body);
-		break;
-	case SOUP_BUFFER_STATIC:
-		break;
-	}
-
-	req->response.owner = 0;
-	req->response.body = NULL;
-	req->response.length = 0;
-
-	soup_message_clear_headers (req->response_headers);
-
-	req->errorcode = 0;
-	req->errorclass = 0;
-
-	if (req->errorphrase) {
-		g_free ((gchar *) req->errorphrase);
-		req->errorphrase = NULL;
-	}
+	g_return_if_fail (SOUP_IS_MESSAGE (req));
 
 	req->priv->status = SOUP_MESSAGE_STATUS_QUEUED;
-
 	soup_queue_add_request (req);
-
 	soup_queue_initialize ();
 }
 

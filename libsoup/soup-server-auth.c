@@ -228,7 +228,7 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 		if (!uri)
 			goto DIGEST_AUTH_FAIL;
 
-		req_uri = soup_context_get_uri (msg->context);
+		req_uri = soup_message_get_uri (msg);
 
 		dig_uri = soup_uri_new (uri);
 		if (dig_uri) {

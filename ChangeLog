@@ -1,3 +1,49 @@
+2003-08-25  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message.c (soup_message_new): Take a uri string
+	instead of a context. Also, swap the args (so the method comes
+	before the URI, just like in the protocol).
+	(soup_message_new_from_uri): Like soup_messgae_new, but takes a
+	SoupUri instead of a string
+	(soup_message_set_request, soup_message_set_response): Replace
+	soup_message_new_full.
+	(cleanup_message): Was soup_message_cleanup, but is static now.
+	(queue_message): Do the pre-queuing message cleanup here instead
+	of in soup_queue_message.
+	(soup_message_queue): Set the callback and user_data, then call
+	queue_message.
+	(requeue_read_error, requeue_read_finished, soup_message_requeue):
+	Use queue_message
+	(soup_message_get_uri): Replaces soup_message_get_context.
+
+	* libsoup/soup-message.h (SoupMessage): Remove msg->context. (It's
+	part of SoupMessagePrivate now)
+
+	* libsoup/soup-context.c: #include soup-message-private
+	(soup_context_from_uri): constify the uri arg.
+
+	* libsoup/soup-queue.c: Various context/uri fixes
+	(proxy_https_connect): Use soup_message_new_from_uri.
+	(soup_queue_message): Drastically simplified since most of the
+	work is in soup-messsage.c:queue_message() now
+
+	* libsoup/soup-auth-digest.c (compute_response,
+	get_authorization): Use soup_message_get_uri.
+
+	* libsoup/soup-server-auth.c (parse_digest): Likewise
+
+	* libsoup/soup-server.c (call_handler): Likewise
+
+	* tests/simple-httpd.c (server_callback): Likewise.
+
+	* tests/simple-proxy.c (server_callback): Likewise
+
+	* tests/get.c (got_url): Likewise.
+	(get_url): Update soup_message_new usage.
+
+	* tests/auth-test.c: #include soup-message-private. Update for
+	context changes and soup_message_new change.
+
 2003-08-22  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-private.h: New file containing

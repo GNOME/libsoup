@@ -369,7 +369,7 @@ call_handler (SoupMessage *req)
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (req));
 
 	server = soup_server_message_get_server (SOUP_SERVER_MESSAGE (req));
-	handler_path = soup_context_get_uri (req->context)->path;
+	handler_path = soup_message_get_uri (req)->path;
 
 	hand = soup_server_get_handler (server, handler_path);
 	if (!hand) {
@@ -415,7 +415,7 @@ call_handler (SoupMessage *req)
 	}
 
 	if (hand->callback) {
-		const SoupUri *uri = soup_context_get_uri (req->context);
+		const SoupUri *uri = soup_message_get_uri (req);
 
 		SoupServerContext serverctx = {
 			req,

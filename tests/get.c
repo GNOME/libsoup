@@ -100,10 +100,8 @@ got_url (SoupMessage *msg, gpointer uri)
 	int fd, i;
 	GPtrArray *hrefs;
 	const char *header;
-	SoupContext *ctx;
 
-	ctx = soup_message_get_context (msg);
-	name = soup_context_get_uri (ctx)->path;
+	name = soup_message_get_uri (msg)->path;
 	if (strncmp (base_uri->path, name, strlen (base_uri->path)) != 0) {
 		fprintf (stderr, "  Error: not under %s\n", base_uri->path);
 		goto DONE;
@@ -157,7 +155,6 @@ static void
 get_url (const char *url)
 {
 	char *url_to_get, *slash, *name;
-	SoupContext *ctx;
 	SoupMessage *msg;
 	int fd;
 
@@ -188,13 +185,11 @@ get_url (const char *url)
 		close (fd);
 	}
 
-	ctx = soup_context_get (url_to_get);
-	msg = soup_message_new (ctx, SOUP_METHOD_GET);
+	msg = soup_message_new (SOUP_METHOD_GET, url_to_get);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	pending++;
 	soup_message_queue (msg, got_url, soup_uri_new (url));
-	g_object_unref (ctx);
 	g_free (url_to_get);
 }
 

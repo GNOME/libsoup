@@ -6,6 +6,9 @@
 #ifndef SOUP_MESSAGE_PRIVATE_H
 #define SOUP_MESSAGE_PRIVATE_H 1
 
+#include <libsoup/soup-message.h>
+#include <libsoup/soup-context.h>
+
 typedef enum {
 	SOUP_MESSAGE_STATUS_IDLE,
 	SOUP_MESSAGE_STATUS_QUEUED,
@@ -53,15 +56,25 @@ struct SoupMessagePrivate {
 
 	SoupHttpVersion    http_version;
 
+	SoupContext       *context;
 	SoupConnection    *connection;
 	SoupSocket        *socket;
 };
 
-void     soup_message_issue_callback (SoupMessage      *req);
-void     soup_message_run_handlers   (SoupMessage      *msg,
-				      SoupHandlerPhase  invoke_phase);
+void             soup_message_issue_callback (SoupMessage      *req);
+void             soup_message_run_handlers   (SoupMessage      *msg,
+					      SoupHandlerPhase  invoke_phase);
 
-void     soup_message_cleanup        (SoupMessage      *req);
+void             soup_message_cleanup        (SoupMessage      *req);
+
+gboolean         soup_message_is_keepalive   (SoupMessage      *msg);
+
+void             soup_message_set_context    (SoupMessage      *msg,
+					      SoupContext      *new_ctx);
+void             soup_message_set_connection (SoupMessage      *msg,
+					      SoupConnection   *conn);
+SoupConnection  *soup_message_get_connection (SoupMessage      *msg);
+SoupSocket      *soup_message_get_socket     (SoupMessage      *msg);
 
 
 typedef void (*SoupMessageReadHeadersFn) (SoupMessage          *msg,

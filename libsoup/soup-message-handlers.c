@@ -266,7 +266,7 @@ authorize_handler (SoupMessage *msg, gpointer proxy)
 {
 	SoupContext *ctx;
 
-	ctx = proxy ? soup_get_proxy () : msg->context;
+	ctx = proxy ? soup_get_proxy () : msg->priv->context;
 	if (soup_context_update_auth (ctx, msg))
 		soup_message_requeue (msg);
 	else {
@@ -288,7 +288,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT)
 		return;
 
-	old_uri = soup_context_get_uri (msg->context);
+	old_uri = soup_message_get_uri (msg);
 
 	new_loc = soup_message_get_header (msg->response_headers, "Location");
 	if (!new_loc)
