@@ -457,6 +457,7 @@ soup_auth_new_digest (void)
 	digest = g_new0 (SoupAuthDigest, 1);
 	auth = (SoupAuth *) digest;
 	auth->type = SOUP_AUTH_DIGEST;
+	auth->compare_func = digest_compare_func;
 	auth->parse_func = digest_parse_func;
 	auth->auth_func = digest_auth_func;
 	auth->free_func = digest_free;
