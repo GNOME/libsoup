@@ -1,3 +1,8 @@
+2002-05-27  JP Rosevear  <jpr@ximian.com>
+
+	* configure.in: see if we can handle the case where glib2 is not
+	installed and we are in maintainer mode
+
 2002-05-24  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-server.c (read_headers_cb): According to RFC

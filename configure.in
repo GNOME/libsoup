@@ -77,7 +77,8 @@ enable_glib2=no)
 AC_MSG_RESULT($enable_glib2)
 
 if test x"$enable_glib2" != xno; then
-	AM_PATH_GLIB_2_0(2.0.0,, AC_MSG_ERROR([Cannot find glib 2.0]))
+	ifdef(PKG_CHECK_MODULES,PKG_CHECK_MODULES,AC_MSG_ERROR(Unable to find pkg-config))
+	ifdef(AM_PATH_GLIB_2_0,AM_PATH_GLIB_2_0(2.0.0),AC_MSG_ERROR(Unable to find glib 2.0))
 	GLIB_CFLAGS=`$PKG_CONFIG --cflags glib-2.0`
 	GLIB_LIBS=`$PKG_CONFIG --libs glib-2.0`
 	GMODULE_LIBS=`$PKG_CONFIG --libs gmodule-2.0`
