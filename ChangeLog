@@ -1,3 +1,23 @@
+2001-05-23  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-typecodes-c.c
+	(wsdl_typecode_write_c_mm_list):
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c
+	(wsdl_soap_set_list_param):
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c
+	(wsdl_soap_marshal_list_param): Eliminate the extra layer of
+	indirection for list items that are naturally pointers.
+
+	* tests/test-wsdl-runtime.c: Update list tests
+
+	* src/soup-wsdl-runtime/wsdl-typecodes.c: 
+	* src/soup-wsdl-runtime/wsdl-schema.c: 
+	* src/soup-wsdl/wsdl-trace.c: 
+	* src/soup-wsdl/wsdl-soap-emit.c: 
+	* src/soup-wsdl/wsdl-parse.c: 
+	* src/soup-wsdl/wsdl-describe.c: 
+	* docs/reference/soup-sections.txt: Started documenting the code
+
 2001-05-22  Alex Graveley  <alex@ximian.com>
 
 	* RELEASE (ANNOUNCE): Added. All release announcements should be

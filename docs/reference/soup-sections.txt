@@ -176,6 +176,7 @@ soup_server_init
 
 <SECTION>
 <FILE>soup-socket</FILE>
+SOUP_SERVER_ANY_PORT
 SoupAddress
 SoupAddressNewId
 SoupAddressStatus
@@ -215,6 +216,9 @@ soup_socket_unref
 soup_socket_get_iochannel
 soup_socket_get_address
 soup_socket_get_port
+soup_socket_server_new
+soup_socket_server_accept
+soup_socket_server_try_accept
 </SECTION>
 
 <SECTION>
@@ -279,8 +283,7 @@ soup_env_clear_all
 
 <SECTION>
 <FILE>wsdl-describe</FILE>
-OFFSET
-indent
+wsdl_describe_iof_t
 wsdl_describe_types
 wsdl_describe_message_part
 wsdl_describe_message
@@ -334,11 +337,7 @@ wsdl_free_definitions
 
 <SECTION>
 <FILE>wsdl-parse</FILE>
-wsdl_state_t
 wsdl_parse
-wsdl_parse_warning
-wsdl_parse_error
-wsdl_parse_fatal
 </SECTION>
 
 <SECTION>
@@ -380,7 +379,6 @@ WSDL_LOG_DOMAIN_COMMON
 WSDL_LOG_DOMAIN_PARSER
 WSDL_LOG_DOMAIN_THREAD
 WSDL_LOG_DOMAIN_MAIN
-WSDL_LOG_DOMAIN_GLIB
 wsdl_parse_debug_domain_string
 wsdl_parse_debug_level_string
 wsdl_debug
@@ -468,8 +466,8 @@ WSDL_TC_glib_uint32_struct
 WSDL_TC_glib_float_struct
 WSDL_TC_glib_double_struct
 WSDL_TC_glib_string_struct
-wsdl_typecode_kind_name
 wsdl_typecode_kind
+wsdl_typecode_element_kind
 wsdl_typecode_is_simple
 wsdl_typecode_member_count
 wsdl_typecode_member_name
