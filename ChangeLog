@@ -1,3 +1,17 @@
+2002-02-17  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_inetaddr_cb):
+	Check result from soup_socket_new.
+
+	* src/libsoup/soup-queue.c (soup_idle_handle_new_requests): Check
+	result from soup_context_get_connection.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Don't
+	access 'data' after free.
+	(soup_context_get_connection): Check return from
+	soup_socket_connect, as a null result means our callback has been
+	issued and our state freed.
+
 2002-02-15  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_shutdown): Only

@@ -674,12 +674,17 @@ soup_idle_handle_new_requests (gpointer unused)
 		if (req->connection && 
 		    soup_connection_is_keep_alive (req->connection))
 			start_request (ctx, req);
-		else
-			req->priv->connect_tag =
+		else {
+			gpointer connect_tag;
+
+			connect_tag = 
 				soup_context_get_connection (
 					ctx, 
 					soup_queue_connect_cb, 
 					req);
+			if (connect_tag)
+				req->priv->connect_tag = connect_tag;
+		}
 	}
 
 	soup_queue_idle_tag = 0;

@@ -324,7 +324,7 @@ soup_context_connect_cb (SoupSocket              *socket,
 		break;
 	default:
 		connection_count--;
-		soup_context_unref (data->ctx);
+		soup_context_unref (ctx);
 
 		if (status == SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE)
 			(*cb) (ctx, 
@@ -473,13 +473,20 @@ soup_context_get_connection (SoupContext           *ctx,
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
 	else {
+		gpointer connect_tag;
+
 		connection_count++;
 
-		data->connect_tag =
-			soup_socket_connect (ctx->uri->host,
-					     ctx->uri->port,
-					     soup_context_connect_cb,
-					     data);
+		connect_tag = soup_socket_connect (ctx->uri->host,
+						   ctx->uri->port,
+						   soup_context_connect_cb,
+						   data);
+		/* 
+		 * NOTE: soup_socket_connect can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (connect_tag)
+			data->connect_tag = connect_tag;
 	}
 
 	return data;

@@ -335,10 +335,20 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
+		gpointer tcp_id;
+
 		state->inetaddr_id = NULL;
-		state->tcp_id = soup_socket_new (inetaddr,
-						 soup_socket_connect_tcp_cb,
-						 state);
+
+		tcp_id = soup_socket_new (inetaddr,
+					  soup_socket_connect_tcp_cb,
+					  state);
+		/* 
+		 * NOTE: soup_socket_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (tcp_id)
+			state->tcp_id = tcp_id;
+
 		soup_address_unref (inetaddr);
 	} else {
 		SoupSocketConnectFn func = state->func;
@@ -392,7 +402,7 @@ soup_socket_connect (const gchar*        hostname,
 			       state);
 
 	/* 
-	 * Note: soup_address_new can fail immediately and call our callback
+	 * NOTE: soup_address_new can fail immediately and call our callback
 	 * which will delete the state. 
 	 */
 	if (!id) 
