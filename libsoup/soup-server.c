@@ -78,7 +78,7 @@ soup_server_free (SoupServer *serv)
 		soup_socket_unref (serv->sock);
 
 	g_hash_table_foreach_remove (serv->handlers, 
-				     (GHFunc) free_handler, 
+				     (GHRFunc) free_handler, 
 				     NULL);
 	g_hash_table_destroy (serv->handlers);
 
@@ -130,9 +130,10 @@ write_done_cb (gpointer user_data)
 }
 
 static SoupTransferDone
-read_headers_cb (const GString *headers,
-		 guint         *content_len,
-		 gpointer       user_data)
+read_headers_cb (const GString        *headers,
+		 SoupTransferEncoding *encoding,
+		 gint                 *content_len,
+		 gpointer              user_data)
 {
 	SoupMessage *msg = user_data;
 	SoupContext *ctx;
@@ -163,12 +164,13 @@ read_headers_cb (const GString *headers,
 				       "Transfer-Encoding");
 
 	if (length) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = atoi (length);
 		if (*content_len < 0) 
 			goto THROW_MALFORMED_HEADER;
 	} else if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
-			*content_len = SOUP_TRANSFER_CHUNKED;
+			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			g_warning ("Unknown encoding type in HTTP request.");
 			goto THROW_MALFORMED_HEADER;

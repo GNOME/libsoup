@@ -117,9 +117,10 @@ soup_parse_headers (const GString   *headers,
 }
 
 static SoupTransferDone
-soup_queue_read_headers_cb (const GString *headers,
-			    guint         *content_len,
-			    gpointer       user_data)
+soup_queue_read_headers_cb (const GString        *headers,
+                            SoupTransferEncoding *encoding,
+			    gint                 *content_len,
+			    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
 
@@ -139,8 +140,11 @@ soup_queue_read_headers_cb (const GString *headers,
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->connection, FALSE);
 
-	if (!g_strcasecmp (req->method, "HEAD")) 
+	if (!g_strcasecmp (req->method, "HEAD")) {
+                *encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+                *content_len = 0;
 		goto RUN_HANDLERS;
+	}
 
 	/* 
 	 * Handle Content-Length or Chunked encoding 
@@ -151,6 +155,7 @@ soup_queue_read_headers_cb (const GString *headers,
 				       "Transfer-Encoding");
 
 	if (length) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = atoi (length);
 		if (*content_len < 0) {
 			soup_message_set_error_full (req, 
@@ -161,7 +166,7 @@ soup_queue_read_headers_cb (const GString *headers,
 	}
 	else if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
-			*content_len = SOUP_TRANSFER_CHUNKED;
+			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			soup_message_set_error_full (
 				req, 

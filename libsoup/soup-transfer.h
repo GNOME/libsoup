@@ -20,11 +20,17 @@ typedef enum {
 	SOUP_TRANSFER_CONTINUE,
 } SoupTransferDone;
 
-#define SOUP_TRANSFER_CHUNKED -1
+typedef enum {
+	SOUP_TRANSFER_UNKNOWN = 0,
+	SOUP_TRANSFER_CHUNKED,
+	SOUP_TRANSFER_CONTENT_LENGTH,
+} SoupTransferEncoding;
 
-typedef SoupTransferDone (*SoupReadHeadersDoneFn) (const GString *headers,
-						   guint         *content_len,
-						   gpointer       user_data);
+typedef SoupTransferDone (*SoupReadHeadersDoneFn) (
+					const GString        *headers,
+					SoupTransferEncoding *encoding,
+					gint                 *content_len,
+					gpointer              user_data);
 
 typedef SoupTransferDone (*SoupReadChunkFn) (const SoupDataBuffer *data,
 					     gpointer              user_data);

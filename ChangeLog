@@ -1,3 +1,21 @@
+2001-10-18  Alex Graveley  <alex@ximian.com>
+
+        * src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Set
+        encoding out param appropriately.
+        * src/libsoup/soup-server.c (soup_httpd_read_headers_cb): Ditto.
+
+        * src/libsoup/soup-transfer.h: Add SoupTransferEncoding enum.
+
+        * src/libsoup/soup-transfer.c (soup_transfer_read_error_cb):
+        Handle unknown encoding by issuing the read_done callback when the
+        connection is closed.
+        (issue_chunk_callback): Pass in a cancelled arg to simplify code.
+        (read_unknown): Impl. Same as read_content_length () except never
+        return TRUE.
+        (soup_transfer_read_cb): Make headers_done_cb take an encoding out
+        parameter to avoid magic values in content_length. Switch on
+        encoding to see if read completed. Use issue_final_callback ().
+
 2001-10-18  JP Rosevear  <jpr@ximian.com>
 
 	* src/libsoup/soup-transfer.c (remove_block_at_index): the array
