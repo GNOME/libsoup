@@ -59,7 +59,8 @@ soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer user_
 {
 	SoupSSLInfo *ssl_info = user_data;
 
-	waitpid (ssl_info->ppid, NULL, 0);
+	while (waitpid (ssl_info->ppid, NULL, 0) == -1 && errno == EINTR)
+		;
 	
 	g_io_channel_unref (ssl_info->real_sock);
 	g_free (ssl_info);

@@ -696,7 +696,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 		g_source_remove (state->watch);
 		close (state->fd);
-		waitpid (state->pid, &ret, 0);
+		while (waitpid (state->pid, &ret, 0) == -1 && errno == EINTR)
+			;
 
 		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) 
 			goto ERROR;
@@ -736,7 +737,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 		close (state->fd);
 
 		/* FIXME: Wait for HUP signal before doing this */
-		waitpid (state->pid, NULL, 0);
+		while (waitpid (state->pid, NULL, 0) == -1 && errno == EINTR)
+			;
 	}
 
 	g_hash_table_remove (lookup_hash, state->name);
@@ -968,7 +970,8 @@ soup_address_new (const gchar* name, SoupAddressNewFn func, gpointer data)
 		 * Wait for the SIGSTOP from PTRACE_ATTACH to arrive at the
 		 * parent.  
 		 */
-		waitpid (getppid (), NULL, WUNTRACED);
+		while (waitpid (getppid (), NULL, WUNTRACED) == -1 && errno == EINTR)
+			;
 
 		if (ptrace (SOUP_PTRACE_DETACH, getppid (), NULL, NULL) == -1)
 			g_warning ("ptrace: Detach failed: %s", 
@@ -1065,7 +1068,8 @@ soup_address_new_cancel (SoupAddressNewId id)
 		g_source_remove (state->watch);
 		close (state->fd);
 		kill (state->pid, SIGKILL);
-		waitpid (state->pid, NULL, 0);
+		while (waitpid (state->pid, NULL, 0) == -1 && errno == EINTR)
+			;
 
 		g_free (state);
 	}
@@ -1208,7 +1212,8 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 					state->data);
 
 			close (state->fd);
-			waitpid (state->pid, NULL, 0);
+			while (waitpid (state->pid, NULL, 0) == -1 && errno == EINTR)
+				;
 			g_free (state);
 			return FALSE;
 		}
@@ -1364,7 +1369,8 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 
 	close (state->fd);
 	kill (state->pid, SIGKILL);
-	waitpid (state->pid, NULL, 0);
+	while (waitpid (state->pid, NULL, 0) == -1 && errno == EINTR)
+		;
 
 	g_free(state);
 }
