@@ -198,9 +198,9 @@ soup_finish_read (SoupMessage *req)
 }
 
 static gboolean 
-soup_queue_read_async (GIOChannel* iochannel, 
-		       GIOCondition condition, 
-		       SoupMessage *req)
+soup_queue_read_cb (GIOChannel* iochannel, 
+		    GIOCondition condition, 
+		    SoupMessage *req)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
 	gint bytes_read = 0;
@@ -252,9 +252,9 @@ soup_queue_read_async (GIOChannel* iochannel,
 }
 
 static gboolean 
-soup_queue_error_async (GIOChannel* iochannel, 
-			GIOCondition condition, 
-			SoupMessage *req)
+soup_queue_error_cb (GIOChannel* iochannel, 
+		     GIOCondition condition, 
+		     SoupMessage *req)
 {
 	gboolean conn_closed = soup_connection_is_keep_alive (req->priv->conn);
 
@@ -389,7 +389,7 @@ soup_get_request_header (SoupMessage *req)
 		NULL
 	};
 
-	header = hdrs.out = g_string_new ("");
+	header = hdrs.out = g_string_new (NULL);
 	proxy = soup_get_proxy ();
 	suri = soup_context_get_uri (req->context);
 
@@ -429,7 +429,7 @@ soup_get_request_header (SoupMessage *req)
 
 	/* Proxy-Authorization from the proxy Uri */
 	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
-		soup_encode_http_auth (soup_context_get_uri(proxy), 
+		soup_encode_http_auth (soup_context_get_uri (proxy), 
 				       header, 
 				       TRUE);
 
@@ -443,9 +443,9 @@ soup_get_request_header (SoupMessage *req)
 }
 
 static gboolean 
-soup_queue_write_async (GIOChannel* iochannel, 
-			GIOCondition condition, 
-			SoupMessage *req)
+soup_queue_write_cb (GIOChannel* iochannel, 
+		     GIOCondition condition, 
+		     SoupMessage *req)
 {
 	guint head_len, body_len, total_len, total_written, bytes_written;
 	GIOError error;
@@ -487,7 +487,7 @@ soup_queue_write_async (GIOChannel* iochannel,
 	}
 
 	if (errno != 0 || error != G_IO_ERROR_NONE) {
-		soup_queue_error_async (iochannel, G_IO_HUP, req);
+		soup_queue_error_cb (iochannel, G_IO_HUP, req);
 		goto DONE_WRITING;
 	}
 
@@ -498,7 +498,7 @@ soup_queue_write_async (GIOChannel* iochannel,
 		req->priv->read_tag = 
 			g_io_add_watch (iochannel, 
 					G_IO_IN, 
-					(GIOFunc) soup_queue_read_async, 
+					(GIOFunc) soup_queue_read_cb, 
 					req);
 		goto DONE_WRITING;
 	}
@@ -511,10 +511,10 @@ soup_queue_write_async (GIOChannel* iochannel,
 }
 
 static void
-soup_queue_connect (SoupContext          *ctx,
-		    SoupConnectErrorCode  err,
-		    SoupConnection       *conn,
-		    gpointer              user_data)
+soup_queue_connect_cb (SoupContext          *ctx,
+		       SoupConnectErrorCode  err,
+		       SoupConnection       *conn,
+		       gpointer              user_data)
 {
 	SoupMessage *req = user_data;
 	SoupProtocol proto;
@@ -531,7 +531,7 @@ soup_queue_connect (SoupContext          *ctx,
 		     proto == SOUP_PROTOCOL_SOCKS5)) {
 			soup_connect_socks_proxy (conn, 
 						  req->context, 
-						  soup_queue_connect,
+						  soup_queue_connect_cb,
 						  req);
 			return;
 		}
@@ -543,12 +543,12 @@ soup_queue_connect (SoupContext          *ctx,
 		req->priv->write_tag = 
 			g_io_add_watch (channel, 
 					G_IO_OUT, 
-					(GIOFunc) soup_queue_write_async, 
+					(GIOFunc) soup_queue_write_cb, 
 					req);
 		req->priv->error_tag = 
 			g_io_add_watch (channel, 
 					G_IO_HUP | G_IO_ERR | G_IO_NVAL, 
-					(GIOFunc) soup_queue_error_async, 
+					(GIOFunc) soup_queue_error_cb, 
 					req);
 
 		g_io_channel_unref (channel);
@@ -580,7 +580,7 @@ soup_idle_handle_new_requests (gpointer unused)
 		req->status = SOUP_STATUS_CONNECTING;
 		req->priv->connect_tag =
 			soup_context_get_connection (ctx, 
-						     soup_queue_connect, 
+						     soup_queue_connect_cb, 
 						     req);
 	}
 

@@ -215,9 +215,19 @@ soup_message_set_header (GHashTable  **hash,
 			 const gchar  *name,
 			 const gchar  *value) 
 {
+	gpointer old_name, old_value;
+
 	if (!*hash) 
 		*hash = g_hash_table_new (soup_str_case_hash, 
 					  soup_str_case_equal);
+	else if (g_hash_table_lookup_extended (*hash, 
+					       name, 
+					       &old_name, 
+					       &old_value)) {
+		g_hash_table_remove (*hash, name);
+		g_free (old_name);
+		g_free (old_value);
+	}
 
 	g_hash_table_insert (*hash, g_strdup (name), g_strdup (value));
 }

@@ -1,3 +1,29 @@
+2001-06-04  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-httpd.c: (ap_*) Add these empty Apache method
+	implementations so soup modules built using soup-apache can be
+	loaded into soup-http.
+	(main): Pass a SoupHttpdServerSock object representing a listening
+	server to soup_httpd_conn_accept.
+	(soup_httpd_finish_read): Return useful error explanations to
+	client when no SOAPAction header is specified, or no server handler for
+	the specified SOAPAction is found. 
+	(soup_httpd_message_construct): Lookup content-length
+	correctly. Free req_method and req_path.
+
+	* src/soup-core/soup-message.c (soup_message_set_header): if
+	overwriting an existing header, be sure
+	to free the old key and value.
+
+	* src/soup-core/soup-queue.c (soup_queue_read_async): rename to
+	(soup_queue_read_cb): this.
+	(soup_queue_error_async): rename to
+	(soup_queue_error_cb): this.
+	(soup_queue_write_async): rename to
+	(soup_queue_write_cb): this.
+	(soup_queue_connect): rename to
+	(soup_queue_connect_cb): this.
+
 2001-06-04  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-schema.c: A new error message
