@@ -85,15 +85,29 @@ static guint
 soup_context_uri_hash (gconstpointer key)
 {
 	const SoupUri *uri = key;
-	guint ret = 0;
+	guint ret;
 
-	ret += uri->protocol;
-	ret += g_str_hash (uri->path ? uri->path : "");
-	ret += g_str_hash (uri->querystring ? uri->querystring : "");
-	ret += g_str_hash (uri->user ? uri->user : "");
-	ret += g_str_hash (uri->passwd ? uri->passwd : "");
+	ret = uri->protocol;
+	if (uri->path)
+		ret += g_str_hash (uri->path);
+	if (uri->querystring)
+		ret += g_str_hash (uri->querystring);
+	if (uri->user)
+		ret += g_str_hash (uri->user);
+	if (uri->passwd)
+		ret += g_str_hash (uri->passwd);
 
 	return ret;
+}
+
+static inline gboolean
+parts_equal (const char *one, const char *two)
+{
+	if (!one && !two)
+		return TRUE;
+	if (!one || !two)
+		return FALSE;
+	return !strcmp (one, two);
 }
 
 /**
@@ -110,18 +124,18 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 	const SoupUri *one = v1;
 	const SoupUri *two = v2;
 
-	if (one->protocol == two->protocol &&
-	    !strcmp (one->path ? one->path : "",
-		     two->path ? two->path : "") &&
-	    !strcmp (one->querystring ? one->querystring : "",
-		     two->querystring ? two->querystring : "") &&
-	    !strcmp (one->user ? one->user : "",
-		     two->user ? two->user : "") &&
-	    !strcmp (one->passwd ? one->passwd : "",
-		     two->passwd ? two->passwd : ""))
-		return TRUE;
+	if (one->protocol != two->protocol)
+		return FALSE;
+	if (!parts_equal (one->path, two->path))
+		return FALSE;
+	if (!parts_equal (one->user, two->user))
+		return FALSE;
+	if (!parts_equal (one->passwd, two->passwd))
+		return FALSE;
+	if (!parts_equal (one->querystring, two->querystring))
+		return FALSE;
 
-	return FALSE;
+	return TRUE;
 }
 
 /**
