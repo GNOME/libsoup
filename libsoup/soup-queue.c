@@ -28,7 +28,7 @@ GSList *soup_active_requests = NULL;
 static guint soup_queue_idle_tag = 0;
 
 void 
-soup_queue_shutdown ()
+soup_queue_shutdown (void)
 {
         GSList *iter;
 

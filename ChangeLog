@@ -1,3 +1,34 @@
+2001-03-30  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-types-glib.c,
+	src/soup-wsdl/wsdl-soap-headers.c,
+	src/soup-wsdl/wsdl-soap-stubs.c: Rewrote much of the glib schema
+	code to handle structs with child structs, and lists.
+
+	* src/soup-wsdl/wsdl-thread.c (wsdl_thread_soap_parts): treat
+	message part "type" and "element" attributes as the same.
+	(wsdl_thread_soap_binding_operation): insist that soap:body elements
+	exist in operations.
+
+	* src/soup-wsdl/wsdl-parse.c (wsdl_parse_types): Moved more glib
+	schema logic to wsdl-types-glib.c
+
+	* src/soup-wsdl/wsdl-locate.c: Removed the glib schema locate
+	functions.
+
+	* src/soup-wsdl/wsdl-describe.c: Removed most of the glib schema
+	describe functions
+
+	* src/soup-wsdl/main.c: const-ified option string pointers.
+	(main): Call glib schema init helper functions. Moved "show doc"
+	option handler out of wsdl-parse.c to here.
+
+	* src/soup-core/soup-private.h, src/soup-core/soup-queue.c: fixed
+	prototype for soup_queue_shutdown to avoid warning
+
+	* configure.in: Went wild with gcc warning options, found
+	surprisingly few problems.
+
 2001-03-29  Rodrigo Moya <rodrigo@ximian.com>
 
 	* configure.in: add CFLAGS to apxs parameters, to output the

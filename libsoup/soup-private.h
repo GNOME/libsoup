@@ -128,7 +128,7 @@ gchar    *soup_base64_encode          (const gchar   *text,
 
 /* from soup-queue.c */
 
-void      soup_queue_shutdown         ();
+void      soup_queue_shutdown         (void);
 
 /* from soup-server.c */
 

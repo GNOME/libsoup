@@ -303,7 +303,11 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 	CFLAGS="$CFLAGS \
 	-Wall -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes \
 	-Wnested-externs -Wpointer-arith"
-	WSDL_CFLAGS="-Werror"
+
+	# -Wredundant-decls warns about libxml headers
+	# -Wwrite-strings warns when defining GDebugKey structs (solved by
+	# casting the strings in wsdl-trace.c and leaving out -Wcast-qual)
+	WSDL_CFLAGS="-Werror -W -Wundef -Wshadow -Wbad-function-cast -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wmissing-noreturn"
 fi
 
 AC_SUBST(WSDL_CFLAGS)
