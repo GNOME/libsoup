@@ -1,5 +1,10 @@
 2001-12-17  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): Use
+	RAND_status less often.
+
+2001-12-17  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_init): Implement
 	a simple PRNG seed if needed.
 

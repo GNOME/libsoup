@@ -221,16 +221,19 @@ soup_openssl_seed (void)
 		/* Seed with untouched stack (1024) */
 		RAND_seed (stack, sizeof (stack));
 
-		/* Seed with untouched heap (1024) */
-		if (RAND_status () == 0) {
-			heap = g_malloc (1024);
-			if (heap) 
-				RAND_seed (heap, 1024);
-			g_free (heap);
-		}
-	}
+		/* Quit now if we are adequately seeded */
+		if (RAND_status ()) 
+			return TRUE;
 
-	return RAND_status ();
+		/* Seed with untouched heap (1024) */
+		heap = g_malloc (1024);
+		if (heap) 
+			RAND_seed (heap, 1024);
+		g_free (heap);
+
+		return RAND_status ();
+	} else
+		return TRUE;
 }
 
 GIOChannel *
