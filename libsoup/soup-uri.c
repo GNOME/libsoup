@@ -55,7 +55,7 @@ SoupUri *
 soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 {
 	SoupUri *uri;
-	const char *end, *hash, *colon, *semi, *at, *slash, *question;
+	const char *end, *hash, *colon, *at, *slash, *question;
 	const char *p;
 
 	uri = g_new0 (SoupUri, 1);
@@ -107,22 +107,11 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 				colon = at;
 			}
 
-			semi = strchr (uri_string, ';');
-			if (semi && semi < colon &&
-			    !strncasecmp (semi, ";auth=", 6)) {
-				uri->authmech = g_strndup (semi + 6,
-							   colon - semi - 6);
-				soup_uri_decode (uri->authmech);
-			} else {
-				uri->authmech = NULL;
-				semi = colon;
-			}
-
-			uri->user = g_strndup (uri_string, semi - uri_string);
+			uri->user = g_strndup (uri_string, colon - uri_string);
 			soup_uri_decode (uri->user);
 			uri_string = at + 1;
 		} else
-			uri->user = uri->passwd = uri->authmech = NULL;
+			uri->user = uri->passwd = NULL;
 
 		/* Find host and port. */
 		colon = strchr (uri_string, ':');
@@ -159,7 +148,6 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	else if (base && !uri->protocol) {
 		uri->protocol = base->protocol;
 		uri->user = g_strdup (base->user);
-		uri->authmech = g_strdup (base->authmech);
 		uri->passwd = g_strdup (base->passwd);
 		uri->host = g_strdup (base->host);
 		uri->port = base->port;
@@ -285,10 +273,6 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 		g_string_append (str, "//");
 		if (uri->user) {
 			append_uri_encoded (str, uri->user, ":;@/");
-			if (uri->authmech && *uri->authmech) {
-				g_string_append (str, ";auth=");
-				append_uri_encoded (str, uri->authmech, ":@/");
-			}
 			g_string_append_c (str, '@');
 		}
 		append_uri_encoded (str, uri->host, ":/");
@@ -328,7 +312,6 @@ soup_uri_copy (const SoupUri *uri)
 	dup = g_new0 (SoupUri, 1);
 	dup->protocol = uri->protocol;
 	dup->user     = g_strdup (uri->user);
-	dup->authmech = g_strdup (uri->authmech);
 	dup->passwd   = g_strdup (uri->passwd);
 	dup->host     = g_strdup (uri->host);
 	dup->port     = uri->port;
@@ -370,7 +353,6 @@ soup_uri_equal (const SoupUri *u1, const SoupUri *u2)
 	if (u1->protocol != u2->protocol              ||
 	    u1->port     != u2->port                  ||
 	    !parts_equal (u1->user, u2->user)         ||
-	    !parts_equal (u1->authmech, u2->authmech) ||
 	    !parts_equal (u1->passwd, u2->passwd)     ||
 	    !parts_equal (u1->host, u2->host)         ||
 	    !parts_equal (u1->path, u2->path)         ||
@@ -387,7 +369,6 @@ soup_uri_free (SoupUri *uri)
 	g_return_if_fail (uri != NULL);
 
 	g_free (uri->user);
-	g_free (uri->authmech);
 	g_free (uri->passwd);
 	g_free (uri->host);
 	g_free (uri->path);
@@ -395,23 +376,6 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri->fragment);
 
 	g_free (uri);
-}
-
-void
-soup_uri_set_auth  (SoupUri    *uri, 
-		    const char *user, 
-		    const char *passwd, 
-		    const char *authmech)
-{
-	g_return_if_fail (uri != NULL);
-
-	g_free (uri->user);
-	g_free (uri->passwd);
-	g_free (uri->authmech);
-
-	uri->user = g_strdup (user);
-	uri->passwd = g_strdup (passwd);
-	uri->authmech = g_strdup (authmech);
 }
 
 /* From RFC 2396 2.4.3, the characters that should always be encoded */

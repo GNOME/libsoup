@@ -15,6 +15,7 @@
 
 #include "soup-session.h"
 #include "soup-connection.h"
+#include "soup-marshal.h"
 #include "soup-message-queue.h"
 #include "soup-private.h"
 
@@ -54,6 +55,14 @@ static gboolean run_queue (SoupSession *session, gboolean try_pruning);
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
+
+enum {
+	AUTHENTICATE,
+	REAUTHENTICATE,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
 init (GObject *object)
@@ -96,6 +105,28 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+
+	/* signals */
+	signals[AUTHENTICATE] =
+		g_signal_new ("authenticate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupSessionClass, authenticate),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
+	signals[REAUTHENTICATE] =
+		g_signal_new ("reauthenticate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupSessionClass, reauthenticate),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
 }
 
 SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
@@ -219,11 +250,6 @@ invalidate_auth (SoupSessionHost *host, SoupAuth *auth)
 	char *realm;
 	gpointer key, value;
 
-	/* Try to just clean up the auth without removing it. */
-	if (soup_auth_invalidate (auth))
-		return;
-
-	/* Nope, need to remove it completely */
 	realm = g_strdup_printf ("%s:%s",
 				 soup_auth_get_scheme_name (auth),
 				 soup_auth_get_realm (auth));
@@ -238,28 +264,24 @@ invalidate_auth (SoupSessionHost *host, SoupAuth *auth)
 }
 
 static gboolean
-authenticate_auth (SoupAuth *auth, SoupMessage *msg)
+authenticate_auth (SoupSession *session, SoupAuth *auth,
+		   SoupMessage *msg, gboolean prior_auth_failed)
 {
 	const SoupUri *uri = soup_message_get_uri (msg);
 
-	if (!uri->user && soup_auth_fn) {
-		(*soup_auth_fn) (soup_auth_get_scheme_name (auth),
-				 (SoupUri *) uri,
-				 soup_auth_get_realm (auth), 
-				 soup_auth_fn_user_data);
+	if (uri->passwd && !prior_auth_failed) {
+		soup_auth_authenticate (auth, uri->user, uri->passwd);
+		return TRUE;
 	}
 
-	if (!uri->user)
-		return FALSE;
-
-	soup_auth_authenticate (auth, uri->user, uri->passwd);
-	return TRUE;
+	g_signal_emit (session, signals[prior_auth_failed ? REAUTHENTICATE : AUTHENTICATE], 0, auth, msg);
+	return soup_auth_is_authenticated (auth);
 }
 
 static gboolean
 update_auth_internal (SoupSession *session, SoupMessage *msg,
 		      const GSList *headers, gboolean proxy,
-		      gboolean prior_auth_failed)
+		      gboolean got_unauthorized)
 {
 	SoupSessionHost *host;
 	SoupAuth *new_auth, *prior_auth, *old_auth;
@@ -268,6 +290,7 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	const char *path;
 	char *realm;
 	GSList *pspace, *p;
+	gboolean prior_auth_failed = FALSE;
 
 	host = get_host_for_message (session, msg);
 	g_return_val_if_fail (host != NULL, FALSE);
@@ -276,7 +299,7 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	 * there's no way we'll be able to authenticate.
 	 */
 	msg_uri = soup_message_get_uri (msg);
-	new_auth = soup_auth_new_from_header_list (headers, msg_uri->authmech);
+	new_auth = soup_auth_new_from_header_list (headers);
 	if (!new_auth)
 		return FALSE;
 
@@ -286,20 +309,20 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	    G_OBJECT_TYPE (prior_auth) == G_OBJECT_TYPE (new_auth) &&
 	    !strcmp (soup_auth_get_realm (prior_auth),
 		     soup_auth_get_realm (new_auth))) {
-		g_object_unref (new_auth);
-		if (prior_auth_failed) {
-			/* The server didn't like the username/password
-			 * we provided before.
+		if (!got_unauthorized) {
+			/* The user is just trying to preauthenticate
+			 * using information we already have, so
+			 * there's nothing more that needs to be done.
 			 */
-			invalidate_auth (host, prior_auth);
-			return FALSE;
-		} else {
-			/* The user is trying to preauthenticate using
-			 * information we already have, so there's nothing
-			 * that needs to be done.
-			 */
+			g_object_unref (new_auth);
 			return TRUE;
 		}
+
+		/* The server didn't like the username/password we
+		 * provided before. Invalidate it and note this fact.
+		 */
+		invalidate_auth (host, prior_auth);
+		prior_auth_failed = TRUE;
 	}
 
 	if (!host->auth_realms) {
@@ -338,10 +361,13 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	} else 
 		g_hash_table_insert (host->auths, realm, new_auth);
 
-	/* Try to authenticate if needed. */
-	if (!soup_auth_is_authenticated (new_auth))
-		return authenticate_auth (new_auth, msg);
+	/* If we need to authenticate, try to do it. */
+	if (!soup_auth_is_authenticated (new_auth)) {
+		return authenticate_auth (session, new_auth,
+					  msg, prior_auth_failed);
+	}
 
+	/* Otherwise we're good. */
 	return TRUE;
 }
 
@@ -371,7 +397,6 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
 	const char *new_loc;
-	const SoupUri *old_uri;
 	SoupUri *new_uri;
 
 	new_loc = soup_message_get_header (msg->response_headers, "Location");
@@ -380,15 +405,6 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	new_uri = soup_uri_new (new_loc);
 	if (!new_uri)
 		goto INVALID_REDIRECT;
-
-	old_uri = soup_message_get_uri (msg);
-
-	/* Copy auth info from original URI. */
-	if (old_uri->user && !new_uri->user)
-		soup_uri_set_auth (new_uri,
-				   old_uri->user,
-				   old_uri->passwd,
-				   old_uri->authmech);
 
 	soup_message_set_uri (msg, new_uri);
 	soup_uri_free (new_uri);
@@ -436,7 +452,7 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	if (!auth)
 		return;
 	if (!soup_auth_is_authenticated (auth) &&
-	    !authenticate_auth (auth, msg))
+	    !authenticate_auth (session, auth, msg, FALSE))
 		return;
 
 	token = soup_auth_get_authorization (auth, msg);

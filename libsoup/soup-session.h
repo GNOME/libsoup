@@ -6,6 +6,8 @@
 #ifndef SOUP_SESSION_H
 #define SOUP_SESSION_H 1
 
+#include <libsoup/soup-types.h>
+#include <libsoup/soup-auth.h>
 #include <libsoup/soup-message.h>
 
 #define SOUP_TYPE_SESSION            (soup_session_get_type ())
@@ -25,6 +27,10 @@ typedef struct {
 
 typedef struct {
 	GObjectClass parent_class;
+
+	/* signals */
+	void (*authenticate)   (SoupSession *, SoupAuth *, SoupMessage *);
+	void (*reauthenticate) (SoupSession *, SoupAuth *, SoupMessage *);
 
 } SoupSessionClass;
 

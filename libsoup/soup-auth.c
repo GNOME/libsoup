@@ -43,7 +43,7 @@ static AuthScheme known_auth_schemes [] = {
 };
 
 SoupAuth *
-soup_auth_new_from_header_list (const GSList *vals, const char *pref)
+soup_auth_new_from_header_list (const GSList *vals)
 {
 	char *header = NULL;
 	AuthScheme *scheme = NULL, *iter;
@@ -55,10 +55,6 @@ soup_auth_new_from_header_list (const GSList *vals, const char *pref)
 		char *tryheader = vals->data;
 
 		for (iter = known_auth_schemes; iter->scheme; iter++) {
-			if (pref &&
-			    g_strncasecmp (pref, iter->scheme,
-					   strlen (iter->scheme)) != 0)
-				continue;
 			if (!g_strncasecmp (tryheader, iter->scheme, 
 					    strlen (iter->scheme))) {
 				if (!scheme || 
@@ -109,14 +105,6 @@ soup_auth_get_realm (SoupAuth *auth)
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
 	return SOUP_AUTH_GET_CLASS (auth)->get_realm (auth);
-}
-
-gboolean
-soup_auth_invalidate (SoupAuth *auth)
-{
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
-
-	return SOUP_AUTH_GET_CLASS (auth)->invalidate (auth);
 }
 
 gboolean

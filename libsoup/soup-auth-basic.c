@@ -22,7 +22,6 @@ static void construct (SoupAuth *auth, const char *header);
 static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
 static const char *get_realm (SoupAuth *auth);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
-static gboolean invalidate (SoupAuth *auth);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
 
@@ -66,7 +65,6 @@ class_init (GObjectClass *object_class)
 	auth_class->get_protection_space = get_protection_space;
 	auth_class->get_realm = get_realm;
 	auth_class->authenticate = authenticate;
-	auth_class->invalidate = invalidate;
 	auth_class->is_authenticated = is_authenticated;
 	auth_class->get_authorization = get_authorization;
 
@@ -132,17 +130,6 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 
 	memset (user_pass, 0, len);
 	g_free (user_pass);
-}
-
-static gboolean
-invalidate (SoupAuth *auth)
-{
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
-
-	g_free (basic->priv->token);
-	basic->priv->token = NULL;
-
-	return TRUE;
 }
 
 static gboolean

@@ -19,7 +19,6 @@ struct SoupUri {
 	SoupProtocol  protocol;
 
 	char         *user;
-	char         *authmech;
 	char         *passwd;
 
 	char         *host;
@@ -45,11 +44,6 @@ gboolean  soup_uri_equal             (const SoupUri *uri1,
 				      const SoupUri *uri2);
 
 void      soup_uri_free              (SoupUri       *uri);
-
-void      soup_uri_set_auth          (SoupUri       *uri, 
-				      const char    *user, 
-				      const char    *passwd, 
-				      const char    *authmech);
 
 char     *soup_uri_encode            (const char    *part,
 				      const char    *escape_extra);

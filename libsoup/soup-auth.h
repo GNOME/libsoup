@@ -36,7 +36,6 @@ typedef struct {
 	void         (*authenticate)         (SoupAuth      *auth,
 					      const char    *username,
 					      const char    *password);
-	gboolean     (*invalidate)           (SoupAuth      *auth);
 	gboolean     (*is_authenticated)     (SoupAuth      *auth);
 
 	char *       (*get_authorization)    (SoupAuth      *auth,
@@ -46,8 +45,7 @@ typedef struct {
 GType       soup_auth_get_type              (void);
 
 
-SoupAuth   *soup_auth_new_from_header_list  (const GSList  *header,
-					     const char    *pref);
+SoupAuth   *soup_auth_new_from_header_list  (const GSList  *header);
 
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
@@ -55,7 +53,6 @@ const char *soup_auth_get_realm             (SoupAuth      *auth);
 void        soup_auth_authenticate          (SoupAuth      *auth,
 					     const char    *username,
 					     const char    *password);
-gboolean    soup_auth_invalidate            (SoupAuth      *auth);
 gboolean    soup_auth_is_authenticated      (SoupAuth      *auth);
 
 char       *soup_auth_get_authorization     (SoupAuth      *auth, 

@@ -18,9 +18,6 @@
 
 extern gboolean    soup_initialized;
 
-extern SoupAuthorizeFn soup_auth_fn;
-extern gpointer        soup_auth_fn_user_data;
-
 #ifdef HAVE_IPV6
 #define soup_sockaddr_max sockaddr_in6
 #else

@@ -38,16 +38,6 @@ const char        *soup_get_ssl_ca_dir       (void);
 void               soup_get_ssl_cert_files   (const gchar **cert_file,
 					      const gchar **key_file);
 
-/* Authentication callback */
-
-typedef void (*SoupAuthorizeFn) (const char    *scheme_name,
-				 SoupUri       *uri,
-				 const char    *realm,
-				 gpointer       user_data);
-
-void               soup_set_authorize_callback (SoupAuthorizeFn authfn,
-						gpointer        user_data);
-
 /* Base64 encoding/decoding */
 
 gchar             *soup_base64_encode          (const gchar    *text,

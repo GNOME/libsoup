@@ -31,7 +31,7 @@ enum {
 	LAST_SIGNAL
 };
 
-guint signals[LAST_SIGNAL] = { 0 };
+static guint signals[LAST_SIGNAL] = { 0 };
 
 static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);

@@ -1,5 +1,36 @@
 2003-09-10  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-session.c: Add "authenticate" and "reauthenticate"
+	signals.
+	(invalidate_auth): Remove the call to soup_auth_invalidate.
+	(authenticate_auth): soup_auth_fn is gone. If the URI doesn't
+	contain authentication, then emit "authenticate" or
+	"reauthenticate" (depending on whether or not this is the first
+	time we've asked for a password for this auth).
+	(update_auth_internal): If the server rejects our
+	username/password, don't bail out immediately. Try doing a
+	"reauthenticate" first.
+
+	* libsoup/soup-misc.c (soup_set_authorize_callback): Gone
+
+	* libsoup/soup-auth.c (soup_auth_new_from_header_list): Remove the
+	"pref" arg.
+	(soup_auth_invalidate): Remove this; it doesn't actually do
+	anything useful for us.
+
+	* libsoup/soup-auth-basic.c (invalidate): Remove
+	* libsoup/soup-auth-digest.c: (invalidate): Remove
+	* libsoup/soup-auth-ntlm.c: (invalidate): Remove
+
+	* libsoup/soup-uri.c: Remove all references to "authmech".
+	(soup_uri_set_auth): Remove this too.
+
+	* tests/auth-test.c: Update to use the "authenticate" and
+	"reauthenticate" signals instead of encoding usernames and
+	passwords in the URIs. Add a few more test cases.
+
+2003-09-10  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-message-private.h (SoupMessagePrivate): Remove the
 	"status" field from here, since it's mostly used by SoupSession,
 	which shouldn't need access to SoupMessagePrivate.

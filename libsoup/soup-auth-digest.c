@@ -26,7 +26,6 @@ static void construct (SoupAuth *auth, const char *header);
 static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
 static const char *get_realm (SoupAuth *auth);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
-static gboolean invalidate (SoupAuth *auth);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
 
@@ -103,7 +102,6 @@ class_init (GObjectClass *object_class)
 	auth_class->get_realm = get_realm;
 	auth_class->construct = construct;
 	auth_class->authenticate = authenticate;
-	auth_class->invalidate = invalidate;
 	auth_class->is_authenticated = is_authenticated;
 	auth_class->get_authorization = get_authorization;
 
@@ -311,16 +309,6 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	/* hexify A1 */
 	soup_md5_final (&ctx, d);
 	digest_hex (d, digest->priv->hex_a1);
-}
-
-static gboolean
-invalidate (SoupAuth *auth)
-{
-	/* An invalidated Digest auth is useless. You need to get
-	 * a new nonce from the server before you can start using it
-	 * again.
-	 */
-	return FALSE;
 }
 
 static gboolean
