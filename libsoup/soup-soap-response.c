@@ -257,12 +257,12 @@ soup_soap_parameter_get_int_value (SoupSoapParameter *param)
 /**
  * soup_soap_parameter_get_string_value:
  */
-const char *
+char *
 soup_soap_parameter_get_string_value (SoupSoapParameter *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
-	return (const char *) xmlNodeGetContent (param);
+	return xmlNodeGetContent (param);
 }
 
 /**
