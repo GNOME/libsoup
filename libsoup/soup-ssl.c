@@ -72,7 +72,7 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 		       BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy", 
 		       NULL);
 
-		execl ("soup-ssl-proxy", "soup-ssl-proxy", NULL);
+		execlp ("soup-ssl-proxy", "soup-ssl-proxy", NULL);
 
 		g_error ("Error executing SSL Proxy\n");
 	}
