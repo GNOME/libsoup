@@ -16,9 +16,9 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-gint connection_count = 0;
+GHashTable *soup_servers;  /* KEY: hostname, VALUE: SoupServer */
 
-GHashTable *servers;  /* KEY: hostname, VALUE: SoupServer */
+static gint connection_count = 0;
 
 static guint most_recently_used_id = 0;
 
@@ -26,9 +26,8 @@ static SoupContext *
 soup_context_new (SoupServer *server, SoupUri *uri) 
 {
 	SoupContext *ctx = g_new0 (SoupContext, 1);
-	ctx->priv = g_new0 (SoupContextPrivate, 1);
-	ctx->priv->server = server;
-	ctx->priv->keep_alive = TRUE;
+	ctx->server = server;
+	ctx->keep_alive = TRUE;
 	ctx->uri = uri;
 	return ctx;
 }
@@ -36,33 +35,33 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 SoupContext *
 soup_context_get (gchar *uri) 
 {
-	SoupServer *serv;
+	SoupServer *serv = NULL;
 	SoupContext *ret = NULL;
 	SoupUri *suri = soup_uri_new (uri);
 
-	if (!servers)
-		servers = g_hash_table_new (g_str_hash, g_str_equal);
+	if (!soup_servers)
+		soup_servers = g_hash_table_new (soup_str_case_hash, 
+						 soup_str_case_equal);
 	else
-		serv = g_hash_table_lookup (servers, suri->host);
+		serv = g_hash_table_lookup (soup_servers, suri->host);
 
-	if (serv) {
-		if (serv->contexts) 
-			ret = g_hash_table_lookup (serv->contexts, suri->path);
-	        else
-			serv->contexts = g_hash_table_new (g_str_hash, 
-							   g_str_equal);
-	} else {
+	if (!serv) {
 		serv = g_new0 (SoupServer, 1);
 		serv->host = g_strdup (suri->host);
-		g_hash_table_insert (servers, suri->host, serv);
+		g_hash_table_insert (soup_servers, suri->host, serv);
 	}
 
-	if (ret) return ret;
+	if (!serv->contexts)
+		serv->contexts = g_hash_table_new (g_str_hash, g_str_equal);
+	else
+		ret = g_hash_table_lookup (serv->contexts, suri->path);
 
-	ret = soup_context_new (serv, suri);
+	if (!ret) {
+		ret = soup_context_new (serv, suri);
+		g_hash_table_insert (serv->contexts, suri->path, ret);
+	}
+
 	soup_context_ref (ret);
-
-	g_hash_table_insert (serv->contexts, suri->path, ret);
 
 	return ret;
 }
@@ -70,21 +69,21 @@ soup_context_get (gchar *uri)
 void
 soup_context_ref (SoupContext *ctx)
 {
-	ctx->priv->refcnt++;
+	ctx->refcnt++;
 }
 
 void
 soup_context_unref (SoupContext *ctx)
 {
-	if (ctx->priv->refcnt-- == 0) {
-		SoupServer *serv = ctx->priv->server;
+	if (ctx->refcnt-- == 0) {
+		SoupServer *serv = ctx->server;
 
 		g_hash_table_remove (serv->contexts, ctx->uri->path);
 
 		if (g_hash_table_size (serv->contexts) == 0) {
 			GSList *conns = serv->connections;
 
-			g_hash_table_remove (servers, serv->host);
+			g_hash_table_remove (soup_servers, serv->host);
 			
 			while (conns) {
 				SoupConnection *conn = conns->data;
@@ -140,8 +139,8 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 
 		connection_count++;
 
-		ctx->priv->server->connections = 
-			g_slist_prepend (ctx->priv->server->connections, 
+		ctx->server->connections = 
+			g_slist_prepend (ctx->server->connections, 
 					 new_conn);
 
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, socket, cb_data); 
@@ -158,9 +157,9 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 static SoupConnection *
 soup_try_existing_connections (SoupContext *ctx)
 {
-	GSList *conns = ctx->priv->server->connections;
+	GSList *conns = ctx->server->connections;
 
-	if (!ctx->priv->keep_alive)
+	if (!ctx->keep_alive)
 		return NULL;
 
 	while (conns) {
@@ -207,7 +206,7 @@ soup_prune_least_used_connection (void)
 	last.serv = NULL;
 	last.conn = NULL;
 
-	g_hash_table_foreach (servers, (GHFunc) soup_prune_foreach, &last);
+	g_hash_table_foreach (soup_servers, (GHFunc) soup_prune_foreach, &last);
 
 	if (last.conn) {
 		last.serv->connections = 
@@ -282,14 +281,14 @@ void
 soup_context_release_connection (SoupContext       *ctx,
 				 GTcpSocket        *socket)
 {
-	SoupServer *server = ctx->priv->server;
+	SoupServer *server = ctx->server;
 	GSList *conns = server->connections;
 
 	while (conns) {
 		SoupConnection *conn = conns->data;
 
 		if (conn->socket == socket) {
-			if (ctx->priv->keep_alive) {
+			if (ctx->keep_alive) {
 				conn->last_used_id = ++most_recently_used_id;
 				conn->in_use = FALSE;
 			} else {
@@ -321,4 +320,10 @@ soup_context_cancel_connect (SoupConnectId tag)
 		gnet_tcp_socket_connect_async_cancel (data->gnet_connect_tag);
 
 	g_free (data);
+}
+
+gchar *
+soup_context_get_uri (SoupContext *ctx)
+{
+	return soup_uri_to_string (ctx->uri, TRUE);
 }

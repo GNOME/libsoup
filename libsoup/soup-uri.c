@@ -41,31 +41,50 @@
 
 #include <string.h>
 #include <stdlib.h>
+
 #include "soup-uri.h"
 
+static gint
+soup_uri_get_default_port (gchar *proto)
+{
+	gint len = strlen (proto);
+
+	if (strncasecmp (proto, "https", len) == 0)
+		return 443;
+	else if (strncasecmp (proto, "http", len) == 0)
+		return 80;
+	else if (strncasecmp (proto, "mailto", len) == 0 || 
+		 strncasecmp (proto, "smtp", len) == 0)
+		return 25;
+	else if (strncasecmp (proto, "ftp", len) == 0)
+		return 21;
+	else
+		return -1;
+}
+
 /**
- * soup_uri_new: create a Gurl object from a string
+ * soup_uri_new: create a SoupUri object from a string
  *
  * @uri_string: The string containing the URL to scan
  * 
  * This routine takes a gchar and parses it as a
  * URL of the form:
- *   protocol://user;AUTH=mech:password@host:port/path
+ *   protocol://user;AUTH=mech:password@host:port/path?querystring
  * There is no test on the values. For example,
  * "port" can be a string, not only a number!
- * The Gurl structure fields are filled with
+ * The SoupUri structure fields are filled with
  * the scan results. When a member of the 
  * general URL can not be found, the corresponding
- * Gurl member is NULL.
- * Fields filled in the Gurl structure are allocated
+ * SoupUri member is NULL.
+ * Fields filled in the SoupUri structure are allocated
  * and url_string is not modified. 
  * 
- * Return value: a Gurl structure containing the URL items.
+ * Return value: a SoupUri structure containing the URL items.
  **/
 SoupUri *soup_uri_new (const gchar* uri_string)
 {
 	SoupUri *g_uri;
-	char *semi, *colon, *at, *slash, *path;
+	char *semi, *colon, *at, *slash, *path, *query;
 	char **split;
 
 	g_uri = g_new (SoupUri,1);
@@ -118,10 +137,10 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 			g_uri->port = atoi(colon + 1);
 	} else if (slash) {
 		g_uri->host = g_strndup (uri_string, slash - uri_string);
-		g_uri->port = -1;
+		g_uri->port = soup_uri_get_default_port (g_uri->protocol);
 	} else {
 		g_uri->host = g_strdup (uri_string);
-		g_uri->port = -1;
+		g_uri->port = soup_uri_get_default_port (g_uri->protocol);
 	}
 
 	/* setup a fallback, if relative, then empty string, else
@@ -136,7 +155,13 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 	path = g_strjoinv("%20", split);
 	g_strfreev(split);
 
-	g_uri->path = path;
+	query = strchr (path, '?');
+
+	if (query) {
+		g_uri->path = g_strndup (path, query - path);
+		g_uri->querystring = g_strdup (++query);
+		g_free (path);
+	}
 
 	return g_uri;
 }

@@ -30,16 +30,17 @@
 #include <glib.h>
 
 typedef struct {
-	/* Changes here will only affect new connections: */
 	gchar *protocol;
-	gchar *host;
-	int port;
 
-	/* Changes will be applied to existing and future connections: */
-	gchar *path;
 	gchar *user;
 	gchar *authmech;
 	gchar *passwd;
+
+	gchar *host;
+	gint port;
+
+	gchar *path;
+	gchar *querystring;
 } SoupUri;
 
 /* the cache system has been disabled because it would 

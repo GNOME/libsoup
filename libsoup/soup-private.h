@@ -17,6 +17,7 @@
 #define SOAP_PRIVATE_H 1
 
 #include "soup-queue.h"
+#include "soup-uri.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,9 +25,8 @@ extern "C" {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
-extern gint        connection_count;
-extern GSList     *active_requests;   /* CONTAINS: SoupRequest */
-extern GHashTable *servers;           /* KEY: uri->host, VALUE: SoupServer */
+extern GSList     *soup_active_requests; /* CONTAINS: SoupRequest */
+extern GHashTable *soup_servers;         /* KEY: uri->host, VALUE: SoupServer */
 
 typedef struct {
 	GTcpSocket *socket;
@@ -47,7 +47,8 @@ typedef enum {
 	SOUP_PROTOCOL_SMTP
 } SoupProtocol;
 
-struct _SoupContextPrivate {
+struct _SoupContext {
+	SoupUri      *uri;
 	SoupServer   *server;
 	guint         refcnt;
 
@@ -77,6 +78,11 @@ struct _SoupRequestPrivate {
 
 SoupCallbackResult soup_request_issue_callback (SoupRequest   *req, 
 						SoupErrorCode  error);
+
+guint              soup_str_case_hash          (gconstpointer key);
+
+gboolean           soup_str_case_equal         (gconstpointer v1,
+						gconstpointer v2);
 
 #ifdef __cplusplus
 }

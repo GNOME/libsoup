@@ -31,7 +31,7 @@
 #include "soup-misc.h"
 #include "soup-private.h"
 
-GSList *active_requests = NULL;
+GSList *soup_active_requests = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
@@ -40,7 +40,7 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 {
 	int i, sublen = strlen (substr);
 	
-	for (i = 0; i < len; ++i)
+	for (i = 0; i < len - sublen; ++i)
 		if (str[i] == substr[0])
 			if (memcmp (&str[i], substr, sublen) == 0)
 				return i;
@@ -48,19 +48,31 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 	return -1;
 }
 
-static inline gchar**
-soup_split_headers (gchar *str, guint len)
+static void
+soup_parse_headers (GHashTable *hash, gchar *str)
 {
-	return NULL;
+	gchar *idx, *idx2;
+
+	while ((idx = strstr (str, "\r\n"))) {
+		idx2 = strstr (idx, ": ");
+
+		if (idx2) {
+			*idx2 = '\0';
+			g_hash_table_insert (hash, idx, idx2);
+		} else
+			return;
+
+		*idx = '\0';
+		str = idx++;
+	}
 }
 
 /* returns TRUE to continue processing, FALSE if a callback was issued */
 static gboolean 
 soup_process_headers (SoupRequest *req, gchar *str, guint len)
 {
-	gchar **headers, *header;
-	gchar reason_phrase[512];
-	gint http_major, http_minor, status_code, read_count, index;
+	gchar reason_phrase [512];
+	gint http_major, http_minor, status_code, read_count;
 
 	read_count = sscanf (str, 
 			     "HTTP/%d.%d %u %512s\r\n", 
@@ -77,10 +89,13 @@ soup_process_headers (SoupRequest *req, gchar *str, guint len)
 		return FALSE;
 	}
 
-	index = soup_substring_index (str, len, "\r\n");
+	if (req->response_headers) 
+		g_hash_table_destroy (req->response_headers);
 
-	headers = g_strsplit (str, "\r\n", 0);
-	g_strfreev (headers);
+	req->response_headers = g_hash_table_new (soup_str_case_hash, 
+						  soup_str_case_equal);
+
+	soup_parse_headers (req->response_headers, str);
 
 	return TRUE;
 }
@@ -116,24 +131,24 @@ soup_queue_read_async (GIOChannel* iochannel,
 	   was successful */
 
 	if (bytes_read == 0) {
-		index = soup_substring_index (req->priv->recv_buf->data, 
-					      req->priv->recv_buf->len,
+		GByteArray *recv_buf = req->priv->recv_buf;
+
+		index = soup_substring_index (recv_buf->data, 
+					      recv_buf->len,
 					      "\r\n\r\n");
 
-		req->response.length = req->priv->recv_buf->len - index + 4;
-		req->response.body = 
-			g_memdup (&req->priv->recv_buf->data [index + 4],
-				  req->response.length + 1);
+		req->response.length = recv_buf->len - index + 4;
+		req->response.body = g_memdup (&recv_buf->data [index + 4],
+					       req->response.length + 1);
 		req->response.body [req->response.length] = '\0';
 
-		g_byte_array_free (req->priv->recv_buf, TRUE);
-		req->priv->recv_buf = NULL;
+		recv_buf->len = index + 2;
+		recv_buf->data = g_realloc (recv_buf->data, recv_buf->len + 1);
+		recv_buf->data [recv_buf->len + 1] = '\0';
 		
 		req->status = SOUP_STATUS_FINISHED;
 
-		if (soup_process_headers (req, 
-					  req->priv->recv_buf->data,
-					  index + 2))
+		if (soup_process_headers (req, recv_buf->data, recv_buf->len))
 			soup_request_issue_callback (req, SOUP_ERROR_NONE);
 
 		return FALSE;
@@ -229,15 +244,15 @@ soup_encode_http_auth (gboolean proxy_auth, SoupUri *uri, GString *header)
 }
 
 struct SoupUsedHeaders {
-	gchar *host;
-	gchar *user_agent;
-	gchar *content_type;
-	gchar *charset;
-	gchar *content_length;
-	gchar *soapaction;
-	gchar *connection;
-	gchar *proxy_auth;
-	gchar *auth;
+	gchar  *host;
+	gchar  *user_agent;
+	gchar  *content_type;
+	gchar  *charset;
+	gchar  *content_length;
+	gchar  *soapaction;
+	gchar  *connection;
+	gchar  *proxy_auth;
+	gchar  *auth;
 
 	GSList *custom_headers;
 };
@@ -292,8 +307,8 @@ soup_get_request_header (SoupRequest *req)
 		NULL
 	};
 
-	if (req->custom_headers) 
-		g_hash_table_foreach (req->custom_headers, 
+	if (req->request_headers) 
+		g_hash_table_foreach (req->request_headers, 
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
 
@@ -305,7 +320,8 @@ soup_get_request_header (SoupRequest *req)
 	if (proxy)
 		uri = soup_uri_to_string (proxy->uri, FALSE);
 	else 
-		uri = req->context->uri->path;
+		uri = g_strconcat (req->context->uri->path, 
+				   req->context->uri->querystring);
 
 	/* If we specify an absoluteURI in the request line, the 
 	   Host header MUST be ignored by the proxy. */
@@ -497,6 +513,8 @@ soup_queue_connect (SoupContext          *ctx,
 	SoupRequest *req = user_data;
 	GIOChannel *channel;
 
+	req->priv->connect_tag = NULL;
+
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
 		channel = gnet_tcp_socket_get_iochannel (socket);
@@ -505,7 +523,6 @@ soup_queue_connect (SoupContext          *ctx,
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
 		req->priv->socket = socket;
-		req->priv->connect_tag = NULL;
 		req->priv->write_tag = 
 			g_io_add_watch (channel, 
 					G_IO_OUT, 
@@ -527,7 +544,7 @@ soup_queue_connect (SoupContext          *ctx,
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
-        GSList *iter = active_requests;
+        GSList *iter = soup_active_requests;
 	
 	while (iter) {
 		SoupRequest *req = iter->data;
@@ -567,6 +584,11 @@ soup_queue_request (SoupRequest    *req,
 		req->response.length = 0;
 	}
 
+	if (req->response_headers) {
+		g_hash_table_destroy (req->response_headers);
+		req->response_headers = NULL;
+	}
+
 	if (req->priv->recv_buf) {
 		g_byte_array_free (req->priv->recv_buf, TRUE);
 		req->priv->recv_buf = NULL;
@@ -576,9 +598,7 @@ soup_queue_request (SoupRequest    *req,
 	req->priv->user_data = user_data;
 	req->status = SOUP_STATUS_QUEUED;
 
-	soup_context_ref (req->context);
-
-	active_requests = g_slist_append (active_requests, req);
+	soup_active_requests = g_slist_prepend (soup_active_requests, req);
 }
 
 void 
@@ -589,6 +609,6 @@ soup_queue_shutdown ()
 	g_source_remove (soup_queue_idle_tag);
 	soup_queue_idle_tag = 0;
 
-	for (iter = active_requests; iter; iter = iter->next)
+	for (iter = soup_active_requests; iter; iter = iter->next)
 		soup_request_cancel (iter->data);
 }
