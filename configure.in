@@ -288,7 +288,8 @@ AC_ARG_WITH(nspr-includes,
 
 AC_ARG_WITH(nspr-libs,
 	    [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],
-	    [nspr_prefix=$withval])
+	    [nspr_prefix=$withval],
+	    [nspr_prefix=/usr/lib])
 
 AC_ARG_WITH(nss-includes,
 	    [  --with-nss-includes      Specify location of NSS header files],
@@ -296,7 +297,8 @@ AC_ARG_WITH(nss-includes,
 
 AC_ARG_WITH(nss-libs,
 	    [  --with-nss-libs          Specify location of NSS libs],
-	    [nss_prefix=$withval])
+	    [nss_prefix=$withval],
+	    [nss_prefix=/usr/lib])
 
 
 AC_ARG_WITH(openssl-includes,
@@ -365,7 +367,7 @@ if test "x$enable_ssl" = xyes; then
 
 	if test "x$enable_nss" = xyes; then
 		if test "x$enable_static_ssl" = "xyes"; then
-			NSS_LIBS="-lpthread $nspr_prefix/libnspr4.a $nspr_prefix/libplc4.a $nspr_prefix/libplds4.a $nss_prefix/libnss3.a $nss_prefix/libssl3.a"
+			NSS_LIBS="-lpthread $nspr_prefix/libnspr4.a $nspr_prefix/libplc4.a $nspr_prefix/libplds4.a $nss_prefix/libnssb.a"
 		else
 			NSS_LIBS="-lpthread -L$nspr_prefix -lnspr4 -lplc4 -lplds4 $nss_prefix -lnss3 -lssl3"
 		fi

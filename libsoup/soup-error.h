@@ -61,6 +61,7 @@ typedef enum {
 	SOUP_ERROR_MULTIPLE_CHOICES         = 300,
 	SOUP_ERROR_MOVED_PERMANANTLY        = 301,
 	SOUP_ERROR_FOUND                    = 302,
+	SOUP_ERROR_MOVED_TEMPORARILY        = SOUP_ERROR_FOUND,
 	SOUP_ERROR_SEE_OTHER                = 303,
 	SOUP_ERROR_NOT_MODIFIED             = 304,
 	SOUP_ERROR_USE_PROXY                = 305,

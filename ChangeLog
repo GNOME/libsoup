@@ -1,3 +1,13 @@
+2002-01-08  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-error.h: Add SOUP_ERROR_MOVED_TEMPORARILY
+	(which was in early HTTP1.1 and HTTP1.0 specs) defined to
+	SOUP_ERROR_FOUND (its replacement).
+
+	* configure.in: Use /usr/lib as the default location for nss and
+	nspr libs. Also, NSS static libs are named differently from their
+	dynamic version.
+
 2002-01-08  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-transfer.c (issue_final_callback): Remove the
