@@ -9,7 +9,11 @@
  */
 
 #include "soup-ssl.h"
+#include <config.h>
 #include <gnet/gnet.h>
+
+#if defined HAVE_OPENSSL_SSL_H && defined HAVE_LIBSSL
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -231,3 +235,13 @@ soup_ssl_add_watch (GIOChannel     *channel,
 						     notify);
 }
 
+#else /* HAVE_OPENSSL_SSL_H */
+
+GIOChannel *
+soup_get_ssl_iochannel (GIOChannel *sock)
+{
+	g_warning ("SSL Not Supported.");
+	return NULL;
+}
+
+#endif /* HAVE_OPENSSL_SSL_H */

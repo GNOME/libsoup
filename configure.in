@@ -145,8 +145,10 @@ if test x$XML_CONFIG = xno; then
 fi
 XML_LIBS=`xml-config --libs`
 XML_CFLAGS=`xml-config --cflags`
+
 LIBS="$LIBS $XML_LIBS"
 CFLAGS="$CFLAGS $XML_CFLAGS"
+
 AC_SUBST(XML_LIBS)
 AC_SUBST(XML_CFLAGS)
 
@@ -160,10 +162,50 @@ AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
 
 
 # Check for OpenSSL
-AC_CHECK_HEADERS(openssl/ssl.h)
-AC_CHECK_HEADERS(openssl/err.h)
-AC_CHECK_LIB(crypto, X509_free, , )
-AC_CHECK_LIB(ssl, SSL_CTX_new, , , -lcrypto)
+AC_ARG_ENABLE(ssl, 
+[  --enable-ssl             turn on Secure Sockets Layer support [default=yes]
+                           ([=no] will override --with-ssl)],,enable_ssl=yes)
+
+AC_ARG_WITH(ssl, 
+	[  --with-ssl=[nss/openssl/none] Specify an SSL implementation to use],
+        if test "x$with_ssl" = x; then
+                want_ssl=yes
+        else
+                want_ssl=$with_ssl
+        fi,
+        want_ssl=yes)
+if test "x$enable_ssl" = "xno"; then
+        want_ssl=no
+fi
+if test "x$want_ssl" = "xnone"; then
+        want_ssl=no
+fi
+
+if test "x$want_ssl" = xyes || test "x$want_ssl" = xopenssl; then
+	AC_CHECK_HEADERS(openssl/ssl.h)
+	AC_CHECK_HEADERS(openssl/err.h)
+	AC_CHECK_LIB(crypto, X509_free, , )
+	AC_CHECK_LIB(ssl, SSL_CTX_new, , , -lcrypto)
+fi
+
+AC_ARG_WITH(nss, [  --with-nss-prefix=PFX    Prefix of NSS installation (optional)])
+
+if test "x$want_ssl" = xnss; then
+	AC_CHECK_HEADERS(ssl/ssl.h)
+fi
+
+if test x$with_nss != x; then 
+	AC_MSG_CHECKING(for Nss)
+	if test -f "$with_nss/include/ssl/ssl.h"; then
+ 		AC_MSG_RESULT(found)
+		LIBS="$LIBS -L$with_nss/lib -lssl"
+		CFLAGS="$CFLAGS -I$with_nss/include"
+		AC_DEFINE(HAVE_NSS)
+	else
+	    	AC_MSG_RESULT(not found)
+		echo
+	fi
+fi
 
 
 # Set PACKAGE_SOURCE_DIR in config.h.
@@ -176,13 +218,16 @@ if test "x$GCC" = "xyes"; then
 fi
 
 #	doc/Makefile
-#	gnome-soup.spec
 
 AC_OUTPUT([
+	soup-config
+	soup.pc
+	soup.spec
+	soupConf.sh
 	Makefile
 	src/Makefile
 	src/soup-core/Makefile
 	src/soup-wsdl/Makefile
 	tests/Makefile
-])
-
+	],
+	[chmod +x soup-config])

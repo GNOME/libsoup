@@ -2,27 +2,18 @@
 
 SUBDIRS = src tests
 
-EXTRA_DIST = \
-	autogen.sh
+EXTRA_DIST = autogen.sh soupConf.sh.in soup.pc.in soup.spec.in
 
-install-data-local:
-	@$(NORMAL_INSTALL)
-	if test -d $(srcdir)/pixmaps; then \
-	  $(mkinstalldirs) $(DESTDIR)$(pkgdatadir)/pixmaps; \
-	  for pixmap in $(srcdir)/pixmaps/*; do \
-	    if test -f $$pixmap; then \
-	      $(INSTALL_DATA) $$pixmap $(DESTDIR)$(pkgdatadir)/pixmaps; \
-	    fi \
-	  done \
-	fi
+bin_SCRIPTS = soup-config
 
-dist-hook:
-	if test -d pixmaps; then \
-	  mkdir $(distdir)/pixmaps; \
-	  for pixmap in pixmaps/*; do \
-	    if test -f $$pixmap; then \
-	      cp -p $$pixmap $(distdir)/pixmaps; \
-	    fi \
-	  done \
-	fi
+confexecdir = $(libdir)
+confexec_DATA = soupConf.sh
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = soup.pc
+
+dist-hook: soup.spec
+	cp soup.spec $(distdir)
+
+rpms: distcheck
+	rpm -ta $(top_builddir)/@PACKAGE@-@VERSION@.tar.gz

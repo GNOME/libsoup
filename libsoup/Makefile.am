@@ -32,9 +32,7 @@ soupinclude_HEADERS =		\
 	soup-message.h		\
 	soup-uri.h		\
 	soup-misc.h     	\
-	soup-ssl.h		\
-	soup-socks.h		\
-	soup-serializer.c
+	soup-serializer.h
 
 EXTRA_DIST = soup-private.h
 

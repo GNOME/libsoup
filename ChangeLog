@@ -1,0 +1,425 @@
+2001-01-23  alex  <alex@ximian.com>
+
+	* ChangeLog: Created from rcs2log.
+
+	* AUTHORS: Added Dick Porter.
+
+	* soup.pc.in, soup-config.in, soupConf.sh, soup.m4:
+	Created with a dash of Maintainer Love.
+
+	* soup.spec.in: RPM spec file. Needs fixing wrt to displaying the
+	OpenSSL license conditionally (if it was statically linked).
+
+	* Makefile.am: Updated to install new config scripts and macros.
+
+	* configure.in: add --enable-ssl, --with-ssl=[nss/openssl/none],
+	and --with-nss-prefix=PFX to support choosing of an SSL library to
+	use, even though openssl is the only one currently supported.
+
+	* src/soup-core/Makefile.am: don't install soup-ssl.h or
+	soup-socks.h, they're internal.
+
+	* src/soup-core/soup-ssl.c: wrap openssl calls with a conditional
+	to avoid building if --enable-ssl=no or NSS is chosen as the
+	library. soup_get_ssl_iochannel() will print "SSL Not Supported."
+	and return NULL if no library has been chosen.
+
+	* tests/stress-test.c: make the callback handle errors by
+	requeuing request and not just g_error'ing.
+	
+2001-01-23  alex  <alex@ximian.com>
+
+	* soup-context.c (soup_context_get_connection): check environment
+	for SOUP_NO_ASYNC_CONNECT, and if set use syncronous name lookup
+	and connect. Use this when debugging.
+
+	* soup-queue.c (soup_read_chunk): fix buffer overflow.
+
+	* soup-queue.c (soup_queue_read_async): set header_len to include
+	trailing \r\n\r\n as this makes more sense.
+
+	* soup-serializer.[ch] (soup_serializer_get_xml_doc): allows
+	getting at the serializer's internal xml tree.
+
+	* soup.h: install soup-serializer.h.
+
+2001-01-21  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-wsdl/Makefile.am,
+	/cvs/helixcode/services/soup/tests/Makefile.am,
+	/cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/src/Makefile.am: Update Makefile.ams
+	and configure.in to work with new layout.
+
+	* /cvs/helixcode/services/soup/src/soup.h,
+	/cvs/helixcode/services/soup/src/soup-socks.h,
+	/cvs/helixcode/services/soup/src/soup-ssl.c,
+	/cvs/helixcode/services/soup/src/soup-ssl.h,
+	/cvs/helixcode/services/soup/src/soup-uri.c,
+	/cvs/helixcode/services/soup/src/soup-uri.h,
+	/cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup-message.c,
+	/cvs/helixcode/services/soup/src/soup-message.h,
+	/cvs/helixcode/services/soup/src/soup-misc.c,
+	/cvs/helixcode/services/soup/src/soup-misc.h,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-queue.h,
+	/cvs/helixcode/services/soup/src/soup-serializer.c,
+	/cvs/helixcode/services/soup/src/soup-serializer.h,
+	/cvs/helixcode/services/soup/src/soup-socks.c: Adding Dick's wsdl
+	compiler to the soup package, to src/soup-wsdl. Moving existing
+	soup stuff to src/soup-core.
+
+2001-01-19  dick  <dick@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-wsdl/main.c,
+	/cvs/helixcode/services/soup/src/soup-wsdl/Makefile.am,
+	/cvs/helixcode/services/soup/src/soup-wsdl/wsdl.h,
+	/cvs/helixcode/services/soup/src/soup-wsdl/wsdl-parse.c,
+	/cvs/helixcode/services/soup/src/soup-wsdl/wsdl-parse.h,
+	/cvs/helixcode/services/soup/tests/stockquote2.wsdl,
+	/cvs/helixcode/services/soup/tests/stockquote.wsdl: First part of
+	the WSDL compiler.
+
+	The parser accepts an XML file in WSDL syntax. Some syntax
+	checking is done, but there is no consistency checking yet.
+
+	User-specified types are not yet supported.
+
+2001-01-17  alex  <alex@ximian.com>
+
+	* src/soup-serializer.c (soup_serializer_start_element): handle
+	cases where users want to be lazy and supply a namespace prefix
+	but not a uri (i.e. broken xml).
+
+	* src/soup-misc.c (soup_load_config_internal): warn the user if a
+	config file entry is not allowed by system config.
+
+	* src/soup-serializer.[ch]: initial commit of simple serializer
+	API. Uses libxml to handle tree creation.
+
+	* configure.in: check for libxml.
+
+2001-01-15  alex  <alex@ximian.com>
+
+	* src/soup-misc.c: Fix a typo
+
+	* src/soup-misc.c: hacked to support permissions in the global
+	config file on which options can be set from user config
+	files. Global config file is now always loaded first, before
+	either a program specified file or the user's dot-file. Also
+	supports "allow all" and "deny all" which have the expected
+	results.
+
+	* src/soup-ssl.[ch]: move unneeded #include's to the source file.
+
+	* soup-socks.c: Umm, ya. So I was like umm, sleepy last night and
+	stuff. So this umm makes last night's commit a little less
+	embarrassing.
+
+2001-01-14  alex  <alex@ximian.com>
+
+	* src/soup-misc.c: oops, forgot to mention that user local config
+	file (~/.souprc) is now loaded after the system config file. This
+	needs to be thought out more as administrators may not want
+	variables overwritten.
+
+	* src/soup-socks.[ch]: SOCKS version 4 and version 5 support. This
+	code is not very simple because we are attempting to make a
+	multi-step conversation completely asyncronous. Also this includes
+	a hack to get at GNET's GInetAddr private memebers (the
+	sockaddr_in) for SOCKS4, as the client has to lookup the
+	destination host address and send it to the socks proxy, and we
+	want to use gnet to do this asyncronously.
+
+	* src/soup-context.[ch]: Added soup_context_get_protocol(),
+	soup_connection_get_context(), and soup_connection_is_new() so
+	that we can keep the abstractions between the contexts/connections
+	and messages clean. soup_context_get_uri() changed to return a
+	SoupUri instead of a string, as this is more useful. Made
+	SoupProtocol a public enum so it can be returned by
+	soup_context_get_protocol().
+
+	* src/soup-queue.c: updated to use context/connection accessors,
+	instead of looking at private members. AB-STRAC-SHUN!
+
+2001-01-12  alex  <alex@ximian.com>
+
+        * soup-misc.c (soup_load_config): simple config file
+	loading. Passing NULL as the config file name will load from the
+	system config file, which is $(sysconfdir)/souprc. Only options
+	supported now are proxy-url and connection-limit.
+
+	* */.cvsignore: a little maintainer love.
+
+2001-01-11  alex  <alex@ximian.com>
+
+	* soup-queue.c (soup_get_request_header): append a '?' between
+	path and query string in request header. NULL terminate the call
+	to g_strconcat.
+
+	* soup-context.c (soup_context_get): bomb if url passed in does
+	not have a protocol. do not default to HTTP.
+
+2001-01-08  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-message.c,
+	/cvs/helixcode/services/soup/src/soup-message.h,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-request.h: * Oops. Forget to
+	add new files and remove old ones when I renamed SoupRequest to
+	SoupMessage.
+
+	* /cvs/helixcode/services/soup/src/soup-ssl.c,
+	/cvs/helixcode/services/soup/src/soup-queue.c: * soup-ssl.c
+	(soup_ssl_add_watch): make ssl work. pass the ssl iochannel to the
+	underlying iochannel's funcs->io_add_watch, so that our ssl
+	functions get called. this is a hack. this will need to be fixed
+	in order to get windows portability, as the SoupSSLChannel struct
+	is mimicing GIOUnixChannel so the add_watch will work correctly.
+
+	* soup-queue.c (soup_queue_read_async): fix bug when searching for
+	end of http headers where req->priv->header_len was being set
+	whether the end was found or not.
+
+	* /cvs/helixcode/services/soup/src/Makefile.am,
+	 /cvs/helixcode/services/soup/src/soup.h,
+	 /cvs/helixcode/services/soup/src/soup-private.h,
+	 /cvs/helixcode/services/soup/src/soup-queue.c,
+	 /cvs/helixcode/services/soup/src/soup-queue.h,
+	 /cvs/helixcode/services/soup/tests/simple-test.c,
+	 /cvs/helixcode/services/soup/tests/stress-test.c: * Renamed
+	 SoupRequest to SoupMessage, as it contains both the request and
+	 the response, changed all API names accordingly. This had to be
+	 done, so what better time than now?
+
+	* /cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/src/Makefile.am,
+	/cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-ssl.c,
+	/cvs/helixcode/services/soup/src/soup-ssl.h: * soup-queue.c:
+	chunked encoding support finalized, fixed a few small buffer over
+	allocations, use strcasecmp instead of strcmp when comparing
+	custom request headers, better error handling in
+	soup_queue_error_async which fixes a bug found in certain IIS
+	servers.
+
+	* soup-context.c: (soup_connection_get_iochannel) return iochannel
+	from soup-ssl.c:soup_get_ssl_iochannel() if protocol for
+	connection is SOUP_PROTOCOL_SHTTP.
+
+	* soup-ssl.c: simple GIOChannel wrapper around the OpenSSL
+	library.
+
+2000-12-27  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-core/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-core/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c: * soup-private.h:
+	Content length is now a guint.
+
+	* soup-queue.c (soup_parse_headers): Added minimum status-line
+	length check.
+
+	* soup-queue.c (soup_queue_request): Removed g_error() call for
+	user-iwned response buffers. We now just issue a
+	SOUP_ERROR_CANCELLED callback and print a warning.
+
+	* /cvs/helixcode/services/soup/tests/Makefile.am,
+	/cvs/helixcode/services/soup/tests/stress-test.c: * Added
+	tests/stress-test.c which makes 3 simultaneous requests to a url,
+	each repeating 110 times (enough to trigger Apache to kill
+	keep-alive connections), goes to sleep for 20 seconds (long enough
+	for Apache to kill keep-alive connections again) and repeats. It
+	also sets the connection limit to 2.
+
+	* /cvs/helixcode/services/soup/tests/simple-test.c: *
+	SOUP_ERROR_UNKNOWN has been removed. Don't check for it.
+
+2000-12-26  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup-misc.c,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-queue.h,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-request.h,
+	/cvs/helixcode/services/soup/src/soup-uri.c: * Made SoupConnection
+	wrap Gnet's TcpSocket. This means there are no gnet references in
+	the public interface.
+
+	* Lots of code cleanup/reorg/bugfixes.
+
+2000-12-20  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-uri.c,
+	/cvs/helixcode/services/soup/tests/simple-test.c: * Header parsing
+	works according to spec, including multi-line headers.
+
+	* Content-length driven responses work correctly.
+
+	* Chunked encoding almost working :)
+
+	* Updated simple-test to take a url from the command line.
+
+2000-12-13  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-core/soup-uri.c,
+	/cvs/helixcode/services/soup/src/soup-uri.c: * soup-uri.c
+	(soup_uri_new): Forgot to set the path for cases where we don't
+	have a querystring (which is most of the time). Doh.
+
+	* soup-uri.c (soup_uri_get_default_port): No such thing as an
+	smtp://foo@bar uri, only mailto:foo@bar.
+
+	* /cvs/helixcode/services/soup/tests/Makefile.am,
+	/cvs/helixcode/services/soup/tests/simple-test.c,
+	/cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/Makefile.am,
+	/cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup-misc.c,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-queue.h,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-request.h,
+	/cvs/helixcode/services/soup/src/soup-uri.c,
+	/cvs/helixcode/services/soup/src/soup-uri.h: * Beginnings of
+	test-suite added.
+
+	* Made SoupContext opaque. Removed SoupContextPrivate. Added
+	soup_context_get_uri() to get the uri string for a given context.
+
+	* Added a response_headers hashtable to SoupRequest so the
+	callback can do whatever it wants with passed headers. All entries
+	in this hashtable are just parsed strings from
+	req->priv->recv_buf, so no new strings are allocated.
+
+	* Renamed custom_headers to request_headers
+
+	* Fixed context creation logic
+
+	* Made soup_servers hashtable use case insensitive hostname
+	matching.
+
+	* Removed SOUP_ERROR_URI_NOT_FOUND, SOUP_ERROR_URI_NOT_PERMITTED,
+	and SOUP_ERROR_URI_OBJECT_MOVED from SoupCallbackResult enum. Its
+	up to the application to figure out all the different HTTP
+	states. This may change however.
+
+	* Added querystring to SoupUri, so that contexts can be cached
+	based only on path.
+
+	* Added default port logic to SoupUri. Known protocols are https
+	(port 443), http (80), smtp/mailto (25), and ftp (20).
+
+2000-12-12  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-queue.c: * Also changed the
+	passing of a gchar** to a gchar* in soup_process_headers()'s
+	sscanf().
+
+	* /cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-request.c: * Internal rehash
+	of handling cases where the connection limit is reached, involves
+	setting a timeout event source to check for the ability to create
+	a connection, and allowing either the timeout or the gnet connect
+	routine to be canceled depending on the current connect
+	state. Clients should now use soup_context_cancel_connect() to
+	cancel a connection in progress.
+
+	* /cvs/helixcode/services/soup/src/soup-queue.c: * Don't use glibc
+	sscanf extensions.
+
+2000-12-11  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/src/soup-queue.c: Better error
+	checking on HTTP response line. Avoid doing a lookup for every
+	used header by iterating the hash table and doing a strcmp for all
+	known headers. This is not necessarily faster for several cases,
+	but it allows us to gather custom headers at the same time and
+	avoid a second iteration.
+
+	* /cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/src/Makefile.am,
+	/cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup.h,
+	/cvs/helixcode/services/soup/src/soup-misc.c,
+	/cvs/helixcode/services/soup/src/soup-misc.h,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-queue.h,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-request.h,
+	/cvs/helixcode/services/soup/src/soup-uri.h: * Rewrote the
+	connection pool logic, and cleaned up the request queueing loop.
+
+	* Added ref/unref to SoupContext.
+
+	* Made getting a connection for a SoupContext generic which cleans
+	up the code and makes it useable for purposes other than soup.
+
+	* Connection limits handling moved to the connection pooling to
+	avoid races, and allows for better handling when we have hit the
+	connection limit.
+
+	* Added soup-misc.[ch] which provide global functions for getting
+	and setting the proxy context and the connection limit.
+
+	* Changed proxy to be a SoupContext.
+
+	* Support for http headers near completion.
+
+	* Added support for custom request headers which can override the
+	standard headers without duplication.
+
+	* Lots of code reorg and cleaning up.
+
+2000-12-07  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/src/soup-queue.c: Replaced CVS gnet
+	feature for setting TCP_NODELAY
+
+2000-12-06  alex  <alex@ximian.com>
+
+	* /cvs/helixcode/services/soup/acconfig.h,
+	/cvs/helixcode/services/soup/AUTHORS,
+	/cvs/helixcode/services/soup/autogen.sh,
+	/cvs/helixcode/services/soup/ChangeLog,
+	/cvs/helixcode/services/soup/configure.in,
+	/cvs/helixcode/services/soup/docs/soap-encoding.txt,
+	/cvs/helixcode/services/soup/docs/soap-envelope.txt,
+	/cvs/helixcode/services/soup/Makefile.am,
+	/cvs/helixcode/services/soup/NEWS,
+	/cvs/helixcode/services/soup/README,
+	/cvs/helixcode/services/soup/src/Makefile.am,
+	/cvs/helixcode/services/soup/src/soup-context.c,
+	/cvs/helixcode/services/soup/src/soup-context.h,
+	/cvs/helixcode/services/soup/src/soup.h,
+	/cvs/helixcode/services/soup/src/soup-private.h,
+	/cvs/helixcode/services/soup/src/soup-queue.c,
+	/cvs/helixcode/services/soup/src/soup-queue.h,
+	/cvs/helixcode/services/soup/src/soup-request.c,
+	/cvs/helixcode/services/soup/src/soup-request.h,
+	/cvs/helixcode/services/soup/src/soup-uri.c,
+	/cvs/helixcode/services/soup/src/soup-uri.h: Initial version
+

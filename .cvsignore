@@ -12,6 +12,10 @@ ltconfig
 ltmain.sh
 Makefile
 Makefile.in
+soup.pc
+soup.spec
+soup-config
+soupConf.sh
 stamp-h
 stamp.h
 stamp-h.in
