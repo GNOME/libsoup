@@ -1,5 +1,11 @@
 2001-09-28  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-socket-win.c: Fix copyright notice.
+	* src/libsoup/soup-socket-unix.c: Ditto.
+	* src/libsoup/soup-socket.c: Ditto.
+
+2001-09-28  Alex Graveley  <alex@ximian.com>
+
 	* build/libsoup.dsp (SOURCE): Add soup-socket-win.c.
 
 	* tests/simple-test.c (main): Take HTTP method and body parameters

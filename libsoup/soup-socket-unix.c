@@ -1,14 +1,15 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-socket.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-socket-unix.c: Unix socket networking code.
  *
  * Authors:
  *      David Helder  (dhelder@umich.edu)
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * Original code compliments of David Helder's GNET Networking Library.
+ * Original code compliments of David Helder's GNET Networking Library, and is
+ * Copyright (C) 2000  David Helder & Andrew Lanoix.
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * All else Copyright (C) 2000, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
