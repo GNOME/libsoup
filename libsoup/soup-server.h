@@ -1,11 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-server.h: Asyncronous Callback-based HTTP Request Queue.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_SERVER_H
@@ -19,12 +14,34 @@
 #include <libsoup/soup-uri.h>
 #include <libsoup/soup-server-auth.h>
 
-typedef struct _SoupServer SoupServer;
-typedef struct _SoupServerHandler SoupServerHandler;
+#define SOUP_TYPE_SERVER            (soup_server_get_type ())
+#define SOUP_SERVER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER, SoupServer))
+#define SOUP_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SERVER, SoupServerClass))
+#define SOUP_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SERVER))
+#define SOUP_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SERVER))
+#define SOUP_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER, SoupServerClass))
+
+typedef struct SoupServerPrivate SoupServerPrivate;
+
+typedef struct {
+	GObject parent;
+
+	SoupServerPrivate *priv;
+} SoupServer;
+
+typedef struct {
+	GObjectClass parent_class;
+
+} SoupServerClass;
+
+GType soup_server_get_type (void);
+
+
+typedef struct SoupServerHandler SoupServerHandler;
 
 typedef struct {
 	SoupMessage       *msg;
-	gchar             *path;
+	char              *path;
 	SoupMethodId       method_id;
 	SoupServerAuth    *auth;
 	SoupServer        *server;
@@ -39,8 +56,8 @@ typedef void (*SoupServerUnregisterFn) (SoupServer        *server,
 					SoupServerHandler *handler,
 					gpointer           user_data);
 
-struct _SoupServerHandler {
-	const gchar            *path;
+struct SoupServerHandler {
+	char                   *path;
 
 	SoupServerAuthContext  *auth_ctx;
 
@@ -49,69 +66,39 @@ struct _SoupServerHandler {
 	gpointer                user_data;
 };
 
-SoupServer        *soup_server_new           (SoupProtocol           proto,
-					      guint                  port);
+SoupServer        *soup_server_new            (SoupProtocol           proto,
+					       guint                  port);
+SoupServer        *soup_server_new_with_host  (const char            *host,
+					       SoupProtocol           proto,
+					       guint                  port);
 
-SoupServer        *soup_server_new_with_host (const char            *host,
-					      SoupProtocol           proto,
-					      guint                  port);
+SoupProtocol       soup_server_get_protocol   (SoupServer            *serv);
+guint              soup_server_get_port       (SoupServer            *serv);
 
-SoupServer        *soup_server_cgi           (void);
+void               soup_server_run            (SoupServer            *serv);
+void               soup_server_run_async      (SoupServer            *serv);
+void               soup_server_quit           (SoupServer            *serv);
 
-void               soup_server_ref           (SoupServer            *serv);
 
-void               soup_server_unref         (SoupServer            *serv);
+/* Handlers */
 
-SoupProtocol       soup_server_get_protocol  (SoupServer            *serv);
+void               soup_server_add_handler    (SoupServer            *serv,
+					       const char            *path,
+					       SoupServerAuthContext *auth_ctx,
+					       SoupServerCallbackFn   callback,
+					       SoupServerUnregisterFn unreg,
+					       gpointer               data);
+void               soup_server_remove_handler (SoupServer            *serv,
+					       const char            *path);
+SoupServerHandler *soup_server_get_handler    (SoupServer            *serv,
+					       const char            *path);
+GSList            *soup_server_list_handlers  (SoupServer            *serv);
 
-gint               soup_server_get_port      (SoupServer            *serv);
-
-void               soup_server_run           (SoupServer            *serv);
-
-void               soup_server_run_async     (SoupServer            *serv);
-
-void               soup_server_quit          (SoupServer            *serv);
-
-void               soup_server_register      (SoupServer            *serv,
-					      const gchar           *path,
-					      SoupServerAuthContext *auth_ctx,
-					      SoupServerCallbackFn   callback,
-					      SoupServerUnregisterFn unregister,
-					      gpointer               user_data);
-
-void               soup_server_unregister    (SoupServer            *serv,
-					      const gchar           *path);
-
-SoupServerHandler *soup_server_get_handler   (SoupServer            *serv,
-					      const gchar           *path);
-
-GSList            *soup_server_list_handlers (SoupServer            *serv);
 
 /* Functions for accessing information about the specific connection */
 
-SoupAddress       *soup_server_context_get_client_address (SoupServerContext *context);
+SoupAddress *soup_server_context_get_client_address (SoupServerContext *ctx);
+const char  *soup_server_context_get_client_host    (SoupServerContext *ctx);
 
-const char        *soup_server_context_get_client_host    (SoupServerContext *context);
-
-/* 
- * Apache/soup-httpd module initializtion
- * Implement soup_server_init() in your shared library. 
- */
-extern void soup_server_init (SoupServer *server);
-
-typedef struct _SoupServerMessage SoupServerMessage;
-
-SoupServerMessage *soup_server_message_new        (SoupMessage       *src_msg);
-
-void               soup_server_message_start      (SoupServerMessage *servmsg);
-
-void               soup_server_message_add_data   (SoupServerMessage *servmsg,
-						   SoupOwnership      owner,
-						   gchar             *body,
-						   gulong             length);
-
-void               soup_server_message_finish     (SoupServerMessage *servmsg);
-
-SoupMessage       *soup_server_message_get_source (SoupServerMessage *servmsg);
 
 #endif /* SOUP_SERVER_H */

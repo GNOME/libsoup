@@ -1,3 +1,21 @@
+2003-08-19  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-server.c: Make this a GObject. Remove
+	SoupServerMessage code (to soup-server-message.c). Remove CGI
+	server code (for now?)
+	(soup_server_add_handler, soup_server_remove_handler): Rename
+	(from register/unregister) to make it clearer what they do.
+
+	* libsoup/soup-server-message.c: Moved out of soup-server.c
+
+	* libsoup/soup-private.h: Remove SoupServer def
+
+	* libsoup/Makefile.am (libsoupinclude_HEADERS,
+	libsoup_2_2_la_SOURCES): add soup-server-message.[ch]
+
+	* tests/simple-httpd.c: 
+	* tests/simple-proxy.c: Update for SoupServer changes
+
 2003-08-18  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-address.c (SoupAddressPrivate): Make this more like

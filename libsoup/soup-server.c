@@ -1,22 +1,17 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-server.c: Asyncronous Callback-based HTTP Request Queue.
+ * soup-server.c: Asynchronous HTTP server
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 /*
- * FIXME: Split into soup-server-cgi.[ch] and soup-server-dyn.[ch]
+ * FIXME: Split into SoupServerTCP and SoupServerCGI subclasses
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
-#include <unistd.h>
 
 #ifdef HAVE_SYS_FILIO_H
 #include <sys/filio.h>
@@ -26,12 +21,10 @@
 #include <sys/ioctl.h>
 #endif
 
-extern char **environ;
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib.h>
+#include <unistd.h>
 
 #include "soup-server.h"
 #include "soup-headers.h"
@@ -39,55 +32,116 @@ extern char **environ;
 #include "soup-ssl.h"
 #include "soup-transfer.h"
 
-#define SOUP_PROTOCOL_CGI 0xff
+#define PARENT_TYPE G_TYPE_OBJECT
+static GObjectClass *parent_class;
 
-struct _SoupServerMessage {
+struct SoupServerPrivate {
+	SoupProtocol       proto;
+	guint              port;
+
+	GMainLoop         *loop;
+
+	SoupSocket        *listen_sock;
+
+	GHashTable        *handlers; /* KEY: path, VALUE: SoupServerHandler */
+	SoupServerHandler *default_handler;
+};
+
+struct SoupServerMessage {
 	SoupMessage *msg;
 	GSList      *chunks;           /* CONTAINS: SoupDataBuffer* */
 	gboolean     started;
 	gboolean     finished;
 };
 
+
+static void
+init (GObject *object)
+{
+	SoupServer *server = SOUP_SERVER (object);
+
+	server->priv = g_new0 (SoupServerPrivate, 1);
+	server->priv->handlers = g_hash_table_new (g_str_hash, g_str_equal);
+}
+
+static void 
+free_handler (SoupServer *server, SoupServerHandler *hand)
+{
+	if (hand->unregister)
+		(*hand->unregister) (server, hand, hand->user_data);
+
+	if (hand->auth_ctx) {
+		g_free ((char *) hand->auth_ctx->basic_info.realm);
+		g_free ((char *) hand->auth_ctx->digest_info.realm);
+		g_free (hand->auth_ctx);
+	}
+
+	g_free (hand->path);	
+	g_free (hand);
+}
+
+static void
+free_handler_foreach (gpointer key, gpointer hand, gpointer server)
+{
+	free_handler (server, hand);
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupServer *server = SOUP_SERVER (object);
+
+	if (server->priv->listen_sock)
+		g_object_unref (server->priv->listen_sock);
+
+	if (server->priv->default_handler)
+		free_handler (server, server->priv->default_handler);
+
+	g_hash_table_foreach (server->priv->handlers,
+			      free_handler_foreach, server);
+	g_hash_table_destroy (server->priv->handlers);
+
+	if (server->priv->loop)
+		g_main_loop_unref (server->priv->loop);
+
+	g_free (server->priv);
+
+	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+class_init (GObjectClass *object_class)
+{
+	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method override */
+	object_class->finalize = finalize;
+}
+
+SOUP_MAKE_TYPE (soup_server, SoupServer, class_init, init, PARENT_TYPE)
+
+
 static SoupServer *
 new_server (SoupAddress *address, SoupProtocol proto)
 {
-	SoupServer *serv;
+	SoupServer *server;
 	SoupSocket *sock = NULL;
-	GIOChannel *read_chan = NULL, *write_chan = NULL;
-	guint port = 0;
 
 	g_return_val_if_fail (address, NULL);
 
-	if (proto == SOUP_PROTOCOL_CGI) {
-		read_chan = g_io_channel_unix_new (STDIN_FILENO);
-		if (!read_chan)
-			return NULL;
+	sock = soup_socket_server_new (address,
+				       proto == SOUP_PROTOCOL_HTTPS,
+				       NULL, NULL);
+	if (!sock)
+		return NULL;
+	address = soup_socket_get_local_address (sock);
 
-		write_chan = g_io_channel_unix_new (STDOUT_FILENO);
-		if (!write_chan) {
-			g_io_channel_unref (read_chan);
-			return NULL;
-		}
-	} else {
-		sock = soup_socket_server_new (address,
-					       proto == SOUP_PROTOCOL_HTTPS,
-					       NULL, NULL);
-		if (!sock)
-			return NULL;
+	server = g_object_new (SOUP_TYPE_SERVER, NULL);
+	server->priv->port = soup_address_get_port (address);
+	server->priv->proto = proto;
+	server->priv->listen_sock = sock;
 
-		address = soup_socket_get_local_address (sock);
-		port = soup_address_get_port (address);
-	}
-
-	serv = g_new0 (SoupServer, 1);
-	serv->refcnt = 1;
-	serv->port = port;
-	serv->proto = proto;
-	serv->listen_sock = sock;
-	serv->cgi_read_chan = read_chan;
-	serv->cgi_write_chan = write_chan;
-
-	return serv;
+	return server;
 }	
 
 SoupServer *
@@ -102,99 +156,26 @@ soup_server_new_with_host (const char *host, SoupProtocol proto, guint port)
 	SoupAddress *address;
 
 	address = soup_address_new (host, port);
-
 	if (!address)
 		return NULL;
 
 	return new_server (address, proto);
 }
 
-SoupServer *
-soup_server_cgi (void)
+guint
+soup_server_get_port (SoupServer *server)
 {
-	static SoupServer *cgi = NULL;
+	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
 
-	if (!cgi) 
-		cgi = soup_server_new (SOUP_PROTOCOL_CGI, 0);
-
-	return cgi;
-}
-
-static void 
-free_handler (SoupServer *server, SoupServerHandler *hand)
-{
-	if (hand->unregister)
-		(*hand->unregister) (server, hand, hand->user_data);
-
-	if (hand->auth_ctx) {
-		g_free ((gchar *) hand->auth_ctx->basic_info.realm);
-		g_free ((gchar *) hand->auth_ctx->digest_info.realm);
-		g_free (hand->auth_ctx);
-	}
-
-	g_free ((gchar *) hand->path);	
-	g_free (hand);
-}
-
-static gboolean
-free_handler_foreach (gchar *key, SoupServerHandler *hand, SoupServer *server)
-{
-	free_handler (server, hand);
-	return TRUE;
-}
-
-void
-soup_server_ref (SoupServer *serv)
-{
-	g_return_if_fail (serv != NULL);
-
-	++serv->refcnt;	
-}
-
-void
-soup_server_unref (SoupServer *serv)
-{
-	g_return_if_fail (serv != NULL);
-
-	--serv->refcnt;
-
-	if (serv->refcnt == 0) {
-		if (serv->listen_sock)
-			g_object_unref (serv->listen_sock);
-
-		if (serv->cgi_read_chan)
-			g_io_channel_unref (serv->cgi_read_chan);
-
-		if (serv->cgi_write_chan)
-			g_io_channel_unref (serv->cgi_write_chan);
-
-		if (serv->default_handler)
-			free_handler (serv, serv->default_handler);
-
-		g_hash_table_foreach_remove (serv->handlers, 
-					     (GHRFunc) free_handler_foreach, 
-					     serv);
-		g_hash_table_destroy (serv->handlers);
-
-		if (serv->loop)
-			g_main_loop_unref (serv->loop);
-
-		g_free (serv);
-	}
-}
-
-gint
-soup_server_get_port (SoupServer *serv)
-{
-	g_return_val_if_fail (serv != NULL, 0);
-	return serv->port;
+	return server->priv->port;
 }
 
 SoupProtocol
-soup_server_get_protocol (SoupServer *serv)
+soup_server_get_protocol (SoupServer *server)
 {
-	g_return_val_if_fail (serv != NULL, 0);
-	return serv->proto;
+	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
+
+	return server->priv->proto;
 }
 
 static void
@@ -213,7 +194,7 @@ typedef struct {
 	SoupSocket *server_sock;
 } ServerConnectData;
 
-static gboolean start_another_request (GIOChannel    *serv_chan,
+static gboolean start_another_request (GIOChannel    *server_chan,
 				       GIOCondition   condition, 
 				       gpointer       user_data);
 
@@ -289,15 +270,9 @@ destroy_message (SoupMessage *msg)
 		g_free (server_msg);
 	}
 
-	/*
-	 * If CGI, service one message and quit 
-	 */
-	if (server->proto == SOUP_PROTOCOL_CGI)
-		g_main_loop_quit (server->loop);
+	g_object_unref (server);
 
-	soup_server_unref (server);
-
-	g_free ((gchar *) msg->method);
+	g_free ((char *) msg->method);
 	soup_message_free (msg);
 }
 
@@ -319,129 +294,8 @@ write_done_cb (gpointer user_data)
 	destroy_message (msg);
 }
 
-static SoupTransferDone
-read_headers_cgi (SoupMessage *msg,
-		  gint        *content_len)
-{
-	SoupContext *ctx;
-
-	/*
-	 * Get request HTTP method
-	 */
-	(gchar *) msg->method = g_strdup (g_getenv ("REQUEST_METHOD"));
-
-	/* 
-	 * Get content length of request body
-	 */
-	{
-		const gchar *length;
-		length = g_getenv ("CONTENT_LENGTH");
-
-		*content_len = length ? atoi (length) : 0;
-	}
-
-	/* 
-	 * Determine request HTTP version
-	 */
-	{
-		const gchar *proto;
-		proto = g_getenv ("SERVER_PROTOCOL");
-		if (proto) {
-			if (!g_strcasecmp (proto, "HTTP/1.1"))
-				msg->priv->http_version = SOUP_HTTP_1_1;
-			else
-				msg->priv->http_version = SOUP_HTTP_1_0;
-		} else
-			msg->priv->http_version = SOUP_HTTP_1_0;
-	}
-
-	/* 
-	 * Generate correct context for request 
-	 */
-	{
-		const gchar *host, *https;
-		gchar *url;
-
-		host = g_getenv ("HTTP_HOST");
-		if (!host)
-			host = g_getenv ("SERVER_ADDR");
-
-		/*
-		 * MS IIS sets $HTTPS to "off" if not using HTTPS
-		 */
-		https = g_getenv ("HTTPS");
-		if (https && !g_strcasecmp (https, "OFF"))
-			https = NULL;
-
-		url = g_strconcat (https ? "https://" : "http://",
-				   host,
-				   ":",
-				   g_getenv ("SERVER_PORT"),
-				   g_getenv ("REQUEST_URI"),
-				   NULL);
-
-		ctx = soup_context_get (url);
-		g_free (url);
-
-		if (!ctx) goto THROW_MALFORMED_HEADER;
-
-		soup_message_set_context (msg, ctx);
-		g_object_unref (ctx);
-	}
-
-	/*
-	 * Load request headers from environment. Header environment variables
-	 * are of the form "HTTP_<NAME>=<VALUE>"
-	 */
-	{
-		gint iter;
-		for (iter = 0; environ [iter]; iter++) {
-			gchar *env = environ [iter];
-
-			if (!strncmp (env, "HTTP_", 5)) {
-				gchar *cpy, *iter;
-
-				cpy = iter = g_strdup (env + 5);
-
-				if (!cpy) 
-					continue;
-
-				/*
-				 * Replace '_' with '-' in header names
-				 */
-				while (*iter && *iter != '=') {
-					if (*iter == '_')
-						*iter = '-';
-					iter++;
-				}
-
-				if (*cpy && *iter) {
-					/* 
-					 * Skip '=' between key and value 
-					 */
-					*iter++ = '\0';
-
-					soup_message_add_header (
-						msg->request_headers,
-						cpy,
-						iter);
-				}
-
-				g_free (cpy);
-			}
-		}
-	}
-
-	return SOUP_TRANSFER_CONTINUE;
-
- THROW_MALFORMED_HEADER:
-	destroy_message (msg);
-
-	return SOUP_TRANSFER_END;
-}
-
 static void
-write_header (gchar *key, gchar *value, GString *ret)
+write_header (char *key, char *value, GString *ret)
 {
 	g_string_sprintfa (ret, "%s: %s\r\n", key, value);
 }
@@ -483,8 +337,8 @@ get_response_header (SoupMessage          *req,
 static inline void
 set_response_error (SoupMessage    *req,
 		    guint           code,
-		    gchar          *phrase,
-		    gchar          *body)
+		    char           *phrase,
+		    char           *body)
 {
 	if (phrase)
 		soup_message_set_error_full (req, code, phrase);
@@ -526,12 +380,12 @@ read_headers_cb (const GString        *headers,
 {
 	SoupMessage *msg = user_data;
 	SoupContext *ctx;
-	gchar *req_path = NULL;
+	char *req_path = NULL;
 
 	if (!soup_headers_parse_request (headers->str, 
 					 headers->len, 
 					 msg->request_headers, 
-					 (gchar **) &msg->method, 
+					 (char **) &msg->method, 
 					 &req_path,
 					 &msg->priv->http_version))
 		goto THROW_MALFORMED_HEADER;
@@ -540,7 +394,7 @@ read_headers_cb (const GString        *headers,
 	 * Handle request body encoding 
 	 */
 	{
-		const gchar *length, *enc;
+		const char *length, *enc;
 
 		/* Handle Content-Length or Chunked encoding */
 		length = soup_message_get_header (msg->request_headers, 
@@ -571,8 +425,8 @@ read_headers_cb (const GString        *headers,
 	 * Generate correct context for request 
 	 */
 	{
-		gchar *url = NULL;
-		const gchar *req_host = NULL;
+		char *url = NULL;
+		const char *req_host = NULL;
 		SoupServer *server = msg->priv->server;
 
 		req_host = soup_message_get_header (msg->request_headers, 
@@ -594,11 +448,11 @@ read_headers_cb (const GString        *headers,
 			url = 
 				g_strdup_printf (
 					"%s%s:%d%s",
-					server->proto == SOUP_PROTOCOL_HTTPS ?
+					server->priv->proto == SOUP_PROTOCOL_HTTPS ?
 					        "https://" :
 					        "http://",
 					req_host, 
-					server->port,
+					server->priv->port,
 					req_path);
 		} else {
 			/* 
@@ -611,12 +465,12 @@ read_headers_cb (const GString        *headers,
 			url = 
 				g_strdup_printf (
 					"%s%s:%d%s",
-					server->proto == 
+					server->priv->proto == 
 					        SOUP_PROTOCOL_HTTPS ?
 						         "https://" :
 						         "http://",
 					host ? host : "localhost",
-					server->port,
+					server->priv->port,
 					req_path);
 		}
 
@@ -642,7 +496,7 @@ read_headers_cb (const GString        *headers,
 static void
 call_handler (SoupMessage          *req,
 	      const SoupDataBuffer *req_data,
-	      const gchar          *handler_path)
+	      const char           *handler_path)
 {
 	SoupServer *server = req->priv->server;
 	SoupServerHandler *hand;
@@ -702,7 +556,7 @@ call_handler (SoupMessage          *req,
 	if (hand->callback) {
 		const SoupUri *uri = soup_context_get_uri (req->context);
 
-		SoupServerContext servctx = {
+		SoupServerContext serverctx = {
 			req,
 			uri->path,
 			soup_method_get_id (req->method),
@@ -712,26 +566,11 @@ call_handler (SoupMessage          *req,
 		};
 
 		/* Call method handler */
-		(*hand->callback) (&servctx, req, hand->user_data);
+		(*hand->callback) (&serverctx, req, hand->user_data);
 	}
 
 	if (auth)
 		soup_server_auth_free (auth);
-}
-
-static void
-get_header_cgi_cb (GString  **out_hdr,
-		   gpointer   user_data)
-{
-	SoupMessage *msg = user_data;
-	SoupServerMessage *server_msg = msg->priv->server_msg;
-
-	if (server_msg && server_msg->started)
-		*out_hdr = get_response_header (msg, 
-						FALSE, 
-						SOUP_TRANSFER_UNKNOWN);
-	else
-		soup_transfer_write_pause (msg->priv->write_tag);
 }
 
 static void
@@ -783,52 +622,6 @@ get_chunk_cb (SoupDataBuffer *out_next, gpointer user_data)
 		soup_transfer_write_pause (msg->priv->write_tag);
 		return SOUP_TRANSFER_CONTINUE;
 	}
-}
-
-static void
-read_done_cgi_cb (const SoupDataBuffer *data,
-		  gpointer              user_data)
-{
-	SoupMessage *req = user_data;
-	SoupServer *server = req->priv->server;
-	GIOChannel *channel;
-
-	req->priv->read_tag = 0;
-
-	call_handler (req, data, g_getenv ("PATH_INFO"));
-
-	channel = server->cgi_write_chan;
-
-	if (req->priv->server_msg) {
-		req->priv->write_tag = 
-			soup_transfer_write (channel,
-					     SOUP_TRANSFER_UNKNOWN,
-					     get_header_cgi_cb,
-					     get_chunk_cb,
-					     write_done_cb,
-					     error_cb,
-					     req);
-
-		/*
-		 * Pause write until soup_server_message_start()
-		 */
-		if (!req->priv->server_msg->started)
-			soup_transfer_write_pause (req->priv->write_tag);
-	} else {
-		GString *header;
-		header = get_response_header (req, 
-					      FALSE, 
-					      SOUP_TRANSFER_CONTENT_LENGTH);
-		req->priv->write_tag = 
-			soup_transfer_write_simple (channel,
-						    header,
-						    &req->response,
-						    write_done_cb,
-						    error_cb,
-						    req);
-	}
-
-	return;
 }
 
 static void
@@ -897,14 +690,14 @@ message_new (SoupServer *server)
 	if (msg) {
 		msg->method = NULL;
 		msg->priv->server = server;
-		soup_server_ref (server);
+		g_object_ref (server);
 	}
 
 	return msg;
 }
 
 static gboolean
-start_another_request (GIOChannel    *serv_chan,
+start_another_request (GIOChannel    *server_chan,
 		       GIOCondition   condition, 
 		       gpointer       user_data)
 {
@@ -912,7 +705,7 @@ start_another_request (GIOChannel    *serv_chan,
 	SoupMessage *msg;
 	int fd, cnt;
 
-	fd = g_io_channel_unix_get_fd (serv_chan);
+	fd = g_io_channel_unix_get_fd (server_chan);
 
 	if (!(condition & G_IO_IN) || 
 	    ioctl (fd, FIONREAD, &cnt) < 0 ||
@@ -926,7 +719,7 @@ start_another_request (GIOChannel    *serv_chan,
 		} else {
 			msg->priv->server_sock = data->server_sock;
 			msg->priv->read_tag = 
-				soup_transfer_read (serv_chan,
+				soup_transfer_read (server_chan,
 						    FALSE,
 						    read_headers_cb,
 						    NULL,
@@ -963,147 +756,48 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 				    msg);
 }
 
-typedef struct {
-	SoupMessage *msg;
-	guint        content_len;
-	GByteArray  *recv_buf;
-} CgiReader;
-
-static gboolean
-cgi_read (GIOChannel    *serv_chan,
-	  GIOCondition   condition, 
-	  gpointer       user_data)
-{
-	CgiReader *reader = user_data;
-
-	if (!(condition & G_IO_IN))
-		goto DONE_READING;
-	else {
-		while (reader->recv_buf->len < reader->content_len) {
-			guchar read_buf [RESPONSE_BLOCK_SIZE];
-			gsize bytes_read;
-			GIOError error;
-
-			error = g_io_channel_read (serv_chan,
-						   read_buf,
-						   sizeof (read_buf),
-						   &bytes_read);
-
-			if (error == G_IO_ERROR_AGAIN)
-				return TRUE;
-
-			if (error != G_IO_ERROR_NONE)
-				goto DONE_READING;
-
-			if (bytes_read) 
-				g_byte_array_append (reader->recv_buf, 
-						     read_buf, 
-						     bytes_read);
-			else
-				break;
-		}
-	}
-
- DONE_READING:
-	if (reader->recv_buf->len == reader->content_len) {
-		SoupDataBuffer buf;
-
-		g_byte_array_append (reader->recv_buf, "\0", 1);
-
-		buf.owner  = SOUP_BUFFER_SYSTEM_OWNED;
-		buf.body   = reader->recv_buf->data;
-		buf.length = reader->recv_buf->len;
-
-		read_done_cgi_cb (&buf, reader->msg);
-		
-		g_byte_array_free (reader->recv_buf, FALSE);
-	} else 
-		g_byte_array_free (reader->recv_buf, TRUE);
-
-	g_free (reader);		
-
-	return FALSE;
-}
-
 void
 soup_server_run_async (SoupServer *server)
 {
-	g_return_if_fail (server != NULL);
+	g_return_if_fail (SOUP_IS_SERVER (server));
 
-	if (server->proto == SOUP_PROTOCOL_CGI) {
-		SoupMessage *msg;
-		gint content_len = 0;
-
-		msg = message_new (server);
-		if (!msg) {
-			g_warning ("Unable to create new incoming message\n");
-			return;
+	if (!server->priv->listen_sock) {
+		if (server->priv->loop) {
+			g_main_loop_unref (server->priv->loop);
+			server->priv->loop = NULL;
 		}
-
-		if (read_headers_cgi (msg, &content_len) == SOUP_TRANSFER_END)
-			goto START_ERROR;
-
-		if (content_len > 0) {
-			CgiReader *reader;
-
-			reader = g_new0 (CgiReader, 1);
-			reader->msg = msg;
-			reader->content_len = content_len;
-			reader->recv_buf = g_byte_array_new ();
-
-			g_io_add_watch (server->cgi_read_chan,
-					G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
-					(GIOFunc) cgi_read, 
-					reader);
-		} else {
-			SoupDataBuffer buf = {
-				SOUP_BUFFER_STATIC,
-				"",
-				0
-			};
-
-			read_done_cgi_cb (&buf, msg);
-		}
-	} else {
-		if (!server->listen_sock) 
-			goto START_ERROR;
-
-		g_signal_connect (server->listen_sock, "new_connection",
-				  G_CALLBACK (new_connection), server);
+		return;
 	}
 
-	soup_server_ref (server);
+	g_signal_connect (server->priv->listen_sock, "new_connection",
+			  G_CALLBACK (new_connection), server);
+	g_object_ref (server);
 
 	return;
 
- START_ERROR:
-	if (server->loop) {
-		g_main_loop_unref (server->loop);
-		server->loop = NULL;
-	}
 }
 
 void
 soup_server_run (SoupServer *server)
 {
-	g_return_if_fail (server != NULL);
+	g_return_if_fail (SOUP_IS_SERVER (server));
 
-	if (!server->loop) {
-		server->loop = g_main_loop_new (NULL, TRUE);
+	if (!server->priv->loop) {
+		server->priv->loop = g_main_loop_new (NULL, TRUE);
 		soup_server_run_async (server);
 	}
 
-	if (server->loop)
-		g_main_loop_run (server->loop);
+	if (server->priv->loop)
+		g_main_loop_run (server->priv->loop);
 }
 
 void 
 soup_server_quit (SoupServer *server)
 {
-	g_return_if_fail (server != NULL);
+	g_return_if_fail (SOUP_IS_SERVER (server));
 
-	g_main_loop_quit (server->loop);
-	soup_server_unref (server);
+	g_main_loop_quit (server->priv->loop);
+	g_object_unref (server);
 }
 
 static void
@@ -1111,7 +805,7 @@ append_handler (gpointer key, gpointer value, gpointer user_data)
 {
 	GSList **ret = user_data;
 
-	*ret = g_slist_append (*ret, value);
+	*ret = g_slist_prepend (*ret, value);
 }
 
 GSList *
@@ -1119,21 +813,21 @@ soup_server_list_handlers (SoupServer *server)
 {
 	GSList *ret = NULL;
 
-	g_hash_table_foreach (server->handlers, append_handler, &ret);
+	g_hash_table_foreach (server->priv->handlers, append_handler, &ret);
 
 	return ret;
 }
 
 SoupServerHandler *
-soup_server_get_handler (SoupServer *server, const gchar *path)
+soup_server_get_handler (SoupServer *server, const char *path)
 {
-	gchar *mypath, *dir;
+	char *mypath, *dir;
 	SoupServerHandler *hand = NULL;
 
-	g_return_val_if_fail (server != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
 
-	if (!path || !server->handlers)
-		return server->default_handler;
+	if (!path || !server->priv->handlers)
+		return server->priv->default_handler;
 
 	mypath = g_strdup (path);
 
@@ -1143,7 +837,7 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 	dir = mypath;
 
 	do {
-		hand = g_hash_table_lookup (server->handlers, mypath);
+		hand = g_hash_table_lookup (server->priv->handlers, mypath);
 		if (hand) {
 			g_free (mypath);
 			return hand;
@@ -1155,7 +849,7 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 
 	g_free (mypath);
 
-	return server->default_handler;
+	return server->priv->default_handler;
 }
 
 SoupAddress *
@@ -1203,140 +897,56 @@ auth_context_copy (SoupServerAuthContext *auth_ctx)
 }
 
 void  
-soup_server_register (SoupServer            *server,
-		      const gchar           *path,
-		      SoupServerAuthContext *auth_ctx,
-		      SoupServerCallbackFn   callback,
-		      SoupServerUnregisterFn unregister,
-		      gpointer               user_data)
+soup_server_add_handler (SoupServer            *server,
+			 const char            *path,
+			 SoupServerAuthContext *auth_ctx,
+			 SoupServerCallbackFn   callback,
+			 SoupServerUnregisterFn unregister,
+			 gpointer               user_data)
 {
-	SoupServerHandler *new_hand;
+	SoupServerHandler *hand;
 	SoupServerAuthContext *new_auth_ctx = NULL;
 
-	g_return_if_fail (server != NULL);
+	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 
 	if (auth_ctx)
 		new_auth_ctx = auth_context_copy (auth_ctx);
 
-	new_hand = g_new0 (SoupServerHandler, 1);
-	new_hand->path       = g_strdup (path);
-	new_hand->auth_ctx   = new_auth_ctx;
-	new_hand->callback   = callback;
-	new_hand->unregister = unregister;
-	new_hand->user_data  = user_data;
+	hand = g_new0 (SoupServerHandler, 1);
+	hand->path       = g_strdup (path);
+	hand->auth_ctx   = new_auth_ctx;
+	hand->callback   = callback;
+	hand->unregister = unregister;
+	hand->user_data  = user_data;
 
 	if (path) {
-		if (!server->handlers)
-			server->handlers = g_hash_table_new (g_str_hash, 
-							     g_str_equal);
-		else 
-			soup_server_unregister (server, new_hand->path);
-
-		g_hash_table_insert (server->handlers, 
-				     (gchar *) new_hand->path, 
-				     new_hand);
+		soup_server_remove_handler (server, path);
+		g_hash_table_insert (server->priv->handlers, hand->path, hand);
 	} else {
-		soup_server_unregister (server, NULL);
-		server->default_handler = new_hand;
+		soup_server_remove_handler (server, NULL);
+		server->priv->default_handler = hand;
 	}
 }
 
 void  
-soup_server_unregister (SoupServer *server, const gchar *path)
+soup_server_remove_handler (SoupServer *server, const char *path)
 {
 	SoupServerHandler *hand;
 
-	g_return_if_fail (server != NULL);
+	g_return_if_fail (SOUP_IS_SERVER (server));
 
 	if (!path) {
-		if (server->default_handler) {
-			free_handler (server, server->default_handler);
-			server->default_handler = NULL;
+		if (server->priv->default_handler) {
+			free_handler (server, server->priv->default_handler);
+			server->priv->default_handler = NULL;
 		}
 		return;
 	}
 
-	if (!server->handlers) 
-		return;
-
-	hand = g_hash_table_lookup (server->handlers, path);
+	hand = g_hash_table_lookup (server->priv->handlers, path);
 	if (hand) {
-		g_hash_table_remove (server->handlers, path);
+		g_hash_table_remove (server->priv->handlers, path);
 		free_handler (server, hand);
 	}
-}
-
-SoupServerMessage *
-soup_server_message_new (SoupMessage *src_msg)
-{
-	SoupServerMessage *ret;
-
-	g_return_val_if_fail (src_msg != NULL, NULL);
-
-	if (src_msg->priv->server_msg) 
-		return src_msg->priv->server_msg;
-
-	ret = g_new0 (SoupServerMessage, 1);
-	ret->msg = src_msg;
-
-	src_msg->priv->server_msg = ret;
-
-	return ret;
-}
-
-void
-soup_server_message_start (SoupServerMessage *serv_msg)
-{
-	g_return_if_fail (serv_msg != NULL);
-
-	serv_msg->started = TRUE;
-
-	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
-}
-
-void
-soup_server_message_add_data (SoupServerMessage *serv_msg,
-			      SoupOwnership      owner,
-			      gchar             *body,
-			      gulong             length)
-{
-	SoupDataBuffer *buf;
-
-	g_return_if_fail (serv_msg != NULL);
-	g_return_if_fail (body != NULL);
-	g_return_if_fail (length != 0);
-
-	buf = g_new0 (SoupDataBuffer, 1);
-	buf->length = length;
-
-	if (owner == SOUP_BUFFER_USER_OWNED) {
-		buf->body = g_memdup (body, length);
-		buf->owner = SOUP_BUFFER_SYSTEM_OWNED;
-	} else {
-		buf->body = body;
-		buf->owner = owner;
-	}
-
-	serv_msg->chunks = g_slist_append (serv_msg->chunks, buf);
-
-	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
-}
-
-void
-soup_server_message_finish  (SoupServerMessage *serv_msg)
-{
-	g_return_if_fail (serv_msg != NULL);
-
-	serv_msg->started = TRUE;
-	serv_msg->finished = TRUE;
-
-	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
-}
-
-SoupMessage *
-soup_server_message_get_source (SoupServerMessage *serv_msg)
-{
-	g_return_val_if_fail (serv_msg != NULL, NULL);
-	return serv_msg->msg;
 }

@@ -73,7 +73,8 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_register (server, NULL, NULL, server_callback, NULL, NULL);
+	soup_server_add_handler (server, NULL, NULL,
+				 server_callback, NULL, NULL);
 
 	printf ("\nStarting proxy on port %d\n",
 		soup_server_get_port (server));

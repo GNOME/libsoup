@@ -145,14 +145,16 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_register (server, NULL, NULL, server_callback, NULL, NULL);
+	soup_server_add_handler (server, NULL, NULL,
+				 server_callback, NULL, NULL);
 
 	ssl_server = soup_server_new (SOUP_PROTOCOL_HTTPS, ssl_port);
 	if (!ssl_server) {
 		fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
 		exit (1);
 	}
-	soup_server_register (ssl_server, NULL, NULL, server_callback, NULL, NULL);
+	soup_server_add_handler (ssl_server, NULL, NULL,
+				 server_callback, NULL, NULL);
 
 	printf ("\nStarting Server on port %d\n",
 		soup_server_get_port (server));

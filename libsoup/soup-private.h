@@ -28,6 +28,7 @@
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
+#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-socket.h>
 #include <libsoup/soup-uri.h>
 
@@ -60,22 +61,6 @@ typedef struct {
 #else
 #define soup_sockaddr_max sockaddr_in
 #endif
-
-struct _SoupServer {
-	SoupProtocol       proto;
-	gint               port;
-
-	guint              refcnt;
-	GMainLoop         *loop;
-
-	SoupSocket        *listen_sock;
-
-	GIOChannel        *cgi_read_chan;
-	GIOChannel        *cgi_write_chan;
-
-	GHashTable        *handlers;   /* KEY: path, VALUE: SoupServerHandler */
-	SoupServerHandler *default_handler;
-};
 
 struct _SoupMessagePrivate {
 	SoupConnectId      connect_tag;
