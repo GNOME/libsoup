@@ -1,5 +1,19 @@
 2001-03-02  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: remove gmodule dependency. Fix OPENSSL_LIBS and
+	NSS_LIBS to include the library name and not only the path.
+
+	* src/soup-core/soup-ssl-proxy.c (soup_ssl_proxy_init): remove
+	call to g_module_supported().
+
+	* src/soup-core/soup-nss.c: remove GModule NSS loading,
+	link conventionally instead.
+
+	* src/soup-core/soup-openssl.c: remove GModule OpenSSL loading,
+	link conventionally instead.
+
+2001-03-02  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-ssl-proxy.c: oops. should have been added
 	yesterday.
 	

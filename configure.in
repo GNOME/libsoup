@@ -116,11 +116,10 @@ AM_PROG_LIBTOOL
 
 # Need GLIB
 AM_PATH_GLIB(1.2.0,,
-             AC_MSG_ERROR([Cannot find GLIB: Is glib-config in path?]),
-             gmodule)
+             AC_MSG_ERROR([Cannot find GLIB: Is glib-config in path?]))
 
-GLIB_CFLAGS=`glib-config --cflags glib gmodule`
-GLIB_LIBS=`glib-config --libs glib gmodule`
+GLIB_CFLAGS=`glib-config --cflags glib`
+GLIB_LIBS=`glib-config --libs glib`
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
@@ -211,21 +210,20 @@ openssl_prefix=-L$withval
 if test "x$enable_ssl" = xyes; then
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$openssl_inc_prefix"
-	AC_CHECK_HEADERS(openssl/ssl.h)
-	AC_CHECK_HEADERS(openssl/err.h)
-	OPENSSL_CFLAGS=$CPPFLAGS
-	OPENSSL_LIBS="$openssl_prefix"
+	AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
+			 [OPENSSL_CFLAGS="$CPPFLAGS" 
+			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto"],
+			 [OPENSSL_CFLAGS="" OPENSSL_LIBS=""; break;])
 	AC_SUBST(OPENSSL_CFLAGS)
 	AC_SUBST(OPENSSL_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
 
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
-	AC_CHECK_HEADERS(prthread.h)
-	AC_CHECK_HEADERS(security/ssl.h)
-	AC_CHECK_HEADERS(security/pk11func.h)
-	NSS_CFLAGS=$CPPFLAGS
-	NSS_LIBS="$nspr_prefix $nss_prefix"
+	AC_CHECK_HEADERS(prthread.h security/ssl.h security/pk11func.h,
+			 [NSS_CFLAGS="$CPPFLAGS" 
+			  NSS_LIBS="$nspr_prefix -lnspr4 $nss_prefix -lnss3"],
+			 [NSS_CFLAGS="" NSS_LIBS=""; break;])
 	AC_SUBST(NSS_CFLAGS)
 	AC_SUBST(NSS_LIBS)
 	CPPFLAGS=$save_CPPFLAGS

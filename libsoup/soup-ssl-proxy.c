@@ -9,7 +9,7 @@
  */
 
 #include <config.h>
-#include <gmodule.h>
+#include <glib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -60,8 +60,6 @@ static void
 soup_ssl_proxy_init (void)
 {
 	ssl_library = -1;
-
-	if (!g_module_supported ()) return;
 
 #ifdef HAVE_SECURITY_SSL_H
 	if (ssl_library == -1) ssl_library = soup_nss_init () ? 1 : -1;
