@@ -597,13 +597,18 @@ soup_idle_handle_new_requests (gpointer unused)
  * or when an unrecoverable error occurs.
  * @user_data: a pointer passed to @callback.
  * 
- * Queues the message %req for sending. All messages are processed while the
+ * Queues the message @req for sending. All messages are processed while the
  * glib main loop runs. If this %SoupMessage has been processed before, any
- * resources related to the last it was sent are freed.
+ * resources related to the time it was last sent are freed.
  *
  * If the response %SoupDataBuffer has an owner of %SOUP_BUFFER_USER_OWNED, the
  * message will not be queued, and @callback will be called with a
  * %SoupErrorCode of %SOUP_ERROR_CANCELLED.
+ *
+ * Upon message completetion, the callback specified in @callback will be
+ * invoked. If after returning from this callback the message has not been
+ * requeued using %soup_message_queue, %soup_message_free will be called on
+ * @req.
  */
 void 
 soup_message_queue (SoupMessage    *req,

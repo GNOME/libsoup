@@ -309,6 +309,8 @@ soup_message_get_response_header (SoupMessage *req,
  * Syncronously send @msg. This call will not return until the transfer is
  * finished successfully or there is an unrecoverable error. 
  *
+ * @msg is not free'd upon return.
+ *
  * Return value: the %SoupErrorCode of the error encountered while sending, or
  * SOUP_ERROR_NONE.
  */

@@ -1,3 +1,11 @@
+2001-05-21  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-queue.c (soup_message_queue): gtk-doc fixups.
+
+	* src/soup-core/soup-socket.c (soup_socket_server_new): New.
+	(soup_socket_server_accept): New.
+	(soup_socket_server_try_accept): New.
+
 2001-05-18  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-soap-parse.c (wsdl_soap_headers):

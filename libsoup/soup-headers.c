@@ -91,7 +91,9 @@ soup_headers_parse (gchar      *str,
 		if (!end)
 			goto THROW_MALFORMED_HEADER;
 
-		g_hash_table_insert (dest, g_strdup (key), g_strndup (val, end - val));
+		g_hash_table_insert (dest, 
+				     g_strdup (key), 
+				     g_strndup (val, end - val));
 
 		key = end;
         }

@@ -2068,9 +2068,290 @@ soup_socket_get_port(const SoupSocket* socket)
 	return g_ntohs (SOUP_SOCKADDR_IN (socket->addr->sa).sin_port);
 }
 
+/**
+ * soup_socket_server_new:
+ * @port: Port number for the socket (SOUP_SERVER_ANY_PORT if you don't care).
+ *
+ * Create and open a new #SoupSocket with the specified port number.
+ * Use this sort of socket when your are a server and you know what
+ * the port number should be (or pass 0 if you don't care what the
+ * port is).
+ *
+ * Returns: a new #SoupSocket, or NULL if there was a failure.
+ **/
+SoupSocket * 
+soup_socket_server_new (const gint port)
+{
+	SoupSocket* s;
+	struct sockaddr_in* sa_in;
+	socklen_t socklen;
+
+	/* Create socket */
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+
+	if ((s->sockfd = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
+		g_free (s);
+		return NULL;
+	}
+
+	s->addr = g_new0 (SoupAddress, 1);
+	s->addr->ref_count = 1;
+
+	/* Set up address and port for connection */
+	sa_in = (struct sockaddr_in*) &s->addr->sa;
+	sa_in->sin_family = AF_INET;
+	sa_in->sin_addr.s_addr = g_htonl (INADDR_ANY);
+	sa_in->sin_port = g_htons (port);
+
+	/* The socket is set to non-blocking mode later in the Windows
+	   version.*/
+#ifndef SOUP_WIN32
+	{
+		const int on = 1;
+		gint flags;
+
+		/* Set REUSEADDR so we can reuse the port */
+		if (setsockopt (s->sockfd, 
+				SOL_SOCKET, 
+				SO_REUSEADDR, 
+				&on, 
+				sizeof (on)) != 0)
+			g_warning("Can't set reuse on tcp socket\n");
+
+		/* Get the flags (should all be 0?) */
+		flags = fcntl (s->sockfd, F_GETFL, 0);
+		if (flags == -1) goto ERROR;
+
+		/* Make the socket non-blocking */
+		if (fcntl (s->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+			goto ERROR;
+	}
+#endif
+
+	/* Bind */
+	if (bind (s->sockfd, &s->addr->sa, sizeof (s->addr->sa)) != 0) 
+		goto ERROR;
+
+	/* Get the socket name - don't care if it fails */
+	socklen = sizeof (s->addr->sa);
+	getsockname (s->sockfd, &s->addr->sa, &socklen);
+
+	/* Listen */
+	if (listen (s->sockfd, 10) != 0) goto ERROR;
+
+	return s;
+
+ ERROR:
+	close (s->sockfd);
+	g_free (s->addr);
+	g_free (s);
+	return NULL;
+}
+
+#ifndef SOUP_WIN32  /*********** Unix code ***********/
+
+/**
+ * soup_socket_server_accept:
+ * @socket: #SoupSocket to accept connections from.
+ *
+ * Accept a connection from the socket.  The socket must have been
+ * created using soup_socket_server_new().  This function will
+ * block (use soup_socket_server_try_accept() if you don't
+ * want to block).  If the socket's #GIOChannel is readable, it DOES
+ * NOT mean that this function will not block.
+ *
+ * Returns: a new #SoupSocket if there is another connect, or NULL if
+ * there's an error.
+ **/
+SoupSocket * 
+soup_socket_server_accept (SoupSocket *socket)
+{
+	gint sockfd;
+	struct sockaddr sa;
+	socklen_t n;
+	fd_set fdset;
+	SoupSocket* s;
+
+	g_return_val_if_fail (socket != NULL, NULL);
+
+ try_again:
+	FD_ZERO (&fdset);
+	FD_SET (socket->sockfd, &fdset);
+
+	if (select (socket->sockfd + 1, &fdset, NULL, NULL, NULL) == -1) {
+		if (errno == EINTR) goto try_again;
+		return NULL;
+	}
+
+	n = sizeof(s->addr->sa);
+
+	if ((sockfd = accept (socket->sockfd, &sa, &n)) == -1) {
+		if (errno == EWOULDBLOCK || 
+		    errno == ECONNABORTED ||
+#ifdef EPROTO		/* OpenBSD does not have EPROTO */
+		    errno == EPROTO || 
+#endif
+		    errno == EINTR)
+			goto try_again;
+
+		return NULL;
+	}
+
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = sockfd;
+
+	s->addr = g_new0 (SoupAddress, 1);
+	s->addr->ref_count = 1;
+	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
+	
+	return s;
+}
+
+/**
+ * soup_socket_server_try_accept:
+ * @socket: SoupSocket to accept connections from.
+ *
+ * Accept a connection from the socket without blocking.  The socket
+ * must have been created using soup_socket_server_new().  This
+ * function is best used with the sockets #GIOChannel.  If the
+ * channel is readable, then you PROBABLY have a connection.  It is
+ * possible for the connection to close by the time you call this, so
+ * it may return NULL even if the channel was readable.
+ *
+ * Returns a new SoupSocket if there is another connect, or NULL
+ * otherwise.
+ **/
+SoupSocket * 
+soup_socket_server_try_accept (SoupSocket *socket)
+{
+	gint sockfd;
+	struct sockaddr sa;
+	socklen_t n;
+	fd_set fdset;
+	SoupSocket* s;
+	struct timeval tv = {0, 0};
+
+	g_return_val_if_fail (socket != NULL, NULL);
+
+ try_again:
+	FD_ZERO (&fdset);
+	FD_SET (socket->sockfd, &fdset);
+
+	if (select (socket->sockfd + 1, &fdset, NULL, NULL, &tv) == -1) {
+		if (errno == EINTR) goto try_again;
+		return NULL;
+	}
+
+	n = sizeof(sa);
+
+	if ((sockfd = accept (socket->sockfd, &sa, &n)) == -1) {
+		/* If we get an error, return.  We don't want to try again as we
+		   do in soup_socket_server_accept() - it might cause a
+		   block. */
+		return NULL;
+	}
+  
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = sockfd;
+
+	s->addr = g_new0 (SoupAddress, 1);
+	s->addr->ref_count = 1;
+	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
+	
+	return s;
+}
+
+#else	/*********** Windows code ***********/
+
+SoupSocket *
+soup_socket_server_accept (SoupSocket *socket)
+{
+	gint sockfd;
+	struct sockaddr sa;
+	gint n;
+	fd_set fdset;
+	SoupSocket* s;
+	u_long arg;
+
+	g_return_val_if_fail (socket != NULL, NULL);
+
+	FD_ZERO (&fdset);
+	FD_SET ((unsigned)socket->sockfd, &fdset);
+
+	if (select (socket->sockfd + 1, &fdset, NULL, NULL, NULL) == -1) {
+		return NULL;
+	}
+
+	/* make sure the socket is in blocking mode */
+
+	arg = 0;
+	if (ioctlsocket (socket->sockfd, FIONBIO, &arg))
+		return NULL;
+
+	sockfd = accept (socket->sockfd, &sa, NULL);
+	/* if it fails, looping isn't going to help */
+
+	if (sockfd == INVALID_SOCKET) {
+		return NULL;
+	}
+
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = sockfd;
+
+	s->addr = g_new0 (SoupAddress, 1);
+	s->addr->ref_count = 1;
+	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
+
+	return s;
+}
+
+SoupSocket *
+soup_socket_server_try_accept (SoupSocket *socket)
+{
+	gint sockfd;
+	struct sockaddr sa;
+
+	fd_set fdset;
+	SoupSocket* s;
+	u_long arg;
+  
+	g_return_val_if_fail (socket != NULL, NULL);
+	FD_ZERO (&fdset);
+	FD_SET ((unsigned)socket->sockfd, &fdset);
+
+	if (select (socket->sockfd + 1, &fdset, NULL, NULL, NULL) == -1) {
+		return NULL;
+	}
+	/* make sure the socket is in non-blocking mode */
+
+	arg = 1;
+	if (ioctlsocket (socket->sockfd, FIONBIO, &arg))
+		return NULL;
+
+	sockfd = accept (socket->sockfd, &sa, NULL);
+	/* if it fails, looping isn't going to help */
+
+	if (sockfd == INVALID_SOCKET) {
+		return NULL;
+	}
+
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = sockfd;
+
+	s->addr = g_new0 (SoupAddress, 1);
+	s->addr->ref_count = 1;
+	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
+
+	return s;
+}
+#endif		/*********** End Windows code ***********/
 
 #ifdef SOUP_WIN32  /*********** Windows code ***********/
-
 int 
 soup_MainCallBack (GIOChannel   *iochannel, 
 		   GIOCondition  condition, 

@@ -81,11 +81,9 @@ void  soup_server_main               (void);
 
 void  soup_server_main_quit          (void);
 
-
 /* Apache module initializtion */
+/* Implement soup_server_init() in your library. */
 
 extern void soup_server_init         (void);
-
-/* Implement soup_server_init() in your library. */
 
 #endif /* SOUP_SERVER_H */

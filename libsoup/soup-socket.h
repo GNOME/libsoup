@@ -133,4 +133,13 @@ SoupAddress        *soup_socket_get_address     (const SoupSocket*   socket);
 
 gint                soup_socket_get_port        (const SoupSocket*   socket);
 
+
+#define SOUP_SERVER_ANY_PORT 0
+
+SoupSocket         *soup_socket_server_new        (const gint          port);
+
+SoupSocket         *soup_socket_server_accept     (SoupSocket         *socket);
+
+SoupSocket         *soup_socket_server_try_accept (SoupSocket         *socket);
+
 #endif /* SOUP_SOCKET_H */
