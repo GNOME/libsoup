@@ -36,5 +36,9 @@ To subscribe to the Soup discussion list, send mail with the word "Subscribe" in
 the message body to soup-list-request@ximian.com.
 
 Licensing:
-  * Licensing for the Soup runtime is LGPL, see COPYING.LIB for more details.
-  * Licensing for the WSDL compiler is GPL, see COPYING for more details.
+  * The Soup runtime is licensed LGPL, see COPYING.LIB for more details.
+  * The WSDL compiler is licensed GPL, see COPYING for more details.
+  * The soup-ssl-proxy application is licensed GPL, see COPYING for more
+    details. This is in order to comply with the licensing restrictions
+    imposed by the SSL libraries used by Soup, while allowing the Soup
+    application libraries and runtime to remain LGPL.

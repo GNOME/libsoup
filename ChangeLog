@@ -1,3 +1,7 @@
+2001-05-24  Alex Graveley  <alex@ximian.com>
+
+	* README: Update Licensing section for soup-ssl-proxy.
+
 2001-05-24  Larry Ewing  <lewing@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-soap-parse.c: include string.h for
