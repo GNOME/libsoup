@@ -1,3 +1,13 @@
+2004-02-10  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-connection.c (soup_connection_disconnect): Add a
+	workaround for SSL connections which time-out but don't close the
+	socket until we try sending data again later.
+
+	* libsoup/soup-socket.c (soup_socket_connect, soup_socket_listen):
+	Don't free the sockaddr from soup_address_get_sockaddr(); we don't
+	own it, the SoupAddress does.
+
 2004-02-09  JP Rosevear  <jpr@ximian.com>
 
 	* configure.in: Bump libtool numbers

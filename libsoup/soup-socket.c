@@ -453,13 +453,11 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
 	if (sock->priv->sockfd == -1) {
-		g_free (sa);
 		goto done;
 	}
 	update_fdflags (sock);
 
 	status = connect (sock->priv->sockfd, sa, len);
-	g_free (sa);
 
 	if (status == -1) {
 		if (errno == EINPROGRESS) {
@@ -585,8 +583,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 		close (sock->priv->sockfd);
 		sock->priv->sockfd = -1;
 	}
-	if (sa)
-		g_free (sa);
+
 	return FALSE;
 }
 

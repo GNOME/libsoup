@@ -554,6 +554,15 @@ soup_connection_disconnect (SoupConnection *conn)
 	g_object_unref (conn->priv->socket);
 	conn->priv->socket = NULL;
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
+
+	/* Workaround for timed-out SSL connections.  Check to see if
+	 * there is a message associated with this connection and that
+	 * it's not the first time this connection has been used.  If met,
+	 * setting the status to QUEUED will cause the connection to be
+	 * restarted and the message resent.
+	 */
+	if (conn->priv->cur_req && conn->priv->last_used != 0)
+		conn->priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
 }
 
 /**
