@@ -1,3 +1,8 @@
+2002-01-02  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/libsoup-apache/soup-apache.c (soup_apache_handler): updated
+	for the new field names in SoupServerAuthBasic
+
 2001-12-21  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/Makefile.am (libsoup_la_SOURCES): Add
