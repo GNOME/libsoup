@@ -1,3 +1,9 @@
+2004-01-20  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_close): gnutls_bye() doesn't
+	close the socket itself, so we need to do it or else our
+	connections stay in CLOSE_WAIT forever.
+
 2004-01-16  Jason Leach  <leach@wam.umd.edu>
 
 	* libsoup/Makefile.am: builddir != srcdir fixes.

@@ -240,13 +240,7 @@ soup_gnutls_close (GIOChannel  *channel,
 			 ret == GNUTLS_E_AGAIN);
 	}
 
-#if 0
-	/* gnutls_bye closes the fd itself, so we shouldn't do this.
-	 * All of this GIOChannel abuse makes me a little sick. */
 	return chan->real_sock->funcs->io_close (channel, err);
-#else
-	return TRUE;
-#endif
 }
 
 static GSource *
