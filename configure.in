@@ -11,14 +11,14 @@ SOUP_AGE=3
 SOUP_CURRENT=6
 
 # Increment on source change. Reset when CURRENT changes.
-SOUP_REVISION=3
+SOUP_REVISION=4
 
 AC_SUBST(SOUP_CURRENT)
 AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
 
 # Update in src/libsoup/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.7.8.99)
+AM_INIT_AUTOMAKE(soup, 0.7.9)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE

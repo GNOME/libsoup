@@ -1,5 +1,11 @@
 2002-10-28  Dan Winship  <danw@ximian.com>
 
+	* configure.in (VERSION): update to 0.7.9
+
+	* src/libsoup/soup-private.h (VERSION): Likewise.
+
+2002-10-28  Dan Winship  <danw@ximian.com>
+
 	* src/libsoup/soup-socket.c (soup_socket_connect_tcp_cb): Only
 	free state if state->tcp_id is set (meaning it was called
 	asynchronously).
