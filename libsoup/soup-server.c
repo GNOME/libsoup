@@ -1176,6 +1176,8 @@ auth_context_copy (SoupServerAuthContext *auth_ctx)
 		auth_ctx->digest_info.allow_algorithms;
 	new_auth_ctx->digest_info.force_integrity = 
 		auth_ctx->digest_info.force_integrity;
+
+	return new_auth_ctx;
 }
 
 void  

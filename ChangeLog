@@ -1,3 +1,8 @@
+2002-04-08  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server.c (auth_context_copy): Return copied
+	auth context. doh.
+
 2002-03-21  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Handle
