@@ -1,3 +1,14 @@
+2004-02-04  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Always
+	remove the WWW-Authenticate headers before returning, so the
+	session won't fall back to Basic auth. Also, leave the connection
+	in the "authenticating" state rather than setting it to
+	"authenticated".
+	(ntlm_authorize_post): Only requeue the message if it's in the
+	"authenticating" state (and set it to "authenticated"). Fixes an
+	"unepectedly disconnected" error if authentication fails.
+
 2004-02-03  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-io.c (io_cleanup): Call

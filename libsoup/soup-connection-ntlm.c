@@ -19,10 +19,18 @@
 
 void send_request (SoupConnection *conn, SoupMessage *req);
 
+typedef enum {
+	SOUP_CONNECTION_NTLM_NEW,
+	SOUP_CONNECTION_NTLM_SENT_REQUEST,
+	SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE,
+	SOUP_CONNECTION_NTLM_SENT_RESPONSE,
+	SOUP_CONNECTION_NTLM_FAILED
+} SoupConnectionNTLMState;
+
 struct SoupConnectionNTLMPrivate {
 	char *user;
 	guchar nt_hash[21], lm_hash[21];
-	gboolean authenticated;
+	SoupConnectionNTLMState state;
 };
 
 #define PARENT_TYPE SOUP_TYPE_CONNECTION
@@ -85,12 +93,13 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	char *username, *domain_username = NULL, *password = NULL;
 	char *slash, *domain;
 
-	if (ntlm->priv->authenticated) {
+	if (ntlm->priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
 		/* We already authenticated, but then got another 401.
 		 * That means "permission denied", so don't try to
 		 * authenticate again.
 		 */
-		return;
+		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		goto done;
 	}
 
 	headers = soup_message_get_header_list (msg->response_headers,
@@ -101,11 +110,15 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 			break;
 		headers = headers->next;
 	}
-	if (!headers)
-		return;
+	if (!headers) {
+		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		goto done;
+	}
 
-	if (!soup_ntlm_parse_challenge (val, &nonce, &domain))
-		return;
+	if (!soup_ntlm_parse_challenge (val, &nonce, &domain)) {
+		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		goto done;
+	}
 
 	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg,
 				      "NTLM", domain,
@@ -113,7 +126,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	if (!domain_username) {
 		g_free (nonce);
 		g_free (domain);
-		return;
+		goto done;
 	}
 
 	slash = strpbrk (domain_username, "\\/");
@@ -134,8 +147,9 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	soup_message_add_header (msg->request_headers,
 				 "Authorization", header);
 	g_free (header);
-	ntlm->priv->authenticated = TRUE;
+	ntlm->priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
 
+ done:
 	/* Remove the WWW-Authenticate headers so the session won't try
 	 * to do Basic auth too.
 	 */
@@ -147,9 +161,10 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 {
 	SoupConnectionNTLM *ntlm = conn;
 
-	if (ntlm->priv->authenticated &&
+	if (ntlm->priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
 	    soup_message_get_header (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
+		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
 		soup_connection_send_request (conn, msg);
 	}
 }
@@ -159,12 +174,13 @@ send_request (SoupConnection *conn, SoupMessage *req)
 {
 	SoupConnectionNTLM *ntlm = SOUP_CONNECTION_NTLM (conn);
 
-	if (!ntlm->priv->authenticated) {
+	if (ntlm->priv->state == SOUP_CONNECTION_NTLM_NEW) {
 		char *header = soup_ntlm_request ();
 
 		soup_message_add_header (req->request_headers,
 					 "Authorization", header);
 		g_free (header);
+		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
 	}
 
 	soup_message_remove_handler (req, SOUP_HANDLER_PRE_BODY,
