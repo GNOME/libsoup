@@ -16,6 +16,8 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-uri.h>
 
+/* Configuration routines */
+
 void               soup_load_config          (gchar       *config_file);
 
 void               soup_shutdown             (void);

@@ -41,7 +41,7 @@
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
-GHashTable *soup_servers;  /* KEY: hostname, VALUE: SoupServer */
+GHashTable *soup_hosts;  /* KEY: hostname, VALUE: SoupHost */
 
 static gint connection_count = 0;
 
@@ -137,22 +137,22 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 SoupContext *
 soup_context_from_uri (SoupUri *suri)
 {
-	SoupServer *serv = NULL;
+	SoupHost *serv = NULL;
 	SoupContext *ret = NULL;
 
 	g_return_val_if_fail (suri != NULL, NULL);
 	g_return_val_if_fail (suri->protocol != 0, NULL);
 
-	if (!soup_servers)
-		soup_servers = g_hash_table_new (soup_str_case_hash,
-						 soup_str_case_equal);
+	if (!soup_hosts)
+		soup_hosts = g_hash_table_new (soup_str_case_hash,
+					       soup_str_case_equal);
 	else
-		serv = g_hash_table_lookup (soup_servers, suri->host);
+		serv = g_hash_table_lookup (soup_hosts, suri->host);
 
 	if (!serv) {
-		serv = g_new0 (SoupServer, 1);
+		serv = g_new0 (SoupHost, 1);
 		serv->host = g_strdup (suri->host);
-		g_hash_table_insert (soup_servers, serv->host, serv);
+		g_hash_table_insert (soup_hosts, serv->host, serv);
 	}
 
 	if (!serv->contexts)
@@ -205,14 +205,14 @@ soup_context_unref (SoupContext *ctx)
 	--ctx->refcnt;
 
 	if (ctx->refcnt == 0) {
-		SoupServer *serv = ctx->server;
+		SoupHost *serv = ctx->server;
 
 		g_hash_table_remove (serv->contexts, ctx->uri);
 
 		if (g_hash_table_size (serv->contexts) == 0) {
 			GSList *conns = serv->connections;
 
-			g_hash_table_remove (soup_servers, serv->host);
+			g_hash_table_remove (soup_hosts, serv->host);
 
 			while (conns) {
 				SoupConnection *conn = conns->data;
@@ -316,13 +316,13 @@ soup_try_existing_connections (SoupContext *ctx)
 }
 
 struct SoupConnDesc {
-	SoupServer     *serv;
+	SoupHost       *serv;
 	SoupConnection *conn;
 };
 
 static void
-soup_prune_foreach (gchar *hostname,
-		    SoupServer *serv,
+soup_prune_foreach (gchar               *hostname,
+		    SoupHost            *serv,
 		    struct SoupConnDesc *last)
 {
 	GSList *conns = serv->connections;
@@ -347,7 +347,7 @@ soup_prune_least_used_connection (void)
 	last.serv = NULL;
 	last.conn = NULL;
 
-	g_hash_table_foreach (soup_servers, (GHFunc) soup_prune_foreach, &last);
+	g_hash_table_foreach (soup_hosts, (GHFunc) soup_prune_foreach, &last);
 
 	if (last.conn) {
 		last.serv->connections =

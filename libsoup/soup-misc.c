@@ -18,6 +18,7 @@
 
 #include "soup-misc.h"
 #include "soup-private.h"
+#include "soup-queue.h"
 
 gboolean soup_initialized = FALSE;
 

@@ -1,3 +1,93 @@
+2001-09-07  Alex Graveley  <alex@ximian.com>
+
+	* tests/stress-test.c: Rewritten for the new apis, and to be more
+	clean, and to have many settings for varying simultaneous
+	messages, message counts, iterations, posting of data, etc.
+
+	* tests/simple-test.c: Rewritten for the new apis, and to be more
+	clean.
+
+	* tests/server-test.c (main): Added. Simple test for standalone
+	dynamic servers.
+
+	* tests/mod-server-test.c (callback): Added. Simple test for
+	soup-httpd/apache server modules.
+
+	* tests/handler-test.c: Added. Stress test for SoupMessage
+	handlers. 
+
+	* tests/cgi-test.c: Added. Simple test for CGI serving.
+
+	* src/soup-httpd/soup-httpd.c: Use libsoup's SoupServer code for
+	all request processing. soup-httpd becomes a wrapper for module
+	loading and logging.
+
+	* src/libwsdl/Makefile.am (INCLUDES): Remove WSDL_CFLAGS.
+
+	* src/libsoup/soup-socket.c (soup_socket_server_accept): Set
+	O_NONBLOCK on the returned SoupSocket.
+	(soup_socket_server_try_accept): Ditto.
+
+	* src/libsoup/soup-server.c: Reimplement for independent
+	SoupServer support.  Remove separate authorization handler
+	concept. Process based on request paths. Import code from
+	soup-httpd to allow standalone dynamic servers, and cgi support.
+
+	* src/libsoup/soup-queue.c (soup_check_used_headers): Remove
+	special handling of SOAPAction.
+	(soup_queue_connect_cb): Start listening for reads immediately so
+	that we cna process HTTP 1xx intermediate responses.
+	(soup_queue_message): Rename from soup_message_queue.
+	soup_message_queue is now in soup-message.c and simply calls this.
+
+	* src/libsoup/soup-private.h (RESPONSE_BLOCK_SIZE): Rename
+	existing SoupServer to SoupHost.  Create new SoupServer struct.
+	Add server and server_sock elements to SoupMessagePrivate.  Move
+	SoupServerHandler definition to soup-server.h.  Move define for
+	soup_queue_shutdown to new soup-queue.h.
+
+	* src/libsoup/soup-ntlm.c: Add mojo for getting a portable alloca.
+
+	* src/libsoup/soup-message.h: Remove SoupErrorCode. Add
+	SoupKnownErrorCode and SoupErrorClass enums. Add
+	SOUP_ERROR_CANT_CONNECT_PROXY and
+	SOUP_ERROR_CANT_AUTHENTICATE_PROXY for errors related directly to
+	proxy communications.
+
+	* src/libsoup/soup-message.c (soup_message_new): Take the HTTP
+	method name as the second argument.  Remove per-message handlers
+	for authentication and redirection.
+	(soup_message_issue_callback): Uses finalize_message to avoid
+	double cleanup.  Remove error argument, as they should be set
+	using soup_message_set_error.
+	(soup_message_run_handlers): Run per-message handlers followed by
+	global handlers, if a handler requeues a message we stop
+	processing.  If the invoke_type is POST_BODY, we issue the final
+	callback.
+	(soup_message_remove_handler): Make public.
+	(soup_message_set_error): Impl
+	(soup_message_set_error_full): Impl
+	(soup_message_set_handler_error): Impl
+	(soup_get_error_phrase): Impl
+	(soup_get_error_class): Impl
+
+	* src/libsoup/soup-dav-server.c: Add a reference to the SoupServer
+	we are registered with. Use soup_message_set_error throughout.
+	(i_copy): Fix assignment causing this loop to never run.
+	(soup_dav_server_register): Add SoupServer and required authtypes
+	parameters.
+
+	* src/libsoup/soup-context.c: Replace references to SoupServer
+	with SoupHost, so we don't clash with the SoupServer from
+	soup-server.h.  Rename soup_servers to soup_hosts.
+
+	* src/libsoup/Makefile.am (libsoup_la_SOURCES): Add soup-queue.h.
+
+	* configure.in (SOUP_CURRENT): Add some helpful comments and bump
+	to '3'.  Bump version to 0.5.99 (0.6 development).  Use
+	AC_FUNC_ALLOCA instead of just checking for alloca.h.  Remove
+	WSDL_CFLAGS.
+
 2001-08-30  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl/Makefile.am (soup_wsdl_LDADD): Link with

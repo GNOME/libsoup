@@ -2282,6 +2282,7 @@ SoupSocket *
 soup_socket_server_accept (SoupSocket *socket)
 {
 	gint sockfd;
+	gint flags;
 	struct sockaddr sa;
 	socklen_t n;
 	fd_set fdset;
@@ -2312,6 +2313,14 @@ soup_socket_server_accept (SoupSocket *socket)
 		return NULL;
 	}
 
+	/* Get the flags (should all be 0?) */
+	flags = fcntl (sockfd, F_GETFL, 0);
+	if (flags == -1) return NULL;
+
+	/* Make the socket non-blocking */
+	if (fcntl (sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		return NULL;
+
 	s = g_new0 (SoupSocket, 1);
 	s->ref_count = 1;
 	s->sockfd = sockfd;
@@ -2341,6 +2350,7 @@ SoupSocket *
 soup_socket_server_try_accept (SoupSocket *socket)
 {
 	gint sockfd;
+	gint flags;
 	struct sockaddr sa;
 	socklen_t n;
 	fd_set fdset;
@@ -2366,6 +2376,14 @@ soup_socket_server_try_accept (SoupSocket *socket)
 		   block. */
 		return NULL;
 	}
+
+	/* Get the flags (should all be 0?) */
+	flags = fcntl (sockfd, F_GETFL, 0);
+	if (flags == -1) return NULL;
+
+	/* Make the socket non-blocking */
+	if (fcntl (sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		return NULL;
 
 	s = g_new0 (SoupSocket, 1);
 	s->ref_count = 1;

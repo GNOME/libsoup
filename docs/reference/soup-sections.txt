@@ -25,11 +25,6 @@ soup_connection_release
 </SECTION>
 
 <SECTION>
-<FILE>soup-digest</FILE>
-soup_digest_challenge
-</SECTION>
-
-<SECTION>
 <FILE>soup-headers</FILE>
 soup_headers_parse_request
 soup_headers_parse_response
@@ -37,11 +32,11 @@ soup_headers_parse_response
 
 <SECTION>
 <FILE>soup-message</FILE>
-SoupErrorCode
+SoupKnownErrorCode
+SoupErrorClass
 SoupTransferStatus
 SoupOwnership
 SoupDataBuffer
-SoupAction
 SoupMessage
 SoupMessagePrivate
 SoupCallbackFn
@@ -161,13 +156,10 @@ soup_serializer_persist
 SoupServerAuthType
 SoupServerBasicToken
 SoupServerDigestToken
-SoupServerAnonymousToken
-SoupServerAuthorizeFn
-soup_server_set_global_auth
-soup_server_set_method_auth
+SoupServerNTLMToken
 SoupServerCallbackFn
 soup_server_register
-soup_server_register_full
+soup_server_register_default
 soup_server_unregister
 soup_server_main
 soup_server_main_quit

@@ -96,6 +96,13 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 {
 	gboolean body_started = r->recv_buf->len > r->header_len;
 
+	/*
+	 * Handle broken servers who do not specify a Content-Length but rather
+	 * simply close the connection to signify end of file.
+	 */
+	if (body_started && !r->content_length && !r->is_chunked)
+		return TRUE;
+
 	IGNORE_CANCEL (r);
 	if (r->error_cb) (*r->error_cb) (body_started, r->user_data);
 	UNIGNORE_CANCEL (r);

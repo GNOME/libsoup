@@ -13,86 +13,13 @@
 #include "soup-misc.h"
 #include "soup-context.h"
 #include "soup-private.h"
+#include "soup-queue.h"
 #include "soup-transfer.h"
-
-static SoupErrorCode 
-authorize_handler (SoupMessage *msg, gboolean proxy)
-{
-	const char *auth_header;
-	SoupAuth *auth;
-	SoupContext *ctx;
-
-	ctx = proxy ? soup_get_proxy () : msg->context;
-
-	auth_header = 
-		soup_message_get_response_header (
-			msg, 
-			proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
-	if (!auth_header) return SOUP_ERROR_CANT_AUTHENTICATE;
-
-        auth = soup_auth_new_from_header (ctx, auth_header);
-	if (!auth) return SOUP_ERROR_MALFORMED_HEADER;
-
-	if (ctx->auth) {
-		if (soup_auth_invalidates_prior (auth, ctx->auth))
-			soup_auth_free (ctx->auth);
-		else {
-			soup_auth_free (auth);
-			return SOUP_ERROR_CANT_AUTHENTICATE;
-		}
-	}
-
-	ctx->auth = auth;
-
-	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
-
-        return SOUP_ERROR_NONE;
-}
-
-static SoupErrorCode 
-redirect_handler (SoupMessage *msg, gpointer user_data)
-{
-	const gchar *new_url;
-
-	switch (msg->response_code) {
-	case 300: /* Multiple Choices */
-	case 301: /* Moved Permanently */
-	case 302: /* Moved Temporarily */
-	case 303: /* See Other */
-	case 305: /* Use Proxy */
-		break;
-	default:
-		return SOUP_ERROR_NONE;
-	}
-
-	if (msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) 
-		return SOUP_ERROR_NONE;
-
-	new_url = soup_message_get_response_header (msg, "Location");
-
-	if (new_url) {
-		SoupContext *new_ctx, *old_ctx;
-
-		new_ctx = soup_context_get (new_url);
-		if (!new_ctx) return SOUP_ERROR_MALFORMED_HEADER;
-
-		old_ctx = msg->context;
-		msg->context = new_ctx;
-
-		soup_message_queue (msg,
-				    msg->priv->callback, 
-				    msg->priv->user_data);
-
-		soup_context_unref (old_ctx);
-	}
-
-	return SOUP_ERROR_NONE;
-}
 
 /**
  * soup_message_new:
  * @context: a %SoupContext for the destination endpoint.
- * @action: a string which will be used as the SOAPAction header for the created
+ * @method: a string which will be used as the HTTP method for the created
  * request.
  * 
  * Creates a new empty %SoupMessage, which will connect to the URL represented
@@ -101,7 +28,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
  * Return value: the new %SoupMessage.
  */
 SoupMessage *
-soup_message_new (SoupContext *context, SoupAction action) 
+soup_message_new (SoupContext *context, const gchar *method) 
 {
 	SoupMessage *ret;
 
@@ -110,45 +37,12 @@ soup_message_new (SoupContext *context, SoupAction action)
 	ret          = g_new0 (SoupMessage, 1);
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
 	ret->status  = SOUP_STATUS_IDLE;
-	ret->action  = g_strdup (action);
 	ret->context = context;
-	ret->method  = SOUP_METHOD_POST;
+	ret->method  = method ? method : SOUP_METHOD_POST;
 
 	ret->priv->http_version = SOUP_HTTP_1_1;
 
 	soup_context_ref (context);
-
-	/*
-	 * Add a 401 (Authorization Required) response code handler if the
-	 * context URI has a login user name.
-	 */
-	if (soup_context_get_uri (context)->user)
-		soup_message_add_response_code_handler (
-			ret, 
-			401, 
-			SOUP_HANDLER_POST_BODY, 
-			(SoupHandlerFn) authorize_handler, 
-			GINT_TO_POINTER (FALSE));
-
-	/*
-	 * Always add a 407 (Proxy-Authorization Required) handler, in case the
-	 * proxy is reset after message creation.
-	 */
-	soup_message_add_response_code_handler (
-			ret, 
-			407, 
-			SOUP_HANDLER_POST_BODY, 
-			(SoupHandlerFn) authorize_handler, 
-			GINT_TO_POINTER (TRUE));
-
-	/* 
-	 * Handle redirect response codes 300, 301, 302, 303, and 305.
-	 */
-	soup_message_add_header_handler (ret,
-					 "Location",
-					 SOUP_HANDLER_PRE_BODY,
-					 redirect_handler,
-					 NULL);
 
 	return ret;
 }
@@ -156,7 +50,7 @@ soup_message_new (SoupContext *context, SoupAction action)
 /**
  * soup_message_new_full:
  * @context: a %SoupContext for the destination endpoint.
- * @action: a string which will be used as the SOAPAction header for the created
+ * @method: a string which will be used as the HTTP method for the created
  * request.
  * @req_owner: the %SoupOwnership of the passed data buffer.
  * @req_body: a data buffer containing the body of the message request.
@@ -171,12 +65,12 @@ soup_message_new (SoupContext *context, SoupAction action)
  */
 SoupMessage *
 soup_message_new_full (SoupContext   *context,
-		       SoupAction     action,
+		       const gchar   *method,
 		       SoupOwnership  req_owner,
 		       gchar         *req_body,
 		       gulong         req_length)
 {
-	SoupMessage *ret = soup_message_new (context, action);
+	SoupMessage *ret = soup_message_new (context, method);
 
 	ret->request.owner = req_owner;
 	ret->request.body = req_body;
@@ -188,8 +82,6 @@ soup_message_new_full (SoupContext   *context,
 /**
  * soup_message_cleanup:
  * @req: a %SoupMessage.
- * @action: a string which will be used as the SOAPAction header for the created
- * request.
  * 
  * Frees any temporary resources created in the processing of @req. Request and
  * response data buffers are left intact.
@@ -213,19 +105,54 @@ soup_message_cleanup (SoupMessage *req)
 		soup_context_cancel_connect (req->priv->connect_tag);
 		req->priv->connect_tag = NULL;
 	}
-	if (req->priv->conn) {
-		soup_connection_release (req->priv->conn);
-		req->priv->conn = NULL;
+	if (req->connection) {
+		soup_connection_release (req->connection);
+		req->connection = NULL;
 	}
 
 	soup_active_requests = g_slist_remove (soup_active_requests, req);
 }
 
 static void
-soup_message_remove_header (gchar *name, gchar *value, gpointer unused)
+free_header (gchar *name, gchar *value, gpointer unused)
 {
 	g_free (name);
 	g_free (value);
+}
+
+static void
+finalize_message (SoupMessage *req)
+{
+	soup_context_unref (req->context);
+
+	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (req->request.body);
+	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (req->response.body);
+
+	if (req->priv->req_header) 
+		g_string_free (req->priv->req_header, TRUE);
+
+	if (req->request_headers) {
+		g_hash_table_foreach (req->request_headers,
+				      (GHFunc) free_header,
+				      NULL);
+		g_hash_table_destroy (req->request_headers);
+	}
+
+	if (req->response_headers) {
+		g_hash_table_foreach (req->response_headers,
+				      (GHFunc) free_header,
+				      NULL);
+		g_hash_table_destroy (req->response_headers);
+	}
+
+	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
+	g_slist_free (req->priv->content_handlers);
+
+	g_free ((gchar *) req->errorphrase);
+	g_free (req->priv);
+	g_free (req);
 }
 
 /**
@@ -244,41 +171,7 @@ soup_message_free (SoupMessage *req)
 
 	soup_message_cleanup (req);
 
-	soup_context_unref (req->context);
-
-	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (req->request.body);
-	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (req->response.body);
-
-	if (req->priv->req_header) 
-		g_string_free (req->priv->req_header, TRUE);
-
-	if (req->request_headers) {
-		g_hash_table_foreach (req->request_headers,
-				      (GHFunc) soup_message_remove_header,
-				      NULL);
-		g_hash_table_destroy (req->request_headers);
-	}
-
-	if (req->response_headers) {
-		g_hash_table_foreach (req->response_headers,
-				      (GHFunc) soup_message_remove_header,
-				      NULL);
-		g_hash_table_destroy (req->response_headers);
-	}
-
-	if (req->response_phrase) {
-		g_free (req->response_phrase);
-		req->response_phrase = NULL;
-	}
-
-	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
-	g_slist_free (req->priv->content_handlers);
-
-	g_free (req->priv);
-	g_free (req->action);
-	g_free (req);
+	finalize_message (req);
 }
 
 /**
@@ -292,7 +185,7 @@ soup_message_free (SoupMessage *req)
  * has not been requeued, @msg is destroyed using %soup_message_free.
  */
 void
-soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
+soup_message_issue_callback (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
@@ -303,13 +196,11 @@ soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
 	 */
 	soup_message_cleanup (req);
 
-	req->priv->errorcode = error;
-
 	if (req->priv->callback) {
-		(*req->priv->callback) (req, error, req->priv->user_data);
+		(*req->priv->callback) (req, req->priv->user_data);
 
 		if (req->status != SOUP_STATUS_QUEUED)
-			soup_message_free (req);
+			finalize_message (req);
 	}
 }
 
@@ -322,9 +213,10 @@ soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
  * completion callback, the @msg will be destroyed.
  */
 void 
-soup_message_cancel (SoupMessage *req) 
+soup_message_cancel (SoupMessage *msg) 
 {
-	soup_message_issue_callback (req, SOUP_ERROR_CANCELLED);
+	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
+	soup_message_issue_callback (msg);
 }
 
 static void 
@@ -431,6 +323,34 @@ soup_message_get_response_header (SoupMessage *req,
 }
 
 /**
+ * soup_message_queue:
+ * @req: a %SoupMessage.
+ * @callback: a %SoupCallbackFn which will be called after the message completes
+ * or when an unrecoverable error occurs.
+ * @user_data: a pointer passed to @callback.
+ * 
+ * Queues the message @req for sending. All messages are processed while the
+ * glib main loop runs. If this %SoupMessage has been processed before, any
+ * resources related to the time it was last sent are freed.
+ *
+ * If the response %SoupDataBuffer has an owner of %SOUP_BUFFER_USER_OWNED, the
+ * message will not be queued, and @callback will be called with a
+ * %SoupErrorCode of %SOUP_ERROR_CANCELLED.
+ *
+ * Upon message completetion, the callback specified in @callback will be
+ * invoked. If after returning from this callback the message has not been
+ * requeued using %soup_message_queue, %soup_message_free will be called on
+ * @req.
+ */
+void 
+soup_message_queue (SoupMessage    *req,
+		    SoupCallbackFn  callback, 
+		    gpointer        user_data)
+{
+	soup_queue_message (req, callback, user_data);
+}
+
+/**
  * soup_message_send:
  * @msg: a %SoupMessage.
  * 
@@ -439,65 +359,245 @@ soup_message_get_response_header (SoupMessage *req,
  *
  * @msg is not free'd upon return.
  *
- * Return value: the %SoupErrorCode of the error encountered while sending, or
- * SOUP_ERROR_NONE.
+ * Return value: the %SoupErrorClass of the error encountered while sending or
+ * reading the response.
  */
-SoupErrorCode 
+SoupErrorClass
 soup_message_send (SoupMessage *msg)
 {
 	soup_message_queue (msg, NULL, NULL);
 
 	while (1) {
 		g_main_iteration (TRUE); 
-		if (msg->status == SOUP_STATUS_FINISHED ||
-		    msg->priv->errorcode != SOUP_ERROR_NONE)
-			return msg->priv->errorcode;
+		if (msg->status == SOUP_STATUS_FINISHED || 
+		    msg->errorcode != 0)
+			break;
 	}
 
-	return SOUP_ERROR_NONE;
+	return msg->errorclass;
 }
 
-void
-soup_message_set_method (SoupMessage *msg, const gchar *method)
+static void 
+authorize_handler (SoupMessage *msg, gboolean proxy)
 {
-	g_return_if_fail (msg != NULL);
-	g_return_if_fail (method != NULL);
+	const char *auth_header;
+	SoupAuth *auth;
+	SoupContext *ctx;
 
-	msg->method = method;
+	ctx = proxy ? soup_get_proxy () : msg->context;
+
+	if (!soup_context_get_uri (ctx)->user) 
+		goto THROW_CANT_AUTHENTICATE;
+
+	auth_header = 
+		soup_message_get_response_header (
+			msg, 
+			proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
+	if (!auth_header) goto THROW_CANT_AUTHENTICATE;
+
+        auth = soup_auth_new_from_header (ctx, auth_header);
+	if (!auth) {
+		soup_message_set_error_full (
+			msg, 
+			proxy ? 
+			        SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
+			        SOUP_ERROR_CANT_AUTHENTICATE,
+			proxy ? 
+			        "Unknown authentication scheme "
+			        "required by proxy" :
+			        "Unknown authentication scheme "
+			        "required");
+		return;
+	}
+
+	if (ctx->auth) {
+		if (soup_auth_invalidates_prior (auth, ctx->auth))
+			soup_auth_free (ctx->auth);
+		else {
+			soup_auth_free (auth);
+			goto THROW_CANT_AUTHENTICATE;
+		}
+	}
+
+	ctx->auth = auth;
+
+	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
+
+        return;
+
+ THROW_CANT_AUTHENTICATE:
+	soup_message_set_error (msg, 
+				proxy ? 
+			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
+			                SOUP_ERROR_CANT_AUTHENTICATE);
 }
 
-const gchar *
-soup_message_get_method (SoupMessage *msg)
+static void 
+redirect_handler (SoupMessage *msg, gpointer user_data)
 {
-	g_return_val_if_fail (msg != NULL, NULL);
+	const gchar *new_url;
 
-	return msg->method;
+	if (msg->errorclass != SOUP_ERROR_CLASS_REDIRECT || 
+	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) return;
+
+	new_url = soup_message_get_response_header (msg, "Location");
+
+	if (new_url) {
+		SoupContext *new_ctx, *old_ctx;
+
+		new_ctx = soup_context_get (new_url);
+		if (!new_ctx) {
+			soup_message_set_error_full (msg, 
+						     SOUP_ERROR_MALFORMED,
+						     "Invalid Redirect URL");
+			return;
+		}
+
+		old_ctx = msg->context;
+		msg->context = new_ctx;
+
+		soup_message_queue (msg,
+				    msg->priv->callback, 
+				    msg->priv->user_data);
+
+		soup_context_unref (old_ctx);
+	}
 }
 
 typedef enum {
-	RESPONSE_HEADER_HANDLER,
-	RESPONSE_CODE_HANDLER,
-	RESPONSE_BODY_HANDLER
+	RESPONSE_HEADER_HANDLER = 1,
+	RESPONSE_ERROR_CODE_HANDLER,
+	RESPONSE_ERROR_CLASS_HANDLER
 } SoupHandlerKind;
 
 typedef struct {
 	SoupHandlerType   type;
-	SoupHandlerFn     handler_cb;
+	SoupCallbackFn    handler_cb;
 	gpointer          user_data;
 
 	SoupHandlerKind   kind;
-	const gchar      *header;
-	guint             code;
+	union {
+		const gchar      *header;
+		guint             errorcode;
+		SoupErrorClass    errorclass;
+	} data;
 } SoupHandlerData;
 
+static SoupHandlerData global_handlers [] = {
+	/* 
+	 * Handle authorization.
+	 */
+	{
+		SOUP_HANDLER_PRE_BODY,
+		(SoupCallbackFn) authorize_handler, 
+		GINT_TO_POINTER (FALSE), 
+		RESPONSE_ERROR_CODE_HANDLER, 
+		{ errorcode: 401 }
+	},
+	/* 
+	 * Handle proxy authorization.
+	 */
+	{
+		SOUP_HANDLER_PRE_BODY,
+		(SoupCallbackFn) authorize_handler, 
+		GINT_TO_POINTER (TRUE), 
+		RESPONSE_ERROR_CODE_HANDLER, 
+		{ errorcode: 407 }
+	},
+	/* 
+	 * Handle redirect response codes 300, 301, 302, 303, and 305.
+	 */
+	{
+		SOUP_HANDLER_PRE_BODY,
+		redirect_handler, 
+		NULL, 
+		RESPONSE_HEADER_HANDLER, 
+		{ header: "Location" }
+	},
+	{ 0 }
+};
+
+static inline void 
+run_handler (SoupMessage     *msg, 
+	     SoupHandlerType  invoke_type, 
+	     SoupHandlerData *data)
+{
+	if (data->type != invoke_type) return;
+
+	switch (data->kind) {
+	case RESPONSE_HEADER_HANDLER:
+		if (!soup_message_get_response_header (msg,
+						       data->data.header))
+			return;
+		break;
+	case RESPONSE_ERROR_CODE_HANDLER:
+		if (msg->errorcode != data->data.errorcode) return;
+		break;
+	case RESPONSE_ERROR_CLASS_HANDLER:
+		if (msg->errorclass != data->data.errorclass) return;
+		break;
+	default:
+		break;
+	}
+
+	(*data->handler_cb) (msg, data->user_data);
+}
+
+/*
+ * Run each handler with matching criteria (first per-message then global
+ * handlers). If a handler requeues a message, we stop processing and terminate
+ * the current request. 
+ *
+ * After running all handlers, if there is an error set or the invoke type was
+ * post_body, issue the final callback.  
+ *
+ * FIXME: If the errorcode is changed by a handler, we should restart the
+ * processing.  
+ */
+gboolean
+soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
+{
+	GSList *list;
+	SoupHandlerData *data;
+
+	g_return_val_if_fail (msg != NULL, FALSE);
+
+	for (list = msg->priv->content_handlers; list; list = list->next) {
+		data = list->data;
+
+		run_handler (msg, invoke_type, data);
+
+		if (msg->status == SOUP_STATUS_QUEUED) return TRUE;
+	}
+
+	for (data = global_handlers; data->type; data++) {
+		run_handler (msg, invoke_type, data);
+
+		if (msg->status == SOUP_STATUS_QUEUED) return TRUE;
+	}
+
+	/*
+	 * Issue final callback if the invoke_type is POST_BODY and the error
+	 * class is not INFORMATIONAL. 
+	 */
+	if (invoke_type == SOUP_HANDLER_POST_BODY && 
+	    msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL) {
+		soup_message_issue_callback (msg);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void 
-soup_message_add_handler (SoupMessage      *msg,
-			  SoupHandlerType   type,
-			  SoupHandlerFn     handler_cb,
-			  gpointer          user_data,
-			  SoupHandlerKind   kind,
-			  const gchar      *header,
-			  guint             code)
+add_handler (SoupMessage      *msg,
+	     SoupHandlerType   type,
+	     SoupCallbackFn    handler_cb,
+	     gpointer          user_data,
+	     SoupHandlerKind   kind,
+	     const gchar      *header,
+	     guint             errorcode,
+	     guint             errorclass)
 {
 	SoupHandlerData *data;
 
@@ -506,8 +606,20 @@ soup_message_add_handler (SoupMessage      *msg,
 	data->handler_cb = handler_cb;
 	data->user_data = user_data;
 	data->kind = kind;
-	data->header = header;
-	data->code = code;
+
+	switch (kind) {
+	case RESPONSE_HEADER_HANDLER:
+		data->data.header = header;
+		break;
+	case RESPONSE_ERROR_CODE_HANDLER:
+		data->data.errorcode = errorcode;
+		break;
+	case RESPONSE_ERROR_CLASS_HANDLER:
+		data->data.errorclass = errorclass;
+		break;
+	default:
+		break;
+	}
 
 	msg->priv->content_handlers = 
 		g_slist_append (msg->priv->content_handlers, data);
@@ -517,99 +629,89 @@ void
 soup_message_add_header_handler (SoupMessage      *msg,
 				 const gchar      *header,
 				 SoupHandlerType   type,
-				 SoupHandlerFn     handler_cb,
+				 SoupCallbackFn    handler_cb,
 				 gpointer          user_data)
 {
 	g_return_if_fail (msg != NULL);
 	g_return_if_fail (header != NULL);
 	g_return_if_fail (handler_cb != NULL);
 
-	soup_message_add_handler (msg, 
-				  type, 
-				  handler_cb, 
-				  user_data, 
-				  RESPONSE_HEADER_HANDLER, 
-				  header, 
-				  0);
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_HEADER_HANDLER, 
+		     header, 
+		     0,
+		     0);
 }
 
 void 
-soup_message_add_response_code_handler (SoupMessage      *msg,
-					guint             code,
-					SoupHandlerType   type,
-					SoupHandlerFn     handler_cb,
-					gpointer          user_data)
+soup_message_add_error_code_handler (SoupMessage      *msg,
+				     guint             errorcode,
+				     SoupHandlerType   type,
+				     SoupCallbackFn    handler_cb,
+				     gpointer          user_data)
 {
 	g_return_if_fail (msg != NULL);
-	g_return_if_fail (code != 0);
+	g_return_if_fail (errorcode != 0);
 	g_return_if_fail (handler_cb != NULL);
 
-	soup_message_add_handler (msg, 
-				  type, 
-				  handler_cb, 
-				  user_data, 
-				  RESPONSE_CODE_HANDLER, 
-				  NULL, 
-				  code);
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_ERROR_CODE_HANDLER, 
+		     NULL, 
+		     errorcode,
+		     0);
 }
 
 void 
-soup_message_add_body_handler (SoupMessage      *msg,
-			       SoupHandlerType   type,
-			       SoupHandlerFn     handler_cb,
-			       gpointer          user_data)
+soup_message_add_error_class_handler (SoupMessage      *msg,
+				      SoupErrorClass    errorclass,
+				      SoupHandlerType   type,
+				      SoupCallbackFn    handler_cb,
+				      gpointer          user_data)
+{
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (errorclass != 0);
+	g_return_if_fail (handler_cb != NULL);
+
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_ERROR_CLASS_HANDLER, 
+		     NULL, 
+		     0,
+		     errorclass);
+}
+
+void 
+soup_message_add_handler (SoupMessage      *msg,
+			  SoupHandlerType   type,
+			  SoupCallbackFn    handler_cb,
+			  gpointer          user_data)
 {
 	g_return_if_fail (msg != NULL);
 	g_return_if_fail (handler_cb != NULL);
 
-	soup_message_add_handler (msg, 
-				  type, 
-				  handler_cb, 
-				  user_data, 
-				  RESPONSE_BODY_HANDLER, 
-				  NULL, 
-				  0);
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     0, 
+		     NULL, 
+		     0,
+		     0);
 }
 
-SoupErrorCode 
-soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
-{
-	GSList *list;
-	SoupErrorCode retval = SOUP_ERROR_NONE;
-
-	g_return_val_if_fail (msg != NULL, retval);
-	
-	for (list = msg->priv->content_handlers; list; list = list->next) {
-		SoupHandlerData *data = list->data;
-		
-		if (data->type != invoke_type) continue;
-
-		switch (data->kind) {
-		case RESPONSE_HEADER_HANDLER:
-			if (!soup_message_get_response_header (msg,
-							       data->header))
-				continue;
-			break;
-		case RESPONSE_CODE_HANDLER:
-			if (msg->response_code != data->code) continue;
-			break;
-		case RESPONSE_BODY_HANDLER:
-			break;
-		}
-
-		retval = (*data->handler_cb) (msg, data->user_data);
-
-		if (retval != SOUP_ERROR_NONE) break;
-		if (msg->status == SOUP_STATUS_QUEUED) break;
-	}
-
-	return retval;
-}
-
-static void
-soup_message_remove_handler (SoupMessage   *msg, 
-			     SoupHandlerFn  handler_cb,
-			     gpointer       user_data)
+void
+soup_message_remove_handler (SoupMessage     *msg, 
+			     SoupHandlerType  type,
+			     SoupCallbackFn   handler_cb,
+			     gpointer         user_data)
 {
 	GSList *iter = msg->priv->content_handlers;
 
@@ -617,7 +719,8 @@ soup_message_remove_handler (SoupMessage   *msg,
 		SoupHandlerData *data = iter->data;
 
 		if (data->handler_cb == handler_cb &&
-		    data->user_data == user_data) {
+		    data->user_data == user_data &&
+		    data->type == type) {
 			msg->priv->content_handlers = 
 				g_slist_remove_link (
 					msg->priv->content_handlers,
@@ -647,17 +750,6 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
 {
 	g_return_if_fail (msg != NULL);
 
-	if (ADDED_FLAG (msg, flags, SOUP_MESSAGE_NO_REDIRECT))
-		soup_message_remove_handler (msg, 
-					     redirect_handler,
-					     NULL);
-	else if (REMOVED_FLAG (msg, flags, SOUP_MESSAGE_NO_REDIRECT))
-		soup_message_add_header_handler (msg,
-						 "Location",
-						 SOUP_HANDLER_PRE_BODY,
-						 redirect_handler,
-						 NULL);
-
 	msg->priv->msg_flags = flags;
 }
 
@@ -675,4 +767,159 @@ soup_message_set_http_version  (SoupMessage *msg, SoupHttpVersion version)
 	g_return_if_fail (msg != NULL);
 
 	msg->priv->http_version = version;
+}
+
+void
+soup_message_set_error (SoupMessage *msg, SoupKnownErrorCode errcode)
+{
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (errcode != 0);
+
+	g_free ((gchar *) msg->errorphrase);
+
+	msg->errorcode = errcode;
+	msg->errorclass = soup_get_error_class (errcode);
+	msg->errorphrase = g_strdup (soup_get_error_phrase (errcode));
+}
+
+void
+soup_message_set_error_full (SoupMessage *msg, 
+			     guint        errcode, 
+			     const gchar *errphrase)
+{
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (errcode != 0);
+	g_return_if_fail (errphrase != NULL);
+
+	g_free ((gchar *) msg->errorphrase);
+
+	msg->errorcode = errcode;
+	msg->errorclass = soup_get_error_class (errcode);
+	msg->errorphrase = g_strdup (errphrase);
+}
+
+void
+soup_message_set_handler_error (SoupMessage *msg, 
+				guint        errcode, 
+				const gchar *errphrase)
+{
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (errcode != 0);
+	g_return_if_fail (errphrase != NULL);
+
+	g_free ((gchar *) msg->errorphrase);
+
+	msg->errorcode = errcode;
+	msg->errorclass = SOUP_ERROR_CLASS_HANDLER;
+	msg->errorphrase = g_strdup (errphrase);
+}
+
+struct {
+	guint sc;
+	const gchar *phrase;
+} error_code_phrases [] = {
+	/* 
+	 * SOUP_ERROR_CLASS_TRANSPORT 
+	 */
+	{ SOUP_ERROR_CANCELLED,               "Cancelled" },
+	{ SOUP_ERROR_CANT_CONNECT,            "Cannot connect to destination" },
+	{ SOUP_ERROR_CANT_CONNECT_PROXY,      "Cannot connect to proxy" },
+	{ SOUP_ERROR_IO,                      "Connection terminated "
+	                                      "unexpectadly" },
+	{ SOUP_ERROR_MALFORMED,               "Message Corrupt" },
+	{ SOUP_ERROR_CANT_AUTHENTICATE,       "Authentication Failed" },
+	{ SOUP_ERROR_CANT_AUTHENTICATE_PROXY, "Proxy Authentication Failed" },
+
+	/* 
+	 * SOUP_ERROR_CLASS_INFORMATIONAL 
+	 */
+	{ SOUP_ERROR_CONTINUE,        "Continue" },
+	{ SOUP_ERROR_PROTOCOL_SWITCH, "Protocol Switch" },
+	{ SOUP_ERROR_DAV_PROCESSING,  "Processing" },
+
+	/* 
+	 * SOUP_ERROR_CLASS_SUCCESS 
+	 */
+	{ SOUP_ERROR_OK,                "OK" },
+	{ SOUP_ERROR_CREATED,           "Created" },
+	{ SOUP_ERROR_ACCEPTED,          "Accepted" },
+	{ SOUP_ERROR_NON_AUTHORITATIVE, "Non-Authoritative" },
+	{ SOUP_ERROR_NO_CONTENT,        "No Content" },
+	{ SOUP_ERROR_RESET_CONTENT,     "Reset Content" },
+	{ SOUP_ERROR_PARTIAL_CONTENT,   "Partial Content" },
+	{ SOUP_ERROR_DAV_MULTISTATUS,   "Multi-Status" },
+
+	/* 
+	 * SOUP_ERROR_CLASS_REDIRECT 
+	 */
+	{ SOUP_ERROR_MULTIPLE_CHOICES,   "Multiple Choices" },
+	{ SOUP_ERROR_MOVED_PERMANANTLY,  "Moved Permanantly" },
+	{ SOUP_ERROR_FOUND,              "Found" },
+	{ SOUP_ERROR_SEE_OTHER,          "See Other" },
+	{ SOUP_ERROR_NOT_MODIFIED,       "Not Modified" },
+	{ SOUP_ERROR_USE_PROXY,          "Use Proxy" },
+	{ SOUP_ERROR_TEMPORARY_REDIRECT, "Temporary Redirect" },
+
+	/* 
+	 * SOUP_ERROR_CLASS_CLIENT_ERROR 
+	 */
+	{ SOUP_ERROR_BAD_REQUEST,           "Bad Request" },
+	{ SOUP_ERROR_UNAUTHORIZED,          "Unauthorized" },
+	{ SOUP_ERROR_PAYMENT_REQUIRED,      "Payment Required" },
+	{ SOUP_ERROR_FORBIDDEN,             "Forbidden" },
+	{ SOUP_ERROR_NOT_FOUND,             "Not Found" },
+	{ SOUP_ERROR_METHOD_NOT_ALLOWED,    "Method Not Allowed" },
+	{ SOUP_ERROR_NOT_ACCEPTABLE,        "Not Acceptable" },
+	{ SOUP_ERROR_PROXY_UNAUTHORIZED,    "Proxy Unauthorized" },
+	{ SOUP_ERROR_TIMED_OUT,             "Timed Out" },
+	{ SOUP_ERROR_CONFLICT,              "Conflict" },
+	{ SOUP_ERROR_GONE,                  "Gone" },
+	{ SOUP_ERROR_LENGTH_REQUIRED,       "Length Required" },
+	{ SOUP_ERROR_PRECONDITION_FAILED,   "Precondition Failed" },
+	{ SOUP_ERROR_BODY_TOO_LARGE,        "Entity Body Too Large" },
+	{ SOUP_ERROR_URI_TOO_LARGE,         "Request-URI Too Large" },
+	{ SOUP_ERROR_UNKNOWN_MEDIA_TYPE,    "Unknown Media Type" },
+	{ SOUP_ERROR_INVALID_RANGE,         "Invalid Range" },
+	{ SOUP_ERROR_EXPECTATION_FAILED,    "Expectation Failed" },
+	{ SOUP_ERROR_DAV_UNPROCESSABLE,     "Unprocessable Entity" },
+	{ SOUP_ERROR_DAV_LOCKED,            "Locked" },
+	{ SOUP_ERROR_DAV_DEPENDENCY_FAILED, "Dependency Failed" },
+
+	/* 
+	 * SOUP_ERROR_CLASS_SERVER_ERROR 
+	 */
+	{ SOUP_ERROR_INTERNAL,            "Internal Server Error" },
+	{ SOUP_ERROR_NOT_IMPLEMENTED,     "Not Implemented" },
+	{ SOUP_ERROR_BAD_GATEWAY,         "Bad Gateway" },
+	{ SOUP_ERROR_SERVICE_UNAVAILABLE, "Service Unavailable" },
+	{ SOUP_ERROR_GATEWAY_TIMEOUT,     "Gateway Timeout" },
+	{ SOUP_ERROR_VERSION_UNSUPPORTED, "Version Unsupported" },
+	{ SOUP_ERROR_DAV_OUT_OF_SPACE,    "Out Of Space" },
+
+	{ 0 }
+};
+
+const gchar *
+soup_get_error_phrase (SoupKnownErrorCode errcode)
+{
+	gint i;
+
+	for (i = 0; error_code_phrases [i].sc; i++) {
+		if (error_code_phrases [i].sc == errcode)
+			return error_code_phrases [i].phrase;
+	}
+
+	return "Unknown Error";
+}
+
+SoupErrorClass
+soup_get_error_class (SoupKnownErrorCode errcode)
+{
+	if (errcode < 100) return SOUP_ERROR_CLASS_TRANSPORT;
+	if (errcode < 200) return SOUP_ERROR_CLASS_INFORMATIONAL;
+	if (errcode < 300) return SOUP_ERROR_CLASS_SUCCESS;
+	if (errcode < 400) return SOUP_ERROR_CLASS_REDIRECT;
+	if (errcode < 500) return SOUP_ERROR_CLASS_CLIENT_ERROR;
+	if (errcode < 600) return SOUP_ERROR_CLASS_SERVER_ERROR;
+	return SOUP_ERROR_CLASS_UNKNOWN;
 }

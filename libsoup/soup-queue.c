@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "soup-queue.h"
 #include "soup-auth.h"
 #include "soup-message.h"
 #include "soup-context.h"
@@ -46,6 +47,49 @@ soup_debug_print_headers (SoupMessage *req)
 			      NULL); 
 }
 
+static void 
+soup_queue_error_cb (gboolean body_started, gpointer user_data)
+{
+	SoupMessage *req = user_data;
+
+	soup_connection_set_keep_alive (req->connection, FALSE);
+
+	req->priv->read_tag = 0;
+	req->priv->write_tag = 0;
+
+	switch (req->status) {
+	case SOUP_STATUS_IDLE:
+	case SOUP_STATUS_QUEUED:
+	case SOUP_STATUS_FINISHED:
+		break;
+
+	case SOUP_STATUS_CONNECTING:
+		soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
+		soup_message_issue_callback (req);
+		break;
+
+	case SOUP_STATUS_READING_RESPONSE:
+	case SOUP_STATUS_SENDING_REQUEST:
+		if (!body_started) {
+			/*
+			 * FIXME: Use exponential backoff here
+			 */
+			soup_message_queue (req, 
+					    req->priv->callback, 
+					    req->priv->user_data);
+		} else {
+			soup_message_set_error (req, SOUP_ERROR_IO);
+			soup_message_issue_callback (req);
+		}
+		break;
+
+	default:
+		soup_message_set_error (req, SOUP_ERROR_IO);
+		soup_message_issue_callback (req);
+		break;
+	}
+}
+
 static gboolean
 soup_parse_headers (const GString   *headers, 
 		    SoupHttpVersion *version,
@@ -61,25 +105,27 @@ soup_parse_headers (const GString   *headers,
 					  headers->len, 
 					  req->response_headers,
 					  version,
-					  &req->response_code,
-					  &req->response_phrase))
-		goto THROW_MALFORMED_HEADER;
+					  &req->errorcode,
+					  (gchar **) &req->errorphrase)) {
+		soup_message_set_error (req, SOUP_ERROR_MALFORMED);
+		soup_message_issue_callback (req);
+		return FALSE;
+	}
+
+	req->errorclass = soup_get_error_class (req->errorcode);
 
 	return TRUE;
-
- THROW_MALFORMED_HEADER:
-	soup_message_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
-	return FALSE;
 }
 
 static SoupTransferDone
 soup_queue_read_headers_cb (const GString *headers,
 			    guint         *content_len,
-			    SoupMessage   *req)
+			    gpointer       user_data)
 {
+	SoupMessage *req = user_data;
+
 	gchar *connection, *length, *enc;
 	SoupHttpVersion version;
-	SoupErrorCode err = SOUP_ERROR_MALFORMED_HEADER;
 
 	if (!soup_parse_headers (headers, &version, req)) 
 		return SOUP_TRANSFER_END;
@@ -91,7 +137,7 @@ soup_queue_read_headers_cb (const GString *headers,
 
 	if ((connection && !g_strcasecmp (connection, "close")) ||
 	    (!connection && version == SOUP_HTTP_1_0))
-		soup_connection_set_keep_alive (req->priv->conn, FALSE);
+		soup_connection_set_keep_alive (req->connection, FALSE);
 
 	if (!g_strcasecmp (req->method, "HEAD")) 
 		goto RUN_HANDLERS;
@@ -104,121 +150,86 @@ soup_queue_read_headers_cb (const GString *headers,
 
 	if (length) {
 		*content_len = atoi (length);
-		if (*content_len < 0) 
+		if (*content_len < 0) {
+			soup_message_set_error_full (req, 
+						     SOUP_ERROR_MALFORMED,
+						     "Invalid Content-Length");
 			goto THROW_MALFORMED_HEADER;
-	} else if (enc) {
+		}
+	}
+	else if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
 			*content_len = SOUP_TRANSFER_CHUNKED;
 		else {
-			g_warning ("Unknown encoding type in HTTP response.");
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_MALFORMED,
+				"Unknown Response Encoding");
 			goto THROW_MALFORMED_HEADER;
 		}
 	}
 
  RUN_HANDLERS:
-	err = soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
-	if (err) goto THROW_MALFORMED_HEADER;
-	if (req->status == SOUP_STATUS_QUEUED) return FALSE;
+	if (soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY))
+		return SOUP_TRANSFER_END;
 
 	return SOUP_TRANSFER_CONTINUE;
 
  THROW_MALFORMED_HEADER:
-	soup_message_issue_callback (req, err);
+	soup_message_issue_callback (req);
 	return SOUP_TRANSFER_END;
 }
 
 static SoupTransferDone
 soup_queue_read_chunk_cb (const SoupDataBuffer *data,
-			  SoupMessage          *req)
+			  gpointer              user_data)
 {
-	SoupErrorCode err;
+	SoupMessage *req = user_data;
 
 	req->response.owner = data->owner;
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	err = soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
-	if (err) { 
-		soup_message_issue_callback (req, err); 
-		return FALSE;
-	} else if (req->status == SOUP_STATUS_QUEUED) 
-		return FALSE;
+	if (soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK))
+		return SOUP_TRANSFER_END;
 
-	return TRUE;
+	return SOUP_TRANSFER_CONTINUE;
 }
 
 static void
 soup_queue_read_done_cb (const SoupDataBuffer *data,
-			 SoupMessage          *req)
+			 gpointer              user_data)
 {
-	SoupErrorCode err;
+	SoupMessage *req = user_data;
 
 	req->response.owner = data->owner;
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	req->status = SOUP_STATUS_FINISHED;
+	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
+		GIOChannel *channel;
+		gboolean overwrt;
 
-	req->priv->read_tag = 0;
+		channel = soup_connection_get_iochannel (req->connection);
+		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 
-	err = soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
-	if (req->status == SOUP_STATUS_QUEUED) return;
-	if (err)
-		soup_message_issue_callback (req, err); 
-	else 
-		soup_message_issue_callback (req, SOUP_ERROR_NONE);
-}
+		req->priv->read_tag = 
+			soup_transfer_read (channel,
+					    overwrt,
+					    soup_queue_read_headers_cb,
+					    soup_queue_read_chunk_cb,
+					    soup_queue_read_done_cb,
+					    soup_queue_error_cb,
+					    req);
 
-static gboolean 
-soup_queue_error_cb (gboolean     body_started, 
-		     SoupMessage *req)
-{
-	/*
-	gboolean conn_closed = soup_connection_is_keep_alive (req->priv->conn);
-	*/
-
-	soup_connection_set_keep_alive (req->priv->conn, FALSE);
-
-	req->priv->read_tag = 0;
-	req->priv->write_tag = 0;
-
-	switch (req->status) {
-	case SOUP_STATUS_IDLE:
-	case SOUP_STATUS_QUEUED:
-	case SOUP_STATUS_FINISHED:
-		break;
-	case SOUP_STATUS_CONNECTING:
-		soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
-		break;
-	case SOUP_STATUS_SENDING_REQUEST:
-		if (!body_started) {
-			g_warning ("Requeueing request which failed in "
-				   "the sending headers phase");
-			soup_message_queue (req, 
-					    req->priv->callback, 
-					    req->priv->user_data);
-			break;
-		}
-
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
-	case SOUP_STATUS_READING_RESPONSE:
-		/* FIXME: Remove this ?? */
-		/*
-		if (body_started && !conn_closed) {
-			soup_finish_read (req);
-			break;
-		}
-		*/
-
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
-	default:
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
+		g_io_channel_unref (channel);
+	} 
+	else {
+		req->status = SOUP_STATUS_FINISHED;
+		req->priv->read_tag = 0;
 	}
 
-	return FALSE;
+	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
 }
 
 static void
@@ -249,7 +260,6 @@ struct SoupUsedHeaders {
 	gboolean host;
 	gboolean user_agent;
 	gboolean content_type;
-	gboolean soapaction;
 	gboolean connection;
 	gboolean proxy_auth;
 	gboolean auth;
@@ -270,10 +280,6 @@ soup_check_used_headers (gchar *key,
 	case 'U':
 		if (!g_strcasecmp (key+1, "ser-Agent")) 
 			hdrs->user_agent = TRUE;
-		break;
-	case 'S':
-		if (!g_strcasecmp (key+1, "OAPAction")) 
-			hdrs->soapaction = TRUE;
 		break;
 	case 'A':
 		if (!g_strcasecmp (key+1, "uthorization")) 
@@ -304,11 +310,9 @@ soup_get_request_header (SoupMessage *req)
 {
 	GString *header;
 	gchar *uri;
-	gboolean action;
 	SoupContext *proxy;
 	const SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
-		FALSE, 
 		FALSE, 
 		FALSE, 
 		FALSE, 
@@ -352,20 +356,15 @@ soup_get_request_header (SoupMessage *req)
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
 
-	action = hdrs.soapaction || !req->action;
-
 	/* 
 	 * If we specify an absoluteURI in the request line, the Host header
 	 * MUST be ignored by the proxy.  
 	 */
 	g_string_sprintfa (header, 
-			   "%s%s%s%s%s%s%s%s%s%s",
+			   "%s%s%s%s%s%s%s",
 			   hdrs.host ? "" : "Host: ",
 			   hdrs.host ? "" : suri->host,
 			   hdrs.host ? "" : "\r\n",
-			   action ? "" : "SOAPAction: ",
-			   action ? "" : req->action,
-			   action ? "" : "\r\n",
 			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
 			   hdrs.content_type ? "" : "charset=utf-8\r\n",
 			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
@@ -391,26 +390,11 @@ soup_get_request_header (SoupMessage *req)
 }
 
 static void 
-soup_queue_write_done_cb (SoupMessage *req)
+soup_queue_write_done_cb (gpointer user_data)
 {
-	GIOChannel *channel;
-
-	channel = soup_connection_get_iochannel (req->priv->conn);
+	SoupMessage *req = user_data;
 
 	req->priv->write_tag = 0;
-
-	req->priv->read_tag = 
-		soup_transfer_read (
-			channel,
-			req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS,
-			(SoupReadHeadersDoneFn) soup_queue_read_headers_cb,
-			(SoupReadChunkFn) soup_queue_read_chunk_cb,
-			(SoupReadDoneFn) soup_queue_read_done_cb,
-			(SoupReadErrorFn) soup_queue_error_cb,
-			req);
-
-	g_io_channel_unref (channel);
-
 	req->status = SOUP_STATUS_READING_RESPONSE;
 }
 
@@ -423,11 +407,12 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	SoupMessage *req = user_data;
 	SoupProtocol proto;
 	GIOChannel *channel;
+	gboolean overwrt; 
 
 	req->priv->connect_tag = NULL;
 
 	switch (err) {
-	case SOUP_CONNECT_ERROR_NONE:
+	case SOUP_CONNECT_ERROR_NONE:		
 		proto = soup_context_get_uri (ctx)->protocol;
 
 		if (soup_connection_is_new (conn) &&
@@ -440,6 +425,9 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			return;
 		}
 
+		channel = soup_connection_get_iochannel (conn);
+		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
+
 		if (req->priv->req_header) {
 			g_string_free (req->priv->req_header, TRUE);
 			req->priv->req_header = NULL;
@@ -447,27 +435,55 @@ soup_queue_connect_cb (SoupContext          *ctx,
 
 		req->priv->req_header = soup_get_request_header (req);
 
-		channel = soup_connection_get_iochannel (conn);
-
 		req->priv->write_tag = 
-			soup_transfer_write (
-				channel,
-				req->priv->req_header,
-				&req->request,
-				NULL,
-				(SoupWriteDoneFn) soup_queue_write_done_cb,
-				(SoupWriteErrorFn) soup_queue_error_cb,
-				req);
+			soup_transfer_write (channel,
+					     req->priv->req_header,
+					     &req->request,
+					     NULL,
+					     soup_queue_write_done_cb,
+					     soup_queue_error_cb,
+					     req);
+
+		req->priv->read_tag = 
+			soup_transfer_read (channel,
+					    overwrt,
+					    soup_queue_read_headers_cb,
+					    soup_queue_read_chunk_cb,
+					    soup_queue_read_done_cb,
+					    soup_queue_error_cb,
+					    req);
 
 		g_io_channel_unref (channel);
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
-		req->priv->conn = conn;
+		req->connection = conn;
 
 		break;
+
 	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
+		if (ctx != req->context)
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT_PROXY,
+				"Unable to resolve proxy hostname");
+		else 
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT,
+				"Unable to resolve hostname");
+
+		soup_message_issue_callback (req);
+		break;
+
 	case SOUP_CONNECT_ERROR_NETWORK:
-		soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
+		if (ctx != req->context)
+			soup_message_set_error (req, 
+						SOUP_ERROR_CANT_CONNECT_PROXY);
+		else
+			soup_message_set_error (req, 
+						SOUP_ERROR_CANT_CONNECT);
+
+		soup_message_issue_callback (req);
 		break;
 	}
 
@@ -507,28 +523,8 @@ soup_queue_remove_header (gchar *name, gchar *value, gpointer unused)
 	g_free (value);
 }
 
-/**
- * soup_message_queue:
- * @req: a %SoupMessage.
- * @callback: a %SoupCallbackFn which will be called after the message completes
- * or when an unrecoverable error occurs.
- * @user_data: a pointer passed to @callback.
- * 
- * Queues the message @req for sending. All messages are processed while the
- * glib main loop runs. If this %SoupMessage has been processed before, any
- * resources related to the time it was last sent are freed.
- *
- * If the response %SoupDataBuffer has an owner of %SOUP_BUFFER_USER_OWNED, the
- * message will not be queued, and @callback will be called with a
- * %SoupErrorCode of %SOUP_ERROR_CANCELLED.
- *
- * Upon message completetion, the callback specified in @callback will be
- * invoked. If after returning from this callback the message has not been
- * requeued using %soup_message_queue, %soup_message_free will be called on
- * @req.
- */
 void 
-soup_message_queue (SoupMessage    *req,
+soup_queue_message (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
 		    gpointer        user_data)
 {
@@ -547,14 +543,25 @@ soup_message_queue (SoupMessage    *req,
 	req->priv->callback = callback;
 	req->priv->user_data = user_data;
 
-	if (req->response.owner == SOUP_BUFFER_USER_OWNED) {
-		g_warning ("Attempted to queue a message with a user owned "
-			   "response buffer.");
-		soup_message_issue_callback (req, SOUP_ERROR_CANCELLED);
+	switch (req->response.owner) {
+	case SOUP_BUFFER_USER_OWNED:
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_CANCELLED,
+					     "Attempted to queue a message "
+					     "with a user owned response "
+					     "buffer.");
+		soup_message_issue_callback (req);
 		return;
+
+	case SOUP_BUFFER_SYSTEM_OWNED:
+		g_free (req->response.body);
+		break;
+
+	case SOUP_BUFFER_STATIC:
+		break;
 	}
 
-	g_free (req->response.body);
+	req->response.owner = 0;
 	req->response.body = NULL;
 	req->response.length = 0;
 
@@ -566,12 +573,14 @@ soup_message_queue (SoupMessage    *req,
 		req->response_headers = NULL;
 	}
 
-	if (req->response_phrase) {
-		g_free (req->response_phrase);
-		req->response_phrase = NULL;
+	if (req->errorphrase) {
+		g_free ((gchar *) req->errorphrase);
+		req->errorphrase = NULL;
 	}
 
-	req->response_code = 0;
+	req->errorcode = 0;
+	req->errorclass = 0;
+
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);

@@ -15,10 +15,9 @@
 #include <libsoup/soup-message.h>
 
 typedef enum {
-	SOUP_AUTH_TYPE_BASIC  = (1 << 0),
-	SOUP_AUTH_TYPE_DIGEST = (1 << 1),
-	SOUP_AUTH_TYPE_NTLM   = (1 << 2),
-	SOUP_AUTH_TYPE_DENY   = (1 << 3)
+	SOUP_AUTH_TYPE_BASIC  = (1 << 1),
+	SOUP_AUTH_TYPE_DIGEST = (1 << 2),
+	SOUP_AUTH_TYPE_NTLM   = (1 << 3)
 } SoupServerAuthType;
 
 typedef struct {
@@ -51,46 +50,66 @@ typedef union {
 	SoupServerNTLMToken    ntlm;
 } SoupServerAuthToken;
 
-typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage         *msg, 
-					   SoupServerAuthToken *token,
-					   gpointer             user_data);
+typedef void (*SoupServerCallbackFn) (SoupMessage          *msg, 
+				      SoupServerAuthToken  *token,
+				      gpointer              data);
 
-void  soup_server_set_global_auth    (gint                   allow_types,
-				      SoupServerAuthorizeFn  cb,
-				      gpointer              *user_data);
+typedef struct {
+	gchar                *path;
+	guint                 auth_types;
+	SoupServerCallbackFn  cb;
+	gpointer              user_data;
+} SoupServerHandler;
 
-void  soup_server_set_method_auth    (gchar                 *methodname,
-				      gint                   allow_types,
-				      SoupServerAuthorizeFn  cb,
-				      gpointer              *user_data);
+typedef struct _SoupServer SoupServer;
 
-typedef void  (*SoupServerCallbackFn) (SoupMessage *msg, gpointer user_data);
+extern SoupServer *SOUP_CGI_SERVER;
+extern SoupServer *SOUP_HTTPD_SERVER;
+extern SoupServer *SOUP_HTTPD_SSL_SERVER;
 
-void  soup_server_register           (const gchar           *methodname, 
-				      SoupServerCallbackFn   cb,
-				      gpointer               user_data);
+SoupServer *       soup_server_new              (guint                 port,
+						 gboolean              secure);
 
-void  soup_server_register_full      (const gchar           *methodname, 
-				      SoupServerCallbackFn   cb,
-				      gpointer               user_data,
-				      gint                   auth_allow_types,
-				      SoupServerAuthorizeFn  auth_cb,
-				      gpointer               auth_user_data);
+void               soup_server_free             (SoupServer           *serv);
 
-void  soup_server_unregister         (const gchar           *methodname);
+gint               soup_server_get_port         (SoupServer           *serv);
 
-void  soup_server_set_unknown_path_handler (SoupServerCallbackFn   cb,
-					    gpointer               user_data);
+void               soup_server_run              (SoupServer           *serv);
 
-/* CGI Server methods */
+void               soup_server_run_async        (SoupServer           *serv);
 
-void  soup_server_main               (void);
+void               soup_server_quit             (SoupServer           *serv);
 
-void  soup_server_main_quit          (void);
+void               soup_server_add_list         (SoupServer           *serv,
+						 SoupServerHandler    *list);
+
+void               soup_server_remove_list      (SoupServer           *serv,
+						 SoupServerHandler    *list);
+
+void               soup_server_register         (SoupServer           *serv,
+						 const gchar          *path,
+						 guint                 authtype,
+						 SoupServerCallbackFn  cb,
+						 gpointer              data);
+
+void               soup_server_register_default (SoupServer           *serv,
+						 guint                 authtype,
+						 SoupServerCallbackFn  cb,
+						 gpointer              data);
+
+void               soup_server_unregister       (SoupServer           *serv,
+						 const gchar          *path);
+
+SoupServerHandler *soup_server_get_handler      (SoupServer           *serv,
+						 const gchar          *path);
+
+void               soup_server_require_auth     (SoupServer  *serv,
+						 const gchar *path,
+						 guint        auth_types);
+
 
 /* Apache module initializtion */
 /* Implement soup_server_init() in your library. */
-
-extern void soup_server_init         (void);
+extern void soup_server_init      (void);
 
 #endif /* SOUP_SERVER_H */
