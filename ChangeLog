@@ -1,3 +1,8 @@
+2004-02-14  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Use POSIX-compliant "test $foo = bar", rather than
+	GNU-only "test $foo == bar". #54354, from Julio M. Merino Vidal.
+
 2004-02-12  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-dns.c (check_hostent): Call read() in a do-while
