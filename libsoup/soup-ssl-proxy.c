@@ -118,7 +118,8 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 		write_total += bytes_written;
 	}
 
-	if (condition & (G_IO_HUP | G_IO_ERR)) goto FINISH;
+	if (condition & G_IO_ERR)
+		goto FINISH;
 
 	return TRUE;
 
@@ -182,12 +183,12 @@ main (int argc, char** argv)
 		g_error ("Unable to establish SSL connection");
 
 	g_io_add_watch (read_chan, 
-			G_IO_IN | G_IO_PRI | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			sock_chan);
 
 	g_io_add_watch (sock_chan, 
-			G_IO_IN | G_IO_PRI | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			write_chan);
 

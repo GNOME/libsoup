@@ -1,5 +1,12 @@
 2002-07-26  Joe Shaw  <joe@ximian.com>
 
+	* src/soup-ssl-proxy/soup-ssl-proxy.c (soup_ssl_proxy_readwrite):
+	Don't quit when we receive a G_IO_HUP, as there may still be data on
+	the channel to read.
+	(main): Don't listen to G_IO_HUP conditions on the channels.
+
+2002-07-26  Joe Shaw  <joe@ximian.com>
+
 	* src/libsoup/soup-message.c (authorize_handler): If we're using
 	NTLM, get the old auth (if there is one) and free it ourselves
 	since we don't use soup_auth_set_context().
