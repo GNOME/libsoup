@@ -650,7 +650,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 {
 	GIOError error;
 	gpointer pipe_handler;
-	gint bytes_written = 0;
+	guint bytes_written = 0;
 
 	IGNORE_PIPE (pipe_handler);
 	errno = 0;
@@ -663,7 +663,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 					    &bytes_written);
 
 		if (error == G_IO_ERROR_AGAIN) 
-			goto TRY_AGAIN;
+			goto READ_LATER;
 
 		if (errno != 0 || error != G_IO_ERROR_NONE) {
 			soup_transfer_write_error_cb (iochannel, G_IO_HUP, w);
@@ -671,7 +671,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		}
 
 		if (!bytes_written) 
-			goto TRY_AGAIN;
+			goto READ_LATER;
 
 		if (!w->headers_done && bytes_written >= w->header_len) {
 			if (w->headers_done_cb) {
@@ -701,7 +701,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		}
 
 		if (ret == SOUP_TRANSFER_CONTINUE)
-			goto TRY_AGAIN;
+			goto READ_LATER;
 		else if (w->encoding == SOUP_TRANSFER_CHUNKED)
 			write_chunk_sep (w->write_buf, 0, w->chunk_cnt);
 	}
@@ -718,7 +718,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	RESTORE_PIPE (pipe_handler);
 	return FALSE;
 
- TRY_AGAIN:
+ READ_LATER:
 	RESTORE_PIPE (pipe_handler);
 	return TRUE;
 }

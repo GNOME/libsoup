@@ -30,14 +30,11 @@
 
 #ifdef SOUP_WIN32
 #define ioctl ioctlsocket
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
 #endif
 
-#ifndef SOUP_WIN32
 extern char **environ;
-#else
-extern char **envp;
-#define environ envp
-#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -894,7 +891,7 @@ conn_accept (GIOChannel    *serv_chan,
 
 typedef struct {
 	SoupMessage *msg;
-	gint         content_len;
+	guint        content_len;
 	GByteArray  *recv_buf;
 } CgiReader;
 
@@ -906,7 +903,7 @@ cgi_read (GIOChannel    *serv_chan,
 	CgiReader *reader = user_data;
 
 	if (!(condition & G_IO_IN))
-		goto ERROR;
+		goto DONE_READING;
 	else {
 		while (reader->recv_buf->len < reader->content_len) {
 			guchar read_buf [RESPONSE_BLOCK_SIZE];
@@ -922,7 +919,7 @@ cgi_read (GIOChannel    *serv_chan,
 				return TRUE;
 
 			if (error != G_IO_ERROR_NONE)
-				goto ERROR;
+				goto DONE_READING;
 
 			if (bytes_read) 
 				g_byte_array_append (reader->recv_buf, 
@@ -933,7 +930,7 @@ cgi_read (GIOChannel    *serv_chan,
 		}
 	}
 
- ERROR:
+ DONE_READING:
 	if (reader->recv_buf->len == reader->content_len) {
 		SoupDataBuffer buf;
 
