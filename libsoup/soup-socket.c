@@ -11,7 +11,9 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +75,6 @@ static GHashTable *active_address_hash = NULL;
 #include <windows.h>
 #include <winbase.h>
 #include <winuser.h>
-#include <ws2tcpip.h>
 
 #define socklen_t gint32
 

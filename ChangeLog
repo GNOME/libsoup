@@ -1,3 +1,21 @@
+2001-06-15  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: add check for unistd.h
+
+	* src/soup-core/soup-apache.c, 
+	  src/soup-core/soup-cgi.c, 
+	  src/soup-core/soup-context.c, 
+	  src/soup-core/soup-digest.c, 
+	  src/soup-core/soup-nss.c, 
+	  src/soup-core/soup-openssl.c, 
+	  src/soup-core/soup-private.h, 
+	  src/soup-core/soup-queue.c, 
+	  src/soup-core/soup-server.c, 
+	  src/soup-core/soup-ssl-proxy.c, 
+	  src/soup-core/soup-ssl.c. 
+	  src/soup-wsdl-runtime/wsdl-typecodes.c: #ifdef protect config.h
+	  and unistd.h inclusion.
+
 2001-06-15  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-schema.h:

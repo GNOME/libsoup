@@ -8,7 +8,9 @@
  * Copyright (C) 2001, Ximian, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
 #ifdef HAVE_OPENSSL_SSL_H
 

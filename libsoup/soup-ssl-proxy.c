@@ -8,12 +8,18 @@
  * Copyright (C) 2001, Ximian, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
-#include <glib.h>
-#include <fcntl.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <glib.h>
 
 #include "soup-misc.h"
 #include "soup-private.h"

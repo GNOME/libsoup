@@ -8,12 +8,18 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
 
-#include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>

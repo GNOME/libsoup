@@ -8,9 +8,12 @@
  * Copyright (C) 2001, Ximian, Inc.
  */
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <glib.h>
 
 #include "soup-server.h"

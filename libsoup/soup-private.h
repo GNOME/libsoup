@@ -16,7 +16,19 @@
 #ifndef SOAP_PRIVATE_H
 #define SOAP_PRIVATE_H 1
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+
+#ifdef SOUP_WIN32
+#include <windows.h>
+#include <winbase.h>
+#include <winuser.h>
+#endif
 
 #include "soup-context.h"
 #include "soup-message.h"
