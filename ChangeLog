@@ -1,3 +1,7 @@
+2003-03-25  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.16
+
 2003-03-24  Joe Shaw  <joe@ximian.com>
 
 	* soup-error.[ch]: Add SOUP_ERROR_SSL_FAILED which gives a
