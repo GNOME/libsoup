@@ -1,5 +1,18 @@
 2001-03-02  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-wsdl/Makefile.am (INCLUDES): Remove WSDL_CFLAGS.
+
+	* tests/simple-test.c (current_temp_cb): handle SOUP_ERROR_HANDLER
+	so we pass -Werror.
+
+	* tests/stress-test.c (current_temp_cb): handle SOUP_ERROR_HANDLER
+	so we pass -Werror.
+
+	* configure.in: remove some excess version-related cruft. Display
+	a Configuration list on completion. Add -Werror. Remove WSDL_CFLAGS.
+
+2001-03-02  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/gionspr.c: remove, as this is not used.
 
 2001-03-02  Alex Graveley  <alex@ximian.com>

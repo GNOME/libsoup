@@ -1,43 +1,18 @@
-# Process this file with autoconf to produce a configure script.
+# ****************************************
+# Initialize automake and set version
 
-# Require autoconf 2.12
-AC_PREREQ(2.12)
+AC_INIT(src/soup-core/soup.h)
 
-# Initialize autoconf
-AC_INIT(configure.in)
+SOUP_CURRENT=0
+SOUP_REVISION=2
+SOUP_AGE=0
 
-AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)
-SOUP_MAJOR_VERSION=0
-SOUP_MINOR_VERSION=1
-SOUP_MICRO_VERSION=9
-SOUP_INTERFACE_AGE=0
-SOUP_BINARY_AGE=0
-SOUP_VERSION=$SOUP_MAJOR_VERSION.$SOUP_MINOR_VERSION.$SOUP_MICRO_VERSION
-AC_SUBST(SOUP_MAJOR_VERSION)
-AC_SUBST(SOUP_MINOR_VERSION)
-AC_SUBST(SOUP_MICRO_VERSION)
-AC_SUBST(SOUP_VERSION)
-AC_DIVERT_POP()
+AC_SUBST(SOUP_CURRENT)
+AC_SUBST(SOUP_REVISION)
+AC_SUBST(SOUP_AGE)
 
-LT_RELEASE=$SOUP_VERSION
-LT_CURRENT=$SOUP_MINOR_VERSION
-LT_REVISION=$SOUP_MICRO_VERSION
-LT_AGE=$SOUP_MINOR_VERSION
-AC_SUBST(LT_RELEASE)
-AC_SUBST(LT_CURRENT)
-AC_SUBST(LT_REVISION)
-AC_SUBST(LT_AGE)
-
-VERSION=$SOUP_VERSION
-PACKAGE=soup
-
-# Specify a configuration file
 AM_CONFIG_HEADER(config.h)
-
-# Initialize automake
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
-
-# Initialize maintainer mode
+AM_INIT_AUTOMAKE(soup, SOUP_CURRENT.SOUP_REVISION.SOUP_AGE)
 AM_MAINTAINER_MODE
 
 
@@ -45,28 +20,28 @@ AM_MAINTAINER_MODE
 # Set debugging flags
 
 # Figure out debugging default, prior to $ac_help setup
-AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)dnl
-if test `expr $SOUP_MINOR_VERSION \% 2` = 1 ; then
+if test `expr $SOUP_REVISION \% 2` = 1 ; then
 	debug_default=yes
 else
 	debug_default=minimum
 fi
-AC_DIVERT_POP()
 
 # Declare --enable-* args and collect ac_help strings
-AC_ARG_ENABLE(debug, [  --enable-debug=[no/minimum/yes] turn on debugging [default=$debug_default]],,enable_debug=$debug_default)
+AC_ARG_ENABLE(debug, 
+	      [  --enable-debug=[no/minimum/yes] turn on debugging [default=$debug_default]],,
+	      enable_debug=$debug_default)
 
 # Set the debug flags
 AC_MSG_CHECKING(for --enable-debug)
 if test "x$enable_debug" = "xyes"; then
-  test "$cflags_set" = set || CFLAGS="$CFLAGS -g"
-  SOUP_DEBUG_FLAGS="-DG_ENABLE_DEBUG"
-  AC_MSG_RESULT(yes)
+	test "$cflags_set" = set || CFLAGS="$CFLAGS -g"
+	SOUP_DEBUG_FLAGS="-DG_ENABLE_DEBUG"
+	AC_MSG_RESULT(yes)
 else
-  if test "x$enable_debug" = "xno"; then
-    SOUP_DEBUG_FLAGS="-DG_DISABLE_ASSERT -DG_DISABLE_CHECKS"
-    AC_MSG_RESULT(no)
-  fi
+	if test "x$enable_debug" = "xno"; then
+		SOUP_DEBUG_FLAGS="-DG_DISABLE_ASSERT -DG_DISABLE_CHECKS"
+		AC_MSG_RESULT(no)
+	fi
 fi
 
 AC_SUBST(SOUP_DEBUG_FLAGS)
@@ -78,31 +53,6 @@ AC_SUBST(SOUP_DEBUG_FLAGS)
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_PROG_INSTALL
-
-# Use an many warnings as possible
-changequote(,)
-if test "x$GCC" = "xyes"; then
-  case " $CFLAGS " in
-  *[\ \	]-Wall[\ \	]*) ;;
-  *) CFLAGS="$CFLAGS -Wall" ;;
-  esac
-
-  if test "x$enable_ansi" = "xyes"; then
-    case " $CFLAGS " in
-    *[\ \	]-ansi[\ \	]*) ;;
-    *) CFLAGS="$CFLAGS -ansi" ;;
-    esac
-
-    case " $CFLAGS " in
-    *[\ \	]-pedantic[\ \	]*) ;;
-    *) CFLAGS="$CFLAGS -pedantic" ;;
-    esac
-  fi
-fi
-changequote([,])
-
-# Use reentrant functions
-CFLAGS="$CFLAGS -D_REENTRANT"
 
 # Set STDC_HEADERS
 AC_HEADER_STDC
@@ -171,49 +121,48 @@ LIBS=$save_LIBS
 AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
 
 
-# Check for OpenSSL
 AC_ARG_ENABLE(ssl, 
-[  --enable-ssl             turn on Secure Sockets Layer support [default=yes]
-                           ([=no] will override --with-ssl)],,enable_ssl=yes)
+	      [  --enable-ssl            Turn on Secure Sockets Layer support [default=yes]],,
+	      enable_ssl=yes)
 
 AC_ARG_WITH(nspr-includes,
-[  --with-nspr-includes     Specify location of Netscape Portable Runtime headers],[
-nspr_inc_prefix=-I$withval
-])
+	    [  --with-nspr-includes     Specify location of Netscape Portable Runtime headers],
+	    [nspr_inc_prefix=-I$withval])
 
 AC_ARG_WITH(nspr-libs,
-[  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],[
-nspr_prefix=-L$withval
-])
+	    [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],[nspr_prefix=-L$withval])
 
 AC_ARG_WITH(nss-includes,
-[  --with-nss-includes      Specify location of NSS header files],[
-nss_inc_prefix=-I$withval
-])
+	    [  --with-nss-includes      Specify location of NSS header files],
+	    [nss_inc_prefix=-I$withval])
 
 AC_ARG_WITH(nss-libs,
-[  --with-nss-libs          Specify location of NSS libs],[
-nss_prefix=-L$withval
-])
+	    [  --with-nss-libs          Specify location of NSS libs],
+	    [nss_prefix=-L$withval])
 
 
 AC_ARG_WITH(openssl-includes,
-[  --with-openssl-includes  Specify location of OpenSSL header files],[
-openssl_inc_prefix=-I$withval
-])
+	    [  --with-openssl-includes  Specify location of OpenSSL header files],
+	    [openssl_inc_prefix=-I$withval])
 
 AC_ARG_WITH(openssl-libs,
-[  --with-openssl-libs      Specify location of OpenSSL libs],[
-openssl_prefix=-L$withval
-])
+	    [  --with-openssl-libs      Specify location of OpenSSL libs],
+	    [openssl_prefix=-L$withval])
+
+enable_openssl="no"
+enable_nss="no"
 
 if test "x$enable_ssl" = xyes; then
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$openssl_inc_prefix"
 	AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
 			 [OPENSSL_CFLAGS="$CPPFLAGS" 
-			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto"],
-			 [OPENSSL_CFLAGS="" OPENSSL_LIBS=""; break;])
+			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto"
+			  enable_openssl="yes"],
+			 [OPENSSL_CFLAGS="" 
+			  OPENSSL_LIBS="" 
+			  enable_openssl="no"
+			  break])
 	AC_SUBST(OPENSSL_CFLAGS)
 	AC_SUBST(OPENSSL_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
@@ -222,24 +171,27 @@ if test "x$enable_ssl" = xyes; then
 	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
 	AC_CHECK_HEADERS(prthread.h security/ssl.h security/pk11func.h,
 			 [NSS_CFLAGS="$CPPFLAGS" 
-			  NSS_LIBS="$nspr_prefix -lnspr4 $nss_prefix -lnss3"],
-			 [NSS_CFLAGS="" NSS_LIBS=""; break;])
+			  NSS_LIBS="$nspr_prefix -lnspr4 $nss_prefix -lnss3"
+			  enable_nss="yes"],
+			 [NSS_CFLAGS="" 
+			  NSS_LIBS="" 
+			  enable_nss="no"
+			  break])
 	AC_SUBST(NSS_CFLAGS)
 	AC_SUBST(NSS_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
 fi
 
-# Set PACKAGE_SOURCE_DIR in config.h.
-packagesrcdir=`cd $srcdir && pwd`
-AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")
 
 # If gcc is the compiler, compile with lots of warnings
 if test "x$GCC" = "xyes"; then
-	CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations "
-	WSDL_CFLAGS="-Werror"
+	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes"
+	CFLAGS="$CFLAGS -Wmissing-declarations -Werror"
 fi
 
-AC_SUBST(WSDL_CFLAGS)
+# Use reentrant functions
+CFLAGS="$CFLAGS -D_REENTRANT"
+
 
 #	doc/Makefile
 
@@ -254,4 +206,17 @@ AC_OUTPUT([
 	src/soup-wsdl/Makefile
 	tests/Makefile
 	],
-	[chmod +x soup-config])
+	[chmod +x soup-config soupConf.sh])
+
+echo "
+
+Configuration:
+
+  Source code location:  ${srcdir}
+  Compiler:              ${CC}
+  Build flags:           ${CFLAGS} ${SOUP_DEBUG_FLAGS}
+
+  OpenSSL support:       ${enable_openssl}
+  Mozilla NSS support:	 ${enable_nss}
+
+"

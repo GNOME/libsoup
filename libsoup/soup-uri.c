@@ -43,6 +43,7 @@
 #include <stdlib.h>
 
 #include "soup-uri.h"
+#include "soup-misc.h"
 
 static gint
 soup_uri_get_default_port (gchar *proto)

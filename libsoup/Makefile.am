@@ -16,7 +16,7 @@ soupincludedir = $(includedir)/soup
 
 lib_LTLIBRARIES = libsoup.la
 
-libsoup_la_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
+libsoup_la_LDFLAGS = -version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
 libsoup_la_LIBADD =		\
 	$(GNET_LIBS)		\
