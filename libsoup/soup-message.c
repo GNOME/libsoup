@@ -64,7 +64,6 @@ soup_message_cleanup (SoupMessage *req)
 
 	req->priv->connect_tag = NULL;
 	req->priv->conn = NULL;
-	req->priv->recv_buf = NULL;
 	req->priv->write_len = 0;
 	req->priv->header_len = 0;
 	req->priv->content_length = 0;
@@ -91,8 +90,6 @@ soup_message_free (SoupMessage *req)
 		g_string_free (req->priv->req_header, TRUE);
 	if (req->request_headers) 
 		g_hash_table_destroy (req->request_headers);
-	if (req->response_phrase) 
-		g_free (req->response_phrase);
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
 	if (req->priv->recv_buf) 

@@ -53,7 +53,7 @@ struct _SoupMessage {
 
 	SoupDataBuffer      response;
 	guint               response_code;
-	gchar              *response_phrase;
+	const gchar        *response_phrase;
 	GHashTable         *response_headers;
 };
 

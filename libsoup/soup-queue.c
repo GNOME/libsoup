@@ -599,8 +599,6 @@ soup_queue_message (SoupMessage    *req,
 	req->response.body = NULL;
 	req->response.length = 0;
 
-	if (req->response_phrase) 
-		g_free (req->response_phrase);
 	if (req->response_headers)
 		g_hash_table_destroy (req->response_headers);
 	if (req->priv->recv_buf) 
@@ -609,6 +607,7 @@ soup_queue_message (SoupMessage    *req,
 	req->response_code = 0;
 	req->response_phrase = NULL;
 	req->response_headers = NULL;
+	req->priv->recv_buf = NULL;
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);

@@ -23,11 +23,11 @@ void  soup_server_register           (const gchar          *methodname,
 
 void  soup_server_unregister         (const gchar          *methodname);
 
-typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage *msg, 
-					   gchar       *username, 
-					   gchar       *password,
-					   gchar       *realm,
-					   gpointer     user_data);
+typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage  *msg, 
+					   const gchar  *username, 
+					   const gchar  *password,
+					   const gchar  *realm,
+					   gpointer      user_data);
 
 typedef enum {
 	SOUP_AUTH_TYPE_BASIC,
@@ -54,7 +54,7 @@ void  soup_server_main_quit          (void);
 
 /* Apache module initializtion */
 
-extern void soup_server_init (void);
+extern void soup_server_init         (void);
 
 /* Implement soup_server_init() in your library. */
 

@@ -102,8 +102,8 @@ void      soup_message_cleanup        (SoupMessage   *req);
 guint     soup_str_case_hash          (gconstpointer  key);
 
 gboolean  soup_str_case_equal         (gconstpointer  v1,
-						gconstpointer  v2);
-
+				       gconstpointer  v2);
+	
 gint      soup_substring_index        (gchar         *str, 
 				       gint           len, 
 				       gchar         *substr);
@@ -116,9 +116,9 @@ gchar    *soup_base64_encode          (const gchar   *text,
 SoupServerHandler *soup_server_get_handler (const gchar *methodname);
 
 gboolean           soup_server_authorize   (SoupMessage *msg,
-					    gchar       *username, 
-					    gchar       *password,
-					    gchar       *realm);
+					    const gchar *username, 
+					    const gchar *password,
+					    const gchar *realm);
 
 #ifdef __cplusplus
 }

@@ -1,3 +1,38 @@
+2001-03-09  Alex Graveley  <alex@ximian.com>
+
+	* tests/simple-test.c (main): demonstrate correct behavior here by
+	unref'ing the context after message creation.
+
+	* tests/stress-test.c (main): ditto.
+
+	* src/soup-core/soup-queue.c (soup_queue_message): set
+	req->priv->recv_buf = NULL here, as the media continues to barrate
+	dangling pointers.
+
+	* src/soup-core/soup-server.h: make SoupServerAuthorizeFn typedef
+	const correct
+
+	* src/soup-core/soup-server.c (soup_server_authorize): make const
+	correct.
+
+	* src/soup-core/soup-message.c (soup_message_cleanup): don't free
+	response phrase. Don't set req->priv->recv_buf = NULL here, as
+	leaking memory continues to be considered "bad".
+
+	* src/soup-core/soup-headers.c (soup_headers_parse_response):
+	don't alloc status_phrase, just point into buffer.
+
+	* src/soup-core/soup-cgi.c (soup_cgi_read_cb): deal with response
+	phrase now being const.
+
+	* src/soup-core/soup-apache.c (soup_apache_message_create): action
+	is already strdup'd in soup_message_new (). response_phrase
+	is now a const string. Remove unneeded content-type header.
+	(soup_apache_read_request): slight reorg, also use ap_palloc()
+	instead of ap_calloc().
+	(soup_apache_handler): initial authentication handling, only basic
+	auth at this point.
+
 2001-03-09  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-parse.h: Each WSDL struct has a pointer into
@@ -17,6 +52,16 @@
 
 	* src/soup-wsdl/main.c (main): Move the xml doc dump to here, for
 	better modularity
+
+2001-03-08  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ssl.c (soup_ssl_get_iochannel): after failing
+	an explicit path execution, use execlp (instead of execl) to
+	search the path for soup-ssl-proxy.
+
+	* configure.in: set the default openssl library prefix to /usr/lib
+	to fix weird linking problems when compiling with both openssl and
+	nss.
 
 2001-03-08  JP Rosevear  <jpr@ximian.com>
 

@@ -94,9 +94,9 @@ soup_server_set_method_auth (gchar                 *methodname,
 
 gboolean 
 soup_server_authorize (SoupMessage *msg,
-		       gchar       *username, 
-		       gchar       *password,
-		       gchar       *realm)
+		       const gchar *username, 
+		       const gchar *password,
+		       const gchar *realm)
 {
 	SoupServerHandler *hand = soup_server_get_handler (msg->action);
 

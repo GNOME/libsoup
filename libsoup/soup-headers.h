@@ -25,6 +25,6 @@ gboolean       soup_headers_parse_response (gchar          *str,
 					    gint            len, 
 					    GHashTable     *dest, 
 					    guint          *status_code,
-					    gchar         **status_phrase);
+					    gchar const   **status_phrase);
 
 #endif /*SOUP_HEADERS_H*/

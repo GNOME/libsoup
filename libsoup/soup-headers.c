@@ -129,11 +129,11 @@ soup_headers_parse_request (gchar       *str,
 }
 
 gboolean
-soup_headers_parse_response (gchar       *str, 
-			     gint         len, 
-			     GHashTable  *dest, 
-			     guint       *status_code,
-			     gchar      **status_phrase)
+soup_headers_parse_response (gchar        *str, 
+			     gint          len, 
+			     GHashTable   *dest, 
+			     guint        *status_code,
+			     gchar const **status_phrase)
 {
 	guint http_major, http_minor;
 	guint phrase_start = 0;
@@ -152,7 +152,7 @@ soup_headers_parse_response (gchar       *str,
 	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
-	*status_phrase = g_strdup (&str [phrase_start]);
+	*status_phrase = &str [phrase_start];
 
 	return TRUE;
 
