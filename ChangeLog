@@ -1,5 +1,14 @@
 2001-09-28  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-ntlm.c: Remove redundant alloca define.
+
+	* src/libsoup/soup-socket.c (soup_socket_server_new): Use 
+	SOUP_SOCKET_CLOSE.
+
+	* src/libsoup/soup-socket.h: Include winsock.h if windows.
+
+2001-09-28  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socket-win.c: Fix copyright notice.
 	* src/libsoup/soup-socket-unix.c: Ditto.
 	* src/libsoup/soup-socket.c: Ditto.

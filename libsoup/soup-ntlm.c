@@ -31,11 +31,6 @@
 #  endif
 #endif
 
-#ifdef SOUP_WIN32
-#include <malloc.h>
-#define alloca _alloca
-#endif
-
 #include <ctype.h>
 #include <string.h>
 

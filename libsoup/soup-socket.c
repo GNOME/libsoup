@@ -672,7 +672,7 @@ soup_socket_server_new (const gint port)
 	return s;
 
  SETUP_ERROR:
-	close (s->sockfd);
+	SOUP_CLOSE_SOCKET (s->sockfd);
 	g_free (s->addr);
 	g_free (s);
 	return NULL;
