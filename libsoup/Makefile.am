@@ -3,7 +3,7 @@
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"SOUP\" 	\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
-	-DBINDIR=\"$(bindir)\"		\
+	-DLIBEXECDIR=\"$(libexecdir)\"	\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
@@ -79,5 +79,5 @@ libsoup_ssl_proxy_SOURCES =	\
 	soup-ssl-proxy.c
 
 install-exec-hook:
-	$(mkinstalldirs) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) libsoup-ssl-proxy $(DESTDIR)$(bindir)/$(SSL_PROXY_NAME)
+	$(mkinstalldirs) $(DESTDIR)$(libexecdir)
+	$(INSTALL_PROGRAM) libsoup-ssl-proxy $(DESTDIR)$(libexecdir)/$(SSL_PROXY_NAME)

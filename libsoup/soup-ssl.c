@@ -109,8 +109,8 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 						 key_file));
 		}
 
-		execl (BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
-		       BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
+		execl (LIBEXECDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
+		       LIBEXECDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
 		       NULL);
 
 		execlp (SSL_PROXY_NAME, SSL_PROXY_NAME, NULL);

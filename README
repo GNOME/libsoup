@@ -13,11 +13,13 @@ Features:
   * Connection cache
   * HTTP chunked transfer support
   * HTTP, SOCKS4, and SOCKS5 authenticated proxy support
-  * SSL Support using OpenSSL or Mozilla NSS
+  * SSL Support using OpenSSL
   * Client support for Digest, NTLM, and Basic authentication
+  * HTTP server
+  * Server support for Digest and Basic authentication
 
 Planned Features:
-  * Server digest authentication
+  * SSL Support using NSS
   * Gconf configuration and proxy integration
 
 To subscribe to the Soup discussion list, send mail with the word

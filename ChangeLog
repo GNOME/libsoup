@@ -1,3 +1,19 @@
+2002-12-13  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/Makefile.am: Replace the BINDIR define with LIBEXECDIR.
+	(install-exec-hook): Install libsoup-ssl-proxy into libexecdir
+	instead of bindir.
+
+	* libsoup/soup-openssl.c (soup_openssl_close): Call SSL_shutdown()
+	to properly shut down the SSL connection before closing the
+	socket.
+
+	* libsoup/soup-ssl-proxy.c (soup_ssl_proxy_readwrite): Close the
+	iochannels before quitting the main loop.
+
+	* tests/Makefile.am: disable building timeserver, the source file
+	wasn't added.
+
 2002-11-12  Dan Winship  <danw@ximian.com>
 
 	* configure.in: Check for IPv6 support in networking headers.

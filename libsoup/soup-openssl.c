@@ -136,6 +136,7 @@ soup_openssl_close (GIOChannel  *channel,
 		    GError     **err)
 {
 	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	SSL_shutdown (chan->ssl);
 	g_io_channel_close (chan->real_sock);
 
 	return G_IO_STATUS_NORMAL;
