@@ -96,7 +96,7 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	g_idle_add (soup_ssl_idle_waitpid, GINT_TO_POINTER (pid));
 
 	flags = fcntl(pair [1], F_GETFL, 0);
-	fcntl (pair [1], F_SETFL, flags & O_NONBLOCK);
+	fcntl (pair [1], F_SETFL, flags | O_NONBLOCK);
 
 	new_chan = g_io_channel_unix_new (pair [1]);
 

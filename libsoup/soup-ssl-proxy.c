@@ -170,7 +170,7 @@ main (int argc, char** argv)
 
 	/* Don't block on STDIN read */
 	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl (STDIN_FILENO, F_SETFL, flags & O_NONBLOCK);
+	fcntl (STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 
 	sock_chan = g_io_channel_unix_new (sockfd);
 	sock_chan = soup_ssl_proxy_get_iochannel (sock_chan);

@@ -1,3 +1,10 @@
+2001-08-11  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ssl-proxy.c (main): Fix typo causes
+	O_NONBLOCK to to be set.
+
+	* src/soup-core/soup-ssl.c (soup_ssl_get_iochannel): Ditto.
+
 2001-08-10  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-private.h: Include sys/socket.h for sa in
