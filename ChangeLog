@@ -1,3 +1,10 @@
+2002-03-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Handle
+	forced no-content response codes 204, 205, and 304.  Check
+	transfer-encoding before content-length to handle broken
+	Traffic-Server proxies.
+
 2002-03-20  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-server.c (soup_server_get_handler): Return
