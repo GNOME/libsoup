@@ -6,16 +6,14 @@ INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"SOUP\" 	\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
 	-DBINDIR=\"$(bindir)\"		\
+	-I$(top_srcdir)/src		\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
-	$(XML_CFLAGS)			\
-	$(OPENSSL_CFLAGS)		\
-	$(NSS_CFLAGS)			\
-	$(APACHE_CFLAGS)
+	$(XML_CFLAGS)
 
-soupincludedir = $(includedir)/soup
+libsoupincludedir = $(includedir)/soup/libsoup
 
-soupinclude_HEADERS =		\
+libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-context.h		\
 	soup-dav.h		\
@@ -30,7 +28,7 @@ soupinclude_HEADERS =		\
 	soup-socket.h		\
 	soup-uri.h
 
-lib_LTLIBRARIES = libsoup.la libsoup-apache.la
+lib_LTLIBRARIES = libsoup.la
 
 libsoup_la_LDFLAGS = -version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
@@ -67,37 +65,6 @@ libsoup_la_SOURCES =		\
 	soup-transfer.h		\
 	soup-transfer.c		\
 	soup-uri.c
-
-libsoup_apache_la_LDFLAGS = 	\
-	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
-
-libsoup_apache_la_LIBADD =	\
-	$(APACHE_LIBS)	
-
-libsoup_apache_la_SOURCES =	\
-	soup-apache.c
-
-bin_PROGRAMS = soup-ssl-proxy soup-httpd
-
-soup_ssl_proxy_LDADD =		\
-	$(OPENSSL_LIBS)		\
-	$(NSS_LIBS)		\
-	$(GLIB_LIBS)
-
-soup_ssl_proxy_SOURCES =	\
-	soup-nss.h		\
-	soup-nss.c		\
-	soup-openssl.h		\
-	soup-openssl.c		\
-	soup-ssl-proxy.c
-
-soup_httpd_LDADD =					\
-	$(GMODULE_LIBS)					\
-	$(POPT_LIBS)					\
-	$(top_builddir)/src/soup-core/libsoup.la
-
-soup_httpd_SOURCES =		\
-	soup-httpd.c
 
 EXTRA_DIST = 
 

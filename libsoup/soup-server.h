@@ -12,8 +12,7 @@
 #define SOUP_SERVER_H 1
 
 #include <glib.h>
-
-#include "soup-message.h"
+#include <libsoup/soup-message.h>
 
 typedef enum {
 	SOUP_AUTH_TYPE_BASIC  = (1 << 0),

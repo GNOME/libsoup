@@ -15,17 +15,17 @@
 extern "C" {
 #endif
 
-#include <soup/soup-context.h>
-#include <soup/soup-dav.h>
-#include <soup/soup-dav-server.h>
-#include <soup/soup-message.h>
-#include <soup/soup-misc.h>
-#include <soup/soup-fault.h>
-#include <soup/soup-env.h>
-#include <soup/soup-parser.h>
-#include <soup/soup-serializer.h>
-#include <soup/soup-socket.h>
-#include <soup/soup-uri.h>
+#include <libsoup/soup-context.h>
+#include <libsoup/soup-dav.h>
+#include <libsoup/soup-dav-server.h>
+#include <libsoup/soup-message.h>
+#include <libsoup/soup-misc.h>
+#include <libsoup/soup-fault.h>
+#include <libsoup/soup-env.h>
+#include <libsoup/soup-parser.h>
+#include <libsoup/soup-serializer.h>
+#include <libsoup/soup-socket.h>
+#include <libsoup/soup-uri.h>
 
 #ifdef __cplusplus
 }

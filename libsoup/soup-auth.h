@@ -11,9 +11,9 @@
 #ifndef SOUP_AUTH_H
 #define SOUP_AUTH_H 1
 
-#include "soup-context.h"
-#include "soup-message.h"
-#include "soup-private.h"
+#include <libsoup/soup-context.h>
+#include <libsoup/soup-message.h>
+#include <libsoup/soup-private.h>
 
 SoupAuth *soup_auth_new_from_header   (SoupContext *context, 
 				       const char  *header);

@@ -12,7 +12,7 @@
 #define SOUP_OPENSSL_H 1
 
 #include <glib.h>
-#include "soup-misc.h"
+#include <libsoup/soup-misc.h>
 
 GIOChannel *soup_openssl_get_iochannel       (GIOChannel *sock);
 
