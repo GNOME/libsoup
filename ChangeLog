@@ -1,3 +1,56 @@
+2001-02-28  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-trace.[ch]: New file of better debugging routines.
+
+	* src/soup-wsdl/wsdl-soap-stubs.[ch]: New file that emits C code
+	for client stubs.
+
+	* src/soup-wsdl/wsdl-soap-skels.[ch]: New file that will emit C
+	code for server skeleton functions.
+
+	* src/soup-wsdl/wsdl-soap-headers.[ch]: New file that emits
+	structure definitions and function prototypes for stubs and skels
+
+	* src/soup-wsdl/wsdl-soap-common.[ch]: New file that will emit C
+	code for functions common to stubs and skels.
+
+	* src/soup-wsdl/wsdl-memory.[ch]: New file of routines to
+	recursively free WSDL structures.
+
+	* src/soup-wsdl/wsdl-locate.[ch]: New file of routines to look up
+	WSDL structures given a name and a parent structure.
+
+	* src/soup-wsdl/wsdl-describe.[ch]: New file of structure printing
+	routines.
+
+	* src/soup-wsdl/wsdl.h: Deleted the debug logging stuff, added a
+	much better version in wsdl-trace.[ch]
+
+	* src/soup-wsdl/wsdl-parse.h: Structures moved here from
+	wsdl-parse.c. Added all of the SOAP extensions.
+
+	* src/soup-wsdl/wsdl-parse.c: Added the rest of the SOAP
+	extensions. Moved some of the parser internal struct definitions
+	into wsdl-parse.h.
+	Moved the structure printing routines into their own file.
+	(wsdl_get_location): Made the error reporting slightly more useful
+	(wsdl_parse_porttype_operation): Tell the difference between a
+	request-response operation and a solicit-response operation.
+	(wsdl_parse_xml): Combine tree and SAX parsing styles, so I can
+	build an xmlDocPtr tree, yet still fill in the WSDL structures as
+	the XML is being read.
+	(wsdl_parse): Set up the SAX parser so it calls the internal
+	libxml tree building routines, except for those elements that I
+	use to build WSDL structures. These elements must call the
+	corresponding xmlDefaultSAXHandler functions themselves.
+
+	* src/soup-wsdl/main.c: Added options for code generation
+	(main): Call code generation routines
+
+	* src/soup-wsdl/Makefile.am: Added a lot of new files
+	
+	* configure.in: Add -Werror to the WSDL CFLAGS
+
 2001-02-20  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/Makefile.am (libsoup_la_LDFLAGS): remove -release

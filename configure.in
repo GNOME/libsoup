@@ -215,7 +215,10 @@ AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")
 # If gcc is the compiler, compile with lots of warnings
 if test "x$GCC" = "xyes"; then
 	CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations "
+	WSDL_CFLAGS="-Werror"
 fi
+
+AC_SUBST(WSDL_CFLAGS)
 
 #	doc/Makefile
 
