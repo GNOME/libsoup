@@ -461,6 +461,7 @@ CPPFLAGS=$orig_CPPFLAGS
 dnl ***********************************************************************
 dnl *** Add any preprocessor options needed for ISO C99 IEEE754 support ***
 dnl ***********************************************************************
+
 ISO_CFLAGS=""
 orig_CPPFLAGS=$CPPFLAGS
 AC_MSG_CHECKING(if ISO C99 IEEE754 support is enabled by default)
