@@ -20,6 +20,7 @@ soupinclude_HEADERS =		\
 	soup-context.h		\
 	soup-message.h		\
 	soup-misc.h     	\
+	soup-parser.h		\
 	soup-serializer.h	\
 	soup-server.h		\
 	soup-socket.h		\
@@ -44,6 +45,7 @@ libsoup_la_SOURCES =		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
+	soup-parser.c		\
 	soup-private.h     	\
 	soup-queue.c		\
 	soup-serializer.c	\

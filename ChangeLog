@@ -1,3 +1,24 @@
+2001-05-09  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-core/soup-parser.[ch]: added a basic SOAP messages
+	parser, which easily lets access to the message parameters
+	and faults
+
+2001-05-05  Rodrigo Moya <rodrigo@ximian.com>
+	
+	* src/soup-wsdl-runtime/wsdl-soap-fault.[ch]: added to manage/retrieve
+	info from SOAP faults
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c (wsdl_soap_parse): retrieve
+	SOAP faults from the message being parsed. Added a wsdl_soap_fault
+	parameter, which will be returned if there was actually a SOAP fault
+	in the message
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c (wsdl_soap_marhal): add
+	a wsdl_soap_fault parameter, to be serialized along with the rest
+	of the SOAP message
+	* src/soup-wsdl/wsdl-soap-skels.c: use wsdl_soap_fault where appropriate
+	* src/soup-wsdl/wsdl-soap-stubs.c: ditto
+	* src/soup-wsdl/wsdl-soap-headers.c: ditto
+
 2001-05-04  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-schema.c: Decide which schema parser to

@@ -18,6 +18,7 @@ extern "C" {
 #include <soup/soup-context.h>
 #include <soup/soup-message.h>
 #include <soup/soup-misc.h>
+#include <soup/soup-parser.h>
 #include <soup/soup-serializer.h>
 #include <soup/soup-socket.h>
 #include <soup/soup-uri.h>
