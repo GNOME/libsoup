@@ -1,3 +1,8 @@
+2001-03-29  Rodrigo Moya <rodrigo@ximian.com>
+
+	* configure.in: add CFLAGS to apxs parameters, to output the
+	correct compilation flags
+
 2001-03-21  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-socks.c: remove hack to look at internals of

@@ -278,7 +278,7 @@ enable_apache="no"
 
 AC_PATH_PROG(APXS,apxs,no)
 if test x$APXS != xno; then
-	APACHE_CFLAGS="-I`apxs -q INCLUDEDIR`"
+	APACHE_CFLAGS="-I`apxs -q INCLUDEDIR CFLAGS`"
 	APACHE_LIBS=`apxs -q LDFLAGS_SHLIB LIBS_SHLIB`
 
 	save_CPPFLAGS=$CPPFLAGS
