@@ -200,6 +200,33 @@ static gboolean start_another_request (GIOChannel    *serv_chan,
 				       GIOCondition   condition, 
 				       gpointer       user_data);
 
+static gboolean
+check_close_connection (SoupMessage *msg)
+{
+	const char *connection_hdr;
+	gboolean close_connection;
+
+	connection_hdr = soup_message_get_header (msg->request_headers,
+						  "Connection");
+
+	if (msg->priv->http_version == SOUP_HTTP_1_0) {
+		if (connection_hdr && g_strcasecmp (connection_hdr,
+						    "keep-alive") == 0)
+			close_connection = FALSE;
+		else
+			close_connection = TRUE;
+	}
+	else {
+		if (connection_hdr && g_strcasecmp (connection_hdr,
+						    "close") == 0)
+			close_connection = TRUE;
+		else
+			close_connection = FALSE;
+	}
+
+	return close_connection;
+} /* check_close_connection */
+
 static void
 destroy_message (SoupMessage *msg)
 {
@@ -208,11 +235,12 @@ destroy_message (SoupMessage *msg)
 	SoupServerMessage *server_msg = msg->priv->server_msg;
 
 	if (server_sock) {
-		if (server_msg && msg->priv->http_version == SOUP_HTTP_1_0)
-			/*
-			 * Close the socket if we are using HTTP/1.0 and 
-			 * did not specify a Content-Length response header.
-			 */
+		/*
+		 * Close the socket if we're using HTTP/1.0 and
+		 * "Connection: keep-alive" isn't specified, or if we're
+		 * using HTTP/1.1 and "Connection: close" was specified.
+		 */
+		if (check_close_connection (msg))
 			soup_socket_unref (server_sock);
 		else {
 			/*
@@ -426,7 +454,7 @@ get_response_header (SoupMessage          *req,
 {
 	GString *ret = g_string_new (NULL);
 
-	if (status_line) 
+	if (status_line)
 		g_string_sprintfa (ret, 
 				   "HTTP/1.1 %d %s\r\n", 
 				   req->errorcode, 

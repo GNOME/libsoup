@@ -1,3 +1,12 @@
+2002-07-02  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-server.c (check_close_connection): Added.
+	Checks to see if we should keep the connection around, and obeys
+	the spec (RFC 2616: 8.1.2.1 Negotiation).  HTTP 1.0 connections
+	should close by default unless "Connection: keep-alive" is
+	specified, and HTTP 1.1 connections should stay open by default
+	unless "Connection: close" is specified.
+
 2002-07-01  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Back out my
