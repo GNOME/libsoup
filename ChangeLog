@@ -1,5 +1,11 @@
 2003-06-02  Chris Toshok  <toshok@ximian.com>
 
+	* libsoup/Makefile.am (INCLUDES): remove NSS_CFLAGS.
+	(libsoup_2_0_la_LIBADD): remove NSS_LIBS.
+	(libsoup_2_0_la_SOURCES): remove soup-nss.[ch]
+
+2003-06-02  Chris Toshok  <toshok@ximian.com>
+
 	* configure.in: Bump version to 1.99.23.
 
 2003-05-30  Chris Toshok  <toshok@ximian.com>

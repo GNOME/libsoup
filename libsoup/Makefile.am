@@ -8,7 +8,6 @@ INCLUDES = 				\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
 	$(GNUTLS_CFLAGS)		\
-	$(NSS_CFLAGS)			\
 	$(OPENSSL_CFLAGS)
 
 EXTRA_DIST =	\
@@ -40,8 +39,7 @@ libsoup_2_0_la_LDFLAGS =	\
 
 libsoup_2_0_la_LIBADD =		\
 	$(GLIB_LIBS)		\
-	$(GNUTLS_LIBS)		\
-	$(NSS_LIBS)
+	$(GNUTLS_LIBS)
 
 libsoup_2_0_la_SOURCES =	\
 	md5-utils.h		\
@@ -57,8 +55,6 @@ libsoup_2_0_la_SOURCES =	\
 	soup-message.c		\
 	soup-method.c		\
 	soup-misc.c     	\
-	soup-nss.h		\
-	soup-nss.c		\
 	soup-ntlm.c     	\
 	soup-private.h     	\
 	soup-queue.h		\
