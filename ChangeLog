@@ -1,5 +1,13 @@
 2003-02-11  Joe Shaw  <joe@ximian.com>
 
+	* configure.in: Bump up to 1.99.8 for snaps.
+
+	* soup-address.c (soup_gethostbyname): Fix this for Solaris.  It
+	returns the address to the resulting hostent or NULL on failure,
+	unlike Linux which returns an error code.
+
+2003-02-11  Joe Shaw  <joe@ximian.com>
+
 	* configure.in: Bump up to 1.99.7 for snaps.
 
 	* libsoup/soup-openssl.c (soup_openssl_get_iochannel): Print out
