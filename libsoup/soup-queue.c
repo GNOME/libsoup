@@ -403,8 +403,7 @@ soup_get_request_header (SoupMessage *req)
 				      &hdrs);
 
 	if (proxy)
-		//uri = soup_uri_to_string (proxy->uri, FALSE); // FIXME??
-		uri = soup_uri_to_string (suri, FALSE); // FIXME??
+		uri = soup_uri_to_string (suri, FALSE);
 	else if (suri->querystring)
 		uri = g_strconcat (suri->path, "?", suri->querystring, NULL);
 	else

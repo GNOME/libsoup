@@ -24,14 +24,13 @@ struct _GInetAddr {
 
 typedef struct {
 	SoupConnection        *src_conn;
-	SoupProtocol           protocol;
 	
 	enum {
 		SOCKS_4_DEST_ADDR_LOOKUP,
 		SOCKS_4_SEND_DEST_ADDR,
 		SOCKS_4_VERIFY_SUCCESS,
 
-		SOCKS_5_INIT,
+		SOCKS_5_SEND_INIT,
 		SOCKS_5_VERIFY_INIT,
 		SOCKS_5_SEND_AUTH,
 		SOCKS_5_VERIFY_AUTH,
@@ -71,15 +70,15 @@ soup_socks_write (GIOChannel* iochannel,
 	SoupUri *proxy_uri = soup_context_get_uri (proxy_ctx);
 
 	gboolean finished = FALSE;
-	gchar buf[128];
+	guchar buf[128];
 	gint  len = 0;
 	guint bytes_written;
 	GIOError error;
 
 	switch (sd->phase) {
 	case SOCKS_4_SEND_DEST_ADDR: 
-		buf[0] = 0x04;
-		buf[1] = 0x01;
+		buf[len++] = 0x04;
+		buf[len++] = 0x01;
 		WSHORT (buf, &len, dest_uri->port);
 		memcpy (&buf [len], 
 			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr, 
@@ -92,7 +91,7 @@ soup_socks_write (GIOChannel* iochannel,
 		finished = TRUE;
 		break;
 
-	case SOCKS_5_INIT:
+	case SOCKS_5_SEND_INIT:
 		if (proxy_uri->user) {
 			buf[0] = 0x05;
 			buf[1] = 0x02;
@@ -112,6 +111,7 @@ soup_socks_write (GIOChannel* iochannel,
 		buf[len++] = 0x01;
 		WSTRING (buf, &len, proxy_uri->user);
 		WSTRING (buf, &len, proxy_uri->passwd);
+		sd->phase = SOCKS_5_VERIFY_AUTH;
 		break;
 
 	case SOCKS_5_SEND_DEST_ADDR:
@@ -121,9 +121,10 @@ soup_socks_write (GIOChannel* iochannel,
 		buf[len++] = 0x03;
 		WSTRING (buf, &len, dest_uri->host);
 		WSHORT (buf, &len, dest_uri->port);
-		
+		sd->phase = SOCKS_5_VERIFY_SUCCESS;
 		finished = TRUE;
 		break;
+
 	default:
 		break;
 	}
@@ -184,6 +185,7 @@ soup_socks_read (GIOChannel* iochannel,
 			goto CONNECT_ERROR;
 
 		goto CONNECT_OK;
+
 	default:
 		break;
 	}
@@ -221,9 +223,11 @@ soup_lookup_dest_addr_cb (GInetAddr*           inetaddr,
 			   NULL, 
 			   sd->user_data); 
 		g_free (sd);
+		return;
 	}
 
 	sd->dest_addr = inetaddr;
+	sd->phase = SOCKS_4_SEND_DEST_ADDR;
 	channel = soup_connection_get_iochannel (sd->src_conn);
 
 	g_io_add_watch (channel, G_IO_OUT, (GIOFunc) soup_socks_write, sd);
@@ -251,7 +255,7 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	sd->cb = cb;
 	sd->user_data = user_data;
 	
-	switch (sd->protocol) {
+	switch (soup_context_get_protocol (proxy_ctx)) {
 	case SOUP_PROTOCOL_SOCKS4:
 		gnet_inetaddr_new_async (dest_uri->host, 
 					 dest_uri->port, 
@@ -270,8 +274,9 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 				G_IO_IN, 
 				(GIOFunc) soup_socks_read, 
 				sd);
-		sd->phase = SOCKS_5_INIT;
+		sd->phase = SOCKS_5_SEND_INIT;
 		break;
+
 	default:
 		goto CONNECT_SUCCESS;
 	}
@@ -280,4 +285,5 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	
  CONNECT_SUCCESS:
 	(*cb) (dest_ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data); 
+	g_free (sd);
 }
