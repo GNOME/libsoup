@@ -161,6 +161,9 @@ soup_message_free (SoupMessage *req)
 		g_hash_table_destroy (req->response_headers);
 	}
 
+	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
+	g_slist_free (req->priv->content_handlers);
+
 	g_free (req->priv);
 	g_free (req->action);
 	g_free (req);
@@ -358,8 +361,8 @@ soup_message_get_flags (SoupMessage *msg)
 void
 soup_message_set_method (SoupMessage *msg, const gchar *method)
 {
-	g_return_if_fail(msg);
-	g_return_if_fail(method);
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (method != NULL);
 
 	msg->method = method;
 }
@@ -367,9 +370,48 @@ soup_message_set_method (SoupMessage *msg, const gchar *method)
 const gchar *
 soup_message_get_method (SoupMessage *msg)
 {
-	g_return_val_if_fail(msg, NULL);
+	g_return_val_if_fail (msg != NULL, NULL);
 
 	return msg->method;
+}
+
+typedef enum {
+	RESPONSE_HEADER_HANDLER,
+	RESPONSE_CODE_HANDLER,
+	RESPONSE_BODY_HANDLER
+} SoupHandlerKind;
+
+typedef struct {
+	SoupHandlerType   type;
+	SoupHandlerFn     handler_cb;
+	gpointer          user_data;
+
+	SoupHandlerKind   kind;
+	const gchar      *header;
+	guint             code;
+} SoupHandlerData;
+
+static void 
+soup_message_add_handler (SoupMessage      *msg,
+			  SoupHandlerType   type,
+			  SoupHandlerFn     handler_cb,
+			  gpointer          user_data,
+			  SoupHandlerKind   kind,
+			  const gchar      *header,
+			  guint             code)
+{
+	SoupHandlerData *data;
+
+	data = g_new0 (SoupHandlerData, 1);
+	data->type = type;
+	data->handler_cb = handler_cb;
+	data->user_data = user_data;
+	data->kind = kind;
+	data->header = header;
+	data->code = code;
+
+	msg->priv->content_handlers = 
+		g_slist_append (msg->priv->content_handlers, data);
 }
 
 void 
@@ -379,7 +421,17 @@ soup_message_add_header_handler (SoupMessage      *msg,
 				 SoupHandlerFn     handler_cb,
 				 gpointer          user_data)
 {
-	g_warning ("Not yet implemented.");
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (header != NULL);
+	g_return_if_fail (handler_cb != NULL);
+
+	soup_message_add_handler (msg, 
+				  type, 
+				  handler_cb, 
+				  user_data, 
+				  RESPONSE_HEADER_HANDLER, 
+				  header, 
+				  0);
 }
 
 void 
@@ -389,7 +441,17 @@ soup_message_add_response_code_handler (SoupMessage      *msg,
 					SoupHandlerFn     handler_cb,
 					gpointer          user_data)
 {
-	g_warning ("Not yet implemented.");
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (code != 0);
+	g_return_if_fail (handler_cb != NULL);
+
+	soup_message_add_handler (msg, 
+				  type, 
+				  handler_cb, 
+				  user_data, 
+				  RESPONSE_CODE_HANDLER, 
+				  NULL, 
+				  code);
 }
 
 void 
@@ -398,5 +460,46 @@ soup_message_add_body_handler (SoupMessage      *msg,
 			       SoupHandlerFn     handler_cb,
 			       gpointer          user_data)
 {
-	g_warning ("Not yet implemented.");
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (handler_cb != NULL);
+
+	soup_message_add_handler (msg, 
+				  type, 
+				  handler_cb, 
+				  user_data, 
+				  RESPONSE_BODY_HANDLER, 
+				  NULL, 
+				  0);
+}
+
+SoupErrorCode 
+soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
+{
+	GSList *list;
+	SoupErrorCode retval = SOUP_ERROR_NONE;
+
+	g_return_val_if_fail (msg != NULL, retval);
+	
+	for (list = msg->priv->content_handlers; list; list = list->next) {
+		SoupHandlerData *data = list->data;
+		
+		if (data->type != invoke_type) continue;
+
+		switch (data->kind) {
+		case RESPONSE_HEADER_HANDLER:
+			if (!soup_message_get_response_header (msg,
+							       data->header))
+				continue;
+			break;
+		case RESPONSE_CODE_HANDLER:
+			if (msg->response_code != data->code) continue;
+			break;
+		}
+
+		retval = (*data->handler_cb) (msg, data->user_data);
+
+		if (retval != SOUP_ERROR_NONE) break;
+	}
+
+	return retval;
 }

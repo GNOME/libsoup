@@ -73,6 +73,7 @@ static gboolean
 soup_process_headers (SoupMessage *req)
 {
 	gchar *connection, *length, *enc;
+	SoupErrorCode err = SOUP_ERROR_MALFORMED_HEADER;
 
 	/* Handle connection persistence */
 	connection = g_hash_table_lookup (req->response_headers, "Connection");
@@ -95,10 +96,13 @@ soup_process_headers (SoupMessage *req)
 		}
 	}
 
+	err = soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
+	if (err) goto THROW_MALFORMED_HEADER;
+
 	return TRUE;
 
  THROW_MALFORMED_HEADER:
-	soup_message_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
+	soup_message_issue_callback (req, err);
 	return FALSE;
 }
 
@@ -183,6 +187,7 @@ soup_finish_read (SoupMessage *req)
 {
 	GByteArray *arr = req->priv->recv_buf;
 	gint index = req->priv->header_len;
+	SoupErrorCode err;
 
 	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
 	req->response.length = arr->len - index ;
@@ -194,7 +199,13 @@ soup_finish_read (SoupMessage *req)
 	req->priv->recv_buf = NULL;
 
 	req->status = SOUP_STATUS_FINISHED;
-	soup_message_issue_callback (req, SOUP_ERROR_NONE);
+
+	err = soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
+
+	if (err)
+		soup_message_issue_callback (req, err); 
+	else 
+		soup_message_issue_callback (req, SOUP_ERROR_NONE);
 }
 
 static gboolean 
@@ -208,6 +219,7 @@ soup_queue_read_cb (GIOChannel* iochannel,
 	gint index = req->priv->header_len;
 	GByteArray *arr = req->priv->recv_buf;
 	GIOError error;
+	SoupErrorCode err;
 
 	error = g_io_channel_read (iochannel,
 				   read_buf,
@@ -237,6 +249,15 @@ soup_queue_read_cb (GIOChannel* iochannel,
 
 		if (!soup_parse_headers (req) || !soup_process_headers (req)) 
 			return FALSE;
+	}
+
+	/* Don't call chunk handlers if we didn't actually read anything */
+	if (bytes_read != 0) {
+		err = soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
+		if (err) { 
+			soup_message_issue_callback (req, err); 
+			return FALSE;
+		}
 	}
 
 	if (bytes_read == 0) read_done = TRUE;

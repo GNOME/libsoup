@@ -1,3 +1,22 @@
+2001-06-06  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_add_header_handler):
+	implement.
+	(soup_message_add_response_code_handler): ditto.
+	(soup_message_add_body_handler): ditto.
+	(soup_message_run_handlers): uh-huh.
+	(soup_message_free): Free allocated handler info.
+
+	* src/soup-core/soup-message.h: Change SOUP_MESSAGE_PROCESS_CHUNKS
+	to SOUP_MESSAGE_OVERWRITE_CHUNKS. This will allow large files to
+	be processed using a BODY_CHUNK handler, instead of keeping
+	everything in memory.
+
+	* src/soup-core/soup-queue.c (soup_process_headers): Run PRE_BODY
+	handlers.
+	(soup_finish_read): Run POST_BODY handlers.
+	(soup_queue_read_cb): Run BODY_CHUNK handlers.
+
 2001-06-06  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_set_method,

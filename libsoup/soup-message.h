@@ -123,7 +123,7 @@ typedef enum {
 	SOUP_HANDLER_POST_BODY
 } SoupHandlerType;
 
-typedef SoupErrorCode SoupHandlerFn (SoupMessage *msg, gpointer user_data);
+typedef SoupErrorCode (*SoupHandlerFn) (SoupMessage *msg, gpointer user_data);
 
 void           soup_message_add_header_handler  (SoupMessage      *msg,
 						 const gchar      *header,
@@ -145,9 +145,9 @@ void           soup_message_add_body_handler    (SoupMessage      *msg,
 
 /* FIXME: None of these are implemented yet, oh well... */
 typedef enum {
-	SOUP_MESSAGE_FOLLOW_REDIRECT = (1 << 1),
-	SOUP_MESSAGE_NO_COOKIE       = (1 << 2),
-	SOUP_MESSAGE_PROCESS_CHUNKS  = (1 << 3)
+	SOUP_MESSAGE_FOLLOW_REDIRECT  = (1 << 1),
+	SOUP_MESSAGE_NO_COOKIE        = (1 << 2),
+	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3)
 } SoupMessageFlags;
 
 void           soup_message_set_flags          (SoupMessage       *msg,
