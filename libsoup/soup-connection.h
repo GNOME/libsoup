@@ -10,6 +10,7 @@
 
 #include <glib-object.h>
 #include <libsoup/soup-socket.h>
+#include <libsoup/soup-uri.h>
 
 #define SOUP_TYPE_CONNECTION            (soup_connection_get_type ())
 #define SOUP_CONNECTION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONNECTION, SoupConnection))
@@ -30,19 +31,29 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
+	void (*connect_result) (SoupConnection *, SoupKnownErrorCode);
 	void (*disconnected) (SoupConnection *);
 } SoupConnectionClass;
 
 GType soup_connection_get_type (void);
 
 
-SoupConnection *soup_connection_new            (SoupSocket     *sock);
+typedef void  (*SoupConnectionCallback)        (SoupConnection     *sock,
+						SoupKnownErrorCode  status,
+						gpointer            data);
+
+SoupConnection *soup_connection_new            (const SoupUri      *uri,
+						SoupConnectionCallback,
+						gpointer            data);
+
+gboolean        soup_connection_is_proxy       (SoupConnection *conn);
+
 void            soup_connection_disconnect     (SoupConnection *conn);
 gboolean        soup_connection_is_connected   (SoupConnection *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection *conn);
 
-void            soup_connection_set_in_use     (SoupConnection *conn, 
+void            soup_connection_set_in_use     (SoupConnection *conn,
 						gboolean        in_use);
 gboolean        soup_connection_is_in_use      (SoupConnection *conn);
 time_t          soup_connection_last_used      (SoupConnection *conn);
@@ -50,4 +61,4 @@ time_t          soup_connection_last_used      (SoupConnection *conn);
 gboolean        soup_connection_is_new         (SoupConnection *conn);
 void            soup_connection_mark_old       (SoupConnection *conn);
 
-#endif /*SOUP_CONNECTION_H*/
+#endif /* SOUP_CONNECTION_H */

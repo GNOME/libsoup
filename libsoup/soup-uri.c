@@ -480,3 +480,9 @@ soup_uri_decode (char *part)
 			*d++ = *s;
 	} while (*s++);
 }
+
+gboolean
+soup_uri_uses_default_port (const SoupUri *uri)
+{
+	return uri->port == soup_protocol_default_port (uri->protocol);
+}

@@ -458,7 +458,7 @@ typedef struct {
 
 	SoupMessageGetHeadersFn get_header_cb;
 	SoupMessageGetChunkFn   get_chunk_cb;
-	gpointer                user_data;
+	gpointer                get_user_data;
 
 	guint wrote_body_id;
 	guint error_id;
@@ -566,7 +566,8 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 		case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
 			if (w->get_header_cb) {
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
-				w->get_header_cb (msg, w->buf, w->user_data);
+				w->get_header_cb (msg, w->buf,
+						  w->get_user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				w->get_header_cb = NULL;
@@ -606,7 +607,7 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
 				got_chunk = w->get_chunk_cb (msg,
 							     &w->chunk,
-							     w->user_data);
+							     w->get_user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				if (!got_chunk) {
@@ -697,6 +698,7 @@ create_writer (SoupMessage             *msg,
 	       SoupTransferEncoding     encoding,
 	       SoupMessageGetHeadersFn  get_header_cb,
 	       SoupMessageGetChunkFn    get_chunk_cb,
+	       gpointer                 get_user_data,
 	       SoupMessageCallbackFn    wrote_body_cb,
 	       SoupMessageCallbackFn    error_cb,
 	       gpointer                 user_data)
@@ -708,7 +710,7 @@ create_writer (SoupMessage             *msg,
 	w->buf           = g_string_new (NULL);
 	w->get_header_cb = get_header_cb;
 	w->get_chunk_cb  = get_chunk_cb;
-	w->user_data     = user_data;
+	w->get_user_data = get_user_data;
 
 	w->wrote_body_id = g_signal_connect (msg, "wrote_body",
 					     G_CALLBACK (wrote_body_cb),
@@ -736,6 +738,7 @@ void
 soup_message_write_simple (SoupMessage             *msg,
 			   const SoupDataBuffer    *body,
 			   SoupMessageGetHeadersFn  get_header_cb,
+			   gpointer                 get_user_data,
 			   SoupMessageCallbackFn    wrote_body_cb,
 			   SoupMessageCallbackFn    error_cb,
 			   gpointer                 user_data)
@@ -743,8 +746,8 @@ soup_message_write_simple (SoupMessage             *msg,
 	SoupMessageWriteState *w;
 
 	w = create_writer (msg, SOUP_TRANSFER_CONTENT_LENGTH,
-			   get_header_cb, NULL, wrote_body_cb,
-			   error_cb, user_data);
+			   get_header_cb, NULL, get_user_data,
+			   wrote_body_cb, error_cb, user_data);
 
 	w->body = body;
 }
@@ -754,13 +757,15 @@ soup_message_write (SoupMessage             *msg,
 		    SoupTransferEncoding     encoding,
 		    SoupMessageGetHeadersFn  get_header_cb,
 		    SoupMessageGetChunkFn    get_chunk_cb,
+		    gpointer                 get_user_data,
 		    SoupMessageCallbackFn    wrote_body_cb,
 		    SoupMessageCallbackFn    error_cb,
 		    gpointer                 user_data)
 {
 	SoupMessageWriteState *w;
 
-	w = create_writer (msg, encoding, get_header_cb, get_chunk_cb,
+	w = create_writer (msg, encoding,
+			   get_header_cb, get_chunk_cb, get_user_data,
 			   wrote_body_cb, error_cb, user_data);
 }
 

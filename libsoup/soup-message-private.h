@@ -132,12 +132,14 @@ void soup_message_write         (SoupMessage                 *msg,
 				 SoupTransferEncoding         encoding,
 				 SoupMessageGetHeadersFn      get_header_cb,
 				 SoupMessageGetChunkFn        get_chunk_cb,
+				 gpointer                     get_user_data,
 				 SoupCallbackFn               write_done_cb,
 				 SoupCallbackFn               error_cb,
 				 gpointer                     user_data);
 void soup_message_write_simple  (SoupMessage                 *msg,
 				 const SoupDataBuffer        *body,
 				 SoupMessageGetHeadersFn      get_header_cb,
+				 gpointer                     get_user_data,
 				 SoupCallbackFn               write_done_cb,
 				 SoupCallbackFn               error_cb,
 				 gpointer                     user_data);
@@ -145,6 +147,21 @@ void soup_message_write_cancel  (SoupMessage                 *msg);
 
 void soup_message_write_pause   (SoupMessage                 *msg);
 void soup_message_write_unpause (SoupMessage                 *msg);
+
+
+/* Higher-level API */
+void soup_message_write_request  (SoupMessage            *msg,
+				  gboolean                is_via_proxy,
+				  SoupMessageCallbackFn   write_done_cb,
+				  SoupMessageCallbackFn   write_error_cb,
+				  gpointer                user_data);
+void soup_message_read_response  (SoupMessage            *msg,
+				  SoupMessageCallbackFn   read_headers_cb,
+				  SoupMessageReadChunkFn  read_chunk_cb,
+				  SoupMessageCallbackFn   read_body_cb,
+				  SoupMessageCallbackFn   read_error_cb,
+				  gpointer                user_data);
+
 
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */

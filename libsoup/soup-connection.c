@@ -39,6 +39,7 @@ struct SoupConnectionPrivate {
 static GObjectClass *parent_class;
 
 enum {
+	CONNECT_RESULT,
 	DISCONNECTED,
 	LAST_SIGNAL
 };
@@ -75,6 +76,15 @@ class_init (GObjectClass *object_class)
 	object_class->finalize = finalize;
 
 	/* signals */
+	signals[CONNECT_RESULT] =
+		g_signal_new ("connect_result",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, connect_result),
+			      NULL, NULL,
+			      soup_marshal_NONE__INT,
+			      G_TYPE_NONE, 1,
+			      G_TYPE_INT);
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -88,22 +98,44 @@ class_init (GObjectClass *object_class)
 SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
 
 
+static void
+socket_disconnected (SoupSocket *sock, gpointer conn)
+{
+	soup_connection_disconnect (conn);
+}
+
+static void
+socket_connected (SoupSocket *sock, SoupKnownErrorCode status, gpointer conn)
+{
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+}
+
 /**
  * soup_connection_new:
- * @sock: a #SoupSocket
+ * @uri: remote machine to connect to
+ * @callback: callback to call after connecting
+ * @user_data: data for @callback
  *
- * Creates a new #SoupConnection, wrapped around @sock.
+ * Creates a connection to @uri. @callback will be called when the
+ * connection completes (or fails).
  *
- * Return value: the new #SoupConnection
+ * Return value: the new connection (not yet ready for use).
  **/
 SoupConnection *
-soup_connection_new (SoupSocket *sock)
+soup_connection_new (const SoupUri *uri,
+		     SoupConnectionCallback callback, gpointer user_data)
 {
 	SoupConnection *conn;
 
 	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-	conn->priv->socket = g_object_ref (sock);
 
+	soup_signal_connect_once (conn, "connect_result",
+				  G_CALLBACK (callback), user_data);
+	conn->priv->socket = soup_socket_client_new (uri->host, uri->port,
+						     uri->protocol == SOUP_PROTOCOL_HTTPS,
+						     socket_connected, conn);
+	g_signal_connect (conn->priv->socket, "disconnected",
+			  G_CALLBACK (socket_disconnected), conn);
 	return conn;
 }
 

@@ -109,81 +109,6 @@ soup_queue_error_cb (SoupMessage *req, gpointer user_data)
 	}
 }
 
-static SoupKnownErrorCode
-soup_queue_parse_headers_cb (SoupMessage *req,
-			     char *headers, guint headers_len,
-			     SoupTransferEncoding *encoding,
-			     guint *content_len,
-			     gpointer user_data)
-{
-	const char *length, *enc;
-	SoupHttpVersion version;
-	GHashTable *resp_hdrs;
-	SoupMethodId meth_id;
-
-	if (!soup_headers_parse_response (headers, headers_len,
-					  req->response_headers,
-					  &version,
-					  &req->errorcode,
-					  (char **) &req->errorphrase))
-		return SOUP_ERROR_MALFORMED;
-
-	meth_id   = soup_method_get_id (req->method);
-	resp_hdrs = req->response_headers;
-
-	req->errorclass = soup_error_get_class (req->errorcode);
-
-	/* 
-	 * Special case zero body handling for:
-	 *   - HEAD requests (where content-length must be ignored) 
-	 *   - CONNECT requests (no body expected) 
-	 *   - No Content (204) responses (no message-body allowed)
-	 *   - Reset Content (205) responses (no entity allowed)
-	 *   - Not Modified (304) responses (no message-body allowed)
-	 *   - 1xx Informational responses (where no body is allowed)
-	 */
-	if (meth_id == SOUP_METHOD_ID_HEAD ||
-	    meth_id == SOUP_METHOD_ID_CONNECT ||
-	    req->errorcode  == SOUP_ERROR_NO_CONTENT || 
-	    req->errorcode  == SOUP_ERROR_RESET_CONTENT || 
-	    req->errorcode  == SOUP_ERROR_NOT_MODIFIED || 
-	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = 0;
-		return SOUP_ERROR_OK;
-	}
-
-	/* 
-	 * Handle Chunked encoding.  Prefer Chunked over a Content-Length to
-	 * support broken Traffic-Server proxies that supply both.  
-	 */
-	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
-	if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0) {
-			*encoding = SOUP_TRANSFER_CHUNKED;
-			return SOUP_ERROR_OK;
-		} else
-			return SOUP_ERROR_MALFORMED;
-	}
-
-	/* 
-	 * Handle Content-Length encoding 
-	 */
-	length = soup_message_get_header (resp_hdrs, "Content-Length");
-	if (length) {
-		int len;
-
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		len = atoi (length);
-		if (len < 0)
-			return SOUP_ERROR_MALFORMED;
-		else
-			*content_len = len;
-	}
-
-	return SOUP_ERROR_OK;
-}
-
 static void
 soup_queue_read_headers_cb (SoupMessage *req, gpointer user_data)
 {
@@ -211,194 +136,26 @@ soup_queue_read_done_cb (SoupMessage *req, gpointer user_data)
 		soup_message_disconnect (req);
 
 	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		soup_message_read (req, &req->response,
-				   soup_queue_parse_headers_cb,
-				   soup_queue_read_headers_cb,
-				   soup_queue_read_chunk_cb,
-				   soup_queue_read_done_cb,
-				   soup_queue_error_cb,
-				   NULL);
+		soup_message_read_response (req, 
+					    soup_queue_read_headers_cb,
+					    soup_queue_read_chunk_cb,
+					    soup_queue_read_done_cb,
+					    soup_queue_error_cb,
+					    NULL);
 	} else
 		req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
 
 	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
 }
 
-static void
-soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
-{
-	SoupAuth *auth;
-	SoupContext *ctx;
-	char *token;
-
-	ctx = proxy_auth ? soup_get_proxy () : msg->priv->context;
-
-	auth = soup_context_lookup_auth (ctx, msg);
-	if (!auth)
-		return;
-	if (!soup_auth_is_authenticated (auth) &&
-	    !soup_context_authenticate_auth (ctx, auth))
-		return;
-
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
-		g_string_sprintfa (header, "%s: %s\r\n",
-				   proxy_auth ? 
-					"Proxy-Authorization" : 
-					"Authorization",
-				   token);
-		g_free (token);
-	}
-}
-
-struct SoupUsedHeaders {
-	gboolean host;
-	gboolean user_agent;
-	gboolean content_type;
-	gboolean connection;
-	gboolean proxy_auth;
-	gboolean auth;
-
-	GString *out;
-};
-
-static void 
-soup_check_used_headers (gchar  *key, 
-			 GSList *vals, 
-			 struct SoupUsedHeaders *hdrs)
-{
-	switch (toupper (key [0])) {
-	case 'H':
-		if (!g_strcasecmp (key+1, "ost")) 
-			hdrs->host = TRUE;
-		break;
-	case 'U':
-		if (!g_strcasecmp (key+1, "ser-Agent")) 
-			hdrs->user_agent = TRUE;
-		break;
-	case 'A':
-		if (!g_strcasecmp (key+1, "uthorization")) 
-			hdrs->auth = TRUE;
-		break;
-	case 'P':
-		if (!g_strcasecmp (key+1, "roxy-Authorization")) 
-			hdrs->proxy_auth = TRUE;
-		break;
-	case 'C':
-		if (!g_strcasecmp (key+1, "onnection")) 
-			hdrs->connection = TRUE;
-		else if (!g_strcasecmp (key+1, "ontent-Type"))
-			hdrs->content_type = TRUE;
-		else if (!g_strcasecmp (key+1, "ontent-Length")) {
-			g_warning ("Content-Length set as custom request "
-				   "header is not allowed.");
-			return;
-		}
-		break;
-	}
-
-	while (vals) {
-		g_string_sprintfa (hdrs->out, 
-				   "%s: %s\r\n", 
-				   key, 
-				   (gchar *) vals->data);
-		vals = vals->next;
-	}
-}
-
-static void
-soup_queue_get_request_header_cb (SoupMessage *req, GString *header,
-				  gpointer user_data)
-{
-	char *uri;
-	SoupContext *proxy;
-	const SoupUri *suri;
-	struct SoupUsedHeaders hdrs = {
-		FALSE, 
-		FALSE, 
-		FALSE, 
-		FALSE, 
-		FALSE, 
-		FALSE, 
-		NULL
-	};
-
-	hdrs.out = header;
-	proxy = soup_get_proxy ();
-	suri = soup_message_get_uri (req);
-
-	if (!g_strcasecmp (req->method, "CONNECT")) {
-		/* CONNECT URI is hostname:port for tunnel destination */
-		uri = g_strdup_printf ("%s:%d", suri->host, suri->port);
-	} else {
-		/* Proxy expects full URI to destination. Otherwise
-		 * just the path.
-		 */
-		uri = soup_uri_to_string (suri, !proxy);
-	}
-
-	g_string_sprintfa (header,
-			   req->priv->http_version == SOUP_HTTP_1_1 ? 
-			           "%s %s HTTP/1.1\r\n" : 
-			           "%s %s HTTP/1.0\r\n",
-			   req->method,
-			   uri);
-	g_free (uri);
-
-	/*
-	 * FIXME: Add a 411 "Length Required" response code handler here?
-	 */
-	if (req->request.length > 0) {
-		g_string_sprintfa (header,
-				   "Content-Length: %d\r\n",
-				   req->request.length);
-	}
-
-	g_hash_table_foreach (req->request_headers, 
-			      (GHFunc) soup_check_used_headers,
-			      &hdrs);
-
-	/* 
-	 * If we specify an absoluteURI in the request line, the Host header
-	 * MUST be ignored by the proxy.  
-	 */
-	g_string_sprintfa (header, 
-			   "%s%s%s%s%s%s%s",
-			   hdrs.host ? "" : "Host: ",
-			   hdrs.host ? "" : suri->host,
-			   hdrs.host ? "" : "\r\n",
-			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
-			   hdrs.content_type ? "" : "charset=utf-8\r\n",
-			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
-			   hdrs.user_agent ? 
-			           "" : 
-			           "User-Agent: Soup/" VERSION "\r\n");
-
-	/* 
-	 * Proxy-Authorization from the proxy Uri 
-	 */
-	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
-		soup_encode_http_auth (req, header, TRUE);
-
-	/* 
-	 * Authorization from the context Uri 
-	 */
-	if (!hdrs.auth)
-		soup_encode_http_auth (req, header, FALSE);
-
-	g_string_append (header, "\r\n");
-}
-
 static void 
 soup_queue_write_done_cb (SoupMessage *req, gpointer user_data)
 {
-	soup_message_read (req, &req->response,
-			   soup_queue_parse_headers_cb,
-			   soup_queue_read_headers_cb,
-			   soup_queue_read_chunk_cb,
-			   soup_queue_read_done_cb,
-			   soup_queue_error_cb,
-			   NULL);
+	soup_message_read_response (req, soup_queue_read_headers_cb,
+				    soup_queue_read_chunk_cb,
+				    soup_queue_read_done_cb,
+				    soup_queue_error_cb,
+				    NULL);
 }
 
 static void
@@ -433,11 +190,10 @@ start_request (SoupContext *ctx, SoupMessage *req)
 		return;
 	}
 
-	soup_message_write_simple (req, &req->request,
-				   soup_queue_get_request_header_cb,
-				   soup_queue_write_done_cb,
-				   soup_queue_error_cb,
-				   NULL);
+	soup_message_write_request (req, soup_get_proxy () != NULL,
+				    soup_queue_write_done_cb,
+				    soup_queue_error_cb,
+				    NULL);
 }
 
 static void

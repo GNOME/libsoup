@@ -287,7 +287,7 @@ struct SoupConnectData {
 	gpointer               user_data;
 
 	guint                  timeout_tag;
-	SoupSocket            *sock;
+	SoupConnection        *conn;
 };
 
 static void
@@ -330,37 +330,36 @@ prune_least_used_connection (void)
 static gboolean retry_connect_timeout_cb (struct SoupConnectData *data);
 
 static void
-soup_context_connect_cb (SoupSocket         *socket,
+soup_context_connect_cb (SoupConnection     *conn,
 			 SoupKnownErrorCode  status,
 			 gpointer            user_data)
 {
 	struct SoupConnectData *data = user_data;
 	SoupContext            *ctx = data->ctx;
-	SoupConnection         *new_conn = NULL;
 
 	switch (status) {
 	case SOUP_ERROR_OK:
-		new_conn = soup_connection_new (socket);
-
-		g_signal_connect (new_conn, "disconnected",
+		g_signal_connect (conn, "disconnected",
 				  G_CALLBACK (connection_disconnected),
 				  ctx->priv->server);
 
 		/* FIXME */
-		g_object_set_data (G_OBJECT (new_conn), "SoupContext-port",
+		g_object_set_data (G_OBJECT (conn), "SoupContext-port",
 				   GUINT_TO_POINTER (ctx->priv->uri->port));
 
 		ctx->priv->server->connections =
-			g_slist_prepend (ctx->priv->server->connections, new_conn);
+			g_slist_prepend (ctx->priv->server->connections, conn);
 
 		break;
 
 	case SOUP_ERROR_CANT_RESOLVE:
 		connection_count--;
+		g_object_unref (conn);
 		break;
 
 	default:
 		connection_count--;
+		g_object_unref (conn);
 
 		/*
 		 * Check if another connection exists to this server
@@ -378,9 +377,8 @@ soup_context_connect_cb (SoupSocket         *socket,
 		break;
 	}
 
-	(*data->cb) (ctx, status, new_conn, data->user_data);
+	(*data->cb) (ctx, status, conn, data->user_data);
 	g_object_unref (ctx);
-	g_object_unref (data->sock);
 	g_free (data);
 }
 
@@ -415,7 +413,6 @@ static gboolean
 try_create_connection (struct SoupConnectData *data)
 {
 	int conn_limit = soup_get_connection_limit ();
-	SoupUri *uri;
 
 	/* 
 	 * Check if we are allowed to create a new connection, otherwise wait
@@ -424,17 +421,15 @@ try_create_connection (struct SoupConnectData *data)
 	if (conn_limit &&
 	    connection_count >= conn_limit &&
 	    !prune_least_used_connection ()) {
-		data->sock = NULL;
+		data->conn = NULL;
 		return FALSE;
 	}
 
 	connection_count++;
 
 	data->timeout_tag = 0;
-	uri = data->ctx->priv->uri;
-	data->sock = soup_socket_client_new (uri->host, uri->port,
-					     uri->protocol == SOUP_PROTOCOL_HTTPS,
-					     soup_context_connect_cb, data);
+	data->conn = soup_connection_new (data->ctx->priv->uri,
+					  soup_context_connect_cb, data);
 	return TRUE;
 }
 
@@ -519,9 +514,9 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
-	else if (data->sock) {
+	else if (data->conn) {
 		connection_count--;
-		g_object_unref (data->sock);
+		g_object_unref (data->conn);
 	}
 
 	g_free (data);

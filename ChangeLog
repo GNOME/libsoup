@@ -1,5 +1,33 @@
 2003-08-26  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-message-client-io.c (soup_message_write_request,
+	soup_message_read_response): Higher-than-soup-message-io-level
+	functions to do client-side IO. (Code that used to be in
+	soup-queue.c)
+	(get_request_header_cb): Fix a bug in the generation of the Host:
+	header; need to include the port number if it's not the default.
+
+	* libsoup/soup-message-io.c (soup_message_write,
+	soup_message_write_simple): Take separate user_datas for the get_*
+	callbacks and the done callbacks.
+
+	* libsoup/soup-queue.c: Update to use soup_message_write_request
+	and soup_message_read_response.
+
+	* libsoup/soup-connection.c (soup_connection_new): Change the
+	prototype to take a SoupUri and a callback.
+
+	* libsoup/soup-context.c (try_create_connection,
+	soup_context_connect_cb): Update for soup_connection_new change.
+
+	* libsoup/soup-server.c (read_done_cb, issue_bad_request): Update
+	for soup_message_write changes
+
+	* libsoup/soup-uri.c (soup_uri_uses_default_port): new utility
+	function
+
+2003-08-26  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-message-private.h: Define SoupMessage signal stuff
 	(READ_HEADERS, READ_CHUNK, READ_BODY, READ_ERROR, WROTE_HEADERS,
 	WROTE_CHUNK, WROTE_BODY, WRITE_ERROR).

@@ -257,9 +257,8 @@ issue_bad_request (SoupMessage *msg)
 	soup_server_message_finish (SOUP_SERVER_MESSAGE (msg));
 
 	soup_message_write_simple (msg, &msg->response,
-				   get_response_header_cb,
-				   write_done_cb, error_cb,
-				   NULL);
+				   get_response_header_cb, NULL,
+				   write_done_cb, error_cb, NULL);
 }
 
 static SoupKnownErrorCode
@@ -469,13 +468,12 @@ read_done_cb (SoupMessage *req, gpointer user_data)
 	encoding = soup_server_message_get_encoding (smsg);
 	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH) {
 		soup_message_write_simple (req, &req->response,
-					   get_response_header_cb,
-					   write_done_cb, error_cb,
-					   NULL);
+					   get_response_header_cb, NULL,
+					   write_done_cb, error_cb, NULL);
 		soup_server_message_start (smsg);
 	} else {
 		soup_message_write (req, encoding,
-				    get_response_header_cb, get_chunk_cb,
+				    get_response_header_cb, get_chunk_cb, NULL,
 				    write_done_cb, error_cb, NULL);
 	}
 
