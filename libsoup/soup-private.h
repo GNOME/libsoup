@@ -20,6 +20,23 @@
 #include <config.h>
 #endif
 
+#ifdef SOUP_WIN32
+#  include <malloc.h>
+#  define alloca _alloca
+#else
+#  ifdef HAVE_ALLOCA_H
+#    include <alloca.h>
+#  else
+#    ifdef _AIX
+#      pragma alloca
+#    else
+#      ifndef alloca /* predefined by HP cc +Olibcalls */
+         char *alloca ();
+#      endif
+#    endif
+#  endif
+#endif
+
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif

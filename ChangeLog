@@ -1,3 +1,17 @@
+2001-10-16  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (decode_chunk): Fix nasty chunked
+	encoding bug when the message is set to truncate chunks. Code
+	reorg to be a lot cleaner.
+
+	* src/libsoup/soup-ntlm.c: Move alloca #define-foo to:
+	* src/libsoup/soup-private.h: Here.
+
+	* src/libsoup/soup-uri.c (soup_uri_to_string): Handle the case
+	where path does not begin with a '/'.
+
+	* src/libsoup/soup-server.c (soup_server_free): Use foreach_remove.
+
 2001-10-09  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socks.c (soup_connect_socks_proxy): Assign

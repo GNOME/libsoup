@@ -14,27 +14,11 @@
 #include <config.h>
 #endif
 
-#ifdef SOUP_WIN32
-#  include <malloc.h>
-#  define alloca _alloca
-#else
-#  ifdef HAVE_ALLOCA_H
-#    include <alloca.h>
-#  else
-#    ifdef _AIX
-#      pragma alloca
-#    else
-#      ifndef alloca /* predefined by HP cc +Olibcalls */
-         char *alloca ();
-#      endif
-#    endif
-#  endif
-#endif
-
 #include <ctype.h>
 #include <string.h>
 
 #include "soup-ntlm.h"
+#include "soup-private.h"
 
 /* Base64 */
 static int base64_encode_close    (unsigned char       *in, 

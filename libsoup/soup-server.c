@@ -60,11 +60,13 @@ soup_server_new (SoupProtocol proto, guint port)
 	return serv;
 }
 
-static void 
+static gboolean 
 free_handler (char *path, SoupServerHandler *hand)
 {
 	g_free (hand->path);
 	g_free (hand);
+
+	return TRUE;
 }
 
 void
@@ -75,7 +77,9 @@ soup_server_free (SoupServer *serv)
 	if (serv->sock)
 		soup_socket_unref (serv->sock);
 
-	g_hash_table_foreach (serv->handlers, (GHFunc) free_handler, NULL);
+	g_hash_table_foreach_remove (serv->handlers, 
+				     (GHFunc) free_handler, 
+				     NULL);
 	g_hash_table_destroy (serv->handlers);
 
 	g_slist_free (serv->static_handlers);
