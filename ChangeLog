@@ -1,3 +1,23 @@
+2003-02-04  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.6 for snaps.
+
+	* libsoup/soup-server.c (destroy_message): We already assigned
+	chan, so don't reassign it, and unref it in all cases.
+	(issue_bad_request): Always unref after a call to
+	soup_socket_get_iochannel(), because it refs it.
+	(conn_accept): Fix some funky GIOChannel reffing here.
+
+	* libsoup/soup-ssl.c (soup_ssl_get_iochannel_real): Don't call
+	g_io_channel_ref() on the socket.  This is the exact opposite of
+	what we want to do.  Create a temporary structure containing the
+	parent pid and the old socket and unref the socket when our
+	callback is called.  This should fix GIOChannels being leaked on
+	SSL connections.
+
+	* libsoup/soup-ssl-proxy.c: Always close the GIOChannels after the
+	main loop quits.
+
 2003-01-22  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.5 for the snaps.

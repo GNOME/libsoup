@@ -126,8 +126,6 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 	return TRUE;
 
  FINISH:
-	g_io_channel_close (iochannel);
-	g_io_channel_close (dest);
 	g_main_quit (loop);
 	return FALSE;
 }
@@ -189,6 +187,10 @@ main (int argc, char** argv)
 			write_chan);
 
 	g_main_run (loop);
+
+	g_io_channel_close (read_chan);
+	g_io_channel_close (write_chan);
+	g_io_channel_close (sock_chan);
 
 	exit (0);
 }

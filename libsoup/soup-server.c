@@ -273,14 +273,14 @@ destroy_message (SoupMessage *msg)
 			data->server = msg->priv->server;
 			data->server_sock = server_sock;
 
-			chan = soup_socket_get_iochannel (server_sock);
 			g_io_add_watch (chan,
 					G_IO_IN|G_IO_PRI|
 					G_IO_ERR|G_IO_HUP|G_IO_NVAL,
 					start_another_request,
 					data);
-			g_io_channel_unref (chan);
 		}
+
+		g_io_channel_unref (chan);
 	}
 
 	if (server_msg) {
@@ -538,6 +538,8 @@ issue_bad_request (SoupMessage *msg)
 					    write_done_cb,
 					    error_cb,
 					    msg);
+
+	g_io_channel_unref (channel);
 } /* issue_bad_request */
 
 static SoupTransferDone
@@ -984,16 +986,12 @@ conn_accept (GIOChannel    *serv_chan,
 
 	chan = soup_socket_get_iochannel (sock);
 
-	if (server->proto == SOUP_PROTOCOL_HTTPS) {
-		chan = soup_ssl_get_server_iochannel (chan);
-		g_io_channel_unref (sock->iochannel);
-		g_io_channel_ref (chan);
-		sock->iochannel = chan;
-	}
+	if (server->proto == SOUP_PROTOCOL_HTTPS)
+		sock->iochannel = soup_ssl_get_server_iochannel (chan);
 
 	msg->priv->server_sock = sock;
 	msg->priv->read_tag = 
-		soup_transfer_read (chan,
+		soup_transfer_read (sock->iochannel,
 				    FALSE,
 				    read_headers_cb,
 				    NULL,

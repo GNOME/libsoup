@@ -37,10 +37,20 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 
 #else /* HAVE_NSS */
 
+typedef struct {
+	int ppid;
+	GIOChannel *real_sock;
+} SoupSSLInfo;
+
 static gboolean
-soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer ppid)
+soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer user_data)
 {
-	waitpid (GPOINTER_TO_INT (ppid), NULL, 0);
+	SoupSSLInfo *ssl_info = user_data;
+
+	waitpid (ssl_info->ppid, NULL, 0);
+	
+	g_io_channel_unref (ssl_info->real_sock);
+	g_free (ssl_info);
 
 	return FALSE;
 }
@@ -53,10 +63,9 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 	int pid;
 	int pair[2], flags;
 	const char *cert_file, *key_file;
+	SoupSSLInfo *ssl_info;
 
 	g_return_val_if_fail (sock != NULL, NULL);
-
-	g_io_channel_ref (sock);
 
 	if (!(sock_fd = g_io_channel_unix_get_fd (sock))) goto ERROR_ARGS;
 	flags = fcntl(sock_fd, F_GETFD, 0);
@@ -123,10 +132,14 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 	flags = fcntl(pair [1], F_GETFL, 0);
 	fcntl (pair [1], F_SETFL, flags | O_NONBLOCK);
 
+	ssl_info = g_new0 (SoupSSLInfo, 1);
+	ssl_info->ppid = pid;
+	ssl_info->real_sock = sock;
+
 	new_chan = g_io_channel_unix_new (pair [1]);
 	g_io_channel_set_close_on_unref (new_chan, TRUE);
 	g_io_add_watch (new_chan, G_IO_HUP | G_IO_ERR | G_IO_NVAL,
-			soup_ssl_hup_waitpid, GINT_TO_POINTER (pid));
+			soup_ssl_hup_waitpid, ssl_info);
 
 	return new_chan;
 
