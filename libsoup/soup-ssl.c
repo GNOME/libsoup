@@ -73,6 +73,8 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 
 	g_return_val_if_fail (sock != NULL, NULL);
 
+	g_io_channel_ref (sock);
+
 	if (!(sock_fd = g_io_channel_unix_get_fd (sock))) goto ERROR_ARGS;
 	flags = fcntl(sock_fd, F_GETFD, 0);
 	fcntl (sock_fd, F_SETFD, flags & ~FD_CLOEXEC);

@@ -1,3 +1,10 @@
+2003-02-27  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.10.
+
+	* soup-ssl.c (soup_ssl_get_iochannel_real): Ref the iochannel,
+	return to the status quo.  Sigh.
+
 2003-02-26  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.9.
