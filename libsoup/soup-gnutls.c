@@ -247,9 +247,8 @@ soup_gnutls_close (GIOChannel  *channel,
 		int ret;
 
 		do {
-			ret = gnutls_bye (chan->session, GNUTLS_SHUT_RDWR);
-		} while (ret == GNUTLS_E_INTERRUPTED ||
-			 ret == GNUTLS_E_AGAIN);
+			ret = gnutls_bye (chan->session, GNUTLS_SHUT_WR);
+		} while (ret == GNUTLS_E_INTERRUPTED);
 	}
 
 	return chan->real_sock->funcs->io_close (channel, err);

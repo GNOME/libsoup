@@ -1,3 +1,12 @@
+2004-02-02  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_close): Call gnutls_bye()
+	with the GNUTLS_SHUT_WR flag (instead of RDWR) and check only for
+	GNUTLS_E_INTERRUPTED.  GNUTLS_E_AGAIN will be returned by recv()
+	when there are no messages on the wire on a non-blocking socket.
+	This sends a SSL hangup message and then allows us to immediately
+	close the socket.
+
 2004-01-30  Rodrigo Moya <rodrigo@ximian.com>
 
 	* configure.in: bumped version number to 2.1.6.
