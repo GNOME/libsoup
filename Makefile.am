@@ -22,8 +22,16 @@ soup_apacheConf.sh: $(top_srcdir)/soup_apacheConf.sh.in Makefile
 	      < $(top_srcdir)/soup_apacheConf.sh.in > soup_apacheConf.tmp \
 	  && mv soup_apacheConf.tmp soup_apacheConf.sh
 
+soup_wsdlConf.sh: $(top_srcdir)/soup_wsdlConf.sh.in Makefile
+	sed -e 's?\@SOUP_WSDL_LIBDIR\@?$(SOUP_WSDL_LIBDIR)?g' \
+	    -e 's?\@SOUP_WSDL_INCLUDEDIR\@?$(SOUP_WSDL_INCLUDEDIR)?g' \
+	    -e 's?\@VERSION\@?$(VERSION)?g' \
+	    -e 's?\@SOUP_WSDL_LIBS\@?$(SOUP_WSDL_LIBS)?g' \
+	      < $(top_srcdir)/soup_wsdlConf.sh.in > soup_wsdlConf.tmp \
+	  && mv soup_wsdlConf.tmp soup_wsdlConf.sh
+
 confexecdir = $(libdir)
-confexec_DATA = soupConf.sh soup_apacheConf.sh
+confexec_DATA = soupConf.sh soup_apacheConf.sh soup_wsdlConf.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = soup.pc

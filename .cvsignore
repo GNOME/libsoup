@@ -17,6 +17,7 @@ soup.spec
 soup-config
 soupConf.sh
 soup_apacheConf.sh
+soup_wsdlConf.sh
 stamp-h
 stamp.h
 stamp-h.in

@@ -1,3 +1,15 @@
+2001-04-25  JP Rosevear  <jpr@ximian.com>
+
+	* soup-config.in (lib_soup): get this script working again and add
+	wsdl
+
+	* Makefile.am: create and install new script
+
+	* configure.in: create variables for script substitution
+
+	* soup_wsdlConf.sh.in: gnome-config script for wsdl compilation
+	info
+
 2001-04-23  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-headers.c
