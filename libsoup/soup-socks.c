@@ -76,9 +76,9 @@ soup_socks_write (GIOChannel* iochannel,
 	case SOCKS_4_SEND_DEST_ADDR: 
 		buf[len++] = 0x04;
 		buf[len++] = 0x01;
-		WSHORT (buf, &len, dest_uri->port);
+		WSHORT (buf, &len, (gushort) dest_uri->port);
 		memcpy (&buf [len], 
-			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr, 
+			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr,
 			4);
 		len += 4;
 		buf[8] = 0x00;
@@ -117,7 +117,7 @@ soup_socks_write (GIOChannel* iochannel,
 		buf[len++] = 0x00;
 		buf[len++] = 0x03;
 		WSTRING (buf, &len, dest_uri->host);
-		WSHORT (buf, &len, dest_uri->port);
+		WSHORT (buf, &len, (gushort) dest_uri->port);
 		sd->phase = SOCKS_5_VERIFY_SUCCESS;
 		finished = TRUE;
 		break;
@@ -158,7 +158,8 @@ soup_socks_read (GIOChannel* iochannel,
 
 	switch (sd->phase) {
 	case SOCKS_4_VERIFY_SUCCESS:
-		if (bytes_read < 4 || buf[1] != 90) goto CONNECT_ERROR;
+		if (bytes_read < 4 || buf[1] != 90) 
+			goto CONNECT_ERROR;
 
 		goto CONNECT_OK;
 
@@ -166,8 +167,10 @@ soup_socks_read (GIOChannel* iochannel,
 		if (bytes_read < 2 || buf [0] != 0x05 || buf [1] == 0xff)
 			goto CONNECT_ERROR;
 
-		if (buf [1] == 0x02) sd->phase = SOCKS_5_SEND_AUTH;
-		else sd->phase = SOCKS_5_SEND_DEST_ADDR;
+		if (buf [1] == 0x02) 
+			sd->phase = SOCKS_5_SEND_AUTH;
+		else 
+			sd->phase = SOCKS_5_SEND_DEST_ADDR;
 		break;
 
 	case SOCKS_5_VERIFY_AUTH:
@@ -244,10 +247,11 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 
 	if (!soup_connection_is_new (conn)) goto CONNECT_SUCCESS;
 	
-	proxy_ctx = soup_connection_get_context(conn);
+	proxy_ctx = soup_connection_get_context (conn);
 	dest_uri = soup_context_get_uri (dest_ctx);
 
 	sd = g_new0 (SoupSocksData, 1);
+	sd->src_conn = conn;
 	sd->dest_ctx = dest_ctx;
 	sd->cb = cb;
 	sd->user_data = user_data;
