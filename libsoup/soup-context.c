@@ -271,12 +271,11 @@ connection_death (GIOChannel*     iochannel,
 		  GIOCondition    condition,
 		  SoupConnection *conn)
 {
-	if (!conn->in_use) {
-		connection_free (conn);
-		return FALSE;
-	}
+	gboolean ret = conn->in_use;
 
-	return TRUE;
+	soup_connection_release (conn);
+
+	return ret;
 }
 
 struct SoupConnectData {

@@ -1,3 +1,9 @@
+2003-04-02  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-context.c (connection_death): Just call
+	soup_connection_release() from here and return whether the
+	connection is in use.
+
 2003-03-31  Ian Peters  <itp@ximian.com>
 
 	* libsoup/soup-gnutls.c (soup_gnutls_close): loop on gnutls_bye in
