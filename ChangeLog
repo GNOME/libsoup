@@ -1,5 +1,10 @@
 2001-08-06  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-private.h: Define VERSION to "Win" for
+	Windows clients.
+
+2001-08-06  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-transfer.c (soup_transfer_read_cb): Remove
 	warning used for testing.
 	(soup_transfer_write_cb): Ditto.

@@ -25,6 +25,7 @@
 #endif
 
 #ifdef SOUP_WIN32
+#define VERSION "Win/0.4.2"
 #include <windows.h>
 #include <winbase.h>
 #include <winuser.h>
