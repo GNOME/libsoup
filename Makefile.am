@@ -2,8 +2,8 @@
 
 SUBDIRS = libsoup tests 
 
-EXTRA_DIST = soup-2.0.pc.in
+EXTRA_DIST = libsoup-$(SOUP_API_VERSION).pc.in
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = soup-2.0.pc
+pkgconfig_DATA = libsoup-$(SOUP_API_VERSION).pc
 

@@ -6,6 +6,8 @@
 
 	* libsoup-2.2.pc.in: Update, and rename from soup-2.0.pc
 
+	* Makefile.am: Update for pc file rename
+
 	* libsoup/Makefile.am: s/2.0/2.2/ everywhere. Remove NSS, OpenSSL,
 	and libsoup-ssl-proxy stuff.
 
