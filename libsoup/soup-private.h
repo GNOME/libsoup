@@ -24,6 +24,10 @@
 #include <netinet/in.h>
 #endif
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
 #ifdef SOUP_WIN32
 #define VERSION "Win/0.4.2"
 #include <windows.h>

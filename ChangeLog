@@ -1,3 +1,8 @@
+2001-08-10  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-private.h: Include sys/socket.h for sa in
+	SoupAddress.
+
 2001-08-08  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: Bump version to 0.4.3.
