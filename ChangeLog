@@ -1,3 +1,8 @@
+2003-01-09  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-address.c (soup_gethostbyname): Fix a memcpy
+	overrun noticed by valgrind
+
 2002-12-20  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-server.c (soup_server_new_with_host): Added.

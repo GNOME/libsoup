@@ -540,7 +540,7 @@ soup_gethostbyname (const char       *hostname,
 			sa_in = g_new0 (struct sockaddr_in, 1);
 			sa_in->sin_family = AF_INET;
 			memcpy (&sa_in->sin_addr, result->h_addr_list[0],
-				sizeof (struct sockaddr_in));
+				sizeof (sa_in->sin_addr));
 
 			*sa = (struct sockaddr *)sa_in;
 			*sa_len = sizeof (struct sockaddr_in);
@@ -554,7 +554,7 @@ soup_gethostbyname (const char       *hostname,
 			sa_in6 = g_new0 (struct sockaddr_in6, 1);
 			sa_in6->sin6_family = AF_INET6;
 			memcpy (&sa_in6->sin6_addr, result->h_addr_list[0],
-				sizeof (struct sockaddr_in6));
+				sizeof (sa_in6->sin6_addr));
 
 			*sa = (struct sockaddr *)sa_in6;
 			*sa_len = sizeof (struct sockaddr_in6);
