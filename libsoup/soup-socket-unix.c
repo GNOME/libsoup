@@ -36,7 +36,6 @@
 #include "soup-socket.h"
 
 #include <netdb.h>
-#include <resolv.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
