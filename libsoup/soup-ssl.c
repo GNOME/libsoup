@@ -49,7 +49,13 @@ soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer user_
 
 	waitpid (ssl_info->ppid, NULL, 0);
 	
-	g_io_channel_unref (ssl_info->real_sock);
+	/*
+	 * FIXME: The refcounting for these iochannels is totally
+	 * broken.  If we have this unref below, it causes crashes
+	 * when using HTTPS with a proxy.  Sigh.  It's better to
+	 * just leak.
+	 */
+	/* g_io_channel_unref (ssl_info->real_sock); */
 	g_free (ssl_info);
 
 	return FALSE;

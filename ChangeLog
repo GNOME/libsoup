@@ -1,3 +1,11 @@
+2003-02-26  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.9.
+
+	* soup-ssl.c (soup_ssl_hup_waitpid): Comment out the unref, it's
+	causing problems with HTTPS and proxies; the iochannel refcounting
+	is waaaaaay horked.
+
 2003-02-26  Frank Belew  <frb@ximian.com>
 
 	* libsoup/Makefile.am: added workaround to link ssl-proxy statically
