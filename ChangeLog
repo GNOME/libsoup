@@ -1,3 +1,12 @@
+2003-03-24  Joe Shaw  <joe@ximian.com>
+
+	* soup-error.[ch]: Add SOUP_ERROR_SSL_FAILED which gives a
+	slightly better error message on various SSL failures than the
+	previous message.
+
+	* soup-queue.c (soup_queue_error_cb): Throw the
+	SOUP_ERROR_SSL_FAILED error when we fail an SSL handshake.
+
 2003-03-21  Joe Shaw  <joe@ximian.com>
 
 	* soup-server.c: Use non-deprecated g_main_loop_* calls

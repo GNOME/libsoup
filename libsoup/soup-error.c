@@ -27,6 +27,7 @@ struct {
 	{ SOUP_ERROR_MALFORMED,               "Message Corrupt" },
 	{ SOUP_ERROR_CANT_AUTHENTICATE,       "Authentication Failed" },
 	{ SOUP_ERROR_CANT_AUTHENTICATE_PROXY, "Proxy Authentication Failed" },
+	{ SOUP_ERROR_SSL_FAILED,              "SSL handshake failed" },
 
 	/* 
 	 * SOUP_ERROR_CLASS_INFORMATIONAL 

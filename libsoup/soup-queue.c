@@ -75,19 +75,26 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	case SOUP_STATUS_READING_RESPONSE:
 	case SOUP_STATUS_SENDING_REQUEST:
 		if (!body_started) {
-			/*
-			 * This can easily happen if we are using the OpenSSL
-			 * out-of-process proxy and we couldn't establish an
-			 * SSL connection.
-			 */
-			if (req->priv->retries >= 3) {
+			if (req->context->uri->protocol == SOUP_PROTOCOL_HTTPS) {
+				/*
+				 * This can happen if the SSL handshake fails
+				 * for some reason (untrustable signatures,
+				 * etc.)
+				 */
+				if (req->priv->retries >= 3) {
+					soup_message_set_error (
+						req,
+						SOUP_ERROR_SSL_FAILED);
+					soup_message_issue_callback (req);
+				} else {
+					req->priv->retries++;
+					soup_message_requeue (req);
+				}
+			} else {
 				soup_message_set_error (
 					req,
 					SOUP_ERROR_CANT_CONNECT);
 				soup_message_issue_callback (req);
-			} else {
-				req->priv->retries++;
-				soup_message_requeue (req);
 			}
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);

@@ -41,6 +41,7 @@ typedef enum {
 	SOUP_ERROR_MALFORMED                = 5,
 	SOUP_ERROR_CANT_AUTHENTICATE        = 6,
 	SOUP_ERROR_CANT_AUTHENTICATE_PROXY  = 7,
+	SOUP_ERROR_SSL_FAILED               = 8,
 
 	/*
 	 * HTTP Response Codes
