@@ -27,6 +27,9 @@ SoupMessage *
 soup_message_new (SoupContext *context, SoupAction action) 
 {
 	SoupMessage *ret;
+
+	g_return_val_if_fail(context, NULL);
+
 	ret          = g_new0 (SoupMessage, 1);
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
 	ret->status  = SOUP_STATUS_IDLE;

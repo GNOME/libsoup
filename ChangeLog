@@ -1,3 +1,9 @@
+2001-06-21  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_new): Do a
+	g_return_val_if_fail() on the SoupContext being passed in so we don't
+	generate a bad SoupMessage.
+
 2001-06-19  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-context.c (soup_context_from_uri): Use
