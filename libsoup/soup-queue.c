@@ -48,18 +48,39 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 	return -1;
 }
 
-static void 
+static inline gchar**
+soup_split_headers (gchar *str, guint len)
+{
+	return NULL;
+}
+
+static gboolean 
 soup_process_headers (SoupRequest *req, gchar *str, guint len)
 {
-	gchar *http_ver, *reason_phrase;
-	gint status_code;
+	gchar *reason_phrase, **headers, *header;
+	gint http_major, http_minor, status_code, read_count, index;
 
-	sscanf (str, "%s %u %s", http_ver, &status_code, reason_phrase);
+	read_count = sscanf (str, 
+			     "HTTP/%d.%d %u %as\r\n", 
+			     &http_major,
+			     &http_minor,
+			     &status_code, 
+			     &reason_phrase);
+
+	if (read_count != 4) {
+		g_free (reason_phrase);
+		soup_request_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
+		return FALSE;
+	}
+
+	index = soup_substring_index (str, len, "\r\n");
+
+	headers = g_strsplit (str, "\r\n", 0);
+	g_strfreev (headers);
 
 	req->response_code = status_code;
 	req->response_phrase = reason_phrase;
-
-	g_free (http_ver);
+	return TRUE;
 }
 
 static gboolean 
@@ -99,6 +120,9 @@ soup_queue_read_async (GIOChannel* iochannel,
 				  req->response.length + 1);
 		req->response.body [req->response.length] = '\0';
 
+		g_byte_array_free (req->priv->recv_buf, TRUE);
+		req->priv->recv_buf = NULL;
+
 		req->status = SOUP_STATUS_FINISHED;
 		soup_request_issue_callback (req, SOUP_ERROR_NONE);
 		return FALSE;
@@ -115,9 +139,9 @@ soup_queue_read_async (GIOChannel* iochannel,
 					      req->priv->recv_buf->len,
 					      "\r\n\r\n");
 		if (index)
-			soup_process_headers (req, 
-					      req->priv->recv_buf->data,
-					      index + 2);
+			return soup_process_headers (req, 
+						     req->priv->recv_buf->data,
+						     index + 2);
 	} 
 
 	return TRUE;
@@ -203,10 +227,48 @@ soup_encode_http_auth (gboolean proxy_auth, SoupUri *uri, GString *header)
 	}
 }
 
-#define custom_header(_name, _var) ({                                   \
-	gchar *val = g_hash_table_lookup (req->custom_headers, (_name)); \
-        if (val) (_var) = val;                                           \
-})
+struct SoupUsedHeaders {
+	gchar *host;
+	gchar *user_agent;
+	gchar *content_type;
+	gchar *charset;
+	gchar *content_length;
+	gchar *soapaction;
+	gchar *connection;
+	gchar *proxy_auth;
+	gchar *auth;
+
+	GSList *custom_headers;
+};
+
+struct SoupCustomHeader {
+	gchar *key;
+	gchar *val;
+};
+
+static inline void 
+soup_check_used_headers (gchar *key, 
+			 gchar *value, 
+			 struct SoupUsedHeaders *hdrs)
+{
+	if (strcmp (key, "Host")) hdrs->host = value;
+	else if (strcmp (key, "User-Agent")) hdrs->user_agent = value;
+	else if (strcmp (key, "Content-Type")) hdrs->content_type = value;
+	else if (strcmp (key, "Charset")) hdrs->charset = value;
+	else if (strcmp (key, "Content-Length")) hdrs->content_length = value;
+	else if (strcmp (key, "SOAPAction")) hdrs->soapaction = value;
+	else if (strcmp (key, "Connection")) hdrs->connection = value;
+	else if (strcmp (key, "Proxy-Authorization")) hdrs->proxy_auth = value;
+	else if (strcmp (key, "Authorization")) hdrs->auth = value;
+	else {
+		struct SoupCustomHeader *cust; 
+		cust = g_new (struct SoupCustomHeader, 1);
+		cust->key = key;
+		cust->val = value;
+		hdrs->custom_headers = g_slist_append (hdrs->custom_headers, 
+						       cust);
+	}
+}
 
 static GString *
 soup_get_request_header (SoupRequest *req)
@@ -214,34 +276,29 @@ soup_get_request_header (SoupRequest *req)
 	GString *header = g_string_new ("");
 	gchar *uri;
 	SoupContext *proxy = soup_get_proxy ();
+	gchar content_length_str[10];
 
-	gchar   *host                = req->context->uri->host, 
-		*user_agent          = "Soup/0.1", 
-		*content_type        = "text/xml", 
-		*charset             = "\"utf-8\"",
-		*content_length      = NULL, 
-		*soapaction          = req->action,
-		*connection          = "keep-alive",
-		*proxy_authorization = NULL,
-		*authorization       = NULL;
+	struct SoupUsedHeaders hdrs = {
+		req->context->uri->host, 
+		"Soup/0.1", 
+		"text/xml", 
+		"\"utf-8\"",
+		NULL, 
+		req->action,
+		"keep-alive",
+		NULL,
+		NULL,
+		NULL
+	};
 
-	gboolean my_content_length = FALSE;
-
-	if (req->custom_headers) {
-		custom_header ("Host", host);
-		custom_header ("User-Agent", user_agent);
-		custom_header ("Content-Type", content_type);
-		custom_header ("Charset", charset);
-		custom_header ("Content-Length", content_length);
-		custom_header ("SOAPAction", soapaction);
-		custom_header ("Proxy-Authorization", proxy_authorization);
-		custom_header ("Authorization", authorization);
-		custom_header ("Connection", connection);
-	}
+	if (req->custom_headers) 
+		g_hash_table_foreach (req->custom_headers, 
+				      (GHFunc) soup_check_used_headers,
+				      &hdrs);
 	
-	if (!content_length) {
-		content_length = g_strdup_printf ("%d", req->request.length);
-		my_content_length = TRUE;
+	if (!hdrs.content_length) {
+		g_snprintf (content_length_str, 10, "%d", req->request.length);
+		hdrs.content_length = content_length_str;
 	}
 
 	if (proxy)
@@ -262,36 +319,52 @@ soup_get_request_header (SoupRequest *req)
 			   "SOAPAction: %s\r\n"
 			   "Connection: %s\r\n",
 			   uri,
-			   host,
-			   user_agent,
-			   content_type,
-			   charset,
-			   content_length,
-			   soapaction,
-			   connection);
+			   hdrs.host,
+			   hdrs.user_agent,
+			   hdrs.content_type,
+			   hdrs.charset,
+			   hdrs.content_length,
+			   hdrs.soapaction,
+			   hdrs.connection);
 
-	if (my_content_length)
-		g_free (content_length);
-
-	if (!proxy_authorization) {
+	if (!hdrs.proxy_auth) {
 		if (proxy && proxy->uri->user)
 			soup_encode_http_auth (TRUE, proxy->uri, header);
 	} else
 		g_string_sprintfa (header, 
 				   "Proxy-Authorization: %s\r\n",
-				   proxy_authorization);
+				   hdrs.proxy_auth);
 
 	/* FIXME: if going through a proxy, do we use the absoluteURI on 
 	          the request line, or encode the Authorization header into
 		  the message? */
 
-	if (!authorization) {
+	if (!hdrs.auth) {
 		if (req->context->uri->user)
 			soup_encode_http_auth (FALSE, proxy->uri, header);
 	} else 
 		g_string_sprintfa (header, 
 				   "Authorization: %s\r\n",
-				   authorization);
+				   hdrs.auth);
+
+	/* Append custom headers for this request */
+
+	if (hdrs.custom_headers) {
+		GSList *iter = hdrs.custom_headers;
+
+		while (iter) {
+			struct SoupCustomHeader *cust_hdr = iter->data;
+			g_string_sprintfa (header, 
+					   "%s: %s\r\n", 
+					   cust_hdr->key, 
+					   cust_hdr->val);
+			g_free (cust_hdr);
+
+			iter = iter->next;
+		}
+
+		g_slist_free (hdrs.custom_headers);
+	}
 
 	g_string_append (header, "\r\n");
 
@@ -489,6 +562,11 @@ soup_queue_request (SoupRequest    *req,
 		g_free (req->response.body);
 		req->response.body = NULL;
 		req->response.length = 0;
+	}
+
+	if (req->priv->recv_buf) {
+		g_byte_array_free (req->priv->recv_buf, TRUE);
+		req->priv->recv_buf = NULL;
 	}
 
 	req->priv->callback = callback;
