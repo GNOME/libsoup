@@ -1,3 +1,9 @@
+2002-12-03  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-ssl.c (soup_ssl_get_iochannel_real): Call
+	g_io_channel_set_close_on_unref() on the second half of the socket
+	pair so we don't leak file descriptors.
+
 2002-12-03  Frank Belew	 <frb@ximian.com>
 
 	* libsoup/soup-address.c: add signal.h to the list of headers to 

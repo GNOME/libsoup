@@ -124,6 +124,7 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 	fcntl (pair [1], F_SETFL, flags | O_NONBLOCK);
 
 	new_chan = g_io_channel_unix_new (pair [1]);
+	g_io_channel_set_close_on_unref (new_chan, TRUE);
 	g_io_add_watch (new_chan, G_IO_HUP | G_IO_ERR | G_IO_NVAL,
 			soup_ssl_hup_waitpid, GINT_TO_POINTER (pid));
 
