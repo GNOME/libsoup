@@ -571,7 +571,15 @@ soup_address_new (const gchar* name,
 {
 	pid_t pid = -1;
 	int pipes [2];
+#ifdef HAVE_INET_PTON
 	struct in_addr inaddr;
+#else
+#  ifdef HAVE_INET_ATON
+	struct in_addr inaddr;
+#  else
+	in_addr_t inaddr;
+#  endif
+#endif
 	struct sockaddr_in sa;
 	struct sockaddr_in* sa_in;
 	SoupAddress* ia;
@@ -596,6 +604,7 @@ soup_address_new (const gchar* name,
 		inaddr_ok = TRUE;
 #  endif
 #endif
+
 	if (inaddr_ok) {
 		ia = g_new0 (SoupAddress, 1);
 		ia->ref_count = 1;
@@ -605,7 +614,7 @@ soup_address_new (const gchar* name,
 		sa_in->sin_port = g_htons(port);
 		memcpy (&sa_in->sin_addr,
 			(char*) &inaddr,
-			sizeof(struct in_addr));
+			sizeof(inaddr));
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 		return NULL;

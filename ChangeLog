@@ -1,3 +1,8 @@
+2002-02-26  JP Rosevear  <jpr@ximian.com>
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): inaddr is a
+	different type for inet_addr, calculate sizeof directly
+
 2002-02-25  JP Rosevear  <jpr@ximian.com>
 
 	* src/libsoup/soup-socket-unix.c: apparently some platforms don't
