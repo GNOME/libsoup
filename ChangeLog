@@ -1,3 +1,13 @@
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.11
+
+	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Check for
+	Chunked encoding before content-length, in case both are specified
+	by broken proxies.
+	(soup_queue_shutdown): Check soup_queue_idle_tag before attempting
+	to call g_source_remove on it.
+
 2002-02-20  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.10

@@ -103,23 +103,26 @@ soup_queue_read_headers_cb (const GString        *headers,
 	}
 
 	/* 
-	 * Handle Content-Length or Chunked encoding 
+	 * Handle Content-Length or Chunked encoding.  Prefer Chunked over a
+	 * Content-Length to support broken Traffic-Server proxies that supply
+	 * both.  
 	 */
 	length = g_hash_table_lookup (req->response_headers, "Content-Length");
 	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
 
-	if (length) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = atoi (length);
-		if (*content_len < 0) 
-			goto THROW_MALFORMED_HEADER;
-	} else if (enc) {
+	if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
 			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			g_warning ("Unknown encoding type in HTTP response.");
 			goto THROW_MALFORMED_HEADER;
 		}
+	}
+	else if (length) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+		*content_len = atoi (length);
+		if (*content_len < 0) 
+			goto THROW_MALFORMED_HEADER;
 	}
 
  RUN_HANDLERS:
@@ -610,8 +613,10 @@ soup_queue_shutdown (void)
 {
         GSList *iter;
 
-	g_source_remove (soup_queue_idle_tag);
-	soup_queue_idle_tag = 0;
+	if (soup_queue_idle_tag) {
+		g_source_remove (soup_queue_idle_tag);
+		soup_queue_idle_tag = 0;
+	}
 
 	for (iter = soup_active_requests; iter; iter = iter->next)
 		soup_message_cancel (iter->data);
