@@ -1,3 +1,23 @@
+2001-06-01  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_set_method): 
+	(soup_message_add_header_handler): 
+	(soup_message_add_response_code_handler): 
+	(soup_message_add_body_handler): Added.
+
+	* src/soup-core/soup-socket.c (soup_address_get_name_sync): Allow
+	syncronous reverse name lookups.
+
+	* TODO (TODO): Updated.
+
+	* src/soup-core/Makefile.am (bin_PROGRAMS): Added soup-httpd.
+
+	* src/soup-core/soup-httpd.c: Added. Simple httpd server
+	implementation. This shares a *lot* of code with soup-queue.c, so
+	some hardc0re refactoring action is planned.
+
+	* configure.in (GMODULE_LIBS): Added.
+
 2001-05-29  Dick Porter  <dick@ximian.com>
 
 	* tests/Makefile.am: Put the generated code into the build

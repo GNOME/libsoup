@@ -343,3 +343,38 @@ soup_message_get_flags (SoupMessage *msg)
 {
 	return msg->priv->msg_flags;
 }
+
+void
+soup_message_set_method (SoupMessage *msg, SoupMessageMethod method)
+{
+	g_warning ("Not yet implemented.");
+}
+
+void 
+soup_message_add_header_handler (SoupMessage      *msg,
+				 const gchar      *header,
+				 SoupHandlerType   type,
+				 SoupHandlerFn     handler_cb,
+				 gpointer          user_data)
+{
+	g_warning ("Not yet implemented.");
+}
+
+void 
+soup_message_add_response_code_handler (SoupMessage      *msg,
+					guint             code,
+					SoupHandlerType   type,
+					SoupHandlerFn     handler_cb,
+					gpointer          user_data)
+{
+	g_warning ("Not yet implemented.");
+}
+
+void 
+soup_message_add_body_handler (SoupMessage      *msg,
+			       SoupHandlerType   type,
+			       SoupHandlerFn     handler_cb,
+			       gpointer          user_data)
+{
+	g_warning ("Not yet implemented.");
+}

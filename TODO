@@ -7,15 +7,13 @@ TODO:
 
 * Document
 
-* Simple Soap Example clients and servers (time, updates, ...)
+* Tutorial Documentation
+
+* Simple Soap Example clients and servers (time, updates, terraserver, ...)
 
 * More SOCKS testing
 
-* *Simple* response cache
-
 * Use gconf for config data
-
-* Tutorial Documentation
 
 * Make SoupMessage a generic HTTP engine (basically just make method settable).
 
@@ -23,4 +21,20 @@ TODO:
 
 * MS Challenge/Response support
 
+* Server digest authentication
+
+* UDDI support
+
+* Disco support
+
+* DIME support
+
+* SOAP Routing Protocol serializer wrappers
+
+* Simple POP and SMTP engine.
+
+* Handle SOAP Attachments in HTTP and SMTP (use gmime)
+
 * C++ wrapper
+
+* GTK or Bonobo object generation

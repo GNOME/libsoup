@@ -17,7 +17,7 @@
 #include "soup-headers.h"
 #include "soup-private.h"
 
-static GSList                *soup_server_handlers = NULL;
+GSList *soup_server_handlers = NULL;
 
 static SoupServerAuthorizeFn  soup_server_global_auth = NULL;
 static gpointer               soup_server_global_auth_user_data = NULL;

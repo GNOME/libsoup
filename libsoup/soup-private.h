@@ -19,6 +19,7 @@
 #include <netinet/in.h>
 
 #include "soup-context.h"
+#include "soup-message.h"
 #include "soup-server.h"
 #include "soup-socket.h"
 #include "soup-uri.h"
@@ -32,6 +33,7 @@ extern "C" {
 extern gboolean    soup_initialized;
 extern GSList     *soup_active_requests; /* CONTAINS: SoupMessage */
 extern GHashTable *soup_servers;         /* KEY: uri->host, VALUE: SoupServer */
+extern GSList     *soup_server_handlers;
 
 typedef struct {
 	gchar      *host;
@@ -110,10 +112,13 @@ typedef struct {
 
 /* from soup-message.c */
 
-void      soup_message_issue_callback (SoupMessage   *req, 
-				       SoupErrorCode  error);
+void          soup_message_issue_callback (SoupMessage      *req, 
+					   SoupErrorCode     error);
 
-void      soup_message_cleanup        (SoupMessage   *req);
+SoupErrorCode soup_message_run_handlers   (SoupMessage      *msg,
+					   SoupHandlerType   invoke_type);
+
+void          soup_message_cleanup        (SoupMessage      *req);
 
 /* from soup-misc.c */
 

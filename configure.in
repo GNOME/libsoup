@@ -71,9 +71,11 @@ AM_PATH_GLIB(1.2.0,,
 
 GLIB_CFLAGS=`glib-config --cflags glib`
 GLIB_LIBS=`glib-config --libs glib`
+GMODULE_LIBS=`glib-config --libs gmodule`
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+AC_SUBST(GMODULE_LIBS)
 
 
 dnl ******************************
@@ -457,7 +459,6 @@ AC_OUTPUT([
 	soup.spec
 	Makefile
 	docs/Makefile
-	docs/api/Makefile
 	docs/reference/Makefile
 	src/Makefile
 	src/soup-core/Makefile

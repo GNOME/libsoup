@@ -1323,6 +1323,31 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 
 #endif		/*********** End Windows code ***********/
 
+static void
+soup_address_get_name_sync_cb (SoupAddress       *addr, 
+			       SoupAddressStatus  status, 
+			       const char        *name,
+			       gpointer           user_data)
+{
+	const char **ret = user_data;
+	*ret = name;
+}
+
+const gchar *
+soup_address_get_name_sync (SoupAddress *addr)
+{
+	const char *ret = (const char *) 0xdeadbeef; 
+
+	soup_address_get_name (addr, soup_address_get_name_sync_cb, &ret);
+
+	while (1) {
+		g_main_iteration (TRUE);
+		if (ret != (const char *) 0xdeadbeef) return ret;
+	}
+
+	return ret;
+}
+
 /**
  * soup_address_get_canonical_name:
  * @ia: Address to get the canonical name of.

@@ -70,7 +70,7 @@ libsoup_apache_la_LIBADD =	\
 libsoup_apache_la_SOURCES =	\
 	soup-apache.c
 
-bin_PROGRAMS = soup-ssl-proxy
+bin_PROGRAMS = soup-ssl-proxy soup-httpd
 
 soup_ssl_proxy_LDADD =		\
 	$(OPENSSL_LIBS)		\
@@ -83,6 +83,14 @@ soup_ssl_proxy_SOURCES =	\
 	soup-openssl.h		\
 	soup-openssl.c		\
 	soup-ssl-proxy.c
+
+soup_httpd_LDADD =					\
+	$(GMODULE_LIBS)					\
+	$(POPT_LIBS)					\
+	$(top_builddir)/src/soup-core/libsoup.la
+
+soup_httpd_SOURCES =		\
+	soup-httpd.c
 
 EXTRA_DIST = 
 

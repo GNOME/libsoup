@@ -57,6 +57,8 @@ SoupAddressGetNameId soup_address_get_name           (SoupAddress*         ia,
 
 void                 soup_address_get_name_cancel    (SoupAddressGetNameId id);
 
+const gchar         *soup_address_get_name_sync      (SoupAddress *addr);
+
 gchar*               soup_address_get_canonical_name (SoupAddress*         ia);
 
 gint                 soup_address_get_port           (const SoupAddress*   ia);

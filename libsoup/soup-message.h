@@ -105,6 +105,41 @@ void           soup_message_set_response_header (SoupMessage      *req,
 const gchar   *soup_message_get_response_header (SoupMessage      *req,
 						 const gchar      *name);
 
+typedef enum {
+	SOUP_METHOD_POST,
+	SOUP_METHOD_GET,
+	SOUP_METHOD_OPTIONS
+} SoupMessageMethod;
+
+void           soup_message_set_method          (SoupMessage      *msg,
+						 SoupMessageMethod method);
+
+typedef enum {
+	SOUP_HANDLER_PRE_BODY,
+	SOUP_HANDLER_BODY_CHUNK,
+	SOUP_HANDLER_POST_BODY
+} SoupHandlerType;
+
+typedef SoupErrorCode SoupHandlerFn (SoupMessage *msg, gpointer user_data);
+
+void           soup_message_add_header_handler  (SoupMessage      *msg,
+						 const gchar      *header,
+						 SoupHandlerType   type,
+						 SoupHandlerFn     handler_cb,
+						 gpointer          user_data);
+
+void           soup_message_add_response_code_handler (
+						 SoupMessage      *msg,
+						 guint             code,
+						 SoupHandlerType   type,
+						 SoupHandlerFn     handler_cb,
+						 gpointer          user_data);
+
+void           soup_message_add_body_handler    (SoupMessage      *msg,
+						 SoupHandlerType   type,
+						 SoupHandlerFn     handler_cb,
+						 gpointer          user_data);
+
 /* FIXME: None of these are implemented yet, oh well... */
 typedef enum {
 	SOUP_MESSAGE_FOLLOW_REDIRECT = (1 << 1),
