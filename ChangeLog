@@ -1,3 +1,14 @@
+2001-03-15  JP Rosevear  <jpr@ximian.com>
+
+	* src/soup-core/soup-apache.c (soup_apache_message_create): use
+	the HTTP_OK macro for the response code rather than hard coding
+	200
+	(soup_apache_handler): return should be OK or !OK rather than the
+	http response code value (ie 200)
+
+	* src/soup-core/soup-serializer.c (soup_serializer_reset): Make a
+	blank doc when resetting
+
 2001-03-14  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-apache.c (soup_apache_read_request): oops,
