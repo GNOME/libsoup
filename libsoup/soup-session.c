@@ -19,6 +19,7 @@
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-queue.h"
+#include "soup-ssl.h"
 #include "soup-uri.h"
 
 typedef struct {
@@ -36,6 +37,9 @@ struct SoupSessionPrivate {
 	SoupUri *proxy_uri;
 	guint max_conns, max_conns_per_host;
 	gboolean use_ntlm;
+
+	char *ssl_ca_file;
+	gpointer ssl_creds;
 
 	SoupMessageQueue *queue;
 
@@ -73,6 +77,7 @@ enum {
   PROP_MAX_CONNS,
   PROP_MAX_CONNS_PER_HOST,
   PROP_USE_NTLM,
+  PROP_SSL_CA_FILE,
 
   LAST_PROP
 };
@@ -206,6 +211,13 @@ class_init (GObjectClass *object_class)
 				      "Whether or not to use NTLM authentication",
 				      FALSE,
 				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_SSL_CA_FILE,
+		g_param_spec_string (SOUP_SESSION_SSL_CA_FILE,
+				      "SSL CA file",
+				      "File containing SSL CA certificates",
+				      NULL,
+				      G_PARAM_READWRITE));
 }
 
 SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
@@ -255,6 +267,10 @@ set_property (GObject *object, guint prop_id,
 	case PROP_USE_NTLM:
 		session->priv->use_ntlm = g_value_get_boolean (value);
 		break;
+	case PROP_SSL_CA_FILE:
+		g_free (session->priv->ssl_ca_file);
+		session->priv->ssl_ca_file = g_strdup (g_value_get_string (value));
+		break;
 	default:
 		break;
 	}
@@ -280,6 +296,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_USE_NTLM:
 		g_value_set_boolean (value, session->priv->use_ntlm);
+		break;
+	case PROP_SSL_CA_FILE:
+		g_value_set_string (value, session->priv->ssl_ca_file);
 		break;
 	default:
 		break;
@@ -324,6 +343,13 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	host->root_uri = soup_uri_copy_root (source);
 
 	g_hash_table_insert (session->priv->hosts, host->root_uri, host);
+
+	if (host->root_uri->protocol == SOUP_PROTOCOL_HTTPS &&
+	    !session->priv->ssl_creds) {
+		session->priv->ssl_creds =
+			soup_ssl_get_client_credentials (session->priv->ssl_ca_file);
+	}
+
 	return host;
 }
 
@@ -792,6 +818,7 @@ run_queue (SoupSession *session, gboolean try_pruning)
 		/* If the hostname is known to be bad, fail right away */
 		if (host->error) {
 			soup_message_set_status (msg, host->error);
+			msg->status = SOUP_MESSAGE_STATUS_FINISHED;
 			soup_message_finished (msg);
 		}
 
@@ -830,8 +857,9 @@ run_queue (SoupSession *session, gboolean try_pruning)
 		conn = g_object_new (
 			(session->priv->use_ntlm ?
 			 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
-			SOUP_CONNECTION_DEST_URI, host->root_uri,
+			SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
 			SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
+			SOUP_CONNECTION_SSL_CREDENTIALS, session->priv->ssl_creds,
 			NULL);
 		g_signal_connect (conn, "authenticate",
 				  G_CALLBACK (connection_authenticate),

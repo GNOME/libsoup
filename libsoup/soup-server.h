@@ -63,11 +63,13 @@ struct SoupServerHandler {
 	gpointer                user_data;
 };
 
-SoupServer        *soup_server_new            (SoupProtocol           proto,
-					       guint                  port);
-SoupServer        *soup_server_new_with_host  (const char            *host,
-					       SoupProtocol           proto,
-					       guint                  port);
+#define SOUP_SERVER_PORT          "port"
+#define SOUP_SERVER_INTERFACE     "interface"
+#define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
+#define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
+
+SoupServer        *soup_server_new            (const char            *optname1,
+					       ...);
 
 SoupProtocol       soup_server_get_protocol   (SoupServer            *serv);
 guint              soup_server_get_port       (SoupServer            *serv);

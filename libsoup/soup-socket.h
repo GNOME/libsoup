@@ -35,18 +35,16 @@ typedef struct {
 	void (*new_connection) (SoupSocket *, SoupSocket *);
 } SoupSocketClass;
 
-#define SOUP_SOCKET_FLAG_NONBLOCKING (1<<0)
-#define SOUP_SOCKET_FLAG_NODELAY     (1<<1)
-#define SOUP_SOCKET_FLAG_SERVER      (1<<2)
-#define SOUP_SOCKET_FLAG_REUSEADDR   (1<<3)
-#define SOUP_SOCKET_FLAG_ALL         ( ~0 )
+#define SOUP_SOCKET_FLAG_NONBLOCKING "non-blocking"
+#define SOUP_SOCKET_FLAG_NODELAY     "nodelay"
+#define SOUP_SOCKET_FLAG_REUSEADDR   "reuseaddr"
+#define SOUP_SOCKET_IS_SERVER        "is-server"
+#define SOUP_SOCKET_SSL_CREDENTIALS  "ssl-creds"
 
 GType soup_socket_get_type (void);
 
-SoupSocket    *soup_socket_new                (void);
-void           soup_socket_set_flags          (SoupSocket         *sock,
-					       guint               mask,
-					       guint               flags);
+SoupSocket    *soup_socket_new                (const char         *optname1,
+					       ...);
 
 guint          soup_socket_connect            (SoupSocket         *sock,
 					       SoupAddress        *rem_addr);
@@ -66,15 +64,15 @@ typedef void (*SoupSocketListenerCallback)    (SoupSocket         *listener,
 
 SoupSocket    *soup_socket_client_new_async   (const char         *hostname,
 					       guint               port,
-					       gboolean            ssl,
+					       gpointer            ssl_creds,
 					       SoupSocketCallback  callback,
 					       gpointer            user_data);
 SoupSocket    *soup_socket_client_new_sync    (const char         *hostname,
 					       guint               port,
-					       gboolean            ssl,
+					       gpointer            ssl_creds,
 					       guint              *status);
 SoupSocket    *soup_socket_server_new         (SoupAddress        *local_addr,
-					       gboolean            ssl,
+					       gpointer            ssl_creds,
 					       SoupSocketListenerCallback,
 					       gpointer            user_data);
 

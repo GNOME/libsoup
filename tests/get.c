@@ -197,20 +197,24 @@ get_url (const char *url)
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: get [-r] URL\n");
+	fprintf (stderr, "Usage: get [-c CAfile] [-r] URL\n");
 	exit (1);
 }
 
 int
 main (int argc, char **argv)
 {
+	const char *cafile = NULL;
 	int opt;
 
 	g_type_init ();
-	session = soup_session_new ();
 
-	while ((opt = getopt (argc, argv, "r")) != -1) {
+	while ((opt = getopt (argc, argv, "c:r")) != -1) {
 		switch (opt) {
+		case 'c':
+			cafile = optarg;
+			break;
+
 		case 'r':
 			recurse = TRUE;
 			break;
@@ -231,6 +235,10 @@ main (int argc, char **argv)
 		fprintf (stderr, "Could not parse '%s' as a URL\n", base);
 		exit (1);
 	}
+
+	session = soup_session_new_with_options (
+		SOUP_SESSION_SSL_CA_FILE, cafile,
+		NULL);
 
 	if (recurse) {
 		char *outdir;

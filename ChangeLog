@@ -1,3 +1,68 @@
+2003-09-23  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-gnutls.c (SoupGNUTLSCred): Remove refcounting, but
+	note whether or not the CA file has been loaded.
+	(SoupGNUTLSChannel): add a "hostname" field.
+	(verify_certificate): Remove the comment about not being able to
+	verify the hostname because of soup problems. Now it's because of
+	GNUTLS problems instead.
+	(soup_ssl_wrap_iochannel): Renamed from soup_ssl_get_iochannel,
+	and takes a hostname and a creds argument now.
+	(soup_ssl_get_client_credentials,
+	soup_ssl_get_server_credentials): Return client/server credentials
+	structures.
+	(soup_ssl_free_client_credentials,
+	soup_ssl_free_server_credentials): and free them.
+
+	* libsoup/soup-session.c (class_init, set_property, get_property):
+	add ssl_ca_file property
+	(get_host_for_message): when returning an SSL host for the first
+	time, create a client credentials structure for the session.
+	(run_queue): Pass the ssl creds to the new connection. Also fix an
+	unrelated bug that caused infinite loops on "bad hostname".
+
+	* libsoup/soup-server.c: Use GObject properties, including
+	ssl_cert_file and ssl_key_file properties.
+	(soup_server_new): Remove "protocol" argument; if the cert file
+	and key file properties were set, create a server credential
+	structure from them and pass that to soup_socket_server_new.
+
+	* libsoup/soup-connection.c (SoupConnectionPrivate): Rename
+	dest_uri to origin_uri to match RFC 2616 terminology. Add an
+	"ssl_creds" field.
+	(class_init, set_property, get_property): add SSL_CREDS property
+	(soup_connection_connect_async, soup_connection_connect_sync):
+	Pass ssl_creds to soup_socket_client_new calls.
+
+	* libsoup/soup-socket.c: Use GObject properties, including an
+	ssl_creds property
+	(soup_socket_set_flags): Gone (replaced with boolean properties)
+	(soup_socket_new): Make this take a list of properties
+	(listen_watch): copy ssl creds from listener to new socket
+	(soup_socket_start_ssl): Pass remote hostname and socket creds
+	structure to soup_ssl_wrap_iochannel.
+	(soup_socket_client_new_async, soup_socket_client_new_sync,
+	soup_socket_server_new): Replace the SSL boolean with an ssl_creds
+	structure.
+
+	* libsoup/soup-misc.c (soup_set_ssl_ca_file,
+	soup_set_ssl_cert_files, soup_get_ssl_ca_file,
+	soup_get_ssl_cert_files): Gone. SSL state is now per-session or
+	per-server.
+
+	* tests/get.c: add a "-c CAfile" argument, for loading a CA
+	certificate file to validate https connections against
+
+	* tests/simple-httpd.c: Add "-c certfile" and "-k keyfile"
+	arguments for loading an SSL server certificate. Only start an SSL
+	server if those arguments were used.
+
+	* tests/test-cert.pem: 
+	* tests/test-key.pem: SSL certificate for testing simple-httpd
+
+	* tests/revserver.c: Update for API changes
+	* tests/simple-proxy.c: Likewise
+
 2003-09-22  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-io.c: Move RESPONSE_BLOCK_SIZE #define here

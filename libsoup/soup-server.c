@@ -24,13 +24,17 @@
 #include "soup-server-auth.h"
 #include "soup-server-message.h"
 #include "soup-socket.h"
+#include "soup-ssl.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
 
 struct SoupServerPrivate {
-	SoupProtocol       proto;
+	SoupAddress       *interface;
 	guint              port;
+
+	char              *ssl_cert_file, *ssl_key_file;
+	gpointer           ssl_creds;
 
 	GMainLoop         *loop;
 
@@ -40,6 +44,22 @@ struct SoupServerPrivate {
 	GHashTable        *handlers; /* KEY: path, VALUE: SoupServerHandler */
 	SoupServerHandler *default_handler;
 };
+
+enum {
+  PROP_0,
+
+  PROP_PORT,
+  PROP_INTERFACE,
+  PROP_SSL_CERT_FILE,
+  PROP_SSL_KEY_FILE,
+
+  LAST_PROP
+};
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 init (GObject *object)
@@ -77,6 +97,14 @@ finalize (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
 
+	if (server->priv->interface)
+		g_object_unref (server->priv->interface);
+
+	g_free (server->priv->ssl_cert_file);
+	g_free (server->priv->ssl_key_file);
+	if (server->priv->ssl_creds)
+		soup_ssl_free_server_credentials (server->priv->ssl_creds);
+
 	if (server->priv->listen_sock)
 		g_object_unref (server->priv->listen_sock);
 
@@ -110,59 +138,137 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_PORT,
+		g_param_spec_uint (SOUP_SERVER_PORT,
+				   "Port",
+				   "Port to listen on",
+				   0, 65536, 0,
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_INTERFACE,
+		g_param_spec_object (SOUP_SERVER_INTERFACE,
+				     "Interface",
+				     "Address of interface to listen on",
+				     SOUP_TYPE_ADDRESS,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_SSL_CERT_FILE,
+		g_param_spec_string (SOUP_SERVER_SSL_CERT_FILE,
+				      "SSL certificate file",
+				      "File containing server SSL certificate",
+				      NULL,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_SSL_KEY_FILE,
+		g_param_spec_string (SOUP_SERVER_SSL_KEY_FILE,
+				      "SSL key file",
+				      "File containing server SSL key",
+				      NULL,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 SOUP_MAKE_TYPE (soup_server, SoupServer, class_init, init, PARENT_TYPE)
 
-
-static SoupServer *
-new_server (SoupAddress *address, SoupProtocol proto)
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
 {
-	SoupServer *server;
-	SoupSocket *sock = NULL;
+	SoupServer *server = SOUP_SERVER (object);
 
-	g_return_val_if_fail (address, NULL);
+	switch (prop_id) {
+	case PROP_PORT:
+		server->priv->port = g_value_get_uint (value);
+		break;
+	case PROP_INTERFACE:
+		if (server->priv->interface)
+			g_object_unref (server->priv->interface);
+		server->priv->interface = g_value_get_object (value);
+		if (server->priv->interface)
+			g_object_ref (server->priv->interface);
+		break;
+	case PROP_SSL_CERT_FILE:
+		server->priv->ssl_cert_file =
+			g_strdup (g_value_get_string (value));
+		break;
+	case PROP_SSL_KEY_FILE:
+		server->priv->ssl_key_file =
+			g_strdup (g_value_get_string (value));
+		break;
+	default:
+		break;
+	}
+}
 
-	sock = soup_socket_server_new (address,
-				       proto == SOUP_PROTOCOL_HTTPS,
-				       NULL, NULL);
-	if (!sock)
-		return NULL;
-	address = soup_socket_get_local_address (sock);
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupServer *server = SOUP_SERVER (object);
 
-	server = g_object_new (SOUP_TYPE_SERVER, NULL);
-	server->priv->port = soup_address_get_port (address);
-	server->priv->proto = proto;
-	server->priv->listen_sock = sock;
-
-	return server;
+	switch (prop_id) {
+	case PROP_PORT:
+		g_value_set_uint (value, server->priv->port);
+		break;
+	case PROP_INTERFACE:
+		g_value_set_object (value, g_object_ref (server->priv->interface));
+		break;
+	case PROP_SSL_CERT_FILE:
+		g_value_set_string (value, g_strdup (server->priv->ssl_cert_file));
+		break;
+	case PROP_SSL_KEY_FILE:
+		g_value_set_string (value, g_strdup (server->priv->ssl_key_file));
+		break;
+	default:
+		break;
+	}
 }
 
 SoupServer *
-soup_server_new (SoupProtocol proto, guint port)
+soup_server_new (const char *optname1, ...)
 {
-	SoupAddress *address;
 	SoupServer *server;
+	va_list ap;
 
-	address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, port);
-	server = new_server (address, proto);
-	g_object_unref (address);
+	va_start (ap, optname1);
+	server = (SoupServer *)g_object_new_valist (SOUP_TYPE_SERVER,
+						    optname1, ap);
+	va_end (ap);
 
-	return server;
-}
-
-SoupServer *
-soup_server_new_with_host (const char *host, SoupProtocol proto, guint port)
-{
-	SoupAddress *address;
-	SoupServer *server;
-
-	address = soup_address_new (host, port);
-	if (!address)
+	if (!server)
 		return NULL;
+	if (!server->priv->interface) {
+		server->priv->interface =
+			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
+					      server->priv->port);
+	}
 
-	server = new_server (address, proto);
-	g_object_unref (address);
+	if (server->priv->ssl_cert_file && server->priv->ssl_key_file) {
+		server->priv->ssl_creds = soup_ssl_get_server_credentials (
+			server->priv->ssl_cert_file,
+			server->priv->ssl_key_file);
+	}
+
+	server->priv->listen_sock =
+		soup_socket_server_new (server->priv->interface,
+					server->priv->ssl_creds,
+					NULL, NULL);
+	if (!server->priv->listen_sock) {
+		g_object_unref (server);
+		return NULL;
+	}
+
+	/* Re-resolve the interface address, in particular in case
+	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
+	 */
+	g_object_unref (server->priv->interface);
+	server->priv->interface =
+		soup_socket_get_local_address (server->priv->listen_sock);
+	server->priv->port = soup_address_get_port (server->priv->interface);
 
 	return server;
 }
@@ -180,8 +286,12 @@ soup_server_get_protocol (SoupServer *server)
 {
 	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
 
-	return server->priv->proto;
+	if (server->priv->ssl_cert_file && server->priv->ssl_key_file)
+		return SOUP_PROTOCOL_HTTPS;
+	else
+		return SOUP_PROTOCOL_HTTP;
 }
+
 
 static void start_request (SoupServer *, SoupSocket *);
 

@@ -125,48 +125,61 @@ main (int argc, char **argv)
 	int opt;
 	int port = SOUP_ADDRESS_ANY_PORT;
 	int ssl_port = SOUP_ADDRESS_ANY_PORT;
+	const char *ssl_cert_file = NULL, *ssl_key_file = NULL;
 
 	g_type_init ();
 	signal (SIGINT, quit);
 
-	while ((opt = getopt (argc, argv, "p:s:")) != -1) {
+	while ((opt = getopt (argc, argv, "p:k:c:s:")) != -1) {
 		switch (opt) {
 		case 'p':
 			port = atoi (optarg);
+			break;
+		case 'k':
+			ssl_key_file = optarg;
+			break;
+		case 'c':
+			ssl_cert_file = optarg;
 			break;
 		case 's':
 			ssl_port = atoi (optarg);
 			break;
 		default:
-			fprintf (stderr, "Usage: %s [-p port] [-s ssl-port]\n",
+			fprintf (stderr, "Usage: %s [-p port] [-c ssl-cert-file -k ssl-key-file [-s ssl-port]]\n",
 				 argv[0]);
 			exit (1);
 		}
 	}
 
-	server = soup_server_new (SOUP_PROTOCOL_HTTP, port);
+	server = soup_server_new (SOUP_SERVER_PORT, port,
+				  NULL);
 	if (!server) {
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
 	soup_server_add_handler (server, NULL, NULL,
 				 server_callback, NULL, NULL);
-
-	ssl_server = soup_server_new (SOUP_PROTOCOL_HTTPS, ssl_port);
-	if (!ssl_server) {
-		fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
-		exit (1);
-	}
-	soup_server_add_handler (ssl_server, NULL, NULL,
-				 server_callback, NULL, NULL);
-
 	printf ("\nStarting Server on port %d\n",
 		soup_server_get_port (server));
 	soup_server_run_async (server);
 
-	printf ("Starting SSL Server on port %d\n", 
-		soup_server_get_port (ssl_server));
-	soup_server_run_async (ssl_server);
+	if (ssl_cert_file && ssl_key_file) {
+		ssl_server = soup_server_new (
+			SOUP_SERVER_PORT, ssl_port,
+			SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
+			SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
+			NULL);
+
+		if (!ssl_server) {
+			fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
+			exit (1);
+		}
+		soup_server_add_handler (ssl_server, NULL, NULL,
+					 server_callback, NULL, NULL);
+		printf ("Starting SSL Server on port %d\n", 
+			soup_server_get_port (ssl_server));
+		soup_server_run_async (ssl_server);
+	}
 
 	printf ("\nWaiting for requests...\n");
 

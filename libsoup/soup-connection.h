@@ -46,8 +46,9 @@ typedef struct {
 GType soup_connection_get_type (void);
 
 
-#define SOUP_CONNECTION_DEST_URI "dest-uri"
-#define SOUP_CONNECTION_PROXY_URI "proxy-uri"
+#define SOUP_CONNECTION_ORIGIN_URI      "origin-uri"
+#define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
+#define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 
 SoupConnection *soup_connection_new            (const char       *propname1,
 						...);

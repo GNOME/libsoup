@@ -147,7 +147,8 @@ main (int argc, char **argv)
 		}
 	}
 
-	server = soup_server_new (SOUP_PROTOCOL_HTTP, port);
+	server = soup_server_new (SOUP_SERVER_PORT, port,
+				  NULL);
 	if (!server) {
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);

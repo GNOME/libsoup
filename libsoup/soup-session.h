@@ -43,6 +43,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_MAX_CONNS          "max-conns"
 #define SOUP_SESSION_MAX_CONNS_PER_HOST "max-conns-per-host"
 #define SOUP_SESSION_USE_NTLM           "use-ntlm"
+#define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 
 SoupSession    *soup_session_new              (void);
 SoupSession    *soup_session_new_with_options (const char            *optname1,

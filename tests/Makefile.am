@@ -20,4 +20,4 @@ revserver_SOURCES = revserver.c
 revserver_LDFLAGS = `pkg-config --libs gthread-2.0`
 uri_parsing_SOURCES = uri-parsing.c
 
-EXTRA_DIST = libsoup.supp
+EXTRA_DIST = libsoup.supp test-cert.pem test-key.pem

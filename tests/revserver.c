@@ -120,7 +120,9 @@ new_connection (SoupSocket *listener, SoupSocket *client, gpointer user_data)
 	pthread_t pth;
 
 	g_object_ref (client);
-	soup_socket_set_flags (client, SOUP_SOCKET_FLAG_NONBLOCKING, 0);
+	g_object_set (G_OBJECT (client),
+		      SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
+		      NULL);
 
 	if (pthread_create (&pth, NULL, start_thread, client) != 0) {
 		g_warning ("Could not start thread");
@@ -161,7 +163,7 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	listener = soup_socket_server_new (addr, port,
+	listener = soup_socket_server_new (addr, NULL,
 					   new_connection, NULL);
 	g_object_unref (addr);
 	if (!listener) {

@@ -40,29 +40,44 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+enum {
+	PROP_0,
+
+	PROP_NON_BLOCKING,
+	PROP_NODELAY,
+	PROP_REUSEADDR,
+	PROP_IS_SERVER,
+	PROP_SSL_CREDENTIALS,
+
+	LAST_PROP
+};
+
 struct SoupSocketPrivate {
 	int sockfd;
 	SoupAddress *local_addr, *remote_addr;
 	GIOChannel *iochannel;
 
-	guint watch;
-	guint flags;
+	guint non_blocking:1;
+	guint nodelay:1;
+	guint reuseaddr:1;
+	guint is_server:1;
+	gpointer ssl_creds;
 
+	guint           watch;
 	guint           read_tag, write_tag, error_tag;
 	GByteArray     *read_buf;
 };
-
-#define SOUP_SOCKET_FLAG_SSL    (1<<8)
-
-#define SOUP_SOCKET_SET_FLAG(sock, flag) (sock)->priv->flags |= (flag)
-#define SOUP_SOCKET_CLEAR_FLAG(sock, flag) (sock)->priv->flags &= ~(flag)
-#define SOUP_SOCKET_CHECK_FLAG(sock, flag) ((sock)->priv->flags & (flag))
 
 #ifdef HAVE_IPV6
 #define soup_sockaddr_max sockaddr_in6
 #else
 #define soup_sockaddr_max sockaddr_in
 #endif
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 init (GObject *object)
@@ -121,6 +136,8 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
 
 	/* signals */
 	signals[CONNECT_RESULT] =
@@ -165,9 +182,126 @@ class_init (GObjectClass *object_class)
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_SOCKET);
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_NON_BLOCKING,
+		g_param_spec_boolean (SOUP_SOCKET_FLAG_NONBLOCKING,
+				      "Non-blocking",
+				      "Whether or not the socket uses non-blocking I/O",
+				      TRUE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_NODELAY,
+		g_param_spec_boolean (SOUP_SOCKET_FLAG_NODELAY,
+				      "NODELAY",
+				      "Whether or not the socket uses TCP NODELAY",
+				      TRUE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_REUSEADDR,
+		g_param_spec_boolean (SOUP_SOCKET_FLAG_REUSEADDR,
+				      "REUSEADDR",
+				      "Whether or not the socket uses the TCP REUSEADDR flag",
+				      TRUE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_IS_SERVER,
+		g_param_spec_boolean (SOUP_SOCKET_IS_SERVER,
+				      "Server",
+				      "Whether or not the socket is a server socket",
+				      FALSE,
+				      G_PARAM_READABLE));
+	g_object_class_install_property (
+		object_class, PROP_SSL_CREDENTIALS,
+		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
+				      "SSL credentials",
+				      "SSL credential information, passed from the session to the SSL implementation",
+				      G_PARAM_READWRITE));
 }
 
 SOUP_MAKE_TYPE (soup_socket, SoupSocket, class_init, init, PARENT_TYPE)
+
+
+static void
+update_fdflags (SoupSocket *sock)
+{
+	int flags, opt;
+
+	if (!sock->priv->sockfd)
+		return;
+
+	flags = fcntl (sock->priv->sockfd, F_GETFL, 0);
+	if (flags != -1) {
+		if (sock->priv->non_blocking)
+			flags |= O_NONBLOCK;
+		else
+			flags &= ~O_NONBLOCK;
+		fcntl (sock->priv->sockfd, F_SETFL, flags);
+	}
+
+	opt = (sock->priv->nodelay != 0);
+	setsockopt (sock->priv->sockfd, IPPROTO_TCP,
+		    TCP_NODELAY, &opt, sizeof (opt));
+
+	opt = (sock->priv->reuseaddr != 0);
+	setsockopt (sock->priv->sockfd, SOL_SOCKET,
+		    SO_REUSEADDR, &opt, sizeof (opt));
+}
+
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupSocket *sock = SOUP_SOCKET (object);
+
+	switch (prop_id) {
+	case PROP_NON_BLOCKING:
+		sock->priv->non_blocking = g_value_get_boolean (value);
+		update_fdflags (sock);
+		break;
+	case PROP_NODELAY:
+		sock->priv->nodelay = g_value_get_boolean (value);
+		update_fdflags (sock);
+		break;
+	case PROP_REUSEADDR:
+		sock->priv->reuseaddr = g_value_get_boolean (value);
+		update_fdflags (sock);
+		break;
+	case PROP_SSL_CREDENTIALS:
+		sock->priv->ssl_creds = g_value_get_pointer (value);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupSocket *sock = SOUP_SOCKET (object);
+
+	switch (prop_id) {
+	case PROP_NON_BLOCKING:
+		g_value_set_boolean (value, sock->priv->non_blocking);
+		break;
+	case PROP_NODELAY:
+		g_value_set_boolean (value, sock->priv->nodelay);
+		break;
+	case PROP_REUSEADDR:
+		g_value_set_boolean (value, sock->priv->reuseaddr);
+		break;
+	case PROP_IS_SERVER:
+		g_value_set_boolean (value, sock->priv->is_server);
+		break;
+	case PROP_SSL_CREDENTIALS:
+		g_value_set_pointer (value, sock->priv->ssl_creds);
+		break;
+	default:
+		break;
+	}
+}
 
 
 /**
@@ -176,48 +310,17 @@ SOUP_MAKE_TYPE (soup_socket, SoupSocket, class_init, init, PARENT_TYPE)
  * Return value: a new (disconnected) socket
  **/
 SoupSocket *
-soup_socket_new (void)
+soup_socket_new (const char *optname1, ...)
 {
-	return g_object_new (SOUP_TYPE_SOCKET, NULL);
-}
+	SoupSocket *sock;
+	va_list ap;
 
-static void
-update_fdflags (SoupSocket *sock, guint mask)
-{
-	int flags, opt;
+	va_start (ap, optname1);
+	sock = (SoupSocket *)g_object_new_valist (SOUP_TYPE_SOCKET,
+						  optname1, ap);
+	va_end (ap);
 
-	if (mask & SOUP_SOCKET_FLAG_NONBLOCKING) {
-		flags = fcntl (sock->priv->sockfd, F_GETFL, 0);
-		g_return_if_fail (flags != -1);
-
-		if (sock->priv->flags & SOUP_SOCKET_FLAG_NONBLOCKING)
-			flags |= O_NONBLOCK;
-		else
-			flags &= ~O_NONBLOCK;
-		fcntl (sock->priv->sockfd, F_SETFL, flags);
-	}
-	if (mask & SOUP_SOCKET_FLAG_NODELAY) {
-		opt = (sock->priv->flags & SOUP_SOCKET_FLAG_NODELAY) != 0;
-		setsockopt (sock->priv->sockfd, IPPROTO_TCP,
-			    TCP_NODELAY, &opt, sizeof (opt));
-	}
-	if (mask & SOUP_SOCKET_FLAG_REUSEADDR) {
-		opt = (sock->priv->flags & SOUP_SOCKET_FLAG_REUSEADDR) != 0;
-		setsockopt (sock->priv->sockfd, SOL_SOCKET,
-			    SO_REUSEADDR, &opt, sizeof (opt));
-	}
-}
-
-void
-soup_socket_set_flags (SoupSocket *sock, guint mask, guint flags)
-{
-	g_return_if_fail (SOUP_IS_SOCKET (sock));
-
-	sock->priv->flags |= mask & flags;
-	sock->priv->flags &= ~(mask & ~flags);
-
-	if (sock->priv->sockfd)
-		update_fdflags (sock, mask);
+	return sock;
 }
 
 static GIOChannel *
@@ -231,6 +334,18 @@ get_iochannel (SoupSocket *sock)
 		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
 	}
 	return sock->priv->iochannel;
+}
+
+static gboolean
+idle_connect_result (gpointer user_data)
+{
+	SoupSocket *sock = user_data;
+
+	sock->priv->watch = 0;
+
+	g_signal_emit (sock, signals[CONNECT_RESULT], 0,
+		       sock->priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
+	return FALSE;
 }
 
 static gboolean
@@ -253,26 +368,10 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	if (error)
 		goto cant_connect;
 
-	if (SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SSL))
-		soup_socket_start_ssl (sock);
-
-	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_STATUS_OK);
-	return FALSE;
+	return idle_connect_result (sock);
 
  cant_connect:
 	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_STATUS_CANT_CONNECT);
-	return FALSE;
-}
-
-static gboolean
-idle_connect_result (gpointer user_data)
-{
-	SoupSocket *sock = user_data;
-
-	sock->priv->watch = 0;
-
-	g_signal_emit (sock, signals[CONNECT_RESULT], 0,
-		       sock->priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
 	return FALSE;
 }
 
@@ -315,17 +414,14 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 {
 	struct sockaddr *sa;
 	int len, status;
-	gboolean sync;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (!SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER), FALSE);
+	g_return_val_if_fail (!sock->priv->is_server, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (sock->priv->sockfd == -1, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (SOUP_IS_ADDRESS (remote_addr), SOUP_STATUS_MALFORMED);
 
-	sync = !(sock->priv->flags & SOUP_SOCKET_FLAG_NONBLOCKING);
-
 	sock->priv->remote_addr = g_object_ref (remote_addr);
-	if (sync) {
+	if (!sock->priv->non_blocking) {
 		status = soup_address_resolve_sync (remote_addr);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 			return status;
@@ -333,7 +429,7 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 
 	sa = soup_address_get_sockaddr (sock->priv->remote_addr, &len);
 	if (!sa) {
-		if (sync)
+		if (!sock->priv->non_blocking)
 			return SOUP_STATUS_CANT_RESOLVE;
 
 		g_object_ref (sock);
@@ -346,7 +442,7 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 		g_free (sa);
 		goto done;
 	}
-	update_fdflags (sock, SOUP_SOCKET_FLAG_ALL);
+	update_fdflags (sock);
 
 	status = connect (sock->priv->sockfd, sa, len);
 	g_free (sa);
@@ -368,12 +464,12 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	}
 
  done:
-	if (sync) {
-		return sock->priv->sockfd != -1 ?
-			SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT;
-	} else {
+	if (sock->priv->non_blocking) {
 		sock->priv->watch = g_idle_add (idle_connect_result, sock);
 		return SOUP_STATUS_CONTINUE;
+	} else {
+		return sock->priv->sockfd != -1 ?
+			SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT;
 	}
 }
 
@@ -395,17 +491,17 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	if (sockfd == -1)
 		return TRUE;
 
-	new = soup_socket_new ();
+	new = g_object_new (SOUP_TYPE_SOCKET, NULL);
 	new->priv->sockfd = sockfd;
-	new->priv->flags = (SOUP_SOCKET_FLAG_NONBLOCKING |
-			    SOUP_SOCKET_FLAG_NODELAY |
-			    SOUP_SOCKET_FLAG_SERVER |
-			    (sock->priv->flags & SOUP_SOCKET_FLAG_SSL));
-	update_fdflags (new, SOUP_SOCKET_FLAG_ALL);
+	new->priv->non_blocking = sock->priv->non_blocking;
+	new->priv->nodelay = sock->priv->nodelay;
+	new->priv->is_server = TRUE;
+	new->priv->ssl_creds = sock->priv->ssl_creds;
+	update_fdflags (new);
 
 	new->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 
-	if (SOUP_SOCKET_CHECK_FLAG (new, SOUP_SOCKET_FLAG_SSL))
+	if (new->priv->ssl_creds)
 		soup_socket_start_ssl (new);
 	else
 		get_iochannel (new);
@@ -434,7 +530,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	int sa_len;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
-	g_return_val_if_fail (SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER), FALSE);
+	g_return_val_if_fail (sock->priv->is_server, FALSE);
 	g_return_val_if_fail (sock->priv->sockfd == -1, FALSE);
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), FALSE);
 
@@ -450,7 +546,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
 	if (sock->priv->sockfd < 0)
 		goto cant_listen;
-	update_fdflags (sock, SOUP_SOCKET_FLAG_ALL);
+	update_fdflags (sock);
 
 	/* Bind */
 	if (bind (sock->priv->sockfd, sa, sa_len) != 0)
@@ -487,11 +583,11 @@ soup_socket_start_ssl (SoupSocket *sock)
 	GIOChannel *chan;
 
 	chan = get_iochannel (sock);
-	sock->priv->iochannel = soup_ssl_get_iochannel (
-		sock->priv->iochannel,
-		SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER) ?
-		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT);
-	SOUP_SOCKET_SET_FLAG (sock, SOUP_SOCKET_FLAG_SSL);
+	sock->priv->iochannel = soup_ssl_wrap_iochannel (
+		sock->priv->iochannel, sock->priv->is_server ?
+		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
+		soup_address_get_name (sock->priv->remote_addr),
+		sock->priv->ssl_creds);
 }
 	
 
@@ -499,7 +595,7 @@ soup_socket_start_ssl (SoupSocket *sock)
  * soup_socket_client_new_async:
  * @hostname: remote machine to connect to
  * @port: remote port to connect to
- * @ssl: whether or not to use SSL
+ * @ssl_creds: SSL credentials structure, or %NULL if not SSL
  * @callback: callback to call when the socket is connected
  * @user_data: data for @callback
  *
@@ -509,16 +605,17 @@ soup_socket_start_ssl (SoupSocket *sock)
  * Return value: the new socket (not yet ready for use).
  **/
 SoupSocket *
-soup_socket_client_new_async (const char *hostname, guint port, gboolean ssl, 
+soup_socket_client_new_async (const char *hostname, guint port,
+			      gpointer ssl_creds,
 			      SoupSocketCallback callback, gpointer user_data)
 {
 	SoupSocket *sock;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 
-	sock = soup_socket_new ();
-	sock->priv->flags = (SOUP_SOCKET_FLAG_NONBLOCKING |
-			     (ssl ? SOUP_SOCKET_FLAG_SSL : 0));
+	sock = g_object_new (SOUP_TYPE_SOCKET,
+			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
+			     NULL);
 	soup_socket_connect (sock, soup_address_new (hostname, port));
 
 	if (callback) {
@@ -532,7 +629,7 @@ soup_socket_client_new_async (const char *hostname, guint port, gboolean ssl,
  * soup_socket_client_new_sync:
  * @hostname: remote machine to connect to
  * @port: remote port to connect to
- * @ssl: whether or not to use SSL
+ * @ssl_creds: SSL credentials structure, or %NULL if not SSL
  * @status_ret: pointer to return the soup status in
  *
  * Creates a connection to @hostname and @port. If @status_ret is not
@@ -541,16 +638,18 @@ soup_socket_client_new_async (const char *hostname, guint port, gboolean ssl,
  * Return value: the new socket, or %NULL if it could not connect.
  **/
 SoupSocket *
-soup_socket_client_new_sync (const char *hostname, guint port, gboolean ssl,
-			     guint *status_ret)
+soup_socket_client_new_sync (const char *hostname, guint port,
+			     gpointer ssl_creds, guint *status_ret)
 {
 	SoupSocket *sock;
 	guint status;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 
-	sock = soup_socket_new ();
-	sock->priv->flags = ssl ? SOUP_SOCKET_FLAG_SSL : 0;
+	sock = g_object_new (SOUP_TYPE_SOCKET,
+			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
+			     NULL);
+	sock->priv->non_blocking = FALSE;
 	status = soup_socket_connect (sock, soup_address_new (hostname, port));
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
@@ -567,7 +666,7 @@ soup_socket_client_new_sync (const char *hostname, guint port, gboolean ssl,
  * soup_socket_server_new:
  * @local_addr: Local address to bind to. (Use soup_address_any_new() to
  * accept connections on any local address)
- * @ssl: Whether or not this is an SSL server.
+ * @ssl_creds: SSL credentials, or %NULL if this is not an SSL server
  * @callback: Callback to call when a client connects
  * @user_data: data to pass to @callback.
  *
@@ -578,7 +677,7 @@ soup_socket_client_new_sync (const char *hostname, guint port, gboolean ssl,
  * Returns: a new #SoupSocket, or NULL if there was a failure.
  **/
 SoupSocket *
-soup_socket_server_new (SoupAddress *local_addr, gboolean ssl,
+soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 			SoupSocketListenerCallback callback,
 			gpointer user_data)
 {
@@ -586,10 +685,10 @@ soup_socket_server_new (SoupAddress *local_addr, gboolean ssl,
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), NULL);
 
-	sock = soup_socket_new ();
-	sock->priv->flags = (SOUP_SOCKET_FLAG_SERVER |
-			     SOUP_SOCKET_FLAG_NONBLOCKING |
-			     (ssl ? SOUP_SOCKET_FLAG_SSL : 0));
+	sock = g_object_new (SOUP_TYPE_SOCKET,
+			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
+			     NULL);
+	sock->priv->is_server = TRUE;
 	if (!soup_socket_listen (sock, local_addr)) {
 		g_object_unref (sock);
 		return NULL;
