@@ -42,12 +42,29 @@ static GObjectClass *parent_class;
 enum {
 	CONNECT_RESULT,
 	DISCONNECTED,
+	AUTHENTICATE,
+	REAUTHENTICATE,
 	LAST_SIGNAL
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+enum {
+  PROP_0,
+
+  PROP_DEST_URI,
+  PROP_PROXY_URI,
+
+  LAST_PROP
+};
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
+
 static void request_done (SoupMessage *req, gpointer user_data);
+static void send_request (SoupConnection *conn, SoupMessage *req);
 
 static void
 init (GObject *object)
@@ -87,11 +104,19 @@ dispose (GObject *object)
 static void
 class_init (GObjectClass *object_class)
 {
+	SoupConnectionClass *connection_class =
+		SOUP_CONNECTION_CLASS (object_class);
+
 	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method definition */
+	connection_class->send_request = send_request;
 
 	/* virtual method override */
 	object_class->dispose = dispose;
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
 
 	/* signals */
 	signals[CONNECT_RESULT] =
@@ -111,6 +136,46 @@ class_init (GObjectClass *object_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+	signals[AUTHENTICATE] =
+		g_signal_new ("authenticate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, authenticate),
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
+			      G_TYPE_NONE, 5,
+			      SOUP_TYPE_MESSAGE,
+			      G_TYPE_STRING,
+			      G_TYPE_STRING,
+			      G_TYPE_POINTER,
+			      G_TYPE_POINTER);
+	signals[REAUTHENTICATE] =
+		g_signal_new ("reauthenticate",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, reauthenticate),
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
+			      G_TYPE_NONE, 5,
+			      SOUP_TYPE_MESSAGE,
+			      G_TYPE_STRING,
+			      G_TYPE_STRING,
+			      G_TYPE_POINTER,
+			      G_TYPE_POINTER);
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_DEST_URI,
+		g_param_spec_pointer (SOUP_CONNECTION_DEST_URI,
+				      "Destination URI",
+				      "The HTTP destination server to use for this connection",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_PROXY_URI,
+		g_param_spec_pointer (SOUP_CONNECTION_PROXY_URI,
+				      "Proxy URI",
+				      "The HTTP Proxy to use for this connection",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
@@ -118,67 +183,75 @@ SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
 
 /**
  * soup_connection_new:
- * @uri: remote machine to connect to
+ * @propname1: name of first property to set
+ * @...:
  *
- * Creates a connection to @uri. You must call
- * soup_connection_connect_async() or soup_connection_connect_sync()
- * to connect it after creating it.
+ * Creates an HTTP connection. You must set at least one of
+ * %SOUP_CONNECTION_DEST_URI or %SOUP_CONNECTION_PROXY_URI. If you set a
+ * destination URI but no proxy URI, this will be a direct connection. If
+ * you set a proxy URI and an https destination URI, this will be a tunnel.
+ * Otherwise it will be an http proxy connection.
  *
- * Return value: the new connection (not yet ready for use).
- **/
-SoupConnection *
-soup_connection_new (const SoupUri *uri)
-{
-	SoupConnection *conn;
-
-	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-	conn->priv->dest_uri = soup_uri_copy_root (uri);
-
-	return conn;
-}
-
-/**
- * soup_connection_new_proxy:
- * @proxy_uri: proxy to connect to
- *
- * Creates a connection to @proxy_uri. As with soup_connection_new(),
- * the returned object is not yet connected.
+ * You must call soup_connection_connect_async() or
+ * soup_connection_connect_sync() to connect it after creating it.
  *
  * Return value: the new connection (not yet ready for use).
  **/
 SoupConnection *
-soup_connection_new_proxy (const SoupUri *proxy_uri)
+soup_connection_new (const char *propname1, ...)
 {
 	SoupConnection *conn;
+	va_list ap;
 
-	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-	conn->priv->proxy_uri = soup_uri_copy_root (proxy_uri);
+	va_start (ap, propname1);
+	conn = (SoupConnection *)g_object_new_valist (SOUP_TYPE_CONNECTION,
+						      propname1, ap);
+	va_end (ap);
 
 	return conn;
 }
 
-/**
- * soup_connection_new_tunnel:
- * @proxy_uri: proxy to connect to
- * @dest_uri: remote machine to ask the proxy to connect to
- *
- * Creates a connection to @uri via @proxy_uri. As with
- * soup_connection_new(), the returned object is not yet connected.
- *
- * Return value: the new connection (not yet ready for use).
- **/
-SoupConnection *
-soup_connection_new_tunnel (const SoupUri *proxy_uri, const SoupUri *dest_uri)
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
 {
-	SoupConnection *conn;
+	SoupConnection *conn = SOUP_CONNECTION (object);
+	gpointer pval;
 
-	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-	conn->priv->dest_uri = soup_uri_copy_root (dest_uri);
-	conn->priv->proxy_uri = soup_uri_copy_root (proxy_uri);
-
-	return conn;
+	switch (prop_id) {
+	case PROP_DEST_URI:
+		pval = g_value_get_pointer (value);
+		conn->priv->dest_uri = pval ? soup_uri_copy (pval) : NULL;
+		break;
+	case PROP_PROXY_URI:
+		pval = g_value_get_pointer (value);
+		conn->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+		break;
+	default:
+		break;
+	}
 }
 
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+
+	switch (prop_id) {
+	case PROP_DEST_URI:
+		g_value_set_pointer (value, conn->priv->dest_uri ?
+				     soup_uri_copy (conn->priv->dest_uri) :
+				     NULL);
+		break;
+	case PROP_PROXY_URI:
+		g_value_set_pointer (value, conn->priv->proxy_uri ?
+				     soup_uri_copy (conn->priv->proxy_uri) :
+				     NULL);
+	default:
+		break;
+	}
+}
 
 static void
 socket_disconnected (SoupSocket *sock, gpointer conn)
@@ -392,20 +465,48 @@ request_done (SoupMessage *req, gpointer user_data)
 		soup_connection_disconnect (conn);
 }
 
+static void
+send_request (SoupConnection *conn, SoupMessage *req)
+{
+	if (req != conn->priv->cur_req) {
+		g_return_if_fail (conn->priv->cur_req == NULL);
+		conn->priv->cur_req = req;
+		g_object_add_weak_pointer (G_OBJECT (req),
+					   (gpointer *)conn->priv->cur_req);
+
+		g_signal_connect (req, "finished",
+				  G_CALLBACK (request_done), conn);
+	}
+
+	soup_message_io_cancel (req);
+	soup_message_send_request (req, conn->priv->socket,
+				   conn->priv->proxy_uri != NULL);
+}
+
 void
 soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
 	g_return_if_fail (conn->priv->socket != NULL);
-	g_return_if_fail (conn->priv->cur_req == NULL);
 
-	conn->priv->cur_req = req;
-	g_object_add_weak_pointer (G_OBJECT (req),
-				   (gpointer *)conn->priv->cur_req);
+	SOUP_CONNECTION_GET_CLASS (conn)->send_request (conn, req);
+}
 
-	g_signal_connect (req, "finished", G_CALLBACK (request_done), conn);
+void
+soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
+			      const char *auth_type, const char *auth_realm,
+			      char **username, char **password)
+{
+	g_signal_emit (conn, signals[AUTHENTICATE], 0,
+		       msg, auth_type, auth_realm, username, password);
+}
 
-	soup_message_send_request (req, conn->priv->socket,
-				   conn->priv->proxy_uri != NULL);
+void
+soup_connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password)
+{
+	g_signal_emit (conn, signals[REAUTHENTICATE], 0,
+		       msg, auth_type, auth_realm, username, password);
 }

@@ -1,3 +1,58 @@
+2003-09-17  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-connection.c (soup_connection_new): Replaces the
+	three previous soup_connection_new* functions and uses gobject
+	properties to set the destination and proxy uris.
+	(class_init): set up two more signals, authenticate and
+	reauthenticate.
+	(soup_connection_send_request): virtualize
+	(send_request): Default implementation
+
+	* libsoup/soup-connection-ntlm.c: New SoupConnection subclass that
+	also handles NTLM authentication. Includes all of the NTLM code
+	formerly in soup-auth-ntlm.c.
+
+	* libsoup/soup-auth-ntlm.[ch]: Gone.
+
+	* libsoup/soup-auth.c: Remove NTLM refs
+
+	* libsoup/soup-session.c (class_init): Add gobject properties for
+	proxy, max_conns, use_ntlm. Change the "authenticate" and
+	"reauthenticate" signal prototypes to not pass a SoupAuth (so they
+	can be used for authenticating SoupConnectionNTLM as well, which
+	doesn't use a SoupAuth).
+	(soup_session_new): Renamed from soup_session_new_default.
+	(soup_session_new_with_options): Replaces
+	soup_session_new_with_proxy and soup_session_new_full. Takes
+	gobject properties.
+	(run_queue): Create a new connection of type SoupConnection or
+	SoupConnectionNTLM depending on our "use_ntlm" property. Connect
+	to its authenticate and reauthenticate signals.
+	(connection_authenticate, connection_reauthenticate): proxy these
+	signals.
+
+	* libsoup/soup-address.c (update_address_from_entry): Fix a
+	crasher when failing to resolve the address.
+
+	* libsoup/soup-dns.c (check_hostent): Fix some "how was this
+	working before" bugs.
+
+	* libsoup/soup-message-client-io.c (soup_message_send_request):
+	call soup_message_prepare() to clean up the existing response
+	state.
+
+	* libsoup/soup-message-io.c (io_error): Set the read_state to DONE
+	when processing an OK EOF.
+
+	* libsoup/soup-status.h (SoupStatusClass): fix the numbering of
+	these so that SOUP_STATUS_CLASS_SUCCESS is 2, etc.
+
+	* tests/auth-test.c (authenticate, reauthenticate): Update for new
+	prototypes.
+	(main): Use soup_session_new.
+	* tests/get.c (main): Likewise.
+	* tests/simple-proxy.c (main): Likewise.
+
 2003-09-10  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-session.c: Add "authenticate" and "reauthenticate"

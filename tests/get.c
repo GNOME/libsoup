@@ -207,7 +207,7 @@ main (int argc, char **argv)
 	int opt;
 
 	g_type_init ();
-	session = soup_session_new_default ();
+	session = soup_session_new ();
 
 	while ((opt = getopt (argc, argv, "r")) != -1) {
 		switch (opt) {

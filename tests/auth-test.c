@@ -250,28 +250,28 @@ handler (SoupMessage *msg, gpointer data)
 }
 
 static void
-authenticate (SoupSession *session, SoupAuth *auth, SoupMessage *msg, gpointer data)
+authenticate (SoupSession *session, SoupMessage *msg,
+	      const char *auth_type, const char *auth_realm,
+	      char **username, char **password, gpointer data)
 {
-	char user[6], password[7];
 	int *i = data;
 
 	if (tests[*i].provided[0]) {
-		sprintf (user, "user%c", tests[*i].provided[0]);
-		sprintf (password, "realm%c", tests[*i].provided[0]);
-		soup_auth_authenticate (auth, user, password);
+		*username = g_strdup_printf ("user%c", tests[*i].provided[0]);
+		*password = g_strdup_printf ("realm%c", tests[*i].provided[0]);
 	}
 }
 
 static void
-reauthenticate (SoupSession *session, SoupAuth *auth, SoupMessage *msg, gpointer data)
+reauthenticate (SoupSession *session, SoupMessage *msg, 
+		const char *auth_type, const char *auth_realm,
+		char **username, char **password, gpointer data)
 {
-	char user[6], password[7];
 	int *i = data;
 
 	if (tests[*i].provided[0] && tests[*i].provided[1]) {
-		sprintf (user, "user%c", tests[*i].provided[1]);
-		sprintf (password, "realm%c", tests[*i].provided[1]);
-		soup_auth_authenticate (auth, user, password);
+		*username = g_strdup_printf ("user%c", tests[*i].provided[1]);
+		*password = g_strdup_printf ("realm%c", tests[*i].provided[1]);
 	}
 }
 
@@ -285,7 +285,7 @@ main (int argc, char **argv)
 
 	g_type_init ();
 
-	session = soup_session_new_default ();
+	session = soup_session_new ();
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), &i);
 	g_signal_connect (session, "reauthenticate",

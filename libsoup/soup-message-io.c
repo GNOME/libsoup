@@ -120,6 +120,7 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 	/* Closing the connection to signify EOF is sometimes ok */
 	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
 	    io->read_encoding == SOUP_TRANSFER_UNKNOWN) {
+		io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
 		soup_message_io_finished (msg);
 		return;
 	}

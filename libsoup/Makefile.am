@@ -62,9 +62,9 @@ libsoup_2_2_la_SOURCES =		\
 	soup-auth-basic.c		\
 	soup-auth-digest.h		\
 	soup-auth-digest.c		\
-	soup-auth-ntlm.h		\
-	soup-auth-ntlm.c		\
 	soup-connection.c		\
+	soup-connection-ntlm.h		\
+	soup-connection-ntlm.c		\
 	soup-dns.h			\
 	soup-dns.c			\
 	soup-gnutls.h			\

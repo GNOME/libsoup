@@ -154,6 +154,7 @@ void
 soup_message_send_request (SoupMessage *req, SoupSocket *sock,
 			   gboolean is_via_proxy)
 {
+	soup_message_prepare (req);
 	soup_message_io_client (req, sock,
 				get_request_headers,
 				parse_response_headers,

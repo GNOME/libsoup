@@ -159,7 +159,7 @@ main (int argc, char **argv)
 		soup_server_get_port (server));
 	soup_server_run_async (server);
 
-	session = soup_session_new_default ();
+	session = soup_session_new ();
 
 	printf ("\nWaiting for requests...\n");
 

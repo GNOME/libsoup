@@ -7,7 +7,6 @@
 #define SOUP_SESSION_H 1
 
 #include <libsoup/soup-types.h>
-#include <libsoup/soup-auth.h>
 #include <libsoup/soup-message.h>
 
 #define SOUP_TYPE_SESSION            (soup_session_get_type ())
@@ -29,28 +28,35 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*authenticate)   (SoupSession *, SoupAuth *, SoupMessage *);
-	void (*reauthenticate) (SoupSession *, SoupAuth *, SoupMessage *);
+	void (*authenticate)   (SoupSession *, SoupMessage *,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password);
+	void (*reauthenticate) (SoupSession *, SoupMessage *,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password);
 
 } SoupSessionClass;
 
 GType soup_session_get_type (void);
 
-SoupSession    *soup_session_new_default     (void);
-SoupSession    *soup_session_new_with_proxy  (const SoupUri         *proxy_uri);
-SoupSession    *soup_session_new_full        (const SoupUri         *proxy_uri,
-					      guint                  max_conns,
-					      guint                  max_per_host);
+#define SOUP_SESSION_PROXY_URI          "proxy-uri"
+#define SOUP_SESSION_MAX_CONNS          "max-conns"
+#define SOUP_SESSION_MAX_CONNS_PER_HOST "max-conns-per-host"
+#define SOUP_SESSION_USE_NTLM           "use-ntlm"
 
-void            soup_session_queue_message   (SoupSession           *session,
-					      SoupMessage           *req,
-					      SoupMessageCallbackFn  callback,
-					      gpointer               user_data);
-void            soup_session_requeue_message (SoupSession           *session,
-					      SoupMessage           *req);
+SoupSession    *soup_session_new              (void);
+SoupSession    *soup_session_new_with_options (const char            *optname1,
+					       ...);
 
-guint           soup_session_send_message    (SoupSession           *session,
-					      SoupMessage            *req);
+void            soup_session_queue_message    (SoupSession           *session,
+					       SoupMessage           *req,
+					       SoupMessageCallbackFn  callback,
+					       gpointer               user_data);
+void            soup_session_requeue_message  (SoupSession           *session,
+					       SoupMessage           *req);
+
+guint           soup_session_send_message     (SoupSession           *session,
+					       SoupMessage            *req);
 
 
 #endif /* SOUP_SESSION_H */

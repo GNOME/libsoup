@@ -52,6 +52,4 @@ void soup_message_io_server  (SoupMessage               *msg,
 			      SoupMessageParseHeadersFn  parse_headers_cb,
 			      gpointer                   user_data);
 
-void soup_message_io_cancel  (SoupMessage *msg);
-
 #endif /* SOUP_MESSAGE_PRIVATE_H */

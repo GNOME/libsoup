@@ -30,20 +30,31 @@ typedef struct {
 
 	/* signals */
 	void (*connect_result) (SoupConnection *, guint);
-	void (*disconnected) (SoupConnection *);
+	void (*disconnected)   (SoupConnection *);
+
+	void (*authenticate)   (SoupConnection *, SoupMessage *,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password);
+	void (*reauthenticate) (SoupConnection *, SoupMessage *,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password);
+
+	/* methods */
+	void (*send_request) (SoupConnection *, SoupMessage *);
 } SoupConnectionClass;
 
 GType soup_connection_get_type (void);
 
 
+#define SOUP_CONNECTION_DEST_URI "dest-uri"
+#define SOUP_CONNECTION_PROXY_URI "proxy-uri"
+
+SoupConnection *soup_connection_new            (const char       *propname1,
+						...);
+
 typedef void  (*SoupConnectionCallback)        (SoupConnection   *sock,
 						guint             status,
 						gpointer          data);
-
-SoupConnection *soup_connection_new            (const SoupUri    *uri);
-SoupConnection *soup_connection_new_proxy      (const SoupUri    *proxy_uri);
-SoupConnection *soup_connection_new_tunnel     (const SoupUri    *proxy_uri,
-						const SoupUri    *dest_uri);
 
 void            soup_connection_connect_async  (SoupConnection   *conn,
 						SoupConnectionCallback,
@@ -57,5 +68,20 @@ time_t          soup_connection_last_used      (SoupConnection   *conn);
 
 void            soup_connection_send_request   (SoupConnection   *conn,
 						SoupMessage      *req);
+
+/* protected */
+void            soup_connection_authenticate   (SoupConnection   *conn,
+						SoupMessage      *msg,
+						const char       *auth_type,
+						const char       *auth_realm,
+						char            **username,
+						char            **password);
+void            soup_connection_reauthenticate (SoupConnection   *conn,
+						SoupMessage      *msg,
+						const char       *auth_type,
+						const char       *auth_realm,
+						char            **username,
+						char            **password);
+
 
 #endif /* SOUP_CONNECTION_H */

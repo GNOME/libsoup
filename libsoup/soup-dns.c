@@ -605,9 +605,9 @@ static void
 check_hostent (SoupDNSEntry *entry, gboolean block)
 {
 	char buf[256], *namelenp, *name, *typep, *addrlenp, *addr;
-	int nread;
+	int nread, status;
 	fd_set readfds;
-	struct timeval tv = { 0, 0 };
+	struct timeval tv = { 0, 0 }, *tvp;
 
 	soup_dns_lock ();
 
@@ -616,9 +616,18 @@ check_hostent (SoupDNSEntry *entry, gboolean block)
 		return;
 	}
 
-	FD_ZERO (&readfds);
-	FD_SET (entry->fd, &readfds);
-	if (select (entry->fd + 1, &readfds, NULL, NULL, &tv) != 0) {
+	if (block)
+		tvp = &tv;
+	else
+		tvp = NULL;
+
+	do {
+		FD_ZERO (&readfds);
+		FD_SET (entry->fd, &readfds);
+		status = select (entry->fd + 1, &readfds, NULL, NULL, tvp);
+	} while (status == -1 && errno == EINTR);
+
+	if (status == 0) {
 		soup_dns_unlock ();
 		return;
 	}
@@ -660,7 +669,7 @@ soup_dns_entry_get_hostent (SoupDNSEntry *entry)
 	struct hostent *h;
 
 	check_hostent (entry, TRUE);
-	h = copy_hostent (entry->h);
+	h = entry->h ? copy_hostent (entry->h) : NULL;
 	soup_dns_entry_unref (entry);
 
 	return h;

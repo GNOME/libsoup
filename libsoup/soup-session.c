@@ -15,6 +15,7 @@
 
 #include "soup-session.h"
 #include "soup-connection.h"
+#include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-queue.h"
 #include "soup-private.h"
@@ -28,13 +29,12 @@ typedef struct {
 
 	GHashTable *auth_realms;      /* path -> scheme:realm */
 	GHashTable *auths;            /* scheme:realm -> SoupAuth */
-
-	GHashTable *ntlm_auths;	      /* SoupConnection -> SoupAuth */
 } SoupSessionHost;
 
 struct SoupSessionPrivate {
 	SoupUri *proxy_uri;
 	guint max_conns, max_conns_per_host;
+	gboolean use_ntlm;
 
 	SoupMessageQueue *queue;
 
@@ -63,6 +63,22 @@ enum {
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
+
+enum {
+  PROP_0,
+
+  PROP_PROXY_URI,
+  PROP_MAX_CONNS,
+  PROP_MAX_CONNS_PER_HOST,
+  PROP_USE_NTLM,
+
+  LAST_PROP
+};
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 init (GObject *object)
@@ -105,6 +121,8 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
 
 	/* signals */
 	signals[AUTHENTICATE] =
@@ -113,53 +131,132 @@ class_init (GObjectClass *object_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, authenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
-			      G_TYPE_NONE, 2,
+			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
+			      G_TYPE_NONE, 5,
+			      SOUP_TYPE_MESSAGE,
+			      G_TYPE_STRING,
+			      G_TYPE_STRING,
 			      G_TYPE_POINTER,
-			      SOUP_TYPE_MESSAGE);
+			      G_TYPE_POINTER);
 	signals[REAUTHENTICATE] =
 		g_signal_new ("reauthenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, reauthenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
-			      G_TYPE_NONE, 2,
+			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
+			      G_TYPE_NONE, 5,
+			      SOUP_TYPE_MESSAGE,
+			      G_TYPE_STRING,
+			      G_TYPE_STRING,
 			      G_TYPE_POINTER,
-			      SOUP_TYPE_MESSAGE);
+			      G_TYPE_POINTER);
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_PROXY_URI,
+		g_param_spec_pointer (SOUP_SESSION_PROXY_URI,
+				      "Proxy URI",
+				      "The HTTP Proxy to use for this session",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_MAX_CONNS,
+		g_param_spec_int (SOUP_SESSION_MAX_CONNS,
+				  "Max Connection Count",
+				  "The maximum number of connections that the session can open at once",
+				  1,
+				  G_MAXINT,
+				  10,
+				  G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_MAX_CONNS_PER_HOST,
+		g_param_spec_int (SOUP_SESSION_MAX_CONNS_PER_HOST,
+				  "Max Per-Host Connection Count",
+				  "The maximum number of connections that the session can open at once to a given host",
+				  1,
+				  G_MAXINT,
+				  4,
+				  G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_USE_NTLM,
+		g_param_spec_boolean (SOUP_SESSION_USE_NTLM,
+				      "Use NTLM",
+				      "Whether or not to use NTLM authentication",
+				      FALSE,
+				      G_PARAM_READWRITE));
 }
 
 SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
 
 SoupSession *
-soup_session_new_default (void)
+soup_session_new (void)
 {
 	return g_object_new (SOUP_TYPE_SESSION, NULL);
 }
 
 SoupSession *
-soup_session_new_with_proxy (const SoupUri *proxy_uri)
+soup_session_new_with_options (const char *optname1, ...)
 {
 	SoupSession *session;
+	va_list ap;
 
-	session = soup_session_new_default ();
-	if (proxy_uri)
-		session->priv->proxy_uri = soup_uri_copy (proxy_uri);
+	va_start (ap, optname1);
+	session = (SoupSession *)g_object_new_valist (SOUP_TYPE_SESSION, optname1, ap);
+	va_end (ap);
 
 	return session;
 }
 
-SoupSession *
-soup_session_new_full (const SoupUri *proxy_uri,
-		       guint max_conns, guint max_conns_per_host)
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
 {
-	SoupSession *session;
+	SoupSession *session = SOUP_SESSION (object);
+	gpointer pval;
 
-	session = soup_session_new_with_proxy (proxy_uri);
-	session->priv->max_conns = max_conns;
-	session->priv->max_conns_per_host = max_conns_per_host;
+	switch (prop_id) {
+	case PROP_PROXY_URI:
+		pval = g_value_get_pointer (value);
+		session->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+		break;
+	case PROP_MAX_CONNS:
+		session->priv->max_conns = g_value_get_int (value);
+		break;
+	case PROP_MAX_CONNS_PER_HOST:
+		session->priv->max_conns_per_host = g_value_get_int (value);
+		break;
+	case PROP_USE_NTLM:
+		session->priv->use_ntlm = g_value_get_boolean (value);
+		break;
+	default:
+		break;
+	}
+}
 
-	return session;
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupSession *session = SOUP_SESSION (object);
+
+	switch (prop_id) {
+	case PROP_PROXY_URI:
+		g_value_set_pointer (value, session->priv->proxy_uri ?
+				     soup_uri_copy (session->priv->proxy_uri) :
+				     NULL);
+		break;
+	case PROP_MAX_CONNS:
+		g_value_set_int (value, session->priv->max_conns);
+		break;
+	case PROP_MAX_CONNS_PER_HOST:
+		g_value_set_int (value, session->priv->max_conns_per_host);
+		break;
+	case PROP_USE_NTLM:
+		g_value_set_boolean (value, session->priv->use_ntlm);
+		break;
+	default:
+		break;
+	}
 }
 
 
@@ -268,13 +365,26 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed)
 {
 	const SoupUri *uri = soup_message_get_uri (msg);
+	char *username = NULL, *password = NULL;
 
 	if (uri->passwd && !prior_auth_failed) {
 		soup_auth_authenticate (auth, uri->user, uri->passwd);
 		return TRUE;
 	}
 
-	g_signal_emit (session, signals[prior_auth_failed ? REAUTHENTICATE : AUTHENTICATE], 0, auth, msg);
+	g_signal_emit (session, signals[prior_auth_failed ? REAUTHENTICATE : AUTHENTICATE], 0,
+		       msg, soup_auth_get_scheme_name (auth),
+		       soup_auth_get_realm (auth),
+		       &username, &password);
+	if (username || password)
+		soup_auth_authenticate (auth, username, password);
+	if (username)
+		g_free (username);
+	if (password) {
+		memset (password, 0, strlen (password));
+		g_free (password);
+	}
+
 	return soup_auth_is_authenticated (auth);
 }
 
@@ -372,6 +482,26 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 }
 
 static void
+connection_authenticate (SoupConnection *conn, SoupMessage *msg,
+			 const char *auth_type, const char *auth_realm,
+			 char **username, char **password, gpointer session)
+{
+	g_signal_emit (session, signals[AUTHENTICATE], 0,
+		       msg, auth_type, auth_realm, username, password);
+}
+
+static void
+connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
+			   const char *auth_type, const char *auth_realm,
+			   char **username, char **password,
+			   gpointer user_data)
+{
+	g_signal_emit (conn, signals[REAUTHENTICATE], 0,
+		       msg, auth_type, auth_realm, username, password);
+}
+
+
+static void
 authorize_handler (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
@@ -387,6 +517,8 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 							"WWW-Authenticate");
 		proxy = FALSE;
 	}
+	if (!headers)
+		return;
 
 	if (update_auth_internal (session, msg, headers, proxy, TRUE))
 		soup_session_requeue_message (session, msg);
@@ -421,16 +553,17 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 static void
 request_finished (SoupMessage *req, gpointer user_data)
 {
-	SoupSession *session = user_data;
-
-	soup_message_queue_remove_message (session->priv->queue, req);
 	req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
-final_finished (SoupMessage *req, gpointer session)
+final_finished (SoupMessage *req, gpointer user_data)
 {
+	SoupSession *session = user_data;
+
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
+		soup_message_queue_remove_message (session->priv->queue, req);
+
 		g_signal_handlers_disconnect_by_func (req, request_finished, session);
 		g_signal_handlers_disconnect_by_func (req, final_finished, session);
 		g_object_unref (req);
@@ -627,16 +760,18 @@ run_queue (SoupSession *session, gboolean try_pruning)
 		}
 
 		/* Otherwise, open a new connection */
-		if (session->priv->proxy_uri &&
-		    host->root_uri->protocol == SOUP_PROTOCOL_HTTPS) {
-			conn = soup_connection_new_tunnel (
-				session->priv->proxy_uri, host->root_uri);
-		} else if (session->priv->proxy_uri) {
-			conn = soup_connection_new_proxy (
-				session->priv->proxy_uri);
-		} else {
-			conn = soup_connection_new (host->root_uri);
-		}
+		conn = g_object_new (
+			(session->priv->use_ntlm ?
+			 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
+			SOUP_CONNECTION_DEST_URI, host->root_uri,
+			SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
+			NULL);
+		g_signal_connect (conn, "authenticate",
+				  G_CALLBACK (connection_authenticate),
+				  session);
+		g_signal_connect (conn, "reauthenticate",
+				  G_CALLBACK (connection_reauthenticate),
+				  session);
 
 		soup_connection_connect_async (conn, got_connection, session);
 		g_signal_connect (conn, "disconnected",
@@ -675,8 +810,6 @@ run_queue (SoupSession *session, gboolean try_pruning)
 static void
 queue_message (SoupSession *session, SoupMessage *req, gboolean requeue)
 {
-	soup_message_prepare (req);
-
 	req->status = SOUP_MESSAGE_STATUS_QUEUED;
 	if (!requeue)
 		soup_message_queue_append (session->priv->queue, req);

@@ -313,6 +313,8 @@ update_address_from_entry (SoupAddress *addr, SoupDNSEntry *entry)
 	struct hostent *h;
 
 	h = soup_dns_entry_get_hostent (addr->priv->lookup);
+	if (!h)
+		return SOUP_STATUS_CANT_RESOLVE;
 
 	if (!addr->priv->name)
 		addr->priv->name = g_strdup (h->h_name);

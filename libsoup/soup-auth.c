@@ -14,7 +14,6 @@
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
-#include "soup-auth-ntlm.h"
 #include "soup-private.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
@@ -37,7 +36,6 @@ typedef struct {
 
 static AuthScheme known_auth_schemes [] = {
 	{ "Basic",  soup_auth_basic_get_type,  0 },
-	{ "NTLM",   soup_auth_ntlm_get_type,   2 },
 	{ "Digest", soup_auth_digest_get_type, 3 },
 	{ NULL }
 };
