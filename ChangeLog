@@ -1,3 +1,13 @@
+2001-08-30  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-wsdl/Makefile.am (soup_wsdl_LDADD): Link with
+	libwsdl.so and libwsdl-build.a.
+
+	* src/libwsdl/Makefile.am (libwsdlinclude_HEADERS): Dont install
+	wsdl-typecodes-c.h. Make libwsdl-build a static lib.
+	(libwsdl_build_a_SOURCES): Remove everthing but wsdl-typecodes-c.[ch].
+	(libwsdl_build_a_LIBADD): Depend on libwsdl.
+
 2001-08-29  Alex Graveley  <alex@ximian.com>
 
 	* build/soup_ssl_proxy.dsp: 
