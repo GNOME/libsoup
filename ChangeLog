@@ -1,5 +1,10 @@
 2002-08-07  Joe Shaw  <joe@ximian.com>
 
+	* src/libsoup/soup-auth.c (digest_auth_func): Fix a memory leak.
+	(soup_auth_new_digest): Fix a memory leak.
+
+2002-08-07  Joe Shaw  <joe@ximian.com>
+
 	* configure.in, src/libsoup/soup-private.h: Version 0.7.6.
 
 2002-08-06  Dan Winship  <danw@ximian.com>

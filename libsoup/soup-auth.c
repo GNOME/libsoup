@@ -271,6 +271,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 		url,
 		response);
 
+	g_free (response);
 	g_free (url);
 	g_free (nc);
 
@@ -437,6 +438,8 @@ soup_auth_new_digest (void)
 	digest->nc = 1;
 	/* We're just going to do qop=auth for now */
 	digest->qop = QOP_AUTH;
+
+	g_free (bgen);
 
 	return auth;
 }
