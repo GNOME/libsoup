@@ -315,21 +315,16 @@ soup_encode_http_auth (SoupUri *uri, GString *header, gboolean proxy_auth)
 	}
 }
 
-struct SoupCustomHeader {
-	gchar *key;
-	gchar *val;
-};
-
 struct SoupUsedHeaders {
-	gchar  *host;
-	gchar  *user_agent;
-	gchar  *content_type;
-	gchar  *soapaction;
-	gchar  *connection;
-	gchar  *proxy_auth;
-	gchar  *auth;
+	gboolean host;
+	gboolean user_agent;
+	gboolean content_type;
+	gboolean soapaction;
+	gboolean connection;
+	gboolean proxy_auth;
+	gboolean auth;
 
-	GSList *custom_headers;
+	GString *out;
 };
 
 static inline void 
@@ -337,51 +332,66 @@ soup_check_used_headers (gchar *key,
 			 gchar *value, 
 			 struct SoupUsedHeaders *hdrs)
 {
-	if (strcasecmp (key, "Host") == 0) hdrs->host = value;
-	else if (strcasecmp (key, "User-Agent") == 0) hdrs->user_agent = value;
-	else if (strcasecmp (key, "SOAPAction") == 0) hdrs->soapaction = value;
-	else if (strcasecmp (key, "Connection") == 0) hdrs->connection = value;
-	else if (strcasecmp (key, "Authorization") == 0) hdrs->auth = value;
-	else if (strcasecmp (key, "Proxy-Authorization") == 0) 
-		hdrs->proxy_auth = value;
-	else if (strcasecmp (key, "Content-Type") == 0) 
-		hdrs->content_type = value;
-	else if (strcasecmp (key, "Content-Length"))
-		g_warning ("Content-Length set as custom request header "
-			   "is not allowed.");
-	else {
-		struct SoupCustomHeader *cust; 
-		cust = g_new (struct SoupCustomHeader, 1);
-		cust->key = key;
-		cust->val = value;
-		hdrs->custom_headers = g_slist_prepend (hdrs->custom_headers, 
-							cust);
+	switch (key [0]) {
+	case 'H':
+	case 'h':
+		if (!g_strcasecmp (key+1, "ost")) hdrs->host = TRUE;
+		break;
+	case 'U':
+	case 'u':
+		if (!g_strcasecmp (key+1, "ser-Agent")) hdrs->user_agent = TRUE;
+		break;
+	case 'S':
+	case 's':
+		if (!g_strcasecmp (key+1, "OAPAction")) hdrs->soapaction = TRUE;
+		break;
+	case 'A':
+	case 'a':
+		if (!g_strcasecmp (key+1, "uthorization")) hdrs->auth = TRUE;
+		break;
+	case 'P':
+	case 'p':
+		if (!g_strcasecmp (key+1, "roxy-Authorization")) 
+			hdrs->proxy_auth = TRUE;
+		break;
+	case 'C':
+	case 'c':
+		if (!g_strcasecmp (key+1, "onnection")) 
+			hdrs->connection = TRUE;
+		else if (!g_strcasecmp (key+1, "ontent-Type"))
+			hdrs->content_type = TRUE;
+		else if (!g_strcasecmp (key+1, "ontent-Length")) {
+			g_warning ("Content-Length set as custom request "
+				   "header is not allowed.");
+			return;
+		}
+		break;
 	}
+
+	g_string_sprintfa (hdrs->out, "%s: %s\r\n", key, value);
 }
 
 static GString *
 soup_get_request_header (SoupMessage *req)
 {
-	GString *header = g_string_new ("");
+	GString *header;
 	gchar *uri;
-	SoupContext *proxy = soup_get_proxy ();
-	SoupUri *suri = soup_context_get_uri (req->context);
-
+	SoupContext *proxy;
+	SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
-		suri->host, 
-		"Soup/0.1", 
-		"text/xml; charset=utf-8", 
-		req->action,
-		"keep-alive",
-		NULL,
-		NULL,
+		FALSE, 
+		FALSE, 
+		FALSE, 
+		FALSE, 
+		FALSE, 
+		FALSE, 
+		FALSE, 
 		NULL
 	};
 
-	if (req->request_headers) 
-		g_hash_table_foreach (req->request_headers, 
-				      (GHFunc) soup_check_used_headers,
-				      &hdrs);
+	header = hdrs.out = g_string_new ("");
+	proxy = soup_get_proxy ();
+	suri = soup_context_get_uri (req->context);
 
 	if (proxy)
 		uri = soup_uri_to_string (suri, FALSE);
@@ -390,54 +400,42 @@ soup_get_request_header (SoupMessage *req)
 	else
 		uri = g_strdup (suri->path);
 
-	/* If we specify an absoluteURI in the request line, the 
-	   Host header MUST be ignored by the proxy. */
 	g_string_sprintfa (header,
 			   "POST %s HTTP/1.1\r\n"
-			   "Host: %s\r\n"
-			   "User-Agent: %s\r\n"
-			   "Content-Type: %s;\r\n"
-			   "Content-Length: %d\r\n"
-			   "SOAPAction: %s\r\n"
-			   "Connection: %s\r\n",
+			   "Content-Length: %d\r\n",
 			   uri,
-			   hdrs.host,
-			   hdrs.user_agent,
-			   hdrs.content_type,
-			   req->request.length,
-			   hdrs.soapaction,
-			   hdrs.connection);
+			   req->request.length);
 	g_free (uri);
 
+	if (req->request_headers) 
+		g_hash_table_foreach (req->request_headers, 
+				      (GHFunc) soup_check_used_headers,
+				      &hdrs);
+
+	/* If we specify an absoluteURI in the request line, the 
+	   Host header MUST be ignored by the proxy. */
+	g_string_sprintfa (header, 
+			   "%s%s%s%s%s%s%s%s%s%s",
+			   hdrs.host ? "" : "Host: ",
+			   hdrs.host ? "" : suri->host,
+			   hdrs.host ? "" : "\r\n",
+			   hdrs.soapaction ? "" : "SOAPAction: ",
+			   hdrs.soapaction ? "" : req->action,
+			   hdrs.soapaction ? "" : "\r\n",
+			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
+			   hdrs.content_type ? "" : "charset=utf-8\r\n",
+			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
+			   hdrs.user_agent ? "" : "User-Agent: Soup/0.1\r\n");
+
 	/* Proxy-Authorization from the proxy Uri */
-	if (hdrs.proxy_auth)
-		g_string_sprintfa (header, 
-				   "Proxy-Authorization: %s\r\n",
-				   hdrs.proxy_auth);
-	else if (proxy && soup_context_get_uri(proxy)->user)
+	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
 		soup_encode_http_auth (soup_context_get_uri(proxy), 
 				       header, 
 				       TRUE);
 
 	/* Authorization from the context Uri */
-	if (hdrs.auth)
-		g_string_sprintfa (header, "Authorization: %s\r\n", hdrs.auth);
-	else if (suri->user)
+	if (!hdrs.auth && suri->user)
 		soup_encode_http_auth (suri, header, FALSE);
-
-	/* Append custom headers for this request */
-	if (hdrs.custom_headers) {
-		GSList *iter;
-		for (iter = hdrs.custom_headers; iter; iter = iter->next) {
-			struct SoupCustomHeader *cust_hdr = iter->data;
-			g_string_sprintfa (header, 
-					   "%s: %s\r\n", 
-					   cust_hdr->key, 
-					   cust_hdr->val);
-			g_free (cust_hdr);
-		}
-		g_slist_free (hdrs.custom_headers);
-	}
 
 	g_string_append (header, "\r\n");
 

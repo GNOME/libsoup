@@ -1,5 +1,12 @@
 2001-06-01  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_check_used_headers): Only mark
+	which custom headers are used, and directly g_string_sprintfa()
+	the custom header.
+	(soup_get_request_header): Soptimize header writing.
+
+2001-06-01  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-message.c (soup_message_set_method): 
 	(soup_message_add_header_handler): 
 	(soup_message_add_response_code_handler): 
