@@ -65,8 +65,7 @@ libsoup_apache_la_LDFLAGS = 	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
 libsoup_apache_la_LIBADD =	\
-	$(APACHE_LIBS)		\
-	-L.libs -lsoup
+	$(APACHE_LIBS)	
 
 libsoup_apache_la_SOURCES =	\
 	soup-apache.c
