@@ -1,3 +1,14 @@
+2003-10-24  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-address.c (update_address_from_entry): Call
+	soup_dns_entry_get_hostent() on the SoupAddress passed in, not the
+	one in addr->priv->lookup.  Fixes a crash on synchronous DNS
+	lookups.
+
+	* libsoup/soup-server.c (soup_server_new): We need to ref the
+	address we're binding to, because soup_socket_get_local_address()
+	doesn't ref for us.
+
 2003-10-23  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-socket.c (init): Initialize flags to default
