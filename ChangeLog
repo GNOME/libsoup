@@ -1,3 +1,15 @@
+2004-07-08  Dan Winship  <danw@novell.com>
+
+	* tests/dict.c: Basic SOAP test, using Aonaware's SOAP->DICT
+	gateway
+
+2004-07-07  Fernando Herrera  <fherrera@onirica.com>
+
+	* libsoup/soup-soap-response.c: (finalize), (init),
+	(soup_soap_response_from_string): Use a parse context for the
+	xml document, so we can safely use the option to ignore
+	blank spaces and '\n'.
+
 2004-07-06  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-uri.c (soup_uri_new_with_base): if the protocol is

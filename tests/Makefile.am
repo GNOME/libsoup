@@ -1,11 +1,13 @@
 INCLUDES =		\
 	-I$(top_srcdir)	\
+	$(XML_CFLAGS)	\
 	$(GLIB_CFLAGS)
 
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
 noinst_PROGRAMS =	\
 	auth-test	\
+	dict		\
 	dns		\
 	get		\
 	revserver	\
@@ -14,11 +16,12 @@ noinst_PROGRAMS =	\
 	uri-parsing
 
 auth_test_SOURCES = auth-test.c
+dict_SOURCES = dict.c
 dns_SOURCES = dns.c
 get_SOURCES = get.c
+revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
-revserver_SOURCES = revserver.c
 uri_parsing_SOURCES = uri-parsing.c
 
 EXTRA_DIST = libsoup.supp test-cert.pem test-key.pem

@@ -15,6 +15,7 @@
 struct _SoupSoapResponsePrivate {
 	/* the XML document */
 	xmlDocPtr xmldoc;
+	xmlParserCtxtPtr ctxt;
 	xmlNodePtr xml_root;
 	xmlNodePtr xml_body;
 	xmlNodePtr xml_method;
@@ -34,6 +35,11 @@ finalize (GObject *object)
 		xmlFreeDoc (response->priv->xmldoc);
 		response->priv->xmldoc = NULL;
 	}
+	if (response->priv->ctxt) {
+		xmlFreeParserCtxt (response->priv->ctxt);
+		response->priv->ctxt = NULL;
+	}
+	
 
 	response->priv->xml_root = NULL;
 	response->priv->xml_body = NULL;
@@ -66,6 +72,7 @@ init (SoupSoapResponse *response, SoupSoapResponseClass *klass)
 {
 	response->priv = g_new0 (SoupSoapResponsePrivate, 1);
 
+	response->priv->ctxt = xmlNewParserCtxt ();
 	response->priv->xmldoc = xmlNewDoc ("1.0");
 }
 
@@ -152,8 +159,9 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 	if (response->priv->xmldoc)
 		old_doc = response->priv->xmldoc;
 
-	/* parse the string */
-	response->priv->xmldoc = xmlParseMemory (xmlstr, strlen (xmlstr));
+	/* parse the string. We are using a parse context to make libxml 
+	 * ignore blanks and '\n' for this document. */
+	response->priv->xmldoc = xmlCtxtReadMemory (response->priv->ctxt, xmlstr, strlen (xmlstr), NULL, NULL, XML_PARSE_NOBLANKS);
 	if (!response->priv->xmldoc) {
 		response->priv->xmldoc = old_doc;
 		return FALSE;
