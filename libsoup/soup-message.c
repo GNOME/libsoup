@@ -71,15 +71,19 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	new_url = soup_message_get_response_header (msg, "Location");
 
 	if (new_url) {
-		SoupContext *new_ctx = soup_context_get (new_url);
+		SoupContext *new_ctx, *old_ctx;
+
+		new_ctx = soup_context_get (new_url);
 		if (!new_ctx) return SOUP_ERROR_MALFORMED_HEADER;
 
-		soup_context_unref (msg->context);
+		old_ctx = msg->context;
 		msg->context = new_ctx;
 
 		soup_message_queue (msg,
 				    msg->priv->callback, 
 				    msg->priv->user_data);
+
+		soup_context_unref (old_ctx);
 	}
 
 	return SOUP_ERROR_NONE;

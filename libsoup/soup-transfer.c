@@ -130,14 +130,22 @@ soup_transfer_read_chunk (SoupReader *r)
 		/* 
 		 * Convert the size of the next chunk from hex 
 		 */
-		while ((tolower (*i) >= 'a' && tolower (*i) <= 'f') ||
-		       (*i >= '0' && *i <= '9'))
-			len++, i++;
+		while (isxdigit (*i)) {
+			len++;
+			i++;
+		}
 
-		for (i -= len, j = len - 1; j + 1; i++, j--)
-			new_len += (*i > '9') ?
-				(tolower (*i) - 0x57) << (4*j) :
-				(tolower (*i) - 0x30) << (4*j);
+		i -= len;
+
+		for (j = len - 1; j + 1; j--) {
+			if (isdigit (*i))
+				new_len += (*i - 0x30) << (4*j);
+			else
+				new_len += (tolower (*i) - 0x57) << (4*j);
+			i++;
+		}
+
+		g_assert (new_len >= 0);
 
 		chunk_idx = chunk_idx + chunk_len;
 		chunk_len = new_len;
