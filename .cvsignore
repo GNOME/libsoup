@@ -13,6 +13,6 @@ ltmain.sh
 Makefile
 Makefile.in
 soup-2.0.pc
-stamp-h
+stamp-h*
 stamp.h
 stamp-h.in
