@@ -226,7 +226,7 @@ soup_soap_response_set_method_name (SoupSoapResponse *response, const char *meth
 	g_return_if_fail (response->priv->xml_method != NULL);
 	g_return_if_fail (method_name != NULL);
 
-	xmlNodeSetNode (response->priv->xml_method, method_name);
+	xmlNodeSetName (response->priv->xml_method, method_name);
 }
 
 /**
