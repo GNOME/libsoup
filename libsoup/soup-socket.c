@@ -785,6 +785,9 @@ soup_address_new (const gchar* name,
 
 		signal (SIGCHLD, SIG_IGN);
 
+		/* 
+		 * This will send the parent process a SIGSTOP.
+		 */
 		if (ptrace (PTRACE_ATTACH, getppid (), NULL, NULL) == -1) {
 			/* 
 			 * Attach failed; it's probably already being
@@ -798,9 +801,9 @@ soup_address_new (const gchar* name,
 		}
 		
 		/* 
-		 * We just SIGSTOPped it; we need to CONT it now. 
+		 * Wait for the parent to actually STOP.
 		 */
-		waitpid (getppid (), NULL, 0);
+		waitpid (getppid (), NULL, WUNTRACED);
 
 		if (ptrace (PTRACE_DETACH, getppid (), NULL, NULL) == -1)
 			g_warning ("ptrace: Detach failed: %s", 
