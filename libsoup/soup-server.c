@@ -272,9 +272,9 @@ read_done_cb (const SoupDataBuffer *data,
 	GIOChannel *channel;
 	const gchar *path;
 
-	req->response.owner = data->owner;
-	req->response.length = data->length;
-	req->response.body = data->body;
+	req->request.owner = data->owner;
+	req->request.length = data->length;
+	req->request.body = data->body;
 
 	req->status = SOUP_STATUS_FINISHED;
 

@@ -1,3 +1,18 @@
+2001-10-31  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Drop
+	connection count of connect failed.
+	(soup_context_get_connection): Increment connection count before
+	calling soup_socket_connect() to avoid connection limit being
+	passed by many messages queued at the same time.
+
+	* src/libsoup/soup-server.c (read_done_cb): Assign request's data
+	buffer to message request buffer, not response.  Caught by Tim
+	Moloney.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Zero
+	terminate alloca'd header string passed to headers_done_cb.
+
 2001-10-31  Dan Winship  <danw@ximian.com>
 
 	* configure.in: Fix the popt check so you can pass CPPFLAGS and

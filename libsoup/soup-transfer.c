@@ -441,8 +441,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 			r->content_length = 0;
 
 			str.len = index;
-			str.str = alloca (index);
+			str.str = alloca (index + 1);
 			strncpy (str.str, r->recv_buf->data, index);
+			str.str [index] = '\0';
 
 			IGNORE_CANCEL (r);
 			ret = (*r->headers_done_cb) (&str, 
