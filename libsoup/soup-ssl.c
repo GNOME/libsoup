@@ -36,11 +36,10 @@
 #ifndef SOUP_WIN32
 
 static gboolean
-soup_ssl_idle_waitpid (gpointer ppid)
+soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer ppid)
 {
-	int pid = waitpid (GPOINTER_TO_INT (ppid), NULL, WNOHANG);
+	waitpid (GPOINTER_TO_INT (ppid), NULL, 0);
 
-	if (pid == 0) return TRUE;
 	return FALSE;
 }
 
@@ -93,12 +92,12 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 
 	close (pair [0]);
 
-	g_idle_add (soup_ssl_idle_waitpid, GINT_TO_POINTER (pid));
-
 	flags = fcntl(pair [1], F_GETFL, 0);
 	fcntl (pair [1], F_SETFL, flags | O_NONBLOCK);
 
 	new_chan = g_io_channel_unix_new (pair [1]);
+	g_io_add_watch (new_chan, G_IO_HUP,
+			soup_ssl_hup_waitpid, GINT_TO_POINTER (pid));
 
 	/* FIXME: Why is this needed?? */
 	g_io_channel_ref (new_chan);

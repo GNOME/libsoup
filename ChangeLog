@@ -1,3 +1,9 @@
+2001-08-12  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ssl.c (soup_ssl_get_iochannel): Connect to
+	HUP signal to avoid indefinate hangs. Remove idle waitpid
+	handler. Thanks to Chris Toshok for finding this one.
+
 2001-08-11  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-ssl-proxy.c (main): Fix typo causes
