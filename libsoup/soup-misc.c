@@ -342,7 +342,7 @@ soup_config_token_allowed (gchar *key)
 static void
 soup_load_config_internal (gchar *config_file, gboolean admin)
 {
-	struct SoupConfigFuncs *funcs = soup_config_funcs;
+	struct SoupConfigFuncs *funcs;
 	FILE *cfg;
 	char buf[128];
 
@@ -381,9 +381,11 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 		key = g_strchomp (split[0]);
 		value = g_strchug (split[1]);
 
-		for (; funcs && funcs->key; funcs++)
-			if (!g_strcasecmp (key, funcs->key))
+		for (funcs = soup_config_funcs; funcs && funcs->key; funcs++)
+			if (!g_strcasecmp (key, funcs->key)) {
 				funcs->func (key, value);
+				break;
+			}
 
 		g_strfreev (split);
 	}

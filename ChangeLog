@@ -1,5 +1,10 @@
 2001-07-30  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-misc.c (soup_load_config_internal): Fix bug
+	where only the first valid config token is loaded from the config file.
+
+2001-07-30  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-socket.c (soup_address_new_cb): Fix dangling
 	pointer error where a resolved SoupAddress is passed to the callback,
 	and then realloc'd.
