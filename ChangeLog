@@ -1,3 +1,8 @@
+2004-01-29  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-gnutls.c (verify_certificate): Initialize the
+	certificate before we try to use it.  Ahem.
+
 2004-01-23  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump version to 2.1.5 and SOUP_RELEASE to 2

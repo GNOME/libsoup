@@ -78,6 +78,11 @@ verify_certificate (gnutls_session session, const char *hostname)
 		const gnutls_datum* cert_list;
 		int cert_list_size;
 		gnutls_x509_crt cert;
+
+		if (gnutls_x509_crt_init (&cert) < 0) {
+			g_warning ("Error initializing certificate.");
+			return FALSE;
+		}
       
 		cert_list = gnutls_certificate_get_peers (
 			session, &cert_list_size);
