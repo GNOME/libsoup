@@ -116,6 +116,8 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 
 	if (error != G_IO_ERROR_NONE || bytes_read == 0) goto FINISH;
 
+	errno = 0;
+
 	while (write_total != bytes_read) {
 		error = g_io_channel_write (dest, 
 					    &read_buf [write_total], 

@@ -1,3 +1,8 @@
+2001-05-11  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-nss.c (soup_nss_init): Use NSS_InitReadWrite().
+	(soup_nss_get_iochannel): set SSL_BadCertHook().
+
 2001-05-10  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_finish_read): set
