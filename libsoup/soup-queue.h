@@ -17,22 +17,17 @@
 #include "soup-context.h"
 
 typedef enum {
-	SOUP_RESULT_FREE_MESSAGE = 0,
-	SOUP_RESULT_RESEND_MESSAGE,
-	SOUP_RESULT_DO_NOTHING
-} SoupCallbackResult;
-
-typedef enum {
 	SOUP_ERROR_NONE = 0,
 	SOUP_ERROR_CANCELLED,
 	SOUP_ERROR_CANT_CONNECT,
 	SOUP_ERROR_IO,
-	SOUP_ERROR_MALFORMED_HEADER
+	SOUP_ERROR_MALFORMED_HEADER,
+	SOUP_ERROR_HANDLER
 } SoupErrorCode;
 
-typedef SoupCallbackResult (*SoupCallbackFn) (SoupMessage   *req,
-					      SoupErrorCode  err,
-					      gpointer       user_data);
+typedef void (*SoupCallbackFn) (SoupMessage   *req,
+				SoupErrorCode  err,
+				gpointer       user_data);
 
 void         soup_queue_message  (SoupMessage       *req, 
 				  SoupCallbackFn     callback, 

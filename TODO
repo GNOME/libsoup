@@ -1,8 +1,6 @@
 TODO:
 ====
 
-* xml-rpc support
-
 * make thread-safe
 
 * support M-POST
@@ -19,7 +17,7 @@ X * SoupSerializer
 
 * implement *simple* response cache
 
-X * Test system allow/deny options
+* use gconf for config data
 
 * Tutorial Documentation
 
@@ -50,9 +48,7 @@ X * fix soup-serializer header file crap.
 
 X * fix soup-serializer SOAP-ENV prefixing, test prefixing.
 
-* soup-serializer unbalanced element start/end warning?
-
-* make callback return void?
+X * make callback return void? YES. soup_queue_message now takes ownership
 
 * fix ssl pending bug
 

@@ -14,6 +14,8 @@
 #include <glib.h>
 
 #include "soup-context.h"
+#include "soup-message.h"
+#include "soup-uri.h"
 
 void         soup_set_proxy            (SoupContext *ctx);
 
@@ -24,5 +26,12 @@ void         soup_set_connection_limit (guint        max_conn);
 guint        soup_get_connection_limit (void);
 
 void         soup_load_config          (gchar       *config_file);
+
+
+/* Useful debugging routines */
+
+void         soup_debug_print_headers  (SoupMessage *req);
+
+void         soup_debug_print_uri      (SoupUri     *uri);
 
 #endif /* SOUP_MISC_H */

@@ -3,16 +3,15 @@
  * soup-headers.c: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2001, Ximian, Inc.
  */
 
 #include <string.h>
 #include <stdio.h>
 
 #include "soup-headers.h"
-#include "soup-private.h"
 
 /*
  * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"
@@ -25,7 +24,7 @@
  * val: "1234, 567"
  */
 static gboolean
-soup_parse_headers (gchar      *str, 
+soup_headers_parse (gchar      *str, 
 		    gint        len, 
 		    GHashTable *dest)
 {
@@ -97,7 +96,7 @@ soup_parse_headers (gchar      *str,
 }
 
 gboolean
-soup_parse_request_headers (gchar       *str, 
+soup_headers_parse_request (gchar       *str, 
 			    gint         len, 
 			    GHashTable  *dest, 
 			    gchar      **req_method,
@@ -117,7 +116,7 @@ soup_parse_request_headers (gchar       *str,
 		    &http_minor) < 4)
 		goto THROW_MALFORMED_HEADER;
 
-	if (!soup_parse_headers (str, len, dest)) 
+	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
 	*req_method = g_strdup (method);
@@ -130,7 +129,7 @@ soup_parse_request_headers (gchar       *str,
 }
 
 gboolean
-soup_parse_response_headers (gchar       *str, 
+soup_headers_parse_response (gchar       *str, 
 			     gint         len, 
 			     GHashTable  *dest, 
 			     guint       *status_code,
@@ -150,7 +149,7 @@ soup_parse_response_headers (gchar       *str,
 		    &phrase_start) < 3 || !phrase_start)
 		goto THROW_MALFORMED_HEADER;
 
-	if (!soup_parse_headers (str, len, dest)) 
+	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
 	*status_phrase = g_strdup (&str [phrase_start]);

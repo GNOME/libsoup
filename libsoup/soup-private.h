@@ -82,24 +82,24 @@ struct _SoupMessagePrivate {
 
 /* from soup-message.c */
 
-SoupCallbackResult soup_message_issue_callback (SoupMessage   *req, 
-						SoupErrorCode  error);
+void      soup_message_issue_callback (SoupMessage   *req, 
+				       SoupErrorCode  error);
 
-void               soup_message_cleanup        (SoupMessage   *req);
+void      soup_message_cleanup        (SoupMessage   *req);
 
 /* from soup-misc.c */
 
-guint              soup_str_case_hash          (gconstpointer  key);
+guint     soup_str_case_hash          (gconstpointer  key);
 
-gboolean           soup_str_case_equal         (gconstpointer  v1,
+gboolean  soup_str_case_equal         (gconstpointer  v1,
 						gconstpointer  v2);
 
-gint               soup_substring_index        (gchar         *str, 
-						gint           len, 
-						gchar         *substr);
+gint      soup_substring_index        (gchar         *str, 
+				       gint           len, 
+				       gchar         *substr);
 
-gchar             *soup_base64_encode          (const gchar   *text,
-						gint           len);
+gchar    *soup_base64_encode          (const gchar   *text,
+				       gint           len);
 
 #ifdef __cplusplus
 }

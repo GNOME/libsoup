@@ -99,7 +99,7 @@ soup_server_read_cb (GIOChannel   *iochannel,
 	req_headers = g_hash_table_new (soup_str_case_hash, 
 					soup_str_case_equal);
 
-	if (!soup_parse_request_headers (str, 
+	if (!soup_headers_parse_request (str, 
 					 index, 
 					 req_headers, 
 					 &req_method, 

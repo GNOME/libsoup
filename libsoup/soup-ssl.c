@@ -3,9 +3,9 @@
  * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2001, Ximian, Inc.
  */
 
 #include "soup-ssl.h"

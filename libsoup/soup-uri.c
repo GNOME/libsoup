@@ -223,7 +223,7 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri);
 }
 
-static void
+void
 soup_debug_print_uri (SoupUri *uri)
 {
 	g_return_if_fail (uri != NULL);

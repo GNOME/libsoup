@@ -37,7 +37,7 @@ soup_parse_headers (SoupMessage *req)
 	req->response_headers = g_hash_table_new (soup_str_case_hash, 
 						  soup_str_case_equal);
 
-	if (!soup_parse_response_headers (str, 
+	if (!soup_headers_parse_response (str, 
 					  len, 
 					  req->response_headers,
 					  &req->response_code,
@@ -91,7 +91,7 @@ soup_debug_print_a_header (gchar *key, gchar *val, gpointer not_used)
 	g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", key, val);
 }
 
-static void 
+void 
 soup_debug_print_headers (SoupMessage *req)
 {
 	g_hash_table_foreach (req->response_headers,
@@ -398,28 +398,12 @@ soup_queue_write_async (GIOChannel* iochannel,
 	total_len = head_len + body_len;
 	total_written = req->priv->write_len;	
 
+ WRITE_SOME_MORE:
 	if (total_written < head_len) {
-		/* headers not done yet */
-		/* send rest of headers and all of body */
-		/* maybe we should just send the rest of the headers here, 
-		   and avoid memcpy/alloca altogether at the loss of cpu 
-		   cycles */
+		/* send rest of headers */
 		write_buf = &req->priv->req_header->str [total_written];
 		write_len = head_len - total_written;
-		/*
-		guint offset = head_len - total_written;
-		write_len = offset + body_len;
-		write_buf = alloca (write_len + 1);
-		memcpy (write_buf, 
-			&req->priv->req_header->str [total_written],
-			offset);
-		memcpy (&write_buf [offset],
-			req->request.body,
-			req->request.length);
-		write_buf [write_len + 1] = '\0';
-		*/
 	} else {
-		/* headers done, maybe some of body */
 		/* send rest of body */
 		guint offset = total_written - head_len;
 		write_buf = &req->request.body [offset];
@@ -451,7 +435,7 @@ soup_queue_write_async (GIOChannel* iochannel,
 		return FALSE;
 	}
 
-	return TRUE;
+	goto WRITE_SOME_MORE;
 }
 
 

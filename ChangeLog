@@ -1,3 +1,39 @@
+2001-02-15  Alex Graveley  <alex@ximian.com>
+
+	* tests/stress-test.c (current_temp_cb): update to return void
+	from the callback.
+	(main): do not requeue existing messages when they have finished,
+	as they will be freed. instead create new SoupMessage objects.
+
+	* tests/simple-test.c (current_temp_cb): update to return void
+	from the callback.
+
+	* src/soup-core/soup-serializer.c (soup_serializer_start_element):
+	support creation of the request's SOAPAction header my taking the
+	namespace uri and name of the first element after starting the
+	body tag.
+
+	* src/soup-core/soup-queue.h: add SOUP_ERROR_HANDLER which will be
+	used by the upcoming handler/interceptor stuff to return an
+	application-level error to the message callback. Make
+	SoupCallbackFn return void.
+
+	* src/soup-core/soup-queue.c (soup_debug_print_headers): make public.
+	(soup_queue_write_async): attempt to write again if the first
+	write was okay and didn't block.
+
+	* src/soup-core/soup-uri.c (soup_debug_print_uri): make public.
+
+	* src/soup-core/soup-message.c (soup_message_issue_callback):
+	message callback now returns void, meaning that soup_queue_message()
+	takes ownership of the message and always frees it after calling
+	the callback (unless it was requeued from within the callback).
+
+	* src/soup-core/soup-headers.c (soup_headers_parse_request):
+	renamed from soup_parse_request_headers.
+	(soup_headers_parse_response): renamed from soup_parse_response_headers.
+	(soup_headers_parse): renamed from soup_parse_headers.
+
 2001-02-13  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-ssl.c (soup_get_ssl_iochannel): renamed to

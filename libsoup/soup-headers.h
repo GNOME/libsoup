@@ -3,9 +3,9 @@
  * soup-headers.h: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2001, Ximian, Inc.
  */
 
 #ifndef SOUP_HEADERS_H
@@ -13,16 +13,18 @@
 
 #include <glib.h>
 
-gboolean soup_parse_request_headers  (gchar       *str, 
-				      gint         len, 
-				      GHashTable  *dest, 
-				      gchar      **req_method,
-				      gchar      **req_path);
+/* HTTP Header Parsing */
 
-gboolean soup_parse_response_headers (gchar       *str, 
-				      gint         len, 
-				      GHashTable  *dest, 
-				      guint       *status_code,
-				      gchar      **status_phrase);
+gboolean       soup_headers_parse_request  (gchar          *str, 
+					    gint            len, 
+					    GHashTable     *dest, 
+					    gchar         **req_method,
+					    gchar         **req_path);
+
+gboolean       soup_headers_parse_response (gchar          *str, 
+					    gint            len, 
+					    GHashTable     *dest, 
+					    guint          *status_code,
+					    gchar         **status_phrase);
 
 #endif /*SOUP_HEADERS_H*/

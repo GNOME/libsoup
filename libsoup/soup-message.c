@@ -103,39 +103,22 @@ soup_message_free (SoupMessage *req)
 	g_free (req);
 }
 
-SoupCallbackResult
+void
 soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
 {
-	g_return_val_if_fail (req != NULL, SOUP_RESULT_DO_NOTHING);
+	g_return_if_fail (req != NULL);
 
 	/* make sure we don't have some icky recursion if the callback 
 	   runs the main loop, and the connection has some data or error 
 	   which causes the callback to be run again */
 	soup_message_cleanup (req);
 
-	if (req->priv->callback) {
-		guint cb_ret = (*req->priv->callback) (req, 
-						       error, 
-						       req->priv->user_data);
-		switch (cb_ret) {
-		case SOUP_RESULT_DO_NOTHING:
-			break;
-		case SOUP_RESULT_FREE_MESSAGE:
-			soup_message_free (req);
-			break;
-		case SOUP_RESULT_RESEND_MESSAGE:
-			req->status = SOUP_STATUS_IDLE;
-			soup_queue_message (req, 
-					    req->priv->callback, 
-					    req->priv->user_data);
-			break;
-		}
-		
-		return cb_ret;
-	}
+	if (req->priv->callback)
+		(*req->priv->callback) (req, 
+					error, 
+					req->priv->user_data);
 
-	soup_message_free (req);
-	return SOUP_RESULT_FREE_MESSAGE;
+	if (req->status != SOUP_STATUS_QUEUED) soup_message_free (req);
 }
 
 void 
