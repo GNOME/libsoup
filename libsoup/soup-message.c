@@ -657,7 +657,7 @@ soup_message_requeue (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	if (req->connection && req->connection->auth) {
+	if (req->connection && req->connection->auth && req->priv->read_tag) {
 		RequeueConnectData *data = NULL;
 
 		data = g_new0 (RequeueConnectData, 1);

@@ -1,3 +1,10 @@
+2001-12-04  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Don't try to
+	wait for the rest of the data if the read_tag is 0 (eg, if the
+	write attempt got an EPIPE). Fixes a crash if the server
+	idle-timeouts a keepalived connection.
+
 2001-12-02  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-private.h: Remove req_header from
