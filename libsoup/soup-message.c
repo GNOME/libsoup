@@ -9,6 +9,7 @@
  */
 
 #include "soup-auth.h"
+#include "soup-error.h"
 #include "soup-message.h"
 #include "soup-misc.h"
 #include "soup-context.h"
@@ -565,33 +566,56 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 static void 
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
-	const gchar *new_url;
+	const gchar *new_loc;
 
 	if (msg->errorclass != SOUP_ERROR_CLASS_REDIRECT || 
 	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) return;
 
-	new_url = soup_message_get_header (msg->response_headers, "Location");
+	new_loc = soup_message_get_header (msg->response_headers, "Location");
 
-	if (new_url) {
+	if (new_loc) {
+		const SoupUri *old_uri;
+		SoupUri *new_uri;
 		SoupContext *new_ctx, *old_ctx;
 
-		new_ctx = soup_context_get (new_url);
-		if (!new_ctx) {
-			soup_message_set_error_full (msg, 
-						     SOUP_ERROR_MALFORMED,
-						     "Invalid Redirect URL");
-			return;
+		old_uri = soup_context_get_uri (msg->context);
+
+		new_uri = soup_uri_new (new_loc);
+		if (!new_uri) 
+			goto INVALID_REDIRECT;
+
+		/* 
+		 * Copy auth info from original URI.
+		 */
+		if (old_uri->user && !new_uri->user) {
+			new_uri->user = g_strdup (old_uri->user);
+			new_uri->passwd = g_strdup (old_uri->passwd);
+			new_uri->authmech = g_strdup (old_uri->authmech);
 		}
+
+		new_ctx = soup_context_from_uri (new_uri);
+
+		soup_uri_free (new_uri);
+
+		if (!new_ctx)
+			goto INVALID_REDIRECT;
 
 		old_ctx = msg->context;
 		msg->context = new_ctx;
 
+		soup_context_unref (old_ctx);
+
 		soup_message_queue (msg,
 				    msg->priv->callback, 
 				    msg->priv->user_data);
-
-		soup_context_unref (old_ctx);
 	}
+
+	return;
+
+ INVALID_REDIRECT:
+	soup_message_set_error_full (msg, 
+				     SOUP_ERROR_MALFORMED,
+				     "Invalid Redirect URL");
 }
 
 typedef enum {
