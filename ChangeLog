@@ -1,3 +1,8 @@
+2001-09-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-serializer.c
+	(soup_serializer_get_namespace_prefix): Impl.
+
 2001-09-12  Alex Graveley  <alex@ximian.com>
 
 	* tests/filesys-server.c (main): Pass protocol to soup_server_new.
