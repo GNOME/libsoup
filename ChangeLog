@@ -1,3 +1,11 @@
+2002-10-03  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_cleanup): One-liner to
+	set the response buffer owner to static so it doesn't get freed
+	along with the message, since it doesn't actually belong to us
+	until message completion.  Fixes a bad crasher for RC and
+	Evolution.
+
 2002-10-01  JP Rosevear  <jpr@ximian.com>
 
 	* configure.in: update version (0.7.8.99)

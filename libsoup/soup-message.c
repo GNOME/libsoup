@@ -181,6 +181,11 @@ soup_message_cleanup (SoupMessage *req)
 						  req->connection);
 		req->priv->read_tag = 0;
 		req->connection = NULL;
+		/* 
+		 * The buffer doesn't belong to us until the message is 
+		 * finished.
+		 */
+		req->response.owner = SOUP_BUFFER_STATIC;
 	}
 
 	if (req->priv->read_tag) {
@@ -292,8 +297,11 @@ void
 soup_message_cancel (SoupMessage *msg) 
 {
 	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
+
+	/* Kill the connection as a safety measure */
 	if (msg->connection)
 		soup_connection_set_keep_alive (msg->connection, FALSE);
+
 	soup_message_issue_callback (msg);
 }
 
