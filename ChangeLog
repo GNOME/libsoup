@@ -1,5 +1,15 @@
 2001-07-09  Alex Graveley  <alex@ximian.com>
 
+	* build/Soup.dsw
+	  build/Soup_apache.dsp
+	  build/Soup_core.dsp
+	  build/Soup_httpd.dsp
+	  build/Soup_ssl_proxy.dsp
+	  build/Soup_wsdl.dsp
+	  build/Soup_wsdl_runtime.dsp: Initial run of windows build scripts.
+
+2001-07-09  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-auth.[ch]: New client authentication (basic/digest)
 	code from Joe Shaw (joe@ximian.com).
 
