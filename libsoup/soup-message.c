@@ -1194,6 +1194,14 @@ soup_message_set_http_version  (SoupMessage *msg, SoupHttpVersion version)
 	msg->priv->http_version = version;
 }
 
+SoupHttpVersion
+soup_message_get_http_version (SoupMessage *msg);
+{
+	g_return_if_fail (msg != NULL);
+
+	return msg->priv->http_version;
+}
+
 void
 soup_message_set_context (SoupMessage       *msg,
 			  SoupContext       *new_ctx)
