@@ -427,7 +427,6 @@ static void
 start_request (SoupContext *ctx, SoupMessage *req)
 {
 	GIOChannel *channel;
-	GString *header;
 	gboolean overwrt; 
 
 	channel = soup_connection_get_iochannel (req->connection);
@@ -457,20 +456,13 @@ start_request (SoupContext *ctx, SoupMessage *req)
 		return;
 	}
 
-	header = soup_get_request_header (req);
-
 	req->priv->write_tag = 
-		soup_transfer_write (channel,
-				     header,
-				     &req->request,
-				     SOUP_TRANSFER_CONTENT_LENGTH,
-				     NULL,
-				     NULL,
-				     soup_queue_write_done_cb,
-				     soup_queue_error_cb,
-				     req);
-
-	g_string_free (header, TRUE);
+		soup_transfer_write_simple (channel,
+					    soup_get_request_header (req),
+					    &req->request,
+					    soup_queue_write_done_cb,
+					    soup_queue_error_cb,
+					    req);
 
 	overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 

@@ -1,3 +1,44 @@
+2001-12-14  Alex Graveley  <alex@ximian.com>
+
+	* tests/server-test.c (push_callback): Add test for server push,
+	which creates a SoupServerMessage and sends the headers, body, and
+	ends the transfer at 4 second intervals.
+	(soup_server_init): Update for new server api.
+
+	* tests/cgi-test.c (soup_server_init): Update for new server api.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write_simple):
+	Impl. Just write the headers and data buffer passed.
+	(soup_transfer_write): Use callback to get header data, remove
+	header done callback.
+	(soup_transfer_write_pause): Pause the write by removing the
+	writable io watch.
+	(soup_transfer_write_unpause): Unpause by adding it back again.
+	(write_chunk_sep): Handle (rare) case where 0 length chunk is
+	first chunk.  Final chunks end in \r\n\r\n not just \r\n.
+
+	* src/libsoup/soup-server.c (get_header_cgi_cb): Create header for
+	delayed writes if soup_server_message_start() has been called,
+	otherwise pause write.
+	(get_header_cb): Ditto, use chunked encoding if client supports
+	it.
+	(get_chunk_cb): Free the current chunk, not the last one.  Pause
+	write if no new data.
+	(soup_server_message_start): Impl. Asyncronously send the headers
+	of the request.  Unpause write.
+	(soup_server_message_add_data): Unpause write.
+	(soup_server_message_finish): Unpause write.
+
+	* src/libsoup/soup-queue.c (start_request): Use
+	soup_transfer_write_simple.
+
+	* src/libsoup/soup-socket.c: Comment formatting.
+
+2001-12-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (start_request): Use
+	soup_transfer_write_simple.
+
 2001-12-13  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup-apache/soup-apache.c (soup_apache_get_server):

@@ -52,6 +52,7 @@ extern char **environ;
 struct _SoupServerMessage {
 	SoupMessage *msg;
 	GSList      *chunks;           /* CONTAINS: SoupDataBuffer* */
+	gboolean     started;
 	gboolean     finished;
 };
 
@@ -257,39 +258,6 @@ error_cb (gboolean body_started, gpointer user_data)
 	SoupMessage *msg = user_data;
 
 	destroy_message (msg);
-}
-
-static SoupTransferDone
-write_chunk_cb (SoupDataBuffer **out_next, gpointer user_data)
-{
-	SoupMessage *msg = user_data;
-	SoupServerMessage *server_msg = msg->priv->server_msg;
-
-	if (server_msg) {
-		if (!server_msg->chunks && server_msg->finished)
-			return SOUP_TRANSFER_END;
-		else {
-			if (server_msg->chunks) {
-				/*
-				 * Free the last chunk written
-				 */
-				SoupDataBuffer *last = server_msg->chunks->data;
-				server_msg->chunks = 
-					g_slist_remove (server_msg->chunks,
-							last);
-				free_chunk (last, NULL);
-				
-				/*
-				 * Push the next chunk
-				 */
-				*out_next = server_msg->chunks->data;
-			}
-
-			return SOUP_TRANSFER_CONTINUE;
-		}
-	}
-
-	return SOUP_TRANSFER_END;
 }
 
 static void
@@ -687,39 +655,113 @@ call_handler (SoupMessage          *req,
 }
 
 static void
+get_header_cgi_cb (GString  **out_hdr,
+		   gpointer   user_data)
+{
+	SoupMessage *msg = user_data;
+	SoupServerMessage *server_msg = msg->priv->server_msg;
+
+	if (server_msg && server_msg->started)
+		*out_hdr = get_response_header (msg, 
+						FALSE, 
+						SOUP_TRANSFER_UNKNOWN);
+	else
+		soup_transfer_write_pause (msg->priv->write_tag);
+}
+
+static void
+get_header_cb (GString  **out_hdr,
+	       gpointer   user_data)
+{
+	SoupMessage *msg = user_data;
+	SoupServerMessage *server_msg = msg->priv->server_msg;
+	SoupTransferEncoding encoding;
+
+	if (server_msg && server_msg->started) {
+		if (msg->priv->http_version == SOUP_HTTP_1_0)
+			encoding = SOUP_TRANSFER_UNKNOWN;
+		else
+			encoding = SOUP_TRANSFER_CHUNKED;
+		
+		*out_hdr = get_response_header (msg, TRUE, encoding);
+	} else
+		soup_transfer_write_pause (msg->priv->write_tag);
+}
+
+static SoupTransferDone
+get_chunk_cb (SoupDataBuffer *out_next, gpointer user_data)
+{
+	SoupMessage *msg = user_data;
+	SoupServerMessage *server_msg = msg->priv->server_msg;
+
+	if (server_msg->chunks) {
+		SoupDataBuffer *next = server_msg->chunks->data;
+
+		out_next->owner = next->owner;
+		out_next->body = next->body;
+		out_next->length = next->length;
+
+		server_msg->chunks = g_slist_remove (server_msg->chunks, next);
+
+		/*
+		 * Caller will free the response body, so just free the
+		 * SoupDataBuffer struct.
+		 */
+		g_free (next);
+
+		return SOUP_TRANSFER_CONTINUE;
+	} 
+	else if (server_msg->finished) {
+		return SOUP_TRANSFER_END;
+	} 
+	else {
+		soup_transfer_write_pause (msg->priv->write_tag);
+		return SOUP_TRANSFER_CONTINUE;
+	}
+}
+
+static void
 read_done_cgi_cb (const SoupDataBuffer *data,
 		  gpointer              user_data)
 {
 	SoupMessage *req = user_data;
 	SoupServer *server = req->priv->server;
 	GIOChannel *channel;
-	GString *header;
-	SoupTransferEncoding encoding;
+
+	req->priv->read_tag = 0;
 
 	call_handler (req, data, g_getenv ("PATH_INFO"));
 
 	channel = server->cgi_write_chan;
 
-	if (req->priv->server_msg)
-		encoding = SOUP_TRANSFER_UNKNOWN;
-	else
-		encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+	if (req->priv->server_msg) {
+		req->priv->write_tag = 
+			soup_transfer_write (channel,
+					     SOUP_TRANSFER_UNKNOWN,
+					     get_header_cgi_cb,
+					     get_chunk_cb,
+					     write_done_cb,
+					     error_cb,
+					     req);
 
-	header = get_response_header (req, FALSE, encoding);
-
-	req->priv->read_tag = 0;
-	req->priv->write_tag = 
-		soup_transfer_write (channel,
-				     header,
-				     &req->response,
-				     encoding,
-				     NULL,
-				     write_chunk_cb,
-				     write_done_cb,
-				     error_cb,
-				     req);
-
-	g_string_free (header, TRUE);
+		/*
+		 * Pause write until soup_server_message_start()
+		 */
+		if (!req->priv->server_msg->started)
+			soup_transfer_write_pause (req->priv->write_tag);
+	} else {
+		GString *header;
+		header = get_response_header (req, 
+					      FALSE, 
+					      SOUP_TRANSFER_CONTENT_LENGTH);
+		req->priv->write_tag = 
+			soup_transfer_write_simple (channel,
+						    header,
+						    &req->response,
+						    write_done_cb,
+						    error_cb,
+						    req);
+	}
 
 	return;
 }
@@ -731,8 +773,8 @@ read_done_cb (const SoupDataBuffer *data,
 	SoupMessage *req = user_data;
 	SoupSocket *server_sock = req->priv->server_sock;
 	GIOChannel *channel;
-	GString *header;
-	SoupTransferEncoding encoding;
+
+	req->priv->read_tag = 0;
 
 	/* FIXME: Do this in soap handler 
 	action = soup_message_get_header (req->request_headers, "SOAPAction");
@@ -752,30 +794,43 @@ read_done_cb (const SoupDataBuffer *data,
 	channel = soup_socket_get_iochannel (server_sock);
 
 	if (req->priv->server_msg) {
+		SoupTransferEncoding encoding;
+
 		if (req->priv->http_version == SOUP_HTTP_1_0)
 			encoding = SOUP_TRANSFER_UNKNOWN;
 		else
 			encoding = SOUP_TRANSFER_CHUNKED;
-	} else
-		encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 
-	header = get_response_header (req, TRUE, encoding);
+		req->priv->write_tag = 
+			soup_transfer_write (channel,
+					     encoding,
+					     get_header_cb,
+					     get_chunk_cb,
+					     write_done_cb,
+					     error_cb,
+					     req);
 
-	req->priv->read_tag = 0;
-	req->priv->write_tag = 
-		soup_transfer_write (channel,
-				     header,
-				     &req->response,
-				     encoding,
-				     NULL,
-				     write_chunk_cb,
-				     write_done_cb,
-				     error_cb,
-				     req);
-
-	g_string_free (header, TRUE);
+		/*
+		 * Pause write until soup_server_message_start()
+		 */
+		if (!req->priv->server_msg->started)
+			soup_transfer_write_pause (req->priv->write_tag);
+	} else {
+		GString *header;
+		header = get_response_header (req, 
+					      TRUE, 
+					      SOUP_TRANSFER_CONTENT_LENGTH);
+		req->priv->write_tag = 
+			soup_transfer_write_simple (channel,
+						    header,
+						    &req->response,
+						    write_done_cb,
+						    error_cb,
+						    req);
+	}
 
 	g_io_channel_unref (channel);
+
 	return;
 }
 
@@ -1189,6 +1244,16 @@ soup_server_message_new (SoupMessage *src_msg)
 }
 
 void
+soup_server_message_start (SoupServerMessage *serv_msg)
+{
+	g_return_if_fail (serv_msg != NULL);
+
+	serv_msg->started = TRUE;
+
+	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
+}
+
+void
 soup_server_message_add_data (SoupServerMessage *serv_msg,
 			      SoupOwnership      owner,
 			      gchar             *body,
@@ -1212,13 +1277,18 @@ soup_server_message_add_data (SoupServerMessage *serv_msg,
 	}
 
 	serv_msg->chunks = g_slist_append (serv_msg->chunks, buf);
+
+	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
 }
 
 void
 soup_server_message_finish  (SoupServerMessage *serv_msg)
 {
 	g_return_if_fail (serv_msg != NULL);
+
 	serv_msg->finished = TRUE;
+
+	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);
 }
 
 SoupMessage *

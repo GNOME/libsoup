@@ -217,8 +217,11 @@ soup_address_hash (const gpointer p)
 	g_assert(p != NULL);
 
 	ia = (const SoupAddress*) p;
-	/* We do pay attention to network byte order just in case the hash
-	   result is saved or sent to a different host.  */
+
+	/* 
+	 * We do pay attention to network byte order just in case the hash
+	 * result is saved or sent to a different host.  
+	 */
 	port = (guint32) g_ntohs (((struct sockaddr_in*) &ia->sa)->sin_port);
 	addr = g_ntohl (((struct sockaddr_in*) &ia->sa)->sin_addr.s_addr);
 
@@ -618,8 +621,10 @@ soup_socket_server_new (const gint port)
 	sa_in->sin_addr.s_addr = g_htonl (INADDR_ANY);
 	sa_in->sin_port = g_htons (port);
 
-	/* The socket is set to non-blocking mode later in the Windows
-	   version.*/
+	/* 
+	 * For Unix, set REUSEADDR and NONBLOCK.
+	 * For Windows, set NONBLOCK during accept.
+	 */
 #ifndef SOUP_WIN32
 	{
 		const int on = 1;

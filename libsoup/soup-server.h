@@ -92,6 +92,8 @@ typedef struct _SoupServerMessage SoupServerMessage;
 
 SoupServerMessage *soup_server_message_new        (SoupMessage       *src_msg);
 
+void               soup_server_message_start      (SoupServerMessage *servmsg);
+
 void               soup_server_message_add_data   (SoupServerMessage *servmsg,
 						   SoupOwnership      owner,
 						   gchar             *body,
