@@ -1,6 +1,6 @@
 2001-08-06  Alex Graveley  <alex@ximian.com>
 
-	* src/soup-core/soup-private.h: Define VERSION to "Win" for
+	* src/soup-core/soup-private.h: Define VERSION to "Win/0.4.2" for
 	Windows clients.
 
 2001-08-06  Alex Graveley  <alex@ximian.com>
