@@ -48,46 +48,25 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 	return -1;
 }
 
-static void
-soup_parse_headers (GHashTable *hash, gchar *str)
+/*
+ * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"
+ *                     ^             ^ ^    ^            ^   ^
+ *                     |             | |    |            |   |
+ *                    key            0 val  0          val+  0
+ *                                         , <---memmove-...
+ * 
+ * key: "Content-Length"
+ * val: "1234, 567"
+ */
+static gboolean
+soup_parse_headers (SoupRequest *req, gchar *str, guint len)
 {
-	gchar *idx, *idx2;
+	gint http_major, http_minor, status_code;
+	gint read_count, phrase_start;
+	gchar *key = NULL, *val = NULL;
+	gint offset = 0, lws = 0;
 
-	while ((idx = strstr (str, "\r\n"))) {
-		idx2 = strstr (idx, ": ");
-
-		if (idx2) {
-			*idx2 = '\0';
-			g_hash_table_insert (hash, idx, idx2);
-		} else
-			return;
-
-		*idx = '\0';
-		str = idx++;
-	}
-}
-
-/* returns TRUE to continue processing, FALSE if a callback was issued */
-static gboolean 
-soup_process_headers (SoupRequest *req, gchar *str, guint len)
-{
-	gchar reason_phrase [512];
-	gint http_major, http_minor, status_code, read_count;
-
-	read_count = sscanf (str, 
-			     "HTTP/%d.%d %u %512s\r\n", 
-			     &http_major,
-			     &http_minor,
-			     &status_code, 
-			     reason_phrase);
-
-	req->response_code = status_code;
-	req->response_phrase = g_strdup (reason_phrase);
-
-	if (read_count != 4) {
-		soup_request_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
-		return FALSE;
-	}
+	//{ volatile int i = 0; while (!i) sleep (1); }
 
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
@@ -95,9 +74,129 @@ soup_process_headers (SoupRequest *req, gchar *str, guint len)
 	req->response_headers = g_hash_table_new (soup_str_case_hash, 
 						  soup_str_case_equal);
 
-	soup_parse_headers (req->response_headers, str);
+	read_count = sscanf (str, 
+			     "HTTP/%d.%d %u %n", 
+			     &http_major,
+			     &http_minor,
+			     &status_code, 
+			     &phrase_start);
+
+	if (read_count < 3)
+		goto THROW_MALFORMED_HEADER;
+
+	req->response_code = status_code; 
+	req->response_phrase = &str [phrase_start];
+
+	key = strstr (str, "\r\n");
+	key += 2;
+
+	/* FIXME: Do better error checking. */
+
+	/* join continuation headers, using a comma */
+	while ((key = strstr (key, "\r\n"))) {
+		key += 2;
+		offset = key - str;
+
+		/* pointing at another \r means end of header */
+		if (*key == '\r') break;
+
+		/* check if first character on the line is whitespace */
+		if (*key == ' ' || *key == '\t') {
+			key -= 2;
+
+			/* eat any trailing space from the previous line*/
+			while (*(key - 1) == ' '  || *(key - 1) == '\t')
+				key--;
+
+			/* count how many characters are whitespace */
+			lws = strspn (key, " \t\r\n");
+
+			/* if this is a continuation line, replace 
+			   whitespace with ", " */
+			if (*(key - 1) != ':') {
+				g_memmove (key, 
+					   &key [lws - 2], 
+					   len - offset - lws + 2);
+				key [0] = ',';
+				key [1] = ' ';
+			} else {
+				g_memmove (key, 
+					   &key [lws], 
+					   len - offset - lws);
+			}				
+		}
+	}
+
+	key = str;
+
+	/* set eos for header key and value and add to hashtable */
+        while ((key = strstr (key, "\r\n"))) {
+		/* set end of last val, or end of http reason phrase */
+                key [0] = '\0';
+		key += 2;
+
+		/* pointing at another \r means end of header */
+		if (*key == '\r') break;
+
+                val = strchr (key, ':'); /* find start of val */
+
+		if (!val || val > strchr (key, '\r'))
+			goto THROW_MALFORMED_HEADER;
+
+		/* set end of key */
+		val [0] = '\0';
+		
+		val++;
+		val += strspn (val, " \t");  /* skip whitespace */
+		g_hash_table_insert (req->response_headers, key, val);
+		
+		key = val;
+        }
 
 	return TRUE;
+
+ THROW_MALFORMED_HEADER:
+	soup_request_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
+	return FALSE;
+}
+
+/* returns TRUE to continue processing, FALSE if a callback was issued */
+static gboolean 
+soup_process_headers (SoupRequest *req, gchar *str, guint len)
+{
+	gchar *connection, *length, *encoding;
+
+	if (!soup_parse_headers (req, str, len))
+		return FALSE;
+
+	/* Handle connection persistence */
+	connection = g_hash_table_lookup (req->response_headers, "Connection");
+
+	if (connection && g_strcasecmp (connection, "close") == 0)
+		req->context->keep_alive = FALSE;
+
+	/* Handle Content-Length or Chunked encoding */
+	length = g_hash_table_lookup (req->response_headers, "Content-Length");
+	
+	if (length)
+		req->priv->content_length = atol (length);
+	else {
+		encoding = g_hash_table_lookup (req->response_headers, 
+						"Transfer-Encoding");
+
+		if (g_strcasecmp (encoding, "chunked") == 0)
+			req->context->is_chunked = TRUE;
+		else {
+			g_warning ("Unknown encoding type in HTTP response.");
+			goto THROW_MALFORMED_HEADER;
+		}
+	}
+
+	return TRUE;
+
+ THROW_MALFORMED_HEADER:
+	soup_request_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
+	return FALSE;
 }
 
 static gboolean 
@@ -130,35 +229,45 @@ soup_queue_read_async (GIOChannel* iochannel,
 	   FINISHED. Initiate callback with ERROR_NONE if header parsing 
 	   was successful */
 
-	if (bytes_read == 0) {
-		GByteArray *recv_buf = req->priv->recv_buf;
-
-		index = soup_substring_index (recv_buf->data, 
-					      recv_buf->len,
-					      "\r\n\r\n");
-
-		req->response.length = recv_buf->len - index + 4;
-		req->response.body = g_memdup (&recv_buf->data [index + 4],
-					       req->response.length + 1);
-		req->response.body [req->response.length] = '\0';
-
-		recv_buf->len = index + 2;
-		recv_buf->data = g_realloc (recv_buf->data, recv_buf->len + 1);
-		recv_buf->data [recv_buf->len + 1] = '\0';
-		
-		req->status = SOUP_STATUS_FINISHED;
-
-		if (soup_process_headers (req, recv_buf->data, recv_buf->len))
-			soup_request_issue_callback (req, SOUP_ERROR_NONE);
-
-		return FALSE;
-	}
-
 	g_byte_array_append (req->priv->recv_buf,
 			     read_buf,
 			     bytes_read);
 	
 	req->priv->read_len += bytes_read;
+
+	index = soup_substring_index (req->priv->recv_buf->data, 
+				      req->priv->recv_buf->len,
+				      "\r\n\r\n");
+
+	if (index && 
+	    !req->response_headers &&
+	    !soup_process_headers (req, 
+				   req->priv->recv_buf->data, 
+				   index + 4))
+			return FALSE;
+
+	if (index && (bytes_read == 0 || 
+		      req->priv->read_len == req->priv->content_length || 
+		      req->context->is_chunked)) {
+		GByteArray *recv_buf;
+
+		index += 4;
+		recv_buf = req->priv->recv_buf;
+
+		req->response.length = recv_buf->len - index;
+		req->response.body = g_memdup (&recv_buf->data [index],
+					       req->response.length + 1);
+		req->response.body [req->response.length] = '\0';
+
+		recv_buf->len = index;
+		recv_buf->data = g_realloc (recv_buf->data, recv_buf->len + 1);
+		recv_buf->data [recv_buf->len + 1] = '\0';
+		
+		req->status = SOUP_STATUS_FINISHED;
+		soup_request_issue_callback (req, SOUP_ERROR_NONE);
+
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -226,7 +335,7 @@ soup_base64_encode (gchar *text)
 }
 
 static void
-soup_encode_http_auth (gboolean proxy_auth, SoupUri *uri, GString *header)
+soup_encode_http_auth (SoupUri *uri, GString *header, gboolean proxy_auth)
 {
 	if (!uri->authmech) {
 		gchar *authpass, *encoded;
@@ -243,23 +352,21 @@ soup_encode_http_auth (gboolean proxy_auth, SoupUri *uri, GString *header)
 	}
 }
 
+struct SoupCustomHeader {
+	gchar *key;
+	gchar *val;
+};
+
 struct SoupUsedHeaders {
 	gchar  *host;
 	gchar  *user_agent;
 	gchar  *content_type;
-	gchar  *charset;
-	gchar  *content_length;
 	gchar  *soapaction;
 	gchar  *connection;
 	gchar  *proxy_auth;
 	gchar  *auth;
 
 	GSList *custom_headers;
-};
-
-struct SoupCustomHeader {
-	gchar *key;
-	gchar *val;
 };
 
 static inline void 
@@ -270,12 +377,13 @@ soup_check_used_headers (gchar *key,
 	if (strcmp (key, "Host")) hdrs->host = value;
 	else if (strcmp (key, "User-Agent")) hdrs->user_agent = value;
 	else if (strcmp (key, "Content-Type")) hdrs->content_type = value;
-	else if (strcmp (key, "Charset")) hdrs->charset = value;
-	else if (strcmp (key, "Content-Length")) hdrs->content_length = value;
 	else if (strcmp (key, "SOAPAction")) hdrs->soapaction = value;
 	else if (strcmp (key, "Connection")) hdrs->connection = value;
 	else if (strcmp (key, "Proxy-Authorization")) hdrs->proxy_auth = value;
 	else if (strcmp (key, "Authorization")) hdrs->auth = value;
+	else if (strcmp (key, "Content-Length"))
+		g_warning ("Content-Length set as custom request header "
+			   "is not allowed.");
 	else {
 		struct SoupCustomHeader *cust; 
 		cust = g_new (struct SoupCustomHeader, 1);
@@ -292,14 +400,11 @@ soup_get_request_header (SoupRequest *req)
 	GString *header = g_string_new ("");
 	gchar *uri;
 	SoupContext *proxy = soup_get_proxy ();
-	gchar content_length_str[10];
 
 	struct SoupUsedHeaders hdrs = {
 		req->context->uri->host, 
 		"Soup/0.1", 
-		"text/xml", 
-		"\"utf-8\"",
-		NULL, 
+		"text/xml\r\n\tcharset=\"utf-8\"", 
 		req->action,
 		"keep-alive",
 		NULL,
@@ -311,11 +416,6 @@ soup_get_request_header (SoupRequest *req)
 		g_hash_table_foreach (req->request_headers, 
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
-
-	if (!hdrs.content_length) {
-		g_snprintf (content_length_str, 10, "%d", req->request.length);
-		hdrs.content_length = content_length_str;
-	}
 
 	if (proxy)
 		uri = soup_uri_to_string (proxy->uri, FALSE);
@@ -331,38 +431,38 @@ soup_get_request_header (SoupRequest *req)
 			   "Host: %s\r\n"
 			   "User-Agent: %s\r\n"
 			   "Content-Type: %s;\r\n"
-			   "charset=%s\r\n"
-			   "Content-Length: %s\r\n"
+			   "Content-Length: %d\r\n"
 			   "SOAPAction: %s\r\n"
 			   "Connection: %s\r\n",
 			   uri,
 			   hdrs.host,
 			   hdrs.user_agent,
 			   hdrs.content_type,
-			   hdrs.charset,
-			   hdrs.content_length,
+			   req->request.length,
 			   hdrs.soapaction,
 			   hdrs.connection);
 
-	if (!hdrs.proxy_auth) {
-		if (proxy && proxy->uri->user)
-			soup_encode_http_auth (TRUE, proxy->uri, header);
-	} else
+	g_free (uri);
+
+	/* Proxy-Authorization from the proxy Uri */
+
+	if (hdrs.proxy_auth)
 		g_string_sprintfa (header, 
 				   "Proxy-Authorization: %s\r\n",
 				   hdrs.proxy_auth);
+	else if (proxy && proxy->uri->user)
+		soup_encode_http_auth (proxy->uri, header, TRUE);
+
+	/* Authorization from the context Uri */
 
 	/* FIXME: if going through a proxy, do we use the absoluteURI on 
 	          the request line, or encode the Authorization header into
 		  the message? */
 
-	if (!hdrs.auth) {
-		if (req->context->uri->user)
-			soup_encode_http_auth (FALSE, proxy->uri, header);
-	} else 
-		g_string_sprintfa (header, 
-				   "Authorization: %s\r\n",
-				   hdrs.auth);
+	if (hdrs.auth)
+		g_string_sprintfa (header, "Authorization: %s\r\n", hdrs.auth);
+	else if (req->context->uri->user)
+		soup_encode_http_auth (proxy->uri, header, FALSE);
 
 	/* Append custom headers for this request */
 
@@ -413,14 +513,15 @@ soup_queue_write_async (GIOChannel* iochannel,
 		   and avoid memcpy/alloca altogether at the loss of cpu 
 		   cycles */
 		guint offset = head_len - total_written;
-		write_len = (offset) + body_len;
-		write_buf = alloca (write_len);
+		write_len = offset + body_len;
+		write_buf = alloca (write_len + 1);
 		memcpy (write_buf, 
-			&req->priv->req_header->str [offset],
+			&req->priv->req_header->str [total_written],
 			offset);
-		memcpy (&write_buf [offset + 1],
+		memcpy (&write_buf [offset],
 			req->request.body,
 			req->request.length);
+		write_buf [write_len + 1] = '\0';
 	} else if (total_written >= head_len) {
 		/* headers done, maybe some of body */
 		/* send rest of body */
@@ -464,12 +565,15 @@ soup_queue_error_async (GIOChannel* iochannel,
 			GIOCondition condition, 
 			SoupRequest *req)
 {
+	g_warning ("soup_queue_error_async: connection error");
+
 	switch (condition) {
 	case G_IO_ERR:
 	case G_IO_HUP:
 	case G_IO_NVAL:
 		switch (req->status) {
 		case SOUP_STATUS_FINISHED:
+			soup_request_cleanup (req);
 			break;
 		case SOUP_STATUS_CONNECTING:
 			soup_request_issue_callback (req, 

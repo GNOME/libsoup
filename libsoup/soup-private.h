@@ -69,9 +69,11 @@ struct _SoupRequestPrivate {
 	gulong          write_len;
 	gulong          read_len;
 
+	gulong          content_length;
+
 	GString        *req_header;
 	GByteArray     *recv_buf;
-
+	
 	SoupCallbackFn  callback;
 	gpointer        user_data;
 };
@@ -79,10 +81,12 @@ struct _SoupRequestPrivate {
 SoupCallbackResult soup_request_issue_callback (SoupRequest   *req, 
 						SoupErrorCode  error);
 
-guint              soup_str_case_hash          (gconstpointer key);
+void               soup_request_cleanup        (SoupRequest   *req);
 
-gboolean           soup_str_case_equal         (gconstpointer v1,
-						gconstpointer v2);
+guint              soup_str_case_hash          (gconstpointer  key);
+
+gboolean           soup_str_case_equal         (gconstpointer  v1,
+						gconstpointer  v2);
 
 #ifdef __cplusplus
 }

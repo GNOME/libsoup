@@ -116,7 +116,7 @@ struct SoupConnectData {
 
 static void 
 soup_context_connect_cb (GTcpSocket                   *socket, 
-			 GInetAddr*                    addr,
+			 GInetAddr                    *addr,
 			 GTcpSocketConnectAsyncStatus  status,
 			 gpointer                      user_data)
 {
@@ -247,6 +247,8 @@ soup_context_get_connection (SoupContext           *ctx,
 	if ((conn = soup_try_existing_connections (ctx))) {
 		conn->in_use = TRUE;
 		
+		g_message ("Reusing connection");
+
 		(*cb) (ctx, 
 		       SOUP_CONNECT_ERROR_NONE, 
 		       conn->socket, 
@@ -262,11 +264,17 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	if (connection_count >= soup_get_connection_limit() && 
 	    !soup_prune_least_used_connection ()) {
+
+		g_message ("Queueing new connection");
+
 		data->timeout_tag = 
 			g_timeout_add (500, 
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
 	} else {
+
+		g_message ("Creating new connection");
+
 		data->gnet_connect_tag =
 			gnet_tcp_socket_connect_async (ctx->uri->host, 
 						       ctx->uri->port,

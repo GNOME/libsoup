@@ -47,19 +47,15 @@
 static gint
 soup_uri_get_default_port (gchar *proto)
 {
-	gint len;
-
 	if (!proto) return -1;
 
-	len = strlen (proto);
-
-	if (strncasecmp (proto, "https", len) == 0)
+	if (strcasecmp (proto, "https") == 0)
 		return 443;
-	else if (strncasecmp (proto, "http", len) == 0)
+	else if (strcasecmp (proto, "http") == 0)
 		return 80;
-	else if (strncasecmp (proto, "mailto", len) == 0)
+	else if (strcasecmp (proto, "mailto") == 0)
 		return 25;
-	else if (strncasecmp (proto, "ftp", len) == 0)
+	else if (strcasecmp (proto, "ftp") == 0)
 		return 21;
 	else
 		return -1;
