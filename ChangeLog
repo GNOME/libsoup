@@ -1,3 +1,8 @@
+2001-05-18  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c (wsdl_soap_headers):
+	use the correct XML node to get the headers
+
 2001-05-18  Alex Graveley  <alex@ximian.com>
 
 	* README: "Subscribe" not "Subject" in
