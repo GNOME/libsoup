@@ -32,6 +32,7 @@ soup_message_new (SoupContext *context, SoupAction action)
 	ret->status  = SOUP_STATUS_IDLE;
 	ret->action  = g_strdup (action);
 	ret->context = context;
+	ret->method  = SOUP_METHOD_POST;
 
 	soup_context_ref (context);
 
@@ -355,9 +356,20 @@ soup_message_get_flags (SoupMessage *msg)
 }
 
 void
-soup_message_set_method (SoupMessage *msg, SoupMessageMethod method)
+soup_message_set_method (SoupMessage *msg, const gchar *method)
 {
-	g_warning ("Not yet implemented.");
+	g_return_if_fail(msg);
+	g_return_if_fail(method);
+
+	msg->method = method;
+}
+
+const gchar *
+soup_message_get_method (SoupMessage *msg)
+{
+	g_return_val_if_fail(msg, NULL);
+
+	return msg->method;
 }
 
 void 

@@ -1,3 +1,22 @@
+2001-06-06  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_set_method,
+	soup_message_get_method): Implement. Sets the HTTP method for a given
+	message.
+	(soup_message_new): Set the default method to SOUP_METHOD_POST.
+
+	* src/soup-core/soup-misc.c (soup_substring_index): Make sure we
+	check the very last possible character (<= instead of <) for substrings.
+
+	* src/soup-core/soup-queue.c (soup_get_request_header): Send an HTTP
+	request for the method set in the message instead of always POST.
+
+	* src/soup-core/soup-parser.c: Change the #include to <parser.h> from
+	<gnome-xml/parser.h>.
+
+	* src/soup-core/soup-serializer.h: Change the #include to <tree.h> from
+	<gnome-xml/tree.h>.
+
 2001-06-04  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-httpd.c: (ap_*) Add these empty Apache method

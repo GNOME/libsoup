@@ -138,7 +138,7 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 {
 	int i, sublen = strlen (substr);
 	
-	for (i = 0; i < len - sublen; ++i)
+	for (i = 0; i <= len - sublen; ++i)
 		if (str[i] == substr[0])
 			if (memcmp (&str[i], substr, sublen) == 0)
 				return i;

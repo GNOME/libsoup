@@ -401,8 +401,9 @@ soup_get_request_header (SoupMessage *req)
 		uri = g_strdup (suri->path);
 
 	g_string_sprintfa (header,
-			   "POST %s HTTP/1.1\r\n"
+			   "%s %s HTTP/1.1\r\n"
 			   "Content-Length: %d\r\n",
+			   req->method,
 			   uri,
 			   req->request.length);
 	g_free (uri);

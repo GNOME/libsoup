@@ -66,6 +66,8 @@ struct _SoupMessage {
 	guint               response_code;
 	const gchar        *response_phrase;
 	GHashTable         *response_headers;
+
+	const gchar        *method;
 };
 
 typedef void (*SoupCallbackFn) (SoupMessage   *req,
@@ -105,14 +107,15 @@ void           soup_message_set_response_header (SoupMessage      *req,
 const gchar   *soup_message_get_response_header (SoupMessage      *req,
 						 const gchar      *name);
 
-typedef enum {
-	SOUP_METHOD_POST,
-	SOUP_METHOD_GET,
-	SOUP_METHOD_OPTIONS
-} SoupMessageMethod;
+#define SOUP_METHOD_POST    "POST"
+#define SOUP_METHOD_GET     "GET"
+#define SOUP_METHOD_HEAD    "HEAD"
+#define SOUP_METHOD_OPTIONS "OPTIONS"
 
 void           soup_message_set_method          (SoupMessage      *msg,
-						 SoupMessageMethod method);
+						 const gchar      *method);
+
+const gchar   *soup_message_get_method          (SoupMessage      *msg);
 
 typedef enum {
 	SOUP_HANDLER_PRE_BODY,
