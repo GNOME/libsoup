@@ -1,3 +1,10 @@
+2004-02-05  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-session.c (soup_session_add_filter): Ref the filter
+	when adding it.
+	(soup_session_remove_filter): And unref it here (we were already
+	unreffing it in dispose().)
+
 2004-02-05  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-dns.c (soup_dns_entry_unref): Don't try to free the

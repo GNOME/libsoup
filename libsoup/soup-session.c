@@ -387,6 +387,7 @@ soup_session_add_filter (SoupSession *session, SoupMessageFilter *filter)
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
 
+	g_object_ref (filter);
 	session->priv->filters = g_slist_prepend (session->priv->filters,
 						  filter);
 }
@@ -406,6 +407,7 @@ soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
 
 	session->priv->filters = g_slist_remove (session->priv->filters,
 						 filter);
+	g_object_unref (filter);
 }
 
 
