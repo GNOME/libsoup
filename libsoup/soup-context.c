@@ -16,6 +16,7 @@
 #include "soup-private.h"
 #include "soup-misc.h"
 #include "soup-uri.h"
+#include "soup-ssl.h"
 
 GHashTable *soup_servers;  /* KEY: hostname, VALUE: SoupServer */
 
@@ -148,6 +149,7 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 		new_conn = g_new0 (SoupConnection, 1);
 		new_conn->server = ctx->server;
 		new_conn->socket = socket;
+		new_conn->protocol = ctx->protocol;
 		new_conn->port = ctx->uri->port;
 		new_conn->keep_alive = TRUE;
 		new_conn->in_use = TRUE;
@@ -343,7 +345,28 @@ soup_connection_release (SoupConnection *conn)
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
 {
+	GIOChannel *retval;
+
 	g_return_val_if_fail (conn != NULL, NULL);
 
-	return gnet_tcp_socket_get_iochannel (conn->socket);
+	retval = gnet_tcp_socket_get_iochannel (conn->socket);
+
+	if (conn->protocol == SOUP_PROTOCOL_SHTTP)
+		return soup_get_ssl_iochannel (retval);
+
+	return retval;
+}
+
+void 
+soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
+{
+	g_return_if_fail (conn != NULL);
+	conn->keep_alive = keep_alive;
+}
+
+gboolean 
+soup_connection_is_keep_alive (SoupConnection *conn)
+{
+	g_return_val_if_fail (conn != NULL, FALSE);
+	return conn->keep_alive;
 }

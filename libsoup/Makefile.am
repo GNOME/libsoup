@@ -17,7 +17,8 @@ libsoup_la_SOURCES =	\
 	soup-queue.c	\
 	soup-request.c	\
 	soup-uri.c	\
-	soup-misc.c
+	soup-misc.c     \
+	soup-ssl.c
 
 soupinclude_HEADERS =	\
 	soup.h		\
@@ -25,7 +26,8 @@ soupinclude_HEADERS =	\
 	soup-queue.h	\
 	soup-request.h	\
 	soup-uri.h	\
-	soup-misc.c
+	soup-misc.h     \
+	soup-ssl.h
 
 EXTRA_DIST = soup-private.h
 

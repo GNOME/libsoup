@@ -36,21 +36,21 @@ typedef struct {
 	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
 } SoupServer;
 
+typedef enum {
+	SOUP_PROTOCOL_HTTP,
+	SOUP_PROTOCOL_SHTTP,
+	SOUP_PROTOCOL_SMTP
+} SoupProtocol;
+
 struct _SoupConnection {
 	SoupServer *server;
 	GTcpSocket *socket;
 	guint       port;
 	gboolean    in_use;
 	guint       last_used_id;
-
 	gboolean    keep_alive;
+	SoupProtocol  protocol;
 };
-
-typedef enum {
-	SOUP_PROTOCOL_HTTP,
-	SOUP_PROTOCOL_SHTTP,
-	SOUP_PROTOCOL_SMTP
-} SoupProtocol;
 
 struct _SoupContext {
 	SoupProtocol  protocol;
@@ -69,13 +69,12 @@ struct _SoupRequestPrivate {
 	guint           timeout_tag;
 
 	guint           write_len;
-	guint           read_len;
 	guint           header_len;
 
 	guint           content_length;
 	gboolean        is_chunked;
 	guint           cur_chunk_len;
-	gchar          *cur_chunk_start;
+	guint           cur_chunk_idx;
 
 	GString        *req_header;
 	GByteArray     *recv_buf;

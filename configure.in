@@ -144,6 +144,9 @@ AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
 
 # Check for OpenSSL
 AC_CHECK_HEADERS(openssl/ssl.h)
+AC_CHECK_HEADERS(openssl/err.h)
+AC_CHECK_LIB(crypto, X509_free, , )
+AC_CHECK_LIB(ssl, SSL_CTX_new, , , -lcrypto)
 
 
 # Set PACKAGE_SOURCE_DIR in config.h.

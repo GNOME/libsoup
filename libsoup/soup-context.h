@@ -30,23 +30,28 @@ typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
 
 typedef gpointer SoupConnectId;
 
-SoupContext  *soup_context_get                (gchar                *uri);
+SoupContext  *soup_context_get               (gchar                *uri);
 
-void          soup_context_ref                (SoupContext          *ctx);
+void          soup_context_ref               (SoupContext          *ctx);
 
-void          soup_context_unref              (SoupContext          *ctx);
+void          soup_context_unref             (SoupContext          *ctx);
 
-SoupConnectId soup_context_get_connection     (SoupContext          *ctx,
-					       SoupConnectCallbackFn cb,
-					       gpointer              user_data);
+SoupConnectId soup_context_get_connection    (SoupContext          *ctx,
+					      SoupConnectCallbackFn cb,
+					      gpointer              user_data);
 
-void          soup_context_cancel_connect     (SoupConnectId         tag);
+void          soup_context_cancel_connect    (SoupConnectId         tag);
 
-gchar        *soup_context_get_uri            (SoupContext          *ctx);
+gchar        *soup_context_get_uri           (SoupContext          *ctx);
 
 
-void          soup_connection_release         (SoupConnection *conn);
+void          soup_connection_release        (SoupConnection       *conn);
 
-GIOChannel   *soup_connection_get_iochannel   (SoupConnection *conn);
+GIOChannel   *soup_connection_get_iochannel  (SoupConnection       *conn);
+
+void          soup_connection_set_keep_alive (SoupConnection       *conn, 
+					      gboolean              keep_alive);
+
+gboolean      soup_connection_is_keep_alive  (SoupConnection       *conn);
 
 #endif /*SOUP_CONTEXT_H*/
