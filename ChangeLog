@@ -1,3 +1,14 @@
+2001-09-14  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-serializer.c
+	(soup_serializer_get_namespace_prefix): Return const string.
+
+	* Makefile.am (EXTRA_DIST): Install soup.m4.
+
+	* src/libwsdl/wsdl-soap-marshal.c:
+	* src/libwsdl/wsdl-typecodes.c:
+	* src/soup-wsdl/wsdl-parse.c: Formatting.
+
 2001-09-13  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-serializer.c
