@@ -273,9 +273,17 @@ connection_death (GIOChannel*     iochannel,
 {
 	gboolean ret = conn->in_use;
 
-	soup_connection_release (conn);
+	if (condition & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
+		/* Some error condition, drop the connection immediately */
+		conn->in_use = FALSE;
+	}
 
-	return ret;
+	if (!conn->in_use) {
+		connection_free (conn);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 struct SoupConnectData {

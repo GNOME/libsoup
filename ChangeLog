@@ -1,5 +1,11 @@
 2003-04-02  Joe Shaw  <joe@ximian.com>
 
+	* libsoup/soup-context.c (connection_death): Only drop the
+	connection if we get an error condition on the channel.  Fixes a
+	double-free.
+
+2003-04-02  Joe Shaw  <joe@ximian.com>
+
 	* libsoup/soup-context.c (connection_death): Just call
 	soup_connection_release() from here and return whether the
 	connection is in use.
