@@ -1,3 +1,11 @@
+2001-07-26  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump the version up to 0.4.1.
+
+	* src/soup-core/soup-queue.c (soup_get_request_header): Fix a logic
+	error. Send the actual version of Soup with the User-Agent header
+	instead of always 0.1.
+
 2001-07-25  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-socket.c (soup_address_new,

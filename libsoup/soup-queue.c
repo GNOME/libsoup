@@ -321,7 +321,7 @@ soup_get_request_header (SoupMessage *req)
 
 	g_free (uri);
 
-	if (g_strcasecmp (req->method, "GET") != 0 || 
+	if (g_strcasecmp (req->method, "GET") != 0 &&
 	    g_strcasecmp (req->method, "HEAD") != 0) {
 		g_string_sprintfa (header,
 				   "Content-Length: %d\r\n",
@@ -348,7 +348,7 @@ soup_get_request_header (SoupMessage *req)
 			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
 			   hdrs.content_type ? "" : "charset=utf-8\r\n",
 			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
-			   hdrs.user_agent ? "" : "User-Agent: Soup/0.1\r\n");
+			   hdrs.user_agent ? "" : "User-Agent: Soup/"VERSION"\r\n");
 
 	/* Proxy-Authorization from the proxy Uri */
 	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
