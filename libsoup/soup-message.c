@@ -748,9 +748,14 @@ soup_message_send (SoupMessage *msg)
 
 	while (1) {
 		g_main_iteration (TRUE); 
+
 		if (msg->status == SOUP_STATUS_FINISHED || 
 		    SOUP_ERROR_IS_TRANSPORT (msg->errorcode))
 			break;
+
+		/* Quit if soup_shutdown has been called */ 
+		if (!soup_initialized)
+			return SOUP_ERROR_CANCELLED;
 	}
 
 	return msg->errorclass;

@@ -767,6 +767,8 @@ soup_queue_shutdown (void)
 {
 	SoupMessage *req;
 
+	soup_initialized = FALSE;
+
 	g_source_remove (soup_queue_idle_tag);
 	soup_queue_idle_tag = 0;
 

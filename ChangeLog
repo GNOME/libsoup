@@ -1,3 +1,13 @@
+2002-02-14  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_send): Check if
+	soup_initialized is FALSE signifying that soup_shutdown has been
+	called while processing.
+
+	* src/libsoup/soup-queue.c (soup_queue_shutdown): Set
+	soup_initialized to FALSE so any currently running synch sends
+	will quit.
+
 2002-02-13  Ettore Perazzoli  <ettore@ximian.com>
 
 	* src/libsoup/soup-ntlm.c (soup_ntlm_response): Set `decodelen' to
