@@ -184,9 +184,6 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	GIOError error;
 	SoupDataBuffer buf;
 
-	if (condition != G_IO_IN) 
-		g_print ("read_cb condition: %d\n", condition);
-
  READ_AGAIN:
 	error = g_io_channel_read (iochannel,
 				   read_buf,
@@ -401,9 +398,6 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	body_len = w->src->length;
 	total_len = head_len + body_len;
 	total_written = w->write_len;
-
-	if (condition != G_IO_OUT) 
-		g_print ("write_cb condition: %d\n", condition);
 
 #ifdef SIGPIPE
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
