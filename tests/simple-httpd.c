@@ -128,6 +128,7 @@ main (int argc, char **argv)
 	const char *ssl_cert_file = NULL, *ssl_key_file = NULL;
 
 	g_type_init ();
+	g_thread_init (NULL);
 	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "p:k:c:s:")) != -1) {

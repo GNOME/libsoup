@@ -1,3 +1,8 @@
+2004-01-12  Dan Winship  <danw@ximian.com>
+
+	* tests/simple-httpd.c (main): Add a g_thread_init() so this works
+	again.
+
 2004-01-10  Larry Ewing  <lewing@ximian.com>
 
 	* libsoup-2.2.pc.in (Libs): use LIBGNUTLS_LIBS in the substitution
