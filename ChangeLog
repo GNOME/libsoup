@@ -1,5 +1,7 @@
 2004-08-26  Dan Winship  <danw@novell.com>
 
+	* configure.in: Bump version to 2.2.0.
+
 	* AUTHORS: Update this to reflect the last 2 years.
 
 	* NEWS: Brief summary of 1.99.x -> 2.2 changes
