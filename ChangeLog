@@ -1,3 +1,7 @@
+2002-03-19  Alex Graveley  <alex@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Bump version to 0.7.0.
+
 2002-03-07  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: SOUP_AGE goes to 1, SOUP_CURRENT goes to 4.
