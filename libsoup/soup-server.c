@@ -315,6 +315,7 @@ write_done_cb (gpointer user_data)
 {
 	SoupMessage *msg = user_data;
 
+	soup_transfer_write_unref (msg->priv->write_tag);
 	msg->priv->write_tag = 0;
 	destroy_message (msg);
 }
@@ -862,6 +863,7 @@ read_done_cb (const SoupDataBuffer *data,
 	SoupSocket *server_sock = req->priv->server_sock;
 	GIOChannel *channel;
 
+	soup_transfer_read_unref (req->priv->read_tag);
 	req->priv->read_tag = 0;
 
 	call_handler (req, data, soup_context_get_uri (req->context)->path);

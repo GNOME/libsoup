@@ -1,3 +1,11 @@
+2003-09-03  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-server.c (read_done_cb, write_done_cb): Unref the
+	reader/writer rather than leaking them.
+
+	* libsoup/md5-utils.h: Add some #defines here to avoid namespace
+	pollution
+
 2003-08-07  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-auth.c (soup_auth_lookup, soup_auth_set_context,

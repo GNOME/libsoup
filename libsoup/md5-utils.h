@@ -28,6 +28,13 @@
 
 #include <glib.h>
 
+#define MD5Context               SoupMD5Context
+#define md5_get_digest           soup_md5_get_digest
+#define md5_get_digest_from_file soup_md5_get_digest_from_file
+#define md5_init                 soup_md5_init
+#define md5_update               soup_md5_update
+#define md5_final                soup_md5_final
+
 typedef struct {
 	guint32 buf[4];
 	guint32 bits[2];
