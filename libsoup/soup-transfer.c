@@ -284,11 +284,6 @@ static void
 issue_chunk_callback (SoupReader *r, gchar *data, gint len, gboolean *cancelled)
 {
 	/* 
-	 * Null terminate 
-	 */
-	g_byte_array_append (r->recv_buf, "\0", 1);
-
-	/* 
 	 * Call chunk callback. Pass len worth of data. 
 	 */
 	if (r->read_chunk_cb && len) {
@@ -310,11 +305,6 @@ issue_chunk_callback (SoupReader *r, gchar *data, gint len, gboolean *cancelled)
 		else
 			*cancelled = FALSE;
 	}
-
-	/* 
-	 * Remove Null 
-	 */
-	g_byte_array_remove_index (r->recv_buf, r->recv_buf->len - 1);
 }
 
 static gboolean
