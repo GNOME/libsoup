@@ -673,7 +673,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		if (!bytes_written) 
 			goto TRY_AGAIN;
 
-		if (!w->headers_done && bytes_written > w->header_len) {
+		if (!w->headers_done && bytes_written >= w->header_len) {
 			if (w->headers_done_cb) {
 				IGNORE_CANCEL (w);
 				(*w->headers_done_cb) (w->user_data);

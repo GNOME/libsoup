@@ -1,3 +1,30 @@
+2001-12-05  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-fault.c: Formatting nitpicks.
+
+	* src/libsoup/soup-server.c (free_handler): Call unregister handler.
+
+	* src/libsoup/soup-server.h: Add unregister callback to
+	SoupServerHandler so handlers can free temporary resources on
+	server shutdown.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write_cb): Call
+	headers_done_cb if wrote >= header_len.
+
+	* src/libsoup/soup-dav-server.c (soup_dav_server_register): Pass
+	dav_unregister_handler to soup_server_register, to cleanup state
+	on server free.
+
+	* src/libsoup/soup-env.c: Rehash.
+
+	* src/libsoup/soup-message.c (soup_message_new): Allow NULL
+	contexts.
+	(soup_message_copy): Impl. Copy request/response buffers.
+
+	* src/libsoup/soup-queue.c (soup_queue_message): Handle NULL
+	message contexts by issuing a cancelled callback.  Break out queue
+	initialization to soup_queue_initialize(). 
+
 2001-12-04  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-message.c (soup_message_requeue): Don't try to

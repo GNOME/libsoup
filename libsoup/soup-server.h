@@ -28,13 +28,20 @@ typedef struct {
 
 typedef void (*SoupServerCallbackFn) (SoupServerContext    *context,
 				      SoupMessage          *msg, 
-				      gpointer              data);
+				      gpointer              user_data);
+
+typedef void (*SoupServerUnregisterFn) (SoupServer        *server,
+					SoupServerHandler *handler,
+					gpointer           user_data);
 
 struct _SoupServerHandler {
-	const gchar           *path;
-	SoupServerAuthContext *auth_ctx;
-	SoupServerCallbackFn   callback;
-	gpointer               user_data;
+	const gchar            *path;
+
+	SoupServerAuthContext  *auth_ctx;
+
+	SoupServerCallbackFn    callback;
+	SoupServerUnregisterFn  unregister;
+	gpointer                user_data;
 };
 
 SoupServer        *soup_server_new           (SoupProtocol           proto,
@@ -60,6 +67,7 @@ void               soup_server_register      (SoupServer            *serv,
 					      const gchar           *path,
 					      SoupServerAuthContext *auth_ctx,
 					      SoupServerCallbackFn   callback,
+					      SoupServerUnregisterFn unregister,
 					      gpointer               user_data);
 
 void               soup_server_unregister    (SoupServer            *serv,

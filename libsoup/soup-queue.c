@@ -649,6 +649,17 @@ soup_idle_handle_new_requests (gpointer unused)
 	return FALSE;
 }
 
+static void
+soup_queue_initialize (void)
+{
+	if (!soup_initialized)
+		soup_load_config (NULL);
+
+	if (!soup_queue_idle_tag)
+		soup_queue_idle_tag = 
+			g_idle_add (soup_idle_handle_new_requests, NULL);
+}
+
 void 
 soup_queue_message (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
@@ -656,18 +667,20 @@ soup_queue_message (SoupMessage    *req,
 {
 	g_return_if_fail (req != NULL);
 
-	if (!soup_initialized)
-		soup_load_config (NULL);
+	req->priv->callback = callback;
+	req->priv->user_data = user_data;
 
-	if (!soup_queue_idle_tag)
-		soup_queue_idle_tag = 
-			g_idle_add (soup_idle_handle_new_requests, NULL);
+	if (!req->context) {
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_CANCELLED,
+					     "Attempted to queue a message "
+					     "with no destination context");
+		soup_message_issue_callback (req);
+		return;
+	}
 
 	if (req->status != SOUP_STATUS_IDLE)
 		soup_message_cleanup (req);
-
-	req->priv->callback = callback;
-	req->priv->user_data = user_data;
 
 	switch (req->response.owner) {
 	case SOUP_BUFFER_USER_OWNED:
@@ -702,6 +715,8 @@ soup_queue_message (SoupMessage    *req,
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);
+
+	soup_queue_initialize ();
 }
 
 /**

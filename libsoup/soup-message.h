@@ -92,6 +92,8 @@ SoupMessage   *soup_message_new_full            (SoupContext       *context,
 						 gchar             *req_body,
 						 gulong             req_length);
 
+SoupMessage   *soup_message_copy                (SoupMessage       *req);
+
 void           soup_message_free                (SoupMessage       *req);
 
 void           soup_message_cancel              (SoupMessage       *req);

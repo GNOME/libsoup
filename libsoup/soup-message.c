@@ -35,12 +35,9 @@ soup_message_new (SoupContext *context, const gchar *method)
 {
 	SoupMessage *ret;
 
-	g_return_val_if_fail (context, NULL);
-
 	ret          = g_new0 (SoupMessage, 1);
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
 	ret->status  = SOUP_STATUS_IDLE;
-	ret->context = context;
 	ret->method  = method ? method : SOUP_METHOD_GET;
 
 	ret->request_headers = g_hash_table_new (soup_str_case_hash, 
@@ -51,7 +48,7 @@ soup_message_new (SoupContext *context, const gchar *method)
 
 	ret->priv->http_version = SOUP_HTTP_1_1;
 
-	soup_context_ref (context);
+	soup_message_set_context (ret, context);
 
 	return ret;
 }
@@ -88,6 +85,60 @@ soup_message_new_full (SoupContext   *context,
 	ret->request.length = req_length;
 
 	return ret;
+}
+
+static void
+copy_header (gchar *key, gchar *value, GHashTable *dest_hash)
+{
+	soup_message_add_header (dest_hash, key, value);
+}
+
+/*
+ * Copy context, method, error, request buffer, response buffer, request
+ * headers, response headers, message flags, http version.  
+ *
+ * Callback function, content handlers, message status, server, server socket,
+ * and server message are NOT copied.  
+ */
+SoupMessage *
+soup_message_copy (SoupMessage *req)
+{
+	SoupMessage *cpy;
+
+	cpy = soup_message_new (req->context, req->method);
+
+	cpy->errorcode = req->errorcode;
+	cpy->errorclass = req->errorclass;
+	cpy->errorphrase = req->errorphrase;
+
+	cpy->request.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	cpy->request.length = cpy->request.length;
+	cpy->request.body = g_memdup (req->request.body, 
+				      req->request.length);
+
+	cpy->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	cpy->response.length = cpy->response.length;
+	cpy->response.body = g_memdup (req->response.body, 
+				       req->response.length);
+
+	soup_message_foreach_header (req->request_headers,
+				     (GHFunc) copy_header,
+				     cpy->request_headers);
+
+	soup_message_foreach_header (req->response_headers,
+				     (GHFunc) copy_header,
+				     cpy->response_headers);
+
+	cpy->priv->msg_flags = req->priv->msg_flags;
+
+	/* 
+	 * Note: We don't copy content handlers or callback function as this is
+	 * a nightmare double free situation.  
+	 */
+
+	cpy->priv->http_version = req->priv->http_version;
+
+	return cpy;
 }
 
 static void 
@@ -158,7 +209,8 @@ soup_message_cleanup (SoupMessage *req)
 static void
 finalize_message (SoupMessage *req)
 {
-	soup_context_unref (req->context);
+	if (req->context)
+		soup_context_unref (req->context);
 
 	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->request.body);
@@ -1147,10 +1199,12 @@ soup_message_set_context (SoupMessage       *msg,
 			  SoupContext       *new_ctx)
 {
 	g_return_if_fail (msg != NULL);
-	g_return_if_fail (new_ctx != NULL);
 
-	soup_context_unref (msg->context);
-	soup_context_ref (new_ctx);
+	if (msg->context)
+		soup_context_unref (msg->context);
+
+	if (new_ctx)
+		soup_context_ref (new_ctx);
 
 	msg->context = new_ctx;
 }
@@ -1160,7 +1214,9 @@ soup_message_get_context (SoupMessage       *msg)
 {
 	g_return_val_if_fail (msg != NULL, NULL);
 
-	soup_context_ref (msg->context);
+	if (msg->context)
+		soup_context_ref (msg->context);
+
 	return msg->context;
 }
 

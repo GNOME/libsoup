@@ -104,8 +104,11 @@ soup_server_cgi (void)
 }
 
 static void 
-free_handler (SoupServerHandler *hand)
+free_handler (SoupServer *server, SoupServerHandler *hand)
 {
+	if (hand->unregister)
+		(*hand->unregister) (server, hand, hand->user_data);
+
 	if (hand->auth_ctx) {
 		g_free ((gchar *) hand->auth_ctx->realm);
 		g_free (hand->auth_ctx);
@@ -116,9 +119,9 @@ free_handler (SoupServerHandler *hand)
 }
 
 static gboolean
-free_handler_foreach (gchar *key, SoupServerHandler *hand, gpointer notused)
+free_handler_foreach (gchar *key, SoupServerHandler *hand, SoupServer *server)
 {
-	free_handler (hand);
+	free_handler (server, hand);
 	return TRUE;
 }
 
@@ -151,11 +154,11 @@ soup_server_unref (SoupServer *serv)
 			g_io_channel_unref (serv->cgi_write_chan);
 
 		if (serv->default_handler)
-			free_handler (serv->default_handler);
+			free_handler (serv, serv->default_handler);
 
 		g_hash_table_foreach_remove (serv->handlers, 
 					     (GHRFunc) free_handler_foreach, 
-					     NULL);
+					     serv);
 		g_hash_table_destroy (serv->handlers);
 
 		g_main_destroy (serv->loop);
@@ -1105,6 +1108,7 @@ soup_server_register (SoupServer            *server,
 		      const gchar           *path,
 		      SoupServerAuthContext *auth_ctx,
 		      SoupServerCallbackFn   callback,
+		      SoupServerUnregisterFn unregister,
 		      gpointer               user_data)
 {
 	SoupServerHandler *new_hand;
@@ -1122,10 +1126,11 @@ soup_server_register (SoupServer            *server,
 	}
 
 	new_hand = g_new0 (SoupServerHandler, 1);
-	new_hand->path      = g_strdup (path);
-	new_hand->auth_ctx  = new_auth_ctx;
-	new_hand->callback  = callback;
-	new_hand->user_data = user_data;
+	new_hand->path       = g_strdup (path);
+	new_hand->auth_ctx   = new_auth_ctx;
+	new_hand->callback   = callback;
+	new_hand->unregister = unregister;
+	new_hand->user_data  = user_data;
 
 	if (path) {
 		if (!server->handlers)
@@ -1150,7 +1155,7 @@ soup_server_unregister (SoupServer *server, const gchar *path)
 
 	if (!path) {
 		if (server->default_handler) {
-			free_handler (server->default_handler);
+			free_handler (server, server->default_handler);
 			server->default_handler = NULL;
 		}
 		return;
@@ -1161,7 +1166,7 @@ soup_server_unregister (SoupServer *server, const gchar *path)
 	hand = g_hash_table_lookup (server->handlers, path);
 	if (hand) {
 		g_hash_table_remove (server->handlers, path);
-		free_handler (hand);
+		free_handler (server, hand);
 	}
 }
 
