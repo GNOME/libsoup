@@ -1,3 +1,27 @@
+2001-02-13  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ssl.c (soup_ssl_add_watch): work around fact
+	that data available in the socket does not always mean unencrypted
+	data is available for reading.
+	(soup_ssl_read_cb): called on socket data available. Only call the
+	real callback if SSL_pending() returns > 0 meaning there is actual
+	data to read. there is a bug here as SSL_pending() always returns
+	false, so its commented out.
+
+	* src/soup-core/soup-queue.c (soup_queue_connect): add explicit
+	check for SOCKS protocol, remove call to soup_setup_socket.
+
+	* src/soup-core/soup-context.c (soup_connection_get_iochannel):
+	add channel member to SoupConnection, and serve it up for future
+	requests.
+
+	* src/soup-core/soup-queue.c (soup_setup_socket): removed.
+	(soup_get_request_header): change default Content-Type to 
+	"text/xml; charset=utf-8".
+
+	* src/soup-core/soup-context.c (soup_connection_setup_socket):
+	moved soup-queue.c:soup_setup_socket() to here. 
+
 2001-02-12  alex  <alex@ximian.com>
 
 	* src/soup-core/soup-server.[ch]: Initial revision of server side 

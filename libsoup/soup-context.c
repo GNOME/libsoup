@@ -8,10 +8,23 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#include <config.h>
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
 #include <gnet/gnet.h>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 
 #include "soup-context.h"
 #include "soup-private.h"
@@ -373,19 +386,35 @@ soup_connection_release (SoupConnection *conn)
 	}
 }
 
+static void 
+soup_connection_setup_socket (GIOChannel *channel)
+{
+#ifdef TCP_NODELAY
+	int yes = 1, flags = 0, fd = g_io_channel_unix_get_fd (channel);
+
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
+
+	flags = fcntl(fd, F_GETFL, 0);
+	fcntl (fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+}
+
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
 {
-	GIOChannel *retval;
-
 	g_return_val_if_fail (conn != NULL, NULL);
 
-	retval = gnet_tcp_socket_get_iochannel (conn->socket);
+	if (!conn->channel) {
+		conn->channel = gnet_tcp_socket_get_iochannel (conn->socket);
 
-	if (conn->context->protocol == SOUP_PROTOCOL_SHTTP)
-		return soup_get_ssl_iochannel (retval);
+		if (conn->context->protocol == SOUP_PROTOCOL_SHTTP)
+			conn->channel = soup_get_ssl_iochannel (conn->channel);
 
-	return retval;
+		soup_connection_setup_socket (conn->channel);
+	} else
+		g_io_channel_ref (conn->channel);
+
+	return conn->channel;
 }
 
 void 

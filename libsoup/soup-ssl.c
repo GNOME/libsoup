@@ -218,6 +218,29 @@ soup_ssl_free (GIOChannel   *channel)
 	g_free (chan);
 }
 
+typedef struct {
+	GIOFunc         func;
+	gpointer        user_data;
+} SoupSSLReadData;
+
+static gboolean 
+soup_ssl_read_cb (GIOChannel   *channel, 
+		  GIOCondition  condition, 
+		  gpointer      user_data)
+{
+	SoupSSLChannel *chan = (SoupSSLChannel *) channel;
+	SoupSSLReadData *data = user_data;
+
+	if (condition & G_IO_IN) {
+		if (//SSL_pending (chan->ssl) && 
+		    !(*data->func) (channel, condition, data->user_data)) {
+			g_free (data);
+			return FALSE;
+		}
+		return TRUE;
+	} else return (*data->func) (channel, condition, data->user_data);
+}
+
 static guint
 soup_ssl_add_watch (GIOChannel     *channel,
 		    gint            priority,
@@ -227,12 +250,23 @@ soup_ssl_add_watch (GIOChannel     *channel,
 		    GDestroyNotify  notify)
 {
 	SoupSSLChannel *chan = (SoupSSLChannel *) channel;
-	return chan->real_sock->funcs->io_add_watch (channel, 
-						     priority, 
-						     condition,
-						     func,
-						     user_data,
-						     notify);
+	if (condition & G_IO_IN) {
+		SoupSSLReadData *data = g_new0 (SoupSSLReadData, 1);
+		data->func = func;
+		data->user_data = user_data;
+
+		return chan->real_sock->funcs->io_add_watch (channel, 
+							     priority, 
+							     condition,
+							     soup_ssl_read_cb,
+							     data,
+							     notify);
+	} else return chan->real_sock->funcs->io_add_watch (channel, 
+							    priority, 
+							    condition,
+							    func,
+							    user_data,
+							    notify);
 }
 
 #else /* HAVE_OPENSSL_SSL_H */

@@ -48,6 +48,7 @@ struct _SoupContext {
 struct _SoupConnection {
 	SoupServer   *server;
 	SoupContext  *context;
+	GIOChannel   *channel;
 	GTcpSocket   *socket;
 	guint         port;
 	gboolean      in_use;

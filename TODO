@@ -58,6 +58,4 @@ X * fix soup-serializer SOAP-ENV prefixing, test prefixing.
 
 * fix ssl unsecure error crap
 
-* add refcnt to SoupMessage?? NO
-
 * update tests/*

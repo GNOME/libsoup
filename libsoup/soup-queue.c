@@ -13,15 +13,6 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#ifdef HAVE_NETINET_TCP_H
-#include <netinet/tcp.h>
-#endif
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
 
 #include "soup-queue.h"
 #include "soup-context.h"
@@ -315,7 +306,7 @@ soup_get_request_header (SoupMessage *req)
 	struct SoupUsedHeaders hdrs = {
 		suri->host, 
 		"Soup/0.1", 
-		"text/xml", 
+		"text/xml; charset=utf-8", 
 		req->action,
 		"keep-alive",
 		NULL,
@@ -510,19 +501,6 @@ soup_queue_error_async (GIOChannel* iochannel,
 	return FALSE;
 }
 
-static void 
-soup_setup_socket (GIOChannel *channel)
-{
-#ifdef TCP_NODELAY
-	{
-		int on, fd;
-		on = 1;
-		fd = g_io_channel_unix_get_fd (channel);
-		setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
-	}
-#endif
-}
-
 static void
 soup_queue_connect (SoupContext          *ctx,
 		    SoupConnectErrorCode  err,
@@ -536,21 +514,17 @@ soup_queue_connect (SoupContext          *ctx,
 
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
-		channel = soup_connection_get_iochannel (conn);
-
-		if (!channel) goto THROW_CANT_CONNECT;
-
-		soup_setup_socket (channel);
-
 		if (soup_connection_is_new (conn) &&
-		    soup_context_get_protocol (ctx) & (SOUP_PROTOCOL_SOCKS4 | 
-						       SOUP_PROTOCOL_SOCKS5)) {
+		    (soup_context_get_protocol (ctx) == SOUP_PROTOCOL_SOCKS4 ||
+		     soup_context_get_protocol (ctx) == SOUP_PROTOCOL_SOCKS5)) {
 			soup_connect_socks_proxy (conn, 
 						  req->context, 
 						  soup_queue_connect,
 						  req);
 			return;
 		}
+
+		channel = soup_connection_get_iochannel (conn);
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
 		req->priv->conn = conn;
@@ -569,14 +543,11 @@ soup_queue_connect (SoupContext          *ctx,
 		break;
 	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
 	case SOUP_CONNECT_ERROR_NETWORK:
-		goto THROW_CANT_CONNECT;
+		soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
 		break;
 	}
 
 	return;
-
- THROW_CANT_CONNECT:
-	soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
 }
 
 static gboolean 
