@@ -52,7 +52,7 @@ SoupSoapParameter *soup_soap_parameter_get_first_child_by_name (SoupSoapParamete
 SoupSoapParameter *soup_soap_parameter_get_next_child (SoupSoapParameter *param);
 SoupSoapParameter *soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
 							       const char *name);
-const char        *soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_name);
+char              *soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_name);
 
 const GList       *soup_soap_response_get_parameters (SoupSoapResponse *response);
 SoupSoapParameter *soup_soap_response_get_first_parameter (SoupSoapResponse *response);

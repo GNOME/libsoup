@@ -1,3 +1,17 @@
+2004-02-18  Rodrigo Moya <rodrigo@ximian.com>
+
+	Fixes #54512
+
+	* libsoup/soup-soap-response.c (soup_soap_parameter_get_int_value):
+	don't leak the value returned from xmlNodeGetContent().
+	(soup_soap_parameter_get_string_value,
+	soup_soap_parameter_get_property): return a g_strdup'ed
+	string, not the value returned by xmlNodeGetContent, so that
+	callers can use g_free, and not xmlFree.
+
+	* libsoup/soup-soap-response.h: made soup_parameter_get_property
+	not return const.
+
 2004-02-17  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-soap-message.h (SOUP_IS_SOAP_MESSAGE_CLASS): Fix a

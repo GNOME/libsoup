@@ -249,9 +249,19 @@ soup_soap_parameter_get_name (SoupSoapParameter *param)
 int
 soup_soap_parameter_get_int_value (SoupSoapParameter *param)
 {
+	int i;
+	char *s;
 	g_return_val_if_fail (param != NULL, -1);
 
-	return atoi (xmlNodeGetContent (param));
+	s = xmlNodeGetContent (param);
+	if (s) {
+		i = atoi (s);
+		xmlFree (s);
+
+		return i;
+	}
+
+	return -1;
 }
 
 /**
@@ -260,9 +270,14 @@ soup_soap_parameter_get_int_value (SoupSoapParameter *param)
 char *
 soup_soap_parameter_get_string_value (SoupSoapParameter *param)
 {
+	char *xml_s, *s;
 	g_return_val_if_fail (param != NULL, NULL);
 
-	return xmlNodeGetContent (param);
+	xml_s = xmlNodeGetContent (param);
+	s = g_strdup (xml_s);
+	xmlFree (xml_s);
+
+	return s;
 }
 
 /**
@@ -351,10 +366,19 @@ soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
  * @param:
  * @prop_name: Name of the property to retrieve.
  */
-const char *
+char *
 soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_name)
 {
-	return xmlGetProp (param, prop_name);
+	char *xml_s, *s;
+
+	g_return_val_if_fail (param != NULL, NULL);
+	g_return_val_if_fail (prop_name != NULL, NULL);
+
+	xml_s = xmlGetProp (param, prop_name);
+	s = g_strdup (xml_s);
+	xmlFree (xml_s);
+
+	return s;
 }
 
 /**
