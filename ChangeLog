@@ -1,5 +1,13 @@
 2001-05-11  Alex Graveley  <alex@ximian.com>
 
+	* tests/stress-test.c (current_temp_cb): handle
+	SOUP_ERROR_CANT_AUTHENTICATE.
+
+	* tests/simple-test.c (current_temp_cb): handle
+	SOUP_ERROR_CANT_AUTHENTICATE.
+
+2001-05-11  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-nss.c (soup_nss_init): Use NSS_InitReadWrite().
 	(soup_nss_get_iochannel): set SSL_BadCertHook().
 
