@@ -1,3 +1,21 @@
+2001-05-25  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-queue.c (soup_message_queue): No need to free
+	priv->recv_buf as it is now done in soup_message_cleanup().
+	(soup_message_queue): Free response_header keys and values before
+	destroying the hash table.
+
+	* src/soup-core/soup-message.c (soup_message_free): Don't free
+	priv->recv_buf here.
+	(soup_message_cleanup): Free priv->recv_buf here instead.
+
+	* src/soup-core/soup-queue.c (soup_finish_read): Since we now
+	g_strdup() all headers, and we already g_memdup the actual body
+	buffer, free the temporary recv_buf.
+
+	* src/soup-core/soup-headers.c (soup_headers_parse_response):
+	g_strdup() the response reason phrase.
+
 2001-05-24  Alex Graveley  <alex@ximian.com>
 
 	* README: Update Licensing section for soup-ssl-proxy.

@@ -189,10 +189,10 @@ soup_finish_read (SoupMessage *req)
 	req->response.body = g_memdup (&arr->data [index],
 				       req->response.length + 1);
 	req->response.body [req->response.length] = '\0';
-	
-	/* Headers are zero-terminated */
-	g_byte_array_set_size (arr, index);
-	
+
+	g_byte_array_free (arr, TRUE);
+	req->priv->recv_buf = NULL;
+
 	req->status = SOUP_STATUS_FINISHED;
 	soup_message_issue_callback (req, SOUP_ERROR_NONE);
 }
@@ -590,6 +590,13 @@ soup_idle_handle_new_requests (gpointer unused)
 	return FALSE;
 }
 
+static void
+soup_queue_remove_header (gchar *name, gchar *value, gpointer unused)
+{
+	g_free (name);
+	g_free (value);
+}
+
 /**
  * soup_message_queue:
  * @req: a %SoupMessage.
@@ -641,14 +648,16 @@ soup_message_queue (SoupMessage    *req,
 	req->response.body = NULL;
 	req->response.length = 0;
 
-	if (req->response_headers)
+	if (req->response_headers) {
+		g_hash_table_foreach (req->response_headers,
+				      (GHFunc) soup_queue_remove_header,
+				      NULL);
 		g_hash_table_destroy (req->response_headers);
-	if (req->priv->recv_buf) 
-		g_byte_array_free (req->priv->recv_buf, TRUE);
+		req->response_headers = NULL;
+	}
 
 	req->response_code = 0;
 	req->response_phrase = NULL;
-	req->response_headers = NULL;
 	req->priv->recv_buf = NULL;
 	req->status = SOUP_STATUS_QUEUED;
 

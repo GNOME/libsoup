@@ -161,7 +161,7 @@ soup_headers_parse_response (gchar        *str,
 	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
-	*status_phrase = &str [phrase_start];
+	*status_phrase = g_strdup (&str [phrase_start]);
 
 	return TRUE;
 

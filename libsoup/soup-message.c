@@ -92,13 +92,19 @@ soup_message_cleanup (SoupMessage *req)
 	source_remove (req->priv->error_tag);
 	source_remove (req->priv->timeout_tag);
 
-	if (req->priv->connect_tag) 
+	if (req->priv->connect_tag) {
 		soup_context_cancel_connect (req->priv->connect_tag);
-	if (req->priv->conn) 
+		req->priv->connect_tag = NULL;
+	}
+	if (req->priv->conn) {
 		soup_connection_release (req->priv->conn);
+		req->priv->conn = NULL;
+	}
+	if (req->priv->recv_buf) {
+		g_byte_array_free (req->priv->recv_buf, TRUE);
+		req->priv->recv_buf = NULL;
+	}
 
-	req->priv->connect_tag = NULL;
-	req->priv->conn = NULL;
 	req->priv->write_len = 0;
 	req->priv->header_len = 0;
 	req->priv->content_length = 0;
@@ -153,9 +159,6 @@ soup_message_free (SoupMessage *req)
 				      NULL);
 		g_hash_table_destroy (req->response_headers);
 	}
-
-	if (req->priv->recv_buf) 
-		g_byte_array_free (req->priv->recv_buf, TRUE);
 
 	g_free (req->priv);
 	g_free (req->action);
