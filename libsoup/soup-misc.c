@@ -170,7 +170,7 @@ soup_load_config (gchar *config_file)
 
 		/* Ensure variables aren't overwritten */
 		soup_initialized = FALSE;
-
+		
 		/* Load user local config */
 		dfile = g_strconcat (g_get_home_dir(),
 				     G_DIR_SEPARATOR_S ".souprc", NULL);
