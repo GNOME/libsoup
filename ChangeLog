@@ -1,5 +1,13 @@
 2004-08-26  Dan Winship  <danw@novell.com>
 
+	* AUTHORS: Update this to reflect the last 2 years.
+
+	* NEWS: Brief summary of 1.99.x -> 2.2 changes
+
+	* README, TODO: Updates
+
+2004-08-26  Dan Winship  <danw@novell.com>
+
 	* libsoup/*: add/fix lots of gtk-doc comments
 	
 	* libsoup/soup-misc.c (soup_str_case_hash, soup_str_case_equal):

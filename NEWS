@@ -1,0 +1,71 @@
+Changes in libsoup from the 2.0 series (1.99.x versions) to 2.2:
+
+	* Most of the libsoup datatypes are now GObjects. (SoupUri
+	  is currently an exception to this.)
+
+		* SoupMessage now emits signals at various stages of
+	          processing. (Eg, "wrote_body", "got_headers".) (You
+	          can also still use soup_message_add_*handler().)
+
+	* SoupContexts are gone; soup_message_new() now takes a URI
+	  string.
+
+	* All formerly global state is now maintained by the
+          SoupSession object. (This includes the connection pool,
+          proxy server, cached authentication information, SSL
+          certificates, etc.)
+
+		* You can create a SoupSessionAsync (for 2.0-like
+		  behavior) or SoupSessionSync (for blocking,
+		  synchronous usage).
+
+		* You can add SoupMessageFilter objects to a session
+                  to have certain processing automatically performed
+                  on every message sent via that session. (Eg, setting
+                  up handlers.)
+
+		* NTLM authentication is no longer supported by
+	          default. You must enable it by setting the
+		  SOUP_SESSION_USE_NTLM flag on the session.
+
+		* The preferred method of handling authentication is
+	          now via the "authenticate" and "reauthenticate"
+	          signals on SoupSession. (The old style, of encoding
+	          the user and password information into the url is
+	          also still supported.)
+
+	* The SOUP_ERROR_* values are now SOUP_STATUS_* (so that we
+          don't have "SOUP_ERROR_OK" and the like).
+
+		* SOUP_MESSAGE_IS_ERROR() is gone, since some cases
+		  want to include 3xx responses and some don't.
+
+		* SOUP_ERROR_CANT_AUTHENTICATE and
+                  SOUP_ERROR_CANT_AUTHENTICATE_PROXY are now gone,
+                  since they didn't carry any information that
+                  SOUP_STATUS_UNAUTHORIZED and
+                  SOUP_STATUS_PROXY_UNAUTHORIZED don't.
+
+		* DNS errors now show up as the new status code
+		  SOUP_STATUS_CANT_RESOLVE rather than being mixed in
+		  with SOUP_ERROR_CANT_CONNECT.
+
+	* Minimal SOAP support has been added back, via
+          SoupSoapMessage/SoupSoapResponse
+
+	* The HTTP I/O state machine was completely rewritten, fixing
+	  numerous crashes, leaks, and protocol errors.
+
+	* SoupUri now conforms to RFC 2396. Mostly.
+
+	* Various test programs have been added under tests/
+
+	* Removed:
+
+		* Support for OpenSSL (which was horribly buggy) and
+		  Mozilla NSS (which was never finished). We only
+		  support GNUTLS for SSL now.
+
+		* SOCKS support
+
+		* CGI support in SoupServer

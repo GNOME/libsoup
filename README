@@ -1,12 +1,12 @@
 Soup is an HTTP library implementation in C. It was originally part of
-a SOAP (Simple Object Access Protocol) implementation, but most of the
-SOAP code has since been removed.
+a SOAP (Simple Object Access Protocol) implementation, but the SOAP
+code was later removed (and then later partially reimplemented...)
 
-Soup uses the Glib main loop and is designed to work well with GTK
-applications. This enables GNOME applications to access HTTP servers
-on the network in a completely asynchronous fashion, very similar to
-the Gtk+ programming model (a synchronous operation mode is also
-supported for those who want it).
+Soup uses GObjects and the glib main loop, and is designed to work
+well with Gtk/GNOME applications. This enables GNOME applications to
+access HTTP servers on the network in a completely asynchronous
+fashion, very similar to the Gtk+ programming model (a synchronous
+operation mode is also supported for those who want it).
 
 Soup also contains code to implement an HTTP/1.1 server.
 
@@ -17,6 +17,11 @@ Features:
   * Proxy support, including authentication and SSL tunneling
   * Client support for Digest, NTLM, and Basic authentication
   * Server support for Digest and Basic authentication
+
+See the test programs in tests/ for simple examples of how to use the
+code, or evolution-data-server and evolution-exchange for more
+complicated examples.
+
 
 To subscribe to the Soup discussion list, send mail with the word
 "Subscribe" in the message body to soup-list-request@ximian.com.

@@ -1,6 +1,11 @@
 SOUP Authors
 ============
 
-Alex Graveley 	<alex@ximian.com>
-Dick Porter     <dick@ximian.com>
-Miguel De Icaza	<miguel@ximian.com>
+Original SOUP 0.0 - 0.7:
+	Alex Graveley
+	Dick Porter
+	Miguel De Icaza
+
+libsoup 1.99.x - 2.2:
+	Joe Shaw
+	Dan Winship

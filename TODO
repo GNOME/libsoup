@@ -1,3 +1,12 @@
+Known bugs/warts to fix
+-----------------------
+* Needs to be possible to register new auth types with soup-auth.c
+
+* SoupAuthDigest/SoupServerAuthDigest don't support qop="auth-int"
+
+* We don't handle trailers in chunked responses
+
+
 HTTP Features
 -------------
 
@@ -14,9 +23,18 @@ HTTP Features
 
 * Pipelining
 
-* Add qop="auth-int" support to digest auth (both client and server)
 
-* Handle trailers in chunked responses
+SOAP/XML-RPC Features
+---------------------
+
+* Add XML-RPC support (bug-buddy wants this)
+
+* Bring back WSDL compiler from old soup module?
+
+* The current SoupSoapMessage/Response API doesn't really make life a
+  whole lot easier for the user... You have to marshall the data in
+  exactly the right order anyway, so you might as well just be
+  g_string_appending...
 
 
 Misc Features
@@ -27,9 +45,8 @@ Misc Features
 * Bring back CGI server support? (Split SoupServer into SoupServerTCP
   and SoupServerCGI)
 
-* Bring back WSDL compiler from old soup module?
-
-* Use gconf for config data (especially proxy info)
+* Use gconf for config data
+	* automatically pick up GNOME-wide proxy settings
 	* rcd doesn't want more dependencies, so make this optional
 
 
@@ -37,11 +54,14 @@ General/API stuff
 -----------------
 
 * Thread safety
-	* This is at least minimally done, but need to figure out
-	  what other things need to be thread-safe, and document
-	  which ones aren't.
+	* This is at mostly done, but need to figure out what other
+	  things need to be thread-safe, and document which ones
+	  aren't.
 
 * Documentation (API, tutorial)
+	* gtk-doc is not currently picking up all of the objects.
+	  This probably has something to do with the fact that
+	  some of the typdefs are in soup-types.h.
 
 * User-Agent handling: caller should specify a User-Agent string to
   SoupSession, and soup should automatically append libsoup/#.## to
@@ -52,7 +72,8 @@ General/API stuff
   write more than you can, the EAGAIN is returned all they way to the
   caller, who must call the relevant soup function again later to
   continue reading or writing).
-	   * needed if we wanted to do a soup-based gnome-vfs http backend
+	   * needed if we wanted to do a soup-based gnome-vfs http
+             backend
 
 * Explicit support for Range header
 
@@ -61,26 +82,25 @@ General/API stuff
 * Merge SoupMessage and SoupServerMessage (allow chunked requests)
 
 * Improve SoupServer handlers to allow for expect-continue handling,
-  reading chunked requests a chunk at a time, etc. (Use
-  SoupMessageFilter for consistency.)
+  reading chunked requests a chunk at a time, etc.
+	* Use SoupMessageFilter
+	* Improving SoupServer's API will probably result in
+	  completely breaking it.
 
 * SoupProxy (based on simple-proxy, but better), which connects a
   SoupServer to a SoupSession with SoupMessageFilters in between.
+	* Make it possible to implement CONNECT on the server side (by
+	  having a way to steal the socket from the SoupServer).
 
-* Add date-parsing/generating routines (all formats)
+* Add date-parsing/generating routines (all HTTP-specified formats)
 
-* Special handling on server side for HEAD (ignore response.body).
-
-* Make it possible to send/receive "OPTIONS * HTTP/1.1" (SoupURL won't
-  accept "*")
-
-* Make it possible to implement CONNECT on the server side (by having
-  a way to steal the socket from the SoupServer).
+* Special handling on server side for HEAD (don't send response.body).
 
 * Simple higher-level API (a la E2kContext)
 	* the Connector stuff has a lot of Exchange-specific
 	  assumptions and exceptions. Might not be possible to
 	  migrate Connector to a generic API
+
 
 Testing
 -------
@@ -114,6 +134,9 @@ Conformance
 * Automatically add Date header in SoupServer
 
 * MUST observe DNS TTL information
+
+* Make it possible to send/receive "OPTIONS * HTTP/1.1" (SoupURI won't
+  currently accept "*")
 
 * [get SHOULDs and SHOULD NOTs in]
 
