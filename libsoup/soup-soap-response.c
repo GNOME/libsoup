@@ -247,7 +247,7 @@ soup_soap_parameter_get_name (SoupSoapParameter *param)
 int
 soup_soap_parameter_get_int_value (SoupSoapParameter *param)
 {
-	g_return_val_if_fail (param != NULL, NULL);
+	g_return_val_if_fail (param != NULL, -1);
 
 	return atoi (xmlNodeGetContent (param));
 }

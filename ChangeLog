@@ -1,3 +1,8 @@
+2003-12-16  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.[ch] (soup_soap_parameter_get_int_value):
+	new function.
+
 2003-12-16  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-connection.c (socket_connect_result,
