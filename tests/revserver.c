@@ -44,7 +44,7 @@ static void
 rev_write (SoupSocket *sock, GString *buf)
 {
 	SoupSocketIOStatus status;
-	guint nwrote;
+	gsize nwrote;
 
 	do {
 		status = soup_socket_write (sock, buf->str, buf->len, &nwrote);
@@ -76,7 +76,7 @@ rev_read (SoupSocket *sock, GString *buf)
 {
 	SoupSocketIOStatus status;
 	char tmp[10];
-	guint nread;
+	gsize nread;
 	gboolean eol;
 
 	do {

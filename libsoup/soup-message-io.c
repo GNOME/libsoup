@@ -158,7 +158,8 @@ read_metadata (SoupMessage *msg, const char *boundary)
 	SoupMessageIOData *io = msg->priv->io_data;
 	SoupSocketIOStatus status;
 	char read_buf[RESPONSE_BLOCK_SIZE];
-	guint boundary_len = strlen (boundary), nread;
+	guint boundary_len = strlen (boundary);
+	gsize nread;
 	gboolean done;
 
 	do {
@@ -190,8 +191,9 @@ read_body_chunk (SoupMessage *msg)
 	SoupMessageIOData *io = msg->priv->io_data;
 	SoupSocketIOStatus status;
 	char read_buf[RESPONSE_BLOCK_SIZE];
-	guint nread, len = sizeof (read_buf);
+	guint len = sizeof (read_buf);
 	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_UNKNOWN);
+	gsize nread;
 
 	while (read_to_eof || io->read_length > 0) {
 		if (!read_to_eof)
@@ -241,7 +243,7 @@ write_data (SoupMessage *msg, const char *data, guint len)
 {
 	SoupMessageIOData *io = msg->priv->io_data;
 	SoupSocketIOStatus status;
-	guint nwrote;
+	gsize nwrote;
 
 	while (len > io->written) {
 		status = soup_socket_write (io->sock,

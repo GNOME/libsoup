@@ -1,3 +1,12 @@
+2004-02-20  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-io.c (read_metadata, read_body_chunk,
+	write_data): Pass gsize *, not guint *, to soup_socket_read/write,
+	to make this work on 64-bit platforms. (Grr. C type checking
+	sucks.) #54631
+	
+	* tests/revserver.c: Likewise
+
 2004-02-18  Rodrigo Moya <rodrigo@ximian.com>
 
 	Fixes #54512
