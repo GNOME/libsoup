@@ -554,6 +554,12 @@ proxy_https_connect (SoupContext    *proxy,
 				  proxy_https_connect_cb,
 				  &ret);
 	soup_message_send (connect_msg);
+
+	/*
+	 * Avoid releasing the connection on message free
+	 */
+	connect_msg->connection = NULL;
+
 	soup_message_free (connect_msg);
 
 	return ret;
