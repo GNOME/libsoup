@@ -330,7 +330,7 @@ soup_get_request_header (SoupMessage *req)
 	suri = soup_context_get_uri (req->context);
 
 	if (proxy)
-		uri = soup_uri_to_string (suri, FALSE);
+		uri = soup_uri_to_proxyable_string (suri, FALSE);
 	else if (suri->querystring)
 		uri = g_strconcat (suri->path, "?", suri->querystring, NULL);
 	else

@@ -1,3 +1,14 @@
+2002-02-01  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.8
+
+	* src/libsoup/soup-uri.c (soup_uri_to_proxyable_string): Added,
+	doesn't output any user, authentication or password to the URL.
+
+	* src/libsoup/soup-queue.c (soup_get_request_header): In the
+	event of a proxy, call soup_uri_to_proxyable_string() instead of
+	soup_uri_to_string().
+
 2002-01-19  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: Bump version to 0.5.7.

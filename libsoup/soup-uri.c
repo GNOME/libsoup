@@ -443,6 +443,31 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->querystring ? uri->querystring : "");
 }
 
+gchar *
+soup_uri_to_proxyable_string (const SoupUri *uri)
+{
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	if (uri->port != -1 &&
+	    uri->port != soup_uri_get_default_port (uri->protocol))
+		return g_strdup_printf(
+			"%s%s:%d%s%s%s",
+			soup_uri_protocol_to_string (uri->protocol),
+			uri->host,
+			uri->port,
+			uri->path ? uri->path : "",
+			uri->querystring ? "?" : "",
+			uri->querystring ? uri->querystring : "");
+	else
+		return g_strdup_printf(
+			"%s%s%s%s%s",
+			soup_uri_protocol_to_string (uri->protocol),
+			uri->host,
+			uri->path ? uri->path : "",
+			uri->querystring ? "?" : "",
+			uri->querystring ? uri->querystring : "");
+}
+
 SoupUri *
 soup_uri_copy (const SoupUri* uri)
 {

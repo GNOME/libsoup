@@ -55,6 +55,7 @@ typedef struct {
 SoupUri *soup_uri_new       (const gchar *uri_string);
 
 gchar   *soup_uri_to_string (const SoupUri *uri, gboolean show_password);
+gchar   *soup_uri_to_proxyable_string(const SoupUri *uri);
 
 SoupUri *soup_uri_copy      (const SoupUri *uri);
 
