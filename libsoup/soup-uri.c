@@ -464,6 +464,23 @@ soup_uri_copy (const SoupUri* uri)
 	return dup;
 }
 
+gboolean 
+soup_uri_equal (const SoupUri *u1, 
+		const SoupUri *u2)
+{
+	if (u1->protocol == u2->protocol            &&
+	    u1->port     == u2->port                &&
+	    !strcmp (u1->user,        u2->user)     &&
+	    !strcmp (u1->authmech,    u2->authmech) &&
+	    !strcmp (u1->passwd,      u2->passwd)   &&
+	    !strcmp (u1->host,        u2->host)     &&
+	    !strcmp (u1->path,        u2->path)     &&
+	    !strcmp (u1->querystring, u2->querystring))
+		return TRUE;
+
+	return FALSE;
+}
+
 void
 soup_uri_free (SoupUri *uri)
 {

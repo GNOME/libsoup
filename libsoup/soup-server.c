@@ -108,7 +108,8 @@ free_handler (SoupServer *server, SoupServerHandler *hand)
 		(*hand->unregister) (server, hand, hand->user_data);
 
 	if (hand->auth_ctx) {
-		g_free ((gchar *) hand->auth_ctx->realm);
+		g_free ((gchar *) hand->auth_ctx->basic_info.realm);
+		g_free ((gchar *) hand->auth_ctx->digest_info.realm);
 		g_free (hand->auth_ctx);
 	}
 
@@ -598,14 +599,9 @@ call_handler (SoupMessage          *req,
 {
 	SoupServer *server = req->priv->server;
 	SoupServerHandler *hand;
+	SoupServerAuth *auth = NULL;
 
 	g_return_if_fail (req != NULL);
-
-	hand = soup_server_get_handler (server, handler_path);
-	if (!hand) {
-		set_response_error (req, 404, NULL, NULL);
-		return;
-	}
 
 	req->request.owner = req_data->owner;
 	req->request.length = req_data->length;
@@ -613,45 +609,65 @@ call_handler (SoupMessage          *req,
 
 	req->status = SOUP_STATUS_FINISHED;
 
+	hand = soup_server_get_handler (server, handler_path);
+	if (!hand) {
+		set_response_error (req, SOUP_ERROR_NOT_FOUND, NULL, NULL);
+		return;
+	}
+
+	if (hand->auth_ctx) {
+		SoupServerAuthContext *auth_ctx = hand->auth_ctx;
+		const GSList *auth_hdrs;
+
+		auth_hdrs = soup_message_get_header_list (req->request_headers, 
+							  "Authorization");
+		auth = soup_server_auth_new (auth_ctx, auth_hdrs, req);
+
+		if (auth_ctx->callback) {
+			gboolean ret = FALSE;
+
+			ret = (*auth_ctx->callback) (auth_ctx, 
+						     auth, 
+						     req, 
+						     auth_ctx->user_data);
+			if (!ret) {
+				soup_server_auth_context_challenge (
+					auth_ctx,
+					req,
+					"WWW-Authenticate");
+
+				if (!req->errorcode) 
+					soup_message_set_error (
+						req,
+						SOUP_ERROR_UNAUTHORIZED);
+
+				return;
+			}
+		} else if (req->errorcode) {
+			soup_server_auth_context_challenge (
+				auth_ctx,
+				req,
+				"WWW-Authenticate");
+			return;
+		}
+	}
+
 	if (hand->callback) {
 		SoupServerContext servctx = {
 			req,
 			req->context->uri->path,
 			soup_method_get_id (req->method),
-			NULL,
+			auth,
 			server,
 			hand
 		};
 
-		/*
-		 * FIXME: Implement Basic and Digest server auth
-		 */
-		/*
-		GSList *auth_hdrs;
-		SoupServerAuth auth;
-
-		auth_hdrs = 
-			soup_message_get_header (data->msg->request_headers, 
-						 "Authorization");
-		if (auth_hdrs) {
-			SoupAuth *sa = soup_server_auth_new (auth_hdrs);
-
-			auth.type = sa->type;
-			switch (auth.type) {
-			case SOUP_AUTH_TYPE_BASIC:
-			case SOUP_AUTH_TYPE_DIGEST:
-				break;
-			default:
-				break;
-			}
-
-			servctx.auth = &auth;
-		}
-		*/
-
 		/* Call method handler */
 		(*hand->callback) (&servctx, req, hand->user_data);
 	}
+
+	if (auth)
+		soup_server_auth_free (auth);
 }
 
 static void
@@ -837,34 +853,16 @@ read_done_cb (const SoupDataBuffer *data,
 static SoupMessage *
 message_new (SoupServer *server)
 {
-	SoupContext *ctx;
 	SoupMessage *msg;
-	SoupUri uri = { 
-		server->proto,
-		NULL, 
-		NULL, 
-		NULL, 
-		"localhost", 
-		server->port, 
-		"/",
-		NULL 
-	};
 
-	/* 
-	 * Create a fake context until the request is read 
-	 * and we can generate a valid one.
+	/*
+	 * Create an empty message to hold request state.
 	 */
-	ctx = soup_context_from_uri (&uri);
-	if (!ctx) return NULL;
-
-	msg = soup_message_new (ctx, NULL);
-	if (!msg) {
-		soup_context_unref (ctx);
-		return NULL;
+	msg = soup_message_new (NULL, NULL);
+	if (msg) {
+		msg->priv->server = server;
+		soup_server_ref (server);
 	}
-
-	msg->priv->server = server;
-	soup_server_ref (server);
 
 	return msg;
 }
@@ -1177,10 +1175,20 @@ soup_server_register (SoupServer            *server,
 
 	if (auth_ctx) {
 		new_auth_ctx = g_new0 (SoupServerAuthContext, 1);
-		new_auth_ctx->realm      = g_strdup (auth_ctx->realm);
-		new_auth_ctx->types      = auth_ctx->types;
-		new_auth_ctx->callback   = auth_ctx->callback;
-		new_auth_ctx->user_data  = auth_ctx->user_data;
+
+		new_auth_ctx->types = auth_ctx->types;
+		new_auth_ctx->callback = auth_ctx->callback;
+		new_auth_ctx->user_data = auth_ctx->user_data;
+
+		new_auth_ctx->basic_info.realm = 
+			g_strdup (auth_ctx->basic_info.realm);
+
+		new_auth_ctx->digest_info.realm = 
+			g_strdup (auth_ctx->digest_info.realm);
+		new_auth_ctx->digest_info.allow_algorithms = 
+			auth_ctx->digest_info.allow_algorithms;
+		new_auth_ctx->digest_info.force_integrity = 
+			auth_ctx->digest_info.force_integrity;
 	}
 
 	new_hand = g_new0 (SoupServerHandler, 1);
@@ -1235,6 +1243,9 @@ soup_server_message_new (SoupMessage *src_msg)
 
 	g_return_val_if_fail (src_msg != NULL, NULL);
 
+	if (src_msg->priv->server_msg) 
+		return src_msg->priv->server_msg;
+
 	ret = g_new0 (SoupServerMessage, 1);
 	ret->msg = src_msg;
 
@@ -1286,6 +1297,7 @@ soup_server_message_finish  (SoupServerMessage *serv_msg)
 {
 	g_return_if_fail (serv_msg != NULL);
 
+	serv_msg->started = TRUE;
 	serv_msg->finished = TRUE;
 
 	soup_transfer_write_unpause (serv_msg->msg->priv->write_tag);

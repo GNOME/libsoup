@@ -1,3 +1,47 @@
+2001-12-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/Makefile.am (libsoup_la_SOURCES): Add
+	soup-server-auth.c.
+
+	* src/libsoup/soup-server-auth.c: Implement server-side
+	basic/digest authentication.
+	(soup_server_auth_get_user): Impl. Allows server auth/path handler
+	to get the username.
+	(soup_server_auth_check_passwd): Impl. Allows server auth/path
+	handler to check a password against the one used in the request.
+
+	* src/libsoup/soup-server.c (call_handler): Create SoupServerAuth
+	and call auth context's callback before calling path handler.
+	(message_new): Don't create temporary context, just pass NULL.
+	(soup_server_register): Copy auth context correctly.
+	(soup_server_message_new): If a server message already exists,
+	return that.
+	(soup_server_message_finish): Start server message as well as
+	finish, in case message_start is never called.
+
+	* src/libsoup/soup-private.h: Include sys/types.h so sockaddr
+	works for FreeBSD.
+
+	* src/libsoup/soup-misc.c: Move base64 encoding/decoding here from
+	soup-ntlm.c.  Remove copyright notice as soup_base64_encode is now
+	taken from evolution.
+	(soup_base64_encode): Use soup_base64_encode_close.
+	(soup_base64_decode): Impl. Use soup_base64_decode_step.
+
+	* src/libsoup/soup-misc.h: Make base64 code public.
+
+	* src/libsoup/soup-ntlm.c: Use base64 code from soup-misc.c.
+
+	* src/libsoup/soup-headers.c: Move header parameter parsing to
+	here from soup-auth.c.
+
+	* src/libsoup/soup-auth.c: Use header parsing from soup-headers.c.
+	(digest_init_func): Handle empty digest
+	realm or user passwd.
+	(decode_data_type): Return 0 on empty value.
+
+	* src/libsoup/soup-uri.c (soup_uri_equal): Impl.
+
 2001-12-19  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): #define

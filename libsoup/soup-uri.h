@@ -58,6 +58,9 @@ gchar   *soup_uri_to_string (const SoupUri *uri,
 
 SoupUri *soup_uri_copy      (const SoupUri *uri);
 
+gboolean soup_uri_equal     (const SoupUri *uri1, 
+			     const SoupUri *uri2);
+
 void     soup_uri_free      (SoupUri       *uri);
 
 void     soup_uri_set_auth  (SoupUri       *uri, 

@@ -37,6 +37,8 @@
 #  endif
 #endif
 
+#include <sys/types.h>
+
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -167,9 +169,6 @@ gboolean  soup_str_case_equal  (gconstpointer  v1,
 gint      soup_substring_index (gchar         *str,
 				gint           len,
 				gchar         *substr);
-
-gchar    *soup_base64_encode   (const gchar   *text,
-				gint           len);
 
 /* from soup-socket.c */
 

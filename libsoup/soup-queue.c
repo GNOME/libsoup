@@ -104,6 +104,8 @@ soup_queue_read_headers_cb (const GString        *headers,
 	SoupMessage *req = user_data;
 	const gchar *connection, *length, *enc;
 	SoupHttpVersion version;
+	GHashTable *resp_hdrs;
+	SoupMethodId meth_id;
 
 	if (!soup_headers_parse_response (headers->str, 
 					  headers->len, 
@@ -116,24 +118,29 @@ soup_queue_read_headers_cb (const GString        *headers,
 					     "Unable to parse response "
 					     "headers");
 		goto THROW_MALFORMED_HEADER;
-	} else
-		req->errorclass = soup_error_get_class (req->errorcode);
+	}
+		
+	meth_id   = soup_method_get_id (req->method);
+	resp_hdrs = req->response_headers;
+
+	req->errorclass = soup_error_get_class (req->errorcode);
 
 	/* 
 	 * Handle connection persistence
 	 * Close connection if:
-	 *   - HTTP 1.1 and Connection is "close"
-	 *   - HTTP 1.0 and Connection is not present
+	 *   - Connection header is "close"
+	 *   - HTTP 1.0 and Connection header is not present
 	 */
-	connection = soup_message_get_header (req->response_headers,
-					      "Connection");
+	connection = soup_message_get_header (resp_hdrs, "Connection");
 
 	if ((connection && !g_strcasecmp (connection, "close")) ||
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->connection, FALSE);
 
-	if (!g_strcasecmp (req->method, "CONNECT") &&
-	    !SOUP_MESSAGE_IS_ERROR (req))
+	/*
+	 * Handle successful CONNECT request by keeping connection open
+	 */
+	if (meth_id == SOUP_METHOD_ID_CONNECT && !SOUP_MESSAGE_IS_ERROR (req))
 		soup_connection_set_keep_alive (req->connection, TRUE);
 
 	/* 
@@ -142,46 +149,49 @@ soup_queue_read_headers_cb (const GString        *headers,
 	 *   - CONNECT requests (no body expected) 
 	 *   - 1xx Informational responses (where no body is allowed)
 	 */
-	if (!g_strcasecmp (req->method, "HEAD") ||
-	    !g_strcasecmp (req->method, "CONNECT") ||
+	if (meth_id == SOUP_METHOD_ID_HEAD ||
+	    meth_id == SOUP_METHOD_ID_CONNECT ||
 	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-                *encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-                *content_len = 0;
-	} else {
-		/* 
-		 * Handle Content-Length or Chunked encoding 
-		 */
-		length = soup_message_get_header (req->response_headers, 
-						  "Content-Length");
-		enc = soup_message_get_header (req->response_headers, 
-					       "Transfer-Encoding");
-
-		if (length) {
-			*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-			*content_len = atoi (length);
-			if (*content_len < 0) {
-				soup_message_set_error_full (
-					req, 
-					SOUP_ERROR_MALFORMED,
-					"Invalid Content-Length");
-				goto THROW_MALFORMED_HEADER;
-			}
-		}
-		else if (enc) {
-			if (g_strcasecmp (enc, "chunked") == 0)
-				*encoding = SOUP_TRANSFER_CHUNKED;
-			else {
-				soup_message_set_error_full (
-					req, 
-					SOUP_ERROR_MALFORMED,
-					"Unknown Response Encoding");
-				goto THROW_MALFORMED_HEADER;
-			}
-		}
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+		*content_len = 0;
+		goto SUCCESS_CONTINUE;
 	}
 
-	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
+	/* 
+	 * Handle Content-Length encoding 
+	 */
+	length = soup_message_get_header (resp_hdrs, "Content-Length");
+	if (length) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+		*content_len = atoi (length);
+		if (*content_len < 0) {
+			soup_message_set_error_full (req, 
+						     SOUP_ERROR_MALFORMED,
+						     "Invalid Content-Length");
+			goto THROW_MALFORMED_HEADER;
+		} 
+		goto SUCCESS_CONTINUE;
+	}
 
+	/* 
+	 * Handle Chunked encoding 
+	 */
+	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
+	if (enc) {
+		if (g_strcasecmp (enc, "chunked") == 0)
+			*encoding = SOUP_TRANSFER_CHUNKED;
+		else {
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_MALFORMED,
+				"Unknown Response Encoding");
+			goto THROW_MALFORMED_HEADER;
+		}
+		goto SUCCESS_CONTINUE;
+	}
+
+ SUCCESS_CONTINUE:
+	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
 	return SOUP_TRANSFER_CONTINUE;
 
  THROW_MALFORMED_HEADER:

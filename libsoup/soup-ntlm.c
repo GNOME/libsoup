@@ -19,28 +19,7 @@
 #include <string.h>
 
 #include "soup-ntlm.h"
-#include "soup-private.h"
-
-/* Base64 */
-static int base64_encode_close    (unsigned char       *in, 
-				   int                  inlen, 
-				   gboolean             break_lines, 
-				   unsigned char       *out, 
-				   int                 *state, 
-				   int                 *save);
-
-static int base64_encode_step     (unsigned char       *in, 
-				   int                  len, 
-				   gboolean             break_lines, 
-				   unsigned char       *out, 
-				   int                 *state, 
-				   int                 *save);
-
-static int base64_decode_step     (unsigned char       *in, 
-				   int                  len, 
-				   unsigned char       *out, 
-				   int                 *state,
-				   unsigned int        *save);
+#include "soup-misc.h"
 
 /* MD4 */
 static void md4sum                (const unsigned char *in, 
@@ -177,11 +156,11 @@ soup_ntlm_response (const char *challenge,
 	chall = g_malloc (decodelen);
 
 	state = save = 0;
-	base64_decode_step ((guchar *) challenge + 5, 
-			    decodelen,
-			    chall, 
-			    &state, 
-			    &save);
+	soup_base64_decode_step ((guchar *) challenge + 5, 
+				 decodelen,
+				 chall, 
+				 &state, 
+				 &save);
 
 	nonce = chall + NTLM_CHALLENGE_NONCE_OFFSET;
 	nonce [NTLM_CHALLENGE_NONCE_LENGTH] = '\0';
@@ -218,42 +197,43 @@ soup_ntlm_response (const char *challenge,
 
 	state = save = 0;
 
-	p += base64_encode_step ((guchar *) &resp, 
-				 sizeof (resp), 
-				 FALSE, 
-				 p, 
-				 &state, 
-				 &save);
-	p += base64_encode_step ((guchar *) domain, 
-				 dlen, 
-				 FALSE, 
-				 p, 
-				 &state, 
-				 &save);
-	p += base64_encode_step ((guchar *) user, 
-				 ulen, 
-				 FALSE, 
-				 p, 
-				 &state, 
-				 &save);
-	p += base64_encode_step ((guchar *) host, 
-				 hlen, 
-				 FALSE, 
-				 p,
-				 &state, 
-				 &save);
-	p += base64_encode_step (lm_resp, 
-				 sizeof (lm_resp), 
-				 FALSE, 
-				 p, 
-				 &state, 
-				 &save);
-	p += base64_encode_close (nt_resp, 
-				  sizeof (nt_resp), 
-				  FALSE, 
-				  p, 
-				  &state, 
-				  &save);
+	p += soup_base64_encode_step ((guchar *) &resp, 
+				      sizeof (resp), 
+				      FALSE, 
+				      p, 
+				      &state, 
+				      &save);
+	p += soup_base64_encode_step ((guchar *) domain, 
+				      dlen, 
+				      FALSE, 
+				      p, 
+				      &state, 
+				      &save);
+	p += soup_base64_encode_step ((guchar *) user, 
+				      ulen, 
+				      FALSE, 
+				      p, 
+				      &state, 
+				      &save);
+	p += soup_base64_encode_step ((guchar *) host, 
+				      hlen, 
+				      FALSE, 
+				      p,
+				      &state, 
+				      &save);
+	p += soup_base64_encode_step (lm_resp, 
+				      sizeof (lm_resp), 
+				      FALSE, 
+				      p, 
+				      &state, 
+				      &save);
+
+	p += soup_base64_encode_close (nt_resp, 
+				       sizeof (nt_resp), 
+				       FALSE, 
+				       p, 
+				       &state, 
+				       &save);
 	*p = '\0';
 	g_free (chall);
 
@@ -302,240 +282,6 @@ calc_response (const guchar *key, const guchar *plaintext, guchar *results)
 
         setup_schedule (key + 14, ks);
         des (ks, results + 16);
-}
-
-/* Base64 utils (straight from camel-mime-utils.c) */
-#define d(x)
-
-static char *base64_alphabet =
-"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-static unsigned char camel_mime_base64_rank[256] = {
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255, 62,255,255,255, 63,
-	 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,255,255,255,  0,255,255,
-	255,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-	 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,255,255,255,255,255,
-	255, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-	 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-};
-
-/* 
- * call this when finished encoding everything, to
- * flush off the last little bit 
- */
-static int
-base64_encode_close (unsigned char *in, 
-		     int            inlen, 
-		     gboolean       break_lines, 
-		     unsigned char *out, 
-		     int           *state, 
-		     int           *save)
-{
-	int c1, c2;
-	unsigned char *outptr = out;
-
-	if (inlen > 0)
-		outptr += base64_encode_step (in, 
-					      inlen, 
-					      break_lines, 
-					      outptr, 
-					      state, 
-					      save);
-
-	c1 = ((unsigned char *) save) [1];
-	c2 = ((unsigned char *) save) [2];
-	
-	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
-		 (int)((char *) save) [0],
-		 (int)((char *) save) [1],
-		 (int)((char *) save) [2]));
-
-	switch (((char *) save) [0]) {
-	case 2:
-		outptr [2] = base64_alphabet[ ( (c2 &0x0f) << 2 ) ];
-		g_assert (outptr [2] != 0);
-		goto skip;
-	case 1:
-		outptr[2] = '=';
-	skip:
-		outptr [0] = base64_alphabet [ c1 >> 2 ];
-		outptr [1] = base64_alphabet [ c2 >> 4 | ( (c1&0x3) << 4 )];
-		outptr [3] = '=';
-		outptr += 4;
-		break;
-	}
-	if (break_lines)
-		*outptr++ = '\n';
-
-	*save = 0;
-	*state = 0;
-
-	return outptr-out;
-}
-
-/*
- * performs an 'encode step', only encodes blocks of 3 characters to the
- * output at a time, saves left-over state in state and save (initialise to
- * 0 on first invocation).
- */
-static int
-base64_encode_step(unsigned char *in, 
-		   int            len, 
-		   gboolean       break_lines, 
-		   unsigned char *out, 
-		   int           *state, 
-		   int           *save)
-{
-	register unsigned char *inptr, *outptr;
-
-	if (len <= 0)
-		return 0;
-
-	inptr = in;
-	outptr = out;
-
-	d (printf ("we have %d chars, and %d saved chars\n", 
-		   len, 
-		   ((char *) save) [0]));
-
-	if (len + ((char *) save) [0] > 2) {
-		unsigned char *inend = in+len-2;
-		register int c1, c2, c3;
-		register int already;
-
-		already = *state;
-
-		switch (((char *) save) [0]) {
-		case 1:	c1 = ((unsigned char *) save) [1]; goto skip1;
-		case 2:	c1 = ((unsigned char *) save) [1];
-			c2 = ((unsigned char *) save) [2]; goto skip2;
-		}
-		
-		/* 
-		 * yes, we jump into the loop, no i'm not going to change it, 
-		 * it's beautiful! 
-		 */
-		while (inptr < inend) {
-			c1 = *inptr++;
-		skip1:
-			c2 = *inptr++;
-		skip2:
-			c3 = *inptr++;
-			*outptr++ = base64_alphabet [ c1 >> 2 ];
-			*outptr++ = base64_alphabet [ c2 >> 4 | 
-						      ((c1&0x3) << 4) ];
-			*outptr++ = base64_alphabet [ ((c2 &0x0f) << 2) | 
-						      (c3 >> 6) ];
-			*outptr++ = base64_alphabet [ c3 & 0x3f ];
-			/* this is a bit ugly ... */
-			if (break_lines && (++already)>=19) {
-				*outptr++='\n';
-				already = 0;
-			}
-		}
-
-		((char *)save)[0] = 0;
-		len = 2-(inptr-inend);
-		*state = already;
-	}
-
-	d(printf("state = %d, len = %d\n",
-		 (int)((char *)save)[0],
-		 len));
-
-	if (len>0) {
-		register char *saveout;
-
-		/* points to the slot for the next char to save */
-		saveout = & (((char *)save)[1]) + ((char *)save)[0];
-
-		/* len can only be 0 1 or 2 */
-		switch(len) {
-		case 2:	*saveout++ = *inptr++;
-		case 1:	*saveout++ = *inptr++;
-		}
-		((char *)save)[0]+=len;
-	}
-
-	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
-		 (int)((char *)save)[0],
-		 (int)((char *)save)[1],
-		 (int)((char *)save)[2]));
-
-	return outptr-out;
-}
-
-
-/**
- * base64_decode_step: decode a chunk of base64 encoded data
- * @in: input stream
- * @len: max length of data to decode
- * @out: output stream
- * @state: holds the number of bits that are stored in @save
- * @save: leftover bits that have not yet been decoded
- *
- * Decodes a chunk of base64 encoded data
- **/
-static int
-base64_decode_step (unsigned char *in, 
-		    int            len, 
-		    unsigned char *out, 
-		    int           *state, 
-		    unsigned int  *save)
-{
-	register unsigned char *inptr, *outptr;
-	unsigned char *inend, c;
-	register unsigned int v;
-	int i;
-
-	inend = in+len;
-	outptr = out;
-
-	/* convert 4 base64 bytes to 3 normal bytes */
-	v=*save;
-	i=*state;
-	inptr = in;
-	while (inptr < inend) {
-		c = camel_mime_base64_rank [*inptr++];
-		if (c != 0xff) {
-			v = (v<<6) | c;
-			i++;
-			if (i==4) {
-				*outptr++ = v>>16;
-				*outptr++ = v>>8;
-				*outptr++ = v;
-				i=0;
-			}
-		}
-	}
-
-	*save = v;
-	*state = i;
-
-	/* quick scan back for '=' on the end somewhere */
-	/* fortunately we can drop 1 output char for each trailing = (upto 2) */
-	i=2;
-	while (inptr > in && i) {
-		inptr--;
-		if (camel_mime_base64_rank [*inptr] != 0xff) {
-			if (*inptr == '=')
-				outptr--;
-			i--;
-		}
-	}
-
-	/* if i!= 0 then there is a truncation error! */
-	return outptr - out;
 }
 
 

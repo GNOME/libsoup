@@ -10,8 +10,10 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "soup-headers.h"
+#include "soup-private.h"
 
 /*
  * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"
@@ -206,4 +208,153 @@ soup_headers_parse_response (gchar            *str,
 
  THROW_MALFORMED_HEADER:
 	return FALSE;
+}
+
+
+/*
+ * HTTP parameterized header parsing
+ */
+
+char *
+soup_header_param_copy_token (GHashTable *tokens, char *t)
+{
+	char *data;
+
+	g_return_val_if_fail (tokens, NULL);
+	g_return_val_if_fail (t, NULL);
+
+	if ( (data = g_hash_table_lookup (tokens, t)))
+		return g_strdup (data);
+	else
+		return NULL;
+}
+
+static void
+decode_lwsp (char **in)
+{
+	char *inptr = *in;
+
+	while (isspace (*inptr))
+		inptr++;
+
+	*in = inptr;
+}
+
+static char *
+decode_quoted_string (char **in)
+{
+	char *inptr = *in;
+	char *out = NULL, *outptr;
+	int outlen;
+	int c;
+
+	decode_lwsp (&inptr);
+	if (*inptr == '"') {
+		char *intmp;
+		int skip = 0;
+
+                /* first, calc length */
+                inptr++;
+                intmp = inptr;
+                while ( (c = *intmp++) && c != '"') {
+                        if (c == '\\' && *intmp) {
+                                intmp++;
+                                skip++;
+                        }
+                }
+
+                outlen = intmp - inptr - skip;
+                out = outptr = g_malloc (outlen + 1);
+
+                while ( (c = *inptr++) && c != '"') {
+                        if (c == '\\' && *inptr) {
+                                c = *inptr++;
+                        }
+                        *outptr++ = c;
+                }
+                *outptr = 0;
+        }
+
+        *in = inptr;
+
+        return out;
+}
+
+char *
+soup_header_param_decode_token (char **in)
+{
+	char *inptr = *in;
+	char *start;
+
+	decode_lwsp (&inptr);
+	start = inptr;
+
+	while (*inptr && *inptr != '=' && *inptr != ',')
+		inptr++;
+
+	if (inptr > start) {
+		*in = inptr;
+		return g_strndup (start, inptr - start);
+	}
+	else
+		return NULL;
+}
+
+static char *
+decode_value (char **in)
+{
+	char *inptr = *in;
+
+	decode_lwsp (&inptr);
+	if (*inptr == '"')
+		return decode_quoted_string (in);
+	else
+		return soup_header_param_decode_token (in);
+}
+
+GHashTable *
+soup_header_param_parse_list (const char *header)
+{
+	char *ptr;
+	gboolean added = FALSE;
+	GHashTable *params = g_hash_table_new (soup_str_case_hash, 
+					       soup_str_case_equal);
+
+	ptr = (char *) header;
+	while (ptr && *ptr) {
+		char *name;
+		char *value;
+
+		name = soup_header_param_decode_token (&ptr);
+		if (*ptr == '=') {
+			ptr++;
+			value = decode_value (&ptr);
+			g_hash_table_insert (params, name, value);
+			added = TRUE;
+		}
+
+		if (*ptr == ',')
+			ptr++;
+	}
+
+	if (!added) {
+		g_hash_table_destroy (params);
+		params = NULL;
+	}
+
+	return params;
+}
+
+static void
+destroy_param_hash_elements (gpointer key, gpointer value, gpointer user_data)
+{
+	g_free (key);
+	g_free (value);
+}
+
+void
+soup_header_param_destroy_hash (GHashTable *table)
+{
+	g_hash_table_foreach (table, destroy_param_hash_elements, NULL);
+	g_hash_table_destroy (table);
 }
