@@ -1,3 +1,29 @@
+2003-09-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message.c: Add wrote_informational and
+	got_informational signals.
+
+	* libsoup/soup-message-client-io.c (get_request_headers): Set the
+	EXPECT_CONTINUE flag on the message if that header is set.
+
+	* libsoup/soup-message-server-io.c (parse_request_headers):
+	Likewise
+
+	* libsoup/soup-message-io.c (io_write): Set read_state to HEADERS
+	when blocking on an expect-continue. Emit wrote_informational
+	instead of wrote_headers in the 1xx case.
+	(io_read): Set read_state to BLOCKING, not NOT_STARTED after
+	reading a 100 Continue response. Emit got_informational instead of
+	got_headers in the 1xx case.
+
+	* libsoup/soup-session.c (soup_session_send_message): Reorder
+	things to deal with the fact that the message could finish right
+	away if there is a connection available and the server is very
+	close.
+
+	* libsoup/soup-status.h: Rename SOUP_STATUS_CLASS_TRANSPORT to
+	SOUP_STATUS_CLASS_TRANSPORT_ERROR.
+
 2003-09-17  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-session.c (find_oldest_connection): Fix two bugs

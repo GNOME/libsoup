@@ -69,13 +69,15 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void     (*wrote_headers) (SoupMessage *msg);
-	void     (*wrote_chunk)   (SoupMessage *msg);
-	void     (*wrote_body)    (SoupMessage *msg);
-	void     (*got_headers)   (SoupMessage *msg);
-	void     (*got_chunk)     (SoupMessage *msg);
-	void     (*got_body)      (SoupMessage *msg);
-	void     (*finished)      (SoupMessage *msg);
+	void     (*wrote_informational) (SoupMessage *msg);
+	void     (*wrote_headers)       (SoupMessage *msg);
+	void     (*wrote_chunk)         (SoupMessage *msg);
+	void     (*wrote_body)          (SoupMessage *msg);
+	void     (*got_informational)   (SoupMessage *msg);
+	void     (*got_headers)         (SoupMessage *msg);
+	void     (*got_chunk)           (SoupMessage *msg);
+	void     (*got_body)            (SoupMessage *msg);
+	void     (*finished)            (SoupMessage *msg);
 } SoupMessageClass;
 
 GType soup_message_get_type (void);
@@ -170,11 +172,11 @@ typedef enum {
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
 
 	/*
-	 * SOUP_MESSAGE_EXPECT_CONTINUE:
-	 * The message includes an "Expect: 100-continue" header, and we
-	 * should not send the body until the Continue response has been
-	 * received. (This should be synchronized with the existence
-	 * of the "Expect: 100-continue" header. FIXME!)
+	 * SOUP_MESSAGE_EXPECT_CONTINUE: The message includes an
+	 * "Expect: 100-continue" header, and we should not send the
+	 * body until the Continue response has been received. (This
+	 * is automatically set if there is an "Expect: 100-continue"
+	 * header.)
 	 */
 	SOUP_MESSAGE_EXPECT_CONTINUE = (1 << 4)
 } SoupMessageFlags;
@@ -255,12 +257,14 @@ void           soup_message_io_pause            (SoupMessage       *msg);
 void           soup_message_io_unpause          (SoupMessage       *msg);
 
 
-void soup_message_wrote_headers  (SoupMessage *msg);
-void soup_message_wrote_chunk    (SoupMessage *msg);
-void soup_message_wrote_body     (SoupMessage *msg);
-void soup_message_got_headers    (SoupMessage *msg);
-void soup_message_got_chunk      (SoupMessage *msg);
-void soup_message_got_body       (SoupMessage *msg);
-void soup_message_finished       (SoupMessage *msg);
+void soup_message_wrote_informational (SoupMessage *msg);
+void soup_message_wrote_headers       (SoupMessage *msg);
+void soup_message_wrote_chunk         (SoupMessage *msg);
+void soup_message_wrote_body          (SoupMessage *msg);
+void soup_message_got_informational   (SoupMessage *msg);
+void soup_message_got_headers         (SoupMessage *msg);
+void soup_message_got_chunk           (SoupMessage *msg);
+void soup_message_got_body            (SoupMessage *msg);
+void soup_message_finished            (SoupMessage *msg);
 
 #endif /*SOUP_MESSAGE_H*/

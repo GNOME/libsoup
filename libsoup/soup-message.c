@@ -18,10 +18,12 @@
 static GObjectClass *parent_class;
 
 enum {
+	WROTE_INFORMATIONAL,
 	WROTE_HEADERS,
 	WROTE_CHUNK,
 	WROTE_BODY,
 
+	GOT_INFORMATIONAL,
 	GOT_HEADERS,
 	GOT_CHUNK,
 	GOT_BODY,
@@ -106,6 +108,14 @@ class_init (GObjectClass *object_class)
 	object_class->finalize = finalize;
 
 	/* signals */
+	signals[WROTE_INFORMATIONAL] =
+		g_signal_new ("wrote_informational",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, wrote_informational),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 	signals[WROTE_HEADERS] =
 		g_signal_new ("wrote_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -131,6 +141,14 @@ class_init (GObjectClass *object_class)
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
+	signals[GOT_INFORMATIONAL] =
+		g_signal_new ("got_informational",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, got_informational),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 	signals[GOT_HEADERS] =
 		g_signal_new ("got_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -274,6 +292,12 @@ soup_message_set_response (SoupMessage   *msg,
 }
 
 void
+soup_message_wrote_informational (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[WROTE_INFORMATIONAL], 0);
+}
+
+void
 soup_message_wrote_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_HEADERS], 0);
@@ -289,6 +313,12 @@ void
 soup_message_wrote_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_BODY], 0);
+}
+
+void
+soup_message_got_informational (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[GOT_INFORMATIONAL], 0);
 }
 
 static void

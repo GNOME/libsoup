@@ -107,6 +107,7 @@ get_request_headers (SoupMessage *req, GString *header,
 {
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	const SoupUri *uri = soup_message_get_uri (req);
+	const char *expect;
 	char *uri_string;
 
 	if (!strcmp (req->method, "CONNECT")) {
@@ -148,6 +149,10 @@ get_request_headers (SoupMessage *req, GString *header,
 
 	soup_message_foreach_header (req->request_headers, add_header, header);
 	g_string_append (header, "\r\n");
+
+	expect = soup_message_get_header (req->request_headers, "Expect");
+	if (expect && !strcmp (expect, "100-continue"))
+		req->priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 
 void

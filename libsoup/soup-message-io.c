@@ -317,19 +317,24 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				/* We just wrote a 1xx response
 				 * header, so stay in STATE_HEADERS.
 				 * (The caller will pause us from the
-				 * wrote_headers callback if he is not
-				 * ready to send the final response.)
+				 * wrote_informational callback if he
+				 * is not ready to send the final
+				 * response.)
 				 */
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 			   msg->priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE) {
 			/* Need to wait for the Continue response */
 			io->write_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
+			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 		} else
 			io->write_state = io_body_state (io->write_encoding);
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_wrote_headers (msg);
+		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
+			soup_message_wrote_informational (msg);
+		else
+			soup_message_wrote_headers (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 		break;
 
@@ -495,9 +500,9 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 			if (msg->status_code == SOUP_STATUS_CONTINUE &&
 			    io->write_state == SOUP_MESSAGE_IO_STATE_BLOCKING) {
-				/* Restart the reader, unpause the writer */
+				/* Pause the reader, unpause the writer */
 				io->read_state =
-					SOUP_MESSAGE_IO_STATE_NOT_STARTED;
+					SOUP_MESSAGE_IO_STATE_BLOCKING;
 				io->write_state =
 					io_body_state (io->write_encoding);
 			} else {
@@ -513,7 +518,10 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			io->read_state = io_body_state (io->read_encoding);
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_got_headers (msg);
+		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
+			soup_message_got_informational (msg);
+		else
+			soup_message_got_headers (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 		break;
 

@@ -29,7 +29,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 {
 	SoupUri *uri;
 	char *req_path = NULL, *url;
-	const char *length, *enc, *req_host;
+	const char *expect, *length, *enc, *req_host;
 	SoupServer *server;
 
 	if (!soup_headers_parse_request (headers, headers_len,
@@ -38,6 +38,10 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 					 &req_path,
 					 &msg->priv->http_version))
 		return SOUP_STATUS_BAD_REQUEST;
+
+	expect = soup_message_get_header (msg->request_headers, "Expect");
+	if (expect && !strcmp (expect, "100-continue"))
+		msg->priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 
 	/* Handle request body encoding */
 	length = soup_message_get_header (msg->request_headers,

@@ -916,13 +916,9 @@ soup_session_send_message (SoupSession *session, SoupMessage *req)
 
 	soup_session_queue_message (session, req, NULL, NULL);
 
-	while (1) {
+	while (req->status != SOUP_MESSAGE_STATUS_FINISHED &&
+	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
 		g_main_iteration (TRUE);
-
-		if (req->status == SOUP_MESSAGE_STATUS_FINISHED ||
-		    SOUP_STATUS_IS_TRANSPORT (req->status_code))
-			break;
-	}
 
 	return req->status_code;
 }
