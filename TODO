@@ -1,0 +1,39 @@
+TODO:
+====
+
+* xml-rpc support
+
+* make thread-safe
+
+* support M-POST
+
+X * SoupSerializer
+
+* Authentication Components
+
+* GTK Documentation
+
+* Simple Soap Example clients and servers (time, updates, ...)
+
+* Test SOCKS, implement v4 authentication
+
+* implement *simple* response cache
+
+X * Test system allow/deny options
+
+* Tutorial Documentation
+
+* Make SoupMessage a generic HTTP engine
+
+* Digest Authentication
+
+* handle gzip encoded responses, requests
+
+* MS Challenge/Response support
+
+* C++ wrapper
+
+* C++ dynamic stuff using operator overloading
+
+* Bonoboize
+
