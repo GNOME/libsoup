@@ -1,3 +1,44 @@
+2001-03-20  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-types-glib.c: Parse a simple glib schema.
+
+	Handle describe and free operations on the glib schema structures
+	here too.
+
+	* src/soup-wsdl/wsdl-thread.c (wsdl_thread_soap_parts): Locate
+	references to types defined in the glib schema.
+
+	* src/soup-wsdl/wsdl-soap-stubs.c: Handle references to types
+	defined in the glib schema.
+
+	Handle output operation parameters.
+	
+	* src/soup-wsdl/wsdl-soap-headers.c: Emit typedefs for glib schema
+	elements and structs.
+
+	Handle output operation parameters.
+	
+	* src/soup-wsdl/wsdl-parse.c: (wsdl_parse_types): Parse glib schemas
+
+	(wsdl_parse_warning): (wsdl_parse_error): (wsdl_parse_fatal): Made
+	non-static, so that glib schema parsing can be separated.
+
+	All attributes called "xmlns" or "xmlns:..." are ignored by the
+	WSDL part of the XML parser.
+
+	All g_slist_prepend()s have been turned into g_slist_append()s, to
+	keep operation arguments in the expected order.
+	
+	* src/soup-wsdl/wsdl-memory.c (wsdl_free_types): Free glib type
+	schemas
+
+	* src/soup-wsdl/wsdl-locate.c: New functions to look up glib
+	schema element or struct definitions
+
+	* src/soup-wsdl/wsdl-describe.c (indent): Made non-static, so that
+	glib type describing can be separated.
+	(wsdl_describe_types): Describe glib type schemas
+
 2001-03-17  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-thread.c: Thread WSDL structures together.
