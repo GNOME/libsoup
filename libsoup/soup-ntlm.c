@@ -44,7 +44,7 @@ static void calc_response         (const guchar        *key,
 			  "\x00\x00\x00\x00\x00"
 
 void
-soup_ntlm_lanmanager_hash (const char *password, char hash[21])
+soup_ntlm_lanmanager_hash (const char *password, guchar hash[21])
 {
 	guchar lm_password [15];
 	DES_KS ks;
@@ -66,7 +66,7 @@ soup_ntlm_lanmanager_hash (const char *password, char hash[21])
 }
 
 void
-soup_ntlm_nt_hash (const char *password, char hash[21])
+soup_ntlm_nt_hash (const char *password, guchar hash[21])
 {
 	unsigned char *buf, *p;
 
@@ -90,10 +90,9 @@ typedef struct {
 	guchar  zero_pad[2];
 } NTLMString;
 
-#define NTLM_CHALLENGE_NONCE_OFFSET      24
-#define NTLM_CHALLENGE_NONCE_LENGTH       8
-#define NTLM_CHALLENGE_DOMAIN_OFFSET     48
-#define NTLM_CHALLENGE_DOMAIN_LEN_OFFSET 44
+#define NTLM_CHALLENGE_NONCE_OFFSET         24
+#define NTLM_CHALLENGE_NONCE_LENGTH          8
+#define NTLM_CHALLENGE_DOMAIN_STRING_OFFSET 12
 
 #define NTLM_RESPONSE_HEADER "NTLMSSP\x00\x03\x00\x00\x00"
 #define NTLM_RESPONSE_FLAGS "\x82\x01"
@@ -116,8 +115,10 @@ typedef struct {
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN
 #define LE16(x) (((x & 0xFF) << 8) | ((x >> 8) & 0xFF))
+#define UNLE16(x) LE16(x)
 #else
 #define LE16(x) x
+#define UNLE16(x) x
 #endif
 
 static void
@@ -134,39 +135,73 @@ soup_ntlm_request (void)
 	return g_strdup ("NTLM TlRMTVNTUAABAAAABoIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAwAAAA");
 }
 
-char *
-soup_ntlm_response (const char *challenge, 
-		    const char *user,
-		    const char *lm_hash, 
-		    const char *nt_hash,
-		    const char *host, 
-		    const char *domain)
+gboolean
+soup_ntlm_parse_challenge (const char *challenge,
+			   char      **nonce,
+			   char      **default_domain)
 {
-	int hlen, dlen, ulen, offset, decodelen;
-	guchar lm_resp[24], nt_resp[24], *nonce;
-	NTLMResponse resp;
+	int clen, decodelen;
+	NTLMString domain;
 	char *chall;
-	unsigned char *out, *p;
 	int state, save;
 
 	if (strncmp (challenge, "NTLM ", 5) != 0)
-		return NULL;
+		return FALSE;
 
 	decodelen = strlen (challenge) - 5;
 	chall = g_malloc (decodelen);
 
 	state = save = 0;
-	soup_base64_decode_step ((guchar *) challenge + 5, 
-				 decodelen,
-				 chall, 
-				 &state, 
-				 &save);
+	clen = soup_base64_decode_step ((guchar *) challenge + 5, 
+					decodelen,
+					chall, 
+					&state, 
+					&save);
 
-	nonce = chall + NTLM_CHALLENGE_NONCE_OFFSET;
-	nonce [NTLM_CHALLENGE_NONCE_LENGTH] = '\0';
+	if (clen < NTLM_CHALLENGE_DOMAIN_STRING_OFFSET ||
+	    clen < NTLM_CHALLENGE_NONCE_OFFSET + NTLM_CHALLENGE_NONCE_LENGTH) {
+		g_free (chall);
+		return FALSE;
+	}
 
-	calc_response (lm_hash, nonce, lm_resp);
-	calc_response (nt_hash, nonce, nt_resp);
+	if (default_domain) {
+		memcpy (&domain, chall + NTLM_CHALLENGE_DOMAIN_STRING_OFFSET, sizeof (domain));
+		domain.length = UNLE16 (domain.length);
+		domain.offset = UNLE16 (domain.offset);
+
+		if (clen < domain.length + domain.offset) {
+			g_free (chall);
+			return FALSE;
+		}
+
+		*default_domain = g_strndup (chall + domain.offset, domain.length);
+	}
+
+	if (nonce) {
+		*nonce = g_strndup (chall + NTLM_CHALLENGE_NONCE_OFFSET,
+				    NTLM_CHALLENGE_NONCE_LENGTH);
+	}
+
+	return TRUE;
+}
+
+char *
+soup_ntlm_response (const char *nonce, 
+		    const char *user,
+		    const char *password, 
+		    const char *host, 
+		    const char *domain)
+{
+	int hlen, dlen, ulen, offset;
+	guchar hash[21], lm_resp[24], nt_resp[24];
+	NTLMResponse resp;
+	unsigned char *out, *p;
+	int state, save;
+
+	soup_ntlm_lanmanager_hash (password, hash);
+	calc_response (hash, nonce, lm_resp);
+	soup_ntlm_nt_hash (password, hash);
+	calc_response (hash, nonce, nt_resp);
 
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
@@ -174,13 +209,7 @@ soup_ntlm_response (const char *challenge,
 
 	offset = sizeof (resp);
 
-	if (domain)
-		dlen = strlen (domain);
-	else {
-		/* Grab the default domain from the challenge */
-		domain = chall + NTLM_CHALLENGE_DOMAIN_OFFSET;
-		dlen = atoi (chall + NTLM_CHALLENGE_DOMAIN_LEN_OFFSET);
-	}
+	dlen = strlen (domain);
 	ntlm_set_string (&resp.domain, &offset, dlen);
 	ulen = strlen (user);
 	ntlm_set_string (&resp.user, &offset, ulen);
@@ -235,7 +264,6 @@ soup_ntlm_response (const char *challenge,
 				       &state, 
 				       &save);
 	*p = '\0';
-	g_free (chall);
 
 	return out;
 }

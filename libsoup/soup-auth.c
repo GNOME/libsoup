@@ -530,41 +530,37 @@ ntlm_parse (SoupAuth *sa, const char *header)
 	g_strstrip (auth->header);
 }
 
-/*
- * FIXME: Because NTLM is a two step process, we parse the host and domain out
- *        of the context's uri twice. This is because there is no way to reparse
- *        a new header with an existing SoupAuth, so a new one is created for
- *        each negotiation step.
- */
 static void
 ntlm_init (SoupAuth *sa, const SoupUri *uri)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
-	gchar *host, *domain;
-
-	host   = ntlm_get_authmech_token (uri, "host=");
-	domain = ntlm_get_authmech_token (uri, "domain=");
 
 	if (strlen (auth->header) < sizeof ("NTLM"))
 		auth->response = soup_ntlm_request ();
 	else {
-		gchar lm_hash [21], nt_hash [21];
+		gchar *host, *domain, *nonce;
 
-		soup_ntlm_lanmanager_hash (uri->passwd, lm_hash);
-		soup_ntlm_nt_hash (uri->passwd, nt_hash);
+		host   = ntlm_get_authmech_token (uri, "host=");
+		domain = ntlm_get_authmech_token (uri, "domain=");
 
-		auth->response = 
-			soup_ntlm_response (auth->header,
-					    uri->user,
-					    (gchar *) &lm_hash,
-					    (gchar *) &nt_hash,
-					    host,
-					    domain);
+		if (!soup_ntlm_parse_challenge (auth->header,
+						&nonce,
+						domain ? NULL : &domain))
+			auth->response = NULL;
+		else {
+			auth->response = 
+				soup_ntlm_response (nonce,
+						    uri->user,
+						    uri->passwd,
+						    host,
+						    domain);
+			g_free (nonce);
+		}
+
+		g_free (host);
+		g_free (domain);
 		auth->completed = TRUE;
 	}
-
-	g_free (host);
-	g_free (domain);
 
 	g_free (auth->header);
 	auth->header = NULL;

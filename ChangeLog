@@ -1,3 +1,19 @@
+2002-05-23  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/Makefile.am (libsoupinclude_HEADERS): install
+	soup-ntlm.h
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_parse_challenge): Separated
+	out of soup_ntlm_response. Takes the challenge and returns the
+	nonce and default domain from it. (The application can use this
+	from a 401 handler to find the domain name when using NTLM auth.)
+	(soup_ntlm_response): Remove the challenge-parsing code from here.
+	Just take the nonce instead.
+
+	* src/libsoup/soup-auth.c (ntlm_init): Update for soup-ntlm
+	changes. Don't parse the authmech twice since there's no reason
+	to.
+
 2002-05-06  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-headers.c (soup_headers_parse_request):

@@ -13,19 +13,22 @@
 
 #include <glib.h>
 
-void  soup_ntlm_lanmanager_hash (const char *password, 
-				 char        hash[21]);
+void     soup_ntlm_lanmanager_hash (const char *password,
+				    guchar hash[21]);
 
-void  soup_ntlm_nt_hash         (const char *password, 
-				 char        hash[21]);
+void     soup_ntlm_nt_hash         (const char *password,
+				    guchar hash[21]);
 
-char *soup_ntlm_request         (void);
+char    *soup_ntlm_request         (void);
 
-char *soup_ntlm_response        (const char *challenge, 
-				 const char *user,
-				 const char *lm_hash, 
-				 const char *nt_hash,
-				 const char *host, 
-				 const char *domain);
+gboolean soup_ntlm_parse_challenge (const char *challenge,
+				    char      **nonce,
+				    char      **default_domain);
+
+char    *soup_ntlm_response        (const char *nonce, 
+				    const char *user,
+				    const char *password,
+				    const char *host, 
+				    const char *domain);
 
 #endif /* NTLM_H */
