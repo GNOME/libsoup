@@ -145,8 +145,9 @@ soup_uri_new (const gchar* uri_string)
 	/* If there is an @ sign, look for user, authmech, and
 	 * password before it.
 	 */
+	slash = strchr (uri_string, '/');
 	at = strchr (uri_string, '@');
-	if (at) {
+	if (at && (!slash || at < slash)) {
 		colon = strchr (uri_string, ':');
 		if (colon && colon < at)
 			g_uri->passwd = g_strndup (colon + 1, at - colon - 1);
@@ -170,7 +171,6 @@ soup_uri_new (const gchar* uri_string)
 		g_uri->user = g_uri->passwd = g_uri->authmech = NULL;
 
 	/* Find host (required) and port. */
-	slash = strchr (uri_string, '/');
 	colon = strchr (uri_string, ':');
 	if (slash && colon > slash)
 		colon = 0;
