@@ -1,5 +1,10 @@
 2001-03-09  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-wsdl/wsdl-parse.c (wsdl_parse): set definitions = NULL
+	to pass -Werror.
+
+2001-03-09  Alex Graveley  <alex@ximian.com>
+
 	* tests/simple-test.c (main): demonstrate correct behavior here by
 	unref'ing the context after message creation.
 
