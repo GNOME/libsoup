@@ -133,7 +133,7 @@ remove_block_at_index (GByteArray *arr, gint offset, gint length)
 	gchar *data;
 
 	g_return_if_fail (length != 0);
-	g_assert (arr->len < offset + length);
+	g_assert (arr->len >= offset + length);
 
 	data = &arr->data [offset];
 
