@@ -530,9 +530,9 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 	}
 
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (conn, status));
-	return proxified_status (conn, status);
+	status = proxified_status (conn, status);
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+	return status;
 }
 
 

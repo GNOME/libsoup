@@ -1,3 +1,9 @@
+2004-08-09  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-connection.c (soup_connection_connect_sync): Don't
+	use conn after emitting the "connect_result" signal, since it
+	might be destroyed by that. Based on a patch from hpj.
+
 2004-08-02  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-uri.h: Add flag "broken_encoding" to SoupUri.
