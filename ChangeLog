@@ -1,3 +1,13 @@
+2001-12-17  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_init): Implement
+	a simple PRNG seed if needed.
+
+2001-12-15  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server.c (message_new): Don't use temporary
+	context to create message, just pass a NULL one.
+
 2001-12-14  Alex Graveley  <alex@ximian.com>
 
 	* tests/server-test.c (push_callback): Add test for server push,
