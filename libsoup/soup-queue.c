@@ -512,15 +512,18 @@ soup_queue_connect (SoupContext          *ctx,
 		    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
+	SoupProtocol proto;
 	GIOChannel *channel;
 
 	req->priv->connect_tag = NULL;
 
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
+		proto = soup_context_get_uri (ctx)->protocol;
+
 		if (soup_connection_is_new (conn) &&
-		    (soup_context_get_protocol (ctx) == SOUP_PROTOCOL_SOCKS4 ||
-		     soup_context_get_protocol (ctx) == SOUP_PROTOCOL_SOCKS5)) {
+		    (proto == SOUP_PROTOCOL_SOCKS4 ||
+		     proto == SOUP_PROTOCOL_SOCKS5)) {
 			soup_connect_socks_proxy (conn, 
 						  req->context, 
 						  soup_queue_connect,

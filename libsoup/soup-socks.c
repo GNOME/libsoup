@@ -249,7 +249,7 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	sd->cb = cb;
 	sd->user_data = user_data;
 	
-	switch (soup_context_get_protocol (proxy_ctx)) {
+	switch (soup_context_get_uri (proxy_ctx)->protocol) {
 	case SOUP_PROTOCOL_SOCKS4:
 		soup_address_new (dest_uri->host, 
 				  dest_uri->port, 

@@ -34,8 +34,12 @@ libsoup_la_LIBADD =		\
 	$(XML_LIBS)
 
 libsoup_la_SOURCES =		\
+	md5-utils.h		\
+	md5-utils.c		\
 	soup-cgi.c		\
 	soup-context.c		\
+	soup-digest.h		\
+	soup-digest.c		\
 	soup-headers.h		\
 	soup-headers.c		\
 	soup-message.c		\

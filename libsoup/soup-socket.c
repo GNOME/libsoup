@@ -62,6 +62,12 @@
 #define SOUP_CLOSE_SOCKET(SOCKFD) close(SOCKFD)
 #define SOUP_SOCKET_IOCHANNEL_NEW(SOCKFD) g_io_channel_unix_new(SOCKFD)
 
+/*
+ * Maintains a list of all currently valid SoupAddresses or active
+ * SoupAddressState lookup requests. 
+ */
+static GHashTable *active_address_hash = NULL;
+
 #else	/*********** Windows specific ***********/
 
 #include <windows.h>
@@ -96,10 +102,9 @@ HANDLE soup_hostent_Mutex;
 static int
 inet_aton(const char *cp, struct in_addr *inp)
 {
-  inp->s_addr = inet_addr(cp);
-  if (inp->s_addr == INADDR_NONE)
-    return 0;
-  return 1;
+	inp->s_addr = inet_addr (cp);
+	if (inp->s_addr == INADDR_NONE) return 0;
+	return 1;
 }
 
 #endif	/*********** End Windows specific ***********/
@@ -114,60 +119,66 @@ inet_aton(const char *cp, struct in_addr *inp)
                                 G_IO_ERR | G_IO_HUP | G_IO_NVAL)
 
 typedef struct {
-	SoupAddress* ia;
-	SoupAddressNewFn func;
-	gpointer data;
+	SoupAddressNewFn  func;
+	gpointer          data;
+} SoupAddressCbData;	
+
+typedef struct {
+	SoupAddress       ia;
+	SoupAddressNewFn  func;
+	gpointer          data;
+	GSList           *cb_list;    /* CONTAINS: SoupAddressCbData */
 #ifndef SOUP_WIN32
-	pid_t pid;
-	int fd;
-	guint watch;
-	guchar buffer[16];
-	int len;
+	pid_t             pid;
+	int               fd;
+	guint             watch;
+	guchar            buffer [16];
+	int               len;
 #else
-	int WSAhandle;
-	char hostentBuffer[MAXGETHOSTSTRUCT];
-	int errorcode;
+	int               WSAhandle;
+	char              hostentBuffer [MAXGETHOSTSTRUCT];
+	int               errorcode;
 #endif
 } SoupAddressState;
 
 
 typedef struct {
-	SoupAddress* ia;
-	SoupAddressGetNameFn func;
-	gpointer data;
+	SoupAddress          *ia;
+	SoupAddressGetNameFn  func;
+	gpointer              data;
 #ifndef SOUP_WIN32
-	pid_t pid;
-	int fd;
-	guint watch;
-	guchar buffer[256 + 1];
-	int len;
+	pid_t                 pid;
+	int                   fd;
+	guint                 watch;
+	guchar                buffer [256 + 1];
+	int                   len;
 #else
-	int WSAhandle;
-	char hostentBuffer[MAXGETHOSTSTRUCT];
-	int errorcode;
+	int                   WSAhandle;
+	char                  hostentBuffer [MAXGETHOSTSTRUCT];
+	int                   errorcode;
 #endif
 } SoupAddressReverseState;
 
 
 typedef struct {
-	SoupSocket*            socket;
-	SoupSocketNewFn func;
-	gpointer               data;
-	gint                   flags;
-	guint                  connect_watch;
+	gint             sockfd;
+	SoupAddress     *addr;
+	SoupSocketNewFn  func;
+	gpointer         data;
+	gint             flags;
+	guint            connect_watch;
 #ifdef SOUP_WIN32
-	gint                   errorcode;
+	gint             errorcode;
 #endif
 } SoupSocketState;
 
 
 typedef struct {
-	SoupAddress*                 ia;
-	SoupSocketConnectFn func;
-	gpointer                   data;
+	SoupSocketConnectFn  func;
+	gpointer             data;
 
-	gpointer                   inetaddr_id;
-	gpointer                   tcp_id;
+	gpointer             inetaddr_id;
+	gpointer             tcp_id;
 } SoupSocketConnectState;
 
 
@@ -213,13 +224,13 @@ soup_gethostbyname(const char*         hostname,
 			buf = g_renew (gchar, buf, len);
 		}
 
-		if (res || result == NULL || result->h_addr_list[0] == NULL)
+		if (res || result == NULL || result->h_addr_list [0] == NULL)
 			goto done;
 
 		if (sa) {
 			sa->sin_family = result->h_addrtype;
 			memcpy (&sa->sin_addr, 
-				result->h_addr_list[0], 
+				result->h_addr_list [0], 
 				result->h_length);
 		}
 
@@ -252,13 +263,13 @@ soup_gethostbyname(const char*         hostname,
 			buf = g_renew (gchar, buf, len);
 		}
 
-		if (res || hp == NULL || hp->h_addr_list[0] == NULL)
+		if (res || hp == NULL || hp->h_addr_list [0] == NULL)
 			goto done;
 
 		if (sa) {
 			sa->sin_family = result->h_addrtype;
 			memcpy (&sa->sin_addr, 
-				result->h_addr_list[0], 
+				result->h_addr_list [0], 
 				result->h_length);
 		}
 
@@ -283,7 +294,7 @@ soup_gethostbyname(const char*         hostname,
 			if (sa) {
 				sa->sin_family = result.h_addrtype;
 				memcpy (&sa->sin_addr, 
-					result.h_addr_list[0], 
+					result.h_addr_list [0], 
 					result.h_length);
 			}
 
@@ -302,11 +313,11 @@ soup_gethostbyname(const char*         hostname,
 		he = gethostbyname (hostname);
 		G_UNLOCK (gethostbyname);
 
-		if (he != NULL && he->h_addr_list[0] != NULL) {
+		if (he != NULL && he->h_addr_list [0] != NULL) {
 			if (sa) {
 				sa->sin_family = he->h_addrtype;
 				memcpy (&sa->sin_addr, 
-					he->h_addr_list[0], 
+					he->h_addr_list [0], 
 					he->h_length);
 			}
 
@@ -328,7 +339,7 @@ soup_gethostbyname(const char*         hostname,
 			if (sa) {
 				sa->sin_family = result->h_addrtype;
 				memcpy (&sa->sin_addr, 
-					result->h_addr_list[0], 
+					result->h_addr_list [0], 
 					result->h_length);
 			}
 	
@@ -344,11 +355,11 @@ soup_gethostbyname(const char*         hostname,
 		struct hostent* he;
 
 		he = gethostbyname (hostname);
-		if (he != NULL && he->h_addr_list[0] != NULL) {
+		if (he != NULL && he->h_addr_list [0] != NULL) {
 			if (sa) {
 				sa->sin_family = he->h_addrtype;
 				memcpy (&sa->sin_addr, 
-					he->h_addr_list[0], 
+					he->h_addr_list [0], 
 					he->h_length);
 			}
 
@@ -500,56 +511,77 @@ soup_address_new_cb (GIOChannel* iochannel,
 		     gpointer data)
 {
 	SoupAddressState* state = (SoupAddressState*) data;
+	int rv;
+	char* buf;
+	int length;
+	struct sockaddr_in* sa_in;
+	GSList *cb_list;
 
 	/* Read from the pipe */
-	if (condition & G_IO_IN) {
-		int rv;
-		char* buf;
-		int length;
+	if (!(condition & G_IO_IN)) goto ERROR;
 
-		buf = &state->buffer[state->len];
-		length = sizeof (state->buffer) - state->len;
+	buf = &state->buffer [state->len];
+	length = sizeof (state->buffer) - state->len;
 
-		if ((rv = read (state->fd, buf, length)) >= 0) {
-			state->len += rv;
+	rv = read (state->fd, buf, length);
+	if (rv < 0) goto ERROR;
 
-			/* Return true if there's more to read */
-			if ((state->len - 1) != state->buffer[0])
-				return TRUE;
+	state->len += rv;
 
-			/* We're done reading.  Copy into the addr if we were
-			   successful. Otherwise, we got a 0 because there was
-			   an error */
-			if (state->len > 1) {
-				struct sockaddr_in* sa_in;
+	/* Return true if there's more to read */
+	if ((state->len - 1) != state->buffer [0]) return TRUE;
 
-				sa_in = (struct sockaddr_in*) &state->ia->sa;
-				memcpy (&sa_in->sin_addr, 
-					&state->buffer[1], 
-					(state->len - 1));
-			} else goto error;
+	/* We're done reading.  Copy into the addr if we were
+	   successful. Otherwise, we got a 0 because there was
+	   an error */
+	if (state->len < 2) goto ERROR;
 
-			/* Remove the watch now in case we don't return
-                           immediately */
-			g_source_remove (state->watch);
+	sa_in = (struct sockaddr_in*) &state->ia.sa;
+	memcpy (&sa_in->sin_addr, &state->buffer [1], (state->len - 1));
 
-			/* Call back */
-			(*state->func) (state->ia, 
-					SOUP_ADDRESS_STATUS_OK, 
-					state->data);
-			close (state->fd);
-			waitpid (state->pid, NULL, 0);
-			g_free(state);
-			return FALSE;
-		}
+	/* Remove the watch now in case we don't return immediately */
+	g_source_remove (state->watch);
+
+	state->ia.ref_count = ~state->ia.ref_count + 1;
+
+	/* Call back */
+	(*state->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, state->data);
+
+	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
+		SoupAddressCbData *cb_data = cb_list->data;
+		(*cb_data->func) (&state->ia, 
+				  SOUP_ADDRESS_STATUS_OK, 
+				  cb_data->data);
+		g_free (cb_data);
 	}
 
- error:
+	g_slist_free (state->cb_list);
+
+	close (state->fd);
+	waitpid (state->pid, NULL, 0);
+
+	state = g_realloc (state, sizeof (SoupAddress));
+	g_hash_table_insert (active_address_hash, state->ia.name, state);
+
+	return FALSE;
+
+ ERROR:
 	/* Remove the watch now in case we don't return immediately */
 	g_source_remove (state->watch);
 
 	(*state->func) (NULL, SOUP_ADDRESS_STATUS_ERROR, state->data);
+
+	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
+		SoupAddressCbData *cb_data = cb_list->data;
+		(*cb_data->func) (NULL, 
+				  SOUP_ADDRESS_STATUS_ERROR, 
+				  cb_data->data);
+	}
+
+	/* Force cancel */
+	state->ia.ref_count = -1;
 	soup_address_new_cancel (state);
+
 	return FALSE;
 }
 
@@ -593,18 +625,20 @@ soup_address_new (const gchar* name,
 		  gpointer data)
 {
 	pid_t pid = -1;
-	int pipes[2];
+	int pipes [2];
 	struct in_addr inaddr;
+	struct sockaddr_in sa;
+	struct sockaddr_in* sa_in;
+	SoupAddress* ia;
+	SoupAddressState* state;
+	GIOChannel *chan;
 
-	g_return_val_if_fail(name != NULL, NULL);
-	g_return_val_if_fail(func != NULL, NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+	g_return_val_if_fail (func != NULL, NULL);
 
 	/* Try to read the name as if were dotted decimal */
 	if (inet_aton (name, &inaddr) != 0) {
-		SoupAddress* ia = NULL;
-		struct sockaddr_in* sa_in;
-
-		ia = g_new0(SoupAddress, 1);
+		ia = g_new0 (SoupAddress, 1);
 		ia->ref_count = 1;
 
 		sa_in = (struct sockaddr_in*) &ia->sa;
@@ -618,85 +652,123 @@ soup_address_new (const gchar* name,
 		return NULL;
 	}
 
+	if (!active_address_hash)
+		active_address_hash = g_hash_table_new (soup_str_case_hash, 
+							soup_str_case_equal);
+	else {
+		ia = g_hash_table_lookup (active_address_hash, name);
+
+		if (ia && ia->ref_count > 0) {
+			/* 
+			 * Existing valid request, use it.
+			 */
+			soup_address_ref (ia);
+
+			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
+
+			return NULL;
+		} else if (ia) {
+			/* 
+			 * Lookup currently in progress. 
+			 * Add func to list of callbacks in state.
+			 */
+			SoupAddressCbData *cb_data;
+
+			cb_data = g_new0 (SoupAddressCbData, 1);
+			cb_data->func = func;
+			cb_data->data = data;
+
+			state = (SoupAddressState *) ia;
+			state->cb_list = g_slist_prepend (state->cb_list, 
+							  cb_data);
+
+			state->ia.ref_count--;
+
+			return state;
+		}
+	}
+
 	/* That didn't work - we need to fork */
 
 	/* Open a pipe */
-	if (pipe(pipes) == -1) {
+	if (pipe (pipes) == -1) {
 		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 		return NULL;
 	}
 
-	/* Fork to do the look up. */
- fork_again:
+ FORK_AGAIN:
 	errno = 0;
+	pid = fork ();
 
-	if ((pid = fork()) == 0) {
-		struct sockaddr_in sa;
+	switch (pid) {
+	case -1:
+		if (errno == EAGAIN) {
+			/* Yield the processor */
+			sleep(0);
+			goto FORK_AGAIN;
+		}
 
+		/* Else there was a goofy error */
+		g_warning ("Fork error: %s (%d)\n", 
+			   g_strerror(errno), 
+			   errno);
+
+		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
+
+		return NULL;
+	case 0:
 		/* Try to get the host by name (ie, DNS) */
 		if (soup_gethostbyname (name, &sa, NULL)) {
 			guchar size = 4;	/* FIX for IPv6 */
 
-			if ((write (pipes[1], &size, sizeof(guchar)) == -1) ||
-			    (write (pipes[1], &sa.sin_addr, size) == -1))
+			if ((write (pipes [1], &size, sizeof(guchar)) == -1) ||
+			    (write (pipes [1], &sa.sin_addr, size) == -1))
 				g_warning ("Problem writing to pipe\n");
 		} else {
 			/* Write a zero */
 			guchar zero = 0;
 
-			if (write (pipes[1], &zero, sizeof(zero)) == -1)
+			if (write (pipes [1], &zero, sizeof(zero)) == -1)
 				g_warning ("Problem writing to pipe\n");
 		}
 
 		/* Close the socket */
-		close(pipes[1]);
+		close (pipes [1]);
 
 		/* Exit (we don't want atexit called, so do _exit instead) */
-		_exit(EXIT_SUCCESS);
-	} else if (pid > 0) {
-		/* Set up an IOChannel to read from the pipe */
-		SoupAddress* ia;
-		struct sockaddr_in* sa_in;
-		SoupAddressState* state;
-
-		/* Create a new SoupAddress */
-		ia = g_new0(SoupAddress, 1);
-		ia->name = g_strdup(name);
-		ia->ref_count = 1;
-
-		sa_in = (struct sockaddr_in*) &ia->sa;
-		sa_in->sin_family = AF_INET;
-		sa_in->sin_port = g_htons (port);
-
+		_exit (EXIT_SUCCESS);
+	default:
 		/* Create a structure for the call back */
 		state = g_new0 (SoupAddressState, 1);
-		state->ia = ia;
+		state->ia.name = g_strdup (name);
+		state->ia.ref_count = -1;
 		state->func = func;
 		state->data = data;
 		state->pid = pid;
-		state->fd = pipes[0];
+		state->fd = pipes [0];
 
-		/* Add a watch */
+		sa_in = (struct sockaddr_in*) &state->ia.sa;
+		sa_in->sin_family = AF_INET;
+		sa_in->sin_port = g_htons (port);
+
+		g_hash_table_insert (active_address_hash,
+				     state->ia.name,
+				     state);
+
+		chan = g_io_channel_unix_new (pipes [0]);
+
+		/* Set up an watch to read from the pipe */
 		state->watch = 
 			g_io_add_watch(
-				g_io_channel_unix_new (pipes[0]),
+				chan,
 				G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
 				soup_address_new_cb, 
 				state);
 
-		return state;
-	} else if (errno == EAGAIN) {
-		/* Try again */
-		/* Yield the processor */
-		sleep(0);
-		goto fork_again;
-	} else {
-		/* Else there was a goofy error */
-		g_warning ("Fork error: %s (%d)\n", g_strerror (errno), errno);
-		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
-	}
+		g_io_channel_unref (chan);
 
-	return NULL;
+		return state;
+	}
 }
 
 /**
@@ -710,17 +782,28 @@ void
 soup_address_new_cancel (SoupAddressNewId id)
 {
 	SoupAddressState* state = (SoupAddressState*) id;
+	GSList *cb_list;
 
-	g_return_if_fail(state != NULL);
+	g_return_if_fail (state != NULL);
 
-	soup_address_unref (state->ia);
-	g_source_remove (state->watch);
+	state->ia.ref_count++;
 
-	close (state->fd);
-	kill (state->pid, SIGKILL);
-	waitpid (state->pid, NULL, 0);
+	if (state->ia.ref_count == 0) {
+		g_hash_table_remove (active_address_hash, state->ia.name);
+		g_free (state->ia.name);
 
-	g_free(state);
+		for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next)
+			g_free (cb_list->data);
+		g_slist_free (state->cb_list);
+
+		g_source_remove (state->watch);
+
+		close (state->fd);
+		kill (state->pid, SIGKILL);
+		waitpid (state->pid, NULL, 0);
+
+		g_free (state);
+	}
 }
 
 #else	/*********** Windows code ***********/
@@ -735,7 +818,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 	struct sockaddr_in *sa_in;
 
 	if (state->errorcode) {
-		(*state->func) (state->ia, 
+		(*state->func) (&state->ia, 
 				SOUP_ADDRESS_STATUS_ERROR, 
 				state->data);
 		g_free (state);
@@ -744,12 +827,14 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	result = (struct hostent*) state->hostentBuffer;
 
-	sa_in = (struct sockaddr_in*) &state->ia->sa;
-	memcpy (&sa_in->sin_addr, result->h_addr_list[0], result->h_length);
+	sa_in = (struct sockaddr_in*) &state->ia.sa;
+	memcpy (&sa_in->sin_addr, result->h_addr_list [0], result->h_length);
 
-	state->ia->name = g_strdup (result->h_name);
+	state->ia.name = g_strdup (result->h_name);
 
-	(*state->func) (state->ia, SOUP_ADDRESS_STATUS_OK, state->data);
+	state = g_realloc (state, sizeof (SoupAddress));	
+
+	(*state->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, state->data);
 	g_free (state);
 
 	return FALSE;
@@ -762,7 +847,6 @@ soup_address_new (const gchar* name,
 		  gpointer data)
 {
 	struct in_addr inaddr;
-	SoupAddress* ia;
 	struct sockaddr_in* sa_in;
 	SoupAddressState* state;
 
@@ -789,21 +873,17 @@ soup_address_new (const gchar* name,
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 		return NULL;
 	}
-	
-	/* Create a new SoupAddress */
-	ia = g_new0 (SoupAddress, 1);
-	ia->name = g_strdup (name);
-	ia->ref_count = 1;
-
-	sa_in = (struct sockaddr_in*) &ia->sa;
-	sa_in->sin_family = AF_INET;
-	sa_in->sin_port = g_htons (port);
 
 	/* Create a structure for the call back */
 	state = g_new0 (SoupAddressState, 1);
-	state->ia = ia;
+	state->ia.name = g_strdup (name);
+	state->ia.ref_count = 1;
 	state->func = func;
 	state->data = data;
+
+	sa_in = (struct sockaddr_in*) &state->ia.sa;
+	sa_in->sin_family = AF_INET;
+	sa_in->sin_port = g_htons (port);
 
 	state->WSAhandle = (int) 
 		WSAAsyncGetHostByName (soup_hWnd, 
@@ -835,7 +915,7 @@ soup_address_new_cancel (SoupAddressNewId id)
 
 	g_return_if_fail(state != NULL);
 
-	soup_address_delete (state->ia);
+	soup_address_unref (state->ia);
 	WSACancelAsyncRequest ((HANDLE)state->WSAhandle);
 
 	/*get a lock and remove the hash entry */
@@ -847,27 +927,28 @@ soup_address_new_cancel (SoupAddressNewId id)
 
 #endif		/*********** End Windows code ***********/
 
-/**
- *   soup_address_clone:
- *   @ia: Address to clone
- *
- *   Create an internet address from another one.  
- *
- *   Returns: a new SoupAddress, or NULL if there was a failure.
- **/
-SoupAddress* 
-soup_address_clone (const SoupAddress* ia)
+static void
+soup_address_new_sync_cb (SoupAddress *addr, 
+			  SoupAddressStatus  status, 
+			  gpointer           user_data)
 {
-	SoupAddress* cia;
+	SoupAddress **ret = user_data;
+	*ret = addr;
+}
 
-	g_return_val_if_fail (ia != NULL, NULL);
+SoupAddress *
+soup_address_new_sync (const gchar *name, const gint port)
+{
+	SoupAddress *ret = (SoupAddress *) 0xdeadbeef; 
 
-	cia = g_new0(SoupAddress, 1);
-	cia->ref_count = 1;
-	cia->sa = ia->sa;
-	if (ia->name != NULL) cia->name = g_strdup (ia->name);
+	soup_address_new (name, port, soup_address_new_sync_cb, &ret);
 
-	return cia;
+	while (1) {
+		g_main_iteration (TRUE);
+		if (ret != (SoupAddress *) 0xdeadbeef) return ret;
+	}
+
+	return ret;
 }
 
 /**
@@ -900,7 +981,12 @@ soup_address_unref (SoupAddress* ia)
 	--ia->ref_count;
 
 	if (ia->ref_count == 0) {
-		if (ia->name != NULL) g_free (ia->name);
+		if (ia->name != NULL) {
+#ifndef SOUP_WIN32
+			g_hash_table_remove (active_address_hash, ia->name);
+#endif
+			g_free (ia->name);
+		}
 		g_free (ia);
 	}
 }
@@ -932,14 +1018,15 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 			state->len += rv;
 
 			/* Return true if there's more to read */
-			if ((state->len - 1) != state->buffer[0])
+			if ((state->len - 1) != state->buffer [0])
 				return TRUE;
 
 			/* Copy the name */
-			name = g_new (gchar, state->buffer[0] + 1);
-			strncpy (name, &state->buffer[1], state->buffer[0]);
-			name[state->buffer[0]] = '\0';
-			state->ia->name = g_strdup (name);
+			name = g_new (gchar, state->buffer [0] + 1);
+			strncpy (name, &state->buffer [1], state->buffer [0]);
+			name [state->buffer [0]] = '\0';
+
+			state->ia->name = name;
 
 			/* Remove the watch now in case we don't return
                            immediately */
@@ -950,6 +1037,7 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 					SOUP_ADDRESS_STATUS_OK, 
 					name, 
 					state->data);
+
 			close (state->fd);
 			waitpid (state->pid, NULL, 0);
 			g_free (state);
@@ -965,7 +1053,7 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 			SOUP_ADDRESS_STATUS_ERROR, 
 			NULL, 
 			state->data);
-	soup_address_get_name_cancel(state);
+	soup_address_get_name_cancel (state);
 	return FALSE;
 }
 
@@ -989,114 +1077,118 @@ soup_address_get_name_cb (GIOChannel* iochannel,
  *  immediate success or failure.
  **/
 SoupAddressGetNameId
-soup_address_get_name (SoupAddress* ia, 
+soup_address_get_name (SoupAddress*         ia, 
 		       SoupAddressGetNameFn func,
-		       gpointer data)
+		       gpointer             data)
 {
-	g_return_val_if_fail(ia != NULL, NULL);
-	g_return_val_if_fail(func != NULL, NULL);
+	SoupAddressReverseState* state;
+	gchar* name;
+	guchar len;
+	pid_t pid = -1;
+	int pipes [2];
 
-	/* If we already know the name, just copy that */
-	/* Otherwise, fork and look it up */
-	if (ia->name != NULL)
-		(func) (ia, 
-			SOUP_ADDRESS_STATUS_OK, 
-			g_strdup (ia->name), 
-			data);
-	else {
-		pid_t pid = -1;
-		int pipes[2];
+	g_return_val_if_fail (ia != NULL, NULL);
+	g_return_val_if_fail (func != NULL, NULL);
 
-		/* Open a pipe */
-		if (pipe(pipes) == -1) {
-			(func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
-			return NULL;
-		}
-
-		/* Fork to do the look up. */
-	fork_again:
-		if ((pid = fork()) == 0) {
-			gchar* name;
-			guchar len;
-
-			/* Write the name to the pipe.  If we didn't get a name,
-			   we just write the canonical name. */
-			if ((name = soup_gethostbyaddr ((char*) &((struct sockaddr_in*)&ia->sa)->sin_addr, 
-					sizeof (struct in_addr), AF_INET)) != NULL) {
-				guint lenint = strlen(name);
-
-				if (lenint > 255) {
-					g_warning ("Truncating domain name: %s\n", name);
-					name[256] = '\0';
-					lenint = 255;
-				}
-
-				len = lenint;
-
-				if ((write (pipes[1], &len, sizeof(len)) == -1) ||
-				    (write (pipes[1], name, len) == -1) )
-					g_warning ("Problem writing to pipe\n");
-
-				g_free(name);
-			} else {
-				gchar buffer[INET_ADDRSTRLEN];	/* defined in netinet/in.h */
-				guchar* p = (guchar*) &(SOUP_SOCKADDR_IN (ia->sa).sin_addr);
-
-				g_snprintf(buffer, 
-					   sizeof (buffer), 
-					   "%d.%d.%d.%d", 
-					   p[0], 
-					   p[1], 
-					   p[2], 
-					   p[3]);
-				len = strlen (buffer);
-
-				if ((write (pipes[1], &len, sizeof(len)) == -1) ||
-				    (write (pipes[1], buffer, len) == -1))
-					g_warning ("Problem writing to pipe\n");
-			}
-
-			/* Close the socket */
-			close(pipes[1]);
-
-			/* Exit (we don't want atexit called, so do _exit instead) */
-			_exit(EXIT_SUCCESS);
-
-		} else if (pid > 0) {
-			/* Set up an IOChannel to read from the pipe */
-			SoupAddressReverseState* state;
-
-			/* Create a structure for the call back */
-			state = g_new0 (SoupAddressReverseState, 1);
-			state->ia = ia;
-			state->func = func;
-			state->data = data;
-			state->pid = pid;
-			state->fd = pipes[0];
-
-			/* Add a watch */
-			state->watch = 
-				g_io_add_watch(
-					g_io_channel_unix_new (pipes[0]),
-					G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
-					soup_address_get_name_cb, 
-					state);
-			return state;
-		} else if (errno == EAGAIN) {
-			/* Try again */
-			/* Yield the processor */
-			sleep(0);	
-			goto fork_again;
-		} else {
-			/* Else there was a goofy error */
-			g_warning ("Fork error: %s (%d)\n", 
-				   g_strerror(errno), 
-				   errno);
-			(*func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
-		}
+	if (ia->name) {
+		(func) (ia, SOUP_ADDRESS_STATUS_OK, ia->name, data);
+		return NULL;
 	}
 
-	return NULL;
+	/* Open a pipe */
+	if (pipe (pipes) != 0) {
+		(func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
+		return NULL;
+	}
+
+ FORK_AGAIN:
+	errno = 0;
+	pid = fork ();
+
+	switch (pid) {
+	case -1:
+		if (errno == EAGAIN) {
+			/* Yield the processor */
+			sleep(0);
+			goto FORK_AGAIN;
+		}
+
+		/* Else there was a goofy error */
+		g_warning ("Fork error: %s (%d)\n", 
+			   g_strerror(errno), 
+			   errno);
+
+		(*func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
+
+		return NULL;
+	case 0:
+		/* Write the name to the pipe.  If we didn't get a name,
+		   we just write the canonical name. */
+		name = soup_gethostbyaddr (
+			    (char*) &((struct sockaddr_in*)&ia->sa)->sin_addr, 
+			    sizeof (struct in_addr), 
+			    AF_INET);
+
+		if (name) {
+			guint lenint = strlen(name);
+
+			if (lenint > 255) {
+				g_warning ("Truncating domain name: %s\n", 
+					   name);
+				name [256] = '\0';
+				lenint = 255;
+			}
+
+			len = lenint;
+
+			if ((write (pipes [1], &len, sizeof(len)) == -1) ||
+			    (write (pipes [1], name, len) == -1) )
+				g_warning ("Problem writing to pipe\n");
+
+			g_free(name);
+		} else {
+			/* defined in netinet/in.h */
+			gchar buffer [INET_ADDRSTRLEN];
+			guchar* p;
+			p = (guchar*) &(SOUP_SOCKADDR_IN (ia->sa).sin_addr);
+
+			g_snprintf(buffer, 
+				   sizeof (buffer), 
+				   "%d.%d.%d.%d", 
+				   p [0], 
+				   p [1], 
+				   p [2], 
+				   p [3]);
+			len = strlen (buffer);
+
+			if ((write (pipes [1], &len, sizeof(len)) == -1) ||
+			    (write (pipes [1], buffer, len) == -1))
+				g_warning ("Problem writing to pipe\n");
+		}
+
+		/* Close the socket */
+		close(pipes [1]);
+
+		/* Exit (we don't want atexit called, so do _exit instead) */
+		_exit(EXIT_SUCCESS);
+	default:
+		soup_address_ref (ia);
+
+		state = g_new0 (SoupAddressReverseState, 1);
+		state->ia = ia;
+		state->func = func;
+		state->data = data;
+		state->pid = pid;
+		state->fd = pipes [0];
+
+		/* Add a watch */
+		state->watch = 
+			g_io_add_watch(g_io_channel_unix_new (pipes [0]),
+				       G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
+				       soup_address_get_name_cb, 
+				       state);
+		return state;
+	}
 }
 
 /**
@@ -1139,10 +1231,10 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 	result = (struct hostent*) state->hostentBuffer;
 
 	if (state->errorcode) {
-		(*state->func)(state->ia, 
-			       SOUP_ADDRESS_STATUS_ERROR, 
-			       NULL, 
-			       state->data);
+		(*state->func) (state->ia, 
+				SOUP_ADDRESS_STATUS_ERROR, 
+				NULL, 
+				state->data);
 		return FALSE;
 	}
 
@@ -1184,15 +1276,15 @@ soup_address_get_name (SoupAddress* ia,
 	state->func = func;
 	state->data = data;
 
-	sa_in = (struct sockaddr_in*)&ia->sa;
+	sa_in = (struct sockaddr_in*) &ia->sa;
 	
 	state->WSAhandle = (int) 
-		WSAAsyncGetHostByAddr(soup_hWnd, GET_NAME_MSG,
-				      (const char*) &sa_in->sin_addr,
-				      (int) (sizeof (&sa_in->sin_addr)),
-				      (int) &sa_in->sin_family,
-				      state->hostentBuffer,
-				      sizeof (state->hostentBuffer));
+		WSAAsyncGetHostByAddr (soup_hWnd, GET_NAME_MSG,
+				       (const char*) &sa_in->sin_addr,
+				       (int) (sizeof (&sa_in->sin_addr)),
+				       (int) &sa_in->sin_family,
+				       state->hostentBuffer,
+				       sizeof (state->hostentBuffer));
 
 	if (!state->WSAhandle) {
 		g_free (state);
@@ -1218,7 +1310,7 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 
 	g_return_if_fail(state != NULL);
 
-	soup_address_delete (state->ia);
+	soup_address_unref (state->ia);
 	WSACancelAsyncRequest ((HANDLE) state->WSAhandle);
 
 	/*get a lock and remove the hash entry */
@@ -1244,7 +1336,7 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 gchar* 
 soup_address_get_canonical_name (SoupAddress* ia)
 {
-	gchar buffer[INET_ADDRSTRLEN];	/* defined in netinet/in.h */
+	gchar buffer [INET_ADDRSTRLEN];	/* defined in netinet/in.h */
 	guchar* p = (guchar*) &(SOUP_SOCKADDR_IN(ia->sa).sin_addr);
   
 	g_return_val_if_fail (ia != NULL, NULL);
@@ -1252,10 +1344,10 @@ soup_address_get_canonical_name (SoupAddress* ia)
 	g_snprintf(buffer, 
 		   sizeof (buffer), 
 		   "%d.%d.%d.%d", 
-		   p[0], 
-		   p[1], 
-		   p[2], 
-		   p[3]);
+		   p [0], 
+		   p [1], 
+		   p [2], 
+		   p [3]);
   
 	return g_strdup (buffer);
 }
@@ -1436,6 +1528,7 @@ soup_address_gethostaddr (void)
 	return ia;
 }
 
+
 static void 
 soup_socket_connect_tcp_cb (SoupSocket* socket, 
 			    SoupSocketConnectStatus status, 
@@ -1445,12 +1538,10 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 
 	if (status == SOUP_SOCKET_NEW_STATUS_OK)
 		(*state->func) (socket, 
-				state->ia, 
 				SOUP_SOCKET_CONNECT_ERROR_NONE, 
 				state->data);
 	else
 		(*state->func) (NULL, 
-				NULL, 
 				SOUP_SOCKET_CONNECT_ERROR_NETWORK, 
 				state->data);
 
@@ -1465,17 +1556,13 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
-		state->ia = inetaddr;
-
 		state->inetaddr_id = NULL;
-		state->tcp_id = 
-			soup_socket_new (inetaddr, 
-					 soup_socket_connect_tcp_cb, 
-					 state);
-		/* Note that this call may delete the state. */
+		state->tcp_id = soup_socket_new (inetaddr, 
+						 soup_socket_connect_tcp_cb, 
+						 state);
+		soup_address_unref (inetaddr);
 	} else {
 		(*state->func) (NULL, 
-				NULL, 
 				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, 
 				state->data);
 		g_free(state);
@@ -1501,18 +1588,18 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
  *  failure.
  **/
 SoupSocketConnectId
-soup_socket_connect (gchar*                     hostname, 
-		     gint                       port, 
+soup_socket_connect (const gchar*        hostname, 
+		     const gint          port, 
 		     SoupSocketConnectFn func, 
-		     gpointer                   data)
+		     gpointer            data)
 {
 	SoupSocketConnectState* state;
 	gpointer id;
 
-	g_return_val_if_fail(hostname != NULL, NULL);
-	g_return_val_if_fail(func != NULL, NULL);
+	g_return_val_if_fail (hostname != NULL, NULL);
+	g_return_val_if_fail (func != NULL, NULL);
 
-	state = g_new0(SoupSocketConnectState, 1);
+	state = g_new0 (SoupSocketConnectState, 1);
 	state->func = func;
 	state->data = data;
 
@@ -1545,15 +1632,38 @@ soup_socket_connect_cancel (SoupSocketConnectId id)
 	SoupSocketConnectState* state = (SoupSocketConnectState*) id;
 
 	g_return_if_fail (state != NULL);
-  
+
 	if (state->inetaddr_id)
-		soup_address_new_cancel(state->inetaddr_id);
-	else if (state->tcp_id) {
-		soup_address_unref (state->ia);
+		soup_address_new_cancel (state->inetaddr_id);
+	else if (state->tcp_id)
 		soup_socket_new_cancel (state->tcp_id);
-	}
 
 	g_free (state);
+}
+
+static void
+soup_socket_connect_sync_cb (SoupSocket              *socket, 
+			     SoupSocketConnectStatus  status, 
+			     gpointer                 data)
+{
+	SoupSocket **ret = data;
+	*ret = socket;
+}
+
+SoupSocket *
+soup_socket_connect_sync (const gchar *name, 
+			  const gint   port)
+{
+	SoupSocket *ret = (SoupSocket *) 0xdeadbeef; 
+
+	soup_socket_connect (name, port, soup_socket_connect_sync_cb, &ret);
+
+	while (1) {
+		g_main_iteration (TRUE);
+		if (ret != (SoupSocket *) 0xdeadbeef) return ret;
+	}
+
+	return ret;
 }
 
 
@@ -1565,40 +1675,41 @@ soup_socket_new_cb (GIOChannel* iochannel,
 		    gpointer data)
 {
 	SoupSocketState* state = (SoupSocketState*) data;
+	SoupSocket* s;
+	gint error = 0;
+	gint len = sizeof (gint);
 
 	/* Remove the watch now in case we don't return immediately */
 	g_source_remove (state->connect_watch);
 
+	if (condition & ~(G_IO_IN | G_IO_OUT)) goto ERROR;
+
 	errno = 0;
-	if ((condition & G_IO_IN) || (condition & G_IO_OUT)) {
-		gint error, len;
-		len = sizeof (error);
+	if (getsockopt (state->sockfd, 
+			SOL_SOCKET, 
+			SO_ERROR, 
+			&error, 
+			&len) != 0) goto ERROR;
 
-		/* Get the error option */
-		if (getsockopt (state->socket->sockfd, 
-				SOL_SOCKET, 
-				SO_ERROR, 
-				&error, 
-				&len) >= 0) {
-			/* Check if there is an error */
-			if (!error) {
-				/* Reset the flags */
-				if (fcntl (state->socket->sockfd, 
-					   F_SETFL, 
-					   state->flags) == 0) {
-					(*state->func) (state->socket, 
-							SOUP_SOCKET_NEW_STATUS_OK, 
-							state->data);
-					g_free (state);
-					return FALSE;
-				}
-			}
-		}
-	}
+	if (error) goto ERROR;
+	
+	if (fcntl (state->sockfd, F_SETFL, state->flags) != 0) 
+		goto ERROR;
 
-	/* Otherwise, there was an error */
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = state->sockfd;
+	s->addr = state->addr;
+
+	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
+
+	g_free (state);
+	
+	return FALSE;
+
+ ERROR:
+	soup_address_unref (state->addr);
 	(*state->func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, state->data);
-	soup_socket_unref (state->socket);
 	g_free (state);
 
 	return FALSE;
@@ -1620,15 +1731,14 @@ soup_socket_new_cb (GIOChannel* iochannel,
  *  failure.
  **/
 SoupSocketNewId
-soup_socket_new (const SoupAddress* addr, 
-		 SoupSocketNewFn func,
-		 gpointer data)
+soup_socket_new (SoupAddress      *addr, 
+		 SoupSocketNewFn   func,
+		 gpointer          data)
 {
 	gint sockfd;
 	gint flags;
-	SoupSocket* s;
-	struct sockaddr_in* sa_in;
 	SoupSocketState* state;
+	GIOChannel *chan;
 
 	g_return_val_if_fail(addr != NULL, NULL);
 	g_return_val_if_fail(func != NULL, NULL);
@@ -1636,57 +1746,60 @@ soup_socket_new (const SoupAddress* addr,
 	/* Create socket */
 	sockfd = socket (AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
-		(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
 
 	/* Get the flags (should all be 0?) */
 	flags = fcntl (sockfd, F_GETFL, 0);
 	if (flags == -1) {
-		(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
 
 	if (fcntl (sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
-		(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
 
-	/* Create our structure */
-	s = g_new0 (SoupSocket, 1);
-	s->ref_count = 1;
-	s->sockfd = sockfd;
-
-	/* Set up address and port for connection */
-	memcpy (&s->sa, &addr->sa, sizeof(s->sa));
-	sa_in = (struct sockaddr_in*) &s->sa;
-	sa_in->sin_family = AF_INET;
+	errno = 0;
 
 	/* Connect (but non-blocking!) */
-	if (connect (s->sockfd, &s->sa, sizeof(s->sa)) < 0) {
-		if (errno != EINPROGRESS) {
-			g_free(s);
-			(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
-			return NULL;
-		}
+	if (connect (sockfd, &addr->sa, sizeof (addr->sa)) < 0 &&
+	    errno != EINPROGRESS) {
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		return NULL;
 	}
 
-	/* Note that if connect returns 0, then we're already connected and
-	   we could call the call back immediately.  But, it would probably
-	   make things too complicated for the user if we could call the
-	   callback before we returned from this function.  */
+	/* Unref in soup_socket_new_cb if failure */
+	soup_address_ref (addr);
+
+	/* Connect succeeded, return immediately */
+	if (!errno) {
+		SoupSocket *s = g_new0 (SoupSocket, 1);
+		s->ref_count = 1;
+		s->sockfd = sockfd;
+		s->addr = addr;
+
+		(*func) (s, SOUP_SOCKET_NEW_STATUS_OK, data);
+		return NULL;
+	} 
+
+	chan = g_io_channel_unix_new (sockfd);
 
 	/* Wait for the connection */
 	state = g_new0 (SoupSocketState, 1);
-	state->socket = s;
+	state->sockfd = sockfd;
+	state->addr = addr;
 	state->func = func;
 	state->data = data;
 	state->flags = flags;
-	state->connect_watch = 
-		g_io_add_watch (g_io_channel_unix_new (s->sockfd),
-				SOUP_ANY_IO_CONDITION,
-				soup_socket_new_cb, 
-				state);
+	state->connect_watch = g_io_add_watch (chan,
+					       SOUP_ANY_IO_CONDITION,
+					       soup_socket_new_cb, 
+					       state);
+
+	g_io_channel_unref (chan);
 
 	return state;
 }
@@ -1704,7 +1817,7 @@ soup_socket_new_cancel (SoupSocketNewId id)
 	SoupSocketState* state = (SoupSocketState*) id;
 
 	g_source_remove (state->connect_watch);
-	soup_socket_unref (state->socket);
+	soup_address_unref (state->addr);
 	g_free (state);
 }
 
@@ -1717,101 +1830,130 @@ soup_socket_new_cb (GIOChannel* iochannel,
 		    gpointer data)
 {
 	SoupSocketState* state = (SoupSocketState*) data;
+	SoupSocket *s;
 
 	if (state->errorcode) {
-		(*state->func)(state->socket, 
-			       SOUP_SOCKET_NEW_STATUS_OK, 
-			       state->data);
-		g_free(state);
+		soup_address_unref (state->addr);
+		(*state->func) (NULLL, 
+				SOUP_SOCKET_NEW_STATUS_ERROR, 
+				state->data);
+		g_free (state);
 		return FALSE;
 	}
 
-	(*state->func) (state->socket, 
-			SOUP_SOCKET_NEW_STATUS_OK, 
-			state->data);
-	g_free(state);
+	s = g_new0 (SoupSocket, 1);
+	s->ref_count = 1;
+	s->sockfd = sockfd;
+	s->addr = state->addr;
+
+	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
+	g_free (state);
 	return FALSE;
 }
 
 SoupSocketNewId
-soup_socket_new (const SoupAddress* addr,
-		 SoupSocketNewFn func,
-		 gpointer data)
+soup_socket_new (SoupAddress     *addr,
+		 SoupSocketNewFn  func,
+		 gpointer         data)
 {
 	gint sockfd;
 	gint status;
-	SoupSocket* s;
-	struct sockaddr_in* sa_in;
 	SoupSocketState* state;
 
-	g_return_val_if_fail(addr != NULL, NULL);
-	g_return_val_if_fail(func != NULL, NULL);
+	g_return_val_if_fail (addr != NULL, NULL);
+	g_return_val_if_fail (func != NULL, NULL);
 
 	/* Create socket */
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	sockfd = socket (AF_INET, SOCK_STREAM, 0);
 	if (sockfd == INVALID_SOCKET) {
-		(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
 	
 	/* Note: WSAAsunc automatically sets the socket to noblocking mode */
-	status = WSAAsyncSelect(sockfd, soup_hWnd, TCP_SOCK_MSG, FD_CONNECT);
+	status = WSAAsyncSelect (sockfd, soup_hWnd, TCP_SOCK_MSG, FD_CONNECT);
 
 	if (status == SOCKET_ERROR) {
-		(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
 
-	/* Create our structure */
-	s = g_new0(SoupSocket, 1);
-	s->ref_count = 1;
-	s->sockfd = sockfd;
-
-	/* Set up address and port for connection */
-	memcpy(&s->sa, &addr->sa, sizeof(s->sa));
-	sa_in = (struct sockaddr_in*) &s->sa;
-	sa_in->sin_family = AF_INET;
-
-	status = connect(s->sockfd, &s->sa, sizeof(s->sa));
+	status = connect (s->sockfd, &s->sa, sizeof(s->sa));
 	/* Returning an error is ok, unless.. */
 	if (status == SOCKET_ERROR) {
 		status = WSAGetLastError();
 		if (status != WSAEWOULDBLOCK) {
-			(func)(NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
-			g_free(s);
+			(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
+			g_free (s);
 			return NULL;
 		}
 	}
 
+	soup_address_ref (addr);
+
+	if (status != SOCKET_ERROR) {
+		SoupSocket *s = g_new0 (SoupSocket, 1);
+		s->ref_count = 1;
+		s->sockfd = sockfd;
+		s->addr = addr;
+
+		(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
+		return NULL;
+	}
+
 	/* Wait for the connection */
-	state = g_new0(SoupSocketState, 1);
-	state->socket = s;
+	state = g_new0 (SoupSocketState, 1);
+	state->addr = addr;
 	state->func = func;
 	state->data = data;
-	state->socket->sockfd = sockfd;
+	state->sockfd = sockfd;
 
-	WaitForSingleObject(soup_select_Mutex, INFINITE);
+	WaitForSingleObject (soup_select_Mutex, INFINITE);
 	/*using sockfd as the key into the 'select' hash */
-	g_hash_table_insert(soup_select_hash, 
-			    (gpointer) state->socket->sockfd, 
-			    (gpointer) state);
-	ReleaseMutex(soup_select_Mutex);
+	g_hash_table_insert (soup_select_hash, 
+			     (gpointer) state->socket->sockfd, 
+			     (gpointer) state);
+	ReleaseMutex (soup_select_Mutex);
 
 	return state;
 }
 
 void
-soup_socket_new_cancel(SoupSocketNewId id)
+soup_socket_new_cancel (SoupSocketNewId id)
 {
 	SoupSocketState* state = (SoupSocketState*) id;
 	
 	/* Cancel event posting on the socket */
-	WSAAsyncSelect(state->socket->sockfd, soup_hWnd, 0, 0);
-	soup_socket_delete(state->socket);
+	WSAAsyncSelect (state->sockfd, soup_hWnd, 0, 0);
+	soup_address_unref (state->addr);
 	g_free (state);
 }
 
 #endif		/*********** End Windows code ***********/
+
+static void
+soup_socket_new_sync_cb (SoupSocket*         socket, 
+			 SoupSocketNewStatus status, 
+			 gpointer            data)
+{
+	SoupSocket **ret = data;
+	*ret = socket;
+}
+
+SoupSocket *
+soup_socket_new_sync (SoupAddress *addr)
+{
+	SoupSocket *ret = (SoupSocket *) 0xdeadbeef; 
+
+	soup_socket_new (addr, soup_socket_new_sync_cb, &ret);
+
+	while (1) {
+		g_main_iteration (TRUE);
+		if (ret != (SoupSocket *) 0xdeadbeef) return ret;
+	}
+
+	return ret;
+}
 
 /**
  *  soup_socket_ref
@@ -1822,7 +1964,7 @@ soup_socket_new_cancel(SoupSocketNewId id)
 void
 soup_socket_ref (SoupSocket* s)
 {
-	g_return_if_fail(s != NULL);
+	g_return_if_fail (s != NULL);
 
 	++s->ref_count;
 }
@@ -1842,10 +1984,11 @@ soup_socket_unref (SoupSocket* s)
 	--s->ref_count;
 
 	if (s->ref_count == 0) {
-		/* Don't care if this fails... */
-		SOUP_CLOSE_SOCKET(s->sockfd);
+		SOUP_CLOSE_SOCKET (s->sockfd);
 
-		if (s->iochannel) g_io_channel_unref(s->iochannel);
+		if (s->addr) soup_address_unref (s->addr);
+
+		if (s->iochannel) g_io_channel_unref (s->iochannel);
 
 		g_free(s);
 	}
@@ -1875,14 +2018,14 @@ soup_socket_unref (SoupSocket* s)
 GIOChannel* 
 soup_socket_get_iochannel (SoupSocket* socket)
 {
-  g_return_val_if_fail (socket != NULL, NULL);
+	g_return_val_if_fail (socket != NULL, NULL);
 
-  if (socket->iochannel == NULL)
-    socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW(socket->sockfd);
+	if (socket->iochannel == NULL)
+		socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW(socket->sockfd);
   
-  g_io_channel_ref (socket->iochannel);
+	g_io_channel_ref (socket->iochannel);
 
-  return socket->iochannel;
+	return socket->iochannel;
 }
 
 /**
@@ -1901,14 +2044,12 @@ soup_socket_get_iochannel (SoupSocket* socket)
 SoupAddress * 
 soup_socket_get_address (const SoupSocket* socket)
 {
-	SoupAddress* ia;
-
 	g_return_val_if_fail (socket != NULL, NULL);
+	g_return_val_if_fail (socket->addr != NULL, NULL);
 
-	ia = g_new0 (SoupAddress, 1);
-	ia->sa = socket->sa;
+	soup_address_ref (socket->addr);
 
-	return ia;
+	return socket->addr;
 }
 
 /**
@@ -1924,7 +2065,7 @@ soup_socket_get_port(const SoupSocket* socket)
 {
 	g_return_val_if_fail (socket != NULL, 0);
 
-	return g_ntohs (SOUP_SOCKADDR_IN (socket->sa).sin_port);
+	return g_ntohs (SOUP_SOCKADDR_IN (socket->addr->sa).sin_port);
 }
 
 
@@ -1972,8 +2113,8 @@ soup_MainCallBack (GIOChannel   *iochannel,
 			
 		/* Now call the callback function */
 		soup_address_get_name_cb (NULL, 
-						G_IO_IN, 
-						(gpointer) IARstate);
+					  G_IO_IN, 
+					  (gpointer) IARstate);
 		break;
 	case TCP_SOCK_MSG:
 		WaitForSingleObject (soup_select_Mutex, INFINITE);
@@ -1985,8 +2126,8 @@ soup_MainCallBack (GIOChannel   *iochannel,
 		TCPNEWstate = (SoupSocketState*) data;
 		TCPNEWstate->errorcode = WSAGETSELECTERROR (msg.lParam);
 		soup_tcp_socket_new_cb (NULL, 
-					      G_IO_IN, 
-					      (gpointer) TCPNEWstate);
+					G_IO_IN, 
+					(gpointer) TCPNEWstate);
 		break;
 	}
 
@@ -2010,7 +2151,7 @@ SoupWndProc (HWND hwnd,        /* handle to window */
 		return 0; 
  
         default: 
-		return DefWindowProc(hwnd, uMsg, wParam, lParam); 
+		return DefWindowProc (hwnd, uMsg, wParam, lParam); 
 	} 
 } 
 
@@ -2020,7 +2161,6 @@ RemoveHashEntry(gpointer key, gpointer value, gpointer user_data)
 	g_free (value);
 	return TRUE;
 }
-
 
 BOOL WINAPI 
 DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
@@ -2036,7 +2176,7 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		/* The DLL is being mapped into process's address space */
 		/* Do any required initialization on a per application basis,
 		   return FALSE if failed */
-		wVersionRequested = MAKEWORD( 2, 0 );
+		wVersionRequested = MAKEWORD (2, 0);
  
 		err = WSAStartup (wVersionRequested, &wsaData);
 		if (err != 0) {
@@ -2051,11 +2191,11 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		/* 2.0 in wVersion since that is the version we      */
 		/* requested.                                        */
  
-		if ( LOBYTE( wsaData.wVersion ) != 2 ||
-		     HIBYTE( wsaData.wVersion ) != 0 ) {
+		if (LOBYTE(wsaData.wVersion) != 2 ||
+		    HIBYTE(wsaData.wVersion) != 0) {
 			/* Tell the user that we could not find a usable */
 			/* WinSock DLL.                                  */
-			WSACleanup();
+			WSACleanup ();
 			return FALSE; 
 		}
  
@@ -2108,19 +2248,19 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		soup_select_hash = g_hash_table_new (NULL, NULL);
 	
 
-		soup_Mutex = CreateMutex(NULL, FALSE, "soup_Mutex");
+		soup_Mutex = CreateMutex (NULL, FALSE, "soup_Mutex");
 
 		if (soup_Mutex == NULL) return FALSE;
 
-		soup_select_Mutex = CreateMutex(NULL, 
-						FALSE, 
-						"soup_select_Mutex");
+		soup_select_Mutex = CreateMutex (NULL, 
+						 FALSE, 
+						 "soup_select_Mutex");
 
 		if (soup_select_Mutex == NULL) return FALSE;
 
-		soup_hostent_Mutex = CreateMutex(NULL,
-						 FALSE,
-						 "soup_hostent_Mutex");
+		soup_hostent_Mutex = CreateMutex (NULL,
+						  FALSE,
+						  "soup_hostent_Mutex");
 
 		if (soup_hostent_Mutex == NULL) return FALSE;
 
@@ -2148,7 +2288,7 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		ReleaseMutex (soup_select_Mutex);
 		ReleaseMutex (soup_hostent_Mutex);
 
-		WSACleanup();
+		WSACleanup ();
 
 		break;
 	}

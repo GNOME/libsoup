@@ -1,3 +1,56 @@
+2001-04-23  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-socket.h: SoupSocketConnectFn no longer takes
+	a SoupAddress argument, as it can be fetched from the SoupSocket
+	correctly now.
+
+	* src/soup-core/soup-socket.c: lots of rewrites. Cache existing
+	SoupAddresses to avoid duplicate lookups. Handles multiple
+	simultaneous requests for the same address. Add syncronous
+	versions of calls which just run the main loop until completion or
+	request. Make SoupContext use a SoupAddress instead of sockaddr.
+
+	* src/soup-core/soup-uri.h: Add query_elems to SoupUri. Contains a
+	list of query string elements, as delimited by a
+	'&'. SoupUri.protocol is now a SoupProtocol. 
+
+	* src/soup-core/soup-uri.c (soup_uri_new): convert uri_string
+	protocol to SoupProtocol equivalent.
+
+	* src/soup-core/soup-private.h: remove protocol from
+	SoupContext. Use a SoupAddress instead of a sockaddr in SoupSocket.
+
+	* src/soup-core/soup-misc.c (soup_load_config_internal): kill
+	tiny (8 byte) mem leak.
+
+	* src/soup-core/soup-message.h: add SoupOwnership
+	SOUP_BUFFER_STATIC. 
+	add SoupErrorCode SOUP_ERROR_CANT_AUTHENTICATE.	
+
+	* src/soup-core/soup-context.h: move SoupProtocol to soup-uri.h.
+
+	* src/soup-core/soup-context.c (soup_context_new):
+	removed. Protocol is now held only in uri.
+	(soup_context_from_uri): added.
+	(soup_context_get): just calls soup_context_from_uri() after
+	creating uri.
+	(soup_context_unref): don't evaluate a post-decremented refcount.
+	(soup_context_connect_cb): no longer take a SoupAddress arg.
+	(soup_context_get_protocol): removed, use uri.
+
+	* src/soup-core/soup-apache.c (soup_apache_message_create): use
+	SOUP_BUFFER_STATIC for request buffer.
+
+	* src/soup-core/md5-utils.c: initial commit. MD5 encryption.
+
+	* src/soup-core/soup-digest.c: initial commit. no worky.
+
+	* src/soup-core/Makefile.am (libsoup_la_SOURCES): add md5-utils.h,
+	md5-utils.c, soup-digest.h, soup-digest.c.
+
+	* tests/stress-test.c (main): handle ugly refcount bug causing
+	extra unrefs of the context.
+
 2001-04-18  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-server.h: Added SoupServerBasicToken,

@@ -29,24 +29,28 @@
 
 #include <glib.h>
 
+typedef enum {
+	SOUP_PROTOCOL_HTTP = 1,
+	SOUP_PROTOCOL_SHTTP,
+	SOUP_PROTOCOL_SMTP,
+	SOUP_PROTOCOL_SOCKS4,
+	SOUP_PROTOCOL_SOCKS5
+} SoupProtocol;
+
 typedef struct {
-	gchar *protocol;
+	SoupProtocol        protocol;
 
-	gchar *user;
-	gchar *authmech;
-	gchar *passwd;
+	gchar              *user;
+	gchar              *authmech;
+	gchar              *passwd;
 
-	gchar *host;
-	gint   port;
+	gchar              *host;
+	gint                port;
 
-	gchar *path;
-	gchar *querystring;
+	gchar              *path;
+	gchar              *querystring;
+	gchar             **query_elems;
 } SoupUri;
-
-/* the cache system has been disabled because it would 
-   need the user to use accessors instead of modifying the 
-   structure field. As the speed is not so important here, 
-   I chose not to use it */
 
 SoupUri *soup_uri_new       (const gchar *uri_string);
 

@@ -5,6 +5,7 @@
  * Authors : 
  *  Bertrand Guiheneuf <bertrand@helixcode.com>
  *  Dan Winship <danw@helixcode.com>
+ *  Alex Graveley <alex@ximian.com>
  *
  * Copyright 1999, 2000 Helix Code, Inc. (http://www.helixcode.com)
  *
@@ -45,21 +46,62 @@
 #include "soup-uri.h"
 #include "soup-misc.h"
 
-static gint
-soup_uri_get_default_port (gchar *proto)
-{
-	g_return_val_if_fail (proto != NULL, -1);
+typedef struct {
+	SoupProtocol  proto;
+	gchar        *str;
+	gint          port;
+} SoupKnownProtocols; 
 
-	if (strcasecmp (proto, "http") == 0)
-		return 80;
-	else if (strcasecmp (proto, "https") == 0)
-		return 443;
-	else if (strcasecmp (proto, "mailto") == 0)
-		return 25;
-	else if (strcasecmp (proto, "ftp") == 0)
-		return 21;
-	else
-		return -1;
+SoupKnownProtocols known_protocols [] = {
+	{ SOUP_PROTOCOL_HTTP,   "http://",   80 },
+	{ SOUP_PROTOCOL_SHTTP,  "https://",  443 },
+	{ SOUP_PROTOCOL_SMTP,   "mailto:",   25 },
+	{ SOUP_PROTOCOL_SOCKS4, "socks4://", -1 },
+	{ SOUP_PROTOCOL_SOCKS5, "socks5://", -1 },
+	{ 0 }
+};
+
+static SoupProtocol
+soup_uri_get_protocol (const gchar *proto, int *len)
+{
+	SoupKnownProtocols *known = known_protocols;
+
+	while (known->proto) {
+		if (!g_strncasecmp (proto, known->str, strlen (known->str))) {
+			*len = strlen (known->str);
+			return known->proto;
+		}
+		known++;
+	}
+
+	*len = 0;
+	return 0;
+}
+
+static gchar *
+soup_uri_protocol_to_string (SoupProtocol proto)
+{
+	SoupKnownProtocols *known = known_protocols;
+
+	while (known->proto) {
+		if (known->proto == proto) return known->str;
+		known++;
+	}
+
+	return "";
+}
+
+static gint
+soup_uri_get_default_port (SoupProtocol proto)
+{
+	SoupKnownProtocols *known = known_protocols;
+
+	while (known->proto) {
+		if (known->proto == proto) return known->port;
+		known++;
+	}
+
+	return -1;
 }
 
 /**
@@ -81,21 +123,25 @@ soup_uri_get_default_port (gchar *proto)
  * 
  * Return value: a SoupUri structure containing the URL items.
  **/
-SoupUri *soup_uri_new (const gchar* uri_string)
+SoupUri *
+soup_uri_new (const gchar* uri_string)
 {
 	SoupUri *g_uri;
 	char *semi, *colon, *at, *slash, *path, *query = NULL;
 	char **split;
 
-	g_uri = g_new (SoupUri,1);
+	g_uri = g_new0 (SoupUri,1);
 
 	/* Find protocol: initial substring until "://" */
 	colon = strchr (uri_string, ':');
-	if (colon && !strncmp (colon, "://", 3)) {
-		g_uri->protocol = g_strndup (uri_string, colon - uri_string);
-		uri_string = colon + 3;
-	} else
-		g_uri->protocol = NULL;
+	if (colon) {
+		gint protolen;
+		g_uri->protocol = soup_uri_get_protocol (uri_string, &protolen);
+		uri_string += protolen;
+	}
+
+	/* Must have a protocol */
+	if (!g_uri->protocol) return NULL;
 
 	/* If there is an @ sign, look for user, authmech, and
 	 * password before it.
@@ -112,7 +158,8 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 
 		semi = strchr(uri_string, ';');
 		if (semi && semi < colon && !strncasecmp (semi, ";auth=", 6))
-			g_uri->authmech = g_strndup (semi + 6, colon - semi - 6);
+			g_uri->authmech = g_strndup (semi + 6, 
+						     colon - semi - 6);
 		else {
 			g_uri->authmech = NULL;
 			semi = colon;
@@ -148,7 +195,7 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 	if (slash == NULL) {
 		slash = "/";
 	}
-	if (slash && *slash && g_uri->protocol == NULL)
+	if (slash && *slash && !g_uri->protocol)
 		slash++;
 
 	split = g_strsplit(slash, " ", 0);
@@ -161,6 +208,7 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 	if (path && query) {
 		g_uri->path = g_strndup (path, query - path);
 		g_uri->querystring = g_strdup (++query);
+		g_uri->query_elems = g_strsplit (g_uri->querystring, "&", 0);
 		g_free (path);
 	} else {
 		g_uri->path = path;
@@ -174,12 +222,13 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 gchar *
 soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 {
+	g_return_val_if_fail (uri != NULL, NULL);
+
 	if (uri->port != -1 && 
-	    uri->port != soup_uri_get_default_port(uri->protocol))
+	    uri->port != soup_uri_get_default_port (uri->protocol))
 		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s%s:%d%s%s%s",
-			uri->protocol ? uri->protocol : "",
-			uri->protocol ? "://" : "",
+			"%s%s%s%s%s%s%s%s:%d%s%s%s",
+			soup_uri_protocol_to_string (uri->protocol),
 			uri->user ? uri->user : "",
 			uri->authmech ? ";auth=" : "",
 			uri->authmech ? uri->authmech : "",
@@ -193,9 +242,8 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->querystring ? uri->querystring : "");
 	else
 		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s%s%s%s%s",
-			uri->protocol ? uri->protocol : "",
-			uri->protocol ? "://" : "",
+			"%s%s%s%s%s%s%s%s%s%s%s",
+			soup_uri_protocol_to_string (uri->protocol),
 			uri->user ? uri->user : "",
 			uri->authmech ? ";auth=" : "",
 			uri->authmech ? uri->authmech : "",
@@ -213,13 +261,13 @@ soup_uri_free (SoupUri *uri)
 {
 	g_assert (uri);
 
-	g_free (uri->protocol);
 	g_free (uri->user);
 	g_free (uri->authmech);
 	g_free (uri->passwd);
 	g_free (uri->host);
 	g_free (uri->path);
 	g_free (uri->querystring);
+	g_strfreev (uri->query_elems);
 
 	g_free (uri);
 }
@@ -229,7 +277,7 @@ soup_debug_print_uri (SoupUri *uri)
 {
 	g_return_if_fail (uri != NULL);
 
-	g_print ("Protocol: %s\n", uri->protocol);
+	g_print ("Protocol: %s\n", soup_uri_protocol_to_string (uri->protocol));
 	g_print ("User:     %s\n", uri->user);
 	g_print ("Authmech: %s\n", uri->authmech);
 	g_print ("Password: %s\n", uri->passwd);

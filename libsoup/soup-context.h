@@ -19,14 +19,6 @@ typedef struct _SoupContext SoupContext;
 typedef struct _SoupConnection SoupConnection;
 
 typedef enum {
-	SOUP_PROTOCOL_HTTP,
-	SOUP_PROTOCOL_SHTTP,
-	SOUP_PROTOCOL_SMTP,
-	SOUP_PROTOCOL_SOCKS4,
-	SOUP_PROTOCOL_SOCKS5
-} SoupProtocol;
-
-typedef enum {
 	SOUP_CONNECT_ERROR_NONE,
 	SOUP_CONNECT_ERROR_ADDR_RESOLVE,
 	SOUP_CONNECT_ERROR_NETWORK
@@ -41,6 +33,8 @@ typedef gpointer SoupConnectId;
 
 SoupContext  *soup_context_get               (gchar                *uri);
 
+SoupContext  *soup_context_from_uri          (SoupUri              *suri);
+
 void          soup_context_ref               (SoupContext          *ctx);
 
 void          soup_context_unref             (SoupContext          *ctx);
@@ -50,8 +44,6 @@ SoupConnectId soup_context_get_connection    (SoupContext          *ctx,
 					      gpointer              user_data);
 
 SoupUri      *soup_context_get_uri           (SoupContext          *ctx);
-
-SoupProtocol  soup_context_get_protocol      (SoupContext          *ctx);
 
 void          soup_context_cancel_connect    (SoupConnectId         tag);
 

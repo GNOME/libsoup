@@ -37,28 +37,6 @@ static gint connection_count = 0;
 
 static guint most_recently_used_id = 0;
 
-static SoupContext *
-soup_context_new (SoupServer *server, SoupUri *uri) 
-{
-	SoupContext *ctx = g_new0 (SoupContext, 1);
-	ctx->server = server;
-	ctx->uri = uri;
-	ctx->refcnt = 0;
-
-	if (g_strcasecmp (uri->protocol, "http") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_HTTP;
-	else if (g_strcasecmp (uri->protocol, "https") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SHTTP;
-	else if (g_strcasecmp (uri->protocol, "mailto") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SMTP;
-	else if (g_strcasecmp (uri->protocol, "socks4") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SOCKS4;
-	else if (g_strcasecmp (uri->protocol, "socks5") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SOCKS5;
-
-	return ctx;
-}
-
 /**
  * soup_context_get:
  * @uri: the stringified URI.
@@ -72,14 +50,34 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 SoupContext *
 soup_context_get (gchar *uri) 
 {
+	SoupUri *suri;
+
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	suri = soup_uri_new (uri);
+	if (!suri) return NULL;
+	
+	return soup_context_from_uri (suri);
+}
+
+/**
+ * soup_context_get:
+ * @uri: the stringified URI.
+ *
+ * Returns a pointer to the %SoupContext representing @uri. If a context
+ * already exists for the URI, it is returned with an added reference.
+ * Otherwise, a new context is created with a reference count of one.
+ *
+ * Return value: a %SoupContext representing @uri.  
+ */
+SoupContext *
+soup_context_from_uri (SoupUri *suri)
+{
 	SoupServer *serv = NULL;
 	SoupContext *ret = NULL;
-	SoupUri *suri = soup_uri_new (uri);
 
-	if (!suri->protocol) {
-		soup_uri_free (suri);
-		return NULL;
-	}
+	g_return_val_if_fail (suri != NULL, NULL);
+	g_return_val_if_fail (suri->protocol != 0, NULL);
 
 	if (!soup_servers)
 		soup_servers = g_hash_table_new (soup_str_case_hash, 
@@ -99,7 +97,11 @@ soup_context_get (gchar *uri)
 		ret = g_hash_table_lookup (serv->contexts, suri->path);
 
 	if (!ret) {
-		ret = soup_context_new (serv, suri);
+		ret = g_new0 (SoupContext, 1);
+		ret->server = serv;
+		ret->uri = suri;
+		ret->refcnt = 0;
+
 		g_hash_table_insert (serv->contexts, suri->path, ret);
 	}
 
@@ -135,7 +137,9 @@ soup_context_unref (SoupContext *ctx)
 {
 	g_return_if_fail (ctx != NULL);
 
-	if (ctx->refcnt-- == 0) {
+	--ctx->refcnt;
+
+	if (ctx->refcnt == 0) {
 		SoupServer *serv = ctx->server;
 
 		g_hash_table_remove (serv->contexts, ctx->uri->path);
@@ -176,7 +180,6 @@ struct SoupConnectData {
 
 static void 
 soup_context_connect_cb (SoupSocket              *socket, 
-			 SoupAddress             *addr,
 			 SoupSocketConnectStatus  status,
 			 gpointer                 user_data)
 {
@@ -187,8 +190,6 @@ soup_context_connect_cb (SoupSocket              *socket,
 	SoupConnection         *new_conn;
 
 	g_free (data);
-
-	if (addr) soup_address_unref(addr);
 
 	switch (status) {
 	case SOUP_SOCKET_CONNECT_ERROR_NONE:
@@ -330,7 +331,7 @@ soup_context_get_connection (SoupContext           *ctx,
 {
 	SoupConnection *conn;
 	struct SoupConnectData *data;
-	guint conn_limit = soup_get_connection_limit();
+	guint conn_limit;
 
 	g_return_val_if_fail (ctx != NULL, NULL);
 
@@ -345,6 +346,8 @@ soup_context_get_connection (SoupContext           *ctx,
 	data->cb = cb;
 	data->user_data = user_data;
 
+	conn_limit = soup_get_connection_limit ();
+
 	if (conn_limit && 
 	    connection_count >= conn_limit && 
 	    !soup_prune_least_used_connection ())
@@ -352,11 +355,12 @@ soup_context_get_connection (SoupContext           *ctx,
 			g_timeout_add (500, 
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
-	else data->connect_tag =
-		     soup_socket_connect (ctx->uri->host, 
-					  ctx->uri->port,
-					  soup_context_connect_cb,
-					  data);
+	else 
+		data->connect_tag =
+			soup_socket_connect (ctx->uri->host, 
+					     ctx->uri->port,
+					     soup_context_connect_cb,
+					     data);
 
 	return data;
 }
@@ -397,21 +401,6 @@ soup_context_get_uri (SoupContext *ctx)
 {
 	g_return_val_if_fail (ctx != NULL, NULL);
 	return ctx->uri;
-}
-
-/**
- * soup_context_get_protocol:
- * @ctx: a %SoupContext.
- * 
- * Returns the %SoupProtocol used for connections created for %ctx.
- *
- * Return value: the %SoupProtocol used for connections to %ctx.
- */
-SoupProtocol
-soup_context_get_protocol (SoupContext *ctx)
-{
-	g_return_val_if_fail (ctx != NULL, 0);
-	return ctx->protocol;
 }
 
 /**
@@ -472,7 +461,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 
 		soup_connection_setup_socket (conn->channel);
 
-		if (conn->context->protocol == SOUP_PROTOCOL_SHTTP)
+		if (conn->context->uri->protocol == SOUP_PROTOCOL_SHTTP)
 			conn->channel = soup_ssl_get_iochannel (conn->channel);
 	} else
 		g_io_channel_ref (conn->channel);

@@ -316,7 +316,12 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 		}
 
 		split = g_strsplit (g_strchomp (iter), "=", 2);
-		if (!split || !split[1] || split[2]) continue;
+
+		if (!split) continue;
+		if (!split[1] || split[2]) {
+			g_strfreev (split);
+			continue;
+		}
 
 		key = g_strchomp (split[0]);
 		value = g_strchug (split[1]);

@@ -42,18 +42,17 @@ typedef struct {
 struct _SoupAddress {
 	gchar*          name;
 	struct sockaddr sa;
-	guint           ref_count;
+	gint            ref_count;
 };
 
 struct _SoupSocket {
 	gint            sockfd;
-	struct sockaddr sa; /* Why not an InetAddr? */
+	SoupAddress    *addr;
 	guint           ref_count;
 	GIOChannel     *iochannel;
 };
 
 struct _SoupContext {
-	SoupProtocol  protocol;
 	SoupUri      *uri;
 	SoupServer   *server;
 	guint         refcnt;
@@ -94,6 +93,8 @@ struct _SoupMessagePrivate {
 	gpointer        user_data;
 	
 	SoupErrorCode   errorcode;
+
+	gpointer        digest_data;
 };
 
 typedef struct {
