@@ -244,6 +244,23 @@ check_close_connection (SoupMessage *msg)
 } /* check_close_connection */
 
 static void
+close_connection (SoupMessage *msg)
+{
+	SoupSocket *server_sock = msg->priv->server_sock;
+
+	if (server_sock) {
+		GIOChannel *chan;
+
+		chan = soup_socket_get_iochannel (server_sock);
+		
+		g_io_channel_close (chan);
+		soup_socket_unref (server_sock);
+
+		msg->priv->server_sock = NULL;
+	}
+}
+
+static void
 destroy_message (SoupMessage *msg)
 {
 	SoupServer *server = msg->priv->server;
@@ -261,8 +278,7 @@ destroy_message (SoupMessage *msg)
 		 * using HTTP/1.1 and "Connection: close" was specified.
 		 */
 		if (check_close_connection (msg)) {
-			g_io_channel_close (chan);
-			soup_socket_unref (server_sock);
+			close_connection (msg);
 		}
 		else {
 			/*
@@ -307,6 +323,7 @@ error_cb (gboolean body_started, gpointer user_data)
 {
 	SoupMessage *msg = user_data;
 
+	close_connection (msg);
 	destroy_message (msg);
 }
 

@@ -1,3 +1,15 @@
+2003-09-18  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: 1.99.27
+
+	* libsoup/soup-server.c (close_connection): Closes the server
+	connection.
+	(destroy_message): Call close_connection() instead of doing it by
+	hand.
+	(error_cb): Call close_connection() before destroy_message() so
+	that the connection is always closed on an error.  Fixes a CPU
+	wedging case.
+
 2003-09-12  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.26
