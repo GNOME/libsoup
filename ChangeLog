@@ -1,3 +1,10 @@
+2003-02-11  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.7 for snaps.
+
+	* libsoup/soup-openssl.c (soup_openssl_get_iochannel): Print out
+	the error string from OpenSSL if we can't establish a connection.
+
 2003-02-04  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.6 for snaps.

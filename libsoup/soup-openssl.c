@@ -417,7 +417,13 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 			select (sockfd + 1, NULL, &ssl_fdset, NULL, &tv);
 		}
 		else if (err != SSL_ERROR_NONE) {
-			g_warning ("Could not establish secure connection.");
+			unsigned long e;
+
+			e = ERR_get_error();
+
+			ERR_load_crypto_strings(), SSL_load_error_strings();
+			g_warning ("Could not establish secure connection: %s",
+				   ERR_error_string (e, NULL));
 			goto THROW_CREATE_ERROR;
 		}
 	} while (err != SSL_ERROR_NONE);
