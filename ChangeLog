@@ -1,3 +1,20 @@
+2001-05-02  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-skels.c
+	(wsdl_emit_soap_skels_binding_operation): Write server skels
+
+	* src/soup-wsdl/wsdl-soap-headers.c
+	(wsdl_emit_soap_headers_binding_operation): Emit prototypes for
+	skels
+	(wsdl_emit_soap_headers): Include the right soup headers
+
+	* src/soup-wsdl/wsdl-soap-stubs.c (wsdl_emit_soap_stubs): Include
+	the right soup headers
+
+	* src/soup-wsdl-runtime/Makefile.am (INCLUDES): 
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.h: A kludge to work
+	around include path searching whether compiling or at runtime
+
 2001-04-30  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-stubs.c: Use the new marshaller instead
