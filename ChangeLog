@@ -1,3 +1,10 @@
+2001-05-24  Larry Ewing  <lewing@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c: include string.h for
+	strlen and strcmp prototypes.
+	* src/soup-wsdl-runtime/wsdl-soap-memory.c: include string.h for
+	memset prototype.
+
 2001-05-23  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-typecodes-c.c
