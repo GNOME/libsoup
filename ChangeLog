@@ -1,5 +1,10 @@
 2002-04-08  Alex Graveley  <alex@ximian.com>
 
+        * configure.in, src/libsoup/soup-private.h: Bump version to
+        0.7.2.  A stable feature release.  Yay!
+
+2002-04-08  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-wsdl/wsdl-trace.c (wsdl_get_output_file): Gets the
 	current output file.
 	(wsdl_set_output_file): Sets it.
