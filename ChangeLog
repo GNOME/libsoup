@@ -1,3 +1,8 @@
+2003-05-07  Dan Winship  <danw@ximian.com>
+
+	* soup-2.0.pc.in (Libs): Don't put @OPENSSL_LIBS@ here; the
+	library doesn't depend on them, only the proxy does. #42473
+
 2003-05-06  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-message.c (global_handlers): Change the
