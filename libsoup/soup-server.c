@@ -23,18 +23,18 @@
 #include "soup-ssl.h"
 #include "soup-transfer.h"
 
+#define SOUP_PROTOCOL_CGI 0xff
+
 SoupServer cgi_server = {
-	FALSE,
-	TRUE,
-	0
+	SOUP_PROTOCOL_CGI
 };
 
-SoupServer httpd_server;
+SoupServer httpd_server = {
+	SOUP_PROTOCOL_HTTP
+};
 
 SoupServer httpd_ssl_server = {
-	TRUE,
-	FALSE,
-	0
+	SOUP_PROTOCOL_HTTPS
 };
 
 SoupServer *SOUP_CGI_SERVER = &cgi_server;
@@ -42,17 +42,19 @@ SoupServer *SOUP_HTTPD_SERVER = &httpd_server;
 SoupServer *SOUP_HTTPD_SSL_SERVER = &httpd_ssl_server;
 
 SoupServer *
-soup_server_new (guint port, gboolean secure)
+soup_server_new (SoupProtocol proto, guint port)
 {
 	SoupServer *serv;
 	SoupSocket *sock;
 
-	sock = soup_socket_server_new (port);
-	if (!sock) return NULL;
+	if (proto != SOUP_PROTOCOL_CGI) {
+		sock = soup_socket_server_new (port);
+		if (!sock) return NULL;
+	}
 
 	serv = g_new0 (SoupServer, 1);
 	serv->port = soup_socket_get_port (sock);
-	serv->secure = secure;
+	serv->proto = proto;
 	serv->sock = sock;
 
 	return serv;
@@ -70,7 +72,8 @@ soup_server_free (SoupServer *serv)
 {
 	g_return_if_fail (serv != NULL);
 
-	soup_socket_unref (serv->sock);
+	if (serv->sock)
+		soup_socket_unref (serv->sock);
 
 	g_hash_table_foreach (serv->handlers, (GHFunc) free_handler, NULL);
 	g_hash_table_destroy (serv->handlers);
@@ -99,7 +102,7 @@ destroy_message (SoupMessage *req)
 
 	g_free ((gchar *) req->method);
 
-	if (req->priv->server->cgi)
+	if (req->priv->server->proto == SOUP_PROTOCOL_CGI)
 		g_main_quit (req->priv->server->loop);
 
 	soup_message_free (req);
@@ -320,7 +323,7 @@ conn_accept (GIOChannel    *chan,
 	SoupContext *ctx;
 	SoupMessage *msg;
 	SoupUri uri = { 
-		serv->secure ? SOUP_PROTOCOL_HTTPS : SOUP_PROTOCOL_HTTP,
+		serv->proto,
 		NULL, 
 		NULL, 
 		NULL, 
@@ -347,7 +350,9 @@ conn_accept (GIOChannel    *chan,
 	msg->priv->server_sock = sock;
 
 	chan = soup_socket_get_iochannel (sock);
-	if (serv->secure) chan = soup_ssl_get_iochannel (chan);
+
+	if (serv->proto == SOUP_PROTOCOL_HTTPS) 
+		chan = soup_ssl_get_iochannel (chan);
 
 	msg->priv->read_tag = 
 		soup_transfer_read (

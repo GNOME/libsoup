@@ -112,8 +112,7 @@ struct _SoupMessagePrivate {
 };
 
 struct _SoupServer {
-	gboolean           secure;
-	gboolean           cgi;
+	SoupProtocol       proto;
 	gint               port;
 
 	GMainLoop         *loop;

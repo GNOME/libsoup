@@ -13,6 +13,7 @@
 
 #include <glib.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-uri.h>
 
 typedef enum {
 	SOUP_AUTH_TYPE_BASIC  = (1 << 1),
@@ -67,8 +68,8 @@ extern SoupServer *SOUP_CGI_SERVER;
 extern SoupServer *SOUP_HTTPD_SERVER;
 extern SoupServer *SOUP_HTTPD_SSL_SERVER;
 
-SoupServer *       soup_server_new              (guint                 port,
-						 gboolean              secure);
+SoupServer *       soup_server_new              (SoupProtocol          proto,
+						 guint                 port);
 
 void               soup_server_free             (SoupServer           *serv);
 
@@ -103,9 +104,14 @@ void               soup_server_unregister       (SoupServer           *serv,
 SoupServerHandler *soup_server_get_handler      (SoupServer           *serv,
 						 const gchar          *path);
 
-void               soup_server_require_auth     (SoupServer  *serv,
+void               soup_server_set_auth         (SoupServer  *serv,
 						 const gchar *path,
-						 guint        auth_types);
+						 guint        auth_types,
+						 const gchar *realm);
+
+void               soup_server_require_auth     (SoupMessage *message,
+						 guint        auth_types,
+						 const gchar *realm);
 
 
 /* Apache module initializtion */

@@ -1,3 +1,25 @@
+2001-09-12  Alex Graveley  <alex@ximian.com>
+
+	* tests/filesys-server.c (main): Pass protocol to soup_server_new.
+	* tests/server-test.c (main): Ditto.
+
+	* src/soup-wsdl/Makefile.am (soup_wsdl_LDADD): Remove libwsdl.so
+	link.
+
+	* src/libwsdl/Makefile.am (libwsdl_build_a_SOURCES): Include
+	libwsdl.so sources in libwsdl-build.a so libtool 1.3.5 doesn't
+	ill.  Remove libwsdl_build_a_LIBADD.
+
+	* src/libsoup/soup-server.c (soup_server_new): Take a SoupProtocol
+	argument.
+
+	* src/libsoup/soup-dav-server.c (move_copy): Serialize multi-status.
+	(i_copy): Fix bug where directory contents were sometimes created
+	before parent. Add multi-status error reporting.
+
+	* src/libsoup/soup-dav.c (soup_dav_response_new): Remove
+	response_phrase param.
+
 2001-09-11  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-dav-server.c (dav_proppatch): Rewrite to
