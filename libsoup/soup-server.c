@@ -48,16 +48,19 @@ struct _SoupServerMessage {
 	gboolean     finished;
 };
 
-SoupServer *
-soup_server_new (SoupProtocol proto, guint port)
+static SoupServer *
+new_server (SoupAddress *address, SoupProtocol proto, guint port)
 {
 	SoupServer *serv;
 	SoupSocket *sock = NULL;
 	GIOChannel *read_chan = NULL, *write_chan = NULL;
 
+	g_return_val_if_fail (address, NULL);
+
 	if (proto == SOUP_PROTOCOL_CGI) {
 		read_chan = g_io_channel_unix_new (STDIN_FILENO);
-		if (!read_chan) return NULL;
+		if (!read_chan)
+			return NULL;
 
 		write_chan = g_io_channel_unix_new (STDOUT_FILENO);
 		if (!write_chan) {
@@ -65,8 +68,9 @@ soup_server_new (SoupProtocol proto, guint port)
 			return NULL;
 		}
 	} else {
-		sock = soup_socket_server_new (soup_address_ipv4_any (), port);
-		if (!sock) return NULL;
+		sock = soup_socket_server_new (address, port);
+		if (!sock)
+			return NULL;
 
 		port = soup_socket_get_port (sock);
 	}
@@ -80,6 +84,25 @@ soup_server_new (SoupProtocol proto, guint port)
 	serv->cgi_write_chan = write_chan;
 
 	return serv;
+}	
+
+SoupServer *
+soup_server_new (SoupProtocol proto, guint port)
+{
+	return new_server (soup_address_ipv4_any (), proto, port);
+}
+
+SoupServer *
+soup_server_new_with_host (const char *host, SoupProtocol proto, guint port)
+{
+	SoupAddress *address;
+
+	address = soup_address_new_sync (host);
+
+	if (!address)
+		return NULL;
+
+	return new_server (address, proto, port);
 }
 
 SoupServer *

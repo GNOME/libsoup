@@ -52,6 +52,10 @@ struct _SoupServerHandler {
 SoupServer        *soup_server_new           (SoupProtocol           proto,
 					      guint                  port);
 
+SoupServer        *soup_server_new_with_host (const char            *host,
+					      SoupProtocol           proto,
+					      guint                  port);
+
 SoupServer        *soup_server_cgi           (void);
 
 void               soup_server_ref           (SoupServer            *serv);

@@ -1,3 +1,9 @@
+2002-12-20  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-server.c (soup_server_new_with_host): Added.
+	Starts a server only on the interface specified, instead of all
+	network interfaces.
+
 2002-12-16  Jeremy Katz  <katzj@redhat.com>
 
 	* configure.in: use $libdir instead of /usr/lib when looking for
