@@ -1,3 +1,11 @@
+2004-09-30  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_init): Add this, with some
+	extra initialization needed for libgcrypt 1.2 or higher. Fixes
+	66342.
+	(soup_ssl_get_client_credentials,
+	soup_ssl_get_server_credentials): Call soup_gnutls_init().
+
 2004-08-26  Dan Winship  <danw@novell.com>
 
 	* configure.in: Bump version to 2.2.0.

@@ -14,11 +14,14 @@
 
 #ifdef HAVE_SSL
 
+#include <errno.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <glib.h>
 
+#include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
@@ -406,6 +409,22 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	return NULL;
 }
 
+static gboolean soup_gnutls_inited = FALSE;
+
+#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif
+
+static void
+soup_gnutls_init (void)
+{
+#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
+	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+#endif
+	gnutls_global_init ();
+	soup_gnutls_inited = TRUE;
+}
+
 /**
  * soup_ssl_get_client_credentials:
  * @ca_file: path to a file containing X509-encoded Certificate
@@ -427,7 +446,8 @@ soup_ssl_get_client_credentials (const char *ca_file)
 	SoupGNUTLSCred *cred;
 	int status;
 
-	gnutls_global_init ();
+	if (!soup_gnutls_inited)
+		soup_gnutls_init ();
 
 	cred = g_new0 (SoupGNUTLSCred, 1);
 	gnutls_certificate_allocate_credentials (&cred->cred);
@@ -484,7 +504,8 @@ soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 {
 	SoupGNUTLSCred *cred;
 
-	gnutls_global_init ();
+	if (!soup_gnutls_inited)
+		soup_gnutls_init ();
 	if (!dh_params) {
 		if (!init_dh_params ())
 			return NULL;
