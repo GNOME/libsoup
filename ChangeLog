@@ -1,3 +1,8 @@
+2001-12-09  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-uri.c (normalize_path): Add path normalization
+	code from libxml.
+
 2001-12-06  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket.c (soup_socket_connect_tcp_cb): Free
