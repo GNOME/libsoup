@@ -5,7 +5,7 @@
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
  *
- * soup_base64_encode() written by Joe Orton borrowed from ghttp.
+ * soup_base64_encode() written by Joe Orton, borrowed from ghttp.
  *
  * Copyright (C) 2000, Helix Code, Inc.
  */
@@ -57,18 +57,21 @@ soup_split_headers (gchar *str, guint len)
 static gboolean 
 soup_process_headers (SoupRequest *req, gchar *str, guint len)
 {
-	gchar *reason_phrase, **headers, *header;
+	gchar **headers, *header;
+	gchar reason_phrase[512];
 	gint http_major, http_minor, status_code, read_count, index;
 
 	read_count = sscanf (str, 
-			     "HTTP/%d.%d %u %as\r\n", 
+			     "HTTP/%d.%d %u %512s\r\n", 
 			     &http_major,
 			     &http_minor,
 			     &status_code, 
 			     &reason_phrase);
 
+	req->response_code = status_code;
+	req->response_phrase = g_strdup (reason_phrase);
+
 	if (read_count != 4) {
-		g_free (reason_phrase);
 		soup_request_issue_callback (req, SOUP_ERROR_MALFORMED_HEADER);
 		return FALSE;
 	}
@@ -78,8 +81,6 @@ soup_process_headers (SoupRequest *req, gchar *str, guint len)
 	headers = g_strsplit (str, "\r\n", 0);
 	g_strfreev (headers);
 
-	req->response_code = status_code;
-	req->response_phrase = reason_phrase;
 	return TRUE;
 }
 
@@ -466,6 +467,8 @@ soup_queue_error_async (GIOChannel* iochannel,
 	case G_IO_IN:
 	case G_IO_OUT:
 	case G_IO_PRI:
+		g_warning ("soup_queue_error_async(): "
+			   "Non-error value passed to IO error handler.");
 		return TRUE;
 	}
 
