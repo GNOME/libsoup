@@ -13,14 +13,10 @@ Features:
   * Connection cache
   * HTTP chunked transfer support
   * HTTP, SOCKS4, and SOCKS5 authenticated proxy support
-  * SSL Support using OpenSSL
+  * SSL Support using OpenSSL or GnuTLS
   * Client support for Digest, NTLM, and Basic authentication
   * HTTP server
   * Server support for Digest and Basic authentication
-
-Planned Features:
-  * SSL Support using NSS
-  * Gconf configuration and proxy integration
 
 To subscribe to the Soup discussion list, send mail with the word
 "Subscribe" in the message body to soup-list-request@ximian.com.

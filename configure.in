@@ -181,23 +181,23 @@ AC_ARG_ENABLE(ssl,
 	      [  --enable-ssl             Turn on Secure Sockets Layer support [default=yes]],,
 	      enable_ssl=yes)
 
-AC_ARG_WITH(nspr-includes,
-	    [  --with-nspr-includes     Specify location of Netscape Portable Runtime headers],
-	    [nspr_inc_prefix=-I$withval])
-
-AC_ARG_WITH(nspr-libs,
-	    [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],
-	    [nspr_prefix=$withval],
-	    [nspr_prefix=$libdir])
-
-AC_ARG_WITH(nss-includes,
-	    [  --with-nss-includes      Specify location of NSS header files],
-	    [nss_inc_prefix=-I$withval])
-
-AC_ARG_WITH(nss-libs,
-	    [  --with-nss-libs          Specify location of NSS libs],
-	    [nss_prefix=$withval],
-	    [nss_prefix=$libdir])
+dnl NSS AC_ARG_WITH(nspr-includes,
+dnl NSS 	    [  --with-nspr-includes     Specify location of Netscape Portable Runtime headers],
+dnl NSS 	    [nspr_inc_prefix=-I$withval])
+dnl NSS 
+dnl NSS AC_ARG_WITH(nspr-libs,
+dnl NSS 	    [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],
+dnl NSS 	    [nspr_prefix=$withval],
+dnl NSS 	    [nspr_prefix=$libdir])
+dnl NSS 
+dnl NSS AC_ARG_WITH(nss-includes,
+dnl NSS 	    [  --with-nss-includes      Specify location of NSS header files],
+dnl NSS 	    [nss_inc_prefix=-I$withval])
+dnl NSS 
+dnl NSS AC_ARG_WITH(nss-libs,
+dnl NSS 	    [  --with-nss-libs          Specify location of NSS libs],
+dnl NSS 	    [nss_prefix=$withval],
+dnl NSS 	    [nss_prefix=$libdir])
 
 
 AC_ARG_WITH(openssl-includes,
@@ -240,7 +240,7 @@ AC_ARG_ENABLE(ssl-link-static,
 
 enable_gnutls="no"
 enable_openssl="no"
-enable_nss="no"
+dnl NSS enable_nss="no"
 
 if test "x$enable_ssl" = xyes; then
 	found_ssl=
@@ -307,35 +307,35 @@ if test "x$enable_ssl" = xyes; then
 		CPPFLAGS=$save_CPPFLAGS
 	fi
 
-	###
-	### Check for Mozilla NSS
-	###
-	if test "x$found_ssl" != "xyes"; then
-		save_CPPFLAGS=$CPPFLAGS
-		CPPFLAGS="$CPPFLAGS $nspr_inc_prefix $nss_inc_prefix"
-		AC_CHECK_HEADERS(nss.h ssl.h pk11func.h,
-				 [enable_nss="yes"],
-				 [enable_nss="no"; break])
-
-		if test "x$enable_nss" = xyes; then
-			if test "x$enable_static_ssl" = "xyes"; then
-				NSS_LIBS="-lpthread $nspr_prefix/libnspr4.a $nspr_prefix/libplc4.a $nspr_prefix/libplds4.a $nss_prefix/libnssb.a"
-			else
-				NSS_LIBS="-lpthread -L$nspr_prefix -lnspr4 -lplc4 -lplds4 $nss_prefix -lnss3 -lssl3"
-			fi
-			NSS_CFLAGS=$CPPFLAGS
-			AC_DEFINE(HAVE_NSS, 1,
-				  [Defined if you are using Mozilla NSS for SSL support])
-			found_ssl=yes
-		else
-			NSS_LIBS=
-			NSS_CFLAGS=
-		fi
-
-		AC_SUBST(NSS_CFLAGS)
-		AC_SUBST(NSS_LIBS)
-		CPPFLAGS=$save_CPPFLAGS
-	fi
+dnl NSS 	###
+dnl NSS 	### Check for Mozilla NSS
+dnl NSS 	###
+dnl NSS 	if test "x$found_ssl" != "xyes"; then
+dnl NSS 		save_CPPFLAGS=$CPPFLAGS
+dnl NSS 		CPPFLAGS="$CPPFLAGS $nspr_inc_prefix $nss_inc_prefix"
+dnl NSS 		AC_CHECK_HEADERS(nss.h ssl.h pk11func.h,
+dnl NSS 				 [enable_nss="yes"],
+dnl NSS 				 [enable_nss="no"; break])
+dnl NSS 
+dnl NSS 		if test "x$enable_nss" = xyes; then
+dnl NSS 			if test "x$enable_static_ssl" = "xyes"; then
+dnl NSS 				NSS_LIBS="-lpthread $nspr_prefix/libnspr4.a $nspr_prefix/libplc4.a $nspr_prefix/libplds4.a $nss_prefix/libnssb.a"
+dnl NSS 			else
+dnl NSS 				NSS_LIBS="-lpthread -L$nspr_prefix -lnspr4 -lplc4 -lplds4 $nss_prefix -lnss3 -lssl3"
+dnl NSS 			fi
+dnl NSS 			NSS_CFLAGS=$CPPFLAGS
+dnl NSS 			AC_DEFINE(HAVE_NSS, 1,
+dnl NSS 				  [Defined if you are using Mozilla NSS for SSL support])
+dnl NSS 			found_ssl=yes
+dnl NSS 		else
+dnl NSS 			NSS_LIBS=
+dnl NSS 			NSS_CFLAGS=
+dnl NSS 		fi
+dnl NSS 
+dnl NSS 		AC_SUBST(NSS_CFLAGS)
+dnl NSS 		AC_SUBST(NSS_LIBS)
+dnl NSS 		CPPFLAGS=$save_CPPFLAGS
+dnl NSS 	fi
 fi
 
 
@@ -441,7 +441,6 @@ Configuration:
   OpenSSL support:		${enable_openssl}
     Static SSL Proxy:		${enable_static_proxy:-no}
     SSL Proxy Name:		${SSL_PROXY_NAME}
-  Mozilla NSS support:		${enable_nss}
 
 
 "
