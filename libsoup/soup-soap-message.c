@@ -28,8 +28,28 @@ static void
 finalize (GObject *object)
 {
 	SoupSoapMessage *msg = SOUP_SOAP_MESSAGE (object);
+	SoupSoapMessagePrivate *priv;
 
 	/* free memory */
+
+	priv = msg->priv;
+
+	if (priv->doc) 
+		xmlFreeDoc (priv->doc);
+	priv->doc = NULL;
+
+	if (priv->action)
+		g_free (priv->action);
+	priv->action = NULL;
+
+	 if (priv->env_uri)
+                g_free (priv->env_uri);
+	 priv->env_uri = NULL;
+
+	if (priv->env_prefix)
+                g_free (priv->env_prefix);
+        priv->env_prefix = NULL;
+
 	g_free (msg->priv);
 	msg->priv = NULL;
 

@@ -1,3 +1,8 @@
+2004-05-04  Sivaiah Nallagatla <snallagatla@novell.com>
+                                                                                                                             
+        * libsoup/soup-soap-message.c (finalize) : free
+        the elements of priv structure before freeing priv
+
 2004-04-20  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_post): if
