@@ -1,3 +1,10 @@
+2002-02-20  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.10
+
+	* src/libsoup/soup-ssl-tunnel.c (soup_ssl_tunnel_read): Add code
+	for handling proxy authentication when tunnelling SSL traffic.
+
 2002-02-12  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_connect_cb): Check to make
