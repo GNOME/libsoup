@@ -2,7 +2,7 @@
 
 SUBDIRS = src tests
 
-EXTRA_DIST = autogen.sh soupConf.sh.in soup.pc.in soup.spec.in
+EXTRA_DIST = autogen.sh soupConf.sh.in soup_apacheConf.sh.in soup.pc.in soup.spec.in
 
 bin_SCRIPTS = soup-config
 
@@ -14,8 +14,16 @@ soupConf.sh: $(top_srcdir)/soupConf.sh.in Makefile
 	      < $(top_srcdir)/soupConf.sh.in > soupConf.tmp \
 	  && mv soupConf.tmp soupConf.sh
 
+soup_apacheConf.sh: $(top_srcdir)/soup_apacheConf.sh.in Makefile
+	sed -e 's?\@SOUP_APACHE_LIBDIR\@?$(SOUP_APACHE_LIBDIR)?g' \
+	    -e 's?\@SOUP_APACHE_INCLUDEDIR\@?$(SOUP_APACHE_INCLUDEDIR)?g' \
+	    -e 's?\@VERSION\@?$(VERSION)?g' \
+	    -e 's?\@SOUP_APACHE_LIBS\@?$(SOUP_APACHE_LIBS)?g' \
+	      < $(top_srcdir)/soup_apacheConf.sh.in > soup_apacheConf.tmp \
+	  && mv soup_apacheConf.tmp soup_apacheConf.sh
+
 confexecdir = $(libdir)
-confexec_DATA = soupConf.sh
+confexec_DATA = soupConf.sh soup_apacheConf.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = soup.pc

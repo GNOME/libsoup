@@ -1,3 +1,15 @@
+2001-03-08  JP Rosevear  <jpr@ximian.com>
+
+	* soup_apacheConf.sh.in: script to provide soup-apache config info
+	through gnome-config
+
+	* Makefile.am: subst in the soup_apache config script
+
+	* configure.in: create vars for soup-apache config foo
+
+	* src/soup-core/soup-apache.c (soup_apache_handler): check for
+	null because content type can be null
+
 2001-03-07  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-server.h: soup_server_init should be an

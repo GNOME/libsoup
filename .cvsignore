@@ -16,6 +16,7 @@ soup.pc
 soup.spec
 soup-config
 soupConf.sh
+soup_apacheConf.sh
 stamp-h
 stamp.h
 stamp-h.in
