@@ -10,7 +10,7 @@
 
 	* src/soup-wsdl-runtime/wsdl-soap-marshal.c (wsdl_soap_marshal):
 	use the serializer functions to write out the fault and only write
-	the message return
+	the message return if there is no fault
 	
 2001-05-17  JP Rosevear  <jpr@ximian.com>
 
