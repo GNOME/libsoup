@@ -1,3 +1,8 @@
+2001-10-09  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-dav-server.c (parent_exists): don't call
+	__uri_exists as __is_collection should check this.
+
 2001-10-06  Alex Graveley  <alex@ximian.com>
 
 	* configure.in (enable_nss): Explicitly add libplc4 and libplds4
