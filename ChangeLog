@@ -1,3 +1,8 @@
+2001-07-31  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-queue.c (soup_get_request_header): Remove
+	special case for GET and HEAD when adding content-length header.
+
 2001-07-30  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: Bump version to 0.4.2.

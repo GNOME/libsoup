@@ -326,9 +326,10 @@ soup_get_request_header (SoupMessage *req)
 
 	g_free (uri);
 
-	if (req->request.length == 0 &&
-	    (g_strcasecmp (req->method, "GET") != 0 &&
-	     g_strcasecmp (req->method, "HEAD") != 0)) {
+	/*
+	 * FIXME: Add a 411 "Length Required" response code handler here?
+	 */
+	if (req->request.length > 0) {
 		g_string_sprintfa (header,
 				   "Content-Length: %d\r\n",
 				   req->request.length);
