@@ -1,3 +1,9 @@
+2001-06-27  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-digest.c: Largely gutted. Made RFC 2617
+	compliant. Removed RFC 2831 compliance.
+	(soup_digest_challenge): Implemented.
+
 2001-06-21  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_new): Do a
