@@ -34,9 +34,12 @@ GSList *soup_active_requests = NULL;
 static guint soup_queue_idle_tag = 0;
 
 static void
-soup_debug_print_a_header (gchar *key, gchar *val, gpointer not_used)
+soup_debug_print_a_header (gchar *key, GSList *vals, gpointer not_used)
 {
-	g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", key, val);
+	while (vals) {
+		g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", key, vals->data);
+		vals = vals->next;
+	}
 }
 
 void 
@@ -95,12 +98,6 @@ soup_parse_headers (const GString   *headers,
 		    SoupHttpVersion *version,
 		    SoupMessage     *req)
 {
-	if (req->response_headers) 
-		g_hash_table_destroy (req->response_headers);
-
-	req->response_headers = g_hash_table_new (soup_str_case_hash, 
-						  soup_str_case_equal);
-
 	if (!soup_headers_parse_response (headers->str, 
 					  headers->len, 
 					  req->response_headers,
@@ -133,7 +130,8 @@ soup_queue_read_headers_cb (const GString *headers,
 	/* 
 	 * Handle connection persistence 
 	 */
-	connection = g_hash_table_lookup (req->response_headers, "Connection");
+	connection = soup_message_get_header (req->response_headers,
+					      "Connection");
 
 	if ((connection && !g_strcasecmp (connection, "close")) ||
 	    (!connection && version == SOUP_HTTP_1_0))
@@ -145,8 +143,10 @@ soup_queue_read_headers_cb (const GString *headers,
 	/* 
 	 * Handle Content-Length or Chunked encoding 
 	 */
-	length = g_hash_table_lookup (req->response_headers, "Content-Length");
-	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
+	length = soup_message_get_header (req->response_headers, 
+					  "Content-Length");
+	enc = soup_message_get_header (req->response_headers, 
+				       "Transfer-Encoding");
 
 	if (length) {
 		*content_len = atoi (length);
@@ -267,9 +267,9 @@ struct SoupUsedHeaders {
 	GString *out;
 };
 
-static inline void 
-soup_check_used_headers (gchar *key, 
-			 gchar *value, 
+static void 
+soup_check_used_headers (gchar  *key, 
+			 GSList *vals, 
 			 struct SoupUsedHeaders *hdrs)
 {
 	switch (toupper (key [0])) {
@@ -302,7 +302,10 @@ soup_check_used_headers (gchar *key,
 		break;
 	}
 
-	g_string_sprintfa (hdrs->out, "%s: %s\r\n", key, value);
+	while (vals) {
+		g_string_sprintfa (hdrs->out, "%s: %s\r\n", key, vals->data);
+		vals = vals->next;
+	}
 }
 
 static GString *
@@ -351,10 +354,9 @@ soup_get_request_header (SoupMessage *req)
 				   req->request.length);
 	}
 
-	if (req->request_headers) 
-		g_hash_table_foreach (req->request_headers, 
-				      (GHFunc) soup_check_used_headers,
-				      &hdrs);
+	g_hash_table_foreach (req->request_headers, 
+			      (GHFunc) soup_check_used_headers,
+			      &hdrs);
 
 	/* 
 	 * If we specify an absoluteURI in the request line, the Host header
@@ -516,11 +518,13 @@ soup_idle_handle_new_requests (gpointer unused)
 	return FALSE;
 }
 
-static void
-soup_queue_remove_header (gchar *name, gchar *value, gpointer unused)
+static gboolean
+soup_queue_remove_header (gchar *name, GSList *vals, gpointer unused)
 {
 	g_free (name);
-	g_free (value);
+	g_slist_foreach (vals, (GFunc) g_free, NULL);
+	g_slist_free (vals);
+	return TRUE;
 }
 
 void 
@@ -565,13 +569,9 @@ soup_queue_message (SoupMessage    *req,
 	req->response.body = NULL;
 	req->response.length = 0;
 
-	if (req->response_headers) {
-		g_hash_table_foreach (req->response_headers,
-				      (GHFunc) soup_queue_remove_header,
-				      NULL);
-		g_hash_table_destroy (req->response_headers);
-		req->response_headers = NULL;
-	}
+	g_hash_table_foreach_remove (req->response_headers,
+				     (GHRFunc) soup_queue_remove_header,
+				     NULL);
 
 	if (req->errorphrase) {
 		g_free ((gchar *) req->errorphrase);

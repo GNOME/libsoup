@@ -135,9 +135,6 @@ read_headers_cb (const GString *headers,
 	gchar *req_host = NULL, *req_path = NULL, *url;
 	gchar *connection, *length, *enc;
 
-	msg->request_headers = g_hash_table_new (soup_str_case_hash, 
-						 soup_str_case_equal);
-
 	if (!soup_headers_parse_request (headers->str, 
 					 headers->len, 
 					 msg->request_headers, 
@@ -147,15 +144,19 @@ read_headers_cb (const GString *headers,
 		goto THROW_MALFORMED_HEADER;
 
 	/* Handle connection persistence */
-	connection = g_hash_table_lookup (msg->request_headers, "Connection");
+	connection = soup_message_get_header (msg->request_headers, 
+					      "Connection");
+
 	/* FIXME: Make this work.
 	if (connection && g_strcasecmp (connection, "close") == 0)
 		soup_connection_set_keep_alive (req->connection, FALSE);
 	*/
 
 	/* Handle Content-Length or Chunked encoding */
-	length = g_hash_table_lookup (msg->request_headers, "Content-Length");
-	enc = g_hash_table_lookup (msg->request_headers, "Transfer-Encoding");
+	length = soup_message_get_header (msg->request_headers, 
+					  "Content-Length");
+	enc = soup_message_get_header (msg->request_headers, 
+				       "Transfer-Encoding");
 
 	if (length) {
 		*content_len = atoi (length);
@@ -171,7 +172,7 @@ read_headers_cb (const GString *headers,
 	}
 
 	/* Generate correct context for request */
-	req_host = g_hash_table_lookup (msg->request_headers, "Host");
+	req_host = soup_message_get_header (msg->request_headers, "Host");
 	if (req_host) 
 		url = g_strconcat ("http://", req_host, req_path, NULL);
 	else 
@@ -206,9 +207,15 @@ read_headers_cb (const GString *headers,
 }
 
 static void
-write_header (gchar *key, gchar *val, SoupMessage *msg)
+write_header (gchar *key, GSList *vals, SoupMessage *msg)
 {
-	g_string_sprintfa (msg->priv->req_header, "%s: %s\r\n", key, val);
+	while (vals) {
+		g_string_sprintfa (msg->priv->req_header, 
+				   "%s: %s\r\n", 
+				   key, 
+				   val);
+		vals = vals->next;
+	}
 }
 
 static GString *
@@ -225,10 +232,9 @@ get_response_header (SoupMessage *req)
 			   "Content-Length: %d\r\n",  
 			   req->response.length);
 
-	if (req->response_headers) 
-		g_hash_table_foreach (req->response_headers, 
-				      (GHFunc) write_header,
-				      req);
+	g_hash_table_foreach (req->response_headers, 
+			      (GHFunc) write_header,
+			      req);
 
 	g_string_append (ret, "\r\n");
 

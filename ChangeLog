@@ -1,5 +1,21 @@
 2001-10-04  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-server.c (read_headers_cb): Don't create
+	response_headers. This is done in soup_message_new. Use
+	soup_message_get_header throughout.
+
+	* src/libsoup/soup-queue.c (soup_check_used_headers): Write list
+	of headers.
+	(soup_parse_headers): Don't create response_headers. This is done
+	in soup_message_new.
+	(soup_debug_print_a_header): Handle multiple header vals.
+	(soup_check_used_headers): Ditto.
+	(soup_queue_remove_header): Ditto.
+	(soup_queue_message): Don't destroy hashtable, just clear it.  
+	Use soup_message_get_header throughout.
+
+2001-10-04  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-message.c (soup_message_add_header): Handle
 	multiple values in header hash tables.
 	(free_header): Free the list of values.
