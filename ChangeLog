@@ -1,5 +1,8 @@
 2001-05-22  Rodrigo Moya <rodrigo@ximian.com>
 
+	* src/soup-wsdl/wsdl-soap-parse.c: don't emit code to add the
+	transport headers to the SoupEnv, which is only used for SOAP
+	request/response headers
 	* src/soup-core/soup-env.c (soup_env_set_response_header):
 	g_strdup the hash table key also
 	(soup_env_set_request_header): ditto
