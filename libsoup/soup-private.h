@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-private.h: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -16,11 +16,11 @@
 #ifndef SOAP_PRIVATE_H
 #define SOAP_PRIVATE_H 1
 
-#include <gnet/gnet.h>
+#include <netinet/in.h>
 
 #include "soup-context.h"
-#include "soup-queue.h"
 #include "soup-server.h"
+#include "soup-socket.h"
 #include "soup-uri.h"
 
 #ifdef __cplusplus
@@ -39,6 +39,19 @@ typedef struct {
 	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
 } SoupServer;
 
+struct _SoupAddress {
+	gchar*          name;
+	struct sockaddr sa;
+	guint           ref_count;
+};
+
+struct _SoupSocket {
+	gint            sockfd;
+	struct sockaddr sa; /* Why not an InetAddr? */
+	guint           ref_count;
+	GIOChannel     *iochannel;
+};
+
 struct _SoupContext {
 	SoupProtocol  protocol;
 	SoupUri      *uri;
@@ -50,7 +63,7 @@ struct _SoupConnection {
 	SoupServer   *server;
 	SoupContext  *context;
 	GIOChannel   *channel;
-	GTcpSocket   *socket;
+	SoupSocket   *socket;
 	guint         port;
 	gboolean      in_use;
 	guint         last_used_id;
@@ -79,6 +92,8 @@ struct _SoupMessagePrivate {
 
 	SoupCallbackFn  callback;
 	gpointer        user_data;
+	
+	SoupErrorCode   errorcode;
 };
 
 typedef struct {
@@ -110,6 +125,10 @@ gint      soup_substring_index        (gchar         *str,
 
 gchar    *soup_base64_encode          (const gchar   *text,
 				       gint           len);
+
+/* from soup-queue.c */
+
+void      soup_queue_shutdown         ();
 
 /* from soup-server.c */
 

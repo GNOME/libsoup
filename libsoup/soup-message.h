@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-message.h: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -13,6 +13,15 @@
 
 #include <glib.h>
 #include "soup-context.h"
+
+typedef enum {
+	SOUP_ERROR_NONE = 0,
+	SOUP_ERROR_CANCELLED,
+	SOUP_ERROR_CANT_CONNECT,
+	SOUP_ERROR_IO,
+	SOUP_ERROR_MALFORMED_HEADER,
+	SOUP_ERROR_HANDLER
+} SoupErrorCode;
 
 typedef enum {
 	SOUP_STATUS_IDLE = 0,
@@ -57,6 +66,10 @@ struct _SoupMessage {
 	GHashTable         *response_headers;
 };
 
+typedef void (*SoupCallbackFn) (SoupMessage   *req,
+				SoupErrorCode  err,
+				gpointer       user_data);
+
 SoupMessage       *soup_message_new        (SoupContext       *context,
 					    SoupAction         action);
 
@@ -66,11 +79,23 @@ SoupMessage       *soup_message_new_full   (SoupContext       *context,
 					    gchar             *req_body,
 					    gulong             req_length);
 
-void               soup_message_free       (SoupMessage       *req);
+void               soup_message_free       (SoupMessage       *msg);
 
-void               soup_message_cancel     (SoupMessage       *req);
+void               soup_message_cancel     (SoupMessage       *msg);
 
-void               soup_message_add_header (SoupMessage       *req,
+void               soup_message_add_header (SoupMessage       *msg,
 					    gchar             *name,
 					    gchar             *value);
+
+SoupErrorCode      soup_message_send       (SoupMessage       *msg);
+
+void               soup_message_queue      (SoupMessage       *req, 
+					    SoupCallbackFn     callback, 
+					    gpointer           user_data);
+
+/* 
+ * soup_queue_message() is deprecated. Replace with soup_message_queue.
+ */
+#define soup_queue_message soup_message_queue
+
 #endif /*SOUP_MESSAGE_H*/

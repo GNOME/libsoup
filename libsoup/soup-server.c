@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-server.c: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@ximian.com)

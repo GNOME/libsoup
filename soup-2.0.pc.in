@@ -7,5 +7,5 @@ Name: Soup
 Description: a SOAP client library in C.
 Version: @VERSION@
 Requires: glib
-Libs: -L${libdir} -lsoup @GNET_LIBS@ @XML_LIBS@
-Cflags: -I${includedir} @GNET_CFLAGS@ @XML_CFLAGS@
+Libs: -L${libdir} -lsoup @XML_LIBS@
+Cflags: -I${includedir} @XML_CFLAGS@

@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-context.c: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -12,7 +12,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
-#include <gnet/gnet.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -29,6 +28,7 @@
 #include "soup-context.h"
 #include "soup-private.h"
 #include "soup-misc.h"
+#include "soup-socket.h"
 #include "soup-ssl.h"
 
 GHashTable *soup_servers;  /* KEY: hostname, VALUE: SoupServer */
@@ -59,6 +59,16 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 	return ctx;
 }
 
+/**
+ * soup_context_get:
+ * @uri: the stringified URI.
+ *
+ * Returns a pointer to the %SoupContext representing @uri. If a context
+ * already exists for the URI, it is returned with an added reference.
+ * Otherwise, a new context is created with a reference count of one.
+ *
+ * Return value: a %SoupContext representing @uri.  
+ */
 SoupContext *
 soup_context_get (gchar *uri) 
 {
@@ -98,6 +108,12 @@ soup_context_get (gchar *uri)
 	return ret;
 }
 
+/**
+ * soup_context_ref:
+ * @ctx: a %SoupContext.
+ *
+ * Adds a reference to @ctx.
+ */
 void
 soup_context_ref (SoupContext *ctx)
 {
@@ -106,6 +122,14 @@ soup_context_ref (SoupContext *ctx)
 	ctx->refcnt++;
 }
 
+/**
+ * soup_context_unref:
+ * @ctx: a %SoupContext.
+ *
+ * Decrement the reference count on @ctx. If the reference count reaches
+ * zero, the %SoupContext is freed. If this is the last context for a
+ * given server address, any open connections are closed.
+ */
 void
 soup_context_unref (SoupContext *ctx)
 {
@@ -123,7 +147,7 @@ soup_context_unref (SoupContext *ctx)
 			
 			while (conns) {
 				SoupConnection *conn = conns->data;
-				gnet_tcp_socket_unref (conn->socket);
+				soup_socket_unref (conn->socket);
 				g_free (conn);
 				connection_count--;
 
@@ -147,14 +171,14 @@ struct SoupConnectData {
 	gpointer               user_data;
 
 	guint                  timeout_tag;
-	gpointer               gnet_connect_tag;
+	gpointer               connect_tag;
 };
 
 static void 
-soup_context_connect_cb (GTcpSocket                   *socket, 
-			 GInetAddr                    *addr,
-			 GTcpSocketConnectAsyncStatus  status,
-			 gpointer                      user_data)
+soup_context_connect_cb (SoupSocket              *socket, 
+			 SoupAddress             *addr,
+			 SoupSocketConnectStatus  status,
+			 gpointer                 user_data)
 {
 	struct SoupConnectData *data = user_data;
 	SoupContext            *ctx = data->ctx;
@@ -164,10 +188,10 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 
 	g_free (data);
 
-	if (addr) gnet_inetaddr_unref(addr);
+	if (addr) soup_address_unref(addr);
 
 	switch (status) {
-	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK:
+	case SOUP_SOCKET_CONNECT_ERROR_NONE:
 		new_conn = g_new0 (SoupConnection, 1);
 		new_conn->server = ctx->server;
 		new_conn->context = ctx;
@@ -185,10 +209,10 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data); 
 		break;
-	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_INETADDR_ERROR:
+	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
 		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data); 
 		break;
-	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_TCP_ERROR:
+	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data); 
 		break;
 	}
@@ -250,7 +274,7 @@ soup_prune_least_used_connection (void)
 	if (last.conn) {
 		last.serv->connections = 
 			g_slist_remove (last.serv->connections, last.conn);
-		gnet_tcp_socket_unref (last.conn->socket);
+		soup_socket_unref (last.conn->socket);
 		g_free (last.conn);
 
 		connection_count--;
@@ -278,6 +302,27 @@ soup_prune_timeout (struct SoupConnectData *data)
 	return FALSE;
 }
 
+/**
+ * soup_context_get_connection:
+ * @ctx: a %SoupContext.
+ * @cb: a %SoupConnectCallbackFn to be called when a valid connection is
+ * available.
+ * @user_data: the user_data passed to @cb.
+ *
+ * Initiates the process of establishing a network connection to the
+ * server referenced in @ctx. If an existing connection is available and
+ * not in use, @cb is called immediately, and a %SoupConnectId of 0 is
+ * returned. Otherwise, a new connection is established. If the current
+ * connection count exceeds that set in @soup_set_connection_limit, the
+ * new connection is not created until an existing connection is closed.
+ *
+ * Once a network connection is successfully established, or an existing
+ * connection becomes available for use, @cb is called, passing the
+ * %SoupConnection representing it.
+ *
+ * Return value: a %SoupConnectId which can be used to cancel a connection
+ * attempt using %soup_context_cancel_connect.
+ */
 SoupConnectId
 soup_context_get_connection (SoupContext           *ctx,
 			     SoupConnectCallbackFn  cb,
@@ -302,44 +347,28 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	if (conn_limit && 
 	    connection_count >= conn_limit && 
-	    !soup_prune_least_used_connection ()) {
+	    !soup_prune_least_used_connection ())
 		data->timeout_tag = 
 			g_timeout_add (500, 
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
-	} else {
-		static gint sync_name_lookup = -1;
-
-		if (sync_name_lookup == -1) {
-			if (getenv ("SOUP_NO_ASYNC_CONNECT")) {
-				sync_name_lookup = TRUE;
-				g_warning ("Using synchronous connect method");
-			} else 
-				sync_name_lookup = FALSE;
-		}
-		
-		if (sync_name_lookup == FALSE)
-			data->gnet_connect_tag =
-				gnet_tcp_socket_connect_async (
-				        ctx->uri->host, 
-					ctx->uri->port,
-					soup_context_connect_cb,
-					data);
-		else {
-			/* Syncronous Version -- Use for debugging */
-			soup_context_connect_cb (
-			        gnet_tcp_socket_connect (ctx->uri->host, 
-							 ctx->uri->port),
-				NULL, 
-				GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK,
-				data);
-			return NULL;
-		}
-	}
+	else data->connect_tag =
+		     soup_socket_connect (ctx->uri->host, 
+					  ctx->uri->port,
+					  soup_context_connect_cb,
+					  data);
 
 	return data;
 }
 
+/**
+ * soup_context_cancel_connect:
+ * @tag: a %SoupConnextId representing a connection in progress.
+ *
+ * Cancels the connection attempt represented by @tag. The
+ * %SoupConnectCallbackFn passed in %soup_context_get_connection is not
+ * called.
+ */
 void 
 soup_context_cancel_connect (SoupConnectId tag) 
 {
@@ -349,12 +378,20 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
-	else if (data->gnet_connect_tag)
-		gnet_tcp_socket_connect_async_cancel (data->gnet_connect_tag);
+	else if (data->connect_tag)
+		soup_socket_connect_cancel (data->connect_tag);
 
 	g_free (data);
 }
 
+/**
+ * soup_context_get_uri:
+ * @ctx: a %SoupContext.
+ * 
+ * Returns a pointer to the %SoupUri represented by @ctx.
+ *
+ * Return value: the %SoupUri for @ctx.
+ */
 SoupUri *
 soup_context_get_uri (SoupContext *ctx)
 {
@@ -362,6 +399,14 @@ soup_context_get_uri (SoupContext *ctx)
 	return ctx->uri;
 }
 
+/**
+ * soup_context_get_protocol:
+ * @ctx: a %SoupContext.
+ * 
+ * Returns the %SoupProtocol used for connections created for %ctx.
+ *
+ * Return value: the %SoupProtocol used for connections to %ctx.
+ */
 SoupProtocol
 soup_context_get_protocol (SoupContext *ctx)
 {
@@ -369,6 +414,15 @@ soup_context_get_protocol (SoupContext *ctx)
 	return ctx->protocol;
 }
 
+/**
+ * soup_connection_release:
+ * @conn: a %SoupConnection currently in use.
+ * 
+ * Mark the connection represented by @conn as being unused. If the
+ * keep-alive flag is not set on the connection, the connection is closed
+ * and its resources freed, otherwise the connection is returned to the
+ * unused connection pool for the server. 
+ */
 void
 soup_connection_release (SoupConnection *conn)
 {
@@ -380,7 +434,7 @@ soup_connection_release (SoupConnection *conn)
 	} else {
 		conn->server->connections = 
 			g_slist_remove (conn->server->connections, conn);
-		gnet_tcp_socket_unref (conn->socket);
+		soup_socket_unref (conn->socket);
 		g_free (conn);
 		connection_count--;
 	}
@@ -399,13 +453,22 @@ soup_connection_setup_socket (GIOChannel *channel)
 #endif
 }
 
+/**
+ * soup_connection_get_iochannel:
+ * @conn: a %SoupConnection.
+ * 
+ * Returns a GIOChannel used for IO operations on the network connection
+ * represented by @conn.
+ *
+ * Return value: a pointer to the GIOChannel used for IO on %conn. 
+ */
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, NULL);
 
 	if (!conn->channel) {
-		conn->channel = gnet_tcp_socket_get_iochannel (conn->socket);
+		conn->channel = soup_socket_get_iochannel (conn->socket);
 
 		soup_connection_setup_socket (conn->channel);
 
@@ -417,6 +480,13 @@ soup_connection_get_iochannel (SoupConnection *conn)
 	return conn->channel;
 }
 
+/**
+ * soup_connection_set_keepalive:
+ * @conn: a %SoupConnection.
+ * @keep_alive: boolean keep-alive value.
+ * 
+ * Sets the keep-alive flag on the %SoupConnection pointed to by %conn.
+ */
 void 
 soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 {
@@ -424,6 +494,17 @@ soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 	conn->keep_alive = keep_alive;
 }
 
+/**
+ * soup_connection_set_keepalive:
+ * @conn: a %SoupConnection.
+ *
+ * Returns the keep-alive flag for the %SoupConnection pointed to by
+ * %conn. If this flag is TRUE, the connection will be returned to the pool
+ * of unused connections when next %soup_connection_release is called,
+ * otherwise the connection will be closed and resources freed.
+ *
+ * Return value: the keep-alive flag for @conn.
+ */
 gboolean 
 soup_connection_is_keep_alive (SoupConnection *conn)
 {
@@ -431,6 +512,14 @@ soup_connection_is_keep_alive (SoupConnection *conn)
 	return conn->keep_alive;
 }
 
+/**
+ * soup_connection_get_context:
+ * @conn: a %SoupConnection.
+ * 
+ * Returns the %SoupContext from which @conn was created.
+ *
+ * Return value: the %SoupContext associated with @conn.
+ */
 SoupContext *
 soup_connection_get_context (SoupConnection *conn) 
 {
@@ -438,6 +527,16 @@ soup_connection_get_context (SoupConnection *conn)
 	return conn->context;
 }
 
+/**
+ * soup_connection_is_new:
+ * @conn: a %SoupConnection.
+ * 
+ * Returns TRUE if this is the first use of @conn
+ * (I.E. %soup_connection_release has not yet been called on it).
+ *
+ * Return value: boolean representing whether this is the first time a
+ * connection has been used.
+ */
 gboolean 
 soup_connection_is_new (SoupConnection *conn)
 {

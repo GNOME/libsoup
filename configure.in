@@ -72,17 +72,6 @@ AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
 
-# Need GNET
-AM_PATH_GNET(1.0.4,,
-             AC_MSG_ERROR([Cannot find GNET: Is gnet-config in path?]))
-
-GNET_CFLAGS=`gnet-config --cflags gnet`
-GNET_LIBS=`gnet-config --libs gnet`
-
-AC_SUBST(GNET_CFLAGS)
-AC_SUBST(GNET_LIBS)
-
-
 # Need gnome-xml 1
 AC_PATH_PROG(XML_CONFIG,xml-config,no)
 if test x$XML_CONFIG = xno; then
@@ -115,24 +104,112 @@ LIBS=$save_LIBS
 
 # For proper var substitution in soupConf.sh and soup-apacheConf.sh
 SOUP_LIBDIR='-L${libdir}'
-SOUP_INCLUDEDIR=" -I${includedir} $GNET_CFLAGS $XML_CFLAGS"
-SOUP_LIBS="-lsoup $GNET_LIBS $XML_LIBS"
+SOUP_INCLUDEDIR=" -I${includedir} $XML_CFLAGS"
+SOUP_LIBS="-lsoup $XML_LIBS"
 
 AC_SUBST(SOUP_LIBDIR)
 AC_SUBST(SOUP_INCLUDEDIR)
 AC_SUBST(SOUP_LIBS)
 
 SOUP_APACHE_LIBDIR='-L${libdir}'
-SOUP_APACHE_INCLUDEDIR=" -I${includedir} $APACHE_CFLAGS $GNET_CFLAGS $XML_CFLAGS"
-SOUP_APACHE_LIBS="-lsoup -lsoup-apache $APACHE_LIBS $GNET_LIBS $XML_LIBS"
+SOUP_APACHE_INCLUDEDIR=" -I${includedir} $APACHE_CFLAGS $XML_CFLAGS"
+SOUP_APACHE_LIBS="-lsoup -lsoup-apache $APACHE_LIBS $XML_LIBS"
 
 AC_SUBST(SOUP_APACHE_LIBDIR)
 AC_SUBST(SOUP_APACHE_INCLUDEDIR)
 AC_SUBST(SOUP_APACHE_LIBS)
 
-# Need in.h and tcp.h for setting of TCP_NODELAY
-AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
 
+
+# Networking needs
+AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
+AC_CHECK_HEADERS(sys/sockio.h sys/poll.h sys/param.h)
+
+AC_CHECK_LIB(nsl, main)
+AC_CHECK_LIB(resolv, main)
+
+# Check if we have gethostbyname_r (if so, assume gethostbyaddr_r).
+AC_CHECK_FUNC(gethostbyname_r,
+  [
+  dnl  First check for the glibc variant of gethostbyname_r
+
+  AC_MSG_CHECKING(for glibc gethostbyname_r)
+  AC_TRY_LINK([	#include <netdb.h>],[
+	  struct hostent result_buf;
+	  char buf[1024];
+	  struct hostent* result;
+	  int h_errnop;
+
+	  gethostbyname_r("localhost", &result_buf, buf, sizeof(buf),
+	                  &result, &h_errnop);
+	], [
+
+	  dnl Have glibc gethostbyname_r
+
+	  AC_MSG_RESULT(yes)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIBC)
+	  HAVE_GETHOSTBYNAME_R=yes
+
+        ], [
+
+  dnl  If we don't have glibc gethostbyname_r, check
+  dnl  for Solaris/Irix gethostbyname_r
+
+  AC_MSG_RESULT(no)
+  AC_MSG_CHECKING(for Solaris/Irix gethostbyname_r)
+  AC_TRY_LINK([ #include <netdb.h>],[
+	  struct hostent result;
+	  char buf[1024];
+	  int h_errnop;
+
+	  gethostbyname_r("localhost", &result, buf, sizeof(buf), &h_errnop);
+
+	], [
+
+	  dnl Have Solaris/Irix gethostbyname_r
+
+  	  AC_MSG_RESULT(yes)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_SOLARIS)
+	  HAVE_GETHOSTBYNAME_R=yes
+
+	], [
+  dnl  If don't have Solaris/Irix gethostbyname_r, check
+  dnl  for HP-UX gethostbyname_r
+
+  AC_MSG_RESULT(no)
+  AC_MSG_CHECKING(for HP-UX gethostbyname_r)
+  AC_TRY_LINK([ #include <netdb.h>],[
+	  struct hostent result;
+	  char buf[1024];
+          gethostbyname_r("localhost", &result, buf);
+        ], [
+        
+          dnl Have HP-UX gethostbyname_r
+
+          AC_MSG_RESULT(yes)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_HPUX)
+	  HAVE_GETHOSTBYNAME_R=yes
+
+	]
+     )]
+  )]
+)])
+
+# If we don't have gethostbyname_r, try to use Glib mutexes
+if test -z "$HAVE_GETHOSTBYNAME_R"; then
+	AM_PATH_GLIB(1.2.0, 
+		     AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX), [
+      		     AC_MSG_WARN(You have neither Glib threads nor the function
+				gethostbyname_r.  This means that calls to
+			    	gethostbyname (called by the Soup address
+				functions) will not be thread safe so could
+				malfunction in programs that use threads.)
+    		     ])
+fi
+
+
+
+# SSL Library Handling
 
 AC_ARG_ENABLE(ssl, 
 	      [  --enable-ssl            Turn on Secure Sockets Layer support [default=yes]],,
@@ -196,6 +273,8 @@ if test "x$enable_ssl" = xyes; then
 	CPPFLAGS=$save_CPPFLAGS
 fi
 
+
+enable_apache="no"
 
 AC_PATH_PROG(APXS,apxs,no)
 if test x$APXS != xno; then

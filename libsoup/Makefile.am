@@ -7,7 +7,7 @@ INCLUDES = 				\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
 	-DBINDIR=\"$(bindir)\"		\
 	$(SOUP_DEBUG_FLAGS)		\
-	$(GNET_CFLAGS)			\
+	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
 	$(OPENSSL_CFLAGS)		\
 	$(NSS_CFLAGS)			\
@@ -20,9 +20,9 @@ soupinclude_HEADERS =		\
 	soup-context.h		\
 	soup-message.h		\
 	soup-misc.h     	\
-	soup-queue.h		\
 	soup-serializer.h	\
 	soup-server.h		\
+	soup-socket.h		\
 	soup-uri.h
 
 lib_LTLIBRARIES = libsoup.la libsoup-apache.la
@@ -30,7 +30,7 @@ lib_LTLIBRARIES = libsoup.la libsoup-apache.la
 libsoup_la_LDFLAGS = -version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
 libsoup_la_LIBADD =		\
-	$(GNET_LIBS)		\
+	$(GLIB_LIBS)		\
 	$(XML_LIBS)
 
 libsoup_la_SOURCES =		\
@@ -44,6 +44,7 @@ libsoup_la_SOURCES =		\
 	soup-queue.c		\
 	soup-serializer.c	\
 	soup-server.c		\
+	soup-socket.c		\
 	soup-socks.h		\
 	soup-socks.c		\
 	soup-ssl.h		\

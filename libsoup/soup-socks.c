@@ -10,17 +10,11 @@
 
 #include <glib.h>
 #include <string.h>
-#include <gnet/gnet.h>
-#include <netinet/in.h>
 
 #include "soup-socks.h"
 #include "soup-context.h"
-
-struct _GInetAddr {
-	gchar* name;
-	struct sockaddr_in sa;
-	guint ref_count;
-};
+#include "soup-socket.h"
+#include "soup-private.h"
 
 typedef struct {
 	SoupConnection        *src_conn;
@@ -38,7 +32,7 @@ typedef struct {
 		SOCKS_5_VERIFY_SUCCESS	
 	} phase;
 
-	struct _GInetAddr     *dest_addr;
+	SoupAddress           *dest_addr;
 	SoupContext           *dest_ctx;
 	SoupConnectCallbackFn  cb;
 	gpointer               user_data;
@@ -210,14 +204,14 @@ soup_socks_read (GIOChannel* iochannel,
 }
 
 static void
-soup_lookup_dest_addr_cb (GInetAddr*           inetaddr, 
-			  GInetAddrAsyncStatus status, 
+soup_lookup_dest_addr_cb (SoupAddress*         inetaddr, 
+			  SoupAddressStatus    status, 
 			  gpointer             data)
 {
 	SoupSocksData *sd = data;
 	GIOChannel *channel;
 
-	if (status != GINETADDR_ASYNC_STATUS_OK) {
+	if (status != SOUP_ADDRESS_STATUS_OK) {
 		(*sd->cb) (sd->dest_ctx, 
 			   SOUP_CONNECT_ERROR_ADDR_RESOLVE, 
 			   NULL, 
@@ -257,10 +251,10 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	
 	switch (soup_context_get_protocol (proxy_ctx)) {
 	case SOUP_PROTOCOL_SOCKS4:
-		gnet_inetaddr_new_async (dest_uri->host, 
-					 dest_uri->port, 
-					 soup_lookup_dest_addr_cb,
-					 sd);
+		soup_address_new (dest_uri->host, 
+				  dest_uri->port, 
+				  soup_lookup_dest_addr_cb,
+				  sd);
 		sd->phase = SOCKS_4_DEST_ADDR_LOOKUP;
 		break;
 

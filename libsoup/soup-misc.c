@@ -354,3 +354,9 @@ soup_load_config (gchar *config_file)
 
 	soup_initialized = TRUE;
 }
+
+void 
+soup_shutdown ()
+{
+	soup_queue_shutdown ();
+}

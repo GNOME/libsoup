@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-misc.h: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -18,6 +18,8 @@
 #include "soup-uri.h"
 
 void               soup_load_config          (gchar       *config_file);
+
+void               soup_shutdown             (void);
 
 void               soup_set_proxy            (SoupContext *ctx);
 

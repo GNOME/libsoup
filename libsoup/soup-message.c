@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-message.c: Asyncronous Callback-based SOAP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -9,7 +9,6 @@
  */
 
 #include "soup-message.h"
-#include "soup-queue.h"
 #include "soup-context.h"
 #include "soup-private.h"
 
@@ -83,6 +82,8 @@ soup_message_free (SoupMessage *req)
 
 	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->request.body);
+	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (req->response.body);
 
 	if (req->priv->req_header) 
 		g_string_free (req->priv->req_header, TRUE);
@@ -107,6 +108,8 @@ soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
 	   runs the main loop, and the connection has some data or error 
 	   which causes the callback to be run again */
 	soup_message_cleanup (req);
+
+	req->priv->errorcode = error;
 
 	if (req->priv->callback)
 		(*req->priv->callback) (req, 
@@ -139,4 +142,19 @@ soup_message_add_header (SoupMessage *req,
 	req->priv->req_header = NULL;
 
 	g_hash_table_insert (req->request_headers, name, value);
+}
+
+SoupErrorCode 
+soup_message_send (SoupMessage *msg)
+{
+	soup_message_queue (msg, NULL, NULL);
+
+	while (1) {
+		g_main_iteration (TRUE); 
+		if (msg->status == SOUP_STATUS_FINISHED ||
+		    msg->priv->errorcode != SOUP_ERROR_NONE)
+			return msg->priv->errorcode;
+	}
+
+	return SOUP_ERROR_NONE;
 }

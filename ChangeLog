@@ -1,3 +1,61 @@
+2001-03-21  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-socks.c: remove hack to look at internals of
+	GNET by using the new forked GNET :)
+
+	* tests/stress-test.c: use soup_message_queue ().
+
+	* tests/simple-test.c: use soup_message_queue ().
+
+	* src/soup-core/soup-private.h: Added SoupAddress and SoupSocket.
+
+	* src/soup-core/soup-misc.c (soup_shutdown): Added, just calls
+	soup_queue_shutdown.
+
+	* src/soup-core/soup-queue.h: Removed. Added to soup-message.h.
+
+	* src/soup-core/soup-queue.c (soup_queue_message): rename to
+	(soup_message_queue): this.
+
+	* src/soup-core/soup-message.h: move SoupErrorCode,
+	SoupCallbackFn, and soup_message_queue() here.
+
+	* src/soup-core/soup-message.c (soup_message_free): Free
+	msg->response if buffer is system owned.
+	(soup_message_issue_callback): set msg->priv->errorcode so
+	syncronous soup_message_send can check for completion.
+	(soup_message_send): Added: Synchronous message send. Queues the
+	message as per usual, then call g_main_iteration() until them
+	essage returns.
+
+	* src/soup-core/soup-context.c: API Document. Switch gnet calls to
+	their soup-socket replacement.
+	(soup_context_get_connection): Remove environment check for
+	syncronous connect method. 
+
+	* src/soup-core/Makefile.am (INCLUDES): replace GNET_CFLAGS with
+	GLIB_CFLAGS.
+	(libsoup_la_LIBADD): replace GNET_LIBS with GLIB_LIBS.
+	(soupinclude_HEADERS): Remove soup-queue.h. Add soup-socket.h.
+	(libsoup_la_SOURCES): Add soup-socket.c.
+
+	* soup.spec.in (Requires): remove GNET. Add libxml.
+
+	* soup.pc.in (Libs): remove GNET.
+	(Cflags): ditto.
+
+	* soup-config.in (depend_libs): remove GNET.
+	(depend_cflags): ditto.
+
+	* configure.in: remove gnet references, look for libnsl and
+	libresolv, add checking to determine gethostbyname_r possibility.
+
+	* acconfig.h: Add undefs for all the gethostbyname_r variants.
+
+	* src/soup-core/soup-socket.[ch]: Fork of GNET, minus synchronous
+	bits. Removes dependency on GNET; we now only rely on Glib and
+	libXml.
+
 2001-03-20  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-types-glib.c: Parse a simple glib schema.

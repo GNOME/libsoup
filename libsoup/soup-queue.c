@@ -16,7 +16,7 @@
 #include <signal.h>
 #include <errno.h>
 
-#include "soup-queue.h"
+#include "soup-message.h"
 #include "soup-context.h"
 #include "soup-headers.h"
 #include "soup-misc.h"
@@ -26,6 +26,18 @@
 GSList *soup_active_requests = NULL;
 
 static guint soup_queue_idle_tag = 0;
+
+void 
+soup_queue_shutdown ()
+{
+        GSList *iter;
+
+	g_source_remove (soup_queue_idle_tag);
+	soup_queue_idle_tag = 0;
+
+	for (iter = soup_active_requests; iter; iter = iter->next)
+		soup_message_cancel (iter->data);
+}
 
 static gboolean
 soup_parse_headers (SoupMessage *req)
@@ -254,7 +266,7 @@ soup_queue_error_async (GIOChannel* iochannel,
 		    req->priv->req_header->len >= req->priv->write_len) {
 			g_warning ("Requeueing request which failed in "
 				   "the sending headers phase");
-			soup_queue_message (req, 
+			soup_message_queue (req, 
 					    req->priv->callback, 
 					    req->priv->user_data);
 			break;
@@ -569,7 +581,7 @@ soup_idle_handle_new_requests (gpointer unused)
 }
 
 void 
-soup_queue_message (SoupMessage    *req,
+soup_message_queue (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
 		    gpointer        user_data)
 {
@@ -611,16 +623,4 @@ soup_queue_message (SoupMessage    *req,
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);
-}
-
-void 
-soup_queue_shutdown ()
-{
-        GSList *iter;
-
-	g_source_remove (soup_queue_idle_tag);
-	soup_queue_idle_tag = 0;
-
-	for (iter = soup_active_requests; iter; iter = iter->next)
-		soup_message_cancel (iter->data);
 }
