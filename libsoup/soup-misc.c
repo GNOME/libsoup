@@ -203,9 +203,9 @@ soup_base64_encode (const char *text, int len)
         int state = 0, outlen;
         unsigned int save = 0;
         
-        out = g_malloc (inlen * 4 / 3 + 5);
+        out = g_malloc (len * 4 / 3 + 5);
         outlen = soup_base64_encode_close (text, 
-					   inlen, 
+					   len, 
 					   FALSE,
 					   out, 
 					   &state, 
