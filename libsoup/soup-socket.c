@@ -694,8 +694,11 @@ soup_address_new (const gchar* name,
 			if (soup_address_get_port (ia) == port) {
 				soup_address_ref (ia);
 			} else {
+				/* 
+				 * We can reuse the address, but we have to
+				 * change port 
+				 */
 				SoupAddress *new_ia = soup_address_copy (ia);
-				/* We can reuse the address, but we have to change port */
 				soup_address_set_port (new_ia, port);
 				ia = new_ia;
 			}
@@ -781,6 +784,7 @@ soup_address_new (const gchar* name,
 	case 0:
 		close (pipes [0]);
 
+#ifdef PTRACE_ATTACH
 		signal (SIGCHLD, SIG_IGN);
 
 		if (ptrace (PTRACE_ATTACH, getppid (), NULL, NULL) == -1) {
@@ -796,7 +800,8 @@ soup_address_new (const gchar* name,
 		}
 		
 		/* 
-		 * We just SIGSTOPped it; we need to CONT it now. 
+		 * Wait for the SIGSTOP from PTRACE_ATTACH to arrive at the
+		 * parent.  
 		 */
 		waitpid (getppid (), NULL, 0);
 
@@ -805,6 +810,7 @@ soup_address_new (const gchar* name,
 				   strerror(errno));
 
 		kill (getppid(), SIGCONT);
+#endif
 
 		/* 
 		 * Try to get the host by name (ie, DNS) 

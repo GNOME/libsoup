@@ -1,5 +1,11 @@
 2001-09-27  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-socket.c (soup_address_new): #ifdef protect the
+	ptrace attach/detach code until I have a chance to look at why it
+	fails on some platforms.
+
+2001-09-27  Alex Graveley  <alex@ximian.com>
+
 	* build/libsoup.def: Update for new exports.
 
 2001-09-27  Alex Graveley  <alex@ximian.com>
