@@ -257,6 +257,11 @@ connection_free (SoupConnection *conn)
 	conn->server->connections =
 		g_slist_remove (conn->server->connections, conn);
 
+	if (conn->auth) {
+		soup_auth_invalidate (conn->auth, conn->context);
+		soup_auth_free (conn->auth);
+	}
+
 	g_io_channel_unref (conn->channel);
 	soup_context_unref (conn->context);
 	soup_socket_unref (conn->socket);

@@ -541,6 +541,7 @@ ntlm_free (SoupAuth *sa)
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
 
 	g_free (auth->response);
+	g_free (auth->header);
 	g_free (auth);
 }
 

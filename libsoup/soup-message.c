@@ -147,6 +147,9 @@ release_connection (const SoupDataBuffer *data,
 {
 	SoupConnection *conn = user_data;
 	soup_connection_release (conn);
+
+	if (data->owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (data->body);
 }
 
 static void 
@@ -183,11 +186,6 @@ soup_message_cleanup (SoupMessage *req)
 		soup_transfer_read_unref (req->priv->read_tag);
 		req->priv->read_tag = NULL;
 		req->connection = NULL;
-		/* 
-		 * The buffer doesn't belong to us until the message is 
-		 * finished.
-		 */
-		req->response.owner = SOUP_BUFFER_STATIC;
 	}
 
 	if (req->priv->read_tag) {
@@ -543,6 +541,9 @@ requeue_read_finished (const SoupDataBuffer *buf,
 {
 	SoupMessage *msg = user_data;
 	SoupConnection *conn = msg->connection;
+
+	if (buf->owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (buf->body);
 
 	soup_connection_set_used (msg->connection);
 	if (!soup_connection_is_keep_alive (msg->connection))

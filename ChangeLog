@@ -1,3 +1,19 @@
+2003-07-29  Dan Winship  <danw@ximian.com>
+
+	* configure.in: 1.99.25 ("Potato and Leek Soup")
+
+	* libsoup/soup-message.c (requeue_read_finished,
+	release_connection): Free the passed-in body data. Otherwise the
+	response body ends up getting leaked on most 3xx and 4xx
+	responses.
+	(soup_message_cleanup): Remove a piece of code that didn't
+	actually do anything and its associated confused comment.
+
+	* libsoup/soup-auth.c (ntlm_free): plug an occasional NTLM auth leak
+
+	* libsoup/soup-context.c (connection_free): plug a non-occasional
+	NTLM auth leak.
+
 2003-06-26  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Version 1.99.24
