@@ -1,3 +1,8 @@
+2002-05-31  Jacob Berkman  <jacob@ximian.com>
+
+	* src/libsoup/soup-message.h (SoupHandlerFilterType): add
+	'typedef'
+
 2002-04-08  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-server.c (auth_context_copy): Return copied

@@ -179,7 +179,7 @@ typedef enum {
 	SOUP_HANDLER_FINISHED,
 } SoupHandlerEvent;
 
-enum {
+typedef enum {
 	SOUP_FILTER_HEADER      = (1 << 0),
 	SOUP_FILTER_ERROR_CODE  = (1 << 1),
 	SOUP_FILTER_ERROR_CLASS = (1 << 2),
