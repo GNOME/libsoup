@@ -1,3 +1,8 @@
+2003-10-23  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-socket.c (init): Initialize flags to default
+	values.
+
 2003-09-23  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-gnutls.c (SoupGNUTLSCred): Remove refcounting, but

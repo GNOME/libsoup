@@ -86,6 +86,8 @@ init (GObject *object)
 
 	sock->priv = g_new0 (SoupSocketPrivate, 1);
 	sock->priv->sockfd = -1;
+	sock->priv->non_blocking = sock->priv->nodelay = TRUE;
+	sock->priv->reuseaddr = TRUE;
 }
 
 static void
