@@ -1,3 +1,31 @@
+2001-03-02  Alex Graveley  <alex@ximian.com>
+
+	* tests/stress-test.c (main): exit nicely if no test URL is supplied.
+
+	* tests/simple-test.c (main): use http://www.ximian.com is no test
+	URL is supplied.
+
+	* tests/Makefile.am (INCLUDES): include glib headers.
+
+	* src/soup-wsdl/Makefile.am (INCLUDES): include glib, popt, and
+	libxml headers.
+	(soup_wsdl_LDADD): explicitly add glib, popt, libxml deps.
+
+	* src/soup-core/Makefile.am (INCLUDES): include gnet, libxml,
+	openssl, and nss headers.
+	(libsoup_la_LIBADD): explicitly add gnet, libxml deps.
+	(soup_ssl_proxy_LDADD): explicitly add glib, nss and openssl deps.
+
+	* soup.spec.in: remove OpenSSL advertising clause.
+
+	* soupConf.sh.in: list out dependencies (gnet, libxml).
+
+	* soup.pc.in: list out dependencies (gnet, libxml).
+
+	* soup-config.in: list out dependencies (gnet, libxml).
+
+	* configure.in: Cleanups to remove unnecessary dependencies.
+
 2001-02-28  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-ssl.c (soup_ssl_idle_waitpid): glib idle

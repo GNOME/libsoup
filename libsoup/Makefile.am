@@ -6,13 +6,21 @@ INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"SOUP\" 	\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
 	-DBINDIR=\"$(bindir)\"		\
-	@SOUP_DEBUG_FLAGS@
+	@SOUP_DEBUG_FLAGS@		\
+	@GNET_CFLAGS@			\
+	@XML_CFLAGS@			\
+	@OPENSSL_CFLAGS@		\
+	@NSS_CFLAGS@
 
 soupincludedir = $(includedir)/soup
 
 lib_LTLIBRARIES = libsoup.la
 
 libsoup_la_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
+
+libsoup_la_LIBADD =		\
+	$(GNET_LIBS)		\
+	$(XML_LIBS)
 
 libsoup_la_SOURCES =		\
 	soup-context.c		\
@@ -41,6 +49,11 @@ soupinclude_HEADERS =		\
 	soup-uri.h
 
 bin_PROGRAMS = soup-ssl-proxy
+
+soup_ssl_proxy_LDADD =		\
+	$(OPENSSL_LIBS)		\
+	$(NSS_LIBS)		\
+	$(GLIB_LIBS)
 
 soup_ssl_proxy_SOURCES =	\
 	soup-nss.h		\

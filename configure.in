@@ -115,48 +115,57 @@ AM_PROG_LIBTOOL
 # Check for libraries
 
 # Need GLIB
-AM_PATH_GLIB(1.2.0,
-            [LIBS="$LIBS $GLIB_LIBS" CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"],
-            AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?),
-            gmodule)
+AM_PATH_GLIB(1.2.0,,
+             AC_MSG_ERROR([Cannot find GLIB: Is glib-config in path?]),
+             gmodule)
 
-#GLIB_CFLAGS=`glib-config --cflags glib gmodule`
-#GLIB_LIBS=`glib-config --libs glib gmodule`
+GLIB_CFLAGS=`glib-config --cflags glib gmodule`
+GLIB_LIBS=`glib-config --libs glib gmodule`
 
-#AC_SUBST(GLIB_CFLAGS)
-#AC_SUBST(GLIB_LIBS)
+AC_SUBST(GLIB_CFLAGS)
+AC_SUBST(GLIB_LIBS)
 
 
 # Need GNET
-AM_PATH_GNET(1.0.0,
-	     [LIBS="$LIBS $GNET_LIBS" CPPFLAGS="$CPPFLAGS $GNET_CFLAGS"],
-             AC_MSG_ERROR(Cannot find GNET: Is gnet-config in path?))
+AM_PATH_GNET(1.0.4,,
+             AC_MSG_ERROR([Cannot find GNET: Is gnet-config in path?]))
 
-#GNET_CFLAGS=`gnet-config --cflags gnet`
-#GNET_LIBS=`gnet-config --libs gnet`
+GNET_CFLAGS=`gnet-config --cflags gnet`
+GNET_LIBS=`gnet-config --libs gnet`
 
-#AC_SUBST(GNET_CFLAGS)
-#AC_SUBST(GNET_LIBS)
+AC_SUBST(GNET_CFLAGS)
+AC_SUBST(GNET_LIBS)
 
 
 # Need gnome-xml 1
 AC_PATH_PROG(XML_CONFIG,xml-config,no)
 if test x$XML_CONFIG = xno; then
-	AC_MSG_ERROR(Cannot find xml-config)
+	AC_MSG_ERROR([Cannot find LIBXML: Is xml-config in path?])
 fi
-XML_LIBS=`xml-config --libs`
 XML_CFLAGS=`xml-config --cflags`
+XML_LIBS=`xml-config --libs`
 
-LIBS="$LIBS $XML_LIBS"
-CPPFLAGS="$CPPFLAGS $XML_CFLAGS"
-
-AC_SUBST(XML_LIBS)
 AC_SUBST(XML_CFLAGS)
+AC_SUBST(XML_LIBS)
 
 
 # Need popt
-# FIXME: Remove ubiquitous support, use $POPT_LIBS and $POPT_CFLAGS instead
+save_CPPFLAGS=$CPPFLAGS
+save_LIBS=$LIBS
+CPPFLAGS=
+LIBS=
+
 AC_CHECK_LIB(popt, poptGetContext,, AC_MSG_ERROR([popt is required]))
+AC_CHECK_HEADERS(popt.h,, AC_MSG_ERROR([popt.h is required]))
+
+POPT_CFLAGS=$CPPFLAGS
+POPT_LIBS=$LIBS
+
+AC_SUBST(POPT_CFLAGS)
+AC_SUBST(POPT_LIBS)
+
+CPPFLAGS=$save_CPPFLAGS
+LIBS=$save_LIBS
 
 
 # Need in.h and tcp.h for setting of TCP_NODELAY
@@ -175,7 +184,7 @@ nspr_inc_prefix=-I$withval
 
 AC_ARG_WITH(nspr-libs,
 [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],[
-nspr_prefix=$withval
+nspr_prefix=-L$withval
 ])
 
 AC_ARG_WITH(nss-includes,
@@ -185,7 +194,7 @@ nss_inc_prefix=-I$withval
 
 AC_ARG_WITH(nss-libs,
 [  --with-nss-libs          Specify location of NSS libs],[
-nss_prefix=$withval
+nss_prefix=-L$withval
 ])
 
 
@@ -196,16 +205,30 @@ openssl_inc_prefix=-I$withval
 
 AC_ARG_WITH(openssl-libs,
 [  --with-openssl-libs      Specify location of OpenSSL libs],[
-openssl_prefix=$withval
+openssl_prefix=-L$withval
 ])
 
 if test "x$enable_ssl" = xyes; then
-	CPPFLAGS="$CPPFLAGS $openssl_inc_prefix $nspr_inc_prefix $nss_inc_prefix"
+	save_CPPFLAGS=$CPPFLAGS
+	CPPFLAGS="$openssl_inc_prefix"
 	AC_CHECK_HEADERS(openssl/ssl.h)
 	AC_CHECK_HEADERS(openssl/err.h)
+	OPENSSL_CFLAGS=$CPPFLAGS
+	OPENSSL_LIBS="$openssl_prefix"
+	AC_SUBST(OPENSSL_CFLAGS)
+	AC_SUBST(OPENSSL_LIBS)
+	CPPFLAGS=$save_CPPFLAGS
+
+	save_CPPFLAGS=$CPPFLAGS
+	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
 	AC_CHECK_HEADERS(prthread.h)
 	AC_CHECK_HEADERS(security/ssl.h)
 	AC_CHECK_HEADERS(security/pk11func.h)
+	NSS_CFLAGS=$CPPFLAGS
+	NSS_LIBS="$nspr_prefix $nss_prefix"
+	AC_SUBST(NSS_CFLAGS)
+	AC_SUBST(NSS_LIBS)
+	CPPFLAGS=$save_CPPFLAGS
 fi
 
 # Set PACKAGE_SOURCE_DIR in config.h.
