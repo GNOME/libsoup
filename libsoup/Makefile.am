@@ -11,12 +11,12 @@ INCLUDES = 				\
 MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
 
 soup-marshal.h: soup-marshal.list
-	( @GLIB_GENMARSHAL@ --prefix=soup_marshal soup-marshal.list --header > soup-marshal.tmp \
+	( @GLIB_GENMARSHAL@ --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.h ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
 
 soup-marshal.c: soup-marshal.h
-	( (echo '#include "soup-marshal.h"'; @GLIB_GENMARSHAL@ --prefix=soup_marshal soup-marshal.list --body) > soup-marshal.tmp \
+	( (echo '#include "soup-marshal.h"'; @GLIB_GENMARSHAL@ --prefix=soup_marshal $(srcdir)/soup-marshal.list --body) > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.c ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
 

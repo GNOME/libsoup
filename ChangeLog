@@ -1,3 +1,7 @@
+2004-01-16  Jason Leach  <leach@wam.umd.edu>
+
+	* libsoup/Makefile.am: builddir != srcdir fixes.
+
 2004-01-14  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-gnutls.c (verify_certificate): Remove the
