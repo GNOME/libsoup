@@ -133,11 +133,6 @@ dnl ***********************
 dnl *** Checks for popt ***
 dnl ***********************
 
-save_CPPFLAGS=$CPPFLAGS
-save_LIBS=$LIBS
-CPPFLAGS=
-LIBS=
-
 AC_CHECK_LIB(popt, poptGetContext,, AC_MSG_ERROR([popt is required]))
 AC_CHECK_HEADERS(popt.h,, AC_MSG_ERROR([popt.h is required]))
 
@@ -146,10 +141,6 @@ POPT_LIBS=$LIBS
 
 AC_SUBST(POPT_CFLAGS)
 AC_SUBST(POPT_LIBS)
-
-CPPFLAGS=$save_CPPFLAGS
-LIBS=$save_LIBS
-
 
 dnl **********************************************
 dnl *** Variable substitution for soup*Conf.sh ***
