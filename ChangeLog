@@ -1,3 +1,7 @@
+2003-04-09  Dan Winship  <danw@ximian.com>
+
+	* configure.in: 1.99.17
+
 2003-04-07  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-context.c (connection_death): Revert Joe's changes.
