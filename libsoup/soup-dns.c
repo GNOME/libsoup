@@ -345,7 +345,9 @@ soup_dns_entry_unref (SoupDNSEntry *entry)
 {
 	if (!--entry->ref_count) {
 		g_free (entry->name);
-		soup_dns_free_hostent (entry->h);
+
+		if (entry->h)
+			soup_dns_free_hostent (entry->h);
 
 		if (entry->fd)
 			close (entry->fd);
@@ -657,6 +659,10 @@ gboolean
 soup_dns_entry_check_lookup (SoupDNSEntry *entry)
 {
 	check_hostent (entry, FALSE);
+
+	if (entry->resolved && entry->h == NULL)
+		uncache_entry (entry);
+
 	return entry->resolved;
 }
 

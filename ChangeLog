@@ -1,3 +1,10 @@
+2004-02-05  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-dns.c (soup_dns_entry_unref): Don't try to free the
+	hostent if it's NULL.
+	(soup_dns_entry_check_lookup): If the entry is resolved, but the
+	hostent is NULL, uncache it.
+
 2004-02-04  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Always
