@@ -49,6 +49,22 @@ void               soup_set_ssl_ca_dir       (gchar       *ca_dir);
 void               soup_set_ssl_cert_files   (gchar       *cert_file, 
 					      gchar       *key_file);
 
+/* Authentication callback */
+
+typedef enum {
+	SOUP_AUTH_TYPE_BASIC = 1,
+	SOUP_AUTH_TYPE_DIGEST,
+	SOUP_AUTH_TYPE_NTLM,	
+} SoupAuthType;
+
+typedef void (*SoupAuthorizeFn) (SoupAuthType   type,
+				 SoupUri       *uri,
+				 const gchar   *realm,
+				 gpointer       user_data);
+
+void               soup_set_authorize_callback (SoupAuthorizeFn authfn,
+						gpointer        user_data);
+
 /* Useful debugging routines */
 
 void               soup_debug_print_headers  (SoupMessage *req);

@@ -68,6 +68,9 @@ extern gboolean    soup_initialized;
 extern GSList     *soup_active_requests; /* CONTAINS: SoupMessage */
 extern GHashTable *soup_hosts;           /* KEY: uri->host, VALUE: SoupHost */
 
+extern SoupAuthorizeFn soup_auth_fn;
+extern gpointer        soup_auth_fn_user_data;
+
 typedef struct {
 	gchar      *host;
 	GSList     *connections;        /* CONTAINS: SoupConnection */

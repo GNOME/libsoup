@@ -1,3 +1,25 @@
+2001-10-29  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (authorize_handler): Call
+	soup_auth_fn if we don't have auth data in the URI, then call
+	soup_auth_initialize if the callback set authenticate data on the
+	passed uri.
+
+	* src/libsoup/soup-auth.h: Make type be SoupAuthType.
+
+	* src/libsoup/soup-auth.c (soup_auth_initialize): Impl. To be
+	called after SoupAuth creation to apply auth data to the
+	SoupAuth. This allows us to parse the Authenticate headers to
+	figure out which auth scheme and realm is being used, and pass
+	this to the auth callback.
+
+	* src/libsoup/soup-misc.c (soup_set_authorize_callback): Impl.
+
+	* src/libsoup/soup-misc.h: Add SoupAuthType enum here.
+
+	* src/libsoup/soup-server.h: Use SoupAuthType. Remove
+	SoupServerAuthType.
+
 2001-10-27  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-dav.c: Include soup-error.h

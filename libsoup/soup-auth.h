@@ -13,22 +13,21 @@
 
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-private.h>
+#include <libsoup/soup-misc.h>
 
 typedef struct _SoupAuth SoupAuth;
 struct _SoupAuth {
-	enum {
-		SOUP_AUTH_BASIC,
-		SOUP_AUTH_DIGEST,
-		SOUP_AUTH_NTLM,
-	} type;
+	SoupAuthType  type;
+	gchar        *realm;
 
 	gboolean (*compare_func) (SoupAuth      *a, 
 				  SoupAuth      *b);
 
-	void     (*parse_func)   (SoupAuth      *auth, 
-				  const SoupUri *uri, 
+	void     (*parse_func)   (SoupAuth      *auth,
 				  const gchar   *header);
+
+	void     (*init_func)    (SoupAuth      *auth, 
+				  const SoupUri *uri);
 
 	char    *(*auth_func)    (SoupAuth      *auth, 
 				  SoupMessage   *message);
@@ -41,8 +40,10 @@ SoupAuth *soup_auth_lookup                 (SoupContext   *ctx);
 void      soup_auth_set_context            (SoupAuth      *auth,
 					    SoupContext   *ctx);
 
-SoupAuth *soup_auth_new_from_header_list   (const SoupUri *uri,
-					    const GSList  *header);
+SoupAuth *soup_auth_new_from_header_list   (const GSList  *header);
+
+void      soup_auth_initialize             (SoupAuth      *auth,
+					    const SoupUri *uri);
 
 void      soup_auth_free                   (SoupAuth      *auth);
 

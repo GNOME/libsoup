@@ -585,16 +585,13 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
 
-	if (!uri->user) 
-		goto THROW_CANT_AUTHENTICATE;
-
 	vals = soup_message_get_header_list (msg->response_headers, 
 					     proxy ? 
 					             "Proxy-Authenticate" : 
 					             "WWW-Authenticate");
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header_list (uri, vals);
+        auth = soup_auth_new_from_header_list (vals);
 	if (!auth) {
 		soup_message_set_error_full (
 			msg, 
@@ -607,6 +604,25 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 			        "Unknown authentication scheme required");
 		return;
 	}
+
+	/*
+	 * Call registered authenticate handler
+	 */
+	if (!uri->user && soup_auth_fn)
+		(*soup_auth_fn) (auth->type,
+				 (SoupUri *) uri,
+				 auth->realm, 
+				 soup_auth_fn_user_data);
+
+	if (!uri->user) {
+		soup_auth_free (auth);
+		goto THROW_CANT_AUTHENTICATE;
+	}
+
+	/*
+	 * Initialize with auth data (possibly returned from auth callback).
+	 */
+	soup_auth_initialize (auth, uri);
 
 	old_auth = soup_auth_lookup (ctx);
 	if (old_auth) {

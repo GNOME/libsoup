@@ -521,3 +521,27 @@ soup_set_ssl_cert_files (gchar *cert_file, gchar *key_file)
 	putenv (g_strdup_printf ("HTTPS_CERT_FILE=%s", cert_file));
 	putenv (g_strdup_printf ("HTTPS_KEY_FILE=%s", key_file));
 }
+
+SoupAuthorizeFn  soup_auth_fn = NULL;
+gpointer         soup_auth_fn_user_data = NULL;
+
+/**
+ * soup_set_authorize_callback:
+ * @authfn: A %SoupAuthorizeFn function to be called when authorization 
+ * is needed to complete a request.
+ * @user_data: A pointer to be passed @authfn.
+ * 
+ * Sets the authorization callback to be called when a %SoupMessage fails with a
+ * 401 or 407 response, and no authorization data is present in the URI (and the
+ * request is not covered by a prior successful authorization attempt).
+ *
+ * The callback should call %soup_uri_set_auth on the passed URI in order to try
+ * the request again.
+ **/
+void
+soup_set_authorize_callback (SoupAuthorizeFn authfn,
+			     gpointer        user_data)
+{
+	soup_auth_fn = authfn;
+	soup_auth_fn_user_data = user_data;
+}

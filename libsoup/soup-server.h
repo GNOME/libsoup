@@ -13,39 +13,34 @@
 
 #include <glib.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-misc.h>
 #include <libsoup/soup-uri.h>
 
-typedef enum {
-	SOUP_AUTH_TYPE_BASIC  = (1 << 1),
-	SOUP_AUTH_TYPE_DIGEST = (1 << 2),
-	SOUP_AUTH_TYPE_NTLM   = (1 << 3)
-} SoupServerAuthType;
-
 typedef struct {
-	SoupServerAuthType  type;
-	const gchar        *realm;
-	const gchar        *username;
-	const gchar        *password;
+	SoupAuthType  type;
+	const gchar  *realm;
+	const gchar  *username;
+	const gchar  *password;
 } SoupServerBasicToken;
 
 typedef struct {
-	SoupServerAuthType  type;
-	const gchar        *realm;
-	const gchar        *username;
-	const gchar        *password_hash;
+	SoupAuthType  type;
+	const gchar  *realm;
+	const gchar  *username;
+	const gchar  *password_hash;
 } SoupServerDigestToken;
 
 typedef struct {
-	SoupServerAuthType  type;
-	const gchar        *host;
-	const gchar        *domain;
-	const gchar        *user;
-	const gchar        *lm_hash;
-	const gchar        *nt_hash;
+	SoupAuthType  type;
+	const gchar  *host;
+	const gchar  *domain;
+	const gchar  *user;
+	const gchar  *lm_hash;
+	const gchar  *nt_hash;
 } SoupServerNTLMToken;
 
 typedef union {
-	SoupServerAuthType     type;
+	SoupAuthType           type;
 	SoupServerBasicToken   basic;
 	SoupServerDigestToken  digest;
 	SoupServerNTLMToken    ntlm;
