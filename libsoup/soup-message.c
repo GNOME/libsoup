@@ -770,7 +770,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	SoupAuth *auth, *old_auth;
 	SoupContext *ctx;
 	const SoupUri *uri;
-	gboolean check_old = TRUE;
+	gboolean use_cached = FALSE;
 
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
@@ -782,22 +782,49 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
 	auth = soup_auth_lookup (ctx);
-	if (auth)
-		check_old = FALSE;
-	else
-		auth = soup_auth_new_from_header_list (uri, vals);
+	if (auth) {
+		g_assert (auth->status != SOUP_AUTH_STATUS_INVALID);
+
+		if (auth->status == SOUP_AUTH_STATUS_FAILED)
+			goto THROW_CANT_AUTHENTICATE;
+		else if (auth->status == SOUP_AUTH_STATUS_PENDING) {
+			if (auth->controlling_msg == msg) {
+				auth->status = SOUP_AUTH_STATUS_FAILED;
+				goto THROW_CANT_AUTHENTICATE;
+			}
+			else {
+				soup_message_requeue (msg);
+				return;
+			}
+		}
+		else {
+			/*
+			 * FIXME: Check to make sure the old one isn't
+			 * invalidated?
+			 */
+			use_cached = TRUE;
+		}
+	}
 
 	if (!auth) {
-		soup_message_set_error_full (
-			msg, 
-			proxy ? 
-			        SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
-			        SOUP_ERROR_CANT_AUTHENTICATE,
-			proxy ? 
-			        "Unknown authentication scheme required by "
-			        "proxy" :
-			        "Unknown authentication scheme required");
-		return;
+		auth = soup_auth_new_from_header_list (uri, vals);
+
+		if (!auth) {
+			soup_message_set_error_full (
+				msg, 
+				proxy ? 
+			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
+			                SOUP_ERROR_CANT_AUTHENTICATE,
+				proxy ? 
+			                "Unknown authentication scheme "
+				        "required by proxy" :
+			                "Unknown authentication scheme "
+				        "required");
+			return;
+		}
+
+		auth->status = SOUP_AUTH_STATUS_PENDING;
+		auth->controlling_msg = msg;
 	}
 
 	/*
@@ -814,23 +841,12 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 		goto THROW_CANT_AUTHENTICATE;
 	}
 
-	/*
-	 * Initialize with auth data (possibly returned from auth callback).
-	 */
-	soup_auth_initialize (auth, uri);
-
-	if (check_old) {
-		if (auth->type == SOUP_AUTH_TYPE_NTLM)
-			old_auth = msg->connection->auth;
-		else
-			old_auth = soup_auth_lookup (ctx);
-
-		if (old_auth) {
-			if (!soup_auth_invalidates_prior (auth, old_auth)) {
-				soup_auth_free (auth);
-				goto THROW_CANT_AUTHENTICATE;
-			}
-		}
+	if (!use_cached) {
+		/*
+		 * Initialize with auth data (possibly returned from 
+		 * auth callback).
+		 */
+		soup_auth_initialize (auth, uri);
 	}
 
 	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
@@ -849,6 +865,29 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 				proxy ? 
 			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
 			                SOUP_ERROR_CANT_AUTHENTICATE);
+}
+
+static void
+validate_authorize_handler (SoupMessage *msg, gpointer user_data)
+{
+	SoupContext *ctx;
+	SoupAuth *auth;
+
+	ctx = soup_get_proxy ();
+	if (ctx) {
+		auth = soup_auth_lookup (ctx);
+		if (auth) {
+			auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
+			auth->controlling_msg = NULL;
+		}
+	}
+
+	ctx = msg->context;
+	auth = soup_auth_lookup (ctx);
+	if (auth) {
+		auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
+		auth->controlling_msg = NULL;
+	}
 }
 
 static void 
@@ -951,6 +990,16 @@ static SoupHandlerData global_handlers [] = {
 		GINT_TO_POINTER (TRUE), 
 		RESPONSE_ERROR_CODE_HANDLER, 
 		{ 407 }
+	},
+	/*
+	 * Handle response codes 2xx for validating auths.
+	 */
+	{
+		SOUP_HANDLER_PRE_BODY,
+		(SoupCallbackFn) validate_authorize_handler,
+		NULL,
+		RESPONSE_ERROR_CLASS_HANDLER,
+		{ SOUP_ERROR_CLASS_SUCCESS }
 	},
 	{ 0 }
 };

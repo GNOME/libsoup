@@ -15,10 +15,22 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
 
-typedef struct _SoupAuth SoupAuth;
+typedef   enum _SoupAuthStatus SoupAuthStatus;
+typedef struct _SoupAuth       SoupAuth;
+
+enum _SoupAuthStatus {
+	SOUP_AUTH_STATUS_INVALID = 0,
+	SOUP_AUTH_STATUS_PENDING,
+	SOUP_AUTH_STATUS_FAILED,
+	SOUP_AUTH_STATUS_SUCCESSFUL
+};
+
 struct _SoupAuth {
 	SoupAuthType  type;
 	gchar        *realm;
+
+	SoupAuthStatus status;
+	SoupMessage *controlling_msg;
 
 	gboolean (*compare_func) (SoupAuth      *a, 
 				  SoupAuth      *b);

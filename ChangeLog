@@ -1,3 +1,17 @@
+2002-07-16  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-auth.h: Add some state to the SoupAuth
+	structure.
+
+	* src/libsoup/soup-message.c (authorize_handler): Check the state
+	in the SoupAuth object.  If the SoupAuth failed, or we were in the
+	pending state and were the controlling message, throw a "Can't
+	authenticate" error.  If it's pending and we're not the
+	controlling message, just requeue ourselves.  Otherwise, proceed
+	as normal.
+	(validate_authorize_handler): Set the SoupAuths on the proxy and
+	message contexts to successful.
+
 2002-07-15  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-auth.c (soup_auth_set_context): If the auth
