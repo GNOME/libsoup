@@ -50,7 +50,7 @@ DUMP_WRITE (guchar *data, gint bytes_written)
 
 typedef struct {
 	/* 
-	 * Length remaining to be downloaded of the current chunk data. 
+	 * Length of the current chunk data. 
 	 */
 	guint  len;
 
@@ -219,34 +219,6 @@ remove_block_at_index (GByteArray *arr, gint offset, gint length)
 	g_byte_array_set_size (arr, arr->len - length);
 }
 
-/* 
- * Count number of hex digits, and convert to decimal. Store number of hex
- * digits read in @width.
- */
-static gint
-decode_hex (const gchar *src, gint *width)
-{
-	gint new_len = 0, j;
-
-	*width = 0;
-
-	while (isxdigit (*src)) {
-		(*width)++;
-		src++;
-	}
-	src -= *width;
-
-	for (j = *width - 1; j + 1; j--) {
-		if (isdigit (*src))
-			new_len += (*src - 0x30) << (4*j);
-		else
-			new_len += (tolower (*src) - 0x57) << (4*j);
-		src++;
-	}
-
-	return new_len;
-}
-
 static gboolean
 decode_chunk (SoupTransferChunkState *s,
 	      GByteArray             *arr,
@@ -259,73 +231,68 @@ decode_chunk (SoupTransferChunkState *s,
 	while (TRUE) {
 		gint new_len = 0;
 		gint len = 0;
-		gchar *i = &arr->data [s->idx + s->len];
+
+		if (s->len) {
+			/* We're in the middle of a chunk. If we don't
+			 * have the entire chunk and the trailing CRLF
+			 * yet, read more.
+			 */
+			if (s->idx + s->len + 2 > arr->len)
+				break;
+
+			/*
+			 * Increment datalen and s->idx, and remove
+			 * the trailing CRLF.
+			 */
+			s->idx += s->len;
+			*datalen += s->len;
+			remove_block_at_index (arr, s->idx, 2);
+
+			/*
+			 * Ready for the next chunk.
+			 */
+			s->len = 0;
+		}
 
 		/*
-		 * Not enough data to finish the chunk (and the smallest
-		 * possible next chunk header), break 
+		 * We're at the start of a new chunk. If we don't have
+		 * the complete chunk header, wait for more.
 		 */
-		if (s->idx + s->len + 5 > arr->len)
+		len = soup_substring_index (&arr->data [s->idx],
+					    arr->len - s->idx, 
+					    "\r\n");
+		if (len < 0)
 			break;
+		len += 2;
 
-		/* 
-		 * Check for end of chunk header, otherwise break. Avoid
-		 * trailing \r\n from previous chunk body if this is not the
-		 * opening chunk.  
-		 */
-		if (s->len) {
-			if (soup_substring_index (
-					i + 2,
-					arr->len - s->idx - s->len - 2,
-					"\r\n") <= 0)
-				break;
-		} else if (soup_substring_index (arr->data,
-						 arr->len, 
-						 "\r\n") <= 0)
-				break;
-
-		/* 
-		 * Remove trailing \r\n after previous chunk body 
-		 */
-		if (s->len)
-			remove_block_at_index (arr, s->idx + s->len, 2);
-
-		new_len = decode_hex (i, &len);
+		new_len = strtol (&arr->data [s->idx], NULL, 16);
 		g_assert (new_len >= 0);
 
-		/* 
-		 * Previous chunk is now processed, add its length to index and
-		 * datalen.
+		/*
+		 * If this is the final (zero-length) chunk, we need
+		 * to have all of the trailing entity headers as well.
 		 */
-		s->idx += s->len;
-		*datalen += s->len;
+		if (new_len == 0) {
+			len = soup_substring_index (&arr->data [s->idx],
+						    arr->len - s->idx, 
+						    "\r\n\r\n");
+			if (len < 0)
+				break;
 
-		/* 
-		 * Update length for next chunk's size 
-		 */
-		s->len = new_len;
-		
-	       	/* 
-		 * FIXME: Add entity headers we find here to
-		 *        req->response_headers. 
-		 */
-		len += soup_substring_index (&arr->data [s->idx + len],
-				             arr->len - s->idx - len,
-					     "\r\n");
+			/* 
+			 * FIXME: Add entity headers we find here to
+			 *        req->response_headers. 
+			 */
 
-		/* 
-		 * Zero-length chunk closes transfer. Include final \r\n after
-                 * empty chunk.
-		 */
-		if (s->len == 0) {
-			len += 2;
+			len += 4;
 			ret = TRUE;
 		}
 
 		/* 
-		 * Remove hexified length, entity headers, and trailing \r\n 
+		 * Remove chunk header and get ready for chunk data.
 		 */
-		remove_block_at_index (arr, s->idx, len + 2);
+		remove_block_at_index (arr, s->idx, len);
+		s->len = new_len;
 	}
 
 	return ret;
@@ -378,7 +345,8 @@ read_chunk (SoupReader *r, gboolean *cancelled)
 	if (*cancelled) goto CANCELLED;
 
 	/* 
-	 * If overwrite, remove datalen worth of data from start of buffer 
+	 * If overwrite, remove already-processed data from start
+	 * of buffer 
 	 */
 	if (r->overwrite_chunks) {
 		remove_block_at_index (arr, 0, s->idx);

@@ -1,3 +1,10 @@
+2002-06-06  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-transfer.c (decode_chunk): Rewrite this a bunch
+	to handle trailing entity headers, and not crash on an assertion
+	failure if the server sends the final "\r\n" in a separate packet
+	from the preceding "0\r\n".
+
 2002-05-31  Joe Shaw  <joe@ximian.com>
 
 	* acinclude.m4: Added.  Includes the pkg-config, glib1 and glib2
