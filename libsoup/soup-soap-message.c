@@ -672,9 +672,6 @@ soup_soap_message_persist (SoupSoapMessage *msg)
 	/* serialize to SoupMessage class */
 	soup_message_set_request (SOUP_MESSAGE (msg), "text/xml",
 				  SOUP_BUFFER_SYSTEM_OWNED, body, len);
-#ifdef G_ENABLE_DEBUG
-	g_message ("SOAP message: %s", body);
-#endif
 }
 
 /**
@@ -741,10 +738,6 @@ soup_soap_message_parse_response (SoupSoapMessage *msg)
 
 	xmlstr = g_malloc0 (SOUP_MESSAGE (msg)->response.length + 1);
 	strncpy (xmlstr, SOUP_MESSAGE (msg)->response.body, SOUP_MESSAGE (msg)->response.length);
-
-#ifdef G_ENABLE_DEBUG
-	g_message ("SOAP response: %s", xmlstr);
-#endif
 
 	soap_response = soup_soap_response_new_from_string (xmlstr);
 	g_free (xmlstr);
