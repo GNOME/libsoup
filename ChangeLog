@@ -1,3 +1,10 @@
+2001-08-08  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-transfer.c (soup_transfer_read_chunk):
+	Handle entity headers after chunk body, closes bug #6846.
+
+	* src/soup-core/soup-queue.c (soup_queue_read_done_cb): Fixup comments.
+
 2001-08-06  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-private.h: Define VERSION to "Win/0.4.2" for

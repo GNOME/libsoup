@@ -142,19 +142,21 @@ soup_transfer_read_chunk (SoupReader *r)
 		chunk_idx = chunk_idx + chunk_len;
 		chunk_len = new_len;
 
-		if (chunk_len == 0) {
-			/* 
-			 * FIXME: Add entity headers we find here to
-			 *        req->response_headers. 
-			 */
-			len += soup_substring_index (&arr->data [chunk_idx + 3],
-						     arr->len - chunk_idx - 3,
-						     "\r\n");
-			len += 2;
-		}
+	       	/* 
+		 * FIXME: Add entity headers we find here to
+		 *        req->response_headers. 
+		 */
+		len += soup_substring_index (&arr->data [chunk_idx + len],
+				             arr->len - chunk_idx - len,
+					     "\r\n");
+
+		/*
+		 * Include final \r\n after empty chunk
+		 */
+		if (chunk_len == 0) len += 2;
 
 		/* 
-		 * Remove trailing \r\n after chunk length 
+		 * Remove hexified length, entity headers, and trailing \r\n
 		 */
 		g_memmove (&arr->data [chunk_idx],
 			   &arr->data [chunk_idx + len + 2],

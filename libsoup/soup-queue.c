@@ -79,7 +79,9 @@ soup_queue_read_headers_cb (const GString *headers,
 	if (!soup_parse_headers (headers, req)) 
 		return SOUP_TRANSFER_END;
 
-	/* Handle connection persistence */
+	/* 
+	 * Handle connection persistence 
+	 */
 	connection = g_hash_table_lookup (req->response_headers, "Connection");
 
 	if (connection && g_strcasecmp (connection, "close") == 0)
@@ -88,7 +90,9 @@ soup_queue_read_headers_cb (const GString *headers,
 	if (!g_strcasecmp (req->method, "HEAD")) 
 		goto RUN_HANDLERS;
 
-	/* Handle Content-Length or Chunked encoding */
+	/* 
+	 * Handle Content-Length or Chunked encoding 
+	 */
 	length = g_hash_table_lookup (req->response_headers, "Content-Length");
 	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
 
@@ -342,8 +346,10 @@ soup_get_request_header (SoupMessage *req)
 
 	action = hdrs.soapaction || !req->action;
 
-	/* If we specify an absoluteURI in the request line, the 
-	   Host header MUST be ignored by the proxy. */
+	/* 
+	 * If we specify an absoluteURI in the request line, the Host header
+	 * MUST be ignored by the proxy.  
+	 */
 	g_string_sprintfa (header, 
 			   "%s%s%s%s%s%s%s%s%s%s",
 			   hdrs.host ? "" : "Host: ",
@@ -359,11 +365,15 @@ soup_get_request_header (SoupMessage *req)
 			           "" : 
 			           "User-Agent: Soup/" VERSION "\r\n");
 
-	/* Proxy-Authorization from the proxy Uri */
+	/* 
+	 * Proxy-Authorization from the proxy Uri 
+	 */
 	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
 		soup_encode_http_auth (req, header, TRUE);
 
-	/* Authorization from the context Uri */
+	/* 
+	 * Authorization from the context Uri 
+	 */
 	if (!hdrs.auth && suri->user)
 		soup_encode_http_auth (req, header, FALSE);
 
