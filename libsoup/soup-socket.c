@@ -277,12 +277,15 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_emit (sock, signals[CONNECT_RESULT], 0, status);
+		g_object_unref (sock);
 		return;
 	}
 
 	soup_socket_connect (sock, sock->priv->remote_addr);
 	/* soup_socket_connect re-reffed addr */
 	g_object_unref (addr);
+
+	g_object_unref (sock);
 }
 
 /**
@@ -327,6 +330,7 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 		if (sync)
 			return SOUP_STATUS_CANT_RESOLVE;
 
+		g_object_ref (sock);
 		soup_address_resolve_async (remote_addr, got_address, sock);
 		return SOUP_STATUS_CONTINUE;
 	}

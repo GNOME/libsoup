@@ -1,5 +1,15 @@
 2003-09-17  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-session.c (find_oldest_connection): Fix two bugs
+	(one that pruned too little, one that pruned too much).
+	(queue_message): When requeuing, don't run the queue;
+	final_finished will take care of that later.
+
+	* libsoup/soup-socket.c (soup_socket_connect, got_address): ref
+	the socket while waiting for the address to resolve
+
+2003-09-17  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-connection.c (soup_connection_new): Replaces the
 	three previous soup_connection_new* functions and uses gobject
 	properties to set the destination and proxy uris.

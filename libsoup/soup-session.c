@@ -611,8 +611,12 @@ find_oldest_connection (gpointer key, gpointer host, gpointer data)
 {
 	SoupConnection *conn = key, **oldest = data;
 
-	if (!oldest || (soup_connection_last_used (conn) <
-			soup_connection_last_used (*oldest)))
+	/* Don't prune a connection that hasn't even been used yet. */
+	if (soup_connection_last_used (conn) == 0)
+		return;
+
+	if (!*oldest || (soup_connection_last_used (conn) <
+			 soup_connection_last_used (*oldest)))
 		*oldest = conn;
 }
 
@@ -811,10 +815,10 @@ static void
 queue_message (SoupSession *session, SoupMessage *req, gboolean requeue)
 {
 	req->status = SOUP_MESSAGE_STATUS_QUEUED;
-	if (!requeue)
+	if (!requeue) {
 		soup_message_queue_append (session->priv->queue, req);
-
-	run_queue (session, TRUE);
+		run_queue (session, TRUE);
+	}
 }
 
 /**
