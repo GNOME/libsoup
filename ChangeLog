@@ -1,3 +1,31 @@
+2001-04-23  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-typecodes-glib.c: Typecode support
+	for the simple glib schema, similar in style to CORBA typecodes.
+	The alignment and size routines are based on the ones in ORBit.
+	
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c: A parser that walks an
+	XML document, and writes values into memory locations provided
+
+	* tests/test-wsdl-runtime.c: Test the typecode support and parser
+	
+	* src/soup-wsdl/wsdl-soap-stubs.c (wsdl_emit_soap_stubs_params):
+	Write a list of parameter to typecode bindings for the soap
+	document parser
+
+	* src/soup-wsdl/wsdl-soap-headers.c: Write extern prototypes for
+	typecode definitions
+
+	* src/soup-wsdl/wsdl-soap-common.c: Write typecode definitions
+	into a common code file
+
+	* src/Makefile.am: Build new soup-wsdl-runtime directory before
+	soup-wsdl
+
+	* configure.in: Added test to discover alignments
+
+	* acconfig.h: Added defines for alignments
+
 2001-04-23  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-socket.h: SoupSocketConnectFn no longer takes

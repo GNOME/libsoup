@@ -293,6 +293,59 @@ if test x$APXS != xno; then
 	AC_SUBST(APACHE_LIBS)
 fi
 
+dnl type alignment test (based on the one in ORBit)
+AC_DEFUN(AC_CHECK_ALIGNOF,
+[changequote(<<, >>)dnl
+dnl The name to #define.
+define(<<AC_TYPE_NAME>>, translit(alignof_$1, [a-z *], [A-Z_P]))dnl
+dnl The cache variable name.
+define(<<AC_CV_NAME>>, translit(ac_cv_alignof_$1, [ *], [_p]))dnl
+changequote([, ])dnl
+AC_MSG_CHECKING(alignment of $1)
+align_save_libs="$LIBS"
+LIBS="$GLIB_LIBS $LIBS"
+AC_CACHE_VAL(AC_CV_NAME,
+[AC_TRY_RUN([
+#include <stdio.h>
+#include <glib.h>
+typedef struct {char s1;} gstruct;
+struct test {char s1; $1 s2;};
+main()
+{
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", &(((struct test*)0)->s2));
+  exit(0);
+}], AC_CV_NAME=`cat conftestval`, AC_CV_NAME=0, AC_CV_NAME=0)])dnl
+AC_MSG_RESULT($AC_CV_NAME)
+LIBS="$align_save_libs"
+AC_DEFINE_UNQUOTED(AC_TYPE_NAME, $AC_CV_NAME)
+undefine([AC_TYPE_NAME])dnl
+undefine([AC_CV_NAME])dnl
+])
+
+orig_CPPFLAGS=$CPPFLAGS
+CPPFLAGS=$GLIB_CFLAGS
+AC_CHECK_ALIGNOF(gboolean)
+AC_CHECK_ALIGNOF(gchar)
+AC_CHECK_ALIGNOF(guchar)
+AC_CHECK_ALIGNOF(gint)
+AC_CHECK_ALIGNOF(guint)
+AC_CHECK_ALIGNOF(gshort)
+AC_CHECK_ALIGNOF(gushort)
+AC_CHECK_ALIGNOF(glong)
+AC_CHECK_ALIGNOF(gulong)
+AC_CHECK_ALIGNOF(gint8)
+AC_CHECK_ALIGNOF(guint8)
+AC_CHECK_ALIGNOF(gint16)
+AC_CHECK_ALIGNOF(guint16)
+AC_CHECK_ALIGNOF(gint32)
+AC_CHECK_ALIGNOF(guint32)
+AC_CHECK_ALIGNOF(gfloat)
+AC_CHECK_ALIGNOF(gdouble)
+AC_CHECK_ALIGNOF(gpointer)
+AC_CHECK_ALIGNOF(gstruct)
+CPPFLAGS=$orig_CPPFLAGS
 
 AC_ARG_ENABLE(more-warnings,
 	      [  --enable-more-warnings  Maximum compiler warnings],
@@ -326,6 +379,7 @@ AC_OUTPUT([
 	src/Makefile
 	src/soup-core/Makefile
 	src/soup-wsdl/Makefile
+	src/soup-wsdl-runtime/Makefile
 	tests/Makefile
 	])
 
