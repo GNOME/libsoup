@@ -1,3 +1,10 @@
+2002-06-24  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): If we no
+	longer have a read_chunk_cb callback, we can just cancel the
+	read.  Fixes a crash when you soup_message_cancel() in the middle
+	of a download.
+
 2002-06-19  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump SOUP_AGE up to 3, SOUP_CURRENT up to 6.
