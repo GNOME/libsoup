@@ -2,7 +2,7 @@ dnl *******************************************
 dnl *** Initialize automake and set version ***
 dnl *******************************************
 
-AC_PREREQ(2.53)
+AC_PREREQ(2.52)
 AC_INIT(libsoup, 2.0)
 AC_CONFIG_SRCDIR(soup-2.0.pc.in)
 
