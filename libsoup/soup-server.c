@@ -251,6 +251,10 @@ soup_server_new (const char *optname1, ...)
 		server->priv->ssl_creds = soup_ssl_get_server_credentials (
 			server->priv->ssl_cert_file,
 			server->priv->ssl_key_file);
+		if (!server->priv->ssl_creds) {
+			g_object_unref (server);
+			return NULL;
+		}
 	}
 
 	server->priv->listen_sock =

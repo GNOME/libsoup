@@ -1,3 +1,25 @@
+2003-11-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-misc.h: declare soup_ssl_supported.
+
+	* libsoup/soup-gnutls.c: add soup_ssl_supported declaration.
+
+	* libsoup/soup-nossl.c: Not an SSL implementation, built if
+	HAVE_SSL is not defined.
+
+	* libsoup/Makefile.am (libsoup_2_2_la_SOURCES): add soup-nossl.c
+
+	* libsoup/soup-socket.c (soup_socket_start_ssl): Return success or
+	failure.
+	(listen_watch): Deal with soup_socket_start_ssl failing.
+
+	* libsoup/soup-connection.c (tunnel_connect_finished,
+	socket_connect_result, soup_connection_connect_sync): Deal with
+	the soup_socket_start_ssl failing.
+
+	* libsoup/soup-server.c (soup_server_new): Deal with
+	soup_ssl_get_server_credentials failing
+
 2003-11-18  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-message.[ch] (soup_soap_message_start_fault,

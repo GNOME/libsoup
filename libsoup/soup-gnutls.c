@@ -24,6 +24,8 @@
 #include "soup-ssl.h"
 #include "soup-misc.h"
 
+gboolean soup_ssl_supported = TRUE;
+
 #define DH_BITS 1024
 
 typedef struct {
@@ -368,7 +370,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	if (type == SOUP_SSL_TYPE_SERVER)
 		gnutls_dh_set_prime_bits (session, DH_BITS);
 
-	gnutls_transport_set_ptr (session, sockfd);
+	gnutls_transport_set_ptr (session, GINT_TO_POINTER (sockfd));
 
 	chan->fd = sockfd;
 	chan->real_sock = sock;

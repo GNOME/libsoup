@@ -503,9 +503,12 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 
 	new->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 
-	if (new->priv->ssl_creds)
-		soup_socket_start_ssl (new);
-	else
+	if (new->priv->ssl_creds) {
+		if (!soup_socket_start_ssl (new)) {
+			g_object_unref (new);
+			return TRUE;
+		}
+	} else
 		get_iochannel (new);
 
 	g_signal_emit (sock, signals[NEW_CONNECTION], 0, new);
@@ -578,18 +581,26 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
  * @socket: the socket
  *
  * Starts using SSL on @socket.
+ *
+ * Return value: success or failure
  **/
-void
+gboolean
 soup_socket_start_ssl (SoupSocket *sock)
 {
-	GIOChannel *chan;
+	GIOChannel *ssl_chan;
 
-	chan = get_iochannel (sock);
-	sock->priv->iochannel = soup_ssl_wrap_iochannel (
+	get_iochannel (sock);
+	ssl_chan = soup_ssl_wrap_iochannel (
 		sock->priv->iochannel, sock->priv->is_server ?
 		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
 		soup_address_get_name (sock->priv->remote_addr),
 		sock->priv->ssl_creds);
+
+	if (!ssl_chan)
+		return FALSE;
+
+	sock->priv->iochannel = ssl_chan;
+	return TRUE;
 }
 	
 

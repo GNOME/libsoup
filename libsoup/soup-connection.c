@@ -307,12 +307,15 @@ static void
 tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
+	guint status = msg->status_code;
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
-		soup_socket_start_ssl (conn->priv->socket);
+	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		if (!soup_socket_start_ssl (conn->priv->socket))
+			status = SOUP_STATUS_SSL_FAILED;
+	}
 
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (conn, msg->status_code));
+		       proxified_status (conn, status));
 	g_object_unref (msg);
 }
 
@@ -321,14 +324,15 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-			       proxified_status (conn, status));
-		return;
-	}
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+		goto done;
 
-	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS)
-		soup_socket_start_ssl (sock);
+	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+		if (!soup_socket_start_ssl (sock)) {
+			status = SOUP_STATUS_SSL_FAILED;
+			goto done;
+		}
+	}
 
 	/* See if we need to tunnel */
 	if (conn->priv->proxy_uri && conn->priv->origin_uri) {
@@ -343,7 +347,9 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		return;
 	}
 
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+ done:
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
+		       proxified_status (conn, status));
 }
 
 /**
@@ -402,8 +408,12 @@ soup_connection_connect_sync (SoupConnection *conn)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 
-	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS)
-		soup_socket_start_ssl (conn->priv->socket);
+	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+		if (!soup_socket_start_ssl (conn->priv->socket)) {
+			status = SOUP_STATUS_SSL_FAILED;
+			goto fail;
+		}
+	}
 
 	if (conn->priv->proxy_uri && conn->priv->origin_uri) {
 		SoupMessage *connect_msg;

@@ -47,4 +47,8 @@ guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
+/* SSL support */
+
+extern gboolean soup_ssl_supported;
+
 #endif /* SOUP_MISC_H */

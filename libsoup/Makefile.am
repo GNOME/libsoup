@@ -84,6 +84,7 @@ libsoup_2_2_la_SOURCES =		\
 	soup-message-server-io.c	\
 	soup-method.c			\
 	soup-misc.c     		\
+	soup-nossl.c     		\
 	soup-server.c			\
 	soup-server-auth.c		\
 	soup-server-message.c		\

@@ -50,7 +50,7 @@ guint          soup_socket_connect            (SoupSocket         *sock,
 					       SoupAddress        *rem_addr);
 gboolean       soup_socket_listen             (SoupSocket         *sock,
 					       SoupAddress        *local_addr);
-void           soup_socket_start_ssl          (SoupSocket         *sock);
+gboolean       soup_socket_start_ssl          (SoupSocket         *sock);
 
 void           soup_socket_disconnect         (SoupSocket         *sock);
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
