@@ -1,5 +1,10 @@
 2001-10-26  Alex Graveley  <alex@ximian.com>
 
+ 	* src/libsoup/soup-message.c (redirect_handler): Handle redirects
+	when source uri has auth data by copying auth to new url.
+
+2001-10-26  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socket.c (soup_address_new): Use WUNTRACED,
 	which should fix possible hang situation.
 

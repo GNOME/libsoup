@@ -52,7 +52,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 static SoupErrorCode 
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
-	const gchar *new_url;
+	const gchar *new_loc;
 
 	switch (msg->response_code) {
 	case 300: /* Multiple Choices */
@@ -68,13 +68,34 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) 
 		return SOUP_ERROR_NONE;
 
-	new_url = soup_message_get_response_header (msg, "Location");
+	new_loc = soup_message_get_response_header (msg, "Location");
 
-	if (new_url) {
+	if (new_loc) {
+	       	const SoupUri *old_uri;
+		SoupUri *new_uri;
 		SoupContext *new_ctx, *old_ctx;
 
-		new_ctx = soup_context_get (new_url);
-		if (!new_ctx) return SOUP_ERROR_MALFORMED_HEADER;
+		old_uri = soup_context_get_uri (msg->context);
+
+		new_uri = soup_uri_new (new_loc);
+		if (!new_uri) 
+			return SOUP_ERROR_MALFORMED_HEADER;
+
+		/* 
+		 * Copy auth info from original URI.
+		 */
+		if (old_uri->user && !new_uri->user) {
+			new_uri->user = g_strdup (old_uri->user);
+			new_uri->passwd = g_strdup (old_uri->passwd);
+			new_uri->authmech = g_strdup (old_uri->authmech);
+		}
+
+		new_ctx = soup_context_from_uri (new_uri);
+
+		soup_uri_free (new_uri);
+
+		if (!new_ctx) 
+			return SOUP_ERROR_MALFORMED_HEADER;
 
 		old_ctx = msg->context;
 		msg->context = new_ctx;
