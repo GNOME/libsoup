@@ -1,3 +1,11 @@
+2001-04-04  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-stubs.c (wsdl_emit_soap_stubs):
+	#include <soup/soup-*> and not soup-*
+	* src/soup-wsdl/wsdl-soap-headers.c (wsdl_emit_soap_headers):
+	#include <soup/soup-message.h> and not soup-message.h, to match
+	with the output given by `gnome-config --cflags soup`
+
 2001-03-30  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-types-glib.c,
