@@ -61,4 +61,7 @@ gboolean       soup_connection_is_new         (SoupConnection       *conn);
 
 void           soup_connection_release        (SoupConnection       *conn);
 
+
+void           soup_connection_purge_idle     (void);
+
 #endif /*SOUP_CONTEXT_H*/

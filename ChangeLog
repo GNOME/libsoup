@@ -1,3 +1,11 @@
+2003-04-11  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-context.c (soup_connection_purge_idle): New
+	function to close all idle connections. (Needed for #41117 or else
+	there's no way to force-discard NTLM authentication.)
+
+	* libsoup/soup-queue.c (soup_queue_shutdown): Use it
+
 2003-04-10  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-queue.c (proxy_https_connect):

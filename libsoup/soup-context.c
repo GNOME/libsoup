@@ -703,3 +703,39 @@ soup_connection_is_new (SoupConnection *conn)
 	g_return_val_if_fail (conn != NULL, FALSE);
 	return conn->last_used_id == 0;
 }
+
+
+static void
+get_idle_conns_for_host (gpointer key, gpointer value, gpointer data)
+{
+	SoupHost *host = value;
+	SoupConnection *conn;
+	GSList *c, **idle_conns = data;
+
+	for (c = host->connections; c; c = c->next) {
+		conn = c->data;
+		if (!conn->in_use)
+			*idle_conns = g_slist_prepend (*idle_conns, conn);
+	}
+}
+
+/**
+ * soup_connection_purge_idle:
+ *
+ * Closes all idle open connections.
+ **/
+void
+soup_connection_purge_idle (void)
+{
+	GSList *idle_conns, *i;
+
+	if (!soup_hosts)
+		return;
+
+	idle_conns = NULL;
+	g_hash_table_foreach (soup_hosts, get_idle_conns_for_host, &idle_conns);
+
+	for (i = idle_conns; i; i = i->next)
+		connection_free (i->data);
+	g_slist_free (idle_conns);
+}

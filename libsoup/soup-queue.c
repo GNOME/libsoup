@@ -816,7 +816,7 @@ soup_queue_message (SoupMessage    *req,
  * soup_queue_shutdown:
  * 
  * Shut down the message queue by calling %soup_message_cancel on all active
- * requests.
+ * requests and then closing all open connections.
  */
 void 
 soup_queue_shutdown (void)
@@ -833,4 +833,6 @@ soup_queue_shutdown (void)
 	req = soup_queue_first_request ();
 	for (; req; req = soup_queue_next_request ())
 		soup_message_cancel (req);
+
+	soup_connection_purge_idle ();
 }
