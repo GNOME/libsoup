@@ -216,6 +216,13 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 		}
 	}
 
+	/* Sanity check */
+	if ((uri->protocol == SOUP_PROTOCOL_HTTP ||
+	     uri->protocol == SOUP_PROTOCOL_HTTPS) && !uri->host) {
+		soup_uri_free (uri);
+		return NULL;
+	}
+
 	if (!uri->port)
 		uri->port = soup_protocol_default_port (uri->protocol);
 	if (!uri->path)

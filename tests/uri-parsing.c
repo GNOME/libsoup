@@ -69,7 +69,14 @@ struct {
 	{ "g?y/../x", "http://a/b/c/g?y/../x" },
 	{ "g#s/./x", "http://a/b/c/g#s/./x" },
 	{ "g#s/../x", "http://a/b/c/g#s/../x" },
-	{ "http:g", "http:g" }
+
+	/* RFC 2396 notes that some old parsers will parse this as
+	 * a relative URL ("http://a/b/c/g"), but it should be
+	 * interpreted as absolute. libsoup should parse it
+	 * correctly as being absolute, but then reject it since it's
+	 * an http URL with no host.
+	 */
+	{ "http:g", NULL }
 };
 int num_rel_tests = G_N_ELEMENTS(rel_tests);
 
@@ -81,20 +88,32 @@ do_uri (SoupUri *base_uri, const char *base_str,
 	char *uri_string;
 
 	if (base_uri) {
-		printf ("<%s> + <%s> = <%s>? ", base_str, in_uri, out_uri);
+		printf ("<%s> + <%s> = <%s>? ", base_str, in_uri,
+			out_uri ? out_uri : "ERR");
 		uri = soup_uri_new_with_base (base_uri, in_uri);
 	} else {
-		printf ("<%s> => <%s>? ", in_uri, out_uri);
+		printf ("<%s> => <%s>? ", in_uri,
+			out_uri ? out_uri : "ERR");
 		uri = soup_uri_new (in_uri);
 	}
 
 	if (!uri) {
-		printf ("ERR\n  Could not parse %s\n", in_uri);
-		return FALSE;
+		if (out_uri) {
+			printf ("ERR\n  Could not parse %s\n", in_uri);
+			return FALSE;
+		} else {
+			printf ("OK\n");
+			return TRUE;
+		}
 	}
 
 	uri_string = soup_uri_to_string (uri, FALSE);
 	soup_uri_free (uri);
+
+	if (!out_uri) {
+		printf ("ERR\n  Got %s\n", uri_string);
+		return FALSE;
+	}
 
 	if (strcmp (uri_string, out_uri) != 0) {
 		printf ("NO\n  Unparses to <%s>\n", uri_string);
