@@ -1,3 +1,8 @@
+2001-11-01  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (issue_final_callback): Null
+	terminate recv_buf before copying the data pointer.
+
 2001-10-31  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-context.c (soup_context_connect_cb): Drop

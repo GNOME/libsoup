@@ -105,17 +105,17 @@ soup_transfer_read_cancel (guint tag)
 static void
 issue_final_callback (SoupReader *r)
 {
+	/* 
+	 * Null terminate 
+	 */
+	g_byte_array_append (r->recv_buf, "\0", 1);
+
 	if (r->read_done_cb) {
 		SoupDataBuffer buf = {
 			SOUP_BUFFER_SYSTEM_OWNED,
 			r->recv_buf->data,
-			r->recv_buf->len
+			r->recv_buf->len - 1
 		};
-
-		/* 
-		 * Null terminate 
-		 */
-		g_byte_array_append (r->recv_buf, "\0", 1);
 
 		r->callback_issued = TRUE;
 
