@@ -100,8 +100,6 @@ struct _SoupMessagePrivate {
 	
 	SoupErrorCode   errorcode;
 
-	gpointer        digest_data;
-
 	guint           msg_flags;
 
 	GSList         *content_handlers;

@@ -30,6 +30,7 @@
 #include <time.h>
 
 #include "md5-utils.h"
+#include "soup-auth.h"
 #include "soup-context.h"
 #include "soup-message.h"
 #include "soup-private.h"
@@ -50,10 +51,84 @@ struct _SoupAuth {
 	SoupAuthFreeFn  free_func;
 };
 
+static char       *copy_token_if_exists (GHashTable  *tokens, char *t);
+static char       *decode_token         (char       **in);
+static GHashTable *parse_param_list     (const char  *header);
+static void        destroy_param_hash   (GHashTable  *table);
+
+
+/* 
+ * Basic Authentication Support 
+ */
+
 typedef struct {
 	SoupAuth auth;
 	char *realm;
 } SoupAuthBasic;
+
+static char *
+basic_auth_func (SoupAuth *auth, SoupMessage *message)
+{
+	const SoupUri *uri;
+	char *user_pass;
+	char *base64;
+	char *out;
+
+	g_return_val_if_fail (auth->context, NULL);
+
+	uri = soup_context_get_uri (auth->context);
+
+	user_pass = g_strdup_printf ("%s:%s", uri->user, uri->passwd);
+	base64 = soup_base64_encode (user_pass, strlen (user_pass));
+	g_free (user_pass);
+
+	out = g_strdup_printf ("Basic %s", base64);
+	g_free (base64);
+
+	return out;
+}
+
+static void
+soup_auth_basic_parse_header (SoupAuth *auth, const char *header)
+{
+	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
+	GHashTable *tokens = parse_param_list (header);
+
+	g_return_if_fail (tokens);
+
+	basic->realm = copy_token_if_exists (tokens, "realm");
+
+	destroy_param_hash (tokens);
+}
+
+static void
+basic_free (SoupAuth *auth)
+{
+	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
+
+	g_free (basic->realm);
+	g_free (basic);
+}
+
+static SoupAuth *
+soup_auth_new_basic (void)
+{
+	SoupAuthBasic *basic;
+	SoupAuth *auth;
+
+	basic = g_new0 (SoupAuthBasic, 1);
+	auth = (SoupAuth *) basic;
+	auth->type = SOUP_AUTH_BASIC;
+	auth->auth_func = basic_auth_func;
+	auth->free_func = basic_free;
+
+	return auth;
+}
+
+
+/* 
+ * Digest Authentication Support 
+ */
 
 typedef enum {
 	QOP_NONE     = 0,
@@ -81,28 +156,6 @@ typedef struct {
 	int nc;
 	QOPType qop;
 } SoupAuthDigest;
-
-static char *
-basic_auth_func (SoupAuth *auth, SoupMessage *message)
-{
-	const SoupUri *uri;
-	char *user_pass;
-	char *base64;
-	char *out;
-
-	g_return_val_if_fail (auth->context, NULL);
-
-	uri = soup_context_get_uri (auth->context);
-
-	user_pass = g_strdup_printf ("%s:%s", uri->user, uri->passwd);
-	base64 = soup_base64_encode (user_pass, strlen (user_pass));
-	g_free (user_pass);
-
-	out = g_strdup_printf ("Basic %s", base64);
-	g_free (base64);
-
-	return out;
-}
 
 static void
 digest_hex (guchar *digest, guchar hex[33])
@@ -256,6 +309,205 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	return out;
 }
 
+typedef struct {
+	char *name;
+	guint type;
+} DataType;
+
+static DataType qop_types[] = {
+	{ "auth",     QOP_AUTH     },
+	{ "auth-int", QOP_AUTH_INT }
+};
+
+static DataType algorithm_types[] = {
+	{ "MD5",      ALGORITHM_MD5      },
+	{ "MD5-sess", ALGORITHM_MD5_SESS }
+};
+
+static guint
+decode_data_type (DataType *dtype, const char *name)
+{
+        int i;
+
+        for (i = 0; dtype[i].name; i++) {
+                if (!g_strcasecmp (dtype[i].name, name))
+			return dtype[i].type;
+        }
+
+	return 0;
+}
+
+static inline guint
+decode_qop (const char *name)
+{
+	return decode_data_type (qop_types, name);
+}
+
+static inline guint
+decode_algorithm (const char *name)
+{
+	return decode_data_type (algorithm_types, name);
+}
+
+static void
+soup_auth_digest_parse_header (SoupAuth *auth, const char *header)
+{
+	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
+	GHashTable *tokens = parse_param_list (header);
+	char *tmp, *ptr;
+
+	g_return_if_fail (tokens);
+
+	digest->realm = copy_token_if_exists (tokens, "realm");
+	digest->nonce = copy_token_if_exists (tokens, "nonce");
+
+	tmp = copy_token_if_exists (tokens, "qop");
+	ptr = tmp;
+
+	while (ptr && *ptr) {
+		char *token;
+
+		token = decode_token (&ptr);
+		if (token)
+			digest->qop_options |= decode_qop (token);
+		g_free (token);
+
+		if (*ptr == ',')
+			ptr++;
+	}
+
+	g_free (tmp);
+
+	tmp = copy_token_if_exists (tokens, "stale");
+
+	if (tmp && g_strcasecmp (tmp, "true") == 0)
+		digest->stale = TRUE;
+	else
+		digest->stale = FALSE;
+
+	g_free (tmp);
+
+	tmp = copy_token_if_exists (tokens, "algorithm");
+	digest->algorithm = decode_algorithm (tmp);
+	g_free (tmp);
+
+	destroy_param_hash (tokens);
+}
+
+static void
+digest_free (SoupAuth *auth)
+{
+	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
+
+	g_free (digest->realm);
+	g_free (digest->nonce);
+	g_free (digest->cnonce);
+	g_free (digest);
+}
+
+static SoupAuth *
+soup_auth_new_digest (void)
+{
+	SoupAuthDigest *digest;
+	SoupAuth *auth;
+	char *bgen;
+
+	digest = g_new0 (SoupAuthDigest, 1);
+	auth = (SoupAuth *) digest;
+	auth->type = SOUP_AUTH_DIGEST;
+	auth->auth_func = digest_auth_func;
+	auth->free_func = digest_free;
+
+	bgen = g_strdup_printf ("%p:%lu:%lu",
+			       auth,
+			       (unsigned long) getpid (),
+			       (unsigned long) time (0));
+	digest->cnonce = soup_base64_encode (bgen, strlen (bgen));
+	digest->nc = 1;
+	/* We're just going to do qop=auth for now */
+	digest->qop = QOP_AUTH;
+
+	return auth;
+}
+
+
+/*
+ * Generic Authentication Interface
+ */
+
+SoupAuth *
+soup_auth_new_from_header (SoupContext *context, const char *header)
+{
+	SoupAuth *auth;
+
+	if (g_strncasecmp (header, "Basic", 5) == 0) {
+		auth = soup_auth_new_basic ();
+		soup_auth_basic_parse_header (auth, header + 6);
+	}
+	else if (g_strncasecmp (header, "Digest", 6) == 0) {
+		auth = soup_auth_new_digest ();
+		soup_auth_digest_parse_header (auth, header + 7);
+	}
+	else {
+		g_warning ("Authentication type not supported");
+		return NULL;
+	}
+
+	auth->context = context;
+
+	return auth;
+}
+
+gchar *
+soup_auth_authorize (SoupAuth *auth, SoupMessage *msg)
+{
+	g_return_val_if_fail (auth != NULL, NULL);
+	g_return_val_if_fail (msg != NULL, NULL);
+
+	return auth->auth_func (auth, msg);
+}
+
+void
+soup_auth_free (SoupAuth *auth)
+{
+	g_return_if_fail (auth != NULL);
+
+	auth->free_func (auth);
+}
+
+gboolean
+soup_auth_invalidates_prior (SoupAuth *auth)
+{
+	g_return_val_if_fail (auth != NULL, FALSE);
+
+	switch (auth->type) {
+	case SOUP_AUTH_DIGEST:
+		return ((SoupAuthDigest *) auth)->stale;
+	case SOUP_AUTH_BASIC:
+	default:
+		return FALSE;
+	}
+}
+
+
+/*
+ * Internal parsing routines
+ */
+
+static char *
+copy_token_if_exists (GHashTable *tokens, char *t)
+{
+	char *data;
+
+	g_return_val_if_fail (tokens, NULL);
+	g_return_val_if_fail (t, NULL);
+
+	if ( (data = g_hash_table_lookup (tokens, t)))
+		return g_strdup (data);
+	else
+		return NULL;
+}
+
 static void
 decode_lwsp (char **in)
 {
@@ -384,230 +636,4 @@ destroy_param_hash (GHashTable *table)
 {
 	g_hash_table_foreach (table, destroy_param_hash_elements, NULL);
 	g_hash_table_destroy (table);
-}
-
-typedef struct {
-	char *name;
-	guint type;
-} DataType;
-
-static DataType qop_types[] = {
-	{ "auth",     QOP_AUTH     },
-	{ "auth-int", QOP_AUTH_INT }
-};
-
-static DataType algorithm_types[] = {
-	{ "MD5",      ALGORITHM_MD5      },
-	{ "MD5-sess", ALGORITHM_MD5_SESS }
-};
-
-static guint
-decode_data_type (DataType *dtype, const char *name)
-{
-        int i;
-
-        for (i = 0; dtype[i].name; i++) {
-                if (!g_strcasecmp (dtype[i].name, name))
-			return dtype[i].type;
-        }
-
-	return 0;
-}
-
-static inline guint
-decode_qop (const char *name)
-{
-	return decode_data_type (qop_types, name);
-}
-
-static inline guint
-decode_algorithm (const char *name)
-{
-	return decode_data_type (algorithm_types, name);
-}
-
-static char *
-copy_token_if_exists (GHashTable *tokens, char *t)
-{
-	char *data;
-
-	g_return_val_if_fail (tokens, NULL);
-	g_return_val_if_fail (t, NULL);
-
-	if ( (data = g_hash_table_lookup (tokens, t)))
-		return g_strdup (data);
-	else
-		return NULL;
-}
-
-static void
-soup_auth_basic_parse_header (SoupAuth *auth, const char *header)
-{
-	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
-	GHashTable *tokens = parse_param_list (header);
-
-	g_return_if_fail (tokens);
-
-	basic->realm = copy_token_if_exists (tokens, "realm");
-
-	destroy_param_hash (tokens);
-}
-
-static void
-soup_auth_digest_parse_header (SoupAuth *auth, const char *header)
-{
-	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
-	GHashTable *tokens = parse_param_list (header);
-	char *tmp, *ptr;
-
-	g_return_if_fail (tokens);
-
-	digest->realm = copy_token_if_exists (tokens, "realm");
-	digest->nonce = copy_token_if_exists (tokens, "nonce");
-
-	tmp = copy_token_if_exists (tokens, "qop");
-	ptr = tmp;
-
-	while (ptr && *ptr) {
-		char *token;
-
-		token = decode_token (&ptr);
-		if (token)
-			digest->qop_options |= decode_qop (token);
-		g_free (token);
-
-		if (*ptr == ',')
-			ptr++;
-	}
-
-	g_free (tmp);
-
-	tmp = copy_token_if_exists (tokens, "stale");
-
-	if (tmp && g_strcasecmp (tmp, "true") == 0)
-		digest->stale = TRUE;
-	else
-		digest->stale = FALSE;
-
-	g_free (tmp);
-
-	tmp = copy_token_if_exists (tokens, "algorithm");
-	digest->algorithm = decode_algorithm (tmp);
-	g_free (tmp);
-
-	destroy_param_hash (tokens);
-}
-
-static void
-basic_free (SoupAuth *auth)
-{
-	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
-
-	g_free (basic->realm);
-	g_free (basic);
-}
-
-static SoupAuth *
-soup_auth_new_basic (void)
-{
-	SoupAuthBasic *basic;
-	SoupAuth *auth;
-
-	basic = g_new0 (SoupAuthBasic, 1);
-	auth = (SoupAuth *) basic;
-	auth->type = SOUP_AUTH_BASIC;
-	auth->auth_func = basic_auth_func;
-	auth->free_func = basic_free;
-
-	return auth;
-}
-
-static void
-digest_free (SoupAuth *auth)
-{
-	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
-
-	g_free (digest->realm);
-	g_free (digest->nonce);
-	g_free (digest->cnonce);
-	g_free (digest);
-}
-
-static SoupAuth *
-soup_auth_new_digest (void)
-{
-	SoupAuthDigest *digest;
-	SoupAuth *auth;
-	char *bgen;
-
-	digest = g_new0 (SoupAuthDigest, 1);
-	auth = (SoupAuth *) digest;
-	auth->type = SOUP_AUTH_DIGEST;
-	auth->auth_func = digest_auth_func;
-	auth->free_func = digest_free;
-
-	bgen = g_strdup_printf ("%p:%lu:%lu",
-			       auth,
-			       (unsigned long) getpid (),
-			       (unsigned long) time (0));
-	digest->cnonce = soup_base64_encode (bgen, strlen (bgen));
-	digest->nc = 1;
-	/* We're just going to do qop=auth for now */
-	digest->qop = QOP_AUTH;
-
-	return auth;
-}
-
-SoupAuth *
-soup_auth_new_from_header (SoupContext *context, const char *header)
-{
-	SoupAuth *auth;
-
-	if (g_strncasecmp (header, "Basic", 5) == 0) {
-		auth = soup_auth_new_basic ();
-		soup_auth_basic_parse_header (auth, header + 6);
-	}
-	else if (g_strncasecmp (header, "Digest", 6) == 0) {
-		auth = soup_auth_new_digest ();
-		soup_auth_digest_parse_header (auth, header + 7);
-	}
-	else {
-		g_warning ("Authentication type not supported");
-		return NULL;
-	}
-
-	auth->context = context;
-
-	return auth;
-}
-
-gchar *
-soup_auth_authorize (SoupAuth *auth, SoupMessage *msg)
-{
-	g_return_val_if_fail (auth != NULL, NULL);
-	g_return_val_if_fail (msg != NULL, NULL);
-
-	return auth->auth_func (auth, msg);
-}
-
-void
-soup_auth_free (SoupAuth *auth)
-{
-	g_return_if_fail (auth != NULL);
-
-	auth->free_func (auth);
-}
-
-gboolean
-soup_auth_invalidates_prior (SoupAuth *auth)
-{
-	g_return_val_if_fail (auth != NULL, FALSE);
-
-	switch (auth->type) {
-	case SOUP_AUTH_DIGEST:
-		return ((SoupAuthDigest *) auth)->stale;
-	case SOUP_AUTH_BASIC:
-	default:
-		return FALSE;
-	}
 }

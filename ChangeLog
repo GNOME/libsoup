@@ -1,3 +1,12 @@
+2001-07-16  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-private.h: Remove the unused digest_data from
+	_SoupMessagePrivate.
+
+	* src/soup-core/soup-auth.c: Reorganize into basic-auth,
+	digest-auth, public interface, and parse routines hopefullly to
+	make this more readable.
+
 2001-07-13  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-typecodes.c: Add windows x86 type 
