@@ -42,18 +42,23 @@ typedef enum {
 	SOUP_AUTH_NTLM,
 } SoupAuthType;
 
+typedef gboolean (*SoupCompareFunc) (SoupAuth *a, SoupAuth *b);
+
 typedef void (*SoupParseFunc) (SoupAuth *auth, const gchar *header);
 
 typedef char *(*SoupAuthFunc) (SoupAuth *auth, SoupMessage *message);
 
+typedef SoupAuth *(*SoupAuthNewFn) (void);
+
 typedef void (*SoupAuthFreeFn) (SoupAuth *auth);
 
 struct _SoupAuth {
-	SoupContext    *context;
-	SoupAuthType    type;
-	SoupParseFunc   parse_func;
-	SoupAuthFunc    auth_func;
-	SoupAuthFreeFn  free_func;
+	SoupContext     *context;
+	SoupAuthType     type;
+	SoupCompareFunc  compare_func;
+	SoupParseFunc    parse_func;
+	SoupAuthFunc     auth_func;
+	SoupAuthFreeFn   free_func;
 };
 
 static char       *copy_token_if_exists (GHashTable  *tokens, char *t);
@@ -70,6 +75,12 @@ typedef struct {
 	SoupAuth auth;
 	char *realm;
 } SoupAuthBasic;
+
+static gboolean
+basic_compare_func (SoupAuth *a, SoupAuth *b)
+{
+	return FALSE;
+}
 
 static char *
 basic_auth_func (SoupAuth *auth, SoupMessage *message)
@@ -127,6 +138,7 @@ soup_auth_new_basic (void)
 	basic = g_new0 (SoupAuthBasic, 1);
 	auth = (SoupAuth *) basic;
 	auth->type = SOUP_AUTH_BASIC;
+	auth->compare_func = basic_compare_func;
 	auth->parse_func = basic_parse_func;
 	auth->auth_func = basic_auth_func;
 	auth->free_func = basic_free;
@@ -165,6 +177,12 @@ typedef struct {
 	int nc;
 	QOPType qop;
 } SoupAuthDigest;
+
+static gboolean
+digest_compare_func (SoupAuth *a, SoupAuth *b)
+{
+	return ((SoupAuthDigest *) a)->stale;
+}
 
 static void
 digest_hex (guchar *digest, guchar hex[33])
@@ -466,6 +484,12 @@ typedef struct {
 	gchar    *response;
 } SoupAuthNTLM;
 
+static gboolean
+ntlm_compare_func (SoupAuth *a, SoupAuth *b)
+{
+	return TRUE;
+} 
+
 static gchar *
 ntlm_auth (SoupAuth *sa, SoupMessage *msg)
 {
@@ -548,6 +572,7 @@ ntlm_new (void)
 
 	auth = g_new0 (SoupAuth, 1);
 	auth->type = SOUP_AUTH_NTLM;
+	auth->compare_func = ntlm_compare_func;
 	auth->parse_func = ntlm_parse;
 	auth->auth_func = ntlm_auth;
 	auth->free_func = ntlm_free;
@@ -555,25 +580,34 @@ ntlm_new (void)
 	return auth;
 }
 
-
 /*
  * Generic Authentication Interface
  */
 
+struct {
+	const gchar *scheme;
+	SoupAuthNewFn ctor;
+} known_auth_schemes [] = {
+	{ "Basic",  soup_auth_new_basic },
+	{ "Digest", soup_auth_new_digest },
+	{ "NTLM",   ntlm_new },
+	{ NULL }
+};
+
 SoupAuth *
 soup_auth_new_from_header (SoupContext *context, const char *header)
 {
-	SoupAuth *auth;
+	SoupAuth *auth = NULL;
+	gint i;
 
-	if (!g_strncasecmp (header, "Basic", sizeof ("Basic") - 1))
-		auth = soup_auth_new_basic ();
-	else if (!g_strncasecmp (header, "Digest", sizeof ("Digest") - 1))
-		auth = soup_auth_new_digest ();
-	else if (!g_strncasecmp (header, "NTLM", sizeof ("NTLM") - 1))
-		auth = ntlm_new ();
-	else {
-		return NULL;
+	for (i = 0; known_auth_schemes [i].scheme; i++) {
+		if (!g_strncasecmp (header, 
+				    known_auth_schemes [i].scheme, 
+				    strlen (known_auth_schemes [i].scheme)))
+		    auth = known_auth_schemes [i].ctor ();
 	}
+
+	if (!auth) return NULL;
 
 	auth->context = context;
 
@@ -605,17 +639,9 @@ soup_auth_invalidates_prior (SoupAuth *new_auth, SoupAuth *old_auth)
 	g_return_val_if_fail (new_auth != NULL, FALSE);
 	g_return_val_if_fail (old_auth != NULL, TRUE);
 
-	if (new_auth->auth_type != old_auth->auth_type) return TRUE;
+	if (new_auth->type != old_auth->type) return TRUE;
 
-	switch (auth->type) {
-	case SOUP_AUTH_DIGEST:
-		return ((SoupAuthDigest *) new_auth)->stale;
-	case SOUP_AUTH_NTLM:
-		return TRUE;
-	case SOUP_AUTH_BASIC:
-	default:
-		return FALSE;
-	}
+	return new_auth->compare_func (new_auth, old_auth);
 }
 
 

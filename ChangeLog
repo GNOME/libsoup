@@ -1,5 +1,14 @@
 2001-08-23  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-auth.c (soup_auth_invalidates_prior): Add
+	SoupAuth.compare_func and call this from here, to remove hardcoded
+	auth scheme knowledge.
+	(soup_auth_new_from_header): Iterate known_auth_schemes looking
+	for a match with auth scheme supplied, instead of hardcoding known
+	auth schemes.
+
+2001-08-23  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-auth.c (soup_auth_invalidates_prior): Take an
 	old_auth argument, if auth_types do not match always return
 	TRUE. This allows for a server requested re-auth with a different
