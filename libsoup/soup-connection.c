@@ -555,14 +555,46 @@ soup_connection_disconnect (SoupConnection *conn)
 	conn->priv->socket = NULL;
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 
-	/* Workaround for timed-out SSL connections.  Check to see if
-	 * there is a message associated with this connection and that
-	 * it's not the first time this connection has been used.  If met,
-	 * setting the status to QUEUED will cause the connection to be
-	 * restarted and the message resent.
+	if (!conn->priv->cur_req ||
+	    conn->priv->cur_req->status_code != SOUP_STATUS_IO_ERROR)
+		return;
+
+	/* There was a message queued on this connection, but the
+	 * socket was closed while it was being sent.
 	 */
-	if (conn->priv->cur_req && conn->priv->last_used != 0)
+
+	if (conn->priv->last_used != 0) {
+		/* If last_used is not 0, then that means at least one
+		 * message was successfully sent on this connection
+		 * before, and so the most likely cause of the
+		 * IO_ERROR is that the connection was idle for too
+		 * long and the server timed out and closed it (and we
+		 * didn't notice until after we started sending the
+		 * message). So we want the message to get tried again
+		 * on a new connection. The only code path that could
+		 * have gotten us to this point is through the call to
+		 * io_cleanup() in soup_message_io_finished(), and so
+		 * all we need to do to get the message requeued in
+		 * this case is to change its status.
+		 */
 		conn->priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
+		return;
+	}
+
+	/* If conn->priv->last_used is 0, then that means this was the
+	 * first message to be sent on this connection, so the error
+	 * probably means that there's some network or server problem,
+	 * so we let the IO_ERROR be returned to the caller.
+	 *
+	 * Of course, it's also possible that the error in the
+	 * last_used != 0 case was because of a network/server problem
+	 * too. It's even possible that the message crashed the
+	 * server. In this case, requeuing it was the wrong thing to
+	 * do, but presumably, the next attempt will also get an
+	 * error, and eventually the message will be requeued onto a
+	 * fresh connection and get an error, at which point the error
+	 * will finally be returned to the caller.
+	 */
 }
 
 /**

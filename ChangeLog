@@ -1,3 +1,9 @@
+2004-02-11  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-connection.c (soup_connection_disconnect): Update
+	Joe's comment here with a gory explanation of exactly what's going
+	on. (It's not just an SSL bug either, it affects all connections.)
+
 2004-02-10  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-connection.c (soup_connection_disconnect): Add a
