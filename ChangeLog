@@ -1,3 +1,10 @@
+2003-03-28  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message.c (soup_message_set_context): If the new
+	context points to a different server from the old context, call
+	soup_message_cleanup. Otherwise it tries to reuse the old
+	connection...
+
 2003-03-25  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.16

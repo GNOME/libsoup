@@ -1184,8 +1184,12 @@ soup_message_set_context (SoupMessage       *msg,
 {
 	g_return_if_fail (msg != NULL);
 
-	if (msg->context)
+	if (msg->context) {
+		if (msg->connection &&
+		    (!new_ctx || (msg->context->server != new_ctx->server)))
+			soup_message_cleanup (msg);
 		soup_context_unref (msg->context);
+	}
 
 	if (new_ctx)
 		soup_context_ref (new_ctx);
