@@ -765,6 +765,44 @@ soup_message_send (SoupMessage *msg)
 	return msg->errorclass;
 }
 
+static void
+maybe_validate_auth (SoupMessage *msg, gpointer user_data)
+{
+	gboolean proxy = GPOINTER_TO_INT (user_data);
+	int auth_failure;
+	SoupContext *ctx;
+	SoupAuth *auth;
+
+	if (proxy) {
+		ctx = soup_get_proxy ();
+		auth_failure = SOUP_ERROR_PROXY_UNAUTHORIZED; /* 407 */
+	}
+	else {
+		ctx = msg->context;
+		auth_failure = SOUP_ERROR_UNAUTHORIZED; /* 401 */
+	}
+
+	auth = soup_auth_lookup (ctx);
+	if (!auth)
+		return;
+
+	if (msg->errorcode == auth_failure) {
+		/* Pass through */
+	}
+	else if (msg->errorclass == SOUP_ERROR_CLASS_SERVER_ERROR) {
+		/* 
+		 * We have no way of knowing whether our auth is any good
+		 * anymore, so just invalidate it and start from the
+		 * beginning next time.
+		 */
+		soup_auth_invalidate (auth, ctx);
+	}
+	else {
+		auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
+		auth->controlling_msg = NULL;
+	}
+} /* maybe_validate_auth */
+
 static void 
 authorize_handler (SoupMessage *msg, gboolean proxy)
 {
@@ -836,6 +874,9 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 
 		auth->status = SOUP_AUTH_STATUS_PENDING;
 		auth->controlling_msg = msg;
+		soup_message_add_handler (msg, SOUP_HANDLER_PRE_BODY,
+					  maybe_validate_auth,
+					  GINT_TO_POINTER (proxy));
 	}
 
 	/*
@@ -876,29 +917,6 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 				proxy ? 
 			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
 			                SOUP_ERROR_CANT_AUTHENTICATE);
-}
-
-static void
-validate_authorize_handler (SoupMessage *msg, gpointer user_data)
-{
-	SoupContext *ctx;
-	SoupAuth *auth;
-
-	ctx = soup_get_proxy ();
-	if (ctx) {
-		auth = soup_auth_lookup (ctx);
-		if (auth) {
-			auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
-			auth->controlling_msg = NULL;
-		}
-	}
-
-	ctx = msg->context;
-	auth = soup_auth_lookup (ctx);
-	if (auth) {
-		auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
-		auth->controlling_msg = NULL;
-	}
 }
 
 static void 
@@ -1001,16 +1019,6 @@ static SoupHandlerData global_handlers [] = {
 		GINT_TO_POINTER (TRUE), 
 		RESPONSE_ERROR_CODE_HANDLER, 
 		{ 407 }
-	},
-	/*
-	 * Handle Authorization-Info headers for validating auths.
-	 */
-	{
-		SOUP_HANDLER_PRE_BODY,
-		(SoupCallbackFn) validate_authorize_handler,
-		NULL,
-		RESPONSE_HEADER_HANDLER,
-		{ (guint) "Authentication-Info" }
 	},
 	{ 0 }
 };
