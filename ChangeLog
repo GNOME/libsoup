@@ -1,3 +1,8 @@
+2004-03-01  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.h: removed not-implemented function's
+	prototype.
+
 2004-02-27  Rodney Dawes  <dobey@ximian.com>
 
 	* configure.in:
