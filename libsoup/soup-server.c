@@ -1179,6 +1179,33 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 	return server->default_handler;
 }
 
+SoupAddress *
+soup_server_context_get_client_address (SoupServerContext *context)
+{
+	SoupSocket *socket;
+	SoupAddress *address;
+
+	g_return_val_if_fail (context != NULL, NULL);
+
+	socket = context->msg->priv->server_sock;
+	address = soup_socket_get_address (socket);
+
+	return address;
+}
+
+gchar *
+soup_server_context_get_client_host (SoupServerContext *context)
+{
+	gchar *host;
+	SoupAddress *address;
+
+	address = soup_server_context_get_client_address (context);
+	host = g_strdup (soup_address_get_canonical_name (address));
+	soup_address_unref (address);
+	
+	return host;
+}
+
 static SoupServerAuthContext *
 auth_context_copy (SoupServerAuthContext *auth_ctx)
 {

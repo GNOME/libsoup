@@ -1,3 +1,14 @@
+2002-06-19  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump SOUP_AGE up to 3, SOUP_CURRENT up to 6.
+	Update version to 0.7.5.
+
+	* src/libsoup/soup-private.h (VERSION): Update to 0.7.5
+
+	* src/libsoup/soup-server.c (soup_server_context_get_client_address,
+	soup_server_context_get_client_host): Added.  Functions for
+	getting info about the host making the call.
+
 2002-06-13  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-uri.[ch]: Add SOUP_PROTOCOL_FILE as a recognized

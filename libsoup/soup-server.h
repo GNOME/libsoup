@@ -15,6 +15,7 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
+#include <libsoup/soup-socket.h>
 #include <libsoup/soup-uri.h>
 #include <libsoup/soup-server-auth.h>
 
@@ -81,6 +82,12 @@ SoupServerHandler *soup_server_get_handler   (SoupServer            *serv,
 					      const gchar           *path);
 
 GSList            *soup_server_list_handlers (SoupServer            *serv);
+
+/* Functions for accessing information about the specific connection */
+
+SoupAddress       *soup_server_context_get_client_address (SoupServerContext *context);
+
+gchar             *soup_server_context_get_client_host    (SoupServerContext *context);
 
 /* 
  * Apache/soup-httpd module initializtion
