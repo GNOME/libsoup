@@ -1,3 +1,23 @@
+2001-03-09  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-parse.h: Each WSDL struct has a pointer into
+	the XML tree document
+
+	* src/soup-wsdl/wsdl-parse.c (wsdl_qnamecmp): A function for
+	comparing element names and namespaces.
+
+	Use wsdl_qnamecmp instead of strcmp to make parsing
+	namespace-aware.
+	
+	(wsdl_end_element): Maintain a pointer into the XML tree for each
+	WSDL node.
+
+	* src/soup-wsdl/wsdl-memory.c (wsdl_free_definitions): Free the
+	XML document
+
+	* src/soup-wsdl/main.c (main): Move the xml doc dump to here, for
+	better modularity
+
 2001-03-08  JP Rosevear  <jpr@ximian.com>
 
 	* configure.in: send the apache info to the config script
