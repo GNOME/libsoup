@@ -1,3 +1,36 @@
+2001-11-19  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-private.h: Add auth member to SoupConnection.
+
+	* src/libsoup/soup-queue.h: Export soup_queue_connect_cb.
+
+	* src/libsoup/soup-queue.c (soup_encode_http_auth): Get auth token
+	from connection's auth.
+
+	* src/libsoup/soup-message.c (soup_message_run_handlers): Break if
+	status after running a handler is also SOUP_STATUS_CONNECTING.
+	(soup_message_requeue): If the connection uses NTLM, reset
+	error/finished callbacks.
+	(requeue_read_finished): Impl. Requeue the message using the
+	current connection on success.
+	(requeue_read_error): Impl. Queue the message again and get a new
+	connection.
+	(requeue_connect_cb): Impl. Use the old connection's auth data
+	before passing off to soup_queue_connect_cb.
+	(soup_message_cleanup): Only reset callbacks if the reader and
+	connection exist.
+	(authorize_handler): Set/get the connection's auth data if it
+	exists and the new auth created uses NTLM.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Dump read
+	data to stderr if DUMP is defined.
+	(soup_transfer_write_cb): ditto for writes.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Don't ref
+	context here, but rather
+	(soup_context_get_connection): Here, in case the context goes away
+	while connecting.
+
 2001-11-14  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket-win.c (soup_address_get_name_cb): Don't

@@ -52,6 +52,7 @@
 #include <winuser.h>
 #endif
 
+#include <libsoup/soup-auth.h>
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
@@ -103,6 +104,7 @@ struct _SoupConnection {
 	SoupContext  *context;
 	GIOChannel   *channel;
 	SoupSocket   *socket;
+	SoupAuth     *auth;
 	guint         port;
 	gboolean      in_use;
 	guint         last_used_id;

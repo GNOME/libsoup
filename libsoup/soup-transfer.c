@@ -22,6 +22,8 @@
 #include "soup-transfer.h"
 #include "soup-private.h"
 
+#undef DUMP
+
 typedef struct {
 	/* 
 	 * Length remaining to be downloaded of the current chunk data. 
@@ -435,6 +437,18 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	}
 
 	if (bytes_read) {
+#ifdef DUMP
+		{
+			gchar *buf = alloca (bytes_read + 1);
+			memcpy (buf, read_buf, bytes_read);
+			buf[bytes_read] = '\0';
+
+			g_warning ("READ %d\n----------\n%s\n----------\n",
+				   bytes_read,
+				   buf);
+		}
+#endif
+
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
 
 		total_read += bytes_read;
@@ -640,6 +654,18 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		soup_transfer_write_error_cb (iochannel, G_IO_HUP, w);
 		goto DONE_WRITING;
 	}
+
+#ifdef DUMP
+	{
+                gchar *buf = alloca (bytes_written + 1);
+                memcpy (buf, write_buf, bytes_written);
+                buf[bytes_written] = '\0';
+
+                g_warning ("WRITE %d\n----------\n%s\n----------\n",
+                           bytes_written,
+                           buf);
+	}
+#endif
 
 	total_written = (w->write_len += bytes_written);
 

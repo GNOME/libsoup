@@ -119,13 +119,15 @@ soup_message_cleanup (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	if (req->status == SOUP_STATUS_READING_RESPONSE) {
+	if (req->connection && 
+	    req->priv->read_tag &&
+	    req->status == SOUP_STATUS_READING_RESPONSE) {
 		soup_transfer_read_set_callbacks (req->priv->read_tag,
 						  NULL,
 						  NULL,
 						  release_connection,
 						  release_and_close_connection,
-						  req->connection);		
+						  req->connection);
 		req->priv->read_tag = 0;
 		req->connection = NULL;
 	}
@@ -144,6 +146,7 @@ soup_message_cleanup (SoupMessage *req)
 		soup_context_cancel_connect (req->priv->connect_tag);
 		req->priv->connect_tag = NULL;
 	}
+
 	if (req->connection) {
 		soup_connection_release (req->connection);
 		req->connection = NULL;
@@ -575,6 +578,78 @@ soup_message_queue (SoupMessage    *req,
 	soup_queue_message (req, callback, user_data);
 }
 
+typedef struct {
+	SoupMessage *msg;
+	SoupAuth    *conn_auth;
+} RequeueConnectData;
+
+static void
+requeue_connect_cb (SoupContext          *ctx,
+		    SoupConnectErrorCode  err,
+		    SoupConnection       *conn,
+		    gpointer              user_data)
+{
+	RequeueConnectData *data = user_data;
+
+	if (conn && !conn->auth)
+		conn->auth = data->conn_auth;
+	else
+		soup_auth_free (data->conn_auth);
+
+	soup_queue_connect_cb (ctx, err, conn, data->msg);
+
+	g_free (data);
+}
+
+static void
+requeue_read_error (gboolean body_started, gpointer user_data)
+{
+	RequeueConnectData *data = user_data;
+	SoupMessage *msg = data->msg;
+	SoupContext *dest_ctx = msg->connection->context;
+
+	soup_context_ref (dest_ctx);
+
+	soup_connection_set_keep_alive (msg->connection, FALSE);
+	soup_connection_release (msg->connection);
+
+	msg->connection = NULL;
+
+	soup_queue_message (msg, 
+			    msg->priv->callback, 
+			    msg->priv->user_data);
+
+	msg->status = SOUP_STATUS_CONNECTING;
+
+	msg->priv->connect_tag =
+		soup_context_get_connection (dest_ctx, 
+					     requeue_connect_cb, 
+					     data);
+
+	soup_context_unref (dest_ctx);
+}
+
+static void
+requeue_read_finished (const SoupDataBuffer *buf,
+		       gpointer        user_data)
+{
+	RequeueConnectData *data = user_data;
+	SoupMessage *msg = data->msg;
+	SoupConnection *conn = msg->connection;
+
+	if (!soup_connection_is_keep_alive (msg->connection))
+		requeue_read_error (FALSE, data);
+	else {
+		msg->connection = NULL;
+
+		soup_queue_message (msg, 
+				    msg->priv->callback, 
+				    msg->priv->user_data);
+
+		msg->connection = conn;
+	}
+}
+
 /**
  * soup_message_requeue:
  * @req: a %SoupMessage
@@ -585,7 +660,26 @@ void
 soup_message_requeue (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
-	soup_queue_message (req, req->priv->callback, req->priv->user_data);
+
+	if (!req->connection || !req->connection->auth)
+		soup_queue_message (req, 
+				    req->priv->callback, 
+				    req->priv->user_data);
+	else {
+		RequeueConnectData *data = NULL;
+
+		data = g_new0 (RequeueConnectData, 1);
+		data->msg = req;
+		data->conn_auth = req->connection->auth;
+
+		soup_transfer_read_set_callbacks (req->priv->read_tag,
+						  NULL,
+						  NULL,
+						  requeue_read_finished,
+						  requeue_read_error,
+						  data);
+		req->priv->read_tag = 0;
+	}
 }
 
 /**
@@ -665,7 +759,11 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	 */
 	soup_auth_initialize (auth, uri);
 
-	old_auth = soup_auth_lookup (ctx);
+	if (auth->type == SOUP_AUTH_TYPE_NTLM)
+		old_auth = msg->connection->auth;
+	else
+		old_auth = soup_auth_lookup (ctx);
+
 	if (old_auth) {
 		if (!soup_auth_invalidates_prior (auth, old_auth)) {
 			soup_auth_free (auth);
@@ -673,7 +771,12 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 		}
 	}
 
-	soup_auth_set_context (auth, ctx);
+	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
+		if (old_auth) 
+			soup_auth_free (old_auth);
+		msg->connection->auth = auth;
+	} else
+		soup_auth_set_context (auth, ctx);
 
 	soup_message_requeue (msg);
 
@@ -840,13 +943,15 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 
 		run_handler (msg, invoke_type, data);
 
-		if (msg->status == SOUP_STATUS_QUEUED) return TRUE;
+		if (msg->status == SOUP_STATUS_QUEUED ||
+		    msg->status == SOUP_STATUS_CONNECTING) return TRUE;
 	}
 
 	for (data = global_handlers; data->type; data++) {
 		run_handler (msg, invoke_type, data);
 
-		if (msg->status == SOUP_STATUS_QUEUED) return TRUE;
+		if (msg->status == SOUP_STATUS_QUEUED ||
+		    msg->status == SOUP_STATUS_CONNECTING) return TRUE;
 	}
 
 	/*

@@ -250,7 +250,11 @@ soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 
 	ctx = proxy_auth ? soup_get_proxy () : msg->context;
 
-	auth = soup_auth_lookup (ctx);
+	if (msg->connection->auth)
+		auth = msg->connection->auth;
+	else
+		auth = soup_auth_lookup (ctx);
+
 	if (auth) {
 		token = soup_auth_authorize (auth, msg);
 		if (token) {
@@ -532,7 +536,7 @@ proxy_https_connect (SoupContext    *proxy,
 	return ret;
 }
 
-static void
+void
 soup_queue_connect_cb (SoupContext          *ctx,
 		       SoupConnectErrorCode  err,
 		       SoupConnection       *conn,

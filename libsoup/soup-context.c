@@ -306,8 +306,6 @@ soup_context_connect_cb (SoupSocket              *socket,
 		new_conn->keep_alive = TRUE;
 		new_conn->in_use = TRUE;
 		new_conn->last_used_id = 0;
-
-		soup_context_ref (ctx);
 		new_conn->context = ctx;
 
 		chan = soup_connection_get_iochannel (new_conn);
@@ -324,15 +322,20 @@ soup_context_connect_cb (SoupSocket              *socket,
 
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data);
 		break;
-	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
+	default:
 		connection_count--;
+		soup_context_unref (data->ctx);
 
-		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data);
-		break;
-	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
-		connection_count--;
-
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data);
+		if (status == SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE)
+			(*cb) (ctx, 
+			       SOUP_CONNECT_ERROR_ADDR_RESOLVE, 
+			       NULL, 
+			       cb_data);
+		else
+			(*cb) (ctx, 
+			       SOUP_CONNECT_ERROR_NETWORK, 
+			       NULL, 
+			       cb_data);
 		break;
 	}
 }
@@ -457,6 +460,8 @@ soup_context_get_connection (SoupContext           *ctx,
 	data->ctx = ctx;
 	data->cb = cb;
 	data->user_data = user_data;
+
+	soup_context_ref (ctx);
 
 	conn_limit = soup_get_connection_limit ();
 
