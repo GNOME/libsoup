@@ -1,3 +1,20 @@
+2001-09-28  Alex Graveley  <alex@ximian.com>
+
+	* build/libsoup.dsp (SOURCE): Add soup-socket-win.c.
+
+	* tests/simple-test.c (main): Take HTTP method and body parameters
+	to use in the request.
+
+	* src/libsoup/soup-socket.h: Make soup_gethostbyname and
+	soup_gethostbyaddr public.
+
+	* src/libsoup/soup-socket-unix.c: Added, split of networking code
+	into unix-specific sections.
+
+	* src/libsoup/soup-socket-win.c: Added, Windows networking code.
+
+	* src/libsoup/soup-socket.c: Holds common socket functions.
+
 2001-09-27  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket.c: Remove Glib workarounds for Windows 
