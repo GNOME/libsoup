@@ -1,5 +1,14 @@
 2001-03-08  JP Rosevear  <jpr@ximian.com>
 
+	* configure.in: send the apache info to the config script
+
+	* src/soup-core/soup-apache.c (soup_apache_handler): upon further
+	reading, content_type is for the outgoing document
+	(soup_apache_read_request): if ap_should_client_block != 0 we
+	want to keep going
+
+2001-03-08  JP Rosevear  <jpr@ximian.com>
+
 	* soup_apacheConf.sh.in: script to provide soup-apache config info
 	through gnome-config
 
