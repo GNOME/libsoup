@@ -12,7 +12,7 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_OPENSSL_SSL_H
+#ifdef HAVE_OPENSSL
 
 #include <unistd.h>
 #include <glib.h>
@@ -515,4 +515,4 @@ soup_openssl_set_security_policy (SoupSecurityPolicy policy)
 	}
 }
 
-#endif /*HAVE_OPENSSL_SSL_H*/
+#endif /*HAVE_OPENSSL*/

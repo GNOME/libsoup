@@ -21,7 +21,7 @@
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-private.h>
 
-#ifdef HAVE_OPENSSL_SSL_H
+#ifdef HAVE_OPENSSL
 #include "soup-openssl.h"
 #endif
 
@@ -43,7 +43,7 @@ soup_ssl_proxy_set_security_policy (SoupSecurityPolicy policy)
 	case -1:
 	case 0:
 		break;
-#ifdef HAVE_OPENSSL_SSL_H
+#ifdef HAVE_OPENSSL
 	case 1:
 		soup_openssl_set_security_policy (policy);
 		break;
@@ -56,7 +56,7 @@ soup_ssl_proxy_init (void)
 {
 	ssl_library = -1;
 
-#ifdef HAVE_OPENSSL_SSL_H
+#ifdef HAVE_OPENSSL
 	if (ssl_library == -1)
 		ssl_library = soup_openssl_init (server_mode) ? 1 : -1;
 #endif
@@ -77,7 +77,7 @@ soup_ssl_proxy_get_iochannel (GIOChannel *sock)
 	default:
 		soup_ssl_proxy_init ();
 		return soup_ssl_proxy_get_iochannel (sock);
-#ifdef HAVE_OPENSSL_SSL_H
+#ifdef HAVE_OPENSSL
 	case 1:
 		return soup_openssl_get_iochannel (sock);
 #endif

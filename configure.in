@@ -279,32 +279,37 @@ if test "x$enable_ssl" = xyes; then
 	### Check for OpenSSL
 	###
 	if test "x$found_ssl" != "xyes"; then
-		save_CPPFLAGS=$CPPFLAGS
-		CPPFLAGS="$CPPFLAGS $openssl_inc_prefix"
-		AC_CHECK_LIB(dl, dlopen, DL_LDFLAGS="-ldl", DL_LDFLAGS="")
-		AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
+		PKG_CHECK_MODULES(OPENSSL, openssl, enable_openssl=yes, [
+			save_CPPFLAGS=$CPPFLAGS
+			CPPFLAGS="$CPPFLAGS $openssl_inc_prefix"
+			AC_CHECK_LIB(dl, dlopen, DL_LDFLAGS="-ldl", DL_LDFLAGS="")
+			AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
 				 [enable_openssl="yes"],
 				 [enable_openssl="no"; break])
 
-		if test "x$enable_openssl" = xyes; then
-			if test "x$enable_static_ssl" = "xyes"; then
-				OPENSSL_LIBS="$openssl_prefix/libssl.a $openssl_prefix/libcrypto.a"
+			if test "x$enable_openssl" = xyes; then
+				if test "x$enable_static_ssl" = "xyes"; then
+					OPENSSL_LIBS="$openssl_prefix/libssl.a $openssl_prefix/libcrypto.a"
+				else
+					OPENSSL_LIBS="-L$openssl_prefix -lssl -lcrypto $DL_LDFLAGS"
+				fi
+				OPENSSL_CFLAGS=$CPPFLAGS
 			else
-				OPENSSL_LIBS="-L$openssl_prefix -lssl -lcrypto $DL_LDFLAGS"
+				OPENSSL_LIBS=
+				OPENSSL_CFLAGS=
 			fi
-			OPENSSL_CFLAGS=$CPPFLAGS
+			CPPFLAGS=$save_CPPFLAGS
+		])
+
+		if test "x$enable_openssl" = xyes; then
 			AC_DEFINE(HAVE_OPENSSL, 1,
 				  [Defined if you are using OpenSSL for SSL support])
 			found_ssl=yes
 			AM_CONDITIONAL(BUILD_PROXY, true)
-		else
-			OPENSSL_LIBS=
-			OPENSSL_CFLAGS=
 		fi
 
 		AC_SUBST(OPENSSL_CFLAGS)
 		AC_SUBST(OPENSSL_LIBS)
-		CPPFLAGS=$save_CPPFLAGS
 	fi
 
 dnl NSS 	###

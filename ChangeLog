@@ -1,3 +1,13 @@
+2003-06-24  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Check pkgconfig for openssl, since 0.9.7 (a) uses
+	it, and (b) depends on lots of new things sometimes (like on RH9).
+
+	* libsoup/soup-openssl.c: 
+	* libsoup/soup-ssl-proxy.c: Change #ifdef HAVE_OPENSSL_SSL_H to
+	just #ifdef HAVE_OPENSSL since the header check doesn't get run in
+	the pkgconfig case
+
 2003-06-19  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-queue.c (soup_queue_read_done_cb): unref the
