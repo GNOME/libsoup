@@ -44,6 +44,7 @@ void              soup_soap_response_set_method_name (SoupSoapResponse *response
 typedef xmlNode SoupSoapParameter;
 
 const char        *soup_soap_parameter_get_name (SoupSoapParameter *param);
+const char        *soup_soap_parameter_get_string_value (SoupSoapParameter *param);
 
 const GList       *soup_soap_response_get_parameters (SoupSoapResponse *response);
 SoupSoapParameter *soup_soap_response_get_first_parameter (SoupSoapResponse *response);

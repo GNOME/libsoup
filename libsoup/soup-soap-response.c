@@ -237,6 +237,14 @@ soup_soap_parameter_get_name (SoupSoapParameter *param)
 	return (const char *) param->name;
 }
 
+const char *
+soup_soap_parameter_get_string_value (SoupSoapParameter *param)
+{
+	g_return_val_if_fail (param != NULL, NULL);
+
+	return (const char *) xmlNodeGetContent (param);
+}
+
 /**
  * soup_soap_response_get_parameters:
  * @response: the %SoupSoapResponse object.

@@ -1,5 +1,10 @@
 2003-11-26  Rodrigo Moya <rodrigo@ximian.com>
 
+	* libsoup/soup-soap-response.[ch]
+	(soup_soap_parameter_get_string_value): new function.
+
+2003-11-26  Rodrigo Moya <rodrigo@ximian.com>
+
 	* libsoup/soup-soap-response.[ch]: added SoupSoapParameter
 	structure, to "hide" the usage of xmlNode's.
 	(soup_soap_parameter_get_name): functions to manage SOAP
