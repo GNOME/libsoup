@@ -71,6 +71,7 @@ AM_PROG_LIBTOOL
 # This isn't a program, but it doesn't fit anywhere else...
 AC_FUNC_ALLOCA
 
+
 dnl ***************************
 dnl *** Checks for glib 1.2 ***
 dnl ***************************
@@ -180,6 +181,7 @@ SOUP_WSDL_LIBS="$SOUP_LIBS -lwsdl"
 AC_SUBST(SOUP_WSDL_LIBDIR)
 AC_SUBST(SOUP_WSDL_INCLUDEDIR)
 AC_SUBST(SOUP_WSDL_LIBS)
+
 
 dnl *********************************
 dnl *** Networking library checks ***
