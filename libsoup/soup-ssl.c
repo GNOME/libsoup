@@ -37,7 +37,7 @@
 #ifdef SOUP_WIN32
 
 GIOChannel *
-soup_ssl_get_iochannel (GIOChannel *sock)
+soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 {
 	return NULL;
 }
@@ -46,11 +46,11 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 #ifdef HAVE_NSS
 
 GIOChannel *
-soup_ssl_get_iochannel (GIOChannel *sock)
+soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 {
 	g_return_val_if_fail (sock != NULL, NULL);
 
-	return soup_nss_get_iochannel (sock);
+	return soup_nss_get_iochannel (sock, type);
 }
 
 #else /* HAVE_NSS */
@@ -63,8 +63,8 @@ soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer ppid)
 	return FALSE;
 }
 
-GIOChannel *
-soup_ssl_get_iochannel (GIOChannel *sock)
+static GIOChannel *
+soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 {
 	GIOChannel *new_chan;
 	int sock_fd;
@@ -101,6 +101,9 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 		putenv (g_strdup_printf ("SECURITY_POLICY=%d",
 					 soup_get_security_policy ()));
 
+		if (type == SOUP_SSL_TYPE_SERVER)
+			putenv ("IS_SERVER=1");
+
 		execl (BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
 		       BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
 		       NULL);
@@ -116,11 +119,9 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	fcntl (pair [1], F_SETFL, flags | O_NONBLOCK);
 
 	new_chan = g_io_channel_unix_new (pair [1]);
-	g_io_add_watch (new_chan, G_IO_HUP,
+	g_io_add_watch (new_chan, G_IO_HUP | G_IO_ERR | G_IO_NVAL,
 			soup_ssl_hup_waitpid, GINT_TO_POINTER (pid));
 
-	/* FIXME: Why is this needed?? */
-	g_io_channel_ref (new_chan);
 	return new_chan;
 
  ERROR:
@@ -133,3 +134,15 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 
 #endif /* HAVE_NSS */
 #endif /* SOUP_WIN32 */
+
+GIOChannel *
+soup_ssl_get_iochannel (GIOChannel *sock)
+{
+	return soup_ssl_get_iochannel_real (sock, SOUP_SSL_TYPE_CLIENT);
+}
+
+GIOChannel *
+soup_ssl_get_server_iochannel (GIOChannel *sock)
+{
+	return soup_ssl_get_iochannel_real (sock, SOUP_SSL_TYPE_SERVER);
+}

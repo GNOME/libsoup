@@ -13,8 +13,9 @@
 
 #include <glib.h>
 #include <libsoup/soup-misc.h>
+#include <libsoup/soup-ssl.h>
 
-GIOChannel *soup_nss_get_iochannel       (GIOChannel *sock);
+GIOChannel *soup_nss_get_iochannel       (GIOChannel *sock, SoupSSLType type);
 
 void        soup_nss_set_security_policy (SoupSecurityPolicy policy);
 

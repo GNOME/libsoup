@@ -18,6 +18,6 @@ GIOChannel *soup_openssl_get_iochannel       (GIOChannel *sock);
 
 void        soup_openssl_set_security_policy (SoupSecurityPolicy policy);
 
-gboolean    soup_openssl_init                (void);
+gboolean    soup_openssl_init                (gboolean server_mode);
 
 #endif /* SOUP_OPENSSL_H */

@@ -13,6 +13,12 @@
 
 #include <glib.h>
 
+typedef enum {
+	SOUP_SSL_TYPE_CLIENT = 0,
+	SOUP_SSL_TYPE_SERVER
+} SoupSSLType;
+
 GIOChannel *soup_ssl_get_iochannel (GIOChannel *sock);
+GIOChannel *soup_ssl_get_server_iochannel (GIOChannel *sock);
 
 #endif /* SOUP_SSL_H */

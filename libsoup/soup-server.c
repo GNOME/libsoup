@@ -235,19 +235,24 @@ destroy_message (SoupMessage *msg)
 	SoupServerMessage *server_msg = msg->priv->server_msg;
 
 	if (server_sock) {
+		GIOChannel *chan;
+
+		chan = soup_socket_get_iochannel (server_sock);
+
 		/*
 		 * Close the socket if we're using HTTP/1.0 and
 		 * "Connection: keep-alive" isn't specified, or if we're
 		 * using HTTP/1.1 and "Connection: close" was specified.
 		 */
-		if (check_close_connection (msg))
+		if (check_close_connection (msg)) {
+			g_io_channel_close (chan);
 			soup_socket_unref (server_sock);
+		}
 		else {
 			/*
 			 * Listen for another request on this connection
 			 */
 			ServerConnectData *data;
-			GIOChannel *chan;
 
 			data = g_new0 (ServerConnectData, 1);
 			data->server = msg->priv->server;
@@ -911,6 +916,7 @@ message_new (SoupServer *server)
 	 */
 	msg = soup_message_new (NULL, NULL);
 	if (msg) {
+		msg->method = NULL;
 		msg->priv->server = server;
 		soup_server_ref (server);
 	}
@@ -977,7 +983,7 @@ conn_accept (GIOChannel    *serv_chan,
 	chan = soup_socket_get_iochannel (sock);
 
 	if (server->proto == SOUP_PROTOCOL_HTTPS) {
-		chan = soup_ssl_get_iochannel (chan);
+		chan = soup_ssl_get_server_iochannel (chan);
 		g_io_channel_unref (sock->iochannel);
 		g_io_channel_ref (chan);
 		sock->iochannel = chan;

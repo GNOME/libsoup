@@ -27,6 +27,8 @@
 
 #include "soup-openssl.h"
 
+static gboolean server_mode = FALSE;
+
 typedef struct {
 	GIOChannel   channel;
 	gint         fd;
@@ -233,7 +235,7 @@ soup_openssl_write (GIOChannel   *channel,
 
 	if (result < 0) {
 		*bytes_written = 0;
-		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
+		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_WRITE)
 			return G_IO_STATUS_AGAIN;
 		switch (errno) {
 		case EINVAL:
@@ -250,7 +252,8 @@ soup_openssl_write (GIOChannel   *channel,
 		}
 	} else {
 		*bytes_written = result;
-		return G_IO_STATUS_NORMAL;
+
+		return (result > 0) ? G_IO_STATUS_NORMAL : G_IO_STATUS_EOF;
 	}
 }
 
@@ -479,7 +482,7 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 
         g_return_val_if_fail (sock != NULL, NULL);
 
-	if (!ssl_context && !soup_openssl_init ()) 
+	if (!ssl_context && !soup_openssl_init (server_mode)) 
 		goto THROW_CREATE_ERROR;
 
 	if (!soup_openssl_seed ())
@@ -504,12 +507,13 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 			goto THROW_CREATE_ERROR;
 		}
 
-		if (!SSL_use_RSAPrivateKey_file (ssl, ckey_file, 1)) {
+		if (!SSL_use_RSAPrivateKey_file (ssl, ckey_file, SSL_FILETYPE_PEM)) {
 			g_warning ("Unable to use private key file.");
+			ERR_print_errors_fp(stderr);
 			goto THROW_CREATE_ERROR;
 		}
 
-		if (!SSL_use_certificate_file (ssl, ccert_file, 1)) {
+		if (!SSL_use_certificate_file (ssl, ccert_file, SSL_FILETYPE_PEM)) {
 			g_warning ("Unable to use certificate file.");
 			goto THROW_CREATE_ERROR;
 		}
@@ -531,7 +535,11 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 	do {
 		fd_set ssl_fdset;
 
-		err = SSL_connect (ssl);
+		if (server_mode)
+			err = SSL_accept (ssl);
+		else
+			err = SSL_connect (ssl);
+
 		err = SSL_get_error (ssl, err);
 
 		if (err == SSL_ERROR_WANT_READ) {
@@ -556,12 +564,15 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 		goto THROW_CREATE_ERROR;
 	}
 
-	cert = SSL_get_peer_certificate (ssl);
-	if (!cert) {
-		g_warning ("Server certificate unavailable");
-		goto THROW_CREATE_ERROR;
+	if (!server_mode) {
+		cert = SSL_get_peer_certificate (ssl);
+		if (!cert) {
+			g_warning ("Server certificate unavailable");
+			goto THROW_CREATE_ERROR;
+		}
+		else
+			X509_free (cert);
 	}
-	X509_free (cert);
 
 	chan = g_new0 (SoupOpenSSLChannel, 1);
 	chan->fd = sockfd;
@@ -580,7 +591,7 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 }
 
 gboolean
-soup_openssl_init (void)
+soup_openssl_init (gboolean server)
 {
 	static gchar *ssl_ca_file = NULL;
 	static gchar *ssl_ca_dir  = NULL;
@@ -588,7 +599,13 @@ soup_openssl_init (void)
 	SSL_library_init ();
 	SSL_load_error_strings ();
 
-	ssl_context = SSL_CTX_new (SSLv23_client_method ());
+	server_mode = server;
+
+	if (server_mode)
+		ssl_context = SSL_CTX_new (SSLv23_server_method ());
+	else
+		ssl_context = SSL_CTX_new (SSLv23_client_method ());
+
 	if (!ssl_context) {
 		g_warning ("Unable to initialize OpenSSL library");
 		return FALSE;

@@ -1,13 +1,47 @@
+2002-07-24  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-nss.c: Check the server mode and set up a
+	client or server handshake appropriately.
+
+	* src/libsoup/soup-server.c (destroy_message): If we're supposed
+	to close the connection, go ahead and close it.
+	(message_new): Set the method to NULL, or else we'll segfault
+	later.
+	(conn_accept): Call soup_ssl_get_server_iochannel() instead.
+
+	* src/libsoup/soup-ssl.c (soup_ssl_get_iochannel_real): Added.
+	Does all of the heavy lifting from soup_ssl_get_iochannel().
+	Takes an argument for the SSL handshake type (client or server).
+	Set IS_SERVER env var for the proxy if we are in server mode.
+	When checking for the HUP, also get G_IO_ERR and G_IO_NVAL.
+	Remove an extraneous ref.
+	(soup_ssl_get_iochannel): Just a wrapper around the above for the
+	client.  
+	(soup_ssl_get_server_iochannel): Added.  A server-mode wrapper
+	around the above.
+
+	* src/soup-ssl-proxy/soup-openssl.c: Add a server mode global.
+	(soup_openssl_write): if result is 0, return a G_IO_STATUS_EOF.
+	(soup_openssl_get_iochannel): If we're in server mode, call
+	SSL_accept() and SSL_connect() if we're in client mode.
+	(soup_openssl_init): If we're in server mode, set it on the SSL
+	context.
+
+	* src/soup-ssl-proxy/soup-ssl-proxy.c (main): If SOUP_PROXY_DELAY
+	is set, sleep for 20 seconds so we can attach gdb to it.  Listen
+	for G_IO_PRI messages as well.
+
 2002-07-23  Joe Shaw  <joe@ximian.com>
 
-	* soup-auth.c (soup_auth_invalidate): Added.  Removes the SoupAuth
-	structure from the list of valid auths.
+	* src/libsoup/soup-auth.c (soup_auth_invalidate): Added.  Removes
+	the SoupAuth structure from the list of valid auths.
 
-	* soup-message.c (authorize_handler): Change the logic around when
-	dealing with cached SoupAuths.  If we previously were in the
-	FAILED state, we might as well invalidate the old one and try it
-	again.  If we were in the SUCCESSFUL state, then something went
-	wrong and we need to invalidate and start over again anyway.
+	* src/libsoup/soup-message.c (authorize_handler): Change the
+	logic around when dealing with cached SoupAuths.  If we
+	previously were in the FAILED state, we might as well invalidate
+	the old one and try it again.  If we were in the SUCCESSFUL state,
+	then something went wrong and we need to invalidate and start over
+	again anyway.
 
 2002-07-16  Joe Shaw  <joe@ximian.com>
 

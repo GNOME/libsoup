@@ -33,6 +33,8 @@ static gint ssl_library = 0; /* -1 = fail,
 				 1 = openssl */
 static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
 
+static gboolean server_mode = FALSE;
+
 static GMainLoop *loop;
 
 static void 
@@ -58,7 +60,8 @@ soup_ssl_proxy_init (void)
 	ssl_library = -1;
 
 #ifdef HAVE_OPENSSL_SSL_H
-	if (ssl_library == -1) ssl_library = soup_openssl_init () ? 1 : -1;
+	if (ssl_library == -1)
+		ssl_library = soup_openssl_init (server_mode) ? 1 : -1;
 #endif
 
 	if (ssl_library == -1) return;
@@ -131,6 +134,11 @@ main (int argc, char** argv)
 	GIOChannel *read_chan, *write_chan, *sock_chan;
 	int sockfd, secpol, flags;
 
+	if (getenv ("SOUP_PROXY_DELAY")) {
+		g_warning ("Proxy delay set: sleeping for 20 seconds");
+		sleep (20);
+	}
+
 	loop = g_main_new (FALSE);
 
 	env = getenv ("SOCKFD");
@@ -147,6 +155,10 @@ main (int argc, char** argv)
 
 	secpol = atoi (env);
 	soup_ssl_proxy_set_security_policy (secpol);
+
+	env = getenv ("IS_SERVER");
+	if (env)
+		server_mode = TRUE;
 
 	read_chan = g_io_channel_unix_new (STDIN_FILENO);
 	if (!read_chan) 
@@ -170,12 +182,12 @@ main (int argc, char** argv)
 		g_error ("Unable to establish SSL connection");
 
 	g_io_add_watch (read_chan, 
-			G_IO_IN | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_HUP | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			sock_chan);
 
 	g_io_add_watch (sock_chan, 
-			G_IO_IN | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_HUP | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			write_chan);
 
