@@ -1,5 +1,10 @@
 2001-07-30  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_queue_read_headers_cb):
+	Content-length should be avoided for HEAD requests.
+
+2001-07-30  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-misc.c (soup_load_config_internal): Fix bug
 	where only the first valid config token is loaded from the config file.
 

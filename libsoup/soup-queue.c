@@ -85,10 +85,13 @@ soup_queue_read_headers_cb (const GString *headers,
 	if (connection && g_strcasecmp (connection, "close") == 0)
 		soup_connection_set_keep_alive (req->priv->conn, FALSE);
 
+	if (!g_strcasecmp (req->method, "HEAD")) 
+		goto RUN_HANDLERS;
+
 	/* Handle Content-Length or Chunked encoding */
 	length = g_hash_table_lookup (req->response_headers, "Content-Length");
 	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
-	
+
 	if (length) {
 		*content_len = atoi (length);
 		if (*content_len < 0) 
@@ -102,6 +105,7 @@ soup_queue_read_headers_cb (const GString *headers,
 		}
 	}
 
+ RUN_HANDLERS:
 	err = soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
 	if (err) goto THROW_MALFORMED_HEADER;
 	if (req->status == SOUP_STATUS_QUEUED) return FALSE;
