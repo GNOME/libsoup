@@ -40,6 +40,12 @@ soup_message_new (SoupContext *context, const gchar *method)
 	ret->context = context;
 	ret->method  = method ? method : SOUP_METHOD_POST;
 
+	ret->request_headers = g_hash_table_new (soup_str_case_hash, 
+						 soup_str_case_equal);
+
+	ret->response_headers = g_hash_table_new (soup_str_case_hash, 
+						  soup_str_case_equal);
+
 	ret->priv->http_version = SOUP_HTTP_1_1;
 
 	soup_context_ref (context);
@@ -114,10 +120,11 @@ soup_message_cleanup (SoupMessage *req)
 }
 
 static void
-free_header (gchar *name, gchar *value, gpointer unused)
+free_header (gchar *name, GSList *vals, gpointer unused)
 {
 	g_free (name);
-	g_free (value);
+	g_slist_foreach (vals, (GFunc) g_free, NULL);
+	g_slist_free (vals);
 }
 
 static void
@@ -219,27 +226,80 @@ soup_message_cancel (SoupMessage *msg)
 	soup_message_issue_callback (msg);
 }
 
-static void 
-soup_message_set_header (GHashTable  **hash,
-			 const gchar  *name,
-			 const gchar  *value) 
+void 
+soup_message_add_header (GHashTable  *hash,
+			 const gchar *name,
+			 const gchar *value) 
 {
-	gpointer old_name, old_value;
+	gboolean exists = FALSE;
+	gpointer old_name;
+	GSList *old_value;
 
-	if (!*hash) 
-		*hash = g_hash_table_new (soup_str_case_hash, 
-					  soup_str_case_equal);
-	else if (g_hash_table_lookup_extended (*hash, 
+	g_return_if_fail (hash != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');	
+
+	exists = g_hash_table_lookup_extended (hash, 
 					       name, 
 					       &old_name, 
-					       &old_value)) {
-		g_hash_table_remove (*hash, name);
-		g_free (old_name);
-		g_free (old_value);
-	}
+					       (gpointer *) &old_value);
 
-	if (value)
-		g_hash_table_insert (*hash, g_strdup (name), g_strdup (value));
+	if (value && exists)
+		old_value = g_slist_append (old_value,
+					    g_strdup (value));
+	else if (value && !exists)
+		g_hash_table_insert (hash, 
+				     g_strdup (name), 
+				     g_slist_append (NULL, 
+						     g_strdup (value)));
+	else if (!value && exists) {
+		g_hash_table_remove (hash, name);
+		free_header (old_name, old_value, NULL);
+	} 
+}
+
+/**
+ * soup_message_get_header:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * 
+ * Lookup the first transport header with a key equal to @name.
+ *
+ * Return value: the header's value or NULL if not found.
+ */
+const gchar *
+soup_message_get_header (GHashTable *hash,
+			 const gchar *name)
+{
+	GSList *vals;
+
+	g_return_val_if_fail (hash != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);	
+
+	vals = g_hash_table_lookup (hash, name);
+	if (vals) 
+		return vals->data;
+
+	return NULL;
+}
+
+/**
+ * soup_message_get_header_list:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * 
+ * Lookup the all transport request headers with a key equal to @name.
+ *
+ * Return value: a const pointer to a GSList of header values or NULL if not
+ * found.  
+ */
+const GSList *
+soup_message_get_header_list (GHashTable  *hash,
+			      const gchar *name)
+{
+	g_return_val_if_fail (hash != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);	
+
+	return g_hash_table_lookup (hash, name);
 }
 
 /**
@@ -247,9 +307,11 @@ soup_message_set_header (GHashTable  **hash,
  * @req: a %SoupMessage.
  * @name: header name.
  * @value: header value.
+ *
+ * ** DEPRECATED **
  * 
  * Adds a new transport header to be sent on an outgoing request. Passing a NULL
- * @value will remove the header name supplied.
+ * @value will remove all headers with a name equal to @name.
  */
 void
 soup_message_set_request_header (SoupMessage *req,
@@ -259,7 +321,11 @@ soup_message_set_request_header (SoupMessage *req,
 	g_return_if_fail (req != NULL);
 	g_return_if_fail (name != NULL || name [0] != '\0');
 
-	soup_message_set_header (&req->request_headers, name, value);
+	g_warning ("soup_message_set_request_header is DEPRECATED. Use "
+		   "soup_message_add_header, with msg->request_headers as "
+		   "the first argument.\n");
+
+	soup_message_add_header (req->request_headers, name, value);
 }
 
 /**
@@ -267,7 +333,9 @@ soup_message_set_request_header (SoupMessage *req,
  * @req: a %SoupMessage.
  * @name: header name.
  * 
- * Lookup the transport request header with a key equal to @name.
+ * ** DEPRECATED **
+ * 
+ * Lookup the first transport request header with a key equal to @name.
  *
  * Return value: the header's value or NULL if not found.
  */
@@ -275,11 +343,21 @@ const gchar *
 soup_message_get_request_header (SoupMessage *req,
 				 const gchar *name) 
 {
+	GSList *vals;
 	g_return_val_if_fail (req != NULL, NULL);
 	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
 
-	return req->request_headers ? 
-		g_hash_table_lookup (req->request_headers, name) : NULL;
+	g_warning ("soup_message_get_request_header is DEPRECATED. Use "
+		   "soup_message_get_header, with msg->request_headers as "
+		   "the first argument.\n");
+
+	if (req->request_headers) {
+		vals = g_hash_table_lookup (req->request_headers, name);
+		if (vals) 
+			return vals->data;
+	}
+
+	return NULL;
 }
 
 /**
@@ -288,8 +366,10 @@ soup_message_get_request_header (SoupMessage *req,
  * @name: header name.
  * @value: header value.
  * 
+ * ** DEPRECATED **
+ * 
  * Adds a new transport header to be sent on an outgoing response. Passing a
- * NULL @value will remove the header name supplied.
+ * NULL @value will remove all headers with a name equal to @name.
  */
 void
 soup_message_set_response_header (SoupMessage *req,
@@ -299,13 +379,19 @@ soup_message_set_response_header (SoupMessage *req,
 	g_return_if_fail (req != NULL);
 	g_return_if_fail (name != NULL || name [0] != '\0');
 
-	soup_message_set_header (&req->response_headers, name, value);
+	g_warning ("soup_message_set_response_header is DEPRECATED. Use "
+		   "soup_message_add_header, with msg->response_headers as "
+		   "the first argument.\n");
+
+	soup_message_add_header (req->response_headers, name, value);
 }
 
 /**
  * soup_message_get_response_header:
  * @req: a %SoupMessage.
  * @name: header name.
+ * 
+ * ** DEPRECATED **
  * 
  * Lookup the transport response header with a key equal to @name.
  *
@@ -315,11 +401,21 @@ const gchar *
 soup_message_get_response_header (SoupMessage *req,
 				  const gchar *name) 
 {
+	GSList *vals;
 	g_return_val_if_fail (req != NULL, NULL);
 	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
 
-	return req->response_headers ? 
-		g_hash_table_lookup (req->response_headers, name) : NULL;
+	g_warning ("soup_message_get_response_header is DEPRECATED. Use "
+		   "soup_message_get_header, with msg->response_headers as "
+		   "the first argument.\n");
+
+	if (req->response_headers) {
+		vals = g_hash_table_lookup (req->response_headers, name);
+		if (vals) 
+			return vals->data;
+	}
+
+	return NULL;
 }
 
 /**

@@ -199,17 +199,31 @@ void           soup_message_set_handler_error   (SoupMessage       *msg,
 						 guint              errcode, 
 						 const gchar       *errphrase);
 
+void           soup_message_add_header          (GHashTable        *hash,
+						 const gchar       *name,
+						 const gchar       *value);
+
+const gchar   *soup_message_get_header          (GHashTable        *hash,
+						 const gchar       *name);
+
+const GSList  *soup_message_get_header_list     (GHashTable        *hash,
+						 const gchar       *name);
+
+/** DEPRECATED **/
 void           soup_message_set_request_header  (SoupMessage       *req,
 						 const gchar       *name,
 						 const gchar       *value);
 
+/** DEPRECATED **/
 const gchar   *soup_message_get_request_header  (SoupMessage       *req,
 						 const gchar       *name);
 
+/** DEPRECATED **/
 void           soup_message_set_response_header (SoupMessage       *req,
 						 const gchar       *name,
 						 const gchar       *value);
 
+/** DEPRECATED **/
 const gchar   *soup_message_get_response_header (SoupMessage       *req,
 						 const gchar       *name);
 

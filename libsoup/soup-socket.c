@@ -341,7 +341,7 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 				SOUP_SOCKET_CONNECT_ERROR_NETWORK,
 				state->data);
 
-	g_free(state);
+	g_free (state);
 }
 
 static void
@@ -361,7 +361,7 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 		(*state->func) (NULL,
 				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE,
 				state->data);
-		g_free(state);
+		g_free (state);
 	}
 }
 

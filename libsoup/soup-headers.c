@@ -67,6 +67,7 @@ soup_headers_parse (gchar      *str,
 
 	/* set eos for header key and value and add to hashtable */
         while ((key = strstr (key, "\r\n"))) {
+		GSList *exist_hdrs;
 		
 		/* set end of last val, or end of http reason phrase */
                 key [0] = '\0';
@@ -91,9 +92,12 @@ soup_headers_parse (gchar      *str,
 		if (!end)
 			goto THROW_MALFORMED_HEADER;
 
-		g_hash_table_insert (dest, 
-				     g_strdup (key), 
-				     g_strndup (val, end - val));
+		exist_hdrs = g_hash_table_lookup (dest, key);
+		exist_hdrs = g_slist_append (exist_hdrs, 
+					     g_strndup (val, end - val));
+
+		if (!exist_hdrs->next)
+			g_hash_table_insert (dest, g_strdup (key), exist_hdrs);
 
 		key = end;
         }

@@ -1,3 +1,21 @@
+2001-10-04  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_add_header): Handle
+	multiple values in header hash tables.
+	(free_header): Free the list of values.
+	(soup_message_new): Create request_headers and response_headers
+	here instead of on header insertion.
+	(soup_message_set_request_header): Deprecate.
+	(soup_message_get_request_header): Deprecate.
+	(soup_message_set_response_header): Deprecate.
+	(soup_message_get_response_header): Deprecate.
+
+	* src/libsoup/soup-dav-server.c: Update to use new header get/add
+	funcs.
+
+	* src/libsoup/soup-headers.c (soup_headers_parse): Store headers
+	as a GSList of values.
+
 2001-10-03  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-uri.c (soup_uri_new): The @ in
