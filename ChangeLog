@@ -3,6 +3,9 @@
 	* libsoup/soup-soap-message.h (SOUP_IS_SOAP_MESSAGE_CLASS): Fix a
 	typo. #54433, from Mariano Suarez-Alvarez.
 
+	* libsoup/soup-soap-response.h (SOUP_IS_SOAP_RESPONSE_CLASS):
+	Likewise
+
 2004-02-17  Rodney Dawes  <dobey@ximian.com>
 
 	* libsoup/soup-message.c (soup_message_new): HTTP connections require
