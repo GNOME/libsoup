@@ -1,3 +1,13 @@
+2002-07-15  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-auth.c (soup_auth_set_context): If the auth
+	we're adding and the old auth in the hash are the same, don't go
+	around freeing things all willy-nilly.
+
+	* src/libsoup/soup-message.c (authorize_handler): Don't blindly
+	create new SoupAuths when there may be perfectly good ones around
+	in the hash that we can (and perhaps must) use.
+
 2002-07-02  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-server.c (check_close_connection): Added.

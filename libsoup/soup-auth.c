@@ -643,6 +643,9 @@ soup_auth_set_context (SoupAuth *auth, SoupContext *ctx)
 					       uri->path,
 					       (gpointer *) &old_path,
 					       (gpointer *) &old_auth)) {
+		if (auth == old_auth)
+			return;
+
 		g_hash_table_remove (server->valid_auths, old_path);
 		g_free (old_path);
 		soup_auth_free (old_auth);

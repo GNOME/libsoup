@@ -770,6 +770,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	SoupAuth *auth, *old_auth;
 	SoupContext *ctx;
 	const SoupUri *uri;
+	gboolean check_old = TRUE;
 
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
@@ -780,7 +781,12 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 					             "WWW-Authenticate");
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header_list (uri, vals);
+	auth = soup_auth_lookup (ctx);
+	if (auth)
+		check_old = FALSE;
+	else
+		auth = soup_auth_new_from_header_list (uri, vals);
+
 	if (!auth) {
 		soup_message_set_error_full (
 			msg, 
@@ -813,15 +819,17 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	 */
 	soup_auth_initialize (auth, uri);
 
-	if (auth->type == SOUP_AUTH_TYPE_NTLM)
-		old_auth = msg->connection->auth;
-	else
-		old_auth = soup_auth_lookup (ctx);
+	if (check_old) {
+		if (auth->type == SOUP_AUTH_TYPE_NTLM)
+			old_auth = msg->connection->auth;
+		else
+			old_auth = soup_auth_lookup (ctx);
 
-	if (old_auth) {
-		if (!soup_auth_invalidates_prior (auth, old_auth)) {
-			soup_auth_free (auth);
-			goto THROW_CANT_AUTHENTICATE;
+		if (old_auth) {
+			if (!soup_auth_invalidates_prior (auth, old_auth)) {
+				soup_auth_free (auth);
+				goto THROW_CANT_AUTHENTICATE;
+			}
 		}
 	}
 
