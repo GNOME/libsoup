@@ -1,3 +1,13 @@
+2002-04-25  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.13
+
+	* src/libsoup/soup-socks.c (soup_socks_get_dest_connection):
+	Added.  Creates a SoupConnection using the SOCKS socket but the
+	real HTTP/HTTPS context.
+	(soup_socks_read): Calls soup_socks_get_dest_connection() to pass
+	the correct connection into the callback.
+
 2002-03-22  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.12
@@ -15,6 +25,11 @@
 	by broken proxies.
 	(soup_queue_shutdown): Check soup_queue_idle_tag before attempting
 	to call g_source_remove on it.
+
+2002-02-20  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Don't clobber CPPFLAGS when checking for popt.
+	Patch from Frank Belew (frb@ximian.com)
 
 2002-02-20  Joe Shaw  <joe@ximian.com>
 

@@ -53,6 +53,27 @@ socks_data_free (SoupSocksData *sd)
 	g_free (sd);
 }
 
+static SoupConnection *
+soup_socks_get_dest_connection(SoupConnection *src_conn,
+			       SoupContext *dest_ctx)
+{
+	SoupConnection *new_conn;
+
+	new_conn = g_new0(SoupConnection, 1);
+	new_conn->server = dest_ctx->server;
+	new_conn->context = dest_ctx;
+	new_conn->socket = src_conn->socket;
+	new_conn->port = dest_ctx->uri->port;
+	new_conn->keep_alive = src_conn->keep_alive;
+	new_conn->in_use = TRUE;
+	new_conn->last_used_id = 0;
+	
+	dest_ctx->server->connections =
+		g_slist_prepend(dest_ctx->server->connections, new_conn);
+
+	return new_conn;
+}
+
 static inline void
 WSTRING (char *buf, gint *len, gchar *str)
 {
@@ -226,7 +247,7 @@ soup_socks_read (GIOChannel* iochannel,
  CONNECT_OK:
 	(*sd->cb) (sd->dest_ctx, 
 		   SOUP_CONNECT_ERROR_NONE, 
-		   sd->src_conn, 
+		   soup_socks_get_dest_connection(sd->src_conn, sd->dest_ctx), 
 		   sd->user_data);
 	socks_data_free (sd);
 	return FALSE;
