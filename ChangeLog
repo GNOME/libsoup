@@ -1,3 +1,7 @@
+2003-03-17  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.15.
+
 2003-03-12  Ian Peters  <itp@ximian.com>
 
 	* libsoup/soup-gnutls.c: because creating client credentials is
