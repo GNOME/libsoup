@@ -333,7 +333,7 @@ soup_get_request_header (SoupMessage *req)
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
 
-	action = req->action && !hdrs.soapaction ? req->action : NULL;
+	action = hdrs.soapaction || !req->action;
 
 	/* If we specify an absoluteURI in the request line, the 
 	   Host header MUST be ignored by the proxy. */

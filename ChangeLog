@@ -1,5 +1,11 @@
 2001-07-26  Joe Shaw  <joe@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_get_request_header): Don't display
+	the SOAPAction header if it's either provided by the user or it is
+	NULL.
+
+2001-07-26  Joe Shaw  <joe@ximian.com>
+
 	* configure.in: Bump the version up to 0.4.1.
 
 	* src/soup-core/soup-queue.c (soup_get_request_header): Fix a logic
