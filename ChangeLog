@@ -1,3 +1,8 @@
+2001-05-22  JP Rosevear  <jpr@ximian.com>
+
+	* src/soup-core/soup-apache.c (soup_apache_read_request): null
+	terminate the buffer
+
 2001-05-22  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-parse.c: don't emit code to add the
