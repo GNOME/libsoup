@@ -268,6 +268,7 @@ soup_server_new (const char *optname1, ...)
 	g_object_unref (server->priv->interface);
 	server->priv->interface =
 		soup_socket_get_local_address (server->priv->listen_sock);
+	g_object_ref (server->priv->interface);
 	server->priv->port = soup_address_get_port (server->priv->interface);
 
 	return server;

@@ -312,7 +312,7 @@ update_address_from_entry (SoupAddress *addr, SoupDNSEntry *entry)
 {
 	struct hostent *h;
 
-	h = soup_dns_entry_get_hostent (addr->priv->lookup);
+	h = soup_dns_entry_get_hostent (entry);
 	if (!h)
 		return SOUP_STATUS_CANT_RESOLVE;
 
@@ -405,7 +405,7 @@ soup_address_resolve_async (SoupAddress *addr,
  * Synchronously resolves the missing half of @addr, as with
  * soup_address_resolve_async().
  *
- * Return value: %SOUP_STATUS_OK or %SOUP_ERROR_CANT_RESOLVE
+ * Return value: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
  **/
 guint
 soup_address_resolve_sync (SoupAddress *addr)
