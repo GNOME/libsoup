@@ -54,6 +54,16 @@
 #include <sys/sockio.h>
 #endif
 
+#ifndef PTRACE_ATTACH
+#  ifdef PT_ATTACH
+#    define SOUP_PTRACE_ATTACH PT_ATTACH
+#    define SOUP_PTRACE_DETACH PT_DETACH
+#  endif
+#else
+#  define SOUP_PTRACE_ATTACH PTRACE_ATTACH
+#  define SOUP_PTRACE_DETACH PTRACE_DETACH
+#endif
+
 #ifndef socklen_t
 #define socklen_t size_t
 #endif
@@ -673,10 +683,10 @@ soup_address_new (const gchar* name,
 	case 0:
 		close (pipes [0]);
 
-#ifdef PTRACE_ATTACH
+#ifdef SOUP_PTRACE_ATTACH
 		signal (SIGCHLD, SIG_IGN);
 
-		if (ptrace (PTRACE_ATTACH, getppid (), NULL, NULL) == -1) {
+		if (ptrace (SOUP_PTRACE_ATTACH, getppid (), NULL, NULL) == -1) {
 			/* 
 			 * Attach failed; it's probably already being
 			 * debugged. 
@@ -687,19 +697,19 @@ soup_address_new (const gchar* name,
 
 			_exit (1);
 		}
-		
+
 		/* 
 		 * Wait for the SIGSTOP from PTRACE_ATTACH to arrive at the
 		 * parent.  
 		 */
 		waitpid (getppid (), NULL, 0);
 
-		if (ptrace (PTRACE_DETACH, getppid (), NULL, NULL) == -1)
+		if (ptrace (SOUP_PTRACE_DETACH, getppid (), NULL, NULL) == -1)
 			g_warning ("ptrace: Detach failed: %s", 
 				   strerror(errno));
 
 		kill (getppid(), SIGCONT);
-#endif
+#endif /*SOUP_PTRACE_ATTACH*/
 
 		/* 
 		 * Try to get the host by name (ie, DNS) 

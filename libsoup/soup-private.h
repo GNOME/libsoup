@@ -147,6 +147,16 @@ gint      soup_substring_index (gchar         *str,
 gchar    *soup_base64_encode   (const gchar   *text,
 				gint           len);
 
+/* from soup-socket.c */
+
+gboolean  soup_gethostbyname (const gchar         *hostname,
+			      struct sockaddr_in  *sa,
+			      gchar              **nicename);
+
+gchar    *soup_gethostbyaddr (const gchar         *addr, 
+			      size_t               length, 
+			      int                  type);
+
 #ifdef __cplusplus
 }
 #endif

@@ -14,23 +14,7 @@
 #ifndef SOUP_SOCKET_H
 #define SOUP_SOCKET_H 1
 
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-
-#ifdef SOUP_WIN32
-#include <winsock.h>
-#endif
-
 #include <glib.h>
-
-gboolean  soup_gethostbyname (const gchar         *hostname,
-			      struct sockaddr_in  *sa,
-			      gchar              **nicename);
-
-gchar    *soup_gethostbyaddr (const gchar         *addr, 
-			      size_t               length, 
-			      int                  type);
 
 typedef struct _SoupAddress SoupAddress;
 

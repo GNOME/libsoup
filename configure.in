@@ -320,9 +320,11 @@ enable_nss="no"
 if test "x$enable_ssl" = xyes; then
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$openssl_inc_prefix"
+	AC_CHECK_LIB(dl, dlopen, DL_LDFLAGS="-ldl", DL_LDFLAGS="")
 	AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
 			 [OPENSSL_CFLAGS="$CPPFLAGS" 
-			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto"
+			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto $DL_LDFLAGS"
+			  AC_DEFINE(HAVE_OPENSSL)
 			  enable_openssl="yes"],
 			 [OPENSSL_CFLAGS="" 
 			  OPENSSL_LIBS="" 
@@ -334,9 +336,10 @@ if test "x$enable_ssl" = xyes; then
 
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
-	AC_CHECK_HEADERS(prthread.h security/ssl.h security/pk11func.h,
+	AC_CHECK_HEADERS(nss.h ssl.h pk11func.h,
 			 [NSS_CFLAGS="$CPPFLAGS" 
 			  NSS_LIBS="-lpthread $nspr_prefix -lnspr4 $nss_prefix -lnss3 -lssl3"
+			  AC_DEFINE(HAVE_NSS)
 			  enable_nss="yes"],
 			 [NSS_CFLAGS="" 
 			  NSS_LIBS="" 
@@ -376,7 +379,7 @@ dnl *********************************************
 dnl *** Checks for gtk-doc (lifted from glib) ***
 dnl *********************************************
 
-AC_ARG_WITH(html-dir, [  --with-html-dir=PATH path to installed docs ])
+AC_ARG_WITH(html-dir, [  --with-html-dir=PATH     Path to installed docs ])
 
 if test "x$with_html_dir" = "x" ; then
   HTML_DIR='${datadir}/gtk-doc/html'
@@ -395,7 +398,7 @@ AM_CONDITIONAL(HAVE_DOCBOOK, $DB2HTML)
 
 dnl Let people disable the gtk-doc stuff.
 AC_ARG_ENABLE(gtk-doc, 
-	      [  --enable-gtk-doc  Use gtk-doc to build documentation [default=auto]], 
+	      [  --enable-gtk-doc         Use gtk-doc to build documentation [default=auto]], 
 	      enable_gtk_doc="$enableval", 
 	      enable_gtk_doc=auto)
 

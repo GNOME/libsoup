@@ -1,3 +1,17 @@
+2001-10-01  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): Add defines
+	for SOUP_PTRACE_ATTACH and SOUP_PTRACE_DETACH to remove
+	architecture incompatibilities for ptrace() arguments.
+
+	* configure.in: Add libdl to OpenSSL LDFLAGS.  Fix NSS header
+	paths.  Define HAVE_OPENSSL and HAVE_NSS if the libraries are
+	found successfully.
+
+	* src/libsoup/soup-socket.h: Remove soup_gethostbyname and
+	soup_gethostbyaddr, and move to:
+	* src/libsoup/soup-private.h: here.
+
 2001-09-28  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-ntlm.c: Remove redundant alloca define.
