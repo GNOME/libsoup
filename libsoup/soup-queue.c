@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <errno.h>
 
+#include "soup-auth.h"
 #include "soup-message.h"
 #include "soup-context.h"
 #include "soup-headers.h"

@@ -18,6 +18,8 @@ soupincludedir = $(includedir)/soup
 soupinclude_HEADERS =		\
 	soup.h			\
 	soup-context.h		\
+	soup-dav.h		\
+	soup-dav-server.h	\
 	soup-env.h		\
 	soup-fault.h		\
 	soup-message.h		\
@@ -42,6 +44,8 @@ libsoup_la_SOURCES =		\
 	soup-auth.h		\
 	soup-auth.c		\
 	soup-context.c		\
+	soup-dav.c		\
+	soup-dav-server.c	\
 	soup-env.c		\
 	soup-fault.c		\
 	soup-headers.h		\

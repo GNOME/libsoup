@@ -13,8 +13,7 @@
 
 #include "soup-context.h"
 #include "soup-message.h"
-
-typedef struct _SoupAuth SoupAuth;
+#include "soup-private.h"
 
 SoupAuth *soup_auth_new_from_header   (SoupContext *context, 
 				       const char  *header);

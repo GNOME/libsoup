@@ -35,7 +35,6 @@
 #include <winuser.h>
 #endif
 
-#include "soup-auth.h"
 #include "soup-context.h"
 #include "soup-message.h"
 #include "soup-server.h"
@@ -71,6 +70,8 @@ struct _SoupSocket {
 	guint           ref_count;
 	GIOChannel     *iochannel;
 };
+
+typedef struct _SoupAuth SoupAuth;
 
 struct _SoupContext {
 	SoupUri      *uri;

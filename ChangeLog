@@ -1,3 +1,17 @@
+2001-08-17  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-dav-server.[ch]: Initial WebDAV server
+	support.
+
+	* src/soup-core/soup-dav.[ch]: Beginnings of WebDAV client
+	support.
+
+	* configure.in: Add warning about updating
+	src/soup-core/soup-private.h when version changes.
+
+	* src/soup-core/soup-private.h: Declare SoupAuth here, so
+	including is possible.
+
 2001-08-12  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-ssl.c (soup_ssl_get_iochannel): Connect to
@@ -6,8 +20,8 @@
 
 2001-08-11  Alex Graveley  <alex@ximian.com>
 
-	* src/soup-core/soup-ssl-proxy.c (main): Fix typo causes
-	O_NONBLOCK to to be set.
+	* src/soup-core/soup-ssl-proxy.c (main): Fix typo causing
+	O_NONBLOCK not to be set.
 
 	* src/soup-core/soup-ssl.c (soup_ssl_get_iochannel): Ditto.
 

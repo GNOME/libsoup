@@ -8,6 +8,7 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#include "soup-auth.h"
 #include "soup-message.h"
 #include "soup-misc.h"
 #include "soup-context.h"
