@@ -1,3 +1,16 @@
+2001-05-16  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-serializer.c: Document. Needs more details
+	and descriptions from the SOAP spec.
+
+	* src/soup-core/soup-queue.c: Document.
+
+	* src/soup-core/soup-misc.c: Document.
+	(soup_load_config): Reset security policy to
+	SOUP_SECURITY_DOMESTIC when reloading config.
+
+	* src/soup-core/soup-message.c: Document.
+
 2001-05-16  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-headers.c (soup_headers_parse): g_strdup the

@@ -27,6 +27,12 @@ GSList *soup_active_requests = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
+/**
+ * soup_queue_shutdown:
+ * 
+ * Shut down the message queue by calling %soup_message_cancel on all active
+ * requests.
+ */
 void 
 soup_queue_shutdown (void)
 {
@@ -584,6 +590,21 @@ soup_idle_handle_new_requests (gpointer unused)
 	return FALSE;
 }
 
+/**
+ * soup_message_queue:
+ * @req: a %SoupMessage.
+ * @callback: a %SoupCallbackFn which will be called after the message completes
+ * or when an unrecoverable error occurs.
+ * @user_data: a pointer passed to @callback.
+ * 
+ * Queues the message %req for sending. All messages are processed while the
+ * glib main loop runs. If this %SoupMessage has been processed before, any
+ * resources related to the last it was sent are freed.
+ *
+ * If the response %SoupDataBuffer has an owner of %SOUP_BUFFER_USER_OWNED, the
+ * message will not be queued, and @callback will be called with a
+ * %SoupErrorCode of %SOUP_ERROR_CANCELLED.
+ */
 void 
 soup_message_queue (SoupMessage    *req,
 		    SoupCallbackFn  callback, 

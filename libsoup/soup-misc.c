@@ -26,7 +26,18 @@ static SoupContext *proxy_context = NULL;
 
 static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
 
-void         
+/**
+ * soup_set_proxy:
+ * @context: a %SoupContext to use as the proxy context for all outgoing
+ * connections.
+ * 
+ * Use @context as the %SoupContext to connect to instead of the actual
+ * destination specified in a SoupMessage. Messages will be routed through the
+ * proxy host on their way to the actual specified destination. The URL for this
+ * context should be of the form:
+ * 	[http|https|socks4|socks5]://<USERNAME>:<PASSWORD>@<PROXYHOST>
+ */
+void
 soup_set_proxy (SoupContext *context)
 {
 	if (proxy_context)
@@ -36,30 +47,62 @@ soup_set_proxy (SoupContext *context)
 	soup_context_ref (proxy_context);
 }
 
+/**
+ * soup_get_proxy:
+ * 
+ * Get the current proxy %SoupContext.
+ *
+ * Return value: the current proxy context.
+ */
 SoupContext *
 soup_get_proxy (void)
 {
 	return proxy_context;
 }
 
+/**
+ * soup_set_connection_limit:
+ * @max_conn: the number of connections. 
+ * 
+ * Set the maximum concurrent connection limit for outgoing requests.
+ */
 void         
 soup_set_connection_limit (guint max_conn)
 {
 	max_connections = max_conn;
 }
 
+/**
+ * soup_get_connection_limit:
+ * 
+ * Return value: The maximum concurrent connection limit for outgoing requests.
+ */
 guint
 soup_get_connection_limit (void)
 {
 	return max_connections;
 }
 
+/**
+ * soup_set_security_policy:
+ * @policy: the %SoupSecurityPolicy to use.
+ * 
+ * Set the security policy for all secure SSL connections. The security policy
+ * dictates which algorithms and encryption levels can be used in order to
+ * conform to your country's security legislation.
+ */
 void 
 soup_set_security_policy (SoupSecurityPolicy policy)
 {
 	ssl_security_level = policy;
 }
 
+/**
+ * soup_set_security_policy:
+ * @policy: the %SoupSecurityPolicy to use.
+ * 
+ * Return value: The security policy to use for secure SSL connections.
+ */
 SoupSecurityPolicy 
 soup_get_security_policy (void)
 {
@@ -106,6 +149,16 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 const char base64_alphabet[65] = 
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
+/**
+ * soup_base64_encode:
+ * @text: the binary data to encode.
+ * @inlen: the length of @text.
+ * 
+ * Encode a sequence of binary data into it's Base-64 stringified
+ * representation.
+ *
+ * Return value: The Base-64 encoded string representing @text.
+ */
 gchar *
 soup_base64_encode (const gchar *text, gint inlen)
 {
@@ -334,6 +387,21 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 	}
 }
 
+/**
+ * soup_load_config: 
+ * @config_file: The file to load configuration from. If NULL, load from .souprc
+ * in user's home directory. 
+ * 
+ * Load the Soup configuration from file. First attempt to load the system
+ * configuration from SYSCONFDIR/souprc, then from either the config file name
+ * passed in config_file, or from .souprc in the user's home directory.
+ * 
+ * The first time a message is sent using Soup, the configuration is loaded from
+ * the system souprc file, and the user's souprc file. 
+ *
+ * soup_load_config can be called multiple times. Each time settings will be
+ * reset and reread from scratch.
+ */
 void
 soup_load_config (gchar *config_file)
 {
@@ -341,6 +409,7 @@ soup_load_config (gchar *config_file)
 	if (soup_initialized) {
 		soup_set_proxy (NULL);
 		soup_set_connection_limit (0);
+		soup_set_security_policy (SOUP_SECURITY_DOMESTIC);
 	}
 
 	/* Load system global config */
@@ -360,6 +429,14 @@ soup_load_config (gchar *config_file)
 	soup_initialized = TRUE;
 }
 
+/**
+ * soup_shutdown:
+ * 
+ * Shut down the Soup engine.
+ *
+ * The pending message queue is flushed by calling %soup_message_cancel on all
+ * active requests.
+ */
 void 
 soup_shutdown ()
 {

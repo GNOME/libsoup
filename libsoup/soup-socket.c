@@ -586,37 +586,37 @@ soup_address_new_cb (GIOChannel* iochannel,
 }
 
 /**
- *  soup_address_new:
- *  @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
- *    (eg, 141.213.8.59).  You can delete the after the function is called.
- *  @port: port number (0 if the port doesn't matter)
- *  @func: Callback function.
- *  @data: User data passed when callback function is called.
+ * soup_address_new:
+ * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
+ *   (eg, 141.213.8.59).  You can delete the after the function is called.
+ * @port: port number (0 if the port doesn't matter)
+ * @func: Callback function.
+ * @data: User data passed when callback function is called.
  * 
- *  Create a SoupAddress from a name and port asynchronously.  Once the
- *  structure is created, it will call the callback.  It may call the
- *  callback before the function returns.  It will call the callback
- *  if there is a failure.
+ * Create a SoupAddress from a name and port asynchronously.  Once the
+ * structure is created, it will call the callback.  It may call the
+ * callback before the function returns.  It will call the callback
+ * if there is a failure.
  *
- *  The Unix version forks and does the lookup, which can cause some
- *  problems.  In general, this will work ok for most programs most of
- *  the time.  It will be slow or even fail when using operating
- *  systems that copy the entire process when forking.
+ * The Unix version forks and does the lookup, which can cause some
+ * problems.  In general, this will work ok for most programs most of
+ * the time.  It will be slow or even fail when using operating
+ * systems that copy the entire process when forking.
  *
- *  If you need to lookup a lot of addresses, we recommend calling
- *  g_main_iteration(FALSE) between calls.  This will help prevent an
- *  explosion of processes.
+ * If you need to lookup a lot of addresses, we recommend calling
+ * g_main_iteration(FALSE) between calls.  This will help prevent an
+ * explosion of processes.
  *
- *  If you need a more robust library for Unix, look at <ulink
- *  url="http://www.gnu.org/software/adns/adns.html">GNU ADNS</ulink>.
- *  GNU ADNS is under the GNU GPL.
+ * If you need a more robust library for Unix, look at <ulink
+ * url="http://www.gnu.org/software/adns/adns.html">GNU ADNS</ulink>.
+ * GNU ADNS is under the GNU GPL.
  *
- *  The Windows version should work fine.  Windows has an asynchronous
- *  DNS lookup function.
+ * The Windows version should work fine.  Windows has an asynchronous
+ * DNS lookup function.
  *
- *  Returns: ID of the lookup which can be used with
- *  soup_address_new_cancel() to cancel it; NULL on immediate
- *  success or failure.
+ * Returns: ID of the lookup which can be used with
+ * soup_address_new_cancel() to cancel it; NULL on immediate
+ * success or failure.
  **/
 SoupAddressNewId
 soup_address_new (const gchar* name, 
@@ -772,11 +772,11 @@ soup_address_new (const gchar* name,
 }
 
 /**
- *  soup_address_new_cancel:
- *  @id: ID of the lookup
+ * soup_address_new_cancel:
+ * @id: ID of the lookup
  *
- *  Cancel an asynchronous SoupAddress creation that was started with
- *  soup_address_new().
+ * Cancel an asynchronous SoupAddress creation that was started with
+ * soup_address_new().
  */
 void
 soup_address_new_cancel (SoupAddressNewId id)
@@ -952,10 +952,10 @@ soup_address_new_sync (const gchar *name, const gint port)
 }
 
 /**
- *  soup_address_ref
- *  @ia: SoupAddress to reference
+ * soup_address_ref
+ * @ia: SoupAddress to reference
  *
- *  Increment the reference counter of the SoupAddress.
+ * Increment the reference counter of the SoupAddress.
  **/
 void
 soup_address_ref (SoupAddress* ia)
@@ -967,11 +967,11 @@ soup_address_ref (SoupAddress* ia)
 
 
 /**
- *  soup_address_unref
- *  @ia: SoupAddress to unreference
+ * soup_address_unref
+ * @ia: SoupAddress to unreference
  *
- *  Remove a reference from the SoupAddress.  When reference count
- *  reaches 0, the address is deleted.
+ * Remove a reference from the SoupAddress.  When reference count
+ * reaches 0, the address is deleted.
  **/
 void
 soup_address_unref (SoupAddress* ia)
@@ -1058,23 +1058,23 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 }
 
 /**
- *  soup_address_get_name:
- *  @ia: Address to get the name of.
- *  @func: Callback function.
- *  @data: User data passed when callback function is called.
+ * soup_address_get_name:
+ * @ia: Address to get the name of.
+ * @func: Callback function.
+ * @data: User data passed when callback function is called.
  *
- *  Get the nice name of the address (eg, "mofo.eecs.umich.edu").
- *  This function will use the callback once it knows the nice name.
- *  It may even call the callback before it returns.  The callback
- *  will be called if there is an error.
+ * Get the nice name of the address (eg, "mofo.eecs.umich.edu").
+ * This function will use the callback once it knows the nice name.
+ * It may even call the callback before it returns.  The callback
+ * will be called if there is an error.
  *
- *  The Unix version forks and does the reverse lookup.  This has
- *  problems.  See the notes for soup_address_new().  The
- *  Windows version should work fine.
+ * The Unix version forks and does the reverse lookup.  This has
+ * problems.  See the notes for soup_address_new().  The
+ * Windows version should work fine.
  *
- *  Returns: ID of the lookup which can be used with
- *  soup_addressr_get_name_cancel() to cancel it; NULL on
- *  immediate success or failure.
+ * Returns: ID of the lookup which can be used with
+ * soup_addressr_get_name_cancel() to cancel it; NULL on
+ * immediate success or failure.
  **/
 SoupAddressGetNameId
 soup_address_get_name (SoupAddress*         ia, 
@@ -1192,11 +1192,11 @@ soup_address_get_name (SoupAddress*         ia,
 }
 
 /**
- *  soup_address_get_name_cancel:
- *  @id: ID of the lookup
+ * soup_address_get_name_cancel:
+ * @id: ID of the lookup
  *
- *  Cancel an asynchronous nice name lookup that was started with
- *  soup_address_get_name().
+ * Cancel an asynchronous nice name lookup that was started with
+ * soup_address_get_name().
  */
 void
 soup_address_get_name_cancel (SoupAddressGetNameId id)
@@ -1324,14 +1324,14 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 #endif		/*********** End Windows code ***********/
 
 /**
- *  soup_address_get_canonical_name:
- *  @ia: Address to get the canonical name of.
+ * soup_address_get_canonical_name:
+ * @ia: Address to get the canonical name of.
  *
- *  Get the "canonical" name of an address (eg, for IP4 the dotted
- *  decimal name 141.213.8.59).
+ * Get the "canonical" name of an address (eg, for IP4 the dotted
+ * decimal name 141.213.8.59).
  *
- *  Returns: NULL if there was an error.  The caller is responsible
- *  for deleting the returned string.
+ * Returns: NULL if there was an error.  The caller is responsible
+ * for deleting the returned string.
  **/
 gchar* 
 soup_address_get_canonical_name (SoupAddress* ia)
@@ -1353,11 +1353,11 @@ soup_address_get_canonical_name (SoupAddress* ia)
 }
 
 /**
- *  soup_address_get_port:
- *  @ia: Address to get the port number of.
+ * soup_address_get_port:
+ * @ia: Address to get the port number of.
  *
- *  Get the port number.
- *  Returns: the port number.
+ * Get the port number.
+ * Returns: the port number.
  */
 gint
 soup_address_get_port (const SoupAddress* ia)
@@ -1368,11 +1368,11 @@ soup_address_get_port (const SoupAddress* ia)
 }
 
 /**
- *  soup_address_set_port:
- *  @ia: Address to set the port number of.
- *  @port: New port number
+ * soup_address_set_port:
+ * @ia: Address to set the port number of.
+ * @port: New port number
  *
- *  Set the port number.
+ * Set the port number.
  **/
 void
 soup_address_set_port (const SoupAddress* ia, guint port)
@@ -1383,12 +1383,12 @@ soup_address_set_port (const SoupAddress* ia, guint port)
 }
 
 /**
- *  soup_address_hash:
- *  @p: Pointer to an #SoupAddress.
+ * soup_address_hash:
+ * @p: Pointer to an #SoupAddress.
  *
- *  Hash the address.  This is useful for glib containers.
+ * Hash the address.  This is useful for glib containers.
  *
- *  Returns: hash value.
+ * Returns: hash value.
  **/
 guint 
 soup_address_hash (const gpointer p)
@@ -1409,13 +1409,13 @@ soup_address_hash (const gpointer p)
 }
 
 /**
- *  soup_address_equal:
- *  @p1: Pointer to first #SoupAddress.
- *  @p2: Pointer to second #SoupAddress.
+ * soup_address_equal:
+ * @p1: Pointer to first #SoupAddress.
+ * @p2: Pointer to second #SoupAddress.
  *
- *  Compare two #SoupAddress's.  
+ * Compare two #SoupAddress's.  
  *
- *  Returns: 1 if they are the same; 0 otherwise.
+ * Returns: 1 if they are the same; 0 otherwise.
  **/
 gint 
 soup_address_equal (const gpointer p1, const gpointer p2)
@@ -1433,13 +1433,13 @@ soup_address_equal (const gpointer p1, const gpointer p2)
 }
 
 /**
- *  soup_address_noport_equal:
- *  @p1: Pointer to first SoupAddress.
- *  @p2: Pointer to second SoupAddress.
+ * soup_address_noport_equal:
+ * @p1: Pointer to first SoupAddress.
+ * @p2: Pointer to second SoupAddress.
  *
- *  Compare two #SoupAddress's, but does not compare the port numbers.
+ * Compare two #SoupAddress's, but does not compare the port numbers.
  *
- *  Returns: 1 if they are the same; 0 otherwise.
+ * Returns: 1 if they are the same; 0 otherwise.
  **/
 gint 
 soup_address_noport_equal (const gpointer p1, const gpointer p2)
@@ -1457,12 +1457,12 @@ soup_address_noport_equal (const gpointer p1, const gpointer p2)
 #ifndef SOUP_WIN32  /*********** Unix code ***********/
 
 /**
- *  soup_address_gethostname:
+ * soup_address_gethostname:
  * 
- *  Get the primary host's name.
+ * Get the primary host's name.
  *
- *  Returns: the name of the host; NULL if there was an error.  The
- *  caller is responsible for deleting the returned string.
+ * Returns: the name of the host; NULL if there was an error.  The
+ * caller is responsible for deleting the returned string.
  **/
 gchar*
 soup_address_gethostname (void)
@@ -1498,12 +1498,12 @@ soup_address_gethostname (void)
 #endif		/*********** End Windows code ***********/
 
 /**
- *  soup_address_gethostaddr:
+ * soup_address_gethostaddr:
  * 
- *  Get the primary host's #SoupAddress.
+ * Get the primary host's #SoupAddress.
  *
- *  Returns: the #SoupAddress of the host; NULL if there was an error.
- *  The caller is responsible for deleting the returned #SoupAddress.
+ * Returns: the #SoupAddress of the host; NULL if there was an error.
+ * The caller is responsible for deleting the returned #SoupAddress.
  **/
 SoupAddress * 
 soup_address_gethostaddr (void)
@@ -1570,22 +1570,22 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 }
 
 /**
- *  soup_socket_connect:
- *  @hostname: Name of host to connect to
- *  @port: Port to connect to
- *  @func: Callback function
- *  @data: User data passed when callback function is called.
+ * soup_socket_connect:
+ * @hostname: Name of host to connect to
+ * @port: Port to connect to
+ * @func: Callback function
+ * @data: User data passed when callback function is called.
  *
- *  A quick and easy non-blocking #SoupSocket constructor.  This
- *  connects to the specified address and port and then calls the
- *  callback with the data.  Use this function when you're a client
- *  connecting to a server and you don't want to block or mess with
- *  #SoupAddress's.  It may call the callback before the function
- *  returns.  It will call the callback if there is a failure.
+ * A quick and easy non-blocking #SoupSocket constructor.  This
+ * connects to the specified address and port and then calls the
+ * callback with the data.  Use this function when you're a client
+ * connecting to a server and you don't want to block or mess with
+ * #SoupAddress's.  It may call the callback before the function
+ * returns.  It will call the callback if there is a failure.
  *
- *  Returns: ID of the connection which can be used with
- *  soup_socket_connect_cancel() to cancel it; NULL on
- *  failure.
+ * Returns: ID of the connection which can be used with
+ * soup_socket_connect_cancel() to cancel it; NULL on
+ * failure.
  **/
 SoupSocketConnectId
 soup_socket_connect (const gchar*        hostname, 
@@ -1620,11 +1620,11 @@ soup_socket_connect (const gchar*        hostname,
 }
 
 /**
- *  soup_socket_connect_cancel:
- *  @id: Id of the connection.
+ * soup_socket_connect_cancel:
+ * @id: Id of the connection.
  *
- *  Cancel an asynchronous connection that was started with
- *  soup_socket_connect().
+ * Cancel an asynchronous connection that was started with
+ * soup_socket_connect().
  */
 void
 soup_socket_connect_cancel (SoupSocketConnectId id)
@@ -1716,19 +1716,19 @@ soup_socket_new_cb (GIOChannel* iochannel,
 }
 
 /**
- *  soup_socket_new:
- *  @addr: Address to connect to.
- *  @func: Callback function.
- *  @data: User data passed when callback function is called.
+ * soup_socket_new:
+ * @addr: Address to connect to.
+ * @func: Callback function.
+ * @data: User data passed when callback function is called.
  *
- *  Connect to a specifed address asynchronously.  When the connection
- *  is complete or there is an error, it will call the callback.  It
- *  may call the callback before the function returns.  It will call
- *  the callback if there is a failure.
+ * Connect to a specifed address asynchronously.  When the connection
+ * is complete or there is an error, it will call the callback.  It
+ * may call the callback before the function returns.  It will call
+ * the callback if there is a failure.
  *
- *  Returns: ID of the connection which can be used with
- *  soup_socket_connect_cancel() to cancel it; NULL on
- *  failure.
+ * Returns: ID of the connection which can be used with
+ * soup_socket_connect_cancel() to cancel it; NULL on
+ * failure.
  **/
 SoupSocketNewId
 soup_socket_new (SoupAddress      *addr, 
@@ -1805,11 +1805,11 @@ soup_socket_new (SoupAddress      *addr,
 }
 
 /**
- *  soup_socket_new_cancel:
- *  @id: ID of the connection.
+ * soup_socket_new_cancel:
+ * @id: ID of the connection.
  *
- *  Cancel an asynchronous connection that was started with
- *  soup_socket_new().
+ * Cancel an asynchronous connection that was started with
+ * soup_socket_new().
  **/
 void
 soup_socket_new_cancel (SoupSocketNewId id)
@@ -1956,10 +1956,10 @@ soup_socket_new_sync (SoupAddress *addr)
 }
 
 /**
- *  soup_socket_ref
- *  @s: SoupSocket to reference
+ * soup_socket_ref
+ * @s: SoupSocket to reference
  *
- *  Increment the reference counter of the SoupSocket.
+ * Increment the reference counter of the SoupSocket.
  **/
 void
 soup_socket_ref (SoupSocket* s)
@@ -1970,11 +1970,11 @@ soup_socket_ref (SoupSocket* s)
 }
 
 /**
- *  soup_socket_unref
- *  @s: #SoupSocket to unreference
+ * soup_socket_unref
+ * @s: #SoupSocket to unreference
  *
- *  Remove a reference from the #SoupSocket.  When reference count
- *  reaches 0, the socket is deleted.
+ * Remove a reference from the #SoupSocket.  When reference count
+ * reaches 0, the socket is deleted.
  **/
 void
 soup_socket_unref (SoupSocket* s)
@@ -1995,24 +1995,24 @@ soup_socket_unref (SoupSocket* s)
 }
 
 /**
- *  soup_socket_get_iochannel:
- *  @socket: SoupSocket to get GIOChannel from.
+ * soup_socket_get_iochannel:
+ * @socket: SoupSocket to get GIOChannel from.
  *
- *  Get the #GIOChannel for the #SoupSocket.
+ * Get the #GIOChannel for the #SoupSocket.
  *
- *  For a client socket, the #GIOChannel represents the data stream.
- *  Use it like you would any other #GIOChannel.
+ * For a client socket, the #GIOChannel represents the data stream.
+ * Use it like you would any other #GIOChannel.
  *
- *  For a server socket however, the #GIOChannel represents incoming
- *  connections.  If you can read from it, there's a connection
- *  waiting.
+ * For a server socket however, the #GIOChannel represents incoming
+ * connections.  If you can read from it, there's a connection
+ * waiting.
  *
- *  There is one channel for every socket.  This function refs the
- *  channel before returning it.  You should unref the channel when
- *  you are done with it.  However, you should not close the channel -
- *  this is done when you delete the socket.
+ * There is one channel for every socket.  This function refs the
+ * channel before returning it.  You should unref the channel when
+ * you are done with it.  However, you should not close the channel -
+ * this is done when you delete the socket.
  *
- *  Returns: A #GIOChannel; NULL on failure.
+ * Returns: A #GIOChannel; NULL on failure.
  *
  **/
 GIOChannel* 
@@ -2029,17 +2029,17 @@ soup_socket_get_iochannel (SoupSocket* socket)
 }
 
 /**
- *  soup_socket_get_address:
- *  @socket: #SoupSocket to get address of.
+ * soup_socket_get_address:
+ * @socket: #SoupSocket to get address of.
  *
- *  Get the address of the socket.  If the socket is client socket,
- *  the address is the address of the remote host it is connected to.
- *  If the socket is a server socket, the address is the address of
- *  the local host.  (Though you should use
- *  soup_address_gethostaddr() to get the #SoupAddress of the local
- *  host.)
+ * Get the address of the socket.  If the socket is client socket,
+ * the address is the address of the remote host it is connected to.
+ * If the socket is a server socket, the address is the address of
+ * the local host.  (Though you should use
+ * soup_address_gethostaddr() to get the #SoupAddress of the local
+ * host.)
  *
- *  Returns: #SoupAddress of socket; NULL on failure.
+ * Returns: #SoupAddress of socket; NULL on failure.
  **/
 SoupAddress * 
 soup_socket_get_address (const SoupSocket* socket)
@@ -2053,12 +2053,12 @@ soup_socket_get_address (const SoupSocket* socket)
 }
 
 /**
- *  soup_socket_get_port:
- *  @socket: SoupSocket to get the port number of.
+ * soup_socket_get_port:
+ * @socket: SoupSocket to get the port number of.
  *
- *  Get the port number the socket is bound to.
+ * Get the port number the socket is bound to.
  *
- *  Returns: Port number of the socket.
+ * Returns: Port number of the socket.
  **/
 gint
 soup_socket_get_port(const SoupSocket* socket)
