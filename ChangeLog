@@ -1,3 +1,9 @@
+2003-08-14  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-error.c: Fix a spelling mistake.
+
+	* libsoup/*.c: Fix use of @/%/#/() in gtk-doc comments
+
 2003-08-12  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-auth.c: Make this an abstract GObject. Tweak some

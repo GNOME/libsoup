@@ -831,8 +831,8 @@ soup_queue_message (SoupMessage    *req,
 /**
  * soup_queue_shutdown:
  * 
- * Shut down the message queue by calling %soup_message_cancel on all active
- * requests and then closing all open connections.
+ * Shut down the message queue by calling soup_message_cancel() on all
+ * active requests and then closing all open connections.
  */
 void 
 soup_queue_shutdown (void)

@@ -49,7 +49,7 @@ static void append_uri_encoded (GString *str, const char *in, const char *extra_
  *
  * Parses @uri_string relative to @base.
  *
- * Return value: a parsed SoupUri.
+ * Return value: a parsed #SoupUri.
  **/
 SoupUri *
 soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
@@ -242,7 +242,7 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
  *
  * Parses an absolute URI.
  *
- * Return value: a SoupUri, or %NULL.
+ * Return value: a #SoupUri, or %NULL.
  **/
 SoupUri *
 soup_uri_new (const char *uri_string)
@@ -262,7 +262,7 @@ soup_uri_new (const char *uri_string)
 
 /**
  * soup_uri_to_string:
- * @uri: a SoupUri
+ * @uri: a #SoupUri
  * @just_path: if %TRUE, output just the path and query portions
  *
  * Return value: a string representing @uri, which the caller must free.

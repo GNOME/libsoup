@@ -42,11 +42,12 @@ static guint most_recently_used_id = 0;
  * soup_context_get:
  * @uri: the stringified URI.
  *
- * Returns a pointer to the %SoupContext representing @uri. If a context
- * already exists for the URI, it is returned with an added reference.
- * Otherwise, a new context is created with a reference count of one.
+ * Returns a pointer to the #SoupContext representing @uri. If a
+ * context already exists for the URI, it is returned with an added
+ * reference. Otherwise, a new context is created with a reference
+ * count of one.
  *
- * Return value: a %SoupContext representing @uri.
+ * Return value: a #SoupContext representing @uri.
  */
 SoupContext *
 soup_context_get (const gchar *uri)
@@ -67,10 +68,10 @@ soup_context_get (const gchar *uri)
 
 /**
  * soup_context_uri_hash:
- * @key: a %SoupUri
+ * @key: a #SoupUri
  *
- * Return value: Hash value of the user, authmech, passwd, and path fields in
- * @key.
+ * Return value: Hash value of the user, passwd, path, and query
+ * fields in @key.
  **/
 static guint
 soup_context_uri_hash (gconstpointer key)
@@ -103,11 +104,11 @@ parts_equal (const char *one, const char *two)
 
 /**
  * soup_context_uri_equal:
- * @v1: a %SoupUri
- * @v2: a %SoupUri
+ * @v1: a #SoupUri
+ * @v2: a #SoupUri
  *
- * Return value: TRUE if @v1 and @v2 match in user, authmech, passwd, and
- * path. Otherwise, FALSE.
+ * Return value: %TRUE if @v1 and @v2 match in user, passwd, path, and
+ * query. Otherwise, %FALSE.
  **/
 static gboolean
 soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
@@ -131,13 +132,14 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 
 /**
  * soup_context_from_uri:
- * @suri: a %SoupUri.
+ * @suri: a #SoupUri.
  *
- * Returns a pointer to the %SoupContext representing @suri. If a context
- * already exists for the URI, it is returned with an added reference.
- * Otherwise, a new context is created with a reference count of one.
+ * Returns a pointer to the #SoupContext representing @suri. If a
+ * context already exists for the URI, it is returned with an added
+ * reference. Otherwise, a new context is created with a reference
+ * count of one.
  *
- * Return value: a %SoupContext representing @uri.
+ * Return value: a #SoupContext representing @uri.
  */
 SoupContext *
 soup_context_from_uri (SoupUri *suri)
@@ -182,7 +184,7 @@ soup_context_from_uri (SoupUri *suri)
 
 /**
  * soup_context_ref:
- * @ctx: a %SoupContext.
+ * @ctx: a #SoupContext.
  *
  * Adds a reference to @ctx.
  */
@@ -210,11 +212,12 @@ free_auth (gpointer realm, gpointer auth, gpointer unused)
 
 /**
  * soup_context_unref:
- * @ctx: a %SoupContext.
+ * @ctx: a #SoupContext.
  *
- * Decrement the reference count on @ctx. If the reference count reaches
- * zero, the %SoupContext is freed. If this is the last context for a
- * given server address, any open connections are closed.
+ * Decrement the reference count on @ctx. If the reference count
+ * reaches zero, the #SoupContext is freed. If this is the last
+ * context for a given server address, any open connections are
+ * closed.
  */
 void
 soup_context_unref (SoupContext *ctx)
@@ -509,24 +512,25 @@ retry_connect_timeout_cb (struct SoupConnectData *data)
 
 /**
  * soup_context_get_connection:
- * @ctx: a %SoupContext.
- * @cb: a %SoupConnectCallbackFn to be called when a valid connection is
+ * @ctx: a #SoupContext.
+ * @cb: a #SoupConnectCallbackFn to be called when a valid connection is
  * available.
  * @user_data: the user_data passed to @cb.
  *
  * Initiates the process of establishing a network connection to the
- * server referenced in @ctx. If an existing connection is available and
- * not in use, @cb is called immediately, and a %SoupConnectId of 0 is
- * returned. Otherwise, a new connection is established. If the current
- * connection count exceeds that set in @soup_set_connection_limit, the
- * new connection is not created until an existing connection is closed.
+ * server referenced in @ctx. If an existing connection is available
+ * and not in use, @cb is called immediately, and a #SoupConnectId of
+ * 0 is returned. Otherwise, a new connection is established. If the
+ * current connection count exceeds that set in
+ * soup_set_connection_limit(), the new connection is not created
+ * until an existing connection is closed.
  *
- * Once a network connection is successfully established, or an existing
- * connection becomes available for use, @cb is called, passing the
- * %SoupConnection representing it.
+ * Once a network connection is successfully established, or an
+ * existing connection becomes available for use, @cb is called,
+ * passing the #SoupConnection representing it.
  *
- * Return value: a %SoupConnectId which can be used to cancel a connection
- * attempt using %soup_context_cancel_connect.
+ * Return value: a #SoupConnectId which can be used to cancel a
+ * connection attempt using soup_context_cancel_connect().
  */
 SoupConnectId
 soup_context_get_connection (SoupContext           *ctx,
@@ -559,11 +563,11 @@ soup_context_get_connection (SoupContext           *ctx,
 
 /**
  * soup_context_cancel_connect:
- * @tag: a %SoupConnextId representing a connection in progress.
+ * @tag: a #SoupConnectId representing a connection in progress.
  *
  * Cancels the connection attempt represented by @tag. The
- * %SoupConnectCallbackFn passed in %soup_context_get_connection is not
- * called.
+ * #SoupConnectCallbackFn passed in soup_context_get_connection() is
+ * not called.
  */
 void
 soup_context_cancel_connect (SoupConnectId tag)
@@ -584,11 +588,11 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 /**
  * soup_context_get_uri:
- * @ctx: a %SoupContext.
+ * @ctx: a #SoupContext.
  *
- * Returns a pointer to the %SoupUri represented by @ctx.
+ * Returns a pointer to the #SoupUri represented by @ctx.
  *
- * Return value: the %SoupUri for @ctx.
+ * Return value: the #SoupUri for @ctx.
  */
 const SoupUri *
 soup_context_get_uri (SoupContext *ctx)
@@ -599,12 +603,12 @@ soup_context_get_uri (SoupContext *ctx)
 
 /**
  * soup_connection_release:
- * @conn: a %SoupConnection currently in use.
+ * @conn: a #SoupConnection currently in use.
  *
  * Mark the connection represented by @conn as being unused. If the
- * keep-alive flag is not set on the connection, the connection is closed
- * and its resources freed, otherwise the connection is returned to the
- * unused connection pool for the server.
+ * keep-alive flag is not set on the connection, the connection is
+ * closed and its resources freed, otherwise the connection is
+ * returned to the unused connection pool for the server.
  */
 void
 soup_connection_release (SoupConnection *conn)
@@ -631,12 +635,12 @@ soup_connection_setup_socket (GIOChannel *channel)
 
 /**
  * soup_connection_get_iochannel:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  *
- * Returns a GIOChannel used for IO operations on the network connection
- * represented by @conn.
+ * Returns a #GIOChannel used for IO operations on the network
+ * connection represented by @conn.
  *
- * Return value: a pointer to the GIOChannel used for IO on %conn.
+ * Return value: a pointer to the #GIOChannel used for IO on @conn.
  */
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
@@ -664,10 +668,11 @@ soup_connection_get_iochannel (SoupConnection *conn)
 
 /**
  * soup_connection_set_keep_alive:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  * @keep_alive: boolean keep-alive value.
  *
- * Sets the keep-alive flag on the %SoupConnection pointed to by %conn.
+ * Sets the keep-alive flag on the #SoupConnection pointed to by
+ * @conn.
  */
 void
 soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
@@ -678,12 +683,13 @@ soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 
 /**
  * soup_connection_is_keep_alive:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  *
- * Returns the keep-alive flag for the %SoupConnection pointed to by
- * %conn. If this flag is TRUE, the connection will be returned to the pool
- * of unused connections when next %soup_connection_release is called,
- * otherwise the connection will be closed and resources freed.
+ * Returns the keep-alive flag for the #SoupConnection pointed to by
+ * @conn. If this flag is TRUE, the connection will be returned to the
+ * pool of unused connections when next soup_connection_release() is
+ * called, otherwise the connection will be closed and resources
+ * freed.
  *
  * Return value: the keep-alive flag for @conn.
  */
@@ -696,11 +702,13 @@ soup_connection_is_keep_alive (SoupConnection *conn)
 
 /**
  * soup_connection_get_context:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  *
- * Returns the %SoupContext from which @conn was created, with an added ref.
+ * Returns the #SoupContext from which @conn was created, with an
+ * added ref.
  *
- * Return value: the %SoupContext associated with @conn.  Unref when finished.
+ * Return value: the #SoupContext associated with @conn. Unref when
+ * finished.
  */
 SoupContext *
 soup_connection_get_context (SoupConnection *conn)
@@ -713,7 +721,7 @@ soup_connection_get_context (SoupConnection *conn)
 
 /**
  * soup_connection_set_used:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  *
  * Clears the "new" flag on @conn.
  */
@@ -727,10 +735,10 @@ soup_connection_set_used (SoupConnection *conn)
 
 /**
  * soup_connection_is_new:
- * @conn: a %SoupConnection.
+ * @conn: a #SoupConnection.
  *
- * Returns TRUE if this is the first use of @conn
- * (I.E. no response has been read from it yet)
+ * Returns %TRUE if this is the first use of @conn (ie. no response
+ * has been read from it yet)
  *
  * Return value: boolean representing whether this is the first time a
  * connection has been used.

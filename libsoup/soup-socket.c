@@ -137,12 +137,12 @@ soup_socket_connect_inetaddr_cb (SoupAddress *inetaddr,
  * connects to the specified address and port and then calls the
  * callback with the data.  Use this function when you're a client
  * connecting to a server and you don't want to block or mess with
- * #SoupAddress's.  It may call the callback before the function
+ * #SoupAddress.  It may call the callback before the function
  * returns.  It will call the callback if there is a failure.
  *
  * Returns: ID of the connection which can be used with
- * soup_socket_connect_cancel() to cancel it; NULL if it succeeds
- * or fails immediately.
+ * soup_socket_connect_cancel() to cancel it; %NULL if it succeeds or
+ * fails immediately.
  **/
 SoupSocketConnectId
 soup_socket_connect (const char         *hostname,
@@ -248,7 +248,7 @@ soup_socket_new_sync (SoupAddress *addr, guint port)
 
 /**
  * soup_socket_get_iochannel:
- * @socket: SoupSocket to get GIOChannel from.
+ * @socket: #SoupSocket to get #GIOChannel from.
  *
  * Get the #GIOChannel for the #SoupSocket.
  *
@@ -264,7 +264,7 @@ soup_socket_new_sync (SoupAddress *addr, guint port)
  * you are done with it.  However, you should not close the channel -
  * this is done when you delete the socket.
  *
- * Returns: A #GIOChannel; NULL on failure.
+ * Returns: A #GIOChannel; %NULL on failure.
  *
  **/
 GIOChannel*
@@ -292,7 +292,7 @@ soup_socket_get_iochannel (SoupSocket *socket)
  * address of that machine. If it is a listening socket, the address
  * will be %NULL.
  *
- * Returns: #SoupAddress of socket; NULL on failure.
+ * Returns: #SoupAddress of socket; %NULL on failure.
  **/
 SoupAddress *
 soup_socket_get_address (const SoupSocket *socket)
@@ -305,7 +305,7 @@ soup_socket_get_address (const SoupSocket *socket)
 
 /**
  * soup_socket_get_port:
- * @socket: SoupSocket to get the port number of.
+ * @socket: #SoupSocket to get the port number of.
  *
  * Get the port number the socket is bound to.
  *
@@ -323,7 +323,7 @@ soup_socket_get_port (const SoupSocket *socket)
  * soup_socket_server_new:
  * @local_addr: Local address to bind to. (soup_address_ipv4_any() to
  * accept connections on any local IPv4 address)
- * @local_port: Port number for the socket (SOUP_SERVER_ANY_PORT if you
+ * @local_port: Port number for the socket (%SOUP_SERVER_ANY_PORT if you
  * don't care).
  *
  * Create and open a new #SoupSocket listening on the specified
@@ -331,7 +331,7 @@ soup_socket_get_port (const SoupSocket *socket)
  * and you know what the port number should be (or pass 0 if you don't
  * care what the port is).
  *
- * Returns: a new #SoupSocket, or NULL if there was a failure.
+ * Returns: a new #SoupSocket, or %NULL if there was a failure.
  **/
 SoupSocket *
 soup_socket_server_new (SoupAddress *local_addr, guint local_port)
@@ -468,7 +468,7 @@ soup_socket_new_cb (GIOChannel *iochannel,
  * the callback if there is a failure.
  *
  * Returns: ID of the connection which can be used with
- * soup_socket_connect_cancel() to cancel it; NULL on
+ * soup_socket_connect_cancel() to cancel it; %NULL on
  * failure.
  **/
 SoupSocketNewId
@@ -633,7 +633,7 @@ server_accept_internal (SoupSocket *socket, gboolean block)
  * want to block).  If the socket's #GIOChannel is readable, it DOES
  * NOT mean that this function will not block.
  *
- * Returns: a new #SoupSocket if there is another connect, or NULL if
+ * Returns: a new #SoupSocket if there is another connect, or %NULL if
  * there's an error.
  **/
 SoupSocket *
@@ -651,9 +651,9 @@ soup_socket_server_accept (SoupSocket *socket)
  * function is best used with the sockets #GIOChannel.  If the
  * channel is readable, then you PROBABLY have a connection.  It is
  * possible for the connection to close by the time you call this, so
- * it may return NULL even if the channel was readable.
+ * it may return %NULL even if the channel was readable.
  *
- * Returns a new SoupSocket if there is another connect, or NULL
+ * Returns a new SoupSocket if there is another connect, or %NULL
  * otherwise.
  **/
 SoupSocket *

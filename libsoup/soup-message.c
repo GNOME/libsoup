@@ -21,16 +21,16 @@
 
 /**
  * soup_message_new:
- * @context: a %SoupContext for the destination endpoint.
- * @method: a string which will be used as the HTTP method for the created
- * request, if NULL a GET request will be made.
+ * @context: a #SoupContext for the destination endpoint.
+ * @method: a string which will be used as the HTTP method for the
+ * created request
  * 
- * Creates a new empty %SoupMessage, which will connect to the URL represented
- * by @context.  A reference will be added to @context.
+ * Creates a new empty #SoupMessage, which will connect to the URL
+ * represented by @context. A reference will be added to @context.
  * 
- * The new message has a status of @SOUP_STATUS_IDLE.
+ * The new message has a status of %SOUP_STATUS_IDLE.
  *
- * Return value: the new %SoupMessage.
+ * Return value: the new #SoupMessage.
  */
 SoupMessage *
 soup_message_new (SoupContext *context, const gchar *method) 
@@ -57,21 +57,21 @@ soup_message_new (SoupContext *context, const gchar *method)
 
 /**
  * soup_message_new_full:
- * @context: a %SoupContext for the destination endpoint.
- * @method: a string which will be used as the HTTP method for the created
- * request, if NULL a GET request will be made..
- * @req_owner: the %SoupOwnership of the passed data buffer.
+ * @context: a #SoupContext for the destination endpoint.
+ * @method: a string which will be used as the HTTP method for the
+ * created request.
+ * @req_owner: the #SoupOwnership of the passed data buffer.
  * @req_body: a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
- * Creates a new %SoupMessage, which will connect to the URL represented by
- * @context.  A reference is added to @context.  The request data
- * buffer will be filled from @req_owner, @req_body, and @req_length
- * respectively.
+ * Creates a new #SoupMessage, which will connect to the URL
+ * represented by @context. A reference is added to @context. The
+ * request data buffer will be filled from @req_owner, @req_body, and
+ * @req_length.
  *
- * The new message has a status of @SOUP_STATUS_IDLE.
+ * The new message has a status of %SOUP_STATUS_IDLE.
  *
- * Return value: the new %SoupMessage.
+ * Return value: the new #SoupMessage.
  */
 SoupMessage *
 soup_message_new_full (SoupContext   *context,
@@ -164,11 +164,11 @@ release_and_close_connection (gboolean headers_done, gpointer user_data)
 
 /**
  * soup_message_cleanup:
- * @req: a %SoupMessage.
+ * @req: a #SoupMessage.
  * 
- * Frees any temporary resources created in the processing of @req.  Also
- * releases the active connection, if one exists. Request and response data
- * buffers are left intact. 
+ * Frees any temporary resources created in the processing of @req.
+ * Also releases the active connection, if one exists. Request and
+ * response data buffers are left intact.
  */
 void 
 soup_message_cleanup (SoupMessage *req)
@@ -240,12 +240,12 @@ finalize_message (SoupMessage *req)
 
 /**
  * soup_message_free:
- * @req: a %SoupMessage to destroy.
+ * @req: a #SoupMessage to destroy.
  * 
- * Destroys the %SoupMessage pointed to by @req. Request and response headers
- * are freed. Request and response data buffers are also freed if their
- * ownership is %SOUP_BUFFER_SYSTEM_OWNED. The message's destination context
- * will be de-referenced.
+ * Destroys the #SoupMessage pointed to by @req. Request and response
+ * headers are freed. Request and response data buffers are also freed
+ * if their ownership is %SOUP_BUFFER_SYSTEM_OWNED. The message's
+ * destination context will be unreferenced.
  */
 void 
 soup_message_free (SoupMessage *req)
@@ -259,13 +259,14 @@ soup_message_free (SoupMessage *req)
 
 /**
  * soup_message_issue_callback:
- * @req: a %SoupMessage currently being processed.
- * @error: a %SoupErrorCode to be passed to %req's completion callback.
+ * @req: a #SoupMessage currently being processed.
+ * @error: a #SoupErrorCode to be passed to @req's completion callback.
  * 
- * Finalizes the message request, by first freeing any temporary resources, then
- * issuing the callback function pointer passed in %soup_message_new or
- * %soup_message_new_full. If, after returning from the callback, the message
- * has not been requeued, @msg is destroyed using %soup_message_free.
+ * Finalizes the message request, by first freeing any temporary
+ * resources, then issuing the callback function pointer passed in
+ * soup_message_new() or soup_message_new_full(). If, after returning
+ * from the callback, the message has not been requeued, @msg is
+ * destroyed using soup_message_free().
  */
 void
 soup_message_issue_callback (SoupMessage *req)
@@ -289,11 +290,11 @@ soup_message_issue_callback (SoupMessage *req)
 
 /**
  * soup_message_cancel:
- * @req: a %SoupMessage currently being processed.
+ * @req: a #SoupMessage currently being processed.
  * 
  * Cancel a running message, and issue completion callback with a
- * %SoupTransferStatus of %SOUP_ERROR_CANCELLED. If not requeued by the
- * completion callback, the @msg will be destroyed.
+ * #SoupTransferStatus of %SOUP_ERROR_CANCELLED. If not requeued by
+ * the completion callback, the @msg will be destroyed.
  */
 void 
 soup_message_cancel (SoupMessage *msg) 
@@ -370,12 +371,12 @@ soup_message_add_header (GHashTable  *hash,
 
 /**
  * soup_message_get_header:
- * @req: a %SoupMessage.
+ * @req: a #SoupMessage.
  * @name: header name.
  * 
  * Lookup the first transport header with a key equal to @name.
  *
- * Return value: the header's value or NULL if not found.
+ * Return value: the header's value or %NULL if not found.
  */
 const gchar *
 soup_message_get_header (GHashTable *hash,
@@ -395,13 +396,13 @@ soup_message_get_header (GHashTable *hash,
 
 /**
  * soup_message_get_header_list:
- * @req: a %SoupMessage.
+ * @req: a #SoupMessage.
  * @name: header name.
  * 
  * Lookup the all transport request headers with a key equal to @name.
  *
- * Return value: a const pointer to a GSList of header values or NULL if not
- * found.  
+ * Return value: a const pointer to a #GSList of header values or
+ * %NULL if not found.
  */
 const GSList *
 soup_message_get_header_list (GHashTable  *hash,
@@ -496,23 +497,25 @@ soup_message_foreach_remove_header (GHashTable        *hash,
 
 /**
  * soup_message_queue:
- * @req: a %SoupMessage.
- * @callback: a %SoupCallbackFn which will be called after the message completes
- * or when an unrecoverable error occurs.
+ * @req: a #SoupMessage.
+ * @callback: a #SoupCallbackFn which will be called after the message
+ * completes or when an unrecoverable error occurs.
  * @user_data: a pointer passed to @callback.
  * 
- * Queues the message @req for sending. All messages are processed while the
- * glib main loop runs. If this %SoupMessage has been processed before, any
- * resources related to the time it was last sent are freed.
+ * Queues the message @req for sending. All messages are processed
+ * while the glib main loop runs. If this #SoupMessage has been
+ * processed before, any resources related to the time it was last
+ * sent are freed.
  *
- * If the response %SoupDataBuffer has an owner of %SOUP_BUFFER_USER_OWNED, the
- * message will not be queued, and @callback will be called with a
- * %SoupErrorCode of %SOUP_ERROR_CANCELLED.
+ * If the response #SoupDataBuffer has an owner of
+ * %SOUP_BUFFER_USER_OWNED, the message will not be queued, and
+ * @callback will be called with a #SoupErrorCode of
+ * %SOUP_ERROR_CANCELLED.
  *
- * Upon message completetion, the callback specified in @callback will be
- * invoked. If after returning from this callback the message has not been
- * requeued using %soup_message_queue, %soup_message_free will be called on
- * @req.
+ * Upon message completetion, the callback specified in @callback will
+ * be invoked. If after returning from this callback the message has
+ * not been requeued using soup_message_queue(), soup_message_free()
+ * will be called on @req.
  */
 void 
 soup_message_queue (SoupMessage    *req,
@@ -563,9 +566,10 @@ requeue_read_finished (const SoupDataBuffer *buf,
 
 /**
  * soup_message_requeue:
- * @req: a %SoupMessage
+ * @req: a #SoupMessage
  *
- * This causes @req to be placed back on the queue to be attempted again.
+ * This causes @req to be placed back on the queue to be attempted
+ * again.
  **/
 void
 soup_message_requeue (SoupMessage *req)
@@ -594,15 +598,16 @@ soup_message_requeue (SoupMessage *req)
 
 /**
  * soup_message_send:
- * @msg: a %SoupMessage.
+ * @msg: a #SoupMessage.
  * 
- * Syncronously send @msg. This call will not return until the transfer is
- * finished successfully or there is an unrecoverable error. 
+ * Synchronously send @msg. This call will not return until the
+ * transfer is finished successfully or there is an unrecoverable
+ * error.
  *
- * @msg is not free'd upon return.
+ * @msg is not freed upon return.
  *
- * Return value: the %SoupErrorClass of the error encountered while sending or
- * reading the response.
+ * Return value: the #SoupErrorClass of the error encountered while
+ * sending or reading the response.
  */
 SoupErrorClass
 soup_message_send (SoupMessage *msg)

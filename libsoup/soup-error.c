@@ -23,7 +23,7 @@ struct {
 	{ SOUP_ERROR_CANT_CONNECT,            "Cannot connect to destination" },
 	{ SOUP_ERROR_CANT_CONNECT_PROXY,      "Cannot connect to proxy" },
 	{ SOUP_ERROR_IO,                      "Connection terminated "
-	                                      "unexpectadly" },
+	                                      "unexpectedly" },
 	{ SOUP_ERROR_MALFORMED,               "Message Corrupt" },
 	{ SOUP_ERROR_CANT_AUTHENTICATE,       "Authentication Failed" },
 	{ SOUP_ERROR_CANT_AUTHENTICATE_PROXY, "Proxy Authentication Failed" },
