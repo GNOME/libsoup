@@ -1,3 +1,9 @@
+2001-06-13  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-socket.c (soup_address_new): If SOUP_SYNC_DNS is
+	in the user's environment, use an old fashioned synchronous DNS lookup
+	on UNIX.
+
 2001-06-07  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_redirect): Change

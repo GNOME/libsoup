@@ -688,6 +688,28 @@ soup_address_new (const gchar* name,
 		}
 	}
 
+	/* Check to see if we are doing synchronous DNS lookups */
+	if (getenv("SOUP_SYNC_DNS")) {
+		if (!soup_gethostbyname(name, &sa, NULL)) {
+			g_warning("Problem resolving host name");
+			(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
+			return NULL;
+		}
+		
+		sa_in = (struct sockaddr_in*) &sa;
+		sa_in->sin_family = AF_INET;
+		sa_in->sin_port = g_htons (port);
+		
+		ia = g_new0(SoupAddress, 1);
+		ia->name = g_strdup(name);
+		ia->ref_count = 1;
+		ia->sa = *((struct sockaddr *) &sa);
+		
+		(*func)(ia, SOUP_ADDRESS_STATUS_OK, data);
+		
+		return NULL;
+	}
+
 	/* That didn't work - we need to fork */
 
 	/* Open a pipe */
