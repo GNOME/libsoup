@@ -1,5 +1,13 @@
 2001-09-10  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-dav-server.h: Replace opt_search with
+	opt_other.  Remove SOUP_DAV_SEARCH.
+
+	* src/libsoup/soup-dav-server.c: Replace dav_search with
+	dav_other.
+
+2001-09-10  Alex Graveley  <alex@ximian.com>
+
 	* tests/cgi-test.c (main): Pass authtypes param to
 	soup_server_register.
 	* tests/server-test.c (main): Ditto.
