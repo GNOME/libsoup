@@ -55,7 +55,7 @@ typedef struct {
 	gboolean               overwrite_chunks;
 
 	SoupTransferEncoding   encoding;
-	gint                   content_length;
+	guint                  content_length;
 	SoupTransferChunkState chunk_state;
 
 	SoupReadHeadersDoneFn  headers_done_cb;
@@ -157,7 +157,7 @@ remove_block_at_index (GByteArray *arr, gint offset, gint length)
 	gchar *data;
 
 	g_return_if_fail (length != 0);
-	g_assert (arr->len >= offset + length);
+	g_assert (arr->len >= (guint) offset + length);
 
 	data = &arr->data [offset];
 
