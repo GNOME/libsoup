@@ -75,7 +75,7 @@ AC_ARG_ENABLE(glib2, [\
   --enable-glib2  Build Soup against glib 2.0], ,
 enable_glib2=no)
 AC_MSG_RESULT($enable_glib2)
-
+	
 if test x"$enable_glib2" != xno; then
 	AM_PATH_GLIB_2_0(2.0.0,, AC_MSG_ERROR([Cannot find glib 2.0]))
 	GLIB_CFLAGS=`$PKG_CONFIG --cflags glib-2.0`
@@ -345,6 +345,7 @@ AC_ARG_WITH(openssl-libs,
 ###
 ### Allow for a custom SSL proxy name
 ###
+SSL_PROXY_NAME=soup-ssl-proxy
 AC_ARG_WITH(ssl-proxy-name,
 	    [  --with-ssl-proxy-name    Custom name for ssl proxy executable [default=soup-ssl-proxy]],
 	    [SSL_PROXY_NAME=$withval],
@@ -555,6 +556,27 @@ fi
 # Use reentrant functions
 CFLAGS="$CFLAGS -D_REENTRANT"
 
+dnl *****************************
+dnl *** link proxy statically ***
+dnl *****************************
+AC_ARG_ENABLE(static-proxy, 
+  [  --enable-static-proxy  Build ${SSL_PROXY_NAME} statically ])
+
+if test x"$enable_static_proxy" = xyes; then
+	LINK_STATIC="-Wl,-Bstatic"
+	LINK_DYNAMIC="-Wl,-Bdynamic"
+	FORCE_SHLIBS="dl resolv rt nsl"
+	for lib in $FORCE_SHLIBS; do
+	  OPENSSL_LIBS=`echo $OPENSSL_LIBS | sed "s/-l$lib/-Wl,-Bdynamic -l$lib -Wl,-Bstatic/"`
+	  GMODULE_LIBS=`echo $GMODULE_LIBS | sed "s/-l$lib/-Wl,-Bdynamic -l$lib -Wl,-Bstatic/"`
+	done
+else
+	LINK_STATIC=
+	LINK_DYNAMIC=
+fi
+
+AC_SUBST(LINK_STATIC)
+AC_SUBST(LINK_DYNAMIC)
 
 dnl *************************
 dnl *** Output Everything ***
@@ -585,6 +607,9 @@ Configuration:
   Build flags:			${CFLAGS} ${SOUP_DEBUG_FLAGS}
 
   glib 2.0:                     ${enable_glib2}
+
+  Static SSL Proxy:		${enable_static_proxy:-no}
+  SSL Proxy Name:		${SSL_PROXY_NAME}
 
   OpenSSL support:		${enable_openssl}
   Mozilla NSS support:		${enable_nss}
