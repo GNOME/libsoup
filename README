@@ -18,14 +18,13 @@ Features:
   * Completely Asynchronous
   * Connection cache
   * HTTP chunked transfer support
-  * authenticated HTTP, SOCKS4, and SOCKS5 proxy support
-  * SSL Support using OpenSSL
+  * HTTP, SOCKS4, and SOCKS5 authenticated proxy support
+  * SSL Support using OpenSSL or Mozilla NSS
   * Apache module server support
-  * Client digest authentication
+  * Client support for Digest, NTLM, and Basic authentication
+  * Standalone SOAP server support
 
 Planned Features:
-  * Standalone SOAP server support
-  * SSL Support through Mozilla NSS
   * Server digest authentication
   * Gconf configuration and proxy integration
   * UDDI Support
