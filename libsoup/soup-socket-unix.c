@@ -906,7 +906,6 @@ soup_address_unref (SoupAddress* ia)
 					       (GSourceFunc) 
 					       prune_zeroref_addresses_timeout,
 					       NULL);
-				return;
 		} else
 			g_free (ia);
 	}
