@@ -1,3 +1,14 @@
+2003-12-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-connection.c (soup_connection_disconnect): Actually
+	disconnect the socket rather than just unreffing it, since the IO
+	code may be holding an extra ref on it.
+	(send_request): connect to the "restarted" signal too
+	(request_restarted): Deal with "Connection: close"
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Make this
+	not go into an infinite loop if the server only supports Basic.
+
 2003-12-17  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/Makefile.am: install soup-message-queue.h with the rest

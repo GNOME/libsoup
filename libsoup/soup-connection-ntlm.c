@@ -99,6 +99,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		val = headers->data;
 		if (!strncmp (val, "NTLM ", 5))
 			break;
+		headers = headers->next;
 	}
 	if (!headers)
 		return;

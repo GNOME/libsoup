@@ -462,6 +462,7 @@ soup_connection_disconnect (SoupConnection *conn)
 
 	g_signal_handlers_disconnect_by_func (conn->priv->socket,
 					      socket_disconnected, conn);
+	soup_socket_disconnect (conn->priv->socket);
 	g_object_unref (conn->priv->socket);
 	conn->priv->socket = NULL;
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
@@ -497,6 +498,13 @@ soup_connection_last_used (SoupConnection *conn)
 }
 
 static void
+request_restarted (SoupMessage *req, gpointer conn)
+{
+	if (!soup_message_is_keepalive (req))
+		soup_connection_disconnect (conn);
+}
+
+static void
 request_done (SoupMessage *req, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
@@ -507,10 +515,11 @@ request_done (SoupMessage *req, gpointer user_data)
 	conn->priv->last_used = time (NULL);
 	conn->priv->in_use = FALSE;
 
-	g_signal_handlers_disconnect_by_func (req, request_done, conn);
-
 	if (!soup_message_is_keepalive (req))
 		soup_connection_disconnect (conn);
+
+	g_signal_handlers_disconnect_by_func (req, request_done, conn);
+	g_signal_handlers_disconnect_by_func (req, request_restarted, conn);
 }
 
 static void
@@ -523,6 +532,8 @@ send_request (SoupConnection *conn, SoupMessage *req)
 		g_object_add_weak_pointer (G_OBJECT (req),
 					   (gpointer *)conn->priv->cur_req);
 
+		g_signal_connect (req, "restarted",
+				  G_CALLBACK (request_restarted), conn);
 		g_signal_connect (req, "finished",
 				  G_CALLBACK (request_done), conn);
 	}
