@@ -73,7 +73,10 @@ libsoup_2_2_la_SOURCES =	\
 	soup-gnutls.h		\
 	soup-gnutls.c		\
 	soup-headers.c		\
+	soup-message-private.h	\
 	soup-message.c		\
+	soup-message-handlers.c	\
+	soup-message-io.c	\
 	soup-method.c		\
 	soup-misc.c     	\
 	soup-private.h     	\
@@ -85,8 +88,6 @@ libsoup_2_2_la_SOURCES =	\
 	soup-socket.c		\
 	soup-ssl.h		\
 	soup-ssl.c		\
-	soup-transfer.h		\
-	soup-transfer.c		\
 	soup-uri.c
 
 EXTRA_DIST= soup-marshal.list

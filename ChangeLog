@@ -1,3 +1,42 @@
+2003-08-22  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-private.h: New file containing
+	SoupMessagePrivate and some other soup-message-internal
+	types/functions. Also includes the new, expanded SoupMessageStatus
+	enum.
+
+	* libsoup/soup-message-io.c: Replaces what used to be in
+	soup-transfer, but now all the interfaces take SoupMessages
+	instead of SoupReader/SoupWriter and deal with maintaining
+	msg->priv->{read,write}_state themselves. Fixes up all the
+	refcounting madness.
+
+	* libsoup/soup-message-handlers.c: Move the handler code here,
+	mostly unchanged. (But rename SoupHandlerType to SoupHandlerPhase
+	to make the distinction from SoupHandlerKind clearer.)
+
+	* libsoup/soup-message.c: Update for soup-message-io and new
+	SoupMessageStatus values. Remove handler code.
+	(soup_message_cleanup): Remove the hack to try to preserve the
+	connection if the message gets cleaned up before it finishes
+	reading. soup_message_requeue handles this in the requeuing case,
+	and there's no especially compelling reason to bother doing it in
+	any other case. (And the soup-message-io api doesn't support
+	having a read operation that's not connected to any message.)
+
+	* libsoup/soup-private.h: remove SoupMessagePrivate
+
+	* libsoup/soup-queue.c: Update for soup-message-io and new
+	SoupMessageStatus values.
+
+	* libsoup/soup-server-message.c: Likewise
+
+	* libsoup/soup-server.c: Likewise
+
+	* libsoup/soup-transfer.c: Gone (yay)
+
+	* libsoup/Makefile.am (libsoup_2_2_la_SOURCES): update
+
 2003-08-20  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message.c: Make this a GObject. (Note that since

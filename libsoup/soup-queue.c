@@ -22,12 +22,12 @@
 #include "soup-queue.h"
 #include "soup-auth.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-context.h"
 #include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
 #include "soup-ssl.h"
-#include "soup-transfer.h"
 
 static GSList *soup_active_requests = NULL, *soup_active_request_next = NULL;
 
@@ -54,58 +54,51 @@ soup_debug_print_headers (SoupMessage *req)
 }
 
 static void 
-soup_queue_error_cb (gboolean body_started, gpointer user_data)
+soup_queue_error_cb (SoupMessage *req)
 {
-	SoupMessage *req = user_data;
 	SoupConnection *conn = soup_message_get_connection (req);
+	const SoupUri *uri;
 	gboolean conn_is_new;
 
 	conn_is_new = soup_connection_is_new (conn);
 	soup_message_disconnect (req);
 
-	switch (req->status) {
-	case SOUP_STATUS_IDLE:
-	case SOUP_STATUS_QUEUED:
-	case SOUP_STATUS_FINISHED:
+	switch (req->priv->status) {
+	case SOUP_MESSAGE_STATUS_IDLE:
+	case SOUP_MESSAGE_STATUS_QUEUED:
+	case SOUP_MESSAGE_STATUS_FINISHED:
 		break;
 
-	case SOUP_STATUS_CONNECTING:
+	case SOUP_MESSAGE_STATUS_CONNECTING:
 		soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
 		soup_message_issue_callback (req);
 		break;
 
-	case SOUP_STATUS_READING_RESPONSE:
-	case SOUP_STATUS_SENDING_REQUEST:
-		if (!body_started) {
-			const SoupUri *uri = soup_context_get_uri (req->context);
+	case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
+	case SOUP_MESSAGE_STATUS_READING_HEADERS:
+		uri = soup_context_get_uri (req->context);
 
-			if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
-				/*
-				 * This can happen if the SSL handshake fails
-				 * for some reason (untrustable signatures,
-				 * etc.)
-				 */
-				if (req->priv->retries >= 3) {
-					soup_message_set_error (
-						req,
-						SOUP_ERROR_SSL_FAILED);
-					soup_message_issue_callback (req);
-				} else {
-					req->priv->retries++;
-					soup_message_requeue (req);
-				}
-			} else if (conn_is_new) {
-				soup_message_set_error (
-					req,
-					SOUP_ERROR_CANT_CONNECT);
+		if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
+			/* FIXME: what does this really do? */
+
+			/*
+			 * This can happen if the SSL handshake fails
+			 * for some reason (untrustable signatures,
+			 * etc.)
+			 */
+			if (req->priv->retries >= 3) {
+				soup_message_set_error (req, SOUP_ERROR_SSL_FAILED);
 				soup_message_issue_callback (req);
 			} else {
-				/* Must have timed out. Try a new connection */
+				req->priv->retries++;
 				soup_message_requeue (req);
 			}
-		} else {
-			soup_message_set_error (req, SOUP_ERROR_IO);
+		} else if (conn_is_new) {
+			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
 			soup_message_issue_callback (req);
+		} else {
+			/* Must have timed out. Try a new connection */
+			soup_message_requeue (req);
 		}
 		break;
 
@@ -117,13 +110,12 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 }
 
 static void
-soup_queue_read_headers_cb (char                 *headers,
+soup_queue_read_headers_cb (SoupMessage          *req,
+			    char                 *headers,
 			    guint                 headers_len,
                             SoupTransferEncoding *encoding,
-			    int                  *content_len,
-			    gpointer              user_data)
+			    int                  *content_len)
 {
-	SoupMessage *req = user_data;
 	const char *length, *enc;
 	SoupHttpVersion version;
 	GHashTable *resp_hdrs;
@@ -211,12 +203,10 @@ soup_queue_read_headers_cb (char                 *headers,
 }
 
 static void
-soup_queue_read_chunk_cb (const char *chunk,
-			  guint       len,
-			  gpointer    user_data)
+soup_queue_read_chunk_cb (SoupMessage *req,
+			  const char  *chunk,
+			  guint        len)
 {
-	SoupMessage *req = user_data;
-
 	req->response.owner = SOUP_BUFFER_STATIC;
 	req->response.length = len;
 	req->response.body = (char *)chunk;
@@ -227,12 +217,8 @@ soup_queue_read_chunk_cb (const char *chunk,
 }
 
 static void
-soup_queue_read_done_cb (char     *body,
-			 guint     len,
-			 gpointer  user_data)
+soup_queue_read_done_cb (SoupMessage *req, char *body, guint len)
 {
-	SoupMessage *req = user_data;
-
 	if (soup_message_is_keepalive (req))
 		soup_connection_mark_old (soup_message_get_connection (req));
 	else
@@ -242,28 +228,14 @@ soup_queue_read_done_cb (char     *body,
 	req->response.length = len;
 	req->response.body = body;
 
-	soup_transfer_read_unref (req->priv->read_tag);
-
 	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		SoupSocket *sock;
-		gboolean overwrt;
-
-		sock = soup_message_get_socket (req);
-		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
-
-		req->priv->read_tag = 
-			soup_transfer_read (sock,
-					    overwrt,
-					    soup_queue_read_headers_cb,
-					    soup_queue_read_chunk_cb,
-					    soup_queue_read_done_cb,
-					    soup_queue_error_cb,
-					    req);
-	} 
-	else {
-		req->status = SOUP_STATUS_FINISHED;
-		req->priv->read_tag = NULL;
-	}
+		soup_message_read (req,
+				   soup_queue_read_headers_cb,
+				   soup_queue_read_chunk_cb,
+				   soup_queue_read_done_cb,
+				   soup_queue_error_cb);
+	} else
+		req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
 
 	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
 }
@@ -350,11 +322,10 @@ soup_check_used_headers (gchar  *key,
 	}
 }
 
-static GString *
-soup_get_request_header (SoupMessage *req)
+static void
+soup_queue_get_request_header_cb (SoupMessage *req, GString *header)
 {
-	GString *header;
-	gchar *uri;
+	char *uri;
 	SoupContext *proxy;
 	const SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
@@ -367,7 +338,7 @@ soup_get_request_header (SoupMessage *req)
 		NULL
 	};
 
-	header = hdrs.out = g_string_new (NULL);
+	hdrs.out = header;
 	proxy = soup_get_proxy ();
 	suri = soup_context_get_uri (req->context);
 
@@ -431,25 +402,22 @@ soup_get_request_header (SoupMessage *req)
 		soup_encode_http_auth (req, header, FALSE);
 
 	g_string_append (header, "\r\n");
-
-	return header;
 }
 
 static void 
-soup_queue_write_done_cb (gpointer user_data)
+soup_queue_write_done_cb (SoupMessage *req)
 {
-	SoupMessage *req = user_data;
-
-	soup_transfer_write_unref (req->priv->write_tag);
-	req->priv->write_tag = NULL;
-	req->status = SOUP_STATUS_READING_RESPONSE;
+	soup_message_read (req,
+			   soup_queue_read_headers_cb,
+			   soup_queue_read_chunk_cb,
+			   soup_queue_read_done_cb,
+			   soup_queue_error_cb);
 }
 
 static void
 start_request (SoupContext *ctx, SoupMessage *req)
 {
 	SoupSocket *sock;
-	gboolean overwrt; 
 
 	sock = soup_message_get_socket (req);
 	if (!sock) {	/* FIXME */
@@ -478,26 +446,10 @@ start_request (SoupContext *ctx, SoupMessage *req)
 		return;
 	}
 
-	req->priv->write_tag = 
-		soup_transfer_write_simple (sock,
-					    soup_get_request_header (req),
-					    &req->request,
-					    soup_queue_write_done_cb,
-					    soup_queue_error_cb,
-					    req);
-
-	overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
-
-	req->priv->read_tag = 
-		soup_transfer_read (sock,
-				    overwrt,
-				    soup_queue_read_headers_cb,
-				    soup_queue_read_chunk_cb,
-				    soup_queue_read_done_cb,
-				    soup_queue_error_cb,
-				    req);
-
-	req->status = SOUP_STATUS_SENDING_REQUEST;
+	soup_message_write_simple (req, &req->request,
+				   soup_queue_get_request_header_cb,
+				   soup_queue_write_done_cb,
+				   soup_queue_error_cb);
 }
 
 static void
@@ -667,13 +619,13 @@ soup_idle_handle_new_requests (gpointer unused)
 	for (; req; req = soup_queue_next_request ()) {
 		SoupContext *ctx, *proxy;
 
-		if (req->status != SOUP_STATUS_QUEUED)
+		if (req->priv->status != SOUP_MESSAGE_STATUS_QUEUED)
 			continue;
 
 		proxy = soup_get_proxy ();
 		ctx = proxy ? proxy : req->context;
 
-		req->status = SOUP_STATUS_CONNECTING;
+		req->priv->status = SOUP_MESSAGE_STATUS_CONNECTING;
 
 		conn = soup_message_get_connection (req);
 		if (conn && soup_connection_is_connected (conn))
@@ -726,7 +678,7 @@ soup_queue_message (SoupMessage    *req,
 		return;
 	}
 
-	if (req->status != SOUP_STATUS_IDLE)
+	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
 		soup_message_cleanup (req);
 
 	switch (req->response.owner) {
@@ -759,7 +711,7 @@ soup_queue_message (SoupMessage    *req,
 		req->errorphrase = NULL;
 	}
 
-	req->status = SOUP_STATUS_QUEUED;
+	req->priv->status = SOUP_MESSAGE_STATUS_QUEUED;
 
 	soup_queue_add_request (req);
 

@@ -8,7 +8,6 @@
 
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-transfer.h>
 
 #define SOUP_TYPE_SERVER_MESSAGE            (soup_server_message_get_type ())
 #define SOUP_SERVER_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessage))

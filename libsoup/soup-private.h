@@ -62,27 +62,6 @@ typedef struct {
 #define soup_sockaddr_max sockaddr_in
 #endif
 
-struct SoupMessagePrivate {
-	SoupConnectId      connect_tag;
-	gpointer           read_tag;
-	gpointer           write_tag;
-	guint              timeout_tag;
-
-	guint              retries;
-
-	SoupCallbackFn     callback;
-	gpointer           user_data;
-
-	guint              msg_flags;
-
-	GSList            *content_handlers;
-
-	SoupHttpVersion    http_version;
-
-	SoupConnection    *connection;
-	SoupSocket        *socket;
-};
-
 /* from soup-context.c */
 
 SoupAuth   *soup_context_lookup_auth       (SoupContext    *ctx,
@@ -97,15 +76,6 @@ gboolean    soup_context_authenticate_auth (SoupContext    *ctx,
 void        soup_context_invalidate_auth   (SoupContext    *ctx,
 					    SoupAuth       *auth);
 					  
-/* from soup-message.c */
-
-void     soup_message_issue_callback (SoupMessage      *req);
-
-gboolean soup_message_run_handlers   (SoupMessage      *msg,
-				      SoupHandlerType   invoke_type);
-
-void     soup_message_cleanup        (SoupMessage      *req);
-
 /* from soup-misc.c */
 
 guint     soup_str_case_hash   (gconstpointer  key);

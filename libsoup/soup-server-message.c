@@ -15,8 +15,8 @@
 #include <unistd.h>
 
 #include "soup-server-message.h"
+#include "soup-message-private.h"
 #include "soup-private.h"
-#include "soup-transfer.h"
 
 struct SoupServerMessagePrivate {
 	SoupServer *server;
@@ -145,7 +145,7 @@ soup_server_message_start (SoupServerMessage *smsg)
 
 	smsg->priv->started = TRUE;
 
-	soup_transfer_write_unpause (SOUP_MESSAGE (smsg)->priv->write_tag);
+	soup_message_write_unpause (SOUP_MESSAGE (smsg));
 }
 
 gboolean
@@ -181,7 +181,7 @@ soup_server_message_add_chunk (SoupServerMessage *smsg,
 
 	smsg->priv->chunks = g_slist_append (smsg->priv->chunks, buf);
 
-	soup_transfer_write_unpause (SOUP_MESSAGE (smsg)->priv->write_tag);
+	soup_message_write_unpause (SOUP_MESSAGE (smsg));
 }
 
 SoupDataBuffer *
@@ -208,7 +208,7 @@ soup_server_message_finish  (SoupServerMessage *smsg)
 	smsg->priv->started = TRUE;
 	smsg->priv->finished = TRUE;
 
-	soup_transfer_write_unpause (SOUP_MESSAGE (smsg)->priv->write_tag);
+	soup_message_write_unpause (SOUP_MESSAGE (smsg));
 }
 
 gboolean

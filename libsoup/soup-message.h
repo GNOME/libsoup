@@ -21,13 +21,10 @@
 typedef struct SoupMessagePrivate SoupMessagePrivate;
 
 typedef enum {
-	SOUP_STATUS_IDLE = 0,
-	SOUP_STATUS_QUEUED,
-        SOUP_STATUS_CONNECTING,
-	SOUP_STATUS_SENDING_REQUEST,
-	SOUP_STATUS_READING_RESPONSE,
-	SOUP_STATUS_FINISHED
-} SoupTransferStatus;
+	SOUP_TRANSFER_UNKNOWN = 0,
+	SOUP_TRANSFER_CHUNKED,
+	SOUP_TRANSFER_CONTENT_LENGTH,
+} SoupTransferEncoding;
 
 typedef enum {
 	SOUP_BUFFER_SYSTEM_OWNED = 0,
@@ -49,8 +46,6 @@ typedef struct {
 	SoupContext        *context;
 
 	const char         *method;
-
-	SoupTransferStatus  status;
 
 	guint               errorcode;
 	SoupErrorClass      errorclass;
@@ -183,35 +178,35 @@ typedef enum {
 	SOUP_HANDLER_PRE_BODY = 1,
 	SOUP_HANDLER_BODY_CHUNK,
 	SOUP_HANDLER_POST_BODY
-} SoupHandlerType;
+} SoupHandlerPhase;
 
 void           soup_message_add_handler         (SoupMessage       *msg,
-						 SoupHandlerType    type,
+						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 void           soup_message_add_header_handler  (SoupMessage       *msg,
 						 const char        *header,
-						 SoupHandlerType    type,
+						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 void           soup_message_add_error_code_handler (
 						 SoupMessage       *msg,
 						 guint              errorcode,
-						 SoupHandlerType    type,
+						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 void           soup_message_add_error_class_handler (
 						 SoupMessage       *msg,
 						 SoupErrorClass     errorclass,
-						 SoupHandlerType    type,
+						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 void           soup_message_remove_handler      (SoupMessage       *msg, 
-						 SoupHandlerType    type,
+						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
