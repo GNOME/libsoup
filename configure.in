@@ -207,7 +207,6 @@ if test x$with_nss != x; then
 	fi
 fi
 
-
 # Set PACKAGE_SOURCE_DIR in config.h.
 packagesrcdir=`cd $srcdir && pwd`
 AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")

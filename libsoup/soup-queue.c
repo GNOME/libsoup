@@ -13,7 +13,6 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -26,6 +25,7 @@
 
 #include "soup-queue.h"
 #include "soup-context.h"
+#include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
 #include "soup-socks.h"
@@ -34,24 +34,11 @@ GSList *soup_active_requests = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
-/*
- * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"
- *                     ^             ^ ^    ^            ^   ^
- *                     |             | |    |            |   |
- *                    key            0 val  0          val+  0
- *                                         , <---memmove-...
- * 
- * key: "Content-Length"
- * val: "1234, 567"
- */
 static gboolean
 soup_parse_headers (SoupMessage *req)
 {
-	guint http_major, http_minor, status_code, phrase_start = 0;
 	guint len = req->priv->recv_buf->len;
 	gchar *str = req->priv->recv_buf->data;
-	gchar *key = NULL, *val = NULL;
-	gint offset = 0, lws = 0;
 
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
@@ -59,80 +46,12 @@ soup_parse_headers (SoupMessage *req)
 	req->response_headers = g_hash_table_new (soup_str_case_hash, 
 						  soup_str_case_equal);
 
-	if (!str || !*str || len < sizeof ("HTTP/0.0 000 A\r\n\r\n"))
+	if (!soup_parse_response_headers (str, 
+					  len, 
+					  req->response_headers,
+					  &req->response_code,
+					  &req->response_phrase))
 		goto THROW_MALFORMED_HEADER;
-
-	if (sscanf (str, 
-		    "HTTP/%1u.%1u %3u %n", 
-		    &http_major,
-		    &http_minor,
-		    &status_code, 
-		    &phrase_start) < 3 || !phrase_start)
-		goto THROW_MALFORMED_HEADER;
-
-	req->response_code = status_code; 
-	req->response_phrase = &str [phrase_start];
-
-	key = strstr (str, "\r\n");
-	key += 2;
-
-	/* FIXME: Do better error checking. */
-
-	/* join continuation headers, using a comma */
-	while ((key = strstr (key, "\r\n"))) {
-		key += 2;
-		offset = key - str;
-
-		/* pointing at another \r means end of header */
-		if (*key == '\r') break;
-
-		/* check if first character on the line is whitespace */
-		if (*key == ' ' || *key == '\t') {
-			key -= 2;
-
-			/* eat any trailing space from the previous line*/
-			while (key [-1] == ' ' || key [-1] == '\t') key--;
-
-			/* count how many characters are whitespace */
-			lws = strspn (key, " \t\r\n");
-
-			/* if continuation line, replace whitespace with ", " */
-			if (key [-1] != ':') {
-				lws -= 2;
-				key [0] = ',';
-				key [1] = ' ';
-			}
-
-			g_memmove (key, &key [lws], len - offset - lws);
-			g_byte_array_set_size (req->priv->recv_buf, len - lws);
-		}
-	}
-
-	key = str;
-
-	/* set eos for header key and value and add to hashtable */
-        while ((key = strstr (key, "\r\n"))) {
-		/* set end of last val, or end of http reason phrase */
-                key [0] = '\0';
-		key += 2;
-
-		/* pointing at another \r means end of header */
-		if (*key == '\r') break;
-
-                val = strchr (key, ':'); /* find start of val */
-
-		if (!val || val > strchr (key, '\r'))
-			goto THROW_MALFORMED_HEADER;
-
-		/* set end of key */
-		val [0] = '\0';
-		
-		val++;
-		val += strspn (val, " \t");  /* skip whitespace */
-		g_hash_table_insert (req->response_headers, key, val);
-		
-		key = val;
-        }
 
 	return TRUE;
 
@@ -717,6 +636,8 @@ soup_queue_message (SoupMessage    *req,
 	req->response.body = NULL;
 	req->response.length = 0;
 
+	if (req->response_phrase) 
+		g_free (req->response_phrase);
 	if (req->response_headers)
 		g_hash_table_destroy (req->response_headers);
 	if (req->priv->recv_buf) 

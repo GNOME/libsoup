@@ -23,7 +23,8 @@ libsoup_la_SOURCES =		\
 	soup-misc.c     	\
 	soup-ssl.c		\
 	soup-socks.c		\
-	soup-serializer.c
+	soup-serializer.c	\
+	soup-headers.c
 
 soupinclude_HEADERS =		\
 	soup.h			\

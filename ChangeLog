@@ -1,3 +1,23 @@
+2001-02-06  alex  <alex@ximian.com>
+
+	* soup-config.in: remove some cruft.
+
+	* soupConf.sh.in: remove some cruft.
+
+	* src/soup-core/Makefile.am: build soup-headers.c
+
+	* src/soup-core/soup-headers.[ch]: created. refactor of header parsing
+	  logic for use in requests and responses.
+
+	* src/soup-core/soup-message.c: free req->response_phrase as it is now 
+	  allocated.
+
+	* src/soup-core/soup-queue.c (soup_parse_headers): use 
+	  soup_parse_response_headers. (soup_queue_reqest): free 
+	  req->response_phrase.
+
+	* src/soup-core/soup-serializer.h: include <time.h>
+
 2001-01-31  Jeffrey Stedfast  <fejj@ximian.com>
 
 	* src/soup-core/gionspr.c: Implemented (probably somewhat broken).
