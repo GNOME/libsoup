@@ -1,3 +1,16 @@
+2001-03-14  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-parse.h: Support for simple glib types
+
+	* src/soup-wsdl/wsdl-parse.c (wsdl_attrnscmp): Check the namespace
+	prefix of a string.
+	(wsdl_parse_types): Add a placeholder for parsing glib schemas
+	(wsdl_parse_message): Add support for simple glib types in part
+	elements
+
+	* src/soup-wsdl/wsdl-describe.c (wsdl_describe_message_part): Show
+	glib types, if appropriate
+
 2001-03-13  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_get_request_header): don't
