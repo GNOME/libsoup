@@ -25,10 +25,6 @@
 #include "soup-dns.h"
 #include "soup-misc.h"
 
-#ifndef socklen_t
-#  define socklen_t int
-#endif
-
 #ifndef INET_ADDRSTRLEN
 #  define INET_ADDRSTRLEN 16
 #  define INET6_ADDRSTRLEN 46

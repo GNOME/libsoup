@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -25,11 +26,6 @@
 #include "soup-dns.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
-
-#include <unistd.h>
-#ifndef socklen_t
-#  define socklen_t size_t
-#endif
 
 #ifndef INET_ADDRSTRLEN
 #  define INET_ADDRSTRLEN 16

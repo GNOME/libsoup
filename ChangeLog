@@ -1,3 +1,11 @@
+2003-12-10  Tambet Ingo  <tambet@ximian.com>
+
+	* configure.in: Use autoconfig to check for socklen_t ...
+
+	* libsoup/soup-address.c: ... and remove it from here ...
+
+	* libsoup/soup-dns.c: ... and here.
+
 2003-12-09  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-message.c (soup_soap_message_persist):
