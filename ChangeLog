@@ -1,3 +1,9 @@
+2002-12-11  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-queue.c (proxy_https_connect_cb): I am an idiot.
+	Don't set a variable to NULL and then immediately try to
+	dereference it.
+
 2002-12-09  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-openssl.c (soup_openssl_get_iochannel): Put a

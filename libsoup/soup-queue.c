@@ -512,11 +512,6 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 {
 	gboolean *ret = user_data;
 
-	/*
-	 * Avoid releasing the connection on message free
-	 */
-	msg->connection = NULL;
-
 	if (!SOUP_MESSAGE_IS_ERROR (msg)) {
 		/*
 		 * Bless the connection to SSL
@@ -526,6 +521,11 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 		
 		*ret = TRUE;
 	}
+
+	/*
+	 * Avoid releasing the connection on message free
+	 */
+	msg->connection = NULL;
 }
 
 static gboolean
