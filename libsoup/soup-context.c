@@ -32,12 +32,12 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 	ctx->uri = uri;
 	ctx->refcnt = 0;
 
-	if (strcmp (uri->protocol, "mailto") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SMTP;
-	else if (strcmp (uri->protocol, "http") == 0) 
+	if (!uri->protocol || strcmp (uri->protocol, "http") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_HTTP;
 	else if (strcmp (uri->protocol, "https") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_SHTTP;
+	else if (strcmp (uri->protocol, "mailto") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SMTP;		
 
 	return ctx;
 }
