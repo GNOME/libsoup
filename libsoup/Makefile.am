@@ -54,9 +54,10 @@ lib_LTLIBRARIES = libsoup-2.2.la
 libsoup_2_2_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
-libsoup_2_2_la_LIBADD =		\
-	$(GLIB_LIBS)		\
-	$(XML_LIBS)		\
+libsoup_2_2_la_LIBADD =			\
+	$(GLIB_LIBS)			\
+	$(XML_LIBS)			\
+	$(LIBGNUTLS_LIBS_STATIC)	\
 	$(LIBGNUTLS_LIBS)
 
 libsoup_2_2_la_SOURCES =		\

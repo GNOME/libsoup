@@ -206,6 +206,7 @@ if test "$enable_ssl" != "no"; then
 	fi
 fi
 
+LIBGNUTLS_LIBS_STATIC=""
 if test "$enable_ssl" != "no"; then
 	AC_DEFINE(HAVE_SSL, 1, [Defined if you have SSL support])
 
@@ -224,12 +225,14 @@ if test "$enable_ssl" != "no"; then
 
 	if test "$enable_static_ssl" = "yes"; then
 		gnutls_libdir=`$LIBGNUTLS_CONFIG --exec-prefix`/lib
-		LIBGNUTLS_LIBS="$gnutls_libdir/libgnutls.a $gnutls_libdir/libgcrypt.a $libgpg_error_libs_static"
+		LIBGNUTLS_LIBS=""
+		LIBGNUTLS_LIBS_STATIC="$gnutls_libdir/libgnutls.a $gnutls_libdir/libgcrypt.a $libgpg_error_libs_static"
 	fi
 fi
 
 AC_SUBST(LIBGNUTLS_CFLAGS)
 AC_SUBST(LIBGNUTLS_LIBS)
+AC_SUBST(LIBGNUTLS_LIBS_STATIC)
 
 dnl ***************
 dnl *** gtk-doc ***
