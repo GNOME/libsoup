@@ -1,3 +1,7 @@
+2001-03-06  JP Rosevear  <jpr@ximian.com>
+
+	* configure.in: properly version the project and give an option to disable more warnings
+
 2001-03-02  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl/Makefile.am (INCLUDES): Remove WSDL_CFLAGS.
