@@ -5,10 +5,10 @@ dnl *******************************************
 AC_INIT(src/libsoup/soup.h)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=1
+SOUP_AGE=2
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=4
+SOUP_CURRENT=5
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0
@@ -18,7 +18,7 @@ AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
 
 # Update in src/libsoup/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.7.3)
+AM_INIT_AUTOMAKE(soup, 0.7.4)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
