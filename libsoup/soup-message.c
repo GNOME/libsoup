@@ -16,7 +16,6 @@
 #include "soup-misc.h"
 #include "soup-context.h"
 #include "soup-private.h"
-#include "soup-queue.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
@@ -164,7 +163,7 @@ class_init (GObjectClass *object_class)
 	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
+			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, finished),
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
@@ -353,13 +352,6 @@ static void
 finished (SoupMessage *req)
 {
 	cleanup_message (req);
-
-	if (req->priv->callback) {
-		(*req->priv->callback) (req, req->priv->user_data);
-
-		if (!SOUP_MESSAGE_IS_STARTING (req))
-			g_object_unref (req);
-	}
 }
 
 void
@@ -381,8 +373,6 @@ cleanup_message (SoupMessage *req)
 	}
 
 	soup_message_set_connection (req, NULL);
-
-	soup_queue_remove_request (req);
 }
 
 /**
@@ -543,36 +533,22 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 	g_hash_table_foreach (hash, foreach_value_in_list, &data);
 }
 
-static void
-queue_message (SoupMessage *req)
+/**
+ * soup_message_prepare:
+ * @req: a message
+ *
+ * Prepares @req to be sent, by cleaning up its prior response state
+ **/
+void
+soup_message_prepare (SoupMessage *req)
 {
-	if (!req->priv->context) {
-		soup_message_set_error_full (req, 
-					     SOUP_ERROR_CANCELLED,
-					     "Attempted to queue a message "
-					     "with no destination context");
-		soup_message_finished (req);
-		return;
-	}
-
-	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
+	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE) {
 		cleanup_message (req);
-
-	switch (req->response.owner) {
-	case SOUP_BUFFER_USER_OWNED:
-		soup_message_set_error_full (req, 
-					     SOUP_ERROR_CANCELLED,
-					     "Attempted to queue a message "
-					     "with a user owned response "
-					     "buffer.");
-		soup_message_finished (req);
-		return;
-	case SOUP_BUFFER_SYSTEM_OWNED:
-		g_free (req->response.body);
-		break;
-	case SOUP_BUFFER_STATIC:
-		break;
+		req->priv->status = SOUP_MESSAGE_STATUS_IDLE;
 	}
+
+	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
+		g_free (req->response.body);
 
 	req->response.owner = 0;
 	req->response.body = NULL;
@@ -589,92 +565,6 @@ queue_message (SoupMessage *req)
 		g_free ((char *) req->errorphrase);
 		req->errorphrase = NULL;
 	}
-
-	soup_queue_message (req);
-}
-
-/**
- * soup_message_queue:
- * @req: a #SoupMessage.
- * @callback: a #SoupCallbackFn which will be called after the message
- * completes or when an unrecoverable error occurs.
- * @user_data: a pointer passed to @callback.
- * 
- * Queues the message @req for sending. All messages are processed
- * while the glib main loop runs. If this #SoupMessage has been
- * processed before, any resources related to the time it was last
- * sent are freed.
- *
- * If the response #SoupDataBuffer has an owner of
- * %SOUP_BUFFER_USER_OWNED, the message will not be queued, and
- * @callback will be called with a #SoupErrorCode of
- * %SOUP_ERROR_CANCELLED.
- *
- * Upon message completetion, the callback specified in @callback will
- * be invoked. If after returning from this callback the message has
- * not been requeued using soup_message_queue(), @req will be unreffed.
- */
-void
-soup_message_queue (SoupMessage    *req,
-		    SoupCallbackFn  callback,
-		    gpointer        user_data)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
-
-	req->priv->callback = callback;
-	req->priv->user_data = user_data;
-
-	queue_message (req);
-}
-
-/**
- * soup_message_requeue:
- * @req: a #SoupMessage
- *
- * This causes @req to be placed back on the queue to be attempted
- * again.
- **/
-void
-soup_message_requeue (SoupMessage *req)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
-
-	if (req->priv->io_data)
-		soup_message_io_cancel (req);
-	queue_message (req);
-}
-
-/**
- * soup_message_send:
- * @msg: a #SoupMessage.
- * 
- * Synchronously send @msg. This call will not return until the
- * transfer is finished successfully or there is an unrecoverable
- * error.
- *
- * @msg is not freed upon return.
- *
- * Return value: the #SoupErrorClass of the error encountered while
- * sending or reading the response.
- */
-SoupErrorClass
-soup_message_send (SoupMessage *msg)
-{
-	soup_message_queue (msg, NULL, NULL);
-
-	while (1) {
-		g_main_iteration (TRUE);
-
-		if (msg->priv->status == SOUP_MESSAGE_STATUS_FINISHED ||
-		    SOUP_ERROR_IS_TRANSPORT (msg->errorcode))
-			break;
-
-		/* Quit if soup_shutdown has been called */
-		if (!soup_initialized)
-			return SOUP_ERROR_CANCELLED;
-	}
-
-	return msg->errorclass;
 }
 
 void
@@ -775,24 +665,12 @@ soup_message_get_uri (SoupMessage *msg)
 void
 soup_message_set_connection (SoupMessage *msg, SoupConnection *conn)
 {
-	if (conn) {
-		soup_connection_set_in_use (conn, TRUE);
+	if (conn)
 		g_object_ref (conn);
-	}
-	if (msg->priv->connection) {
-		soup_connection_set_in_use (msg->priv->connection, FALSE);
+	if (msg->priv->connection)
 		g_object_unref (msg->priv->connection);
-	}
 
 	msg->priv->connection = conn;
-
-	if (conn) {
-		msg->priv->socket = soup_connection_get_socket (conn);
-		g_object_ref (msg->priv->socket);
-	} else if (msg->priv->socket) {
-		g_object_unref (msg->priv->socket);
-		msg->priv->socket = NULL;
-	}
 }
 
 SoupConnection *
@@ -801,14 +679,6 @@ soup_message_get_connection (SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	return msg->priv->connection;
-}
-
-SoupSocket *
-soup_message_get_socket (SoupMessage *msg)
-{
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	return msg->priv->socket;
 }
 
 void

@@ -1,11 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * soup-misc.c: Miscellaneous settings and configuration file handling.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #include <ctype.h>
@@ -15,7 +12,6 @@
 
 #include "soup-misc.h"
 #include "soup-private.h"
-#include "soup-queue.h"
 
 gboolean soup_initialized = FALSE;
 
@@ -670,20 +666,6 @@ soup_load_config (gchar *config_file)
 		soup_load_config_internal (config_file, FALSE);
 
 	soup_initialized = TRUE;
-}
-
-/**
- * soup_shutdown:
- *
- * Shut down the Soup engine.
- *
- * The pending message queue is flushed by calling %soup_message_cancel on all
- * active requests.
- */
-void
-soup_shutdown ()
-{
-	soup_queue_shutdown ();
 }
 
 static char *ssl_ca_file   = NULL;

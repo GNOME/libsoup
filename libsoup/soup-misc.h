@@ -1,11 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-misc.h: Miscellaneous settings and configuration file handling.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_MISC_H
@@ -19,8 +14,6 @@
 /* Configuration routines */
 
 void               soup_load_config          (gchar       *config_file);
-
-void               soup_shutdown             (void);
 
 void               soup_set_proxy            (SoupContext *context);
 

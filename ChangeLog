@@ -1,3 +1,56 @@
+2003-09-02  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-session.c: First draft at the new object to
+	maintain formerly-global state. (Not yet complete; still need to
+	get rid of SoupContext).
+
+	* libsoup/soup-message-queue.c: Data structure used by SoupSession
+
+	* libsoup/soup-queue.c: Gone. Mostly moved into soup-session, but
+	some bits went into soup-connection.
+
+	* libsoup/soup-connection.c (soup_connection_send_request): New,
+	to send a request on a connection. The connection updates its
+	internal state and then hands off to soup_message_send_request.
+	(request_done): Callback set up by soup_connection_send_request.
+	Marks the connection as no-longer-in-use, and disconnects it if
+	the message says to.
+	(soup_connection_set_in_use, soup_connection_mark_old): No longer
+	needed; the connection takes care of this itself now.
+	(soup_connection_new_proxy): New, to create a new connection that
+	is explicitly marked as being through an HTTP proxy.
+	(soup_connection_new_tunnel): New, to create a new HTTPS
+	connection through a proxy. (Includes the code to send the
+	CONNECT.)
+
+	* libsoup/soup-context.c (try_existing_connections): Don't need to
+	call soup_connection_set_in_use.
+	(try_create_connection): Use soup_connection_new,
+	soup_connection_new_proxy, or soup_connection_new_tunnel as
+	appropriate.
+
+	* libsoup/soup-message.c (soup_message_prepare): Replaces
+	queue_message.
+	(soup_message_queue, soup_message_requeue, soup_message_prepare):
+	Gone. This must be done via a SoupSession now.
+	(soup_message_set_connection): don't need to mark in_use/not
+	in_use. Also, msg->priv->socket is gone now.
+	(soup_message_get_socket): Gone.
+
+	* libsoup/soup-message-handlers.c (soup_message_run_handlers):
+	Remove references to global handlers.
+	(redirect_handler, authorize_handler): Moved to soup-session.c.
+
+	* libsoup/soup-misc.c (soup_shutdown): Gone; just unref the
+	session to shut down now.
+
+	* libsoup/soup.h: add soup-session.h
+
+	* libsoup/Makefile.am: updates
+
+	* tests/auth-test.c, tests/get.c, tests/simple-proxy.c: Use
+	SoupSession.
+
 2003-08-29  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-io.c: Major rewrite. There is now only a

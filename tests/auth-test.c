@@ -6,6 +6,7 @@
 #include "libsoup/soup-auth.h"
 #include "libsoup/soup-private.h"
 #include "libsoup/soup-message-private.h"
+#include "libsoup/soup-session.h"
 
 int errors = 0;
 
@@ -216,11 +217,13 @@ handler (SoupMessage *msg, gpointer data)
 int
 main (int argc, char **argv)
 {
-        SoupMessage *msg;
+	SoupSession *session;
+	SoupMessage *msg;
 	char *expected;
 	int i;
 
 	g_type_init ();
+	session = soup_session_new ();
 
 	for (i = 0; i < ntests; i++) {
 		printf ("Test %d: %s\n", i + 1, tests[i].explanation);
@@ -240,7 +243,7 @@ main (int argc, char **argv)
 		soup_message_add_error_code_handler (
 			msg, SOUP_ERROR_OK, SOUP_HANDLER_PRE_BODY,
 			handler, expected);
-		soup_message_send (msg);
+		soup_session_send_message (session, msg);
 		if (msg->errorcode != SOUP_ERROR_UNAUTHORIZED &&
 		    msg->errorcode != SOUP_ERROR_OK) {
 			printf ("  %d %s !\n", msg->errorcode,
@@ -262,11 +265,10 @@ main (int argc, char **argv)
 
 		printf ("\n");
 
-		/* We don't free the message, because if we did, we'd
-		 * end up freeing the context and discarding the
-		 * cached auth info at the end of each test.
-		 */
+		g_object_unref (msg);
 	}
+
+	g_object_unref (session);
 
 	printf ("\nauth-test: %d errors\n", errors);
 	return errors;

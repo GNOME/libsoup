@@ -29,10 +29,12 @@
 #include "soup-ssl.h"
 
 struct SoupConnectionPrivate {
-	SoupSocket *socket;
-	gboolean    in_use, new;
-	time_t      last_used;
-	guint       death_tag;
+	SoupSocket  *socket;
+	SoupUri     *dest_uri;
+	gboolean     is_proxy;
+	time_t       last_used;
+
+	SoupMessage *cur_req;
 };
 
 #define PARENT_TYPE G_TYPE_OBJECT
@@ -46,14 +48,14 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+static void request_done (SoupMessage *req, gpointer user_data);
+
 static void
 init (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
 
 	conn->priv = g_new0 (SoupConnectionPrivate, 1);
-	conn->priv->in_use = FALSE;
-	conn->priv->new = TRUE;
 }
 
 static void
@@ -61,10 +63,24 @@ finalize (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
 
-	soup_connection_disconnect (conn);
+	if (conn->priv->dest_uri)
+		soup_uri_free (conn->priv->dest_uri);
+
 	g_free (conn->priv);
 
 	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+dispose (GObject *object)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+
+	if (conn->priv->cur_req)
+		request_done (conn->priv->cur_req, conn);
+	soup_connection_disconnect (conn);
+
+	G_OBJECT_CLASS (parent_class)->dispose (object);
 }
 
 static void
@@ -73,6 +89,7 @@ class_init (GObjectClass *object_class)
 	parent_class = g_type_class_ref (PARENT_TYPE);
 
 	/* virtual method override */
+	object_class->dispose = dispose;
 	object_class->finalize = finalize;
 
 	/* signals */
@@ -104,6 +121,28 @@ socket_disconnected (SoupSocket *sock, gpointer conn)
 	soup_connection_disconnect (conn);
 }
 
+static SoupConnection *
+connection_new (const SoupUri *uri, gboolean is_proxy,
+		SoupSocketCallback connect_callback,
+		SoupConnectionCallback user_callback,
+		gpointer user_data)
+{
+	SoupConnection *conn;
+
+	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
+	conn->priv->is_proxy = is_proxy;
+
+	soup_signal_connect_once (conn, "connect_result",
+				  G_CALLBACK (user_callback), user_data);
+
+	conn->priv->socket = soup_socket_client_new (uri->host, uri->port,
+						     uri->protocol == SOUP_PROTOCOL_HTTPS,
+						     connect_callback, conn);
+	g_signal_connect (conn->priv->socket, "disconnected",
+			  G_CALLBACK (socket_disconnected), conn);
+	return conn;
+}
+
 static void
 socket_connected (SoupSocket *sock, SoupKnownErrorCode status, gpointer conn)
 {
@@ -125,17 +164,107 @@ SoupConnection *
 soup_connection_new (const SoupUri *uri,
 		     SoupConnectionCallback callback, gpointer user_data)
 {
+	return connection_new (uri, FALSE, socket_connected,
+			       callback, user_data);
+}
+
+static void
+proxy_socket_connected (SoupSocket *sock, SoupKnownErrorCode status, gpointer conn)
+{
+	if (status == SOUP_ERROR_CANT_RESOLVE)
+		status = SOUP_ERROR_CANT_RESOLVE_PROXY;
+	else if (status == SOUP_ERROR_CANT_CONNECT)
+		status = SOUP_ERROR_CANT_CONNECT_PROXY;
+
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+}
+
+/**
+ * soup_connection_new_proxy:
+ * @proxy_uri: proxy to connect to
+ * @callback: callback to call after connecting
+ * @user_data: data for @callback
+ *
+ * Creates a connection to @proxy_uri. @callback will be called when
+ * the connection completes (or fails).
+ *
+ * Return value: the new connection (not yet ready for use).
+ **/
+SoupConnection *
+soup_connection_new_proxy (const SoupUri *proxy_uri,
+			   SoupConnectionCallback callback,
+			   gpointer user_data)
+{
+	return connection_new (proxy_uri, TRUE, proxy_socket_connected,
+			       callback, user_data);
+}
+
+static void
+tunnel_connected (SoupMessage *msg, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+
+	if (SOUP_ERROR_IS_SUCCESSFUL (msg->errorcode))
+		soup_socket_start_ssl (conn->priv->socket);
+
+	proxy_socket_connected (NULL, msg->errorcode, conn);
+	g_object_unref (msg);
+}
+
+static void
+tunnel_failed (SoupMessage *msg, gpointer conn)
+{
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
+		       SOUP_ERROR_CANT_CONNECT);
+	g_object_unref (msg);
+}
+
+static void
+tunnel_socket_connected (SoupSocket *sock, SoupKnownErrorCode status,
+			 gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	SoupMessage *connect_msg;
+
+	if (!SOUP_ERROR_IS_SUCCESSFUL (status)) {
+		socket_connected (sock, status, conn);
+		return;
+	}
+
+	connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
+						 conn->priv->dest_uri);
+	g_signal_connect (connect_msg, "read_body",
+			  G_CALLBACK (tunnel_connected), conn);
+	g_signal_connect (connect_msg, "write_error",
+			  G_CALLBACK (tunnel_failed), conn);
+	g_signal_connect (connect_msg, "read_error",
+			  G_CALLBACK (tunnel_failed), conn);
+
+	soup_connection_send_request (conn, connect_msg);
+}
+
+/**
+ * soup_connection_new_tunnel:
+ * @proxy_uri: proxy to connect to
+ * @dest_uri: remote machine to ask the proxy to connect to
+ * @callback: callback to call after connecting
+ * @user_data: data for @callback
+ *
+ * Creates a connection to @uri via @proxy_uri. @callback will be
+ * called when the connection completes (or fails).
+ *
+ * Return value: the new connection (not yet ready for use).
+ **/
+SoupConnection *
+soup_connection_new_tunnel (const SoupUri *proxy_uri, const SoupUri *dest_uri,
+			    SoupConnectionCallback callback,
+			    gpointer user_data)
+{
 	SoupConnection *conn;
 
-	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-
-	soup_signal_connect_once (conn, "connect_result",
-				  G_CALLBACK (callback), user_data);
-	conn->priv->socket = soup_socket_client_new (uri->host, uri->port,
-						     uri->protocol == SOUP_PROTOCOL_HTTPS,
-						     socket_connected, conn);
-	g_signal_connect (conn->priv->socket, "disconnected",
-			  G_CALLBACK (socket_disconnected), conn);
+	conn = connection_new (proxy_uri, TRUE, tunnel_socket_connected,
+			       callback, user_data);
+	conn->priv->dest_uri = soup_uri_copy (dest_uri);
 	return conn;
 }
 
@@ -151,21 +280,14 @@ soup_connection_disconnect (SoupConnection *conn)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
-	if (conn->priv->death_tag) {
-		g_source_remove (conn->priv->death_tag);
-		conn->priv->death_tag = 0;
-	}
+	if (!conn->priv->socket)
+		return;
 
-	if (conn->priv->socket) {
-		g_signal_handlers_disconnect_by_func (conn->priv->socket,
-						      socket_disconnected,
-						      conn);
-		soup_socket_disconnect (conn->priv->socket);
-		g_object_unref (conn->priv->socket);
-		conn->priv->socket = NULL;
-
-		g_signal_emit (conn, signals[DISCONNECTED], 0);
-	}
+	g_signal_handlers_disconnect_by_func (conn->priv->socket,
+					      socket_disconnected, conn);
+	g_object_unref (conn->priv->socket);
+	conn->priv->socket = NULL;
+	g_signal_emit (conn, signals[DISCONNECTED], 0);
 }
 
 gboolean
@@ -191,53 +313,6 @@ soup_connection_get_socket (SoupConnection *conn)
 }
 
 
-static gboolean
-connection_died (GIOChannel   *iochannel,
-		  GIOCondition  condition,
-		  gpointer      conn)
-{
-	soup_connection_disconnect (conn);
-	return FALSE;
-}
-
-/**
- * soup_connection_set_in_use:
- * @conn: a connection
- * @in_use: whether or not @conn is in_use
- *
- * Marks @conn as being either in use or not. If @in_use is %FALSE,
- * @conn's last-used time is updated.
- **/
-void
-soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
-{
-	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-
-	if (!conn->priv->socket) {
-		if (in_use)
-			g_warning ("Trying to use disconnected socket");
-		return;
-	}
-
-	if (!in_use)
-		conn->priv->last_used = time (NULL);
-
-	if (in_use == conn->priv->in_use)
-		return;
-
-	conn->priv->in_use = in_use;
-	if (!conn->priv->in_use) {
-		conn->priv->death_tag = 
-			g_io_add_watch (soup_socket_get_iochannel (conn->priv->socket),
-					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-					connection_died,
-					conn);
-	} else if (conn->priv->death_tag) {
-		g_source_remove (conn->priv->death_tag);
-		conn->priv->death_tag = 0;
-	}
-}
-
 /**
  * soup_connection_is_in_use:
  * @conn: a connection
@@ -249,15 +324,15 @@ soup_connection_is_in_use (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return conn->priv->in_use;
+	return conn->priv->cur_req != NULL;
 }
 
 /**
  * soup_connection_last_used:
  * @conn: a #SoupConnection.
  *
- * Return value: the last time soup_connection_mark_used() was called
- * on @conn, or 0 if @conn has not been used yet.
+ * Return value: the last time a response was received on @conn, or 0
+ * if @conn has not been used yet.
  */
 time_t
 soup_connection_last_used (SoupConnection *conn)
@@ -279,20 +354,40 @@ soup_connection_is_new (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return conn->priv->new;
+	return conn->priv->last_used == 0;
 }
 
-/**
- * soup_connection_mark_old:
- * @conn: a #SoupConnection.
- *
- * Marks @conn as being no longer "new".
- * FIXME: some day, this should happen automatically.
- */
+
+static void
+request_done (SoupMessage *req, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+
+	g_object_remove_weak_pointer (G_OBJECT (conn->priv->cur_req),
+				      (gpointer *)conn->priv->cur_req);
+	conn->priv->cur_req = NULL;
+	conn->priv->last_used = time (NULL);
+
+	g_signal_handlers_disconnect_by_func (req, request_done, conn);
+
+	if (!soup_message_is_keepalive (req))
+		soup_connection_disconnect (conn);
+}
+
 void
-soup_connection_mark_old (SoupConnection *conn)
+soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+	g_return_if_fail (SOUP_IS_MESSAGE (req));
+	g_return_if_fail (conn->priv->socket != NULL);
+	g_return_if_fail (conn->priv->cur_req == NULL);
 
-	conn->priv->new = FALSE;
+	conn->priv->cur_req = req;
+	g_object_add_weak_pointer (G_OBJECT (req),
+				   (gpointer *)conn->priv->cur_req);
+
+	g_signal_connect (req, "finished", G_CALLBACK (request_done), conn);
+
+	soup_message_send_request (req, conn->priv->socket,
+				   conn->priv->is_proxy);
 }

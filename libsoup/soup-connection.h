@@ -43,6 +43,13 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection     *sock,
 SoupConnection *soup_connection_new            (const SoupUri      *uri,
 						SoupConnectionCallback,
 						gpointer            data);
+SoupConnection *soup_connection_new_proxy      (const SoupUri      *proxy_uri,
+						SoupConnectionCallback,
+						gpointer            data);
+SoupConnection *soup_connection_new_tunnel     (const SoupUri      *proxy_uri,
+						const SoupUri      *dest_uri,
+						SoupConnectionCallback,
+						gpointer            data);
 
 gboolean        soup_connection_is_proxy       (SoupConnection *conn);
 
@@ -51,12 +58,11 @@ gboolean        soup_connection_is_connected   (SoupConnection *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection *conn);
 
-void            soup_connection_set_in_use     (SoupConnection *conn,
-						gboolean        in_use);
+gboolean        soup_connection_is_new         (SoupConnection *conn);
 gboolean        soup_connection_is_in_use      (SoupConnection *conn);
 time_t          soup_connection_last_used      (SoupConnection *conn);
 
-gboolean        soup_connection_is_new         (SoupConnection *conn);
-void            soup_connection_mark_old       (SoupConnection *conn);
+void            soup_connection_send_request   (SoupConnection *conn,
+						SoupMessage    *req);
 
 #endif /* SOUP_CONNECTION_H */

@@ -33,40 +33,6 @@ typedef struct {
 	} data;
 } SoupHandlerData;
 
-static void redirect_handler (SoupMessage *msg, gpointer user_data);
-static void authorize_handler (SoupMessage *msg, gpointer proxy);
-
-static SoupHandlerData global_handlers [] = {
-	/* Handle redirect response codes. */
-	{
-		SOUP_HANDLER_POST_BODY,
-		redirect_handler,
-		NULL,
-		SOUP_HANDLER_ERROR_CLASS,
-		{ SOUP_ERROR_CLASS_REDIRECT }
-	},
-
-	/* Handle authorization. */
-	{
-		SOUP_HANDLER_POST_BODY,
-		authorize_handler,
-		GINT_TO_POINTER (FALSE),
-		SOUP_HANDLER_ERROR_CODE,
-		{ 401 }
-	},
-
-	/* Handle proxy authorization. */
-	{
-		SOUP_HANDLER_POST_BODY,
-		authorize_handler,
-		GINT_TO_POINTER (TRUE),
-		SOUP_HANDLER_ERROR_CODE,
-		{ 407 }
-	},
-
-	{ 0 }
-};
-
 static inline void
 run_handler (SoupMessage     *msg,
 	     SoupHandlerPhase invoke_phase,
@@ -97,9 +63,8 @@ run_handler (SoupMessage     *msg,
 }
 
 /*
- * Run each handler with matching criteria (first per-message then
- * global handlers). If a handler requeues a message, we stop
- * processing and terminate the current request.
+ * Run each handler with matching criteria. If a handler requeues a
+ * message, we stop processing and terminate the current request.
  *
  * After running all handlers, if there is an error set or the invoke
  * phase was post_body, issue the final callback.
@@ -111,19 +76,11 @@ void
 soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 {
 	GSList *list;
-	SoupHandlerData *data;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	for (list = msg->priv->content_handlers; list; list = list->next) {
 		run_handler (msg, invoke_phase, list->data);
-
-		if (SOUP_MESSAGE_IS_STARTING (msg))
-			return;
-	}
-
-	for (data = global_handlers; data->phase; data++) {
-		run_handler (msg, invoke_phase, data);
 
 		if (SOUP_MESSAGE_IS_STARTING (msg))
 			return;
@@ -249,63 +206,4 @@ soup_message_remove_handler (SoupMessage     *msg,
 
 		iter = iter->next;
 	}
-}
-
-
-/* FIXME: these don't belong here */
-
-static void
-authorize_handler (SoupMessage *msg, gpointer proxy)
-{
-	SoupContext *ctx;
-
-	ctx = proxy ? soup_get_proxy () : msg->priv->context;
-	if (soup_context_update_auth (ctx, msg))
-		soup_message_requeue (msg);
-}
-
-static void
-redirect_handler (SoupMessage *msg, gpointer user_data)
-{
-	const char *new_loc;
-	const SoupUri *old_uri;
-	SoupUri *new_uri;
-	SoupContext *new_ctx;
-
-	if (msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT)
-		return;
-
-	old_uri = soup_message_get_uri (msg);
-
-	new_loc = soup_message_get_header (msg->response_headers, "Location");
-	if (!new_loc)
-		return;
-	new_uri = soup_uri_new (new_loc);
-	if (!new_uri)
-		goto INVALID_REDIRECT;
-
-	/* Copy auth info from original URI. */
-	if (old_uri->user && !new_uri->user)
-		soup_uri_set_auth (new_uri,
-				   old_uri->user,
-				   old_uri->passwd,
-				   old_uri->authmech);
-
-	new_ctx = soup_context_from_uri (new_uri);
-
-	soup_uri_free (new_uri);
-
-	if (!new_ctx)
-		goto INVALID_REDIRECT;
-
-	soup_message_set_context (msg, new_ctx);
-	g_object_unref (new_ctx);
-
-	soup_message_requeue (msg);
-	return;
-
- INVALID_REDIRECT:
-	soup_message_set_error_full (msg,
-				     SOUP_ERROR_MALFORMED,
-				     "Invalid Redirect URL");
 }

@@ -18,10 +18,13 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-server-message.h>
+#include <libsoup/soup-session.h>
 
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.
  */
+
+SoupSession *session;
 
 static void
 copy_header (gpointer name, gpointer value, gpointer dest_headers)
@@ -107,7 +110,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
 	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), msg2);
 
-	soup_message_queue (msg2, finish_msg, msg);
+	soup_session_queue_message (session, msg2, finish_msg, msg);
 
 	g_object_ref (msg);
 	soup_message_io_pause (msg);
@@ -154,6 +157,8 @@ main (int argc, char **argv)
 	printf ("\nStarting proxy on port %d\n",
 		soup_server_get_port (server));
 	soup_server_run_async (server);
+
+	session = soup_session_new ();
 
 	printf ("\nWaiting for requests...\n");
 

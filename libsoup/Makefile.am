@@ -40,6 +40,7 @@ libsoupinclude_HEADERS =	\
 	soup-server-auth.h	\
 	soup-server-message.h	\
 	soup-server.h		\
+	soup-session.h		\
 	soup-socket.h		\
 	soup-types.h		\
 	soup-uri.h
@@ -79,15 +80,16 @@ libsoup_2_2_la_SOURCES =		\
 	soup-message-handlers.c		\
 	soup-message-io.c		\
 	soup-message-private.h		\
+	soup-message-queue.c		\
+	soup-message-queue.h		\
 	soup-message-server-io.c	\
 	soup-method.c			\
 	soup-misc.c     		\
 	soup-private.h     		\
-	soup-queue.h			\
-	soup-queue.c			\
 	soup-server.c			\
 	soup-server-auth.c		\
 	soup-server-message.c		\
+	soup-session.c			\
 	soup-socket.c			\
 	soup-ssl.h			\
 	soup-ssl.c			\

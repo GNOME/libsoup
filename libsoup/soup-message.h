@@ -100,13 +100,7 @@ void           soup_message_cancel              (SoupMessage       *req);
 
 void           soup_message_disconnect          (SoupMessage       *req);
 
-SoupErrorClass soup_message_send                (SoupMessage       *msg);
-
-void           soup_message_queue               (SoupMessage       *req, 
-						 SoupCallbackFn     callback, 
-						 gpointer           user_data);
-
-void           soup_message_requeue             (SoupMessage       *req);
+void           soup_message_prepare             (SoupMessage       *req);
 
 void           soup_message_add_header          (GHashTable        *hash,
 						 const char        *name,

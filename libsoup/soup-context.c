@@ -23,8 +23,8 @@
 
 #include "soup-auth.h"
 #include "soup-auth-ntlm.h"
-#include "soup-connection.h"
 #include "soup-context.h"
+#include "soup-connection.h"
 #include "soup-message-private.h"
 #include "soup-private.h"
 #include "soup-misc.h"
@@ -396,9 +396,6 @@ try_existing_connections (SoupContext           *ctx,
 
 		if (!soup_connection_is_in_use (conn) &&
 		    port == ctx->priv->uri->port) {
-			/* Set connection to in use */
-			soup_connection_set_in_use (conn, TRUE);
-
 			/* Issue success callback */
 			(*cb) (ctx, SOUP_ERROR_OK, conn, user_data);
 			return TRUE;
@@ -414,6 +411,8 @@ static gboolean
 try_create_connection (struct SoupConnectData *data)
 {
 	int conn_limit = soup_get_connection_limit ();
+	SoupContext *proxy = soup_get_proxy ();
+	SoupUri *uri = data->ctx->priv->uri;
 
 	/* 
 	 * Check if we are allowed to create a new connection, otherwise wait
@@ -429,8 +428,20 @@ try_create_connection (struct SoupConnectData *data)
 	connection_count++;
 
 	data->timeout_tag = 0;
-	data->conn = soup_connection_new (data->ctx->priv->uri,
-					  soup_context_connect_cb, data);
+
+	if (proxy) {
+		if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
+			data->conn = soup_connection_new_tunnel (
+				proxy->priv->uri, uri,
+				soup_context_connect_cb, data);
+		} else {
+			data->conn = soup_connection_new_proxy (
+				proxy->priv->uri,
+				soup_context_connect_cb, data);
+		}
+	} else
+		data->conn = soup_connection_new (uri, soup_context_connect_cb, data);
+
 	return TRUE;
 }
 

@@ -40,7 +40,6 @@ struct SoupMessagePrivate {
 
 	SoupContext       *context;
 	SoupConnection    *connection;
-	SoupSocket        *socket;
 };
 
 void             soup_message_run_handlers   (SoupMessage      *msg,
@@ -55,7 +54,6 @@ void             soup_message_set_context    (SoupMessage      *msg,
 void             soup_message_set_connection (SoupMessage      *msg,
 					      SoupConnection   *conn);
 SoupConnection  *soup_message_get_connection (SoupMessage      *msg);
-SoupSocket      *soup_message_get_socket     (SoupMessage      *msg);
 
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,

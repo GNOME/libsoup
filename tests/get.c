@@ -15,6 +15,7 @@
 #include <libsoup/soup.h>
 
 gboolean recurse = FALSE;
+SoupSession *session;
 GMainLoop *loop;
 char *base;
 SoupUri *base_uri;
@@ -189,7 +190,7 @@ get_url (const char *url)
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	pending++;
-	soup_message_queue (msg, got_url, soup_uri_new (url));
+	soup_session_queue_message (session, msg, got_url, soup_uri_new (url));
 	g_free (url_to_get);
 }
 
@@ -206,6 +207,8 @@ main (int argc, char **argv)
 	int opt;
 
 	g_type_init ();
+	session = soup_session_new ();
+
 	while ((opt = getopt (argc, argv, "r")) != -1) {
 		switch (opt) {
 		case 'r':
