@@ -121,8 +121,10 @@ soup_transfer_read_cancel (guint tag)
 
 	if (r->processing) return;
 
-	g_source_remove (r->read_tag);
-	g_source_remove (r->err_tag);
+	if (r->read_tag)
+		g_source_remove (r->read_tag);
+	if (r->err_tag)
+		g_source_remove (r->err_tag);
 
 	g_byte_array_free (r->recv_buf, r->callback_issued ? FALSE : TRUE);
 
@@ -163,6 +165,10 @@ issue_final_callback (SoupReader *r)
 		};
 
 		r->callback_issued = TRUE;
+
+		g_source_remove (r->read_tag);
+		g_source_remove (r->err_tag);
+		r->read_tag = r->err_tag = 0;
 
 		IGNORE_CANCEL (r);
 		(*r->read_done_cb) (&buf, r->user_data);

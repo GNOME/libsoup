@@ -1,3 +1,12 @@
+2002-01-08  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-transfer.c (issue_final_callback): Remove the
+	gio sources from the reader before invoking the read_done
+	callback, since the connection will be marked free before the
+	user's callback is called, so if that callback posts another
+	request synchronously, the callback will end up getting called
+	back again when the new request finishes, which is wrong.
+
 2002-01-08  Alex Graveley  <alex@ximian.com>
 
 	* TODO: Update
