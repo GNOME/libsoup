@@ -1,3 +1,20 @@
+2002-05-06  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-headers.c (soup_headers_parse_request):
+	sizeof() on a static string includes the terminating nul, whereas
+	the length being passed in from the GString doesn't, so subtract
+	one from the sizeof().  Fixes a problem on the server when a valid
+	request was made, but there weren't any headers.
+
+	* src/libsoup/soup-server.c (issue_bad_request): Set a 400 Bad
+	Request error code on the message and write the response to the
+	requesting client.
+	(read_headers_cb): In THROW_MALFORMED_HEADER, call
+	issue_bad_request() and return SOUP_TRANSFER_CONTINUE instead of
+	END so the message can be processed and cleaned up.
+	(write_header, get_response_header, set_response_error): Move
+	these up in the file so issue_bad_request() can use them.
+
 2002-05-06  Dan Winship  <danw@ximian.com>
 
 	* configure.in (SOUP_REVISION): Bump to 0.7.3
