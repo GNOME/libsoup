@@ -574,7 +574,6 @@ AC_OUTPUT([
 	src/soup-httpd/Makefile
 	src/soup-ssl-proxy/Makefile
 	src/soup-wsdl/Makefile
-	tests/Makefile
 	])
 
 echo "

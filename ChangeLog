@@ -2,6 +2,9 @@
 
 	* configure.in (SOUP_AGE, SOUP_CURRENT, SOUP_REVISION): Bump age
 	and current. Update version to 0.7.4.
+	(AC_OUTPUT): Remove tests/Makefile for now since autoconf 2.52
+	won't deal with it being missing, and Makefile.am says there are
+	automake issues with trying to get it disted.
 
 	* src/libsoup/soup-private.h (VERSION): Update to 0.7.4
 
