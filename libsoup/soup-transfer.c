@@ -121,6 +121,18 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 	return FALSE;
 }
 
+static void
+remove_block_at_index (GByteArray *arr, gint offset, gint length)
+{
+	gchar *data = &arr->data [offset];
+
+	g_memmove (data,
+		   data + length,
+		   arr->len - offset - length);
+
+	g_byte_array_set_size (arr, arr->len - length);
+}
+
 static SoupTransferDone
 issue_chunk_callback (SoupReader *r, gchar *data, gint len)
 {
@@ -150,6 +162,34 @@ issue_chunk_callback (SoupReader *r, gchar *data, gint len)
 	return cont;
 }
 
+/* 
+ * Count number of hex digits, and convert to decimal. Store number of hex
+ * digits read in @width.
+ */
+static gint
+decode_hex (const gchar *src, gint *width)
+{
+	gint new_len = 0, j;
+
+	*width = 0;
+
+	while (isxdigit (*src)) {
+		(*width)++;
+		src++;
+	}
+	src -= *width;
+
+	for (j = *width - 1; j + 1; j--) {
+		if (isdigit (*src))
+			new_len += (*src - 0x30) << (4*j);
+		else
+			new_len += (tolower (*src) - 0x57) << (4*j);
+		src++;
+	}
+
+	return new_len;
+}
+
 static gboolean
 decode_chunk (SoupTransferChunkState *s,
 	      GByteArray             *arr,
@@ -161,7 +201,7 @@ decode_chunk (SoupTransferChunkState *s,
 
 	while (TRUE) {
 		gint new_len = 0;
-		gint len = 0, j;
+		gint len = 0;
 		gchar *i = &arr->data [s->idx + s->len];
 
 		/*
@@ -171,7 +211,11 @@ decode_chunk (SoupTransferChunkState *s,
 		if (s->idx + s->len + 5 > arr->len)
 			break;
 
-		/* Check for end of chunk header, otherwise break */
+		/* 
+		 * Check for end of chunk header, otherwise break. Avoid
+		 * trailing \r\n from previous chunk body if this is not the
+		 * opening chunk.  
+		 */
 		if (s->len) {
 			if (soup_substring_index (
 					i + 2,
@@ -183,37 +227,21 @@ decode_chunk (SoupTransferChunkState *s,
 						 "\r\n") <= 0)
 				break;
 
-		/* Remove \r\n after previous chunk body */
-		if (s->len) {
-			g_memmove (i,
-				   i + 2,
-				   arr->len - s->idx - s->len - 2);
-			g_byte_array_set_size (arr, arr->len - 2);
-		}
+		/* Remove trailing \r\n after previous chunk body */
+		if (s->len)
+			remove_block_at_index (arr, s->idx + s->len, 2);
 
-		/* 
-		 * Count number of hex digits, then convert the size of the next
-		 * chunk from hex.
-		 */
-		while (isxdigit (*i)) {
-			len++;
-			i++;
-		}
-		i -= len;
-
-		for (j = len - 1; j + 1; j--) {
-			if (isdigit (*i))
-				new_len += (*i - 0x30) << (4*j);
-			else
-				new_len += (tolower (*i) - 0x57) << (4*j);
-			i++;
-		}
-
+		new_len = decode_hex (i, &len);
 		g_assert (new_len >= 0);
 
+		/* 
+		 * Previous chunk is now processed, add its length to index and
+		 * datalen.
+		 */
 		s->idx += s->len;
 		*datalen += s->len;
 
+		/* Update length for next chunk's size */
 		s->len = new_len;
 		
 	       	/* 
@@ -234,10 +262,7 @@ decode_chunk (SoupTransferChunkState *s,
 		}
 
 		/* Remove hexified length, entity headers, and trailing \r\n */
-		g_memmove (&arr->data [s->idx],
-			   &arr->data [s->idx + len + 2],
-			   arr->len - s->idx - len - 2);
-		g_byte_array_set_size (arr, arr->len - len - 2);
+		remove_block_at_index (arr, s->idx, len + 2);
 	}
 
 	return ret;
@@ -267,10 +292,7 @@ read_chunk (SoupReader *r, gboolean *cancelled)
 
 	/* If overwrite, remove datalen worth of data from start of buffer */
 	if (r->overwrite_chunks) {
-		g_memmove (arr->data, 
-			   &arr->data [s->idx], 
-			   arr->len - s->idx);
-		g_byte_array_set_size (arr, arr->len - s->idx);
+		remove_block_at_index (arr, 0, s->idx);
 
 		s->idx = 0;
 	}
@@ -370,10 +392,7 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 				r->content_length = len;
 		}
 
-		g_memmove (r->recv_buf->data,
-			   &r->recv_buf->data [index],
-			   r->recv_buf->len - index);
-		g_byte_array_set_size (r->recv_buf, r->recv_buf->len - index);
+		remove_block_at_index (r->recv_buf, 0, index);
 
 		r->header_len = index;
 	}

@@ -1,3 +1,11 @@
+2001-10-16  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (decode_hex): Impl.
+	(remove_block_at_index): Impl.
+	(decode_chunk): Simplify using utility functions.
+	(soup_transfer_read_cb): Use remove_block_at_index.
+	(read_chunk): Ditto.
+
 2001-10-16  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-auth.c (compute_response): A NULL passwd is
