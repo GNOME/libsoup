@@ -458,39 +458,6 @@ AC_CHECK_ALIGNOF(gstruct)
 CPPFLAGS=$orig_CPPFLAGS
 
 
-dnl ***********************************************************************
-dnl *** Add any preprocessor options needed for ISO C99 IEEE754 support ***
-dnl ***********************************************************************
-
-ISO_CFLAGS=""
-orig_CPPFLAGS=$CPPFLAGS
-AC_MSG_CHECKING(if ISO C99 IEEE754 support is enabled by default)
-AC_TRY_COMPILE([ #include <math.h>], [
-		fpclassify(INFINITY)==FP_INFINITE;
-	], [
-		dnl Nothing special needed
-		AC_MSG_RESULT(ok)
-	], [
-		AC_MSG_RESULT(no)
-
-		dnl On glibc _GNU_SOURCE includes _ISOC99_SOURCE
-		AC_MSG_CHECKING(whether _GNU_SOURCE is needed for ISO C99 IEEE754 support)
-		CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
-		AC_TRY_COMPILE([ #include <math.h>], [
-			fpclassify(INFINITY)==FP_INFINITE;
-		], [
-			AC_MSG_RESULT(ok)
-			ISO_CFLAGS="-D_GNU_SOURCE"
-		], [
-			AC_MSG_RESULT(no)
-			dnl Add other variants here
-			AC_MSG_ERROR(No IEEE754 support)
-		])
-	])
-CPPFLAGS=$orig_CPPFLAGS
-CFLAGS="$CFLAGS $ISO_CFLAGS"
-
-
 dnl *************************************
 dnl *** Warnings to show if using GCC ***
 dnl *************************************
@@ -498,20 +465,22 @@ dnl *************************************
 AC_ARG_ENABLE(more-warnings,
 	      [  --enable-more-warnings  Maximum compiler warnings],
 	      set_more_warnings="$enableval",
-	      set_more_warnings=yes)
+	      set_more_warnings=no)
 
 if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 	CFLAGS="$CFLAGS \
-	-Wall -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes \
-	-Wnested-externs -Wpointer-arith"
+		-Wall -Wstrict-prototypes -Wmissing-declarations \
+		-Wmissing-prototypes -Wnested-externs -Wpointer-arith"
 
 	# -Wredundant-decls warns about libxml headers
 	# -Wwrite-strings warns when defining GDebugKey structs (solved by
 	# casting the strings in wsdl-trace.c and leaving out -Wcast-qual)
-	WSDL_CFLAGS="-Werror -W -Wundef -Wshadow -Wbad-function-cast -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wmissing-noreturn"
-fi
+	WSDL_CFLAGS="-W -Wundef -Wshadow -Wbad-function-cast \
+		     -Wcast-align -Wwrite-strings -Wconversion \
+		     -Waggregate-return -Wmissing-noreturn"
 
-AC_SUBST(WSDL_CFLAGS)
+	AC_SUBST(WSDL_CFLAGS)
+fi
 
 # Use reentrant functions
 CFLAGS="$CFLAGS -D_REENTRANT"

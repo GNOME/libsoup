@@ -1,3 +1,15 @@
+2001-07-19  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: Remove -Werror from WSDL_CFLAGS as this ills on so
+	many redhat distros. Remove unused ISO C99 IEEE754 section. Set
+	the default to hide more warnings.
+
+	* src/soup-wsdl-runtime/wsdl-typecodes.c: Remove \r from end of
+	lines.
+
+	* src/soup-wsdl/Makefile.am: Formatting.
+	* src/soup-wsdl-runtime/Makefile.am: Formatting.
+
 2001-07-17  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-context.c (soup_context_uri_hash): Add
