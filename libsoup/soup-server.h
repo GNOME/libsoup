@@ -16,35 +16,40 @@
 #include "soup-message.h"
 
 typedef enum {
-	SOUP_AUTH_TYPE_BASIC = 1,
-	SOUP_AUTH_TYPE_DIGEST,
-	SOUP_AUTH_TYPE_ANONYMOUS,
-	SOUP_AUTH_TYPE_DENY
+	SOUP_AUTH_TYPE_BASIC  = (1 << 0),
+	SOUP_AUTH_TYPE_DIGEST = (1 << 1),
+	SOUP_AUTH_TYPE_NTLM   = (1 << 2),
+	SOUP_AUTH_TYPE_DENY   = (1 << 3)
 } SoupServerAuthType;
 
 typedef struct {
 	SoupServerAuthType  type;
+	const gchar        *realm;
 	const gchar        *username;
 	const gchar        *password;
 } SoupServerBasicToken;
 
 typedef struct {
 	SoupServerAuthType  type;
+	const gchar        *realm;
 	const gchar        *username;
 	const gchar        *password_hash;
-	const gchar        *realm;
 } SoupServerDigestToken;
 
 typedef struct {
 	SoupServerAuthType  type;
-	const gchar        *email;
-} SoupServerAnonymousToken;
+	const gchar        *host;
+	const gchar        *domain;
+	const gchar        *user;
+	const gchar        *lm_hash;
+	const gchar        *nt_hash;
+} SoupServerNTLMToken;
 
 typedef union {
-	SoupServerAuthType       type;
-	SoupServerBasicToken     basic;
-	SoupServerDigestToken    digest;
-	SoupServerAnonymousToken anonymous;
+	SoupServerAuthType     type;
+	SoupServerBasicToken   basic;
+	SoupServerDigestToken  digest;
+	SoupServerNTLMToken    ntlm;
 } SoupServerAuthToken;
 
 typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage         *msg, 
@@ -74,6 +79,9 @@ void  soup_server_register_full      (const gchar           *methodname,
 				      gpointer               auth_user_data);
 
 void  soup_server_unregister         (const gchar           *methodname);
+
+void  soup_server_set_unknown_path_handler (SoupServerCallbackFn   cb,
+					    gpointer               user_data);
 
 /* CGI Server methods */
 

@@ -34,11 +34,15 @@
 #include "soup-context.h"
 #include "soup-message.h"
 #include "soup-private.h"
+#include "soup-ntlm.h"
 
 typedef enum {
 	SOUP_AUTH_BASIC,
-	SOUP_AUTH_DIGEST
+	SOUP_AUTH_DIGEST,
+	SOUP_AUTH_NTLM,
 } SoupAuthType;
+
+typedef void (*SoupParseFunc) (SoupAuth *auth, const gchar *header);
 
 typedef char *(*SoupAuthFunc) (SoupAuth *auth, SoupMessage *message);
 
@@ -47,6 +51,7 @@ typedef void (*SoupAuthFreeFn) (SoupAuth *auth);
 struct _SoupAuth {
 	SoupContext    *context;
 	SoupAuthType    type;
+	SoupParseFunc   parse_func;
 	SoupAuthFunc    auth_func;
 	SoupAuthFreeFn  free_func;
 };
@@ -89,12 +94,15 @@ basic_auth_func (SoupAuth *auth, SoupMessage *message)
 }
 
 static void
-soup_auth_basic_parse_header (SoupAuth *auth, const char *header)
+basic_parse_func (SoupAuth *auth, const char *header)
 {
 	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
-	GHashTable *tokens = parse_param_list (header);
+	GHashTable *tokens;
 
-	g_return_if_fail (tokens);
+	header += sizeof ("Basic");
+
+	tokens = parse_param_list (header);
+	if (!tokens) return;
 
 	basic->realm = copy_token_if_exists (tokens, "realm");
 
@@ -119,6 +127,7 @@ soup_auth_new_basic (void)
 	basic = g_new0 (SoupAuthBasic, 1);
 	auth = (SoupAuth *) basic;
 	auth->type = SOUP_AUTH_BASIC;
+	auth->parse_func = basic_parse_func;
 	auth->auth_func = basic_auth_func;
 	auth->free_func = basic_free;
 
@@ -362,13 +371,16 @@ decode_algorithm (const char *name)
 }
 
 static void
-soup_auth_digest_parse_header (SoupAuth *auth, const char *header)
+digest_parse_func (SoupAuth *auth, const char *header)
 {
 	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
-	GHashTable *tokens = parse_param_list (header);
+	GHashTable *tokens;
 	char *tmp, *ptr;
 
-	g_return_if_fail (tokens);
+	header += sizeof ("Digest");
+
+	tokens = parse_param_list (header);
+	if (!tokens) return;
 
 	digest->realm = copy_token_if_exists (tokens, "realm");
 	digest->nonce = copy_token_if_exists (tokens, "nonce");
@@ -427,6 +439,7 @@ soup_auth_new_digest (void)
 	digest = g_new0 (SoupAuthDigest, 1);
 	auth = (SoupAuth *) digest;
 	auth->type = SOUP_AUTH_DIGEST;
+	auth->parse_func = digest_parse_func;
 	auth->auth_func = digest_auth_func;
 	auth->free_func = digest_free;
 
@@ -444,6 +457,106 @@ soup_auth_new_digest (void)
 
 
 /*
+ * NTLM Authentication Support
+ */
+
+typedef struct {
+	SoupAuth  auth;
+	gchar    *request;
+	gchar    *response;
+} SoupAuthNTLM;
+
+static gchar *
+ntlm_auth (SoupAuth *sa, SoupMessage *msg)
+{
+	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
+
+	return auth->response ? auth->response : auth->request;
+}
+
+
+/*
+ * FIXME: Because NTLM is a two step process, we parse the host and domain out
+ *        of the context's uri twice. This is because there is no way to reparse
+ *        a new header with an existing SoupAuth, so a new one is created for
+ *        each negotiation step.
+ */
+static void
+ntlm_parse (SoupAuth *sa, const char *header)
+{
+	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
+	const SoupUri *uri = soup_context_get_uri (auth->auth.context);
+	gchar *idx, *host, *domain = NULL;
+
+	idx = strchr (uri->host, '.');
+	if (idx)
+		host = g_strndup (uri->host, idx - uri->host);
+	else
+		host = g_strdup (uri->host);
+
+	if (uri->authmech) {
+		idx = strstr (uri->authmech, "domain=");
+		if (idx) {
+			gint len;
+
+			idx += sizeof ("domain=") - 1;
+
+			len = strcspn (idx, ",; ");
+			if (len)
+				domain = g_strndup (idx, len);
+			else
+				domain = g_strdup (idx);
+		}
+	}
+
+	if (strlen (header) > sizeof ("NTLM"))
+		auth->request = soup_ntlm_request (host, 
+						   domain ? domain : "UNKNOWN");
+	else {
+		gchar lm_hash [21], nt_hash [21];
+
+		soup_ntlm_lanmanager_hash (uri->passwd, lm_hash);
+		soup_ntlm_nt_hash (uri->passwd, nt_hash);
+
+		auth->response = 
+			soup_ntlm_response (header,
+					    uri->user,
+					    (gchar *) &lm_hash,
+					    (gchar *) &nt_hash,
+					    host,
+					    domain ? domain : "UNKNOWN");
+	}
+
+	g_free (host);
+	g_free (domain);
+}
+
+static void
+ntlm_free (SoupAuth *sa)
+{
+	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
+
+	g_free (auth->request);
+	g_free (auth->response);
+	g_free (auth);
+}
+
+static SoupAuth *
+ntlm_new (void)
+{
+	SoupAuth *auth;
+
+	auth = g_new0 (SoupAuth, 1);
+	auth->type = SOUP_AUTH_NTLM;
+	auth->parse_func = ntlm_parse;
+	auth->auth_func = ntlm_auth;
+	auth->free_func = ntlm_free;
+
+	return auth;
+}
+
+
+/*
  * Generic Authentication Interface
  */
 
@@ -452,20 +565,19 @@ soup_auth_new_from_header (SoupContext *context, const char *header)
 {
 	SoupAuth *auth;
 
-	if (g_strncasecmp (header, "Basic", 5) == 0) {
+	if (!g_strncasecmp (header, "Basic", sizeof ("Basic") - 1))
 		auth = soup_auth_new_basic ();
-		soup_auth_basic_parse_header (auth, header + 6);
-	}
-	else if (g_strncasecmp (header, "Digest", 6) == 0) {
+	else if (!g_strncasecmp (header, "Digest", sizeof ("Digest") - 1))
 		auth = soup_auth_new_digest ();
-		soup_auth_digest_parse_header (auth, header + 7);
-	}
+	else if (!g_strncasecmp (header, "NTLM", sizeof ("NTLM") - 1))
+		auth = ntlm_new ();
 	else {
-		g_warning ("Authentication type not supported");
 		return NULL;
 	}
 
 	auth->context = context;
+
+	auth->parse_func (auth, header);
 
 	return auth;
 }
@@ -495,6 +607,8 @@ soup_auth_invalidates_prior (SoupAuth *auth)
 	switch (auth->type) {
 	case SOUP_AUTH_DIGEST:
 		return ((SoupAuthDigest *) auth)->stale;
+	case SOUP_AUTH_NTLM:
+		return TRUE;
 	case SOUP_AUTH_BASIC:
 	default:
 		return FALSE;

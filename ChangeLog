@@ -1,3 +1,27 @@
+2001-08-23  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ntlm.[ch]: Microsoft NTLM authentication
+	support compliments of Dan Winship (danw@ximian.com).
+
+	* src/soup-core/Makefile.am (libsoup_la_SOURCES): Add soup-ntlm.[ch]
+
+	* src/soup-core/soup-auth.c (soup_auth_new_from_header): Set auth
+	context before header parsing. Add NTLM case. Call
+	auth->parse_func instead of hardcoding.
+	(soup_auth_invalidates_prior): add NTLM, which should always
+	invalidate.
+	(ntlm_new): impl.
+	(ntlm_free): impl.
+	(ntlm_parse): impl. Hack to get domain from the uri's authmech
+	field.
+	(ntlm_auth): impl.
+
+	* src/soup-core/soup-dav-server.c (get_depth): return 0 for
+	unknown value.
+
+	* src/soup-core/soup-server.h: Remove SoupServerAnonymousToken and
+	add SoupServerNTLMToken.
+
 2001-08-20  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up version to 0.4.4

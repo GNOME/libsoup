@@ -52,6 +52,8 @@ libsoup_la_SOURCES =		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
+	soup-ntlm.h     	\
+	soup-ntlm.c     	\
 	soup-parser.c		\
 	soup-private.h     	\
 	soup-queue.c		\
