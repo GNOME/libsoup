@@ -15,47 +15,44 @@
 #include <config.h>
 #endif
 
+#include <errno.h>
+#include <fcntl.h>
+#include <glib.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <sys/types.h>
-#include <errno.h>
-#include <signal.h>
-#include <fcntl.h>
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-
-#include <glib.h>
 
 #include "soup-private.h"
 #include "soup-socket.h"
 
 #ifndef SOUP_WIN32  /*********** Unix specific ***********/
 
+#include <netdb.h>
+#include <resolv.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#endif
 #include <sys/socket.h>
-#ifdef HAVE_SYS_SOCKIO_H
-#include <sys/sockio.h>
-#endif
 #include <sys/time.h>
-
 #include <sys/utsname.h>
 #include <sys/wait.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#ifdef HAVE_SYS_POLL_H
+#include <sys/poll.h>
+#endif
 
-#include <arpa/nameser.h>
-#include <resolv.h>
-#include <netdb.h>
+#ifdef HAVE_SYS_SOCKIO_H
+#include <sys/sockio.h>
+#endif
 
 #ifndef socklen_t
 #define socklen_t size_t
@@ -80,7 +77,8 @@ static GHashTable *active_address_hash = NULL;
 #define socklen_t gint32
 
 #define SOUP_CLOSE_SOCKET(SOCKFD) closesocket(SOCKFD)
-#define SOUP_SOCKET_IOCHANNEL_NEW(SOCKFD) g_io_channel_win32_new_stream_socket(SOCKFD)
+#define SOUP_SOCKET_IOCHANNEL_NEW(SOCKFD) \
+	g_io_channel_win32_new_stream_socket(SOCKFD)
 
 WNDCLASSEX soupWndClass;
 HWND  soup_hWnd;
@@ -97,10 +95,12 @@ HANDLE soup_hostent_Mutex;
 #define GET_NAME_MSG 101	/* soup_address_get_name */
 #define TCP_SOCK_MSG 102	/* soup_socket_new  */
 
-/* Windows does not have inet_aton, but it does have inet_addr.  TODO:
-   We should write a better inet_aton because inet_addr doesn't catch
-   255.255.255.255 properly. */
-
+/* 
+ * Windows does not have inet_aton, but it does have inet_addr.
+ *
+ * TODO: We should write a better inet_aton because inet_addr doesn't catch
+ * 255.255.255.255 properly.
+ */
 static int
 inet_aton(const char *cp, struct in_addr *inp)
 {
@@ -517,9 +517,10 @@ soup_address_new_cb (GIOChannel* iochannel,
 	char* buf;
 	int length;
 	struct sockaddr_in* sa_in;
-	GSList *cb_list;
+	GSList *cb_list, *iter;
+	SoupAddressNewFn cb_func;
+	gpointer cb_data;	
 
-	/* Read from the pipe */
 	if (!(condition & G_IO_IN)) goto ERROR;
 
 	buf = &state->buffer [state->len];
@@ -533,37 +534,44 @@ soup_address_new_cb (GIOChannel* iochannel,
 	/* Return true if there's more to read */
 	if ((state->len - 1) != state->buffer [0]) return TRUE;
 
-	/* We're done reading.  Copy into the addr if we were
-	   successful. Otherwise, we got a 0 because there was
-	   an error */
 	if (state->len < 2) goto ERROR;
 
+	/* Success. Copy resolved address. */
 	sa_in = (struct sockaddr_in*) &state->ia.sa;
 	memcpy (&sa_in->sin_addr, &state->buffer [1], (state->len - 1));
 
-	/* Remove the watch now in case we don't return immediately */
+	/* Cleanup state */
 	g_source_remove (state->watch);
+	close (state->fd);
+	waitpid (state->pid, NULL, WNOHANG);
 
+	/* Get state data before realloc */
+	cb_list = iter = state->cb_list;
+	cb_func = state->func;
+	cb_data = state->data;
+
+	/* Invert resolved address reference count */
 	state->ia.ref_count = ~state->ia.ref_count + 1;
 
-	/* Call back */
-	(*state->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, state->data);
-
-	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
-		SoupAddressCbData *cb_data = cb_list->data;
-		(*cb_data->func) (&state->ia,
-				  SOUP_ADDRESS_STATUS_OK,
-				  cb_data->data);
-		g_free (cb_data);
-	}
-
-	g_slist_free (state->cb_list);
-
-	close (state->fd);
-	waitpid (state->pid, NULL, 0);
-
+	/* 
+	 * Realloc state to size of SoupAddress, and reinsert to resolved
+	 * address table. 
+	 */
 	state = g_realloc (state, sizeof (SoupAddress));
 	g_hash_table_insert (active_address_hash, state->ia.name, state);
+
+	(*cb_func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb_data);
+
+	while (iter) {
+		SoupAddressCbData *cb = iter->data;
+
+		(*cb->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb->data);
+
+		g_free (cb);
+		iter = iter->next;
+	}
+
+	g_slist_free (cb_list);
 
 	return FALSE;
 
@@ -1005,7 +1013,7 @@ soup_address_ref (SoupAddress* ia)
 void
 soup_address_unref (SoupAddress* ia)
 {
-	g_return_if_fail(ia != NULL);
+	g_return_if_fail (ia != NULL);
 
 	--ia->ref_count;
 

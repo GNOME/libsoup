@@ -142,7 +142,7 @@ soup_headers_parse_response (gchar        *str,
 			     gint          len, 
 			     GHashTable   *dest, 
 			     guint        *status_code,
-			     gchar const **status_phrase)
+			     gchar       **status_phrase)
 {
 	guint http_major, http_minor;
 	guint phrase_start = 0;
