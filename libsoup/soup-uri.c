@@ -47,12 +47,13 @@
 static gint
 soup_uri_get_default_port (gchar *proto)
 {
-	if (!proto) return -1;
-
-	if (strcasecmp (proto, "https") == 0)
-		return 443;
-	else if (strcasecmp (proto, "http") == 0)
+	if (!proto || *proto == '\0') {
+		g_warning ("URI Protocol not specified, defaulting to HTTP.");
 		return 80;
+	} else if (strcasecmp (proto, "http") == 0)
+		return 80;
+	else if (strcasecmp (proto, "https") == 0)
+		return 443;
 	else if (strcasecmp (proto, "mailto") == 0)
 		return 25;
 	else if (strcasecmp (proto, "ftp") == 0)
@@ -154,9 +155,10 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 	path = g_strjoinv("%20", split);
 	g_strfreev(split);
 
-	query = strchr (path, '?');
+	if (path)
+		query = strchr (path, '?');
 
-	if (query) {
+	if (path && query) {
 		g_uri->path = g_strndup (path, query - path);
 		g_uri->querystring = g_strdup (++query);
 		g_free (path);
@@ -175,7 +177,7 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 	if (uri->port != -1 && 
 	    uri->port != soup_uri_get_default_port(uri->protocol))
 		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s%s:%d%s",
+			"%s%s%s%s%s%s%s%s%s:%d%s%s%s",
 			uri->protocol ? uri->protocol : "",
 			uri->protocol ? "://" : "",
 			uri->user ? uri->user : "",
@@ -186,10 +188,12 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->user ? "@" : "",
 			uri->host,
 			uri->port,
-			uri->path ? uri->path : "");
+			uri->path ? uri->path : "",
+			uri->querystring ? "?" : "",
+			uri->querystring ? uri->querystring : "");
 	else
 		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s%s%s",
+			"%s%s%s%s%s%s%s%s%s%s%s%s",
 			uri->protocol ? uri->protocol : "",
 			uri->protocol ? "://" : "",
 			uri->user ? uri->user : "",
@@ -199,7 +203,9 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->passwd && show_passwd ? uri->passwd : "",
 			uri->user ? "@" : "",
 			uri->host,
-			uri->path ? uri->path : "");
+			uri->path ? uri->path : "",
+			uri->querystring ? "?" : "",
+			uri->querystring ? uri->querystring : "");
 }
 
 void
@@ -213,6 +219,7 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri->passwd);
 	g_free (uri->host);
 	g_free (uri->path);
+	g_free (uri->querystring);
 
 	g_free (uri);
 }

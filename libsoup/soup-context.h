@@ -12,9 +12,10 @@
 #define SOUP_CONTEXT_H 1
 
 #include <glib.h>
-#include <gnet/gnet.h>
 
 typedef struct _SoupContext SoupContext;
+
+typedef struct _SoupConnection SoupConnection;
 
 typedef enum {
 	SOUP_CONNECT_ERROR_NONE,
@@ -24,7 +25,7 @@ typedef enum {
 
 typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
 				       SoupConnectErrorCode  err,
-				       GTcpSocket           *socket, 
+				       SoupConnection       *conn, 
 				       gpointer              user_data);
 
 typedef gpointer SoupConnectId;
@@ -39,11 +40,13 @@ SoupConnectId soup_context_get_connection     (SoupContext          *ctx,
 					       SoupConnectCallbackFn cb,
 					       gpointer              user_data);
 
-void          soup_context_release_connection (SoupContext          *ctx,
-					       GTcpSocket           *socket);
-
 void          soup_context_cancel_connect     (SoupConnectId         tag);
 
 gchar        *soup_context_get_uri            (SoupContext          *ctx);
+
+
+void          soup_connection_release         (SoupConnection *conn);
+
+GIOChannel   *soup_connection_get_iochannel   (SoupConnection *conn);
 
 #endif /*SOUP_CONTEXT_H*/

@@ -8,6 +8,7 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#include <string.h>
 #include <glib.h>
 #include <gnet/gnet.h>
 
@@ -27,8 +28,16 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 {
 	SoupContext *ctx = g_new0 (SoupContext, 1);
 	ctx->server = server;
-	ctx->keep_alive = TRUE;
 	ctx->uri = uri;
+	ctx->refcnt = 0;
+
+	if (strcmp (uri->protocol, "mailto") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SMTP;
+	else if (strcmp (uri->protocol, "http") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_HTTP;
+	else if (strcmp (uri->protocol, "https") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SHTTP;
+
 	return ctx;
 }
 
@@ -69,12 +78,16 @@ soup_context_get (gchar *uri)
 void
 soup_context_ref (SoupContext *ctx)
 {
+	g_return_if_fail (ctx != NULL);
+
 	ctx->refcnt++;
 }
 
 void
 soup_context_unref (SoupContext *ctx)
 {
+	g_return_if_fail (ctx != NULL);
+
 	if (ctx->refcnt-- == 0) {
 		SoupServer *serv = ctx->server;
 
@@ -133,9 +146,12 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 	switch (status) {
 	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK:
 		new_conn = g_new0 (SoupConnection, 1);
-		new_conn->port = ctx->uri->port;
-		new_conn->in_use = TRUE;
+		new_conn->server = ctx->server;
 		new_conn->socket = socket;
+		new_conn->port = ctx->uri->port;
+		new_conn->keep_alive = TRUE;
+		new_conn->in_use = TRUE;
+		new_conn->last_used_id = 0;
 
 		connection_count++;
 
@@ -143,7 +159,7 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 			g_slist_prepend (ctx->server->connections, 
 					 new_conn);
 
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, socket, cb_data); 
+		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data); 
 		break;
 	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_INETADDR_ERROR:
 		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data); 
@@ -159,13 +175,12 @@ soup_try_existing_connections (SoupContext *ctx)
 {
 	GSList *conns = ctx->server->connections;
 
-	if (!ctx->keep_alive)
-		return NULL;
-
 	while (conns) {
 		SoupConnection *conn = conns->data;
 
-		if (!conn->in_use && conn->port == ctx->uri->port)
+		if (!conn->in_use && 
+		    conn->port == ctx->uri->port && 
+		    conn->keep_alive)
 			return conn;
 
 		conns = conns->next;
@@ -244,16 +259,11 @@ soup_context_get_connection (SoupContext           *ctx,
 	SoupConnection *conn;
 	struct SoupConnectData *data;
 
+	g_return_val_if_fail (ctx != NULL, NULL);
+
 	if ((conn = soup_try_existing_connections (ctx))) {
 		conn->in_use = TRUE;
-		
-		g_message ("Reusing connection");
-
-		(*cb) (ctx, 
-		       SOUP_CONNECT_ERROR_NONE, 
-		       conn->socket, 
-		       user_data);
-		
+		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
 		return NULL;
 	}
 
@@ -264,55 +274,30 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	if (connection_count >= soup_get_connection_limit() && 
 	    !soup_prune_least_used_connection ()) {
-
-		g_message ("Queueing new connection");
-
 		data->timeout_tag = 
 			g_timeout_add (500, 
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
 	} else {
-
-		g_message ("Creating new connection");
-
+		/* Asyncronous Version */
 		data->gnet_connect_tag =
 			gnet_tcp_socket_connect_async (ctx->uri->host, 
 						       ctx->uri->port,
 						       soup_context_connect_cb,
 						       data);
+		/* Syncronous Version -- Use for debugging */
+		/*
+		soup_context_connect_cb (
+		        gnet_tcp_socket_connect (ctx->uri->host, 
+						 ctx->uri->port),
+			NULL, 
+			GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK,
+			data);
+		return NULL;
+		*/
 	}
 		
 	return data;
-}
-
-void 
-soup_context_release_connection (SoupContext       *ctx,
-				 GTcpSocket        *socket)
-{
-	SoupServer *server = ctx->server;
-	GSList *conns = server->connections;
-
-	while (conns) {
-		SoupConnection *conn = conns->data;
-
-		if (conn->socket == socket) {
-			if (ctx->keep_alive) {
-				conn->last_used_id = ++most_recently_used_id;
-				conn->in_use = FALSE;
-			} else {
-				server->connections = 
-					g_slist_remove (server->connections, 
-							conn);
-				gnet_tcp_socket_unref (socket);
-				g_free (conn);
-				connection_count--;
-			}
-
-			return;
-		}
-
-		conns = conns->next;
-	}
 }
 
 void 
@@ -320,7 +305,7 @@ soup_context_cancel_connect (SoupConnectId tag)
 {
 	struct SoupConnectData *data = tag;
 
-	if (!tag) return;
+	g_return_if_fail (data != NULL);
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
@@ -333,5 +318,32 @@ soup_context_cancel_connect (SoupConnectId tag)
 gchar *
 soup_context_get_uri (SoupContext *ctx)
 {
+	g_return_val_if_fail (ctx != NULL, NULL);
+
 	return soup_uri_to_string (ctx->uri, TRUE);
+}
+
+void
+soup_connection_release (SoupConnection *conn)
+{
+	g_return_if_fail (conn != NULL);
+
+	if (conn->keep_alive) {
+		conn->last_used_id = ++most_recently_used_id;
+		conn->in_use = FALSE;
+	} else {
+		conn->server->connections = 
+			g_slist_remove (conn->server->connections, conn);
+		gnet_tcp_socket_unref (conn->socket);
+		g_free (conn);
+		connection_count--;
+	}
+}
+
+GIOChannel *
+soup_connection_get_iochannel (SoupConnection *conn)
+{
+	g_return_val_if_fail (conn != NULL, NULL);
+
+	return gnet_tcp_socket_get_iochannel (conn->socket);
 }

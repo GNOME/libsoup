@@ -16,6 +16,8 @@
 #ifndef SOAP_PRIVATE_H
 #define SOAP_PRIVATE_H 1
 
+#include <gnet/gnet.h>
+
 #include "soup-queue.h"
 #include "soup-uri.h"
 
@@ -29,36 +31,36 @@ extern GSList     *soup_active_requests; /* CONTAINS: SoupRequest */
 extern GHashTable *soup_servers;         /* KEY: uri->host, VALUE: SoupServer */
 
 typedef struct {
+	gchar      *host;
+	GSList     *connections;        /* CONTAINS: SoupConnection */
+	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
+} SoupServer;
+
+struct _SoupConnection {
+	SoupServer *server;
 	GTcpSocket *socket;
 	guint       port;
 	gboolean    in_use;
 	guint       last_used_id;
-} SoupConnection;
 
-typedef struct {
-	gchar      *host;
-	GSList     *connections;      /* CONTAINS: SoupConnection */
-	GHashTable *contexts;         /* KEY: uri->path, VALUE: SoupContext */
-} SoupServer;
+	gboolean    keep_alive;
+};
 
 typedef enum {
-	SOUP_PROTOCOL_HTTP_1_1,
-	SOUP_PROTOCOL_HTTP_1_0,
+	SOUP_PROTOCOL_HTTP,
+	SOUP_PROTOCOL_SHTTP,
 	SOUP_PROTOCOL_SMTP
 } SoupProtocol;
 
 struct _SoupContext {
+	SoupProtocol  protocol;
 	SoupUri      *uri;
 	SoupServer   *server;
 	guint         refcnt;
-
-	SoupProtocol  protocol;
-	gboolean      keep_alive;
-	gboolean      is_chunked;
 };
 
 struct _SoupRequestPrivate {
-	GTcpSocket     *socket;
+	SoupConnection *conn;
 
 	SoupConnectId   connect_tag;
 	guint           read_tag;
@@ -66,27 +68,39 @@ struct _SoupRequestPrivate {
 	guint           error_tag;
 	guint           timeout_tag;
 
-	gulong          write_len;
-	gulong          read_len;
+	guint           write_len;
+	guint           read_len;
+	guint           header_len;
 
 	gulong          content_length;
+	gboolean        is_chunked;
 
 	GString        *req_header;
 	GByteArray     *recv_buf;
-	
+
 	SoupCallbackFn  callback;
 	gpointer        user_data;
 };
+
+/* from soup-request.c */
 
 SoupCallbackResult soup_request_issue_callback (SoupRequest   *req, 
 						SoupErrorCode  error);
 
 void               soup_request_cleanup        (SoupRequest   *req);
 
+/* from soup-misc.c */
+
 guint              soup_str_case_hash          (gconstpointer  key);
 
 gboolean           soup_str_case_equal         (gconstpointer  v1,
 						gconstpointer  v2);
+
+gint               soup_substring_index        (gchar         *str, 
+						gint           len, 
+						gchar         *substr);
+
+gchar             *soup_base64_encode          (gchar         *text);
 
 #ifdef __cplusplus
 }

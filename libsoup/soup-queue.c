@@ -5,8 +5,6 @@
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
  *
- * soup_base64_encode() written by Joe Orton, borrowed from ghttp.
- *
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
@@ -15,7 +13,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <gnet/gnet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -35,19 +32,6 @@ GSList *soup_active_requests = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
-static gint
-soup_substring_index (gchar *str, gint len, gchar *substr) 
-{
-	int i, sublen = strlen (substr);
-	
-	for (i = 0; i < len - sublen; ++i)
-		if (str[i] == substr[0])
-			if (memcmp (&str[i], substr, sublen) == 0)
-				return i;
-
-	return -1;
-}
-
 /*
  * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"
  *                     ^             ^ ^    ^            ^   ^
@@ -65,8 +49,6 @@ soup_parse_headers (SoupRequest *req, gchar *str, guint len)
 	gint read_count, phrase_start;
 	gchar *key = NULL, *val = NULL;
 	gint offset = 0, lws = 0;
-
-	//{ volatile int i = 0; while (!i) sleep (1); }
 
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
@@ -164,7 +146,7 @@ soup_parse_headers (SoupRequest *req, gchar *str, guint len)
 static gboolean 
 soup_process_headers (SoupRequest *req, gchar *str, guint len)
 {
-	gchar *connection, *length, *encoding;
+	gchar *connection, *length, *enc;
 
 	if (!soup_parse_headers (req, str, len))
 		return FALSE;
@@ -173,23 +155,19 @@ soup_process_headers (SoupRequest *req, gchar *str, guint len)
 	connection = g_hash_table_lookup (req->response_headers, "Connection");
 
 	if (connection && g_strcasecmp (connection, "close") == 0)
-		req->context->keep_alive = FALSE;
+		req->priv->conn->keep_alive = FALSE;
 
 	/* Handle Content-Length or Chunked encoding */
 	length = g_hash_table_lookup (req->response_headers, "Content-Length");
+	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
 	
 	if (length)
 		req->priv->content_length = atol (length);
+	else if (g_strcasecmp (enc, "chunked") == 0)
+		req->priv->is_chunked = TRUE;
 	else {
-		encoding = g_hash_table_lookup (req->response_headers, 
-						"Transfer-Encoding");
-
-		if (g_strcasecmp (encoding, "chunked") == 0)
-			req->context->is_chunked = TRUE;
-		else {
-			g_warning ("Unknown encoding type in HTTP response.");
-			goto THROW_MALFORMED_HEADER;
-		}
+		g_warning ("Unknown encoding type in HTTP response.");
+		goto THROW_MALFORMED_HEADER;
 	}
 
 	return TRUE;
@@ -204,9 +182,9 @@ soup_queue_read_async (GIOChannel* iochannel,
 		       GIOCondition condition, 
 		       SoupRequest *req)
 {
-	gchar read_buf[RESPONSE_BLOCK_SIZE];
-	guint bytes_read;
-	gint index;
+	gchar read_buf [RESPONSE_BLOCK_SIZE];
+	guint bytes_read = 0;
+	gint index = 0;
 	GIOError error;
 
 	error = g_io_channel_read (iochannel,
@@ -225,44 +203,45 @@ soup_queue_read_async (GIOChannel* iochannel,
 	if (!req->priv->recv_buf) 
 		req->priv->recv_buf = g_byte_array_new ();
 
-	/* Read EOF. Set Response body and process headers. Set status to
-	   FINISHED. Initiate callback with ERROR_NONE if header parsing 
-	   was successful */
+	if (bytes_read) {
+		g_byte_array_append (req->priv->recv_buf, read_buf, bytes_read);
+		req->priv->read_len += bytes_read;
+	}
 
-	g_byte_array_append (req->priv->recv_buf,
-			     read_buf,
-			     bytes_read);
-	
-	req->priv->read_len += bytes_read;
+	index = req->priv->header_len;
 
-	index = soup_substring_index (req->priv->recv_buf->data, 
-				      req->priv->recv_buf->len,
-				      "\r\n\r\n");
-
-	if (index && 
-	    !req->response_headers &&
-	    !soup_process_headers (req, 
-				   req->priv->recv_buf->data, 
-				   index + 4))
-			return FALSE;
+	if (!index) {
+		index = soup_substring_index (req->priv->recv_buf->data, 
+					      req->priv->recv_buf->len, 
+					      "\r\n\r\n");
+		if (index) {
+			req->priv->header_len = index;
+			if (!soup_process_headers (req, 
+						   req->priv->recv_buf->data, 
+						   index + 4))
+				return FALSE;
+		}
+	}
 
 	if (index && (bytes_read == 0 || 
 		      req->priv->read_len == req->priv->content_length || 
-		      req->context->is_chunked)) {
-		GByteArray *recv_buf;
+		      req->priv->is_chunked)) {
+		guint body_len, head_len;
 
-		index += 4;
-		recv_buf = req->priv->recv_buf;
+		/* Skip the ending \r\n\r\n of the headers */
+		body_len = index + 4;
 
-		req->response.length = recv_buf->len - index;
-		req->response.body = g_memdup (&recv_buf->data [index],
-					       req->response.length + 1);
+		req->response.length = req->priv->recv_buf->len - body_len;
+		req->response.body = 
+			g_memdup (&req->priv->recv_buf->data [body_len],
+				  req->response.length + 1);
 		req->response.body [req->response.length] = '\0';
 
-		recv_buf->len = index;
-		recv_buf->data = g_realloc (recv_buf->data, recv_buf->len + 1);
-		recv_buf->data [recv_buf->len + 1] = '\0';
-		
+		/* Headers are zero-terminated */
+		head_len = index + 1;
+
+		g_byte_array_set_size (req->priv->recv_buf, index);
+
 		req->status = SOUP_STATUS_FINISHED;
 		soup_request_issue_callback (req, SOUP_ERROR_NONE);
 
@@ -270,68 +249,6 @@ soup_queue_read_async (GIOChannel* iochannel,
 	}
 
 	return TRUE;
-}
-
-const char base64_alphabet[65] = 
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-
-static gchar *
-soup_base64_encode (gchar *text)
-{
-	char *buffer = NULL;
-	char *point = NULL;
-	int inlen = 0;
-	int outlen = 0;
-
-	/* check our args */
-	if (text == NULL)
-		return NULL;
-  
-	/* Use 'buffer' to store the output. Work out how big it should be...
-	 * This must be a multiple of 4 bytes */
-  
-	inlen = strlen (text);
-	/* check our arg...avoid a pesky FPE */
-	if (inlen == 0) {
-		buffer = malloc (sizeof(char));
-		buffer[0] = '\0';
-		return buffer;
-	}
-
-	outlen = (inlen*4)/3;
-	if ((inlen % 3) > 0) /* got to pad */
-		outlen += 4 - (inlen % 3);
-  
-	buffer = malloc (outlen + 1); /* +1 for the \0 */
-	memset (buffer, 0, outlen + 1); /* initialize to zero */
-  
-	/* now do the main stage of conversion, 3 bytes at a time,
-	 * leave the trailing bytes (if there are any) for later */
-  
-	for (point=buffer; inlen>=3; inlen-=3, text+=3) {
-		*(point++) = base64_alphabet [*text>>2]; 
-		*(point++) = base64_alphabet [(*text<<4 & 0x30) | 
-					     *(text+1)>>4]; 
-		*(point++) = base64_alphabet [(*(text+1)<<2 & 0x3c) | 
-					     *(text+2)>>6];
-		*(point++) = base64_alphabet [*(text+2) & 0x3f];
-	}
-  
-	/* Now deal with the trailing bytes */
-	if (inlen) {
-		/* We always have one trailing byte */
-		*(point++) = base64_alphabet [*text>>2];
-		*(point++) = base64_alphabet [(*text<<4 & 0x30) |
-					     (inlen==2?*(text+1)>>4:0)]; 
-		*(point++) = (inlen == 1 ? 
-			      '=' : 
-			      base64_alphabet [*(text+1)<<2 & 0x3c]);
-		*(point++) = '=';
-	}
-	
-	*point = '\0';
-	
-	return buffer;
 }
 
 static void
@@ -389,8 +306,8 @@ soup_check_used_headers (gchar *key,
 		cust = g_new (struct SoupCustomHeader, 1);
 		cust->key = key;
 		cust->val = value;
-		hdrs->custom_headers = g_slist_append (hdrs->custom_headers, 
-						       cust);
+		hdrs->custom_headers = g_slist_prepend (hdrs->custom_headers, 
+							cust);
 	}
 }
 
@@ -455,10 +372,6 @@ soup_get_request_header (SoupRequest *req)
 
 	/* Authorization from the context Uri */
 
-	/* FIXME: if going through a proxy, do we use the absoluteURI on 
-	          the request line, or encode the Authorization header into
-		  the message? */
-
 	if (hdrs.auth)
 		g_string_sprintfa (header, "Authorization: %s\r\n", hdrs.auth);
 	else if (req->context->uri->user)
@@ -504,15 +417,17 @@ soup_queue_write_async (GIOChannel* iochannel,
 	head_len = req->priv->req_header->len;
 	body_len = req->request.length;
 	total_len = head_len + body_len;
-	total_written = req->priv->write_len;
-	
+	total_written = req->priv->write_len;	
+
 	if (total_written < head_len) {
 		/* headers not done yet */
 		/* send rest of headers and all of body */
 		/* maybe we should just send the rest of the headers here, 
 		   and avoid memcpy/alloca altogether at the loss of cpu 
 		   cycles */
-		guint offset = head_len - total_written;
+		write_buf = &req->priv->req_header->str [total_written];
+		write_len = head_len - total_written;
+		/*
 		write_len = offset + body_len;
 		write_buf = alloca (write_len + 1);
 		memcpy (write_buf, 
@@ -522,6 +437,7 @@ soup_queue_write_async (GIOChannel* iochannel,
 			req->request.body,
 			req->request.length);
 		write_buf [write_len + 1] = '\0';
+		*/
 	} else if (total_written >= head_len) {
 		/* headers done, maybe some of body */
 		/* send rest of body */
@@ -565,34 +481,31 @@ soup_queue_error_async (GIOChannel* iochannel,
 			GIOCondition condition, 
 			SoupRequest *req)
 {
-	g_warning ("soup_queue_error_async: connection error");
+	req->priv->conn->keep_alive = FALSE;
 
-	switch (condition) {
-	case G_IO_ERR:
-	case G_IO_HUP:
-	case G_IO_NVAL:
-		switch (req->status) {
-		case SOUP_STATUS_FINISHED:
-			soup_request_cleanup (req);
-			break;
-		case SOUP_STATUS_CONNECTING:
-			soup_request_issue_callback (req, 
-						     SOUP_ERROR_CANT_CONNECT);
-			break;
-		default:
-			soup_request_issue_callback (req, 
-						     SOUP_ERROR_IO);
+	switch (req->status) {
+	case SOUP_STATUS_FINISHED:
+		break;
+	case SOUP_STATUS_CONNECTING:
+		soup_request_issue_callback (req, 
+					     SOUP_ERROR_CANT_CONNECT);
+		break;
+	case SOUP_STATUS_SENDING_REQUEST:
+		if (req->priv->req_header && 
+		    req->priv->req_header->len >=req->priv->write_len) {
+			g_warning ("Requeueing request which failed in "
+				   "the sending headers phase");
+			soup_queue_request (req, 
+					    req->priv->callback, 
+					    req->priv->user_data);
 			break;
 		}
-	case G_IO_IN:
-	case G_IO_OUT:
-	case G_IO_PRI:
-		g_warning ("soup_queue_error_async(): "
-			   "Non-error value passed to IO error handler.");
-		return TRUE;
+	default:
+		soup_request_issue_callback (req, SOUP_ERROR_IO);
+		break;
 	}
 
-        return FALSE;
+	return FALSE;
 }
 
 static void 
@@ -611,7 +524,7 @@ soup_setup_socket (GIOChannel *channel)
 static void
 soup_queue_connect (SoupContext          *ctx,
 		    SoupConnectErrorCode  err,
-		    GTcpSocket           *socket,
+		    SoupConnection       *conn,
 		    gpointer              user_data)
 {
 	SoupRequest *req = user_data;
@@ -621,12 +534,12 @@ soup_queue_connect (SoupContext          *ctx,
 
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
-		channel = gnet_tcp_socket_get_iochannel (socket);
+		channel = soup_connection_get_iochannel (conn);
 		
 		soup_setup_socket (channel);
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
-		req->priv->socket = socket;
+		req->priv->conn = conn;
 		req->priv->write_tag = 
 			g_io_add_watch (channel, 
 					G_IO_OUT, 
@@ -634,9 +547,11 @@ soup_queue_connect (SoupContext          *ctx,
 					req);
 		req->priv->error_tag = 
 			g_io_add_watch (channel, 
-					G_IO_ERR|G_IO_HUP|G_IO_NVAL, 
+					G_IO_HUP | G_IO_ERR | G_IO_NVAL, 
 					(GIOFunc) soup_queue_error_async, 
 					req);
+
+		g_io_channel_unref (channel);
 		break;
 	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
 	case SOUP_CONNECT_ERROR_NETWORK:
@@ -648,9 +563,9 @@ soup_queue_connect (SoupContext          *ctx,
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
-        GSList *iter = soup_active_requests;
-	
-	while (iter) {
+        GSList *iter;
+
+	for (iter = soup_active_requests; iter; iter = iter->next) {
 		SoupRequest *req = iter->data;
 		SoupContext *ctx, *proxy;
 
@@ -665,8 +580,6 @@ soup_idle_handle_new_requests (gpointer unused)
 			soup_context_get_connection (ctx, 
 						     soup_queue_connect, 
 						     req);
-
-		iter = iter->next;
 	}
 
 	soup_queue_idle_tag = 0;
@@ -678,28 +591,33 @@ soup_queue_request (SoupRequest    *req,
 		    SoupCallbackFn  callback, 
 		    gpointer        user_data)
 {
+	g_return_if_fail (req != NULL);
+
 	if (!soup_queue_idle_tag)
 		soup_queue_idle_tag = 
 			g_idle_add (soup_idle_handle_new_requests, NULL);
+
+	if (req->status != SOUP_STATUS_IDLE)
+		soup_request_cleanup (req);
 
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED) {
 		g_free (req->response.body);
 		req->response.body = NULL;
 		req->response.length = 0;
-	}
+	} else
+		g_error ("soup_queue_request(): Attempted to requeue a request "
+			 "with a user owned response buffer.");
 
-	if (req->response_headers) {
+	if (req->response_headers)
 		g_hash_table_destroy (req->response_headers);
-		req->response_headers = NULL;
-	}
-
-	if (req->priv->recv_buf) {
+	if (req->priv->recv_buf) 
 		g_byte_array_free (req->priv->recv_buf, TRUE);
-		req->priv->recv_buf = NULL;
-	}
 
 	req->priv->callback = callback;
 	req->priv->user_data = user_data;
+	req->response_code = 0;
+	req->response_phrase = NULL;
+	req->response_headers = NULL;
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);
