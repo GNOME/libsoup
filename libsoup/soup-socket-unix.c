@@ -9,7 +9,10 @@
  * Original code compliments of David Helder's GNET Networking Library, and is
  * Copyright (C) 2000  David Helder & Andrew Lanoix.
  *
- * All else Copyright (C) 2000, Ximian, Inc.
+ * This is not originally my code.  I've tried to clean it up where possible.
+ * But I make no promises towards its sanity.
+ *
+ * All else Copyright (C) 2000, Ximian, Inc. 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -460,7 +463,9 @@ soup_address_new_cb (GIOChannel* iochannel,
 		/* Cleanup state */
 		g_source_remove (state->watch);
 		close (state->fd);
-		waitpid (state->pid, NULL, WNOHANG);
+
+		/* FIXME: Wait for HUP signal before doing this */
+		waitpid (state->pid, NULL, 0);
 	}
 
 	/* Get state data before realloc */
