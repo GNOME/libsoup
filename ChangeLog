@@ -1,3 +1,12 @@
+2003-03-12  Ian Peters  <itp@ximian.com>
+
+	* libsoup/soup-gnutls.c: because creating client credentials is
+	expensive, keep the same one around as long as possible, only
+	recreating it if the ssl_ca_file changes.  Wrap
+	gnutls_certificate_credentials in a refcounted struct to avoid
+	freeing it while another established connection may potentially
+	need it (say, to rehandshake).
+
 2003-03-11  Frank Belew  <frb@ximian.com>
 
 	* soup-2.0.pc.in: add ssl libs to defaults, since ssl doesn't 

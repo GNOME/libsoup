@@ -15,6 +15,7 @@
 #ifdef HAVE_GNUTLS_GNUTLS_H
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <glib.h>
 
@@ -25,11 +26,36 @@
 #define DH_BITS 1024
 
 typedef struct {
+	gnutls_certificate_credentials cred;
+	guint ref_count;
+} SoupGNUTLSCred;
+
+static void
+soup_gnutls_cred_ref (SoupGNUTLSCred *cred)
+{
+	cred->ref_count++;
+}
+
+static void
+soup_gnutls_cred_unref (SoupGNUTLSCred *cred)
+{
+	cred->ref_count--;
+	if (!cred->ref_count) {
+		gnutls_certificate_free_credentials (cred->cred);
+		g_free (cred);
+	}
+}
+
+static SoupGNUTLSCred *client_cred = NULL;
+static char *ca_file = NULL;
+static SoupGNUTLSCred *server_cred = NULL;
+
+typedef struct {
 	GIOChannel channel;
 	gint fd;
 	GIOChannel *real_sock;
 	gnutls_session session;
-	gnutls_certificate_credentials cred;
+	SoupGNUTLSCred *cred;
 	gboolean established;
 	SoupSSLType type;
 } SoupGNUTLSChannel;
@@ -230,7 +256,6 @@ soup_gnutls_close (GIOChannel  *channel,
 {
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 
-	gnutls_certificate_free_credentials (chan->cred);
 	if (chan->established) {
 		gnutls_bye (chan->session, GNUTLS_SHUT_RDWR);
 	}
@@ -260,6 +285,7 @@ soup_gnutls_free (GIOChannel *channel)
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 	g_io_channel_unref (chan->real_sock);
 	gnutls_deinit (chan->session);
+	soup_gnutls_cred_unref (chan->cred);
 	g_free (chan);
 }
 
@@ -325,10 +351,11 @@ init_dh_params (void)
 	return FALSE;
 }
 
-static gnutls_certificate_credentials
+static SoupGNUTLSCred *
 get_credentials (SoupSSLType type)
 {
 	gnutls_certificate_credentials cred;
+	SoupGNUTLSCred *scred;
 
 	gnutls_certificate_allocate_credentials (&cred);
 
@@ -344,7 +371,7 @@ get_credentials (SoupSSLType type)
 			}
 
 		if (soup_get_ssl_ca_dir ())
-			g_warning ("CA directory not yet supported.");
+			g_warning ("CA directory not supported.");
 	} else {
 		const char *cert_file, *key_file;
 
@@ -379,7 +406,11 @@ get_credentials (SoupSSLType type)
 		gnutls_certificate_set_dh_params (cred, dh_params);
 	}
 
-	return cred;
+	scred = g_new0 (SoupGNUTLSCred, 1);
+	scred->cred = cred;
+	scred->ref_count = 1;
+
+	return scred;
 
     THROW_CREATE_ERROR:
 	gnutls_certificate_free_credentials (cred);
@@ -393,7 +424,7 @@ soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
 	SoupGNUTLSChannel *chan = NULL;
 	GIOChannel *gchan = NULL;
 	gnutls_session session = NULL;
-	gnutls_certificate_credentials cred = NULL;
+	SoupGNUTLSCred *cred;
 	int sockfd;
 	int ret;
 
@@ -412,23 +443,48 @@ soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
 
 	chan = g_new0 (SoupGNUTLSChannel, 1);
 
-	if (type == SOUP_SSL_TYPE_CLIENT)
+	if (type == SOUP_SSL_TYPE_CLIENT) {
+		const char *new_ca_file = soup_get_ssl_ca_file ();
+
+		if ((new_ca_file && !ca_file) ||
+		    (ca_file && !new_ca_file) ||
+		    (ca_file && strcmp (ca_file, new_ca_file)))
+		{
+			if (client_cred)
+				soup_gnutls_cred_unref (client_cred);
+			client_cred = NULL;
+			g_free (ca_file);
+			ca_file = g_strdup (new_ca_file);
+		}
+
+		if (!client_cred)
+			client_cred = get_credentials (type);
+		if (!client_cred)
+			goto THROW_CREATE_ERROR;
+
+		cred = client_cred;
+
 		ret = gnutls_init (&session, GNUTLS_CLIENT);
-	else
+	} else {
+		if (!server_cred)
+			server_cred = get_credentials (type);
+		if (!server_cred)
+			goto THROW_CREATE_ERROR;
+
+		cred = server_cred;
+
 		ret = gnutls_init (&session, GNUTLS_SERVER);
+	}
 	if (ret)
 		goto THROW_CREATE_ERROR;
 
 	if (gnutls_set_default_priority (session) != 0)
 		goto THROW_CREATE_ERROR;
 
-	cred = get_credentials (type);
-	if (!cred) {
-		goto THROW_CREATE_ERROR;
-	}
 	if (gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE,
-				    cred) != 0)
+				    cred->cred) != 0)
 		goto THROW_CREATE_ERROR;
+	soup_gnutls_cred_ref (cred);
 
 	if (type == SOUP_SSL_TYPE_SERVER) {
 		gnutls_certificate_server_set_request (
@@ -456,8 +512,6 @@ soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
  THROW_CREATE_ERROR:
 	if (session)
 		gnutls_deinit (session);
-	if (cred)
-		gnutls_certificate_free_credentials (cred);
 	return NULL;
 }
 
