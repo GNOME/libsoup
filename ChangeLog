@@ -1,5 +1,10 @@
 2001-10-01  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: Fix HAVE_OPENSSL and HAVE_NSS checks as these were
+	always being defined.
+
+2001-10-01  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socket-unix.c (soup_address_new): Add defines
 	for SOUP_PTRACE_ATTACH and SOUP_PTRACE_DETACH to remove
 	architecture incompatibilities for ptrace() arguments.

@@ -324,7 +324,6 @@ if test "x$enable_ssl" = xyes; then
 	AC_CHECK_HEADERS(openssl/ssl.h openssl/err.h,
 			 [OPENSSL_CFLAGS="$CPPFLAGS" 
 			  OPENSSL_LIBS="$openssl_prefix -lssl -lcrypto $DL_LDFLAGS"
-			  AC_DEFINE(HAVE_OPENSSL)
 			  enable_openssl="yes"],
 			 [OPENSSL_CFLAGS="" 
 			  OPENSSL_LIBS="" 
@@ -334,12 +333,15 @@ if test "x$enable_ssl" = xyes; then
 	AC_SUBST(OPENSSL_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
 
+	if test "x$enable_openssl" = xyes; then
+		AC_DEFINE(HAVE_OPENSSL)
+	fi
+
 	save_CPPFLAGS=$CPPFLAGS
 	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
 	AC_CHECK_HEADERS(nss.h ssl.h pk11func.h,
 			 [NSS_CFLAGS="$CPPFLAGS" 
 			  NSS_LIBS="-lpthread $nspr_prefix -lnspr4 $nss_prefix -lnss3 -lssl3"
-			  AC_DEFINE(HAVE_NSS)
 			  enable_nss="yes"],
 			 [NSS_CFLAGS="" 
 			  NSS_LIBS="" 
@@ -348,6 +350,10 @@ if test "x$enable_ssl" = xyes; then
 	AC_SUBST(NSS_CFLAGS)
 	AC_SUBST(NSS_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
+
+	if test "x$enable_nss" = xyes; then
+		AC_DEFINE(HAVE_NSS)
+	fi
 fi
 
 
