@@ -546,9 +546,7 @@ ntlm_init (SoupAuth *sa, const SoupUri *uri)
 	domain = ntlm_get_authmech_token (uri, "domain=");
 
 	if (strlen (auth->header) < sizeof ("NTLM"))
-		auth->response = 
-			soup_ntlm_request (host ? host : "UNKNOWN", 
-					   domain ? domain : "UNKNOWN");
+		auth->response = soup_ntlm_request ();
 	else {
 		gchar lm_hash [21], nt_hash [21];
 
@@ -560,8 +558,8 @@ ntlm_init (SoupAuth *sa, const SoupUri *uri)
 					    uri->user,
 					    (gchar *) &lm_hash,
 					    (gchar *) &nt_hash,
-					    host ? host : "UNKNOWN",
-					    domain ? domain : "UNKNOWN");
+					    host,
+					    domain);
 		auth->completed = TRUE;
 	}
 

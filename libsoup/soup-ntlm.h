@@ -19,8 +19,7 @@ void  soup_ntlm_lanmanager_hash (const char *password,
 void  soup_ntlm_nt_hash         (const char *password, 
 				 char        hash[21]);
 
-char *soup_ntlm_request         (const char *host, 
-				 const char *domain);
+char *soup_ntlm_request         (void);
 
 char *soup_ntlm_response        (const char *challenge, 
 				 const char *user,

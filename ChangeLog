@@ -1,3 +1,15 @@
+2001-11-20  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_request): Simplify. Don't
+	specify a host and domain, and tweak the flags to a new magic
+	value that makes the server return some info such as a default
+	domain to pick.
+	(soup_ntlm_response): Allow "host" and "domain" to be NULL. If
+	domain is NULL, use the default from the server response.
+
+	* src/libsoup/soup-auth.c (ntlm_init): soup_ntlm_request no longer
+	takes host/domain. soup_ntlm_response can take NULL host/domain.
+
 2001-11-19  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-private.h: Add auth member to SoupConnection.
