@@ -1,3 +1,8 @@
+2004-01-09  Harish K <kharish@novell.com>
+        * libsoup/soup-soap-response.c (soup_soap_response_from_string): 
+        added code to ignore Header element, if present, while creating 
+        response objects.  
+        
 2004-01-05  Dan Winship  <danw@ximian.com>
 
 	* configure.in: Remove no-longer-relevant socklen_t check
