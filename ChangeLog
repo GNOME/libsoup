@@ -1,5 +1,10 @@
 2001-10-09  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-socks.c (soup_connect_socks_proxy): Assign
+	source connection correctly.
+
+2001-10-09  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-dav-server.c (parent_exists): don't call
 	__uri_exists as __is_collection should check this.
 
