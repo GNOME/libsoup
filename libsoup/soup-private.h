@@ -13,53 +13,73 @@
  * extraneous circumstances.
  */
 
-#ifndef  SOAP_PRIVATE_H
-#define  SOAP_PRIVATE_H 1
+#ifndef SOAP_PRIVATE_H
+#define SOAP_PRIVATE_H 1
 
 #include "soup-queue.h"
 
-#define DEFAULT_CHUNK_SIZE  1024
-#define RESPONSE_BLOCK_SIZE 1024
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define RESPONSE_BLOCK_SIZE 8192
+
+extern gint        connection_count;
+extern GSList     *active_requests;   /* CONTAINS: SoupRequest */
+extern GHashTable *servers;           /* KEY: uri->host, VALUE: SoupServer */
 
 typedef struct {
+	GTcpSocket *socket;
 	guint       port;
 	gboolean    in_use;
-	GTcpSocket *socket;
+	guint       last_used_id;
 } SoupConnection;
 
 typedef struct {
 	gchar      *host;
-	GSList     *connections;  /* CONTAINS: SoupConnection */
-	GHashTable *contexts;     /* KEY: uri->path, VALUE: SoupContext */
+	GSList     *connections;      /* CONTAINS: SoupConnection */
+	GHashTable *contexts;         /* KEY: uri->path, VALUE: SoupContext */
 } SoupServer;
 
-extern GHashTable *servers;
-extern guint connection_count;
-extern GList *active_requests;
+typedef enum {
+	SOUP_PROTOCOL_HTTP_1_1,
+	SOUP_PROTOCOL_HTTP_1_0,
+	SOUP_PROTOCOL_SMTP
+} SoupProtocol;
 
 struct _SoupContextPrivate {
-	SoupServer *server;
+	SoupServer   *server;
+	guint         refcnt;
 
-	gboolean    keep_alive;
-	gint        chunk_size;
+	SoupProtocol  protocol;
+	gboolean      keep_alive;
+	gboolean      is_chunked;
 };
 
 struct _SoupRequestPrivate {
-	GTcpSocket *socket;
+	GTcpSocket     *socket;
 
-	gulong write_len;
-	gulong read_len;
+	SoupConnectId   connect_tag;
+	guint           read_tag;
+	guint           write_tag;
+	guint           error_tag;
+	guint           timeout_tag;
 
-	guint connect_tag;
-	guint read_tag;
-	guint write_tag;
-	guint timeout_tag;
+	gulong          write_len;
+	gulong          read_len;
 
-	SoupCallbackFn callback;
-	gpointer user_data;
+	GString        *req_header;
+	GByteArray     *recv_buf;
+
+	SoupCallbackFn  callback;
+	gpointer        user_data;
 };
 
 SoupCallbackResult soup_request_issue_callback (SoupRequest   *req, 
 						SoupErrorCode  error);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*SOUP_PRIVATE_H*/

@@ -29,19 +29,17 @@
 
 #include <glib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#pragma }
-#endif /* __cplusplus */
-
 typedef struct {
+	/* Changes here will only affect new connections: */
 	gchar *protocol;
+	gchar *host;
+	int port;
+
+	/* Changes will be applied to existing and future connections: */
+	gchar *path;
 	gchar *user;
 	gchar *authmech;
 	gchar *passwd;
-	gchar *host;
-	int port;
-	gchar *path;
 } SoupUri;
 
 /* the cache system has been disabled because it would 
@@ -54,10 +52,5 @@ SoupUri *soup_uri_new       (const gchar *uri_string);
 gchar   *soup_uri_to_string (const SoupUri *uri, gboolean show_password);
 
 void     soup_uri_free      (SoupUri *uri);
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
 
 #endif /*SOUP_URI_H*/

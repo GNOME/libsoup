@@ -8,13 +8,19 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#include <glib.h>
 #include <gnet/gnet.h>
 
 #include "soup-context.h"
 #include "soup-private.h"
+#include "soup-misc.h"
 #include "soup-uri.h"
 
-GHashTable *servers;
+gint connection_count = 0;
+
+GHashTable *servers;  /* KEY: hostname, VALUE: SoupServer */
+
+static guint most_recently_used_id = 0;
 
 static SoupContext *
 soup_context_new (SoupServer *server, SoupUri *uri) 
@@ -23,9 +29,7 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 	ctx->priv = g_new0 (SoupContextPrivate, 1);
 	ctx->priv->server = server;
 	ctx->priv->keep_alive = TRUE;
-	ctx->priv->chunk_size = DEFAULT_CHUNK_SIZE;
 	ctx->uri = uri;
-	ctx->custom_headers = NULL;
 	return ctx;
 }
 
@@ -56,6 +60,7 @@ soup_context_get (gchar *uri)
 	if (ret) return ret;
 
 	ret = soup_context_new (serv, suri);
+	soup_context_ref (ret);
 
 	g_hash_table_insert (serv->contexts, suri->path, ret);
 
@@ -63,8 +68,42 @@ soup_context_get (gchar *uri)
 }
 
 void
-soup_context_free (SoupContext *ctx)
+soup_context_ref (SoupContext *ctx)
 {
+	ctx->priv->refcnt++;
+}
+
+void
+soup_context_unref (SoupContext *ctx)
+{
+	if (ctx->priv->refcnt-- == 0) {
+		SoupServer *serv = ctx->priv->server;
+
+		g_hash_table_remove (serv->contexts, ctx->uri->path);
+
+		if (g_hash_table_size (serv->contexts) == 0) {
+			GSList *conns = serv->connections;
+
+			g_hash_table_remove (servers, serv->host);
+			
+			while (conns) {
+				SoupConnection *conn = conns->data;
+				gnet_tcp_socket_unref (conn->socket);
+				g_free (conn);
+				connection_count--;
+
+				conns = conns->next;
+			}
+
+			g_free (serv->host);
+			g_slist_free (serv->connections);
+			g_hash_table_destroy (serv->contexts);
+			g_free (serv);
+		}
+			
+		soup_uri_free (ctx->uri);
+		g_free (ctx);
+	}
 }
 
 struct SoupContextConnectFunctor {
@@ -96,6 +135,8 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 		new_conn->in_use = TRUE;
 		new_conn->socket = socket;
 
+		connection_count++;
+
 		ctx->priv->server->connections = 
 			g_slist_prepend (ctx->priv->server->connections, 
 					 new_conn);
@@ -111,15 +152,68 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 	}
 }
 
-void
+struct SoupConnDesc {
+	SoupServer     *serv;
+	SoupConnection *conn;
+};
+
+static void
+soup_prune_foreach (gchar *hostname, 
+		    SoupServer *serv, 
+		    struct SoupConnDesc *last)
+{
+	GSList *conns = serv->connections;
+
+	while (conns) {
+		SoupConnection *conn = conns->data;
+		if (!conn->in_use)
+			if (last->conn == NULL || 
+			    last->conn->last_used_id > conn->last_used_id) {
+				last->conn = conn;
+				last->serv = serv;
+			}
+		
+		conns = conns->next;
+	}
+}
+
+static gboolean
+soup_prune_least_used_connection (void)
+{
+	struct SoupConnDesc last;
+	last.serv = NULL;
+	last.conn = NULL;
+
+	g_hash_table_foreach (servers, (GHFunc) soup_prune_foreach, &last);
+
+	if (last.conn) {
+		last.serv->connections = 
+			g_slist_remove (last.serv->connections, last.conn);
+		gnet_tcp_socket_unref (last.conn->socket);
+		g_free (last.conn);
+
+		connection_count--;
+
+		return TRUE;
+	}
+		
+	return FALSE;
+}
+
+gpointer
 soup_context_get_connection (SoupContext           *ctx,
 			     SoupConnectCallbackFn  cb,
 			     gpointer               user_data)
 {
 	GSList *conns;
 
+	if (connection_count >= soup_get_connection_limit() && 
+	    !soup_prune_least_used_connection ()) {
+		//FIXME: set timeout to try pruning again
+	}
+
 	if (!ctx->priv->keep_alive)
-		goto FORCE_NEW_CONNECTION;
+		goto NEW_CONNECTION;
 	
 	conns = ctx->priv->server->connections;
 
@@ -128,34 +222,35 @@ soup_context_get_connection (SoupContext           *ctx,
 
 		if (!conn->in_use && conn->port == ctx->uri->port) {
 			conn->in_use = TRUE;
+
 			(*cb) (ctx, 
 			       SOUP_CONNECT_ERROR_NONE, 
 			       conn->socket, 
 			       user_data);
-			return;
+
+			return NULL;
 		}
 
 		conns = conns->next;
 	}
 
- FORCE_NEW_CONNECTION:
+ NEW_CONNECTION:
 	{
 		struct SoupContextConnectFunctor *data;
 		data = g_new0 (struct SoupContextConnectFunctor, 1);
 		data->ctx = ctx;
 		data->cb = cb;
 		data->user_data = user_data;
-		gnet_tcp_socket_connect_async (ctx->uri->host, 
-					       ctx->uri->port,
-					       soup_context_connect_cb,
-					       user_data);
-		return;
+		return gnet_tcp_socket_connect_async (ctx->uri->host, 
+						      ctx->uri->port,
+						      soup_context_connect_cb,
+						      user_data);
 	}
 }
 
 void 
-soup_context_return_connection (SoupContext       *ctx,
-				GTcpSocket        *socket)
+soup_context_release_connection (SoupContext       *ctx,
+				 GTcpSocket        *socket)
 {
 	SoupServer *server = ctx->priv->server;
 	GSList *conns = server->connections;
@@ -165,12 +260,14 @@ soup_context_return_connection (SoupContext       *ctx,
 
 		if (conn->socket == socket) {
 			if (ctx->priv->keep_alive) {
+				conn->last_used_id = ++most_recently_used_id;
 				conn->in_use = FALSE;
 			} else {
 				server->connections = 
 					g_slist_remove (server->connections, 
-							socket);
+							conn);
 				gnet_tcp_socket_unref (socket);
+				g_free (conn);
 				connection_count--;
 			}
 

@@ -8,8 +8,8 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
-#ifndef  SOUP_QUEUE_H
-#define  SOUP_QUEUE_H 1
+#ifndef SOUP_QUEUE_H
+#define SOUP_QUEUE_H 1
 
 #include <glib.h>
 
@@ -19,6 +19,7 @@
 typedef enum {
 	SOUP_RESULT_FREE_REQUEST = 0,
 	SOUP_RESULT_RESEND_REQUEST,
+	SOUP_RESULT_CONTINUE_PROCESSING,
 	SOUP_RESULT_DO_NOTHING
 } SoupCallbackResult;
 
@@ -34,20 +35,14 @@ typedef enum {
 	SOUP_ERROR_UNKNOWN
 } SoupErrorCode;
 
-typedef SoupCallbackResult (*SoupCallbackFn) (SoupRequest  *req,
-					      SoupErrorCode err,
-					      gpointer      user_data);
+typedef SoupCallbackResult (*SoupCallbackFn) (SoupRequest   *req,
+					      SoupErrorCode  err,
+					      gpointer       user_data);
 
-void         soup_queue_request        (SoupRequest       *req, 
-					SoupCallbackFn     callback, 
-					gpointer           user_data);
+void         soup_queue_request  (SoupRequest       *req, 
+				  SoupCallbackFn     callback, 
+				  gpointer           user_data);
 
-void         soup_queue_cancel_request (SoupRequest       *req);
-
-void         soup_queue_set_proxy      (SoupContext       *ctx);
-
-SoupContext *soup_queue_get_proxy      (void);
-
-void         soup_queue_shutdown       (void);
+void         soup_queue_shutdown (void);
 
 #endif /* SOUP_QUEUE_H */

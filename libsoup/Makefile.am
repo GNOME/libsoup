@@ -16,14 +16,16 @@ libsoup_la_SOURCES =	\
 	soup-context.c	\
 	soup-queue.c	\
 	soup-request.c	\
-	soup-uri.c
+	soup-uri.c	\
+	soup-misc.c
 
 soupinclude_HEADERS =	\
 	soup.h		\
 	soup-context.h	\
 	soup-queue.h	\
 	soup-request.h	\
-	soup-uri.h
+	soup-uri.h	\
+	soup-misc.c
 
 EXTRA_DIST = soup-private.h
 
