@@ -176,6 +176,9 @@ soup_soap_message_start_envelope (SoupSoapMessage *msg)
 	xmlNewNs (msg->priv->doc->xmlRootNode,
                   "http://www.w3.org/1999/XMLSchema",
                   "xsd");
+	xmlNewNs (msg->priv->doc->xmlRootNode,
+		  "http://schemas.xmlsoap.org/soap/envelope/",
+		  "SOAP-ENV");
 	msg->priv->xsi_ns = xmlNewNs (msg->priv->doc->xmlRootNode,
 				      "http://www.w3.org/1999/XMLSchema-instance",
 				      "xsi");

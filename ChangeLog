@@ -1,3 +1,8 @@
+2003-12-12  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-message.c (soup_soap_message_start_envelope):
+	added information for SOAP-ENV namespace.
+
 2003-12-10  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-client-io.c (parse_response_headers): if we
