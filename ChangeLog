@@ -1,3 +1,7 @@
+2001-05-25  Dick Porter  <dick@ximian.com>
+
+	* Documentation
+
 2001-05-25  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_message_queue): No need to free
