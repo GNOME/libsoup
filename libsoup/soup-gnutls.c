@@ -12,7 +12,7 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_GNUTLS_GNUTLS_H
+#ifdef HAVE_SSL
 
 #include <stdlib.h>
 #include <string.h>
@@ -85,14 +85,12 @@ verify_certificate (gnutls_session session, const char *hostname)
 			g_warning ("No certificate was found.");
 			return FALSE;
 		}
-#if 0
 		if (!gnutls_x509_check_certificates_hostname(
 			    &cert_list[0], hostname))
 		{
 			g_warning ("The certificate does not match hostname.");
 			return FALSE;
 		}
-#endif
 	}
    
 	return TRUE;
@@ -469,4 +467,4 @@ soup_ssl_free_server_credentials (gpointer server_creds)
 	g_free (cred);
 }
 
-#endif /* HAVE_GNUTLS_GNUTLS_H */
+#endif /* HAVE_SSL */

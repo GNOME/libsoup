@@ -270,6 +270,18 @@ safe_uri_equal (const SoupUri *a, const SoupUri *b)
 	return soup_uri_equal (a, b);
 }
 
+static gboolean
+safe_str_equal (const char *a, const char *b)
+{
+	if (!a && !b)
+		return TRUE;
+
+	if ((a && !b) || (b && !a))
+		return FALSE;
+
+	return strcmp (a, b) == 0;
+}
+
 static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
@@ -277,6 +289,8 @@ set_property (GObject *object, guint prop_id,
 	SoupSession *session = SOUP_SESSION (object);
 	gpointer pval;
 	gboolean need_abort = FALSE;
+	gboolean ca_file_changed = FALSE;
+	const char *new_ca_file;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
@@ -306,8 +320,23 @@ set_property (GObject *object, guint prop_id,
 		session->priv->use_ntlm = g_value_get_boolean (value);
 		break;
 	case PROP_SSL_CA_FILE:
+		new_ca_file = g_value_get_string (value);
+
+		if (!safe_str_equal (session->priv->ssl_ca_file, new_ca_file))
+			ca_file_changed = TRUE;
+
 		g_free (session->priv->ssl_ca_file);
-		session->priv->ssl_ca_file = g_strdup (g_value_get_string (value));
+		session->priv->ssl_ca_file = g_strdup (new_ca_file);
+
+		if (ca_file_changed) {
+			if (session->priv->ssl_creds) {
+				soup_ssl_free_client_credentials (session->priv->ssl_creds);
+				session->priv->ssl_creds = NULL;
+			}
+
+			cleanup_hosts (session);
+		}
+
 		break;
 	default:
 		break;

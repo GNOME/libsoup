@@ -1,3 +1,22 @@
+2004-01-09  Joe Shaw  <joe@ximian.com>
+
+	* acinclude.m4: Include the libgnutls.m4 file.
+
+	* configure.in: Remove manual checking for libgnutls-config and
+	use the AM_PATH_LIBGNUTLS so we can pass in a minimum required
+	version, which is 0.9.7 for now.
+
+	* libsoup/Makefile.am: Some changes for the above change.
+
+	* libsoup/soup-gnutls.c: Check for HAVE_SSL, not
+	HAVE_GNUTLS_GNUTLS_H.
+	(verify_certificate): Uncomment the SSL certificate hostname
+	check.
+
+	* libsoup/soup-session.c (set_property): Be smart about flushing
+	our SSL credentials only when the CA file is set to something
+	different than it was before.
+
 2004-01-09  Harish K <kharish@novell.com>
         * libsoup/soup-soap-response.c (soup_soap_response_from_string): 
         added code to ignore Header element, if present, while creating 
