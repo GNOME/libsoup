@@ -1,3 +1,10 @@
+2001-10-25  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Fixe bug
+	where informational responses were treated as an unknown encoding,
+	causing the actual response to be considered part of the
+	informational response body.
+
 2001-10-25  Dan Winship  <danw@ximian.com>
 
 	* configure.in: Fix up the networking library checks to work on

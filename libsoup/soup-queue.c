@@ -140,7 +140,13 @@ soup_queue_read_headers_cb (const GString        *headers,
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->connection, FALSE);
 
-	if (!g_strcasecmp (req->method, "HEAD")) {
+	/* 
+	 * Special case handling for:
+	 *   - HEAD requests (where content-length must be ignored) 
+	 *   - 1xx Informational responses (where no body is allowed)
+	 */
+	if (!g_strcasecmp (req->method, "HEAD") ||
+	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
                 *encoding = SOUP_TRANSFER_CONTENT_LENGTH;
                 *content_len = 0;
 		goto RUN_HANDLERS;
