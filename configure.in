@@ -194,7 +194,7 @@ AC_ARG_ENABLE(libgpg-error,
               enable_libgpg_error=yes, enable_libgpg_error=no)
 
 if test "$enable_ssl" != "no"; then
-	AM_PATH_LIBGNUTLS(0.9.7, have_ssl=yes, have_ssl=no)
+	AM_PATH_LIBGNUTLS(1.0.0, have_ssl=yes, have_ssl=no)
 
 	if test "$have_ssl" != "yes"; then
 		if test "$enable_ssl" == "auto"; then

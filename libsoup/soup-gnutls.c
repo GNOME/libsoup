@@ -77,16 +77,23 @@ verify_certificate (gnutls_session session, const char *hostname)
 	if (gnutls_certificate_type_get (session) == GNUTLS_CRT_X509) {
 		const gnutls_datum* cert_list;
 		int cert_list_size;
+		gnutls_x509_crt cert;
       
 		cert_list = gnutls_certificate_get_peers (
 			session, &cert_list_size);
+
 		if (cert_list == NULL) {
 			g_warning ("No certificate was found.");
 			return FALSE;
 		}
-		if (!gnutls_x509_check_certificates_hostname(
-			    &cert_list[0], hostname))
-		{
+
+		if (gnutls_x509_crt_import (cert, &cert_list[0],
+					    GNUTLS_X509_FMT_DER) < 0) {
+			g_warning ("The certificate could not be parsed.");
+			return FALSE;
+		}
+
+		if (!gnutls_x509_crt_check_hostname (cert, hostname)) {
 			g_warning ("The certificate does not match hostname.");
 			return FALSE;
 		}
@@ -296,31 +303,20 @@ static gnutls_dh_params dh_params = NULL;
 static gboolean
 init_dh_params (void)
 {
-	gnutls_datum prime, generator;
-
 	if (gnutls_dh_params_init (&dh_params) != 0)
 		goto THROW_CREATE_ERROR;
 
-	if (gnutls_dh_params_generate (&prime, &generator, DH_BITS) != 0)
+	if (gnutls_dh_params_generate2 (dh_params, DH_BITS) != 0)
 		goto THROW_CREATE_ERROR;
-
-	if (gnutls_dh_params_set (dh_params, prime, generator, DH_BITS) != 0)
-		goto THROW_CREATE_ERROR;
-
-	free (prime.data);
-	free (generator.data);
 
 	return TRUE;
 
-    THROW_CREATE_ERROR:
+THROW_CREATE_ERROR:
 	if (dh_params) {
 		gnutls_dh_params_deinit (dh_params);
 		dh_params = NULL;
 	}
-	if (prime.data)
-		free (prime.data);
-	if (generator.data)
-		free (generator.data);
+
 	return FALSE;
 }
 

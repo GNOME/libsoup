@@ -1,3 +1,15 @@
+2004-01-21  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Require at least GnuTLS 1.0.0.
+
+	* libsoup/soup-gnutls.c: Fix the use of deprecated GnuTLS
+	functions.
+	(verify_certificate): Use gnutls_x509_crt_import() and
+	gnutls_x509_crt_check_hostname() instead of
+	gnutls_x509_check_certificates_hostname().
+	(init_dh_params): Use gnutls_dh_params_generate2() instead of
+	gnutls_dh_params_generate() and gnutls_dh_params_set().
+
 2004-01-20  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-gnutls.c (soup_gnutls_close): gnutls_bye() doesn't
