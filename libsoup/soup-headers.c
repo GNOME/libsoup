@@ -105,11 +105,12 @@ soup_headers_parse (gchar      *str,
 }
 
 gboolean
-soup_headers_parse_request (gchar       *str, 
-			    gint         len, 
-			    GHashTable  *dest, 
-			    gchar      **req_method,
-			    gchar      **req_path) 
+soup_headers_parse_request (gchar            *str, 
+			    gint              len, 
+			    GHashTable       *dest, 
+			    gchar           **req_method,
+			    gchar           **req_path,
+			    SoupHttpVersion  *ver) 
 {
 	guint http_major, http_minor;
 	gchar method[16], path[1024];
@@ -131,6 +132,13 @@ soup_headers_parse_request (gchar       *str,
 	*req_method = g_strdup (method);
 	*req_path = g_strdup (path);
 
+	if (ver) {
+		if (http_major == 1 && http_minor == 1) 
+			*ver = SOUP_HTTP_1_1;
+		else 
+			*ver = SOUP_HTTP_1_0;
+	}
+
 	return TRUE;
 
  THROW_MALFORMED_HEADER:
@@ -138,11 +146,12 @@ soup_headers_parse_request (gchar       *str,
 }
 
 gboolean
-soup_headers_parse_response (gchar        *str, 
-			     gint          len, 
-			     GHashTable   *dest, 
-			     guint        *status_code,
-			     gchar       **status_phrase)
+soup_headers_parse_response (gchar            *str, 
+			     gint              len, 
+			     GHashTable       *dest,
+			     SoupHttpVersion  *ver,
+			     guint            *status_code,
+			     gchar           **status_phrase)
 {
 	guint http_major, http_minor;
 	guint phrase_start = 0;
@@ -160,6 +169,13 @@ soup_headers_parse_response (gchar        *str,
 
 	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
+
+	if (ver) {
+		if (http_major == 1 && http_minor == 1) 
+			*ver = SOUP_HTTP_1_1;
+		else 
+			*ver = SOUP_HTTP_1_0;
+	}
 
 	*status_phrase = g_strdup (&str [phrase_start]);
 

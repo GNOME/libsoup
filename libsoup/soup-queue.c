@@ -47,7 +47,9 @@ soup_debug_print_headers (SoupMessage *req)
 }
 
 static gboolean
-soup_parse_headers (const GString *headers, SoupMessage *req)
+soup_parse_headers (const GString   *headers, 
+		    SoupHttpVersion *version,
+		    SoupMessage     *req)
 {
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
@@ -58,6 +60,7 @@ soup_parse_headers (const GString *headers, SoupMessage *req)
 	if (!soup_headers_parse_response (headers->str, 
 					  headers->len, 
 					  req->response_headers,
+					  version,
 					  &req->response_code,
 					  &req->response_phrase))
 		goto THROW_MALFORMED_HEADER;
@@ -75,9 +78,10 @@ soup_queue_read_headers_cb (const GString *headers,
 			    SoupMessage   *req)
 {
 	gchar *connection, *length, *enc;
+	SoupHttpVersion version;
 	SoupErrorCode err = SOUP_ERROR_MALFORMED_HEADER;
 
-	if (!soup_parse_headers (headers, req)) 
+	if (!soup_parse_headers (headers, &version, req)) 
 		return SOUP_TRANSFER_END;
 
 	/* 
@@ -85,7 +89,8 @@ soup_queue_read_headers_cb (const GString *headers,
 	 */
 	connection = g_hash_table_lookup (req->response_headers, "Connection");
 
-	if (connection && g_strcasecmp (connection, "close") == 0)
+	if ((connection && !g_strcasecmp (connection, "close")) ||
+	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->priv->conn, FALSE);
 
 	if (!g_strcasecmp (req->method, "HEAD")) 

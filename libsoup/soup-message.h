@@ -12,6 +12,7 @@
 #define SOUP_MESSAGE_H 1
 
 #include <glib.h>
+
 #include "soup-context.h"
 
 typedef enum {

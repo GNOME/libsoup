@@ -290,11 +290,16 @@ soup_try_existing_connections (SoupContext *ctx)
 {
 	GSList *conns = ctx->server->connections;
 
-
-	/* FIXME FIXME FIXME: This stuff isn't working quite right yet.
-	   It sometimes throws errors when a connection gets HUP'ed, so
-	   we'll just disable it for now.*/
-	return NULL;
+	/* 
+	 * FIXME FIXME FIXME: This stuff isn't working quite right yet.
+	 * It sometimes throws errors when a connection gets HUP'ed, so
+	 * we'll just disable it for now.
+	 * 
+	 * Seems fixed now - orph 8/28/01.
+	 */
+	/*
+	 * return NULL;
+	 */
 	
 	while (conns) {
 		SoupConnection *conn = conns->data;

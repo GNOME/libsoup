@@ -1,5 +1,20 @@
 2001-08-28  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-context.c (soup_try_existing_connections):
+	Remove mega FIXME.
+
+	* src/soup-core/soup-queue.c (soup_queue_read_headers_cb): If the
+	response server is HTTP 1.0, default to non-persistent connections.
+
+	* src/soup-core/soup-httpd.c (soup_httpd_read_headers_cb): Store
+	http version for incoming message.
+
+	* src/soup-core/soup-headers.c (soup_headers_parse_response):
+	Support returning the http version.
+	(soup_headers_parse_request): Ditto.
+
+2001-08-28  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-transfer.c (soup_transfer_read_chunk):
 	Rewrite HEX decoding to hopefully be easier to understand and maintain.
 

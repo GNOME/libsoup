@@ -13,18 +13,22 @@
 
 #include <glib.h>
 
+#include "soup-message.h"
+
 /* HTTP Header Parsing */
 
-gboolean       soup_headers_parse_request  (gchar          *str, 
-					    gint            len, 
-					    GHashTable     *dest, 
-					    gchar         **req_method,
-					    gchar         **req_path);
+gboolean       soup_headers_parse_request  (gchar            *str, 
+					    gint              len, 
+					    GHashTable       *dest, 
+					    gchar           **req_method,
+					    gchar           **req_path,
+					    SoupHttpVersion  *ver);
 
-gboolean       soup_headers_parse_response (gchar          *str, 
-					    gint            len, 
-					    GHashTable     *dest, 
-					    guint          *status_code,
-					    gchar         **status_phrase);
+gboolean       soup_headers_parse_response (gchar            *str, 
+					    gint              len, 
+					    GHashTable       *dest,
+					    SoupHttpVersion  *ver,
+					    guint            *status_code,
+					    gchar           **status_phrase);
 
 #endif /*SOUP_HEADERS_H*/
