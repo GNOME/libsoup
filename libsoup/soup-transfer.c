@@ -387,7 +387,7 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 			      GIOCondition condition,
 			      SoupWriter *w)
 {
-	gboolean body_started = w->write_len > w->header->len;
+	gboolean body_started = w->write_len > (guint) w->header->len;
 
 	if (w->error_cb) {
 		IGNORE_CANCEL (w);

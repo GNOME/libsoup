@@ -1428,7 +1428,9 @@ soup_address_get_name_sync (SoupAddress *addr)
 {
 	const char *ret = (const char *) 0xdeadbeef;
 
-	soup_address_get_name (addr, soup_address_get_name_sync_cb, &ret);
+	soup_address_get_name (addr, 
+			       soup_address_get_name_sync_cb, 
+			       (gpointer) &ret);
 
 	while (1) {
 		g_main_iteration (TRUE);
@@ -1973,7 +1975,7 @@ soup_socket_new (SoupAddress     *addr,
 {
 	gint sockfd;
 	gint status;
-	SoupSocketState* state;
+	SoupSocketState* state = (SoupSocketState*) data;
 
 	g_return_val_if_fail (addr != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -2492,7 +2494,7 @@ soup_MainCallBack (GIOChannel   *iochannel,
 	MSG msg;
 
 	gpointer data;
-	SoupSocketState *IAstate;
+	SoupAddressState *IAstate;
 	SoupAddressReverseState *IARstate;
 	SoupSocketState *TCPNEWstate;
 

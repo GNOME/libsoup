@@ -24,13 +24,17 @@
 #include "soup-transfer.h"
 
 SoupServer cgi_server = {
-	cgi: TRUE,
+	FALSE,
+	TRUE,
+	0
 };
 
 SoupServer httpd_server;
 
 SoupServer httpd_ssl_server = {
-	secure: TRUE,
+	TRUE,
+	FALSE,
+	0
 };
 
 SoupServer *SOUP_CGI_SERVER = &cgi_server;

@@ -305,7 +305,7 @@ soup_try_existing_connections (SoupContext *ctx)
 		SoupConnection *conn = conns->data;
 
 		if (!conn->in_use &&
-		    conn->port == ctx->uri->port &&
+		    conn->port == (guint) ctx->uri->port &&
 		    conn->keep_alive)
 			return conn;
 
@@ -366,7 +366,7 @@ soup_prune_least_used_connection (void)
 static gboolean
 soup_prune_timeout (struct SoupConnectData *data)
 {
-	guint conn_limit = soup_get_connection_limit();
+	gint conn_limit = soup_get_connection_limit();
 
 	if (conn_limit &&
 	    connection_count >= conn_limit &&
@@ -408,7 +408,7 @@ soup_context_get_connection (SoupContext           *ctx,
 {
 	SoupConnection *conn;
 	struct SoupConnectData *data;
-	guint conn_limit;
+	gint conn_limit;
 
 	g_return_val_if_fail (ctx != NULL, NULL);
 

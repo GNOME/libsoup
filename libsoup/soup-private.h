@@ -112,14 +112,14 @@ struct _SoupMessagePrivate {
 };
 
 struct _SoupServer {
+	gboolean           secure;
+	gboolean           cgi;
+	gint               port;
+
 	GMainLoop         *loop;
 
 	guint              accept_tag;
 	SoupSocket        *sock;
-	gint               port;
-
-	gboolean           secure;
-	gboolean           cgi;
 
 	GHashTable        *handlers;
 	GSList            *static_handlers;

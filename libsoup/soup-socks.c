@@ -76,9 +76,9 @@ soup_socks_write (GIOChannel* iochannel,
 	case SOCKS_4_SEND_DEST_ADDR: 
 		buf[len++] = 0x04;
 		buf[len++] = 0x01;
-		WSHORT (buf, &len, dest_uri->port);
+		WSHORT (buf, &len, (gushort) dest_uri->port);
 		memcpy (&buf [len], 
-			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr, 
+			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr,
 			4);
 		len += 4;
 		buf[8] = 0x00;
@@ -117,7 +117,7 @@ soup_socks_write (GIOChannel* iochannel,
 		buf[len++] = 0x00;
 		buf[len++] = 0x03;
 		WSTRING (buf, &len, dest_uri->host);
-		WSHORT (buf, &len, dest_uri->port);
+		WSHORT (buf, &len, (gushort) dest_uri->port);
 		sd->phase = SOCKS_5_VERIFY_SUCCESS;
 		finished = TRUE;
 		break;

@@ -477,9 +477,9 @@ typedef struct {
 
 	SoupHandlerKind   kind;
 	union {
-		const gchar      *header;
 		guint             errorcode;
 		SoupErrorClass    errorclass;
+		const gchar      *header;
 	} data;
 } SoupHandlerData;
 
@@ -492,7 +492,7 @@ static SoupHandlerData global_handlers [] = {
 		(SoupCallbackFn) authorize_handler, 
 		GINT_TO_POINTER (FALSE), 
 		RESPONSE_ERROR_CODE_HANDLER, 
-		{ errorcode: 401 }
+		{ 401 }
 	},
 	/* 
 	 * Handle proxy authorization.
@@ -502,7 +502,7 @@ static SoupHandlerData global_handlers [] = {
 		(SoupCallbackFn) authorize_handler, 
 		GINT_TO_POINTER (TRUE), 
 		RESPONSE_ERROR_CODE_HANDLER, 
-		{ errorcode: 407 }
+		{ 407 }
 	},
 	/* 
 	 * Handle redirect response codes 300, 301, 302, 303, and 305.
@@ -512,7 +512,7 @@ static SoupHandlerData global_handlers [] = {
 		redirect_handler, 
 		NULL, 
 		RESPONSE_HEADER_HANDLER, 
-		{ header: "Location" }
+		{ (guint) "Location" }
 	},
 	{ 0 }
 };
@@ -905,7 +905,7 @@ soup_get_error_phrase (SoupKnownErrorCode errcode)
 	gint i;
 
 	for (i = 0; error_code_phrases [i].sc; i++) {
-		if (error_code_phrases [i].sc == errcode)
+		if (error_code_phrases [i].sc == (guint) errcode)
 			return error_code_phrases [i].phrase;
 	}
 
