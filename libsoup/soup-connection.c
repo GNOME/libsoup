@@ -488,6 +488,9 @@ soup_connection_connect_sync (SoupConnection *conn)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 
+	g_signal_connect (conn->priv->socket, "disconnected",
+			  G_CALLBACK (socket_disconnected), conn);
+
 	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		if (!soup_socket_start_ssl (conn->priv->socket)) {
 			status = SOUP_STATUS_SSL_FAILED;

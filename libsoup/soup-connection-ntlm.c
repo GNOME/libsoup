@@ -177,6 +177,8 @@ send_request (SoupConnection *conn, SoupMessage *req)
 	if (ntlm->priv->state == SOUP_CONNECTION_NTLM_NEW) {
 		char *header = soup_ntlm_request ();
 
+		soup_message_remove_header (req->request_headers,
+					    "Authorization");
 		soup_message_add_header (req->request_headers,
 					 "Authorization", header);
 		g_free (header);
