@@ -1,3 +1,10 @@
+2001-11-14  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket-win.c (soup_address_get_name_cb): Don't
+	leak state on failure, pass address's name, not a copy.
+	(soup_address_new_cb): Don't access things after we realloc to a
+	smaller size.
+
 2001-11-13  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_error_cb): Use

@@ -581,7 +581,6 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		}
 
 		start_request (ctx, req);
-
 		break;
 
 	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
@@ -675,11 +674,9 @@ soup_queue_message (SoupMessage    *req,
 					     "buffer.");
 		soup_message_issue_callback (req);
 		return;
-
 	case SOUP_BUFFER_SYSTEM_OWNED:
 		g_free (req->response.body);
 		break;
-
 	case SOUP_BUFFER_STATIC:
 		break;
 	}
@@ -690,13 +687,13 @@ soup_queue_message (SoupMessage    *req,
 
 	soup_message_clear_headers (req->response_headers);
 
+	req->errorcode = 0;
+	req->errorclass = 0;
+
 	if (req->errorphrase) {
 		g_free ((gchar *) req->errorphrase);
 		req->errorphrase = NULL;
 	}
-
-	req->errorcode = 0;
-	req->errorclass = 0;
 
 	req->status = SOUP_STATUS_QUEUED;
 
