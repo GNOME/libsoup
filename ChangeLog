@@ -1,5 +1,13 @@
 2002-03-20  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-server.c (soup_server_get_handler): Return
+	default handler if none exist.  Unregister default handler before
+	resetting.
+	(soup_server_register): Break out auth copying.
+	(auth_context_copy): To here.
+
+2002-03-20  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-queue.c (start_request): Issue callback
 	directly as we might not be in the request processing loop.
 	(proxy_connect): Ditto.

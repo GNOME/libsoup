@@ -1130,11 +1130,8 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 
 	g_return_val_if_fail (server != NULL, NULL);
 
-	if (!path)
+	if (!path || !server->handlers)
 		return server->default_handler;
-
-	if (!server->handlers) 
-		return NULL;
 
 	mypath = g_strdup (path);
 
@@ -1159,6 +1156,28 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 	return server->default_handler;
 }
 
+static SoupServerAuthContext *
+auth_context_copy (SoupServerAuthContext *auth_ctx)
+{
+	SoupServerAuthContext *new_auth_ctx = NULL;
+
+	new_auth_ctx = g_new0 (SoupServerAuthContext, 1);
+
+	new_auth_ctx->types = auth_ctx->types;
+	new_auth_ctx->callback = auth_ctx->callback;
+	new_auth_ctx->user_data = auth_ctx->user_data;
+
+	new_auth_ctx->basic_info.realm = 
+		g_strdup (auth_ctx->basic_info.realm);
+
+	new_auth_ctx->digest_info.realm = 
+		g_strdup (auth_ctx->digest_info.realm);
+	new_auth_ctx->digest_info.allow_algorithms = 
+		auth_ctx->digest_info.allow_algorithms;
+	new_auth_ctx->digest_info.force_integrity = 
+		auth_ctx->digest_info.force_integrity;
+}
+
 void  
 soup_server_register (SoupServer            *server,
 		      const gchar           *path,
@@ -1173,23 +1192,8 @@ soup_server_register (SoupServer            *server,
 	g_return_if_fail (server != NULL);
 	g_return_if_fail (callback != NULL);
 
-	if (auth_ctx) {
-		new_auth_ctx = g_new0 (SoupServerAuthContext, 1);
-
-		new_auth_ctx->types = auth_ctx->types;
-		new_auth_ctx->callback = auth_ctx->callback;
-		new_auth_ctx->user_data = auth_ctx->user_data;
-
-		new_auth_ctx->basic_info.realm = 
-			g_strdup (auth_ctx->basic_info.realm);
-
-		new_auth_ctx->digest_info.realm = 
-			g_strdup (auth_ctx->digest_info.realm);
-		new_auth_ctx->digest_info.allow_algorithms = 
-			auth_ctx->digest_info.allow_algorithms;
-		new_auth_ctx->digest_info.force_integrity = 
-			auth_ctx->digest_info.force_integrity;
-	}
+	if (auth_ctx)
+		new_auth_ctx = auth_context_copy (auth_ctx);
 
 	new_hand = g_new0 (SoupServerHandler, 1);
 	new_hand->path       = g_strdup (path);
@@ -1208,8 +1212,10 @@ soup_server_register (SoupServer            *server,
 		g_hash_table_insert (server->handlers, 
 				     (gchar *) new_hand->path, 
 				     new_hand);
-	} else
+	} else {
+		soup_server_unregister (server, NULL);
 		server->default_handler = new_hand;
+	}
 }
 
 void  
@@ -1227,7 +1233,8 @@ soup_server_unregister (SoupServer *server, const gchar *path)
 		return;
 	}
 
-	if (!server->handlers) return;
+	if (!server->handlers) 
+		return;
 
 	hand = g_hash_table_lookup (server->handlers, path);
 	if (hand) {
