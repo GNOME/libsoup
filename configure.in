@@ -368,6 +368,7 @@ AC_OUTPUT([
 	soup-2.0.pc
 	Makefile
 	libsoup/Makefile
+	tests/Makefile
 	])
 
 echo "

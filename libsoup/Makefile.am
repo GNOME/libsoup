@@ -14,6 +14,7 @@ libsoupincludedir = $(includedir)/soup-2.0/libsoup
 
 libsoupinclude_HEADERS =	\
 	soup.h			\
+	soup-address.h		\
 	soup-context.h		\
 	soup-error.h		\
 	soup-headers.h		\
@@ -38,6 +39,7 @@ libsoup_2_0_la_LIBADD =		\
 libsoup_2_0_la_SOURCES =	\
 	md5-utils.h		\
 	md5-utils.c		\
+	soup-address.c		\
 	soup-auth.h		\
 	soup-auth.c		\
 	soup-context.c		\
@@ -55,7 +57,6 @@ libsoup_2_0_la_SOURCES =	\
 	soup-server.c		\
 	soup-server-auth.c	\
 	soup-socket.c		\
-	soup-socket-unix.c	\
 	soup-socks.h		\
 	soup-socks.c		\
 	soup-ssl.h		\

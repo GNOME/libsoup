@@ -1,3 +1,18 @@
+2002-11-11  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-address.c: Move the SoupAddress code from
+	soup-socket.c and soup-socket-unix.c to here.
+
+	* libsoup/soup-socket.c: Move the remaining code from
+	soup-socket-unix.c here.
+
+	* libsoup/soup-socket-unix.c: Gone
+
+	* tests/get.c: really really trivial test program
+
+	* configure.in (AC_OUTPUT):
+	* Makefile.am (SUBDIRS): add tests/
+
 2002-11-05  Dan Winship  <danw@ximian.com>
 
 	* Split libsoup out of soup. ChangeLog.old contains the original
