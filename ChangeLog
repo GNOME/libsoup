@@ -1,3 +1,11 @@
+2001-11-30  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-headers.c (soup_headers_parse_status_line):
+	Split this functionality out of soup_headers_parse_response.
+
+	* src/libsoup/Makefile.am (libsoupinclude_HEADERS): Add
+	soup-message.h to the public headers.
+
 2001-11-21  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket.c (soup_address_set_sockaddr): Remove.

@@ -150,29 +150,21 @@ soup_headers_parse_request (gchar            *str,
 }
 
 gboolean
-soup_headers_parse_response (gchar            *str, 
-			     gint              len, 
-			     GHashTable       *dest,
-			     SoupHttpVersion  *ver,
-			     guint            *status_code,
-			     gchar           **status_phrase)
+soup_headers_parse_status_line (const char       *status_line,
+				SoupHttpVersion  *ver,
+				guint            *status_code,
+				gchar           **status_phrase)
 {
-	guint http_major, http_minor;
+	guint http_major, http_minor, code;
 	guint phrase_start = 0;
 
-	if (!str || !*str || len < sizeof ("HTTP/0.0 000 A\r\n\r\n"))
-		goto THROW_MALFORMED_HEADER;
-
-	if (sscanf (str, 
+	if (sscanf (status_line, 
 		    "HTTP/%1u.%1u %3u %n", 
 		    &http_major,
 		    &http_minor,
-		    status_code, 
+		    &code, 
 		    &phrase_start) < 3 || !phrase_start)
-		goto THROW_MALFORMED_HEADER;
-
-	if (!soup_headers_parse (str, len, dest)) 
-		goto THROW_MALFORMED_HEADER;
+		return FALSE;
 
 	if (ver) {
 		if (http_major == 1 && http_minor == 1) 
@@ -181,7 +173,31 @@ soup_headers_parse_response (gchar            *str,
 			*ver = SOUP_HTTP_1_0;
 	}
 
-	*status_phrase = g_strdup (&str [phrase_start]);
+	if (status_code)
+		*status_code = code;
+
+	if (status_phrase)
+		*status_phrase = g_strdup (status_line + phrase_start);
+
+	return TRUE;
+}
+
+gboolean
+soup_headers_parse_response (gchar            *str, 
+			     gint              len, 
+			     GHashTable       *dest,
+			     SoupHttpVersion  *ver,
+			     guint            *status_code,
+			     gchar           **status_phrase)
+{
+	if (!str || !*str || len < sizeof ("HTTP/0.0 000 A\r\n\r\n"))
+		goto THROW_MALFORMED_HEADER;
+
+	if (!soup_headers_parse (str, len, dest)) 
+		goto THROW_MALFORMED_HEADER;
+
+	if (!soup_headers_parse_status_line (str, ver, status_code, status_phrase))
+		goto THROW_MALFORMED_HEADER;
 
 	return TRUE;
 
