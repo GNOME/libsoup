@@ -296,7 +296,7 @@ soup_get_request_header (SoupRequest *req)
 		g_hash_table_foreach (req->custom_headers, 
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
-	
+
 	if (!hdrs.content_length) {
 		g_snprintf (content_length_str, 10, "%d", req->request.length);
 		hdrs.content_length = content_length_str;

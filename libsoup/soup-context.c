@@ -111,8 +111,8 @@ struct SoupConnectData {
 	SoupConnectCallbackFn  cb;
 	gpointer               user_data;
 
-	guint timeout_tag;
-	gpointer gnet_connect_tag;
+	guint                  timeout_tag;
+	gpointer               gnet_connect_tag;
 };
 
 static void 
