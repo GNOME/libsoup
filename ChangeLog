@@ -1,3 +1,16 @@
+2002-10-16  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-private.h (SoupMessagePrivate): Add a "retries"
+	field.
+
+	* src/libsoup/soup-queue.c (soup_queue_error_cb): Retry the
+	message three times before just giving up.  Fixes an infinite
+	connection loop with SSL.
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_init): Add a
+	CA verification callback to SSL_CTX_set_verify().
+	(verify_cb): Spew out a warning if we couldn't verify the CA.
+
 2002-10-03  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-message.c (soup_message_cleanup): One-liner to

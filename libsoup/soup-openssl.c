@@ -590,6 +590,15 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 	return NULL;
 }
 
+static int
+verify_cb (int verified, X509_STORE_CTX *x509_ctx)
+{
+	if (!verified)
+		g_warning ("Unable to verify server's CA");
+
+	return verified;
+}
+
 gboolean
 soup_openssl_init (gboolean server)
 {
@@ -620,7 +629,7 @@ soup_openssl_init (gboolean server)
 		SSL_CTX_load_verify_locations (ssl_context, 
 					       ssl_ca_file, 
 					       ssl_ca_dir);
-		SSL_CTX_set_verify (ssl_context, SSL_VERIFY_PEER, NULL);
+		SSL_CTX_set_verify (ssl_context, SSL_VERIFY_PEER, verify_cb);
 	}
 
 	return TRUE;

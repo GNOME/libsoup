@@ -79,9 +79,19 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	case SOUP_STATUS_SENDING_REQUEST:
 		if (!body_started) {
 			/*
-			 * FIXME: Use exponential backoff here
+			 * This can easily happen if we are using the OpenSSL
+			 * out-of-process proxy and we couldn't establish an
+			 * SSL connection.
 			 */
-			soup_message_requeue (req);
+			if (req->priv->retries >= 3) {
+				soup_message_set_error (
+					req,
+					SOUP_ERROR_CANT_CONNECT);
+				soup_message_issue_callback (req);
+			} else {
+				req->priv->retries++;
+				soup_message_requeue (req);
+			}
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);
 			soup_message_issue_callback (req);
