@@ -428,24 +428,39 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		       gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-	SoupProtocol proto;
+	SoupProtocol proxy_proto;
+	SoupProtocol real_proto;
 	GIOChannel *channel;
 
 	req->priv->connect_tag = NULL;
 
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
-		proto = soup_context_get_uri (ctx)->protocol;
+		proxy_proto = soup_context_get_uri (ctx)->protocol;
+		real_proto = soup_context_get_uri(req->context)->protocol;
 
-		if (soup_connection_is_new (conn) &&
-		    (proto == SOUP_PROTOCOL_SOCKS4 ||
-		     proto == SOUP_PROTOCOL_SOCKS5)) {
-			soup_connect_socks_proxy (conn, 
-						  req->context, 
-						  soup_queue_connect_cb,
-						  req);
-			return;
+		if (soup_connection_is_new (conn)) {
+			if (proxy_proto == SOUP_PROTOCOL_SOCKS4 ||
+			    proxy_proto == SOUP_PROTOCOL_SOCKS5) {
+				soup_connect_socks_proxy(
+					conn, 
+					req->context, 
+					soup_queue_connect_cb,
+					req);
+				return;
+			}
+			else if ((proxy_proto == SOUP_PROTOCOL_HTTP ||
+				  proxy_proto == SOUP_PROTOCOL_HTTPS) &&
+				 real_proto == SOUP_PROTOCOL_HTTPS) {
+				soup_connect_ssl_proxy(
+					conn,
+					req->context,
+					soup_queue_connect_cb,
+					req);
+				return;
+			}
 		}
+		
 
 		if (req->priv->req_header) {
 			g_string_free (req->priv->req_header, TRUE);

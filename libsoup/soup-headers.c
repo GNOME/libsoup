@@ -126,7 +126,7 @@ soup_headers_parse_request (gchar            *str,
 		    &http_minor) < 4)
 		goto THROW_MALFORMED_HEADER;
 
-	if (!soup_headers_parse (str, len, dest)) 
+	if (dest && !soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
 	*req_method = g_strdup (method);

@@ -62,6 +62,8 @@ libsoup_la_SOURCES =		\
 	soup-socks.c		\
 	soup-ssl.h		\
 	soup-ssl.c		\
+	soup-ssl-tunnel.h	\
+	soup-ssl-tunnel.c	\
 	soup-transfer.h		\
 	soup-transfer.c		\
 	soup-uri.c

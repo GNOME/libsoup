@@ -57,6 +57,8 @@ SoupUri *soup_uri_new       (const gchar *uri_string);
 gchar   *soup_uri_to_string (const SoupUri *uri, gboolean show_password);
 gchar   *soup_uri_to_proxyable_string(const SoupUri *uri);
 
+gint     soup_uri_get_default_port (SoupProtocol proto);
+
 SoupUri *soup_uri_copy      (const SoupUri *uri);
 
 void     soup_uri_free      (SoupUri *uri);

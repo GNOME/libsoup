@@ -91,7 +91,7 @@ soup_uri_protocol_to_string (SoupProtocol proto)
 	return "";
 }
 
-static gint
+gint
 soup_uri_get_default_port (SoupProtocol proto)
 {
 	SoupKnownProtocols *known = known_protocols;

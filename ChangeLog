@@ -1,3 +1,24 @@
+2002-02-07  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.9
+
+	* src/libsoup/Makefile.am: Add soup-ssl-tunnel.[ch].
+
+	* soup-headers.c (soup_headers_parse_request): Don't barf if
+	we pass in a NULL header GHashTable.
+
+	* soup-queue.c (soup_queue_connect_cb): Get the proxy protocol
+	and the actual protocol separately, and if the proxy is HTTP or
+	HTTPS and the real protocol is HTTPS, call our SSL proxying stuff.
+
+	* soup-uri.c (soup_uri_get_default_port): Make this a public
+	function.
+
+	* soup-ssl-tunnel.c: Implementation of RFC 2817, tunnelling SSL
+	requests through an HTTP proxy.  Laaaaaame.  The code sucks, but
+	I have no plan to make it nicer since this is already in the 0.6
+	branch.
+
 2002-02-01  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.8
@@ -19,7 +40,7 @@
 	* src/libsoup/soup-socks.c (soup_socks_write): Don't unref the
 	context returned from connection_get_context, as soup-0.5 doesn't
 	add a ref.
-	(soup_connect_socks_proxy): Ditto.
+	(soup_connect_socks_proxy): Ditto.	
 
 2002-01-18  Joe Shaw  <joe@ximian.com>
 
