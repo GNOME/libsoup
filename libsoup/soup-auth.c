@@ -639,13 +639,15 @@ soup_auth_set_context (SoupAuth *auth, SoupContext *ctx)
 	server = ctx->server;
 	uri = soup_context_get_uri (ctx);
 
-	if (!server->valid_auths)
-		server->valid_auths = 
-			g_hash_table_new (g_str_hash, g_str_equal);
+	if (!server->valid_auths) {
+		server->valid_auths = g_hash_table_new (g_str_hash, 
+							g_str_equal);
+	}
 	else if (g_hash_table_lookup_extended (server->valid_auths, 
 					       uri->path,
 					       (gpointer *) &old_path,
 					       (gpointer *) &old_auth)) {
+		g_hash_table_remove (server->valid_auths, old_path);
 		g_free (old_path);
 		soup_auth_free (old_auth);
 	}
@@ -680,13 +682,18 @@ soup_auth_new_from_header_list (const GSList  *vals)
 	g_return_val_if_fail (vals != NULL, NULL);
 
 	while (vals) {
-		for (iter = scheme = known_auth_schemes; iter->scheme; iter++) {
-			if (!g_strncasecmp ((gchar *) vals->data, 
+		for (iter = known_auth_schemes; iter->scheme; iter++) {
+			gchar *tryheader = vals->data;
+
+			if (!g_strncasecmp (tryheader, 
 					    iter->scheme, 
-					    strlen (iter->scheme)) &&
-			    scheme->strength < iter->strength) {
-				header = vals->data;			
-				scheme = iter;
+					    strlen (iter->scheme))) {
+				if (!scheme || 
+				    scheme->strength < iter->strength) {
+					header = tryheader;
+					scheme = iter;
+				}
+
 				break;
 			}
 		}

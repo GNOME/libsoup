@@ -1,5 +1,12 @@
 2001-10-30  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-auth.c (soup_auth_set_context): Remove the
+	existing SoupAuth from the from the server's valid_auths hash.
+	(soup_auth_new_from_header_list): Fix bug where auth header
+	evaluation stopped after finding the first matching scheme.
+
+2001-10-30  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socket-unix.c (soup_address_new): Consider
 	existing addresses with a zero refcount valid to return (with an
 	added refcount).
