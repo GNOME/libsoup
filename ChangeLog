@@ -1,3 +1,8 @@
+2001-10-18  JP Rosevear  <jpr@ximian.com>
+
+	* src/libsoup/soup-transfer.c (remove_block_at_index): the array
+	length assertion should be >= rather than less than.
+
 2001-10-17  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-transfer.c (read_content_length): Don't call
