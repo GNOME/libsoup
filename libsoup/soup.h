@@ -16,6 +16,8 @@ extern "C" {
 #endif
 
 #include <soup/soup-context.h>
+#include <soup/soup-dav.h>
+#include <soup/soup-dav-server.h>
 #include <soup/soup-message.h>
 #include <soup/soup-misc.h>
 #include <soup/soup-fault.h>
