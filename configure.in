@@ -5,10 +5,10 @@ dnl *******************************************
 AC_INIT(src/libsoup/soup.h)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=0
+SOUP_AGE=1
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=3
+SOUP_CURRENT=4
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0
@@ -18,7 +18,7 @@ AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
 
 # Update in src/soup-core/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.6.0)
+AM_INIT_AUTOMAKE(soup, 0.6.99)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
@@ -133,8 +133,9 @@ AC_SUBST(XML_LIBS)
 
 
 dnl ***********************
-dnl *** Checks for poptl ***
+dnl *** Checks for popt ***
 dnl ***********************
+
 AC_ARG_WITH(popt-includes,
 	    [  --with-popt-includes     Specify location of popt headers],
 	    [popt_inc_prefix=-I$withval])

@@ -1,5 +1,13 @@
 2002-03-07  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: SOUP_AGE goes to 1, SOUP_CURRENT goes to 4.
+	Update version to 0.6.99.
+
+	* src/libsoup/soup-private.h (VERSION): Update win version to
+	Win/0.6.99.
+
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-context.c (soup_context_connect_cb): Remove
 	debugging g_print.
 
