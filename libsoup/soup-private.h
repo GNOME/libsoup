@@ -20,6 +20,7 @@
 
 #include "soup-context.h"
 #include "soup-queue.h"
+#include "soup-server.h"
 #include "soup-uri.h"
 
 #ifdef __cplusplus
@@ -80,6 +81,14 @@ struct _SoupMessagePrivate {
 	gpointer        user_data;
 };
 
+typedef struct {
+	gchar                *methodname;
+	SoupServerCallbackFn  cb;
+	gpointer              user_data;
+	SoupServerAuthorizeFn auth_fn;
+	gpointer              auth_user_data;
+} SoupServerHandler;
+
 /* from soup-message.c */
 
 void      soup_message_issue_callback (SoupMessage   *req, 
@@ -100,6 +109,15 @@ gint      soup_substring_index        (gchar         *str,
 
 gchar    *soup_base64_encode          (const gchar   *text,
 				       gint           len);
+
+/* from soup-server.c */
+
+SoupServerHandler *soup_server_get_handler (const gchar *methodname);
+
+gboolean           soup_server_authorize   (SoupMessage *msg,
+					    gchar       *username, 
+					    gchar       *password,
+					    gchar       *realm);
 
 #ifdef __cplusplus
 }

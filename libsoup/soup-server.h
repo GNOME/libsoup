@@ -21,11 +21,20 @@ void  soup_server_register           (const gchar          *methodname,
 				      SoupServerCallbackFn  cb,
 				      gpointer              user_data);
 
-void  soup_server_unregister_by_name (const gchar          *methodname);
+void  soup_server_unregister         (const gchar          *methodname);
 
-void  soup_server_unregister_by_cb   (SoupServerCallbackFn  cb);
+typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage *msg, 
+					   gchar       *username, 
+					   gchar       *password,
+					   gchar       *realm,
+					   gpointer     user_data);
 
-void  soup_server_unregister_by_data (gpointer              user_data);
+void  soup_server_set_global_auth    (SoupServerAuthorizeFn  cb,
+				      gpointer              *user_data);
+
+void  soup_server_set_method_auth    (gchar                 *methodname,
+				      SoupServerAuthorizeFn  cb,
+				      gpointer              *user_data);
 
 /* CGI Server methods */
 
@@ -37,6 +46,8 @@ void  soup_server_main_quit          (void);
 /* Apache module initializtion */
 
 typedef void (*SoupServerInit) (void);
+
+extern SoupServerInit soup_server_init;
 
 /* Implement soup_server_init() in your library. */
 

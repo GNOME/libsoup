@@ -38,11 +38,11 @@ X * SoupSerializer
 
 Release stuff:
 
-* Write apache plugin stuff (soup-server)
+X * Write apache plugin stuff (soup-server)
 
 * Write response code handling stuff, add response userland error
 
-* clean up configure.in
+X * clean up configure.in
 
 X * fix soup-serializer header file crap.
 
@@ -50,8 +50,8 @@ X * fix soup-serializer SOAP-ENV prefixing, test prefixing.
 
 X * make callback return void? YES. soup_queue_message now takes ownership
 
-* fix ssl pending bug
+X * fix ssl pending bug
 
-* fix ssl unsecure error crap
+X * fix ssl unsecure error crap
 
-* update tests/*
+X * update tests/*

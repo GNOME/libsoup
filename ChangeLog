@@ -1,6 +1,46 @@
+2001-03-07  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-cgi.c: created. moved cgi-related request
+	processing here. do not use it. completely broken.
+
+	* src/soup-core/soup-apache.c: initial commit of Apache module
+	handling, server registration should be performed in a
+	soup_server_init function. Authorization handling still needs to
+	be written.
+
+	* src/soup-core/soup-server.c: cleaned up to have only generic
+	server functions. removed extraneous unregister functions.
+	(soup_server_set_global_auth): set the global server authorize
+	function, to be called in the absence of a method-specific
+	authorize function.
+	(soup_server_set_method_auth): set per-method authorize function.
+
+	* src/soup-core/soup-queue.c (soup_parse_headers): remove unneeded
+	variables.
+
+	* src/soup-core/soup-private.h: add SoupServerHandler,
+	soup_server_get_handler(), and soup_server_authorize().
+
+	* src/soup-wsdl/Makefile.am (INCLUDES): add WSDL_CFLAGS, to get
+	-Werror.
+
+	* src/soup-core/Makefile.am: add new libsoup-apache.so target.
+
+	* soup.spec.in: update and remove hardcoded library version.
+
+	* soup-config.in: add module soup-apache.
+
+	* configure.in: Fix library versioning. Switch version to
+	0.2.1. Add APACHE_CFLAGS and APACHE_LIBS, gotten from running
+	`apxs`. Remove -Werror from CFLAGS, as apache_conf.h is missing a
+	prototype. Add WSDL_CFLAGS="-Werror" back.
+
+	* TODO (TODO): Updated.
+
 2001-03-06  JP Rosevear  <jpr@ximian.com>
 
-	* configure.in: properly version the project and give an option to disable more warnings
+	* configure.in: properly version the project and give an option to
+	disable more warnings
 
 2001-03-02  Alex Graveley  <alex@ximian.com>
 

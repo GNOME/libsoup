@@ -30,17 +30,14 @@ static guint soup_queue_idle_tag = 0;
 static gboolean
 soup_parse_headers (SoupMessage *req)
 {
-	guint len = req->priv->recv_buf->len;
-	gchar *str = req->priv->recv_buf->data;
-
 	if (req->response_headers) 
 		g_hash_table_destroy (req->response_headers);
 
 	req->response_headers = g_hash_table_new (soup_str_case_hash, 
 						  soup_str_case_equal);
 
-	if (!soup_headers_parse_response (str, 
-					  len, 
+	if (!soup_headers_parse_response (req->priv->recv_buf->data, 
+					  req->priv->recv_buf->len, 
 					  req->response_headers,
 					  &req->response_code,
 					  &req->response_phrase))

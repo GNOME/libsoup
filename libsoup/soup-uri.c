@@ -84,7 +84,7 @@ soup_uri_get_default_port (gchar *proto)
 SoupUri *soup_uri_new (const gchar* uri_string)
 {
 	SoupUri *g_uri;
-	char *semi, *colon, *at, *slash, *path, *query;
+	char *semi, *colon, *at, *slash, *path, *query = NULL;
 	char **split;
 
 	g_uri = g_new (SoupUri,1);

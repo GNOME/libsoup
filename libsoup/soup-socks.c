@@ -240,7 +240,7 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 			  SoupConnectCallbackFn  cb,
 			  gpointer               user_data)
 {
-	SoupSocksData *sd;
+	SoupSocksData *sd = NULL;
 	SoupContext *proxy_ctx;
 	SoupUri *dest_uri;
 	GIOChannel *channel;

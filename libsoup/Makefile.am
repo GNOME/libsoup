@@ -6,15 +6,26 @@ INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"SOUP\" 	\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
 	-DBINDIR=\"$(bindir)\"		\
-	@SOUP_DEBUG_FLAGS@		\
-	@GNET_CFLAGS@			\
-	@XML_CFLAGS@			\
-	@OPENSSL_CFLAGS@		\
-	@NSS_CFLAGS@
+	$(SOUP_DEBUG_FLAGS)		\
+	$(GNET_CFLAGS)			\
+	$(XML_CFLAGS)			\
+	$(OPENSSL_CFLAGS)		\
+	$(NSS_CFLAGS)			\
+	$(APACHE_CFLAGS)
 
 soupincludedir = $(includedir)/soup
 
-lib_LTLIBRARIES = libsoup.la
+soupinclude_HEADERS =		\
+	soup.h			\
+	soup-context.h		\
+	soup-message.h		\
+	soup-misc.h     	\
+	soup-queue.h		\
+	soup-serializer.h	\
+	soup-server.h		\
+	soup-uri.h
+
+lib_LTLIBRARIES = libsoup.la libsoup-apache.la
 
 libsoup_la_LDFLAGS = -version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
@@ -23,6 +34,7 @@ libsoup_la_LIBADD =		\
 	$(XML_LIBS)
 
 libsoup_la_SOURCES =		\
+	soup-cgi.c		\
 	soup-context.c		\
 	soup-headers.h		\
 	soup-headers.c		\
@@ -38,15 +50,15 @@ libsoup_la_SOURCES =		\
 	soup-ssl.c		\
 	soup-uri.c
 
-soupinclude_HEADERS =		\
-	soup.h			\
-	soup-context.h		\
-	soup-message.h		\
-	soup-misc.h     	\
-	soup-queue.h		\
-	soup-serializer.h	\
-	soup-server.h		\
-	soup-uri.h
+libsoup_apache_la_LDFLAGS = 	\
+	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
+
+libsoup_apache_la_LIBADD =	\
+	$(APACHE_LIBS)		\
+	-L.libs -lsoup
+
+libsoup_apache_la_SOURCES =	\
+	soup-apache.c
 
 bin_PROGRAMS = soup-ssl-proxy
 
