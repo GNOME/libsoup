@@ -1,3 +1,8 @@
+2001-02-12  alex  <alex@ximian.com>
+
+	* src/soup-core/soup-server.[ch]: Initial revision of server side 
+	  request handling dispatcher.
+
 2001-02-11  alex  <alex@ximian.com>
 
 	* TODO: add items left before a release.
