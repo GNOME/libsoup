@@ -1,3 +1,9 @@
+2001-09-19  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_send): Fix this to not
+	return immediately after parsing the first line of the response.
+	(Needed an update for the 09-07 api changes.)
+
 2001-09-17  Vladimir Vukicevic  <vladimir@ximian.com>
 
 	* src/libsoup/soup-socket.c, src/libsoup/soup-socket.h:
