@@ -1,3 +1,60 @@
+2003-09-09  Dan Winship  <danw@ximian.com>
+
+	Beginnings of improved synchronous API support
+
+	* libsoup/soup-dns.c: Simplify this by making it not automatically
+	return the result: force the caller to poll. (This isn't really a
+	performance issue: the results should come back quickly anyway.)
+	Also, make the cache thread-safe.
+	(soup_dns_entry_from_name): Was soup_gethostbyname
+	(soup_dns_entry_from_addr): Was soup_gethostbyaddr
+	(soup_dns_entry_check_lookup): Used to poll to see if DNS is done
+	(soup_dns_entry_get_hostent): Gets the hostent from an entry (and
+	blocks if it's not resolved yet).
+
+	* libsoup/soup-address.c: Update for soup-dns changes.
+	(soup_address_new): Don't automatically start resolving the
+	hostname now, since we don't know if the caller is going to want
+	it resolved synchronously or asynchronously.
+	(soup_address_resolve_async): Renamed from soup_address_resolve.
+	(soup_address_resolve_sync): New routine to do blocking
+	synchronous DNS.
+
+	* libsoup/soup-socket.c (soup_socket_connect): Now returns a
+	status value directly when connecting synchronously.
+	(soup_socket_client_new_async, soup_socket_client_new_sync):
+	Separate async/sync client socket functions.
+	(soup_socket_get_iochannel): Made static since it was not used
+	outside soup-socket.
+
+	* libsoup/soup-connection.c (soup_connection_new,
+	soup_connection_new_proxy, soup_connection_new_tunnel): Just set
+	up the data, don't actually start connecting.
+	(soup_connection_connect_async, soup_connection_connect_sync): New
+	async and sync SoupConnection connecting routines.
+	(soup_connection_get_socket): Remove this since it wasn't being
+	used.
+
+	* libsoup/soup-session.c (final_finished): Run the queue since a
+	connection is now freed up.
+	(run_queue): Update for soup_connection_new* changes.
+
+	* libsoup/soup-misc.c (soup_substring_index): Remove, since it
+	wasn't being used any more.
+
+	* libsoup/soup-private.h: Remove some prototypes for functions
+	that no longer exist.
+
+	* libsoup/soup-uri.c (soup_uri_copy_root): New utility function
+	(copies the protocol, host, and port of a SoupUri).
+
+	* tests/auth-test.c:
+	* tests/get.c:
+	* tests/simple-proxy.c: belatedly update for soup-session change
+
+	* tests/revserver.c: Handle each new connection in its own thread,
+	using synchronous SoupSocket calls.
+
 2003-09-05  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-session.c: Move a bunch of logic here from

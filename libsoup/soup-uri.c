@@ -339,6 +339,21 @@ soup_uri_copy (const SoupUri *uri)
 	return dup;
 }
 
+SoupUri *
+soup_uri_copy_root (const SoupUri *uri)
+{
+	SoupUri *dup;
+
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	dup = g_new0 (SoupUri, 1);
+	dup->protocol = uri->protocol;
+	dup->host     = g_strdup (uri->host);
+	dup->port     = uri->port;
+
+	return dup;
+}
+
 static inline gboolean
 parts_equal (const char *one, const char *two)
 {

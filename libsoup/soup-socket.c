@@ -46,11 +46,17 @@ struct SoupSocketPrivate {
 	GIOChannel *iochannel;
 
 	guint watch;
-	gboolean server, ssl;
+	guint flags;
 
 	guint           read_tag, write_tag, error_tag;
 	GByteArray     *read_buf;
 };
+
+#define SOUP_SOCKET_FLAG_SSL    (1<<8)
+
+#define SOUP_SOCKET_SET_FLAG(sock, flag) (sock)->priv->flags |= (flag)
+#define SOUP_SOCKET_CLEAR_FLAG(sock, flag) (sock)->priv->flags &= ~(flag)
+#define SOUP_SOCKET_CHECK_FLAG(sock, flag) ((sock)->priv->flags & (flag))
 
 static void
 init (GObject *object)
@@ -169,39 +175,56 @@ soup_socket_new (void)
 	return g_object_new (SOUP_TYPE_SOCKET, NULL);
 }
 
-void
-soup_socket_set_flag (SoupSocket *sock, SoupSocketFlag flag, gboolean value)
+static void
+update_fdflags (SoupSocket *sock, guint mask)
 {
-	int fdflags, opt;
+	int flags, opt;
 
-	g_return_if_fail (SOUP_IS_SOCKET (sock));
-	g_return_if_fail (sock->priv->sockfd != -1);
+	if (mask & SOUP_SOCKET_FLAG_NONBLOCKING) {
+		flags = fcntl (sock->priv->sockfd, F_GETFL, 0);
+		g_return_if_fail (flags != -1);
 
-	switch (flag) {
-	case SOUP_SOCKET_FLAG_NONBLOCKING:
-		fdflags = fcntl (sock->priv->sockfd, F_GETFL, 0);
-		g_return_if_fail (fdflags != -1);
-
-		if (value)
-			fdflags |= O_NONBLOCK;
+		if (sock->priv->flags & SOUP_SOCKET_FLAG_NONBLOCKING)
+			flags |= O_NONBLOCK;
 		else
-			fdflags &= ~O_NONBLOCK;
-
-		fcntl (sock->priv->sockfd, F_SETFL, fdflags);
-		break;
-
-	case SOUP_SOCKET_FLAG_NODELAY:
-		opt = (value != FALSE);
-		setsockopt (sock->priv->sockfd, IPPROTO_TCP, TCP_NODELAY,
-			    &opt, sizeof (opt));
-		break;
-
-	case SOUP_SOCKET_FLAG_REUSEADDR:
-		opt = (value != FALSE);
-		setsockopt (sock->priv->sockfd, SOL_SOCKET, SO_REUSEADDR,
-			    &opt, sizeof (opt));
-		break;
+			flags &= ~O_NONBLOCK;
+		fcntl (sock->priv->sockfd, F_SETFL, flags);
 	}
+	if (mask & SOUP_SOCKET_FLAG_NODELAY) {
+		opt = (sock->priv->flags & SOUP_SOCKET_FLAG_NODELAY) != 0;
+		setsockopt (sock->priv->sockfd, IPPROTO_TCP,
+			    TCP_NODELAY, &opt, sizeof (opt));
+	}
+	if (mask & SOUP_SOCKET_FLAG_REUSEADDR) {
+		opt = (sock->priv->flags & SOUP_SOCKET_FLAG_REUSEADDR) != 0;
+		setsockopt (sock->priv->sockfd, SOL_SOCKET,
+			    SO_REUSEADDR, &opt, sizeof (opt));
+	}
+}
+
+void
+soup_socket_set_flags (SoupSocket *sock, guint mask, guint flags)
+{
+	g_return_if_fail (SOUP_IS_SOCKET (sock));
+
+	sock->priv->flags |= mask & flags;
+	sock->priv->flags &= ~(mask & ~flags);
+
+	if (sock->priv->sockfd)
+		update_fdflags (sock, mask);
+}
+
+static GIOChannel *
+get_iochannel (SoupSocket *sock)
+{
+	if (!sock->priv->iochannel) {
+		sock->priv->iochannel =
+			g_io_channel_unix_new (sock->priv->sockfd);
+		g_io_channel_set_close_on_unref (sock->priv->iochannel, TRUE);
+		g_io_channel_set_encoding (sock->priv->iochannel, NULL, NULL);
+		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
+	}
+	return sock->priv->iochannel;
 }
 
 static gboolean
@@ -224,7 +247,7 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	if (error)
 		goto cant_connect;
 
-	if (sock->priv->ssl)
+	if (SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SSL))
 		soup_socket_start_ssl (sock);
 
 	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_STATUS_OK);
@@ -257,72 +280,91 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 		return;
 	}
 
-	soup_socket_connect (sock, addr);
+	soup_socket_connect (sock, sock->priv->remote_addr);
 	/* soup_socket_connect re-reffed addr */
 	g_object_unref (addr);
 }
 
 /**
  * soup_socket_connect:
- * @sock: a #SoupSocket (which must not be connected or listening)
+ * @sock: a client #SoupSocket (which must not already be connected)
  * @remote_addr: address to connect to
  *
- * Starts connecting to the indicated remote address and port. The
- * socket will emit %connect_result when it succeeds or fails (but
- * not before returning from this function).
+ * If %SOUP_SOCKET_FLAG_NONBLOCKING has been set on the socket, this
+ * begins asynchronously connecting to the given address. The socket
+ * will emit %connect_result when it succeeds or fails (but not before
+ * returning from this function).
+ *
+ * If %SOUP_SOCKET_FLAG_NONBLOCKING has not been set, this will
+ * attempt to synchronously connect.
+ *
+ * Return value: %SOUP_STATUS_CONTINUE if connecting asynchronously,
+ * otherwise a success or failure code.
  **/
-void
+guint
 soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 {
-	struct sockaddr *sa = NULL;
+	struct sockaddr *sa;
 	int len, status;
+	gboolean sync;
 
-	g_return_if_fail (SOUP_IS_SOCKET (sock));
-	g_return_if_fail (SOUP_IS_ADDRESS (remote_addr));
-	g_return_if_fail (sock->priv->sockfd == -1);
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (!SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER), FALSE);
+	g_return_val_if_fail (sock->priv->sockfd == -1, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (SOUP_IS_ADDRESS (remote_addr), SOUP_STATUS_MALFORMED);
+
+	sync = !(sock->priv->flags & SOUP_SOCKET_FLAG_NONBLOCKING);
 
 	sock->priv->remote_addr = g_object_ref (remote_addr);
+	if (sync) {
+		status = soup_address_resolve_sync (remote_addr);
+		if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+			return status;
+	}
+
 	sa = soup_address_get_sockaddr (sock->priv->remote_addr, &len);
 	if (!sa) {
-		soup_address_resolve (sock->priv->remote_addr,
-				      got_address, sock);
-		return;
+		if (sync)
+			return SOUP_STATUS_CANT_RESOLVE;
+
+		soup_address_resolve_async (remote_addr, got_address, sock);
+		return SOUP_STATUS_CONTINUE;
 	}
 
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
-	if (sock->priv->sockfd < 0)
-		goto cant_connect;
-	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
-	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NODELAY, TRUE);
+	if (sock->priv->sockfd == -1) {
+		g_free (sa);
+		goto done;
+	}
+	update_fdflags (sock, SOUP_SOCKET_FLAG_ALL);
 
-	/* Connect (non-blocking) */
 	status = connect (sock->priv->sockfd, sa, len);
 	g_free (sa);
-	sa = NULL;
 
-	if (status == 0) {
-		/* Connect already succeeded */
+	if (status == -1) {
+		if (errno == EINPROGRESS) {
+			/* Wait for connect to succeed or fail */
+			sock->priv->watch =
+				g_io_add_watch (get_iochannel (sock),
+						G_IO_IN | G_IO_OUT |
+						G_IO_PRI | G_IO_ERR |
+						G_IO_HUP | G_IO_NVAL,
+						connect_watch, sock);
+			return SOUP_STATUS_CONTINUE;
+		} else {
+			close (sock->priv->sockfd);
+			sock->priv->sockfd = -1;
+		}
+	}
+
+ done:
+	if (sync) {
+		return sock->priv->sockfd != -1 ?
+			SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT;
+	} else {
 		sock->priv->watch = g_idle_add (idle_connect_result, sock);
-		return;
+		return SOUP_STATUS_CONTINUE;
 	}
-	if (errno != EINPROGRESS)
-		goto cant_connect;
-
-	soup_socket_get_iochannel (sock);
-	sock->priv->watch = g_io_add_watch (sock->priv->iochannel,
-					    (G_IO_IN | G_IO_OUT | G_IO_PRI |
-					     G_IO_ERR | G_IO_HUP | G_IO_NVAL),
-					    connect_watch, sock);
-	return;
-
- cant_connect: 
-	if (sa)
-		g_free (sa);
-	if (sock->priv->sockfd != -1) {
-		close (sock->priv->sockfd);
-		sock->priv->sockfd = -1;
-	}
-	sock->priv->watch = g_idle_add (idle_connect_result, sock);
 }
 
 static gboolean
@@ -345,17 +387,18 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 
 	new = soup_socket_new ();
 	new->priv->sockfd = sockfd;
-	soup_socket_set_flag (new, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
-	soup_socket_set_flag (new, SOUP_SOCKET_FLAG_NODELAY, TRUE);
+	new->priv->flags = (SOUP_SOCKET_FLAG_NONBLOCKING |
+			    SOUP_SOCKET_FLAG_NODELAY |
+			    SOUP_SOCKET_FLAG_SERVER |
+			    (sock->priv->flags & SOUP_SOCKET_FLAG_SSL));
+	update_fdflags (new, SOUP_SOCKET_FLAG_ALL);
 
 	new->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 
-	new->priv->server = TRUE;
-	if (sock->priv->ssl) {
-		new->priv->ssl = TRUE;
+	if (SOUP_SOCKET_CHECK_FLAG (new, SOUP_SOCKET_FLAG_SSL))
 		soup_socket_start_ssl (new);
-	} else
-		soup_socket_get_iochannel (new);
+	else
+		get_iochannel (new);
 
 	g_signal_emit (sock, signals[NEW_CONNECTION], 0, new);
 	g_object_unref (new);
@@ -365,7 +408,8 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 
 /**
  * soup_socket_listen:
- * @sock: a #SoupSocket (which must not be connected or listening)
+ * @sock: a server #SoupSocket (which must not already be connected or
+ * listening)
  * @local_addr: Local address to bind to.
  *
  * Makes @sock start listening on the given interface and port. When
@@ -380,8 +424,9 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	int sa_len;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
-	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), FALSE);
+	g_return_val_if_fail (SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER), FALSE);
 	g_return_val_if_fail (sock->priv->sockfd == -1, FALSE);
+	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), FALSE);
 
 	/* @local_addr may have its port set to 0. So we intentionally
 	 * don't store it in sock->priv->local_addr, so that if the
@@ -395,8 +440,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
 	if (sock->priv->sockfd < 0)
 		goto cant_listen;
-	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
-	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_REUSEADDR, TRUE);
+	update_fdflags (sock, SOUP_SOCKET_FLAG_ALL);
 
 	/* Bind */
 	if (bind (sock->priv->sockfd, sa, sa_len) != 0)
@@ -406,10 +450,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	if (listen (sock->priv->sockfd, 10) != 0)
 		goto cant_listen;
 
-	sock->priv->server = TRUE;
-
-	soup_socket_get_iochannel (sock);
-	sock->priv->watch = g_io_add_watch (sock->priv->iochannel,
+	sock->priv->watch = g_io_add_watch (get_iochannel (sock),
 					    G_IO_IN | G_IO_ERR | G_IO_HUP,
 					    listen_watch, sock);
 	return TRUE;
@@ -435,16 +476,17 @@ soup_socket_start_ssl (SoupSocket *sock)
 {
 	GIOChannel *chan;
 
-	chan = soup_socket_get_iochannel (sock);
-	sock->priv->iochannel = sock->priv->server ?
+	chan = get_iochannel (sock);
+	sock->priv->iochannel =
+		SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER) ?
 		soup_ssl_get_server_iochannel (chan) :
 		soup_ssl_get_iochannel (chan);
-	sock->priv->ssl = TRUE;
+	SOUP_SOCKET_SET_FLAG (sock, SOUP_SOCKET_FLAG_SSL);
 }
 	
 
 /**
- * soup_socket_client_new:
+ * soup_socket_client_new_async:
  * @hostname: remote machine to connect to
  * @port: remote port to connect to
  * @ssl: whether or not to use SSL
@@ -457,21 +499,57 @@ soup_socket_start_ssl (SoupSocket *sock)
  * Return value: the new socket (not yet ready for use).
  **/
 SoupSocket *
-soup_socket_client_new (const char *hostname, guint port, gboolean ssl,
-			SoupSocketCallback callback, gpointer user_data)
+soup_socket_client_new_async (const char *hostname, guint port, gboolean ssl, 
+			      SoupSocketCallback callback, gpointer user_data)
 {
 	SoupSocket *sock;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 
 	sock = soup_socket_new ();
-	sock->priv->ssl = ssl;
+	sock->priv->flags = (SOUP_SOCKET_FLAG_NONBLOCKING |
+			     (ssl ? SOUP_SOCKET_FLAG_SSL : 0));
 	soup_socket_connect (sock, soup_address_new (hostname, port));
 
 	if (callback) {
 		soup_signal_connect_once (sock, "connect_result",
 					  G_CALLBACK (callback), user_data);
 	}
+	return sock;
+}
+
+/**
+ * soup_socket_client_new_sync:
+ * @hostname: remote machine to connect to
+ * @port: remote port to connect to
+ * @ssl: whether or not to use SSL
+ * @status_ret: pointer to return the soup status in
+ *
+ * Creates a connection to @hostname and @port. If @status_ret is not
+ * %NULL, it will contain a status code on return.
+ *
+ * Return value: the new socket, or %NULL if it could not connect.
+ **/
+SoupSocket *
+soup_socket_client_new_sync (const char *hostname, guint port, gboolean ssl,
+			     guint *status_ret)
+{
+	SoupSocket *sock;
+	guint status;
+
+	g_return_val_if_fail (hostname != NULL, NULL);
+
+	sock = soup_socket_new ();
+	sock->priv->flags = ssl ? SOUP_SOCKET_FLAG_SSL : 0;
+	status = soup_socket_connect (sock, soup_address_new (hostname, port));
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		g_object_unref (sock);
+		sock = NULL;
+	}
+
+	if (status_ret)
+		*status_ret = status;
 	return sock;
 }
 
@@ -499,8 +577,9 @@ soup_socket_server_new (SoupAddress *local_addr, gboolean ssl,
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), NULL);
 
 	sock = soup_socket_new ();
-	sock->priv->ssl = ssl;
-
+	sock->priv->flags = (SOUP_SOCKET_FLAG_SERVER |
+			     SOUP_SOCKET_FLAG_NONBLOCKING |
+			     (ssl ? SOUP_SOCKET_FLAG_SSL : 0));
 	if (!soup_socket_listen (sock, local_addr)) {
 		g_object_unref (sock);
 		return NULL;
@@ -514,32 +593,6 @@ soup_socket_server_new (SoupAddress *local_addr, gboolean ssl,
 	return sock;
 }
 
-
-/**
- * soup_socket_get_iochannel:
- * @sock: #SoupSocket to get #GIOChannel from.
- *
- * Get the #GIOChannel for the #SoupSocket.
- *
- * If you ref the iochannel, it will remain valid after @sock is
- * destroyed.
- *
- * Returns: A #GIOChannel; %NULL on failure.
- **/
-GIOChannel *
-soup_socket_get_iochannel (SoupSocket *sock)
-{
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
-
-	if (!sock->priv->iochannel) {
-		sock->priv->iochannel =
-			g_io_channel_unix_new (sock->priv->sockfd);
-		g_io_channel_set_close_on_unref (sock->priv->iochannel, TRUE);
-		g_io_channel_set_encoding (sock->priv->iochannel, NULL, NULL);
-		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
-	}
-	return sock->priv->iochannel;
-}
 
 void
 soup_socket_disconnect (SoupSocket *sock)

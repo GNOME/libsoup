@@ -35,20 +35,20 @@ typedef struct {
 	void (*new_connection) (SoupSocket *, SoupSocket *);
 } SoupSocketClass;
 
-typedef enum {
-	SOUP_SOCKET_FLAG_NONBLOCKING,
-	SOUP_SOCKET_FLAG_NODELAY,
-	SOUP_SOCKET_FLAG_REUSEADDR,
-} SoupSocketFlag;
+#define SOUP_SOCKET_FLAG_NONBLOCKING (1<<0)
+#define SOUP_SOCKET_FLAG_NODELAY     (1<<1)
+#define SOUP_SOCKET_FLAG_SERVER      (1<<2)
+#define SOUP_SOCKET_FLAG_REUSEADDR   (1<<3)
+#define SOUP_SOCKET_FLAG_ALL         ( ~0 )
 
 GType soup_socket_get_type (void);
 
 SoupSocket    *soup_socket_new                (void);
-void           soup_socket_set_flag           (SoupSocket         *sock,
-					       SoupSocketFlag      flag,
-					       gboolean            value);
+void           soup_socket_set_flags          (SoupSocket         *sock,
+					       guint               mask,
+					       guint               flags);
 
-void           soup_socket_connect            (SoupSocket         *sock,
+guint          soup_socket_connect            (SoupSocket         *sock,
 					       SoupAddress        *rem_addr);
 gboolean       soup_socket_listen             (SoupSocket         *sock,
 					       SoupAddress        *local_addr);
@@ -64,18 +64,19 @@ typedef void (*SoupSocketListenerCallback)    (SoupSocket         *listener,
 					       SoupSocket         *sock,
 					       gpointer            user_data);
 
-SoupSocket    *soup_socket_client_new         (const char         *hostname,
+SoupSocket    *soup_socket_client_new_async   (const char         *hostname,
 					       guint               port,
 					       gboolean            ssl,
 					       SoupSocketCallback  callback,
 					       gpointer            user_data);
+SoupSocket    *soup_socket_client_new_sync    (const char         *hostname,
+					       guint               port,
+					       gboolean            ssl,
+					       guint              *status);
 SoupSocket    *soup_socket_server_new         (SoupAddress        *local_addr,
 					       gboolean            ssl,
 					       SoupSocketListenerCallback,
 					       gpointer            user_data);
-
-
-GIOChannel    *soup_socket_get_iochannel      (SoupSocket         *sock);
 
 SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 SoupAddress   *soup_socket_get_remote_address (SoupSocket         *sock);

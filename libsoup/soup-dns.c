@@ -15,8 +15,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/select.h>
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <sys/wait.h>
 
 #include <arpa/inet.h>
@@ -62,8 +62,8 @@ copy_hostent (struct hostent *h)
 			    h->h_length, h->h_addr_list[0]);
 }
 
-static void
-free_hostent (struct hostent *h)
+void
+soup_dns_free_hostent (struct hostent *h)
 {
 	g_free (h->h_name);
 	g_free (h->h_addr_list[0]);
@@ -123,7 +123,7 @@ new_hostent_from_phys (const char *addr)
 }
 
 char *
-soup_ntop (gconstpointer addr, int family)
+soup_dns_ntop (gconstpointer addr, int family)
 {
 	switch (family) {
 	case AF_INET:
@@ -153,14 +153,6 @@ soup_ntop (gconstpointer addr, int family)
 	}
 }
 
-
-/* Testing Defines */
-/*  #undef   HAVE_GETHOSTBYNAME_R_GLIBC */
-/*  #define  HAVE_GETHOSTBYNAME_R_GLIB_MUTEX */
-
-#ifdef HAVE_GETHOSTBYNAME_R_GLIB_MUTEX
-G_LOCK_DEFINE (gethostbyname);
-#endif
 
 static struct hostent *
 soup_gethostbyname_internal (const char *hostname)
@@ -218,9 +210,6 @@ soup_gethostbyname_internal (const char *hostname)
 	}
 #else
 	{
-#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
-		G_LOCK (gethostbyname);
-#endif
 		result = gethostbyname (hostname);
 	}
 #endif
@@ -232,15 +221,12 @@ soup_gethostbyname_internal (const char *hostname)
 
 	if (buf)
 		g_free (buf);
-#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
-	G_UNLOCK (gethostbyname);
-#endif
 
 	return out;
 }
 
 static struct hostent *
-soup_gethostbyaddr_internal (gpointer addr, int family)
+soup_gethostbyaddr_internal (gconstpointer addr, int family)
 {
 	struct hostent result_buf, *result = &result_buf, *out;
 	char *buf = NULL;
@@ -313,9 +299,6 @@ soup_gethostbyaddr_internal (gpointer addr, int family)
 	}
 #else
 	{
-#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
-		G_LOCK (gethostbyname);
-#endif
 		result = gethostbyaddr (addr, length, family);
 	}
 #endif
@@ -327,9 +310,6 @@ soup_gethostbyaddr_internal (gpointer addr, int family)
 
 	if (buf)
 		g_free (buf);
-#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
-	G_UNLOCK (gethostbyname);
-#endif
 
 	return out;
 }
@@ -337,28 +317,55 @@ soup_gethostbyaddr_internal (gpointer addr, int family)
 
 /* Cache */
 
-typedef struct {
+struct SoupDNSEntry {
 	char           *name;
 	struct hostent *h;
+	gboolean        resolved;
+
 	time_t          expires;
+	guint           ref_count;
 
-	GSList         *lookups;
-
-	guint           source_id;
 	pid_t           lookup_pid;
 	int             fd;
-} SoupDNSEntry;
+};
 
 static GHashTable *soup_dns_entries;
+
 #define SOUP_DNS_ENTRIES_MAX 20
 
+static GStaticMutex soup_dns_mutex = G_STATIC_MUTEX_INIT;
+#define soup_dns_lock() g_static_mutex_lock (&soup_dns_mutex)
+#define soup_dns_unlock() g_static_mutex_unlock (&soup_dns_mutex)
+
 static void
-free_entry (SoupDNSEntry *entry)
+soup_dns_entry_ref (SoupDNSEntry *entry)
+{
+	entry->ref_count++;
+}
+
+static void
+soup_dns_entry_unref (SoupDNSEntry *entry)
+{
+	if (!--entry->ref_count) {
+		g_free (entry->name);
+		soup_dns_free_hostent (entry->h);
+
+		if (entry->fd)
+			close (entry->fd);
+		if (entry->lookup_pid) {
+			kill (entry->lookup_pid, SIGKILL);
+			waitpid (entry->lookup_pid, NULL, 0);
+		}
+
+		g_free (entry);
+	}
+}
+
+static void
+uncache_entry (SoupDNSEntry *entry)
 {
 	g_hash_table_remove (soup_dns_entries, entry->name);
-	g_free (entry->name);
-	free_hostent (entry->h);
-	g_free (entry);
+	soup_dns_entry_unref (entry);
 }
 
 static void
@@ -366,15 +373,19 @@ prune_cache_cb (gpointer key, gpointer value, gpointer data)
 {
 	SoupDNSEntry *entry = value, **prune_entry = data; 
 
-	if (entry->lookups)
-		return;
 	if (!*prune_entry || (*prune_entry)->expires > entry->expires)
 		*prune_entry = entry;
 }
 
-static void
-cache_entry (SoupDNSEntry *entry)
+static SoupDNSEntry *
+soup_dns_entry_new (const char *name)
 {
+	SoupDNSEntry *entry;
+
+	entry = g_new0 (SoupDNSEntry, 1);
+	entry->name = g_strdup (name);
+	entry->ref_count = 2; /* One for the caller, one for the cache */
+
 	if (!soup_dns_entries) {
 		soup_dns_entries = g_hash_table_new (soup_str_case_hash,
 						     soup_str_case_equal);
@@ -384,73 +395,246 @@ cache_entry (SoupDNSEntry *entry)
 		g_hash_table_foreach (soup_dns_entries, prune_cache_cb,
 				      &prune_entry);
 		if (prune_entry)
-			free_entry (prune_entry);
+			uncache_entry (prune_entry);
 	}
 
 	entry->expires = time (0) + 60 * 60;
 	g_hash_table_insert (soup_dns_entries, entry->name, entry);
+
+	return entry;
 }
 
 static SoupDNSEntry *
-lookup_entry (const char *name)
+soup_dns_lookup_entry (const char *name)
 {
+	SoupDNSEntry *entry;
+
 	if (!soup_dns_entries)
 		return NULL;
-	return g_hash_table_lookup (soup_dns_entries, name);
+
+	entry = g_hash_table_lookup (soup_dns_entries, name);
+	if (entry)
+		soup_dns_entry_ref (entry);
+	return entry;
 }
 
-
-typedef struct {
-	SoupGetHostByFn  func;
-	gpointer         data;
-
-	SoupDNSEntry    *entry;
-} SoupDNSLookupInfo;
-
-static gboolean
-soup_gothost (gpointer user_data)
+/**
+ * soup_dns_entry_from_name:
+ * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
+ *   (eg, 141.213.8.59).
+ *
+ * Begins asynchronous resolution of @name. The caller should
+ * periodically call soup_entry_check_lookup() to see if it is done,
+ * and call soup_entry_get_hostent() when soup_entry_check_lookup()
+ * returns %TRUE.
+ *
+ * Currently, this routine forks and does the lookup, which can cause
+ * some problems. In general, this will work ok for most programs most
+ * of the time. It will be slow or even fail when using operating
+ * systems that copy the entire process when forking.
+ *
+ * Returns: a #SoupDNSEntry, which will be freed when you call
+ * soup_entry_get_hostent() or soup_entry_cancel_lookup().
+ **/
+SoupDNSEntry *
+soup_dns_entry_from_name (const char *name)
 {
-	SoupDNSEntry *entry = user_data;
-	SoupDNSLookupInfo *info;
+	SoupDNSEntry *entry;
+	int pipes[2];
 
-	if (entry->source_id) {
-		g_source_remove (entry->source_id);
-		entry->source_id = 0;
+	soup_dns_lock ();
+
+	/* Try the cache */
+	entry = soup_dns_lookup_entry (name);
+	if (entry) {
+		soup_dns_unlock ();
+		return entry;
 	}
 
-	while (entry->lookups) {
-		info = entry->lookups->data;
-		entry->lookups = g_slist_remove (entry->lookups, info);
+	entry = soup_dns_entry_new (name);
 
-		(*info->func) (info, entry->h ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE, entry->h, info->data);
-		g_free (info);
+	/* Try to read the name as if it were dotted decimal */
+	entry->h = new_hostent_from_phys (name);
+	if (entry->h) {
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
 	}
 
-	return FALSE;
+	/* Check to see if we are doing synchronous DNS lookups */
+	if (getenv ("SOUP_SYNC_DNS")) {
+		entry->h = soup_gethostbyname_internal (name);
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+	}
+
+	/* Ok, we need to start a new lookup */
+
+	if (pipe (pipes) == -1) {
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+	}
+
+	entry->lookup_pid = fork ();
+	switch (entry->lookup_pid) {
+	case -1:
+		g_warning ("Fork error: %s (%d)\n", g_strerror (errno), errno);
+		close (pipes[0]);
+		close (pipes[1]);
+
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+
+	case 0:
+		/* Child */
+		close (pipes[0]);
+
+		entry->h = soup_gethostbyname_internal (name);
+		if (entry->h)
+			write_hostent (entry->h, pipes[1]);
+
+		/* Close the socket */
+		close (pipes[1]);
+
+		/* Exit (we don't want atexit called, so do _exit instead) */
+		_exit (EXIT_SUCCESS);
+
+	default:
+		/* Parent */
+		close (pipes[1]);
+
+		entry->fd = pipes[0];
+		soup_dns_unlock ();
+		return entry;
+	}
 }
 
-static gboolean
-soup_gethostby_cb (GIOChannel *iochannel,
-		   GIOCondition condition,
-		   gpointer data)
+/**
+ * soup_dns_entry_from_addr:
+ * @addr: pointer to address data (eg, an #in_addr_t)
+ * @family: address family of @addr
+ *
+ * Begins asynchronous resolution of @addr. The caller should
+ * periodically call soup_entry_check_lookup() to see if it is done,
+ * and call soup_entry_get_hostent() when soup_entry_check_lookup()
+ * returns %TRUE.
+ *
+ * Currently, this routine forks and does the lookup, which can cause
+ * some problems. In general, this will work ok for most programs most
+ * of the time. It will be slow or even fail when using operating
+ * systems that copy the entire process when forking.
+ *
+ * Returns: a #SoupDNSEntry, which will be freed when you call
+ * soup_entry_get_hostent() or soup_entry_cancel_lookup().
+ **/
+SoupDNSEntry *
+soup_dns_entry_from_addr (gconstpointer addr, int family)
 {
-	SoupDNSEntry *entry = data;
+	SoupDNSEntry *entry;
+	int pipes[2];
+	char *name;
+
+	name = soup_dns_ntop (addr, family);
+	g_return_val_if_fail (name != NULL, NULL);
+
+	soup_dns_lock ();
+
+	/* Try the cache */
+	entry = soup_dns_lookup_entry (name);
+	if (entry) {
+		g_free (name);
+		soup_dns_unlock ();
+		return entry;
+	}
+
+	entry = soup_dns_entry_new (name);
+
+	/* Check to see if we are doing synchronous DNS lookups */
+	if (getenv ("SOUP_SYNC_DNS")) {
+		entry->h = soup_gethostbyaddr_internal (addr, family);
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+	}
+
+	if (pipe (pipes) != 0) {
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+	}
+
+	entry->lookup_pid = fork ();
+	switch (entry->lookup_pid) {
+	case -1:
+		close (pipes[0]);
+		close (pipes[1]);
+
+		g_warning ("Fork error: %s (%d)\n", g_strerror(errno), errno);
+		entry->resolved = TRUE;
+		soup_dns_unlock ();
+		return entry;
+
+	case 0:
+		/* Child */
+		close (pipes[0]);
+
+		entry->h = soup_gethostbyaddr_internal (addr, family);
+		if (entry->h)
+			write_hostent (entry->h, pipes[1]);
+
+		/* Close the socket */
+		close (pipes[1]);
+
+		/* Exit (we don't want atexit called, so do _exit instead) */
+		_exit (EXIT_SUCCESS);
+
+	default:
+		/* Parent */
+		close (pipes[1]);
+
+		entry->fd = pipes[0];
+		soup_dns_unlock ();
+		return entry;
+	}
+}
+
+static void
+check_hostent (SoupDNSEntry *entry, gboolean block)
+{
 	char buf[256], *namelenp, *name, *typep, *addrlenp, *addr;
 	int nread;
+	fd_set readfds;
+	struct timeval tv = { 0, 0 };
 
-	if (condition & G_IO_IN)
-		nread = read (entry->fd, buf, sizeof (buf));
-	else
-		nread = 0;
+	soup_dns_lock ();
 
+	if (entry->resolved || !entry->fd) {
+		soup_dns_unlock ();
+		return;
+	}
+
+	FD_ZERO (&readfds);
+	FD_SET (entry->fd, &readfds);
+	if (select (entry->fd + 1, &readfds, NULL, NULL, &tv) != 0) {
+		soup_dns_unlock ();
+		return;
+	}
+
+	nread = read (entry->fd, buf, sizeof (buf));
 	close (entry->fd);
 	entry->fd = -1;
 	kill (entry->lookup_pid, SIGKILL);
 	waitpid (entry->lookup_pid, NULL, 0);
 	entry->lookup_pid = 0;
+	entry->resolved = TRUE;
 
-	if (nread < 1)
-		return soup_gothost (entry);
+	if (nread < 1) {
+		soup_dns_unlock ();
+		return;
+	}
 
 	namelenp = buf;
 	name = namelenp + 1;
@@ -460,221 +644,30 @@ soup_gethostby_cb (GIOChannel *iochannel,
 
 	if (addrlenp < buf + nread && (addr + *addrlenp) == buf + nread)
 		entry->h = new_hostent (name, *typep, *addrlenp, addr);
-	return soup_gothost (entry);
+	soup_dns_unlock ();
 }
 
-static SoupDNSLookupInfo *
-lookup_info (SoupDNSEntry *entry, SoupGetHostByFn func, gpointer data)
+gboolean
+soup_dns_entry_check_lookup (SoupDNSEntry *entry)
 {
-	SoupDNSLookupInfo *info;
-
-	info = g_new0 (SoupDNSLookupInfo, 1);
-	info->func = func;
-	info->data = data;
-	info->entry = entry;
-	entry->lookups = g_slist_prepend (entry->lookups, info);
-	if (!entry->source_id)
-		entry->source_id = g_idle_add (soup_gothost, entry);
-
-	return info;
+	check_hostent (entry, FALSE);
+	return entry->resolved;
 }
 
-/**
- * soup_gethostbyname:
- * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
- *   (eg, 141.213.8.59).
- * @func: Callback function.
- * @data: User data passed when @func is called.
- *
- * Resolves a DNS name asynchronously. @func will be called with the
- * result (or an error).
- *
- * Currently this routine forks and does the lookup, which can cause
- * some problems. In general, this will work ok for most programs most
- * of the time. It will be slow or even fail when using operating
- * systems that copy the entire process when forking.
- *
- * If you need to lookup a lot of addresses, you should call
- * g_main_iteration(%FALSE) between calls. This will help prevent an
- * explosion of processes.
- *
- * Returns: ID of the lookup which can be used with
- * soup_gethostbyname_cancel() to cancel it.
- **/
-SoupDNSHandle
-soup_gethostbyname (const char *name, SoupGetHostByFn func, gpointer data)
+struct hostent *
+soup_dns_entry_get_hostent (SoupDNSEntry *entry)
 {
-	SoupDNSEntry *entry;
-	int pipes[2];
-	GIOChannel *chan;
+	struct hostent *h;
 
-	/* Try the cache */
-	entry = lookup_entry (name);
-	if (entry) {
-		if (entry->expires < time (0) && !entry->source_id)
-			free_entry (entry);
-		else
-			return lookup_info (entry, func, data);
-	}
+	check_hostent (entry, TRUE);
+	h = copy_hostent (entry->h);
+	soup_dns_entry_unref (entry);
 
-	entry = g_new0 (SoupDNSEntry, 1);
-	entry->name = g_strdup (name);
-	cache_entry (entry);
-
-	/* Try to read the name as if it were dotted decimal */
-	entry->h = new_hostent_from_phys (name);
-	if (entry->h)
-		return lookup_info (entry, func, data);
-
-	/* Check to see if we are doing synchronous DNS lookups */
-	if (getenv ("SOUP_SYNC_DNS")) {
-		entry->h = soup_gethostbyname_internal (name);
-		return lookup_info (entry, func, data);
-	}
-
-	/* Ok, we need to start a new lookup */
-
-	if (pipe (pipes) == -1)
-		return lookup_info (entry, func, data);
-
-	entry->lookup_pid = fork ();
-	switch (entry->lookup_pid) {
-	case -1:
-		g_warning ("Fork error: %s (%d)\n", g_strerror (errno), errno);
-		close (pipes[0]);
-		close (pipes[1]);
-
-		return lookup_info (entry, func, data);
-
-	case 0:
-		/* Child */
-		close (pipes[0]);
-
-		entry->h = soup_gethostbyname_internal (name);
-		if (entry->h)
-			write_hostent (entry->h, pipes[1]);
-
-		/* Close the socket */
-		close (pipes[1]);
-
-		/* Exit (we don't want atexit called, so do _exit instead) */
-		_exit (EXIT_SUCCESS);
-
-	default:
-		/* Parent */
-		close (pipes[1]);
-
-		entry->fd = pipes[0];
-
-		/* Set up a watch to read from the pipe */
-		chan = g_io_channel_unix_new (pipes[0]);
-		entry->source_id =
-			g_io_add_watch (
-				chan,
-				G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-				soup_gethostby_cb,
-				entry);
-		g_io_channel_unref (chan);
-
-		return lookup_info (entry, func, data);
-	}
-}
-
-SoupDNSHandle
-soup_gethostbyaddr (gpointer addr, int family,
-		    SoupGetHostByFn func, gpointer data)
-{
-	SoupDNSEntry *entry;
-	int pipes[2];
-	GIOChannel *chan;
-	char *name;
-
-	name = soup_ntop (addr, family);
-	g_return_val_if_fail (name != NULL, NULL);
-
-	/* Try the cache */
-	entry = lookup_entry (name);
-	if (entry) {
-		if (entry->expires > time (0))
-			free_entry (entry);
-		else {
-			g_free (name);
-			return lookup_info (entry, func, data);
-		}
-	}
-
-	entry = g_new0 (SoupDNSEntry, 1);
-	entry->name = name;
-	cache_entry (entry);
-
-	/* Check to see if we are doing synchronous DNS lookups */
-	if (getenv ("SOUP_SYNC_DNS")) {
-		entry->h = soup_gethostbyaddr_internal (addr, family);
-		return lookup_info (entry, func, data);
-	}
-
-	if (pipe (pipes) != 0)
-		return lookup_info (entry, func, data);
-
-	entry->lookup_pid = fork ();
-	switch (entry->lookup_pid) {
-	case -1:
-		close (pipes[0]);
-		close (pipes[1]);
-
-		g_warning ("Fork error: %s (%d)\n", g_strerror(errno), errno);
-		return lookup_info (entry, func, data);
-
-	case 0:
-		/* Child */
-		close (pipes[0]);
-
-		entry->h = soup_gethostbyaddr_internal (addr, family);
-		if (entry->h)
-			write_hostent (entry->h, pipes[1]);
-
-		/* Close the socket */
-		close (pipes[1]);
-
-		/* Exit (we don't want atexit called, so do _exit instead) */
-		_exit (EXIT_SUCCESS);
-
-	default:
-		/* Parent */
-		close (pipes[1]);
-
-		entry->fd = pipes[0];
-
-		/* Set up a watch to read from the pipe */
-		chan = g_io_channel_unix_new (pipes[0]);
-		entry->source_id =
-			g_io_add_watch (
-				chan,
-				G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-				soup_gethostby_cb,
-				entry);
-		g_io_channel_unref (chan);
-
-		return lookup_info (entry, func, data);
-	}
+	return h;
 }
 
 void
-soup_gethostby_cancel (SoupDNSHandle id)
+soup_dns_entry_cancel_lookup (SoupDNSEntry *entry)
 {
-	SoupDNSLookupInfo *info = id;
-	SoupDNSEntry *entry = info->entry;
-
-	entry->lookups = g_slist_remove (entry->lookups, info);
-	g_free (info);
-
-	if (!entry->lookups && entry->source_id) {
-		g_source_remove (entry->source_id);
-		if (entry->lookup_pid) {
-			close (entry->fd);
-			kill (entry->lookup_pid, SIGKILL);
-			waitpid (entry->lookup_pid, NULL, 0);
-			free_entry (entry);
-		}
-	}
+	soup_dns_entry_unref (entry);
 }

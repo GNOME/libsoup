@@ -3,6 +3,7 @@
 #endif
 
 #include <ctype.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +14,6 @@
 
 static void rev_read (SoupSocket *sock, GString *buf);
 static void rev_write (SoupSocket *sock, GString *buf);
-
-gboolean nonblocking = TRUE;
 
 static void
 reverse (GString *buf)
@@ -37,8 +36,6 @@ reverse (GString *buf)
 static void
 rev_done (SoupSocket *sock, GString *buf)
 {
-	g_signal_handlers_disconnect_by_func (sock, rev_read, buf);
-	g_signal_handlers_disconnect_by_func (sock, rev_write, buf);
 	g_object_unref (sock);
 	g_string_free (buf, TRUE);
 }
@@ -61,7 +58,7 @@ rev_write (SoupSocket *sock, GString *buf)
 		break;
 
 	case SOUP_SOCKET_WOULD_BLOCK:
-		g_assert (nonblocking == TRUE);
+		g_error ("Can't happen");
 		break;
 
 	default:
@@ -96,7 +93,7 @@ rev_read (SoupSocket *sock, GString *buf)
 		break;
 
 	case SOUP_SOCKET_WOULD_BLOCK:
-		g_assert (nonblocking == TRUE);
+		g_error ("Can't happen");
 		break;
 
 	default:
@@ -109,23 +106,26 @@ rev_read (SoupSocket *sock, GString *buf)
 	}
 }
 
+static void *
+start_thread (void *client)
+{
+	rev_read (client, g_string_new (NULL));
+
+	return NULL;
+}
+
 static void
 new_connection (SoupSocket *listener, SoupSocket *client, gpointer user_data)
 {
-	GString *buf;
+	pthread_t pth;
 
 	g_object_ref (client);
-	buf = g_string_new (NULL);
+	soup_socket_set_flags (client, SOUP_SOCKET_FLAG_NONBLOCKING, 0);
 
-	if (nonblocking) {
-		g_signal_connect (client, "readable",
-				  G_CALLBACK (rev_read), buf);
-		g_signal_connect (client, "writable",
-				  G_CALLBACK (rev_write), buf);
-	} else
-		soup_socket_set_flag (client, SOUP_SOCKET_FLAG_NONBLOCKING, FALSE);
-
-	rev_read (client, buf);
+	if (pthread_create (&pth, NULL, start_thread, client) != 0) {
+		g_warning ("Could not start thread");
+		g_object_unref (client);
+	}
 }
 
 int
@@ -140,19 +140,16 @@ main (int argc, char **argv)
 
 	g_type_init ();
 
-	while ((opt = getopt (argc, argv, "6bp:")) != -1) {
+	while ((opt = getopt (argc, argv, "6p:")) != -1) {
 		switch (opt) {
 		case '6':
 			family = SOUP_ADDRESS_FAMILY_IPV6;
-			break;
-		case 'b':
-			nonblocking = FALSE;
 			break;
 		case 'p':
 			port = atoi (optarg);
 			break;
 		default:
-			fprintf (stderr, "Usage: %s [-6] [-b] [-p port]\n",
+			fprintf (stderr, "Usage: %s [-6] [-p port]\n",
 				 argv[0]);
 			exit (1);
 		}

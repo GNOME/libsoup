@@ -160,7 +160,6 @@ static const char *auths[] = {
 static int
 identify_auth (SoupMessage *msg)
 {
-	SoupAuth *auth;
 	const char *header;
 	int num;
 
@@ -222,7 +221,7 @@ main (int argc, char **argv)
 	int i;
 
 	g_type_init ();
-	session = soup_session_new ();
+	session = soup_session_new_default ();
 
 	for (i = 0; i < ntests; i++) {
 		printf ("Test %d: %s\n", i + 1, tests[i].explanation);

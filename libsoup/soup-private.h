@@ -14,10 +14,6 @@
 #include <libsoup/soup-auth.h>
 #include <libsoup/soup-misc.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define RESPONSE_BLOCK_SIZE 8192
 
 extern gboolean    soup_initialized;
@@ -31,30 +27,11 @@ extern gpointer        soup_auth_fn_user_data;
 #define soup_sockaddr_max sockaddr_in
 #endif
 
-/* from soup-context.c */
-
-SoupAuth   *soup_context_lookup_auth       (SoupContext    *ctx,
-					    SoupMessage    *msg);
-
-gboolean    soup_context_update_auth       (SoupContext    *ctx,
-					    SoupMessage    *msg);
-
-gboolean    soup_context_authenticate_auth (SoupContext    *ctx,
-					    SoupAuth       *auth);
-
-void        soup_context_invalidate_auth   (SoupContext    *ctx,
-					    SoupAuth       *auth);
-					  
 /* from soup-misc.c */
 
 guint     soup_str_case_hash   (gconstpointer  key);
 gboolean  soup_str_case_equal  (gconstpointer  v1,
 				gconstpointer  v2);
-
-gint      soup_substring_index (gchar         *str,
-				gint           len,
-				gchar         *substr);
-
 
 #define SOUP_MAKE_TYPE(l,t,ci,i,parent) \
 GType l##_get_type(void)\
@@ -79,9 +56,5 @@ GType l##_get_type(void)\
 	}						\
 	return type;					\
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /*SOUP_PRIVATE_H*/

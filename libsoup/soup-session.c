@@ -106,7 +106,7 @@ class_init (GObjectClass *object_class)
 SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
 
 SoupSession *
-soup_session_new (void)
+soup_session_new_default (void)
 {
 	return g_object_new (SOUP_TYPE_SESSION, NULL);
 }
@@ -116,7 +116,7 @@ soup_session_new_with_proxy (const SoupUri *proxy_uri)
 {
 	SoupSession *session;
 
-	session = soup_session_new ();
+	session = soup_session_new_default ();
 	if (proxy_uri)
 		session->priv->proxy_uri = soup_uri_copy (proxy_uri);
 
@@ -125,7 +125,7 @@ soup_session_new_with_proxy (const SoupUri *proxy_uri)
 
 SoupSession *
 soup_session_new_full (const SoupUri *proxy_uri,
-		       guint max_conns, guint max_per_host)
+		       guint max_conns, guint max_conns_per_host)
 {
 	SoupSession *session;
 
@@ -171,10 +171,7 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 		return host;
 
 	host = g_new0 (SoupSessionHost, 1);
-	host->root_uri = g_new0 (SoupUri, 1);
-	host->root_uri->protocol = source->protocol;
-	host->root_uri->host = g_strdup (source->host);
-	host->root_uri->port = source->port;
+	host->root_uri = soup_uri_copy_root (source);
 
 	g_hash_table_insert (session->priv->hosts, host->root_uri, host);
 	return host;
@@ -426,6 +423,8 @@ final_finished (SoupMessage *req, gpointer session)
 		g_signal_handlers_disconnect_by_func (req, request_finished, session);
 		g_signal_handlers_disconnect_by_func (req, final_finished, session);
 		g_object_unref (req);
+
+		run_queue (session, FALSE);
 	}
 }
 
@@ -620,17 +619,15 @@ run_queue (SoupSession *session, gboolean try_pruning)
 		if (session->priv->proxy_uri &&
 		    host->root_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 			conn = soup_connection_new_tunnel (
-				session->priv->proxy_uri, host->root_uri,
-				got_connection, session);
+				session->priv->proxy_uri, host->root_uri);
 		} else if (session->priv->proxy_uri) {
 			conn = soup_connection_new_proxy (
-				session->priv->proxy_uri,
-				got_connection, session);
+				session->priv->proxy_uri);
 		} else {
-			conn = soup_connection_new (host->root_uri,
-						    got_connection, session);
+			conn = soup_connection_new (host->root_uri);
 		}
 
+		soup_connection_connect_async (conn, got_connection, session);
 		g_signal_connect (conn, "disconnected",
 				  G_CALLBACK (connection_closed), session);
 		g_hash_table_insert (session->priv->conns, conn, host);

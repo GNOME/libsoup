@@ -39,6 +39,7 @@ char     *soup_uri_to_string         (const SoupUri *uri,
 				      gboolean       just_path);
 
 SoupUri  *soup_uri_copy              (const SoupUri *uri);
+SoupUri  *soup_uri_copy_root         (const SoupUri *uri);
 
 gboolean  soup_uri_equal             (const SoupUri *uri1, 
 				      const SoupUri *uri2);

@@ -46,7 +46,7 @@ struct SoupAddressPrivate {
 	char *name, *physical;
 	guint port;
 
-	SoupDNSHandle lookup;
+	SoupDNSEntry *lookup;
 	guint idle_id;
 };
 
@@ -119,7 +119,7 @@ finalize (GObject *object)
 		g_free (addr->priv->physical);
 
 	if (addr->priv->lookup)
-		soup_gethostby_cancel (addr->priv->lookup);
+		soup_dns_entry_cancel_lookup (addr->priv->lookup);
 	if (addr->priv->idle_id)
 		g_source_remove (addr->priv->idle_id);
 
@@ -158,10 +158,9 @@ SOUP_MAKE_TYPE (soup_address, SoupAddress, class_init, init, PARENT_TYPE)
  * @port: a port number
  *
  * Creates a #SoupAddress from @name and @port. The #SoupAddress's IP
- * address will not be available right away; the caller can listen for
- * a #dns_result signal to know when @name has been resolved.
- *
- * The DNS lookup can be cancelled by destroying the address object.
+ * address may not be available right away; the caller can call
+ * soup_address_resolve_async() or soup_address_resolve_sync() to
+ * force a DNS resolution.
  *
  * Return value: a #SoupAddress
  **/
@@ -176,9 +175,6 @@ soup_address_new (const char *name, guint port)
 	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
 	addr->priv->name = g_strdup (name);
 	addr->priv->port = port;
-
-	/* Start a lookup */
-	soup_address_resolve (addr, NULL, NULL);
 
 	return addr;
 }
@@ -288,8 +284,9 @@ soup_address_get_physical (SoupAddress *addr)
 		return NULL;
 
 	if (!addr->priv->physical) {
-		addr->priv->physical = soup_ntop (SOUP_ADDRESS_DATA (addr),
-						  SOUP_ADDRESS_FAMILY (addr));
+		addr->priv->physical =
+			soup_dns_ntop (SOUP_ADDRESS_DATA (addr),
+				       SOUP_ADDRESS_FAMILY (addr));
 	}
 
 	return addr->priv->physical;
@@ -310,72 +307,70 @@ soup_address_get_port (SoupAddress *addr)
 }
 
 
-
-static void
-got_addr (SoupDNSHandle handle, guint status, struct hostent *h, gpointer data)
+static guint
+update_address_from_entry (SoupAddress *addr, SoupDNSEntry *entry)
 {
-	SoupAddress *addr = data;
+	struct hostent *h;
 
-	addr->priv->lookup = NULL;
+	h = soup_dns_entry_get_hostent (addr->priv->lookup);
 
-	if (status == SOUP_STATUS_OK) {
-		if (!SOUP_ADDRESS_FAMILY_IS_VALID (h->h_addrtype)) {
-			status = SOUP_STATUS_CANT_RESOLVE;
-			goto done;
-		}
-		if (SOUP_ADDRESS_FAMILY_DATA_SIZE (h->h_addrtype) != h->h_length) {
-			status = SOUP_STATUS_MALFORMED;
-			goto done;
-		}
+	if (!addr->priv->name)
+		addr->priv->name = g_strdup (h->h_name);
 
+	if (!addr->priv->sockaddr &&
+	    SOUP_ADDRESS_FAMILY_IS_VALID (h->h_addrtype) &&
+	    SOUP_ADDRESS_FAMILY_DATA_SIZE (h->h_addrtype) == h->h_length) {
 		addr->priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (h->h_addrtype));
 		SOUP_ADDRESS_FAMILY (addr) = h->h_addrtype;
 		SOUP_ADDRESS_PORT (addr) = htons (addr->priv->port);
 		memcpy (SOUP_ADDRESS_DATA (addr), h->h_addr, h->h_length);
 	}
 
- done:
-	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
-}
-
-static void
-got_name (SoupDNSHandle handle, guint status, struct hostent *h, gpointer data)
-{
-	SoupAddress *addr = data;
-
-	addr->priv->lookup = NULL;
-
-	if (status == SOUP_STATUS_OK)
-		addr->priv->name = g_strdup (h->h_name);
-
-	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
+	if (addr->priv->name && addr->priv->sockaddr)
+		return SOUP_STATUS_OK;
+	else
+		return SOUP_STATUS_CANT_RESOLVE;
 }
 
 static gboolean
-idle_dns_result (gpointer user_data)
+idle_check_lookup (gpointer user_data)
 {
 	SoupAddress *addr = user_data;
+	guint status;
 
+	if (addr->priv->name && addr->priv->sockaddr) {
+		addr->priv->idle_id = 0;
+		g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_STATUS_OK);
+		return FALSE;
+	}
+
+	if (!soup_dns_entry_check_lookup (addr->priv->lookup))
+		return TRUE;
+
+	status = update_address_from_entry (addr, addr->priv->lookup);
+	addr->priv->lookup = NULL;
 	addr->priv->idle_id = 0;
-	g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_STATUS_OK);
+
+	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
 	return FALSE;
 }
 
 /**
- * soup_address_resolve:
+ * soup_address_resolve_async:
  * @addr: a #SoupAddress
  * @callback: callback to call with the result
  * @user_data: data for @callback
  *
- * Asynchronously resolves the missing half of @addr. (It's IP address
- * if it was created with soup_address_new(), or it's hostname if it
+ * Asynchronously resolves the missing half of @addr. (Its IP address
+ * if it was created with soup_address_new(), or its hostname if it
  * was created with soup_address_new_from_sockaddr() or
  * soup_address_new_any().) @callback will be called when the
  * resolution finishes (successfully or not).
  **/
 void
-soup_address_resolve (SoupAddress *addr,
-		      SoupAddressCallback callback, gpointer user_data)
+soup_address_resolve_async (SoupAddress *addr,
+			    SoupAddressCallback callback,
+			    gpointer user_data)
 {
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 
@@ -384,22 +379,43 @@ soup_address_resolve (SoupAddress *addr,
 					  G_CALLBACK (callback), user_data);
 	}
 
-	if (addr->priv->lookup)
+	if (addr->priv->idle_id)
 		return;
 
-	if (addr->priv->name && addr->priv->sockaddr) {
-		addr->priv->idle_id = g_idle_add (idle_dns_result, addr);
-		return;
+	if (!addr->priv->sockaddr) {
+		addr->priv->lookup =
+			soup_dns_entry_from_name (addr->priv->name);
+	} else if (!addr->priv->name) {
+		addr->priv->lookup =
+			soup_dns_entry_from_addr (SOUP_ADDRESS_DATA (addr),
+						  SOUP_ADDRESS_FAMILY (addr));
 	}
 
-	if (addr->priv->name) {
-		addr->priv->lookup =
-			soup_gethostbyname (addr->priv->name,
-					    got_addr, addr);
-	} else {
-		addr->priv->lookup =
-			soup_gethostbyaddr (SOUP_ADDRESS_DATA (addr),
-					    SOUP_ADDRESS_FAMILY (addr),
-					    got_name, addr);
+	addr->priv->idle_id = g_idle_add (idle_check_lookup, addr);
+}
+
+/**
+ * soup_address_resolve_sync:
+ * @addr: a #SoupAddress
+ *
+ * Synchronously resolves the missing half of @addr, as with
+ * soup_address_resolve_async().
+ *
+ * Return value: %SOUP_STATUS_OK or %SOUP_ERROR_CANT_RESOLVE
+ **/
+guint
+soup_address_resolve_sync (SoupAddress *addr)
+{
+	SoupDNSEntry *entry;
+
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
+
+	if (addr->priv->name)
+		entry = soup_dns_entry_from_name (addr->priv->name);
+	else {
+		entry = soup_dns_entry_from_addr (SOUP_ADDRESS_DATA (addr),
+						  SOUP_ADDRESS_FAMILY (addr));
 	}
+
+	return update_address_from_entry (addr, entry);
 }

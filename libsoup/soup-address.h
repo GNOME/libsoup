@@ -56,9 +56,10 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
 						  gpointer             data);
-void             soup_address_resolve            (SoupAddress         *addr,
+void             soup_address_resolve_async      (SoupAddress         *addr,
 						  SoupAddressCallback  cb,
 						  gpointer             data);
+guint            soup_address_resolve_sync       (SoupAddress         *addr);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);
 struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,

@@ -30,8 +30,7 @@
 
 struct SoupConnectionPrivate {
 	SoupSocket  *socket;
-	SoupUri     *dest_uri;
-	gboolean     is_proxy;
+	SoupUri     *proxy_uri, *dest_uri;
 	time_t       last_used;
 
 	SoupMessage *cur_req;
@@ -63,6 +62,8 @@ finalize (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
 
+	if (conn->priv->proxy_uri)
+		soup_uri_free (conn->priv->proxy_uri);
 	if (conn->priv->dest_uri)
 		soup_uri_free (conn->priv->dest_uri);
 
@@ -115,157 +116,214 @@ class_init (GObjectClass *object_class)
 SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
 
 
-static void
-socket_disconnected (SoupSocket *sock, gpointer conn)
-{
-	soup_connection_disconnect (conn);
-}
-
-static SoupConnection *
-connection_new (const SoupUri *uri, gboolean is_proxy,
-		SoupSocketCallback connect_callback,
-		SoupConnectionCallback user_callback,
-		gpointer user_data)
-{
-	SoupConnection *conn;
-
-	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
-	conn->priv->is_proxy = is_proxy;
-
-	soup_signal_connect_once (conn, "connect_result",
-				  G_CALLBACK (user_callback), user_data);
-
-	conn->priv->socket = soup_socket_client_new (uri->host, uri->port,
-						     uri->protocol == SOUP_PROTOCOL_HTTPS,
-						     connect_callback, conn);
-	g_signal_connect (conn->priv->socket, "disconnected",
-			  G_CALLBACK (socket_disconnected), conn);
-	return conn;
-}
-
-static void
-socket_connected (SoupSocket *sock, guint status, gpointer conn)
-{
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
-}
-
 /**
  * soup_connection_new:
  * @uri: remote machine to connect to
- * @callback: callback to call after connecting
- * @user_data: data for @callback
  *
- * Creates a connection to @uri. @callback will be called when the
- * connection completes (or fails).
+ * Creates a connection to @uri. You must call
+ * soup_connection_connect_async() or soup_connection_connect_sync()
+ * to connect it after creating it.
  *
  * Return value: the new connection (not yet ready for use).
  **/
 SoupConnection *
-soup_connection_new (const SoupUri *uri,
-		     SoupConnectionCallback callback, gpointer user_data)
+soup_connection_new (const SoupUri *uri)
 {
-	return connection_new (uri, FALSE, socket_connected,
-			       callback, user_data);
-}
+	SoupConnection *conn;
 
-static void
-proxy_socket_connected (SoupSocket *sock, guint status, gpointer conn)
-{
-	if (status == SOUP_STATUS_CANT_RESOLVE)
-		status = SOUP_STATUS_CANT_RESOLVE_PROXY;
-	else if (status == SOUP_STATUS_CANT_CONNECT)
-		status = SOUP_STATUS_CANT_CONNECT_PROXY;
+	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
+	conn->priv->dest_uri = soup_uri_copy_root (uri);
 
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+	return conn;
 }
 
 /**
  * soup_connection_new_proxy:
  * @proxy_uri: proxy to connect to
- * @callback: callback to call after connecting
- * @user_data: data for @callback
  *
- * Creates a connection to @proxy_uri. @callback will be called when
- * the connection completes (or fails).
+ * Creates a connection to @proxy_uri. As with soup_connection_new(),
+ * the returned object is not yet connected.
  *
  * Return value: the new connection (not yet ready for use).
  **/
 SoupConnection *
-soup_connection_new_proxy (const SoupUri *proxy_uri,
-			   SoupConnectionCallback callback,
-			   gpointer user_data)
+soup_connection_new_proxy (const SoupUri *proxy_uri)
 {
-	return connection_new (proxy_uri, TRUE, proxy_socket_connected,
-			       callback, user_data);
-}
+	SoupConnection *conn;
 
-static void
-tunnel_connected (SoupMessage *msg, gpointer user_data)
-{
-	SoupConnection *conn = user_data;
+	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
+	conn->priv->proxy_uri = soup_uri_copy_root (proxy_uri);
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
-		soup_socket_start_ssl (conn->priv->socket);
-
-	proxy_socket_connected (NULL, msg->status_code, conn);
-	g_object_unref (msg);
-}
-
-static void
-tunnel_failed (SoupMessage *msg, gpointer conn)
-{
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       SOUP_STATUS_CANT_CONNECT);
-	g_object_unref (msg);
-}
-
-static void
-tunnel_socket_connected (SoupSocket *sock, guint status, gpointer user_data)
-{
-	SoupConnection *conn = user_data;
-	SoupMessage *connect_msg;
-
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		socket_connected (sock, status, conn);
-		return;
-	}
-
-	connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
-						 conn->priv->dest_uri);
-	g_signal_connect (connect_msg, "read_body",
-			  G_CALLBACK (tunnel_connected), conn);
-	g_signal_connect (connect_msg, "write_error",
-			  G_CALLBACK (tunnel_failed), conn);
-	g_signal_connect (connect_msg, "read_error",
-			  G_CALLBACK (tunnel_failed), conn);
-
-	soup_connection_send_request (conn, connect_msg);
+	return conn;
 }
 
 /**
  * soup_connection_new_tunnel:
  * @proxy_uri: proxy to connect to
  * @dest_uri: remote machine to ask the proxy to connect to
- * @callback: callback to call after connecting
- * @user_data: data for @callback
  *
- * Creates a connection to @uri via @proxy_uri. @callback will be
- * called when the connection completes (or fails).
+ * Creates a connection to @uri via @proxy_uri. As with
+ * soup_connection_new(), the returned object is not yet connected.
  *
  * Return value: the new connection (not yet ready for use).
  **/
 SoupConnection *
-soup_connection_new_tunnel (const SoupUri *proxy_uri, const SoupUri *dest_uri,
-			    SoupConnectionCallback callback,
-			    gpointer user_data)
+soup_connection_new_tunnel (const SoupUri *proxy_uri, const SoupUri *dest_uri)
 {
 	SoupConnection *conn;
 
-	conn = connection_new (proxy_uri, TRUE, tunnel_socket_connected,
-			       callback, user_data);
-	conn->priv->dest_uri = soup_uri_copy (dest_uri);
+	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
+	conn->priv->dest_uri = soup_uri_copy_root (dest_uri);
+	conn->priv->proxy_uri = soup_uri_copy_root (proxy_uri);
+
 	return conn;
 }
+
+
+static void
+socket_disconnected (SoupSocket *sock, gpointer conn)
+{
+	soup_connection_disconnect (conn);
+}
+
+static inline guint
+proxified_status (SoupConnection *conn, guint status)
+{
+	if (!conn->priv->proxy_uri)
+		return status;
+
+	if (status == SOUP_STATUS_CANT_RESOLVE)
+		return SOUP_STATUS_CANT_RESOLVE_PROXY;
+	else if (status == SOUP_STATUS_CANT_CONNECT)
+		return SOUP_STATUS_CANT_CONNECT_PROXY;
+	else
+		return status;
+}
+
+static void
+tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+		soup_socket_start_ssl (conn->priv->socket);
+
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
+		       proxified_status (conn, msg->status_code));
+	g_object_unref (msg);
+}
+
+static void
+socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		g_signal_emit (conn, signals[CONNECT_RESULT], 0,
+			       proxified_status (conn, status));
+		return;
+	}
+
+	/* See if we need to tunnel */
+	if (conn->priv->proxy_uri && conn->priv->dest_uri) {
+		SoupMessage *connect_msg;
+
+		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
+							 conn->priv->dest_uri);
+		g_signal_connect (connect_msg, "finished",
+				  G_CALLBACK (tunnel_connect_finished), conn);
+
+		soup_connection_send_request (conn, connect_msg);
+		return;
+	}
+
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
+}
+
+/**
+ * soup_connection_connect_async:
+ * @conn: the connection
+ * @ac: the async context to use
+ * @callback: callback to call when the connection succeeds or fails
+ * @user_data: data for @callback
+ *
+ * Asynchronously connects @conn.
+ **/
+void
+soup_connection_connect_async (SoupConnection *conn,
+			       SoupConnectionCallback callback,
+			       gpointer user_data)
+{
+	const SoupUri *uri;
+
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+	g_return_if_fail (conn->priv->socket == NULL);
+
+	if (callback) {
+		soup_signal_connect_once (conn, "connect_result",
+					  G_CALLBACK (callback), user_data);
+	}
+
+	if (conn->priv->proxy_uri)
+		uri = conn->priv->proxy_uri;
+	else
+		uri = conn->priv->dest_uri;
+
+	conn->priv->socket =
+		soup_socket_client_new_async (uri->host, uri->port,
+					      uri->protocol == SOUP_PROTOCOL_HTTPS,
+					      socket_connect_result, conn);
+	g_signal_connect (conn->priv->socket, "disconnected",
+			  G_CALLBACK (socket_disconnected), conn);
+}
+
+/**
+ * soup_connection_connect_sync:
+ * @conn: the connection
+ *
+ * Synchronously connects @conn.
+ *
+ * Return value: the soup status
+ **/
+guint
+soup_connection_connect_sync (SoupConnection *conn)
+{
+	const SoupUri *uri;
+	guint status;
+
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (conn->priv->socket == NULL, SOUP_STATUS_MALFORMED);
+
+	if (conn->priv->proxy_uri)
+		uri = conn->priv->proxy_uri;
+	else
+		uri = conn->priv->dest_uri;
+
+	conn->priv->socket =
+		soup_socket_client_new_sync (uri->host, uri->port,
+					     uri->protocol == SOUP_PROTOCOL_HTTPS,
+					     &status);
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (status) &&
+	    conn->priv->proxy_uri && conn->priv->dest_uri) {
+		SoupMessage *connect_msg;
+
+		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
+							 conn->priv->dest_uri);
+		soup_connection_send_request (conn, connect_msg);
+		status = connect_msg->status_code;
+		g_object_unref (connect_msg);
+	}
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		if (conn->priv->socket)
+			g_object_unref (conn->priv->socket);
+		conn->priv->socket = NULL;
+	}
+
+	return proxified_status (conn, status);
+}
+
 
 /**
  * soup_connection_disconnect:
@@ -295,20 +353,6 @@ soup_connection_is_connected (SoupConnection *conn)
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
 	return conn->priv->socket != NULL;
-}
-
-/**
- * soup_connection_get_socket:
- * @conn: a #SoupConnection.
- *
- * Return value: @conn's socket
- */
-SoupSocket *
-soup_connection_get_socket (SoupConnection *conn)
-{
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
-
-	return conn->priv->socket;
 }
 
 
@@ -388,5 +432,5 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 	g_signal_connect (req, "finished", G_CALLBACK (request_done), conn);
 
 	soup_message_send_request (req, conn->priv->socket,
-				   conn->priv->is_proxy);
+				   conn->priv->proxy_uri != NULL);
 }

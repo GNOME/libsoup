@@ -11,24 +11,19 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-typedef gpointer SoupDNSHandle;
-typedef void   (*SoupGetHostByFn)          (SoupDNSHandle       handle,
-					    guint               status,
-					    struct hostent     *h,
-					    gpointer            user_data);
+typedef struct SoupDNSEntry SoupDNSEntry;
 
-SoupDNSHandle    soup_gethostbyname        (const char         *name, 
-					    SoupGetHostByFn     func,
-					    gpointer            data);
+SoupDNSEntry   *soup_dns_entry_from_name     (const char     *name);
+SoupDNSEntry   *soup_dns_entry_from_addr     (gconstpointer   addr,
+					      int             family);
 
-SoupDNSHandle    soup_gethostbyaddr        (gpointer            addr,
-					    int                 family,
-					    SoupGetHostByFn     func,
-					    gpointer            data);
+gboolean        soup_dns_entry_check_lookup  (SoupDNSEntry   *entry);
+void            soup_dns_entry_cancel_lookup (SoupDNSEntry   *entry);
 
-void             soup_gethostby_cancel     (SoupDNSHandle       id);
+struct hostent *soup_dns_entry_get_hostent   (SoupDNSEntry   *entry);
+void            soup_dns_free_hostent        (struct hostent *h);
 
-char            *soup_ntop                 (gconstpointer       addr,
-					    int                 family);
+char           *soup_dns_ntop                (gconstpointer   addr,
+					      int             family);
 
 #endif /* SOUP_DNS_H */

@@ -36,33 +36,28 @@ typedef struct {
 GType soup_connection_get_type (void);
 
 
-typedef void  (*SoupConnectionCallback)        (SoupConnection *sock,
-						guint           status,
-						gpointer        data);
+typedef void  (*SoupConnectionCallback)        (SoupConnection   *sock,
+						guint             status,
+						gpointer          data);
 
-SoupConnection *soup_connection_new            (const SoupUri  *uri,
+SoupConnection *soup_connection_new            (const SoupUri    *uri);
+SoupConnection *soup_connection_new_proxy      (const SoupUri    *proxy_uri);
+SoupConnection *soup_connection_new_tunnel     (const SoupUri    *proxy_uri,
+						const SoupUri    *dest_uri);
+
+void            soup_connection_connect_async  (SoupConnection   *conn,
 						SoupConnectionCallback,
-						gpointer        data);
-SoupConnection *soup_connection_new_proxy      (const SoupUri  *proxy_uri,
-						SoupConnectionCallback,
-						gpointer        data);
-SoupConnection *soup_connection_new_tunnel     (const SoupUri  *proxy_uri,
-						const SoupUri  *dest_uri,
-						SoupConnectionCallback,
-						gpointer        data);
+						gpointer          user_data);
+guint           soup_connection_connect_sync   (SoupConnection   *conn);
 
-gboolean        soup_connection_is_proxy       (SoupConnection *conn);
+void            soup_connection_disconnect     (SoupConnection   *conn);
+gboolean        soup_connection_is_connected   (SoupConnection   *conn);
 
-void            soup_connection_disconnect     (SoupConnection *conn);
-gboolean        soup_connection_is_connected   (SoupConnection *conn);
+gboolean        soup_connection_is_new         (SoupConnection   *conn);
+gboolean        soup_connection_is_in_use      (SoupConnection   *conn);
+time_t          soup_connection_last_used      (SoupConnection   *conn);
 
-SoupSocket     *soup_connection_get_socket     (SoupConnection *conn);
-
-gboolean        soup_connection_is_new         (SoupConnection *conn);
-gboolean        soup_connection_is_in_use      (SoupConnection *conn);
-time_t          soup_connection_last_used      (SoupConnection *conn);
-
-void            soup_connection_send_request   (SoupConnection *conn,
-						SoupMessage    *req);
+void            soup_connection_send_request   (SoupConnection   *conn,
+						SoupMessage      *req);
 
 #endif /* SOUP_CONNECTION_H */

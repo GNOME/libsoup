@@ -66,19 +66,6 @@ soup_str_case_equal (gconstpointer v1,
 	return g_strcasecmp (string1, string2) == 0;
 }
 
-gint
-soup_substring_index (gchar *str, gint len, gchar *substr)
-{
-	int i, sublen = strlen (substr);
-
-	for (i = 0; i <= len - sublen; ++i)
-		if (str[i] == substr[0])
-			if (memcmp (&str[i], substr, sublen) == 0)
-				return i;
-
-	return -1;
-}
-
 /* Base64 utils (straight from camel-mime-utils.c) */
 #define d(x)
 
