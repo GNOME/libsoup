@@ -459,7 +459,7 @@ soup_context_cancel_connect (SoupConnectId tag)
  *
  * Return value: the %SoupUri for @ctx.
  */
-SoupUri *
+const SoupUri *
 soup_context_get_uri (SoupContext *ctx)
 {
 	g_return_val_if_fail (ctx != NULL, NULL);

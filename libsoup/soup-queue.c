@@ -205,7 +205,7 @@ soup_queue_error_cb (gboolean     body_started,
 }
 
 static void
-soup_encode_http_auth (SoupUri *uri, GString *header, gboolean proxy_auth)
+soup_encode_http_auth (const SoupUri *uri, GString *header, gboolean proxy_auth)
 {
 	if (!uri->authmech) {
 		gchar *authpass, *encoded;
@@ -282,7 +282,7 @@ soup_get_request_header (SoupMessage *req)
 	GString *header;
 	gchar *uri;
 	SoupContext *proxy;
-	SoupUri *suri;
+	const SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
 		FALSE, 
 		FALSE, 

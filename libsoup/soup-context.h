@@ -31,34 +31,34 @@ typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
 
 typedef gpointer SoupConnectId;
 
-SoupContext  *soup_context_get               (const gchar          *uri);
+SoupContext   *soup_context_get               (const gchar          *uri);
 
-SoupContext  *soup_context_from_uri          (SoupUri              *suri);
+SoupContext   *soup_context_from_uri          (SoupUri              *suri);
 
-void          soup_context_ref               (SoupContext          *ctx);
+void           soup_context_ref               (SoupContext          *ctx);
 
-void          soup_context_unref             (SoupContext          *ctx);
+void           soup_context_unref             (SoupContext          *ctx);
 
-SoupConnectId soup_context_get_connection    (SoupContext          *ctx,
-					      SoupConnectCallbackFn cb,
-					      gpointer              user_data);
+SoupConnectId  soup_context_get_connection    (SoupContext          *ctx,
+					       SoupConnectCallbackFn cb,
+					       gpointer              user_data);
 
-SoupUri      *soup_context_get_uri           (SoupContext          *ctx);
+const SoupUri *soup_context_get_uri           (SoupContext          *ctx);
 
-void          soup_context_cancel_connect    (SoupConnectId         tag);
+void           soup_context_cancel_connect    (SoupConnectId         tag);
 
 
-GIOChannel   *soup_connection_get_iochannel  (SoupConnection       *conn);
+GIOChannel    *soup_connection_get_iochannel  (SoupConnection       *conn);
 
-SoupContext  *soup_connection_get_context    (SoupConnection       *conn);
+SoupContext   *soup_connection_get_context    (SoupConnection       *conn);
 
-void          soup_connection_set_keep_alive (SoupConnection       *conn, 
-					      gboolean              keep_alive);
+void           soup_connection_set_keep_alive (SoupConnection       *conn, 
+					       gboolean              keepalive);
 
-gboolean      soup_connection_is_keep_alive  (SoupConnection       *conn);
+gboolean       soup_connection_is_keep_alive  (SoupConnection       *conn);
 
-gboolean      soup_connection_is_new         (SoupConnection       *conn);
+gboolean       soup_connection_is_new         (SoupConnection       *conn);
 
-void          soup_connection_release        (SoupConnection       *conn);
+void           soup_connection_release        (SoupConnection       *conn);
 
 #endif /*SOUP_CONTEXT_H*/

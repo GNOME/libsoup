@@ -1,3 +1,15 @@
+2001-07-05  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-socks.c (soup_connect_socks_proxy): Use const uris.
+
+	* src/soup-core/soup-queue.c (soup_encode_http_auth): Make uri const.
+
+	* src/soup-core/soup-context.[ch] (soup_context_get_uri): Return a
+	const SoupUri.
+	
+	* src/soup-core/soup-digest.c (soup_digest_md5_finalize): Make
+	compile.
+
 2001-07-02  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-digest.c: Formatting fixes.
