@@ -1,5 +1,16 @@
 2002-03-13  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-wsdl/wsdl-soap-stubs.c (emit_sync_stub): #if 0 out
+	generated code to use overridden URL in requests.
+
+	* src/libsoup/soup-env.c (copy_header): Make static.
+
+	* src/libsoup/soup-env.h: Fix macros.
+
+	* tests/stockquote2-client.c: Update for new client API.
+
+2002-03-13  Alex Graveley  <alex@ximian.com>
+
 	* tests/stockquote2-server.c: Update for new server API.
 
 	* tests/server-test.c (soup_server_init): Use auth_callback to
