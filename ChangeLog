@@ -1,3 +1,12 @@
+2001-08-20  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up version to 0.4.4
+	* src/soup-core/soup-private.h: Ditto.
+
+	* src/soup-core/soup-auth.c (compute_response, digest_auth_func):
+	Instead of just passing uri->path, pass
+	uri->path + '?' + uri->querystring if present.
+
 2001-08-17  Alex Graveley  <alex@ximian.com>
 
 	* build/libsoup.def: Update for DAV methods.

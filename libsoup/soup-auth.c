@@ -175,8 +175,13 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	guchar hex_a1[33], hex_a2[33], o[33];
 	guchar d[16];
 	MD5Context ctx;
+	char *url;
 
 	uri = soup_context_get_uri (auth->context);
+	if (uri->querystring)
+		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
+	else
+		url = g_strdup (uri->path);
 
 	/* compute A1 */
 	md5_init (&ctx);
@@ -205,7 +210,8 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	md5_init (&ctx);
 	md5_update (&ctx, msg->method, strlen (msg->method));
 	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, uri->path, strlen (uri->path));
+	md5_update (&ctx, url, strlen (url));
+	g_free (url);
 
 	if (digest->qop == QOP_AUTH_INT) {
 		/* FIXME: Actually implement. Ugh. */
@@ -262,6 +268,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	char *response;
 	char *qop = NULL;
 	char *nc;
+	char *url;
 	char *out;
 
 	g_return_val_if_fail (auth->context, NULL);
@@ -277,6 +284,10 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 		g_assert_not_reached ();
 
 	uri = soup_context_get_uri (auth->context);
+	if (uri->querystring)
+		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
+	else
+		url = g_strdup (uri->path);
 
 	nc = g_strdup_printf ("%.8x", digest->nc);
 
@@ -299,9 +310,10 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 		digest->qop ? qop : "",
 		digest->qop ? "," : "",
 
-		uri->path,
+		url,
 		response);
 
+	g_free (url);
 	g_free (nc);
 
 	digest->nc++;
