@@ -229,6 +229,9 @@ soup_soap_response_set_method_name (SoupSoapResponse *response, const char *meth
 	xmlNodeSetName (response->priv->xml_method, method_name);
 }
 
+/**
+ * soup_soap_parameter_get_name:
+ */
 const char *
 soup_soap_parameter_get_name (SoupSoapParameter *param)
 {
@@ -237,12 +240,96 @@ soup_soap_parameter_get_name (SoupSoapParameter *param)
 	return (const char *) param->name;
 }
 
+/**
+ * soup_soap_parameter_get_string_value:
+ */
 const char *
 soup_soap_parameter_get_string_value (SoupSoapParameter *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
 	return (const char *) xmlNodeGetContent (param);
+}
+
+/**
+ * soup_soap_parameter_get_first_child:
+ * @param: A %SoupSoapParameter.
+ *
+ * Gets the first child of the given %SoupSoapParameter. This is used
+ * for compound data types, which can contain several parameters
+ * themselves.
+ *
+ * Return value: the first child or NULL if there are no children.
+ */
+SoupSoapParameter *
+soup_soap_parameter_get_first_child (SoupSoapParameter *param)
+{
+	g_return_val_if_fail (param != NULL, NULL);
+
+	return param->xmlChildrenNode ? param->xmlChildrenNode : NULL;
+}
+
+/**
+ * soup_soap_parameter_get_first_child_by_name:
+ * @param: A %SoupSoapParameter.
+ * @name: The name of the child parameter to look for.
+ *
+ * Gets the first child of the given %SoupSoapParameter whose name
+ * is @name.
+ *
+ * Return value: the first child with the given name or NULL if there
+ * are no children.
+ */
+SoupSoapParameter *
+soup_soap_parameter_get_first_child_by_name (SoupSoapParameter *param, const char *name)
+{
+	SoupSoapParameter *tmp;
+
+	g_return_val_if_fail (param != NULL, NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+
+	for (tmp = soup_soap_parameter_get_first_child (param);
+	     tmp != NULL;
+	     tmp = soup_soap_parameter_get_next_child (tmp)) {
+		if (!strcmp (name, tmp->name))
+			return tmp;
+	}
+
+	return NULL;
+}
+
+/**
+ * soup_soap_parameter_get_next_child:
+ * @param: A %SoupSoapParameter.
+ */
+SoupSoapParameter *
+soup_soap_parameter_get_next_child (SoupSoapParameter *param)
+{
+	g_return_val_if_fail (param != NULL, NULL);
+
+	return param->next;
+}
+
+/**
+ * soup_soap_parameter_get_next_child_by_name:
+ */
+SoupSoapParameter *
+soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
+					    const char *name)
+{
+	SoupSoapParameter *tmp;
+
+	g_return_val_if_fail (param != NULL, NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+
+	for (tmp = soup_soap_parameter_get_next_child (param);
+	     tmp != NULL;
+	     tmp = soup_soap_parameter_get_next_child (tmp)) {
+		if (!strcmp (name, tmp->name))
+			return tmp;
+	}
+
+	return NULL;
 }
 
 /**
@@ -278,7 +365,7 @@ soup_soap_response_get_first_parameter (SoupSoapResponse *response)
 {
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
 
-	return response->priv->parameters ? g_list_first (response->priv->parameters) : NULL;
+	return response->priv->parameters ? response->priv->parameters->data : NULL;
 }
 
 /**

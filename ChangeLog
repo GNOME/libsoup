@@ -1,3 +1,14 @@
+2003-11-28  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.[ch]
+	(soup_soap_parameter_get_first_child,
+	soup_soap_parameter_get_first_child_by_name,
+	soup_soap_parameter_get_next_child,
+	soup_soap_parameter_get_next_child_by_name): new functions to
+	manage SoupSoapParameter's children.
+	(soup_soap_response_get_first_parameter): dont return a GList, but
+	a SoupSoapParameter contained in the GList.
+
 2003-11-26  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.[ch]

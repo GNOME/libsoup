@@ -45,6 +45,12 @@ typedef xmlNode SoupSoapParameter;
 
 const char        *soup_soap_parameter_get_name (SoupSoapParameter *param);
 const char        *soup_soap_parameter_get_string_value (SoupSoapParameter *param);
+SoupSoapParameter *soup_soap_parameter_get_first_child (SoupSoapParameter *param);
+SoupSoapParameter *soup_soap_parameter_get_first_child_by_name (SoupSoapParameter *param,
+								const char *name);
+SoupSoapParameter *soup_soap_parameter_get_next_child (SoupSoapParameter *param);
+SoupSoapParameter *soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
+							       const char *name);
 
 const GList       *soup_soap_response_get_parameters (SoupSoapResponse *response);
 SoupSoapParameter *soup_soap_response_get_first_parameter (SoupSoapResponse *response);
