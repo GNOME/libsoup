@@ -287,7 +287,8 @@ static GString *
 soup_get_request_header (SoupMessage *req)
 {
 	GString *header;
-	gchar *uri, *action;
+	gchar *uri;
+	gboolean action;
 	SoupContext *proxy;
 	const SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
