@@ -21,7 +21,8 @@ libsoup_la_SOURCES =	\
 	soup-message.c	\
 	soup-uri.c	\
 	soup-misc.c     \
-	soup-ssl.c
+	soup-ssl.c	\
+	soup-socks.c
 
 soupinclude_HEADERS =	\
 	soup.h		\
@@ -30,7 +31,8 @@ soupinclude_HEADERS =	\
 	soup-message.h	\
 	soup-uri.h	\
 	soup-misc.h     \
-	soup-ssl.h
+	soup-ssl.h	\
+	soup-socks.h
 
 EXTRA_DIST = soup-private.h
 

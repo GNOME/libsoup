@@ -15,7 +15,6 @@
 #include "soup-context.h"
 #include "soup-private.h"
 #include "soup-misc.h"
-#include "soup-uri.h"
 #include "soup-ssl.h"
 
 GHashTable *soup_servers;  /* KEY: hostname, VALUE: SoupServer */
@@ -157,8 +156,8 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK:
 		new_conn = g_new0 (SoupConnection, 1);
 		new_conn->server = ctx->server;
+		new_conn->context = ctx;
 		new_conn->socket = socket;
-		new_conn->protocol = ctx->protocol;
 		new_conn->port = ctx->uri->port;
 		new_conn->keep_alive = TRUE;
 		new_conn->in_use = TRUE;
@@ -331,12 +330,18 @@ soup_context_cancel_connect (SoupConnectId tag)
 	g_free (data);
 }
 
-gchar *
+SoupUri *
 soup_context_get_uri (SoupContext *ctx)
 {
 	g_return_val_if_fail (ctx != NULL, NULL);
+	return ctx->uri;
+}
 
-	return soup_uri_to_string (ctx->uri, TRUE);
+SoupProtocol
+soup_context_get_protocol (SoupContext *ctx)
+{
+	g_return_val_if_fail (ctx != NULL, 0);
+	return ctx->protocol;
 }
 
 void
@@ -365,7 +370,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 
 	retval = gnet_tcp_socket_get_iochannel (conn->socket);
 
-	if (conn->protocol == SOUP_PROTOCOL_SHTTP)
+	if (conn->context->protocol == SOUP_PROTOCOL_SHTTP)
 		return soup_get_ssl_iochannel (retval);
 
 	return retval;
@@ -383,4 +388,18 @@ soup_connection_is_keep_alive (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);
 	return conn->keep_alive;
+}
+
+SoupContext *
+soup_connection_get_context (SoupConnection *conn) 
+{
+	g_return_val_if_fail (conn != NULL, FALSE);
+	return conn->context;
+}
+
+gboolean 
+soup_connection_is_new (SoupConnection *conn)
+{
+	g_return_val_if_fail (conn != NULL, FALSE);
+	return conn->last_used_id == 0;
 }

@@ -18,6 +18,7 @@
 
 #include <gnet/gnet.h>
 
+#include "soup-context.h"
 #include "soup-queue.h"
 #include "soup-uri.h"
 
@@ -37,29 +38,21 @@ typedef struct {
 	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
 } SoupServer;
 
-typedef enum {
-	SOUP_PROTOCOL_HTTP,
-	SOUP_PROTOCOL_SHTTP,
-	SOUP_PROTOCOL_SMTP,
-	SOUP_PROTOCOL_SOCKS4,
-	SOUP_PROTOCOL_SOCKS5
-} SoupProtocol;
-
-struct _SoupConnection {
-	SoupServer   *server;
-	GTcpSocket   *socket;
-	guint         port;
-	gboolean      in_use;
-	guint         last_used_id;
-	gboolean      keep_alive;
-	SoupProtocol  protocol;
-};
-
 struct _SoupContext {
 	SoupProtocol  protocol;
 	SoupUri      *uri;
 	SoupServer   *server;
 	guint         refcnt;
+};
+
+struct _SoupConnection {
+	SoupServer   *server;
+	SoupContext  *context;
+	GTcpSocket   *socket;
+	guint         port;
+	gboolean      in_use;
+	guint         last_used_id;
+	gboolean      keep_alive;
 };
 
 struct _SoupMessagePrivate {

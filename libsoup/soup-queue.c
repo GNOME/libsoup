@@ -28,6 +28,7 @@
 #include "soup-context.h"
 #include "soup-misc.h"
 #include "soup-private.h"
+#include "soup-socks.h"
 
 GSList *soup_active_requests = NULL;
 
@@ -383,9 +384,10 @@ soup_get_request_header (SoupMessage *req)
 	GString *header = g_string_new ("");
 	gchar *uri;
 	SoupContext *proxy = soup_get_proxy ();
+	SoupUri *suri = soup_context_get_uri (req->context);
 
 	struct SoupUsedHeaders hdrs = {
-		req->context->uri->host, 
+		suri->host, 
 		"Soup/0.1", 
 		"text/xml\r\n\tcharset=\"utf-8\"", 
 		req->action,
@@ -401,12 +403,12 @@ soup_get_request_header (SoupMessage *req)
 				      &hdrs);
 
 	if (proxy)
-		uri = soup_uri_to_string (proxy->uri, FALSE);
-	else if (req->context->uri->querystring)
-		uri = g_strconcat (req->context->uri->path, "?", 
-				   req->context->uri->querystring, NULL);
+		//uri = soup_uri_to_string (proxy->uri, FALSE); // FIXME??
+		uri = soup_uri_to_string (suri, FALSE); // FIXME??
+	else if (suri->querystring)
+		uri = g_strconcat (suri->path, "?", suri->querystring, NULL);
 	else
-		uri = g_strdup (req->context->uri->path);
+		uri = g_strdup (suri->path);
 
 	/* If we specify an absoluteURI in the request line, the 
 	   Host header MUST be ignored by the proxy. */
@@ -432,14 +434,16 @@ soup_get_request_header (SoupMessage *req)
 		g_string_sprintfa (header, 
 				   "Proxy-Authorization: %s\r\n",
 				   hdrs.proxy_auth);
-	else if (proxy && proxy->uri->user)
-		soup_encode_http_auth (proxy->uri, header, TRUE);
+	else if (proxy && soup_context_get_uri(proxy)->user)
+		soup_encode_http_auth (soup_context_get_uri(proxy), 
+				       header, 
+				       TRUE);
 
 	/* Authorization from the context Uri */
 	if (hdrs.auth)
 		g_string_sprintfa (header, "Authorization: %s\r\n", hdrs.auth);
-	else if (req->context->uri->user)
-		soup_encode_http_auth (proxy->uri, header, FALSE);
+	else if (suri->user)
+		soup_encode_http_auth (suri, header, FALSE);
 
 	/* Append custom headers for this request */
 	if (hdrs.custom_headers) {
@@ -612,6 +616,16 @@ soup_queue_connect (SoupContext          *ctx,
 		if (!channel) goto THROW_CANT_CONNECT;
 
 		soup_setup_socket (channel);
+
+		if (soup_connection_is_new (conn) &&
+		    soup_context_get_protocol (ctx) & (SOUP_PROTOCOL_SOCKS4 | 
+						       SOUP_PROTOCOL_SOCKS5)) {
+			soup_connect_socks_proxy (conn, 
+						  req->context, 
+						  soup_queue_connect,
+						  req);
+			return;
+		}
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
 		req->priv->conn = conn;

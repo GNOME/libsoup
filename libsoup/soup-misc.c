@@ -162,11 +162,25 @@ soup_load_config (gchar *config_file)
 		soup_set_connection_limit (0);
 	}
 
-	if (config_file)
-		cfg = fopen (config_file, "r");
-	else
-		cfg = fopen (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc", "r");
+	if (!config_file) {
+		gchar *dfile;
 
+		/* Load system global config */
+		soup_load_config (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc");
+
+		/* Ensure variables aren't overwritten */
+		soup_initialized = FALSE;
+
+		/* Load user local config */
+		dfile = g_strconcat (g_get_home_dir(),
+				     G_DIR_SEPARATOR_S ".souprc", NULL);
+		soup_load_config (dfile);
+		g_free (dfile);
+
+		return;
+	}
+
+	cfg = fopen (config_file, "r");
 	if (!cfg) return;
 
 	while (fgets (buf, sizeof (buf), cfg)) {

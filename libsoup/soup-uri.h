@@ -37,7 +37,7 @@ typedef struct {
 	gchar *passwd;
 
 	gchar *host;
-	gint port;
+	gint   port;
 
 	gchar *path;
 	gchar *querystring;
