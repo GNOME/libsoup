@@ -335,11 +335,14 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	}
 
 	/* See if we need to tunnel */
-	if (conn->priv->proxy_uri && conn->priv->origin_uri) {
+	if (conn->priv->proxy_uri &&
+	    conn->priv->origin_uri &&
+	    conn->priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
 							 conn->priv->origin_uri);
+
 		g_signal_connect (connect_msg, "finished",
 				  G_CALLBACK (tunnel_connect_finished), conn);
 
@@ -414,7 +417,10 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 	}
 
-	if (conn->priv->proxy_uri && conn->priv->origin_uri) {
+	/* See if we need to tunnel */
+	if (conn->priv->proxy_uri &&
+	    conn->priv->origin_uri &&
+	    conn->priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,

@@ -36,6 +36,7 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+static void wrote_body (SoupMessage *req);
 static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);
 static void got_body (SoupMessage *req);
@@ -100,6 +101,7 @@ class_init (GObjectClass *object_class)
 	parent_class = g_type_class_ref (PARENT_TYPE);
 
 	/* virtual method definition */
+	message_class->wrote_body   = wrote_body;
 	message_class->got_headers  = got_headers;
 	message_class->got_chunk    = got_chunk;
 	message_class->got_body     = got_body;
@@ -319,6 +321,14 @@ soup_message_wrote_chunk (SoupMessage *msg)
 	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
 }
 
+static void
+wrote_body (SoupMessage *req)
+{
+	g_object_ref (req);
+	soup_message_run_handlers (req, SOUP_HANDLER_POST_REQUEST);
+	g_object_unref (req);
+}
+
 void
 soup_message_wrote_body (SoupMessage *msg)
 {
@@ -397,7 +407,6 @@ soup_message_finished (SoupMessage *msg)
 	g_signal_emit (msg, signals[FINISHED], 0);
 }
 
-
 /**
  * soup_message_cancel:
  * @msg: a #SoupMessage currently being processed.
@@ -409,8 +418,10 @@ soup_message_finished (SoupMessage *msg)
 void
 soup_message_cancel (SoupMessage *msg)
 {
-	soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
-	soup_message_finished (msg);
+	if (msg->status != SOUP_MESSAGE_STATUS_FINISHED) {
+		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
+		soup_message_finished (msg);
+	}
 }
 
 static gboolean
@@ -577,7 +588,7 @@ soup_message_get_flags (SoupMessage *msg)
 }
 
 void
-soup_message_set_http_version  (SoupMessage *msg, SoupHttpVersion version)
+soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 

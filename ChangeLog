@@ -1,3 +1,27 @@
+2003-12-16  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-connection.c (socket_connect_result,
+	soup_connection_connect_sync): Only set up a tunnel if the
+	destination protocol is HTTPS.
+
+	* libsoup/soup-message.c (class_init): Add a default handler for
+	wrote_body.
+	(wrote_body): Run the SOUP_HANDLER_POST_REQUEST handlers here.
+	(soup_message_cancel): Don't set the status to
+	SOUP_STATUS_CANCELLED and call soup_message_finished() if the
+	status is already SOUP_MESSAGE_STATUS_FINISHED.
+
+	* libsoup/soup-session.c (set_property): Don't cancel the session
+	if the proxy URI set as a property isn't different from the old
+	one.
+	(get_host_for_message): Refactor some code so that we can easily
+	get the right SoupSessionHost for proxies as well as from the
+	message.
+	(authenticate_auth): Take a gboolean proxy parameter.  Check it to
+	see which URI (message URI or proxy URI) to use for
+	authentication.  Add a long comment about lack of clarity in RFC
+	2617 with respect to proxies and protection spaces.
+
 2003-12-15  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-socket.h (soup_socket_read, soup_socket_read_until,

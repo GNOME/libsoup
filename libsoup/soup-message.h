@@ -189,7 +189,8 @@ guint          soup_message_get_flags           (SoupMessage        *msg);
  * Handler Registration 
  */
 typedef enum {
-	SOUP_HANDLER_PRE_BODY = 1,
+	SOUP_HANDLER_POST_REQUEST = 1,
+	SOUP_HANDLER_PRE_BODY,
 	SOUP_HANDLER_BODY_CHUNK,
 	SOUP_HANDLER_POST_BODY
 } SoupHandlerPhase;

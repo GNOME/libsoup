@@ -241,22 +241,43 @@ soup_session_new_with_options (const char *optname1, ...)
 	return session;
 }
 
+static gboolean
+safe_uri_equal (const SoupUri *a, const SoupUri *b)
+{
+	if (!a && !b)
+		return TRUE;
+
+	if (a && !b || b && !a)
+		return FALSE;
+
+	return soup_uri_equal (a, b);
+}
+
 static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	gpointer pval;
+	gboolean need_abort = FALSE;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
+		pval = g_value_get_pointer (value);
+
+		if (!safe_uri_equal (session->priv->proxy_uri, pval))
+			need_abort = TRUE;
+
 		if (session->priv->proxy_uri)
 			soup_uri_free (session->priv->proxy_uri);
-		pval = g_value_get_pointer (value);
+
 		session->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
 
-		soup_session_abort (session);
-		cleanup_hosts (session);
+		if (need_abort) {
+			soup_session_abort (session);
+			cleanup_hosts (session);
+		}
+
 		break;
 	case PROP_MAX_CONNS:
 		session->priv->max_conns = g_value_get_int (value);
@@ -330,6 +351,23 @@ host_uri_equal (gconstpointer v1, gconstpointer v2)
 }
 
 static SoupSessionHost *
+soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
+{
+	SoupSessionHost *host;
+
+	host = g_new0 (SoupSessionHost, 1);
+	host->root_uri = soup_uri_copy_root (source_uri);
+
+	if (host->root_uri->protocol == SOUP_PROTOCOL_HTTPS &&
+	    !session->priv->ssl_creds) {
+		session->priv->ssl_creds =
+			soup_ssl_get_client_credentials (session->priv->ssl_ca_file);
+	}
+
+	return host;
+}
+
+static SoupSessionHost *
 get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionHost *host;
@@ -339,18 +377,23 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	if (host)
 		return host;
 
-	host = g_new0 (SoupSessionHost, 1);
-	host->root_uri = soup_uri_copy_root (source);
+	host = soup_session_host_new (session, source);
 
 	g_hash_table_insert (session->priv->hosts, host->root_uri, host);
 
-	if (host->root_uri->protocol == SOUP_PROTOCOL_HTTPS &&
-	    !session->priv->ssl_creds) {
-		session->priv->ssl_creds =
-			soup_ssl_get_client_credentials (session->priv->ssl_ca_file);
-	}
-
 	return host;
+}
+
+static SoupSessionHost *
+get_proxy_host (SoupSession *session)
+{
+	if (session->priv->proxy_host)
+		return session->priv->proxy_host;
+
+	session->priv->proxy_host =
+		soup_session_host_new (session, session->priv->proxy_uri);
+
+	return session->priv->proxy_host;
 }
 
 static void
@@ -399,7 +442,7 @@ lookup_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	const char *realm, *const_path;
 
 	if (proxy) {
-		host = session->priv->proxy_host;
+		host = get_proxy_host (session);
 		const_path = "/";
 	} else {
 		host = get_host_for_message (session, msg);
@@ -450,10 +493,16 @@ invalidate_auth (SoupSessionHost *host, SoupAuth *auth)
 
 static gboolean
 authenticate_auth (SoupSession *session, SoupAuth *auth,
-		   SoupMessage *msg, gboolean prior_auth_failed)
+		   SoupMessage *msg, gboolean prior_auth_failed,
+		   gboolean proxy)
 {
-	const SoupUri *uri = soup_message_get_uri (msg);
+	const SoupUri *uri;
 	char *username = NULL, *password = NULL;
+
+	if (proxy)
+		uri = session->priv->proxy_uri;
+	else
+		uri = soup_message_get_uri (msg);
 
 	if (uri->passwd && !prior_auth_failed) {
 		soup_auth_authenticate (auth, uri->user, uri->passwd);
@@ -490,7 +539,11 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	GSList *pspace, *p;
 	gboolean prior_auth_failed = FALSE;
 
-	host = get_host_for_message (session, msg);
+	if (proxy)
+		host = get_proxy_host (session);
+	else
+		host = get_host_for_message (session, msg);
+
 	g_return_val_if_fail (host != NULL, FALSE);
 
 	/* Try to construct a new auth from the headers; if we can't,
@@ -532,7 +585,20 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	realm = g_strdup_printf ("%s:%s",
 				 soup_auth_get_scheme_name (new_auth),
 				 soup_auth_get_realm (new_auth));
-	pspace = soup_auth_get_protection_space (new_auth, msg_uri);
+
+	/* 
+	 * RFC 2617 is somewhat unclear about the scope of protection
+	 * spaces with regard to proxies.  The only mention of it is
+	 * as an aside in section 3.2.1, where it is defining the fields
+	 * of a Digest challenge and says that the protection space is
+	 * always the entire proxy.  Is this the case for all authentication
+	 * schemes or just Digest?  Who knows, but we're assuming all.
+	 */
+	if (proxy)
+		pspace = g_slist_prepend (NULL, g_strdup (""));
+	else
+		pspace = soup_auth_get_protection_space (new_auth, msg_uri);
+
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
 		if (g_hash_table_lookup_extended (host->auth_realms, path,
@@ -561,8 +627,8 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 
 	/* If we need to authenticate, try to do it. */
 	if (!soup_auth_is_authenticated (new_auth)) {
-		return authenticate_auth (session, new_auth,
-					  msg, prior_auth_failed);
+		return authenticate_auth (session, new_auth, msg,
+					  prior_auth_failed, proxy);
 	}
 
 	/* Otherwise we're good. */
@@ -679,7 +745,7 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	if (!auth)
 		return;
 	if (!soup_auth_is_authenticated (auth) &&
-	    !authenticate_auth (session, auth, msg, FALSE))
+	    !authenticate_auth (session, auth, msg, FALSE, proxy))
 		return;
 
 	token = soup_auth_get_authorization (auth, msg);
@@ -945,10 +1011,12 @@ soup_session_queue_message (SoupSession *session, SoupMessage *req,
 
 	g_signal_connect (req, "finished",
 			  G_CALLBACK (request_finished), session);
+
 	if (callback) {
 		g_signal_connect (req, "finished",
 				  G_CALLBACK (callback), user_data);
 	}
+
 	g_signal_connect_after (req, "finished",
 				G_CALLBACK (final_finished), session);
 
