@@ -89,20 +89,20 @@ typedef enum {
 
 SoupSocketIOStatus  soup_socket_read       (SoupSocket         *sock,
 					    gpointer            buffer,
-					    guint               len,
-					    guint              *nread);
+					    gsize               len,
+					    gsize              *nread);
 SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    gpointer            buffer,
-					    guint               len,
+					    gsize               len,
 					    gconstpointer       boundary,
-					    guint               boundary_len,
-					    guint              *nread,
+					    gsize               boundary_len,
+					    gsize              *nread,
 					    gboolean           *got_boundary);
 
 SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    gconstpointer       buffer,
-					    guint               len,
-					    guint              *nwrote);
+					    gsize               len,
+					    gsize              *nwrote);
 
 
 #endif /* SOUP_SOCKET_H */
