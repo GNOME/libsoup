@@ -48,6 +48,7 @@ GIOFuncs soup_ssl_channel_funcs = {
 
 typedef struct {
 	GIOChannel   channel;
+	gint         fd;
 	GIOChannel  *real_sock;
 	SSL         *ssl;
 } SoupSSLChannel;
@@ -118,6 +119,7 @@ soup_get_ssl_iochannel (GIOChannel *sock)
 	X509_free (cert);
 
 	chan = g_new0 (SoupSSLChannel, 1);
+	chan->fd = sockfd;
 	chan->real_sock = sock;
 	chan->ssl = ssl;
 	g_io_channel_ref (sock);
@@ -136,14 +138,15 @@ static GIOError
 soup_ssl_read (GIOChannel   *channel,
 	       gchar        *buf,
 	       guint         count,
-	       guint        *bytes_written)
+	       guint        *bytes_read)
 {
 	SoupSSLChannel *chan = (SoupSSLChannel *) channel;
+	gint result;
 
-	*bytes_written = SSL_read (chan->ssl, buf, count);
+	result = SSL_read (chan->ssl, buf, count);
 
-	if (*bytes_written < 0) {
-		*bytes_written = 0;
+	if (result < 0) {
+		*bytes_read = 0;
 		switch (errno) {
 		case EINVAL:
 			return G_IO_ERROR_INVAL;
@@ -153,8 +156,10 @@ soup_ssl_read (GIOChannel   *channel,
 		default:
 			return G_IO_ERROR_UNKNOWN;
 		}
-	} else
+	} else {
+		*bytes_read = result;
 		return G_IO_ERROR_NONE;
+	}
 }
 
 static GIOError
@@ -164,10 +169,11 @@ soup_ssl_write (GIOChannel   *channel,
 		guint        *bytes_written)
 {
 	SoupSSLChannel *chan = (SoupSSLChannel *) channel;
+	gint result;
 
-	*bytes_written = SSL_write (chan->ssl, buf, count);
+	result = SSL_write (chan->ssl, buf, count);
 
-	if (*bytes_written < 0) {
+	if (result < 0) {
 		*bytes_written = 0;
 		switch (errno) {
 		case EINVAL:
@@ -178,8 +184,10 @@ soup_ssl_write (GIOChannel   *channel,
 		default:
 			return G_IO_ERROR_UNKNOWN;
 		}
-	} else
+	} else {
+		*bytes_written = result;
 		return G_IO_ERROR_NONE;
+	}
 }
 
 static GIOError
@@ -214,11 +222,11 @@ soup_ssl_add_watch (GIOChannel     *channel,
 		    GDestroyNotify  notify)
 {
 	SoupSSLChannel *chan = (SoupSSLChannel *) channel;
-	return g_io_add_watch_full (chan->real_sock, 
-				    priority, 
-				    condition,
-				    func,
-				    user_data,
-				    notify);
+	return chan->real_sock->funcs->io_add_watch (channel, 
+						     priority, 
+						     condition,
+						     func,
+						     user_data,
+						     notify);
 }
 

@@ -272,7 +272,7 @@ soup_queue_read_async (GIOChannel* iochannel,
 		       SoupMessage *req)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
-	guint bytes_read = 0;
+	gint bytes_read = 0;
 	gboolean read_done = FALSE;
 	gint index = req->priv->header_len;
 	GByteArray *arr = req->priv->recv_buf;
@@ -296,9 +296,9 @@ soup_queue_read_async (GIOChannel* iochannel,
 	if (bytes_read) g_byte_array_append (arr, read_buf, bytes_read);
 
 	if (!index) {
-		index = req->priv->header_len = 
-			soup_substring_index (arr->data, arr->len, "\r\n\r\n");
-		if (!index) return TRUE;
+		index = soup_substring_index (arr->data, arr->len, "\r\n\r\n");
+		if (index < 0) return TRUE;
+		req->priv->header_len = index;
 		if (!soup_parse_headers (req) || !soup_process_headers (req)) 
 			return FALSE;
 	}
