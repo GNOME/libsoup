@@ -1,3 +1,7 @@
+2004-05-19  JP Rosevear  <jpr@novell.com>
+
+	* configure.in (SOUP_API_VERSION): bump version, libtool numbers
+
 2004-05-18  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-ssl.h:
