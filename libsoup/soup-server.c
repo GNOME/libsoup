@@ -45,7 +45,7 @@ SoupServer *
 soup_server_new (SoupProtocol proto, guint port)
 {
 	SoupServer *serv;
-	SoupSocket *sock;
+	SoupSocket *sock = NULL;
 
 	if (proto != SOUP_PROTOCOL_CGI) {
 		sock = soup_socket_server_new (port);

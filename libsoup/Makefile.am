@@ -59,6 +59,7 @@ libsoup_la_SOURCES =		\
 	soup-serializer.c	\
 	soup-server.c		\
 	soup-socket.c		\
+	soup-socket-unix.c	\
 	soup-socks.h		\
 	soup-socks.c		\
 	soup-ssl.h		\
