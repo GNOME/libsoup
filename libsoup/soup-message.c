@@ -767,7 +767,7 @@ static void
 authorize_handler (SoupMessage *msg, gboolean proxy)
 {
 	const GSList *vals;
-	SoupAuth *auth, *old_auth;
+	SoupAuth *auth;
 	SoupContext *ctx;
 	const SoupUri *uri;
 
@@ -853,7 +853,9 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	soup_auth_initialize (auth, uri);
 
 	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
-		if (old_auth) 
+		SoupAuth *old_auth = soup_auth_lookup (ctx);
+
+		if (old_auth && auth != old_auth) 
 			soup_auth_free (old_auth);
 		msg->connection->auth = auth;
 	} else

@@ -1,3 +1,9 @@
+2002-07-26  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-message.c (authorize_handler): If we're using
+	NTLM, get the old auth (if there is one) and free it ourselves
+	since we don't use soup_auth_set_context().
+
 2002-07-24  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-nss.c: Check the server mode and set up a
