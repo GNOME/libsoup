@@ -249,7 +249,13 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 
 		if (admin && soup_config_allow_deny (iter)) continue;
 
-		if (!admin && !soup_config_token_allowed (iter)) continue;
+		if (!admin && !soup_config_token_allowed (iter)) {
+			g_warning ("Configuration item \"%s\" in file \"%s\" "
+				   "disallowed by system configuration.",
+				   iter, 
+				   config_file);
+			continue;
+		}
 
 		split = g_strsplit (g_strchomp (iter), "=", 2);
 		if (!split || !split[1] || split[2]) continue;
