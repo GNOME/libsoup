@@ -1,0 +1,33 @@
+Soup is a SOAP (Simple Object Access Protocol) implementation in C. 
+
+It provides an queued asynchronous callback-based mechanism for sending and
+servicing SOAP requests, and a WSDL (Web Service Definition Language) to C
+compiler which generates client stubs and server skeletons for easily calling
+and implementing SOAP methods.
+
+It uses the GLib main loop and is designed to work well with GTK applications.
+
+Features:
+  * Completely Asynchronous
+  * Connection cache
+  * HTTP chunked transfer support
+  * authenticated HTTP, SOCKS4, and SOCKS5 proxy support
+  * SSL Support using OpenSSL
+  * Apache module server support
+  * Client digest authentication
+
+Planned Features:
+  * Standalone SOAP server support
+  * SSL Support through Mozilla NSS
+  * Server digest authentication
+  * Gconf configuration and proxy integration
+  * UDDI Support
+  * Disco support
+  * GTK or Bonobo object generation
+
+To subscribe to the Soup discussion list, send mail with the word "Subject" in
+the message body to soup-list-request@ximian.com.
+
+Licensing:
+  * Licensing for the Soup runtime is LGPL, see COPYING.LIB for more details.
+  * Licensing for the WSDL compiler is GPL, see COPYING for more details.

@@ -1,57 +1,26 @@
 TODO:
 ====
 
-* make thread-safe
+* Thread safety
 
-* support M-POST
+* Support M-POST
 
-X * SoupSerializer
-
-* Authentication Components
-
-* GTK Documentation
+* Document
 
 * Simple Soap Example clients and servers (time, updates, ...)
 
-* Test SOCKS, implement v4 authentication
+* More SOCKS testing
 
-* implement *simple* response cache
+* *Simple* response cache
 
-* use gconf for config data
+* Use gconf for config data
 
 * Tutorial Documentation
 
-* Make SoupMessage a generic HTTP engine
-
-* Digest Authentication
+* Make SoupMessage a generic HTTP engine (basically just make method settable).
 
 * handle gzip encoded responses, requests
 
 * MS Challenge/Response support
 
 * C++ wrapper
-
-* C++ dynamic stuff using operator overloading
-
-* Bonoboize
-
-
-Release stuff:
-
-X * Write apache plugin stuff (soup-server)
-
-* Write response code handling stuff, add response userland error
-
-X * clean up configure.in
-
-X * fix soup-serializer header file crap.
-
-X * fix soup-serializer SOAP-ENV prefixing, test prefixing.
-
-X * make callback return void? YES. soup_queue_message now takes ownership
-
-X * fix ssl pending bug
-
-X * fix ssl unsecure error crap
-
-X * update tests/*
