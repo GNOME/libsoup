@@ -713,7 +713,7 @@ soup_address_new (const gchar* name,
 		 * Wait for the SIGSTOP from PTRACE_ATTACH to arrive at the
 		 * parent.  
 		 */
-		waitpid (getppid (), NULL, 0);
+		waitpid (getppid (), NULL, WUNTRACED);
 
 		if (ptrace (SOUP_PTRACE_DETACH, getppid (), NULL, NULL) == -1)
 			g_warning ("ptrace: Detach failed: %s", 
