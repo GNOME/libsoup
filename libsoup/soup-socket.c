@@ -87,14 +87,11 @@ guint soup_io_watch_ID;
 GIOChannel *soup_iochannel;
 
 GHashTable *soup_hash;
-GHashTable *soup_select_hash; /* soup_socket_new needs its own hash */
 HANDLE soup_Mutex;
-HANDLE soup_select_Mutex;
 HANDLE soup_hostent_Mutex;
 
 #define IA_NEW_MSG 100		/* soup_address_new */
 #define GET_NAME_MSG 101	/* soup_address_get_name */
-#define TCP_SOCK_MSG 102	/* soup_socket_new  */
 
 /* 
  * Windows does not have inet_aton, but it does have inet_addr.
@@ -1940,7 +1937,7 @@ soup_socket_new (SoupAddress      *addr,
 		return NULL;
 	}
 
-	chan = g_io_channel_unix_new (sockfd);
+	chan = SOUP_SOCKET_IOCHANNEL_NEW (sockfd);
 
 	/* Wait for the connection */
 	state = g_new0 (SoupSocketState, 1);
@@ -1959,24 +1956,6 @@ soup_socket_new (SoupAddress      *addr,
 	return state;
 }
 
-/**
- * soup_socket_new_cancel:
- * @id: ID of the connection.
- *
- * Cancel an asynchronous connection that was started with
- * soup_socket_new().
- **/
-void
-soup_socket_new_cancel (SoupSocketNewId id)
-{
-	SoupSocketState* state = (SoupSocketState*) id;
-
-	g_source_remove (state->connect_watch);
-	soup_address_unref (state->addr);
-	g_free (state);
-}
-
-
 #else	/*********** Windows code ***********/
 
 static gboolean
@@ -1987,14 +1966,10 @@ soup_socket_new_cb (GIOChannel* iochannel,
 	SoupSocketState* state = (SoupSocketState*) data;
 	SoupSocket *s;
 
-	if (state->errorcode) {
-		soup_address_unref (state->addr);
-		(*state->func) ((SoupSocket *) NULL,
-				SOUP_SOCKET_NEW_STATUS_ERROR,
-				state->data);
-		g_free (state);
-		return FALSE;
-	}
+	/* Remove the watch now in case we don't return immediately */
+	g_source_remove (state->connect_watch);
+
+	if (condition & ~(G_IO_IN | G_IO_OUT)) goto _ERROR;
 
 	s = g_new0 (SoupSocket, 1);
 	s->ref_count = 1;
@@ -2003,6 +1978,15 @@ soup_socket_new_cb (GIOChannel* iochannel,
 
 	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
 	g_free (state);
+	return FALSE;
+
+ _ERROR:
+	soup_address_unref (state->addr);
+	(*state->func) ((SoupSocket *) NULL,
+			SOUP_SOCKET_NEW_STATUS_ERROR,
+			state->data);
+	g_free (state);
+
 	return FALSE;
 }
 
@@ -2014,6 +1998,8 @@ soup_socket_new (SoupAddress     *addr,
 	gint sockfd;
 	gint status;
 	SoupSocketState* state = (SoupSocketState*) data;
+	u_long arg = 1;
+	GIOChannel *chan;
 
 	g_return_val_if_fail (addr != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -2025,13 +2011,8 @@ soup_socket_new (SoupAddress     *addr,
 		return NULL;
 	}
 
-	/* Note: WSAAsunc automatically sets the socket to noblocking mode */
-	status = WSAAsyncSelect (sockfd, soup_hWnd, TCP_SOCK_MSG, FD_CONNECT);
-
-	if (status == SOCKET_ERROR) {
-		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
-		return NULL;
-	}
+	/* Set non-blocking mode */
+	ioctlsocket(sockfd, FIONBIO, &arg);
 
 	status = connect (sockfd, &addr->sa, sizeof(addr->sa));
 	/* Returning an error is ok, unless.. */
@@ -2055,35 +2036,42 @@ soup_socket_new (SoupAddress     *addr,
 		return NULL;
 	}
 
+	chan = SOUP_SOCKET_IOCHANNEL_NEW (sockfd),
+
 	/* Wait for the connection */
 	state = g_new0 (SoupSocketState, 1);
 	state->addr = addr;
 	state->func = func;
 	state->data = data;
 	state->sockfd = sockfd;
+	state->connect_watch = g_io_add_watch (chan,
+					       SOUP_ANY_IO_CONDITION,
+					       soup_socket_new_cb, 
+					       state);
 
-	WaitForSingleObject (soup_select_Mutex, INFINITE);
-	/*using sockfd as the key into the 'select' hash */
-	g_hash_table_insert (soup_select_hash,
-			     (gpointer) state->sockfd,
-			     (gpointer) state);
-	ReleaseMutex (soup_select_Mutex);
+	g_io_channel_unref (chan);
 
 	return state;
 }
 
+#endif		/*********** End Windows code ***********/
+
+/**
+ * soup_socket_new_cancel:
+ * @id: ID of the connection.
+ *
+ * Cancel an asynchronous connection that was started with
+ * soup_socket_new().
+ **/
 void
 soup_socket_new_cancel (SoupSocketNewId id)
 {
 	SoupSocketState* state = (SoupSocketState*) id;
 
-	/* Cancel event posting on the socket */
-	WSAAsyncSelect (state->sockfd, soup_hWnd, 0, 0);
+	g_source_remove (state->connect_watch);
 	soup_address_unref (state->addr);
 	g_free (state);
 }
-
-#endif		/*********** End Windows code ***********/
 
 static void
 soup_socket_new_sync_cb (SoupSocket*         socket,
@@ -2175,7 +2163,7 @@ soup_socket_get_iochannel (SoupSocket* socket)
 	g_return_val_if_fail (socket != NULL, NULL);
 
 	if (socket->iochannel == NULL)
-		socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW(socket->sockfd);
+		socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW (socket->sockfd);
 
 	g_io_channel_ref (socket->iochannel);
 
@@ -2534,10 +2522,9 @@ soup_MainCallBack (GIOChannel   *iochannel,
 	gpointer data;
 	SoupAddressState *IAstate;
 	SoupAddressReverseState *IARstate;
-	SoupSocketState *TCPNEWstate;
 
 	/*Take the msg off the message queue */
-	GetMessage (&msg, NULL, 0, 0);
+	PeekMessage (&msg, soup_hWnd, 0, 0, PM_REMOVE);
 
 	switch (msg.message) {
 	case IA_NEW_MSG:
@@ -2569,19 +2556,6 @@ soup_MainCallBack (GIOChannel   *iochannel,
 					  G_IO_IN,
 					  (gpointer) IARstate);
 		break;
-	case TCP_SOCK_MSG:
-		WaitForSingleObject (soup_select_Mutex, INFINITE);
-		data = g_hash_table_lookup (soup_select_hash,
-					    (gpointer) msg.wParam);
-		g_hash_table_remove (soup_select_hash, (gpointer) msg.wParam);
-		ReleaseMutex (soup_select_Mutex);
-
-		TCPNEWstate = (SoupSocketState*) data;
-		TCPNEWstate->errorcode = WSAGETSELECTERROR (msg.lParam);
-		soup_socket_new_cb (NULL,
-				    G_IO_IN,
-				    (gpointer) TCPNEWstate);
-		break;
 	}
 
 	return 1;
@@ -2606,13 +2580,6 @@ SoupWndProc (HWND hwnd,        /* handle to window */
         default:
 		return DefWindowProc (hwnd, uMsg, wParam, lParam);
 	}
-}
-
-gboolean
-RemoveHashEntry(gpointer key, gpointer value, gpointer user_data)
-{
-	g_free (value);
-	return TRUE;
 }
 
 BOOL WINAPI
@@ -2698,23 +2665,13 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 					NULL);
 
 		soup_hash = g_hash_table_new (NULL, NULL);
-		soup_select_hash = g_hash_table_new (NULL, NULL);
-
 
 		soup_Mutex = CreateMutex (NULL, FALSE, "soup_Mutex");
-
 		if (soup_Mutex == NULL) return FALSE;
-
-		soup_select_Mutex = CreateMutex (NULL,
-						 FALSE,
-						 "soup_select_Mutex");
-
-		if (soup_select_Mutex == NULL) return FALSE;
 
 		soup_hostent_Mutex = CreateMutex (NULL,
 						  FALSE,
 						  "soup_hostent_Mutex");
-
 		if (soup_hostent_Mutex == NULL) return FALSE;
 
 		break;
@@ -2728,18 +2685,6 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		g_source_remove (soup_io_watch_ID);
 		g_free (soup_iochannel);
 		DestroyWindow (soup_hWnd);
-
-		WaitForSingleObject (soup_Mutex, INFINITE);
-		WaitForSingleObject (soup_select_Mutex, INFINITE);
-		g_hash_table_foreach_remove (soup_hash, RemoveHashEntry, NULL);
-		g_hash_table_foreach_remove (soup_select_hash,
-					     RemoveHashEntry,
-					     NULL);
-		g_hash_table_destroy (soup_select_hash);
-		g_hash_table_destroy (soup_hash);
-		ReleaseMutex (soup_Mutex);
-		ReleaseMutex (soup_select_Mutex);
-		ReleaseMutex (soup_hostent_Mutex);
 
 		WSACleanup ();
 
