@@ -366,7 +366,7 @@ soup_prune_least_used_connection (void)
 static gboolean
 soup_prune_timeout (struct SoupConnectData *data)
 {
-	gint conn_limit = soup_get_connection_limit();
+	gint conn_limit = soup_get_connection_limit ();
 
 	if (conn_limit &&
 	    connection_count >= conn_limit &&
