@@ -1,3 +1,19 @@
+2001-10-30  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): Consider
+	existing addresses with a zero refcount valid to return (with an
+	added refcount).
+	(prune_zeroref_addresses_foreach): Impl.
+	(prune_zeroref_addresses_timeout): Impl.
+	(soup_address_unref): Don't free zero ref addresses, instead make
+	sure zeroref timeout handler is installed and install if not. Also
+	move to here from soup-socket.c.
+
+	* src/libsoup/soup-private.h: Add killme flag to soup_address.
+
+	* src/libsoup/soup-socket-win.c (soup_address_unref): Move here
+	from soup-socket.c.
+
 2001-10-29  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-message.c (authorize_handler): Call

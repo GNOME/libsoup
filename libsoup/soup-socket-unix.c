@@ -597,7 +597,7 @@ soup_address_new (const gchar* name,
 	else {
 		ia = g_hash_table_lookup (active_address_hash, name);
 
-		if (ia && ia->ref_count > 0) {
+		if (ia && ia->ref_count >= 0) {
 			/*
 			 * Existing valid request, use it.
 			 */
@@ -614,8 +614,10 @@ soup_address_new (const gchar* name,
 			}
 
 			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
+
 			return NULL;
-		} else if (ia && soup_address_get_port (ia) == port) {
+		} 
+		else if (ia && soup_address_get_port (ia) == port) {
 			/*
 			 * Lookup currently in progress.
 			 * Add func to list of callbacks in state.
@@ -812,6 +814,95 @@ soup_address_new_cancel (SoupAddressNewId id)
 		waitpid (state->pid, NULL, 0);
 
 		g_free (state);
+	}
+}
+
+static gboolean 
+prune_zeroref_addresses_foreach (gchar       *hostname,
+				 SoupAddress *ia,
+				 gint        *remaining)
+{
+	/*
+	 * References exist, clear kill flag.
+	 */
+	if (ia->ref_count != 0) {
+		ia->killme = FALSE;
+		return FALSE;
+	}
+
+	/*
+	 * Kill if marked.  Otherwise mark.
+	 */
+	if (ia->killme) {
+		g_free (ia->name);
+		g_free (ia);
+		return TRUE;
+	} else
+		ia->killme = TRUE;
+
+	/*
+	 * Make sure the timeout stays around
+	 */
+	(*remaining)++;
+
+	return FALSE;
+}
+
+static guint zeroref_address_timeout_tag = 0;
+
+static gboolean 
+prune_zeroref_addresses_timeout (gpointer not_used)
+{
+	gint remaining = 0;
+
+	/*
+	 * Remove all marked addresses, mark zero references.
+	 */
+	g_hash_table_foreach_remove (active_address_hash, 
+				     (GHRFunc) prune_zeroref_addresses_foreach,
+				     &remaining);
+
+	/*
+	 * No new marks, so remove timeout handler
+	 */
+	if (remaining == 0) {
+		zeroref_address_timeout_tag = 0;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * soup_address_unref
+ * @ia: SoupAddress to unreference
+ *
+ * Remove a reference from the SoupAddress.  When reference count
+ * reaches 0, the address is deleted.
+ **/
+void
+soup_address_unref (SoupAddress* ia)
+{
+	g_return_if_fail (ia != NULL);
+
+	--ia->ref_count;
+
+	if (ia->ref_count == 0) {
+		if (!zeroref_address_timeout_tag) {
+			/* 
+			 * Cleanup zero reference addresses every 2 minutes.
+			 *
+			 * This involves an initial sweep to mark zero reference
+			 * addresses, then on the next sweep marked addresses
+			 * still not referenced are freed.
+			 */
+			zeroref_address_timeout_tag = 
+				g_timeout_add (120000, 
+					       (GSourceFunc) 
+					       prune_zeroref_addresses_timeout,
+					       NULL);
+				return;
+		}
 	}
 }
 

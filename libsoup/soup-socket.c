@@ -38,7 +38,6 @@
 #  endif
 #  define SOUP_CLOSE_SOCKET(fd) close(fd)
 #  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_unix_new(fd)
-   extern GHashTable *active_address_hash;
 #endif
 
 #define SOUP_SOCKADDR_IN(s) (*((struct sockaddr_in*) &s))
@@ -87,31 +86,6 @@ soup_address_ref (SoupAddress* ia)
 	g_return_if_fail (ia != NULL);
 
 	++ia->ref_count;
-}
-
-/**
- * soup_address_unref
- * @ia: SoupAddress to unreference
- *
- * Remove a reference from the SoupAddress.  When reference count
- * reaches 0, the address is deleted.
- **/
-void
-soup_address_unref (SoupAddress* ia)
-{
-	g_return_if_fail (ia != NULL);
-
-	--ia->ref_count;
-
-	if (ia->ref_count == 0) {
-		if (ia->name != NULL) {
-#ifndef SOUP_WIN32
-			g_hash_table_remove (active_address_hash, ia->name);
-#endif
-			g_free (ia->name);
-		}
-		g_free (ia);
-	}
 }
 
 /**
