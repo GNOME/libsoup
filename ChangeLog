@@ -1,3 +1,9 @@
+2003-12-09  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-message.c (soup_soap_message_persist):
+	(soup_soap_message_parse_response): print out request/response's
+	contents, if in debug mode.
+
 2003-12-07  JP Rosevear  <jpr@ximian.com>
 
 	* configure.in: Bump version
