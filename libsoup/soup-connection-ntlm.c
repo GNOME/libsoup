@@ -165,8 +165,23 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 	    soup_message_get_header (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
 		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
+		soup_message_restarted (msg);
 		soup_connection_send_request (conn, msg);
 	}
+}
+
+static void
+ntlm_cleanup_msg (SoupMessage *msg, gpointer user_data)
+{
+	SoupConnectionNTLM *ntlm = user_data;
+
+	/* Do this when the message is restarted, in case it's
+	 * restarted on a different connection.
+	 */
+	soup_message_remove_handler (msg, SOUP_HANDLER_PRE_BODY,
+				     ntlm_authorize_pre, ntlm);
+	soup_message_remove_handler (msg, SOUP_HANDLER_POST_BODY,
+				     ntlm_authorize_post, ntlm);
 }
 
 void
@@ -185,17 +200,18 @@ send_request (SoupConnection *conn, SoupMessage *req)
 		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
 	}
 
-	soup_message_remove_handler (req, SOUP_HANDLER_PRE_BODY,
-				     ntlm_authorize_pre, conn);
 	soup_message_add_status_code_handler (req, SOUP_STATUS_UNAUTHORIZED,
 					      SOUP_HANDLER_PRE_BODY,
 					      ntlm_authorize_pre, conn);
 
-	soup_message_remove_handler (req, SOUP_HANDLER_POST_BODY,
-				     ntlm_authorize_post, conn);
 	soup_message_add_status_code_handler (req, SOUP_STATUS_UNAUTHORIZED,
 					      SOUP_HANDLER_POST_BODY,
 					      ntlm_authorize_post, conn);
+
+	g_signal_connect (req, "restarted",
+			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
+	g_signal_connect (req, "finished",
+			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
 
 	SOUP_CONNECTION_CLASS (parent_class)->send_request (conn, req);
 }

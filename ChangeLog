@@ -1,3 +1,17 @@
+2004-04-20  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_post): if
+	re-sending the message, call soup_message_restarted()
+	(send_request): Connect to "restarted" signal, and remove the 401
+	handlers from there; doing it here didn't work because if the
+	connection was closed, the message would be re-sent on a new
+	connection, but would still have the handlers from the old
+	connection attached to it, which would make authentication fail.
+
+	* libsoup/soup-message-handlers.c (soup_message_run_handlers):
+	Copy the handler list before starting, to protect against handlers
+	that modify the handler list.
+
 2004-04-15  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-connection.c (soup_connection_connect_sync):

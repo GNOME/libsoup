@@ -71,16 +71,23 @@ run_handler (SoupMessage     *msg,
 void
 soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 {
-	GSList *list;
+	GSList *copy, *list;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	for (list = msg->priv->content_handlers; list; list = list->next) {
+	/* Jump through hoops to deal with callbacks that modify the list. */
+	copy = g_slist_copy (msg->priv->content_handlers);
+
+	for (list = copy; list; list = list->next) {
+		if (!g_slist_find (msg->priv->content_handlers, list->data))
+			continue;
 		run_handler (msg, invoke_phase, list->data);
 
 		if (SOUP_MESSAGE_IS_STARTING (msg))
-			return;
+			break;
 	}
+
+	g_slist_free (copy);
 }
 
 static void
