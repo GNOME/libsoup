@@ -385,19 +385,18 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 
 	if (hand->callback) {
 		const SoupUri *uri = soup_message_get_uri (req);
+		SoupServerContext ctx;
 
-		SoupServerContext serverctx = {
-			req,
-			uri->path,
-			soup_method_get_id (req->method),
-			auth,
-			server,
-			hand,
-			sock
-		};
+		ctx.msg       = req;
+		ctx.path      = uri->path;
+		ctx.method_id = soup_method_get_id (req->method);
+		ctx.auth      = auth;
+		ctx.server    = server;
+		ctx.handler   = hand;
+		ctx.sock      = sock;
 
 		/* Call method handler */
-		(*hand->callback) (&serverctx, req, hand->user_data);
+		(*hand->callback) (&ctx, req, hand->user_data);
 	}
 
 	if (auth)

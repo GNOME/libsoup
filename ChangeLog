@@ -1,3 +1,20 @@
+2004-06-01  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-address.c: Redo the various IPv4/IPv6-abstracting
+	macros to not use ?: expressions as lvalues, since that's
+	apparently a GNU extension.
+	(soup_address_resolve_async): Use a timeout rather than an idle
+	handler to poll the dns result. (soup-dns really should be
+	rewritten to not require polling, but this is easier for now.)
+	#59240
+
+	* libsoup/soup-server.c (call_handler): Don't use GNU-only
+	non-constant structure initialization
+
+	* tests/dns.c: Simple test of the dns code
+
+	* tests/Makefile.am (noinst_PROGRAMS): build it
+
 2004-05-19  JP Rosevear  <jpr@novell.com>
 
 	* configure.in (SOUP_API_VERSION): bump version, libtool numbers
