@@ -155,8 +155,8 @@ soup_base64_encode (gchar *text)
 #define DENY_UNLESS_ALLOWED FALSE
 
 static gboolean allow_policy = ALLOW_UNLESS_DENIED;
-static GSList *allow_tokens;
-static GSList *deny_tokens;
+static GSList *allow_tokens = NULL;
+static GSList *deny_tokens = NULL;
 
 static void
 soup_config_reset_allow_deny (void)
@@ -219,9 +219,9 @@ soup_config_token_allowed (gchar *key)
 
 	for (; list; list = list->next)
 		if (!list->data ||
-		    g_strncasecmp (key, 
-				   (gchar *) list->data, 
-				   strlen ((gchar *) list->data)))
+		    !g_strncasecmp (key, 
+				    (gchar *) list->data, 
+				    strlen ((gchar *) list->data)))
 			return !allow;
 
 	return allow;
