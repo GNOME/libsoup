@@ -1,3 +1,9 @@
+2002-11-13  Dan Winship  <danw@ximian.com>
+
+	* tests/timeserver.c: Oops, commit this.
+
+	* tests/Makefile.am (noinst_PROGRAMS): reenable timeserver.
+
 2002-12-13  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/Makefile.am: Replace the BINDIR define with LIBEXECDIR.
