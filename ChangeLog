@@ -1,3 +1,9 @@
+2002-02-15  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_shutdown): Only
+	g_source_remove the idle handler if it's been set, to avoid a glib
+	warning.
+
 2002-02-14  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-message.c (soup_message_send): Check if

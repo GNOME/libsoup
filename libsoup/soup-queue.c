@@ -769,8 +769,10 @@ soup_queue_shutdown (void)
 
 	soup_initialized = FALSE;
 
-	g_source_remove (soup_queue_idle_tag);
-	soup_queue_idle_tag = 0;
+	if (soup_queue_idle_tag) {
+		g_source_remove (soup_queue_idle_tag);
+		soup_queue_idle_tag = 0;
+	}
 
 	for (req = soup_queue_first_request (); req; req = soup_queue_next_request ())
 		soup_message_cancel (req);
