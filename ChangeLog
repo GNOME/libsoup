@@ -1,3 +1,9 @@
+2002-12-14  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-address.c (soup_address_new): When we get an
+	address from the hash, call our address lookup callback or else
+	the connection will hang.
+
 2002-11-13  Dan Winship  <danw@ximian.com>
 
 	* tests/timeserver.c: Oops, commit this.

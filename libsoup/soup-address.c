@@ -879,6 +879,7 @@ soup_address_new (const gchar* name, SoupAddressNewFn func, gpointer data)
 		ia = g_hash_table_lookup (address_hash, name);
 		if (ia) {
 			soup_address_ref (ia);
+			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 			return ia;
 		}
 	}
