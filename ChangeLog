@@ -1,3 +1,35 @@
+2001-07-09  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-auth.[ch]: New client authentication (basic/digest)
+	code from Joe Shaw (joe@ximian.com).
+
+	* src/soup-core/soup-queue.c (soup_encode_http_auth): Updated to
+	use soup-auth.
+	(soup_get_request_header): Pass the SoupMessage to
+	soup_encode_http_auth instead of just the URI. Check for
+	req->action in header creation.
+	(soup_queue_error_cb): Reset read_tag and write_tag to avoid
+	double free.
+	(soup_encode_http_auth): Use soup_auth_authorize().
+
+	* src/soup-core/soup-private.h: Add SoupAuth to SoupContext.
+
+	* src/soup-core/soup-context.c (soup_context_unref): Free auth.
+
+	* src/soup-core/soup-cgi.c: Flog.
+
+	* src/soup-core/soup-message.c (soup_message_new): Create handlers
+	for 401 (Authorization Required) and 407 (Proxy-Authorization
+	Required) response codes.
+	(soup_message_redirect): Rename to redirect_handler.
+	(redirect_handler): Don't unref existing context if new context
+	creation fails.
+	(soup_message_set_header): Check for value before insertion.
+
+	* src/soup-core/soup-transfer.c (soup_transfer_read_cancel): Free
+	recv_buf contents if no callback has been issued.
+	(soup_transfer_read_cb): Set callback_issued.
+
 2001-07-05  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-socks.c (soup_connect_socks_proxy): Use const uris.

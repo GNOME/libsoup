@@ -31,6 +31,7 @@
 #include <netinet/in.h>
 #endif
 
+#include "soup-auth.h"
 #include "soup-context.h"
 #include "soup-private.h"
 #include "soup-misc.h"
@@ -90,6 +91,7 @@ soup_context_uri_hash (gconstpointer key)
 		if (uri->passwd) 
 			ret += g_str_hash (uri->passwd);
 	}
+
 	ret += g_str_hash (uri->path);
 
 	return ret;
@@ -226,7 +228,8 @@ soup_context_unref (SoupContext *ctx)
 			g_hash_table_destroy (serv->contexts);
 			g_free (serv);
 		}
-			
+
+		if (ctx->auth) soup_auth_free (ctx->auth);
 		soup_uri_free (ctx->uri);
 		g_free (ctx);
 	}

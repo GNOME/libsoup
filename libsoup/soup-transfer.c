@@ -27,6 +27,13 @@ typedef struct {
 	guint                  read_tag;
 	guint                  err_tag;
 
+	/* 
+	 * If TRUE, a callback has been issed which references recv_buf.  
+	 * If the tranfer is cancelled before a reference exists, the contents
+	 * of recv_buf are free'd.
+	 */
+	gboolean               callback_issued;
+
 	GByteArray            *recv_buf;
 	guint                  header_len;
 
@@ -71,7 +78,7 @@ soup_transfer_read_cancel (guint tag)
 	source_remove (r->read_tag);
 	source_remove (r->err_tag);
 
-	g_byte_array_free (r->recv_buf, FALSE);
+	g_byte_array_free (r->recv_buf, r->callback_issued ? FALSE : TRUE);
 
 	g_free (r);
 }
@@ -234,6 +241,8 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		buf.length = r->recv_buf->len - 1;
 		buf.body = r->recv_buf->data;
 
+		r->callback_issued = TRUE;
+
 		cont = (*r->read_chunk_cb) (&buf, r->user_data);
 
 		g_byte_array_remove_index (r->recv_buf, r->recv_buf->len - 1);
@@ -249,6 +258,8 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		buf.owner = SOUP_BUFFER_SYSTEM_OWNED;
 		buf.length = r->recv_buf->len - 1;
 		buf.body = r->recv_buf->data;
+
+		r->callback_issued = TRUE;
 
 		(*r->read_done_cb) (&buf, r->user_data);
 	}

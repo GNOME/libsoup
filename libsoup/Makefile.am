@@ -39,9 +39,9 @@ libsoup_la_LIBADD =		\
 libsoup_la_SOURCES =		\
 	md5-utils.h		\
 	md5-utils.c		\
+	soup-auth.h		\
+	soup-auth.c		\
 	soup-context.c		\
-	soup-digest.h		\
-	soup-digest.c		\
 	soup-env.c		\
 	soup-fault.c		\
 	soup-headers.h		\

@@ -9,9 +9,49 @@
  */
 
 #include "soup-message.h"
+#include "soup-misc.h"
 #include "soup-context.h"
 #include "soup-private.h"
 #include "soup-transfer.h"
+
+static SoupErrorCode 
+authorize_handler (SoupMessage *msg, gboolean proxy)
+{
+	const char *auth_header;
+	SoupAuth *auth;
+	SoupContext *ctx;
+
+	ctx = proxy ? soup_get_proxy () : msg->context;
+
+	auth_header = 
+		soup_message_get_response_header (
+			msg, 
+			proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
+	if (!auth_header) return SOUP_ERROR_CANT_AUTHENTICATE;
+
+        auth = soup_auth_new_from_header (ctx, auth_header);
+	if (!auth) return SOUP_ERROR_MALFORMED_HEADER;
+
+	if (ctx->auth) {
+		if (soup_auth_invalidates_prior (auth))
+			soup_auth_free (ctx->auth);
+		else {
+			soup_auth_free (auth);
+			return SOUP_ERROR_CANT_AUTHENTICATE;
+		}
+	}
+
+	ctx->auth = auth;
+
+	if (msg->priv->req_header) {
+		g_string_free (msg->priv->req_header, TRUE);
+		msg->priv->req_header = NULL;
+	}
+
+	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
+
+        return SOUP_ERROR_NONE;
+}
 
 /**
  * soup_message_new:
@@ -29,7 +69,7 @@ soup_message_new (SoupContext *context, SoupAction action)
 {
 	SoupMessage *ret;
 
-	g_return_val_if_fail(context, NULL);
+	g_return_val_if_fail (context, NULL);
 
 	ret          = g_new0 (SoupMessage, 1);
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
@@ -39,6 +79,29 @@ soup_message_new (SoupContext *context, SoupAction action)
 	ret->method  = SOUP_METHOD_POST;
 
 	soup_context_ref (context);
+
+	/*
+	 * Add a 401 (Authorization Required) response code handler if the
+	 * context URI has a login user name.
+	 */
+	if (soup_context_get_uri (context)->user)
+		soup_message_add_response_code_handler (
+			ret, 
+			401, 
+			SOUP_HANDLER_POST_BODY, 
+			(SoupHandlerFn) authorize_handler, 
+			GINT_TO_POINTER (FALSE));
+
+	/*
+	 * Always add a 407 (Proxy-Authorization Required) handler, in case the
+	 * proxy is reset after message creation.
+	 */
+	soup_message_add_response_code_handler (
+			ret, 
+			407, 
+			SOUP_HANDLER_POST_BODY, 
+			(SoupHandlerFn) authorize_handler, 
+			GINT_TO_POINTER (TRUE));
 
 	return ret;
 }
@@ -230,7 +293,8 @@ soup_message_set_header (GHashTable  **hash,
 		g_free (old_value);
 	}
 
-	g_hash_table_insert (*hash, g_strdup (name), g_strdup (value));
+	if (value)
+		g_hash_table_insert (*hash, g_strdup (name), g_strdup (value));
 }
 
 /**
@@ -239,7 +303,8 @@ soup_message_set_header (GHashTable  **hash,
  * @name: header name.
  * @value: header value.
  * 
- * Adds a new transport header to be sent on an outgoing request.
+ * Adds a new transport header to be sent on an outgoing request. Passing a NULL
+ * @value will remove the header name supplied.
  */
 void
 soup_message_set_request_header (SoupMessage *req,
@@ -283,7 +348,8 @@ soup_message_get_request_header (SoupMessage *req,
  * @name: header name.
  * @value: header value.
  * 
- * Adds a new transport header to be sent on an outgoing response.
+ * Adds a new transport header to be sent on an outgoing response. Passing a
+ * NULL @value will remove the header name supplied.
  */
 void
 soup_message_set_response_header (SoupMessage *req,
@@ -517,7 +583,7 @@ soup_message_remove_handler (SoupMessage   *msg,
 }
 
 static SoupErrorCode 
-soup_message_redirect (SoupMessage *msg, gpointer user_data)
+redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	const gchar *new_url;
 
@@ -536,11 +602,13 @@ soup_message_redirect (SoupMessage *msg, gpointer user_data)
 		return SOUP_ERROR_NONE;
 
 	new_url = soup_message_get_response_header (msg, "Location");
-	if (new_url) {
-		soup_context_unref (msg->context);
-		msg->context = soup_context_get (new_url);
 
-		if (!msg->context) return SOUP_ERROR_MALFORMED_HEADER;
+	if (new_url) {
+		SoupContext *new_ctx = soup_context_get (new_url);
+		if (!new_ctx) return SOUP_ERROR_MALFORMED_HEADER;
+
+		soup_context_unref (msg->context);
+		msg->context = new_ctx;
 
 		soup_message_queue (msg,
 				    msg->priv->callback, 
@@ -571,11 +639,11 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
 		soup_message_add_header_handler (msg,
 						 "Location",
 						 SOUP_HANDLER_PRE_BODY,
-						 soup_message_redirect,
+						 redirect_handler,
 						 NULL);
 	else if (REMOVED_FLAG (msg, flags, SOUP_MESSAGE_FOLLOW_REDIRECT))
 		soup_message_remove_handler (msg, 
-					     soup_message_redirect,
+					     redirect_handler,
 					     NULL);
 
 	msg->priv->msg_flags = flags;

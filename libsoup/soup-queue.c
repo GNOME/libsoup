@@ -165,6 +165,9 @@ soup_queue_error_cb (gboolean     body_started,
 
 	soup_connection_set_keep_alive (req->priv->conn, FALSE);
 
+	req->priv->read_tag = 0;
+	req->priv->write_tag = 0;
+
 	switch (req->status) {
 	case SOUP_STATUS_IDLE:
 	case SOUP_STATUS_QUEUED:
@@ -205,21 +208,25 @@ soup_queue_error_cb (gboolean     body_started,
 }
 
 static void
-soup_encode_http_auth (const SoupUri *uri, GString *header, gboolean proxy_auth)
+soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 {
-	if (!uri->authmech) {
-		gchar *authpass, *encoded;
-		authpass = g_strconcat (uri->user, ":", uri->passwd, NULL);
-		encoded = soup_base64_encode (authpass, strlen (authpass));
-		g_string_sprintfa (header,
-				   "%s: Basic %s\r\n",
-				   proxy_auth ? 
-				           "Proxy-Authorization" : 
-				           "Authorization",
-				   encoded);
-		g_free (encoded);
-		g_free (authpass);
-	}
+	SoupContext *ctx;
+
+	ctx = proxy_auth ? soup_get_proxy () : msg->context;
+
+	if (ctx->auth) {
+		char *token;
+
+		token = soup_auth_authorize (ctx->auth, msg);
+
+		g_string_sprintfa (
+			header, 
+			"%s: %s\r\n",
+			proxy_auth ? "Proxy-Authorization" : "Authorization",
+			token);
+
+		g_free (token);
+ 	}
 }
 
 struct SoupUsedHeaders {
@@ -325,9 +332,9 @@ soup_get_request_header (SoupMessage *req)
 			   hdrs.host ? "" : "Host: ",
 			   hdrs.host ? "" : suri->host,
 			   hdrs.host ? "" : "\r\n",
-			   hdrs.soapaction ? "" : "SOAPAction: ",
-			   hdrs.soapaction ? "" : req->action,
-			   hdrs.soapaction ? "" : "\r\n",
+			   hdrs.soapaction && req->action ? "" : "SOAPAction: ",
+			   hdrs.soapaction && req->action ? "" : req->action,
+			   hdrs.soapaction && req->action ? "" : "\r\n",
 			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
 			   hdrs.content_type ? "" : "charset=utf-8\r\n",
 			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
@@ -335,13 +342,11 @@ soup_get_request_header (SoupMessage *req)
 
 	/* Proxy-Authorization from the proxy Uri */
 	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
-		soup_encode_http_auth (soup_context_get_uri (proxy), 
-				       header, 
-				       TRUE);
+		soup_encode_http_auth (req, header, TRUE);
 
 	/* Authorization from the context Uri */
 	if (!hdrs.auth && suri->user)
-		soup_encode_http_auth (suri, header, FALSE);
+		soup_encode_http_auth (req, header, FALSE);
 
 	g_string_append (header, "\r\n");
 
