@@ -522,39 +522,10 @@ soup_message_queue (SoupMessage    *req,
 	soup_queue_message (req, callback, user_data);
 }
 
-typedef struct {
-	SoupMessage *msg;
-	SoupAuth    *conn_auth;
-} RequeueConnectData;
-
-static void
-requeue_connect_cb (SoupContext          *ctx,
-		    SoupConnectErrorCode  err,
-		    SoupConnection       *conn,
-		    gpointer              user_data)
-{
-	RequeueConnectData *data = user_data;
-
-	if (conn && !conn->auth)
-		conn->auth = data->conn_auth;
-	else
-		soup_auth_free (data->conn_auth);
-
-	soup_queue_connect_cb (ctx, err, conn, data->msg);
-	if (data->msg->errorcode)
-		soup_message_issue_callback (data->msg);
-
-	g_free (data);
-}
-
 static void
 requeue_read_error (gboolean body_started, gpointer user_data)
 {
-	RequeueConnectData *data = user_data;
-	SoupMessage *msg = data->msg;
-	SoupContext *dest_ctx = msg->connection->context;
-
-	soup_context_ref (dest_ctx);
+	SoupMessage *msg = user_data;
 
 	soup_connection_set_keep_alive (msg->connection, FALSE);
 	soup_connection_release (msg->connection);
@@ -563,29 +534,19 @@ requeue_read_error (gboolean body_started, gpointer user_data)
 	soup_queue_message (msg, 
 			    msg->priv->callback, 
 			    msg->priv->user_data);
-
-	msg->status = SOUP_STATUS_CONNECTING;
-
-	msg->priv->connect_tag =
-		soup_context_get_connection (dest_ctx, 
-					     requeue_connect_cb, 
-					     data);
-
-	soup_context_unref (dest_ctx);
 }
 
 static void
 requeue_read_finished (const SoupDataBuffer *buf,
 		       gpointer        user_data)
 {
-	RequeueConnectData *data = user_data;
-	SoupMessage *msg = data->msg;
+	SoupMessage *msg = user_data;
 	SoupConnection *conn = msg->connection;
 
+	soup_connection_set_used (msg->connection);
 	if (!soup_connection_is_keep_alive (msg->connection))
-		requeue_read_error (FALSE, data);
+		requeue_read_error (FALSE, msg);
 	else {
-		g_free (data);
 		msg->connection = NULL;
 
 		soup_queue_message (msg, 
@@ -608,18 +569,12 @@ soup_message_requeue (SoupMessage *req)
 	g_return_if_fail (req != NULL);
 
 	if (req->connection && req->connection->auth && req->priv->read_tag) {
-		RequeueConnectData *data = NULL;
-
-		data = g_new0 (RequeueConnectData, 1);
-		data->msg = req;
-		data->conn_auth = req->connection->auth;
-
 		soup_transfer_read_set_callbacks (req->priv->read_tag,
 						  NULL,
 						  NULL,
 						  requeue_read_finished,
 						  requeue_read_error,
-						  data);
+						  req);
 		req->priv->read_tag = 0;
 	} else
 		soup_queue_message (req, 
@@ -719,6 +674,9 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
 	auth = soup_auth_lookup (ctx);
+	if (auth && auth->type == SOUP_AUTH_TYPE_NTLM)
+		auth = NULL;
+
 	if (auth) {
 		g_assert (auth->status != SOUP_AUTH_STATUS_INVALID);
 
@@ -793,13 +751,10 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	 */
 	soup_auth_initialize (auth, uri);
 
-	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
-		SoupAuth *old_auth = msg->connection->auth;
-
-		if (old_auth)
-			soup_auth_free (old_auth);
+	if (auth->type == SOUP_AUTH_TYPE_NTLM &&
+	    auth->status == SOUP_AUTH_STATUS_SUCCESSFUL)
 		msg->connection->auth = auth;
-	} else
+	else
 		soup_auth_set_context (auth, ctx);
 
 	soup_message_requeue (msg);

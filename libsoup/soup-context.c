@@ -260,7 +260,8 @@ connection_free (SoupConnection *conn)
 	g_io_channel_unref (conn->channel);
 	soup_context_unref (conn->context);
 	soup_socket_unref (conn->socket);
-	g_source_remove (conn->death_tag);
+	if (conn->death_tag)
+		g_source_remove (conn->death_tag);
 	g_free (conn);
 
 	connection_count--;
@@ -271,12 +272,31 @@ connection_death (GIOChannel*     iochannel,
 		  GIOCondition    condition,
 		  SoupConnection *conn)
 {
-	if (!conn->in_use) {
-		connection_free (conn);
-		return FALSE;
-	}
+	connection_free (conn);
+	return FALSE;
+}
 
-	return TRUE;
+static void
+soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
+{
+	if (in_use == conn->in_use)
+		return;
+
+	conn->in_use = in_use;
+	if (!conn->in_use) {
+		GIOChannel *chan;
+
+		chan = soup_connection_get_iochannel (conn);
+		conn->death_tag = 
+			g_io_add_watch (chan,
+					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+					(GIOFunc) connection_death,
+					conn);
+		g_io_channel_unref (chan);
+	} else {
+		g_source_remove (conn->death_tag);
+		conn->death_tag = 0;
+	}
 }
 
 struct SoupConnectData {
@@ -334,7 +354,6 @@ soup_context_connect_cb (SoupSocket              *socket,
 	struct SoupConnectData *data = user_data;
 	SoupContext            *ctx = data->ctx;
 	SoupConnection         *new_conn;
-	GIOChannel             *chan;
 
 	switch (status) {
 	case SOUP_SOCKET_CONNECT_ERROR_NONE:
@@ -344,18 +363,11 @@ soup_context_connect_cb (SoupSocket              *socket,
 		new_conn->port = ctx->uri->port;
 		new_conn->keep_alive = TRUE;
 		new_conn->in_use = TRUE;
+		new_conn->new = TRUE;
 		new_conn->last_used_id = 0;
 
 		new_conn->context = ctx;
 		soup_context_ref (ctx);
-
-		chan = soup_connection_get_iochannel (new_conn);
-		new_conn->death_tag = 
-			g_io_add_watch (chan,
-					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-					(GIOFunc) connection_death,
-					new_conn);
-		g_io_channel_unref (chan);
 
 		ctx->server->connections =
 			g_slist_prepend (ctx->server->connections, new_conn);
@@ -414,7 +426,7 @@ try_existing_connections (SoupContext           *ctx,
 		    conn->keep_alive == TRUE &&
 		    conn->port == (guint) ctx->uri->port) {
 			/* Set connection to in use */
-			conn->in_use = TRUE;
+			soup_connection_set_in_use (conn, TRUE);
 
 			/* Reset connection context */
 			soup_context_ref (ctx);
@@ -589,7 +601,7 @@ soup_connection_release (SoupConnection *conn)
 
 	if (conn->keep_alive) {
 		conn->last_used_id = ++most_recently_used_id;
-		conn->in_use = FALSE;		
+		soup_connection_set_in_use (conn, FALSE);
 	} else
 		connection_free (conn);
 }
@@ -688,11 +700,25 @@ soup_connection_get_context (SoupConnection *conn)
 }
 
 /**
+ * soup_connection_set_used:
+ * @conn: a %SoupConnection.
+ *
+ * Clears the "new" flag on @conn.
+ */
+void
+soup_connection_set_used (SoupConnection *conn)
+{
+	g_return_if_fail (conn != NULL);
+
+	conn->new = FALSE;
+}
+
+/**
  * soup_connection_is_new:
  * @conn: a %SoupConnection.
  *
  * Returns TRUE if this is the first use of @conn
- * (I.E. %soup_connection_release has not yet been called on it).
+ * (I.E. no response has been read from it yet)
  *
  * Return value: boolean representing whether this is the first time a
  * connection has been used.
@@ -701,7 +727,7 @@ gboolean
 soup_connection_is_new (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);
-	return conn->last_used_id == 0;
+	return conn->new;
 }
 
 

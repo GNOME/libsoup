@@ -448,16 +448,16 @@ typedef struct {
 	gchar    *header;
 } SoupAuthNTLM;
 
-/*
- * SoupAuthNTLMs are one time use. Just return the response, and set our
- * reference to NULL so future requests do not include this header.
- */
 static gchar *
 ntlm_auth (SoupAuth *sa, SoupMessage *msg)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
 	gchar *ret;
 
+	if (sa->status == SOUP_AUTH_STATUS_PENDING)
+		return soup_ntlm_request ();
+
+	/* Otherwise, return the response; but only once */
 	ret = auth->response;
 	auth->response = NULL;
 
@@ -499,38 +499,37 @@ static void
 ntlm_init (SoupAuth *sa, const SoupUri *uri)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
+	gchar *host, *domain, *nonce;
 
 	if (strlen (auth->header) < sizeof ("NTLM"))
-		auth->response = soup_ntlm_request ();
+		return;
+
+	if (auth->response)
+		g_free (auth->response);
+
+	host   = ntlm_get_authmech_token (uri, "host=");
+	domain = ntlm_get_authmech_token (uri, "domain=");
+
+	if (!soup_ntlm_parse_challenge (auth->header, &nonce,
+					domain ? NULL : &domain))
+		auth->response = NULL;
 	else {
-		gchar *host, *domain, *nonce;
-
-		host   = ntlm_get_authmech_token (uri, "host=");
-		domain = ntlm_get_authmech_token (uri, "domain=");
-
-		if (!soup_ntlm_parse_challenge (auth->header,
-						&nonce,
-						domain ? NULL : &domain))
-			auth->response = NULL;
-		else {
-			auth->response = 
-				soup_ntlm_response (nonce,
-						    uri->user,
-						    uri->passwd,
-						    host,
-						    domain);
-			g_free (nonce);
-		}
-
-		g_free (host);
-		g_free (domain);
-
-		/* Set this now so that if the server returns 401,
-		 * soup will fail instead of looping (since that
-		 * probably means the password was incorrect).
-		 */
-		sa->status = SOUP_AUTH_STATUS_SUCCESSFUL;
+		auth->response = soup_ntlm_response (nonce,
+						     uri->user,
+						     uri->passwd,
+						     host,
+						     domain);
+		g_free (nonce);
 	}
+
+	g_free (host);
+	g_free (domain);
+
+	/* Set this now so that if the server returns 401,
+	 * soup will fail instead of looping (since that
+	 * probably means the password was incorrect).
+	 */
+	sa->status = SOUP_AUTH_STATUS_SUCCESSFUL;
 
 	g_free (auth->header);
 	auth->header = NULL;

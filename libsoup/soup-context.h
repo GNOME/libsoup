@@ -57,6 +57,7 @@ void           soup_connection_set_keep_alive (SoupConnection       *conn,
 
 gboolean       soup_connection_is_keep_alive  (SoupConnection       *conn);
 
+void           soup_connection_set_used       (SoupConnection       *conn);
 gboolean       soup_connection_is_new         (SoupConnection       *conn);
 
 void           soup_connection_release        (SoupConnection       *conn);

@@ -82,6 +82,7 @@ struct _SoupConnection {
 	guint         last_used_id;
 	gboolean      keep_alive;
 	guint         death_tag;
+	gboolean      new;
 };
 
 struct _SoupServer {

@@ -112,6 +112,9 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 		soup_message_issue_callback (req);
 		break;
 	}
+
+	if (req->connection)
+		soup_connection_set_used (req->connection);
 }
 
 static SoupTransferDone
@@ -246,6 +249,8 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 			 gpointer              user_data)
 {
 	SoupMessage *req = user_data;
+
+	soup_connection_set_used (req->connection);
 
 	req->response.owner = data->owner;
 	req->response.length = data->length;

@@ -1,3 +1,49 @@
+2003-05-08  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-auth.c (ntlm_auth): If the auth status is PENDING,
+	return an NTLM request string. Otherwise return the "response"
+	field (which should include the NTLM authenticate message)
+	(ntlm_init): Don't bother setting "response" to the NTLM request
+	string. Just leave it NULL in that case.
+
+	* libsoup/soup-message.c (authorize_handler): Never try to reuse
+	an NTLM auth returned from soup_auth_lookup. Only set the auth on
+	the connection when it's SOUP_AUTH_STATUS_SUCCESSFUL. Otherwise,
+	call soup_auth_set_context() on it just like for non-NTLM auth.
+	The net effect of all of this is that now we record when a context
+	needs NTLM auth just like with non-NTLM auth, so that that info
+	gets preserved across connections.
+	(soup_message_requeue): No longer need the hackery here to
+	preserve the connection auth state.
+
+2003-05-07  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-context.c (soup_connection_set_in_use): New, to
+	toggle the connection's in_use flag, and set up the death watch
+	when it's not in use.
+	(connection_death): This is only hooked up when the connection is
+	not in use now, so don't need to check that. Should fix the
+	infinite connection_death loop.
+	(soup_connection_is_new): Keep a distinct "new" flag rather than
+	defining "new" as "has been released at least once".
+	(soup_connection_set_used): Mark a connection no-longer new.
+	(soup_context_connect_cb): Mark the connection as new. Don't set
+	up the death watch since it's in_use.
+	(try_existing_connections): Use soup_connection_set_in_use.
+	(soup_connection_release): Likewise
+
+	* libsoup/soup-message.c (requeue_read_finished): Call
+	soup_connection_set_used so that the connection isn't still
+	considered new when we send the message the second time.
+
+	* libsoup/soup-queue.c (soup_queue_error_cb): Call
+	soup_connection_set_used (assuming we don't close the connection)
+	(soup_queue_read_done_cb): Likewise.
+
+	* libsoup/soup-transfer.c (soup_transfer_read_cb): If we read
+	nothing, call soup_transfer_read_error_cb rather than just
+	cancelling, or else it will get cancelled again later.
+
 2003-05-07  Dan Winship  <danw@ximian.com>
 
 	* soup-2.0.pc.in (Libs): Don't put @OPENSSL_LIBS@ here; the

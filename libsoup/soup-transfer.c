@@ -448,8 +448,10 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
  PROCESS_READ:
 
-	if (r->header_len == 0 && total_read == 0)
-		goto FINISH_READ;
+	if (r->header_len == 0 && total_read == 0) {
+		soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
+		return FALSE;
+	}
 
 	if (r->header_len == 0) {
 		gint index;
