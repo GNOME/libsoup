@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,10 +17,21 @@ main (int argc, char **argv)
 	time_t now;
 	char *timebuf;
 	GIOChannel *chan;
-	int wrote;
+	gsize wrote;
+
+	if (argc >=2 && !strcmp (argv[1], "-6")) {
+		addr = soup_address_ipv6_any ();
+		if (!addr) {
+			fprintf (stderr, "No IPv6 support\n");
+			exit (1);
+		}
+		argc--;
+		argv++;
+	} else
+		addr = soup_address_ipv6_any ();
 
 	if (argc > 2) {
-		fprintf (stderr, "Usage: %s [port]\n", argv[0]);
+		fprintf (stderr, "Usage: %s [-6] [port]\n", argv[0]);
 		exit (1);
 	}
 
@@ -24,7 +39,7 @@ main (int argc, char **argv)
 		port = atoi (argv[1]);
 	else
 		port = 0;
-	listener = soup_socket_server_new (soup_address_ipv4_any (), port);
+	listener = soup_socket_server_new (addr, port);
 	if (!listener) {
 		fprintf (stderr, "Could not create listening socket\n");
 		exit (1);
