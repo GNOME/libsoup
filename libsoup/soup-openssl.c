@@ -14,8 +14,15 @@
 
 #ifdef HAVE_OPENSSL_SSL_H
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <glib.h>
+#include <sys/time.h>
+
 #include <openssl/ssl.h>
+#include <openssl/rand.h>
 #include <openssl/err.h>
 
 #include "soup-openssl.h"
@@ -195,6 +202,37 @@ GIOFuncs soup_openssl_channel_funcs = {
 
 static SSL_CTX *ssl_context = NULL;
 
+static gboolean
+soup_openssl_seed (void) 
+{
+	pid_t pid;
+	struct timeval tv;
+	guchar stack [1024], *heap;
+
+	if (RAND_status () == 0) {
+		/* Seed with pid */
+		pid = getpid ();
+		RAND_seed ((guchar *) &pid, sizeof (pid_t));
+
+		/* Seed with current time */
+		if (gettimeofday (&tv, NULL) == 0)
+			RAND_seed ((guchar *) &tv, sizeof (struct timeval));
+
+		/* Seed with untouched stack (1024) */
+		RAND_seed (stack, sizeof (stack));
+
+		/* Seed with untouched heap (1024) */
+		if (RAND_status () == 0) {
+			heap = g_malloc (1024);
+			if (heap) 
+				RAND_seed (heap, 1024);
+			g_free (heap);
+		}
+	}
+
+	return RAND_status ();
+}
+
 GIOChannel *
 soup_openssl_get_iochannel (GIOChannel *sock)
 {
@@ -207,10 +245,15 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 
         g_return_val_if_fail (sock != NULL, NULL);
 
-	if (!ssl_context && !soup_openssl_init ()) goto THROW_CREATE_ERROR;
+	if (!ssl_context && !soup_openssl_init ()) 
+		goto THROW_CREATE_ERROR;
+
+	if (!soup_openssl_seed ())
+		g_warning ("SSL random number seed failed.");
 	
 	sockfd = g_io_channel_unix_get_fd (sock);
-	if (!sockfd) goto THROW_CREATE_ERROR;
+	if (!sockfd) 
+		goto THROW_CREATE_ERROR;
 
 	ssl = SSL_new (ssl_context);
 	if (!ssl) {
