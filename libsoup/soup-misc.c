@@ -98,8 +98,7 @@ soup_set_security_policy (SoupSecurityPolicy policy)
 }
 
 /**
- * soup_set_security_policy:
- * @policy: the %SoupSecurityPolicy to use.
+ * soup_get_security_policy:
  * 
  * Return value: The security policy to use for secure SSL connections.
  */

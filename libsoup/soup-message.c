@@ -118,7 +118,7 @@ soup_message_remove_header (gchar *name, gchar *value, gpointer unused)
  * soup_message_free:
  * @req: a %SoupMessage to destroy.
  * 
- * Destroys the %SoupMessage pointed to by %req. Request and response headers
+ * Destroys the %SoupMessage pointed to by @req. Request and response headers
  * are freed. Request and response data buffers are also freed if their
  * ownership is %SOUP_BUFFER_SYSTEM_OWNED. The message's destination context
  * will be de-referenced.
@@ -246,7 +246,6 @@ soup_message_set_request_header (SoupMessage *req,
  * soup_message_get_request_header:
  * @req: a %SoupMessage.
  * @name: header name.
- * @value: header value.
  * 
  * Lookup the transport request header with a key equal to @name.
  *
@@ -286,7 +285,6 @@ soup_message_set_response_header (SoupMessage *req,
  * soup_message_get_response_header:
  * @req: a %SoupMessage.
  * @name: header name.
- * @value: header value.
  * 
  * Lookup the transport response header with a key equal to @name.
  *
@@ -305,7 +303,7 @@ soup_message_get_response_header (SoupMessage *req,
 
 /**
  * soup_message_send:
- * @req: a %SoupMessage.
+ * @msg: a %SoupMessage.
  * 
  * Syncronously send @msg. This call will not return until the transfer is
  * finished successfully or there is an unrecoverable error. 

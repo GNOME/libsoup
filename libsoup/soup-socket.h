@@ -94,7 +94,7 @@ typedef void (*SoupSocketConnectFn) (SoupSocket              *socket,
 SoupSocketConnectId  soup_socket_connect        (const gchar*        hostname,
 						 const gint          port, 
 						 SoupSocketConnectFn func, 
-						 gpointer            user_data);
+						 gpointer            data);
 
 void                 soup_socket_connect_cancel (SoupSocketConnectId id);
 
@@ -116,7 +116,7 @@ typedef void (*SoupSocketNewFn) (SoupSocket*         socket,
 
 SoupSocketNewId     soup_socket_new             (SoupAddress        *addr, 
 						 SoupSocketNewFn     func,
-						 gpointer            user_data);
+						 gpointer            data);
 
 void                soup_socket_new_cancel      (SoupSocketNewId     id);
 

@@ -106,7 +106,6 @@ soup_uri_get_default_port (SoupProtocol proto)
 
 /**
  * soup_uri_new: create a SoupUri object from a string
- *
  * @uri_string: The string containing the URL to scan
  * 
  * This routine takes a gchar and parses it as a

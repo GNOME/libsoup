@@ -81,13 +81,13 @@ SoupMessage   *soup_message_new_full           (SoupContext       *context,
 						gchar             *req_body,
 						gulong             req_length);
 
-void           soup_message_free               (SoupMessage       *msg);
+void           soup_message_free               (SoupMessage       *req);
 
-void           soup_message_cancel             (SoupMessage       *msg);
+void           soup_message_cancel             (SoupMessage       *req);
 
 SoupErrorCode  soup_message_send               (SoupMessage       *msg);
 
-void           soup_message_queue              (SoupMessage       *msg, 
+void           soup_message_queue              (SoupMessage       *req, 
 					        SoupCallbackFn     callback, 
 					        gpointer           user_data);
 

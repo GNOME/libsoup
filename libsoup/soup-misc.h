@@ -21,7 +21,7 @@ void               soup_load_config          (gchar       *config_file);
 
 void               soup_shutdown             (void);
 
-void               soup_set_proxy            (SoupContext *ctx);
+void               soup_set_proxy            (SoupContext *context);
 
 SoupContext       *soup_get_proxy            (void);
 
