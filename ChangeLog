@@ -1,3 +1,13 @@
+2001-11-08  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socks.c (socks_data_free): Add cleanup function
+	to avoid leaving context/address references around.
+	(WSHORT): Use memcpy.
+	(soup_socks_read): Pass len as sizeof (buf).
+	(soup_socks_error): Add error handler just in case.
+	(soup_connect_socks_proxy): Unref the io channel.
+	(soup_lookup_dest_addr_cb): Ditto.
+
 2001-11-07  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-auth.c (ntlm_init): Mark the auth completed
