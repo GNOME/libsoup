@@ -47,7 +47,7 @@ struct SoupConnectionPrivate {
 
 	SoupMessage *cur_req;
 	time_t       last_used;
-	gboolean     in_use;
+	gboolean     connected, in_use;
 };
 
 #define PARENT_TYPE G_TYPE_OBJECT
@@ -355,8 +355,14 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 	clear_current_request (conn);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (!soup_socket_start_ssl (conn->priv->socket))
+		if (soup_socket_start_proxy_ssl (conn->priv->socket,
+						 conn->priv->origin_uri->host))
+			conn->priv->connected = TRUE;
+		else
 			status = SOUP_STATUS_SSL_FAILED;
+	} else if (SOUP_STATUS_IS_REDIRECTION (status)) {
+		/* Oops, the proxy thinks we're a web browser. */
+		status = SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED;
 	}
 
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
@@ -427,6 +433,8 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		soup_connection_send_request (conn, connect_msg);
 		return;
 	}
+
+	conn->priv->connected = TRUE;
 
  done:
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
@@ -522,7 +530,9 @@ soup_connection_connect_sync (SoupConnection *conn)
 		g_object_unref (connect_msg);
 	}
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+	if (SOUP_STATUS_IS_SUCCESSFUL (status))
+		conn->priv->connected = TRUE;
+	else {
 	fail:
 		if (conn->priv->socket) {
 			g_object_unref (conn->priv->socket);
@@ -556,6 +566,12 @@ soup_connection_disconnect (SoupConnection *conn)
 	soup_socket_disconnect (conn->priv->socket);
 	g_object_unref (conn->priv->socket);
 	conn->priv->socket = NULL;
+
+	/* Don't emit "disconnected" if we aren't yet connected */
+	if (!conn->priv->connected)
+		return;
+
+	conn->priv->connected = FALSE;
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 
 	if (!conn->priv->cur_req ||
