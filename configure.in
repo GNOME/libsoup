@@ -199,7 +199,7 @@ fi
 
 AC_PATH_PROG(APXS,apxs,no)
 if test x$APXS != xno; then
-	APACHE_CFLAGS="-I`apxs -q CFLAGS`"
+	APACHE_CFLAGS="-I`apxs -q INCLUDEDIR`"
 	APACHE_LIBS=`apxs -q LDFLAGS_SHLIB LIBS_SHLIB`
 
 	save_CPPFLAGS=$CPPFLAGS
@@ -244,8 +244,7 @@ AC_OUTPUT([
 	src/soup-core/Makefile
 	src/soup-wsdl/Makefile
 	tests/Makefile
-	],
-	[chmod +x soup-config soupConf.sh soup_apacheConf.sh])
+	])
 
 echo "
 
