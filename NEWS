@@ -1,3 +1,13 @@
+Changes in libsoup from 2.2.0 to 2.2.1:
+
+	* Updated for a libgcrypt API change between 1.1.9x and 1.2.x
+          that caused a crash at runtime if you compiled against
+          1.2.x. [66342]
+
+	* SSL certificate validation failure should now always result
+          in a status of SOUP_STATUS_SSL_FAILED, rather than getting
+          turned into SOUP_STATUS_IO_ERROR. [64414]
+
 Changes in libsoup from the 2.0 series (1.99.x versions) to 2.2:
 
 	* Most of the libsoup datatypes are now GObjects. (SoupUri

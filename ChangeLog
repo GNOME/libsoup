@@ -1,5 +1,11 @@
 2004-10-06  Dan Winship  <danw@novell.com>
 
+	* configure.in: Bump version to 2.2.1
+
+	* NEWS: update
+
+2004-10-06  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-ssl.h (SoupSocketError): add
 	SOUP_SSL_ERROR_CERTIFICATE.
 
