@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-message.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-message.h: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@ximian.com)
@@ -173,103 +173,39 @@ guint          soup_message_get_flags           (SoupMessage        *msg);
  * Handler Registration 
  */
 typedef enum {
-	SOUP_HANDLER_PREPARE = 0,
-	SOUP_HANDLER_HEADERS,
-	SOUP_HANDLER_DATA,
-	SOUP_HANDLER_FINISHED,
-} SoupHandlerEvent;
-
-typedef enum {
-	SOUP_FILTER_HEADER      = (1 << 0),
-	SOUP_FILTER_ERROR_CODE  = (1 << 1),
-	SOUP_FILTER_ERROR_CLASS = (1 << 2),
-	SOUP_FILTER_TIMEOUT     = (1 << 3),
-} SoupHandlerFilterType;
-
-typedef struct {
-	gint type;
-
-	union {
-		guint               errorcode;
-		SoupErrorClass      errorclass;
-		const gchar        *header;
-		guint               timeout;
-	} data;
-} SoupHandlerFilter;
-
-typedef enum {
-	/*
-	 * Continue processing as normal.
-	 */
-	SOUP_HANDLER_CONTINUE,
-
-	/*
-	 * Do not process further handlers.  Continue receiving data.
-	 */
-	SOUP_HANDLER_STOP,
-
-	/*
-	 * do not process further handlers.  Stop receiving data and 
-	 * issue final callback.
-	 */
-	SOUP_HANDLER_KILL,
-
-	/*
-	 * Restart handler processing.  This should be returned if a 
-	 * handler changes the message's errorcode.
-	 */
-	SOUP_HANDLER_RESTART,
-
-	/*
-	 * Requeue the request immediately.  Stop processing handlers 
-	 * and do not issue final callback.
-	 */
-	SOUP_HANDLER_RESEND
-} SoupHandlerResult;
-
-typedef SoupHandlerResult (*SoupHandlerFn) (SoupMessage *req, 
-					    gpointer     user_data);
+	SOUP_HANDLER_PRE_BODY = 1,
+	SOUP_HANDLER_BODY_CHUNK,
+	SOUP_HANDLER_POST_BODY
+} SoupHandlerType;
 
 void           soup_message_add_handler         (SoupMessage       *msg,
-						 SoupHandlerEvent   type,
-						 SoupHandlerFilter *filter,
-						 SoupHandlerFn      handler_cb,
+						 SoupHandlerType    type,
+						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
-typedef enum {
-	/*
-	 * Run before global handlers and previously registered message
-	 * handlers. 
-	 */
-	SOUP_HANDLER_FIRST,
-
-	/*
-	 * Run after global handlers and previously registered message
-	 * handlers. 
-	 */
-	SOUP_HANDLER_LAST
-} SoupHandlerWhen;
-
-void           soup_message_add_handler_full    (SoupMessage       *msg,
-						 const gchar       *name,
-						 SoupHandlerEvent   type,
-						 SoupHandlerWhen    order,
-						 SoupHandlerFilter *filter,
-						 SoupHandlerFn      handler_cb,
+void           soup_message_add_header_handler  (SoupMessage       *msg,
+						 const gchar       *header,
+						 SoupHandlerType    type,
+						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
-GSList        *soup_message_list_handlers       (SoupMessage       *msg);
+void           soup_message_add_error_code_handler (
+						 SoupMessage       *msg,
+						 guint              errorcode,
+						 SoupHandlerType    type,
+						 SoupCallbackFn     handler_cb,
+						 gpointer           user_data);
+
+void           soup_message_add_error_class_handler (
+						 SoupMessage       *msg,
+						 SoupErrorClass     errorclass,
+						 SoupHandlerType    type,
+						 SoupCallbackFn     handler_cb,
+						 gpointer           user_data);
 
 void           soup_message_remove_handler      (SoupMessage       *msg, 
-						 gchar             *name);
-
-void           soup_message_remove_handler_by_func (
-						 SoupMessage       *msg, 
-						 SoupHandlerFn      handler_cb);
-
-void           soup_message_remove_handler_by_func_and_data (
-						 SoupMessage       *msg, 
-						 SoupHandlerFn      handler_cb,
+						 SoupHandlerType    type,
+						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 /*
@@ -285,5 +221,25 @@ void           soup_message_set_error_full      (SoupMessage       *msg,
 void           soup_message_set_handler_error   (SoupMessage       *msg, 
 						 guint              errcode, 
 						 const gchar       *errphrase);
+
+/** DEPRECATED API **/
+
+/** DEPRECATED **/
+void           soup_message_set_request_header  (SoupMessage       *req,
+						 const gchar       *name,
+						 const gchar       *value);
+
+/** DEPRECATED **/
+const gchar   *soup_message_get_request_header  (SoupMessage       *req,
+						 const gchar       *name);
+
+/** DEPRECATED **/
+void           soup_message_set_response_header (SoupMessage       *req,
+						 const gchar       *name,
+						 const gchar       *value);
+
+/** DEPRECATED **/
+const gchar   *soup_message_get_response_header (SoupMessage       *req,
+						 const gchar       *name);
 
 #endif /*SOUP_MESSAGE_H*/

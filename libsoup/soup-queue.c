@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-queue.c: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -79,9 +79,19 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	case SOUP_STATUS_SENDING_REQUEST:
 		if (!body_started) {
 			/*
-			 * FIXME: Use exponential backoff here
+			 * This can easily happen if we are using the OpenSSL
+			 * out-of-process proxy and we couldn't establish an
+			 * SSL connection.
 			 */
-			soup_message_requeue (req);
+			if (req->priv->retries >= 3) {
+				soup_message_set_error (
+					req,
+					SOUP_ERROR_CANT_CONNECT);
+				soup_message_issue_callback (req);
+			} else {
+				req->priv->retries++;
+				soup_message_requeue (req);
+			}
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);
 			soup_message_issue_callback (req);
@@ -198,7 +208,7 @@ soup_queue_read_headers_cb (const GString        *headers,
 	}
 
  SUCCESS_CONTINUE:
-	soup_message_run_handlers (req, SOUP_HANDLER_HEADERS);
+	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
 	return SOUP_TRANSFER_CONTINUE;
 
  THROW_MALFORMED_HEADER:
@@ -217,7 +227,7 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	soup_message_run_handlers (req, SOUP_HANDLER_DATA);
+	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
 
 	return SOUP_TRANSFER_CONTINUE;
 }
@@ -255,7 +265,7 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 		req->priv->read_tag = 0;
 	}
 
-	soup_message_run_handlers (req, SOUP_HANDLER_FINISHED);
+	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
 }
 
 static void
@@ -497,7 +507,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 	req->status = SOUP_STATUS_SENDING_REQUEST;
 }
 
-static SoupHandlerResult
+static void
 proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 {
 	gboolean *ret = user_data;
@@ -516,8 +526,6 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 		
 		*ret = TRUE;
 	}
-
-	return SOUP_HANDLER_CONTINUE;
 }
 
 static gboolean
@@ -538,8 +546,7 @@ proxy_https_connect (SoupContext    *proxy,
 	connect_msg = soup_message_new (dest_ctx, SOUP_METHOD_CONNECT);
 	connect_msg->connection = conn;
 	soup_message_add_handler (connect_msg, 
-				  SOUP_HANDLER_FINISHED,
-				  NULL,
+				  SOUP_HANDLER_POST_BODY,
 				  proxy_https_connect_cb,
 				  &ret);
 	soup_message_send (connect_msg);

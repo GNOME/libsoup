@@ -12,10 +12,7 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-
 #include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -32,6 +29,8 @@ static gint ssl_library = 0; /* -1 = fail,
 				 0 = first time, 
 				 1 = openssl */
 static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
+
+static gboolean server_mode = FALSE;
 
 static GMainLoop *loop;
 
@@ -58,7 +57,8 @@ soup_ssl_proxy_init (void)
 	ssl_library = -1;
 
 #ifdef HAVE_OPENSSL_SSL_H
-	if (ssl_library == -1) ssl_library = soup_openssl_init () ? 1 : -1;
+	if (ssl_library == -1)
+		ssl_library = soup_openssl_init (server_mode) ? 1 : -1;
 #endif
 
 	if (ssl_library == -1) return;
@@ -115,7 +115,8 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 		write_total += bytes_written;
 	}
 
-	if (condition & (G_IO_HUP | G_IO_ERR)) goto FINISH;
+	if (condition & G_IO_ERR)
+		goto FINISH;
 
 	return TRUE;
 
@@ -130,6 +131,11 @@ main (int argc, char** argv)
 	gchar *env;
 	GIOChannel *read_chan, *write_chan, *sock_chan;
 	int sockfd, secpol, flags;
+
+	if (getenv ("SOUP_PROXY_DELAY")) {
+		g_warning ("Proxy delay set: sleeping for 20 seconds");
+		sleep (20);
+	}
 
 	loop = g_main_new (FALSE);
 
@@ -148,6 +154,10 @@ main (int argc, char** argv)
 	secpol = atoi (env);
 	soup_ssl_proxy_set_security_policy (secpol);
 
+	env = getenv ("IS_SERVER");
+	if (env)
+		server_mode = TRUE;
+
 	read_chan = g_io_channel_unix_new (STDIN_FILENO);
 	if (!read_chan) 
 		g_error ("Unable to open STDIN");
@@ -156,13 +166,13 @@ main (int argc, char** argv)
 	if (!write_chan) 
 		g_error ("Unable to open STDOUT");
 
-	/* Block on socket write */
+	/* We use select. All fds should block. */
 	flags = fcntl(sockfd, F_GETFL, 0);
 	fcntl (sockfd, F_SETFL, flags & ~O_NONBLOCK);
-
-	/* Don't block on STDIN read */
 	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl (STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+	fcntl (STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+	flags = fcntl(STDOUT_FILENO, F_GETFL, 0);
+	fcntl (STDOUT_FILENO, F_SETFL, flags & ~O_NONBLOCK);
 
 	sock_chan = g_io_channel_unix_new (sockfd);
 	sock_chan = soup_ssl_proxy_get_iochannel (sock_chan);
@@ -170,12 +180,12 @@ main (int argc, char** argv)
 		g_error ("Unable to establish SSL connection");
 
 	g_io_add_watch (read_chan, 
-			G_IO_IN | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			sock_chan);
 
 	g_io_add_watch (sock_chan, 
-			G_IO_IN | G_IO_HUP | G_IO_ERR, 
+			G_IO_IN | G_IO_PRI | G_IO_ERR, 
 			(GIOFunc) soup_ssl_proxy_readwrite,
 			write_chan);
 

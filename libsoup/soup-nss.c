@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-nss.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-nss.c: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@ximian.com)
@@ -295,7 +295,7 @@ soup_nss_bad_cert (void *data, PRFileDesc *fd)
 }
 
 GIOChannel *
-soup_nss_get_iochannel (GIOChannel *sock)
+soup_nss_get_iochannel (GIOChannel *sock, SoupSSLType type)
 {
 	SoupNSSChannel *chan;
 	GIOChannel *gchan;
@@ -322,7 +322,10 @@ soup_nss_get_iochannel (GIOChannel *sock)
 	}
 
 	SSL_OptionSet (fdesc, SSL_SECURITY, PR_TRUE);
-	SSL_OptionSet (fdesc, SSL_HANDSHAKE_AS_CLIENT, PR_TRUE);
+	if (type == SOUP_SSL_TYPE_CLIENT)
+		SSL_OptionSet (fdesc, SSL_HANDSHAKE_AS_CLIENT, PR_TRUE);
+	else
+		SSL_OptionSet (fdesc, SSL_HANDSHAKE_AS_SERVER, PR_TRUE);
 	SSL_BadCertHook (fdesc, soup_nss_bad_cert, NULL);
 
 	if (SSL_ResetHandshake (fdesc, PR_FALSE) == PR_FAILURE) {

@@ -9,7 +9,7 @@ DOC_MODULE=soup
 DOC_MAIN_SGML_FILE=soup-docs.sgml
 
 # The directory containing the source code. Relative to $(srcdir)
-DOC_SOURCE_DIR=../../src
+DOC_SOURCE_DIR=../../libsoup
 
 # Extra options to supply to gtkdoc-scan
 SCAN_OPTIONS=--deprecated-guards="G_DISABLE_DEPRECATED"

@@ -1,18 +1,12 @@
-Soup is a SOAP (Simple Object Access Protocol) implementation in C. 
+Libsoup is an HTTP library implementation in C. It was originally part
+of a SOAP (Simple Object Access Protocol) implementation called Soup, but
+the SOAP and non-SOAP parts have now been split into separate packages.
 
-It provides an queued asynchronous callback-based mechanism for sending and
-servicing SOAP requests, and a WSDL (Web Service Definition Language) to C
-compiler which generates client stubs and server skeletons for easily calling
-and implementing SOAP methods.
-
-It uses the Glib main loop and is designed to work well with GTK
-applications.  This enables GNOME applications to access SOAP servers
-on the network in a completely asynchronous fashion, very similar to the
-Gtk+ programming model (a synchronous operation mode is also supported
-for those who want it).
-
-The WSDL compiler will help you make your applications interoperate
-with services that expose their descriptions through WSDL.
+libsoup uses the Glib main loop and is designed to work well with GTK
+applications. This enables GNOME applications to access HTTP servers
+on the network in a completely asynchronous fashion, very similar to
+the Gtk+ programming model (a synchronous operation mode is also
+supported for those who want it).
 
 Features:
   * Completely Asynchronous
@@ -20,24 +14,14 @@ Features:
   * HTTP chunked transfer support
   * HTTP, SOCKS4, and SOCKS5 authenticated proxy support
   * SSL Support using OpenSSL or Mozilla NSS
-  * Apache module server support
   * Client support for Digest, NTLM, and Basic authentication
-  * Standalone SOAP server support
 
 Planned Features:
   * Server digest authentication
   * Gconf configuration and proxy integration
-  * UDDI Support
-  * Disco support
-  * GTK or Bonobo object generation
 
-To subscribe to the Soup discussion list, send mail with the word "Subscribe" in
-the message body to soup-list-request@ximian.com.
+To subscribe to the Soup discussion list, send mail with the word
+"Subscribe" in the message body to soup-list-request@ximian.com.
 
 Licensing:
-  * The Soup runtime is licensed LGPL, see COPYING.LIB for more details.
-  * The WSDL compiler is licensed GPL, see COPYING for more details.
-  * The soup-ssl-proxy application is licensed GPL, see COPYING for more
-    details. This is in order to comply with the licensing restrictions
-    imposed by the SSL libraries used by Soup, while allowing the Soup
-    application libraries and runtime to remain LGPL.
+libsoup is licensed under the LGPL, see COPYING for more details.

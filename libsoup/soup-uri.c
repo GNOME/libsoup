@@ -58,6 +58,7 @@ SoupKnownProtocols known_protocols [] = {
 	{ SOUP_PROTOCOL_SMTP,   "mailto:",   25 },
 	{ SOUP_PROTOCOL_SOCKS4, "socks4://", -1 },
 	{ SOUP_PROTOCOL_SOCKS5, "socks5://", -1 },
+	{ SOUP_PROTOCOL_FILE,   "file://",   -1 },
 	{ 0 }
 };
 
@@ -325,7 +326,10 @@ soup_uri_new (const gchar* uri_string)
 	}
 
 	/* Must have a protocol */
-	if (!g_uri->protocol) return NULL;
+	if (!g_uri->protocol) {
+		g_free (g_uri);
+		return NULL;
+	}
 
 	/* If there is an @ sign, look for user, authmech, and
 	 * password before it.

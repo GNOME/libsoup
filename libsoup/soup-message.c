@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-message.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-message.c: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -16,18 +16,6 @@
 #include "soup-private.h"
 #include "soup-queue.h"
 #include "soup-transfer.h"
-
-typedef struct {
-	SoupHandlerEvent   type;
-	gchar             *name;
-	SoupHandlerWhen    order;
-	SoupHandlerFilter  filter;
-	SoupHandlerFn      handler_cb;
-	gpointer           user_data;
-
-	SoupMessage       *msg;	
-	guint              timeout_tag;
-} SoupHandlerData;
 
 /**
  * soup_message_new:
@@ -193,6 +181,11 @@ soup_message_cleanup (SoupMessage *req)
 						  req->connection);
 		req->priv->read_tag = 0;
 		req->connection = NULL;
+		/* 
+		 * The buffer doesn't belong to us until the message is 
+		 * finished.
+		 */
+		req->response.owner = SOUP_BUFFER_STATIC;
 	}
 
 	if (req->priv->read_tag) {
@@ -219,22 +212,6 @@ soup_message_cleanup (SoupMessage *req)
 }
 
 static void
-handler_free (SoupHandlerData *data)
-{
-	if (data->filter.type == SOUP_FILTER_HEADER)
-		g_free ((gchar *) data->filter.data.header);
-
-	if (data->timeout_tag)
-		g_source_remove (data->timeout_tag);
-
-	data->msg->priv->content_handlers = 
-		g_slist_remove (data->msg->priv->content_handlers, data);
-
-	g_free (data->name);
-	g_free (data);
-}
-
-static void
 finalize_message (SoupMessage *req)
 {
 	if (req->context)
@@ -251,10 +228,8 @@ finalize_message (SoupMessage *req)
 	soup_message_clear_headers (req->response_headers);
 	g_hash_table_destroy (req->response_headers);
 
-	while (req->priv->content_handlers) {
-		SoupHandlerData *data = req->priv->content_handlers->data;
-		handler_free (data);
-	}
+	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
+	g_slist_free (req->priv->content_handlers);
 
 	g_free ((gchar *) req->errorphrase);
 	g_free (req->priv);
@@ -322,6 +297,11 @@ void
 soup_message_cancel (SoupMessage *msg) 
 {
 	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
+
+	/* Kill the connection as a safety measure */
+	if (msg->connection)
+		soup_connection_set_keep_alive (msg->connection, FALSE);
+
 	soup_message_issue_callback (msg);
 }
 
@@ -513,6 +493,122 @@ soup_message_foreach_remove_header (GHashTable        *hash,
 }
 
 /**
+ * soup_message_set_request_header:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * @value: header value.
+ *
+ * ** DEPRECATED **
+ * 
+ * Adds a new transport header to be sent on an outgoing request. Passing a NULL
+ * @value will remove all headers with a name equal to @name.
+ */
+void
+soup_message_set_request_header (SoupMessage *req,
+				 const gchar *name,
+				 const gchar *value) 
+{
+	g_return_if_fail (req != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');
+
+	g_warning ("soup_message_set_request_header is DEPRECATED. Use "
+		   "soup_message_add_header, with msg->request_headers as "
+		   "the first argument.\n");
+
+	soup_message_add_header (req->request_headers, name, value);
+}
+
+/**
+ * soup_message_get_request_header:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * 
+ * ** DEPRECATED **
+ * 
+ * Lookup the first transport request header with a key equal to @name.
+ *
+ * Return value: the header's value or NULL if not found.
+ */
+const gchar *
+soup_message_get_request_header (SoupMessage *req,
+				 const gchar *name) 
+{
+	GSList *vals;
+	g_return_val_if_fail (req != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
+
+	g_warning ("soup_message_get_request_header is DEPRECATED. Use "
+		   "soup_message_get_header, with msg->request_headers as "
+		   "the first argument.\n");
+
+	if (req->request_headers) {
+		vals = g_hash_table_lookup (req->request_headers, name);
+		if (vals) 
+			return vals->data;
+	}
+
+	return NULL;
+}
+
+/**
+ * soup_message_set_response_header:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * @value: header value.
+ * 
+ * ** DEPRECATED **
+ * 
+ * Adds a new transport header to be sent on an outgoing response. Passing a
+ * NULL @value will remove all headers with a name equal to @name.
+ */
+void
+soup_message_set_response_header (SoupMessage *req,
+				  const gchar *name,
+				  const gchar *value) 
+{
+	g_return_if_fail (req != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');
+
+	g_warning ("soup_message_set_response_header is DEPRECATED. Use "
+		   "soup_message_add_header, with msg->response_headers as "
+		   "the first argument.\n");
+
+	soup_message_add_header (req->response_headers, name, value);
+}
+
+/**
+ * soup_message_get_response_header:
+ * @req: a %SoupMessage.
+ * @name: header name.
+ * 
+ * ** DEPRECATED **
+ * 
+ * Lookup the transport response header with a key equal to @name.
+ *
+ * Return value: the header's value or NULL if not found.
+ */
+const gchar *
+soup_message_get_response_header (SoupMessage *req,
+				  const gchar *name) 
+{
+	GSList *vals;
+	g_return_val_if_fail (req != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
+
+	g_warning ("soup_message_get_response_header is DEPRECATED. Use "
+		   "soup_message_get_header, with msg->response_headers as "
+		   "the first argument.\n");
+
+	if (req->response_headers) {
+		vals = g_hash_table_lookup (req->response_headers, name);
+		if (vals) 
+			return vals->data;
+	}
+
+	return NULL;
+}
+
+/**
  * soup_message_queue:
  * @req: a %SoupMessage.
  * @callback: a %SoupCallbackFn which will be called after the message completes
@@ -604,6 +700,7 @@ requeue_read_finished (const SoupDataBuffer *buf,
 	if (!soup_connection_is_keep_alive (msg->connection))
 		requeue_read_error (FALSE, data);
 	else {
+		g_free (data);
 		msg->connection = NULL;
 
 		soup_queue_message (msg, 
@@ -677,14 +774,55 @@ soup_message_send (SoupMessage *msg)
 	return msg->errorclass;
 }
 
-static SoupHandlerResult 
-authorize_handler (SoupMessage *msg, gpointer user_data)
+static void
+maybe_validate_auth (SoupMessage *msg, gpointer user_data)
 {
 	gboolean proxy = GPOINTER_TO_INT (user_data);
+	int auth_failure;
+	SoupContext *ctx;
+	SoupAuth *auth;
+
+	if (proxy) {
+		ctx = soup_get_proxy ();
+		auth_failure = SOUP_ERROR_PROXY_UNAUTHORIZED; /* 407 */
+	}
+	else {
+		ctx = msg->context;
+		auth_failure = SOUP_ERROR_UNAUTHORIZED; /* 401 */
+	}
+
+	auth = soup_auth_lookup (ctx);
+	if (!auth)
+		return;
+
+	if (msg->errorcode == auth_failure) {
+		/* Pass through */
+	}
+	else if (msg->errorclass == SOUP_ERROR_CLASS_SERVER_ERROR) {
+		/* 
+		 * We have no way of knowing whether our auth is any good
+		 * anymore, so just invalidate it and start from the
+		 * beginning next time.
+		 */
+		soup_auth_invalidate (auth, ctx);
+	}
+	else {
+		auth->status = SOUP_AUTH_STATUS_SUCCESSFUL;
+		auth->controlling_msg = NULL;
+	}
+} /* maybe_validate_auth */
+
+static void 
+authorize_handler (SoupMessage *msg, gboolean proxy)
+{
 	const GSList *vals;
-	SoupAuth *auth, *old_auth;
+	SoupAuth *auth;
 	SoupContext *ctx;
 	const SoupUri *uri;
+
+	if (msg->connection->auth &&
+	    msg->connection->auth->status == SOUP_AUTH_STATUS_SUCCESSFUL)
+		goto THROW_CANT_AUTHENTICATE;
 
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
@@ -695,18 +833,59 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 					             "WWW-Authenticate");
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header_list (vals);
+	auth = soup_auth_lookup (ctx);
+	if (auth) {
+		g_assert (auth->status != SOUP_AUTH_STATUS_INVALID);
+
+		if (auth->status == SOUP_AUTH_STATUS_PENDING) {
+			if (auth->controlling_msg == msg) {
+				auth->status = SOUP_AUTH_STATUS_FAILED;
+				goto THROW_CANT_AUTHENTICATE;
+			}
+			else {
+				soup_message_requeue (msg);
+				return;
+			}
+		}
+		else if (auth->status == SOUP_AUTH_STATUS_FAILED ||
+			 auth->status == SOUP_AUTH_STATUS_SUCCESSFUL) {
+			/*
+			 * We've failed previously, but we'll give it
+			 * another go, or we've been successful
+			 * previously, but it's not working anymore.
+			 *
+			 * Invalidate the auth, so it's removed from the
+			 * hash and try it again as if we never had it
+			 * in the first place.
+			 */
+			soup_auth_invalidate (auth, ctx);
+			soup_message_requeue (msg);
+			return;
+		}
+	}
+
 	if (!auth) {
-		soup_message_set_error_full (
-			msg, 
-			proxy ? 
-			        SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
-			        SOUP_ERROR_CANT_AUTHENTICATE,
-			proxy ? 
-			        "Unknown authentication scheme required by "
-			        "proxy" :
-			        "Unknown authentication scheme required");
-		return SOUP_HANDLER_RESTART;
+		auth = soup_auth_new_from_header_list (uri, vals);
+
+		if (!auth) {
+			soup_message_set_error_full (
+				msg, 
+				proxy ? 
+			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
+			                SOUP_ERROR_CANT_AUTHENTICATE,
+				proxy ? 
+			                "Unknown authentication scheme "
+				        "required by proxy" :
+			                "Unknown authentication scheme "
+				        "required");
+			return;
+		}
+
+		auth->status = SOUP_AUTH_STATUS_PENDING;
+		auth->controlling_msg = msg;
+		soup_message_add_handler (msg, SOUP_HANDLER_PRE_BODY,
+					  maybe_validate_auth,
+					  GINT_TO_POINTER (proxy));
 	}
 
 	/*
@@ -724,47 +903,38 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 	}
 
 	/*
-	 * Initialize with auth data (possibly returned from auth callback).
+	 * Initialize with auth data (possibly returned from 
+	 * auth callback).
 	 */
 	soup_auth_initialize (auth, uri);
 
-	if (auth->type == SOUP_AUTH_TYPE_NTLM)
-		old_auth = msg->connection->auth;
-	else
-		old_auth = soup_auth_lookup (ctx);
-
-	if (old_auth) {
-		if (!soup_auth_invalidates_prior (auth, old_auth)) {
-			soup_auth_free (auth);
-			goto THROW_CANT_AUTHENTICATE;
-		}
-	}
-
 	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
-		if (old_auth) 
+		SoupAuth *old_auth = msg->connection->auth;
+
+		if (old_auth)
 			soup_auth_free (old_auth);
 		msg->connection->auth = auth;
 	} else
 		soup_auth_set_context (auth, ctx);
 
-        return SOUP_HANDLER_RESEND;
+	soup_message_requeue (msg);
+
+        return;
 
  THROW_CANT_AUTHENTICATE:
 	soup_message_set_error (msg, 
 				proxy ? 
 			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
 			                SOUP_ERROR_CANT_AUTHENTICATE);
-	return SOUP_HANDLER_RESTART;
 }
 
-static SoupHandlerResult  
+static void 
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	const gchar *new_loc;
 
 	if (msg->errorclass != SOUP_ERROR_CLASS_REDIRECT || 
-	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) 
-		return SOUP_HANDLER_CONTINUE;
+	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) return;
 
 	new_loc = soup_message_get_header (msg->response_headers, "Location");
 
@@ -798,140 +968,95 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		soup_message_set_context (msg, new_ctx);
 		soup_context_unref (new_ctx);
 
-		return SOUP_HANDLER_RESEND;
+		soup_message_requeue (msg);
 	}
 
-	return SOUP_HANDLER_CONTINUE;
+	return;
 
  INVALID_REDIRECT:
 	soup_message_set_error_full (msg, 
 				     SOUP_ERROR_MALFORMED,
 				     "Invalid Redirect URL");
-	return SOUP_HANDLER_RESTART;
 }
+
+typedef enum {
+	RESPONSE_HEADER_HANDLER = 1,
+	RESPONSE_ERROR_CODE_HANDLER,
+	RESPONSE_ERROR_CLASS_HANDLER
+} SoupHandlerKind;
+
+typedef struct {
+	SoupHandlerType   type;
+	SoupCallbackFn    handler_cb;
+	gpointer          user_data;
+
+	SoupHandlerKind   kind;
+	union {
+		guint             errorcode;
+		SoupErrorClass    errorclass;
+		const gchar      *header;
+	} data;
+} SoupHandlerData;
 
 static SoupHandlerData global_handlers [] = {
 	/* 
 	 * Handle redirect response codes 300, 301, 302, 303, and 305.
 	 */
 	{
-		SOUP_HANDLER_HEADERS,
-		"redirect",
-		0,
-		{ 
-			SOUP_FILTER_HEADER,
-			{
-				(guint) "Location"
-			},
-		},
+		SOUP_HANDLER_PRE_BODY,
 		redirect_handler, 
 		NULL, 
+		RESPONSE_HEADER_HANDLER, 
+		{ (guint) "Location" }
 	},
 	/* 
 	 * Handle authorization.
 	 */
 	{
-		SOUP_HANDLER_HEADERS,
-		"authenticate",
-		0,
-		{ 
-			SOUP_FILTER_ERROR_CODE,
-			{
-				401
-			},
-		},
-		authorize_handler, 
+		SOUP_HANDLER_PRE_BODY,
+		(SoupCallbackFn) authorize_handler, 
 		GINT_TO_POINTER (FALSE), 
+		RESPONSE_ERROR_CODE_HANDLER, 
+		{ 401 }
 	},
 	/* 
 	 * Handle proxy authorization.
 	 */
 	{
-		SOUP_HANDLER_HEADERS,
-		"proxy-authenticate",
-		0,
-		{ 
-			SOUP_FILTER_ERROR_CODE,
-			{
-				407
-			},
-		},
-		authorize_handler, 
+		SOUP_HANDLER_PRE_BODY,
+		(SoupCallbackFn) authorize_handler, 
 		GINT_TO_POINTER (TRUE), 
+		RESPONSE_ERROR_CODE_HANDLER, 
+		{ 407 }
 	},
 	{ 0 }
 };
 
-static inline SoupHandlerResult 
-run_handler (SoupMessage      *msg, 
-	     SoupHandlerEvent  invoke_type, 
-	     SoupHandlerEvent  when, 
-	     SoupHandlerData  *data)
+static inline void 
+run_handler (SoupMessage     *msg, 
+	     SoupHandlerType  invoke_type, 
+	     SoupHandlerData *data)
 {
-	SoupHandlerResult result;
+	if (data->type != invoke_type) return;
 
-	if (data->type != invoke_type || data->order != when) 
-		return SOUP_HANDLER_CONTINUE;
-
-	switch (data->filter.type) {
-	case SOUP_FILTER_HEADER:
+	switch (data->kind) {
+	case RESPONSE_HEADER_HANDLER:
 		if (!soup_message_get_header (msg->response_headers,
-					      data->filter.data.header))
-			return SOUP_HANDLER_CONTINUE;
+					      data->data.header))
+			return;
 		break;
-	case SOUP_FILTER_ERROR_CODE:
-		if (msg->errorcode != data->filter.data.errorcode) 
-			return SOUP_HANDLER_CONTINUE;
+	case RESPONSE_ERROR_CODE_HANDLER:
+		if (msg->errorcode != data->data.errorcode) return;
 		break;
-	case SOUP_FILTER_ERROR_CLASS:
-		if (msg->errorclass != data->filter.data.errorclass) 
-			return SOUP_HANDLER_CONTINUE;
+	case RESPONSE_ERROR_CLASS_HANDLER:
+		if (msg->errorclass != data->data.errorclass) return;
 		break;
-	case SOUP_FILTER_TIMEOUT:
-		return SOUP_HANDLER_CONTINUE;
 	default:
 		break;
 	}
 
-	result = (*data->handler_cb) (msg, data->user_data);
-
-	switch (result) {
-	case SOUP_HANDLER_STOP:
-		if (invoke_type == SOUP_HANDLER_FINISHED && 
-		    msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL)
-			soup_message_issue_callback (msg);
-		break;
-	case SOUP_HANDLER_KILL:
-		soup_message_issue_callback (msg);
-		break;
-	case SOUP_HANDLER_RESEND:
-		if (msg->status != SOUP_STATUS_QUEUED)
-			soup_message_queue (msg,
-					    msg->priv->callback,
-					    msg->priv->user_data);
-		break;
-	default:
-		if (msg->status == SOUP_STATUS_QUEUED)
-			result = SOUP_HANDLER_RESEND;
-		break;
-	}
-
-	return result;
+	(*data->handler_cb) (msg, data->user_data);
 }
-
-#define PROCESS_HANDLER_RESULT(result) ({ \
-	switch (result) {                 \
-	case SOUP_HANDLER_STOP:           \
-		return FALSE;             \
-	case SOUP_HANDLER_KILL:           \
-	case SOUP_HANDLER_RESEND:         \
-		return TRUE;              \
-	case SOUP_HANDLER_RESTART:        \
-		goto RESTART;             \
-	default:                          \
-		break;                    \
-	}                                 \
-})
 
 /*
  * Run each handler with matching criteria (first per-message then global
@@ -945,55 +1070,34 @@ run_handler (SoupMessage      *msg,
  * processing.  
  */
 gboolean
-soup_message_run_handlers (SoupMessage *msg, SoupHandlerEvent invoke_type)
+soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 {
 	GSList *list;
 	SoupHandlerData *data;
-	SoupHandlerResult result;
 
 	g_return_val_if_fail (msg != NULL, FALSE);
 
- RESTART:
-	/*
-	 * Pre-Global handlers
-	 */
 	for (list = msg->priv->content_handlers; list; list = list->next) {
 		data = list->data;
-		result = run_handler (msg, 
-				      invoke_type, 
-				      SOUP_HANDLER_FIRST, 
-				      data);
-		PROCESS_HANDLER_RESULT (result);
+
+		run_handler (msg, invoke_type, data);
+
+		if (msg->status == SOUP_STATUS_QUEUED ||
+		    msg->status == SOUP_STATUS_CONNECTING) return TRUE;
 	}
 
-	/*
-	 * Global handlers
-	 */
 	for (data = global_handlers; data->type; data++) {
-		result = run_handler (msg, 
-				      invoke_type, 
-				      0, 
-				      data);
-		PROCESS_HANDLER_RESULT (result);
+		run_handler (msg, invoke_type, data);
+
+		if (msg->status == SOUP_STATUS_QUEUED ||
+		    msg->status == SOUP_STATUS_CONNECTING) return TRUE;
 	}
 
 	/*
-	 * Post-Global handlers
-	 */
-	for (list = msg->priv->content_handlers; list; list = list->next) {
-		data = list->data;
-		result = run_handler (msg, 
-				      invoke_type, 
-				      SOUP_HANDLER_LAST, 
-				      data);
-		PROCESS_HANDLER_RESULT (result);
-	}
-
-	/*
-	 * Issue final callback if the invoke_type is FINISHED and the error
+	 * Issue final callback if the invoke_type is POST_BODY and the error
 	 * class is not INFORMATIONAL. 
 	 */
-	if (invoke_type == SOUP_HANDLER_FINISHED && 
+	if (invoke_type == SOUP_HANDLER_POST_BODY && 
 	    msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL) {
 		soup_message_issue_callback (msg);
 		return TRUE;
@@ -1002,95 +1106,36 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerEvent invoke_type)
 	return FALSE;
 }
 
-static gboolean
-timeout_handler (gpointer user_data)
-{
-	SoupHandlerData *data = user_data;
-	SoupMessage *msg = data->msg;
-	SoupHandlerResult result;
-
-	switch (data->type) {
-	case SOUP_HANDLER_PREPARE:
-		if (msg->status >= SOUP_STATUS_SENDING_REQUEST)
-			goto REMOVE_SOURCE;
-	case SOUP_HANDLER_HEADERS:
-	case SOUP_HANDLER_DATA:
-		if (msg->status >= SOUP_STATUS_READING_RESPONSE &&
-		    g_hash_table_size (msg->response_headers) > 0)
-			goto REMOVE_SOURCE;
-	case SOUP_HANDLER_FINISHED:
-		if (msg->status == SOUP_STATUS_FINISHED)
-			goto REMOVE_SOURCE;
-	}
-
-	result = (*data->handler_cb) (msg, data->user_data);
-
-	switch (result) {
-	case SOUP_HANDLER_KILL:
-		soup_message_cancel (msg);
-		break;
-	case SOUP_HANDLER_RESEND:
-		soup_message_queue (msg,
-				    msg->priv->callback,
-				    msg->priv->user_data);
-		break;
-	default:
-		break;
-	}
-
- REMOVE_SOURCE:
-	data->timeout_tag = 0;
-	return FALSE;
-}
-
-void 
-soup_message_add_handler_full (SoupMessage       *msg,
-			       const gchar       *name,
-			       SoupHandlerEvent   type,
-			       SoupHandlerWhen    order,
-			       SoupHandlerFilter *filter,
-			       SoupHandlerFn      handler_cb,
-			       gpointer           user_data)
+static void 
+add_handler (SoupMessage      *msg,
+	     SoupHandlerType   type,
+	     SoupCallbackFn    handler_cb,
+	     gpointer          user_data,
+	     SoupHandlerKind   kind,
+	     const gchar      *header,
+	     guint             errorcode,
+	     guint             errorclass)
 {
 	SoupHandlerData *data;
-
-	g_return_if_fail (msg != NULL);
-	g_return_if_fail (type != 0);
-	g_return_if_fail (order != 0);
-	g_return_if_fail (handler_cb != NULL);
 
 	data = g_new0 (SoupHandlerData, 1);
 	data->type = type;
 	data->handler_cb = handler_cb;
 	data->user_data = user_data;
-	data->name = g_strdup (name);
-	data->order = order;
-	data->msg = msg;
+	data->kind = kind;
 
-	if (filter) {
-		data->filter.type = filter->type;
-	
-		switch (filter->type) {
-		case SOUP_FILTER_HEADER:
-			data->filter.data.header = 
-				g_strdup (filter->data.header);
-			break;
-		case SOUP_FILTER_ERROR_CODE:
-			data->filter.data.errorcode = filter->data.errorcode;
-			break;
-		case SOUP_FILTER_ERROR_CLASS:
-			data->filter.data.errorclass = filter->data.errorclass;
-			break;
-		case SOUP_FILTER_TIMEOUT:
-			data->filter.data.timeout = filter->data.timeout;
-			data->timeout_tag = 
-				g_timeout_add (filter->data.timeout * 1000,
-					       timeout_handler,
-					       data);
-			break;
-		default:
-			break;
-		}
+	switch (kind) {
+	case RESPONSE_HEADER_HANDLER:
+		data->data.header = header;
+		break;
+	case RESPONSE_ERROR_CODE_HANDLER:
+		data->data.errorcode = errorcode;
+		break;
+	case RESPONSE_ERROR_CLASS_HANDLER:
+		data->data.errorclass = errorclass;
+		break;
+	default:
+		break;
 	}
 
 	msg->priv->content_handlers = 
@@ -1098,105 +1143,109 @@ soup_message_add_handler_full (SoupMessage       *msg,
 }
 
 void 
-soup_message_add_handler (SoupMessage       *msg,
-			  SoupHandlerEvent   type,
-			  SoupHandlerFilter *filter,
-			  SoupHandlerFn      handler_cb,
-			  gpointer           user_data)
+soup_message_add_header_handler (SoupMessage      *msg,
+				 const gchar      *header,
+				 SoupHandlerType   type,
+				 SoupCallbackFn    handler_cb,
+				 gpointer          user_data)
 {
 	g_return_if_fail (msg != NULL);
-	g_return_if_fail (type != 0);
+	g_return_if_fail (header != NULL);
 	g_return_if_fail (handler_cb != NULL);
 
-	soup_message_add_handler_full (msg,
-				       NULL,
-				       type,
-				       SOUP_HANDLER_LAST,
-				       filter,
-				       handler_cb,
-				       user_data);
-}
-
-GSList *
-soup_message_list_handlers (SoupMessage *msg)
-{
-	GSList *ret = NULL, *list;
-
-	g_return_val_if_fail (msg != NULL, NULL);
-
-	for (list = msg->priv->content_handlers; list; list = list->next) {
-		SoupHandlerData *data = list->data;
-		if (data->name)
-			ret = g_slist_append (ret, data->name);
-	}
-
-	return ret;
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_HEADER_HANDLER, 
+		     header, 
+		     0,
+		     0);
 }
 
 void 
-soup_message_remove_handler (SoupMessage       *msg, 
-			     gchar             *name)
+soup_message_add_error_code_handler (SoupMessage      *msg,
+				     guint             errorcode,
+				     SoupHandlerType   type,
+				     SoupCallbackFn    handler_cb,
+				     gpointer          user_data)
 {
-	GSList *iter;
-
 	g_return_if_fail (msg != NULL);
-	g_return_if_fail (name != NULL);
+	g_return_if_fail (errorcode != 0);
+	g_return_if_fail (handler_cb != NULL);
 
-	iter = msg->priv->content_handlers;
-	while (iter) {
-		SoupHandlerData *data = iter->data;
-
-		if (data->name && !g_strcasecmp (data->name, name)) {
-			handler_free (data);
-			break;
-		}
-
-		iter = iter->next;
-	}
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_ERROR_CODE_HANDLER, 
+		     NULL, 
+		     errorcode,
+		     0);
 }
 
 void 
-soup_message_remove_handler_by_func (SoupMessage       *msg, 
-				     SoupHandlerFn      handler_cb)
+soup_message_add_error_class_handler (SoupMessage      *msg,
+				      SoupErrorClass    errorclass,
+				      SoupHandlerType   type,
+				      SoupCallbackFn    handler_cb,
+				      gpointer          user_data)
 {
-	GSList *iter;
-
 	g_return_if_fail (msg != NULL);
+	g_return_if_fail (errorclass != 0);
 	g_return_if_fail (handler_cb != NULL);
 
-	iter = msg->priv->content_handlers;
-	while (iter) {
-		SoupHandlerData *data = iter->data;
-
-		if (data->handler_cb == handler_cb) {
-			handler_free (data);
-			break;
-		}
-
-		iter = iter->next;
-	}
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     RESPONSE_ERROR_CLASS_HANDLER, 
+		     NULL, 
+		     0,
+		     errorclass);
 }
 
 void 
-soup_message_remove_handler_by_func_and_data (SoupMessage       *msg, 
-					      SoupHandlerFn      handler_cb,
-					      gpointer           user_data)
+soup_message_add_handler (SoupMessage      *msg,
+			  SoupHandlerType   type,
+			  SoupCallbackFn    handler_cb,
+			  gpointer          user_data)
 {
-	GSList *iter;
-
 	g_return_if_fail (msg != NULL);
 	g_return_if_fail (handler_cb != NULL);
 
-	iter = msg->priv->content_handlers;
+	add_handler (msg, 
+		     type, 
+		     handler_cb, 
+		     user_data, 
+		     0, 
+		     NULL, 
+		     0,
+		     0);
+}
+
+void
+soup_message_remove_handler (SoupMessage     *msg, 
+			     SoupHandlerType  type,
+			     SoupCallbackFn   handler_cb,
+			     gpointer         user_data)
+{
+	GSList *iter = msg->priv->content_handlers;
+
 	while (iter) {
 		SoupHandlerData *data = iter->data;
 
-		if (data->handler_cb == handler_cb && 
-		    data->user_data == user_data) {
-			handler_free (data);
+		if (data->handler_cb == handler_cb &&
+		    data->user_data == user_data &&
+		    data->type == type) {
+			msg->priv->content_handlers = 
+				g_slist_remove_link (
+					msg->priv->content_handlers,
+					iter);
+			g_free (data);
 			break;
 		}
-
+		
 		iter = iter->next;
 	}
 }

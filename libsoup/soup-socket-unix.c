@@ -36,7 +36,6 @@
 #include "soup-socket.h"
 
 #include <netdb.h>
-#include <resolv.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
@@ -67,6 +66,11 @@
 #    define SOUP_PTRACE_ATTACH PTRACE_ATTACH
 #    define SOUP_PTRACE_DETACH PTRACE_DETACH
 #  endif
+#endif
+
+/* this generally causes problems, so remove from build atm */
+#ifdef SOUP_PTRACE_ATTACH
+#undef SOUP_PTRACE_ATTACH
 #endif
 
 #ifndef socklen_t
@@ -192,7 +196,7 @@ soup_gethostbyname(const char*         hostname,
 		g_free(buf);
 	}
 #else
-#ifdef HAVE_GET_HOSTBYNAME_R_SOLARIS
+#ifdef HAVE_GETHOSTBYNAME_R_SOLARIS
 	{
 		struct hostent result;
 		size_t len;
@@ -348,7 +352,7 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 		g_free(buf);
 	}
 #else
-#ifdef HAVE_GET_HOSTBYNAME_R_SOLARIS
+#ifdef HAVE_GETHOSTBYNAME_R_SOLARIS
 	{
 		struct hostent result;
 		size_t len;

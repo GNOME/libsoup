@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-context.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-context.c: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -12,10 +12,7 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
@@ -23,16 +20,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 
-#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
-#endif
-
-#ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
-#endif
-#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
-#endif
 
 #include "soup-auth.h"
 #include "soup-context.h"
@@ -85,15 +75,29 @@ static guint
 soup_context_uri_hash (gconstpointer key)
 {
 	const SoupUri *uri = key;
-	guint ret = 0;
+	guint ret;
 
-	ret += uri->protocol;
-	ret += g_str_hash (uri->path ? uri->path : "");
-	ret += g_str_hash (uri->querystring ? uri->querystring : "");
-	ret += g_str_hash (uri->user ? uri->user : "");
-	ret += g_str_hash (uri->passwd ? uri->passwd : "");
+	ret = uri->protocol;
+	if (uri->path)
+		ret += g_str_hash (uri->path);
+	if (uri->querystring)
+		ret += g_str_hash (uri->querystring);
+	if (uri->user)
+		ret += g_str_hash (uri->user);
+	if (uri->passwd)
+		ret += g_str_hash (uri->passwd);
 
 	return ret;
+}
+
+static inline gboolean
+parts_equal (const char *one, const char *two)
+{
+	if (!one && !two)
+		return TRUE;
+	if (!one || !two)
+		return FALSE;
+	return !strcmp (one, two);
 }
 
 /**
@@ -110,18 +114,18 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 	const SoupUri *one = v1;
 	const SoupUri *two = v2;
 
-	if (one->protocol == two->protocol &&
-	    !strcmp (one->path ? one->path : "",
-		     two->path ? two->path : "") &&
-	    !strcmp (one->querystring ? one->querystring : "",
-		     two->querystring ? two->querystring : "") &&
-	    !strcmp (one->user ? one->user : "",
-		     two->user ? two->user : "") &&
-	    !strcmp (one->passwd ? one->passwd : "",
-		     two->passwd ? two->passwd : ""))
-		return TRUE;
+	if (one->protocol != two->protocol)
+		return FALSE;
+	if (!parts_equal (one->path, two->path))
+		return FALSE;
+	if (!parts_equal (one->user, two->user))
+		return FALSE;
+	if (!parts_equal (one->passwd, two->passwd))
+		return FALSE;
+	if (!parts_equal (one->querystring, two->querystring))
+		return FALSE;
 
-	return FALSE;
+	return TRUE;
 }
 
 /**
@@ -545,8 +549,10 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
-	else if (data->connect_tag)
+	else if (data->connect_tag) {
+		connection_count--;
 		soup_socket_connect_cancel (data->connect_tag);
+	}
 
 	g_free (data);
 }
@@ -590,14 +596,12 @@ soup_connection_release (SoupConnection *conn)
 static void
 soup_connection_setup_socket (GIOChannel *channel)
 {
-#if TCP_NODELAY && !SOUP_WIN32
 	int yes = 1, flags = 0, fd = g_io_channel_unix_get_fd (channel);
 
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
 
 	flags = fcntl(fd, F_GETFL, 0);
 	fcntl (fd, F_SETFL, flags | O_NONBLOCK);
-#endif
 }
 
 /**
@@ -628,7 +632,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 }
 
 /**
- * soup_connection_set_keepalive:
+ * soup_connection_set_keep_alive:
  * @conn: a %SoupConnection.
  * @keep_alive: boolean keep-alive value.
  *
@@ -642,7 +646,7 @@ soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 }
 
 /**
- * soup_connection_set_keepalive:
+ * soup_connection_is_keep_alive:
  * @conn: a %SoupConnection.
  *
  * Returns the keep-alive flag for the %SoupConnection pointed to by

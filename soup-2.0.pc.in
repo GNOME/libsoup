@@ -3,9 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: Soup
-Description: a SOAP client library in C.
+Name: libsoup
+Description: a glib-based HTTP library
 Version: @VERSION@
-Requires: glib
-Libs: -L${libdir} -lsoup @XML_LIBS@
-Cflags: -I${includedir}/soup @XML_CFLAGS@
+Requires: glib-2.0
+Libs: -L${libdir} -lsoup-2.0
+Cflags: -I${includedir}/soup-2.0

@@ -22,17 +22,9 @@
 #include "soup-private.h"
 #include "soup-socket.h"
 
-#ifdef SOUP_WIN32
-#  define socklen_t gint32
-#  define SOUP_CLOSE_SOCKET(fd) closesocket(fd)
-#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_socket(fd)
-#else
-#  include <unistd.h>
-#  ifndef socklen_t
-#    define socklen_t size_t
-#  endif
-#  define SOUP_CLOSE_SOCKET(fd) close(fd)
-#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_unix_new(fd)
+#include <unistd.h>
+#ifndef socklen_t
+#  define socklen_t size_t
 #endif
 
 #ifndef INET_ADDRSTRLEN
@@ -315,8 +307,6 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 	SoupSocketConnectFn func = state->func;
 	gpointer user_data = state->data;
 
-	g_free (state);
-
 	if (status == SOUP_SOCKET_NEW_STATUS_OK)
 		(*func) (socket,
 			 SOUP_SOCKET_CONNECT_ERROR_NONE,
@@ -325,6 +315,9 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 		(*func) (NULL,
 			 SOUP_SOCKET_CONNECT_ERROR_NETWORK,
 			 user_data);
+
+	if (state->tcp_id)
+		g_free (state);
 }
 
 static void
@@ -335,31 +328,23 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
-		gpointer tcp_id;
-
-		state->inetaddr_id = NULL;
-
-		tcp_id = soup_socket_new (inetaddr,
-					  soup_socket_connect_tcp_cb,
-					  state);
-		/* 
-		 * NOTE: soup_socket_new can fail immediately and call our
-		 * callback which will delete the state.  
-		 */
-		if (tcp_id)
-			state->tcp_id = tcp_id;
-
+		state->tcp_id = soup_socket_new (inetaddr,
+						 soup_socket_connect_tcp_cb,
+						 state);
 		soup_address_unref (inetaddr);
 	} else {
 		SoupSocketConnectFn func = state->func;
 		gpointer user_data = state->data;
 
-		g_free (state);
-
 		(*func) (NULL, 
 			 SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, 
 			 user_data);
 	}
+
+	if (state->inetaddr_id && !state->tcp_id)
+		g_free (state);
+	else
+		state->inetaddr_id = NULL;
 }
 
 /**
@@ -377,8 +362,8 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
  * returns.  It will call the callback if there is a failure.
  *
  * Returns: ID of the connection which can be used with
- * soup_socket_connect_cancel() to cancel it; NULL on
- * failure.
+ * soup_socket_connect_cancel() to cancel it; NULL if it succeeds
+ * or fails immediately.
  **/
 SoupSocketConnectId
 soup_socket_connect (const gchar*        hostname,
@@ -388,7 +373,6 @@ soup_socket_connect (const gchar*        hostname,
 {
 	SoupSocketConnectState* state;
 	SoupAddress *cached_addr;
-	gpointer addr_id, tcp_id;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -400,35 +384,26 @@ soup_socket_connect (const gchar*        hostname,
 	/* Check if a cached version of the address already exists */
 	cached_addr = soup_address_lookup_in_cache (hostname, port);
 	if (cached_addr) {
-		tcp_id = soup_socket_new (cached_addr,
-					  soup_socket_connect_tcp_cb,
-					  state);
+		state->tcp_id = soup_socket_new (cached_addr,
+						 soup_socket_connect_tcp_cb,
+						 state);
 		soup_address_unref (cached_addr);
-
-		/* 
-		 * NOTE: soup_socket_new can fail immediately and call our
-		 * callback which will delete the state.  
-		 */
-		if (tcp_id) {
-			state->tcp_id = tcp_id;
-			return state;
-		} else
-			return NULL;
 	} else {
-		addr_id = soup_address_new (hostname,
-					    port,
-					    soup_socket_connect_inetaddr_cb,
-					    state);
-
-		/* 
-		 * NOTE: soup_address_new can fail immediately and call our
-		 * callback which will delete the state.  
+		state->inetaddr_id = soup_address_new (hostname,
+						       port,
+						       soup_socket_connect_inetaddr_cb,
+						       state);
+		/* NOTE: soup_address_new could succeed immediately
+		 * and call our callback, in which case state->inetaddr_id
+		 * will be NULL but state->tcp_id may be set.
 		 */
-		if (addr_id) {
-			state->inetaddr_id = addr_id;
-			return state;
-		} else
-			return NULL;
+	}
+
+	if (state->tcp_id || state->inetaddr_id)
+		return state;
+	else {
+		g_free (state);
+		return NULL;
 	}
 }
 
@@ -532,7 +507,7 @@ soup_socket_unref (SoupSocket* s)
 	--s->ref_count;
 
 	if (s->ref_count == 0) {
-		SOUP_CLOSE_SOCKET (s->sockfd);
+		close (s->sockfd);
 		if (s->addr) soup_address_unref (s->addr);
 		if (s->iochannel) g_io_channel_unref (s->iochannel);
 
@@ -567,7 +542,7 @@ soup_socket_get_iochannel (SoupSocket* socket)
 	g_return_val_if_fail (socket != NULL, NULL);
 
 	if (socket->iochannel == NULL)
-		socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW (socket->sockfd);
+		socket->iochannel = g_io_channel_unix_new (socket->sockfd);
 
 	g_io_channel_ref (socket->iochannel);
 
@@ -631,6 +606,8 @@ soup_socket_server_new (const gint port)
 	SoupSocket* s;
 	struct sockaddr_in* sa_in;
 	socklen_t socklen;
+	const int on = 1;
+	gint flags;
 
 	/* Create socket */
 	s = g_new0 (SoupSocket, 1);
@@ -650,32 +627,21 @@ soup_socket_server_new (const gint port)
 	sa_in->sin_addr.s_addr = g_htonl (INADDR_ANY);
 	sa_in->sin_port = g_htons (port);
 
-	/* 
-	 * For Unix, set REUSEADDR and NONBLOCK.
-	 * For Windows, set NONBLOCK during accept.
-	 */
-#ifndef SOUP_WIN32
-	{
-		const int on = 1;
-		gint flags;
+	/* Set REUSEADDR so we can reuse the port */
+	if (setsockopt (s->sockfd,
+			SOL_SOCKET,
+			SO_REUSEADDR,
+			&on,
+			sizeof (on)) != 0)
+		g_warning("Can't set reuse on tcp socket\n");
 
-		/* Set REUSEADDR so we can reuse the port */
-		if (setsockopt (s->sockfd,
-				SOL_SOCKET,
-				SO_REUSEADDR,
-				&on,
-				sizeof (on)) != 0)
-			g_warning("Can't set reuse on tcp socket\n");
+	/* Get the flags (should all be 0?) */
+	flags = fcntl (s->sockfd, F_GETFL, 0);
+	if (flags == -1) goto SETUP_ERROR;
 
-		/* Get the flags (should all be 0?) */
-		flags = fcntl (s->sockfd, F_GETFL, 0);
-		if (flags == -1) goto SETUP_ERROR;
-
-		/* Make the socket non-blocking */
-		if (fcntl (s->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
-			goto SETUP_ERROR;
-	}
-#endif
+	/* Make the socket non-blocking */
+	if (fcntl (s->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		goto SETUP_ERROR;
 
 	/* Bind */
 	if (bind (s->sockfd, &s->addr->sa, sizeof (s->addr->sa)) != 0)
@@ -691,7 +657,7 @@ soup_socket_server_new (const gint port)
 	return s;
 
  SETUP_ERROR:
-	SOUP_CLOSE_SOCKET (s->sockfd);
+	close (s->sockfd);
 	g_free (s->addr);
 	g_free (s);
 	return NULL;

@@ -2,13 +2,20 @@ dnl *******************************************
 dnl *** Initialize automake and set version ***
 dnl *******************************************
 
-AC_INIT(src/libsoup/soup.h)
+AC_PREREQ(2.53)
+AC_INIT(libsoup, 2.0)
+AC_CONFIG_SRCDIR(soup-2.0.pc.in)
+
+AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+AM_CONFIG_HEADER(config.h)
+AM_MAINTAINER_MODE
+AC_PROG_MAKE_SET
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=1
+SOUP_AGE=0
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=4
+SOUP_CURRENT=0
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0
@@ -16,14 +23,6 @@ SOUP_REVISION=0
 AC_SUBST(SOUP_CURRENT)
 AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
-
-# Update in src/soup-core/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.7.99)
-
-AM_CONFIG_HEADER(config.h)
-AM_MAINTAINER_MODE
-AC_PROG_MAKE_SET
-
 
 dnl ***************************
 dnl *** Set debugging flags ***
@@ -66,142 +65,19 @@ AM_PROG_LIBTOOL
 # This isn't a program, but it doesn't fit anywhere else...
 AC_FUNC_ALLOCA
 
+dnl ***********************
+dnl *** Checks for glib ***
+dnl ***********************
 
-dnl ***************************
-dnl *** Checks for glib 1.2 ***
-dnl ***************************
-
-AM_PATH_GLIB(1.2.0,,
-             AC_MSG_ERROR([Cannot find GLIB: Is glib-config in path?]))
-
-GLIB_CFLAGS=`glib-config --cflags glib`
-GLIB_LIBS=`glib-config --libs glib`
-GMODULE_LIBS=`glib-config --libs gmodule`
-
+PKG_CHECK_MODULES(GLIB, glib-2.0)
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
-AC_SUBST(GMODULE_LIBS)
-
-
-dnl ****************************
-dnl *** Checks for gnome-xml ***
-dnl ****************************
-
-FAVOUR_LIBXML=1
-AC_ARG_WITH(libxml,
-	[  --with-libxml=[1/2] which version of libxml to use [default=$FAVOUR_LIBXML]],,
-	with_libxml=$FAVOUR_LIBXML)
-
-if test "x$with_libxml" = "x" -o "$with_libxml" = "yes"; then
-	with_libxml=$FAVOUR_LIBXML
-fi
-
-if test "$with_libxml" = "1"; then
-	AC_PATH_PROG(XML_CONFIG,xml-config,no)
-	if test x$XML_CONFIG = xno; then
-		AC_MSG_ERROR([Cannot find LIBXML: Is xml-config in path?])
-	fi
-
-	XML_MIN_VERSION=1.8.8
-else
-	if test "$with_libxml" = "2"; then
-		AC_PATH_PROG(XML_CONFIG,xml2-config,no)
-		if test x$XML_CONFIG = xno; then
-			AC_MSG_ERROR([Cannot find LIBXML2: Is xml2-config in path?])
-		fi
-
-		XML_MIN_VERSION=2.3.10
-	else
-		AC_MSG_ERROR(Can't use libxml version $with_libxml)
-	fi
-fi
-
-dnl Check version
-XML_VERSION=`$XML_CONFIG --version`
-ver=`echo $XML_VERSION | awk -F. '{printf("%d", ($1*1000+$2)*1000+$3);}'`
-minver=`echo $XML_MIN_VERSION | awk -F. '{printf("%d", ($1*1000+$2)*1000+$3);}'`
-if test "$minver" -gt "$ver"
-then
-	AC_MSG_ERROR(Found libxml version $XML_VERSION. You need $XML_MIN_VERSION or newer)
-fi
-
-XML_CFLAGS=`$XML_CONFIG --cflags`
-XML_LIBS=`$XML_CONFIG --libs`
-
-AC_SUBST(XML_CFLAGS)
-AC_SUBST(XML_LIBS)
-
-
-dnl ***********************
-dnl *** Checks for popt ***
-dnl ***********************
-
-AC_ARG_WITH(popt-includes,
-	    [  --with-popt-includes     Specify location of popt headers],
-	    [popt_inc_prefix=-I$withval])
-
-AC_ARG_WITH(popt-libs,
-	    [  --with-popt-libs         Specify location of popt libs],
-	    [popt_prefix=$withval],
-	    [popt_prefix=/usr/lib])
-	
-save_CPPFLAGS=$CPPFLAGS
-save_LIBS=$LIBS
-CPPFLAGS="$CPPFLAGS $popt_inc_prefix"
-LIBS="$LIBS -L$prefix"
-
-AC_CHECK_LIB(popt, 
-	     poptGetContext, 
-	     [POPT_LIBS="$LIBS -lpopt"] , 
-	     AC_MSG_ERROR([popt is required]))
-AC_CHECK_HEADERS(popt.h, [POPT_CFLAGS="$CFLAGS"], AC_MSG_ERROR([popt.h is required]))
-
-CPPFLAGS=$save_CPPFLAGS
-LIBS=$save_LIBS
-
-AC_SUBST(POPT_CFLAGS)
-AC_SUBST(POPT_LIBS)
-
-
-dnl **********************************************
-dnl *** Variable substitution for soup*Conf.sh ***
-dnl **********************************************
-
-### soupConf.sh
-SOUP_LIBDIR='-L${libdir}'
-SOUP_INCLUDEDIR=" -I${includedir}/soup $GLIB_CFLAGS $XML_CFLAGS"
-SOUP_LIBS="-lsoup $GLIB_LIBS $XML_LIBS"
-
-AC_SUBST(SOUP_LIBDIR)
-AC_SUBST(SOUP_INCLUDEDIR)
-AC_SUBST(SOUP_LIBS)
-
-### soup-apacheConf.sh
-SOUP_APACHE_LIBDIR='-L${libdir}'
-SOUP_APACHE_INCLUDEDIR="$SOUP_INCLUDEDIR $APACHE_CFLAGS"
-SOUP_APACHE_LIBS="$SOUP_LIBS -lsoup-apache $APACHE_LIBS"
-
-AC_SUBST(SOUP_APACHE_LIBDIR)
-AC_SUBST(SOUP_APACHE_INCLUDEDIR)
-AC_SUBST(SOUP_APACHE_LIBS)
-
-### soup-wsdlConf.sh
-SOUP_WSDL_LIBDIR='-L${libdir}'
-SOUP_WSDL_INCLUDEDIR=" -I${includedir}/soup $GLIB_CFLAGS $XML_CFLAGS"
-SOUP_WSDL_LIBS="$SOUP_LIBS -lwsdl"
-
-AC_SUBST(SOUP_WSDL_LIBDIR)
-AC_SUBST(SOUP_WSDL_INCLUDEDIR)
-AC_SUBST(SOUP_WSDL_LIBS)
-
 
 dnl *********************************
 dnl *** Networking library checks ***
 dnl *********************************
 
-AC_CHECK_HEADERS(unistd.h)
-AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
-AC_CHECK_HEADERS(sys/socket.h sys/sockio.h sys/poll.h sys/param.h sys/wait.h)
+AC_CHECK_HEADERS(sys/sockio.h sys/poll.h sys/param.h)
 AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
 
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
@@ -228,7 +104,8 @@ AC_CHECK_FUNC(gethostbyname_r,
 	  dnl Have glibc gethostbyname_r
 
 	  AC_MSG_RESULT(yes)
-	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIBC)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIBC, 1,
+		    [Define if you have a glibc-style gethostbyname_r()])
 	  HAVE_GETHOSTBYNAME_R=yes
 
         ], [
@@ -250,7 +127,8 @@ AC_CHECK_FUNC(gethostbyname_r,
 	  dnl Have Solaris/Irix gethostbyname_r
 
   	  AC_MSG_RESULT(yes)
-	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_SOLARIS)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_SOLARIS, 1,
+		    [Define if you have a Solaris-style gethostbyname_r()])
 	  HAVE_GETHOSTBYNAME_R=yes
 
 	], [
@@ -268,7 +146,8 @@ AC_CHECK_FUNC(gethostbyname_r,
           dnl Have HP-UX gethostbyname_r
 
           AC_MSG_RESULT(yes)
-	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_HPUX)
+	  AC_DEFINE(HAVE_GETHOSTBYNAME_R_HPUX, 1,
+		    [Define if you have an HP-UX-style gethostbyname_r()])
 	  HAVE_GETHOSTBYNAME_R=yes
 
 	]
@@ -276,16 +155,15 @@ AC_CHECK_FUNC(gethostbyname_r,
   )]
 )])
 
-### If we don't have gethostbyname_r, try to use Glib mutexes
+# If we don't have gethostbyname_r, we'll use Glib mutexes, but give a warning
 if test -z "$HAVE_GETHOSTBYNAME_R"; then
-	AM_PATH_GLIB(1.2.0, 
-		     AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX), [
-      		     AC_MSG_WARN(You have neither Glib threads nor the function
-				 gethostbyname_r.  This means that calls to
-			    	 gethostbyname (called by the Soup address
-				 functions) will not be thread safe so could
-				 malfunction in programs that use threads.)
-    		     ])
+	AC_DEFINE(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX, 1,
+		  [Define if you have no gethostbyname_r()])
+	AC_MSG_WARN([You have neither Glib threads nor the function
+		    gethostbyname_r.  This means that calls to
+		    gethostbyname (called by the Soup address
+		    functions) will not be thread safe so could
+		    malfunction in programs that use threads.])
 fi
 
 
@@ -328,12 +206,14 @@ AC_ARG_WITH(openssl-libs,
 ###
 ### Allow for a custom SSL proxy name
 ###
+SSL_PROXY_NAME=libsoup-ssl-proxy
 AC_ARG_WITH(ssl-proxy-name,
-	    [  --with-ssl-proxy-name    Custom name for ssl proxy executable [default=soup-ssl-proxy]],
+	    [  --with-ssl-proxy-name    Custom name for ssl proxy executable [default=libsoup-ssl-proxy]],
 	    [SSL_PROXY_NAME=$withval],
-	    [SSL_PROXY_NAME=soup-ssl-proxy])
+	    [SSL_PROXY_NAME=libsoup-ssl-proxy])
 
-AC_DEFINE_UNQUOTED(SSL_PROXY_NAME, "${SSL_PROXY_NAME}")
+AC_DEFINE_UNQUOTED(SSL_PROXY_NAME, "${SSL_PROXY_NAME}",
+		   [The name to use for the SSL proxy binary. Defaults to libsoup-ssl-proxy])
 AC_SUBST(SSL_PROXY_NAME)
 
 ###
@@ -361,7 +241,8 @@ if test "x$enable_ssl" = xyes; then
 			OPENSSL_LIBS="-L$openssl_prefix -lssl -lcrypto $DL_LDFLAGS"
 		fi
 		OPENSSL_CFLAGS=$CPPFLAGS
-		AC_DEFINE(HAVE_OPENSSL)
+		AC_DEFINE(HAVE_OPENSSL, 1,
+			  [Defined if you are using OpenSSL for SSL support])
 	else
 		OPENSSL_LIBS=
 		OPENSSL_CFLAGS=
@@ -387,7 +268,8 @@ if test "x$enable_ssl" = xyes; then
 			NSS_LIBS="-lpthread -L$nspr_prefix -lnspr4 -lplc4 -lplds4 $nss_prefix -lnss3 -lssl3"
 		fi
 		NSS_CFLAGS=$CPPFLAGS
-		AC_DEFINE(HAVE_NSS)
+		AC_DEFINE(HAVE_NSS, 1,
+			  [Defined if you are using Mozilla NSS for SSL support])
 	else
 		NSS_LIBS=
 		NSS_CFLAGS=
@@ -396,30 +278,6 @@ if test "x$enable_ssl" = xyes; then
 	AC_SUBST(NSS_CFLAGS)
 	AC_SUBST(NSS_LIBS)
 	CPPFLAGS=$save_CPPFLAGS
-fi
-
-
-dnl *************************
-dnl *** Checks for Apache ***
-dnl *************************
-
-enable_apache="no"
-
-AC_PATH_PROG(APXS,apxs,no)
-if test x$APXS != xno; then
-	APACHE_CFLAGS="-I`apxs -q INCLUDEDIR CFLAGS`"
-	APACHE_LIBS=`apxs -q LDFLAGS_SHLIB LIBS_SHLIB`
-
-	save_CPPFLAGS=$CPPFLAGS
-	CPPFLAGS=$APACHE_CFLAGS
-	AC_CHECK_HEADERS(httpd.h http_config.h http_core.h http_log.h http_main.h http_protocol.h,
-			  [enable_apache="yes"],
-			  [enable_apache="no"
-			   break])
-	CPPFLAGS=$save_CPPFLAGS
-
-	AC_SUBST(APACHE_CFLAGS)
-	AC_SUBST(APACHE_LIBS)
 fi
 
 
@@ -463,64 +321,6 @@ dnl       to make this work with the tarballs.
 AM_CONDITIONAL(ENABLE_GTK_DOC, test x$enable_gtk_doc = xyes)
 
 
-dnl *******************************************************
-dnl *** Type alignment test (based on the one in ORBit) ***
-dnl *******************************************************
-
-AC_DEFUN(AC_CHECK_ALIGNOF,
-[changequote(<<, >>)dnl
-dnl The name to #define.
-define(<<AC_TYPE_NAME>>, translit(alignof_$1, [a-z *], [A-Z_P]))dnl
-dnl The cache variable name.
-define(<<AC_CV_NAME>>, translit(ac_cv_alignof_$1, [ *], [_p]))dnl
-changequote([, ])dnl
-AC_MSG_CHECKING(alignment of $1)
-align_save_libs="$LIBS"
-LIBS="$GLIB_LIBS $LIBS"
-AC_CACHE_VAL(AC_CV_NAME,
-[AC_TRY_RUN([
-#include <stdio.h>
-#include <glib.h>
-typedef struct {char s1;} gstruct;
-struct test {char s1; $1 s2;};
-main()
-{
-  FILE *f=fopen("conftestval", "w");
-  if (!f) exit(1);
-  fprintf(f, "%d\n", &(((struct test*)0)->s2));
-  exit(0);
-}], AC_CV_NAME=`cat conftestval`, AC_CV_NAME=0, AC_CV_NAME=0)])dnl
-AC_MSG_RESULT($AC_CV_NAME)
-LIBS="$align_save_libs"
-AC_DEFINE_UNQUOTED(AC_TYPE_NAME, $AC_CV_NAME)
-undefine([AC_TYPE_NAME])dnl
-undefine([AC_CV_NAME])dnl
-])
-
-orig_CPPFLAGS=$CPPFLAGS
-CPPFLAGS=$GLIB_CFLAGS
-AC_CHECK_ALIGNOF(gboolean)
-AC_CHECK_ALIGNOF(gchar)
-AC_CHECK_ALIGNOF(guchar)
-AC_CHECK_ALIGNOF(gint)
-AC_CHECK_ALIGNOF(guint)
-AC_CHECK_ALIGNOF(gshort)
-AC_CHECK_ALIGNOF(gushort)
-AC_CHECK_ALIGNOF(glong)
-AC_CHECK_ALIGNOF(gulong)
-AC_CHECK_ALIGNOF(gint8)
-AC_CHECK_ALIGNOF(guint8)
-AC_CHECK_ALIGNOF(gint16)
-AC_CHECK_ALIGNOF(guint16)
-AC_CHECK_ALIGNOF(gint32)
-AC_CHECK_ALIGNOF(guint32)
-AC_CHECK_ALIGNOF(gfloat)
-AC_CHECK_ALIGNOF(gdouble)
-AC_CHECK_ALIGNOF(gpointer)
-AC_CHECK_ALIGNOF(gstruct)
-CPPFLAGS=$orig_CPPFLAGS
-
-
 dnl *************************************
 dnl *** Warnings to show if using GCC ***
 dnl *************************************
@@ -538,26 +338,36 @@ fi
 # Use reentrant functions
 CFLAGS="$CFLAGS -D_REENTRANT"
 
+dnl *****************************
+dnl *** link proxy statically ***
+dnl *****************************
+AC_ARG_ENABLE(static-proxy, 
+  [  --enable-static-proxy  Build ${SSL_PROXY_NAME} statically ])
+
+if test x"$enable_static_proxy" = xyes; then
+	LINK_STATIC="-Wl,-Bstatic"
+	LINK_DYNAMIC="-Wl,-Bdynamic"
+	FORCE_SHLIBS="dl resolv rt nsl"
+	for lib in $FORCE_SHLIBS; do
+	  OPENSSL_LIBS=`echo $OPENSSL_LIBS | sed "s/-l$lib/-Wl,-Bdynamic -l$lib -Wl,-Bstatic/"`
+	  GMODULE_LIBS=`echo $GMODULE_LIBS | sed "s/-l$lib/-Wl,-Bdynamic -l$lib -Wl,-Bstatic/"`
+	done
+else
+	LINK_STATIC=
+	LINK_DYNAMIC=
+fi
+
+AC_SUBST(LINK_STATIC)
+AC_SUBST(LINK_DYNAMIC)
 
 dnl *************************
 dnl *** Output Everything ***
 dnl *************************
 
 AC_OUTPUT([
-	soup-config
-	soup.pc
-	soup.spec
+	soup-2.0.pc
 	Makefile
-	docs/Makefile
-	docs/reference/Makefile
-	src/Makefile
-	src/libsoup/Makefile
-	src/libsoup-apache/Makefile
-	src/libwsdl/Makefile
-	src/soup-httpd/Makefile
-	src/soup-ssl-proxy/Makefile
-	src/soup-wsdl/Makefile
-	tests/Makefile
+	libsoup/Makefile
 	])
 
 echo "
@@ -568,9 +378,10 @@ Configuration:
   Compiler:			${CC}
   Build flags:			${CFLAGS} ${SOUP_DEBUG_FLAGS}
 
+  Static SSL Proxy:		${enable_static_proxy:-no}
+  SSL Proxy Name:		${SSL_PROXY_NAME}
+
   OpenSSL support:		${enable_openssl}
   Mozilla NSS support:		${enable_nss}
-
-  Apache module support:	${enable_apache}
 
 "

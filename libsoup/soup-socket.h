@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-socket.c: ronous Callback-based SOAP Request Queue.
+ * soup-socket.c: ronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      David Helder  (dhelder@umich.edu)

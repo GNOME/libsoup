@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-server.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-server.h: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -15,6 +15,7 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
+#include <libsoup/soup-socket.h>
 #include <libsoup/soup-uri.h>
 #include <libsoup/soup-server-auth.h>
 
@@ -81,6 +82,12 @@ SoupServerHandler *soup_server_get_handler   (SoupServer            *serv,
 					      const gchar           *path);
 
 GSList            *soup_server_list_handlers (SoupServer            *serv);
+
+/* Functions for accessing information about the specific connection */
+
+SoupAddress       *soup_server_context_get_client_address (SoupServerContext *context);
+
+gchar             *soup_server_context_get_client_host    (SoupServerContext *context);
 
 /* 
  * Apache/soup-httpd module initializtion

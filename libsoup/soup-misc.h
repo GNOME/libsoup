@@ -42,12 +42,17 @@ SoupSecurityPolicy soup_get_security_policy  (void);
 
 /* SSL setup routines */
 
-void               soup_set_ssl_ca_file      (gchar       *ca_file);
+void               soup_set_ssl_ca_file      (const gchar *ca_file);
 
-void               soup_set_ssl_ca_dir       (gchar       *ca_dir);
+void               soup_set_ssl_ca_dir       (const gchar *ca_dir);
 
-void               soup_set_ssl_cert_files   (gchar       *cert_file, 
-					      gchar       *key_file);
+void               soup_set_ssl_cert_files   (const gchar *cert_file, 
+					      const gchar *key_file);
+
+const char        *soup_get_ssl_ca_file      (void);
+const char        *soup_get_ssl_ca_dir       (void);
+void               soup_get_ssl_cert_files   (const gchar **cert_file,
+					      const gchar **key_file);
 
 /* Authentication callback */
 

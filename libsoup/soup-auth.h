@@ -15,13 +15,22 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
 
-typedef struct _SoupAuth SoupAuth;
+typedef   enum _SoupAuthStatus SoupAuthStatus;
+typedef struct _SoupAuth       SoupAuth;
+
+enum _SoupAuthStatus {
+	SOUP_AUTH_STATUS_INVALID = 0,
+	SOUP_AUTH_STATUS_PENDING,
+	SOUP_AUTH_STATUS_FAILED,
+	SOUP_AUTH_STATUS_SUCCESSFUL
+};
+
 struct _SoupAuth {
 	SoupAuthType  type;
 	gchar        *realm;
 
-	gboolean (*compare_func) (SoupAuth      *a, 
-				  SoupAuth      *b);
+	SoupAuthStatus status;
+	SoupMessage *controlling_msg;
 
 	void     (*parse_func)   (SoupAuth      *auth,
 				  const gchar   *header);
@@ -40,7 +49,11 @@ SoupAuth *soup_auth_lookup                 (SoupContext   *ctx);
 void      soup_auth_set_context            (SoupAuth      *auth,
 					    SoupContext   *ctx);
 
-SoupAuth *soup_auth_new_from_header_list   (const GSList  *header);
+void      soup_auth_invalidate             (SoupAuth      *auth,
+					    SoupContext   *ctx);
+
+SoupAuth *soup_auth_new_from_header_list   (const SoupUri *uri,
+					    const GSList  *header);
 
 void      soup_auth_initialize             (SoupAuth      *auth,
 					    const SoupUri *uri);
@@ -49,8 +62,5 @@ void      soup_auth_free                   (SoupAuth      *auth);
 
 gchar    *soup_auth_authorize              (SoupAuth      *auth, 
 					    SoupMessage   *msg);
-
-gboolean  soup_auth_invalidates_prior      (SoupAuth      *new_auth, 
-					    SoupAuth      *old_auth);
 
 #endif /* SOUP_AUTH_H */

@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-server.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-server.c: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@ximian.com)
@@ -16,9 +16,7 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 
 #ifdef HAVE_SYS_FILIO_H
 #include <sys/filio.h>
@@ -26,12 +24,6 @@
 
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
-#endif
-
-#ifdef SOUP_WIN32
-#define ioctl ioctlsocket
-#define STDIN_FILENO 0
-#define STDOUT_FILENO 1
 #endif
 
 extern char **environ;
@@ -200,6 +192,33 @@ static gboolean start_another_request (GIOChannel    *serv_chan,
 				       GIOCondition   condition, 
 				       gpointer       user_data);
 
+static gboolean
+check_close_connection (SoupMessage *msg)
+{
+	const char *connection_hdr;
+	gboolean close_connection;
+
+	connection_hdr = soup_message_get_header (msg->request_headers,
+						  "Connection");
+
+	if (msg->priv->http_version == SOUP_HTTP_1_0) {
+		if (connection_hdr && g_strcasecmp (connection_hdr,
+						    "keep-alive") == 0)
+			close_connection = FALSE;
+		else
+			close_connection = TRUE;
+	}
+	else {
+		if (connection_hdr && g_strcasecmp (connection_hdr,
+						    "close") == 0)
+			close_connection = TRUE;
+		else
+			close_connection = FALSE;
+	}
+
+	return close_connection;
+} /* check_close_connection */
+
 static void
 destroy_message (SoupMessage *msg)
 {
@@ -208,18 +227,24 @@ destroy_message (SoupMessage *msg)
 	SoupServerMessage *server_msg = msg->priv->server_msg;
 
 	if (server_sock) {
-		if (server_msg && msg->priv->http_version == SOUP_HTTP_1_0)
-			/*
-			 * Close the socket if we are using HTTP/1.0 and 
-			 * did not specify a Content-Length response header.
-			 */
+		GIOChannel *chan;
+
+		chan = soup_socket_get_iochannel (server_sock);
+
+		/*
+		 * Close the socket if we're using HTTP/1.0 and
+		 * "Connection: keep-alive" isn't specified, or if we're
+		 * using HTTP/1.1 and "Connection: close" was specified.
+		 */
+		if (check_close_connection (msg)) {
+			g_io_channel_close (chan);
 			soup_socket_unref (server_sock);
+		}
 		else {
 			/*
 			 * Listen for another request on this connection
 			 */
 			ServerConnectData *data;
-			GIOChannel *chan;
 
 			data = g_new0 (ServerConnectData, 1);
 			data->server = msg->priv->server;
@@ -413,6 +438,85 @@ get_server_sockname (gint fd)
 	return host;
 }
 
+static void
+write_header (gchar *key, gchar *value, GString *ret)
+{
+	g_string_sprintfa (ret, "%s: %s\r\n", key, value);
+}
+
+static GString *
+get_response_header (SoupMessage          *req, 
+		     gboolean              status_line, 
+		     SoupTransferEncoding  encoding)
+{
+	GString *ret = g_string_new (NULL);
+
+	if (status_line)
+		g_string_sprintfa (ret, 
+				   "HTTP/1.1 %d %s\r\n", 
+				   req->errorcode, 
+				   req->errorphrase);
+	else
+		g_string_sprintfa (ret, 
+				   "Status: %d %s\r\n", 
+				   req->errorcode, 
+				   req->errorphrase);
+
+	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH)
+		g_string_sprintfa (ret, 
+				   "Content-Length: %d\r\n",  
+				   req->response.length);
+	else if (encoding == SOUP_TRANSFER_CHUNKED)
+		g_string_append (ret, "Transfer-Encoding: chunked\r\n");
+
+	soup_message_foreach_header (req->response_headers,
+				     (GHFunc) write_header,
+				     ret);
+
+	g_string_append (ret, "\r\n");
+
+	return ret;
+}
+
+static inline void
+set_response_error (SoupMessage    *req,
+		    guint           code,
+		    gchar          *phrase,
+		    gchar          *body)
+{
+	if (phrase)
+		soup_message_set_error_full (req, code, phrase);
+	else 
+		soup_message_set_error (req, code);
+
+	req->response.owner = SOUP_BUFFER_STATIC;
+	req->response.body = body;
+	req->response.length = body ? strlen (req->response.body) : 0;
+}
+
+static void
+issue_bad_request (SoupMessage *msg)
+{
+	GString *header;
+	GIOChannel *channel;
+
+	set_response_error (msg, SOUP_ERROR_BAD_REQUEST, NULL, NULL);
+
+	header = get_response_header (msg, 
+				      FALSE,
+				      SOUP_TRANSFER_CONTENT_LENGTH);
+
+	channel = soup_socket_get_iochannel (msg->priv->server_sock);
+
+	msg->priv->write_tag =
+		soup_transfer_write_simple (channel,
+					    header,
+					    &msg->response,
+					    write_done_cb,
+					    error_cb,
+					    msg);
+} /* issue_bad_request */
+
 static SoupTransferDone
 read_headers_cb (const GString        *headers,
 		 SoupTransferEncoding *encoding,
@@ -473,17 +577,7 @@ read_headers_cb (const GString        *headers,
 		req_host = soup_message_get_header (msg->request_headers, 
 						    "Host");
 
-		if (req_host) {
-			url = 
-				g_strdup_printf (
-					"%s%s:%d%s",
-					server->proto == SOUP_PROTOCOL_HTTPS ?
-					        "https://" :
-					        "http://",
-					req_host, 
-					server->port,
-					req_path);
-		} else if (*req_path != '/') {
+		if (*req_path != '/') {
 			/*
 			 * Check for absolute URI
 			 */
@@ -495,6 +589,16 @@ read_headers_cb (const GString        *headers,
 				soup_uri_free (absolute);
 			} else 
 				goto THROW_MALFORMED_HEADER;
+		} else if (req_host) {
+			url = 
+				g_strdup_printf (
+					"%s%s:%d%s",
+					server->proto == SOUP_PROTOCOL_HTTPS ?
+					        "https://" :
+					        "http://",
+					req_host, 
+					server->port,
+					req_path);
 		} else {
 			/* 
 			 * No Host header, no AbsoluteUri
@@ -531,65 +635,9 @@ read_headers_cb (const GString        *headers,
  THROW_MALFORMED_HEADER:
 	g_free (req_path);
 
-	destroy_message (msg);
+	issue_bad_request(msg);
 
-	return SOUP_TRANSFER_END;
-}
-
-static void
-write_header (gchar *key, gchar *value, GString *ret)
-{
-	g_string_sprintfa (ret, "%s: %s\r\n", key, value);
-}
-
-static GString *
-get_response_header (SoupMessage          *req, 
-		     gboolean              status_line, 
-		     SoupTransferEncoding  encoding)
-{
-	GString *ret = g_string_new (NULL);
-
-	if (status_line) 
-		g_string_sprintfa (ret, 
-				   "HTTP/1.1 %d %s\r\n", 
-				   req->errorcode, 
-				   req->errorphrase);
-	else
-		g_string_sprintfa (ret, 
-				   "Status: %d %s\r\n", 
-				   req->errorcode, 
-				   req->errorphrase);
-
-	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH)
-		g_string_sprintfa (ret, 
-				   "Content-Length: %d\r\n",  
-				   req->response.length);
-	else if (encoding == SOUP_TRANSFER_CHUNKED)
-		g_string_append (ret, "Transfer-Encoding: chunked\r\n");
-
-	soup_message_foreach_header (req->response_headers,
-				     (GHFunc) write_header,
-				     ret);
-
-	g_string_append (ret, "\r\n");
-
-	return ret;
-}
-
-static inline void
-set_response_error (SoupMessage    *req,
-		    guint           code,
-		    gchar          *phrase,
-		    gchar          *body)
-{
-	if (phrase)
-		soup_message_set_error_full (req, code, phrase);
-	else 
-		soup_message_set_error (req, code);
-
-	req->response.owner = SOUP_BUFFER_STATIC;
-	req->response.body = body;
-	req->response.length = body ? strlen (req->response.body) : 0;
+	return SOUP_TRANSFER_CONTINUE;
 }
 
 static void
@@ -792,19 +840,6 @@ read_done_cb (const SoupDataBuffer *data,
 
 	req->priv->read_tag = 0;
 
-	/* FIXME: Do this in soap handler 
-	action = soup_message_get_header (req->request_headers, "SOAPAction");
-	if (!action) {
-		g_print ("No SOAPAction found in request.\n");
-		set_response_error (
-			req, 
-			403, 
-			"Missing SOAPAction", 
-			"The required SOAPAction header was not supplied.");
-		goto START_WRITE;
-	}
-	*/
-
 	call_handler (req, data, soup_context_get_uri (req->context)->path);
 
 	channel = soup_socket_get_iochannel (server_sock);
@@ -860,6 +895,7 @@ message_new (SoupServer *server)
 	 */
 	msg = soup_message_new (NULL, NULL);
 	if (msg) {
+		msg->method = NULL;
 		msg->priv->server = server;
 		soup_server_ref (server);
 	}
@@ -926,7 +962,7 @@ conn_accept (GIOChannel    *serv_chan,
 	chan = soup_socket_get_iochannel (sock);
 
 	if (server->proto == SOUP_PROTOCOL_HTTPS) {
-		chan = soup_ssl_get_iochannel (chan);
+		chan = soup_ssl_get_server_iochannel (chan);
 		g_io_channel_unref (sock->iochannel);
 		g_io_channel_ref (chan);
 		sock->iochannel = chan;
@@ -1154,6 +1190,33 @@ soup_server_get_handler (SoupServer *server, const gchar *path)
 	g_free (mypath);
 
 	return server->default_handler;
+}
+
+SoupAddress *
+soup_server_context_get_client_address (SoupServerContext *context)
+{
+	SoupSocket *socket;
+	SoupAddress *address;
+
+	g_return_val_if_fail (context != NULL, NULL);
+
+	socket = context->msg->priv->server_sock;
+	address = soup_socket_get_address (socket);
+
+	return address;
+}
+
+gchar *
+soup_server_context_get_client_host (SoupServerContext *context)
+{
+	gchar *host;
+	SoupAddress *address;
+
+	address = soup_server_context_get_client_address (context);
+	host = g_strdup (soup_address_get_canonical_name (address));
+	soup_address_unref (address);
+	
+	return host;
 }
 
 static SoupServerAuthContext *

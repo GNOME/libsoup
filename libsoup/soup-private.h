@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-private.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-private.h: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
  *      Alex Graveley (alex@helixcode.com)
@@ -13,46 +13,16 @@
  * extraneous circumstances.
  */
 
-#ifndef SOAP_PRIVATE_H
-#define SOAP_PRIVATE_H 1
+#ifndef SOUP_PRIVATE_H
+#define SOUP_PRIVATE_H 1
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#ifdef SOUP_WIN32
-#  include <malloc.h>
-#  define alloca _alloca
-#else
-#  ifdef HAVE_ALLOCA_H
-#    include <alloca.h>
-#  else
-#    ifdef _AIX
-#      pragma alloca
-#    else
-#      ifndef alloca /* predefined by HP cc +Olibcalls */
-         char *alloca ();
-#      endif
-#    endif
-#  endif
-#endif
-
 #include <sys/types.h>
-
-#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
-#endif
-
-#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
-#endif
-
-#ifdef SOUP_WIN32
-#define VERSION "Win/0.7.99"
-#include <windows.h>
-#include <winbase.h>
-#include <winuser.h>
-#endif
 
 #include <libsoup/soup-auth.h>
 #include <libsoup/soup-context.h>
@@ -137,6 +107,8 @@ struct _SoupMessagePrivate {
 	guint              write_tag;
 	guint              timeout_tag;
 
+	guint              retries;
+
 	SoupCallbackFn     callback;
 	gpointer           user_data;
 
@@ -156,7 +128,7 @@ struct _SoupMessagePrivate {
 void     soup_message_issue_callback (SoupMessage      *req);
 
 gboolean soup_message_run_handlers   (SoupMessage      *msg,
-				      SoupHandlerEvent  invoke_type);
+				      SoupHandlerType   invoke_type);
 
 void     soup_message_cleanup        (SoupMessage      *req);
 
