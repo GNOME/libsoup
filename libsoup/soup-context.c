@@ -48,7 +48,7 @@ static guint most_recently_used_id = 0;
  * Return value: a %SoupContext representing @uri.  
  */
 SoupContext *
-soup_context_get (gchar *uri) 
+soup_context_get (const gchar *uri) 
 {
 	SoupUri *suri;
 	SoupContext *con;

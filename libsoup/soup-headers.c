@@ -84,7 +84,7 @@ soup_headers_parse (gchar      *str,
 		
 		val++;
 		val += strspn (val, " \t");  /* skip whitespace */
-		g_hash_table_insert (dest, key, val);
+		g_hash_table_insert (dest, g_strdup (key), g_strdup (val));
 		
 		key = val;
         }

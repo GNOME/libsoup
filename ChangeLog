@@ -1,3 +1,19 @@
+2001-05-16  JP Rosevear  <jpr@ximian.com>
+
+	* src/soup-core/soup-headers.c (soup_headers_parse): g_strdup the
+	response headers when adding them to the hash
+
+	* src/soup-core/soup-context.c (soup_context_get): ditto
+
+	* src/soup-core/soup-context.h: constify uri passed to
+	soup_context_get
+
+	* src/soup-core/soup-env.h (soup_env_free): new protos
+
+	* src/soup-core/soup-env.c (soup_env_set_address): new accessor to
+	set url to access for service
+	(soup_env_get_address): ditto
+	
 2001-05-16  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-apache.c (soup_apache_add_header_from_table):

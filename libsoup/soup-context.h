@@ -31,7 +31,7 @@ typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
 
 typedef gpointer SoupConnectId;
 
-SoupContext  *soup_context_get               (gchar                *uri);
+SoupContext  *soup_context_get               (const gchar          *uri);
 
 SoupContext  *soup_context_from_uri          (SoupUri              *suri);
 
