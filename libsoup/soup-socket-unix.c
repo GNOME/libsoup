@@ -616,7 +616,10 @@ soup_address_new (const gchar* name,
 				 * change port 
 				 */
 				SoupAddress *new_ia = soup_address_copy (ia);
-				soup_address_set_port (new_ia, port);
+
+				((struct sockaddr_in*) &new_ia->sa)->sin_port = 
+					g_htons (port);
+
 				ia = new_ia;
 			}
 

@@ -182,17 +182,21 @@ soup_address_get_port (const SoupAddress* ia)
 
 /**
  * soup_address_set_port:
- * @ia: Address to set the port number of.
- * @port: New port number
+ * @ia: The %SoupAddress.
+ * @addrlen: Pointer to socklen_t the returned sockaddr's length is to be 
+ * placed in.
  *
- * Set the port number.
+ * Return value: const pointer to @ia's sockaddr buffer.
  **/
-void
-soup_address_set_port (const SoupAddress* ia, guint port)
+const struct sockaddr *
+soup_address_get_sockaddr (SoupAddress *ia, guint *addrlen)
 {
-	g_return_if_fail (ia != NULL);
+	g_return_val_if_fail (ia != NULL, NULL);
 
-	((struct sockaddr_in*) &ia->sa)->sin_port = g_htons (port);
+	if (addrlen)
+		*addrlen = sizeof (struct sockaddr_in);
+
+	return &ia->sa;
 }
 
 /**

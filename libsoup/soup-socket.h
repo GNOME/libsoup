@@ -65,8 +65,9 @@ gchar*               soup_address_get_canonical_name (SoupAddress*         ia);
 
 gint                 soup_address_get_port           (const SoupAddress*   ia);
 
-void                 soup_address_set_port           (const SoupAddress*   ia, 
-						      guint                port);
+const struct sockaddr *
+                     soup_address_get_sockaddr       (SoupAddress         *ia,
+						      guint               *addrlen);
 
 guint                soup_address_hash               (const gpointer       p);
 

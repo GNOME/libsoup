@@ -1,3 +1,9 @@
+2001-11-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_address_set_sockaddr): Remove.
+	(soup_address_get_sockaddr): Impl. Return the address's internal
+	sockaddr, and its length.
+
 2001-11-20  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-ntlm.c (soup_ntlm_request): Simplify. Don't
