@@ -83,8 +83,6 @@ libsoup_2_2_la_SOURCES =	\
 	soup-server-auth.c	\
 	soup-server-message.c	\
 	soup-socket.c		\
-	soup-socks.h		\
-	soup-socks.c		\
 	soup-ssl.h		\
 	soup-ssl.c		\
 	soup-transfer.h		\

@@ -1,5 +1,21 @@
 2003-08-19  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-socks.[ch]: Remove this. RC doesn't let you
+	configure it anyway, and no one has complained, and it looks like
+	the SOCKS5 auth code doesn't actually work anyway...
+
+	* libsoup/soup-queue.c (proxy_connect): Remove SOCKS code.
+
+	* libsoup/soup-uri.h: Remove SOUP_PROTOCOL_SOCKS4 and
+	SOUP_PROTOCOL_SOCKS5
+
+	* libsoup/soup-misc.c: Remove a references to SOCKS in a comment
+
+	* libsoup/Makefile.am (libsoup_2_2_la_SOURCES): remove
+	soup-socks.[ch]
+
+2003-08-19  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-server.c: Make this a GObject. Remove
 	SoupServerMessage code (to soup-server-message.c). Remove CGI
 	server code (for now?)

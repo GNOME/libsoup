@@ -14,8 +14,6 @@
 typedef GQuark SoupProtocol;
 #define SOUP_PROTOCOL_HTTP (g_quark_from_static_string ("http"))
 #define SOUP_PROTOCOL_HTTPS (g_quark_from_static_string ("https"))
-#define SOUP_PROTOCOL_SOCKS4 (g_quark_from_static_string ("socks4"))
-#define SOUP_PROTOCOL_SOCKS5 (g_quark_from_static_string ("socks5"))
 
 typedef struct {
 	SoupProtocol  protocol;

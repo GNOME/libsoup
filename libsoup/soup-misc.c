@@ -34,7 +34,7 @@ static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
  * destination specified in a SoupMessage. Messages will be routed through the
  * proxy host on their way to the actual specified destination. The URL for this
  * context should be of the form:
- * 	[http|https|socks4|socks5]://<USERNAME>:<PASSWORD>@<PROXYHOST>
+ * 	[http|https]://<USERNAME>:<PASSWORD>@<PROXYHOST>
  */
 void
 soup_set_proxy (SoupContext *context)

@@ -26,7 +26,6 @@
 #include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
-#include "soup-socks.h"
 #include "soup-ssl.h"
 #include "soup-transfer.h"
 
@@ -555,14 +554,6 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 
 	proto = soup_context_get_uri (ctx)->protocol;
 	dest_proto = soup_context_get_uri (req->context)->protocol;
-	
-	/* Handle SOCKS proxy negotiation */
-	if ((proto == SOUP_PROTOCOL_SOCKS4 || proto == SOUP_PROTOCOL_SOCKS5)) {
-		soup_connect_socks_proxy (conn, ctx, req->context, 
-					  soup_queue_connect_cb,
-					  req);
-		return TRUE;
-	} 
 	
 	/* Handle HTTPS tunnel setup via proxy CONNECT request. */
 	if (dest_proto == SOUP_PROTOCOL_HTTPS) {
