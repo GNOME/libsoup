@@ -1,3 +1,8 @@
+2001-07-13  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-typecodes.c: Add windows x86 type 
+	  alignment defines.
+
 2001-07-10  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-uri.h: Replace SOUP_PROTOCOL_SHTTP with
