@@ -410,6 +410,10 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 	return rv;
 }
 
+#define NOT_CACHED 0
+#define CACHE_OK 1
+#define MARKED_FOR_DELETE 2
+
 static gboolean
 soup_address_new_cb (GIOChannel* iochannel,
 		     GIOCondition condition,
@@ -482,6 +486,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 	 */
 	state = g_realloc (state, sizeof (SoupAddress));
 	g_hash_table_insert (active_address_hash, state->ia.name, state);
+	state->ia.cached = CACHE_OK;
 
 	(*cb_func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb_data);
 
@@ -823,22 +828,22 @@ prune_zeroref_addresses_foreach (gchar       *hostname,
 				 gint        *remaining)
 {
 	/*
-	 * References exist, clear kill flag.
+	 * References exist, clear mark.
 	 */
 	if (ia->ref_count != 0) {
-		ia->killme = FALSE;
+		ia->cached = CACHE_OK;
 		return FALSE;
 	}
 
 	/*
 	 * Kill if marked.  Otherwise mark.
 	 */
-	if (ia->killme) {
+	if (ia->cached == MARKED_FOR_DELETE) {
 		g_free (ia->name);
 		g_free (ia);
 		return TRUE;
 	} else
-		ia->killme = TRUE;
+		ia->cached = MARKED_FOR_DELETE;
 
 	/*
 	 * Make sure the timeout stays around
@@ -893,8 +898,10 @@ soup_address_unref (SoupAddress* ia)
 	--ia->ref_count;
 
 	if (ia->ref_count == 0) {
-		if (!ia->name) 
+		if (ia->cached == NOT_CACHED) {
+			g_free (ia->name);
 			g_free (ia);
+		}
 		else if (!zeroref_address_timeout_tag) {
 			/* 
 			 * Cleanup zero reference addresses every 2 minutes.
@@ -917,10 +924,7 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 			  GIOCondition condition,
 			  gpointer data)
 {
-	SoupAddressReverseState* state;
-	gchar* name = NULL;
-
-	state = (SoupAddressReverseState*) data;
+	SoupAddressReverseState* state = data;
 
 	g_return_val_if_fail (state != NULL, FALSE);
 
@@ -941,11 +945,8 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 				return TRUE;
 
 			/* Copy the name */
-			name = g_new (gchar, state->buffer [0] + 1);
-			strncpy (name, &state->buffer [1], state->buffer [0]);
-			name [state->buffer [0]] = '\0';
-
-			state->ia->name = name;
+			state->ia->name = g_strndup (&state->buffer [1], 
+						     state->buffer [0]);
 
 			/* Remove the watch now in case we don't return
                            immediately */
@@ -954,7 +955,7 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 			/* Call back */
 			(*state->func) (state->ia,
 					SOUP_ADDRESS_STATUS_OK,
-					name,
+					state->ia->name,
 					state->data);
 
 			close (state->fd);

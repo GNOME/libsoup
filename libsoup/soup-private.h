@@ -82,7 +82,7 @@ struct _SoupAddress {
 	gchar*          name;
 	struct sockaddr sa;
 	gint            ref_count;
-	gboolean        killme;
+	gint            cached;
 };
 
 struct _SoupSocket {

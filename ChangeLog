@@ -1,5 +1,15 @@
 2001-11-02  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-private.h: Rename killme to cached in _SoupAddress.
+
+	* src/libsoup/soup-socket-unix.c (soup_address_get_name_cb): Use
+	g_strndup instead of g_new/strncpy.
+	(soup_address_new_cb): Set cache status to CACHE_OK on success.
+	(prune_zeroref_addresses_foreach): Use ia->cached.
+	(soup_address_unref): Free addresses which are NOT_CACHED.
+
+2001-11-02  Alex Graveley  <alex@ximian.com>
+	
 	* src/libsoup/soup-context.c (soup_try_existing_connections):
 	Remove old fixed FIXME.
 
