@@ -16,7 +16,7 @@
 	* libsoup/soup-message-io.c (io_error): peek at the socket's
 	"last_error" datum and set the message's status to SSL_FAILED
 	(with the GError's message string) rather than IO_ERROR, if
-	appropriate.
+	appropriate. For 64414.
 
 2004-09-30  Dan Winship  <danw@novell.com>
 
