@@ -1,5 +1,10 @@
 Makefile
 Makefile.in
+libsoup.args
+libsoup.hierarchy
+libsoup.interfaces
+libsoup.prerequisites
+libsoup.signals
 libsoup-decl-list.txt
 libsoup-decl.txt
 libsoup-unused.txt
