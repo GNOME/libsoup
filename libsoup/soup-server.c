@@ -552,17 +552,7 @@ read_headers_cb (const GString        *headers,
 		req_host = soup_message_get_header (msg->request_headers, 
 						    "Host");
 
-		if (req_host) {
-			url = 
-				g_strdup_printf (
-					"%s%s:%d%s",
-					server->proto == SOUP_PROTOCOL_HTTPS ?
-					        "https://" :
-					        "http://",
-					req_host, 
-					server->port,
-					req_path);
-		} else if (*req_path != '/') {
+		if (*req_path != '/') {
 			/*
 			 * Check for absolute URI
 			 */
@@ -574,6 +564,16 @@ read_headers_cb (const GString        *headers,
 				soup_uri_free (absolute);
 			} else 
 				goto THROW_MALFORMED_HEADER;
+		} else if (req_host) {
+			url = 
+				g_strdup_printf (
+					"%s%s:%d%s",
+					server->proto == SOUP_PROTOCOL_HTTPS ?
+					        "https://" :
+					        "http://",
+					req_host, 
+					server->port,
+					req_path);
 		} else {
 			/* 
 			 * No Host header, no AbsoluteUri

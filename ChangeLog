@@ -1,3 +1,9 @@
+2002-05-24  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-server.c (read_headers_cb): According to RFC
+	2616, section 5.2, an absolute URI passed in during a request gets
+	priority over the Host header.
+
 2002-05-23  Joe Shaw  <joe@ximian.com>
 
 	* acconfig.h: undef SOUP_GLIB2
