@@ -19,6 +19,8 @@ main (int argc, char **argv)
 	GIOChannel *chan;
 	gsize wrote;
 
+	g_type_init ();
+
 	if (argc >=2 && !strcmp (argv[1], "-6")) {
 		addr = soup_address_ipv6_any ();
 		if (!addr) {
@@ -40,6 +42,7 @@ main (int argc, char **argv)
 	else
 		port = SOUP_SERVER_ANY_PORT;
 	listener = soup_socket_server_new (addr, port);
+	g_object_unref (addr);
 	if (!listener) {
 		fprintf (stderr, "Could not create listening socket\n");
 		exit (1);
@@ -51,6 +54,7 @@ main (int argc, char **argv)
 		printf ("got connection from %s port %d\n",
 			soup_address_get_name_sync (addr),
 			soup_socket_get_port (client));
+		g_object_unref (addr);
 
 		now = time (NULL);
 		timebuf = ctime (&now);
@@ -59,8 +63,9 @@ main (int argc, char **argv)
 		g_io_channel_write (chan, timebuf, strlen (timebuf), &wrote);
 		g_io_channel_unref (chan);
 
-		soup_socket_unref (client);
+		g_object_unref (client);
 	}
 
+	g_object_unref (listener);
 	return 0;
 }

@@ -1,5 +1,46 @@
 2003-08-12  Dan Winship  <danw@ximian.com>
 
+	* configure.in (GLIB): add gobject-2.0 to the PKG_CHECK_MODULES
+	call
+
+	* libsoup/soup-address.c: Make this a GObject.
+	(soup_address_ref, soup_address_unref): Gone.
+	(soup_address_copy): Gone. Wasn't being used anyway.
+
+	* libsoup/soup-dns.c: Move all of the DNS code and caching stuff
+	here from soup-address.c, so that soup-address doesn't need to
+	worry about trying to cache zero-ref addresses.
+
+	* libsoup/soup-socket.c: Make this a GObject. Use "guint"
+	consistently for port numbers.
+	(soup_socket_ref, soup_socket_unref): Gone.
+
+	* libsoup/soup-private.h: Change the SoupSocket definition to be
+	SoupSocketPrivate. (Still need to keep this here since soup-server
+	pokes around in its internals.)
+	(SOUP_MAKE_TYPE): Copied from gal's E_MAKE_TYPE.
+
+	* libsoup/soup-server.c (read_done_cb, write_done_cb): Unref the
+	reader/writer rather than leaking them.
+
+	* libsoup/*: Use GObject methods for socket/address refcounting
+	
+	* tests/auth-test.c (main)
+	* tests/timeserver.c (main): Call g_type_init.
+
+	* tests/get.c (main): Call g_type_init.
+	(get_url, got_url): Fix some bugs that could make -r mode get into
+	infinite loops downloading the same files over and over. Plug some
+	memory leaks to make this more useful for valgrinding libsoup.
+
+	* tests/simple-httpd.c (main): Call g_type_init. Set up a signal
+	handler for SIGINT so we can exit cleanly, since valgrind won't
+	give a leak report if you don't. Plug a few memory leaks.
+
+	* tests/simple-proxy.c (main): Likewise	
+
+2003-08-12  Dan Winship  <danw@ximian.com>
+
 	Pull over some new test programs from the soup-refactoring branch,
 	along with the SoupUri changes they depend on.
 

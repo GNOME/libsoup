@@ -220,6 +220,8 @@ main (int argc, char **argv)
 	char *expected;
 	int i;
 
+	g_type_init ();
+
 	for (i = 0; i < ntests; i++) {
 		printf ("Test %d: %s\n", i + 1, tests[i].explanation);
 

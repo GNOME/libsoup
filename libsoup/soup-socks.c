@@ -45,7 +45,7 @@ socks_data_free (SoupSocksData *sd)
 		soup_context_unref (sd->dest_ctx);
 
 	if (sd->dest_addr)
-		soup_address_unref (sd->dest_addr);
+		g_object_unref (sd->dest_addr);
 
 	while (g_source_remove_by_user_data (sd))
 		continue;

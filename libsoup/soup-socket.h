@@ -1,23 +1,36 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-socket.c: ronous Callback-based HTTP Request Queue.
- *
- * Authors:
- *      David Helder  (dhelder@umich.edu)
- *      Alex Graveley (alex@ximian.com)
- * 
- * Original code compliments of David Helder's GNET Networking Library.
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_SOCKET_H
 #define SOUP_SOCKET_H 1
 
-#include <glib.h>
+#include <glib-object.h>
 #include <libsoup/soup-address.h>
 
-typedef struct _SoupSocket SoupSocket;
+#define SOUP_TYPE_SOCKET            (soup_socket_get_type ())
+#define SOUP_SOCKET(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SOCKET, SoupSocket))
+#define SOUP_SOCKET_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SOCKET, SoupSocketClass))
+#define SOUP_IS_SOCKET(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SOCKET))
+#define SOUP_IS_SOCKET_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SOCKET))
+#define SOUP_SOCKET_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SOCKET, SoupSocketClass))
+
+typedef struct SoupSocketPrivate SoupSocketPrivate;
+
+typedef struct {
+	GObject parent;
+
+	SoupSocketPrivate *priv;
+} SoupSocket;
+
+typedef struct {
+	GObjectClass parent_class;
+
+} SoupSocketClass;
+
+GType soup_socket_get_type (void);
+
 
 typedef gpointer SoupSocketConnectId;
 
@@ -31,15 +44,15 @@ typedef void (*SoupSocketConnectFn) (SoupSocket              *socket,
 				     SoupSocketConnectStatus  status, 
 				     gpointer                 data);
 
-SoupSocketConnectId  soup_socket_connect        (const gchar*        hostname,
-						 const gint          port, 
+SoupSocketConnectId  soup_socket_connect        (const char         *hostname,
+						 guint               port, 
 						 SoupSocketConnectFn func, 
 						 gpointer            data);
 
 void                 soup_socket_connect_cancel (SoupSocketConnectId id);
 
-SoupSocket          *soup_socket_connect_sync   (const gchar        *hostname, 
-						 const gint          port);
+SoupSocket          *soup_socket_connect_sync   (const char         *hostname, 
+						 guint               port);
 
 
 typedef gpointer SoupSocketNewId;
@@ -64,15 +77,11 @@ SoupSocket         *soup_socket_new_sync        (SoupAddress        *addr,
 						 guint               port);
 
 
-void                soup_socket_ref             (SoupSocket*         s);
-
-void                soup_socket_unref           (SoupSocket*         s);
-
 GIOChannel         *soup_socket_get_iochannel   (SoupSocket*         socket);
 
 SoupAddress        *soup_socket_get_address     (const SoupSocket*   socket);
 
-gint                soup_socket_get_port        (const SoupSocket*   socket);
+guint               soup_socket_get_port        (const SoupSocket*   socket);
 
 
 #define SOUP_SERVER_ANY_PORT 0

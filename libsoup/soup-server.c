@@ -159,7 +159,7 @@ soup_server_unref (SoupServer *serv)
 			g_source_remove (serv->accept_tag);
 
 		if (serv->listen_sock)
-			soup_socket_unref (serv->listen_sock);
+			g_object_unref (serv->listen_sock);
 
 		if (serv->cgi_read_chan)
 			g_io_channel_unref (serv->cgi_read_chan);
@@ -262,7 +262,7 @@ destroy_message (SoupMessage *msg)
 		 */
 		if (check_close_connection (msg)) {
 			g_io_channel_close (chan);
-			soup_socket_unref (server_sock);
+			g_object_unref (server_sock);
 		}
 		else {
 			/*
@@ -315,6 +315,7 @@ write_done_cb (gpointer user_data)
 {
 	SoupMessage *msg = user_data;
 
+	soup_transfer_write_unref (msg->priv->write_tag);
 	msg->priv->write_tag = 0;
 	destroy_message (msg);
 }
@@ -632,7 +633,7 @@ read_headers_cb (const GString        *headers,
 			SoupSocket *server_sock = msg->priv->server_sock;
 			gchar *host;
 
-			host = get_server_sockname (server_sock->sockfd);
+			host = get_server_sockname (server_sock->priv->sockfd);
 			url = 
 				g_strdup_printf (
 					"%s%s:%d%s",
@@ -862,6 +863,7 @@ read_done_cb (const SoupDataBuffer *data,
 	SoupSocket *server_sock = req->priv->server_sock;
 	GIOChannel *channel;
 
+	soup_transfer_read_unref (req->priv->read_tag);
 	req->priv->read_tag = 0;
 
 	call_handler (req, data, soup_context_get_uri (req->context)->path);
@@ -941,12 +943,12 @@ start_another_request (GIOChannel    *serv_chan,
 	if (!(condition & G_IO_IN) || 
 	    ioctl (fd, FIONREAD, &cnt) < 0 ||
 	    cnt <= 0)
-		soup_socket_unref (data->server_sock);
+		g_object_unref (data->server_sock);
 	else {
 		msg = message_new (data->server);
 		if (!msg) {
 			g_warning ("Unable to create new incoming message\n");
-			soup_socket_unref (data->server_sock);
+			g_object_unref (data->server_sock);
 		} else {
 			msg->priv->server_sock = data->server_sock;
 			msg->priv->read_tag = 
@@ -986,11 +988,11 @@ conn_accept (GIOChannel    *serv_chan,
 	chan = soup_socket_get_iochannel (sock);
 
 	if (server->proto == SOUP_PROTOCOL_HTTPS)
-		sock->iochannel = soup_ssl_get_server_iochannel (chan);
+		sock->priv->iochannel = soup_ssl_get_server_iochannel (chan);
 
 	msg->priv->server_sock = sock;
 	msg->priv->read_tag = 
-		soup_transfer_read (sock->iochannel,
+		soup_transfer_read (sock->priv->iochannel,
 				    FALSE,
 				    read_headers_cb,
 				    NULL,
@@ -1234,7 +1236,7 @@ soup_server_context_get_client_host (SoupServerContext *context)
 
 	address = soup_server_context_get_client_address (context);
 	host = g_strdup (soup_address_get_canonical_name (address));
-	soup_address_unref (address);
+	g_object_unref (address);
 	
 	return host;
 }

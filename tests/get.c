@@ -109,7 +109,13 @@ got_url (SoupMessage *msg, gpointer uri)
 		goto DONE;
 	}
 	printf ("%s: %d %s\n", name, msg->errorcode, msg->errorphrase);
+
+	name += strlen (base_uri->path);
+	if (*name == '/')
+		name++;
+
 	if (SOUP_ERROR_IS_REDIRECTION (msg->errorcode)) {
+		unlink (name);
 		header = soup_message_get_header (msg->response_headers, "Location");
 		if (header) {
 			printf ("  -> %s\n", header);
@@ -120,10 +126,6 @@ got_url (SoupMessage *msg, gpointer uri)
 
 	if (!SOUP_ERROR_IS_SUCCESSFUL (msg->errorcode))
 		goto DONE;
-
-	name += strlen (base_uri->path);
-	if (*name == '/')
-		name++;
 
 	if (recurse)
 		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -146,6 +148,7 @@ got_url (SoupMessage *msg, gpointer uri)
 	g_ptr_array_free (hrefs, TRUE);
 
  DONE:
+	soup_uri_free (uri);
 	if (!--pending)
 		g_main_quit (loop);
 }
@@ -173,6 +176,8 @@ get_url (const char *url)
 		 */
 
 		name = url_to_get + strlen (base);
+		if (*name == '/')
+			name++;
 		if (access (name, F_OK) == 0) {
 			g_free (url_to_get);
 			return;
@@ -205,6 +210,7 @@ main (int argc, char **argv)
 {
 	int opt;
 
+	g_type_init ();
 	while ((opt = getopt (argc, argv, "r")) != -1) {
 		switch (opt) {
 		case 'r':
@@ -245,6 +251,9 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_run (loop);
+	g_main_loop_unref (loop);
+
+	soup_uri_free (base_uri);
 
 	return 0;
 }

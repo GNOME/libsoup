@@ -53,11 +53,10 @@ typedef struct {
 	GHashTable *auths;            /* KEY: scheme:realm, VALUE: SoupAuth */
 } SoupHost;
 
-struct _SoupSocket {
-	gint            sockfd;
+struct SoupSocketPrivate {
+	int             sockfd;
 	SoupAddress    *addr;
 	guint           port;
-	guint           ref_count;
 	GIOChannel     *iochannel;
 };
 
@@ -158,6 +157,31 @@ gboolean  soup_str_case_equal  (gconstpointer  v1,
 gint      soup_substring_index (gchar         *str,
 				gint           len,
 				gchar         *substr);
+
+
+#define SOUP_MAKE_TYPE(l,t,ci,i,parent) \
+GType l##_get_type(void)\
+{\
+	static GType type = 0;				\
+	if (!type){					\
+		static GTypeInfo const object_info = {	\
+			sizeof (t##Class),		\
+							\
+			(GBaseInitFunc) NULL,		\
+			(GBaseFinalizeFunc) NULL,	\
+							\
+			(GClassInitFunc) ci,		\
+			(GClassFinalizeFunc) NULL,	\
+			NULL,	/* class_data */	\
+							\
+			sizeof (t),			\
+			0,	/* n_preallocs */	\
+			(GInstanceInitFunc) i,		\
+		};					\
+		type = g_type_register_static (parent, #t, &object_info, 0); \
+	}						\
+	return type;					\
+}
 
 #ifdef __cplusplus
 }

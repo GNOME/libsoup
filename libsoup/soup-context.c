@@ -270,7 +270,7 @@ connection_free (SoupConnection *conn)
 
 	g_io_channel_unref (conn->channel);
 	soup_context_unref (conn->context);
-	soup_socket_unref (conn->socket);
+	g_object_unref (conn->socket);
 	if (conn->death_tag)
 		g_source_remove (conn->death_tag);
 	g_free (conn);

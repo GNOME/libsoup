@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +38,13 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_send (msg);
 }
 
+static void
+quit (int sig)
+{
+	/* Exit cleanly on ^C in case we're valgrinding. */
+	exit (0);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -44,6 +52,9 @@ main (int argc, char **argv)
 	int opt;
 	int port = SOUP_SERVER_ANY_PORT;
 	SoupServer *server;
+
+	g_type_init ();
+	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "p:s:")) != -1) {
 		switch (opt) {
@@ -72,6 +83,7 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
 
 	return 0;
 }

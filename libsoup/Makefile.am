@@ -42,6 +42,8 @@ libsoup_2_2_la_SOURCES =	\
 	soup-auth.h		\
 	soup-auth.c		\
 	soup-context.c		\
+	soup-dns.h		\
+	soup-dns.c		\
 	soup-error.c		\
 	soup-gnutls.h		\
 	soup-gnutls.c		\

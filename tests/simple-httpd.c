@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +48,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 			goto DONE;
 		}
 	} else
-		path = "";
+		path = g_strdup ("");
 
 	path_to_open = g_strdup_printf (".%s", path);
 
@@ -101,17 +102,28 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_set_error (msg, SOUP_ERROR_OK);
 
  DONE:
+	g_free (path);
 	printf ("  -> %d %s\n\n", msg->errorcode, msg->errorphrase);
+}
+
+static void
+quit (int sig)
+{
+	/* Exit cleanly on ^C in case we're valgrinding. */
+	exit (0);
 }
 
 int
 main (int argc, char **argv)
 {
 	GMainLoop *loop;
+	SoupServer *server, *ssl_server;
 	int opt;
 	int port = SOUP_SERVER_ANY_PORT;
 	int ssl_port = SOUP_SERVER_ANY_PORT;
-	SoupServer *server, *ssl_server;
+
+	g_type_init ();
+	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "p:s:")) != -1) {
 		switch (opt) {

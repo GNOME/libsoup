@@ -1,15 +1,11 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-socket.c: Platform neutral socket networking code.
+ * soup-socket.c: Socket networking code.
  *
- * Authors:
- *      David Helder  (dhelder@umich.edu)
- *      Alex Graveley (alex@ximian.com)
- *
- * Original code compliments of David Helder's GNET Networking Library, and is
+ * Based on code in David Helder's GNET Networking Library,
  * Copyright (C) 2000  David Helder & Andrew Lanoix.
  *
- * All else Copyright (C) 2000-2002, Ximian, Inc.
+ * All else Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +25,49 @@
 #  define socklen_t size_t
 #endif
 
+#define PARENT_TYPE G_TYPE_OBJECT
+static GObjectClass *parent_class;
+
+static void
+init (GObject *object)
+{
+	SoupSocket *sock = SOUP_SOCKET (object);
+
+	sock->priv = g_new0 (SoupSocketPrivate, 1);
+	sock->priv->sockfd = -1;
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupSocket *sock = SOUP_SOCKET (object);
+
+	if (sock->priv->sockfd != -1)
+		close (sock->priv->sockfd);
+
+	if (sock->priv->addr)
+		g_object_unref (sock->priv->addr);
+
+	if (sock->priv->iochannel)
+		g_io_channel_unref (sock->priv->iochannel);
+
+	g_free (sock->priv);
+
+	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+class_init (GObjectClass *object_class)
+{
+	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method override */
+	object_class->finalize = finalize;
+}
+
+SOUP_MAKE_TYPE (soup_socket, SoupSocket, class_init, init, PARENT_TYPE)
+
+
 typedef struct {
 	SoupSocketConnectFn  func;
 	gpointer             data;
@@ -39,11 +78,11 @@ typedef struct {
 } SoupSocketConnectState;
 
 static void
-soup_socket_connect_tcp_cb (SoupSocket* socket,
+soup_socket_connect_tcp_cb (SoupSocket *socket,
 			    SoupSocketConnectStatus status,
 			    gpointer data)
 {
-	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
+	SoupSocketConnectState *state = (SoupSocketConnectState*) data;
 	SoupSocketConnectFn func = state->func;
 	gpointer user_data = state->data;
 
@@ -61,17 +100,17 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 }
 
 static void
-soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
+soup_socket_connect_inetaddr_cb (SoupAddress *inetaddr,
 				 SoupAddressStatus status,
 				 gpointer data)
 {
-	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
+	SoupSocketConnectState *state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
 		state->tcp_id = soup_socket_new (inetaddr, state->port,
 						 soup_socket_connect_tcp_cb,
 						 state);
-		soup_address_unref (inetaddr);
+		g_object_unref (inetaddr);
 	} else {
 		SoupSocketConnectFn func = state->func;
 		gpointer user_data = state->data;
@@ -106,12 +145,12 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
  * or fails immediately.
  **/
 SoupSocketConnectId
-soup_socket_connect (const gchar*        hostname,
-		     const gint          port,
+soup_socket_connect (const char         *hostname,
+		     guint               port,
 		     SoupSocketConnectFn func,
 		     gpointer            data)
 {
-	SoupSocketConnectState* state;
+	SoupSocketConnectState *state;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -147,7 +186,7 @@ soup_socket_connect (const gchar*        hostname,
 void
 soup_socket_connect_cancel (SoupSocketConnectId id)
 {
-	SoupSocketConnectState* state = (SoupSocketConnectState*) id;
+	SoupSocketConnectState *state = (SoupSocketConnectState*) id;
 
 	g_return_if_fail (state != NULL);
 
@@ -169,8 +208,7 @@ soup_socket_connect_sync_cb (SoupSocket              *socket,
 }
 
 SoupSocket *
-soup_socket_connect_sync (const gchar *name,
-			  const gint   port)
+soup_socket_connect_sync (const char *name, guint port)
 {
 	SoupSocket *ret = (SoupSocket *) 0xdeadbeef;
 
@@ -185,9 +223,9 @@ soup_socket_connect_sync (const gchar *name,
 }
 
 static void
-soup_socket_new_sync_cb (SoupSocket*         socket,
-			 SoupSocketNewStatus status,
-			 gpointer            data)
+soup_socket_new_sync_cb (SoupSocket          *socket,
+			 SoupSocketNewStatus  status,
+			 gpointer             data)
 {
 	SoupSocket **ret = data;
 	*ret = socket;
@@ -206,43 +244,6 @@ soup_socket_new_sync (SoupAddress *addr, guint port)
 	}
 
 	return ret;
-}
-
-/**
- * soup_socket_ref
- * @s: SoupSocket to reference
- *
- * Increment the reference counter of the SoupSocket.
- **/
-void
-soup_socket_ref (SoupSocket* s)
-{
-	g_return_if_fail (s != NULL);
-
-	++s->ref_count;
-}
-
-/**
- * soup_socket_unref
- * @s: #SoupSocket to unreference
- *
- * Remove a reference from the #SoupSocket.  When reference count
- * reaches 0, the socket is deleted.
- **/
-void
-soup_socket_unref (SoupSocket* s)
-{
-	g_return_if_fail(s != NULL);
-
-	--s->ref_count;
-
-	if (s->ref_count == 0) {
-		close (s->sockfd);
-		if (s->addr) soup_address_unref (s->addr);
-		if (s->iochannel) g_io_channel_unref (s->iochannel);
-
-		g_free(s);
-	}
 }
 
 /**
@@ -267,19 +268,19 @@ soup_socket_unref (SoupSocket* s)
  *
  **/
 GIOChannel*
-soup_socket_get_iochannel (SoupSocket* socket)
+soup_socket_get_iochannel (SoupSocket *socket)
 {
-	g_return_val_if_fail (socket != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_SOCKET (socket), NULL);
 
-	if (socket->iochannel == NULL) {
-		socket->iochannel = g_io_channel_unix_new (socket->sockfd);
-		g_io_channel_set_encoding (socket->iochannel, NULL, NULL);
-		g_io_channel_set_buffered (socket->iochannel, FALSE);
+	if (socket->priv->iochannel == NULL) {
+		socket->priv->iochannel = g_io_channel_unix_new (socket->priv->sockfd);
+		g_io_channel_set_encoding (socket->priv->iochannel, NULL, NULL);
+		g_io_channel_set_buffered (socket->priv->iochannel, FALSE);
 	}
 
-	g_io_channel_ref (socket->iochannel);
+	g_io_channel_ref (socket->priv->iochannel);
 
-	return socket->iochannel;
+	return socket->priv->iochannel;
 }
 
 /**
@@ -294,14 +295,12 @@ soup_socket_get_iochannel (SoupSocket* socket)
  * Returns: #SoupAddress of socket; NULL on failure.
  **/
 SoupAddress *
-soup_socket_get_address (const SoupSocket* socket)
+soup_socket_get_address (const SoupSocket *socket)
 {
-	g_return_val_if_fail (socket != NULL, NULL);
-	g_return_val_if_fail (socket->addr != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_SOCKET (socket), NULL);
+	g_return_val_if_fail (socket->priv->addr != NULL, NULL);
 
-	soup_address_ref (socket->addr);
-
-	return socket->addr;
+	return g_object_ref (socket->priv->addr);
 }
 
 /**
@@ -312,12 +311,12 @@ soup_socket_get_address (const SoupSocket* socket)
  *
  * Returns: Port number of the socket.
  **/
-gint
-soup_socket_get_port(const SoupSocket* socket)
+guint
+soup_socket_get_port (const SoupSocket *socket)
 {
-	g_return_val_if_fail (socket != NULL, 0);
+	g_return_val_if_fail (SOUP_IS_SOCKET (socket), 0);
 
-	return socket->port;
+	return socket->priv->port;
 }
 
 /**
@@ -337,12 +336,12 @@ soup_socket_get_port(const SoupSocket* socket)
 SoupSocket *
 soup_socket_server_new (SoupAddress *local_addr, guint local_port)
 {
-	SoupSocket* s;
+	SoupSocket *s;
 	struct sockaddr *sa = NULL;
 	struct soup_sockaddr_max bound_sa;
 	int sa_len;
 	const int on = 1;
-	gint flags;
+	int flags;
 
 	g_return_val_if_fail (local_addr != NULL, NULL);
 
@@ -350,17 +349,16 @@ soup_socket_server_new (SoupAddress *local_addr, guint local_port)
 	soup_address_make_sockaddr (local_addr, local_port, &sa, &sa_len);
 
 	/* Create socket */
-	s = g_new0 (SoupSocket, 1);
-	s->ref_count = 1;
+	s = g_object_new (SOUP_TYPE_SOCKET, NULL);
 
-	if ((s->sockfd = socket (sa->sa_family, SOCK_STREAM, 0)) < 0) {
-		g_free (s);
+	if ((s->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0)) < 0) {
+		g_object_unref (s);
 		g_free (sa);
 		return NULL;
 	}
 
 	/* Set REUSEADDR so we can reuse the port */
-	if (setsockopt (s->sockfd,
+	if (setsockopt (s->priv->sockfd,
 			SOL_SOCKET,
 			SO_REUSEADDR,
 			&on,
@@ -368,31 +366,31 @@ soup_socket_server_new (SoupAddress *local_addr, guint local_port)
 		g_warning("Can't set reuse on tcp socket\n");
 
 	/* Get the flags (should all be 0?) */
-	flags = fcntl (s->sockfd, F_GETFL, 0);
+	flags = fcntl (s->priv->sockfd, F_GETFL, 0);
 	if (flags == -1) goto SETUP_ERROR;
 
 	/* Make the socket non-blocking */
-	if (fcntl (s->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+	if (fcntl (s->priv->sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
 		goto SETUP_ERROR;
 
 	/* Bind */
-	if (bind (s->sockfd, sa, sa_len) != 0)
+	if (bind (s->priv->sockfd, sa, sa_len) != 0)
 		goto SETUP_ERROR;
 	g_free (sa);
 
 	sa_len = sizeof (bound_sa);
-	getsockname (s->sockfd, (struct sockaddr *)&bound_sa, &sa_len); 
-	s->addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa,
-						  &s->port);
+	getsockname (s->priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len); 
+	s->priv->addr =
+		soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa,
+						&s->priv->port);
 
 	/* Listen */
-	if (listen (s->sockfd, 10) != 0) goto SETUP_ERROR;
+	if (listen (s->priv->sockfd, 10) != 0) goto SETUP_ERROR;
 
 	return s;
 
  SETUP_ERROR:
-	close (s->sockfd);
-	g_free (s);
+	g_object_unref (s);
 	g_free (sa);
 	return NULL;
 }
@@ -402,24 +400,24 @@ soup_socket_server_new (SoupAddress *local_addr, guint local_port)
                                 G_IO_ERR | G_IO_HUP | G_IO_NVAL)
 
 typedef struct {
-	gint             sockfd;
+	int              sockfd;
 	SoupAddress     *addr;
 	guint            port;
 	SoupSocketNewFn  func;
 	gpointer         data;
-	gint             flags;
+	int              flags;
 	guint            connect_watch;
 } SoupSocketState;
 
 static gboolean
-soup_socket_new_cb (GIOChannel* iochannel,
+soup_socket_new_cb (GIOChannel *iochannel,
 		    GIOCondition condition,
 		    gpointer data)
 {
-	SoupSocketState* state = (SoupSocketState*) data;
-	SoupSocket* s;
-	gint error = 0;
-	gint len = sizeof (gint);
+	SoupSocketState *state = (SoupSocketState*) data;
+	SoupSocket *s;
+	int error = 0;
+	int len = sizeof (int);
 
 	/* Remove the watch now in case we don't return immediately */
 	g_source_remove (state->connect_watch);
@@ -438,11 +436,10 @@ soup_socket_new_cb (GIOChannel* iochannel,
 	if (fcntl (state->sockfd, F_SETFL, state->flags) != 0)
 		goto ERROR;
 
-	s = g_new0 (SoupSocket, 1);
-	s->ref_count = 1;
-	s->sockfd = state->sockfd;
-	s->addr = state->addr;
-	s->port = state->port;
+	s = g_object_new (SOUP_TYPE_SOCKET, NULL);
+	s->priv->sockfd = state->sockfd;
+	s->priv->addr = state->addr;
+	s->priv->port = state->port;
 
 	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
 
@@ -451,7 +448,7 @@ soup_socket_new_cb (GIOChannel* iochannel,
 	return FALSE;
 
  ERROR:
-	soup_address_unref (state->addr);
+	g_object_unref (state->addr);
 	(*state->func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, state->data);
 	g_free (state);
 
@@ -480,9 +477,9 @@ soup_socket_new (SoupAddress      *addr,
 		 SoupSocketNewFn   func,
 		 gpointer          data)
 {
-	gint sockfd;
-	gint flags;
-	SoupSocketState* state;
+	int sockfd;
+	int flags;
+	SoupSocketState *state;
 	GIOChannel *chan;
 	struct sockaddr *sa;
 	int len;
@@ -524,14 +521,13 @@ soup_socket_new (SoupAddress      *addr,
 	g_free (sa);
 
 	/* Unref in soup_socket_new_cb if failure */
-	soup_address_ref (addr);
+	g_object_ref (addr);
 
 	/* Connect succeeded, return immediately */
 	if (!errno) {
-		SoupSocket *s = g_new0 (SoupSocket, 1);
-		s->ref_count = 1;
-		s->sockfd = sockfd;
-		s->addr = addr;
+		SoupSocket *s = g_object_new (SOUP_TYPE_SOCKET, NULL);
+		s->priv->sockfd = sockfd;
+		s->priv->addr = addr;
 
 		(*func) (s, SOUP_SOCKET_NEW_STATUS_OK, data);
 		return NULL;
@@ -567,10 +563,10 @@ soup_socket_new (SoupAddress      *addr,
 void
 soup_socket_new_cancel (SoupSocketNewId id)
 {
-	SoupSocketState* state = (SoupSocketState*) id;
+	SoupSocketState *state = (SoupSocketState*) id;
 
 	g_source_remove (state->connect_watch);
-	soup_address_unref (state->addr);
+	g_object_unref (state->addr);
 	g_free (state);
 }
 
@@ -582,22 +578,22 @@ server_accept_internal (SoupSocket *socket, gboolean block)
 	struct soup_sockaddr_max sa;
 	socklen_t n;
 	fd_set fdset;
-	SoupSocket* s;
+	SoupSocket *s;
 
-	g_return_val_if_fail (socket != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_SOCKET (socket), NULL);
 
  try_again:
 	FD_ZERO (&fdset);
-	FD_SET (socket->sockfd, &fdset);
+	FD_SET (socket->priv->sockfd, &fdset);
 
-	if (select (socket->sockfd + 1, &fdset, NULL, NULL, NULL) == -1) {
+	if (select (socket->priv->sockfd + 1, &fdset, NULL, NULL, NULL) == -1) {
 		if (errno == EINTR) goto try_again;
 		return NULL;
 	}
 
 	n = sizeof(sa);
 
-	if ((sockfd = accept (socket->sockfd, (struct sockaddr *)&sa, &n)) == -1) {
+	if ((sockfd = accept (socket->priv->sockfd, (struct sockaddr *)&sa, &n)) == -1) {
 		if (!block)
 			return NULL;
 		if (errno == EWOULDBLOCK ||
@@ -619,11 +615,10 @@ server_accept_internal (SoupSocket *socket, gboolean block)
 	if (fcntl (sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
 		return NULL;
 
-	s = g_new0 (SoupSocket, 1);
-	s->ref_count = 1;
-	s->sockfd = sockfd;
-	s->addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa,
-						  &s->port);
+	s = g_object_new (SOUP_TYPE_SOCKET, NULL);
+	s->priv->sockfd = sockfd;
+	s->priv->addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa,
+							&s->priv->port);
 
 	return s;
 }
