@@ -1,3 +1,18 @@
+2001-06-15  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-schema.h:
+	* src/soup-wsdl-runtime/wsdl-schema.c:
+	* src/soup-wsdl-runtime/wsdl-schema-glib.h:
+	* src/soup-wsdl-runtime/wsdl-schema-glib.c:
+	* src/soup-wsdl/wsdl-parse.c: 
+	* src/soup-core/soup-serializer.c: 
+	* src/soup-core/soup-parser.c: replace 'childs' with
+	'xmlChildrenNode', 'root' with 'xmlRootNode' and 'CHAR' with
+	'xmlChar' for compatibility with both libxml1 and libxml2
+
+	* configure.in: Check for either libxml1 or libxml2, favouring
+	libxml1 but selectable with --with-libxml=[1,2]
+
 2001-06-14  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-misc.c (soup_set_proxy): If we're passing in

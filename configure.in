@@ -78,16 +78,50 @@ AC_SUBST(GLIB_LIBS)
 AC_SUBST(GMODULE_LIBS)
 
 
-dnl ******************************
-dnl *** Checks for gnome-xml 1 ***
-dnl ******************************
+dnl ****************************
+dnl *** Checks for gnome-xml ***
+dnl ****************************
 
-AC_PATH_PROG(XML_CONFIG,xml-config,no)
-if test x$XML_CONFIG = xno; then
-	AC_MSG_ERROR([Cannot find LIBXML: Is xml-config in path?])
+FAVOUR_LIBXML=1
+AC_ARG_WITH(libxml,
+	[  --with-libxml=[1/2] which version of libxml to use [default=$FAVOUR_LIBXML]],,
+	with_libxml=$FAVOUR_LIBXML)
+
+if test "x$with_libxml" = "x" -o "$with_libxml" = "yes"; then
+	with_libxml=$FAVOUR_LIBXML
 fi
-XML_CFLAGS=`xml-config --cflags`
-XML_LIBS=`xml-config --libs`
+
+if test "$with_libxml" = "1"; then
+	AC_PATH_PROG(XML_CONFIG,xml-config,no)
+	if test x$XML_CONFIG = xno; then
+		AC_MSG_ERROR([Cannot find LIBXML: Is xml-config in path?])
+	fi
+
+	XML_MIN_VERSION=1.8.8
+else
+	if test "$with_libxml" = "2"; then
+		AC_PATH_PROG(XML_CONFIG,xml2-config,no)
+		if test x$XML_CONFIG = xno; then
+			AC_MSG_ERROR([Cannot find LIBXML2: Is xml2-config in path?])
+		fi
+
+		XML_MIN_VERSION=2.3.10
+	else
+		AC_MSG_ERROR(Can't use libxml version $with_libxml)
+	fi
+fi
+
+dnl Check version
+XML_VERSION=`$XML_CONFIG --version`
+ver=`echo $XML_VERSION | awk -F. '{printf("%d", ($1*1000+$2)*1000+$3);}'`
+minver=`echo $XML_MIN_VERSION | awk -F. '{printf("%d", ($1*1000+$2)*1000+$3);}'`
+if test "$minver" -gt "$ver"
+then
+	AC_MSG_ERROR(Found libxml version $XML_VERSION. You need $XML_MIN_VERSION or newer)
+fi
+
+XML_CFLAGS=`$XML_CONFIG --cflags`
+XML_LIBS=`$XML_CONFIG --libs`
 
 AC_SUBST(XML_CFLAGS)
 AC_SUBST(XML_LIBS)
