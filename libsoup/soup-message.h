@@ -144,7 +144,7 @@ void           soup_message_add_body_handler    (SoupMessage      *msg,
 						 gpointer          user_data);
 
 typedef enum {
-	SOUP_MESSAGE_FOLLOW_REDIRECT  = (1 << 1),
+	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
 	SOUP_MESSAGE_NO_COOKIE        = (1 << 2),
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3)
 } SoupMessageFlags;

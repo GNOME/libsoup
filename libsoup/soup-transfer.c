@@ -29,10 +29,12 @@ typedef struct {
 
 	/*
 	 * If TRUE, a callback has been issed which references recv_buf.
-	 * If the tranfer is cancelled before a reference exists, the contents
+	 * If the transfer is cancelled before a reference exists, the contents
 	 * of recv_buf are free'd.
 	 */
 	gboolean               callback_issued;
+
+	gboolean               processing;
 
 	GByteArray            *recv_buf;
 	guint                  header_len;
@@ -55,6 +57,8 @@ typedef struct {
 	guint                   write_tag;
 	guint                   err_tag;
 
+	gboolean                processing;
+
 	const GString          *header;
 	const SoupDataBuffer   *src;
 
@@ -67,16 +71,18 @@ typedef struct {
 	gpointer                user_data;
 } SoupWriter;
 
-#define source_remove(_src) \
-        { if ((_src)) { g_source_remove ((_src)); (_src) = 0; }}
+#define IGNORE_CANCEL(t) (t)->processing = TRUE;
+#define UNIGNORE_CANCEL(t) (t)->processing = FALSE;
 
 void
 soup_transfer_read_cancel (guint tag)
 {
 	SoupReader *r = GINT_TO_POINTER (tag);
 
-	source_remove (r->read_tag);
-	source_remove (r->err_tag);
+	if (r->processing) return;
+
+	g_source_remove (r->read_tag);
+	g_source_remove (r->err_tag);
 
 	g_byte_array_free (r->recv_buf, r->callback_issued ? FALSE : TRUE);
 
@@ -90,7 +96,9 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 {
 	gboolean body_started = r->recv_buf->len > r->header_len;
 
+	IGNORE_CANCEL (r);
 	if (r->error_cb) (*r->error_cb) (body_started, r->user_data);
+	UNIGNORE_CANCEL (r);
 
 	soup_transfer_read_cancel (GPOINTER_TO_INT (r));
 
@@ -202,10 +210,12 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 			SoupTransferDone ret;
 			gint len = 0;
 
-			str.str = g_strndup (r->recv_buf->data, index);;
+			str.str = g_strndup (r->recv_buf->data, index);
 			str.len = index;
 
+			IGNORE_CANCEL (r);
 			ret = (*r->headers_done_cb) (&str, &len, r->user_data);
+			UNIGNORE_CANCEL (r);
 
 			g_free (str.str);
 
@@ -243,7 +253,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
 		r->callback_issued = TRUE;
 
+		IGNORE_CANCEL (r);
 		cont = (*r->read_chunk_cb) (&buf, r->user_data);
+		UNIGNORE_CANCEL (r);
 
 		g_byte_array_remove_index (r->recv_buf, r->recv_buf->len - 1);
 
@@ -261,7 +273,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
 		r->callback_issued = TRUE;
 
+		IGNORE_CANCEL (r);
 		(*r->read_done_cb) (&buf, r->user_data);
+		UNIGNORE_CANCEL (r);
 	}
 
  FINISH_READ:
@@ -311,10 +325,11 @@ soup_transfer_write_cancel (guint tag)
 {
 	SoupWriter *w = GINT_TO_POINTER (tag);
 
-	source_remove (w->write_tag);
-	source_remove (w->err_tag);
+	if (w->processing) return;
 
-	//g_io_channel_unref (w->channel);
+	g_source_remove (w->write_tag);
+	g_source_remove (w->err_tag);
+
 	g_free (w);
 }
 
@@ -325,7 +340,11 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 {
 	gboolean body_started = w->write_len > w->header->len;
 
-	if (w->error_cb) (*w->error_cb) (body_started, w->user_data);
+	if (w->error_cb) {
+		IGNORE_CANCEL (w);
+		(*w->error_cb) (body_started, w->user_data);
+		UNIGNORE_CANCEL (w);
+	}
 
 	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
 
@@ -365,8 +384,11 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		write_len = body_len - offset;
 
 		if (!w->headers_done) {
-			if (w->headers_done_cb)
+			if (w->headers_done_cb) {
+				IGNORE_CANCEL (w);
 				(*w->headers_done_cb) (w->user_data);
+				UNIGNORE_CANCEL (w);
+			}
 			w->headers_done = TRUE;
 		}
 	}
@@ -393,7 +415,12 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	if (total_written != total_len)
 		goto WRITE_SOME_MORE;
 
-	if (w->write_done_cb) (*w->write_done_cb) (w->user_data);
+	if (w->write_done_cb) {
+		IGNORE_CANCEL (w);
+		(*w->write_done_cb) (w->user_data);
+		UNIGNORE_CANCEL (w);
+	}
+
 	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
 
  DONE_WRITING:

@@ -1,3 +1,26 @@
+2001-07-17  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-context.c (soup_context_uri_hash): Add
+	querysting to hash.
+	(soup_context_uri_equal): Compare querystring for equality.
+
+	* src/soup-core/soup-transfer.c (soup_transfer_read_error_cb): Add
+	gross hack to avoid double frees by only freeing the SoupReader
+	or SoupWriter if we are not currently processing a callback.
+	(soup_transfer_read_cb): Ditto
+	(soup_transfer_write_error_cb): Ditto.
+	(soup_transfer_write_cb): Ditto.
+	(soup_transfer_read_cancel): Return if currently processing a callback.
+	(soup_transfer_write_cancel): Ditto.
+
+	* src/soup-core/soup-message.c (soup_message_new): Add
+	redirect_handler by default.
+	(soup_message_set_flags): Remove redirect handler when
+	SOUP_MESSAGE_NO_REDIRECT is set, and add it when it is unset.
+
+	* src/soup-core/soup-message.h: Change SOUP_MESSAGE_FOLLOW_REDIRECT to
+	SOUP_MESSAGE_NO_REDIRECT, as redirect is on by default now.
+
 2001-07-16  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-transfer.c (soup_transfer_read_cb): Set len
