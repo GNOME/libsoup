@@ -1,3 +1,11 @@
+2001-10-17  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (remove_block_at_index): Add some
+	bounds checking.
+
+	* src/libsoup/soup-queue.c (soup_queue_connect_cb): Handle
+	iochannel creation failure which can happen when using SSL.
+
 2001-10-16  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-transfer.c (decode_hex): Impl.

@@ -433,7 +433,28 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		}
 
 		channel = soup_connection_get_iochannel (conn);
-		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
+		if (!channel) {
+			gchar *phrase;
+
+			if (proto == SOUP_PROTOCOL_HTTPS)
+				phrase = "Unable to create secure data channel";
+			else
+				phrase = "Unable to create data channel";
+
+			if (ctx != req->context)
+				soup_message_set_error_full (
+					req, 
+					SOUP_ERROR_CANT_CONNECT_PROXY,
+					phrase);
+			else 
+				soup_message_set_error_full (
+					req, 
+					SOUP_ERROR_CANT_CONNECT,
+					phrase);
+
+			soup_message_issue_callback (req);
+			return;
+		}
 
 		if (req->priv->req_header) {
 			g_string_free (req->priv->req_header, TRUE);
@@ -450,6 +471,8 @@ soup_queue_connect_cb (SoupContext          *ctx,
 					     soup_queue_write_done_cb,
 					     soup_queue_error_cb,
 					     req);
+
+		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 
 		req->priv->read_tag = 
 			soup_transfer_read (channel,
