@@ -8,8 +8,11 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
-#include "soup.h"
+#ifndef SOUP_SSL_H
+#define SOUP_SSL_H 1
+
 #include <glib.h>
-#include <gnet/gnet.h>
 
 GIOChannel *soup_get_ssl_iochannel (GIOChannel *sock);
+
+#endif /* SOUP_SSL_H */

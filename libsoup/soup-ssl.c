@@ -9,6 +9,7 @@
  */
 
 #include "soup-ssl.h"
+#include <gnet/gnet.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 

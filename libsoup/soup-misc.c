@@ -151,37 +151,92 @@ soup_base64_encode (gchar *text)
 	return buffer;
 }
 
-void
-soup_load_config (gchar *config_file)
+#define ALLOW_UNLESS_DENIED TRUE
+#define DENY_UNLESS_ALLOWED FALSE
+
+static gboolean allow_policy = ALLOW_UNLESS_DENIED;
+static GSList *allow_tokens;
+static GSList *deny_tokens;
+
+static void
+soup_config_reset_allow_deny (void)
+{
+	GSList *iter;
+	
+	for (iter = allow_tokens; iter; iter = iter->next) g_free (iter->data);
+	for (iter = deny_tokens; iter; iter = iter->next) g_free (iter->data);
+
+	g_slist_free (allow_tokens);
+	g_slist_free (deny_tokens);
+
+	allow_tokens = deny_tokens = NULL;
+}
+
+static gboolean
+soup_config_allow_deny (gchar *key)
+{
+	GSList **list;
+	gchar **iter, **split;
+
+	key = g_strchomp (key);
+
+	if (!g_strncasecmp (key, "allow", 5)) list = &allow_tokens;
+	else if (!g_strncasecmp (key, "deny", 4)) list = &deny_tokens;
+	else return FALSE;
+
+	iter = split = g_strsplit (key, " ", 0);
+	if (!split || !split [1]) return TRUE;
+
+	while (*(++iter)) {
+		if (!g_strcasecmp (iter [0], "all")) {
+			GSList *iter;
+			allow_policy = (*list == allow_tokens);
+			for (iter = *list; iter; iter = iter->next) 
+				g_free (iter->data);
+			g_slist_free (*list);
+			*list = NULL;
+			*list = g_slist_prepend (*list, NULL);
+			break;
+		}
+
+		*list = g_slist_prepend (*list, g_strdup (iter [0]));
+	}
+
+	g_strfreev (split);
+	return TRUE;
+}
+
+static gboolean
+soup_config_token_allowed (gchar *key)
+{
+	gboolean allow;
+	GSList *list;
+
+	list = (allow_policy == ALLOW_UNLESS_DENIED) ? deny_tokens:allow_tokens;
+	allow = (allow_policy == ALLOW_UNLESS_DENIED) ? TRUE : FALSE;
+
+	if (!list) return allow;
+
+	for (; list; list = list->next)
+		if (!list->data ||
+		    g_strncasecmp (key, 
+				   (gchar *) list->data, 
+				   strlen ((gchar *) list->data)))
+			return !allow;
+
+	return allow;
+}
+
+static void 
+soup_load_config_internal (gchar *config_file, gboolean admin)
 {
 	FILE *cfg;
 	char buf[128];
 
-	if (soup_initialized) {
-		soup_set_proxy (NULL);
-		soup_set_connection_limit (0);
-	}
-
-	if (!config_file) {
-		gchar *dfile;
-
-		/* Load system global config */
-		soup_load_config (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc");
-
-		/* Ensure variables aren't overwritten */
-		soup_initialized = FALSE;
-		
-		/* Load user local config */
-		dfile = g_strconcat (g_get_home_dir(),
-				     G_DIR_SEPARATOR_S ".souprc", NULL);
-		soup_load_config (dfile);
-		g_free (dfile);
-
-		return;
-	}
-
 	cfg = fopen (config_file, "r");
 	if (!cfg) return;
+
+	if (admin) soup_config_reset_allow_deny();
 
 	while (fgets (buf, sizeof (buf), cfg)) {
 		char *key, *value, *iter, *iter2, **split;
@@ -191,13 +246,17 @@ soup_load_config (gchar *config_file)
 
 		iter2 = strchr (iter, '#');
 		if (iter2) *iter2 = '\0';
-		
+
+		if (admin && soup_config_allow_deny (iter)) continue;
+
+		if (!admin && !soup_config_token_allowed (iter)) continue;
+
 		split = g_strsplit (g_strchomp (iter), "=", 2);
 		if (!split || !split[1] || split[2]) continue;
 
 		key = g_strchomp (split[0]);
 		value = g_strchug (split[1]);
-		
+
 		if (!g_strcasecmp (key, "connection-limit"))
 			soup_set_connection_limit (MAX (atoi (value), 0));
 		else if (!g_strcasecmp (key, "proxy-url") ||
@@ -208,6 +267,30 @@ soup_load_config (gchar *config_file)
 
 		g_strfreev (split);
 	}
+}
+
+void
+soup_load_config (gchar *config_file)
+{
+	/* Reset values */
+	if (soup_initialized) {
+		soup_set_proxy (NULL);
+		soup_set_connection_limit (0);
+	}
+
+	/* Load system global config */
+	soup_load_config_internal (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc",
+				   TRUE);
+
+	/* Load requested file or user local config */
+	if (!config_file) {
+		gchar *dfile = g_strconcat (g_get_home_dir(),
+					    G_DIR_SEPARATOR_S ".souprc", 
+					    NULL);
+		soup_load_config_internal (dfile, FALSE);
+		g_free (dfile);
+	} else
+		soup_load_config_internal (config_file, FALSE);
 
 	soup_initialized = TRUE;
 }
