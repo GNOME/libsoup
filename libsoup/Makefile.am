@@ -21,6 +21,10 @@ libsoup_la_SOURCES =		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
+	soup-nss.h		\
+	soup-nss.c		\
+	soup-openssl.h		\
+	soup-openssl.c		\
 	soup-private.h     	\
 	soup-queue.c		\
 	soup-serializer.c	\

@@ -1,3 +1,39 @@
+2001-02-20  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: cleaned up to no longer link with an SSL
+	library. Added options --with-nspr-includes, --with-nspr-libs,
+	--with-nss-includes, --with-nss-libs, --with-openssl-includes, and
+	--with-openssl-libs.
+
+	* src/soup-core/Makefile.am (libsoup_la_SOURCES): Add
+	soup-nss.[ch], and soup-openssl.[ch].
+	
+	* src/soup-core/soup-openssl.c: Added. Move existing OpenSSL code
+	here. Convert to using GModule to load the shared library at runtime.
+
+	* src/soup-core/soup-nss.c: Added. Initial implementation of NSS
+	SSL support. Uses GModule to perform runtime loading. Needs
+	serious testing.
+
+	* src/soup-core/soup-ssl.c (soup_set_security_policy): Sets the
+	underlying SSL library's policy wrt allowed ciphers. Valid options
+	are DOMESTIC, EXPORT, and FRANCE, though these may change as
+	domestic and export are confusing terms.
+	(soup_ssl_init): Now simply chains SSL library initialization until
+	one is loaded successfully. Attempts to start NSS then OpenSSL, then
+	simply fails gracefully for future SSL connections.
+	(soup_ssl_get_iochannel): dispatch to the underlying SSL library
+	in use, or return NULL if none are available.
+
+	* src/soup-core/soup-misc.c (soup_load_config_internal): Converted
+	to use generic config file option table.
+	(soup_config_connection_limit): Added. Set the connection limit
+	given a "connection-limit" config file option.
+	(soup_config_proxy_uri): Added. Set the proxy uri given a
+	"proxy-uri" or "proxy-url" config file option.
+	(soup_config_security_policy): Added. Allows setting the SSL security
+	policy from the config file.
+
 2001-02-16  Alex Graveley  <alex@ximian.com>
 
 	* tests/Makefile.am: clear out some unneccassry cruft as currently

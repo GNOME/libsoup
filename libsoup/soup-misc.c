@@ -157,6 +157,51 @@ static GSList *allow_tokens = NULL;
 static GSList *deny_tokens = NULL;
 
 static void
+soup_config_connection_limit (gchar *key, gchar *value)
+{
+	soup_set_connection_limit (MAX (atoi (value), 0));
+}
+
+static void
+soup_config_proxy_uri (gchar *key, gchar *value)
+{
+	SoupContext *con = soup_context_get (value);
+	if (con) soup_set_proxy (con);
+}
+
+static void
+soup_config_security_policy (gchar *key, gchar *value)
+{
+	switch (toupper (value [0])) {
+	case 'D':
+		if (!g_strcasecmp (&value [1], "OMESTIC"))
+			soup_set_security_policy (SOUP_SECURITY_DOMESTIC);
+		break;
+	case 'E':
+		if (!g_strcasecmp (&value [1], "XPORT"))
+			soup_set_security_policy (SOUP_SECURITY_EXPORT);
+		break;
+	case 'F':
+		if (!g_strcasecmp (&value [1], "RANCE"))
+			soup_set_security_policy (SOUP_SECURITY_FRANCE);
+		break;
+	}
+}
+
+typedef void (*SoupConfigFunc) (gchar *key, gchar *value);
+
+struct SoupConfigFuncs {
+	gchar          *key;
+	SoupConfigFunc  func;
+} soup_config_funcs [] = {
+	{ "connection-limit", soup_config_connection_limit },
+	{ "proxy-uri",        soup_config_proxy_uri },
+	{ "proxy-url",        soup_config_proxy_uri },
+	{ "security-policy",  soup_config_security_policy },
+	{ NULL }
+};
+
+static void
 soup_config_reset_allow_deny (void)
 {
 	GSList *iter;
@@ -228,6 +273,7 @@ soup_config_token_allowed (gchar *key)
 static void 
 soup_load_config_internal (gchar *config_file, gboolean admin)
 {
+	struct SoupConfigFuncs *funcs = soup_config_funcs;
 	FILE *cfg;
 	char buf[128];
 
@@ -261,13 +307,9 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 		key = g_strchomp (split[0]);
 		value = g_strchug (split[1]);
 
-		if (!g_strcasecmp (key, "connection-limit"))
-			soup_set_connection_limit (MAX (atoi (value), 0));
-		else if (!g_strcasecmp (key, "proxy-url") ||
-			 !g_strcasecmp (key, "proxy-uri")) {
-			SoupContext *con = soup_context_get (value);
-			if (con) soup_set_proxy (con);
-		}
+		for (; funcs && funcs->key; funcs++)
+			if (!g_strcasecmp (key, funcs->key)) 
+				funcs->func (key, value);
 
 		g_strfreev (split);
 	}

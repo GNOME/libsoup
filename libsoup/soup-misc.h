@@ -27,6 +27,13 @@ guint        soup_get_connection_limit (void);
 
 void         soup_load_config          (gchar       *config_file);
 
+typedef enum {
+	SOUP_SECURITY_DOMESTIC = 1,
+	SOUP_SECURITY_EXPORT   = 2,
+	SOUP_SECURITY_FRANCE   = 3
+} SoupSecurityPolicy;
+
+void         soup_set_security_policy  (SoupSecurityPolicy policy);
 
 /* Useful debugging routines */
 
