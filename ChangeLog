@@ -1,3 +1,12 @@
+2003-05-06  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-message.c (global_handlers): Change the
+	redirect handler to be a RESPONSE_ERROR_CLASS_HANDLER for
+	SOUP_ERROR_CLASS_REDIRECT rather than a RESPONSE_HEADER_HANDLER
+	for "Location" to get around the non-64-bit-clean union
+	initialization pointed out by Jeremy Katz <katzj@redhat.com>.
+	(redirect_handler): Update for that.
+
 2003-04-28  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.20

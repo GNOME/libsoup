@@ -817,45 +817,43 @@ static void
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	const gchar *new_loc;
+	const SoupUri *old_uri;
+	SoupUri *new_uri;
+	SoupContext *new_ctx;
 
-	if (msg->errorclass != SOUP_ERROR_CLASS_REDIRECT || 
-	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) return;
+	if (msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT)
+		return;
 
 	new_loc = soup_message_get_header (msg->response_headers, "Location");
+	if (!new_loc)
+		return;
 
-	if (new_loc) {
-		const SoupUri *old_uri;
-		SoupUri *new_uri;
-		SoupContext *new_ctx;
+	old_uri = soup_context_get_uri (msg->context);
 
-		old_uri = soup_context_get_uri (msg->context);
+	new_uri = soup_uri_new (new_loc);
+	if (!new_uri) 
+		goto INVALID_REDIRECT;
 
-		new_uri = soup_uri_new (new_loc);
-		if (!new_uri) 
-			goto INVALID_REDIRECT;
+	/* 
+	 * Copy auth info from original URI.
+	 */
+	if (old_uri->user && !new_uri->user)
+		soup_uri_set_auth (new_uri,
+				   old_uri->user, 
+				   old_uri->passwd, 
+				   old_uri->authmech);
 
-		/* 
-		 * Copy auth info from original URI.
-		 */
-		if (old_uri->user && !new_uri->user)
-			soup_uri_set_auth (new_uri,
-					   old_uri->user, 
-					   old_uri->passwd, 
-					   old_uri->authmech);
+	new_ctx = soup_context_from_uri (new_uri);
 
-		new_ctx = soup_context_from_uri (new_uri);
+	soup_uri_free (new_uri);
 
-		soup_uri_free (new_uri);
+	if (!new_ctx)
+		goto INVALID_REDIRECT;
 
-		if (!new_ctx)
-			goto INVALID_REDIRECT;
+	soup_message_set_context (msg, new_ctx);
+	soup_context_unref (new_ctx);
 
-		soup_message_set_context (msg, new_ctx);
-		soup_context_unref (new_ctx);
-
-		soup_message_requeue (msg);
-	}
-
+	soup_message_requeue (msg);
 	return;
 
  INVALID_REDIRECT:
@@ -891,8 +889,8 @@ static SoupHandlerData global_handlers [] = {
 		SOUP_HANDLER_PRE_BODY,
 		redirect_handler, 
 		NULL, 
-		RESPONSE_HEADER_HANDLER, 
-		{ (guint) "Location" }
+		RESPONSE_ERROR_CLASS_HANDLER, 
+		{ SOUP_ERROR_CLASS_REDIRECT }
 	},
 	/* 
 	 * Handle authorization.
