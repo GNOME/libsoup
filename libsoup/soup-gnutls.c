@@ -63,7 +63,9 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 	}
 
 	if (status & GNUTLS_CERT_INVALID ||
+#ifdef GNUTLS_CERT_NOT_TRUSTED
 	    status & GNUTLS_CERT_NOT_TRUSTED ||
+#endif
 	    status & GNUTLS_CERT_REVOKED)
 	{
 		g_set_error (err, SOUP_SSL_ERROR,
@@ -198,7 +200,7 @@ soup_gnutls_read (GIOChannel   *channel,
 	} else {
 		*bytes_read = result;
 
-		return G_IO_STATUS_NORMAL;
+		return (result > 0) ? G_IO_STATUS_NORMAL : G_IO_STATUS_EOF;
 	}
 }
 

@@ -1,3 +1,10 @@
+2005-03-09  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_read): return G_IO_STATUS_EOF
+	if gnutls returns 0. [#73352]
+	(verify_certificate): put an #ifdef around
+	GNUTLS_CERT_NOT_TRUSTED so it works with gnutls 1.2.x. [#57811]
+
 2005-01-24  Dan Winship  <danw@novell.com>
 
 	* configure.in: bump version to 2.2.2
