@@ -1,3 +1,17 @@
+2002-08-20  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-ntlm.c: (soup_ntlm_parse_challenge): Use
+	g_memdup, not g_strndup, to copy the nonce. Duh! Fixes #26061
+	(sporadic NTLM auth failures).
+	(NTLMResponse): Fix this structure up a bit, although Windows
+	doesn't actually seem to care that we've been mangling it all
+	along.
+	(soup_ntlm_response): Translate the flags to little-endian (though
+	again, it happened to not matter).
+	(various) Use GUINT16_TO/FROM_LE rather than #defining our own
+	versions.
+	(Spbox): Add some braces to make gcc happier.
+
 2002-08-07  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-auth.c (digest_auth_func): Fix a memory leak.
