@@ -1,5 +1,10 @@
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: Bump HEAD version to 0.6.99.
+	* src/libsoup/soup-private.h (VERSION): Ditto.
+
+2001-11-08  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: Version 0.6.0.
 	* src/libsoup/soup-private.h (VERSION): Ditto.
 
