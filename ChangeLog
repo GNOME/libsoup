@@ -1,3 +1,22 @@
+2002-04-09  Dan Winship  <danw@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Bump version to
+	0.7.1.1.
+
+2002-04-02  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-auth.c (soup_auth_new_from_header_list): Oops.
+	Fix this. It was working for "Basic" but not "NTLM".
+
+2002-04-01  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-auth.c (soup_auth_new_from_header_list): Make
+	this take a SoupUri, and if the uri specifies an authmech, use
+	that regardless of strength.
+
+	* src/libsoup/soup-message.c (authorize_handler): Pass the
+	context's uri to soup_auth_new_from_header_list
+
 2002-03-20  Alex Graveley  <alex@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Bump version to 0.7.1.

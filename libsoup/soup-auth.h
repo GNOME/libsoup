@@ -40,7 +40,8 @@ SoupAuth *soup_auth_lookup                 (SoupContext   *ctx);
 void      soup_auth_set_context            (SoupAuth      *auth,
 					    SoupContext   *ctx);
 
-SoupAuth *soup_auth_new_from_header_list   (const GSList  *header);
+SoupAuth *soup_auth_new_from_header_list   (const SoupUri *uri,
+					    const GSList  *header);
 
 void      soup_auth_initialize             (SoupAuth      *auth,
 					    const SoupUri *uri);
