@@ -469,7 +469,8 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		if (!read_metadata (msg, SOUP_MESSAGE_IO_DOUBLE_EOL))
 			return;
 
-		io->read_meta_buf->len -= SOUP_MESSAGE_IO_DOUBLE_EOL_LEN;
+		io->read_meta_buf->len -= SOUP_MESSAGE_IO_EOL_LEN;
+		io->read_meta_buf->data[io->read_meta_buf->len] = '\0';
 		status = io->parse_headers_cb (msg, io->read_meta_buf->data,
 					       io->read_meta_buf->len,
 					       &io->read_encoding,
@@ -494,10 +495,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
-			/* FIXME: we should clear the existing
-			 * response headers and reason_phrase.
-			 */
-
 			if (msg->status_code == SOUP_STATUS_CONTINUE &&
 			    io->write_state == SOUP_MESSAGE_IO_STATE_BLOCKING) {
 				/* Pause the reader, unpause the writer */
@@ -518,9 +515,10 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			io->read_state = io_body_state (io->read_encoding);
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
+		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
 			soup_message_got_informational (msg);
-		else
+			soup_message_cleanup_response (msg);
+		} else
 			soup_message_got_headers (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 		break;

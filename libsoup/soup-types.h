@@ -13,12 +13,12 @@
 
 typedef struct SoupAddress           SoupAddress;
 typedef struct SoupConnection        SoupConnection;
-typedef struct SoupContext           SoupContext;
 typedef struct SoupMessage           SoupMessage;
 typedef struct SoupServer            SoupServer;
 typedef union  SoupServerAuth        SoupServerAuth;
 typedef struct SoupServerAuthContext SoupServerAuthContext;
 typedef struct SoupServerMessage     SoupServerMessage;
+typedef struct SoupSession           SoupSession;
 typedef struct SoupSocket            SoupSocket;
 typedef struct SoupUri               SoupUri;
 

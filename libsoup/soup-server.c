@@ -142,19 +142,30 @@ new_server (SoupAddress *address, SoupProtocol proto)
 SoupServer *
 soup_server_new (SoupProtocol proto, guint port)
 {
-	return new_server (soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, port), proto);
+	SoupAddress *address;
+	SoupServer *server;
+
+	address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, port);
+	server = new_server (address, proto);
+	g_object_unref (address);
+
+	return server;
 }
 
 SoupServer *
 soup_server_new_with_host (const char *host, SoupProtocol proto, guint port)
 {
 	SoupAddress *address;
+	SoupServer *server;
 
 	address = soup_address_new (host, port);
 	if (!address)
 		return NULL;
 
-	return new_server (address, proto);
+	server = new_server (address, proto);
+	g_object_unref (address);
+
+	return server;
 }
 
 guint

@@ -523,20 +523,9 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 	g_hash_table_foreach (hash, foreach_value_in_list, &data);
 }
 
-/**
- * soup_message_prepare:
- * @req: a message
- *
- * Prepares @req to be sent, by cleaning up its prior response state
- **/
 void
-soup_message_prepare (SoupMessage *req)
+soup_message_cleanup_response (SoupMessage *req)
 {
-	soup_message_io_cancel (req);
-
-	if (req->status != SOUP_MESSAGE_STATUS_IDLE)
-		req->status = SOUP_MESSAGE_STATUS_IDLE;
-
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->response.body);
 

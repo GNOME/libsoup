@@ -125,6 +125,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	header = soup_ntlm_response (nonce, username, password, NULL, domain);
 	g_free (domain_username);
 	g_free (password);
+	g_free (domain);
 	g_free (nonce);
 
 	soup_message_remove_header (msg->request_headers, "Authorization");

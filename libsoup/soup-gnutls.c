@@ -511,6 +511,8 @@ soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
 	gchan->funcs = &soup_gnutls_channel_funcs;
 	g_io_channel_init (gchan);
 	g_io_channel_set_close_on_unref (gchan, TRUE);
+	gchan->is_readable = gchan->is_writeable = TRUE;
+	gchan->use_buffer = FALSE;
 
 	return gchan;
 

@@ -22,12 +22,13 @@ struct SoupMessagePrivate {
 	SoupUri           *uri;
 };
 
-void             soup_message_run_handlers   (SoupMessage      *msg,
-					      SoupHandlerPhase  invoke_phase);
+void             soup_message_run_handlers     (SoupMessage      *msg,
+						SoupHandlerPhase  phase);
 
-void             soup_message_cleanup        (SoupMessage      *req);
+void             soup_message_cleanup          (SoupMessage      *req);
+void             soup_message_cleanup_response (SoupMessage      *req);
 
-gboolean         soup_message_is_keepalive   (SoupMessage      *msg);
+gboolean         soup_message_is_keepalive     (SoupMessage      *msg);
 
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,

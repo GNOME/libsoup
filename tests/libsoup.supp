@@ -1,0 +1,14 @@
+# valgrind suppressions file
+
+{
+  glib/gtype
+  Memcheck:Leak
+  fun:calloc
+  fun:type_node_any_new_W
+}
+{
+  gcrypt/uninit
+  Memcheck:Cond
+  fun:*
+  fun:gcry_cipher_encrypt
+}

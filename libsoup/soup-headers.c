@@ -38,8 +38,8 @@ soup_headers_parse (char       *str,
 		key += 2;
 		offset = key - str;
 
-		/* pointing at another \r means end of header */
-		if (*key == '\r') break;
+		if (!*key)
+			break;
 
 		/* check if first character on the line is whitespace */
 		if (*key == ' ' || *key == '\t') {
@@ -72,8 +72,8 @@ soup_headers_parse (char       *str,
                 key [0] = '\0';
 		key += 2;
 
-		/* pointing at another \r means end of header */
-		if (*key == '\r') break;
+		if (!*key)
+			break;
 
                 val = strchr (key, ':'); /* find start of val */
 

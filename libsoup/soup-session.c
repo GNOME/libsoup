@@ -47,6 +47,7 @@ struct SoupSessionPrivate {
 
 static guint    host_uri_hash  (gconstpointer key);
 static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
+static void     free_host      (SoupSessionHost *host, SoupSession *session);
 
 static gboolean run_queue (SoupSession *session, gboolean try_pruning);
 
@@ -95,12 +96,27 @@ init (GObject *object)
 	session->priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
 }
 
+static gboolean
+foreach_free_host (gpointer key, gpointer host, gpointer session)
+{
+	free_host (host, session);
+	return TRUE;
+}
+
+static void
+cleanup_hosts (SoupSession *session)
+{
+	g_hash_table_foreach_remove (session->priv->hosts,
+				     foreach_free_host, session);
+}
+
 static void
 dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
 
 	soup_session_abort (session);
+	cleanup_hosts (session);
 
 	G_OBJECT_CLASS (parent_class)->dispose (object);
 }
@@ -111,6 +127,8 @@ finalize (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 
 	soup_message_queue_destroy (session->priv->queue);
+	g_hash_table_destroy (session->priv->hosts);
+	g_hash_table_destroy (session->priv->conns);
 	g_free (session->priv);
 
 	G_OBJECT_CLASS (parent_class)->finalize (object);
@@ -161,7 +179,7 @@ class_init (GObjectClass *object_class)
 		g_param_spec_pointer (SOUP_SESSION_PROXY_URI,
 				      "Proxy URI",
 				      "The HTTP Proxy to use for this session",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
 		g_param_spec_int (SOUP_SESSION_MAX_CONNS,
@@ -219,8 +237,13 @@ set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
+		if (session->priv->proxy_uri)
+			soup_uri_free (session->priv->proxy_uri);
 		pval = g_value_get_pointer (value);
 		session->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+
+		soup_session_abort (session);
+		cleanup_hosts (session);
 		break;
 	case PROP_MAX_CONNS:
 		session->priv->max_conns = g_value_get_int (value);
@@ -303,6 +326,41 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	return host;
 }
 
+static void
+free_realm (gpointer path, gpointer scheme_realm, gpointer data)
+{
+	g_free (path);
+	g_free (scheme_realm);
+}
+
+static void
+free_auth (gpointer scheme_realm, gpointer auth, gpointer data)
+{
+	g_free (scheme_realm);
+	g_object_unref (auth);
+}
+
+static void
+free_host (SoupSessionHost *host, SoupSession *session)
+{
+	while (host->connections) {
+		SoupConnection *conn = host->connections->data;
+
+		host->connections = g_slist_remove (host->connections, conn);
+		soup_connection_disconnect (conn);
+	}
+
+	if (host->auth_realms) {
+		g_hash_table_foreach (host->auth_realms, free_realm, NULL);
+		g_hash_table_destroy (host->auth_realms);
+	}
+	if (host->auths) {
+		g_hash_table_foreach (host->auths, free_auth, NULL);
+		g_hash_table_destroy (host->auths);
+	}
+
+	soup_uri_free (host->root_uri);
+}	
 
 /* Authentication */
 
@@ -556,7 +614,8 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 static void
 request_finished (SoupMessage *req, gpointer user_data)
 {
-	req->status = SOUP_MESSAGE_STATUS_FINISHED;
+	if (!SOUP_MESSAGE_IS_STARTING (req))
+		req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
@@ -570,9 +629,9 @@ final_finished (SoupMessage *req, gpointer user_data)
 		g_signal_handlers_disconnect_by_func (req, request_finished, session);
 		g_signal_handlers_disconnect_by_func (req, final_finished, session);
 		g_object_unref (req);
-
-		run_queue (session, FALSE);
 	}
+
+	run_queue (session, FALSE);
 }
 
 static void

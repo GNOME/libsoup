@@ -18,11 +18,11 @@
 
 typedef struct SoupSessionPrivate SoupSessionPrivate;
 
-typedef struct {
+struct SoupSession {
 	GObject parent;
 
 	SoupSessionPrivate *priv;
-} SoupSession;
+};
 
 typedef struct {
 	GObjectClass parent_class;

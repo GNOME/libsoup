@@ -328,6 +328,8 @@ update_address_from_entry (SoupAddress *addr, SoupDNSEntry *entry)
 		memcpy (SOUP_ADDRESS_DATA (addr), h->h_addr, h->h_length);
 	}
 
+	soup_dns_free_hostent (h);
+
 	if (addr->priv->name && addr->priv->sockaddr)
 		return SOUP_STATUS_OK;
 	else
