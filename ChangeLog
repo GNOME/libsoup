@@ -1,3 +1,68 @@
+2003-08-07  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-auth.c (soup_auth_lookup, soup_auth_set_context,
+	soup_auth_invalidate): These are all really SoupContext functions,
+	so move them to soup-context.c (and rename them appropriately).
+	(soup_auth_get_protection_space): New method to get the
+	"protection space" of an auth (paths where it is valid).
+	(soup_auth_invalidate): New method to try to un-authenticate an
+	auth (so we can keep the domain info cached even if the auth info
+	is wrong).
+	(basic_pspace_func): Basic protection space is all directories
+	below the current one.
+	(basic_invalidate_func): Clear the encoded username/password
+	(digest_pspace_func): Digest protection space is either the whole
+	server, or "what the domain parameter says" (though we don't deal
+	with cross-host domains).
+	(digest_invalidate_func): Return FALSE; bad digest auth info isn't
+	cacheable.
+	(digest_parse_func, digest_free): Set/free domain parameter
+	(ntlm_pspace): NTLM protection space is always the whole server.
+	(ntlm_invalidate): Clear the auth state.
+	(soup_auth_new_ntlm): Make this non-static
+	(SoupAuth): Replace the quad-state "status" field with an
+	"authenticated" boolean.
+	
+	* libsoup/soup-private.h (SoupHost): Replace the "valid_auths"
+	hash with separate "auth_realms" (path->realm) and "auths"
+	(realm->auth) hashes. Also add a "use_ntlm" flag.
+
+	* libsoup/soup-context.c (soup_context_unref): Update SoupHost
+	freeing code.
+	(connection_free): Don't the connection's auth, just free it.
+	(soup_context_lookup_auth): Formerly soup_auth_lookup, but now
+	does two-stage lookup (path->realm then realm->auth) and also
+	deals with NTLM hacks.
+	(soup_context_update_auth): Mostly formerly soup_auth_set_context,
+	but also large parts of authorize_handler. Updates the auth hashes
+	based on information from a 401 or 407 response. Does a better job
+	than authorize_handler did of not throwing away good information.
+	(soup_context_preauthenticate): New; fakes up auth info so that
+	requests will end up using authentication without the server
+	needing to return an error first.
+	(soup_context_authenticate_auth): Moved out of authorize_handler
+	so it can be used at request-sending time too, if we know that we
+	need it. (That way we can avoid requeuing the request if it isn't
+	going to be able to be authenticated.)
+	(soup_context_invalidate_auth): Sort of like the old
+	soup_auth_invalidate, but only destroys the auth data, while still
+	remembering the path->realm mapping.
+
+	* libsoup/soup-message.c (authorize_handler): Mostly moved into
+	soup_context_update_auth.
+	(maybe_validate_auth): Remove this; it was only useful because of
+	bugs elsewhere in the auth handling.
+	
+	* libsoup/soup-queue.c (soup_encode_http_auth): Update for
+	soup_context_lookup_auth. If the returned auth isn't
+	authenticated, call soup_context_authenticate_auth() on it.
+
+	* tests/auth-test.c: New (from soup-refactoring branch). Tests
+	that the Basic/Digest auth code does the right thing. (TODO: find
+	a good way to add NTLM tests too.)
+
+	* tests/Makefile.am (check_PROGRAMS): add auth-test
+
 2003-07-29  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.25 ("Potato and Leek Soup")

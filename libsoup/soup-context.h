@@ -65,4 +65,8 @@ void           soup_connection_release        (SoupConnection       *conn);
 
 void           soup_connection_purge_idle     (void);
 
+
+void           soup_context_preauthenticate   (SoupContext          *ctx,
+					       const char           *header);
+					  
 #endif /*SOUP_CONTEXT_H*/

@@ -295,23 +295,22 @@ soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 
 	ctx = proxy_auth ? soup_get_proxy () : msg->context;
 
-	if (msg->connection->auth)
-		auth = msg->connection->auth;
-	else
-		auth = soup_auth_lookup (ctx);
+	auth = soup_context_lookup_auth (ctx, msg);
+	if (!auth)
+		return;
+	if (!auth->authenticated &&
+	    !soup_context_authenticate_auth (ctx, auth))
+		return;
 
-	if (auth) {
-		token = soup_auth_authorize (auth, msg);
-		if (token) {
-			g_string_sprintfa (header, 
-					   "%s: %s\r\n",
-					   proxy_auth ? 
-					   	"Proxy-Authorization" : 
-					   	"Authorization",
-					   token);
-			g_free (token);
-		}
- 	}
+	token = soup_auth_authorize (auth, msg);
+	if (token) {
+		g_string_sprintfa (header, "%s: %s\r\n",
+				   proxy_auth ? 
+					"Proxy-Authorization" : 
+					"Authorization",
+				   token);
+		g_free (token);
+	}
 }
 
 struct SoupUsedHeaders {

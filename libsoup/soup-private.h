@@ -46,9 +46,11 @@ extern gpointer        soup_auth_fn_user_data;
 
 typedef struct {
 	gchar      *host;
-	GSList     *connections;        /* CONTAINS: SoupConnection */
-	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
-	GHashTable *valid_auths;        /* KEY: uri->path, VALUE: SoupAuth */
+	GSList     *connections;      /* CONTAINS: SoupConnection */
+	GHashTable *contexts;         /* KEY: uri->path, VALUE: SoupContext */
+	gboolean    use_ntlm;
+	GHashTable *auth_realms;      /* KEY: uri->path, VALUE: scheme:realm */
+	GHashTable *auths;            /* KEY: scheme:realm, VALUE: SoupAuth */
 } SoupHost;
 
 struct _SoupSocket {
@@ -124,6 +126,20 @@ struct _SoupMessagePrivate {
 	SoupServerMessage *server_msg;
 };
 
+/* from soup-context.c */
+
+SoupAuth   *soup_context_lookup_auth       (SoupContext    *ctx,
+					    SoupMessage    *msg);
+
+gboolean    soup_context_update_auth       (SoupContext    *ctx,
+					    SoupMessage    *msg);
+
+gboolean    soup_context_authenticate_auth (SoupContext    *ctx,
+					    SoupAuth       *auth);
+
+void        soup_context_invalidate_auth   (SoupContext    *ctx,
+					    SoupAuth       *auth);
+					  
 /* from soup-message.c */
 
 void     soup_message_issue_callback (SoupMessage      *req);

@@ -18,49 +18,47 @@
 typedef   enum _SoupAuthStatus SoupAuthStatus;
 typedef struct _SoupAuth       SoupAuth;
 
-enum _SoupAuthStatus {
-	SOUP_AUTH_STATUS_INVALID = 0,
-	SOUP_AUTH_STATUS_PENDING,
-	SOUP_AUTH_STATUS_FAILED,
-	SOUP_AUTH_STATUS_SUCCESSFUL
-};
-
 struct _SoupAuth {
-	SoupAuthType  type;
-	gchar        *realm;
+	SoupAuthType    type;
+	char           *realm;
+	gboolean        authenticated;
 
-	SoupAuthStatus status;
-	SoupMessage *controlling_msg;
+	void     (*parse_func)      (SoupAuth      *auth,
+				     const gchar   *header);
 
-	void     (*parse_func)   (SoupAuth      *auth,
-				  const gchar   *header);
+	void     (*init_func)       (SoupAuth      *auth, 
+				     const SoupUri *uri);
 
-	void     (*init_func)    (SoupAuth      *auth, 
-				  const SoupUri *uri);
+	gboolean (*invalidate_func) (SoupAuth      *auth);
 
-	char    *(*auth_func)    (SoupAuth      *auth, 
-				  SoupMessage   *message);
+	char    *(*auth_func)       (SoupAuth      *auth, 
+				     SoupMessage   *message);
 
-	void     (*free_func)    (SoupAuth      *auth);
+	GSList  *(*pspace_func)     (SoupAuth      *auth,
+				     const SoupUri *source_uri);
+
+	void     (*free_func)       (SoupAuth      *auth);
 };
 
-SoupAuth *soup_auth_lookup                 (SoupContext   *ctx);
+SoupAuth   *soup_auth_new_from_header_list  (const SoupUri *uri,
+					     const GSList  *header);
 
-void      soup_auth_set_context            (SoupAuth      *auth,
-					    SoupContext   *ctx);
+SoupAuth   *soup_auth_new_ntlm              (void);
 
-void      soup_auth_invalidate             (SoupAuth      *auth,
-					    SoupContext   *ctx);
+void        soup_auth_initialize            (SoupAuth      *auth,
+					     const SoupUri *uri);
 
-SoupAuth *soup_auth_new_from_header_list   (const SoupUri *uri,
-					    const GSList  *header);
+gboolean    soup_auth_invalidate            (SoupAuth      *auth);
 
-void      soup_auth_initialize             (SoupAuth      *auth,
-					    const SoupUri *uri);
+void        soup_auth_free                  (SoupAuth      *auth);
 
-void      soup_auth_free                   (SoupAuth      *auth);
+gchar      *soup_auth_authorize             (SoupAuth      *auth, 
+					     SoupMessage   *msg);
 
-gchar    *soup_auth_authorize              (SoupAuth      *auth, 
-					    SoupMessage   *msg);
+GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
+					     const SoupUri *source_uri);
+void        soup_auth_free_protection_space (SoupAuth      *auth,
+					     GSList        *space);
+
 
 #endif /* SOUP_AUTH_H */
