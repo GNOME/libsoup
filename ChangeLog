@@ -1,3 +1,12 @@
+2003-11-17  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-message.[ch]: new class to make it easier to
+	build SOAP messages.
+
+	* libsoup/Makefile.am: added new files.
+
+	* configure.in: increased version number.
+
 2003-10-24  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-address.c (update_address_from_entry): Call
