@@ -1,3 +1,19 @@
+2001-04-18  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-server.h: Added SoupServerBasicToken,
+	SoupServerDigestToken, SoupServerAnonymousToken structs, all with
+	a SoupServerAuthType as the first element. Added
+	SoupServerAuthToken which is a union of all three auth types.
+
+	* src/soup-core/soup-server.c (soup_server_register_full):
+	Added. Accept method authentication callback and allowed auth types.
+
+	* src/soup-core/soup-apache.c (soup_apache_handler): Use a
+	SoupServerAuthToken. Log to apache only in error conditions.
+
+	* src/soup-core/soup-server.c (soup_server_authorize): Accept a
+	SoupServerAuthToken instead of username/pass/realm.
+
 2001-04-04  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-stubs.c (wsdl_emit_soap_stubs):
