@@ -1,3 +1,8 @@
+2001-05-22  Alex Graveley  <alex@ximian.com>
+
+	* RELEASE (ANNOUNCE): Added. All release announcements should be
+	prepended here.
+
 2001-05-22  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-apache.c (soup_apache_read_request): null
