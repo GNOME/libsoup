@@ -1,3 +1,12 @@
+2001-09-10  Alex Graveley  <alex@ximian.com>
+
+	* tests/cgi-test.c (main): Pass authtypes param to
+	soup_server_register.
+	* tests/server-test.c (main): Ditto.
+	* tests/mod-server-test.c (soup_server_init): Ditto.
+
+	* tests/stockquote2.wsdl: Format fixes.
+
 2001-09-07  Alex Graveley  <alex@ximian.com>
 
 	* tests/stress-test.c: Rewritten for the new apis, and to be more
