@@ -1,5 +1,10 @@
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: Version 0.6.0.
+	* src/libsoup/soup-private.h (VERSION): Ditto.
+
+2001-11-08  Alex Graveley  <alex@ximian.com>
+
 	* configure.in (debug_default): Set debug default to "minimum",
 	which turns off G_ENABLE_DEBUG (and the ptrace magic) by default.
 	To turn back on for a debugging environment, use --enable-debug.
