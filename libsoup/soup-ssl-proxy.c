@@ -90,7 +90,7 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 			  GIOChannel   *dest)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
-	gint bytes_read = 0, bytes_written = 0, write_total = 0;
+	gsize bytes_read = 0, bytes_written = 0, write_total = 0;
 	GIOError error;
 
 	error = g_io_channel_read (iochannel,

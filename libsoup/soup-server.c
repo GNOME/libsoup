@@ -1001,7 +1001,7 @@ cgi_read (GIOChannel    *serv_chan,
 	else {
 		while (reader->recv_buf->len < reader->content_len) {
 			guchar read_buf [RESPONSE_BLOCK_SIZE];
-			gint bytes_read;
+			gsize bytes_read;
 			GIOError error;
 
 			error = g_io_channel_read (serv_chan,

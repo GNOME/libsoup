@@ -222,24 +222,4 @@ void           soup_message_set_handler_error   (SoupMessage       *msg,
 						 guint              errcode, 
 						 const gchar       *errphrase);
 
-/** DEPRECATED API **/
-
-/** DEPRECATED **/
-void           soup_message_set_request_header  (SoupMessage       *req,
-						 const gchar       *name,
-						 const gchar       *value);
-
-/** DEPRECATED **/
-const gchar   *soup_message_get_request_header  (SoupMessage       *req,
-						 const gchar       *name);
-
-/** DEPRECATED **/
-void           soup_message_set_response_header (SoupMessage       *req,
-						 const gchar       *name,
-						 const gchar       *value);
-
-/** DEPRECATED **/
-const gchar   *soup_message_get_response_header (SoupMessage       *req,
-						 const gchar       *name);
-
 #endif /*SOUP_MESSAGE_H*/

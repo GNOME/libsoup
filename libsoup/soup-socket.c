@@ -112,7 +112,6 @@ soup_socket_connect (const gchar*        hostname,
 		     gpointer            data)
 {
 	SoupSocketConnectState* state;
-	SoupAddress *cached_addr;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);

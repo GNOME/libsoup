@@ -82,7 +82,7 @@ soup_socks_write (GIOChannel* iochannel,
 	gboolean finished = FALSE;
 	guchar buf[128];
 	gint len = 0, sa_len;
-	guint bytes_written;
+	gsize bytes_written;
 	GIOError error;
 
 	dest_uri = soup_context_get_uri (sd->dest_ctx);
@@ -175,7 +175,7 @@ soup_socks_read (GIOChannel* iochannel,
 		 SoupSocksData *sd)
 {
 	guchar buf[128];
-	guint bytes_read;
+	gsize bytes_read;
 	GIOError error;
 
 	error = g_io_channel_read (iochannel, buf, sizeof (buf), &bytes_read);

@@ -1,3 +1,26 @@
+2002-11-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-address.c (soup_address_hash): Don't use s6_addr32
+	since it's apparently non-portable. Use s6_addr instead.
+	(soup_gethostbyaddr): fix a sometimes-uninitialized variable.
+
+	* libsoup/soup-message.c (soup_message_get_request_header, etc):
+	Remove long-deprecated API.
+
+	* libsoup/soup-socket.c (soup_socket_connect): remove unused
+	variable.
+
+	* libsoup/soup-openssl.c (soup_openssl_read): Use gsize.
+	* libsoup/soup-server.c (cgi_read): Likewise
+	* libsoup/soup-socks.c (soup_socks_write, soup_socks_read):
+	Likewise.
+	* libsoup/soup-ssl-proxy.c (soup_ssl_proxy_readwrite): Likewise.
+	* libsoup/soup-transfer.c (soup_transfer_read_cb,
+	soup_transfer_write_cb): Likewise.
+
+	* tests/timeserver.c: Add "-6" to listen on the IPv6 local address
+	instead of IPv4. (Tested on OS X.)
+
 2002-11-15  Dan Winship  <danw@ximian.com>
 
 	* libsoup/*: Change old Helix Code refs to Ximian (and update

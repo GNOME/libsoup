@@ -376,10 +376,10 @@ soup_address_hash (const gpointer p)
 		return ia->addr.in.s_addr;
 #ifdef HAVE_IPV6
 	case AF_INET6:
-		return (ia->addr.in6.s6_addr32[0] ^
-			ia->addr.in6.s6_addr32[1] ^
-			ia->addr.in6.s6_addr32[2] ^
-			ia->addr.in6.s6_addr32[3]);
+	{
+		guint32 *addr = (guint32 *)&(ia->addr.in6.s6_addr);
+		return (addr[0] ^ addr[1] ^ addr[2] ^ addr[3]);
+	}
 #endif
 	default:
 		return 0;
@@ -667,6 +667,8 @@ soup_gethostbyaddr (SoupAddress *ia)
 
 	if (result)
 		rv = g_strdup (result->h_name);
+	else
+		rv = NULL;
 	if (buf)
 		g_free (buf);
 #if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)

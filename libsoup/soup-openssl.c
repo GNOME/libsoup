@@ -45,8 +45,8 @@ soup_openssl_free (GIOChannel *channel)
 static GIOStatus
 soup_openssl_read (GIOChannel   *channel,
 		   gchar        *buf,
-		   guint         count,
-		   guint        *bytes_read,
+		   gsize         count,
+		   gsize        *bytes_read,
 		   GError      **err)
 {
 	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;

@@ -411,7 +411,7 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		       SoupReader   *r)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
-	gint bytes_read = 0, total_read = 0;
+	gsize bytes_read = 0, total_read = 0;
 	gboolean read_done = FALSE;
 	gboolean cancelled = FALSE;
 	GIOError error;
@@ -678,7 +678,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 {
 	GIOError error;
 	gpointer pipe_handler;
-	guint bytes_written = 0;
+	gsize bytes_written = 0;
 
 	/*
 	 * Get the header and first data chunk (if available).
