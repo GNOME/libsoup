@@ -1,3 +1,10 @@
+2002-01-19  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socks.c (soup_socks_write): Don't unref the
+	context returned from connection_get_context, as soup-0.5 doesn't
+	add a ref.
+	(soup_connect_socks_proxy): Ditto.
+
 2002-01-18  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.6.

@@ -89,9 +89,18 @@ soup_socks_write (GIOChannel* iochannel,
 
 	proxy_ctx = soup_connection_get_context (sd->src_conn);
 	proxy_uri = soup_context_get_uri (proxy_ctx);
-	soup_context_unref (proxy_ctx);
+	/*
+	 * BUGFIX: Soup-0.5 doesn't ref the returned context, so don't unref it.
+	 */
+	/* soup_context_unref (proxy_ctx); */
 
 	switch (sd->phase) {
+#if 0
+	case SOCKS_4_DEST_ADDR_LOOKUP:
+		if (!sd->dest_addr) 
+			return TRUE;
+		/* fall-through */
+#endif
 	case SOCKS_4_SEND_DEST_ADDR: 
 		buf[len++] = 0x04;
 		buf[len++] = 0x01;
@@ -293,7 +302,10 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 
 	proxy_ctx = soup_connection_get_context (conn);
 	proxy_uri = soup_context_get_uri (proxy_ctx);
-	soup_context_unref (proxy_ctx);
+	/*
+	 * BUGFIX: Soup-0.5 doesn't ref the returned context, so don't unref it.
+	 */
+	/* soup_context_unref (proxy_ctx); */
 
 	sd = g_new0 (SoupSocksData, 1);
 	sd->src_conn = conn;
