@@ -13,6 +13,8 @@
 #define SOUP_ADDRESS_H
 
 #include <glib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 typedef struct _SoupAddress SoupAddress;
 
@@ -28,17 +30,15 @@ typedef void (*SoupAddressNewFn) (SoupAddress       *inetaddr,
 				  gpointer           user_data);
 
 SoupAddressNewId     soup_address_new                (const gchar*       name, 
-						      const gint         port, 
 						      SoupAddressNewFn   func, 
 						      gpointer           data);
 
 void                 soup_address_new_cancel         (SoupAddressNewId   id);
 
-SoupAddress         *soup_address_new_sync           (const gchar       *name, 
-						      const gint         port);
+SoupAddress         *soup_address_new_sync           (const gchar       *name);
 
-SoupAddress         *soup_address_lookup_in_cache    (const gchar       *name, 
-						      const gint         port);
+SoupAddress         *soup_address_ipv4_any           (void);
+SoupAddress         *soup_address_ipv6_any           (void);
 
 void                 soup_address_ref                (SoupAddress*       ia);
 
@@ -64,23 +64,18 @@ const gchar         *soup_address_get_name_sync      (SoupAddress *addr);
 
 gchar*               soup_address_get_canonical_name (SoupAddress*         ia);
 
-gint                 soup_address_get_port           (const SoupAddress*   ia);
 
-const struct sockaddr *
-                     soup_address_get_sockaddr       (SoupAddress         *ia,
-						      guint               *addrlen);
+SoupAddress         *soup_address_new_from_sockaddr  (struct sockaddr   *sa,
+						      guint             *port);
 
-guint                soup_address_hash               (const gpointer       p);
+void                 soup_address_make_sockaddr      (SoupAddress       *ia,
+						      guint              port,
+						      struct sockaddr  **sa,
+						      int               *len);
 
-gint                 soup_address_equal              (const gpointer       p1, 
-						      const gpointer       p2);
+guint                soup_address_hash               (const gpointer     p);
 
-gint                 soup_address_noport_equal       (const gpointer       p1, 
-						      const gpointer       p2);
-
-gchar*               soup_address_gethostname        (void);
-
-SoupAddress*         soup_address_gethostaddr        (void);
-
+gint                 soup_address_equal              (const gpointer     p1, 
+						      const gpointer     p2);
 
 #endif /* SOUP_ADDRESS_H */

@@ -1,3 +1,53 @@
+2002-11-12  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Check for IPv6 support in networking headers.
+
+	* libsoup/soup-address.c: Make the internal structure of
+	SoupAddress entirely private, and make SoupAddress be more like a
+	hostent and less like a sockaddr. (Ie, make it not have a port
+	associated with it.) Document undocumented functions. Add
+	completely-untested support for IPv6.
+	(soup_address_new_from_sockaddr): New, to parse a sockaddr into a
+	SoupAddress and a port.
+	(soup_address_ipv4_any, soup_address_ipv6_any): Return static
+	addresses corresponding to the IPv6 and IPv6 "any" addresses.
+	(soup_address_get_canonical_name): Use inet_ntop/inet_ntoa.
+	(soup_address_make_sockaddr): Now constructs a new sockaddr, which
+	may be a sockaddr_in or sockaddr_in6.
+	(soup_address_gethostname, soup_address_gethostaddr): Remove
+	these. They aren't reliable, especially on multihomed hosts.
+	(soup_gethostbyname, soup_gethostbyaddr): support IPv6
+	(soup_address_new): Keep pending lookups in a separate hash table
+	from completed lookups. Fix a bug when canceling a lookup when
+	there was more one outstanding request for it.
+	(soup_address_lookup_in_cache): Removed.
+
+	* libsoup/soup-socket.c: Add a port field to SoupSocket (since
+	it's not in SoupAddress any more).
+	(soup_socket_connect): Simplify this. Don't use
+	soup_address_lookup_in_cache, just call soup_address_new, since we
+	already know the code can deal with the callback being invoked
+	immediately.
+	(soup_socket_new_sync, soup_socket_new): Take a port argument.
+	(soup_socket_server_new): Take a SoupAddress to use as the local
+	address to bind to. This lets the caller choose between the IPv4
+	and IPv6 "any" addresses, and also lets you bind to a single
+	interface of a multi-homed machine.
+	(soup_socket_server_accept, soup_socket_server_try_accept): Merge
+	the common code.
+
+	* libsoup/soup-server.c (soup_server_new): Pass
+	soup_address_ipv4_any() to soup_socket_server_new().
+
+	* libsoup/soup-socks.c (soup_connect_socks_proxy,
+	soup_socks_write): Fix up for the API changes, but it won't work
+	with IPv6 yet.
+
+	* tests/timeserver.c: Another really simple test, for the server
+	socket code.
+
+	* tests/Makefile.am: build timeserver
+
 2002-11-11  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-address.c: Move the SoupAddress code from

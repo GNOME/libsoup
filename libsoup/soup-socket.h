@@ -54,12 +54,14 @@ typedef void (*SoupSocketNewFn) (SoupSocket*         socket,
 				 gpointer            data);
 
 SoupSocketNewId     soup_socket_new             (SoupAddress        *addr, 
+						 guint               port,
 						 SoupSocketNewFn     func,
 						 gpointer            data);
 
 void                soup_socket_new_cancel      (SoupSocketNewId     id);
 
-SoupSocket         *soup_socket_new_sync        (SoupAddress        *addr);
+SoupSocket         *soup_socket_new_sync        (SoupAddress        *addr,
+						 guint               port);
 
 
 void                soup_socket_ref             (SoupSocket*         s);
@@ -75,7 +77,8 @@ gint                soup_socket_get_port        (const SoupSocket*   socket);
 
 #define SOUP_SERVER_ANY_PORT 0
 
-SoupSocket         *soup_socket_server_new        (const gint          port);
+SoupSocket         *soup_socket_server_new        (SoupAddress        *local_addr,
+						   guint               local_port);
 
 SoupSocket         *soup_socket_server_accept     (SoupSocket         *socket);
 

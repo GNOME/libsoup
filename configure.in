@@ -166,6 +166,14 @@ if test -z "$HAVE_GETHOSTBYNAME_R"; then
 		    malfunction in programs that use threads.])
 fi
 
+AC_CACHE_CHECK(IPv6 support, soup_cv_ipv6, [
+	AC_EGREP_HEADER(sockaddr_in6, netinet/in.h, soup_cv_ipv6=yes, soup_cv_ipv6=no)
+])
+case $soup_cv_ipv6 in
+yes)
+	AC_DEFINE(HAVE_IPV6, 1, [Define if you have support for IPv6 sockets])
+	;;
+esac
 
 dnl ****************************************************
 dnl *** SSL Library checks (Mozilla NSS, or OpenSSL) ***

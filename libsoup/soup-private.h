@@ -51,19 +51,19 @@ typedef struct {
 	GHashTable *valid_auths;        /* KEY: uri->path, VALUE: SoupAuth */
 } SoupHost;
 
-struct _SoupAddress {
-	gchar*          name;
-	struct sockaddr sa;
-	gint            ref_count;
-	gint            cached;
-};
-
 struct _SoupSocket {
 	gint            sockfd;
 	SoupAddress    *addr;
+	guint           port;
 	guint           ref_count;
 	GIOChannel     *iochannel;
 };
+
+#ifdef HAVE_IPV6
+#define soup_sockaddr_max sockaddr_in6
+#else
+#define soup_sockaddr_max sockaddr_in
+#endif
 
 struct _SoupContext {
 	SoupUri      *uri;
@@ -141,16 +141,6 @@ gboolean  soup_str_case_equal  (gconstpointer  v1,
 gint      soup_substring_index (gchar         *str,
 				gint           len,
 				gchar         *substr);
-
-/* from soup-socket.c */
-
-gboolean  soup_gethostbyname (const gchar         *hostname,
-			      struct sockaddr_in  *sa,
-			      gchar              **nicename);
-
-gchar    *soup_gethostbyaddr (const gchar         *addr, 
-			      size_t               length, 
-			      int                  type);
 
 #ifdef __cplusplus
 }

@@ -78,10 +78,10 @@ soup_socks_write (GIOChannel* iochannel,
 {
 	const SoupUri *dest_uri, *proxy_uri;
 	SoupContext *proxy_ctx;
-
+	struct sockaddr *sa;
 	gboolean finished = FALSE;
 	guchar buf[128];
-	gint len = 0;
+	gint len = 0, sa_len;
 	guint bytes_written;
 	GIOError error;
 
@@ -93,12 +93,17 @@ soup_socks_write (GIOChannel* iochannel,
 
 	switch (sd->phase) {
 	case SOCKS_4_SEND_DEST_ADDR: 
+		/* FIXME: This won't work if dest_addr isn't IPv4 */
+
 		buf[len++] = 0x04;
 		buf[len++] = 0x01;
 		WSHORT (buf, &len, (gushort) dest_uri->port);
+		soup_address_make_sockaddr (sd->dest_addr, dest_uri->port,
+					    &sa, &sa_len);
 		memcpy (&buf [len], 
-			&((struct sockaddr_in *) &sd->dest_addr->sa)->sin_addr,
+			&((struct sockaddr_in *) sa)->sin_addr,
 			4);
+		g_free (sa);
 		len += 4;
 		buf[8] = 0x00;
 		len = 9;
@@ -304,7 +309,6 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	switch (proxy_uri->protocol) {
 	case SOUP_PROTOCOL_SOCKS4:
 		soup_address_new (dest_uri->host, 
-				  dest_uri->port, 
 				  soup_lookup_dest_addr_cb,
 				  sd);
 		sd->phase = SOCKS_4_DEST_ADDR_LOOKUP;

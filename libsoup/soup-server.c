@@ -65,7 +65,7 @@ soup_server_new (SoupProtocol proto, guint port)
 			return NULL;
 		}
 	} else {
-		sock = soup_socket_server_new (port);
+		sock = soup_socket_server_new (soup_address_ipv4_any (), port);
 		if (!sock) return NULL;
 
 		port = soup_socket_get_port (sock);

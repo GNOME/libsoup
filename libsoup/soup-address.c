@@ -22,16 +22,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/utsname.h>
 #include <sys/wait.h>
 
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 
-
 #include "soup-private.h"
 #include "soup-address.h"
+
+struct _SoupAddress {
+	gchar*          name;
+	int             family;
+	union {
+		struct in_addr  in;
+#ifdef HAVE_IPV6
+		struct in6_addr in6;
+#endif
+	} addr;
+
+	gint            ref_count;
+	gint            cached;
+};
 
 #include <unistd.h>
 #ifndef socklen_t
@@ -47,10 +59,8 @@
 #define INADDR_NONE -1
 #endif
 
-#define SOUP_SOCKADDR_IN(s) (*((struct sockaddr_in*) &s))
-
 static void
-soup_address_new_sync_cb (SoupAddress *addr,
+soup_address_new_sync_cb (SoupAddress       *addr,
 			  SoupAddressStatus  status,
 			  gpointer           user_data)
 {
@@ -58,12 +68,18 @@ soup_address_new_sync_cb (SoupAddress *addr,
 	*ret = addr;
 }
 
+/**
+ * soup_address_new_sync:
+ * @name: a hostname, as with soup_address_new()
+ *
+ * Return value: a #SoupAddress, or %NULL if the lookup fails.
+ **/
 SoupAddress *
-soup_address_new_sync (const gchar *name, const gint port)
+soup_address_new_sync (const char *name)
 {
 	SoupAddress *ret = (SoupAddress *) 0xdeadbeef;
 
-	soup_address_new (name, port, soup_address_new_sync_cb, &ret);
+	soup_address_new (name, soup_address_new_sync_cb, &ret);
 
 	while (1) {
 		g_main_iteration (TRUE);
@@ -71,6 +87,108 @@ soup_address_new_sync (const gchar *name, const gint port)
 	}
 
 	return ret;
+}
+
+/**
+ * soup_address_new_from_sockaddr:
+ * @sa: a pointer to a sockaddr
+ * @port: pointer to a variable to store @sa's port number in
+ *
+ * This parses @sa and returns its address as a #SoupAddress
+ * and its port in @port. @sa can point to a #sockaddr_in or
+ * (if soup was compiled with IPv6 support) a #sockaddr_in6.
+ *
+ * Return value: a #SoupAddress, or %NULL if the lookup fails.
+ **/
+SoupAddress *
+soup_address_new_from_sockaddr (struct sockaddr *sa,
+				guint *port)
+{
+	SoupAddress *ia;
+
+	ia = g_new0 (SoupAddress, 1);
+	ia->ref_count = 1;
+	ia->family = sa->sa_family;
+
+	switch (ia->family) {
+	case AF_INET:
+	{
+		struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
+
+		memcpy (&ia->addr.in, &sa_in->sin_addr, sizeof (ia->addr.in));
+		if (port)
+			*port = g_ntohs (sa_in->sin_port);
+		break;
+	}
+
+#ifdef HAVE_IPV6
+	case AF_INET6:
+	{
+		struct sockaddr_in6 *sa_in6 = (struct sockaddr_in6 *)sa;
+
+		memcpy (&ia->addr.in6, &sa_in6->sin6_addr, sizeof (ia->addr.in6));
+		if (port)
+			*port = g_ntohs (sa_in6->sin6_port);
+		break;
+	}
+#endif
+
+	default:
+		g_free (ia);
+		ia = NULL;
+		break;
+	}
+
+	return ia;
+}
+
+/**
+ * soup_address_ipv4_any:
+ *
+ * Return value: a #SoupAddress corresponding to %INADDR_ANY, suitable
+ * for passing to soup_socket_server_new().
+ **/
+SoupAddress *
+soup_address_ipv4_any (void)
+{
+	static SoupAddress *ipv4_any = NULL;
+
+	if (!ipv4_any) {
+		struct sockaddr_in sa_in;
+
+		sa_in.sin_family = AF_INET;
+		sa_in.sin_addr.s_addr = INADDR_ANY;
+		ipv4_any = soup_address_new_from_sockaddr ((struct sockaddr *)&sa_in, NULL);
+	}
+
+	soup_address_ref (ipv4_any);
+	return ipv4_any;
+}
+
+/**
+ * soup_address_ipv6_any:
+ *
+ * Return value: If soup was compiled without IPv6 support, %NULL.
+ * Otherwise, a #SoupAddress corresponding to the IPv6 address "::",
+ * suitable for passing to soup_socket_server_new().
+ **/
+SoupAddress *
+soup_address_ipv6_any (void)
+{
+	static SoupAddress *ipv6_any = NULL;
+
+#ifdef HAVE_IPV6
+	if (!ipv6_any) {
+		struct sockaddr_in6 sa_in6;
+
+		sa_in6.sin6_family = AF_INET6;
+		sa_in6.sin6_addr = in6addr_any;
+		ipv6_any = soup_address_new_from_sockaddr ((struct sockaddr *)&sa_in6, NULL);
+	}
+
+	soup_address_ref (ipv6_any);
+#endif
+	return ipv6_any;
 }
 
 /**
@@ -99,11 +217,12 @@ soup_address_copy (SoupAddress* ia)
 	SoupAddress* new_ia;
 	g_return_val_if_fail (ia != NULL, NULL);
 
-	new_ia = g_new0(SoupAddress, 1);
+	new_ia = g_new0 (SoupAddress, 1);
 	new_ia->ref_count = 1;
 
 	new_ia->name = g_strdup (ia->name);
-	memcpy (&new_ia->sa, &ia->sa, sizeof(struct sockaddr));
+	new_ia->family = ia->family;
+	memcpy (&new_ia->addr, &ia->addr, sizeof (new_ia->addr));
 
 	return new_ia;
 }
@@ -118,14 +237,19 @@ soup_address_get_name_sync_cb (SoupAddress       *addr,
 	*ret = name;
 }
 
-const gchar *
-soup_address_get_name_sync (SoupAddress *addr)
+/**
+ * soup_address_get_name_sync:
+ * @ia: a #SoupAddress
+ *
+ * Return value: the hostname associated with @ia, as with
+ * soup_address_get_name().
+ **/
+const char *
+soup_address_get_name_sync (SoupAddress *ia)
 {
 	const char *ret = (const char *) 0xdeadbeef;
 
-	soup_address_get_name (addr, 
-			       soup_address_get_name_sync_cb, 
-			       (gpointer) &ret);
+	soup_address_get_name (ia, soup_address_get_name_sync_cb, &ret);
 
 	while (1) {
 		g_main_iteration (TRUE);
@@ -142,60 +266,88 @@ soup_address_get_name_sync (SoupAddress *addr)
  * Get the "canonical" name of an address (eg, for IP4 the dotted
  * decimal name 141.213.8.59).
  *
- * Returns: NULL if there was an error.  The caller is responsible
+ * Returns: %NULL if there was an error.  The caller is responsible
  * for deleting the returned string.
  **/
-gchar*
+char*
 soup_address_get_canonical_name (SoupAddress* ia)
 {
-	gchar buffer [INET_ADDRSTRLEN];	/* defined in netinet/in.h */
-	guchar* p = (guchar*) &(SOUP_SOCKADDR_IN(ia->sa).sin_addr);
+	switch (ia->family) {
+	case AF_INET:
+	{
+#ifdef HAVE_INET_NTOP
+		char buffer[INET_ADDRSTRLEN];
 
-	g_return_val_if_fail (ia != NULL, NULL);
+		inet_ntop (ia->family, &ia->addr.in, buffer, sizeof (buffer));
+		return g_strdup (buffer);
+#else
+		return g_strdup (inet_ntoa (ia->addr.in));
+#endif
+	}
 
-	g_snprintf(buffer,
-		   sizeof (buffer),
-		   "%d.%d.%d.%d",
-		   p [0],
-		   p [1],
-		   p [2],
-		   p [3]);
+#ifdef HAVE_IPV6
+	case AF_INET6:
+	{
+		char buffer[INET6_ADDRSTRLEN];
 
-	return g_strdup (buffer);
+		inet_ntop (ia->family, &ia->addr.in6, buffer, sizeof (buffer));
+		return g_strdup (buffer);
+	}
+#endif
+
+	default:
+		return NULL;
+	}
 }
 
 /**
- * soup_address_get_port:
- * @ia: Address to get the port number of.
- *
- * Get the port number.
- * Returns: the port number.
- */
-gint
-soup_address_get_port (const SoupAddress* ia)
-{
-	g_return_val_if_fail(ia != NULL, -1);
-
-	return (gint) g_ntohs (((struct sockaddr_in*) &ia->sa)->sin_port);
-}
-
-/**
- * soup_address_get_sockaddr:
+ * soup_address_make_sockaddr:
  * @ia: The %SoupAddress.
- * @addrlen: Pointer to socklen_t the returned sockaddr's length is to be 
- * placed in.
+ * @port: The port number
+ * @sa: Pointer to struct sockaddr * to output the sockaddr into
+ * @len: Pointer to int to return the size of the sockaddr into
  *
- * Return value: const pointer to @ia's sockaddr buffer.
+ * This creates an appropriate struct sockaddr for @ia and @port
+ * and outputs it into *@sa. The caller must free *@sa with g_free().
  **/
-const struct sockaddr *
-soup_address_get_sockaddr (SoupAddress *ia, guint *addrlen)
+void
+soup_address_make_sockaddr (SoupAddress *ia, guint port,
+			    struct sockaddr **sa, int *len)
 {
-	g_return_val_if_fail (ia != NULL, NULL);
+	switch (ia->family) {
+	case AF_INET:
+	{
+		struct sockaddr_in sa_in;
 
-	if (addrlen)
-		*addrlen = sizeof (struct sockaddr_in);
+		memset (&sa_in, 0, sizeof (sa_in));
+		sa_in.sin_family = AF_INET;
+		memcpy (&sa_in.sin_addr, &ia->addr.in, sizeof (sa_in.sin_addr));
+		sa_in.sin_port = g_htons (port);
 
-	return &ia->sa;
+		*sa = g_memdup (&sa_in, sizeof (sa_in));
+		*len = sizeof (sa_in);
+		break;
+	}
+
+#ifdef HAVE_IPV6
+	case AF_INET6:
+	{
+		struct sockaddr_in6 sa_in6;
+
+		memset (&sa_in6, 0, sizeof (sa_in6));
+		sa_in6.sin6_family = AF_INET6;
+		memcpy (&sa_in6.sin6_addr, &ia->addr.in6, sizeof (sa_in6.sin6_addr));
+		sa_in6.sin6_port = g_htons (port);
+
+		*sa = g_memdup (&sa_in6, sizeof (sa_in6));
+		*len = sizeof (sa_in6);
+		break;
+	}
+#endif
+	default:
+		*sa = NULL;
+		*len = 0;
+	}
 }
 
 /**
@@ -210,21 +362,28 @@ guint
 soup_address_hash (const gpointer p)
 {
 	const SoupAddress* ia;
-	guint32 port;
-	guint32 addr;
 
 	g_assert(p != NULL);
 
 	ia = (const SoupAddress*) p;
 
-	/* 
-	 * We do pay attention to network byte order just in case the hash
-	 * result is saved or sent to a different host.  
+	/* This isn't network byte-order transparent... (Not sure how
+	 * that works in the v6 case.)
 	 */
-	port = (guint32) g_ntohs (((struct sockaddr_in*) &ia->sa)->sin_port);
-	addr = g_ntohl (((struct sockaddr_in*) &ia->sa)->sin_addr.s_addr);
 
-	return (port ^ addr);
+	switch (ia->family) {
+	case AF_INET:
+		return ia->addr.in.s_addr;
+#ifdef HAVE_IPV6
+	case AF_INET6:
+		return (ia->addr.in6.s6_addr32[0] ^
+			ia->addr.in6.s6_addr32[1] ^
+			ia->addr.in6.s6_addr32[2] ^
+			ia->addr.in6.s6_addr32[3]);
+#endif
+	default:
+		return 0;
+	}
 }
 
 /**
@@ -232,7 +391,7 @@ soup_address_hash (const gpointer p)
  * @p1: Pointer to first #SoupAddress.
  * @p2: Pointer to second #SoupAddress.
  *
- * Compare two #SoupAddress's.
+ * Compare two #SoupAddress structures.
  *
  * Returns: 1 if they are the same; 0 otherwise.
  **/
@@ -245,63 +404,7 @@ soup_address_equal (const gpointer p1, const gpointer p2)
 	g_assert (p1 != NULL && p2 != NULL);
 
 	/* Note network byte order doesn't matter */
-	return ((SOUP_SOCKADDR_IN(ia1->sa).sin_addr.s_addr ==
-		 SOUP_SOCKADDR_IN(ia2->sa).sin_addr.s_addr) &&
-		(SOUP_SOCKADDR_IN(ia1->sa).sin_port ==
-		 SOUP_SOCKADDR_IN(ia2->sa).sin_port));
-}
-
-/**
- * soup_address_noport_equal:
- * @p1: Pointer to first SoupAddress.
- * @p2: Pointer to second SoupAddress.
- *
- * Compare two #SoupAddress's, but does not compare the port numbers.
- *
- * Returns: 1 if they are the same; 0 otherwise.
- **/
-gint
-soup_address_noport_equal (const gpointer p1, const gpointer p2)
-{
-	const SoupAddress* ia1 = (const SoupAddress*) p1;
-	const SoupAddress* ia2 = (const SoupAddress*) p2;
-
-	g_assert (p1 != NULL && p2 != NULL);
-
-	/* Note network byte order doesn't matter */
-	return (SOUP_SOCKADDR_IN(ia1->sa).sin_addr.s_addr ==
-		SOUP_SOCKADDR_IN(ia2->sa).sin_addr.s_addr);
-}
-
-/**
- * soup_address_gethostaddr:
- *
- * Get the primary host's #SoupAddress.
- *
- * Returns: the #SoupAddress of the host; NULL if there was an error.
- * The caller is responsible for deleting the returned #SoupAddress.
- **/
-SoupAddress *
-soup_address_gethostaddr (void)
-{
-	gchar* name;
-	struct sockaddr_in* sa_in, sa;
-	SoupAddress* ia = NULL;
-
-	name = soup_address_gethostname ();
-
-	if (name && soup_gethostbyname (name, &sa, NULL)) {
-		ia = g_new0 (SoupAddress, 1);
-		ia->name = g_strdup (name);
-		ia->ref_count = 1;
-
-		sa_in = (struct sockaddr_in*) &ia->sa;
-		sa_in->sin_family = AF_INET;
-		sa_in->sin_port = 0;
-		memcpy (&sa_in->sin_addr, &sa.sin_addr, 4);
-        }
-
-	return ia;
+	return memcmp (&ia1->addr, &ia2->addr, sizeof (ia1->addr)) == 0;
 }
 
 #ifdef G_ENABLE_DEBUG
@@ -322,29 +425,24 @@ soup_address_gethostaddr (void)
 #undef SOUP_PTRACE_ATTACH
 #endif
 
-/*
- * Maintains a list of all currently valid SoupAddresses or active
- * SoupAddressState lookup requests.
- */
-GHashTable *active_address_hash = NULL;
+GHashTable *address_hash = NULL, *lookup_hash = NULL;
 
 typedef struct {
-	SoupAddressNewFn  func;
-	gpointer          data;
-} SoupAddressCbData;
-
-typedef struct {
-	SoupAddress       ia;
-	SoupAddressNewFn  func;
-	gpointer          data;
+	char             *name;
 
 	GSList           *cb_list;    /* CONTAINS: SoupAddressCbData */
 	pid_t             pid;
 	int               fd;
 	guint             watch;
-	guchar            buffer [16];
+	guchar            buffer [256];
 	int               len;
-} SoupAddressState;
+} SoupAddressLookupState;
+
+typedef struct {
+	SoupAddressLookupState *state;
+	SoupAddressNewFn        func;
+	gpointer                data;
+} SoupAddressCbData;
 
 typedef struct {
 	SoupAddress          *ia;
@@ -367,29 +465,21 @@ typedef struct {
 G_LOCK_DEFINE (gethostbyname);
 #endif
 
-/**
- * soup_gethostbyname:
- *
- * Thread safe gethostbyname.  The only valid fields are sin_len,
- * sin_family, and sin_addr.
- */
-gboolean
-soup_gethostbyname(const char*         hostname,
-		   struct sockaddr_in* sa,
-		   gchar**             nicename)
+static gboolean
+soup_gethostbyname (const char       *hostname,
+		    struct sockaddr **sa,
+		    int              *sa_len)
 {
-	gboolean rv = FALSE;
+	struct hostent result_buf, *result = &result_buf;
+	char *buf = NULL;
 
-#ifdef HAVE_GETHOSTBYNAME_R_GLIBC
+#if defined(HAVE_GETHOSTBYNAME_R_GLIBC)
 	{
-		struct hostent result_buf, *result;
 		size_t len;
-		char* buf;
-		int herr;
-		int res;
+		int herr, res;
 
 		len = 1024;
-		buf = g_new (gchar, len);
+		buf = g_new (char, len);
 
 		while ((res = gethostbyname_r (hostname,
 					       &result_buf,
@@ -398,247 +488,189 @@ soup_gethostbyname(const char*         hostname,
 					       &result,
 					       &herr)) == ERANGE) {
 			len *= 2;
-			buf = g_renew (gchar, buf, len);
+			buf = g_renew (char, buf, len);
 		}
 
 		if (res || result == NULL || result->h_addr_list [0] == NULL)
-			goto done;
-
-		if (sa) {
-			sa->sin_family = result->h_addrtype;
-			memcpy (&sa->sin_addr,
-				result->h_addr_list [0],
-				result->h_length);
-		}
-
-		if (nicename && result->h_name)
-			*nicename = g_strdup (result->h_name);
-
-		rv = TRUE;
-
-	done:
-		g_free(buf);
+			result = NULL;
 	}
-#else
-#ifdef HAVE_GETHOSTBYNAME_R_SOLARIS
+#elif defined(HAVE_GETHOSTBYNAME_R_SOLARIS)
 	{
-		struct hostent result;
 		size_t len;
-		char* buf;
-		int herr;
-		int res;
+		int herr, res;
 
 		len = 1024;
-		buf = g_new (gchar, len);
+		buf = g_new (char, len);
 
 		while ((res = gethostbyname_r (hostname,
-					       &result,
+					       &result_buf,
 					       buf,
 					       len,
 					       &herr)) == ERANGE) {
 			len *= 2;
-			buf = g_renew (gchar, buf, len);
+			buf = g_renew (char, buf, len);
 		}
 
-		if (res || hp == NULL || hp->h_addr_list [0] == NULL)
-			goto done;
+		if (res)
+			result = NULL;
+	}
+#elif defined(HAVE_GETHOSTBYNAME_R_HPUX)
+	{
+		struct hostent_data hdbuf;
 
-		if (sa) {
-			sa->sin_family = result->h_addrtype;
-			memcpy (&sa->sin_addr,
-				result->h_addr_list [0],
-				result->h_length);
-		}
-
-		if (nicename && result->h_name)
-			*nicename = g_strdup (result->h_name);
-
-		rv = TRUE;
-
-	done:
-		g_free(buf);
+		if (!gethostbyname_r (hostname, &result_buf, &hdbuf))
+			result = NULL;
 	}
 #else
-#ifdef HAVE_GETHOSTBYNAME_R_HPUX
 	{
-		struct hostent result;
-		struct hostent_data buf;
-		int res;
-
-		res = gethostbyname_r (hostname, &result, &buf);
-
-		if (res == 0) {
-			if (sa) {
-				sa->sin_family = result.h_addrtype;
-				memcpy (&sa->sin_addr,
-					result.h_addr_list [0],
-					result.h_length);
-			}
-
-			if (nicename && result.h_name)
-				*nicename = g_strdup(result.h_name);
-
-			rv = TRUE;
-		}
-	}
-#else
-#ifdef HAVE_GETHOSTBYNAME_R_GLIB_MUTEX
-	{
-		struct hostent* he;
-
+#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
 		G_LOCK (gethostbyname);
-		he = gethostbyname (hostname);
-		G_UNLOCK (gethostbyname);
-
-		if (he != NULL && he->h_addr_list [0] != NULL) {
-			if (sa) {
-				sa->sin_family = he->h_addrtype;
-				memcpy (&sa->sin_addr,
-					he->h_addr_list [0],
-					he->h_length);
-			}
-
-			if (nicename && he->h_name)
-				*nicename = g_strdup (he->h_name);
-
-			rv = TRUE;
-		}
-	}
-#else
-	{
-		struct hostent* he;
-
-		he = gethostbyname (hostname);
-		if (he != NULL && he->h_addr_list [0] != NULL) {
-			if (sa) {
-				sa->sin_family = he->h_addrtype;
-				memcpy (&sa->sin_addr,
-					he->h_addr_list [0],
-					he->h_length);
-			}
-
-			if (nicename && he->h_name)
-				*nicename = g_strdup (he->h_name);
-
-			rv = TRUE;
-		}
+#endif
+		result = gethostbyname (hostname);
 	}
 #endif
+
+	if (result) {
+		switch (result->h_addrtype) {
+		case AF_INET:
+		{
+			struct sockaddr_in *sa_in;
+
+			sa_in = g_new0 (struct sockaddr_in, 1);
+			sa_in->sin_family = AF_INET;
+			memcpy (&sa_in->sin_addr, result->h_addr_list[0],
+				sizeof (struct sockaddr_in));
+
+			*sa = (struct sockaddr *)sa_in;
+			*sa_len = sizeof (struct sockaddr_in);
+			break;
+		}
+#ifdef HAVE_IPV6
+		case AF_INET6:
+		{
+			struct sockaddr_in6 *sa_in6;
+
+			sa_in6 = g_new0 (struct sockaddr_in6, 1);
+			sa_in6->sin6_family = AF_INET6;
+			memcpy (&sa_in6->sin6_addr, result->h_addr_list[0],
+				sizeof (struct sockaddr_in6));
+
+			*sa = (struct sockaddr *)sa_in6;
+			*sa_len = sizeof (struct sockaddr_in6);
+			break;
+		}
 #endif
-#endif
+		default:
+			result = NULL;
+		}
+	}
+
+	if (buf)
+		g_free (buf);
+#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
+	G_UNLOCK (gethostbyname);
 #endif
 
-	return rv;
+	return (result != NULL);
 }
 
 /*
-   Thread safe gethostbyaddr (we assume that gethostbyaddr_r follows
-   the same pattern as gethostbyname_r, so we don't have special
-   checks for it in configure.in.
-
-   Returns the hostname, NULL if there was an error.
-*/
-
-gchar *
-soup_gethostbyaddr (const char* addr, size_t length, int type)
+ * Thread safe gethostbyaddr (we assume that gethostbyaddr_r follows
+ * the same pattern as gethostbyname_r, so we don't have special
+ * checks for it in configure.in.
+ *
+ * Returns the hostname, NULL if there was an error.
+ */
+static char *
+soup_gethostbyaddr (SoupAddress *ia)
 {
-	gchar* rv = NULL;
+	struct hostent result_buf, *result = &result_buf;
+	char *buf = NULL, *addr;
+	int length;
+	char *rv;
 
-#ifdef HAVE_GETHOSTBYNAME_R_GLIBC
+	switch (ia->family) {
+	case AF_INET:
+		addr = (char *)&ia->addr.in;
+		length = sizeof (ia->addr.in);
+		break;
+#ifdef HAVE_IPV6
+	case AF_INET6:
+		addr = (char *)&ia->addr.in6;
+		length = sizeof (ia->addr.in6);
+		break;
+#endif
+	default:
+		return NULL;
+	}
+
+#if defined(HAVE_GETHOSTBYNAME_R_GLIBC)
 	{
-		struct hostent result_buf, *result;
 		size_t len;
-		char* buf;
-		int herr;
-		int res;
+		int herr, res;
 
 		len = 1024;
-		buf = g_new (gchar, len);
+		buf = g_new (char, len);
 
 		while ((res = gethostbyaddr_r (addr,
 					       length,
-					       type,
+					       ia->family,
 					       &result_buf,
 					       buf,
 					       len,
 					       &result,
 					       &herr)) == ERANGE) {
 			len *= 2;
-			buf = g_renew (gchar, buf, len);
+			buf = g_renew (char, buf, len);
 		}
 
 		if (res || result == NULL || result->h_name == NULL)
-			goto done;
-
-		rv = g_strdup(result->h_name);
-
-	done:
-		g_free(buf);
+			result = NULL;
 	}
-#else
-#ifdef HAVE_GETHOSTBYNAME_R_SOLARIS
+#elif defined(HAVE_GETHOSTBYNAME_R_SOLARIS)
 	{
-		struct hostent result;
 		size_t len;
-		char* buf;
-		int herr;
-		int res;
+		int herr, res;
 
 		len = 1024;
-		buf = g_new (gchar, len);
+		buf = g_new (char, len);
 
 		while ((res = gethostbyaddr_r (addr,
 					       length,
-					       type,
-					       &result,
+					       ia->family,
+					       &result_buf,
 					       buf,
 					       len,
 					       &herr)) == ERANGE) {
 			len *= 2;
-			buf = g_renew (gchar, buf, len);
+			buf = g_renew (char, buf, len);
 		}
 
-		if (res || hp == NULL || hp->h_name == NULL)
-			goto done;
+		if (res)
+			result = NULL;
+	}
+#elif defined(HAVE_GETHOSTBYNAME_R_HPUX)
+	{
+		struct hostent_data hdbuf;
 
-		rv = g_strdup(result->h_name);
-
-	done:
-		g_free(buf);
+		if (!gethostbyaddr_r (addr, length, ia->family, &result_buf, &hdbuf))
+			result = NULL;
 	}
 #else
-#ifdef HAVE_GETHOSTBYNAME_R_HPUX
 	{
-		struct hostent result;
-		struct hostent_data buf;
-		int res;
-
-		res = gethostbyaddr_r (addr, length, type, &result, &buf);
-
-		if (res == 0) rv = g_strdup (result.h_name);
-	}
-#else
-#ifdef HAVE_GETHOSTBYNAME_R_GLIB_MUTEX
-	{
-		struct hostent* he;
-
+#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
 		G_LOCK (gethostbyname);
-		he = gethostbyaddr (addr, length, type);
-		G_UNLOCK (gethostbyname);
-		if (he != NULL && he->h_name != NULL)
-			rv = g_strdup (he->h_name);
+#endif
+		result = gethostbyaddr (addr, length, ia->family);
 	}
-#else
-	{
-		struct hostent* he;
+#endif
 
-		he = gethostbyaddr (addr, length, type);
-		if (he != NULL && he->h_name != NULL)
-			rv = g_strdup (he->h_name);
-	}
-#endif
-#endif
-#endif
+	if (result)
+		rv = g_strdup (result->h_name);
+	if (buf)
+		g_free (buf);
+#if defined(HAVE_GETHOSTBYNAME_R_GLIB_MUTEX)
+	G_UNLOCK (gethostbyname);
 #endif
 
 	return rv;
@@ -653,11 +685,11 @@ soup_address_new_cb (GIOChannel* iochannel,
 		     GIOCondition condition,
 		     gpointer data)
 {
-	SoupAddressState* state = (SoupAddressState*) data;
-	struct sockaddr_in* sa_in;
-	GSList *cb_list, *iter;
-	SoupAddressNewFn cb_func;
-	gpointer cb_data;	
+	SoupAddressLookupState *state = (SoupAddressLookupState*) data;
+	SoupAddress *ia;
+	struct sockaddr *sa;
+	int sa_len;
+	GSList *iter;
 
 	if (!(condition & G_IO_IN)) {
 		int ret;
@@ -673,9 +705,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 		 * Exit status of one means we are inside a debugger.
 		 * Resolve the name synchronously.
 		 */
-		sa_in = (struct sockaddr_in*) &state->ia.sa;
-
-		if (!soup_gethostbyname (state->ia.name, sa_in, NULL))
+		if (!soup_gethostbyname (state->name, &sa, &sa_len))
 			g_warning ("Problem resolving host name");
 	} else {
 		int rv;
@@ -684,6 +714,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 		buf = &state->buffer [state->len];
 		length = sizeof (state->buffer) - state->len;
+		if (length == 0) goto ERROR;
 
 		rv = read (state->fd, buf, length);
 		if (rv < 0) goto ERROR;
@@ -697,8 +728,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 			goto ERROR;
 
 		/* Success. Copy resolved address. */
-		sa_in = (struct sockaddr_in*) &state->ia.sa;
-		memcpy (&sa_in->sin_addr, &state->buffer [1], (state->len - 1));
+		sa = g_malloc (state->len - 1);
+		memcpy (sa, state->buffer + 1, state->len - 1);
 
 		/* Cleanup state */
 		g_source_remove (state->watch);
@@ -708,252 +739,179 @@ soup_address_new_cb (GIOChannel* iochannel,
 		waitpid (state->pid, NULL, 0);
 	}
 
-	/* Get state data before realloc */
-	cb_list = state->cb_list;
-	cb_func = state->func;
-	cb_data = state->data;
+	g_hash_table_remove (lookup_hash, state->name);
 
-	/* Invert resolved address reference count */
-	state->ia.ref_count = ~state->ia.ref_count + 1;
+	ia = soup_address_new_from_sockaddr (sa, NULL);
+	g_free (sa);
+	ia->name = state->name;
+	ia->cached = CACHE_OK;
+	g_hash_table_insert (address_hash, ia->name, ia);
 
-	/* 
-	 * Realloc state to size of SoupAddress, and reinsert to resolved
-	 * address table. 
-	 */
-	state = g_realloc (state, sizeof (SoupAddress));
-	g_hash_table_insert (active_address_hash, state->ia.name, state);
-	state->ia.cached = CACHE_OK;
-
-	(*cb_func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb_data);
-
-	for (iter = cb_list; iter; iter = iter->next) {
+	for (iter = state->cb_list; iter; iter = iter->next) {
 		SoupAddressCbData *cb = iter->data;
 
-		(*cb->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb->data);
+		soup_address_ref (ia);
+		(*cb->func) (ia, SOUP_ADDRESS_STATUS_OK, cb->data);
 
 		g_free (cb);
 	}
+	g_slist_free (state->cb_list);
+	g_free (state);
 
-	g_slist_free (cb_list);
-
+	/* Each callback got its own ref, but we still own the
+	 * original ref.
+	 */
+	soup_address_unref (ia);
 	return FALSE;
 
  ERROR:
 	/* Remove the watch now in case we don't return immediately */
 	g_source_remove (state->watch);
 
-	(*state->func) (NULL, SOUP_ADDRESS_STATUS_ERROR, state->data);
+	/* Error out and cancel each pending lookup. When the
+	 * last one is canceled, state will be freed.
+	 */
+	for (iter = state->cb_list; iter; ) {
+		SoupAddressCbData *cb_data = iter->data;
 
-	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
-		SoupAddressCbData *cb_data = cb_list->data;
 		(*cb_data->func) (NULL,
 				  SOUP_ADDRESS_STATUS_ERROR,
 				  cb_data->data);
-	}
 
-	/* Force cancel */
-	state->ia.ref_count = -1;
-	soup_address_new_cancel (state);
+		iter = iter->next;		  
+		soup_address_new_cancel (cb_data);
+	}
 
 	return FALSE;
-}
-
-static SoupAddress *
-lookup_in_cache_internal (const gchar       *name, 
-			  const gint         port,
-			  gboolean          *in_progress)
-{
-	SoupAddress* ia = NULL;
-
-	if (in_progress)
-		*in_progress = FALSE;
-
-	if (!active_address_hash)
-		return NULL;
-
-	ia = g_hash_table_lookup (active_address_hash, name);
-
-	if (ia && ia->ref_count >= 0) {
-		/*
-		 * Existing valid request, use it.
-		 */
-		if (soup_address_get_port (ia) == port) {
-			soup_address_ref (ia);
-		} else {
-			/* 
-			 * We can reuse the address, but we have to
-			 * change port 
-			 */
-			SoupAddress *new_ia = soup_address_copy (ia);
-
-			((struct sockaddr_in*) &new_ia->sa)->sin_port = 
-				g_htons (port);
-
-			ia = new_ia;
-		}
-	}
-	else if (ia && in_progress)
-		*in_progress = TRUE;
-
-	return ia;
-}
-
-SoupAddress *
-soup_address_lookup_in_cache (const gchar *name, const gint port)
-{
-	SoupAddress *ia;
-	gboolean in_prog;
-
-	ia = lookup_in_cache_internal (name, port, &in_prog);
-
-	if (in_prog) 
-		return NULL;
-
-	return ia;
 }
 
 /**
  * soup_address_new:
  * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
  *   (eg, 141.213.8.59).  You can delete the after the function is called.
- * @port: port number (0 if the port doesn't matter)
  * @func: Callback function.
  * @data: User data passed when callback function is called.
  *
- * Create a SoupAddress from a name and port asynchronously.  Once the
+ * Create a SoupAddress from a name asynchronously.  Once the
  * structure is created, it will call the callback.  It may call the
  * callback before the function returns.  It will call the callback
  * if there is a failure.
  *
- * The Unix version forks and does the lookup, which can cause some
- * problems.  In general, this will work ok for most programs most of
- * the time.  It will be slow or even fail when using operating
+ * Currently this routine forks and does the lookup, which can cause
+ * some problems. In general, this will work ok for most programs most
+ * of the time. It will be slow or even fail when using operating
  * systems that copy the entire process when forking.
  *
- * If you need to lookup a lot of addresses, we recommend calling
- * g_main_iteration(FALSE) between calls.  This will help prevent an
+ * If you need to lookup a lot of addresses, you should call
+ * g_main_iteration(FALSE) between calls. This will help prevent an
  * explosion of processes.
- *
- * If you need a more robust library for Unix, look at <ulink
- * url="http://www.gnu.org/software/adns/adns.html">GNU ADNS</ulink>.
- * GNU ADNS is under the GNU GPL.
- *
- * The Windows version should work fine.  Windows has an asynchronous
- * DNS lookup function.
  *
  * Returns: ID of the lookup which can be used with
  * soup_address_new_cancel() to cancel it; NULL on immediate
  * success or failure.
  **/
 SoupAddressNewId
-soup_address_new (const gchar* name,
-		  const gint port,
-		  SoupAddressNewFn func,
-		  gpointer data)
+soup_address_new (const gchar* name, SoupAddressNewFn func, gpointer data)
 {
 	pid_t pid = -1;
 	int pipes [2];
-#ifdef HAVE_INET_PTON
 	struct in_addr inaddr;
-#else
-#  ifdef HAVE_INET_ATON
-	struct in_addr inaddr;
-#  else
-	in_addr_t inaddr;
-#  endif
+#ifdef HAVE_IPV6
+	struct in6_addr inaddr6;
 #endif
-	struct sockaddr_in sa;
-	struct sockaddr_in* sa_in;
-	SoupAddress* ia;
-	SoupAddressState* state;
+	struct sockaddr *sa;
+	int sa_len;
+	SoupAddress *ia;
+	SoupAddressLookupState *state;
+	SoupAddressCbData *cb_data;
 	GIOChannel *chan;
-	gboolean inaddr_ok;
+	int inaddr_ok;
 
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
 
 	/* Try to read the name as if were dotted decimal */
-#ifdef HAVE_INET_PTON
-	inaddr_ok = inet_pton (AF_INET, name, &inaddr) != 0;
+	inaddr_ok = FALSE;
+
+#if defined(HAVE_INET_PTON)
+#ifdef HAVE_IPV6
+	if (inet_pton (AF_INET6, name, &inaddr6) != 0)
+		inaddr_ok = AF_INET6;
+	else
+#endif
+	if (inet_pton (AF_INET, name, &inaddr) != 0)
+		inaddr_ok = AF_INET;
+#elif defined(HAVE_INET_ATON)
+	if (inet_aton (name, &inaddr) != 0)
+		inaddr_ok = AF_INET;
 #else
-#  ifdef HAVE_INET_ATON
-	inaddr_ok = inet_aton (name, &inaddr) != 0;
-#  else
-	inaddr = inet_addr (name);
-	if (inaddr == INADDR_NONE)
+	inaddr.s_addr = inet_addr (name);
+	if (inaddr.s_addr == INADDR_NONE)
 		inaddr_ok = FALSE;
 	else
-		inaddr_ok = TRUE;
-#  endif
+		inaddr_ok = AF_INET;
 #endif
 
 	if (inaddr_ok) {
 		ia = g_new0 (SoupAddress, 1);
 		ia->ref_count = 1;
 
-		sa_in = (struct sockaddr_in*) &ia->sa;
-		sa_in->sin_family = AF_INET;
-		sa_in->sin_port = g_htons(port);
-		memcpy (&sa_in->sin_addr,
-			(char*) &inaddr,
-			sizeof(inaddr));
+		ia->family = inaddr_ok;
+		switch (ia->family) {
+		case AF_INET:
+			memcpy (&ia->addr.in, &inaddr, sizeof (ia->addr.in));
+			break;
+#ifdef HAVE_IPV6
+		case AF_INET6:
+			memcpy (&ia->addr.in6, &inaddr6, sizeof (ia->addr.in6));
+			break;
+#endif
+		}
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 		return NULL;
 	}
 
-	if (!active_address_hash)
-		active_address_hash = g_hash_table_new (soup_str_case_hash,
-							soup_str_case_equal);
-	else {
-		gboolean in_prog;
+	if (!address_hash) {
+		address_hash = g_hash_table_new (soup_str_case_hash,
+						 soup_str_case_equal);
+	} else {
+		ia = g_hash_table_lookup (address_hash, name);
+		if (ia) {
+			soup_address_ref (ia);
+			return ia;
+		}
+	}
 
-		ia = lookup_in_cache_internal (name, port, &in_prog);
-		if (in_prog) {
-			/*
-			 * Lookup currently in progress.
-			 * Add func to list of callbacks in state.
-			 * Note that if it's not the same port, we have to do
-			 * the lookup again, since there's no way to communicate
-			 * the port change.
-			 */
-			SoupAddressCbData *cb_data;
-
+	if (!lookup_hash) {
+		lookup_hash = g_hash_table_new (soup_str_case_hash,
+						soup_str_case_equal);
+	} else {
+		state = g_hash_table_lookup (lookup_hash, name);
+		if (state) {
 			cb_data = g_new0 (SoupAddressCbData, 1);
+			cb_data->state = state;
 			cb_data->func = func;
 			cb_data->data = data;
 
-			state = (SoupAddressState *) ia;
 			state->cb_list = g_slist_prepend (state->cb_list,
 							  cb_data);
-
-			state->ia.ref_count--;
-
-			return state;
+			return cb_data;
 		}
-		else if (ia)
-			return ia;
 	}
 
 	/* Check to see if we are doing synchronous DNS lookups */
 	if (getenv ("SOUP_SYNC_DNS")) {
-		if (!soup_gethostbyname (name, &sa, NULL)) {
+		if (!soup_gethostbyname (name, &sa, &sa_len)) {
 			g_warning ("Problem resolving host name");
 			(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 			return NULL;
 		}
 
-		sa_in = (struct sockaddr_in*) &sa;
-		sa_in->sin_family = AF_INET;
-		sa_in->sin_port = g_htons (port);
-
-		ia = g_new0(SoupAddress, 1);
-		ia->name = g_strdup (name);
-		ia->ref_count = 1;
-		ia->sa = *((struct sockaddr *) &sa);
+		ia = soup_address_new_from_sockaddr (sa, NULL);
+		g_free (sa);
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
-
 		return NULL;
 	}
 
@@ -1021,11 +979,11 @@ soup_address_new (const gchar* name,
 		/* 
 		 * Try to get the host by name (ie, DNS) 
 		 */
-		if (soup_gethostbyname (name, &sa, NULL)) {
-			guchar size = 4;	/* FIX for IPv6 */
+		if (soup_gethostbyname (name, &sa, &sa_len)) {
+			guchar size = sa_len;
 
 			if ((write (pipes [1], &size, sizeof(guchar)) == -1) ||
-			    (write (pipes [1], &sa.sin_addr, size) == -1))
+			    (write (pipes [1], sa, sa_len) == -1))
 				g_warning ("Problem writing to pipe\n");
 		} else {
 			/* Write a zero */
@@ -1044,35 +1002,30 @@ soup_address_new (const gchar* name,
 		close (pipes [1]);
 		
 		/* Create a structure for the call back */
-		state = g_new0 (SoupAddressState, 1);
-		state->ia.name = g_strdup (name);
-		state->ia.ref_count = -1;
-		state->func = func;
-		state->data = data;
+		state = g_new0 (SoupAddressLookupState, 1);
+		state->name = g_strdup (name);
 		state->pid = pid;
 		state->fd = pipes [0];
 
-		sa_in = (struct sockaddr_in*) &state->ia.sa;
-		sa_in->sin_family = AF_INET;
-		sa_in->sin_port = g_htons (port);
+		cb_data = g_new0 (SoupAddressCbData, 1);
+		cb_data->state = state;
+		cb_data->func = func;
+		cb_data->data = data;
+		state->cb_list = g_slist_prepend (state->cb_list, cb_data);
 
-		g_hash_table_insert (active_address_hash,
-				     state->ia.name,
-				     state);
+		g_hash_table_insert (lookup_hash, state->name, state);
 
+		/* Set up a watch to read from the pipe */
 		chan = g_io_channel_unix_new (pipes [0]);
-
-		/* Set up an watch to read from the pipe */
 		state->watch =
 			g_io_add_watch(
 				chan,
 				G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
 				soup_address_new_cb,
 				state);
-
 		g_io_channel_unref (chan);
 
-		return state;
+		return cb_data;
 	}
 }
 
@@ -1081,28 +1034,34 @@ soup_address_new (const gchar* name,
  * @id: ID of the lookup
  *
  * Cancel an asynchronous SoupAddress creation that was started with
- * soup_address_new().
+ * soup_address_new(). The lookup's callback will not be called.
  */
 void
 soup_address_new_cancel (SoupAddressNewId id)
 {
-	SoupAddressState* state = (SoupAddressState*) id;
-	GSList *cb_list;
+	SoupAddressCbData *cb_data = (SoupAddressCbData *)id;
+	SoupAddressLookupState *state;
+	GSList *iter;
 
-	g_return_if_fail (state != NULL);
+	g_return_if_fail (cb_data != NULL);
 
-	state->ia.ref_count++;
+	state = cb_data->state;
 
-	if (state->ia.ref_count == 0) {
-		g_hash_table_remove (active_address_hash, state->ia.name);
-		g_free (state->ia.name);
+	for (iter = state->cb_list; iter; iter = iter->next) {
+		if (iter->data == cb_data)
+			break;
+	}
+	g_return_if_fail (iter != NULL);
 
-		for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next)
-			g_free (cb_list->data);
-		g_slist_free (state->cb_list);
+	state->cb_list = g_slist_remove_link (state->cb_list, iter);
+	g_slist_free_1 (iter);
+	g_free (cb_data);
+
+	if (!state->cb_list) {
+		g_hash_table_remove (lookup_hash, state->name);
+		g_free (state->name);
 
 		g_source_remove (state->watch);
-
 		close (state->fd);
 		kill (state->pid, SIGKILL);
 		waitpid (state->pid, NULL, 0);
@@ -1149,13 +1108,13 @@ prune_zeroref_addresses_timeout (gpointer not_used)
 {
 	gint remaining = 0;
 
-	if (!active_address_hash)
+	if (!address_hash)
 		goto REMOVE_SOURCE;
 
 	/*
 	 * Remove all marked addresses, mark zero references.
 	 */
-	g_hash_table_foreach_remove (active_address_hash, 
+	g_hash_table_foreach_remove (address_hash, 
 				     (GHRFunc) prune_zeroref_addresses_foreach,
 				     &remaining);
 
@@ -1277,12 +1236,10 @@ soup_address_get_name_cb (GIOChannel* iochannel,
  * It may even call the callback before it returns.  The callback
  * will be called if there is an error.
  *
- * The Unix version forks and does the reverse lookup.  This has
- * problems.  See the notes for soup_address_new().  The
- * Windows version should work fine.
+ * As with soup_address_new(), this forks to do the lookup.
  *
  * Returns: ID of the lookup which can be used with
- * soup_addressr_get_name_cancel() to cancel it; NULL on
+ * soup_address_get_name_cancel() to cancel it; NULL on
  * immediate success or failure.
  **/
 SoupAddressGetNameId
@@ -1294,7 +1251,7 @@ soup_address_get_name (SoupAddress*         ia,
 	gchar* name;
 	guchar len;
 	pid_t pid = -1;
-	int pipes [2];
+	int pipes [2], lenint;
 
 	g_return_val_if_fail (ia != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -1303,6 +1260,8 @@ soup_address_get_name (SoupAddress*         ia,
 		(func) (ia, SOUP_ADDRESS_STATUS_OK, ia->name, data);
 		return NULL;
 	}
+
+	/* FIXME: should check SOUP_SYNC_DNS here */
 
 	/* Open a pipe */
 	if (pipe (pipes) != 0) {
@@ -1338,47 +1297,24 @@ soup_address_get_name (SoupAddress*         ia,
 
 		/* Write the name to the pipe.  If we didn't get a name,
 		   we just write the canonical name. */
-		name = soup_gethostbyaddr (
-			    (char*) &((struct sockaddr_in*)&ia->sa)->sin_addr,
-			    sizeof (struct in_addr),
-			    AF_INET);
+		name = soup_gethostbyaddr (ia);
+		if (!name)
+			name = soup_address_get_canonical_name (ia);
 
-		if (name) {
-			guint lenint = strlen(name);
-
-			if (lenint > 255) {
-				g_warning ("Truncating domain name: %s\n",
-					   name);
-				name [256] = '\0';
-				lenint = 255;
-			}
-
-			len = lenint;
-
-			if ((write (pipes [1], &len, sizeof(len)) == -1) ||
-			    (write (pipes [1], name, len) == -1) )
-				g_warning ("Problem writing to pipe\n");
-
-			g_free(name);
-		} else {
-			/* defined in netinet/in.h */
-			gchar buffer [INET_ADDRSTRLEN];
-			guchar* p;
-			p = (guchar*) &(SOUP_SOCKADDR_IN (ia->sa).sin_addr);
-
-			g_snprintf(buffer,
-				   sizeof (buffer),
-				   "%d.%d.%d.%d",
-				   p [0],
-				   p [1],
-				   p [2],
-				   p [3]);
-			len = strlen (buffer);
-
-			if ((write (pipes [1], &len, sizeof(len)) == -1) ||
-			    (write (pipes [1], buffer, len) == -1))
-				g_warning ("Problem writing to pipe\n");
+		lenint = strlen (name);
+		if (lenint > 255) {
+			g_warning ("Truncating domain name: %s\n", name);
+			name [256] = '\0';
+			lenint = 255;
 		}
+
+		len = lenint;
+
+		if ((write (pipes [1], &len, sizeof(len)) == -1) ||
+		    (write (pipes [1], name, len) == -1) )
+			g_warning ("Problem writing to pipe\n");
+
+		g_free(name);
 
 		/* Close the socket */
 		close(pipes [1]);
@@ -1430,25 +1366,4 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 	waitpid (state->pid, NULL, 0);
 
 	g_free(state);
-}
-
-/**
- * soup_address_gethostname:
- *
- * Get the primary host's name.
- *
- * Returns: the name of the host; NULL if there was an error.  The
- * caller is responsible for deleting the returned string.
- **/
-gchar*
-soup_address_gethostname (void)
-{
-	gchar* name = NULL;
-	struct utsname myname;
-
-	if (uname (&myname) < 0) return NULL;
-
-	if (!soup_gethostbyname (myname.nodename, NULL, &name)) return NULL;
-
-	return name;
 }
