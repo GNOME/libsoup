@@ -47,14 +47,17 @@
 static gint
 soup_uri_get_default_port (gchar *proto)
 {
-	gint len = strlen (proto);
+	gint len;
+
+	if (!proto) return -1;
+
+	len = strlen (proto);
 
 	if (strncasecmp (proto, "https", len) == 0)
 		return 443;
 	else if (strncasecmp (proto, "http", len) == 0)
 		return 80;
-	else if (strncasecmp (proto, "mailto", len) == 0 || 
-		 strncasecmp (proto, "smtp", len) == 0)
+	else if (strncasecmp (proto, "mailto", len) == 0)
 		return 25;
 	else if (strncasecmp (proto, "ftp", len) == 0)
 		return 21;
@@ -161,15 +164,20 @@ SoupUri *soup_uri_new (const gchar* uri_string)
 		g_uri->path = g_strndup (path, query - path);
 		g_uri->querystring = g_strdup (++query);
 		g_free (path);
+	} else {
+		g_uri->path = path;
+		g_uri->querystring = NULL;
 	}
 
 	return g_uri;
 }
 
+/* Need to handle mailto which apparantly doesn't use the "//" after the : */
 gchar *
 soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 {
-	if (uri->port != -1)
+	if (uri->port != -1 && 
+	    uri->port != soup_uri_get_default_port(uri->protocol))
 		return g_strdup_printf(
 			"%s%s%s%s%s%s%s%s%s:%d%s",
 			uri->protocol ? uri->protocol : "",
