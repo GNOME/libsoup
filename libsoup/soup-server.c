@@ -651,6 +651,9 @@ call_handler (SoupMessage          *req,
 		};
 
 		/*
+		 * FIXME: Implement Basic and Digest server auth
+		 */
+		/*
 		GSList *auth_hdrs;
 		SoupServerAuth auth;
 
@@ -692,17 +695,14 @@ read_done_cgi_cb (const SoupDataBuffer *data,
 
 	channel = server->cgi_write_chan;
 
-	if (req->priv->server_msg) {
+	if (req->priv->server_msg)
 		encoding = SOUP_TRANSFER_UNKNOWN;
-		header = get_response_header (req, FALSE, encoding);
-	} else {
+	else
 		encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		header = get_response_header (req, FALSE, encoding);
-	}
 
-	req->priv->req_header = header;
+	header = get_response_header (req, FALSE, encoding);
+
 	req->priv->read_tag = 0;
-
 	req->priv->write_tag = 
 		soup_transfer_write (channel,
 				     header,
@@ -713,6 +713,8 @@ read_done_cgi_cb (const SoupDataBuffer *data,
 				     write_done_cb,
 				     error_cb,
 				     req);
+
+	g_string_free (header, TRUE);
 
 	return;
 }
@@ -749,16 +751,12 @@ read_done_cb (const SoupDataBuffer *data,
 			encoding = SOUP_TRANSFER_UNKNOWN;
 		else
 			encoding = SOUP_TRANSFER_CHUNKED;
-
-		header = get_response_header (req, TRUE, encoding);
-	} else {
+	} else
 		encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		header = get_response_header (req, TRUE, encoding);
-	}
 
-	req->priv->req_header = header;
+	header = get_response_header (req, TRUE, encoding);
+
 	req->priv->read_tag = 0;
-
 	req->priv->write_tag = 
 		soup_transfer_write (channel,
 				     header,
@@ -769,6 +767,8 @@ read_done_cb (const SoupDataBuffer *data,
 				     write_done_cb,
 				     error_cb,
 				     req);
+
+	g_string_free (header, TRUE);
 
 	g_io_channel_unref (channel);
 	return;

@@ -165,9 +165,6 @@ finalize_message (SoupMessage *req)
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->response.body);
 
-	if (req->priv->req_header) 
-		g_string_free (req->priv->req_header, TRUE);
-
 	soup_message_clear_headers (req->request_headers);
 	g_hash_table_destroy (req->request_headers);
 

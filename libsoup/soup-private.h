@@ -135,8 +135,6 @@ struct _SoupMessagePrivate {
 	guint              write_tag;
 	guint              timeout_tag;
 
-	GString           *req_header;
-
 	SoupCallbackFn     callback;
 	gpointer           user_data;
 

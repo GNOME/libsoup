@@ -1,3 +1,16 @@
+2001-12-02  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-private.h: Remove req_header from
+	SoupMessagePrivate.
+
+	* src/libsoup/soup-message.c (finalize_message): No more
+	req_header.
+
+	* src/libsoup/soup-queue.c (start_request): Ditto.
+
+	* src/libsoup/soup-server.c (read_done_cgi_cb): Ditto.
+	(read_done_cb): Ditto.
+
 2001-12-01  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-server-auth.h: Pull the SoupServerAuth from
