@@ -1,3 +1,12 @@
+2002-08-27  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.7.7
+
+	* src/libsoup/soup-message.c (global_handlers): Replace the 2xx
+	response class handler with an "Authentication-Info" header
+	handler, so we can correctly set SoupAuths as successful, even if
+	we got redirects or errors.
+
 2002-08-20  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-ntlm.c: (soup_ntlm_parse_challenge): Use

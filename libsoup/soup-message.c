@@ -1003,14 +1003,14 @@ static SoupHandlerData global_handlers [] = {
 		{ 407 }
 	},
 	/*
-	 * Handle response codes 2xx for validating auths.
+	 * Handle Authorization-Info headers for validating auths.
 	 */
 	{
 		SOUP_HANDLER_PRE_BODY,
 		(SoupCallbackFn) validate_authorize_handler,
 		NULL,
-		RESPONSE_ERROR_CLASS_HANDLER,
-		{ SOUP_ERROR_CLASS_SUCCESS }
+		RESPONSE_HEADER_HANDLER,
+		{ (guint) "Authentication-Info" }
 	},
 	{ 0 }
 };
