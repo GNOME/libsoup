@@ -1,5 +1,9 @@
 2001-08-17  Alex Graveley  <alex@ximian.com>
 
+	* build/libsoup.def: Update for DAV methods.
+
+2001-08-17  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-dav-server.[ch]: Initial WebDAV server
 	support.
 
