@@ -1,3 +1,8 @@
+2002-01-17  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-message.c: Add a
+	soup_message_get_http_version() function.
+
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): 

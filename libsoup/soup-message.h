@@ -134,6 +134,8 @@ typedef enum {
 void           soup_message_set_http_version    (SoupMessage       *msg,
 						 SoupHttpVersion    version);
 
+SoupHttpVersion soup_message_get_http_version   (SoupMessage       *msg);
+
 void           soup_message_set_context         (SoupMessage       *msg,
 						 SoupContext       *new_ctx);
 
