@@ -73,9 +73,10 @@ soup_parse_headers (const GString   *headers,
 }
 
 static SoupTransferDone
-soup_queue_read_headers_cb (const GString *headers,
-			    guint         *content_len,
-			    SoupMessage   *req)
+soup_queue_read_headers_cb (const GString        *headers,
+			    SoupTransferEncoding *encoding,
+			    gint                 *content_len,
+			    SoupMessage          *req)
 {
 	gchar *connection, *length, *enc;
 	SoupHttpVersion version;
@@ -93,8 +94,11 @@ soup_queue_read_headers_cb (const GString *headers,
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->priv->conn, FALSE);
 
-	if (!g_strcasecmp (req->method, "HEAD")) 
+	if (!g_strcasecmp (req->method, "HEAD")) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+		*content_len = 0;
 		goto RUN_HANDLERS;
+	}
 
 	/* 
 	 * Handle Content-Length or Chunked encoding 
@@ -103,12 +107,13 @@ soup_queue_read_headers_cb (const GString *headers,
 	enc = g_hash_table_lookup (req->response_headers, "Transfer-Encoding");
 
 	if (length) {
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = atoi (length);
 		if (*content_len < 0) 
 			goto THROW_MALFORMED_HEADER;
 	} else if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
-			*content_len = SOUP_TRANSFER_CHUNKED;
+			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			g_warning ("Unknown encoding type in HTTP response.");
 			goto THROW_MALFORMED_HEADER;
