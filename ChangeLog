@@ -1,3 +1,22 @@
+2001-04-29  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c
+	(wsdl_soap_set_simple_param): Some more error checking. Read
+	booleans as "true", "false", "yes", "no" as well as an integer.
+	(wsdl_soap_set_param): Give the XML child node to
+	wsdl_soap_set_list_param().
+
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c: A typecode based soap
+	marshaller
+
+	* src/soup-wsdl-runtime/wsdl-param.h: Moved definition of wsdl_param
+	into a common header
+
+	* tests/test-wsdl-runtime.c: Added marshal test
+
+	* src/soup-core/soup-serializer.c (soup_serializer_write_time):
+	Changed name of "time" parameter to not conflict with time(2)
+
 2001-04-25  JP Rosevear  <jpr@ximian.com>
 
 	* soup-config.in (lib_soup): get this script working again and add
