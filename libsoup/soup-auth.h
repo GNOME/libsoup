@@ -32,9 +32,6 @@ struct _SoupAuth {
 	SoupAuthStatus status;
 	SoupMessage *controlling_msg;
 
-	gboolean (*compare_func) (SoupAuth      *a, 
-				  SoupAuth      *b);
-
 	void     (*parse_func)   (SoupAuth      *auth,
 				  const gchar   *header);
 
@@ -65,8 +62,5 @@ void      soup_auth_free                   (SoupAuth      *auth);
 
 gchar    *soup_auth_authorize              (SoupAuth      *auth, 
 					    SoupMessage   *msg);
-
-gboolean  soup_auth_invalidates_prior      (SoupAuth      *new_auth, 
-					    SoupAuth      *old_auth);
 
 #endif /* SOUP_AUTH_H */

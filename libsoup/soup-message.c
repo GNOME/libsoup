@@ -773,6 +773,10 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	SoupContext *ctx;
 	const SoupUri *uri;
 
+	if (msg->connection->auth &&
+	    msg->connection->auth->status == SOUP_AUTH_STATUS_SUCCESSFUL)
+		goto THROW_CANT_AUTHENTICATE;
+
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
 
@@ -855,9 +859,9 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	soup_auth_initialize (auth, uri);
 
 	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
-		SoupAuth *old_auth = soup_auth_lookup (ctx);
+		SoupAuth *old_auth = msg->connection->auth;
 
-		if (old_auth && auth != old_auth) 
+		if (old_auth)
 			soup_auth_free (old_auth);
 		msg->connection->auth = auth;
 	} else
