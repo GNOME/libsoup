@@ -70,6 +70,7 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 	int sock_fd;
 	int pid;
 	int pair[2], flags;
+	const char *cert_file, *key_file;
 
 	g_return_val_if_fail (sock != NULL, NULL);
 
@@ -103,6 +104,28 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 
 		if (type == SOUP_SSL_TYPE_SERVER)
 			putenv ("IS_SERVER=1");
+
+		if (soup_get_ssl_ca_file ()) {
+			putenv (g_strdup_printf ("HTTPS_CA_FILE=%s",
+						 soup_get_ssl_ca_file ()));
+		}
+
+		if (soup_get_ssl_ca_dir ()) {
+			putenv (g_strdup_printf ("HTTPS_CA_DIR=%s",
+						 soup_get_ssl_ca_dir ()));
+		}
+
+		soup_get_ssl_cert_files (&cert_file, &key_file);
+
+		if (cert_file) {
+			putenv (g_strdup_printf ("HTTPS_CERT_FILE=%s",
+						 cert_file));
+		}
+		
+		if (key_file) {
+			putenv (g_strdup_printf ("HTTPS_KEY_FILE=%s",
+						 key_file));
+		}
 
 		execl (BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
 		       BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,

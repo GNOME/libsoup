@@ -1,5 +1,13 @@
 2002-10-16  Joe Shaw  <joe@ximian.com>
 
+	* src/libsoup/soup-misc.c: Don't set SSL environment variables,
+	keep them around and add getters for all of those functions.
+
+	* src/libsoup/soup-ssl.c (soup_ssl_get_iochannel_real): Set the
+	SSL environment variables after we fork().
+
+2002-10-16  Joe Shaw  <joe@ximian.com>
+
 	* src/libsoup/soup-private.h (SoupMessagePrivate): Add a "retries"
 	field.
 

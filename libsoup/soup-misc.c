@@ -687,6 +687,11 @@ soup_shutdown ()
 	soup_queue_shutdown ();
 }
 
+static char *ssl_ca_file   = NULL;
+static char *ssl_ca_dir    = NULL;
+static char *ssl_cert_file = NULL;
+static char *ssl_key_file  = NULL;
+
 /**
  * soup_set_ca_file:
  * @ca_file: the path to a CA file
@@ -695,9 +700,11 @@ soup_shutdown ()
  * peers.
  */
 void
-soup_set_ssl_ca_file (gchar *ca_file)
+soup_set_ssl_ca_file (const gchar *ca_file)
 {
-	putenv (g_strdup_printf ("HTTPS_CA_FILE=%s", ca_file));
+	g_free (ssl_ca_file);
+
+	ssl_ca_file = g_strdup (ca_file);
 }
 
 /**
@@ -708,9 +715,11 @@ soup_set_ssl_ca_file (gchar *ca_file)
  * peers.
  */
 void
-soup_set_ssl_ca_dir (gchar *ca_dir)
+soup_set_ssl_ca_dir (const gchar *ca_dir)
 {
-	putenv (g_strdup_printf ("HTTPS_CA_DIR=%s", ca_dir));
+	g_free (ssl_ca_dir);
+
+	ssl_ca_dir = g_strdup (ca_dir);
 }
 
 /**
@@ -722,10 +731,55 @@ soup_set_ssl_ca_dir (gchar *ca_dir)
  * authentication with the SOAP server
  */
 void
-soup_set_ssl_cert_files (gchar *cert_file, gchar *key_file)
+soup_set_ssl_cert_files (const gchar *cert_file, const gchar *key_file)
 {
-	putenv (g_strdup_printf ("HTTPS_CERT_FILE=%s", cert_file));
-	putenv (g_strdup_printf ("HTTPS_KEY_FILE=%s", key_file));
+	g_free (ssl_cert_file);
+	g_free (ssl_key_file);
+
+	ssl_cert_file = g_strdup (cert_file);
+	ssl_key_file  = g_strdup (key_file);
+}
+
+/**
+ * soup_get_ca_file:
+ *
+ * Return value: A file containing CA certificates to be used to verify
+ * peers.
+ */
+const char *
+soup_get_ssl_ca_file (void)
+{
+	return ssl_ca_file;
+}
+
+/**
+ * soup_get_ca_dir
+ *
+ * Return value: A directory containing CA certificates to be used to verify
+ * peers.
+ */
+const char *
+soup_get_ssl_ca_dir (void)
+{
+	return ssl_ca_dir;
+}
+
+/**
+ * soup_get_ssl_cert_files
+ * @cert_file: the file containing the SSL client certificate
+ * @key_file: the file containing the SSL private key
+ *
+ * Specify a SSL client certificate to be used for client
+ * authentication with the SOAP server
+ */
+void
+soup_get_ssl_cert_files (const gchar **cert_file, const gchar **key_file)
+{
+	if (cert_file)
+		*cert_file = ssl_cert_file;
+
+	if (key_file)
+		*key_file = ssl_key_file;
 }
 
 SoupAuthorizeFn  soup_auth_fn = NULL;
