@@ -111,7 +111,7 @@ soup_parse_headers (const GString   *headers,
 		return FALSE;
 	}
 
-	req->errorclass = soup_get_error_class (req->errorcode);
+	req->errorclass = soup_error_get_class (req->errorcode);
 
 	return TRUE;
 }

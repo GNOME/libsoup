@@ -1,3 +1,13 @@
+2001-10-22  JP Rosevear  <jpr@ximian.com>
+
+	* src/libsoup/soup-dav.c (soup_dav_response_new): use new error
+	api
+
+	* src/libsoup/soup-queue.c (soup_parse_headers): ditto
+
+	* src/libsoup/soup-message.c (soup_message_set_error_full): ditto
+	(soup_message_set_error): ditto
+
 2001-10-21  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-message.h: Reorganize.

@@ -908,8 +908,8 @@ soup_message_set_error (SoupMessage *msg, SoupKnownErrorCode errcode)
 	g_free ((gchar *) msg->errorphrase);
 
 	msg->errorcode = errcode;
-	msg->errorclass = soup_get_error_class (errcode);
-	msg->errorphrase = g_strdup (soup_get_error_phrase (errcode));
+	msg->errorclass = soup_error_get_class (errcode);
+	msg->errorphrase = g_strdup (soup_error_get_phrase (errcode));
 }
 
 void
@@ -924,7 +924,7 @@ soup_message_set_error_full (SoupMessage *msg,
 	g_free ((gchar *) msg->errorphrase);
 
 	msg->errorcode = errcode;
-	msg->errorclass = soup_get_error_class (errcode);
+	msg->errorclass = soup_error_get_class (errcode);
 	msg->errorphrase = g_strdup (errphrase);
 }
 
