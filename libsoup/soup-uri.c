@@ -326,7 +326,10 @@ soup_uri_new (const gchar* uri_string)
 	}
 
 	/* Must have a protocol */
-	if (!g_uri->protocol) return NULL;
+	if (!g_uri->protocol) {
+		g_free (g_uri);
+		return NULL;
+	}
 
 	/* If there is an @ sign, look for user, authmech, and
 	 * password before it.
