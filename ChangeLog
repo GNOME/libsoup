@@ -1,5 +1,10 @@
 2001-03-02  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-ssl-proxy.c: oops. should have been added
+	yesterday.
+	
+2001-03-02  Alex Graveley  <alex@ximian.com>
+
 	* tests/stress-test.c (main): exit nicely if no test URL is supplied.
 
 	* tests/simple-test.c (main): use http://www.ximian.com is no test
