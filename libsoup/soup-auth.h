@@ -18,11 +18,12 @@
 SoupAuth *soup_auth_new_from_header   (SoupContext *context, 
 				       const char  *header);
 
-void      soup_auth_free              (SoupAuth *auth);
+void      soup_auth_free              (SoupAuth    *auth);
 
 gchar    *soup_auth_authorize         (SoupAuth    *auth, 
 				       SoupMessage *msg);
 
-gboolean  soup_auth_invalidates_prior (SoupAuth *auth);
+gboolean  soup_auth_invalidates_prior (SoupAuth    *new_auth, 
+				       SoupAuth    *old_auth);
 
 #endif /* SOUP_AUTH_H */

@@ -600,13 +600,16 @@ soup_auth_free (SoupAuth *auth)
 }
 
 gboolean
-soup_auth_invalidates_prior (SoupAuth *auth)
+soup_auth_invalidates_prior (SoupAuth *new_auth, SoupAuth *old_auth)
 {
-	g_return_val_if_fail (auth != NULL, FALSE);
+	g_return_val_if_fail (new_auth != NULL, FALSE);
+	g_return_val_if_fail (old_auth != NULL, TRUE);
+
+	if (new_auth->auth_type != old_auth->auth_type) return TRUE;
 
 	switch (auth->type) {
 	case SOUP_AUTH_DIGEST:
-		return ((SoupAuthDigest *) auth)->stale;
+		return ((SoupAuthDigest *) new_auth)->stale;
 	case SOUP_AUTH_NTLM:
 		return TRUE;
 	case SOUP_AUTH_BASIC:

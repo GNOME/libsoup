@@ -1,5 +1,12 @@
 2001-08-23  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-auth.c (soup_auth_invalidates_prior): Take an
+	old_auth argument, if auth_types do not match always return
+	TRUE. This allows for a server requested re-auth with a different
+	auth mechanism.
+
+2001-08-23  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-ntlm.[ch]: Microsoft NTLM authentication
 	support compliments of Dan Winship (danw@ximian.com).
 

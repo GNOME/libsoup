@@ -34,7 +34,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	if (!auth) return SOUP_ERROR_MALFORMED_HEADER;
 
 	if (ctx->auth) {
-		if (soup_auth_invalidates_prior (auth))
+		if (soup_auth_invalidates_prior (auth, ctx->auth))
 			soup_auth_free (ctx->auth);
 		else {
 			soup_auth_free (auth);
