@@ -1,3 +1,9 @@
+2002-12-09  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-queue.c (proxy_https_connect_cb): We never want to
+	release the connection on message free, even if the connection was
+	unsuccessful.
+
 2002-12-03  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-ssl.c (soup_ssl_get_iochannel_real): Call
