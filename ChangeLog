@@ -1,3 +1,8 @@
+2001-05-16  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-apache.c (soup_apache_add_header_from_table):
+	g_strdup headers from the apache headers table.
+	
 2001-05-16  JP Rosevear  <jpr@ximian.com>
 
 	* tests/simple-test.c (main): change this to something sensible
@@ -91,6 +96,7 @@
 	(soup_env_set_fault): new function to associate a SoupFault
 	with a SoupEnv
 
+>>>>>>> 1.70
 2001-05-13  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-core/soup-fault.[ch]: made the SoupFault structure
