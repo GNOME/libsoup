@@ -257,9 +257,6 @@ soup_ntlm_response (const char *nonce,
 	return out;
 }
 
-#define KEYBITS(k,s) \
-        (((k[(s)/8] << ((s)%8)) & 0xFF) | (k[(s)/8+1] >> (8-(s)%8)))
-
 /* DES utils */
 /* Set up a key schedule based on a 56bit key */
 static void
@@ -268,15 +265,22 @@ setup_schedule (const guchar *key_56, DES_KS ks)
 	guchar key[8];
 	int i, c, bit;
 
-	for (i = 0; i < 8; i++) {
-		key [i] = KEYBITS (key_56, i * 7);
+	key[0] = (key_56[0])                                 ;
+	key[1] = (key_56[1] >> 1) | ((key_56[0] << 7) & 0xFF);
+	key[2] = (key_56[2] >> 2) | ((key_56[1] << 6) & 0xFF);
+	key[3] = (key_56[3] >> 3) | ((key_56[2] << 5) & 0xFF);
+	key[4] = (key_56[4] >> 4) | ((key_56[3] << 4) & 0xFF);
+	key[5] = (key_56[5] >> 5) | ((key_56[4] << 3) & 0xFF);
+	key[6] = (key_56[6] >> 6) | ((key_56[5] << 2) & 0xFF);
+	key[7] =                    ((key_56[6] << 1) & 0xFF);
 
-		/* Fix parity */
+	/* Fix parity */
+	for (i = 0; i < 8; i++) {
 		for (c = bit = 0; bit < 8; bit++)
-			if (key [i] & (1 << bit))
+			if (key[i] & (1 << bit))
 				c++;
 		if (!(c & 1))
-			key [i] ^= 0x01;
+			key[i] ^= 0x01;
 	}
 
         deskey (ks, key, 0);

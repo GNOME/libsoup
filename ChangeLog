@@ -1,3 +1,8 @@
+2002-08-27  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-ntlm.c (setup_schedule): Make this not read
+	uninitialized memory.
+
 2002-08-27  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.7.7
