@@ -152,7 +152,7 @@ soup_ntlm_response (const char *challenge,
 	if (strncmp (challenge, "NTLM ", 5) != 0)
 		return NULL;
 
-	decodelen = strlen (challenge);
+	decodelen = strlen (challenge) - 5;
 	chall = g_malloc (decodelen);
 
 	state = save = 0;

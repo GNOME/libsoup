@@ -1,3 +1,9 @@
+2002-02-13  Ettore Perazzoli  <ettore@ximian.com>
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_response): Set `decodelen' to
+	be 5 bytes less than the challenge's length to avoid overflowing
+	the input buffer.
+
 2002-02-13  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_add_request,
