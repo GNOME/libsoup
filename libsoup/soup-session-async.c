@@ -94,16 +94,33 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupSessionAsync *sa = user_data;
 
-	if (status == SOUP_STATUS_OK) {
-		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_closed),
-				  sa);
+	if (status != SOUP_STATUS_OK) {
+		/* The connection attempt failed, and thus @conn was
+		 * closed and the open connection count for the
+		 * session has been decremented. (If the failure was
+		 * fatal, then SoupSession itself will have dealt
+		 * with cancelling any pending messages for that
+		 * host, so we don't need to worry about that here.)
+		 * However, there may be other messages in the
+		 * queue that were waiting for the connection count
+		 * to go down, so run the queue now.
+		 */
+		run_queue (sa, FALSE);
+		return;
 	}
 
-	/* Either we just got a connection, or we just failed to
-	 * open a connection and so decremented the open connection
-	 * count by one. Either way, we need to run the queue now.
+	g_signal_connect (conn, "disconnected",
+			  G_CALLBACK (connection_closed), sa);
+
+	/* @conn has been marked reserved by SoupSession, but we don't
+	 * actually have any specific message in mind for it. (In
+	 * particular, the message we were originally planning to
+	 * queue on it may have already been queued on some other
+	 * connection that became available while we were waiting for
+	 * this one to connect.) So we release the connection into the
+	 * idle pool and then just run the queue and see what happens.
 	 */
+	soup_connection_release (conn);
 	run_queue (sa, FALSE);
 }
 

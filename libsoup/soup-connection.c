@@ -673,6 +673,14 @@ send_request (SoupConnection *conn, SoupMessage *req)
 				   conn->priv->proxy_uri != NULL);
 }
 
+/**
+ * soup_connection_send_request:
+ * @conn: a #SoupConnection
+ * @req: a #SoupMessage
+ *
+ * Sends @req on @conn. This is a low-level function, intended for use
+ * by #SoupSession.
+ **/
 void
 soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 {
@@ -683,6 +691,15 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 	SOUP_CONNECTION_GET_CLASS (conn)->send_request (conn, req);
 }
 
+/**
+ * soup_connection_reserve:
+ * @conn: a #SoupConnection
+ *
+ * Marks @conn as "in use" despite not actually having a message on
+ * it. This is used by #SoupSession to keep it from accidentally
+ * trying to queue two messages on the same connection from different
+ * threads at the same time.
+ **/
 void
 soup_connection_reserve (SoupConnection *conn)
 {
@@ -691,6 +708,36 @@ soup_connection_reserve (SoupConnection *conn)
 	conn->priv->in_use = TRUE;
 }
 
+/**
+ * soup_connection_release:
+ * @conn: a #SoupConnection
+ *
+ * Marks @conn as not "in use". This can be used to cancel the effect
+ * of a soup_session_reserve(). It is not necessary to call this
+ * after soup_connection_send_request().
+ **/
+void
+soup_connection_release (SoupConnection *conn)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	conn->priv->in_use = FALSE;
+}
+
+/**
+ * soup_connection_authenticate:
+ * @conn: a #SoupConnection
+ * @msg: the message to authenticate
+ * @auth_type: type of authentication to use
+ * @auth_realm: authentication realm
+ * @username: on successful return, will contain the username to
+ * authenticate with
+ * @password: on successful return, will contain the password to
+ * authenticate with
+ *
+ * Emits the %authenticate signal on @conn. For use by #SoupConnection
+ * subclasses.
+ **/
 void
 soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
 			      const char *auth_type, const char *auth_realm,
@@ -700,6 +747,20 @@ soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
 		       msg, auth_type, auth_realm, username, password);
 }
 
+/**
+ * soup_connection_authenticate:
+ * @conn: a #SoupConnection
+ * @msg: the message to authenticate
+ * @auth_type: type of authentication to use
+ * @auth_realm: authentication realm
+ * @username: on successful return, will contain the username to
+ * authenticate with
+ * @password: on successful return, will contain the password to
+ * authenticate with
+ *
+ * Emits the %reauthenticate signal on @conn. For use by
+ * #SoupConnection subclasses.
+ **/
 void
 soup_connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
 				const char *auth_type, const char *auth_realm,

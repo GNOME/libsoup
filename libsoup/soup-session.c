@@ -932,6 +932,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	}
 
 	if (status == SOUP_STATUS_OK) {
+		soup_connection_reserve (conn);
 		host->connections = g_slist_prepend (host->connections, conn);
 		g_mutex_unlock (session->priv->host_lock);
 		return;
@@ -980,20 +981,32 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
  * @is_new: on return, %TRUE if the returned connection is new and not
  * yet connected
  * 
- * Tries to find or create a connection for @msg. If there is an idle
- * connection to the relevant host available, then it will be returned
- * (with *@is_new set to %FALSE). Otherwise, if it is possible to
- * create a new connection, one will be created and returned, with
- * *@is_new set to %TRUE.
+ * Tries to find or create a connection for @msg.
  *
- * If no connection can be made, it will return %NULL. If @session has
+ * If there is an idle connection to the relevant host available, then
+ * that connection will be returned (with *@is_new set to %FALSE). The
+ * connection will be marked "reserved", so the caller must call
+ * soup_connection_release() if it ends up not using the connection
+ * right away.
+ *
+ * If there is no idle connection available, but it is possible to
+ * create a new connection, then one will be created and returned,
+ * with *@is_new set to %TRUE. The caller MUST then call
+ * soup_connection_connect_sync() or soup_connection_connect_async()
+ * to connect it. If the connection attempt succeeds, the connection
+ * will be marked "reserved" and added to @session's connection pool
+ * once it connects. If the connection attempt fails, the connection
+ * will be unreffed.
+ *
+ * If no connection is available and a new connection cannot be made,
+ * soup_session_get_connection() will return %NULL. If @session has
  * the maximum number of open connections open, but does not have the
- * maximum number of per-host connections open to the relevant host, then
- * *@try_pruning will be set to %TRUE. In this case, the caller can
- * call soup_session_try_prune_connection() to close an idle connection,
- * and then try soup_session_get_connection() again. (If calling
- * soup_session_try_prune_connection() wouldn't help, then *@try_pruning
- * is left untouched; it is NOT set to %FALSE.)
+ * maximum number of per-host connections open to the relevant host,
+ * then *@try_pruning will be set to %TRUE. In this case, the caller
+ * can call soup_session_try_prune_connection() to close an idle
+ * connection, and then try soup_session_get_connection() again. (If
+ * calling soup_session_try_prune_connection() wouldn't help, then
+ * *@try_pruning is left untouched; it is NOT set to %FALSE.)
  *
  * Return value: a #SoupConnection, or %NULL
  **/

@@ -1,3 +1,21 @@
+2004-07-13  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session.c (connect_result): If the connection
+	attempt succeeded, reserve the connection before releasing
+	host_lock. Otherwise, another thread might find it in the
+	connection pool before the caller can queue a message on it.
+	#60693
+
+	* libsoup/soup-session-async.c (got_connection): Call
+	soup_connection_release(), since we don't have a specific message
+	in mind for the connection, so we need it to be considered idle.
+
+	* libsoup/soup-connection.c (soup_connection_release): New
+	function, to undo a soup_connection_reserve().
+	(soup_connection_send_request, soup_connection_reserve,
+	soup_connection_authenticate, soup_connection_reauthenticate):
+	Document these
+
 2004-07-12  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session-sync.c (send_message): signal the
