@@ -1,3 +1,8 @@
+2001-05-16  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-stubs.c: fully adapted to the new
+	SoupEnv stuff
+
 2001-05-16  Dick Porter  <dick@ximian.com>
 
 	* tests/test-wsdl-runtime.c: Bring up-to-date with new API, and
