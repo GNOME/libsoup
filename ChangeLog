@@ -1,5 +1,8 @@
 2003-11-18  Dan Winship  <danw@ximian.com>
 
+	* configure.in: Fix up the SSL checks some. Remove some useless
+	old header checks.
+
 	* libsoup/soup-misc.h: declare soup_ssl_supported.
 
 	* libsoup/soup-gnutls.c: add soup_ssl_supported declaration.
