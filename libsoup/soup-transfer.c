@@ -117,7 +117,9 @@ soup_transfer_read_chunk (SoupReader *r)
 		gint len = 0, j;
 		gchar *i = &arr->data [chunk_idx + chunk_len];
 
-		/* remove \r\n after previous chunk body */
+		/* 
+		 * Remove \r\n after previous chunk body 
+		 */
 		if (chunk_len) {
 			g_memmove (i,
 				   i + 2,
@@ -125,7 +127,9 @@ soup_transfer_read_chunk (SoupReader *r)
 			g_byte_array_set_size (arr, arr->len - 2);
 		}
 
-		/* Convert the size of the next chunk from hex */
+		/* 
+		 * Convert the size of the next chunk from hex 
+		 */
 		while ((tolower (*i) >= 'a' && tolower (*i) <= 'f') ||
 		       (*i >= '0' && *i <= '9'))
 			len++, i++;
@@ -139,21 +143,27 @@ soup_transfer_read_chunk (SoupReader *r)
 		chunk_len = new_len;
 
 		if (chunk_len == 0) {
-			/* FIXME: Add entity headers we find here to
-			          req->response_headers. */
+			/* 
+			 * FIXME: Add entity headers we find here to
+			 *        req->response_headers. 
+			 */
 			len += soup_substring_index (&arr->data [chunk_idx + 3],
 						     arr->len - chunk_idx - 3,
 						     "\r\n");
 			len += 2;
 		}
 
-		/* trailing \r\n after chunk length */
+		/* 
+		 * Remove trailing \r\n after chunk length 
+		 */
 		g_memmove (&arr->data [chunk_idx],
 			   &arr->data [chunk_idx + len + 2],
 			   arr->len - chunk_idx - len - 2);
 		g_byte_array_set_size (arr, arr->len - len - 2);
 
-		/* zero-length chunk closes transfer */
+		/* 
+		 * Zero-length chunk closes transfer 
+		 */
 		if (chunk_len == 0) return TRUE;
 	}
 
@@ -169,34 +179,51 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		       SoupReader   *r)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
-	gint bytes_read = 0;
+	gint bytes_read = 0, total_read = 0;
 	gboolean read_done = FALSE;
 	GIOError error;
 	SoupDataBuffer buf;
 
+	if (condition != G_IO_IN) 
+		g_print ("read_cb condition: %d\n", condition);
+
+ READ_AGAIN:
 	error = g_io_channel_read (iochannel,
 				   read_buf,
 				   sizeof (read_buf),
 				   &bytes_read);
 
-	if (error == G_IO_ERROR_AGAIN)
-		return TRUE;
-
-	if (error != G_IO_ERROR_NONE) {
-		soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
-		return FALSE;
+	if (error == G_IO_ERROR_AGAIN) {
+		if (total_read) goto PROCESS_READ;
+		else return TRUE;
 	}
 
-	if (r->header_len && r->overwrite_chunks) {
+	if (error != G_IO_ERROR_NONE) {
+		if (total_read) goto PROCESS_READ;
+		else {
+			soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
+			return FALSE;
+		}
+	}
+
+	/* 
+	 * Only truncate receive buffer if this is the first read, and
+	 * we have already processed the headers.
+	 */
+	if (total_read == 0 && r->header_len && r->overwrite_chunks) {
 		r->cur_chunk_len -= r->recv_buf->len - r->cur_chunk_idx;
 		r->cur_chunk_idx = 0;
 		r->content_length -= r->recv_buf->len;
 		g_byte_array_set_size (r->recv_buf, 0);
 	}
 
-	if (bytes_read)
+	if (bytes_read) {
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
+		total_read += bytes_read;
+		goto READ_AGAIN;
+	}
 
+ PROCESS_READ:
 	if (!r->header_len) {
 		gint index = soup_substring_index (r->recv_buf->data,
 						   r->recv_buf->len,
@@ -233,16 +260,21 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		r->header_len = index;
 	}
 
-	/* Allow the chunk parser to strip the data stream */
-	if (bytes_read == 0)
+	if (total_read == 0)
 		read_done = TRUE;
-	else if (r->is_chunked)
+	else if (r->is_chunked) {
+		/* 
+		 * Allow the chunk parser to strip the data stream 
+		 */
 		read_done = soup_transfer_read_chunk (r);
+	}
 	else if (r->content_length == r->recv_buf->len)
 		read_done = TRUE;
 
-	/* Don't call chunk handlers if we didn't actually read anything */
-	if (r->read_chunk_cb && bytes_read != 0) {
+	/* 
+	 * Call chunk handlers if there is data to process 
+	 */
+	if (r->read_chunk_cb && total_read) {
 		gboolean cont;
 
 		g_byte_array_append (r->recv_buf, "\0", 1);
@@ -262,7 +294,10 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		if (!cont) goto FINISH_READ;
 	}
 
-	if (!read_done) return TRUE;
+	if (!read_done) {
+		total_read = 0;
+		goto READ_AGAIN;
+	}
 
 	if (r->read_done_cb) {
 		g_byte_array_append (r->recv_buf, "\0", 1);
@@ -367,18 +402,25 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	total_len = head_len + body_len;
 	total_written = w->write_len;
 
+	if (condition != G_IO_OUT) 
+		g_print ("write_cb condition: %d\n", condition);
+
 #ifdef SIGPIPE
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
 #endif
 	errno = 0;
 
- WRITE_SOME_MORE:
+ WRITE_AGAIN:
 	if (total_written < head_len) {
-		/* send rest of headers */
+		/* 
+		 * Send remaining headers 
+		 */
 		write_buf = &w->header->str [total_written];
 		write_len = head_len - total_written;
 	} else {
-		/* send rest of body */
+		/* 
+		 * Send rest of body 
+		 */
 		guint offset = total_written - head_len;
 		write_buf = &w->src->body [offset];
 		write_len = body_len - offset;
@@ -413,7 +455,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	total_written = (w->write_len += bytes_written);
 
 	if (total_written != total_len)
-		goto WRITE_SOME_MORE;
+		goto WRITE_AGAIN;
 
 	if (w->write_done_cb) {
 		IGNORE_CANCEL (w);

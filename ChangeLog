@@ -1,3 +1,11 @@
+2001-08-06  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-transfer.c (soup_transfer_read_cb): Read
+	speedup to read all available data before processing and returning
+	to the mainloop.
+
+	* src/soup-core/soup-message.h: Add defines for standard DAV methods.
+
 2001-07-31  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_get_request_header): Remove

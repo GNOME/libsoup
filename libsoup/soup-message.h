@@ -107,10 +107,18 @@ void           soup_message_set_response_header (SoupMessage      *req,
 const gchar   *soup_message_get_response_header (SoupMessage      *req,
 						 const gchar      *name);
 
-#define SOUP_METHOD_POST    "POST"
-#define SOUP_METHOD_GET     "GET"
-#define SOUP_METHOD_HEAD    "HEAD"
-#define SOUP_METHOD_OPTIONS "OPTIONS"
+#define SOUP_METHOD_POST      "POST"
+#define SOUP_METHOD_GET       "GET"
+#define SOUP_METHOD_HEAD      "HEAD"
+#define SOUP_METHOD_OPTIONS   "OPTIONS"
+#define SOUP_METHOD_PUT       "PUT"
+#define SOUP_METHOD_MOVE      "MOVE"
+#define SOUP_METHOD_COPY      "COPY"
+#define SOUP_METHOD_DELETE    "DELETE"
+#define SOUP_METHOD_MKCOL     "MKCOL"
+#define SOUP_METHOD_PROPPATCH "PROPPATCH"
+#define SOUP_METHOD_PROPFIND  "PROPFIND"
+#define SOUP_METHOD_SEARCH    "SEARCH"
 
 void           soup_message_set_method          (SoupMessage      *msg,
 						 const gchar      *method);
