@@ -1,5 +1,10 @@
 2001-05-18  Alex Graveley  <alex@ximian.com>
 
+	* README: "Subscribe" not "Subject" in
+	soup-list-request@ximian.com message body. :)
+
+2001-05-18  Alex Graveley  <alex@ximian.com>
+
 	* docs/reference/soup-docs.sgml: Prune soup-core internal files.
 
 	* configure.in: Add pretty section headers, move gtk-doc section
