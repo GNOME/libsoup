@@ -1,5 +1,10 @@
 2001-09-10  Alex Graveley  <alex@ximian.com>
 
+	* tests/mod-server-test.sh: Rename from mod-server-test to be
+	obvious that its a script which simply executes soup-httpd.
+
+2001-09-10  Alex Graveley  <alex@ximian.com>
+
 	* build/soup_httpd.dsp (SOURCE): Fix typo.
 
 	* build/libsoup.dsp: Add src/libsoup/soup-ntlm.[ch]
