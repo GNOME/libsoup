@@ -1,3 +1,8 @@
+2001-10-16  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-auth.c (compute_response): A NULL passwd is
+	perfectly valid, so we want to avoid crashing if that is the case.
+
 2001-10-04  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket-unix.c (soup_address_new_cb): Ugg. Don't

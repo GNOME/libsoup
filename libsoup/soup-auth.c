@@ -198,6 +198,7 @@ static char *
 compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 {
 	SoupAuth *auth = (SoupAuth *) digest;
+	char *tmp;
 	const SoupUri *uri;
 	guchar hex_a1[33], hex_a2[33], o[33];
 	guchar d[16];
@@ -216,7 +217,8 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	md5_update (&ctx, ":", 1);
 	md5_update (&ctx, digest->realm, strlen (digest->realm));
 	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, uri->passwd, strlen (uri->passwd));
+	tmp = uri->passwd ? uri->passwd : "";
+	md5_update (&ctx, tmp, strlen (tmp));
 
 	if (digest->algorithm == ALGORITHM_MD5_SESS) {
 		md5_final (&ctx, d);
