@@ -23,7 +23,6 @@
 
 #include "soup-gnutls.h"
 #include "soup-ssl.h"
-#include "soup-nss.h"
 #include "soup-misc.h"
 
 #ifdef HAVE_GNUTLS

@@ -1,5 +1,9 @@
 2003-06-02  Chris Toshok  <toshok@ximian.com>
 
+	* libsoup/soup-ssl.c: remove #include for soup-nss.h
+
+2003-06-02  Chris Toshok  <toshok@ximian.com>
+
 	* libsoup/Makefile.am (INCLUDES): remove NSS_CFLAGS.
 	(libsoup_2_0_la_LIBADD): remove NSS_LIBS.
 	(libsoup_2_0_la_SOURCES): remove soup-nss.[ch]
