@@ -1,5 +1,10 @@
 2001-11-01  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Forgot to
+	remove missed line.
+	
+2001-11-01  Alex Graveley  <alex@ximian.com>
+
 	Backports from HEAD.
 	
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.4.

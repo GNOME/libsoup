@@ -268,8 +268,6 @@ soup_context_connect_cb (SoupSocket              *socket,
 		new_conn->in_use = TRUE;
 		new_conn->last_used_id = 0;
 
-		connection_count++;
-
 		ctx->server->connections =
 			g_slist_prepend (ctx->server->connections,
 					 new_conn);
