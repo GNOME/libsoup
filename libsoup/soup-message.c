@@ -28,6 +28,7 @@ enum {
 	GOT_CHUNK,
 	GOT_BODY,
 
+	RESTARTED,
 	FINISHED,
 
 	LAST_SIGNAL
@@ -38,7 +39,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);
 static void got_body (SoupMessage *req);
-static void finished (SoupMessage *req);
+static void stop_io (SoupMessage *req);
 static void free_chunks (SoupMessage *msg);
 
 static void
@@ -102,7 +103,8 @@ class_init (GObjectClass *object_class)
 	message_class->got_headers  = got_headers;
 	message_class->got_chunk    = got_chunk;
 	message_class->got_body     = got_body;
-	message_class->finished     = finished;
+	message_class->restarted    = stop_io;
+	message_class->finished     = stop_io;
 
 	/* virtual method override */
 	object_class->finalize = finalize;
@@ -174,6 +176,14 @@ class_init (GObjectClass *object_class)
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
+	signals[RESTARTED] =
+		g_signal_new ("restarted",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, restarted),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -370,9 +380,15 @@ soup_message_got_body (SoupMessage *msg)
 }
 
 static void
-finished (SoupMessage *req)
+stop_io (SoupMessage *req)
 {
 	soup_message_io_cancel (req);
+}
+
+void
+soup_message_restarted (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[RESTARTED], 0);
 }
 
 void

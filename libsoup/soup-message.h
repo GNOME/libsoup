@@ -77,6 +77,7 @@ typedef struct {
 	void     (*got_headers)         (SoupMessage *msg);
 	void     (*got_chunk)           (SoupMessage *msg);
 	void     (*got_body)            (SoupMessage *msg);
+	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
 } SoupMessageClass;
 
@@ -250,7 +251,7 @@ void           soup_message_send_request        (SoupMessage       *req,
 						 gboolean           via_proxy);
 void           soup_message_read_request        (SoupMessage       *req,
 						 SoupSocket        *sock);
-void           soup_message_io_cancel           (SoupMessage       *msg);;
+void           soup_message_io_cancel           (SoupMessage       *msg);
 void           soup_message_io_pause            (SoupMessage       *msg);
 void           soup_message_io_unpause          (SoupMessage       *msg);
 
@@ -263,6 +264,7 @@ void soup_message_got_informational   (SoupMessage *msg);
 void soup_message_got_headers         (SoupMessage *msg);
 void soup_message_got_chunk           (SoupMessage *msg);
 void soup_message_got_body            (SoupMessage *msg);
+void soup_message_restarted           (SoupMessage *msg);
 void soup_message_finished            (SoupMessage *msg);
 
 #endif /*SOUP_MESSAGE_H*/

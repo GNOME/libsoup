@@ -639,10 +639,15 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 }
 
 static void
+request_restarted (SoupMessage *req, gpointer session)
+{
+	run_queue (session, FALSE);
+}
+
+static void
 request_finished (SoupMessage *req, gpointer user_data)
 {
-	if (!SOUP_MESSAGE_IS_STARTING (req))
-		req->status = SOUP_MESSAGE_STATUS_FINISHED;
+	req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
@@ -934,6 +939,9 @@ soup_session_queue_message (SoupSession *session, SoupMessage *req,
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
+
+	g_signal_connect (req, "restarted",
+			  G_CALLBACK (request_restarted), session);
 
 	g_signal_connect (req, "finished",
 			  G_CALLBACK (request_finished), session);

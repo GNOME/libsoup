@@ -1,3 +1,22 @@
+2003-12-10  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-client-io.c (parse_response_headers): if we
+	receive an HTTP/1.0 response to an HTTP/1.1 request, downgrade the
+	message's http_version so the keep-alive handling is correct.
+	Fixes a problem noticed almost simultaneously by Rodrigo and Joe.
+
+	* libsoup/soup-message.c (soup_message_restarted, etc): Add a
+	"restarted" signal as suggested by Joe.
+
+	* libsoup/soup-message-io.c (soup_message_io_finished): emit
+	either "restarted" or "finished" as appropriate
+
+	* libsoup/soup-session.c (soup_session_queue_message): Connect to
+	"restarted" and run the queue if a message gets restarted
+
+	* libsoup/soup-status.h: Remove a stray comma that gtk-doc doesn't
+	like.
+
 2003-12-10  Tambet Ingo  <tambet@ximian.com>
 
 	* configure.in: Use autoconfig to check for socklen_t ...

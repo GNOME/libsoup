@@ -36,6 +36,9 @@ parse_response_headers (SoupMessage *req,
 					  (char **) &req->reason_phrase))
 		return SOUP_STATUS_MALFORMED;
 
+	if (version < req->priv->http_version)
+		req->priv->http_version = version;
+
 	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
 

@@ -107,7 +107,10 @@ soup_message_io_finished (SoupMessage *msg)
 {
 	g_object_ref (msg);
 	soup_message_io_cancel (msg);
-	soup_message_finished (msg);
+	if (SOUP_MESSAGE_IS_STARTING (msg))
+		soup_message_restarted (msg);
+	else
+		soup_message_finished (msg);
 	g_object_unref (msg);
 }
 
