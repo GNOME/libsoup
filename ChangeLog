@@ -1,3 +1,17 @@
+2001-05-15  JP Rosevear  <jpr@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-skels.c
+	(wsdl_emit_soap_skels_binding_operation): soup_env_new needed "()"
+	to be a function call
+
+	* src/soup-core/soup.h: explicitly include soup-fault.h and soup-env.h
+
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.h: kludge soup-env.h as
+	well.  We really should rename the dirs properly
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.h: kludge around include
+	problem
+
 2001-05-15  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-stubs.c: replace all SoupFault
