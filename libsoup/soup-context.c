@@ -271,13 +271,6 @@ connection_death (GIOChannel*     iochannel,
 		  GIOCondition    condition,
 		  SoupConnection *conn)
 {
-	gboolean ret = conn->in_use;
-
-	if (condition & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
-		/* Some error condition, drop the connection immediately */
-		conn->in_use = FALSE;
-	}
-
 	if (!conn->in_use) {
 		connection_free (conn);
 		return FALSE;

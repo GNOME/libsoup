@@ -1,3 +1,9 @@
+2003-04-07  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-context.c (connection_death): Revert Joe's changes.
+	We can't release the connection there because there may be
+	SoupMessages still pointing to it. (Needs to be revisited.)
+
 2003-04-03  JP Rosevear  <jpr@ximian.com>
 
 	* libsoup/soup-ssl.c (soup_ssl_hup_waitpid): guard against EINTR
