@@ -1,3 +1,8 @@
+2004-01-10  Larry Ewing  <lewing@ximian.com>
+
+	* libsoup-2.2.pc.in (Libs): use LIBGNUTLS_LIBS in the substitution
+	string.
+
 2004-01-09  Joe Shaw  <joe@ximian.com>
 
 	* acinclude.m4: Include the libgnutls.m4 file.
