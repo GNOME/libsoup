@@ -1,3 +1,11 @@
+2001-09-17  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: Bump version to 0.5.1.
+
+	* src/libsoup/soup-private.h: Change win version tag to 0.5.1.
+
+	* Makefile.am: Install soup.m4.
+
 2001-09-17  Vladimir Vukicevic  <vladimir@ximian.com>
 
 	* src/libsoup/soup-socket.c, src/libsoup/soup-socket.h:

@@ -7,7 +7,14 @@ SUBDIRS = src docs
 # the automated dependency logic. (hint: OMIT_DEPENDENCIES did SFA)
 #DIST_SUBDIRS = $(SUBDIRS) tests
 
-EXTRA_DIST = autogen.sh soupConf.sh.in soup_apacheConf.sh.in soup_wsdlConf.sh.in soup.pc.in soup.spec.in
+EXTRA_DIST = 			\
+	autogen.sh 		\
+	soupConf.sh.in 		\
+	soup_apacheConf.sh.in 	\
+	soup_wsdlConf.sh.in 	\
+	soup.m4			\
+	soup.pc.in 		\
+	soup.spec.in
 
 bin_SCRIPTS = soup-config
 
@@ -37,6 +44,9 @@ soup_wsdlConf.sh: $(top_srcdir)/soup_wsdlConf.sh.in Makefile
 
 confexecdir = $(libdir)
 confexec_DATA = soupConf.sh soup_apacheConf.sh soup_wsdlConf.sh
+
+m4datadir = $(datadir)/aclocal
+m4data_DATA = soup.m4
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = soup.pc
