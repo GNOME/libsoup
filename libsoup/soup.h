@@ -17,7 +17,7 @@ extern "C" {
 
 #include "soup-queue.h"
 #include "soup-context.h"
-#include "soup-request.h"
+#include "soup-message.h"
 #include "soup-uri.h"
 #include "soup-misc.h"
 

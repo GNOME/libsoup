@@ -13,12 +13,12 @@
 
 #include <glib.h>
 
-#include "soup-request.h"
+#include "soup-message.h"
 #include "soup-context.h"
 
 typedef enum {
-	SOUP_RESULT_FREE_REQUEST = 0,
-	SOUP_RESULT_RESEND_REQUEST,
+	SOUP_RESULT_FREE_MESSAGE = 0,
+	SOUP_RESULT_RESEND_MESSAGE,
 	SOUP_RESULT_DO_NOTHING
 } SoupCallbackResult;
 
@@ -30,11 +30,11 @@ typedef enum {
 	SOUP_ERROR_MALFORMED_HEADER
 } SoupErrorCode;
 
-typedef SoupCallbackResult (*SoupCallbackFn) (SoupRequest   *req,
+typedef SoupCallbackResult (*SoupCallbackFn) (SoupMessage   *req,
 					      SoupErrorCode  err,
 					      gpointer       user_data);
 
-void         soup_queue_request  (SoupRequest       *req, 
+void         soup_queue_message  (SoupMessage       *req, 
 				  SoupCallbackFn     callback, 
 				  gpointer           user_data);
 

@@ -27,7 +27,7 @@ extern "C" {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
-extern GSList     *soup_active_requests; /* CONTAINS: SoupRequest */
+extern GSList     *soup_active_requests; /* CONTAINS: SoupMessage */
 extern GHashTable *soup_servers;         /* KEY: uri->host, VALUE: SoupServer */
 
 typedef struct {
@@ -59,7 +59,7 @@ struct _SoupContext {
 	guint         refcnt;
 };
 
-struct _SoupRequestPrivate {
+struct _SoupMessagePrivate {
 	SoupConnection *conn;
 
 	SoupConnectId   connect_tag;
@@ -83,12 +83,12 @@ struct _SoupRequestPrivate {
 	gpointer        user_data;
 };
 
-/* from soup-request.c */
+/* from soup-message.c */
 
-SoupCallbackResult soup_request_issue_callback (SoupRequest   *req, 
+SoupCallbackResult soup_message_issue_callback (SoupMessage   *req, 
 						SoupErrorCode  error);
 
-void               soup_request_cleanup        (SoupRequest   *req);
+void               soup_message_cleanup        (SoupMessage   *req);
 
 /* from soup-misc.c */
 

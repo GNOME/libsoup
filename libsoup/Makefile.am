@@ -15,7 +15,7 @@ libsoup_la_LDFLAGS = \
 libsoup_la_SOURCES =	\
 	soup-context.c	\
 	soup-queue.c	\
-	soup-request.c	\
+	soup-message.c	\
 	soup-uri.c	\
 	soup-misc.c     \
 	soup-ssl.c
@@ -24,7 +24,7 @@ soupinclude_HEADERS =	\
 	soup.h		\
 	soup-context.h	\
 	soup-queue.h	\
-	soup-request.h	\
+	soup-message.h	\
 	soup-uri.h	\
 	soup-misc.h     \
 	soup-ssl.h
