@@ -98,6 +98,7 @@ soup_process_headers (SoupMessage *req)
 
 	err = soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
 	if (err) goto THROW_MALFORMED_HEADER;
+	if (req->status == SOUP_STATUS_QUEUED) return FALSE;
 
 	return TRUE;
 
@@ -201,6 +202,7 @@ soup_finish_read (SoupMessage *req)
 	req->status = SOUP_STATUS_FINISHED;
 
 	err = soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
+	if (req->status == SOUP_STATUS_QUEUED) return;
 
 	if (err)
 		soup_message_issue_callback (req, err); 
@@ -257,7 +259,8 @@ soup_queue_read_cb (GIOChannel* iochannel,
 		if (err) { 
 			soup_message_issue_callback (req, err); 
 			return FALSE;
-		}
+		} else if (req->status == SOUP_STATUS_QUEUED) 
+			return FALSE;
 	}
 
 	if (bytes_read == 0) read_done = TRUE;

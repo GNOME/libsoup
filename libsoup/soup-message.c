@@ -347,18 +347,6 @@ soup_message_send (SoupMessage *msg)
 }
 
 void
-soup_message_set_flags (SoupMessage *msg, guint flags)
-{
-	msg->priv->msg_flags = flags;
-}
-
-guint
-soup_message_get_flags (SoupMessage *msg)
-{
-	return msg->priv->msg_flags;
-}
-
-void
 soup_message_set_method (SoupMessage *msg, const gchar *method)
 {
 	g_return_if_fail (msg != NULL);
@@ -499,7 +487,64 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 		retval = (*data->handler_cb) (msg, data->user_data);
 
 		if (retval != SOUP_ERROR_NONE) break;
+		if (msg->status == SOUP_STATUS_QUEUED) break;
 	}
 
 	return retval;
+}
+
+static SoupErrorCode 
+soup_message_redirect (SoupMessage *msg, gpointer user_data)
+{
+	const gchar *new_url;
+
+	switch (msg->response_code) {
+	case 300: /* Multiple Choices */
+	case 301: /* Moved Permanently */
+	case 302: /* Moved Temporarily */
+	case 303: /* See Other */
+	case 305: /* Use Proxy */
+		break;
+	default:
+		return SOUP_ERROR_NONE;
+	}
+
+	if (!(msg->priv->flags & SOUP_MESSAGE_FOLLOW_REDIRECT)) 
+		return SOUP_ERROR_NONE;
+
+	new_url = soup_message_get_response_header (msg, "Location");
+	if (new_url) {
+		soup_context_unref (msg->context);
+		msg->context = soup_context_get (new_url);
+
+		if (!msg->context) return SOUP_ERROR_MALFORMED_HEADER;
+
+		soup_message_queue (msg,
+				    msg->priv->callback, 
+				    msg->priv->user_data);
+	}
+
+	return SOUP_ERROR_NONE;
+}
+
+void
+soup_message_set_flags (SoupMessage *msg, guint flags)
+{
+	g_return_if_fail (msg != NULL);
+
+	if ((flags & SOUP_MESSAGE_FOLLOW_REDIRECT) &&
+	    !(msg->priv->msg_flags & SOUP_MESSAGE_FOLLOW_REDIRECT))
+		soup_message_add_header_handler (msg,
+						 "Location",
+						 SOUP_HANDLER_PRE_BODY,
+						 soup_message_redirect,
+						 NULL);
+
+	msg->priv->msg_flags = flags;
+}
+
+guint
+soup_message_get_flags (SoupMessage *msg)
+{
+	return msg->priv->msg_flags;
 }

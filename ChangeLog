@@ -1,3 +1,21 @@
+2001-06-07  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_run_handlers): Stop
+	processing if a handler requeues the message.
+
+	* src/soup-core/soup-queue.c (soup_process_headers): Allow a
+	handler to requeue the message without having any more handlers or
+	callbacks called.
+	(soup_finish_read): ditto.
+	(soup_queue_read_cb): ditto.
+
+	* src/soup-core/soup-message.c (soup_message_redirect): Requeue
+	message based on Location header, if response status code is 300,
+	301, 302, 303, or 305.
+	(soup_message_set_flags): If SOUP_MESSAGE_FOLLOW_REDIRECT is set,
+	add a header handler (on Location) which calls
+	soup_message_redirect ().
+
 2001-06-06  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_add_header_handler):
