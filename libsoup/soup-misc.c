@@ -12,13 +12,17 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "soup-misc.h"
 #include "soup-private.h"
 
-static gint max_connections = -1;
+gboolean soup_initialized = FALSE;
 
-static SoupContext *proxy_context;
+static guint max_connections = 0;
+
+static SoupContext *proxy_context = NULL;
 
 void         
 soup_set_proxy (SoupContext *context)
@@ -145,4 +149,51 @@ soup_base64_encode (gchar *text)
 	*point = '\0';
 	
 	return buffer;
+}
+
+void
+soup_load_config (gchar *config_file)
+{
+	FILE *cfg;
+	char buf[128];
+
+	if (soup_initialized) {
+		soup_set_proxy (NULL);
+		soup_set_connection_limit (0);
+	}
+
+	if (config_file)
+		cfg = fopen (config_file, "r");
+	else
+		cfg = fopen (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc", "r");
+
+	if (!cfg) return;
+
+	while (fgets (buf, sizeof (buf), cfg)) {
+		char *key, *value, *iter, *iter2, **split;
+
+		iter = g_strstrip (buf);
+		if (!*iter || *iter == '#') continue;
+
+		iter2 = strchr (iter, '#');
+		if (iter2) *iter2 = '\0';
+		
+		split = g_strsplit (g_strchomp (iter), "=", 2);
+		if (!split || !split[1] || split[2]) continue;
+
+		key = g_strchomp (split[0]);
+		value = g_strchug (split[1]);
+		
+		if (!g_strcasecmp (key, "connection-limit"))
+			soup_set_connection_limit (MAX (atoi (value), 0));
+		else if (!g_strcasecmp (key, "proxy-url") ||
+			 !g_strcasecmp (key, "proxy-uri")) {
+			SoupContext *con = soup_context_get (value);
+			if (con) soup_set_proxy (con);
+		}
+
+		g_strfreev (split);
+	}
+
+	soup_initialized = TRUE;
 }

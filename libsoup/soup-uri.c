@@ -47,6 +47,8 @@
 static gint
 soup_uri_get_default_port (gchar *proto)
 {
+	g_return_val_if_fail (proto != NULL, -1);
+
 	if (strcasecmp (proto, "http") == 0)
 		return 80;
 	else if (strcasecmp (proto, "https") == 0)

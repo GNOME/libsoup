@@ -673,6 +673,9 @@ soup_queue_message (SoupMessage    *req,
 {
 	g_return_if_fail (req != NULL);
 
+	if (!soup_initialized)
+		soup_load_config (NULL);
+
 	if (!soup_queue_idle_tag)
 		soup_queue_idle_tag = 
 			g_idle_add (soup_idle_handle_new_requests, NULL);

@@ -19,8 +19,10 @@ void         soup_set_proxy            (SoupContext *ctx);
 
 SoupContext *soup_get_proxy            (void);
 
-void         soup_set_connection_limit (guint max_conn);
+void         soup_set_connection_limit (guint        max_conn);
 
 guint        soup_get_connection_limit (void);
+
+void         soup_load_config          (gchar       *config_file);
 
 #endif /* SOUP_MISC_H */

@@ -27,6 +27,7 @@ extern "C" {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
+extern gboolean    soup_initialized;
 extern GSList     *soup_active_requests; /* CONTAINS: SoupMessage */
 extern GHashTable *soup_servers;         /* KEY: uri->host, VALUE: SoupServer */
 
@@ -39,16 +40,18 @@ typedef struct {
 typedef enum {
 	SOUP_PROTOCOL_HTTP,
 	SOUP_PROTOCOL_SHTTP,
-	SOUP_PROTOCOL_SMTP
+	SOUP_PROTOCOL_SMTP,
+	SOUP_PROTOCOL_SOCKS4,
+	SOUP_PROTOCOL_SOCKS5
 } SoupProtocol;
 
 struct _SoupConnection {
-	SoupServer *server;
-	GTcpSocket *socket;
-	guint       port;
-	gboolean    in_use;
-	guint       last_used_id;
-	gboolean    keep_alive;
+	SoupServer   *server;
+	GTcpSocket   *socket;
+	guint         port;
+	gboolean      in_use;
+	guint         last_used_id;
+	gboolean      keep_alive;
 	SoupProtocol  protocol;
 };
 

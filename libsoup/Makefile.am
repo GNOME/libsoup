@@ -2,7 +2,10 @@
 
 @SET_MAKE@
 
-INCLUDES = -DG_LOG_DOMAIN=\"SOUP\" @SOUP_DEBUG_FLAGS@
+INCLUDES = 				\
+	-DG_LOG_DOMAIN=\"SOUP\" 	\
+	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
+	@SOUP_DEBUG_FLAGS@
 
 soupincludedir = $(includedir)/soup
 

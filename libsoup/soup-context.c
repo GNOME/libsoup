@@ -32,12 +32,16 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 	ctx->uri = uri;
 	ctx->refcnt = 0;
 
-	if (strcmp (uri->protocol, "http") == 0) 
+	if (g_strcasecmp (uri->protocol, "http") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_HTTP;
-	else if (strcmp (uri->protocol, "https") == 0) 
+	else if (g_strcasecmp (uri->protocol, "https") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_SHTTP;
-	else if (strcmp (uri->protocol, "mailto") == 0) 
-		ctx->protocol = SOUP_PROTOCOL_SMTP;		
+	else if (g_strcasecmp (uri->protocol, "mailto") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SMTP;
+	else if (g_strcasecmp (uri->protocol, "socks4") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SOCKS4;
+	else if (g_strcasecmp (uri->protocol, "socks5") == 0) 
+		ctx->protocol = SOUP_PROTOCOL_SOCKS5;
 
 	return ctx;
 }
@@ -247,7 +251,10 @@ soup_prune_least_used_connection (void)
 static gboolean 
 soup_prune_timeout (struct SoupConnectData *data)
 {
-	if (connection_count >= soup_get_connection_limit() &&
+	guint conn_limit = soup_get_connection_limit();
+
+	if (conn_limit &&
+	    connection_count >= conn_limit &&
 	    !soup_try_existing_connections (data->ctx) &&
 	    !soup_prune_least_used_connection ())
 		return TRUE;
@@ -265,6 +272,7 @@ soup_context_get_connection (SoupContext           *ctx,
 {
 	SoupConnection *conn;
 	struct SoupConnectData *data;
+	guint conn_limit = soup_get_connection_limit();
 
 	g_return_val_if_fail (ctx != NULL, NULL);
 
@@ -279,7 +287,8 @@ soup_context_get_connection (SoupContext           *ctx,
 	data->cb = cb;
 	data->user_data = user_data;
 
-	if (connection_count >= soup_get_connection_limit() && 
+	if (conn_limit && 
+	    connection_count >= conn_limit && 
 	    !soup_prune_least_used_connection ()) {
 		data->timeout_tag = 
 			g_timeout_add (500, 
