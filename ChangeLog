@@ -1,3 +1,16 @@
+2001-08-26  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-misc.c (soup_set_ssl_ca_file): impl.
+	(soup_set_ssl_ca_dir): impl.
+	(soup_set_ssl_cert_files): impl.
+
+	* src/soup-core/soup-openssl.c (soup_openssl_init): Load cert
+	authority files found in HTTPS_CA_DIR and HTTPS_CA_FILE.
+	(soup_openssl_get_iochannel): Load certificate found in
+	HTTPS_CERT_FILE and private key from file in
+	HTTPS_KEY_FILE. Client certificates thanks to Scott Hutton
+	(shutton@pobox.com).
+
 2001-08-24  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_queue_connect_cb): Always

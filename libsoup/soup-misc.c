@@ -448,3 +448,44 @@ soup_shutdown ()
 {
 	soup_queue_shutdown ();
 }
+
+/**
+ * soup_set_ca_file:
+ * @ca_file: the path to a CA file
+ *
+ * Specify a file containing CA certificates to be used to verify
+ * peers.
+ */
+void
+soup_set_ssl_ca_file (gchar *ca_file)
+{
+	putenv (g_strdup_printf ("HTTPS_CA_FILE=%s", ca_file));
+}
+
+/**
+ * soup_set_ca_dir
+ * @ca_dir: the directory containing CA certificate files
+ *
+ * Specify a directory containing CA certificates to be used to verify
+ * peers.
+ */
+void
+soup_set_ssl_ca_dir (gchar *ca_dir)
+{
+	putenv (g_strdup_printf ("HTTPS_CA_DIR=%s", ca_dir));
+}
+
+/**
+ * soup_set_ssl_cert_files
+ * @cert_file: the file containing the SSL client certificate
+ * @key_file: the file containing the SSL private key
+ *
+ * Specify a SSL client certificate to be used for client
+ * authentication with the SOAP server
+ */
+void
+soup_set_ssl_cert_files (gchar *cert_file, gchar *key_file)
+{
+	putenv (g_strdup_printf ("HTTPS_CERT_FILE=%s", cert_file));
+	putenv (g_strdup_printf ("HTTPS_KEY_FILE=%s", key_file));
+}

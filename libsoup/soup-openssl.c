@@ -39,7 +39,10 @@ soup_openssl_read (GIOChannel   *channel,
 	result = SSL_read (chan->ssl, buf, count);
 
 	if (result < 0) {
+		/* This occurs when a re-handshake is required */
 		*bytes_read = 0;
+		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
+		  	return G_IO_ERROR_AGAIN;
 		switch (errno) {
 		case EINVAL:
 			return G_IO_ERROR_INVAL;
@@ -200,6 +203,7 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 	int bits, alg_bits, err, sockfd;
 	SSL *ssl;
 	X509 *cert;
+	gchar *ccert_file, *ckey_file;
 
         g_return_val_if_fail (sock != NULL, NULL);
 
@@ -212,6 +216,33 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 	if (!ssl) {
 		g_warning ("SSL object creation failure.");
 		goto THROW_CREATE_ERROR;
+	}
+
+	ccert_file = getenv ("HTTPS_CERT_FILE");
+	ckey_file = getenv ("HTTPS_KEY_FILE");
+
+	if (ccert_file) {
+		if (!ckey_file) {
+			g_warning ("SSL key file not specified.");
+			goto THROW_CREATE_ERROR;
+		}
+
+		if (!SSL_use_RSAPrivateKey_file (ssl, ckey_file, 1)) {
+			g_warning ("Unable to use private key file.");
+			goto THROW_CREATE_ERROR;
+		}
+
+		if (!SSL_use_certificate_file (ssl, ccert_file, 1)) {
+			g_warning ("Unable to use certificate file.");
+			goto THROW_CREATE_ERROR;
+		}
+
+		if (!SSL_check_private_key (ssl)) {
+			g_warning ("Can't verify correct private key.");
+			goto THROW_CREATE_ERROR;
+		}
+	} else if (ckey_file) {
+		g_warning ("SSL certificate file not specified.");
 	}
 
 	err = SSL_set_fd (ssl, sockfd);
@@ -258,6 +289,9 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 gboolean
 soup_openssl_init (void)
 {
+	static gchar *ssl_ca_file = NULL;
+	static gchar *ssl_ca_dir  = NULL;
+
 	SSL_library_init ();
 	SSL_load_error_strings ();
 
@@ -266,8 +300,18 @@ soup_openssl_init (void)
 		g_warning ("Unable to initialize OpenSSL library");
 		return FALSE;
 	}
+
+	ssl_ca_file = getenv ("HTTPS_CA_FILE");
+	ssl_ca_dir  = getenv ("HTTPS_CA_DIR");
 	
 	SSL_CTX_set_default_verify_paths (ssl_context);
+
+	if (ssl_ca_file || ssl_ca_dir) {
+		SSL_CTX_load_verify_locations (ssl_context, 
+					       ssl_ca_file, 
+					       ssl_ca_dir);
+		SSL_CTX_set_verify (ssl_context, SSL_VERIFY_PEER, NULL);
+	}
 
 	return TRUE;
 }

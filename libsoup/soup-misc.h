@@ -39,6 +39,15 @@ void               soup_set_security_policy  (SoupSecurityPolicy policy);
 
 SoupSecurityPolicy soup_get_security_policy  (void);
 
+/* SSL setup routines */
+
+void               soup_set_ssl_ca_file      (gchar       *ca_file);
+
+void               soup_set_ssl_ca_dir       (gchar       *ca_dir);
+
+void               soup_set_ssl_cert_files   (gchar       *cert_file, 
+					      gchar       *key_file);
+
 /* Useful debugging routines */
 
 void               soup_debug_print_headers  (SoupMessage *req);
