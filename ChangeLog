@@ -1,3 +1,23 @@
+2004-10-06  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-ssl.h (SoupSocketError): add
+	SOUP_SSL_ERROR_CERTIFICATE.
+
+	* libsoup/soup-gnutls.c (do_handshake): Pass the GError to
+	verify_certificate.
+	(verify_certificate): Set the GError appropriately rather than
+	spewing g_warnings.
+
+	* libsoup/soup-socket.c (read_from_network, soup_socket_write): If
+	the GIOChannel operation returns an error, store it as GOBject
+	data on the socket (as a hack so soup-message-io.c can access it
+	without us needing to change SoupSocket's API).
+
+	* libsoup/soup-message-io.c (io_error): peek at the socket's
+	"last_error" datum and set the message's status to SSL_FAILED
+	(with the GError's message string) rather than IO_ERROR, if
+	appropriate.
+
 2004-09-30  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-gnutls.c (soup_gnutls_init): Add this, with some

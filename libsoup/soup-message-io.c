@@ -15,6 +15,7 @@
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-socket.h"
+#include "soup-ssl.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_CLIENT,
@@ -154,8 +155,18 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 		return;
 	}
 
-	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+		GError *err = g_object_get_data (G_OBJECT (sock),
+						 "SoupSocket-last_error");
+
+		if (err && err->domain == SOUP_SSL_ERROR) {
+			soup_message_set_status_full (msg,
+						      SOUP_STATUS_SSL_FAILED,
+						      err->message);
+		} else
+			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	}
+
 	soup_message_io_finished (msg);
 }
 
