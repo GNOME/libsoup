@@ -103,6 +103,8 @@ struct _SoupMessagePrivate {
 	guint           msg_flags;
 
 	GSList         *content_handlers;
+
+	SoupHttpVersion http_version;
 };
 
 typedef struct {

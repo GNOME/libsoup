@@ -118,6 +118,14 @@ void           soup_message_set_method          (SoupMessage      *msg,
 const gchar   *soup_message_get_method          (SoupMessage      *msg);
 
 typedef enum {
+	SOUP_HTTP_1_0 = 0,
+	SOUP_HTTP_1_1 = 1,
+} SoupHttpVersion;
+
+void           soup_message_set_http_version    (SoupMessage      *msg,
+						 SoupHttpVersion   version);
+
+typedef enum {
 	SOUP_HANDLER_PRE_BODY,
 	SOUP_HANDLER_BODY_CHUNK,
 	SOUP_HANDLER_POST_BODY

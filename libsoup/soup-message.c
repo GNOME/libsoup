@@ -114,6 +114,8 @@ soup_message_new (SoupContext *context, SoupAction action)
 	ret->context = context;
 	ret->method  = SOUP_METHOD_POST;
 
+	ret->priv->http_version = SOUP_HTTP_1_1;
+
 	soup_context_ref (context);
 
 	/*
@@ -662,5 +664,15 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
 guint
 soup_message_get_flags (SoupMessage *msg)
 {
+	g_return_val_if_fail (msg != NULL, 0);
+
 	return msg->priv->msg_flags;
+}
+
+void 
+soup_message_set_http_version  (SoupMessage *msg, SoupHttpVersion version)
+{
+	g_return_if_fail (msg != NULL);
+
+	msg->priv->http_version = version;
 }

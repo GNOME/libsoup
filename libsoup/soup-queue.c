@@ -287,7 +287,7 @@ static GString *
 soup_get_request_header (SoupMessage *req)
 {
 	GString *header;
-	gchar *uri;
+	gchar *uri, *action;
 	SoupContext *proxy;
 	const SoupUri *suri;
 	struct SoupUsedHeaders hdrs = {
@@ -313,17 +313,27 @@ soup_get_request_header (SoupMessage *req)
 		uri = g_strdup (suri->path);
 
 	g_string_sprintfa (header,
-			   "%s %s HTTP/1.1\r\n"
-			   "Content-Length: %d\r\n",
+			   req->priv->http_version == SOUP_HTTP_1_1 ? 
+			           "%s %s HTTP/1.1\r\n" : 
+			           "%s %s HTTP/1.0\r\n",
 			   req->method,
-			   uri,
-			   req->request.length);
+			   uri);
+
 	g_free (uri);
+
+	if (g_strcasecmp (req->method, "GET") != 0 || 
+	    g_strcasecmp (req->method, "HEAD") != 0) {
+		g_string_sprintfa (header,
+				   "Content-Length: %d\r\n",
+				   req->request.length);
+	}
 
 	if (req->request_headers) 
 		g_hash_table_foreach (req->request_headers, 
 				      (GHFunc) soup_check_used_headers,
 				      &hdrs);
+
+	action = req->action && !hdrs.soapaction ? req->action : NULL;
 
 	/* If we specify an absoluteURI in the request line, the 
 	   Host header MUST be ignored by the proxy. */
@@ -332,9 +342,9 @@ soup_get_request_header (SoupMessage *req)
 			   hdrs.host ? "" : "Host: ",
 			   hdrs.host ? "" : suri->host,
 			   hdrs.host ? "" : "\r\n",
-			   hdrs.soapaction && req->action ? "" : "SOAPAction: ",
-			   hdrs.soapaction && req->action ? "" : req->action,
-			   hdrs.soapaction && req->action ? "" : "\r\n",
+			   action ? "" : "SOAPAction: ",
+			   action ? "" : req->action,
+			   action ? "" : "\r\n",
 			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
 			   hdrs.content_type ? "" : "charset=utf-8\r\n",
 			   hdrs.connection ? "" : "Connection: keep-alive\r\n",

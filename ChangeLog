@@ -1,5 +1,18 @@
 2001-07-19  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_get_request_header): Allow
+	override of http version. Only include Content-Length if method is
+	not GET or HEAD.
+
+	* src/soup-core/soup-message.c (soup_message_new): Set default
+	http_version to SOUP_HTTP_1_1;
+	(soup_message_set_http_version): Impl.
+	(soup_message_get_flags): Check for NULL.
+
+	* src/soup-core/soup-private.h: Add http_version to _SoupMessagePrivate.
+
+2001-07-19  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: Bump version to 0.4.0.
 
 2001-07-19  Alex Graveley  <alex@ximian.com>
