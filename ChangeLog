@@ -1,3 +1,14 @@
+2001-11-02  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-context.c (soup_try_existing_connections):
+	Remove old fixed FIXME.
+
+	* src/libsoup/soup-socket-unix.c
+	(prune_zeroref_addresses_timeout): Remove timeout if
+	active_address_hash is null.
+	(soup_address_unref): Only install timeout handler if the address
+	has a name, otherwise just free.
+
 2001-11-01  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-transfer.c (issue_final_callback): Null

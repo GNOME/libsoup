@@ -855,6 +855,9 @@ prune_zeroref_addresses_timeout (gpointer not_used)
 {
 	gint remaining = 0;
 
+	if (!active_address_hash)
+		goto REMOVE_SOURCE;
+
 	/*
 	 * Remove all marked addresses, mark zero references.
 	 */
@@ -865,12 +868,14 @@ prune_zeroref_addresses_timeout (gpointer not_used)
 	/*
 	 * No new marks, so remove timeout handler
 	 */
-	if (remaining == 0) {
-		zeroref_address_timeout_tag = 0;
-		return FALSE;
-	}
+	if (remaining == 0) 
+		goto REMOVE_SOURCE;
 
 	return TRUE;
+
+ REMOVE_SOURCE:
+	zeroref_address_timeout_tag = 0;
+	return FALSE;
 }
 
 /**
@@ -888,7 +893,7 @@ soup_address_unref (SoupAddress* ia)
 	--ia->ref_count;
 
 	if (ia->ref_count == 0) {
-		if (!zeroref_address_timeout_tag) {
+		if (ia->name && !zeroref_address_timeout_tag) {
 			/* 
 			 * Cleanup zero reference addresses every 2 minutes.
 			 *
@@ -902,7 +907,8 @@ soup_address_unref (SoupAddress* ia)
 					       prune_zeroref_addresses_timeout,
 					       NULL);
 				return;
-		}
+		} else
+			g_free (ia);
 	}
 }
 
