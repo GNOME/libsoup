@@ -196,9 +196,9 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 	}
 
 	if (r->error_cb) (*r->error_cb) (body_started, r->user_data);
-	UNIGNORE_CANCEL (r);
 
  CANCELLED:
+	UNIGNORE_CANCEL (r);
 	soup_transfer_read_cancel (GPOINTER_TO_INT (r));
 
 	return FALSE;

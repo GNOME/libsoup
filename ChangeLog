@@ -1,6 +1,9 @@
 2003-04-28  Dan Winship  <danw@ximian.com>
 
-	* configure.in: 1.99.19 (the all 1s and 9s release)
+	* configure.in: 1.99.20
+
+	* libsoup/soup-transfer.c (soup_transfer_read_error_cb): Make sure
+	we always call UNIGNORE_CANCEL. Might fix #41971
 
 2003-04-25  Dan Winship  <danw@ximian.com>
 
