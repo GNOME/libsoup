@@ -7,5 +7,5 @@ Name: libsoup
 Description: a glib-based HTTP library
 Version: @VERSION@
 Requires: glib-2.0
-Libs: -L${libdir} -lsoup-2.0
+Libs: -L${libdir} -lsoup-2.0 @GNUTLS_LIBS@ @OPENSSL_LIBS@
 Cflags: -I${includedir}/soup-2.0

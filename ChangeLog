@@ -1,3 +1,8 @@
+2003-03-11  Frank Belew  <frb@ximian.com>
+
+	* soup-2.0.pc.in: add ssl libs to defaults, since ssl doesn't 
+	use pkgconfig
+
 2003-03-10  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.14.
