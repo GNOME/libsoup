@@ -1,3 +1,12 @@
+2004-01-05  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Remove no-longer-relevant socklen_t check
+
+	* libsoup/soup-address.c: Reorder #includes for FreeBSD (From Joe
+	Marcus Clarke, #52566)
+
+	* libsoup/soup-dns.c: Likewise
+
 2003-12-29  JP Rosevear <jpr@ximian.com>
 
 	* configure.in: bump version and libtool numbers

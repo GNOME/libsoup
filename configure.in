@@ -78,12 +78,6 @@ PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)
 AC_SUBST(XML_LIBS)
 
-dnl *******************
-dnl *** Type checks ***
-dnl *******************
-
-AC_CHECK_TYPE(socklen_t, size_t)
-
 dnl *********************************
 dnl *** Networking library checks ***
 dnl *********************************

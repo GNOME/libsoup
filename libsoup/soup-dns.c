@@ -17,10 +17,11 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "soup-dns.h"
 #include "soup-misc.h"
