@@ -480,7 +480,6 @@ soup_auth_new_digest (void)
 
 typedef struct {
 	SoupAuth  auth;
-	gchar    *request;
 	gchar    *response;
 } SoupAuthNTLM;
 
@@ -490,14 +489,43 @@ ntlm_compare_func (SoupAuth *a, SoupAuth *b)
 	return TRUE;
 } 
 
+/*
+ * SoupAuthNTLMs are one time use. Just return the response, and set our
+ * reference to NULL so future requests do not include this header.
+ */
 static gchar *
 ntlm_auth (SoupAuth *sa, SoupMessage *msg)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
+	gchar *ret;
 
-	return auth->response ? auth->response : auth->request;
+	ret = auth->response;
+	auth->response = NULL;
+
+	return ret;
 }
 
+static inline gchar *
+ntlm_get_authmech_token (const SoupUri *uri, gchar *key)
+{
+	gchar *idx;
+	gint len;
+
+	if (!uri->authmech) return NULL;
+
+      	idx = strstr (uri->authmech, key);
+	if (idx) {
+		idx += strlen (key);
+
+		len = strcspn (idx, ",; ");
+		if (len)
+			return g_strndup (idx, len);
+		else
+			return g_strdup (idx);
+	}
+
+	return NULL;
+}
 
 /*
  * FIXME: Because NTLM is a two step process, we parse the host and domain out
@@ -510,39 +538,15 @@ ntlm_parse (SoupAuth *sa, const char *header)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
 	const SoupUri *uri = soup_context_get_uri (auth->auth.context);
-	gchar *idx, *host = NULL, *domain = NULL;
+	gchar *host, *domain;
 
-	/*
-	idx = strchr (uri->host, '.');
-	if (idx)
-		host = g_strndup (uri->host, idx - uri->host);
-	else
-		host = g_strdup (uri->host);
-
-	if (uri->authmech) {
-		idx = strstr (uri->authmech, "domain=");
-		if (idx) {
-			gint len;
-
-			idx += sizeof ("domain=") - 1;
-
-			len = strcspn (idx, ",; ");
-			if (len)
-				domain = g_strndup (idx, len);
-			else
-				domain = g_strdup (idx);
-		}
-	}
-
-	soup_debug_print_uri (uri);
-	*/
-
-	host = "FAKEHOST";
-	domain = "FAKEDOMAIN";
+	host   = ntlm_get_authmech_token (uri, "host=");
+	domain = ntlm_get_authmech_token (uri, "domain=");
 
 	if (strlen (header) < sizeof ("NTLM"))
-		auth->request = soup_ntlm_request (host, 
-						   domain ? domain : "UNKNOWN");
+		auth->response = 
+			soup_ntlm_request (host ? host : "UNKNOWN", 
+					   domain ? domain : "UNKNOWN");
 	else {
 		gchar lm_hash [21], nt_hash [21];
 
@@ -554,14 +558,12 @@ ntlm_parse (SoupAuth *sa, const char *header)
 					    uri->user,
 					    (gchar *) &lm_hash,
 					    (gchar *) &nt_hash,
-					    host,
+					    host ? host : "UNKNOWN",
 					    domain ? domain : "UNKNOWN");
 	}
 
-	/*
 	g_free (host);
 	g_free (domain);
-	*/
 }
 
 static void
@@ -569,7 +571,6 @@ ntlm_free (SoupAuth *sa)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
 
-	g_free (auth->request);
 	g_free (auth->response);
 	g_free (auth);
 }
@@ -588,6 +589,7 @@ ntlm_new (void)
 
 	return (SoupAuth *) auth;
 }
+
 
 /*
  * Generic Authentication Interface

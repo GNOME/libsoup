@@ -65,14 +65,14 @@ static void calc_response         (const guchar        *key,
 void
 soup_ntlm_lanmanager_hash (const char *password, char hash[21])
 {
-	guchar lm_password [14];
+	guchar lm_password [15];
 	DES_KS ks;
 	int i;
 
 	for (i = 0; i < 14 && password [i]; i++)
 		lm_password [i] = toupper ((unsigned char) password [i]);
 
-	for (; i < 14; i++)
+	for (; i < 15; i++)
 		lm_password [i] = '\0';
 
 	memcpy (hash, LM_PASSWORD_MAGIC, 21);

@@ -220,21 +220,23 @@ static void
 soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 {
 	SoupContext *ctx;
+	char *token;
 
 	ctx = proxy_auth ? soup_get_proxy () : msg->context;
 
 	if (ctx->auth) {
-		char *token;
-
 		token = soup_auth_authorize (ctx->auth, msg);
+		if (token) {
+			g_string_sprintfa (
+				header, 
+				"%s: %s\r\n",
+				proxy_auth ? 
+				        "Proxy-Authorization" : 
+				        "Authorization",
+				token);
 
-		g_string_sprintfa (
-			header, 
-			"%s: %s\r\n",
-			proxy_auth ? "Proxy-Authorization" : "Authorization",
-			token);
-
-		g_free (token);
+			g_free (token);
+		}
  	}
 }
 
@@ -433,8 +435,12 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			return;
 		}
 
-		if (!req->priv->req_header)
-			req->priv->req_header = soup_get_request_header (req);
+		if (req->priv->req_header) {
+			g_string_free (req->priv->req_header, TRUE);
+			req->priv->req_header = NULL;
+		}
+
+		req->priv->req_header = soup_get_request_header (req);
 
 		channel = soup_connection_get_iochannel (conn);
 

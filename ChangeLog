@@ -1,3 +1,21 @@
+2001-08-24  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-queue.c (soup_queue_connect_cb): Always
+	regenerate req->priv->req_header.
+
+	* src/soup-core/soup-ntlm.c (soup_ntlm_lanmanager_hash): pass 15
+	byte buffer to work around array bounds read by setup_schedule.
+
+	* src/soup-core/soup-message.c (authorize_handler): No need to
+	free msg->priv->req_header as it is generated on each request now.
+	(soup_message_set_request_header): Ditto.
+
+	* src/soup-core/soup-auth.c (ntlm_auth): Only return
+	auth->response one time. Subsequent calls return NULL.
+
+	* src/soup-core/soup-queue.c (soup_encode_http_auth): Check for
+	NULL auth response.
+
 2001-08-23  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-auth.c (ntlm_new): Fix under-allocation.

@@ -44,11 +44,6 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 
 	ctx->auth = auth;
 
-	if (msg->priv->req_header) {
-		g_string_free (msg->priv->req_header, TRUE);
-		msg->priv->req_header = NULL;
-	}
-
 	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
 
         return SOUP_ERROR_NONE;
@@ -367,11 +362,6 @@ soup_message_set_request_header (SoupMessage *req,
 {
 	g_return_if_fail (req != NULL);
 	g_return_if_fail (name != NULL || name [0] != '\0');
-
-	if (req->priv->req_header) {
-		g_string_free (req->priv->req_header, TRUE);
-		req->priv->req_header = NULL;
-	}
 
 	soup_message_set_header (&req->request_headers, name, value);
 }
