@@ -1,3 +1,10 @@
+2005-01-08  Not Zed  <NotZed@Ximian.com>
+
+	** See ximian bug #70323.
+
+	* libsoup/soup-connection-ntlm.c: replace all unsigned long/long
+	types with guint32, as the code needs 32 bit longs.
+
 2004-10-20  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-gnutls.c: Commit the alleged changes from the 10-06
