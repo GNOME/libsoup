@@ -257,6 +257,34 @@ soup_config_security_policy (gchar *key, gchar *value)
 	}
 }
 
+static void
+soup_config_ssl_ca_file (gchar *key, gchar *value)
+{
+	soup_set_ssl_ca_file (value);
+}
+
+static void
+soup_config_ssl_ca_directory (gchar *key, gchar *value)
+{
+	soup_set_ssl_ca_dir (value);
+}
+
+static void
+soup_config_ssl_certificate (gchar *key, gchar *value)
+{
+	gint idx;
+
+	idx = strcspn (value, " \t");
+	if (!idx) return;
+	
+	value [idx] = '\0';
+
+	idx += strspn (value + idx + 1, " \t");
+	if (!idx) return;
+
+	soup_set_ssl_cert_files (value, value + idx);
+}
+
 typedef void (*SoupConfigFunc) (gchar *key, gchar *value);
 
 struct SoupConfigFuncs {
@@ -267,6 +295,9 @@ struct SoupConfigFuncs {
 	{ "proxy-uri",        soup_config_proxy_uri },
 	{ "proxy-url",        soup_config_proxy_uri },
 	{ "security-policy",  soup_config_security_policy },
+	{ "ssl-ca-file",      soup_config_ssl_ca_file },
+	{ "ssl-ca-directory", soup_config_ssl_ca_directory },
+	{ "ssl-certificate",  soup_config_ssl_certificate },
 	{ NULL }
 };
 

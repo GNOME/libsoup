@@ -1,5 +1,12 @@
 2001-08-26  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-misc.c (soup_config_ssl_ca_file): impl.
+	(soup_config_ssl_ca_directory): impl.
+	(soup_config_ssl_certificate): impl.
+	Add config file support for client certificates.
+
+2001-08-26  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-misc.c (soup_set_ssl_ca_file): impl.
 	(soup_set_ssl_ca_dir): impl.
 	(soup_set_ssl_cert_files): impl.
