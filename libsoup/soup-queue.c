@@ -90,11 +90,16 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 					req->priv->retries++;
 					soup_message_requeue (req);
 				}
-			} else {
+			} else if (soup_connection_is_new (req->connection)) {
 				soup_message_set_error (
 					req,
 					SOUP_ERROR_CANT_CONNECT);
 				soup_message_issue_callback (req);
+			} else {
+				/* Must have timed out. Try a new connection */
+				soup_connection_release (req->connection);
+				req->connection = NULL;
+				soup_message_requeue (req);
 			}
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);

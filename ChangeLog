@@ -1,3 +1,10 @@
+2003-04-25  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-queue.c (soup_queue_error_cb): if an old connection
+	suddenly gets an io error while reading or writing, assume it's a
+	timeout or something, close the connection, and requeue the
+	message.
+
 2003-04-23  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message.c (soup_message_cleanup): Don't set up the
