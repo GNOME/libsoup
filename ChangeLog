@@ -4,6 +4,9 @@
 	since it's apparently non-portable. Use s6_addr instead.
 	(soup_gethostbyaddr): fix a sometimes-uninitialized variable.
 
+	* libsoup/soup-error.c: Fix spelling of
+	SOUP_ERROR_MOVED_PERMANENTLY and its description.
+
 	* libsoup/soup-message.c (soup_message_get_request_header, etc):
 	Remove long-deprecated API.
 

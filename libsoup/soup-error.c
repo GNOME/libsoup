@@ -51,7 +51,7 @@ struct {
 	 * SOUP_ERROR_CLASS_REDIRECT 
 	 */
 	{ SOUP_ERROR_MULTIPLE_CHOICES,   "Multiple Choices" },
-	{ SOUP_ERROR_MOVED_PERMANANTLY,  "Moved Permanantly" },
+	{ SOUP_ERROR_MOVED_PERMANENTLY,  "Moved Permanently" },
 	{ SOUP_ERROR_FOUND,              "Found" },
 	{ SOUP_ERROR_SEE_OTHER,          "See Other" },
 	{ SOUP_ERROR_NOT_MODIFIED,       "Not Modified" },
