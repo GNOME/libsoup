@@ -1,3 +1,8 @@
+2004-02-17  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-soap-message.h (SOUP_IS_SOAP_MESSAGE_CLASS): Fix a
+	typo. #54433, from Mariano Suarez-Alvarez.
+
 2004-02-17  Rodney Dawes  <dobey@ximian.com>
 
 	* libsoup/soup-message.c (soup_message_new): HTTP connections require
