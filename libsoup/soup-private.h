@@ -107,6 +107,7 @@ struct _SoupConnection {
 	gboolean      in_use;
 	guint         last_used_id;
 	gboolean      keep_alive;
+	guint         death_tag;
 };
 
 struct _SoupMessagePrivate {

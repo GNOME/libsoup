@@ -69,8 +69,10 @@ soup_socks_write (GIOChannel* iochannel,
 	GIOError error;
 
 	dest_uri = soup_context_get_uri (sd->dest_ctx);
+
 	proxy_ctx = soup_connection_get_context (sd->src_conn);
 	proxy_uri = soup_context_get_uri (proxy_ctx);
+	soup_context_unref (proxy_ctx);
 
 	switch (sd->phase) {
 	case SOCKS_4_SEND_DEST_ADDR: 
@@ -242,13 +244,16 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 {
 	SoupSocksData *sd = NULL;
 	SoupContext *proxy_ctx;
-	const SoupUri *dest_uri;
+	const SoupUri *dest_uri, *proxy_uri;
 	GIOChannel *channel;
 
 	if (!soup_connection_is_new (conn)) goto CONNECT_SUCCESS;
 	
-	proxy_ctx = soup_connection_get_context (conn);
 	dest_uri = soup_context_get_uri (dest_ctx);
+
+	proxy_ctx = soup_connection_get_context (conn);
+	proxy_uri = soup_context_get_uri (proxy_ctx);
+	soup_context_unref (proxy_ctx);
 
 	sd = g_new0 (SoupSocksData, 1);
 	sd->src_conn = conn;
@@ -256,7 +261,7 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	sd->cb = cb;
 	sd->user_data = user_data;
 	
-	switch (soup_context_get_uri (proxy_ctx)->protocol) {
+	switch (proxy_uri->protocol) {
 	case SOUP_PROTOCOL_SOCKS4:
 		soup_address_new (dest_uri->host, 
 				  dest_uri->port, 

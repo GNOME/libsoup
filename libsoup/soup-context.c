@@ -219,21 +219,14 @@ soup_context_unref (SoupContext *ctx)
 		g_hash_table_remove (serv->contexts, ctx->uri);
 
 		if (g_hash_table_size (serv->contexts) == 0) {
-			GSList *conns = serv->connections;
-
+			/*
+			 * Remove this host from the active hosts hash
+			 */
 			g_hash_table_remove (soup_hosts, serv->host);
 
-			while (conns) {
-				SoupConnection *conn = conns->data;
-				soup_socket_unref (conn->socket);
-				g_free (conn);
-				connection_count--;
-
-				conns = conns->next;
-			}
-
-			g_slist_free (serv->connections);
-
+			/* 
+			 * Free all cached SoupAuths
+			 */
 			if (serv->valid_auths) {
 				g_hash_table_foreach_remove (
 					serv->valid_auths,
@@ -250,6 +243,35 @@ soup_context_unref (SoupContext *ctx)
 		soup_uri_free (ctx->uri);
 		g_free (ctx);
 	}
+}
+
+static void
+connection_free (SoupConnection *conn)
+{
+	g_return_if_fail (conn != NULL);
+
+	conn->server->connections =
+		g_slist_remove (conn->server->connections, conn);
+
+	soup_context_unref (conn->context);
+	soup_socket_unref (conn->socket);
+	g_source_remove (conn->death_tag);
+	g_free (conn);
+
+	connection_count--;
+}
+
+static gboolean 
+connection_death (GIOChannel*     iochannel,
+		  GIOCondition    condition,
+		  SoupConnection *conn)
+{
+	if (!conn->in_use) {
+		connection_free (conn);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 struct SoupConnectData {
@@ -271,6 +293,7 @@ soup_context_connect_cb (SoupSocket              *socket,
 	SoupConnectCallbackFn   cb = data->cb;
 	gpointer                cb_data = data->user_data;
 	SoupConnection         *new_conn;
+	GIOChannel             *chan;
 
 	g_free (data);
 
@@ -278,12 +301,22 @@ soup_context_connect_cb (SoupSocket              *socket,
 	case SOUP_SOCKET_CONNECT_ERROR_NONE:
 		new_conn = g_new0 (SoupConnection, 1);
 		new_conn->server = ctx->server;
-		new_conn->context = ctx;
 		new_conn->socket = socket;
 		new_conn->port = ctx->uri->port;
 		new_conn->keep_alive = TRUE;
 		new_conn->in_use = TRUE;
 		new_conn->last_used_id = 0;
+
+		soup_context_ref (ctx);
+		new_conn->context = ctx;
+
+		chan = soup_connection_get_iochannel (new_conn);
+		new_conn->death_tag = 
+			g_io_add_watch (chan,
+					G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+					(GIOFunc) connection_death,
+					new_conn);
+		g_io_channel_unref (chan);
 
 		ctx->server->connections =
 			g_slist_prepend (ctx->server->connections,
@@ -323,26 +356,21 @@ soup_try_existing_connections (SoupContext *ctx)
 	return NULL;
 }
 
-struct SoupConnDesc {
-	SoupHost       *serv;
-	SoupConnection *conn;
-};
-
 static void
 soup_prune_foreach (gchar               *hostname,
 		    SoupHost            *serv,
-		    struct SoupConnDesc *last)
+		    SoupConnection     **last)
 {
 	GSList *conns = serv->connections;
 
 	while (conns) {
 		SoupConnection *conn = conns->data;
-		if (!conn->in_use)
-			if (last->conn == NULL ||
-			    last->conn->last_used_id > conn->last_used_id) {
-				last->conn = conn;
-				last->serv = serv;
-			}
+
+		if (!conn->in_use) {
+			if (*last == NULL ||
+			    (*last)->last_used_id > conn->last_used_id)
+				*last = conn;
+		}
 
 		conns = conns->next;
 	}
@@ -351,20 +379,14 @@ soup_prune_foreach (gchar               *hostname,
 static gboolean
 soup_prune_least_used_connection (void)
 {
-	struct SoupConnDesc last;
-	last.serv = NULL;
-	last.conn = NULL;
+	SoupConnection *last = NULL;
 
-	g_hash_table_foreach (soup_hosts, (GHFunc) soup_prune_foreach, &last);
+	g_hash_table_foreach (soup_hosts, 
+			      (GHFunc) soup_prune_foreach, 
+			      &last);
 
-	if (last.conn) {
-		last.serv->connections =
-			g_slist_remove (last.serv->connections, last.conn);
-		soup_socket_unref (last.conn->socket);
-		g_free (last.conn);
-
-		connection_count--;
-
+	if (last) {
+		connection_free (last);
 		return TRUE;
 	}
 
@@ -422,6 +444,11 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	if ((conn = soup_try_existing_connections (ctx))) {
 		conn->in_use = TRUE;
+
+		soup_context_ref (ctx);
+		soup_context_unref (conn->context);
+		conn->context = ctx;
+
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
 		return NULL;
 	}
@@ -507,14 +534,9 @@ soup_connection_release (SoupConnection *conn)
 
 	if (conn->keep_alive) {
 		conn->last_used_id = ++most_recently_used_id;
-		conn->in_use = FALSE;
-	} else {
-		conn->server->connections =
-			g_slist_remove (conn->server->connections, conn);
-		soup_socket_unref (conn->socket);
-		g_free (conn);
-		connection_count--;
-	}
+		conn->in_use = FALSE;		
+	} else
+		connection_free (conn);
 }
 
 static void
@@ -593,14 +615,16 @@ soup_connection_is_keep_alive (SoupConnection *conn)
  * soup_connection_get_context:
  * @conn: a %SoupConnection.
  *
- * Returns the %SoupContext from which @conn was created.
+ * Returns the %SoupContext from which @conn was created, with an added ref.
  *
- * Return value: the %SoupContext associated with @conn.
+ * Return value: the %SoupContext associated with @conn.  Unref when finished.
  */
 SoupContext *
 soup_connection_get_context (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);
+	
+	soup_context_ref (conn->context);
 	return conn->context;
 }
 

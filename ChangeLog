@@ -1,5 +1,35 @@
 2001-11-02  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-private.h: Add death_tag to _SoupConnection.
+
+	* src/libsoup/soup-socks.c (soup_connect_socks_proxy): Unref proxy
+	context.
+	(soup_socks_write): Ditto.
+
+	* src/libsoup/soup-context.c (connection_free): Impl.
+	(soup_prune_least_used_connection): Use connection_free().
+	(soup_connection_release): Ditto.
+	(soup_prune_foreach): Simplify to not use custom data struct. Just
+	use a SoupConnection ** to hold state.
+	(connection_death): Impl.  Free the connection if its not
+	currently in use.
+	(soup_context_connect_cb): Install a death handler for valid
+	connections, so connection death can be caught and handled when no
+	SoupMessage exists to handle it.  Ref the context.
+	(soup_context_get_connection): For reused connections, ref the
+	connection's new context, unref the old one, and assign the
+	connection's context to the new one.
+	(soup_context_unref): Don't free connections, as there must be
+	none left for all the contexts to have been removed.
+	(soup_connection_get_context): Add a reference before returning
+	context.
+
+	* src/libsoup/soup-message.c (soup_message_set_context): Add
+	precondition checks.
+	(soup_message_get_context): Ditto.
+
+2001-11-02  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-ssl-proxy/soup-ssl-proxy.c: Remove NSS-related code, as
 	this is now moved to libsoup.
 

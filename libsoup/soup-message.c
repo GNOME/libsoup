@@ -1007,14 +1007,20 @@ void
 soup_message_set_context (SoupMessage       *msg,
 			  SoupContext       *new_ctx)
 {
+	g_return_if_fail (msg != NULL);
+	g_return_if_fail (new_ctx != NULL);
+
 	soup_context_unref (msg->context);
-	msg->context = new_ctx;
 	soup_context_ref (new_ctx);
+
+	msg->context = new_ctx;
 }
 
 SoupContext *
 soup_message_get_context (SoupMessage       *msg)
 {
+	g_return_val_if_fail (msg != NULL, NULL);
+
 	soup_context_ref (msg->context);
 	return msg->context;
 }
