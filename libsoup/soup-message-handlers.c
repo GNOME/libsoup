@@ -39,7 +39,7 @@ static void authorize_handler (SoupMessage *msg, gpointer proxy);
 static SoupHandlerData global_handlers [] = {
 	/* Handle redirect response codes. */
 	{
-		SOUP_HANDLER_PRE_BODY,
+		SOUP_HANDLER_POST_BODY,
 		redirect_handler,
 		NULL,
 		SOUP_HANDLER_ERROR_CLASS,
@@ -48,7 +48,7 @@ static SoupHandlerData global_handlers [] = {
 
 	/* Handle authorization. */
 	{
-		SOUP_HANDLER_PRE_BODY,
+		SOUP_HANDLER_POST_BODY,
 		authorize_handler,
 		GINT_TO_POINTER (FALSE),
 		SOUP_HANDLER_ERROR_CODE,
@@ -57,7 +57,7 @@ static SoupHandlerData global_handlers [] = {
 
 	/* Handle proxy authorization. */
 	{
-		SOUP_HANDLER_PRE_BODY,
+		SOUP_HANDLER_POST_BODY,
 		authorize_handler,
 		GINT_TO_POINTER (TRUE),
 		SOUP_HANDLER_ERROR_CODE,
@@ -128,13 +128,6 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 		if (SOUP_MESSAGE_IS_STARTING (msg))
 			return;
 	}
-
-	/* Issue final callback if the invoke_phase is POST_BODY and
-	 * the error class is not INFORMATIONAL.
-	 */
-	if (invoke_phase == SOUP_HANDLER_POST_BODY &&
-	    msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL)
-		soup_message_issue_callback (msg);
 }
 
 static void
@@ -269,12 +262,6 @@ authorize_handler (SoupMessage *msg, gpointer proxy)
 	ctx = proxy ? soup_get_proxy () : msg->priv->context;
 	if (soup_context_update_auth (ctx, msg))
 		soup_message_requeue (msg);
-	else {
-		soup_message_set_error (msg,
-					proxy ?
-			                SOUP_ERROR_CANT_AUTHENTICATE_PROXY :
-			                SOUP_ERROR_CANT_AUTHENTICATE);
-	}
 }
 
 static void

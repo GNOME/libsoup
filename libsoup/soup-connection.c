@@ -157,8 +157,13 @@ soup_connection_disconnect (SoupConnection *conn)
 	}
 
 	if (conn->priv->socket) {
+		g_signal_handlers_disconnect_by_func (conn->priv->socket,
+						      socket_disconnected,
+						      conn);
+		soup_socket_disconnect (conn->priv->socket);
 		g_object_unref (conn->priv->socket);
 		conn->priv->socket = NULL;
+
 		g_signal_emit (conn, signals[DISCONNECTED], 0);
 	}
 }

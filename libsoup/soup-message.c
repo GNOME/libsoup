@@ -21,9 +21,28 @@
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
 
-guint soup_message_signals[LAST_SIGNAL] = { 0 };
+enum {
+	WROTE_HEADERS,
+	WROTE_CHUNK,
+	WROTE_BODY,
 
+	GOT_HEADERS,
+	GOT_CHUNK,
+	GOT_BODY,
+
+	FINISHED,
+
+	LAST_SIGNAL
+};
+
+guint signals[LAST_SIGNAL] = { 0 };
+
+static void got_headers (SoupMessage *req);
+static void got_chunk (SoupMessage *req);
+static void got_body (SoupMessage *req);
+static void finished (SoupMessage *req);
 static void cleanup_message (SoupMessage *req);
+static void free_chunks (SoupMessage *msg);
 
 static void
 init (GObject *object)
@@ -57,6 +76,7 @@ finalize (GObject *object)
 		g_free (msg->request.body);
 	if (msg->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (msg->response.body);
+	free_chunks (msg);
 
 	soup_message_clear_headers (msg->request_headers);
 	g_hash_table_destroy (msg->request_headers);
@@ -77,13 +97,21 @@ finalize (GObject *object)
 static void
 class_init (GObjectClass *object_class)
 {
+	SoupMessageClass *message_class = SOUP_MESSAGE_CLASS (object_class);
+
 	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method definition */
+	message_class->got_headers  = got_headers;
+	message_class->got_chunk    = got_chunk;
+	message_class->got_body     = got_body;
+	message_class->finished     = finished;
 
 	/* virtual method override */
 	object_class->finalize = finalize;
 
 	/* signals */
-	soup_message_signals[WROTE_HEADERS] =
+	signals[WROTE_HEADERS] =
 		g_signal_new ("wrote_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
@@ -91,7 +119,7 @@ class_init (GObjectClass *object_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
-	soup_message_signals[WROTE_CHUNK] =
+	signals[WROTE_CHUNK] =
 		g_signal_new ("wrote_chunk",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
@@ -99,7 +127,7 @@ class_init (GObjectClass *object_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
-	soup_message_signals[WROTE_BODY] =
+	signals[WROTE_BODY] =
 		g_signal_new ("wrote_body",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
@@ -107,45 +135,37 @@ class_init (GObjectClass *object_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
-	soup_message_signals[WRITE_ERROR] =
-		g_signal_new ("write_error",
+
+	signals[GOT_HEADERS] =
+		g_signal_new ("got_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, write_error),
+			      G_STRUCT_OFFSET (SoupMessageClass, got_headers),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	signals[GOT_CHUNK] =
+		g_signal_new ("got_chunk",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, got_chunk),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	signals[GOT_BODY] =
+		g_signal_new ("got_body",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, got_body),
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
-	soup_message_signals[READ_HEADERS] =
-		g_signal_new ("read_headers",
+	signals[FINISHED] =
+		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, read_headers),
-			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
-			      G_TYPE_NONE, 0);
-	soup_message_signals[READ_CHUNK] =
-		g_signal_new ("read_chunk",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, read_chunk),
-			      NULL, NULL,
-			      soup_marshal_NONE__POINTER,
-			      G_TYPE_NONE, 1,
-			      G_TYPE_POINTER);
-	soup_message_signals[READ_BODY] =
-		g_signal_new ("read_body",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, read_body),
-			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
-			      G_TYPE_NONE, 0);
-	soup_message_signals[READ_ERROR] =
-		g_signal_new ("read_error",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupMessageClass, read_error),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupMessageClass, finished),
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
@@ -263,14 +283,97 @@ soup_message_set_response (SoupMessage   *msg,
 	msg->response.length = resp_length;
 }
 
+void
+soup_message_wrote_headers (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[WROTE_HEADERS], 0);
+}
+
+void
+soup_message_wrote_chunk (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
+}
+
+void
+soup_message_wrote_body (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[WROTE_BODY], 0);
+}
+
+static void
+got_headers (SoupMessage *req)
+{
+	g_object_ref (req);
+	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
+	if (SOUP_MESSAGE_IS_STARTING (req))
+		g_signal_stop_emission (req, signals[GOT_HEADERS], 0);
+	g_object_unref (req);
+}
+
+void
+soup_message_got_headers (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[GOT_HEADERS], 0);
+}
+
+static void
+got_chunk (SoupMessage *req)
+{
+	g_object_ref (req);
+	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
+	if (SOUP_MESSAGE_IS_STARTING (req))
+		g_signal_stop_emission (req, signals[GOT_CHUNK], 0);
+	g_object_unref (req);
+}
+
+void
+soup_message_got_chunk (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[GOT_CHUNK], 0);
+}
+
+static void
+got_body (SoupMessage *req)
+{
+	g_object_ref (req);
+	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
+	if (SOUP_MESSAGE_IS_STARTING (req))
+		g_signal_stop_emission (req, signals[GOT_BODY], 0);
+	g_object_unref (req);
+}
+
+void
+soup_message_got_body (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[GOT_BODY], 0);
+}
+
+static void
+finished (SoupMessage *req)
+{
+	cleanup_message (req);
+
+	if (req->priv->callback) {
+		(*req->priv->callback) (req, req->priv->user_data);
+
+		if (!SOUP_MESSAGE_IS_STARTING (req))
+			g_object_unref (req);
+	}
+}
+
+void
+soup_message_finished (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[FINISHED], 0);
+}
+
+
 static void
 cleanup_message (SoupMessage *req)
 {
-	if (req->priv->read_state)
-		soup_message_read_cancel (req);
-
-	if (req->priv->write_state)
-		soup_message_write_cancel (req);
+	if (req->priv->io_data)
+		soup_message_io_cancel (req);
 
 	if (req->priv->connect_tag) {
 		soup_context_cancel_connect (req->priv->connect_tag);
@@ -280,37 +383,6 @@ cleanup_message (SoupMessage *req)
 	soup_message_set_connection (req, NULL);
 
 	soup_queue_remove_request (req);
-}
-
-/**
- * soup_message_issue_callback:
- * @req: a #SoupMessage currently being processed.
- * @error: a #SoupErrorCode to be passed to @req's completion callback.
- * 
- * Finalizes the message request, by first freeing any temporary
- * resources, then issuing the callback function pointer passed in
- * soup_message_new() or soup_message_new_full(). If, after returning
- * from the callback, the message has not been requeued, @req will be
- * unreffed.
- */
-void
-soup_message_issue_callback (SoupMessage *req)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
-
-	/*
-	 * Make sure we don't have some icky recursion if the callback
-	 * runs the main loop, and the connection has some data or error
-	 * which causes the callback to be run again.
-	 */
-	cleanup_message (req);
-
-	if (req->priv->callback) {
-		(*req->priv->callback) (req, req->priv->user_data);
-
-		if (!SOUP_MESSAGE_IS_STARTING (req))
-			g_object_unref (req);
-	}
 }
 
 /**
@@ -342,7 +414,7 @@ soup_message_cancel (SoupMessage *msg)
 {
 	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
 	soup_message_disconnect (msg);
-	soup_message_issue_callback (msg);
+	soup_message_finished (msg);
 }
 
 static gboolean
@@ -479,7 +551,7 @@ queue_message (SoupMessage *req)
 					     SOUP_ERROR_CANCELLED,
 					     "Attempted to queue a message "
 					     "with no destination context");
-		soup_message_issue_callback (req);
+		soup_message_finished (req);
 		return;
 	}
 
@@ -493,7 +565,7 @@ queue_message (SoupMessage *req)
 					     "Attempted to queue a message "
 					     "with a user owned response "
 					     "buffer.");
-		soup_message_issue_callback (req);
+		soup_message_finished (req);
 		return;
 	case SOUP_BUFFER_SYSTEM_OWNED:
 		g_free (req->response.body);
@@ -505,6 +577,8 @@ queue_message (SoupMessage *req)
 	req->response.owner = 0;
 	req->response.body = NULL;
 	req->response.length = 0;
+
+	free_chunks (req);
 
 	soup_message_clear_headers (req->response_headers);
 
@@ -553,32 +627,6 @@ soup_message_queue (SoupMessage    *req,
 	queue_message (req);
 }
 
-static void
-requeue_read_error (SoupMessage *msg, gpointer user_data)
-{
-	soup_message_disconnect (msg);
-	queue_message (msg);
-}
-
-static void
-requeue_read_finished (SoupMessage *msg, gpointer user_data)
-{
-	SoupConnection *conn = msg->priv->connection;
-
-	g_object_ref (conn);
-	soup_message_set_connection (msg, NULL);
-
-	if (soup_connection_is_connected (conn)) {
-		soup_connection_mark_old (conn);
-	} else {
-		g_object_unref (conn);
-		conn = NULL;
-	}
-
-	queue_message (msg);
-	soup_message_set_connection (msg, conn);
-}
-
 /**
  * soup_message_requeue:
  * @req: a #SoupMessage
@@ -591,15 +639,9 @@ soup_message_requeue (SoupMessage *req)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
 
-	if (req->priv->connection && req->priv->read_state) {
-		soup_message_read_set_callbacks (req, NULL, NULL,
-						 requeue_read_finished,
-						 requeue_read_error, NULL);
-
-		if (req->priv->write_state)
-			soup_message_write_cancel (req);
-	} else
-		queue_message (req);
+	if (req->priv->io_data)
+		soup_message_io_cancel (req);
+	queue_message (req);
 }
 
 /**
@@ -796,4 +838,77 @@ soup_message_set_error_full (SoupMessage *msg,
 	msg->errorcode = errcode;
 	msg->errorclass = soup_error_get_class (errcode);
 	msg->errorphrase = g_strdup (errphrase);
+}
+
+
+void
+soup_message_add_chunk (SoupMessage   *msg,
+			SoupOwnership  owner,
+			const char    *body,
+			guint          length)
+{
+	SoupDataBuffer *chunk;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (body != NULL || length == 0);
+
+	chunk = g_new0 (SoupDataBuffer, 1);
+	if (owner == SOUP_BUFFER_USER_OWNED) {
+		chunk->owner = SOUP_BUFFER_SYSTEM_OWNED;
+		chunk->body = g_memdup (body, length);
+	} else {
+		chunk->owner = owner;
+		chunk->body = (char *)body;
+	}
+	chunk->length = length;
+
+	if (msg->priv->chunks) {
+		g_slist_append (msg->priv->last_chunk, chunk);
+		msg->priv->last_chunk = msg->priv->last_chunk->next;
+	} else {
+		msg->priv->chunks = msg->priv->last_chunk =
+			g_slist_append (NULL, chunk);
+	}
+}
+
+void
+soup_message_add_final_chunk (SoupMessage *msg)
+{
+	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC, NULL, 0);
+}
+
+SoupDataBuffer *
+soup_message_pop_chunk (SoupMessage *msg)
+{
+	SoupDataBuffer *chunk;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	if (!msg->priv->chunks)
+		return NULL;
+
+	chunk = msg->priv->chunks->data;
+	msg->priv->chunks = g_slist_remove (msg->priv->chunks, chunk);
+	if (!msg->priv->chunks)
+		msg->priv->last_chunk = NULL;
+
+	return chunk;
+}
+
+static void
+free_chunks (SoupMessage *msg)
+{
+	SoupDataBuffer *chunk;
+	GSList *ch;
+
+	for (ch = msg->priv->chunks; ch; ch = ch->next) {
+		chunk = ch->data;
+
+		if (chunk->owner == SOUP_BUFFER_SYSTEM_OWNED)
+			g_free (chunk->body);
+		g_free (chunk);
+	}
+
+	g_slist_free (msg->priv->chunks);
+	msg->priv->chunks = msg->priv->last_chunk = NULL;
 }

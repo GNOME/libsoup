@@ -644,7 +644,6 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		return SOUP_SOCKET_EOF;
 
 	default:
-		soup_socket_disconnect (sock);
 		return SOUP_SOCKET_ERROR;
 	}
 }
@@ -820,10 +819,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	status = g_io_channel_write_chars (sock->priv->iochannel,
 					   buffer, len, nwrote, NULL);
 	signal (SIGPIPE, pipe_handler);
-	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
-		soup_socket_disconnect (sock);
+	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN)
 		return SOUP_SOCKET_ERROR;
-	}
 
 	if (*nwrote)
 		return SOUP_SOCKET_OK;

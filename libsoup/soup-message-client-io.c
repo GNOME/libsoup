@@ -20,11 +20,11 @@
 #include "soup-private.h"
 
 static SoupKnownErrorCode
-parse_response_headers_cb (SoupMessage *req,
-			   char *headers, guint headers_len,
-			   SoupTransferEncoding *encoding,
-			   guint *content_len,
-			   gpointer user_data)
+parse_response_headers (SoupMessage *req,
+			char *headers, guint headers_len,
+			SoupTransferEncoding *encoding,
+			guint *content_len,
+			gpointer user_data)
 {
 	const char *length, *enc;
 	SoupHttpVersion version;
@@ -94,20 +94,6 @@ parse_response_headers_cb (SoupMessage *req,
 	return SOUP_ERROR_OK;
 }
 
-void
-soup_message_read_response (SoupMessage            *msg,
-			    SoupMessageCallbackFn   read_headers_cb,
-			    SoupMessageReadChunkFn  read_chunk_cb,
-			    SoupMessageCallbackFn   read_body_cb,
-			    SoupMessageCallbackFn   read_error_cb,
-			    gpointer                user_data)
-{
-	soup_message_read (msg, &msg->response, parse_response_headers_cb,
-			   read_headers_cb, read_chunk_cb, read_body_cb,
-			   read_error_cb, user_data);
-}
-
-
 static void
 encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 {
@@ -145,11 +131,13 @@ add_header (gpointer name, gpointer value, gpointer data)
 }
 
 static void
-get_request_header_cb (SoupMessage *req, GString *header, gpointer user_data)
+get_request_headers (SoupMessage *req, GString *header,
+		     SoupTransferEncoding *encoding,
+		     gpointer user_data)
 {
+	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	const SoupUri *uri = soup_message_get_uri (req);
 	char *uri_string;
-	gboolean proxy = GPOINTER_TO_UINT (user_data);
 
 	if (!strcmp (req->method, "CONNECT")) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -185,6 +173,7 @@ get_request_header_cb (SoupMessage *req, GString *header, gpointer user_data)
 		}
 		g_string_append_printf (header, "Content-Length: %d\r\n",
 					req->request.length);
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 	}
 
 	encode_http_auth (req, header, FALSE);
@@ -196,13 +185,11 @@ get_request_header_cb (SoupMessage *req, GString *header, gpointer user_data)
 }
 
 void
-soup_message_write_request (SoupMessage *req, gboolean is_via_proxy,
-			    SoupMessageCallbackFn write_done_cb,
-			    SoupMessageCallbackFn write_error_cb,
-			    gpointer user_data)
+soup_message_send_request (SoupMessage *req, SoupSocket *sock,
+			   gboolean is_via_proxy)
 {
-	soup_message_write_simple (req, &req->request,
-				   get_request_header_cb,
-				   GUINT_TO_POINTER (is_via_proxy),
-				   write_done_cb, write_error_cb, user_data);
+	soup_message_io_client (req, sock,
+				get_request_headers,
+				parse_response_headers,
+				GUINT_TO_POINTER (is_via_proxy));
 }

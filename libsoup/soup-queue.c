@@ -55,7 +55,7 @@ soup_debug_print_headers (SoupMessage *req)
 }
 
 static void 
-soup_queue_error_cb (SoupMessage *req, gpointer user_data)
+soup_queue_error (SoupMessage *req)
 {
 	SoupConnection *conn = soup_message_get_connection (req);
 	const SoupUri *uri;
@@ -64,137 +64,61 @@ soup_queue_error_cb (SoupMessage *req, gpointer user_data)
 	conn_is_new = soup_connection_is_new (conn);
 	soup_message_disconnect (req);
 
-	switch (req->priv->status) {
-	case SOUP_MESSAGE_STATUS_IDLE:
-	case SOUP_MESSAGE_STATUS_QUEUED:
-	case SOUP_MESSAGE_STATUS_FINISHED:
-		break;
+	uri = soup_message_get_uri (req);
 
-	case SOUP_MESSAGE_STATUS_CONNECTING:
-		soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
-		soup_message_issue_callback (req);
-		break;
+	if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
+		/* FIXME: what does this really do? */
 
-	case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
-	case SOUP_MESSAGE_STATUS_READING_HEADERS:
-		uri = soup_message_get_uri (req);
-
-		if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
-			/* FIXME: what does this really do? */
-
-			/*
-			 * This can happen if the SSL handshake fails
-			 * for some reason (untrustable signatures,
-			 * etc.)
-			 */
-			if (req->priv->retries >= 3) {
-				soup_message_set_error (req, SOUP_ERROR_SSL_FAILED);
-				soup_message_issue_callback (req);
-			} else {
-				req->priv->retries++;
-				soup_message_requeue (req);
-			}
-		} else if (conn_is_new) {
-			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
-			soup_message_issue_callback (req);
-		} else {
-			/* Must have timed out. Try a new connection */
+		/*
+		 * This can happen if the SSL handshake fails
+		 * for some reason (untrustable signatures,
+		 * etc.)
+		 */
+		if (req->priv->retries >= 3)
+			soup_message_set_error (req, SOUP_ERROR_SSL_FAILED);
+		else {
+			req->priv->retries++;
 			soup_message_requeue (req);
+			return;
 		}
-		break;
-
-	default:
-		soup_message_set_error (req, SOUP_ERROR_IO);
-		soup_message_issue_callback (req);
-		break;
+	} else if (conn_is_new) {
+		soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
+	} else {
+		/* Must have timed out. Try a new connection */
+		soup_message_requeue (req);
+		return;
 	}
+
+	req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
-soup_queue_read_headers_cb (SoupMessage *req, gpointer user_data)
-{
-	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
-}
-
-static void
-soup_queue_read_chunk_cb (SoupMessage *req, SoupDataBuffer *chunk,
-			  gpointer user_data)
-{
-	/* FIXME? */
-	memcpy (&req->response, chunk, sizeof (req->response));
-
-	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
-}
-
-static void
-soup_queue_read_done_cb (SoupMessage *req, gpointer user_data)
+soup_queue_request_finished (SoupMessage *req, gpointer user_data)
 {
 	SoupConnection *conn = soup_message_get_connection (req);
+
+	if (SOUP_ERROR_IS_TRANSPORT (req->errorcode)) {
+		soup_queue_error (req);
+		return;
+	}
 
 	if (soup_message_is_keepalive (req) && conn)
 		soup_connection_mark_old (conn);
 	else
 		soup_message_disconnect (req);
 
-	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		soup_message_read_response (req, 
-					    soup_queue_read_headers_cb,
-					    soup_queue_read_chunk_cb,
-					    soup_queue_read_done_cb,
-					    soup_queue_error_cb,
-					    NULL);
-	} else
-		req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
-
-	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
-}
-
-static void 
-soup_queue_write_done_cb (SoupMessage *req, gpointer user_data)
-{
-	soup_message_read_response (req, soup_queue_read_headers_cb,
-				    soup_queue_read_chunk_cb,
-				    soup_queue_read_done_cb,
-				    soup_queue_error_cb,
-				    NULL);
+	req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
 start_request (SoupContext *ctx, SoupMessage *req)
 {
-	SoupSocket *sock;
-
-	sock = soup_message_get_socket (req);
-	if (!sock) {	/* FIXME */
-		SoupProtocol proto;
-		gchar *phrase;
-
-		proto = soup_context_get_uri (ctx)->protocol;
-
-		if (proto == SOUP_PROTOCOL_HTTPS)
-			phrase = "Unable to create secure data channel";
-		else
-			phrase = "Unable to create data channel";
-
-		if (ctx != req->priv->context)
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_CANT_CONNECT_PROXY,
-				phrase);
-		else 
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_CANT_CONNECT,
-				phrase);
-
-		soup_message_issue_callback (req);
-		return;
-	}
-
-	soup_message_write_request (req, soup_get_proxy () != NULL,
-				    soup_queue_write_done_cb,
-				    soup_queue_error_cb,
-				    NULL);
+	req->priv->status = SOUP_MESSAGE_STATUS_RUNNING;
+	soup_signal_connect_once (req, "finished",
+				  G_CALLBACK (soup_queue_request_finished),
+				  NULL);
+	soup_message_send_request (req, soup_message_get_socket (req),
+				   soup_get_proxy () != NULL);
 }
 
 static void
@@ -260,7 +184,7 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 				SOUP_ERROR_CANT_CONNECT_PROXY,
 				"Unable to create secure data "
 				"tunnel through proxy");
-			soup_message_issue_callback (req);
+			soup_message_finished (req);
 			return TRUE;
 		}
 	}
@@ -296,7 +220,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE);
 		else
 			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE_PROXY);
-		soup_message_issue_callback (req);
+		soup_message_finished (req);
 		break;
 
 	default:
@@ -304,7 +228,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
 		else
 			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT_PROXY);
-		soup_message_issue_callback (req);
+		soup_message_finished (req);
 		break;
 	}
 

@@ -1,3 +1,85 @@
+2003-08-29  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-io.c: Major rewrite. There is now only a
+	single IO state object (instead of one for reading and one for
+	writing), and the IO code handles switching back and forth between
+	reading and writing as appropriate (including handling the extra
+	switches needed for "Expect: 100-continue").
+	(soup_message_io_client, soup_message_io_server): The new entry
+	points.
+	(soup_message_io_cancel): If the caller cancels the IO when we
+	were expecting to read more data, disconnect the socket.
+
+	* libsoup/soup-message.h (SoupMessageFlags): add
+	SOUP_MESSAGE_EXPECT_CONTINUE, to indicate that the IO code should
+	do the special expect-continue handling.
+
+	* libsoup/soup-message.c: Move all the signal stuff here. Remove
+	the "done_reading" and "done_writing" signals and replace them
+	with a single "finished" signal. (A single signal. Say that 10
+	times fast!)
+	(soup_message_got_headers, etc): Functions to emit signals.
+	(got_headers, got_chunk, got_body): Default signal methods that
+	call soup_message_run_handlers.
+	(finished): Default signal method that replaces
+	soup_message_issue_callback.
+	([various]): s/soup_message_issue_callback/soup_message_finished/
+	(soup_message_requeue): There's no soup_message_set_read_callbacks
+	any more, so if the caller requeues while it's still reading, just
+	cancel the read.
+	(soup_message_add_chunk, soup_message_add_final_chunk,
+	soup_message_pop_chunk): Moved here from soup-server-message,
+	although we don't actually quite support using chunked encoding
+	for requests yet.
+
+	* libsoup/soup-server-message.c (soup_server_message_new): No
+	longer takes a socket argument.
+	(soup_server_message_add_chunk, soup_server_message_get_chunk):
+	Moved into SoupMessage.
+
+	* libsoup/soup-message-handlers.c (global_handlers): Make these
+	POST_BODY rather than PRE_BODY, so they won't mess up the IO
+	channel when the requeue the message.
+	(soup_message_run_handlers): Don't need to issue the message
+	callback from here any more.
+	(authorize_handler): Just leave the error as 401 or 407 (see
+	soup-error.h change)
+
+	* libsoup/soup-message-client-io.c (soup_message_send_request):
+	Replaces soup_message_write_request and
+	soup_message_read_response.
+
+	* libsoup/soup-message-server-io.c: Parallel to
+	soup-message-client-io.c, this defines the server-side header
+	handling.
+	(soup_message_read_request): Its entry point.
+
+	* libsoup/soup-server.c: Lots of code moved into
+	soup-message-server-io.c. Update for other changes.
+
+	* libsoup/soup-queue.c: Update for changes
+
+	* libsoup/soup-socket.c (read_from_network, soup_socket_write):
+	Don't call soup_socket_disconnect() on an error, just return
+	SOUP_SOCKET_ERROR. Otherwise soup_socket_disconnect() could emit
+	signals that will mess up the caller of the read/write function.
+
+	* libsoup/soup-connection.c (soup_connection_disconnect): When
+	disconnecting the socket, disconnect from its signals first to
+	prevent bad reentrancy.
+
+	* libsoup/soup-error.h: Kill off SOUP_ERROR_CANT_AUTHENTICATE and
+	SOUP_ERROR_CANT_AUTHENTICATE_PROXY, since they don't really say
+	anything that SOUP_ERROR_UNATHORIZED and
+	SOUP_ERROR_PROXY_UNAUTHORIZED don't say. (And now, all of the
+	"transport" errors actually are transport-related.)
+
+	* tests/auth-test.c (main): s/CANT_AUTHENTICATE/UNAUTHORIZED/
+
+	* tests/simple-proxy.c: Complicate this a bunch. In particular,
+	use SOUP_MESSAGE_OVERWRITE_CHUNKS and the GOT_CHUNK signal, and
+	pass the data back to the client in chunked format.
+
 2003-08-27  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-types.h: New header with typedefs, to avoid

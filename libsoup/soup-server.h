@@ -42,6 +42,7 @@ typedef struct {
 	SoupServerAuth    *auth;
 	SoupServer        *server;
 	SoupServerHandler *handler;
+	SoupSocket        *sock;
 } SoupServerContext;
 
 typedef void (*SoupServerCallbackFn) (SoupServerContext    *context,

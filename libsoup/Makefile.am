@@ -79,6 +79,7 @@ libsoup_2_2_la_SOURCES =		\
 	soup-message-handlers.c		\
 	soup-message-io.c		\
 	soup-message-private.h		\
+	soup-message-server-io.c	\
 	soup-method.c			\
 	soup-misc.c     		\
 	soup-private.h     		\

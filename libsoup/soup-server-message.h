@@ -31,8 +31,7 @@ typedef struct {
 GType soup_server_message_get_type (void);
 
 
-SoupServerMessage    *soup_server_message_new          (SoupServer           *server,
-							SoupSocket           *sock);
+SoupServerMessage    *soup_server_message_new          (SoupServer           *server);
 
 SoupServer           *soup_server_message_get_server   (SoupServerMessage    *smsg);
 
@@ -42,12 +41,6 @@ SoupTransferEncoding  soup_server_message_get_encoding (SoupServerMessage    *sm
 
 void                  soup_server_message_start        (SoupServerMessage    *smsg);
 gboolean              soup_server_message_is_started   (SoupServerMessage    *smsg);
-
-void                  soup_server_message_add_chunk    (SoupServerMessage    *smsg,
-							SoupOwnership         owner,
-							char                 *body,
-							gulong                length);
-SoupDataBuffer       *soup_server_message_get_chunk    (SoupServerMessage    *smsg);
 
 void                  soup_server_message_finish       (SoupServerMessage    *smsg);
 gboolean              soup_server_message_is_finished  (SoupServerMessage    *smsg);

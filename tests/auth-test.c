@@ -241,7 +241,7 @@ main (int argc, char **argv)
 			msg, SOUP_ERROR_OK, SOUP_HANDLER_PRE_BODY,
 			handler, expected);
 		soup_message_send (msg);
-		if (msg->errorcode != SOUP_ERROR_CANT_AUTHENTICATE &&
+		if (msg->errorcode != SOUP_ERROR_UNAUTHORIZED &&
 		    msg->errorcode != SOUP_ERROR_OK) {
 			printf ("  %d %s !\n", msg->errorcode,
 				msg->errorphrase);

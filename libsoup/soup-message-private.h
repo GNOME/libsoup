@@ -9,56 +9,21 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-context.h>
 
-enum {
-	WROTE_HEADERS,
-	WROTE_CHUNK,
-	WROTE_BODY,
-	WRITE_ERROR,
-
-	READ_HEADERS,
-	READ_CHUNK,
-	READ_BODY,
-	READ_ERROR,
-
-	LAST_SIGNAL
-};
-extern guint soup_message_signals[LAST_SIGNAL];
-
 typedef enum {
 	SOUP_MESSAGE_STATUS_IDLE,
 	SOUP_MESSAGE_STATUS_QUEUED,
         SOUP_MESSAGE_STATUS_CONNECTING,
+        SOUP_MESSAGE_STATUS_RUNNING,
 	SOUP_MESSAGE_STATUS_FINISHED,
-
-	SOUP_MESSAGE_STATUS_WRITING_HEADERS,
-	SOUP_MESSAGE_STATUS_WRITING_BODY,
-	SOUP_MESSAGE_STATUS_WRITING_CHUNK_SIZE,
-	SOUP_MESSAGE_STATUS_WRITING_CHUNK,
-	SOUP_MESSAGE_STATUS_WRITING_CHUNK_END,
-	SOUP_MESSAGE_STATUS_WRITING_TRAILERS,
-	SOUP_MESSAGE_STATUS_FINISHED_WRITING,
-
-	SOUP_MESSAGE_STATUS_READING_HEADERS,
-	SOUP_MESSAGE_STATUS_READING_BODY,
-	SOUP_MESSAGE_STATUS_READING_CHUNK_SIZE,
-	SOUP_MESSAGE_STATUS_READING_CHUNK,
-	SOUP_MESSAGE_STATUS_READING_CHUNK_END,
-	SOUP_MESSAGE_STATUS_READING_TRAILERS,
-	SOUP_MESSAGE_STATUS_FINISHED_READING
-
 } SoupMessageStatus;
 
 #define SOUP_MESSAGE_IS_STARTING(msg) (msg->priv->status == SOUP_MESSAGE_STATUS_QUEUED || msg->priv->status == SOUP_MESSAGE_STATUS_CONNECTING)
-#define SOUP_MESSAGE_IS_WRITING(msg) (msg->priv->status >= SOUP_MESSAGE_STATUS_WRITING_HEADERS && msg->priv->status <= SOUP_MESSAGE_STATUS_WRITING_TRAILERS)
-#define SOUP_MESSAGE_IS_READING(msg) (msg->priv->status >= SOUP_MESSAGE_STATUS_READING_HEADERS && msg->priv->status <= SOUP_MESSAGE_STATUS_READING_TRAILERS)
-
 
 struct SoupMessagePrivate {
 	SoupMessageStatus  status;
 
 	SoupConnectId      connect_tag;
-	gpointer           read_state;
-	gpointer           write_state;
+	gpointer           io_data;
 
 	guint              retries;
 
@@ -66,6 +31,8 @@ struct SoupMessagePrivate {
 	gpointer           user_data;
 
 	guint              msg_flags;
+
+	GSList            *chunks, *last_chunk;
 
 	GSList            *content_handlers;
 
@@ -76,7 +43,6 @@ struct SoupMessagePrivate {
 	SoupSocket        *socket;
 };
 
-void             soup_message_issue_callback (SoupMessage      *req);
 void             soup_message_run_handlers   (SoupMessage      *msg,
 					      SoupHandlerPhase  invoke_phase);
 
@@ -92,76 +58,29 @@ SoupConnection  *soup_message_get_connection (SoupMessage      *msg);
 SoupSocket      *soup_message_get_socket     (SoupMessage      *msg);
 
 
+typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
+					      GString          *headers,
+					      SoupTransferEncoding *encoding,
+					      gpointer          user_data);
 typedef SoupKnownErrorCode
-             (*SoupMessageParseHeadersFn) (SoupMessage          *msg,
-					   char                 *headers,
-					   guint                 header_len,
-					   SoupTransferEncoding *encoding,
-					   guint                *content_len,
-					   gpointer              user_data);
+                 (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
+					      char             *headers,
+					      guint             header_len,
+					      SoupTransferEncoding *encoding,
+					      guint            *content_len,
+					      gpointer          user_data);
 
-typedef void (*SoupMessageReadChunkFn)    (SoupMessage          *msg,
-					   SoupDataBuffer       *chunk,
-					   gpointer              user_data);
+void soup_message_io_client  (SoupMessage               *msg,
+			      SoupSocket                *sock,
+			      SoupMessageGetHeadersFn    get_headers_cb,
+			      SoupMessageParseHeadersFn  parse_headers_cb,
+			      gpointer                   user_data);
+void soup_message_io_server  (SoupMessage               *msg,
+			      SoupSocket                *sock,
+			      SoupMessageGetHeadersFn    get_headers_cb,
+			      SoupMessageParseHeadersFn  parse_headers_cb,
+			      gpointer                   user_data);
 
-void soup_message_read               (SoupMessage               *msg,
-				      SoupDataBuffer            *body,
-				      SoupMessageParseHeadersFn  parse_headers_cb,
-				      SoupCallbackFn             read_headers_cb,
-				      SoupMessageReadChunkFn     read_chunk_cb,
-				      SoupCallbackFn             read_body_cb,
-				      SoupCallbackFn             error_cb,
-				      gpointer                   user_data);
-void soup_message_read_set_callbacks (SoupMessage               *msg,
-				      SoupCallbackFn             read_headers_cb,
-				      SoupMessageReadChunkFn     read_chunk_cb,
-				      SoupCallbackFn             read_body_cb,
-				      SoupCallbackFn             error_cb,
-				      gpointer                   user_data);
-void soup_message_read_cancel        (SoupMessage *msg);
-
-
-typedef void     (*SoupMessageGetHeadersFn) (SoupMessage    *msg,
-					     GString        *out_hdr,
-					     gpointer        user_data);
-typedef gboolean (*SoupMessageGetChunkFn)   (SoupMessage    *msg,
-					     SoupDataBuffer *chunk,
-					     gpointer        user_data);
-
-void soup_message_write         (SoupMessage                 *msg,
-				 SoupTransferEncoding         encoding,
-				 SoupMessageGetHeadersFn      get_header_cb,
-				 SoupMessageGetChunkFn        get_chunk_cb,
-				 gpointer                     get_user_data,
-				 SoupCallbackFn               write_done_cb,
-				 SoupCallbackFn               error_cb,
-				 gpointer                     user_data);
-void soup_message_write_simple  (SoupMessage                 *msg,
-				 const SoupDataBuffer        *body,
-				 SoupMessageGetHeadersFn      get_header_cb,
-				 gpointer                     get_user_data,
-				 SoupCallbackFn               write_done_cb,
-				 SoupCallbackFn               error_cb,
-				 gpointer                     user_data);
-void soup_message_write_cancel  (SoupMessage                 *msg);
-
-void soup_message_write_pause   (SoupMessage                 *msg);
-void soup_message_write_unpause (SoupMessage                 *msg);
-
-
-/* Higher-level API */
-void soup_message_write_request  (SoupMessage            *msg,
-				  gboolean                is_via_proxy,
-				  SoupMessageCallbackFn   write_done_cb,
-				  SoupMessageCallbackFn   write_error_cb,
-				  gpointer                user_data);
-void soup_message_read_response  (SoupMessage            *msg,
-				  SoupMessageCallbackFn   read_headers_cb,
-				  SoupMessageReadChunkFn  read_chunk_cb,
-				  SoupMessageCallbackFn   read_body_cb,
-				  SoupMessageCallbackFn   read_error_cb,
-				  gpointer                user_data);
-
-
+void soup_message_io_cancel  (SoupMessage *msg);
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */
