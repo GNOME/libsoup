@@ -1,3 +1,45 @@
+2003-09-05  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-session.c: Move a bunch of logic here from
+	soup-context. Now the session keeps track of hosts (instead of
+	having a global soup_hosts hash) and their connections.
+	(soup_session_new_with_proxy, soup_session_new_full): New session
+	constructors to specify a proxy or a proxy and connection limits
+	(send_request): Add Authorization and Proxy-Authorization headers
+	before sending off the request.
+	(soup_session_queue_message, et al): Improve the way this works.
+	There's no need to use timeouts to wait for connections to become
+	free; we *know* when they become free.
+
+	* libsoup/soup-private.h: Remove SoupHost and some other
+	no-longer-used stuff.
+
+	* libsoup/soup-misc.c (soup_set_proxy, soup_get_proxy,
+	soup_set_connection_limit, soup_set_connection_limit): Gone. These
+	are all per-session now.
+
+	* libsoup/soup-message.c: Remove all SoupContext references
+	(mostly replaced with SoupUri references)
+	(cleanup_message): priv->connect_tag and priv->connection are gone
+	now, so this was just soup_message_io_cancel(). So remove
+	cleanup_message and replace it with that everywhere.
+	(soup_message_disconnect): Gone.
+	(soup_message_set_uri): Replaces soup_message_set_context.
+	(soup_message_set_connection, soup_message_get_connection): Gone
+
+	* libsoup/soup-message-server-io.c (parse_request_headers):
+	s/soup_message_set_context/soup_message_set_uri/
+
+	* libsoup/soup-message-private.h (SoupMessagePrivate): Remove
+	connect_tag, context, and connection.
+
+	* libsoup/soup-message-client-io.c (encode_http_auth): Gone.
+
+	* libsoup/soup-context.c: Gone
+
+	* tests/auth-test.c (identify_auth): update for session/context
+	changes
+
 2003-09-03  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-status.h: Renamed from soup-error.h, with types

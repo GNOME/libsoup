@@ -14,7 +14,6 @@
 
 #include "soup-message-private.h"
 #include "soup-auth.h"
-#include "soup-context.h"
 #include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
@@ -92,33 +91,6 @@ parse_response_headers (SoupMessage *req,
 	return SOUP_STATUS_OK;
 }
 
-static void
-encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
-{
-	SoupAuth *auth;
-	SoupContext *ctx;
-	char *token;
-
-	ctx = proxy_auth ? soup_get_proxy () : msg->priv->context;
-
-	auth = soup_context_lookup_auth (ctx, msg);
-	if (!auth)
-		return;
-	if (!soup_auth_is_authenticated (auth) &&
-	    !soup_context_authenticate_auth (ctx, auth))
-		return;
-
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
-		g_string_sprintfa (header, "%s: %s\r\n",
-				   proxy_auth ? 
-					"Proxy-Authorization" : 
-					"Authorization",
-				   token);
-		g_free (token);
-	}
-}
-
 static void 
 add_header (gpointer name, gpointer value, gpointer data)
 {
@@ -173,10 +145,6 @@ get_request_headers (SoupMessage *req, GString *header,
 					req->request.length);
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 	}
-
-	encode_http_auth (req, header, FALSE);
-	if (proxy)
-		encode_http_auth (req, header, TRUE);
 
 	soup_message_foreach_header (req->request_headers, add_header, header);
 	g_string_append (header, "\r\n");

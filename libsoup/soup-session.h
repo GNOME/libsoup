@@ -30,7 +30,11 @@ typedef struct {
 
 GType soup_session_get_type (void);
 
-SoupSession    *soup_session_new             (void);
+SoupSession    *soup_session_new_default     (void);
+SoupSession    *soup_session_new_with_proxy  (const SoupUri         *proxy_uri);
+SoupSession    *soup_session_new_full        (const SoupUri         *proxy_uri,
+					      guint                  max_conns,
+					      guint                  max_per_host);
 
 void            soup_session_queue_message   (SoupSession           *session,
 					      SoupMessage           *req,

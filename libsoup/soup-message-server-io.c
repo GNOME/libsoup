@@ -15,7 +15,6 @@
 #include "soup-message-private.h"
 #include "soup-address.h"
 #include "soup-auth.h"
-#include "soup-context.h"
 #include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
@@ -28,7 +27,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       SoupTransferEncoding *encoding, guint *content_len,
 		       gpointer sock)
 {
-	SoupContext *ctx;
+	SoupUri *uri;
 	char *req_path = NULL, *url;
 	const char *length, *enc, *req_host;
 	SoupServer *server;
@@ -103,15 +102,15 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		return SOUP_STATUS_BAD_REQUEST;
 	}
 
-	ctx = soup_context_get (url);
+	uri = soup_uri_new (url);
 	g_free (url);
 	g_free (req_path);
 
-	if (!ctx)
+	if (!uri)
 		return SOUP_STATUS_BAD_REQUEST;
 
-	soup_message_set_context (msg, ctx);
-	g_object_unref (ctx);
+	soup_message_set_uri (msg, uri);
+	soup_uri_free (uri);
 
 	return SOUP_STATUS_OK;
 }

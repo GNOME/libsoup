@@ -8,12 +8,10 @@
 #include <string.h>
 
 #include "soup-auth.h"
-#include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
-#include "soup-context.h"
 #include "soup-private.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
@@ -39,7 +37,6 @@ static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);
 static void got_body (SoupMessage *req);
 static void finished (SoupMessage *req);
-static void cleanup_message (SoupMessage *req);
 static void free_chunks (SoupMessage *msg);
 
 static void
@@ -65,10 +62,10 @@ finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 
-	cleanup_message (msg);
+	soup_message_io_cancel (msg);
 
-	if (msg->priv->context)
-		g_object_unref (msg->priv->context);
+	if (msg->priv->uri)
+		soup_uri_free (msg->priv->uri);
 
 	if (msg->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (msg->request.body);
@@ -175,7 +172,7 @@ SOUP_MAKE_TYPE (soup_message, SoupMessage, class_init, init, PARENT_TYPE)
 /**
  * soup_message_new:
  * @method: the HTTP method for the created request
- * @uri: the destination endpoint (as a string)
+ * @uri_string: the destination endpoint (as a string)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
@@ -183,18 +180,18 @@ SOUP_MAKE_TYPE (soup_message, SoupMessage, class_init, init, PARENT_TYPE)
  * be parsed).
  */
 SoupMessage *
-soup_message_new (const char *method, const char *uri)
+soup_message_new (const char *method, const char *uri_string)
 {
 	SoupMessage *msg;
-	SoupContext *ctx;
+	SoupUri *uri;
 
-	ctx = soup_context_get (uri);
-	if (!ctx)
+	uri = soup_uri_new (uri_string);
+	if (!uri)
 		return NULL;
 
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
 	msg->method = method ? method : SOUP_METHOD_GET;
-	msg->priv->context = ctx;
+	msg->priv->uri = uri;
 
 	return msg;
 }
@@ -206,21 +203,16 @@ soup_message_new (const char *method, const char *uri)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Return value: the new #SoupMessage (or %NULL if @uri is invalid)
+ * Return value: the new #SoupMessage
  */
 SoupMessage *
 soup_message_new_from_uri (const char *method, const SoupUri *uri)
 {
 	SoupMessage *msg;
-	SoupContext *ctx;
-
-	ctx = soup_context_from_uri (uri);
-	if (!ctx)
-		return NULL;
 
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
 	msg->method = method ? method : SOUP_METHOD_GET;
-	msg->priv->context = ctx;
+	msg->priv->uri = soup_uri_copy (uri);
 
 	return msg;
 }
@@ -350,7 +342,7 @@ soup_message_got_body (SoupMessage *msg)
 static void
 finished (SoupMessage *req)
 {
-	cleanup_message (req);
+	soup_message_io_cancel (req);
 }
 
 void
@@ -360,49 +352,18 @@ soup_message_finished (SoupMessage *msg)
 }
 
 
-static void
-cleanup_message (SoupMessage *req)
-{
-	if (req->priv->io_data)
-		soup_message_io_cancel (req);
-
-	if (req->priv->connect_tag) {
-		soup_context_cancel_connect (req->priv->connect_tag);
-		req->priv->connect_tag = NULL;
-	}
-
-	soup_message_set_connection (req, NULL);
-}
-
-/**
- * soup_message_disconnect:
- * @msg: a #SoupMessage
- *
- * Utility function to close and unref the connection associated with
- * @msg if there was an error.
- **/
-void
-soup_message_disconnect (SoupMessage *msg)
-{
-	if (msg->priv->connection) {
-		soup_connection_disconnect (msg->priv->connection);
-		soup_message_set_connection (msg, NULL);
-	}
-}
-
 /**
  * soup_message_cancel:
  * @msg: a #SoupMessage currently being processed.
  * 
  * Cancel a running message, and issue completion callback with an
- * error code of %SOUP_STATUS_CANCELLED. If not requeued by the
+ * status code of %SOUP_STATUS_CANCELLED. If not requeued by the
  * completion callback, the @msg will be destroyed.
  */
 void
 soup_message_cancel (SoupMessage *msg)
 {
 	soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
-	soup_message_disconnect (msg);
 	soup_message_finished (msg);
 }
 
@@ -541,10 +502,10 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 void
 soup_message_prepare (SoupMessage *req)
 {
-	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE) {
-		cleanup_message (req);
+	soup_message_io_cancel (req);
+
+	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
 		req->priv->status = SOUP_MESSAGE_STATUS_IDLE;
-	}
 
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->response.body);
@@ -629,26 +590,19 @@ soup_message_is_keepalive (SoupMessage *msg)
 }
 
 void
-soup_message_set_context (SoupMessage *msg, SoupContext *new_ctx)
+soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	if (msg->priv->context && new_ctx) {
-		const SoupUri *old, *new;
+	if (msg->priv->uri && new_uri) {
+		if (strcmp (msg->priv->uri->host, new_uri->host) != 0)
+			soup_message_io_cancel (msg);
+	} else if (!new_uri)
+		soup_message_io_cancel (msg);
 
-		old = soup_context_get_uri (msg->priv->context);
-		new = soup_context_get_uri (new_ctx);
-		if (strcmp (old->host, new->host) != 0)
-			cleanup_message (msg);
-	} else if (!new_ctx)
-		cleanup_message (msg);
-
-	if (new_ctx)
-		g_object_ref (new_ctx);
-	if (msg->priv->context)
-		g_object_unref (msg->priv->context);
-
-	msg->priv->context = new_ctx;
+	if (msg->priv->uri)
+		soup_uri_free (msg->priv->uri);
+	msg->priv->uri = soup_uri_copy (new_uri);
 }
 
 const SoupUri *
@@ -656,26 +610,7 @@ soup_message_get_uri (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return soup_context_get_uri (msg->priv->context);
-}
-
-void
-soup_message_set_connection (SoupMessage *msg, SoupConnection *conn)
-{
-	if (conn)
-		g_object_ref (conn);
-	if (msg->priv->connection)
-		g_object_unref (msg->priv->connection);
-
-	msg->priv->connection = conn;
-}
-
-SoupConnection *
-soup_message_get_connection (SoupMessage *msg)
-{
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	return msg->priv->connection;
+	return msg->priv->uri;
 }
 
 void

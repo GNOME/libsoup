@@ -7,21 +7,12 @@
 #define SOUP_MISC_H 1
 
 #include <glib.h>
-#include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-uri.h>
 
 /* Configuration routines */
 
 void               soup_load_config          (gchar       *config_file);
-
-void               soup_set_proxy            (SoupContext *context);
-
-SoupContext       *soup_get_proxy            (void);
-
-void               soup_set_connection_limit (guint        max_conn);
-
-guint              soup_get_connection_limit (void);
 
 typedef enum {
 	SOUP_SECURITY_DOMESTIC = 1,

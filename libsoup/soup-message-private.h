@@ -7,7 +7,6 @@
 #define SOUP_MESSAGE_PRIVATE_H 1
 
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-context.h>
 
 typedef enum {
 	SOUP_MESSAGE_STATUS_IDLE,
@@ -22,7 +21,6 @@ typedef enum {
 struct SoupMessagePrivate {
 	SoupMessageStatus  status;
 
-	SoupConnectId      connect_tag;
 	gpointer           io_data;
 
 	guint              msg_flags;
@@ -33,8 +31,7 @@ struct SoupMessagePrivate {
 
 	SoupHttpVersion    http_version;
 
-	SoupContext       *context;
-	SoupConnection    *connection;
+	SoupUri           *uri;
 };
 
 void             soup_message_run_handlers   (SoupMessage      *msg,
@@ -44,11 +41,8 @@ void             soup_message_cleanup        (SoupMessage      *req);
 
 gboolean         soup_message_is_keepalive   (SoupMessage      *msg);
 
-void             soup_message_set_context    (SoupMessage      *msg,
-					      SoupContext      *new_ctx);
-void             soup_message_set_connection (SoupMessage      *msg,
-					      SoupConnection   *conn);
-SoupConnection  *soup_message_get_connection (SoupMessage      *msg);
+void             soup_message_set_uri        (SoupMessage      *msg,
+					      const SoupUri    *uri);
 
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,

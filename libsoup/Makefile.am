@@ -31,7 +31,6 @@ libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-address.h		\
 	soup-connection.h	\
-	soup-context.h		\
 	soup-headers.h		\
 	soup-message.h		\
 	soup-method.h		\
@@ -68,7 +67,6 @@ libsoup_2_2_la_SOURCES =		\
 	soup-auth-ntlm.h		\
 	soup-auth-ntlm.c		\
 	soup-connection.c		\
-	soup-context.c			\
 	soup-dns.h			\
 	soup-dns.c			\
 	soup-gnutls.h			\

@@ -10,7 +10,6 @@
 extern "C" {
 #endif
 
-#include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-session.h>

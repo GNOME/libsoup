@@ -15,69 +15,7 @@
 
 gboolean soup_initialized = FALSE;
 
-static guint max_connections = 10;
-
-static SoupContext *proxy_context = NULL;
-
 static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
-
-/**
- * soup_set_proxy:
- * @context: a %SoupContext to use as the proxy context for all outgoing
- * connections.
- *
- * Use @context as the %SoupContext to connect to instead of the actual
- * destination specified in a SoupMessage. Messages will be routed through the
- * proxy host on their way to the actual specified destination. The URL for this
- * context should be of the form:
- * 	[http|https]://<USERNAME>:<PASSWORD>@<PROXYHOST>
- */
-void
-soup_set_proxy (SoupContext *context)
-{
-	if (context)
-		g_object_ref (context);
-	if (proxy_context)
-		g_object_unref (proxy_context);
-
-	proxy_context = context;
-}
-
-/**
- * soup_get_proxy:
- *
- * Get the current proxy %SoupContext.
- *
- * Return value: the current proxy context.
- */
-SoupContext *
-soup_get_proxy (void)
-{
-	return proxy_context;
-}
-
-/**
- * soup_set_connection_limit:
- * @max_conn: the number of connections.
- *
- * Set the maximum concurrent connection limit for outgoing requests.
- */
-void
-soup_set_connection_limit (guint max_conn)
-{
-	max_connections = max_conn;
-}
-
-/**
- * soup_get_connection_limit:
- *
- * Return value: The maximum concurrent connection limit for outgoing requests.
- */
-guint
-soup_get_connection_limit (void)
-{
-	return max_connections;
-}
 
 /**
  * soup_set_security_policy:
@@ -428,19 +366,6 @@ static GSList *allow_tokens = NULL;
 static GSList *deny_tokens = NULL;
 
 static void
-soup_config_connection_limit (gchar *key, gchar *value)
-{
-	soup_set_connection_limit (MAX (atoi (value), 0));
-}
-
-static void
-soup_config_proxy_uri (gchar *key, gchar *value)
-{
-	SoupContext *con = soup_context_get (value);
-	if (con) soup_set_proxy (con);
-}
-
-static void
 soup_config_security_policy (gchar *key, gchar *value)
 {
 	switch (toupper (value [0])) {
@@ -493,9 +418,6 @@ struct SoupConfigFuncs {
 	gchar          *key;
 	SoupConfigFunc  func;
 } soup_config_funcs [] = {
-	{ "connection-limit", soup_config_connection_limit },
-	{ "proxy-uri",        soup_config_proxy_uri },
-	{ "proxy-url",        soup_config_proxy_uri },
 	{ "security-policy",  soup_config_security_policy },
 	{ "ssl-ca-file",      soup_config_ssl_ca_file },
 	{ "ssl-ca-directory", soup_config_ssl_ca_directory },
@@ -644,8 +566,6 @@ soup_load_config (gchar *config_file)
 {
 	/* Reset values */
 	if (soup_initialized) {
-		soup_set_proxy (NULL);
-		soup_set_connection_limit (0);
 		soup_set_security_policy (SOUP_SECURITY_DOMESTIC);
 	}
 

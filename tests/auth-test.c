@@ -161,14 +161,14 @@ static int
 identify_auth (SoupMessage *msg)
 {
 	SoupAuth *auth;
-	char *header;
+	const char *header;
 	int num;
 
-	auth = soup_context_lookup_auth (msg->priv->context, msg);
-	if (!auth || !soup_auth_is_authenticated (auth))
+	header = soup_message_get_header (msg->request_headers,
+					  "Authorization");
+	if (!header)
 		return 0;
 
-	header = soup_auth_get_authorization (auth, msg);
 	if (!g_ascii_strncasecmp (header, "Basic ", 6)) {
 		char *token;
 		int len;
@@ -186,7 +186,6 @@ identify_auth (SoupMessage *msg)
 			num = 0;
 	}
 
-	g_free (header);
 	return num;
 }
 

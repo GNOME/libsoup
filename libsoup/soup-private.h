@@ -21,22 +21,9 @@ extern "C" {
 #define RESPONSE_BLOCK_SIZE 8192
 
 extern gboolean    soup_initialized;
-extern GSList     *soup_active_requests; /* CONTAINS: SoupMessage */
-extern GHashTable *soup_hosts;           /* KEY: uri->host, VALUE: SoupHost */
 
 extern SoupAuthorizeFn soup_auth_fn;
 extern gpointer        soup_auth_fn_user_data;
-
-typedef struct {
-	gchar      *host;
-	GSList     *connections;      /* CONTAINS: SoupConnection */
-	GHashTable *contexts;         /* KEY: uri->path, VALUE: SoupContext */
-
-	GHashTable *auth_realms;      /* KEY: uri->path, VALUE: scheme:realm */
-	GHashTable *auths;            /* KEY: scheme:realm, VALUE: SoupAuth */
-
-	GHashTable *ntlm_auths;	      /* KEY: SoupConnection, VALUE: SoupAuth */
-} SoupHost;
 
 #ifdef HAVE_IPV6
 #define soup_sockaddr_max sockaddr_in6

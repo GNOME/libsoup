@@ -91,8 +91,6 @@ void           soup_message_set_response        (SoupMessage       *msg,
 
 void           soup_message_cancel              (SoupMessage       *req);
 
-void           soup_message_disconnect          (SoupMessage       *req);
-
 void           soup_message_prepare             (SoupMessage       *req);
 
 void           soup_message_add_header          (GHashTable        *hash,
