@@ -1,5 +1,18 @@
 2001-08-28  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-socket.c (soup_address_new): Perform deep
+	unix magic in order to identify if we are running in a
+	debugger. This is needed because gdb causes segfaults in child
+	processes that load shlibs due to breakpoints being left over in
+	the new unwatched process. Now, gethostbyname() loads shared libs
+	to do name resolution on many unixes, which would cause soup to be
+	hard to use and otherwise suck when run inside a debugger. So now
+	everything works perfectly both inside and outside of gdb.
+	(soup_address_new_cb): Resolve the hostname syncronously if we are
+	inside a debugger.
+
+2001-08-28  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-context.c (soup_try_existing_connections):
 	Remove mega FIXME.
 

@@ -41,6 +41,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
+#include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
@@ -513,37 +514,55 @@ soup_address_new_cb (GIOChannel* iochannel,
 		     gpointer data)
 {
 	SoupAddressState* state = (SoupAddressState*) data;
-	int rv;
-	char* buf;
-	int length;
 	struct sockaddr_in* sa_in;
 	GSList *cb_list, *iter;
 	SoupAddressNewFn cb_func;
 	gpointer cb_data;	
 
-	if (!(condition & G_IO_IN)) goto ERROR;
+	if (!(condition & G_IO_IN)) {
+		int ret;
 
-	buf = &state->buffer [state->len];
-	length = sizeof (state->buffer) - state->len;
+		g_source_remove (state->watch);
+		close (state->fd);
+		waitpid (state->pid, &ret, 0);
 
-	rv = read (state->fd, buf, length);
-	if (rv < 0) goto ERROR;
+		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) goto ERROR;
 
-	state->len += rv;
+		/* 
+		 * Exit status of one means we are inside a debugger.
+		 * Resolve the name synchronously.
+		 */
+		sa_in = (struct sockaddr_in*) &state->ia.sa;
 
-	/* Return true if there's more to read */
-	if ((state->len - 1) != state->buffer [0]) return TRUE;
+		if (!soup_gethostbyname (state->ia.name, sa_in, NULL))
+			g_warning ("Problem resolving host name");
+	} else {
+		int rv;
+		char* buf;
+		int length;
 
-	if (state->len < 2) goto ERROR;
+		buf = &state->buffer [state->len];
+		length = sizeof (state->buffer) - state->len;
 
-	/* Success. Copy resolved address. */
-	sa_in = (struct sockaddr_in*) &state->ia.sa;
-	memcpy (&sa_in->sin_addr, &state->buffer [1], (state->len - 1));
+		rv = read (state->fd, buf, length);
+		if (rv < 0) goto ERROR;
 
-	/* Cleanup state */
-	g_source_remove (state->watch);
-	close (state->fd);
-	waitpid (state->pid, NULL, WNOHANG);
+		state->len += rv;
+
+		/* Return true if there's more to read */
+		if ((state->len - 1) != state->buffer [0]) return TRUE;
+
+		if (state->len < 2) goto ERROR;
+
+		/* Success. Copy resolved address. */
+		sa_in = (struct sockaddr_in*) &state->ia.sa;
+		memcpy (&sa_in->sin_addr, &state->buffer [1], (state->len - 1));
+
+		/* Cleanup state */
+		g_source_remove (state->watch);
+		close (state->fd);
+		waitpid (state->pid, NULL, WNOHANG);
+	}
 
 	/* Get state data before realloc */
 	cb_list = iter = state->cb_list;
@@ -753,7 +772,34 @@ soup_address_new (const gchar* name,
 	case 0:
 		close (pipes [0]);
 
-		/* Try to get the host by name (ie, DNS) */
+		signal (SIGCHLD, SIG_IGN);
+
+		if (ptrace (PTRACE_ATTACH, getppid (), NULL, NULL) == -1) {
+			/* 
+			 * Attach failed; it's probably already being
+			 * debugged. 
+			 */
+			if (errno != EPERM)
+				g_warning ("ptrace: Unexpected error: %s",
+					   strerror(errno));
+
+			_exit (1);
+		}
+		
+		/* 
+		 * We just SIGSTOPped it; we need to CONT it now. 
+		 */
+		waitpid (getppid (), NULL, 0);
+
+		if (ptrace (PTRACE_DETACH, getppid (), NULL, NULL) == -1)
+			g_warning ("ptrace: Detach failed: %s", 
+				   strerror(errno));
+
+		kill (getppid(), SIGCONT);
+
+		/* 
+		 * Try to get the host by name (ie, DNS) 
+		 */
 		if (soup_gethostbyname (name, &sa, NULL)) {
 			guchar size = 4;	/* FIX for IPv6 */
 
