@@ -119,7 +119,7 @@ soup_queue_read_headers_cb (const GString        *headers,
 					     "headers");
 		goto THROW_MALFORMED_HEADER;
 	}
-		
+
 	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
 
@@ -147,13 +147,37 @@ soup_queue_read_headers_cb (const GString        *headers,
 	 * Special case zero body handling for:
 	 *   - HEAD requests (where content-length must be ignored) 
 	 *   - CONNECT requests (no body expected) 
+	 *   - No Content (204) responses (no message-body allowed)
+	 *   - Reset Content (205) responses (no entity allowed)
+	 *   - Not Modified (304) responses (no message-body allowed)
 	 *   - 1xx Informational responses (where no body is allowed)
 	 */
 	if (meth_id == SOUP_METHOD_ID_HEAD ||
 	    meth_id == SOUP_METHOD_ID_CONNECT ||
+	    req->errorcode  == SOUP_ERROR_NO_CONTENT || 
+	    req->errorcode  == SOUP_ERROR_RESET_CONTENT || 
+	    req->errorcode  == SOUP_ERROR_NOT_MODIFIED || 
 	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
+		goto SUCCESS_CONTINUE;
+	}
+
+	/* 
+	 * Handle Chunked encoding.  Prefer Chunked over a Content-Length to
+	 * support broken Traffic-Server proxies that supply both.  
+	 */
+	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
+	if (enc) {
+		if (g_strcasecmp (enc, "chunked") == 0)
+			*encoding = SOUP_TRANSFER_CHUNKED;
+		else {
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_MALFORMED,
+				"Unknown Response Encoding");
+			goto THROW_MALFORMED_HEADER;
+		}
 		goto SUCCESS_CONTINUE;
 	}
 
@@ -170,23 +194,6 @@ soup_queue_read_headers_cb (const GString        *headers,
 						     "Invalid Content-Length");
 			goto THROW_MALFORMED_HEADER;
 		} 
-		goto SUCCESS_CONTINUE;
-	}
-
-	/* 
-	 * Handle Chunked encoding 
-	 */
-	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
-	if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0)
-			*encoding = SOUP_TRANSFER_CHUNKED;
-		else {
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_MALFORMED,
-				"Unknown Response Encoding");
-			goto THROW_MALFORMED_HEADER;
-		}
 		goto SUCCESS_CONTINUE;
 	}
 
@@ -508,7 +515,7 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 		msg->connection = NULL;
 		
 		*ret = TRUE;
-	}	
+	}
 }
 
 static gboolean
