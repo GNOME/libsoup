@@ -642,7 +642,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 }
 
 /**
- * soup_connection_set_keepalive:
+ * soup_connection_set_keep_alive:
  * @conn: a %SoupConnection.
  * @keep_alive: boolean keep-alive value.
  *
@@ -656,7 +656,7 @@ soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 }
 
 /**
- * soup_connection_set_keepalive:
+ * soup_connection_is_keep_alive:
  * @conn: a %SoupConnection.
  *
  * Returns the keep-alive flag for the %SoupConnection pointed to by

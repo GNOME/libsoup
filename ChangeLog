@@ -1,3 +1,17 @@
+2002-08-01  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_cancel): If the message
+	has a connection, turn off keep_alive on it so it gets closed when
+	we release it.
+	(soup_message_cleanup): Only set up read callbacks to throw away
+	the remaining data to be read if the connection is going to be
+	kept around afterward. Otherwise there's no reason to not just
+	discard the connection right away.
+
+	* src/libsoup/soup-context.c (soup_connection_set_keep_alive,
+	(soup_connection_is_keep_alive): Fix the doc comments to correctly
+	identify these functions.
+
 2002-07-26  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-ssl-proxy/soup-ssl-proxy.c (soup_ssl_proxy_readwrite):
