@@ -1,3 +1,9 @@
+2003-03-10  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, libsoup/Makefile.am, libsoup/soup.gnutls.[ch],
+	libsoup/soup-ssl.c: Add support for GnuTLS.  Patch from Ian
+	Peters.
+
 2003-03-07  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.13.

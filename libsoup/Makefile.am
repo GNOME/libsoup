@@ -7,8 +7,14 @@ INCLUDES = 				\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
+	$(GNUTLS_CFLAGS)
 	$(NSS_CFLAGS)			\
 	$(OPENSSL_CFLAGS)
+
+EXTRA_DIST =	\
+	soup-openssl.c	\
+	soup-openssl.h \
+	soup-ssl-proxy.c
 
 libsoupincludedir = $(includedir)/soup-2.0/libsoup
 
@@ -34,6 +40,7 @@ libsoup_2_0_la_LDFLAGS =	\
 
 libsoup_2_0_la_LIBADD =		\
 	$(GLIB_LIBS)		\
+	$(GNUTLS_LIBS)		\
 	$(NSS_LIBS)
 
 libsoup_2_0_la_SOURCES =	\
@@ -44,6 +51,8 @@ libsoup_2_0_la_SOURCES =	\
 	soup-auth.c		\
 	soup-context.c		\
 	soup-error.c		\
+	soup-gnutls.h		\
+	soup-gnutls.c		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-method.c		\
@@ -65,6 +74,7 @@ libsoup_2_0_la_SOURCES =	\
 	soup-transfer.c		\
 	soup-uri.c
 
+if BUILD_PROXY
 noinst_PROGRAMS = libsoup-ssl-proxy
 
 # workaround for libtool flag re-ordering
@@ -86,3 +96,6 @@ libsoup_ssl_proxy_SOURCES =	\
 install-exec-hook:
 	$(mkinstalldirs) $(DESTDIR)$(libexecdir)
 	$(INSTALL_PROGRAM) libsoup-ssl-proxy $(DESTDIR)$(libexecdir)/$(SSL_PROXY_NAME)
+else
+install-exec-hook:
+endif

@@ -21,10 +21,22 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "soup-gnutls.h"
 #include "soup-ssl.h"
 #include "soup-nss.h"
 #include "soup-misc.h"
 
+#ifdef HAVE_GNUTLS
+
+GIOChannel *
+soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
+{
+	g_return_val_if_fail (sock != NULL, NULL);
+
+	return soup_gnutls_get_iochannel (sock, type);
+}
+
+#else /* HAVE_GNUTLS */
 #ifdef HAVE_NSS
 
 GIOChannel *
@@ -153,6 +165,7 @@ soup_ssl_get_iochannel_real (GIOChannel *sock, SoupSSLType type)
 }
 
 #endif /* HAVE_NSS */
+#endif /* HAVE_GNUTLS */
 
 GIOChannel *
 soup_ssl_get_iochannel (GIOChannel *sock)
