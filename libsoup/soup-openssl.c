@@ -78,6 +78,8 @@ soup_openssl_write (GIOChannel   *channel,
 
 	if (result < 0) {
 		*bytes_written = 0;
+		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
+		  	return G_IO_ERROR_AGAIN;
 		switch (errno) {
 		case EINVAL:
 			return G_IO_ERROR_INVAL;
