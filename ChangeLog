@@ -1,5 +1,10 @@
 2004-01-29  Rodrigo Moya <rodrigo@ximian.com>
 
+	* libsoup/soup-soap-response.[ch] (soup_soap_parameter_get_property):
+	new function.
+
+2004-01-29  Rodrigo Moya <rodrigo@ximian.com>
+
 	* libsoup/soup-soap-response.[ch]
 	(soup_soap_parameter_get_string_value): removed 'const' from return
 	type.

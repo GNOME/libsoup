@@ -347,6 +347,17 @@ soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
 }
 
 /**
+ * soup_soap_parameter_get_property:
+ * @param:
+ * @prop_name: Name of the property to retrieve.
+ */
+const char *
+soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_name)
+{
+	return xmlGetProp (param, prop_name);
+}
+
+/**
  * soup_soap_response_get_parameters:
  * @response: the %SoupSoapResponse object.
  *
