@@ -81,53 +81,65 @@ typedef void (*SoupMessageReadHeadersFn) (SoupMessage          *msg,
 					  char                 *headers,
 					  guint                 header_len,
 					  SoupTransferEncoding *encoding,
-					  int                  *content_len);
+					  int                  *content_len,
+					  gpointer              user_data);
 
 typedef void (*SoupMessageReadChunkFn)   (SoupMessage          *msg,
 					  const char           *chunk,
-					  guint                 len);
+					  guint                 len,
+					  gpointer              user_data);
 
 typedef void (*SoupMessageReadBodyFn)    (SoupMessage          *msg,
 					  char                 *body,
-					  guint                 len);
+					  guint                 len,
+					  gpointer              user_data);
 
-typedef void (*SoupMessageReadErrorFn)   (SoupMessage          *msg);
+typedef void (*SoupMessageReadErrorFn)   (SoupMessage          *msg,
+					  gpointer              user_data);
 
 
 void soup_message_read               (SoupMessage              *msg,
 				      SoupMessageReadHeadersFn  read_headers_cb,
 				      SoupMessageReadChunkFn    read_chunk_cb,
 				      SoupMessageReadBodyFn     read_body_cb,
-				      SoupMessageReadErrorFn    error_cb);
+				      SoupMessageReadErrorFn    error_cb,
+				      gpointer                  user_data);
 void soup_message_read_set_callbacks (SoupMessage              *msg,
 				      SoupMessageReadHeadersFn  read_headers_cb,
 				      SoupMessageReadChunkFn    read_chunk_cb,
 				      SoupMessageReadBodyFn     read_body_cb,
-				      SoupMessageReadErrorFn    error_cb);
+				      SoupMessageReadErrorFn    error_cb,
+				      gpointer                  user_data);
 void soup_message_read_cancel        (SoupMessage *msg);
 
 
 typedef void     (*SoupMessageWriteGetHeaderFn) (SoupMessage    *msg,
-						 GString        *out_hdr);
+						 GString        *out_hdr,
+						 gpointer        user_data);
 
 typedef gboolean (*SoupMessageWriteGetChunkFn)  (SoupMessage    *msg,
-						 SoupDataBuffer *out_next);
+						 SoupDataBuffer *out_next,
+						 gpointer        user_data);
 
-typedef void     (*SoupMessageWriteDoneFn)      (SoupMessage    *msg);
+typedef void     (*SoupMessageWriteDoneFn)      (SoupMessage    *msg,
+						 gpointer        user_data);
 
-typedef void     (*SoupMessageWriteErrorFn)     (SoupMessage    *msg);
+typedef void     (*SoupMessageWriteErrorFn)     (SoupMessage    *msg,
+						 gpointer        user_data);
 
 void soup_message_write         (SoupMessage                 *msg,
 				 SoupTransferEncoding         encoding,
 				 SoupMessageWriteGetHeaderFn  get_header_cb,
 				 SoupMessageWriteGetChunkFn   get_chunk_cb,
 				 SoupMessageWriteDoneFn       write_done_cb,
-				 SoupMessageWriteErrorFn      error_cb);
+				 SoupMessageWriteErrorFn      error_cb,
+				 gpointer                     user_data);
 void soup_message_write_simple  (SoupMessage                 *msg,
 				 const SoupDataBuffer        *body,
 				 SoupMessageWriteGetHeaderFn  get_header_cb,
 				 SoupMessageWriteDoneFn       write_done_cb,
-				 SoupMessageWriteErrorFn      error_cb);
+				 SoupMessageWriteErrorFn      error_cb,
+				 gpointer                     user_data);
 void soup_message_write_cancel  (SoupMessage                 *msg);
 
 void soup_message_write_pause   (SoupMessage                 *msg);

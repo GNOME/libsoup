@@ -32,11 +32,13 @@ typedef struct {
 	SoupMessageReadChunkFn    read_chunk_cb;
 	SoupMessageReadBodyFn     read_body_cb;
 	SoupMessageReadErrorFn    error_cb;
+	gpointer                  user_data;
 } SoupMessageReadState;
 
 /* Put these around callback invocation if there is code afterward
  * that depends on the read not having been cancelled.
  */
+#define dummy_to_make_emacs_happy {
 #define SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK { gboolean cancelled; g_object_ref (msg);
 #define SOUP_MESSAGE_READ_RETURN_IF_CANCELLED cancelled = (msg->priv->read_state != r); g_object_unref (msg); if (cancelled) return; }
 #define SOUP_MESSAGE_READ_RETURN_VAL_IF_CANCELLED(val) cancelled = (msg->priv->read_state != r); g_object_unref (msg); if (cancelled) return val; }
@@ -71,7 +73,8 @@ soup_message_read_set_callbacks (SoupMessage              *msg,
 				 SoupMessageReadHeadersFn  read_headers_cb,
 				 SoupMessageReadChunkFn    read_chunk_cb,
 				 SoupMessageReadBodyFn     read_body_cb,
-				 SoupMessageReadErrorFn    error_cb)
+				 SoupMessageReadErrorFn    error_cb,
+				 gpointer                  user_data)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
 
@@ -79,6 +82,7 @@ soup_message_read_set_callbacks (SoupMessage              *msg,
 	r->read_chunk_cb = read_chunk_cb;
 	r->read_body_cb = read_body_cb;
 	r->error_cb = error_cb;
+	r->user_data = user_data;
 }
 
 static void
@@ -86,6 +90,7 @@ issue_final_callback (SoupMessage *msg)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
 	SoupMessageReadBodyFn read_body_cb = r->read_body_cb;
+	gpointer user_data = r->user_data;
 	char *body;
 	guint len;
 
@@ -101,7 +106,7 @@ issue_final_callback (SoupMessage *msg)
 	}
 
 	soup_message_read_cancel (msg);
-	read_body_cb (msg, body, len);
+	read_body_cb (msg, body, len, user_data);
 }
 
 static void
@@ -109,6 +114,7 @@ failed_read (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
 	SoupMessageReadErrorFn error_cb = r->error_cb;
+	gpointer user_data = r->user_data;
 
 	/* Closing the connection to signify EOF is valid if content
 	 * length is unknown, but only if headers have been sent.
@@ -120,7 +126,7 @@ failed_read (SoupSocket *sock, SoupMessage *msg)
 	}
 
 	soup_message_read_cancel (msg);
-	error_cb (msg);
+	error_cb (msg, user_data);
 }
 
 static gboolean
@@ -178,7 +184,7 @@ read_body_chunk (SoupMessage *msg, guint *size)
 
 			if (r->read_chunk_cb) {
 				SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
-				r->read_chunk_cb (msg, read_buf, nread);
+				r->read_chunk_cb (msg, read_buf, nread, r->user_data);
 				SOUP_MESSAGE_READ_RETURN_VAL_IF_CANCELLED (FALSE);
 			}
 
@@ -229,7 +235,8 @@ do_read (SoupSocket *sock, SoupMessage *msg)
 						    r->meta_buf->data,
 						    r->meta_buf->len,
 						    &r->encoding, 
-						    &r->read_length);
+						    &r->read_length,
+						    r->user_data);
 				SOUP_MESSAGE_READ_RETURN_IF_CANCELLED;
 			}
 			g_byte_array_set_size (r->meta_buf, 0);
@@ -325,11 +332,12 @@ idle_read (gpointer user_data)
 }
 
 void
-soup_message_read (SoupMessage *msg,
-		   SoupMessageReadHeadersFn read_headers_cb,
-		   SoupMessageReadChunkFn   read_chunk_cb,
-		   SoupMessageReadBodyFn    read_body_cb,
-		   SoupMessageReadErrorFn   error_cb)
+soup_message_read (SoupMessage              *msg,
+		   SoupMessageReadHeadersFn  read_headers_cb,
+		   SoupMessageReadChunkFn    read_chunk_cb,
+		   SoupMessageReadBodyFn     read_body_cb,
+		   SoupMessageReadErrorFn    error_cb,
+		   gpointer                  user_data)
 {
 	SoupMessageReadState *r;
 
@@ -342,6 +350,7 @@ soup_message_read (SoupMessage *msg,
 	r->read_chunk_cb = read_chunk_cb;
 	r->read_body_cb = read_body_cb;
 	r->error_cb = error_cb;
+	r->user_data = user_data;
 	r->encoding = SOUP_TRANSFER_UNKNOWN;
 
 	r->meta_buf = g_byte_array_new ();
@@ -376,6 +385,7 @@ typedef struct {
 	SoupMessageWriteGetChunkFn  get_chunk_cb;
 	SoupMessageWriteDoneFn      write_done_cb;
 	SoupMessageWriteErrorFn     error_cb;
+	gpointer                    user_data;
 } SoupMessageWriteState;
 
 /* Put these around callback invocation if there is code afterward
@@ -411,9 +421,10 @@ failed_write (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageWriteState *w = msg->priv->write_state;
 	SoupMessageWriteErrorFn error_cb = w->error_cb;
+	gpointer user_data = w->user_data;
 
 	soup_message_write_cancel (msg);
-	error_cb (msg);
+	error_cb (msg, user_data);
 }
 
 static gboolean
@@ -451,13 +462,14 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageWriteState *w = msg->priv->write_state;
 	SoupMessageWriteDoneFn write_done_cb = w->write_done_cb;
+	gpointer user_data = w->user_data;
 
 	while (1) {
 		switch (msg->priv->status) {
 		case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
 			if (w->get_header_cb) {
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
-				w->get_header_cb (msg, w->buf);
+				w->get_header_cb (msg, w->buf, user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				w->get_header_cb = NULL;
@@ -490,8 +502,9 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 				gboolean got_chunk;
 
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
-				got_chunk =
-					w->get_chunk_cb (msg, &w->chunk);
+				got_chunk = w->get_chunk_cb (msg,
+							     &w->chunk,
+							     user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				if (!got_chunk) {
@@ -560,7 +573,7 @@ do_write (SoupSocket *sock, SoupMessage *msg)
  done:
 	msg->priv->status = SOUP_MESSAGE_STATUS_FINISHED_WRITING;
 	soup_message_write_cancel (msg);
-	write_done_cb (msg);
+	write_done_cb (msg, user_data);
 }
 
 static gboolean
@@ -579,7 +592,8 @@ create_writer (SoupMessage                 *msg,
 	       SoupTransferEncoding         encoding,
 	       SoupMessageWriteGetHeaderFn  get_header_cb,
 	       SoupMessageWriteDoneFn       write_done_cb,
-	       SoupMessageWriteErrorFn      error_cb)
+	       SoupMessageWriteErrorFn      error_cb,
+	       gpointer                     user_data)
 {
 	SoupMessageWriteState *w;
 
@@ -589,6 +603,7 @@ create_writer (SoupMessage                 *msg,
 	w->get_header_cb = get_header_cb;
 	w->write_done_cb = write_done_cb;
 	w->error_cb      = error_cb;
+	w->user_data     = user_data;
 
 	w->write_tag =
 		g_signal_connect (msg->priv->socket, "writable",
@@ -610,12 +625,14 @@ soup_message_write_simple (SoupMessage                 *msg,
 			   const SoupDataBuffer        *body,
 			   SoupMessageWriteGetHeaderFn  get_header_cb,
 			   SoupMessageWriteDoneFn       write_done_cb,
-			   SoupMessageWriteErrorFn      error_cb)
+			   SoupMessageWriteErrorFn      error_cb,
+			   gpointer                     user_data)
 {
 	SoupMessageWriteState *w;
 
 	w = create_writer (msg, SOUP_TRANSFER_CONTENT_LENGTH,
-			   get_header_cb, write_done_cb, error_cb);
+			   get_header_cb, write_done_cb,
+			   error_cb, user_data);
 
 	w->body = body;
 }
@@ -626,12 +643,13 @@ soup_message_write (SoupMessage                 *msg,
 		    SoupMessageWriteGetHeaderFn  get_header_cb,
 		    SoupMessageWriteGetChunkFn   get_chunk_cb,
 		    SoupMessageWriteDoneFn       write_done_cb,
-		    SoupMessageWriteErrorFn      error_cb)
+		    SoupMessageWriteErrorFn      error_cb,
+		    gpointer                     user_data)
 {
 	SoupMessageWriteState *w;
 
 	w = create_writer (msg, encoding, get_header_cb,
-			   write_done_cb, error_cb);
+			   write_done_cb, error_cb, user_data);
 	w->get_chunk_cb = get_chunk_cb;
 }
 

@@ -1,5 +1,18 @@
 2003-08-25  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-message-io.c (soup_message_read,
+	soup_message_write, soup_message_write_simple): Add a "user_data"
+	arg, pass it to the callbacks.
+
+	* libsoup/soup-message.c (soup_message_requeue,
+	requeue_read_finished, requeue_read_error): Update for that
+
+	* libsoup/soup-queue.c: Likewise
+
+	* libsoup/soup-server.c: Likewise
+
+2003-08-25  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-message.c (soup_message_new): Take a uri string
 	instead of a context. Also, swap the args (so the method comes
 	before the URI, just like in the protocol).

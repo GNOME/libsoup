@@ -181,13 +181,13 @@ soup_server_get_protocol (SoupServer *server)
 static void start_request (SoupServer *, SoupSocket *);
 
 static void
-error_cb (SoupMessage *msg)
+error_cb (SoupMessage *msg, gpointer user_data)
 {
 	g_object_unref (msg);
 }
 
 static void
-write_done_cb (SoupMessage *msg)
+write_done_cb (SoupMessage *msg, gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
 
@@ -207,8 +207,8 @@ write_header (gpointer name, gpointer value, gpointer headers)
 }
 
 static void
-get_response_header_cb (SoupMessage *msg,
-			GString     *headers)
+get_response_header_cb (SoupMessage *msg, GString *headers,
+			gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
 	SoupTransferEncoding encoding =
@@ -235,10 +235,7 @@ get_response_header_cb (SoupMessage *msg,
 }
 
 static inline void
-set_response_error (SoupMessage    *req,
-		    guint           code,
-		    char           *phrase,
-		    char           *body)
+set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
 {
 	if (phrase)
 		soup_message_set_error_full (req, code, phrase);
@@ -262,15 +259,14 @@ issue_bad_request (SoupMessage *msg)
 
 	soup_message_write_simple (msg, &msg->response,
 				   get_response_header_cb,
-				   write_done_cb, error_cb);
+				   write_done_cb, error_cb,
+				   NULL);
 }
 
 static void
-read_headers_cb (SoupMessage          *msg,
-		 char                 *headers,
-		 guint                 headers_len,
-		 SoupTransferEncoding *encoding,
-		 int                  *content_len)
+read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
+		 SoupTransferEncoding *encoding, int *content_len,
+		 gpointer user_data)
 {
 	SoupContext *ctx;
 	char *req_path = NULL, *url;
@@ -435,7 +431,7 @@ call_handler (SoupMessage *req)
 }
 
 static gboolean
-get_chunk_cb (SoupMessage *msg, SoupDataBuffer *out_next)
+get_chunk_cb (SoupMessage *msg, SoupDataBuffer *out_next, gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
 	SoupDataBuffer *next;
@@ -456,9 +452,7 @@ get_chunk_cb (SoupMessage *msg, SoupDataBuffer *out_next)
 }
 
 static void
-read_done_cb (SoupMessage *req,
-	      char        *body,
-	      guint        len)
+read_done_cb (SoupMessage *req, char *body, guint len, gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (req);
 	SoupTransferEncoding encoding;
@@ -473,12 +467,13 @@ read_done_cb (SoupMessage *req,
 	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH) {
 		soup_message_write_simple (req, &req->response,
 					   get_response_header_cb,
-					   write_done_cb, error_cb);
+					   write_done_cb, error_cb,
+					   NULL);
 		soup_server_message_start (smsg);
 	} else {
 		soup_message_write (req, encoding,
 				    get_response_header_cb, get_chunk_cb,
-				    write_done_cb, error_cb);
+				    write_done_cb, error_cb, NULL);
 	}
 
 	return;
@@ -492,7 +487,7 @@ start_request (SoupServer *server, SoupSocket *server_sock)
 	/* Listen for another request on this connection */
 	msg = (SoupMessage *)soup_server_message_new (server, server_sock);
 	soup_message_read (msg, read_headers_cb, NULL,
-			   read_done_cb, error_cb);
+			   read_done_cb, error_cb, NULL);
 }
 
 static void

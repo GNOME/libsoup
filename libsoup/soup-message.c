@@ -482,14 +482,15 @@ soup_message_queue (SoupMessage    *req,
 }
 
 static void
-requeue_read_error (SoupMessage *msg)
+requeue_read_error (SoupMessage *msg, gpointer user_data)
 {
 	soup_message_disconnect (msg);
 	queue_message (msg);
 }
 
 static void
-requeue_read_finished (SoupMessage *msg, char *body, guint len)
+requeue_read_finished (SoupMessage *msg, char *body, guint len,
+		       gpointer user_data)
 {
 	SoupConnection *conn = msg->priv->connection;
 
@@ -524,7 +525,7 @@ soup_message_requeue (SoupMessage *req)
 	if (req->priv->connection && req->priv->read_state) {
 		soup_message_read_set_callbacks (req, NULL, NULL,
 						 requeue_read_finished,
-						 requeue_read_error);
+						 requeue_read_error, NULL);
 
 		if (req->priv->write_state)
 			soup_message_write_cancel (req);

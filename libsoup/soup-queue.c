@@ -54,7 +54,7 @@ soup_debug_print_headers (SoupMessage *req)
 }
 
 static void 
-soup_queue_error_cb (SoupMessage *req)
+soup_queue_error_cb (SoupMessage *req, gpointer user_data)
 {
 	SoupConnection *conn = soup_message_get_connection (req);
 	const SoupUri *uri;
@@ -110,11 +110,9 @@ soup_queue_error_cb (SoupMessage *req)
 }
 
 static void
-soup_queue_read_headers_cb (SoupMessage          *req,
-			    char                 *headers,
-			    guint                 headers_len,
-                            SoupTransferEncoding *encoding,
-			    int                  *content_len)
+soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
+			    SoupTransferEncoding *encoding, int *content_len,
+			    gpointer user_data)
 {
 	const char *length, *enc;
 	SoupHttpVersion version;
@@ -203,9 +201,8 @@ soup_queue_read_headers_cb (SoupMessage          *req,
 }
 
 static void
-soup_queue_read_chunk_cb (SoupMessage *req,
-			  const char  *chunk,
-			  guint        len)
+soup_queue_read_chunk_cb (SoupMessage *req, const char *chunk, guint len,
+			  gpointer user_data)
 {
 	req->response.owner = SOUP_BUFFER_STATIC;
 	req->response.length = len;
@@ -217,7 +214,8 @@ soup_queue_read_chunk_cb (SoupMessage *req,
 }
 
 static void
-soup_queue_read_done_cb (SoupMessage *req, char *body, guint len)
+soup_queue_read_done_cb (SoupMessage *req, char *body, guint len,
+			 gpointer user_data)
 {
 	if (soup_message_is_keepalive (req))
 		soup_connection_mark_old (soup_message_get_connection (req));
@@ -233,7 +231,8 @@ soup_queue_read_done_cb (SoupMessage *req, char *body, guint len)
 				   soup_queue_read_headers_cb,
 				   soup_queue_read_chunk_cb,
 				   soup_queue_read_done_cb,
-				   soup_queue_error_cb);
+				   soup_queue_error_cb,
+				   NULL);
 	} else
 		req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
 
@@ -323,7 +322,8 @@ soup_check_used_headers (gchar  *key,
 }
 
 static void
-soup_queue_get_request_header_cb (SoupMessage *req, GString *header)
+soup_queue_get_request_header_cb (SoupMessage *req, GString *header,
+				  gpointer user_data)
 {
 	char *uri;
 	SoupContext *proxy;
@@ -405,13 +405,14 @@ soup_queue_get_request_header_cb (SoupMessage *req, GString *header)
 }
 
 static void 
-soup_queue_write_done_cb (SoupMessage *req)
+soup_queue_write_done_cb (SoupMessage *req, gpointer user_data)
 {
 	soup_message_read (req,
 			   soup_queue_read_headers_cb,
 			   soup_queue_read_chunk_cb,
 			   soup_queue_read_done_cb,
-			   soup_queue_error_cb);
+			   soup_queue_error_cb,
+			   NULL);
 }
 
 static void
@@ -449,7 +450,8 @@ start_request (SoupContext *ctx, SoupMessage *req)
 	soup_message_write_simple (req, &req->request,
 				   soup_queue_get_request_header_cb,
 				   soup_queue_write_done_cb,
-				   soup_queue_error_cb);
+				   soup_queue_error_cb,
+				   NULL);
 }
 
 static void
