@@ -1,3 +1,8 @@
+2001-10-20  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: Bump version to 0.5.2.
+	* src/libsoup/soup-private.h: Update version.
+
 2001-10-18  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Set

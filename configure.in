@@ -12,8 +12,8 @@ AC_SUBST(SOUP_CURRENT)
 AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
 
-# Update in src/soup-core/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.5.1)
+# Update in src/libsoup/soup-private.h for Windows
+AM_INIT_AUTOMAKE(soup, 0.5.2)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
