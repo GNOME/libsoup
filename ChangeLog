@@ -1,5 +1,13 @@
 2001-06-01  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/Makefile.am (libsoup_la_SOURCES): Take soup-cgi.c
+	out of rotation until server/client codepaths merge.
+
+	* src/soup-core/soup-httpd.c (soup_httpd_finish_read): Don't span
+	mulptiple lines for content-type header.
+
+2001-06-01  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-queue.c (soup_check_used_headers): Only mark
 	which custom headers are used, and directly g_string_sprintfa()
 	the custom header.
