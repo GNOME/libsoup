@@ -1,5 +1,20 @@
 2002-04-08  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-wsdl/wsdl-trace.c (wsdl_get_output_file): Gets the
+	current output file.
+	(wsdl_set_output_file): Sets it.
+
+	* src/soup-wsdl/wsdl-soap-headers.c (wsdl_emit_soap_headers): Lame
+	hack around systems that don't have stdarg macros.
+
+	* src/soup-wsdl/wsdl-soap-stubs.c (wsdl_emit_soap_stubs): Ditto.
+
+	* src/soup-wsdl/wsdl-soap-skels.c (wsdl_emit_soap_skels): Ditto.
+
+	* src/soup-wsdl/wsdl-soap-common.c (wsdl_emit_soap_common): Ditto.
+
+2002-04-08  Alex Graveley  <alex@ximian.com>
+
 	Fixes backported from HEAD:
 
 	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Handle
