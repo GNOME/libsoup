@@ -1,3 +1,10 @@
+2001-06-07  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_redirect): Change
+	msg->priv->flags to msg->priv->msg_flags so it'll build again.
+	(soup_message_run_handlers): Add a default case to the switch
+	statement (for RESPONSE_BODY_HANDLER) to squash a warning.
+
 2001-06-07  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_run_handlers): Stop

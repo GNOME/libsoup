@@ -482,6 +482,9 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 		case RESPONSE_CODE_HANDLER:
 			if (msg->response_code != data->code) continue;
 			break;
+		default:
+			g_warning("Not implemented yet");
+			break;
 		}
 
 		retval = (*data->handler_cb) (msg, data->user_data);
@@ -509,7 +512,7 @@ soup_message_redirect (SoupMessage *msg, gpointer user_data)
 		return SOUP_ERROR_NONE;
 	}
 
-	if (!(msg->priv->flags & SOUP_MESSAGE_FOLLOW_REDIRECT)) 
+	if (!(msg->priv->msg_flags & SOUP_MESSAGE_FOLLOW_REDIRECT)) 
 		return SOUP_ERROR_NONE;
 
 	new_url = soup_message_get_response_header (msg, "Location");
