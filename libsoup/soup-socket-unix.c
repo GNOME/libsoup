@@ -565,12 +565,18 @@ soup_address_new (const gchar* name,
 	SoupAddress* ia;
 	SoupAddressState* state;
 	GIOChannel *chan;
+	gboolean inaddr_ok;
 
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
 
 	/* Try to read the name as if were dotted decimal */
-	if (inet_aton (name, &inaddr) != 0) {
+#ifdef HAVE_INET_PTON
+	inaddr_ok = inet_pton (AF_INET, name, &inaddr) != 0;
+#else
+	inaddr_ok = inet_aton (name, &inaddr) != 0;
+#endif
+	if (inaddr_ok) {
 		ia = g_new0 (SoupAddress, 1);
 		ia->ref_count = 1;
 

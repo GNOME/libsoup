@@ -68,6 +68,8 @@ AC_HEADER_STDC
 # Initialize libtool
 AM_PROG_LIBTOOL
 
+# This isn't a program, but it doesn't fit anywhere else...
+AC_FUNC_ALLOCA
 
 dnl ***************************
 dnl *** Checks for glib 1.2 ***
@@ -187,7 +189,6 @@ AC_SUBST(SOUP_WSDL_LIBDIR)
 AC_SUBST(SOUP_WSDL_INCLUDEDIR)
 AC_SUBST(SOUP_WSDL_LIBS)
 
-
 dnl *********************************
 dnl *** Networking library checks ***
 dnl *********************************
@@ -196,10 +197,10 @@ AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
 AC_CHECK_HEADERS(sys/socket.h sys/sockio.h sys/poll.h sys/param.h sys/wait.h)
 
-AC_CHECK_LIB(nsl, main)
-AC_CHECK_LIB(resolv, main)
+AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
+AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, gethostbyname))
 
-AC_FUNC_ALLOCA
+AC_CHECK_FUNCS(inet_pton)
 
 ### Check if we have gethostbyname_r (if so, assume gethostbyaddr_r).
 AC_CHECK_FUNC(gethostbyname_r,

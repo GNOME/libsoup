@@ -1,3 +1,11 @@
+2001-10-25  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Fix up the networking library checks to work on
+	Solaris. Check for inet_pton. (Solaris doesn't have inet_aton.)
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): Use inet_pton
+	instead of inet_aton if available.
+
 2001-10-22  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-ssl-proxy/soup-ssl-proxy.c (soup_ssl_proxy_readwrite):
