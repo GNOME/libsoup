@@ -1,5 +1,6 @@
 2001-05-09  Rodrigo Moya <rodrigo@ximian.com>
 
+	* src/soup-wsdl/: some small fixes for compilation
 	* src/soup-core/soup-parser.[ch]: added a basic SOAP messages
 	parser, which easily lets access to the message parameters
 	and faults
