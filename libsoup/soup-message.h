@@ -102,6 +102,8 @@ void           soup_message_queue               (SoupMessage       *req,
 						 SoupCallbackFn     callback, 
 						 gpointer           user_data);
 
+void           soup_message_requeue             (SoupMessage       *req);
+
 void           soup_message_add_header          (GHashTable        *hash,
 						 const gchar       *name,
 						 const gchar       *value);

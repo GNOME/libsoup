@@ -81,9 +81,7 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 			/*
 			 * FIXME: Use exponential backoff here
 			 */
-			soup_message_queue (req, 
-					    req->priv->callback, 
-					    req->priv->user_data);
+			soup_message_requeue (req);
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);
 			soup_message_issue_callback (req);
@@ -97,27 +95,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	}
 }
 
-static gboolean
-soup_parse_headers (const GString   *headers, 
-		    SoupHttpVersion *version,
-		    SoupMessage     *req)
-{
-	if (!soup_headers_parse_response (headers->str, 
-					  headers->len, 
-					  req->response_headers,
-					  version,
-					  &req->errorcode,
-					  (gchar **) &req->errorphrase)) {
-		soup_message_set_error (req, SOUP_ERROR_MALFORMED);
-		soup_message_issue_callback (req);
-		return FALSE;
-	}
-
-	req->errorclass = soup_error_get_class (req->errorcode);
-
-	return TRUE;
-}
-
 static SoupTransferDone
 soup_queue_read_headers_cb (const GString        *headers,
                             SoupTransferEncoding *encoding,
@@ -125,12 +102,22 @@ soup_queue_read_headers_cb (const GString        *headers,
 			    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-
 	const gchar *connection, *length, *enc;
 	SoupHttpVersion version;
 
-	if (!soup_parse_headers (headers, &version, req)) 
-		return SOUP_TRANSFER_END;
+	if (!soup_headers_parse_response (headers->str, 
+					  headers->len, 
+					  req->response_headers,
+					  &version,
+					  &req->errorcode,
+					  (gchar **) &req->errorphrase)) {
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_MALFORMED,
+					     "Unable to parse response "
+					     "headers");
+		goto THROW_MALFORMED_HEADER;
+	} else
+		req->errorclass = soup_error_get_class (req->errorcode);
 
 	/* 
 	 * Handle connection persistence
@@ -160,46 +147,45 @@ soup_queue_read_headers_cb (const GString        *headers,
 	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
                 *encoding = SOUP_TRANSFER_CONTENT_LENGTH;
                 *content_len = 0;
-		goto RUN_HANDLERS;
-	}
+	} else {
+		/* 
+		 * Handle Content-Length or Chunked encoding 
+		 */
+		length = soup_message_get_header (req->response_headers, 
+						  "Content-Length");
+		enc = soup_message_get_header (req->response_headers, 
+					       "Transfer-Encoding");
 
-	/* 
-	 * Handle Content-Length or Chunked encoding 
-	 */
-	length = soup_message_get_header (req->response_headers, 
-					  "Content-Length");
-	enc = soup_message_get_header (req->response_headers, 
-				       "Transfer-Encoding");
-
-	if (length) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = atoi (length);
-		if (*content_len < 0) {
-			soup_message_set_error_full (req, 
-						     SOUP_ERROR_MALFORMED,
-						     "Invalid Content-Length");
-			goto THROW_MALFORMED_HEADER;
+		if (length) {
+			*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+			*content_len = atoi (length);
+			if (*content_len < 0) {
+				soup_message_set_error_full (
+					req, 
+					SOUP_ERROR_MALFORMED,
+					"Invalid Content-Length");
+				goto THROW_MALFORMED_HEADER;
+			}
+		}
+		else if (enc) {
+			if (g_strcasecmp (enc, "chunked") == 0)
+				*encoding = SOUP_TRANSFER_CHUNKED;
+			else {
+				soup_message_set_error_full (
+					req, 
+					SOUP_ERROR_MALFORMED,
+					"Unknown Response Encoding");
+				goto THROW_MALFORMED_HEADER;
+			}
 		}
 	}
-	else if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0)
-			*encoding = SOUP_TRANSFER_CHUNKED;
-		else {
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_MALFORMED,
-				"Unknown Response Encoding");
-			goto THROW_MALFORMED_HEADER;
-		}
-	}
 
- RUN_HANDLERS:
-	if (soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY))
-		return SOUP_TRANSFER_END;
+	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
 
 	return SOUP_TRANSFER_CONTINUE;
 
  THROW_MALFORMED_HEADER:
+	soup_connection_set_keep_alive (req->connection, FALSE);
 	soup_message_issue_callback (req);
 	return SOUP_TRANSFER_END;
 }
@@ -214,8 +200,7 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	if (soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK))
-		return SOUP_TRANSFER_END;
+	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
 
 	return SOUP_TRANSFER_CONTINUE;
 }
@@ -646,7 +631,8 @@ soup_idle_handle_new_requests (gpointer unused)
 
 		req->status = SOUP_STATUS_CONNECTING;
 
-		if (req->connection)
+		if (req->connection && 
+		    soup_connection_is_keep_alive (req->connection))
 			start_request (ctx, req);
 		else
 			req->priv->connect_tag =

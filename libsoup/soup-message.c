@@ -90,6 +90,22 @@ soup_message_new_full (SoupContext   *context,
 	return ret;
 }
 
+static void 
+release_connection (const SoupDataBuffer *data,
+		    gpointer              user_data)
+{
+	SoupConnection *conn = user_data;
+	soup_connection_release (conn);
+}
+
+static void 
+release_and_close_connection (gboolean headers_done, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	soup_connection_set_keep_alive (conn, FALSE);
+	soup_connection_release (conn);
+}
+
 /**
  * soup_message_cleanup:
  * @req: a %SoupMessage.
@@ -102,6 +118,17 @@ void
 soup_message_cleanup (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
+
+	if (req->status == SOUP_STATUS_READING_RESPONSE) {
+		soup_transfer_read_set_callbacks (req->priv->read_tag,
+						  NULL,
+						  NULL,
+						  release_connection,
+						  release_and_close_connection,
+						  req->connection);		
+		req->priv->read_tag = 0;
+		req->connection = NULL;
+	}
 
 	if (req->priv->read_tag) {
 		soup_transfer_read_cancel (req->priv->read_tag);
@@ -544,7 +571,21 @@ soup_message_queue (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
 		    gpointer        user_data)
 {
+	g_return_if_fail (req != NULL);
 	soup_queue_message (req, callback, user_data);
+}
+
+/**
+ * soup_message_requeue:
+ * @req: a %SoupMessage
+ *
+ * This causes @req to be placed back on the queue to be attempted again.
+ **/
+void
+soup_message_requeue (SoupMessage *req)
+{
+	g_return_if_fail (req != NULL);
+	soup_queue_message (req, req->priv->callback, req->priv->user_data);
 }
 
 /**
@@ -634,7 +675,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 
 	soup_auth_set_context (auth, ctx);
 
-	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
+	soup_message_requeue (msg);
 
         return;
 
@@ -685,9 +726,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		soup_message_set_context (msg, new_ctx);
 		soup_context_unref (new_ctx);
 
-		soup_message_queue (msg,
-				    msg->priv->callback, 
-				    msg->priv->user_data);
+		soup_message_requeue (msg);
 	}
 
 	return;

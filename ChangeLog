@@ -1,3 +1,28 @@
+2001-11-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_error_cb): Use
+	soup_message_requeue.
+	(soup_queue_read_headers_cb): Don't end the transfer if a handler
+	requeues the message.  Close the connection on malformed headers.
+	(soup_queue_read_chunk_cb): Ditto for the former.
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Impl. Requeue
+	the message using existing callback/user_data.
+	(authorize_handler): Use soup_message_requeue.
+	(redirect_handler): Ditto.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_set_callbacks):
+	Impl. Allows changing of the reader's callbacks to ignore certain
+	events (like chunk data) and change the user_data.
+
+	* src/libsoup/soup-message.c (soup_message_cleanup): If still
+	reading response, reset the SoupReader's callbacks to only release
+	(on finish) or release and close (on error) the connection,
+	instead of terminating the read which could leave data in the
+	socket to to hork future messages which use this connection.  Also
+	NULL the message's references to the connection and SoupReader so
+	that they are not disposed of on message free.
+
 2001-11-12  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (start_request): Impl.  Move request

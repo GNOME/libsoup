@@ -41,7 +41,7 @@ typedef struct {
 	guint                  err_tag;
 
 	/*
-	 * If TRUE, a callback has been issed which references recv_buf.
+	 * If TRUE, a callback has been issued which references recv_buf.
 	 * If the transfer is cancelled before a reference exists, the contents
 	 * of recv_buf are free'd.
 	 */
@@ -100,6 +100,24 @@ soup_transfer_read_cancel (guint tag)
 	g_byte_array_free (r->recv_buf, r->callback_issued ? FALSE : TRUE);
 
 	g_free (r);
+}
+
+void 
+soup_transfer_read_set_callbacks (guint                   tag,
+				  SoupReadHeadersDoneFn   headers_done_cb,
+				  SoupReadChunkFn         read_chunk_cb,
+				  SoupReadDoneFn          read_done_cb,
+				  SoupReadErrorFn         error_cb,
+				  gpointer                user_data)
+{
+	SoupReader *r = GINT_TO_POINTER (tag);
+
+	r->headers_done_cb = headers_done_cb;
+	r->read_chunk_cb = read_chunk_cb;
+	r->read_done_cb = read_done_cb;
+	r->error_cb = error_cb;
+
+	r->user_data = user_data;
 }
 
 static void

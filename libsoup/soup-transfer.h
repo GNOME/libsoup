@@ -50,6 +50,13 @@ guint soup_transfer_read  (GIOChannel             *chan,
 
 void  soup_transfer_read_cancel (guint tag);
 
+void  soup_transfer_read_set_callbacks (guint                   tag,
+					SoupReadHeadersDoneFn   headers_done_cb,
+					SoupReadChunkFn         read_chunk_cb,
+					SoupReadDoneFn          read_done_cb,
+					SoupReadErrorFn         error_cb,
+					gpointer                user_data);
+
 typedef void (*SoupWriteHeadersDoneFn) (gpointer user_data);
 
 typedef void (*SoupWriteDoneFn) (gpointer user_data);
