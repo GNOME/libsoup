@@ -43,9 +43,9 @@ SoupConnectId  soup_context_get_connection    (SoupContext          *ctx,
 					       SoupConnectCallbackFn cb,
 					       gpointer              user_data);
 
-const SoupUri *soup_context_get_uri           (SoupContext          *ctx);
-
 void           soup_context_cancel_connect    (SoupConnectId         tag);
+
+const SoupUri *soup_context_get_uri           (SoupContext          *ctx);
 
 
 GIOChannel    *soup_connection_get_iochannel  (SoupConnection       *conn);

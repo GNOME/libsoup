@@ -116,6 +116,14 @@ void           soup_message_foreach_header      (GHashTable        *hash,
 						 GHFunc             func,
 						 gpointer           user_data);
 
+void           soup_message_foreach_remove_header (
+						 GHashTable        *hash,
+						 GHRFunc            func,
+						 gpointer           user_data);
+
+void           soup_message_remove_header       (GHashTable        *hash,
+						 const gchar       *name);
+
 void           soup_message_clear_headers       (GHashTable        *hash);
 
 typedef enum {

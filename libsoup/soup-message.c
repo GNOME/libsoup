@@ -21,10 +21,12 @@
  * soup_message_new:
  * @context: a %SoupContext for the destination endpoint.
  * @method: a string which will be used as the HTTP method for the created
- * request.
+ * request, if NULL a GET request will be made.
  * 
  * Creates a new empty %SoupMessage, which will connect to the URL represented
- * by @context. The new message has a status of @SOUP_STATUS_IDLE.
+ * by @context.  A reference will be added to @context.
+ * 
+ * The new message has a status of @SOUP_STATUS_IDLE.
  *
  * Return value: the new %SoupMessage.
  */
@@ -39,7 +41,7 @@ soup_message_new (SoupContext *context, const gchar *method)
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
 	ret->status  = SOUP_STATUS_IDLE;
 	ret->context = context;
-	ret->method  = method ? method : SOUP_METHOD_POST;
+	ret->method  = method ? method : SOUP_METHOD_GET;
 
 	ret->request_headers = g_hash_table_new (soup_str_case_hash, 
 						 soup_str_case_equal);
@@ -58,15 +60,17 @@ soup_message_new (SoupContext *context, const gchar *method)
  * soup_message_new_full:
  * @context: a %SoupContext for the destination endpoint.
  * @method: a string which will be used as the HTTP method for the created
- * request.
+ * request, if NULL a GET request will be made..
  * @req_owner: the %SoupOwnership of the passed data buffer.
  * @req_body: a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
  * Creates a new %SoupMessage, which will connect to the URL represented by
- * @context. The new message has a status of @SOUP_STATUS_IDLE. The request data
+ * @context.  A reference is added to @context.  The request data
  * buffer will be filled from @req_owner, @req_body, and @req_length
  * respectively.
+ *
+ * The new message has a status of @SOUP_STATUS_IDLE.
  *
  * Return value: the new %SoupMessage.
  */
@@ -90,8 +94,9 @@ soup_message_new_full (SoupContext   *context,
  * soup_message_cleanup:
  * @req: a %SoupMessage.
  * 
- * Frees any temporary resources created in the processing of @req. Request and
- * response data buffers are left intact.
+ * Frees any temporary resources created in the processing of @req.  Also
+ * releases the active connection, if one exists. Request and response data
+ * buffers are left intact. 
  */
 void 
 soup_message_cleanup (SoupMessage *req)
@@ -232,34 +237,44 @@ soup_message_clear_headers       (GHashTable        *hash)
 }
 
 void 
+soup_message_remove_header (GHashTable  *hash,
+			    const gchar *name)
+{
+	gchar *stored_key;
+	GSList *vals;
+
+	g_return_if_fail (hash != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');
+
+	if (g_hash_table_lookup_extended (hash, 
+					  name, 
+					  (gpointer *) &stored_key, 
+					  (gpointer *) &vals)) {
+		g_hash_table_remove (hash, name);
+		foreach_free_header_list (stored_key, vals, NULL);
+	}
+}
+
+void 
 soup_message_add_header (GHashTable  *hash,
 			 const gchar *name,
 			 const gchar *value) 
 {
-	gboolean exists = FALSE;
-	gpointer old_name;
 	GSList *old_value;
 
 	g_return_if_fail (hash != NULL);
-	g_return_if_fail (name != NULL || name [0] != '\0');	
+	g_return_if_fail (name != NULL || name [0] != '\0');
+	g_return_if_fail (value != NULL);
 
-	exists = g_hash_table_lookup_extended (hash, 
-					       name, 
-					       &old_name, 
-					       (gpointer *) &old_value);
+	old_value = g_hash_table_lookup (hash, name);
 
-	if (value && exists)
-		old_value = g_slist_append (old_value,
-					    g_strdup (value));
-	else if (value && !exists)
+	if (old_value)
+		g_slist_append (old_value, g_strdup (value));
+	else
 		g_hash_table_insert (hash, 
 				     g_strdup (name), 
 				     g_slist_append (NULL, 
 						     g_strdup (value)));
-	else if (!value && exists) {
-		g_hash_table_remove (hash, name);
-		foreach_free_header_list (old_name, old_value, NULL);
-	} 
 }
 
 /**
@@ -335,6 +350,57 @@ soup_message_foreach_header      (GHashTable        *hash,
 	g_return_if_fail (func != NULL);
 
 	g_hash_table_foreach (hash, (GHFunc) foreach_value_in_list, &data);
+}
+
+typedef struct {
+	GHRFunc   func;
+	gpointer user_data;
+} ForeachRemoveData;
+
+static gboolean 
+foreach_remove_value_in_list (gchar             *name, 
+			      GSList            *vals, 
+			      ForeachRemoveData *data)
+{
+	GSList *iter = vals;
+
+	while (iter) {
+		gchar *v = iter->data;
+		gboolean ret = FALSE;
+
+		ret = (*data->func) (name, v, data->user_data);
+		if (ret) {
+			GSList *next = iter->next;
+
+			vals = g_slist_remove (vals, v);
+			g_free (v);
+
+			iter = next;
+		} else
+			iter = iter->next;
+	}
+
+	if (!vals) {
+		g_free (name);
+		return TRUE;
+	} 
+
+	return FALSE;
+}
+
+void
+soup_message_foreach_remove_header (GHashTable        *hash,
+				    GHRFunc            func,
+				    gpointer           user_data)
+{
+	ForeachRemoveData data = { func, user_data };
+
+	g_return_if_fail (hash != NULL);
+	g_return_if_fail (func != NULL);
+
+	g_hash_table_foreach_remove (hash, 
+				     (GHRFunc) foreach_remove_value_in_list, 
+				     &data);
 }
 
 /**

@@ -34,22 +34,23 @@ GSList *soup_active_requests = NULL;
 static guint soup_queue_idle_tag = 0;
 
 static void
-soup_debug_print_a_header (gchar *key, GSList *vals, gpointer not_used)
+soup_debug_print_a_header (gchar *key, gchar *val, gpointer not_used)
 {
-	while (vals) {
-		g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", 
-			 key, 
-			 (gchar *) vals->data);
-		vals = vals->next;
-	}
+	g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", key, val);
 }
 
 void 
 soup_debug_print_headers (SoupMessage *req)
 {
-	g_hash_table_foreach (req->response_headers,
-			      (GHFunc) soup_debug_print_a_header,
-			      NULL); 
+	g_print ("Request Headers:\n");
+	soup_message_foreach_header (req->request_headers,
+				     (GHFunc) soup_debug_print_a_header,
+				     NULL);
+
+	g_print ("Response Headers:\n");
+	soup_message_foreach_header (req->response_headers,
+				     (GHFunc) soup_debug_print_a_header,
+				     NULL);
 }
 
 static void 
