@@ -1,3 +1,10 @@
+2004-02-03  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-socket.c (read_from_buf): Use memmove rather than
+	memcpy here, since the source and destination will overlap if
+	*nread is small and read_buf->len is large. (Noticed by valgrind,
+	#53625.)
+
 2004-02-02  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-gnutls.c (soup_gnutls_close): Call gnutls_bye()

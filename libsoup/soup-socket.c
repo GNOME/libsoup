@@ -878,8 +878,8 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		g_byte_array_free (read_buf, TRUE);
 		sock->priv->read_buf = NULL;
 	} else {
-		memcpy (read_buf->data, read_buf->data + *nread, 
-			read_buf->len - *nread);
+		memmove (read_buf->data, read_buf->data + *nread, 
+			 read_buf->len - *nread);
 		g_byte_array_set_size (read_buf, read_buf->len - *nread);
 	}
 
