@@ -1,3 +1,9 @@
+2001-08-27  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-context.c (soup_try_existing_connections):
+	Just return NULL from this function for now. There are some bugs
+	in it. Added a big, triple FIXME.
+
 2001-08-26  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl/*: Format fixes.
