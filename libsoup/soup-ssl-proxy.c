@@ -168,14 +168,6 @@ main (int argc, char** argv)
 	if (!write_chan) 
 		g_error ("Unable to open STDOUT");
 
-	/* We use select. All fds should block. */
-	flags = fcntl(sockfd, F_GETFL, 0);
-	fcntl (sockfd, F_SETFL, flags & ~O_NONBLOCK);
-	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl (STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
-	flags = fcntl(STDOUT_FILENO, F_GETFL, 0);
-	fcntl (STDOUT_FILENO, F_SETFL, flags & ~O_NONBLOCK);
-
 	sock_chan = g_io_channel_unix_new (sockfd);
 	sock_chan = soup_ssl_proxy_get_iochannel (sock_chan);
 	if (!sock_chan)
