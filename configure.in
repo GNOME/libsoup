@@ -341,7 +341,7 @@ if test "x$enable_ssl" = xyes; then
 	CPPFLAGS="$nspr_inc_prefix $nss_inc_prefix"
 	AC_CHECK_HEADERS(nss.h ssl.h pk11func.h,
 			 [NSS_CFLAGS="$CPPFLAGS" 
-			  NSS_LIBS="-lpthread $nspr_prefix -lnspr4 $nss_prefix -lnss3 -lssl3"
+			  NSS_LIBS="-lpthread $nspr_prefix -lnspr4 -lplc4 -lplds4 $nss_prefix -lnss3 -lssl3"
 			  enable_nss="yes"],
 			 [NSS_CFLAGS="" 
 			  NSS_LIBS="" 

@@ -9,7 +9,8 @@ INCLUDES = 				\
 	-I$(top_srcdir)/src		\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
-	$(XML_CFLAGS)
+	$(XML_CFLAGS)			\
+	$(NSS_CFLAGS)
 
 libsoupincludedir = $(includedir)/soup/libsoup
 
@@ -34,7 +35,8 @@ libsoup_la_LDFLAGS = -version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
 libsoup_la_LIBADD =		\
 	$(GLIB_LIBS)		\
-	$(XML_LIBS)
+	$(XML_LIBS)		\
+	$(NSS_LIBS)
 
 libsoup_la_SOURCES =		\
 	md5-utils.h		\
@@ -50,6 +52,8 @@ libsoup_la_SOURCES =		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
+	soup-nss.h		\
+	soup-nss.c		\
 	soup-ntlm.h     	\
 	soup-ntlm.c     	\
 	soup-parser.c		\

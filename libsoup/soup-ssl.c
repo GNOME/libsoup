@@ -31,9 +31,29 @@
 #include <fcntl.h>
 
 #include "soup-ssl.h"
+#include "soup-nss.h"
 #include "soup-misc.h"
 
-#ifndef SOUP_WIN32
+#ifdef SOUP_WIN32
+
+GIOChannel *
+soup_ssl_get_iochannel (GIOChannel *sock)
+{
+	return NULL;
+}
+
+#else /* SOUP_WIN32 */
+#ifdef HAVE_NSS
+
+GIOChannel *
+soup_ssl_get_iochannel (GIOChannel *sock)
+{
+	g_return_val_if_fail (sock != NULL, NULL);
+
+	return soup_nss_get_iochannel (sock);
+}
+
+#else /* HAVE_NSS */
 
 static gboolean
 soup_ssl_hup_waitpid (GIOChannel *source, GIOCondition condition, gpointer ppid)
@@ -111,12 +131,5 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	return NULL;
 }
 
-#else
-
-GIOChannel *
-soup_ssl_get_iochannel (GIOChannel *sock)
-{
-	return NULL;
-}
-
+#endif /* HAVE_NSS */
 #endif /* SOUP_WIN32 */
