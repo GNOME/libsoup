@@ -1,5 +1,16 @@
 2001-09-10  Alex Graveley  <alex@ximian.com>
 
+	* build/libsoup.dsp: Add src/libsoup/soup-ntlm.[ch]
+
+	* src/libsoup/soup-dav-server.c (dav_mkcol): Report errors.  Check
+	that parent path exists.
+	(dav_put): Ditto.
+	(dav_options): set 404 if path not found.
+	(dav_options): Handle server-level OPTIONS requests.
+	(parent_exists): impl.
+
+2001-09-10  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-dav-server.h: Replace opt_search with
 	opt_other.  Remove SOUP_DAV_SEARCH.
 
