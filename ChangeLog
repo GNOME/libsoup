@@ -1,3 +1,12 @@
+2004-07-15  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (send_message): Simplify this. If
+	the message comes back from soup_connection_send_request not
+	FINISHED, get a new connection rather than reusing the old one.
+	This fixes a race condition in which a connection could end up
+	double-booked, and fixes the handling of messages that get
+	redirected to another server.
+
 2004-07-13  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session.c (connect_result): If the connection

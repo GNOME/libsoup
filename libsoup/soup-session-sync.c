@@ -146,15 +146,6 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	goto try_again;
 }
 
-static void
-connection_disconnected (SoupConnection *conn, gpointer user_data)
-{
-	SoupConnection **conn_p = user_data;
-
-	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, conn_p);
-	*conn_p = NULL;
-}
-
 static guint
 send_message (SoupSession *session, SoupMessage *msg)
 {
@@ -170,25 +161,8 @@ send_message (SoupSession *session, SoupMessage *msg)
 		if (!conn)
 			return msg->status_code;
 
-		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_disconnected), &conn);
-
-		/* Now repeatedly send the message across the connection
-		 * until either it's done, or the connection is closed.
-		 */
-		while (msg->status != SOUP_MESSAGE_STATUS_FINISHED && conn)
-			soup_connection_send_request (conn, msg);
-
-		if (conn) {
-			g_signal_handlers_disconnect_by_func (conn, connection_disconnected, &conn);
-		}
-
+		soup_connection_send_request (conn, msg);
 		g_cond_broadcast (ss->priv->cond);
-
-		/* If the message isn't finished, that means we need to
-		 * re-send it on a new connection, so loop back to the
-		 * beginning.
-		 */
 	} while (msg->status != SOUP_MESSAGE_STATUS_FINISHED);
 
 	return msg->status_code;
