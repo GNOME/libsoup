@@ -457,8 +457,14 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 static int
 verify_cb (int verified, X509_STORE_CTX *x509_ctx)
 {
-	if (!verified)
-		g_warning ("Unable to verify server's CA");
+	if (!verified) {
+		int err;
+
+		err = X509_STORE_CTX_get_error(x509_ctx);
+		ERR_load_crypto_strings(), SSL_load_error_strings();
+		g_warning ("Unable to verify server's CA: %s (%d)",
+			   X509_verify_cert_error_string(err), err);
+	}
 
 	return verified;
 }

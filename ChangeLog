@@ -1,3 +1,8 @@
+2003-01-10  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-openssl.c (verify_cb): Load some X509 and SSL error
+	strings and print out the error when the cert can't verify.
+
 2003-01-09  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-address.c (soup_gethostbyname): Fix a memcpy
