@@ -561,7 +561,9 @@ soup_address_new_cb (GIOChannel* iochannel,
 		/* Cleanup state */
 		g_source_remove (state->watch);
 		close (state->fd);
-		waitpid (state->pid, NULL, WNOHANG);
+
+		/* FIXME: Wait for HUP signal before doing this */
+		waitpid (state->pid, NULL, 0);
 	}
 
 	/* Get state data before realloc */
