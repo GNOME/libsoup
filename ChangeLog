@@ -1,5 +1,23 @@
 2003-02-27  Joe Shaw  <joe@ximian.com>
 
+	Try to apply some order to the iochannel refcounting...
+
+	* configure.in: Bump up to 1.99.11.
+
+	* soup-context.c (soup_connection_get_iochannel): The connections
+	needs to own a reference to the iochannel!  If we're using HTTPS,
+	release the ref we get from soup_socket_get_iochannel and replace
+	it with the ref we get from soup_ssl_get_iochannel().  Then,
+	always ref the channel that we return (ugh, but that's the soup
+	way).
+	(connection_free): Release the connection's ref to the iochannel.
+
+	* soup-ssl.c (soup_ssl_get_iochannel_real): Ref the iochannel.
+	The reference we pass back will be owned by the connection.
+	(soup_ssl_hup_waitpid): Release our ref.
+
+2003-02-27  Joe Shaw  <joe@ximian.com>
+
 	* configure.in: Bump up to 1.99.10.
 
 	* soup-ssl.c (soup_ssl_get_iochannel_real): Ref the iochannel,

@@ -257,6 +257,7 @@ connection_free (SoupConnection *conn)
 	conn->server->connections =
 		g_slist_remove (conn->server->connections, conn);
 
+	g_io_channel_unref (conn->channel);
 	soup_context_unref (conn->context);
 	soup_socket_unref (conn->socket);
 	g_source_remove (conn->death_tag);
@@ -623,10 +624,16 @@ soup_connection_get_iochannel (SoupConnection *conn)
 
 		soup_connection_setup_socket (conn->channel);
 
-		if (conn->context->uri->protocol == SOUP_PROTOCOL_HTTPS)
-			conn->channel = soup_ssl_get_iochannel (conn->channel);
-	} else
-		g_io_channel_ref (conn->channel);
+		if (conn->context->uri->protocol == SOUP_PROTOCOL_HTTPS) {
+			GIOChannel *ssl_chan;
+
+			ssl_chan = soup_ssl_get_iochannel (conn->channel);
+			g_io_channel_unref (conn->channel);
+			conn->channel = ssl_chan;
+		}
+	}
+
+	g_io_channel_ref (conn->channel);
 
 	return conn->channel;
 }

@@ -4,7 +4,7 @@ dnl *******************************************
 
 AC_INIT(libsoup/soup.h)
 
-AM_INIT_AUTOMAKE(libsoup, 1.99.10)
+AM_INIT_AUTOMAKE(libsoup, 1.99.11)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 AC_PROG_MAKE_SET
