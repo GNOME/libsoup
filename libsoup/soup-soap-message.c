@@ -3,6 +3,7 @@
  * Copyright (C) 2003, Novell, Inc.
  */
 
+#include <string.h>
 #include "soup-misc.h"
 #include "soup-soap-message.h"
 #include "soup-uri.h"
@@ -712,4 +713,30 @@ soup_soap_message_get_xml_doc (SoupSoapMessage *msg)
 	g_return_val_if_fail (SOUP_IS_SOAP_MESSAGE (msg), NULL);
 
 	return msg->priv->doc;
+}
+
+/**
+ * soup_soap_message_parse_response:
+ * @msg: the %SoupSoapMessage.
+ *
+ * Parses the response returned by the server.
+ *
+ * Return value: a %SoupSoapResponse representing the response from the server,
+ * or %NULL if there was an error.
+ */
+SoupSoapResponse *
+soup_soap_message_parse_response (SoupSoapMessage *msg)
+{
+	char *xmlstr;
+	SoupSoapResponse *soap_response;
+
+	g_return_val_if_fail (SOUP_IS_SOAP_MESSAGE (msg), NULL);
+
+	xmlstr = g_malloc0 (SOUP_MESSAGE (msg)->response.length + 1);
+	strncpy (xmlstr, SOUP_MESSAGE (msg)->response.body, SOUP_MESSAGE (msg)->response.length);
+
+	soap_response = soup_soap_response_new_from_string (xmlstr);
+	g_free (xmlstr);
+
+	return soap_response;
 }

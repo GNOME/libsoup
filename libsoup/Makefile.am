@@ -39,6 +39,7 @@ libsoupinclude_HEADERS =	\
 	soup-server.h		\
 	soup-session.h		\
 	soup-soap-message.h	\
+	soup-soap-response.h	\
 	soup-socket.h		\
 	soup-status.h		\
 	soup-types.h		\
@@ -88,6 +89,7 @@ libsoup_2_2_la_SOURCES =		\
 	soup-server-message.c		\
 	soup-session.c			\
 	soup-soap-message.c		\
+	soup-soap-response.c		\
 	soup-socket.c			\
 	soup-ssl.h			\
 	soup-status.c			\

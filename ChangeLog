@@ -1,3 +1,13 @@
+2003-11-23  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.[ch]: new class for managing SOAP
+	responses.
+
+	* libsoup/soup-soap-message.[ch] (soup_soap_message_parse_response):
+	new function.
+
+	* libsoup/Makefile.am: added new files.
+
 2003-11-18  Rodney Dawes  <dobey@ximian.com>
 
 	* gtk-doc.make: Add gtk-doc.make to cvs for systems without gtk-doc
