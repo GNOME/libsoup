@@ -1,6 +1,7 @@
 Makefile
 Makefile.in
 auth-test
+dns
 get
 revserver
 simple-httpd
