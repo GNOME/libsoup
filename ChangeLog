@@ -1,3 +1,7 @@
+2003-05-21  Dan Winship  <danw@ximian.com>
+
+	* configure.in: 1.99.22 (codename: French Onion Soup)
+
 2003-05-20  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message.c (soup_message_requeue): Clear the
