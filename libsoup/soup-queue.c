@@ -37,7 +37,9 @@ static void
 soup_debug_print_a_header (gchar *key, GSList *vals, gpointer not_used)
 {
 	while (vals) {
-		g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", key, vals->data);
+		g_print ("\tKEY: \"%s\", VALUE: \"%s\"\n", 
+			 key, 
+			 (gchar *) vals->data);
 		vals = vals->next;
 	}
 }
@@ -121,7 +123,7 @@ soup_queue_read_headers_cb (const GString *headers,
 {
 	SoupMessage *req = user_data;
 
-	gchar *connection, *length, *enc;
+	const gchar *connection, *length, *enc;
 	SoupHttpVersion version;
 
 	if (!soup_parse_headers (headers, &version, req)) 
@@ -303,7 +305,10 @@ soup_check_used_headers (gchar  *key,
 	}
 
 	while (vals) {
-		g_string_sprintfa (hdrs->out, "%s: %s\r\n", key, vals->data);
+		g_string_sprintfa (hdrs->out, 
+				   "%s: %s\r\n", 
+				   key, 
+				   (gchar *) vals->data);
 		vals = vals->next;
 	}
 }

@@ -596,29 +596,47 @@ ntlm_new (void)
  * Generic Authentication Interface
  */
 
-struct {
-	const gchar *scheme;
-	SoupAuthNewFn ctor;
-} known_auth_schemes [] = {
-	{ "Basic",  soup_auth_new_basic },
-	{ "Digest", soup_auth_new_digest },
-	{ "NTLM",   ntlm_new },
+typedef struct {
+	const gchar   *scheme;
+	SoupAuthNewFn  ctor;
+	gint           strength;
+} AuthScheme; 
+
+static AuthScheme known_auth_schemes [] = {
+	{ "Basic",  soup_auth_new_basic,  0 },
+	{ "NTLM",   ntlm_new,             2 },
+	{ "Digest", soup_auth_new_digest, 3 },
 	{ NULL }
 };
 
 SoupAuth *
-soup_auth_new_from_header (SoupContext *context, const char *header)
+soup_auth_new_from_header_list (SoupContext *context, const GSList *vals)
 {
+	gchar *header = NULL;
+	AuthScheme *scheme = NULL, *iter;
 	SoupAuth *auth = NULL;
-	gint i;
 
-	for (i = 0; known_auth_schemes [i].scheme; i++) {
-		if (!g_strncasecmp (header, 
-				    known_auth_schemes [i].scheme, 
-				    strlen (known_auth_schemes [i].scheme)))
-		    auth = known_auth_schemes [i].ctor ();
+	g_return_val_if_fail (context != NULL, NULL);
+	g_return_val_if_fail (vals != NULL, NULL);
+
+	while (vals) {
+		for (iter = scheme = known_auth_schemes; iter->scheme; iter++) {
+			if (!g_strncasecmp ((gchar *) vals->data, 
+					    iter->scheme, 
+					    strlen (iter->scheme)) &&
+			    scheme->strength < iter->strength) {
+				header = vals->data;			
+				scheme = iter;
+				break;
+			}
+		}
+
+		vals = vals->next;
 	}
 
+	if (!scheme) return NULL;
+
+	auth = scheme->ctor ();
 	if (!auth) return NULL;
 
 	auth->context = context;

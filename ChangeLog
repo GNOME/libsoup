@@ -1,5 +1,21 @@
 2001-10-04  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-message.c (authorize_handler): Call
+	soup_message_get_header_list.
+
+	* src/libsoup/soup-auth.c (soup_auth_new_from_header_list): Set
+	crypto strength for authentication types, and try to choose the
+	strongest when authenticating.
+
+	* src/libsoup/soup-queue.c (soup_check_used_headers): Kill warnings.
+
+	* tests/simple-test.c (list_headers): Handle multiple values for
+	header.
+
+	* tests/handler-test.c (list_headers): Ditto.
+
+2001-10-04  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-server.c (read_headers_cb): Fix const warnings.
 
 2001-10-04  Alex Graveley  <alex@ximian.com>

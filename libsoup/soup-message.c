@@ -476,7 +476,7 @@ soup_message_send (SoupMessage *msg)
 static void 
 authorize_handler (SoupMessage *msg, gboolean proxy)
 {
-	const char *auth_header;
+	const GSList *vals;
 	SoupAuth *auth;
 	SoupContext *ctx;
 
@@ -485,13 +485,13 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	if (!soup_context_get_uri (ctx)->user) 
 		goto THROW_CANT_AUTHENTICATE;
 
-	auth_header = 
-		soup_message_get_response_header (
-			msg, 
+	vals = 
+		soup_message_get_header_list (
+			msg->response_headers, 
 			proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
-	if (!auth_header) goto THROW_CANT_AUTHENTICATE;
+	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header (ctx, auth_header);
+        auth = soup_auth_new_from_header_list (ctx, vals);
 	if (!auth) {
 		soup_message_set_error_full (
 			msg, 
