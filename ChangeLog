@@ -1,3 +1,18 @@
+2002-04-26  Dan Winship  <danw@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_read_cb): Fix
+	this to check SSL_pending *after* doing the read.
+	(soup_openssl_add_watch): Switch back to the version that uses
+	soup_openssl_read_cb.
+
+	* src/soup-ssl-proxy/soup-ssl-proxy.c (main): Set all sockets to
+	blocking, since we only try to read when there's data to be read,
+	and we're not prepared to deal with the possibility of not being
+	able to write.
+
+	* configure.in (POPT_LIBS): Fix typo (s/prefix/popt_prefix/) so we
+	don't get -LNONE when configured without a --prefix
+
 2002-04-11  Alex Graveley  <alex@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Bump version to

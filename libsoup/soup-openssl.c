@@ -118,10 +118,6 @@ soup_openssl_free (GIOChannel   *channel)
 	g_free (chan);
 }
 
-#if 0
-
-/* Commented out until we can figure out why SSL_pending always fails */
-
 typedef struct {
 	GIOFunc         func;
 	gpointer        user_data;
@@ -136,11 +132,12 @@ soup_openssl_read_cb (GIOChannel   *channel,
 	SoupOpenSSLReadData *data = user_data;
 
 	if (condition & G_IO_IN) {
-		if (SSL_pending (chan->ssl) && 
-		    !(*data->func) (channel, condition, data->user_data)) {
-			g_free (data);
-			return FALSE;
-		}
+		do {
+			if (!(*data->func) (channel, condition, data->user_data)) {
+				g_free (data);
+				return FALSE;
+			}
+		} while (SSL_pending (chan->ssl));
 		return TRUE;
 	} else return (*data->func) (channel, condition, data->user_data);
 }
@@ -172,25 +169,6 @@ soup_openssl_add_watch (GIOChannel     *channel,
 							    func,
 							    user_data,
 							    notify);
-}
-
-#endif /* 0 */
-
-static guint
-soup_openssl_add_watch (GIOChannel     *channel,
-			gint            priority,
-			GIOCondition    condition,
-			GIOFunc         func,
-			gpointer        user_data,
-			GDestroyNotify  notify)
-{
-	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
-	return chan->real_sock->funcs->io_add_watch (channel, 
-						     priority, 
-						     condition,
-						     func,
-						     user_data,
-						     notify);
 }
 
 GIOFuncs soup_openssl_channel_funcs = {

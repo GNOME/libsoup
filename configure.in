@@ -148,7 +148,7 @@ AC_ARG_WITH(popt-libs,
 save_CPPFLAGS=$CPPFLAGS
 save_LIBS=$LIBS
 CPPFLAGS="$CPPFLAGS $popt_inc_prefix"
-LIBS="$LIBS -L$prefix"
+LIBS="$LIBS -L$popt_prefix"
 
 AC_CHECK_LIB(popt, 
 	     poptGetContext, 
