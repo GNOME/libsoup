@@ -203,7 +203,7 @@ soup_message_cleanup (SoupMessage *req)
 		req->connection = NULL;
 	}
 
-	soup_active_requests = g_slist_remove (soup_active_requests, req);
+	soup_queue_remove_request (req);
 }
 
 static void

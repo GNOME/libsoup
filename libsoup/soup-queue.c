@@ -30,7 +30,7 @@
 #include "soup-ssl.h"
 #include "soup-transfer.h"
 
-GSList *soup_active_requests = NULL;
+static GSList *soup_active_requests = NULL, *soup_active_request_next = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
@@ -619,13 +619,48 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	return;
 }
 
+void
+soup_queue_add_request (SoupMessage *req)
+{
+	soup_active_requests = g_slist_prepend (soup_active_requests, req);
+}
+
+void
+soup_queue_remove_request (SoupMessage *req)
+{
+	if (soup_active_request_next && soup_active_request_next->data == req)
+		soup_queue_next_request ();
+	soup_active_requests = g_slist_remove (soup_active_requests, req);
+}
+
+SoupMessage *
+soup_queue_first_request (void)
+{
+	if (!soup_active_requests)
+		return NULL;
+
+	soup_active_request_next = soup_active_requests->next;
+	return soup_active_requests->data;
+}
+
+SoupMessage *
+soup_queue_next_request (void)
+{
+	SoupMessage *ret;
+
+	if (!soup_active_request_next)
+		return NULL;
+	ret = soup_active_request_next->data;
+	soup_active_request_next = soup_active_request_next->next;
+	return ret;
+}
+
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
-        GSList *iter;
+	SoupMessage *req;
 
-	for (iter = soup_active_requests; iter; iter = iter->next) {
-		SoupMessage *req = iter->data;
+	for (req = soup_queue_first_request (); req; req = soup_queue_next_request ()) {
 		SoupContext *ctx, *proxy;
 
 		if (req->status != SOUP_STATUS_QUEUED)
@@ -716,7 +751,7 @@ soup_queue_message (SoupMessage    *req,
 
 	req->status = SOUP_STATUS_QUEUED;
 
-	soup_active_requests = g_slist_prepend (soup_active_requests, req);
+	soup_queue_add_request (req);
 
 	soup_queue_initialize ();
 }
@@ -730,11 +765,11 @@ soup_queue_message (SoupMessage    *req,
 void 
 soup_queue_shutdown (void)
 {
-        GSList *iter;
+	SoupMessage *req;
 
 	g_source_remove (soup_queue_idle_tag);
 	soup_queue_idle_tag = 0;
 
-	for (iter = soup_active_requests; iter; iter = iter->next)
-		soup_message_cancel (iter->data);
+	for (req = soup_queue_first_request (); req; req = soup_queue_next_request ())
+		soup_message_cancel (req);
 }

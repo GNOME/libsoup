@@ -1,3 +1,16 @@
+2002-02-13  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_add_request,
+	soup_queue_remove_request, soup_queue_first_request,
+	soup_queue_next_request): Routines to all simulataneous iteration
+	and modification of the active request list. Fixes Ximian 14030.
+	(soup_idle_handle_new_requests): Use the above functions.
+	(soup_queue_message): Likewise.
+	(soup_queue_shutdown): Likewise.
+
+	* src/libsoup/soup-message.c (soup_message_cleanup): Use
+	soup_queue_remove_request.
+
 2002-02-10  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Temporary
