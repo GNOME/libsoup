@@ -1,3 +1,13 @@
+2003-01-22  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.5 for the snaps.
+
+	* libsoup/soup-address.c (soup_address_new): If we found the
+	address in our hash, we need to return NULL or else Soup will
+	think we're doing an async lookup and do some cancellation on
+	us.  Besides, we were returning the wrong type anyway and it
+	was crashing things.
+
 2003-01-17  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-ssl-proxy.c (soup_ssl_proxy_readwrite): It's not

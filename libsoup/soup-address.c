@@ -883,7 +883,7 @@ soup_address_new (const gchar* name, SoupAddressNewFn func, gpointer data)
 		if (ia) {
 			soup_address_ref (ia);
 			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
-			return ia;
+			return NULL;
 		}
 	}
 
