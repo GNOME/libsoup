@@ -510,8 +510,9 @@ ntlm_parse (SoupAuth *sa, const char *header)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
 	const SoupUri *uri = soup_context_get_uri (auth->auth.context);
-	gchar *idx, *host, *domain = NULL;
+	gchar *idx, *host = NULL, *domain = NULL;
 
+	/*
 	idx = strchr (uri->host, '.');
 	if (idx)
 		host = g_strndup (uri->host, idx - uri->host);
@@ -533,7 +534,13 @@ ntlm_parse (SoupAuth *sa, const char *header)
 		}
 	}
 
-	if (strlen (header) > sizeof ("NTLM"))
+	soup_debug_print_uri (uri);
+	*/
+
+	host = "FAKEHOST";
+	domain = "FAKEDOMAIN";
+
+	if (strlen (header) < sizeof ("NTLM"))
 		auth->request = soup_ntlm_request (host, 
 						   domain ? domain : "UNKNOWN");
 	else {
@@ -551,8 +558,10 @@ ntlm_parse (SoupAuth *sa, const char *header)
 					    domain ? domain : "UNKNOWN");
 	}
 
+	/*
 	g_free (host);
 	g_free (domain);
+	*/
 }
 
 static void
@@ -568,16 +577,16 @@ ntlm_free (SoupAuth *sa)
 static SoupAuth *
 ntlm_new (void)
 {
-	SoupAuth *auth;
+	SoupAuthNTLM *auth;
 
-	auth = g_new0 (SoupAuth, 1);
-	auth->type = SOUP_AUTH_NTLM;
-	auth->compare_func = ntlm_compare_func;
-	auth->parse_func = ntlm_parse;
-	auth->auth_func = ntlm_auth;
-	auth->free_func = ntlm_free;
+	auth = g_new0 (SoupAuthNTLM, 1);
+	auth->auth.type = SOUP_AUTH_NTLM;
+	auth->auth.compare_func = ntlm_compare_func;
+	auth->auth.parse_func = ntlm_parse;
+	auth->auth.auth_func = ntlm_auth;
+	auth->auth.free_func = ntlm_free;
 
-	return auth;
+	return (SoupAuth *) auth;
 }
 
 /*

@@ -1,5 +1,14 @@
 2001-08-23  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-auth.c (ntlm_new): Fix under-allocation.
+	(ntlm_parse): Comment out the NTLM host/domain parsing code, as it
+	segfaults for some reason. Not that this matters as IIS seems to
+	competely ignore these parts of the NTLM message :) There is also
+	some memory corruption in soup-ntlm.c causing segfaults after the
+	message-finished callback returns.
+
+2001-08-23  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-auth.c (soup_auth_invalidates_prior): Add
 	SoupAuth.compare_func and call this from here, to remove hardcoded
 	auth scheme knowledge.
