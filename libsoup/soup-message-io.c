@@ -52,7 +52,7 @@ typedef struct {
 	SoupDataBuffer       *write_body;
 	guint                 written;
 
-	guint read_tag, write_tag, err_tag, idle_tag;
+	guint read_tag, write_tag, err_tag;
 
 	SoupMessageGetHeadersFn   get_headers_cb;
 	SoupMessageParseHeadersFn parse_headers_cb;
@@ -76,8 +76,6 @@ soup_message_io_cancel (SoupMessage *msg)
 	if (!io)
 		return;
 
-	if (io->idle_tag)
-		g_source_remove (io->idle_tag);
 	if (io->read_tag)
 		g_signal_handler_disconnect (io->sock, io->read_tag);
 	if (io->write_tag)
@@ -644,21 +642,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	return io;
 }
 
-static gboolean
-idle_io (gpointer user_data)
-{
-	SoupMessage *msg = user_data;
-	SoupMessageIOData *io = msg->priv->io_data;
-
-	io->idle_tag = 0;
-	if (io->write_state != SOUP_MESSAGE_IO_STATE_NOT_STARTED &&
-	    io->write_state != SOUP_MESSAGE_IO_STATE_BLOCKING)
-		io_write (io->sock, msg);
-	else
-		io_read (io->sock, msg);
-	return FALSE;
-}
-
 void
 soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 			SoupMessageGetHeadersFn get_headers_cb,
@@ -674,7 +657,7 @@ soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 	io->write_body      = &msg->request;
 
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
-	io->idle_tag        = g_idle_add (idle_io, msg);
+	io_write (sock, msg);
 }
 
 void
@@ -692,7 +675,7 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 	io->write_body      = &msg->response;
 
 	io->read_state      = SOUP_MESSAGE_IO_STATE_HEADERS;
-	io->idle_tag        = g_idle_add (idle_io, msg);
+	io_read (sock, msg);
 }
 
 void  
@@ -710,10 +693,6 @@ soup_message_io_pause (SoupMessage *msg)
 		g_signal_handler_disconnect (io->sock, io->read_tag);
 		io->read_tag = 0;
 	}
-	if (io->idle_tag) {
-		g_source_remove (io->idle_tag);
-		io->idle_tag = 0;
-	}
 }
 
 void  
@@ -723,7 +702,7 @@ soup_message_io_unpause (SoupMessage *msg)
 
 	g_return_if_fail (io != NULL);
 
-	if (io->write_tag || io->read_tag || io->idle_tag)
+	if (io->write_tag || io->read_tag)
 		return;
 
 	io->write_tag = g_signal_connect (io->sock, "writable",
@@ -731,5 +710,9 @@ soup_message_io_unpause (SoupMessage *msg)
 	io->read_tag = g_signal_connect (io->sock, "readable",
 					 G_CALLBACK (io_read), msg);
 
-	io->idle_tag = g_idle_add (idle_io, msg);
+	if (io->write_state != SOUP_MESSAGE_IO_STATE_NOT_STARTED &&
+	    io->write_state != SOUP_MESSAGE_IO_STATE_BLOCKING)
+		io_write (io->sock, msg);
+	else
+		io_read (io->sock, msg);
 }

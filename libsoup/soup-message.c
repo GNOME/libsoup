@@ -46,7 +46,7 @@ init (GObject *object)
 
 	msg->priv = g_new0 (SoupMessagePrivate, 1);
 
-	msg->priv->status  = SOUP_MESSAGE_STATUS_IDLE;
+	msg->status  = SOUP_MESSAGE_STATUS_IDLE;
 
 	msg->request_headers = g_hash_table_new (soup_str_case_hash,
 						 soup_str_case_equal);
@@ -504,8 +504,8 @@ soup_message_prepare (SoupMessage *req)
 {
 	soup_message_io_cancel (req);
 
-	if (req->priv->status != SOUP_MESSAGE_STATUS_IDLE)
-		req->priv->status = SOUP_MESSAGE_STATUS_IDLE;
+	if (req->status != SOUP_MESSAGE_STATUS_IDLE)
+		req->status = SOUP_MESSAGE_STATUS_IDLE;
 
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->response.body);

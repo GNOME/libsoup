@@ -15,7 +15,6 @@
 #include <unistd.h>
 
 #include "soup-server-message.h"
-#include "soup-message-private.h"
 #include "soup-private.h"
 #include "soup-server.h"
 

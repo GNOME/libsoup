@@ -19,6 +19,16 @@
 typedef struct SoupMessagePrivate SoupMessagePrivate;
 
 typedef enum {
+	SOUP_MESSAGE_STATUS_IDLE,
+	SOUP_MESSAGE_STATUS_QUEUED,
+        SOUP_MESSAGE_STATUS_CONNECTING,
+        SOUP_MESSAGE_STATUS_RUNNING,
+	SOUP_MESSAGE_STATUS_FINISHED,
+} SoupMessageStatus;
+
+#define SOUP_MESSAGE_IS_STARTING(msg) (msg->status == SOUP_MESSAGE_STATUS_QUEUED || msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
+
+typedef enum {
 	SOUP_TRANSFER_UNKNOWN = 0,
 	SOUP_TRANSFER_CHUNKED,
 	SOUP_TRANSFER_CONTENT_LENGTH,
@@ -51,6 +61,8 @@ struct SoupMessage {
 
 	SoupDataBuffer      response;
 	GHashTable         *response_headers;
+
+	SoupMessageStatus   status;
 };
 
 typedef struct {
@@ -69,8 +81,6 @@ typedef struct {
 GType soup_message_get_type (void);
 
 typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
-/* Backward compat; FIXME */
-typedef SoupMessageCallbackFn SoupCallbackFn;
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri);
@@ -124,6 +134,8 @@ SoupHttpVersion  soup_message_get_http_version    (SoupMessage       *msg);
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
 const SoupUri   *soup_message_get_uri             (SoupMessage       *msg);
+void             soup_message_set_uri             (SoupMessage       *msg,
+						   const SoupUri     *uri);
 
 typedef enum {
 	/*
@@ -183,32 +195,32 @@ typedef enum {
 
 void           soup_message_add_handler         (SoupMessage       *msg,
 						 SoupHandlerPhase   type,
-						 SoupCallbackFn     handler_cb,
+						 SoupMessageCallbackFn     handler_cb,
 						 gpointer           user_data);
 
 void           soup_message_add_header_handler  (SoupMessage       *msg,
 						 const char        *header,
 						 SoupHandlerPhase   type,
-						 SoupCallbackFn     handler_cb,
+						 SoupMessageCallbackFn,
 						 gpointer           user_data);
 
 void           soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
 						 guint              status_code,
 						 SoupHandlerPhase   type,
-						 SoupCallbackFn     handler_cb,
+						 SoupMessageCallbackFn,
 						 gpointer           user_data);
 
 void           soup_message_add_status_class_handler (
 						 SoupMessage       *msg,
 						 SoupStatusClass    status_class,
 						 SoupHandlerPhase   type,
-						 SoupCallbackFn     handler_cb,
+						 SoupMessageCallbackFn,
 						 gpointer           user_data);
 
 void           soup_message_remove_handler      (SoupMessage       *msg, 
 						 SoupHandlerPhase   type,
-						 SoupCallbackFn     handler_cb,
+						 SoupMessageCallbackFn,
 						 gpointer           user_data);
 
 /*

@@ -13,8 +13,8 @@
 
 #include "soup-server-auth.h"
 
-#include "md5-utils.h"
 #include "soup-headers.h"
+#include "soup-md5-utils.h"
 #include "soup-misc.h"
 #include "soup-uri.h"
 
@@ -84,79 +84,79 @@ static gboolean
 check_digest_passwd (SoupServerAuthDigest *digest,
 		     gchar                *passwd)
 {
-	MD5Context ctx;
+	SoupMD5Context ctx;
 	guchar d[16];
 	guchar hex_a1 [33], hex_a2[33], o[33];
 	gchar *tmp;
 
 	/* compute A1 */
-	md5_init (&ctx);
-	md5_update (&ctx, digest->user, strlen (digest->user));
-	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, digest->realm, strlen (digest->realm));
-	md5_update (&ctx, ":", 1);
+	soup_md5_init (&ctx);
+	soup_md5_update (&ctx, digest->user, strlen (digest->user));
+	soup_md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, digest->realm, strlen (digest->realm));
+	soup_md5_update (&ctx, ":", 1);
 
 	if (passwd)
-		md5_update (&ctx, passwd, strlen (passwd));
+		soup_md5_update (&ctx, passwd, strlen (passwd));
 
 	if (digest->algorithm == SOUP_ALGORITHM_MD5_SESS) {
-		md5_final (&ctx, d);
+		soup_md5_final (&ctx, d);
 
-		md5_init (&ctx);
-		md5_update (&ctx, d, 16);
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->nonce, strlen (digest->nonce));
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
+		soup_md5_init (&ctx);
+		soup_md5_update (&ctx, d, 16);
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, digest->nonce, strlen (digest->nonce));
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
 	}
 
 	/* hexify A1 */
-	md5_final (&ctx, d);
+	soup_md5_final (&ctx, d);
 	digest_hex (d, hex_a1);
 
 	/* compute A2 */
-	md5_init (&ctx);
-	md5_update (&ctx, 
+	soup_md5_init (&ctx);
+	soup_md5_update (&ctx, 
 		    digest->request_method, 
 		    strlen (digest->request_method));
-	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, digest->digest_uri, strlen (digest->digest_uri));
+	soup_md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, digest->digest_uri, strlen (digest->digest_uri));
 
 	if (digest->integrity) {
 		/* FIXME: Actually implement. Ugh. */
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, "00000000000000000000000000000000", 32);
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, "00000000000000000000000000000000", 32);
 	}
 
 	/* hexify A2 */
-	md5_final (&ctx, d);
+	soup_md5_final (&ctx, d);
 	digest_hex (d, hex_a2);
 
 	/* compute KD */
-	md5_init (&ctx);
-	md5_update (&ctx, hex_a1, 32);
-	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, digest->nonce, strlen (digest->nonce));
-	md5_update (&ctx, ":", 1);
+	soup_md5_init (&ctx);
+	soup_md5_update (&ctx, hex_a1, 32);
+	soup_md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, digest->nonce, strlen (digest->nonce));
+	soup_md5_update (&ctx, ":", 1);
 
 	tmp = g_strdup_printf ("%.8x", digest->nonce_count);
-	md5_update (&ctx, tmp, strlen (tmp));
+	soup_md5_update (&ctx, tmp, strlen (tmp));
 	g_free (tmp);
 
-	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
-	md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
+	soup_md5_update (&ctx, ":", 1);
 
 	if (digest->integrity)
 		tmp = "auth-int";
 	else 
 		tmp = "auth";
 
-	md5_update (&ctx, tmp, strlen (tmp));
-	md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, tmp, strlen (tmp));
+	soup_md5_update (&ctx, ":", 1);
 
-	md5_update (&ctx, hex_a2, 32);
-	md5_final (&ctx, d);
+	soup_md5_update (&ctx, hex_a2, 32);
+	soup_md5_final (&ctx, d);
 
 	digest_hex (d, o);
 

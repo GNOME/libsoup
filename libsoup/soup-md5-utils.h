@@ -23,30 +23,24 @@
  */
 
 
-#ifndef MD5_UTILS_H
-#define MD5_UTILS_H
+#ifndef SOUP_MD5_UTILS_H
+#define SOUP_MD5_UTILS_H
 
 #include <glib.h>
 
 typedef struct {
-	guint32 buf[4];
-	guint32 bits[2];
-	guchar in[64];
-	gint doByteReverse;
+	guint32  buf[4];
+	guint32  bits[2];
+	guchar   in[64];
+	gboolean doByteReverse;
+} SoupMD5Context;
 
-} MD5Context ;
-
-
-void md5_get_digest (const gchar *buffer, gint buffer_size, guchar digest[16]);
-
-/* use this one when speed is needed */
-/* for use in provider code only */
-void md5_get_digest_from_file (const gchar *filename, guchar digest[16]);
-
-/* raw routines */
-void md5_init (MD5Context *ctx);
-void md5_update (MD5Context *ctx, const guchar *buf, guint32 len);
-void md5_final (MD5Context *ctx, guchar digest[16]);
+void soup_md5_init   (SoupMD5Context *ctx);
+void soup_md5_update (SoupMD5Context *ctx,
+		      const guchar   *buf,
+		      guint32         len);
+void soup_md5_final  (SoupMD5Context *ctx,
+		      guchar          digest[16]);
 
 
-#endif	/* MD5_UTILS_H */
+#endif	/* SOUP_MD5_UTILS_H */

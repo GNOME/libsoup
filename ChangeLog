@@ -1,3 +1,45 @@
+2003-09-10  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-private.h (SoupMessagePrivate): Remove the
+	"status" field from here, since it's mostly used by SoupSession,
+	which shouldn't need access to SoupMessagePrivate.
+
+	* libsoup/soup-message.h (SoupMessage): Move it here.
+	(SoupCallbackFn): Remove this alias for SoupMessageCallbackFn.
+	(soup_message_set_uri): also moved from soup-message-private.h
+
+	* libsoup/soup-message.c: s/msg->priv->status/msg->status/.
+
+	* libsoup/soup-message-handlers.c:
+	s/SoupCallbackFn/SoupMessageCallbackFn/ everywhere.
+
+	* libsoup/soup-message-io.c (soup_message_io_client,
+	soup_message_io_server, soup_message_io_unpause): Don't set up an
+	idle handler, just jump right in to reading/writing; if this is a
+	synchronous socket, then the caller wants to block, and if it's
+	not, then we'll quickly get an EAGAIN anyway.
+
+	* libsoup/soup-session.c: (queue_message): Likewise.
+	(*) Update for SoupMessageStatus move and remove
+	soup-message-private.h include.
+
+	* libsoup/soup-server-message.c: Remove soup-message-private.h
+	include.
+
+	* libsoup/soup-server.c: Likewise.
+
+	* libsoup/soup-connection.c (soup_connection_is_connected,
+	soup_connection_is_new): Remove these, since they weren't being
+	used.
+
+	* libsoup/soup-md5-utils.c: Moved from md5-utils.c and renamed, to
+	avoid namespace pollution.
+
+	* libsoup/soup-auth-digest.c: Update for that.
+	* libsoup/soup-server-auth.c: Likewise
+
+	* tests/auth-test.c: Remove soup-message-private.h include
+
 2003-09-09  Dan Winship  <danw@ximian.com>
 
 	Beginnings of improved synchronous API support

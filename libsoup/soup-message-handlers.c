@@ -21,11 +21,11 @@ typedef enum {
 } SoupHandlerKind;
 
 typedef struct {
-	SoupHandlerPhase  phase;
-	SoupCallbackFn    handler_cb;
-	gpointer          user_data;
+	SoupHandlerPhase         phase;
+	SoupMessageCallbackFn    handler_cb;
+	gpointer                 user_data;
 
-	SoupHandlerKind   kind;
+	SoupHandlerKind          kind;
 	union {
 		guint            status_code;
 		SoupStatusClass  status_class;
@@ -86,14 +86,14 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 }
 
 static void
-add_handler (SoupMessage      *msg,
-	     SoupHandlerPhase  phase,
-	     SoupCallbackFn    handler_cb,
-	     gpointer          user_data,
-	     SoupHandlerKind   kind,
-	     const char       *header,
-	     guint             status_code,
-	     SoupStatusClass   status_class)
+add_handler (SoupMessage           *msg,
+	     SoupHandlerPhase       phase,
+	     SoupMessageCallbackFn  handler_cb,
+	     gpointer               user_data,
+	     SoupHandlerKind        kind,
+	     const char            *header,
+	     guint                  status_code,
+	     SoupStatusClass        status_class)
 {
 	SoupHandlerData *data;
 
@@ -122,11 +122,11 @@ add_handler (SoupMessage      *msg,
 }
 
 void
-soup_message_add_header_handler (SoupMessage      *msg,
-				 const char       *header,
-				 SoupHandlerPhase  phase,
-				 SoupCallbackFn    handler_cb,
-				 gpointer          user_data)
+soup_message_add_header_handler (SoupMessage           *msg,
+				 const char            *header,
+				 SoupHandlerPhase       phase,
+				 SoupMessageCallbackFn  handler_cb,
+				 gpointer               user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (header != NULL);
@@ -138,11 +138,11 @@ soup_message_add_header_handler (SoupMessage      *msg,
 }
 
 void
-soup_message_add_status_code_handler (SoupMessage      *msg,
-				      guint             status_code,
-				      SoupHandlerPhase  phase,
-				      SoupCallbackFn    handler_cb,
-				      gpointer          user_data)
+soup_message_add_status_code_handler (SoupMessage           *msg,
+				      guint                  status_code,
+				      SoupHandlerPhase       phase,
+				      SoupMessageCallbackFn  handler_cb,
+				      gpointer               user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (status_code != 0);
@@ -154,11 +154,11 @@ soup_message_add_status_code_handler (SoupMessage      *msg,
 }
 
 void
-soup_message_add_status_class_handler (SoupMessage      *msg,
-				       SoupStatusClass   status_class,
-				       SoupHandlerPhase  phase,
-				       SoupCallbackFn    handler_cb,
-				       gpointer          user_data)
+soup_message_add_status_class_handler (SoupMessage           *msg,
+				       SoupStatusClass        status_class,
+				       SoupHandlerPhase       phase,
+				       SoupMessageCallbackFn  handler_cb,
+				       gpointer               user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (status_class != 0);
@@ -172,7 +172,7 @@ soup_message_add_status_class_handler (SoupMessage      *msg,
 void
 soup_message_add_handler (SoupMessage      *msg,
 			  SoupHandlerPhase  phase,
-			  SoupCallbackFn    handler_cb,
+			  SoupMessageCallbackFn    handler_cb,
 			  gpointer          user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
@@ -182,10 +182,10 @@ soup_message_add_handler (SoupMessage      *msg,
 }
 
 void
-soup_message_remove_handler (SoupMessage     *msg,
-			     SoupHandlerPhase phase,
-			     SoupCallbackFn   handler_cb,
-			     gpointer         user_data)
+soup_message_remove_handler (SoupMessage           *msg,
+			     SoupHandlerPhase       phase,
+			     SoupMessageCallbackFn  handler_cb,
+			     gpointer               user_data)
 {
 	GSList *iter = msg->priv->content_handlers;
 

@@ -55,8 +55,6 @@ libsoup_2_2_la_LIBADD =		\
 
 libsoup_2_2_la_SOURCES =		\
 	$(MARSHAL_GENERATED)		\
-	md5-utils.h			\
-	md5-utils.c			\
 	soup-address.c			\
 	soup-auth.h			\
 	soup-auth.c			\
@@ -72,6 +70,8 @@ libsoup_2_2_la_SOURCES =		\
 	soup-gnutls.h			\
 	soup-gnutls.c			\
 	soup-headers.c			\
+	soup-md5-utils.h		\
+	soup-md5-utils.c		\
 	soup-message.c			\
 	soup-message-client-io.c	\
 	soup-message-handlers.c		\

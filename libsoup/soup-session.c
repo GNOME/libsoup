@@ -15,7 +15,6 @@
 
 #include "soup-session.h"
 #include "soup-connection.h"
-#include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-private.h"
 
@@ -37,7 +36,6 @@ struct SoupSessionPrivate {
 	guint max_conns, max_conns_per_host;
 
 	SoupMessageQueue *queue;
-	guint queue_idle_tag;
 
 	GHashTable *hosts; /* SoupUri -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
@@ -78,9 +76,6 @@ finalize (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
-
-	if (session->priv->queue_idle_tag)
-		g_source_remove (session->priv->queue_idle_tag);
 
 	for (msg = soup_message_queue_first (session->priv->queue, &iter); msg;
 	     msg = soup_message_queue_next (session->priv->queue, &iter)) {
@@ -413,7 +408,7 @@ request_finished (SoupMessage *req, gpointer user_data)
 	SoupSession *session = user_data;
 
 	soup_message_queue_remove_message (session->priv->queue, req);
-	req->priv->status = SOUP_MESSAGE_STATUS_FINISHED;
+	req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
 static void
@@ -454,7 +449,7 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 static void
 send_request (SoupSession *session, SoupMessage *req, SoupConnection *conn)
 {
-	req->priv->status = SOUP_MESSAGE_STATUS_RUNNING;
+	req->status = SOUP_MESSAGE_STATUS_RUNNING;
 
 	add_auth (session, req, FALSE);
 	if (session->priv->proxy_uri)
@@ -595,7 +590,7 @@ run_queue (SoupSession *session, gboolean try_pruning)
 			continue;
 		}
 
-		if (msg->priv->status == SOUP_MESSAGE_STATUS_CONNECTING) {
+		if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING) {
 			/* We already started a connection for this
 			 * message, so don't start another one.
 			 */
@@ -641,7 +636,7 @@ run_queue (SoupSession *session, gboolean try_pruning)
 		/* Mark the request as connecting, so we don't try to
 		 * open another new connection for it next time around.
 		 */
-		msg->priv->status = SOUP_MESSAGE_STATUS_CONNECTING;
+		msg->status = SOUP_MESSAGE_STATUS_CONNECTING;
 
 		started_any = TRUE;
 	}
@@ -661,37 +656,24 @@ run_queue (SoupSession *session, gboolean try_pruning)
 	return started_any;
 }
 
-static gboolean
-idle_run_queue (gpointer user_data)
-{
-	SoupSession *session = user_data;
-
-	session->priv->queue_idle_tag = 0;
-	run_queue (session, TRUE);
-	return FALSE;
-}
-
 static void
 queue_message (SoupSession *session, SoupMessage *req, gboolean requeue)
 {
 	soup_message_prepare (req);
 
-	req->priv->status = SOUP_MESSAGE_STATUS_QUEUED;
+	req->status = SOUP_MESSAGE_STATUS_QUEUED;
 	if (!requeue)
 		soup_message_queue_append (session->priv->queue, req);
 
-	if (!session->priv->queue_idle_tag) {
-		session->priv->queue_idle_tag =
-			g_idle_add (idle_run_queue, session);
-	}
+	run_queue (session, TRUE);
 }
 
 /**
  * soup_session_queue_message:
  * @session: a #SoupSession
  * @req: the message to queue
- * @callback: a #SoupCallbackFn which will be called after the message
- * completes or when an unrecoverable error occurs.
+ * @callback: a #SoupMessageCallbackFn which will be called after the
+ * message completes or when an unrecoverable error occurs.
  * @user_data: a pointer passed to @callback.
  * 
  * Queues the message @req for sending. All messages are processed
@@ -704,7 +686,7 @@ queue_message (SoupSession *session, SoupMessage *req, gboolean requeue)
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *req,
-			    SoupCallbackFn callback, gpointer user_data)
+			    SoupMessageCallbackFn callback, gpointer user_data)
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
@@ -726,7 +708,7 @@ soup_session_queue_message (SoupSession *session, SoupMessage *req,
 					       SOUP_HANDLER_POST_BODY,
 					       authorize_handler, session);
 
-	if (!(req->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT)) {
+	if (!(soup_message_get_flags (req) & SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_status_class_handler (
 			req, SOUP_STATUS_CLASS_REDIRECT,
 			SOUP_HANDLER_POST_BODY,
@@ -781,7 +763,7 @@ soup_session_send_message (SoupSession *session, SoupMessage *req)
 	while (1) {
 		g_main_iteration (TRUE);
 
-		if (req->priv->status == SOUP_MESSAGE_STATUS_FINISHED ||
+		if (req->status == SOUP_MESSAGE_STATUS_FINISHED ||
 		    SOUP_STATUS_IS_TRANSPORT (req->status_code))
 			break;
 	}

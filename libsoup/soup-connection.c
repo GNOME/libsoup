@@ -347,15 +347,6 @@ soup_connection_disconnect (SoupConnection *conn)
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 }
 
-gboolean
-soup_connection_is_connected (SoupConnection *conn)
-{
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-
-	return conn->priv->socket != NULL;
-}
-
-
 /**
  * soup_connection_is_in_use:
  * @conn: a connection
@@ -384,22 +375,6 @@ soup_connection_last_used (SoupConnection *conn)
 
 	return conn->priv->last_used;
 }
-
-/**
- * soup_connection_is_new:
- * @conn: a connection
- *
- * Return value: whether or not @conn is "new". (That is, it has not
- * yet completed a whole HTTP transaction.)
- **/
-gboolean
-soup_connection_is_new (SoupConnection *conn)
-{
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-
-	return conn->priv->last_used == 0;
-}
-
 
 static void
 request_done (SoupMessage *req, gpointer user_data)

@@ -16,11 +16,11 @@
 
 #include "soup-auth-digest.h"
 #include "soup-headers.h"
+#include "soup-md5-utils.h"
 #include "soup-message.h"
 #include "soup-misc.h"
 #include "soup-private.h"
 #include "soup-uri.h"
-#include "md5-utils.h"
 
 static void construct (SoupAuth *auth, const char *header);
 static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
@@ -265,7 +265,7 @@ static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
 	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
-	MD5Context ctx;
+	SoupMD5Context ctx;
 	guchar d[16];
 	char *bgen;
 
@@ -281,31 +281,35 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	digest->priv->user = g_strdup (username);
 
 	/* compute A1 */
-	md5_init (&ctx);
+	soup_md5_init (&ctx);
 
-	md5_update (&ctx, username, strlen (username));
+	soup_md5_update (&ctx, username, strlen (username));
 
-	md5_update (&ctx, ":", 1);
-	if (digest->priv->realm)
-		md5_update (&ctx, digest->priv->realm, strlen (digest->priv->realm));
+	soup_md5_update (&ctx, ":", 1);
+	if (digest->priv->realm) {
+		soup_md5_update (&ctx, digest->priv->realm,
+				 strlen (digest->priv->realm));
+	}
 
-	md5_update (&ctx, ":", 1);
+	soup_md5_update (&ctx, ":", 1);
 	if (password)
-		md5_update (&ctx, password, strlen (password));
+		soup_md5_update (&ctx, password, strlen (password));
 
 	if (digest->priv->algorithm == ALGORITHM_MD5_SESS) {
-		md5_final (&ctx, d);
+		soup_md5_final (&ctx, d);
 
-		md5_init (&ctx);
-		md5_update (&ctx, d, 16);
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->priv->nonce, strlen (digest->priv->nonce));
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->priv->cnonce, strlen (digest->priv->cnonce));
+		soup_md5_init (&ctx);
+		soup_md5_update (&ctx, d, 16);
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, digest->priv->nonce,
+				 strlen (digest->priv->nonce));
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, digest->priv->cnonce,
+				 strlen (digest->priv->cnonce));
 	}
 
 	/* hexify A1 */
-	md5_final (&ctx, d);
+	soup_md5_final (&ctx, d);
 	digest_hex (d, digest->priv->hex_a1);
 }
 
@@ -332,7 +336,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 {
 	guchar hex_a2[33], o[33];
 	guchar d[16];
-	MD5Context md5;
+	SoupMD5Context md5;
 	char *url;
 	const SoupUri *uri;
 
@@ -341,40 +345,42 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	url = soup_uri_to_string (uri, TRUE);
 
 	/* compute A2 */
-	md5_init (&md5);
-	md5_update (&md5, msg->method, strlen (msg->method));
-	md5_update (&md5, ":", 1);
-	md5_update (&md5, url, strlen (url));
+	soup_md5_init (&md5);
+	soup_md5_update (&md5, msg->method, strlen (msg->method));
+	soup_md5_update (&md5, ":", 1);
+	soup_md5_update (&md5, url, strlen (url));
 
 	g_free (url);
 
 	if (digest->priv->qop == QOP_AUTH_INT) {
 		/* FIXME: Actually implement. Ugh. */
-		md5_update (&md5, ":", 1);
-		md5_update (&md5, "00000000000000000000000000000000", 32);
+		soup_md5_update (&md5, ":", 1);
+		soup_md5_update (&md5, "00000000000000000000000000000000", 32);
 	}
 
 	/* now hexify A2 */
-	md5_final (&md5, d);
+	soup_md5_final (&md5, d);
 	digest_hex (d, hex_a2);
 
 	/* compute KD */
-	md5_init (&md5);
-	md5_update (&md5, digest->priv->hex_a1, 32);
-	md5_update (&md5, ":", 1);
-	md5_update (&md5, digest->priv->nonce, strlen (digest->priv->nonce));
-	md5_update (&md5, ":", 1);
+	soup_md5_init (&md5);
+	soup_md5_update (&md5, digest->priv->hex_a1, 32);
+	soup_md5_update (&md5, ":", 1);
+	soup_md5_update (&md5, digest->priv->nonce,
+			 strlen (digest->priv->nonce));
+	soup_md5_update (&md5, ":", 1);
 
 	if (digest->priv->qop) {
 		char *tmp;
 
 		tmp = g_strdup_printf ("%.8x", digest->priv->nc);
 
-		md5_update (&md5, tmp, strlen (tmp));
+		soup_md5_update (&md5, tmp, strlen (tmp));
 		g_free (tmp);
-		md5_update (&md5, ":", 1);
-		md5_update (&md5, digest->priv->cnonce, strlen (digest->priv->cnonce));
-		md5_update (&md5, ":", 1);
+		soup_md5_update (&md5, ":", 1);
+		soup_md5_update (&md5, digest->priv->cnonce,
+				 strlen (digest->priv->cnonce));
+		soup_md5_update (&md5, ":", 1);
 
 		if (digest->priv->qop == QOP_AUTH)
 			tmp = "auth";
@@ -383,12 +389,12 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 		else
 			g_assert_not_reached ();
 
-		md5_update (&md5, tmp, strlen (tmp));
-		md5_update (&md5, ":", 1);
+		soup_md5_update (&md5, tmp, strlen (tmp));
+		soup_md5_update (&md5, ":", 1);
 	}
 
-	md5_update (&md5, hex_a2, 32);
-	md5_final (&md5, d);
+	soup_md5_update (&md5, hex_a2, 32);
+	soup_md5_final (&md5, d);
 
 	digest_hex (d, o);
 

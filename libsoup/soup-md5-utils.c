@@ -11,8 +11,8 @@
  * with every copy.
  *
  * To compute the message digest of a chunk of bytes, declare an
- * MD5Context structure, pass it to md5_init, call md5_update as
- * needed on buffers full of bytes, and then call md5_Final, which
+ * SoupMD5Context structure, pass it to soup_md5_init, call soup_md5_update as
+ * needed on buffers full of bytes, and then call soup_md5_Final, which
  * will fill a supplied 16-byte array with the digest.
  */
 
@@ -23,23 +23,16 @@
  */
 
 
-#include "md5-utils.h"
-#include <stdio.h>
+#include "soup-md5-utils.h"
 #include <string.h>
 
-static void md5_transform (guint32 buf[4], const guint32 in[16]);
-
-static gint _ie = 0x44332211;
-static union _endian { gint i; gchar b[4]; } *_endian = (union _endian *)&_ie;
-#define	IS_BIG_ENDIAN()		(_endian->b[0] == '\x44')
-#define	IS_LITTLE_ENDIAN()	(_endian->b[0] == '\x11')
-
+static void soup_md5_transform (guint32 buf[4], const guint32 in[16]);
 
 /*
  * Note: this code is harmless on little-endian machines.
  */
 static void 
-_byte_reverse (guchar *buf, guint32 longs)
+byte_reverse (guchar *buf, guint32 longs)
 {
 	guint32 t;
 	do {
@@ -51,14 +44,14 @@ _byte_reverse (guchar *buf, guint32 longs)
 }
 
 /**
- * md5_init: Initialise an md5 context object
+ * soup_md5_init: Initialise an md5 context object
  * @ctx: md5 context 
  * 
  * Initialise an md5 buffer. 
  *
  **/
 void 
-md5_init (MD5Context *ctx)
+soup_md5_init (SoupMD5Context *ctx)
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -68,16 +61,13 @@ md5_init (MD5Context *ctx)
 	ctx->bits[0] = 0;
 	ctx->bits[1] = 0;
 	
-	if (IS_BIG_ENDIAN())	
-		ctx->doByteReverse = 1;		
-	else 
-		ctx->doByteReverse = 0;	
+	ctx->doByteReverse = (G_BYTE_ORDER == G_BIG_ENDIAN);
 }
 
 
 
 /**
- * md5_update: add a buffer to md5 hash computation
+ * soup_md5_update: add a buffer to md5 hash computation
  * @ctx: conetxt object used for md5 computaion
  * @buf: buffer to add
  * @len: buffer length
@@ -86,7 +76,7 @@ md5_init (MD5Context *ctx)
  * of bytes. Use this to progressively construct an md5 hash.
  **/
 void 
-md5_update (MD5Context *ctx, const guchar *buf, guint32 len)
+soup_md5_update (SoupMD5Context *ctx, const guchar *buf, guint32 len)
 {
 	guint32 t;
 	
@@ -111,8 +101,8 @@ md5_update (MD5Context *ctx, const guchar *buf, guint32 len)
 		}
 		memcpy (p, buf, t);
 		if (ctx->doByteReverse)
-			_byte_reverse (ctx->in, 16);
-		md5_transform (ctx->buf, (guint32 *) ctx->in);
+			byte_reverse (ctx->in, 16);
+		soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
 		buf += t;
 		len -= t;
 	}
@@ -121,8 +111,8 @@ md5_update (MD5Context *ctx, const guchar *buf, guint32 len)
 	while (len >= 64) {
 		memcpy (ctx->in, buf, 64);
 		if (ctx->doByteReverse)
-			_byte_reverse (ctx->in, 16);
-		md5_transform (ctx->buf, (guint32 *) ctx->in);
+			byte_reverse (ctx->in, 16);
+		soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
 		buf += 64;
 		len -= 64;
 	}
@@ -132,23 +122,19 @@ md5_update (MD5Context *ctx, const guchar *buf, guint32 len)
 	memcpy (ctx->in, buf, len);
 }
 
-
-
-
-
 /*
  * Final wrapup - pad to 64-byte boundary with the bit pattern 
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 /**
- * md5_final: copy the final md5 hash to a bufer
+ * soup_md5_final: copy the final md5 hash to a bufer
  * @digest: 16 bytes buffer
  * @ctx: context containing the calculated md5
  * 
  * copy the final md5 hash to a bufer
  **/
 void 
-md5_final (MD5Context *ctx, guchar digest[16])
+soup_md5_final (SoupMD5Context *ctx, guchar digest[16])
 {
 	guint32 count;
 	guchar *p;
@@ -169,8 +155,8 @@ md5_final (MD5Context *ctx, guchar digest[16])
 		/* Two lots of padding:  Pad the first block to 64 bytes */
 		memset (p, 0, count);
 		if (ctx->doByteReverse)
-			_byte_reverse (ctx->in, 16);
-		md5_transform (ctx->buf, (guint32 *) ctx->in);
+			byte_reverse (ctx->in, 16);
+		soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
 		
 		/* Now fill the next block with 56 bytes */
 		memset (ctx->in, 0, 56);
@@ -179,15 +165,15 @@ md5_final (MD5Context *ctx, guchar digest[16])
 		memset (p, 0, count - 8);
 	}
 	if (ctx->doByteReverse)
-		_byte_reverse (ctx->in, 14);
+		byte_reverse (ctx->in, 14);
 	
 	/* Append length in bits and transform */
 	((guint32 *) ctx->in)[14] = ctx->bits[0];
 	((guint32 *) ctx->in)[15] = ctx->bits[1];
 	
-	md5_transform (ctx->buf, (guint32 *) ctx->in);
+	soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
 	if (ctx->doByteReverse)
-		_byte_reverse ((guchar *) ctx->buf, 4);
+		byte_reverse ((guchar *) ctx->buf, 4);
 	memcpy (digest, ctx->buf, 16);
 }
 
@@ -208,11 +194,11 @@ md5_final (MD5Context *ctx, guchar digest[16])
 
 /*
  * The core of the MD5 algorithm, this alters an existing MD5 hash to
- * reflect the addition of 16 longwords of new data.  md5_Update blocks
+ * reflect the addition of 16 longwords of new data.  soup_md5_Update blocks
  * the data and converts bytes into longwords for this routine.
  */
 static void 
-md5_transform (guint32 buf[4], const guint32 in[16])
+soup_md5_transform (guint32 buf[4], const guint32 in[16])
 {
 	register guint32 a, b, c, d;
 	
@@ -294,69 +280,3 @@ md5_transform (guint32 buf[4], const guint32 in[16])
 	buf[2] += c;
 	buf[3] += d;
 }
-
-
-
-
-/**
- * md5_get_digest: get the md5 hash of a buffer
- * @buffer: byte buffer
- * @buffer_size: buffer size (in bytes)
- * @digest: 16 bytes buffer receiving the hash code.
- * 
- * Get the md5 hash of a buffer. The result is put in 
- * the 16 bytes buffer @digest .
- **/
-void
-md5_get_digest (const gchar *buffer, gint buffer_size, guchar digest[16])
-{	
-	MD5Context ctx;
-
-	md5_init (&ctx);
-	md5_update (&ctx, buffer, buffer_size);
-	md5_final (&ctx, digest);
-	
-}
-
-
-/**
- * md5_get_digest_from_file: get the md5 hash of a file
- * @filename: file name
- * @digest: 16 bytes buffer receiving the hash code.
- * 
- * Get the md5 hash of a file. The result is put in 
- * the 16 bytes buffer @digest .
- **/
-void
-md5_get_digest_from_file (const gchar *filename, guchar digest[16])
-{	
-	MD5Context ctx;
-	guchar tmp_buf[1024];
-	gint nb_bytes_read;
-	FILE *fp;
-
-	printf("generating checksum\n");
-
-	md5_init (&ctx);
-	fp = fopen(filename, "r");
-	if (!fp) {
-	return;
-	}
-	
-	while ((nb_bytes_read = fread (tmp_buf, sizeof (guchar), 1024, fp)) > 0)
-		md5_update (&ctx, tmp_buf, nb_bytes_read);
-	
-	if (ferror(fp)) {
-		fclose(fp);
-		return;
-	}
-
-	
-	md5_final (&ctx, digest);
-	
-	printf("checksum done\n");
-}
-
-
-
-

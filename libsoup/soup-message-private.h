@@ -8,19 +8,7 @@
 
 #include <libsoup/soup-message.h>
 
-typedef enum {
-	SOUP_MESSAGE_STATUS_IDLE,
-	SOUP_MESSAGE_STATUS_QUEUED,
-        SOUP_MESSAGE_STATUS_CONNECTING,
-        SOUP_MESSAGE_STATUS_RUNNING,
-	SOUP_MESSAGE_STATUS_FINISHED,
-} SoupMessageStatus;
-
-#define SOUP_MESSAGE_IS_STARTING(msg) (msg->priv->status == SOUP_MESSAGE_STATUS_QUEUED || msg->priv->status == SOUP_MESSAGE_STATUS_CONNECTING)
-
 struct SoupMessagePrivate {
-	SoupMessageStatus  status;
-
 	gpointer           io_data;
 
 	guint              msg_flags;
@@ -40,9 +28,6 @@ void             soup_message_run_handlers   (SoupMessage      *msg,
 void             soup_message_cleanup        (SoupMessage      *req);
 
 gboolean         soup_message_is_keepalive   (SoupMessage      *msg);
-
-void             soup_message_set_uri        (SoupMessage      *msg,
-					      const SoupUri    *uri);
 
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
