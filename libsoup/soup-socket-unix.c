@@ -530,6 +530,60 @@ soup_address_new_cb (GIOChannel* iochannel,
 	return FALSE;
 }
 
+static SoupAddress *
+lookup_in_cache_internal (const gchar       *name, 
+			  const gint         port,
+			  gboolean          *in_progress)
+{
+	SoupAddress* ia = NULL;
+
+	if (in_progress)
+		*in_progress = FALSE;
+
+	if (!active_address_hash)
+		return NULL;
+
+	ia = g_hash_table_lookup (active_address_hash, name);
+
+	if (ia && ia->ref_count >= 0) {
+		/*
+		 * Existing valid request, use it.
+		 */
+		if (soup_address_get_port (ia) == port) {
+			soup_address_ref (ia);
+		} else {
+			/* 
+			 * We can reuse the address, but we have to
+			 * change port 
+			 */
+			SoupAddress *new_ia = soup_address_copy (ia);
+
+			((struct sockaddr_in*) &new_ia->sa)->sin_port = 
+				g_htons (port);
+
+			ia = new_ia;
+		}
+	}
+	else if (ia && in_progress)
+		*in_progress = TRUE;
+
+	return ia;
+}
+
+SoupAddress *
+soup_address_lookup_in_cache (const gchar *name, const gint port)
+{
+	SoupAddress *ia;
+	gboolean in_prog;
+
+	ia = lookup_in_cache_internal (name, port, &in_prog);
+
+	if (in_prog) 
+		return NULL;
+
+	return ia;
+}
+
 /**
  * soup_address_new:
  * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
@@ -624,32 +678,10 @@ soup_address_new (const gchar* name,
 		active_address_hash = g_hash_table_new (soup_str_case_hash,
 							soup_str_case_equal);
 	else {
-		ia = g_hash_table_lookup (active_address_hash, name);
+		gboolean in_prog;
 
-		if (ia && ia->ref_count >= 0) {
-			/*
-			 * Existing valid request, use it.
-			 */
-			if (soup_address_get_port (ia) == port) {
-				soup_address_ref (ia);
-			} else {
-				/* 
-				 * We can reuse the address, but we have to
-				 * change port 
-				 */
-				SoupAddress *new_ia = soup_address_copy (ia);
-
-				((struct sockaddr_in*) &new_ia->sa)->sin_port = 
-					g_htons (port);
-
-				ia = new_ia;
-			}
-
-			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
-
-			return NULL;
-		} 
-		else if (ia && soup_address_get_port (ia) == port) {
+		ia = lookup_in_cache_internal (name, port, &in_prog);
+		if (in_prog) {
 			/*
 			 * Lookup currently in progress.
 			 * Add func to list of callbacks in state.
@@ -671,6 +703,8 @@ soup_address_new (const gchar* name,
 
 			return state;
 		}
+		else if (ia)
+			return ia;
 	}
 
 	/* Check to see if we are doing synchronous DNS lookups */

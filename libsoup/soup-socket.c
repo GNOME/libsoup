@@ -387,7 +387,8 @@ soup_socket_connect (const gchar*        hostname,
 		     gpointer            data)
 {
 	SoupSocketConnectState* state;
-	gpointer id;
+	SoupAddress *cached_addr;
+	gpointer addr_id, tcp_id;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -396,21 +397,39 @@ soup_socket_connect (const gchar*        hostname,
 	state->func = func;
 	state->data = data;
 
-	id = soup_address_new (hostname,
-			       port,
-			       soup_socket_connect_inetaddr_cb,
-			       state);
+	/* Check if a cached version of the address already exists */
+	cached_addr = soup_address_lookup_in_cache (hostname, port);
+	if (cached_addr) {
+		tcp_id = soup_socket_new (cached_addr,
+					  soup_socket_connect_tcp_cb,
+					  state);
+		soup_address_unref (cached_addr);
 
-	/* 
-	 * NOTE: soup_address_new can fail immediately and call our callback
-	 * which will delete the state. 
-	 */
-	if (!id) 
-		return NULL;
+		/* 
+		 * NOTE: soup_socket_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (tcp_id) {
+			state->tcp_id = tcp_id;
+			return state;
+		} else
+			return NULL;
+	} else {
+		addr_id = soup_address_new (hostname,
+					    port,
+					    soup_socket_connect_inetaddr_cb,
+					    state);
 
-	state->inetaddr_id = id;
-
-	return state;
+		/* 
+		 * NOTE: soup_address_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (addr_id) {
+			state->inetaddr_id = addr_id;
+			return state;
+		} else
+			return NULL;
+	}
 }
 
 /**

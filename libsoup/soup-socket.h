@@ -36,8 +36,11 @@ SoupAddressNewId     soup_address_new                (const gchar*       name,
 
 void                 soup_address_new_cancel         (SoupAddressNewId   id);
 
-SoupAddress         *soup_address_new_sync           (const gchar *name, 
-						      const gint port);
+SoupAddress         *soup_address_new_sync           (const gchar       *name, 
+						      const gint         port);
+
+SoupAddress         *soup_address_lookup_in_cache    (const gchar       *name, 
+						      const gint         port);
 
 void                 soup_address_ref                (SoupAddress*       ia);
 

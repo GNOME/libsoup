@@ -1,3 +1,22 @@
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.h: Add soup_address_lookup_in_cache.
+
+	* src/libsoup/soup-socket.c (soup_socket_connect): Handle host
+	address already being resolved by checking in address cache.
+	Allows us to return a non-null state pointer if soup_address_new
+	calls its callback inline, but soup_socket_new does not.
+
+	* src/libsoup/soup-socket-unix.c (lookup_in_cache_internal): Impl,
+	checks the address cache for an existing resolved address or
+	in progress lookup.
+	(soup_address_lookup_in_cache): Impl, return existing resolved
+	address if it exists.
+	(soup_address_new): use lookup_in_cache_internal.
+
+	* src/libsoup/soup-socket-win.c (soup_address_get_cached): Impl,
+	return NULL as windows has no address hash.
+
 2002-02-26  JP Rosevear  <jpr@ximian.com>
 
 	* src/libsoup/soup-socket-unix.c (soup_address_new): inaddr is a
