@@ -1,3 +1,11 @@
+2004-08-02  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-uri.h: Add flag "broken_encoding" to SoupUri.
+
+	* libsoup/soup-uri.c: (soup_uri_to_string): if broken_encoding is
+	set, don't re-encode the URL parts. Based on a patch by
+	Alfred.Peng@Sun.COM.
+
 2004-07-19  JP Rosevear  <jpr@novell.com>
 
 	* configure.in: bump version, libtool number

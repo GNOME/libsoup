@@ -28,6 +28,9 @@ struct SoupUri {
 	char         *query;
 
 	char         *fragment;
+
+	/* Don't use this */
+	gboolean      broken_encoding;
 };
 
 SoupUri  *soup_uri_new_with_base     (const SoupUri *base,

@@ -11,6 +11,8 @@
 
 #include "soup-uri.h"
 
+static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
+
 static inline SoupProtocol
 soup_uri_get_protocol (const char *proto, int len)
 {
@@ -39,8 +41,6 @@ soup_protocol_default_port (SoupProtocol proto)
 	else
 		return 0;
 }
-
-static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
 
 /**
  * soup_uri_new_with_base:
@@ -255,6 +255,17 @@ soup_uri_new (const char *uri_string)
 	return uri;
 }
 
+
+static inline void
+append_uri (GString *str, const char *in, const char *extra_enc_chars,
+	    gboolean pre_encoded)
+{
+	if (pre_encoded)
+		g_string_append (str, in);
+	else
+		append_uri_encoded (str, in, extra_enc_chars);
+}
+
 /**
  * soup_uri_to_string:
  * @uri: a #SoupUri
@@ -267,6 +278,7 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 {
 	GString *str;
 	char *return_result;
+	gboolean pre_encoded = uri->broken_encoding;
 
 	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
 	 * tests/uri-parsing AFTERWARD.
@@ -279,10 +291,10 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 	if (uri->host && !just_path) {
 		g_string_append (str, "//");
 		if (uri->user) {
-			append_uri_encoded (str, uri->user, ":;@/");
+			append_uri (str, uri->user, ":;@/", pre_encoded);
 			g_string_append_c (str, '@');
 		}
-		append_uri_encoded (str, uri->host, ":/");
+		append_uri (str, uri->host, ":/", pre_encoded);
 		if (uri->port && uri->port != soup_protocol_default_port (uri->protocol))
 			g_string_append_printf (str, ":%d", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
@@ -290,17 +302,17 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 	}
 
 	if (uri->path && *uri->path)
-		append_uri_encoded (str, uri->path, "?");
+		append_uri (str, uri->path, "?", pre_encoded);
 	else if (just_path)
 		g_string_append_c (str, '/');
 
 	if (uri->query) {
 		g_string_append_c (str, '?');
-		append_uri_encoded (str, uri->query, NULL);
+		append_uri (str, uri->query, NULL, pre_encoded);
 	}
 	if (uri->fragment && !just_path) {
 		g_string_append_c (str, '#');
-		append_uri_encoded (str, uri->fragment, NULL);
+		append_uri (str, uri->fragment, NULL, pre_encoded);
 	}
 
 	return_result = str->str;
@@ -325,6 +337,8 @@ soup_uri_copy (const SoupUri *uri)
 	dup->path     = g_strdup (uri->path);
 	dup->query    = g_strdup (uri->query);
 	dup->fragment = g_strdup (uri->fragment);
+
+	dup->broken_encoding = uri->broken_encoding;
 
 	return dup;
 }
