@@ -72,8 +72,10 @@ struct _SoupRequestPrivate {
 	guint           read_len;
 	guint           header_len;
 
-	gulong          content_length;
+	guint           content_length;
 	gboolean        is_chunked;
+	guint           cur_chunk_len;
+	gchar          *cur_chunk_start;
 
 	GString        *req_header;
 	GByteArray     *recv_buf;

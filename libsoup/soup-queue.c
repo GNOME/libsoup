@@ -56,6 +56,9 @@ soup_parse_headers (SoupRequest *req, gchar *str, guint len)
 	req->response_headers = g_hash_table_new (soup_str_case_hash, 
 						  soup_str_case_equal);
 
+	if (!str || !*str || len < strlen ("HTTP/0.0 000 A\r\n\r\n"))
+		goto THROW_MALFORMED_HEADER;
+
 	read_count = sscanf (str, 
 			     "HTTP/%d.%d %u %n", 
 			     &http_major,
@@ -600,21 +603,25 @@ soup_queue_request (SoupRequest    *req,
 	if (req->status != SOUP_STATUS_IDLE)
 		soup_request_cleanup (req);
 
-	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED) {
-		g_free (req->response.body);
-		req->response.body = NULL;
-		req->response.length = 0;
-	} else
-		g_error ("soup_queue_request(): Attempted to requeue a request "
-			 "with a user owned response buffer.");
+	req->priv->callback = callback;
+	req->priv->user_data = user_data;
+
+	if (req->response.owner == SOUP_BUFFER_USER_OWNED) {
+		g_warning ("Attempted to queue a request with a user owned "
+			   "response buffer.");
+		soup_request_issue_callback (req, SOUP_ERROR_CANCELLED);
+		return;
+	}
+
+	g_free (req->response.body);
+	req->response.body = NULL;
+	req->response.length = 0;
 
 	if (req->response_headers)
 		g_hash_table_destroy (req->response_headers);
 	if (req->priv->recv_buf) 
 		g_byte_array_free (req->priv->recv_buf, TRUE);
 
-	req->priv->callback = callback;
-	req->priv->user_data = user_data;
 	req->response_code = 0;
 	req->response_phrase = NULL;
 	req->response_headers = NULL;
