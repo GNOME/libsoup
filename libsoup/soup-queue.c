@@ -128,11 +128,6 @@ soup_read_chunk (SoupMessage *req)
 	gint chunk_len = req->priv->cur_chunk_len;
 	GByteArray *arr = req->priv->recv_buf;
 	
-	if (!chunk_idx) {
-		chunk_len = 0;
-		chunk_idx = req->priv->header_len;
-	}
-
 	while (chunk_idx + chunk_len + 5 <= arr->len) {
 		gint new_len = 0;
 		gint len = 0, j;
@@ -146,6 +141,7 @@ soup_read_chunk (SoupMessage *req)
 			g_byte_array_set_size (arr, arr->len - 2);
 		}
 
+		/* Convert the size of the next chunk from hex */
 		while ((tolower (*i) >= 'a' && tolower (*i) <= 'f') ||
 		       (*i >= '0' && *i <= '9'))
 			len++, i++;
@@ -186,18 +182,11 @@ soup_read_chunk (SoupMessage *req)
 static void
 soup_finish_read (SoupMessage *req)
 {
-	GByteArray *arr = req->priv->recv_buf;
-	gint index = req->priv->header_len;
 	SoupErrorCode err;
 
 	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	req->response.length = arr->len - index ;
-	req->response.body = g_memdup (&arr->data [index],
-				       req->response.length + 1);
-	req->response.body [req->response.length] = '\0';
-
-	g_byte_array_free (arr, TRUE);
-	req->priv->recv_buf = NULL;
+	req->response.length = req->priv->recv_buf->len;
+	req->response.body = req->priv->recv_buf->data;
 
 	req->status = SOUP_STATUS_FINISHED;
 
@@ -218,8 +207,7 @@ soup_queue_read_cb (GIOChannel* iochannel,
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
 	gint bytes_read = 0;
 	gboolean read_done = FALSE;
-	gint index = req->priv->header_len;
-	GByteArray *arr = req->priv->recv_buf;
+	GByteArray *arr;
 	GIOError error;
 	SoupErrorCode err;
 
@@ -230,31 +218,60 @@ soup_queue_read_cb (GIOChannel* iochannel,
 
 	if (error == G_IO_ERROR_AGAIN)
 		return TRUE;
-	
+
 	if (error != G_IO_ERROR_NONE) {
 		soup_message_issue_callback (req, SOUP_ERROR_IO);
 		return FALSE;
 	}
 
+	arr = req->priv->recv_buf;
+
 	if (!arr) arr = req->priv->recv_buf = g_byte_array_new ();
 
-	if (bytes_read) g_byte_array_append (arr, read_buf, bytes_read);
+	if (req->priv->headers_done && 
+	    req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS) {
+		req->priv->cur_chunk_len -= arr->len - req->priv->cur_chunk_idx;
+		req->priv->cur_chunk_idx = 0;
+		req->priv->content_length -= arr->len;
+		g_byte_array_set_size (arr, 0);
+	}
 
-	if (!index) {
-		index = soup_substring_index (arr->data, arr->len, "\r\n\r\n");
+	if (bytes_read) 
+		g_byte_array_append (arr, read_buf, bytes_read);
+
+	if (!req->priv->headers_done) {
+		gint index = soup_substring_index (arr->data, 
+						   arr->len, 
+						   "\r\n\r\n");
 		if (index < 0) return TRUE;
-
-		req->priv->header_len = index + 4;
 
 		/* Terminate Headers */
 		arr->data [index + 3] = '\0';
+		index += 4;
 
 		if (!soup_parse_headers (req) || !soup_process_headers (req)) 
 			return FALSE;
+
+		g_memmove (arr->data, &arr->data [index], arr->len - index);
+		g_byte_array_set_size (arr, arr->len - index);
+
+		req->priv->headers_done = TRUE;
 	}
+
+	/* Allow the chunk parser to strip the data stream */
+	if (bytes_read == 0) 
+		read_done = TRUE;
+	else if (req->priv->is_chunked) 
+		read_done = soup_read_chunk (req);
+	else if (req->priv->content_length == arr->len) 
+		read_done = TRUE;
 
 	/* Don't call chunk handlers if we didn't actually read anything */
 	if (bytes_read != 0) {
+		req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
+		req->response.length = arr->len;
+		req->response.body = arr->data;
+
 		err = soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
 		if (err) { 
 			soup_message_issue_callback (req, err); 
@@ -262,10 +279,6 @@ soup_queue_read_cb (GIOChannel* iochannel,
 		} else if (req->status == SOUP_STATUS_QUEUED) 
 			return FALSE;
 	}
-
-	if (bytes_read == 0) read_done = TRUE;
-	else if (req->priv->is_chunked) read_done = soup_read_chunk (req);
-	else if (req->priv->content_length==arr->len-index-4) read_done = TRUE;
 
 	if (read_done) {
 		soup_finish_read (req);
@@ -306,7 +319,7 @@ soup_queue_error_cb (GIOChannel* iochannel,
 		soup_message_issue_callback (req, SOUP_ERROR_IO);
 		break;
 	case SOUP_STATUS_READING_RESPONSE:
-		if (req->priv->header_len && !conn_closed) {
+		if (req->priv->headers_done && !conn_closed) {
 			soup_finish_read (req);
 			break;
 		}

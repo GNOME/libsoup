@@ -1,5 +1,24 @@
 2001-06-14  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_read_chunk): Don't start from
+	header_len offset.
+	(soup_finish_read): Don't copy the recv_buf, just reference
+	it. Don't free recv_buf.
+	(soup_queue_read_cb): Handle truncating chunks, also truncate
+	recv_buf after finishing headers. Make recv_buf contents public
+	for chunk handlers.
+
+	* src/soup-core/soup-message.c (soup_message_cleanup): Don't free
+	the recv_buf->data, as we no longer copy it.
+
+	* src/soup-core/soup-httpd.c: Update to missing header_len field.
+
+	* src/soup-core/soup-private.h: change SoupMessage.header_len to a
+	boolean headers_done. As we now truncate the buffer after
+	downloading headers. 
+
+2001-06-14  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-message.c (soup_message_set_flags): Remove
 	redirect handler if option is removed.
 	(soup_message_remove_handler): Added. Remove handler given

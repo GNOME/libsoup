@@ -81,7 +81,7 @@ struct _SoupMessagePrivate {
 	guint           timeout_tag;
 
 	guint           write_len;
-	guint           header_len;
+	gboolean        headers_done;
 
 	guint           content_length;
 	gboolean        is_chunked;
