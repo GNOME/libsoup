@@ -1,40 +1,60 @@
-TODO:
-====
+HTTP Features
+-------------
 
-* Thread safety (started)
+* Handle gzip Content-Encoding
 
-* Documentation (API, tutorial)
+* Handle cookies (RFC 2109) via a SoupCookieJar message filter
+	* RFC 2965 supposedly obsoletes 2109, but I don't think
+	  anyone uses it
 
-* Use gconf for config data (especially proxy info)
+* Handle caching, also via SoupMessageFilter
+	* rcd has some of the logic for this already
 
-* Bring back WSDL compiler from old soup module?
+* NTLM Proxy-Authentication support, GSS-Negotiate support
+
+* Pipelining
+
+* Add qop="auth-int" support to digest auth (both client and server)
+
+* Handle trailers in chunked responses
+
+
+Misc Features
+-------------
 
 * Bring back SOCKS support?
 
 * Bring back CGI server support? (Split SoupServer into SoupServerTCP
   and SoupServerCGI)
 
-* Handle gzip Content-Encoding
+* Bring back WSDL compiler from old soup module?
 
-* Add a SoupMessageFilter implementation to handle cookies (RFC 2965)
+* Use gconf for config data (especially proxy info)
+	* rcd doesn't want more dependencies, so make this optional
 
-* Add a SoupMessageFilter implementation to handle caching (rcd has
-  some of the logic for this already).
 
-* More regression tests
+General/API stuff
+-----------------
 
-* Add apache config files to tests/ so that apache can be run locally
-  to run regression tests against
+* Thread safety
+	* This is at least minimally done, but need to figure out
+	  what other things need to be thread-safe, and document
+	  which ones aren't.
+
+* Documentation (API, tutorial)
 
 * User-Agent handling: caller should specify a User-Agent string to
   SoupSession, and soup should automatically append libsoup/#.## to
   that. (Likewise for Server/Via headers.)
 
-* Range support
+* File-system-like asynchronous mode (eg, you write the request / read
+  the response in as many pieces as you want. If you try to read or
+  write more than you can, the EAGAIN is returned all they way to the
+  caller, who must call the relevant soup function again later to
+  continue reading or writing).
+	   * needed if we wanted to do a soup-based gnome-vfs http backend
 
-* NTLM Proxy-Authentication support, GSS-Negotiate support
-
-* Pipelining
+* Explicit support for Range header
 
 * Merge SoupAuth and SoupServerAuth
 
@@ -49,30 +69,31 @@ TODO:
 
 * Add date-parsing/generating routines (all formats)
 
-* Special handling on server side for HEAD (ignore
-  response->body.length).
+* Special handling on server side for HEAD (ignore response.body).
 
-* Warning header support
+* Make it possible to send/receive "OPTIONS * HTTP/1.1" (SoupURL won't
+  accept "*")
+
+* Make it possible to implement CONNECT on the server side (by having
+  a way to steal the socket from the SoupServer).
+
+* Simple higher-level API (a la E2kContext)
+	* the Connector stuff has a lot of Exchange-specific
+	  assumptions and exceptions. Might not be possible to
+	  migrate Connector to a generic API
+
+Testing
+-------
+
+* More regression tests
+
+* Add apache config files to tests/ so that apache can be run locally
+  to run regression tests against
 
 
-Known bugs/limitations:
-=======================
+Conformance
+-----------
 
-* Digest auth does not support qop="auth-int" (both client and server)
-
-* Trailers in chunked responses are not handled
-
-* simple-proxy is not very RFC compliant
-
-* Can't send or receive "OPTIONS * HTTP/1.1" (SoupURL won't accept
-  "*".)
-
-* Can't implement CONNECT on the server side (no way to steal the
-  socket from the SoupServer).
-
-
-Conformance:
-============
 * Check handling of unknown HTTP versions [RFC ????]
 
 * Don't do HTTP/1.1-specific behavior on HTTP/1.0 messages
@@ -94,4 +115,5 @@ Conformance:
 
 * MUST observe DNS TTL information
 
-[get SHOULDs and SHOULD NOTs in]
+* [get SHOULDs and SHOULD NOTs in]
+
