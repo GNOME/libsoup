@@ -67,6 +67,11 @@ libsoup_2_0_la_SOURCES =	\
 
 noinst_PROGRAMS = libsoup-ssl-proxy
 
+# workaround for libtool flag re-ordering
+libsoup-ssl-proxy$(EXEEXT): $(libsoup_ssl_proxy_OBJECTS) $(libsoup_ssl_proxy_DEPENDENCIES)
+	@rm -f libsoup-ssl-proxy$(EXEEXT)
+	$(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@ $(libsoup_ssl_proxy_LDFLAGS) $(libsoup_ssl_proxy_OBJECTS) $(libsoup_ssl_proxy_LDADD) $(LIBS)
+
 libsoup_ssl_proxy_LDADD =	\
 	$(LINK_STATIC)		\
 	$(OPENSSL_LIBS)		\
