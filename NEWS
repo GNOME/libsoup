@@ -1,4 +1,18 @@
-Changes in libsoup from 2.2.0 to 2.2.1:
+Changes in libsoup from 2.2.1 to 2.2.2:
+
+	* The SSL validation fix from 2.2.1 [64414] is now completely
+          fixed. (Part of the fix didn't actually make it into 2.2.1)
+
+	* HTTPS certificate validation now works when using an HTTP
+          proxy. [68583]
+
+	* HTTP proxy code deals better with proxies that try to make
+          the user do HTML-form-based authentication. [68531]
+
+	* 64-bit fixes for NTLM auth code. [70323, from Michael
+          Zucchi]
+
+Changes from 2.2.0 to 2.2.1:
 
 	* Updated for a libgcrypt API change between 1.1.9x and 1.2.x
           that caused a crash at runtime if you compiled against
