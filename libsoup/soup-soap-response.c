@@ -174,6 +174,8 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 
 	if (xml_root->xmlChildrenNode != NULL) {
 		xml_body = xml_root->xmlChildrenNode;
+		if (strcmp (xml_body->name, "Header") == 0)
+			xml_body = xml_root->xmlChildrenNode->next;
 		if (strcmp (xml_body->name, "Body") != 0) {
 			xmlFreeDoc (response->priv->xmldoc);
 			response->priv->xmldoc = old_doc;
