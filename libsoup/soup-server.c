@@ -26,15 +26,39 @@ static gint                   soup_server_global_auth_allowed_types = 0;
 SoupServerHandler *
 soup_server_get_handler (const gchar *methodname)
 {
-	GSList *iter = soup_server_handlers;
+	GSList *iter;
+	gchar *name;
+	gint len;
 
 	g_return_val_if_fail (methodname != NULL, NULL);
 
+	name = g_strdup (methodname);
+	g_strstrip (name);
+	len = strlen (name);
+
+	/* Strip quotes */
+	if (name [0] == '"' && name [len] == '"') {
+		name [len--] = '\0';
+		name++;
+	}
+
+ RETRY_MATCH:
 	for (iter = soup_server_handlers; iter; iter = iter->next) {
 		SoupServerHandler *hand = iter->data;
-		if (!strcmp (hand->methodname, methodname))
+		if (!strcmp (hand->methodname, name)) {
+			g_free (name);
 			return hand;
+		}
 	}
+
+	/* Try again without the URI */
+	methodname = strchr (name, '#');
+	if (methodname && strlen (name) > 1) {
+		name++;
+		goto RETRY_MATCH;
+	}
+
+	g_free (name);
 	return NULL;
 }
 

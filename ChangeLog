@@ -1,3 +1,14 @@
+2001-03-12  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-server.c (soup_server_get_handler): avoid
+	leading and trailing quotes. If an exact match is not found,
+	lookup based only on methodname not uri#methodnmae.
+
+	* src/soup-core/soup-apache.c (soup_apache_handler): compile
+	without warnings.
+
+	* configure.in (AC_OUTPUT): chmod +x soup_apacheConf.sh
+
 2001-03-09  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl/wsdl-parse.c (wsdl_parse): set definitions = NULL

@@ -245,7 +245,7 @@ AC_OUTPUT([
 	src/soup-wsdl/Makefile
 	tests/Makefile
 	],
-	[chmod +x soup-config soupConf.sh])
+	[chmod +x soup-config soupConf.sh soup_apacheConf.sh])
 
 echo "
 
