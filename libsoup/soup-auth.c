@@ -186,10 +186,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	char *url;
 
 	uri = soup_context_get_uri (msg->context);
-	if (uri->querystring)
-		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
-	else
-		url = g_strdup (uri->path);
+	url = soup_uri_to_string (uri, TRUE);
 
 	/* compute A2 */
 	md5_init (&ctx);
@@ -268,10 +265,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 		g_assert_not_reached ();
 
 	uri = soup_context_get_uri (message->context);
-	if (uri->querystring)
-		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
-	else
-		url = g_strdup (uri->path);
+	url = soup_uri_to_string (uri, TRUE);
 
 	nc = g_strdup_printf ("%.8x", digest->nc);
 

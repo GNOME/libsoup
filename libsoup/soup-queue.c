@@ -389,20 +389,15 @@ soup_get_request_header (SoupMessage *req)
 	proxy = soup_get_proxy ();
 	suri = soup_context_get_uri (req->context);
 
-	if (!g_strcasecmp (req->method, "CONNECT")) 
-		/*
-		 * CONNECT URI is hostname:port for tunnel destination
-		 */
+	if (!g_strcasecmp (req->method, "CONNECT")) {
+		/* CONNECT URI is hostname:port for tunnel destination */
 		uri = g_strdup_printf ("%s:%d", suri->host, suri->port);
-	else if (proxy)
-		/*
-		 * Proxy expects full URI to destination
+	} else {
+		/* Proxy expects full URI to destination. Otherwise
+		 * just the path.
 		 */
-		uri = soup_uri_to_string (suri, FALSE);
-	else if (suri->querystring)
-		uri = g_strconcat (suri->path, "?", suri->querystring, NULL);
-	else
-		uri = g_strdup (suri->path);
+		uri = soup_uri_to_string (suri, !proxy);
+	}
 
 	g_string_sprintfa (header,
 			   req->priv->http_version == SOUP_HTTP_1_1 ? 

@@ -262,16 +262,9 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 			}
 			soup_uri_free (dig_uri);
 		} else {	
-			gchar *req_path;
+			char *req_path;
 
-			if (req_uri->querystring)
-				req_path = 
-					g_strdup_printf ("%s?%s", 
-							 req_uri->path, 
-							 req_uri->querystring);
-			else
-				req_path = g_strdup (req_uri->path);
-
+			req_path = soup_uri_to_string (req_uri, TRUE);
 			if (strcmp (uri, req_path) != 0) {
 				g_free (req_path);
 				goto DIGEST_AUTH_FAIL;

@@ -1,5 +1,48 @@
 2003-08-12  Dan Winship  <danw@ximian.com>
 
+	Pull over some new test programs from the soup-refactoring branch,
+	along with the SoupUri changes they depend on.
+
+	* tests/simple-httpd.c: A really simple HTTP server, to test the
+	server code.
+
+	* tests/simple-proxy.c: An even simpler HTTP proxy
+
+	* tests/get.c: Add "-r" flag to recursively get files (thereby
+	testing multiple-connections-at-once code). Also good for setting
+	up a tree to use with simple-httpd.
+
+	* tests/timeserver.c (main): Fix a bug. (s/ipv6/ipv4/ in the
+	normal case)
+
+	* tests/uri-parsing.c: Regression test for the new soup-uri.c
+
+	* libsoup/soup-uri.c: Rewrite/update to conform to RFC 2396, and
+	pull in some optimizations from camel-url. Also, make SoupProtocol
+	a GQuark so we can still compare them with ==, but we can also
+	recognize any protocol.
+	(soup_uri_new_with_base): New, to merge base and relative URIs
+	(soup_uri_to_string): Update this. Change the "show_password" flag
+	(which we always passed FALSE for) to "just_path", for places that
+	want the path+query without the protocol, host, etc.
+
+	* libsoup/soup-queue.c (soup_get_request_header): Just use
+	soup_uri_to_string to generate the request URI.
+
+	* libsoup/soup-auth.c (compute_response, digest_auth_func): Use
+	"soup_uri_to_path (uri, TRUE)" rather than trying to reassemble
+	the URI by hand badly.
+	* libsoup/soup-server-auth.c (parse_digest): Likewise
+
+	* libsoup/soup-socks.c (soup_connect_socks_proxy): Change a
+	switch() to an series of if()s since SOUP_PROTOCOL_* aren't
+	constants any more.
+
+	* libsoup/soup-context.c (soup_context_uri_hash,
+	soup_context_uri_equal): s/querystring/query/
+
+2003-08-12  Dan Winship  <danw@ximian.com>
+
 	* configure.in: Bump API version to 2.2 and package version to
 	2.1.0. Remove NSS and OpenSSL checks and proxy-related config. Use
 	libgnutls-config to find GNUTLS.

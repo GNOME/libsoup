@@ -28,7 +28,7 @@ main (int argc, char **argv)
 		argc--;
 		argv++;
 	} else
-		addr = soup_address_ipv6_any ();
+		addr = soup_address_ipv4_any ();
 
 	if (argc > 2) {
 		fprintf (stderr, "Usage: %s [-6] [port]\n", argv[0]);
@@ -38,7 +38,7 @@ main (int argc, char **argv)
 	if (argc == 2)
 		port = atoi (argv[1]);
 	else
-		port = 0;
+		port = SOUP_SERVER_ANY_PORT;
 	listener = soup_socket_server_new (addr, port);
 	if (!listener) {
 		fprintf (stderr, "Could not create listening socket\n");

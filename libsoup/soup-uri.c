@@ -2,471 +2,368 @@
 /* soup-uri.c : utility functions to parse URLs */
 
 /*
- * Authors :
- *  Dan Winship <danw@ximian.com>
- *  Alex Graveley <alex@ximian.com>
- *
- * Copyright 1999-2002 Ximian, Inc.
+ * Copyright 1999-2003 Ximian, Inc.
  */
 
-
-
-/*
- * Here we deal with URLs following the general scheme:
- *   protocol://user;AUTH=mech:password@host:port/name
- * where name is a path-like string (ie dir1/dir2/....) See RFC 1738
- * for the complete description of Uniform Resource Locators. The
- * ";AUTH=mech" addition comes from RFC 2384, "POP URL Scheme".
- */
-
-/* XXX TODO:
- * recover the words between #'s or ?'s after the path
- * % escapes
- */
-
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "soup-uri.h"
-#include "soup-misc.h"
 
-typedef struct {
-	SoupProtocol  proto;
-	gchar        *str;
-	gint          port;
-} SoupKnownProtocols;
-
-SoupKnownProtocols known_protocols [] = {
-	{ SOUP_PROTOCOL_HTTP,   "http://",   80 },
-	{ SOUP_PROTOCOL_HTTPS,  "https://",  443 },
-	{ SOUP_PROTOCOL_SMTP,   "mailto:",   25 },
-	{ SOUP_PROTOCOL_SOCKS4, "socks4://", -1 },
-	{ SOUP_PROTOCOL_SOCKS5, "socks5://", -1 },
-	{ SOUP_PROTOCOL_FILE,   "file://",   -1 },
-	{ 0 }
-};
-
-static SoupProtocol
-soup_uri_get_protocol (const gchar *proto, int *len)
+static inline SoupProtocol
+soup_uri_get_protocol (const char *proto, int len)
 {
-	SoupKnownProtocols *known = known_protocols;
+	char proto_buf[128];
 
-	while (known->proto) {
-		if (!g_strncasecmp (proto, known->str, strlen (known->str))) {
-			*len = strlen (known->str);
-			return known->proto;
-		}
-		known++;
-	}
+	g_return_val_if_fail (len < sizeof (proto_buf), 0);
 
-	*len = 0;
-	return 0;
+	memcpy (proto_buf, proto, len);
+	proto_buf[len] = '\0';
+	return g_quark_from_string (proto_buf);
 }
 
-static gchar *
-soup_uri_protocol_to_string (SoupProtocol proto)
+static inline const char *
+soup_protocol_name (SoupProtocol proto)
 {
-	SoupKnownProtocols *known = known_protocols;
-
-	while (known->proto) {
-		if (known->proto == proto) return known->str;
-		known++;
-	}
-
-	return "";
+	return g_quark_to_string (proto);
 }
 
-static gint
-soup_uri_get_default_port (SoupProtocol proto)
+static inline guint
+soup_protocol_default_port (SoupProtocol proto)
 {
-	SoupKnownProtocols *known = known_protocols;
-
-	while (known->proto) {
-		if (known->proto == proto) return known->port;
-		known++;
-	}
-
-	return -1;
+	if (proto == SOUP_PROTOCOL_HTTP)
+		return 80;
+	else if (proto == SOUP_PROTOCOL_HTTPS)
+		return 443;
+	else
+		return 0;
 }
 
-/*
- * Ripped off from libxml
- */
-static void
-normalize_path (gchar *path)
+static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
+
+/**
+ * soup_uri_new_with_base:
+ * @base: a base URI
+ * @uri_string: the URI
+ *
+ * Parses @uri_string relative to @base.
+ *
+ * Return value: a parsed SoupUri.
+ **/
+SoupUri *
+soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 {
-	char *cur, *out;
+	SoupUri *uri;
+	const char *end, *hash, *colon, *semi, *at, *slash, *question;
+	const char *p;
 
-	/* 
-	 * Skip all initial "/" chars.  We want to get to the beginning of the
-	 * first non-empty segment.
+	uri = g_new0 (SoupUri, 1);
+
+	/* See RFC2396 for details. IF YOU CHANGE ANYTHING IN THIS
+	 * FUNCTION, RUN tests/uri-parsing AFTERWARDS.
 	 */
-	cur = path;
-	while (cur[0] == '/')
-		++cur;
-	if (cur[0] == '\0')
-		return;
 
-	/* Keep everything we've seen so far.  */
-	out = cur;
+	/* Find fragment. */
+	end = hash = strchr (uri_string, '#');
+	if (hash && hash[1]) {
+		uri->fragment = g_strdup (hash + 1);
+		soup_uri_decode (uri->fragment);
+	} else
+		end = uri_string + strlen (uri_string);
 
-	/*
-	 * Analyze each segment in sequence for cases (c) and (d).
-	 */
-	while (cur[0] != '\0') {
-		/*
-		 * c) All occurrences of "./", where "." is a complete path
-		 * segment, are removed from the buffer string.  
-		 */
-		if ((cur[0] == '.') && (cur[1] == '/')) {
-			cur += 2;
-			/* 
-			 * '//' normalization should be done at this point too
-			 */
-			while (cur[0] == '/')
-				cur++;
-			continue;
+	/* Find protocol: initial [a-z+.-]* substring until ":" */
+	p = uri_string;
+	while (p < end && (isalnum ((unsigned char)*p) ||
+			   *p == '.' || *p == '+' || *p == '-'))
+		p++;
+
+	if (p > uri_string && *p == ':') {
+		uri->protocol = soup_uri_get_protocol (uri_string, p - uri_string);
+		if (!uri->protocol) {
+			soup_uri_free (uri);
+			return NULL;
 		}
-
-		/*
-		 * d) If the buffer string ends with "." as a complete path
-		 * segment, that "." is removed.  
-		 */
-		if ((cur[0] == '.') && (cur[1] == '\0'))
-			break;
-
-		/* Otherwise keep the segment.  */
-		while (cur[0] != '/') {
-			if (cur[0] == '\0')
-				goto done_cd;
-			(out++)[0] = (cur++)[0];
-		}
-		/* nomalize '//' */
-		while ((cur[0] == '/') && (cur[1] == '/'))
-			cur++;
-		
-		(out++)[0] = (cur++)[0];
+		uri_string = p + 1;
 	}
- done_cd:
-	out[0] = '\0';
 
-	/* Reset to the beginning of the first segment for the next sequence. */
-	cur = path;
-	while (cur[0] == '/')
-		++cur;
-	if (cur[0] == '\0')
-		return;
+	if (!*uri_string && !base)
+		return uri;
 
-	/*
-	 * Analyze each segment in sequence for cases (e) and (f).
-	 *
-	 * e) All occurrences of "<segment>/../", where <segment> is a
-	 *    complete path segment not equal to "..", are removed from the
-	 *    buffer string.  Removal of these path segments is performed
-	 *    iteratively, removing the leftmost matching pattern on each
-	 *    iteration, until no matching pattern remains.
-	 *
-	 * f) If the buffer string ends with "<segment>/..", where <segment>
-	 *    is a complete path segment not equal to "..", that
-	 *    "<segment>/.." is removed.
-	 *
-	 * To satisfy the "iterative" clause in (e), we need to collapse the
-	 * string every time we find something that needs to be removed.  Thus,
-	 * we don't need to keep two pointers into the string: we only need a
-	 * "current position" pointer.
-	 */
-	while (1) {
-		char *segp;
+	/* Check for authority */
+	if (strncmp (uri_string, "//", 2) == 0) {
+		uri_string += 2;
 
-		/* 
-		 * At the beginning of each iteration of this loop, "cur" points
-		 * to the first character of the segment we want to examine.  
-		 */
+		slash = uri_string + strcspn (uri_string, "/#");
+		at = strchr (uri_string, '@');
+		if (at && at < slash) {
+			colon = strchr (uri_string, ':');
+			if (colon && colon < at) {
+				uri->passwd = g_strndup (colon + 1,
+							 at - colon - 1);
+				soup_uri_decode (uri->passwd);
+			} else {
+				uri->passwd = NULL;
+				colon = at;
+			}
 
-		/* Find the end of the current segment.  */
-		segp = cur;
-		while ((segp[0] != '/') && (segp[0] != '\0'))
-			++segp;
+			semi = strchr (uri_string, ';');
+			if (semi && semi < colon &&
+			    !strncasecmp (semi, ";auth=", 6)) {
+				uri->authmech = g_strndup (semi + 6,
+							   colon - semi - 6);
+				soup_uri_decode (uri->authmech);
+			} else {
+				uri->authmech = NULL;
+				semi = colon;
+			}
 
-		/* 
-		 * If this is the last segment, we're done (we need at least two
-		 * segments to meet the criteria for the (e) and (f) cases).
-		 */
-		if (segp[0] == '\0')
-			break;
+			uri->user = g_strndup (uri_string, semi - uri_string);
+			soup_uri_decode (uri->user);
+			uri_string = at + 1;
+		} else
+			uri->user = uri->passwd = uri->authmech = NULL;
 
-		/* 
-		 * If the first segment is "..", or if the next segment _isn't_
-		 * "..", keep this segment and try the next one.  
-		 */
-		++segp;
-		if (((cur[0] == '.') && (cur[1] == '.') && (segp == cur+3))
-		    || ((segp[0] != '.') || (segp[1] != '.')
-			|| ((segp[2] != '/') && (segp[2] != '\0')))) {
-			cur = segp;
-			continue;
+		/* Find host and port. */
+		colon = strchr (uri_string, ':');
+		if (colon && colon < slash) {
+			uri->host = g_strndup (uri_string, colon - uri_string);
+			uri->port = strtoul (colon + 1, NULL, 10);
+		} else {
+			uri->host = g_strndup (uri_string, slash - uri_string);
+			soup_uri_decode (uri->host);
 		}
 
-		/* 
-		 * If we get here, remove this segment and the next one and back
-		 * up to the previous segment (if there is one), to implement
-		 * the "iteratively" clause.  It's pretty much impossible to
-		 * back up while maintaining two pointers into the buffer, so
-		 * just compact the whole buffer now.  
-		 */
-
-		/* If this is the end of the buffer, we're done.  */
-		if (segp[2] == '\0') {
-			cur[0] = '\0';
-			break;
-		}
-		strcpy(cur, segp + 3);
-
-		/* 
-		 * If there are no previous segments, then keep going from
-		 * here. 
-		 */
-		segp = cur;
-		while ((segp > path) && ((--segp)[0] == '/'))
-			;
-		if (segp == path)
-			continue;
-
-		/* 
-		 * "segp" is pointing to the end of a previous segment; find
-		 * it's start.  We need to back up to the previous segment and
-		 * start over with that to handle things like "foo/bar/../..".
-		 * If we don't do this, then on the first pass we'll remove the
-		 * "bar/..", but be pointing at the second ".." so we won't
-		 * realize we can also remove the "foo/..".  
-		 */
-		cur = segp;
-		while ((cur > path) && (cur[-1] != '/'))
-			--cur;
+		uri_string = slash;
 	}
-	out[0] = '\0';
 
-	/*
-	 * g) If the resulting buffer string still begins with one or more
-	 *    complete path segments of "..", then the reference is
-	 *    considered to be in error. Implementations may handle this
-	 *    error by retaining these components in the resolved path (i.e.,
-	 *    treating them as part of the final URI), by removing them from
-	 *    the resolved path (i.e., discarding relative levels above the
-	 *    root), or by avoiding traversal of the reference.
-	 *
-	 * We discard them from the final path.
-	 */
-	if (path[0] == '/') {
-		cur = path;
-		while ((cur[1] == '.') && (cur[2] == '.')
-		       && ((cur[3] == '/') || (cur[3] == '\0')))
-			cur += 3;
+	/* Find query */
+	question = memchr (uri_string, '?', end - uri_string);
+	if (question) {
+		if (question[1]) {
+			uri->query = g_strndup (question + 1,
+						end - (question + 1));
+			soup_uri_decode (uri->query);
+		}
+		end = question;
+	}
 
-		if (cur != path) {
-			out = path;
-			while (cur[0] != '\0')
-				(out++)[0] = (cur++)[0];
-			out[0] = 0;
+	if (end != uri_string) {
+		uri->path = g_strndup (uri_string, end - uri_string);
+		soup_uri_decode (uri->path);
+	}
+
+	/* Apply base URI. Again, this is spelled out in RFC 2396. */
+	if (base && !uri->protocol && uri->host)
+		uri->protocol = base->protocol;
+	else if (base && !uri->protocol) {
+		uri->protocol = base->protocol;
+		uri->user = g_strdup (base->user);
+		uri->authmech = g_strdup (base->authmech);
+		uri->passwd = g_strdup (base->passwd);
+		uri->host = g_strdup (base->host);
+		uri->port = base->port;
+
+		if (!uri->path) {
+			if (uri->query)
+				uri->path = g_strdup ("");
+			else {
+				uri->path = g_strdup (base->path);
+				uri->query = g_strdup (base->query);
+			}
+		}
+
+		if (*uri->path != '/') {
+			char *newpath, *last, *p, *q;
+
+			last = strrchr (base->path, '/');
+			if (last) {
+				newpath = g_strdup_printf ("%.*s/%s",
+							   last - base->path,
+							   base->path,
+							   uri->path);
+			} else
+				newpath = g_strdup_printf ("/%s", uri->path);
+
+			/* Remove "./" where "." is a complete segment. */
+			for (p = newpath + 1; *p; ) {
+				if (*(p - 1) == '/' &&
+				    *p == '.' && *(p + 1) == '/')
+					memmove (p, p + 2, strlen (p + 2) + 1);
+				else
+					p++;
+			}
+			/* Remove "." at end. */
+			if (p > newpath + 2 &&
+			    *(p - 1) == '.' && *(p - 2) == '/')
+				*(p - 1) = '\0';
+			/* Remove "<segment>/../" where <segment> != ".." */
+			for (p = newpath + 1; *p; ) {
+				if (!strncmp (p, "../", 3)) {
+					p += 3;
+					continue;
+				}
+				q = strchr (p + 1, '/');
+				if (!q)
+					break;
+				if (strncmp (q, "/../", 4) != 0) {
+					p = q + 1;
+					continue;
+				}
+				memmove (p, q + 4, strlen (q + 4) + 1);
+				p = newpath + 1;
+			}
+			/* Remove "<segment>/.." at end where <segment> != ".." */
+			q = strrchr (newpath, '/');
+			if (q && !strcmp (q, "/..")) {
+				p = q - 1;
+				while (p > newpath && *p != '/')
+					p--;
+				if (strncmp (p, "/../", 4) != 0)
+					*(p + 1) = 0;
+			}
+
+			g_free (uri->path);
+			uri->path = newpath;
 		}
 	}
 
-	return;
+	if (!uri->port)
+		uri->port = soup_protocol_default_port (uri->protocol);
+	if (!uri->path)
+		uri->path = g_strdup ("");
+
+	return uri;
 }
 
 /**
- * soup_uri_new: create a SoupUri object from a string
- * @uri_string: The string containing the URL to scan
+ * soup_uri_new:
+ * @uri_string: a URI
  *
- * This routine takes a gchar and parses it as a
- * URL of the form:
- *   protocol://user;AUTH=mech:password@host:port/path?querystring
- * There is no test on the values. For example,
- * "port" can be a string, not only a number!
- * The SoupUri structure fields are filled with
- * the scan results. When a member of the
- * general URL can not be found, the corresponding
- * SoupUri member is NULL.
- * Fields filled in the SoupUri structure are allocated
- * and url_string is not modified.
+ * Parses an absolute URI.
  *
- * Return value: a SoupUri structure containing the URL items.
+ * Return value: a SoupUri, or %NULL.
  **/
 SoupUri *
-soup_uri_new (const gchar* uri_string)
+soup_uri_new (const char *uri_string)
 {
-	SoupUri *g_uri;
-	char *semi, *colon, *at, *slash, *path, *query = NULL;
-	char **split;
+	SoupUri *uri;
 
-	g_uri = g_new0 (SoupUri,1);
-
-	/* Find protocol: initial substring until "://" */
-	colon = strchr (uri_string, ':');
-	if (colon) {
-		gint protolen;
-		g_uri->protocol = soup_uri_get_protocol (uri_string, &protolen);
-		uri_string += protolen;
-	}
-
-	/* Must have a protocol */
-	if (!g_uri->protocol) {
-		g_free (g_uri);
+	uri = soup_uri_new_with_base (NULL, uri_string);
+	if (!uri)
+		return NULL;
+	if (!uri->protocol) {
+		soup_uri_free (uri);
 		return NULL;
 	}
 
-	/* If there is an @ sign, look for user, authmech, and
-	 * password before it.
-	 */
-	slash = strchr (uri_string, '/');
-	at = strchr (uri_string, '@');
-	if (at && (!slash || at < slash)) {
-		colon = strchr (uri_string, ':');
-		if (colon && colon < at)
-			g_uri->passwd = g_strndup (colon + 1, at - colon - 1);
-		else {
-			g_uri->passwd = NULL;
-			colon = at;
-		}
-
-		semi = strchr(uri_string, ';');
-		if (semi && semi < colon && !g_strncasecmp (semi, ";auth=", 6))
-			g_uri->authmech = g_strndup (semi + 6,
-						     colon - semi - 6);
-		else {
-			g_uri->authmech = NULL;
-			semi = colon;
-		}
-
-		g_uri->user = g_strndup (uri_string, semi - uri_string);
-		uri_string = at + 1;
-	} else
-		g_uri->user = g_uri->passwd = g_uri->authmech = NULL;
-
-	/* Find host (required) and port. */
-	colon = strchr (uri_string, ':');
-	if (slash && colon > slash)
-		colon = 0;
-
-	if (colon) {
-		g_uri->host = g_strndup (uri_string, colon - uri_string);
-		if (slash)
-			g_uri->port = atoi(colon + 1);
-		else
-			g_uri->port = atoi(colon + 1);
-	} else if (slash) {
-		g_uri->host = g_strndup (uri_string, slash - uri_string);
-		g_uri->port = soup_uri_get_default_port (g_uri->protocol);
-	} else {
-		g_uri->host = g_strdup (uri_string);
-		g_uri->port = soup_uri_get_default_port (g_uri->protocol);
-	}
-
-	/* setup a fallback, if relative, then empty string, else
-	   it will be from root */
-	if (slash == NULL) {
-		slash = "/";
-	}
-	if (slash && *slash && !g_uri->protocol)
-		slash++;
-
-	split = g_strsplit(slash, " ", 0);
-	path = g_strjoinv("%20", split);
-	g_strfreev(split);
-
-	if (path)
-		query = strchr (path, '?');
-
-	if (path && query) {
-		g_uri->path = g_strndup (path, query - path);
-		g_uri->querystring = g_strdup (++query);
-		g_free (path);
-	} else {
-		g_uri->path = path;
-		g_uri->querystring = NULL;
-	}
-
-	if (g_uri->path)
-		normalize_path (g_uri->path);
-
-	return g_uri;
+	return uri;
 }
 
-/* Need to handle mailto which apparantly doesn't use the "//" after the : */
-gchar *
-soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
+/**
+ * soup_uri_to_string:
+ * @uri: a SoupUri
+ * @just_path: if %TRUE, output just the path and query portions
+ *
+ * Return value: a string representing @uri, which the caller must free.
+ **/
+char *
+soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 {
-	g_return_val_if_fail (uri != NULL, NULL);
+	GString *str;
+	char *return_result;
 
-	if (uri->port != -1 &&
-	    uri->port != soup_uri_get_default_port (uri->protocol))
-		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s:%d%s%s%s%s",
-			soup_uri_protocol_to_string (uri->protocol),
-			uri->user ? uri->user : "",
-			uri->authmech ? ";auth=" : "",
-			uri->authmech ? uri->authmech : "",
-			uri->passwd && show_passwd ? ":" : "",
-			uri->passwd && show_passwd ? uri->passwd : "",
-			uri->user ? "@" : "",
-			uri->host,
-			uri->port,
-			uri->path && *uri->path != '/' ? "/" : "",
-			uri->path ? uri->path : "",
-			uri->querystring ? "?" : "",
-			uri->querystring ? uri->querystring : "");
-	else
-		return g_strdup_printf(
-			"%s%s%s%s%s%s%s%s%s%s%s%s",
-			soup_uri_protocol_to_string (uri->protocol),
-			uri->user ? uri->user : "",
-			uri->authmech ? ";auth=" : "",
-			uri->authmech ? uri->authmech : "",
-			uri->passwd && show_passwd ? ":" : "",
-			uri->passwd && show_passwd ? uri->passwd : "",
-			uri->user ? "@" : "",
-			uri->host,
-			uri->path && *uri->path != '/' ? "/" : "",
-			uri->path ? uri->path : "",
-			uri->querystring ? "?" : "",
-			uri->querystring ? uri->querystring : "");
+	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
+	 * tests/uri-parsing AFTERWARD.
+	 */
+
+	str = g_string_sized_new (20);
+
+	if (uri->protocol && !just_path)
+		g_string_sprintfa (str, "%s:", soup_protocol_name (uri->protocol));
+	if (uri->host && !just_path) {
+		g_string_append (str, "//");
+		if (uri->user) {
+			append_uri_encoded (str, uri->user, ":;@/");
+			if (uri->authmech && *uri->authmech) {
+				g_string_append (str, ";auth=");
+				append_uri_encoded (str, uri->authmech, ":@/");
+			}
+			g_string_append_c (str, '@');
+		}
+		append_uri_encoded (str, uri->host, ":/");
+		if (uri->port && uri->port != soup_protocol_default_port (uri->protocol))
+			g_string_append_printf (str, ":%d", uri->port);
+		if (!uri->path && (uri->query || uri->fragment))
+			g_string_append_c (str, '/');
+	}
+
+	if (uri->path)
+		append_uri_encoded (str, uri->path, "?");
+	else if (just_path)
+		g_string_append_c (str, '/');
+
+	if (uri->query) {
+		g_string_append_c (str, '?');
+		append_uri_encoded (str, uri->query, NULL);
+	}
+	if (uri->fragment && !just_path) {
+		g_string_append_c (str, '#');
+		append_uri_encoded (str, uri->fragment, NULL);
+	}
+
+	return_result = str->str;
+	g_string_free (str, FALSE);
+
+	return return_result;
 }
 
 SoupUri *
-soup_uri_copy (const SoupUri* uri)
+soup_uri_copy (const SoupUri *uri)
 {
 	SoupUri *dup;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
 	dup = g_new0 (SoupUri, 1);
-	dup->protocol    = uri->protocol;
-	dup->user        = g_strdup (uri->user);
-	dup->authmech    = g_strdup (uri->authmech);
-	dup->passwd      = g_strdup (uri->passwd);
-	dup->host        = g_strdup (uri->host);
-	dup->port        = uri->port;
-	dup->path        = g_strdup (uri->path);
-	dup->querystring = g_strdup (uri->querystring);
+	dup->protocol = uri->protocol;
+	dup->user     = g_strdup (uri->user);
+	dup->authmech = g_strdup (uri->authmech);
+	dup->passwd   = g_strdup (uri->passwd);
+	dup->host     = g_strdup (uri->host);
+	dup->port     = uri->port;
+	dup->path     = g_strdup (uri->path);
+	dup->query    = g_strdup (uri->query);
+	dup->fragment = g_strdup (uri->fragment);
 
 	return dup;
 }
 
-gboolean 
-soup_uri_equal (const SoupUri *u1, 
-		const SoupUri *u2)
+static inline gboolean
+parts_equal (const char *one, const char *two)
 {
-	if (u1->protocol == u2->protocol            &&
-	    u1->port     == u2->port                &&
-	    !strcmp (u1->user,        u2->user)     &&
-	    !strcmp (u1->authmech,    u2->authmech) &&
-	    !strcmp (u1->passwd,      u2->passwd)   &&
-	    !strcmp (u1->host,        u2->host)     &&
-	    !strcmp (u1->path,        u2->path)     &&
-	    !strcmp (u1->querystring, u2->querystring))
+	if (!one && !two)
 		return TRUE;
+	if (!one || !two)
+		return FALSE;
+	return !strcmp (one, two);
+}
 
-	return FALSE;
+gboolean 
+soup_uri_equal (const SoupUri *u1, const SoupUri *u2)
+{
+	if (u1->protocol != u2->protocol              ||
+	    u1->port     != u2->port                  ||
+	    !parts_equal (u1->user, u2->user)         ||
+	    !parts_equal (u1->authmech, u2->authmech) ||
+	    !parts_equal (u1->passwd, u2->passwd)     ||
+	    !parts_equal (u1->host, u2->host)         ||
+	    !parts_equal (u1->path, u2->path)         ||
+	    !parts_equal (u1->query, u2->query)       ||
+	    !parts_equal (u1->fragment, u2->fragment))
+		return FALSE;
+
+	return TRUE;
 }
 
 void
@@ -479,16 +376,17 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri->passwd);
 	g_free (uri->host);
 	g_free (uri->path);
-	g_free (uri->querystring);
+	g_free (uri->query);
+	g_free (uri->fragment);
 
 	g_free (uri);
 }
 
 void
-soup_uri_set_auth  (SoupUri       *uri, 
-		    const gchar   *user, 
-		    const gchar   *passwd, 
-		    const gchar   *authmech)
+soup_uri_set_auth  (SoupUri    *uri, 
+		    const char *user, 
+		    const char *passwd, 
+		    const char *authmech)
 {
 	g_return_if_fail (uri != NULL);
 
@@ -501,17 +399,84 @@ soup_uri_set_auth  (SoupUri       *uri,
 	uri->authmech = g_strdup (authmech);
 }
 
-void
-soup_debug_print_uri (SoupUri *uri)
-{
-	g_return_if_fail (uri != NULL);
+/* From RFC 2396 2.4.3, the characters that should always be encoded */
+static const char uri_encoded_char[] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x00 - 0x0f */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x10 - 0x1f */
+	1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  ' ' - '/'  */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,  /*  '0' - '?'  */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  '@' - 'O'  */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,  /*  'P' - '_'  */
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  '`' - 'o'  */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1,  /*  'p' - 0x7f */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+};
 
-	g_print ("Protocol: %s\n", soup_uri_protocol_to_string (uri->protocol));
-	g_print ("User:     %s\n", uri->user);
-	g_print ("Authmech: %s\n", uri->authmech);
-	g_print ("Password: %s\n", uri->passwd);
-	g_print ("Host:     %s\n", uri->host);
-	g_print ("Path:     %s\n", uri->path);
-	g_print ("Querystr: %s\n", uri->querystring);
+static void
+append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
+{
+	const unsigned char *s = (const unsigned char *)in;
+
+	while (*s) {
+		if (uri_encoded_char[*s] ||
+		    (extra_enc_chars && strchr (extra_enc_chars, *s)))
+			g_string_append_printf (str, "%%%02x", (int)*s++);
+		else
+			g_string_append_c (str, *s++);
+	}
 }
 
+/**
+ * soup_uri_encode:
+ * @part: a URI part
+ * @escape_extra: additional characters beyond " \"%#<>{}|\^[]`"
+ * to escape (or %NULL)
+ *
+ * This %-encodes the given URI part and returns the escaped version
+ * in allocated memory, which the caller must free when it is done.
+ **/
+char *
+soup_uri_encode (const char *part, const char *escape_extra)
+{
+	GString *str;
+	char *encoded;
+
+	str = g_string_new (NULL);
+	append_uri_encoded (str, part, escape_extra);
+	encoded = str->str;
+	g_string_free (str, FALSE);
+
+	return encoded;
+}
+
+/**
+ * soup_uri_decode:
+ * @part: a URI part
+ *
+ * %-decodes the passed-in URI *in place*. The decoded version is
+ * never longer than the encoded version, so there does not need to
+ * be any additional space at the end of the string.
+ */
+void
+soup_uri_decode (char *part)
+{
+	unsigned char *s, *d;
+
+#define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
+
+	s = d = (unsigned char *)part;
+	do {
+		if (*s == '%' && s[1] && s[2]) {
+			*d++ = (XDIGIT (s[1]) << 4) + XDIGIT (s[2]);
+			s += 2;
+		} else
+			*d++ = *s;
+	} while (*s++);
+}

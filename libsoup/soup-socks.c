@@ -306,15 +306,12 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 	sd->cb = cb;
 	sd->user_data = user_data;
 	
-	switch (proxy_uri->protocol) {
-	case SOUP_PROTOCOL_SOCKS4:
+	if (proxy_uri->protocol == SOUP_PROTOCOL_SOCKS4) {
 		soup_address_new (dest_uri->host, 
 				  soup_lookup_dest_addr_cb,
 				  sd);
 		sd->phase = SOCKS_4_DEST_ADDR_LOOKUP;
-		break;
-
-	case SOUP_PROTOCOL_SOCKS5:
+	} else if (proxy_uri->protocol == SOUP_PROTOCOL_SOCKS5) {
 		channel = soup_connection_get_iochannel (conn);
 		g_io_add_watch (channel, 
 				G_IO_OUT, 
@@ -331,11 +328,8 @@ soup_connect_socks_proxy (SoupConnection        *conn,
 		g_io_channel_unref (channel);
 
 		sd->phase = SOCKS_5_SEND_INIT;
-		break;
-
-	default:
+	} else
 		goto CONNECT_SUCCESS;
-	}
 
 	return;
 	

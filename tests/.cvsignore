@@ -1,5 +1,8 @@
 Makefile
 Makefile.in
-get
-timeserver
 auth-test
+get
+simple-httpd
+simple-proxy
+timeserver
+uri-parsing
