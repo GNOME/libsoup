@@ -96,7 +96,6 @@
 	(soup_env_set_fault): new function to associate a SoupFault
 	with a SoupEnv
 
->>>>>>> 1.70
 2001-05-13  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-core/soup-fault.[ch]: made the SoupFault structure
