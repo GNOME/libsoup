@@ -111,8 +111,6 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 	gint bytes_read = 0, bytes_written = 0, write_total = 0;
 	GIOError error;
 
-	if (condition & (G_IO_HUP | G_IO_ERR)) goto FINISH;
-
 	error = g_io_channel_read (iochannel,
 				   read_buf,
 				   sizeof (read_buf),
@@ -134,6 +132,8 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 
 		write_total += bytes_written;
 	}
+
+	if (condition & (G_IO_HUP | G_IO_ERR)) goto FINISH;
 
 	return TRUE;
 
