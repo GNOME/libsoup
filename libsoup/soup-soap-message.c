@@ -662,12 +662,12 @@ soup_soap_message_reset (SoupSoapMessage *msg)
 void
 soup_soap_message_persist (SoupSoapMessage *msg)
 {
-	char *body;
-	unsigned int len;
+	xmlChar *body;
+	int len;
 
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 
-	xmlDocDumpMemory (msg->priv->doc, (xmlChar **) &body, &len);
+	xmlDocDumpMemory (msg->priv->doc, &body, &len);
 
 	/* serialize to SoupMessage class */
 	soup_message_set_request (SOUP_MESSAGE (msg), "text/xml",
