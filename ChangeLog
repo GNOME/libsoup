@@ -1,3 +1,7 @@
+2003-04-28  Dan Winship  <danw@ximian.com>
+
+	* configure.in: 1.99.19 (the all 1s and 9s release)
+
 2003-04-25  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-queue.c (soup_queue_error_cb): if an old connection
