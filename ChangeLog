@@ -1,5 +1,13 @@
 2002-03-13  Alex Graveley  <alex@ximian.com>
 
+	* tests/stockquote2-client.c (callback): Check for transport
+	error.
+
+	* src/libsoup/soup-env.c (soup_env_get_header): Handle fully
+	qualified header names in URL form.
+
+2002-03-13  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-wsdl/wsdl-soap-stubs.c (emit_sync_stub): #if 0 out
 	generated code to use overridden URL in requests.
 
