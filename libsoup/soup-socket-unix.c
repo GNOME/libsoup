@@ -68,6 +68,11 @@
 #  endif
 #endif
 
+/* this generally causes problems, so remove from build atm */
+#ifdef SOUP_PTRACE_ATTACH
+#undef SOUP_PTRACE_ATTACH
+#endif
+
 #ifndef socklen_t
 #define socklen_t size_t
 #endif

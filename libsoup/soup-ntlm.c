@@ -171,6 +171,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 				   NTLM_CHALLENGE_NONCE_LENGTH);
 	}
 
+	g_free (chall);
 	return TRUE;
 }
 

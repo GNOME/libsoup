@@ -559,8 +559,10 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
-	else if (data->connect_tag)
+	else if (data->connect_tag) {
+		connection_count--;
 		soup_socket_connect_cancel (data->connect_tag);
+	}
 
 	g_free (data);
 }

@@ -700,6 +700,7 @@ requeue_read_finished (const SoupDataBuffer *buf,
 	if (!soup_connection_is_keep_alive (msg->connection))
 		requeue_read_error (FALSE, data);
 	else {
+		g_free (data);
 		msg->connection = NULL;
 
 		soup_queue_message (msg, 

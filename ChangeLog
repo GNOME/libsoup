@@ -1,3 +1,27 @@
+2002-10-28  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_tcp_cb): Only
+	free state if state->tcp_id is set (meaning it was called
+	asynchronously).
+	(soup_socket_connect_inetaddr_cb): Likewise, only free state if
+	state->inetaddr_id is set and state->tcp_id isn't.
+	(soup_socket_connect): Only free state if neither tcp_id nor
+	inetaddr_id is set. Based on a patch from NotZed. Fixes #29731.
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_parse_challenge): Plug a leak
+	noticed by valgrind.
+
+	* src/libsoup/soup-message.c (requeue_read_finished): Likewise.
+
+2002-10-28  Not Zed  <NotZed@Ximian.com>
+
+	* src/libsoup/soup-socket-unix.c: Disable the PTRACE_ATTACH code
+	always, because it reportedly causes problems.
+
+	* src/libsoup/soup-context.c (soup_context_cancel_connect): If we
+	have a connection tag, decrement the connection_count setup in
+	try_create_connection.  Stops soup 'failing' after a while.
+
 2002-10-16  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-misc.c: Don't set SSL environment variables,
