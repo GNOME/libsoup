@@ -132,8 +132,8 @@ read_headers_cb (const GString *headers,
 {
 	SoupMessage *msg = user_data;
 	SoupContext *ctx;
-	gchar *req_host = NULL, *req_path = NULL, *url;
-	gchar *connection, *length, *enc;
+	gchar *req_path = NULL, *url;
+	const gchar *connection, *length, *enc, *req_host = NULL;
 
 	if (!soup_headers_parse_request (headers->str, 
 					 headers->len, 
@@ -213,7 +213,7 @@ write_header (gchar *key, GSList *vals, SoupMessage *msg)
 		g_string_sprintfa (msg->priv->req_header, 
 				   "%s: %s\r\n", 
 				   key, 
-				   val);
+				   (gchar *) vals->data);
 		vals = vals->next;
 	}
 }

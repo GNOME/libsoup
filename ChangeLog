@@ -1,5 +1,9 @@
 2001-10-04  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-server.c (read_headers_cb): Fix const warnings.
+
+2001-10-04  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-server.c (read_headers_cb): Don't create
 	response_headers. This is done in soup_message_new. Use
 	soup_message_get_header throughout.
