@@ -523,15 +523,6 @@ soup_idle_handle_new_requests (gpointer unused)
 	return FALSE;
 }
 
-static gboolean
-soup_queue_remove_header (gchar *name, GSList *vals, gpointer unused)
-{
-	g_free (name);
-	g_slist_foreach (vals, (GFunc) g_free, NULL);
-	g_slist_free (vals);
-	return TRUE;
-}
-
 void 
 soup_queue_message (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
@@ -574,9 +565,7 @@ soup_queue_message (SoupMessage    *req,
 	req->response.body = NULL;
 	req->response.length = 0;
 
-	g_hash_table_foreach_remove (req->response_headers,
-				     (GHRFunc) soup_queue_remove_header,
-				     NULL);
+	soup_message_clear_headers (req->response_headers);
 
 	if (req->errorphrase) {
 		g_free ((gchar *) req->errorphrase);

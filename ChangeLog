@@ -1,3 +1,10 @@
+2001-10-05  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_clear_headers):
+	Impl. Use instead of custom header free funcs throughout.
+	(soup_message_foreach_header): Impl.
+	(global_handlers): Handle redirects before authenticating.
+
 2001-10-04  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket-unix.c (soup_address_new_cb): Ugg. Don't

@@ -120,14 +120,6 @@ soup_message_cleanup (SoupMessage *req)
 }
 
 static void
-free_header (gchar *name, GSList *vals, gpointer unused)
-{
-	g_free (name);
-	g_slist_foreach (vals, (GFunc) g_free, NULL);
-	g_slist_free (vals);
-}
-
-static void
 finalize_message (SoupMessage *req)
 {
 	soup_context_unref (req->context);
@@ -140,19 +132,11 @@ finalize_message (SoupMessage *req)
 	if (req->priv->req_header) 
 		g_string_free (req->priv->req_header, TRUE);
 
-	if (req->request_headers) {
-		g_hash_table_foreach (req->request_headers,
-				      (GHFunc) free_header,
-				      NULL);
-		g_hash_table_destroy (req->request_headers);
-	}
+	soup_message_clear_headers (req->request_headers);
+	g_hash_table_destroy (req->request_headers);
 
-	if (req->response_headers) {
-		g_hash_table_foreach (req->response_headers,
-				      (GHFunc) free_header,
-				      NULL);
-		g_hash_table_destroy (req->response_headers);
-	}
+	soup_message_clear_headers (req->response_headers);
+	g_hash_table_destroy (req->response_headers);
 
 	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
 	g_slist_free (req->priv->content_handlers);
@@ -226,6 +210,26 @@ soup_message_cancel (SoupMessage *msg)
 	soup_message_issue_callback (msg);
 }
 
+static gboolean 
+foreach_free_header_list (gchar *name, GSList *vals, gpointer notused)
+{
+	g_free (name);
+	g_slist_foreach (vals, (GFunc) g_free, NULL);
+	g_slist_free (vals);
+
+	return TRUE;
+}
+
+void
+soup_message_clear_headers       (GHashTable        *hash)
+{
+	g_return_if_fail (hash != NULL);
+
+	g_hash_table_foreach_remove (hash, 
+				     (GHRFunc) foreach_free_header_list, 
+				     NULL);
+}
+
 void 
 soup_message_add_header (GHashTable  *hash,
 			 const gchar *name,
@@ -253,7 +257,7 @@ soup_message_add_header (GHashTable  *hash,
 						     g_strdup (value)));
 	else if (!value && exists) {
 		g_hash_table_remove (hash, name);
-		free_header (old_name, old_value, NULL);
+		foreach_free_header_list (old_name, old_value, NULL);
 	} 
 }
 
@@ -300,6 +304,36 @@ soup_message_get_header_list (GHashTable  *hash,
 	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);	
 
 	return g_hash_table_lookup (hash, name);
+}
+
+typedef struct {
+	GHFunc   func;
+	gpointer user_data;
+} ForeachData;
+
+static void 
+foreach_value_in_list (gchar *name, GSList *vals, ForeachData *data)
+{
+	while (vals) {
+		gchar *v = vals->data;
+
+		(*data->func) (name, v, data->user_data);
+
+		vals = vals->next;
+	}
+}
+
+void
+soup_message_foreach_header      (GHashTable        *hash,
+				  GHFunc             func,
+				  gpointer           user_data)
+{
+	ForeachData data = { func, user_data };
+
+	g_return_if_fail (hash != NULL);
+	g_return_if_fail (func != NULL);
+
+	g_hash_table_foreach (hash, (GHFunc) foreach_value_in_list, &data);
 }
 
 /**
@@ -536,7 +570,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (msg->errorclass != SOUP_ERROR_CLASS_REDIRECT || 
 	    msg->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT) return;
 
-	new_url = soup_message_get_response_header (msg, "Location");
+	new_url = soup_message_get_header (msg->response_headers, "Location");
 
 	if (new_url) {
 		SoupContext *new_ctx, *old_ctx;
@@ -581,6 +615,16 @@ typedef struct {
 
 static SoupHandlerData global_handlers [] = {
 	/* 
+	 * Handle redirect response codes 300, 301, 302, 303, and 305.
+	 */
+	{
+		SOUP_HANDLER_PRE_BODY,
+		redirect_handler, 
+		NULL, 
+		RESPONSE_HEADER_HANDLER, 
+		{ (guint) "Location" }
+	},
+	/* 
 	 * Handle authorization.
 	 */
 	{
@@ -600,16 +644,6 @@ static SoupHandlerData global_handlers [] = {
 		RESPONSE_ERROR_CODE_HANDLER, 
 		{ 407 }
 	},
-	/* 
-	 * Handle redirect response codes 300, 301, 302, 303, and 305.
-	 */
-	{
-		SOUP_HANDLER_PRE_BODY,
-		redirect_handler, 
-		NULL, 
-		RESPONSE_HEADER_HANDLER, 
-		{ (guint) "Location" }
-	},
 	{ 0 }
 };
 
@@ -622,8 +656,8 @@ run_handler (SoupMessage     *msg,
 
 	switch (data->kind) {
 	case RESPONSE_HEADER_HANDLER:
-		if (!soup_message_get_response_header (msg,
-						       data->data.header))
+		if (!soup_message_get_header (msg->response_headers,
+					      data->data.header))
 			return;
 		break;
 	case RESPONSE_ERROR_CODE_HANDLER:

@@ -106,7 +106,6 @@ SoupSocket          *soup_socket_connect_sync   (const gchar        *hostname,
 						 const gint          port);
 
 
-
 typedef gpointer SoupSocketNewId;
 
 typedef enum {

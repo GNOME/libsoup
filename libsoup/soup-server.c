@@ -273,7 +273,7 @@ read_done_cb (const SoupDataBuffer *data,
 	req->status = SOUP_STATUS_FINISHED;
 
 	/* FIXME: Do this in soap handler 
-	action = soup_message_get_request_header (req, "SOAPAction");
+	action = soup_message_get_header (req->request_headers, "SOAPAction");
 	if (!action) {
 		g_print ("No SOAPAction found in request.\n");
 		set_response_error (

@@ -209,6 +209,12 @@ const gchar   *soup_message_get_header          (GHashTable        *hash,
 const GSList  *soup_message_get_header_list     (GHashTable        *hash,
 						 const gchar       *name);
 
+void           soup_message_foreach_header      (GHashTable        *hash,
+						 GHFunc             func,
+						 gpointer           user_data);
+
+void           soup_message_clear_headers       (GHashTable        *hash);
+
 /** DEPRECATED **/
 void           soup_message_set_request_header  (SoupMessage       *req,
 						 const gchar       *name,
