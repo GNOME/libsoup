@@ -1,5 +1,10 @@
 2002-01-19  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: Bump version to 0.5.7.
+	* src/libsoup/soup-private.h: Ditto.
+
+2002-01-19  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socks.c (soup_socks_write): Don't unref the
 	context returned from connection_get_context, as soup-0.5 doesn't
 	add a ref.

@@ -29,7 +29,7 @@
 #endif
 
 #ifdef SOUP_WIN32
-#define VERSION "Win/0.5.6"
+#define VERSION "Win/0.5.7"
 #include <windows.h>
 #include <winbase.h>
 #include <winuser.h>
