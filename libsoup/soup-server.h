@@ -29,10 +29,19 @@ typedef gboolean (*SoupServerAuthorizeFn) (SoupMessage *msg,
 					   gchar       *realm,
 					   gpointer     user_data);
 
-void  soup_server_set_global_auth    (SoupServerAuthorizeFn  cb,
+typedef enum {
+	SOUP_AUTH_TYPE_BASIC,
+	SOUP_AUTH_TYPE_DIGEST,
+	SOUP_AUTH_TYPE_ANONYMOUS,
+	SOUP_AUTH_TYPE_DENY
+} SoupServerAuthType;
+
+void  soup_server_set_global_auth    (gint                   allow_types,
+				      SoupServerAuthorizeFn  cb,
 				      gpointer              *user_data);
 
 void  soup_server_set_method_auth    (gchar                 *methodname,
+				      gint                   allow_type,
 				      SoupServerAuthorizeFn  cb,
 				      gpointer              *user_data);
 
@@ -45,9 +54,7 @@ void  soup_server_main_quit          (void);
 
 /* Apache module initializtion */
 
-typedef void (*SoupServerInit) (void);
-
-extern SoupServerInit soup_server_init;
+extern void (*soup_server_init) (void);
 
 /* Implement soup_server_init() in your library. */
 

@@ -1,3 +1,17 @@
+2001-03-07  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-server.c (soup_server_set_global_auth): add
+	allowable authentication types mask.
+	(soup_server_set_method_auth): ditto. NOTE: This server auth stuff
+	may be removed altogether, so don't rely on it.
+
+	* src/soup-core/soup-server.h: added SoupServerAuthType, a mask of
+	allowable authentication types. Make soup_server_init an extern
+	declaration instead of a function pointer.
+
+	* src/soup-core/soup-apache.c (soup_apache_read_request): move
+	chunked data checking to here from soup_apache_handler.
+
 2001-03-07  JP Rosevear  <jpr@ximian.com>
 
 	* soupConf.sh.in: use configure.in vars for subst

@@ -21,6 +21,7 @@ static GSList                *soup_server_handlers = NULL;
 
 static SoupServerAuthorizeFn  soup_server_global_auth = NULL;
 static gpointer               soup_server_global_auth_user_data = NULL;
+static gint                   soup_server_global_auth_allowed_types = 0;
 
 SoupServerHandler *
 soup_server_get_handler (const gchar *methodname)
@@ -68,15 +69,18 @@ soup_server_unregister (const gchar *methodname)
 }
 
 void  
-soup_server_set_global_auth (SoupServerAuthorizeFn  cb,
+soup_server_set_global_auth (gint                   allow_types,
+			     SoupServerAuthorizeFn  cb,
 			     gpointer              *user_data)
 {
 	soup_server_global_auth = cb;
 	soup_server_global_auth_user_data = user_data;
+	soup_server_global_auth_allowed_types = allow_types;
 }
 
 void  
 soup_server_set_method_auth (gchar                 *methodname,
+			     gint                   allow_types,
 			     SoupServerAuthorizeFn  cb,
 			     gpointer              *user_data)
 {
@@ -85,6 +89,7 @@ soup_server_set_method_auth (gchar                 *methodname,
 
 	hand->auth_fn = cb;
 	hand->auth_user_data = user_data;
+	hand->auth_allowed_types = allow_types;
 }
 
 gboolean 
@@ -95,7 +100,7 @@ soup_server_authorize (SoupMessage *msg,
 {
 	SoupServerHandler *hand = soup_server_get_handler (msg->action);
 
-	if (hand && hand->auth_fn) 
+	if (hand && hand->auth_fn)
 		return (hand->auth_fn) (msg,
 					username,
 					password,

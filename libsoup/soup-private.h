@@ -87,6 +87,7 @@ typedef struct {
 	gpointer              user_data;
 	SoupServerAuthorizeFn auth_fn;
 	gpointer              auth_user_data;
+	gint                  auth_allowed_types;
 } SoupServerHandler;
 
 /* from soup-message.c */
