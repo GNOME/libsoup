@@ -23,7 +23,7 @@ typedef enum {
 	SOUP_MESSAGE_STATUS_QUEUED,
         SOUP_MESSAGE_STATUS_CONNECTING,
         SOUP_MESSAGE_STATUS_RUNNING,
-	SOUP_MESSAGE_STATUS_FINISHED,
+	SOUP_MESSAGE_STATUS_FINISHED
 } SoupMessageStatus;
 
 #define SOUP_MESSAGE_IS_STARTING(msg) (msg->status == SOUP_MESSAGE_STATUS_QUEUED || msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
@@ -31,7 +31,7 @@ typedef enum {
 typedef enum {
 	SOUP_TRANSFER_UNKNOWN = 0,
 	SOUP_TRANSFER_CHUNKED,
-	SOUP_TRANSFER_CONTENT_LENGTH,
+	SOUP_TRANSFER_CONTENT_LENGTH
 } SoupTransferEncoding;
 
 typedef enum {
@@ -85,7 +85,7 @@ GType soup_message_get_type (void);
 typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
 
 SoupMessage   *soup_message_new                 (const char        *method,
-						 const char        *uri);
+						 const char        *uri_string);
 SoupMessage   *soup_message_new_from_uri        (const char        *method,
 						 const SoupUri     *uri);
 
@@ -93,15 +93,15 @@ void           soup_message_set_request         (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupOwnership      req_owner,
 						 char              *req_body,
-						 gulong             req_len);
+						 gulong             req_length);
 
 void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupOwnership      resp_owner,
 						 char              *resp_body,
-						 gulong             resp_len);
+						 gulong             resp_length);
 
-void           soup_message_cancel              (SoupMessage       *req);
+void           soup_message_cancel              (SoupMessage       *msg);
 
 void           soup_message_add_header          (GHashTable        *hash,
 						 const char        *name,
@@ -124,7 +124,7 @@ void           soup_message_clear_headers       (GHashTable        *hash);
 
 typedef enum {
 	SOUP_HTTP_1_0 = 0,
-	SOUP_HTTP_1_1 = 1,
+	SOUP_HTTP_1_1 = 1
 } SoupHttpVersion;
 
 void             soup_message_set_http_version    (SoupMessage       *msg,

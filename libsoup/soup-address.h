@@ -33,14 +33,20 @@ typedef struct {
 	void (*dns_result) (SoupAddress *addr, guint status);
 } SoupAddressClass;
 
+/* This is messy, but gtk-doc doesn't understand if the #if occurs
+ * inside the typedef.
+ */
+#ifdef AF_INET6
 typedef enum {
 	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
-#ifdef AF_INET6
 	SOUP_ADDRESS_FAMILY_IPV6 = AF_INET6
-#else
-	SOUP_ADDRESS_FAMILY_IPV6 = -1
-#endif
 } SoupAddressFamily;
+#else
+typedef enum {
+	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
+	SOUP_ADDRESS_FAMILY_IPV6 = -1
+} SoupAddressFamily;
+#endif
 
 #define SOUP_ADDRESS_ANY_PORT 0
 
@@ -57,8 +63,8 @@ typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
 						  gpointer             data);
 void             soup_address_resolve_async      (SoupAddress         *addr,
-						  SoupAddressCallback  cb,
-						  gpointer             data);
+						  SoupAddressCallback  callback,
+						  gpointer             user_data);
 guint            soup_address_resolve_sync       (SoupAddress         *addr);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);

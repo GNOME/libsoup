@@ -58,7 +58,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *sock,
 						gpointer          data);
 
 void            soup_connection_connect_async  (SoupConnection   *conn,
-						SoupConnectionCallback,
+						SoupConnectionCallback callback,
 						gpointer          user_data);
 guint           soup_connection_connect_sync   (SoupConnection   *conn);
 

@@ -420,6 +420,8 @@ append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
  *
  * This %-encodes the given URI part and returns the escaped version
  * in allocated memory, which the caller must free when it is done.
+ *
+ * Return value: the encoded URI part
  **/
 char *
 soup_uri_encode (const char *part, const char *escape_extra)

@@ -1,9 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 INCLUDES = 				\
-	-DG_LOG_DOMAIN=\"SOUP\" 	\
-	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
-	-DLIBEXECDIR=\"$(libexecdir)\"	\
+	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\

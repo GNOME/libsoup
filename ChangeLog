@@ -1,5 +1,24 @@
 2003-11-18  Dan Winship  <danw@ximian.com>
 
+	* libsoup/Makefile.am (INCLUDES): Change G_LOG_DOMAIN to
+	"libsoup". Remove unused defines.
+
+	* libsoup/soup-connection.c: Fix doc comments
+	* libsoup/soup-message.c: Likewise
+	* libsoup/soup-misc.c: Likewise
+	* libsoup/soup-socket.c: Likewise
+	* libsoup/soup-uri.c: Likewise
+
+	* libsoup/soup-address.h: Fixes to please gtk-doc
+	* libsoup/soup-connection.h: Likewise
+	* libsoup/soup-message.h: Likewise
+	* libsoup/soup-message-private.h: Likewise
+	* libsoup/soup-misc.h: Likewise
+	* libsoup/soup-server-auth.h: Likewise
+	* libsoup/soup-socket.h: Likewise
+
+2003-11-18  Dan Winship  <danw@ximian.com>
+
 	* configure.in: Fix up the SSL checks some. Remove some useless
 	old header checks.
 

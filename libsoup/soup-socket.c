@@ -308,6 +308,8 @@ get_property (GObject *object, guint prop_id,
 
 /**
  * soup_socket_new:
+ * @optname1: name of first property to set (or %NULL)
+ * @...: value of @optname1, followed by additional property/value pairs
  *
  * Return value: a new (disconnected) socket
  **/
@@ -578,7 +580,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 
 /**
  * soup_socket_start_ssl:
- * @socket: the socket
+ * @sock: the socket
  *
  * Starts using SSL on @socket.
  *
@@ -960,7 +962,7 @@ socket_write_watch (GIOChannel *chan, GIOCondition condition, gpointer user_data
  * @sock: the socket
  * @buffer: data to write
  * @len: size of @buffer, in bytes
- * @nwrite: on return, number of bytes written
+ * @nwrote: on return, number of bytes written
  *
  * Attempts to write @len bytes from @buffer to @sock. If some data is
  * successfully written, the resturn status will be

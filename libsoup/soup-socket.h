@@ -47,7 +47,7 @@ SoupSocket    *soup_socket_new                (const char         *optname1,
 					       ...);
 
 guint          soup_socket_connect            (SoupSocket         *sock,
-					       SoupAddress        *rem_addr);
+					       SoupAddress        *remote_addr);
 gboolean       soup_socket_listen             (SoupSocket         *sock,
 					       SoupAddress        *local_addr);
 gboolean       soup_socket_start_ssl          (SoupSocket         *sock);
@@ -70,10 +70,10 @@ SoupSocket    *soup_socket_client_new_async   (const char         *hostname,
 SoupSocket    *soup_socket_client_new_sync    (const char         *hostname,
 					       guint               port,
 					       gpointer            ssl_creds,
-					       guint              *status);
+					       guint              *status_ret);
 SoupSocket    *soup_socket_server_new         (SoupAddress        *local_addr,
 					       gpointer            ssl_creds,
-					       SoupSocketListenerCallback,
+					       SoupSocketListenerCallback callback,
 					       gpointer            user_data);
 
 SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);

@@ -39,7 +39,7 @@ int                soup_base64_decode_step   (const guchar *in,
 /* Misc utils */
 
 guint              soup_signal_connect_once  (gpointer      instance,
-					      const char   *signal,
+					      const char   *detailed_signal,
 					      GCallback     c_handler,
 					      gpointer      data);
 

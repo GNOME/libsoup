@@ -38,7 +38,7 @@ void soup_server_auth_context_challenge (SoupServerAuthContext *auth_ctx,
 
 typedef enum {
 	SOUP_AUTH_TYPE_BASIC = 1,
-	SOUP_AUTH_TYPE_DIGEST,
+	SOUP_AUTH_TYPE_DIGEST
 } SoupAuthType;
 
 typedef struct {

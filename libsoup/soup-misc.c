@@ -189,7 +189,7 @@ soup_base64_encode_step (const guchar  *in,
 /**
  * soup_base64_encode:
  * @text: the binary data to encode.
- * @inlen: the length of @text.
+ * @len: the length of @text.
  *
  * Encode a sequence of binary data into it's Base-64 stringified
  * representation.
@@ -197,7 +197,7 @@ soup_base64_encode_step (const guchar  *in,
  * Return value: The Base-64 encoded string representing @text.
  */
 char *
-soup_base64_encode (const char *text, int inlen)
+soup_base64_encode (const char *text, int len)
 {
         unsigned char *out;
         int state = 0, outlen;

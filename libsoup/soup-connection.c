@@ -355,7 +355,6 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 /**
  * soup_connection_connect_async:
  * @conn: the connection
- * @ac: the async context to use
  * @callback: callback to call when the connection succeeds or fails
  * @user_data: data for @callback
  *

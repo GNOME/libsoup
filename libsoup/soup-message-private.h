@@ -28,8 +28,6 @@ void             soup_message_run_handlers     (SoupMessage      *msg,
 void             soup_message_cleanup          (SoupMessage      *req);
 void             soup_message_cleanup_response (SoupMessage      *req);
 
-gboolean         soup_message_is_keepalive     (SoupMessage      *msg);
-
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
 					      GString          *headers,

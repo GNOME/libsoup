@@ -267,9 +267,9 @@ soup_message_set_request (SoupMessage   *msg,
  * soup_message_set_response:
  * @msg: the message
  * @content_type: MIME Content-Type of the body
- * @req_owner: the #SoupOwnership of the passed data buffer.
- * @req_body: a data buffer containing the body of the message response.
- * @req_length: the byte length of @req_body.
+ * @resp_owner: the #SoupOwnership of the passed data buffer.
+ * @resp_body: a data buffer containing the body of the message response.
+ * @resp_length: the byte length of @resp_body.
  * 
  * Convenience function to set the response body of a #SoupMessage
  */
