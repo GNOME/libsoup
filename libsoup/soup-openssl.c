@@ -285,11 +285,27 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 		goto THROW_CREATE_ERROR;
 	}
 
-	SSL_connect (ssl);
-	if (err == 0) {
-		g_warning ("Secure connection could not be established.");
-		goto THROW_CREATE_ERROR;
-	}
+	do {
+		fd_set ssl_fdset;
+
+		err = SSL_connect (ssl);
+		err = SSL_get_error (ssl, err);
+
+		if (err == SSL_ERROR_WANT_READ) {
+			FD_ZERO (&ssl_fdset);
+			FD_SET (sockfd, &ssl_fdset);
+			select (sockfd + 1, &ssl_fdset, NULL, NULL, NULL);
+		}
+		else if (err == SSL_ERROR_WANT_WRITE) {
+			FD_ZERO (&ssl_fdset);
+			FD_SET (sockfd, &ssl_fdset);
+			select (sockfd + 1, NULL, &ssl_fdset, NULL, NULL);
+		}
+		else if (err != SSL_ERROR_NONE) {
+			g_warning ("Could not establish secure connection.");
+			goto THROW_CREATE_ERROR;
+		}
+	} while (err != SSL_ERROR_NONE);
 
 	bits = SSL_get_cipher_bits (ssl, &alg_bits);
 	if (bits == 0) {
