@@ -1,3 +1,11 @@
+2003-05-08  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump version to 1.99.21
+
+	* libsoup/soup-queue.c (proxy_connect): If the proxy HTTPS
+	tunnelling fails, the other message which shares our same
+	connection will free it first, so set ours to NULL.
+
 2003-05-08  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-auth.c (ntlm_auth): If the auth status is PENDING,

@@ -609,6 +609,13 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 				"Unable to create secure data "
 				"tunnel through proxy");
 
+			/*
+			 * If the tunnelling failed, our connection will
+			 * have been freed by the requeue in
+			 * proxy_https_connect()
+			 */
+			req->connection = NULL;
+
 			soup_message_issue_callback (req);
 			return TRUE;
 		}
