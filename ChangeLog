@@ -1,3 +1,8 @@
+2004-01-14  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-gnutls.c (verify_certificate): Remove the
+	check for GNUTLS_CERT_CORRUPTED, it's not in 1.0.x.
+
 2004-01-12  JP Rosevear  <jpr@ximian.com>
 
 	* configure.in: bump version and libtool revision

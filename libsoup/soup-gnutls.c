@@ -58,7 +58,6 @@ verify_certificate (gnutls_session session, const char *hostname)
 
 	if (status & GNUTLS_CERT_INVALID ||
 	    status & GNUTLS_CERT_NOT_TRUSTED ||
-	    status & GNUTLS_CERT_CORRUPTED ||
 	    status & GNUTLS_CERT_REVOKED)
 	{
 		g_warning ("The certificate is not trusted.");
