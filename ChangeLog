@@ -1,3 +1,11 @@
+2003-06-11  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-transfer.c: Change all functions to take a
+	SoupReader * or SoupWriter * instead of a guint.
+
+	* libsoup/soup-private.h (SoupMessagePrivate): make read_tag and
+	write_tag pointers instead of guints.
+
 2003-06-02  Chris Toshok  <toshok@ximian.com>
 
 	* libsoup/soup-ssl.c: remove #include for soup-nss.h

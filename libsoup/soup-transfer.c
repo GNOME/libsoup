@@ -61,7 +61,7 @@ typedef struct {
 	guint  idx;
 } SoupTransferChunkState;
 
-typedef struct {
+struct _SoupReader {
 	GIOChannel            *channel;
 	guint                  read_tag;
 	guint                  err_tag;
@@ -89,9 +89,9 @@ typedef struct {
 	SoupReadDoneFn         read_done_cb;
 	SoupReadErrorFn        error_cb;
 	gpointer               user_data;
-} SoupReader;
+};
 
-typedef struct {
+struct _SoupWriter {
 	GIOChannel             *channel;
 	guint                   write_tag;
 	guint                   err_tag;
@@ -109,16 +109,14 @@ typedef struct {
 	SoupWriteDoneFn         write_done_cb;
 	SoupWriteErrorFn        error_cb;
 	gpointer                user_data;
-} SoupWriter;
+};
 
 #define IGNORE_CANCEL(t, cancel_p) (t)->cancelled = cancel_p;
 #define UNIGNORE_CANCEL(t) (t)->cancelled = NULL;
 
 void
-soup_transfer_read_cancel (guint tag)
+soup_transfer_read_cancel (SoupReader *r)
 {
-	SoupReader *r = GINT_TO_POINTER (tag);
-
 	if (r->cancelled) {
 		*(r->cancelled) = TRUE;
 		return;
@@ -135,15 +133,13 @@ soup_transfer_read_cancel (guint tag)
 }
 
 void 
-soup_transfer_read_set_callbacks (guint                   tag,
+soup_transfer_read_set_callbacks (SoupReader             *r,
 				  SoupReadHeadersDoneFn   headers_done_cb,
 				  SoupReadChunkFn         read_chunk_cb,
 				  SoupReadDoneFn          read_done_cb,
 				  SoupReadErrorFn         error_cb,
 				  gpointer                user_data)
 {
-	SoupReader *r = GINT_TO_POINTER (tag);
-
 	r->headers_done_cb = headers_done_cb;
 	r->read_chunk_cb = read_chunk_cb;
 	r->read_done_cb = read_done_cb;
@@ -199,7 +195,7 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 
  CANCELLED:
 	UNIGNORE_CANCEL (r);
-	soup_transfer_read_cancel (GPOINTER_TO_INT (r));
+	soup_transfer_read_cancel (r);
 
 	return FALSE;
 }
@@ -517,12 +513,12 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	UNIGNORE_CANCEL (r);
 
  FINISH_READ:
-	soup_transfer_read_cancel (GPOINTER_TO_INT (r));
+	soup_transfer_read_cancel (r);
 
 	return FALSE;
 }
 
-guint
+SoupReader *
 soup_transfer_read (GIOChannel            *chan,
 		    gboolean               overwrite_chunks,
 		    SoupReadHeadersDoneFn  headers_done_cb,
@@ -556,14 +552,12 @@ soup_transfer_read (GIOChannel            *chan,
 				(GIOFunc) soup_transfer_read_error_cb,
 				reader);
 
-	return GPOINTER_TO_INT (reader);
+	return reader;
 }
 
 void
-soup_transfer_write_cancel (guint tag)
+soup_transfer_write_cancel (SoupWriter *w)
 {
-	SoupWriter *w = GINT_TO_POINTER (tag);
-
 	if (w->cancelled) {
 		*(w->cancelled) = TRUE;
 		return;
@@ -591,7 +585,7 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 		UNIGNORE_CANCEL (w);
 	}
 
-	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
+	soup_transfer_write_cancel (w);
 
 	return FALSE;
 }
@@ -755,7 +749,7 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	}
 
  CANCEL:
-	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
+	soup_transfer_write_cancel (w);
 
  DONE_WRITING:
 	RESTORE_PIPE (pipe_handler);
@@ -799,7 +793,7 @@ create_writer (GIOChannel             *chan,
 	return writer;
 }
 
-guint 
+SoupWriter *
 soup_transfer_write_simple (GIOChannel             *chan,
 			    GString                *header,
 			    const SoupDataBuffer   *src,
@@ -827,10 +821,10 @@ soup_transfer_write_simple (GIOChannel             *chan,
 				     src->body, 
 				     src->length);
 
-	return GPOINTER_TO_INT (writer);
+	return writer;
 }
 
-guint 
+SoupWriter *
 soup_transfer_write (GIOChannel             *chan,
 		     SoupTransferEncoding    encoding,
 		     SoupWriteGetHeaderFn    get_header_cb,
@@ -850,15 +844,13 @@ soup_transfer_write (GIOChannel             *chan,
 	writer->get_header_cb = get_header_cb;
 	writer->get_chunk_cb = get_chunk_cb;
 
-	return GPOINTER_TO_INT (writer);
+	return writer;
 }
 
 void  
-soup_transfer_write_pause (guint tag)
+soup_transfer_write_pause (SoupWriter *w)
 {
-	SoupWriter *w = GINT_TO_POINTER (tag);
-
-	g_return_if_fail (tag != 0);
+	g_return_if_fail (w != NULL);
 
 	if (w->write_tag) {
 		g_source_remove (w->write_tag);
@@ -867,11 +859,9 @@ soup_transfer_write_pause (guint tag)
 }
 
 void  
-soup_transfer_write_unpause (guint tag)
+soup_transfer_write_unpause (SoupWriter *w)
 {
-	SoupWriter *w = GINT_TO_POINTER (tag);
-
-	g_return_if_fail (tag != 0);
+	g_return_if_fail (w != NULL);
 
 	if (!w->write_tag) {
 		w->write_tag =

@@ -104,8 +104,8 @@ struct _SoupServer {
 
 struct _SoupMessagePrivate {
 	SoupConnectId      connect_tag;
-	guint              read_tag;
-	guint              write_tag;
+	gpointer           read_tag;
+	gpointer           write_tag;
 	guint              timeout_tag;
 
 	guint              retries;
