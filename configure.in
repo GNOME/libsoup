@@ -4,7 +4,7 @@ dnl *******************************************
 
 AC_INIT(libsoup/soup.h)
 
-AM_INIT_AUTOMAKE(libsoup, 1.99.30)
+AM_INIT_AUTOMAKE(libsoup, 1.99.31)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 AC_PROG_MAKE_SET
@@ -218,6 +218,11 @@ AC_ARG_WITH(gnutls-libs,
 	    [gnutls_prefix=$withval],
 	    [gnutls_prefix=$libdir])
 
+AC_ARG_ENABLE(libgpg-error,
+	      [  --enable-libgpg-error	Work around broken libgcrypt-config scripts],
+	      enable_libgpg_error=yes, enable_libgpg_error=no)
+
+
 ###
 ### Allow for a custom SSL proxy name
 ###
@@ -255,10 +260,23 @@ if test "x$enable_ssl" = xyes; then
 			 [enable_gnutls="no"; break])
 
 	if test "x$enable_gnutls" = xyes; then
+		libgpg_error_libs_static=""
+		libgpg_error_libs=""
+
+		if test "x$enable_libgpg_error" = "xyes"; then
+			AM_PATH_GPG_ERROR("0.4")
+			if test "x$GPG_ERROR_LIBS" = "x"; then
+				AC_MSG_ERROR([libgpg-error is needed])
+			fi
+			gpg_error_prefix=$($GPG_ERROR_CONFIG --prefix)
+			libgpg_error_libs_static="$gpg_error_prefix/lib/libgpg-error.a"
+			libgpg_error_libs="$GPG_ERROR_LIBS"
+		fi
+
 		if test "x$enable_static_ssl" = "xyes"; then
-			GNUTLS_LIBS="$gnutls_prefix/libgnutls.a $gnutls_prefix/libgcrypt.a"
+			GNUTLS_LIBS="$gnutls_prefix/libgnutls.a $gnutls_prefix/libgcrypt.a $libgpg_error_libs_static"
 		else
-			GNUTLS_LIBS="-L$gnutls_prefix -lgnutls -lgcrypt"
+			GNUTLS_LIBS="-L$gnutls_prefix -lgnutls -lgcrypt $libgpg_error_libs"
 		fi
 		GNUTLS_CFLAGS=$CPPFLAGS
 		AC_DEFINE(HAVE_GNUTLS, 1,
