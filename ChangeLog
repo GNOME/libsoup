@@ -1,3 +1,10 @@
+2001-05-13  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-core/soup-fault.[ch]: made the SoupFault structure
+	private, and add accessor functions for the struct members
+	* src/soup-core/soup-env.[ch]: added SoupEnv stuff, to easily
+	manage SOAP environments (request/response headers list, faults)
+
 2001-05-12  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-message.c (soup_message_set_request_header):
