@@ -1,7 +1,13 @@
+2002-02-12  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_connect_cb): Check to make
+	sure we have a proxy context before farming the request off to the
+	SSL-over-HTTP tunnel.
+
 2002-02-11  Joe Shaw  <joe@ximian.com>
 
-	* soup-openssl.c (soup_openssl_write): Backport a fix from the
-	0.6 branch from Dan Winship.
+	* src/libsoup/soup-openssl.c (soup_openssl_write): Backport a fix
+	from the 0.6 branch from Dan Winship.
 
 2002-02-07  Joe Shaw  <joe@ximian.com>
 
@@ -9,20 +15,21 @@
 
 	* src/libsoup/Makefile.am: Add soup-ssl-tunnel.[ch].
 
-	* soup-headers.c (soup_headers_parse_request): Don't barf if
-	we pass in a NULL header GHashTable.
+	* src/libsoup/soup-headers.c (soup_headers_parse_request): Don't
+	barf if we pass in a NULL header GHashTable.
 
-	* soup-queue.c (soup_queue_connect_cb): Get the proxy protocol
-	and the actual protocol separately, and if the proxy is HTTP or
-	HTTPS and the real protocol is HTTPS, call our SSL proxying stuff.
+	* src/libsoup/soup-queue.c (soup_queue_connect_cb): Get the proxy
+	protocol and the actual protocol separately, and if the proxy is
+	HTTP or	HTTPS and the real protocol is HTTPS, call our SSL
+	proxying stuff.
 
-	* soup-uri.c (soup_uri_get_default_port): Make this a public
-	function.
+	* src/libsoup/soup-uri.c (soup_uri_get_default_port): Make this a 
+	public function.
 
-	* soup-ssl-tunnel.c: Implementation of RFC 2817, tunnelling SSL
-	requests through an HTTP proxy.  Laaaaaame.  The code sucks, but
-	I have no plan to make it nicer since this is already in the 0.6
-	branch.
+	* src/libsoup/soup-ssl-tunnel.c: Implementation of RFC 2817,
+	tunnelling SSL requests through an HTTP proxy.  Laaaaaame.  The
+	code sucks, but	I have no plan to make it nicer since this is 
+	already in the 0.6 branch.
 
 2002-02-01  Joe Shaw  <joe@ximian.com>
 

@@ -439,7 +439,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		proxy_proto = soup_context_get_uri (ctx)->protocol;
 		real_proto = soup_context_get_uri(req->context)->protocol;
 
-		if (soup_connection_is_new (conn)) {
+		if (ctx != req->context && soup_connection_is_new (conn)) {
 			if (proxy_proto == SOUP_PROTOCOL_SOCKS4 ||
 			    proxy_proto == SOUP_PROTOCOL_SOCKS5) {
 				soup_connect_socks_proxy(
