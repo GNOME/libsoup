@@ -6,9 +6,7 @@
 #ifndef SOUP_AUTH_H
 #define SOUP_AUTH_H 1
 
-#include <glib-object.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-uri.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_TYPE_AUTH            (soup_auth_get_type ())
 #define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))

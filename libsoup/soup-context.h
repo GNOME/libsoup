@@ -6,9 +6,7 @@
 #ifndef SOUP_CONTEXT_H
 #define SOUP_CONTEXT_H 1
 
-#include <glib-object.h>
-#include <libsoup/soup-connection.h>
-#include <libsoup/soup-uri.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_TYPE_CONTEXT            (soup_context_get_type ())
 #define SOUP_CONTEXT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONTEXT, SoupContext))
@@ -19,11 +17,11 @@
 
 typedef struct SoupContextPrivate SoupContextPrivate;
 
-typedef struct {
+struct SoupContext {
 	GObject parent;
 
 	SoupContextPrivate *priv;
-} SoupContext;
+};
 
 typedef struct {
 	GObjectClass parent_class;

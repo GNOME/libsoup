@@ -6,11 +6,10 @@
 #ifndef SOUP_ADDRESS_H
 #define SOUP_ADDRESS_H
 
-#include <glib-object.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <libsoup/soup-error.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_TYPE_ADDRESS            (soup_address_get_type ())
 #define SOUP_ADDRESS(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_ADDRESS, SoupAddress))
@@ -21,11 +20,11 @@
 
 typedef struct SoupAddressPrivate SoupAddressPrivate;
 
-typedef struct {
+struct SoupAddress {
 	GObject parent;
 
 	SoupAddressPrivate *priv;
-} SoupAddress;
+};
 
 typedef struct {
 	GObjectClass parent_class;

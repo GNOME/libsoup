@@ -15,12 +15,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "soup-address.h"
 #include "soup-private.h"
 #include "soup-socket.h"
 #include "soup-marshal.h"
 #include "soup-ssl.h"
 
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 
 #define PARENT_TYPE G_TYPE_OBJECT

@@ -1,16 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-private.h: Asyncronous Callback-based HTTP Request Queue.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
- */
-
-/* 
- * All the things Soup users shouldn't need to know about except under
- * extraneous circumstances.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_PRIVATE_H
@@ -20,17 +10,9 @@
 #include <config.h>
 #endif
 
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-
+#include <libsoup/soup-types.h>
 #include <libsoup/soup-auth.h>
-#include <libsoup/soup-context.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
-#include <libsoup/soup-socket.h>
-#include <libsoup/soup-uri.h>
+#include <libsoup/soup-misc.h>
 
 #ifdef __cplusplus
 extern "C" {

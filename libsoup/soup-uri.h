@@ -9,13 +9,13 @@
 #ifndef  SOUP_URI_H
 #define  SOUP_URI_H 1
 
-#include <glib.h>
+#include <libsoup/soup-types.h>
 
 typedef GQuark SoupProtocol;
 #define SOUP_PROTOCOL_HTTP (g_quark_from_static_string ("http"))
 #define SOUP_PROTOCOL_HTTPS (g_quark_from_static_string ("https"))
 
-typedef struct {
+struct SoupUri {
 	SoupProtocol  protocol;
 
 	char         *user;
@@ -29,7 +29,7 @@ typedef struct {
 	char         *query;
 
 	char         *fragment;
-} SoupUri;
+};
 
 SoupUri  *soup_uri_new_with_base     (const SoupUri *base,
 				      const char    *uri_string);

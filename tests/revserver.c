@@ -8,7 +8,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <libsoup/soup.h>
+#include <libsoup/soup-address.h>
+#include <libsoup/soup-socket.h>
 
 static void rev_read (SoupSocket *sock, GString *buf);
 static void rev_write (SoupSocket *sock, GString *buf);

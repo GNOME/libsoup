@@ -41,6 +41,7 @@ libsoupinclude_HEADERS =	\
 	soup-server-message.h	\
 	soup-server.h		\
 	soup-socket.h		\
+	soup-types.h		\
 	soup-uri.h
 
 lib_LTLIBRARIES = libsoup-2.2.la

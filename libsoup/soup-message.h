@@ -6,10 +6,8 @@
 #ifndef SOUP_MESSAGE_H
 #define SOUP_MESSAGE_H 1
 
-#include <glib-object.h>
-#include <libsoup/soup-error.h>
+#include <libsoup/soup-types.h>
 #include <libsoup/soup-method.h>
-#include <libsoup/soup-uri.h>
 
 #define SOUP_TYPE_MESSAGE            (soup_message_get_type ())
 #define SOUP_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_MESSAGE, SoupMessage))
@@ -38,7 +36,7 @@ typedef struct {
 	guint          length;
 } SoupDataBuffer;
 
-typedef struct {
+struct SoupMessage {
 	GObject parent;
 
 	SoupMessagePrivate *priv;
@@ -54,7 +52,7 @@ typedef struct {
 
 	SoupDataBuffer      response;
 	GHashTable         *response_headers;
-} SoupMessage;
+};
 
 typedef struct {
 	GObjectClass parent_class;

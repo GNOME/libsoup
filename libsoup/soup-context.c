@@ -23,6 +23,7 @@
 
 #include "soup-auth.h"
 #include "soup-auth-ntlm.h"
+#include "soup-connection.h"
 #include "soup-context.h"
 #include "soup-message-private.h"
 #include "soup-private.h"

@@ -2,10 +2,7 @@
 /*
  * soup-server-auth.c: Server-side authentication handling
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #include <glib.h>
@@ -18,6 +15,8 @@
 
 #include "md5-utils.h"
 #include "soup-headers.h"
+#include "soup-misc.h"
+#include "soup-uri.h"
 
 typedef struct {
 	const gchar   *scheme;

@@ -21,13 +21,14 @@
 
 #include "soup-queue.h"
 #include "soup-auth.h"
+#include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-context.h"
 #include "soup-headers.h"
 #include "soup-misc.h"
 #include "soup-private.h"
-#include "soup-ssl.h"
+#include "soup-socket.h"
 
 static GSList *soup_active_requests = NULL, *soup_active_request_next = NULL;
 

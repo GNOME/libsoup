@@ -2,28 +2,20 @@
 /*
  * soup-server-auth.h: Server-side authentication handling
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_SERVER_AUTH_H
 #define SOUP_SERVER_AUTH_H 1
 
-#include <glib.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-misc.h>
-
-typedef union _SoupServerAuth SoupServerAuth;
-typedef struct _SoupServerAuthContext SoupServerAuthContext;
+#include <libsoup/soup-types.h>
 
 typedef gboolean (*SoupServerAuthCallbackFn) (SoupServerAuthContext *auth_ctx,
 					      SoupServerAuth        *auth,
 					      SoupMessage           *msg, 
 					      gpointer               data);
 
-struct _SoupServerAuthContext {
+struct SoupServerAuthContext {
 	guint                     types;
 	SoupServerAuthCallbackFn  callback;
 	gpointer                  user_data;
@@ -74,7 +66,7 @@ typedef struct {
 	const gchar          *request_method;
 } SoupServerAuthDigest;
 
-union _SoupServerAuth {
+union SoupServerAuth {
 	SoupAuthType          type;
 	SoupServerAuthBasic   basic;
 	SoupServerAuthDigest  digest;

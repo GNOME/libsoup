@@ -8,9 +8,7 @@
 
 #include <time.h>
 
-#include <glib-object.h>
-#include <libsoup/soup-socket.h>
-#include <libsoup/soup-uri.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_TYPE_CONNECTION            (soup_connection_get_type ())
 #define SOUP_CONNECTION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONNECTION, SoupConnection))
@@ -21,11 +19,11 @@
 
 typedef struct SoupConnectionPrivate SoupConnectionPrivate;
 
-typedef struct {
+struct SoupConnection {
 	GObject parent;
 
 	SoupConnectionPrivate *priv;
-} SoupConnection;
+};
 
 typedef struct {
 	GObjectClass parent_class;

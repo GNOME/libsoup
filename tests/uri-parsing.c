@@ -110,7 +110,7 @@ do_uri (SoupUri *base_uri, const char *base_str,
 int
 main (int argc, char **argv)
 {
-	SoupUri *base_uri, *uri;
+	SoupUri *base_uri;
 	char *uri_string;
 	int i, errs = 0;
 

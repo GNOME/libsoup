@@ -16,6 +16,7 @@
 #include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-private.h"
+#include "soup-socket.h"
 
 typedef struct {
 	guint                      idle_tag;

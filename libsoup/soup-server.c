@@ -19,10 +19,13 @@
 #include <unistd.h>
 
 #include "soup-server.h"
+#include "soup-address.h"
 #include "soup-headers.h"
 #include "soup-private.h"
 #include "soup-message-private.h"
-#include "soup-ssl.h"
+#include "soup-server-auth.h"
+#include "soup-server-message.h"
+#include "soup-socket.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
@@ -38,13 +41,6 @@ struct SoupServerPrivate {
 
 	GHashTable        *handlers; /* KEY: path, VALUE: SoupServerHandler */
 	SoupServerHandler *default_handler;
-};
-
-struct SoupServerMessage {
-	SoupMessage *msg;
-	GSList      *chunks;           /* CONTAINS: SoupDataBuffer* */
-	gboolean     started;
-	gboolean     finished;
 };
 
 static void

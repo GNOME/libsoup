@@ -6,9 +6,7 @@
 #ifndef SOUP_SOCKET_H
 #define SOUP_SOCKET_H 1
 
-#include <glib-object.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-error.h>
+#include <libsoup/soup-types.h>
 
 #define SOUP_TYPE_SOCKET            (soup_socket_get_type ())
 #define SOUP_SOCKET(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SOCKET, SoupSocket))
@@ -19,11 +17,11 @@
 
 typedef struct SoupSocketPrivate SoupSocketPrivate;
 
-typedef struct {
+struct SoupSocket {
 	GObject parent;
 
 	SoupSocketPrivate *priv;
-} SoupSocket;
+};
 
 typedef struct {
 	GObjectClass parent_class;

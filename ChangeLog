@@ -1,3 +1,12 @@
+2003-08-27  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-types.h: New header with typedefs, to avoid
+	#include loops among other headers.
+
+	* libsoup/Makefile.am (libsoupinclude_HEADERS): add it
+
+	* libsoup/*.[ch], tests/*.c: Update for soup-types.h
+	
 2003-08-26  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-client-io.c (soup_message_write_request,

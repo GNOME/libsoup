@@ -1,11 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-error.h: HTTP Errorcode and Errorclass definitions
+ * soup-error.h: HTTP error code and error class definitions
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_ERROR_H

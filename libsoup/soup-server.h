@@ -6,13 +6,9 @@
 #ifndef SOUP_SERVER_H
 #define SOUP_SERVER_H 1
 
-#include <glib.h>
-#include <libsoup/soup-message.h>
+#include <libsoup/soup-types.h>
 #include <libsoup/soup-method.h>
-#include <libsoup/soup-misc.h>
-#include <libsoup/soup-socket.h>
 #include <libsoup/soup-uri.h>
-#include <libsoup/soup-server-auth.h>
 
 #define SOUP_TYPE_SERVER            (soup_server_get_type ())
 #define SOUP_SERVER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER, SoupServer))
@@ -23,11 +19,11 @@
 
 typedef struct SoupServerPrivate SoupServerPrivate;
 
-typedef struct {
+struct SoupServer {
 	GObject parent;
 
 	SoupServerPrivate *priv;
-} SoupServer;
+};
 
 typedef struct {
 	GObjectClass parent_class;

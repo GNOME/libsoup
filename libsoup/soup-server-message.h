@@ -7,7 +7,6 @@
 #define SOUP_SERVER_MESSAGE_H 1
 
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
 
 #define SOUP_TYPE_SERVER_MESSAGE            (soup_server_message_get_type ())
 #define SOUP_SERVER_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessage))
@@ -18,11 +17,11 @@
 
 typedef struct SoupServerMessagePrivate SoupServerMessagePrivate;
 
-typedef struct {
+struct SoupServerMessage {
 	SoupMessage parent;
 
 	SoupServerMessagePrivate *priv;
-} SoupServerMessage;
+};
 
 typedef struct {
 	SoupMessageClass parent_class;

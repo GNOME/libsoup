@@ -17,6 +17,8 @@
 #include "soup-server-message.h"
 #include "soup-message-private.h"
 #include "soup-private.h"
+#include "soup-server.h"
+#include "soup-socket.h"
 
 struct SoupServerMessagePrivate {
 	SoupServer *server;
