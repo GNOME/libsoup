@@ -1,5 +1,18 @@
 2001-02-20  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/Makefile.am (libsoup_la_LDFLAGS): remove -release
+	tag so libsoup is named libsoup.so.0.1.9 not libsoup-0.1.9.so.0.0.0
+
+	* soupConf.sh.in (SOUP_INCLUDEDIR): use $CPPFLAGS instead of $CFLAGS.
+
+	* soup-config.in (depend_cflags): use $CPPFLAGS instead of $CFLAGS.
+
+	* configure.in: Clean up to use $CPPFLAGS instead of $CFLAGS for
+	storing glib, gnet, libxml, openssl, nspr, and nss header
+	locations. 
+
+2001-02-20  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: cleaned up to no longer link with an SSL
 	library. Added options --with-nspr-includes, --with-nspr-libs,
 	--with-nss-includes, --with-nss-libs, --with-openssl-includes, and

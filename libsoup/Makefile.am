@@ -11,9 +11,7 @@ soupincludedir = $(includedir)/soup
 
 lib_LTLIBRARIES = libsoup.la
 
-libsoup_la_LDFLAGS = \
-        -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
-        -release $(LT_RELEASE)
+libsoup_la_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 
 libsoup_la_SOURCES =		\
 	soup-context.c		\
