@@ -188,7 +188,7 @@ AC_ARG_WITH(nspr-includes,
 AC_ARG_WITH(nspr-libs,
 	    [  --with-nspr-libs         Specify location of Netscape Portable Runtime libs],
 	    [nspr_prefix=$withval],
-	    [nspr_prefix=/usr/lib])
+	    [nspr_prefix=$libdir])
 
 AC_ARG_WITH(nss-includes,
 	    [  --with-nss-includes      Specify location of NSS header files],
@@ -197,7 +197,7 @@ AC_ARG_WITH(nss-includes,
 AC_ARG_WITH(nss-libs,
 	    [  --with-nss-libs          Specify location of NSS libs],
 	    [nss_prefix=$withval],
-	    [nss_prefix=/usr/lib])
+	    [nss_prefix=$libdir])
 
 
 AC_ARG_WITH(openssl-includes,
@@ -207,7 +207,7 @@ AC_ARG_WITH(openssl-includes,
 AC_ARG_WITH(openssl-libs,
 	    [  --with-openssl-libs      Specify location of OpenSSL libs],
 	    [openssl_prefix=$withval], 
-	    [openssl_prefix=/usr/lib])
+	    [openssl_prefix=$libdir])
 
 ###
 ### Allow for a custom SSL proxy name

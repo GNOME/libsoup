@@ -1,3 +1,8 @@
+2002-12-16  Jeremy Katz  <katzj@redhat.com>
+
+	* configure.in: use $libdir instead of /usr/lib when looking for
+	libraries
+
 2002-12-11  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-queue.c (proxy_https_connect_cb): I am an idiot.
