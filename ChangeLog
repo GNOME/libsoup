@@ -1,3 +1,36 @@
+2001-05-09  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-typecodes.c: Put the glib namespace
+	prefix back into the typecode struct names
+	(wsdl_typecode_type): Return a namespace-prefixed type name for
+	struct and element types
+	(wsdl_typecode_lookup): Look up typecodes by namespace
+
+	* src/soup-wsdl-runtime/wsdl-typecodes-c.c: Typecode struct names
+	include namespace prefixes
+
+	* src/soup-wsdl-runtime/wsdl-schema-glib.c
+	(wsdl_schema_glib_parse_struct): Typecodes now have namespaces
+	associated with them.
+
+	* src/soup-wsdl/wsdl-soap-headers.c: Deleted all the list
+	callbacks that printed variations on a parameter theme, call
+	wsdl_emit_part_list instead.
+	(wsdl_emit_soap_headers_binding_operation): Don't add a namespace
+	part for every level of WSDL indirection.
+	* src/soup-wsdl/wsdl-soap-stubs.c: ditto
+	* src/soup-wsdl/wsdl-soap-skels.c: ditto
+
+	* src/soup-wsdl/wsdl-soap-emit.c: New file of C code emitting helper
+	functions.
+
+	* src/soup-wsdl/wsdl-parse.c (wsdl_parse_message_part_attrs): Look
+	up typecodes by namespace
+	(wsdl_start_element): Pass more XML info to the schema parser
+
+	* src/soup-core/soup-parser.h: include file wasn't on the search
+	path at compile time
+
 2001-05-09  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-core/soup-parser.c: retrieve info about faults
