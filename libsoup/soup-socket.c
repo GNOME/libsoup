@@ -880,7 +880,13 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		if (err->domain == SOUP_SSL_ERROR &&
 		    err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE)
 			cond = G_IO_OUT;
-		g_error_free (err);
+		g_object_set_data_full (G_OBJECT (sock),
+					"SoupSocket-last_error",
+					err, (GDestroyNotify)g_error_free);
+	} else {
+		g_object_set_data (G_OBJECT (sock),
+				   "SoupSocket-last_error",
+				   NULL);
 	}
 
 	switch (status) {
@@ -1100,7 +1106,13 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		if (err->domain == SOUP_SSL_ERROR &&
 		    err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ)
 			cond = G_IO_IN;
-		g_error_free (err);
+		g_object_set_data_full (G_OBJECT (sock),
+					"SoupSocket-last_error",
+					err, (GDestroyNotify)g_error_free);
+	} else {
+		g_object_set_data (G_OBJECT (sock),
+				   "SoupSocket-last_error",
+				   NULL);
 	}
 
 	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
