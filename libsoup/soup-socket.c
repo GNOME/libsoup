@@ -448,8 +448,8 @@ soup_socket_start_ssl (SoupSocket *sock)
  * @callback: callback to call when the socket is connected
  * @user_data: data for @callback
  *
- * Creates a connection to @uri. @callback will be called when the
- * connection completes (or fails).
+ * Creates a connection to @hostname and @port. @callback will be
+ * called when the connection completes (or fails).
  *
  * Return value: the new socket (not yet ready for use).
  **/
