@@ -91,6 +91,8 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 					soup_message_issue_callback (req);
 				} else {
 					req->priv->retries++;
+					soup_connection_release (req->connection);
+					req->connection = NULL;
 					soup_message_requeue (req);
 				}
 			} else if (conn_is_new) {

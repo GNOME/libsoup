@@ -1,3 +1,12 @@
+2003-05-30  Chris Toshok  <toshok@ximian.com>
+
+	* libsoup/soup-queue.c (soup_queue_error_cb): always force a
+	reconnect when there's an error with ssl connection.  This fixes
+	#43387, but it runs the risk of sending requests multiple times to
+	the exchange server, and it results in lots of shorter lived
+	connections and more forking (in the ssl proxy case), depending on
+	the length of the operation.
+
 2003-05-21  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.22 (codename: French Onion Soup)
