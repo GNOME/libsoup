@@ -1,3 +1,12 @@
+2001-12-19  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): #define
+	RAND_status to constants for older versions of OpenSSL (before
+	0.9.5).
+
+	* src/soup-ssl-proxy/soup-ssl-proxy.c (main): Check that ssh
+	channel is created before adding watches.
+
 2001-12-17  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): Use

@@ -202,6 +202,14 @@ GIOFuncs soup_openssl_channel_funcs = {
 
 static SSL_CTX *ssl_context = NULL;
 
+#if SSL_LIBRARY_VERSION >= 0x00905100
+#  define CHECK_OPENSSL_SEEDED RAND_status()
+#  define CHECK_OPENSSL_SEEDED_FINAL RAND_status()
+#else
+#  define CHECK_OPENSSL_SEEDED FALSE
+#  define CHECK_OPENSSL_SEEDED_FINAL TRUE
+#endif
+
 static gboolean
 soup_openssl_seed (void) 
 {
@@ -209,7 +217,7 @@ soup_openssl_seed (void)
 	struct timeval tv;
 	guchar stack [1024], *heap;
 
-	if (RAND_status () == 0) {
+	if (!CHECK_OPENSSL_SEEDED) {
 		/* Seed with pid */
 		pid = getpid ();
 		RAND_seed ((guchar *) &pid, sizeof (pid_t));
@@ -222,7 +230,7 @@ soup_openssl_seed (void)
 		RAND_seed (stack, sizeof (stack));
 
 		/* Quit now if we are adequately seeded */
-		if (RAND_status ()) 
+		if (CHECK_OPENSSL_SEEDED) 
 			return TRUE;
 
 		/* Seed with untouched heap (1024) */
@@ -231,7 +239,7 @@ soup_openssl_seed (void)
 			RAND_seed (heap, 1024);
 		g_free (heap);
 
-		return RAND_status ();
+		return CHECK_OPENSSL_SEEDED_FINAL;
 	} else
 		return TRUE;
 }

@@ -134,17 +134,27 @@ main (int argc, char** argv)
 	loop = g_main_new (FALSE);
 
 	env = getenv ("SOCKFD");
-	if (!env) g_error ("SOCKFD environment not set.");
+	if (!env) 
+		g_error ("SOCKFD environment not set.");
+
 	sockfd = atoi (env);
+	if (sockfd <= 0)
+		g_error ("Invalid SOCKFD environment set.");
 
 	env = getenv ("SECURITY_POLICY");
-	if (!env) g_error ("SECURITY_POLICY environment not set.");
-	secpol = atoi (env);
+	if (!env) 
+		g_error ("SECURITY_POLICY environment not set.");
 
+	secpol = atoi (env);
 	soup_ssl_proxy_set_security_policy (secpol);
 
 	read_chan = g_io_channel_unix_new (STDIN_FILENO);
+	if (!read_chan) 
+		g_error ("Unable to open STDIN");
+
 	write_chan = g_io_channel_unix_new (STDOUT_FILENO);
+	if (!write_chan) 
+		g_error ("Unable to open STDOUT");
 
 	/* Block on socket write */
 	flags = fcntl(sockfd, F_GETFL, 0);
@@ -156,6 +166,8 @@ main (int argc, char** argv)
 
 	sock_chan = g_io_channel_unix_new (sockfd);
 	sock_chan = soup_ssl_proxy_get_iochannel (sock_chan);
+	if (!sock_chan)
+		g_error ("Unable to establish SSL connection");
 
 	g_io_add_watch (read_chan, 
 			G_IO_IN | G_IO_HUP | G_IO_ERR, 
