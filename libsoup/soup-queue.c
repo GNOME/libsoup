@@ -119,7 +119,7 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	}
 }
 
-static SoupTransferDone
+static void
 soup_queue_read_headers_cb (const GString        *headers,
                             SoupTransferEncoding *encoding,
 			    gint                 *content_len,
@@ -223,15 +223,15 @@ soup_queue_read_headers_cb (const GString        *headers,
 
  SUCCESS_CONTINUE:
 	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
-	return SOUP_TRANSFER_CONTINUE;
+	return;
 
  THROW_MALFORMED_HEADER:
 	soup_connection_set_keep_alive (req->connection, FALSE);
 	soup_message_issue_callback (req);
-	return SOUP_TRANSFER_END;
+	return;
 }
 
-static SoupTransferDone
+static void
 soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 			  gpointer              user_data)
 {
@@ -243,7 +243,7 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 
 	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
 
-	return SOUP_TRANSFER_CONTINUE;
+	return;
 }
 
 static void

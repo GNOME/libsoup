@@ -543,7 +543,7 @@ issue_bad_request (SoupMessage *msg)
 	g_io_channel_unref (channel);
 } /* issue_bad_request */
 
-static SoupTransferDone
+static void
 read_headers_cb (const GString        *headers,
 		 SoupTransferEncoding *encoding,
 		 gint                 *content_len,
@@ -656,14 +656,12 @@ read_headers_cb (const GString        *headers,
 
 	g_free (req_path);
 
-	return SOUP_TRANSFER_CONTINUE;
+	return;
 
  THROW_MALFORMED_HEADER:
 	g_free (req_path);
 
 	issue_bad_request(msg);
-
-	return SOUP_TRANSFER_CONTINUE;
 }
 
 static void

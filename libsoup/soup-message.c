@@ -180,7 +180,8 @@ soup_message_cleanup (SoupMessage *req)
 						  release_connection,
 						  release_and_close_connection,
 						  req->connection);
-		req->priv->read_tag = 0;
+		soup_transfer_read_unref (req->priv->read_tag);
+		req->priv->read_tag = NULL;
 		req->connection = NULL;
 		/* 
 		 * The buffer doesn't belong to us until the message is 
@@ -191,12 +192,12 @@ soup_message_cleanup (SoupMessage *req)
 
 	if (req->priv->read_tag) {
 		soup_transfer_read_cancel (req->priv->read_tag);
-		req->priv->read_tag = 0;
+		req->priv->read_tag = NULL;
 	}
 
 	if (req->priv->write_tag) {
 		soup_transfer_write_cancel (req->priv->write_tag);
-		req->priv->write_tag = 0;
+		req->priv->write_tag = NULL;
 	}
 
 	if (req->priv->connect_tag) {
@@ -575,11 +576,12 @@ soup_message_requeue (SoupMessage *req)
 						  requeue_read_finished,
 						  requeue_read_error,
 						  req);
-		req->priv->read_tag = 0;
+		soup_transfer_read_unref (req->priv->read_tag);
+		req->priv->read_tag = NULL;
 
 		if (req->priv->write_tag) {
 			soup_transfer_write_cancel (req->priv->write_tag);
-			req->priv->write_tag = 0;
+			req->priv->write_tag = NULL;
 		}
 	} else
 		soup_queue_message (req, 

@@ -29,14 +29,13 @@ typedef enum {
 typedef struct _SoupReader SoupReader;
 typedef struct _SoupWriter SoupWriter;
 
-typedef SoupTransferDone (*SoupReadHeadersDoneFn) (
-					const GString        *headers,
-					SoupTransferEncoding *encoding,
-					gint                 *content_len,
-					gpointer              user_data);
+typedef void (*SoupReadHeadersDoneFn) (const GString        *headers,
+				       SoupTransferEncoding *encoding,
+				       gint                 *content_len,
+				       gpointer              user_data);
 
-typedef SoupTransferDone (*SoupReadChunkFn) (const SoupDataBuffer *data,
-					     gpointer              user_data);
+typedef void (*SoupReadChunkFn) (const SoupDataBuffer *data,
+				 gpointer              user_data);
 
 typedef void (*SoupReadDoneFn) (const SoupDataBuffer *data,
 				gpointer              user_data);
@@ -51,7 +50,9 @@ SoupReader *soup_transfer_read  (GIOChannel             *chan,
 				 SoupReadErrorFn         error_cb,
 				 gpointer                user_data);
 
-void  soup_transfer_read_cancel (SoupReader *r);
+void     soup_transfer_read_ref    (SoupReader *r);
+gboolean soup_transfer_read_unref  (SoupReader *r);
+void     soup_transfer_read_cancel (SoupReader *r);
 
 void  soup_transfer_read_set_callbacks (SoupReader             *r,
 					SoupReadHeadersDoneFn   headers_done_cb,
@@ -90,6 +91,8 @@ void  soup_transfer_write_pause (SoupWriter *w);
 
 void  soup_transfer_write_unpause (SoupWriter *w);
 
-void  soup_transfer_write_cancel (SoupWriter *w);
+void     soup_transfer_write_ref    (SoupWriter *w);
+gboolean soup_transfer_write_unref  (SoupWriter *w);
+void     soup_transfer_write_cancel (SoupWriter *w);
 
 #endif /*SOUP_TRANSFER_H*/

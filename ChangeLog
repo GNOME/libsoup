@@ -1,3 +1,28 @@
+2003-06-12  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-transfer.c (SoupReader, SoupWriter): add a
+	ref_count field.
+	(soup_transfer_read, create_writer): Set initial ref_count to 2
+	(one for soup-transfer, one for the caller).
+	(soup_transfer_read_ref, soup_transfer_read_unref): ref/unref a
+	reader
+	(soup_transfer_read_stop): Clears the GIOChannel callbacks and
+	drops soup-transfer's ref.
+	(soup_transfer_read_cancel): Now just a stop+unref
+	(soup_transfer_write_ref, soup_transfer_write_unref,
+	soup_transfer_write_stop, soup_transfer_write_cancel): Similarly.
+
+	* libsoup/soup-message.c (soup_message_cleanup): when setting up
+	the "finish reading" callbacks, unref the reader so it will be
+	destroyed once it's done reading.
+	(soup_message_requeue): Likewise.
+
+	* libsoup/soup-queue.c (soup_queue_read_headers_cb): Update for
+	prototype change (no longer returns a SoupTransferDone).
+	(soup_queue_read_chunk_cb): Likewise.
+
+	* libsoup/soup-server.c (read_headers_cb): Likewise
+
 2003-06-11  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-transfer.c: Change all functions to take a
