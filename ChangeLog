@@ -1,3 +1,27 @@
+2001-07-02  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-private.h: Remove _SoupMessagePrivate bits
+	covered by soup-transfer.
+
+	* src/soup-core/soup-queue.c: Use soup-transfer.
+	(soup_queue_error_cb): Remove handling of buggy MS IIS server
+	tranferring partial content then closing connection. Report this
+	as SOUP_ERROR_IO instead.
+
+	* src/soup-core/soup-httpd.c: Use soup-transfer.
+
+	* src/soup-core/soup-transfer.[ch]: Added. HTTP Transport
+	abstraction used to clean up client and standalone/cgi server code
+	duplication.
+
+	* configure.in: Bump version to 0.3.
+
+	* src/soup-core/soup-queue.c (soup_check_used_headers): Use
+	toupper in switch instead of upper/lower cases for each.
+
+	* src/soup-core/soup-httpd.c: Declare apache dummy method
+	implementations to avoid warnings.
+
 2001-06-27  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-digest.c: Largely gutted. Made RFC 2617

@@ -58,6 +58,8 @@ libsoup_la_SOURCES =		\
 	soup-socks.c		\
 	soup-ssl.h		\
 	soup-ssl.c		\
+	soup-transfer.h		\
+	soup-transfer.c		\
 	soup-uri.c
 
 libsoup_apache_la_LDFLAGS = 	\

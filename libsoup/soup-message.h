@@ -143,7 +143,6 @@ void           soup_message_add_body_handler    (SoupMessage      *msg,
 						 SoupHandlerFn     handler_cb,
 						 gpointer          user_data);
 
-/* FIXME: None of these are implemented yet, oh well... */
 typedef enum {
 	SOUP_MESSAGE_FOLLOW_REDIRECT  = (1 << 1),
 	SOUP_MESSAGE_NO_COOKIE        = (1 << 2),

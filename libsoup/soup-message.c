@@ -11,6 +11,7 @@
 #include "soup-message.h"
 #include "soup-context.h"
 #include "soup-private.h"
+#include "soup-transfer.h"
 
 /**
  * soup_message_new:
@@ -74,9 +75,6 @@ soup_message_new_full (SoupContext   *context,
 	return ret;
 }
 
-#define source_remove(_src) \
-        ({ if ((_src)) { g_source_remove ((_src)); (_src) = 0; }})
-
 /**
  * soup_message_cleanup:
  * @req: a %SoupMessage.
@@ -91,10 +89,15 @@ soup_message_cleanup (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	source_remove (req->priv->read_tag);
-	source_remove (req->priv->write_tag);
-	source_remove (req->priv->error_tag);
-	source_remove (req->priv->timeout_tag);
+	if (req->priv->read_tag) {
+		soup_transfer_read_cancel (req->priv->read_tag);
+		req->priv->read_tag = 0;
+	}
+
+	if (req->priv->write_tag) {
+		soup_transfer_write_cancel (req->priv->write_tag);
+		req->priv->write_tag = 0;
+	}
 
 	if (req->priv->connect_tag) {
 		soup_context_cancel_connect (req->priv->connect_tag);
@@ -104,17 +107,6 @@ soup_message_cleanup (SoupMessage *req)
 		soup_connection_release (req->priv->conn);
 		req->priv->conn = NULL;
 	}
-	if (req->priv->recv_buf) {
-		g_byte_array_free (req->priv->recv_buf, FALSE);
-		req->priv->recv_buf = NULL;
-	}
-
-	req->priv->write_len = 0;
-	req->priv->headers_done = FALSE;
-	req->priv->content_length = 0;
-	req->priv->is_chunked = FALSE;
-	req->priv->cur_chunk_len = 0;
-	req->priv->cur_chunk_idx = 0;
 
 	soup_active_requests = g_slist_remove (soup_active_requests, req);
 }

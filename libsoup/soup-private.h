@@ -89,19 +89,9 @@ struct _SoupMessagePrivate {
 	SoupConnectId   connect_tag;
 	guint           read_tag;
 	guint           write_tag;
-	guint           error_tag;
 	guint           timeout_tag;
 
-	guint           write_len;
-	gboolean        headers_done;
-
-	guint           content_length;
-	gboolean        is_chunked;
-	guint           cur_chunk_len;
-	guint           cur_chunk_idx;
-
 	GString        *req_header;
-	GByteArray     *recv_buf;
 
 	SoupCallbackFn  callback;
 	gpointer        user_data;
