@@ -71,6 +71,58 @@ soup_context_get (const gchar *uri)
 }
 
 /**
+ * soup_context_uri_hash:
+ * @key: a %SoupUri
+ * 
+ * Return value: Hash value of the user, authmech, passwd, and path fields in
+ * @key.
+ **/
+static guint
+soup_context_uri_hash (gconstpointer key)
+{
+	const SoupUri *uri = key;
+	guint ret = 0;
+
+	if (uri->user) {
+		ret += g_str_hash (uri->user);
+		if (uri->authmech) 
+			ret += g_str_hash (uri->authmech);
+		if (uri->passwd) 
+			ret += g_str_hash (uri->passwd);
+	}
+	ret += g_str_hash (uri->path);
+
+	return ret;
+}
+
+/**
+ * soup_context_uri_equal:
+ * @v1: a %SoupUri
+ * @v2: a %SoupUri
+ * 
+ * Return value: TRUE if @v1 and @v2 match in user, authmech, passwd, and
+ * path. Otherwise, FALSE.
+ **/
+static gboolean
+soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
+{
+	const SoupUri *one = v1;
+	const SoupUri *two = v2;
+
+	if (!strcmp (one->path ? one->path : "", 
+		     two->path ? two->path : ""))
+		if (!strcmp (one->user ? one->user : "", 
+			     two->user ? two->user : ""))
+			if (!strcmp (one->authmech ? one->authmech : "", 
+				     two->authmech ? two->authmech : ""))
+				if (!strcmp (one->passwd ? one->passwd : "", 
+					     two->passwd ? two->passwd : ""))
+					return TRUE;
+
+	return FALSE;
+}
+
+/**
  * soup_context_from_uri:
  * @suri: a %SoupUri.
  *
@@ -102,9 +154,10 @@ soup_context_from_uri (SoupUri *suri)
 	}
 
 	if (!serv->contexts)
-		serv->contexts = g_hash_table_new (g_str_hash, g_str_equal);
+		serv->contexts = g_hash_table_new (soup_context_uri_hash, 
+						   soup_context_uri_equal);
 	else
-		ret = g_hash_table_lookup (serv->contexts, suri->path);
+		ret = g_hash_table_lookup (serv->contexts, suri);
 
 	if (!ret) {
 		ret = g_new0 (SoupContext, 1);
@@ -112,7 +165,7 @@ soup_context_from_uri (SoupUri *suri)
 		ret->uri = soup_uri_copy (suri);
 		ret->refcnt = 0;
 
-		g_hash_table_insert (serv->contexts, ret->uri->path, ret);
+		g_hash_table_insert (serv->contexts, ret->uri, ret);
 	}
 
 	soup_context_ref (ret);
@@ -152,7 +205,7 @@ soup_context_unref (SoupContext *ctx)
 	if (ctx->refcnt == 0) {
 		SoupServer *serv = ctx->server;
 
-		g_hash_table_remove (serv->contexts, ctx->uri->path);
+		g_hash_table_remove (serv->contexts, ctx->uri);
 
 		if (g_hash_table_size (serv->contexts) == 0) {
 			GSList *conns = serv->connections;

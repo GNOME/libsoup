@@ -1,3 +1,13 @@
+2001-06-19  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-context.c (soup_context_from_uri): Use
+	soup_context_uri_hash and soup_context_uri_equal for matching
+	existing server contexts instead of just matching on path.
+	(soup_context_uri_hash): Added. Returns a hash of the user, authmech,
+	password, and path of a given SoupUri.
+	(soup_context_uri_equal): Added. Returns TRUE if the user, authmech,
+	password, and path of a two SoupUris match.
+
 2001-06-15  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: add check for unistd.h
