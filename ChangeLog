@@ -1,5 +1,9 @@
 2001-07-19  Alex Graveley  <alex@ximian.com>
 
+	* configure.in: Bump version to 0.4.0.
+
+2001-07-19  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: Remove -Werror from WSDL_CFLAGS as this ills on so
 	many redhat distros. Remove unused ISO C99 IEEE754 section. Set
 	the default to hide more warnings.
