@@ -1,5 +1,12 @@
 2001-07-16  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-transfer.c (soup_transfer_read_cb): Set len
+	to 0 before calling callback to handle cases where no content
+	length is specified. Special thanks goes out to Joe Shaw
+	(joe@ximian.com) for finding this one.
+
+2001-07-16  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-private.h: Remove the unused digest_data from
 	_SoupMessagePrivate.
 

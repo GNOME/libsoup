@@ -199,8 +199,8 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
 		if (r->headers_done_cb) {
 			GString str;
-			gint len;
 			SoupTransferDone ret;
+			gint len = 0;
 
 			str.str = g_strndup (r->recv_buf->data, index);;
 			str.len = index;
