@@ -402,9 +402,11 @@ soup_get_request_header (SoupMessage *req)
 
 	if (proxy)
 		uri = soup_uri_to_string (proxy->uri, FALSE);
-	else 
-		uri = g_strconcat (req->context->uri->path, 
-				   req->context->uri->querystring);
+	else if (req->context->uri->querystring)
+		uri = g_strconcat (req->context->uri->path, "?", 
+				   req->context->uri->querystring, NULL);
+	else
+		uri = g_strdup (req->context->uri->path);
 
 	/* If we specify an absoluteURI in the request line, the 
 	   Host header MUST be ignored by the proxy. */

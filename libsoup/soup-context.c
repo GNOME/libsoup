@@ -32,7 +32,7 @@ soup_context_new (SoupServer *server, SoupUri *uri)
 	ctx->uri = uri;
 	ctx->refcnt = 0;
 
-	if (!uri->protocol || strcmp (uri->protocol, "http") == 0) 
+	if (strcmp (uri->protocol, "http") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_HTTP;
 	else if (strcmp (uri->protocol, "https") == 0) 
 		ctx->protocol = SOUP_PROTOCOL_SHTTP;
@@ -48,6 +48,11 @@ soup_context_get (gchar *uri)
 	SoupServer *serv = NULL;
 	SoupContext *ret = NULL;
 	SoupUri *suri = soup_uri_new (uri);
+
+	if (!suri->protocol) {
+		soup_uri_free (suri);
+		return NULL;
+	}
 
 	if (!soup_servers)
 		soup_servers = g_hash_table_new (soup_str_case_hash, 

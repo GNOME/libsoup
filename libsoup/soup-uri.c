@@ -47,10 +47,7 @@
 static gint
 soup_uri_get_default_port (gchar *proto)
 {
-	if (!proto || *proto == '\0') {
-		g_warning ("URI Protocol not specified, defaulting to HTTP.");
-		return 80;
-	} else if (strcasecmp (proto, "http") == 0)
+	if (strcasecmp (proto, "http") == 0)
 		return 80;
 	else if (strcasecmp (proto, "https") == 0)
 		return 443;
@@ -223,3 +220,18 @@ soup_uri_free (SoupUri *uri)
 
 	g_free (uri);
 }
+
+static void
+soup_debug_print_uri (SoupUri *uri)
+{
+	g_return_if_fail (uri != NULL);
+
+	g_print ("Protocol: %s\n", uri->protocol);
+	g_print ("User:     %s\n", uri->user);
+	g_print ("Authmech: %s\n", uri->authmech);
+	g_print ("Password: %s\n", uri->passwd);
+	g_print ("Host:     %s\n", uri->host);
+	g_print ("Path:     %s\n", uri->path);
+	g_print ("Querystr: %s\n", uri->querystring);
+}
+
