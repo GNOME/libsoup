@@ -333,6 +333,9 @@ read_content_length (SoupReader *r, gboolean *cancelled)
 {
 	GByteArray *arr = r->recv_buf;
 
+	if (!arr->len)
+		goto CANCELLED;
+
 	*cancelled = FALSE;
 	if (issue_chunk_callback (r, 
 				  arr->data, 
@@ -385,7 +388,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
 	if (bytes_read) {
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
+
 		total_read += bytes_read;
+
 		goto READ_AGAIN;
 	}
 

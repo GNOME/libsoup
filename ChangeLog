@@ -1,5 +1,10 @@
 2001-10-17  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-transfer.c (read_content_length): Don't call
+	chunk callback if there is no new data.
+
+2001-10-17  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-transfer.c (remove_block_at_index): Add some
 	bounds checking.
 
