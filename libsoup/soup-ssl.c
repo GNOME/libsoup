@@ -76,7 +76,7 @@ soup_ssl_init (void)
 }
 
 GIOChannel *
-soup_get_ssl_iochannel (GIOChannel *sock)
+soup_ssl_get_iochannel (GIOChannel *sock)
 {
 	SoupSSLChannel *chan;
 	GIOChannel *gchan;
@@ -272,7 +272,7 @@ soup_ssl_add_watch (GIOChannel     *channel,
 #else /* HAVE_OPENSSL_SSL_H */
 
 GIOChannel *
-soup_get_ssl_iochannel (GIOChannel *sock)
+soup_ssl_get_iochannel (GIOChannel *sock)
 {
 	g_warning ("SSL Not Supported.");
 	return NULL;

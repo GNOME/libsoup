@@ -13,6 +13,6 @@
 
 #include <glib.h>
 
-GIOChannel *soup_get_ssl_iochannel (GIOChannel *sock);
+GIOChannel *soup_ssl_get_iochannel (GIOChannel *sock);
 
 #endif /* SOUP_SSL_H */

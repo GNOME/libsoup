@@ -1,5 +1,10 @@
 2001-02-13  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-ssl.c (soup_get_ssl_iochannel): renamed to
+	soup_ssl_get_iochannel.
+
+2001-02-13  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-ssl.c (soup_ssl_add_watch): work around fact
 	that data available in the socket does not always mean unencrypted
 	data is available for reading.
