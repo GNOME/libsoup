@@ -1,3 +1,11 @@
+2002-03-22  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.12
+
+	* src/libsoup/soup-ssl-tunnel.c (soup_ssl_tunnel_read): Null
+	terminate the byte array before passing it on to
+	soup_headers_parse_response() to avoid reading out-of-bounds.
+
 2002-03-07  Alex Graveley  <alex@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.11
