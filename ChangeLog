@@ -1,3 +1,8 @@
+2002-07-01  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Back out my
+	last change, as it broke soup-server.c.
+
 2002-06-24  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): If we no

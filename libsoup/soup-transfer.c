@@ -417,12 +417,6 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	GIOError error;
 
  READ_AGAIN:
-	if (!r->read_chunk_cb) {
-		soup_transfer_read_cancel (GPOINTER_TO_INT (r));
-
-		return FALSE;
-	}
-
 	error = g_io_channel_read (iochannel,
 				   read_buf,
 				   sizeof (read_buf),
