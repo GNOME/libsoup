@@ -1,3 +1,11 @@
+2003-12-10  Tambet Ingo  <tambet@ximian.com>
+
+	* configure.in: Use autoconfig to check for socklen_t ...
+
+	* libsoup/soup-address.c: ... and remove it from here ...
+
+	* libsoup/soup-socket.c: ... and here.
+
 2003-11-06  Joe Shaw  <joe@ximian.com>
 
 	* acinclude.m4: Added.  Contains the m4 magic from gpg-error.m4 so
