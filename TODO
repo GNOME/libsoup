@@ -26,25 +26,72 @@ TODO:
 * Add apache config files to tests/ so that apache can be run locally
   to run regression tests against
 
-* Merge soup-server-auth.c with the client auth implementation.
-  Likewise, make soup-server-message.c less of a hack.
-
 * User-Agent handling: caller should specify a User-Agent string to
   SoupSession, and soup should automatically append libsoup/#.## to
   that. (Likewise for Server/Via headers.)
 
-* Explicit range support (?)
+* Range support
 
 * NTLM Proxy-Authentication support, GSS-Negotiate support
 
 * Pipelining
 
+* Merge SoupAuth and SoupServerAuth
 
-Known bugs:
-==========
+* Merge SoupMessage and SoupServerMessage (allow chunked requests)
+
+* Improve SoupServer handlers to allow for expect-continue handling,
+  reading chunked requests a chunk at a time, etc. (Use
+  SoupMessageFilter for consistency.)
+
+* SoupProxy (based on simple-proxy, but better), which connects a
+  SoupServer to a SoupSession with SoupMessageFilters in between.
+
+* Add date-parsing/generating routines (all formats)
+
+* Special handling on server side for HEAD (ignore
+  response->body.length).
+
+* Warning header support
+
+
+Known bugs/limitations:
+=======================
 
 * Digest auth does not support qop="auth-int" (both client and server)
 
 * Trailers in chunked responses are not handled
 
 * simple-proxy is not very RFC compliant
+
+* Can't send or receive "OPTIONS * HTTP/1.1" (SoupURL won't accept
+  "*".)
+
+* Can't implement CONNECT on the server side (no way to steal the
+  socket from the SoupServer).
+
+
+Conformance:
+============
+* Check handling of unknown HTTP versions [RFC ????]
+
+* Don't do HTTP/1.1-specific behavior on HTTP/1.0 messages
+
+* Preserve header ordering (on send and receive). Treat
+  "Foo:bar\r\nFoo:baz" the same as "Foo: bar, baz"
+
+* Enforce rules about what requests/responses MUST/MUST NOT have a
+  body
+
+* Encode space as "+" in URIs.
+
+* Don't automatically process redirects on non-GET/HEAD requests
+
+* Properly mangle HTTP/1.0 requests containing Connection headers
+  [14.10]
+
+* Automatically add Date header in SoupServer
+
+* MUST observe DNS TTL information
+
+[get SHOULDs and SHOULD NOTs in]
