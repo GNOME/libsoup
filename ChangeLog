@@ -4,11 +4,13 @@
 	prevent leak and check for fault straight away (instead of
 	operation name)
 
-	* src/soup-core/soup-env.c (soup_env_free): only free the fault if there is one
+	* src/soup-core/soup-env.c (soup_env_free): only free the fault if
+	there is one
 	(soup_env_clear_fault): ditto
 
 	* src/soup-wsdl-runtime/wsdl-soap-marshal.c (wsdl_soap_marshal):
-	use the serializer functions to write out the fault and only write the message return 
+	use the serializer functions to write out the fault and only write
+	the message return
 	
 2001-05-17  JP Rosevear  <jpr@ximian.com>
 
