@@ -1,3 +1,7 @@
+2001-01-31  Jeffrey Stedfast  <fejj@ximian.com>
+
+	* src/soup-core/gionspr.c: Implemented (probably somewhat broken).
+
 2001-01-25  Rodrigo Moya <rodrigo@ximian.com>
 
 	* soup-config.in: replaced @glib_cflags@ and @glib_libs@ with
@@ -32,7 +36,7 @@
 
 	* tests/stress-test.c: make the callback handle errors by
 	requeuing request and not just g_error'ing.
-	
+
 2001-01-23  alex  <alex@ximian.com>
 
 	* soup-context.c (soup_context_get_connection): check environment
