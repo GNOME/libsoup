@@ -59,6 +59,9 @@ void  soup_transfer_read_set_callbacks (guint                   tag,
 
 typedef void (*SoupWriteHeadersDoneFn) (gpointer user_data);
 
+typedef SoupTransferDone (*SoupWriteChunkFn) (SoupDataBuffer **out_next,
+					      gpointer         user_data);
+
 typedef void (*SoupWriteDoneFn) (gpointer user_data);
 
 typedef void (*SoupWriteErrorFn) (gboolean headers_done, gpointer user_data);
@@ -66,7 +69,9 @@ typedef void (*SoupWriteErrorFn) (gboolean headers_done, gpointer user_data);
 guint soup_transfer_write (GIOChannel             *chan,
 			   const GString          *header,
 			   const SoupDataBuffer   *src,
+			   SoupTransferEncoding    encoding,                
 			   SoupWriteHeadersDoneFn  headers_done_cb,
+			   SoupWriteChunkFn        write_chunk_cb,
 			   SoupWriteDoneFn         write_done_cb,
 			   SoupWriteErrorFn        error_cb,
 			   gpointer                user_data);

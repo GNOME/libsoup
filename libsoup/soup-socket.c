@@ -181,7 +181,7 @@ soup_address_get_port (const SoupAddress* ia)
 }
 
 /**
- * soup_address_set_port:
+ * soup_address_get_sockaddr:
  * @ia: The %SoupAddress.
  * @addrlen: Pointer to socklen_t the returned sockaddr's length is to be 
  * placed in.
@@ -240,7 +240,7 @@ soup_address_equal (const gpointer p1, const gpointer p2)
 	const SoupAddress* ia1 = (const SoupAddress*) p1;
 	const SoupAddress* ia2 = (const SoupAddress*) p2;
 
-	g_assert(p1 != NULL && p2 != NULL);
+	g_assert (p1 != NULL && p2 != NULL);
 
 	/* Note network byte order doesn't matter */
 	return ((SOUP_SOCKADDR_IN(ia1->sa).sin_addr.s_addr ==
@@ -336,10 +336,19 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 						 state);
 		soup_address_unref (inetaddr);
 	} else {
-		(*state->func) (NULL,
-				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE,
-				state->data);
+		SoupSocketConnectFn func = state->func;
+		gpointer data = state->data;
+
+		/*
+		 * FIXME: If we don't free before the callback here, we SEGV
+		 * on bad hostnames.  It doesn't seem like we are double freeing
+		 * state, so is this chunk allocatior corruption elsewhere? 
+		 * 
+		 * Trip with uri like http://alex@foo:localhost/cgi-bin/test-cgi
+		 */
 		g_free (state);
+
+		(*func) (NULL, SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, data);
 	}
 }
 
@@ -382,11 +391,12 @@ soup_socket_connect (const gchar*        hostname,
 			       soup_socket_connect_inetaddr_cb,
 			       state);
 
-	/* Note that soup_address_new can fail immediately and call
-	   our callback which will delete the state.  The users callback
-	   would be called in the process. */
-
-	if (id == NULL) return NULL;
+	/* 
+	 * Note: soup_address_new can fail immediately and call our callback
+	 * which will delete the state. 
+	 */
+	if (!id) 
+		return NULL;
 
 	state->inetaddr_id = id;
 

@@ -1,3 +1,62 @@
+2001-12-01  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server-auth.h: Pull the SoupServerAuth from
+	soup-server.h to here.
+
+	* tests/cgi-test.c: 
+	* tests/mod-server-test.c: 
+	* tests/server-test.c: Update for new server api. Add a handler
+	that sets the errorphrase, add some response headers, and prints
+	the request body, uri, and headers in the response.
+
+	* src/soup-httpd/soup-httpd.c: Update for new server api, remove
+	module reloading, which trivializes the server code.
+
+	* src/libsoup-apache/soup-apache.c: Update for new server api.
+
+	* src/libsoup/soup-uri.c (soup_uri_copy): Copy element by element,
+	don't stringify/unstringify.
+
+	* src/libsoup/soup-uri.h: Remove query_elems from SoupUri.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write): Take an
+	encoding argument to allow chunked writes, and a write_chunk_cb to
+	allow new data to be written. Use a secondary buffer to make
+	writes (and especially chunked writes) larger, and also simplify
+	the code.
+	(write_chunk_sep): Impl.
+	(write_chunk): Impl.
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_inetaddr_cb):
+	Free state before issuing failure callback.  Add FIXME, as this
+	shouldn't be needed but avoids a segfault.
+
+	* src/libsoup/soup-socket-unix.c: Formatting.
+
+	* src/libsoup/soup-server.c: Reimplement to support server push
+	through SoupServerMessage, CGI support, and persistent
+	connections. Modules are now passed a SoupServer during init,
+	instead of having well-known global server objects -- these have
+	been removed.
+
+	* src/libsoup/soup-queue.c (start_request): Update for new
+	transfer_write interface, passing content length as the encoding
+	and a NULL write_chunk_cb.
+
+	* src/libsoup/soup-private.h: Add server, server_sock, and
+	server_msg to _SoupMessagePrivate.  Gut _SoupServer.
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Cleanup
+	boolean eval.
+
+	* src/libsoup/soup-headers.c (soup_headers_parse_response): Wrap
+	at 80.
+
+	* src/libsoup/soup-dav-server.[ch]: Update for new server handler
+	interface.
+
+	* configure.in: Check for sys/ioctl.h and sys/filio.h
+
 2001-11-30  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-headers.c (soup_headers_parse_status_line):

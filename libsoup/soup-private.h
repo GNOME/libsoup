@@ -112,39 +112,43 @@ struct _SoupConnection {
 	guint         death_tag;
 };
 
-struct _SoupMessagePrivate {
-	SoupConnectId   connect_tag;
-	guint           read_tag;
-	guint           write_tag;
-	guint           timeout_tag;
-
-	GString        *req_header;
-
-	SoupCallbackFn  callback;
-	gpointer        user_data;
-
-	guint           msg_flags;
-
-	GSList         *content_handlers;
-
-	SoupHttpVersion http_version;
-
-	SoupServer     *server;
-	SoupSocket     *server_sock;
-};
-
 struct _SoupServer {
 	SoupProtocol       proto;
 	gint               port;
 
+	guint              refcnt;
 	GMainLoop         *loop;
 
 	guint              accept_tag;
-	SoupSocket        *sock;
+	SoupSocket        *listen_sock;
 
-	GHashTable        *handlers;
-	GSList            *static_handlers;
-	SoupServerHandler  default_handler;
+	GIOChannel        *cgi_read_chan;
+	GIOChannel        *cgi_write_chan;
+
+	GHashTable        *handlers;   /* KEY: path, VALUE: SoupServerHandler */
+	SoupServerHandler *default_handler;
+};
+
+struct _SoupMessagePrivate {
+	SoupConnectId      connect_tag;
+	guint              read_tag;
+	guint              write_tag;
+	guint              timeout_tag;
+
+	GString           *req_header;
+
+	SoupCallbackFn     callback;
+	gpointer           user_data;
+
+	guint              msg_flags;
+
+	GSList            *content_handlers;
+
+	SoupHttpVersion    http_version;
+
+	SoupServer        *server;
+	SoupSocket        *server_sock;
+	SoupServerMessage *server_msg;
 };
 
 /* from soup-message.c */

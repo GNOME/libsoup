@@ -24,6 +24,30 @@
 
 #undef DUMP
 
+#ifdef DUMP
+static void
+DUMP_READ (guchar *data, gint bytes_read) 
+{
+	gchar *buf = alloca (bytes_read + 1);
+	memcpy (buf, data, bytes_read);
+	buf[bytes_read] = '\0';
+	
+	g_warning ("READ %d\n----------\n%s\n----------\n", bytes_read, buf);
+}
+static void
+DUMP_WRITE (guchar *data, gint bytes_written) 
+{
+	gchar *buf = alloca (bytes_written + 1);
+	memcpy (buf, data, bytes_written);
+	buf[bytes_written] = '\0';
+
+	g_warning ("WRITE %d\n----------\n%s\n----------\n", bytes_written,buf);
+}
+#else
+#  define DUMP_READ(x,y)
+#  define DUMP_WRITE(x,y)
+#endif
+
 typedef struct {
 	/* 
 	 * Length remaining to be downloaded of the current chunk data. 
@@ -74,13 +98,15 @@ typedef struct {
 
 	gboolean                processing;
 
-	const GString          *header;
-	const SoupDataBuffer   *src;
+	SoupTransferEncoding    encoding;
+	GByteArray             *write_buf;
 
-	guint                   write_len;
+	guint                   header_len;
 	gboolean                headers_done;
+	gint                    chunk_cnt;
 
 	SoupWriteHeadersDoneFn  headers_done_cb;
+	SoupWriteChunkFn        write_chunk_cb;
 	SoupWriteDoneFn         write_done_cb;
 	SoupWriteErrorFn        error_cb;
 	gpointer                user_data;
@@ -424,12 +450,14 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 				   &bytes_read);
 
 	if (error == G_IO_ERROR_AGAIN) {
-		if (total_read) goto PROCESS_READ;
+		if (total_read) 
+			goto PROCESS_READ;
 		else return TRUE;
 	}
 
 	if (error != G_IO_ERROR_NONE) {
-		if (total_read) goto PROCESS_READ;
+		if (total_read) 
+			goto PROCESS_READ;
 		else {
 			soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
 			return FALSE;
@@ -437,40 +465,29 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	}
 
 	if (bytes_read) {
-#ifdef DUMP
-		{
-			gchar *buf = alloca (bytes_read + 1);
-			memcpy (buf, read_buf, bytes_read);
-			buf[bytes_read] = '\0';
-
-			g_warning ("READ %d\n----------\n%s\n----------\n",
-				   bytes_read,
-				   buf);
-		}
-#endif
+		DUMP_READ (read_buf, bytes_read);
 
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
-
 		total_read += bytes_read;
 
 		goto READ_AGAIN;
 	}
 
  PROCESS_READ:
-	if (!r->header_len) {
-		gint index = soup_substring_index (r->recv_buf->data,
-						   r->recv_buf->len,
-						   "\r\n\r\n");
-		if (index < 0) return TRUE;
+	if (r->header_len == 0) {
+		gint index;
 
-		index += 4;
+		index = soup_substring_index (r->recv_buf->data,
+					      r->recv_buf->len,
+					      "\r\n\r\n");
+		if (index < 0) 
+			return TRUE;
+		else
+			index += 4;
 
 		if (r->headers_done_cb) {
 			GString str;
 			SoupTransferDone ret;
-
-			r->encoding = SOUP_TRANSFER_UNKNOWN;
-			r->content_length = 0;
 
 			str.len = index;
 			str.str = alloca (index + 1);
@@ -489,7 +506,6 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		}
 
 		remove_block_at_index (r->recv_buf, 0, index);
-
 		r->header_len = index;
 	}
 
@@ -545,6 +561,7 @@ soup_transfer_read (GIOChannel            *chan,
 	reader->error_cb = error_cb;
 	reader->user_data = user_data;
 	reader->recv_buf = g_byte_array_new ();
+	reader->encoding = SOUP_TRANSFER_UNKNOWN;
 
 	reader->read_tag =
 		g_io_add_watch (chan,
@@ -571,6 +588,8 @@ soup_transfer_write_cancel (guint tag)
 	g_source_remove (w->write_tag);
 	g_source_remove (w->err_tag);
 
+	g_byte_array_free (w->write_buf, TRUE);
+
 	g_free (w);
 }
 
@@ -579,11 +598,9 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 			      GIOCondition condition,
 			      SoupWriter *w)
 {
-	gboolean body_started = w->write_len > (guint) w->header->len;
-
 	if (w->error_cb) {
 		IGNORE_CANCEL (w);
-		(*w->error_cb) (body_started, w->user_data);
+		(*w->error_cb) (w->headers_done, w->user_data);
 		UNIGNORE_CANCEL (w);
 	}
 
@@ -592,43 +609,71 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 	return FALSE;
 }
 
+static void
+write_chunk_sep (GByteArray *arr, gint len, gboolean first_chunk)
+{
+	gchar *hex;
+	gchar *end = "\r\n0\r\n";
+
+	if (len) {
+		hex = g_strdup_printf (first_chunk ? "%x\r\n" : "\r\n%x\r\n", 
+				       len);
+		g_byte_array_append (arr, hex, strlen (hex));
+		g_free (hex);
+	} else
+		g_byte_array_append (arr, end, strlen (end));
+} 
+
+static void
+write_chunk (SoupWriter *w, const SoupDataBuffer *buf)
+{
+	if (w->encoding == SOUP_TRANSFER_CHUNKED) {
+		write_chunk_sep (w->write_buf, buf->length, w->chunk_cnt);
+		w->chunk_cnt++;
+	}
+
+	g_byte_array_append (w->write_buf, buf->body, buf->length);
+}
+
+#ifdef SIGPIPE
+#  define IGNORE_PIPE(pipe_handler) pipe_handler = signal (SIGPIPE, SIG_IGN)
+#  define RESTORE_PIPE(pipe_handler) signal (SIGPIPE, pipe_handler)
+#else
+#  define IGNORE_PIPE(x)
+#  define RESTORE_PIPE(x)
+#endif
+
 static gboolean
 soup_transfer_write_cb (GIOChannel* iochannel,
 			GIOCondition condition,
 			SoupWriter *w)
 {
-	guint head_len, body_len, total_len, total_written, bytes_written;
 	GIOError error;
-	gchar *write_buf;
-	guint  write_len;
-	void *pipe_handler;
+	gpointer pipe_handler;
+	gint bytes_written = 0;
 
-	head_len = w->header->len;
-	body_len = w->src->length;
-	total_len = head_len + body_len;
-	total_written = w->write_len;
-
-#ifdef SIGPIPE
-	pipe_handler = signal (SIGPIPE, SIG_IGN);
-#endif
+	IGNORE_PIPE (pipe_handler);
 	errno = 0;
 
  WRITE_AGAIN:
-	if (total_written < head_len) {
-		/* 
-		 * Send remaining headers 
-		 */
-		write_buf = &w->header->str [total_written];
-		write_len = head_len - total_written;
-	} else {
-		/* 
-		 * Send rest of body 
-		 */
-		guint offset = total_written - head_len;
-		write_buf = &w->src->body [offset];
-		write_len = body_len - offset;
+	while (w->write_buf->len) {
+		error = g_io_channel_write (iochannel,
+					    w->write_buf->data,
+					    w->write_buf->len,
+					    &bytes_written);
 
-		if (!w->headers_done) {
+		if (error == G_IO_ERROR_AGAIN) 
+			goto TRY_AGAIN;
+
+		if (errno != 0 || error != G_IO_ERROR_NONE) {
+			soup_transfer_write_error_cb (iochannel, G_IO_HUP, w);
+			goto DONE_WRITING;
+		}
+
+		if (!bytes_written) 
+			goto TRY_AGAIN;
+
+		if (!w->headers_done && bytes_written > w->header_len) {
 			if (w->headers_done_cb) {
 				IGNORE_CANCEL (w);
 				(*w->headers_done_cb) (w->user_data);
@@ -636,41 +681,30 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 			}
 			w->headers_done = TRUE;
 		}
+
+		DUMP_WRITE (w->write_buf->data, bytes_written);
+
+		remove_block_at_index (w->write_buf, 0, bytes_written);
 	}
 
-	error = g_io_channel_write (iochannel,
-				    write_buf,
-				    write_len,
-				    &bytes_written);
+	if (w->write_chunk_cb) {
+		SoupTransferStatus ret = SOUP_TRANSFER_END;
+		SoupDataBuffer *buf = NULL;
 
-	if (error == G_IO_ERROR_AGAIN) {
-#ifdef SIGPIPE
-		signal (SIGPIPE, pipe_handler);
-#endif
-		return TRUE;
+		IGNORE_CANCEL (w);
+		ret = (*w->write_chunk_cb) (&buf, w->user_data);
+		UNIGNORE_CANCEL (w);
+
+		if (buf && buf->length) {
+			write_chunk (w, buf);
+			goto WRITE_AGAIN;
+		}
+
+		if (ret == SOUP_TRANSFER_CONTINUE)
+			goto TRY_AGAIN;
+		else if (w->encoding == SOUP_TRANSFER_CHUNKED)
+			write_chunk_sep (w->write_buf, 0, w->chunk_cnt);
 	}
-
-	if (errno != 0 || error != G_IO_ERROR_NONE) {
-		soup_transfer_write_error_cb (iochannel, G_IO_HUP, w);
-		goto DONE_WRITING;
-	}
-
-#ifdef DUMP
-	{
-                gchar *buf = alloca (bytes_written + 1);
-                memcpy (buf, write_buf, bytes_written);
-                buf[bytes_written] = '\0';
-
-                g_warning ("WRITE %d\n----------\n%s\n----------\n",
-                           bytes_written,
-                           buf);
-	}
-#endif
-
-	total_written = (w->write_len += bytes_written);
-
-	if (total_written != total_len)
-		goto WRITE_AGAIN;
 
 	if (w->write_done_cb) {
 		IGNORE_CANCEL (w);
@@ -681,19 +715,21 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
 
  DONE_WRITING:
-
-#ifdef SIGPIPE
-	signal (SIGPIPE, pipe_handler);
-#endif
-
+	RESTORE_PIPE (pipe_handler);
 	return FALSE;
+
+ TRY_AGAIN:
+	RESTORE_PIPE (pipe_handler);
+	return TRUE;
 }
 
 guint
 soup_transfer_write (GIOChannel             *chan,
 		     const GString          *header,
 		     const SoupDataBuffer   *src,
+		     SoupTransferEncoding    encoding,
 		     SoupWriteHeadersDoneFn  headers_done_cb,
+		     SoupWriteChunkFn        write_chunk_cb,
 		     SoupWriteDoneFn         write_done_cb,
 		     SoupWriteErrorFn        error_cb,
 		     gpointer                user_data)
@@ -702,12 +738,44 @@ soup_transfer_write (GIOChannel             *chan,
 
 	writer = g_new0 (SoupWriter, 1);
 	writer->channel = chan;
-	writer->header = header;
-	writer->src = src;
+	writer->encoding = encoding;
 	writer->headers_done_cb = headers_done_cb;
+	writer->write_chunk_cb = write_chunk_cb;
 	writer->write_done_cb = write_done_cb;
 	writer->error_cb = error_cb;
 	writer->user_data = user_data;
+	writer->write_buf = g_byte_array_new ();
+
+	if (header && header->len) {
+		g_byte_array_append (writer->write_buf, 
+				     header->str, 
+				     header->len);
+		writer->header_len = header->len;
+	}
+
+	if (src && src->length)
+		write_chunk (writer, src);
+
+	if (write_chunk_cb) {
+		SoupTransferStatus ret = SOUP_TRANSFER_END;
+		SoupDataBuffer *buf = NULL;
+
+		IGNORE_CANCEL (writer);
+		ret = (*write_chunk_cb) (&buf, user_data);
+		UNIGNORE_CANCEL (writer);
+
+		if (buf && buf->length)
+			write_chunk (writer, buf);
+
+		if (ret == SOUP_TRANSFER_END) {
+			writer->write_chunk_cb = NULL;
+
+			if (writer->encoding == SOUP_TRANSFER_CHUNKED)
+				write_chunk_sep (writer->write_buf, 
+						 0, 
+						 writer->chunk_cnt);
+		}
+	}
 
 	writer->write_tag =
 		g_io_add_watch (chan,

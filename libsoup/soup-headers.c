@@ -196,7 +196,10 @@ soup_headers_parse_response (gchar            *str,
 	if (!soup_headers_parse (str, len, dest)) 
 		goto THROW_MALFORMED_HEADER;
 
-	if (!soup_headers_parse_status_line (str, ver, status_code, status_phrase))
+	if (!soup_headers_parse_status_line (str, 
+					     ver, 
+					     status_code, 
+					     status_phrase))
 		goto THROW_MALFORMED_HEADER;
 
 	return TRUE;

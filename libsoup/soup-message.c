@@ -612,7 +612,6 @@ requeue_read_error (gboolean body_started, gpointer user_data)
 
 	soup_connection_set_keep_alive (msg->connection, FALSE);
 	soup_connection_release (msg->connection);
-
 	msg->connection = NULL;
 
 	soup_queue_message (msg, 
@@ -661,11 +660,7 @@ soup_message_requeue (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	if (!req->connection || !req->connection->auth)
-		soup_queue_message (req, 
-				    req->priv->callback, 
-				    req->priv->user_data);
-	else {
+	if (req->connection && req->connection->auth) {
 		RequeueConnectData *data = NULL;
 
 		data = g_new0 (RequeueConnectData, 1);
@@ -679,7 +674,10 @@ soup_message_requeue (SoupMessage *req)
 						  requeue_read_error,
 						  data);
 		req->priv->read_tag = 0;
-	}
+	} else
+		soup_queue_message (req, 
+				    req->priv->callback, 
+				    req->priv->user_data);
 }
 
 /**

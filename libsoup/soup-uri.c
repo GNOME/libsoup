@@ -207,7 +207,6 @@ soup_uri_new (const gchar* uri_string)
 	if (path && query) {
 		g_uri->path = g_strndup (path, query - path);
 		g_uri->querystring = g_strdup (++query);
-		g_uri->query_elems = g_strsplit (g_uri->querystring, "&", 0);
 		g_free (path);
 	} else {
 		g_uri->path = path;
@@ -260,14 +259,19 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 SoupUri *
 soup_uri_copy (const SoupUri* uri)
 {
-	gchar *uri_str;
 	SoupUri *dup;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	uri_str = soup_uri_to_string (uri, TRUE);
-	dup = soup_uri_new (uri_str);
-	g_free (uri_str);
+	dup = g_new0 (SoupUri, 1);
+	dup->protocol    = uri->protocol;
+	dup->user        = g_strdup (uri->user);
+	dup->authmech    = g_strdup (uri->authmech);
+	dup->passwd      = g_strdup (uri->passwd);
+	dup->host        = g_strdup (uri->host);
+	dup->port        = uri->port;
+	dup->path        = g_strdup (uri->path);
+	dup->querystring = g_strdup (uri->querystring);
 
 	return dup;
 }
@@ -283,7 +287,6 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri->host);
 	g_free (uri->path);
 	g_free (uri->querystring);
-	g_strfreev (uri->query_elems);
 
 	g_free (uri);
 }

@@ -49,7 +49,6 @@ typedef struct {
 
 	gchar              *path;
 	gchar              *querystring;
-	gchar             **query_elems;
 } SoupUri;
 
 SoupUri *soup_uri_new       (const gchar   *uri_string);

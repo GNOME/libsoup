@@ -27,6 +27,7 @@ libsoupinclude_HEADERS =	\
 	soup-misc.h     	\
 	soup-parser.h		\
 	soup-serializer.h	\
+	soup-server-auth.h	\
 	soup-server.h		\
 	soup-socket.h		\
 	soup-uri.h

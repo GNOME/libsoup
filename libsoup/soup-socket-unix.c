@@ -434,7 +434,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 		close (state->fd);
 		waitpid (state->pid, &ret, 0);
 
-		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) goto ERROR;
+		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) 
+			goto ERROR;
 
 		/* 
 		 * Exit status of one means we are inside a debugger.
@@ -460,7 +461,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 		/* Return true if there's more to read */
 		if ((state->len - 1) != state->buffer [0]) return TRUE;
 
-		if (state->len < 2) goto ERROR;
+		if (state->len < 2) 
+			goto ERROR;
 
 		/* Success. Copy resolved address. */
 		sa_in = (struct sockaddr_in*) &state->ia.sa;
@@ -475,7 +477,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 	}
 
 	/* Get state data before realloc */
-	cb_list = iter = state->cb_list;
+	cb_list = state->cb_list;
 	cb_func = state->func;
 	cb_data = state->data;
 
@@ -492,13 +494,12 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	(*cb_func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb_data);
 
-	while (iter) {
+	for (iter = cb_list; iter; iter = iter->next) {
 		SoupAddressCbData *cb = iter->data;
 
 		(*cb->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb->data);
 
 		g_free (cb);
-		iter = iter->next;
 	}
 
 	g_slist_free (cb_list);

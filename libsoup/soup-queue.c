@@ -467,6 +467,8 @@ start_request (SoupContext *ctx, SoupMessage *req)
 		soup_transfer_write (channel,
 				     req->priv->req_header,
 				     &req->request,
+				     SOUP_TRANSFER_CONTENT_LENGTH,
+				     NULL,
 				     NULL,
 				     soup_queue_write_done_cb,
 				     soup_queue_error_cb,
