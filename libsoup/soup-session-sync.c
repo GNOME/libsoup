@@ -158,6 +158,7 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 static guint
 send_message (SoupSession *session, SoupMessage *msg)
 {
+	SoupSessionSync *ss = SOUP_SESSION_SYNC (session);
 	SoupConnection *conn;
 
 	SOUP_SESSION_CLASS (parent_class)->queue_message (session, msg,
@@ -181,6 +182,8 @@ send_message (SoupSession *session, SoupMessage *msg)
 		if (conn) {
 			g_signal_handlers_disconnect_by_func (conn, connection_disconnected, &conn);
 		}
+
+		g_cond_broadcast (ss->priv->cond);
 
 		/* If the message isn't finished, that means we need to
 		 * re-send it on a new connection, so loop back to the

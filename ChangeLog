@@ -1,3 +1,10 @@
+2004-07-12  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (send_message): signal the
+	"connections available" condition after the message finishes. Duh.
+
+	* libsoup-2.2.pc.in (Cflags, Libs): add XML_CFLAGS and XML_LIBS
+
 2004-07-08  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-soap-response.c: Revert previous change for now; it
