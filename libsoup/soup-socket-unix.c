@@ -73,6 +73,10 @@
 #define socklen_t size_t
 #endif
 
+#ifndef INADDR_NONE
+#define INADDR_NONE -1
+#endif
+
 /*
  * Maintains a list of all currently valid SoupAddresses or active
  * SoupAddressState lookup requests.

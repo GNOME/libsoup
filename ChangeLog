@@ -1,5 +1,10 @@
 2002-02-25  JP Rosevear  <jpr@ximian.com>
 
+	* src/libsoup/soup-socket-unix.c: apparently some platforms don't
+	define INADDR_NONE either
+
+2002-02-25  JP Rosevear  <jpr@ximian.com>
+	
 	* src/soup-httpd/Makefile.am: add popt cflags to includes
 
 	* src/libsoup/soup-socket.c: apparently INET_ADDRSTRLEN is not
