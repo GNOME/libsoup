@@ -105,10 +105,15 @@ soup_ssl_proxy_readwrite (GIOChannel   *iochannel,
 	errno = 0;
 
 	while (write_total != bytes_read) {
+	WRITE_AGAIN:
+
 		error = g_io_channel_write (dest, 
 					    &read_buf [write_total], 
 					    bytes_read - write_total, 
 					    &bytes_written);
+
+		if (error == G_IO_ERROR_AGAIN)
+			goto WRITE_AGAIN;
 
 		if (error != G_IO_ERROR_NONE || errno != 0) goto FINISH;
 
@@ -132,7 +137,7 @@ main (int argc, char** argv)
 {
 	gchar *env;
 	GIOChannel *read_chan, *write_chan, *sock_chan;
-	int sockfd, secpol, flags;
+	int sockfd, secpol;
 
 	if (getenv ("SOUP_PROXY_DELAY")) {
 		g_warning ("Proxy delay set: sleeping for 20 seconds");
