@@ -268,6 +268,11 @@ soup_message_free (SoupMessage *req)
 		g_hash_table_destroy (req->response_headers);
 	}
 
+	if (req->response_phrase) {
+		g_free (req->response_phrase);
+		req->response_phrase = NULL;
+	}
+
 	g_slist_foreach (req->priv->content_handlers, (GFunc) g_free, NULL);
 	g_slist_free (req->priv->content_handlers);
 

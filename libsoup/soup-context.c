@@ -289,8 +289,6 @@ static SoupConnection *
 soup_try_existing_connections (SoupContext *ctx)
 {
 	GSList *conns = ctx->server->connections;
-
-	return NULL;
 	
 	while (conns) {
 		SoupConnection *conn = conns->data;

@@ -1,3 +1,23 @@
+2001-07-29  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-apache.c (soup_apache_message_create): strdup
+	response_phrase.
+
+	* src/soup-core/soup-httpd.c (soup_httpd_read_done_cb): Ditto.
+	
+	* src/soup-core/soup-message.c (soup_message_free): Free
+	response_phrase.
+
+	* src/soup-core/soup-context.c (soup_try_existing_connections):
+	Revert accidental commit.
+
+	* src/soup-core/soup-queue.c (soup_get_request_header): Only
+	inhibit Content-Length for GET and HEAD if request.length is 0;
+	(soup_message_queue): Free response_phrase on requeue.
+
+	* src/soup-core/soup-socket.c (soup_address_new): Fix
+	formatting.
+
 2001-07-26  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_get_request_header): Don't display

@@ -691,9 +691,9 @@ soup_address_new (const gchar* name,
 	}
 
 	/* Check to see if we are doing synchronous DNS lookups */
-	if (getenv("SOUP_SYNC_DNS")) {
-		if (!soup_gethostbyname(name, &sa, NULL)) {
-			g_warning("Problem resolving host name");
+	if (getenv ("SOUP_SYNC_DNS")) {
+		if (!soup_gethostbyname (name, &sa, NULL)) {
+			g_warning ("Problem resolving host name");
 			(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 			return NULL;
 		}
@@ -703,11 +703,11 @@ soup_address_new (const gchar* name,
 		sa_in->sin_port = g_htons (port);
 
 		ia = g_new0(SoupAddress, 1);
-		ia->name = g_strdup(name);
+		ia->name = g_strdup (name);
 		ia->ref_count = 1;
 		ia->sa = *((struct sockaddr *) &sa);
 
-		(*func)(ia, SOUP_ADDRESS_STATUS_OK, data);
+		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 
 		return NULL;
 	}
@@ -734,16 +734,16 @@ soup_address_new (const gchar* name,
 
 		/* Else there was a goofy error */
 		g_warning ("Fork error: %s (%d)\n",
-			   g_strerror(errno),
+			   g_strerror (errno),
 			   errno);
-		close(pipes[0]);
-		close(pipes[1]);
+		close (pipes [0]);
+		close (pipes [1]);
 
 		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 
 		return NULL;
 	case 0:
-		close(pipes[0]);
+		close (pipes [0]);
 
 		/* Try to get the host by name (ie, DNS) */
 		if (soup_gethostbyname (name, &sa, NULL)) {
@@ -766,7 +766,7 @@ soup_address_new (const gchar* name,
 		/* Exit (we don't want atexit called, so do _exit instead) */
 		_exit (EXIT_SUCCESS);
 	default:
-		close(pipes[1]);
+		close (pipes [1]);
 		
 		/* Create a structure for the call back */
 		state = g_new0 (SoupAddressState, 1);

@@ -322,8 +322,9 @@ soup_get_request_header (SoupMessage *req)
 
 	g_free (uri);
 
-	if (g_strcasecmp (req->method, "GET") != 0 &&
-	    g_strcasecmp (req->method, "HEAD") != 0) {
+	if (req->request.length == 0 &&
+	    (g_strcasecmp (req->method, "GET") != 0 &&
+	     g_strcasecmp (req->method, "HEAD") != 0)) {
 		g_string_sprintfa (header,
 				   "Content-Length: %d\r\n",
 				   req->request.length);
@@ -349,7 +350,9 @@ soup_get_request_header (SoupMessage *req)
 			   hdrs.content_type ? "" : "Content-Type: text/xml; ",
 			   hdrs.content_type ? "" : "charset=utf-8\r\n",
 			   hdrs.connection ? "" : "Connection: keep-alive\r\n",
-			   hdrs.user_agent ? "" : "User-Agent: Soup/"VERSION"\r\n");
+			   hdrs.user_agent ? 
+			           "" : 
+			           "User-Agent: Soup/" VERSION "\r\n");
 
 	/* Proxy-Authorization from the proxy Uri */
 	if (!hdrs.proxy_auth && proxy && soup_context_get_uri (proxy)->user)
@@ -536,8 +539,12 @@ soup_message_queue (SoupMessage    *req,
 		req->response_headers = NULL;
 	}
 
+	if (req->response_phrase) {
+		g_free (req->response_phrase);
+		req->response_phrase = NULL;
+	}
+
 	req->response_code = 0;
-	req->response_phrase = NULL;
 	req->status = SOUP_STATUS_QUEUED;
 
 	soup_active_requests = g_slist_prepend (soup_active_requests, req);
