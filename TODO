@@ -11,13 +11,11 @@ TODO:
 
 * Simple Soap Example clients and servers (time, updates, terraserver, ...)
 
-* More SOCKS testing
+* Auto-detect SOCKS version
 
 * Use gconf for config data
 
-* Handle gzip encoded responses, requests
-
-* Server Digest and NTLM authentication
+* Handle gzip transfer encoding
 
 * UDDI support
 

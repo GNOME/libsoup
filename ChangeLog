@@ -1,3 +1,19 @@
+2002-01-08  Alex Graveley  <alex@ximian.com>
+
+	* TODO: Update
+
+	* acconfig.h: undef SSL_PROXY_NAME
+
+	* src/libsoup/soup-ssl.c (soup_ssl_get_iochannel): Execute
+	customly chosen SSL proxy name.
+
+	* src/soup-ssl-proxy/Makefile.am (install-exec-hook): Add
+	install-time hook for customly named SSL proxy.
+
+	* configure.in: Don't let -lpopt sneak into $LIBS. Add option to
+	allow custom name for the openssl proxy.  Add option to allow
+	static linking of the SSL library.
+
 2002-01-02  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/libsoup-apache/soup-apache.c (soup_apache_handler): updated
