@@ -31,7 +31,7 @@ static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
  * soup_set_proxy:
  * @context: a %SoupContext to use as the proxy context for all outgoing
  * connections.
- * 
+ *
  * Use @context as the %SoupContext to connect to instead of the actual
  * destination specified in a SoupMessage. Messages will be routed through the
  * proxy host on their way to the actual specified destination. The URL for this
@@ -52,7 +52,7 @@ soup_set_proxy (SoupContext *context)
 
 /**
  * soup_get_proxy:
- * 
+ *
  * Get the current proxy %SoupContext.
  *
  * Return value: the current proxy context.
@@ -65,11 +65,11 @@ soup_get_proxy (void)
 
 /**
  * soup_set_connection_limit:
- * @max_conn: the number of connections. 
- * 
+ * @max_conn: the number of connections.
+ *
  * Set the maximum concurrent connection limit for outgoing requests.
  */
-void         
+void
 soup_set_connection_limit (guint max_conn)
 {
 	max_connections = max_conn;
@@ -77,7 +77,7 @@ soup_set_connection_limit (guint max_conn)
 
 /**
  * soup_get_connection_limit:
- * 
+ *
  * Return value: The maximum concurrent connection limit for outgoing requests.
  */
 guint
@@ -89,12 +89,12 @@ soup_get_connection_limit (void)
 /**
  * soup_set_security_policy:
  * @policy: the %SoupSecurityPolicy to use.
- * 
+ *
  * Set the security policy for all secure SSL connections. The security policy
  * dictates which algorithms and encryption levels can be used in order to
  * conform to your country's security legislation.
  */
-void 
+void
 soup_set_security_policy (SoupSecurityPolicy policy)
 {
 	ssl_security_level = policy;
@@ -102,10 +102,10 @@ soup_set_security_policy (SoupSecurityPolicy policy)
 
 /**
  * soup_get_security_policy:
- * 
+ *
  * Return value: The security policy to use for secure SSL connections.
  */
-SoupSecurityPolicy 
+SoupSecurityPolicy
 soup_get_security_policy (void)
 {
 	return ssl_security_level;
@@ -117,11 +117,11 @@ soup_str_case_hash (gconstpointer key)
 {
 	const char *p = key;
 	guint h = toupper(*p);
-	
+
 	if (h)
 		for (p += 1; *p != '\0'; p++)
 			h = (h << 5) - h + toupper(*p);
-	
+
 	return h;
 }
 
@@ -131,15 +131,15 @@ soup_str_case_equal (gconstpointer v1,
 {
 	const gchar *string1 = v1;
 	const gchar *string2 = v2;
-	
+
 	return g_strcasecmp (string1, string2) == 0;
 }
 
 gint
-soup_substring_index (gchar *str, gint len, gchar *substr) 
+soup_substring_index (gchar *str, gint len, gchar *substr)
 {
 	int i, sublen = strlen (substr);
-	
+
 	for (i = 0; i <= len - sublen; ++i)
 		if (str[i] == substr[0])
 			if (memcmp (&str[i], substr, sublen) == 0)
@@ -148,14 +148,14 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 	return -1;
 }
 
-const char base64_alphabet[65] = 
+const char base64_alphabet[65] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 /**
  * soup_base64_encode:
  * @text: the binary data to encode.
  * @inlen: the length of @text.
- * 
+ *
  * Encode a sequence of binary data into it's Base-64 stringified
  * representation.
  *
@@ -171,10 +171,10 @@ soup_base64_encode (const gchar *text, gint inlen)
 	/* check our args */
 	if (text == NULL)
 		return NULL;
-  
+
 	/* Use 'buffer' to store the output. Work out how big it should be...
 	 * This must be a multiple of 4 bytes */
-  
+
 	/* check our arg...avoid a pesky FPE */
 	if (inlen == 0) {
 		buffer = g_malloc (sizeof(char));
@@ -185,36 +185,36 @@ soup_base64_encode (const gchar *text, gint inlen)
 	outlen = (inlen*4)/3;
 	if ((inlen % 3) > 0) /* got to pad */
 		outlen += 4 - (inlen % 3);
-  
+
 	buffer = g_malloc (outlen + 1); /* +1 for the \0 */
 	memset (buffer, 0, outlen + 1); /* initialize to zero */
-  
+
 	/* now do the main stage of conversion, 3 bytes at a time,
 	 * leave the trailing bytes (if there are any) for later */
-  
+
 	for (point=buffer; inlen>=3; inlen-=3, text+=3) {
-		*(point++) = base64_alphabet [*text>>2]; 
-		*(point++) = base64_alphabet [(*text<<4 & 0x30) | 
-					     *(text+1)>>4]; 
-		*(point++) = base64_alphabet [(*(text+1)<<2 & 0x3c) | 
+		*(point++) = base64_alphabet [*text>>2];
+		*(point++) = base64_alphabet [(*text<<4 & 0x30) |
+					     *(text+1)>>4];
+		*(point++) = base64_alphabet [(*(text+1)<<2 & 0x3c) |
 					     *(text+2)>>6];
 		*(point++) = base64_alphabet [*(text+2) & 0x3f];
 	}
-  
+
 	/* Now deal with the trailing bytes */
 	if (inlen) {
 		/* We always have one trailing byte */
 		*(point++) = base64_alphabet [*text>>2];
 		*(point++) = base64_alphabet [(*text<<4 & 0x30) |
-					     (inlen==2?*(text+1)>>4:0)]; 
-		*(point++) = (inlen == 1 ? 
-			      '=' : 
+					     (inlen==2?*(text+1)>>4:0)];
+		*(point++) = (inlen == 1 ?
+			      '=' :
 			      base64_alphabet [*(text+1)<<2 & 0x3c]);
 		*(point++) = '=';
 	}
-	
+
 	*point = '\0';
-	
+
 	return buffer;
 }
 
@@ -274,7 +274,7 @@ static void
 soup_config_reset_allow_deny (void)
 {
 	GSList *iter;
-	
+
 	for (iter = allow_tokens; iter; iter = iter->next) g_free (iter->data);
 	for (iter = deny_tokens; iter; iter = iter->next) g_free (iter->data);
 
@@ -303,7 +303,7 @@ soup_config_allow_deny (gchar *key)
 		if (!g_strcasecmp (iter [0], "all")) {
 			GSList *iter;
 			allow_policy = (*list == allow_tokens);
-			for (iter = *list; iter; iter = iter->next) 
+			for (iter = *list; iter; iter = iter->next)
 				g_free (iter->data);
 			g_slist_free (*list);
 			*list = NULL;
@@ -331,15 +331,15 @@ soup_config_token_allowed (gchar *key)
 
 	for (; list; list = list->next)
 		if (!list->data ||
-		    !g_strncasecmp (key, 
-				    (gchar *) list->data, 
+		    !g_strncasecmp (key,
+				    (gchar *) list->data,
 				    strlen ((gchar *) list->data)))
 			return !allow;
 
 	return allow;
 }
 
-static void 
+static void
 soup_load_config_internal (gchar *config_file, gboolean admin)
 {
 	struct SoupConfigFuncs *funcs = soup_config_funcs;
@@ -365,7 +365,7 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 		if (!admin && !soup_config_token_allowed (iter)) {
 			g_warning ("Configuration item \"%s\" in file \"%s\" "
 				   "disallowed by system configuration.\n",
-				   iter, 
+				   iter,
 				   config_file);
 			continue;
 		}
@@ -382,7 +382,7 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 		value = g_strchug (split[1]);
 
 		for (; funcs && funcs->key; funcs++)
-			if (!g_strcasecmp (key, funcs->key)) 
+			if (!g_strcasecmp (key, funcs->key))
 				funcs->func (key, value);
 
 		g_strfreev (split);
@@ -390,16 +390,16 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 }
 
 /**
- * soup_load_config: 
+ * soup_load_config:
  * @config_file: The file to load configuration from. If NULL, load from .souprc
- * in user's home directory. 
- * 
+ * in user's home directory.
+ *
  * Load the Soup configuration from file. First attempt to load the system
  * configuration from SYSCONFDIR/souprc, then from either the config file name
  * passed in config_file, or from .souprc in the user's home directory.
- * 
+ *
  * The first time a message is sent using Soup, the configuration is loaded from
- * the system souprc file, and the user's souprc file. 
+ * the system souprc file, and the user's souprc file.
  *
  * soup_load_config can be called multiple times. Each time settings will be
  * reset and reread from scratch.
@@ -414,14 +414,16 @@ soup_load_config (gchar *config_file)
 		soup_set_security_policy (SOUP_SECURITY_DOMESTIC);
 	}
 
+#ifdef SYSCONFDIR
 	/* Load system global config */
 	soup_load_config_internal (SYSCONFDIR G_DIR_SEPARATOR_S "souprc",
 				   TRUE);
+#endif
 
 	/* Load requested file or user local config */
 	if (!config_file) {
 		gchar *dfile = g_strconcat (g_get_home_dir(),
-					    G_DIR_SEPARATOR_S ".souprc", 
+					    G_DIR_SEPARATOR_S ".souprc",
 					    NULL);
 		soup_load_config_internal (dfile, FALSE);
 		g_free (dfile);
@@ -433,13 +435,13 @@ soup_load_config (gchar *config_file)
 
 /**
  * soup_shutdown:
- * 
+ *
  * Shut down the Soup engine.
  *
  * The pending message queue is flushed by calling %soup_message_cancel on all
  * active requests.
  */
-void 
+void
 soup_shutdown ()
 {
 	soup_queue_shutdown ();

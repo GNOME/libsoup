@@ -22,7 +22,10 @@
 
 #include <fcntl.h>
 #include <sys/types.h>
+
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
 
 #ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
@@ -52,10 +55,10 @@ static guint most_recently_used_id = 0;
  * already exists for the URI, it is returned with an added reference.
  * Otherwise, a new context is created with a reference count of one.
  *
- * Return value: a %SoupContext representing @uri.  
+ * Return value: a %SoupContext representing @uri.
  */
 SoupContext *
-soup_context_get (const gchar *uri) 
+soup_context_get (const gchar *uri)
 {
 	SoupUri *suri;
 	SoupContext *con;
@@ -64,7 +67,7 @@ soup_context_get (const gchar *uri)
 
 	suri = soup_uri_new (uri);
 	if (!suri) return NULL;
-	
+
 	con = soup_context_from_uri (suri);
 	soup_uri_free (suri);
 
@@ -74,7 +77,7 @@ soup_context_get (const gchar *uri)
 /**
  * soup_context_uri_hash:
  * @key: a %SoupUri
- * 
+ *
  * Return value: Hash value of the user, authmech, passwd, and path fields in
  * @key.
  **/
@@ -86,9 +89,9 @@ soup_context_uri_hash (gconstpointer key)
 
 	if (uri->user) {
 		ret += g_str_hash (uri->user);
-		if (uri->authmech) 
+		if (uri->authmech)
 			ret += g_str_hash (uri->authmech);
-		if (uri->passwd) 
+		if (uri->passwd)
 			ret += g_str_hash (uri->passwd);
 	}
 
@@ -101,7 +104,7 @@ soup_context_uri_hash (gconstpointer key)
  * soup_context_uri_equal:
  * @v1: a %SoupUri
  * @v2: a %SoupUri
- * 
+ *
  * Return value: TRUE if @v1 and @v2 match in user, authmech, passwd, and
  * path. Otherwise, FALSE.
  **/
@@ -111,13 +114,13 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 	const SoupUri *one = v1;
 	const SoupUri *two = v2;
 
-	if (!strcmp (one->path ? one->path : "", 
+	if (!strcmp (one->path ? one->path : "",
 		     two->path ? two->path : ""))
-		if (!strcmp (one->user ? one->user : "", 
+		if (!strcmp (one->user ? one->user : "",
 			     two->user ? two->user : ""))
-			if (!strcmp (one->authmech ? one->authmech : "", 
+			if (!strcmp (one->authmech ? one->authmech : "",
 				     two->authmech ? two->authmech : ""))
-				if (!strcmp (one->passwd ? one->passwd : "", 
+				if (!strcmp (one->passwd ? one->passwd : "",
 					     two->passwd ? two->passwd : ""))
 					return TRUE;
 
@@ -132,7 +135,7 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
  * already exists for the URI, it is returned with an added reference.
  * Otherwise, a new context is created with a reference count of one.
  *
- * Return value: a %SoupContext representing @uri.  
+ * Return value: a %SoupContext representing @uri.
  */
 SoupContext *
 soup_context_from_uri (SoupUri *suri)
@@ -144,7 +147,7 @@ soup_context_from_uri (SoupUri *suri)
 	g_return_val_if_fail (suri->protocol != 0, NULL);
 
 	if (!soup_servers)
-		soup_servers = g_hash_table_new (soup_str_case_hash, 
+		soup_servers = g_hash_table_new (soup_str_case_hash,
 						 soup_str_case_equal);
 	else
 		serv = g_hash_table_lookup (soup_servers, suri->host);
@@ -156,7 +159,7 @@ soup_context_from_uri (SoupUri *suri)
 	}
 
 	if (!serv->contexts)
-		serv->contexts = g_hash_table_new (soup_context_uri_hash, 
+		serv->contexts = g_hash_table_new (soup_context_uri_hash,
 						   soup_context_uri_equal);
 	else
 		ret = g_hash_table_lookup (serv->contexts, suri);
@@ -213,7 +216,7 @@ soup_context_unref (SoupContext *ctx)
 			GSList *conns = serv->connections;
 
 			g_hash_table_remove (soup_servers, serv->host);
-			
+
 			while (conns) {
 				SoupConnection *conn = conns->data;
 				soup_socket_unref (conn->socket);
@@ -244,8 +247,8 @@ struct SoupConnectData {
 	gpointer               connect_tag;
 };
 
-static void 
-soup_context_connect_cb (SoupSocket              *socket, 
+static void
+soup_context_connect_cb (SoupSocket              *socket,
 			 SoupSocketConnectStatus  status,
 			 gpointer                 user_data)
 {
@@ -270,17 +273,17 @@ soup_context_connect_cb (SoupSocket              *socket,
 
 		connection_count++;
 
-		ctx->server->connections = 
-			g_slist_prepend (ctx->server->connections, 
+		ctx->server->connections =
+			g_slist_prepend (ctx->server->connections,
 					 new_conn);
 
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data); 
+		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data);
 		break;
 	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
-		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data); 
+		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data);
 		break;
 	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data); 
+		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data);
 		break;
 	}
 }
@@ -293,8 +296,8 @@ soup_try_existing_connections (SoupContext *ctx)
 	while (conns) {
 		SoupConnection *conn = conns->data;
 
-		if (!conn->in_use && 
-		    conn->port == ctx->uri->port && 
+		if (!conn->in_use &&
+		    conn->port == ctx->uri->port &&
 		    conn->keep_alive)
 			return conn;
 
@@ -310,8 +313,8 @@ struct SoupConnDesc {
 };
 
 static void
-soup_prune_foreach (gchar *hostname, 
-		    SoupServer *serv, 
+soup_prune_foreach (gchar *hostname,
+		    SoupServer *serv,
 		    struct SoupConnDesc *last)
 {
 	GSList *conns = serv->connections;
@@ -319,12 +322,12 @@ soup_prune_foreach (gchar *hostname,
 	while (conns) {
 		SoupConnection *conn = conns->data;
 		if (!conn->in_use)
-			if (last->conn == NULL || 
+			if (last->conn == NULL ||
 			    last->conn->last_used_id > conn->last_used_id) {
 				last->conn = conn;
 				last->serv = serv;
 			}
-		
+
 		conns = conns->next;
 	}
 }
@@ -339,7 +342,7 @@ soup_prune_least_used_connection (void)
 	g_hash_table_foreach (soup_servers, (GHFunc) soup_prune_foreach, &last);
 
 	if (last.conn) {
-		last.serv->connections = 
+		last.serv->connections =
 			g_slist_remove (last.serv->connections, last.conn);
 		soup_socket_unref (last.conn->socket);
 		g_free (last.conn);
@@ -352,7 +355,7 @@ soup_prune_least_used_connection (void)
 	return FALSE;
 }
 
-static gboolean 
+static gboolean
 soup_prune_timeout (struct SoupConnectData *data)
 {
 	guint conn_limit = soup_get_connection_limit();
@@ -362,7 +365,7 @@ soup_prune_timeout (struct SoupConnectData *data)
 	    !soup_try_existing_connections (data->ctx) &&
 	    !soup_prune_least_used_connection ())
 		return TRUE;
-	
+
 	soup_context_get_connection (data->ctx, data->cb, data->user_data);
 	g_free (data);
 
@@ -414,16 +417,16 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	conn_limit = soup_get_connection_limit ();
 
-	if (conn_limit && 
-	    connection_count >= conn_limit && 
+	if (conn_limit &&
+	    connection_count >= conn_limit &&
 	    !soup_prune_least_used_connection ())
-		data->timeout_tag = 
-			g_timeout_add (500, 
+		data->timeout_tag =
+			g_timeout_add (500,
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
-	else 
+	else
 		data->connect_tag =
-			soup_socket_connect (ctx->uri->host, 
+			soup_socket_connect (ctx->uri->host,
 					     ctx->uri->port,
 					     soup_context_connect_cb,
 					     data);
@@ -439,8 +442,8 @@ soup_context_get_connection (SoupContext           *ctx,
  * %SoupConnectCallbackFn passed in %soup_context_get_connection is not
  * called.
  */
-void 
-soup_context_cancel_connect (SoupConnectId tag) 
+void
+soup_context_cancel_connect (SoupConnectId tag)
 {
 	struct SoupConnectData *data = tag;
 
@@ -457,7 +460,7 @@ soup_context_cancel_connect (SoupConnectId tag)
 /**
  * soup_context_get_uri:
  * @ctx: a %SoupContext.
- * 
+ *
  * Returns a pointer to the %SoupUri represented by @ctx.
  *
  * Return value: the %SoupUri for @ctx.
@@ -472,11 +475,11 @@ soup_context_get_uri (SoupContext *ctx)
 /**
  * soup_connection_release:
  * @conn: a %SoupConnection currently in use.
- * 
+ *
  * Mark the connection represented by @conn as being unused. If the
  * keep-alive flag is not set on the connection, the connection is closed
  * and its resources freed, otherwise the connection is returned to the
- * unused connection pool for the server. 
+ * unused connection pool for the server.
  */
 void
 soup_connection_release (SoupConnection *conn)
@@ -487,7 +490,7 @@ soup_connection_release (SoupConnection *conn)
 		conn->last_used_id = ++most_recently_used_id;
 		conn->in_use = FALSE;
 	} else {
-		conn->server->connections = 
+		conn->server->connections =
 			g_slist_remove (conn->server->connections, conn);
 		soup_socket_unref (conn->socket);
 		g_free (conn);
@@ -495,10 +498,10 @@ soup_connection_release (SoupConnection *conn)
 	}
 }
 
-static void 
+static void
 soup_connection_setup_socket (GIOChannel *channel)
 {
-#ifdef TCP_NODELAY
+#if TCP_NODELAY && !SOUP_WIN32
 	int yes = 1, flags = 0, fd = g_io_channel_unix_get_fd (channel);
 
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
@@ -511,11 +514,11 @@ soup_connection_setup_socket (GIOChannel *channel)
 /**
  * soup_connection_get_iochannel:
  * @conn: a %SoupConnection.
- * 
+ *
  * Returns a GIOChannel used for IO operations on the network connection
  * represented by @conn.
  *
- * Return value: a pointer to the GIOChannel used for IO on %conn. 
+ * Return value: a pointer to the GIOChannel used for IO on %conn.
  */
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
@@ -539,10 +542,10 @@ soup_connection_get_iochannel (SoupConnection *conn)
  * soup_connection_set_keepalive:
  * @conn: a %SoupConnection.
  * @keep_alive: boolean keep-alive value.
- * 
+ *
  * Sets the keep-alive flag on the %SoupConnection pointed to by %conn.
  */
-void 
+void
 soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
 {
 	g_return_if_fail (conn != NULL);
@@ -560,7 +563,7 @@ soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
  *
  * Return value: the keep-alive flag for @conn.
  */
-gboolean 
+gboolean
 soup_connection_is_keep_alive (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);
@@ -570,13 +573,13 @@ soup_connection_is_keep_alive (SoupConnection *conn)
 /**
  * soup_connection_get_context:
  * @conn: a %SoupConnection.
- * 
+ *
  * Returns the %SoupContext from which @conn was created.
  *
  * Return value: the %SoupContext associated with @conn.
  */
 SoupContext *
-soup_connection_get_context (SoupConnection *conn) 
+soup_connection_get_context (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);
 	return conn->context;
@@ -585,14 +588,14 @@ soup_connection_get_context (SoupConnection *conn)
 /**
  * soup_connection_is_new:
  * @conn: a %SoupConnection.
- * 
+ *
  * Returns TRUE if this is the first use of @conn
  * (I.E. %soup_connection_release has not yet been called on it).
  *
  * Return value: boolean representing whether this is the first time a
  * connection has been used.
  */
-gboolean 
+gboolean
 soup_connection_is_new (SoupConnection *conn)
 {
 	g_return_val_if_fail (conn != NULL, FALSE);

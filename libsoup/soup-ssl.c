@@ -16,18 +16,26 @@
 #include <unistd.h>
 #endif
 
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/socket.h>
 #include <errno.h>
 #include <fcntl.h>
 
 #include "soup-ssl.h"
 #include "soup-misc.h"
 
-static gboolean 
+#ifndef SOUP_WIN32
+
+static gboolean
 soup_ssl_idle_waitpid (gpointer ppid)
 {
 	int pid = waitpid (GPOINTER_TO_INT (ppid), NULL, WNOHANG);
@@ -51,7 +59,7 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	if (!(sock_fd = g_io_channel_unix_get_fd (sock))) goto ERROR_ARGS;
 	flags = fcntl(sock_fd, F_GETFD, 0);
 	fcntl (sock_fd, F_SETFD, flags & ~FD_CLOEXEC);
-	
+
 	if (socketpair (PF_UNIX, SOCK_STREAM, 0, pair) != 0) goto ERROR_ARGS;
 
 	fflush (stdin);
@@ -71,11 +79,11 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 		close (pair [0]);
 
 		putenv (g_strdup_printf ("SOCKFD=%d", sock_fd));
-		putenv (g_strdup_printf ("SECURITY_POLICY=%d", 
+		putenv (g_strdup_printf ("SECURITY_POLICY=%d",
 					 soup_get_security_policy ()));
 
-		execl (BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy", 
-		       BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy", 
+		execl (BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy",
+		       BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy",
 		       NULL);
 
 		execlp ("soup-ssl-proxy", "soup-ssl-proxy", NULL);
@@ -91,7 +99,7 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	fcntl (pair [1], F_SETFL, flags & O_NONBLOCK);
 
 	new_chan = g_io_channel_unix_new (pair [1]);
-	
+
 	/* FIXME: Why is this needed?? */
 	g_io_channel_ref (new_chan);
 	return new_chan;
@@ -103,3 +111,13 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 	g_io_channel_unref (sock);
 	return NULL;
 }
+
+#else
+
+GIOChannel *
+soup_ssl_get_iochannel (GIOChannel *sock)
+{
+	return NULL;
+}
+
+#endif /* SOUP_WIN32 */

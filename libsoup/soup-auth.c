@@ -17,6 +17,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef SOUP_WIN32
+#include <process.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
@@ -64,7 +68,7 @@ typedef enum {
 
 typedef struct {
 	SoupAuth auth;
-	
+
 	/* These are provided by the server */
 	char *realm;
 	char *nonce;
@@ -104,7 +108,7 @@ static void
 digest_hex (guchar *digest, guchar hex[33])
 {
 	guchar *s, *p;
-	
+
 	/* lowercase hexify that bad-boy... */
 	for (s = digest, p = hex; p < hex + 32; s++, p += 2)
 		sprintf (p, "%.2x", *s);
@@ -139,11 +143,11 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 		md5_update (&ctx, ":", 1);
 		md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
 	}
-	
+
 	/* hexify A1 */
 	md5_final (&ctx, d);
 	digest_hex (d, hex_a1);
-	
+
 	/* compute A2 */
 	md5_init (&ctx);
 	md5_update (&ctx, msg->method, strlen (msg->method));
@@ -159,7 +163,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 	/* now hexify A2 */
 	md5_final (&ctx, d);
 	digest_hex (d, hex_a2);
-	
+
 	/* compute KD */
 	md5_init (&ctx);
 	md5_update (&ctx, hex_a1, 32);
@@ -191,7 +195,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 
 	md5_update (&ctx, hex_a2, 32);
 	md5_final (&ctx, d);
-	
+
 	digest_hex (d, o);
 
 	return g_strdup (o);
@@ -222,15 +226,15 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	uri = soup_context_get_uri (auth->context);
 
 	nc = g_strdup_printf ("%.8x", digest->nc);
-	
+
 	out = g_strdup_printf (
 		"Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", %s%s%s "
 		"%s%s%s %s%s%s uri=\"%s\", response=\"%s\"",
-		uri->user, 
-		digest->realm, 
+		uri->user,
+		digest->realm,
 		digest->nonce,
 
-		digest->qop ? "cnonce=\"" : "", 
+		digest->qop ? "cnonce=\"" : "",
 		digest->qop ? digest->cnonce : "",
 		digest->qop ? "\"," : "",
 
@@ -242,7 +246,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 		digest->qop ? qop : "",
 		digest->qop ? "," : "",
 
-		uri->path, 
+		uri->path,
 		response);
 
 	g_free (nc);
@@ -275,7 +279,7 @@ decode_quoted_string (char **in)
 	if (*inptr == '"') {
 		char *intmp;
 		int skip = 0;
-		
+
                 /* first, calc length */
                 inptr++;
                 intmp = inptr;
@@ -285,10 +289,10 @@ decode_quoted_string (char **in)
                                 skip++;
                         }
                 }
-                
+
                 outlen = intmp - inptr - skip;
                 out = outptr = g_malloc (outlen + 1);
-                
+
                 while ( (c = *inptr++) && c != '"') {
                         if (c == '\\' && *inptr) {
                                 c = *inptr++;
@@ -297,9 +301,9 @@ decode_quoted_string (char **in)
                 }
                 *outptr = 0;
         }
-        
+
         *in = inptr;
-        
+
         return out;
 }
 
@@ -401,7 +405,7 @@ static guint
 decode_data_type (DataType *dtype, const char *name)
 {
         int i;
-        
+
         for (i = 0; dtype[i].name; i++) {
                 if (!g_strcasecmp (dtype[i].name, name))
 			return dtype[i].type;
@@ -410,13 +414,13 @@ decode_data_type (DataType *dtype, const char *name)
 	return 0;
 }
 
-static inline guint 
+static inline guint
 decode_qop (const char *name)
 {
 	return decode_data_type (qop_types, name);
 }
 
-static inline guint 
+static inline guint
 decode_algorithm (const char *name)
 {
 	return decode_data_type (algorithm_types, name);
@@ -490,10 +494,10 @@ soup_auth_digest_parse_header (SoupAuth *auth, const char *header)
 	tmp = copy_token_if_exists (tokens, "algorithm");
 	digest->algorithm = decode_algorithm (tmp);
 	g_free (tmp);
-	
+
 	destroy_param_hash (tokens);
 }
-	
+
 static void
 basic_free (SoupAuth *auth)
 {
@@ -542,8 +546,8 @@ soup_auth_new_digest (void)
 	auth->auth_func = digest_auth_func;
 	auth->free_func = digest_free;
 
-	bgen = g_strdup_printf ("%p:%lu:%lu", 
-			       auth, 
+	bgen = g_strdup_printf ("%p:%lu:%lu",
+			       auth,
 			       (unsigned long) getpid (),
 			       (unsigned long) time (0));
 	digest->cnonce = soup_base64_encode (bgen, strlen (bgen));

@@ -5,7 +5,7 @@
  * Authors:
  *      David Helder  (dhelder@umich.edu)
  *      Alex Graveley (alex@helixcode.com)
- * 
+ *
  * Original code compliments of David Helder's GNET Networking Library.
  *
  * Copyright (C) 2000, Helix Code, Inc.
@@ -66,7 +66,7 @@
 
 /*
  * Maintains a list of all currently valid SoupAddresses or active
- * SoupAddressState lookup requests. 
+ * SoupAddressState lookup requests.
  */
 static GHashTable *active_address_hash = NULL;
 
@@ -75,6 +75,7 @@ static GHashTable *active_address_hash = NULL;
 #include <windows.h>
 #include <winbase.h>
 #include <winuser.h>
+#include <io.h>
 
 #define socklen_t gint32
 
@@ -82,16 +83,16 @@ static GHashTable *active_address_hash = NULL;
 #define SOUP_SOCKET_IOCHANNEL_NEW(SOCKFD) g_io_channel_win32_new_stream_socket(SOCKFD)
 
 WNDCLASSEX soupWndClass;
-HWND  soup_hWnd; 
+HWND  soup_hWnd;
 guint soup_io_watch_ID;
 GIOChannel *soup_iochannel;
-	
+
 GHashTable *soup_hash;
 GHashTable *soup_select_hash; /* soup_socket_new needs its own hash */
-HANDLE soup_Mutex; 
+HANDLE soup_Mutex;
 HANDLE soup_select_Mutex;
 HANDLE soup_hostent_Mutex;
-	
+
 #define IA_NEW_MSG 100		/* soup_address_new */
 #define GET_NAME_MSG 101	/* soup_address_get_name */
 #define TCP_SOCK_MSG 102	/* soup_socket_new  */
@@ -122,7 +123,7 @@ inet_aton(const char *cp, struct in_addr *inp)
 typedef struct {
 	SoupAddressNewFn  func;
 	gpointer          data;
-} SoupAddressCbData;	
+} SoupAddressCbData;
 
 typedef struct {
 	SoupAddress       ia;
@@ -198,8 +199,8 @@ G_LOCK_DEFINE (gethostbyname);
  * sin_family, and sin_addr.
  */
 static gboolean
-soup_gethostbyname(const char*         hostname, 
-		   struct sockaddr_in* sa, 
+soup_gethostbyname(const char*         hostname,
+		   struct sockaddr_in* sa,
 		   gchar**             nicename)
 {
 	gboolean rv = FALSE;
@@ -215,11 +216,11 @@ soup_gethostbyname(const char*         hostname,
 		len = 1024;
 		buf = g_new (gchar, len);
 
-		while ((res = gethostbyname_r (hostname, 
-					       &result_buf, 
-					       buf, 
-					       len, 
-					       &result, 
+		while ((res = gethostbyname_r (hostname,
+					       &result_buf,
+					       buf,
+					       len,
+					       &result,
 					       &herr)) == ERANGE) {
 			len *= 2;
 			buf = g_renew (gchar, buf, len);
@@ -230,8 +231,8 @@ soup_gethostbyname(const char*         hostname,
 
 		if (sa) {
 			sa->sin_family = result->h_addrtype;
-			memcpy (&sa->sin_addr, 
-				result->h_addr_list [0], 
+			memcpy (&sa->sin_addr,
+				result->h_addr_list [0],
 				result->h_length);
 		}
 
@@ -255,10 +256,10 @@ soup_gethostbyname(const char*         hostname,
 		len = 1024;
 		buf = g_new (gchar, len);
 
-		while ((res = gethostbyname_r (hostname, 
-					       &result, 
-					       buf, 
-					       len, 
+		while ((res = gethostbyname_r (hostname,
+					       &result,
+					       buf,
+					       len,
 					       &herr)) == ERANGE) {
 			len *= 2;
 			buf = g_renew (gchar, buf, len);
@@ -269,8 +270,8 @@ soup_gethostbyname(const char*         hostname,
 
 		if (sa) {
 			sa->sin_family = result->h_addrtype;
-			memcpy (&sa->sin_addr, 
-				result->h_addr_list [0], 
+			memcpy (&sa->sin_addr,
+				result->h_addr_list [0],
 				result->h_length);
 		}
 
@@ -294,8 +295,8 @@ soup_gethostbyname(const char*         hostname,
 		if (res == 0) {
 			if (sa) {
 				sa->sin_family = result.h_addrtype;
-				memcpy (&sa->sin_addr, 
-					result.h_addr_list [0], 
+				memcpy (&sa->sin_addr,
+					result.h_addr_list [0],
 					result.h_length);
 			}
 
@@ -305,7 +306,7 @@ soup_gethostbyname(const char*         hostname,
 			rv = TRUE;
 		}
 	}
-#else 
+#else
 #ifdef HAVE_GETHOSTBYNAME_R_GLIB_MUTEX
 	{
 		struct hostent* he;
@@ -317,8 +318,8 @@ soup_gethostbyname(const char*         hostname,
 		if (he != NULL && he->h_addr_list [0] != NULL) {
 			if (sa) {
 				sa->sin_family = he->h_addrtype;
-				memcpy (&sa->sin_addr, 
-					he->h_addr_list [0], 
+				memcpy (&sa->sin_addr,
+					he->h_addr_list [0],
 					he->h_length);
 			}
 
@@ -339,11 +340,11 @@ soup_gethostbyname(const char*         hostname,
 		if (result != NULL) {
 			if (sa) {
 				sa->sin_family = result->h_addrtype;
-				memcpy (&sa->sin_addr, 
-					result->h_addr_list [0], 
+				memcpy (&sa->sin_addr,
+					result->h_addr_list [0],
 					result->h_length);
 			}
-	
+
 			if (nicename && result->h_name)
 				*nicename = g_strdup(result->h_name);
 
@@ -359,8 +360,8 @@ soup_gethostbyname(const char*         hostname,
 		if (he != NULL && he->h_addr_list [0] != NULL) {
 			if (sa) {
 				sa->sin_family = he->h_addrtype;
-				memcpy (&sa->sin_addr, 
-					he->h_addr_list [0], 
+				memcpy (&sa->sin_addr,
+					he->h_addr_list [0],
 					he->h_length);
 			}
 
@@ -379,7 +380,7 @@ soup_gethostbyname(const char*         hostname,
 	return rv;
 }
 
-/* 
+/*
    Thread safe gethostbyaddr (we assume that gethostbyaddr_r follows
    the same pattern as gethostbyname_r, so we don't have special
    checks for it in configure.in.
@@ -403,13 +404,13 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 		len = 1024;
 		buf = g_new (gchar, len);
 
-		while ((res = gethostbyaddr_r (addr, 
-					       length, 
-					       type, 
-					       &result_buf, 
-					       buf, 
-					       len, 
-					       &result, 
+		while ((res = gethostbyaddr_r (addr,
+					       length,
+					       type,
+					       &result_buf,
+					       buf,
+					       len,
+					       &result,
 					       &herr)) == ERANGE) {
 			len *= 2;
 			buf = g_renew (gchar, buf, len);
@@ -431,16 +432,16 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 		char* buf;
 		int herr;
 		int res;
-		
+
 		len = 1024;
 		buf = g_new (gchar, len);
 
-		while ((res = gethostbyaddr_r (addr, 
-					       length, 
-					       type, 
-					       &result, 
-					       buf, 
-					       len, 
+		while ((res = gethostbyaddr_r (addr,
+					       length,
+					       type,
+					       &result,
+					       buf,
+					       len,
 					       &herr)) == ERANGE) {
 			len *= 2;
 			buf = g_renew (gchar, buf, len);
@@ -465,7 +466,7 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 
 		if (res == 0) rv = g_strdup (result.h_name);
 	}
-#else 
+#else
 #ifdef HAVE_GETHOSTBYNAME_R_GLIB_MUTEX
 	{
 		struct hostent* he;
@@ -506,9 +507,9 @@ soup_gethostbyaddr (const char* addr, size_t length, int type)
 
 #ifndef SOUP_WIN32  /*********** Unix code ***********/
 
-static gboolean 
-soup_address_new_cb (GIOChannel* iochannel, 
-		     GIOCondition condition, 
+static gboolean
+soup_address_new_cb (GIOChannel* iochannel,
+		     GIOCondition condition,
 		     gpointer data)
 {
 	SoupAddressState* state = (SoupAddressState*) data;
@@ -550,8 +551,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
 		SoupAddressCbData *cb_data = cb_list->data;
-		(*cb_data->func) (&state->ia, 
-				  SOUP_ADDRESS_STATUS_OK, 
+		(*cb_data->func) (&state->ia,
+				  SOUP_ADDRESS_STATUS_OK,
 				  cb_data->data);
 		g_free (cb_data);
 	}
@@ -574,8 +575,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	for (cb_list = state->cb_list; cb_list; cb_list = cb_list->next) {
 		SoupAddressCbData *cb_data = cb_list->data;
-		(*cb_data->func) (NULL, 
-				  SOUP_ADDRESS_STATUS_ERROR, 
+		(*cb_data->func) (NULL,
+				  SOUP_ADDRESS_STATUS_ERROR,
 				  cb_data->data);
 	}
 
@@ -593,7 +594,7 @@ soup_address_new_cb (GIOChannel* iochannel,
  * @port: port number (0 if the port doesn't matter)
  * @func: Callback function.
  * @data: User data passed when callback function is called.
- * 
+ *
  * Create a SoupAddress from a name and port asynchronously.  Once the
  * structure is created, it will call the callback.  It may call the
  * callback before the function returns.  It will call the callback
@@ -620,9 +621,9 @@ soup_address_new_cb (GIOChannel* iochannel,
  * success or failure.
  **/
 SoupAddressNewId
-soup_address_new (const gchar* name, 
-		  const gint port, 
-		  SoupAddressNewFn func, 
+soup_address_new (const gchar* name,
+		  const gint port,
+		  SoupAddressNewFn func,
 		  gpointer data)
 {
 	pid_t pid = -1;
@@ -645,8 +646,8 @@ soup_address_new (const gchar* name,
 		sa_in = (struct sockaddr_in*) &ia->sa;
 		sa_in->sin_family = AF_INET;
 		sa_in->sin_port = g_htons(port);
-		memcpy (&sa_in->sin_addr, 
-			(char*) &inaddr, 
+		memcpy (&sa_in->sin_addr,
+			(char*) &inaddr,
 			sizeof(struct in_addr));
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
@@ -654,13 +655,13 @@ soup_address_new (const gchar* name,
 	}
 
 	if (!active_address_hash)
-		active_address_hash = g_hash_table_new (soup_str_case_hash, 
+		active_address_hash = g_hash_table_new (soup_str_case_hash,
 							soup_str_case_equal);
 	else {
 		ia = g_hash_table_lookup (active_address_hash, name);
 
 		if (ia && ia->ref_count > 0) {
-			/* 
+			/*
 			 * Existing valid request, use it.
 			 */
 			soup_address_ref (ia);
@@ -669,8 +670,8 @@ soup_address_new (const gchar* name,
 
 			return NULL;
 		} else if (ia) {
-			/* 
-			 * Lookup currently in progress. 
+			/*
+			 * Lookup currently in progress.
 			 * Add func to list of callbacks in state.
 			 */
 			SoupAddressCbData *cb_data;
@@ -680,7 +681,7 @@ soup_address_new (const gchar* name,
 			cb_data->data = data;
 
 			state = (SoupAddressState *) ia;
-			state->cb_list = g_slist_prepend (state->cb_list, 
+			state->cb_list = g_slist_prepend (state->cb_list,
 							  cb_data);
 
 			state->ia.ref_count--;
@@ -696,18 +697,18 @@ soup_address_new (const gchar* name,
 			(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 			return NULL;
 		}
-		
+
 		sa_in = (struct sockaddr_in*) &sa;
 		sa_in->sin_family = AF_INET;
 		sa_in->sin_port = g_htons (port);
-		
+
 		ia = g_new0(SoupAddress, 1);
 		ia->name = g_strdup(name);
 		ia->ref_count = 1;
 		ia->sa = *((struct sockaddr *) &sa);
-		
+
 		(*func)(ia, SOUP_ADDRESS_STATUS_OK, data);
-		
+
 		return NULL;
 	}
 
@@ -732,8 +733,8 @@ soup_address_new (const gchar* name,
 		}
 
 		/* Else there was a goofy error */
-		g_warning ("Fork error: %s (%d)\n", 
-			   g_strerror(errno), 
+		g_warning ("Fork error: %s (%d)\n",
+			   g_strerror(errno),
 			   errno);
 
 		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
@@ -781,11 +782,11 @@ soup_address_new (const gchar* name,
 		chan = g_io_channel_unix_new (pipes [0]);
 
 		/* Set up an watch to read from the pipe */
-		state->watch = 
+		state->watch =
 			g_io_add_watch(
 				chan,
 				G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-				soup_address_new_cb, 
+				soup_address_new_cb,
 				state);
 
 		g_io_channel_unref (chan);
@@ -841,8 +842,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 	struct sockaddr_in *sa_in;
 
 	if (state->errorcode) {
-		(*state->func) (&state->ia, 
-				SOUP_ADDRESS_STATUS_ERROR, 
+		(*state->func) (&state->ia,
+				SOUP_ADDRESS_STATUS_ERROR,
 				state->data);
 		g_free (state);
 		return FALSE;
@@ -855,7 +856,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	state->ia.name = g_strdup (result->h_name);
 
-	state = g_realloc (state, sizeof (SoupAddress));	
+	state = g_realloc (state, sizeof (SoupAddress));
 
 	(*state->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, state->data);
 	g_free (state);
@@ -864,9 +865,9 @@ soup_address_new_cb (GIOChannel* iochannel,
 }
 
 SoupAddressNewId
-soup_address_new (const gchar* name, 
+soup_address_new (const gchar* name,
 		  const gint port,
-		  SoupAddressNewFn func, 
+		  SoupAddressNewFn func,
 		  gpointer data)
 {
 	struct in_addr inaddr;
@@ -889,8 +890,8 @@ soup_address_new (const gchar* name,
 		sa_in = (struct sockaddr_in*) &ia->sa;
 		sa_in->sin_family = AF_INET;
 		sa_in->sin_port = g_htons (port);
-		memcpy (&sa_in->sin_addr, 
-			(char*) &inaddr, 
+		memcpy (&sa_in->sin_addr,
+			(char*) &inaddr,
 			sizeof (struct in_addr));
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
@@ -908,11 +909,11 @@ soup_address_new (const gchar* name,
 	sa_in->sin_family = AF_INET;
 	sa_in->sin_port = g_htons (port);
 
-	state->WSAhandle = (int) 
-		WSAAsyncGetHostByName (soup_hWnd, 
-				       IA_NEW_MSG, 
-				       name, 
-				       state->hostentBuffer, 
+	state->WSAhandle = (int)
+		WSAAsyncGetHostByName (soup_hWnd,
+				       IA_NEW_MSG,
+				       name,
+				       state->hostentBuffer,
 				       sizeof (state->hostentBuffer));
 
 	if (!state->WSAhandle) {
@@ -923,8 +924,8 @@ soup_address_new (const gchar* name,
 
 	/*get a lock and insert the state into the hash */
 	WaitForSingleObject (soup_Mutex, INFINITE);
-	g_hash_table_insert (soup_hash, 
-			     (gpointer) state->WSAhandle, 
+	g_hash_table_insert (soup_hash,
+			     (gpointer) state->WSAhandle,
 			     (gpointer) state);
 	ReleaseMutex (soup_Mutex);
 
@@ -938,7 +939,6 @@ soup_address_new_cancel (SoupAddressNewId id)
 
 	g_return_if_fail(state != NULL);
 
-	soup_address_unref (state->ia);
 	WSACancelAsyncRequest ((HANDLE)state->WSAhandle);
 
 	/*get a lock and remove the hash entry */
@@ -951,8 +951,8 @@ soup_address_new_cancel (SoupAddressNewId id)
 #endif		/*********** End Windows code ***********/
 
 static void
-soup_address_new_sync_cb (SoupAddress *addr, 
-			  SoupAddressStatus  status, 
+soup_address_new_sync_cb (SoupAddress *addr,
+			  SoupAddressStatus  status,
 			  gpointer           user_data)
 {
 	SoupAddress **ret = user_data;
@@ -962,7 +962,7 @@ soup_address_new_sync_cb (SoupAddress *addr,
 SoupAddress *
 soup_address_new_sync (const gchar *name, const gint port)
 {
-	SoupAddress *ret = (SoupAddress *) 0xdeadbeef; 
+	SoupAddress *ret = (SoupAddress *) 0xdeadbeef;
 
 	soup_address_new (name, port, soup_address_new_sync_cb, &ret);
 
@@ -1016,9 +1016,9 @@ soup_address_unref (SoupAddress* ia)
 
 #ifndef SOUP_WIN32  /*********** Unix code ***********/
 
-static gboolean 
-soup_address_get_name_cb (GIOChannel* iochannel, 
-			  GIOCondition condition, 
+static gboolean
+soup_address_get_name_cb (GIOChannel* iochannel,
+			  GIOCondition condition,
 			  gpointer data)
 {
 	SoupAddressReverseState* state;
@@ -1056,9 +1056,9 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 			g_source_remove (state->watch);
 
 			/* Call back */
-			(*state->func) (state->ia, 
-					SOUP_ADDRESS_STATUS_OK, 
-					name, 
+			(*state->func) (state->ia,
+					SOUP_ADDRESS_STATUS_OK,
+					name,
 					state->data);
 
 			close (state->fd);
@@ -1072,9 +1072,9 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 	g_source_remove (state->watch);
 
 	/* Call back */
-	(*state->func) (state->ia, 
-			SOUP_ADDRESS_STATUS_ERROR, 
-			NULL, 
+	(*state->func) (state->ia,
+			SOUP_ADDRESS_STATUS_ERROR,
+			NULL,
 			state->data);
 	soup_address_get_name_cancel (state);
 	return FALSE;
@@ -1100,7 +1100,7 @@ soup_address_get_name_cb (GIOChannel* iochannel,
  * immediate success or failure.
  **/
 SoupAddressGetNameId
-soup_address_get_name (SoupAddress*         ia, 
+soup_address_get_name (SoupAddress*         ia,
 		       SoupAddressGetNameFn func,
 		       gpointer             data)
 {
@@ -1137,8 +1137,8 @@ soup_address_get_name (SoupAddress*         ia,
 		}
 
 		/* Else there was a goofy error */
-		g_warning ("Fork error: %s (%d)\n", 
-			   g_strerror(errno), 
+		g_warning ("Fork error: %s (%d)\n",
+			   g_strerror(errno),
 			   errno);
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
@@ -1148,15 +1148,15 @@ soup_address_get_name (SoupAddress*         ia,
 		/* Write the name to the pipe.  If we didn't get a name,
 		   we just write the canonical name. */
 		name = soup_gethostbyaddr (
-			    (char*) &((struct sockaddr_in*)&ia->sa)->sin_addr, 
-			    sizeof (struct in_addr), 
+			    (char*) &((struct sockaddr_in*)&ia->sa)->sin_addr,
+			    sizeof (struct in_addr),
 			    AF_INET);
 
 		if (name) {
 			guint lenint = strlen(name);
 
 			if (lenint > 255) {
-				g_warning ("Truncating domain name: %s\n", 
+				g_warning ("Truncating domain name: %s\n",
 					   name);
 				name [256] = '\0';
 				lenint = 255;
@@ -1175,12 +1175,12 @@ soup_address_get_name (SoupAddress*         ia,
 			guchar* p;
 			p = (guchar*) &(SOUP_SOCKADDR_IN (ia->sa).sin_addr);
 
-			g_snprintf(buffer, 
-				   sizeof (buffer), 
-				   "%d.%d.%d.%d", 
-				   p [0], 
-				   p [1], 
-				   p [2], 
+			g_snprintf(buffer,
+				   sizeof (buffer),
+				   "%d.%d.%d.%d",
+				   p [0],
+				   p [1],
+				   p [2],
 				   p [3]);
 			len = strlen (buffer);
 
@@ -1205,10 +1205,10 @@ soup_address_get_name (SoupAddress*         ia,
 		state->fd = pipes [0];
 
 		/* Add a watch */
-		state->watch = 
+		state->watch =
 			g_io_add_watch(g_io_channel_unix_new (pipes [0]),
 				       G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
-				       soup_address_get_name_cb, 
+				       soup_address_get_name_cb,
 				       state);
 		return state;
 	}
@@ -1254,9 +1254,9 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 	result = (struct hostent*) state->hostentBuffer;
 
 	if (state->errorcode) {
-		(*state->func) (state->ia, 
-				SOUP_ADDRESS_STATUS_ERROR, 
-				NULL, 
+		(*state->func) (state->ia,
+				SOUP_ADDRESS_STATUS_ERROR,
+				NULL,
 				state->data);
 		return FALSE;
 	}
@@ -1265,9 +1265,9 @@ soup_address_get_name_cb (GIOChannel* iochannel,
 	name = NULL;
 	name = g_strdup (state->ia->name);
 
-	(*state->func) (state->ia, 
-			SOUP_ADDRESS_STATUS_OK, 
-			name, 
+	(*state->func) (state->ia,
+			SOUP_ADDRESS_STATUS_OK,
+			name,
 			state->data);
 
 	g_free(state);
@@ -1287,9 +1287,9 @@ soup_address_get_name (SoupAddress* ia,
 
 	/* If we already know the name, just copy that */
 	if (ia->name != NULL) {
-		(func) (ia, 
-			SOUP_ADDRESS_STATUS_OK, 
-			g_strdup (ia->name), 
+		(func) (ia,
+			SOUP_ADDRESS_STATUS_OK,
+			g_strdup (ia->name),
 			data);
 	}
 
@@ -1300,8 +1300,8 @@ soup_address_get_name (SoupAddress* ia,
 	state->data = data;
 
 	sa_in = (struct sockaddr_in*) &ia->sa;
-	
-	state->WSAhandle = (int) 
+
+	state->WSAhandle = (int)
 		WSAAsyncGetHostByAddr (soup_hWnd, GET_NAME_MSG,
 				       (const char*) &sa_in->sin_addr,
 				       (int) (sizeof (&sa_in->sin_addr)),
@@ -1314,11 +1314,11 @@ soup_address_get_name (SoupAddress* ia,
 		(func) (ia, SOUP_ADDRESS_STATUS_ERROR, NULL, data);
 		return NULL;
 	}
-	
+
 	/*get a lock and insert the state into the hash */
 	WaitForSingleObject (soup_Mutex, INFINITE);
-	g_hash_table_insert (soup_hash, 
-			     (gpointer) state->WSAhandle, 
+	g_hash_table_insert (soup_hash,
+			     (gpointer) state->WSAhandle,
 			     (gpointer) state);
 	ReleaseMutex (soup_Mutex);
 
@@ -1347,8 +1347,8 @@ soup_address_get_name_cancel (SoupAddressGetNameId id)
 #endif		/*********** End Windows code ***********/
 
 static void
-soup_address_get_name_sync_cb (SoupAddress       *addr, 
-			       SoupAddressStatus  status, 
+soup_address_get_name_sync_cb (SoupAddress       *addr,
+			       SoupAddressStatus  status,
 			       const char        *name,
 			       gpointer           user_data)
 {
@@ -1359,7 +1359,7 @@ soup_address_get_name_sync_cb (SoupAddress       *addr,
 const gchar *
 soup_address_get_name_sync (SoupAddress *addr)
 {
-	const char *ret = (const char *) 0xdeadbeef; 
+	const char *ret = (const char *) 0xdeadbeef;
 
 	soup_address_get_name (addr, soup_address_get_name_sync_cb, &ret);
 
@@ -1381,22 +1381,22 @@ soup_address_get_name_sync (SoupAddress *addr)
  * Returns: NULL if there was an error.  The caller is responsible
  * for deleting the returned string.
  **/
-gchar* 
+gchar*
 soup_address_get_canonical_name (SoupAddress* ia)
 {
 	gchar buffer [INET_ADDRSTRLEN];	/* defined in netinet/in.h */
 	guchar* p = (guchar*) &(SOUP_SOCKADDR_IN(ia->sa).sin_addr);
-  
+
 	g_return_val_if_fail (ia != NULL, NULL);
 
-	g_snprintf(buffer, 
-		   sizeof (buffer), 
-		   "%d.%d.%d.%d", 
-		   p [0], 
-		   p [1], 
-		   p [2], 
+	g_snprintf(buffer,
+		   sizeof (buffer),
+		   "%d.%d.%d.%d",
+		   p [0],
+		   p [1],
+		   p [2],
 		   p [3]);
-  
+
 	return g_strdup (buffer);
 }
 
@@ -1438,7 +1438,7 @@ soup_address_set_port (const SoupAddress* ia, guint port)
  *
  * Returns: hash value.
  **/
-guint 
+guint
 soup_address_hash (const gpointer p)
 {
 	const SoupAddress* ia;
@@ -1461,11 +1461,11 @@ soup_address_hash (const gpointer p)
  * @p1: Pointer to first #SoupAddress.
  * @p2: Pointer to second #SoupAddress.
  *
- * Compare two #SoupAddress's.  
+ * Compare two #SoupAddress's.
  *
  * Returns: 1 if they are the same; 0 otherwise.
  **/
-gint 
+gint
 soup_address_equal (const gpointer p1, const gpointer p2)
 {
 	const SoupAddress* ia1 = (const SoupAddress*) p1;
@@ -1489,7 +1489,7 @@ soup_address_equal (const gpointer p1, const gpointer p2)
  *
  * Returns: 1 if they are the same; 0 otherwise.
  **/
-gint 
+gint
 soup_address_noport_equal (const gpointer p1, const gpointer p2)
 {
 	const SoupAddress* ia1 = (const SoupAddress*) p1;
@@ -1506,7 +1506,7 @@ soup_address_noport_equal (const gpointer p1, const gpointer p2)
 
 /**
  * soup_address_gethostname:
- * 
+ *
  * Get the primary host's name.
  *
  * Returns: the name of the host; NULL if there was an error.  The
@@ -1547,13 +1547,13 @@ soup_address_gethostname (void)
 
 /**
  * soup_address_gethostaddr:
- * 
+ *
  * Get the primary host's #SoupAddress.
  *
  * Returns: the #SoupAddress of the host; NULL if there was an error.
  * The caller is responsible for deleting the returned #SoupAddress.
  **/
-SoupAddress * 
+SoupAddress *
 soup_address_gethostaddr (void)
 {
 	gchar* name;
@@ -1577,41 +1577,41 @@ soup_address_gethostaddr (void)
 }
 
 
-static void 
-soup_socket_connect_tcp_cb (SoupSocket* socket, 
-			    SoupSocketConnectStatus status, 
+static void
+soup_socket_connect_tcp_cb (SoupSocket* socket,
+			    SoupSocketConnectStatus status,
 			    gpointer data)
 {
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_SOCKET_NEW_STATUS_OK)
-		(*state->func) (socket, 
-				SOUP_SOCKET_CONNECT_ERROR_NONE, 
+		(*state->func) (socket,
+				SOUP_SOCKET_CONNECT_ERROR_NONE,
 				state->data);
 	else
-		(*state->func) (NULL, 
-				SOUP_SOCKET_CONNECT_ERROR_NETWORK, 
+		(*state->func) (NULL,
+				SOUP_SOCKET_CONNECT_ERROR_NETWORK,
 				state->data);
 
 	g_free(state);
 }
 
 static void
-soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr, 
-				 SoupAddressStatus status, 
+soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
+				 SoupAddressStatus status,
 				 gpointer data)
 {
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
 		state->inetaddr_id = NULL;
-		state->tcp_id = soup_socket_new (inetaddr, 
-						 soup_socket_connect_tcp_cb, 
+		state->tcp_id = soup_socket_new (inetaddr,
+						 soup_socket_connect_tcp_cb,
 						 state);
 		soup_address_unref (inetaddr);
 	} else {
-		(*state->func) (NULL, 
-				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, 
+		(*state->func) (NULL,
+				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE,
 				state->data);
 		g_free(state);
 	}
@@ -1636,9 +1636,9 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
  * failure.
  **/
 SoupSocketConnectId
-soup_socket_connect (const gchar*        hostname, 
-		     const gint          port, 
-		     SoupSocketConnectFn func, 
+soup_socket_connect (const gchar*        hostname,
+		     const gint          port,
+		     SoupSocketConnectFn func,
 		     gpointer            data)
 {
 	SoupSocketConnectState* state;
@@ -1651,9 +1651,9 @@ soup_socket_connect (const gchar*        hostname,
 	state->func = func;
 	state->data = data;
 
-	id = soup_address_new (hostname, 
-			       port,  
-			       soup_socket_connect_inetaddr_cb, 
+	id = soup_address_new (hostname,
+			       port,
+			       soup_socket_connect_inetaddr_cb,
 			       state);
 
 	/* Note that soup_address_new can fail immediately and call
@@ -1690,8 +1690,8 @@ soup_socket_connect_cancel (SoupSocketConnectId id)
 }
 
 static void
-soup_socket_connect_sync_cb (SoupSocket              *socket, 
-			     SoupSocketConnectStatus  status, 
+soup_socket_connect_sync_cb (SoupSocket              *socket,
+			     SoupSocketConnectStatus  status,
 			     gpointer                 data)
 {
 	SoupSocket **ret = data;
@@ -1699,10 +1699,10 @@ soup_socket_connect_sync_cb (SoupSocket              *socket,
 }
 
 SoupSocket *
-soup_socket_connect_sync (const gchar *name, 
+soup_socket_connect_sync (const gchar *name,
 			  const gint   port)
 {
-	SoupSocket *ret = (SoupSocket *) 0xdeadbeef; 
+	SoupSocket *ret = (SoupSocket *) 0xdeadbeef;
 
 	soup_socket_connect (name, port, soup_socket_connect_sync_cb, &ret);
 
@@ -1717,9 +1717,9 @@ soup_socket_connect_sync (const gchar *name,
 
 #ifndef SOUP_WIN32  /*********** Unix code ***********/
 
-static gboolean 
-soup_socket_new_cb (GIOChannel* iochannel, 
-		    GIOCondition condition, 
+static gboolean
+soup_socket_new_cb (GIOChannel* iochannel,
+		    GIOCondition condition,
 		    gpointer data)
 {
 	SoupSocketState* state = (SoupSocketState*) data;
@@ -1733,15 +1733,15 @@ soup_socket_new_cb (GIOChannel* iochannel,
 	if (condition & ~(G_IO_IN | G_IO_OUT)) goto ERROR;
 
 	errno = 0;
-	if (getsockopt (state->sockfd, 
-			SOL_SOCKET, 
-			SO_ERROR, 
-			&error, 
+	if (getsockopt (state->sockfd,
+			SOL_SOCKET,
+			SO_ERROR,
+			&error,
 			&len) != 0) goto ERROR;
 
 	if (error) goto ERROR;
-	
-	if (fcntl (state->sockfd, F_SETFL, state->flags) != 0) 
+
+	if (fcntl (state->sockfd, F_SETFL, state->flags) != 0)
 		goto ERROR;
 
 	s = g_new0 (SoupSocket, 1);
@@ -1752,7 +1752,7 @@ soup_socket_new_cb (GIOChannel* iochannel,
 	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
 
 	g_free (state);
-	
+
 	return FALSE;
 
  ERROR:
@@ -1779,7 +1779,7 @@ soup_socket_new_cb (GIOChannel* iochannel,
  * failure.
  **/
 SoupSocketNewId
-soup_socket_new (SoupAddress      *addr, 
+soup_socket_new (SoupAddress      *addr,
 		 SoupSocketNewFn   func,
 		 gpointer          data)
 {
@@ -1831,7 +1831,7 @@ soup_socket_new (SoupAddress      *addr,
 
 		(*func) (s, SOUP_SOCKET_NEW_STATUS_OK, data);
 		return NULL;
-	} 
+	}
 
 	chan = g_io_channel_unix_new (sockfd);
 
@@ -1844,7 +1844,7 @@ soup_socket_new (SoupAddress      *addr,
 	state->flags = flags;
 	state->connect_watch = g_io_add_watch (chan,
 					       SOUP_ANY_IO_CONDITION,
-					       soup_socket_new_cb, 
+					       soup_socket_new_cb,
 					       state);
 
 	g_io_channel_unref (chan);
@@ -1882,8 +1882,8 @@ soup_socket_new_cb (GIOChannel* iochannel,
 
 	if (state->errorcode) {
 		soup_address_unref (state->addr);
-		(*state->func) (NULLL, 
-				SOUP_SOCKET_NEW_STATUS_ERROR, 
+		(*state->func) ((SoupSocket *) NULL,
+				SOUP_SOCKET_NEW_STATUS_ERROR,
 				state->data);
 		g_free (state);
 		return FALSE;
@@ -1891,7 +1891,7 @@ soup_socket_new_cb (GIOChannel* iochannel,
 
 	s = g_new0 (SoupSocket, 1);
 	s->ref_count = 1;
-	s->sockfd = sockfd;
+	s->sockfd = state->sockfd;
 	s->addr = state->addr;
 
 	(*state->func) (s, SOUP_SOCKET_NEW_STATUS_OK, state->data);
@@ -1917,7 +1917,7 @@ soup_socket_new (SoupAddress     *addr,
 		(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
 		return NULL;
 	}
-	
+
 	/* Note: WSAAsunc automatically sets the socket to noblocking mode */
 	status = WSAAsyncSelect (sockfd, soup_hWnd, TCP_SOCK_MSG, FD_CONNECT);
 
@@ -1926,13 +1926,12 @@ soup_socket_new (SoupAddress     *addr,
 		return NULL;
 	}
 
-	status = connect (s->sockfd, &s->sa, sizeof(s->sa));
+	status = connect (sockfd, &addr->sa, sizeof(addr->sa));
 	/* Returning an error is ok, unless.. */
 	if (status == SOCKET_ERROR) {
 		status = WSAGetLastError();
 		if (status != WSAEWOULDBLOCK) {
 			(func) (NULL, SOUP_SOCKET_NEW_STATUS_ERROR, data);
-			g_free (s);
 			return NULL;
 		}
 	}
@@ -1958,8 +1957,8 @@ soup_socket_new (SoupAddress     *addr,
 
 	WaitForSingleObject (soup_select_Mutex, INFINITE);
 	/*using sockfd as the key into the 'select' hash */
-	g_hash_table_insert (soup_select_hash, 
-			     (gpointer) state->socket->sockfd, 
+	g_hash_table_insert (soup_select_hash,
+			     (gpointer) state->sockfd,
 			     (gpointer) state);
 	ReleaseMutex (soup_select_Mutex);
 
@@ -1970,7 +1969,7 @@ void
 soup_socket_new_cancel (SoupSocketNewId id)
 {
 	SoupSocketState* state = (SoupSocketState*) id;
-	
+
 	/* Cancel event posting on the socket */
 	WSAAsyncSelect (state->sockfd, soup_hWnd, 0, 0);
 	soup_address_unref (state->addr);
@@ -1980,8 +1979,8 @@ soup_socket_new_cancel (SoupSocketNewId id)
 #endif		/*********** End Windows code ***********/
 
 static void
-soup_socket_new_sync_cb (SoupSocket*         socket, 
-			 SoupSocketNewStatus status, 
+soup_socket_new_sync_cb (SoupSocket*         socket,
+			 SoupSocketNewStatus status,
 			 gpointer            data)
 {
 	SoupSocket **ret = data;
@@ -1991,7 +1990,7 @@ soup_socket_new_sync_cb (SoupSocket*         socket,
 SoupSocket *
 soup_socket_new_sync (SoupAddress *addr)
 {
-	SoupSocket *ret = (SoupSocket *) 0xdeadbeef; 
+	SoupSocket *ret = (SoupSocket *) 0xdeadbeef;
 
 	soup_socket_new (addr, soup_socket_new_sync_cb, &ret);
 
@@ -2063,14 +2062,14 @@ soup_socket_unref (SoupSocket* s)
  * Returns: A #GIOChannel; NULL on failure.
  *
  **/
-GIOChannel* 
+GIOChannel*
 soup_socket_get_iochannel (SoupSocket* socket)
 {
 	g_return_val_if_fail (socket != NULL, NULL);
 
 	if (socket->iochannel == NULL)
 		socket->iochannel = SOUP_SOCKET_IOCHANNEL_NEW(socket->sockfd);
-  
+
 	g_io_channel_ref (socket->iochannel);
 
 	return socket->iochannel;
@@ -2089,7 +2088,7 @@ soup_socket_get_iochannel (SoupSocket* socket)
  *
  * Returns: #SoupAddress of socket; NULL on failure.
  **/
-SoupAddress * 
+SoupAddress *
 soup_socket_get_address (const SoupSocket* socket)
 {
 	g_return_val_if_fail (socket != NULL, NULL);
@@ -2127,7 +2126,7 @@ soup_socket_get_port(const SoupSocket* socket)
  *
  * Returns: a new #SoupSocket, or NULL if there was a failure.
  **/
-SoupSocket * 
+SoupSocket *
 soup_socket_server_new (const gint port)
 {
 	SoupSocket* s;
@@ -2160,10 +2159,10 @@ soup_socket_server_new (const gint port)
 		gint flags;
 
 		/* Set REUSEADDR so we can reuse the port */
-		if (setsockopt (s->sockfd, 
-				SOL_SOCKET, 
-				SO_REUSEADDR, 
-				&on, 
+		if (setsockopt (s->sockfd,
+				SOL_SOCKET,
+				SO_REUSEADDR,
+				&on,
 				sizeof (on)) != 0)
 			g_warning("Can't set reuse on tcp socket\n");
 
@@ -2178,19 +2177,20 @@ soup_socket_server_new (const gint port)
 #endif
 
 	/* Bind */
-	if (bind (s->sockfd, &s->addr->sa, sizeof (s->addr->sa)) != 0) 
-		goto ERROR;
+	if (bind (s->sockfd, &s->addr->sa, sizeof (s->addr->sa)) != 0)
+		goto BIND_ERROR;
 
 	/* Get the socket name - don't care if it fails */
 	socklen = sizeof (s->addr->sa);
 	getsockname (s->sockfd, &s->addr->sa, &socklen);
 
 	/* Listen */
-	if (listen (s->sockfd, 10) != 0) goto ERROR;
+	if (listen (s->sockfd, 10) != 0) goto LISTEN_ERROR;
 
 	return s;
 
- ERROR:
+ BIND_ERROR:
+ LISTEN_ERROR:
 	close (s->sockfd);
 	g_free (s->addr);
 	g_free (s);
@@ -2212,7 +2212,7 @@ soup_socket_server_new (const gint port)
  * Returns: a new #SoupSocket if there is another connect, or NULL if
  * there's an error.
  **/
-SoupSocket * 
+SoupSocket *
 soup_socket_server_accept (SoupSocket *socket)
 {
 	gint sockfd;
@@ -2235,10 +2235,10 @@ soup_socket_server_accept (SoupSocket *socket)
 	n = sizeof(s->addr->sa);
 
 	if ((sockfd = accept (socket->sockfd, &sa, &n)) == -1) {
-		if (errno == EWOULDBLOCK || 
+		if (errno == EWOULDBLOCK ||
 		    errno == ECONNABORTED ||
 #ifdef EPROTO		/* OpenBSD does not have EPROTO */
-		    errno == EPROTO || 
+		    errno == EPROTO ||
 #endif
 		    errno == EINTR)
 			goto try_again;
@@ -2253,7 +2253,7 @@ soup_socket_server_accept (SoupSocket *socket)
 	s->addr = g_new0 (SoupAddress, 1);
 	s->addr->ref_count = 1;
 	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
-	
+
 	return s;
 }
 
@@ -2271,7 +2271,7 @@ soup_socket_server_accept (SoupSocket *socket)
  * Returns a new SoupSocket if there is another connect, or NULL
  * otherwise.
  **/
-SoupSocket * 
+SoupSocket *
 soup_socket_server_try_accept (SoupSocket *socket)
 {
 	gint sockfd;
@@ -2300,7 +2300,7 @@ soup_socket_server_try_accept (SoupSocket *socket)
 		   block. */
 		return NULL;
 	}
-  
+
 	s = g_new0 (SoupSocket, 1);
 	s->ref_count = 1;
 	s->sockfd = sockfd;
@@ -2308,7 +2308,7 @@ soup_socket_server_try_accept (SoupSocket *socket)
 	s->addr = g_new0 (SoupAddress, 1);
 	s->addr->ref_count = 1;
 	memcpy (&s->addr->sa, &sa, sizeof (s->addr->sa));
-	
+
 	return s;
 }
 
@@ -2366,7 +2366,7 @@ soup_socket_server_try_accept (SoupSocket *socket)
 	fd_set fdset;
 	SoupSocket* s;
 	u_long arg;
-  
+
 	g_return_val_if_fail (socket != NULL, NULL);
 	FD_ZERO (&fdset);
 	FD_SET ((unsigned)socket->sockfd, &fdset);
@@ -2400,9 +2400,9 @@ soup_socket_server_try_accept (SoupSocket *socket)
 #endif		/*********** End Windows code ***********/
 
 #ifdef SOUP_WIN32  /*********** Windows code ***********/
-int 
-soup_MainCallBack (GIOChannel   *iochannel, 
-		   GIOCondition  condition, 
+int
+soup_MainCallBack (GIOChannel   *iochannel,
+		   GIOCondition  condition,
 		   void         *nodata)
 {
 	MSG msg;
@@ -2414,17 +2414,17 @@ soup_MainCallBack (GIOChannel   *iochannel,
 
 	/*Take the msg off the message queue */
 	GetMessage (&msg, NULL, 0, 0);
- 
+
 	switch (msg.message) {
 	case IA_NEW_MSG:
 		WaitForSingleObject (soup_Mutex, INFINITE);
 		data = g_hash_table_lookup (soup_hash, (gpointer) msg.wParam);
 		g_hash_table_remove (soup_hash, (gpointer) msg.wParam);
 		ReleaseMutex (soup_Mutex);
-		
+
 		IAstate = (SoupAddressState*) data;
 		/* NULL if OK */
-		IAstate->errorcode = WSAGETASYNCERROR(msg.lParam); 
+		IAstate->errorcode = WSAGETASYNCERROR(msg.lParam);
 
 		/* Now call the callback function */
 		soup_address_new_cb (NULL, G_IO_IN, (gpointer) IAstate);
@@ -2438,25 +2438,25 @@ soup_MainCallBack (GIOChannel   *iochannel,
 
 		IARstate = (SoupAddressReverseState*) data;
 		/* NULL if OK */
-		IARstate->errorcode = WSAGETASYNCERROR(msg.lParam); 
-			
+		IARstate->errorcode = WSAGETASYNCERROR(msg.lParam);
+
 		/* Now call the callback function */
-		soup_address_get_name_cb (NULL, 
-					  G_IO_IN, 
+		soup_address_get_name_cb (NULL,
+					  G_IO_IN,
 					  (gpointer) IARstate);
 		break;
 	case TCP_SOCK_MSG:
 		WaitForSingleObject (soup_select_Mutex, INFINITE);
-		data = g_hash_table_lookup (soup_select_hash, 
+		data = g_hash_table_lookup (soup_select_hash,
 					    (gpointer) msg.wParam);
 		g_hash_table_remove (soup_select_hash, (gpointer) msg.wParam);
 		ReleaseMutex (soup_select_Mutex);
-			
+
 		TCPNEWstate = (SoupSocketState*) data;
 		TCPNEWstate->errorcode = WSAGETSELECTERROR (msg.lParam);
-		soup_tcp_socket_new_cb (NULL, 
-					G_IO_IN, 
-					(gpointer) TCPNEWstate);
+		soup_socket_new_cb (NULL,
+				    G_IO_IN,
+				    (gpointer) TCPNEWstate);
 		break;
 	}
 
@@ -2469,20 +2469,20 @@ SoupWndProc (HWND hwnd,        /* handle to window */
 	     WPARAM wParam,    /* first message parameter */
 	     LPARAM lParam)    /* second message parameter */
 {
-	switch (uMsg) { 
+	switch (uMsg) {
         case WM_CREATE:  /* Initialize the window. */
-		return 0; 
-        case WM_PAINT:   /* Paint the window's client area. */ 
-		return 0; 
-        case WM_SIZE:    /* Set the size and position of the window. */ 
-		return 0; 
+		return 0;
+        case WM_PAINT:   /* Paint the window's client area. */
+		return 0;
+        case WM_SIZE:    /* Set the size and position of the window. */
+		return 0;
         case WM_DESTROY: /* Clean up window-specific data objects. */
-		return 0; 
- 
-        default: 
-		return DefWindowProc (hwnd, uMsg, wParam, lParam); 
-	} 
-} 
+		return 0;
+
+        default:
+		return DefWindowProc (hwnd, uMsg, wParam, lParam);
+	}
+}
 
 gboolean
 RemoveHashEntry(gpointer key, gpointer value, gpointer user_data)
@@ -2491,7 +2491,7 @@ RemoveHashEntry(gpointer key, gpointer value, gpointer user_data)
 	return TRUE;
 }
 
-BOOL WINAPI 
+BOOL WINAPI
 DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 	 DWORD fdwReason,     /* reason for calling functionm */
 	 LPVOID lpvReserved   /* reserved */)
@@ -2506,83 +2506,83 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		/* Do any required initialization on a per application basis,
 		   return FALSE if failed */
 		wVersionRequested = MAKEWORD (2, 0);
- 
+
 		err = WSAStartup (wVersionRequested, &wsaData);
 		if (err != 0) {
 			/* Tell the user that we could not find a usable
 			   WinSock DLL.  */
 			return FALSE;
 		}
- 
+
 		/* Confirm that the WinSock DLL supports 2.0.*/
 		/* Note that if the DLL supports versions greater    */
 		/* than 2.0 in addition to 2.0, it will still return */
 		/* 2.0 in wVersion since that is the version we      */
 		/* requested.                                        */
- 
+
 		if (LOBYTE(wsaData.wVersion) != 2 ||
 		    HIBYTE(wsaData.wVersion) != 0) {
 			/* Tell the user that we could not find a usable */
 			/* WinSock DLL.                                  */
 			WSACleanup ();
-			return FALSE; 
+			return FALSE;
 		}
- 
+
 		/* The WinSock DLL is acceptable. Proceed. */
-		
+
 		/* Setup and register a windows class that we use for out
                    GIOchannel */
-		soupWndClass.cbSize = sizeof (WNDCLASSEX); 
-		soupWndClass.style = CS_SAVEBITS; 
-		soupWndClass.lpfnWndProc = (WNDPROC) SoupWndProc; 
-		soupWndClass.cbClsExtra = 0; 
-		soupWndClass.cbWndExtra = 0; 
-		soupWndClass.hInstance = hinstDLL; 
-		soupWndClass.hIcon = NULL; 
-		soupWndClass.hCursor = NULL; 
-		soupWndClass.hbrBackground = NULL; 
-		soupWndClass.lpszMenuName = NULL; 
-		soupWndClass.lpszClassName = "Soup"; 
-		soupWndClass.hIconSm = NULL; 
+		soupWndClass.cbSize = sizeof (WNDCLASSEX);
+		soupWndClass.style = CS_SAVEBITS;
+		soupWndClass.lpfnWndProc = (WNDPROC) SoupWndProc;
+		soupWndClass.cbClsExtra = 0;
+		soupWndClass.cbWndExtra = 0;
+		soupWndClass.hInstance = hinstDLL;
+		soupWndClass.hIcon = NULL;
+		soupWndClass.hCursor = NULL;
+		soupWndClass.hbrBackground = NULL;
+		soupWndClass.lpszMenuName = NULL;
+		soupWndClass.lpszClassName = "Soup";
+		soupWndClass.hIconSm = NULL;
 
 		if (!RegisterClassEx (&soupWndClass)) return FALSE;
 
 		soup_hWnd  = CreateWindowEx (0,
-					     "Soup", 
+					     "Soup",
 					     "none",
-					     WS_OVERLAPPEDWINDOW, 
-					     CW_USEDEFAULT, 
-					     CW_USEDEFAULT, 
-					     CW_USEDEFAULT, 
-					     CW_USEDEFAULT, 
-					     (HWND) NULL, 
-					     (HMENU) NULL, 
-					     hinstDLL, 
+					     WS_OVERLAPPEDWINDOW,
+					     CW_USEDEFAULT,
+					     CW_USEDEFAULT,
+					     CW_USEDEFAULT,
+					     CW_USEDEFAULT,
+					     (HWND) NULL,
+					     (HMENU) NULL,
+					     hinstDLL,
 					     (LPVOID) NULL);
 
 		if (!soup_hWnd) return FALSE;
 
-		soup_iochannel = 
+		soup_iochannel =
 			g_io_channel_win32_new_messages (
 				(unsigned int) soup_hWnd);
 
 		/* Add a watch */
-		soup_io_watch_ID = 
+		soup_io_watch_ID =
 			g_io_add_watch (soup_iochannel,
 					G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
-					soup_MainCallBack, 
+					soup_MainCallBack,
 					NULL);
 
 		soup_hash = g_hash_table_new (NULL, NULL);
 		soup_select_hash = g_hash_table_new (NULL, NULL);
-	
+
 
 		soup_Mutex = CreateMutex (NULL, FALSE, "soup_Mutex");
 
 		if (soup_Mutex == NULL) return FALSE;
 
-		soup_select_Mutex = CreateMutex (NULL, 
-						 FALSE, 
+		soup_select_Mutex = CreateMutex (NULL,
+						 FALSE,
 						 "soup_select_Mutex");
 
 		if (soup_select_Mutex == NULL) return FALSE;
@@ -2608,8 +2608,8 @@ DllMain (HINSTANCE hinstDLL,  /* handle to DLL module */
 		WaitForSingleObject (soup_Mutex, INFINITE);
 		WaitForSingleObject (soup_select_Mutex, INFINITE);
 		g_hash_table_foreach_remove (soup_hash, RemoveHashEntry, NULL);
-		g_hash_table_foreach_remove (soup_select_hash, 
-					     RemoveHashEntry, 
+		g_hash_table_foreach_remove (soup_select_hash,
+					     RemoveHashEntry,
 					     NULL);
 		g_hash_table_destroy (soup_select_hash);
 		g_hash_table_destroy (soup_hash);

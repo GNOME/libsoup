@@ -1,16 +1,16 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* soup-uri.c : utility functions to parse URLs */
 
-/* 
- * Authors : 
+/*
+ * Authors :
  *  Bertrand Guiheneuf <bertrand@helixcode.com>
  *  Dan Winship <danw@helixcode.com>
  *  Alex Graveley <alex@ximian.com>
  *
  * Copyright 1999, 2000 Helix Code, Inc. (http://www.helixcode.com)
  *
- * This program is free software; you can redistribute it and/or 
- * modify it under the terms of the GNU General Public License as 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2 of the
  * License, or (at your option) any later version.
  *
@@ -27,7 +27,7 @@
 
 
 
-/* 
+/*
  * Here we deal with URLs following the general scheme:
  *   protocol://user;AUTH=mech:password@host:port/name
  * where name is a path-like string (ie dir1/dir2/....) See RFC 1738
@@ -50,7 +50,7 @@ typedef struct {
 	SoupProtocol  proto;
 	gchar        *str;
 	gint          port;
-} SoupKnownProtocols; 
+} SoupKnownProtocols;
 
 SoupKnownProtocols known_protocols [] = {
 	{ SOUP_PROTOCOL_HTTP,   "http://",   80 },
@@ -107,19 +107,19 @@ soup_uri_get_default_port (SoupProtocol proto)
 /**
  * soup_uri_new: create a SoupUri object from a string
  * @uri_string: The string containing the URL to scan
- * 
+ *
  * This routine takes a gchar and parses it as a
  * URL of the form:
  *   protocol://user;AUTH=mech:password@host:port/path?querystring
  * There is no test on the values. For example,
  * "port" can be a string, not only a number!
  * The SoupUri structure fields are filled with
- * the scan results. When a member of the 
+ * the scan results. When a member of the
  * general URL can not be found, the corresponding
  * SoupUri member is NULL.
  * Fields filled in the SoupUri structure are allocated
- * and url_string is not modified. 
- * 
+ * and url_string is not modified.
+ *
  * Return value: a SoupUri structure containing the URL items.
  **/
 SoupUri *
@@ -156,8 +156,8 @@ soup_uri_new (const gchar* uri_string)
 		}
 
 		semi = strchr(uri_string, ';');
-		if (semi && semi < colon && !strncasecmp (semi, ";auth=", 6))
-			g_uri->authmech = g_strndup (semi + 6, 
+		if (semi && semi < colon && !g_strncasecmp (semi, ";auth=", 6))
+			g_uri->authmech = g_strndup (semi + 6,
 						     colon - semi - 6);
 		else {
 			g_uri->authmech = NULL;
@@ -223,7 +223,7 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 {
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	if (uri->port != -1 && 
+	if (uri->port != -1 &&
 	    uri->port != soup_uri_get_default_port (uri->protocol))
 		return g_strdup_printf(
 			"%s%s%s%s%s%s%s%s:%d%s%s%s",

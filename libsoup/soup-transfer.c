@@ -27,8 +27,8 @@ typedef struct {
 	guint                  read_tag;
 	guint                  err_tag;
 
-	/* 
-	 * If TRUE, a callback has been issed which references recv_buf.  
+	/*
+	 * If TRUE, a callback has been issed which references recv_buf.
 	 * If the tranfer is cancelled before a reference exists, the contents
 	 * of recv_buf are free'd.
 	 */
@@ -68,7 +68,7 @@ typedef struct {
 } SoupWriter;
 
 #define source_remove(_src) \
-        ({ if ((_src)) { g_source_remove ((_src)); (_src) = 0; }})
+        { if ((_src)) { g_source_remove ((_src)); (_src) = 0; }}
 
 void
 soup_transfer_read_cancel (guint tag)
@@ -83,9 +83,9 @@ soup_transfer_read_cancel (guint tag)
 	g_free (r);
 }
 
-static gboolean 
-soup_transfer_read_error_cb (GIOChannel* iochannel, 
-			     GIOCondition condition, 
+static gboolean
+soup_transfer_read_error_cb (GIOChannel* iochannel,
+			     GIOCondition condition,
 			     SoupReader *r)
 {
 	gboolean body_started = r->recv_buf->len > r->header_len;
@@ -97,8 +97,8 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 	return FALSE;
 }
 
-static gboolean 
-soup_transfer_read_chunk (SoupReader *r) 
+static gboolean
+soup_transfer_read_chunk (SoupReader *r)
 {
 	guint chunk_idx = r->cur_chunk_idx;
 	gint chunk_len = r->cur_chunk_len;
@@ -111,8 +111,8 @@ soup_transfer_read_chunk (SoupReader *r)
 
 		/* remove \r\n after previous chunk body */
 		if (chunk_len) {
-			g_memmove (i, 
-				   i + 2, 
+			g_memmove (i,
+				   i + 2,
 				   arr->len - chunk_idx - chunk_len - 2);
 			g_byte_array_set_size (arr, arr->len - 2);
 		}
@@ -121,9 +121,9 @@ soup_transfer_read_chunk (SoupReader *r)
 		while ((tolower (*i) >= 'a' && tolower (*i) <= 'f') ||
 		       (*i >= '0' && *i <= '9'))
 			len++, i++;
-		
+
 		for (i -= len, j = len - 1; j + 1; i++, j--)
-			new_len += (*i > '9') ? 
+			new_len += (*i > '9') ?
 				(tolower (*i) - 0x57) << (4*j) :
 				(tolower (*i) - 0x30) << (4*j);
 
@@ -140,7 +140,7 @@ soup_transfer_read_chunk (SoupReader *r)
 		}
 
 		/* trailing \r\n after chunk length */
-		g_memmove (&arr->data [chunk_idx], 
+		g_memmove (&arr->data [chunk_idx],
 			   &arr->data [chunk_idx + len + 2],
 			   arr->len - chunk_idx - len - 2);
 		g_byte_array_set_size (arr, arr->len - len - 2);
@@ -155,9 +155,9 @@ soup_transfer_read_chunk (SoupReader *r)
 	return FALSE;
 }
 
-static gboolean 
-soup_transfer_read_cb (GIOChannel   *iochannel, 
-		       GIOCondition  condition, 
+static gboolean
+soup_transfer_read_cb (GIOChannel   *iochannel,
+		       GIOCondition  condition,
 		       SoupReader   *r)
 {
 	gchar read_buf [RESPONSE_BLOCK_SIZE];
@@ -186,12 +186,12 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		g_byte_array_set_size (r->recv_buf, 0);
 	}
 
-	if (bytes_read) 
+	if (bytes_read)
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
 
 	if (!r->header_len) {
-		gint index = soup_substring_index (r->recv_buf->data, 
-						   r->recv_buf->len, 
+		gint index = soup_substring_index (r->recv_buf->data,
+						   r->recv_buf->len,
 						   "\r\n\r\n");
 		if (index < 0) return TRUE;
 
@@ -215,8 +215,8 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 			else r->content_length = len;
 		}
 
-		g_memmove (r->recv_buf->data, 
-			   &r->recv_buf->data [index], 
+		g_memmove (r->recv_buf->data,
+			   &r->recv_buf->data [index],
 			   r->recv_buf->len - index);
 		g_byte_array_set_size (r->recv_buf, r->recv_buf->len - index);
 
@@ -224,11 +224,11 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	}
 
 	/* Allow the chunk parser to strip the data stream */
-	if (bytes_read == 0) 
+	if (bytes_read == 0)
 		read_done = TRUE;
-	else if (r->is_chunked) 
+	else if (r->is_chunked)
 		read_done = soup_transfer_read_chunk (r);
-	else if (r->content_length == r->recv_buf->len) 
+	else if (r->content_length == r->recv_buf->len)
 		read_done = TRUE;
 
 	/* Don't call chunk handlers if we didn't actually read anything */
@@ -291,16 +291,16 @@ soup_transfer_read (GIOChannel            *chan,
 	reader->user_data = user_data;
 	reader->recv_buf = g_byte_array_new ();
 
-	reader->read_tag = 
-		g_io_add_watch (chan, 
-				G_IO_IN, 
-				(GIOFunc) soup_transfer_read_cb, 
+	reader->read_tag =
+		g_io_add_watch (chan,
+				G_IO_IN,
+				(GIOFunc) soup_transfer_read_cb,
 				reader);
 
-	reader->err_tag = 
-		g_io_add_watch (chan, 
-				G_IO_HUP | G_IO_ERR | G_IO_NVAL, 
-				(GIOFunc) soup_transfer_read_error_cb, 
+	reader->err_tag =
+		g_io_add_watch (chan,
+				G_IO_HUP | G_IO_ERR | G_IO_NVAL,
+				(GIOFunc) soup_transfer_read_error_cb,
 				reader);
 
 	return GPOINTER_TO_INT (reader);
@@ -318,9 +318,9 @@ soup_transfer_write_cancel (guint tag)
 	g_free (w);
 }
 
-static gboolean 
-soup_transfer_write_error_cb (GIOChannel* iochannel, 
-			      GIOCondition condition, 
+static gboolean
+soup_transfer_write_error_cb (GIOChannel* iochannel,
+			      GIOCondition condition,
 			      SoupWriter *w)
 {
 	gboolean body_started = w->write_len > w->header->len;
@@ -332,9 +332,9 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 	return FALSE;
 }
 
-static gboolean 
-soup_transfer_write_cb (GIOChannel* iochannel, 
-			GIOCondition condition, 
+static gboolean
+soup_transfer_write_cb (GIOChannel* iochannel,
+			GIOCondition condition,
 			SoupWriter *w)
 {
 	guint head_len, body_len, total_len, total_written, bytes_written;
@@ -348,7 +348,9 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	total_len = head_len + body_len;
 	total_written = w->write_len;
 
+#ifdef SIGPIPE
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
+#endif
 	errno = 0;
 
  WRITE_SOME_MORE:
@@ -363,19 +365,21 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		write_len = body_len - offset;
 
 		if (!w->headers_done) {
-			if (w->headers_done_cb) 
+			if (w->headers_done_cb)
 				(*w->headers_done_cb) (w->user_data);
 			w->headers_done = TRUE;
 		}
 	}
 
-	error = g_io_channel_write (iochannel, 
-				    write_buf, 
-				    write_len, 
+	error = g_io_channel_write (iochannel,
+				    write_buf,
+				    write_len,
 				    &bytes_written);
 
 	if (error == G_IO_ERROR_AGAIN) {
+#ifdef SIGPIPE
 		signal (SIGPIPE, pipe_handler);
+#endif
 		return TRUE;
 	}
 
@@ -386,14 +390,18 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 
 	total_written = (w->write_len += bytes_written);
 
-	if (total_written != total_len) 
+	if (total_written != total_len)
 		goto WRITE_SOME_MORE;
 
 	if (w->write_done_cb) (*w->write_done_cb) (w->user_data);
 	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
 
  DONE_WRITING:
+
+#ifdef SIGPIPE
 	signal (SIGPIPE, pipe_handler);
+#endif
+
 	return FALSE;
 }
 
@@ -417,16 +425,16 @@ soup_transfer_write (GIOChannel             *chan,
 	writer->error_cb = error_cb;
 	writer->user_data = user_data;
 
-	writer->write_tag = 
-		g_io_add_watch (chan, 
-				G_IO_OUT, 
-				(GIOFunc) soup_transfer_write_cb, 
+	writer->write_tag =
+		g_io_add_watch (chan,
+				G_IO_OUT,
+				(GIOFunc) soup_transfer_write_cb,
 				writer);
 
-	writer->err_tag = 
-		g_io_add_watch (chan, 
-				G_IO_HUP | G_IO_ERR | G_IO_NVAL, 
-				(GIOFunc) soup_transfer_write_error_cb, 
+	writer->err_tag =
+		g_io_add_watch (chan,
+				G_IO_HUP | G_IO_ERR | G_IO_NVAL,
+				(GIOFunc) soup_transfer_write_error_cb,
 				writer);
 
 	return GPOINTER_TO_INT (writer);

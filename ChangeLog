@@ -1,5 +1,30 @@
 2001-07-09  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-uri.c (soup_uri_get_protocol): Use
+	g_strncasecmp.
+
+	* src/soup-core/soup-transfer.c (soup_transfer_write_cb): ifdef
+	wrap all references to SIGPIPE.
+
+	* src/soup-core/soup-ssl.c: ifdef wrap sys/wait.h and sys/socket.h. 
+	(soup_ssl_get_iochannel): Do nothing if on windows.
+
+	* src/soup-core/soup-socket.c: Various never-before compiled
+	windows cleanups.
+
+	* src/soup-core/soup-misc.c (soup_load_config): ifdef wrap
+	SYSCONFDIR souprc loading.
+
+	* src/soup-core/soup-context.c: ifdef wrap sys/socket.h
+	(soup_connection_setup_socket): Do nothing if on windows.
+
+	* src/soup-core/soup-auth.c: If on windows include <process.h> for
+	getpid().
+
+	* configure.in: Add checks for sys/sockio.h and sys/wait.h
+
+2001-07-09  Alex Graveley  <alex@ximian.com>
+
 	* build/Soup_core.dsp
 	  build/Soup_wsdl_runtime.dsp
 	  build/Soup_wsdl.dsp: Use unique Debug output directory. 
