@@ -134,10 +134,8 @@ void      soup_queue_shutdown         (void);
 
 SoupServerHandler *soup_server_get_handler (const gchar *methodname);
 
-gboolean           soup_server_authorize   (SoupMessage *msg,
-					    const gchar *username, 
-					    const gchar *password,
-					    const gchar *realm);
+gboolean           soup_server_authorize   (SoupMessage         *msg,
+					    SoupServerAuthToken *token);
 
 #ifdef __cplusplus
 }

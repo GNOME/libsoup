@@ -67,6 +67,17 @@ soup_server_register (const gchar          *methodname,
 		      SoupServerCallbackFn  cb,
 		      gpointer              user_data)
 {
+	soup_server_register_full (methodname, cb, user_data, 0, NULL, NULL);
+}
+
+void 
+soup_server_register_full (const gchar           *methodname, 
+			   SoupServerCallbackFn   cb,
+			   gpointer               user_data,
+			   gint                   auth_allow_types,
+			   SoupServerAuthorizeFn  auth_cb,
+			   gpointer               auth_user_data)
+{
 	SoupServerHandler *hand;
 
 	g_return_if_fail (methodname != NULL);
@@ -75,8 +86,11 @@ soup_server_register (const gchar          *methodname,
 	hand->methodname = g_strdup (methodname);
 	hand->cb = cb;
 	hand->user_data = user_data;
+	hand->auth_fn = auth_cb;
+	hand->auth_user_data = auth_user_data;
+	hand->auth_allowed_types = auth_allow_types;
 
-	soup_server_handlers = g_slist_prepend (soup_server_handlers, hand);
+	soup_server_handlers = g_slist_prepend (soup_server_handlers, hand);	
 }
 
 void  
@@ -117,26 +131,23 @@ soup_server_set_method_auth (gchar                 *methodname,
 }
 
 gboolean 
-soup_server_authorize (SoupMessage *msg,
-		       const gchar *username, 
-		       const gchar *password,
-		       const gchar *realm)
+soup_server_authorize (SoupMessage         *msg,
+		       SoupServerAuthToken *token)
 {
 	SoupServerHandler *hand = soup_server_get_handler (msg->action);
 
-	if (hand && hand->auth_fn)
+	if (!hand) return FALSE;
+
+	if (hand->auth_fn)
 		return (hand->auth_fn) (msg,
-					username,
-					password,
-					realm,
+					token,
 					hand->auth_user_data);
 
 	if (soup_server_global_auth) 
-		return (soup_server_global_auth) (msg,
-						  username,
-						  password,
-						  realm,
-						  soup_server_global_auth_user_data);
+		return (soup_server_global_auth) (
+				msg,
+				token,
+				soup_server_global_auth_user_data);
 
 	return TRUE;
 }
