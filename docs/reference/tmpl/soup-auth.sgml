@@ -1,0 +1,97 @@
+<!-- ##### SECTION Title ##### -->
+SoupAuth
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT SoupAuth ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_auth_new_from_header_list ##### -->
+<para>
+
+</para>
+
+@header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_get_scheme_name ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_get_realm ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_authenticate ##### -->
+<para>
+
+</para>
+
+@auth: 
+@username: 
+@password: 
+
+
+<!-- ##### FUNCTION soup_auth_is_authenticated ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_get_authorization ##### -->
+<para>
+
+</para>
+
+@auth: 
+@msg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_get_protection_space ##### -->
+<para>
+
+</para>
+
+@auth: 
+@source_uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_free_protection_space ##### -->
+<para>
+
+</para>
+
+@auth: 
+@space: 
+
+

@@ -1,0 +1,90 @@
+<!-- ##### SECTION Title ##### -->
+soup-message-private
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION soup_message_run_handlers ##### -->
+<para>
+
+</para>
+
+@msg: 
+@phase: 
+
+
+<!-- ##### FUNCTION soup_message_cleanup ##### -->
+<para>
+
+</para>
+
+@req: 
+
+
+<!-- ##### FUNCTION soup_message_cleanup_response ##### -->
+<para>
+
+</para>
+
+@req: 
+
+
+<!-- ##### USER_FUNCTION SoupMessageGetHeadersFn ##### -->
+<para>
+
+</para>
+
+@msg: 
+@headers: 
+@encoding: 
+@user_data: 
+
+
+<!-- ##### USER_FUNCTION SoupMessageParseHeadersFn ##### -->
+<para>
+
+</para>
+
+@msg: 
+@headers: 
+@header_len: 
+@encoding: 
+@content_len: 
+@user_data: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_io_client ##### -->
+<para>
+
+</para>
+
+@msg: 
+@sock: 
+@get_headers_cb: 
+@parse_headers_cb: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_message_io_server ##### -->
+<para>
+
+</para>
+
+@msg: 
+@sock: 
+@get_headers_cb: 
+@parse_headers_cb: 
+@user_data: 
+
+

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<book id="index" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <bookinfo>
+    <title>libsoup Reference Manual</title>
+  </bookinfo>
+
+  <chapter>
+    <title>libsoup</title>
+    <xi:include href="xml/soup-dns.xml"/>
+    <xi:include href="xml/soup-address.xml"/>
+    <xi:include href="xml/soup-auth.xml"/>
+    <xi:include href="xml/soup-auth-basic.xml"/>
+    <xi:include href="xml/soup-auth-digest.xml"/>
+    <xi:include href="xml/soup-connection.xml"/>
+    <xi:include href="xml/soup-connection-ntlm.xml"/>
+    <xi:include href="xml/soup-headers.xml"/>
+    <xi:include href="xml/soup-md5-utils.xml"/>
+    <xi:include href="xml/soup-message-private.xml"/>
+    <xi:include href="xml/soup-message-queue.xml"/>
+    <xi:include href="xml/soup-message.xml"/>
+    <xi:include href="xml/soup-method.xml"/>
+    <xi:include href="xml/soup-misc.xml"/>
+    <xi:include href="xml/soup-server-auth.xml"/>
+    <xi:include href="xml/soup-server-message.xml"/>
+    <xi:include href="xml/soup-server.xml"/>
+    <xi:include href="xml/soup-session.xml"/>
+    <xi:include href="xml/soup-soap-message.xml"/>
+    <xi:include href="xml/soup-socket.xml"/>
+    <xi:include href="xml/soup-ssl.xml"/>
+    <xi:include href="xml/soup-status.xml"/>
+    <xi:include href="xml/soup-uri.xml"/>
+  </chapter>
+</book>

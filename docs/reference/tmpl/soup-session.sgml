@@ -1,0 +1,107 @@
+<!-- ##### SECTION Title ##### -->
+SoupSession
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### MACRO SOUP_SESSION_PROXY_URI ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_MAX_CONNS ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_MAX_CONNS_PER_HOST ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_USE_NTLM ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_SSL_CA_FILE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION soup_session_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_new_with_options ##### -->
+<para>
+
+</para>
+
+@optname1: 
+@Varargs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_queue_message ##### -->
+<para>
+
+</para>
+
+@session: 
+@req: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_session_requeue_message ##### -->
+<para>
+
+</para>
+
+@session: 
+@req: 
+
+
+<!-- ##### FUNCTION soup_session_send_message ##### -->
+<para>
+
+</para>
+
+@session: 
+@req: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_abort ##### -->
+<para>
+
+</para>
+
+@session: 
+
+

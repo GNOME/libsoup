@@ -1,0 +1,139 @@
+<!-- ##### SECTION Title ##### -->
+SoupConnection
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### MACRO SOUP_CONNECTION_ORIGIN_URI ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_CONNECTION_PROXY_URI ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_CONNECTION_SSL_CREDENTIALS ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION soup_connection_new ##### -->
+<para>
+
+</para>
+
+@propname1: 
+@Varargs: 
+@Returns: 
+
+
+<!-- ##### USER_FUNCTION SoupConnectionCallback ##### -->
+<para>
+
+</para>
+
+@sock: 
+@status: 
+@data: 
+
+
+<!-- ##### FUNCTION soup_connection_connect_async ##### -->
+<para>
+
+</para>
+
+@conn: 
+@callback: 
+@user_data: 
+<!-- # Unused Parameters # -->
+@Param2: 
+
+
+<!-- ##### FUNCTION soup_connection_connect_sync ##### -->
+<para>
+
+</para>
+
+@conn: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_connection_disconnect ##### -->
+<para>
+
+</para>
+
+@conn: 
+
+
+<!-- ##### FUNCTION soup_connection_is_in_use ##### -->
+<para>
+
+</para>
+
+@conn: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_connection_last_used ##### -->
+<para>
+
+</para>
+
+@conn: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_connection_send_request ##### -->
+<para>
+
+</para>
+
+@conn: 
+@req: 
+
+
+<!-- ##### FUNCTION soup_connection_authenticate ##### -->
+<para>
+
+</para>
+
+@conn: 
+@msg: 
+@auth_type: 
+@auth_realm: 
+@username: 
+@password: 
+
+
+<!-- ##### FUNCTION soup_connection_reauthenticate ##### -->
+<para>
+
+</para>
+
+@conn: 
+@msg: 
+@auth_type: 
+@auth_realm: 
+@username: 
+@password: 
+
+

@@ -1,5 +1,18 @@
 2003-11-18  Dan Winship  <danw@ximian.com>
 
+	* configure.in: Replace old gtk-doc test with GTK_DOC_CHECK()
+	(AC_OUTPUT): add docs/Makefile, docs/reference/Makefile
+
+	* autogen.sh (REQUIRED_AUTOMAKE_VERSION): 1.6, for gtk-doc.make
+
+	* Makefile.am: updates for gtk-doc
+	(SUBDIRS): add back "docs"
+
+	* docs/Makefile.am (EXTRA_DIST): remove, since those old docs
+	aren't around any more
+
+	* docs/reference/*: set up gtk-doc
+
 	* libsoup/Makefile.am (INCLUDES): Change G_LOG_DOMAIN to
 	"libsoup". Remove unused defines.
 
@@ -16,6 +29,7 @@
 	* libsoup/soup-misc.h: Likewise
 	* libsoup/soup-server-auth.h: Likewise
 	* libsoup/soup-socket.h: Likewise
+	* libsoup/soup-status.h: Likewise
 
 2003-11-18  Dan Winship  <danw@ximian.com>
 

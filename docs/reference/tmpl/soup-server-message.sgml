@@ -1,0 +1,86 @@
+<!-- ##### SECTION Title ##### -->
+SoupServerMessage
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION soup_server_message_new ##### -->
+<para>
+
+</para>
+
+@server: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_message_get_server ##### -->
+<para>
+
+</para>
+
+@smsg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_message_set_encoding ##### -->
+<para>
+
+</para>
+
+@smsg: 
+@encoding: 
+
+
+<!-- ##### FUNCTION soup_server_message_get_encoding ##### -->
+<para>
+
+</para>
+
+@smsg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_message_start ##### -->
+<para>
+
+</para>
+
+@smsg: 
+
+
+<!-- ##### FUNCTION soup_server_message_is_started ##### -->
+<para>
+
+</para>
+
+@smsg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_message_finish ##### -->
+<para>
+
+</para>
+
+@smsg: 
+
+
+<!-- ##### FUNCTION soup_server_message_is_finished ##### -->
+<para>
+
+</para>
+
+@smsg: 
+@Returns: 
+
+

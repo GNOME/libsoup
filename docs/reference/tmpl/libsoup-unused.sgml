@@ -1,0 +1,151 @@
+<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-marshal.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Title ##### -->
+soup-marshal
+
+
+<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Title ##### -->
+SoupSocketSSL
+
+
+<!-- ##### SECTION ./tmpl/soup-types.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-types.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-types.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup-types.sgml:Title ##### -->
+soup-types
+
+
+<!-- ##### SECTION ./tmpl/soup.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup.sgml:Title ##### -->
+soup
+
+
+<!-- ##### MACRO SOUP_MAKE_TYPE ##### -->
+<para>
+
+</para>
+
+@l: 
+@t: 
+@ci: 
+@i: 
+@parent: 
+
+<!-- ##### STRUCT SoupSoapMessagePrivate ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_NONE__INT ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_NONE__NONE ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_NONE__OBJECT ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_VOID__INT ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO soup_marshal_VOID__OBJECT ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_marshal_VOID__OBJECT_STRING_STRING_POINTER_POINTER ##### -->
+<para>
+
+</para>
+
+@closure: 
+@return_value: 
+@n_param_values: 
+@param_values: 
+@invocation_hint: 
+@marshal_data: 
+
+<!-- ##### MACRO soup_marshal_VOID__VOID ##### -->
+<para>
+
+</para>
+
+

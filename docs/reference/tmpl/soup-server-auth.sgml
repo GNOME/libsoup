@@ -1,0 +1,118 @@
+<!-- ##### SECTION Title ##### -->
+soup-server-auth
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### USER_FUNCTION SoupServerAuthCallbackFn ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@auth: 
+@msg: 
+@data: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_auth_context_challenge ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@msg: 
+@header_name: 
+
+
+<!-- ##### ENUM SoupAuthType ##### -->
+<para>
+
+</para>
+
+@SOUP_AUTH_TYPE_BASIC: 
+@SOUP_AUTH_TYPE_DIGEST: 
+
+<!-- ##### STRUCT SoupServerAuthBasic ##### -->
+<para>
+
+</para>
+
+@type: 
+@user: 
+@passwd: 
+
+<!-- ##### ENUM SoupDigestAlgorithm ##### -->
+<para>
+
+</para>
+
+@SOUP_ALGORITHM_MD5: 
+@SOUP_ALGORITHM_MD5_SESS: 
+
+<!-- ##### STRUCT SoupServerAuthDigest ##### -->
+<para>
+
+</para>
+
+@type: 
+@algorithm: 
+@integrity: 
+@realm: 
+@user: 
+@nonce: 
+@nonce_count: 
+@cnonce: 
+@digest_uri: 
+@digest_response: 
+@request_method: 
+
+<!-- ##### FUNCTION soup_server_auth_new ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@auth_hdrs: 
+@msg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_auth_free ##### -->
+<para>
+
+</para>
+
+@auth: 
+
+
+<!-- ##### FUNCTION soup_server_auth_get_user ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_auth_check_passwd ##### -->
+<para>
+
+</para>
+
+@auth: 
+@passwd: 
+@Returns: 
+
+

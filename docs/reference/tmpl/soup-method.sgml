@@ -1,0 +1,160 @@
+<!-- ##### SECTION Title ##### -->
+soup-method
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### MACRO SOUP_METHOD_POST ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_GET ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_HEAD ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_OPTIONS ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_PUT ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_MOVE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_COPY ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_DELETE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_TRACE ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_CONNECT ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_MKCOL ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_PROPPATCH ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_PROPFIND ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_PATCH ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_LOCK ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_METHOD_UNLOCK ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### ENUM SoupMethodId ##### -->
+<para>
+
+</para>
+
+@SOUP_METHOD_ID_UNKNOWN: 
+@SOUP_METHOD_ID_POST: 
+@SOUP_METHOD_ID_GET: 
+@SOUP_METHOD_ID_HEAD: 
+@SOUP_METHOD_ID_OPTIONS: 
+@SOUP_METHOD_ID_PUT: 
+@SOUP_METHOD_ID_MOVE: 
+@SOUP_METHOD_ID_COPY: 
+@SOUP_METHOD_ID_DELETE: 
+@SOUP_METHOD_ID_TRACE: 
+@SOUP_METHOD_ID_CONNECT: 
+@SOUP_METHOD_ID_MKCOL: 
+@SOUP_METHOD_ID_PROPPATCH: 
+@SOUP_METHOD_ID_PROPFIND: 
+@SOUP_METHOD_ID_PATCH: 
+@SOUP_METHOD_ID_LOCK: 
+@SOUP_METHOD_ID_UNLOCK: 
+
+<!-- ##### FUNCTION soup_method_get_id ##### -->
+<para>
+
+</para>
+
+@method: 
+@Returns: 
+
+

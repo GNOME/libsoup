@@ -1,0 +1,321 @@
+<!-- ##### SECTION Title ##### -->
+SoupSoapMessage
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT SoupSoapMessage ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_soap_message_new ##### -->
+<para>
+
+</para>
+
+@method: 
+@uri_string: 
+@standalone: 
+@xml_encoding: 
+@env_prefix: 
+@env_uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_soap_message_new_from_uri ##### -->
+<para>
+
+</para>
+
+@method: 
+@uri: 
+@standalone: 
+@xml_encoding: 
+@env_prefix: 
+@env_uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_envelope ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_envelope ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_body ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_body ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_element ##### -->
+<para>
+
+</para>
+
+@msg: 
+@name: 
+@prefix: 
+@ns_uri: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_element ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_fault ##### -->
+<para>
+
+</para>
+
+@msg: 
+@faultcode: 
+@faultstring: 
+@faultfactor: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_fault ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_fault_detail ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_fault_detail ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_header ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_header ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_start_header_element ##### -->
+<para>
+
+</para>
+
+@msg: 
+@name: 
+@must_understand: 
+@actor_uri: 
+@prefix: 
+@ns_uri: 
+
+
+<!-- ##### FUNCTION soup_soap_message_end_header_element ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_int ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Param2: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_double ##### -->
+<para>
+
+</para>
+
+@msg: 
+@d: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_base64 ##### -->
+<para>
+
+</para>
+
+@msg: 
+@string: 
+@len: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_time ##### -->
+<para>
+
+</para>
+
+@msg: 
+@timeval: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_string ##### -->
+<para>
+
+</para>
+
+@msg: 
+@string: 
+
+
+<!-- ##### FUNCTION soup_soap_message_write_buffer ##### -->
+<para>
+
+</para>
+
+@msg: 
+@buffer: 
+@len: 
+
+
+<!-- ##### FUNCTION soup_soap_message_set_element_type ##### -->
+<para>
+
+</para>
+
+@msg: 
+@xsi_type: 
+
+
+<!-- ##### FUNCTION soup_soap_message_set_null ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_add_attribute ##### -->
+<para>
+
+</para>
+
+@msg: 
+@name: 
+@value: 
+@prefix: 
+@ns_uri: 
+
+
+<!-- ##### FUNCTION soup_soap_message_add_namespace ##### -->
+<para>
+
+</para>
+
+@msg: 
+@prefix: 
+@ns_uri: 
+
+
+<!-- ##### FUNCTION soup_soap_message_set_default_namespace ##### -->
+<para>
+
+</para>
+
+@msg: 
+@ns_uri: 
+
+
+<!-- ##### FUNCTION soup_soap_message_set_encoding_style ##### -->
+<para>
+
+</para>
+
+@msg: 
+@enc_style: 
+
+
+<!-- ##### FUNCTION soup_soap_message_reset ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_persist ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_soap_message_get_namespace_prefix ##### -->
+<para>
+
+</para>
+
+@msg: 
+@ns_uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_soap_message_get_xml_doc ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Returns: 
+
+

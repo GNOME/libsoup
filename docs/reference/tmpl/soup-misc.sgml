@@ -1,0 +1,116 @@
+<!-- ##### SECTION Title ##### -->
+soup-misc
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION soup_base64_encode ##### -->
+<para>
+
+</para>
+
+@text: 
+@len: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_base64_encode_close ##### -->
+<para>
+
+</para>
+
+@in: 
+@inlen: 
+@break_lines: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_base64_encode_step ##### -->
+<para>
+
+</para>
+
+@in: 
+@len: 
+@break_lines: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_base64_decode ##### -->
+<para>
+
+</para>
+
+@text: 
+@out_len: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_base64_decode_step ##### -->
+<para>
+
+</para>
+
+@in: 
+@len: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_signal_connect_once ##### -->
+<para>
+
+</para>
+
+@instance: 
+@detailed_signal: 
+@c_handler: 
+@data: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@signal: 
+
+
+<!-- ##### FUNCTION soup_str_case_hash ##### -->
+<para>
+
+</para>
+
+@key: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_str_case_equal ##### -->
+<para>
+
+</para>
+
+@v1: 
+@v2: 
+@Returns: 
+
+
+<!-- ##### VARIABLE soup_ssl_supported ##### -->
+<para>
+
+</para>
+
+

@@ -1,0 +1,97 @@
+<!-- ##### SECTION Title ##### -->
+soup-message-queue
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT SoupMessageQueueIter ##### -->
+<para>
+
+</para>
+
+@cur: 
+@next: 
+
+<!-- ##### FUNCTION soup_message_queue_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_queue_append ##### -->
+<para>
+
+</para>
+
+@queue: 
+@msg: 
+
+
+<!-- ##### FUNCTION soup_message_queue_first ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_queue_next ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_queue_remove ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_queue_free_iter ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+
+
+<!-- ##### FUNCTION soup_message_queue_destroy ##### -->
+<para>
+
+</para>
+
+@queue: 
+
+
+<!-- ##### FUNCTION soup_message_queue_remove_message ##### -->
+<para>
+
+</para>
+
+@queue: 
+@msg: 
+
+

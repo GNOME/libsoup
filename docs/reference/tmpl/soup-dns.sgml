@@ -1,0 +1,70 @@
+<!-- ##### SECTION Title ##### -->
+soup-dns
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION soup_dns_entry_from_name ##### -->
+<para>
+
+</para>
+
+@name: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_dns_entry_from_addr ##### -->
+<para>
+
+</para>
+
+@addr: 
+@family: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_dns_entry_check_lookup ##### -->
+<para>
+
+</para>
+
+@entry: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_dns_entry_cancel_lookup ##### -->
+<para>
+
+</para>
+
+@entry: 
+
+
+<!-- ##### FUNCTION soup_dns_free_hostent ##### -->
+<para>
+
+</para>
+
+@h: 
+
+
+<!-- ##### FUNCTION soup_dns_ntop ##### -->
+<para>
+
+</para>
+
+@addr: 
+@family: 
+@Returns: 
+
+

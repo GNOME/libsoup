@@ -1,0 +1,71 @@
+<!-- ##### SECTION Title ##### -->
+soup-ssl
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### ENUM SoupSSLType ##### -->
+<para>
+
+</para>
+
+@SOUP_SSL_TYPE_CLIENT: 
+@SOUP_SSL_TYPE_SERVER: 
+
+<!-- ##### FUNCTION soup_ssl_get_client_credentials ##### -->
+<para>
+
+</para>
+
+@ca_file: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_ssl_free_client_credentials ##### -->
+<para>
+
+</para>
+
+@creds: 
+
+
+<!-- ##### FUNCTION soup_ssl_get_server_credentials ##### -->
+<para>
+
+</para>
+
+@cert_file: 
+@key_file: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_ssl_free_server_credentials ##### -->
+<para>
+
+</para>
+
+@creds: 
+
+
+<!-- ##### FUNCTION soup_ssl_wrap_iochannel ##### -->
+<para>
+
+</para>
+
+@sock: 
+@type: 
+@remote_host: 
+@credentials: 
+@Returns: 
+
+

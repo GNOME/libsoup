@@ -1,0 +1,128 @@
+<!-- ##### SECTION Title ##### -->
+soup-uri
+
+<!-- ##### SECTION Short_Description ##### -->
+
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### TYPEDEF SoupProtocol ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### MACRO SOUP_PROTOCOL_HTTP ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_PROTOCOL_HTTPS ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION soup_uri_new_with_base ##### -->
+<para>
+
+</para>
+
+@base: 
+@uri_string: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_new ##### -->
+<para>
+
+</para>
+
+@uri_string: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_to_string ##### -->
+<para>
+
+</para>
+
+@uri: 
+@just_path: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_copy ##### -->
+<para>
+
+</para>
+
+@uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_copy_root ##### -->
+<para>
+
+</para>
+
+@uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_equal ##### -->
+<para>
+
+</para>
+
+@uri1: 
+@uri2: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_free ##### -->
+<para>
+
+</para>
+
+@uri: 
+
+
+<!-- ##### FUNCTION soup_uri_encode ##### -->
+<para>
+
+</para>
+
+@part: 
+@escape_extra: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_decode ##### -->
+<para>
+
+</para>
+
+@part: 
+
+
+<!-- ##### FUNCTION soup_uri_uses_default_port ##### -->
+<para>
+
+</para>
+
+@uri: 
+@Returns: 
+
+
