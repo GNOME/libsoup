@@ -106,10 +106,13 @@ soup_context_unref (SoupContext *ctx)
 	}
 }
 
-struct SoupContextConnectFunctor {
+struct SoupConnectData {
 	SoupContext           *ctx;
 	SoupConnectCallbackFn  cb;
 	gpointer               user_data;
+
+	guint timeout_tag;
+	gpointer gnet_connect_tag;
 };
 
 static void 
@@ -118,11 +121,11 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 			 GTcpSocketConnectAsyncStatus  status,
 			 gpointer                      user_data)
 {
-	struct SoupContextConnectFunctor *data = user_data;
-	SoupContext                      *ctx = data->ctx;
-	SoupConnectCallbackFn             cb = data->cb;
-	gpointer                          cb_data = data->user_data;
-	SoupConnection                   *new_conn;
+	struct SoupConnectData *data = user_data;
+	SoupContext            *ctx = data->ctx;
+	SoupConnectCallbackFn   cb = data->cb;
+	gpointer                cb_data = data->user_data;
+	SoupConnection         *new_conn;
 
 	g_free (data);
 
@@ -150,6 +153,26 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data); 
 		break;
 	}
+}
+
+static SoupConnection *
+soup_try_existing_connections (SoupContext *ctx)
+{
+	GSList *conns = ctx->priv->server->connections;
+
+	if (!ctx->priv->keep_alive)
+		return NULL;
+
+	while (conns) {
+		SoupConnection *conn = conns->data;
+
+		if (!conn->in_use && conn->port == ctx->uri->port)
+			return conn;
+
+		conns = conns->next;
+	}
+
+	return NULL;
 }
 
 struct SoupConnDesc {
@@ -196,56 +219,63 @@ soup_prune_least_used_connection (void)
 
 		return TRUE;
 	}
-		
+
 	return FALSE;
 }
 
-gpointer
+static gboolean 
+soup_prune_timeout (struct SoupConnectData *data)
+{
+	if (connection_count >= soup_get_connection_limit() &&
+	    !soup_try_existing_connections (data->ctx) &&
+	    !soup_prune_least_used_connection ())
+		return TRUE;
+	
+	soup_context_get_connection (data->ctx, data->cb, data->user_data);
+	g_free (data);
+
+	return FALSE;
+}
+
+SoupConnectId
 soup_context_get_connection (SoupContext           *ctx,
 			     SoupConnectCallbackFn  cb,
 			     gpointer               user_data)
 {
-	GSList *conns;
+	SoupConnection *conn;
+	struct SoupConnectData *data;
+
+	if ((conn = soup_try_existing_connections (ctx))) {
+		conn->in_use = TRUE;
+		
+		(*cb) (ctx, 
+		       SOUP_CONNECT_ERROR_NONE, 
+		       conn->socket, 
+		       user_data);
+		
+		return NULL;
+	}
+
+	data = g_new0 (struct SoupConnectData, 1);
+	data->ctx = ctx;
+	data->cb = cb;
+	data->user_data = user_data;
 
 	if (connection_count >= soup_get_connection_limit() && 
 	    !soup_prune_least_used_connection ()) {
-		//FIXME: set timeout to try pruning again
+		data->timeout_tag = 
+			g_timeout_add (500, 
+				       (GSourceFunc) soup_prune_timeout,
+				       data);
+	} else {
+		data->gnet_connect_tag =
+			gnet_tcp_socket_connect_async (ctx->uri->host, 
+						       ctx->uri->port,
+						       soup_context_connect_cb,
+						       data);
 	}
-
-	if (!ctx->priv->keep_alive)
-		goto NEW_CONNECTION;
-	
-	conns = ctx->priv->server->connections;
-
-	while (conns) {
-		SoupConnection *conn = conns->data;
-
-		if (!conn->in_use && conn->port == ctx->uri->port) {
-			conn->in_use = TRUE;
-
-			(*cb) (ctx, 
-			       SOUP_CONNECT_ERROR_NONE, 
-			       conn->socket, 
-			       user_data);
-
-			return NULL;
-		}
-
-		conns = conns->next;
-	}
-
- NEW_CONNECTION:
-	{
-		struct SoupContextConnectFunctor *data;
-		data = g_new0 (struct SoupContextConnectFunctor, 1);
-		data->ctx = ctx;
-		data->cb = cb;
-		data->user_data = user_data;
-		return gnet_tcp_socket_connect_async (ctx->uri->host, 
-						      ctx->uri->port,
-						      soup_context_connect_cb,
-						      user_data);
-	}
+		
+	return data;
 }
 
 void 
@@ -276,4 +306,19 @@ soup_context_release_connection (SoupContext       *ctx,
 
 		conns = conns->next;
 	}
+}
+
+void 
+soup_context_cancel_connect (SoupConnectId tag) 
+{
+	struct SoupConnectData *data = tag;
+
+	if (!tag) return;
+
+	if (data->timeout_tag)
+		g_source_remove (data->timeout_tag);
+	else if (data->gnet_connect_tag)
+		gnet_tcp_socket_connect_async_cancel (data->gnet_connect_tag);
+
+	g_free (data);
 }

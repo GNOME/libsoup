@@ -54,6 +54,7 @@ soup_split_headers (gchar *str, guint len)
 	return NULL;
 }
 
+/* returns TRUE to continue processing, FALSE if a callback was issued */
 static gboolean 
 soup_process_headers (SoupRequest *req, gchar *str, guint len)
 {
@@ -66,7 +67,7 @@ soup_process_headers (SoupRequest *req, gchar *str, guint len)
 			     &http_major,
 			     &http_minor,
 			     &status_code, 
-			     &reason_phrase);
+			     reason_phrase);
 
 	req->response_code = status_code;
 	req->response_phrase = g_strdup (reason_phrase);
@@ -110,6 +111,10 @@ soup_queue_read_async (GIOChannel* iochannel,
 	if (!req->priv->recv_buf) 
 		req->priv->recv_buf = g_byte_array_new ();
 
+	/* Read EOF. Set Response body and process headers. Set status to
+	   FINISHED. Initiate callback with ERROR_NONE if header parsing 
+	   was successful */
+
 	if (bytes_read == 0) {
 		index = soup_substring_index (req->priv->recv_buf->data, 
 					      req->priv->recv_buf->len,
@@ -123,9 +128,14 @@ soup_queue_read_async (GIOChannel* iochannel,
 
 		g_byte_array_free (req->priv->recv_buf, TRUE);
 		req->priv->recv_buf = NULL;
-
+		
 		req->status = SOUP_STATUS_FINISHED;
-		soup_request_issue_callback (req, SOUP_ERROR_NONE);
+
+		if (soup_process_headers (req, 
+					  req->priv->recv_buf->data,
+					  index + 2))
+			soup_request_issue_callback (req, SOUP_ERROR_NONE);
+
 		return FALSE;
 	}
 
@@ -134,16 +144,6 @@ soup_queue_read_async (GIOChannel* iochannel,
 			     bytes_read);
 	
 	req->priv->read_len += bytes_read;
-
-	if (!req->response_code) {
-		index = soup_substring_index (req->priv->recv_buf->data, 
-					      req->priv->recv_buf->len,
-					      "\r\n\r\n");
-		if (index)
-			return soup_process_headers (req, 
-						     req->priv->recv_buf->data,
-						     index + 2);
-	} 
 
 	return TRUE;
 }
