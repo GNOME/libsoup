@@ -1,3 +1,7 @@
+2001-05-16  JP Rosevear  <jpr@ximian.com>
+
+	* tests/simple-test.c (main): change this to something sensible
+
 2001-05-16  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-stubs.c: fully adapted to the new
