@@ -1,3 +1,13 @@
+2001-11-13  Joe Shaw  <joe@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.5.
+
+	* src/libsoup/soup-socket.c (soup_address_new): Don't ptrace().
+	Fixes hangs on SMP boxes.
+
+	* src/libsoup/soup-socks.c: Fixes for SOCKS proxies, courtesy of
+	Alex.  Pulled down from HEAD.
+
 2001-11-01  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-context.c (soup_context_connect_cb): Forgot to

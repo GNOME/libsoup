@@ -41,7 +41,9 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
-#include <sys/ptrace.h>
+#if 0
+#  include <sys/ptrace.h>
+#endif
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
@@ -785,6 +787,7 @@ soup_address_new (const gchar* name,
 
 		signal (SIGCHLD, SIG_IGN);
 
+#if 0
 		/* 
 		 * This will send the parent process a SIGSTOP.
 		 */
@@ -810,6 +813,7 @@ soup_address_new (const gchar* name,
 				   strerror(errno));
 
 		kill (getppid(), SIGCONT);
+#endif
 
 		/* 
 		 * Try to get the host by name (ie, DNS) 
