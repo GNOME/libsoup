@@ -23,14 +23,6 @@ soup-message-private
 @phase: 
 
 
-<!-- ##### FUNCTION soup_message_cleanup ##### -->
-<para>
-
-</para>
-
-@req: 
-
-
 <!-- ##### FUNCTION soup_message_cleanup_response ##### -->
 <para>
 

@@ -200,8 +200,10 @@ soup_address_new (const char *name, guint port)
  * @sa: a pointer to a sockaddr
  * @len: size of @sa
  *
- * Return value: a #SoupAddress equivalent to @sa (or %NULL if @sa's
+ * Returns a #SoupAddress equivalent to @sa (or %NULL if @sa's
  * address family isn't supported)
+ *
+ * Return value: the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
@@ -221,11 +223,13 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 /**
  * soup_address_new_any:
  * @family: the address family
- * @port: the port number (usually 0, meaning "any port")
+ * @port: the port number (usually %SOUP_ADDRESS_ANY_PORT)
  *
- * Return value: a #SoupAddress corresponding to the "any" address
+ * Returns a #SoupAddress corresponding to the "any" address
  * for @family (or %NULL if @family isn't supported), suitable for
  * passing to soup_socket_server_new().
+ *
+ * Return value: the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_any (SoupAddressFamily family, guint port)
@@ -250,8 +254,9 @@ soup_address_new_any (SoupAddressFamily family, guint port)
  * soup_address_get_name:
  * @addr: a #SoupAddress
  *
- * Return value: the hostname associated with @addr, or %NULL if
- * it is not known.
+ * Returns the hostname associated with @addr.
+ *
+ * Return value: the hostname, or %NULL if it is not known.
  **/
 const char *
 soup_address_get_name (SoupAddress *addr)
@@ -312,7 +317,9 @@ soup_address_get_physical (SoupAddress *addr)
  * soup_address_get_port:
  * @addr: a #SoupAddress
  *
- * Return value: the port associated with @addr
+ * Returns the port associated with @addr.
+ *
+ * Return value: the port
  **/
 guint
 soup_address_get_port (SoupAddress *addr)

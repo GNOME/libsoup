@@ -138,24 +138,10 @@ void             soup_message_set_uri             (SoupMessage       *msg,
 
 typedef enum {
 	/*
-	 * SOUP_MESSAGE_NO_PIPELINE: 
-	 * Use a currently unused connection or establish a new 
-	 * connection when issuing this request.
-	 */
-	SOUP_MESSAGE_NO_PIPELINE      = (1 << 0),
-
-	/*
 	 * SOUP_MESSAGE_NO_REDIRECT: 
 	 * Do not follow redirection responses.
 	 */
 	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
-
-	/*
-	 * SOUP_MESSAGE_NO_COOKIE:
-	 * Do not send cookie information with request, and do not 
-	 * store cookie information from the response.
-	 */
-	SOUP_MESSAGE_NO_COOKIE        = (1 << 2),
 
 	/*
 	 * SOUP_MESSAGE_OVERWRITE_CHUNKS:

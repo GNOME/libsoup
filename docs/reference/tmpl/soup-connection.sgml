@@ -47,12 +47,12 @@ SoupConnection
 
 <!-- ##### USER_FUNCTION SoupConnectionCallback ##### -->
 <para>
-
+The callback function passed to soup_connection_connect_async().
 </para>
 
-@sock: 
-@status: 
-@data: 
+@conn: the #SoupConnection
+@status: an HTTP status code indicating success or failure
+@data: the data passed to soup_connection_connect_async()
 
 
 <!-- ##### FUNCTION soup_connection_connect_async ##### -->

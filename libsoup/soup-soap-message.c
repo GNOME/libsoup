@@ -238,7 +238,7 @@ soup_soap_message_start_body (SoupSoapMessage *msg)
 }
 
 /**
- * soup_soap_end_body:
+ * soup_soap_message_end_body:
  * @msg: the %SoupSoapMessage.
  *
  * Closes the SOAP Body element.
@@ -613,7 +613,7 @@ soup_soap_message_add_namespace (SoupSoapMessage *msg, const char *prefix, const
 }
 
 /**
- * soup_soap_set_default_namespace:
+ * soup_soap_message_set_default_namespace:
  * @msg: the %SoupSoapMessage.
  * @ns_uri: the namespace URI.
  *
@@ -699,9 +699,11 @@ soup_soap_message_persist (SoupSoapMessage *msg)
  * @msg: the %SoupSoapMessage.
  * @ns_uri: the namespace URI.
  *
- * Return value: The namespace prefix for @ns_uri or an empty string if @ns_uri
- * is set to the default namespace. If no namespace exists for the URI given,
- * NULL is returned.
+ * Returns the namespace prefix for @ns_uri (or an empty string if
+ * @ns_uri is set to the default namespace)
+ *
+ * Return value: The namespace prefix, or %NULL if no namespace exists
+ * for the URI given.
  */
 const char *
 soup_soap_message_get_namespace_prefix (SoupSoapMessage *msg, const char *ns_uri)

@@ -89,6 +89,12 @@ soup
 @i: 
 @parent: 
 
+<!-- ##### STRUCT SoupAddress ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### STRUCT SoupSoapMessagePrivate ##### -->
 <para>
 
@@ -155,6 +161,13 @@ soup
 </para>
 
 @msg: 
+@req: 
+
+<!-- ##### FUNCTION soup_message_cleanup ##### -->
+<para>
+
+</para>
+
 @req: 
 
 <!-- ##### FUNCTION soup_message_io_cancel ##### -->

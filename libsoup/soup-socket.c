@@ -319,7 +319,9 @@ get_property (GObject *object, guint prop_id,
  * @optname1: name of first property to set (or %NULL)
  * @...: value of @optname1, followed by additional property/value pairs
  *
- * Return value: a new (disconnected) socket
+ * Creates a new (disconnected) socket
+ *
+ * Return value: the new socket
  **/
 SoupSocket *
 soup_socket_new (const char *optname1, ...)
@@ -727,6 +729,13 @@ soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 }
 
 
+/**
+ * soup_socket_disconnect:
+ * @sock: a #SoupSocket
+ *
+ * Disconnects @sock. Any further read or write attempts on it will
+ * fail.
+ **/
 void
 soup_socket_disconnect (SoupSocket *sock)
 {
@@ -771,6 +780,14 @@ soup_socket_disconnect (SoupSocket *sock)
 	g_signal_emit (sock, signals[DISCONNECTED], 0);
 }
 
+/**
+ * soup_socket_is_connected:
+ * @sock: a #SoupSocket
+ *
+ * Tests if @sock is connected to another host
+ *
+ * Return value: %TRUE or %FALSE.
+ **/
 gboolean
 soup_socket_is_connected (SoupSocket *sock)
 {
@@ -779,7 +796,14 @@ soup_socket_is_connected (SoupSocket *sock)
 	return sock->priv->iochannel != NULL;
 }
 
-
+/**
+ * soup_socket_get_local_address:
+ * @sock: a #SoupSocket
+ *
+ * Returns the #SoupAddress corresponding to the local end of @sock.
+ *
+ * Return value: the #SoupAddress
+ **/
 SoupAddress *
 soup_socket_get_local_address (SoupSocket *sock)
 {
@@ -799,6 +823,14 @@ soup_socket_get_local_address (SoupSocket *sock)
 	return sock->priv->local_addr;
 }
 
+/**
+ * soup_socket_get_remote_address:
+ * @sock: a #SoupSocket
+ *
+ * Returns the #SoupAddress corresponding to the remote end of @sock.
+ *
+ * Return value: the #SoupAddress
+ **/
 SoupAddress *
 soup_socket_get_remote_address (SoupSocket *sock)
 {

@@ -54,7 +54,7 @@ GType soup_connection_get_type (void);
 SoupConnection *soup_connection_new            (const char       *propname1,
 						...);
 
-typedef void  (*SoupConnectionCallback)        (SoupConnection   *sock,
+typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);
 

@@ -84,6 +84,14 @@ struct {
 	{ 0 }
 };
 
+/**
+ * soup_status_get_phrase:
+ * @status_code: an HTTP status code
+ *
+ * Looks up the stock HTTP description of @status_code.
+ *
+ * Return value: the (English) description of @status_code
+ **/
 const char *
 soup_status_get_phrase (guint status_code)
 {

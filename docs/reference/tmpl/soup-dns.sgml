@@ -2,7 +2,7 @@
 soup-dns
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Low-level DNS routines
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>

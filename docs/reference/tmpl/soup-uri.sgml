@@ -16,20 +16,21 @@ soup-uri
 
 <!-- ##### TYPEDEF SoupProtocol ##### -->
 <para>
-
+#GQuark is used for SoupProtocol so that the protocol of a #SoupUri
+can be tested quickly.
 </para>
 
 
 <!-- ##### MACRO SOUP_PROTOCOL_HTTP ##### -->
 <para>
-
+This returns the #SoupProtocol value for "http".
 </para>
 
 
 
 <!-- ##### MACRO SOUP_PROTOCOL_HTTPS ##### -->
 <para>
-
+This returns the #SoupProtocol value for "https".
 </para>
 
 

@@ -109,22 +109,25 @@ SoupSocket
 
 <!-- ##### USER_FUNCTION SoupSocketCallback ##### -->
 <para>
-
+The callback function passed to soup_socket_client_new_async().
 </para>
 
-@sock: 
-@status: 
+@sock: the #SoupSocket
+@status: an HTTP status code indicating success or failure
 @user_data: 
+<!-- # Unused Parameters # -->
+@data: the data passed to soup_socket_client_new_async()
 
 
 <!-- ##### USER_FUNCTION SoupSocketListenerCallback ##### -->
 <para>
-
+The callback function passed to soup_socket_server_new(), which
+receives new connections.
 </para>
 
-@listener: 
-@sock: 
-@user_data: 
+@listener: the listening #SoupSocket
+@sock: the newly-received #SoupSocket
+@user_data: the data passed to soup_socket_server_new().
 
 
 <!-- ##### FUNCTION soup_socket_client_new_async ##### -->
@@ -188,13 +191,13 @@ SoupSocket
 
 <!-- ##### ENUM SoupSocketIOStatus ##### -->
 <para>
-
+Return value from the #SoupSocket IO methods.
 </para>
 
-@SOUP_SOCKET_OK: 
-@SOUP_SOCKET_WOULD_BLOCK: 
-@SOUP_SOCKET_EOF: 
-@SOUP_SOCKET_ERROR: 
+@SOUP_SOCKET_OK: Success
+@SOUP_SOCKET_WOULD_BLOCK: Cannot read/write any more at this time
+@SOUP_SOCKET_EOF: End of file
+@SOUP_SOCKET_ERROR: Other error
 
 <!-- ##### FUNCTION soup_socket_read ##### -->
 <para>

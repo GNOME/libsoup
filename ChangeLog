@@ -1,3 +1,18 @@
+2004-08-26  Dan Winship  <danw@novell.com>
+
+	* libsoup/*: add/fix lots of gtk-doc comments
+	
+	* libsoup/soup-misc.c (soup_str_case_hash, soup_str_case_equal):
+	Fix bug noticed while documenting. (We were using the
+	locale-case-insensitive functions rather than the g_ascii_ ones.)
+
+	* libsoup/soup-message.h (SoupMessageFlags): remove the (never
+	implemented) NO_PIPELINE and NO_COOKIE flags.
+
+	* docs/reference/tmpl/*.sgml: Regenerate, fill in some stuff.
+	There are still problems here with gtk-doc not recognizing many of
+	the objects in libsoup...
+
 2004-08-13  JP Rosevear  <jpr@novell.com>
 
 	* configure.in: bump version, libtool number

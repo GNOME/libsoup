@@ -271,6 +271,8 @@ append_uri (GString *str, const char *in, const char *extra_enc_chars,
  * @uri: a #SoupUri
  * @just_path: if %TRUE, output just the path and query portions
  *
+ * Returns a string representing @uri.
+ *
  * Return value: a string representing @uri, which the caller must free.
  **/
 char *
@@ -321,6 +323,14 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 	return return_result;
 }
 
+/**
+ * soup_uri_copy:
+ * @uri: a #SoupUri
+ *
+ * Copies @uri
+ *
+ * Return value: a copy of @uri, which must be freed with soup_uri_free()
+ **/
 SoupUri *
 soup_uri_copy (const SoupUri *uri)
 {
@@ -343,6 +353,16 @@ soup_uri_copy (const SoupUri *uri)
 	return dup;
 }
 
+/**
+ * soup_uri_copy_root:
+ * @uri: a #SoupUri
+ *
+ * Copies the protocol, host, and port of @uri into a new #SoupUri
+ * (all other fields in the new URI will be empty.)
+ *
+ * Return value: a partial copy of @uri, which must be freed with
+ * soup_uri_free()
+ **/
 SoupUri *
 soup_uri_copy_root (const SoupUri *uri)
 {
@@ -368,6 +388,15 @@ parts_equal (const char *one, const char *two)
 	return !strcmp (one, two);
 }
 
+/**
+ * soup_uri_equal:
+ * @u1: a #SoupUri
+ * @u2: another #SoupUri
+ *
+ * Tests whether or not @u1 and @u2 are equal in all parts
+ *
+ * Return value: %TRUE or %FALSE
+ **/
 gboolean 
 soup_uri_equal (const SoupUri *u1, const SoupUri *u2)
 {
@@ -384,6 +413,12 @@ soup_uri_equal (const SoupUri *u1, const SoupUri *u2)
 	return TRUE;
 }
 
+/**
+ * soup_uri_free:
+ * @uri: a #SoupUri
+ *
+ * Frees @uri.
+ **/
 void
 soup_uri_free (SoupUri *uri)
 {
@@ -483,6 +518,15 @@ soup_uri_decode (char *part)
 	} while (*s++);
 }
 
+/**
+ * soup_uri_uses_default_port:
+ * @uri: a #SoupUri
+ *
+ * Tests if @uri uses the default port for its protocol. (Eg, 80 for
+ * http.)
+ *
+ * Return value: %TRUE or %FALSE
+ **/
 gboolean
 soup_uri_uses_default_port (const SoupUri *uri)
 {

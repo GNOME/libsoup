@@ -9,8 +9,17 @@
 
 #include "soup-method.h"
 
+/**
+ * soup_method_get_id:
+ * @method: an HTTP method
+ *
+ * Converts @method into a corresponding #SoupMethodId (possibly
+ * %SOUP_METHOD_ID_UNKNOWN).
+ *
+ * Return value: the #SoupMethodId
+ **/
 SoupMethodId
-soup_method_get_id (const gchar *method)
+soup_method_get_id (const char *method)
 {
 	g_return_val_if_fail (method != NULL, SOUP_METHOD_ID_UNKNOWN);
 

@@ -16,7 +16,8 @@ soup-message-queue
 
 <!-- ##### STRUCT SoupMessageQueueIter ##### -->
 <para>
-
+An opaque data structure used to iterate the elements of a
+#SoupMessageQueue.
 </para>
 
 

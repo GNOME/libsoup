@@ -2,11 +2,18 @@
 SoupAddress
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Higher-level IP address object
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
+#SoupAddress represents the address of a TCP connection endpoint; both
+the IP address and the port. (It is somewhat like an object-oriented
+version of struct #sockaddr.)
+</para>
 
+<para>
+If libsoup was built with IPv6 support, #SoupAddress will allow both
+IPv4 and IPv6 addresses.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -16,15 +23,19 @@ SoupAddress
 
 <!-- ##### ENUM SoupAddressFamily ##### -->
 <para>
-
+The supported address families. Note that the
+%SOUP_ADDRESS_FAMILY_IPV6 constant is available even if libsoup was
+built without IPv6 support, but attempting to create an IPv6 address
+will fail in that case.
 </para>
 
-@SOUP_ADDRESS_FAMILY_IPV4: 
-@SOUP_ADDRESS_FAMILY_IPV6: 
+@SOUP_ADDRESS_FAMILY_IPV4: an IPv4 address
+@SOUP_ADDRESS_FAMILY_IPV6: an IPv6 address
 
 <!-- ##### MACRO SOUP_ADDRESS_ANY_PORT ##### -->
 <para>
-
+This can be passed to any #SoupAddress method that expects a port to
+indicate that you don't care what port is used.
 </para>
 
 
@@ -61,12 +72,12 @@ SoupAddress
 
 <!-- ##### USER_FUNCTION SoupAddressCallback ##### -->
 <para>
-
+The callback function passed to soup_address_resolve_async().
 </para>
 
-@addr: 
-@status: 
-@data: 
+@addr: the #SoupAddress that was resolved
+@status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
+@data: the user data that was passed to soup_address_resolve_async()
 
 
 <!-- ##### FUNCTION soup_address_resolve_async ##### -->
@@ -77,9 +88,6 @@ SoupAddress
 @addr: 
 @callback: 
 @user_data: 
-<!-- # Unused Parameters # -->
-@cb: 
-@data: 
 
 
 <!-- ##### FUNCTION soup_address_resolve_sync ##### -->

@@ -604,7 +604,10 @@ soup_connection_disconnect (SoupConnection *conn)
  * soup_connection_is_in_use:
  * @conn: a connection
  *
- * Return value: whether or not @conn is being used.
+ * Tests whether or not @conn is in use.
+ *
+ * Return value: %TRUE if there is currently a request being processed
+ * on @conn.
  **/
 gboolean
 soup_connection_is_in_use (SoupConnection *conn)
@@ -617,6 +620,8 @@ soup_connection_is_in_use (SoupConnection *conn)
 /**
  * soup_connection_last_used:
  * @conn: a #SoupConnection.
+ *
+ * Returns the last time a response was received on @conn.
  *
  * Return value: the last time a response was received on @conn, or 0
  * if @conn has not been used yet.
@@ -748,7 +753,7 @@ soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
 }
 
 /**
- * soup_connection_authenticate:
+ * soup_connection_reauthenticate:
  * @conn: a #SoupConnection
  * @msg: the message to authenticate
  * @auth_type: type of authentication to use

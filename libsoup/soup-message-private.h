@@ -25,7 +25,6 @@ struct SoupMessagePrivate {
 void             soup_message_run_handlers     (SoupMessage      *msg,
 						SoupHandlerPhase  phase);
 
-void             soup_message_cleanup          (SoupMessage      *req);
 void             soup_message_cleanup_response (SoupMessage      *req);
 
 

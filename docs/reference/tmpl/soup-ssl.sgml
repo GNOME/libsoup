@@ -16,11 +16,11 @@ soup-ssl
 
 <!-- ##### ENUM SoupSSLType ##### -->
 <para>
-
+What kind of SSL connection this is.
 </para>
 
-@SOUP_SSL_TYPE_CLIENT: 
-@SOUP_SSL_TYPE_SERVER: 
+@SOUP_SSL_TYPE_CLIENT: the client side of an SSL connection
+@SOUP_SSL_TYPE_SERVER: the server side of an SSL connection
 
 <!-- ##### FUNCTION soup_ssl_get_client_credentials ##### -->
 <para>

@@ -21,6 +21,8 @@ struct SoupMessageQueue {
 /**
  * soup_message_queue_new:
  *
+ * Creates a new #SoupMessageQueue
+ *
  * Return value: a new #SoupMessageQueue object
  **/
 SoupMessageQueue *
@@ -145,7 +147,9 @@ queue_remove_internal (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
  * @queue: a queue
  * @iter: pointer to an initialized #SoupMessageQueueIter
  *
- * Return value: the next element of @queue, or %NULL if there are no more.
+ * Returns the next element of @queue
+ *
+ * Return value: the next element, or %NULL if there are no more.
  **/
 SoupMessage *
 soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
@@ -196,6 +200,13 @@ soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
 	return msg;
 }
 
+/**
+ * soup_message_queue_remove_message:
+ * @queue: a queue
+ * @msg: a #SoupMessage
+ *
+ * Removes the indicated message from @queue.
+ **/
 void
 soup_message_queue_remove_message (SoupMessageQueue *queue, SoupMessage *msg)
 {

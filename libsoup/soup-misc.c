@@ -10,19 +10,36 @@
 
 #include "soup-misc.h"
 
+/**
+ * soup_str_case_hash:
+ * @key: ASCII string to hash
+ *
+ * Hashes @key in a case-insensitive manner.
+ *
+ * Return value: the hash code.
+ **/
 guint
 soup_str_case_hash (gconstpointer key)
 {
 	const char *p = key;
-	guint h = toupper(*p);
+	guint h = g_ascii_toupper(*p);
 
 	if (h)
 		for (p += 1; *p != '\0'; p++)
-			h = (h << 5) - h + toupper(*p);
+			h = (h << 5) - h + g_ascii_toupper(*p);
 
 	return h;
 }
 
+/**
+ * soup_str_case_equal:
+ * @v1: an ASCII string
+ * @v2: another ASCII string
+ *
+ * Compares @v1 and @v2 in a case-insensitive manner
+ *
+ * Return value: %TRUE if they are equal (modulo case)
+ **/
 gboolean
 soup_str_case_equal (gconstpointer v1,
 		     gconstpointer v2)
@@ -30,7 +47,7 @@ soup_str_case_equal (gconstpointer v1,
 	const char *string1 = v1;
 	const char *string2 = v2;
 
-	return g_strcasecmp (string1, string2) == 0;
+	return g_ascii_strcasecmp (string1, string2) == 0;
 }
 
 /* Base64 utils (straight from camel-mime-utils.c) */

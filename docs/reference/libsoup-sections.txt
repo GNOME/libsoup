@@ -11,7 +11,6 @@ soup_message_new
 soup_message_new_from_uri
 soup_message_set_request
 soup_message_set_response
-soup_message_cancel
 soup_message_add_header
 soup_message_get_header
 soup_message_get_header_list
@@ -206,8 +205,6 @@ SOUP_SESSION_MAX_CONNS
 SOUP_SESSION_MAX_CONNS_PER_HOST
 SOUP_SESSION_USE_NTLM
 SOUP_SESSION_SSL_CA_FILE
-soup_session_new
-soup_session_new_with_options
 soup_session_queue_message
 soup_session_requeue_message
 soup_session_send_message

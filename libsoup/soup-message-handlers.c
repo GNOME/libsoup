@@ -61,12 +61,13 @@ run_handler (SoupMessage     *msg,
 	(*data->handler_cb) (msg, data->user_data);
 }
 
-/*
- * Run each handler with matching criteria. If a handler requeues a
- * message, we stop processing and terminate the current request.
+/**
+ * soup_message_run_handlers:
+ * @msg: a #SoupMessage
+ * @invoke_phase: which group of handlers to run
  *
- * After running all handlers, if there is an error set or the invoke
- * phase was post_body, issue the final callback.
+ * Run each @invoke_phase handler on @msg. If a handler requeues the
+ * message, we stop processing at that point.
  */
 void
 soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
@@ -126,6 +127,17 @@ add_handler (SoupMessage           *msg,
 		g_slist_append (msg->priv->content_handlers, data);
 }
 
+/**
+ * soup_message_add_header_handler:
+ * @msg: a #SoupMessage
+ * @header: HTTP response header to match against
+ * @phase: processing phase to run the handler in
+ * @handler_cb: the handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a handler to @msg for messages containing the given response
+ * header.
+ **/
 void
 soup_message_add_header_handler (SoupMessage           *msg,
 				 const char            *header,
@@ -142,6 +154,17 @@ soup_message_add_header_handler (SoupMessage           *msg,
 		     header, 0, 0);
 }
 
+/**
+ * soup_message_add_status_code_handler:
+ * @msg: a #SoupMessage
+ * @status_code: HTTP status code to match against
+ * @phase: processing phase to run the handler in
+ * @handler_cb: the handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a handler to @msg for messages receiving the given status
+ * code.
+ **/
 void
 soup_message_add_status_code_handler (SoupMessage           *msg,
 				      guint                  status_code,
@@ -158,6 +181,17 @@ soup_message_add_status_code_handler (SoupMessage           *msg,
 		     NULL, status_code, 0);
 }
 
+/**
+ * soup_message_add_status_class_handler:
+ * @msg: a #SoupMessage
+ * @status_class: HTTP status code class to match against
+ * @phase: processing phase to run the handler in
+ * @handler_cb: the handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a handler to @msg for messages receiving a status code in
+ * the given class.
+ **/
 void
 soup_message_add_status_class_handler (SoupMessage           *msg,
 				       SoupStatusClass        status_class,
@@ -174,11 +208,20 @@ soup_message_add_status_class_handler (SoupMessage           *msg,
 		     NULL, 0, status_class);
 }
 
+/**
+ * soup_message_add_handler:
+ * @msg: a #SoupMessage
+ * @phase: processing phase to run the handler in
+ * @handler_cb: the handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a handler to @msg for all messages
+ **/
 void
-soup_message_add_handler (SoupMessage      *msg,
-			  SoupHandlerPhase  phase,
-			  SoupMessageCallbackFn    handler_cb,
-			  gpointer          user_data)
+soup_message_add_handler (SoupMessage           *msg,
+			  SoupHandlerPhase       phase,
+			  SoupMessageCallbackFn  handler_cb,
+			  gpointer               user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (handler_cb != NULL);
@@ -186,6 +229,15 @@ soup_message_add_handler (SoupMessage      *msg,
 	add_handler (msg, phase, handler_cb, user_data, 0, NULL, 0, 0);
 }
 
+/**
+ * soup_message_remove_handler:
+ * @msg: a #SoupMessage
+ * @phase: processing phase to run the handler in
+ * @handler_cb: the handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Removes all matching handlers from @msg
+ **/
 void
 soup_message_remove_handler (SoupMessage           *msg,
 			     SoupHandlerPhase       phase,

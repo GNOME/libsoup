@@ -331,6 +331,19 @@ THROW_CREATE_ERROR:
 	return FALSE;
 }
 
+/**
+ * soup_ssl_wrap_iochannel:
+ * @sock: a #GIOChannel wrapping a TCP socket.
+ * @type: whether this is a client or server socket
+ * @hostname: the hostname of the remote machine
+ * @cred_pointer: a client or server credentials structure
+ *
+ * This attempts to wrap a new #GIOChannel around @sock that
+ * will SSL-encrypt/decrypt all traffic through it.
+ *
+ * Return value: an SSL-encrypting #GIOChannel, or %NULL on
+ * failure.
+ **/
 GIOChannel *
 soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 			 const char *hostname, gpointer cred_pointer)
@@ -393,6 +406,21 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	return NULL;
 }
 
+/**
+ * soup_ssl_get_client_credentials:
+ * @ca_file: path to a file containing X509-encoded Certificate
+ * Authority certificates.
+ *
+ * Creates an opaque client credentials object which can later be
+ * passed to soup_ssl_wrap_iochannel().
+ *
+ * If @ca_file is non-%NULL, any certificate received from a server
+ * must be signed by one of the CAs in the file, or an error will
+ * be returned.
+ *
+ * Return value: the client credentials, which must be freed with
+ * soup_ssl_free_client_credentials().
+ **/
 gpointer
 soup_ssl_get_client_credentials (const char *ca_file)
 {
@@ -422,6 +450,13 @@ soup_ssl_get_client_credentials (const char *ca_file)
 	return cred;
 }
 
+/**
+ * soup_ssl_free_client_credentials:
+ * @client_creds: a client credentials structure returned by
+ * soup_ssl_get_client_credentials().
+ *
+ * Frees @client_creds.
+ **/
 void
 soup_ssl_free_client_credentials (gpointer client_creds)
 {
@@ -431,6 +466,19 @@ soup_ssl_free_client_credentials (gpointer client_creds)
 	g_free (cred);
 }
 
+/**
+ * soup_ssl_get_server_credentials:
+ * @cert_file: path to a file containing an X509-encoded server
+ * certificate
+ * @key_file: path to a file containing an X509-encoded key for
+ * @cert_file.
+ *
+ * Creates an opaque server credentials object which can later be
+ * passed to soup_ssl_wrap_iochannel().
+ *
+ * Return value: the server credentials, which must be freed with
+ * soup_ssl_free_server_credentials().
+ **/
 gpointer
 soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 {
@@ -458,6 +506,13 @@ soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 	return cred;
 }
 
+/**
+ * soup_ssl_free_server_credentials:
+ * @server_creds: a server credentials structure returned by
+ * soup_ssl_get_server_credentials().
+ *
+ * Frees @server_creds.
+ **/
 void
 soup_ssl_free_server_credentials (gpointer server_creds)
 {

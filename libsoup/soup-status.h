@@ -17,12 +17,12 @@ typedef enum {
 	SOUP_STATUS_CLASS_SERVER_ERROR
 } SoupStatusClass;
 
-#define SOUP_STATUS_IS_TRANSPORT_ERROR(x) ((x) >  0   && (x) < 100)
-#define SOUP_STATUS_IS_INFORMATIONAL(x)   ((x) >= 100 && (x) < 200)
-#define SOUP_STATUS_IS_SUCCESSFUL(x)      ((x) >= 200 && (x) < 300)
-#define SOUP_STATUS_IS_REDIRECTION(x)     ((x) >= 300 && (x) < 400)
-#define SOUP_STATUS_IS_CLIENT_ERROR(x)    ((x) >= 400 && (x) < 500)
-#define SOUP_STATUS_IS_SERVER_ERROR(x)    ((x) >= 500 && (x) < 600)
+#define SOUP_STATUS_IS_TRANSPORT_ERROR(status) ((status) >  0   && (status) < 100)
+#define SOUP_STATUS_IS_INFORMATIONAL(status)   ((status) >= 100 && (status) < 200)
+#define SOUP_STATUS_IS_SUCCESSFUL(status)      ((status) >= 200 && (status) < 300)
+#define SOUP_STATUS_IS_REDIRECTION(status)     ((status) >= 300 && (status) < 400)
+#define SOUP_STATUS_IS_CLIENT_ERROR(status)    ((status) >= 400 && (status) < 500)
+#define SOUP_STATUS_IS_SERVER_ERROR(status)    ((status) >= 500 && (status) < 600)
 
 typedef enum {
 	SOUP_STATUS_NONE,

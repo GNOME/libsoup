@@ -16,57 +16,68 @@ SoupMessage
 
 <!-- ##### ENUM SoupMessageStatus ##### -->
 <para>
-
+Enum indicating the lifecycle of a #SoupMessage.
 </para>
 
-@SOUP_MESSAGE_STATUS_IDLE: 
-@SOUP_MESSAGE_STATUS_QUEUED: 
-@SOUP_MESSAGE_STATUS_CONNECTING: 
-@SOUP_MESSAGE_STATUS_RUNNING: 
-@SOUP_MESSAGE_STATUS_FINISHED: 
+@SOUP_MESSAGE_STATUS_IDLE: The message has not yet been queued.
+@SOUP_MESSAGE_STATUS_QUEUED: The message has been queued, but is
+waiting for a connection to be available.
+@SOUP_MESSAGE_STATUS_CONNECTING: The message is waiting for a specific
+connection to finish connecting.
+@SOUP_MESSAGE_STATUS_RUNNING: The message is being processed.
+@SOUP_MESSAGE_STATUS_FINISHED: The message is complete (request and
+response both processed).
 
 <!-- ##### MACRO SOUP_MESSAGE_IS_STARTING ##### -->
-<para>
 
+<para>
+Tests if @msg is in a "starting" state, waiting to be sent. (More
+commonly used to test if a message has been requeued after its first
+attempt.)
 </para>
 
-@msg: 
+@msg: a #SoupMessage
+@Returns: %TRUE if @msg is waiting to be sent.
 
 
 <!-- ##### ENUM SoupTransferEncoding ##### -->
 <para>
-
+How the length of a request or response is to be encoded.
 </para>
 
-@SOUP_TRANSFER_UNKNOWN: 
-@SOUP_TRANSFER_CHUNKED: 
-@SOUP_TRANSFER_CONTENT_LENGTH: 
+@SOUP_TRANSFER_UNKNOWN: HTTP 1.0-style (content ends when the
+connection is closed)
+@SOUP_TRANSFER_CHUNKED: chunked encoding (only supported for response)
+@SOUP_TRANSFER_CONTENT_LENGTH: Content-Length
 
 <!-- ##### ENUM SoupOwnership ##### -->
 <para>
-
+Used by #SoupDataBuffer (and several functions) to indicate the
+ownership of a buffer.
 </para>
 
-@SOUP_BUFFER_SYSTEM_OWNED: 
-@SOUP_BUFFER_USER_OWNED: 
-@SOUP_BUFFER_STATIC: 
+@SOUP_BUFFER_SYSTEM_OWNED: The data is owned by soup and it can free
+it when it is done with it.
+@SOUP_BUFFER_USER_OWNED: The data is owned by the user, who is
+responsible for freeing it at the right point
+@SOUP_BUFFER_STATIC: The data should not be freed.
 
 <!-- ##### STRUCT SoupDataBuffer ##### -->
 <para>
-
+A data buffer used in several places.
 </para>
 
-@owner: 
-@body: 
-@length: 
+@owner: the ownership of the data
+@body: the data itself
+@length: length of @body
 
 <!-- ##### USER_FUNCTION SoupMessageCallbackFn ##### -->
 <para>
-
+A callback function used by many #SoupMessage methods.
 </para>
 
-@req: 
-@user_data: 
+@req: the #SoupMessage in question
+@user_data: user data
 
 
 <!-- ##### FUNCTION soup_message_new ##### -->
@@ -178,11 +189,11 @@ SoupMessage
 
 <!-- ##### ENUM SoupHttpVersion ##### -->
 <para>
-
+Indicates the HTTP protocol version being used.
 </para>
 
-@SOUP_HTTP_1_0: 
-@SOUP_HTTP_1_1: 
+@SOUP_HTTP_1_0: HTTP 1.0 (RFC 1945)
+@SOUP_HTTP_1_1: HTTP 1.1 (RFC 2616)
 
 <!-- ##### FUNCTION soup_message_set_http_version ##### -->
 <para>
@@ -231,14 +242,19 @@ SoupMessage
 
 <!-- ##### ENUM SoupMessageFlags ##### -->
 <para>
-
+Various flags that can be set on a #SoupMessage to alter its behavior.
 </para>
 
-@SOUP_MESSAGE_NO_PIPELINE: 
-@SOUP_MESSAGE_NO_REDIRECT: 
-@SOUP_MESSAGE_NO_COOKIE: 
-@SOUP_MESSAGE_OVERWRITE_CHUNKS: 
-@SOUP_MESSAGE_EXPECT_CONTINUE: 
+@SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
+(3xx) responses received by this message.
+@SOUP_MESSAGE_OVERWRITE_CHUNKS: Rather than building up the response
+body in %response, each new chunk should overwrite the previous one.
+(This can be used if you are connecting to the %got_chunk signal or
+have installed a %SOUP_MESSAGE_BODY_CHUNK handler.)
+@SOUP_MESSAGE_EXPECT_CONTINUE: This will cause an "Expect:
+100-continue" header to be added to the outgoing request, giving the
+server the opportunity to reject the message (eg, with a 401
+Unauthorized) before the full request body is sent.
 
 <!-- ##### FUNCTION soup_message_set_flags ##### -->
 <para>
@@ -260,13 +276,18 @@ SoupMessage
 
 <!-- ##### ENUM SoupHandlerPhase ##### -->
 <para>
-
+Indicates when a handler added with soup_message_add_handler() or the
+like will be run.
 </para>
 
-@SOUP_HANDLER_POST_REQUEST: 
-@SOUP_HANDLER_PRE_BODY: 
-@SOUP_HANDLER_BODY_CHUNK: 
-@SOUP_HANDLER_POST_BODY: 
+@SOUP_HANDLER_POST_REQUEST: The handler should run immediately after
+sending the request body
+@SOUP_HANDLER_PRE_BODY: The handler should run before reading the
+response body (after reading the headers).
+@SOUP_HANDLER_BODY_CHUNK: The handler should run after every body
+chunk is read. (See also %SOUP_MESSAGE_OVERWRITE_CHUNKS.)
+@SOUP_HANDLER_POST_BODY: The handler should run after the entire
+message body has been read.
 
 <!-- ##### FUNCTION soup_message_add_handler ##### -->
 <para>

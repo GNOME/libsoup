@@ -59,6 +59,13 @@ copy_hostent (struct hostent *h)
 			    h->h_length, h->h_addr_list[0]);
 }
 
+/**
+ * soup_dns_free_hostent:
+ * @h: a #hostent
+ *
+ * Frees @h. Use this to free the return value from
+ * soup_dns_entry_get_hostent().
+ **/
 void
 soup_dns_free_hostent (struct hostent *h)
 {
@@ -119,6 +126,17 @@ new_hostent_from_phys (const char *addr)
 	return NULL;
 }
 
+/**
+ * soup_dns_ntop:
+ * @addr: pointer to address data (eg, an #in_addr_t)
+ * @family: address family of @addr 
+ *
+ * Converts @addr into textual form (eg, "141.213.8.59"), like the
+ * standard library function inet_ntop(), except that the returned
+ * string must be freed.
+ *
+ * Return value: the text form or @addr, which must be freed.
+ **/
 char *
 soup_dns_ntop (gconstpointer addr, int family)
 {
@@ -423,9 +441,9 @@ soup_dns_lookup_entry (const char *name)
  *   (eg, 141.213.8.59).
  *
  * Begins asynchronous resolution of @name. The caller should
- * periodically call soup_entry_check_lookup() to see if it is done,
- * and call soup_entry_get_hostent() when soup_entry_check_lookup()
- * returns %TRUE.
+ * periodically call soup_dns_entry_check_lookup() to see if it is
+ * done, and call soup_dns_entry_get_hostent() when
+ * soup_dns_entry_check_lookup() returns %TRUE.
  *
  * Currently, this routine forks and does the lookup, which can cause
  * some problems. In general, this will work ok for most programs most
@@ -433,7 +451,7 @@ soup_dns_lookup_entry (const char *name)
  * systems that copy the entire process when forking.
  *
  * Returns: a #SoupDNSEntry, which will be freed when you call
- * soup_entry_get_hostent() or soup_entry_cancel_lookup().
+ * soup_dns_entry_get_hostent() or soup_dns_entry_cancel_lookup().
  **/
 SoupDNSEntry *
 soup_dns_entry_from_name (const char *name)
@@ -517,9 +535,9 @@ soup_dns_entry_from_name (const char *name)
  * @family: address family of @addr
  *
  * Begins asynchronous resolution of @addr. The caller should
- * periodically call soup_entry_check_lookup() to see if it is done,
- * and call soup_entry_get_hostent() when soup_entry_check_lookup()
- * returns %TRUE.
+ * periodically call soup_dns_entry_check_lookup() to see if it is
+ * done, and call soup_dns_entry_get_hostent() when
+ * soup_dns_entry_check_lookup() returns %TRUE.
  *
  * Currently, this routine forks and does the lookup, which can cause
  * some problems. In general, this will work ok for most programs most
@@ -527,7 +545,7 @@ soup_dns_entry_from_name (const char *name)
  * systems that copy the entire process when forking.
  *
  * Returns: a #SoupDNSEntry, which will be freed when you call
- * soup_entry_get_hostent() or soup_entry_cancel_lookup().
+ * soup_dns_entry_get_hostent() or soup_dns_entry_cancel_lookup().
  **/
 SoupDNSEntry *
 soup_dns_entry_from_addr (gconstpointer addr, int family)
@@ -663,6 +681,15 @@ check_hostent (SoupDNSEntry *entry, gboolean block)
 	soup_dns_unlock ();
 }
 
+/**
+ * soup_dns_entry_check_lookup:
+ * @entry: a #SoupDNSEntry
+ *
+ * Checks if @entry has finished resolving
+ *
+ * Return value: %TRUE if @entry has finished resolving (either
+ * successfully or not)
+ **/
 gboolean
 soup_dns_entry_check_lookup (SoupDNSEntry *entry)
 {
@@ -674,6 +701,16 @@ soup_dns_entry_check_lookup (SoupDNSEntry *entry)
 	return entry->resolved;
 }
 
+/**
+ * soup_dns_entry_get_hostent:
+ * @entry: a #SoupDNSEntry
+ *
+ * Extracts a #hostent from @entry. If @entry had not already finished
+ * resolving, soup_dns_entry_get_hostent() will block until it does.
+ *
+ * Return value: the #hostent (which must be freed with
+ * soup_dns_free_hostent()), or %NULL if it couldn't be resolved.
+ **/
 struct hostent *
 soup_dns_entry_get_hostent (SoupDNSEntry *entry)
 {
@@ -686,6 +723,12 @@ soup_dns_entry_get_hostent (SoupDNSEntry *entry)
 	return h;
 }
 
+/**
+ * soup_dns_entry_cancel_lookup:
+ * @entry: a #SoupDNSEntry
+ *
+ * Cancels the lookup for @entry.
+ **/
 void
 soup_dns_entry_cancel_lookup (SoupDNSEntry *entry)
 {

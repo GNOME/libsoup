@@ -2,11 +2,14 @@
 soup-method
 
 <!-- ##### SECTION Short_Description ##### -->
-
+HTTP method-related defines.
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-
+These can be used if you don't want to specify the HTTP method to
+soup_message_new() as an explicit string. This is purely a stylistic
+consideration. There is no difference between using the define and
+the string itself.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -128,7 +131,9 @@ soup-method
 
 <!-- ##### ENUM SoupMethodId ##### -->
 <para>
-
+This enumeration is used internally by routines that need to check the
+HTTP method in a #SoupMessage against several different possibilities,
+to avoid repeated strcmp()s.
 </para>
 
 @SOUP_METHOD_ID_UNKNOWN: 

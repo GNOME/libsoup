@@ -309,18 +309,39 @@ soup_message_set_response (SoupMessage   *msg,
 	msg->response.length = resp_length;
 }
 
+/**
+ * soup_message_wrote_informational:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %wrote_informational signal, indicating that the IO layer
+ * finished writing an informational (1xx) response for @msg.
+ **/
 void
 soup_message_wrote_informational (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_INFORMATIONAL], 0);
 }
 
+/**
+ * soup_message_wrote_headers:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %wrote_headers signal, indicating that the IO layer
+ * finished writing the (non-informational) headers for @msg.
+ **/
 void
 soup_message_wrote_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_HEADERS], 0);
 }
 
+/**
+ * soup_message_wrote_chunk:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %wrote_chunk signal, indicating that the IO layer
+ * finished writing a chunk of @msg's body.
+ **/
 void
 soup_message_wrote_chunk (SoupMessage *msg)
 {
@@ -335,12 +356,26 @@ wrote_body (SoupMessage *req)
 	g_object_unref (req);
 }
 
+/**
+ * soup_message_wrote_body:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %wrote_body signal, indicating that the IO layer finished
+ * writing the body for @msg.
+ **/
 void
 soup_message_wrote_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_BODY], 0);
 }
 
+/**
+ * soup_message_got_informational:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %got_informational signal, indicating that the IO layer
+ * read a complete informational (1xx) response for @msg.
+ **/
 void
 soup_message_got_informational (SoupMessage *msg)
 {
@@ -357,6 +392,13 @@ got_headers (SoupMessage *req)
 	g_object_unref (req);
 }
 
+/**
+ * soup_message_got_headers:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %got_headers signal, indicating that the IO layer
+ * finished reading the (non-informational) headers for @msg.
+ **/
 void
 soup_message_got_headers (SoupMessage *msg)
 {
@@ -373,6 +415,13 @@ got_chunk (SoupMessage *req)
 	g_object_unref (req);
 }
 
+/**
+ * soup_message_got_chunk:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %got_chunk signal, indicating that the IO layer finished
+ * reading a chunk of @msg's body.
+ **/
 void
 soup_message_got_chunk (SoupMessage *msg)
 {
@@ -389,6 +438,13 @@ got_body (SoupMessage *req)
 	g_object_unref (req);
 }
 
+/**
+ * soup_message_got_body:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %got_body signal, indicating that the IO layer finished
+ * reading the body for @msg.
+ **/
 void
 soup_message_got_body (SoupMessage *msg)
 {
@@ -401,6 +457,13 @@ restarted (SoupMessage *req)
 	soup_message_io_stop (req);
 }
 
+/**
+ * soup_message_restarted:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %restarted signal, indicating that @msg should be
+ * requeued.
+ **/
 void
 soup_message_restarted (SoupMessage *msg)
 {
@@ -414,6 +477,13 @@ finished (SoupMessage *req)
 	req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
+/**
+ * soup_message_finished:
+ * @msg: a #SoupMessage
+ *
+ * Emits the %finished signal, indicating that @msg has been completely
+ * processed.
+ **/
 void
 soup_message_finished (SoupMessage *msg)
 {
@@ -430,6 +500,13 @@ free_header_list (gpointer name, gpointer vals, gpointer user_data)
 	return TRUE;
 }
 
+/**
+ * soup_message_clear_headers:
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
+ *
+ * Clears @hash.
+ **/
 void
 soup_message_clear_headers (GHashTable *hash)
 {
@@ -438,6 +515,15 @@ soup_message_clear_headers (GHashTable *hash)
 	g_hash_table_foreach_remove (hash, free_header_list, NULL);
 }
 
+/**
+ * soup_message_remove_header:
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
+ * @name: the header name to remove
+ *
+ * Removes @name from @hash. If there are multiple values for @name,
+ * they are all removed.
+ **/
 void
 soup_message_remove_header (GHashTable *hash, const char *name)
 {
@@ -452,6 +538,17 @@ soup_message_remove_header (GHashTable *hash, const char *name)
 	}
 }
 
+/**
+ * soup_message_add_header:
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
+ * @name: the header name to add
+ * @value: the value of the new header
+ *
+ * Adds a header with name @name and value @value to @hash. If there
+ * was already a header with name @name, this one does not replace it,
+ * it is merely added to it.
+ **/
 void
 soup_message_add_header (GHashTable *hash, const char *name, const char *value)
 {
@@ -473,14 +570,14 @@ soup_message_add_header (GHashTable *hash, const char *name, const char *value)
 
 /**
  * soup_message_get_header:
- * @hash: a header hash table
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
  * @name: header name.
  * 
- * Lookup the first transport header in @hash with a key equal to
- * @name.
+ * Finds the first header in @hash with name @name.
  * 
  * Return value: the header's value or %NULL if not found.
- */
+ **/
 const char *
 soup_message_get_header (GHashTable *hash, const char *name)
 {
@@ -498,15 +595,15 @@ soup_message_get_header (GHashTable *hash, const char *name)
 
 /**
  * soup_message_get_header_list:
- * @hash: a header hash table
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
  * @name: header name.
  * 
- * Lookup the all transport request headers in @hash with a key equal
- * to @name.
+ * Finds all headers in @hash with name @name.
  * 
- * Return value: a const pointer to a #GSList of header values or
- * %NULL if not found.
- */
+ * Return value: a (possibly empty) list of values of headers with
+ * name @name. The caller should not modify or free this list.
+ **/
 const GSList *
 soup_message_get_header_list (GHashTable *hash, const char *name)
 {
@@ -533,6 +630,17 @@ foreach_value_in_list (gpointer name, gpointer value, gpointer user_data)
 	}
 }
 
+/**
+ * soup_message_foreach_header:
+ * @hash: a header table (the %request_headers or %response_headers
+ * field of a #SoupMessage)
+ * @func: callback function to run for each header
+ * @user_data: data to pass to @func
+ * 
+ * Calls @func once for each header value in @hash. (If there are
+ * headers will multiple values, @func will be called once on each
+ * value.)
+ **/
 void
 soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 {
@@ -546,6 +654,14 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 	g_hash_table_foreach (hash, foreach_value_in_list, &data);
 }
 
+/**
+ * soup_message_cleanup_response:
+ * @req: a #SoupMessage
+ *
+ * Cleans up all response data on @req, so that the request can be sent
+ * again and receive a new response. (Eg, as a result of a redirect or
+ * authorization request.)
+ **/
 void
 soup_message_cleanup_response (SoupMessage *req)
 {
@@ -567,6 +683,13 @@ soup_message_cleanup_response (SoupMessage *req)
 	}
 }
 
+/**
+ * soup_message_set_flags:
+ * @msg: a #SoupMessage
+ * @flags: a set of #SoupMessageFlags values
+ *
+ * Sets the specified flags on @msg.
+ **/
 void
 soup_message_set_flags (SoupMessage *msg, guint flags)
 {
@@ -575,6 +698,14 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
 	msg->priv->msg_flags = flags;
 }
 
+/**
+ * soup_message_get_flags:
+ * @msg: a #SoupMessage
+ *
+ * Gets the flags on @msg
+ *
+ * Return value: the flags
+ **/
 guint
 soup_message_get_flags (SoupMessage *msg)
 {
@@ -583,6 +714,15 @@ soup_message_get_flags (SoupMessage *msg)
 	return msg->priv->msg_flags;
 }
 
+/**
+ * soup_message_set_http_version:
+ * @msg: a #SoupMessage
+ * @version: the HTTP version
+ *
+ * Sets the HTTP version on @msg. The default version is
+ * %SOUP_HTTP_1_1. Setting it to %SOUP_HTTP_1_0 will prevent certain
+ * functionality from being used.
+ **/
 void
 soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
 {
@@ -591,6 +731,15 @@ soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
 	msg->priv->http_version = version;
 }
 
+/**
+ * soup_message_get_http_version:
+ * @msg: a #SoupMessage
+ *
+ * Gets the HTTP version of @msg. This is the minimum of the
+ * version from the request and the version from the response.
+ *
+ * Return value: the HTTP version
+ **/
 SoupHttpVersion
 soup_message_get_http_version (SoupMessage *msg)
 {
@@ -599,6 +748,15 @@ soup_message_get_http_version (SoupMessage *msg)
 	return msg->priv->http_version;
 }
 
+/**
+ * soup_message_is_keepalive:
+ * @msg: a #SoupMessage
+ *
+ * Determines whether or not @msg's connection can be kept alive for
+ * further requests after processing @msg.
+ *
+ * Return value: %TRUE or %FALSE.
+ **/
 gboolean
 soup_message_is_keepalive (SoupMessage *msg)
 {
@@ -635,6 +793,14 @@ soup_message_is_keepalive (SoupMessage *msg)
 	}
 }
 
+/**
+ * soup_message_set_uri:
+ * @msg: a #SoupMessage
+ * @new_uri: the new #SoupUri
+ *
+ * Changes the URI that @msg is directed to (generally as a result
+ * of a redirect).
+ **/
 void
 soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
 {
@@ -651,6 +817,14 @@ soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
 	msg->priv->uri = soup_uri_copy (new_uri);
 }
 
+/**
+ * soup_message_get_uri:
+ * @msg: a #SoupMessage
+ *
+ * Gets @msg's URI
+ *
+ * Return value: the URI @msg is targeted for.
+ **/
 const SoupUri *
 soup_message_get_uri (SoupMessage *msg)
 {
@@ -659,6 +833,14 @@ soup_message_get_uri (SoupMessage *msg)
 	return msg->priv->uri;
 }
 
+/**
+ * soup_message_set_status:
+ * @msg: a #SoupMessage
+ * @status_code: an HTTP status code
+ *
+ * Sets @msg's status code to @status_code. If @status_code is a
+ * known value, it will also set @msg's reason_phrase.
+ **/
 void
 soup_message_set_status (SoupMessage *msg, guint status_code)
 {
@@ -671,6 +853,14 @@ soup_message_set_status (SoupMessage *msg, guint status_code)
 	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
 }
 
+/**
+ * soup_message_set_status_full:
+ * @msg: a #SoupMessage
+ * @status_code: an HTTP status code
+ * @reason_phrase: a description of the status
+ *
+ * Sets @msg's status code and reason phrase.
+ **/
 void
 soup_message_set_status_full (SoupMessage *msg,
 			      guint        status_code,
@@ -687,6 +877,16 @@ soup_message_set_status_full (SoupMessage *msg,
 }
 
 
+/**
+ * soup_message_add_chunk:
+ * @msg: a #SoupMessage
+ * @owner: the ownership of @body
+ * @body: body data
+ * @length: length of @body
+ *
+ * Adds a chunk of response data to @body. (Note that currently
+ * there is no way to send a request using chunked encoding.)
+ **/
 void
 soup_message_add_chunk (SoupMessage   *msg,
 			SoupOwnership  owner,
@@ -717,12 +917,30 @@ soup_message_add_chunk (SoupMessage   *msg,
 	}
 }
 
+/**
+ * soup_message_add_final_chunk:
+ * @msg: a #SoupMessage
+ *
+ * Adds a final, empty chunk of response data to @body. This must
+ * be called after adding the last real chunk, to indicate that
+ * there is no more data.
+ **/
 void
 soup_message_add_final_chunk (SoupMessage *msg)
 {
 	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC, NULL, 0);
 }
 
+/**
+ * soup_message_pop_chunk:
+ * @msg: a #SoupMessage
+ *
+ * Pops a chunk of response data from @msg's chunk list. The caller
+ * must free @chunk itself, and must handle the data in @chunk
+ * according to its %ownership.
+ *
+ * Return value: the chunk, or %NULL if there are no chunks left.
+ **/
 SoupDataBuffer *
 soup_message_pop_chunk (SoupMessage *msg)
 {

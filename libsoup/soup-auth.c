@@ -39,6 +39,17 @@ static AuthScheme known_auth_schemes [] = {
 	{ NULL }
 };
 
+/* FIXME: it should be possible to register new auth schemes! */
+
+/**
+ * soup_auth_new_from_header_list:
+ * @vals: a list of WWW-Authenticate headers from a server response
+ *
+ * Creates a #SoupAuth value based on the strongest available
+ * supported auth type in @vals.
+ *
+ * Return value: the new #SoupAuth, or %NULL if none could be created.
+ **/
 SoupAuth *
 soup_auth_new_from_header_list (const GSList *vals)
 {
@@ -78,6 +89,16 @@ soup_auth_new_from_header_list (const GSList *vals)
 	return auth;
 }
 
+/**
+ * soup_auth_authenticate:
+ * @auth: a #SoupAuth
+ * @username: the username provided by the user or client
+ * @password: the password provided by the user or client
+ *
+ * This is called by the session after requesting a username and
+ * password from the application. @auth should take the information
+ * and do whatever scheme-specific processing is needed.
+ **/
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
 {
@@ -88,6 +109,14 @@ soup_auth_authenticate (SoupAuth *auth, const char *username, const char *passwo
 	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
 }
 
+/**
+ * soup_auth_get_scheme_name:
+ * @auth: a #SoupAuth
+ *
+ * Returns @auth's scheme name. (Eg, "Basic")
+ *
+ * Return value: the scheme name
+ **/
 const char *
 soup_auth_get_scheme_name (SoupAuth *auth)
 {
@@ -96,6 +125,14 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 	return SOUP_AUTH_GET_CLASS (auth)->scheme_name;
 }
 
+/**
+ * soup_auth_get_realm:
+ * @auth: a #SoupAuth
+ *
+ * Returns @auth's realm, if any.
+ *
+ * Return value: the realm name
+ **/
 const char *
 soup_auth_get_realm (SoupAuth *auth)
 {
@@ -104,6 +141,14 @@ soup_auth_get_realm (SoupAuth *auth)
 	return SOUP_AUTH_GET_CLASS (auth)->get_realm (auth);
 }
 
+/**
+ * soup_auth_is_authenticated:
+ * @auth: a #SoupAuth
+ *
+ * Tests if @auth has been given a username and password
+ *
+ * Return value: %TRUE if @auth has been given a username and password
+ **/
 gboolean
 soup_auth_is_authenticated (SoupAuth *auth)
 {
@@ -112,6 +157,16 @@ soup_auth_is_authenticated (SoupAuth *auth)
 	return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
 }
 
+/**
+ * soup_auth_get_authorization:
+ * @auth: a #SoupAuth
+ * @msg: the #SoupMessage to be authorized
+ *
+ * Generates an appropriate "Authorization" header for @msg. (This
+ * will only be called if soup_auth_is_authenticated() returns %TRUE.)
+ *
+ * Return value: the "Authorization" header, which must be freed.
+ **/
 char *
 soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
@@ -121,6 +176,20 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
 	return SOUP_AUTH_GET_CLASS (auth)->get_authorization (auth, msg);
 }
 
+/**
+ * soup_auth_get_protection_space:
+ * @auth: a #SoupAuth
+ * @source_uri: the URI of the request that @auth was generated in
+ * response to.
+ *
+ * Returns a list of paths on the server which @auth extends over.
+ * (All subdirectories of these paths are also assumed to be part
+ * of @auth's protection space, unless otherwise discovered not to
+ * be.)
+ *
+ * Return value: the list of paths, which must be freed with
+ * soup_auth_free_protection_space().
+ **/
 GSList *
 soup_auth_get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 {
@@ -130,6 +199,13 @@ soup_auth_get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 	return SOUP_AUTH_GET_CLASS (auth)->get_protection_space (auth, source_uri);
 }
 
+/**
+ * soup_auth_free_protection_space:
+ * @auth: a #SoupAuth
+ * @space: the return value from soup_auth_get_protection_space()
+ *
+ * Frees @space.
+ **/
 void
 soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 {

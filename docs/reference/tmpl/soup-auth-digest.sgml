@@ -2,11 +2,12 @@
 SoupAuthDigest
 
 <!-- ##### SECTION Short_Description ##### -->
-
+HTTP Digest Authentication
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-
+This implements the Digest HTTP Authentication mechanism, as described
+in RFC 2617.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
