@@ -1,3 +1,13 @@
+2003-10-28  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: 1.99.29
+
+	* libsoup/soup-uri.c (escape_username_password,
+	unescape_username_password): Escape usernames and passwords which
+	contain ':', '@', '/' and '%'.
+	(soup_uri_new): Unescape username and password.
+	(soup_uri_to_string): Escape username and password.
+
 2003-09-26  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.28

@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "soup-uri.h"
 #include "soup-misc.h"
@@ -274,6 +275,72 @@ normalize_path (gchar *path)
 	return;
 }
 
+static char *
+escape_username_password (const char *orig)
+{
+	char *escaped, *e;
+	const char *iter;
+
+	g_return_val_if_fail (orig != NULL, NULL);
+
+	escaped = g_malloc0 (strlen (orig) * 3 + 1);
+	e = escaped;
+
+	for (iter = orig; *iter; iter++) {
+		if (*iter == ':') {
+			strncpy (e, "%3A", 3);
+			e += 3;
+		} else if (*iter == '@') {
+			strncpy (e, "%40", 3);
+			e += 3;
+		} else if (*iter == '/') {
+			strncpy (e, "%2F", 3);
+			e += 3;
+		} else if (*iter == '%') {
+			strncpy (e, "%25", 3);
+			e += 3;
+		} else {
+			*e = *iter;
+			e++;
+		}
+	}
+
+	return escaped;
+}
+
+char *
+unescape_username_password (const char *orig)
+{
+	char *unescaped, *u;
+	const char *iter;
+
+	g_return_val_if_fail (orig != NULL, NULL);
+
+	unescaped = g_malloc0 (strlen (orig) + 1);
+	u = unescaped;
+
+	iter = orig;
+	while (*iter) {
+		if (*iter == '%') {
+			unsigned int c;
+
+			if (sscanf (iter, "%%%2x", &c) == 1) {
+				*u = c;
+
+				u++;
+				iter += 3;
+				continue;
+			}
+		}
+
+		*u = *iter;
+		u++;
+		iter++;
+	}
+
+	return unescaped;
+}
+
 /**
  * soup_uri_new: create a SoupUri object from a string
  * @uri_string: The string containing the URL to scan
@@ -321,10 +388,16 @@ soup_uri_new (const gchar* uri_string)
 	slash = strchr (uri_string, '/');
 	at = strchr (uri_string, '@');
 	if (at && (!slash || at < slash)) {
+		char *tmp;
+
 		colon = strchr (uri_string, ':');
-		if (colon && colon < at)
-			g_uri->passwd = g_strndup (colon + 1, at - colon - 1);
-		else {
+		if (colon && colon < at) {
+			tmp = g_strndup (colon + 1, at - colon - 1);
+
+			g_uri->passwd = unescape_username_password (tmp);
+
+			g_free (tmp);
+		} else {
 			g_uri->passwd = NULL;
 			colon = at;
 		}
@@ -338,7 +411,12 @@ soup_uri_new (const gchar* uri_string)
 			semi = colon;
 		}
 
-		g_uri->user = g_strndup (uri_string, semi - uri_string);
+		tmp = g_strndup (uri_string, semi - uri_string);
+
+		g_uri->user = unescape_username_password (tmp);
+
+		g_free (tmp);
+
 		uri_string = at + 1;
 	} else
 		g_uri->user = g_uri->passwd = g_uri->authmech = NULL;
@@ -396,19 +474,32 @@ soup_uri_new (const gchar* uri_string)
 gchar *
 soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 {
+	char *escaped_user, *escaped_passwd;
+	char *uri_string;
+
 	g_return_val_if_fail (uri != NULL, NULL);
+
+	if (uri->user)
+		escaped_user = escape_username_password (uri->user);
+	else
+		escaped_user = NULL;
+
+	if (uri->passwd && show_passwd)
+		escaped_passwd = escape_username_password (uri->passwd);
+	else
+		escaped_passwd = NULL;
 
 	if (uri->port != -1 &&
 	    uri->port != soup_uri_get_default_port (uri->protocol))
-		return g_strdup_printf(
+		uri_string = g_strdup_printf(
 			"%s%s%s%s%s%s%s%s:%d%s%s%s%s",
 			soup_uri_protocol_to_string (uri->protocol),
-			uri->user ? uri->user : "",
+			escaped_user ? escaped_user : "",
 			uri->authmech ? ";auth=" : "",
 			uri->authmech ? uri->authmech : "",
-			uri->passwd && show_passwd ? ":" : "",
-			uri->passwd && show_passwd ? uri->passwd : "",
-			uri->user ? "@" : "",
+			escaped_passwd ? ":" : "",
+			escaped_passwd ? escaped_passwd : "",
+			escaped_user ? "@" : "",
 			uri->host,
 			uri->port,
 			uri->path && *uri->path != '/' ? "/" : "",
@@ -416,20 +507,25 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->querystring ? "?" : "",
 			uri->querystring ? uri->querystring : "");
 	else
-		return g_strdup_printf(
+		uri_string = g_strdup_printf(
 			"%s%s%s%s%s%s%s%s%s%s%s%s",
 			soup_uri_protocol_to_string (uri->protocol),
-			uri->user ? uri->user : "",
+			escaped_user ? escaped_user : "",
 			uri->authmech ? ";auth=" : "",
 			uri->authmech ? uri->authmech : "",
-			uri->passwd && show_passwd ? ":" : "",
-			uri->passwd && show_passwd ? uri->passwd : "",
+			escaped_passwd ? ":" : "",
+			escaped_passwd ? escaped_passwd : "",
 			uri->user ? "@" : "",
 			uri->host,
 			uri->path && *uri->path != '/' ? "/" : "",
 			uri->path ? uri->path : "",
 			uri->querystring ? "?" : "",
 			uri->querystring ? uri->querystring : "");
+
+	g_free (escaped_user);
+	g_free (escaped_passwd);
+
+	return uri_string;
 }
 
 SoupUri *
