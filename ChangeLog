@@ -1,5 +1,10 @@
 2002-03-07  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Remove
+	debugging g_print.
+
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socket.h: Add soup_address_lookup_in_cache.
 
 	* src/libsoup/soup-socket.c (soup_socket_connect): Handle host

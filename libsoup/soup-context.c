@@ -355,8 +355,6 @@ soup_context_connect_cb (SoupSocket              *socket,
 		ctx->server->connections =
 			g_slist_prepend (ctx->server->connections, new_conn);
 
-		g_print ("Creating new connection: %p\n", new_conn);
-
 		(*data->cb) (ctx, 
 			     SOUP_CONNECT_ERROR_NONE, 
 			     new_conn, 
