@@ -691,15 +691,24 @@ soup_address_new (const gchar* name,
 			/*
 			 * Existing valid request, use it.
 			 */
-			soup_address_ref (ia);
+			if (soup_address_get_port (ia) == port) {
+				soup_address_ref (ia);
+			} else {
+				SoupAddress *new_ia = soup_address_copy (ia);
+				/* We can reuse the address, but we have to change port */
+				soup_address_set_port (new_ia, port);
+				ia = new_ia;
+			}
 
 			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
-
 			return NULL;
-		} else if (ia) {
+		} else if (ia && soup_address_get_port (ia) == port) {
 			/*
 			 * Lookup currently in progress.
 			 * Add func to list of callbacks in state.
+			 * Note that if it's not the same port, we have to do
+			 * the lookup again, since there's no way to communicate
+			 * the port change.
 			 */
 			SoupAddressCbData *cb_data;
 
@@ -1074,6 +1083,27 @@ soup_address_unref (SoupAddress* ia)
 	}
 }
 
+/**
+ * soup_address_copy
+ * @ia: SoupAddress to copy
+ *
+ * Creates a copy of the given SoupAddress
+ **/
+SoupAddress *
+soup_address_copy (SoupAddress* ia)
+{
+	SoupAddress* new_ia;
+	g_return_val_if_fail (ia != NULL, NULL);
+
+	new_ia = g_new0(SoupAddress, 1);
+	new_ia->ref_count = 1;
+
+	new_ia->name = g_strdup (ia->name);
+	memcpy (&new_ia->sa, &ia->sa, sizeof(struct sockaddr));
+
+	return new_ia;
+}
+
 #ifndef SOUP_WIN32  /*********** Unix code ***********/
 
 static gboolean
@@ -1429,7 +1459,9 @@ soup_address_get_name_sync (SoupAddress *addr)
 	const char *ret = (const char *) 0xdeadbeef;
 
 	soup_address_get_name (addr, 
+
 			       soup_address_get_name_sync_cb, 
+
 			       (gpointer) &ret);
 
 	while (1) {

@@ -43,6 +43,8 @@ void                 soup_address_ref                (SoupAddress*       ia);
 
 void                 soup_address_unref              (SoupAddress*       ia);
 
+SoupAddress *        soup_address_copy               (SoupAddress*       ia);
+
 
 typedef gpointer SoupAddressGetNameId;
 

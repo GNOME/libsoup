@@ -1,3 +1,10 @@
+2001-09-17  Vladimir Vukicevic  <vladimir@ximian.com>
+
+	* src/libsoup/soup-socket.c, src/libsoup/soup-socket.h:
+	Added soup_address_copy().  Changed soup_address_new to check
+	whether the ports are the same before using a cached
+	address.
+
 2001-09-14  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-serializer.c
