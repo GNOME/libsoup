@@ -1,5 +1,11 @@
 2001-12-06  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-socket.c (soup_socket_connect_tcp_cb): Free
+	state before callback.
+	(soup_socket_connect_inetaddr_cb): Don't shadow param.
+
+2001-12-06  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-method.[ch]: Create.
 
 	* src/libsoup/soup-dav-server.c: Rehash to be controlled by

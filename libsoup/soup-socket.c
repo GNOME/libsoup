@@ -309,17 +309,19 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 			    gpointer data)
 {
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
-
-	if (status == SOUP_SOCKET_NEW_STATUS_OK)
-		(*state->func) (socket,
-				SOUP_SOCKET_CONNECT_ERROR_NONE,
-				state->data);
-	else
-		(*state->func) (NULL,
-				SOUP_SOCKET_CONNECT_ERROR_NETWORK,
-				state->data);
+	SoupSocketConnectFn func = state->func;
+	gpointer user_data = state->data;
 
 	g_free (state);
+
+	if (status == SOUP_SOCKET_NEW_STATUS_OK)
+		(*func) (socket,
+			 SOUP_SOCKET_CONNECT_ERROR_NONE,
+			 user_data);
+	else
+		(*func) (NULL,
+			 SOUP_SOCKET_CONNECT_ERROR_NETWORK,
+			 user_data);
 }
 
 static void
@@ -337,18 +339,13 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 		soup_address_unref (inetaddr);
 	} else {
 		SoupSocketConnectFn func = state->func;
-		gpointer data = state->data;
+		gpointer user_data = state->data;
 
-		/*
-		 * FIXME: If we don't free before the callback here, we SEGV
-		 * on bad hostnames.  It doesn't seem like we are double freeing
-		 * state, so is this chunk allocatior corruption elsewhere? 
-		 * 
-		 * Trip with uri like http://alex@foo:localhost/cgi-bin/test-cgi
-		 */
 		g_free (state);
 
-		(*func) (NULL, SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, data);
+		(*func) (NULL, 
+			 SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, 
+			 user_data);
 	}
 }
 
