@@ -72,32 +72,49 @@ typedef void (*SoupCallbackFn) (SoupMessage   *req,
 				SoupErrorCode  err,
 				gpointer       user_data);
 
-SoupMessage       *soup_message_new        (SoupContext       *context,
-					    SoupAction         action);
+SoupMessage   *soup_message_new                (SoupContext       *context,
+						SoupAction         action);
 
-SoupMessage       *soup_message_new_full   (SoupContext       *context,
-					    SoupAction         action,
-					    SoupOwnership      req_owner,
-					    gchar             *req_body,
-					    gulong             req_length);
+SoupMessage   *soup_message_new_full           (SoupContext       *context,
+						SoupAction         action,
+						SoupOwnership      req_owner,
+						gchar             *req_body,
+						gulong             req_length);
 
-void               soup_message_free       (SoupMessage       *msg);
+void           soup_message_free               (SoupMessage       *msg);
 
-void               soup_message_cancel     (SoupMessage       *msg);
+void           soup_message_cancel             (SoupMessage       *msg);
 
-void               soup_message_add_header (SoupMessage       *msg,
-					    gchar             *name,
-					    gchar             *value);
+SoupErrorCode  soup_message_send               (SoupMessage       *msg);
 
-SoupErrorCode      soup_message_send       (SoupMessage       *msg);
+void           soup_message_queue              (SoupMessage       *msg, 
+					        SoupCallbackFn     callback, 
+					        gpointer           user_data);
 
-void               soup_message_queue      (SoupMessage       *req, 
-					    SoupCallbackFn     callback, 
-					    gpointer           user_data);
+void           soup_message_set_request_header (SoupMessage       *req,
+						gchar             *name,
+						gchar             *value);
 
-/* 
- * soup_queue_message() is deprecated. Replace with soup_message_queue.
- */
-#define soup_queue_message soup_message_queue
+gchar         *soup_message_get_request_header (SoupMessage       *req,
+						gchar             *name);
+
+void           soup_message_set_response_header (SoupMessage      *req,
+						 gchar            *name,
+						 gchar            *value);
+
+gchar         *soup_message_get_response_header (SoupMessage      *req,
+						 gchar            *name);
+
+/* FIXME: None of these are implemented yet, oh well... */
+typedef enum {
+	SOUP_MESSAGE_FOLLOW_REDIRECT = (1 << 1),
+	SOUP_MESSAGE_NO_COOKIE       = (1 << 2),
+	SOUP_MESSAGE_PROCESS_CHUNKS  = (1 << 3)
+} SoupMessageFlags;
+
+void           soup_message_set_flags          (SoupMessage       *msg,
+						guint              flags);
+
+guint          soup_message_get_flags          (SoupMessage       *msg);
 
 #endif /*SOUP_MESSAGE_H*/

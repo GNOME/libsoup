@@ -256,6 +256,21 @@ soup_uri_to_string (const SoupUri *uri, gboolean show_passwd)
 			uri->querystring ? uri->querystring : "");
 }
 
+SoupUri *
+soup_uri_copy (const SoupUri* uri)
+{
+	gchar *uri_str;
+	SoupUri *dup;
+
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	uri_str = soup_uri_to_string (uri, TRUE);
+	dup = soup_uri_new (uri_str);
+	g_free (uri_str);
+
+	return dup;
+}
+
 void
 soup_uri_free (SoupUri *uri)
 {

@@ -1,3 +1,14 @@
+2001-05-10  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-queue.c (soup_finish_read): set
+	response.owner to SOUP_BUFFER_SYSTEM_OWNED.
+
+	* src/soup-core/soup-uri.c (soup_uri_copy): added.
+
+	* src/soup-core/soup-context.c (soup_context_get): Free the
+	temporary URI.
+	(soup_context_from_uri): dup the passed uri if creating a new context.
+
 2001-05-09  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-skels.c

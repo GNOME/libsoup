@@ -51,20 +51,24 @@ SoupContext *
 soup_context_get (gchar *uri) 
 {
 	SoupUri *suri;
+	SoupContext *con;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
 	suri = soup_uri_new (uri);
 	if (!suri) return NULL;
 	
-	return soup_context_from_uri (suri);
+	con = soup_context_from_uri (suri);
+	soup_uri_free (suri);
+
+	return con;
 }
 
 /**
- * soup_context_get:
- * @uri: the stringified URI.
+ * soup_context_from_uri:
+ * @suri: a %SoupUri.
  *
- * Returns a pointer to the %SoupContext representing @uri. If a context
+ * Returns a pointer to the %SoupContext representing @suri. If a context
  * already exists for the URI, it is returned with an added reference.
  * Otherwise, a new context is created with a reference count of one.
  *
@@ -88,7 +92,7 @@ soup_context_from_uri (SoupUri *suri)
 	if (!serv) {
 		serv = g_new0 (SoupServer, 1);
 		serv->host = g_strdup (suri->host);
-		g_hash_table_insert (soup_servers, suri->host, serv);
+		g_hash_table_insert (soup_servers, serv->host, serv);
 	}
 
 	if (!serv->contexts)
@@ -99,10 +103,10 @@ soup_context_from_uri (SoupUri *suri)
 	if (!ret) {
 		ret = g_new0 (SoupContext, 1);
 		ret->server = serv;
-		ret->uri = suri;
+		ret->uri = soup_uri_copy (suri);
 		ret->refcnt = 0;
 
-		g_hash_table_insert (serv->contexts, suri->path, ret);
+		g_hash_table_insert (serv->contexts, ret->uri->path, ret);
 	}
 
 	soup_context_ref (ret);

@@ -56,6 +56,8 @@ SoupUri *soup_uri_new       (const gchar *uri_string);
 
 gchar   *soup_uri_to_string (const SoupUri *uri, gboolean show_password);
 
+SoupUri *soup_uri_copy      (const SoupUri *uri);
+
 void     soup_uri_free      (SoupUri *uri);
 
 #endif /*SOUP_URI_H*/

@@ -178,6 +178,7 @@ soup_finish_read (SoupMessage *req)
 	GByteArray *arr = req->priv->recv_buf;
 	gint index = req->priv->header_len;
 
+	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
 	req->response.length = arr->len - index ;
 	req->response.body = g_memdup (&arr->data [index],
 				       req->response.length + 1);

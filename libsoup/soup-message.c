@@ -126,9 +126,9 @@ soup_message_cancel (SoupMessage *req)
 }
 
 void
-soup_message_add_header (SoupMessage *req,
-			 gchar       *name,
-			 gchar       *value) 
+soup_message_set_request_header (SoupMessage *req,
+				 gchar       *name,
+				 gchar       *value) 
 {
 	g_return_if_fail (req != NULL);
 
@@ -157,4 +157,16 @@ soup_message_send (SoupMessage *msg)
 	}
 
 	return SOUP_ERROR_NONE;
+}
+
+void
+soup_message_set_flags (SoupMessage *msg, guint flags)
+{
+	msg->priv->msg_flags = flags;
+}
+
+guint
+soup_message_get_flags (SoupMessage *msg)
+{
+	return msg->priv->msg_flags;
 }
