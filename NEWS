@@ -1,4 +1,11 @@
-Changes in libsoup from 2.2.1 to 2.2.2:
+Changes in libsoup from 2.2.2 to 2.2.3:
+
+	* Now compiles against gnutls 1.2.0 [57811]
+
+	* Fixed a bug that could result in 100% CPU usage if an SSL
+	  server closed the connection uncleanly. [73352]
+
+Changes from 2.2.1 to 2.2.2:
 
 	* The SSL validation fix from 2.2.1 [64414] is now completely
           fixed. (Part of the fix didn't actually make it into 2.2.1)
