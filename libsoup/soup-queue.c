@@ -462,7 +462,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 				SOUP_ERROR_CANT_CONNECT,
 				phrase);
 
-		/* NOTE: Don't call soup_message_issue_callback here */
+		soup_message_issue_callback (req);
 		return;
 	}
 
@@ -572,7 +572,7 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 				"Unable to create secure data "
 				"tunnel through proxy");
 
-			/* NOTE: Don't call soup_message_issue_callback here */
+			soup_message_issue_callback (req);
 			return TRUE;
 		}
 	}
@@ -615,7 +615,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 				SOUP_ERROR_CANT_CONNECT,
 				"Unable to resolve hostname");
 
-		/* NOTE: Don't call soup_message_issue_callback here */
+		soup_message_issue_callback (req);
 		break;
 
 	case SOUP_CONNECT_ERROR_NETWORK:
@@ -626,7 +626,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			soup_message_set_error (req, 
 						SOUP_ERROR_CANT_CONNECT);
 
-		/* NOTE: Don't call soup_message_issue_callback here */
+		soup_message_issue_callback (req);
 		break;
 	}
 
@@ -669,6 +669,15 @@ soup_queue_next_request (void)
 	return ret;
 }
 
+static gboolean
+request_in_progress (SoupMessage *req)
+{
+	if (!soup_active_requests)
+		return FALSE;
+
+	return g_slist_index (soup_active_requests, req) != -1;
+}
+
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
@@ -697,9 +706,7 @@ soup_idle_handle_new_requests (gpointer unused)
 					soup_queue_connect_cb, 
 					req);
 
-			if (req->errorcode)
-				soup_message_issue_callback (req);
-			else if (connect_tag)
+			if (connect_tag && request_in_progress (req))
 				req->priv->connect_tag = connect_tag;
 		}
 	}
