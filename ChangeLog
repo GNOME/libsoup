@@ -1,3 +1,16 @@
+2002-02-25  JP Rosevear  <jpr@ximian.com>
+
+	* src/soup-httpd/Makefile.am: add popt cflags to includes
+
+	* src/libsoup/soup-socket.c: apparently INET_ADDRSTRLEN is not
+	defined on some unix platforms
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): handle not
+	have inet_pton and inet_aton with inet_addr
+
+	* configure.in: check for inet_aton as well and allow config
+	options to specify popt location
+
 2002-02-23  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-queue.c (proxy_connect): Pull proxy connection

@@ -133,16 +133,30 @@ AC_SUBST(XML_LIBS)
 
 
 dnl ***********************
-dnl *** Checks for popt ***
+dnl *** Checks for poptl ***
 dnl ***********************
+AC_ARG_WITH(popt-includes,
+	    [  --with-popt-includes     Specify location of popt headers],
+	    [popt_inc_prefix=-I$withval])
+
+AC_ARG_WITH(popt-libs,
+	    [  --with-popt-libs         Specify location of popt libs],
+	    [popt_prefix=$withval],
+	    [popt_prefix=/usr/lib])
+	
+save_CPPFLAGS=$CPPFLAGS
+save_LIBS=$LIBS
+CPPFLAGS="$CPPFLAGS $popt_inc_prefix"
+LIBS="$LIBS -L$prefix"
 
 AC_CHECK_LIB(popt, 
 	     poptGetContext, 
 	     [POPT_LIBS="$LIBS -lpopt"] , 
 	     AC_MSG_ERROR([popt is required]))
-AC_CHECK_HEADERS(popt.h,, AC_MSG_ERROR([popt.h is required]))
+AC_CHECK_HEADERS(popt.h, [POPT_CFLAGS="$CFLAGS"], AC_MSG_ERROR([popt.h is required]))
 
-POPT_CFLAGS="$CPPFLAGS"
+CPPFLAGS=$save_CPPFLAGS
+LIBS=$save_LIBS
 
 AC_SUBST(POPT_CFLAGS)
 AC_SUBST(POPT_LIBS)
@@ -192,7 +206,7 @@ AC_CHECK_HEADERS(sys/ioctl.h sys/filio.h)
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
 AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, gethostbyname))
 
-AC_CHECK_FUNCS(inet_pton)
+AC_CHECK_FUNCS(inet_pton inet_aton)
 
 ### Check if we have gethostbyname_r (if so, assume gethostbyaddr_r).
 AC_CHECK_FUNC(gethostbyname_r,

@@ -27,10 +27,6 @@
 #  define socklen_t gint32
 #  define SOUP_CLOSE_SOCKET(fd) closesocket(fd)
 #  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_socket(fd)
-#  ifndef INET_ADDRSTRLEN
-#    define INET_ADDRSTRLEN 16
-#    define INET6_ADDRSTRLEN 46
-#  endif
 #else
 #  include <unistd.h>
 #  ifndef socklen_t
@@ -38,6 +34,11 @@
 #  endif
 #  define SOUP_CLOSE_SOCKET(fd) close(fd)
 #  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_unix_new(fd)
+#endif
+
+#ifndef INET_ADDRSTRLEN
+#  define INET_ADDRSTRLEN 16
+#  define INET6_ADDRSTRLEN 46
 #endif
 
 #define SOUP_SOCKADDR_IN(s) (*((struct sockaddr_in*) &s))

@@ -582,7 +582,15 @@ soup_address_new (const gchar* name,
 #ifdef HAVE_INET_PTON
 	inaddr_ok = inet_pton (AF_INET, name, &inaddr) != 0;
 #else
+#  ifdef HAVE_INET_ATON
 	inaddr_ok = inet_aton (name, &inaddr) != 0;
+#  else
+	inaddr = inet_addr (name);
+	if (inaddr == INADDR_NONE)
+		inaddr_ok = FALSE;
+	else
+		inaddr_ok = TRUE;
+#  endif
 #endif
 	if (inaddr_ok) {
 		ia = g_new0 (SoupAddress, 1);
