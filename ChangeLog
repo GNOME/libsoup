@@ -1,3 +1,9 @@
+2001-05-18  Alex Graveley  <alex@ximian.com>
+
+	* docs/reference/soup-docs.sgml: Prune soup-core internal files.
+
+	* configure.in: Add pretty section headers, move gtk-doc section
+
 2001-05-17  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-skels.c
