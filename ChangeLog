@@ -1,3 +1,9 @@
+2001-05-29  Dick Porter  <dick@ximian.com>
+
+	* tests/Makefile.am: Put the generated code into the build
+	directory.  Run soup-config through /bin/sh to work around a
+	permissions problem.
+
 2001-05-25  Dick Porter  <dick@ximian.com>
 
 	* Documentation
