@@ -1,3 +1,23 @@
+2001-03-17  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-thread.c: Thread WSDL structures together.
+
+	* src/soup-wsdl/wsdl-soap-stubs.c: 
+	* src/soup-wsdl/wsdl-soap-headers.h: Most of the element matching
+	has been moved in the new threading routings.
+
+	* src/soup-wsdl/wsdl-parse.h: WSDL elements have extra pointers to
+	thread structures together.
+
+	* src/soup-wsdl/wsdl-memory.c: Free GSLists. WSDL elements have
+	extra pointers to thread structures together, and some of these
+	are GSLists that need freeing too.
+
+	* src/soup-wsdl/wsdl-locate.c: Some more lookup functions.
+
+	* src/soup-wsdl/main.c (main): Call the WSDL element threader, and
+	only proceed to write files if it succeeds.
+
 2001-03-15  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-core/soup-apache.c (soup_apache_message_create): use
