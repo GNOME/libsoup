@@ -1,3 +1,12 @@
+2001-09-12  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-wsdl/Makefile.am (soup_wsdl_LDADD): Remove libwsdl.so
+	link.
+
+	* src/libwsdl/Makefile.am (libwsdl_build_a_SOURCES): Include
+	libwsdl.so sources in libwsdl-build.a so libtool 1.3.5 doesn't
+	ill.  Remove libwsdl_build_a_LIBADD.
+
 2001-08-30  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-wsdl/Makefile.am (soup_wsdl_LDADD): Link with
