@@ -62,7 +62,7 @@ typedef struct {
 #define soup_sockaddr_max sockaddr_in
 #endif
 
-struct _SoupMessagePrivate {
+struct SoupMessagePrivate {
 	SoupConnectId      connect_tag;
 	gpointer           read_tag;
 	gpointer           write_tag;
@@ -79,9 +79,8 @@ struct _SoupMessagePrivate {
 
 	SoupHttpVersion    http_version;
 
-	SoupServer        *server;
-	SoupSocket        *server_sock;
-	SoupServerMessage *server_msg;
+	SoupConnection    *connection;
+	SoupSocket        *socket;
 };
 
 /* from soup-context.c */

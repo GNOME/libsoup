@@ -16,6 +16,7 @@
 #include <glib.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
+#include <libsoup/soup-server-message.h>
 
 static void
 print_header (gpointer name, gpointer value, gpointer data)
@@ -103,6 +104,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
  DONE:
 	g_free (path);
+	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
+					  SOUP_TRANSFER_CONTENT_LENGTH);
 	printf ("  -> %d %s\n\n", msg->errorcode, msg->errorphrase);
 }
 

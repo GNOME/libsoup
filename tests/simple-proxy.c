@@ -35,6 +35,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		return;
 	}
 
+	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
+					  SOUP_TRANSFER_CONTENT_LENGTH);
 	soup_message_send (msg);
 }
 

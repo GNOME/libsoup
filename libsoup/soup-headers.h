@@ -1,11 +1,6 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-headers.h: Asyncronous Callback-based HTTP Request Queue.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_HEADERS_H
@@ -16,24 +11,24 @@
 
 /* HTTP Header Parsing */
 
-gboolean    soup_headers_parse_request      (gchar            *str, 
-					     gint              len, 
+gboolean    soup_headers_parse_request      (char             *str, 
+					     int               len, 
 					     GHashTable       *dest, 
-					     gchar           **req_method,
-					     gchar           **req_path,
+					     char            **req_method,
+					     char            **req_path,
 					     SoupHttpVersion  *ver);
 
 gboolean    soup_headers_parse_status_line  (const char        *status_line,
 					     SoupHttpVersion  *ver,
 					     guint            *status_code,
-					     gchar           **status_phrase);
+					     char            **status_phrase);
 
-gboolean    soup_headers_parse_response     (gchar            *str, 
-					     gint              len, 
+gboolean    soup_headers_parse_response     (char             *str, 
+					     int               len, 
 					     GHashTable       *dest,
 					     SoupHttpVersion  *ver,
 					     guint            *status_code,
-					     gchar           **status_phrase);
+					     char            **status_phrase);
 
 /* HTTP parameterized header parsing */
 

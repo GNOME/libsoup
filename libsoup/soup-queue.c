@@ -57,9 +57,10 @@ static void
 soup_queue_error_cb (gboolean body_started, gpointer user_data)
 {
 	SoupMessage *req = user_data;
+	SoupConnection *conn = soup_message_get_connection (req);
 	gboolean conn_is_new;
 
-	conn_is_new = soup_connection_is_new (req->connection);
+	conn_is_new = soup_connection_is_new (conn);
 	soup_message_disconnect (req);
 
 	switch (req->status) {
@@ -231,16 +232,11 @@ soup_queue_read_done_cb (char     *body,
 			 gpointer  user_data)
 {
 	SoupMessage *req = user_data;
-	const char *connection;
 
-	/* Handle connection persistence */
-	connection = soup_message_get_header (req->response_headers,
-					      "Connection");
-	if ((connection && !g_strcasecmp (connection, "close")) ||
-	    soup_message_get_http_version (req) == SOUP_HTTP_1_0)
-		soup_message_disconnect (req);
+	if (soup_message_is_keepalive (req))
+		soup_connection_mark_old (soup_message_get_connection (req));
 	else
-		soup_connection_mark_old (req->connection);
+		soup_message_disconnect (req);
 
 	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
 	req->response.length = len;
@@ -252,7 +248,7 @@ soup_queue_read_done_cb (char     *body,
 		SoupSocket *sock;
 		gboolean overwrt;
 
-		sock = soup_connection_get_socket (req->connection);
+		sock = soup_message_get_socket (req);
 		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 
 		req->priv->read_tag = 
@@ -455,8 +451,8 @@ start_request (SoupContext *ctx, SoupMessage *req)
 	SoupSocket *sock;
 	gboolean overwrt; 
 
-	sock = soup_connection_get_socket (req->connection);
-	if (!socket) {	/* FIXME */
+	sock = soup_message_get_socket (req);
+	if (!sock) {	/* FIXME */
 		SoupProtocol proto;
 		gchar *phrase;
 
@@ -510,7 +506,7 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 	gboolean *ret = user_data;
 
 	if (!SOUP_MESSAGE_IS_ERROR (msg)) {
-		soup_connection_start_ssl (msg->connection);		
+		soup_socket_start_ssl (soup_message_get_socket (msg));
 		*ret = TRUE;
 	}
 }
@@ -531,13 +527,13 @@ proxy_https_connect (SoupContext    *proxy,
 		return FALSE;
 
 	connect_msg = soup_message_new (dest_ctx, SOUP_METHOD_CONNECT);
-	connect_msg->connection = g_object_ref (conn);
+	soup_message_set_connection (connect_msg, conn);
 	soup_message_add_handler (connect_msg, 
 				  SOUP_HANDLER_POST_BODY,
 				  proxy_https_connect_cb,
 				  &ret);
 	soup_message_send (connect_msg);
-	soup_message_free (connect_msg);
+	g_object_unref (connect_msg);
 
 	return ret;
 }
@@ -583,11 +579,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	SoupMessage *req = user_data;
 
 	req->priv->connect_tag = NULL;
-	if (conn)
-		g_object_ref (conn);
-	if (req->connection)
-		g_object_unref (req->connection);
-	req->connection = conn;
+	soup_message_set_connection (req, conn);
 
 	switch (err) {
 	case SOUP_ERROR_OK:
@@ -670,6 +662,7 @@ static gboolean
 soup_idle_handle_new_requests (gpointer unused)
 {
 	SoupMessage *req = soup_queue_first_request ();
+	SoupConnection *conn;
 
 	for (; req; req = soup_queue_next_request ()) {
 		SoupContext *ctx, *proxy;
@@ -682,8 +675,8 @@ soup_idle_handle_new_requests (gpointer unused)
 
 		req->status = SOUP_STATUS_CONNECTING;
 
-		if (req->connection && 
-		    soup_connection_is_connected (req->connection))
+		conn = soup_message_get_connection (req);
+		if (conn && soup_connection_is_connected (conn))
 			start_request (ctx, req);
 		else {
 			gpointer connect_tag;

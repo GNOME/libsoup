@@ -589,17 +589,20 @@ soup_context_lookup_auth (SoupContext *ctx, SoupMessage *msg)
 
 	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), NULL);
 
-	if (ctx->priv->server->ntlm_auths && msg && msg->connection) {
-		SoupAuth *auth;
+	if (ctx->priv->server->ntlm_auths && msg) {
+		SoupConnection *conn = soup_message_get_connection (msg);
 
-		auth = g_hash_table_lookup (ctx->priv->server->ntlm_auths,
-					    msg->connection);
-		if (!auth) {
-			auth = soup_auth_ntlm_new ();
-			g_hash_table_insert (ctx->priv->server->ntlm_auths,
-					     msg->connection, auth);
+		if (conn) {
+			GHashTable *ntlm_auths = ctx->priv->server->ntlm_auths;
+			SoupAuth *auth;
+
+			auth = g_hash_table_lookup (ntlm_auths, conn);
+			if (!auth) {
+				auth = soup_auth_ntlm_new ();
+				g_hash_table_insert (ntlm_auths, conn, auth);
+			}
+			return auth;
 		}
-		return auth;
 	}
 
 	if (!ctx->priv->server->auth_realms)
@@ -752,7 +755,8 @@ soup_context_update_auth (SoupContext *ctx, SoupMessage *msg)
 							"WWW-Authenticate");
 	}
 
-	return update_auth_internal (ctx, msg->connection, headers, TRUE);
+	return update_auth_internal (ctx, soup_message_get_connection (msg),
+				     headers, TRUE);
 }
 
 void

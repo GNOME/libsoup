@@ -37,7 +37,6 @@ GType soup_connection_get_type (void);
 
 
 SoupConnection *soup_connection_new            (SoupSocket     *sock);
-void            soup_connection_start_ssl      (SoupConnection *conn);
 void            soup_connection_disconnect     (SoupConnection *conn);
 gboolean        soup_connection_is_connected   (SoupConnection *conn);
 

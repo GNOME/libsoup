@@ -59,17 +59,37 @@ init (GObject *object)
 }
 
 static void
+disconnect_internal (SoupSocket *sock)
+{
+	g_io_channel_unref (sock->priv->iochannel);
+	sock->priv->iochannel = NULL;
+
+	if (sock->priv->read_tag) {
+		g_source_remove (sock->priv->read_tag);
+		sock->priv->read_tag = 0;
+	}
+	if (sock->priv->write_tag) {
+		g_source_remove (sock->priv->write_tag);
+		sock->priv->write_tag = 0;
+	}
+	if (sock->priv->error_tag) {
+		g_source_remove (sock->priv->error_tag);
+		sock->priv->error_tag = 0;
+	}
+}
+
+static void
 finalize (GObject *object)
 {
 	SoupSocket *sock = SOUP_SOCKET (object);
+
+	if (sock->priv->iochannel)
+		disconnect_internal (sock);
 
 	if (sock->priv->local_addr)
 		g_object_unref (sock->priv->local_addr);
 	if (sock->priv->remote_addr)
 		g_object_unref (sock->priv->remote_addr);
-
-	if (sock->priv->iochannel)
-		g_io_channel_unref (sock->priv->iochannel);
 
 	if (sock->priv->watch)
 		g_source_remove (sock->priv->watch);
@@ -526,21 +546,7 @@ soup_socket_disconnect (SoupSocket *sock)
 	if (!sock->priv->iochannel)
 		return;
 
-	g_io_channel_unref (sock->priv->iochannel);
-	sock->priv->iochannel = NULL;
-
-	if (sock->priv->read_tag) {
-		g_source_remove (sock->priv->read_tag);
-		sock->priv->read_tag = 0;
-	}
-	if (sock->priv->write_tag) {
-		g_source_remove (sock->priv->write_tag);
-		sock->priv->write_tag = 0;
-	}
-	if (sock->priv->error_tag) {
-		g_source_remove (sock->priv->error_tag);
-		sock->priv->error_tag = 0;
-	}
+	disconnect_internal (sock);
 
 	/* Give all readers a chance to notice the connection close */
 	g_signal_emit (sock, signals[READABLE], 0);

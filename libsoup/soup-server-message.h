@@ -6,22 +6,54 @@
 #ifndef SOUP_SERVER_MESSAGE_H
 #define SOUP_SERVER_MESSAGE_H 1
 
-#include <glib.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-server.h>
+#include <libsoup/soup-transfer.h>
 
-typedef struct SoupServerMessage SoupServerMessage;
+#define SOUP_TYPE_SERVER_MESSAGE            (soup_server_message_get_type ())
+#define SOUP_SERVER_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessage))
+#define SOUP_SERVER_MESSAGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessageClass))
+#define SOUP_IS_SERVER_MESSAGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SERVER_MESSAGE))
+#define SOUP_IS_SERVER_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SERVER_MESSAGE))
+#define SOUP_SERVER_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessageClass))
 
-SoupServerMessage *soup_server_message_new        (SoupMessage       *src_msg);
+typedef struct SoupServerMessagePrivate SoupServerMessagePrivate;
 
-void               soup_server_message_start      (SoupServerMessage *servmsg);
+typedef struct {
+	SoupMessage parent;
 
-void               soup_server_message_add_data   (SoupServerMessage *servmsg,
-						   SoupOwnership      owner,
-						   char              *body,
-						   gulong             length);
+	SoupServerMessagePrivate *priv;
+} SoupServerMessage;
 
-void               soup_server_message_finish     (SoupServerMessage *servmsg);
+typedef struct {
+	SoupMessageClass parent_class;
 
-SoupMessage       *soup_server_message_get_source (SoupServerMessage *servmsg);
+} SoupServerMessageClass;
+
+GType soup_server_message_get_type (void);
+
+
+SoupServerMessage    *soup_server_message_new          (SoupServer           *server,
+							SoupSocket           *sock);
+
+SoupServer           *soup_server_message_get_server   (SoupServerMessage    *smsg);
+
+void                  soup_server_message_set_encoding (SoupServerMessage    *smsg,
+							SoupTransferEncoding  encoding);
+SoupTransferEncoding  soup_server_message_get_encoding (SoupServerMessage    *smsg);
+
+void                  soup_server_message_start        (SoupServerMessage    *smsg);
+gboolean              soup_server_message_is_started   (SoupServerMessage    *smsg);
+
+void                  soup_server_message_add_chunk    (SoupServerMessage    *smsg,
+							SoupOwnership         owner,
+							char                 *body,
+							gulong                length);
+SoupDataBuffer       *soup_server_message_get_chunk    (SoupServerMessage    *smsg);
+
+void                  soup_server_message_finish       (SoupServerMessage    *smsg);
+gboolean              soup_server_message_is_finished  (SoupServerMessage    *smsg);
+
+
 
 #endif /* SOUP_SERVER_H */

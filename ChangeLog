@@ -1,3 +1,67 @@
+2003-08-20  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message.c: Make this a GObject. (Note that since
+	SoupMessage was not refcounted before, it's not really refcounted
+	now either. TBF)
+	(soup_message_free): Gone, replaced by g_object_unref
+	(soup_message_copy, soup_message_foreach_remove_header): Remove
+	these, since neither was currently functional.
+	(soup_message_is_keepalive): New utility function to look at
+	HTTP version and request/response headers to decide if a message
+	indicates the connection should be kept alive.
+	(soup_message_set_connection, soup_message_get_connection): New
+	(soup_message_get_socket): New
+
+	* libsoup/soup-server-message.c: Make this a subclass of
+	SoupMessage.
+	(soup_server_message_new): Now takes a SoupServer and SoupSocket
+	(soup_server_message_get_server): New
+	(soup_server_message_set_encoding,
+	soup_server_message_get_encoding): Get/set whether the message
+	should be sent with content-length or chunked encoding
+	(soup_server_message_is_started, soup_server_message_is_finished):
+	Private member accessors.
+	(soup_server_message_add_chunk): Renamed from add_data
+	(soup_server_message_get_chunk): Pops a chunk from the list.
+	(soup_server_message_get_source): Gone
+
+	* libsoup/soup-server.c: Update for SoupServerMessage changes.
+	(error_cb, write_done_cb): All the cleanup stuff that used to be
+	here happens automatically by unreffing the message now.
+	(get_response_header): Remove some erroneous leftover CGI stuff
+	(issue_bad_request): add "Connection: close" to the response.
+	(read_headers_cb): clean this up a bit. Reject HTTP/1.1 messages
+	with no Host header as per RFC 2616.
+
+	* libsoup/soup-connection.c (soup_connection_start_ssl): Gone
+	(soup_connection_set_in_use): Let the caller set the connection to
+	"not in use" even after the socket has been disconnected.
+
+	* libsoup/soup-context.c: Use soup_message_get_connection
+
+	* libsoup/soup-headers.c (soup_headers_parse_request): Remove the
+	check on request length, since it was rejecting
+	"GET / HTTP/1.0\r\n\r\n", which is a valid complete request.
+
+	* libsoup/soup-queue.c: Use soup_message_get_connection and
+	soup_message_get_socket.
+	(soup_queue_read_done_cb): Use soup_message_is_keepalive
+	(proxy_https_connect_cb): Use soup_socket_start_ssl rather than
+	soup_connection_start_ssl
+
+	* libsoup/soup-socket.c (finalize): disconnect the GIOChannel
+	handlers if the socket hasn't been disconnected yet.
+
+	* libsoup/soup-transfer.c (soup_reader_read_body_chunk,
+	reader_read): Fix these so that reader_read will exit properly if
+	the read is cancelled.
+
+	* tests/auth-test.c (main): s/soup_message_free/g_object_unref/
+
+	* tests/simple-httpd.c (server_callback): set the message to
+	content-length encoding.
+	* tests/simple-proxy.c (server_callback): Likewise
+
 2003-08-19  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-socket.c (soup_socket_read,

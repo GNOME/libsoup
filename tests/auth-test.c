@@ -263,7 +263,7 @@ main (int argc, char **argv)
 
 		printf ("\n");
 
-		soup_message_free (msg);
+		g_object_unref (msg);
 		/* We don't free ctx because if we did, we'd end up
 		 * discarding the cached auth info at the end of each
 		 * test.

@@ -220,8 +220,11 @@ soup_reader_read_body_chunk (SoupReader *r, guint *size)
 				break;
 
 			if (r->read_chunk_cb) {
+				soup_transfer_read_ref (r);
 				r->read_chunk_cb (read_buf, nread,
 						  r->user_data);
+				if (!soup_transfer_read_unref (r))
+					return FALSE;
 			}
 			if (r->body_buf)
 				g_byte_array_append (r->body_buf, read_buf, nread);
@@ -255,23 +258,24 @@ soup_reader_read_body_chunk (SoupReader *r, guint *size)
 static void
 reader_read (SoupSocket *sock, SoupReader *r)
 {
-	soup_transfer_read_ref (r);
-
 	while (1) {
 		switch (r->state) {
 		case SOUP_READER_STATE_HEADERS:
 			if (!soup_reader_read_metadata (
 				    r, SOUP_TRANSFER_DOUBLE_EOL,
 				    SOUP_TRANSFER_DOUBLE_EOL_LEN))
-				goto out;
+				return;
 
 			r->meta_buf->len -= SOUP_TRANSFER_DOUBLE_EOL_LEN;
 			if (r->headers_done_cb) {
+				soup_transfer_read_ref (r);
 				(*r->headers_done_cb) (r->meta_buf->data,
 						       r->meta_buf->len,
 						       &r->encoding, 
 						       &r->read_length, 
 						       r->user_data);
+				if (!soup_transfer_read_unref (r))
+					return;
 			}
 			g_byte_array_set_size (r->meta_buf, 0);
 
@@ -290,14 +294,14 @@ reader_read (SoupSocket *sock, SoupReader *r)
 
 		case SOUP_READER_STATE_READ_TO_EOF:
 			if (!soup_reader_read_body_chunk (r, NULL))
-				goto out;
+				return;
 
 			goto done;
 			break;
 
 		case SOUP_READER_STATE_CONTENT_LENGTH:
 			if (!soup_reader_read_body_chunk (r, &r->read_length))
-				goto out;
+				return;
 
 			goto done;
 			break;
@@ -305,7 +309,7 @@ reader_read (SoupSocket *sock, SoupReader *r)
 		case SOUP_READER_STATE_CHUNK_SIZE:
 			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
 							SOUP_TRANSFER_EOL_LEN))
-				goto out;
+				return;
 
 			r->read_length = strtoul (r->meta_buf->data, NULL, 16);
 			g_byte_array_set_size (r->meta_buf, 0);
@@ -318,7 +322,7 @@ reader_read (SoupSocket *sock, SoupReader *r)
 
 		case SOUP_READER_STATE_CHUNK:
 			if (!soup_reader_read_body_chunk (r, &r->read_length))
-				goto out;
+				return;
 
 			r->state = SOUP_READER_STATE_BETWEEN_CHUNKS;
 			break;
@@ -326,7 +330,7 @@ reader_read (SoupSocket *sock, SoupReader *r)
 		case SOUP_READER_STATE_BETWEEN_CHUNKS:
 			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
 							SOUP_TRANSFER_EOL_LEN))
-				goto out;
+				return;
 
 			g_byte_array_set_size (r->meta_buf, 0);
 			r->state = SOUP_READER_STATE_CHUNK_SIZE;
@@ -335,7 +339,7 @@ reader_read (SoupSocket *sock, SoupReader *r)
 		case SOUP_READER_STATE_TRAILERS:
 			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
 							SOUP_TRANSFER_EOL_LEN))
-				goto out;
+				return;
 
 			if (r->meta_buf->len == SOUP_TRANSFER_EOL_LEN)
 				goto done;
@@ -349,9 +353,6 @@ reader_read (SoupSocket *sock, SoupReader *r)
 
  done:
 	issue_final_callback (r);
-
- out:
-	soup_transfer_read_unref (r);
 }
 
 static gboolean

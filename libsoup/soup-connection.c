@@ -108,21 +108,6 @@ soup_connection_new (SoupSocket *sock)
 }
 
 /**
- * soup_connection_start_ssl:
- * @conn: a connection
- *
- * Negotiates SSL on @conn
- **/
-void
-soup_connection_start_ssl (SoupConnection *conn)
-{
-	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	g_return_if_fail (conn->priv->socket != NULL);
-
-	soup_socket_start_ssl (conn->priv->socket);
-}
-
-/**
  * soup_connection_disconnect:
  * @conn: a connection
  *
@@ -190,6 +175,12 @@ void
 soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	if (!conn->priv->socket) {
+		if (in_use)
+			g_warning ("Trying to use disconnected socket");
+		return;
+	}
 
 	if (!in_use)
 		conn->priv->last_used = time (NULL);
