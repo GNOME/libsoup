@@ -1,5 +1,11 @@
 2001-06-01  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-misc.c: Correctly note copyright for
+	soup_base64_encode() to the FSF, and credit Chris Blizzard as the
+	actual author.
+
+2001-06-01  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/Makefile.am (libsoup_la_SOURCES): Take soup-cgi.c
 	out of rotation until server/client codepaths merge.
 

@@ -1,9 +1,9 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-misc.h: Asyncronous Callback-based SOAP Request Queue.
+ * soup-misc.h: Miscellaneous settings and configuration file handling.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
  * Copyright (C) 2000, Helix Code, Inc.
  */

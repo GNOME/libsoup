@@ -1,13 +1,14 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-queue.c: Asyncronous Callback-based SOAP Request Queue.
+ * soup-misc.c: Miscellaneous settings and configuration file handling.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * soup_base64_encode() written by Joe Orton, borrowed from ghttp.
+ * soup_base64_encode() written by Chris Blizzard <blizzard@appliedtheory.com>,
+ * and is Copyright (C) 1998 Free Software Foundation.
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * All else Copyright (C) 2000, Helix Code, Inc.
  */
 
 #include <ctype.h>
