@@ -506,6 +506,9 @@ lookup_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	} else {
 		host = get_host_for_message (session, msg);
 		const_path = soup_message_get_uri (msg)->path;
+
+		if (!const_path)
+			const_path = "/";
 	}
 	g_return_val_if_fail (host != NULL, NULL);
 

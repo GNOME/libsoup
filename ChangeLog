@@ -1,3 +1,8 @@
+2003-12-20  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-session.c (lookup_auth): If const_path is NULL un
+	the non-proxy case, then use the root ("/").
+
 2003-12-19  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-filter.c: New. An interface for objects
