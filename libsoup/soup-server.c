@@ -175,7 +175,8 @@ soup_server_unref (SoupServer *serv)
 					     serv);
 		g_hash_table_destroy (serv->handlers);
 
-		g_main_destroy (serv->loop);
+		if (serv->loop)
+			g_main_loop_unref (serv->loop);
 
 		g_free (serv);
 	}
@@ -293,7 +294,7 @@ destroy_message (SoupMessage *msg)
 	 * If CGI, service one message and quit 
 	 */
 	if (server->proto == SOUP_PROTOCOL_CGI)
-		g_main_quit (server->loop);
+		g_main_loop_quit (server->loop);
 
 	soup_server_unref (server);
 
@@ -1133,7 +1134,7 @@ soup_server_run_async (SoupServer *server)
 
  START_ERROR:
 	if (server->loop) {
-		g_main_destroy (server->loop);
+		g_main_loop_unref (server->loop);
 		server->loop = NULL;
 	}
 }
@@ -1144,12 +1145,12 @@ soup_server_run (SoupServer *server)
 	g_return_if_fail (server != NULL);
 
 	if (!server->loop) {
-		server->loop = g_main_new (TRUE);
+		server->loop = g_main_loop_new (NULL, TRUE);
 		soup_server_run_async (server);
 	}
 
 	if (server->loop)
-		g_main_run (server->loop);
+		g_main_loop_run (server->loop);
 }
 
 void 
@@ -1157,7 +1158,7 @@ soup_server_quit (SoupServer *server)
 {
 	g_return_if_fail (server != NULL);
 
-	g_main_quit (server->loop);
+	g_main_loop_quit (server->loop);
 	soup_server_unref (server);
 }
 
