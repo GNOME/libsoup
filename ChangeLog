@@ -1,3 +1,7 @@
+2004-01-12  JP Rosevear  <jpr@ximian.com>
+
+	* configure.in: bump version and libtool revision
+
 2004-01-12  Dan Winship  <danw@ximian.com>
 
 	* tests/simple-httpd.c (main): Add a g_thread_init() so this works
