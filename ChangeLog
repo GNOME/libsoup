@@ -1,3 +1,7 @@
+2004-02-09  JP Rosevear  <jpr@ximian.com>
+
+	* configure.in: Bump libtool numbers
+
 2004-02-05  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-session.c (soup_session_add_filter): Ref the filter

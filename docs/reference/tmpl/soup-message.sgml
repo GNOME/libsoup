@@ -119,16 +119,6 @@ SoupMessage
 @resp_len: 
 
 
-<!-- ##### FUNCTION soup_message_cancel ##### -->
-<para>
-
-</para>
-
-@msg: 
-<!-- # Unused Parameters # -->
-@req: 
-
-
 <!-- ##### FUNCTION soup_message_add_header ##### -->
 <para>
 
@@ -273,6 +263,7 @@ SoupMessage
 
 </para>
 
+@SOUP_HANDLER_POST_REQUEST: 
 @SOUP_HANDLER_PRE_BODY: 
 @SOUP_HANDLER_BODY_CHUNK: 
 @SOUP_HANDLER_POST_BODY: 
@@ -399,14 +390,6 @@ SoupMessage
 
 @req: 
 @sock: 
-
-
-<!-- ##### FUNCTION soup_message_io_cancel ##### -->
-<para>
-
-</para>
-
-@msg: 
 
 
 <!-- ##### FUNCTION soup_message_io_pause ##### -->

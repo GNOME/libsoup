@@ -49,33 +49,17 @@ SoupSession
 
 
 
-<!-- ##### FUNCTION soup_session_new ##### -->
-<para>
-
-</para>
-
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_session_new_with_options ##### -->
-<para>
-
-</para>
-
-@optname1: 
-@Varargs: 
-@Returns: 
-
-
 <!-- ##### FUNCTION soup_session_queue_message ##### -->
 <para>
 
 </para>
 
 @session: 
-@req: 
+@msg: 
 @callback: 
 @user_data: 
+<!-- # Unused Parameters # -->
+@req: 
 
 
 <!-- ##### FUNCTION soup_session_requeue_message ##### -->
@@ -84,6 +68,8 @@ SoupSession
 </para>
 
 @session: 
+@msg: 
+<!-- # Unused Parameters # -->
 @req: 
 
 
@@ -93,8 +79,10 @@ SoupSession
 </para>
 
 @session: 
-@req: 
+@msg: 
 @Returns: 
+<!-- # Unused Parameters # -->
+@req: 
 
 
 <!-- ##### FUNCTION soup_session_abort ##### -->

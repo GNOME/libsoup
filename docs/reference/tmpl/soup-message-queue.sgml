@@ -19,8 +19,6 @@ soup-message-queue
 
 </para>
 
-@cur: 
-@next: 
 
 <!-- ##### FUNCTION soup_message_queue_new ##### -->
 <para>

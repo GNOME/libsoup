@@ -149,3 +149,34 @@ soup
 </para>
 
 
+<!-- ##### FUNCTION soup_message_cancel ##### -->
+<para>
+
+</para>
+
+@msg: 
+@req: 
+
+<!-- ##### FUNCTION soup_message_io_cancel ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_session_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+<!-- ##### FUNCTION soup_session_new_with_options ##### -->
+<para>
+
+</para>
+
+@optname1: 
+@Varargs: 
+@Returns: 
+

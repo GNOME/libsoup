@@ -39,7 +39,7 @@ SCANOBJ_FILES = 		 \
 	$(DOC_MODULE).prerequisites \
 	$(DOC_MODULE).signals
 
-CLEANFILES = $(SCANOBJ_FILES) $(DOC_MODULE)-scan.o $(DOC_MODULE)-unused.txt $(DOC_STAMPS)
+CLEANFILES = $(SCANOBJ_FILES) $(DOC_MODULE)-unused.txt $(DOC_STAMPS)
 
 if ENABLE_GTK_DOC
 all-local: html-build.stamp
@@ -105,6 +105,7 @@ endif
 
 clean-local:
 	rm -f *~ *.bak
+	rm -rf .libs
 
 maintainer-clean-local: clean
 	cd $(srcdir) && rm -rf xml html $(DOC_MODULE)-decl-list.txt $(DOC_MODULE)-decl.txt
