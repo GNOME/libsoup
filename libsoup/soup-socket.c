@@ -227,11 +227,11 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	if (sock->priv->ssl)
 		soup_socket_start_ssl (sock);
 
-	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_ERROR_OK);
+	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_STATUS_OK);
 	return FALSE;
 
  cant_connect:
-	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_ERROR_CANT_CONNECT);
+	g_signal_emit (sock, signals[CONNECT_RESULT], 0, SOUP_STATUS_CANT_CONNECT);
 	return FALSE;
 }
 
@@ -243,16 +243,16 @@ idle_connect_result (gpointer user_data)
 	sock->priv->watch = 0;
 
 	g_signal_emit (sock, signals[CONNECT_RESULT], 0,
-		       sock->priv->sockfd != -1 ? SOUP_ERROR_OK : SOUP_ERROR_CANT_CONNECT);
+		       sock->priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
 	return FALSE;
 }
 
 static void
-got_address (SoupAddress *addr, SoupKnownErrorCode status, gpointer user_data)
+got_address (SoupAddress *addr, guint status, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
 
-	if (!SOUP_ERROR_IS_SUCCESSFUL (status)) {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_emit (sock, signals[CONNECT_RESULT], 0, status);
 		return;
 	}

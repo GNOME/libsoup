@@ -27,7 +27,7 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*connect_result) (SoupSocket *, SoupKnownErrorCode);
+	void (*connect_result) (SoupSocket *, guint);
 	void (*readable)       (SoupSocket *);
 	void (*writable)       (SoupSocket *);
 	void (*disconnected)   (SoupSocket *);
@@ -58,7 +58,7 @@ void           soup_socket_disconnect         (SoupSocket         *sock);
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
 
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
-					       SoupKnownErrorCode  status,
+					       guint               status,
 					       gpointer            user_data);
 typedef void (*SoupSocketListenerCallback)    (SoupSocket         *listener,
 					       SoupSocket         *sock,

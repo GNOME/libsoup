@@ -29,27 +29,27 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*connect_result) (SoupConnection *, SoupKnownErrorCode);
+	void (*connect_result) (SoupConnection *, guint);
 	void (*disconnected) (SoupConnection *);
 } SoupConnectionClass;
 
 GType soup_connection_get_type (void);
 
 
-typedef void  (*SoupConnectionCallback)        (SoupConnection     *sock,
-						SoupKnownErrorCode  status,
-						gpointer            data);
+typedef void  (*SoupConnectionCallback)        (SoupConnection *sock,
+						guint           status,
+						gpointer        data);
 
-SoupConnection *soup_connection_new            (const SoupUri      *uri,
+SoupConnection *soup_connection_new            (const SoupUri  *uri,
 						SoupConnectionCallback,
-						gpointer            data);
-SoupConnection *soup_connection_new_proxy      (const SoupUri      *proxy_uri,
+						gpointer        data);
+SoupConnection *soup_connection_new_proxy      (const SoupUri  *proxy_uri,
 						SoupConnectionCallback,
-						gpointer            data);
-SoupConnection *soup_connection_new_tunnel     (const SoupUri      *proxy_uri,
-						const SoupUri      *dest_uri,
+						gpointer        data);
+SoupConnection *soup_connection_new_tunnel     (const SoupUri  *proxy_uri,
+						const SoupUri  *dest_uri,
 						SoupConnectionCallback,
-						gpointer            data);
+						gpointer        data);
 
 gboolean        soup_connection_is_proxy       (SoupConnection *conn);
 

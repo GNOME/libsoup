@@ -11,11 +11,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#include <libsoup/soup-error.h>
-
 typedef gpointer SoupDNSHandle;
 typedef void   (*SoupGetHostByFn)          (SoupDNSHandle       handle,
-					    SoupKnownErrorCode  status,
+					    guint               status,
 					    struct hostent     *h,
 					    gpointer            user_data);
 

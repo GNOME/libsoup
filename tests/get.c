@@ -107,13 +107,13 @@ got_url (SoupMessage *msg, gpointer uri)
 		fprintf (stderr, "  Error: not under %s\n", base_uri->path);
 		goto DONE;
 	}
-	printf ("%s: %d %s\n", name, msg->errorcode, msg->errorphrase);
+	printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 
 	name += strlen (base_uri->path);
 	if (*name == '/')
 		name++;
 
-	if (SOUP_ERROR_IS_REDIRECTION (msg->errorcode)) {
+	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		unlink (name);
 		header = soup_message_get_header (msg->response_headers, "Location");
 		if (header) {
@@ -123,7 +123,7 @@ got_url (SoupMessage *msg, gpointer uri)
 		goto DONE;
 	}
 
-	if (!SOUP_ERROR_IS_SUCCESSFUL (msg->errorcode))
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
 		goto DONE;
 
 	if (recurse)

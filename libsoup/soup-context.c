@@ -331,15 +331,15 @@ prune_least_used_connection (void)
 static gboolean retry_connect_timeout_cb (struct SoupConnectData *data);
 
 static void
-soup_context_connect_cb (SoupConnection     *conn,
-			 SoupKnownErrorCode  status,
-			 gpointer            user_data)
+soup_context_connect_cb (SoupConnection *conn,
+			 guint           status,
+			 gpointer        user_data)
 {
 	struct SoupConnectData *data = user_data;
 	SoupContext            *ctx = data->ctx;
 
 	switch (status) {
-	case SOUP_ERROR_OK:
+	case SOUP_STATUS_OK:
 		g_signal_connect (conn, "disconnected",
 				  G_CALLBACK (connection_disconnected),
 				  ctx->priv->server);
@@ -353,7 +353,7 @@ soup_context_connect_cb (SoupConnection     *conn,
 
 		break;
 
-	case SOUP_ERROR_CANT_RESOLVE:
+	case SOUP_STATUS_CANT_RESOLVE:
 		connection_count--;
 		g_object_unref (conn);
 		break;
@@ -397,7 +397,7 @@ try_existing_connections (SoupContext           *ctx,
 		if (!soup_connection_is_in_use (conn) &&
 		    port == ctx->priv->uri->port) {
 			/* Issue success callback */
-			(*cb) (ctx, SOUP_ERROR_OK, conn, user_data);
+			(*cb) (ctx, SOUP_STATUS_OK, conn, user_data);
 			return TRUE;
 		}
 
@@ -755,7 +755,7 @@ soup_context_update_auth (SoupContext *ctx, SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), FALSE);
 	g_return_val_if_fail (msg != NULL, FALSE);
 
-	if (msg->errorcode == SOUP_ERROR_PROXY_UNAUTHORIZED) {
+	if (msg->status_code == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED) {
 		headers = soup_message_get_header_list (msg->response_headers,
 							"Proxy-Authenticate");
 	} else {

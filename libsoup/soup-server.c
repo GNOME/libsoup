@@ -193,9 +193,9 @@ static inline void
 set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
 {
 	if (phrase)
-		soup_message_set_error_full (req, code, phrase);
+		soup_message_set_status_full (req, code, phrase);
 	else
-		soup_message_set_error (req, code);
+		soup_message_set_status (req, code);
 
 	req->response.owner = SOUP_BUFFER_STATIC;
 	req->response.body = body;
@@ -218,7 +218,7 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 
 	hand = soup_server_get_handler (server, handler_path);
 	if (!hand) {
-		set_response_error (req, SOUP_ERROR_NOT_FOUND, NULL, NULL);
+		set_response_error (req, SOUP_STATUS_NOT_FOUND, NULL, NULL);
 		return;
 	}
 
@@ -243,14 +243,14 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 					req,
 					"WWW-Authenticate");
 
-				if (!req->errorcode)
-					soup_message_set_error (
+				if (!req->status_code)
+					soup_message_set_status (
 						req,
-						SOUP_ERROR_UNAUTHORIZED);
+						SOUP_STATUS_UNAUTHORIZED);
 
 				return;
 			}
-		} else if (req->errorcode) {
+		} else if (req->status_code) {
 			soup_server_auth_context_challenge (
 				auth_ctx,
 				req,

@@ -37,9 +37,10 @@ send_headers (SoupMessage *from, SoupMessage *to)
 {
 	printf ("[%p] HTTP/1.%d %d %s\n", to,
 		soup_message_get_http_version (from),
-		from->errorcode, from->errorphrase);
+		from->status_code, from->reason_phrase);
 
-	soup_message_set_error_full (to, from->errorcode, from->errorphrase);
+	soup_message_set_status_full (to, from->status_code,
+				      from->reason_phrase);
 	soup_message_foreach_header (from->response_headers, copy_header,
 				     to->response_headers);
 	soup_message_remove_header (to->response_headers, "Content-Length");
@@ -84,7 +85,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		soup_message_get_http_version (msg));
 
 	if (soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT) {
-		soup_message_set_error (msg, SOUP_ERROR_NOT_IMPLEMENTED);
+		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}
 

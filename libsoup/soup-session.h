@@ -39,7 +39,7 @@ void            soup_session_queue_message   (SoupSession           *session,
 void            soup_session_requeue_message (SoupSession           *session,
 					      SoupMessage           *req);
 
-SoupErrorClass  soup_session_send_message    (SoupSession           *session,
+guint           soup_session_send_message    (SoupSession           *session,
 					      SoupMessage            *req);
 
 

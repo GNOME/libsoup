@@ -1,3 +1,29 @@
+2003-09-03  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-status.h: Renamed from soup-error.h, with types
+	and defines renamed accordingly.
+
+	* libsoup/soup-message.h (SoupMessage): Rename errorcode to
+	status_code and errorphrase to reason_phrase. Remove errorclass.
+	(SOUP_MESSAGE_IS_ERROR): Remove this. You can't classify redirects
+	as being either "errors" or "not errors", so its semantics are
+	guaranteed to be wrong sometimes.
+
+	* libsoup/soup-message.c (soup_message_set_status,
+	soup_message_set_status_full): Renamed
+
+	* libsoup/soup-message-handlers.c
+	(soup_message_add_status_code_handler,
+	soup_message_add_status_class_handler): Rename.
+
+	* libsoup/soup-session.c (soup_session_send_message): Make this
+	return a status code rather than a status class.
+
+	* libsoup/soup-message-private.h (SoupMessagePrivate): Remove some
+	unrelated unused fields (retries, callback, user_data).
+
+	* ...: Updates
+
 2003-09-02  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-session.c: First draft at the new object to

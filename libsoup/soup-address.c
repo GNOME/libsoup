@@ -312,20 +312,19 @@ soup_address_get_port (SoupAddress *addr)
 
 
 static void
-got_addr (SoupDNSHandle handle, SoupKnownErrorCode status,
-	  struct hostent *h, gpointer data)
+got_addr (SoupDNSHandle handle, guint status, struct hostent *h, gpointer data)
 {
 	SoupAddress *addr = data;
 
 	addr->priv->lookup = NULL;
 
-	if (status == SOUP_ERROR_OK) {
+	if (status == SOUP_STATUS_OK) {
 		if (!SOUP_ADDRESS_FAMILY_IS_VALID (h->h_addrtype)) {
-			status = SOUP_ERROR_CANT_RESOLVE;
+			status = SOUP_STATUS_CANT_RESOLVE;
 			goto done;
 		}
 		if (SOUP_ADDRESS_FAMILY_DATA_SIZE (h->h_addrtype) != h->h_length) {
-			status = SOUP_ERROR_MALFORMED;
+			status = SOUP_STATUS_MALFORMED;
 			goto done;
 		}
 
@@ -340,14 +339,13 @@ got_addr (SoupDNSHandle handle, SoupKnownErrorCode status,
 }
 
 static void
-got_name (SoupDNSHandle handle, SoupKnownErrorCode status,
-	  struct hostent *h, gpointer data)
+got_name (SoupDNSHandle handle, guint status, struct hostent *h, gpointer data)
 {
 	SoupAddress *addr = data;
 
 	addr->priv->lookup = NULL;
 
-	if (status == SOUP_ERROR_OK)
+	if (status == SOUP_STATUS_OK)
 		addr->priv->name = g_strdup (h->h_name);
 
 	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
@@ -359,7 +357,7 @@ idle_dns_result (gpointer user_data)
 	SoupAddress *addr = user_data;
 
 	addr->priv->idle_id = 0;
-	g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_ERROR_OK);
+	g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_STATUS_OK);
 	return FALSE;
 }
 

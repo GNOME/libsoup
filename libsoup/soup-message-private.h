@@ -25,11 +25,6 @@ struct SoupMessagePrivate {
 	SoupConnectId      connect_tag;
 	gpointer           io_data;
 
-	guint              retries;
-
-	SoupCallbackFn     callback;
-	gpointer           user_data;
-
 	guint              msg_flags;
 
 	GSList            *chunks, *last_chunk;
@@ -60,8 +55,7 @@ typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
 					      GString          *headers,
 					      SoupTransferEncoding *encoding,
 					      gpointer          user_data);
-typedef SoupKnownErrorCode
-                 (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
+typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      char             *headers,
 					      guint             header_len,
 					      SoupTransferEncoding *encoding,

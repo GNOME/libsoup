@@ -9,7 +9,7 @@
 #include <glib/gtypes.h>
 #include <glib-object.h>
 
-#include <libsoup/soup-error.h>
+#include <libsoup/soup-status.h>
 
 typedef struct SoupAddress           SoupAddress;
 typedef struct SoupConnection        SoupConnection;

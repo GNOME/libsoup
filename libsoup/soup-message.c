@@ -9,7 +9,6 @@
 
 #include "soup-auth.h"
 #include "soup-connection.h"
-#include "soup-error.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -86,7 +85,7 @@ finalize (GObject *object)
 	g_slist_foreach (msg->priv->content_handlers, (GFunc) g_free, NULL);
 	g_slist_free (msg->priv->content_handlers);
 
-	g_free ((char *) msg->errorphrase);
+	g_free ((char *) msg->reason_phrase);
 
 	g_free (msg->priv);
 
@@ -396,13 +395,13 @@ soup_message_disconnect (SoupMessage *msg)
  * @msg: a #SoupMessage currently being processed.
  * 
  * Cancel a running message, and issue completion callback with an
- * error code of %SOUP_ERROR_CANCELLED. If not requeued by the
+ * error code of %SOUP_STATUS_CANCELLED. If not requeued by the
  * completion callback, the @msg will be destroyed.
  */
 void
 soup_message_cancel (SoupMessage *msg)
 {
-	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
+	soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
 	soup_message_disconnect (msg);
 	soup_message_finished (msg);
 }
@@ -558,12 +557,10 @@ soup_message_prepare (SoupMessage *req)
 
 	soup_message_clear_headers (req->response_headers);
 
-	req->errorcode = 0;
-	req->errorclass = 0;
-
-	if (req->errorphrase) {
-		g_free ((char *) req->errorphrase);
-		req->errorphrase = NULL;
+	req->status_code = 0;
+	if (req->reason_phrase) {
+		g_free ((char *) req->reason_phrase);
+		req->reason_phrase = NULL;
 	}
 }
 
@@ -682,32 +679,30 @@ soup_message_get_connection (SoupMessage *msg)
 }
 
 void
-soup_message_set_error (SoupMessage *msg, SoupKnownErrorCode errcode)
+soup_message_set_status (SoupMessage *msg, guint status_code)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (errcode != 0);
+	g_return_if_fail (status_code != 0);
 
-	g_free ((char *) msg->errorphrase);
+	g_free ((char *) msg->reason_phrase);
 
-	msg->errorcode = errcode;
-	msg->errorclass = soup_error_get_class (errcode);
-	msg->errorphrase = g_strdup (soup_error_get_phrase (errcode));
+	msg->status_code = status_code;
+	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
 }
 
 void
-soup_message_set_error_full (SoupMessage *msg,
-			     guint        errcode,
-			     const char  *errphrase)
+soup_message_set_status_full (SoupMessage *msg,
+			      guint        status_code,
+			      const char  *reason_phrase)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (errcode != 0);
-	g_return_if_fail (errphrase != NULL);
+	g_return_if_fail (status_code != 0);
+	g_return_if_fail (reason_phrase != NULL);
 
-	g_free ((char *) msg->errorphrase);
+	g_free ((char *) msg->reason_phrase);
 
-	msg->errorcode = errcode;
-	msg->errorclass = soup_error_get_class (errcode);
-	msg->errorphrase = g_strdup (errphrase);
+	msg->status_code = status_code;
+	msg->reason_phrase = g_strdup (reason_phrase);
 }
 
 

@@ -32,7 +32,6 @@ libsoupinclude_HEADERS =	\
 	soup-address.h		\
 	soup-connection.h	\
 	soup-context.h		\
-	soup-error.h		\
 	soup-headers.h		\
 	soup-message.h		\
 	soup-method.h		\
@@ -42,6 +41,7 @@ libsoupinclude_HEADERS =	\
 	soup-server.h		\
 	soup-session.h		\
 	soup-socket.h		\
+	soup-status.h		\
 	soup-types.h		\
 	soup-uri.h
 
@@ -71,7 +71,6 @@ libsoup_2_2_la_SOURCES =		\
 	soup-context.c			\
 	soup-dns.h			\
 	soup-dns.c			\
-	soup-error.c			\
 	soup-gnutls.h			\
 	soup-gnutls.c			\
 	soup-headers.c			\
@@ -93,6 +92,7 @@ libsoup_2_2_la_SOURCES =		\
 	soup-socket.c			\
 	soup-ssl.h			\
 	soup-ssl.c			\
+	soup-status.c			\
 	soup-uri.c
 
 EXTRA_DIST= soup-marshal.list

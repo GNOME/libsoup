@@ -422,7 +422,7 @@ soup_gothost (gpointer user_data)
 		info = entry->lookups->data;
 		entry->lookups = g_slist_remove (entry->lookups, info);
 
-		(*info->func) (info, entry->h ? SOUP_ERROR_OK : SOUP_ERROR_CANT_RESOLVE, entry->h, info->data);
+		(*info->func) (info, entry->h ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE, entry->h, info->data);
 		g_free (info);
 	}
 

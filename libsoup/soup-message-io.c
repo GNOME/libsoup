@@ -126,7 +126,7 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 		return;
 	}
 
-	soup_message_set_error (msg, SOUP_ERROR_IO);
+	soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
 	soup_message_io_finished (msg);
 }
 
@@ -309,8 +309,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 		g_string_truncate (io->write_buf, 0);
 
 		if (io->mode == SOUP_MESSAGE_IO_SERVER &&
-		    SOUP_ERROR_IS_INFORMATIONAL (msg->errorcode)) {
-			if (msg->errorcode == SOUP_ERROR_CONTINUE) {
+		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
+			if (msg->status_code == SOUP_STATUS_CONTINUE) {
 				/* Stop and wait for the body now */
 				io->write_state =
 					SOUP_MESSAGE_IO_STATE_BLOCKING;
@@ -453,7 +453,7 @@ static void
 io_read (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageIOData *io = msg->priv->io_data;
-	SoupKnownErrorCode err;
+	guint status;
 
  read_more:
 	switch (io->read_state) {
@@ -466,14 +466,14 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			return;
 
 		io->read_meta_buf->len -= SOUP_MESSAGE_IO_DOUBLE_EOL_LEN;
-		err = io->parse_headers_cb (msg, io->read_meta_buf->data,
-					    io->read_meta_buf->len,
-					    &io->read_encoding,
-					    &io->read_length,
-					    io->user_data);
+		status = io->parse_headers_cb (msg, io->read_meta_buf->data,
+					       io->read_meta_buf->len,
+					       &io->read_encoding,
+					       &io->read_length,
+					       io->user_data);
 		g_byte_array_set_size (io->read_meta_buf, 0);
 
-		if (err != SOUP_ERROR_OK) {
+		if (status != SOUP_STATUS_OK) {
 			/* Either we couldn't parse the headers, or they
 			 * indicated something that would mean we wouldn't
 			 * be able to parse the body. (Eg, unknown
@@ -481,7 +481,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			 * reading, and make sure the connection gets
 			 * closed when we're done.
 			 */
-			soup_message_set_error (msg, err);
+			soup_message_set_status (msg, status);
 			soup_message_add_header (msg->request_headers,
 						 "Connection", "close");
 			io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
@@ -489,12 +489,12 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		}
 
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-		    SOUP_ERROR_IS_INFORMATIONAL (msg->errorcode)) {
+		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
 			/* FIXME: we should clear the existing
-			 * response headers and errorphrase.
+			 * response headers and reason_phrase.
 			 */
 
-			if (msg->errorcode == SOUP_ERROR_CONTINUE &&
+			if (msg->status_code == SOUP_STATUS_CONTINUE &&
 			    io->write_state == SOUP_MESSAGE_IO_STATE_BLOCKING) {
 				/* Restart the reader, unpause the writer */
 				io->read_state =

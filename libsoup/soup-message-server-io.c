@@ -23,7 +23,7 @@
 #include "soup-server.h"
 #include "soup-socket.h"
 
-static SoupKnownErrorCode
+static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       SoupTransferEncoding *encoding, guint *content_len,
 		       gpointer sock)
@@ -38,7 +38,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 					 (char **) &msg->method,
 					 &req_path,
 					 &msg->priv->http_version))
-		return SOUP_ERROR_BAD_REQUEST;
+		return SOUP_STATUS_BAD_REQUEST;
 
 	/* Handle request body encoding */
 	length = soup_message_get_header (msg->request_headers,
@@ -52,7 +52,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		else {
 			g_warning ("Unknown encoding type in HTTP request.");
 			g_free (req_path);
-			return SOUP_ERROR_NOT_IMPLEMENTED;
+			return SOUP_STATUS_NOT_IMPLEMENTED;
 		}
 	} else if (length) {
 		int len;
@@ -60,7 +60,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		len = atoi (length);
 		if (len < 0) {
 			g_free (req_path);
-			return SOUP_ERROR_BAD_REQUEST;
+			return SOUP_STATUS_BAD_REQUEST;
 		}
 		*content_len = len;
 	} else {
@@ -82,7 +82,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 			soup_uri_free (absolute);
 		} else {
 			g_free (req_path);
-			return SOUP_ERROR_BAD_REQUEST;
+			return SOUP_STATUS_BAD_REQUEST;
 		}
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s:%d%s",
@@ -100,7 +100,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 				       req_path);
 	} else {
 		g_free (req_path);
-		return SOUP_ERROR_BAD_REQUEST;
+		return SOUP_STATUS_BAD_REQUEST;
 	}
 
 	ctx = soup_context_get (url);
@@ -108,12 +108,12 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	g_free (req_path);
 
 	if (!ctx)
-		return SOUP_ERROR_BAD_REQUEST;
+		return SOUP_STATUS_BAD_REQUEST;
 
 	soup_message_set_context (msg, ctx);
 	g_object_unref (ctx);
 
-	return SOUP_ERROR_OK;
+	return SOUP_STATUS_OK;
 }
 
 static void
@@ -131,7 +131,7 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
 
 	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
-				msg->errorcode, msg->errorphrase);
+				msg->status_code, msg->reason_phrase);
 
 	soup_message_foreach_header (msg->response_headers,
 				     write_header, headers);

@@ -31,10 +31,10 @@ typedef struct {
 GType soup_context_get_type (void);
 
 
-typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
-				       SoupKnownErrorCode    err,
-				       SoupConnection       *conn, 
-				       gpointer              user_data);
+typedef void (*SoupConnectCallbackFn) (SoupContext    *ctx,
+				       guint           status,
+				       SoupConnection *conn, 
+				       gpointer        user_data);
 
 typedef gpointer SoupConnectId;
 

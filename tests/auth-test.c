@@ -198,7 +198,7 @@ handler (SoupMessage *msg, gpointer data)
 
 	auth = identify_auth (msg);
 
-	printf ("  %d %s (using %s)\n", msg->errorcode, msg->errorphrase,
+	printf ("  %d %s (using %s)\n", msg->status_code, msg->reason_phrase,
 		auths[auth]);
 
 	if (*expected) {
@@ -237,17 +237,17 @@ main (int argc, char **argv)
 		}
 
 		expected = g_strdup (tests[i].expected);
-		soup_message_add_error_code_handler (
-			msg, SOUP_ERROR_UNAUTHORIZED,
+		soup_message_add_status_code_handler (
+			msg, SOUP_STATUS_UNAUTHORIZED,
 			SOUP_HANDLER_PRE_BODY, handler, expected);
-		soup_message_add_error_code_handler (
-			msg, SOUP_ERROR_OK, SOUP_HANDLER_PRE_BODY,
+		soup_message_add_status_code_handler (
+			msg, SOUP_STATUS_OK, SOUP_HANDLER_PRE_BODY,
 			handler, expected);
 		soup_session_send_message (session, msg);
-		if (msg->errorcode != SOUP_ERROR_UNAUTHORIZED &&
-		    msg->errorcode != SOUP_ERROR_OK) {
-			printf ("  %d %s !\n", msg->errorcode,
-				msg->errorphrase);
+		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
+		    msg->status_code != SOUP_STATUS_OK) {
+			printf ("  %d %s !\n", msg->status_code,
+				msg->reason_phrase);
 		}
 		if (*expected) {
 			printf ("  expected %d more round(s)\n",
@@ -256,7 +256,7 @@ main (int argc, char **argv)
 		}
 		g_free (expected);
 
-		if (SOUP_ERROR_IS_SUCCESSFUL (msg->errorcode) !=
+		if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) !=
 		    tests[i].success) {
 			printf ("  expected %s\n",
 				tests[i].success ? "success" : "failure");

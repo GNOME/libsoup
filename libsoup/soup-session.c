@@ -86,7 +86,7 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 	SoupSession *session = user_data;
 	SoupContext *ctx;
 
-	if (msg->errorcode == SOUP_ERROR_PROXY_UNAUTHORIZED)
+	if (msg->status_code == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED)
 		ctx = soup_get_proxy ();
 	else
 		ctx = msg->priv->context;
@@ -132,9 +132,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	return;
 
  INVALID_REDIRECT:
-	soup_message_set_error_full (msg,
-				     SOUP_ERROR_MALFORMED,
-				     "Invalid Redirect URL");
+	soup_message_set_status_full (msg,
+				      SOUP_STATUS_MALFORMED,
+				      "Invalid Redirect URL");
 }
 
 static void
@@ -164,7 +164,7 @@ start_request (SoupConnection *conn, SoupMessage *req)
 }
 
 static void
-got_connection (SoupContext *ctx, SoupKnownErrorCode err,
+got_connection (SoupContext *ctx, guint status,
 		SoupConnection *conn, gpointer user_data)
 {
 	SoupMessage *req = user_data;
@@ -172,18 +172,13 @@ got_connection (SoupContext *ctx, SoupKnownErrorCode err,
 	req->priv->connect_tag = NULL;
 	soup_message_set_connection (req, conn);
 
-	switch (err) {
-	case SOUP_ERROR_OK:
-		start_request (conn, req);
-		break;
-
-	default:
-		soup_message_set_error (req, err);
+	if (status != SOUP_STATUS_OK) {
+		soup_message_set_status (req, status);
 		soup_message_finished (req);
-		break;
+		return;
 	}
 
-	return;
+	start_request (conn, req);
 }
 
 static gboolean
@@ -269,17 +264,18 @@ soup_session_queue_message (SoupSession *session, SoupMessage *req,
 	g_signal_connect_after (req, "finished",
 				G_CALLBACK (final_finished), session);
 
-	soup_message_add_error_code_handler  (req, SOUP_ERROR_UNAUTHORIZED,
-					      SOUP_HANDLER_POST_BODY,
-					      authorize_handler, session);
-	soup_message_add_error_code_handler  (req,
-					      SOUP_ERROR_PROXY_UNAUTHORIZED,
-					      SOUP_HANDLER_POST_BODY,
-					      authorize_handler, session);
+	soup_message_add_status_code_handler  (req, SOUP_STATUS_UNAUTHORIZED,
+					       SOUP_HANDLER_POST_BODY,
+					       authorize_handler, session);
+	soup_message_add_status_code_handler  (req,
+					       SOUP_STATUS_PROXY_UNAUTHORIZED,
+					       SOUP_HANDLER_POST_BODY,
+					       authorize_handler, session);
 
 	if (!(req->priv->msg_flags & SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_error_class_handler (
-			req, SOUP_ERROR_CLASS_REDIRECT, SOUP_HANDLER_POST_BODY,
+		soup_message_add_status_class_handler (
+			req, SOUP_STATUS_CLASS_REDIRECT,
+			SOUP_HANDLER_POST_BODY,
 			redirect_handler, session);
 	}
 
@@ -315,14 +311,13 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *req)
  *
  * @req is not freed upon return.
  *
- * Return value: the #SoupErrorClass of the error encountered while
- * sending or reading the response.
+ * Return value: the HTTP status code of the response
  */
-SoupErrorClass
+guint
 soup_session_send_message (SoupSession *session, SoupMessage *req)
 {
-	g_return_val_if_fail (SOUP_IS_SESSION (session), SOUP_ERROR_CLASS_TRANSPORT);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (req), SOUP_ERROR_CLASS_TRANSPORT);
+	g_return_val_if_fail (SOUP_IS_SESSION (session), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (req), SOUP_STATUS_MALFORMED);
 
 	/* Balance out the unref that final_finished will do */
 	g_object_ref (req);
@@ -333,9 +328,9 @@ soup_session_send_message (SoupSession *session, SoupMessage *req)
 		g_main_iteration (TRUE);
 
 		if (req->priv->status == SOUP_MESSAGE_STATUS_FINISHED ||
-		    SOUP_ERROR_IS_TRANSPORT (req->errorcode))
+		    SOUP_STATUS_IS_TRANSPORT (req->status_code))
 			break;
 	}
 
-	return req->errorclass;
+	return req->status_code;
 }

@@ -144,7 +144,7 @@ connection_new (const SoupUri *uri, gboolean is_proxy,
 }
 
 static void
-socket_connected (SoupSocket *sock, SoupKnownErrorCode status, gpointer conn)
+socket_connected (SoupSocket *sock, guint status, gpointer conn)
 {
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 }
@@ -169,12 +169,12 @@ soup_connection_new (const SoupUri *uri,
 }
 
 static void
-proxy_socket_connected (SoupSocket *sock, SoupKnownErrorCode status, gpointer conn)
+proxy_socket_connected (SoupSocket *sock, guint status, gpointer conn)
 {
-	if (status == SOUP_ERROR_CANT_RESOLVE)
-		status = SOUP_ERROR_CANT_RESOLVE_PROXY;
-	else if (status == SOUP_ERROR_CANT_CONNECT)
-		status = SOUP_ERROR_CANT_CONNECT_PROXY;
+	if (status == SOUP_STATUS_CANT_RESOLVE)
+		status = SOUP_STATUS_CANT_RESOLVE_PROXY;
+	else if (status == SOUP_STATUS_CANT_CONNECT)
+		status = SOUP_STATUS_CANT_CONNECT_PROXY;
 
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 }
@@ -204,10 +204,10 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
 
-	if (SOUP_ERROR_IS_SUCCESSFUL (msg->errorcode))
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
 		soup_socket_start_ssl (conn->priv->socket);
 
-	proxy_socket_connected (NULL, msg->errorcode, conn);
+	proxy_socket_connected (NULL, msg->status_code, conn);
 	g_object_unref (msg);
 }
 
@@ -215,18 +215,17 @@ static void
 tunnel_failed (SoupMessage *msg, gpointer conn)
 {
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       SOUP_ERROR_CANT_CONNECT);
+		       SOUP_STATUS_CANT_CONNECT);
 	g_object_unref (msg);
 }
 
 static void
-tunnel_socket_connected (SoupSocket *sock, SoupKnownErrorCode status,
-			 gpointer user_data)
+tunnel_socket_connected (SoupSocket *sock, guint status, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
 	SoupMessage *connect_msg;
 
-	if (!SOUP_ERROR_IS_SUCCESSFUL (status)) {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		socket_connected (sock, status, conn);
 		return;
 	}

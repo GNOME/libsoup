@@ -19,7 +19,7 @@
 #include "soup-misc.h"
 #include "soup-private.h"
 
-static SoupKnownErrorCode
+static guint
 parse_response_headers (SoupMessage *req,
 			char *headers, guint headers_len,
 			SoupTransferEncoding *encoding,
@@ -34,14 +34,12 @@ parse_response_headers (SoupMessage *req,
 	if (!soup_headers_parse_response (headers, headers_len,
 					  req->response_headers,
 					  &version,
-					  &req->errorcode,
-					  (char **) &req->errorphrase))
-		return SOUP_ERROR_MALFORMED;
+					  &req->status_code,
+					  (char **) &req->reason_phrase))
+		return SOUP_STATUS_MALFORMED;
 
 	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
-
-	req->errorclass = soup_error_get_class (req->errorcode);
 
 	/* 
 	 * Special case zero body handling for:
@@ -54,13 +52,13 @@ parse_response_headers (SoupMessage *req,
 	 */
 	if (meth_id == SOUP_METHOD_ID_HEAD ||
 	    meth_id == SOUP_METHOD_ID_CONNECT ||
-	    req->errorcode  == SOUP_ERROR_NO_CONTENT || 
-	    req->errorcode  == SOUP_ERROR_RESET_CONTENT || 
-	    req->errorcode  == SOUP_ERROR_NOT_MODIFIED || 
-	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
+	    req->status_code  == SOUP_STATUS_NO_CONTENT || 
+	    req->status_code  == SOUP_STATUS_RESET_CONTENT || 
+	    req->status_code  == SOUP_STATUS_NOT_MODIFIED || 
+	    SOUP_STATUS_IS_INFORMATIONAL (req->status_code)) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
-		return SOUP_ERROR_OK;
+		return SOUP_STATUS_OK;
 	}
 
 	/* 
@@ -71,9 +69,9 @@ parse_response_headers (SoupMessage *req,
 	if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0) {
 			*encoding = SOUP_TRANSFER_CHUNKED;
-			return SOUP_ERROR_OK;
+			return SOUP_STATUS_OK;
 		} else
-			return SOUP_ERROR_MALFORMED;
+			return SOUP_STATUS_MALFORMED;
 	}
 
 	/* 
@@ -86,12 +84,12 @@ parse_response_headers (SoupMessage *req,
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		len = atoi (length);
 		if (len < 0)
-			return SOUP_ERROR_MALFORMED;
+			return SOUP_STATUS_MALFORMED;
 		else
 			*content_len = len;
 	}
 
-	return SOUP_ERROR_OK;
+	return SOUP_STATUS_OK;
 }
 
 static void

@@ -40,13 +40,13 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		printf ("%.*s\n", msg->request.length, msg->request.body);
 
 	if (soup_method_get_id (msg->method) != SOUP_METHOD_ID_GET) {
-		soup_message_set_error (msg, SOUP_ERROR_NOT_IMPLEMENTED);
+		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		goto DONE;
 	}
 
 	if (path) {
 		if (*path != '/') {
-			soup_message_set_error (msg, SOUP_ERROR_BAD_REQUEST);
+			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
 			goto DONE;
 		}
 	} else
@@ -58,11 +58,11 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	if (stat (path_to_open, &st) == -1) {
 		g_free (path_to_open);
 		if (errno == EPERM)
-			soup_message_set_error (msg, SOUP_ERROR_FORBIDDEN);
+			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
 		else if (errno == ENOENT)
-			soup_message_set_error (msg, SOUP_ERROR_NOT_FOUND);
+			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		else
-			soup_message_set_error (msg, SOUP_ERROR_INTERNAL);
+			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 		goto DONE;
 	}
 
@@ -75,7 +75,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 			redir_uri = g_strdup_printf ("%s/", uri);
 			soup_message_add_header (msg->response_headers,
 						 "Location", redir_uri);
-			soup_message_set_error (msg, SOUP_ERROR_MOVED_PERMANENTLY);
+			soup_message_set_status (msg, SOUP_STATUS_MOVED_PERMANENTLY);
 			g_free (redir_uri);
 			g_free (uri);
 			g_free (path_to_open);
@@ -90,7 +90,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	fd = open (path_to_open, O_RDONLY);
 	g_free (path_to_open);
 	if (fd == -1) {
-		soup_message_set_error (msg, SOUP_ERROR_INTERNAL);
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 		goto DONE;
 	}
 
@@ -101,13 +101,13 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	read (fd, msg->response.body, msg->response.length);
 	close (fd);
 
-	soup_message_set_error (msg, SOUP_ERROR_OK);
+	soup_message_set_status (msg, SOUP_STATUS_OK);
 
  DONE:
 	g_free (path);
 	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
 					  SOUP_TRANSFER_CONTENT_LENGTH);
-	printf ("  -> %d %s\n\n", msg->errorcode, msg->errorphrase);
+	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 
 static void

@@ -16,8 +16,8 @@
 
 typedef enum {
 	SOUP_HANDLER_HEADER = 1,
-	SOUP_HANDLER_ERROR_CODE,
-	SOUP_HANDLER_ERROR_CLASS
+	SOUP_HANDLER_STATUS_CODE,
+	SOUP_HANDLER_STATUS_CLASS
 } SoupHandlerKind;
 
 typedef struct {
@@ -27,9 +27,9 @@ typedef struct {
 
 	SoupHandlerKind   kind;
 	union {
-		guint           errorcode;
-		SoupErrorClass  errorclass;
-		const char     *header;
+		guint            status_code;
+		SoupStatusClass  status_class;
+		const char      *header;
 	} data;
 } SoupHandlerData;
 
@@ -47,12 +47,13 @@ run_handler (SoupMessage     *msg,
 					      data->data.header))
 			return;
 		break;
-	case SOUP_HANDLER_ERROR_CODE:
-		if (msg->errorcode != data->data.errorcode)
+	case SOUP_HANDLER_STATUS_CODE:
+		if (msg->status_code != data->data.status_code)
 			return;
 		break;
-	case SOUP_HANDLER_ERROR_CLASS:
-		if (msg->errorclass != data->data.errorclass)
+	case SOUP_HANDLER_STATUS_CLASS:
+		if (msg->status_code < data->data.status_class * 100 ||
+		    msg->status_code >= (data->data.status_class + 1) * 100)
 			return;
 		break;
 	default:
@@ -68,9 +69,6 @@ run_handler (SoupMessage     *msg,
  *
  * After running all handlers, if there is an error set or the invoke
  * phase was post_body, issue the final callback.
- *
- * FIXME: If the errorcode is changed by a handler, we should restart
- * the processing.
  */
 void
 soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
@@ -94,8 +92,8 @@ add_handler (SoupMessage      *msg,
 	     gpointer          user_data,
 	     SoupHandlerKind   kind,
 	     const char       *header,
-	     guint             errorcode,
-	     guint             errorclass)
+	     guint             status_code,
+	     SoupStatusClass   status_class)
 {
 	SoupHandlerData *data;
 
@@ -109,11 +107,11 @@ add_handler (SoupMessage      *msg,
 	case SOUP_HANDLER_HEADER:
 		data->data.header = header;
 		break;
-	case SOUP_HANDLER_ERROR_CODE:
-		data->data.errorcode = errorcode;
+	case SOUP_HANDLER_STATUS_CODE:
+		data->data.status_code = status_code;
 		break;
-	case SOUP_HANDLER_ERROR_CLASS:
-		data->data.errorclass = errorclass;
+	case SOUP_HANDLER_STATUS_CLASS:
+		data->data.status_class = status_class;
 		break;
 	default:
 		break;
@@ -140,35 +138,35 @@ soup_message_add_header_handler (SoupMessage      *msg,
 }
 
 void
-soup_message_add_error_code_handler (SoupMessage      *msg,
-				     guint             errorcode,
-				     SoupHandlerPhase  phase,
-				     SoupCallbackFn    handler_cb,
-				     gpointer          user_data)
-{
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (errorcode != 0);
-	g_return_if_fail (handler_cb != NULL);
-
-	add_handler (msg, phase, handler_cb, user_data,
-		     SOUP_HANDLER_ERROR_CODE,
-		     NULL, errorcode, 0);
-}
-
-void
-soup_message_add_error_class_handler (SoupMessage      *msg,
-				      SoupErrorClass    errorclass,
+soup_message_add_status_code_handler (SoupMessage      *msg,
+				      guint             status_code,
 				      SoupHandlerPhase  phase,
 				      SoupCallbackFn    handler_cb,
 				      gpointer          user_data)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (errorclass != 0);
+	g_return_if_fail (status_code != 0);
 	g_return_if_fail (handler_cb != NULL);
 
 	add_handler (msg, phase, handler_cb, user_data,
-		     SOUP_HANDLER_ERROR_CLASS,
-		     NULL, 0, errorclass);
+		     SOUP_HANDLER_STATUS_CODE,
+		     NULL, status_code, 0);
+}
+
+void
+soup_message_add_status_class_handler (SoupMessage      *msg,
+				       SoupStatusClass   status_class,
+				       SoupHandlerPhase  phase,
+				       SoupCallbackFn    handler_cb,
+				       gpointer          user_data)
+{
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (status_class != 0);
+	g_return_if_fail (handler_cb != NULL);
+
+	add_handler (msg, phase, handler_cb, user_data,
+		     SOUP_HANDLER_STATUS_CLASS,
+		     NULL, 0, status_class);
 }
 
 void

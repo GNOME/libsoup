@@ -348,7 +348,7 @@ soup_server_auth_new (SoupServerAuthContext *auth_ctx,
 	g_return_val_if_fail (msg != NULL, NULL);
 
 	if (!auth_hdrs && auth_ctx->types) {
-		soup_message_set_error (msg, SOUP_ERROR_UNAUTHORIZED);
+		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 		return NULL;
 	}
 
@@ -357,7 +357,7 @@ soup_server_auth_new (SoupServerAuthContext *auth_ctx,
 					       &header);
 
 	if (!type && auth_ctx->types) {
-		soup_message_set_error (msg, SOUP_ERROR_UNAUTHORIZED);
+		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 		return NULL;
 	}
 
@@ -396,7 +396,7 @@ soup_server_auth_new (SoupServerAuthContext *auth_ctx,
 
 	g_free (ret);
 
-	soup_message_set_error (msg, SOUP_ERROR_UNAUTHORIZED);
+	soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 	return NULL;
 }
 

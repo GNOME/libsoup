@@ -43,9 +43,8 @@ struct SoupMessage {
 
 	const char         *method;
 
-	guint               errorcode;
-	SoupErrorClass      errorclass;
-	const char         *errorphrase;
+	guint               status_code;
+	const char         *reason_phrase;
 
 	SoupDataBuffer      request;
 	GHashTable         *request_headers;
@@ -68,12 +67,6 @@ typedef struct {
 } SoupMessageClass;
 
 GType soup_message_get_type (void);
-
-#define SOUP_MESSAGE_IS_ERROR(msg)                            \
-        (msg->errorclass &&                                   \
-	 msg->errorclass != SOUP_ERROR_CLASS_SUCCESS &&       \
-         msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL && \
-	 msg->errorclass != SOUP_ERROR_CLASS_UNKNOWN)
 
 typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
 /* Backward compat; FIXME */
@@ -201,16 +194,16 @@ void           soup_message_add_header_handler  (SoupMessage       *msg,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
-void           soup_message_add_error_code_handler (
+void           soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
-						 guint              errorcode,
+						 guint              status_code,
 						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
 
-void           soup_message_add_error_class_handler (
+void           soup_message_add_status_class_handler (
 						 SoupMessage       *msg,
-						 SoupErrorClass     errorclass,
+						 SoupStatusClass    status_class,
 						 SoupHandlerPhase   type,
 						 SoupCallbackFn     handler_cb,
 						 gpointer           user_data);
@@ -221,14 +214,14 @@ void           soup_message_remove_handler      (SoupMessage       *msg,
 						 gpointer           user_data);
 
 /*
- * Error Setting
+ * Status Setting
  */
-void           soup_message_set_error           (SoupMessage       *msg, 
-						 SoupKnownErrorCode errcode);
+void           soup_message_set_status          (SoupMessage       *msg, 
+						 guint              status_code);
 
-void           soup_message_set_error_full      (SoupMessage       *msg, 
-						 guint              errcode, 
-						 const char        *errphrase);
+void           soup_message_set_status_full     (SoupMessage       *msg, 
+						 guint              status_code, 
+						 const char        *reason_phrase);
 
 
 /* Chunked encoding */

@@ -30,7 +30,7 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*dns_result) (SoupAddress *addr, SoupKnownErrorCode);
+	void (*dns_result) (SoupAddress *addr, guint status);
 } SoupAddressClass;
 
 typedef enum {
@@ -54,7 +54,7 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 						  guint                port);
 
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
-						  SoupKnownErrorCode   status,
+						  guint                status,
 						  gpointer             data);
 void             soup_address_resolve            (SoupAddress         *addr,
 						  SoupAddressCallback  cb,
