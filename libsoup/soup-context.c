@@ -286,7 +286,7 @@ struct SoupConnectData {
 	gpointer               user_data;
 
 	guint                  timeout_tag;
-	gpointer               connect_tag;
+	SoupSocket            *sock;
 };
 
 static void
@@ -329,20 +329,17 @@ prune_least_used_connection (void)
 static gboolean retry_connect_timeout_cb (struct SoupConnectData *data);
 
 static void
-soup_context_connect_cb (SoupSocket              *socket,
-			 SoupSocketConnectStatus  status,
-			 gpointer                 user_data)
+soup_context_connect_cb (SoupSocket         *socket,
+			 SoupKnownErrorCode  status,
+			 gpointer            user_data)
 {
 	struct SoupConnectData *data = user_data;
 	SoupContext            *ctx = data->ctx;
-	SoupConnection         *new_conn;
+	SoupConnection         *new_conn = NULL;
 
 	switch (status) {
-	case SOUP_SOCKET_CONNECT_ERROR_NONE:
+	case SOUP_ERROR_OK:
 		new_conn = soup_connection_new (socket);
-		g_object_unref (socket);
-		if (ctx->priv->uri->protocol == SOUP_PROTOCOL_HTTPS)
-			soup_connection_start_ssl (new_conn);
 
 		g_signal_connect (new_conn, "disconnected",
 				  G_CALLBACK (connection_disconnected),
@@ -355,20 +352,13 @@ soup_context_connect_cb (SoupSocket              *socket,
 		ctx->priv->server->connections =
 			g_slist_prepend (ctx->priv->server->connections, new_conn);
 
-		(*data->cb) (ctx, 
-			     SOUP_CONNECT_ERROR_NONE, 
-			     new_conn, 
-			     data->user_data);
 		break;
-	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
-		connection_count--;
 
-		(*data->cb) (ctx, 
-			     SOUP_CONNECT_ERROR_ADDR_RESOLVE, 
-			     NULL, 
-			     data->user_data);
+	case SOUP_ERROR_CANT_RESOLVE:
+		connection_count--;
 		break;
-	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
+
+	default:
 		connection_count--;
 
 		/*
@@ -384,14 +374,12 @@ soup_context_connect_cb (SoupSocket              *socket,
 			return;
 		}
 
-		(*data->cb) (ctx, 
-			     SOUP_CONNECT_ERROR_NETWORK, 
-			     NULL, 
-			     data->user_data);
 		break;
 	}
 
+	(*data->cb) (ctx, status, new_conn, data->user_data);
 	g_object_unref (ctx);
+	g_object_unref (data->sock);
 	g_free (data);
 }
 
@@ -412,7 +400,7 @@ try_existing_connections (SoupContext           *ctx,
 			soup_connection_set_in_use (conn, TRUE);
 
 			/* Issue success callback */
-			(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
+			(*cb) (ctx, SOUP_ERROR_OK, conn, user_data);
 			return TRUE;
 		}
 
@@ -423,11 +411,10 @@ try_existing_connections (SoupContext           *ctx,
 }
 
 static gboolean
-try_create_connection (struct SoupConnectData **dataptr)
+try_create_connection (struct SoupConnectData *data)
 {
-	struct SoupConnectData *data = *dataptr;
 	int conn_limit = soup_get_connection_limit ();
-	gpointer connect_tag;
+	SoupUri *uri;
 
 	/* 
 	 * Check if we are allowed to create a new connection, otherwise wait
@@ -436,26 +423,17 @@ try_create_connection (struct SoupConnectData **dataptr)
 	if (conn_limit &&
 	    connection_count >= conn_limit &&
 	    !prune_least_used_connection ()) {
-		data->connect_tag = 0;
+		data->sock = NULL;
 		return FALSE;
 	}
 
 	connection_count++;
 
 	data->timeout_tag = 0;
-	connect_tag = soup_socket_connect (data->ctx->priv->uri->host,
-					   data->ctx->priv->uri->port,
-					   soup_context_connect_cb,
-					   data);
-	/* 
-	 * NOTE: soup_socket_connect can fail immediately and call our
-	 * callback which will delete the state.  
-	 */
-	if (connect_tag)
-		data->connect_tag = connect_tag;
-	else
-		*dataptr = NULL;
-
+	uri = data->ctx->priv->uri;
+	data->sock = soup_socket_client_new (uri->host, uri->port,
+					     uri->protocol == SOUP_PROTOCOL_HTTPS,
+					     soup_context_connect_cb, data);
 	return TRUE;
 }
 
@@ -470,7 +448,7 @@ retry_connect_timeout_cb (struct SoupConnectData *data)
 		return FALSE;
 	}
 
-	return try_create_connection (&data) == FALSE;
+	return try_create_connection (data) == FALSE;
 }
 
 /**
@@ -514,7 +492,7 @@ soup_context_get_connection (SoupContext           *ctx,
 
 	data->ctx = g_object_ref (ctx);
 
-	if (!try_create_connection (&data)) {
+	if (!try_create_connection (data)) {
 		data->timeout_tag =
 			g_timeout_add (150,
 				       (GSourceFunc) retry_connect_timeout_cb,
@@ -540,9 +518,9 @@ soup_context_cancel_connect (SoupConnectId tag)
 
 	if (data->timeout_tag)
 		g_source_remove (data->timeout_tag);
-	else if (data->connect_tag) {
+	else if (data->sock) {
 		connection_count--;
-		soup_socket_connect_cancel (data->connect_tag);
+		g_object_unref (data->sock);
 	}
 
 	g_free (data);

@@ -20,6 +20,8 @@ struct {
 	 * SOUP_ERROR_CLASS_TRANSPORT 
 	 */
 	{ SOUP_ERROR_CANCELLED,               "Cancelled" },
+	{ SOUP_ERROR_CANT_RESOLVE,            "Cannot resolve hostname" },
+	{ SOUP_ERROR_CANT_RESOLVE_PROXY,      "Cannot resolve proxy hostname" },
 	{ SOUP_ERROR_CANT_CONNECT,            "Cannot connect to destination" },
 	{ SOUP_ERROR_CANT_CONNECT_PROXY,      "Cannot connect to proxy" },
 	{ SOUP_ERROR_IO,                      "Connection terminated "

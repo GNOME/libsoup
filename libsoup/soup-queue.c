@@ -262,8 +262,6 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 					    soup_queue_read_done_cb,
 					    soup_queue_error_cb,
 					    req);
-
-		g_io_channel_unref (channel);
 	} 
 	else {
 		req->status = SOUP_STATUS_FINISHED;
@@ -502,8 +500,6 @@ start_request (SoupContext *ctx, SoupMessage *req)
 				    soup_queue_error_cb,
 				    req);
 
-	g_io_channel_unref (channel);
-
 	req->status = SOUP_STATUS_SENDING_REQUEST;
 }
 
@@ -587,7 +583,7 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 
 void
 soup_queue_connect_cb (SoupContext          *ctx,
-		       SoupConnectErrorCode  err,
+		       SoupKnownErrorCode    err,
 		       SoupConnection       *conn,
 		       gpointer              user_data)
 {
@@ -600,7 +596,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	req->connection = conn;
 
 	switch (err) {
-	case SOUP_CONNECT_ERROR_NONE:
+	case SOUP_ERROR_OK:
 		/* 
 		 * NOTE: proxy_connect will either set an error or call us 
 		 * again after proxy negotiation.
@@ -611,29 +607,19 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		start_request (ctx, req);
 		break;
 
-	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
-		if (ctx != req->context)
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_CANT_CONNECT_PROXY,
-				"Unable to resolve proxy hostname");
-		else 
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_CANT_CONNECT,
-				"Unable to resolve hostname");
-
+	case SOUP_ERROR_CANT_RESOLVE:
+		if (ctx == req->context)
+			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE);
+		else
+			soup_message_set_error (req, SOUP_ERROR_CANT_RESOLVE_PROXY);
 		soup_message_issue_callback (req);
 		break;
 
-	case SOUP_CONNECT_ERROR_NETWORK:
-		if (ctx != req->context)
-			soup_message_set_error (req, 
-						SOUP_ERROR_CANT_CONNECT_PROXY);
+	default:
+		if (ctx == req->context)
+			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT);
 		else
-			soup_message_set_error (req, 
-						SOUP_ERROR_CANT_CONNECT);
-
+			soup_message_set_error (req, SOUP_ERROR_CANT_CONNECT_PROXY);
 		soup_message_issue_callback (req);
 		break;
 	}

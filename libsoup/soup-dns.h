@@ -30,7 +30,7 @@ SoupDNSHandle    soup_gethostbyaddr        (gpointer            addr,
 
 void             soup_gethostby_cancel     (SoupDNSHandle       id);
 
-char            *soup_ntop                 (gpointer            addr,
+char            *soup_ntop                 (gconstpointer       addr,
 					    int                 family);
 
 #endif /* SOUP_DNS_H */

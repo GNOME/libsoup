@@ -92,6 +92,13 @@ int                soup_base64_decode_step     (const guchar   *in,
 						int            *state, 
 						guint          *save);
 
+/* Misc utils */
+
+guint              soup_signal_connect_once   (gpointer         instance,
+					       const char *     signal,
+					       GCallback        c_handler,
+					       gpointer         data);
+
 /* Useful debugging routines */
 
 void               soup_debug_print_headers  (SoupMessage *req);

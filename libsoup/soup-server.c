@@ -49,11 +49,12 @@ struct _SoupServerMessage {
 };
 
 static SoupServer *
-new_server (SoupAddress *address, SoupProtocol proto, guint port)
+new_server (SoupAddress *address, SoupProtocol proto)
 {
 	SoupServer *serv;
 	SoupSocket *sock = NULL;
 	GIOChannel *read_chan = NULL, *write_chan = NULL;
+	guint port = 0;
 
 	g_return_val_if_fail (address, NULL);
 
@@ -68,11 +69,14 @@ new_server (SoupAddress *address, SoupProtocol proto, guint port)
 			return NULL;
 		}
 	} else {
-		sock = soup_socket_server_new (address, port);
+		sock = soup_socket_server_new (address,
+					       proto == SOUP_PROTOCOL_HTTPS,
+					       NULL, NULL);
 		if (!sock)
 			return NULL;
 
-		port = soup_socket_get_port (sock);
+		address = soup_socket_get_local_address (sock);
+		port = soup_address_get_port (address);
 	}
 
 	serv = g_new0 (SoupServer, 1);
@@ -89,7 +93,7 @@ new_server (SoupAddress *address, SoupProtocol proto, guint port)
 SoupServer *
 soup_server_new (SoupProtocol proto, guint port)
 {
-	return new_server (soup_address_ipv4_any (), proto, port);
+	return new_server (soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, port), proto);
 }
 
 SoupServer *
@@ -97,12 +101,12 @@ soup_server_new_with_host (const char *host, SoupProtocol proto, guint port)
 {
 	SoupAddress *address;
 
-	address = soup_address_new_sync (host);
+	address = soup_address_new (host, port);
 
 	if (!address)
 		return NULL;
 
-	return new_server (address, proto, port);
+	return new_server (address, proto);
 }
 
 SoupServer *
@@ -155,9 +159,6 @@ soup_server_unref (SoupServer *serv)
 	--serv->refcnt;
 
 	if (serv->refcnt == 0) {
-		if (serv->accept_tag)
-			g_source_remove (serv->accept_tag);
-
 		if (serv->listen_sock)
 			g_object_unref (serv->listen_sock);
 
@@ -280,8 +281,6 @@ destroy_message (SoupMessage *msg)
 					start_another_request,
 					data);
 		}
-
-		g_io_channel_unref (chan);
 	}
 
 	if (server_msg) {
@@ -441,28 +440,6 @@ read_headers_cgi (SoupMessage *msg,
 	return SOUP_TRANSFER_END;
 }
 
-#define SOUP_SOCKADDR_IN(s) (*((struct sockaddr_in*) &s))
-
-static gchar *
-get_server_sockname (gint fd)
-{
-	struct sockaddr name;
-	int namelen;
-	gchar *host = NULL;
-	guchar *p;
-
-	if (getsockname (fd, &name, &namelen) == 0) {
-		p = (guchar*) &(SOUP_SOCKADDR_IN(name).sin_addr);
-		host = g_strdup_printf ("%d.%d.%d.%d",
-					p [0],
-					p [1],
-					p [2],
-					p [3]);
-	}
-
-	return host;
-}
-
 static void
 write_header (gchar *key, gchar *value, GString *ret)
 {
@@ -532,7 +509,6 @@ issue_bad_request (SoupMessage *msg)
 				      SOUP_TRANSFER_CONTENT_LENGTH);
 
 	channel = soup_socket_get_iochannel (msg->priv->server_sock);
-
 	msg->priv->write_tag =
 		soup_transfer_write_simple (channel,
 					    header,
@@ -540,9 +516,7 @@ issue_bad_request (SoupMessage *msg)
 					    write_done_cb,
 					    error_cb,
 					    msg);
-
-	g_io_channel_unref (channel);
-} /* issue_bad_request */
+}
 
 static void
 read_headers_cb (const GString        *headers,
@@ -631,9 +605,9 @@ read_headers_cb (const GString        *headers,
 			 * No Host header, no AbsoluteUri
 			 */
 			SoupSocket *server_sock = msg->priv->server_sock;
-			gchar *host;
+			SoupAddress *addr = soup_socket_get_local_address (server_sock);
+			const char *host = soup_address_get_physical (addr);
 
-			host = get_server_sockname (server_sock->priv->sockfd);
 			url = 
 				g_strdup_printf (
 					"%s%s:%d%s",
@@ -908,8 +882,6 @@ read_done_cb (const SoupDataBuffer *data,
 						    req);
 	}
 
-	g_io_channel_unref (channel);
-
 	return;
 }
 
@@ -968,43 +940,27 @@ start_another_request (GIOChannel    *serv_chan,
 	return FALSE;
 }
 
-static gboolean 
-conn_accept (GIOChannel    *serv_chan,
-	     GIOCondition   condition, 
-	     gpointer       user_data)
+static void
+new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 {
 	SoupServer *server = user_data;
 	SoupMessage *msg;
-	GIOChannel *chan;
-	SoupSocket *sock;
-
-	sock = soup_socket_server_try_accept (server->listen_sock);
-	if (!sock) return TRUE;
 
 	msg = message_new (server);
 	if (!msg) {
 		g_warning ("Unable to create new incoming message\n");
-		return TRUE;
+		return;
 	}
 
-	chan = soup_socket_get_iochannel (sock);
-
-	if (server->proto == SOUP_PROTOCOL_HTTPS)
-		sock->priv->iochannel = soup_ssl_get_server_iochannel (chan);
-
-	msg->priv->server_sock = sock;
+	msg->priv->server_sock = g_object_ref (sock);
 	msg->priv->read_tag = 
-		soup_transfer_read (sock->priv->iochannel,
+		soup_transfer_read (soup_socket_get_iochannel (sock),
 				    FALSE,
 				    read_headers_cb,
 				    NULL,
 				    read_done_cb,
 				    error_cb,
 				    msg);
-
-	g_io_channel_unref (chan);
-
-	return TRUE;
 }
 
 typedef struct {
@@ -1109,25 +1065,11 @@ soup_server_run_async (SoupServer *server)
 			read_done_cgi_cb (&buf, msg);
 		}
 	} else {
-		GIOChannel *chan;
-
 		if (!server->listen_sock) 
 			goto START_ERROR;
 
-		/* 
-		 * Listen for new connections (if not already)
-		 */
-		if (!server->accept_tag) {
-			chan = soup_socket_get_iochannel (server->listen_sock);
-
-			server->accept_tag = 
-				g_io_add_watch (chan,
-						G_IO_IN,
-						(GIOFunc) conn_accept, 
-						server);
-
-			g_io_channel_unref (chan);
-		}
+		g_signal_connect (server->listen_sock, "new_connection",
+				  G_CALLBACK (new_connection), server);
 	}
 
 	soup_server_ref (server);
@@ -1220,27 +1162,20 @@ SoupAddress *
 soup_server_context_get_client_address (SoupServerContext *context)
 {
 	SoupSocket *socket;
-	SoupAddress *address;
 
 	g_return_val_if_fail (context != NULL, NULL);
 
 	socket = context->msg->priv->server_sock;
-	address = soup_socket_get_address (socket);
-
-	return address;
+	return soup_socket_get_remote_address (socket);
 }
 
-gchar *
+const char *
 soup_server_context_get_client_host (SoupServerContext *context)
 {
-	gchar *host;
 	SoupAddress *address;
 
 	address = soup_server_context_get_client_address (context);
-	host = g_strdup (soup_address_get_canonical_name (address));
-	g_object_unref (address);
-	
-	return host;
+	return soup_address_get_physical (address);
 }
 
 static SoupServerAuthContext *

@@ -20,7 +20,7 @@ void         soup_queue_message        (SoupMessage          *req,
 					gpointer              user_data);
 
 void         soup_queue_connect_cb     (SoupContext          *ctx,
-					SoupConnectErrorCode  err,
+					SoupKnownErrorCode    err,
 					SoupConnection       *conn,
 					gpointer              user_data);
 

@@ -50,7 +50,7 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	int opt;
-	int port = SOUP_SERVER_ANY_PORT;
+	int port = SOUP_ADDRESS_ANY_PORT;
 	SoupServer *server;
 
 	g_type_init ();

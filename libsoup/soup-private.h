@@ -55,13 +55,6 @@ typedef struct {
 	GHashTable *ntlm_auths;	      /* KEY: SoupConnection, VALUE: SoupAuth */
 } SoupHost;
 
-struct SoupSocketPrivate {
-	int             sockfd;
-	SoupAddress    *addr;
-	guint           port;
-	GIOChannel     *iochannel;
-};
-
 #ifdef HAVE_IPV6
 #define soup_sockaddr_max sockaddr_in6
 #else
@@ -75,7 +68,6 @@ struct _SoupServer {
 	guint              refcnt;
 	GMainLoop         *loop;
 
-	guint              accept_tag;
 	SoupSocket        *listen_sock;
 
 	GIOChannel        *cgi_read_chan;

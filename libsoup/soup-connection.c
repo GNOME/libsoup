@@ -30,7 +30,6 @@
 
 struct SoupConnectionPrivate {
 	SoupSocket *socket;
-	GIOChannel *raw_chan, *cooked_chan;
 	gboolean    in_use, new;
 	time_t      last_used;
 	guint       death_tag;
@@ -44,7 +43,8 @@ enum {
 	LAST_SIGNAL
 };
 
-guint signals[LAST_SIGNAL] = { 0 };
+static guint signals[LAST_SIGNAL] = { 0 };
+
 static void
 init (GObject *object)
 {
@@ -100,16 +100,9 @@ SoupConnection *
 soup_connection_new (SoupSocket *sock)
 {
 	SoupConnection *conn;
-	int yes = 1, flags = 0, fd;
 
 	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
 	conn->priv->socket = g_object_ref (sock);
-
-	conn->priv->raw_chan = soup_socket_get_iochannel (sock);
-	fd = g_io_channel_unix_get_fd (conn->priv->raw_chan);
-	setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof (yes));
-	flags = fcntl (fd, F_GETFL, 0);
-	fcntl (fd, F_SETFL, flags | O_NONBLOCK);
 
 	return conn;
 }
@@ -126,10 +119,7 @@ soup_connection_start_ssl (SoupConnection *conn)
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (conn->priv->socket != NULL);
 
-	if (conn->priv->cooked_chan)
-		g_io_channel_unref (conn->priv->cooked_chan);
-	conn->priv->cooked_chan =
-		soup_ssl_get_iochannel (conn->priv->raw_chan);
+	soup_socket_start_ssl (conn->priv->socket);
 }
 
 /**
@@ -147,15 +137,6 @@ soup_connection_disconnect (SoupConnection *conn)
 	if (conn->priv->death_tag) {
 		g_source_remove (conn->priv->death_tag);
 		conn->priv->death_tag = 0;
-	}
-
-	if (conn->priv->raw_chan) {
-		g_io_channel_unref (conn->priv->raw_chan);
-		conn->priv->raw_chan = NULL;
-	}
-	if (conn->priv->cooked_chan) {
-		g_io_channel_unref (conn->priv->cooked_chan);
-		conn->priv->cooked_chan = NULL;
 	}
 
 	if (conn->priv->socket) {
@@ -180,8 +161,7 @@ soup_connection_is_connected (SoupConnection *conn)
  * Returns a #GIOChannel used for IO operations on the network
  * connection represented by @conn.
  *
- * Return value: a pointer to the #GIOChannel used for IO on @conn,
- * which the caller must unref.
+ * Return value: a pointer to the #GIOChannel used for IO on @conn
  */
 GIOChannel *
 soup_connection_get_iochannel (SoupConnection *conn)
@@ -191,13 +171,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 	if (!conn->priv->socket)
 		return NULL;
 
-	if (!conn->priv->cooked_chan) {
-		conn->priv->cooked_chan = conn->priv->raw_chan;
-		g_io_channel_ref (conn->priv->cooked_chan);
-	}
-
-	g_io_channel_ref (conn->priv->cooked_chan);
-	return conn->priv->cooked_chan;
+	return soup_socket_get_iochannel (conn->priv->socket);
 }
 
 
@@ -231,10 +205,8 @@ soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
 
 	conn->priv->in_use = in_use;
 	if (!conn->priv->in_use) {
-		if (!conn->priv->cooked_chan)
-			soup_connection_get_iochannel (conn);
 		conn->priv->death_tag = 
-			g_io_add_watch (conn->priv->cooked_chan,
+			g_io_add_watch (soup_socket_get_iochannel (conn->priv->socket),
 					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
 					connection_died,
 					conn);

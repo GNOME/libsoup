@@ -804,3 +804,61 @@ soup_set_authorize_callback (SoupAuthorizeFn authfn,
 	soup_auth_fn = authfn;
 	soup_auth_fn_user_data = user_data;
 }
+
+
+typedef struct {
+	gpointer instance;
+	guint    real_id, self_id;
+} SoupSignalOnceData;
+
+static void
+signal_once_destroy (gpointer ssod, GClosure *closure)
+{
+	g_free (ssod);
+}
+
+static void
+signal_once_cb (gpointer user_data, ...)
+{
+	SoupSignalOnceData *ssod = user_data;
+
+	if (g_signal_handler_is_connected (ssod->instance, ssod->real_id))
+		g_signal_handler_disconnect (ssod->instance, ssod->real_id);
+	g_signal_handler_disconnect (ssod->instance, ssod->self_id);
+}
+
+/**
+ * soup_signal_connect_once:
+ * @instance: an object
+ * @detailed_signal: "signal-name" or "signal-name::detail" to connect to
+ * @c_handler: the #GCallback to connect
+ * @data: data to pass to @c_handler calls
+ *
+ * Connects a #GCallback function to a signal as with
+ * g_signal_connect(), but automatically removes the signal handler
+ * after its first invocation.
+ *
+ * Return value: the signal handler id
+ **/
+guint
+soup_signal_connect_once (gpointer instance, const char *detailed_signal,
+			  GCallback c_handler, gpointer data)
+{
+	SoupSignalOnceData *ssod;
+
+	g_return_val_if_fail (G_TYPE_CHECK_INSTANCE (instance), 0);
+	g_return_val_if_fail (detailed_signal != NULL, 0);
+	g_return_val_if_fail (c_handler != NULL, 0);
+
+	ssod = g_new0 (SoupSignalOnceData, 1);
+	ssod->instance = instance;
+	ssod->real_id =
+		g_signal_connect (instance, detailed_signal, c_handler, data);
+	ssod->self_id =
+		g_signal_connect_data (instance, detailed_signal,
+				       G_CALLBACK (signal_once_cb), ssod,
+				       signal_once_destroy,
+				       G_CONNECT_SWAPPED);
+
+	return ssod->real_id;
+}

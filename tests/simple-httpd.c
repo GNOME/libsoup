@@ -119,8 +119,8 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	SoupServer *server, *ssl_server;
 	int opt;
-	int port = SOUP_SERVER_ANY_PORT;
-	int ssl_port = SOUP_SERVER_ANY_PORT;
+	int port = SOUP_ADDRESS_ANY_PORT;
+	int ssl_port = SOUP_ADDRESS_ANY_PORT;
 
 	g_type_init ();
 	signal (SIGINT, quit);

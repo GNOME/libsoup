@@ -1,3 +1,90 @@
+2003-08-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-address.c (SoupAddressPrivate): Make this more like
+	a struct sockaddr again (like it used to be). In particular, add
+	back the "port" field. Add a bunch of macros to try (and fail) to
+	simplify some of the code.
+	(soup_address_new): Now returns a SoupAddress directly rather than
+	a random handle, and the caller can just use g_object_unref to
+	cancel the lookup. Also, the callback now uses a
+	SoupKnownErrorCode rather than a special-purpose address-lookup
+	error code.
+	(soup_address_new_cancel): No longer needed.
+	(soup_address_new_sync): Removed
+	(soup_address_new_any): Replaces soup_address_ipv4_any and
+	soup_address_ipv6_any.
+	(soup_address_get_name, etc): Gone. Use soup_address_resolve()
+	now.
+	(soup_address_get_physical): Renamed from
+	soup_address_get_canonical_name.
+	(soup_address_get_sockaddr): Replaces soup_address_make_sockaddr()
+
+	* libsoup/soup-socket.c: Update for SoupAddress changes and make
+	similar changes here.
+	(soup_socket_new): Just creates a generic SoupSocket now.
+	(soup_socket_connect): Client setup
+	(soup_socket_listen): Server setup. Now also sets up an iochannel
+	listening for connects and emits a "new_connection" signal as they
+	come in.
+	(soup_socket_start_ssl): Turns on SSL.
+	(soup_socket_client_new, soup_socket_server_new): Utility
+	functions that wrap the above.
+	(soup_socket_new_cancel, soup_socket_new_sync): Gone
+	(soup_socket_server_accept, soup_socket_server_try_accept): No
+	longer needed.
+	(soup_socket_get_iochannel): No longer adds a ref when returning
+	the iochannel. Also, we set it to "close_on_unref" so that if a
+	caller adds a ref to it, the connection will actually remain open
+	even after the SoupSocket is destroyed.
+	(soup_socket_get_local_address, soup_socket_get_remote_address):
+	Let the caller get both of these.
+
+	* libsoup/soup-connection.c: Don't keep a private copy of the
+	socket's iochannel.
+	(soup_connection_new): Don't need to set socket options here.
+	SoupSocket does it.
+	(soup_connection_start_ssl): Just call soup_socket_start_ssl.
+	(soup_connection_get_iochannel): Just return the socket's
+	iochannel (and don't ref it)
+
+	* libsoup/soup-error.c: add SOUP_ERROR_CANT_RESOLVE and
+	SOUP_ERROR_CANT_RESOLVE_PROXY
+
+	* libsoup/soup-dns.c (soup_ntop): Make the address arg const.
+	Remove the "FIXME add a CANT_RESOLVE error" and return
+	SOUP_ERROR_CANT_RESOLVE instead.
+
+	* libsoup/soup-server.c: Update for socket/address changes. Don't
+	poke into SoupSocket's private fields.
+	(soup_server_run_async): Just connect to the socket's
+	"new_connection" signal.
+
+	* libsoup/soup-context.c (try_create_connection,
+	soup_context_connect_cb): Update for socket changes. Replace
+	SOUP_CONNECT_ERROR codes with plain SOUP_ERROR codes.
+
+	* libsoup/soup-misc.c (soup_signal_connect_once): Utility function
+	to connect to a signal handler and connect another function to
+	clean up the first signal handler after its first invocation.
+	(Lets us use signals to replace one-off callbacks.)
+
+	* libsoup/soup-private.h: Remove SoupSocketPrivate since it is
+	actually private now.
+	(struct _SoupServer): Remove accept_tag.
+
+	* libsoup/soup-queue.c (soup_queue_read_done_cb, start_request):
+	Don't unref the iochannel.
+	(soup_queue_connect_cb): Takes a SoupKnownErrorCode now.
+
+	* libsoup/soup-socks.c: Update for socket/address changes
+
+	* tests/simple-httpd.c (main):
+	s/SOUP_SERVER_ANY_PORT/SOUP_ADDRESS_ANY_PORT/
+	* tests/simple-proxy.c (main): Likewise
+
+	* tests/timeserver.c: Update for SoupSocket's "new_connection"
+	signal, and for SoupAddress changes.
+
 2003-08-14  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-connection.c: New, split out from soup-context and

@@ -91,7 +91,7 @@ GSList            *soup_server_list_handlers (SoupServer            *serv);
 
 SoupAddress       *soup_server_context_get_client_address (SoupServerContext *context);
 
-gchar             *soup_server_context_get_client_host    (SoupServerContext *context);
+const char        *soup_server_context_get_client_host    (SoupServerContext *context);
 
 /* 
  * Apache/soup-httpd module initializtion

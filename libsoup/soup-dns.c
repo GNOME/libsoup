@@ -123,7 +123,7 @@ new_hostent_from_phys (const char *addr)
 }
 
 char *
-soup_ntop (gpointer addr, int family)
+soup_ntop (gconstpointer addr, int family)
 {
 	switch (family) {
 	case AF_INET:
@@ -422,8 +422,7 @@ soup_gothost (gpointer user_data)
 		info = entry->lookups->data;
 		entry->lookups = g_slist_remove (entry->lookups, info);
 
-		/* FIXME: add a CANT_RESOLVE error */
-		(*info->func) (info, entry->h ? SOUP_ERROR_OK : SOUP_ERROR_CANT_CONNECT, entry->h, info->data);
+		(*info->func) (info, entry->h ? SOUP_ERROR_OK : SOUP_ERROR_CANT_RESOLVE, entry->h, info->data);
 		g_free (info);
 	}
 

@@ -11,7 +11,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -25,17 +24,7 @@
 #include "soup-private.h"
 #include "soup-address.h"
 #include "soup-dns.h"
-
-struct SoupAddressPrivate {
-	char *name;
-	int   family;
-	union {
-		struct in_addr  in;
-#ifdef HAVE_IPV6
-		struct in6_addr in6;
-#endif
-	} addr;
-};
+#include "soup-marshal.h"
 
 #include <unistd.h>
 #ifndef socklen_t
@@ -50,6 +39,61 @@ struct SoupAddressPrivate {
 #ifndef INADDR_NONE
 #define INADDR_NONE -1
 #endif
+
+struct SoupAddressPrivate {
+	struct sockaddr *sockaddr;
+
+	char *name, *physical;
+	guint port;
+
+	SoupDNSHandle lookup;
+	guint idle_id;
+};
+
+#define SOUP_ADDRESS_PORT_IS_VALID(port) (port >= 0 && port <= 65535)
+#define SOUP_ADDRESS_FAMILY(addr) (addr->priv->sockaddr->sa_family)
+
+#define SOUP_SIN(addr) ((struct sockaddr_in *)addr->priv->sockaddr)
+
+#ifdef HAVE_IPV6
+
+#  define SOUP_SIN6(addr) ((struct sockaddr_in6 *)addr->priv->sockaddr)
+
+#  define SOUP_ADDRESS_FAMILY_IS_VALID(family) \
+	(family == AF_INET || family == AF_INET6)
+#  define SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE(family) \
+	(family == AF_INET ? sizeof (struct sockaddr_in) : \
+			     sizeof (struct sockaddr_in6))
+#  define SOUP_ADDRESS_FAMILY_DATA_SIZE(family) \
+	(family == AF_INET ? sizeof (struct in_addr) : \
+			     sizeof (struct in6_addr))
+
+#  define SOUP_ADDRESS_DATA(addr) \
+	(addr->priv->sockaddr->sa_family == AF_INET ? \
+		(gpointer)&SOUP_SIN(addr)->sin_addr : \
+		(gpointer)&SOUP_SIN6(addr)->sin6_addr)
+#  define SOUP_ADDRESS_PORT(addr) \
+	(addr->priv->sockaddr->sa_family == AF_INET ? \
+		SOUP_SIN(addr)->sin_port : \
+		SOUP_SIN6(addr)->sin6_port)
+
+#else
+
+#  define SOUP_ADDRESS_FAMILY_IS_VALID(family) (family == AF_INET6)
+#  define SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE(family) sizeof (struct sockaddr_in)
+#  define SOUP_ADDRESS_FAMILY_DATA_SIZE(family) sizeof (struct in_addr)
+
+#  define SOUP_ADDRESS_DATA(addr) ((gpointer)&SOUP_SIN(addr)->sin_addr)
+#  define SOUP_ADDRESS_PORT(addr) (SOUP_SIN(addr)->sin_port)
+
+#endif
+
+enum {
+	DNS_RESULT,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
@@ -67,8 +111,17 @@ finalize (GObject *object)
 {
 	SoupAddress *addr = SOUP_ADDRESS (object);
 
+	if (addr->priv->sockaddr)
+		g_free (addr->priv->sockaddr);
 	if (addr->priv->name)
 		g_free (addr->priv->name);
+	if (addr->priv->physical)
+		g_free (addr->priv->physical);
+
+	if (addr->priv->lookup)
+		soup_gethostby_cancel (addr->priv->lookup);
+	if (addr->priv->idle_id)
+		g_source_remove (addr->priv->idle_id);
 
 	g_free (addr->priv);
 
@@ -82,68 +135,50 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+
+	/* signals */
+	signals[DNS_RESULT] =
+		g_signal_new ("dns_result",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupAddressClass, dns_result),
+			      NULL, NULL,
+			      soup_marshal_NONE__INT,
+			      G_TYPE_NONE, 1,
+			      G_TYPE_INT);
 }
 
 SOUP_MAKE_TYPE (soup_address, SoupAddress, class_init, init, PARENT_TYPE)
 
 
-static void
-soup_address_new_sync_cb (SoupAddress       *addr,
-			  SoupAddressStatus  status,
-			  gpointer           user_data)
-{
-	SoupAddress **ret = user_data;
-	*ret = addr;
-}
 
 /**
- * soup_address_new_sync:
- * @name: a hostname, as with soup_address_new()
+ * soup_address_new:
+ * @name: a hostname or physical address
+ * @port: a port number
  *
- * Return value: a #SoupAddress, or %NULL if the lookup fails.
+ * Creates a #SoupAddress from @name and @port. The #SoupAddress's IP
+ * address will not be available right away; the caller can listen for
+ * a #dns_result signal to know when @name has been resolved.
+ *
+ * The DNS lookup can be cancelled by destroying the address object.
+ *
+ * Return value: a #SoupAddress
  **/
 SoupAddress *
-soup_address_new_sync (const char *name)
-{
-	SoupAddress *ret = (SoupAddress *) 0xdeadbeef;
-
-	soup_address_new (name, soup_address_new_sync_cb, &ret);
-
-	while (1) {
-		g_main_iteration (TRUE);
-		if (ret != (SoupAddress *) 0xdeadbeef) return ret;
-	}
-
-	return ret;
-}
-
-static SoupAddress *
-new_address (const char *name, int family, gpointer addr_data)
+soup_address_new (const char *name, guint port)
 {
 	SoupAddress *addr;
 
+	g_return_val_if_fail (name != NULL, NULL);
+	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
+
 	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	if (name)
-		addr->priv->name = g_strdup (name);
-	addr->priv->family = family;
+	addr->priv->name = g_strdup (name);
+	addr->priv->port = port;
 
-	switch (family) {
-	case AF_INET:
-		memcpy (&addr->priv->addr.in, addr_data,
-			sizeof (addr->priv->addr.in));
-		break;
-
-#ifdef HAVE_IPV6
-	case AF_INET6:
-		memcpy (&addr->priv->addr.in6, addr_data,
-			sizeof (addr->priv->addr.in6));
-		break;
-#endif
-
-	default:
-		g_object_unref (addr);
-		addr = NULL;
-	}
+	/* Start a lookup */
+	soup_address_resolve (addr, NULL, NULL);
 
 	return addr;
 }
@@ -151,432 +186,222 @@ new_address (const char *name, int family, gpointer addr_data)
 /**
  * soup_address_new_from_sockaddr:
  * @sa: a pointer to a sockaddr
- * @port: pointer to a variable to store @sa's port number in
+ * @len: size of @sa
  *
- * This parses @sa and returns its address as a #SoupAddress
- * and its port in @port. @sa can point to a #sockaddr_in or
- * (if soup was compiled with IPv6 support) a #sockaddr_in6.
- *
- * Return value: a #SoupAddress, or %NULL if the lookup fails.
+ * Return value: a #SoupAddress equivalent to @sa (or %NULL if @sa's
+ * address family isn't supported)
  **/
 SoupAddress *
-soup_address_new_from_sockaddr (struct sockaddr *sa, guint *port)
+soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 {
-	switch (sa->sa_family) {
-	case AF_INET:
-	{
-		struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
+	SoupAddress *addr;
 
-		if (port)
-			*port = g_ntohs (sa_in->sin_port);
-		return new_address (NULL, AF_INET, &sa_in->sin_addr);
-	}
+	g_return_val_if_fail (sa != NULL, NULL);
+	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (sa->sa_family), NULL);
+	g_return_val_if_fail (len == SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family), NULL);
 
-#ifdef HAVE_IPV6
-	case AF_INET6:
-	{
-		struct sockaddr_in6 *sa_in6 = (struct sockaddr_in6 *)sa;
-
-		if (port)
-			*port = g_ntohs (sa_in6->sin6_port);
-		return new_address (NULL, AF_INET6, &sa_in6->sin6_addr);
-	}
-#endif
-
-	default:
-		return NULL;
-	}
+	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
+	addr->priv->sockaddr = g_memdup (sa, len);
+	addr->priv->port = ntohs (SOUP_ADDRESS_PORT (addr));
+	return addr;
 }
 
 /**
- * soup_address_ipv4_any:
+ * soup_address_new_any:
+ * @family: the address family
+ * @port: the port number (usually 0, meaning "any port")
  *
- * Return value: a #SoupAddress corresponding to %INADDR_ANY, suitable
- * for passing to soup_socket_server_new().
+ * Return value: a #SoupAddress corresponding to the "any" address
+ * for @family (or %NULL if @family isn't supported), suitable for
+ * passing to soup_socket_server_new().
  **/
 SoupAddress *
-soup_address_ipv4_any (void)
+soup_address_new_any (SoupAddressFamily family, guint port)
 {
-	static SoupAddress *ipv4_any = NULL;
+	SoupAddress *addr;
 
-	if (!ipv4_any) {
-		struct sockaddr_in sa_in;
+	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family), NULL);
+	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
 
-		sa_in.sin_family = AF_INET;
-		sa_in.sin_addr.s_addr = INADDR_ANY;
-		ipv4_any = soup_address_new_from_sockaddr ((struct sockaddr *)&sa_in, NULL);
-	}
+	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
+	addr->priv->port = port;
 
-	g_object_ref (ipv4_any);
-	return ipv4_any;
-}
+	addr->priv->sockaddr =
+		g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
+	SOUP_ADDRESS_FAMILY (addr) = family;
+	SOUP_ADDRESS_PORT (addr) = htons (port);
 
-/**
- * soup_address_ipv6_any:
- *
- * Return value: If soup was compiled without IPv6 support, %NULL.
- * Otherwise, a #SoupAddress corresponding to the IPv6 address "::",
- * suitable for passing to soup_socket_server_new().
- **/
-SoupAddress *
-soup_address_ipv6_any (void)
-{
-	static SoupAddress *ipv6_any = NULL;
-
-#ifdef HAVE_IPV6
-	if (!ipv6_any) {
-		struct sockaddr_in6 sa_in6;
-
-		sa_in6.sin6_family = AF_INET6;
-		sa_in6.sin6_addr = in6addr_any;
-		ipv6_any = soup_address_new_from_sockaddr ((struct sockaddr *)&sa_in6, NULL);
-	}
-
-	g_object_ref (ipv6_any);
-#endif
-	return ipv6_any;
-}
-
-static void
-soup_address_get_name_sync_cb (SoupAddress       *addr,
-			       SoupAddressStatus  status,
-			       const char        *name,
-			       gpointer           user_data)
-{
-	const char **ret = user_data;
-	*ret = name;
-}
-
-/**
- * soup_address_get_name_sync:
- * @addr: a #SoupAddress
- *
- * Return value: the hostname associated with @addr, as with
- * soup_address_get_name().
- **/
-const char *
-soup_address_get_name_sync (SoupAddress *addr)
-{
-	const char *ret = (const char *) 0xdeadbeef;
-
-	soup_address_get_name (addr, soup_address_get_name_sync_cb, &ret);
-
-	while (1) {
-		g_main_iteration (TRUE);
-		if (ret != (const char *) 0xdeadbeef) return ret;
-	}
-
-	return ret;
-}
-
-/**
- * soup_address_get_canonical_name:
- * @addr: Address to get the canonical name of.
- *
- * Get the "canonical" name of an address (eg, for IP4 the dotted
- * decimal name 141.213.8.59).
- *
- * Returns: %NULL if there was an error.  The caller is responsible
- * for deleting the returned string.
- **/
-char *
-soup_address_get_canonical_name (SoupAddress *addr)
-{
-	switch (addr->priv->family) {
-	case AF_INET:
-	{
-#ifdef HAVE_INET_NTOP
-		char buffer[INET_ADDRSTRLEN];
-
-		inet_ntop (addr->priv->family, &addr->priv->addr.in,
-			   buffer, sizeof (buffer));
-		return g_strdup (buffer);
-#else
-		return g_strdup (inet_ntoa (addr->priv->addr.in));
-#endif
-	}
-
-#ifdef HAVE_IPV6
-	case AF_INET6:
-	{
-		char buffer[INET6_ADDRSTRLEN];
-
-		inet_ntop (addr->priv->family, &addr->priv->addr.in6,
-			   buffer, sizeof (buffer));
-		return g_strdup (buffer);
-	}
-#endif
-
-	default:
-		return NULL;
-	}
-}
-
-/**
- * soup_address_make_sockaddr:
- * @addr: The %SoupAddress.
- * @port: The port number
- * @sa: Pointer to struct sockaddr * to output the sockaddr into
- * @len: Pointer to int to return the size of the sockaddr into
- *
- * This creates an appropriate struct sockaddr for @addr and @port
- * and outputs it into *@sa. The caller must free *@sa with g_free().
- **/
-void
-soup_address_make_sockaddr (SoupAddress *addr, guint port,
-			    struct sockaddr **sa, int *len)
-{
-	switch (addr->priv->family) {
-	case AF_INET:
-	{
-		struct sockaddr_in sa_in;
-
-		memset (&sa_in, 0, sizeof (sa_in));
-		sa_in.sin_family = AF_INET;
-		memcpy (&sa_in.sin_addr, &addr->priv->addr.in,
-			sizeof (sa_in.sin_addr));
-		sa_in.sin_port = g_htons (port);
-
-		*sa = g_memdup (&sa_in, sizeof (sa_in));
-		*len = sizeof (sa_in);
-		break;
-	}
-
-#ifdef HAVE_IPV6
-	case AF_INET6:
-	{
-		struct sockaddr_in6 sa_in6;
-
-		memset (&sa_in6, 0, sizeof (sa_in6));
-		sa_in6.sin6_family = AF_INET6;
-		memcpy (&sa_in6.sin6_addr, &addr->priv->addr.in6,
-			sizeof (sa_in6.sin6_addr));
-		sa_in6.sin6_port = g_htons (port);
-
-		*sa = g_memdup (&sa_in6, sizeof (sa_in6));
-		*len = sizeof (sa_in6);
-		break;
-	}
-#endif
-	default:
-		*sa = NULL;
-		*len = 0;
-	}
-}
-
-/**
- * soup_address_hash:
- * @p: Pointer to an #SoupAddress.
- *
- * Hash the address.  This is useful for glib containers.
- *
- * Returns: hash value.
- **/
-guint
-soup_address_hash (const gpointer p)
-{
-	const SoupAddress *addr;
-
-	g_return_val_if_fail (p != NULL, 0);
-
-	addr = (const SoupAddress*) p;
-
-	/* This isn't network byte-order transparent... (Not sure how
-	 * that works in the v6 case.)
-	 */
-
-	switch (addr->priv->family) {
-	case AF_INET:
-		return addr->priv->addr.in.s_addr;
-#ifdef HAVE_IPV6
-	case AF_INET6:
-	{
-		guint32 *bytes = (guint32 *)&(addr->priv->addr.in6.s6_addr);
-		return (bytes[0] ^ bytes[1] ^ bytes[2] ^ bytes[3]);
-	}
-#endif
-	default:
-		return 0;
-	}
-}
-
-/**
- * soup_address_equal:
- * @p1: Pointer to first #SoupAddress.
- * @p2: Pointer to second #SoupAddress.
- *
- * Compare two #SoupAddress structures.
- *
- * Returns: 1 if they are the same; 0 otherwise.
- **/
-gint
-soup_address_equal (const gpointer p1, const gpointer p2)
-{
-	const SoupAddress *addr1 = (const SoupAddress*) p1;
-	const SoupAddress *addr2 = (const SoupAddress*) p2;
-
-	g_return_val_if_fail (p1 != NULL && p2 != NULL, TRUE);
-
-	/* Note network byte order doesn't matter */
-	return memcmp (&addr1->priv->addr, &addr2->priv->addr,
-		       sizeof (addr1->priv->addr)) == 0;
-}
-
-
-typedef struct {
-	SoupDNSHandle    handle;
-	SoupAddressNewFn func;
-	gpointer         data;
-} SoupAddressLookupState;
-
-typedef struct {
-	SoupAddress          *addr;
-	SoupDNSHandle         handle;
-	SoupAddressGetNameFn  func;
-	gpointer              data;
-} SoupAddressReverseState;
-
-static void
-soup_address_new_cb (SoupDNSHandle handle, SoupKnownErrorCode status,
-		     struct hostent *h, gpointer data)
-{
-	SoupAddressLookupState *state = (SoupAddressLookupState*) data;
-	SoupAddress *addr = NULL;
-
-	if (status == SOUP_ERROR_OK)
-		addr = new_address (h->h_name, h->h_addrtype, h->h_addr);
-
-	state->func (addr, 
-		     addr ? SOUP_ADDRESS_STATUS_OK : SOUP_ADDRESS_STATUS_ERROR,
-		     state->data);
-	g_free (state);
-}
-
-/**
- * soup_address_new:
- * @name: a nice name (eg, mofo.eecs.umich.edu) or a dotted decimal name
- *   (eg, 141.213.8.59).
- * @func: Callback function.
- * @data: User data passed when callback function is called.
- *
- * Create a SoupAddress from a name asynchronously. Once the structure
- * is created, it will call the callback. It will call the callback if
- * there is a failure.
- *
- * Currently this routine forks and does the lookup, which can cause
- * some problems. In general, this will work ok for most programs most
- * of the time. It will be slow or even fail when using operating
- * systems that copy the entire process when forking.
- *
- * If you need to lookup a lot of addresses, you should call
- * g_main_iteration(FALSE) between calls. This will help prevent an
- * explosion of processes.
- *
- * Returns: ID of the lookup which can be used with
- * soup_address_new_cancel() to cancel it;
- **/
-SoupAddressNewId
-soup_address_new (const char *name, SoupAddressNewFn func, gpointer data)
-{
-	SoupAddressLookupState *state;
-
-	g_return_val_if_fail (name != NULL, NULL);
-	g_return_val_if_fail (func != NULL, NULL);
-
-	state = g_new0 (SoupAddressLookupState, 1);
-	state->func = func;
-	state->data = data;
-	state->handle = soup_gethostbyname (name, soup_address_new_cb, state);
-
-	return state;
-}
-
-/**
- * soup_address_new_cancel:
- * @id: ID of the lookup
- *
- * Cancel an asynchronous SoupAddress creation that was started with
- * soup_address_new(). The lookup's callback will not be called.
- */
-void
-soup_address_new_cancel (SoupAddressNewId id)
-{
-	SoupAddressLookupState *state = id;
-
-	soup_gethostby_cancel (state->handle);
-	g_free (state);
-}
-
-static void
-soup_address_get_name_cb (SoupDNSHandle handle, SoupKnownErrorCode status,
-			  struct hostent *h, gpointer data)
-{
-	SoupAddressReverseState *state = data;
-
-	if (status == SOUP_ERROR_OK && !state->addr->priv->name)
-		state->addr->priv->name = g_strdup (h->h_name);
-
-	state->func (state->addr, 
-		     state->addr->priv->name ? SOUP_ADDRESS_STATUS_OK : SOUP_ADDRESS_STATUS_ERROR,
-		     state->addr->priv->name,
-		     state->data);
-
-	g_object_unref (state->addr);
-	g_free (state);
+	return addr;
 }
 
 /**
  * soup_address_get_name:
- * @addr: Address to get the name of.
- * @func: Callback function.
- * @data: User data passed when callback function is called.
+ * @addr: a #SoupAddress
  *
- * Get the nice name of the address (eg, "mofo.eecs.umich.edu").
- * This function will use the callback once it knows the nice name
- * or if there is an error.
- *
- * As with soup_address_new(), this forks to do the lookup.
- *
- * Returns: ID of the lookup which can be used with
- * soup_address_get_name_cancel() to cancel it;
+ * Return value: the hostname associated with @addr, or %NULL if
+ * it is not known.
  **/
-SoupAddressGetNameId
-soup_address_get_name (SoupAddress          *addr,
-		       SoupAddressGetNameFn  func,
-		       gpointer              data)
+const char *
+soup_address_get_name (SoupAddress *addr)
 {
-	SoupAddressReverseState *state;
-
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
-	g_return_val_if_fail (func != NULL, NULL);
 
-	state = g_new0 (SoupAddressReverseState, 1);
-	state->addr = g_object_ref (addr);
-	state->func = func;
-	state->data = data;
-	state->handle = soup_gethostbyaddr (&addr->priv->addr,
-					    addr->priv->family,
-					    soup_address_get_name_cb,
-					    state);
-
-	return state;
+	return addr->priv->name;
 }
 
 /**
- * soup_address_get_name_cancel:
- * @id: ID of the lookup
+ * soup_address_get_sockaddr:
+ * @addr: a #SoupAddress
+ * @len: return location for sockaddr length
  *
- * Cancel an asynchronous nice name lookup that was started with
- * soup_address_get_name().
- */
-void
-soup_address_get_name_cancel (SoupAddressGetNameId id)
+ * Returns the sockaddr associated with @addr, with its length in
+ * *@len. If the sockaddr is not yet know, returns %NULL.
+ *
+ * Return value: the sockaddr, or %NULL
+ **/
+struct sockaddr *
+soup_address_get_sockaddr (SoupAddress *addr, int *len)
 {
-	SoupAddressReverseState *state = id;
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
 
-	g_return_if_fail (state != NULL);
+	if (addr->priv->sockaddr && len)
+		*len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_FAMILY (addr));
 
-	soup_gethostby_cancel (state->handle);
-	g_object_unref (state->addr);
-	g_free(state);
+	return addr->priv->sockaddr;
+}
+
+/**
+ * soup_address_get_physical:
+ * @addr: a #SoupAddress
+ *
+ * Returns the physical address associated with @addr as a string.
+ * (Eg, "127.0.0.1"). If the address is not yet known, returns %NULL.
+ *
+ * Return value: the physical address, or %NULL
+ **/
+const char *
+soup_address_get_physical (SoupAddress *addr)
+{
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+
+	if (!addr->priv->sockaddr)
+		return NULL;
+
+	if (!addr->priv->physical) {
+		addr->priv->physical = soup_ntop (SOUP_ADDRESS_DATA (addr),
+						  SOUP_ADDRESS_FAMILY (addr));
+	}
+
+	return addr->priv->physical;
+}
+
+/**
+ * soup_address_get_port:
+ * @addr: a #SoupAddress
+ *
+ * Return value: the port associated with @addr
+ **/
+guint
+soup_address_get_port (SoupAddress *addr)
+{
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), 0);
+
+	return addr->priv->port;
+}
+
+
+
+static void
+got_addr (SoupDNSHandle handle, SoupKnownErrorCode status,
+	  struct hostent *h, gpointer data)
+{
+	SoupAddress *addr = data;
+
+	addr->priv->lookup = NULL;
+
+	if (status == SOUP_ERROR_OK) {
+		if (!SOUP_ADDRESS_FAMILY_IS_VALID (h->h_addrtype)) {
+			status = SOUP_ERROR_CANT_RESOLVE;
+			goto done;
+		}
+		if (SOUP_ADDRESS_FAMILY_DATA_SIZE (h->h_addrtype) != h->h_length) {
+			status = SOUP_ERROR_MALFORMED;
+			goto done;
+		}
+
+		addr->priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (h->h_addrtype));
+		SOUP_ADDRESS_FAMILY (addr) = h->h_addrtype;
+		SOUP_ADDRESS_PORT (addr) = htons (addr->priv->port);
+		memcpy (SOUP_ADDRESS_DATA (addr), h->h_addr, h->h_length);
+	}
+
+ done:
+	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
+}
+
+static void
+got_name (SoupDNSHandle handle, SoupKnownErrorCode status,
+	  struct hostent *h, gpointer data)
+{
+	SoupAddress *addr = data;
+
+	addr->priv->lookup = NULL;
+
+	if (status == SOUP_ERROR_OK)
+		addr->priv->name = g_strdup (h->h_name);
+
+	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
+}
+
+static gboolean
+idle_dns_result (gpointer user_data)
+{
+	SoupAddress *addr = user_data;
+
+	addr->priv->idle_id = 0;
+	g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_ERROR_OK);
+	return FALSE;
+}
+
+/**
+ * soup_address_resolve:
+ * @addr: a #SoupAddress
+ * @callback: callback to call with the result
+ * @user_data: data for @callback
+ *
+ * Asynchronously resolves the missing half of @addr. (It's IP address
+ * if it was created with soup_address_new(), or it's hostname if it
+ * was created with soup_address_new_from_sockaddr() or
+ * soup_address_new_any().) @callback will be called when the
+ * resolution finishes (successfully or not).
+ **/
+void
+soup_address_resolve (SoupAddress *addr,
+		      SoupAddressCallback callback, gpointer user_data)
+{
+	g_return_if_fail (SOUP_IS_ADDRESS (addr));
+
+	if (callback) {
+		soup_signal_connect_once (addr, "dns_result",
+					  G_CALLBACK (callback), user_data);
+	}
+
+	if (addr->priv->lookup)
+		return;
+
+	if (addr->priv->name && addr->priv->sockaddr) {
+		addr->priv->idle_id = g_idle_add (idle_dns_result, addr);
+		return;
+	}
+
+	if (addr->priv->name) {
+		addr->priv->lookup =
+			soup_gethostbyname (addr->priv->name,
+					    got_addr, addr);
+	} else {
+		addr->priv->lookup =
+			soup_gethostbyaddr (SOUP_ADDRESS_DATA (addr),
+					    SOUP_ADDRESS_FAMILY (addr),
+					    got_name, addr);
+	}
 }

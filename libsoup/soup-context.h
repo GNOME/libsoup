@@ -33,15 +33,8 @@ typedef struct {
 GType soup_context_get_type (void);
 
 
-
-typedef enum {
-	SOUP_CONNECT_ERROR_NONE,
-	SOUP_CONNECT_ERROR_ADDR_RESOLVE,
-	SOUP_CONNECT_ERROR_NETWORK
-} SoupConnectErrorCode;
-
 typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
-				       SoupConnectErrorCode  err,
+				       SoupKnownErrorCode    err,
 				       SoupConnection       *conn, 
 				       gpointer              user_data);
 

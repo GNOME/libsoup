@@ -35,6 +35,8 @@ typedef enum {
 	 * Transport Errors
 	 */
 	SOUP_ERROR_CANCELLED                = 1,
+	SOUP_ERROR_CANT_RESOLVE             = 2,
+	SOUP_ERROR_CANT_RESOLVE_PROXY       = 3,
 	SOUP_ERROR_CANT_CONNECT             = 2,
 	SOUP_ERROR_CANT_CONNECT_PROXY       = 3,
 	SOUP_ERROR_IO                       = 4,
