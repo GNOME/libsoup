@@ -165,7 +165,6 @@ final_finished (SoupMessage *req, gpointer user_data)
 	SoupSessionAsync *sa = user_data;
 
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
-		g_signal_handlers_disconnect_by_func (req, request_finished, sa);
 		g_signal_handlers_disconnect_by_func (req, final_finished, sa);
 		g_object_unref (req);
 	}
@@ -182,8 +181,6 @@ queue_message (SoupSession *session, SoupMessage *req,
 	g_signal_connect (req, "restarted",
 			  G_CALLBACK (request_restarted), sa);
 
-	g_signal_connect (req, "finished",
-			  G_CALLBACK (request_finished), sa);
 	if (callback) {
 		g_signal_connect (req, "finished",
 				  G_CALLBACK (callback), user_data);
