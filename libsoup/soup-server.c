@@ -387,7 +387,7 @@ read_headers_cgi (SoupMessage *msg,
 		if (!ctx) goto THROW_MALFORMED_HEADER;
 
 		soup_message_set_context (msg, ctx);
-		soup_context_unref (ctx);
+		g_object_unref (ctx);
 	}
 
 	/*
@@ -652,7 +652,7 @@ read_headers_cb (const GString        *headers,
 		if (!ctx) goto THROW_MALFORMED_HEADER;
 
 		soup_message_set_context (msg, ctx);
-		soup_context_unref (ctx);
+		g_object_unref (ctx);
 	}
 
 	g_free (req_path);
@@ -726,9 +726,11 @@ call_handler (SoupMessage          *req,
 	}
 
 	if (hand->callback) {
+		const SoupUri *uri = soup_context_get_uri (req->context);
+
 		SoupServerContext servctx = {
 			req,
-			req->context->uri->path,
+			uri->path,
 			soup_method_get_id (req->method),
 			auth,
 			server,

@@ -1,5 +1,46 @@
 2003-08-14  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-connection.c: New, split out from soup-context and
+	made into a GObject.
+	(soup_connection_disconnect): Disconnects the connection and emits
+	a signal. (Replaces the old "keep_alive" flag.)
+	(soup_connection_is_connected): Checks if the connection is still
+	connected
+	(connection_died): Just disconnect, rather than freeing the
+	connection. This way if anyone else is still referencing it they
+	won't end up with an invalid pointer.
+
+	* libsoup/soup-context.c: Make this a GObject, remove all the
+	SoupConnection code. Add an "ntlm_auths" field to SoupHost so that
+	SoupContext can keep track of connection auth stuff there without
+	SoupConnection needing to care. Various other updates.
+
+	* libsoup/soup-private.h: Remove SoupContext and SoupConnection
+	definitions.
+
+	* libsoup/*.c, tests/get.c: Update for context/connection changes
+
+	* libsoup/soup-socks.c (soup_connect_socks_proxy): Change the
+	definition to deal with the fact that there's no
+	soup_connection_get_context any more.
+
+	* libsoup/soup-queue.c (soup_queue_read_headers_cb): Don't deal
+	with connection persistence here.
+	(soup_queue_read_done_cb): Do it here instead. Disconnect the
+	connection when appropriate.
+	(proxy_connect, proxy_https_connect, proxy_https_connect_cb):
+	Reference-count the connection properly. (I think.)
+
+	* libsoup/soup-marshal.list: New, for SoupConnection's
+	"disconnected" signal.
+
+	* libsoup/Makefile.am: add rules to build soup-marshal.[ch]
+
+	* configure.in: Use AM_PATH_GLIB_2 rather than pkg-config, so that
+	GLIB_GENMARSHAL gets set too.
+
+2003-08-14  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-error.c: Fix a spelling mistake.
 
 	* libsoup/*.c: Fix use of @/%/#/() in gtk-doc comments

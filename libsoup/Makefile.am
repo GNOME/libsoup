@@ -9,11 +9,28 @@ INCLUDES = 				\
 	$(GLIB_CFLAGS)			\
 	$(GNUTLS_CFLAGS)
 
+MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
+
+soup-marshal.h: soup-marshal.list
+	( @GLIB_GENMARSHAL@ --prefix=soup_marshal soup-marshal.list --header > soup-marshal.tmp \
+	&& mv soup-marshal.tmp soup-marshal.h ) \
+	|| ( rm -f soup-marshal.tmp && exit 1 )
+
+soup-marshal.c: soup-marshal.h
+	( (echo '#include "soup-marshal.h"'; @GLIB_GENMARSHAL@ --prefix=soup_marshal soup-marshal.list --body) > soup-marshal.tmp \
+	&& mv soup-marshal.tmp soup-marshal.c ) \
+	|| ( rm -f soup-marshal.tmp && exit 1 )
+
+BUILT_SOURCES = $(MARSHAL_GENERATED)
+
+CLEANFILES = $(MARSHAL_GENERATED)
+
 libsoupincludedir = $(includedir)/libsoup-2.2/libsoup
 
 libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-address.h		\
+	soup-connection.h	\
 	soup-context.h		\
 	soup-error.h		\
 	soup-headers.h		\
@@ -35,6 +52,7 @@ libsoup_2_2_la_LIBADD =		\
 	$(GNUTLS_LIBS)
 
 libsoup_2_2_la_SOURCES =	\
+	$(MARSHAL_GENERATED)	\
 	md5-utils.h		\
 	md5-utils.c		\
 	soup-address.c		\
@@ -46,6 +64,7 @@ libsoup_2_2_la_SOURCES =	\
 	soup-auth-digest.c	\
 	soup-auth-ntlm.h	\
 	soup-auth-ntlm.c	\
+	soup-connection.c	\
 	soup-context.c		\
 	soup-dns.h		\
 	soup-dns.c		\
@@ -69,3 +88,5 @@ libsoup_2_2_la_SOURCES =	\
 	soup-transfer.h		\
 	soup-transfer.c		\
 	soup-uri.c
+
+EXTRA_DIST= soup-marshal.list

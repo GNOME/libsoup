@@ -39,13 +39,12 @@ static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
 void
 soup_set_proxy (SoupContext *context)
 {
+	if (context)
+		g_object_ref (context);
 	if (proxy_context)
-		soup_context_unref (proxy_context);
+		g_object_unref (proxy_context);
 
 	proxy_context = context;
-
-	if (proxy_context)
-		soup_context_ref (proxy_context);
 }
 
 /**

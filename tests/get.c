@@ -194,7 +194,7 @@ get_url (const char *url)
 
 	pending++;
 	soup_message_queue (msg, got_url, soup_uri_new (url));
-	soup_context_unref (ctx);
+	g_object_unref (ctx);
 	g_free (url_to_get);
 }
 

@@ -61,8 +61,7 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	gboolean conn_is_new;
 
 	conn_is_new = soup_connection_is_new (req->connection);
-	soup_connection_set_used (req->connection);
-	soup_connection_set_keep_alive (req->connection, FALSE);
+	soup_message_disconnect (req);
 
 	switch (req->status) {
 	case SOUP_STATUS_IDLE:
@@ -78,7 +77,9 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	case SOUP_STATUS_READING_RESPONSE:
 	case SOUP_STATUS_SENDING_REQUEST:
 		if (!body_started) {
-			if (req->context->uri->protocol == SOUP_PROTOCOL_HTTPS) {
+			const SoupUri *uri = soup_context_get_uri (req->context);
+
+			if (uri->protocol == SOUP_PROTOCOL_HTTPS) {
 				/*
 				 * This can happen if the SSL handshake fails
 				 * for some reason (untrustable signatures,
@@ -91,8 +92,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 					soup_message_issue_callback (req);
 				} else {
 					req->priv->retries++;
-					soup_connection_release (req->connection);
-					req->connection = NULL;
 					soup_message_requeue (req);
 				}
 			} else if (conn_is_new) {
@@ -102,8 +101,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 				soup_message_issue_callback (req);
 			} else {
 				/* Must have timed out. Try a new connection */
-				soup_connection_release (req->connection);
-				req->connection = NULL;
 				soup_message_requeue (req);
 			}
 		} else {
@@ -126,7 +123,7 @@ soup_queue_read_headers_cb (const GString        *headers,
 			    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-	const gchar *connection, *length, *enc;
+	const char *length, *enc;
 	SoupHttpVersion version;
 	GHashTable *resp_hdrs;
 	SoupMethodId meth_id;
@@ -148,24 +145,6 @@ soup_queue_read_headers_cb (const GString        *headers,
 	resp_hdrs = req->response_headers;
 
 	req->errorclass = soup_error_get_class (req->errorcode);
-
-	/* 
-	 * Handle connection persistence
-	 * Close connection if:
-	 *   - Connection header is "close"
-	 *   - HTTP 1.0 and Connection header is not present
-	 */
-	connection = soup_message_get_header (resp_hdrs, "Connection");
-
-	if ((connection && !g_strcasecmp (connection, "close")) ||
-	    (!connection && version == SOUP_HTTP_1_0))
-		soup_connection_set_keep_alive (req->connection, FALSE);
-
-	/*
-	 * Handle successful CONNECT request by keeping connection open
-	 */
-	if (meth_id == SOUP_METHOD_ID_CONNECT && !SOUP_MESSAGE_IS_ERROR (req))
-		soup_connection_set_keep_alive (req->connection, TRUE);
 
 	/* 
 	 * Special case zero body handling for:
@@ -226,7 +205,7 @@ soup_queue_read_headers_cb (const GString        *headers,
 	return;
 
  THROW_MALFORMED_HEADER:
-	soup_connection_set_keep_alive (req->connection, FALSE);
+	soup_message_disconnect (req);
 	soup_message_issue_callback (req);
 	return;
 }
@@ -251,8 +230,16 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 			 gpointer              user_data)
 {
 	SoupMessage *req = user_data;
+	const char *connection;
 
-	soup_connection_set_used (req->connection);
+	/* Handle connection persistence */
+	connection = soup_message_get_header (req->response_headers,
+					      "Connection");
+	if ((connection && !g_strcasecmp (connection, "close")) ||
+	    soup_message_get_http_version (req) == SOUP_HTTP_1_0)
+		soup_message_disconnect (req);
+	else
+		soup_connection_mark_old (req->connection);
 
 	req->response.owner = data->owner;
 	req->response.length = data->length;
@@ -526,19 +513,9 @@ proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
 	gboolean *ret = user_data;
 
 	if (!SOUP_MESSAGE_IS_ERROR (msg)) {
-		/*
-		 * Bless the connection to SSL
-		 */
-		msg->connection->channel = 
-			soup_ssl_get_iochannel (msg->connection->channel);
-		
+		soup_connection_start_ssl (msg->connection);		
 		*ret = TRUE;
 	}
-
-	/*
-	 * Avoid releasing the connection on message free
-	 */
-	msg->connection = NULL;
 }
 
 static gboolean
@@ -557,18 +534,12 @@ proxy_https_connect (SoupContext    *proxy,
 		return FALSE;
 
 	connect_msg = soup_message_new (dest_ctx, SOUP_METHOD_CONNECT);
-	connect_msg->connection = conn;
+	connect_msg->connection = g_object_ref (conn);
 	soup_message_add_handler (connect_msg, 
 				  SOUP_HANDLER_POST_BODY,
 				  proxy_https_connect_cb,
 				  &ret);
 	soup_message_send (connect_msg);
-
-	/*
-	 * Avoid releasing the connection on message free
-	 */
-	connect_msg->connection = NULL;
-
 	soup_message_free (connect_msg);
 
 	return ret;
@@ -591,8 +562,7 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 	
 	/* Handle SOCKS proxy negotiation */
 	if ((proto == SOUP_PROTOCOL_SOCKS4 || proto == SOUP_PROTOCOL_SOCKS5)) {
-		soup_connect_socks_proxy (conn, 
-					  req->context, 
+		soup_connect_socks_proxy (conn, ctx, req->context, 
 					  soup_queue_connect_cb,
 					  req);
 		return TRUE;
@@ -607,14 +577,6 @@ proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
 				SOUP_ERROR_CANT_CONNECT_PROXY,
 				"Unable to create secure data "
 				"tunnel through proxy");
-
-			/*
-			 * If the tunnelling failed, our connection will
-			 * have been freed by the requeue in
-			 * proxy_https_connect()
-			 */
-			req->connection = NULL;
-
 			soup_message_issue_callback (req);
 			return TRUE;
 		}
@@ -632,6 +594,9 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	SoupMessage *req = user_data;
 
 	req->priv->connect_tag = NULL;
+	g_object_ref (conn);
+	if (req->connection)
+		g_object_unref (req->connection);
 	req->connection = conn;
 
 	switch (err) {
@@ -738,7 +703,7 @@ soup_idle_handle_new_requests (gpointer unused)
 		req->status = SOUP_STATUS_CONNECTING;
 
 		if (req->connection && 
-		    soup_connection_is_keep_alive (req->connection))
+		    soup_connection_is_connected (req->connection))
 			start_request (ctx, req);
 		else {
 			gpointer connect_tag;

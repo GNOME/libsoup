@@ -48,9 +48,11 @@ typedef struct {
 	gchar      *host;
 	GSList     *connections;      /* CONTAINS: SoupConnection */
 	GHashTable *contexts;         /* KEY: uri->path, VALUE: SoupContext */
-	gboolean    use_ntlm;
+
 	GHashTable *auth_realms;      /* KEY: uri->path, VALUE: scheme:realm */
 	GHashTable *auths;            /* KEY: scheme:realm, VALUE: SoupAuth */
+
+	GHashTable *ntlm_auths;	      /* KEY: SoupConnection, VALUE: SoupAuth */
 } SoupHost;
 
 struct SoupSocketPrivate {
@@ -65,26 +67,6 @@ struct SoupSocketPrivate {
 #else
 #define soup_sockaddr_max sockaddr_in
 #endif
-
-struct _SoupContext {
-	SoupUri      *uri;
-	SoupHost     *server;
-	guint         refcnt;
-};
-
-struct _SoupConnection {
-	SoupHost     *server;
-	SoupContext  *context;
-	GIOChannel   *channel;
-	SoupSocket   *socket;
-	SoupAuth     *auth;
-	guint         port;
-	gboolean      in_use;
-	guint         last_used_id;
-	gboolean      keep_alive;
-	guint         death_tag;
-	gboolean      new;
-};
 
 struct _SoupServer {
 	SoupProtocol       proto;

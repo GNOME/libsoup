@@ -2,10 +2,7 @@
 /*
  * soup-context.c: Asyncronous Callback-based HTTP Request Queue.
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,10 +30,95 @@
 #include "soup-ssl.h"
 
 GHashTable *soup_hosts;  /* KEY: hostname, VALUE: SoupHost */
+static int connection_count = 0;
 
-static gint connection_count = 0;
+struct SoupContextPrivate {
+	SoupUri      *uri;
+	SoupHost     *server;
+};
 
-static guint most_recently_used_id = 0;
+#define PARENT_TYPE G_TYPE_OBJECT
+static GObjectClass *parent_class;
+
+static void
+init (GObject *object)
+{
+	SoupContext *ctx = SOUP_CONTEXT (object);
+
+	ctx->priv = g_new0 (SoupContextPrivate, 1);
+}
+
+static void
+free_path (gpointer path, gpointer realm, gpointer unused)
+{
+	g_free (path);
+	g_free (realm);
+}
+
+static void
+free_auth (gpointer key, gpointer auth, gpointer free_key)
+{
+	if (free_key)
+		g_free (key);
+	g_object_unref (auth);
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupContext *ctx = SOUP_CONTEXT (object);
+	SoupHost *serv = ctx->priv->server;
+
+	if (serv && ctx->priv->uri) {
+		g_hash_table_remove (serv->contexts, ctx->priv->uri);
+		if (g_hash_table_size (serv->contexts) == 0) {
+			/* Remove this host from the active hosts hash */
+			g_hash_table_remove (soup_hosts, serv->host);
+
+			/* Free all cached SoupAuths */
+			if (serv->auth_realms) {
+				g_hash_table_foreach (serv->auth_realms,
+						      free_path, NULL);
+				g_hash_table_destroy (serv->auth_realms);
+			}
+			if (serv->auths) {
+				g_hash_table_foreach (serv->auths,
+						      free_auth,
+						      GINT_TO_POINTER (TRUE));
+				g_hash_table_destroy (serv->auths);
+			}
+			if (serv->ntlm_auths) {
+				g_hash_table_foreach (serv->ntlm_auths,
+						      free_auth,
+						      GINT_TO_POINTER (FALSE));
+				g_hash_table_destroy (serv->ntlm_auths);
+			}
+
+			g_hash_table_destroy (serv->contexts);
+			g_free (serv->host);
+			g_free (serv);
+		}
+	}
+
+	if (ctx->priv->uri)
+		soup_uri_free (ctx->priv->uri);
+
+	g_free (ctx->priv);
+
+	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+class_init (GObjectClass *object_class)
+{
+	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method override */
+	object_class->finalize = finalize;
+}
+
+SOUP_MAKE_TYPE (soup_context, SoupContext, class_init, init, PARENT_TYPE)
+
 
 /**
  * soup_context_get:
@@ -50,20 +132,21 @@ static guint most_recently_used_id = 0;
  * Return value: a #SoupContext representing @uri.
  */
 SoupContext *
-soup_context_get (const gchar *uri)
+soup_context_get (const char *uri)
 {
 	SoupUri *suri;
-	SoupContext *con;
+	SoupContext *ctx;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
 	suri = soup_uri_new (uri);
-	if (!suri) return NULL;
+	if (!suri)
+		return NULL;
 
-	con = soup_context_from_uri (suri);
+	ctx = soup_context_from_uri (suri);
 	soup_uri_free (suri);
 
-	return con;
+	return ctx;
 }
 
 /**
@@ -145,15 +228,15 @@ SoupContext *
 soup_context_from_uri (SoupUri *suri)
 {
 	SoupHost *serv = NULL;
-	SoupContext *ret = NULL;
+	SoupContext *ctx = NULL;
 
 	g_return_val_if_fail (suri != NULL, NULL);
 	g_return_val_if_fail (suri->protocol != 0, NULL);
 
-	if (!soup_hosts)
+	if (!soup_hosts) {
 		soup_hosts = g_hash_table_new (soup_str_case_hash,
 					       soup_str_case_equal);
-	else
+	} else
 		serv = g_hash_table_lookup (soup_hosts, suri->host);
 
 	if (!serv) {
@@ -162,156 +245,39 @@ soup_context_from_uri (SoupUri *suri)
 		g_hash_table_insert (soup_hosts, serv->host, serv);
 	}
 
-	if (!serv->contexts)
+	if (!serv->contexts) {
 		serv->contexts = g_hash_table_new (soup_context_uri_hash,
 						   soup_context_uri_equal);
-	else
-		ret = g_hash_table_lookup (serv->contexts, suri);
+	} else
+		ctx = g_hash_table_lookup (serv->contexts, suri);
 
-	if (!ret) {
-		ret = g_new0 (SoupContext, 1);
-		ret->server = serv;
-		ret->uri = soup_uri_copy (suri);
-		ret->refcnt = 0;
+	if (!ctx) {
+		ctx = g_object_new (SOUP_TYPE_CONTEXT, NULL);
+		ctx->priv->server = serv;
+		ctx->priv->uri = soup_uri_copy (suri);
 
-		g_hash_table_insert (serv->contexts, ret->uri, ret);
+		g_hash_table_insert (serv->contexts, ctx->priv->uri, ctx);
 	}
 
-	soup_context_ref (ret);
-
-	return ret;
-}
-
-/**
- * soup_context_ref:
- * @ctx: a #SoupContext.
- *
- * Adds a reference to @ctx.
- */
-void
-soup_context_ref (SoupContext *ctx)
-{
-	g_return_if_fail (ctx != NULL);
-
-	ctx->refcnt++;
+	return g_object_ref (ctx);
 }
 
 static void
-free_path (gpointer path, gpointer realm, gpointer unused)
+connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
-	g_free (path);
-	g_free (realm);
-}
+	SoupHost *server = user_data;
+	SoupAuth *auth;
 
-static void
-free_auth (gpointer realm, gpointer auth, gpointer unused)
-{
-	g_free (realm);
-	g_object_unref (auth);
-}
-
-/**
- * soup_context_unref:
- * @ctx: a #SoupContext.
- *
- * Decrement the reference count on @ctx. If the reference count
- * reaches zero, the #SoupContext is freed. If this is the last
- * context for a given server address, any open connections are
- * closed.
- */
-void
-soup_context_unref (SoupContext *ctx)
-{
-	g_return_if_fail (ctx != NULL);
-
-	--ctx->refcnt;
-
-	if (ctx->refcnt == 0) {
-		SoupHost *serv = ctx->server;
-
-		g_hash_table_remove (serv->contexts, ctx->uri);
-
-		if (g_hash_table_size (serv->contexts) == 0) {
-			/*
-			 * Remove this host from the active hosts hash
-			 */
-			g_hash_table_remove (soup_hosts, serv->host);
-
-			/* 
-			 * Free all cached SoupAuths
-			 */
-			if (serv->auth_realms) {
-				g_hash_table_foreach (serv->auth_realms,
-						      free_path, NULL);
-				g_hash_table_destroy (serv->auth_realms);
-			}
-			if (serv->auths) {
-				g_hash_table_foreach (serv->auths,
-						      free_auth, NULL);
-				g_hash_table_destroy (serv->auths);
-			}
-
-			g_hash_table_destroy (serv->contexts);
-			g_free (serv->host);
-			g_free (serv);
+	if (server->ntlm_auths) {
+		auth = g_hash_table_lookup (server->ntlm_auths, conn);
+		if (auth) {
+			g_hash_table_remove (server->ntlm_auths, conn);
+			g_object_unref (auth);
 		}
-
-		soup_uri_free (ctx->uri);
-		g_free (ctx);
 	}
-}
 
-static void
-connection_free (SoupConnection *conn)
-{
-	g_return_if_fail (conn != NULL);
-
-	conn->server->connections =
-		g_slist_remove (conn->server->connections, conn);
-
-	if (conn->auth)
-		g_object_unref (conn->auth);
-
-	g_io_channel_unref (conn->channel);
-	soup_context_unref (conn->context);
-	g_object_unref (conn->socket);
-	if (conn->death_tag)
-		g_source_remove (conn->death_tag);
-	g_free (conn);
-
+	server->connections = g_slist_remove (server->connections, conn);
 	connection_count--;
-}
-
-static gboolean 
-connection_death (GIOChannel*     iochannel,
-		  GIOCondition    condition,
-		  SoupConnection *conn)
-{
-	connection_free (conn);
-	return FALSE;
-}
-
-static void
-soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
-{
-	if (in_use == conn->in_use)
-		return;
-
-	conn->in_use = in_use;
-	if (!conn->in_use) {
-		GIOChannel *chan;
-
-		chan = soup_connection_get_iochannel (conn);
-		conn->death_tag = 
-			g_io_add_watch (chan,
-					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-					(GIOFunc) connection_death,
-					conn);
-		g_io_channel_unref (chan);
-	} else {
-		g_source_remove (conn->death_tag);
-		conn->death_tag = 0;
-	}
 }
 
 struct SoupConnectData {
@@ -324,22 +290,22 @@ struct SoupConnectData {
 };
 
 static void
-prune_connection_foreach (gchar               *hostname,
-			  SoupHost            *serv,
-			  SoupConnection     **last)
+prune_connection_foreach (gpointer key, gpointer value, gpointer data)
 {
-	GSList *conns = serv->connections;
+	SoupHost *serv = value;
+	SoupConnection **last = data;
+	GSList *conns;
 
-	while (conns) {
+	for (conns = serv->connections; conns; conns = conns->next) {
 		SoupConnection *conn = conns->data;
 
-		if (!conn->in_use) {
-			if (*last == NULL ||
-			    (*last)->last_used_id > conn->last_used_id)
-				*last = conn;
-		}
+		if (soup_connection_is_in_use (conn))
+			continue;
 
-		conns = conns->next;
+		if (*last == NULL ||
+		    soup_connection_last_used (*last) >
+		    soup_connection_last_used (conn))
+			*last = conn;
 	}
 }
 
@@ -352,7 +318,8 @@ prune_least_used_connection (void)
 			      (GHFunc) prune_connection_foreach, 
 			      &last);
 	if (last) {
-		connection_free (last);
+		soup_connection_disconnect (last);
+		g_object_unref (last);
 		return TRUE;
 	}
 
@@ -372,20 +339,21 @@ soup_context_connect_cb (SoupSocket              *socket,
 
 	switch (status) {
 	case SOUP_SOCKET_CONNECT_ERROR_NONE:
-		new_conn = g_new0 (SoupConnection, 1);
-		new_conn->server = ctx->server;
-		new_conn->socket = socket;
-		new_conn->port = ctx->uri->port;
-		new_conn->keep_alive = TRUE;
-		new_conn->in_use = TRUE;
-		new_conn->new = TRUE;
-		new_conn->last_used_id = 0;
+		new_conn = soup_connection_new (socket);
+		g_object_unref (socket);
+		if (ctx->priv->uri->protocol == SOUP_PROTOCOL_HTTPS)
+			soup_connection_start_ssl (new_conn);
 
-		new_conn->context = ctx;
-		soup_context_ref (ctx);
+		g_signal_connect (new_conn, "disconnected",
+				  G_CALLBACK (connection_disconnected),
+				  ctx->priv->server);
 
-		ctx->server->connections =
-			g_slist_prepend (ctx->server->connections, new_conn);
+		/* FIXME */
+		g_object_set_data (G_OBJECT (new_conn), "SoupContext-port",
+				   GUINT_TO_POINTER (ctx->priv->uri->port));
+
+		ctx->priv->server->connections =
+			g_slist_prepend (ctx->priv->server->connections, new_conn);
 
 		(*data->cb) (ctx, 
 			     SOUP_CONNECT_ERROR_NONE, 
@@ -407,7 +375,7 @@ soup_context_connect_cb (SoupSocket              *socket,
 		 * Check if another connection exists to this server
 		 * before reporting error. 
 		 */
-		if (ctx->server->connections) {
+		if (ctx->priv->server->connections) {
 			data->timeout_tag =
 				g_timeout_add (
 					150,
@@ -423,7 +391,7 @@ soup_context_connect_cb (SoupSocket              *socket,
 		break;
 	}
 
-	soup_context_unref (ctx);
+	g_object_unref (ctx);
 	g_free (data);
 }
 
@@ -432,21 +400,16 @@ try_existing_connections (SoupContext           *ctx,
 			  SoupConnectCallbackFn  cb,
 			  gpointer               user_data)
 {
-	GSList *conns = ctx->server->connections;
+	GSList *conns = ctx->priv->server->connections;
 	
 	while (conns) {
 		SoupConnection *conn = conns->data;
+		guint port = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (conn), "SoupContext-port"));
 
-		if (conn->in_use == FALSE &&
-		    conn->keep_alive == TRUE &&
-		    conn->port == (guint) ctx->uri->port) {
+		if (!soup_connection_is_in_use (conn) &&
+		    port == ctx->priv->uri->port) {
 			/* Set connection to in use */
 			soup_connection_set_in_use (conn, TRUE);
-
-			/* Reset connection context */
-			soup_context_ref (ctx);
-			soup_context_unref (conn->context);
-			conn->context = ctx;
 
 			/* Issue success callback */
 			(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
@@ -463,7 +426,7 @@ static gboolean
 try_create_connection (struct SoupConnectData **dataptr)
 {
 	struct SoupConnectData *data = *dataptr;
-	gint conn_limit = soup_get_connection_limit ();
+	int conn_limit = soup_get_connection_limit ();
 	gpointer connect_tag;
 
 	/* 
@@ -480,8 +443,8 @@ try_create_connection (struct SoupConnectData **dataptr)
 	connection_count++;
 
 	data->timeout_tag = 0;
-	connect_tag = soup_socket_connect (data->ctx->uri->host,
-					   data->ctx->uri->port,
+	connect_tag = soup_socket_connect (data->ctx->priv->uri->host,
+					   data->ctx->priv->uri->port,
 					   soup_context_connect_cb,
 					   data);
 	/* 
@@ -502,7 +465,7 @@ retry_connect_timeout_cb (struct SoupConnectData *data)
 	if (try_existing_connections (data->ctx, 
 				      data->cb, 
 				      data->user_data)) {
-		soup_context_unref (data->ctx);
+		g_object_unref (data->ctx);
 		g_free (data);
 		return FALSE;
 	}
@@ -539,7 +502,7 @@ soup_context_get_connection (SoupContext           *ctx,
 {
 	struct SoupConnectData *data;
 
-	g_return_val_if_fail (ctx != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), NULL);
 
 	/* Look for an existing unused connection */
 	if (try_existing_connections (ctx, cb, user_data))
@@ -549,15 +512,14 @@ soup_context_get_connection (SoupContext           *ctx,
 	data->cb = cb;
 	data->user_data = user_data;
 
-	data->ctx = ctx;
-	soup_context_ref (ctx);
+	data->ctx = g_object_ref (ctx);
 
-	if (!try_create_connection (&data))
+	if (!try_create_connection (&data)) {
 		data->timeout_tag =
 			g_timeout_add (150,
 				       (GSourceFunc) retry_connect_timeout_cb,
 				       data);
-
+	}
 	return data;
 }
 
@@ -597,159 +559,9 @@ soup_context_cancel_connect (SoupConnectId tag)
 const SoupUri *
 soup_context_get_uri (SoupContext *ctx)
 {
-	g_return_val_if_fail (ctx != NULL, NULL);
-	return ctx->uri;
+	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), NULL);
+	return ctx->priv->uri;
 }
-
-/**
- * soup_connection_release:
- * @conn: a #SoupConnection currently in use.
- *
- * Mark the connection represented by @conn as being unused. If the
- * keep-alive flag is not set on the connection, the connection is
- * closed and its resources freed, otherwise the connection is
- * returned to the unused connection pool for the server.
- */
-void
-soup_connection_release (SoupConnection *conn)
-{
-	g_return_if_fail (conn != NULL);
-
-	if (conn->keep_alive) {
-		conn->last_used_id = ++most_recently_used_id;
-		soup_connection_set_in_use (conn, FALSE);
-	} else
-		connection_free (conn);
-}
-
-static void
-soup_connection_setup_socket (GIOChannel *channel)
-{
-	int yes = 1, flags = 0, fd = g_io_channel_unix_get_fd (channel);
-
-	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
-
-	flags = fcntl(fd, F_GETFL, 0);
-	fcntl (fd, F_SETFL, flags | O_NONBLOCK);
-}
-
-/**
- * soup_connection_get_iochannel:
- * @conn: a #SoupConnection.
- *
- * Returns a #GIOChannel used for IO operations on the network
- * connection represented by @conn.
- *
- * Return value: a pointer to the #GIOChannel used for IO on @conn.
- */
-GIOChannel *
-soup_connection_get_iochannel (SoupConnection *conn)
-{
-	g_return_val_if_fail (conn != NULL, NULL);
-
-	if (!conn->channel) {
-		conn->channel = soup_socket_get_iochannel (conn->socket);
-
-		soup_connection_setup_socket (conn->channel);
-
-		if (conn->context->uri->protocol == SOUP_PROTOCOL_HTTPS) {
-			GIOChannel *ssl_chan;
-
-			ssl_chan = soup_ssl_get_iochannel (conn->channel);
-			g_io_channel_unref (conn->channel);
-			conn->channel = ssl_chan;
-		}
-	}
-
-	g_io_channel_ref (conn->channel);
-
-	return conn->channel;
-}
-
-/**
- * soup_connection_set_keep_alive:
- * @conn: a #SoupConnection.
- * @keep_alive: boolean keep-alive value.
- *
- * Sets the keep-alive flag on the #SoupConnection pointed to by
- * @conn.
- */
-void
-soup_connection_set_keep_alive (SoupConnection *conn, gboolean keep_alive)
-{
-	g_return_if_fail (conn != NULL);
-	conn->keep_alive = keep_alive;
-}
-
-/**
- * soup_connection_is_keep_alive:
- * @conn: a #SoupConnection.
- *
- * Returns the keep-alive flag for the #SoupConnection pointed to by
- * @conn. If this flag is TRUE, the connection will be returned to the
- * pool of unused connections when next soup_connection_release() is
- * called, otherwise the connection will be closed and resources
- * freed.
- *
- * Return value: the keep-alive flag for @conn.
- */
-gboolean
-soup_connection_is_keep_alive (SoupConnection *conn)
-{
-	g_return_val_if_fail (conn != NULL, FALSE);
-	return conn->keep_alive;
-}
-
-/**
- * soup_connection_get_context:
- * @conn: a #SoupConnection.
- *
- * Returns the #SoupContext from which @conn was created, with an
- * added ref.
- *
- * Return value: the #SoupContext associated with @conn. Unref when
- * finished.
- */
-SoupContext *
-soup_connection_get_context (SoupConnection *conn)
-{
-	g_return_val_if_fail (conn != NULL, FALSE);
-	
-	soup_context_ref (conn->context);
-	return conn->context;
-}
-
-/**
- * soup_connection_set_used:
- * @conn: a #SoupConnection.
- *
- * Clears the "new" flag on @conn.
- */
-void
-soup_connection_set_used (SoupConnection *conn)
-{
-	g_return_if_fail (conn != NULL);
-
-	conn->new = FALSE;
-}
-
-/**
- * soup_connection_is_new:
- * @conn: a #SoupConnection.
- *
- * Returns %TRUE if this is the first use of @conn (ie. no response
- * has been read from it yet)
- *
- * Return value: boolean representing whether this is the first time a
- * connection has been used.
- */
-gboolean
-soup_connection_is_new (SoupConnection *conn)
-{
-	g_return_val_if_fail (conn != NULL, FALSE);
-	return conn->new;
-}
-
 
 static void
 get_idle_conns_for_host (gpointer key, gpointer value, gpointer data)
@@ -760,7 +572,7 @@ get_idle_conns_for_host (gpointer key, gpointer value, gpointer data)
 
 	for (c = host->connections; c; c = c->next) {
 		conn = c->data;
-		if (!conn->in_use)
+		if (!soup_connection_is_in_use (conn))
 			*idle_conns = g_slist_prepend (*idle_conns, conn);
 	}
 }
@@ -781,8 +593,10 @@ soup_connection_purge_idle (void)
 	idle_conns = NULL;
 	g_hash_table_foreach (soup_hosts, get_idle_conns_for_host, &idle_conns);
 
-	for (i = idle_conns; i; i = i->next)
-		connection_free (i->data);
+	for (i = idle_conns; i; i = i->next) {
+		soup_connection_disconnect (i->data);
+		g_object_unref (i->data);
+	}
 	g_slist_free (idle_conns);
 }
 
@@ -795,21 +609,28 @@ soup_context_lookup_auth (SoupContext *ctx, SoupMessage *msg)
 	char *path, *dir;
 	const char *realm;
 
-	g_return_val_if_fail (ctx != NULL, NULL);
+	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), NULL);
 
-	if (ctx->server->use_ntlm && msg && msg->connection) {
-		if (!msg->connection->auth)
-			msg->connection->auth = soup_auth_ntlm_new ();
-		return msg->connection->auth;
+	if (ctx->priv->server->ntlm_auths && msg && msg->connection) {
+		SoupAuth *auth;
+
+		auth = g_hash_table_lookup (ctx->priv->server->ntlm_auths,
+					    msg->connection);
+		if (!auth) {
+			auth = soup_auth_ntlm_new ();
+			g_hash_table_insert (ctx->priv->server->ntlm_auths,
+					     msg->connection, auth);
+		}
+		return auth;
 	}
 
-	if (!ctx->server->auth_realms)
+	if (!ctx->priv->server->auth_realms)
 		return NULL;
 
-	path = g_strdup (ctx->uri->path);
+	path = g_strdup (ctx->priv->uri->path);
 	dir = path;
         do {
-                realm = g_hash_table_lookup (ctx->server->auth_realms, path);
+                realm = g_hash_table_lookup (ctx->priv->server->auth_realms, path);
                 if (realm)
 			break;
 
@@ -820,7 +641,7 @@ soup_context_lookup_auth (SoupContext *ctx, SoupMessage *msg)
 
 	g_free (path);
 	if (realm)
-		return g_hash_table_lookup (ctx->server->auths, realm);
+		return g_hash_table_lookup (ctx->priv->server->auths, realm);
 	else
 		return NULL;
 }
@@ -829,31 +650,34 @@ static gboolean
 update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 		      const GSList *headers, gboolean prior_auth_failed)
 {
-	SoupHost *server = ctx->server;
+	SoupHost *server = ctx->priv->server;
 	SoupAuth *new_auth, *prior_auth, *old_auth;
 	gpointer old_path, old_realm;
 	const char *path;
 	char *realm;
 	GSList *pspace, *p;
 
-	if (server->use_ntlm && conn && conn->auth) {
-		if (soup_auth_is_authenticated (conn->auth)) {
-			/* This is a "permission denied", not a
-			 * "password incorrect". There's nothing more
-			 * we can do.
-			 */
-			return FALSE;
-		}
+	if (server->ntlm_auths && conn) {
+		prior_auth = g_hash_table_lookup (server->ntlm_auths, conn);
+		if (prior_auth) {
+			if (soup_auth_is_authenticated (prior_auth)) {
+				/* This is a "permission denied", not
+				 * a "password incorrect". There's
+				 * nothing more we can do.
+				 */
+				return FALSE;
+			}
 
-		/* Free the intermediate auth */
-		g_object_unref (conn->auth);
-		conn->auth = NULL;
+			/* Free the intermediate auth */
+			g_hash_table_remove (server->ntlm_auths, conn);
+			g_object_unref (prior_auth);
+		}
 	}
 
 	/* Try to construct a new auth from the headers; if we can't,
 	 * there's no way we'll be able to authenticate.
 	 */
-	new_auth = soup_auth_new_from_header_list (headers, ctx->uri->authmech);
+	new_auth = soup_auth_new_from_header_list (headers, ctx->priv->uri->authmech);
 	if (!new_auth)
 		return FALSE;
 
@@ -880,9 +704,10 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 	}
 
 	if (SOUP_IS_AUTH_NTLM (new_auth)) {
-		server->use_ntlm = TRUE;
+		if (!server->ntlm_auths)
+			server->ntlm_auths = g_hash_table_new (NULL, NULL);
 		if (conn) {
-			conn->auth = new_auth;
+			g_hash_table_insert (server->ntlm_auths, conn, new_auth);
 			return soup_context_authenticate_auth (ctx, new_auth);
 		} else {
 			g_object_unref (new_auth);
@@ -899,7 +724,7 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 	realm = g_strdup_printf ("%s:%s",
 				 soup_auth_get_scheme_name (new_auth),
 				 soup_auth_get_realm (new_auth));
-	pspace = soup_auth_get_protection_space (new_auth, ctx->uri);
+	pspace = soup_auth_get_protection_space (new_auth, ctx->priv->uri);
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
 		if (g_hash_table_lookup_extended (server->auth_realms, path,
@@ -938,7 +763,7 @@ soup_context_update_auth (SoupContext *ctx, SoupMessage *msg)
 {
 	const GSList *headers;
 
-	g_return_val_if_fail (ctx != NULL, FALSE);
+	g_return_val_if_fail (SOUP_IS_CONTEXT (ctx), FALSE);
 	g_return_val_if_fail (msg != NULL, FALSE);
 
 	if (msg->errorcode == SOUP_ERROR_PROXY_UNAUTHORIZED) {
@@ -957,7 +782,7 @@ soup_context_preauthenticate (SoupContext *ctx, const char *header)
 {
 	GSList *headers;
 
-	g_return_if_fail (ctx != NULL);
+	g_return_if_fail (SOUP_IS_CONTEXT (ctx));
 	g_return_if_fail (header != NULL);
 
 	headers = g_slist_append (NULL, (char *)header);
@@ -968,7 +793,7 @@ soup_context_preauthenticate (SoupContext *ctx, const char *header)
 gboolean
 soup_context_authenticate_auth (SoupContext *ctx, SoupAuth *auth)
 {
-	const SoupUri *uri = ctx->uri;
+	const SoupUri *uri = ctx->priv->uri;
 
 	if (!uri->user && soup_auth_fn) {
 		(*soup_auth_fn) (soup_auth_get_scheme_name (auth),
@@ -990,7 +815,7 @@ soup_context_invalidate_auth (SoupContext *ctx, SoupAuth *auth)
 	char *realm;
 	gpointer key, value;
 
-	g_return_if_fail (ctx != NULL);
+	g_return_if_fail (SOUP_IS_CONTEXT (ctx));
 	g_return_if_fail (auth != NULL);
 
 	/* Try to just clean up the auth without removing it. */
@@ -1002,10 +827,10 @@ soup_context_invalidate_auth (SoupContext *ctx, SoupAuth *auth)
 				 soup_auth_get_scheme_name (auth),
 				 soup_auth_get_realm (auth));
 
-	if (g_hash_table_lookup_extended (ctx->server->auths, realm,
+	if (g_hash_table_lookup_extended (ctx->priv->server->auths, realm,
 					  &key, &value) &&
 	    auth == (SoupAuth *)value) {
-		g_hash_table_remove (ctx->server->auths, realm);
+		g_hash_table_remove (ctx->priv->server->auths, realm);
 		g_free (key);
 		g_object_unref (auth);
 	}

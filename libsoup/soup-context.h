@@ -1,22 +1,38 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-context.h: Asyncronous Callback-based HTTP Request Queue.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
- * Copyright (C) 2000-2002, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_CONTEXT_H
 #define SOUP_CONTEXT_H 1
 
-#include <glib.h>
+#include <glib-object.h>
+#include <libsoup/soup-connection.h>
 #include <libsoup/soup-uri.h>
 
-typedef struct _SoupContext SoupContext;
+#define SOUP_TYPE_CONTEXT            (soup_context_get_type ())
+#define SOUP_CONTEXT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONTEXT, SoupContext))
+#define SOUP_CONTEXT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_CONTEXT, SoupContextClass))
+#define SOUP_IS_CONTEXT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_CONTEXT))
+#define SOUP_IS_CONTEXT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_CONTEXT))
+#define SOUP_CONTEXT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_CONTEXT, SoupContextClass))
 
-typedef struct _SoupConnection SoupConnection;
+typedef struct SoupContextPrivate SoupContextPrivate;
+
+typedef struct {
+	GObject parent;
+
+	SoupContextPrivate *priv;
+} SoupContext;
+
+typedef struct {
+	GObjectClass parent_class;
+
+} SoupContextClass;
+
+GType soup_context_get_type (void);
+
+
 
 typedef enum {
 	SOUP_CONNECT_ERROR_NONE,
@@ -31,13 +47,9 @@ typedef void (*SoupConnectCallbackFn) (SoupContext          *ctx,
 
 typedef gpointer SoupConnectId;
 
-SoupContext   *soup_context_get               (const gchar          *uri);
+SoupContext   *soup_context_get               (const char           *uri);
 
 SoupContext   *soup_context_from_uri          (SoupUri              *suri);
-
-void           soup_context_ref               (SoupContext          *ctx);
-
-void           soup_context_unref             (SoupContext          *ctx);
 
 SoupConnectId  soup_context_get_connection    (SoupContext          *ctx,
 					       SoupConnectCallbackFn cb,
@@ -48,25 +60,11 @@ void           soup_context_cancel_connect    (SoupConnectId         tag);
 const SoupUri *soup_context_get_uri           (SoupContext          *ctx);
 
 
-GIOChannel    *soup_connection_get_iochannel  (SoupConnection       *conn);
-
-SoupContext   *soup_connection_get_context    (SoupConnection       *conn);
-
-void           soup_connection_set_keep_alive (SoupConnection       *conn, 
-					       gboolean              keepalive);
-
-gboolean       soup_connection_is_keep_alive  (SoupConnection       *conn);
-
-void           soup_connection_set_used       (SoupConnection       *conn);
-gboolean       soup_connection_is_new         (SoupConnection       *conn);
-
-void           soup_connection_release        (SoupConnection       *conn);
-
+void           soup_context_preauthenticate   (SoupContext          *ctx,
+					       const char           *header);
+					  
 
 void           soup_connection_purge_idle     (void);
 
 
-void           soup_context_preauthenticate   (SoupContext          *ctx,
-					       const char           *header);
-					  
 #endif /*SOUP_CONTEXT_H*/

@@ -18,6 +18,7 @@
 
 typedef struct {
 	SoupConnection        *src_conn;
+	SoupContext           *proxy_ctx;
 	
 	enum {
 		SOCKS_4_DEST_ADDR_LOOKUP,
@@ -41,8 +42,11 @@ typedef struct {
 static void
 socks_data_free (SoupSocksData *sd)
 {
+	if (sd->proxy_ctx)
+		g_object_unref (sd->proxy_ctx);
+
 	if (sd->dest_ctx)
-		soup_context_unref (sd->dest_ctx);
+		g_object_unref (sd->dest_ctx);
 
 	if (sd->dest_addr)
 		g_object_unref (sd->dest_addr);
@@ -77,7 +81,6 @@ soup_socks_write (GIOChannel* iochannel,
 		  SoupSocksData *sd)
 {
 	const SoupUri *dest_uri, *proxy_uri;
-	SoupContext *proxy_ctx;
 	struct sockaddr *sa;
 	gboolean finished = FALSE;
 	guchar buf[128];
@@ -86,10 +89,7 @@ soup_socks_write (GIOChannel* iochannel,
 	GIOError error;
 
 	dest_uri = soup_context_get_uri (sd->dest_ctx);
-
-	proxy_ctx = soup_connection_get_context (sd->src_conn);
-	proxy_uri = soup_context_get_uri (proxy_ctx);
-	soup_context_unref (proxy_ctx);
+	proxy_uri = soup_context_get_uri (sd->proxy_ctx);
 
 	switch (sd->phase) {
 	case SOCKS_4_SEND_DEST_ADDR: 
@@ -282,30 +282,27 @@ soup_lookup_dest_addr_cb (SoupAddress*         inetaddr,
 
 void
 soup_connect_socks_proxy (SoupConnection        *conn, 
+			  SoupContext           *proxy_ctx, 
 			  SoupContext           *dest_ctx, 
 			  SoupConnectCallbackFn  cb,
 			  gpointer               user_data)
 {
 	SoupSocksData *sd = NULL;
-	SoupContext *proxy_ctx;
 	const SoupUri *dest_uri, *proxy_uri;
 	GIOChannel *channel;
 
 	if (!soup_connection_is_new (conn)) goto CONNECT_SUCCESS;
 	
-	soup_context_ref (dest_ctx);
-	dest_uri = soup_context_get_uri (dest_ctx);
-
-	proxy_ctx = soup_connection_get_context (conn);
-	proxy_uri = soup_context_get_uri (proxy_ctx);
-	soup_context_unref (proxy_ctx);
-
 	sd = g_new0 (SoupSocksData, 1);
 	sd->src_conn = conn;
-	sd->dest_ctx = dest_ctx;
+	sd->proxy_ctx = g_object_ref (proxy_ctx);
+	sd->dest_ctx = g_object_ref (dest_ctx);
 	sd->cb = cb;
 	sd->user_data = user_data;
 	
+	dest_uri = soup_context_get_uri (dest_ctx);
+	proxy_uri = soup_context_get_uri (proxy_ctx);
+
 	if (proxy_uri->protocol == SOUP_PROTOCOL_SOCKS4) {
 		soup_address_new (dest_uri->host, 
 				  soup_lookup_dest_addr_cb,

@@ -15,6 +15,7 @@
 #include <libsoup/soup-context.h>
 
 void soup_connect_socks_proxy (SoupConnection        *conn, 
+			       SoupContext           *proxy_ctx, 
 			       SoupContext           *dest_ctx, 
 			       SoupConnectCallbackFn  cb,
 			       gpointer               user_data);

@@ -1,0 +1,304 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * soup-connection.c: A single HTTP/HTTPS connection
+ *
+ * Copyright (C) 2000-2003, Ximian, Inc.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <glib.h>
+
+#include <fcntl.h>
+#include <sys/types.h>
+
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
+
+#include "soup-connection.h"
+#include "soup-private.h"
+#include "soup-marshal.h"
+#include "soup-misc.h"
+#include "soup-socket.h"
+#include "soup-ssl.h"
+
+struct SoupConnectionPrivate {
+	SoupSocket *socket;
+	GIOChannel *raw_chan, *cooked_chan;
+	gboolean    in_use, new;
+	time_t      last_used;
+	guint       death_tag;
+};
+
+#define PARENT_TYPE G_TYPE_OBJECT
+static GObjectClass *parent_class;
+
+enum {
+	DISCONNECTED,
+	LAST_SIGNAL
+};
+
+guint signals[LAST_SIGNAL] = { 0 };
+static void
+init (GObject *object)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+
+	conn->priv = g_new0 (SoupConnectionPrivate, 1);
+	conn->priv->in_use = FALSE;
+	conn->priv->new = TRUE;
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+
+	soup_connection_disconnect (conn);
+	g_free (conn->priv);
+
+	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+class_init (GObjectClass *object_class)
+{
+	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method override */
+	object_class->finalize = finalize;
+
+	/* signals */
+	signals[DISCONNECTED] =
+		g_signal_new ("disconnected",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, disconnected),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+}
+
+SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
+
+
+/**
+ * soup_connection_new:
+ * @sock: a #SoupSocket
+ *
+ * Creates a new #SoupConnection, wrapped around @sock.
+ *
+ * Return value: the new #SoupConnection
+ **/
+SoupConnection *
+soup_connection_new (SoupSocket *sock)
+{
+	SoupConnection *conn;
+	int yes = 1, flags = 0, fd;
+
+	conn = g_object_new (SOUP_TYPE_CONNECTION, NULL);
+	conn->priv->socket = g_object_ref (sock);
+
+	conn->priv->raw_chan = soup_socket_get_iochannel (sock);
+	fd = g_io_channel_unix_get_fd (conn->priv->raw_chan);
+	setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof (yes));
+	flags = fcntl (fd, F_GETFL, 0);
+	fcntl (fd, F_SETFL, flags | O_NONBLOCK);
+
+	return conn;
+}
+
+/**
+ * soup_connection_start_ssl:
+ * @conn: a connection
+ *
+ * Negotiates SSL on @conn
+ **/
+void
+soup_connection_start_ssl (SoupConnection *conn)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+	g_return_if_fail (conn->priv->socket != NULL);
+
+	if (conn->priv->cooked_chan)
+		g_io_channel_unref (conn->priv->cooked_chan);
+	conn->priv->cooked_chan =
+		soup_ssl_get_iochannel (conn->priv->raw_chan);
+}
+
+/**
+ * soup_connection_disconnect:
+ * @conn: a connection
+ *
+ * Disconnects @conn's socket and emits a %disconnected signal.
+ * After calling this, @conn will be essentially useless.
+ **/
+void
+soup_connection_disconnect (SoupConnection *conn)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	if (conn->priv->death_tag) {
+		g_source_remove (conn->priv->death_tag);
+		conn->priv->death_tag = 0;
+	}
+
+	if (conn->priv->raw_chan) {
+		g_io_channel_unref (conn->priv->raw_chan);
+		conn->priv->raw_chan = NULL;
+	}
+	if (conn->priv->cooked_chan) {
+		g_io_channel_unref (conn->priv->cooked_chan);
+		conn->priv->cooked_chan = NULL;
+	}
+
+	if (conn->priv->socket) {
+		g_object_unref (conn->priv->socket);
+		conn->priv->socket = NULL;
+		g_signal_emit (conn, signals[DISCONNECTED], 0);
+	}
+}
+
+gboolean
+soup_connection_is_connected (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return conn->priv->socket != NULL;
+}
+
+/**
+ * soup_connection_get_iochannel:
+ * @conn: a #SoupConnection.
+ *
+ * Returns a #GIOChannel used for IO operations on the network
+ * connection represented by @conn.
+ *
+ * Return value: a pointer to the #GIOChannel used for IO on @conn,
+ * which the caller must unref.
+ */
+GIOChannel *
+soup_connection_get_iochannel (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+
+	if (!conn->priv->socket)
+		return NULL;
+
+	if (!conn->priv->cooked_chan) {
+		conn->priv->cooked_chan = conn->priv->raw_chan;
+		g_io_channel_ref (conn->priv->cooked_chan);
+	}
+
+	g_io_channel_ref (conn->priv->cooked_chan);
+	return conn->priv->cooked_chan;
+}
+
+
+static gboolean
+connection_died (GIOChannel   *iochannel,
+		  GIOCondition  condition,
+		  gpointer      conn)
+{
+	soup_connection_disconnect (conn);
+	return FALSE;
+}
+
+/**
+ * soup_connection_set_in_use:
+ * @conn: a connection
+ * @in_use: whether or not @conn is in_use
+ *
+ * Marks @conn as being either in use or not. If @in_use is %FALSE,
+ * @conn's last-used time is updated.
+ **/
+void
+soup_connection_set_in_use (SoupConnection *conn, gboolean in_use)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	if (!in_use)
+		conn->priv->last_used = time (NULL);
+
+	if (in_use == conn->priv->in_use)
+		return;
+
+	conn->priv->in_use = in_use;
+	if (!conn->priv->in_use) {
+		if (!conn->priv->cooked_chan)
+			soup_connection_get_iochannel (conn);
+		conn->priv->death_tag = 
+			g_io_add_watch (conn->priv->cooked_chan,
+					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+					connection_died,
+					conn);
+	} else if (conn->priv->death_tag) {
+		g_source_remove (conn->priv->death_tag);
+		conn->priv->death_tag = 0;
+	}
+}
+
+/**
+ * soup_connection_is_in_use:
+ * @conn: a connection
+ *
+ * Return value: whether or not @conn is being used.
+ **/
+gboolean
+soup_connection_is_in_use (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return conn->priv->in_use;
+}
+
+/**
+ * soup_connection_last_used:
+ * @conn: a #SoupConnection.
+ *
+ * Return value: the last time soup_connection_mark_used() was called
+ * on @conn, or 0 if @conn has not been used yet.
+ */
+time_t
+soup_connection_last_used (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return conn->priv->last_used;
+}
+
+/**
+ * soup_connection_is_new:
+ * @conn: a connection
+ *
+ * Return value: whether or not @conn is "new". (That is, it has not
+ * yet completed a whole HTTP transaction.)
+ **/
+gboolean
+soup_connection_is_new (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return conn->priv->new;
+}
+
+/**
+ * soup_connection_mark_old:
+ * @conn: a #SoupConnection.
+ *
+ * Marks @conn as being no longer "new".
+ * FIXME: some day, this should happen automatically.
+ */
+void
+soup_connection_mark_old (SoupConnection *conn)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	conn->priv->new = FALSE;
+}

@@ -148,7 +148,9 @@ release_connection (const SoupDataBuffer *data,
 		    gpointer              user_data)
 {
 	SoupConnection *conn = user_data;
-	soup_connection_release (conn);
+
+	soup_connection_set_in_use (conn, FALSE);
+	g_object_unref (conn);
 
 	if (data->owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (data->body);
@@ -158,8 +160,9 @@ static void
 release_and_close_connection (gboolean headers_done, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
-	soup_connection_set_keep_alive (conn, FALSE);
-	soup_connection_release (conn);
+
+	soup_connection_disconnect (conn);
+	g_object_unref (conn);
 }
 
 /**
@@ -175,9 +178,7 @@ soup_message_cleanup (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	if (req->connection && 
-	    soup_connection_is_keep_alive (req->connection) &&
-	    req->priv->read_tag &&
+	if (req->connection && req->priv->read_tag &&
 	    req->status == SOUP_STATUS_READING_RESPONSE) {
 		soup_transfer_read_set_callbacks (req->priv->read_tag,
 						  NULL,
@@ -206,7 +207,8 @@ soup_message_cleanup (SoupMessage *req)
 	}
 
 	if (req->connection) {
-		soup_connection_release (req->connection);
+		soup_connection_set_in_use (req->connection, FALSE);
+		g_object_unref (req->connection);
 		req->connection = NULL;
 	}
 
@@ -217,7 +219,7 @@ static void
 finalize_message (SoupMessage *req)
 {
 	if (req->context)
-		soup_context_unref (req->context);
+		g_object_unref (req->context);
 
 	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->request.body);
@@ -289,6 +291,23 @@ soup_message_issue_callback (SoupMessage *req)
 }
 
 /**
+ * soup_message_disconnect:
+ * @msg: a #SoupMessage
+ *
+ * Utility function to close and unref the connection associated with
+ * @msg if there was an error.
+ **/
+void
+soup_message_disconnect (SoupMessage *msg)
+{
+	if (msg->connection) {
+		soup_connection_disconnect (msg->connection);
+		g_object_unref (msg->connection);
+		msg->connection = NULL;
+	}
+}
+
+/**
  * soup_message_cancel:
  * @req: a #SoupMessage currently being processed.
  * 
@@ -300,11 +319,7 @@ void
 soup_message_cancel (SoupMessage *msg) 
 {
 	soup_message_set_error (msg, SOUP_ERROR_CANCELLED);
-
-	/* Kill the connection as a safety measure */
-	if (msg->connection)
-		soup_connection_set_keep_alive (msg->connection, FALSE);
-
+	soup_message_disconnect (msg);
 	soup_message_issue_callback (msg);
 }
 
@@ -531,10 +546,7 @@ requeue_read_error (gboolean body_started, gpointer user_data)
 {
 	SoupMessage *msg = user_data;
 
-	soup_connection_set_keep_alive (msg->connection, FALSE);
-	soup_connection_release (msg->connection);
-	msg->connection = NULL;
-
+	soup_message_disconnect (msg);
 	soup_queue_message (msg, 
 			    msg->priv->callback, 
 			    msg->priv->user_data);
@@ -550,18 +562,18 @@ requeue_read_finished (const SoupDataBuffer *buf,
 	if (buf->owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (buf->body);
 
-	soup_connection_set_used (msg->connection);
-	if (!soup_connection_is_keep_alive (msg->connection))
-		requeue_read_error (FALSE, msg);
-	else {
-		msg->connection = NULL;
-
-		soup_queue_message (msg, 
-				    msg->priv->callback, 
-				    msg->priv->user_data);
-
-		msg->connection = conn;
+	if (soup_connection_is_connected (conn)) {
+		soup_connection_mark_old (conn);
+	} else {
+		g_object_unref (conn);
+		conn = NULL;
 	}
+
+	msg->connection = NULL;
+	soup_queue_message (msg, 
+			    msg->priv->callback, 
+			    msg->priv->user_data);
+	msg->connection = conn;
 }
 
 /**
@@ -576,7 +588,7 @@ soup_message_requeue (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
 
-	if (req->connection && req->connection->auth && req->priv->read_tag) {
+	if (req->connection && req->priv->read_tag) {
 		soup_transfer_read_set_callbacks (req->priv->read_tag,
 						  NULL,
 						  NULL,
@@ -683,7 +695,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		goto INVALID_REDIRECT;
 
 	soup_message_set_context (msg, new_ctx);
-	soup_context_unref (new_ctx);
+	g_object_unref (new_ctx);
 
 	soup_message_requeue (msg);
 	return;
@@ -1015,15 +1027,20 @@ soup_message_set_context (SoupMessage       *msg,
 {
 	g_return_if_fail (msg != NULL);
 
-	if (msg->context) {
-		if (msg->connection &&
-		    (!new_ctx || (msg->context->server != new_ctx->server)))
+	if (msg->context && new_ctx) {
+		const SoupUri *old, *new;
+
+		old = soup_context_get_uri (msg->context);
+		new = soup_context_get_uri (new_ctx);
+		if (strcmp (old->host, new->host) != 0)
 			soup_message_cleanup (msg);
-		soup_context_unref (msg->context);
-	}
+	} else if (!new_ctx)
+		soup_message_cleanup (msg);
 
 	if (new_ctx)
-		soup_context_ref (new_ctx);
+		g_object_ref (new_ctx);
+	if (msg->context)
+		g_object_unref (msg->context);
 
 	msg->context = new_ctx;
 }
@@ -1033,10 +1050,7 @@ soup_message_get_context (SoupMessage       *msg)
 {
 	g_return_val_if_fail (msg != NULL, NULL);
 
-	if (msg->context)
-		soup_context_ref (msg->context);
-
-	return msg->context;
+	return g_object_ref (msg->context);
 }
 
 void

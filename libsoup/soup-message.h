@@ -84,6 +84,8 @@ void           soup_message_free                (SoupMessage       *req);
 
 void           soup_message_cancel              (SoupMessage       *req);
 
+void           soup_message_disconnect          (SoupMessage       *req);
+
 SoupErrorClass soup_message_send                (SoupMessage       *msg);
 
 void           soup_message_queue               (SoupMessage       *req, 
