@@ -1,3 +1,10 @@
+2003-04-10  Joe Shaw  <joe@ximian.com>
+
+	* libsoup/soup-queue.c (proxy_https_connect):
+	proxy_https_connect_cb() might not get called if connecting to the
+	proxy fails, and it causes us to double-free the connection.
+	Always set the message's connection to NULL before freeing it.
+
 2003-04-09  Dan Winship  <danw@ximian.com>
 
 	* configure.in: 1.99.17
