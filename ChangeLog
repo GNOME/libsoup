@@ -1,3 +1,8 @@
+2002-12-15  Frank Belew  <frb@ximian.com>
+
+	* tests/Makefile.am: uncomment lines to make timeserver build 
+	correctly
+	
 2002-12-14  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-address.c (soup_address_new): When we get an

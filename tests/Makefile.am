@@ -2,7 +2,7 @@ INCLUDES =		\
 	-I$(top_srcdir)	\
 	$(GLIB_CFLAGS)
 
-noinst_PROGRAMS = get timeserver
+noinst_PROGRAMS = get #timeserver
 
 get_SOURCES = get.c
 
