@@ -413,6 +413,85 @@ get_server_sockname (gint fd)
 	return host;
 }
 
+static void
+write_header (gchar *key, gchar *value, GString *ret)
+{
+	g_string_sprintfa (ret, "%s: %s\r\n", key, value);
+}
+
+static GString *
+get_response_header (SoupMessage          *req, 
+		     gboolean              status_line, 
+		     SoupTransferEncoding  encoding)
+{
+	GString *ret = g_string_new (NULL);
+
+	if (status_line) 
+		g_string_sprintfa (ret, 
+				   "HTTP/1.1 %d %s\r\n", 
+				   req->errorcode, 
+				   req->errorphrase);
+	else
+		g_string_sprintfa (ret, 
+				   "Status: %d %s\r\n", 
+				   req->errorcode, 
+				   req->errorphrase);
+
+	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH)
+		g_string_sprintfa (ret, 
+				   "Content-Length: %d\r\n",  
+				   req->response.length);
+	else if (encoding == SOUP_TRANSFER_CHUNKED)
+		g_string_append (ret, "Transfer-Encoding: chunked\r\n");
+
+	soup_message_foreach_header (req->response_headers,
+				     (GHFunc) write_header,
+				     ret);
+
+	g_string_append (ret, "\r\n");
+
+	return ret;
+}
+
+static inline void
+set_response_error (SoupMessage    *req,
+		    guint           code,
+		    gchar          *phrase,
+		    gchar          *body)
+{
+	if (phrase)
+		soup_message_set_error_full (req, code, phrase);
+	else 
+		soup_message_set_error (req, code);
+
+	req->response.owner = SOUP_BUFFER_STATIC;
+	req->response.body = body;
+	req->response.length = body ? strlen (req->response.body) : 0;
+}
+
+static void
+issue_bad_request (SoupMessage *msg)
+{
+	GString *header;
+	GIOChannel *channel;
+
+	set_response_error (msg, SOUP_ERROR_BAD_REQUEST, NULL, NULL);
+
+	header = get_response_header (msg, 
+				      FALSE,
+				      SOUP_TRANSFER_CONTENT_LENGTH);
+
+	channel = soup_socket_get_iochannel (msg->priv->server_sock);
+
+	msg->priv->write_tag =
+		soup_transfer_write_simple (channel,
+					    header,
+					    &msg->response,
+					    write_done_cb,
+					    error_cb,
+					    msg);
+} /* issue_bad_request */
+
 static SoupTransferDone
 read_headers_cb (const GString        *headers,
 		 SoupTransferEncoding *encoding,
@@ -531,65 +610,9 @@ read_headers_cb (const GString        *headers,
  THROW_MALFORMED_HEADER:
 	g_free (req_path);
 
-	destroy_message (msg);
+	issue_bad_request(msg);
 
-	return SOUP_TRANSFER_END;
-}
-
-static void
-write_header (gchar *key, gchar *value, GString *ret)
-{
-	g_string_sprintfa (ret, "%s: %s\r\n", key, value);
-}
-
-static GString *
-get_response_header (SoupMessage          *req, 
-		     gboolean              status_line, 
-		     SoupTransferEncoding  encoding)
-{
-	GString *ret = g_string_new (NULL);
-
-	if (status_line) 
-		g_string_sprintfa (ret, 
-				   "HTTP/1.1 %d %s\r\n", 
-				   req->errorcode, 
-				   req->errorphrase);
-	else
-		g_string_sprintfa (ret, 
-				   "Status: %d %s\r\n", 
-				   req->errorcode, 
-				   req->errorphrase);
-
-	if (encoding == SOUP_TRANSFER_CONTENT_LENGTH)
-		g_string_sprintfa (ret, 
-				   "Content-Length: %d\r\n",  
-				   req->response.length);
-	else if (encoding == SOUP_TRANSFER_CHUNKED)
-		g_string_append (ret, "Transfer-Encoding: chunked\r\n");
-
-	soup_message_foreach_header (req->response_headers,
-				     (GHFunc) write_header,
-				     ret);
-
-	g_string_append (ret, "\r\n");
-
-	return ret;
-}
-
-static inline void
-set_response_error (SoupMessage    *req,
-		    guint           code,
-		    gchar          *phrase,
-		    gchar          *body)
-{
-	if (phrase)
-		soup_message_set_error_full (req, code, phrase);
-	else 
-		soup_message_set_error (req, code);
-
-	req->response.owner = SOUP_BUFFER_STATIC;
-	req->response.body = body;
-	req->response.length = body ? strlen (req->response.body) : 0;
+	return SOUP_TRANSFER_CONTINUE;
 }
 
 static void

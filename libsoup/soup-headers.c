@@ -121,7 +121,7 @@ soup_headers_parse_request (gchar            *str,
 	guint http_major, http_minor;
 	gchar method[16], path[1024];
 
-	if (!str || !*str || len < sizeof ("GET / HTTP/0.0\r\n\r\n"))
+	if (!str || !*str || len < sizeof ("GET / HTTP/0.0\r\n\r\n") - 1)
 		goto THROW_MALFORMED_HEADER;
 
 	if (sscanf (str, 
