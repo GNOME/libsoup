@@ -447,16 +447,6 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	}
 
  PROCESS_READ:
-	/* 
-	 * FIXME: Why are we getting a read_cb if there is no data to read? Yet
-	 *        error_cb isn't being called and we get no error from
-	 *        g_io_channel_read(). 
-	 */
-	/*
-	 * Update, Joe, 2/28/2003: Looks like we'll get this after a SIGPIPE.
-	 * Instead of erroring out and probably messing with freed data,
-	 * cancel out.
-	 */
 
 	if (r->header_len == 0 && total_read == 0)
 		goto FINISH_READ;

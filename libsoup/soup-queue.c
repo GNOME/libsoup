@@ -61,9 +61,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 
 	soup_connection_set_keep_alive (req->connection, FALSE);
 
-	req->priv->read_tag = 0;
-	req->priv->write_tag = 0;
-
 	switch (req->status) {
 	case SOUP_STATUS_IDLE:
 	case SOUP_STATUS_QUEUED:

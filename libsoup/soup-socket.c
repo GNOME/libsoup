@@ -271,8 +271,11 @@ soup_socket_get_iochannel (SoupSocket* socket)
 {
 	g_return_val_if_fail (socket != NULL, NULL);
 
-	if (socket->iochannel == NULL)
+	if (socket->iochannel == NULL) {
 		socket->iochannel = g_io_channel_unix_new (socket->sockfd);
+		g_io_channel_set_encoding (socket->iochannel, NULL, NULL);
+		g_io_channel_set_buffered (socket->iochannel, FALSE);
+	}
 
 	g_io_channel_ref (socket->iochannel);
 

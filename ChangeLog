@@ -1,3 +1,23 @@
+2003-03-07  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Bump up to 1.99.13.
+
+	* libsoup/soup-context.c (soup_context_connect_cb): Add G_IO_IN to
+	the list of conditions to watch.  If the remote end hangs up the
+	connection, we'll get a successful read of 0 bytes, not a HUP.
+	The connection will have to be released by the point we check for
+	it in connection_death().
+
+	* libsoup/soup-queue.c (soup_queue_error_cb): Get rid of some
+	(apparently) errant resetting of the read and write tags.  I think
+	this might have been causing some reentrancy and crashes.
+
+	* libsoup/soup-socket.c (soup_socket_get_iochannel): Set the IO
+	channel to NULL encoding and not buffered.
+
+	* libsoup/soup-transfer.c (soup_transfer_read_cb): Remove some
+	incorrect comments.
+
 2003-02-28  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.12.

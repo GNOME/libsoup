@@ -352,7 +352,7 @@ soup_context_connect_cb (SoupSocket              *socket,
 		chan = soup_connection_get_iochannel (new_conn);
 		new_conn->death_tag = 
 			g_io_add_watch (chan,
-					G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+					G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
 					(GIOFunc) connection_death,
 					new_conn);
 		g_io_channel_unref (chan);
