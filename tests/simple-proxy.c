@@ -18,7 +18,7 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-server-message.h>
-#include <libsoup/soup-session.h>
+#include <libsoup/soup-session-async.h>
 
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.

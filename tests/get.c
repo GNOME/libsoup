@@ -205,15 +205,25 @@ int
 main (int argc, char **argv)
 {
 	const char *cafile = NULL;
+	SoupUri *proxy = NULL;
 	int opt;
 
 	g_type_init ();
 	g_thread_init (NULL);
 
-	while ((opt = getopt (argc, argv, "c:r")) != -1) {
+	while ((opt = getopt (argc, argv, "c:p:r")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
+			break;
+
+		case 'p':
+			proxy = soup_uri_new (optarg);
+			if (!proxy) {
+				fprintf (stderr, "Could not parse %s as URI\n",
+					 optarg);
+				exit (1);
+			}
 			break;
 
 		case 'r':
@@ -239,6 +249,7 @@ main (int argc, char **argv)
 
 	session = soup_session_async_new_with_options (
 		SOUP_SESSION_SSL_CA_FILE, cafile,
+		SOUP_SESSION_PROXY_URI, proxy,
 		NULL);
 
 	if (recurse) {

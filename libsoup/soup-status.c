@@ -22,6 +22,7 @@ struct {
 	{ SOUP_STATUS_SSL_FAILED,                 "SSL handshake failed" },
 	{ SOUP_STATUS_IO_ERROR,                   "Connection terminated unexpectedly" },
 	{ SOUP_STATUS_MALFORMED,                  "Message Corrupt" },
+	/* SOUP_STATUS_TRY_AGAIN should never be returned to the caller */
 
 	/* Informational */
 	{ SOUP_STATUS_CONTINUE,                   "Continue" },

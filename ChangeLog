@@ -1,3 +1,51 @@
+2003-12-19  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-filter.c: New. An interface for objects
+	that want to act on every message passing through a session.
+	(Initially being used for authentication, but could also be used
+	for cache handling, cookie management, etc.)
+
+	* libsoup/soup-connection.c (class_init, etc): Add a message
+	filter property.
+	(send_request): If the connection has a message filter set, run
+	it on the message before sending it.
+	(soup_connection_connect_async, etc): When setting up a tunnel, if
+	we get back a 407 and the session tries to requeue the message,
+	either re-send it, or return SOUP_STATUS_TRY_AGAIN (depending on
+	whether or not the proxy closed the connection).
+	(soup_connection_connect_sync): Likewise
+	(send_request, request_done): Ref/unref the connection
+
+	* libsoup/soup-session.c (soup_session_get_type): Implement the
+	SoupMessageFilter interface.
+	(soup_session_get_connection): Use the session as the connection's
+	message filter
+	(soup_session_add_filter, soup_session_remove_filter): Add/remove
+	filters from the session
+	(setup_message): do auth handling, and call each of the session's
+	filters' setup_message methods as well.
+	(soup_session_send_message_via): No longer needed.
+	(connect_result): Handle SOUP_STATUS_TRY_AGAIN.
+
+	* libsoup/soup-session-async.c (run_queue): Use
+	soup_connection_send_request, since soup_session_send_message_via
+	is gone now.
+
+	* libsoup/soup-session-sync.c (send_message): Likewise
+
+	* libsoup/soup-message.c (soup_message_is_keepalive): A successful
+	response to a CONNECT is always keepalive, even if it's HTTP/1.0
+	with no Connection header.
+
+	* libsoup/soup-status.h: add SOUP_STATUS_TRY_AGAIN
+
+	* libsoup/soup-types.h: Add SoupMessageFilter, and macros for
+	gobject interface types.
+
+	* tests/get.c (main): Add a -p flag to specify a proxy
+
+	* tests/simple-proxy.c: Fix #includes
+
 2003-12-18  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-connection.c (soup_connection_disconnect): Actually

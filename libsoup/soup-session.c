@@ -18,6 +18,7 @@
 #include "soup-connection.h"
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
+#include "soup-message-filter.h"
 #include "soup-message-queue.h"
 #include "soup-ssl.h"
 #include "soup-uri.h"
@@ -40,6 +41,8 @@ struct SoupSessionPrivate {
 	char *ssl_ca_file;
 	gpointer ssl_creds;
 
+	GSList *filters;
+
 	GHashTable *hosts; /* SoupUri -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
@@ -56,6 +59,8 @@ struct SoupSessionPrivate {
 static guint    host_uri_hash  (gconstpointer key);
 static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
 static void     free_host      (SoupSessionHost *host, SoupSession *session);
+
+static void setup_message   (SoupMessageFilter *filter, SoupMessage *msg);
 
 static void queue_message   (SoupSession *session, SoupMessage *msg,
 			     SoupMessageCallbackFn callback,
@@ -128,9 +133,17 @@ static void
 dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
+	GSList *f;
 
 	soup_session_abort (session);
 	cleanup_hosts (session);
+
+	if (session->priv->filters) {
+		for (f = session->priv->filters; f; f = f->next)
+			g_object_unref (f->data);
+		g_slist_free (session->priv->filters);
+		session->priv->filters = NULL;
+	}
 
 	G_OBJECT_CLASS (parent_class)->dispose (object);
 }
@@ -236,7 +249,14 @@ class_init (GObjectClass *object_class)
 				      G_PARAM_READWRITE));
 }
 
-SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
+static void
+filter_iface_init (SoupMessageFilterClass *filter_class)
+{
+	/* interface implementation */
+	filter_class->setup_message = setup_message;
+}
+
+SOUP_MAKE_TYPE_WITH_IFACE (soup_session, SoupSession, class_init, init, PARENT_TYPE, filter_iface_init, SOUP_TYPE_MESSAGE_FILTER)
 
 static gboolean
 safe_uri_equal (const SoupUri *a, const SoupUri *b)
@@ -321,6 +341,42 @@ get_property (GObject *object, guint prop_id,
 	default:
 		break;
 	}
+}
+
+
+/**
+ * soup_session_add_filter:
+ * @session: a #SoupSession
+ * @filter: an object implementing the #SoupMessageFilter interface
+ *
+ * Adds @filter to @session's list of message filters to be applied to
+ * all messages.
+ **/
+void
+soup_session_add_filter (SoupSession *session, SoupMessageFilter *filter)
+{
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
+
+	session->priv->filters = g_slist_prepend (session->priv->filters,
+						  filter);
+}
+
+/**
+ * soup_session_remove_filter:
+ * @session: a #SoupSession
+ * @filter: an object implementing the #SoupMessageFilter interface
+ *
+ * Removes @filter from @session's list of message filters
+ **/
+void
+soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
+{
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
+
+	session->priv->filters = g_slist_remove (session->priv->filters,
+						 filter);
 }
 
 
@@ -728,16 +784,30 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	}
 }
 
-void
-soup_session_send_message_via (SoupSession *session, SoupMessage *msg,
-			       SoupConnection *conn)
+static void
+setup_message (SoupMessageFilter *filter, SoupMessage *msg)
 {
-	msg->status = SOUP_MESSAGE_STATUS_RUNNING;
+	SoupSession *session = SOUP_SESSION (filter);
+	GSList *f;
+
+	for (f = session->priv->filters; f; f = f->next) {
+		filter = f->data;
+		soup_message_filter_setup_message (filter, msg);
+	}
 
 	add_auth (session, msg, FALSE);
-	if (session->priv->proxy_uri)
+	soup_message_add_status_code_handler (
+		msg, SOUP_STATUS_UNAUTHORIZED,
+		SOUP_HANDLER_POST_BODY,
+		authorize_handler, session);
+
+	if (session->priv->proxy_uri) {
 		add_auth (session, msg, TRUE);
-	soup_connection_send_request (conn, msg);
+		soup_message_add_status_code_handler  (
+			msg, SOUP_STATUS_PROXY_UNAUTHORIZED,
+			SOUP_HANDLER_POST_BODY,
+			authorize_handler, session);
+	}
 }
 
 static void
@@ -847,11 +917,24 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 		return;
 	}
 
-	/* It's hopeless. Cancel everything that was waiting for this host. */
+	/* There are two possibilities: either status is
+	 * SOUP_STATUS_TRY_AGAIN, in which case the session implementation
+	 * will create a new connection (and all we need to do here
+	 * is downgrade the message from CONNECTING to QUEUED); or
+	 * status is something else, probably CANT_CONNECT or
+	 * CANT_RESOLVE or the like, in which case we need to cancel
+	 * any messages waiting for this host, since they're out
+	 * of luck.
+	 */
 	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
 		if (get_host_for_message (session, msg) == host) {
-			soup_message_set_status (msg, status);
-			soup_session_cancel_message (session, msg);
+			if (status == SOUP_STATUS_TRY_AGAIN) {
+				if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
+					msg->status = SOUP_MESSAGE_STATUS_QUEUED;
+			} else {
+				soup_message_set_status (msg, status);
+				soup_session_cancel_message (session, msg);
+			}
 		}
 	}
 }
@@ -932,6 +1015,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
 		SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, session->priv->ssl_creds,
+		SOUP_CONNECTION_MESSAGE_FILTER, session,
 		NULL);
 	g_signal_connect (conn, "connect_result",
 			  G_CALLBACK (connect_result),
@@ -982,14 +1066,6 @@ queue_message (SoupSession *session, SoupMessage *msg,
 {
 	g_signal_connect_after (msg, "finished",
 				G_CALLBACK (message_finished), session);
-
-	soup_message_add_status_code_handler  (msg, SOUP_STATUS_UNAUTHORIZED,
-					       SOUP_HANDLER_POST_BODY,
-					       authorize_handler, session);
-	soup_message_add_status_code_handler  (msg,
-					       SOUP_STATUS_PROXY_UNAUTHORIZED,
-					       SOUP_HANDLER_POST_BODY,
-					       authorize_handler, session);
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_status_class_handler (

@@ -34,6 +34,7 @@ typedef enum {
 	SOUP_STATUS_SSL_FAILED,
 	SOUP_STATUS_IO_ERROR,
 	SOUP_STATUS_MALFORMED,
+	SOUP_STATUS_TRY_AGAIN,
 
 	/* HTTP Status Codes */
 	SOUP_STATUS_CONTINUE                        = 100,

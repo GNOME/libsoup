@@ -133,7 +133,7 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 			soup_connection_connect_async (conn, got_connection,
 						       session);
 		} else
-			soup_session_send_message_via (session, msg, conn);
+			soup_connection_send_request (conn, msg);
 
 		started_any = TRUE;
 	}

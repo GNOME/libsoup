@@ -25,6 +25,7 @@
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
+#include "soup-message-filter.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -41,6 +42,8 @@ struct SoupConnectionPrivate {
 	 */
 	SoupUri     *proxy_uri, *origin_uri, *conn_uri;
 	gpointer     ssl_creds;
+
+	SoupMessageFilter *filter;
 
 	SoupMessage *cur_req;
 	time_t       last_used;
@@ -66,6 +69,7 @@ enum {
   PROP_ORIGIN_URI,
   PROP_PROXY_URI,
   PROP_SSL_CREDS,
+  PROP_MESSAGE_FILTER,
 
   LAST_PROP
 };
@@ -95,6 +99,9 @@ finalize (GObject *object)
 		soup_uri_free (conn->priv->proxy_uri);
 	if (conn->priv->origin_uri)
 		soup_uri_free (conn->priv->origin_uri);
+
+	if (conn->priv->filter)
+		g_object_unref (conn->priv->filter);
 
 	g_free (conn->priv);
 
@@ -194,6 +201,12 @@ class_init (GObjectClass *object_class)
 				      "SSL credentials",
 				      "Opaque SSL credentials for this connection",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_MESSAGE_FILTER,
+		g_param_spec_pointer (SOUP_CONNECTION_MESSAGE_FILTER,
+				      "Message filter",
+				      "Message filter object for this connection",
+				      G_PARAM_READWRITE));
 }
 
 SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
@@ -255,6 +268,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDS:
 		conn->priv->ssl_creds = g_value_get_pointer (value);
 		break;
+	case PROP_MESSAGE_FILTER:
+		conn->priv->filter = g_object_ref (g_value_get_pointer (value));
+		break;
 	default:
 		break;
 	}
@@ -279,9 +295,35 @@ get_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, conn->priv->ssl_creds);
 		break;
+	case PROP_MESSAGE_FILTER:
+		g_value_set_pointer (value, g_object_ref (conn->priv->filter));
+		break;
 	default:
 		break;
 	}
+}
+
+static void
+set_current_request (SoupConnection *conn, SoupMessage *req)
+{
+	g_return_if_fail (conn->priv->cur_req == NULL);
+
+	req->status = SOUP_MESSAGE_STATUS_RUNNING;
+	conn->priv->cur_req = req;
+	conn->priv->in_use = TRUE;
+	g_object_add_weak_pointer (G_OBJECT (req),
+				   (gpointer *)conn->priv->cur_req);
+}
+
+static void
+clear_current_request (SoupConnection *conn)
+{
+	if (conn->priv->cur_req) {
+		g_object_remove_weak_pointer (G_OBJECT (conn->priv->cur_req),
+					      (gpointer *)conn->priv->cur_req);
+		conn->priv->cur_req = NULL;
+	}
+	conn->priv->in_use = FALSE;
 }
 
 static void
@@ -310,6 +352,8 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 	SoupConnection *conn = user_data;
 	guint status = msg->status_code;
 
+	clear_current_request (conn);
+
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (!soup_socket_start_ssl (conn->priv->socket))
 			status = SOUP_STATUS_SSL_FAILED;
@@ -318,6 +362,37 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
 		       proxified_status (conn, status));
 	g_object_unref (msg);
+}
+
+static void
+tunnel_connect_restarted (SoupMessage *msg, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	guint status = msg->status_code;
+
+	/* We only allow one restart: if another one happens, treat
+	 * it as "finished".
+	 */
+	g_signal_handlers_disconnect_by_func (msg, tunnel_connect_restarted, conn);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (tunnel_connect_finished), conn);
+
+	if (status == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED) {
+		/* Our parent session has handled the authentication
+		 * and attempted to restart the message.
+		 */
+		if (soup_message_is_keepalive (msg)) {
+			/* Connection is still open, so just send the
+			 * message again.
+			 */
+			soup_connection_send_request (conn, msg);
+		} else {
+			/* Tell the session to try again. */
+			soup_message_set_status (msg, SOUP_STATUS_TRY_AGAIN);
+			soup_message_finished (msg);
+		}
+	} else
+		soup_message_finished (msg);
 }
 
 static void
@@ -344,6 +419,8 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
 							 conn->priv->origin_uri);
 
+		g_signal_connect (connect_msg, "restarted",
+				  G_CALLBACK (tunnel_connect_restarted), conn);
 		g_signal_connect (connect_msg, "finished",
 				  G_CALLBACK (tunnel_connect_finished), conn);
 
@@ -428,6 +505,17 @@ soup_connection_connect_sync (SoupConnection *conn)
 							 conn->priv->origin_uri);
 		soup_connection_send_request (conn, connect_msg);
 		status = connect_msg->status_code;
+
+		if (status == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED &&
+		    SOUP_MESSAGE_IS_STARTING (connect_msg)) {
+			if (soup_message_is_keepalive (connect_msg)) {
+				/* Try once more */
+				soup_connection_send_request (conn, connect_msg);
+				status = connect_msg->status_code;
+			} else
+				status = SOUP_STATUS_TRY_AGAIN;
+		}
+
 		g_object_unref (connect_msg);
 	}
 
@@ -509,33 +597,32 @@ request_done (SoupMessage *req, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
 
-	g_object_remove_weak_pointer (G_OBJECT (conn->priv->cur_req),
-				      (gpointer *)conn->priv->cur_req);
-	conn->priv->cur_req = NULL;
+	clear_current_request (conn);
 	conn->priv->last_used = time (NULL);
-	conn->priv->in_use = FALSE;
 
 	if (!soup_message_is_keepalive (req))
 		soup_connection_disconnect (conn);
 
 	g_signal_handlers_disconnect_by_func (req, request_done, conn);
 	g_signal_handlers_disconnect_by_func (req, request_restarted, conn);
+	g_object_unref (conn);
 }
 
 static void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
+	g_object_ref (conn);
+
 	if (req != conn->priv->cur_req) {
-		g_return_if_fail (conn->priv->cur_req == NULL);
-		conn->priv->cur_req = req;
-		conn->priv->in_use = TRUE;
-		g_object_add_weak_pointer (G_OBJECT (req),
-					   (gpointer *)conn->priv->cur_req);
+		set_current_request (conn, req);
 
 		g_signal_connect (req, "restarted",
 				  G_CALLBACK (request_restarted), conn);
 		g_signal_connect (req, "finished",
 				  G_CALLBACK (request_done), conn);
+
+		if (conn->priv->filter)
+			soup_message_filter_setup_message (conn->priv->filter, req);
 	}
 
 	soup_message_io_cancel (req);

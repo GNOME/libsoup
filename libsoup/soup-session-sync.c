@@ -170,7 +170,7 @@ send_message (SoupSession *session, SoupMessage *msg)
 		 * until either it's done, or the connection is closed.
 		 */
 		while (msg->status != SOUP_MESSAGE_STATUS_FINISHED && conn)
-			soup_session_send_message_via (session, msg, conn);
+			soup_connection_send_request (conn, msg);
 
 		if (conn) {
 			g_object_remove_weak_pointer (G_OBJECT (conn),

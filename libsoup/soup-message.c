@@ -602,6 +602,10 @@ soup_message_is_keepalive (SoupMessage *msg)
 	c_conn = soup_message_get_header (msg->request_headers, "Connection");
 	s_conn = soup_message_get_header (msg->response_headers, "Connection");
 
+	if (msg->status_code == SOUP_STATUS_OK &&
+	    soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT)
+		return TRUE;
+
 	if (msg->priv->http_version == SOUP_HTTP_1_0) {
 		/* Only persistent if the client requested keepalive
 		 * and the server agreed.

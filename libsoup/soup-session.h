@@ -58,6 +58,11 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_USE_NTLM           "use-ntlm"
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 
+void            soup_session_add_filter       (SoupSession           *session,
+					       SoupMessageFilter     *filter);
+void            soup_session_remove_filter    (SoupSession           *session,
+					       SoupMessageFilter     *filter);
+
 void            soup_session_queue_message    (SoupSession           *session,
 					       SoupMessage           *msg,
 					       SoupMessageCallbackFn  callback,
@@ -79,10 +84,6 @@ SoupConnection *soup_session_get_connection       (SoupSession    *session,
 						   gboolean       *try_pruning,
 						   gboolean       *is_new);
 gboolean        soup_session_try_prune_connection (SoupSession    *session);
-
-void            soup_session_send_message_via     (SoupSession    *session,
-						   SoupMessage    *msg,
-						   SoupConnection *conn);
 
 
 #endif /* SOUP_SESSION_H */
