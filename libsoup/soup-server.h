@@ -13,6 +13,7 @@
 
 #include <glib.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-uri.h>
 #include <libsoup/soup-server-auth.h>
@@ -21,6 +22,9 @@ typedef struct _SoupServer SoupServer;
 typedef struct _SoupServerHandler SoupServerHandler;
 
 typedef struct {
+	SoupMessage       *msg;
+	gchar             *path;
+	SoupMethodId       method_id;
 	SoupServerAuth    *auth;
 	SoupServer        *server;
 	SoupServerHandler *handler;

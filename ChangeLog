@@ -1,3 +1,18 @@
+2001-12-06  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-method.[ch]: Create.
+
+	* src/libsoup/soup-dav-server.c: Rehash to be controlled by
+	caller through soup_dav_server_process, instead of registering
+	paths with the server internally.  This adds the restricition of
+	only being able to service dav move/copy requests to paths under
+	the caller's registered path.
+
+	* src/libsoup/soup-server.c (call_handler): Add message, request
+	path, and method id to SoupServerContext.
+
+	* src/libsoup/soup-message.h: Remove method defines.
+
 2001-12-05  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-server.c (soup_server_run): Allow recursive

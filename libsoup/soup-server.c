@@ -645,6 +645,9 @@ call_handler (SoupMessage          *req,
 
 	if (hand->callback) {
 		SoupServerContext servctx = {
+			req,
+			req->context->uri->path,
+			soup_method_get_id (req->method),
 			NULL,
 			server,
 			hand

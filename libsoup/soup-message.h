@@ -14,6 +14,7 @@
 #include <glib.h>
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-error.h>
+#include <libsoup/soup-method.h>
 
 typedef enum {
 	SOUP_STATUS_IDLE = 0,
@@ -35,21 +36,6 @@ typedef struct {
 	gchar         *body;
 	guint          length;
 } SoupDataBuffer;
-
-#define SOUP_METHOD_POST      "POST"
-#define SOUP_METHOD_GET       "GET"
-#define SOUP_METHOD_HEAD      "HEAD"
-#define SOUP_METHOD_OPTIONS   "OPTIONS"
-#define SOUP_METHOD_PUT       "PUT"
-#define SOUP_METHOD_MOVE      "MOVE"
-#define SOUP_METHOD_COPY      "COPY"
-#define SOUP_METHOD_DELETE    "DELETE"
-#define SOUP_METHOD_TRACE     "TRACE"
-#define SOUP_METHOD_CONNECT   "CONNECT"
-#define SOUP_METHOD_MKCOL     "MKCOL"
-#define SOUP_METHOD_PROPPATCH "PROPPATCH"
-#define SOUP_METHOD_PROPFIND  "PROPFIND"
-#define SOUP_METHOD_SEARCH    "SEARCH"
 
 typedef struct _SoupMessage        SoupMessage;
 typedef struct _SoupMessagePrivate SoupMessagePrivate;
