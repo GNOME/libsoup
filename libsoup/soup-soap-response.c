@@ -3,6 +3,7 @@
  * Copyright (C) 2003, Novell, Inc.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <libxml/tree.h>
 #include "soup-misc.h"
@@ -238,6 +239,17 @@ soup_soap_parameter_get_name (SoupSoapParameter *param)
 	g_return_val_if_fail (param != NULL, NULL);
 
 	return (const char *) param->name;
+}
+
+/**
+ * soup_soap_parameter_get_int_value:
+ */
+int
+soup_soap_parameter_get_int_value (SoupSoapParameter *param)
+{
+	g_return_val_if_fail (param != NULL, NULL);
+
+	return atoi (xmlNodeGetContent (param));
 }
 
 /**
