@@ -1,5 +1,10 @@
 2004-07-08  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-soap-response.c: Revert previous change for now; it
+	breaks the build on distros with older libxmls.
+
+2004-07-08  Dan Winship  <danw@novell.com>
+
 	* tests/dict.c: Basic SOAP test, using Aonaware's SOAP->DICT
 	gateway
 
