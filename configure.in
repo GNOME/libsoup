@@ -113,6 +113,13 @@ AC_SUBST(POPT_LIBS)
 CPPFLAGS=$save_CPPFLAGS
 LIBS=$save_LIBS
 
+# For proper var substitution in soupConf.sh
+SOUP_LIBDIR='-L${libdir}'
+SOUP_INCLUDEDIR=" -I${includedir} $GNET_CFLAGS $XML_CFLAGS"
+SOUP_LIBS="-lsoup $GNET_LIBS $XML_LIBS"
+AC_SUBST(SOUP_LIBDIR)
+AC_SUBST(SOUP_INCLUDEDIR)
+AC_SUBST(SOUP_LIBS)
 
 # Need in.h and tcp.h for setting of TCP_NODELAY
 AC_CHECK_HEADERS(netinet/in.h netinet/tcp.h)
@@ -222,7 +229,6 @@ AC_OUTPUT([
 	soup-config
 	soup.pc
 	soup.spec
-	soupConf.sh
 	Makefile
 	src/Makefile
 	src/soup-core/Makefile
