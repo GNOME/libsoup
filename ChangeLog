@@ -1,3 +1,25 @@
+2001-05-15  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-stubs.c: replace all SoupFault
+	parameter with SoupEnv, and remove "GHashTable request_headers"
+	from list of parameters in server callbacks, because before
+	calling those callbacks, the stubs take care of adding the
+	SoupMessage's request headers to the SoupEnv being passed
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c
+	(wsdl_soap_parse): replace SoupFault with the new
+	SoupEnv parameter
+	(wsdl_soap_headers): new internal function to parse all
+	the headers in the SOAP message and add them to the SoupEnv
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c
+	(wsdl_soap_marshal): don't access directly SoupFault
+	struct members.
+	Replace SoupFault parameter with the new SoupEnv
+	* src/soup-core/soup-env.c
+	(soup_env_get_request_header_list): new function
+	(soup_env_get_response_header_list): new function
+	(soup_env_set_fault): new function to associate a SoupFault
+	with a SoupEnv
+
 2001-05-13  Rodrigo Moya <rodrigo@ximian.com>
 
 	* src/soup-core/soup-fault.[ch]: made the SoupFault structure
