@@ -1,5 +1,9 @@
 2001-09-27  Alex Graveley  <alex@ximian.com>
 
+	* build/libsoup.def: Update for new exports.
+
+2001-09-27  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-dav-server.h: Fix constness for get_dav_prop
 	and get_custom_prop.
 
