@@ -1,3 +1,51 @@
+2001-05-16  Dick Porter  <dick@ximian.com>
+
+	* tests/test-wsdl-runtime.c: Bring up-to-date with new API, and
+	test typecode freeing too.
+
+	* tests/stockquote2-server.c: 
+	* tests/stockquote2-client.c: Bring up-to-date with new API
+
+	* src/soup-wsdl-runtime/wsdl-soap-memory.c: New file of functions
+	to zero or free a set of types.
+
+	* src/soup-wsdl-runtime/wsdl-typecodes.c
+	(wsdl_typecode_param_type): Handle adding '*' to certain types
+	when written as parameters.
+
+	* src/soup-wsdl-runtime/wsdl-typecodes-c.c: Add pointers to memory
+	free functions to typecode structs.
+	New functions to write those memory free functions.
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c
+	(wsdl_soap_set_struct_param): Allocate memory for structs
+	(wsdl_soap_parse): Use the new function in wsdl-soap-memory.c to
+	zero the parameters.
+
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c
+	(wsdl_soap_marshal_struct_param): Structs are now passed as
+	pointers, so need to add extra indirection here.
+	(wsdl_soap_marshal_param): Make sure we dont try to marshal NULL
+	pointers
+
+	* src/soup-wsdl/wsdl-soap-skels.c
+	(wsdl_emit_soap_skels_binding_operation): Zero output args before
+	calling the callback, and free any memory used by them after
+	sending the response.
+
+	* src/soup-wsdl/wsdl-soap-headers.c
+	(wsdl_emit_soap_headers_binding_operation): Server callback now
+	returns 'void'
+	(wsdl_emit_soap_header_mm): Write memory-management function
+	prototypes
+
+	* src/soup-wsdl/wsdl-soap-emit.c (wsdl_emit_part): Use new
+	parameter-passing API
+
+	* src/soup-wsdl/wsdl-soap-common.c (wsdl_emit_soap_common_mm):
+	Cause memory-management routines to be written for all
+	user-defined types
+
 2001-05-15  JP Rosevear  <jpr@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-skels.c
