@@ -76,6 +76,8 @@ io_cleanup (SoupMessage *msg)
 	if (!io)
 		return;
 
+	soup_message_io_stop (msg);
+
 	if (io->sock)
 		g_object_unref (io->sock);
 
@@ -123,7 +125,6 @@ static void
 soup_message_io_finished (SoupMessage *msg)
 {
 	g_object_ref (msg);
-	soup_message_io_stop (msg);
 	io_cleanup (msg);
 	if (SOUP_MESSAGE_IS_STARTING (msg))
 		soup_message_restarted (msg);

@@ -1,5 +1,13 @@
 2004-02-03  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-message-io.c (io_cleanup): Call
+	soup_message_io_stop so we don't get a callback on the io after
+	it's been cleaned up.
+
+	* libsoup/soup-session.c (add_auth): Only remove the Authorization
+	header if we have another one to add. (Otherwise it messes up
+	SoupConnectionNTLM.)
+
 	* libsoup/soup-socket.c (read_from_buf): Use memmove rather than
 	memcpy here, since the source and destination will overlap if
 	*nread is small and read_buf->len is large. (Noticed by valgrind,

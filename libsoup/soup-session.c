@@ -800,8 +800,6 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	SoupAuth *auth;
 	char *token;
 
-	soup_message_remove_header (msg->request_headers, header);
-
 	auth = lookup_auth (session, msg, proxy);
 	if (!auth)
 		return;
@@ -811,6 +809,7 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 
 	token = soup_auth_get_authorization (auth, msg);
 	if (token) {
+		soup_message_remove_header (msg->request_headers, header);
 		soup_message_add_header (msg->request_headers, header, token);
 		g_free (token);
 	}
