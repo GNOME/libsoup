@@ -4,6 +4,7 @@
 	(one that pruned too little, one that pruned too much).
 	(queue_message): When requeuing, don't run the queue;
 	final_finished will take care of that later.
+	(soup_session_abort): New, to cancel all pending requests.
 
 	* libsoup/soup-socket.c (soup_socket_connect, got_address): ref
 	the socket while waiting for the address to resolve

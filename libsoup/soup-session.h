@@ -56,7 +56,9 @@ void            soup_session_requeue_message  (SoupSession           *session,
 					       SoupMessage           *req);
 
 guint           soup_session_send_message     (SoupSession           *session,
-					       SoupMessage            *req);
+					       SoupMessage           *req);
+
+void            soup_session_abort            (SoupSession           *session);
 
 
 #endif /* SOUP_SESSION_H */

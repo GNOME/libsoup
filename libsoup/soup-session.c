@@ -96,19 +96,21 @@ init (GObject *object)
 }
 
 static void
+dispose (GObject *object)
+{
+	SoupSession *session = SOUP_SESSION (object);
+
+	soup_session_abort (session);
+
+	G_OBJECT_CLASS (parent_class)->dispose (object);
+}
+
+static void
 finalize (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
-	SoupMessageQueueIter iter;
-	SoupMessage *msg;
 
-	for (msg = soup_message_queue_first (session->priv->queue, &iter); msg;
-	     msg = soup_message_queue_next (session->priv->queue, &iter)) {
-		soup_message_queue_remove (session->priv->queue, &iter);
-		soup_message_cancel (msg);
-	}
 	soup_message_queue_destroy (session->priv->queue);
-
 	g_free (session->priv);
 
 	G_OBJECT_CLASS (parent_class)->finalize (object);
@@ -120,6 +122,7 @@ class_init (GObjectClass *object_class)
 	parent_class = g_type_class_ref (PARENT_TYPE);
 
 	/* virtual method override */
+	object_class->dispose = dispose;
 	object_class->finalize = finalize;
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
@@ -922,4 +925,22 @@ soup_session_send_message (SoupSession *session, SoupMessage *req)
 	}
 
 	return req->status_code;
+}
+
+/**
+ * soup_session_abort:
+ * @session: the session
+ *
+ * Cancels all pending requests in @session.
+ **/
+void
+soup_session_abort (SoupSession *session)
+{
+	SoupMessageQueueIter iter;
+	SoupMessage *msg;
+
+	for (msg = soup_message_queue_first (session->priv->queue, &iter); msg; msg = soup_message_queue_next (session->priv->queue, &iter)) {
+		soup_message_queue_remove (session->priv->queue, &iter);
+		soup_message_cancel (msg);
+	}
 }
