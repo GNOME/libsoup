@@ -197,8 +197,8 @@ read_headers_cb (const GString        *headers,
 
 	if (!ctx) goto THROW_MALFORMED_HEADER;
 
-	soup_context_unref (msg->context);
-	msg->context = ctx;
+	soup_message_set_context (msg, ctx);
+	soup_context_unref (ctx);
 
 	g_free (req_path);
 

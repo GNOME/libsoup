@@ -275,7 +275,7 @@ soup_uri_copy (const SoupUri* uri)
 void
 soup_uri_free (SoupUri *uri)
 {
-	g_assert (uri);
+	g_return_if_fail (uri != NULL);
 
 	g_free (uri->user);
 	g_free (uri->authmech);
@@ -286,6 +286,23 @@ soup_uri_free (SoupUri *uri)
 	g_strfreev (uri->query_elems);
 
 	g_free (uri);
+}
+
+void
+soup_uri_set_auth  (SoupUri       *uri, 
+		    const gchar   *user, 
+		    const gchar   *passwd, 
+		    const gchar   *authmech)
+{
+	g_return_if_fail (uri != NULL);
+
+	g_free (uri->user);
+	g_free (uri->passwd);
+	g_free (uri->authmech);
+
+	uri->user = g_strdup (user);
+	uri->passwd = g_strdup (passwd);
+	uri->authmech = g_strdup (authmech);
 }
 
 void

@@ -576,7 +576,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (new_loc) {
 		const SoupUri *old_uri;
 		SoupUri *new_uri;
-		SoupContext *new_ctx, *old_ctx;
+		SoupContext *new_ctx;
 
 		old_uri = soup_context_get_uri (msg->context);
 
@@ -587,11 +587,11 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		/* 
 		 * Copy auth info from original URI.
 		 */
-		if (old_uri->user && !new_uri->user) {
-			new_uri->user = g_strdup (old_uri->user);
-			new_uri->passwd = g_strdup (old_uri->passwd);
-			new_uri->authmech = g_strdup (old_uri->authmech);
-		}
+		if (old_uri->user && !new_uri->user)
+			soup_uri_set_auth (new_uri,
+					   old_uri->user, 
+					   old_uri->passwd, 
+					   old_uri->authmech);
 
 		new_ctx = soup_context_from_uri (new_uri);
 
@@ -600,10 +600,8 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		if (!new_ctx)
 			goto INVALID_REDIRECT;
 
-		old_ctx = msg->context;
-		msg->context = new_ctx;
-
-		soup_context_unref (old_ctx);
+		soup_message_set_context (msg, new_ctx);
+		soup_context_unref (new_ctx);
 
 		soup_message_queue (msg,
 				    msg->priv->callback, 
@@ -921,6 +919,22 @@ soup_message_set_http_version  (SoupMessage *msg, SoupHttpVersion version)
 	g_return_if_fail (msg != NULL);
 
 	msg->priv->http_version = version;
+}
+
+void
+soup_message_set_context (SoupMessage       *msg,
+			  SoupContext       *new_ctx)
+{
+	soup_context_unref (msg->context);
+	msg->context = new_ctx;
+	soup_context_ref (new_ctx);
+}
+
+SoupContext *
+soup_message_get_context (SoupMessage       *msg)
+{
+	soup_context_ref (msg->context);
+	return msg->context;
 }
 
 void

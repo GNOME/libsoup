@@ -126,6 +126,11 @@ typedef enum {
 void           soup_message_set_http_version    (SoupMessage       *msg,
 						 SoupHttpVersion    version);
 
+void           soup_message_set_context         (SoupMessage       *msg,
+						 SoupContext       *new_ctx);
+
+SoupContext   *soup_message_get_context         (SoupMessage       *msg);
+
 typedef enum {
 	/*
 	 * SOUP_MESSAGE_NO_PIPELINE: 

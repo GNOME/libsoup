@@ -52,12 +52,18 @@ typedef struct {
 	gchar             **query_elems;
 } SoupUri;
 
-SoupUri *soup_uri_new       (const gchar *uri_string);
+SoupUri *soup_uri_new       (const gchar   *uri_string);
 
-gchar   *soup_uri_to_string (const SoupUri *uri, gboolean show_password);
+gchar   *soup_uri_to_string (const SoupUri *uri, 
+			     gboolean       show_password);
 
 SoupUri *soup_uri_copy      (const SoupUri *uri);
 
-void     soup_uri_free      (SoupUri *uri);
+void     soup_uri_free      (SoupUri       *uri);
+
+void     soup_uri_set_auth  (SoupUri       *uri, 
+			     const gchar   *user, 
+			     const gchar   *passwd, 
+			     const gchar   *authmech);
 
 #endif /*SOUP_URI_H*/

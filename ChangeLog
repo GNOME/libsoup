@@ -1,3 +1,18 @@
+2001-10-26  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (redirect_handler): Use
+	soup_uri_set_auth().
+
+	* src/libsoup/soup-uri.c (soup_uri_free): Don't use g_assert.
+	(soup_uri_set_auth): Impl.
+
+	* src/libsoup/soup-server.c (read_headers_cb): Use
+	soup_message_set_context().
+
+	* src/libsoup/soup-message.c (soup_message_set_context): Impl.
+	(soup_message_get_context): Impl.
+	(redirect_handler): Use soup_message_set_context().
+
 2001-10-25  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-message.c (redirect_handler): Handle redirects
