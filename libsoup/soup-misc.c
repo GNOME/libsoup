@@ -93,11 +93,10 @@ const char base64_alphabet[65] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 gchar *
-soup_base64_encode (gchar *text)
+soup_base64_encode (const gchar *text, gint inlen)
 {
 	char *buffer = NULL;
 	char *point = NULL;
-	int inlen = 0;
 	int outlen = 0;
 
 	/* check our args */
@@ -107,7 +106,6 @@ soup_base64_encode (gchar *text)
 	/* Use 'buffer' to store the output. Work out how big it should be...
 	 * This must be a multiple of 4 bytes */
   
-	inlen = strlen (text);
 	/* check our arg...avoid a pesky FPE */
 	if (inlen == 0) {
 		buffer = g_malloc (sizeof(char));

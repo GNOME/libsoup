@@ -328,8 +328,8 @@ soup_encode_http_auth (SoupUri *uri, GString *header, gboolean proxy_auth)
 {
 	if (!uri->authmech) {
 		gchar *authpass, *encoded;
-		authpass = g_strconcat (uri->user, ":", uri->passwd);
-		encoded = soup_base64_encode (authpass);
+		authpass = g_strconcat (uri->user, ":", uri->passwd, NULL);
+		encoded = soup_base64_encode (authpass, strlen (authpass));
 		g_string_sprintfa (header,
 				   "%s: Basic %s\r\n",
 				   proxy_auth ? 

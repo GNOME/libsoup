@@ -97,7 +97,8 @@ gint               soup_substring_index        (gchar         *str,
 						gint           len, 
 						gchar         *substr);
 
-gchar             *soup_base64_encode          (gchar         *text);
+gchar             *soup_base64_encode          (const gchar   *text,
+						gint           len);
 
 #ifdef __cplusplus
 }

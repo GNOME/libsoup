@@ -15,12 +15,12 @@
 extern "C" {
 #endif
 
-#include "soup-queue.h"
-#include "soup-context.h"
-#include "soup-message.h"
-#include "soup-uri.h"
-#include "soup-misc.h"
-#include "soup-serializer.h"
+#include <soup/soup-queue.h>
+#include <soup/soup-context.h>
+#include <soup/soup-message.h>
+#include <soup/soup-uri.h>
+#include <soup/soup-misc.h>
+#include <soup/soup-serializer.h>
 
 #ifdef __cplusplus
 }
