@@ -231,7 +231,7 @@ if test "$enable_ssl" != "no"; then
 		libgpg_error_libs="$GPG_ERROR_LIBS"
 	fi
 
-	if "$enable_static_ssl" == "yes"; then
+	if test "$enable_static_ssl" == "yes"; then
 		gnutls_libdir=`$LIBGNUTLS_CONFIG --exec-prefix`/lib
 		GNUTLS_LIBS="$gnutls_libdir/libgnutls.a $gnutls_libdir/libgcrypt.a $libgpg_error_libs_static"
 	fi
