@@ -1,5 +1,21 @@
 2001-03-13  JP Rosevear  <jpr@ximian.com>
 
+	* src/soup-core/soup-queue.c (soup_get_request_header): don't
+	escape the SoapAction header, this makes things work on the server
+	side but need to check if this breaks the spec
+
+	* src/soup-core/soup-message.c (soup_message_free): don't try to
+	free the request body twice
+
+	* src/soup-core/soup-apache.c (soup_apache_message_create): The
+	buffer is user owned. Use ap_contruct_url since the uri function
+	did not include happy things like hostname - will this get the
+	password properly though?
+	(soup_apache_read_request): don't adjust read_left twice
+	(soup_apache_handler): log some stuff to the apache log
+
+2001-03-13  JP Rosevear  <jpr@ximian.com>
+
 	* configure.in: don't chmod the files.  soup-config become
 	executable on install by bin_SCRIPTS and *Conf.sh never need to be
 	executable, fix my apache cflags blunder

@@ -83,8 +83,6 @@ soup_message_free (SoupMessage *req)
 
 	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->request.body);
-	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (req->response.body);
 
 	if (req->priv->req_header) 
 		g_string_free (req->priv->req_header, TRUE);
