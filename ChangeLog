@@ -1,3 +1,8 @@
+2001-10-31  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Fix the popt check so you can pass CPPFLAGS and
+	LDFLAGS in in the environment.
+
 2001-10-30  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-auth.c (soup_auth_set_context): Remove the
