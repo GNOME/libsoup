@@ -452,10 +452,14 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 	 *        error_cb isn't being called and we get no error from
 	 *        g_io_channel_read(). 
 	 */
-	if (r->header_len == 0 && total_read == 0) {
-		soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
-		return FALSE;
-	}
+	/*
+	 * Update, Joe, 2/28/2003: Looks like we'll get this after a SIGPIPE.
+	 * Instead of erroring out and probably messing with freed data,
+	 * cancel out.
+	 */
+
+	if (r->header_len == 0 && total_read == 0)
+		goto FINISH_READ;
 
 	if (r->header_len == 0) {
 		gint index;
