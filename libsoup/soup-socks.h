@@ -3,9 +3,9 @@
  * soup-socks.h: Asyncronous Callback-based HTTP Request Queue.
  *
  * Authors:
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2000-2002, Ximian, Inc.
  */
 
 #ifndef SOUP_SOCKS_H

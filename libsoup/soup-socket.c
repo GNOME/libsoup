@@ -9,7 +9,7 @@
  * Original code compliments of David Helder's GNET Networking Library, and is
  * Copyright (C) 2000  David Helder & Andrew Lanoix.
  *
- * All else Copyright (C) 2000, Ximian, Inc.
+ * All else Copyright (C) 2000-2002, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H

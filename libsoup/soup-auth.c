@@ -7,7 +7,7 @@
  *      Jeffrey Steadfast (fejj@ximian.com)
  *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2001, Ximian, Inc.
+ * Copyright (C) 2001-2002, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H

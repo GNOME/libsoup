@@ -7,7 +7,7 @@
  *
  * Public domain DES implementation from Phil Karn.
  *
- * All else Copyright (C) 2001, Ximian, Inc.
+ * All else Copyright (C) 2001-2002, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H

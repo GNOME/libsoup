@@ -5,7 +5,7 @@
  * Authors:
  *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2001, Ximian, Inc.
+ * Copyright (C) 2001-2002, Ximian, Inc.
  */
 
 #include <string.h>

@@ -1,9 +1,14 @@
-2002-12-15  Frank Belew  <frb@ximian.com>
+2002-11-15  Dan Winship  <danw@ximian.com>
+
+	* libsoup/*: Change old Helix Code refs to Ximian (and update
+	copyright dates).
+
+2002-11-15  Frank Belew  <frb@ximian.com>
 
 	* tests/Makefile.am: uncomment lines to make timeserver build 
 	correctly
 	
-2002-12-14  Joe Shaw  <joe@ximian.com>
+2002-11-14  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-address.c (soup_address_new): When we get an
 	address from the hash, call our address lookup callback or else
@@ -15,7 +20,7 @@
 
 	* tests/Makefile.am (noinst_PROGRAMS): reenable timeserver.
 
-2002-12-13  Joe Shaw  <joe@ximian.com>
+2002-11-13  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/Makefile.am: Replace the BINDIR define with LIBEXECDIR.
 	(install-exec-hook): Install libsoup-ssl-proxy into libexecdir

@@ -4,11 +4,11 @@
  *
  * Authors:
  *      David Helder  (dhelder@umich.edu)
- *      Alex Graveley (alex@helixcode.com)
+ *      Alex Graveley (alex@ximian.com)
  * 
  * Original code compliments of David Helder's GNET Networking Library.
  *
- * Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2000-2002, Ximian, Inc.
  */
 
 #ifndef SOUP_SOCKET_H

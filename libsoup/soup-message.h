@@ -5,7 +5,7 @@
  * Authors:
  *      Alex Graveley (alex@ximian.com)
  *
- * Copyright (C) 2000, Ximian, Inc.
+ * Copyright (C) 2000-2002, Ximian, Inc.
  */
 
 #ifndef SOUP_MESSAGE_H
