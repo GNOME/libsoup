@@ -5,7 +5,7 @@ TODO:
 
 * Support M-POST
 
-* Document
+* Documentation
 
 * Tutorial Documentation
 
@@ -15,13 +15,9 @@ TODO:
 
 * Use gconf for config data
 
-* Make SoupMessage a generic HTTP engine (basically just make method settable).
+* Handle gzip encoded responses, requests
 
-* handle gzip encoded responses, requests
-
-* MS Challenge/Response support
-
-* Server digest authentication
+* Server Digest and NTLM authentication
 
 * UDDI support
 
@@ -32,6 +28,8 @@ TODO:
 * SOAP Routing Protocol serializer wrappers
 
 * Simple POP and SMTP engine.
+
+* libcamel integration for POP or IMAP
 
 * Handle SOAP Attachments in HTTP and SMTP (use gmime)
 
