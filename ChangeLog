@@ -1,3 +1,16 @@
+2001-09-11  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-dav-server.c (dav_proppatch): Rewrite to
+	correctly handle rollback and propstat result.  Fill in missing
+	response errors throughout.
+
+2001-09-11  Alex Graveley  <alex@ximian.com>
+
+	* tests/filesys-server.c: Initial commit of DAV test server which
+	allows manipulation of the filesystem through Web-DAV.
+
+	* tests/Makefile.am (noinst_PROGRAMS): Add filesys-server.
+
 2001-09-10  Alex Graveley  <alex@ximian.com>
 
 	* tests/mod-server-test.sh: Rename from mod-server-test to be
