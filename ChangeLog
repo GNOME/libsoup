@@ -1,5 +1,9 @@
 2003-12-22  Dan Winship  <danw@ximian.com>
 
+	* README, TODO: Update these
+
+2003-12-22  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-socket.c: Lots of thread-safety stuff, primarly so
 	you can disconnect a socket from one thread while doing I/O in
 	another.

@@ -1,36 +1,50 @@
 TODO:
 ====
 
-* Thread safety
+* Thread safety (started)
 
-* Support M-POST
+* Documentation (API, tutorial)
 
-* Documentation
+* Use gconf for config data (especially proxy info)
 
-* Tutorial Documentation
+* Bring back WSDL compiler from old soup module?
 
-* Simple Soap Example clients and servers (time, updates, terraserver, ...)
+* Bring back SOCKS support?
 
-* Auto-detect SOCKS version
+* Bring back CGI server support? (Split SoupServer into SoupServerTCP
+  and SoupServerCGI)
 
-* Use gconf for config data
+* Handle gzip Content-Encoding
 
-* Handle gzip transfer encoding
+* Add a SoupMessageFilter implementation to handle cookies (RFC 2965)
 
-* UDDI support
+* Add a SoupMessageFilter implementation to handle caching (rcd has
+  some of the logic for this already).
 
-* Disco support
+* More regression tests
 
-* DIME support
+* Add apache config files to tests/ so that apache can be run locally
+  to run regression tests against
 
-* SOAP Routing Protocol serializer wrappers
+* Merge soup-server-auth.c with the client auth implementation.
+  Likewise, make soup-server-message.c less of a hack.
 
-* Simple POP and SMTP engine.
+* User-Agent handling: caller should specify a User-Agent string to
+  SoupSession, and soup should automatically append libsoup/#.## to
+  that. (Likewise for Server/Via headers.)
 
-* libcamel integration for POP or IMAP
+* Explicit range support (?)
 
-* Handle SOAP Attachments in HTTP and SMTP (use gmime)
+* NTLM Proxy-Authentication support, GSS-Negotiate support
 
-* C++ wrapper
+* Pipelining
 
-* GTK or Bonobo object generation
+
+Known bugs:
+==========
+
+* Digest auth does not support qop="auth-int" (both client and server)
+
+* Trailers in chunked responses are not handled
+
+* simple-proxy is not very RFC compliant
