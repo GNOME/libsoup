@@ -1,3 +1,21 @@
+2001-11-12  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (start_request): Impl.  Move request
+	sending code here from soup_queue_connect_cb.
+	(proxy_https_connect): Impl.  Send intermediate CONNECT request to
+	proxy for SSL connections.  If successful, convert connection to
+	SSL.
+	(soup_queue_connect_cb): Call proxy_https_connect if we are using
+	a proxy and the destination is SSL.  Call start_request.
+	(soup_idle_handle_new_requests): If request already has a
+	connection, just call start_request.
+	(soup_get_request_header): Special case URI is hostname:port for
+	CONNECT requests.
+	(soup_queue_read_headers_cb): Special case connection persistence
+	for CONNECT requests: if message is successful, assume valid
+	connection.  Special case body handling for CONNECT requests:
+	assume zero length body.
+
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
 	* configure.in: Version 0.6.0.
