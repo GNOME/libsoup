@@ -79,7 +79,7 @@ soup_openssl_write (GIOChannel   *channel,
 	if (result < 0) {
 		*bytes_written = 0;
 		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
-			return G_IO_ERROR_AGAIN;
+		  	return G_IO_ERROR_AGAIN;
 		switch (errno) {
 		case EINVAL:
 			return G_IO_ERROR_INVAL;
@@ -118,10 +118,6 @@ soup_openssl_free (GIOChannel   *channel)
 	g_free (chan);
 }
 
-#if 0
-
-/* Commented out until we can figure out why SSL_pending always fails */
-
 typedef struct {
 	GIOFunc         func;
 	gpointer        user_data;
@@ -136,11 +132,12 @@ soup_openssl_read_cb (GIOChannel   *channel,
 	SoupOpenSSLReadData *data = user_data;
 
 	if (condition & G_IO_IN) {
-		if (SSL_pending (chan->ssl) && 
-		    !(*data->func) (channel, condition, data->user_data)) {
-			g_free (data);
-			return FALSE;
-		}
+		do {
+			if (!(*data->func) (channel, condition, data->user_data)) {
+				g_free (data);
+				return FALSE;
+			}
+		} while (SSL_pending (chan->ssl));
 		return TRUE;
 	} else return (*data->func) (channel, condition, data->user_data);
 }
@@ -172,25 +169,6 @@ soup_openssl_add_watch (GIOChannel     *channel,
 							    func,
 							    user_data,
 							    notify);
-}
-
-#endif /* 0 */
-
-static guint
-soup_openssl_add_watch (GIOChannel     *channel,
-			gint            priority,
-			GIOCondition    condition,
-			GIOFunc         func,
-			gpointer        user_data,
-			GDestroyNotify  notify)
-{
-	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
-	return chan->real_sock->funcs->io_add_watch (channel, 
-						     priority, 
-						     condition,
-						     func,
-						     user_data,
-						     notify);
 }
 
 GIOFuncs soup_openssl_channel_funcs = {
@@ -307,11 +285,27 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 		goto THROW_CREATE_ERROR;
 	}
 
-	SSL_connect (ssl);
-	if (err == 0) {
-		g_warning ("Secure connection could not be established.");
-		goto THROW_CREATE_ERROR;
-	}
+	do {
+		fd_set ssl_fdset;
+
+		err = SSL_connect (ssl);
+		err = SSL_get_error (ssl, err);
+
+		if (err == SSL_ERROR_WANT_READ) {
+			FD_ZERO (&ssl_fdset);
+			FD_SET (sockfd, &ssl_fdset);
+			select (sockfd + 1, &ssl_fdset, NULL, NULL, NULL);
+		}
+		else if (err == SSL_ERROR_WANT_WRITE) {
+			FD_ZERO (&ssl_fdset);
+			FD_SET (sockfd, &ssl_fdset);
+			select (sockfd + 1, NULL, &ssl_fdset, NULL, NULL);
+		}
+		else if (err != SSL_ERROR_NONE) {
+			g_warning ("Could not establish secure connection.");
+			goto THROW_CREATE_ERROR;
+		}
+	} while (err != SSL_ERROR_NONE);
 
 	bits = SSL_get_cipher_bits (ssl, &alg_bits);
 	if (bits == 0) {

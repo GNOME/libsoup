@@ -164,16 +164,18 @@ main (int argc, char** argv)
 	read_chan = g_io_channel_unix_new (STDIN_FILENO);
 	write_chan = g_io_channel_unix_new (STDOUT_FILENO);
 
-	/* Block on socket write */
+	/* We use select. All fds should block. */
 	flags = fcntl(sockfd, F_GETFL, 0);
 	fcntl (sockfd, F_SETFL, flags & ~O_NONBLOCK);
-
-	/* Don't block on STDIN read */
 	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl (STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+	fcntl (STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+	flags = fcntl(STDOUT_FILENO, F_GETFL, 0);
+	fcntl (STDOUT_FILENO, F_SETFL, flags & ~O_NONBLOCK);
 
 	sock_chan = g_io_channel_unix_new (sockfd);
 	sock_chan = soup_ssl_proxy_get_iochannel (sock_chan);
+	if (!sock_chan)
+		g_error ("Unable to establish SSL connection");
 
 	g_io_add_watch (read_chan, 
 			G_IO_IN | G_IO_HUP | G_IO_ERR, 
