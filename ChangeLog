@@ -1,3 +1,9 @@
+2003-03-31  Ian Peters  <itp@ximian.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_close): loop on gnutls_bye in
+	case of EAGAIN or EINTR, since shutting down an SSL connection
+	requires more than just closing a socket.
+
 2003-03-28  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message.c (soup_message_set_context): If the new
