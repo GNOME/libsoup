@@ -1,3 +1,9 @@
+2002-03-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libwsdl/wsdl-soap-parse.c (wsdl_soap_headers): Use
+	soup_env_add_recv_header to add the new header to the incoming
+	headers.
+
 2002-03-12  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_get_iochannel):
