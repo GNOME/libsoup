@@ -770,7 +770,6 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	SoupAuth *auth, *old_auth;
 	SoupContext *ctx;
 	const SoupUri *uri;
-	gboolean use_cached = FALSE;
 
 	ctx = proxy ? soup_get_proxy () : msg->context;
 	uri = soup_context_get_uri (ctx);
@@ -785,9 +784,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 	if (auth) {
 		g_assert (auth->status != SOUP_AUTH_STATUS_INVALID);
 
-		if (auth->status == SOUP_AUTH_STATUS_FAILED)
-			goto THROW_CANT_AUTHENTICATE;
-		else if (auth->status == SOUP_AUTH_STATUS_PENDING) {
+		if (auth->status == SOUP_AUTH_STATUS_PENDING) {
 			if (auth->controlling_msg == msg) {
 				auth->status = SOUP_AUTH_STATUS_FAILED;
 				goto THROW_CANT_AUTHENTICATE;
@@ -797,12 +794,20 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 				return;
 			}
 		}
-		else {
+		else if (auth->status == SOUP_AUTH_STATUS_FAILED ||
+			 auth->status == SOUP_AUTH_STATUS_SUCCESSFUL) {
 			/*
-			 * FIXME: Check to make sure the old one isn't
-			 * invalidated?
+			 * We've failed previously, but we'll give it
+			 * another go, or we've been successful
+			 * previously, but it's not working anymore.
+			 *
+			 * Invalidate the auth, so it's removed from the
+			 * hash and try it again as if we never had it
+			 * in the first place.
 			 */
-			use_cached = TRUE;
+			soup_auth_invalidate (auth, ctx);
+			soup_message_requeue (msg);
+			return;
 		}
 	}
 
@@ -841,13 +846,11 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 		goto THROW_CANT_AUTHENTICATE;
 	}
 
-	if (!use_cached) {
-		/*
-		 * Initialize with auth data (possibly returned from 
-		 * auth callback).
-		 */
-		soup_auth_initialize (auth, uri);
-	}
+	/*
+	 * Initialize with auth data (possibly returned from 
+	 * auth callback).
+	 */
+	soup_auth_initialize (auth, uri);
 
 	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
 		if (old_auth) 

@@ -1,3 +1,14 @@
+2002-07-23  Joe Shaw  <joe@ximian.com>
+
+	* soup-auth.c (soup_auth_invalidate): Added.  Removes the SoupAuth
+	structure from the list of valid auths.
+
+	* soup-message.c (authorize_handler): Change the logic around when
+	dealing with cached SoupAuths.  If we previously were in the
+	FAILED state, we might as well invalidate the old one and try it
+	again.  If we were in the SUCCESSFUL state, then something went
+	wrong and we need to invalidate and start over again anyway.
+
 2002-07-16  Joe Shaw  <joe@ximian.com>
 
 	* src/libsoup/soup-auth.h: Add some state to the SoupAuth

@@ -622,6 +622,33 @@ soup_auth_lookup (SoupContext  *ctx)
 }
 
 void
+soup_auth_invalidate (SoupAuth *auth, SoupContext *ctx)
+{
+	SoupHost *server;
+	const SoupUri *uri;
+	SoupAuth *old_auth;
+	char *old_path;
+
+	g_return_if_fail (ctx != NULL);
+	g_return_if_fail (auth != NULL);
+
+	server = ctx->server;
+
+	if (!server->valid_auths)
+		return;
+
+	uri = soup_context_get_uri (ctx);
+	if (g_hash_table_lookup_extended (server->valid_auths,
+					  uri->path,
+					  (gpointer *) &old_path,
+					  (gpointer *) &old_auth)) {
+		g_hash_table_remove (server->valid_auths, old_path);
+		g_free (old_path);
+		soup_auth_free (old_auth);
+	}
+}
+
+void
 soup_auth_set_context (SoupAuth *auth, SoupContext *ctx)
 {
 	SoupHost *server;
