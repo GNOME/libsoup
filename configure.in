@@ -1,0 +1,179 @@
+# Process this file with autoconf to produce a configure script.
+
+# This is almost a direct rip-off of Gnet's configure.in
+
+# Require autoconf 2.13
+AC_PREREQ(2.13)
+
+# Initialize autoconf
+AC_INIT(src/soup.h)
+
+
+# On making releases:
+#   SOUP_MICRO_VERSION += 1;
+#   SOUP_INTERFACE_AGE += 1;
+#   SOUP_BINARY_AGE += 1;
+# if any functions have been added, set SOUP_INTERFACE_AGE to 0.
+# if backwards compatibility has been broken,
+# set SOUP_BINARY_AGE _and_ SOUP_INTERFACE_AGE to 0.
+
+AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)
+SOUP_MAJOR_VERSION=0
+SOUP_MINOR_VERSION=1
+SOUP_MICRO_VERSION=5
+SOUP_INTERFACE_AGE=0
+SOUP_BINARY_AGE=0
+SOUP_VERSION=$SOUP_MAJOR_VERSION.$SOUP_MINOR_VERSION.$SOUP_MICRO_VERSION
+AC_DIVERT_POP()
+
+AC_SUBST(SOUP_MAJOR_VERSION)
+AC_SUBST(SOUP_MINOR_VERSION)
+AC_SUBST(SOUP_MICRO_VERSION)
+AC_SUBST(SOUP_VERSION)
+AC_SUBST(SOUP_INTERFACE_AGE)
+AC_SUBST(SOUP_BINARY_AGE)
+
+# libtool versioning
+LT_RELEASE=$SOUP_MAJOR_VERSION.$SOUP_MINOR_VERSION
+LT_CURRENT=`expr $SOUP_MICRO_VERSION - $SOUP_INTERFACE_AGE`
+LT_REVISION=$SOUP_INTERFACE_AGE
+LT_AGE=`expr $SOUP_BINARY_AGE - $SOUP_INTERFACE_AGE`
+AC_SUBST(LT_RELEASE)
+AC_SUBST(LT_CURRENT)
+AC_SUBST(LT_REVISION)
+AC_SUBST(LT_AGE)
+
+VERSION=$SOUP_VERSION
+PACKAGE=soup
+
+# Specify a configuration file
+AM_CONFIG_HEADER(config.h)
+
+# Define version stuff
+AC_DEFINE_UNQUOTED(SOUP_MAJOR_VERSION, $SOUP_MAJOR_VERSION)
+AC_DEFINE_UNQUOTED(SOUP_MINOR_VERSION, $SOUP_MINOR_VERSION)
+AC_DEFINE_UNQUOTED(SOUP_MICRO_VERSION, $SOUP_MICRO_VERSION)
+AC_DEFINE_UNQUOTED(SOUP_INTERFACE_AGE, $SOUP_INTERFACE_AGE)
+AC_DEFINE_UNQUOTED(SOUP_BINARY_AGE, $SOUP_BINARY_AGE)
+
+# Initialize automake
+AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
+
+# Initialize maintainer mode
+AM_MAINTAINER_MODE
+
+
+# ****************************************
+# Set debugging flags
+
+# Figure out debugging default, prior to $ac_help setup
+AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)dnl
+if test `expr $SOUP_MINOR_VERSION \% 2` = 1 ; then
+	debug_default=yes
+else
+	debug_default=minimum
+fi
+AC_DIVERT_POP()
+
+# Declare --enable-* args and collect ac_help strings
+AC_ARG_ENABLE(debug, [  --enable-debug=[no/minimum/yes] turn on debugging [default=$debug_default]],,enable_debug=$debug_default)
+
+# Set the debug flags
+AC_MSG_CHECKING(for --enable-debug)
+if test "x$enable_debug" = "xyes"; then
+  test "$cflags_set" = set || CFLAGS="$CFLAGS -g"
+  SOUP_DEBUG_FLAGS="-DG_ENABLE_DEBUG"
+  AC_MSG_RESULT(yes)
+else
+  if test "x$enable_debug" = "xno"; then
+    SOUP_DEBUG_FLAGS="-DG_DISABLE_ASSERT -DG_DISABLE_CHECKS"
+    AC_MSG_RESULT(no)
+  fi
+fi
+
+AC_SUBST(SOUP_DEBUG_FLAGS)
+
+
+# ****************************************
+# Check for programs
+
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_PROG_INSTALL
+
+# Use an many warnings as possible
+changequote(,)
+if test "x$GCC" = "xyes"; then
+  case " $CFLAGS " in
+  *[\ \	]-Wall[\ \	]*) ;;
+  *) CFLAGS="$CFLAGS -Wall" ;;
+  esac
+
+  if test "x$enable_ansi" = "xyes"; then
+    case " $CFLAGS " in
+    *[\ \	]-ansi[\ \	]*) ;;
+    *) CFLAGS="$CFLAGS -ansi" ;;
+    esac
+
+    case " $CFLAGS " in
+    *[\ \	]-pedantic[\ \	]*) ;;
+    *) CFLAGS="$CFLAGS -pedantic" ;;
+    esac
+  fi
+fi
+changequote([,])
+
+# Use reentrant functions
+CFLAGS="$CFLAGS -D_REENTRANT"
+
+# Set STDC_HEADERS
+AC_HEADER_STDC
+
+# Initialize libtool
+AM_PROG_LIBTOOL
+
+
+# ****************************************
+# Check for libraries
+
+# Need GLIB
+AM_PATH_GLIB(1.2.0,
+            [LIBS="$LIBS $GLIB_LIBS" CFLAGS="$CFLAGS $GLIB_CFLAGS"],
+            AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?))
+
+GLIB_CFLAGS=`glib-config --cflags glib`
+GLIB_LIBS=`glib-config --libs glib`
+
+AC_SUBST(GLIB_CFLAGS)
+AC_SUBST(GLIB_LIBS)
+
+
+# Need GNET
+AM_PATH_GNET(1.0.0,
+	     [LIBS="$LIBS $GNET_LIBS" CFLAGS="$CFLAGS $GNET_CFLAGS"],
+             AC_MSG_ERROR(Cannot find GNET: Is gnet-config in path?))
+
+GNET_CFLAGS=`gnet-config --cflags gnet`
+GNET_LIBS=`gnet-config --libs gnet`
+
+AC_SUBST(GNET_CFLAGS)
+AC_SUBST(GNET_LIBS)
+
+
+# Set PACKAGE_SOURCE_DIR in config.h.
+packagesrcdir=`cd $srcdir && pwd`
+AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")
+
+# If gcc is the compiler, compile with lots of warnings
+if test "x$GCC" = "xyes"; then
+	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations "
+fi
+
+#	doc/Makefile
+#	gnome-soup.spec
+
+AC_OUTPUT([
+	Makefile
+	src/Makefile
+])
+
