@@ -1,3 +1,13 @@
+2001-06-14  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-message.c (soup_message_set_flags): Remove
+	redirect handler if option is removed.
+	(soup_message_remove_handler): Added. Remove handler given
+	function and user_data. Should this be made public?
+	(soup_message_run_handlers): Remove g_warning. No checks are run
+	against body handlers.
+	(soup_message_cleanup): Zero cur_chunk_len and cur_chunk_idx.
+
 2001-06-13  Joe Shaw  <joe@ximian.com>
 
 	* src/soup-core/soup-socket.c (soup_address_new): If SOUP_SYNC_DNS is

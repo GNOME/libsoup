@@ -110,6 +110,8 @@ soup_message_cleanup (SoupMessage *req)
 	req->priv->header_len = 0;
 	req->priv->content_length = 0;
 	req->priv->is_chunked = FALSE;
+	req->priv->cur_chunk_len = 0;
+	req->priv->cur_chunk_idx = 0;
 
 	soup_active_requests = g_slist_remove (soup_active_requests, req);
 }
@@ -482,8 +484,7 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 		case RESPONSE_CODE_HANDLER:
 			if (msg->response_code != data->code) continue;
 			break;
-		default:
-			g_warning("Not implemented yet");
+		case RESPONSE_BODY_HANDLER:
 			break;
 		}
 
@@ -494,6 +495,30 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerType invoke_type)
 	}
 
 	return retval;
+}
+
+static void
+soup_message_remove_handler (SoupMessage   *msg, 
+			     SoupHandlerFn  handler_cb,
+			     gpointer       user_data)
+{
+	GSList *iter = msg->priv->content_handlers;
+
+	while (iter) {
+		SoupHandlerData *data = iter->data;
+
+		if (data->handler_cb == handler_cb &&
+		    data->user_data == user_data) {
+			msg->priv->content_handlers = 
+				g_slist_remove_link (
+					msg->priv->content_handlers,
+					iter);
+			g_free (data);
+			break;
+		}
+		
+		iter = iter->next;
+	}
 }
 
 static SoupErrorCode 
@@ -530,18 +555,33 @@ soup_message_redirect (SoupMessage *msg, gpointer user_data)
 	return SOUP_ERROR_NONE;
 }
 
+static inline gboolean
+ADDED_FLAG (SoupMessage *msg, guint newflags, SoupMessageFlags find)
+{
+	return ((newflags & find) && !(msg->priv->msg_flags & find));
+}
+
+static inline gboolean
+REMOVED_FLAG (SoupMessage *msg, guint newflags, SoupMessageFlags find)
+{
+	return (!(newflags & find) && (msg->priv->msg_flags & find));
+}
+
 void
 soup_message_set_flags (SoupMessage *msg, guint flags)
 {
 	g_return_if_fail (msg != NULL);
 
-	if ((flags & SOUP_MESSAGE_FOLLOW_REDIRECT) &&
-	    !(msg->priv->msg_flags & SOUP_MESSAGE_FOLLOW_REDIRECT))
+	if (ADDED_FLAG (msg, flags, SOUP_MESSAGE_FOLLOW_REDIRECT))
 		soup_message_add_header_handler (msg,
 						 "Location",
 						 SOUP_HANDLER_PRE_BODY,
 						 soup_message_redirect,
 						 NULL);
+	else if (REMOVED_FLAG (msg, flags, SOUP_MESSAGE_FOLLOW_REDIRECT))
+		soup_message_remove_handler (msg, 
+					     soup_message_redirect,
+					     NULL);
 
 	msg->priv->msg_flags = flags;
 }
