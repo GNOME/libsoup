@@ -1,5 +1,10 @@
 2001-11-02  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-ssl-proxy/soup-ssl-proxy.c: Remove NSS-related code, as
+	this is now moved to libsoup.
+
+2001-11-02  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-private.h: Rename killme to cached in _SoupAddress.
 
 	* src/libsoup/soup-socket-unix.c (soup_address_get_name_cb): Use

@@ -24,18 +24,13 @@
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-private.h>
 
-#ifdef HAVE_SECURITY_SSL_H
-#include "soup-nss.h"
-#endif
-
 #ifdef HAVE_OPENSSL_SSL_H
 #include "soup-openssl.h"
 #endif
 
 static gint ssl_library = 0; /* -1 = fail,
 				 0 = first time, 
-				 1 = nss, 
-				 2 = openssl */
+				 1 = openssl */
 static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
 
 static GMainLoop *loop;
@@ -49,13 +44,8 @@ soup_ssl_proxy_set_security_policy (SoupSecurityPolicy policy)
 	case -1:
 	case 0:
 		break;
-#ifdef HAVE_SECURITY_SSL_H
-	case 1:
-		soup_nss_set_security_policy (policy);
-		break;
-#endif
 #ifdef HAVE_OPENSSL_SSL_H
-	case 2:
+	case 1:
 		soup_openssl_set_security_policy (policy);
 		break;
 #endif
@@ -67,12 +57,8 @@ soup_ssl_proxy_init (void)
 {
 	ssl_library = -1;
 
-#ifdef HAVE_SECURITY_SSL_H
-	if (ssl_library == -1) ssl_library = soup_nss_init () ? 1 : -1;
-#endif
-
 #ifdef HAVE_OPENSSL_SSL_H
-	if (ssl_library == -1) ssl_library = soup_openssl_init () ? 2 : -1;
+	if (ssl_library == -1) ssl_library = soup_openssl_init () ? 1 : -1;
 #endif
 
 	if (ssl_library == -1) return;
@@ -91,12 +77,8 @@ soup_ssl_proxy_get_iochannel (GIOChannel *sock)
 	default:
 		soup_ssl_proxy_init ();
 		return soup_ssl_proxy_get_iochannel (sock);
-#ifdef HAVE_SECURITY_SSL_H
-	case 1:
-		return soup_nss_get_iochannel (sock);
-#endif
 #ifdef HAVE_OPENSSL_SSL_H
-	case 2:
+	case 1:
 		return soup_openssl_get_iochannel (sock);
 #endif
 	}
