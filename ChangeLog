@@ -1,5 +1,13 @@
 2001-08-29  Alex Graveley  <alex@ximian.com>
 
+	* build/soup_ssl_proxy.dsp: 
+	* build/soup_httpd.dsp: 
+	* build/libsoupwsdl.dsp: 
+	* build/libsoupapache.dsp: 
+	* build/libsoup.dsp: Update for new layout.
+
+2001-08-29  Alex Graveley  <alex@ximian.com>
+
 	* src/*/*.h: Fix headers for new layout.
 	* tests/*.c: Ditto.
 
