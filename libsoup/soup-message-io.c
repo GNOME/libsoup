@@ -18,21 +18,24 @@
 #include "soup-private.h"
 
 typedef struct {
-	guint                     idle_tag;
-	guint                     read_tag;
-	guint                     err_tag;
+	guint                      idle_tag;
+	guint                      read_tag;
+	guint                      err_tag;
 
-	GByteArray               *body_buf;
-	GByteArray               *meta_buf;
+	SoupDataBuffer            *body;
+	GByteArray                *body_buf;
+	GByteArray                *meta_buf;
 
-	SoupTransferEncoding      encoding;
-	guint                     read_length;
+	SoupTransferEncoding       encoding;
+	guint                      read_length;
 
-	SoupMessageReadHeadersFn  read_headers_cb;
-	SoupMessageReadChunkFn    read_chunk_cb;
-	SoupMessageReadBodyFn     read_body_cb;
-	SoupMessageReadErrorFn    error_cb;
-	gpointer                  user_data;
+	SoupMessageParseHeadersFn  parse_headers_cb;
+	gpointer                   user_data;
+
+	guint                      read_headers_id;
+	guint                      read_chunk_id;
+	guint                      read_body_id;
+	guint                      error_id;
 } SoupMessageReadState;
 
 /* Put these around callback invocation if there is code afterward
@@ -63,58 +66,97 @@ soup_message_read_cancel (SoupMessage *msg)
 	if (r->meta_buf)
 		g_byte_array_free (r->meta_buf, TRUE);
 
+	if (r->read_headers_id)
+		g_signal_handler_disconnect (msg, r->read_headers_id);
+	if (r->read_chunk_id)
+		g_signal_handler_disconnect (msg, r->read_chunk_id);
+	if (r->read_body_id)
+		g_signal_handler_disconnect (msg, r->read_body_id);
+	if (r->error_id)
+		g_signal_handler_disconnect (msg, r->error_id);
+
 	g_free (r);
 
 	msg->priv->read_state = NULL;
 }
 
+static inline void
+update_handler (gpointer msg, const char *name, guint *id,
+		GCallback new_handler, gpointer user_data)
+{
+	if (*id)
+		g_signal_handler_disconnect (msg, *id);
+
+	if (new_handler)
+		*id = g_signal_connect (msg, name, new_handler, user_data);
+	else
+		*id = 0;
+}
+
 void
-soup_message_read_set_callbacks (SoupMessage              *msg,
-				 SoupMessageReadHeadersFn  read_headers_cb,
-				 SoupMessageReadChunkFn    read_chunk_cb,
-				 SoupMessageReadBodyFn     read_body_cb,
-				 SoupMessageReadErrorFn    error_cb,
-				 gpointer                  user_data)
+soup_message_read_set_callbacks (SoupMessage            *msg,
+				 SoupMessageCallbackFn   read_headers_cb,
+				 SoupMessageReadChunkFn  read_chunk_cb,
+				 SoupMessageCallbackFn   read_body_cb,
+				 SoupMessageCallbackFn   error_cb,
+				 gpointer                user_data)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
 
-	r->read_headers_cb = read_headers_cb;
-	r->read_chunk_cb = read_chunk_cb;
-	r->read_body_cb = read_body_cb;
-	r->error_cb = error_cb;
-	r->user_data = user_data;
+	update_handler (msg, "read_headers", &r->read_headers_id,
+			G_CALLBACK (read_headers_cb), user_data);
+	update_handler (msg, "read_chunk", &r->read_chunk_id,
+			G_CALLBACK (read_chunk_cb), user_data);
+	update_handler (msg, "read_body", &r->read_body_id,
+			G_CALLBACK (read_body_cb), user_data);
+	update_handler (msg, "read_error", &r->error_id,
+			G_CALLBACK (error_cb), user_data);
+}
+
+static void
+soup_message_read_finish (SoupMessage *msg, guint signal)
+{
+	SoupMessageReadState *r = msg->priv->read_state;
+	guint handler_id;
+
+	if (signal == READ_BODY) {
+		handler_id = r->read_body_id;
+		r->read_body_id = 0;
+	} else {
+		handler_id = r->error_id;
+		r->error_id = 0;
+	}
+
+	g_object_ref (msg);
+	soup_message_read_cancel (msg);
+
+	g_signal_emit (msg, soup_message_signals[signal], 0);
+	if (handler_id)
+		g_signal_handler_disconnect (msg, handler_id);
+	g_object_unref (msg);
 }
 
 static void
 issue_final_callback (SoupMessage *msg)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
-	SoupMessageReadBodyFn read_body_cb = r->read_body_cb;
-	gpointer user_data = r->user_data;
-	char *body;
-	guint len;
 
-	if (r->body_buf) {
-		body = r->body_buf->data;
-		len = r->body_buf->len;
+	if (r->body && r->body_buf) {
+		r->body->owner = SOUP_BUFFER_SYSTEM_OWNED;
+		r->body->body = r->body_buf->data;
+		r->body->length = r->body_buf->len;
 
 		g_byte_array_free (r->body_buf, FALSE);
 		r->body_buf = NULL;
-	} else {
-		body = NULL;
-		len = 0;
 	}
 
-	soup_message_read_cancel (msg);
-	read_body_cb (msg, body, len, user_data);
+	soup_message_read_finish (msg, READ_BODY);
 }
 
 static void
 failed_read (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
-	SoupMessageReadErrorFn error_cb = r->error_cb;
-	gpointer user_data = r->user_data;
 
 	/* Closing the connection to signify EOF is valid if content
 	 * length is unknown, but only if headers have been sent.
@@ -125,8 +167,7 @@ failed_read (SoupSocket *sock, SoupMessage *msg)
 		return;
 	}
 
-	soup_message_read_cancel (msg);
-	error_cb (msg, user_data);
+	soup_message_read_finish (msg, READ_ERROR);
 }
 
 static gboolean
@@ -169,6 +210,7 @@ read_body_chunk (SoupMessage *msg, guint *size)
 	char read_buf[RESPONSE_BLOCK_SIZE];
 	guint nread, len = sizeof (read_buf);
 	gboolean read_to_eof = (r->encoding == SOUP_TRANSFER_UNKNOWN);
+	SoupDataBuffer chunk;
 
 	while (read_to_eof || *size > 0) {
 		if (!read_to_eof)
@@ -182,11 +224,14 @@ read_body_chunk (SoupMessage *msg, guint *size)
 			if (!nread)
 				break;
 
-			if (r->read_chunk_cb) {
-				SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
-				r->read_chunk_cb (msg, read_buf, nread, r->user_data);
-				SOUP_MESSAGE_READ_RETURN_VAL_IF_CANCELLED (FALSE);
-			}
+			chunk.owner = SOUP_BUFFER_STATIC;
+			chunk.body = read_buf;
+			chunk.length = nread;
+
+			SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
+			g_signal_emit (msg, soup_message_signals[READ_CHUNK],
+				       0, &chunk);
+			SOUP_MESSAGE_READ_RETURN_VAL_IF_CANCELLED (FALSE);
 
 			if (r->body_buf)
 				g_byte_array_append (r->body_buf, read_buf, nread);
@@ -220,6 +265,7 @@ static void
 do_read (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageReadState *r = msg->priv->read_state;
+	SoupKnownErrorCode err;
 
 	while (1) {
 		switch (msg->priv->status) {
@@ -229,17 +275,25 @@ do_read (SoupSocket *sock, SoupMessage *msg)
 				return;
 
 			r->meta_buf->len -= SOUP_TRANSFER_DOUBLE_EOL_LEN;
-			if (r->read_headers_cb) {
-				SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
-				r->read_headers_cb (msg,
-						    r->meta_buf->data,
-						    r->meta_buf->len,
-						    &r->encoding, 
-						    &r->read_length,
-						    r->user_data);
-				SOUP_MESSAGE_READ_RETURN_IF_CANCELLED;
-			}
+
+			SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
+			err = r->parse_headers_cb (msg,
+						   r->meta_buf->data,
+						   r->meta_buf->len,
+						   &r->encoding, 
+						   &r->read_length,
+						   r->user_data);
+			SOUP_MESSAGE_READ_RETURN_IF_CANCELLED;
 			g_byte_array_set_size (r->meta_buf, 0);
+
+			if (!SOUP_ERROR_IS_SUCCESSFUL (err)) {
+				soup_message_set_error (msg, err);
+				goto done;
+			}
+
+			SOUP_MESSAGE_READ_PREPARE_FOR_CALLBACK;
+			g_signal_emit (msg, soup_message_signals[READ_HEADERS], 0);
+			SOUP_MESSAGE_READ_RETURN_IF_CANCELLED;
 
 			switch (r->encoding) {
 			case SOUP_TRANSFER_UNKNOWN:
@@ -332,30 +386,51 @@ idle_read (gpointer user_data)
 }
 
 void
-soup_message_read (SoupMessage              *msg,
-		   SoupMessageReadHeadersFn  read_headers_cb,
-		   SoupMessageReadChunkFn    read_chunk_cb,
-		   SoupMessageReadBodyFn     read_body_cb,
-		   SoupMessageReadErrorFn    error_cb,
-		   gpointer                  user_data)
+soup_message_read (SoupMessage               *msg,
+		   SoupDataBuffer            *body,
+		   SoupMessageParseHeadersFn  parse_headers_cb,
+		   SoupMessageCallbackFn      read_headers_cb,
+		   SoupMessageReadChunkFn     read_chunk_cb,
+		   SoupMessageCallbackFn      read_body_cb,
+		   SoupMessageCallbackFn      error_cb,
+		   gpointer                   user_data)
 {
 	SoupMessageReadState *r;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (msg->priv->socket != NULL);
-	g_return_if_fail (read_body_cb && error_cb);
+	g_return_if_fail (parse_headers_cb && read_body_cb && error_cb);
 
 	r = g_new0 (SoupMessageReadState, 1);
-	r->read_headers_cb = read_headers_cb;
-	r->read_chunk_cb = read_chunk_cb;
-	r->read_body_cb = read_body_cb;
-	r->error_cb = error_cb;
+	r->parse_headers_cb = parse_headers_cb;
+
+	if (read_headers_cb) {
+		r->read_headers_id =
+			g_signal_connect (msg, "read_headers",
+					  G_CALLBACK (read_headers_cb),
+					  user_data);
+	}
+	if (read_chunk_cb) {
+		r->read_chunk_id =
+			g_signal_connect (msg, "read_chunk",
+					  G_CALLBACK (read_chunk_cb),
+					  user_data);
+	}
+	r->read_body_id = g_signal_connect (msg, "read_body",
+					    G_CALLBACK (read_body_cb),
+					    user_data);
+	r->error_id = g_signal_connect (msg, "read_error",
+					G_CALLBACK (error_cb),
+					user_data);
 	r->user_data = user_data;
+
 	r->encoding = SOUP_TRANSFER_UNKNOWN;
 
 	r->meta_buf = g_byte_array_new ();
-	if (!(msg->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
+	if (!(msg->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS)) {
+		r->body = body;
 		r->body_buf = g_byte_array_new ();
+	}
 
 	r->read_tag = g_signal_connect (msg->priv->socket, "readable",
 					G_CALLBACK (do_read), msg);
@@ -381,11 +456,12 @@ typedef struct {
 	SoupDataBuffer chunk;
 	guint nwrote;
 
-	SoupMessageWriteGetHeaderFn get_header_cb;
-	SoupMessageWriteGetChunkFn  get_chunk_cb;
-	SoupMessageWriteDoneFn      write_done_cb;
-	SoupMessageWriteErrorFn     error_cb;
-	gpointer                    user_data;
+	SoupMessageGetHeadersFn get_header_cb;
+	SoupMessageGetChunkFn   get_chunk_cb;
+	gpointer                user_data;
+
+	guint wrote_body_id;
+	guint error_id;
 } SoupMessageWriteState;
 
 /* Put these around callback invocation if there is code afterward
@@ -409,6 +485,11 @@ soup_message_write_cancel (SoupMessage *msg)
 	if (w->write_tag)
 		g_signal_handler_disconnect (msg->priv->socket, w->write_tag);
 
+	if (w->wrote_body_id)
+		g_signal_handler_disconnect (msg, w->wrote_body_id);
+	if (w->error_id)
+		g_signal_handler_disconnect (msg, w->error_id);
+
 	g_string_free (w->buf, TRUE);
 
 	g_free (w);
@@ -417,14 +498,32 @@ soup_message_write_cancel (SoupMessage *msg)
 }
 
 static void
-failed_write (SoupSocket *sock, SoupMessage *msg)
+soup_message_write_finish (SoupMessage *msg, guint signal)
 {
 	SoupMessageWriteState *w = msg->priv->write_state;
-	SoupMessageWriteErrorFn error_cb = w->error_cb;
-	gpointer user_data = w->user_data;
+	guint handler_id;
 
+	if (signal == WROTE_BODY) {
+		handler_id = w->wrote_body_id;
+		w->wrote_body_id = 0;
+	} else {
+		handler_id = w->error_id;
+		w->error_id = 0;
+	}
+
+	g_object_ref (msg);
 	soup_message_write_cancel (msg);
-	error_cb (msg, user_data);
+
+	g_signal_emit (msg, soup_message_signals[signal], 0);
+	if (handler_id)
+		g_signal_handler_disconnect (msg, handler_id);
+	g_object_unref (msg);
+}
+
+static void
+failed_write (SoupSocket *sock, SoupMessage *msg)
+{
+	soup_message_write_finish (msg, WRITE_ERROR);
 }
 
 static gboolean
@@ -461,15 +560,13 @@ static void
 do_write (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessageWriteState *w = msg->priv->write_state;
-	SoupMessageWriteDoneFn write_done_cb = w->write_done_cb;
-	gpointer user_data = w->user_data;
 
 	while (1) {
 		switch (msg->priv->status) {
 		case SOUP_MESSAGE_STATUS_WRITING_HEADERS:
 			if (w->get_header_cb) {
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
-				w->get_header_cb (msg, w->buf, user_data);
+				w->get_header_cb (msg, w->buf, w->user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				w->get_header_cb = NULL;
@@ -479,16 +576,21 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 			if (!write_data (msg, w->buf->str, w->buf->len))
 				return;
 
+			SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
+			g_signal_emit (msg, soup_message_signals[WROTE_HEADERS], 0);
+			SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
+
 			g_string_truncate (w->buf, 0);
 			w->nwrote = 0;
 			if (w->encoding == SOUP_TRANSFER_CHUNKED) {
 				msg->priv->status =
 					SOUP_MESSAGE_STATUS_WRITING_CHUNK_SIZE;
-			} else {
-				msg->priv->status =
-					SOUP_MESSAGE_STATUS_WRITING_BODY;
+				break;
 			}
-			break;
+
+			msg->priv->status =
+				SOUP_MESSAGE_STATUS_WRITING_BODY;
+			/* fall through */
 
 		case SOUP_MESSAGE_STATUS_WRITING_BODY:
 			if (!write_data (msg, w->body->body,
@@ -504,7 +606,7 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 				SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
 				got_chunk = w->get_chunk_cb (msg,
 							     &w->chunk,
-							     user_data);
+							     w->user_data);
 				SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 				if (!got_chunk) {
@@ -537,6 +639,10 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 			if (w->chunk.owner == SOUP_BUFFER_SYSTEM_OWNED)
 				g_free (w->chunk.body);
 			memset (&w->chunk, 0, sizeof (SoupDataBuffer));
+
+			SOUP_MESSAGE_WRITE_PREPARE_FOR_CALLBACK;
+			g_signal_emit (msg, soup_message_signals[WROTE_CHUNK], 0);
+			SOUP_MESSAGE_WRITE_RETURN_IF_CANCELLED;
 
 			w->nwrote = 0;
 			msg->priv->status = SOUP_MESSAGE_STATUS_WRITING_CHUNK_END;
@@ -572,8 +678,7 @@ do_write (SoupSocket *sock, SoupMessage *msg)
 
  done:
 	msg->priv->status = SOUP_MESSAGE_STATUS_FINISHED_WRITING;
-	soup_message_write_cancel (msg);
-	write_done_cb (msg, user_data);
+	soup_message_write_finish (msg, WROTE_BODY);
 }
 
 static gboolean
@@ -588,12 +693,13 @@ idle_write (gpointer user_data)
 }
 
 static SoupMessageWriteState *
-create_writer (SoupMessage                 *msg,
-	       SoupTransferEncoding         encoding,
-	       SoupMessageWriteGetHeaderFn  get_header_cb,
-	       SoupMessageWriteDoneFn       write_done_cb,
-	       SoupMessageWriteErrorFn      error_cb,
-	       gpointer                     user_data)
+create_writer (SoupMessage             *msg,
+	       SoupTransferEncoding     encoding,
+	       SoupMessageGetHeadersFn  get_header_cb,
+	       SoupMessageGetChunkFn    get_chunk_cb,
+	       SoupMessageCallbackFn    wrote_body_cb,
+	       SoupMessageCallbackFn    error_cb,
+	       gpointer                 user_data)
 {
 	SoupMessageWriteState *w;
 
@@ -601,9 +707,15 @@ create_writer (SoupMessage                 *msg,
 	w->encoding      = encoding;
 	w->buf           = g_string_new (NULL);
 	w->get_header_cb = get_header_cb;
-	w->write_done_cb = write_done_cb;
-	w->error_cb      = error_cb;
+	w->get_chunk_cb  = get_chunk_cb;
 	w->user_data     = user_data;
+
+	w->wrote_body_id = g_signal_connect (msg, "wrote_body",
+					     G_CALLBACK (wrote_body_cb),
+					     user_data);
+	w->error_id = g_signal_connect (msg, "write_error",
+					G_CALLBACK (error_cb),
+					user_data);
 
 	w->write_tag =
 		g_signal_connect (msg->priv->socket, "writable",
@@ -621,36 +733,35 @@ create_writer (SoupMessage                 *msg,
 }
 
 void
-soup_message_write_simple (SoupMessage                 *msg,
-			   const SoupDataBuffer        *body,
-			   SoupMessageWriteGetHeaderFn  get_header_cb,
-			   SoupMessageWriteDoneFn       write_done_cb,
-			   SoupMessageWriteErrorFn      error_cb,
-			   gpointer                     user_data)
+soup_message_write_simple (SoupMessage             *msg,
+			   const SoupDataBuffer    *body,
+			   SoupMessageGetHeadersFn  get_header_cb,
+			   SoupMessageCallbackFn    wrote_body_cb,
+			   SoupMessageCallbackFn    error_cb,
+			   gpointer                 user_data)
 {
 	SoupMessageWriteState *w;
 
 	w = create_writer (msg, SOUP_TRANSFER_CONTENT_LENGTH,
-			   get_header_cb, write_done_cb,
+			   get_header_cb, NULL, wrote_body_cb,
 			   error_cb, user_data);
 
 	w->body = body;
 }
 
 void
-soup_message_write (SoupMessage                 *msg,
-		    SoupTransferEncoding         encoding,
-		    SoupMessageWriteGetHeaderFn  get_header_cb,
-		    SoupMessageWriteGetChunkFn   get_chunk_cb,
-		    SoupMessageWriteDoneFn       write_done_cb,
-		    SoupMessageWriteErrorFn      error_cb,
-		    gpointer                     user_data)
+soup_message_write (SoupMessage             *msg,
+		    SoupTransferEncoding     encoding,
+		    SoupMessageGetHeadersFn  get_header_cb,
+		    SoupMessageGetChunkFn    get_chunk_cb,
+		    SoupMessageCallbackFn    wrote_body_cb,
+		    SoupMessageCallbackFn    error_cb,
+		    gpointer                 user_data)
 {
 	SoupMessageWriteState *w;
 
-	w = create_writer (msg, encoding, get_header_cb,
-			   write_done_cb, error_cb, user_data);
-	w->get_chunk_cb = get_chunk_cb;
+	w = create_writer (msg, encoding, get_header_cb, get_chunk_cb,
+			   wrote_body_cb, error_cb, user_data);
 }
 
 void  

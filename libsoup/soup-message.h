@@ -59,6 +59,16 @@ typedef struct {
 typedef struct {
 	GObjectClass parent_class;
 
+	/* signals */
+	void     (*wrote_headers) (SoupMessage *msg);
+	void     (*wrote_chunk)   (SoupMessage *msg);
+	void     (*wrote_body)    (SoupMessage *msg);
+	void     (*write_error)   (SoupMessage *msg);
+
+	void     (*read_headers)  (SoupMessage *msg);
+	void     (*read_chunk)    (SoupMessage *msg, SoupDataBuffer *chunk);
+	void     (*read_body)     (SoupMessage *msg);
+	void     (*read_error)    (SoupMessage *msg);
 } SoupMessageClass;
 
 GType soup_message_get_type (void);
@@ -69,7 +79,9 @@ GType soup_message_get_type (void);
          msg->errorclass != SOUP_ERROR_CLASS_INFORMATIONAL && \
 	 msg->errorclass != SOUP_ERROR_CLASS_UNKNOWN)
 
-typedef void (*SoupCallbackFn) (SoupMessage *req, gpointer user_data);
+typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
+/* Backward compat; FIXME */
+typedef SoupMessageCallbackFn SoupCallbackFn;
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri);

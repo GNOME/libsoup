@@ -1,3 +1,43 @@
+2003-08-26  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-private.h: Define SoupMessage signal stuff
+	(READ_HEADERS, READ_CHUNK, READ_BODY, READ_ERROR, WROTE_HEADERS,
+	WROTE_CHUNK, WROTE_BODY, WRITE_ERROR).
+
+	* libsoup/soup-message.c (class_init): set up signals
+	(requeue_read_finished): Update for changes.
+
+	* libsoup/soup-message-io.c (soup_message_read): Split out
+	parse_headers_cb from read_headers_cb. Also add a SoupDataBuffer *
+	arg to say where to store the message body. Set up
+	read_headers_cb, read_chunk_cb, read_body_cb, and error_cb as
+	signal handlers.
+	(do_read): Call r->parse_headers_cb, then emit READ_HEADERS
+	(read_body_chunk): emit READ_CHUNK.
+	(issue_final_callback): Set r->body. emit READ_BODY.
+	(failed_read): emit READ_ERROR.
+	(soup_message_read_set_callbacks): Disconnect old signal handlers,
+	connect new ones.
+	(soup_message_read_cancel): Disconnect signal handlers.
+	(soup_message_write, soup_message_write_simple): Set up
+	wrote_body_cb and error_cb as signal handlers.
+	(do_write): emit WROTE_HEADERS and WROTE_CHUNK, even though
+	nothing currently ever listens for them. emit WROTE_BODY when
+	done.
+	(failed_write): emit WRITE_ERROR
+
+	* libsoup/soup-queue.c (soup_queue_parse_headers_cb,
+	soup_queue_read_headers_cb): Split this into two unequal chunks.
+	(read_header_cb only runs the pre-body handlers).
+	(soup_queue_read_chunk_cb, soup_queue_read_done_cb): Update
+	prototypes.
+	(soup_queue_write_done_cb): Update call to soup_message_read
+
+	* libsoup/soup-server.c (parse_headers_cb): Renamed from
+	read_headers_cb
+	(read_done_cb): Update prototype
+	(start_request): Update soup_message_read call.
+
 2003-08-25  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-message-io.c (soup_message_read,

@@ -109,10 +109,12 @@ soup_queue_error_cb (SoupMessage *req, gpointer user_data)
 	}
 }
 
-static void
-soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
-			    SoupTransferEncoding *encoding, int *content_len,
-			    gpointer user_data)
+static SoupKnownErrorCode
+soup_queue_parse_headers_cb (SoupMessage *req,
+			     char *headers, guint headers_len,
+			     SoupTransferEncoding *encoding,
+			     guint *content_len,
+			     gpointer user_data)
 {
 	const char *length, *enc;
 	SoupHttpVersion version;
@@ -123,13 +125,8 @@ soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
 					  req->response_headers,
 					  &version,
 					  &req->errorcode,
-					  (char **) &req->errorphrase)) {
-		soup_message_set_error_full (req, 
-					     SOUP_ERROR_MALFORMED,
-					     "Unable to parse response "
-					     "headers");
-		goto THROW_MALFORMED_HEADER;
-	}
+					  (char **) &req->errorphrase))
+		return SOUP_ERROR_MALFORMED;
 
 	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
@@ -153,7 +150,7 @@ soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
 	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
-		goto SUCCESS_CONTINUE;
+		return SOUP_ERROR_OK;
 	}
 
 	/* 
@@ -162,16 +159,11 @@ soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
 	 */
 	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
 	if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0)
+		if (g_strcasecmp (enc, "chunked") == 0) {
 			*encoding = SOUP_TRANSFER_CHUNKED;
-		else {
-			soup_message_set_error_full (
-				req, 
-				SOUP_ERROR_MALFORMED,
-				"Unknown Response Encoding");
-			goto THROW_MALFORMED_HEADER;
-		}
-		goto SUCCESS_CONTINUE;
+			return SOUP_ERROR_OK;
+		} else
+			return SOUP_ERROR_MALFORMED;
 	}
 
 	/* 
@@ -179,55 +171,48 @@ soup_queue_read_headers_cb (SoupMessage *req, char *headers, guint headers_len,
 	 */
 	length = soup_message_get_header (resp_hdrs, "Content-Length");
 	if (length) {
+		int len;
+
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = atoi (length);
-		if (*content_len < 0) {
-			soup_message_set_error_full (req, 
-						     SOUP_ERROR_MALFORMED,
-						     "Invalid Content-Length");
-			goto THROW_MALFORMED_HEADER;
-		} 
-		goto SUCCESS_CONTINUE;
+		len = atoi (length);
+		if (len < 0)
+			return SOUP_ERROR_MALFORMED;
+		else
+			*content_len = len;
 	}
 
- SUCCESS_CONTINUE:
-	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
-	return;
-
- THROW_MALFORMED_HEADER:
-	soup_message_disconnect (req);
-	soup_message_issue_callback (req);
-	return;
+	return SOUP_ERROR_OK;
 }
 
 static void
-soup_queue_read_chunk_cb (SoupMessage *req, const char *chunk, guint len,
+soup_queue_read_headers_cb (SoupMessage *req, gpointer user_data)
+{
+	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
+}
+
+static void
+soup_queue_read_chunk_cb (SoupMessage *req, SoupDataBuffer *chunk,
 			  gpointer user_data)
 {
-	req->response.owner = SOUP_BUFFER_STATIC;
-	req->response.length = len;
-	req->response.body = (char *)chunk;
+	/* FIXME? */
+	memcpy (&req->response, chunk, sizeof (req->response));
 
 	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
-
-	return;
 }
 
 static void
-soup_queue_read_done_cb (SoupMessage *req, char *body, guint len,
-			 gpointer user_data)
+soup_queue_read_done_cb (SoupMessage *req, gpointer user_data)
 {
-	if (soup_message_is_keepalive (req))
-		soup_connection_mark_old (soup_message_get_connection (req));
+	SoupConnection *conn = soup_message_get_connection (req);
+
+	if (soup_message_is_keepalive (req) && conn)
+		soup_connection_mark_old (conn);
 	else
 		soup_message_disconnect (req);
 
-	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	req->response.length = len;
-	req->response.body = body;
-
 	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		soup_message_read (req,
+		soup_message_read (req, &req->response,
+				   soup_queue_parse_headers_cb,
 				   soup_queue_read_headers_cb,
 				   soup_queue_read_chunk_cb,
 				   soup_queue_read_done_cb,
@@ -407,7 +392,8 @@ soup_queue_get_request_header_cb (SoupMessage *req, GString *header,
 static void 
 soup_queue_write_done_cb (SoupMessage *req, gpointer user_data)
 {
-	soup_message_read (req,
+	soup_message_read (req, &req->response,
+			   soup_queue_parse_headers_cb,
 			   soup_queue_read_headers_cb,
 			   soup_queue_read_chunk_cb,
 			   soup_queue_read_done_cb,

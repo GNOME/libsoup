@@ -252,7 +252,6 @@ issue_bad_request (SoupMessage *msg)
 {
 	soup_message_read_cancel (msg);
 
-	set_response_error (msg, SOUP_ERROR_BAD_REQUEST, NULL, NULL);
 	soup_message_add_header (msg->response_headers,
 				 "Connection", "close");
 	soup_server_message_finish (SOUP_SERVER_MESSAGE (msg));
@@ -263,10 +262,10 @@ issue_bad_request (SoupMessage *msg)
 				   NULL);
 }
 
-static void
-read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
-		 SoupTransferEncoding *encoding, int *content_len,
-		 gpointer user_data)
+static SoupKnownErrorCode
+parse_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
+		  SoupTransferEncoding *encoding, guint *content_len,
+		  gpointer user_data)
 {
 	SoupContext *ctx;
 	char *req_path = NULL, *url;
@@ -278,7 +277,7 @@ read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
 					 (char **) &msg->method,
 					 &req_path,
 					 &msg->priv->http_version))
-		goto THROW_MALFORMED_HEADER;
+		return SOUP_ERROR_BAD_REQUEST;
 
 	/* Handle request body encoding */
 	length = soup_message_get_header (msg->request_headers,
@@ -291,13 +290,18 @@ read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
 			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			g_warning ("Unknown encoding type in HTTP request.");
-			goto THROW_MALFORMED_HEADER;
+			g_free (req_path);
+			return SOUP_ERROR_NOT_IMPLEMENTED;
 		}
 	} else if (length) {
+		int len;
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = atoi (length);
-		if (*content_len < 0)
-			goto THROW_MALFORMED_HEADER;
+		len = atoi (length);
+		if (len < 0) {
+			g_free (req_path);
+			return SOUP_ERROR_BAD_REQUEST;
+		}
+		*content_len = len;
 	} else {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
@@ -315,8 +319,10 @@ read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
 		if (absolute) {
 			url = g_strdup (req_path);
 			soup_uri_free (absolute);
-		} else
-			goto THROW_MALFORMED_HEADER;
+		} else {
+			g_free (req_path);
+			return SOUP_ERROR_BAD_REQUEST;
+		}
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s:%d%s",
 				       server->priv->proto == SOUP_PROTOCOL_HTTPS ? "https" : "http",
@@ -332,26 +338,22 @@ read_headers_cb (SoupMessage *msg, char *headers, guint headers_len,
 				       server->priv->proto == SOUP_PROTOCOL_HTTPS ? "https" : "http",
 				       host, server->priv->port,
 				       req_path);
-	} else
-		goto THROW_MALFORMED_HEADER;
+	} else {
+		g_free (req_path);
+		return SOUP_ERROR_BAD_REQUEST;
+	}
 
 	ctx = soup_context_get (url);
 	g_free (url);
+	g_free (req_path);
 
 	if (!ctx)
-		goto THROW_MALFORMED_HEADER;
+		return SOUP_ERROR_BAD_REQUEST;
 
 	soup_message_set_context (msg, ctx);
 	g_object_unref (ctx);
 
-	g_free (req_path);
-
-	return;
-
- THROW_MALFORMED_HEADER:
-	g_free (req_path);
-
-	issue_bad_request(msg);
+	return SOUP_ERROR_OK;
 }
 
 static void
@@ -452,14 +454,15 @@ get_chunk_cb (SoupMessage *msg, SoupDataBuffer *out_next, gpointer user_data)
 }
 
 static void
-read_done_cb (SoupMessage *req, char *body, guint len, gpointer user_data)
+read_done_cb (SoupMessage *req, gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (req);
 	SoupTransferEncoding encoding;
 
-	req->request.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	req->request.body = body;
-	req->request.length = len;
+	if (req->errorcode && !SOUP_ERROR_IS_SUCCESSFUL (req->errorcode)) {
+		issue_bad_request (req);
+		return;
+	}
 
 	call_handler (req);
 
@@ -486,8 +489,8 @@ start_request (SoupServer *server, SoupSocket *server_sock)
 
 	/* Listen for another request on this connection */
 	msg = (SoupMessage *)soup_server_message_new (server, server_sock);
-	soup_message_read (msg, read_headers_cb, NULL,
-			   read_done_cb, error_cb, NULL);
+	soup_message_read (msg, &msg->request, parse_headers_cb,
+			   NULL, NULL, read_done_cb, error_cb, NULL);
 }
 
 static void

@@ -9,6 +9,7 @@
 
 #include "soup-auth.h"
 #include "soup-error.h"
+#include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
@@ -18,6 +19,8 @@
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;
+
+guint soup_message_signals[LAST_SIGNAL] = { 0 };
 
 static void cleanup_message (SoupMessage *req);
 
@@ -77,6 +80,74 @@ class_init (GObjectClass *object_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+
+	/* signals */
+	soup_message_signals[WROTE_HEADERS] =
+		g_signal_new ("wrote_headers",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, wrote_headers),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	soup_message_signals[WROTE_CHUNK] =
+		g_signal_new ("wrote_chunk",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, wrote_chunk),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	soup_message_signals[WROTE_BODY] =
+		g_signal_new ("wrote_body",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, wrote_body),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	soup_message_signals[WRITE_ERROR] =
+		g_signal_new ("write_error",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, write_error),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+
+	soup_message_signals[READ_HEADERS] =
+		g_signal_new ("read_headers",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, read_headers),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	soup_message_signals[READ_CHUNK] =
+		g_signal_new ("read_chunk",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, read_chunk),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER,
+			      G_TYPE_NONE, 1,
+			      G_TYPE_POINTER);
+	soup_message_signals[READ_BODY] =
+		g_signal_new ("read_body",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, read_body),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	soup_message_signals[READ_ERROR] =
+		g_signal_new ("read_error",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, read_error),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 }
 
 SOUP_MAKE_TYPE (soup_message, SoupMessage, class_init, init, PARENT_TYPE)
@@ -489,12 +560,9 @@ requeue_read_error (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-requeue_read_finished (SoupMessage *msg, char *body, guint len,
-		       gpointer user_data)
+requeue_read_finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = msg->priv->connection;
-
-	g_free (body);
 
 	g_object_ref (conn);
 	soup_message_set_connection (msg, NULL);
