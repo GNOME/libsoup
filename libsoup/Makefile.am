@@ -7,7 +7,7 @@ INCLUDES = 				\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
-	$(GNUTLS_CFLAGS)
+	$(GNUTLS_CFLAGS)		\
 	$(NSS_CFLAGS)			\
 	$(OPENSSL_CFLAGS)
 

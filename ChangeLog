@@ -1,3 +1,8 @@
+2003-04-20  Rodney Dawes  <dobey@ximian.com>
+
+	* configure.in: Up version to 1.99.18
+	* libsoup/Makefile.am: Line separator after GNUTLS_CFLAGS
+	
 2003-04-11  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-context.c (soup_connection_purge_idle): New
