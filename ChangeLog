@@ -1,5 +1,13 @@
 2002-12-09  Joe Shaw  <joe@ximian.com>
 
+	* libsoup/soup-openssl.c (soup_openssl_get_iochannel): Put a
+	timeout on the select()s when we get SSL_ERROR_WANT_READ/WRITE so
+	we don't hang forever if we don't get more data.
+
+	* libsoup/soup-ssl-proxy.c (main): Don't set our fds to blocking
+	or else we'll hang forever in SSL_connect() if the other side
+	hangs up.
+
 	* libsoup/soup-queue.c (proxy_https_connect_cb): We never want to
 	release the connection on message free, even if the connection was
 	unsuccessful.
