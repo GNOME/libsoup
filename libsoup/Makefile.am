@@ -17,13 +17,17 @@ libsoup_la_LDFLAGS = \
 
 libsoup_la_SOURCES =		\
 	soup-context.c		\
+	soup-headers.h		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
+	soup-private.h     	\
 	soup-queue.c		\
 	soup-serializer.c	\
 	soup-server.c		\
+	soup-socks.h		\
 	soup-socks.c		\
+	soup-ssl.h		\
 	soup-ssl.c		\
 	soup-uri.c
 
@@ -37,5 +41,5 @@ soupinclude_HEADERS =		\
 	soup-server.h		\
 	soup-uri.h
 
-EXTRA_DIST = soup-private.h
+EXTRA_DIST = 
 

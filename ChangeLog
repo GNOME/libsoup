@@ -1,3 +1,14 @@
+2001-02-16  Alex Graveley  <alex@ximian.com>
+
+	* tests/Makefile.am: clear out some unneccassry cruft as currently
+	all tests link against libsoup.
+
+	* src/soup-wsdl/Makefile.am (soup_wsdl_SOURCES): add wsdl.h.
+
+	* src/soup-core/Makefile.am (libsoup_la_SOURCES): add
+	soup-headers.h, soup-private.h, soup-socks.h, and soup-ssl.h to
+	pass distcheck.
+
 2001-02-15  Alex Graveley  <alex@ximian.com>
 
 	* tests/stress-test.c (current_temp_cb): update to return void
