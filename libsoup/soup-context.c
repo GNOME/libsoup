@@ -116,6 +116,8 @@ soup_context_uri_equal (gconstpointer v1, gconstpointer v2)
 
 	if (one->protocol != two->protocol)
 		return FALSE;
+	if (one->port != two->port)
+		return FALSE;
 	if (!parts_equal (one->path, two->path))
 		return FALSE;
 	if (!parts_equal (one->user, two->user))
