@@ -1,3 +1,14 @@
+2001-04-23  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-headers.c
+	(wsdl_emit_soap_headers_binding_operation): added
+	"gpointer user_data" parameter to generated functions
+	* src/soup-wsdl/wsdl-soap-stubs.c
+	(wsdl_emit_soap_stubs_binding_operation): ditto &
+	make use of a private structure to be able to pass both
+	the user callback and a custom parameter to SOUP-generated
+	callback
+
 2001-04-23  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-typecodes-glib.c: Typecode support
