@@ -1,3 +1,10 @@
+2001-07-10  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-uri.h: Replace SOUP_PROTOCOL_SHTTP with
+	SOUP_PROTOCOL_HTTPS.
+	* src/soup-core/soup-context.c (soup_connection_get_iochannel): Ditto.
+	* src/soup-core/soup-httpd.c (soup_httpd_conn_accept): Ditto.
+
 2001-07-09  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-socket.c (soup_socket_server_new): Typo to go

@@ -54,7 +54,7 @@ typedef struct {
 
 SoupKnownProtocols known_protocols [] = {
 	{ SOUP_PROTOCOL_HTTP,   "http://",   80 },
-	{ SOUP_PROTOCOL_SHTTP,  "https://",  443 },
+	{ SOUP_PROTOCOL_HTTPS,  "https://",  443 },
 	{ SOUP_PROTOCOL_SMTP,   "mailto:",   25 },
 	{ SOUP_PROTOCOL_SOCKS4, "socks4://", -1 },
 	{ SOUP_PROTOCOL_SOCKS5, "socks5://", -1 },

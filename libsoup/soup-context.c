@@ -530,7 +530,7 @@ soup_connection_get_iochannel (SoupConnection *conn)
 
 		soup_connection_setup_socket (conn->channel);
 
-		if (conn->context->uri->protocol == SOUP_PROTOCOL_SHTTP)
+		if (conn->context->uri->protocol == SOUP_PROTOCOL_HTTPS)
 			conn->channel = soup_ssl_get_iochannel (conn->channel);
 	} else
 		g_io_channel_ref (conn->channel);
