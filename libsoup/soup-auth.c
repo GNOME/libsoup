@@ -687,13 +687,10 @@ soup_auth_new_from_header_list (const SoupUri *uri,
 
 		for (iter = known_auth_schemes; iter->scheme; iter++) {
 			if (uri->authmech &&
-			    !g_strncasecmp (uri->authmech,
-					    iter->scheme,
-					    strlen (iter->scheme))) {
-				header = tryheader;
-				scheme = iter;
-				goto found;
-			}
+			    g_strncasecmp (uri->authmech,
+					   iter->scheme,
+					   strlen (iter->scheme)) != 0)
+				continue;
 			if (!g_strncasecmp (tryheader, 
 					    iter->scheme, 
 					    strlen (iter->scheme))) {
@@ -712,7 +709,6 @@ soup_auth_new_from_header_list (const SoupUri *uri,
 
 	if (!scheme) return NULL;
 
- found:
 	auth = scheme->ctor ();
 	if (!auth) return NULL;
 

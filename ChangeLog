@@ -1,3 +1,8 @@
+2002-04-02  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-auth.c (soup_auth_new_from_header_list): Oops.
+	Fix this. It was working for "Basic" but not "NTLM".
+
 2002-04-01  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-auth.c (soup_auth_new_from_header_list): Make
