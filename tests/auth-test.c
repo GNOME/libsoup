@@ -4,7 +4,6 @@
 
 #include "libsoup/soup.h"
 #include "libsoup/soup-auth.h"
-#include "libsoup/soup-private.h"
 #include "libsoup/soup-session.h"
 
 int errors = 0;

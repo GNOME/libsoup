@@ -16,9 +16,9 @@
 #include <unistd.h>
 
 #include "soup-address.h"
-#include "soup-private.h"
 #include "soup-socket.h"
 #include "soup-marshal.h"
+#include "soup-misc.h"
 #include "soup-ssl.h"
 
 #include <sys/types.h>
@@ -57,6 +57,12 @@ struct SoupSocketPrivate {
 #define SOUP_SOCKET_SET_FLAG(sock, flag) (sock)->priv->flags |= (flag)
 #define SOUP_SOCKET_CLEAR_FLAG(sock, flag) (sock)->priv->flags &= ~(flag)
 #define SOUP_SOCKET_CHECK_FLAG(sock, flag) ((sock)->priv->flags & (flag))
+
+#ifdef HAVE_IPV6
+#define soup_sockaddr_max sockaddr_in6
+#else
+#define soup_sockaddr_max sockaddr_in
+#endif
 
 static void
 init (GObject *object)
@@ -481,10 +487,10 @@ soup_socket_start_ssl (SoupSocket *sock)
 	GIOChannel *chan;
 
 	chan = get_iochannel (sock);
-	sock->priv->iochannel =
+	sock->priv->iochannel = soup_ssl_get_iochannel (
+		sock->priv->iochannel,
 		SOUP_SOCKET_CHECK_FLAG (sock, SOUP_SOCKET_FLAG_SERVER) ?
-		soup_ssl_get_server_iochannel (chan) :
-		soup_ssl_get_iochannel (chan);
+		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT);
 	SOUP_SOCKET_SET_FLAG (sock, SOUP_SOCKET_FLAG_SSL);
 }
 	

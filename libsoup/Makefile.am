@@ -67,7 +67,6 @@ libsoup_2_2_la_SOURCES =		\
 	soup-connection-ntlm.c		\
 	soup-dns.h			\
 	soup-dns.c			\
-	soup-gnutls.h			\
 	soup-gnutls.c			\
 	soup-headers.c			\
 	soup-md5-utils.h		\
@@ -82,14 +81,12 @@ libsoup_2_2_la_SOURCES =		\
 	soup-message-server-io.c	\
 	soup-method.c			\
 	soup-misc.c     		\
-	soup-private.h     		\
 	soup-server.c			\
 	soup-server-auth.c		\
 	soup-server-message.c		\
 	soup-session.c			\
 	soup-socket.c			\
 	soup-ssl.h			\
-	soup-ssl.c			\
 	soup-status.c			\
 	soup-uri.c
 

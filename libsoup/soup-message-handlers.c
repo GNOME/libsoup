@@ -11,8 +11,6 @@
 
 #include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-misc.h"
-#include "soup-private.h"
 
 typedef enum {
 	SOUP_HANDLER_HEADER = 1,

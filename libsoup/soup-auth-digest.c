@@ -19,7 +19,6 @@
 #include "soup-md5-utils.h"
 #include "soup-message.h"
 #include "soup-misc.h"
-#include "soup-private.h"
 #include "soup-uri.h"
 
 static void construct (SoupAuth *auth, const char *header);

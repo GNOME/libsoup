@@ -21,7 +21,8 @@
 
 #include <gnutls/gnutls.h>
 
-#include "soup-gnutls.h"
+#include "soup-misc.h"
+#include "soup-ssl.h"
 
 #define DH_BITS 1024
 
@@ -374,9 +375,6 @@ get_credentials (SoupSSLType type)
 					   "(%s).", soup_get_ssl_ca_file ());
 				goto THROW_CREATE_ERROR;
 			}
-
-		if (soup_get_ssl_ca_dir ())
-			g_warning ("CA directory not supported.");
 	} else {
 		const char *cert_file, *key_file;
 
@@ -423,7 +421,7 @@ get_credentials (SoupSSLType type)
 }
 
 GIOChannel *
-soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
+soup_ssl_get_iochannel (GIOChannel *sock, SoupSSLType type)
 {
 	static gboolean initialized = FALSE;
 	SoupGNUTLSChannel *chan = NULL;
@@ -520,19 +518,6 @@ soup_gnutls_get_iochannel (GIOChannel *sock, SoupSSLType type)
 	if (session)
 		gnutls_deinit (session);
 	return NULL;
-}
-
-void
-soup_gnutls_set_security_policy (SoupSecurityPolicy policy)
-{
-	switch (policy) {
-	case SOUP_SECURITY_DOMESTIC:
-		break;
-	case SOUP_SECURITY_EXPORT:
-		break;
-	case SOUP_SECURITY_FRANCE:
-		break;
-	}
 }
 
 #endif /* HAVE_GNUTLS_GNUTLS_H */

@@ -22,11 +22,12 @@
 #include <netinet/in.h>
 
 #include "soup-connection.h"
-#include "soup-private.h"
 #include "soup-marshal.h"
+#include "soup-message.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
+#include "soup-uri.h"
 
 struct SoupConnectionPrivate {
 	SoupSocket  *socket;

@@ -10,7 +10,7 @@
 #include <ctype.h>
 
 #include "soup-headers.h"
-#include "soup-private.h"
+#include "soup-misc.h"
 
 /*
  * "HTTP/1.1 200 OK\r\nContent-Length: 1234\r\n          567\r\n\r\n"

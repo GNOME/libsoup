@@ -1,3 +1,58 @@
+2003-09-22  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message-io.c: Move RESPONSE_BLOCK_SIZE #define here
+	from soup-private.h
+
+	* libsoup/soup-misc.c (soup_load_config, etc): Remove all this.
+	(soup_set_security_policy, soup_get_security_policy): Remove,
+	since the GNUTLS backend doesn't actually implement it.
+	(soup_set_ssl_ca_dir, soup_get_ssl_ca_dir): Likewise
+
+	* libsoup/soup-misc.h: sync to soup-misc.c. Don't #include extra
+	stuff.
+
+	* libsoup/soup-types.h (SOUP_MAKE_TYPE): Move this here from
+	soup-private.h
+
+	* libsoup/soup-ssl.h: Merge soup_ssl_get_iochannel and
+	soup_ssl_get_server_iochannel into a single function that takes a
+	SoupSSLType.
+
+	* libsoup/soup-gnutls.c: Remove soup_get_ssl_ca_dir() reference.
+	(soup_ssl_get_iochannel): Renamed from soup_gnutls_get_iochannel.
+	(soup_gnutls_set_security_policy): Gone
+
+	* libsoup/soup-gnutls.h
+	* libsoup/soup-ssl.c: Gone; soup-ssl.h is the #include file for
+	soup-gnutls.c now
+
+	* libsoup/soup-socket.c: Move soup_sockaddr_max
+	#define here from soup-private.h
+	(soup_socket_start_ssl): Update for new soup_ssl_get_iochannel
+	prototype.
+
+	* libsoup/soup-private.h: Gone
+	
+	* libsoup/soup-address.c: Fix #includes for soup-private.h and
+	soup-misc.h changes
+	* libsoup/soup-auth-digest.c: Likewise
+	* libsoup/soup-auth.c: Likewise
+	* libsoup/soup-connection-ntlm.c: Likewise
+	* libsoup/soup-connection.c: Likewise
+	* libsoup/soup-dns.c: Likewise
+	* libsoup/soup-gnutls.c: Likewise
+	* libsoup/soup-headers.c: Likewise
+	* libsoup/soup-message-client-io.c: Likewise
+	* libsoup/soup-message-handlers.c: Likewise
+	* libsoup/soup-message-io.c: Likewise
+	* libsoup/soup-message-server-io.c: Likewise
+	* libsoup/soup-message.c: Likewise
+	* libsoup/soup-server-message.c: Likewise
+	* libsoup/soup-server.c: Likewise
+	* libsoup/soup-session.c: Likewise
+	* libsoup/soup-socket.c: Likewise
+	* tests/auth-test.c: Likewise
+
 2003-09-19  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-address.c (update_address_from_entry): free the

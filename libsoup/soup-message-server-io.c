@@ -16,8 +16,6 @@
 #include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-headers.h"
-#include "soup-misc.h"
-#include "soup-private.h"
 #include "soup-server-message.h"
 #include "soup-server.h"
 #include "soup-socket.h"

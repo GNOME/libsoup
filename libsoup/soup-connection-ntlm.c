@@ -13,7 +13,8 @@
 #include <string.h>
 
 #include "soup-connection-ntlm.h"
-#include "soup-private.h"
+#include "soup-message.h"
+#include "soup-misc.h"
 #include "soup-uri.h"
 
 void send_request (SoupConnection *conn, SoupMessage *req);

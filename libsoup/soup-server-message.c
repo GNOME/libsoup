@@ -15,7 +15,6 @@
 #include <unistd.h>
 
 #include "soup-server-message.h"
-#include "soup-private.h"
 #include "soup-server.h"
 
 struct SoupServerMessagePrivate {

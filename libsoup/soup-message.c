@@ -12,7 +12,7 @@
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
-#include "soup-private.h"
+#include "soup-uri.h"
 
 #define PARENT_TYPE G_TYPE_OBJECT
 static GObjectClass *parent_class;

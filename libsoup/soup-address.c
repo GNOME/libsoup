@@ -21,10 +21,10 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
-#include "soup-private.h"
 #include "soup-address.h"
 #include "soup-dns.h"
 #include "soup-marshal.h"
+#include "soup-misc.h"
 
 #include <unistd.h>
 #ifndef socklen_t

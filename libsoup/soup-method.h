@@ -1,10 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-method.h: HTTP Method defines and related processing.
- *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
  * Copyright (C) 2001-2002, Ximian, Inc.
  */
 

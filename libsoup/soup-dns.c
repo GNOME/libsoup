@@ -23,7 +23,7 @@
 #include <netinet/in.h>
 
 #include "soup-dns.h"
-#include "soup-private.h"
+#include "soup-misc.h"
 
 #ifndef socklen_t
 #  define socklen_t int

@@ -2,9 +2,6 @@
 /*
  * soup-method.c: HTTP Method related processing.
  *
- * Authors:
- *      Alex Graveley (alex@ximian.com)
- *
  * Copyright (C) 2001-2002, Ximian, Inc.
  */
 

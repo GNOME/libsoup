@@ -13,12 +13,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "soup-auth.h"
 #include "soup-session.h"
 #include "soup-connection.h"
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-queue.h"
-#include "soup-private.h"
+#include "soup-uri.h"
 
 typedef struct {
 	SoupUri    *root_uri;

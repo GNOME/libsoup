@@ -15,8 +15,7 @@
 #include "soup-message-private.h"
 #include "soup-auth.h"
 #include "soup-headers.h"
-#include "soup-misc.h"
-#include "soup-private.h"
+#include "soup-uri.h"
 
 static guint
 parse_response_headers (SoupMessage *req,

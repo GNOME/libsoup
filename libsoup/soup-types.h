@@ -22,4 +22,28 @@ typedef struct SoupSession           SoupSession;
 typedef struct SoupSocket            SoupSocket;
 typedef struct SoupUri               SoupUri;
 
+#define SOUP_MAKE_TYPE(l,t,ci,i,parent) \
+GType l##_get_type(void)\
+{\
+	static GType type = 0;				\
+	if (!type){					\
+		static GTypeInfo const object_info = {	\
+			sizeof (t##Class),		\
+							\
+			(GBaseInitFunc) NULL,		\
+			(GBaseFinalizeFunc) NULL,	\
+							\
+			(GClassInitFunc) ci,		\
+			(GClassFinalizeFunc) NULL,	\
+			NULL,	/* class_data */	\
+							\
+			sizeof (t),			\
+			0,	/* n_preallocs */	\
+			(GInstanceInitFunc) i,		\
+		};					\
+		type = g_type_register_static (parent, #t, &object_info, 0); \
+	}						\
+	return type;					\
+}
+
 #endif

@@ -14,8 +14,6 @@
 
 #include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-misc.h"
-#include "soup-private.h"
 #include "soup-socket.h"
 
 typedef enum {
@@ -67,6 +65,8 @@ typedef struct {
 #define SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK { gboolean cancelled; g_object_ref (msg);
 #define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (msg->priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return; }
 #define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (msg->priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return val; }
+
+#define RESPONSE_BLOCK_SIZE 8192
 
 void
 soup_message_io_cancel (SoupMessage *msg)
