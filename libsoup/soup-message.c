@@ -40,7 +40,8 @@ static void wrote_body (SoupMessage *req);
 static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);
 static void got_body (SoupMessage *req);
-static void stop_io (SoupMessage *req);
+static void restarted (SoupMessage *req);
+static void finished (SoupMessage *req);
 static void free_chunks (SoupMessage *msg);
 
 static void
@@ -105,8 +106,8 @@ class_init (GObjectClass *object_class)
 	message_class->got_headers  = got_headers;
 	message_class->got_chunk    = got_chunk;
 	message_class->got_body     = got_body;
-	message_class->restarted    = stop_io;
-	message_class->finished     = stop_io;
+	message_class->restarted    = restarted;
+	message_class->finished     = finished;
 
 	/* virtual method override */
 	object_class->finalize = finalize;
@@ -390,7 +391,7 @@ soup_message_got_body (SoupMessage *msg)
 }
 
 static void
-stop_io (SoupMessage *req)
+restarted (SoupMessage *req)
 {
 	soup_message_io_cancel (req);
 }
@@ -401,27 +402,17 @@ soup_message_restarted (SoupMessage *msg)
 	g_signal_emit (msg, signals[RESTARTED], 0);
 }
 
+static void
+finished (SoupMessage *req)
+{
+	soup_message_io_cancel (req);
+	req->status = SOUP_MESSAGE_STATUS_FINISHED;
+}
+
 void
 soup_message_finished (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[FINISHED], 0);
-}
-
-/**
- * soup_message_cancel:
- * @msg: a #SoupMessage currently being processed.
- * 
- * Cancel a running message, and issue completion callback with an
- * status code of %SOUP_STATUS_CANCELLED. If not requeued by the
- * completion callback, the @msg will be destroyed.
- */
-void
-soup_message_cancel (SoupMessage *msg)
-{
-	if (msg->status != SOUP_MESSAGE_STATUS_FINISHED) {
-		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
-		soup_message_finished (msg);
-	}
 }
 
 static gboolean

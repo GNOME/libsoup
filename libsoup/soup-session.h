@@ -8,6 +8,7 @@
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-message-queue.h>
 
 #define SOUP_TYPE_SESSION            (soup_session_get_type ())
 #define SOUP_SESSION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION, SoupSession))
@@ -22,6 +23,9 @@ struct SoupSession {
 	GObject parent;
 
 	SoupSessionPrivate *priv;
+
+	/* protected */
+	SoupMessageQueue *queue;
 };
 
 typedef struct {
@@ -35,6 +39,15 @@ typedef struct {
 				const char *auth_type, const char *auth_realm,
 				char **username, char **password);
 
+	/* methods */
+	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
+				  SoupMessageCallbackFn callback,
+				  gpointer user_data);
+	void  (*requeue_message) (SoupSession *session, SoupMessage *msg);
+	guint (*send_message)    (SoupSession *session, SoupMessage *msg);
+
+	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg);
+
 } SoupSessionClass;
 
 GType soup_session_get_type (void);
@@ -45,21 +58,31 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_USE_NTLM           "use-ntlm"
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 
-SoupSession    *soup_session_new              (void);
-SoupSession    *soup_session_new_with_options (const char            *optname1,
-					       ...);
-
 void            soup_session_queue_message    (SoupSession           *session,
-					       SoupMessage           *req,
+					       SoupMessage           *msg,
 					       SoupMessageCallbackFn  callback,
 					       gpointer               user_data);
 void            soup_session_requeue_message  (SoupSession           *session,
-					       SoupMessage           *req);
+					       SoupMessage           *msg);
 
 guint           soup_session_send_message     (SoupSession           *session,
-					       SoupMessage           *req);
+					       SoupMessage           *msg);
 
+void            soup_session_cancel_message   (SoupSession           *session,
+					       SoupMessage           *msg);
 void            soup_session_abort            (SoupSession           *session);
+
+
+/* Protected methods */
+SoupConnection *soup_session_get_connection       (SoupSession    *session,
+						   SoupMessage    *msg,
+						   gboolean       *try_pruning,
+						   gboolean       *is_new);
+gboolean        soup_session_try_prune_connection (SoupSession    *session);
+
+void            soup_session_send_message_via     (SoupSession    *session,
+						   SoupMessage    *msg,
+						   SoupConnection *conn);
 
 
 #endif /* SOUP_SESSION_H */

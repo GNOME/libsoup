@@ -37,150 +37,150 @@ typedef struct {
 
 SoupAuthTest tests[] = {
 	{ "No auth available, should fail",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
 	  "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
 	  "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Known realm, auth provided, so should succeed immediately",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
 	  "1", "1", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/subdir/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/subdir/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should retry last auth, but will fail this time",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
 	  "", "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Now should use provided auth on first try",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
 	  "2", "2", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Reuse will fail, but 2nd try will succeed because it's a known realm",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/realm1/index.txt",
 	  "", "21", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try. (Known realm with cached password)",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm3/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm3/index.txt",
 	  "43", "043", SOUP_STATUS_OK },
 
 
 	{ "No auth available, should fail",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
 	  "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
 	  "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Known realm, auth provided, so should succeed immediately",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
 	  "1", "1", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/subdir/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/subdir/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should retry last auth, but will fail this time",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
 	  "", "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Now should use provided auth on first try",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
 	  "2", "2", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try because of earlier domain directive",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try. (Known realm with cached password)",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm3/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm3/index.txt",
 	  "43", "043", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/realm2/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm3/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm3/index.txt",
 	  "", "3", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/realm2/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/realm1/index.txt",
 	  "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm2/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
 	  "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm3/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm3/index.txt",
 	  "", "3", SOUP_STATUS_OK },
 
 	{ "Now the server will reject the formerly-good password",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/not/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/not/index.txt",
 	  "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "http://primates.ximian.com/~danw/soup-test/Basic/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
 	  "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Likewise, reject the formerly-good Digest password",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/not/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/not/index.txt",
 	  "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "http://primates.ximian.com/~danw/soup-test/Digest/realm1/index.txt",
+	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
 	  "", "0", SOUP_STATUS_UNAUTHORIZED }
 };
 int ntests = sizeof (tests) / sizeof (tests[0]);
@@ -283,8 +283,9 @@ main (int argc, char **argv)
 	int i;
 
 	g_type_init ();
+	g_thread_init (NULL);
 
-	session = soup_session_new ();
+	session = soup_session_async_new ();
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), &i);
 	g_signal_connect (session, "reauthenticate",

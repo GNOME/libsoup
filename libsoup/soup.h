@@ -12,7 +12,8 @@ extern "C" {
 
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
-#include <libsoup/soup-session.h>
+#include <libsoup/soup-session-async.h>
+#include <libsoup/soup-session-sync.h>
 #include <libsoup/soup-socket.h>
 #include <libsoup/soup-uri.h>
 

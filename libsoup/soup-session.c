@@ -24,7 +24,6 @@
 
 typedef struct {
 	SoupUri    *root_uri;
-	guint       error;
 
 	GSList     *connections;      /* CONTAINS: SoupConnection */
 	guint       num_conns;
@@ -41,20 +40,28 @@ struct SoupSessionPrivate {
 	char *ssl_ca_file;
 	gpointer ssl_creds;
 
-	SoupMessageQueue *queue;
-
 	GHashTable *hosts; /* SoupUri -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 
 	SoupSessionHost *proxy_host;
+
+	/* Must hold the host_lock before potentially creating a
+	 * new SoupSessionHost, or adding/removing a connection.
+	 * Must not emit signals or destroy objects while holding it.
+	 */
+	GMutex *host_lock;
 };
 
 static guint    host_uri_hash  (gconstpointer key);
 static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
 static void     free_host      (SoupSessionHost *host, SoupSession *session);
 
-static gboolean run_queue (SoupSession *session, gboolean try_pruning);
+static void queue_message   (SoupSession *session, SoupMessage *msg,
+			     SoupMessageCallbackFn callback,
+			     gpointer user_data);
+static void requeue_message (SoupSession *session, SoupMessage *msg);
+static void cancel_message  (SoupSession *session, SoupMessage *msg);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
@@ -93,7 +100,8 @@ init (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 
 	session->priv = g_new0 (SoupSessionPrivate, 1);
-	session->priv->queue = soup_message_queue_new ();
+	session->priv->host_lock = g_mutex_new ();
+	session->queue = soup_message_queue_new ();
 	session->priv->hosts = g_hash_table_new (host_uri_hash,
 						 host_uri_equal);
 	session->priv->conns = g_hash_table_new (NULL, NULL);
@@ -132,7 +140,8 @@ finalize (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
 
-	soup_message_queue_destroy (session->priv->queue);
+	g_mutex_free (session->priv->host_lock);
+	soup_message_queue_destroy (session->queue);
 	g_hash_table_destroy (session->priv->hosts);
 	g_hash_table_destroy (session->priv->conns);
 	g_free (session->priv);
@@ -143,7 +152,14 @@ finalize (GObject *object)
 static void
 class_init (GObjectClass *object_class)
 {
+	SoupSessionClass *session_class = SOUP_SESSION_CLASS (object_class);
+
 	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	/* virtual method definition */
+	session_class->queue_message = queue_message;
+	session_class->requeue_message = requeue_message;
+	session_class->cancel_message = cancel_message;
 
 	/* virtual method override */
 	object_class->dispose = dispose;
@@ -222,32 +238,13 @@ class_init (GObjectClass *object_class)
 
 SOUP_MAKE_TYPE (soup_session, SoupSession, class_init, init, PARENT_TYPE)
 
-SoupSession *
-soup_session_new (void)
-{
-	return g_object_new (SOUP_TYPE_SESSION, NULL);
-}
-
-SoupSession *
-soup_session_new_with_options (const char *optname1, ...)
-{
-	SoupSession *session;
-	va_list ap;
-
-	va_start (ap, optname1);
-	session = (SoupSession *)g_object_new_valist (SOUP_TYPE_SESSION, optname1, ap);
-	va_end (ap);
-
-	return session;
-}
-
 static gboolean
 safe_uri_equal (const SoupUri *a, const SoupUri *b)
 {
 	if (!a && !b)
 		return TRUE;
 
-	if (a && !b || b && !a)
+	if ((a && !b) || (b && !a))
 		return FALSE;
 
 	return soup_uri_equal (a, b);
@@ -367,6 +364,10 @@ soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
 	return host;
 }
 
+/* Note: get_host_for_message doesn't lock the host_lock. The caller
+ * must do it itself if there's a chance the host doesn't already
+ * exist.
+ */
 static SoupSessionHost *
 get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
@@ -378,21 +379,22 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 		return host;
 
 	host = soup_session_host_new (session, source);
-
 	g_hash_table_insert (session->priv->hosts, host->root_uri, host);
 
 	return host;
 }
 
+/* Note: get_proxy_host doesn't lock the host_lock. The caller must do
+ * it itself if there's a chance the host doesn't already exist.
+ */
 static SoupSessionHost *
 get_proxy_host (SoupSession *session)
 {
-	if (session->priv->proxy_host)
+	if (session->priv->proxy_host || !session->priv->proxy_uri)
 		return session->priv->proxy_host;
 
 	session->priv->proxy_host =
 		soup_session_host_new (session, session->priv->proxy_uri);
-
 	return session->priv->proxy_host;
 }
 
@@ -430,6 +432,7 @@ free_host (SoupSessionHost *host, SoupSession *session)
 	}
 
 	soup_uri_free (host->root_uri);
+	g_free (host);
 }	
 
 /* Authentication */
@@ -627,8 +630,8 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 
 	/* If we need to authenticate, try to do it. */
 	if (!soup_auth_is_authenticated (new_auth)) {
-		return authenticate_auth (session, new_auth, msg,
-					  prior_auth_failed, proxy);
+		return authenticate_auth (session, new_auth,
+					  msg, prior_auth_failed, proxy);
 	}
 
 	/* Otherwise we're good. */
@@ -689,47 +692,17 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (!new_loc)
 		return;
 	new_uri = soup_uri_new (new_loc);
-	if (!new_uri)
-		goto INVALID_REDIRECT;
+	if (!new_uri) {
+		soup_message_set_status_full (msg,
+					      SOUP_STATUS_MALFORMED,
+					      "Invalid Redirect URL");
+		return;
+	}
 
 	soup_message_set_uri (msg, new_uri);
 	soup_uri_free (new_uri);
 
 	soup_session_requeue_message (session, msg);
-	return;
-
- INVALID_REDIRECT:
-	soup_message_set_status_full (msg,
-				      SOUP_STATUS_MALFORMED,
-				      "Invalid Redirect URL");
-}
-
-static void
-request_restarted (SoupMessage *req, gpointer session)
-{
-	run_queue (session, FALSE);
-}
-
-static void
-request_finished (SoupMessage *req, gpointer user_data)
-{
-	req->status = SOUP_MESSAGE_STATUS_FINISHED;
-}
-
-static void
-final_finished (SoupMessage *req, gpointer user_data)
-{
-	SoupSession *session = user_data;
-
-	if (!SOUP_MESSAGE_IS_STARTING (req)) {
-		soup_message_queue_remove_message (session->priv->queue, req);
-
-		g_signal_handlers_disconnect_by_func (req, request_finished, session);
-		g_signal_handlers_disconnect_by_func (req, final_finished, session);
-		g_object_unref (req);
-	}
-
-	run_queue (session, FALSE);
 }
 
 static void
@@ -755,15 +728,16 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 	}
 }
 
-static void
-send_request (SoupSession *session, SoupMessage *req, SoupConnection *conn)
+void
+soup_session_send_message_via (SoupSession *session, SoupMessage *msg,
+			       SoupConnection *conn)
 {
-	req->status = SOUP_MESSAGE_STATUS_RUNNING;
+	msg->status = SOUP_MESSAGE_STATUS_RUNNING;
 
-	add_auth (session, req, FALSE);
+	add_auth (session, msg, FALSE);
 	if (session->priv->proxy_uri)
-		add_auth (session, req, TRUE);
-	soup_connection_send_request (conn, req);
+		add_auth (session, msg, TRUE);
+	soup_connection_send_request (conn, msg);
 }
 
 static void
@@ -771,8 +745,11 @@ find_oldest_connection (gpointer key, gpointer host, gpointer data)
 {
 	SoupConnection *conn = key, **oldest = data;
 
-	/* Don't prune a connection that hasn't even been used yet. */
-	if (soup_connection_last_used (conn) == 0)
+	/* Don't prune a connection that is currently in use, or
+	 * hasn't been used yet.
+	 */
+	if (soup_connection_is_in_use (conn) ||
+	    soup_connection_last_used (conn) == 0)
 		return;
 
 	if (!*oldest || (soup_connection_last_used (conn) <
@@ -780,67 +757,86 @@ find_oldest_connection (gpointer key, gpointer host, gpointer data)
 		*oldest = conn;
 }
 
-static gboolean
-try_prune_connection (SoupSession *session)
+/**
+ * soup_session_try_prune_connection:
+ * @session: a #SoupSession
+ *
+ * Finds the least-recently-used idle connection in @session and closes
+ * it.
+ *
+ * Return value: %TRUE if a connection was closed, %FALSE if there are
+ * no idle connections.
+ **/
+gboolean
+soup_session_try_prune_connection (SoupSession *session)
 {
 	SoupConnection *oldest = NULL;
 
+	g_mutex_lock (session->priv->host_lock);
 	g_hash_table_foreach (session->priv->conns, find_oldest_connection,
 			      &oldest);
 	if (oldest) {
+		/* Ref the connection before unlocking the mutex in
+		 * case someone else tries to prune it too.
+		 */
+		g_object_ref (oldest);
+		g_mutex_unlock (session->priv->host_lock);
 		soup_connection_disconnect (oldest);
 		g_object_unref (oldest);
 		return TRUE;
-	} else
+	} else {
+		g_mutex_unlock (session->priv->host_lock);
 		return FALSE;
-}
-
-static void connection_closed (SoupConnection *conn, SoupSession *session);
-
-static void
-cleanup_connection (SoupSession *session, SoupConnection *conn)
-{
-	SoupSessionHost *host =
-		g_hash_table_lookup (session->priv->conns, conn);
-
-	g_return_if_fail (host != NULL);
-
-	g_hash_table_remove (session->priv->conns, conn);
-	g_signal_handlers_disconnect_by_func (conn, connection_closed, session);
-	session->priv->num_conns--;
-
-	host->connections = g_slist_remove (host->connections, conn);
-	host->num_conns--;
+	}
 }
 
 static void
-connection_closed (SoupConnection *conn, SoupSession *session)
-{
-	cleanup_connection (session, conn);
-
-	/* Run the queue in case anyone was waiting for a connection
-	 * to be closed.
-	 */
-	run_queue (session, FALSE);
-}
-
-static void
-got_connection (SoupConnection *conn, guint status, gpointer user_data)
+connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
 	SoupSession *session = user_data;
-	SoupSessionHost *host = g_hash_table_lookup (session->priv->conns, conn);
+	SoupSessionHost *host;
 
-	g_return_if_fail (host != NULL);
+	g_mutex_lock (session->priv->host_lock);
 
-	if (status == SOUP_STATUS_OK) {
-		host->connections = g_slist_prepend (host->connections, conn);
-		run_queue (session, FALSE);
+	host = g_hash_table_lookup (session->priv->conns, conn);
+	if (host) {
+		g_hash_table_remove (session->priv->conns, conn);
+		host->connections = g_slist_remove (host->connections, conn);
+		host->num_conns--;
+	}
+
+	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
+	session->priv->num_conns--;
+
+	g_mutex_unlock (session->priv->host_lock);
+	g_object_unref (conn);
+}
+
+static void
+connect_result (SoupConnection *conn, guint status, gpointer user_data)
+{
+	SoupSession *session = user_data;
+	SoupSessionHost *host;
+	SoupMessageQueueIter iter;
+	SoupMessage *msg;
+
+	g_mutex_lock (session->priv->host_lock);
+
+	host = g_hash_table_lookup (session->priv->conns, conn);
+	if (!host) {
+		g_mutex_unlock (session->priv->host_lock);
 		return;
 	}
 
-	/* We failed */
-	cleanup_connection (session, conn);
-	g_object_unref (conn);
+	if (status == SOUP_STATUS_OK) {
+		host->connections = g_slist_prepend (host->connections, conn);
+		g_mutex_unlock (session->priv->host_lock);
+		return;
+	}
+
+	/* The connection failed. */
+	g_mutex_unlock (session->priv->host_lock);
+	connection_disconnected (conn, session);
 
 	if (host->connections) {
 		/* Something went wrong this time, but we have at
@@ -851,240 +847,258 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		return;
 	}
 
-	/* Flush any queued messages for this host */
-	host->error = status;
-	run_queue (session, FALSE);
-
-	if (status != SOUP_STATUS_CANT_RESOLVE &&
-	    status != SOUP_STATUS_CANT_RESOLVE_PROXY) {
-		/* If the error was "can't resolve", then it's not likely
-		 * to improve. But if it was something else, it may have
-		 * been transient, so we clear the error so the user can
-		 * try again later.
-		 */
-		host->error = 0;
+	/* It's hopeless. Cancel everything that was waiting for this host. */
+	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+		if (get_host_for_message (session, msg) == host) {
+			soup_message_set_status (msg, status);
+			soup_session_cancel_message (session, msg);
+		}
 	}
 }
 
-static gboolean
-run_queue (SoupSession *session, gboolean try_pruning)
+/**
+ * soup_session_get_connection:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @try_pruning: on return, whether or not to try pruning a connection
+ * @is_new: on return, %TRUE if the returned connection is new and not
+ * yet connected
+ * 
+ * Tries to find or create a connection for @msg. If there is an idle
+ * connection to the relevant host available, then it will be returned
+ * (with *@is_new set to %FALSE). Otherwise, if it is possible to
+ * create a new connection, one will be created and returned, with
+ * *@is_new set to %TRUE.
+ *
+ * If no connection can be made, it will return %NULL. If @session has
+ * the maximum number of open connections open, but does not have the
+ * maximum number of per-host connections open to the relevant host, then
+ * *@try_pruning will be set to %TRUE. In this case, the caller can
+ * call soup_session_try_prune_connection() to close an idle connection,
+ * and then try soup_session_get_connection() again. (If calling
+ * soup_session_try_prune_connection() wouldn't help, then *@try_pruning
+ * is left untouched; it is NOT set to %FALSE.)
+ *
+ * Return value: a #SoupConnection, or %NULL
+ **/
+SoupConnection *
+soup_session_get_connection (SoupSession *session, SoupMessage *msg,
+			     gboolean *try_pruning, gboolean *is_new)
 {
-	SoupMessageQueueIter iter;
-	SoupMessage *msg;
 	SoupConnection *conn;
 	SoupSessionHost *host;
-	gboolean skipped_any = FALSE, started_any = FALSE;
 	GSList *conns;
 
-	/* FIXME: prefer CONNECTING messages */
+	g_mutex_lock (session->priv->host_lock);
 
- try_again:
-	for (msg = soup_message_queue_first (session->priv->queue, &iter); msg; msg = soup_message_queue_next (session->priv->queue, &iter)) {
-
-		if (!SOUP_MESSAGE_IS_STARTING (msg))
-			continue;
-
-		host = get_host_for_message (session, msg);
-
-		/* If the hostname is known to be bad, fail right away */
-		if (host->error) {
-			soup_message_set_status (msg, host->error);
-			msg->status = SOUP_MESSAGE_STATUS_FINISHED;
-			soup_message_finished (msg);
-		}
-
-		/* If there is an idle connection, use it */
-		for (conns = host->connections; conns; conns = conns->next) {
-			if (!soup_connection_is_in_use (conns->data))
-				break;
-		}
-		if (conns) {
-			send_request (session, msg, conns->data);
-			started_any = TRUE;
-			continue;
-		}
-
-		if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING) {
-			/* We already started a connection for this
-			 * message, so don't start another one.
-			 */
-			continue;
-		}
-
-		/* If we have the max number of per-host connections
-		 * or total connections open, we'll have to wait.
-		 */
-		if (host->num_conns >= session->priv->max_conns_per_host)
-			continue;
-		else if (session->priv->num_conns >= session->priv->max_conns) {
-			/* In this case, closing an idle connection
-			 * somewhere else would let us open one here.
-			 */
-			skipped_any = TRUE;
-			continue;
-		}
-
-		/* Otherwise, open a new connection */
-		conn = g_object_new (
-			(session->priv->use_ntlm ?
-			 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
-			SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
-			SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
-			SOUP_CONNECTION_SSL_CREDENTIALS, session->priv->ssl_creds,
-			NULL);
-		g_signal_connect (conn, "authenticate",
-				  G_CALLBACK (connection_authenticate),
-				  session);
-		g_signal_connect (conn, "reauthenticate",
-				  G_CALLBACK (connection_reauthenticate),
-				  session);
-
-		soup_connection_connect_async (conn, got_connection, session);
-		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_closed), session);
-		g_hash_table_insert (session->priv->conns, conn, host);
-		session->priv->num_conns++;
-
-		/* Increment the host's connection count, but don't add
-		 * this connection to the list yet, since it's not ready.
-		 */
-		host->num_conns++;
-
-		/* Mark the request as connecting, so we don't try to
-		 * open another new connection for it next time around.
-		 */
-		msg->status = SOUP_MESSAGE_STATUS_CONNECTING;
-
-		started_any = TRUE;
-	}
-
-	if (try_pruning && skipped_any && !started_any) {
-		/* We didn't manage to start any message, but there is
-		 * at least one message in the queue that could be
-		 * sent if we pruned an idle connection from some
-		 * other server.
-		 */
-		if (try_prune_connection (session)) {
-			try_pruning = FALSE;
-			goto try_again;
+	host = get_host_for_message (session, msg);
+	for (conns = host->connections; conns; conns = conns->next) {
+		if (!soup_connection_is_in_use (conns->data)) {
+			soup_connection_reserve (conns->data);
+			g_mutex_unlock (session->priv->host_lock);
+			*is_new = FALSE;
+			return conns->data;
 		}
 	}
 
-	return started_any;
+	if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING) {
+		/* We already started a connection for this
+		 * message, so don't start another one.
+		 */
+		g_mutex_unlock (session->priv->host_lock);
+		return NULL;
+	}
+
+	if (host->num_conns >= session->priv->max_conns_per_host) {
+		g_mutex_unlock (session->priv->host_lock);
+		return NULL;
+	}
+
+	if (session->priv->num_conns >= session->priv->max_conns) {
+		*try_pruning = TRUE;
+		g_mutex_unlock (session->priv->host_lock);
+		return NULL;
+	}
+
+	/* Make sure session->priv->proxy_host gets set now while
+	 * we have the host_lock.
+	 */
+	if (session->priv->proxy_uri)
+		get_proxy_host (session);
+
+	conn = g_object_new (
+		(session->priv->use_ntlm ?
+		 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
+		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
+		SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
+		SOUP_CONNECTION_SSL_CREDENTIALS, session->priv->ssl_creds,
+		NULL);
+	g_signal_connect (conn, "connect_result",
+			  G_CALLBACK (connect_result),
+			  session);
+	g_signal_connect (conn, "disconnected",
+			  G_CALLBACK (connection_disconnected),
+			  session);
+	g_signal_connect (conn, "authenticate",
+			  G_CALLBACK (connection_authenticate),
+			  session);
+	g_signal_connect (conn, "reauthenticate",
+			  G_CALLBACK (connection_reauthenticate),
+			  session);
+
+	g_hash_table_insert (session->priv->conns, conn, host);
+
+	/* We increment the connection counts so it counts against the
+	 * totals, but we don't add it to the host's connection list
+	 * yet, since it's not ready for use.
+	 */
+	session->priv->num_conns++;
+	host->num_conns++;
+
+	/* Mark the request as connecting, so we don't try to open
+	 * another new connection for it while waiting for this one.
+	 */
+	msg->status = SOUP_MESSAGE_STATUS_CONNECTING;
+
+	g_mutex_unlock (session->priv->host_lock);
+	*is_new = TRUE;
+	return conn;
 }
 
 static void
-queue_message (SoupSession *session, SoupMessage *req, gboolean requeue)
+message_finished (SoupMessage *msg, gpointer user_data)
 {
-	req->status = SOUP_MESSAGE_STATUS_QUEUED;
-	if (!requeue) {
-		soup_message_queue_append (session->priv->queue, req);
-		run_queue (session, TRUE);
+	SoupSession *session = user_data;
+
+	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
+		soup_message_queue_remove_message (session->queue, msg);
+		g_signal_handlers_disconnect_by_func (msg, message_finished, session);
 	}
+}
+
+static void
+queue_message (SoupSession *session, SoupMessage *msg,
+	       SoupMessageCallbackFn callback, gpointer user_data)
+{
+	g_signal_connect_after (msg, "finished",
+				G_CALLBACK (message_finished), session);
+
+	soup_message_add_status_code_handler  (msg, SOUP_STATUS_UNAUTHORIZED,
+					       SOUP_HANDLER_POST_BODY,
+					       authorize_handler, session);
+	soup_message_add_status_code_handler  (msg,
+					       SOUP_STATUS_PROXY_UNAUTHORIZED,
+					       SOUP_HANDLER_POST_BODY,
+					       authorize_handler, session);
+
+	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
+		soup_message_add_status_class_handler (
+			msg, SOUP_STATUS_CLASS_REDIRECT,
+			SOUP_HANDLER_POST_BODY,
+			redirect_handler, session);
+	}
+
+	msg->status = SOUP_MESSAGE_STATUS_QUEUED;
+	soup_message_queue_append (session->queue, msg);
 }
 
 /**
  * soup_session_queue_message:
  * @session: a #SoupSession
- * @req: the message to queue
+ * @msg: the message to queue
  * @callback: a #SoupMessageCallbackFn which will be called after the
  * message completes or when an unrecoverable error occurs.
  * @user_data: a pointer passed to @callback.
  * 
- * Queues the message @req for sending. All messages are processed
- * while the glib main loop runs. If @req has been processed before,
+ * Queues the message @msg for sending. All messages are processed
+ * while the glib main loop runs. If @msg has been processed before,
  * any resources related to the time it was last sent are freed.
  *
  * Upon message completion, the callback specified in @callback will
  * be invoked. If after returning from this callback the message has
- * not been requeued, @req will be unreffed.
+ * not been requeued, @msg will be unreffed.
  */
 void
-soup_session_queue_message (SoupSession *session, SoupMessage *req,
+soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 			    SoupMessageCallbackFn callback, gpointer user_data)
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	g_signal_connect (req, "restarted",
-			  G_CALLBACK (request_restarted), session);
+	SOUP_SESSION_GET_CLASS (session)->queue_message (session, msg,
+							 callback, user_data);
+}
 
-	g_signal_connect (req, "finished",
-			  G_CALLBACK (request_finished), session);
-
-	if (callback) {
-		g_signal_connect (req, "finished",
-				  G_CALLBACK (callback), user_data);
-	}
-
-	g_signal_connect_after (req, "finished",
-				G_CALLBACK (final_finished), session);
-
-	soup_message_add_status_code_handler  (req, SOUP_STATUS_UNAUTHORIZED,
-					       SOUP_HANDLER_POST_BODY,
-					       authorize_handler, session);
-	soup_message_add_status_code_handler  (req,
-					       SOUP_STATUS_PROXY_UNAUTHORIZED,
-					       SOUP_HANDLER_POST_BODY,
-					       authorize_handler, session);
-
-	if (!(soup_message_get_flags (req) & SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_status_class_handler (
-			req, SOUP_STATUS_CLASS_REDIRECT,
-			SOUP_HANDLER_POST_BODY,
-			redirect_handler, session);
-	}
-
-	queue_message (session, req, FALSE);
+static void
+requeue_message (SoupSession *session, SoupMessage *msg)
+{
+	msg->status = SOUP_MESSAGE_STATUS_QUEUED;
 }
 
 /**
  * soup_session_requeue_message:
  * @session: a #SoupSession
- * @req: the message to requeue
+ * @msg: the message to requeue
  *
- * This causes @req to be placed back on the queue to be attempted
+ * This causes @msg to be placed back on the queue to be attempted
  * again.
  **/
 void
-soup_session_requeue_message (SoupSession *session, SoupMessage *req)
+soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE (req));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	queue_message (session, req, TRUE);
+	SOUP_SESSION_GET_CLASS (session)->requeue_message (session, msg);
 }
 
 
 /**
  * soup_session_send_message:
  * @session: a #SoupSession
- * @req: the message to send
+ * @msg: the message to send
  * 
- * Synchronously send @req. This call will not return until the
+ * Synchronously send @msg. This call will not return until the
  * transfer is finished successfully or there is an unrecoverable
  * error.
  *
- * @req is not freed upon return.
+ * @msg is not freed upon return.
  *
  * Return value: the HTTP status code of the response
  */
 guint
-soup_session_send_message (SoupSession *session, SoupMessage *req)
+soup_session_send_message (SoupSession *session, SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_SESSION (session), SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (req), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_STATUS_MALFORMED);
 
-	/* Balance out the unref that final_finished will do */
-	g_object_ref (req);
+	return SOUP_SESSION_GET_CLASS (session)->send_message (session, msg);
+}
 
-	soup_session_queue_message (session, req, NULL, NULL);
 
-	while (req->status != SOUP_MESSAGE_STATUS_FINISHED &&
-	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
-		g_main_iteration (TRUE);
+static void
+cancel_message (SoupSession *session, SoupMessage *msg)
+{
+	soup_message_queue_remove_message (session->queue, msg);
+	soup_message_finished (msg);
+}
 
-	return req->status_code;
+/**
+ * soup_session_cancel_message:
+ * @session: a #SoupSession
+ * @msg: the message to cancel
+ *
+ * Causes @session to immediately finish processing @msg. You should
+ * set a status code on @msg with soup_message_set_status() before
+ * calling this function.
+ **/
+void
+soup_session_cancel_message (SoupSession *session, SoupMessage *msg)
+{
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	SOUP_SESSION_GET_CLASS (session)->cancel_message (session, msg);
 }
 
 /**
@@ -1099,8 +1113,10 @@ soup_session_abort (SoupSession *session)
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
 
-	for (msg = soup_message_queue_first (session->priv->queue, &iter); msg; msg = soup_message_queue_next (session->priv->queue, &iter)) {
-		soup_message_queue_remove (session->priv->queue, &iter);
-		soup_message_cancel (msg);
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
+		soup_session_cancel_message (session, msg);
 	}
 }

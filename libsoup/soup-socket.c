@@ -90,11 +90,24 @@ init (GObject *object)
 	sock->priv->reuseaddr = TRUE;
 }
 
-static void
+static gboolean
 disconnect_internal (SoupSocket *sock)
 {
-	g_io_channel_unref (sock->priv->iochannel);
+	GIOChannel *iochannel;
+
+	/* If we close the socket from one thread while
+	 * reading/writing from another, it's possible that the other
+	 * thread will get an I/O error and try to close the socket
+	 * while we're still in this function. So we clear
+	 * sock->priv->iochannel early to make sure that the other
+	 * thread's attempt to close the socket becomes a no-op.
+	 */
+	iochannel = sock->priv->iochannel;
 	sock->priv->iochannel = NULL;
+	if (iochannel == NULL)
+		return FALSE;
+
+	g_io_channel_unref (iochannel);
 
 	if (sock->priv->read_tag) {
 		g_source_remove (sock->priv->read_tag);
@@ -108,6 +121,8 @@ disconnect_internal (SoupSocket *sock)
 		g_source_remove (sock->priv->error_tag);
 		sock->priv->error_tag = 0;
 	}
+
+	return TRUE;
 }
 
 static void
@@ -471,9 +486,11 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	if (sock->priv->non_blocking) {
 		sock->priv->watch = g_idle_add (idle_connect_result, sock);
 		return SOUP_STATUS_CONTINUE;
-	} else {
-		return sock->priv->sockfd != -1 ?
-			SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT;
+	} else if (sock->priv->sockfd == -1)
+		return SOUP_STATUS_CANT_CONNECT;
+	else {
+		get_iochannel (sock);
+		return SOUP_STATUS_OK;
 	}
 }
 
@@ -723,10 +740,8 @@ soup_socket_disconnect (SoupSocket *sock)
 {
 	g_return_if_fail (SOUP_IS_SOCKET (sock));
 
-	if (!sock->priv->iochannel)
+	if (!disconnect_internal (sock))
 		return;
-
-	disconnect_internal (sock);
 
 	/* Give all readers a chance to notice the connection close */
 	g_signal_emit (sock, signals[READABLE], 0);

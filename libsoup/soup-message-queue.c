@@ -14,6 +14,8 @@
 struct SoupMessageQueue {
 	GList *head, *tail;
 	GList *iters;
+
+	GMutex *mutex;
 };
 
 /**
@@ -24,7 +26,11 @@ struct SoupMessageQueue {
 SoupMessageQueue *
 soup_message_queue_new (void)
 {
-	return g_new0 (SoupMessageQueue, 1);
+	SoupMessageQueue *queue;
+
+	queue = g_new0 (SoupMessageQueue, 1);
+	queue->mutex = g_mutex_new ();
+	return queue;
 }
 
 /**
@@ -40,6 +46,7 @@ soup_message_queue_destroy (SoupMessageQueue *queue)
 
 	g_list_free (queue->head);
 	g_list_free (queue->iters);
+	g_mutex_free (queue->mutex);
 	g_free (queue);
 }
 
@@ -53,6 +60,7 @@ soup_message_queue_destroy (SoupMessageQueue *queue)
 void
 soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg)
 {
+	g_mutex_lock (queue->mutex);
 	if (queue->head) {
 		queue->tail = g_list_append (queue->tail, msg);
 		queue->tail = queue->tail->next;
@@ -60,6 +68,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg)
 		queue->head = queue->tail = g_list_append (NULL, msg);
 
 	g_object_add_weak_pointer (G_OBJECT (msg), &queue->tail->data);
+	g_mutex_unlock (queue->mutex);
 }
 
 /**
@@ -77,56 +86,24 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg)
 SoupMessage *
 soup_message_queue_first (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
 {
-	if (!queue->head)
+	g_mutex_lock (queue->mutex);
+
+	if (!queue->head) {
+		g_mutex_unlock (queue->mutex);
 		return NULL;
+	}
 
 	queue->iters = g_list_prepend (queue->iters, iter);
 
 	iter->cur = NULL;
 	iter->next = queue->head;
+	g_mutex_unlock (queue->mutex);
+
 	return soup_message_queue_next (queue, iter);
 }
 
-/**
- * soup_message_queue_next:
- * @queue: a queue
- * @iter: pointer to an initialized #SoupMessageQueueIter
- *
- * Return value: the next element of @queue, or %NULL if there are no more.
- **/
-SoupMessage *
-soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
-{
-	while (iter->next) {
-		iter->cur = iter->next;
-		iter->next = iter->cur->next;
-		if (iter->cur->data)
-			return iter->cur->data;
-
-		/* Message was finalized, remove dead queue element */
-		soup_message_queue_remove (queue, iter);
-	}
-
-	/* Nothing left */
-	iter->cur = NULL;
-	soup_message_queue_free_iter (queue, iter);
-	return NULL;
-}
-
-/**
- * soup_message_queue_remove:
- * @queue: a queue
- * @iter: pointer to an initialized #SoupMessageQueueIter
- *
- * Removes the queue element pointed to by @iter; that is, the last
- * message returned by soup_message_queue_first() or
- * soup_message_queue_next().
- *
- * Return value: the removed message, or %NULL if the element pointed
- * to by @iter was already removed.
- **/
-SoupMessage *
-soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
+static SoupMessage *
+queue_remove_internal (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
 {
 	GList *i;
 	SoupMessageQueueIter *iter2;
@@ -163,6 +140,62 @@ soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
 	return msg;
 }
 
+/**
+ * soup_message_queue_next:
+ * @queue: a queue
+ * @iter: pointer to an initialized #SoupMessageQueueIter
+ *
+ * Return value: the next element of @queue, or %NULL if there are no more.
+ **/
+SoupMessage *
+soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
+{
+	g_mutex_lock (queue->mutex);
+
+	while (iter->next) {
+		iter->cur = iter->next;
+		iter->next = iter->cur->next;
+		if (iter->cur->data) {
+			g_mutex_unlock (queue->mutex);
+			return iter->cur->data;
+		}
+
+		/* Message was finalized, remove dead queue element */
+		queue_remove_internal (queue, iter);
+	}
+
+	/* Nothing left */
+	iter->cur = NULL;
+	queue->iters = g_list_remove (queue->iters, iter);
+
+	g_mutex_unlock (queue->mutex);
+	return NULL;
+}
+
+/**
+ * soup_message_queue_remove:
+ * @queue: a queue
+ * @iter: pointer to an initialized #SoupMessageQueueIter
+ *
+ * Removes the queue element pointed to by @iter; that is, the last
+ * message returned by soup_message_queue_first() or
+ * soup_message_queue_next().
+ *
+ * Return value: the removed message, or %NULL if the element pointed
+ * to by @iter was already removed.
+ **/
+SoupMessage *
+soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
+{
+	SoupMessage *msg;
+
+	g_mutex_lock (queue->mutex);
+	msg = queue_remove_internal (queue, iter);
+	g_mutex_unlock (queue->mutex);
+
+	return msg;
+}
+
 void
 soup_message_queue_remove_message (SoupMessageQueue *queue, SoupMessage *msg)
 {
@@ -190,5 +223,7 @@ void
 soup_message_queue_free_iter (SoupMessageQueue *queue,
 			      SoupMessageQueueIter *iter)
 {
+	g_mutex_lock (queue->mutex);
 	queue->iters = g_list_remove (queue->iters, iter);
+	g_mutex_unlock (queue->mutex);
 }

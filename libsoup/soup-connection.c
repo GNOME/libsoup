@@ -44,6 +44,7 @@ struct SoupConnectionPrivate {
 
 	SoupMessage *cur_req;
 	time_t       last_used;
+	gboolean     in_use;
 };
 
 #define PARENT_TYPE G_TYPE_OBJECT
@@ -432,10 +433,14 @@ soup_connection_connect_sync (SoupConnection *conn)
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 	fail:
-		g_object_unref (conn->priv->socket);
-		conn->priv->socket = NULL;
+		if (conn->priv->socket) {
+			g_object_unref (conn->priv->socket);
+			conn->priv->socket = NULL;
+		}
 	}
 
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
+		       proxified_status (conn, status));
 	return proxified_status (conn, status);
 }
 
@@ -473,7 +478,7 @@ soup_connection_is_in_use (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return conn->priv->cur_req != NULL;
+	return conn->priv->in_use;
 }
 
 /**
@@ -500,6 +505,7 @@ request_done (SoupMessage *req, gpointer user_data)
 				      (gpointer *)conn->priv->cur_req);
 	conn->priv->cur_req = NULL;
 	conn->priv->last_used = time (NULL);
+	conn->priv->in_use = FALSE;
 
 	g_signal_handlers_disconnect_by_func (req, request_done, conn);
 
@@ -513,6 +519,7 @@ send_request (SoupConnection *conn, SoupMessage *req)
 	if (req != conn->priv->cur_req) {
 		g_return_if_fail (conn->priv->cur_req == NULL);
 		conn->priv->cur_req = req;
+		conn->priv->in_use = TRUE;
 		g_object_add_weak_pointer (G_OBJECT (req),
 					   (gpointer *)conn->priv->cur_req);
 
@@ -533,6 +540,14 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 	g_return_if_fail (conn->priv->socket != NULL);
 
 	SOUP_CONNECTION_GET_CLASS (conn)->send_request (conn, req);
+}
+
+void
+soup_connection_reserve (SoupConnection *conn)
+{
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+
+	conn->priv->in_use = TRUE;
 }
 
 void

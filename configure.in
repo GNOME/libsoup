@@ -72,7 +72,7 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-AM_PATH_GLIB_2_0(2.0.0,,,gobject)
+AM_PATH_GLIB_2_0(2.0.0,,,gobject gthread)
 
 PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)

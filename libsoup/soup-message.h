@@ -102,8 +102,6 @@ void           soup_message_set_response        (SoupMessage       *msg,
 						 char              *resp_body,
 						 gulong             resp_length);
 
-void           soup_message_cancel              (SoupMessage       *msg);
-
 void           soup_message_add_header          (GHashTable        *hash,
 						 const char        *name,
 						 const char        *value);

@@ -1,3 +1,45 @@
+2003-12-17  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Add gthread to glib check
+
+	* libsoup/soup-session.c: Make this an abstract class.
+
+	* libsoup/soup-session-async.c: A SoupSession class for
+	asynchronous gmain-based operation; replaces the old SoupSession.
+
+	* libsoup/soup-session-sync.c: A SoupSession class for synchronous
+	blocking operation for use with threaded apps.
+
+	* libsoup/soup-types.h, libsoup/soup.h: add the new session
+	subclasses
+
+	* libsoup/soup-connection.c (soup_connection_connect_sync): Don't
+	try to unref the socket if the socket creation fails.
+	(soup_connection_reserve): New, to explicitly mark a connection as
+	being in use without queueing a message on it.
+
+	* libsoup/soup-dns.c (check_hostent): Oof. Fix the logic of the
+	"block" flag to not be reversed.
+
+	* libsoup/soup-message.c (finished): set status to FINISHED here.
+	(soup_message_cancel): Gone; needs to be done at the session
+	level.
+
+	* libsoup/soup-message-queue.c: Add a mutex and make all of the
+	operations thread-safe.
+
+	* libsoup/soup-socket.c (disconnect_internal): Make this
+	thread-safe.
+	(soup_socket_connect): Make the sync case work correctly.
+
+	* libsoup/Makefile.am: add the SoupSession subclasses
+
+	* tests/Makefile.am: libsoup depends on libgthread now, so
+	revserver doesn't need to explicitly.
+
+	* tests/get.c, tests/auth-test.c, tests/simple-proxy.c: Use
+	soup_session_async_new().
+
 2003-12-16  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.[ch] (soup_soap_parameter_get_int_value):

@@ -208,6 +208,7 @@ main (int argc, char **argv)
 	int opt;
 
 	g_type_init ();
+	g_thread_init (NULL);
 
 	while ((opt = getopt (argc, argv, "c:r")) != -1) {
 		switch (opt) {
@@ -236,7 +237,7 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	session = soup_session_new_with_options (
+	session = soup_session_async_new_with_options (
 		SOUP_SESSION_SSL_CA_FILE, cafile,
 		NULL);
 

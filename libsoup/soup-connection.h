@@ -69,6 +69,7 @@ time_t          soup_connection_last_used      (SoupConnection   *conn);
 
 void            soup_connection_send_request   (SoupConnection   *conn,
 						SoupMessage      *req);
+void            soup_connection_reserve        (SoupConnection   *conn);
 
 /* protected */
 void            soup_connection_authenticate   (SoupConnection   *conn,

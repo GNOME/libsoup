@@ -1,0 +1,39 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2000-2003, Ximian, Inc.
+ */
+
+#ifndef SOUP_SESSION_SYNC_H
+#define SOUP_SESSION_SYNC_H 1
+
+#include <libsoup/soup-types.h>
+#include <libsoup/soup-session.h>
+
+#define SOUP_TYPE_SESSION_SYNC            (soup_session_sync_get_type ())
+#define SOUP_SESSION_SYNC(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION_SYNC, SoupSessionSync))
+#define SOUP_SESSION_SYNC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncClass))
+#define SOUP_IS_SESSION_SYNC(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_SESSION_SYNC))
+#define SOUP_IS_SESSION_SYNC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION_SYNC))
+#define SOUP_SESSION_SYNC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncClass))
+
+typedef struct SoupSessionSyncPrivate SoupSessionSyncPrivate;
+
+struct SoupSessionSync {
+	SoupSession parent;
+
+	SoupSessionSyncPrivate *priv;
+};
+
+typedef struct {
+	SoupSessionClass parent_class;
+
+} SoupSessionSyncClass;
+
+GType soup_session_sync_get_type (void);
+
+SoupSession *soup_session_sync_new              (void);
+SoupSession *soup_session_sync_new_with_options (const char *optname1,
+						 ...);
+
+
+#endif /* SOUP_SESSION_SYNC_H */

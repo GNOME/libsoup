@@ -613,9 +613,9 @@ check_hostent (SoupDNSEntry *entry, gboolean block)
 	}
 
 	if (block)
-		tvp = &tv;
-	else
 		tvp = NULL;
+	else
+		tvp = &tv;
 
 	do {
 		FD_ZERO (&readfds);
