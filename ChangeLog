@@ -1,3 +1,18 @@
+2003-11-17  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-message.[ch] (soup_soap_message_new,
+	soup_soap_message_new_from_uri): added a bunch of initialization
+	parameters.
+	(soup_soap_message_get_xml_doc, soup_soap_message_start_envelope,
+	soup_soap_message_end_envelope, soup_soap_message_start_body,
+	soup_soap_message_end_body, soup_soap_message_start_element,
+	soup_soap_message_end_element):
+	new functions.
+
+	* configure.in: depend on libxml-2.0 for the SOAP code.
+
+	* libsoup/Makefile.am: use XML CFLAGS and LIBS.
+
 2003-11-17  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Add in the --enable-libgpg-error flag from the 2.0

@@ -74,6 +74,10 @@ dnl ***********************
 
 AM_PATH_GLIB_2_0(2.0.0,,,gobject)
 
+PKG_CHECK_MODULES(XML, libxml-2.0)
+AC_SUBST(XML_CFLAGS)
+AC_SUBST(XML_LIBS)
+
 dnl *********************************
 dnl *** Networking library checks ***
 dnl *********************************
