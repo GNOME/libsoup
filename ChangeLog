@@ -1,5 +1,13 @@
 2001-05-12  Alex Graveley  <alex@ximian.com>
 
+	* src/soup-core/soup-message.c (soup_message_set_request_header):
+	g_strdup name and value.
+	(soup_message_set_response_header): ditto.
+	(soup_message_get_response_header): implement.
+	(soup_message_get_request_header): implement.
+
+2001-05-12  Alex Graveley  <alex@ximian.com>
+
 	* src/soup-core/soup-fault.[ch]: Format cleanups.
 
 	* src/soup-core/soup-parser.[ch]: Ditto.

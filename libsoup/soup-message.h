@@ -92,18 +92,18 @@ void           soup_message_queue              (SoupMessage       *msg,
 					        gpointer           user_data);
 
 void           soup_message_set_request_header (SoupMessage       *req,
-						gchar             *name,
-						gchar             *value);
+						const gchar       *name,
+						const gchar       *value);
 
-gchar         *soup_message_get_request_header (SoupMessage       *req,
-						gchar             *name);
+const gchar   *soup_message_get_request_header (SoupMessage       *req,
+						const gchar       *name);
 
 void           soup_message_set_response_header (SoupMessage      *req,
-						 gchar            *name,
-						 gchar            *value);
+						 const gchar      *name,
+						 const gchar      *value);
 
-gchar         *soup_message_get_response_header (SoupMessage      *req,
-						 gchar            *name);
+const gchar   *soup_message_get_response_header (SoupMessage      *req,
+						 const gchar      *name);
 
 /* FIXME: None of these are implemented yet, oh well... */
 typedef enum {

@@ -71,6 +71,13 @@ soup_message_cleanup (SoupMessage *req)
 	soup_active_requests = g_slist_remove (soup_active_requests, req);
 }
 
+static void
+soup_message_remove_header (gchar *name, gchar *value, gpointer unused)
+{
+	g_free (name);
+	g_free (value);
+}
+
 void 
 soup_message_free (SoupMessage *req)
 {
@@ -87,10 +94,21 @@ soup_message_free (SoupMessage *req)
 
 	if (req->priv->req_header) 
 		g_string_free (req->priv->req_header, TRUE);
-	if (req->request_headers) 
+
+	if (req->request_headers) {
+		g_hash_table_foreach (req->request_headers,
+				      (GHFunc) soup_message_remove_header,
+				      NULL);
 		g_hash_table_destroy (req->request_headers);
-	if (req->response_headers) 
+	}
+
+	if (req->response_headers) {
+		g_hash_table_foreach (req->response_headers,
+				      (GHFunc) soup_message_remove_header,
+				      NULL);
 		g_hash_table_destroy (req->response_headers);
+	}
+
 	if (req->priv->recv_buf) 
 		g_byte_array_free (req->priv->recv_buf, TRUE);
 
@@ -125,23 +143,65 @@ soup_message_cancel (SoupMessage *req)
 	soup_message_issue_callback (req, SOUP_ERROR_CANCELLED);
 }
 
+static void 
+soup_message_set_header (GHashTable  **hash,
+			 const gchar  *name,
+			 const gchar  *value) 
+{
+	if (!*hash) 
+		*hash = g_hash_table_new (soup_str_case_hash, 
+					  soup_str_case_equal);
+
+	g_hash_table_insert (*hash, g_strdup (name), g_strdup (value));
+}
+
 void
 soup_message_set_request_header (SoupMessage *req,
-				 gchar       *name,
-				 gchar       *value) 
+				 const gchar *name,
+				 const gchar *value) 
 {
 	g_return_if_fail (req != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');
 
-	if (!req->request_headers)
-		req->request_headers = g_hash_table_new (soup_str_case_hash, 
-							 soup_str_case_equal);
-
-	if (req->priv->req_header)
+	if (req->priv->req_header) {
 		g_string_free (req->priv->req_header, TRUE);
+		req->priv->req_header = NULL;
+	}
 
-	req->priv->req_header = NULL;
+	soup_message_set_header (&req->request_headers, name, value);
+}
 
-	g_hash_table_insert (req->request_headers, name, value);
+const gchar *
+soup_message_get_request_header (SoupMessage *req,
+				 const gchar *name) 
+{
+	g_return_val_if_fail (req != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
+
+	return req->request_headers ? 
+		g_hash_table_lookup (req->request_headers, name) : NULL;
+}
+
+void
+soup_message_set_response_header (SoupMessage *req,
+				  const gchar *name,
+				  const gchar *value) 
+{
+	g_return_if_fail (req != NULL);
+	g_return_if_fail (name != NULL || name [0] != '\0');
+
+	soup_message_set_header (&req->response_headers, name, value);
+}
+
+const gchar *
+soup_message_get_response_header (SoupMessage *req,
+				  const gchar *name) 
+{
+	g_return_val_if_fail (req != NULL, NULL);
+	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
+
+	return req->response_headers ? 
+		g_hash_table_lookup (req->response_headers, name) : NULL;
 }
 
 SoupErrorCode 
