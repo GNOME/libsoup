@@ -13,7 +13,7 @@ EXTRA_DIST = 			\
 	soup_apacheConf.sh.in 	\
 	soup_wsdlConf.sh.in 	\
 	soup.m4			\
-	soup.pc.in 		\
+	soup.pc.in		\
 	soup.spec.in
 
 bin_SCRIPTS = soup-config

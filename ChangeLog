@@ -1,3 +1,15 @@
+2002-05-23  Joe Shaw  <joe@ximian.com>
+
+	* acconfig.h: undef SOUP_GLIB2
+
+	* configure.in: Check for glib 1.2 or 2.0 depending on whether the
+	--enable-glib2 configure flag was passed in.
+
+	* soup.pc.in: Get the requirements for pkgconfig from a variable
+	in configure.in.
+
+	* src/soup-ssl-proxy/soup-openssl.c: Port (conditionally) to glib 2.
+
 2002-05-23  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/Makefile.am (libsoupinclude_HEADERS): install

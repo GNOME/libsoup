@@ -34,6 +34,16 @@ typedef struct {
 	SSL         *ssl;
 } SoupOpenSSLChannel;
 
+static void
+soup_openssl_free (GIOChannel *channel)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	g_io_channel_unref (chan->real_sock);
+	SSL_free (chan->ssl);
+	g_free (chan);
+}
+
+#ifndef SOUP_GLIB2
 static GIOError
 soup_openssl_read (GIOChannel   *channel,
 		   gchar        *buf,
@@ -109,15 +119,6 @@ soup_openssl_close (GIOChannel   *channel)
 	g_io_channel_close (chan->real_sock);
 }
 
-static void
-soup_openssl_free (GIOChannel   *channel)
-{
-	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
-	g_io_channel_unref (chan->real_sock);
-	SSL_free (chan->ssl);
-	g_free (chan);
-}
-
 typedef struct {
 	GIOFunc         func;
 	gpointer        user_data;
@@ -179,6 +180,248 @@ GIOFuncs soup_openssl_channel_funcs = {
 	soup_openssl_add_watch,
 	soup_openssl_free,
 };
+
+#else /* #ifndef SOUP_GLIB2 */
+
+static GIOStatus
+soup_openssl_read (GIOChannel   *channel,
+		   gchar        *buf,
+		   guint         count,
+		   guint        *bytes_read,
+		   GError      **err)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	gint result;
+
+	result = SSL_read (chan->ssl, buf, count);
+
+	if (result < 0) {
+		/* This occurs when a re-handshake is required */
+		*bytes_read = 0;
+		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
+		  	return G_IO_STATUS_AGAIN;
+		switch (errno) {
+		case EINVAL:
+#if 0
+			return G_IO_ERROR_INVAL;
+#else
+			return G_IO_STATUS_ERROR;
+#endif
+		case EAGAIN:
+		case EINTR:
+			return G_IO_STATUS_AGAIN;
+		default:
+			return G_IO_STATUS_ERROR;
+		}
+	} else {
+		*bytes_read = result;
+		return G_IO_STATUS_NORMAL;
+	}
+}
+
+static GIOStatus
+soup_openssl_write (GIOChannel   *channel,
+		    const gchar  *buf,
+		    gsize         count,
+		    gsize        *bytes_written,
+		    GError      **err)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	gint result;
+
+	result = SSL_write (chan->ssl, buf, count);
+
+	if (result < 0) {
+		*bytes_written = 0;
+		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
+			return G_IO_STATUS_AGAIN;
+		switch (errno) {
+		case EINVAL:
+#if 0
+			return G_IO_ERROR_INVAL;
+#else
+			return G_IO_STATUS_ERROR;
+#endif
+		case EAGAIN:
+		case EINTR:
+			return G_IO_STATUS_AGAIN;
+		default:
+			return G_IO_STATUS_ERROR;
+		}
+	} else {
+		*bytes_written = result;
+		return G_IO_STATUS_NORMAL;
+	}
+}
+
+static GIOStatus
+soup_openssl_seek (GIOChannel  *channel,
+		   gint64       offset,
+		   GSeekType    type,
+		   GError     **err)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	GIOError e;
+
+	e = g_io_channel_seek (chan->real_sock, offset, type);
+
+	if (e != G_IO_ERROR_NONE)
+		return G_IO_STATUS_ERROR;
+	else
+		return G_IO_STATUS_NORMAL;
+}
+
+static GIOStatus
+soup_openssl_close (GIOChannel  *channel,
+		    GError     **err)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+	g_io_channel_close (chan->real_sock);
+
+	return G_IO_STATUS_NORMAL;
+}
+
+typedef struct {
+	GSource       source;
+	GPollFD       pollfd;
+	GIOChannel   *channel;
+	GIOCondition  condition;
+} SoupOpenSSLWatch;
+
+static gboolean
+soup_openssl_prepare (GSource *source,
+		      gint    *timeout)
+{
+	SoupOpenSSLWatch *watch = (SoupOpenSSLWatch *) source;
+	GIOCondition buffer_condition = g_io_channel_get_buffer_condition (
+		watch->channel);
+
+	*timeout = -1;
+
+	/* Only return TRUE here if _all_ bits in watch->condition will be set
+	 */
+	return ((watch->condition & buffer_condition) == watch->condition);
+}
+
+static gboolean
+soup_openssl_check (GSource *source)
+{
+	SoupOpenSSLWatch *watch = (SoupOpenSSLWatch *) source;
+	GIOCondition buffer_condition = g_io_channel_get_buffer_condition (
+		watch->channel);
+	GIOCondition poll_condition = watch->pollfd.revents;
+
+	return ((poll_condition | buffer_condition) & watch->condition);
+}
+
+static gboolean
+soup_openssl_dispatch (GSource     *source,
+		       GSourceFunc  callback,
+		       gpointer     user_data)
+{
+	GIOFunc func = (GIOFunc) callback;
+	SoupOpenSSLWatch *watch = (SoupOpenSSLWatch *) source;
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) watch->channel;
+	GIOCondition buffer_condition = g_io_channel_get_buffer_condition (
+		watch->channel);
+	GIOCondition cond;
+
+	if (!func) {
+		g_warning ("IO watch dispatched without callback\n"
+			   "You must call g_source_connect().");
+		return FALSE;
+	}
+	
+	cond = (watch->pollfd.revents | buffer_condition) & watch->condition;
+
+	if (cond & G_IO_IN) {
+		do {
+			if (!(*func) (watch->channel, cond, user_data))
+			return FALSE;
+		} while (SSL_pending (chan->ssl));
+
+		return TRUE;
+	} else
+		return (*func) (watch->channel, cond, user_data);
+}
+
+static void
+soup_openssl_finalize (GSource *source)
+{
+	SoupOpenSSLWatch *watch = (SoupOpenSSLWatch *) source;
+
+	g_io_channel_unref (watch->channel);
+}
+
+/* All of these functions were basically cut-and-pasted from glib */
+GSourceFuncs soup_openssl_watch_funcs = {
+	soup_openssl_prepare,
+	soup_openssl_check,
+	soup_openssl_dispatch,
+	soup_openssl_finalize
+};
+
+static GSource *
+soup_openssl_create_watch (GIOChannel   *channel,
+			   GIOCondition  condition)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+
+	if (condition & G_IO_IN) {
+		GSource *source;
+		SoupOpenSSLWatch *watch;
+
+		source = g_source_new (&soup_openssl_watch_funcs,
+				       sizeof (SoupOpenSSLWatch));
+		watch = (SoupOpenSSLWatch *) source;
+
+		watch->channel = channel;
+		g_io_channel_ref (channel);
+
+		watch->condition = condition;
+		
+		watch->pollfd.fd = chan->fd;
+		watch->pollfd.events = condition;
+
+		g_source_add_poll (source, &watch->pollfd);
+
+		return source;
+	}
+	else {
+		return chan->real_sock->funcs->io_create_watch (channel,
+								condition);
+	}
+}
+
+static GIOStatus
+soup_openssl_set_flags (GIOChannel  *channel,
+			GIOFlags     flags,
+			GError     **err)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+
+	return chan->real_sock->funcs->io_set_flags (channel, flags, err);
+}	
+
+static GIOFlags
+soup_openssl_get_flags (GIOChannel *channel)
+{
+	SoupOpenSSLChannel *chan = (SoupOpenSSLChannel *) channel;
+
+	return chan->real_sock->funcs->io_get_flags (channel);
+}
+
+GIOFuncs soup_openssl_channel_funcs = {
+	soup_openssl_read,
+	soup_openssl_write,
+	soup_openssl_seek,
+	soup_openssl_close,
+	soup_openssl_create_watch,
+	soup_openssl_free,
+	soup_openssl_set_flags,
+	soup_openssl_get_flags
+};
+#endif /* #ifndef SOUP_GLIB2 */
 
 static SSL_CTX *ssl_context = NULL;
 

@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: Soup
 Description: a SOAP client library in C.
 Version: @VERSION@
-Requires: glib
+Requires: @SOUP_PKGCONFIG_REQUIRES@
 Libs: -L${libdir} -lsoup @XML_LIBS@
 Cflags: -I${includedir}/soup @XML_CFLAGS@
