@@ -646,6 +646,8 @@ requeue_connect_cb (SoupContext          *ctx,
 		soup_auth_free (data->conn_auth);
 
 	soup_queue_connect_cb (ctx, err, conn, data->msg);
+	if (data->msg->errorcode)
+		soup_message_issue_callback (data->msg);
 
 	g_free (data);
 }

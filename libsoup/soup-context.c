@@ -284,85 +284,9 @@ struct SoupConnectData {
 };
 
 static void
-soup_context_connect_cb (SoupSocket              *socket,
-			 SoupSocketConnectStatus  status,
-			 gpointer                 user_data)
-{
-	struct SoupConnectData *data = user_data;
-	SoupContext            *ctx = data->ctx;
-	SoupConnectCallbackFn   cb = data->cb;
-	gpointer                cb_data = data->user_data;
-	SoupConnection         *new_conn;
-	GIOChannel             *chan;
-
-	g_free (data);
-
-	switch (status) {
-	case SOUP_SOCKET_CONNECT_ERROR_NONE:
-		new_conn = g_new0 (SoupConnection, 1);
-		new_conn->server = ctx->server;
-		new_conn->socket = socket;
-		new_conn->port = ctx->uri->port;
-		new_conn->keep_alive = TRUE;
-		new_conn->in_use = TRUE;
-		new_conn->last_used_id = 0;
-		new_conn->context = ctx;
-
-		chan = soup_connection_get_iochannel (new_conn);
-		new_conn->death_tag = 
-			g_io_add_watch (chan,
-					G_IO_ERR | G_IO_HUP | G_IO_NVAL,
-					(GIOFunc) connection_death,
-					new_conn);
-		g_io_channel_unref (chan);
-
-		ctx->server->connections =
-			g_slist_prepend (ctx->server->connections,
-					 new_conn);
-
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data);
-		break;
-	default:
-		connection_count--;
-		soup_context_unref (ctx);
-
-		if (status == SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE)
-			(*cb) (ctx, 
-			       SOUP_CONNECT_ERROR_ADDR_RESOLVE, 
-			       NULL, 
-			       cb_data);
-		else
-			(*cb) (ctx, 
-			       SOUP_CONNECT_ERROR_NETWORK, 
-			       NULL, 
-			       cb_data);
-		break;
-	}
-}
-
-static SoupConnection *
-soup_try_existing_connections (SoupContext *ctx)
-{
-	GSList *conns = ctx->server->connections;
-	
-	while (conns) {
-		SoupConnection *conn = conns->data;
-
-		if (!conn->in_use &&
-		    conn->port == (guint) ctx->uri->port &&
-		    conn->keep_alive)
-			return conn;
-
-		conns = conns->next;
-	}
-
-	return NULL;
-}
-
-static void
-soup_prune_foreach (gchar               *hostname,
-		    SoupHost            *serv,
-		    SoupConnection     **last)
+prune_connection_foreach (gchar               *hostname,
+			  SoupHost            *serv,
+			  SoupConnection     **last)
 {
 	GSList *conns = serv->connections;
 
@@ -380,14 +304,13 @@ soup_prune_foreach (gchar               *hostname,
 }
 
 static gboolean
-soup_prune_least_used_connection (void)
+prune_least_used_connection (void)
 {
 	SoupConnection *last = NULL;
 
 	g_hash_table_foreach (soup_hosts, 
-			      (GHFunc) soup_prune_foreach, 
+			      (GHFunc) prune_connection_foreach, 
 			      &last);
-
 	if (last) {
 		connection_free (last);
 		return TRUE;
@@ -396,21 +319,165 @@ soup_prune_least_used_connection (void)
 	return FALSE;
 }
 
-static gboolean
-soup_prune_timeout (struct SoupConnectData *data)
+static gboolean retry_connect_timeout_cb (struct SoupConnectData *data);
+
+static void
+soup_context_connect_cb (SoupSocket              *socket,
+			 SoupSocketConnectStatus  status,
+			 gpointer                 user_data)
 {
-	gint conn_limit = soup_get_connection_limit ();
+	struct SoupConnectData *data = user_data;
+	SoupContext            *ctx = data->ctx;
+	SoupConnection         *new_conn;
+	GIOChannel             *chan;
 
-	if (conn_limit &&
-	    connection_count >= conn_limit &&
-	    !soup_try_existing_connections (data->ctx) &&
-	    !soup_prune_least_used_connection ())
-		return TRUE;
+	switch (status) {
+	case SOUP_SOCKET_CONNECT_ERROR_NONE:
+		new_conn = g_new0 (SoupConnection, 1);
+		new_conn->server = ctx->server;
+		new_conn->socket = socket;
+		new_conn->port = ctx->uri->port;
+		new_conn->keep_alive = TRUE;
+		new_conn->in_use = TRUE;
+		new_conn->last_used_id = 0;
 
-	soup_context_get_connection (data->ctx, data->cb, data->user_data);
+		new_conn->context = ctx;
+		soup_context_ref (ctx);
+
+		chan = soup_connection_get_iochannel (new_conn);
+		new_conn->death_tag = 
+			g_io_add_watch (chan,
+					G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+					(GIOFunc) connection_death,
+					new_conn);
+		g_io_channel_unref (chan);
+
+		ctx->server->connections =
+			g_slist_prepend (ctx->server->connections, new_conn);
+
+		g_print ("Creating new connection: %p\n", new_conn);
+
+		(*data->cb) (ctx, 
+			     SOUP_CONNECT_ERROR_NONE, 
+			     new_conn, 
+			     data->user_data);
+		break;
+	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
+		connection_count--;
+
+		(*data->cb) (ctx, 
+			     SOUP_CONNECT_ERROR_ADDR_RESOLVE, 
+			     NULL, 
+			     data->user_data);
+		break;
+	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
+		connection_count--;
+
+		/*
+		 * Check if another connection exists to this server
+		 * before reporting error. 
+		 */
+		if (ctx->server->connections) {
+			data->timeout_tag =
+				g_timeout_add (
+					150,
+					(GSourceFunc) retry_connect_timeout_cb,
+					data);
+			return;
+		}
+
+		(*data->cb) (ctx, 
+			     SOUP_CONNECT_ERROR_NETWORK, 
+			     NULL, 
+			     data->user_data);
+		break;
+	}
+
+	soup_context_unref (ctx);
 	g_free (data);
+}
+
+static gboolean
+try_existing_connections (SoupContext           *ctx,
+			  SoupConnectCallbackFn  cb,
+			  gpointer               user_data)
+{
+	GSList *conns = ctx->server->connections;
+	
+	while (conns) {
+		SoupConnection *conn = conns->data;
+
+		if (conn->in_use == FALSE &&
+		    conn->keep_alive == TRUE &&
+		    conn->port == (guint) ctx->uri->port) {
+			/* Set connection to in use */
+			conn->in_use = TRUE;
+
+			/* Reset connection context */
+			soup_context_ref (ctx);
+			soup_context_unref (conn->context);
+			conn->context = ctx;
+
+			/* Issue success callback */
+			(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
+			return TRUE;
+		}
+
+		conns = conns->next;
+	}
 
 	return FALSE;
+}
+
+static gboolean
+try_create_connection (struct SoupConnectData **dataptr)
+{
+	struct SoupConnectData *data = *dataptr;
+	gint conn_limit = soup_get_connection_limit ();
+	gpointer connect_tag;
+
+	/* 
+	 * Check if we are allowed to create a new connection, otherwise wait
+	 * for next timeout.  
+	 */
+	if (conn_limit &&
+	    connection_count >= conn_limit &&
+	    !prune_least_used_connection ()) {
+		data->connect_tag = 0;
+		return FALSE;
+	}
+
+	connection_count++;
+
+	data->timeout_tag = 0;
+	connect_tag = soup_socket_connect (data->ctx->uri->host,
+					   data->ctx->uri->port,
+					   soup_context_connect_cb,
+					   data);
+	/* 
+	 * NOTE: soup_socket_connect can fail immediately and call our
+	 * callback which will delete the state.  
+	 */
+	if (connect_tag)
+		data->connect_tag = connect_tag;
+	else
+		*dataptr = NULL;
+
+	return TRUE;
+}
+
+static gboolean
+retry_connect_timeout_cb (struct SoupConnectData *data)
+{
+	if (try_existing_connections (data->ctx, 
+				      data->cb, 
+				      data->user_data)) {
+		soup_context_unref (data->ctx);
+		g_free (data);
+		return FALSE;
+	}
+
+	return try_create_connection (&data) == FALSE;
 }
 
 /**
@@ -439,55 +506,26 @@ soup_context_get_connection (SoupContext           *ctx,
 			     SoupConnectCallbackFn  cb,
 			     gpointer               user_data)
 {
-	SoupConnection *conn;
 	struct SoupConnectData *data;
-	gint conn_limit;
 
 	g_return_val_if_fail (ctx != NULL, NULL);
 
-	if ((conn = soup_try_existing_connections (ctx))) {
-		conn->in_use = TRUE;
-
-		soup_context_ref (ctx);
-		soup_context_unref (conn->context);
-		conn->context = ctx;
-
-		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, conn, user_data);
+	/* Look for an existing unused connection */
+	if (try_existing_connections (ctx, cb, user_data))
 		return NULL;
-	}
 
 	data = g_new0 (struct SoupConnectData, 1);
-	data->ctx = ctx;
 	data->cb = cb;
 	data->user_data = user_data;
 
+	data->ctx = ctx;
 	soup_context_ref (ctx);
 
-	conn_limit = soup_get_connection_limit ();
-
-	if (conn_limit &&
-	    connection_count >= conn_limit &&
-	    !soup_prune_least_used_connection ())
+	if (!try_create_connection (&data))
 		data->timeout_tag =
-			g_timeout_add (500,
-				       (GSourceFunc) soup_prune_timeout,
+			g_timeout_add (150,
+				       (GSourceFunc) retry_connect_timeout_cb,
 				       data);
-	else {
-		gpointer connect_tag;
-
-		connection_count++;
-
-		connect_tag = soup_socket_connect (ctx->uri->host,
-						   ctx->uri->port,
-						   soup_context_connect_cb,
-						   data);
-		/* 
-		 * NOTE: soup_socket_connect can fail immediately and call our
-		 * callback which will delete the state.  
-		 */
-		if (connect_tag)
-			data->connect_tag = connect_tag;
-	}
 
 	return data;
 }

@@ -1,3 +1,24 @@
+2002-02-23  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (proxy_connect): Pull proxy connection
+	code out of soup_queue_connect_cb to here.
+	(start_request): Delay calling soup_message_issue_callback here.
+	(soup_queue_connect_cb): Ditto.
+	(soup_idle_handle_new_requests): Call soup_message_issue_callback
+	if req->errorcode is set.  This avoids an FMW when setting the
+	connect tag on a request which has a connect error and has been
+	freed.
+
+	* src/libsoup/soup-message.c (requeue_connect_cb): Call
+	soup_message_issue_callback if req->errorcode is set.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Add
+	timeout handler to retry connect if new connection failed and
+	there are existing connections to this host.
+	(soup_context_get_connection): Drop timeout interval to 150 from 500.
+
+	* src/libsoup/soup-misc.c: Set default connection limit to 10.
+
 2002-02-17  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-socket.c (soup_socket_connect_inetaddr_cb):

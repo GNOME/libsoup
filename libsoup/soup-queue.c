@@ -462,7 +462,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 				SOUP_ERROR_CANT_CONNECT,
 				phrase);
 
-		soup_message_issue_callback (req);
+		/* NOTE: Don't call soup_message_issue_callback here */
 		return;
 	}
 
@@ -538,6 +538,48 @@ proxy_https_connect (SoupContext    *proxy,
 	return ret;
 }
 
+static gboolean
+proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
+{
+	SoupProtocol proto, dest_proto;
+
+	/* 
+	 * Only attempt proxy connect if the connection's context is different
+	 * from the requested context, and if the connection is new 
+	 */
+	if (ctx == req->context || !soup_connection_is_new (conn))
+		return FALSE;
+
+	proto = soup_context_get_uri (ctx)->protocol;
+	dest_proto = soup_context_get_uri (req->context)->protocol;
+	
+	/* Handle SOCKS proxy negotiation */
+	if ((proto == SOUP_PROTOCOL_SOCKS4 || proto == SOUP_PROTOCOL_SOCKS5)) {
+		soup_connect_socks_proxy (conn, 
+					  req->context, 
+					  soup_queue_connect_cb,
+					  req);
+		return TRUE;
+	} 
+	
+	/* Handle HTTPS tunnel setup via proxy CONNECT request. */
+	if (dest_proto == SOUP_PROTOCOL_HTTPS) {
+		/* Syncronously send CONNECT request */
+		if (!proxy_https_connect (ctx, conn, req->context)) {
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT_PROXY,
+				"Unable to create secure data "
+				"tunnel through proxy");
+
+			/* NOTE: Don't call soup_message_issue_callback here */
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 void
 soup_queue_connect_cb (SoupContext          *ctx,
 		       SoupConnectErrorCode  err,
@@ -545,46 +587,18 @@ soup_queue_connect_cb (SoupContext          *ctx,
 		       gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-	SoupProtocol proto, dest_proto;
 
 	req->priv->connect_tag = NULL;
 	req->connection = conn;
 
 	switch (err) {
-	case SOUP_CONNECT_ERROR_NONE:		
-		proto = soup_context_get_uri (ctx)->protocol;
-		dest_proto = soup_context_get_uri (req->context)->protocol;
-
-		if (ctx != req->context && soup_connection_is_new (conn)) {
-			if ((proto == SOUP_PROTOCOL_SOCKS4 ||
-			     proto == SOUP_PROTOCOL_SOCKS5)) {
-				/*
-				 * Handle SOCKS proxy negotiation
-				 */
-				soup_connect_socks_proxy (conn, 
-							  req->context, 
-							  soup_queue_connect_cb,
-							  req);
-				return;
-			} 
-			else if (dest_proto == SOUP_PROTOCOL_HTTPS) {
-				/*
-				 * Handle HTTPS tunnel setup via proxy CONNECT
-				 * request. 
-				 */
-				if (!proxy_https_connect (ctx, 
-							  conn, 
-							  req->context)) {
-					soup_message_set_error_full (
-						req, 
-						SOUP_ERROR_CANT_CONNECT_PROXY,
-						"Unable to create secure data "
-						"tunnel through proxy");
-					soup_message_issue_callback (req);
-					return;
-				}
-			}
-		}
+	case SOUP_CONNECT_ERROR_NONE:
+		/* 
+		 * NOTE: proxy_connect will either set an error or call us 
+		 * again after proxy negotiation.
+		 */
+		if (proxy_connect (ctx, req, conn))
+			return;
 
 		start_request (ctx, req);
 		break;
@@ -601,7 +615,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 				SOUP_ERROR_CANT_CONNECT,
 				"Unable to resolve hostname");
 
-		soup_message_issue_callback (req);
+		/* NOTE: Don't call soup_message_issue_callback here */
 		break;
 
 	case SOUP_CONNECT_ERROR_NETWORK:
@@ -612,7 +626,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			soup_message_set_error (req, 
 						SOUP_ERROR_CANT_CONNECT);
 
-		soup_message_issue_callback (req);
+		/* NOTE: Don't call soup_message_issue_callback here */
 		break;
 	}
 
@@ -658,9 +672,9 @@ soup_queue_next_request (void)
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
-	SoupMessage *req;
+	SoupMessage *req = soup_queue_first_request ();
 
-	for (req = soup_queue_first_request (); req; req = soup_queue_next_request ()) {
+	for (; req; req = soup_queue_next_request ()) {
 		SoupContext *ctx, *proxy;
 
 		if (req->status != SOUP_STATUS_QUEUED)
@@ -682,7 +696,10 @@ soup_idle_handle_new_requests (gpointer unused)
 					ctx, 
 					soup_queue_connect_cb, 
 					req);
-			if (connect_tag)
+
+			if (req->errorcode)
+				soup_message_issue_callback (req);
+			else if (connect_tag)
 				req->priv->connect_tag = connect_tag;
 		}
 	}
@@ -779,6 +796,7 @@ soup_queue_shutdown (void)
 		soup_queue_idle_tag = 0;
 	}
 
-	for (req = soup_queue_first_request (); req; req = soup_queue_next_request ())
+	req = soup_queue_first_request ();
+	for (; req; req = soup_queue_next_request ())
 		soup_message_cancel (req);
 }

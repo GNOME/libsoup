@@ -19,7 +19,7 @@
 
 gboolean soup_initialized = FALSE;
 
-static guint max_connections = 0;
+static guint max_connections = 10;
 
 static SoupContext *proxy_context = NULL;
 
