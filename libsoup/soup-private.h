@@ -150,7 +150,7 @@ struct _SoupServer {
 void     soup_message_issue_callback (SoupMessage      *req);
 
 gboolean soup_message_run_handlers   (SoupMessage      *msg,
-				      SoupHandlerType   invoke_type);
+				      SoupHandlerEvent  invoke_type);
 
 void     soup_message_cleanup        (SoupMessage      *req);
 

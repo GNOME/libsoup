@@ -1,5 +1,26 @@
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-queue.c (soup_queue_read_headers_cb): 
+	(soup_queue_read_chunk_cb): 
+	(soup_queue_read_done_cb): Update to call renamed SoupHandlerEvents.
+
+	* src/libsoup/soup-message.[ch]: Remove
+	soup_message_get_request_header, soup_message_set_request_header,
+	soup_message_get_response_header,
+	soup_message_set_response_header,
+	soup_message_add_error_code_handler,
+	soup_message_add_error_class_handler,
+	soup_message_add_header_handler.
+	(redirect_handler): Update for new handler interface.
+	(authorize_handler): Ditto.
+	(timeout_handler): Impl.
+	(soup_message_remove_handler): Impl.
+	(soup_message_remove_handler_by_func): Impl.
+	(soup_message_remove_handler_by_func_and_data): Impl.
+	(soup_message_list_handlers): Impl.
+
+2001-11-08  Alex Graveley  <alex@ximian.com>
+
 	* configure.in: Bump HEAD version to 0.6.99.
 	* src/libsoup/soup-private.h (VERSION): Ditto.
 

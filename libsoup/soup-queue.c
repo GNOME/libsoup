@@ -184,7 +184,7 @@ soup_queue_read_headers_cb (const GString        *headers,
 	}
 
  RUN_HANDLERS:
-	if (soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY))
+	if (soup_message_run_handlers (req, SOUP_HANDLER_HEADERS))
 		return SOUP_TRANSFER_END;
 
 	return SOUP_TRANSFER_CONTINUE;
@@ -204,7 +204,7 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	if (soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK))
+	if (soup_message_run_handlers (req, SOUP_HANDLER_DATA))
 		return SOUP_TRANSFER_END;
 
 	return SOUP_TRANSFER_CONTINUE;
@@ -243,7 +243,7 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 		req->priv->read_tag = 0;
 	}
 
-	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
+	soup_message_run_handlers (req, SOUP_HANDLER_FINISHED);
 }
 
 static void
@@ -431,7 +431,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	req->priv->connect_tag = NULL;
 
 	switch (err) {
-	case SOUP_CONNECT_ERROR_NONE:		
+	case SOUP_CONNECT_ERROR_NONE:
 		proto = soup_context_get_uri (ctx)->protocol;
 
 		if (soup_connection_is_new (conn) &&
