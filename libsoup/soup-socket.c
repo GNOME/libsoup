@@ -736,11 +736,15 @@ soup_address_new (const gchar* name,
 		g_warning ("Fork error: %s (%d)\n",
 			   g_strerror(errno),
 			   errno);
+		close(pipes[0]);
+		close(pipes[1]);
 
 		(*func) (NULL, SOUP_ADDRESS_STATUS_ERROR, data);
 
 		return NULL;
 	case 0:
+		close(pipes[0]);
+
 		/* Try to get the host by name (ie, DNS) */
 		if (soup_gethostbyname (name, &sa, NULL)) {
 			guchar size = 4;	/* FIX for IPv6 */
@@ -762,6 +766,8 @@ soup_address_new (const gchar* name,
 		/* Exit (we don't want atexit called, so do _exit instead) */
 		_exit (EXIT_SUCCESS);
 	default:
+		close(pipes[1]);
+		
 		/* Create a structure for the call back */
 		state = g_new0 (SoupAddressState, 1);
 		state->ia.name = g_strdup (name);
@@ -1136,6 +1142,9 @@ soup_address_get_name (SoupAddress*         ia,
 			goto FORK_AGAIN;
 		}
 
+		close(pipes[0]);
+		close(pipes[1]);
+
 		/* Else there was a goofy error */
 		g_warning ("Fork error: %s (%d)\n",
 			   g_strerror(errno),
@@ -1145,6 +1154,8 @@ soup_address_get_name (SoupAddress*         ia,
 
 		return NULL;
 	case 0:
+		close(pipes[0]);
+
 		/* Write the name to the pipe.  If we didn't get a name,
 		   we just write the canonical name. */
 		name = soup_gethostbyaddr (
@@ -1195,6 +1206,8 @@ soup_address_get_name (SoupAddress*         ia,
 		/* Exit (we don't want atexit called, so do _exit instead) */
 		_exit(EXIT_SUCCESS);
 	default:
+		close(pipes[1]);
+
 		soup_address_ref (ia);
 
 		state = g_new0 (SoupAddressReverseState, 1);
