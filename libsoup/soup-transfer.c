@@ -186,9 +186,11 @@ issue_final_callback (SoupReader *r)
 
 	r->callback_issued = TRUE;
 
+	soup_transfer_read_ref (r);
 	soup_transfer_read_stop (r);
 
 	(*r->read_done_cb) (&buf, r->user_data);
+	soup_transfer_read_unref (r);
 }
 
 static gboolean
@@ -775,8 +777,10 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 		goto WRITE_AGAIN;
 	}
 
+	soup_transfer_write_ref (w);
 	soup_transfer_write_stop (w);
 	(*w->write_done_cb) (w->user_data);
+	soup_transfer_write_unref (w);
 	return FALSE;
 }
 

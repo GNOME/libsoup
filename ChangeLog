@@ -1,3 +1,13 @@
+2003-06-19  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-queue.c (soup_queue_read_done_cb): unref the
+	old read_tag before changing/clearing it.
+	(soup_queue_write_done_cb): Likewise with the write_tag.
+
+	* libsoup/soup-transfer.c (issue_final_callback): ref the reader
+	around the stop+callback.
+	(soup_transfer_write_cb): Likewise.
+
 2003-06-12  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-transfer.c (SoupReader, SoupWriter): add a

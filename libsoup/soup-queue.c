@@ -258,6 +258,8 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 	req->response.length = data->length;
 	req->response.body = data->body;
 
+	soup_transfer_read_unref (req->priv->read_tag);
+
 	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
 		GIOChannel *channel;
 		gboolean overwrt;
@@ -278,7 +280,7 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 	} 
 	else {
 		req->status = SOUP_STATUS_FINISHED;
-		req->priv->read_tag = 0;
+		req->priv->read_tag = NULL;
 	}
 
 	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
@@ -462,7 +464,8 @@ soup_queue_write_done_cb (gpointer user_data)
 {
 	SoupMessage *req = user_data;
 
-	req->priv->write_tag = 0;
+	soup_transfer_write_unref (req->priv->write_tag);
+	req->priv->write_tag = NULL;
 	req->status = SOUP_STATUS_READING_RESPONSE;
 }
 
