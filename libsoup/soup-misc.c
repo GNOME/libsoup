@@ -314,23 +314,30 @@ soup_base64_decode (const char   *text,
 
 typedef struct {
 	gpointer instance;
-	guint    real_id, self_id;
+	guint    signal_id;
 } SoupSignalOnceData;
 
 static void
-signal_once_destroy (gpointer ssod, GClosure *closure)
+signal_once_object_destroyed (gpointer ssod, GObject *ex_object)
 {
 	g_free (ssod);
 }
 
 static void
-signal_once_cb (gpointer user_data, ...)
+signal_once_metamarshal (GClosure *closure, GValue *return_value,
+			 guint n_param_values, const GValue *param_values,
+			 gpointer invocation_hint, gpointer marshal_data)
 {
-	SoupSignalOnceData *ssod = user_data;
+	SoupSignalOnceData *ssod = marshal_data;
 
-	if (g_signal_handler_is_connected (ssod->instance, ssod->real_id))
-		g_signal_handler_disconnect (ssod->instance, ssod->real_id);
-	g_signal_handler_disconnect (ssod->instance, ssod->self_id);
+	closure->marshal (closure, return_value, n_param_values,
+			  param_values, invocation_hint,
+			  ((GCClosure *)closure)->callback);
+
+	if (g_signal_handler_is_connected (ssod->instance, ssod->signal_id))
+		g_signal_handler_disconnect (ssod->instance, ssod->signal_id);
+	g_object_weak_unref (G_OBJECT (ssod->instance), signal_once_object_destroyed, ssod);
+	g_free (ssod);
 }
 
 /**
@@ -351,6 +358,7 @@ soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 			  GCallback c_handler, gpointer data)
 {
 	SoupSignalOnceData *ssod;
+	GClosure *closure;
 
 	g_return_val_if_fail (G_TYPE_CHECK_INSTANCE (instance), 0);
 	g_return_val_if_fail (detailed_signal != NULL, 0);
@@ -358,13 +366,12 @@ soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 
 	ssod = g_new0 (SoupSignalOnceData, 1);
 	ssod->instance = instance;
-	ssod->real_id =
-		g_signal_connect (instance, detailed_signal, c_handler, data);
-	ssod->self_id =
-		g_signal_connect_data (instance, detailed_signal,
-				       G_CALLBACK (signal_once_cb), ssod,
-				       signal_once_destroy,
-				       G_CONNECT_SWAPPED);
+	g_object_weak_ref (G_OBJECT (instance), signal_once_object_destroyed, ssod);
 
-	return ssod->real_id;
+	closure = g_cclosure_new (c_handler, data, NULL);
+	g_closure_set_meta_marshal (closure, ssod, signal_once_metamarshal);
+
+	ssod->signal_id = g_signal_connect_closure (instance, detailed_signal,
+						    closure, FALSE);
+	return ssod->signal_id;
 }
