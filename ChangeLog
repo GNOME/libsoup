@@ -1,5 +1,13 @@
 2001-05-02  Dick Porter  <dick@ximian.com>
 
+	* src/soup-wsdl/wsdl-soap-stubs.c
+	(wsdl_emit_soap_stubs_binding_operation): Write synchronous client
+	stubs
+
+	* src/soup-wsdl/wsdl-soap-headers.c
+	(wsdl_emit_soap_headers_binding_operation): Emit prototypes for
+	synchronous stubs
+
 	* src/soup-wsdl/wsdl-soap-skels.c
 	(wsdl_emit_soap_skels_binding_operation): Write server skels
 
