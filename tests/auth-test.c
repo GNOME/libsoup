@@ -163,10 +163,10 @@ identify_auth (SoupMessage *msg)
 	int num;
 
 	auth = soup_context_lookup_auth (msg->context, msg);
-	if (!auth || !auth->authenticated)
+	if (!auth || !soup_auth_is_authenticated (auth))
 		return 0;
 
-	header = soup_auth_authorize (auth, msg);
+	header = soup_auth_get_authorization (auth, msg);
 	if (!g_ascii_strncasecmp (header, "Basic ", 6)) {
 		char *token;
 		int len;

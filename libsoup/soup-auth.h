@@ -1,64 +1,71 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-auth.h: Authentication schemes
- *
- * Authors:
- *      Joe Shaw (joe@ximian.com)
- *
- * Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #ifndef SOUP_AUTH_H
 #define SOUP_AUTH_H 1
 
-#include <libsoup/soup-context.h>
+#include <glib-object.h>
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-misc.h>
+#include <libsoup/soup-uri.h>
 
-typedef   enum _SoupAuthStatus SoupAuthStatus;
-typedef struct _SoupAuth       SoupAuth;
+#define SOUP_TYPE_AUTH            (soup_auth_get_type ())
+#define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))
+#define SOUP_AUTH_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH, SoupAuthClass))
+#define SOUP_IS_AUTH(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_AUTH))
+#define SOUP_IS_AUTH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH))
+#define SOUP_AUTH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH, SoupAuthClass))
 
-struct _SoupAuth {
-	SoupAuthType    type;
-	char           *realm;
-	gboolean        authenticated;
+typedef struct {
+	GObject parent;
 
-	void     (*parse_func)      (SoupAuth      *auth,
-				     const gchar   *header);
+} SoupAuth;
 
-	void     (*init_func)       (SoupAuth      *auth, 
-				     const SoupUri *uri);
+typedef struct {
+	GObjectClass parent_class;
 
-	gboolean (*invalidate_func) (SoupAuth      *auth);
+	const char *scheme_name;
 
-	char    *(*auth_func)       (SoupAuth      *auth, 
-				     SoupMessage   *message);
+	void         (*construct)            (SoupAuth      *auth,
+					      const char    *header);
 
-	GSList  *(*pspace_func)     (SoupAuth      *auth,
-				     const SoupUri *source_uri);
+	GSList *     (*get_protection_space) (SoupAuth      *auth,
+					      const SoupUri *source_uri);
 
-	void     (*free_func)       (SoupAuth      *auth);
-};
+	const char * (*get_realm)            (SoupAuth      *auth);
 
-SoupAuth   *soup_auth_new_from_header_list  (const SoupUri *uri,
-					     const GSList  *header);
+	void         (*authenticate)         (SoupAuth      *auth,
+					      const char    *username,
+					      const char    *password);
+	gboolean     (*invalidate)           (SoupAuth      *auth);
+	gboolean     (*is_authenticated)     (SoupAuth      *auth);
 
-SoupAuth   *soup_auth_new_ntlm              (void);
+	char *       (*get_authorization)    (SoupAuth      *auth,
+					      SoupMessage   *msg);
+} SoupAuthClass;
 
-void        soup_auth_initialize            (SoupAuth      *auth,
-					     const SoupUri *uri);
+GType       soup_auth_get_type              (void);
 
+
+SoupAuth   *soup_auth_new_from_header_list  (const GSList  *header,
+					     const char    *pref);
+
+const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
+const char *soup_auth_get_realm             (SoupAuth      *auth);
+
+void        soup_auth_authenticate          (SoupAuth      *auth,
+					     const char    *username,
+					     const char    *password);
 gboolean    soup_auth_invalidate            (SoupAuth      *auth);
+gboolean    soup_auth_is_authenticated      (SoupAuth      *auth);
 
-void        soup_auth_free                  (SoupAuth      *auth);
-
-gchar      *soup_auth_authorize             (SoupAuth      *auth, 
+char       *soup_auth_get_authorization     (SoupAuth      *auth, 
 					     SoupMessage   *msg);
 
 GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
 					     const SoupUri *source_uri);
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
-
 
 #endif /* SOUP_AUTH_H */

@@ -25,6 +25,7 @@
 #include <netinet/in.h>
 
 #include "soup-auth.h"
+#include "soup-auth-ntlm.h"
 #include "soup-context.h"
 #include "soup-private.h"
 #include "soup-misc.h"
@@ -204,7 +205,7 @@ static void
 free_auth (gpointer realm, gpointer auth, gpointer unused)
 {
 	g_free (realm);
-	soup_auth_free (auth);
+	g_object_unref (auth);
 }
 
 /**
@@ -266,7 +267,7 @@ connection_free (SoupConnection *conn)
 		g_slist_remove (conn->server->connections, conn);
 
 	if (conn->auth)
-		soup_auth_free (conn->auth);
+		g_object_unref (conn->auth);
 
 	g_io_channel_unref (conn->channel);
 	soup_context_unref (conn->context);
@@ -790,7 +791,7 @@ soup_context_lookup_auth (SoupContext *ctx, SoupMessage *msg)
 
 	if (ctx->server->use_ntlm && msg && msg->connection) {
 		if (!msg->connection->auth)
-			msg->connection->auth = soup_auth_new_ntlm ();
+			msg->connection->auth = soup_auth_ntlm_new ();
 		return msg->connection->auth;
 	}
 
@@ -828,7 +829,7 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 	GSList *pspace, *p;
 
 	if (server->use_ntlm && conn && conn->auth) {
-		if (conn->auth->authenticated) {
+		if (soup_auth_is_authenticated (conn->auth)) {
 			/* This is a "permission denied", not a
 			 * "password incorrect". There's nothing more
 			 * we can do.
@@ -837,22 +838,24 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 		}
 
 		/* Free the intermediate auth */
-		soup_auth_free (conn->auth);
+		g_object_unref (conn->auth);
 		conn->auth = NULL;
 	}
 
 	/* Try to construct a new auth from the headers; if we can't,
 	 * there's no way we'll be able to authenticate.
 	 */
-	new_auth = soup_auth_new_from_header_list (ctx->uri, headers);
+	new_auth = soup_auth_new_from_header_list (headers, ctx->uri->authmech);
 	if (!new_auth)
 		return FALSE;
 
 	/* See if this auth is the same auth we used last time */
 	prior_auth = soup_context_lookup_auth (ctx, NULL);
-	if (prior_auth && prior_auth->type == new_auth->type &&
-	    !strcmp (prior_auth->realm, new_auth->realm)) {
-		soup_auth_free (new_auth);
+	if (prior_auth &&
+	    G_OBJECT_TYPE (prior_auth) == G_OBJECT_TYPE (new_auth) &&
+	    !strcmp (soup_auth_get_realm (prior_auth),
+		     soup_auth_get_realm (new_auth))) {
+		g_object_unref (new_auth);
 		if (prior_auth_failed) {
 			/* The server didn't like the username/password
 			 * we provided before.
@@ -868,13 +871,13 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 		}
 	}
 
-	if (new_auth->type == SOUP_AUTH_TYPE_NTLM) {
+	if (SOUP_IS_AUTH_NTLM (new_auth)) {
 		server->use_ntlm = TRUE;
 		if (conn) {
 			conn->auth = new_auth;
 			return soup_context_authenticate_auth (ctx, new_auth);
 		} else {
-			soup_auth_free (new_auth);
+			g_object_unref (new_auth);
 			return FALSE;
 		}
 	}
@@ -885,7 +888,9 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 	}
 
 	/* Record where this auth realm is used */
-	realm = g_strdup_printf ("%d:%s", new_auth->type, new_auth->realm);
+	realm = g_strdup_printf ("%s:%s",
+				 soup_auth_get_scheme_name (new_auth),
+				 soup_auth_get_realm (new_auth));
 	pspace = soup_auth_get_protection_space (new_auth, ctx->uri);
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
@@ -908,13 +913,13 @@ update_auth_internal (SoupContext *ctx, SoupConnection *conn,
 	old_auth = g_hash_table_lookup (server->auths, realm);
 	if (old_auth) {
 		g_free (realm);
-		soup_auth_free (new_auth);
+		g_object_unref (new_auth);
 		new_auth = old_auth;
 	} else 
 		g_hash_table_insert (server->auths, realm, new_auth);
 
 	/* Try to authenticate if needed. */
-	if (!new_auth->authenticated)
+	if (!soup_auth_is_authenticated (new_auth))
 		return soup_context_authenticate_auth (ctx, new_auth);
 
 	return TRUE;
@@ -958,16 +963,16 @@ soup_context_authenticate_auth (SoupContext *ctx, SoupAuth *auth)
 	const SoupUri *uri = ctx->uri;
 
 	if (!uri->user && soup_auth_fn) {
-		(*soup_auth_fn) (auth->type,
+		(*soup_auth_fn) (soup_auth_get_scheme_name (auth),
 				 (SoupUri *) uri,
-				 auth->realm, 
+				 soup_auth_get_realm (auth), 
 				 soup_auth_fn_user_data);
 	}
 
 	if (!uri->user)
 		return FALSE;
 
-	soup_auth_initialize (auth, uri);
+	soup_auth_authenticate (auth, uri->user, uri->passwd);
 	return TRUE;
 }
 
@@ -985,14 +990,16 @@ soup_context_invalidate_auth (SoupContext *ctx, SoupAuth *auth)
 		return;
 
 	/* Nope, need to remove it completely */
-	realm = g_strdup_printf ("%d:%s", auth->type, auth->realm);
+	realm = g_strdup_printf ("%s:%s",
+				 soup_auth_get_scheme_name (auth),
+				 soup_auth_get_realm (auth));
 
 	if (g_hash_table_lookup_extended (ctx->server->auths, realm,
 					  &key, &value) &&
 	    auth == (SoupAuth *)value) {
 		g_hash_table_remove (ctx->server->auths, realm);
 		g_free (key);
-		soup_auth_free (auth);
+		g_object_unref (auth);
 	}
 	g_free (realm);
 }

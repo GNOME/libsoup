@@ -298,11 +298,11 @@ soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 	auth = soup_context_lookup_auth (ctx, msg);
 	if (!auth)
 		return;
-	if (!auth->authenticated &&
+	if (!soup_auth_is_authenticated (auth) &&
 	    !soup_context_authenticate_auth (ctx, auth))
 		return;
 
-	token = soup_auth_authorize (auth, msg);
+	token = soup_auth_get_authorization (auth, msg);
 	if (token) {
 		g_string_sprintfa (header, "%s: %s\r\n",
 				   proxy_auth ? 

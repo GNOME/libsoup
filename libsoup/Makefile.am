@@ -20,7 +20,6 @@ libsoupinclude_HEADERS =	\
 	soup-message.h		\
 	soup-method.h		\
 	soup-misc.h     	\
-	soup-ntlm.h		\
 	soup-server-auth.h	\
 	soup-server.h		\
 	soup-socket.h		\
@@ -41,6 +40,12 @@ libsoup_2_2_la_SOURCES =	\
 	soup-address.c		\
 	soup-auth.h		\
 	soup-auth.c		\
+	soup-auth-basic.h	\
+	soup-auth-basic.c	\
+	soup-auth-digest.h	\
+	soup-auth-digest.c	\
+	soup-auth-ntlm.h	\
+	soup-auth-ntlm.c	\
 	soup-context.c		\
 	soup-dns.h		\
 	soup-dns.c		\
@@ -51,7 +56,6 @@ libsoup_2_2_la_SOURCES =	\
 	soup-message.c		\
 	soup-method.c		\
 	soup-misc.c     	\
-	soup-ntlm.c     	\
 	soup-private.h     	\
 	soup-queue.h		\
 	soup-queue.c		\

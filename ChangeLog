@@ -1,5 +1,33 @@
 2003-08-12  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-auth.c: Make this an abstract GObject. Tweak some
+	of the interfaces around a little bit.
+
+	* libsoup/soup-auth-basic.c: subclass for Basic auth
+
+	* libsoup/soup-auth-digest.c: subclass for Digest auth
+
+	* libsoup/soup-auth-ntlm.c: subclass for NTLM auth. Move all of
+	the code from soup-ntlm.c here, and make it private.
+
+	* libsoup/soup-ntlm.c: gone
+
+	* libsoup/soup-misc.h: Remove the definition of SoupAuthType from
+	here, and change the signature of SoupAuthorizeFn.
+
+	* libsoup/soup-context.c: Use g_object_unref to free auths, use
+	methods instead of directly access private fields.
+
+	* libsoup/soup-queue.c: Likewise
+
+	* libsoup/soup-server-auth.c (soup_server_auth_free): Remove all
+	NTLM references. We have no plans to implement server-side NTLM
+	auth.
+
+	* tests/auth-test.c (identify_auth): Update for auth api changes
+
+2003-08-12  Dan Winship  <danw@ximian.com>
+
 	* configure.in (GLIB): add gobject-2.0 to the PKG_CHECK_MODULES
 	call
 

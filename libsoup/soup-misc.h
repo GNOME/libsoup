@@ -56,15 +56,9 @@ void               soup_get_ssl_cert_files   (const gchar **cert_file,
 
 /* Authentication callback */
 
-typedef enum {
-	SOUP_AUTH_TYPE_BASIC = 1,
-	SOUP_AUTH_TYPE_DIGEST,
-	SOUP_AUTH_TYPE_NTLM,	
-} SoupAuthType;
-
-typedef void (*SoupAuthorizeFn) (SoupAuthType   type,
+typedef void (*SoupAuthorizeFn) (const char    *scheme_name,
 				 SoupUri       *uri,
-				 const gchar   *realm,
+				 const char    *realm,
 				 gpointer       user_data);
 
 void               soup_set_authorize_callback (SoupAuthorizeFn authfn,

@@ -18,7 +18,6 @@
 
 #include "md5-utils.h"
 #include "soup-headers.h"
-#include "soup-ntlm.h"
 
 typedef struct {
 	const gchar   *scheme;
@@ -28,7 +27,6 @@ typedef struct {
 
 static AuthScheme known_auth_schemes [] = {
 	{ "Basic",  SOUP_AUTH_TYPE_BASIC,  0 },
-	{ "NTLM",   SOUP_AUTH_TYPE_NTLM,   2 },
 	{ "Digest", SOUP_AUTH_TYPE_DIGEST, 3 },
 	{ NULL }
 };
@@ -180,26 +178,6 @@ soup_server_auth_check_passwd (SoupServerAuth *auth,
 			return passwd == auth->basic.passwd;
 	case SOUP_AUTH_TYPE_DIGEST:
 		return check_digest_passwd (&auth->digest, passwd);
-	case SOUP_AUTH_TYPE_NTLM:
-		if (passwd) {
-			gchar lm_hash [21], nt_hash [21];
-
-			soup_ntlm_lanmanager_hash (passwd, lm_hash);
-			soup_ntlm_nt_hash (passwd, nt_hash);
-
-			if (memcmp (lm_hash, 
-				    auth->ntlm.lm_hash, 
-				    sizeof (lm_hash)) != 0)
-				return FALSE;
-
-			if (memcmp (nt_hash, 
-				    auth->ntlm.nt_hash, 
-				    sizeof (nt_hash)) != 0)
-				return FALSE;
-
-			return TRUE;
-		}
-		return FALSE;
 	}
 
 	return FALSE;
@@ -215,8 +193,6 @@ soup_server_auth_get_user (SoupServerAuth *auth)
 		return auth->basic.user;
 	case SOUP_AUTH_TYPE_DIGEST:
 		return auth->digest.user;
-	case SOUP_AUTH_TYPE_NTLM:
-		return auth->ntlm.user;
 	}
 
 	return NULL;
@@ -417,9 +393,6 @@ soup_server_auth_new (SoupServerAuthContext *auth_ctx,
 		if (parse_digest (auth_ctx, header, msg, ret))
 			return ret;
 		break;
-	case SOUP_AUTH_TYPE_NTLM:
-		g_warning ("NTLM server authentication not yet implemented\n");
-		break;
 	}
 
 	g_free (ret);
@@ -445,13 +418,6 @@ soup_server_auth_free (SoupServerAuth *auth)
 		g_free ((gchar *) auth->digest.cnonce);
 		g_free ((gchar *) auth->digest.digest_uri);
 		g_free ((gchar *) auth->digest.digest_response);
-		break;
-	case SOUP_AUTH_TYPE_NTLM:
-		g_free ((gchar *) auth->ntlm.host);
-		g_free ((gchar *) auth->ntlm.domain);
-		g_free ((gchar *) auth->ntlm.user);
-		g_free ((gchar *) auth->ntlm.lm_hash);
-		g_free ((gchar *) auth->ntlm.nt_hash);
 		break;
 	}
 

@@ -1,13 +1,8 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-ntlm-offset: 8 -*- */
 /*
- * soup-ntlm.c: Microsoft Windows NTLM authentication support
+ * soup-auth-ntlm.c: HTTP NTLM Authentication
  *
- * Authors:
- *      Dan Winship (danw@ximian.com)
- *
- * Public domain DES implementation from Phil Karn.
- *
- * All else Copyright (C) 2001-2002, Ximian, Inc.
+ * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,11 +10,179 @@
 #endif
 
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "soup-ntlm.h"
-#include "soup-misc.h"
+#include "soup-auth-ntlm.h"
+#include "soup-private.h"
+#include "soup-uri.h"
+
+static void construct (SoupAuth *auth, const char *header);
+static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
+static const char *get_realm (SoupAuth *auth);
+static void authenticate (SoupAuth *auth, const char *username, const char *password);
+static gboolean invalidate (SoupAuth *auth);
+static gboolean is_authenticated (SoupAuth *auth);
+static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
+
+char     *soup_ntlm_request         (void);
+gboolean  soup_ntlm_parse_challenge (const char  *challenge,
+				     char       **nonce,
+				     char       **default_domain);
+char     *soup_ntlm_response        (const char  *nonce, 
+				     const char  *user,
+				     const char  *password, 
+				     const char  *host, 
+				     const char  *domain);
+
+struct SoupAuthNTLMPrivate {
+	gboolean authenticated;
+	char *header;
+	char *response;
+};
+
+#define PARENT_TYPE SOUP_TYPE_AUTH
+static SoupAuthClass *parent_class;
+
+static void
+init (GObject *object)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (object);
+
+	ntlm->priv = g_new0 (SoupAuthNTLMPrivate, 1);
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (object);
+
+	g_free (ntlm->priv->header);
+	g_free (ntlm->priv->response);
+	g_free (ntlm->priv);
+
+	G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
+class_init (GObjectClass *object_class)
+{
+	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (object_class);
+
+	parent_class = g_type_class_ref (PARENT_TYPE);
+
+	auth_class->scheme_name = "NTLM";
+
+	auth_class->construct = construct;
+	auth_class->get_protection_space = get_protection_space;
+	auth_class->get_realm = get_realm;
+	auth_class->authenticate = authenticate;
+	auth_class->invalidate = invalidate;
+	auth_class->is_authenticated = is_authenticated;
+	auth_class->get_authorization = get_authorization;
+
+	object_class->finalize = finalize;
+}
+
+SOUP_MAKE_TYPE (soup_auth_ntlm, SoupAuthNTLM, class_init, init, PARENT_TYPE)
+
+
+SoupAuth *
+soup_auth_ntlm_new (void)
+{
+	SoupAuth *auth;
+
+	auth = g_object_new (SOUP_TYPE_AUTH_NTLM, NULL);
+	construct (auth, "");
+	return auth;
+}
+
+static void
+construct (SoupAuth *auth, const char *header)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (auth);
+
+	ntlm->priv->header = g_strdup (header);
+}
+
+static GSList *
+get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
+{
+	/* The protection space is the whole server. */
+	return g_slist_prepend (NULL, g_strdup (""));
+}
+
+static const char *
+get_realm (SoupAuth *auth)
+{
+	return "";
+}
+
+static void
+authenticate (SoupAuth *auth, const char *username, const char *password)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (auth);
+	char *domain, *nonce;
+
+	if (!ntlm->priv->header || strlen (ntlm->priv->header) < sizeof ("NTLM"))
+		return;
+
+	if (ntlm->priv->response)
+		g_free (ntlm->priv->response);
+
+	if (soup_ntlm_parse_challenge (ntlm->priv->header, &nonce, &domain)) {
+		ntlm->priv->response =
+			soup_ntlm_response (nonce, username, password,
+					    NULL, domain);
+		g_free (nonce);
+		g_free (domain);
+	} else
+		ntlm->priv->response = NULL;
+
+	g_free (ntlm->priv->header);
+	ntlm->priv->header = NULL;
+
+	ntlm->priv->authenticated = TRUE;
+}
+
+static gboolean
+invalidate (SoupAuth *auth)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (auth);
+
+	g_free (ntlm->priv->response);
+	ntlm->priv->response = NULL;
+	g_free (ntlm->priv->header);
+	ntlm->priv->header = NULL;
+
+	ntlm->priv->authenticated = FALSE;
+
+	return TRUE;
+}
+
+static gboolean
+is_authenticated (SoupAuth *auth)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (auth);
+
+	return ntlm->priv->authenticated;
+}
+
+static char *
+get_authorization (SoupAuth *auth, SoupMessage *msg)
+{
+	SoupAuthNTLM *ntlm = SOUP_AUTH_NTLM (auth);
+	char *ret;
+
+	if (!ntlm->priv->authenticated)
+		return soup_ntlm_request ();
+
+	/* Otherwise, return the response; but only once */
+	ret = ntlm->priv->response;
+	ntlm->priv->response = NULL;
+	return ret;
+}
+
+
 
 /* MD4 */
 static void md4sum                (const unsigned char *in, 
@@ -43,8 +206,8 @@ static void calc_response         (const guchar        *key,
                           "\x4B\x47\x53\x21\x40\x23\x24\x25" \
 			  "\x00\x00\x00\x00\x00"
 
-void
-soup_ntlm_lanmanager_hash (const char *password, guchar hash[21])
+static void
+lanmanager_hash (const char *password, guchar hash[21])
 {
 	guchar lm_password [15];
 	DES_KS ks;
@@ -65,8 +228,8 @@ soup_ntlm_lanmanager_hash (const char *password, guchar hash[21])
 	des (ks, hash + 8);
 }
 
-void
-soup_ntlm_nt_hash (const char *password, guchar hash[21])
+static void
+nt_hash (const char *password, guchar hash[21])
 {
 	unsigned char *buf, *p;
 
@@ -188,9 +351,9 @@ soup_ntlm_response (const char *nonce,
 	unsigned char *out, *p;
 	int state, save;
 
-	soup_ntlm_lanmanager_hash (password, hash);
+	lanmanager_hash (password, hash);
 	calc_response (hash, nonce, lm_resp);
-	soup_ntlm_nt_hash (password, hash);
+	nt_hash (password, hash);
 	calc_response (hash, nonce, nt_resp);
 
 	memset (&resp, 0, sizeof (resp));

@@ -44,6 +44,11 @@ void soup_server_auth_context_challenge (SoupServerAuthContext *auth_ctx,
 					 gchar                 *header_name);
 
 
+typedef enum {
+	SOUP_AUTH_TYPE_BASIC = 1,
+	SOUP_AUTH_TYPE_DIGEST,
+} SoupAuthType;
+
 typedef struct {
 	SoupAuthType  type;
 	const gchar  *user;
@@ -69,20 +74,10 @@ typedef struct {
 	const gchar          *request_method;
 } SoupServerAuthDigest;
 
-typedef struct {
-	SoupAuthType  type;
-	const gchar  *host;
-	const gchar  *domain;
-	const gchar  *user;
-	const gchar  *lm_hash;
-	const gchar  *nt_hash;
-} SoupServerAuthNTLM;
-
 union _SoupServerAuth {
 	SoupAuthType          type;
 	SoupServerAuthBasic   basic;
 	SoupServerAuthDigest  digest;
-	SoupServerAuthNTLM    ntlm;
 };
 
 SoupServerAuth *soup_server_auth_new          (SoupServerAuthContext *auth_ctx, 
