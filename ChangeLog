@@ -1,3 +1,8 @@
+2002-02-10  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Temporary
+	fix for 100% cpu usage as HUPs are not being caught in some cases.
+
 2002-02-08  Dan Winship  <danw@ximian.com>
 
 	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_write): Handle
