@@ -1,3 +1,12 @@
+2002-08-29  Joe Shaw  <joe@ximian.com>
+
+	* src/libsoup/soup-message.c (global_handlers): Get rid of the
+	"Authentication-Info" header handler.
+	(authorize_handler): Set up a handler on the auth's controlling
+	message to validate the auth.
+	(maybe_validate_auth): Make sure our error code isn't an auth
+	failure or a server error and set the auth to the successful state.
+
 2002-08-27  Dan Winship  <danw@ximian.com>
 
 	* src/libsoup/soup-ntlm.c (setup_schedule): Make this not read
