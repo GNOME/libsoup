@@ -1,3 +1,11 @@
+2003-09-26  Dan Winship  <danw@ximian.com>
+
+	* configure.in: 1.99.28
+
+	* libsoup/soup-auth.c (basic_pspace_func): strip the trailing
+	slash from the path so that it matches what it will be compared
+	against later. #48880
+
 2003-09-18  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: 1.99.27

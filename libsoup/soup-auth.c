@@ -69,9 +69,9 @@ basic_pspace_func (SoupAuth *auth, const SoupUri *source_uri)
 
 	space = g_strdup (source_uri->path);
 
-	/* Strip query and filename component */
+	/* Strip query and filename component, and trailing slash */
 	p = strrchr (space, '/');
-	if (p && p != space && p[1])
+	if (p)
 		*p = '\0';
 
 	return g_slist_prepend (NULL, space);
