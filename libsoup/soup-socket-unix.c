@@ -43,7 +43,6 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
-#include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
@@ -57,14 +56,17 @@
 #include <sys/sockio.h>
 #endif
 
-#ifndef PTRACE_ATTACH
-#  ifdef PT_ATTACH
-#    define SOUP_PTRACE_ATTACH PT_ATTACH
-#    define SOUP_PTRACE_DETACH PT_DETACH
+#ifdef G_ENABLE_DEBUG
+#  include <sys/ptrace.h>
+#  ifndef PTRACE_ATTACH
+#    ifdef PT_ATTACH
+#      define SOUP_PTRACE_ATTACH PT_ATTACH
+#      define SOUP_PTRACE_DETACH PT_DETACH
+#    endif
+#  else
+#    define SOUP_PTRACE_ATTACH PTRACE_ATTACH
+#    define SOUP_PTRACE_DETACH PTRACE_DETACH
 #  endif
-#else
-#  define SOUP_PTRACE_ATTACH PTRACE_ATTACH
-#  define SOUP_PTRACE_DETACH PTRACE_DETACH
 #endif
 
 #ifndef socklen_t

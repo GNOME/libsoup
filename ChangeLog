@@ -1,5 +1,14 @@
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
+	* configure.in (debug_default): Set debug default to "minimum",
+	which turns off G_ENABLE_DEBUG (and the ptrace magic) by default.
+	To turn back on for a debugging environment, use --enable-debug.
+
+	* src/libsoup/soup-socket-unix.c (SOUP_PTRACE_DETACH): Wrap
+	SOUP_PTRACE defines in check for G_ENABLE_DEBUG.
+
+2001-11-08  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-socks.c (socks_data_free): Add cleanup function
 	to avoid leaving context/address references around.
 	(WSHORT): Use memcpy.

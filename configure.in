@@ -29,12 +29,7 @@ dnl ***************************
 dnl *** Set debugging flags ***
 dnl ***************************
 
-# Figure out debugging default, prior to $ac_help setup
-if test `expr $SOUP_REVISION \% 2` = 1 ; then
-	debug_default=yes
-else
-	debug_default=minimum
-fi
+debug_default=minimum
 
 # Declare --enable-* args and collect ac_help strings
 AC_ARG_ENABLE(debug, 
