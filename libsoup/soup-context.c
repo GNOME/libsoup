@@ -189,6 +189,15 @@ soup_context_ref (SoupContext *ctx)
 	ctx->refcnt++;
 }
 
+static gboolean
+remove_auth (gchar *path, SoupAuth *auth)
+{
+	g_free (path);
+	soup_auth_free (auth);
+
+	return TRUE;
+}
+
 /**
  * soup_context_unref:
  * @ctx: a %SoupContext.
@@ -223,13 +232,21 @@ soup_context_unref (SoupContext *ctx)
 				conns = conns->next;
 			}
 
-			g_free (serv->host);
 			g_slist_free (serv->connections);
+
+			if (serv->valid_auths) {
+				g_hash_table_foreach_remove (
+					serv->valid_auths,
+					(GHRFunc) remove_auth,
+					NULL);
+				g_hash_table_destroy (serv->valid_auths);
+			}
+
 			g_hash_table_destroy (serv->contexts);
+			g_free (serv->host);
 			g_free (serv);
 		}
 
-		if (ctx->auth) soup_auth_free (ctx->auth);
 		soup_uri_free (ctx->uri);
 		g_free (ctx);
 	}

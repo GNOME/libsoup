@@ -5,6 +5,7 @@
  * Authors:
  *      Joe Shaw (joe@ximian.com)
  *      Jeffrey Steadfast (fejj@ximian.com)
+ *      Alex Graveley (alex@ximian.com)
  *
  * Copyright (C) 2001, Ximian, Inc.
  */
@@ -36,31 +37,6 @@
 #include "soup-private.h"
 #include "soup-ntlm.h"
 
-typedef enum {
-	SOUP_AUTH_BASIC,
-	SOUP_AUTH_DIGEST,
-	SOUP_AUTH_NTLM,
-} SoupAuthType;
-
-typedef gboolean (*SoupCompareFunc) (SoupAuth *a, SoupAuth *b);
-
-typedef void (*SoupParseFunc) (SoupAuth *auth, const gchar *header);
-
-typedef char *(*SoupAuthFunc) (SoupAuth *auth, SoupMessage *message);
-
-typedef SoupAuth *(*SoupAuthNewFn) (void);
-
-typedef void (*SoupAuthFreeFn) (SoupAuth *auth);
-
-struct _SoupAuth {
-	SoupContext     *context;
-	SoupAuthType     type;
-	SoupCompareFunc  compare_func;
-	SoupParseFunc    parse_func;
-	SoupAuthFunc     auth_func;
-	SoupAuthFreeFn   free_func;
-};
-
 static char       *copy_token_if_exists (GHashTable  *tokens, char *t);
 static char       *decode_token         (char       **in);
 static GHashTable *parse_param_list     (const char  *header);
@@ -73,7 +49,8 @@ static void        destroy_param_hash   (GHashTable  *table);
 
 typedef struct {
 	SoupAuth auth;
-	char *realm;
+	gchar *realm;
+	gchar *token;
 } SoupAuthBasic;
 
 static gboolean
@@ -85,30 +62,17 @@ basic_compare_func (SoupAuth *a, SoupAuth *b)
 static char *
 basic_auth_func (SoupAuth *auth, SoupMessage *message)
 {
-	const SoupUri *uri;
-	char *user_pass;
-	char *base64;
-	char *out;
+	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
 
-	g_return_val_if_fail (auth->context, NULL);
-
-	uri = soup_context_get_uri (auth->context);
-
-	user_pass = g_strdup_printf ("%s:%s", uri->user, uri->passwd);
-	base64 = soup_base64_encode (user_pass, strlen (user_pass));
-	g_free (user_pass);
-
-	out = g_strdup_printf ("Basic %s", base64);
-	g_free (base64);
-
-	return out;
+	return g_strconcat ("Basic ", basic->token, NULL);
 }
 
 static void
-basic_parse_func (SoupAuth *auth, const char *header)
+basic_parse_func (SoupAuth *auth, const SoupUri *uri, const char *header)
 {
 	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
 	GHashTable *tokens;
+	char *user_pass;
 
 	header += sizeof ("Basic");
 
@@ -116,6 +80,10 @@ basic_parse_func (SoupAuth *auth, const char *header)
 	if (!tokens) return;
 
 	basic->realm = copy_token_if_exists (tokens, "realm");
+
+	user_pass = g_strdup_printf ("%s:%s", uri->user, uri->passwd);
+	basic->token = soup_base64_encode (user_pass, strlen (user_pass));
+	g_free (user_pass);
 
 	destroy_param_hash (tokens);
 }
@@ -126,6 +94,7 @@ basic_free (SoupAuth *auth)
 	SoupAuthBasic *basic = (SoupAuthBasic *) auth;
 
 	g_free (basic->realm);
+	g_free (basic->token);
 	g_free (basic);
 }
 
@@ -165,6 +134,9 @@ typedef enum {
 typedef struct {
 	SoupAuth auth;
 
+	gchar  *user;
+	guchar  hex_a1 [33];
+
 	/* These are provided by the server */
 	char *realm;
 	char *nonce;
@@ -197,43 +169,17 @@ digest_hex (guchar *digest, guchar hex[33])
 static char *
 compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 {
-	SoupAuth *auth = (SoupAuth *) digest;
-	char *tmp;
 	const SoupUri *uri;
-	guchar hex_a1[33], hex_a2[33], o[33];
+	guchar hex_a2[33], o[33];
 	guchar d[16];
 	MD5Context ctx;
 	char *url;
 
-	uri = soup_context_get_uri (auth->context);
+	uri = soup_context_get_uri (msg->context);
 	if (uri->querystring)
 		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
 	else
 		url = g_strdup (uri->path);
-
-	/* compute A1 */
-	md5_init (&ctx);
-	md5_update (&ctx, uri->user, strlen (uri->user));
-	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, digest->realm, strlen (digest->realm));
-	md5_update (&ctx, ":", 1);
-	tmp = uri->passwd ? uri->passwd : "";
-	md5_update (&ctx, tmp, strlen (tmp));
-
-	if (digest->algorithm == ALGORITHM_MD5_SESS) {
-		md5_final (&ctx, d);
-
-		md5_init (&ctx);
-		md5_update (&ctx, d, 16);
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->nonce, strlen (digest->nonce));
-		md5_update (&ctx, ":", 1);
-		md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
-	}
-
-	/* hexify A1 */
-	md5_final (&ctx, d);
-	digest_hex (d, hex_a1);
 
 	/* compute A2 */
 	md5_init (&ctx);
@@ -254,7 +200,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 
 	/* compute KD */
 	md5_init (&ctx);
-	md5_update (&ctx, hex_a1, 32);
+	md5_update (&ctx, digest->hex_a1, 32);
 	md5_update (&ctx, ":", 1);
 	md5_update (&ctx, digest->nonce, strlen (digest->nonce));
 	md5_update (&ctx, ":", 1);
@@ -300,7 +246,6 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	char *url;
 	char *out;
 
-	g_return_val_if_fail (auth->context, NULL);
 	g_return_val_if_fail (message, NULL);
 
 	response = compute_response (digest, message);
@@ -312,7 +257,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	else
 		g_assert_not_reached ();
 
-	uri = soup_context_get_uri (auth->context);
+	uri = soup_context_get_uri (message->context);
 	if (uri->querystring)
 		url = g_strdup_printf ("%s?%s", uri->path, uri->querystring);
 	else
@@ -323,7 +268,7 @@ digest_auth_func (SoupAuth *auth, SoupMessage *message)
 	out = g_strdup_printf (
 		"Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", %s%s%s "
 		"%s%s%s %s%s%s uri=\"%s\", response=\"%s\"",
-		uri->user,
+		digest->user,
 		digest->realm,
 		digest->nonce,
 
@@ -391,18 +336,46 @@ decode_algorithm (const char *name)
 }
 
 static void
-digest_parse_func (SoupAuth *auth, const char *header)
+digest_parse_func (SoupAuth *auth, const SoupUri *uri, const char *header)
 {
 	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
 	GHashTable *tokens;
 	char *tmp, *ptr;
+	MD5Context ctx;
+	guchar d[16];
 
 	header += sizeof ("Digest");
 
 	tokens = parse_param_list (header);
 	if (!tokens) return;
 
+	digest->user = g_strdup (uri->user);
 	digest->realm = copy_token_if_exists (tokens, "realm");
+
+	/* compute A1 */
+	md5_init (&ctx);
+	md5_update (&ctx, uri->user, strlen (uri->user));
+	md5_update (&ctx, ":", 1);
+	md5_update (&ctx, digest->realm, strlen (digest->realm));
+	md5_update (&ctx, ":", 1);
+	tmp = uri->passwd ? uri->passwd : "";
+	md5_update (&ctx, tmp, strlen (tmp));
+
+	if (digest->algorithm == ALGORITHM_MD5_SESS) {
+		md5_final (&ctx, d);
+
+		md5_init (&ctx);
+		md5_update (&ctx, d, 16);
+		md5_update (&ctx, ":", 1);
+		md5_update (&ctx, digest->nonce, strlen (digest->nonce));
+		md5_update (&ctx, ":", 1);
+		md5_update (&ctx, digest->cnonce, strlen (digest->cnonce));
+	}
+
+	/* hexify A1 */
+	md5_final (&ctx, d);
+	digest_hex (d, digest->hex_a1);
+
 	digest->nonce = copy_token_if_exists (tokens, "nonce");
 
 	tmp = copy_token_if_exists (tokens, "qop");
@@ -443,6 +416,8 @@ digest_free (SoupAuth *auth)
 {
 	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
 
+	g_free (digest->user);
+
 	g_free (digest->realm);
 	g_free (digest->nonce);
 	g_free (digest->cnonce);
@@ -457,6 +432,7 @@ soup_auth_new_digest (void)
 	char *bgen;
 
 	digest = g_new0 (SoupAuthDigest, 1);
+
 	auth = (SoupAuth *) digest;
 	auth->type = SOUP_AUTH_DIGEST;
 	auth->compare_func = digest_compare_func;
@@ -537,10 +513,9 @@ ntlm_get_authmech_token (const SoupUri *uri, gchar *key)
  *        each negotiation step.
  */
 static void
-ntlm_parse (SoupAuth *sa, const char *header)
+ntlm_parse (SoupAuth *sa, const SoupUri *uri, const char *header)
 {
 	SoupAuthNTLM *auth = (SoupAuthNTLM *) sa;
-	const SoupUri *uri = soup_context_get_uri (auth->auth.context);
 	gchar *host, *domain;
 
 	host   = ntlm_get_authmech_token (uri, "host=");
@@ -598,6 +573,62 @@ ntlm_new (void)
  * Generic Authentication Interface
  */
 
+SoupAuth *
+soup_auth_lookup (SoupContext  *ctx)
+{
+	GHashTable *auth_hash = ctx->server->valid_auths;
+	SoupAuth *ret = NULL;
+	gchar *mypath, *dir;
+
+	if (!auth_hash) return NULL;
+
+	mypath = g_strdup (ctx->uri->path);
+	dir = mypath;
+
+        do {
+                ret = g_hash_table_lookup (auth_hash, mypath);
+                if (ret) break;
+
+                dir = strrchr (mypath, '/');
+                if (dir) *dir = '\0';
+        } while (dir);
+
+	g_free (mypath);
+	return ret;
+}
+
+void
+soup_auth_set_context (SoupAuth *auth, SoupContext *ctx)
+{
+	SoupHost *server;
+	SoupAuth *old_auth = NULL;
+	gchar *old_path;
+	const SoupUri *uri;
+
+	g_return_if_fail (ctx != NULL);
+	g_return_if_fail (auth != NULL);
+
+	server = ctx->server;
+	uri = soup_context_get_uri (ctx);
+
+	if (!server->valid_auths)
+		server->valid_auths = 
+			g_hash_table_new (g_str_hash, g_str_equal);
+	else if (g_hash_table_lookup_extended (server->valid_auths, 
+					       uri->path,
+					       (gpointer *) &old_path,
+					       (gpointer *) &old_auth)) {
+		g_free (old_path);
+		soup_auth_free (old_auth);
+	}
+
+	g_hash_table_insert (server->valid_auths,
+			     g_strdup (uri->path),
+			     auth);
+}
+
+typedef SoupAuth *(*SoupAuthNewFn) (void);
+
 typedef struct {
 	const gchar   *scheme;
 	SoupAuthNewFn  ctor;
@@ -612,13 +643,14 @@ static AuthScheme known_auth_schemes [] = {
 };
 
 SoupAuth *
-soup_auth_new_from_header_list (SoupContext *context, const GSList *vals)
+soup_auth_new_from_header_list (const SoupUri *uri,
+				const GSList  *vals)
 {
 	gchar *header = NULL;
 	AuthScheme *scheme = NULL, *iter;
 	SoupAuth *auth = NULL;
 
-	g_return_val_if_fail (context != NULL, NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 	g_return_val_if_fail (vals != NULL, NULL);
 
 	while (vals) {
@@ -641,9 +673,7 @@ soup_auth_new_from_header_list (SoupContext *context, const GSList *vals)
 	auth = scheme->ctor ();
 	if (!auth) return NULL;
 
-	auth->context = context;
-
-	auth->parse_func (auth, header);
+	auth->parse_func (auth, uri, header);
 
 	return auth;
 }
@@ -671,7 +701,11 @@ soup_auth_invalidates_prior (SoupAuth *new_auth, SoupAuth *old_auth)
 	g_return_val_if_fail (new_auth != NULL, FALSE);
 	g_return_val_if_fail (old_auth != NULL, TRUE);
 
-	if (new_auth->type != old_auth->type) return TRUE;
+	if (new_auth == old_auth) 
+		return FALSE;
+
+	if (new_auth->type != old_auth->type) 
+		return TRUE;
 
 	return new_auth->compare_func (new_auth, old_auth);
 }

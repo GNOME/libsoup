@@ -511,21 +511,23 @@ static void
 authorize_handler (SoupMessage *msg, gboolean proxy)
 {
 	const GSList *vals;
-	SoupAuth *auth;
+	SoupAuth *auth, *old_auth;
 	SoupContext *ctx;
+	const SoupUri *uri;
 
 	ctx = proxy ? soup_get_proxy () : msg->context;
+	uri = soup_context_get_uri (ctx);
 
-	if (!soup_context_get_uri (ctx)->user) 
+	if (!uri->user) 
 		goto THROW_CANT_AUTHENTICATE;
 
-	vals = 
-		soup_message_get_header_list (
-			msg->response_headers, 
-			proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
+	vals = soup_message_get_header_list (msg->response_headers, 
+					     proxy ? 
+					             "Proxy-Authenticate" : 
+					             "WWW-Authenticate");
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header_list (ctx, vals);
+        auth = soup_auth_new_from_header_list (uri, vals);
 	if (!auth) {
 		soup_message_set_error_full (
 			msg, 
@@ -533,23 +535,21 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 			        SOUP_ERROR_CANT_AUTHENTICATE_PROXY : 
 			        SOUP_ERROR_CANT_AUTHENTICATE,
 			proxy ? 
-			        "Unknown authentication scheme "
-			        "required by proxy" :
-			        "Unknown authentication scheme "
-			        "required");
+			        "Unknown authentication scheme required by "
+			        "proxy" :
+			        "Unknown authentication scheme required");
 		return;
 	}
 
-	if (ctx->auth) {
-		if (soup_auth_invalidates_prior (auth, ctx->auth))
-			soup_auth_free (ctx->auth);
-		else {
+	old_auth = soup_auth_lookup (ctx);
+	if (old_auth) {
+		if (!soup_auth_invalidates_prior (auth, old_auth)) {
 			soup_auth_free (auth);
 			goto THROW_CANT_AUTHENTICATE;
 		}
 	}
 
-	ctx->auth = auth;
+	soup_auth_set_context (auth, ctx);
 
 	soup_message_queue (msg, msg->priv->callback, msg->priv->user_data);
 

@@ -9,7 +9,7 @@
  */
 
 /* 
- * All the things SOUP users shouldn't need to know about except under
+ * All the things Soup users shouldn't need to know about except under
  * extraneous circumstances.
  */
 
@@ -72,6 +72,7 @@ typedef struct {
 	gchar      *host;
 	GSList     *connections;        /* CONTAINS: SoupConnection */
 	GHashTable *contexts;           /* KEY: uri->path, VALUE: SoupContext */
+	GHashTable *valid_auths;        /* KEY: uri->path, VALUE: SoupAuth */
 } SoupHost;
 
 struct _SoupAddress {
@@ -87,12 +88,9 @@ struct _SoupSocket {
 	GIOChannel     *iochannel;
 };
 
-typedef struct _SoupAuth SoupAuth;
-
 struct _SoupContext {
 	SoupUri      *uri;
 	SoupHost     *server;
-	SoupAuth     *auth;
 	guint         refcnt;
 };
 

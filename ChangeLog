@@ -1,3 +1,45 @@
+2001-10-19  Alex Graveley  <alex@ximian.com>
+
+	This is the first attempt at authentication inheritence, it
+	still needs some work.  Auth headers are always sent no matter
+	what, auth realms are not respected, and auth data in the uri is
+	ignored unless an existing auth attempt fails.
+
+	* src/libsoup/soup-auth.c (digest_parse_func): Compute a1 hash
+	"user:realm:passwd:nonce:cnonce" here, to cut down on per-request
+	overhead. Accept a SoupUri from which to get auth info.
+	(basic_parse_func): Base64 encode user:passwd here for same
+	reason. Accept a SoupUri for getting auth info.
+	(compute_response): Get uri path from message instead of SoupAuth.
+	(digest_auth_func): Ditto.
+	(soup_auth_lookup): Impl. Given a context, lookup the SoupAuth of
+	the nearest parent directory.
+	(soup_auth_set_context): Impl. Register a SoupAuth to be used for
+	requests to the context's path and subdirectories.
+
+	* src/libsoup/soup-auth.h: Move define of SoupAuth here, in
+	preparation for making public eventually.
+
+	* src/libsoup/soup-queue.c (soup_encode_http_auth): Use
+	soup_auth_lookup ().
+	(soup_get_request_header): Don't check the request's uri for auth
+	info, as a parent context may have a valid registered SoupAuth.
+
+	* src/libsoup/soup-message.c (authorize_handler): Use
+	soup_auth_lookup() to find last (failing) SoupAuth. Use
+	soup_auth_set_context() to register the created SoupAuth for this
+	context.
+
+	* src/libsoup/soup-message.h: Explicitly define values for soup
+	transport-level errorcodes, just because.
+
+	* src/libsoup/soup-context.c (soup_context_unref): When freeing
+	the SoupHost parent of this context, free all associated
+	SoupAuths.
+
+	* src/libsoup/soup-private.h: Remove auth pointer from context,
+	add hashtable of valid auths to SoupAuth.
+
 2001-10-18  Alex Graveley  <alex@ximian.com>
 
         * src/libsoup/soup-queue.c (soup_queue_read_headers_cb): Set

@@ -242,22 +242,22 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 static void
 soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 {
+	SoupAuth *auth;
 	SoupContext *ctx;
 	char *token;
 
 	ctx = proxy_auth ? soup_get_proxy () : msg->context;
 
-	if (ctx->auth) {
-		token = soup_auth_authorize (ctx->auth, msg);
+	auth = soup_auth_lookup (ctx);
+	if (auth) {
+		token = soup_auth_authorize (auth, msg);
 		if (token) {
-			g_string_sprintfa (
-				header, 
-				"%s: %s\r\n",
-				proxy_auth ? 
-				        "Proxy-Authorization" : 
-				        "Authorization",
-				token);
-
+			g_string_sprintfa (header, 
+					   "%s: %s\r\n",
+					   proxy_auth ? 
+					   	"Proxy-Authorization" : 
+					   	"Authorization",
+					   token);
 			g_free (token);
 		}
  	}
@@ -393,7 +393,7 @@ soup_get_request_header (SoupMessage *req)
 	/* 
 	 * Authorization from the context Uri 
 	 */
-	if (!hdrs.auth && suri->user)
+	if (!hdrs.auth)
 		soup_encode_http_auth (req, header, FALSE);
 
 	g_string_append (header, "\r\n");
