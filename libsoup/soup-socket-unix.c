@@ -893,7 +893,9 @@ soup_address_unref (SoupAddress* ia)
 	--ia->ref_count;
 
 	if (ia->ref_count == 0) {
-		if (ia->name && !zeroref_address_timeout_tag) {
+		if (!ia->name) 
+			g_free (ia);
+		else if (!zeroref_address_timeout_tag) {
 			/* 
 			 * Cleanup zero reference addresses every 2 minutes.
 			 *
@@ -906,8 +908,7 @@ soup_address_unref (SoupAddress* ia)
 					       (GSourceFunc) 
 					       prune_zeroref_addresses_timeout,
 					       NULL);
-		} else
-			g_free (ia);
+		}
 	}
 }
 
