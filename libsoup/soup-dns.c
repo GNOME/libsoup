@@ -610,7 +610,7 @@ check_hostent (SoupDNSEntry *entry, gboolean block)
 
 	soup_dns_lock ();
 
-	if (entry->resolved || !entry->fd) {
+	if (entry->resolved) {
 		soup_dns_unlock ();
 		return;
 	}
@@ -638,7 +638,7 @@ check_hostent (SoupDNSEntry *entry, gboolean block)
 
 		if (bytes_read > 0)
 			nread += bytes_read;
-	} while (bytes_read > 0 || errno == EINTR);
+	} while (bytes_read > 0 || (bytes_read == -1 && errno == EINTR));
 
 	close (entry->fd);
 	entry->fd = -1;

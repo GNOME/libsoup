@@ -1,3 +1,9 @@
+2004-03-02  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-dns.c (check_hostent): Only loop on EINTR if
+	bytes_read is -1, since the value of errno is irrelevant when
+	bytes_read is 0. Probably #54960.
+
 2004-03-01  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.h: removed not-implemented function's
