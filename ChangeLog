@@ -1,3 +1,61 @@
+2001-05-04  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl-runtime/wsdl-schema.c: Decide which schema parser to
+	call for a WSDL <types> section. This supercedes the old glib schema
+	parser in wsdl-parse.c. The WSDL parser is now effectively decoupled
+	from the schema, which should make it much easier to add new schemas
+	in the future without having to change the parser.
+
+	* src/soup-wsdl-runtime/wsdl-schema-glib.c: Build typecodes from
+	the simple glib schema
+
+	* src/soup-wsdl-runtime/wsdl-typecodes-c.c: Write C code
+	describing a typecode.
+
+	* src/soup-wsdl-runtime/wsdl-soap-parse.c: 
+	* src/soup-wsdl-runtime/wsdl-soap-marshal.c: 
+	* src/soup-wsdl-runtime/wsdl-param.h: Take all instances of 'glib' out
+	of typecode definitions and function names.
+
+	* src/soup-wsdl-runtime/Makefile.am: Build a version of the
+	runtime library more useful for writing C code (ideally i'd make
+	this dynamically link the runtime library, but libtool wont let
+	me)
+
+	* src/soup-wsdl/wsdl-thread.c (wsdl_thread_soap_parts): No need to
+	look up glib types, the message part already holds a pointer to
+	the typecode.
+
+	* src/soup-wsdl/wsdl-soap-stubs.c:
+	* src/soup-wsdl/wsdl-soap-skels.c: Type names are looked up by
+	typecode. All checks for custom glib types have been deleted.
+
+	* src/soup-wsdl/wsdl-soap-headers.c: All typecode declarations are
+	now printed using the runtime library.  Type names are looked up
+	by typecode. All checks for custom glib types have been deleted.
+
+	* src/soup-wsdl/wsdl-soap-common.c: All typecode printing is now
+	done using the runtime library.
+
+	* src/soup-wsdl/wsdl-parse.c: Moved wsdl_qnamecmp() and
+	wsdl_attrnscmp to wsdl-schema.c (in the runtime library)
+	(wsdl_parse_message_part_attrs): Look up typecodes, not glib types.
+	(wsdl_parse_types): Call through the runtime schema parser, instead
+	of the custom glib type parser.
+
+	* src/soup-wsdl/wsdl-memory.c (wsdl_free_types): Delete typecodes
+	rather than glib types.
+
+	* src/soup-wsdl/wsdl-describe.c: Replace the type printing
+	routines with calls to wsdl_typecode_print
+
+	* src/soup-wsdl/main.c (main): No need to initialise the glib
+	types any more.
+
+	* src/soup-wsdl/Makefile.am (soup_wsdl_SOURCES): Don't bother to
+	compile wsdl-types-glib.c, it's been superceded by the typecode
+	builder
+
 2001-05-02  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-soap-stubs.c
