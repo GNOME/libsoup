@@ -7,6 +7,7 @@
 #define SOUP_SOAP_RESPONSE_H
 
 #include <glib-object.h>
+#include <libxml/tree.h>
 
 G_BEGIN_DECLS
 
@@ -40,7 +41,19 @@ const char       *soup_soap_response_get_method_name (SoupSoapResponse *response
 void              soup_soap_response_set_method_name (SoupSoapResponse *response,
 						      const char *method_name);
 
-const GList      *soup_soap_response_get_parameters (SoupSoapResponse *response);
+typedef xmlNode SoupSoapParameter;
+
+const char        *soup_soap_parameter_get_name (SoupSoapParameter *param);
+
+const GList       *soup_soap_response_get_parameters (SoupSoapResponse *response);
+SoupSoapParameter *soup_soap_response_get_first_parameter (SoupSoapResponse *response);
+SoupSoapParameter *soup_soap_response_get_first_parameter_by_name (SoupSoapResponse *response,
+								   const char *name);
+SoupSoapParameter *soup_soap_response_get_next_parameter (SoupSoapResponse *response,
+							  SoupSoapParameter *from);
+SoupSoapParameter *soup_soap_response_get_next_parameter_by_name (SoupSoapResponse *response,
+								  SoupSoapParameter *from,
+								  const char *name);
 
 G_END_DECLS
 

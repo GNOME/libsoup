@@ -142,7 +142,7 @@ gboolean
 soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 {
 	xmlDocPtr old_doc = NULL;
-	xmlNodePtr xml_root, xml_body, xml_method;
+	xmlNodePtr xml_root, xml_body = NULL, xml_method = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), FALSE);
 	g_return_val_if_fail (xmlstr != NULL, FALSE);
@@ -229,13 +229,23 @@ soup_soap_response_set_method_name (SoupSoapResponse *response, const char *meth
 	xmlNodeSetName (response->priv->xml_method, method_name);
 }
 
+const char *
+soup_soap_parameter_get_name (SoupSoapParameter *param)
+{
+	g_return_val_if_fail (param != NULL, NULL);
+
+	return (const char *) param->name;
+}
+
 /**
  * soup_soap_response_get_parameters:
  * @response: the %SoupSoapResponse object.
  *
  * Returns the list of parameters received in the SOAP response.
  *
- * Return value: the list of parameters, represented in xmlNodePtr's.
+ * Return value: the list of parameters, represented in
+ * SoupSoapParameter's, which is an opaque type used to
+ * represent a parameter in the SOAP response.
  */
 const GList *
 soup_soap_response_get_parameters (SoupSoapResponse *response)
@@ -243,4 +253,115 @@ soup_soap_response_get_parameters (SoupSoapResponse *response)
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
 
 	return (const GList *) response->priv->parameters;
+}
+
+/**
+ * soup_soap_response_get_first_parameter:
+ * @response: the %SoupSoapResponse object.
+ *
+ * Retrieves the first parameter contained in the SOAP response.
+ *
+ * Return value: a %SoupSoapParameter representing the
+ * first parameter. This is an opaque type used to
+ * represent a parameter in the SOAP response.
+ */
+SoupSoapParameter *
+soup_soap_response_get_first_parameter (SoupSoapResponse *response)
+{
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+
+	return response->priv->parameters ? g_list_first (response->priv->parameters) : NULL;
+}
+
+/**
+ * soup_soap_response_get_first_parameter_by_name:
+ * @response: the %SoupSoapResponse object.
+ * @name: the name of the parameter to look for.
+ *
+ * Retrieves the first parameter contained in the SOAP response whose
+ * name is @name.
+ *
+ * Return value: a %SoupSoapParameter representing the
+ * first parameter. This is an opaque type used to
+ * represent a parameter in the SOAP response.
+ */
+SoupSoapParameter *
+soup_soap_response_get_first_parameter_by_name (SoupSoapResponse *response,
+						const char *name)
+{
+	GList *l;
+
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+
+	for (l = response->priv->parameters; l != NULL; l = l->next) {
+		SoupSoapParameter *param = (SoupSoapParameter *) l->data;
+
+		if (!strcmp (name, param->name))
+			return param;
+	}
+
+	return NULL;
+}
+
+/**
+ * soup_soap_response_get_next_parameter:
+ * @response: the %SoupSoapResponse object.
+ * @from: the parameter to start from.
+ *
+ * Retrieves the parameter following @from in the %SoupSoapResponse object.
+ *
+ * Return value: a %SoupSoapParameter representing the parameter.
+ */
+SoupSoapParameter *
+soup_soap_response_get_next_parameter (SoupSoapResponse *response,
+				       SoupSoapParameter *from)
+{
+	GList *l;
+
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	g_return_val_if_fail (from != NULL, NULL);
+
+	l = g_list_find (response->priv->parameters, (gconstpointer) from);
+	if (!l)
+		return NULL;
+
+	return l->next ? (SoupSoapParameter *) l->next->data : NULL;
+}
+
+/**
+ * soup_soap_response_get_next_parameter_by_name:
+ * @response: the %SoupSoapResponse object.
+ * @from: the parameter to start from.
+ * @name: the name of the parameter to look for.
+ *
+ * Retrieves the parameter following @from in the %SoupSoapResponse object
+ * whose name matches @name.
+ *
+ * Return value: a %SoupSoapParameter representing the parameter.
+ */
+SoupSoapParameter *
+soup_soap_response_get_next_parameter_by_name (SoupSoapResponse *response,
+					       SoupSoapParameter *from,
+					       const char *name)
+{
+	SoupSoapParameter *param;
+
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	g_return_val_if_fail (from != NULL, NULL);
+	g_return_val_if_fail (name != NULL, NULL);
+
+	param = soup_soap_response_get_next_parameter (response, from);
+	while (param) {
+		const char *param_name = soup_soap_parameter_get_name (param);
+
+		if (param_name) {
+			if (!strcmp (name, param_name))
+				return param;
+		}
+
+		param = soup_soap_response_get_next_parameter (response, param);
+	}
+
+	return NULL;
 }

@@ -1,3 +1,16 @@
+2003-11-26  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.[ch]: added SoupSoapParameter
+	structure, to "hide" the usage of xmlNode's.
+	(soup_soap_parameter_get_name): functions to manage SOAP
+	response parameters.
+	(soup_soap_response_get_first_parameter,
+	soup_soap_response_get_first_parameter_by_name,
+	soup_soap_response_get_next_parameter,
+	soup_soap_response_get_next_parameter_by_name):
+	new functions for an easy access to the response's parameters.
+	(soup_soap_response_from_string): removed warnings.
+
 2003-11-25  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.c (soup_soap_response_set_method_name):
