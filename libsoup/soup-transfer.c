@@ -73,7 +73,7 @@ typedef struct {
 	 */
 	gboolean               callback_issued;
 
-	gboolean               processing;
+	gboolean              *cancelled;
 
 	GByteArray            *recv_buf;
 	guint                  header_len;
@@ -96,7 +96,7 @@ typedef struct {
 	guint                   write_tag;
 	guint                   err_tag;
 
-	gboolean                processing;
+	gboolean               *cancelled;
 
 	SoupTransferEncoding    encoding;
 	GByteArray             *write_buf;
@@ -111,15 +111,18 @@ typedef struct {
 	gpointer                user_data;
 } SoupWriter;
 
-#define IGNORE_CANCEL(t) (t)->processing = TRUE;
-#define UNIGNORE_CANCEL(t) (t)->processing = FALSE;
+#define IGNORE_CANCEL(t, cancel_p) (t)->cancelled = cancel_p;
+#define UNIGNORE_CANCEL(t) (t)->cancelled = NULL;
 
 void
 soup_transfer_read_cancel (guint tag)
 {
 	SoupReader *r = GINT_TO_POINTER (tag);
 
-	if (r->processing) return;
+	if (r->cancelled) {
+		*(r->cancelled) = TRUE;
+		return;
+	}
 
 	if (r->read_tag)
 		g_source_remove (r->read_tag);
@@ -170,9 +173,7 @@ issue_final_callback (SoupReader *r)
 		g_source_remove (r->err_tag);
 		r->read_tag = r->err_tag = 0;
 
-		IGNORE_CANCEL (r);
 		(*r->read_done_cb) (&buf, r->user_data);
-		UNIGNORE_CANCEL (r);
 	}
 }
 
@@ -182,7 +183,9 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 			     SoupReader *r)
 {
 	gboolean body_started = r->recv_buf->len > r->header_len;
+	gboolean cancelled = FALSE;
 
+	IGNORE_CANCEL (r, &cancelled);
 	/*
 	 * Closing the connection to signify EOF is valid if content length is
 	 * unknown, but only if headers have been sent.
@@ -192,7 +195,6 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 		goto CANCELLED;
 	}
 
-	IGNORE_CANCEL (r);
 	if (r->error_cb) (*r->error_cb) (body_started, r->user_data);
 	UNIGNORE_CANCEL (r);
 
@@ -314,14 +316,12 @@ issue_chunk_callback (SoupReader *r, gchar *data, gint len, gboolean *cancelled)
 
 		r->callback_issued = TRUE;
 
-		IGNORE_CANCEL (r);
+		IGNORE_CANCEL (r, cancelled);
 		cont = (*r->read_chunk_cb) (&buf, r->user_data);
 		UNIGNORE_CANCEL (r);
 
 		if (cont == SOUP_TRANSFER_END)
 			*cancelled = TRUE;
-		else
-			*cancelled = FALSE;
 	}
 }
 
@@ -471,14 +471,14 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 			strncpy (str.str, r->recv_buf->data, index);
 			str.str [index] = '\0';
 
-			IGNORE_CANCEL (r);
+			IGNORE_CANCEL (r, &cancelled);
 			ret = (*r->headers_done_cb) (&str, 
 						     &r->encoding, 
 						     &r->content_length, 
 						     r->user_data);
 			UNIGNORE_CANCEL (r);
 
-			if (ret == SOUP_TRANSFER_END) 
+			if (ret == SOUP_TRANSFER_END || cancelled) 
 				goto FINISH_READ;
 		}
 
@@ -510,7 +510,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 		goto READ_AGAIN;
 	}
 
+	IGNORE_CANCEL (r, &cancelled);
 	issue_final_callback (r);
+	UNIGNORE_CANCEL (r);
 
  FINISH_READ:
 	soup_transfer_read_cancel (GPOINTER_TO_INT (r));
@@ -560,7 +562,10 @@ soup_transfer_write_cancel (guint tag)
 {
 	SoupWriter *w = GINT_TO_POINTER (tag);
 
-	if (w->processing) return;
+	if (w->cancelled) {
+		*(w->cancelled) = TRUE;
+		return;
+	}
 
 	if (w->write_tag)
 		g_source_remove (w->write_tag);
@@ -577,7 +582,9 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 			      SoupWriter *w)
 {
 	if (w->error_cb) {
-		IGNORE_CANCEL (w);
+		gboolean cancelled;
+
+		IGNORE_CANCEL (w, &cancelled);
 		(*w->error_cb) (w->headers_done, w->user_data);
 		UNIGNORE_CANCEL (w);
 	}
@@ -588,11 +595,11 @@ soup_transfer_write_error_cb (GIOChannel* iochannel,
 }
 
 static gboolean 
-get_header (SoupWriter *w)
+get_header (SoupWriter *w, gboolean *cancelled)
 {
 	GString *header = NULL;
 
-	IGNORE_CANCEL (w);
+	IGNORE_CANCEL (w, cancelled);
 	(*w->get_header_cb) (&header, w->user_data);
 	UNIGNORE_CANCEL (w);
 
@@ -628,12 +635,12 @@ write_chunk_sep (GByteArray *arr, gint len, gint chunk_cnt)
 }
 
 static void
-get_next_chunk (SoupWriter *w)
+get_next_chunk (SoupWriter *w, gboolean *cancelled)
 {
 	SoupTransferStatus ret = SOUP_TRANSFER_END;
 	SoupDataBuffer buf = { 0 , NULL, 0 };
 
-	IGNORE_CANCEL (w);
+	IGNORE_CANCEL (w, cancelled);
 	ret = (*w->get_chunk_cb) (&buf, w->user_data);
 	UNIGNORE_CANCEL (w);
 
@@ -673,16 +680,23 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	GIOError error;
 	gpointer pipe_handler;
 	gsize bytes_written = 0;
+	gboolean cancelled = FALSE;
 
 	/*
 	 * Get the header and first data chunk (if available).
 	 */
 	if (w->get_header_cb) {
-		if (!get_header (w)) 
+		if (!get_header (w, &cancelled)) {
+			if (cancelled)
+				goto CANCEL;
 			return TRUE;
+		}
 
-		if (w->get_chunk_cb)
-			get_next_chunk (w);
+		if (w->get_chunk_cb) {
+			get_next_chunk (w, &cancelled);
+			if (cancelled)
+				goto CANCEL;
+		}
 	}
 
 	IGNORE_PIPE (pipe_handler);
@@ -721,7 +735,10 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	 * Get the next data chunk and try again, or quit if paused.
 	 */
 	if (w->get_chunk_cb) {
-		get_next_chunk (w);
+		get_next_chunk (w, &cancelled);
+
+		if (cancelled)
+			goto CANCEL;
 
 		if (!w->write_tag)
 			goto DONE_WRITING;
@@ -730,11 +747,12 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	}
 
 	if (w->write_done_cb) {
-		IGNORE_CANCEL (w);
+		IGNORE_CANCEL (w, &cancelled);
 		(*w->write_done_cb) (w->user_data);
 		UNIGNORE_CANCEL (w);
 	}
 
+ CANCEL:
 	soup_transfer_write_cancel (GPOINTER_TO_INT (w));
 
  DONE_WRITING:

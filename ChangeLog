@@ -1,3 +1,15 @@
+2003-04-23  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-message.c (soup_message_cleanup): Don't set up the
+	soup-transfer callbacks to keep reading off the connection unless
+	we're actually going to keep the connection around afterward.
+	Otherwise we can just close it.
+
+	* libsoup/soup-transfer.c: Re-kludge the awful IGNORE_CANCEL
+	thingy so that it's possible to cancel a read from inside a
+	callback so that the above change actually works instead of just
+	crashing.
+
 2003-04-20  Rodney Dawes  <dobey@ximian.com>
 
 	* configure.in: Up version to 1.99.18

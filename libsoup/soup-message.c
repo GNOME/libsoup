@@ -171,6 +171,7 @@ soup_message_cleanup (SoupMessage *req)
 	g_return_if_fail (req != NULL);
 
 	if (req->connection && 
+	    soup_connection_is_keep_alive (req->connection) &&
 	    req->priv->read_tag &&
 	    req->status == SOUP_STATUS_READING_RESPONSE) {
 		soup_transfer_read_set_callbacks (req->priv->read_tag,
