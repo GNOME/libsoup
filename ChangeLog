@@ -1,3 +1,9 @@
+2003-03-18  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-openssl.c (soup_openssl_get_iochannel): Bump the
+	timeout to 10 seconds (and get rid of the 3 tries) so we don't
+	fail to connect just because the server is slow/far away.
+
 2003-03-17  Joe Shaw  <joe@ximian.com>
 
 	* configure.in: Bump up to 1.99.15.

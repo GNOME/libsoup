@@ -336,7 +336,6 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 	SSL *ssl;
 	X509 *cert;
 	gchar *ccert_file, *ckey_file;
-	int tries = 0;
 
         g_return_val_if_fail (sock != NULL, NULL);
 
@@ -394,7 +393,7 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 		fd_set ssl_fdset;
 		struct timeval tv;
 
-		tv.tv_sec = 1;
+		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 
 		if (server_mode)
@@ -404,14 +403,12 @@ soup_openssl_get_iochannel (GIOChannel *sock)
 
 		err = SSL_get_error (ssl, err);
 
-		if (tries < 3 && err == SSL_ERROR_WANT_READ) {
-			tries++;
+		if (err == SSL_ERROR_WANT_READ) {
 			FD_ZERO (&ssl_fdset);
 			FD_SET (sockfd, &ssl_fdset);
 			select (sockfd + 1, &ssl_fdset, NULL, NULL, &tv);
 		}
-		else if (tries < 3 && err == SSL_ERROR_WANT_WRITE) {
-			tries++;
+		else if (err == SSL_ERROR_WANT_WRITE) {
 			FD_ZERO (&ssl_fdset);
 			FD_SET (sockfd, &ssl_fdset);
 			select (sockfd + 1, NULL, &ssl_fdset, NULL, &tv);
