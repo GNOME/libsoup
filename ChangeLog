@@ -1,3 +1,13 @@
+2002-03-20  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (start_request): Issue callback
+	directly as we might not be in the request processing loop.
+	(proxy_connect): Ditto.
+	(soup_queue_connect_cb): Ditto.
+	(request_in_progress): Impl. Check request is in queue.
+	(soup_idle_handle_new_requests): Use request_in_progress before
+	assigning connect_tag.
+
 2002-03-13  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-httpd/soup-httpd.c (ap_ctx_get): Add stub so
