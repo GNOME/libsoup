@@ -474,12 +474,13 @@ typedef struct {
 	SoupAuth  auth;
 	gchar    *response;
 	gchar    *header;
+	gboolean  completed;
 } SoupAuthNTLM;
 
 static gboolean
 ntlm_compare_func (SoupAuth *a, SoupAuth *b)
 {
-	return TRUE;
+	return !((SoupAuthNTLM *)b)->completed;
 } 
 
 /*
@@ -561,6 +562,7 @@ ntlm_init (SoupAuth *sa, const SoupUri *uri)
 					    (gchar *) &nt_hash,
 					    host ? host : "UNKNOWN",
 					    domain ? domain : "UNKNOWN");
+		auth->completed = TRUE;
 	}
 
 	g_free (host);

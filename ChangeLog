@@ -1,3 +1,11 @@
+2001-11-07  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-auth.c (ntlm_init): Mark the auth completed
+	after sending the response string.
+	(ntlm_compare_func): A new NTLM auth doesn't invalidate an
+	already-completed one. (Makes it not loop forever on a wrong
+	password.)
+
 2001-11-02  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-private.h: Add death_tag to _SoupConnection.
