@@ -1,3 +1,12 @@
+2001-04-30  Dick Porter  <dick@ximian.com>
+
+	* src/soup-wsdl/wsdl-soap-stubs.c: Use the new marshaller instead
+	of a large printf. Drastically reduced the complexity of both the
+	wsdl compiler code and the generated stubs. Deleted huge tracts of
+	now-unused code too.
+
+	* src/soup-wsdl/wsdl-types-glib.c: Deleted unused code
+
 2001-04-29  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl-runtime/wsdl-soap-parse.c
