@@ -1,5 +1,11 @@
 2001-05-17  JP Rosevear  <jpr@ximian.com>
 
+	* src/soup-wsdl/wsdl-soap-skels.c
+	(wsdl_emit_soap_skels_binding_operation): do not free the callback
+	data, or the second time the method gets called, *KABOOM*
+	
+2001-05-17  JP Rosevear  <jpr@ximian.com>
+
 	* src/soup-wsdl-runtime/wsdl-soap-parse.c (wsdl_soap_operation):
 	prevent leak and check for fault straight away (instead of
 	operation name)
