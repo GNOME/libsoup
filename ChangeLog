@@ -1,6 +1,11 @@
 2001-09-10  Alex Graveley  <alex@ximian.com>
 
+	* build/soup_httpd.dsp (SOURCE): Fix typo.
+
 	* build/libsoup.dsp: Add src/libsoup/soup-ntlm.[ch]
+	(SOURCE): Remove soup-apache.c
+
+2001-09-10  Alex Graveley  <alex@ximian.com>
 
 	* src/libsoup/soup-dav-server.c (dav_mkcol): Report errors.  Check
 	that parent path exists.
