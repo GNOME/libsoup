@@ -277,9 +277,13 @@ soup_context_connect_cb (SoupSocket              *socket,
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NONE, new_conn, cb_data);
 		break;
 	case SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE:
+		connection_count--;
+
 		(*cb) (ctx, SOUP_CONNECT_ERROR_ADDR_RESOLVE, NULL, cb_data);
 		break;
 	case SOUP_SOCKET_CONNECT_ERROR_NETWORK:
+		connection_count--;
+
 		(*cb) (ctx, SOUP_CONNECT_ERROR_NETWORK, NULL, cb_data);
 		break;
 	}
@@ -432,12 +436,15 @@ soup_context_get_connection (SoupContext           *ctx,
 			g_timeout_add (500,
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
-	else
+	else {
+		connection_count++;
+
 		data->connect_tag =
 			soup_socket_connect (ctx->uri->host,
 					     ctx->uri->port,
 					     soup_context_connect_cb,
 					     data);
+	}
 
 	return data;
 }

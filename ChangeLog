@@ -1,3 +1,24 @@
+2001-11-01  Alex Graveley  <alex@ximian.com>
+
+	Backports from HEAD.
+	
+	* configure.in, src/libsoup/soup-private.h: Version 0.5.4.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Drop
+	connection count if connect failed.
+	(soup_context_get_connection): Increment connection count before
+	calling soup_socket_connect() to avoid connection limit being
+	passed by many messages queued at the same time.
+
+	* src/soup-httpd/soup-httpd.c (read_done_cb): Assign request's data
+	buffer to message request buffer, not response.  Caught by Tim
+	Moloney.
+
+	* src/libsoup/soup-transfer.c (issue_final_callback): Null
+	terminate recv_buf before copying the data pointer.
+	(soup_transfer_read_cb): Zero terminate alloca'd header string
+	passed to headers_done_cb.
+
 2001-10-26  Joe Shaw  <joe@ximian.com>
 
 	* configure.in, src/libsoup/soup-private.h: Version 0.5.3
