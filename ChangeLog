@@ -1,3 +1,21 @@
+2003-11-18  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-message.[ch] (soup_soap_message_start_fault,
+	soup_soap_message_end_fault, soup_soap_message_start_fault_detail,
+	soup_soap_message_end_fault_detail, soup_soap_message_start_header,
+	soup_soap_message_end_header,
+	soup_soap_message_start_header_element,
+	soup_soap_message_end_header_element, soup_soap_message_write_int,
+	soup_soap_message_write_double, soup_soap_message_write_base64,
+	soup_soap_message_write_time, soup_soap_message_write_string,
+	soup_soap_message_write_buffer, soup_soap_message_set_element_type,
+	soup_soap_message_set_null, soup_soap_message_add_attribute,
+	soup_soap_message_add_namespace,
+	soup_soap_message_set_default_namespace,
+	soup_soap_message_get_namespace_prefix,
+	soup_soap_message_set_encoding_style, soup_soap_message_reset,
+	soup_soap_message_persist): new functions from old SoupSerializer.
+
 2003-11-17  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-message.[ch] (soup_soap_message_new,
