@@ -1,3 +1,7 @@
+2003-11-03  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: 1.99.30
+
 2003-11-03  Tambet Ingo  <tambet@ximian.com>
 
 	* libsoup/soup-context.c (soup_context_uri_equal): Check if ports are
