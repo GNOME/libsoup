@@ -8,8 +8,18 @@
  * Copyright (C) 2000, Helix Code, Inc.
  */
 
+#include <config.h>
 #include <glib.h>
 #include <gnet/gnet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 
 #include "soup-queue.h"
 #include "soup-context.h"
@@ -102,6 +112,19 @@ soup_queue_write_async (GIOChannel* iochannel,
 	return TRUE;
 }
 
+static void 
+soup_setup_socket (GIOChannel *channel)
+{
+#ifdef TCP_NODELAY
+	{
+		int on, fd;
+		on = 1;
+		fd = g_io_channel_unix_get_fd (channel);
+		setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
+	}
+#endif
+}
+
 static void
 soup_queue_connect (SoupContext          *ctx,
 		    SoupConnectErrorCode  err,
@@ -115,7 +138,7 @@ soup_queue_connect (SoupContext          *ctx,
 	case SOUP_CONNECT_ERROR_NONE:
 		channel = gnet_tcp_socket_get_iochannel (socket);
 		
-		gnet_tcp_socket_set_tos (socket, GNET_TOS_LOWDELAY);
+		soup_setup_socket (channel);
 
 		req->status = SOUP_STATUS_SENDING_REQUEST;
 		req->priv->socket = socket;
