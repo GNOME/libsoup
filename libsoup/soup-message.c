@@ -220,6 +220,11 @@ soup_message_new (const char *method, const char *uri_string)
 	if (!uri)
 		return NULL;
 
+	if (!uri->host) {
+		soup_uri_free (uri);
+		return NULL;
+	}
+
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
 	msg->method = method ? method : SOUP_METHOD_GET;
 	msg->priv->uri = uri;
