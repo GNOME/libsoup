@@ -20,6 +20,7 @@ libsoupinclude_HEADERS =	\
 	soup-dav.h		\
 	soup-dav-server.h	\
 	soup-env.h		\
+	soup-error.h		\
 	soup-fault.h		\
 	soup-message.h		\
 	soup-misc.h     	\
@@ -47,6 +48,7 @@ libsoup_la_SOURCES =		\
 	soup-dav.c		\
 	soup-dav-server.c	\
 	soup-env.c		\
+	soup-error.c		\
 	soup-fault.c		\
 	soup-headers.h		\
 	soup-headers.c		\

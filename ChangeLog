@@ -1,9 +1,22 @@
+2001-10-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.h: Reorganize.
+
+	* src/libsoup/Makefile.am (libsoupinclude_HEADERS): Add soup-error.h.
+	(libsoup_la_SOURCES): Add soup-error.c.
+
+	* src/libsoup/soup-error.[ch]: Move SoupKnownErrorCode and
+	SoupErrorClass defines to here.  Move soup_get_error_phrase and
+	soup_get_error_class here, and rename to soup_error_get_phrase and
+	soup_error_get_class.
+
 2001-10-19  Alex Graveley  <alex@ximian.com>
 
 	This is the first attempt at authentication inheritence, it
 	still needs some work.  Auth headers are always sent no matter
-	what, auth realms are not respected, and auth data in the uri is
-	ignored unless an existing auth attempt fails.
+	what, auth realms are not respected, auth data in the uri is
+	ignored unless an existing auth attempt fails, and auth data
+	should be registered at context creation time.
 
 	* src/libsoup/soup-auth.c (digest_parse_func): Compute a1 hash
 	"user:realm:passwd:nonce:cnonce" here, to cut down on per-request
