@@ -9,6 +9,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <glib.h>
 #include <gnet/gnet.h>
 
@@ -150,7 +151,7 @@ soup_context_connect_cb (GTcpSocket                   *socket,
 
 	g_free (data);
 
-	gnet_inetaddr_unref(addr);
+	if (addr) gnet_inetaddr_unref(addr);
 
 	switch (status) {
 	case GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK:
@@ -294,24 +295,35 @@ soup_context_get_connection (SoupContext           *ctx,
 				       (GSourceFunc) soup_prune_timeout,
 				       data);
 	} else {
-		/* Asyncronous Version */
-		data->gnet_connect_tag =
-			gnet_tcp_socket_connect_async (ctx->uri->host, 
-						       ctx->uri->port,
-						       soup_context_connect_cb,
-						       data);
-		/* Syncronous Version -- Use for debugging */
-		/*
-		soup_context_connect_cb (
-		        gnet_tcp_socket_connect (ctx->uri->host, 
-						 ctx->uri->port),
-			NULL, 
-			GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK,
-			data);
-		return NULL;
-		*/
-	}
+		static gint sync_name_lookup = -1;
+
+		if (sync_name_lookup == -1) {
+			if (getenv ("SOUP_NO_ASYNC_CONNECT")) {
+				sync_name_lookup = TRUE;
+				g_warning ("Using synchronous connect method");
+			} else 
+				sync_name_lookup = FALSE;
+		}
 		
+		if (sync_name_lookup == FALSE)
+			data->gnet_connect_tag =
+				gnet_tcp_socket_connect_async (
+				        ctx->uri->host, 
+					ctx->uri->port,
+					soup_context_connect_cb,
+					data);
+		else {
+			/* Syncronous Version -- Use for debugging */
+			soup_context_connect_cb (
+			        gnet_tcp_socket_connect (ctx->uri->host, 
+							 ctx->uri->port),
+				NULL, 
+				GTCP_SOCKET_CONNECT_ASYNC_STATUS_OK,
+				data);
+			return NULL;
+		}
+	}
+
 	return data;
 }
 

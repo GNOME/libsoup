@@ -198,7 +198,7 @@ soup_read_chunk (SoupMessage *req)
 	
 	if (!chunk_idx) {
 		chunk_len = 0;
-		chunk_idx = req->priv->header_len + 4;
+		chunk_idx = req->priv->header_len;
 	}
 
 	while (chunk_idx + chunk_len + 5 <= arr->len) {
@@ -208,7 +208,9 @@ soup_read_chunk (SoupMessage *req)
 
 		/* remove \r\n after previous chunk body */
 		if (chunk_len) {
-			g_memmove (i, i + 2, arr->len - chunk_idx - 2);
+			g_memmove (i, 
+				   i + 2, 
+				   arr->len - chunk_idx - chunk_len - 2);
 			g_byte_array_set_size (arr, arr->len - 2);
 		}
 
@@ -255,8 +257,8 @@ soup_finish_read (SoupMessage *req)
 	GByteArray *arr = req->priv->recv_buf;
 	gint index = req->priv->header_len;
 
-	req->response.length = arr->len - index - 4 ;
-	req->response.body = g_memdup (&arr->data [index + 4],
+	req->response.length = arr->len - index ;
+	req->response.body = g_memdup (&arr->data [index],
 				       req->response.length + 1);
 	req->response.body [req->response.length] = '\0';
 	
@@ -299,7 +301,12 @@ soup_queue_read_async (GIOChannel* iochannel,
 	if (!index) {
 		index = soup_substring_index (arr->data, arr->len, "\r\n\r\n");
 		if (index < 0) return TRUE;
-		req->priv->header_len = index;
+
+		req->priv->header_len = index + 4;
+
+		/* Terminate Headers */
+		arr->data [index + 3] = '\0';
+
 		if (!soup_parse_headers (req) || !soup_process_headers (req)) 
 			return FALSE;
 	}

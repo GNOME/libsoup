@@ -20,6 +20,7 @@ extern "C" {
 #include "soup-message.h"
 #include "soup-uri.h"
 #include "soup-misc.h"
+#include "soup-serializer.h"
 
 #ifdef __cplusplus
 }
