@@ -5,10 +5,10 @@ servicing SOAP requests, and a WSDL (Web Service Definition Language) to C
 compiler which generates client stubs and server skeletons for easily calling
 and implementing SOAP methods.
 
-It uses the GLib main loop and is designed to work well with GTK
+It uses the Glib main loop and is designed to work well with GTK
 applications.  This enables GNOME applications to access SOAP servers
-on the network in a completely asycronous fashion, very similar to the
-Gtk+ programming model (a syncronous operation mode is also supported
+on the network in a completely asynchronous fashion, very similar to the
+Gtk+ programming model (a synchronous operation mode is also supported
 for those who want it).
 
 The WSDL compiler will help you make your applications interoperate
