@@ -26,7 +26,7 @@
 #ifdef SOUP_WIN32
 #  define socklen_t gint32
 #  define SOUP_CLOSE_SOCKET(fd) closesocket(fd)
-#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_stream_socket(fd)
+#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_socket(fd)
 #  ifndef INET_ADDRSTRLEN
 #    define INET_ADDRSTRLEN 16
 #    define INET6_ADDRSTRLEN 46

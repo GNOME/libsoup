@@ -316,7 +316,7 @@ read_headers_cgi (SoupMessage *msg,
 	 * Get content length of request body
 	 */
 	{
-		gchar *length;
+		const gchar *length;
 		length = g_getenv ("CONTENT_LENGTH");
 
 		*content_len = length ? atoi (length) : 0;
@@ -326,7 +326,8 @@ read_headers_cgi (SoupMessage *msg,
 	 * Determine request HTTP version
 	 */
 	{
-		gchar *proto = g_getenv ("SERVER_PROTOCOL");
+		const gchar *proto;
+		proto = g_getenv ("SERVER_PROTOCOL");
 		if (proto) {
 			if (!g_strcasecmp (proto, "HTTP/1.1"))
 				msg->priv->http_version = SOUP_HTTP_1_1;
@@ -340,7 +341,8 @@ read_headers_cgi (SoupMessage *msg,
 	 * Generate correct context for request 
 	 */
 	{
-		gchar *host, *https, *url;
+		const gchar *host, *https;
+		gchar *url;
 
 		host = g_getenv ("HTTP_HOST");
 		if (!host)
@@ -624,7 +626,7 @@ set_response_error (SoupMessage    *req,
 static void
 call_handler (SoupMessage          *req,
 	      const SoupDataBuffer *req_data,
-	      gchar                *handler_path)
+	      const gchar          *handler_path)
 {
 	SoupServer *server = req->priv->server;
 	SoupServerHandler *hand;
