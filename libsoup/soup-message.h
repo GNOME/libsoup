@@ -131,8 +131,10 @@ typedef enum {
 	SOUP_HTTP_1_1 = 1,
 } SoupHttpVersion;
 
-void           soup_message_set_http_version    (SoupMessage      *msg,
+void            soup_message_set_http_version   (SoupMessage      *msg,
 						 SoupHttpVersion   version);
+
+SoupHttpVersion soup_message_get_http_version   (SoupMessage      *msg);
 
 typedef enum {
 	SOUP_HANDLER_PRE_BODY,
