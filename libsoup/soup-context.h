@@ -12,7 +12,7 @@
 #define SOUP_CONTEXT_H 1
 
 #include <glib.h>
-#include "soup-uri.h"
+#include <libsoup/soup-uri.h>
 
 typedef struct _SoupContext SoupContext;
 

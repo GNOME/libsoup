@@ -4,5 +4,3 @@
 .libs
 Makefile
 Makefile.in
-soup-httpd
-soup-ssl-proxy

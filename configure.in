@@ -2,7 +2,7 @@ dnl *******************************************
 dnl *** Initialize automake and set version ***
 dnl *******************************************
 
-AC_INIT(src/soup-core/soup.h)
+AC_INIT(src/libsoup/soup.h)
 
 SOUP_CURRENT=2
 SOUP_REVISION=0
@@ -13,7 +13,7 @@ AC_SUBST(SOUP_REVISION)
 AC_SUBST(SOUP_AGE)
 
 # Update in src/soup-core/soup-private.h for Windows
-AM_INIT_AUTOMAKE(soup, 0.4.4)
+AM_INIT_AUTOMAKE(soup, 0.5.0)
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
@@ -157,7 +157,7 @@ dnl **********************************************
 
 ### soupConf.sh
 SOUP_LIBDIR='-L${libdir}'
-SOUP_INCLUDEDIR=" -I${includedir} $GLIB_CFLAGS $XML_CFLAGS"
+SOUP_INCLUDEDIR=" -I${includedir}/soup $GLIB_CFLAGS $XML_CFLAGS"
 SOUP_LIBS="-lsoup $GLIB_LIBS $XML_LIBS"
 
 AC_SUBST(SOUP_LIBDIR)
@@ -175,8 +175,8 @@ AC_SUBST(SOUP_APACHE_LIBS)
 
 ### soup-wsdlConf.sh
 SOUP_WSDL_LIBDIR='-L${libdir}'
-SOUP_WSDL_INCLUDEDIR=" -I${includedir} $GLIB_CFLAGS $XML_CFLAGS"
-SOUP_WSDL_LIBS="-lwsdl $GLIB_LIBS $XML_LIBS"
+SOUP_WSDL_INCLUDEDIR=" -I${includedir}/soup $GLIB_CFLAGS $XML_CFLAGS"
+SOUP_WSDL_LIBS="$SOUP_LIBS -lwsdl"
 
 AC_SUBST(SOUP_WSDL_LIBDIR)
 AC_SUBST(SOUP_WSDL_INCLUDEDIR)
@@ -500,9 +500,12 @@ AC_OUTPUT([
 	docs/Makefile
 	docs/reference/Makefile
 	src/Makefile
-	src/soup-core/Makefile
+	src/libsoup/Makefile
+	src/libsoup-apache/Makefile
+	src/libwsdl/Makefile
+	src/soup-httpd/Makefile
+	src/soup-ssl-proxy/Makefile
 	src/soup-wsdl/Makefile
-	src/soup-wsdl-runtime/Makefile
 	tests/Makefile
 	])
 

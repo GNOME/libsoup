@@ -1,3 +1,24 @@
+2001-08-29  Alex Graveley  <alex@ximian.com>
+
+	* src/*/*.h: Fix headers for new layout.
+	* tests/*.c: Ditto.
+
+	* tests/Makefile.am (LDFLAGS): Use libtool to link with built
+	libsoup and libwsdl.
+	(libstockquote2_la_LIBADD): Ditto for libsoup-apache.
+
+	* tests/stockquote2.wsdl: Indent prettily.
+
+	* src/Makefile.am (SUBDIRS): Update for new source layout.
+
+	* configure.in (SOUP_INCLUDEDIR): Use @includedir@/soup.
+	(SOUP_WSDL_LIBS): include $SOUP_LIBS.
+	(CFLAGS): Add Makefiles for new layout.
+
+	* soup-config.in: Use @includedir@/soup.
+
+	* soup.pc.in (Cflags): Use @includedir@/soup.
+
 2001-08-28  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-socket.c (soup_address_new): Perform deep

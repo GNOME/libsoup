@@ -12,8 +12,7 @@
 #define SOUP_HEADERS_H 1
 
 #include <glib.h>
-
-#include "soup-message.h"
+#include <libsoup/soup-message.h>
 
 /* HTTP Header Parsing */
 

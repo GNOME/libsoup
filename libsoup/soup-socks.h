@@ -12,7 +12,7 @@
 #define SOUP_SOCKS_H 1
 
 #include <glib.h>
-#include "soup-context.h"
+#include <libsoup/soup-context.h>
 
 void soup_connect_socks_proxy (SoupConnection        *conn, 
 			       SoupContext           *dest_ctx, 

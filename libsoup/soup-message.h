@@ -13,7 +13,7 @@
 
 #include <glib.h>
 
-#include "soup-context.h"
+#include <libsoup/soup-context.h>
 
 typedef enum {
 	SOUP_ERROR_NONE = 0,

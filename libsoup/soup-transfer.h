@@ -13,7 +13,7 @@
 
 #include <glib.h>
 
-#include "soup-message.h"
+#include <libsoup/soup-message.h>
 
 typedef enum {
 	SOUP_TRANSFER_END = 0,

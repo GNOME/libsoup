@@ -8,4 +8,4 @@ Description: a SOAP client library in C.
 Version: @VERSION@
 Requires: glib
 Libs: -L${libdir} -lsoup @XML_LIBS@
-Cflags: -I${includedir} @XML_CFLAGS@
+Cflags: -I${includedir}/soup @XML_CFLAGS@

@@ -35,11 +35,11 @@
 #include <winuser.h>
 #endif
 
-#include "soup-context.h"
-#include "soup-message.h"
-#include "soup-server.h"
-#include "soup-socket.h"
-#include "soup-uri.h"
+#include <libsoup/soup-context.h>
+#include <libsoup/soup-message.h>
+#include <libsoup/soup-server.h>
+#include <libsoup/soup-socket.h>
+#include <libsoup/soup-uri.h>
 
 #ifdef __cplusplus
 extern "C" {

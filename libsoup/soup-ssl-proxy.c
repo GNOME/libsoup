@@ -21,8 +21,8 @@
 #include <errno.h>
 #include <glib.h>
 
-#include "soup-misc.h"
-#include "soup-private.h"
+#include <libsoup/soup-misc.h>
+#include <libsoup/soup-private.h>
 
 #ifdef HAVE_SECURITY_SSL_H
 #include "soup-nss.h"
