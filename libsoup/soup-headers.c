@@ -28,7 +28,7 @@ soup_headers_parse (gchar      *str,
 		    gint        len, 
 		    GHashTable *dest)
 {
-	gchar *key = NULL, *val = NULL;
+	gchar *key = NULL, *val = NULL, *end = NULL;
 	gint offset = 0, lws = 0;
 
 	key = strstr (str, "\r\n");
@@ -67,6 +67,7 @@ soup_headers_parse (gchar      *str,
 
 	/* set eos for header key and value and add to hashtable */
         while ((key = strstr (key, "\r\n"))) {
+		
 		/* set end of last val, or end of http reason phrase */
                 key [0] = '\0';
 		key += 2;
@@ -84,9 +85,15 @@ soup_headers_parse (gchar      *str,
 		
 		val++;
 		val += strspn (val, " \t");  /* skip whitespace */
-		g_hash_table_insert (dest, g_strdup (key), g_strdup (val));
-		
-		key = val;
+
+		/* find the end of the value */
+		end = strstr (val, "\r\n");
+		if (!end)
+			goto THROW_MALFORMED_HEADER;
+
+		g_hash_table_insert (dest, g_strdup (key), g_strndup (val, end - val));
+
+		key = end;
         }
 
 	return TRUE;

@@ -184,12 +184,13 @@ soup_message_issue_callback (SoupMessage *req, SoupErrorCode error)
 
 	req->priv->errorcode = error;
 
-	if (req->priv->callback)
-		(*req->priv->callback) (req, 
-					error, 
-					req->priv->user_data);
+	if (req->priv->callback) {
+		(*req->priv->callback) (req, error, req->priv->user_data);
 
-	if (req->status != SOUP_STATUS_QUEUED) soup_message_free (req);
+		/* Free it only if callback exist, its probably a sync call */
+		if (req->status != SOUP_STATUS_QUEUED)
+			soup_message_free (req);
+	}
 }
 
 /**
