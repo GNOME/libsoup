@@ -1,5 +1,9 @@
 2003-11-18  Rodney Dawes  <dobey@ximian.com>
 
+	* gtk-doc.make: Add gtk-doc.make to cvs for systems without gtk-doc
+
+2003-11-18  Rodney Dawes  <dobey@ximian.com>
+
 	* acinclude.m4: Add GTK_DOC_CHECK
 
 2003-11-18  Dan Winship  <danw@ximian.com>
