@@ -1,3 +1,7 @@
+2003-12-07  JP Rosevear  <jpr@ximian.com>
+
+	* configure.in: Bump version
+
 2003-11-28  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.[ch]
