@@ -15,7 +15,6 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
 #include <fcntl.h>
 #include <glib.h>
 #include <string.h>
@@ -26,11 +25,7 @@
 #ifdef SOUP_WIN32
 #  define socklen_t gint32
 #  define SOUP_CLOSE_SOCKET(fd) closesocket(fd)
-#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_stream_socket(fd)
-#  ifndef INET_ADDRSTRLEN
-#    define INET_ADDRSTRLEN 16
-#    define INET6_ADDRSTRLEN 46
-#  endif
+#  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_win32_new_socket(fd)
 #else
 #  include <unistd.h>
 #  ifndef socklen_t
@@ -38,6 +33,11 @@
 #  endif
 #  define SOUP_CLOSE_SOCKET(fd) close(fd)
 #  define SOUP_SOCKET_IOCHANNEL_NEW(fd) g_io_channel_unix_new(fd)
+#endif
+
+#ifndef INET_ADDRSTRLEN
+#  define INET_ADDRSTRLEN 16
+#  define INET6_ADDRSTRLEN 46
 #endif
 
 #define SOUP_SOCKADDR_IN(s) (*((struct sockaddr_in*) &s))
@@ -181,18 +181,22 @@ soup_address_get_port (const SoupAddress* ia)
 }
 
 /**
- * soup_address_set_port:
- * @ia: Address to set the port number of.
- * @port: New port number
+ * soup_address_get_sockaddr:
+ * @ia: The %SoupAddress.
+ * @addrlen: Pointer to socklen_t the returned sockaddr's length is to be 
+ * placed in.
  *
- * Set the port number.
+ * Return value: const pointer to @ia's sockaddr buffer.
  **/
-void
-soup_address_set_port (const SoupAddress* ia, guint port)
+const struct sockaddr *
+soup_address_get_sockaddr (SoupAddress *ia, guint *addrlen)
 {
-	g_return_if_fail (ia != NULL);
+	g_return_val_if_fail (ia != NULL, NULL);
 
-	((struct sockaddr_in*) &ia->sa)->sin_port = g_htons (port);
+	if (addrlen)
+		*addrlen = sizeof (struct sockaddr_in);
+
+	return &ia->sa;
 }
 
 /**
@@ -213,8 +217,11 @@ soup_address_hash (const gpointer p)
 	g_assert(p != NULL);
 
 	ia = (const SoupAddress*) p;
-	/* We do pay attention to network byte order just in case the hash
-	   result is saved or sent to a different host.  */
+
+	/* 
+	 * We do pay attention to network byte order just in case the hash
+	 * result is saved or sent to a different host.  
+	 */
 	port = (guint32) g_ntohs (((struct sockaddr_in*) &ia->sa)->sin_port);
 	addr = g_ntohl (((struct sockaddr_in*) &ia->sa)->sin_addr.s_addr);
 
@@ -236,7 +243,7 @@ soup_address_equal (const gpointer p1, const gpointer p2)
 	const SoupAddress* ia1 = (const SoupAddress*) p1;
 	const SoupAddress* ia2 = (const SoupAddress*) p2;
 
-	g_assert(p1 != NULL && p2 != NULL);
+	g_assert (p1 != NULL && p2 != NULL);
 
 	/* Note network byte order doesn't matter */
 	return ((SOUP_SOCKADDR_IN(ia1->sa).sin_addr.s_addr ==
@@ -305,17 +312,19 @@ soup_socket_connect_tcp_cb (SoupSocket* socket,
 			    gpointer data)
 {
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
-
-	if (status == SOUP_SOCKET_NEW_STATUS_OK)
-		(*state->func) (socket,
-				SOUP_SOCKET_CONNECT_ERROR_NONE,
-				state->data);
-	else
-		(*state->func) (NULL,
-				SOUP_SOCKET_CONNECT_ERROR_NETWORK,
-				state->data);
+	SoupSocketConnectFn func = state->func;
+	gpointer user_data = state->data;
 
 	g_free (state);
+
+	if (status == SOUP_SOCKET_NEW_STATUS_OK)
+		(*func) (socket,
+			 SOUP_SOCKET_CONNECT_ERROR_NONE,
+			 user_data);
+	else
+		(*func) (NULL,
+			 SOUP_SOCKET_CONNECT_ERROR_NETWORK,
+			 user_data);
 }
 
 static void
@@ -326,16 +335,30 @@ soup_socket_connect_inetaddr_cb (SoupAddress* inetaddr,
 	SoupSocketConnectState* state = (SoupSocketConnectState*) data;
 
 	if (status == SOUP_ADDRESS_STATUS_OK) {
+		gpointer tcp_id;
+
 		state->inetaddr_id = NULL;
-		state->tcp_id = soup_socket_new (inetaddr,
-						 soup_socket_connect_tcp_cb,
-						 state);
+
+		tcp_id = soup_socket_new (inetaddr,
+					  soup_socket_connect_tcp_cb,
+					  state);
+		/* 
+		 * NOTE: soup_socket_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (tcp_id)
+			state->tcp_id = tcp_id;
+
 		soup_address_unref (inetaddr);
 	} else {
-		(*state->func) (NULL,
-				SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE,
-				state->data);
+		SoupSocketConnectFn func = state->func;
+		gpointer user_data = state->data;
+
 		g_free (state);
+
+		(*func) (NULL, 
+			 SOUP_SOCKET_CONNECT_ERROR_ADDR_RESOLVE, 
+			 user_data);
 	}
 }
 
@@ -364,7 +387,8 @@ soup_socket_connect (const gchar*        hostname,
 		     gpointer            data)
 {
 	SoupSocketConnectState* state;
-	gpointer id;
+	SoupAddress *cached_addr;
+	gpointer addr_id, tcp_id;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 	g_return_val_if_fail (func != NULL, NULL);
@@ -373,20 +397,39 @@ soup_socket_connect (const gchar*        hostname,
 	state->func = func;
 	state->data = data;
 
-	id = soup_address_new (hostname,
-			       port,
-			       soup_socket_connect_inetaddr_cb,
-			       state);
+	/* Check if a cached version of the address already exists */
+	cached_addr = soup_address_lookup_in_cache (hostname, port);
+	if (cached_addr) {
+		tcp_id = soup_socket_new (cached_addr,
+					  soup_socket_connect_tcp_cb,
+					  state);
+		soup_address_unref (cached_addr);
 
-	/* Note that soup_address_new can fail immediately and call
-	   our callback which will delete the state.  The users callback
-	   would be called in the process. */
+		/* 
+		 * NOTE: soup_socket_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (tcp_id) {
+			state->tcp_id = tcp_id;
+			return state;
+		} else
+			return NULL;
+	} else {
+		addr_id = soup_address_new (hostname,
+					    port,
+					    soup_socket_connect_inetaddr_cb,
+					    state);
 
-	if (id == NULL) return NULL;
-
-	state->inetaddr_id = id;
-
-	return state;
+		/* 
+		 * NOTE: soup_address_new can fail immediately and call our
+		 * callback which will delete the state.  
+		 */
+		if (addr_id) {
+			state->inetaddr_id = addr_id;
+			return state;
+		} else
+			return NULL;
+	}
 }
 
 /**
@@ -607,8 +650,10 @@ soup_socket_server_new (const gint port)
 	sa_in->sin_addr.s_addr = g_htonl (INADDR_ANY);
 	sa_in->sin_port = g_htons (port);
 
-	/* The socket is set to non-blocking mode later in the Windows
-	   version.*/
+	/* 
+	 * For Unix, set REUSEADDR and NONBLOCK.
+	 * For Windows, set NONBLOCK during accept.
+	 */
 #ifndef SOUP_WIN32
 	{
 		const int on = 1;

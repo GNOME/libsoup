@@ -26,22 +26,16 @@
 #include <stdlib.h>
 #include <glib.h>
 
-#include <ctype.h>
 #include <stdio.h>
 #include <time.h>
 
 #include "md5-utils.h"
 #include "soup-auth.h"
 #include "soup-context.h"
+#include "soup-headers.h"
 #include "soup-message.h"
 #include "soup-private.h"
 #include "soup-ntlm.h"
-
-static char       *copy_token_if_exists (GHashTable  *tokens, char *t);
-static char       *decode_token         (char       **in);
-static GHashTable *parse_param_list     (const char  *header);
-static void        destroy_param_hash   (GHashTable  *table);
-
 
 /* 
  * Basic Authentication Support 
@@ -73,12 +67,12 @@ basic_parse_func (SoupAuth *auth, const char *header)
 
 	header += sizeof ("Basic");
 
-	tokens = parse_param_list (header);
+	tokens = soup_header_param_parse_list (header);
 	if (!tokens) return;
 
-	auth->realm = copy_token_if_exists (tokens, "realm");
+	auth->realm = soup_header_param_copy_token (tokens, "realm");
 
-	destroy_param_hash (tokens);
+	soup_header_param_destroy_hash (tokens);
 }
 
 static void
@@ -319,6 +313,9 @@ decode_data_type (DataType *dtype, const char *name)
 {
         int i;
 
+	if (!name)
+		return 0;
+
         for (i = 0; dtype[i].name; i++) {
                 if (!g_strcasecmp (dtype[i].name, name))
 			return dtype[i].type;
@@ -348,20 +345,20 @@ digest_parse_func (SoupAuth *auth, const char *header)
 
 	header += sizeof ("Digest");
 
-	tokens = parse_param_list (header);
+	tokens = soup_header_param_parse_list (header);
 	if (!tokens) return;
 
-	auth->realm = copy_token_if_exists (tokens, "realm");
+	auth->realm = soup_header_param_copy_token (tokens, "realm");
 
-	digest->nonce = copy_token_if_exists (tokens, "nonce");
+	digest->nonce = soup_header_param_copy_token (tokens, "nonce");
 
-	tmp = copy_token_if_exists (tokens, "qop");
+	tmp = soup_header_param_copy_token (tokens, "qop");
 	ptr = tmp;
 
 	while (ptr && *ptr) {
 		char *token;
 
-		token = decode_token (&ptr);
+		token = soup_header_param_decode_token (&ptr);
 		if (token)
 			digest->qop_options |= decode_qop (token);
 		g_free (token);
@@ -372,7 +369,7 @@ digest_parse_func (SoupAuth *auth, const char *header)
 
 	g_free (tmp);
 
-	tmp = copy_token_if_exists (tokens, "stale");
+	tmp = soup_header_param_copy_token (tokens, "stale");
 
 	if (tmp && g_strcasecmp (tmp, "true") == 0)
 		digest->stale = TRUE;
@@ -381,11 +378,11 @@ digest_parse_func (SoupAuth *auth, const char *header)
 
 	g_free (tmp);
 
-	tmp = copy_token_if_exists (tokens, "algorithm");
+	tmp = soup_header_param_copy_token (tokens, "algorithm");
 	digest->algorithm = decode_algorithm (tmp);
 	g_free (tmp);
 
-	destroy_param_hash (tokens);
+	soup_header_param_destroy_hash (tokens);
 }
 
 static void
@@ -394,18 +391,21 @@ digest_init_func (SoupAuth *auth, const SoupUri *uri)
 	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
 	MD5Context ctx;
 	guchar d[16];
-	char *tmp;
 
 	digest->user = g_strdup (uri->user);
 
 	/* compute A1 */
 	md5_init (&ctx);
+
 	md5_update (&ctx, uri->user, strlen (uri->user));
+
 	md5_update (&ctx, ":", 1);
-	md5_update (&ctx, auth->realm, strlen (auth->realm));
+	if (auth->realm)
+		md5_update (&ctx, auth->realm, strlen (auth->realm));
+
 	md5_update (&ctx, ":", 1);
-	tmp = uri->passwd ? uri->passwd : "";
-	md5_update (&ctx, tmp, strlen (tmp));
+	if (uri->passwd)
+		md5_update (&ctx, uri->passwd, strlen (uri->passwd));
 
 	if (digest->algorithm == ALGORITHM_MD5_SESS) {
 		md5_final (&ctx, d);
@@ -546,9 +546,7 @@ ntlm_init (SoupAuth *sa, const SoupUri *uri)
 	domain = ntlm_get_authmech_token (uri, "domain=");
 
 	if (strlen (auth->header) < sizeof ("NTLM"))
-		auth->response = 
-			soup_ntlm_request (host ? host : "UNKNOWN", 
-					   domain ? domain : "UNKNOWN");
+		auth->response = soup_ntlm_request ();
 	else {
 		gchar lm_hash [21], nt_hash [21];
 
@@ -560,8 +558,8 @@ ntlm_init (SoupAuth *sa, const SoupUri *uri)
 					    uri->user,
 					    (gchar *) &lm_hash,
 					    (gchar *) &nt_hash,
-					    host ? host : "UNKNOWN",
-					    domain ? domain : "UNKNOWN");
+					    host,
+					    domain);
 		auth->completed = TRUE;
 	}
 
@@ -760,153 +758,4 @@ soup_auth_invalidates_prior (SoupAuth *new_auth, SoupAuth *old_auth)
 		return TRUE;
 
 	return new_auth->compare_func (new_auth, old_auth);
-}
-
-
-/*
- * Internal parsing routines
- */
-
-static char *
-copy_token_if_exists (GHashTable *tokens, char *t)
-{
-	char *data;
-
-	g_return_val_if_fail (tokens, NULL);
-	g_return_val_if_fail (t, NULL);
-
-	if ( (data = g_hash_table_lookup (tokens, t)))
-		return g_strdup (data);
-	else
-		return NULL;
-}
-
-static void
-decode_lwsp (char **in)
-{
-	char *inptr = *in;
-
-	while (isspace (*inptr))
-		inptr++;
-
-	*in = inptr;
-}
-
-static char *
-decode_quoted_string (char **in)
-{
-	char *inptr = *in;
-	char *out = NULL, *outptr;
-	int outlen;
-	int c;
-
-	decode_lwsp (&inptr);
-	if (*inptr == '"') {
-		char *intmp;
-		int skip = 0;
-
-                /* first, calc length */
-                inptr++;
-                intmp = inptr;
-                while ( (c = *intmp++) && c != '"') {
-                        if (c == '\\' && *intmp) {
-                                intmp++;
-                                skip++;
-                        }
-                }
-
-                outlen = intmp - inptr - skip;
-                out = outptr = g_malloc (outlen + 1);
-
-                while ( (c = *inptr++) && c != '"') {
-                        if (c == '\\' && *inptr) {
-                                c = *inptr++;
-                        }
-                        *outptr++ = c;
-                }
-                *outptr = 0;
-        }
-
-        *in = inptr;
-
-        return out;
-}
-
-static char *
-decode_token (char **in)
-{
-	char *inptr = *in;
-	char *start;
-
-	decode_lwsp (&inptr);
-	start = inptr;
-
-	while (*inptr && *inptr != '=' && *inptr != ',')
-		inptr++;
-
-	if (inptr > start) {
-		*in = inptr;
-		return g_strndup (start, inptr - start);
-	}
-	else
-		return NULL;
-}
-
-static char *
-decode_value (char **in)
-{
-	char *inptr = *in;
-
-	decode_lwsp (&inptr);
-	if (*inptr == '"')
-		return decode_quoted_string (in);
-	else
-		return decode_token (in);
-}
-
-static GHashTable *
-parse_param_list (const char *header)
-{
-	char *ptr;
-	gboolean added = FALSE;
-	GHashTable *params = g_hash_table_new (soup_str_case_hash, 
-					       soup_str_case_equal);
-
-	ptr = (char *) header;
-	while (ptr && *ptr) {
-		char *name;
-		char *value;
-
-		name = decode_token (&ptr);
-		if (*ptr == '=') {
-			ptr++;
-			value = decode_value (&ptr);
-			g_hash_table_insert (params, name, value);
-			added = TRUE;
-		}
-
-		if (*ptr == ',')
-			ptr++;
-	}
-
-	if (!added) {
-		g_hash_table_destroy (params);
-		params = NULL;
-	}
-
-	return params;
-}
-
-static void
-destroy_param_hash_elements (gpointer key, gpointer value, gpointer user_data)
-{
-	g_free (key);
-	g_free (value);
-}
-
-static void
-destroy_param_hash (GHashTable *table)
-{
-	g_hash_table_foreach (table, destroy_param_hash_elements, NULL);
-	g_hash_table_destroy (table);
 }

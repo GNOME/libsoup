@@ -49,7 +49,6 @@ typedef struct {
 
 	gchar              *path;
 	gchar              *querystring;
-	gchar             **query_elems;
 } SoupUri;
 
 SoupUri *soup_uri_new       (const gchar   *uri_string);
@@ -58,6 +57,9 @@ gchar   *soup_uri_to_string (const SoupUri *uri,
 			     gboolean       show_password);
 
 SoupUri *soup_uri_copy      (const SoupUri *uri);
+
+gboolean soup_uri_equal     (const SoupUri *uri1, 
+			     const SoupUri *uri2);
 
 void     soup_uri_free      (SoupUri       *uri);
 

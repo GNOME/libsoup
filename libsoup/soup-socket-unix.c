@@ -73,6 +73,10 @@
 #define socklen_t size_t
 #endif
 
+#ifndef INADDR_NONE
+#define INADDR_NONE -1
+#endif
+
 /*
  * Maintains a list of all currently valid SoupAddresses or active
  * SoupAddressState lookup requests.
@@ -434,7 +438,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 		close (state->fd);
 		waitpid (state->pid, &ret, 0);
 
-		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) goto ERROR;
+		if (WIFSIGNALED (ret) || WEXITSTATUS (ret) != 1) 
+			goto ERROR;
 
 		/* 
 		 * Exit status of one means we are inside a debugger.
@@ -460,7 +465,8 @@ soup_address_new_cb (GIOChannel* iochannel,
 		/* Return true if there's more to read */
 		if ((state->len - 1) != state->buffer [0]) return TRUE;
 
-		if (state->len < 2) goto ERROR;
+		if (state->len < 2) 
+			goto ERROR;
 
 		/* Success. Copy resolved address. */
 		sa_in = (struct sockaddr_in*) &state->ia.sa;
@@ -475,7 +481,7 @@ soup_address_new_cb (GIOChannel* iochannel,
 	}
 
 	/* Get state data before realloc */
-	cb_list = iter = state->cb_list;
+	cb_list = state->cb_list;
 	cb_func = state->func;
 	cb_data = state->data;
 
@@ -492,13 +498,12 @@ soup_address_new_cb (GIOChannel* iochannel,
 
 	(*cb_func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb_data);
 
-	while (iter) {
+	for (iter = cb_list; iter; iter = iter->next) {
 		SoupAddressCbData *cb = iter->data;
 
 		(*cb->func) (&state->ia, SOUP_ADDRESS_STATUS_OK, cb->data);
 
 		g_free (cb);
-		iter = iter->next;
 	}
 
 	g_slist_free (cb_list);
@@ -523,6 +528,60 @@ soup_address_new_cb (GIOChannel* iochannel,
 	soup_address_new_cancel (state);
 
 	return FALSE;
+}
+
+static SoupAddress *
+lookup_in_cache_internal (const gchar       *name, 
+			  const gint         port,
+			  gboolean          *in_progress)
+{
+	SoupAddress* ia = NULL;
+
+	if (in_progress)
+		*in_progress = FALSE;
+
+	if (!active_address_hash)
+		return NULL;
+
+	ia = g_hash_table_lookup (active_address_hash, name);
+
+	if (ia && ia->ref_count >= 0) {
+		/*
+		 * Existing valid request, use it.
+		 */
+		if (soup_address_get_port (ia) == port) {
+			soup_address_ref (ia);
+		} else {
+			/* 
+			 * We can reuse the address, but we have to
+			 * change port 
+			 */
+			SoupAddress *new_ia = soup_address_copy (ia);
+
+			((struct sockaddr_in*) &new_ia->sa)->sin_port = 
+				g_htons (port);
+
+			ia = new_ia;
+		}
+	}
+	else if (ia && in_progress)
+		*in_progress = TRUE;
+
+	return ia;
+}
+
+SoupAddress *
+soup_address_lookup_in_cache (const gchar *name, const gint port)
+{
+	SoupAddress *ia;
+	gboolean in_prog;
+
+	ia = lookup_in_cache_internal (name, port, &in_prog);
+
+	if (in_prog) 
+		return NULL;
+
+	return ia;
 }
 
 /**
@@ -566,7 +625,15 @@ soup_address_new (const gchar* name,
 {
 	pid_t pid = -1;
 	int pipes [2];
+#ifdef HAVE_INET_PTON
 	struct in_addr inaddr;
+#else
+#  ifdef HAVE_INET_ATON
+	struct in_addr inaddr;
+#  else
+	in_addr_t inaddr;
+#  endif
+#endif
 	struct sockaddr_in sa;
 	struct sockaddr_in* sa_in;
 	SoupAddress* ia;
@@ -581,8 +648,17 @@ soup_address_new (const gchar* name,
 #ifdef HAVE_INET_PTON
 	inaddr_ok = inet_pton (AF_INET, name, &inaddr) != 0;
 #else
+#  ifdef HAVE_INET_ATON
 	inaddr_ok = inet_aton (name, &inaddr) != 0;
+#  else
+	inaddr = inet_addr (name);
+	if (inaddr == INADDR_NONE)
+		inaddr_ok = FALSE;
+	else
+		inaddr_ok = TRUE;
+#  endif
 #endif
+
 	if (inaddr_ok) {
 		ia = g_new0 (SoupAddress, 1);
 		ia->ref_count = 1;
@@ -592,7 +668,7 @@ soup_address_new (const gchar* name,
 		sa_in->sin_port = g_htons(port);
 		memcpy (&sa_in->sin_addr,
 			(char*) &inaddr,
-			sizeof(struct in_addr));
+			sizeof(inaddr));
 
 		(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
 		return NULL;
@@ -602,29 +678,10 @@ soup_address_new (const gchar* name,
 		active_address_hash = g_hash_table_new (soup_str_case_hash,
 							soup_str_case_equal);
 	else {
-		ia = g_hash_table_lookup (active_address_hash, name);
+		gboolean in_prog;
 
-		if (ia && ia->ref_count >= 0) {
-			/*
-			 * Existing valid request, use it.
-			 */
-			if (soup_address_get_port (ia) == port) {
-				soup_address_ref (ia);
-			} else {
-				/* 
-				 * We can reuse the address, but we have to
-				 * change port 
-				 */
-				SoupAddress *new_ia = soup_address_copy (ia);
-				soup_address_set_port (new_ia, port);
-				ia = new_ia;
-			}
-
-			(*func) (ia, SOUP_ADDRESS_STATUS_OK, data);
-
-			return NULL;
-		} 
-		else if (ia && soup_address_get_port (ia) == port) {
+		ia = lookup_in_cache_internal (name, port, &in_prog);
+		if (in_prog) {
 			/*
 			 * Lookup currently in progress.
 			 * Add func to list of callbacks in state.
@@ -646,6 +703,8 @@ soup_address_new (const gchar* name,
 
 			return state;
 		}
+		else if (ia)
+			return ia;
 	}
 
 	/* Check to see if we are doing synchronous DNS lookups */

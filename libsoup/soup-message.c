@@ -47,12 +47,9 @@ soup_message_new (SoupContext *context, const gchar *method)
 {
 	SoupMessage *ret;
 
-	g_return_val_if_fail (context, NULL);
-
 	ret          = g_new0 (SoupMessage, 1);
 	ret->priv    = g_new0 (SoupMessagePrivate, 1);
 	ret->status  = SOUP_STATUS_IDLE;
-	ret->context = context;
 	ret->method  = method ? method : SOUP_METHOD_GET;
 
 	ret->request_headers = g_hash_table_new (soup_str_case_hash, 
@@ -63,7 +60,7 @@ soup_message_new (SoupContext *context, const gchar *method)
 
 	ret->priv->http_version = SOUP_HTTP_1_1;
 
-	soup_context_ref (context);
+	soup_message_set_context (ret, context);
 
 	return ret;
 }
@@ -102,6 +99,76 @@ soup_message_new_full (SoupContext   *context,
 	return ret;
 }
 
+static void
+copy_header (gchar *key, gchar *value, GHashTable *dest_hash)
+{
+	soup_message_add_header (dest_hash, key, value);
+}
+
+/*
+ * Copy context, method, error, request buffer, response buffer, request
+ * headers, response headers, message flags, http version.  
+ *
+ * Callback function, content handlers, message status, server, server socket,
+ * and server message are NOT copied.  
+ */
+SoupMessage *
+soup_message_copy (SoupMessage *req)
+{
+	SoupMessage *cpy;
+
+	cpy = soup_message_new (req->context, req->method);
+
+	cpy->errorcode = req->errorcode;
+	cpy->errorclass = req->errorclass;
+	cpy->errorphrase = req->errorphrase;
+
+	cpy->request.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	cpy->request.length = cpy->request.length;
+	cpy->request.body = g_memdup (req->request.body, 
+				      req->request.length);
+
+	cpy->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	cpy->response.length = cpy->response.length;
+	cpy->response.body = g_memdup (req->response.body, 
+				       req->response.length);
+
+	soup_message_foreach_header (req->request_headers,
+				     (GHFunc) copy_header,
+				     cpy->request_headers);
+
+	soup_message_foreach_header (req->response_headers,
+				     (GHFunc) copy_header,
+				     cpy->response_headers);
+
+	cpy->priv->msg_flags = req->priv->msg_flags;
+
+	/* 
+	 * Note: We don't copy content handlers or callback function as this is
+	 * a nightmare double free situation.  
+	 */
+
+	cpy->priv->http_version = req->priv->http_version;
+
+	return cpy;
+}
+
+static void 
+release_connection (const SoupDataBuffer *data,
+		    gpointer              user_data)
+{
+	SoupConnection *conn = user_data;
+	soup_connection_release (conn);
+}
+
+static void 
+release_and_close_connection (gboolean headers_done, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	soup_connection_set_keep_alive (conn, FALSE);
+	soup_connection_release (conn);
+}
+
 /**
  * soup_message_cleanup:
  * @req: a %SoupMessage.
@@ -114,6 +181,19 @@ void
 soup_message_cleanup (SoupMessage *req)
 {
 	g_return_if_fail (req != NULL);
+
+	if (req->connection && 
+	    req->priv->read_tag &&
+	    req->status == SOUP_STATUS_READING_RESPONSE) {
+		soup_transfer_read_set_callbacks (req->priv->read_tag,
+						  NULL,
+						  NULL,
+						  release_connection,
+						  release_and_close_connection,
+						  req->connection);
+		req->priv->read_tag = 0;
+		req->connection = NULL;
+	}
 
 	if (req->priv->read_tag) {
 		soup_transfer_read_cancel (req->priv->read_tag);
@@ -129,12 +209,13 @@ soup_message_cleanup (SoupMessage *req)
 		soup_context_cancel_connect (req->priv->connect_tag);
 		req->priv->connect_tag = NULL;
 	}
+
 	if (req->connection) {
 		soup_connection_release (req->connection);
 		req->connection = NULL;
 	}
 
-	soup_active_requests = g_slist_remove (soup_active_requests, req);
+	soup_queue_remove_request (req);
 }
 
 static void
@@ -156,15 +237,13 @@ handler_free (SoupHandlerData *data)
 static void
 finalize_message (SoupMessage *req)
 {
-	soup_context_unref (req->context);
+	if (req->context)
+		soup_context_unref (req->context);
 
 	if (req->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->request.body);
 	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (req->response.body);
-
-	if (req->priv->req_header) 
-		g_string_free (req->priv->req_header, TRUE);
 
 	soup_message_clear_headers (req->request_headers);
 	g_hash_table_destroy (req->request_headers);
@@ -458,7 +537,112 @@ soup_message_queue (SoupMessage    *req,
 		    SoupCallbackFn  callback, 
 		    gpointer        user_data)
 {
+	g_return_if_fail (req != NULL);
 	soup_queue_message (req, callback, user_data);
+}
+
+typedef struct {
+	SoupMessage *msg;
+	SoupAuth    *conn_auth;
+} RequeueConnectData;
+
+static void
+requeue_connect_cb (SoupContext          *ctx,
+		    SoupConnectErrorCode  err,
+		    SoupConnection       *conn,
+		    gpointer              user_data)
+{
+	RequeueConnectData *data = user_data;
+
+	if (conn && !conn->auth)
+		conn->auth = data->conn_auth;
+	else
+		soup_auth_free (data->conn_auth);
+
+	soup_queue_connect_cb (ctx, err, conn, data->msg);
+	if (data->msg->errorcode)
+		soup_message_issue_callback (data->msg);
+
+	g_free (data);
+}
+
+static void
+requeue_read_error (gboolean body_started, gpointer user_data)
+{
+	RequeueConnectData *data = user_data;
+	SoupMessage *msg = data->msg;
+	SoupContext *dest_ctx = msg->connection->context;
+
+	soup_context_ref (dest_ctx);
+
+	soup_connection_set_keep_alive (msg->connection, FALSE);
+	soup_connection_release (msg->connection);
+	msg->connection = NULL;
+
+	soup_queue_message (msg, 
+			    msg->priv->callback, 
+			    msg->priv->user_data);
+
+	msg->status = SOUP_STATUS_CONNECTING;
+
+	msg->priv->connect_tag =
+		soup_context_get_connection (dest_ctx, 
+					     requeue_connect_cb, 
+					     data);
+
+	soup_context_unref (dest_ctx);
+}
+
+static void
+requeue_read_finished (const SoupDataBuffer *buf,
+		       gpointer        user_data)
+{
+	RequeueConnectData *data = user_data;
+	SoupMessage *msg = data->msg;
+	SoupConnection *conn = msg->connection;
+
+	if (!soup_connection_is_keep_alive (msg->connection))
+		requeue_read_error (FALSE, data);
+	else {
+		msg->connection = NULL;
+
+		soup_queue_message (msg, 
+				    msg->priv->callback, 
+				    msg->priv->user_data);
+
+		msg->connection = conn;
+	}
+}
+
+/**
+ * soup_message_requeue:
+ * @req: a %SoupMessage
+ *
+ * This causes @req to be placed back on the queue to be attempted again.
+ **/
+void
+soup_message_requeue (SoupMessage *req)
+{
+	g_return_if_fail (req != NULL);
+
+	if (req->connection && req->connection->auth && req->priv->read_tag) {
+		RequeueConnectData *data = NULL;
+
+		data = g_new0 (RequeueConnectData, 1);
+		data->msg = req;
+		data->conn_auth = req->connection->auth;
+
+		soup_transfer_read_set_callbacks (req->priv->read_tag,
+						  NULL,
+						  NULL,
+						  requeue_read_finished,
+						  requeue_read_error,
+						  data);
+		req->priv->read_tag = 0;
+	} else
+		soup_queue_message (req, 
+				    req->priv->callback, 
+				    req->priv->user_data);
 }
 
 /**
@@ -480,9 +664,14 @@ soup_message_send (SoupMessage *msg)
 
 	while (1) {
 		g_main_iteration (TRUE); 
+
 		if (msg->status == SOUP_STATUS_FINISHED || 
 		    SOUP_ERROR_IS_TRANSPORT (msg->errorcode))
 			break;
+
+		/* Quit if soup_shutdown has been called */ 
+		if (!soup_initialized)
+			return SOUP_ERROR_CANCELLED;
 	}
 
 	return msg->errorclass;
@@ -539,7 +728,11 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 	 */
 	soup_auth_initialize (auth, uri);
 
-	old_auth = soup_auth_lookup (ctx);
+	if (auth->type == SOUP_AUTH_TYPE_NTLM)
+		old_auth = msg->connection->auth;
+	else
+		old_auth = soup_auth_lookup (ctx);
+
 	if (old_auth) {
 		if (!soup_auth_invalidates_prior (auth, old_auth)) {
 			soup_auth_free (auth);
@@ -547,7 +740,12 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 		}
 	}
 
-	soup_auth_set_context (auth, ctx);
+	if (auth->type == SOUP_AUTH_TYPE_NTLM) {
+		if (old_auth) 
+			soup_auth_free (old_auth);
+		msg->connection->auth = auth;
+	} else
+		soup_auth_set_context (auth, ctx);
 
         return SOUP_HANDLER_RESEND;
 
@@ -810,7 +1008,6 @@ timeout_handler (gpointer user_data)
 	SoupHandlerData *data = user_data;
 	SoupMessage *msg = data->msg;
 	SoupHandlerResult result;
-	GSList *iter;
 
 	switch (data->type) {
 	case SOUP_HANDLER_PREPARE:
@@ -824,13 +1021,6 @@ timeout_handler (gpointer user_data)
 	case SOUP_HANDLER_FINISHED:
 		if (msg->status == SOUP_STATUS_FINISHED)
 			goto REMOVE_SOURCE;
-	case SOUP_HANDLER_DATA_SENT:
-		iter = msg->priv->content_handlers; 
-		while (iter) {
-			SoupHandlerData *hd = iter->data;
-			if (!g_strcasecmp (hd->name, "server-message"))
-				goto REMOVE_SOURCE;
-		}
 	}
 
 	result = (*data->handler_cb) (msg, data->user_data);
@@ -1060,10 +1250,12 @@ soup_message_set_context (SoupMessage       *msg,
 			  SoupContext       *new_ctx)
 {
 	g_return_if_fail (msg != NULL);
-	g_return_if_fail (new_ctx != NULL);
 
-	soup_context_unref (msg->context);
-	soup_context_ref (new_ctx);
+	if (msg->context)
+		soup_context_unref (msg->context);
+
+	if (new_ctx)
+		soup_context_ref (new_ctx);
 
 	msg->context = new_ctx;
 }
@@ -1073,7 +1265,9 @@ soup_message_get_context (SoupMessage       *msg)
 {
 	g_return_val_if_fail (msg != NULL, NULL);
 
-	soup_context_ref (msg->context);
+	if (msg->context)
+		soup_context_ref (msg->context);
+
 	return msg->context;
 }
 

@@ -36,8 +36,11 @@ SoupAddressNewId     soup_address_new                (const gchar*       name,
 
 void                 soup_address_new_cancel         (SoupAddressNewId   id);
 
-SoupAddress         *soup_address_new_sync           (const gchar *name, 
-						      const gint port);
+SoupAddress         *soup_address_new_sync           (const gchar       *name, 
+						      const gint         port);
+
+SoupAddress         *soup_address_lookup_in_cache    (const gchar       *name, 
+						      const gint         port);
 
 void                 soup_address_ref                (SoupAddress*       ia);
 
@@ -65,8 +68,9 @@ gchar*               soup_address_get_canonical_name (SoupAddress*         ia);
 
 gint                 soup_address_get_port           (const SoupAddress*   ia);
 
-void                 soup_address_set_port           (const SoupAddress*   ia, 
-						      guint                port);
+const struct sockaddr *
+                     soup_address_get_sockaddr       (SoupAddress         *ia,
+						      guint               *addrlen);
 
 guint                soup_address_hash               (const gpointer       p);
 

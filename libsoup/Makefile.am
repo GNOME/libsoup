@@ -22,10 +22,13 @@ libsoupinclude_HEADERS =	\
 	soup-env.h		\
 	soup-error.h		\
 	soup-fault.h		\
+	soup-headers.h		\
 	soup-message.h		\
+	soup-method.h		\
 	soup-misc.h     	\
 	soup-parser.h		\
 	soup-serializer.h	\
+	soup-server-auth.h	\
 	soup-server.h		\
 	soup-socket.h		\
 	soup-uri.h
@@ -50,9 +53,9 @@ libsoup_la_SOURCES =		\
 	soup-env.c		\
 	soup-error.c		\
 	soup-fault.c		\
-	soup-headers.h		\
 	soup-headers.c		\
 	soup-message.c		\
+	soup-method.c		\
 	soup-misc.c     	\
 	soup-nss.h		\
 	soup-nss.c		\
@@ -64,6 +67,7 @@ libsoup_la_SOURCES =		\
 	soup-queue.c		\
 	soup-serializer.c	\
 	soup-server.c		\
+	soup-server-auth.c	\
 	soup-socket.c		\
 	soup-socket-unix.c	\
 	soup-socks.h		\

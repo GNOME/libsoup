@@ -14,6 +14,7 @@
 #include <glib.h>
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-error.h>
+#include <libsoup/soup-method.h>
 
 typedef enum {
 	SOUP_STATUS_IDLE = 0,
@@ -35,21 +36,6 @@ typedef struct {
 	gchar         *body;
 	guint          length;
 } SoupDataBuffer;
-
-#define SOUP_METHOD_POST      "POST"
-#define SOUP_METHOD_GET       "GET"
-#define SOUP_METHOD_HEAD      "HEAD"
-#define SOUP_METHOD_OPTIONS   "OPTIONS"
-#define SOUP_METHOD_PUT       "PUT"
-#define SOUP_METHOD_MOVE      "MOVE"
-#define SOUP_METHOD_COPY      "COPY"
-#define SOUP_METHOD_DELETE    "DELETE"
-#define SOUP_METHOD_TRACE     "TRACE"
-#define SOUP_METHOD_CONNECT   "CONNECT"
-#define SOUP_METHOD_MKCOL     "MKCOL"
-#define SOUP_METHOD_PROPPATCH "PROPPATCH"
-#define SOUP_METHOD_PROPFIND  "PROPFIND"
-#define SOUP_METHOD_SEARCH    "SEARCH"
 
 typedef struct _SoupMessage        SoupMessage;
 typedef struct _SoupMessagePrivate SoupMessagePrivate;
@@ -92,6 +78,8 @@ SoupMessage   *soup_message_new_full            (SoupContext       *context,
 						 gchar             *req_body,
 						 gulong             req_length);
 
+SoupMessage   *soup_message_copy                (SoupMessage       *req);
+
 void           soup_message_free                (SoupMessage       *req);
 
 void           soup_message_cancel              (SoupMessage       *req);
@@ -101,6 +89,8 @@ SoupErrorClass soup_message_send                (SoupMessage       *msg);
 void           soup_message_queue               (SoupMessage       *req, 
 						 SoupCallbackFn     callback, 
 						 gpointer           user_data);
+
+void           soup_message_requeue             (SoupMessage       *req);
 
 void           soup_message_add_header          (GHashTable        *hash,
 						 const gchar       *name,
@@ -183,18 +173,10 @@ guint          soup_message_get_flags           (SoupMessage        *msg);
  * Handler Registration 
  */
 typedef enum {
-	/*
-	 * Client-side events
-	 */
 	SOUP_HANDLER_PREPARE = 0,
 	SOUP_HANDLER_HEADERS,
 	SOUP_HANDLER_DATA,
 	SOUP_HANDLER_FINISHED,
-
-	/*
-	 * Server-side events
-	 */
-	SOUP_HANDLER_DATA_SENT
 } SoupHandlerEvent;
 
 enum {

@@ -101,11 +101,11 @@ soup_ssl_get_iochannel (GIOChannel *sock)
 		putenv (g_strdup_printf ("SECURITY_POLICY=%d",
 					 soup_get_security_policy ()));
 
-		execl (BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy",
-		       BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy",
+		execl (BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
+		       BINDIR G_DIR_SEPARATOR_S SSL_PROXY_NAME,
 		       NULL);
 
-		execlp ("soup-ssl-proxy", "soup-ssl-proxy", NULL);
+		execlp (SSL_PROXY_NAME, SSL_PROXY_NAME, NULL);
 
 		g_error ("Error executing SSL Proxy\n");
 	}

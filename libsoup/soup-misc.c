@@ -5,10 +5,7 @@
  * Authors:
  *      Alex Graveley (alex@ximian.com)
  *
- * soup_base64_encode() written by Chris Blizzard <blizzard@mozilla.org>,
- * and is Copyright (C) 1998 Free Software Foundation.
- *
- * All else Copyright (C) 2000, Helix Code, Inc.
+ * Copyright (C) 2000, Helix Code, Inc.
  */
 
 #include <ctype.h>
@@ -22,7 +19,7 @@
 
 gboolean soup_initialized = FALSE;
 
-static guint max_connections = 0;
+static guint max_connections = 10;
 
 static SoupContext *proxy_context = NULL;
 
@@ -149,8 +146,158 @@ soup_substring_index (gchar *str, gint len, gchar *substr)
 	return -1;
 }
 
-const char base64_alphabet[65] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+/* Base64 utils (straight from camel-mime-utils.c) */
+#define d(x)
+
+static char *base64_alphabet =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/* 
+ * call this when finished encoding everything, to
+ * flush off the last little bit 
+ */
+int
+soup_base64_encode_close (const guchar  *in, 
+			  int            inlen, 
+			  gboolean       break_lines, 
+			  guchar        *out, 
+			  int           *state, 
+			  int           *save)
+{
+	int c1, c2;
+	unsigned char *outptr = out;
+
+	if (inlen > 0)
+		outptr += soup_base64_encode_step (in, 
+						   inlen, 
+						   break_lines, 
+						   outptr, 
+						   state, 
+						   save);
+
+	c1 = ((unsigned char *) save) [1];
+	c2 = ((unsigned char *) save) [2];
+	
+	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
+		 (int)((char *) save) [0],
+		 (int)((char *) save) [1],
+		 (int)((char *) save) [2]));
+
+	switch (((char *) save) [0]) {
+	case 2:
+		outptr [2] = base64_alphabet[ ( (c2 &0x0f) << 2 ) ];
+		g_assert (outptr [2] != 0);
+		goto skip;
+	case 1:
+		outptr[2] = '=';
+	skip:
+		outptr [0] = base64_alphabet [ c1 >> 2 ];
+		outptr [1] = base64_alphabet [ c2 >> 4 | ( (c1&0x3) << 4 )];
+		outptr [3] = '=';
+		outptr += 4;
+		break;
+	}
+	if (break_lines)
+		*outptr++ = '\n';
+
+	*save = 0;
+	*state = 0;
+
+	return outptr-out;
+}
+
+/*
+ * performs an 'encode step', only encodes blocks of 3 characters to the
+ * output at a time, saves left-over state in state and save (initialise to
+ * 0 on first invocation).
+ */
+int
+soup_base64_encode_step (const guchar  *in, 
+			 int            len, 
+			 gboolean       break_lines, 
+			 guchar        *out, 
+			 int           *state, 
+			 int           *save)
+{
+	register guchar *outptr;
+	register const guchar *inptr;
+
+	if (len <= 0)
+		return 0;
+
+	inptr = in;
+	outptr = out;
+
+	d (printf ("we have %d chars, and %d saved chars\n", 
+		   len, 
+		   ((char *) save) [0]));
+
+	if (len + ((char *) save) [0] > 2) {
+		const guchar *inend = in+len-2;
+		register int c1, c2, c3;
+		register int already;
+
+		already = *state;
+
+		switch (((char *) save) [0]) {
+		case 1:	c1 = ((unsigned char *) save) [1]; goto skip1;
+		case 2:	c1 = ((unsigned char *) save) [1];
+			c2 = ((unsigned char *) save) [2]; goto skip2;
+		}
+		
+		/* 
+		 * yes, we jump into the loop, no i'm not going to change it, 
+		 * it's beautiful! 
+		 */
+		while (inptr < inend) {
+			c1 = *inptr++;
+		skip1:
+			c2 = *inptr++;
+		skip2:
+			c3 = *inptr++;
+			*outptr++ = base64_alphabet [ c1 >> 2 ];
+			*outptr++ = base64_alphabet [ c2 >> 4 | 
+						      ((c1&0x3) << 4) ];
+			*outptr++ = base64_alphabet [ ((c2 &0x0f) << 2) | 
+						      (c3 >> 6) ];
+			*outptr++ = base64_alphabet [ c3 & 0x3f ];
+			/* this is a bit ugly ... */
+			if (break_lines && (++already)>=19) {
+				*outptr++='\n';
+				already = 0;
+			}
+		}
+
+		((char *)save)[0] = 0;
+		len = 2-(inptr-inend);
+		*state = already;
+	}
+
+	d(printf("state = %d, len = %d\n",
+		 (int)((char *)save)[0],
+		 len));
+
+	if (len>0) {
+		register char *saveout;
+
+		/* points to the slot for the next char to save */
+		saveout = & (((char *)save)[1]) + ((char *)save)[0];
+
+		/* len can only be 0 1 or 2 */
+		switch(len) {
+		case 2:	*saveout++ = *inptr++;
+		case 1:	*saveout++ = *inptr++;
+		}
+		((char *)save)[0]+=len;
+	}
+
+	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
+		 (int)((char *)save)[0],
+		 (int)((char *)save)[1],
+		 (int)((char *)save)[2]));
+
+	return outptr-out;
+}
 
 /**
  * soup_base64_encode:
@@ -165,58 +312,117 @@ const char base64_alphabet[65] =
 gchar *
 soup_base64_encode (const gchar *text, gint inlen)
 {
-	char *buffer = NULL;
-	char *point = NULL;
-	int outlen = 0;
+        unsigned char *out;
+        int state = 0, outlen;
+        unsigned int save = 0;
+        
+        out = g_malloc (inlen * 4 / 3 + 5);
+        outlen = soup_base64_encode_close (text, 
+					   inlen, 
+					   FALSE,
+					   out, 
+					   &state, 
+					   &save);
+        out[outlen] = '\0';
+        return (char *) out;
+}
 
-	/* check our args */
-	if (text == NULL)
-		return NULL;
+static unsigned char camel_mime_base64_rank[256] = {
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255, 62,255,255,255, 63,
+	 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,255,255,255,  0,255,255,
+	255,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,255,255,255,255,255,
+	255, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+	255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+};
 
-	/* Use 'buffer' to store the output. Work out how big it should be...
-	 * This must be a multiple of 4 bytes */
+/**
+ * base64_decode_step: decode a chunk of base64 encoded data
+ * @in: input stream
+ * @len: max length of data to decode
+ * @out: output stream
+ * @state: holds the number of bits that are stored in @save
+ * @save: leftover bits that have not yet been decoded
+ *
+ * Decodes a chunk of base64 encoded data
+ **/
+int
+soup_base64_decode_step (const guchar  *in, 
+			 int            len, 
+			 guchar        *out, 
+			 int           *state, 
+			 guint         *save)
+{
+	register const guchar *inptr;
+	register guchar *outptr;
+	const guchar *inend;
+	guchar c;
+	register unsigned int v;
+	int i;
 
-	/* check our arg...avoid a pesky FPE */
-	if (inlen == 0) {
-		buffer = g_malloc (sizeof(char));
-		buffer[0] = '\0';
-		return buffer;
+	inend = in+len;
+	outptr = out;
+
+	/* convert 4 base64 bytes to 3 normal bytes */
+	v=*save;
+	i=*state;
+	inptr = in;
+	while (inptr < inend) {
+		c = camel_mime_base64_rank [*inptr++];
+		if (c != 0xff) {
+			v = (v<<6) | c;
+			i++;
+			if (i==4) {
+				*outptr++ = v>>16;
+				*outptr++ = v>>8;
+				*outptr++ = v;
+				i=0;
+			}
+		}
 	}
 
-	outlen = (inlen*4)/3;
-	if ((inlen % 3) > 0) /* got to pad */
-		outlen += 4 - (inlen % 3);
+	*save = v;
+	*state = i;
 
-	buffer = g_malloc (outlen + 1); /* +1 for the \0 */
-	memset (buffer, 0, outlen + 1); /* initialize to zero */
-
-	/* now do the main stage of conversion, 3 bytes at a time,
-	 * leave the trailing bytes (if there are any) for later */
-
-	for (point=buffer; inlen>=3; inlen-=3, text+=3) {
-		*(point++) = base64_alphabet [*text>>2];
-		*(point++) = base64_alphabet [(*text<<4 & 0x30) |
-					     *(text+1)>>4];
-		*(point++) = base64_alphabet [(*(text+1)<<2 & 0x3c) |
-					     *(text+2)>>6];
-		*(point++) = base64_alphabet [*(text+2) & 0x3f];
+	/* quick scan back for '=' on the end somewhere */
+	/* fortunately we can drop 1 output char for each trailing = (upto 2) */
+	i=2;
+	while (inptr > in && i) {
+		inptr--;
+		if (camel_mime_base64_rank [*inptr] != 0xff) {
+			if (*inptr == '=')
+				outptr--;
+			i--;
+		}
 	}
 
-	/* Now deal with the trailing bytes */
-	if (inlen) {
-		/* We always have one trailing byte */
-		*(point++) = base64_alphabet [*text>>2];
-		*(point++) = base64_alphabet [(*text<<4 & 0x30) |
-					     (inlen==2?*(text+1)>>4:0)];
-		*(point++) = (inlen == 1 ?
-			      '=' :
-			      base64_alphabet [*(text+1)<<2 & 0x3c]);
-		*(point++) = '=';
-	}
+	/* if i!= 0 then there is a truncation error! */
+	return outptr - out;
+}
 
-	*point = '\0';
+gchar *
+soup_base64_decode (const gchar   *text,
+		    gint          *out_len)
+{
+	gchar *ret;
+	gint inlen, state = 0, save = 0;
 
-	return buffer;
+	inlen = strlen (text);
+	ret = g_malloc0 (inlen);
+
+	*out_len = soup_base64_decode_step (text, inlen, ret, &state, &save);
+
+	return ret; 
 }
 
 #define ALLOW_UNLESS_DENIED TRUE

@@ -27,9 +27,10 @@
 #include "soup-misc.h"
 #include "soup-private.h"
 #include "soup-socks.h"
+#include "soup-ssl.h"
 #include "soup-transfer.h"
 
-GSList *soup_active_requests = NULL;
+static GSList *soup_active_requests = NULL, *soup_active_request_next = NULL;
 
 static guint soup_queue_idle_tag = 0;
 
@@ -80,9 +81,7 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 			/*
 			 * FIXME: Use exponential backoff here
 			 */
-			soup_message_queue (req, 
-					    req->priv->callback, 
-					    req->priv->user_data);
+			soup_message_requeue (req);
 		} else {
 			soup_message_set_error (req, SOUP_ERROR_IO);
 			soup_message_issue_callback (req);
@@ -96,27 +95,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 	}
 }
 
-static gboolean
-soup_parse_headers (const GString   *headers, 
-		    SoupHttpVersion *version,
-		    SoupMessage     *req)
-{
-	if (!soup_headers_parse_response (headers->str, 
-					  headers->len, 
-					  req->response_headers,
-					  version,
-					  &req->errorcode,
-					  (gchar **) &req->errorphrase)) {
-		soup_message_set_error (req, SOUP_ERROR_MALFORMED);
-		soup_message_issue_callback (req);
-		return FALSE;
-	}
-
-	req->errorclass = soup_error_get_class (req->errorcode);
-
-	return TRUE;
-}
-
 static SoupTransferDone
 soup_queue_read_headers_cb (const GString        *headers,
                             SoupTransferEncoding *encoding,
@@ -124,43 +102,65 @@ soup_queue_read_headers_cb (const GString        *headers,
 			    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-
 	const gchar *connection, *length, *enc;
 	SoupHttpVersion version;
+	GHashTable *resp_hdrs;
+	SoupMethodId meth_id;
 
-	if (!soup_parse_headers (headers, &version, req)) 
-		return SOUP_TRANSFER_END;
+	if (!soup_headers_parse_response (headers->str, 
+					  headers->len, 
+					  req->response_headers,
+					  &version,
+					  &req->errorcode,
+					  (gchar **) &req->errorphrase)) {
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_MALFORMED,
+					     "Unable to parse response "
+					     "headers");
+		goto THROW_MALFORMED_HEADER;
+	}
+		
+	meth_id   = soup_method_get_id (req->method);
+	resp_hdrs = req->response_headers;
+
+	req->errorclass = soup_error_get_class (req->errorcode);
 
 	/* 
-	 * Handle connection persistence 
+	 * Handle connection persistence
+	 * Close connection if:
+	 *   - Connection header is "close"
+	 *   - HTTP 1.0 and Connection header is not present
 	 */
-	connection = soup_message_get_header (req->response_headers,
-					      "Connection");
+	connection = soup_message_get_header (resp_hdrs, "Connection");
 
 	if ((connection && !g_strcasecmp (connection, "close")) ||
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->connection, FALSE);
 
+	/*
+	 * Handle successful CONNECT request by keeping connection open
+	 */
+	if (meth_id == SOUP_METHOD_ID_CONNECT && !SOUP_MESSAGE_IS_ERROR (req))
+		soup_connection_set_keep_alive (req->connection, TRUE);
+
 	/* 
-	 * Special case handling for:
+	 * Special case zero body handling for:
 	 *   - HEAD requests (where content-length must be ignored) 
+	 *   - CONNECT requests (no body expected) 
 	 *   - 1xx Informational responses (where no body is allowed)
 	 */
-	if (!g_strcasecmp (req->method, "HEAD") ||
+	if (meth_id == SOUP_METHOD_ID_HEAD ||
+	    meth_id == SOUP_METHOD_ID_CONNECT ||
 	    req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-                *encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-                *content_len = 0;
-		goto RUN_HANDLERS;
+		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+		*content_len = 0;
+		goto SUCCESS_CONTINUE;
 	}
 
 	/* 
-	 * Handle Content-Length or Chunked encoding 
+	 * Handle Content-Length encoding 
 	 */
-	length = soup_message_get_header (req->response_headers, 
-					  "Content-Length");
-	enc = soup_message_get_header (req->response_headers, 
-				       "Transfer-Encoding");
-
+	length = soup_message_get_header (resp_hdrs, "Content-Length");
 	if (length) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = atoi (length);
@@ -169,9 +169,15 @@ soup_queue_read_headers_cb (const GString        *headers,
 						     SOUP_ERROR_MALFORMED,
 						     "Invalid Content-Length");
 			goto THROW_MALFORMED_HEADER;
-		}
+		} 
+		goto SUCCESS_CONTINUE;
 	}
-	else if (enc) {
+
+	/* 
+	 * Handle Chunked encoding 
+	 */
+	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
+	if (enc) {
 		if (g_strcasecmp (enc, "chunked") == 0)
 			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
@@ -181,15 +187,15 @@ soup_queue_read_headers_cb (const GString        *headers,
 				"Unknown Response Encoding");
 			goto THROW_MALFORMED_HEADER;
 		}
+		goto SUCCESS_CONTINUE;
 	}
 
- RUN_HANDLERS:
-	if (soup_message_run_handlers (req, SOUP_HANDLER_HEADERS))
-		return SOUP_TRANSFER_END;
-
+ SUCCESS_CONTINUE:
+	soup_message_run_handlers (req, SOUP_HANDLER_HEADERS);
 	return SOUP_TRANSFER_CONTINUE;
 
  THROW_MALFORMED_HEADER:
+	soup_connection_set_keep_alive (req->connection, FALSE);
 	soup_message_issue_callback (req);
 	return SOUP_TRANSFER_END;
 }
@@ -204,8 +210,7 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 	req->response.length = data->length;
 	req->response.body = data->body;
 
-	if (soup_message_run_handlers (req, SOUP_HANDLER_DATA))
-		return SOUP_TRANSFER_END;
+	soup_message_run_handlers (req, SOUP_HANDLER_DATA);
 
 	return SOUP_TRANSFER_CONTINUE;
 }
@@ -255,7 +260,11 @@ soup_encode_http_auth (SoupMessage *msg, GString *header, gboolean proxy_auth)
 
 	ctx = proxy_auth ? soup_get_proxy () : msg->context;
 
-	auth = soup_auth_lookup (ctx);
+	if (msg->connection->auth)
+		auth = msg->connection->auth;
+	else
+		auth = soup_auth_lookup (ctx);
+
 	if (auth) {
 		token = soup_auth_authorize (auth, msg);
 		if (token) {
@@ -346,7 +355,15 @@ soup_get_request_header (SoupMessage *req)
 	proxy = soup_get_proxy ();
 	suri = soup_context_get_uri (req->context);
 
-	if (proxy)
+	if (!g_strcasecmp (req->method, "CONNECT")) 
+		/*
+		 * CONNECT URI is hostname:port for tunnel destination
+		 */
+		uri = g_strdup_printf ("%s:%d", suri->host, suri->port);
+	else if (proxy)
+		/*
+		 * Proxy expects full URI to destination
+		 */
 		uri = soup_uri_to_string (suri, FALSE);
 	else if (suri->querystring)
 		uri = g_strconcat (suri->path, "?", suri->querystring, NULL);
@@ -359,7 +376,6 @@ soup_get_request_header (SoupMessage *req)
 			           "%s %s HTTP/1.0\r\n",
 			   req->method,
 			   uri);
-
 	g_free (uri);
 
 	/*
@@ -418,88 +434,176 @@ soup_queue_write_done_cb (gpointer user_data)
 }
 
 static void
+start_request (SoupContext *ctx, SoupMessage *req)
+{
+	GIOChannel *channel;
+	gboolean overwrt; 
+
+	channel = soup_connection_get_iochannel (req->connection);
+	if (!channel) {
+		SoupProtocol proto;
+		gchar *phrase;
+
+		proto = soup_context_get_uri (ctx)->protocol;
+
+		if (proto == SOUP_PROTOCOL_HTTPS)
+			phrase = "Unable to create secure data channel";
+		else
+			phrase = "Unable to create data channel";
+
+		if (ctx != req->context)
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT_PROXY,
+				phrase);
+		else 
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT,
+				phrase);
+
+		/* NOTE: Don't call soup_message_issue_callback here */
+		return;
+	}
+
+	req->priv->write_tag = 
+		soup_transfer_write_simple (channel,
+					    soup_get_request_header (req),
+					    &req->request,
+					    soup_queue_write_done_cb,
+					    soup_queue_error_cb,
+					    req);
+
+	overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
+
+	req->priv->read_tag = 
+		soup_transfer_read (channel,
+				    overwrt,
+				    soup_queue_read_headers_cb,
+				    soup_queue_read_chunk_cb,
+				    soup_queue_read_done_cb,
+				    soup_queue_error_cb,
+				    req);
+
+	g_io_channel_unref (channel);
+
+	req->status = SOUP_STATUS_SENDING_REQUEST;
+}
+
+static SoupHandlerResult
+proxy_https_connect_cb (SoupMessage *msg, gpointer user_data)
+{
+	gboolean *ret = user_data;
+
+	if (!SOUP_MESSAGE_IS_ERROR (msg)) {
+		/*
+		 * Bless the connection to SSL
+		 */
+		msg->connection->channel = 
+			soup_ssl_get_iochannel (msg->connection->channel);
+
+		/*
+		 * Avoid releasing the connection on message free
+		 */
+		msg->connection = NULL;
+		
+		*ret = TRUE;
+	}
+
+	return SOUP_HANDLER_CONTINUE;
+}
+
+static gboolean
+proxy_https_connect (SoupContext    *proxy, 
+		     SoupConnection *conn, 
+		     SoupContext    *dest_ctx)
+{
+	SoupProtocol proxy_proto;
+	SoupMessage *connect_msg;
+	gboolean ret = FALSE;
+
+	proxy_proto = soup_context_get_uri (proxy)->protocol;
+
+	if (proxy_proto != SOUP_PROTOCOL_HTTP && 
+	    proxy_proto != SOUP_PROTOCOL_HTTPS) 
+		return FALSE;
+
+	connect_msg = soup_message_new (dest_ctx, SOUP_METHOD_CONNECT);
+	connect_msg->connection = conn;
+	soup_message_add_handler (connect_msg, 
+				  SOUP_HANDLER_FINISHED,
+				  NULL,
+				  proxy_https_connect_cb,
+				  &ret);
+	soup_message_send (connect_msg);
+	soup_message_free (connect_msg);
+
+	return ret;
+}
+
+static gboolean
+proxy_connect (SoupContext *ctx, SoupMessage *req, SoupConnection *conn)
+{
+	SoupProtocol proto, dest_proto;
+
+	/* 
+	 * Only attempt proxy connect if the connection's context is different
+	 * from the requested context, and if the connection is new 
+	 */
+	if (ctx == req->context || !soup_connection_is_new (conn))
+		return FALSE;
+
+	proto = soup_context_get_uri (ctx)->protocol;
+	dest_proto = soup_context_get_uri (req->context)->protocol;
+	
+	/* Handle SOCKS proxy negotiation */
+	if ((proto == SOUP_PROTOCOL_SOCKS4 || proto == SOUP_PROTOCOL_SOCKS5)) {
+		soup_connect_socks_proxy (conn, 
+					  req->context, 
+					  soup_queue_connect_cb,
+					  req);
+		return TRUE;
+	} 
+	
+	/* Handle HTTPS tunnel setup via proxy CONNECT request. */
+	if (dest_proto == SOUP_PROTOCOL_HTTPS) {
+		/* Syncronously send CONNECT request */
+		if (!proxy_https_connect (ctx, conn, req->context)) {
+			soup_message_set_error_full (
+				req, 
+				SOUP_ERROR_CANT_CONNECT_PROXY,
+				"Unable to create secure data "
+				"tunnel through proxy");
+
+			/* NOTE: Don't call soup_message_issue_callback here */
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+void
 soup_queue_connect_cb (SoupContext          *ctx,
 		       SoupConnectErrorCode  err,
 		       SoupConnection       *conn,
 		       gpointer              user_data)
 {
 	SoupMessage *req = user_data;
-	SoupProtocol proto;
-	GIOChannel *channel;
-	gboolean overwrt; 
 
 	req->priv->connect_tag = NULL;
+	req->connection = conn;
 
 	switch (err) {
 	case SOUP_CONNECT_ERROR_NONE:
-		proto = soup_context_get_uri (ctx)->protocol;
-
-		if (soup_connection_is_new (conn) &&
-		    (proto == SOUP_PROTOCOL_SOCKS4 ||
-		     proto == SOUP_PROTOCOL_SOCKS5)) {
-			soup_connect_socks_proxy (conn, 
-						  req->context, 
-						  soup_queue_connect_cb,
-						  req);
+		/* 
+		 * NOTE: proxy_connect will either set an error or call us 
+		 * again after proxy negotiation.
+		 */
+		if (proxy_connect (ctx, req, conn))
 			return;
-		}
 
-		channel = soup_connection_get_iochannel (conn);
-		if (!channel) {
-			gchar *phrase;
-
-			if (proto == SOUP_PROTOCOL_HTTPS)
-				phrase = "Unable to create secure data channel";
-			else
-				phrase = "Unable to create data channel";
-
-			if (ctx != req->context)
-				soup_message_set_error_full (
-					req, 
-					SOUP_ERROR_CANT_CONNECT_PROXY,
-					phrase);
-			else 
-				soup_message_set_error_full (
-					req, 
-					SOUP_ERROR_CANT_CONNECT,
-					phrase);
-
-			soup_message_issue_callback (req);
-			return;
-		}
-
-		if (req->priv->req_header) {
-			g_string_free (req->priv->req_header, TRUE);
-			req->priv->req_header = NULL;
-		}
-
-		req->priv->req_header = soup_get_request_header (req);
-
-		req->priv->write_tag = 
-			soup_transfer_write (channel,
-					     req->priv->req_header,
-					     &req->request,
-					     NULL,
-					     soup_queue_write_done_cb,
-					     soup_queue_error_cb,
-					     req);
-
-		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
-
-		req->priv->read_tag = 
-			soup_transfer_read (channel,
-					    overwrt,
-					    soup_queue_read_headers_cb,
-					    soup_queue_read_chunk_cb,
-					    soup_queue_read_done_cb,
-					    soup_queue_error_cb,
-					    req);
-
-		g_io_channel_unref (channel);
-
-		req->status = SOUP_STATUS_SENDING_REQUEST;
-		req->connection = conn;
-
+		start_request (ctx, req);
 		break;
 
 	case SOUP_CONNECT_ERROR_ADDR_RESOLVE:
@@ -514,7 +618,7 @@ soup_queue_connect_cb (SoupContext          *ctx,
 				SOUP_ERROR_CANT_CONNECT,
 				"Unable to resolve hostname");
 
-		soup_message_issue_callback (req);
+		/* NOTE: Don't call soup_message_issue_callback here */
 		break;
 
 	case SOUP_CONNECT_ERROR_NETWORK:
@@ -525,20 +629,55 @@ soup_queue_connect_cb (SoupContext          *ctx,
 			soup_message_set_error (req, 
 						SOUP_ERROR_CANT_CONNECT);
 
-		soup_message_issue_callback (req);
+		/* NOTE: Don't call soup_message_issue_callback here */
 		break;
 	}
 
 	return;
 }
 
+void
+soup_queue_add_request (SoupMessage *req)
+{
+	soup_active_requests = g_slist_prepend (soup_active_requests, req);
+}
+
+void
+soup_queue_remove_request (SoupMessage *req)
+{
+	if (soup_active_request_next && soup_active_request_next->data == req)
+		soup_queue_next_request ();
+	soup_active_requests = g_slist_remove (soup_active_requests, req);
+}
+
+SoupMessage *
+soup_queue_first_request (void)
+{
+	if (!soup_active_requests)
+		return NULL;
+
+	soup_active_request_next = soup_active_requests->next;
+	return soup_active_requests->data;
+}
+
+SoupMessage *
+soup_queue_next_request (void)
+{
+	SoupMessage *ret;
+
+	if (!soup_active_request_next)
+		return NULL;
+	ret = soup_active_request_next->data;
+	soup_active_request_next = soup_active_request_next->next;
+	return ret;
+}
+
 static gboolean 
 soup_idle_handle_new_requests (gpointer unused)
 {
-        GSList *iter;
+	SoupMessage *req = soup_queue_first_request ();
 
-	for (iter = soup_active_requests; iter; iter = iter->next) {
-		SoupMessage *req = iter->data;
+	for (; req; req = soup_queue_next_request ()) {
 		SoupContext *ctx, *proxy;
 
 		if (req->status != SOUP_STATUS_QUEUED)
@@ -548,14 +687,39 @@ soup_idle_handle_new_requests (gpointer unused)
 		ctx = proxy ? proxy : req->context;
 
 		req->status = SOUP_STATUS_CONNECTING;
-		req->priv->connect_tag =
-			soup_context_get_connection (ctx, 
-						     soup_queue_connect_cb, 
-						     req);
+
+		if (req->connection && 
+		    soup_connection_is_keep_alive (req->connection))
+			start_request (ctx, req);
+		else {
+			gpointer connect_tag;
+
+			connect_tag = 
+				soup_context_get_connection (
+					ctx, 
+					soup_queue_connect_cb, 
+					req);
+
+			if (req->errorcode)
+				soup_message_issue_callback (req);
+			else if (connect_tag)
+				req->priv->connect_tag = connect_tag;
+		}
 	}
 
 	soup_queue_idle_tag = 0;
 	return FALSE;
+}
+
+static void
+soup_queue_initialize (void)
+{
+	if (!soup_initialized)
+		soup_load_config (NULL);
+
+	if (!soup_queue_idle_tag)
+		soup_queue_idle_tag = 
+			g_idle_add (soup_idle_handle_new_requests, NULL);
 }
 
 void 
@@ -565,18 +729,20 @@ soup_queue_message (SoupMessage    *req,
 {
 	g_return_if_fail (req != NULL);
 
-	if (!soup_initialized)
-		soup_load_config (NULL);
+	req->priv->callback = callback;
+	req->priv->user_data = user_data;
 
-	if (!soup_queue_idle_tag)
-		soup_queue_idle_tag = 
-			g_idle_add (soup_idle_handle_new_requests, NULL);
+	if (!req->context) {
+		soup_message_set_error_full (req, 
+					     SOUP_ERROR_CANCELLED,
+					     "Attempted to queue a message "
+					     "with no destination context");
+		soup_message_issue_callback (req);
+		return;
+	}
 
 	if (req->status != SOUP_STATUS_IDLE)
 		soup_message_cleanup (req);
-
-	req->priv->callback = callback;
-	req->priv->user_data = user_data;
 
 	switch (req->response.owner) {
 	case SOUP_BUFFER_USER_OWNED:
@@ -587,11 +753,9 @@ soup_queue_message (SoupMessage    *req,
 					     "buffer.");
 		soup_message_issue_callback (req);
 		return;
-
 	case SOUP_BUFFER_SYSTEM_OWNED:
 		g_free (req->response.body);
 		break;
-
 	case SOUP_BUFFER_STATIC:
 		break;
 	}
@@ -602,17 +766,19 @@ soup_queue_message (SoupMessage    *req,
 
 	soup_message_clear_headers (req->response_headers);
 
+	req->errorcode = 0;
+	req->errorclass = 0;
+
 	if (req->errorphrase) {
 		g_free ((gchar *) req->errorphrase);
 		req->errorphrase = NULL;
 	}
 
-	req->errorcode = 0;
-	req->errorclass = 0;
-
 	req->status = SOUP_STATUS_QUEUED;
 
-	soup_active_requests = g_slist_prepend (soup_active_requests, req);
+	soup_queue_add_request (req);
+
+	soup_queue_initialize ();
 }
 
 /**
@@ -624,11 +790,16 @@ soup_queue_message (SoupMessage    *req,
 void 
 soup_queue_shutdown (void)
 {
-        GSList *iter;
+	SoupMessage *req;
 
-	g_source_remove (soup_queue_idle_tag);
-	soup_queue_idle_tag = 0;
+	soup_initialized = FALSE;
 
-	for (iter = soup_active_requests; iter; iter = iter->next)
-		soup_message_cancel (iter->data);
+	if (soup_queue_idle_tag) {
+		g_source_remove (soup_queue_idle_tag);
+		soup_queue_idle_tag = 0;
+	}
+
+	req = soup_queue_first_request ();
+	for (; req; req = soup_queue_next_request ())
+		soup_message_cancel (req);
 }

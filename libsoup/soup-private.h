@@ -37,6 +37,8 @@
 #  endif
 #endif
 
+#include <sys/types.h>
+
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -46,12 +48,13 @@
 #endif
 
 #ifdef SOUP_WIN32
-#define VERSION "Win/0.6.99"
+#define VERSION "Win/0.7.99"
 #include <windows.h>
 #include <winbase.h>
 #include <winuser.h>
 #endif
 
+#include <libsoup/soup-auth.h>
 #include <libsoup/soup-context.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
@@ -103,6 +106,7 @@ struct _SoupConnection {
 	SoupContext  *context;
 	GIOChannel   *channel;
 	SoupSocket   *socket;
+	SoupAuth     *auth;
 	guint         port;
 	gboolean      in_use;
 	guint         last_used_id;
@@ -110,39 +114,41 @@ struct _SoupConnection {
 	guint         death_tag;
 };
 
-struct _SoupMessagePrivate {
-	SoupConnectId   connect_tag;
-	guint           read_tag;
-	guint           write_tag;
-	guint           timeout_tag;
-
-	GString        *req_header;
-
-	SoupCallbackFn  callback;
-	gpointer        user_data;
-
-	guint           msg_flags;
-
-	GSList         *content_handlers;
-
-	SoupHttpVersion http_version;
-
-	SoupServer     *server;
-	SoupSocket     *server_sock;
-};
-
 struct _SoupServer {
 	SoupProtocol       proto;
 	gint               port;
 
+	guint              refcnt;
 	GMainLoop         *loop;
 
 	guint              accept_tag;
-	SoupSocket        *sock;
+	SoupSocket        *listen_sock;
 
-	GHashTable        *handlers;
-	GSList            *static_handlers;
-	SoupServerHandler  default_handler;
+	GIOChannel        *cgi_read_chan;
+	GIOChannel        *cgi_write_chan;
+
+	GHashTable        *handlers;   /* KEY: path, VALUE: SoupServerHandler */
+	SoupServerHandler *default_handler;
+};
+
+struct _SoupMessagePrivate {
+	SoupConnectId      connect_tag;
+	guint              read_tag;
+	guint              write_tag;
+	guint              timeout_tag;
+
+	SoupCallbackFn     callback;
+	gpointer           user_data;
+
+	guint              msg_flags;
+
+	GSList            *content_handlers;
+
+	SoupHttpVersion    http_version;
+
+	SoupServer        *server;
+	SoupSocket        *server_sock;
+	SoupServerMessage *server_msg;
 };
 
 /* from soup-message.c */
@@ -163,9 +169,6 @@ gboolean  soup_str_case_equal  (gconstpointer  v1,
 gint      soup_substring_index (gchar         *str,
 				gint           len,
 				gchar         *substr);
-
-gchar    *soup_base64_encode   (const gchar   *text,
-				gint           len);
 
 /* from soup-socket.c */
 

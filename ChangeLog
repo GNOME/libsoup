@@ -1,7 +1,554 @@
+2002-03-11  Alex Graveley  <alex@ximian.com>
+
+	* configure.in, src/libsoup/soup-private.h: Bump development
+	version to 0.7.99.
+
+	* Merge all changes from soup-0-6 branch.
+
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
+	* configure.in: SOUP_AGE goes to 1, SOUP_CURRENT goes to 4.
+	Update version to 0.6.99.
+
+	* src/libsoup/soup-private.h (VERSION): Update win version to
+	Win/0.6.99.
+
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Remove
+	debugging g_print.
+
+2002-03-07  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.h: Add soup_address_lookup_in_cache.
+
+	* src/libsoup/soup-socket.c (soup_socket_connect): Handle host
+	address already being resolved by checking in address cache.
+	Allows us to return a non-null state pointer if soup_address_new
+	calls its callback inline, but soup_socket_new does not.
+
+	* src/libsoup/soup-socket-unix.c (lookup_in_cache_internal): Impl,
+	checks the address cache for an existing resolved address or
+	in progress lookup.
+	(soup_address_lookup_in_cache): Impl, return existing resolved
+	address if it exists.
+	(soup_address_new): use lookup_in_cache_internal.
+
+	* src/libsoup/soup-socket-win.c (soup_address_get_cached): Impl,
+	return NULL as windows has no address hash.
+
+2002-02-26  JP Rosevear  <jpr@ximian.com>
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): inaddr is a
+	different type for inet_addr, calculate sizeof directly
+
+2002-02-25  JP Rosevear  <jpr@ximian.com>
+
+	* src/libsoup/soup-socket-unix.c: apparently some platforms don't
+	define INADDR_NONE either
+
+2002-02-25  JP Rosevear  <jpr@ximian.com>
+	
+	* src/soup-httpd/Makefile.am: add popt cflags to includes
+
+	* src/libsoup/soup-socket.c: apparently INET_ADDRSTRLEN is not
+	defined on some unix platforms
+
+	* src/libsoup/soup-socket-unix.c (soup_address_new): handle not
+	have inet_pton and inet_aton with inet_addr
+
+	* configure.in: check for inet_aton as well and allow config
+	options to specify popt location
+
+2002-02-23  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (proxy_connect): Pull proxy connection
+	code out of soup_queue_connect_cb to here.
+	(start_request): Delay calling soup_message_issue_callback here.
+	(soup_queue_connect_cb): Ditto.
+	(soup_idle_handle_new_requests): Call soup_message_issue_callback
+	if req->errorcode is set.  This avoids an FMW when setting the
+	connect tag on a request which has a connect error and has been
+	freed.
+
+	* src/libsoup/soup-message.c (requeue_connect_cb): Call
+	soup_message_issue_callback if req->errorcode is set.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Add
+	timeout handler to retry connect if new connection failed and
+	there are existing connections to this host.
+	(soup_context_get_connection): Drop timeout interval to 150 from 500.
+
+	* src/libsoup/soup-misc.c: Set default connection limit to 10.
+
+2002-02-17  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_inetaddr_cb):
+	Check result from soup_socket_new.
+
+	* src/libsoup/soup-queue.c (soup_idle_handle_new_requests): Check
+	result from soup_context_get_connection.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Don't
+	access 'data' after free.
+	(soup_context_get_connection): Check return from
+	soup_socket_connect, as a null result means our callback has been
+	issued and our state freed.
+
+2002-02-15  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_shutdown): Only
+	g_source_remove the idle handler if it's been set, to avoid a glib
+	warning.
+
+2002-02-14  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_send): Check if
+	soup_initialized is FALSE signifying that soup_shutdown has been
+	called while processing.
+
+	* src/libsoup/soup-queue.c (soup_queue_shutdown): Set
+	soup_initialized to FALSE so any currently running synch sends
+	will quit.
+
+2002-02-13  Ettore Perazzoli  <ettore@ximian.com>
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_response): Set `decodelen' to
+	be 5 bytes less than the challenge's length to avoid overflowing
+	the input buffer.
+
+2002-02-13  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_add_request,
+	soup_queue_remove_request, soup_queue_first_request,
+	soup_queue_next_request): Routines to all simulataneous iteration
+	and modification of the active request list. Fixes Ximian 14030.
+	(soup_idle_handle_new_requests): Use the above functions.
+	(soup_queue_message): Likewise.
+	(soup_queue_shutdown): Likewise.
+
+	* src/libsoup/soup-message.c (soup_message_cleanup): Use
+	soup_queue_remove_request.
+
+2002-02-10  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Temporary
+	fix for 100% cpu usage as HUPs are not being caught in some cases.
+
+2002-02-08  Dan Winship  <danw@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_write): Handle
+	SSL_ERROR_WANT_READ here too. Fixes at least Ximian 19792 and
+	maybe others.
+
 2002-01-17  Joe Shaw  <joe@ximian.com>
 
-	* src/libsoup/soup-message.c: Add a
-	soup_message_get_http_version() function.
+	* src/libsoup/soup-message.c: Add soup_message_get_http_version()
+	function.
+
+2002-01-08  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-error.h: Add SOUP_ERROR_MOVED_TEMPORARILY
+	(which was in early HTTP1.1 and HTTP1.0 specs) defined to
+	SOUP_ERROR_FOUND (its replacement).
+
+	* configure.in: Use /usr/lib as the default location for nss and
+	nspr libs. Also, NSS static libs are named differently from their
+	dynamic version.
+
+2002-01-08  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-transfer.c (issue_final_callback): Remove the
+	gio sources from the reader before invoking the read_done
+	callback, since the connection will be marked free before the
+	user's callback is called, so if that callback posts another
+	request synchronously, the callback will end up getting called
+	back again when the new request finishes, which is wrong.
+
+2002-01-08  Alex Graveley  <alex@ximian.com>
+
+	* TODO: Update
+
+	* acconfig.h: undef SSL_PROXY_NAME
+
+	* src/libsoup/soup-ssl.c (soup_ssl_get_iochannel): Execute
+	customly chosen SSL proxy name.
+
+	* src/soup-ssl-proxy/Makefile.am (install-exec-hook): Add
+	install-time hook for customly named SSL proxy.
+
+	* configure.in: Don't let -lpopt sneak into $LIBS. Add option to
+	allow custom name for the openssl proxy.  Add option to allow
+	static linking of the SSL library.
+
+2002-01-02  Rodrigo Moya <rodrigo@ximian.com>
+
+	* src/libsoup-apache/soup-apache.c (soup_apache_handler): updated
+	for the new field names in SoupServerAuthBasic
+
+2001-12-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/Makefile.am (libsoup_la_SOURCES): Add
+	soup-server-auth.c.
+
+	* src/libsoup/soup-server-auth.c: Implement server-side
+	basic/digest authentication.
+	(soup_server_auth_get_user): Impl. Allows server auth/path handler
+	to get the username.
+	(soup_server_auth_check_passwd): Impl. Allows server auth/path
+	handler to check a password against the one used in the request.
+
+	* src/libsoup/soup-server.c (call_handler): Create SoupServerAuth
+	and call auth context's callback before calling path handler.
+	(message_new): Don't create temporary context, just pass NULL.
+	(soup_server_register): Copy auth context correctly.
+	(soup_server_message_new): If a server message already exists,
+	return that.
+	(soup_server_message_finish): Start server message as well as
+	finish, in case message_start is never called.
+
+	* src/libsoup/soup-private.h: Include sys/types.h so sockaddr
+	works for FreeBSD.
+
+	* src/libsoup/soup-misc.c: Move base64 encoding/decoding here from
+	soup-ntlm.c.  Remove copyright notice as soup_base64_encode is now
+	taken from evolution.
+	(soup_base64_encode): Use soup_base64_encode_close.
+	(soup_base64_decode): Impl. Use soup_base64_decode_step.
+
+	* src/libsoup/soup-misc.h: Make base64 code public.
+
+	* src/libsoup/soup-ntlm.c: Use base64 code from soup-misc.c.
+
+	* src/libsoup/soup-headers.c: Move header parameter parsing to
+	here from soup-auth.c.
+
+	* src/libsoup/soup-auth.c: Use header parsing from soup-headers.c.
+	(digest_init_func): Handle empty digest
+	realm or user passwd.
+	(decode_data_type): Return 0 on empty value.
+
+	* src/libsoup/soup-uri.c (soup_uri_equal): Impl.
+
+2001-12-19  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): #define
+	RAND_status to constants for older versions of OpenSSL (before
+	0.9.5).
+
+	* src/soup-ssl-proxy/soup-ssl-proxy.c (main): Check that ssh
+	channel is created before adding watches.
+
+2001-12-17  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_seed): Use
+	RAND_status less often.
+
+2001-12-17  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-ssl-proxy/soup-openssl.c (soup_openssl_init): Implement
+	a simple PRNG seed if needed.
+
+2001-12-15  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server.c (message_new): Don't use temporary
+	context to create message, just pass a NULL one.
+
+2001-12-14  Alex Graveley  <alex@ximian.com>
+
+	* tests/server-test.c (push_callback): Add test for server push,
+	which creates a SoupServerMessage and sends the headers, body, and
+	ends the transfer at 4 second intervals.
+	(soup_server_init): Update for new server api.
+
+	* tests/cgi-test.c (soup_server_init): Update for new server api.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write_simple):
+	Impl. Just write the headers and data buffer passed.
+	(soup_transfer_write): Use callback to get header data, remove
+	header done callback.
+	(soup_transfer_write_pause): Pause the write by removing the
+	writable io watch.
+	(soup_transfer_write_unpause): Unpause by adding it back again.
+	(write_chunk_sep): Handle (rare) case where 0 length chunk is
+	first chunk.  Final chunks end in \r\n\r\n not just \r\n.
+
+	* src/libsoup/soup-server.c (get_header_cgi_cb): Create header for
+	delayed writes if soup_server_message_start() has been called,
+	otherwise pause write.
+	(get_header_cb): Ditto, use chunked encoding if client supports
+	it.
+	(get_chunk_cb): Free the current chunk, not the last one.  Pause
+	write if no new data.
+	(soup_server_message_start): Impl. Asyncronously send the headers
+	of the request.  Unpause write.
+	(soup_server_message_add_data): Unpause write.
+	(soup_server_message_finish): Unpause write.
+
+	* src/libsoup/soup-queue.c (start_request): Use
+	soup_transfer_write_simple.
+
+	* src/libsoup/soup-socket.c: Comment formatting.
+
+2001-12-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (start_request): Use
+	soup_transfer_write_simple.
+
+2001-12-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup-apache/soup-apache.c (soup_apache_get_server):
+	Impl. Returns the SoupServer which handles this request's port and
+	protocol, creating and initializing the server if this is its
+	first use.
+	(soup_apache_handler): Check auth_type not auth.type.  Update for
+	new SoupServerContext members.
+
+2001-12-09  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-uri.c (normalize_path): Add path normalization
+	code from libxml.
+
+2001-12-06  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_tcp_cb): Free
+	state before callback.
+	(soup_socket_connect_inetaddr_cb): Don't shadow param.
+
+2001-12-06  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-method.[ch]: Create.
+
+	* src/libsoup/soup-dav-server.c: Rehash to be controlled by
+	caller through soup_dav_server_process, instead of registering
+	paths with the server internally.  This adds the restricition of
+	only being able to service dav move/copy requests to paths under
+	the caller's registered path.
+
+	* src/libsoup/soup-server.c (call_handler): Add message, request
+	path, and method id to SoupServerContext.
+
+	* src/libsoup/soup-message.h: Remove method defines.
+
+2001-12-05  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server.c (soup_server_run): Allow recursive
+	calls and/or blocking on a running async server.
+
+2001-12-05  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-fault.c: Formatting nitpicks.
+
+	* src/libsoup/soup-server.c (free_handler): Call unregister handler.
+
+	* src/libsoup/soup-server.h: Add unregister callback to
+	SoupServerHandler so handlers can free temporary resources on
+	server shutdown.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write_cb): Call
+	headers_done_cb if wrote >= header_len.
+
+	* src/libsoup/soup-dav-server.c (soup_dav_server_register): Pass
+	dav_unregister_handler to soup_server_register, to cleanup state
+	on server free.
+
+	* src/libsoup/soup-env.c: Rehash.
+
+	* src/libsoup/soup-message.c (soup_message_new): Allow NULL
+	contexts.
+	(soup_message_copy): Impl. Copy request/response buffers.
+
+	* src/libsoup/soup-queue.c (soup_queue_message): Handle NULL
+	message contexts by issuing a cancelled callback.  Break out queue
+	initialization to soup_queue_initialize(). 
+
+2001-12-04  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Don't try to
+	wait for the rest of the data if the read_tag is 0 (eg, if the
+	write attempt got an EPIPE). Fixes a crash if the server
+	idle-timeouts a keepalived connection.
+
+2001-12-02  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-private.h: Remove req_header from
+	SoupMessagePrivate.
+
+	* src/libsoup/soup-message.c (finalize_message): No more
+	req_header.
+
+	* src/libsoup/soup-queue.c (start_request): Ditto.
+
+	* src/libsoup/soup-server.c (read_done_cgi_cb): Ditto.
+	(read_done_cb): Ditto.
+
+2001-12-01  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-server-auth.h: Pull the SoupServerAuth from
+	soup-server.h to here.
+
+	* tests/cgi-test.c: 
+	* tests/mod-server-test.c: 
+	* tests/server-test.c: Update for new server api. Add a handler
+	that sets the errorphrase, add some response headers, and prints
+	the request body, uri, and headers in the response.
+
+	* src/soup-httpd/soup-httpd.c: Update for new server api, remove
+	module reloading, which trivializes the server code.
+
+	* src/libsoup-apache/soup-apache.c: Update for new server api.
+
+	* src/libsoup/soup-uri.c (soup_uri_copy): Copy element by element,
+	don't stringify/unstringify.
+
+	* src/libsoup/soup-uri.h: Remove query_elems from SoupUri.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_write): Take an
+	encoding argument to allow chunked writes, and a write_chunk_cb to
+	allow new data to be written. Use a secondary buffer to make
+	writes (and especially chunked writes) larger, and also simplify
+	the code.
+	(write_chunk_sep): Impl.
+	(write_chunk): Impl.
+
+	* src/libsoup/soup-socket.c (soup_socket_connect_inetaddr_cb):
+	Free state before issuing failure callback.  Add FIXME, as this
+	shouldn't be needed but avoids a segfault.
+
+	* src/libsoup/soup-socket-unix.c: Formatting.
+
+	* src/libsoup/soup-server.c: Reimplement to support server push
+	through SoupServerMessage, CGI support, and persistent
+	connections. Modules are now passed a SoupServer during init,
+	instead of having well-known global server objects -- these have
+	been removed.
+
+	* src/libsoup/soup-queue.c (start_request): Update for new
+	transfer_write interface, passing content length as the encoding
+	and a NULL write_chunk_cb.
+
+	* src/libsoup/soup-private.h: Add server, server_sock, and
+	server_msg to _SoupMessagePrivate.  Gut _SoupServer.
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Cleanup
+	boolean eval.
+
+	* src/libsoup/soup-headers.c (soup_headers_parse_response): Wrap
+	at 80.
+
+	* src/libsoup/soup-dav-server.[ch]: Update for new server handler
+	interface.
+
+	* configure.in: Check for sys/ioctl.h and sys/filio.h
+
+2001-11-30  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-headers.c (soup_headers_parse_status_line):
+	Split this functionality out of soup_headers_parse_response.
+
+	* src/libsoup/Makefile.am (libsoupinclude_HEADERS): Add
+	soup-message.h to the public headers.
+
+2001-11-21  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket.c (soup_address_set_sockaddr): Remove.
+	(soup_address_get_sockaddr): Impl. Return the address's internal
+	sockaddr, and its length.
+
+2001-11-20  Dan Winship  <danw@ximian.com>
+
+	* src/libsoup/soup-ntlm.c (soup_ntlm_request): Simplify. Don't
+	specify a host and domain, and tweak the flags to a new magic
+	value that makes the server return some info such as a default
+	domain to pick.
+	(soup_ntlm_response): Allow "host" and "domain" to be NULL. If
+	domain is NULL, use the default from the server response.
+
+	* src/libsoup/soup-auth.c (ntlm_init): soup_ntlm_request no longer
+	takes host/domain. soup_ntlm_response can take NULL host/domain.
+
+2001-11-19  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-private.h: Add auth member to SoupConnection.
+
+	* src/libsoup/soup-queue.h: Export soup_queue_connect_cb.
+
+	* src/libsoup/soup-queue.c (soup_encode_http_auth): Get auth token
+	from connection's auth.
+
+	* src/libsoup/soup-message.c (soup_message_run_handlers): Break if
+	status after running a handler is also SOUP_STATUS_CONNECTING.
+	(soup_message_requeue): If the connection uses NTLM, reset
+	error/finished callbacks.
+	(requeue_read_finished): Impl. Requeue the message using the
+	current connection on success.
+	(requeue_read_error): Impl. Queue the message again and get a new
+	connection.
+	(requeue_connect_cb): Impl. Use the old connection's auth data
+	before passing off to soup_queue_connect_cb.
+	(soup_message_cleanup): Only reset callbacks if the reader and
+	connection exist.
+	(authorize_handler): Set/get the connection's auth data if it
+	exists and the new auth created uses NTLM.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_cb): Dump read
+	data to stderr if DUMP is defined.
+	(soup_transfer_write_cb): ditto for writes.
+
+	* src/libsoup/soup-context.c (soup_context_connect_cb): Don't ref
+	context here, but rather
+	(soup_context_get_connection): Here, in case the context goes away
+	while connecting.
+
+2001-11-14  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-socket-win.c (soup_address_get_name_cb): Don't
+	leak state on failure, pass address's name, not a copy.
+	(soup_address_new_cb): Don't access things after we realloc to a
+	smaller size.
+
+2001-11-13  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (soup_queue_error_cb): Use
+	soup_message_requeue.
+	(soup_queue_read_headers_cb): Don't end the transfer if a handler
+	requeues the message.  Close the connection on malformed headers.
+	(soup_queue_read_chunk_cb): Ditto for the former.
+
+	* src/libsoup/soup-message.c (soup_message_requeue): Impl. Requeue
+	the message using existing callback/user_data.
+	(authorize_handler): Use soup_message_requeue.
+	(redirect_handler): Ditto.
+
+	* src/libsoup/soup-transfer.c (soup_transfer_read_set_callbacks):
+	Impl. Allows changing of the reader's callbacks to ignore certain
+	events (like chunk data) and change the user_data.
+
+	* src/libsoup/soup-message.c (soup_message_cleanup): If still
+	reading response, reset the SoupReader's callbacks to only release
+	(on finish) or release and close (on error) the connection,
+	instead of terminating the read which could leave data in the
+	socket to to hork future messages which use this connection.  Also
+	NULL the message's references to the connection and SoupReader so
+	that they are not disposed of on message free.
+
+2001-11-12  Alex Graveley  <alex@ximian.com>
+
+	* src/libsoup/soup-queue.c (start_request): Impl.  Move request
+	sending code here from soup_queue_connect_cb.
+	(proxy_https_connect): Impl.  Send intermediate CONNECT request to
+	proxy for SSL connections.  If successful, convert connection to
+	SSL.
+	(soup_queue_connect_cb): Call proxy_https_connect if we are using
+	a proxy and the destination is SSL.  Call start_request.
+	(soup_idle_handle_new_requests): If request already has a
+	connection, just call start_request.
+	(soup_get_request_header): Special case URI is hostname:port for
+	CONNECT requests.
+	(soup_queue_read_headers_cb): Special case connection persistence
+	for CONNECT requests: if message is successful, assume valid
+	connection.  Special case body handling for CONNECT requests:
+	assume zero length body.
 
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
@@ -23,11 +570,6 @@
 	(soup_message_remove_handler_by_func): Impl.
 	(soup_message_remove_handler_by_func_and_data): Impl.
 	(soup_message_list_handlers): Impl.
-
-2001-11-08  Alex Graveley  <alex@ximian.com>
-
-	* configure.in: Bump HEAD version to 0.6.99.
-	* src/libsoup/soup-private.h (VERSION): Ditto.
 
 2001-11-08  Alex Graveley  <alex@ximian.com>
 
