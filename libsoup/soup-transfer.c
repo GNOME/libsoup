@@ -23,7 +23,9 @@
 #include "soup-private.h"
 
 typedef struct {
-	/* Length remaining to be downloaded of the current chunk data. */
+	/* 
+	 * Length remaining to be downloaded of the current chunk data. 
+	 */
 	guint  len;
 
 	/* 
@@ -53,7 +55,9 @@ typedef struct {
 	gboolean               overwrite_chunks;
 	guint                  content_length;
 
-	/* True if this is a chunked transfer */
+	/* 
+	 * True if this is a chunked transfer 
+	 */
 	gboolean               is_chunked;
 	SoupTransferChunkState chunk_state;
 
@@ -108,7 +112,9 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 {
 	gboolean body_started = r->recv_buf->len > r->header_len;
 
-	/* Some URIs signal end-of-file by closing the connection */
+	/* 
+	 * Some URIs signal end-of-file by closing the connection 
+	 */
 	if (body_started && !r->content_length && !r->is_chunked)
 		return TRUE;
 
@@ -124,7 +130,12 @@ soup_transfer_read_error_cb (GIOChannel* iochannel,
 static void
 remove_block_at_index (GByteArray *arr, gint offset, gint length)
 {
-	gchar *data = &arr->data [offset];
+	gchar *data;
+
+	g_return_if_fail (length != 0);
+	g_assert (arr->len < offset + length);
+
+	data = &arr->data [offset];
 
 	g_memmove (data,
 		   data + length,
@@ -138,10 +149,14 @@ issue_chunk_callback (SoupReader *r, gchar *data, gint len)
 {
 	SoupTransferDone cont = SOUP_TRANSFER_CONTINUE;
 
-	/* Null terminate */
+	/* 
+	 * Null terminate 
+	 */
 	g_byte_array_append (r->recv_buf, "\0", 1);
 
-	/* Call chunk callback. Pass len worth of data. */
+	/* 
+	 * Call chunk callback. Pass len worth of data. 
+	 */
 	if (r->read_chunk_cb && len) {
 		SoupDataBuffer buf = { 
 			SOUP_BUFFER_SYSTEM_OWNED, 
@@ -156,7 +171,9 @@ issue_chunk_callback (SoupReader *r, gchar *data, gint len)
 		UNIGNORE_CANCEL (r);
 	}
 
-	/* Remove Null */
+	/* 
+	 * Remove Null 
+	 */
 	g_byte_array_remove_index (r->recv_buf, r->recv_buf->len - 1);
 
 	return cont;
@@ -227,7 +244,9 @@ decode_chunk (SoupTransferChunkState *s,
 						 "\r\n") <= 0)
 				break;
 
-		/* Remove trailing \r\n after previous chunk body */
+		/* 
+		 * Remove trailing \r\n after previous chunk body 
+		 */
 		if (s->len)
 			remove_block_at_index (arr, s->idx + s->len, 2);
 
@@ -241,7 +260,9 @@ decode_chunk (SoupTransferChunkState *s,
 		s->idx += s->len;
 		*datalen += s->len;
 
-		/* Update length for next chunk's size */
+		/* 
+		 * Update length for next chunk's size 
+		 */
 		s->len = new_len;
 		
 	       	/* 
@@ -261,7 +282,9 @@ decode_chunk (SoupTransferChunkState *s,
 			ret = TRUE;
 		}
 
-		/* Remove hexified length, entity headers, and trailing \r\n */
+		/* 
+		 * Remove hexified length, entity headers, and trailing \r\n 
+		 */
 		remove_block_at_index (arr, s->idx, len + 2);
 	}
 
@@ -276,7 +299,9 @@ read_chunk (SoupReader *r, gboolean *cancelled)
 	gboolean ret;
 	gint datalen;
 
-	/* Update datalen for any data read */
+	/* 
+	 * Update datalen for any data read 
+	 */
 	ret = decode_chunk (&r->chunk_state, r->recv_buf, &datalen);
 
 	if (!datalen) 
@@ -290,7 +315,9 @@ read_chunk (SoupReader *r, gboolean *cancelled)
 		goto CANCELLED;
 	}
 
-	/* If overwrite, remove datalen worth of data from start of buffer */
+	/* 
+	 * If overwrite, remove datalen worth of data from start of buffer 
+	 */
 	if (r->overwrite_chunks) {
 		remove_block_at_index (arr, 0, s->idx);
 
@@ -306,6 +333,9 @@ read_content_length (SoupReader *r, gboolean *cancelled)
 {
 	GByteArray *arr = r->recv_buf;
 
+	if (!arr->len)
+		goto CANCELLED;
+
 	*cancelled = FALSE;
 	if (issue_chunk_callback (r, 
 				  arr->data, 
@@ -314,7 +344,9 @@ read_content_length (SoupReader *r, gboolean *cancelled)
 		goto CANCELLED;
 	}
 
-	/* If overwrite, clear */
+	/* 
+	 * If overwrite, clear 
+	 */
 	if (r->overwrite_chunks) {
 		r->content_length -= r->recv_buf->len;
 		g_byte_array_set_size (arr, 0);
@@ -356,7 +388,9 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
 
 	if (bytes_read) {
 		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
+
 		total_read += bytes_read;
+
 		goto READ_AGAIN;
 	}
 
