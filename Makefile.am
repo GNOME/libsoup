@@ -1,8 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src tests
+SUBDIRS = src docs
 
-EXTRA_DIST = autogen.sh soupConf.sh.in soup_apacheConf.sh.in soup.pc.in soup.spec.in
+# I want to include tests in the distributed version, but that requires
+# some automake deep magic to stop it trying to include generated files in
+# the automated dependency logic. (hint: OMIT_DEPENDENCIES did SFA)
+#DIST_SUBDIRS = $(SUBDIRS) tests
+
+EXTRA_DIST = autogen.sh soupConf.sh.in soup_apacheConf.sh.in soup_wsdlConf.sh.in soup.pc.in soup.spec.in
 
 bin_SCRIPTS = soup-config
 
@@ -36,10 +41,13 @@ confexec_DATA = soupConf.sh soup_apacheConf.sh soup_wsdlConf.sh
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = soup.pc
 
+examples:
+	$(MAKE) -C tests
+
 dist-hook: soup.spec
 	cp soup.spec $(distdir)
 
 rpms: distcheck
 	rpm -ta $(top_builddir)/@PACKAGE@-@VERSION@.tar.gz
 
-CLEANFILES = soupConf.sh
+CLEANFILES = soupConf.sh soup_apacheConf.sh soup_wsdlConf.sh

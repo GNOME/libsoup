@@ -1,0 +1,91 @@
+<!doctype book PUBLIC "-//Davenport//DTD DocBook V3.0//EN" [
+<!entity soup-soup-context SYSTEM "sgml/soup-context.sgml">
+<!entity soup-soup-digest SYSTEM "sgml/soup-digest.sgml">
+<!entity soup-soup-headers SYSTEM "sgml/soup-headers.sgml">
+<!entity soup-soup-message SYSTEM "sgml/soup-message.sgml">
+<!entity soup-soup-misc SYSTEM "sgml/soup-misc.sgml">
+<!entity soup-soup-nss SYSTEM "sgml/soup-nss.sgml">
+<!entity soup-soup-openssl SYSTEM "sgml/soup-openssl.sgml">
+<!entity soup-soup-parser SYSTEM "sgml/soup-parser.sgml">
+<!entity soup-soup-serializer SYSTEM "sgml/soup-serializer.sgml">
+<!entity soup-soup-server SYSTEM "sgml/soup-server.sgml">
+<!entity soup-soup-socket SYSTEM "sgml/soup-socket.sgml">
+<!entity soup-soup-socks SYSTEM "sgml/soup-socks.sgml">
+<!entity soup-soup-ssl SYSTEM "sgml/soup-ssl.sgml">
+<!entity soup-soup-uri SYSTEM "sgml/soup-uri.sgml">
+<!entity soup-soup-fault SYSTEM "sgml/soup-fault.sgml">
+<!entity soup-soup-env SYSTEM "sgml/soup-env.sgml">
+<!entity soup-wsdl-describe SYSTEM "sgml/wsdl-describe.sgml">
+<!entity soup-wsdl-locate SYSTEM "sgml/wsdl-locate.sgml">
+<!entity soup-wsdl-memory SYSTEM "sgml/wsdl-memory.sgml">
+<!entity soup-wsdl-parse SYSTEM "sgml/wsdl-parse.sgml">
+<!entity soup-wsdl-soap-common SYSTEM "sgml/wsdl-soap-common.sgml">
+<!entity soup-wsdl-soap-emit SYSTEM "sgml/wsdl-soap-emit.sgml">
+<!entity soup-wsdl-soap-headers SYSTEM "sgml/wsdl-soap-headers.sgml">
+<!entity soup-wsdl-soap-skels SYSTEM "sgml/wsdl-soap-skels.sgml">
+<!entity soup-wsdl-soap-stubs SYSTEM "sgml/wsdl-soap-stubs.sgml">
+<!entity soup-wsdl-thread SYSTEM "sgml/wsdl-thread.sgml">
+<!entity soup-wsdl-trace SYSTEM "sgml/wsdl-trace.sgml">
+<!entity soup-wsdl SYSTEM "sgml/wsdl.sgml">
+<!entity soup-wsdl-param SYSTEM "sgml/wsdl-param.sgml">
+<!entity soup-wsdl-schema-glib SYSTEM "sgml/wsdl-schema-glib.sgml">
+<!entity soup-wsdl-schema SYSTEM "sgml/wsdl-schema.sgml">
+<!entity soup-wsdl-soap-marshal SYSTEM "sgml/wsdl-soap-marshal.sgml">
+<!entity soup-wsdl-soap-parse SYSTEM "sgml/wsdl-soap-parse.sgml">
+<!entity soup-wsdl-typecodes-c SYSTEM "sgml/wsdl-typecodes-c.sgml">
+<!entity soup-wsdl-typecodes SYSTEM "sgml/wsdl-typecodes.sgml">
+<!entity soup-wsdl-soap-memory SYSTEM "sgml/wsdl-soap-memory.sgml">
+]>
+<book>
+  <bookinfo>
+    <title>SOUP Reference Manual</title>
+  </bookinfo>
+
+  <chapter id="soup-core-chapter">
+    <title>Soup Core</title>
+    &soup-soup-context;
+    &soup-soup-digest;
+    &soup-soup-headers;
+    &soup-soup-message;
+    &soup-soup-misc;
+    &soup-soup-nss;
+    &soup-soup-openssl;
+    &soup-soup-parser;
+    &soup-soup-serializer;
+    &soup-soup-server;
+    &soup-soup-socket;
+    &soup-soup-socks;
+    &soup-soup-ssl;
+    &soup-soup-uri;
+    &soup-soup-fault;
+    &soup-soup-env;
+  </chapter>
+
+  <chapter id="soup-wsdl-chapter">
+    <title>Soup WSDL</title>
+    &soup-wsdl-describe;
+    &soup-wsdl-locate;
+    &soup-wsdl-memory;
+    &soup-wsdl-parse;
+    &soup-wsdl-soap-common;
+    &soup-wsdl-soap-emit;
+    &soup-wsdl-soap-headers;
+    &soup-wsdl-soap-skels;
+    &soup-wsdl-soap-stubs;
+    &soup-wsdl-thread;
+    &soup-wsdl-trace;
+  </chapter>
+
+  <chapter id="soup-wsdl-runtime-chapter">
+    <title>Soup WSDL Runtime</title>
+    &soup-wsdl;
+    &soup-wsdl-param;
+    &soup-wsdl-schema-glib;
+    &soup-wsdl-schema;
+    &soup-wsdl-soap-marshal;
+    &soup-wsdl-soap-parse;
+    &soup-wsdl-typecodes-c;
+    &soup-wsdl-typecodes;
+    &soup-wsdl-soap-memory;
+  </chapter>
+</book>

@@ -1,0 +1,11 @@
+Makefile
+Makefile.in
+soup-decl-list.txt
+soup-decl.txt
+soup-unused.txt
+soup-undocumented.txt
+tmpl
+sgml
+html
+*.stamp
+
