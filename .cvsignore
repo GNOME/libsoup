@@ -7,12 +7,12 @@ config.log
 config.status
 config.sub
 configure
+libsoup-2.2.pc
 libtool
 ltconfig
 ltmain.sh
 Makefile
 Makefile.in
-soup-2.0.pc
 stamp-h*
 stamp.h
 stamp-h.in

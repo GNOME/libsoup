@@ -1,3 +1,23 @@
+2003-08-12  Dan Winship  <danw@ximian.com>
+
+	* configure.in: Bump API version to 2.2 and package version to
+	2.1.0. Remove NSS and OpenSSL checks and proxy-related config. Use
+	libgnutls-config to find GNUTLS.
+
+	* libsoup-2.2.pc.in: Update, and rename from soup-2.0.pc
+
+	* libsoup/Makefile.am: s/2.0/2.2/ everywhere. Remove NSS, OpenSSL,
+	and libsoup-ssl-proxy stuff.
+
+	* libsoup/soup-ssl-proxy.c
+	* libsoup/soup-nss.[ch]
+	* libsoup/soup-openssl.[ch]: gone
+
+	* libsoup/soup-ssl.c: remove NSS and OpenSSL bits
+
+	* tests/Makefile.am (get_LDADD, timeserver_LDADD,
+	auth_test_LDADD): Update libsoup version
+
 2003-08-07  Dan Winship  <danw@ximian.com>
 
 	* libsoup/soup-auth.c (soup_auth_lookup, soup_auth_set_context,

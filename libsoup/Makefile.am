@@ -7,15 +7,9 @@ INCLUDES = 				\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
-	$(GNUTLS_CFLAGS)		\
-	$(OPENSSL_CFLAGS)
+	$(GNUTLS_CFLAGS)
 
-EXTRA_DIST =	\
-	soup-openssl.c	\
-	soup-openssl.h \
-	soup-ssl-proxy.c
-
-libsoupincludedir = $(includedir)/soup-2.0/libsoup
+libsoupincludedir = $(includedir)/libsoup-2.2/libsoup
 
 libsoupinclude_HEADERS =	\
 	soup.h			\
@@ -32,16 +26,16 @@ libsoupinclude_HEADERS =	\
 	soup-socket.h		\
 	soup-uri.h
 
-lib_LTLIBRARIES = libsoup-2.0.la
+lib_LTLIBRARIES = libsoup-2.2.la
 
-libsoup_2_0_la_LDFLAGS =	\
+libsoup_2_2_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
-libsoup_2_0_la_LIBADD =		\
+libsoup_2_2_la_LIBADD =		\
 	$(GLIB_LIBS)		\
 	$(GNUTLS_LIBS)
 
-libsoup_2_0_la_SOURCES =	\
+libsoup_2_2_la_SOURCES =	\
 	md5-utils.h		\
 	md5-utils.c		\
 	soup-address.c		\
@@ -69,29 +63,3 @@ libsoup_2_0_la_SOURCES =	\
 	soup-transfer.h		\
 	soup-transfer.c		\
 	soup-uri.c
-
-if BUILD_PROXY
-noinst_PROGRAMS = libsoup-ssl-proxy
-
-# workaround for libtool flag re-ordering
-libsoup-ssl-proxy$(EXEEXT): $(libsoup_ssl_proxy_OBJECTS) $(libsoup_ssl_proxy_DEPENDENCIES)
-	@rm -f libsoup-ssl-proxy$(EXEEXT)
-	$(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@ $(libsoup_ssl_proxy_LDFLAGS) $(libsoup_ssl_proxy_OBJECTS) $(libsoup_ssl_proxy_LDADD) $(LIBS)
-
-libsoup_ssl_proxy_LDADD =	\
-	$(LINK_STATIC)		\
-	$(OPENSSL_LIBS)		\
-	$(GLIB_LIBS)		\
-	$(LINK_DYNAMIC)
-
-libsoup_ssl_proxy_SOURCES =	\
-	soup-openssl.h		\
-	soup-openssl.c		\
-	soup-ssl-proxy.c
-
-install-exec-hook:
-	$(mkinstalldirs) $(DESTDIR)$(libexecdir)
-	$(INSTALL_PROGRAM) libsoup-ssl-proxy $(DESTDIR)$(libexecdir)/$(SSL_PROXY_NAME)
-else
-install-exec-hook:
-endif
