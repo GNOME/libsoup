@@ -94,7 +94,9 @@ soup_queue_read_headers_cb (const GString        *headers,
 	    (!connection && version == SOUP_HTTP_1_0))
 		soup_connection_set_keep_alive (req->priv->conn, FALSE);
 
-	if (!g_strcasecmp (req->method, "HEAD")) {
+	if (req->response_code == 204 || /* No Content */
+	    req->response_code == 304 || /* Not Modified */
+	    !g_strcasecmp (req->method, "HEAD")) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
 		goto RUN_HANDLERS;
