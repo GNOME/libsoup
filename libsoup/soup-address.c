@@ -498,22 +498,19 @@ soup_gethostbyname (const char       *hostname,
 #elif defined(HAVE_GETHOSTBYNAME_R_SOLARIS)
 	{
 		size_t len;
-		int herr, res;
+		int herr;
 
 		len = 1024;
 		buf = g_new (char, len);
 
-		while ((res = gethostbyname_r (hostname,
-					       &result_buf,
-					       buf,
-					       len,
-					       &herr)) == ERANGE) {
+		while ((result = gethostbyname_r (hostname,
+						  &result_buf,
+						  buf,
+						  len,
+						  &herr)) == ERANGE) {
 			len *= 2;
 			buf = g_renew (char, buf, len);
 		}
-
-		if (res)
-			result = NULL;
 	}
 #elif defined(HAVE_GETHOSTBYNAME_R_HPUX)
 	{
