@@ -67,7 +67,7 @@ finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 
-	soup_message_io_cancel (msg);
+	soup_message_io_stop (msg);
 
 	if (msg->priv->uri)
 		soup_uri_free (msg->priv->uri);
@@ -393,7 +393,7 @@ soup_message_got_body (SoupMessage *msg)
 static void
 restarted (SoupMessage *req)
 {
-	soup_message_io_cancel (req);
+	soup_message_io_stop (req);
 }
 
 void
@@ -405,7 +405,7 @@ soup_message_restarted (SoupMessage *msg)
 static void
 finished (SoupMessage *req)
 {
-	soup_message_io_cancel (req);
+	soup_message_io_stop (req);
 	req->status = SOUP_MESSAGE_STATUS_FINISHED;
 }
 
@@ -555,7 +555,7 @@ soup_message_cleanup_response (SoupMessage *req)
 
 	soup_message_clear_headers (req->response_headers);
 
-	req->status_code = 0;
+	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
 		g_free ((char *) req->reason_phrase);
 		req->reason_phrase = NULL;
@@ -637,9 +637,9 @@ soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
 
 	if (msg->priv->uri && new_uri) {
 		if (strcmp (msg->priv->uri->host, new_uri->host) != 0)
-			soup_message_io_cancel (msg);
+			soup_message_io_stop (msg);
 	} else if (!new_uri)
-		soup_message_io_cancel (msg);
+		soup_message_io_stop (msg);
 
 	if (msg->priv->uri)
 		soup_uri_free (msg->priv->uri);

@@ -1,3 +1,35 @@
+2003-12-22  Dan Winship  <danw@ximian.com>
+
+	* libsoup/soup-socket.c: Lots of thread-safety stuff, primarly so
+	you can disconnect a socket from one thread while doing I/O in
+	another.
+
+	* libsoup/soup-message-io.c (soup_message_io_cancel): Split into
+	soup_message_io_stop() and io_cleanup(), to separate out the "stop
+	reading/writing" and "free data" phases to allow thread-safe
+	synchronous cancellation.
+	(soup_message_io_finished): call both soup_message_io_stop() and
+	io_cleanup()
+	(io_error): Only set SOUP_STATUS_IO_ERROR on the message if it
+	doesn't already have a transport error status (eg, CANCELLED).
+	(new_iostate): Call io_cleanup() if needed.
+
+	* libsoup/soup-status.h: add "SOUP_STATUS_NONE" for 0, to make it
+	clearer that it's not a status.
+
+	* libsoup/soup-message.c (finalize, restarted, finished,
+	soup_message_set_uri): s/soup_message_io_cancel/soup_message_io_stop/
+	(soup_message_cleanup_response): s/0/SOUP_STATUS_NONE/
+
+	* libsoup/soup-connection.c (send_request): Remove
+	soup_message_io_cancel call.
+
+	* libsoup/soup-session-sync.c (send_message): Connect to the
+	connection's "disconnected" signal rather than using a weak ref,
+	since that's what we really care about, and it's possible that the
+	connection may have an extra ref on it somewhere that would keep
+	it from being destroyed even if it was disconnected.
+
 2003-12-20  Joe Shaw  <joe@ximian.com>
 
 	* libsoup/soup-session.c (lookup_auth): If const_path is NULL un

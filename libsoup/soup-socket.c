@@ -66,6 +66,8 @@ struct SoupSocketPrivate {
 	guint           watch;
 	guint           read_tag, write_tag, error_tag;
 	GByteArray     *read_buf;
+
+	GMutex *iolock, *addrlock;
 };
 
 #ifdef HAVE_IPV6
@@ -88,26 +90,16 @@ init (GObject *object)
 	sock->priv->sockfd = -1;
 	sock->priv->non_blocking = sock->priv->nodelay = TRUE;
 	sock->priv->reuseaddr = TRUE;
+	sock->priv->addrlock = g_mutex_new ();
+	sock->priv->iolock = g_mutex_new ();
 }
 
-static gboolean
+static void
 disconnect_internal (SoupSocket *sock)
 {
-	GIOChannel *iochannel;
-
-	/* If we close the socket from one thread while
-	 * reading/writing from another, it's possible that the other
-	 * thread will get an I/O error and try to close the socket
-	 * while we're still in this function. So we clear
-	 * sock->priv->iochannel early to make sure that the other
-	 * thread's attempt to close the socket becomes a no-op.
-	 */
-	iochannel = sock->priv->iochannel;
+	g_io_channel_unref (sock->priv->iochannel);
 	sock->priv->iochannel = NULL;
-	if (iochannel == NULL)
-		return FALSE;
-
-	g_io_channel_unref (iochannel);
+	sock->priv->sockfd = -1;
 
 	if (sock->priv->read_tag) {
 		g_source_remove (sock->priv->read_tag);
@@ -121,8 +113,6 @@ disconnect_internal (SoupSocket *sock)
 		g_source_remove (sock->priv->error_tag);
 		sock->priv->error_tag = 0;
 	}
-
-	return TRUE;
 }
 
 static void
@@ -140,6 +130,9 @@ finalize (GObject *object)
 
 	if (sock->priv->watch)
 		g_source_remove (sock->priv->watch);
+
+	g_mutex_free (sock->priv->addrlock);
+	g_mutex_free (sock->priv->iolock);
 
 	g_free (sock->priv);
 
@@ -245,7 +238,7 @@ update_fdflags (SoupSocket *sock)
 {
 	int flags, opt;
 
-	if (!sock->priv->sockfd)
+	if (sock->priv->sockfd == -1)
 		return;
 
 	flags = fcntl (sock->priv->sockfd, F_GETFL, 0);
@@ -345,6 +338,7 @@ soup_socket_new (const char *optname1, ...)
 static GIOChannel *
 get_iochannel (SoupSocket *sock)
 {
+	g_mutex_lock (sock->priv->iolock);
 	if (!sock->priv->iochannel) {
 		sock->priv->iochannel =
 			g_io_channel_unix_new (sock->priv->sockfd);
@@ -352,6 +346,7 @@ get_iochannel (SoupSocket *sock)
 		g_io_channel_set_encoding (sock->priv->iochannel, NULL, NULL);
 		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
 	}
+	g_mutex_unlock (sock->priv->iolock);
 	return sock->priv->iochannel;
 }
 
@@ -738,9 +733,36 @@ soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 void
 soup_socket_disconnect (SoupSocket *sock)
 {
+	gboolean already_disconnected = FALSE;
+
 	g_return_if_fail (SOUP_IS_SOCKET (sock));
 
-	if (!disconnect_internal (sock))
+	if (g_mutex_trylock (sock->priv->iolock)) {
+		if (sock->priv->iochannel)
+			disconnect_internal (sock);
+		else
+			already_disconnected = TRUE;
+		g_mutex_unlock (sock->priv->iolock);
+	} else {
+		int sockfd;
+
+		/* Another thread is currently doing IO, so
+		 * we can't close the iochannel. So just kick
+		 * the file descriptor out from under it.
+		 */
+
+		sockfd = sock->priv->sockfd;
+		sock->priv->sockfd = -1;
+		if (sockfd == -1)
+			already_disconnected = TRUE;
+		else {
+			g_io_channel_set_close_on_unref (sock->priv->iochannel,
+							 FALSE);
+			close (sockfd);
+		}
+	}
+
+	if (already_disconnected)
 		return;
 
 	/* Give all readers a chance to notice the connection close */
@@ -766,6 +788,7 @@ soup_socket_get_local_address (SoupSocket *sock)
 {
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 
+	g_mutex_lock (sock->priv->addrlock);
 	if (!sock->priv->local_addr) {
 		struct soup_sockaddr_max bound_sa;
 		int sa_len;
@@ -774,6 +797,7 @@ soup_socket_get_local_address (SoupSocket *sock)
 		getsockname (sock->priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
 		sock->priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
+	g_mutex_unlock (sock->priv->addrlock);
 
 	return sock->priv->local_addr;
 }
@@ -783,7 +807,8 @@ soup_socket_get_remote_address (SoupSocket *sock)
 {
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 
-	if (!sock->priv->local_addr) {
+	g_mutex_lock (sock->priv->addrlock);
+	if (!sock->priv->remote_addr) {
 		struct soup_sockaddr_max bound_sa;
 		int sa_len;
 
@@ -791,6 +816,7 @@ soup_socket_get_remote_address (SoupSocket *sock)
 		getpeername (sock->priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
 		sock->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
+	g_mutex_unlock (sock->priv->addrlock);
 
 	return sock->priv->remote_addr;
 }
@@ -814,7 +840,7 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
 	GIOStatus status;
 
-	if (!sock->priv->iochannel)
+	if (!sock->priv->iochannel) 
 		return SOUP_SOCKET_EOF;
 
 	status = g_io_channel_read_chars (sock->priv->iochannel,
@@ -886,12 +912,18 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 SoupSocketIOStatus
 soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
+	SoupSocketIOStatus status;
+
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 
+	g_mutex_lock (sock->priv->iolock);
 	if (sock->priv->read_buf)
-		return read_from_buf (sock, buffer, len, nread);
+		status = read_from_buf (sock, buffer, len, nread);
 	else
-		return read_from_network (sock, buffer, len, nread);
+		status = read_from_network (sock, buffer, len, nread);
+	g_mutex_unlock (sock->priv->iolock);
+
+	return status;
 }
 
 /**
@@ -925,6 +957,8 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 	g_return_val_if_fail (len >= boundary_len, SOUP_SOCKET_ERROR);
 
+	g_mutex_lock (sock->priv->iolock);
+
 	*got_boundary = FALSE;
 
 	if (!sock->priv->read_buf)
@@ -939,8 +973,10 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 					    len - prev_len, nread);
 		read_buf->len = prev_len + *nread;
 
-		if (status != SOUP_SOCKET_OK)
+		if (status != SOUP_SOCKET_OK) {
+			g_mutex_unlock (sock->priv->iolock);
 			return status;
+		}
 	}
 
 	/* Scan for the boundary */
@@ -958,7 +994,10 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 	 * buffer).
 	 */
 	match_len = p - read_buf->data;
-	return read_from_buf (sock, buffer, MIN (len, match_len), nread);
+	status = read_from_buf (sock, buffer, MIN (len, match_len), nread);
+
+	g_mutex_unlock (sock->priv->iolock);
+	return status;
 }
 
 static gboolean
@@ -1002,23 +1041,34 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 
-	if (!sock->priv->iochannel)
+	g_mutex_lock (sock->priv->iolock);
+
+	if (!sock->priv->iochannel) {
+		g_mutex_unlock (sock->priv->iolock);
 		return SOUP_SOCKET_EOF;
-	if (sock->priv->write_tag)
+	}
+	if (sock->priv->write_tag) {
+		g_mutex_unlock (sock->priv->iolock);
 		return SOUP_SOCKET_WOULD_BLOCK;
+	}
 
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
 	status = g_io_channel_write_chars (sock->priv->iochannel,
 					   buffer, len, nwrote, NULL);
 	signal (SIGPIPE, pipe_handler);
-	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN)
+	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
+		g_mutex_unlock (sock->priv->iolock);
 		return SOUP_SOCKET_ERROR;
+	}
 
-	if (*nwrote)
+	if (*nwrote) {
+		g_mutex_unlock (sock->priv->iolock);
 		return SOUP_SOCKET_OK;
+	}
 
 	sock->priv->write_tag =
 		g_io_add_watch (sock->priv->iochannel, G_IO_OUT,
 				socket_write_watch, sock);
+	g_mutex_unlock (sock->priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;
 }

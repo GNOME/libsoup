@@ -146,6 +146,15 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	goto try_again;
 }
 
+static void
+connection_disconnected (SoupConnection *conn, gpointer user_data)
+{
+	SoupConnection **conn_p = user_data;
+
+	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, conn_p);
+	*conn_p = NULL;
+}
+
 static guint
 send_message (SoupSession *session, SoupMessage *msg)
 {
@@ -160,11 +169,8 @@ send_message (SoupSession *session, SoupMessage *msg)
 		if (!conn)
 			return msg->status_code;
 
-		/* Set up a weak pointer so that "conn" is zeroed out
-		 * if the connection is destroyed.
-		 */
-		g_object_add_weak_pointer (G_OBJECT (conn),
-					   (gpointer *)&conn);
+		g_signal_connect (conn, "disconnected",
+				  G_CALLBACK (connection_disconnected), &conn);
 
 		/* Now repeatedly send the message across the connection
 		 * until either it's done, or the connection is closed.
@@ -173,8 +179,7 @@ send_message (SoupSession *session, SoupMessage *msg)
 			soup_connection_send_request (conn, msg);
 
 		if (conn) {
-			g_object_remove_weak_pointer (G_OBJECT (conn),
-						      (gpointer *)&conn);
+			g_signal_handlers_disconnect_by_func (conn, connection_disconnected, &conn);
 		}
 
 		/* If the message isn't finished, that means we need to

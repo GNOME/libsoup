@@ -25,8 +25,10 @@ typedef enum {
 #define SOUP_STATUS_IS_SERVER_ERROR(x)    ((x) >= 500 && (x) < 600)
 
 typedef enum {
+	SOUP_STATUS_NONE,
+
 	/* Transport Errors */
-	SOUP_STATUS_CANCELLED                = 1,
+	SOUP_STATUS_CANCELLED                       = 1,
 	SOUP_STATUS_CANT_RESOLVE,
 	SOUP_STATUS_CANT_RESOLVE_PROXY,
 	SOUP_STATUS_CANT_CONNECT,

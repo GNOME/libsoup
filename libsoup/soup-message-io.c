@@ -68,24 +68,16 @@ typedef struct {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
-void
-soup_message_io_cancel (SoupMessage *msg)
+static void
+io_cleanup (SoupMessage *msg)
 {
 	SoupMessageIOData *io = msg->priv->io_data;
 
 	if (!io)
 		return;
 
-	if (io->read_tag)
-		g_signal_handler_disconnect (io->sock, io->read_tag);
-	if (io->write_tag)
-		g_signal_handler_disconnect (io->sock, io->write_tag);
-	if (io->err_tag)
-		g_signal_handler_disconnect (io->sock, io->err_tag);
-
-	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE)
-		soup_socket_disconnect (io->sock);
-	g_object_unref (io->sock);
+	if (io->sock)
+		g_object_unref (io->sock);
 
 	if (io->read_buf)
 		g_byte_array_free (io->read_buf, TRUE);
@@ -97,6 +89,31 @@ soup_message_io_cancel (SoupMessage *msg)
 	msg->priv->io_data = NULL;
 }
 
+void
+soup_message_io_stop (SoupMessage *msg)
+{
+	SoupMessageIOData *io = msg->priv->io_data;
+
+	if (!io)
+		return;
+
+	if (io->read_tag) {
+		g_signal_handler_disconnect (io->sock, io->read_tag);
+		io->read_tag = 0;
+	}
+	if (io->write_tag) {
+		g_signal_handler_disconnect (io->sock, io->write_tag);
+		io->write_tag = 0;
+	}
+	if (io->err_tag) {
+		g_signal_handler_disconnect (io->sock, io->err_tag);
+		io->err_tag = 0;
+	}
+
+	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE)
+		soup_socket_disconnect (io->sock);
+}
+
 #define SOUP_MESSAGE_IO_EOL            "\r\n"
 #define SOUP_MESSAGE_IO_EOL_LEN        2
 #define SOUP_MESSAGE_IO_DOUBLE_EOL     "\r\n\r\n"
@@ -106,7 +123,8 @@ static void
 soup_message_io_finished (SoupMessage *msg)
 {
 	g_object_ref (msg);
-	soup_message_io_cancel (msg);
+	soup_message_io_stop (msg);
+	io_cleanup (msg);
 	if (SOUP_MESSAGE_IS_STARTING (msg))
 		soup_message_restarted (msg);
 	else
@@ -128,7 +146,8 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 		return;
 	}
 
-	soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
 	soup_message_io_finished (msg);
 }
 
@@ -648,6 +667,8 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
+	if (msg->priv->io_data)
+		io_cleanup (msg);
 	msg->priv->io_data = io;
 	return io;
 }

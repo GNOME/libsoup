@@ -625,7 +625,6 @@ send_request (SoupConnection *conn, SoupMessage *req)
 			soup_message_filter_setup_message (conn->priv->filter, req);
 	}
 
-	soup_message_io_cancel (req);
 	soup_message_send_request (req, conn->priv->socket,
 				   conn->priv->proxy_uri != NULL);
 }
