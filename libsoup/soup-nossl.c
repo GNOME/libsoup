@@ -9,10 +9,10 @@
 #include <config.h>
 #endif
 
-#ifndef HAVE_SSL
-
 #include "soup-ssl.h"
 #include "soup-misc.h"
+
+#ifndef HAVE_SSL
 
 gboolean soup_ssl_supported = FALSE;
 
@@ -48,3 +48,17 @@ soup_ssl_free_server_credentials (gpointer server_creds)
 }
 
 #endif /* ! HAVE_SSL */
+
+/**
+ * soup_ssl_error_quark:
+ *
+ * Return value: The quark used as %SOUP_SSL_ERROR
+ **/
+GQuark
+soup_ssl_error_quark (void)
+{
+	static GQuark error;
+	if (!error)
+		error = g_quark_from_static_string ("soup_ssl_error_quark");
+	return error;
+}

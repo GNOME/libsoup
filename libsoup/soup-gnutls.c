@@ -20,6 +20,7 @@
 #include <glib.h>
 
 #include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
 
 #include "soup-ssl.h"
 #include "soup-misc.h"
@@ -115,8 +116,14 @@ do_handshake (SoupGNUTLSChannel *chan, GError **err)
 	result = gnutls_handshake (chan->session);
 
 	if (result == GNUTLS_E_AGAIN ||
-	    result == GNUTLS_E_INTERRUPTED)
+	    result == GNUTLS_E_INTERRUPTED) {
+		g_set_error (err, SOUP_SSL_ERROR,
+			     (gnutls_record_get_direction (chan->session) ?
+			      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE :
+			      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ),
+			     "Handshaking...");
 		return G_IO_STATUS_AGAIN;
+	}
 
 	if (result < 0) {
 		g_set_error (err, G_IO_CHANNEL_ERROR,

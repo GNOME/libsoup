@@ -836,12 +836,21 @@ static SoupSocketIOStatus
 read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
 	GIOStatus status;
+	GIOCondition cond = G_IO_IN;
+	GError *err = NULL;
 
 	if (!sock->priv->iochannel) 
 		return SOUP_SOCKET_EOF;
 
 	status = g_io_channel_read_chars (sock->priv->iochannel,
-					  buffer, len, nread, NULL);
+					  buffer, len, nread, &err);
+	if (err) {
+		if (err->domain == SOUP_SSL_ERROR &&
+		    err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE)
+			cond = G_IO_OUT;
+		g_error_free (err);
+	}
+
 	switch (status) {
 	case G_IO_STATUS_NORMAL:
 	case G_IO_STATUS_AGAIN:
@@ -850,7 +859,7 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 
 		if (!sock->priv->read_tag) {
 			sock->priv->read_tag =
-				g_io_add_watch (sock->priv->iochannel, G_IO_IN,
+				g_io_add_watch (sock->priv->iochannel, cond,
 						socket_read_watch, sock);
 		}
 		return SOUP_SOCKET_WOULD_BLOCK;
@@ -1035,6 +1044,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 {
 	GIOStatus status;
 	gpointer pipe_handler;
+	GIOCondition cond = G_IO_OUT;
+	GError *err = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 
@@ -1051,8 +1062,15 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
 	status = g_io_channel_write_chars (sock->priv->iochannel,
-					   buffer, len, nwrote, NULL);
+					   buffer, len, nwrote, &err);
 	signal (SIGPIPE, pipe_handler);
+	if (err) {
+		if (err->domain == SOUP_SSL_ERROR &&
+		    err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ)
+			cond = G_IO_IN;
+		g_error_free (err);
+	}
+
 	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
 		g_mutex_unlock (sock->priv->iolock);
 		return SOUP_SOCKET_ERROR;
@@ -1064,7 +1082,7 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	}
 
 	sock->priv->write_tag =
-		g_io_add_watch (sock->priv->iochannel, G_IO_OUT,
+		g_io_add_watch (sock->priv->iochannel, cond, 
 				socket_write_watch, sock);
 	g_mutex_unlock (sock->priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;

@@ -24,4 +24,13 @@ GIOChannel *soup_ssl_wrap_iochannel          (GIOChannel  *sock,
 					      const char  *remote_host,
 					      gpointer     credentials);
 
+#define SOUP_SSL_ERROR soup_ssl_error_quark()
+
+GQuark soup_ssl_error_quark (void);
+
+typedef enum {
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ,
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE
+} SoupSocketError;
+
 #endif /* SOUP_SSL_H */
