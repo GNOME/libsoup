@@ -1,3 +1,10 @@
+2003-11-17  Joe Shaw  <joe@ximian.com>
+
+	* configure.in: Add in the --enable-libgpg-error flag from the 2.0
+	branch.
+
+	* acinclude.m4: Include the gpg-error macros.
+
 2003-11-17  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-message.[ch]: new class to make it easier to
