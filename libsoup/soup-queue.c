@@ -315,7 +315,7 @@ soup_get_request_header (SoupMessage *req)
 	struct SoupUsedHeaders hdrs = {
 		suri->host, 
 		"Soup/0.1", 
-		"text/xml\r\n\tcharset=\"utf-8\"", 
+		"text/xml", 
 		req->action,
 		"keep-alive",
 		NULL,
@@ -343,7 +343,7 @@ soup_get_request_header (SoupMessage *req)
 			   "User-Agent: %s\r\n"
 			   "Content-Type: %s;\r\n"
 			   "Content-Length: %d\r\n"
-			   "SOAPAction: %s\r\n"
+			   "SOAPAction: \"%s\"\r\n"
 			   "Connection: %s\r\n",
 			   uri,
 			   hdrs.host,

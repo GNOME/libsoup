@@ -37,3 +37,27 @@ X * Test system allow/deny options
 
 * Bonoboize
 
+
+Release stuff:
+
+* Write apache plugin stuff (soup-server)
+
+* Write response code handling stuff, add response userland error
+
+* clean up configure.in
+
+X * fix soup-serializer header file crap.
+
+X * fix soup-serializer SOAP-ENV prefixing, test prefixing.
+
+* soup-serializer unbalanced element start/end warning?
+
+* make callback return void?
+
+* fix ssl pending bug
+
+* fix ssl unsecure error crap
+
+* add refcnt to SoupMessage?? NO
+
+* update tests/*

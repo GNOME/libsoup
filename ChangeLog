@@ -1,3 +1,16 @@
+2001-02-11  alex  <alex@ximian.com>
+
+	* TODO: add items left before a release.
+
+	* soup-queue.c: change default Content-Type to "text/xml" from
+	  "text/xml\r\n\tcharset=\"utf-8\"".
+
+	* soup-serializer.[ch]: added soup_serializer_new_full which
+	  removes unnecessary args to soup_serializer_start_envelope. 
+	  rearrange namespace args to soup_serializer_start_element to match 
+	  other methods. added soup_serializer_set_type to set the xsi:type,
+	  and soup_serializer_set_null to set xsi:null="1".
+
 2001-02-06  alex  <alex@ximian.com>
 
 	* soup-config.in: remove some cruft.

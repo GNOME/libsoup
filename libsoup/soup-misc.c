@@ -249,7 +249,7 @@ soup_load_config_internal (gchar *config_file, gboolean admin)
 
 		if (!admin && !soup_config_token_allowed (iter)) {
 			g_warning ("Configuration item \"%s\" in file \"%s\" "
-				   "disallowed by system configuration.",
+				   "disallowed by system configuration.\n",
 				   iter, 
 				   config_file);
 			continue;
