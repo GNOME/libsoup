@@ -2,10 +2,7 @@
 /*
  * soup-socket.c: Socket networking code.
  *
- * Based on code in David Helder's GNET Networking Library,
- * Copyright (C) 2000  David Helder & Andrew Lanoix.
- *
- * All else Copyright (C) 2000-2003, Ximian, Inc.
+ * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,6 +11,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -30,6 +28,9 @@ static GObjectClass *parent_class;
 
 enum {
 	CONNECT_RESULT,
+	READABLE,
+	WRITABLE,
+	DISCONNECTED,
 	NEW_CONNECTION,
 	LAST_SIGNAL
 };
@@ -43,6 +44,9 @@ struct SoupSocketPrivate {
 
 	guint watch;
 	gboolean server, ssl;
+
+	guint           read_tag, write_tag, error_tag;
+	GByteArray     *read_buf;
 };
 
 static void
@@ -93,6 +97,30 @@ class_init (GObjectClass *object_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
+	signals[READABLE] =
+		g_signal_new ("readable",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupSocketClass, readable),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	signals[WRITABLE] =
+		g_signal_new ("writable",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupSocketClass, writable),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
+	signals[DISCONNECTED] =
+		g_signal_new ("disconnected",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (SoupSocketClass, disconnected),
+			      NULL, NULL,
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 	signals[NEW_CONNECTION] =
 		g_signal_new ("new_connection",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -118,31 +146,38 @@ soup_socket_new (void)
 	return g_object_new (SOUP_TYPE_SOCKET, NULL);
 }
 
-#define SOUP_SOCKET_NONBLOCKING (1<<0)
-#define SOUP_SOCKET_NONBUFFERED (1<<1)
-#define SOUP_SOCKET_REUSEADDR   (1<<2)
-
-static void
-soup_set_sockopts (int sockfd, int opts)
+void
+soup_socket_set_flag (SoupSocket *sock, SoupSocketFlag flag, gboolean value)
 {
-	int flags;
+	int fdflags, opt;
 
-	if (opts & SOUP_SOCKET_NONBLOCKING) {
-		flags = fcntl (sockfd, F_GETFL, 0);
-		if (flags != -1)
-			fcntl (sockfd, F_SETFL, flags | O_NONBLOCK);
-	}
+	g_return_if_fail (SOUP_IS_SOCKET (sock));
+	g_return_if_fail (sock->priv->sockfd != -1);
 
-	if (opts & SOUP_SOCKET_NONBUFFERED) {
-		flags = 1;
-		setsockopt (sockfd, IPPROTO_TCP, TCP_NODELAY,
-			    &flags, sizeof (flags));
-	}
+	switch (flag) {
+	case SOUP_SOCKET_FLAG_NONBLOCKING:
+		fdflags = fcntl (sock->priv->sockfd, F_GETFL, 0);
+		g_return_if_fail (fdflags != -1);
 
-	if (opts & SOUP_SOCKET_REUSEADDR) {
-		flags = 1;
-		setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR,
-			    &flags, sizeof (flags));
+		if (value)
+			fdflags |= O_NONBLOCK;
+		else
+			fdflags &= ~O_NONBLOCK;
+
+		fcntl (sock->priv->sockfd, F_SETFL, fdflags);
+		break;
+
+	case SOUP_SOCKET_FLAG_NODELAY:
+		opt = (value != FALSE);
+		setsockopt (sock->priv->sockfd, IPPROTO_TCP, TCP_NODELAY,
+			    &opt, sizeof (opt));
+		break;
+
+	case SOUP_SOCKET_FLAG_REUSEADDR:
+		opt = (value != FALSE);
+		setsockopt (sock->priv->sockfd, SOL_SOCKET, SO_REUSEADDR,
+			    &opt, sizeof (opt));
+		break;
 	}
 }
 
@@ -234,8 +269,8 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
 	if (sock->priv->sockfd < 0)
 		goto cant_connect;
-	soup_set_sockopts (sock->priv->sockfd,
-			   SOUP_SOCKET_NONBLOCKING | SOUP_SOCKET_NONBUFFERED);
+	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
+	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NODELAY, TRUE);
 
 	/* Connect (non-blocking) */
 	status = connect (sock->priv->sockfd, sa, len);
@@ -285,18 +320,19 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	if (sockfd == -1)
 		return TRUE;
 
-	soup_set_sockopts (sockfd,
-			   SOUP_SOCKET_NONBLOCKING | SOUP_SOCKET_NONBUFFERED);
-
 	new = soup_socket_new ();
 	new->priv->sockfd = sockfd;
+	soup_socket_set_flag (new, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
+	soup_socket_set_flag (new, SOUP_SOCKET_FLAG_NODELAY, TRUE);
+
 	new->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 
 	new->priv->server = TRUE;
 	if (sock->priv->ssl) {
 		new->priv->ssl = TRUE;
 		soup_socket_start_ssl (new);
-	}
+	} else
+		soup_socket_get_iochannel (new);
 
 	g_signal_emit (sock, signals[NEW_CONNECTION], 0, new);
 	g_object_unref (new);
@@ -336,8 +372,8 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
 	if (sock->priv->sockfd < 0)
 		goto cant_listen;
-	soup_set_sockopts (sock->priv->sockfd,
-			   SOUP_SOCKET_NONBLOCKING | SOUP_SOCKET_REUSEADDR);
+	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_NONBLOCKING, TRUE);
+	soup_socket_set_flag (sock, SOUP_SOCKET_FLAG_REUSEADDR, TRUE);
 
 	/* Bind */
 	if (bind (sock->priv->sockfd, sa, sa_len) != 0)
@@ -476,8 +512,51 @@ soup_socket_get_iochannel (SoupSocket *sock)
 		sock->priv->iochannel =
 			g_io_channel_unix_new (sock->priv->sockfd);
 		g_io_channel_set_close_on_unref (sock->priv->iochannel, TRUE);
+		g_io_channel_set_encoding (sock->priv->iochannel, NULL, NULL);
+		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
 	}
 	return sock->priv->iochannel;
+}
+
+void
+soup_socket_disconnect (SoupSocket *sock)
+{
+	g_return_if_fail (SOUP_IS_SOCKET (sock));
+
+	if (!sock->priv->iochannel)
+		return;
+
+	g_io_channel_unref (sock->priv->iochannel);
+	sock->priv->iochannel = NULL;
+
+	if (sock->priv->read_tag) {
+		g_source_remove (sock->priv->read_tag);
+		sock->priv->read_tag = 0;
+	}
+	if (sock->priv->write_tag) {
+		g_source_remove (sock->priv->write_tag);
+		sock->priv->write_tag = 0;
+	}
+	if (sock->priv->error_tag) {
+		g_source_remove (sock->priv->error_tag);
+		sock->priv->error_tag = 0;
+	}
+
+	/* Give all readers a chance to notice the connection close */
+	g_signal_emit (sock, signals[READABLE], 0);
+
+	/* FIXME: can't disconnect until all data is read */
+
+	/* Then let everyone know we're disconnected */
+	g_signal_emit (sock, signals[DISCONNECTED], 0);
+}
+
+gboolean
+soup_socket_is_connected (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
+
+	return sock->priv->iochannel != NULL;
 }
 
 
@@ -513,4 +592,235 @@ soup_socket_get_remote_address (SoupSocket *sock)
 	}
 
 	return sock->priv->remote_addr;
+}
+
+
+
+
+static gboolean
+socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
+{
+	SoupSocket *sock = user_data;
+
+	sock->priv->read_tag = 0;
+	g_signal_emit (sock, signals[READABLE], 0);
+
+	return FALSE;
+}
+
+static SoupSocketIOStatus
+read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
+{
+	GIOStatus status;
+
+	if (!sock->priv->iochannel)
+		return SOUP_SOCKET_EOF;
+
+	status = g_io_channel_read_chars (sock->priv->iochannel,
+					  buffer, len, nread, NULL);
+	switch (status) {
+	case G_IO_STATUS_NORMAL:
+	case G_IO_STATUS_AGAIN:
+		if (*nread > 0)
+			return SOUP_SOCKET_OK;
+
+		if (!sock->priv->read_tag) {
+			sock->priv->read_tag =
+				g_io_add_watch (sock->priv->iochannel, G_IO_IN,
+						socket_read_watch, sock);
+		}
+		return SOUP_SOCKET_WOULD_BLOCK;
+
+	case G_IO_STATUS_EOF:
+		return SOUP_SOCKET_EOF;
+
+	default:
+		soup_socket_disconnect (sock);
+		return SOUP_SOCKET_ERROR;
+	}
+}
+
+static SoupSocketIOStatus
+read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
+{
+	GByteArray *read_buf = sock->priv->read_buf;
+
+	*nread = MIN (read_buf->len, len);
+	memcpy (buffer, read_buf->data, *nread);
+
+	if (*nread == read_buf->len) {
+		g_byte_array_free (read_buf, TRUE);
+		sock->priv->read_buf = NULL;
+	} else {
+		memcpy (read_buf->data, read_buf->data + *nread, 
+			read_buf->len - *nread);
+		g_byte_array_set_size (read_buf, read_buf->len - *nread);
+	}
+
+	return SOUP_SOCKET_OK;
+}
+
+/**
+ * soup_socket_read:
+ * @sock: the socket
+ * @buffer: buffer to read into
+ * @len: size of @buffer in bytes
+ * @nread: on return, the number of bytes read into @buffer
+ *
+ * Attempts to read up to @len bytes from @sock into @buffer. If some
+ * data is successfully read, soup_socket_read() will return
+ * %SOUP_SOCKET_OK, and *@nread will contain the number of bytes
+ * actually read.
+ *
+ * If @sock is non-blocking, and no data is available, the return
+ * value will be %SOUP_SOCKET_WOULD_BLOCK. In this case, the caller
+ * can connect to the %readable signal to know when there is more data
+ * to read. (NB: You MUST read all available data off the socket
+ * first. The %readable signal will only be emitted after
+ * soup_socket_read() has returned %SOUP_SOCKET_WOULD_BLOCK.)
+ *
+ * Return value: a #SoupSocketIOStatus, as described above (or
+ * %SOUP_SOCKET_EOF if the socket is no longer connected, or
+ * %SOUP_SOCKET_ERROR on any other error).
+ **/
+SoupSocketIOStatus
+soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+
+	if (sock->priv->read_buf)
+		return read_from_buf (sock, buffer, len, nread);
+	else
+		return read_from_network (sock, buffer, len, nread);
+}
+
+/**
+ * soup_socket_read_until:
+ * @sock: the socket
+ * @buffer: buffer to read into
+ * @len: size of @buffer in bytes
+ * @boundary: boundary to read until
+ * @boundary_len: length of @boundary in bytes
+ * @nread: on return, the number of bytes read into @buffer
+ * @got_boundary: on return, whether or not the data in @buffer
+ * ends with the boundary string
+ *
+ * Like soup_socket_read(), but reads no further than the first
+ * occurrence of @boundary. (If the boundary is found, it will be
+ * included in the returned data, and *@got_boundary will be set to
+ * %TRUE.) Any data after the boundary will returned in future reads.
+ *
+ * Return value: as for soup_socket_read()
+ **/
+SoupSocketIOStatus
+soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
+			gconstpointer boundary, gsize boundary_len,
+			gsize *nread, gboolean *got_boundary)
+{
+	SoupSocketIOStatus status;
+	GByteArray *read_buf;
+	guint match_len, prev_len;
+	guint8 *p, *end;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	g_return_val_if_fail (len >= boundary_len, SOUP_SOCKET_ERROR);
+
+	*got_boundary = FALSE;
+
+	if (!sock->priv->read_buf)
+		sock->priv->read_buf = g_byte_array_new ();
+	read_buf = sock->priv->read_buf;
+
+	if (read_buf->len < boundary_len) {
+		prev_len = read_buf->len;
+		g_byte_array_set_size (read_buf, len);
+		status = read_from_network (sock,
+					    read_buf->data + prev_len,
+					    len - prev_len, nread);
+		read_buf->len = prev_len + *nread;
+
+		if (status != SOUP_SOCKET_OK)
+			return status;
+	}
+
+	/* Scan for the boundary */
+	end = read_buf->data + read_buf->len;
+	for (p = read_buf->data; p <= end - boundary_len; p++) {
+		if (!memcmp (p, boundary, boundary_len)) {
+			p += boundary_len;
+			*got_boundary = TRUE;
+			break;
+		}
+	}
+
+	/* Return everything up to 'p' (which is either just after the
+	 * boundary, or @boundary_len - 1 bytes before the end of the
+	 * buffer).
+	 */
+	match_len = p - read_buf->data;
+	return read_from_buf (sock, buffer, MIN (len, match_len), nread);
+}
+
+static gboolean
+socket_write_watch (GIOChannel *chan, GIOCondition condition, gpointer user_data)
+{
+	SoupSocket *sock = user_data;
+
+	sock->priv->write_tag = 0;
+	g_signal_emit (sock, signals[WRITABLE], 0);
+
+	return FALSE;
+}
+
+/**
+ * soup_socket_write:
+ * @sock: the socket
+ * @buffer: data to write
+ * @len: size of @buffer, in bytes
+ * @nwrite: on return, number of bytes written
+ *
+ * Attempts to write @len bytes from @buffer to @sock. If some data is
+ * successfully written, the resturn status will be
+ * %SOUP_SOCKET_SUCCESS, and *@nwrote will contain the number of bytes
+ * actually written.
+ *
+ * If @sock is non-blocking, and no data could be written right away,
+ * the return value will be %SOUP_SOCKET_WOULD_BLOCK. In this case,
+ * the caller can connect to the %writable signal to know when more
+ * data can be written. (NB: %writable is only emitted after a
+ * %SOUP_SOCKET_WOULD_BLOCK.)
+ *
+ * Return value: a #SoupSocketIOStatus, as described above (or
+ * %SOUP_SOCKET_EOF or %SOUP_SOCKET_ERROR).
+ **/
+SoupSocketIOStatus
+soup_socket_write (SoupSocket *sock, gconstpointer buffer,
+		   gsize len, gsize *nwrote)
+{
+	GIOStatus status;
+	gpointer pipe_handler;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+
+	if (!sock->priv->iochannel)
+		return SOUP_SOCKET_EOF;
+	if (sock->priv->write_tag)
+		return SOUP_SOCKET_WOULD_BLOCK;
+
+	pipe_handler = signal (SIGPIPE, SIG_IGN);
+	status = g_io_channel_write_chars (sock->priv->iochannel,
+					   buffer, len, nwrote, NULL);
+	signal (SIGPIPE, pipe_handler);
+	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
+		soup_socket_disconnect (sock);
+		return SOUP_SOCKET_ERROR;
+	}
+
+	if (*nwrote)
+		return SOUP_SOCKET_OK;
+
+	sock->priv->write_tag =
+		g_io_add_watch (sock->priv->iochannel, G_IO_OUT,
+				socket_write_watch, sock);
+	return SOUP_SOCKET_WOULD_BLOCK;
 }

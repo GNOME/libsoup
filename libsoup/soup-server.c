@@ -13,17 +13,9 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_SYS_FILIO_H
-#include <sys/filio.h>
-#endif
-
-#ifdef HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
-#endif
-
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "soup-server.h"
@@ -42,6 +34,7 @@ struct SoupServerPrivate {
 	GMainLoop         *loop;
 
 	SoupSocket        *listen_sock;
+	GSList            *client_socks;
 
 	GHashTable        *handlers; /* KEY: path, VALUE: SoupServerHandler */
 	SoupServerHandler *default_handler;
@@ -53,7 +46,6 @@ struct SoupServerMessage {
 	gboolean     started;
 	gboolean     finished;
 };
-
 
 static void
 init (GObject *object)
@@ -93,6 +85,14 @@ finalize (GObject *object)
 
 	if (server->priv->listen_sock)
 		g_object_unref (server->priv->listen_sock);
+
+	while (server->priv->client_socks) {
+		SoupSocket *sock = server->priv->client_socks->data;
+
+		soup_socket_disconnect (sock);
+		server->priv->client_socks =
+			g_slist_remove (server->priv->client_socks, sock);
+	}
 
 	if (server->priv->default_handler)
 		free_handler (server, server->priv->default_handler);
@@ -189,14 +189,7 @@ free_chunk (gpointer chunk, gpointer notused)
 	g_free (buf);
 }
 
-typedef struct {
-	SoupServer *server;
-	SoupSocket *server_sock;
-} ServerConnectData;
-
-static gboolean start_another_request (GIOChannel    *server_chan,
-				       GIOCondition   condition, 
-				       gpointer       user_data);
+static void start_request (SoupServer *, SoupSocket *);
 
 static gboolean
 check_close_connection (SoupMessage *msg)
@@ -223,7 +216,7 @@ check_close_connection (SoupMessage *msg)
 	}
 
 	return close_connection;
-} /* check_close_connection */
+}
 
 static void
 destroy_message (SoupMessage *msg)
@@ -233,35 +226,15 @@ destroy_message (SoupMessage *msg)
 	SoupServerMessage *server_msg = msg->priv->server_msg;
 
 	if (server_sock) {
-		GIOChannel *chan;
-
-		chan = soup_socket_get_iochannel (server_sock);
-
 		/*
 		 * Close the socket if we're using HTTP/1.0 and
 		 * "Connection: keep-alive" isn't specified, or if we're
 		 * using HTTP/1.1 and "Connection: close" was specified.
 		 */
-		if (check_close_connection (msg)) {
-			g_io_channel_close (chan);
-			g_object_unref (server_sock);
-		}
-		else {
-			/*
-			 * Listen for another request on this connection
-			 */
-			ServerConnectData *data;
-
-			data = g_new0 (ServerConnectData, 1);
-			data->server = msg->priv->server;
-			data->server_sock = server_sock;
-
-			g_io_add_watch (chan,
-					G_IO_IN|G_IO_PRI|
-					G_IO_ERR|G_IO_HUP|G_IO_NVAL,
-					start_another_request,
-					data);
-		}
+		if (check_close_connection (msg))
+			soup_socket_disconnect (server_sock);
+		else
+			start_request (server, server_sock);
 	}
 
 	if (server_msg) {
@@ -269,11 +242,10 @@ destroy_message (SoupMessage *msg)
 		g_slist_free (server_msg->chunks);
 		g_free (server_msg);
 	}
-
-	g_object_unref (server);
-
 	g_free ((char *) msg->method);
 	soup_message_free (msg);
+
+	g_object_unref (server);
 }
 
 static void 
@@ -354,7 +326,6 @@ static void
 issue_bad_request (SoupMessage *msg)
 {
 	GString *header;
-	GIOChannel *channel;
 
 	set_response_error (msg, SOUP_ERROR_BAD_REQUEST, NULL, NULL);
 
@@ -362,9 +333,8 @@ issue_bad_request (SoupMessage *msg)
 				      FALSE,
 				      SOUP_TRANSFER_CONTENT_LENGTH);
 
-	channel = soup_socket_get_iochannel (msg->priv->server_sock);
 	msg->priv->write_tag =
-		soup_transfer_write_simple (channel,
+		soup_transfer_write_simple (msg->priv->server_sock,
 					    header,
 					    &msg->response,
 					    write_done_cb,
@@ -373,17 +343,17 @@ issue_bad_request (SoupMessage *msg)
 }
 
 static void
-read_headers_cb (const GString        *headers,
+read_headers_cb (char                 *headers,
+		 guint                 headers_len,
 		 SoupTransferEncoding *encoding,
-		 gint                 *content_len,
+		 int                  *content_len,
 		 gpointer              user_data)
 {
 	SoupMessage *msg = user_data;
 	SoupContext *ctx;
 	char *req_path = NULL;
 
-	if (!soup_headers_parse_request (headers->str, 
-					 headers->len, 
+	if (!soup_headers_parse_request (headers, headers_len,
 					 msg->request_headers, 
 					 (char **) &msg->method, 
 					 &req_path,
@@ -495,7 +465,8 @@ read_headers_cb (const GString        *headers,
 
 static void
 call_handler (SoupMessage          *req,
-	      const SoupDataBuffer *req_data,
+	      char                 *body,
+	      guint                 len,
 	      const char           *handler_path)
 {
 	SoupServer *server = req->priv->server;
@@ -504,9 +475,9 @@ call_handler (SoupMessage          *req,
 
 	g_return_if_fail (req != NULL);
 
-	req->request.owner = req_data->owner;
-	req->request.length = req_data->length;
-	req->request.body = req_data->body;
+	req->request.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	req->request.length = len;
+	req->request.body = body;
 
 	req->status = SOUP_STATUS_FINISHED;
 
@@ -625,19 +596,18 @@ get_chunk_cb (SoupDataBuffer *out_next, gpointer user_data)
 }
 
 static void
-read_done_cb (const SoupDataBuffer *data,
-	      gpointer              user_data)
+read_done_cb (char     *body,
+	      guint     len,
+	      gpointer  user_data)
 {
 	SoupMessage *req = user_data;
 	SoupSocket *server_sock = req->priv->server_sock;
-	GIOChannel *channel;
 
 	soup_transfer_read_unref (req->priv->read_tag);
 	req->priv->read_tag = 0;
 
-	call_handler (req, data, soup_context_get_uri (req->context)->path);
-
-	channel = soup_socket_get_iochannel (server_sock);
+	call_handler (req, body, len,
+		      soup_context_get_uri (req->context)->path);
 
 	if (req->priv->server_msg) {
 		SoupTransferEncoding encoding;
@@ -648,7 +618,7 @@ read_done_cb (const SoupDataBuffer *data,
 			encoding = SOUP_TRANSFER_CHUNKED;
 
 		req->priv->write_tag = 
-			soup_transfer_write (channel,
+			soup_transfer_write (server_sock,
 					     encoding,
 					     get_header_cb,
 					     get_chunk_cb,
@@ -667,7 +637,7 @@ read_done_cb (const SoupDataBuffer *data,
 					      TRUE, 
 					      SOUP_TRANSFER_CONTENT_LENGTH);
 		req->priv->write_tag = 
-			soup_transfer_write_simple (channel,
+			soup_transfer_write_simple (server_sock,
 						    header,
 						    &req->response,
 						    write_done_cb,
@@ -678,82 +648,44 @@ read_done_cb (const SoupDataBuffer *data,
 	return;
 }
 
-static SoupMessage *
-message_new (SoupServer *server)
-{
-	SoupMessage *msg;
-
-	/*
-	 * Create an empty message to hold request state.
-	 */
-	msg = soup_message_new (NULL, NULL);
-	if (msg) {
-		msg->method = NULL;
-		msg->priv->server = server;
-		g_object_ref (server);
-	}
-
-	return msg;
-}
-
-static gboolean
-start_another_request (GIOChannel    *server_chan,
-		       GIOCondition   condition, 
-		       gpointer       user_data)
-{
-	ServerConnectData *data = user_data;
-	SoupMessage *msg;
-	int fd, cnt;
-
-	fd = g_io_channel_unix_get_fd (server_chan);
-
-	if (!(condition & G_IO_IN) || 
-	    ioctl (fd, FIONREAD, &cnt) < 0 ||
-	    cnt <= 0)
-		g_object_unref (data->server_sock);
-	else {
-		msg = message_new (data->server);
-		if (!msg) {
-			g_warning ("Unable to create new incoming message\n");
-			g_object_unref (data->server_sock);
-		} else {
-			msg->priv->server_sock = data->server_sock;
-			msg->priv->read_tag = 
-				soup_transfer_read (server_chan,
-						    FALSE,
-						    read_headers_cb,
-						    NULL,
-						    read_done_cb,
-						    error_cb,
-						    msg);
-		}
-	}
-
-	g_free (data);
-	return FALSE;
-}
-
 static void
-new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
+start_request (SoupServer *server, SoupSocket *server_sock)
 {
-	SoupServer *server = user_data;
 	SoupMessage *msg;
 
-	msg = message_new (server);
-	if (!msg) {
-		g_warning ("Unable to create new incoming message\n");
-		return;
-	}
-
-	msg->priv->server_sock = g_object_ref (sock);
+	/* Listen for another request on this connection */
+	msg = soup_message_new (NULL, NULL);
+	msg->method = NULL;
+	msg->priv->server = g_object_ref (server);
+	msg->priv->server_sock = server_sock;
 	msg->priv->read_tag = 
-		soup_transfer_read (soup_socket_get_iochannel (sock),
+		soup_transfer_read (server_sock,
 				    FALSE,
 				    read_headers_cb,
 				    NULL,
 				    read_done_cb,
 				    error_cb,
 				    msg);
+}
+
+static void
+socket_disconnected (SoupSocket *sock, SoupServer *server)
+{
+	server->priv->client_socks =
+		g_slist_remove (server->priv->client_socks, sock);
+	g_signal_handlers_disconnect_by_func (sock, socket_disconnected, server);
+}
+
+static void
+new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
+{
+	SoupServer *server = user_data;
+
+	server->priv->client_socks =
+		g_slist_prepend (server->priv->client_socks, sock);
+	g_signal_connect (sock, "disconnected",
+			  G_CALLBACK (socket_disconnected), server);
+	start_request (server, sock);
 }
 
 void

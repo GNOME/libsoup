@@ -4,10 +4,10 @@ INCLUDES =		\
 
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
-noinst_PROGRAMS = get timeserver simple-httpd simple-proxy
+noinst_PROGRAMS = get revserver simple-httpd simple-proxy
 
 get_SOURCES = get.c
-timeserver_SOURCES = timeserver.c
+revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 

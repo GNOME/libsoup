@@ -1,8 +1,36 @@
 2003-08-19  Dan Winship  <danw@ximian.com>
 
+	* libsoup/soup-socket.c (soup_socket_read,
+	soup_socket_read_until, soup_socket_write): New API for doing
+	socket IO. Works both synchronously and asynchronously, and
+	buffers data to prevent the "100 Continue" problem.
+	(soup_socket_set_flag): Replaces formerly-private
+	soup_set_sockopts. (primarily to let the caller turn off
+	SOUP_SOCKET_FLAG_NONBLOCKING).
+
+	* libsoup/soup-transfer.c (soup_transfer_read,
+	soup_transfer_write, soup_transfer_write_simple): Take a
+	SoupSocket instead of a GIOChannel. Use the new socket IO api.
+	Changed the prototypes of some of the callbacks to be less
+	hackish.
+
+	* libsoup/soup-connection.c (soup_connection_get_socket): Replaces
+	soup_connection_get_iochannel.
+
+	* libsoup/soup-message.c: Fix up for soup-transfer changes
+
+	* libsoup/soup-queue.c: Likewise
+
+	* libsoup/soup-server.c: Likewise
+
+	* tests/revserver.c: A slightly more complicated replacement for
+	timeserver. (Does both reads and writes)
+
+2003-08-19  Dan Winship  <danw@ximian.com>
+
 	* libsoup/soup-socks.[ch]: Remove this. RC doesn't let you
-	configure it anyway, and no one has complained, and it looks like
-	the SOCKS5 auth code doesn't actually work anyway...
+	configure it, and no one has complained, and it looks like the
+	SOCKS5 auth code doesn't actually work anyway...
 
 	* libsoup/soup-queue.c (proxy_connect): Remove SOCKS code.
 

@@ -30,13 +30,25 @@ typedef struct {
 
 	/* signals */
 	void (*connect_result) (SoupSocket *, SoupKnownErrorCode);
+	void (*readable)       (SoupSocket *);
+	void (*writable)       (SoupSocket *);
+	void (*disconnected)   (SoupSocket *);
 
 	void (*new_connection) (SoupSocket *, SoupSocket *);
 } SoupSocketClass;
 
+typedef enum {
+	SOUP_SOCKET_FLAG_NONBLOCKING,
+	SOUP_SOCKET_FLAG_NODELAY,
+	SOUP_SOCKET_FLAG_REUSEADDR,
+} SoupSocketFlag;
+
 GType soup_socket_get_type (void);
 
 SoupSocket    *soup_socket_new                (void);
+void           soup_socket_set_flag           (SoupSocket         *sock,
+					       SoupSocketFlag      flag,
+					       gboolean            value);
 
 void           soup_socket_connect            (SoupSocket         *sock,
 					       SoupAddress        *rem_addr);
@@ -44,6 +56,8 @@ gboolean       soup_socket_listen             (SoupSocket         *sock,
 					       SoupAddress        *local_addr);
 void           soup_socket_start_ssl          (SoupSocket         *sock);
 
+void           soup_socket_disconnect         (SoupSocket         *sock);
+gboolean       soup_socket_is_connected       (SoupSocket         *sock);
 
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       SoupKnownErrorCode  status,
@@ -67,5 +81,31 @@ GIOChannel    *soup_socket_get_iochannel      (SoupSocket         *sock);
 
 SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 SoupAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
+
+
+typedef enum {
+	SOUP_SOCKET_OK,
+	SOUP_SOCKET_WOULD_BLOCK,
+	SOUP_SOCKET_EOF,
+	SOUP_SOCKET_ERROR
+} SoupSocketIOStatus;
+
+SoupSocketIOStatus  soup_socket_read       (SoupSocket         *sock,
+					    gpointer            buffer,
+					    guint               len,
+					    guint              *nread);
+SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
+					    gpointer            buffer,
+					    guint               len,
+					    gconstpointer       boundary,
+					    guint               boundary_len,
+					    guint              *nread,
+					    gboolean           *got_boundary);
+
+SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
+					    gconstpointer       buffer,
+					    guint               len,
+					    guint              *nwrote);
+
 
 #endif /* SOUP_SOCKET_H */

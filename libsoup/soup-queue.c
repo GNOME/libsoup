@@ -116,9 +116,10 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 }
 
 static void
-soup_queue_read_headers_cb (const GString        *headers,
+soup_queue_read_headers_cb (char                 *headers,
+			    guint                 headers_len,
                             SoupTransferEncoding *encoding,
-			    gint                 *content_len,
+			    int                  *content_len,
 			    gpointer              user_data)
 {
 	SoupMessage *req = user_data;
@@ -127,12 +128,11 @@ soup_queue_read_headers_cb (const GString        *headers,
 	GHashTable *resp_hdrs;
 	SoupMethodId meth_id;
 
-	if (!soup_headers_parse_response (headers->str, 
-					  headers->len, 
+	if (!soup_headers_parse_response (headers, headers_len,
 					  req->response_headers,
 					  &version,
 					  &req->errorcode,
-					  (gchar **) &req->errorphrase)) {
+					  (char **) &req->errorphrase)) {
 		soup_message_set_error_full (req, 
 					     SOUP_ERROR_MALFORMED,
 					     "Unable to parse response "
@@ -210,14 +210,15 @@ soup_queue_read_headers_cb (const GString        *headers,
 }
 
 static void
-soup_queue_read_chunk_cb (const SoupDataBuffer *data,
-			  gpointer              user_data)
+soup_queue_read_chunk_cb (const char *chunk,
+			  guint       len,
+			  gpointer    user_data)
 {
 	SoupMessage *req = user_data;
 
-	req->response.owner = data->owner;
-	req->response.length = data->length;
-	req->response.body = data->body;
+	req->response.owner = SOUP_BUFFER_STATIC;
+	req->response.length = len;
+	req->response.body = (char *)chunk;
 
 	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
 
@@ -225,8 +226,9 @@ soup_queue_read_chunk_cb (const SoupDataBuffer *data,
 }
 
 static void
-soup_queue_read_done_cb (const SoupDataBuffer *data,
-			 gpointer              user_data)
+soup_queue_read_done_cb (char     *body,
+			 guint     len,
+			 gpointer  user_data)
 {
 	SoupMessage *req = user_data;
 	const char *connection;
@@ -240,21 +242,21 @@ soup_queue_read_done_cb (const SoupDataBuffer *data,
 	else
 		soup_connection_mark_old (req->connection);
 
-	req->response.owner = data->owner;
-	req->response.length = data->length;
-	req->response.body = data->body;
+	req->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
+	req->response.length = len;
+	req->response.body = body;
 
 	soup_transfer_read_unref (req->priv->read_tag);
 
 	if (req->errorclass == SOUP_ERROR_CLASS_INFORMATIONAL) {
-		GIOChannel *channel;
+		SoupSocket *sock;
 		gboolean overwrt;
 
-		channel = soup_connection_get_iochannel (req->connection);
+		sock = soup_connection_get_socket (req->connection);
 		overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 
 		req->priv->read_tag = 
-			soup_transfer_read (channel,
+			soup_transfer_read (sock,
 					    overwrt,
 					    soup_queue_read_headers_cb,
 					    soup_queue_read_chunk_cb,
@@ -450,11 +452,11 @@ soup_queue_write_done_cb (gpointer user_data)
 static void
 start_request (SoupContext *ctx, SoupMessage *req)
 {
-	GIOChannel *channel;
+	SoupSocket *sock;
 	gboolean overwrt; 
 
-	channel = soup_connection_get_iochannel (req->connection);
-	if (!channel) {
+	sock = soup_connection_get_socket (req->connection);
+	if (!socket) {	/* FIXME */
 		SoupProtocol proto;
 		gchar *phrase;
 
@@ -481,7 +483,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 	}
 
 	req->priv->write_tag = 
-		soup_transfer_write_simple (channel,
+		soup_transfer_write_simple (sock,
 					    soup_get_request_header (req),
 					    &req->request,
 					    soup_queue_write_done_cb,
@@ -491,7 +493,7 @@ start_request (SoupContext *ctx, SoupMessage *req)
 	overwrt = req->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS;
 
 	req->priv->read_tag = 
-		soup_transfer_read (channel,
+		soup_transfer_read (sock,
 				    overwrt,
 				    soup_queue_read_headers_cb,
 				    soup_queue_read_chunk_cb,
@@ -581,7 +583,8 @@ soup_queue_connect_cb (SoupContext          *ctx,
 	SoupMessage *req = user_data;
 
 	req->priv->connect_tag = NULL;
-	g_object_ref (conn);
+	if (conn)
+		g_object_ref (conn);
 	if (req->connection)
 		g_object_unref (req->connection);
 	req->connection = conn;

@@ -22,93 +22,36 @@
 #include "soup-transfer.h"
 #include "soup-private.h"
 
-#undef DUMP
-
-#ifdef DUMP
-static void
-DUMP_READ (guchar *data, gint bytes_read) 
-{
-	gchar *buf = alloca (bytes_read + 1);
-	memcpy (buf, data, bytes_read);
-	buf[bytes_read] = '\0';
-	
-	g_warning ("READ %d\n----------\n%s\n----------\n", bytes_read, buf);
-}
-static void
-DUMP_WRITE (guchar *data, gint bytes_written) 
-{
-	gchar *buf = alloca (bytes_written + 1);
-	memcpy (buf, data, bytes_written);
-	buf[bytes_written] = '\0';
-
-	g_warning ("WRITE %d\n----------\n%s\n----------\n", bytes_written,buf);
-}
-#else
-#  define DUMP_READ(x,y)
-#  define DUMP_WRITE(x,y)
-#endif
-
-typedef struct {
-	/* 
-	 * Length of the current chunk data. 
-	 */
-	guint  len;
-
-	/* 
-	 * Index into the recv buffer where this chunk's data begins.
-	 * 0 if overwrite chunks is active.
-	 */
-	guint  idx;
-} SoupTransferChunkState;
+typedef enum {
+	SOUP_READER_STATE_HEADERS,
+	SOUP_READER_STATE_READ_TO_EOF,
+	SOUP_READER_STATE_CONTENT_LENGTH,
+	SOUP_READER_STATE_CHUNK_SIZE,
+	SOUP_READER_STATE_CHUNK,
+	SOUP_READER_STATE_BETWEEN_CHUNKS,
+	SOUP_READER_STATE_TRAILERS
+} SoupReaderState;
 
 struct _SoupReader {
         int                    ref_count;
 
-	GIOChannel            *channel;
+	SoupSocket            *sock;
+	guint                  idle_tag;
 	guint                  read_tag;
 	guint                  err_tag;
 
-	/*
-	 * If TRUE, a callback has been issued which references recv_buf.
-	 * If the transfer is cancelled before a reference exists, the contents
-	 * of recv_buf are free'd.
-	 */
-	gboolean               callback_issued;
-
-	GByteArray            *recv_buf;
-	guint                  header_len;
-
-	gboolean               overwrite_chunks;
+	SoupReaderState        state;
+	GByteArray            *body_buf;
+	GByteArray            *meta_buf;
 
 	SoupTransferEncoding   encoding;
-	guint                  content_length;
-	SoupTransferChunkState chunk_state;
+	guint                  read_length;
 
 	SoupReadHeadersDoneFn  headers_done_cb;
 	SoupReadChunkFn        read_chunk_cb;
 	SoupReadDoneFn         read_done_cb;
 	SoupReadErrorFn        error_cb;
 	gpointer               user_data;
-};
-
-struct _SoupWriter {
-        int                    ref_count;
-
-	GIOChannel             *channel;
-	guint                   write_tag;
-	guint                   err_tag;
-
-	SoupTransferEncoding    encoding;
-	GByteArray             *write_buf;
-
-	gboolean                headers_done;
-	gint                    chunk_cnt;
-
-	SoupWriteGetHeaderFn    get_header_cb;
-	SoupWriteGetChunkFn     get_chunk_cb;
-	SoupWriteDoneFn         write_done_cb;
-	SoupWriteErrorFn        error_cb;
-	gpointer                user_data;
 };
 
 /* Stops reading and releases soup-transfer's ref. */
@@ -118,10 +61,15 @@ soup_transfer_read_stop (SoupReader *r)
 	if (!r->err_tag)
 		return;
 
-	g_source_remove (r->read_tag);
+	g_signal_handler_disconnect (r->sock, r->read_tag);
 	r->read_tag = 0;
-	g_source_remove (r->err_tag);
+	g_signal_handler_disconnect (r->sock, r->err_tag);
 	r->err_tag = 0;
+
+	if (r->idle_tag) {
+		g_source_remove (r->idle_tag);
+		r->idle_tag = 0;
+	}
 
 	soup_transfer_read_unref (r);
 }
@@ -140,7 +88,11 @@ soup_transfer_read_unref (SoupReader *r)
 		return TRUE;
 
 	soup_transfer_read_stop (r);
-	g_byte_array_free (r->recv_buf, r->callback_issued ? FALSE : TRUE);
+	if (r->body_buf)
+		g_byte_array_free (r->body_buf, TRUE);
+	if (r->meta_buf)
+		g_byte_array_free (r->meta_buf, TRUE);
+	g_object_unref (r->sock);
 	g_free (r);
 	return FALSE;
 }
@@ -173,343 +125,242 @@ soup_transfer_read_set_callbacks (SoupReader             *r,
 static void
 issue_final_callback (SoupReader *r)
 {
-	SoupDataBuffer buf;
+	char *body;
+	guint len;
 
-	/* 
-	 * Null terminate 
-	 */
-	g_byte_array_append (r->recv_buf, "\0", 1);
+	if (r->body_buf) {
+		/* 
+		 * Null terminate. FIXME
+		 */
+		g_byte_array_append (r->body_buf, "\0", 1);
 
-	buf.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	buf.body = r->recv_buf->data;
-	buf.length = r->recv_buf->len - 1;
-
-	r->callback_issued = TRUE;
+		body = r->body_buf->data;
+		len = r->body_buf->len - 1;
+		g_byte_array_free (r->body_buf, FALSE);
+		r->body_buf = NULL;
+	} else {
+		body = NULL;
+		len = 0;
+	}
 
 	soup_transfer_read_ref (r);
 	soup_transfer_read_stop (r);
 
-	(*r->read_done_cb) (&buf, r->user_data);
+	(*r->read_done_cb) (body, len, r->user_data);
 	soup_transfer_read_unref (r);
 }
 
-static gboolean
-soup_transfer_read_error_cb (GIOChannel* iochannel,
-			     GIOCondition condition,
-			     SoupReader *r)
+static void
+reader_disconnected (SoupSocket *sock, SoupReader *r)
 {
-	gboolean body_started = r->recv_buf->len > r->header_len;
-
+	soup_transfer_read_ref (r);
 	soup_transfer_read_stop (r);
 
 	/*
 	 * Closing the connection to signify EOF is valid if content length is
 	 * unknown, but only if headers have been sent.
 	 */
-	if (r->header_len && r->encoding == SOUP_TRANSFER_UNKNOWN)
+	if (r->state == SOUP_READER_STATE_READ_TO_EOF)
 		issue_final_callback (r);
-	else
-		(*r->error_cb) (body_started, r->user_data);
-
-	return FALSE;
-}
-
-static void
-remove_block_at_index (GByteArray *arr, gint offset, gint length)
-{
-	gchar *data;
-
-	g_return_if_fail (length != 0);
-	g_assert (arr->len >= (guint) offset + length);
-
-	data = &arr->data [offset];
-
-	g_memmove (data,
-		   data + length,
-		   arr->len - offset - length);
-
-	g_byte_array_set_size (arr, arr->len - length);
-}
-
-/* Parse chunk data in @arr. On return, *@datalen bytes of @arr contain
- * parsed data that can be returned to the caller. Return value is
- * TRUE if it parsed the last chunk, or FALSE if we need to read more
- * data.
- */
-static gboolean
-decode_chunk (SoupTransferChunkState *s,
-	      GByteArray             *arr,
-	      gint                   *datalen) 
-{
-	gboolean ret = FALSE;
-
-	*datalen = 0;
-
-	while (TRUE) {
-		gint new_len = 0;
-		gint len = 0;
-
-		if (s->len) {
-			/* We're in the middle of a chunk. If we don't
-			 * have the entire chunk and the trailing CRLF
-			 * yet, read more.
-			 */
-			if (s->idx + s->len + 2 > arr->len)
-				break;
-
-			/*
-			 * Increment datalen and s->idx, and remove
-			 * the trailing CRLF.
-			 */
-			s->idx += s->len;
-			*datalen += s->len;
-			remove_block_at_index (arr, s->idx, 2);
-
-			/*
-			 * Ready for the next chunk.
-			 */
-			s->len = 0;
-		}
-
-		/*
-		 * We're at the start of a new chunk. If we don't have
-		 * the complete chunk header, wait for more.
-		 */
-		len = soup_substring_index (&arr->data [s->idx],
-					    arr->len - s->idx, 
-					    "\r\n");
-		if (len < 0)
-			break;
-		len += 2;
-
-		new_len = strtol (&arr->data [s->idx], NULL, 16);
-		g_assert (new_len >= 0);
-
-		/*
-		 * If this is the final (zero-length) chunk, we need
-		 * to have all of the trailing entity headers as well.
-		 */
-		if (new_len == 0) {
-			len = soup_substring_index (&arr->data [s->idx],
-						    arr->len - s->idx, 
-						    "\r\n\r\n");
-			if (len < 0)
-				break;
-
-			/* 
-			 * FIXME: Add entity headers we find here to
-			 *        req->response_headers. 
-			 */
-
-			len += 4;
-			ret = TRUE;
-		}
-
-		/* 
-		 * Remove chunk header and get ready for chunk data.
-		 */
-		remove_block_at_index (arr, s->idx, len);
-		s->len = new_len;
-	}
-
-	return ret;
-}
-
-static void
-issue_chunk_callback (SoupReader *r, gchar *data, gint len)
-{
-	/* 
-	 * Call chunk callback. Pass len worth of data. 
-	 */
-	if (r->read_chunk_cb && len) {
-		SoupDataBuffer buf = { 
-			SOUP_BUFFER_SYSTEM_OWNED, 
-			data,
-			len
-		};
-
-		r->callback_issued = TRUE;
-		(*r->read_chunk_cb) (&buf, r->user_data);
-	}
-}
-
-static gboolean
-read_chunk (SoupReader *r)
-{
-	SoupTransferChunkState *s = &r->chunk_state;
-	GByteArray *arr = r->recv_buf;
-	gboolean done;
-	gint datalen;
-
-	/* 
-	 * Update datalen for any data read 
-	 */
-	done = decode_chunk (&r->chunk_state, r->recv_buf, &datalen);
-	if (!datalen) 
-		return done;
-
-	issue_chunk_callback (r, arr->data, s->idx);
-
-	/* 
-	 * If overwrite, remove already-processed data from start
-	 * of buffer 
-	 */
-	if (r->overwrite_chunks) {
-		remove_block_at_index (arr, 0, s->idx);
-
-		s->idx = 0;
-	}
-
-	return done;
-}
-
-static gboolean
-read_content_length (SoupReader *r)
-{
-	GByteArray *arr = r->recv_buf;
-
-	if (arr->len) {
-		issue_chunk_callback (r, arr->data, arr->len);
-
-		/* 
-		 * If overwrite, clear 
-		 */
-		if (r->overwrite_chunks) {
-			r->content_length -= r->recv_buf->len;
-			g_byte_array_set_size (arr, 0);
-		}
-	}
-
-	return r->content_length == arr->len;
-}
-
-static gboolean
-read_unknown (SoupReader *r)
-{
-	GByteArray *arr = r->recv_buf;
-
-	if (arr->len) {
-		issue_chunk_callback (r, arr->data, arr->len);
-
-		/* 
-		 * If overwrite, clear 
-		 */
-		if (r->overwrite_chunks)
-			g_byte_array_set_size (arr, 0);
-	}
-
-	/* 
-	 * Keep reading until we get a zero read or HUP.
-	 */
-	return FALSE;
-}
-
-static gboolean
-soup_transfer_read_cb (GIOChannel   *iochannel,
-		       GIOCondition  condition,
-		       SoupReader   *r)
-{
-	gchar read_buf [RESPONSE_BLOCK_SIZE];
-	gsize bytes_read = 0, total_read = 0;
-	gboolean read_done = FALSE;
-	GIOError error;
-
- READ_AGAIN:
-	error = g_io_channel_read (iochannel,
-				   read_buf,
-				   sizeof (read_buf),
-				   &bytes_read);
-
-	if (error == G_IO_ERROR_AGAIN) {
-		if (total_read) 
-			goto PROCESS_READ;
-		else return TRUE;
-	}
-
-	if (error != G_IO_ERROR_NONE) {
-		if (total_read) 
-			goto PROCESS_READ;
-		else {
-			soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
-			return FALSE;
-		}
-	}
-
-	if (bytes_read) {
-		DUMP_READ (read_buf, bytes_read);
-
-		g_byte_array_append (r->recv_buf, read_buf, bytes_read);
-		total_read += bytes_read;
-
-		goto READ_AGAIN;
-	}
-
- PROCESS_READ:
-
-	if (r->header_len == 0 && total_read == 0) {
-		soup_transfer_read_error_cb (iochannel, G_IO_HUP, r);
-		return FALSE;
-	}
-
-	if (r->header_len == 0) {
-		gint index;
-
-		index = soup_substring_index (r->recv_buf->data,
-					      r->recv_buf->len,
-					      "\r\n\r\n");
-		if (index < 0) 
-			return TRUE;
-		else
-			index += 4;
-
-		if (r->headers_done_cb) {
-			GString str;
-
-			str.len = index;
-			str.str = alloca (index + 1);
-			strncpy (str.str, r->recv_buf->data, index);
-			str.str [index] = '\0';
-
-			soup_transfer_read_ref (r);
-			(*r->headers_done_cb) (&str, 
-					       &r->encoding, 
-					       &r->content_length, 
-					       r->user_data);
-			if (!soup_transfer_read_unref (r))
-				return FALSE;
-		}
-
-		remove_block_at_index (r->recv_buf, 0, index);
-		r->header_len = index;
-	}
-
-	if (total_read == 0)
-		read_done = TRUE;
 	else {
-		soup_transfer_read_ref (r);
+		(*r->error_cb) (r->state > SOUP_READER_STATE_HEADERS,
+				r->user_data);
+	}
 
-		switch (r->encoding) {
-		case SOUP_TRANSFER_CHUNKED:
-			read_done = read_chunk (r);
-			break;
-		case SOUP_TRANSFER_CONTENT_LENGTH:
-			read_done = read_content_length (r);
-			break;
-		case SOUP_TRANSFER_UNKNOWN:
-			read_done = read_unknown (r);
-			break;
-		}
+	soup_transfer_read_unref (r);
+}
 
-		if (!soup_transfer_read_unref (r))
+static gboolean
+soup_reader_read_metadata (SoupReader *r, const char *boundary, int boundary_len)
+{
+	SoupSocketIOStatus status;
+	char read_buf[RESPONSE_BLOCK_SIZE];
+	guint nread;
+	gboolean done;
+
+	do {
+		status = soup_socket_read_until (r->sock, read_buf,
+						 sizeof (read_buf),
+						 boundary, boundary_len,
+						 &nread, &done);
+		switch (status) {
+		case SOUP_SOCKET_OK:
+			g_byte_array_append (r->meta_buf, read_buf, nread);
+			break;
+
+		case SOUP_SOCKET_ERROR:
+		case SOUP_SOCKET_EOF:
+			reader_disconnected (r->sock, r);
 			return FALSE;
+
+		case SOUP_SOCKET_WOULD_BLOCK:
+			return FALSE;
+		}
+	} while (!done);
+
+	return TRUE;
+}
+
+static gboolean
+soup_reader_read_body_chunk (SoupReader *r, guint *size)
+{
+	SoupSocketIOStatus status;
+	char read_buf[RESPONSE_BLOCK_SIZE];
+	guint nread, len = sizeof (read_buf);
+
+	while (!size || *size > 0) {
+		if (size)
+			len = MIN (len, *size);
+
+		status = soup_socket_read (r->sock, read_buf, len, &nread);
+
+		switch (status) {
+		case SOUP_SOCKET_OK:
+			if (!nread)
+				break;
+
+			if (r->read_chunk_cb) {
+				r->read_chunk_cb (read_buf, nread,
+						  r->user_data);
+			}
+			if (r->body_buf)
+				g_byte_array_append (r->body_buf, read_buf, nread);
+			if (size)
+				*size -= nread;
+			break;
+
+		case SOUP_SOCKET_EOF:
+			if (!size)
+				return TRUE;
+			/* else fall through */
+
+		case SOUP_SOCKET_ERROR:
+			reader_disconnected (r->sock, r);
+			return FALSE;
+
+		case SOUP_SOCKET_WOULD_BLOCK:
+			return FALSE;
+		}
 	}
 
-	if (!read_done) {
-		total_read = 0;
-		goto READ_AGAIN;
+	return TRUE;
+}
+
+#define SOUP_TRANSFER_EOL     "\r\n"
+#define SOUP_TRANSFER_EOL_LEN 2
+
+#define SOUP_TRANSFER_DOUBLE_EOL     "\r\n\r\n"
+#define SOUP_TRANSFER_DOUBLE_EOL_LEN 4
+
+static void
+reader_read (SoupSocket *sock, SoupReader *r)
+{
+	soup_transfer_read_ref (r);
+
+	while (1) {
+		switch (r->state) {
+		case SOUP_READER_STATE_HEADERS:
+			if (!soup_reader_read_metadata (
+				    r, SOUP_TRANSFER_DOUBLE_EOL,
+				    SOUP_TRANSFER_DOUBLE_EOL_LEN))
+				goto out;
+
+			r->meta_buf->len -= SOUP_TRANSFER_DOUBLE_EOL_LEN;
+			if (r->headers_done_cb) {
+				(*r->headers_done_cb) (r->meta_buf->data,
+						       r->meta_buf->len,
+						       &r->encoding, 
+						       &r->read_length, 
+						       r->user_data);
+			}
+			g_byte_array_set_size (r->meta_buf, 0);
+
+			switch (r->encoding) {
+			case SOUP_TRANSFER_UNKNOWN:
+				r->state = SOUP_READER_STATE_READ_TO_EOF;
+				break;
+			case SOUP_TRANSFER_CONTENT_LENGTH:
+				r->state = SOUP_READER_STATE_CONTENT_LENGTH;
+				break;
+			case SOUP_TRANSFER_CHUNKED:
+				r->state = SOUP_READER_STATE_CHUNK_SIZE;
+				break;
+			}
+			break;
+
+		case SOUP_READER_STATE_READ_TO_EOF:
+			if (!soup_reader_read_body_chunk (r, NULL))
+				goto out;
+
+			goto done;
+			break;
+
+		case SOUP_READER_STATE_CONTENT_LENGTH:
+			if (!soup_reader_read_body_chunk (r, &r->read_length))
+				goto out;
+
+			goto done;
+			break;
+
+		case SOUP_READER_STATE_CHUNK_SIZE:
+			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
+							SOUP_TRANSFER_EOL_LEN))
+				goto out;
+
+			r->read_length = strtoul (r->meta_buf->data, NULL, 16);
+			g_byte_array_set_size (r->meta_buf, 0);
+
+			if (r->read_length > 0)
+				r->state = SOUP_READER_STATE_CHUNK;
+			else
+				r->state = SOUP_READER_STATE_TRAILERS;
+			break;
+
+		case SOUP_READER_STATE_CHUNK:
+			if (!soup_reader_read_body_chunk (r, &r->read_length))
+				goto out;
+
+			r->state = SOUP_READER_STATE_BETWEEN_CHUNKS;
+			break;
+
+		case SOUP_READER_STATE_BETWEEN_CHUNKS:
+			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
+							SOUP_TRANSFER_EOL_LEN))
+				goto out;
+
+			g_byte_array_set_size (r->meta_buf, 0);
+			r->state = SOUP_READER_STATE_CHUNK_SIZE;
+			break;
+
+		case SOUP_READER_STATE_TRAILERS:
+			if (!soup_reader_read_metadata (r, SOUP_TRANSFER_EOL,
+							SOUP_TRANSFER_EOL_LEN))
+				goto out;
+
+			if (r->meta_buf->len == SOUP_TRANSFER_EOL_LEN)
+				goto done;
+
+			/* FIXME: process trailers */
+			g_byte_array_set_size (r->meta_buf, 0);
+			break;
+
+		}
 	}
 
+ done:
 	issue_final_callback (r);
+
+ out:
+	soup_transfer_read_unref (r);
+}
+
+static gboolean
+idle_read (gpointer user_data)
+{
+	SoupReader *r = user_data;
+
+	r->idle_tag = 0;
+	reader_read (r->sock, r);
 	return FALSE;
 }
 
@@ -536,7 +387,7 @@ soup_transfer_read_cb (GIOChannel   *iochannel,
  * soup_transfer_read_cancel().
  **/
 SoupReader *
-soup_transfer_read (GIOChannel            *chan,
+soup_transfer_read (SoupSocket            *sock,
 		    gboolean               overwrite_chunks,
 		    SoupReadHeadersDoneFn  headers_done_cb,
 		    SoupReadChunkFn        read_chunk_cb,
@@ -549,27 +400,27 @@ soup_transfer_read (GIOChannel            *chan,
 	g_assert (read_done_cb && error_cb);
 
 	reader = g_new0 (SoupReader, 1);
-	reader->channel = chan;
-	reader->overwrite_chunks = overwrite_chunks;
+	reader->sock = g_object_ref (sock);
 	reader->headers_done_cb = headers_done_cb;
 	reader->read_chunk_cb = read_chunk_cb;
 	reader->read_done_cb = read_done_cb;
 	reader->error_cb = error_cb;
 	reader->user_data = user_data;
-	reader->recv_buf = g_byte_array_new ();
 	reader->encoding = SOUP_TRANSFER_UNKNOWN;
 
+	reader->meta_buf = g_byte_array_new ();
+	if (!overwrite_chunks)
+		reader->body_buf = g_byte_array_new ();
+
 	reader->read_tag =
-		g_io_add_watch (chan,
-				G_IO_IN,
-				(GIOFunc) soup_transfer_read_cb,
-				reader);
+		g_signal_connect (sock, "readable",
+				  G_CALLBACK (reader_read), reader);
 
 	reader->err_tag =
-		g_io_add_watch (chan,
-				G_IO_HUP | G_IO_ERR | G_IO_NVAL,
-				(GIOFunc) soup_transfer_read_error_cb,
-				reader);
+		g_signal_connect (sock, "disconnected",
+				  G_CALLBACK (reader_disconnected), reader);
+
+	reader->idle_tag = g_idle_add (idle_read, reader);
 
 	/* Initial ref_count is 2: one reference owned by
 	 * soup-transfer and one by the caller.
@@ -579,18 +430,46 @@ soup_transfer_read (GIOChannel            *chan,
 	return reader;
 }
 
+
+struct _SoupWriter {
+        int                     ref_count;
+
+	SoupSocket             *sock;
+	guint                   idle_tag;
+	guint                   write_tag;
+	guint                   err_tag;
+
+	SoupTransferEncoding    encoding;
+	GByteArray             *write_buf;
+
+	gboolean                headers_done;
+	int                     chunk_cnt;
+
+	SoupWriteGetHeaderFn    get_header_cb;
+	SoupWriteGetChunkFn     get_chunk_cb;
+	SoupWriteDoneFn         write_done_cb;
+	SoupWriteErrorFn        error_cb;
+	gpointer                user_data;
+};
+
 static void
 soup_transfer_write_stop (SoupWriter *w)
 {
 	if (!w->err_tag)
 		return;
 
+	g_signal_handler_disconnect (w->sock, w->err_tag);
+	w->err_tag = 0;
+
 	if (w->write_tag) {
-		g_source_remove (w->write_tag);
+		g_signal_handler_disconnect (w->sock, w->write_tag);
 		w->write_tag = 0;
 	}
-	g_source_remove (w->err_tag);
-	w->err_tag = 0;
+
+	if (w->idle_tag) {
+		g_source_remove (w->idle_tag);
+		w->idle_tag = 0;
+	}
 
 	/* Give up soup-transfer's ref */
 	soup_transfer_write_unref (w);
@@ -611,6 +490,7 @@ soup_transfer_write_unref (SoupWriter *w)
 
 	soup_transfer_write_stop (w);
 	g_byte_array_free (w->write_buf, TRUE);
+	g_object_unref (w->sock);
 	g_free (w);
 	return FALSE;
 }
@@ -622,15 +502,11 @@ soup_transfer_write_cancel (SoupWriter *w)
 	soup_transfer_write_unref (w);
 }
 
-static gboolean
-soup_transfer_write_error_cb (GIOChannel* iochannel,
-			      GIOCondition condition,
-			      SoupWriter *w)
+static void
+writer_disconnected (SoupSocket *sock, SoupWriter *w)
 {
 	soup_transfer_write_stop (w);
 	(*w->error_cb) (w->headers_done, w->user_data);
-
-	return FALSE;
 }
 
 static gboolean 
@@ -698,81 +574,66 @@ get_next_chunk (SoupWriter *w)
 	}
 }
 
-#ifdef SIGPIPE
-#  define IGNORE_PIPE(pipe_handler) pipe_handler = signal (SIGPIPE, SIG_IGN)
-#  define RESTORE_PIPE(pipe_handler) signal (SIGPIPE, pipe_handler)
-#else
-#  define IGNORE_PIPE(x)
-#  define RESTORE_PIPE(x)
-#endif
-
-static gboolean
-soup_transfer_write_cb (GIOChannel* iochannel,
-			GIOCondition condition,
-			SoupWriter *w)
+static void
+writer_write (SoupSocket *sock, SoupWriter *w)
 {
-	GIOError error;
-	gpointer pipe_handler;
-	gsize bytes_written = 0;
+	SoupSocketIOStatus status;
+	guint bytes_written = 0;
 
-	/*
-	 * Get the header and first data chunk (if available).
-	 */
+	/* Get the header and first data chunk (if available). */
 	if (w->get_header_cb) {
 		soup_transfer_write_ref (w);
 
-		if (!get_header (w))
-			return soup_transfer_write_unref (w);
+		if (!get_header (w)) {
+			soup_transfer_write_unref (w);
+			return;
+		}
 
 		if (w->get_chunk_cb)
 			get_next_chunk (w);
 
 		if (!soup_transfer_write_unref (w))
-			return FALSE;
+			return;
 	}
 
  WRITE_AGAIN:
 	while (w->write_buf->len) {
-		IGNORE_PIPE (pipe_handler);
-		error = g_io_channel_write (iochannel,
-					    w->write_buf->data,
-					    w->write_buf->len,
-					    &bytes_written);
-		RESTORE_PIPE (pipe_handler);
+		status = soup_socket_write (sock, w->write_buf->data,
+					    w->write_buf->len, &bytes_written);
 
-		if (error == G_IO_ERROR_AGAIN) 
-			return TRUE;
+		switch (status) {
+		case SOUP_SOCKET_EOF:
+		case SOUP_SOCKET_ERROR:
+			writer_disconnected (sock, w);
+			return;
 
-		if (error != G_IO_ERROR_NONE) {
-			soup_transfer_write_error_cb (iochannel, G_IO_HUP, w);
-			return FALSE;
+		case SOUP_SOCKET_WOULD_BLOCK:
+			return;
+
+		case SOUP_SOCKET_OK:
+			memmove (w->write_buf->data,
+				 w->write_buf->data + bytes_written,
+				 w->write_buf->len - bytes_written);
+			g_byte_array_set_size (w->write_buf,
+					       w->write_buf->len - bytes_written);
+			break;
 		}
-
-		if (!bytes_written)
-			return TRUE;
-
-		DUMP_WRITE (w->write_buf->data, bytes_written);
-
-		remove_block_at_index (w->write_buf, 0, bytes_written);
 	}
 
-	/*
-	 * When we exit the above block, we are certain that the headers have
+	/* When we exit the above block, we are certain that the headers have
 	 * been written.  
 	 */
 	w->headers_done = TRUE;
 
-	/*
-	 * Get the next data chunk and try again, or quit if paused.
-	 */
+	/* Get the next data chunk and try again, or quit if paused. */
 	if (w->get_chunk_cb) {
 		soup_transfer_write_ref (w);
 		get_next_chunk (w);
 		if (!soup_transfer_write_unref (w))
-			return TRUE;
+			return;
 
 		if (!w->write_tag)
-			return TRUE;
+			return;
 
 		goto WRITE_AGAIN;
 	}
@@ -781,11 +642,20 @@ soup_transfer_write_cb (GIOChannel* iochannel,
 	soup_transfer_write_stop (w);
 	(*w->write_done_cb) (w->user_data);
 	soup_transfer_write_unref (w);
+}
+
+static gboolean
+idle_write (gpointer user_data)
+{
+	SoupWriter *w = user_data;
+
+	w->idle_tag = 0;
+	writer_write (w->sock, w);
 	return FALSE;
 }
 
 static SoupWriter *
-create_writer (GIOChannel             *chan,
+create_writer (SoupSocket             *sock,
 	       SoupTransferEncoding    encoding,
 	       SoupWriteDoneFn         write_done_cb,
 	       SoupWriteErrorFn        error_cb,
@@ -796,7 +666,7 @@ create_writer (GIOChannel             *chan,
 	g_assert (write_done_cb && error_cb);
 
 	writer = g_new0 (SoupWriter, 1);
-	writer->channel       = chan;
+	writer->sock          = g_object_ref (sock);
 	writer->encoding      = encoding;
 	writer->write_buf     = g_byte_array_new ();
 	writer->write_done_cb = write_done_cb;
@@ -804,16 +674,14 @@ create_writer (GIOChannel             *chan,
 	writer->user_data     = user_data;
 
 	writer->write_tag =
-		g_io_add_watch (chan,
-				G_IO_OUT,
-				(GIOFunc) soup_transfer_write_cb,
-				writer);
+		g_signal_connect (sock, "writable",
+				  G_CALLBACK (writer_write), writer);
 
 	writer->err_tag =
-		g_io_add_watch (chan,
-				G_IO_HUP | G_IO_ERR | G_IO_NVAL,
-				(GIOFunc) soup_transfer_write_error_cb,
-				writer);
+		g_signal_connect (sock, "disconnected",
+				  G_CALLBACK (writer_disconnected), writer);
+
+	writer->idle_tag = g_idle_add (idle_write, writer);
 
 	/* As with SoupReader, one reference is owned by soup-transfer
 	 * and one by the caller.
@@ -825,7 +693,7 @@ create_writer (GIOChannel             *chan,
 
 /**
  * soup_transfer_write_simple:
- * @chan: the iochannel to write to
+ * @sock: the socket to write to
  * @header: message headers (including trailing blank line)
  * @src: buffer to write
  * @write_done_cb: (mandatory) callback to call when the body has been
@@ -833,7 +701,7 @@ create_writer (GIOChannel             *chan,
  * @error_cb: (mandatory) callback to call when an error occurs
  * @user_data: data to pass to the callbacks.
  *
- * Attempts to write a single HTTP message to @chan using identity
+ * Attempts to write a single HTTP message to @sock using identity
  * encoding and Content-Length.
  *
  * Unless the caller calls soup_transfer_write_cancel(), either
@@ -844,7 +712,7 @@ create_writer (GIOChannel             *chan,
  * soup_transfer_write_cancel().
  **/
 SoupWriter *
-soup_transfer_write_simple (GIOChannel             *chan,
+soup_transfer_write_simple (SoupSocket             *sock,
 			    GString                *header,
 			    const SoupDataBuffer   *src,
 			    SoupWriteDoneFn         write_done_cb,
@@ -853,7 +721,7 @@ soup_transfer_write_simple (GIOChannel             *chan,
 {
 	SoupWriter *writer;
 
-	writer = create_writer (chan, 
+	writer = create_writer (sock,
 				SOUP_TRANSFER_CONTENT_LENGTH,
 				write_done_cb,
 				error_cb,
@@ -875,8 +743,8 @@ soup_transfer_write_simple (GIOChannel             *chan,
 }
 
 /**
- * soup_transfer_write_simple:
- * @chan: the iochannel to write to
+ * soup_transfer_write:
+ * @sock: the socket to write to
  * @encoding: HTTP encoding mechanism to use.
  * @get_header_cb: (mandatory) callback to call to get message headers
  * @get_chunk_cb: (optional) callback to call to get body chunks
@@ -885,7 +753,7 @@ soup_transfer_write_simple (GIOChannel             *chan,
  * @error_cb: (mandatory) callback to call when an error occurs
  * @user_data: data to pass to the callbacks.
  *
- * Attempts to write a single HTTP message to @chan using @encoding.
+ * Attempts to write a single HTTP message to @sock using @encoding.
  *
  * Unless the caller calls soup_transfer_write_cancel(), either
  * @write_done_cb or @write_error_cb will eventually be called.
@@ -895,7 +763,7 @@ soup_transfer_write_simple (GIOChannel             *chan,
  * soup_transfer_write_cancel().
  **/
 SoupWriter *
-soup_transfer_write (GIOChannel             *chan,
+soup_transfer_write (SoupSocket             *sock,
 		     SoupTransferEncoding    encoding,
 		     SoupWriteGetHeaderFn    get_header_cb,
 		     SoupWriteGetChunkFn     get_chunk_cb,
@@ -905,7 +773,7 @@ soup_transfer_write (GIOChannel             *chan,
 {
 	SoupWriter *writer;
 
-	writer = create_writer (chan, 
+	writer = create_writer (sock,
 				encoding,
 				write_done_cb,
 				error_cb,
@@ -923,8 +791,12 @@ soup_transfer_write_pause (SoupWriter *w)
 	g_return_if_fail (w != NULL);
 
 	if (w->write_tag) {
-		g_source_remove (w->write_tag);
+		g_signal_handler_disconnect (w->sock, w->write_tag);
 		w->write_tag = 0;
+	}
+	if (w->idle_tag) {
+		g_source_remove (w->idle_tag);
+		w->idle_tag = 0;
 	}
 }
 
@@ -935,9 +807,9 @@ soup_transfer_write_unpause (SoupWriter *w)
 
 	if (!w->write_tag) {
 		w->write_tag =
-			g_io_add_watch (w->channel,
-					G_IO_OUT,
-					(GIOFunc) soup_transfer_write_cb,
-					w);
+			g_signal_connect (w->sock, "writable",
+					  G_CALLBACK (writer_write), w);
 	}
+	if (!w->idle_tag)
+		w->idle_tag = g_idle_add (idle_write, w);
 }

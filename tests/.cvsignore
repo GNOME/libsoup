@@ -2,7 +2,7 @@ Makefile
 Makefile.in
 auth-test
 get
+revserver
 simple-httpd
 simple-proxy
-timeserver
 uri-parsing

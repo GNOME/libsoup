@@ -41,7 +41,7 @@ void            soup_connection_start_ssl      (SoupConnection *conn);
 void            soup_connection_disconnect     (SoupConnection *conn);
 gboolean        soup_connection_is_connected   (SoupConnection *conn);
 
-GIOChannel     *soup_connection_get_iochannel  (SoupConnection *conn);
+SoupSocket     *soup_connection_get_socket     (SoupConnection *conn);
 
 void            soup_connection_set_in_use     (SoupConnection *conn, 
 						gboolean        in_use);

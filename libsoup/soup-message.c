@@ -144,16 +144,15 @@ soup_message_copy (SoupMessage *req)
 }
 
 static void 
-release_connection (const SoupDataBuffer *data,
-		    gpointer              user_data)
+release_connection (char     *body,
+		    guint     len,
+		    gpointer  user_data)
 {
 	SoupConnection *conn = user_data;
 
 	soup_connection_set_in_use (conn, FALSE);
 	g_object_unref (conn);
-
-	if (data->owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (data->body);
+	g_free (body);
 }
 
 static void 
@@ -553,14 +552,14 @@ requeue_read_error (gboolean body_started, gpointer user_data)
 }
 
 static void
-requeue_read_finished (const SoupDataBuffer *buf,
-		       gpointer        user_data)
+requeue_read_finished (char     *body,
+		       guint     len,
+		       gpointer  user_data)
 {
 	SoupMessage *msg = user_data;
 	SoupConnection *conn = msg->connection;
 
-	if (buf->owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (buf->body);
+	g_free (body);
 
 	if (soup_connection_is_connected (conn)) {
 		soup_connection_mark_old (conn);

@@ -298,7 +298,7 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 			g_string_append_c (str, '/');
 	}
 
-	if (uri->path)
+	if (uri->path && *uri->path)
 		append_uri_encoded (str, uri->path, "?");
 	else if (just_path)
 		g_string_append_c (str, '/');

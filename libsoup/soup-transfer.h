@@ -29,20 +29,23 @@ typedef enum {
 typedef struct _SoupReader SoupReader;
 typedef struct _SoupWriter SoupWriter;
 
-typedef void (*SoupReadHeadersDoneFn) (const GString        *headers,
+typedef void (*SoupReadHeadersDoneFn) (char                 *headers,
+				       guint                 header_len,
 				       SoupTransferEncoding *encoding,
-				       gint                 *content_len,
+				       int                  *content_len,
 				       gpointer              user_data);
 
-typedef void (*SoupReadChunkFn) (const SoupDataBuffer *data,
-				 gpointer              user_data);
+typedef void (*SoupReadChunkFn) (const char *chunk,
+				 guint       len,
+				 gpointer    user_data);
 
-typedef void (*SoupReadDoneFn) (const SoupDataBuffer *data,
-				gpointer              user_data);
+typedef void (*SoupReadDoneFn) (char     *body,
+				guint     len,
+				gpointer  user_data);
 
 typedef void (*SoupReadErrorFn) (gboolean headers_done, gpointer user_data);
 
-SoupReader *soup_transfer_read  (GIOChannel             *chan,
+SoupReader *soup_transfer_read  (SoupSocket             *sock,
 				 gboolean                overwrite_chunks,
 				 SoupReadHeadersDoneFn   headers_done_cb,
 				 SoupReadChunkFn         read_chunk_cb,
@@ -66,7 +69,7 @@ typedef void (*SoupWriteDoneFn) (gpointer user_data);
 
 typedef void (*SoupWriteErrorFn) (gboolean headers_done, gpointer user_data);
 
-SoupWriter *soup_transfer_write_simple (GIOChannel             *chan,
+SoupWriter *soup_transfer_write_simple (SoupSocket             *sock,
 					GString                *header,
 					const SoupDataBuffer   *src,
 					SoupWriteDoneFn         write_done_cb,
@@ -79,7 +82,7 @@ typedef void (*SoupWriteGetHeaderFn) (GString  **out_hdr,
 typedef SoupTransferDone (*SoupWriteGetChunkFn) (SoupDataBuffer *out_next,
 						 gpointer        user_data);
 
-SoupWriter *soup_transfer_write (GIOChannel             *chan,
+SoupWriter *soup_transfer_write (SoupSocket             *sock,
 				 SoupTransferEncoding    encoding,
 				 SoupWriteGetHeaderFn    get_header_cb,
 				 SoupWriteGetChunkFn     get_chunk_cb,

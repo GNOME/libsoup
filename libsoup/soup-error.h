@@ -37,13 +37,13 @@ typedef enum {
 	SOUP_ERROR_CANCELLED                = 1,
 	SOUP_ERROR_CANT_RESOLVE             = 2,
 	SOUP_ERROR_CANT_RESOLVE_PROXY       = 3,
-	SOUP_ERROR_CANT_CONNECT             = 2,
-	SOUP_ERROR_CANT_CONNECT_PROXY       = 3,
-	SOUP_ERROR_IO                       = 4,
-	SOUP_ERROR_MALFORMED                = 5,
-	SOUP_ERROR_CANT_AUTHENTICATE        = 6,
-	SOUP_ERROR_CANT_AUTHENTICATE_PROXY  = 7,
-	SOUP_ERROR_SSL_FAILED               = 8,
+	SOUP_ERROR_CANT_CONNECT             = 4,
+	SOUP_ERROR_CANT_CONNECT_PROXY       = 5,
+	SOUP_ERROR_IO                       = 6,
+	SOUP_ERROR_MALFORMED                = 7,
+	SOUP_ERROR_CANT_AUTHENTICATE        = 8,
+	SOUP_ERROR_CANT_AUTHENTICATE_PROXY  = 9,
+	SOUP_ERROR_SSL_FAILED               = 10,
 
 	/*
 	 * HTTP Response Codes

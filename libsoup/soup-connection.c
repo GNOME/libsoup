@@ -155,23 +155,17 @@ soup_connection_is_connected (SoupConnection *conn)
 }
 
 /**
- * soup_connection_get_iochannel:
+ * soup_connection_get_socket:
  * @conn: a #SoupConnection.
  *
- * Returns a #GIOChannel used for IO operations on the network
- * connection represented by @conn.
- *
- * Return value: a pointer to the #GIOChannel used for IO on @conn
+ * Return value: @conn's socket
  */
-GIOChannel *
-soup_connection_get_iochannel (SoupConnection *conn)
+SoupSocket *
+soup_connection_get_socket (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
-	if (!conn->priv->socket)
-		return NULL;
-
-	return soup_socket_get_iochannel (conn->priv->socket);
+	return conn->priv->socket;
 }
 
 
