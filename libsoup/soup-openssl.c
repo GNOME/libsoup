@@ -60,16 +60,13 @@ soup_openssl_read (GIOChannel   *channel,
 		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_READ)
 		  	return G_IO_STATUS_AGAIN;
 		switch (errno) {
-		case EINVAL:
-#if 0
-			return G_IO_ERROR_INVAL;
-#else
-			return G_IO_STATUS_ERROR;
-#endif
 		case EAGAIN:
 		case EINTR:
 			return G_IO_STATUS_AGAIN;
 		default:
+			g_set_error (err, G_IO_CHANNEL_ERROR,
+				     g_io_channel_error_from_errno (errno),
+				     g_strerror (errno));
 			return G_IO_STATUS_ERROR;
 		}
 	} else {
@@ -95,16 +92,13 @@ soup_openssl_write (GIOChannel   *channel,
 		if (SSL_get_error (chan->ssl, result) == SSL_ERROR_WANT_WRITE)
 			return G_IO_STATUS_AGAIN;
 		switch (errno) {
-		case EINVAL:
-#if 0
-			return G_IO_ERROR_INVAL;
-#else
-			return G_IO_STATUS_ERROR;
-#endif
 		case EAGAIN:
 		case EINTR:
 			return G_IO_STATUS_AGAIN;
 		default:
+			g_set_error (err, G_IO_CHANNEL_ERROR,
+				     g_io_channel_error_from_errno (errno),
+				     g_strerror (errno));
 			return G_IO_STATUS_ERROR;
 		}
 	} else {

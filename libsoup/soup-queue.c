@@ -58,7 +58,10 @@ static void
 soup_queue_error_cb (gboolean body_started, gpointer user_data)
 {
 	SoupMessage *req = user_data;
+	gboolean conn_is_new;
 
+	conn_is_new = soup_connection_is_new (req->connection);
+	soup_connection_set_used (req->connection);
 	soup_connection_set_keep_alive (req->connection, FALSE);
 
 	switch (req->status) {
@@ -90,7 +93,7 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 					req->priv->retries++;
 					soup_message_requeue (req);
 				}
-			} else if (soup_connection_is_new (req->connection)) {
+			} else if (conn_is_new) {
 				soup_message_set_error (
 					req,
 					SOUP_ERROR_CANT_CONNECT);
@@ -112,9 +115,6 @@ soup_queue_error_cb (gboolean body_started, gpointer user_data)
 		soup_message_issue_callback (req);
 		break;
 	}
-
-	if (req->connection)
-		soup_connection_set_used (req->connection);
 }
 
 static SoupTransferDone

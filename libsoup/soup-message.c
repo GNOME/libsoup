@@ -576,6 +576,11 @@ soup_message_requeue (SoupMessage *req)
 						  requeue_read_error,
 						  req);
 		req->priv->read_tag = 0;
+
+		if (req->priv->write_tag) {
+			soup_transfer_write_cancel (req->priv->write_tag);
+			req->priv->write_tag = 0;
+		}
 	} else
 		soup_queue_message (req, 
 				    req->priv->callback, 
