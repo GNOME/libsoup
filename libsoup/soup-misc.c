@@ -45,7 +45,9 @@ soup_set_proxy (SoupContext *context)
 		soup_context_unref (proxy_context);
 
 	proxy_context = context;
-	soup_context_ref (proxy_context);
+
+	if (proxy_context)
+		soup_context_ref (proxy_context);
 }
 
 /**

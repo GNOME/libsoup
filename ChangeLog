@@ -1,3 +1,8 @@
+2001-06-14  Joe Shaw  <joe@ximian.com>
+
+	* src/soup-core/soup-misc.c (soup_set_proxy): If we're passing in
+	NULL (to reset the proxy), don't try to soup_context_ref() it.
+
 2001-06-14  Alex Graveley  <alex@ximian.com>
 
 	* src/soup-core/soup-queue.c (soup_read_chunk): Don't start from
