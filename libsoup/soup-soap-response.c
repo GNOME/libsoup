@@ -12,7 +12,13 @@
 #define PARENT_TYPE G_TYPE_OBJECT
 
 struct _SoupSoapResponsePrivate {
+	/* the XML document */
 	xmlDocPtr xmldoc;
+	xmlNodePtr xml_root;
+	xmlNodePtr xml_body;
+	xmlNodePtr xml_method;
+	xmlNodePtr soap_fault;
+	GList *parameters;
 };
 
 static GObjectClass *parent_class = NULL;
@@ -26,6 +32,15 @@ finalize (GObject *object)
 	if (response->priv->xmldoc) {
 		xmlFreeDoc (response->priv->xmldoc);
 		response->priv->xmldoc = NULL;
+	}
+
+	response->priv->xml_root = NULL;
+	response->priv->xml_body = NULL;
+	response->priv->xml_method = NULL;
+
+	if (response->priv->parameters != NULL) {
+		g_list_free (response->priv->parameters);
+		response->priv->parameters = NULL;
 	}
 
 	g_free (response->priv);
@@ -97,6 +112,22 @@ soup_soap_response_new_from_string (const char *xmlstr)
 	return response;
 }
 
+static void
+parse_parameters (SoupSoapResponse *response, xmlNodePtr xml_method)
+{
+	xmlNodePtr tmp;
+
+	for (tmp = xml_method->xmlChildrenNode; tmp != NULL; tmp = tmp->next) {
+		if (!strcmp (tmp->name, "Fault")) {
+			response->priv->soap_fault = tmp;
+			continue;
+		} else {
+			/* regular parameters */
+			response->priv->parameters = g_list_append (response->priv->parameters, tmp);
+		}
+	}
+}
+
 /**
  * soup_soap_response_from_string:
  * @response: the %SoupSoapResponse object.
@@ -111,6 +142,7 @@ gboolean
 soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 {
 	xmlDocPtr old_doc = NULL;
+	xmlNodePtr xml_root, xml_body, xml_method;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), FALSE);
 	g_return_val_if_fail (xmlstr != NULL, FALSE);
@@ -126,7 +158,89 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 		return FALSE;
 	}
 
+	xml_root = xmlDocGetRootElement (response->priv->xmldoc);
+	if (!xml_root) {
+		xmlFreeDoc (response->priv->xmldoc);
+		response->priv->xmldoc = old_doc;
+		return FALSE;
+	}
+
+	if (strcmp (xml_root->name, "Envelope") != 0) {
+		xmlFreeDoc (response->priv->xmldoc);
+		response->priv->xmldoc = old_doc;
+		return FALSE;
+	}
+
+	if (xml_root->xmlChildrenNode != NULL) {
+		xml_body = xml_root->xmlChildrenNode;
+		if (strcmp (xml_body->name, "Body") != 0) {
+			xmlFreeDoc (response->priv->xmldoc);
+			response->priv->xmldoc = old_doc;
+			return FALSE;
+		}
+
+		xml_method = xml_body->xmlChildrenNode;
+
+		/* read all parameters */
+		if (xml_method)
+			parse_parameters (response, xml_method);
+	}
+
 	xmlFreeDoc (old_doc);
 
+	response->priv->xml_root = xml_root;
+	response->priv->xml_body = xml_body;
+	response->priv->xml_method = xml_method;
+
 	return TRUE;
+}
+
+/**
+ * soup_soap_response_get_method_name:
+ * @response: the %SoupSoapResponse object.
+ *
+ * Gets the method name from the SOAP response.
+ *
+ * Return value: the method name.
+ */
+const char *
+soup_soap_response_get_method_name (SoupSoapResponse *response)
+{
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	g_return_val_if_fail (response->priv->xml_method != NULL, NULL);
+
+	return (const char *) response->priv->xml_method->name;
+}
+
+/**
+ * soup_soap_response_set_method_name:
+ * @response: the %SoupSoapResponse object.
+ * @method_name: the method name to set.
+ *
+ * Sets the method name on the given %SoupSoapResponse.
+ */
+void
+soup_soap_response_set_method_name (SoupSoapResponse *response, const char *method_name)
+{
+	g_return_if_fail (SOUP_IS_SOAP_RESPONSE (response));
+	g_return_if_fail (response->priv->xml_method != NULL);
+	g_return_if_fail (method_name != NULL);
+
+	xmlNodeSetNode (response->priv->xml_method, method_name);
+}
+
+/**
+ * soup_soap_response_get_parameters:
+ * @response: the %SoupSoapResponse object.
+ *
+ * Returns the list of parameters received in the SOAP response.
+ *
+ * Return value: the list of parameters, represented in xmlNodePtr's.
+ */
+const GList *
+soup_soap_response_get_parameters (SoupSoapResponse *response)
+{
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+
+	return (const GList *) response->priv->parameters;
 }

@@ -1,3 +1,11 @@
+2003-11-25  Rodrigo Moya <rodrigo@ximian.com>
+
+	* libsoup/soup-soap-response.[ch] (soup_soap_response_get_method_name,
+	soup_soap_response_set_method_name, soup_soap_message_get_parameters):
+	new functions.
+	(finalize): NULL out new private fields.
+	(soup_soap_response_from_string): added validation code.
+
 2003-11-23  Rodrigo Moya <rodrigo@ximian.com>
 
 	* libsoup/soup-soap-response.[ch]: new class for managing SOAP

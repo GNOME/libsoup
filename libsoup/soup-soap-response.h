@@ -36,6 +36,12 @@ SoupSoapResponse *soup_soap_response_new_from_string (const char *xmlstr);
 gboolean          soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr);
 char             *soup_soap_response_to_string (SoupSoapResponse *response);
 
+const char       *soup_soap_response_get_method_name (SoupSoapResponse *response);
+void              soup_soap_response_set_method_name (SoupSoapResponse *response,
+						      const char *method_name);
+
+const GList      *soup_soap_response_get_parameters (SoupSoapResponse *response);
+
 G_END_DECLS
 
 #endif
