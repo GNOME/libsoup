@@ -673,7 +673,8 @@ static AuthScheme known_auth_schemes [] = {
 };
 
 SoupAuth *
-soup_auth_new_from_header_list (const GSList  *vals)
+soup_auth_new_from_header_list (const SoupUri *uri,
+				const GSList  *vals)
 {
 	gchar *header = NULL;
 	AuthScheme *scheme = NULL, *iter;
@@ -682,9 +683,17 @@ soup_auth_new_from_header_list (const GSList  *vals)
 	g_return_val_if_fail (vals != NULL, NULL);
 
 	while (vals) {
-		for (iter = known_auth_schemes; iter->scheme; iter++) {
-			gchar *tryheader = vals->data;
+		gchar *tryheader = vals->data;
 
+		for (iter = known_auth_schemes; iter->scheme; iter++) {
+			if (uri->authmech &&
+			    !g_strncasecmp (uri->authmech,
+					    iter->scheme,
+					    strlen (iter->scheme))) {
+				header = tryheader;
+				scheme = iter;
+				goto found;
+			}
 			if (!g_strncasecmp (tryheader, 
 					    iter->scheme, 
 					    strlen (iter->scheme))) {
@@ -703,6 +712,7 @@ soup_auth_new_from_header_list (const GSList  *vals)
 
 	if (!scheme) return NULL;
 
+ found:
 	auth = scheme->ctor ();
 	if (!auth) return NULL;
 

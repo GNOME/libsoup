@@ -780,7 +780,7 @@ authorize_handler (SoupMessage *msg, gboolean proxy)
 					             "WWW-Authenticate");
 	if (!vals) goto THROW_CANT_AUTHENTICATE;
 
-        auth = soup_auth_new_from_header_list (vals);
+        auth = soup_auth_new_from_header_list (uri, vals);
 	if (!auth) {
 		soup_message_set_error_full (
 			msg, 
