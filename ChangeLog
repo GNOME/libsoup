@@ -1,5 +1,10 @@
 2001-12-05  Alex Graveley  <alex@ximian.com>
 
+	* src/libsoup/soup-server.c (soup_server_run): Allow recursive
+	calls and/or blocking on a running async server.
+
+2001-12-05  Alex Graveley  <alex@ximian.com>
+
 	* src/libsoup/soup-fault.c: Formatting nitpicks.
 
 	* src/libsoup/soup-server.c (free_handler): Call unregister handler.

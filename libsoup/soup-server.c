@@ -1028,9 +1028,10 @@ soup_server_run (SoupServer *server)
 {
 	g_return_if_fail (server != NULL);
 
-	server->loop = g_main_new (TRUE);
-
-	soup_server_run_async (server);
+	if (!server->loop) {
+		server->loop = g_main_new (TRUE);
+		soup_server_run_async (server);
+	}
 
 	if (server->loop)
 		g_main_run (server->loop);
