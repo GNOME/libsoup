@@ -36,6 +36,8 @@ soup_server_register (const gchar          *methodname,
 	hand->methodname = g_strdup (methodname);
 	hand->cb = cb;
 	hand->user_data = user_data;
+
+	server_handlers = g_slist_prepend (server_handlers, hand);
 }
 
 static void
@@ -189,7 +191,7 @@ soup_server_error_cb (GIOChannel   *iochannel,
 	return FALSE;
 }
 
-void  
+void
 soup_server_main (void)
 {
 	GIOChannel *chan = g_io_channel_unix_new (STDIN_FILENO);

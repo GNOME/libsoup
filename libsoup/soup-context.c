@@ -407,10 +407,10 @@ soup_connection_get_iochannel (SoupConnection *conn)
 	if (!conn->channel) {
 		conn->channel = gnet_tcp_socket_get_iochannel (conn->socket);
 
+		soup_connection_setup_socket (conn->channel);
+
 		if (conn->context->protocol == SOUP_PROTOCOL_SHTTP)
 			conn->channel = soup_ssl_get_iochannel (conn->channel);
-
-		soup_connection_setup_socket (conn->channel);
 	} else
 		g_io_channel_ref (conn->channel);
 

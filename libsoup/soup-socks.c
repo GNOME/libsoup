@@ -18,7 +18,7 @@
 
 struct _GInetAddr {
 	gchar* name;
-	struct sockaddr sa;
+	struct sockaddr_in sa;
 	guint ref_count;
 };
 

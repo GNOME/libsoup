@@ -27,8 +27,17 @@ void  soup_server_unregister_by_cb   (SoupServerCallbackFn  cb);
 
 void  soup_server_unregister_by_data (gpointer              user_data);
 
+/* CGI Server methods */
+
 void  soup_server_main               (void);
 
 void  soup_server_main_quit          (void);
+
+
+/* Apache module initializtion */
+
+typedef void (*SoupServerInit) (void);
+
+/* Implement soup_server_init() in your library. */
 
 #endif /* SOUP_SERVER_H */

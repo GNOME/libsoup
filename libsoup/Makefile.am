@@ -5,6 +5,7 @@
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"SOUP\" 	\
 	-DSYSCONFDIR=\"$(sysconfdir)\" 	\
+	-DBINDIR=\"$(bindir)\"		\
 	@SOUP_DEBUG_FLAGS@
 
 soupincludedir = $(includedir)/soup
@@ -19,10 +20,6 @@ libsoup_la_SOURCES =		\
 	soup-headers.c		\
 	soup-message.c		\
 	soup-misc.c     	\
-	soup-nss.h		\
-	soup-nss.c		\
-	soup-openssl.h		\
-	soup-openssl.c		\
 	soup-private.h     	\
 	soup-queue.c		\
 	soup-serializer.c	\
@@ -42,6 +39,15 @@ soupinclude_HEADERS =		\
 	soup-serializer.h	\
 	soup-server.h		\
 	soup-uri.h
+
+bin_PROGRAMS = soup-ssl-proxy
+
+soup_ssl_proxy_SOURCES =	\
+	soup-nss.h		\
+	soup-nss.c		\
+	soup-openssl.h		\
+	soup-openssl.c		\
+	soup-ssl-proxy.c
 
 EXTRA_DIST = 
 

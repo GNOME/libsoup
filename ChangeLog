@@ -1,3 +1,38 @@
+2001-02-28  Alex Graveley  <alex@ximian.com>
+
+	* src/soup-core/soup-ssl.c (soup_ssl_idle_waitpid): glib idle
+	callback which calls waitpid (nonblockingously) on all the
+	soup-ssl-proxy children to make sure their resources are freed.
+	(soup_ssl_get_iochannel): execute soup-ssl-proxy, setting up STDIN
+	and STDOUT to point to the fd we will return a GIOChannel for,
+	also passing the security policy and the destination socket fd
+	number in the environments SECURITY_POLICY and SOCKFD,
+	respectively.
+
+	* src/soup-core/soup-ssl-proxy.c: Created. This is a small SSL
+	proxy executable, licensed GPL, which allows us to use OpenSSL and
+	NSS without requiring applications which link with libsoup to have
+	to comply with the licenses of those SSL libraries.
+
+	* src/soup-core/soup-server.c (soup_server_register): add handler
+	to list.
+
+	* src/soup-core/soup-queue.c (soup_queue_write_async): ignore
+	SIGPIPE and handle errno.
+
+	* src/soup-core/soup-misc.c (soup_set_security_policy): move from
+	soup-ssl.c.
+	(soup_get_security_policy): add.
+
+	* src/soup-core/soup-context.c (soup_connection_get_iochannel):
+	setup TCP socket before getting an SSL wrapper channel.
+
+	* src/soup-core/Makefile.am (INCLUDES): add -DBINDIR
+	(libsoup_la_SOURCES): remove ssl backends
+	(soup_ssl_proxy_SOURCES): create soup-ssl-proxy
+
+	* src/soup-core/.cvsignore: add soup-ssl-proxy
+
 2001-02-28  Dick Porter  <dick@ximian.com>
 
 	* src/soup-wsdl/wsdl-trace.[ch]: New file of better debugging routines.

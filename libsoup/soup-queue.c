@@ -13,6 +13,8 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <errno.h>
 
 #include "soup-queue.h"
 #include "soup-context.h"
@@ -233,6 +235,52 @@ soup_queue_read_async (GIOChannel* iochannel,
 	return TRUE;
 }
 
+static gboolean 
+soup_queue_error_async (GIOChannel* iochannel, 
+			GIOCondition condition, 
+			SoupMessage *req)
+{
+	gboolean conn_closed = soup_connection_is_keep_alive (req->priv->conn);
+
+	soup_connection_set_keep_alive (req->priv->conn, FALSE);
+
+	switch (req->status) {
+	case SOUP_STATUS_IDLE:
+	case SOUP_STATUS_QUEUED:
+	case SOUP_STATUS_FINISHED:
+		break;
+	case SOUP_STATUS_CONNECTING:
+		soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
+		break;
+	case SOUP_STATUS_SENDING_REQUEST:
+		if (req->priv->req_header && 
+		    req->priv->req_header->len >= req->priv->write_len) {
+			g_warning ("Requeueing request which failed in "
+				   "the sending headers phase");
+			soup_queue_message (req, 
+					    req->priv->callback, 
+					    req->priv->user_data);
+			break;
+		}
+
+		soup_message_issue_callback (req, SOUP_ERROR_IO);
+		break;
+	case SOUP_STATUS_READING_RESPONSE:
+		if (req->priv->header_len && !conn_closed) {
+			soup_finish_read (req);
+			break;
+		}
+
+		soup_message_issue_callback (req, SOUP_ERROR_IO);
+		break;
+	default:
+		soup_message_issue_callback (req, SOUP_ERROR_IO);
+		break;
+	}
+
+	return FALSE;
+}
+
 static void
 soup_encode_http_auth (SoupUri *uri, GString *header, gboolean proxy_auth)
 {
@@ -389,6 +437,7 @@ soup_queue_write_async (GIOChannel* iochannel,
 	GIOError error;
 	gchar *write_buf;
 	guint  write_len;
+	void *pipe_handler;
 
 	if (!req->priv->req_header)
 		req->priv->req_header = soup_get_request_header (req);
@@ -396,7 +445,10 @@ soup_queue_write_async (GIOChannel* iochannel,
 	head_len = req->priv->req_header->len;
 	body_len = req->request.length;
 	total_len = head_len + body_len;
-	total_written = req->priv->write_len;	
+	total_written = req->priv->write_len;
+
+	pipe_handler = signal (SIGPIPE, SIG_IGN);
+	errno = 0;
 
  WRITE_SOME_MORE:
 	if (total_written < head_len) {
@@ -415,12 +467,14 @@ soup_queue_write_async (GIOChannel* iochannel,
 				    write_len, 
 				    &bytes_written);
 
-	if (error == G_IO_ERROR_AGAIN)
+	if (error == G_IO_ERROR_AGAIN) {
+		signal (SIGPIPE, pipe_handler);
 		return TRUE;
-	
-	if (error != G_IO_ERROR_NONE) {
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		return FALSE;
+	}
+
+	if (errno != 0 || error != G_IO_ERROR_NONE) {
+		soup_queue_error_async (iochannel, G_IO_HUP, req);
+		goto DONE_WRITING;
 	}
 
 	total_written = (req->priv->write_len += bytes_written);
@@ -432,56 +486,13 @@ soup_queue_write_async (GIOChannel* iochannel,
 					G_IO_IN, 
 					(GIOFunc) soup_queue_read_async, 
 					req);
-		return FALSE;
+		goto DONE_WRITING;
 	}
 
 	goto WRITE_SOME_MORE;
-}
 
-
-static gboolean 
-soup_queue_error_async (GIOChannel* iochannel, 
-			GIOCondition condition, 
-			SoupMessage *req)
-{
-	gboolean conn_closed = soup_connection_is_keep_alive (req->priv->conn);
-
-	soup_connection_set_keep_alive (req->priv->conn, FALSE);
-
-	switch (req->status) {
-	case SOUP_STATUS_IDLE:
-	case SOUP_STATUS_QUEUED:
-	case SOUP_STATUS_FINISHED:
-		break;
-	case SOUP_STATUS_CONNECTING:
-		soup_message_issue_callback (req, SOUP_ERROR_CANT_CONNECT);
-		break;
-	case SOUP_STATUS_SENDING_REQUEST:
-		if (req->priv->req_header && 
-		    req->priv->req_header->len >= req->priv->write_len) {
-			g_warning ("Requeueing request which failed in "
-				   "the sending headers phase");
-			soup_queue_message (req, 
-					    req->priv->callback, 
-					    req->priv->user_data);
-			break;
-		}
-
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
-	case SOUP_STATUS_READING_RESPONSE:
-		if (req->priv->header_len && !conn_closed) {
-			soup_finish_read (req);
-			break;
-		}
-
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
-	default:
-		soup_message_issue_callback (req, SOUP_ERROR_IO);
-		break;
-	}
-
+ DONE_WRITING:
+	signal (SIGPIPE, pipe_handler);
 	return FALSE;
 }
 

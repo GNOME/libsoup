@@ -24,6 +24,8 @@ static guint max_connections = 0;
 
 static SoupContext *proxy_context = NULL;
 
+static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
+
 void         
 soup_set_proxy (SoupContext *context)
 {
@@ -50,6 +52,18 @@ guint
 soup_get_connection_limit (void)
 {
 	return max_connections;
+}
+
+void 
+soup_set_security_policy (SoupSecurityPolicy policy)
+{
+	ssl_security_level = policy;
+}
+
+SoupSecurityPolicy 
+soup_get_security_policy (void)
+{
+	return ssl_security_level;
 }
 
 
@@ -325,7 +339,7 @@ soup_load_config (gchar *config_file)
 	}
 
 	/* Load system global config */
-	soup_load_config_internal (SYSCONFDIR G_DIR_SEPARATOR_S "/souprc",
+	soup_load_config_internal (SYSCONFDIR G_DIR_SEPARATOR_S "souprc",
 				   TRUE);
 
 	/* Load requested file or user local config */

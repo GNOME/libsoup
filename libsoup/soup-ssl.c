@@ -9,84 +9,91 @@
  */
 
 #include <config.h>
-#include <gmodule.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/socket.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include "soup-ssl.h"
+#include "soup-misc.h"
 
-#ifdef HAVE_SECURITY_SSL_H
-#include "soup-nss.h"
-#endif
-
-#ifdef HAVE_OPENSSL_SSL_H
-#include "soup-openssl.h"
-#endif
-
-static gint ssl_library = 0; /* -1 = fail,
-				 0 = first time, 
-				 1 = nss, 
-				 2 = openssl */
-static SoupSecurityPolicy ssl_security_level = SOUP_SECURITY_DOMESTIC;
-
-void 
-soup_set_security_policy (SoupSecurityPolicy policy)
+static gboolean 
+soup_ssl_idle_waitpid (gpointer ppid)
 {
-	ssl_security_level = policy;
+	int pid = waitpid (GPOINTER_TO_INT (ppid), NULL, WNOHANG);
 
-	switch (ssl_library) {
-	case -1:
-	case 0:
-		break;
-#ifdef HAVE_SECURITY_SSL_H
-	case 1:
-		soup_nss_set_security_policy (policy);
-		break;
-#endif
-#ifdef HAVE_OPENSSL_SSL_H
-	case 2:
-		soup_openssl_set_security_policy (policy);
-		break;
-#endif
-	}
-}
-
-static void 
-soup_ssl_init (void)
-{
-	ssl_library = -1;
-
-	if (!g_module_supported ()) return;
-
-#ifdef HAVE_SECURITY_SSL_H
-	if (ssl_library == -1) ssl_library = soup_nss_init () ? 1 : -1;
-#endif
-
-#ifdef HAVE_OPENSSL_SSL_H
-	if (ssl_library == -1) ssl_library = soup_openssl_init () ? 2 : -1;
-#endif
-
-	if (ssl_library == -1) return;
-
-	soup_set_security_policy (ssl_security_level);
+	if (pid == 0) return TRUE;
+	return FALSE;
 }
 
 GIOChannel *
 soup_ssl_get_iochannel (GIOChannel *sock)
 {
-	switch (ssl_library) {
+	GIOChannel *new_chan;
+	int sock_fd;
+	int pid;
+	int pair[2], flags;
+
+	g_return_val_if_fail (sock != NULL, NULL);
+
+	g_io_channel_ref (sock);
+
+	if (!(sock_fd = g_io_channel_unix_get_fd (sock))) goto ERROR_ARGS;
+	flags = fcntl(sock_fd, F_GETFD, 0);
+	fcntl (sock_fd, F_SETFD, flags & ~FD_CLOEXEC);
+	
+	if (socketpair (PF_UNIX, SOCK_STREAM, 0, pair) != 0) goto ERROR_ARGS;
+
+	fflush (stdin);
+	fflush (stdout);
+
+	pid = fork ();
+
+	switch (pid) {
 	case -1:
-		g_warning ("SSL Not Supported.");
-		return NULL;
+		goto ERROR;
 	case 0:
-	default:
-		soup_ssl_init ();
-		return soup_ssl_get_iochannel (sock);
-#ifdef HAVE_SECURITY_SSL_H
-	case 1:
-		return soup_nss_get_iochannel (sock);
-#endif
-#ifdef HAVE_OPENSSL_SSL_H
-	case 2:
-		return soup_openssl_get_iochannel (sock);
-#endif
+		close (pair [1]);
+
+		dup2 (pair [0], STDIN_FILENO);
+		dup2 (pair [0], STDOUT_FILENO);
+
+		close (pair [0]);
+
+		putenv (g_strdup_printf ("SOCKFD=%d", sock_fd));
+		putenv (g_strdup_printf ("SECURITY_POLICY=%d", 
+					 soup_get_security_policy ()));
+
+		execl (BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy", 
+		       BINDIR G_DIR_SEPARATOR_S "soup-ssl-proxy", 
+		       NULL);
+
+		execl ("soup-ssl-proxy", "soup-ssl-proxy", NULL);
+
+		g_error ("Error executing SSL Proxy\n");
 	}
+
+	close (pair [0]);
+
+	g_idle_add (soup_ssl_idle_waitpid, GINT_TO_POINTER (pid));
+
+	flags = fcntl(pair [1], F_GETFL, 0);
+	fcntl (pair [1], F_SETFL, flags & O_NONBLOCK);
+
+	new_chan = g_io_channel_unix_new (pair [1]);
+	
+	/* FIXME: Why is this needed?? */
+	g_io_channel_ref (new_chan);
+	return new_chan;
+
+ ERROR:
+	close (pair [0]);
+	close (pair [1]);
+ ERROR_ARGS:
+	g_io_channel_unref (sock);
+	return NULL;
 }

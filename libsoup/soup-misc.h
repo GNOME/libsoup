@@ -17,15 +17,15 @@
 #include "soup-message.h"
 #include "soup-uri.h"
 
-void         soup_set_proxy            (SoupContext *ctx);
+void               soup_load_config          (gchar       *config_file);
 
-SoupContext *soup_get_proxy            (void);
+void               soup_set_proxy            (SoupContext *ctx);
 
-void         soup_set_connection_limit (guint        max_conn);
+SoupContext       *soup_get_proxy            (void);
 
-guint        soup_get_connection_limit (void);
+void               soup_set_connection_limit (guint        max_conn);
 
-void         soup_load_config          (gchar       *config_file);
+guint              soup_get_connection_limit (void);
 
 typedef enum {
 	SOUP_SECURITY_DOMESTIC = 1,
@@ -33,12 +33,14 @@ typedef enum {
 	SOUP_SECURITY_FRANCE   = 3
 } SoupSecurityPolicy;
 
-void         soup_set_security_policy  (SoupSecurityPolicy policy);
+void               soup_set_security_policy  (SoupSecurityPolicy policy);
+
+SoupSecurityPolicy soup_get_security_policy  (void);
 
 /* Useful debugging routines */
 
-void         soup_debug_print_headers  (SoupMessage *req);
+void               soup_debug_print_headers  (SoupMessage *req);
 
-void         soup_debug_print_uri      (SoupUri     *uri);
+void               soup_debug_print_uri      (SoupUri     *uri);
 
 #endif /* SOUP_MISC_H */
