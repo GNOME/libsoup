@@ -600,14 +600,29 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 gboolean
 soup_socket_start_ssl (SoupSocket *sock)
 {
+	return soup_socket_start_proxy_ssl (sock, soup_address_get_name (sock->priv->remote_addr));
+}
+	
+/**
+ * soup_socket_start_proxy_ssl:
+ * @sock: the socket
+ * @ssl_host: hostname of the SSL server
+ *
+ * Starts using SSL on @socket, expecting to find a host named
+ * @ssl_host.
+ *
+ * Return value: success or failure
+ **/
+gboolean
+soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
+{
 	GIOChannel *ssl_chan;
 
 	get_iochannel (sock);
 	ssl_chan = soup_ssl_wrap_iochannel (
 		sock->priv->iochannel, sock->priv->is_server ?
 		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
-		soup_address_get_name (sock->priv->remote_addr),
-		sock->priv->ssl_creds);
+		ssl_host, sock->priv->ssl_creds);
 
 	if (!ssl_chan)
 		return FALSE;

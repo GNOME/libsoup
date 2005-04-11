@@ -1,9 +1,40 @@
+2005-03-09  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-gnutls.c (soup_gnutls_read): return G_IO_STATUS_EOF
+	if gnutls returns 0. [#73352]
+	(verify_certificate): put an #ifdef around
+	GNUTLS_CERT_NOT_TRUSTED so it works with gnutls 1.2.x. [#57811]
+
 2005-01-08  Not Zed  <NotZed@Ximian.com>
 
 	** See ximian bug #70323.
 
 	* libsoup/soup-connection-ntlm.c: replace all unsigned long/long
 	types with guint32, as the code needs 32 bit longs.
+
+2004-10-20  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-gnutls.c: Commit the alleged changes from the 10-06
+	commit, which somehow did not actually get committed then.
+
+	* libsoup/soup-connection.c (SoupConnectionPrivate): add a flag
+	indicating whether or not the connection is connected.
+	(tunnel_connect_finished): If successful, set connected. If the
+	server returns a 3xx response, translate it to 407 (under the
+	assumption that it's trying to redirect us to an HTML login page,
+	as in bug 68531). Use soup_socket_start_proxy_ssl() rather than
+	soup_socket_start_ssl().
+	(socket_connect_result, soup_connection_connect_sync): If
+	successful, set connected
+	(soup_connection_disconnect): Don't emit "disconnected" if we
+	aren't yet connected, or the message that was waiting for this
+	connection may get stranded in the queue. (also part of 68531)
+
+	* libsoup/soup-socket.c (soup_socket_start_proxy_ssl): New, starts
+	SSL and lets the caller pass the expected hostname. Fixes a
+	problem where SSL certification validation would always fail if
+	you used a proxy, because it was comparing the cert against the
+	proxy's hostname. (68583)
 
 2004-10-06  Dan Winship  <danw@novell.com>
 
