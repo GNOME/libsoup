@@ -31,7 +31,7 @@
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
-struct SoupConnectionPrivate {
+typedef struct {
 	SoupSocket  *socket;
 
 	/* proxy_uri is the URI of the proxy server we are connected
@@ -48,10 +48,10 @@ struct SoupConnectionPrivate {
 	SoupMessage *cur_req;
 	time_t       last_used;
 	gboolean     connected, in_use;
-};
+} SoupConnectionPrivate;
+#define SOUP_CONNECTION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION, SoupConnectionPrivate))
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+G_DEFINE_TYPE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
 	CONNECT_RESULT,
@@ -64,14 +64,14 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 enum {
-  PROP_0,
+	PROP_0,
 
-  PROP_ORIGIN_URI,
-  PROP_PROXY_URI,
-  PROP_SSL_CREDS,
-  PROP_MESSAGE_FILTER,
+	PROP_ORIGIN_URI,
+	PROP_PROXY_URI,
+	PROP_SSL_CREDS,
+	PROP_MESSAGE_FILTER,
 
-  LAST_PROP
+	LAST_PROP
 };
 
 static void set_property (GObject *object, guint prop_id,
@@ -83,50 +83,45 @@ static void request_done (SoupMessage *req, gpointer user_data);
 static void send_request (SoupConnection *conn, SoupMessage *req);
 
 static void
-init (GObject *object)
+soup_connection_init (SoupConnection *conn)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
-
-	conn->priv = g_new0 (SoupConnectionPrivate, 1);
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
-	if (conn->priv->proxy_uri)
-		soup_uri_free (conn->priv->proxy_uri);
-	if (conn->priv->origin_uri)
-		soup_uri_free (conn->priv->origin_uri);
+	if (priv->proxy_uri)
+		soup_uri_free (priv->proxy_uri);
+	if (priv->origin_uri)
+		soup_uri_free (priv->origin_uri);
 
-	if (conn->priv->filter)
-		g_object_unref (conn->priv->filter);
+	if (priv->filter)
+		g_object_unref (priv->filter);
 
-	g_free (conn->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }
 
 static void
 dispose (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
-	if (conn->priv->cur_req)
-		request_done (conn->priv->cur_req, conn);
+	if (priv->cur_req)
+		request_done (priv->cur_req, conn);
 	soup_connection_disconnect (conn);
 
-	G_OBJECT_CLASS (parent_class)->dispose (object);
+	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_connection_class_init (SoupConnectionClass *connection_class)
 {
-	SoupConnectionClass *connection_class =
-		SOUP_CONNECTION_CLASS (object_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (connection_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (connection_class, sizeof (SoupConnectionPrivate));
 
 	/* virtual method definition */
 	connection_class->send_request = send_request;
@@ -209,8 +204,6 @@ class_init (GObjectClass *object_class)
 				      G_PARAM_READWRITE));
 }
 
-SOUP_MAKE_TYPE (soup_connection, SoupConnection, class_init, init, PARENT_TYPE)
-
 
 /**
  * soup_connection_new:
@@ -247,29 +240,29 @@ static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 	gpointer pval;
 
 	switch (prop_id) {
 	case PROP_ORIGIN_URI:
 		pval = g_value_get_pointer (value);
-		conn->priv->origin_uri = pval ? soup_uri_copy (pval) : NULL;
-		if (!conn->priv->proxy_uri)
-			conn->priv->conn_uri = conn->priv->origin_uri;
+		priv->origin_uri = pval ? soup_uri_copy (pval) : NULL;
+		if (!priv->proxy_uri)
+			priv->conn_uri = priv->origin_uri;
 		break;
 	case PROP_PROXY_URI:
 		pval = g_value_get_pointer (value);
-		conn->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
-		if (conn->priv->proxy_uri)
-			conn->priv->conn_uri = conn->priv->proxy_uri;
+		priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+		if (priv->proxy_uri)
+			priv->conn_uri = priv->proxy_uri;
 		else
-			conn->priv->conn_uri = conn->priv->origin_uri;
+			priv->conn_uri = priv->origin_uri;
 		break;
 	case PROP_SSL_CREDS:
-		conn->priv->ssl_creds = g_value_get_pointer (value);
+		priv->ssl_creds = g_value_get_pointer (value);
 		break;
 	case PROP_MESSAGE_FILTER:
-		conn->priv->filter = g_object_ref (g_value_get_pointer (value));
+		priv->filter = g_object_ref (g_value_get_pointer (value));
 		break;
 	default:
 		break;
@@ -280,23 +273,23 @@ static void
 get_property (GObject *object, guint prop_id,
 	      GValue *value, GParamSpec *pspec)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
 	switch (prop_id) {
 	case PROP_ORIGIN_URI:
-		g_value_set_pointer (value, conn->priv->origin_uri ?
-				     soup_uri_copy (conn->priv->origin_uri) :
+		g_value_set_pointer (value, priv->origin_uri ?
+				     soup_uri_copy (priv->origin_uri) :
 				     NULL);
 		break;
 	case PROP_PROXY_URI:
-		g_value_set_pointer (value, conn->priv->proxy_uri ?
-				     soup_uri_copy (conn->priv->proxy_uri) :
+		g_value_set_pointer (value, priv->proxy_uri ?
+				     soup_uri_copy (priv->proxy_uri) :
 				     NULL);
 	case PROP_SSL_CREDS:
-		g_value_set_pointer (value, conn->priv->ssl_creds);
+		g_value_set_pointer (value, priv->ssl_creds);
 		break;
 	case PROP_MESSAGE_FILTER:
-		g_value_set_pointer (value, g_object_ref (conn->priv->filter));
+		g_value_set_pointer (value, g_object_ref (priv->filter));
 		break;
 	default:
 		break;
@@ -304,26 +297,25 @@ get_property (GObject *object, guint prop_id,
 }
 
 static void
-set_current_request (SoupConnection *conn, SoupMessage *req)
+set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 {
-	g_return_if_fail (conn->priv->cur_req == NULL);
+	g_return_if_fail (priv->cur_req == NULL);
 
 	req->status = SOUP_MESSAGE_STATUS_RUNNING;
-	conn->priv->cur_req = req;
-	conn->priv->in_use = TRUE;
-	g_object_add_weak_pointer (G_OBJECT (req),
-				   (gpointer *)conn->priv->cur_req);
+	priv->cur_req = req;
+	priv->in_use = TRUE;
+	g_object_add_weak_pointer (G_OBJECT (req), (gpointer *)priv->cur_req);
 }
 
 static void
-clear_current_request (SoupConnection *conn)
+clear_current_request (SoupConnectionPrivate *priv)
 {
-	if (conn->priv->cur_req) {
-		g_object_remove_weak_pointer (G_OBJECT (conn->priv->cur_req),
-					      (gpointer *)conn->priv->cur_req);
-		conn->priv->cur_req = NULL;
+	if (priv->cur_req) {
+		g_object_remove_weak_pointer (G_OBJECT (priv->cur_req),
+					      (gpointer *)priv->cur_req);
+		priv->cur_req = NULL;
 	}
-	conn->priv->in_use = FALSE;
+	priv->in_use = FALSE;
 }
 
 static void
@@ -333,9 +325,9 @@ socket_disconnected (SoupSocket *sock, gpointer conn)
 }
 
 static inline guint
-proxified_status (SoupConnection *conn, guint status)
+proxified_status (SoupConnectionPrivate *priv, guint status)
 {
-	if (!conn->priv->proxy_uri)
+	if (!priv->proxy_uri)
 		return status;
 
 	if (status == SOUP_STATUS_CANT_RESOLVE)
@@ -350,14 +342,15 @@ static void
 tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	guint status = msg->status_code;
 
-	clear_current_request (conn);
+	clear_current_request (priv);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (soup_socket_start_proxy_ssl (conn->priv->socket,
-						 conn->priv->origin_uri->host))
-			conn->priv->connected = TRUE;
+		if (soup_socket_start_proxy_ssl (priv->socket,
+						 priv->origin_uri->host))
+			priv->connected = TRUE;
 		else
 			status = SOUP_STATUS_SSL_FAILED;
 	} else if (SOUP_STATUS_IS_REDIRECTION (status)) {
@@ -366,7 +359,7 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 	}
 
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (conn, status));
+		       proxified_status (priv, status));
 	g_object_unref (msg);
 }
 
@@ -405,11 +398,12 @@ static void
 socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
 
-	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		if (!soup_socket_start_ssl (sock)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
@@ -417,13 +411,13 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	}
 
 	/* See if we need to tunnel */
-	if (conn->priv->proxy_uri &&
-	    conn->priv->origin_uri &&
-	    conn->priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (priv->proxy_uri &&
+	    priv->origin_uri &&
+	    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
-							 conn->priv->origin_uri);
+							 priv->origin_uri);
 
 		g_signal_connect (connect_msg, "restarted",
 				  G_CALLBACK (tunnel_connect_restarted), conn);
@@ -434,11 +428,11 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		return;
 	}
 
-	conn->priv->connected = TRUE;
+	priv->connected = TRUE;
 
  done:
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (conn, status));
+		       proxified_status (priv, status));
 }
 
 /**
@@ -454,20 +448,23 @@ soup_connection_connect_async (SoupConnection *conn,
 			       SoupConnectionCallback callback,
 			       gpointer user_data)
 {
+	SoupConnectionPrivate *priv;
+
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
-	g_return_if_fail (conn->priv->socket == NULL);
+	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	g_return_if_fail (priv->socket == NULL);
 
 	if (callback) {
 		soup_signal_connect_once (conn, "connect_result",
 					  G_CALLBACK (callback), user_data);
 	}
 
-	conn->priv->socket =
-		soup_socket_client_new_async (conn->priv->conn_uri->host,
-					      conn->priv->conn_uri->port,
-					      conn->priv->ssl_creds,
+	priv->socket =
+		soup_socket_client_new_async (priv->conn_uri->host,
+					      priv->conn_uri->port,
+					      priv->ssl_creds,
 					      socket_connect_result, conn);
-	g_signal_connect (conn->priv->socket, "disconnected",
+	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 }
 
@@ -482,38 +479,40 @@ soup_connection_connect_async (SoupConnection *conn,
 guint
 soup_connection_connect_sync (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv;
 	guint status;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (conn->priv->socket == NULL, SOUP_STATUS_MALFORMED);
+	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
 
-	conn->priv->socket =
-		soup_socket_client_new_sync (conn->priv->conn_uri->host,
-					     conn->priv->conn_uri->port,
-					     conn->priv->ssl_creds,
+	priv->socket =
+		soup_socket_client_new_sync (priv->conn_uri->host,
+					     priv->conn_uri->port,
+					     priv->ssl_creds,
 					     &status);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 
-	g_signal_connect (conn->priv->socket, "disconnected",
+	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
-	if (conn->priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
-		if (!soup_socket_start_ssl (conn->priv->socket)) {
+	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+		if (!soup_socket_start_ssl (priv->socket)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;
 		}
 	}
 
 	/* See if we need to tunnel */
-	if (conn->priv->proxy_uri &&
-	    conn->priv->origin_uri &&
-	    conn->priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (priv->proxy_uri &&
+	    priv->origin_uri &&
+	    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
-							 conn->priv->origin_uri);
+							 priv->origin_uri);
 		soup_connection_send_request (conn, connect_msg);
 		status = connect_msg->status_code;
 
@@ -531,16 +530,16 @@ soup_connection_connect_sync (SoupConnection *conn)
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status))
-		conn->priv->connected = TRUE;
+		priv->connected = TRUE;
 	else {
 	fail:
-		if (conn->priv->socket) {
-			g_object_unref (conn->priv->socket);
-			conn->priv->socket = NULL;
+		if (priv->socket) {
+			g_object_unref (priv->socket);
+			priv->socket = NULL;
 		}
 	}
 
-	status = proxified_status (conn, status);
+	status = proxified_status (priv, status);
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 	return status;
 }
@@ -556,33 +555,36 @@ soup_connection_connect_sync (SoupConnection *conn)
 void
 soup_connection_disconnect (SoupConnection *conn)
 {
-	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+	SoupConnectionPrivate *priv;
 
-	if (!conn->priv->socket)
+	g_return_if_fail (SOUP_IS_CONNECTION (conn));
+	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	if (!priv->socket)
 		return;
 
-	g_signal_handlers_disconnect_by_func (conn->priv->socket,
+	g_signal_handlers_disconnect_by_func (priv->socket,
 					      socket_disconnected, conn);
-	soup_socket_disconnect (conn->priv->socket);
-	g_object_unref (conn->priv->socket);
-	conn->priv->socket = NULL;
+	soup_socket_disconnect (priv->socket);
+	g_object_unref (priv->socket);
+	priv->socket = NULL;
 
 	/* Don't emit "disconnected" if we aren't yet connected */
-	if (!conn->priv->connected)
+	if (!priv->connected)
 		return;
 
-	conn->priv->connected = FALSE;
+	priv->connected = FALSE;
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 
-	if (!conn->priv->cur_req ||
-	    conn->priv->cur_req->status_code != SOUP_STATUS_IO_ERROR)
+	if (!priv->cur_req ||
+	    priv->cur_req->status_code != SOUP_STATUS_IO_ERROR)
 		return;
 
 	/* There was a message queued on this connection, but the
 	 * socket was closed while it was being sent.
 	 */
 
-	if (conn->priv->last_used != 0) {
+	if (priv->last_used != 0) {
 		/* If last_used is not 0, then that means at least one
 		 * message was successfully sent on this connection
 		 * before, and so the most likely cause of the
@@ -596,11 +598,11 @@ soup_connection_disconnect (SoupConnection *conn)
 		 * all we need to do to get the message requeued in
 		 * this case is to change its status.
 		 */
-		conn->priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
+		priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
 		return;
 	}
 
-	/* If conn->priv->last_used is 0, then that means this was the
+	/* If priv->last_used is 0, then that means this was the
 	 * first message to be sent on this connection, so the error
 	 * probably means that there's some network or server problem,
 	 * so we let the IO_ERROR be returned to the caller.
@@ -630,7 +632,7 @@ soup_connection_is_in_use (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return conn->priv->in_use;
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->in_use;
 }
 
 /**
@@ -647,7 +649,7 @@ soup_connection_last_used (SoupConnection *conn)
 {
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
-	return conn->priv->last_used;
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->last_used;
 }
 
 static void
@@ -661,9 +663,10 @@ static void
 request_done (SoupMessage *req, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	clear_current_request (conn);
-	conn->priv->last_used = time (NULL);
+	clear_current_request (priv);
+	priv->last_used = time (NULL);
 
 	if (!soup_message_is_keepalive (req))
 		soup_connection_disconnect (conn);
@@ -676,22 +679,24 @@ request_done (SoupMessage *req, gpointer user_data)
 static void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
 	g_object_ref (conn);
 
-	if (req != conn->priv->cur_req) {
-		set_current_request (conn, req);
+	if (req != priv->cur_req) {
+		set_current_request (priv, req);
 
 		g_signal_connect (req, "restarted",
 				  G_CALLBACK (request_restarted), conn);
 		g_signal_connect (req, "finished",
 				  G_CALLBACK (request_done), conn);
 
-		if (conn->priv->filter)
-			soup_message_filter_setup_message (conn->priv->filter, req);
+		if (priv->filter)
+			soup_message_filter_setup_message (priv->filter, req);
 	}
 
-	soup_message_send_request (req, conn->priv->socket,
-				   conn->priv->proxy_uri != NULL);
+	soup_message_send_request (req, priv->socket,
+				   priv->proxy_uri != NULL);
 }
 
 /**
@@ -707,7 +712,7 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (SOUP_IS_MESSAGE (req));
-	g_return_if_fail (conn->priv->socket != NULL);
+	g_return_if_fail (SOUP_CONNECTION_GET_PRIVATE (conn)->socket != NULL);
 
 	SOUP_CONNECTION_GET_CLASS (conn)->send_request (conn, req);
 }
@@ -726,7 +731,7 @@ soup_connection_reserve (SoupConnection *conn)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
-	conn->priv->in_use = TRUE;
+	SOUP_CONNECTION_GET_PRIVATE (conn)->in_use = TRUE;
 }
 
 /**
@@ -742,7 +747,7 @@ soup_connection_release (SoupConnection *conn)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
-	conn->priv->in_use = FALSE;
+	SOUP_CONNECTION_GET_PRIVATE (conn)->in_use = FALSE;
 }
 
 /**

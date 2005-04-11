@@ -15,12 +15,9 @@
 #define SOUP_IS_AUTH_DIGEST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_AUTH_DIGEST))
 #define SOUP_AUTH_DIGEST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_DIGEST, SoupAuthDigestClass))
 
-typedef struct SoupAuthDigestPrivate SoupAuthDigestPrivate;
-
 typedef struct {
 	SoupAuth parent;
 
-	SoupAuthDigestPrivate *priv;
 } SoupAuthDigest;
 
 typedef struct {

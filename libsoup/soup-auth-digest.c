@@ -39,7 +39,7 @@ typedef enum {
 	ALGORITHM_MD5_SESS = 1 << 1
 } AlgorithmType;
 
-struct SoupAuthDigestPrivate {
+typedef struct {
 	char          *user;
 	guchar         hex_a1[33];
 
@@ -54,46 +54,42 @@ struct SoupAuthDigestPrivate {
 	char          *cnonce;
 	int            nc;
 	QOPType        qop;
-};
+} SoupAuthDigestPrivate;
+#define SOUP_AUTH_DIGEST_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DIGEST, SoupAuthDigestPrivate))
 
-#define PARENT_TYPE SOUP_TYPE_AUTH
-static SoupAuthClass *parent_class;
+G_DEFINE_TYPE (SoupAuthDigest, soup_auth_digest, SOUP_TYPE_AUTH)
 
 static void
-init (GObject *object)
+soup_auth_digest_init (SoupAuthDigest *digest)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (object);
-
-	digest->priv = g_new0 (SoupAuthDigestPrivate, 1);
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (object);
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (object);
 
-	if (digest->priv->user)
-		g_free (digest->priv->user);
-	if (digest->priv->realm)
-		g_free (digest->priv->realm);
-	if (digest->priv->nonce)
-		g_free (digest->priv->nonce);
-	if (digest->priv->domain)
-		g_free (digest->priv->domain);
-	if (digest->priv->cnonce)
-		g_free (digest->priv->cnonce);
+	if (priv->user)
+		g_free (priv->user);
+	if (priv->realm)
+		g_free (priv->realm);
+	if (priv->nonce)
+		g_free (priv->nonce);
+	if (priv->domain)
+		g_free (priv->domain);
+	if (priv->cnonce)
+		g_free (priv->cnonce);
 
-	g_free (digest->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_auth_digest_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
 {
-	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (object_class);
+	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_digest_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (auth_digest_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (auth_digest_class, sizeof (SoupAuthDigestPrivate));
 
 	auth_class->scheme_name = "Digest";
 
@@ -106,8 +102,6 @@ class_init (GObjectClass *object_class)
 
 	object_class->finalize = finalize;
 }
-
-SOUP_MAKE_TYPE (soup_auth_digest, SoupAuthDigest, class_init, init, PARENT_TYPE)
 
 typedef struct {
 	char *name;
@@ -155,7 +149,7 @@ decode_algorithm (const char *name)
 static void
 construct (SoupAuth *auth, const char *header)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	GHashTable *tokens;
 	char *tmp, *ptr;
 
@@ -165,13 +159,13 @@ construct (SoupAuth *auth, const char *header)
 	if (!tokens)
 		return;
 
-	digest->priv->nc = 1;
+	priv->nc = 1;
 	/* We're just going to do qop=auth for now */
-	digest->priv->qop = QOP_AUTH;
+	priv->qop = QOP_AUTH;
 
-	digest->priv->realm = soup_header_param_copy_token (tokens, "realm");
-	digest->priv->domain = soup_header_param_copy_token (tokens, "domain");
-	digest->priv->nonce = soup_header_param_copy_token (tokens, "nonce");
+	priv->realm = soup_header_param_copy_token (tokens, "realm");
+	priv->domain = soup_header_param_copy_token (tokens, "domain");
+	priv->nonce = soup_header_param_copy_token (tokens, "nonce");
 
 	tmp = soup_header_param_copy_token (tokens, "qop");
 	ptr = tmp;
@@ -181,7 +175,7 @@ construct (SoupAuth *auth, const char *header)
 
 		token = soup_header_param_decode_token ((char **)&ptr);
 		if (token)
-			digest->priv->qop_options |= decode_qop (token);
+			priv->qop_options |= decode_qop (token);
 		g_free (token);
 
 		if (*ptr == ',')
@@ -190,7 +184,7 @@ construct (SoupAuth *auth, const char *header)
 	g_free (tmp);
 
 	tmp = soup_header_param_copy_token (tokens, "algorithm");
-	digest->priv->algorithm = decode_algorithm (tmp);
+	priv->algorithm = decode_algorithm (tmp);
 	g_free (tmp);
 
 	soup_header_param_destroy_hash (tokens);
@@ -199,19 +193,19 @@ construct (SoupAuth *auth, const char *header)
 static GSList *
 get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	GSList *space = NULL;
 	SoupUri *uri;
 	char *domain, *d, *lasts, *dir, *slash;
 
-	if (!digest->priv->domain || !*digest->priv->domain) {
+	if (!priv->domain || !*priv->domain) {
 		/* If no domain directive, the protection space is the
 		 * whole server.
 		 */
 		return g_slist_prepend (NULL, g_strdup (""));
 	}
 
-	domain = g_strdup (digest->priv->domain);
+	domain = g_strdup (priv->domain);
 	for (d = strtok_r (domain, " ", &lasts); d; d = strtok_r (NULL, " ", &lasts)) {
 		if (*d == '/')
 			dir = g_strdup (d);
@@ -243,9 +237,7 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 static const char *
 get_realm (SoupAuth *auth)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
-
-	return digest->priv->realm;
+	return SOUP_AUTH_DIGEST_GET_PRIVATE (auth)->realm;
 }
 
 static void
@@ -261,7 +253,7 @@ digest_hex (guchar *digest, guchar hex[33])
 static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	SoupMD5Context ctx;
 	guchar d[16];
 	char *bgen;
@@ -269,13 +261,13 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	g_return_if_fail (username != NULL);
 
 	bgen = g_strdup_printf ("%p:%lu:%lu",
-			       auth,
-			       (unsigned long) getpid (),
-			       (unsigned long) time (0));
-	digest->priv->cnonce = soup_base64_encode (bgen, strlen (bgen));
+				auth,
+				(unsigned long) getpid (),
+				(unsigned long) time (0));
+	priv->cnonce = soup_base64_encode (bgen, strlen (bgen));
 	g_free (bgen);
 
-	digest->priv->user = g_strdup (username);
+	priv->user = g_strdup (username);
 
 	/* compute A1 */
 	soup_md5_init (&ctx);
@@ -283,43 +275,41 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	soup_md5_update (&ctx, username, strlen (username));
 
 	soup_md5_update (&ctx, ":", 1);
-	if (digest->priv->realm) {
-		soup_md5_update (&ctx, digest->priv->realm,
-				 strlen (digest->priv->realm));
+	if (priv->realm) {
+		soup_md5_update (&ctx, priv->realm,
+				 strlen (priv->realm));
 	}
 
 	soup_md5_update (&ctx, ":", 1);
 	if (password)
 		soup_md5_update (&ctx, password, strlen (password));
 
-	if (digest->priv->algorithm == ALGORITHM_MD5_SESS) {
+	if (priv->algorithm == ALGORITHM_MD5_SESS) {
 		soup_md5_final (&ctx, d);
 
 		soup_md5_init (&ctx);
 		soup_md5_update (&ctx, d, 16);
 		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, digest->priv->nonce,
-				 strlen (digest->priv->nonce));
+		soup_md5_update (&ctx, priv->nonce,
+				 strlen (priv->nonce));
 		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, digest->priv->cnonce,
-				 strlen (digest->priv->cnonce));
+		soup_md5_update (&ctx, priv->cnonce,
+				 strlen (priv->cnonce));
 	}
 
 	/* hexify A1 */
 	soup_md5_final (&ctx, d);
-	digest_hex (d, digest->priv->hex_a1);
+	digest_hex (d, priv->hex_a1);
 }
 
 static gboolean
 is_authenticated (SoupAuth *auth)
 {
-	SoupAuthDigest *digest = SOUP_AUTH_DIGEST (auth);
-
-	return digest->priv->cnonce != NULL;
+	return SOUP_AUTH_DIGEST_GET_PRIVATE (auth)->cnonce != NULL;
 }
 
 static char *
-compute_response (SoupAuthDigest *digest, SoupMessage *msg)
+compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 {
 	guchar hex_a2[33], o[33];
 	guchar d[16];
@@ -339,7 +329,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 
 	g_free (url);
 
-	if (digest->priv->qop == QOP_AUTH_INT) {
+	if (priv->qop == QOP_AUTH_INT) {
 		/* FIXME: Actually implement. Ugh. */
 		soup_md5_update (&md5, ":", 1);
 		soup_md5_update (&md5, "00000000000000000000000000000000", 32);
@@ -351,27 +341,27 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 
 	/* compute KD */
 	soup_md5_init (&md5);
-	soup_md5_update (&md5, digest->priv->hex_a1, 32);
+	soup_md5_update (&md5, priv->hex_a1, 32);
 	soup_md5_update (&md5, ":", 1);
-	soup_md5_update (&md5, digest->priv->nonce,
-			 strlen (digest->priv->nonce));
+	soup_md5_update (&md5, priv->nonce,
+			 strlen (priv->nonce));
 	soup_md5_update (&md5, ":", 1);
 
-	if (digest->priv->qop) {
+	if (priv->qop) {
 		char *tmp;
 
-		tmp = g_strdup_printf ("%.8x", digest->priv->nc);
+		tmp = g_strdup_printf ("%.8x", priv->nc);
 
 		soup_md5_update (&md5, tmp, strlen (tmp));
 		g_free (tmp);
 		soup_md5_update (&md5, ":", 1);
-		soup_md5_update (&md5, digest->priv->cnonce,
-				 strlen (digest->priv->cnonce));
+		soup_md5_update (&md5, priv->cnonce,
+				 strlen (priv->cnonce));
 		soup_md5_update (&md5, ":", 1);
 
-		if (digest->priv->qop == QOP_AUTH)
+		if (priv->qop == QOP_AUTH)
 			tmp = "auth";
-		else if (digest->priv->qop == QOP_AUTH_INT)
+		else if (priv->qop == QOP_AUTH_INT)
 			tmp = "auth-int";
 		else
 			g_assert_not_reached ();
@@ -391,7 +381,7 @@ compute_response (SoupAuthDigest *digest, SoupMessage *msg)
 static char *
 get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
-	SoupAuthDigest *digest = (SoupAuthDigest *) auth;
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	char *response;
 	char *qop = NULL;
 	char *nc;
@@ -403,35 +393,35 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	g_return_val_if_fail (uri != NULL, NULL);
 	url = soup_uri_to_string (uri, TRUE);
 
-	response = compute_response (digest, msg);
+	response = compute_response (priv, msg);
 
-	if (digest->priv->qop == QOP_AUTH)
+	if (priv->qop == QOP_AUTH)
 		qop = "auth";
-	else if (digest->priv->qop == QOP_AUTH_INT)
+	else if (priv->qop == QOP_AUTH_INT)
 		qop = "auth-int";
 	else
 		g_assert_not_reached ();
 
-	nc = g_strdup_printf ("%.8x", digest->priv->nc);
+	nc = g_strdup_printf ("%.8x", priv->nc);
 
 	out = g_strdup_printf (
 		"Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", %s%s%s "
 		"%s%s%s %s%s%s uri=\"%s\", response=\"%s\"",
-		digest->priv->user,
-		digest->priv->realm,
-		digest->priv->nonce,
+		priv->user,
+		priv->realm,
+		priv->nonce,
 
-		digest->priv->qop ? "cnonce=\"" : "",
-		digest->priv->qop ? digest->priv->cnonce : "",
-		digest->priv->qop ? "\"," : "",
+		priv->qop ? "cnonce=\"" : "",
+		priv->qop ? priv->cnonce : "",
+		priv->qop ? "\"," : "",
 
-		digest->priv->qop ? "nc=" : "",
-		digest->priv->qop ? nc : "",
-		digest->priv->qop ? "," : "",
+		priv->qop ? "nc=" : "",
+		priv->qop ? nc : "",
+		priv->qop ? "," : "",
 
-		digest->priv->qop ? "qop=" : "",
-		digest->priv->qop ? qop : "",
-		digest->priv->qop ? "," : "",
+		priv->qop ? "qop=" : "",
+		priv->qop ? qop : "",
+		priv->qop ? "," : "",
 
 		url,
 		response);
@@ -440,7 +430,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	g_free (url);
 	g_free (nc);
 
-	digest->priv->nc++;
+	priv->nc++;
 
 	return out;
 }

@@ -12,10 +12,6 @@
 #include "soup-session-async.h"
 #include "soup-connection.h"
 
-struct SoupSessionAsyncPrivate {
-	int dummy;
-};
-
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
@@ -23,41 +19,23 @@ static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
 
-#define PARENT_TYPE SOUP_TYPE_SESSION
-static SoupSessionClass *parent_class;
+G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 static void
-init (GObject *object)
+soup_session_async_init (SoupSessionAsync *sa)
 {
-	SoupSessionAsync *sa = SOUP_SESSION_ASYNC (object);
-
-	sa->priv = g_new0 (SoupSessionAsyncPrivate, 1);
 }
 
 static void
-finalize (GObject *object)
+soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 {
-	SoupSessionAsync *sa = SOUP_SESSION_ASYNC (object);
-
-	g_free (sa->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
-}
-
-static void
-class_init (GObjectClass *object_class)
-{
-	SoupSessionClass *session_class = SOUP_SESSION_CLASS (object_class);
-
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
 
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
-	object_class->finalize = finalize;
 }
 
-SOUP_MAKE_TYPE (soup_session_async, SoupSessionAsync, class_init, init, PARENT_TYPE)
 
 SoupSession *
 soup_session_async_new (void)
@@ -205,8 +183,7 @@ queue_message (SoupSession *session, SoupMessage *req,
 	g_signal_connect_after (req, "finished",
 				G_CALLBACK (final_finished), sa);
 
-	SOUP_SESSION_CLASS (parent_class)->queue_message (session, req,
-							  callback, user_data);
+	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 
 	run_queue (sa, TRUE);
 }

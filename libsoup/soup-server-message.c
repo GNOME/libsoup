@@ -17,24 +17,21 @@
 #include "soup-server-message.h"
 #include "soup-server.h"
 
-struct SoupServerMessagePrivate {
+typedef struct {
 	SoupServer *server;
 
 	SoupTransferEncoding encoding;
 
 	gboolean  started;
 	gboolean  finished;
-};
+} SoupServerMessagePrivate;
+#define SOUP_SERVER_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessagePrivate))
 
-#define PARENT_TYPE SOUP_TYPE_MESSAGE
-static SoupMessageClass *parent_class;
+G_DEFINE_TYPE (SoupServerMessage, soup_server_message, SOUP_TYPE_MESSAGE)
 
 static void
-init (GObject *object)
+soup_server_message_init (SoupServerMessage *smsg)
 {
-	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (object);
-
-	smsg->priv = g_new0 (SoupServerMessagePrivate, 1);
 }
 
 static void
@@ -45,35 +42,31 @@ finalize (GObject *object)
 	/* FIXME */
 	g_free ((char *) ((SoupMessage *)smsg)->method);
 
-	g_free (smsg->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_server_message_parent_class)->finalize (object);
 }
 
 static void
 dispose (GObject *object)
 {
-	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (object);
+	SoupServerMessagePrivate *priv = SOUP_SERVER_MESSAGE_GET_PRIVATE (object);
 
-	if (smsg->priv->server)
-		g_object_unref (smsg->priv->server);
+	if (priv->server)
+		g_object_unref (priv->server);
 
-	G_OBJECT_CLASS (parent_class)->dispose (object);
+	G_OBJECT_CLASS (soup_server_message_parent_class)->dispose (object);
 }
 
-
-
 static void
-class_init (GObjectClass *object_class)
+soup_server_message_class_init (SoupServerMessageClass *soup_server_message_class)
 {
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	GObjectClass *object_class = G_OBJECT_CLASS (soup_server_message_class);
+
+	g_type_class_add_private (soup_server_message_class, sizeof (SoupServerMessagePrivate));
 
 	/* virtual method override */
 	object_class->finalize = finalize;
 	object_class->dispose = dispose;
 }
-
-SOUP_MAKE_TYPE (soup_server_message, SoupServerMessage, class_init, init, PARENT_TYPE)
 
 
 SoupServerMessage *
@@ -84,7 +77,7 @@ soup_server_message_new (SoupServer *server)
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
 
 	smsg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
-	smsg->priv->server = g_object_ref (server);
+	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->server = g_object_ref (server);
 
 	return smsg;
 }
@@ -94,7 +87,7 @@ soup_server_message_get_server (SoupServerMessage *smsg)
 {
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), NULL);
 
-	return smsg->priv->server;
+	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->server;
 }
 
 void
@@ -103,7 +96,7 @@ soup_server_message_set_encoding (SoupServerMessage *smsg,
 {
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
 
-	smsg->priv->encoding = encoding;
+	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding = encoding;
 }
 
 SoupTransferEncoding
@@ -111,7 +104,7 @@ soup_server_message_get_encoding (SoupServerMessage *smsg)
 {
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), SOUP_TRANSFER_UNKNOWN);
 
-	return smsg->priv->encoding;
+	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding;
 }
 
 void
@@ -119,7 +112,7 @@ soup_server_message_start (SoupServerMessage *smsg)
 {
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
 
-	smsg->priv->started = TRUE;
+	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->started = TRUE;
 
 	soup_message_io_unpause (SOUP_MESSAGE (smsg));
 }
@@ -129,16 +122,19 @@ soup_server_message_is_started (SoupServerMessage *smsg)
 {
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), TRUE);
 
-	return smsg->priv->started;
+	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->started;
 }
 
 void
 soup_server_message_finish  (SoupServerMessage *smsg)
 {
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
+	SoupServerMessagePrivate *priv;
 
-	smsg->priv->started = TRUE;
-	smsg->priv->finished = TRUE;
+	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
+	priv = SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg);
+
+	priv->started = TRUE;
+	priv->finished = TRUE;
 
 	soup_message_io_unpause (SOUP_MESSAGE (smsg));
 }
@@ -148,5 +144,5 @@ soup_server_message_is_finished (SoupServerMessage *smsg)
 {
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), TRUE);
 
-	return smsg->priv->finished;
+	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->finished;
 }

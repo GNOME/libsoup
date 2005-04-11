@@ -33,7 +33,7 @@ typedef struct {
 	GHashTable *auths;            /* scheme:realm -> SoupAuth */
 } SoupSessionHost;
 
-struct SoupSessionPrivate {
+typedef struct {
 	SoupUri *proxy_uri;
 	guint max_conns, max_conns_per_host;
 	gboolean use_ntlm;
@@ -54,11 +54,12 @@ struct SoupSessionPrivate {
 	 * Must not emit signals or destroy objects while holding it.
 	 */
 	GMutex *host_lock;
-};
+} SoupSessionPrivate;
+#define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
 static guint    host_uri_hash  (gconstpointer key);
 static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
-static void     free_host      (SoupSessionHost *host, SoupSession *session);
+static void     free_host      (SoupSessionHost *host);
 
 static void setup_message   (SoupMessageFilter *filter, SoupMessage *msg);
 
@@ -71,8 +72,11 @@ static void cancel_message  (SoupSession *session, SoupMessage *msg);
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+static void filter_iface_init (SoupMessageFilterClass *filter_class);
+
+G_DEFINE_TYPE_EXTENDED (SoupSession, soup_session, G_TYPE_OBJECT, 0,
+			G_IMPLEMENT_INTERFACE (SOUP_TYPE_MESSAGE_FILTER,
+					       filter_iface_init))
 
 enum {
 	AUTHENTICATE,
@@ -83,15 +87,15 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 enum {
-  PROP_0,
+	PROP_0,
 
-  PROP_PROXY_URI,
-  PROP_MAX_CONNS,
-  PROP_MAX_CONNS_PER_HOST,
-  PROP_USE_NTLM,
-  PROP_SSL_CA_FILE,
+	PROP_PROXY_URI,
+	PROP_MAX_CONNS,
+	PROP_MAX_CONNS_PER_HOST,
+	PROP_USE_NTLM,
+	PROP_SSL_CA_FILE,
 
-  LAST_PROP
+	LAST_PROP
 };
 
 static void set_property (GObject *object, guint prop_id,
@@ -100,74 +104,74 @@ static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
 static void
-init (GObject *object)
+soup_session_init (SoupSession *session)
 {
-	SoupSession *session = SOUP_SESSION (object);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	session->priv = g_new0 (SoupSessionPrivate, 1);
-	session->priv->host_lock = g_mutex_new ();
 	session->queue = soup_message_queue_new ();
-	session->priv->hosts = g_hash_table_new (host_uri_hash,
-						 host_uri_equal);
-	session->priv->conns = g_hash_table_new (NULL, NULL);
 
-	session->priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
-	session->priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
+	priv->host_lock = g_mutex_new ();
+	priv->hosts = g_hash_table_new (host_uri_hash, host_uri_equal);
+	priv->conns = g_hash_table_new (NULL, NULL);
+
+	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
+	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
 }
 
 static gboolean
-foreach_free_host (gpointer key, gpointer host, gpointer session)
+foreach_free_host (gpointer key, gpointer host, gpointer data)
 {
-	free_host (host, session);
+	free_host (host);
 	return TRUE;
 }
 
 static void
-cleanup_hosts (SoupSession *session)
+cleanup_hosts (SoupSessionPrivate *priv)
 {
-	g_hash_table_foreach_remove (session->priv->hosts,
-				     foreach_free_host, session);
+	g_hash_table_foreach_remove (priv->hosts, foreach_free_host, NULL);
 }
 
 static void
 dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	GSList *f;
 
 	soup_session_abort (session);
-	cleanup_hosts (session);
+	cleanup_hosts (priv);
 
-	if (session->priv->filters) {
-		for (f = session->priv->filters; f; f = f->next)
+	if (priv->filters) {
+		for (f = priv->filters; f; f = f->next)
 			g_object_unref (f->data);
-		g_slist_free (session->priv->filters);
-		session->priv->filters = NULL;
+		g_slist_free (priv->filters);
+		priv->filters = NULL;
 	}
 
-	G_OBJECT_CLASS (parent_class)->dispose (object);
+	G_OBJECT_CLASS (soup_session_parent_class)->dispose (object);
 }
 
 static void
 finalize (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	g_mutex_free (session->priv->host_lock);
 	soup_message_queue_destroy (session->queue);
-	g_hash_table_destroy (session->priv->hosts);
-	g_hash_table_destroy (session->priv->conns);
-	g_free (session->priv);
 
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	g_mutex_free (priv->host_lock);
+	g_hash_table_destroy (priv->hosts);
+	g_hash_table_destroy (priv->conns);
+
+	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_session_class_init (SoupSessionClass *session_class)
 {
-	SoupSessionClass *session_class = SOUP_SESSION_CLASS (object_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (session_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (session_class, sizeof (SoupSessionPrivate));
 
 	/* virtual method definition */
 	session_class->queue_message = queue_message;
@@ -243,10 +247,10 @@ class_init (GObjectClass *object_class)
 	g_object_class_install_property (
 		object_class, PROP_SSL_CA_FILE,
 		g_param_spec_string (SOUP_SESSION_SSL_CA_FILE,
-				      "SSL CA file",
-				      "File containing SSL CA certificates",
-				      NULL,
-				      G_PARAM_READWRITE));
+				     "SSL CA file",
+				     "File containing SSL CA certificates",
+				     NULL,
+				     G_PARAM_READWRITE));
 }
 
 static void
@@ -256,7 +260,6 @@ filter_iface_init (SoupMessageFilterClass *filter_class)
 	filter_class->setup_message = setup_message;
 }
 
-SOUP_MAKE_TYPE_WITH_IFACE (soup_session, SoupSession, class_init, init, PARENT_TYPE, filter_iface_init, SOUP_TYPE_MESSAGE_FILTER)
 
 static gboolean
 safe_uri_equal (const SoupUri *a, const SoupUri *b)
@@ -287,6 +290,7 @@ set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	gpointer pval;
 	gboolean need_abort = FALSE;
 	gboolean ca_file_changed = FALSE;
@@ -296,45 +300,45 @@ set_property (GObject *object, guint prop_id,
 	case PROP_PROXY_URI:
 		pval = g_value_get_pointer (value);
 
-		if (!safe_uri_equal (session->priv->proxy_uri, pval))
+		if (!safe_uri_equal (priv->proxy_uri, pval))
 			need_abort = TRUE;
 
-		if (session->priv->proxy_uri)
-			soup_uri_free (session->priv->proxy_uri);
+		if (priv->proxy_uri)
+			soup_uri_free (priv->proxy_uri);
 
-		session->priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+		priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
 
 		if (need_abort) {
 			soup_session_abort (session);
-			cleanup_hosts (session);
+			cleanup_hosts (priv);
 		}
 
 		break;
 	case PROP_MAX_CONNS:
-		session->priv->max_conns = g_value_get_int (value);
+		priv->max_conns = g_value_get_int (value);
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
-		session->priv->max_conns_per_host = g_value_get_int (value);
+		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_USE_NTLM:
-		session->priv->use_ntlm = g_value_get_boolean (value);
+		priv->use_ntlm = g_value_get_boolean (value);
 		break;
 	case PROP_SSL_CA_FILE:
 		new_ca_file = g_value_get_string (value);
 
-		if (!safe_str_equal (session->priv->ssl_ca_file, new_ca_file))
+		if (!safe_str_equal (priv->ssl_ca_file, new_ca_file))
 			ca_file_changed = TRUE;
 
-		g_free (session->priv->ssl_ca_file);
-		session->priv->ssl_ca_file = g_strdup (new_ca_file);
+		g_free (priv->ssl_ca_file);
+		priv->ssl_ca_file = g_strdup (new_ca_file);
 
 		if (ca_file_changed) {
-			if (session->priv->ssl_creds) {
-				soup_ssl_free_client_credentials (session->priv->ssl_creds);
-				session->priv->ssl_creds = NULL;
+			if (priv->ssl_creds) {
+				soup_ssl_free_client_credentials (priv->ssl_creds);
+				priv->ssl_creds = NULL;
 			}
 
-			cleanup_hosts (session);
+			cleanup_hosts (priv);
 		}
 
 		break;
@@ -348,24 +352,25 @@ get_property (GObject *object, guint prop_id,
 	      GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
-		g_value_set_pointer (value, session->priv->proxy_uri ?
-				     soup_uri_copy (session->priv->proxy_uri) :
+		g_value_set_pointer (value, priv->proxy_uri ?
+				     soup_uri_copy (priv->proxy_uri) :
 				     NULL);
 		break;
 	case PROP_MAX_CONNS:
-		g_value_set_int (value, session->priv->max_conns);
+		g_value_set_int (value, priv->max_conns);
 		break;
 	case PROP_MAX_CONNS_PER_HOST:
-		g_value_set_int (value, session->priv->max_conns_per_host);
+		g_value_set_int (value, priv->max_conns_per_host);
 		break;
 	case PROP_USE_NTLM:
-		g_value_set_boolean (value, session->priv->use_ntlm);
+		g_value_set_boolean (value, priv->use_ntlm);
 		break;
 	case PROP_SSL_CA_FILE:
-		g_value_set_string (value, session->priv->ssl_ca_file);
+		g_value_set_string (value, priv->ssl_ca_file);
 		break;
 	default:
 		break;
@@ -384,12 +389,14 @@ get_property (GObject *object, guint prop_id,
 void
 soup_session_add_filter (SoupSession *session, SoupMessageFilter *filter)
 {
+	SoupSessionPrivate *priv;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
+	priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	g_object_ref (filter);
-	session->priv->filters = g_slist_prepend (session->priv->filters,
-						  filter);
+	priv->filters = g_slist_prepend (priv->filters, filter);
 }
 
 /**
@@ -402,11 +409,13 @@ soup_session_add_filter (SoupSession *session, SoupMessageFilter *filter)
 void
 soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
 {
+	SoupSessionPrivate *priv;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
+	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	session->priv->filters = g_slist_remove (session->priv->filters,
-						 filter);
+	priv->filters = g_slist_remove (priv->filters, filter);
 	g_object_unref (filter);
 }
 
@@ -437,15 +446,16 @@ host_uri_equal (gconstpointer v1, gconstpointer v2)
 static SoupSessionHost *
 soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
 	host = g_new0 (SoupSessionHost, 1);
 	host->root_uri = soup_uri_copy_root (source_uri);
 
 	if (host->root_uri->protocol == SOUP_PROTOCOL_HTTPS &&
-	    !session->priv->ssl_creds) {
-		session->priv->ssl_creds =
-			soup_ssl_get_client_credentials (session->priv->ssl_ca_file);
+	    !priv->ssl_creds) {
+		priv->ssl_creds =
+			soup_ssl_get_client_credentials (priv->ssl_ca_file);
 	}
 
 	return host;
@@ -458,15 +468,16 @@ soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
 static SoupSessionHost *
 get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 	const SoupUri *source = soup_message_get_uri (msg);
 
-	host = g_hash_table_lookup (session->priv->hosts, source);
+	host = g_hash_table_lookup (priv->hosts, source);
 	if (host)
 		return host;
 
 	host = soup_session_host_new (session, source);
-	g_hash_table_insert (session->priv->hosts, host->root_uri, host);
+	g_hash_table_insert (priv->hosts, host->root_uri, host);
 
 	return host;
 }
@@ -477,12 +488,14 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 static SoupSessionHost *
 get_proxy_host (SoupSession *session)
 {
-	if (session->priv->proxy_host || !session->priv->proxy_uri)
-		return session->priv->proxy_host;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	session->priv->proxy_host =
-		soup_session_host_new (session, session->priv->proxy_uri);
-	return session->priv->proxy_host;
+	if (priv->proxy_host || !priv->proxy_uri)
+		return priv->proxy_host;
+
+	priv->proxy_host =
+		soup_session_host_new (session, priv->proxy_uri);
+	return priv->proxy_host;
 }
 
 static void
@@ -500,7 +513,7 @@ free_auth (gpointer scheme_realm, gpointer auth, gpointer data)
 }
 
 static void
-free_host (SoupSessionHost *host, SoupSession *session)
+free_host (SoupSessionHost *host)
 {
 	while (host->connections) {
 		SoupConnection *conn = host->connections->data;
@@ -589,11 +602,12 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	const SoupUri *uri;
 	char *username = NULL, *password = NULL;
 
 	if (proxy)
-		uri = session->priv->proxy_uri;
+		uri = priv->proxy_uri;
 	else
 		uri = soup_message_get_uri (msg);
 
@@ -821,9 +835,10 @@ static void
 setup_message (SoupMessageFilter *filter, SoupMessage *msg)
 {
 	SoupSession *session = SOUP_SESSION (filter);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	GSList *f;
 
-	for (f = session->priv->filters; f; f = f->next) {
+	for (f = priv->filters; f; f = f->next) {
 		filter = f->data;
 		soup_message_filter_setup_message (filter, msg);
 	}
@@ -834,7 +849,7 @@ setup_message (SoupMessageFilter *filter, SoupMessage *msg)
 		SOUP_HANDLER_POST_BODY,
 		authorize_handler, session);
 
-	if (session->priv->proxy_uri) {
+	if (priv->proxy_uri) {
 		add_auth (session, msg, TRUE);
 		soup_message_add_status_code_handler  (
 			msg, SOUP_STATUS_PROXY_UNAUTHORIZED,
@@ -873,22 +888,23 @@ find_oldest_connection (gpointer key, gpointer host, gpointer data)
 gboolean
 soup_session_try_prune_connection (SoupSession *session)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *oldest = NULL;
 
-	g_mutex_lock (session->priv->host_lock);
-	g_hash_table_foreach (session->priv->conns, find_oldest_connection,
+	g_mutex_lock (priv->host_lock);
+	g_hash_table_foreach (priv->conns, find_oldest_connection,
 			      &oldest);
 	if (oldest) {
 		/* Ref the connection before unlocking the mutex in
 		 * case someone else tries to prune it too.
 		 */
 		g_object_ref (oldest);
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		soup_connection_disconnect (oldest);
 		g_object_unref (oldest);
 		return TRUE;
 	} else {
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		return FALSE;
 	}
 }
@@ -897,21 +913,22 @@ static void
 connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
 	SoupSession *session = user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
-	g_mutex_lock (session->priv->host_lock);
+	g_mutex_lock (priv->host_lock);
 
-	host = g_hash_table_lookup (session->priv->conns, conn);
+	host = g_hash_table_lookup (priv->conns, conn);
 	if (host) {
-		g_hash_table_remove (session->priv->conns, conn);
+		g_hash_table_remove (priv->conns, conn);
 		host->connections = g_slist_remove (host->connections, conn);
 		host->num_conns--;
 	}
 
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
-	session->priv->num_conns--;
+	priv->num_conns--;
 
-	g_mutex_unlock (session->priv->host_lock);
+	g_mutex_unlock (priv->host_lock);
 	g_object_unref (conn);
 }
 
@@ -919,27 +936,28 @@ static void
 connect_result (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupSession *session = user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
 
-	g_mutex_lock (session->priv->host_lock);
+	g_mutex_lock (priv->host_lock);
 
-	host = g_hash_table_lookup (session->priv->conns, conn);
+	host = g_hash_table_lookup (priv->conns, conn);
 	if (!host) {
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		return;
 	}
 
 	if (status == SOUP_STATUS_OK) {
 		soup_connection_reserve (conn);
 		host->connections = g_slist_prepend (host->connections, conn);
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		return;
 	}
 
 	/* The connection failed. */
-	g_mutex_unlock (session->priv->host_lock);
+	g_mutex_unlock (priv->host_lock);
 	connection_disconnected (conn, session);
 
 	if (host->connections) {
@@ -1014,17 +1032,18 @@ SoupConnection *
 soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 			     gboolean *try_pruning, gboolean *is_new)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *conn;
 	SoupSessionHost *host;
 	GSList *conns;
 
-	g_mutex_lock (session->priv->host_lock);
+	g_mutex_lock (priv->host_lock);
 
 	host = get_host_for_message (session, msg);
 	for (conns = host->connections; conns; conns = conns->next) {
 		if (!soup_connection_is_in_use (conns->data)) {
 			soup_connection_reserve (conns->data);
-			g_mutex_unlock (session->priv->host_lock);
+			g_mutex_unlock (priv->host_lock);
 			*is_new = FALSE;
 			return conns->data;
 		}
@@ -1034,33 +1053,33 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		/* We already started a connection for this
 		 * message, so don't start another one.
 		 */
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		return NULL;
 	}
 
-	if (host->num_conns >= session->priv->max_conns_per_host) {
-		g_mutex_unlock (session->priv->host_lock);
+	if (host->num_conns >= priv->max_conns_per_host) {
+		g_mutex_unlock (priv->host_lock);
 		return NULL;
 	}
 
-	if (session->priv->num_conns >= session->priv->max_conns) {
+	if (priv->num_conns >= priv->max_conns) {
 		*try_pruning = TRUE;
-		g_mutex_unlock (session->priv->host_lock);
+		g_mutex_unlock (priv->host_lock);
 		return NULL;
 	}
 
-	/* Make sure session->priv->proxy_host gets set now while
+	/* Make sure priv->proxy_host gets set now while
 	 * we have the host_lock.
 	 */
-	if (session->priv->proxy_uri)
+	if (priv->proxy_uri)
 		get_proxy_host (session);
 
 	conn = g_object_new (
-		(session->priv->use_ntlm ?
+		(priv->use_ntlm ?
 		 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
 		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
-		SOUP_CONNECTION_PROXY_URI, session->priv->proxy_uri,
-		SOUP_CONNECTION_SSL_CREDENTIALS, session->priv->ssl_creds,
+		SOUP_CONNECTION_PROXY_URI, priv->proxy_uri,
+		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
 		SOUP_CONNECTION_MESSAGE_FILTER, session,
 		NULL);
 	g_signal_connect (conn, "connect_result",
@@ -1076,13 +1095,13 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 			  G_CALLBACK (connection_reauthenticate),
 			  session);
 
-	g_hash_table_insert (session->priv->conns, conn, host);
+	g_hash_table_insert (priv->conns, conn, host);
 
 	/* We increment the connection counts so it counts against the
 	 * totals, but we don't add it to the host's connection list
 	 * yet, since it's not ready for use.
 	 */
-	session->priv->num_conns++;
+	priv->num_conns++;
 	host->num_conns++;
 
 	/* Mark the request as connecting, so we don't try to open
@@ -1090,7 +1109,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	 */
 	msg->status = SOUP_MESSAGE_STATUS_CONNECTING;
 
-	g_mutex_unlock (session->priv->host_lock);
+	g_mutex_unlock (priv->host_lock);
 	*is_new = TRUE;
 	return conn;
 }

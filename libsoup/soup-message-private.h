@@ -8,7 +8,7 @@
 
 #include <libsoup/soup-message.h>
 
-struct SoupMessagePrivate {
+typedef struct {
 	gpointer           io_data;
 
 	guint              msg_flags;
@@ -20,7 +20,8 @@ struct SoupMessagePrivate {
 	SoupHttpVersion    http_version;
 
 	SoupUri           *uri;
-};
+} SoupMessagePrivate;
+#define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
 void             soup_message_run_handlers     (SoupMessage      *msg,
 						SoupHandlerPhase  phase);

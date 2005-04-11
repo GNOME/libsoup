@@ -14,8 +14,7 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+G_DEFINE_TYPE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
 	WROTE_INFORMATIONAL,
@@ -45,12 +44,8 @@ static void finished (SoupMessage *req);
 static void free_chunks (SoupMessage *msg);
 
 static void
-init (GObject *object)
+soup_message_init (SoupMessage *msg)
 {
-	SoupMessage *msg = SOUP_MESSAGE (object);
-
-	msg->priv = g_new0 (SoupMessagePrivate, 1);
-
 	msg->status  = SOUP_MESSAGE_STATUS_IDLE;
 
 	msg->request_headers = g_hash_table_new (soup_str_case_hash,
@@ -59,18 +54,19 @@ init (GObject *object)
 	msg->response_headers = g_hash_table_new (soup_str_case_hash,
 						  soup_str_case_equal);
 
-	msg->priv->http_version = SOUP_HTTP_1_1;
+	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = SOUP_HTTP_1_1;
 }
 
 static void
 finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	soup_message_io_stop (msg);
 
-	if (msg->priv->uri)
-		soup_uri_free (msg->priv->uri);
+	if (priv->uri)
+		soup_uri_free (priv->uri);
 
 	if (msg->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (msg->request.body);
@@ -84,22 +80,20 @@ finalize (GObject *object)
 	soup_message_clear_headers (msg->response_headers);
 	g_hash_table_destroy (msg->response_headers);
 
-	g_slist_foreach (msg->priv->content_handlers, (GFunc) g_free, NULL);
-	g_slist_free (msg->priv->content_handlers);
+	g_slist_foreach (priv->content_handlers, (GFunc) g_free, NULL);
+	g_slist_free (priv->content_handlers);
 
 	g_free ((char *) msg->reason_phrase);
 
-	g_free (msg->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_message_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_message_class_init (SoupMessageClass *message_class)
 {
-	SoupMessageClass *message_class = SOUP_MESSAGE_CLASS (object_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (message_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
 	message_class->wrote_body   = wrote_body;
@@ -197,8 +191,6 @@ class_init (GObjectClass *object_class)
 			      G_TYPE_NONE, 0);
 }
 
-SOUP_MAKE_TYPE (soup_message, SoupMessage, class_init, init, PARENT_TYPE)
-
 
 /**
  * soup_message_new:
@@ -227,7 +219,7 @@ soup_message_new (const char *method, const char *uri_string)
 
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
 	msg->method = method ? method : SOUP_METHOD_GET;
-	msg->priv->uri = uri;
+	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = uri;
 
 	return msg;
 }
@@ -248,7 +240,7 @@ soup_message_new_from_uri (const char *method, const SoupUri *uri)
 
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
 	msg->method = method ? method : SOUP_METHOD_GET;
-	msg->priv->uri = soup_uri_copy (uri);
+	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = soup_uri_copy (uri);
 
 	return msg;
 }
@@ -695,7 +687,7 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	msg->priv->msg_flags = flags;
+	SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags = flags;
 }
 
 /**
@@ -711,7 +703,7 @@ soup_message_get_flags (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 
-	return msg->priv->msg_flags;
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags;
 }
 
 /**
@@ -728,7 +720,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	msg->priv->http_version = version;
+	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = version;
 }
 
 /**
@@ -745,7 +737,7 @@ soup_message_get_http_version (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_HTTP_1_0);
 
-	return msg->priv->http_version;
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->http_version;
 }
 
 /**
@@ -769,7 +761,7 @@ soup_message_is_keepalive (SoupMessage *msg)
 	    soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT)
 		return TRUE;
 
-	if (msg->priv->http_version == SOUP_HTTP_1_0) {
+	if (SOUP_MESSAGE_GET_PRIVATE (msg)->http_version == SOUP_HTTP_1_0) {
 		/* Only persistent if the client requested keepalive
 		 * and the server agreed.
 		 */
@@ -804,17 +796,20 @@ soup_message_is_keepalive (SoupMessage *msg)
 void
 soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
 {
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	SoupMessagePrivate *priv;
 
-	if (msg->priv->uri && new_uri) {
-		if (strcmp (msg->priv->uri->host, new_uri->host) != 0)
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->uri && new_uri) {
+		if (strcmp (priv->uri->host, new_uri->host) != 0)
 			soup_message_io_stop (msg);
 	} else if (!new_uri)
 		soup_message_io_stop (msg);
 
-	if (msg->priv->uri)
-		soup_uri_free (msg->priv->uri);
-	msg->priv->uri = soup_uri_copy (new_uri);
+	if (priv->uri)
+		soup_uri_free (priv->uri);
+	priv->uri = soup_uri_copy (new_uri);
 }
 
 /**
@@ -830,7 +825,7 @@ soup_message_get_uri (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	return msg->priv->uri;
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->uri;
 }
 
 /**
@@ -893,9 +888,11 @@ soup_message_add_chunk (SoupMessage   *msg,
 			const char    *body,
 			guint          length)
 {
+	SoupMessagePrivate *priv;
 	SoupDataBuffer *chunk;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	g_return_if_fail (body != NULL || length == 0);
 
 	chunk = g_new0 (SoupDataBuffer, 1);
@@ -908,11 +905,11 @@ soup_message_add_chunk (SoupMessage   *msg,
 	}
 	chunk->length = length;
 
-	if (msg->priv->chunks) {
-		g_slist_append (msg->priv->last_chunk, chunk);
-		msg->priv->last_chunk = msg->priv->last_chunk->next;
+	if (priv->chunks) {
+		g_slist_append (priv->last_chunk, chunk);
+		priv->last_chunk = priv->last_chunk->next;
 	} else {
-		msg->priv->chunks = msg->priv->last_chunk =
+		priv->chunks = priv->last_chunk =
 			g_slist_append (NULL, chunk);
 	}
 }
@@ -944,17 +941,19 @@ soup_message_add_final_chunk (SoupMessage *msg)
 SoupDataBuffer *
 soup_message_pop_chunk (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv;
 	SoupDataBuffer *chunk;
 
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (!msg->priv->chunks)
+	if (!priv->chunks)
 		return NULL;
 
-	chunk = msg->priv->chunks->data;
-	msg->priv->chunks = g_slist_remove (msg->priv->chunks, chunk);
-	if (!msg->priv->chunks)
-		msg->priv->last_chunk = NULL;
+	chunk = priv->chunks->data;
+	priv->chunks = g_slist_remove (priv->chunks, chunk);
+	if (!priv->chunks)
+		priv->last_chunk = NULL;
 
 	return chunk;
 }
@@ -962,10 +961,11 @@ soup_message_pop_chunk (SoupMessage *msg)
 static void
 free_chunks (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupDataBuffer *chunk;
 	GSList *ch;
 
-	for (ch = msg->priv->chunks; ch; ch = ch->next) {
+	for (ch = priv->chunks; ch; ch = ch->next) {
 		chunk = ch->data;
 
 		if (chunk->owner == SOUP_BUFFER_SYSTEM_OWNED)
@@ -973,6 +973,6 @@ free_chunks (SoupMessage *msg)
 		g_free (chunk);
 	}
 
-	g_slist_free (msg->priv->chunks);
-	msg->priv->chunks = msg->priv->last_chunk = NULL;
+	g_slist_free (priv->chunks);
+	priv->chunks = priv->last_chunk = NULL;
 }

@@ -18,11 +18,9 @@ G_BEGIN_DECLS
 #define SOUP_IS_SOAP_RESPONSE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_SOAP_RESPONSE))
 #define SOUP_SOAP_RESPONSE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SOAP_RESPONSE, SoupSoapResponseClass))
 
-typedef struct _SoupSoapResponsePrivate SoupSoapResponsePrivate;
-
 typedef struct {
 	GObject parent;
-	SoupSoapResponsePrivate *priv;
+
 } SoupSoapResponse;
 
 typedef struct {

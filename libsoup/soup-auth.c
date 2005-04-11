@@ -15,17 +15,17 @@
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+G_DEFINE_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
 
 static void
-class_init (GObjectClass *object_class)
+soup_auth_class_init (SoupAuthClass *auth_class)
 {
-	parent_class = g_type_class_ref (PARENT_TYPE);
 }
 
-SOUP_MAKE_TYPE (soup_auth, SoupAuth, class_init, NULL, PARENT_TYPE)
-
+static void
+soup_auth_init (SoupAuth *auth)
+{
+}
 
 typedef struct {
 	const char  *scheme;

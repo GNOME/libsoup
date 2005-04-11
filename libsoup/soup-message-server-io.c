@@ -25,6 +25,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       SoupTransferEncoding *encoding, guint *content_len,
 		       gpointer sock)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupUri *uri;
 	char *req_path = NULL, *url;
 	const char *expect, *length, *enc, *req_host;
@@ -34,12 +35,12 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 					 msg->request_headers,
 					 (char **) &msg->method,
 					 &req_path,
-					 &msg->priv->http_version))
+					 &priv->http_version))
 		return SOUP_STATUS_BAD_REQUEST;
 
 	expect = soup_message_get_header (msg->request_headers, "Expect");
 	if (expect && !strcmp (expect, "100-continue"))
-		msg->priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
+		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 
 	/* Handle request body encoding */
 	length = soup_message_get_header (msg->request_headers,
@@ -90,7 +91,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 				       soup_server_get_protocol (server) == SOUP_PROTOCOL_HTTPS ? "https" : "http",
 				       req_host, soup_server_get_port (server),
 				       req_path);
-	} else if (msg->priv->http_version == SOUP_HTTP_1_0) {
+	} else if (priv->http_version == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);
 		const char *host = soup_address_get_physical (addr);

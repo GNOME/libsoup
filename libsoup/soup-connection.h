@@ -17,12 +17,9 @@
 #define SOUP_IS_CONNECTION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_CONNECTION))
 #define SOUP_CONNECTION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_CONNECTION, SoupConnectionClass))
 
-typedef struct SoupConnectionPrivate SoupConnectionPrivate;
-
 struct SoupConnection {
 	GObject parent;
 
-	SoupConnectionPrivate *priv;
 };
 
 typedef struct {

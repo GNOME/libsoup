@@ -36,7 +36,7 @@
 #define INADDR_NONE -1
 #endif
 
-struct SoupAddressPrivate {
+typedef struct {
 	struct sockaddr *sockaddr;
 
 	char *name, *physical;
@@ -44,19 +44,19 @@ struct SoupAddressPrivate {
 
 	SoupDNSEntry *lookup;
 	guint timeout_id;
-};
-
+} SoupAddressPrivate;
+#define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
 
 /* sockaddr generic macros */
-#define SOUP_SIN(addr) ((struct sockaddr_in *)addr->priv->sockaddr)
+#define SOUP_SIN(priv) ((struct sockaddr_in *)priv->sockaddr)
 #ifdef HAVE_IPV6
-#define SOUP_SIN6(addr) ((struct sockaddr_in6 *)addr->priv->sockaddr)
+#define SOUP_SIN6(priv) ((struct sockaddr_in6 *)priv->sockaddr)
 #endif
 
 /* sockaddr family macros */
-#define SOUP_ADDRESS_GET_FAMILY(addr) (addr->priv->sockaddr->sa_family)
-#define SOUP_ADDRESS_SET_FAMILY(addr, family) \
-	(addr->priv->sockaddr->sa_family = family)
+#define SOUP_ADDRESS_GET_FAMILY(priv) (priv->sockaddr->sa_family)
+#define SOUP_ADDRESS_SET_FAMILY(priv, family) \
+	(priv->sockaddr->sa_family = family)
 #ifdef HAVE_IPV6
 #define SOUP_ADDRESS_FAMILY_IS_VALID(family) \
 	(family == AF_INET || family == AF_INET6)
@@ -75,33 +75,33 @@ struct SoupAddressPrivate {
 /* sockaddr port macros */
 #define SOUP_ADDRESS_PORT_IS_VALID(port) (port >= 0 && port <= 65535)
 #ifdef HAVE_IPV6
-#define SOUP_ADDRESS_GET_PORT(addr) \
-	(addr->priv->sockaddr->sa_family == AF_INET ? \
-		SOUP_SIN(addr)->sin_port : \
-		SOUP_SIN6(addr)->sin6_port)
-#define SOUP_ADDRESS_SET_PORT(addr, port) \
+#define SOUP_ADDRESS_GET_PORT(priv) \
+	(priv->sockaddr->sa_family == AF_INET ? \
+		SOUP_SIN(priv)->sin_port : \
+		SOUP_SIN6(priv)->sin6_port)
+#define SOUP_ADDRESS_SET_PORT(priv, port) \
 	G_STMT_START {					\
-	if (addr->priv->sockaddr->sa_family == AF_INET)	\
-		SOUP_SIN(addr)->sin_port = port;	\
+	if (priv->sockaddr->sa_family == AF_INET)	\
+		SOUP_SIN(priv)->sin_port = port;	\
 	else						\
-		SOUP_SIN6(addr)->sin6_port = port;	\
+		SOUP_SIN6(priv)->sin6_port = port;	\
 	} G_STMT_END
 #else
-#define SOUP_ADDRESS_GET_PORT(addr) (SOUP_SIN(addr)->sin_port)
-#define SOUP_ADDRESS_SET_PORT(addr, port) (SOUP_SIN(addr)->sin_port = port)
+#define SOUP_ADDRESS_GET_PORT(priv) (SOUP_SIN(priv)->sin_port)
+#define SOUP_ADDRESS_SET_PORT(priv, port) (SOUP_SIN(priv)->sin_port = port)
 #endif
 
 /* sockaddr data macros */
 #ifdef HAVE_IPV6
-#define SOUP_ADDRESS_GET_DATA(addr) \
-	(addr->priv->sockaddr->sa_family == AF_INET ? \
-		(gpointer)&SOUP_SIN(addr)->sin_addr : \
-		(gpointer)&SOUP_SIN6(addr)->sin6_addr)
+#define SOUP_ADDRESS_GET_DATA(priv) \
+	(priv->sockaddr->sa_family == AF_INET ? \
+		(gpointer)&SOUP_SIN(priv)->sin_addr : \
+		(gpointer)&SOUP_SIN6(priv)->sin6_addr)
 #else
-#define SOUP_ADDRESS_GET_DATA(addr) ((gpointer)&SOUP_SIN(addr)->sin_addr)
+#define SOUP_ADDRESS_GET_DATA(priv) ((gpointer)&SOUP_SIN(priv)->sin_addr)
 #endif
-#define SOUP_ADDRESS_SET_DATA(addr, data, length) \
-	memcpy (SOUP_ADDRESS_GET_DATA (addr), data, length)
+#define SOUP_ADDRESS_SET_DATA(priv, data, length) \
+	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
 
 enum {
@@ -111,43 +111,40 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+G_DEFINE_TYPE (SoupAddress, soup_address, G_TYPE_OBJECT)
 
 static void
-init (GObject *object)
+soup_address_init (SoupAddress *addr)
 {
-	SoupAddress *addr = SOUP_ADDRESS (object);
-
-	addr->priv = g_new0 (SoupAddressPrivate, 1);
 }
 
 static void
 finalize (GObject *object)
 {
 	SoupAddress *addr = SOUP_ADDRESS (object);
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (addr->priv->sockaddr)
-		g_free (addr->priv->sockaddr);
-	if (addr->priv->name)
-		g_free (addr->priv->name);
-	if (addr->priv->physical)
-		g_free (addr->priv->physical);
+	if (priv->sockaddr)
+		g_free (priv->sockaddr);
+	if (priv->name)
+		g_free (priv->name);
+	if (priv->physical)
+		g_free (priv->physical);
 
-	if (addr->priv->lookup)
-		soup_dns_entry_cancel_lookup (addr->priv->lookup);
-	if (addr->priv->timeout_id)
-		g_source_remove (addr->priv->timeout_id);
+	if (priv->lookup)
+		soup_dns_entry_cancel_lookup (priv->lookup);
+	if (priv->timeout_id)
+		g_source_remove (priv->timeout_id);
 
-	g_free (addr->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_address_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_address_class_init (SoupAddressClass *address_class)
 {
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	GObjectClass *object_class = G_OBJECT_CLASS (address_class);
+
+	g_type_class_add_private (address_class, sizeof (SoupAddressPrivate));
 
 	/* virtual method override */
 	object_class->finalize = finalize;
@@ -163,9 +160,6 @@ class_init (GObjectClass *object_class)
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
 }
-
-SOUP_MAKE_TYPE (soup_address, SoupAddress, class_init, init, PARENT_TYPE)
-
 
 
 /**
@@ -184,13 +178,15 @@ SoupAddress *
 soup_address_new (const char *name, guint port)
 {
 	SoupAddress *addr;
+	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
 
 	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	addr->priv->name = g_strdup (name);
-	addr->priv->port = port;
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv->name = g_strdup (name);
+	priv->port = port;
 
 	return addr;
 }
@@ -209,14 +205,16 @@ SoupAddress *
 soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 {
 	SoupAddress *addr;
+	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (sa != NULL, NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (sa->sa_family), NULL);
 	g_return_val_if_fail (len == SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family), NULL);
 
 	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	addr->priv->sockaddr = g_memdup (sa, len);
-	addr->priv->port = ntohs (SOUP_ADDRESS_GET_PORT (addr));
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv->sockaddr = g_memdup (sa, len);
+	priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
 	return addr;
 }
 
@@ -235,17 +233,18 @@ SoupAddress *
 soup_address_new_any (SoupAddressFamily family, guint port)
 {
 	SoupAddress *addr;
+	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family), NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
 
 	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	addr->priv->port = port;
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	priv->port = port;
 
-	addr->priv->sockaddr =
-		g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
-	SOUP_ADDRESS_SET_FAMILY (addr, family);
-	SOUP_ADDRESS_SET_PORT (addr, htons (port));
+	priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
+	SOUP_ADDRESS_SET_FAMILY (priv, family);
+	SOUP_ADDRESS_SET_PORT (priv, htons (port));
 
 	return addr;
 }
@@ -263,7 +262,7 @@ soup_address_get_name (SoupAddress *addr)
 {
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
 
-	return addr->priv->name;
+	return SOUP_ADDRESS_GET_PRIVATE (addr)->name;
 }
 
 /**
@@ -279,12 +278,15 @@ soup_address_get_name (SoupAddress *addr)
 struct sockaddr *
 soup_address_get_sockaddr (SoupAddress *addr, int *len)
 {
+	SoupAddressPrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (addr->priv->sockaddr && len)
-		*len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (addr));
+	if (priv->sockaddr && len)
+		*len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv));
 
-	return addr->priv->sockaddr;
+	return priv->sockaddr;
 }
 
 /**
@@ -299,18 +301,21 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
 const char *
 soup_address_get_physical (SoupAddress *addr)
 {
-	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+	SoupAddressPrivate *priv;
 
-	if (!addr->priv->sockaddr)
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), NULL);
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	if (!priv->sockaddr)
 		return NULL;
 
-	if (!addr->priv->physical) {
-		addr->priv->physical =
-			soup_dns_ntop (SOUP_ADDRESS_GET_DATA (addr),
-				       SOUP_ADDRESS_GET_FAMILY (addr));
+	if (!priv->physical) {
+		priv->physical =
+			soup_dns_ntop (SOUP_ADDRESS_GET_DATA (priv),
+				       SOUP_ADDRESS_GET_FAMILY (priv));
 	}
 
-	return addr->priv->physical;
+	return priv->physical;
 }
 
 /**
@@ -326,34 +331,35 @@ soup_address_get_port (SoupAddress *addr)
 {
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), 0);
 
-	return addr->priv->port;
+	return SOUP_ADDRESS_GET_PRIVATE (addr)->port;
 }
 
 
 static guint
 update_address_from_entry (SoupAddress *addr, SoupDNSEntry *entry)
 {
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	struct hostent *h;
 
 	h = soup_dns_entry_get_hostent (entry);
 	if (!h)
 		return SOUP_STATUS_CANT_RESOLVE;
 
-	if (!addr->priv->name)
-		addr->priv->name = g_strdup (h->h_name);
+	if (!priv->name)
+		priv->name = g_strdup (h->h_name);
 
-	if (!addr->priv->sockaddr &&
+	if (!priv->sockaddr &&
 	    SOUP_ADDRESS_FAMILY_IS_VALID (h->h_addrtype) &&
 	    SOUP_ADDRESS_FAMILY_DATA_SIZE (h->h_addrtype) == h->h_length) {
-		addr->priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (h->h_addrtype));
-		SOUP_ADDRESS_SET_FAMILY (addr, h->h_addrtype);
-		SOUP_ADDRESS_SET_PORT (addr, htons (addr->priv->port));
-		SOUP_ADDRESS_SET_DATA (addr, h->h_addr, h->h_length);
+		priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (h->h_addrtype));
+		SOUP_ADDRESS_SET_FAMILY (priv, h->h_addrtype);
+		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
+		SOUP_ADDRESS_SET_DATA (priv, h->h_addr, h->h_length);
 	}
 
 	soup_dns_free_hostent (h);
 
-	if (addr->priv->name && addr->priv->sockaddr)
+	if (priv->name && priv->sockaddr)
 		return SOUP_STATUS_OK;
 	else
 		return SOUP_STATUS_CANT_RESOLVE;
@@ -363,20 +369,21 @@ static gboolean
 timeout_check_lookup (gpointer user_data)
 {
 	SoupAddress *addr = user_data;
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	guint status;
 
-	if (addr->priv->name && addr->priv->sockaddr) {
-		addr->priv->timeout_id = 0;
+	if (priv->name && priv->sockaddr) {
+		priv->timeout_id = 0;
 		g_signal_emit (addr, signals[DNS_RESULT], 0, SOUP_STATUS_OK);
 		return FALSE;
 	}
 
-	if (!soup_dns_entry_check_lookup (addr->priv->lookup))
+	if (!soup_dns_entry_check_lookup (priv->lookup))
 		return TRUE;
 
-	status = update_address_from_entry (addr, addr->priv->lookup);
-	addr->priv->lookup = NULL;
-	addr->priv->timeout_id = 0;
+	status = update_address_from_entry (addr, priv->lookup);
+	priv->lookup = NULL;
+	priv->timeout_id = 0;
 
 	g_signal_emit (addr, signals[DNS_RESULT], 0, status);
 	return FALSE;
@@ -399,26 +406,27 @@ soup_address_resolve_async (SoupAddress *addr,
 			    SoupAddressCallback callback,
 			    gpointer user_data)
 {
+	SoupAddressPrivate *priv;
+
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
 	if (callback) {
 		soup_signal_connect_once (addr, "dns_result",
 					  G_CALLBACK (callback), user_data);
 	}
 
-	if (addr->priv->timeout_id)
+	if (priv->timeout_id)
 		return;
 
-	if (!addr->priv->sockaddr) {
-		addr->priv->lookup =
-			soup_dns_entry_from_name (addr->priv->name);
-	} else if (!addr->priv->name) {
-		addr->priv->lookup =
-			soup_dns_entry_from_addr (SOUP_ADDRESS_GET_DATA (addr),
-						  SOUP_ADDRESS_GET_FAMILY (addr));
+	if (!priv->sockaddr) {
+		priv->lookup = soup_dns_entry_from_name (priv->name);
+	} else if (!priv->name) {
+		priv->lookup = soup_dns_entry_from_addr (SOUP_ADDRESS_GET_DATA (priv),
+							 SOUP_ADDRESS_GET_FAMILY (priv));
 	}
 
-	addr->priv->timeout_id = g_timeout_add (100, timeout_check_lookup, addr);
+	priv->timeout_id = g_timeout_add (100, timeout_check_lookup, addr);
 }
 
 /**
@@ -434,14 +442,16 @@ guint
 soup_address_resolve_sync (SoupAddress *addr)
 {
 	SoupDNSEntry *entry;
+	SoupAddressPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (addr->priv->name)
-		entry = soup_dns_entry_from_name (addr->priv->name);
+	if (priv->name)
+		entry = soup_dns_entry_from_name (priv->name);
 	else {
-		entry = soup_dns_entry_from_addr (SOUP_ADDRESS_GET_DATA (addr),
-						  SOUP_ADDRESS_GET_FAMILY (addr));
+		entry = soup_dns_entry_from_addr (SOUP_ADDRESS_GET_DATA (priv),
+						  SOUP_ADDRESS_GET_FAMILY (priv));
 	}
 
 	return update_address_from_entry (addr, entry);

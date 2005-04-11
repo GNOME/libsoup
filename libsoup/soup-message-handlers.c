@@ -72,15 +72,16 @@ run_handler (SoupMessage     *msg,
 void
 soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	GSList *copy, *list;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	/* Jump through hoops to deal with callbacks that modify the list. */
-	copy = g_slist_copy (msg->priv->content_handlers);
+	copy = g_slist_copy (priv->content_handlers);
 
 	for (list = copy; list; list = list->next) {
-		if (!g_slist_find (msg->priv->content_handlers, list->data))
+		if (!g_slist_find (priv->content_handlers, list->data))
 			continue;
 		run_handler (msg, invoke_phase, list->data);
 
@@ -101,6 +102,7 @@ add_handler (SoupMessage           *msg,
 	     guint                  status_code,
 	     SoupStatusClass        status_class)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupHandlerData *data;
 
 	data = g_new0 (SoupHandlerData, 1);
@@ -123,8 +125,8 @@ add_handler (SoupMessage           *msg,
 		break;
 	}
 
-	msg->priv->content_handlers =
-		g_slist_append (msg->priv->content_handlers, data);
+	priv->content_handlers =
+		g_slist_append (priv->content_handlers, data);
 }
 
 /**
@@ -244,7 +246,9 @@ soup_message_remove_handler (SoupMessage           *msg,
 			     SoupMessageCallbackFn  handler_cb,
 			     gpointer               user_data)
 {
-	GSList *iter = msg->priv->content_handlers;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	GSList *iter = priv->content_handlers;
 
 	while (iter) {
 		SoupHandlerData *data = iter->data;
@@ -252,8 +256,8 @@ soup_message_remove_handler (SoupMessage           *msg,
 		if (data->handler_cb == handler_cb &&
 		    data->user_data == user_data &&
 		    data->phase == phase) {
-			msg->priv->content_handlers =
-				g_slist_remove (msg->priv->content_handlers,
+			priv->content_handlers =
+				g_slist_remove (priv->content_handlers,
 						data);
 			g_free (data);
 			break;

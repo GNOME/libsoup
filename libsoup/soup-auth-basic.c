@@ -24,39 +24,36 @@ static void authenticate (SoupAuth *auth, const char *username, const char *pass
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
 
-struct SoupAuthBasicPrivate {
+typedef struct {
 	char *realm, *token;
-};
+} SoupAuthBasicPrivate;
+#define SOUP_AUTH_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicPrivate))
 
-#define PARENT_TYPE SOUP_TYPE_AUTH
-static SoupAuthClass *parent_class;
+G_DEFINE_TYPE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
 
 static void
-init (GObject *object)
+soup_auth_basic_init (SoupAuthBasic *basic)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (object);
-
-	basic->priv = g_new0 (SoupAuthBasicPrivate, 1);
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (object);
+	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (object);
 
-	g_free (basic->priv->realm);
-	g_free (basic->priv->token);
-	g_free (basic->priv);
+	g_free (priv->realm);
+	g_free (priv->token);
 
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_auth_basic_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 {
-	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (object_class);
+	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_basic_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (auth_basic_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (auth_basic_class, sizeof (SoupAuthBasicPrivate));
 
 	auth_class->scheme_name = "Basic";
 
@@ -70,13 +67,11 @@ class_init (GObjectClass *object_class)
 	object_class->finalize = finalize;
 }
 
-SOUP_MAKE_TYPE (soup_auth_basic, SoupAuthBasic, class_init, init, PARENT_TYPE)
-
 
 static void
 construct (SoupAuth *auth, const char *header)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
+	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
 	GHashTable *tokens;
 
 	header += sizeof ("Basic");
@@ -85,7 +80,7 @@ construct (SoupAuth *auth, const char *header)
 	if (!tokens)
 		return;
 
-	basic->priv->realm = soup_header_param_copy_token (tokens, "realm");
+	priv->realm = soup_header_param_copy_token (tokens, "realm");
 	soup_header_param_destroy_hash (tokens);
 }
 
@@ -107,15 +102,13 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 static const char *
 get_realm (SoupAuth *auth)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
-
-	return basic->priv->realm;
+	return SOUP_AUTH_BASIC_GET_PRIVATE (auth)->realm;
 }
 
 static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
+	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
 	char *user_pass;
 	int len;
 
@@ -125,7 +118,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	user_pass = g_strdup_printf ("%s:%s", username, password);
 	len = strlen (user_pass);
 
-	basic->priv->token = soup_base64_encode (user_pass, len);
+	priv->token = soup_base64_encode (user_pass, len);
 
 	memset (user_pass, 0, len);
 	g_free (user_pass);
@@ -134,15 +127,13 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 static gboolean
 is_authenticated (SoupAuth *auth)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
-
-	return basic->priv->token != NULL;
+	return SOUP_AUTH_BASIC_GET_PRIVATE (auth)->token != NULL;
 }
 
 static char *
 get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
-	SoupAuthBasic *basic = SOUP_AUTH_BASIC (auth);
+	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
 
-	return g_strdup_printf ("Basic %s", basic->priv->token);
+	return g_strdup_printf ("Basic %s", priv->token);
 }

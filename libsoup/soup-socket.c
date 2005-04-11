@@ -26,8 +26,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#define PARENT_TYPE G_TYPE_OBJECT
-static GObjectClass *parent_class;
+G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
 
 enum {
 	CONNECT_RESULT,
@@ -52,7 +51,7 @@ enum {
 	LAST_PROP
 };
 
-struct SoupSocketPrivate {
+typedef struct {
 	int sockfd;
 	SoupAddress *local_addr, *remote_addr;
 	GIOChannel *iochannel;
@@ -68,7 +67,8 @@ struct SoupSocketPrivate {
 	GByteArray     *read_buf;
 
 	GMutex *iolock, *addrlock;
-};
+} SoupSocketPrivate;
+#define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
 #ifdef HAVE_IPV6
 #define soup_sockaddr_max sockaddr_in6
@@ -82,67 +82,66 @@ static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
 static void
-init (GObject *object)
+soup_socket_init (SoupSocket *sock)
 {
-	SoupSocket *sock = SOUP_SOCKET (object);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	sock->priv = g_new0 (SoupSocketPrivate, 1);
-	sock->priv->sockfd = -1;
-	sock->priv->non_blocking = sock->priv->nodelay = TRUE;
-	sock->priv->reuseaddr = TRUE;
-	sock->priv->addrlock = g_mutex_new ();
-	sock->priv->iolock = g_mutex_new ();
+	priv->sockfd = -1;
+	priv->non_blocking = priv->nodelay = TRUE;
+	priv->reuseaddr = TRUE;
+	priv->addrlock = g_mutex_new ();
+	priv->iolock = g_mutex_new ();
 }
 
 static void
-disconnect_internal (SoupSocket *sock)
+disconnect_internal (SoupSocketPrivate *priv)
 {
-	g_io_channel_unref (sock->priv->iochannel);
-	sock->priv->iochannel = NULL;
-	sock->priv->sockfd = -1;
+	g_io_channel_unref (priv->iochannel);
+	priv->iochannel = NULL;
+	priv->sockfd = -1;
 
-	if (sock->priv->read_tag) {
-		g_source_remove (sock->priv->read_tag);
-		sock->priv->read_tag = 0;
+	if (priv->read_tag) {
+		g_source_remove (priv->read_tag);
+		priv->read_tag = 0;
 	}
-	if (sock->priv->write_tag) {
-		g_source_remove (sock->priv->write_tag);
-		sock->priv->write_tag = 0;
+	if (priv->write_tag) {
+		g_source_remove (priv->write_tag);
+		priv->write_tag = 0;
 	}
-	if (sock->priv->error_tag) {
-		g_source_remove (sock->priv->error_tag);
-		sock->priv->error_tag = 0;
+	if (priv->error_tag) {
+		g_source_remove (priv->error_tag);
+		priv->error_tag = 0;
 	}
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupSocket *sock = SOUP_SOCKET (object);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
-	if (sock->priv->iochannel)
-		disconnect_internal (sock);
+	if (priv->iochannel)
+		disconnect_internal (priv);
 
-	if (sock->priv->local_addr)
-		g_object_unref (sock->priv->local_addr);
-	if (sock->priv->remote_addr)
-		g_object_unref (sock->priv->remote_addr);
+	if (priv->local_addr)
+		g_object_unref (priv->local_addr);
+	if (priv->remote_addr)
+		g_object_unref (priv->remote_addr);
 
-	if (sock->priv->watch)
-		g_source_remove (sock->priv->watch);
+	if (priv->watch)
+		g_source_remove (priv->watch);
 
-	g_mutex_free (sock->priv->addrlock);
-	g_mutex_free (sock->priv->iolock);
+	g_mutex_free (priv->addrlock);
+	g_mutex_free (priv->iolock);
 
-	g_free (sock->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_socket_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_socket_class_init (SoupSocketClass *socket_class)
 {
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	GObjectClass *object_class = G_OBJECT_CLASS (socket_class);
+
+	g_type_class_add_private (socket_class, sizeof (SoupSocketPrivate));
 
 	/* virtual method override */
 	object_class->finalize = finalize;
@@ -230,32 +229,30 @@ class_init (GObjectClass *object_class)
 				      G_PARAM_READWRITE));
 }
 
-SOUP_MAKE_TYPE (soup_socket, SoupSocket, class_init, init, PARENT_TYPE)
-
 
 static void
-update_fdflags (SoupSocket *sock)
+update_fdflags (SoupSocketPrivate *priv)
 {
 	int flags, opt;
 
-	if (sock->priv->sockfd == -1)
+	if (priv->sockfd == -1)
 		return;
 
-	flags = fcntl (sock->priv->sockfd, F_GETFL, 0);
+	flags = fcntl (priv->sockfd, F_GETFL, 0);
 	if (flags != -1) {
-		if (sock->priv->non_blocking)
+		if (priv->non_blocking)
 			flags |= O_NONBLOCK;
 		else
 			flags &= ~O_NONBLOCK;
-		fcntl (sock->priv->sockfd, F_SETFL, flags);
+		fcntl (priv->sockfd, F_SETFL, flags);
 	}
 
-	opt = (sock->priv->nodelay != 0);
-	setsockopt (sock->priv->sockfd, IPPROTO_TCP,
+	opt = (priv->nodelay != 0);
+	setsockopt (priv->sockfd, IPPROTO_TCP,
 		    TCP_NODELAY, &opt, sizeof (opt));
 
-	opt = (sock->priv->reuseaddr != 0);
-	setsockopt (sock->priv->sockfd, SOL_SOCKET,
+	opt = (priv->reuseaddr != 0);
+	setsockopt (priv->sockfd, SOL_SOCKET,
 		    SO_REUSEADDR, &opt, sizeof (opt));
 }
 
@@ -263,23 +260,23 @@ static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
-	SoupSocket *sock = SOUP_SOCKET (object);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
 	switch (prop_id) {
 	case PROP_NON_BLOCKING:
-		sock->priv->non_blocking = g_value_get_boolean (value);
-		update_fdflags (sock);
+		priv->non_blocking = g_value_get_boolean (value);
+		update_fdflags (priv);
 		break;
 	case PROP_NODELAY:
-		sock->priv->nodelay = g_value_get_boolean (value);
-		update_fdflags (sock);
+		priv->nodelay = g_value_get_boolean (value);
+		update_fdflags (priv);
 		break;
 	case PROP_REUSEADDR:
-		sock->priv->reuseaddr = g_value_get_boolean (value);
-		update_fdflags (sock);
+		priv->reuseaddr = g_value_get_boolean (value);
+		update_fdflags (priv);
 		break;
 	case PROP_SSL_CREDENTIALS:
-		sock->priv->ssl_creds = g_value_get_pointer (value);
+		priv->ssl_creds = g_value_get_pointer (value);
 		break;
 	default:
 		break;
@@ -290,23 +287,23 @@ static void
 get_property (GObject *object, guint prop_id,
 	      GValue *value, GParamSpec *pspec)
 {
-	SoupSocket *sock = SOUP_SOCKET (object);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
 	switch (prop_id) {
 	case PROP_NON_BLOCKING:
-		g_value_set_boolean (value, sock->priv->non_blocking);
+		g_value_set_boolean (value, priv->non_blocking);
 		break;
 	case PROP_NODELAY:
-		g_value_set_boolean (value, sock->priv->nodelay);
+		g_value_set_boolean (value, priv->nodelay);
 		break;
 	case PROP_REUSEADDR:
-		g_value_set_boolean (value, sock->priv->reuseaddr);
+		g_value_set_boolean (value, priv->reuseaddr);
 		break;
 	case PROP_IS_SERVER:
-		g_value_set_boolean (value, sock->priv->is_server);
+		g_value_set_boolean (value, priv->is_server);
 		break;
 	case PROP_SSL_CREDENTIALS:
-		g_value_set_pointer (value, sock->priv->ssl_creds);
+		g_value_set_pointer (value, priv->ssl_creds);
 		break;
 	default:
 		break;
@@ -338,29 +335,30 @@ soup_socket_new (const char *optname1, ...)
 }
 
 static GIOChannel *
-get_iochannel (SoupSocket *sock)
+get_iochannel (SoupSocketPrivate *priv)
 {
-	g_mutex_lock (sock->priv->iolock);
-	if (!sock->priv->iochannel) {
-		sock->priv->iochannel =
-			g_io_channel_unix_new (sock->priv->sockfd);
-		g_io_channel_set_close_on_unref (sock->priv->iochannel, TRUE);
-		g_io_channel_set_encoding (sock->priv->iochannel, NULL, NULL);
-		g_io_channel_set_buffered (sock->priv->iochannel, FALSE);
+	g_mutex_lock (priv->iolock);
+	if (!priv->iochannel) {
+		priv->iochannel =
+			g_io_channel_unix_new (priv->sockfd);
+		g_io_channel_set_close_on_unref (priv->iochannel, TRUE);
+		g_io_channel_set_encoding (priv->iochannel, NULL, NULL);
+		g_io_channel_set_buffered (priv->iochannel, FALSE);
 	}
-	g_mutex_unlock (sock->priv->iolock);
-	return sock->priv->iochannel;
+	g_mutex_unlock (priv->iolock);
+	return priv->iochannel;
 }
 
 static gboolean
 idle_connect_result (gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	sock->priv->watch = 0;
+	priv->watch = 0;
 
 	g_signal_emit (sock, signals[CONNECT_RESULT], 0,
-		       sock->priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
+		       priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
 	return FALSE;
 }
 
@@ -368,17 +366,18 @@ static gboolean
 connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 {
 	SoupSocket *sock = data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	int error = 0;
 	int len = sizeof (error);
 
 	/* Remove the watch now in case we don't return immediately */
-	g_source_remove (sock->priv->watch);
-	sock->priv->watch = 0;
+	g_source_remove (priv->watch);
+	priv->watch = 0;
 
 	if (condition & ~(G_IO_IN | G_IO_OUT))
 		goto cant_connect;
 
-	if (getsockopt (sock->priv->sockfd, SOL_SOCKET, SO_ERROR,
+	if (getsockopt (priv->sockfd, SOL_SOCKET, SO_ERROR,
 			&error, &len) != 0)
 		goto cant_connect;
 	if (error)
@@ -395,6 +394,7 @@ static void
 got_address (SoupAddress *addr, guint status, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_emit (sock, signals[CONNECT_RESULT], 0, status);
@@ -402,7 +402,7 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 		return;
 	}
 
-	soup_socket_connect (sock, sock->priv->remote_addr);
+	soup_socket_connect (sock, priv->remote_addr);
 	/* soup_socket_connect re-reffed addr */
 	g_object_unref (addr);
 
@@ -428,24 +428,26 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 guint
 soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 {
+	SoupSocketPrivate *priv;
 	struct sockaddr *sa;
 	int len, status;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (!sock->priv->is_server, SOUP_STATUS_MALFORMED);
-	g_return_val_if_fail (sock->priv->sockfd == -1, SOUP_STATUS_MALFORMED);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_val_if_fail (!priv->is_server, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->sockfd == -1, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (SOUP_IS_ADDRESS (remote_addr), SOUP_STATUS_MALFORMED);
 
-	sock->priv->remote_addr = g_object_ref (remote_addr);
-	if (!sock->priv->non_blocking) {
+	priv->remote_addr = g_object_ref (remote_addr);
+	if (!priv->non_blocking) {
 		status = soup_address_resolve_sync (remote_addr);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 			return status;
 	}
 
-	sa = soup_address_get_sockaddr (sock->priv->remote_addr, &len);
+	sa = soup_address_get_sockaddr (priv->remote_addr, &len);
 	if (!sa) {
-		if (!sock->priv->non_blocking)
+		if (!priv->non_blocking)
 			return SOUP_STATUS_CANT_RESOLVE;
 
 		g_object_ref (sock);
@@ -453,38 +455,38 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 		return SOUP_STATUS_CONTINUE;
 	}
 
-	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
-	if (sock->priv->sockfd == -1) {
+	priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
+	if (priv->sockfd == -1) {
 		goto done;
 	}
-	update_fdflags (sock);
+	update_fdflags (priv);
 
-	status = connect (sock->priv->sockfd, sa, len);
+	status = connect (priv->sockfd, sa, len);
 
 	if (status == -1) {
 		if (errno == EINPROGRESS) {
 			/* Wait for connect to succeed or fail */
-			sock->priv->watch =
-				g_io_add_watch (get_iochannel (sock),
+			priv->watch =
+				g_io_add_watch (get_iochannel (priv),
 						G_IO_IN | G_IO_OUT |
 						G_IO_PRI | G_IO_ERR |
 						G_IO_HUP | G_IO_NVAL,
 						connect_watch, sock);
 			return SOUP_STATUS_CONTINUE;
 		} else {
-			close (sock->priv->sockfd);
-			sock->priv->sockfd = -1;
+			close (priv->sockfd);
+			priv->sockfd = -1;
 		}
 	}
 
  done:
-	if (sock->priv->non_blocking) {
-		sock->priv->watch = g_idle_add (idle_connect_result, sock);
+	if (priv->non_blocking) {
+		priv->watch = g_idle_add (idle_connect_result, sock);
 		return SOUP_STATUS_CONTINUE;
-	} else if (sock->priv->sockfd == -1)
+	} else if (priv->sockfd == -1)
 		return SOUP_STATUS_CANT_CONNECT;
 	else {
-		get_iochannel (sock);
+		get_iochannel (priv);
 		return SOUP_STATUS_OK;
 	}
 }
@@ -493,37 +495,39 @@ static gboolean
 listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 {
 	SoupSocket *sock = data, *new;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock), *new_priv;
 	struct soup_sockaddr_max sa;
 	int sa_len, sockfd;
 
 	if (condition & (G_IO_HUP | G_IO_ERR)) {
-		g_source_remove (sock->priv->watch);
-		sock->priv->watch = 0;
+		g_source_remove (priv->watch);
+		priv->watch = 0;
 		return FALSE;
 	}
 
 	sa_len = sizeof (sa);
-	sockfd = accept (sock->priv->sockfd, (struct sockaddr *)&sa, &sa_len);
+	sockfd = accept (priv->sockfd, (struct sockaddr *)&sa, &sa_len);
 	if (sockfd == -1)
 		return TRUE;
 
 	new = g_object_new (SOUP_TYPE_SOCKET, NULL);
-	new->priv->sockfd = sockfd;
-	new->priv->non_blocking = sock->priv->non_blocking;
-	new->priv->nodelay = sock->priv->nodelay;
-	new->priv->is_server = TRUE;
-	new->priv->ssl_creds = sock->priv->ssl_creds;
-	update_fdflags (new);
+	new_priv = SOUP_SOCKET_GET_PRIVATE (new);
+	new_priv->sockfd = sockfd;
+	new_priv->non_blocking = priv->non_blocking;
+	new_priv->nodelay = priv->nodelay;
+	new_priv->is_server = TRUE;
+	new_priv->ssl_creds = priv->ssl_creds;
+	update_fdflags (new_priv);
 
-	new->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
+	new_priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 
-	if (new->priv->ssl_creds) {
+	if (new_priv->ssl_creds) {
 		if (!soup_socket_start_ssl (new)) {
 			g_object_unref (new);
 			return TRUE;
 		}
 	} else
-		get_iochannel (new);
+		get_iochannel (new_priv);
 
 	g_signal_emit (sock, signals[NEW_CONNECTION], 0, new);
 	g_object_unref (new);
@@ -545,16 +549,18 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 gboolean
 soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 {
+	SoupSocketPrivate *priv;
 	struct sockaddr *sa;
 	int sa_len;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
-	g_return_val_if_fail (sock->priv->is_server, FALSE);
-	g_return_val_if_fail (sock->priv->sockfd == -1, FALSE);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_val_if_fail (priv->is_server, FALSE);
+	g_return_val_if_fail (priv->sockfd == -1, FALSE);
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), FALSE);
 
 	/* @local_addr may have its port set to 0. So we intentionally
-	 * don't store it in sock->priv->local_addr, so that if the
+	 * don't store it in priv->local_addr, so that if the
 	 * caller calls soup_socket_get_local_address() later, we'll
 	 * have to make a new addr by calling getsockname(), which
 	 * will have the right port number.
@@ -562,28 +568,28 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	sa = soup_address_get_sockaddr (local_addr, &sa_len);
 	g_return_val_if_fail (sa != NULL, FALSE);
 
-	sock->priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
-	if (sock->priv->sockfd < 0)
+	priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
+	if (priv->sockfd < 0)
 		goto cant_listen;
-	update_fdflags (sock);
+	update_fdflags (priv);
 
 	/* Bind */
-	if (bind (sock->priv->sockfd, sa, sa_len) != 0)
+	if (bind (priv->sockfd, sa, sa_len) != 0)
 		goto cant_listen;
 
 	/* Listen */
-	if (listen (sock->priv->sockfd, 10) != 0)
+	if (listen (priv->sockfd, 10) != 0)
 		goto cant_listen;
 
-	sock->priv->watch = g_io_add_watch (get_iochannel (sock),
-					    G_IO_IN | G_IO_ERR | G_IO_HUP,
-					    listen_watch, sock);
+	priv->watch = g_io_add_watch (get_iochannel (priv),
+				      G_IO_IN | G_IO_ERR | G_IO_HUP,
+				      listen_watch, sock);
 	return TRUE;
 
  cant_listen:
-	if (sock->priv->sockfd != -1) {
-		close (sock->priv->sockfd);
-		sock->priv->sockfd = -1;
+	if (priv->sockfd != -1) {
+		close (priv->sockfd);
+		priv->sockfd = -1;
 	}
 
 	return FALSE;
@@ -600,7 +606,9 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 gboolean
 soup_socket_start_ssl (SoupSocket *sock)
 {
-	return soup_socket_start_proxy_ssl (sock, soup_address_get_name (sock->priv->remote_addr));
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	return soup_socket_start_proxy_ssl (sock, soup_address_get_name (priv->remote_addr));
 }
 	
 /**
@@ -616,18 +624,19 @@ soup_socket_start_ssl (SoupSocket *sock)
 gboolean
 soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
 {
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GIOChannel *ssl_chan;
 
-	get_iochannel (sock);
+	get_iochannel (priv);
 	ssl_chan = soup_ssl_wrap_iochannel (
-		sock->priv->iochannel, sock->priv->is_server ?
+		priv->iochannel, priv->is_server ?
 		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
-		ssl_host, sock->priv->ssl_creds);
+		ssl_host, priv->ssl_creds);
 
 	if (!ssl_chan)
 		return FALSE;
 
-	sock->priv->iochannel = ssl_chan;
+	priv->iochannel = ssl_chan;
 	return TRUE;
 }
 	
@@ -683,6 +692,7 @@ soup_socket_client_new_sync (const char *hostname, guint port,
 			     gpointer ssl_creds, guint *status_ret)
 {
 	SoupSocket *sock;
+	SoupSocketPrivate *priv;
 	guint status;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
@@ -690,7 +700,8 @@ soup_socket_client_new_sync (const char *hostname, guint port,
 	sock = g_object_new (SOUP_TYPE_SOCKET,
 			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
 			     NULL);
-	sock->priv->non_blocking = FALSE;
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	priv->non_blocking = FALSE;
 	status = soup_socket_connect (sock, soup_address_new (hostname, port));
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
@@ -723,13 +734,15 @@ soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 			gpointer user_data)
 {
 	SoupSocket *sock;
+	SoupSocketPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), NULL);
 
 	sock = g_object_new (SOUP_TYPE_SOCKET,
 			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
 			     NULL);
-	sock->priv->is_server = TRUE;
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	priv->is_server = TRUE;
 	if (!soup_socket_listen (sock, local_addr)) {
 		g_object_unref (sock);
 		return NULL;
@@ -754,16 +767,18 @@ soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 void
 soup_socket_disconnect (SoupSocket *sock)
 {
+	SoupSocketPrivate *priv;
 	gboolean already_disconnected = FALSE;
 
 	g_return_if_fail (SOUP_IS_SOCKET (sock));
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	if (g_mutex_trylock (sock->priv->iolock)) {
-		if (sock->priv->iochannel)
-			disconnect_internal (sock);
+	if (g_mutex_trylock (priv->iolock)) {
+		if (priv->iochannel)
+			disconnect_internal (priv);
 		else
 			already_disconnected = TRUE;
-		g_mutex_unlock (sock->priv->iolock);
+		g_mutex_unlock (priv->iolock);
 	} else {
 		int sockfd;
 
@@ -772,12 +787,12 @@ soup_socket_disconnect (SoupSocket *sock)
 		 * the file descriptor out from under it.
 		 */
 
-		sockfd = sock->priv->sockfd;
-		sock->priv->sockfd = -1;
+		sockfd = priv->sockfd;
+		priv->sockfd = -1;
 		if (sockfd == -1)
 			already_disconnected = TRUE;
 		else {
-			g_io_channel_set_close_on_unref (sock->priv->iochannel,
+			g_io_channel_set_close_on_unref (priv->iochannel,
 							 FALSE);
 			close (sockfd);
 		}
@@ -806,9 +821,12 @@ soup_socket_disconnect (SoupSocket *sock)
 gboolean
 soup_socket_is_connected (SoupSocket *sock)
 {
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
+	SoupSocketPrivate *priv;
 
-	return sock->priv->iochannel != NULL;
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	return priv->iochannel != NULL;
 }
 
 /**
@@ -822,20 +840,23 @@ soup_socket_is_connected (SoupSocket *sock)
 SoupAddress *
 soup_socket_get_local_address (SoupSocket *sock)
 {
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+	SoupSocketPrivate *priv;
 
-	g_mutex_lock (sock->priv->addrlock);
-	if (!sock->priv->local_addr) {
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	g_mutex_lock (priv->addrlock);
+	if (!priv->local_addr) {
 		struct soup_sockaddr_max bound_sa;
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
-		getsockname (sock->priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
-		sock->priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
+		getsockname (priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
+		priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
-	g_mutex_unlock (sock->priv->addrlock);
+	g_mutex_unlock (priv->addrlock);
 
-	return sock->priv->local_addr;
+	return priv->local_addr;
 }
 
 /**
@@ -849,20 +870,23 @@ soup_socket_get_local_address (SoupSocket *sock)
 SoupAddress *
 soup_socket_get_remote_address (SoupSocket *sock)
 {
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+	SoupSocketPrivate *priv;
 
-	g_mutex_lock (sock->priv->addrlock);
-	if (!sock->priv->remote_addr) {
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	g_mutex_lock (priv->addrlock);
+	if (!priv->remote_addr) {
 		struct soup_sockaddr_max bound_sa;
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
-		getpeername (sock->priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
-		sock->priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
+		getpeername (priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
+		priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
-	g_mutex_unlock (sock->priv->addrlock);
+	g_mutex_unlock (priv->addrlock);
 
-	return sock->priv->remote_addr;
+	return priv->remote_addr;
 }
 
 
@@ -872,8 +896,9 @@ static gboolean
 socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	sock->priv->read_tag = 0;
+	priv->read_tag = 0;
 	g_signal_emit (sock, signals[READABLE], 0);
 
 	return FALSE;
@@ -882,14 +907,15 @@ socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 static SoupSocketIOStatus
 read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GIOStatus status;
 	GIOCondition cond = G_IO_IN;
 	GError *err = NULL;
 
-	if (!sock->priv->iochannel) 
+	if (!priv->iochannel) 
 		return SOUP_SOCKET_EOF;
 
-	status = g_io_channel_read_chars (sock->priv->iochannel,
+	status = g_io_channel_read_chars (priv->iochannel,
 					  buffer, len, nread, &err);
 	if (err) {
 		if (err->domain == SOUP_SSL_ERROR &&
@@ -910,9 +936,9 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		if (*nread > 0)
 			return SOUP_SOCKET_OK;
 
-		if (!sock->priv->read_tag) {
-			sock->priv->read_tag =
-				g_io_add_watch (sock->priv->iochannel, cond,
+		if (!priv->read_tag) {
+			priv->read_tag =
+				g_io_add_watch (priv->iochannel, cond,
 						socket_read_watch, sock);
 		}
 		return SOUP_SOCKET_WOULD_BLOCK;
@@ -928,14 +954,15 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 static SoupSocketIOStatus
 read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
-	GByteArray *read_buf = sock->priv->read_buf;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	GByteArray *read_buf = priv->read_buf;
 
 	*nread = MIN (read_buf->len, len);
 	memcpy (buffer, read_buf->data, *nread);
 
 	if (*nread == read_buf->len) {
 		g_byte_array_free (read_buf, TRUE);
-		sock->priv->read_buf = NULL;
+		priv->read_buf = NULL;
 	} else {
 		memmove (read_buf->data, read_buf->data + *nread, 
 			 read_buf->len - *nread);
@@ -971,16 +998,18 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 SoupSocketIOStatus
 soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 {
+	SoupSocketPrivate *priv;
 	SoupSocketIOStatus status;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	g_mutex_lock (sock->priv->iolock);
-	if (sock->priv->read_buf)
+	g_mutex_lock (priv->iolock);
+	if (priv->read_buf)
 		status = read_from_buf (sock, buffer, len, nread);
 	else
 		status = read_from_network (sock, buffer, len, nread);
-	g_mutex_unlock (sock->priv->iolock);
+	g_mutex_unlock (priv->iolock);
 
 	return status;
 }
@@ -1008,21 +1037,23 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 			gconstpointer boundary, gsize boundary_len,
 			gsize *nread, gboolean *got_boundary)
 {
+	SoupSocketPrivate *priv;
 	SoupSocketIOStatus status;
 	GByteArray *read_buf;
 	guint match_len, prev_len;
 	guint8 *p, *end;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	g_return_val_if_fail (len >= boundary_len, SOUP_SOCKET_ERROR);
 
-	g_mutex_lock (sock->priv->iolock);
+	g_mutex_lock (priv->iolock);
 
 	*got_boundary = FALSE;
 
-	if (!sock->priv->read_buf)
-		sock->priv->read_buf = g_byte_array_new ();
-	read_buf = sock->priv->read_buf;
+	if (!priv->read_buf)
+		priv->read_buf = g_byte_array_new ();
+	read_buf = priv->read_buf;
 
 	if (read_buf->len < boundary_len) {
 		prev_len = read_buf->len;
@@ -1033,7 +1064,7 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 		read_buf->len = prev_len + *nread;
 
 		if (status != SOUP_SOCKET_OK) {
-			g_mutex_unlock (sock->priv->iolock);
+			g_mutex_unlock (priv->iolock);
 			return status;
 		}
 	}
@@ -1055,7 +1086,7 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 	match_len = p - read_buf->data;
 	status = read_from_buf (sock, buffer, MIN (len, match_len), nread);
 
-	g_mutex_unlock (sock->priv->iolock);
+	g_mutex_unlock (priv->iolock);
 	return status;
 }
 
@@ -1063,8 +1094,9 @@ static gboolean
 socket_write_watch (GIOChannel *chan, GIOCondition condition, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	sock->priv->write_tag = 0;
+	priv->write_tag = 0;
 	g_signal_emit (sock, signals[WRITABLE], 0);
 
 	return FALSE;
@@ -1095,26 +1127,28 @@ SoupSocketIOStatus
 soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		   gsize len, gsize *nwrote)
 {
+	SoupSocketPrivate *priv;
 	GIOStatus status;
 	gpointer pipe_handler;
 	GIOCondition cond = G_IO_OUT;
 	GError *err = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	g_mutex_lock (sock->priv->iolock);
+	g_mutex_lock (priv->iolock);
 
-	if (!sock->priv->iochannel) {
-		g_mutex_unlock (sock->priv->iolock);
+	if (!priv->iochannel) {
+		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_EOF;
 	}
-	if (sock->priv->write_tag) {
-		g_mutex_unlock (sock->priv->iolock);
+	if (priv->write_tag) {
+		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_WOULD_BLOCK;
 	}
 
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
-	status = g_io_channel_write_chars (sock->priv->iochannel,
+	status = g_io_channel_write_chars (priv->iochannel,
 					   buffer, len, nwrote, &err);
 	signal (SIGPIPE, pipe_handler);
 	if (err) {
@@ -1131,18 +1165,18 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	}
 
 	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {
-		g_mutex_unlock (sock->priv->iolock);
+		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_ERROR;
 	}
 
 	if (*nwrote) {
-		g_mutex_unlock (sock->priv->iolock);
+		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_OK;
 	}
 
-	sock->priv->write_tag =
-		g_io_add_watch (sock->priv->iochannel, cond, 
+	priv->write_tag =
+		g_io_add_watch (priv->iochannel, cond, 
 				socket_write_watch, sock);
-	g_mutex_unlock (sock->priv->iolock);
+	g_mutex_unlock (priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;
 }

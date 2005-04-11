@@ -15,12 +15,9 @@
 #define SOUP_IS_AUTH_BASIC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_AUTH_BASIC))
 #define SOUP_AUTH_BASIC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicClass))
 
-typedef struct SoupAuthBasicPrivate SoupAuthBasicPrivate;
-
 typedef struct {
 	SoupAuth parent;
 
-	SoupAuthBasicPrivate *priv;
 } SoupAuthBasic;
 
 typedef struct {

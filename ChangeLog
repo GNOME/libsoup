@@ -1,5 +1,17 @@
 2005-04-11  Dan Winship  <danw@novell.com>
 
+	* configure.in: require glib-2.0 >= 2.4.0
+
+	* libsoup/*.c: use G_DEFINE_TYPE and
+	g_type_class_add_private/G_TYPE_INSTANCE_GET_PRIVATE
+
+	* libsoup/soup-types.h: kill SOUP_MAKE_TYPE and
+	SOUP_MAKE_TYPE_WITH_IFACE
+
+	* tests/revserver.c: use GThread. (patch from tml)
+
+2005-04-11  Dan Winship  <danw@novell.com>
+
 	* configure.in: bump version to 2.3.0. bump SOUP_API_VERSION to
 	2.4
 

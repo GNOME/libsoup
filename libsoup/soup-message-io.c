@@ -64,15 +64,16 @@ typedef struct {
  */
 #define dummy_to_make_emacs_happy {
 #define SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK { gboolean cancelled; g_object_ref (msg);
-#define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (msg->priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return; }
-#define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (msg->priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return val; }
+#define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return; }
+#define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return val; }
 
 #define RESPONSE_BLOCK_SIZE 8192
 
 static void
 io_cleanup (SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
 	if (!io)
 		return;
@@ -89,7 +90,7 @@ io_cleanup (SoupMessage *msg)
 	g_string_free (io->write_buf, TRUE);
 
 	g_free (io);
-	msg->priv->io_data = NULL;
+	priv->io_data = NULL;
 }
 
 /**
@@ -102,7 +103,8 @@ io_cleanup (SoupMessage *msg)
 void
 soup_message_io_stop (SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
 	if (!io)
 		return;
@@ -145,7 +147,8 @@ soup_message_io_finished (SoupMessage *msg)
 static void
 io_error (SoupSocket *sock, SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
 	/* Closing the connection to signify EOF is sometimes ok */
 	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
@@ -173,7 +176,8 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 static gboolean
 read_metadata (SoupMessage *msg, const char *boundary)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	char read_buf[RESPONSE_BLOCK_SIZE];
 	guint boundary_len = strlen (boundary);
@@ -206,7 +210,8 @@ read_metadata (SoupMessage *msg, const char *boundary)
 static gboolean
 read_body_chunk (SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	char read_buf[RESPONSE_BLOCK_SIZE];
 	guint len = sizeof (read_buf);
@@ -259,7 +264,8 @@ read_body_chunk (SoupMessage *msg)
 static gboolean
 write_data (SoupMessage *msg, const char *data, guint len)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	gsize nwrote;
 
@@ -326,7 +332,8 @@ static void io_read (SoupSocket *sock, SoupMessage *msg);
 static void
 io_write (SoupSocket *sock, SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
  write_more:
 	switch (io->write_state) {
@@ -366,7 +373,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 */
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-			   msg->priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE) {
+			   priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE) {
 			/* Need to wait for the Continue response */
 			io->write_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
@@ -499,7 +506,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 static void
 io_read (SoupSocket *sock, SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 	guint status;
 
  read_more:
@@ -550,7 +558,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 				io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&
-			   (msg->priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
+			   (priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
 			/* The client requested a Continue response. */
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io->read_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
@@ -661,6 +669,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	     SoupMessageParseHeadersFn parse_headers_cb,
 	     gpointer user_data)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
 
 	io = g_new0 (SoupMessageIOData, 1);
@@ -674,7 +683,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_encoding   = SOUP_TRANSFER_UNKNOWN;
 
 	io->read_meta_buf    = g_byte_array_new ();
-	if (!(msg->priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
+	if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
 		io->read_buf = g_byte_array_new ();
 	io->write_buf        = g_string_new (NULL);
 
@@ -688,9 +697,9 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
-	if (msg->priv->io_data)
+	if (priv->io_data)
 		io_cleanup (msg);
-	msg->priv->io_data = io;
+	priv->io_data = io;
 	return io;
 }
 
@@ -763,7 +772,8 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 void  
 soup_message_io_pause (SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
 
@@ -786,7 +796,8 @@ soup_message_io_pause (SoupMessage *msg)
 void  
 soup_message_io_unpause (SoupMessage *msg)
 {
-	SoupMessageIOData *io = msg->priv->io_data;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
 

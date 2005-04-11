@@ -3,7 +3,6 @@
 #endif
 
 #include <ctype.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +10,8 @@
 
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-socket.h>
+
+#include <glib/gthread.h>
 
 static void rev_read (SoupSocket *sock, GString *buf);
 static void rev_write (SoupSocket *sock, GString *buf);
@@ -117,15 +118,18 @@ start_thread (void *client)
 static void
 new_connection (SoupSocket *listener, SoupSocket *client, gpointer user_data)
 {
-	pthread_t pth;
+	GThread *thread;
+	GError *error = NULL;
 
 	g_object_ref (client);
 	g_object_set (G_OBJECT (client),
 		      SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 		      NULL);
 
-	if (pthread_create (&pth, NULL, start_thread, client) != 0) {
-		g_warning ("Could not start thread");
+	thread = g_thread_create (start_thread, client, FALSE, &error);
+	if (thread == NULL) {
+		g_warning ("Could not start thread: %s", error->message);
+		g_error_free (error);
 		g_object_unref (client);
 	}
 }
@@ -141,6 +145,7 @@ main (int argc, char **argv)
 	int opt;
 
 	g_type_init ();
+	g_thread_init (NULL);
 
 	while ((opt = getopt (argc, argv, "6p:")) != -1) {
 		switch (opt) {

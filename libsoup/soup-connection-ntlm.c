@@ -27,14 +27,14 @@ typedef enum {
 	SOUP_CONNECTION_NTLM_FAILED
 } SoupConnectionNTLMState;
 
-struct SoupConnectionNTLMPrivate {
+typedef struct {
 	char *user;
 	guchar nt_hash[21], lm_hash[21];
 	SoupConnectionNTLMState state;
-};
+} SoupConnectionNTLMPrivate;
+#define SOUP_CONNECTION_NTLM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION_NTLM, SoupConnectionNTLMPrivate))
 
-#define PARENT_TYPE SOUP_TYPE_CONNECTION
-static SoupConnectionClass *parent_class;
+G_DEFINE_TYPE (SoupConnectionNTLM, soup_connection_ntlm, SOUP_TYPE_CONNECTION)
 
 static char     *soup_ntlm_request         (void);
 static gboolean  soup_ntlm_parse_challenge (const char  *challenge,
@@ -47,58 +47,52 @@ static char     *soup_ntlm_response        (const char  *nonce,
 					    const char  *domain);
 
 static void
-init (GObject *object)
+soup_connection_ntlm_init (SoupConnectionNTLM *ntlm)
 {
-	SoupConnectionNTLM *ntlm = SOUP_CONNECTION_NTLM (object);
-
-	ntlm->priv = g_new0 (SoupConnectionNTLMPrivate, 1);
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupConnectionNTLM *ntlm = SOUP_CONNECTION_NTLM (object);
+	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (object);
 
-	g_free (ntlm->priv->user);
-	memset (ntlm->priv->nt_hash, 0, sizeof (ntlm->priv->nt_hash));
-	memset (ntlm->priv->lm_hash, 0, sizeof (ntlm->priv->lm_hash));
+	g_free (priv->user);
+	memset (priv->nt_hash, 0, sizeof (priv->nt_hash));
+	memset (priv->lm_hash, 0, sizeof (priv->lm_hash));
 
-	g_free (ntlm->priv);
-
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_connection_ntlm_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_connection_ntlm_class_init (SoupConnectionNTLMClass *connection_ntlm_class)
 {
-	SoupConnectionClass *connection_class =
-		SOUP_CONNECTION_CLASS (object_class);
+	SoupConnectionClass *connection_class = SOUP_CONNECTION_CLASS (connection_ntlm_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (connection_ntlm_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (connection_ntlm_class, sizeof (SoupConnectionNTLMPrivate));
 
 	connection_class->send_request = send_request;
 	object_class->finalize = finalize;
 }
-
-SOUP_MAKE_TYPE (soup_connection_ntlm, SoupConnectionNTLM, class_init, init, PARENT_TYPE)
 
 
 static void
 ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnectionNTLM *ntlm = user_data;
+	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (ntlm);
 	const GSList *headers;
 	const char *val;
 	char *nonce, *header;
 	char *username, *domain_username = NULL, *password = NULL;
 	char *slash, *domain;
 
-	if (ntlm->priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
+	if (priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
 		/* We already authenticated, but then got another 401.
 		 * That means "permission denied", so don't try to
 		 * authenticate again.
 		 */
-		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
 	}
 
@@ -111,12 +105,12 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		headers = headers->next;
 	}
 	if (!headers) {
-		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
 	}
 
 	if (!soup_ntlm_parse_challenge (val, &nonce, &domain)) {
-		ntlm->priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
 	}
 
@@ -147,7 +141,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	soup_message_add_header (msg->request_headers,
 				 "Authorization", header);
 	g_free (header);
-	ntlm->priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
+	priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
 
  done:
 	/* Remove the WWW-Authenticate headers so the session won't try
@@ -159,37 +153,35 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 static void
 ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 {
-	SoupConnectionNTLM *ntlm = conn;
+	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
 
-	if (ntlm->priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
+	if (priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
 	    soup_message_get_header (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
-		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
+		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
 		soup_message_restarted (msg);
 		soup_connection_send_request (conn, msg);
 	}
 }
 
 static void
-ntlm_cleanup_msg (SoupMessage *msg, gpointer user_data)
+ntlm_cleanup_msg (SoupMessage *msg, gpointer conn)
 {
-	SoupConnectionNTLM *ntlm = user_data;
-
 	/* Do this when the message is restarted, in case it's
 	 * restarted on a different connection.
 	 */
 	soup_message_remove_handler (msg, SOUP_HANDLER_PRE_BODY,
-				     ntlm_authorize_pre, ntlm);
+				     ntlm_authorize_pre, conn);
 	soup_message_remove_handler (msg, SOUP_HANDLER_POST_BODY,
-				     ntlm_authorize_post, ntlm);
+				     ntlm_authorize_post, conn);
 }
 
 void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
-	SoupConnectionNTLM *ntlm = SOUP_CONNECTION_NTLM (conn);
+	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
 
-	if (ntlm->priv->state == SOUP_CONNECTION_NTLM_NEW) {
+	if (priv->state == SOUP_CONNECTION_NTLM_NEW) {
 		char *header = soup_ntlm_request ();
 
 		soup_message_remove_header (req->request_headers,
@@ -197,7 +189,7 @@ send_request (SoupConnection *conn, SoupMessage *req)
 		soup_message_add_header (req->request_headers,
 					 "Authorization", header);
 		g_free (header);
-		ntlm->priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
+		priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
 	}
 
 	soup_message_add_status_code_handler (req, SOUP_STATUS_UNAUTHORIZED,
@@ -209,11 +201,11 @@ send_request (SoupConnection *conn, SoupMessage *req)
 					      ntlm_authorize_post, conn);
 
 	g_signal_connect (req, "restarted",
-			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
+			  G_CALLBACK (ntlm_cleanup_msg), conn);
 	g_signal_connect (req, "finished",
-			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
+			  G_CALLBACK (ntlm_cleanup_msg), conn);
 
-	SOUP_CONNECTION_CLASS (parent_class)->send_request (conn, req);
+	SOUP_CONNECTION_CLASS (soup_connection_ntlm_parent_class)->send_request (conn, req);
 }
 
 

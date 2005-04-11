@@ -16,8 +16,6 @@
 #define SOUP_IS_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_MESSAGE))
 #define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
 
-typedef struct SoupMessagePrivate SoupMessagePrivate;
-
 typedef enum {
 	SOUP_MESSAGE_STATUS_IDLE,
 	SOUP_MESSAGE_STATUS_QUEUED,
@@ -48,8 +46,6 @@ typedef struct {
 
 struct SoupMessage {
 	GObject parent;
-
-	SoupMessagePrivate *priv;
 
 	const char         *method;
 

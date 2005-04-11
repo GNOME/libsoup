@@ -12,10 +12,11 @@
 #include "soup-session-sync.h"
 #include "soup-connection.h"
 
-struct SoupSessionSyncPrivate {
+typedef struct {
 	GMutex *lock;
 	GCond *cond;
-};
+} SoupSessionSyncPrivate;
+#define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
 void         queue_message  (SoupSession *session, SoupMessage *msg,
 			     SoupMessageCallbackFn callback,
@@ -23,37 +24,35 @@ void         queue_message  (SoupSession *session, SoupMessage *msg,
 static guint send_message   (SoupSession *session, SoupMessage *msg);
 static void  cancel_message (SoupSession *session, SoupMessage *msg);
 
-#define PARENT_TYPE SOUP_TYPE_SESSION
-static SoupSessionClass *parent_class;
+G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
 static void
-init (GObject *object)
+soup_session_sync_init (SoupSessionSync *ss)
 {
-	SoupSessionSync *ss = SOUP_SESSION_SYNC (object);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (ss);
 
-	ss->priv = g_new0 (SoupSessionSyncPrivate, 1);
-	ss->priv->lock = g_mutex_new ();
-	ss->priv->cond = g_cond_new ();
+	priv->lock = g_mutex_new ();
+	priv->cond = g_cond_new ();
 }
 
 static void
 finalize (GObject *object)
 {
-	SoupSessionSync *ss = SOUP_SESSION_SYNC (object);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (object);
 
-	g_mutex_free (ss->priv->lock);
-	g_cond_free (ss->priv->cond);
-	g_free (ss->priv);
+	g_mutex_free (priv->lock);
+	g_cond_free (priv->cond);
 
-	G_OBJECT_CLASS (parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_session_sync_parent_class)->finalize (object);
 }
 
 static void
-class_init (GObjectClass *object_class)
+soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 {
-	SoupSessionClass *session_class = SOUP_SESSION_CLASS (object_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (session_sync_class);
+	SoupSessionClass *session_class = SOUP_SESSION_CLASS (session_sync_class);
 
-	parent_class = g_type_class_ref (PARENT_TYPE);
+	g_type_class_add_private (session_sync_class, sizeof (SoupSessionSyncPrivate));
 
 	/* virtual method override */
 	session_class->queue_message = queue_message;
@@ -62,7 +61,6 @@ class_init (GObjectClass *object_class)
 	object_class->finalize = finalize;
 }
 
-SOUP_MAKE_TYPE (soup_session_sync, SoupSessionSync, class_init, init, PARENT_TYPE)
 
 SoupSession *
 soup_session_sync_new (void)
@@ -96,12 +94,12 @@ queue_message (SoupSession *session, SoupMessage *msg,
 static SoupConnection *
 wait_for_connection (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionSync *ss = SOUP_SESSION_SYNC (session);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 	SoupConnection *conn;
 	gboolean try_pruning = FALSE, is_new = FALSE;
 	guint status;
 
-	g_mutex_lock (ss->priv->lock);
+	g_mutex_lock (priv->lock);
 
  try_again:
 	conn = soup_session_get_connection (session, msg,
@@ -127,7 +125,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 			}
 		}
 
-		g_mutex_unlock (ss->priv->lock);
+		g_mutex_unlock (priv->lock);
 		return conn;
 	}
 
@@ -135,11 +133,11 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 		goto try_again;
 
 	/* Wait... */
-	g_cond_wait (ss->priv->cond, ss->priv->lock);
+	g_cond_wait (priv->cond, priv->lock);
 
 	/* See if something bad happened */
 	if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
-		g_mutex_unlock (ss->priv->lock);
+		g_mutex_unlock (priv->lock);
 		return NULL;
 	}
 
@@ -149,11 +147,10 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 static guint
 send_message (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionSync *ss = SOUP_SESSION_SYNC (session);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 	SoupConnection *conn;
 
-	SOUP_SESSION_CLASS (parent_class)->queue_message (session, msg,
-							  NULL, NULL);
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
 
 	do {
 		/* Get a connection */
@@ -162,7 +159,7 @@ send_message (SoupSession *session, SoupMessage *msg)
 			return msg->status_code;
 
 		soup_connection_send_request (conn, msg);
-		g_cond_broadcast (ss->priv->cond);
+		g_cond_broadcast (priv->cond);
 	} while (msg->status != SOUP_MESSAGE_STATUS_FINISHED);
 
 	return msg->status_code;
@@ -171,9 +168,9 @@ send_message (SoupSession *session, SoupMessage *msg)
 static void
 cancel_message (SoupSession *session, SoupMessage *msg)
 {
-	SoupSessionSync *ss = SOUP_SESSION_SYNC (session);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
-	SOUP_SESSION_CLASS (parent_class)->cancel_message (session, msg);
-	g_cond_broadcast (ss->priv->cond);
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg);
+	g_cond_broadcast (priv->cond);
 }
 

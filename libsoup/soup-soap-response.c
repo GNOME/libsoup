@@ -10,9 +10,9 @@
 #include "soup-soap-response.h"
 #include "soup-types.h"
 
-#define PARENT_TYPE G_TYPE_OBJECT
+G_DEFINE_TYPE (SoupSoapResponse, soup_soap_response, G_TYPE_OBJECT)
 
-struct _SoupSoapResponsePrivate {
+typedef struct {
 	/* the XML document */
 	xmlDocPtr xmldoc;
 	xmlNodePtr xml_root;
@@ -20,56 +20,40 @@ struct _SoupSoapResponsePrivate {
 	xmlNodePtr xml_method;
 	xmlNodePtr soap_fault;
 	GList *parameters;
-};
-
-static GObjectClass *parent_class = NULL;
+} SoupSoapResponsePrivate;
+#define SOUP_SOAP_RESPONSE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOAP_RESPONSE, SoupSoapResponsePrivate))
 
 static void
 finalize (GObject *object)
 {
-	SoupSoapResponse *response = SOUP_SOAP_RESPONSE (object);
+	SoupSoapResponsePrivate *priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (object);
 
-	/* free memory */
-	if (response->priv->xmldoc) {
-		xmlFreeDoc (response->priv->xmldoc);
-		response->priv->xmldoc = NULL;
-	}
+	if (priv->xmldoc)
+		xmlFreeDoc (priv->xmldoc);
+	if (priv->parameters != NULL)
+		g_list_free (priv->parameters);
 
-	response->priv->xml_root = NULL;
-	response->priv->xml_body = NULL;
-	response->priv->xml_method = NULL;
-
-	if (response->priv->parameters != NULL) {
-		g_list_free (response->priv->parameters);
-		response->priv->parameters = NULL;
-	}
-
-	g_free (response->priv);
-	response->priv = NULL;
-
-	parent_class->finalize (object);
+	G_OBJECT_CLASS (soup_soap_response_parent_class)->finalize (object);
 }
 
 static void
-class_init (SoupSoapResponseClass *klass)
+soup_soap_response_class_init (SoupSoapResponseClass *soup_soap_response_class)
 {
-	GObjectClass *object_class;
+	GObjectClass *object_class = G_OBJECT_CLASS (soup_soap_response_class);
 
-	parent_class = g_type_class_peek_parent (klass);
+	g_type_class_add_private (soup_soap_response_class, sizeof (SoupSoapResponsePrivate));
 
-	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = finalize;
 }
 
 static void
-init (SoupSoapResponse *response, SoupSoapResponseClass *klass)
+soup_soap_response_init (SoupSoapResponse *response)
 {
-	response->priv = g_new0 (SoupSoapResponsePrivate, 1);
+	SoupSoapResponsePrivate *priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
 
-	response->priv->xmldoc = xmlNewDoc ("1.0");
+	priv->xmldoc = xmlNewDoc ("1.0");
 }
 
-SOUP_MAKE_TYPE (soup_soap_response, SoupSoapResponse, class_init, init, PARENT_TYPE)
 
 /**
  * soup_soap_response_new:
@@ -114,17 +98,17 @@ soup_soap_response_new_from_string (const char *xmlstr)
 }
 
 static void
-parse_parameters (SoupSoapResponse *response, xmlNodePtr xml_method)
+parse_parameters (SoupSoapResponsePrivate *priv, xmlNodePtr xml_method)
 {
 	xmlNodePtr tmp;
 
 	for (tmp = xml_method->xmlChildrenNode; tmp != NULL; tmp = tmp->next) {
 		if (!strcmp (tmp->name, "Fault")) {
-			response->priv->soap_fault = tmp;
+			priv->soap_fault = tmp;
 			continue;
 		} else {
 			/* regular parameters */
-			response->priv->parameters = g_list_append (response->priv->parameters, tmp);
+			priv->parameters = g_list_append (priv->parameters, tmp);
 		}
 	}
 }
@@ -142,33 +126,35 @@ parse_parameters (SoupSoapResponse *response, xmlNodePtr xml_method)
 gboolean
 soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 {
+	SoupSoapResponsePrivate *priv;
 	xmlDocPtr old_doc = NULL;
 	xmlNodePtr xml_root, xml_body = NULL, xml_method = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), FALSE);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
 	g_return_val_if_fail (xmlstr != NULL, FALSE);
 
 	/* clear the previous contents */
-	if (response->priv->xmldoc)
-		old_doc = response->priv->xmldoc;
+	if (priv->xmldoc)
+		old_doc = priv->xmldoc;
 
 	/* parse the string */
-	response->priv->xmldoc = xmlParseMemory (xmlstr, strlen (xmlstr));
-	if (!response->priv->xmldoc) {
-		response->priv->xmldoc = old_doc;
+	priv->xmldoc = xmlParseMemory (xmlstr, strlen (xmlstr));
+	if (!priv->xmldoc) {
+		priv->xmldoc = old_doc;
 		return FALSE;
 	}
 
-	xml_root = xmlDocGetRootElement (response->priv->xmldoc);
+	xml_root = xmlDocGetRootElement (priv->xmldoc);
 	if (!xml_root) {
-		xmlFreeDoc (response->priv->xmldoc);
-		response->priv->xmldoc = old_doc;
+		xmlFreeDoc (priv->xmldoc);
+		priv->xmldoc = old_doc;
 		return FALSE;
 	}
 
 	if (strcmp (xml_root->name, "Envelope") != 0) {
-		xmlFreeDoc (response->priv->xmldoc);
-		response->priv->xmldoc = old_doc;
+		xmlFreeDoc (priv->xmldoc);
+		priv->xmldoc = old_doc;
 		return FALSE;
 	}
 
@@ -177,8 +163,8 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 		if (strcmp (xml_body->name, "Header") == 0)
 			xml_body = xml_root->xmlChildrenNode->next;
 		if (strcmp (xml_body->name, "Body") != 0) {
-			xmlFreeDoc (response->priv->xmldoc);
-			response->priv->xmldoc = old_doc;
+			xmlFreeDoc (priv->xmldoc);
+			priv->xmldoc = old_doc;
 			return FALSE;
 		}
 
@@ -186,14 +172,14 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 
 		/* read all parameters */
 		if (xml_method)
-			parse_parameters (response, xml_method);
+			parse_parameters (priv, xml_method);
 	}
 
 	xmlFreeDoc (old_doc);
 
-	response->priv->xml_root = xml_root;
-	response->priv->xml_body = xml_body;
-	response->priv->xml_method = xml_method;
+	priv->xml_root = xml_root;
+	priv->xml_body = xml_body;
+	priv->xml_method = xml_method;
 
 	return TRUE;
 }
@@ -209,10 +195,13 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 const char *
 soup_soap_response_get_method_name (SoupSoapResponse *response)
 {
-	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
-	g_return_val_if_fail (response->priv->xml_method != NULL, NULL);
+	SoupSoapResponsePrivate *priv;
 
-	return (const char *) response->priv->xml_method->name;
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
+	g_return_val_if_fail (priv->xml_method != NULL, NULL);
+
+	return (const char *) priv->xml_method->name;
 }
 
 /**
@@ -225,11 +214,14 @@ soup_soap_response_get_method_name (SoupSoapResponse *response)
 void
 soup_soap_response_set_method_name (SoupSoapResponse *response, const char *method_name)
 {
+	SoupSoapResponsePrivate *priv;
+
 	g_return_if_fail (SOUP_IS_SOAP_RESPONSE (response));
-	g_return_if_fail (response->priv->xml_method != NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
+	g_return_if_fail (priv->xml_method != NULL);
 	g_return_if_fail (method_name != NULL);
 
-	xmlNodeSetName (response->priv->xml_method, method_name);
+	xmlNodeSetName (priv->xml_method, method_name);
 }
 
 /**
@@ -394,9 +386,12 @@ soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_nam
 const GList *
 soup_soap_response_get_parameters (SoupSoapResponse *response)
 {
-	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	SoupSoapResponsePrivate *priv;
 
-	return (const GList *) response->priv->parameters;
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
+
+	return (const GList *) priv->parameters;
 }
 
 /**
@@ -412,9 +407,12 @@ soup_soap_response_get_parameters (SoupSoapResponse *response)
 SoupSoapParameter *
 soup_soap_response_get_first_parameter (SoupSoapResponse *response)
 {
-	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	SoupSoapResponsePrivate *priv;
 
-	return response->priv->parameters ? response->priv->parameters->data : NULL;
+	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
+
+	return priv->parameters ? priv->parameters->data : NULL;
 }
 
 /**
@@ -433,12 +431,14 @@ SoupSoapParameter *
 soup_soap_response_get_first_parameter_by_name (SoupSoapResponse *response,
 						const char *name)
 {
+	SoupSoapResponsePrivate *priv;
 	GList *l;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
 	g_return_val_if_fail (name != NULL, NULL);
 
-	for (l = response->priv->parameters; l != NULL; l = l->next) {
+	for (l = priv->parameters; l != NULL; l = l->next) {
 		SoupSoapParameter *param = (SoupSoapParameter *) l->data;
 
 		if (!strcmp (name, param->name))
@@ -461,12 +461,14 @@ SoupSoapParameter *
 soup_soap_response_get_next_parameter (SoupSoapResponse *response,
 				       SoupSoapParameter *from)
 {
+	SoupSoapResponsePrivate *priv;
 	GList *l;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), NULL);
+	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
 	g_return_val_if_fail (from != NULL, NULL);
 
-	l = g_list_find (response->priv->parameters, (gconstpointer) from);
+	l = g_list_find (priv->parameters, (gconstpointer) from);
 	if (!l)
 		return NULL;
 

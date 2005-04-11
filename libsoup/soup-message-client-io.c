@@ -24,6 +24,7 @@ parse_response_headers (SoupMessage *req,
 			guint *content_len,
 			gpointer user_data)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	const char *length, *enc;
 	SoupHttpVersion version;
 	GHashTable *resp_hdrs;
@@ -36,8 +37,8 @@ parse_response_headers (SoupMessage *req,
 					  (char **) &req->reason_phrase))
 		return SOUP_STATUS_MALFORMED;
 
-	if (version < req->priv->http_version)
-		req->priv->http_version = version;
+	if (version < priv->http_version)
+		priv->http_version = version;
 
 	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
@@ -107,6 +108,7 @@ get_request_headers (SoupMessage *req, GString *header,
 		     SoupTransferEncoding *encoding,
 		     gpointer user_data)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	const SoupUri *uri = soup_message_get_uri (req);
 	const char *expect;
@@ -122,7 +124,7 @@ get_request_headers (SoupMessage *req, GString *header,
 		uri_string = soup_uri_to_string (uri, !proxy);
 	}
 
-	if (req->priv->http_version == SOUP_HTTP_1_0) {
+	if (priv->http_version == SOUP_HTTP_1_0) {
 		g_string_append_printf (header, "%s %s HTTP/1.0\r\n",
 					req->method, uri_string);
 	} else {
@@ -154,7 +156,7 @@ get_request_headers (SoupMessage *req, GString *header,
 
 	expect = soup_message_get_header (req->request_headers, "Expect");
 	if (expect && !strcmp (expect, "100-continue"))
-		req->priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
+		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 
 /**

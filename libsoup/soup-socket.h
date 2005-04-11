@@ -15,12 +15,9 @@
 #define SOUP_IS_SOCKET_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SOCKET))
 #define SOUP_SOCKET_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SOCKET, SoupSocketClass))
 
-typedef struct SoupSocketPrivate SoupSocketPrivate;
-
 struct SoupSocket {
 	GObject parent;
 
-	SoupSocketPrivate *priv;
 };
 
 typedef struct {

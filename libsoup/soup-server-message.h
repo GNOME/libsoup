@@ -15,12 +15,9 @@
 #define SOUP_IS_SERVER_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SERVER_MESSAGE))
 #define SOUP_SERVER_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessageClass))
 
-typedef struct SoupServerMessagePrivate SoupServerMessagePrivate;
-
 struct SoupServerMessage {
 	SoupMessage parent;
 
-	SoupServerMessagePrivate *priv;
 };
 
 typedef struct {
