@@ -1,3 +1,16 @@
+2005-04-11  Dan Winship  <danw@novell.com>
+
+	* configure.in: bump version to 2.3.0. bump SOUP_API_VERSION to
+	2.4
+
+	* libsoup.pc.in: rename from libsoup-2.2.pc.in
+
+	* Makefile.am (EXTRA_DIST, pkgconfig_DATA, install-data-local):
+	install the .pc file by hand, renaming it to include the
+	SOUP_API_VERSION
+
+	* libsoup/Makefile.am: s/2.2/2.4/
+
 2005-03-09  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-gnutls.c (soup_gnutls_read): return G_IO_STATUS_EOF

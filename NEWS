@@ -1,3 +1,7 @@
+Changes in libsoup from the 2.2 series to 2.4:
+
+	* (Nothing yet)
+
 Changes in libsoup from the 2.0 series (1.99.x versions) to 2.2:
 
 	* Most of the libsoup datatypes are now GObjects. (SoupUri

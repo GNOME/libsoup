@@ -7,7 +7,7 @@ config.log
 config.status
 config.sub
 configure
-libsoup-2.2.pc
+libsoup.pc
 libtool
 ltconfig
 ltmain.sh

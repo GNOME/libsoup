@@ -24,7 +24,7 @@ BUILT_SOURCES = $(MARSHAL_GENERATED)
 
 CLEANFILES = $(MARSHAL_GENERATED)
 
-libsoupincludedir = $(includedir)/libsoup-2.2/libsoup
+libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
 libsoupinclude_HEADERS =	\
 	soup.h			\
@@ -49,18 +49,18 @@ libsoupinclude_HEADERS =	\
 	soup-types.h		\
 	soup-uri.h
 
-lib_LTLIBRARIES = libsoup-2.2.la
+lib_LTLIBRARIES = libsoup-2.4.la
 
-libsoup_2_2_la_LDFLAGS =	\
+libsoup_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
 
-libsoup_2_2_la_LIBADD =			\
+libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
 	$(LIBGNUTLS_LIBS_STATIC)	\
 	$(LIBGNUTLS_LIBS)
 
-libsoup_2_2_la_SOURCES =		\
+libsoup_2_4_la_SOURCES =		\
 	$(MARSHAL_GENERATED)		\
 	soup-address.c			\
 	soup-auth.h			\
