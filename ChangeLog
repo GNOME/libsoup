@@ -1,3 +1,16 @@
+2005-04-12  Dan Winship  <danw@novell.com>
+
+	* configure.in: Remove the various gethostbyname_r checks and just
+	check for getnameinfo/getaddrinfo.
+
+	* libsoup/soup-dns.c: de-nastify. Make this use threads instead of
+	forking. Change the API around a bunch in the process.
+
+	* libsoup/soup-address.c: Update for soup-dns changes
+
+	* tests/dns.c: take multiple hostnames on the command line and
+	resolve them all at once (patch from tml)
+
 2005-04-11  Dan Winship  <danw@novell.com>
 
 	* configure.in: require glib-2.0 >= 2.4.0

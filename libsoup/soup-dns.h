@@ -11,19 +11,28 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-typedef struct SoupDNSEntry SoupDNSEntry;
+void             soup_dns_init                 (void);
 
-SoupDNSEntry   *soup_dns_entry_from_name     (const char     *name);
-SoupDNSEntry   *soup_dns_entry_from_addr     (gconstpointer   addr,
-					      int             family);
+typedef struct SoupDNSLookup SoupDNSLookup;
 
-gboolean        soup_dns_entry_check_lookup  (SoupDNSEntry   *entry);
-void            soup_dns_entry_cancel_lookup (SoupDNSEntry   *entry);
+SoupDNSLookup   *soup_dns_lookup_name          (const char  *name);
+SoupDNSLookup   *soup_dns_lookup_address       (struct sockaddr *address);
 
-struct hostent *soup_dns_entry_get_hostent   (SoupDNSEntry   *entry);
-void            soup_dns_free_hostent        (struct hostent *h);
+typedef void (*SoupDNSCallback) (SoupDNSLookup *lookup, gboolean success, gpointer user_data);
 
-char           *soup_dns_ntop                (gconstpointer   addr,
-					      int             family);
+gboolean         soup_dns_lookup_resolve       (SoupDNSLookup   *lookup);
+void             soup_dns_lookup_resolve_async (SoupDNSLookup   *lookup,
+						SoupDNSCallback  callback,
+						gpointer         user_data);
+void             soup_dns_lookup_cancel        (SoupDNSLookup   *lookup);
+
+char            *soup_dns_lookup_get_hostname  (SoupDNSLookup   *lookup);
+struct sockaddr *soup_dns_lookup_get_address   (SoupDNSLookup   *lookup);
+
+void             soup_dns_lookup_free          (SoupDNSLookup   *lookup);
+
+
+char            *soup_dns_ntop                 (struct sockaddr *address);
+
 
 #endif /* SOUP_DNS_H */
