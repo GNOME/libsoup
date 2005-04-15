@@ -1,3 +1,8 @@
+2005-04-15  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-dns.c (resolve_name): make this work with
+	pre-EAI_OVERFLOW glibc [#300620]
+
 2005-04-12  Dan Winship  <danw@novell.com>
 
 	* configure.in: Remove the various gethostbyname_r checks and just

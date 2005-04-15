@@ -269,15 +269,21 @@ static void
 resolve_name (SoupDNSCacheEntry *entry)
 {
 #ifdef HAVE_GETNAMEINFO
-	int retval, len = 128;
+	int retval, len = 0;
 	char *name = NULL;
 
 	do {
+		len += 128;
 		name = g_realloc (name, len);
 		retval = getnameinfo (entry->sockaddr, SOUP_DNS_SOCKADDR_LEN (entry->sockaddr),
 				      name, len, NULL, 0, NI_NAMEREQD);
-		len += 128;
-	} while (retval == EAI_OVERFLOW);
+	} while (
+#ifdef EAI_OVERFLOW
+		retval == EAI_OVERFLOW
+#else
+		strlen (name) == len - 1
+#endif
+		);
 
 	if (retval == 0)
 		entry->hostname = name;
