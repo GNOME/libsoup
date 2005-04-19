@@ -1,3 +1,56 @@
+2005-04-18  Tor Lillqvist  <tml@novell.com>
+
+	* configure.in: Call AC_LIBTOOL_WIN32_DLL. Check for Win32, set
+	Automake conditional OS_WIN32. Pre-cache information that we do
+	have getaddrinfo(), getnameinfo(), and IPv6 on Win32. (The tests
+	wouldn't notice as they don't include the necessary headers or
+	link with -lws2_32. Easiest to just pre-cache it.)
+
+	* libsoup-zip.in: New file, to build zipfile-based distribution of
+	libsoup for Win32. 
+
+	* Makefile.am (EXTRA_DIST)
+	* configure.in (AC_OUTPUT): Add libsoup-zip(.in).
+
+	* libsoup/Makefile.am: Use -no-undefined on Win32. Link with
+	WinSock library -lws2_32.
+	
+	* libsoup/soup-portability.h: New file. On Unix it includes the
+	traditional BSD socket etc headers. On Win32 it includes
+	winsock2.h and ws2tcpip.h.
+
+	* libsoup/*.c
+	* libsoup/*.h: Correspondingly, don't include the BSD socket API
+	headers directly.
+
+	* libsoup/soup-address.h
+	* libsoup/soup-dns.h: Include soup-portability.h
+
+	* libsoup/soup-address.c (soup_address_class_init): This function
+	should get called before libsoup uses the WinSock API, so this is
+	a good place to call WSAStartup().
+	
+	* libsoup/soup-auth-digest.c (get_protection_space): Use
+	g_strsplit() instead of the relatively unportable strtok_r().
+
+	* libsoup/soun-dns.c: Remove unused headers. Implement
+	inet_pton() and inet_ntop() on Win32 using WSAStringToAddress()
+	and WSAAddressToString().
+
+	* libsoup/soup-socket.c (SOUP_CLOSE_SOCKET, SOUP_IS_SOCKET_ERROR,
+	SOUP_IS_INVALID_SOCKET, SOUP_IS_CONNECT_STATUS_INPROGRESS):
+	Portability macros.
+	(soup_socket_class_init): Call soup_address_get_type() to make
+	sure WSAStartup() gets called (through soup_address_class_init()).
+	(update_fdflags): Use ioctlsocket(FIONBIO) on Win32.
+	(soup_socket_write): Conditionalize SIGPIPE use.
+	
+	* tests/get.c: mkdir() is different in Microsoft's C library.
+
+	* tests/simple-httpd.c: Rename TRY_AGAIN label to AGAIN to avoid
+	some clash with winsock2.h (which includes windows.h). The Win32
+	headers pollute the namespace wildly.
+
 2005-04-15  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-dns.c (resolve_name): make this work with

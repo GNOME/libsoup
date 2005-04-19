@@ -54,7 +54,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
 	path_to_open = g_strdup_printf (".%s", path);
 
- TRY_AGAIN:
+ AGAIN:
 	if (stat (path_to_open, &st) == -1) {
 		g_free (path_to_open);
 		if (errno == EPERM)
@@ -84,7 +84,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
 		g_free (path_to_open);
 		path_to_open = g_strdup_printf (".%s/index.html", path);
-		goto TRY_AGAIN;
+		goto AGAIN;
 	}
 
 	fd = open (path_to_open, O_RDONLY);

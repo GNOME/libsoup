@@ -1,5 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
+if OS_WIN32
+LIBWS2_32 = -lws2_32
+NO_UNDEFINED = -no-undefined
+endif
+
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-I$(top_srcdir)			\
@@ -36,6 +41,7 @@ libsoupinclude_HEADERS =	\
 	soup-message-queue.h	\
 	soup-method.h		\
 	soup-misc.h     	\
+	soup-portability.h	\
 	soup-server-auth.h	\
 	soup-server-message.h	\
 	soup-server.h		\
@@ -52,13 +58,14 @@ libsoupinclude_HEADERS =	\
 lib_LTLIBRARIES = libsoup-2.4.la
 
 libsoup_2_4_la_LDFLAGS =	\
-	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE)
+	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) $(NO_UNDEFINED)
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
 	$(LIBGNUTLS_LIBS_STATIC)	\
-	$(LIBGNUTLS_LIBS)
+	$(LIBGNUTLS_LIBS)		\
+	$(LIBWS2_32)
 
 libsoup_2_4_la_SOURCES =		\
 	$(MARSHAL_GENERATED)		\

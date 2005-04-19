@@ -15,12 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <signal.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
 #include "soup-address.h"
 #include "soup-dns.h"
@@ -161,6 +156,15 @@ soup_address_class_init (SoupAddressClass *address_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
+
+#ifdef G_OS_WIN32
+	/* This hopefully is a good place to call WSAStartup */
+	{
+		WSADATA wsadata;
+		if (WSAStartup (MAKEWORD (2, 0), &wsadata) != 0)
+			g_error ("Windows Sockets could not be initialized");
+	}
+#endif
 }
 
 

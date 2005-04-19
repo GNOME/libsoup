@@ -63,6 +63,7 @@ AC_PROG_INSTALL
 AC_HEADER_STDC
 
 # Initialize libtool
+AC_LIBTOOL_WIN32_DLL
 AM_PROG_LIBTOOL
 
 # This isn't a program, but it doesn't fit anywhere else...
@@ -77,6 +78,25 @@ AM_PATH_GLIB_2_0(2.4.0,,,gobject gthread)
 PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)
 AC_SUBST(XML_LIBS)
+
+dnl ***********************
+dnl *** Check for Win32 ***
+dnl ***********************
+
+AC_MSG_CHECKING([for Win32])
+case "$host" in
+  *-*-mingw*)
+    os_win32=yes
+    AC_CACHE_VAL(ac_cv_func_getaddrinfo, [ac_cv_func_getaddrinfo=yes])
+    AC_CACHE_VAL(ac_cv_func_getnameinfo, [ac_cv_func_getnameinfo=yes])
+    AC_CACHE_VAL(soup_cv_ipv6, [soup_cv_ipv6=yes])
+    ;;
+  *)
+    os_win32=no
+    ;;
+esac
+AC_MSG_RESULT([$os_win32])
+AM_CONDITIONAL(OS_WIN32, [test $os_win32 = yes])
 
 dnl *********************************
 dnl *** Networking library checks ***
@@ -173,8 +193,10 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 		-Wmissing-prototypes -Wnested-externs -Wpointer-arith"
 fi
 
-# Use reentrant functions (FIXME!)
-CFLAGS="$CFLAGS -D_REENTRANT"
+if test "$os_win32" != yes; then
+	# Use reentrant functions (FIXME!)
+	CFLAGS="$CFLAGS -D_REENTRANT"
+fi
 
 dnl *************************
 dnl *** Output Everything ***
@@ -183,6 +205,7 @@ dnl *************************
 AC_OUTPUT([
 	libsoup.pc
 	Makefile
+	libsoup-zip
 	libsoup/Makefile
 	tests/Makefile
 	docs/Makefile

@@ -14,6 +14,11 @@
 
 #include <libsoup/soup.h>
 
+#ifdef G_OS_WIN32
+#include <io.h>
+#define mkdir(path, mode) _mkdir (path)
+#endif
+
 gboolean recurse = FALSE;
 SoupSession *session;
 GMainLoop *loop;

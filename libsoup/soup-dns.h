@@ -8,8 +8,8 @@
 
 #include <glib.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+
+#include <libsoup/soup-portability.h>
 
 void             soup_dns_init                 (void);
 

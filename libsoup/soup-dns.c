@@ -15,13 +15,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/wait.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include "soup-dns.h"
 #include "soup-misc.h"
@@ -41,6 +35,62 @@
 				    sizeof (struct sockaddr_in6))
 #else
 #define SOUP_DNS_SOCKADDR_LEN(sa) sizeof (struct sockaddr_in)
+#endif
+
+#ifdef G_OS_WIN32
+
+static int
+inet_pton (int         af,
+	   const char *src,
+	   void       *dst)
+{
+	int address_length;
+
+	switch (af) {
+	case AF_INET:
+		address_length = sizeof (struct sockaddr_in);
+		break;
+
+	case AF_INET6:
+		address_length = sizeof (struct sockaddr_in6);
+		break;
+
+	default:
+		g_assert_not_reached ();
+		g_error ("invalid address family");
+	}
+
+	return (WSAStringToAddress ((LPTSTR) src, af, NULL,
+				    dst, &address_length) == 0);
+}
+
+static int
+inet_ntop (int         af,
+	   const void *src,
+	   char       *dst,
+	   int         cnt)
+{
+	int address_length;
+	DWORD string_length = cnt;
+
+	switch (af) {
+	case AF_INET:
+		address_length = sizeof (struct sockaddr_in);
+		break;
+
+	case AF_INET6:
+		address_length = sizeof (struct sockaddr_in6);
+		break;
+
+	default:
+		g_assert_not_reached ();
+		g_error ("invalid address family");
+	}
+
+	return (WSAAddressToString ((LPSOCKADDR) src, address_length, NULL,
+				    dst, &string_length) == 0);
+}
+
 #endif
 
 typedef struct {

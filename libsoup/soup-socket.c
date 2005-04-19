@@ -22,9 +22,6 @@
 #include "soup-ssl.h"
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
 
@@ -80,6 +77,18 @@ static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
+
+#ifdef G_OS_WIN32
+#define SOUP_CLOSE_SOCKET(socket) closesocket (socket)
+#define SOUP_IS_SOCKET_ERROR(status) ((status) == SOCKET_ERROR)
+#define SOUP_IS_INVALID_SOCKET(socket) ((socket) == INVALID_SOCKET)
+#define SOUP_IS_CONNECT_STATUS_INPROGRESS() (WSAGetLastError () == WSAEWOULDBLOCK)
+#else
+#define SOUP_CLOSE_SOCKET(socket) close (socket)
+#define SOUP_IS_SOCKET_ERROR(status) ((status) == -1)
+#define SOUP_IS_INVALID_SOCKET(socket) ((socket) < 0)
+#define SOUP_IS_CONNECT_STATUS_INPROGRESS() (errno == EINPROGRESS)
+#endif
 
 static void
 soup_socket_init (SoupSocket *sock)
@@ -227,17 +236,26 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "SSL credentials",
 				      "SSL credential information, passed from the session to the SSL implementation",
 				      G_PARAM_READWRITE));
+
+#ifdef G_OS_WIN32
+	/* Make sure WSAStartup() gets called. */
+	soup_address_get_type ();
+#endif
 }
 
 
 static void
 update_fdflags (SoupSocketPrivate *priv)
 {
-	int flags, opt;
+	int opt;
+#ifndef G_OS_WIN32
+	int flags;
+#endif
 
 	if (priv->sockfd == -1)
 		return;
 
+#ifndef G_OS_WIN32
 	flags = fcntl (priv->sockfd, F_GETFL, 0);
 	if (flags != -1) {
 		if (priv->non_blocking)
@@ -246,14 +264,23 @@ update_fdflags (SoupSocketPrivate *priv)
 			flags &= ~O_NONBLOCK;
 		fcntl (priv->sockfd, F_SETFL, flags);
 	}
+#else
+	if (priv->non_blocking) {
+		u_long val = 1;
+		ioctlsocket (priv->sockfd, FIONBIO, &val);
+	} else {
+		u_long val = 0;
+		ioctlsocket (priv->sockfd, FIONBIO, &val);
+	}		
+#endif
 
 	opt = (priv->nodelay != 0);
 	setsockopt (priv->sockfd, IPPROTO_TCP,
-		    TCP_NODELAY, &opt, sizeof (opt));
+		    TCP_NODELAY, (void *) &opt, sizeof (opt));
 
 	opt = (priv->reuseaddr != 0);
 	setsockopt (priv->sockfd, SOL_SOCKET,
-		    SO_REUSEADDR, &opt, sizeof (opt));
+		    SO_REUSEADDR, (void *) &opt, sizeof (opt));
 }
 
 static void
@@ -339,8 +366,13 @@ get_iochannel (SoupSocketPrivate *priv)
 {
 	g_mutex_lock (priv->iolock);
 	if (!priv->iochannel) {
+#ifndef G_OS_WIN32
 		priv->iochannel =
 			g_io_channel_unix_new (priv->sockfd);
+#else
+		priv->iochannel =
+			g_io_channel_win32_new_socket (priv->sockfd);
+#endif
 		g_io_channel_set_close_on_unref (priv->iochannel, TRUE);
 		g_io_channel_set_encoding (priv->iochannel, NULL, NULL);
 		g_io_channel_set_buffered (priv->iochannel, FALSE);
@@ -378,7 +410,7 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 		goto cant_connect;
 
 	if (getsockopt (priv->sockfd, SOL_SOCKET, SO_ERROR,
-			&error, &len) != 0)
+			(void *) &error, &len) != 0)
 		goto cant_connect;
 	if (error)
 		goto cant_connect;
@@ -456,15 +488,15 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	}
 
 	priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
-	if (priv->sockfd == -1) {
+	if (SOUP_IS_INVALID_SOCKET (priv->sockfd)) {
 		goto done;
 	}
 	update_fdflags (priv);
 
 	status = connect (priv->sockfd, sa, len);
 
-	if (status == -1) {
-		if (errno == EINPROGRESS) {
+	if (SOUP_IS_SOCKET_ERROR (status)) {
+		if (SOUP_IS_CONNECT_STATUS_INPROGRESS ()) {
 			/* Wait for connect to succeed or fail */
 			priv->watch =
 				g_io_add_watch (get_iochannel (priv),
@@ -474,7 +506,7 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 						connect_watch, sock);
 			return SOUP_STATUS_CONTINUE;
 		} else {
-			close (priv->sockfd);
+			SOUP_CLOSE_SOCKET (priv->sockfd);
 			priv->sockfd = -1;
 		}
 	}
@@ -483,7 +515,7 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	if (priv->non_blocking) {
 		priv->watch = g_idle_add (idle_connect_result, sock);
 		return SOUP_STATUS_CONTINUE;
-	} else if (priv->sockfd == -1)
+	} else if (SOUP_IS_INVALID_SOCKET (priv->sockfd))
 		return SOUP_STATUS_CANT_CONNECT;
 	else {
 		get_iochannel (priv);
@@ -507,7 +539,7 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 
 	sa_len = sizeof (sa);
 	sockfd = accept (priv->sockfd, (struct sockaddr *)&sa, &sa_len);
-	if (sockfd == -1)
+	if (SOUP_IS_INVALID_SOCKET (sockfd))
 		return TRUE;
 
 	new = g_object_new (SOUP_TYPE_SOCKET, NULL);
@@ -569,7 +601,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	g_return_val_if_fail (sa != NULL, FALSE);
 
 	priv->sockfd = socket (sa->sa_family, SOCK_STREAM, 0);
-	if (priv->sockfd < 0)
+	if (SOUP_IS_INVALID_SOCKET (priv->sockfd))
 		goto cant_listen;
 	update_fdflags (priv);
 
@@ -588,7 +620,7 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 
  cant_listen:
 	if (priv->sockfd != -1) {
-		close (priv->sockfd);
+		SOUP_CLOSE_SOCKET (priv->sockfd);
 		priv->sockfd = -1;
 	}
 
@@ -794,7 +826,7 @@ soup_socket_disconnect (SoupSocket *sock)
 		else {
 			g_io_channel_set_close_on_unref (priv->iochannel,
 							 FALSE);
-			close (sockfd);
+			SOUP_CLOSE_SOCKET (sockfd);
 		}
 	}
 
@@ -1129,7 +1161,9 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 {
 	SoupSocketPrivate *priv;
 	GIOStatus status;
+#ifdef SIGPIPE
 	gpointer pipe_handler;
+#endif
 	GIOCondition cond = G_IO_OUT;
 	GError *err = NULL;
 
@@ -1147,10 +1181,14 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		return SOUP_SOCKET_WOULD_BLOCK;
 	}
 
+#ifdef SIGPIPE
 	pipe_handler = signal (SIGPIPE, SIG_IGN);
+#endif
 	status = g_io_channel_write_chars (priv->iochannel,
 					   buffer, len, nwrote, &err);
+#ifdef SIGPIPE
 	signal (SIGPIPE, pipe_handler);
+#endif
 	if (err) {
 		if (err->domain == SOUP_SSL_ERROR &&
 		    err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ)

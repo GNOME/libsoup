@@ -17,10 +17,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-#include <netinet/in.h>
-
 #include "soup-address.h"
 #include "soup-connection.h"
 #include "soup-marshal.h"

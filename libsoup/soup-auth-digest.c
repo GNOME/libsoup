@@ -196,7 +196,8 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	GSList *space = NULL;
 	SoupUri *uri;
-	char *domain, *d, *lasts, *dir, *slash;
+	char **dvec, *d, *dir, *slash;
+	int dix;
 
 	if (!priv->domain || !*priv->domain) {
 		/* If no domain directive, the protection space is the
@@ -205,8 +206,9 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 		return g_slist_prepend (NULL, g_strdup (""));
 	}
 
-	domain = g_strdup (priv->domain);
-	for (d = strtok_r (domain, " ", &lasts); d; d = strtok_r (NULL, " ", &lasts)) {
+	dvec = g_strsplit (priv->domain, " ", 0);
+	for (dix = 0; dvec[dix] != NULL; dix++) {
+		d = dvec[dix];
 		if (*d == '/')
 			dir = g_strdup (d);
 		else {
@@ -229,7 +231,7 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 			space = g_slist_prepend (space, dir);
 		}
 	}
-	g_free (domain);
+	g_strfreev (dvec);
 
 	return space;
 }
