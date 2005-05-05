@@ -15,6 +15,9 @@ DOC_SOURCE_DIR=../../libsoup
 # Extra options to supply to gtkdoc-scan.
 SCAN_OPTIONS=
 
+# Extra options to supply to gtkdoc-scangobj.
+SCANGOBJ_OPTIONS=--type-init-func 'g_type_init(); g_thread_init(NULL)'
+
 # Extra options to supply to gtkdoc-mkdb.
 MKDB_OPTIONS=--sgml-mode --output-format=xml
 
@@ -47,12 +50,6 @@ GTKDOC_CFLAGS =				\
 	$(GNUTLS_CFLAGS)
 
 GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
-
-
-# If you need to override some of the declarations, place them in the
-# $(DOC_MODULE)-overrides.txt file and uncomment the second line here.
-DOC_OVERRIDES =
-#DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
 
 
 # include common portion ...

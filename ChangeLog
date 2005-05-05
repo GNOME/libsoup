@@ -1,3 +1,8 @@
+2005-05-05  Dan Winship  <danw@novell.com>
+
+	* docs/reference/Makefile.am (SCANGOBJ_OPTIONS): Use
+	--type-init-func to force g_thread_init to be called. [#302674]
+
 2005-04-18  Tor Lillqvist  <tml@novell.com>
 
 	* configure.in: Call AC_LIBTOOL_WIN32_DLL. Check for Win32, set
