@@ -125,8 +125,10 @@ foreach_free_host (gpointer key, gpointer host, gpointer session)
 static void
 cleanup_hosts (SoupSession *session)
 {
+	g_mutex_lock (session->priv->host_lock);
 	g_hash_table_foreach_remove (session->priv->hosts,
 				     foreach_free_host, session);
+	g_mutex_unlock (session->priv->host_lock);
 }
 
 static void
