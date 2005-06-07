@@ -1,3 +1,9 @@
+2005-05-26  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session.c (cleanup_hosts): lock host_lock around
+	this, since it can be called from set_property(). Possible fix for
+	bnc #81641.
+
 2005-05-05  Dan Winship  <danw@novell.com>
 
 	* docs/reference/Makefile.am (SCANGOBJ_OPTIONS): Use
