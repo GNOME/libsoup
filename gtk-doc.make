@@ -46,7 +46,7 @@ all-local: html-build.stamp
 
 #### scan ####
 
-scan-build.stamp: $(HFILE_GLOB)
+scan-build.stamp: $(HFILE_GLOB) $(CFILE_GLOB)
 	@echo '*** Scanning header files ***'
 	@-chmod -R u+w $(srcdir)
 	if grep -l '^..*$$' $(srcdir)/$(DOC_MODULE).types > /dev/null ; then \

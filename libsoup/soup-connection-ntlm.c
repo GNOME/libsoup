@@ -132,8 +132,10 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	slash = strpbrk (domain_username, "\\/");
 	if (slash) {
 		g_free (domain);
-		domain = g_strdup (domain_username);
+		*slash = '\0';
+		domain = domain_username;
 		username = slash + 1;
+		domain_username = NULL;
 	} else
 		username = domain_username;
 

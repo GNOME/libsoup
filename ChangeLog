@@ -1,3 +1,9 @@
+2005-06-08  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Fix this to
+	use just the domain name for the domain, not the whole
+	DOMAIN\username. Based on a patch by Jeroen Hautekeete in #306877.
+
 2005-05-26  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session.c (cleanup_hosts): lock host_lock around
