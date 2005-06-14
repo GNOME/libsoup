@@ -1,3 +1,10 @@
+2005-06-14  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-dns.c (soup_gethostbyname_internal,
+	soup_gethostbyaddr_internal): Fix the Solaris versions. I can't
+	test it, but the same fix was suggested by JT Marsh [#254551],
+	Michael Gernoth [#268389] and Tim Bishop [via email].
+
 2005-06-08  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Fix this to

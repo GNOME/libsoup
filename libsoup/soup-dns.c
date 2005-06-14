@@ -199,7 +199,8 @@ soup_gethostbyname_internal (const char *hostname)
 #elif defined(HAVE_GETHOSTBYNAME_R_SOLARIS)
 	{
 		size_t len;
-		int herr, res;
+		int herr;
+		struct hostent *res;
 
 		len = 1024;
 		buf = g_new (char, len);
@@ -208,12 +209,12 @@ soup_gethostbyname_internal (const char *hostname)
 					       &result_buf,
 					       buf,
 					       len,
-					       &herr)) == ERANGE) {
+					       &herr)) == NULL && errno == ERANGE) {
 			len *= 2;
 			buf = g_renew (char, buf, len);
 		}
 
-		if (res)
+		if (res == NULL)
 			result = NULL;
 	}
 #elif defined(HAVE_GETHOSTBYNAME_R_HPUX)
@@ -286,7 +287,8 @@ soup_gethostbyaddr_internal (gconstpointer addr, int family)
 #elif defined(HAVE_GETHOSTBYNAME_R_SOLARIS)
 	{
 		size_t len;
-		int herr, res;
+		int herr;
+		struct hostent *res;
 
 		len = 1024;
 		buf = g_new (char, len);
@@ -297,12 +299,12 @@ soup_gethostbyaddr_internal (gconstpointer addr, int family)
 					       &result_buf,
 					       buf,
 					       len,
-					       &herr)) == ERANGE) {
+					       &herr)) == NULL && errno == ERANGE) {
 			len *= 2;
 			buf = g_renew (char, buf, len);
 		}
 
-		if (res)
+		if (res == NULL)
 			result = NULL;
 	}
 #elif defined(HAVE_GETHOSTBYNAME_R_HPUX)
