@@ -35,6 +35,7 @@ libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-address.h		\
 	soup-connection.h	\
+	soup-date.h		\
 	soup-headers.h		\
 	soup-message.h		\
 	soup-message-filter.h	\
@@ -53,7 +54,9 @@ libsoupinclude_HEADERS =	\
 	soup-socket.h		\
 	soup-status.h		\
 	soup-types.h		\
-	soup-uri.h
+	soup-uri.h		\
+	soup-xmlrpc-message.h	\
+	soup-xmlrpc-response.h
 
 lib_LTLIBRARIES = libsoup-2.4.la
 
@@ -79,6 +82,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection.c		\
 	soup-connection-ntlm.h		\
 	soup-connection-ntlm.c		\
+	soup-date.c			\
 	soup-dns.h			\
 	soup-dns.c			\
 	soup-gnutls.c			\
@@ -107,6 +111,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-socket.c			\
 	soup-ssl.h			\
 	soup-status.c			\
-	soup-uri.c
+	soup-uri.c			\
+	soup-xmlrpc-message.c		\
+	soup-xmlrpc-response.c
 
 EXTRA_DIST= soup-marshal.list

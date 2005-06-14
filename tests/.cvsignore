@@ -1,9 +1,11 @@
 Makefile
 Makefile.in
 auth-test
+date
 dict
 dns
 get
+getbug
 revserver
 simple-httpd
 simple-proxy

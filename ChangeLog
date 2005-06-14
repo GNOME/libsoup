@@ -1,5 +1,24 @@
 2005-06-14  Dan Winship  <danw@novell.com>
 
+	* configure.in: check for gmtime_r
+
+	* libsoup/soup-date.c: date/time-manipulation functions
+
+	* libsoup/soup-xmlrpc-message.c: 
+	* libsoup/soup-xmlrpc-response.c: XMLRPC message classes, from
+	Mariano Suarez-Alvarez, Fernando Herrera, and Jeff Bailey.
+	[#300227]
+
+	* tests/date.c: soup-date test code
+
+	* tests/getbug.c: XMLRPC test code. (Should be switched to use
+	bugzilla.gnome.org once bgo supports XMLRPC.)
+
+	* TODO: XMLRPC is implemented now (but shares the problem with
+	SOAP that the API is not very good).
+
+2005-06-14  Dan Winship  <danw@novell.com>
+
 	* libsoup/*.[ch]: add/fix gtk-doc comments, make functions match
 	prototypes, etc
 

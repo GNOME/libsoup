@@ -31,14 +31,12 @@ HTTP Features
 SOAP/XML-RPC Features
 ---------------------
 
-* Add XML-RPC support (bug-buddy wants this)
-
 * Bring back WSDL compiler from old soup module?
 
-* The current SoupSoapMessage/Response API doesn't really make life a
-  whole lot easier for the user... You have to marshall the data in
-  exactly the right order anyway, so you might as well just be
-  g_string_appending...
+* The current SOAP/XMLRPC API doesn't really make life a whole lot
+  easier for the user... You have to marshall the data in exactly the
+  right order anyway, so you might as well just be using
+  g_string_append...
 
 
 Misc Features

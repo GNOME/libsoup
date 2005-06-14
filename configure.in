@@ -100,6 +100,11 @@ esac
 AC_MSG_RESULT([$os_win32])
 AM_CONDITIONAL(OS_WIN32, [test $os_win32 = yes])
 
+dnl *******************
+dnl *** Misc checks ***
+dnl *******************
+AC_CHECK_FUNCS(gmtime_r)
+
 dnl *********************************
 dnl *** Networking library checks ***
 dnl *********************************
