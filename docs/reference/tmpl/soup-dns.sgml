@@ -14,7 +14,31 @@ Low-level DNS routines
 
 </para>
 
-<!-- ##### FUNCTION soup_dns_entry_from_name ##### -->
+<!-- ##### FUNCTION soup_dns_init ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### FUNCTION soup_dns_ntop ##### -->
+<para>
+
+</para>
+
+@sa: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@address: 
+
+
+<!-- ##### TYPEDEF SoupDNSLookup ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_dns_lookup_name ##### -->
 <para>
 
 </para>
@@ -23,48 +47,77 @@ Low-level DNS routines
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_dns_entry_from_addr ##### -->
+<!-- ##### FUNCTION soup_dns_lookup_address ##### -->
 <para>
 
 </para>
 
-@addr: 
-@family: 
+@sockaddr: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@address: 
+
+
+<!-- ##### FUNCTION soup_dns_lookup_resolve ##### -->
+<para>
+
+</para>
+
+@lookup: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_dns_entry_check_lookup ##### -->
+<!-- ##### USER_FUNCTION SoupDNSCallback ##### -->
 <para>
 
 </para>
 
-@entry: 
+@lookup: 
+@success: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_dns_lookup_resolve_async ##### -->
+<para>
+
+</para>
+
+@lookup: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_dns_lookup_cancel ##### -->
+<para>
+
+</para>
+
+@lookup: 
+
+
+<!-- ##### FUNCTION soup_dns_lookup_get_hostname ##### -->
+<para>
+
+</para>
+
+@lookup: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_dns_entry_cancel_lookup ##### -->
+<!-- ##### FUNCTION soup_dns_lookup_get_address ##### -->
 <para>
 
 </para>
 
-@entry: 
-
-
-<!-- ##### FUNCTION soup_dns_free_hostent ##### -->
-<para>
-
-</para>
-
-@h: 
-
-
-<!-- ##### FUNCTION soup_dns_ntop ##### -->
-<para>
-
-</para>
-
-@addr: 
-@family: 
+@lookup: 
 @Returns: 
+
+
+<!-- ##### FUNCTION soup_dns_lookup_free ##### -->
+<para>
+
+</para>
+
+@lookup: 
 
 

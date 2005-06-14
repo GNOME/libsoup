@@ -2,7 +2,7 @@
 soup-uri
 
 <!-- ##### SECTION Short_Description ##### -->
-
+URIs
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -14,23 +14,37 @@ soup-uri
 
 </para>
 
+<!-- ##### STRUCT SoupUri ##### -->
+<para>
+
+</para>
+
+@protocol: 
+@user: 
+@passwd: 
+@host: 
+@port: 
+@path: 
+@query: 
+@fragment: 
+@broken_encoding: 
+
 <!-- ##### TYPEDEF SoupProtocol ##### -->
 <para>
-#GQuark is used for SoupProtocol so that the protocol of a #SoupUri
-can be tested quickly.
+
 </para>
 
 
 <!-- ##### MACRO SOUP_PROTOCOL_HTTP ##### -->
 <para>
-This returns the #SoupProtocol value for "http".
+
 </para>
 
 
 
 <!-- ##### MACRO SOUP_PROTOCOL_HTTPS ##### -->
 <para>
-This returns the #SoupProtocol value for "https".
+
 </para>
 
 

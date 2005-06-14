@@ -350,8 +350,8 @@ THROW_CREATE_ERROR:
  * soup_ssl_wrap_iochannel:
  * @sock: a #GIOChannel wrapping a TCP socket.
  * @type: whether this is a client or server socket
- * @hostname: the hostname of the remote machine
- * @cred_pointer: a client or server credentials structure
+ * @remote_host: the hostname of the remote machine
+ * @credentials: a client or server credentials structure
  *
  * This attempts to wrap a new #GIOChannel around @sock that
  * will SSL-encrypt/decrypt all traffic through it.
@@ -361,17 +361,17 @@ THROW_CREATE_ERROR:
  **/
 GIOChannel *
 soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
-			 const char *hostname, gpointer cred_pointer)
+			 const char *remote_host, gpointer credentials)
 {
 	SoupGNUTLSChannel *chan = NULL;
 	GIOChannel *gchan = NULL;
 	gnutls_session session = NULL;
-	SoupGNUTLSCred *cred = cred_pointer;
+	SoupGNUTLSCred *cred = credentials;
 	int sockfd;
 	int ret;
 
 	g_return_val_if_fail (sock != NULL, NULL);
-	g_return_val_if_fail (cred_pointer != NULL, NULL);
+	g_return_val_if_fail (credentials != NULL, NULL);
 
 	sockfd = g_io_channel_unix_get_fd (sock);
 	if (!sockfd) {
@@ -402,7 +402,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	chan->real_sock = sock;
 	chan->session = session;
 	chan->cred = cred;
-	chan->hostname = g_strdup (hostname);
+	chan->hostname = g_strdup (remote_host);
 	chan->type = type;
 	g_io_channel_ref (sock);
 
@@ -484,15 +484,15 @@ soup_ssl_get_client_credentials (const char *ca_file)
 
 /**
  * soup_ssl_free_client_credentials:
- * @client_creds: a client credentials structure returned by
+ * @creds: a client credentials structure returned by
  * soup_ssl_get_client_credentials().
  *
  * Frees @client_creds.
  **/
 void
-soup_ssl_free_client_credentials (gpointer client_creds)
+soup_ssl_free_client_credentials (gpointer creds)
 {
-	SoupGNUTLSCred *cred = client_creds;
+	SoupGNUTLSCred *cred = creds;
 
 	gnutls_certificate_free_credentials (cred->cred);
 	g_free (cred);
@@ -541,15 +541,15 @@ soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 
 /**
  * soup_ssl_free_server_credentials:
- * @server_creds: a server credentials structure returned by
+ * @creds: a server credentials structure returned by
  * soup_ssl_get_server_credentials().
  *
  * Frees @server_creds.
  **/
 void
-soup_ssl_free_server_credentials (gpointer server_creds)
+soup_ssl_free_server_credentials (gpointer creds)
 {
-	SoupGNUTLSCred *cred = server_creds;
+	SoupGNUTLSCred *cred = creds;
 
 	gnutls_certificate_free_credentials (cred->cred);
 	g_free (cred);

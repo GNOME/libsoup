@@ -2,7 +2,7 @@
 SoupSocket
 
 <!-- ##### SECTION Short_Description ##### -->
-
+a network socket
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -14,40 +14,73 @@ SoupSocket
 
 </para>
 
-<!-- ##### MACRO SOUP_SOCKET_FLAG_NONBLOCKING ##### -->
+<!-- ##### STRUCT SoupSocket ##### -->
 <para>
 
 </para>
 
 
-
-<!-- ##### MACRO SOUP_SOCKET_FLAG_NODELAY ##### -->
+<!-- ##### SIGNAL SoupSocket::connect-result ##### -->
 <para>
 
 </para>
 
+@sock: 
+@status: 
 
-
-<!-- ##### MACRO SOUP_SOCKET_FLAG_REUSEADDR ##### -->
+<!-- ##### SIGNAL SoupSocket::disconnected ##### -->
 <para>
 
 </para>
 
+@sock: 
 
-
-<!-- ##### MACRO SOUP_SOCKET_IS_SERVER ##### -->
+<!-- ##### SIGNAL SoupSocket::new-connection ##### -->
 <para>
 
 </para>
 
+@sock: 
+@new: 
 
-
-<!-- ##### MACRO SOUP_SOCKET_SSL_CREDENTIALS ##### -->
+<!-- ##### SIGNAL SoupSocket::readable ##### -->
 <para>
 
 </para>
 
+@sock: 
 
+<!-- ##### SIGNAL SoupSocket::writable ##### -->
+<para>
+
+</para>
+
+@sock: 
+
+<!-- ##### ARG SoupSocket:is-server ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSocket:nodelay ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSocket:non-blocking ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSocket:reuseaddr ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSocket:ssl-creds ##### -->
+<para>
+
+</para>
 
 <!-- ##### FUNCTION soup_socket_new ##### -->
 <para>
@@ -67,8 +100,6 @@ SoupSocket
 @sock: 
 @remote_addr: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@rem_addr: 
 
 
 <!-- ##### FUNCTION soup_socket_listen ##### -->
@@ -87,6 +118,16 @@ SoupSocket
 </para>
 
 @sock: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_socket_start_proxy_ssl ##### -->
+<para>
+
+</para>
+
+@sock: 
+@ssl_host: 
 @Returns: 
 
 
@@ -109,25 +150,22 @@ SoupSocket
 
 <!-- ##### USER_FUNCTION SoupSocketCallback ##### -->
 <para>
-The callback function passed to soup_socket_client_new_async().
+
 </para>
 
-@sock: the #SoupSocket
-@status: an HTTP status code indicating success or failure
+@sock: 
+@status: 
 @user_data: 
-<!-- # Unused Parameters # -->
-@data: the data passed to soup_socket_client_new_async()
 
 
 <!-- ##### USER_FUNCTION SoupSocketListenerCallback ##### -->
 <para>
-The callback function passed to soup_socket_server_new(), which
-receives new connections.
+
 </para>
 
-@listener: the listening #SoupSocket
-@sock: the newly-received #SoupSocket
-@user_data: the data passed to soup_socket_server_new().
+@listener: 
+@sock: 
+@user_data: 
 
 
 <!-- ##### FUNCTION soup_socket_client_new_async ##### -->
@@ -153,8 +191,6 @@ receives new connections.
 @ssl_creds: 
 @status_ret: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@status: 
 
 
 <!-- ##### FUNCTION soup_socket_server_new ##### -->
@@ -167,8 +203,6 @@ receives new connections.
 @callback: 
 @user_data: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@Param3: 
 
 
 <!-- ##### FUNCTION soup_socket_get_local_address ##### -->
@@ -191,13 +225,13 @@ receives new connections.
 
 <!-- ##### ENUM SoupSocketIOStatus ##### -->
 <para>
-Return value from the #SoupSocket IO methods.
+
 </para>
 
-@SOUP_SOCKET_OK: Success
-@SOUP_SOCKET_WOULD_BLOCK: Cannot read/write any more at this time
-@SOUP_SOCKET_EOF: End of file
-@SOUP_SOCKET_ERROR: Other error
+@SOUP_SOCKET_OK: 
+@SOUP_SOCKET_WOULD_BLOCK: 
+@SOUP_SOCKET_EOF: 
+@SOUP_SOCKET_ERROR: 
 
 <!-- ##### FUNCTION soup_socket_read ##### -->
 <para>
@@ -236,5 +270,40 @@ Return value from the #SoupSocket IO methods.
 @len: 
 @nwrote: 
 @Returns: 
+
+
+<!-- ##### MACRO SOUP_SOCKET_FLAG_NONBLOCKING ##### -->
+<para>
+An alias for the "non-blocking" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_FLAG_NODELAY ##### -->
+<para>
+An alias for the "nodelay" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_FLAG_REUSEADDR ##### -->
+<para>
+An alias for the "reuseaddr" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_IS_SERVER ##### -->
+<para>
+An alias for the "is-server" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_SSL_CREDENTIALS ##### -->
+<para>
+An alias for the "ssl-creds" property.
+</para>
+
 
 

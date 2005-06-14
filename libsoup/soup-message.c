@@ -107,6 +107,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 	object_class->finalize = finalize;
 
 	/* signals */
+
+	/**
+	 * SoupMessage::wrote-informational:
+	 * @msg: the message
+	 *
+	 * Emitted immediately after writing a 1xx (Informational)
+	 * response for a message.
+	 **/
 	signals[WROTE_INFORMATIONAL] =
 		g_signal_new ("wrote_informational",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -115,6 +123,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::wrote-headers:
+	 * @msg: the message
+	 *
+	 * Emitted immediately after writing the headers for a message.
+	 **/
 	signals[WROTE_HEADERS] =
 		g_signal_new ("wrote_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -123,6 +138,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::wrote-chunk:
+	 * @msg: the message
+	 *
+	 * Emitted immediately after writing a body chunk for a message.
+	 * (This is
+	 **/
 	signals[WROTE_CHUNK] =
 		g_signal_new ("wrote_chunk",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -131,6 +154,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::wrote-body:
+	 * @msg: the message
+	 *
+	 * Emitted immediately after writing the complete body for a message.
+	 **/
 	signals[WROTE_BODY] =
 		g_signal_new ("wrote_body",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -140,6 +170,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
+	/**
+	 * SoupMessage::got-informational:
+	 * @msg: the message
+	 *
+	 * Emitted after receiving a 1xx (Informational) response for
+	 * a message.
+	 **/
 	signals[GOT_INFORMATIONAL] =
 		g_signal_new ("got_informational",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -148,6 +185,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::got-headers:
+	 * @msg: the message
+	 *
+	 * Emitted after receiving all message headers for a message.
+	 **/
 	signals[GOT_HEADERS] =
 		g_signal_new ("got_headers",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -156,6 +200,16 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::got-chunk:
+	 * @msg: the message
+	 *
+	 * Emitted after receiving a chunk of a message body. Note
+	 * that "chunk" in this context means any subpiece of the
+	 * body, not necessarily the specific HTTP 1.1 chunks sent by
+	 * the other side.
+	 **/
 	signals[GOT_CHUNK] =
 		g_signal_new ("got_chunk",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -164,6 +218,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::got-body:
+	 * @msg: the message
+	 *
+	 * Emitted after receiving the complete message body.
+	 **/
 	signals[GOT_BODY] =
 		g_signal_new ("got_body",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -173,6 +234,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
+	/**
+	 * SoupMessage::restarted:
+	 * @msg: the message
+	 *
+	 * Emitted when a message is about to be re-queued.
+	 **/
 	signals[RESTARTED] =
 		g_signal_new ("restarted",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -181,6 +248,15 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::finished:
+	 * @msg: the message
+	 *
+	 * Emitted when all HTTP processing is finished for a message.
+	 * (After #read-body for client-side code, or after
+	 * #wrote-body for server-side code.)
+	 **/
 	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -788,28 +864,28 @@ soup_message_is_keepalive (SoupMessage *msg)
 /**
  * soup_message_set_uri:
  * @msg: a #SoupMessage
- * @new_uri: the new #SoupUri
+ * @uri: the new #SoupUri
  *
  * Changes the URI that @msg is directed to (generally as a result
  * of a redirect).
  **/
 void
-soup_message_set_uri (SoupMessage *msg, const SoupUri *new_uri)
+soup_message_set_uri (SoupMessage *msg, const SoupUri *uri)
 {
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->uri && new_uri) {
-		if (strcmp (priv->uri->host, new_uri->host) != 0)
+	if (priv->uri && uri) {
+		if (strcmp (priv->uri->host, uri->host) != 0)
 			soup_message_io_stop (msg);
-	} else if (!new_uri)
+	} else if (!uri)
 		soup_message_io_stop (msg);
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
-	priv->uri = soup_uri_copy (new_uri);
+	priv->uri = soup_uri_copy (uri);
 }
 
 /**

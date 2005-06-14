@@ -1,0 +1,46 @@
+<!-- ##### SECTION Title ##### -->
+SoupSessionSync
+
+<!-- ##### SECTION Short_Description ##### -->
+Soup session for blocking I/O in multithreaded programs.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#SoupSessionSync is an implementation of #SoupSession that uses
+synchronous I/O, intended for use in multi-threaded programs.
+</para>
+
+<para>
+Note that you cannot use soup_session_queue_message() with a
+synchronous session. You can only use soup_session_send_message().
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT SoupSessionSync ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_session_sync_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_sync_new_with_options ##### -->
+<para>
+
+</para>
+
+@optname1: 
+@Varargs: 
+@Returns: 
+
+

@@ -37,12 +37,28 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 }
 
 
+/**
+ * soup_session_async_new:
+ *
+ * Creates an asynchronous #SoupSession with the default options.
+ *
+ * Return value: the new session.
+ **/
 SoupSession *
 soup_session_async_new (void)
 {
 	return g_object_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 }
 
+/**
+ * soup_session_async_new_with_options:
+ * @optname1: name of first property to set
+ * @...: value of @optname1, followed by additional property/value pairs
+ *
+ * Creates an asynchronous #SoupSession with the specified options.
+ *
+ * Return value: the new session.
+ **/
 SoupSession *
 soup_session_async_new_with_options (const char *optname1, ...)
 {

@@ -96,7 +96,7 @@ soup_auth_new_from_header_list (const GSList *vals)
  * @password: the password provided by the user or client
  *
  * This is called by the session after requesting a username and
- * password from the application. @auth should take the information
+ * password from the application. @auth will take the information
  * and do whatever scheme-specific processing is needed.
  **/
 void
@@ -162,8 +162,9 @@ soup_auth_is_authenticated (SoupAuth *auth)
  * @auth: a #SoupAuth
  * @msg: the #SoupMessage to be authorized
  *
- * Generates an appropriate "Authorization" header for @msg. (This
- * will only be called if soup_auth_is_authenticated() returns %TRUE.)
+ * Generates an appropriate "Authorization" header for @msg. (The
+ * session will only call this if soup_auth_is_authenticated()
+ * returned %TRUE.)
  *
  * Return value: the "Authorization" header, which must be freed.
  **/

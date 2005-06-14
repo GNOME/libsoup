@@ -2,7 +2,7 @@
 soup-md5-utils
 
 <!-- ##### SECTION Short_Description ##### -->
-
+MD5 hash utilities
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -19,10 +19,6 @@ soup-md5-utils
 
 </para>
 
-@buf: 
-@bits: 
-@in: 
-@doByteReverse: 
 
 <!-- ##### FUNCTION soup_md5_init ##### -->
 <para>

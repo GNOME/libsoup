@@ -45,7 +45,26 @@ typedef enum {
 } SoupAddressFamily;
 #endif
 
+/**
+ * SOUP_ADDRESS_ANY_PORT:
+ *
+ * This can be passed to any #SoupAddress method that expects a port,
+ * to indicate that you don't care what port is used.
+ **/
 #define SOUP_ADDRESS_ANY_PORT 0
+
+/**
+ * SoupAddressCallback:
+ * @addr: the #SoupAddress that was resolved
+ * @status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
+ * @data: the user data that was passed to
+ * soup_address_resolve_async()
+ *
+ * The callback function passed to soup_address_resolve_async().
+ **/
+typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
+						  guint                status,
+						  gpointer             data);
 
 GType soup_address_get_type (void);
 
@@ -56,18 +75,15 @@ SoupAddress     *soup_address_new_from_sockaddr  (struct sockaddr     *sa,
 SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 						  guint                port);
 
-typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
-						  guint                status,
-						  gpointer             data);
 void             soup_address_resolve_async      (SoupAddress         *addr,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);
 guint            soup_address_resolve_sync       (SoupAddress         *addr);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);
-struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,
-						  int                 *len);
 const char      *soup_address_get_physical       (SoupAddress         *addr);
 guint            soup_address_get_port           (SoupAddress         *addr);
+struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,
+						  int                 *len);
 
 #endif /* SOUP_ADDRESS_H */

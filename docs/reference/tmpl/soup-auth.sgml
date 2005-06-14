@@ -11,21 +11,29 @@ given bit of webspace. They are created and maintained automatically
 by #SoupSession.
 </para>
 
-<para>
-#SoupAuth itself is an abstract class. Specific HTTP Authentication
-mechanisms are implemented by its subclasses. (NTLM authentication,
-which works quite differently from normal HTTP authentication, is
-handled by #SoupConnectionNTLM.)
-</para>
-
 <!-- ##### SECTION See_Also ##### -->
 <para>
-SoupAuthBasic, SoupAuthDigest, SoupSession, SoupConnectionNTLM
+#SoupSession, #SoupConnectionNTLM
 </para>
 
 <!-- ##### STRUCT SoupAuth ##### -->
 <para>
+The abstract base class for handling authentication. Specific HTTP
+Authentication mechanisms are implemented by its subclasses. (NTLM
+authentication, which works quite differently from normal HTTP
+authentication, is handled by #SoupConnectionNTLM.)
+</para>
 
+
+<!-- ##### STRUCT SoupAuthBasic ##### -->
+<para>
+An object representing Basic HTTP authentication.
+</para>
+
+
+<!-- ##### STRUCT SoupAuthDigest ##### -->
+<para>
+An object representing Digest HTTP authentication.
 </para>
 
 
@@ -34,7 +42,7 @@ SoupAuthBasic, SoupAuthDigest, SoupSession, SoupConnectionNTLM
 
 </para>
 
-@header: 
+@vals: 
 @Returns: 
 
 

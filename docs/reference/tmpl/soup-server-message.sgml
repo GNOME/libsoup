@@ -2,7 +2,7 @@
 SoupServerMessage
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Server-side #SoupMessage
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -13,6 +13,12 @@ SoupServerMessage
 <para>
 
 </para>
+
+<!-- ##### STRUCT SoupServerMessage ##### -->
+<para>
+
+</para>
+
 
 <!-- ##### FUNCTION soup_server_message_new ##### -->
 <para>

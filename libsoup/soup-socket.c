@@ -158,6 +158,15 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	object_class->get_property = get_property;
 
 	/* signals */
+
+	/**
+	 * SoupSocket::connect-result:
+	 * @sock: the socket
+	 * @status: the status
+	 *
+	 * Emitted when a connection attempt succeeds or fails. This
+	 * is used internally by soup_socket_client_new_async().
+	 **/
 	signals[CONNECT_RESULT] =
 		g_signal_new ("connect_result",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -167,6 +176,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
+
+	/**
+	 * SoupSocket::readable:
+	 * @sock: the socket
+	 *
+	 * Emitted when an async socket is readable. See
+	 * soup_socket_read() and soup_socket_read_until().
+	 **/
 	signals[READABLE] =
 		g_signal_new ("readable",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -175,6 +192,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupSocket::writable:
+	 * @sock: the socket
+	 *
+	 * Emitted when an async socket is writable. See
+	 * soup_socket_write().
+	 **/
 	signals[WRITABLE] =
 		g_signal_new ("writable",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -183,6 +208,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupSocket::disconnected:
+	 * @sock: the socket
+	 *
+	 * Emitted when the socket is disconnected, for whatever
+	 * reason.
+	 **/
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -191,6 +224,16 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupSocket::new-connection:
+	 * @sock: the socket
+	 * @new: the new socket
+	 *
+	 * Emitted when a listening socket (set up with
+	 * soup_socket_listen() or soup_socket_server_new()) receives a
+	 * new connection.
+	 **/
 	signals[NEW_CONNECTION] =
 		g_signal_new ("new_connection",
 			      G_OBJECT_CLASS_TYPE (object_class),

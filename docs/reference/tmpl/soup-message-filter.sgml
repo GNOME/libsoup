@@ -1,5 +1,5 @@
 <!-- ##### SECTION Title ##### -->
-soup-types
+SoupMessageFilter
 
 <!-- ##### SECTION Short_Description ##### -->
 
@@ -14,15 +14,12 @@ soup-types
 
 </para>
 
-<!-- ##### MACRO SOUP_MAKE_TYPE ##### -->
+<!-- ##### FUNCTION soup_message_filter_setup_message ##### -->
 <para>
 
 </para>
 
-@l: 
-@t: 
-@ci: 
-@i: 
-@parent: 
+@filter: 
+@msg: 
 
 

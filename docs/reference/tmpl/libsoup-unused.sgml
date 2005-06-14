@@ -1,195 +1,575 @@
-<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Long_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-auth-basic.sgml:Long_Description ##### -->
+<para>
+This implements the Basic HTTP Authentication mechanism, as described
+in RFC 2617. It is created automatically by #SoupSession when needed.
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-auth-basic.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-marshal.sgml:See_Also ##### -->
+<!-- ##### SECTION ./tmpl/soup-auth-basic.sgml:Short_Description ##### -->
+HTTP Basic Authentication
+
+
+<!-- ##### SECTION ./tmpl/soup-auth-basic.sgml:Title ##### -->
+SoupAuthBasic
+
+
+<!-- ##### SECTION ./tmpl/soup-auth-digest.sgml:Long_Description ##### -->
+<para>
+This implements the Digest HTTP Authentication mechanism, as described
+in RFC 2617. It is created automatically by #SoupSession when needed.
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-auth-digest.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Short_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-auth-digest.sgml:Short_Description ##### -->
+HTTP Digest Authentication
 
 
+<!-- ##### SECTION ./tmpl/soup-auth-digest.sgml:Title ##### -->
+SoupAuthDigest
 
-<!-- ##### SECTION ./tmpl/soup-marshal.sgml:Title ##### -->
-soup-marshal
 
-
-<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Long_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-md5-utils.sgml:Long_Description ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:See_Also ##### -->
+<!-- ##### SECTION ./tmpl/soup-md5-utils.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Short_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-md5-utils.sgml:Short_Description ##### -->
+MD5 hash utilities
 
 
+<!-- ##### SECTION ./tmpl/soup-md5-utils.sgml:Title ##### -->
+soup-md5-utils
 
-<!-- ##### SECTION ./tmpl/soup-socket-ssl.sgml:Title ##### -->
-SoupSocketSSL
 
-
-<!-- ##### SECTION ./tmpl/soup-types.sgml:Long_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-message-private.sgml:Long_Description ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-types.sgml:See_Also ##### -->
+<!-- ##### SECTION ./tmpl/soup-message-private.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup-types.sgml:Short_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-message-private.sgml:Short_Description ##### -->
 
 
 
-<!-- ##### SECTION ./tmpl/soup-types.sgml:Title ##### -->
-soup-types
+<!-- ##### SECTION ./tmpl/soup-message-private.sgml:Title ##### -->
+soup-message-private
 
 
-<!-- ##### SECTION ./tmpl/soup.sgml:Long_Description ##### -->
+<!-- ##### SECTION ./tmpl/soup-message-queue.sgml:Long_Description ##### -->
+<para>
+#SoupMessageQueue maintains the queue of pending messages in a
+#SoupSession.
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-message-queue.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup.sgml:See_Also ##### -->
+<!-- ##### SECTION ./tmpl/soup-message-queue.sgml:Short_Description ##### -->
+Message queue object
+
+
+<!-- ##### SECTION ./tmpl/soup-message-queue.sgml:Title ##### -->
+soup-message-queue
+
+
+<!-- ##### SECTION ./tmpl/soup-misc.sgml:Long_Description ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### SECTION ./tmpl/soup.sgml:Short_Description ##### -->
-
-
-
-<!-- ##### SECTION ./tmpl/soup.sgml:Title ##### -->
-soup
-
-
-<!-- ##### MACRO SOUP_MAKE_TYPE ##### -->
-<para>
-
-</para>
-
-@l: 
-@t: 
-@ci: 
-@i: 
-@parent: 
-
-<!-- ##### STRUCT SoupAddress ##### -->
+<!-- ##### SECTION ./tmpl/soup-misc.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### STRUCT SoupSoapMessagePrivate ##### -->
+<!-- ##### SECTION ./tmpl/soup-misc.sgml:Short_Description ##### -->
+Miscellaneous functions
+
+
+<!-- ##### SECTION ./tmpl/soup-misc.sgml:Title ##### -->
+soup-misc
+
+
+<!-- ##### SECTION ./tmpl/soup-server-auth.sgml:Long_Description ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### MACRO soup_marshal_NONE__INT ##### -->
+<!-- ##### SECTION ./tmpl/soup-server-auth.sgml:See_Also ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### MACRO soup_marshal_NONE__NONE ##### -->
+<!-- ##### SECTION ./tmpl/soup-server-auth.sgml:Short_Description ##### -->
+Server-side authentication structures
+
+
+<!-- ##### SECTION ./tmpl/soup-server-auth.sgml:Title ##### -->
+soup-server-auth
+
+
+<!-- ##### ENUM SoupAuthType ##### -->
+<para>
+
+</para>
+
+@SOUP_AUTH_TYPE_BASIC: 
+@SOUP_AUTH_TYPE_DIGEST: 
+
+<!-- ##### ENUM SoupDigestAlgorithm ##### -->
+<para>
+
+</para>
+
+@SOUP_ALGORITHM_MD5: 
+@SOUP_ALGORITHM_MD5_SESS: 
+
+<!-- ##### STRUCT SoupMD5Context ##### -->
 <para>
 
 </para>
 
 
-<!-- ##### MACRO soup_marshal_NONE__OBJECT ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### MACRO soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### MACRO soup_marshal_VOID__INT ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### MACRO soup_marshal_VOID__OBJECT ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### FUNCTION soup_marshal_VOID__OBJECT_STRING_STRING_POINTER_POINTER ##### -->
-<para>
-
-</para>
-
-@closure: 
-@return_value: 
-@n_param_values: 
-@param_values: 
-@invocation_hint: 
-@marshal_data: 
-
-<!-- ##### MACRO soup_marshal_VOID__VOID ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### FUNCTION soup_message_cancel ##### -->
-<para>
-
-</para>
-
-@msg: 
-@req: 
-
-<!-- ##### FUNCTION soup_message_cleanup ##### -->
-<para>
-
-</para>
-
-@req: 
-
-<!-- ##### FUNCTION soup_message_io_cancel ##### -->
+<!-- ##### USER_FUNCTION SoupMessageGetHeadersFn ##### -->
 <para>
 
 </para>
 
 @msg: 
+@headers: 
+@encoding: 
+@user_data: 
 
-<!-- ##### FUNCTION soup_session_new ##### -->
+<!-- ##### USER_FUNCTION SoupMessageParseHeadersFn ##### -->
+<para>
+
+</para>
+
+@msg: 
+@headers: 
+@header_len: 
+@encoding: 
+@content_len: 
+@user_data: 
+@Returns: 
+
+<!-- ##### TYPEDEF SoupMessageQueue ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT SoupMessageQueueIter ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### STRUCT SoupServerAuthBasic ##### -->
+<para>
+
+</para>
+
+@type: 
+@user: 
+@passwd: 
+
+<!-- ##### USER_FUNCTION SoupServerAuthCallbackFn ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@auth: 
+@msg: 
+@data: 
+@Returns: 
+
+<!-- ##### STRUCT SoupServerAuthContext ##### -->
+<para>
+
+</para>
+
+@types: 
+@callback: 
+@user_data: 
+
+<!-- ##### STRUCT SoupServerAuthDigest ##### -->
+<para>
+
+</para>
+
+@type: 
+@algorithm: 
+@integrity: 
+@realm: 
+@user: 
+@nonce: 
+@nonce_count: 
+@cnonce: 
+@digest_uri: 
+@digest_response: 
+@request_method: 
+
+<!-- ##### FUNCTION soup_base64_decode ##### -->
+<para>
+
+</para>
+
+@text: 
+@out_len: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_base64_decode_step ##### -->
+<para>
+
+</para>
+
+@in: 
+@len: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_base64_encode ##### -->
+<para>
+
+</para>
+
+@text: 
+@len: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_base64_encode_close ##### -->
+<para>
+
+</para>
+
+@in: 
+@inlen: 
+@break_lines: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_base64_encode_step ##### -->
+<para>
+
+</para>
+
+@in: 
+@len: 
+@break_lines: 
+@out: 
+@state: 
+@save: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_md5_final ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@digest: 
+
+<!-- ##### FUNCTION soup_md5_init ##### -->
+<para>
+
+</para>
+
+@ctx: 
+
+<!-- ##### FUNCTION soup_md5_update ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@buf: 
+@len: 
+
+<!-- ##### FUNCTION soup_message_cleanup_response ##### -->
+<para>
+
+</para>
+
+@req: 
+
+<!-- ##### FUNCTION soup_message_finished ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_got_body ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_got_chunk ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_got_headers ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_got_informational ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_io_client ##### -->
+<para>
+
+</para>
+
+@msg: 
+@sock: 
+@get_headers_cb: 
+@parse_headers_cb: 
+@user_data: 
+
+<!-- ##### FUNCTION soup_message_io_server ##### -->
+<para>
+
+</para>
+
+@msg: 
+@sock: 
+@get_headers_cb: 
+@parse_headers_cb: 
+@user_data: 
+
+<!-- ##### FUNCTION soup_message_queue_append ##### -->
+<para>
+
+</para>
+
+@queue: 
+@msg: 
+
+<!-- ##### FUNCTION soup_message_queue_destroy ##### -->
+<para>
+
+</para>
+
+@queue: 
+
+<!-- ##### FUNCTION soup_message_queue_first ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_message_queue_free_iter ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+
+<!-- ##### FUNCTION soup_message_queue_new ##### -->
 <para>
 
 </para>
 
 @Returns: 
 
-<!-- ##### FUNCTION soup_session_new_with_options ##### -->
+<!-- ##### FUNCTION soup_message_queue_next ##### -->
 <para>
 
 </para>
 
-@optname1: 
-@Varargs: 
+@queue: 
+@iter: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_message_queue_remove ##### -->
+<para>
+
+</para>
+
+@queue: 
+@iter: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_message_queue_remove_message ##### -->
+<para>
+
+</para>
+
+@queue: 
+@msg: 
+
+<!-- ##### FUNCTION soup_message_restarted ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_run_handlers ##### -->
+<para>
+
+</para>
+
+@msg: 
+@phase: 
+
+<!-- ##### FUNCTION soup_message_wrote_body ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_wrote_chunk ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_wrote_headers ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_message_wrote_informational ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+<!-- ##### FUNCTION soup_server_auth_check_passwd ##### -->
+<para>
+
+</para>
+
+@auth: 
+@passwd: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_server_auth_context_challenge ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@msg: 
+@header_name: 
+
+<!-- ##### FUNCTION soup_server_auth_free ##### -->
+<para>
+
+</para>
+
+@auth: 
+
+<!-- ##### FUNCTION soup_server_auth_get_user ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_server_auth_new ##### -->
+<para>
+
+</para>
+
+@auth_ctx: 
+@auth_hdrs: 
+@msg: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_signal_connect_once ##### -->
+<para>
+
+</para>
+
+@instance: 
+@detailed_signal: 
+@c_handler: 
+@data: 
+@Returns: 
+
+<!-- ##### VARIABLE soup_ssl_supported ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_str_case_equal ##### -->
+<para>
+
+</para>
+
+@v1: 
+@v2: 
+@Returns: 
+
+<!-- ##### FUNCTION soup_str_case_hash ##### -->
+<para>
+
+</para>
+
+@key: 
 @Returns: 
 

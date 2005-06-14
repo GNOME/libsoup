@@ -81,6 +81,10 @@ fetch_ns (SoupSoapMessage *msg, const char *prefix, const char *ns_uri)
  * soup_soap_message_new:
  * @method: the HTTP method for the created request.
  * @uri_string: the destination endpoint (as a string).
+ * @standalone: ??? FIXME
+ * @xml_encoding: ??? FIXME
+ * @env_prefix: ??? FIXME
+ * @env_uri: ??? FIXME
  *
  * Creates a new empty #SoupSoapMessage, which will connect to @uri_string.
  *
@@ -111,8 +115,12 @@ soup_soap_message_new (const char *method, const char *uri_string,
  * soup_soap_message_new_from_uri:
  * @method: the HTTP method for the created request.
  * @uri: the destination endpoint (as a #SoupUri).
+ * @standalone: ??? FIXME
+ * @xml_encoding: ??? FIXME
+ * @env_prefix: ??? FIXME
+ * @env_uri: ??? FIXME
  *
- * * Creates a new empty #SoupSoapMessage, which will connect to @uri
+ * Creates a new empty #SoupSoapMessage, which will connect to @uri
  *
  * Returns: the new #SoupSoapMessage
  */
@@ -240,23 +248,24 @@ soup_soap_message_end_body (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_start_element:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @name: the element name.
  * @prefix: the namespace prefix
  * @ns_uri: the namespace URI
  *
- * Starts a new arbitrary message element, with @name as the element name,
- * @prefix as the XML Namespace prefix, and @ns_uri as the XML Namespace uri for * the created element.
+ * Starts a new arbitrary message element, with @name as the element
+ * name, @prefix as the XML Namespace prefix, and @ns_uri as the XML
+ * Namespace uri for * the created element.
  *
- * Passing @prefix with no @ns_uri will cause a recursive search for an
- * existing namespace with the same prefix. Failing that a new ns will be
- * created with an empty uri.
+ * Passing @prefix with no @ns_uri will cause a recursive search for
+ * an existing namespace with the same prefix. Failing that a new ns
+ * will be created with an empty uri.
  *
- * Passing both @prefix and @ns_uri always causes new namespace attribute
- * creation.
+ * Passing both @prefix and @ns_uri always causes new namespace
+ * attribute creation.
  *
- * Passing NULL for both @prefix and @ns_uri causes no prefix to be used, and
- * the element will be in the default namespace.
+ * Passing NULL for both @prefix and @ns_uri causes no prefix to be
+ * used, and the element will be in the default namespace.
  */
 void
 soup_soap_message_start_element (SoupSoapMessage *msg,
@@ -280,7 +289,7 @@ soup_soap_message_start_element (SoupSoapMessage *msg,
 
 /**
  * soup_soap_message_end_element:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Closes the current message element.
  */
@@ -297,17 +306,17 @@ soup_soap_message_end_element (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_start_fault:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @faultcode: faultcode element value
  * @faultstring: faultstring element value
- * @faultactor: faultactor element value
+ * @faultfactor: faultfactor element value
  *
- * Starts a new SOAP Fault element, creating faultcode, faultstring, and
- * faultactor child elements.
+ * Starts a new SOAP Fault element, creating faultcode, faultstring,
+ * and faultfactor child elements.
  *
  * If you wish to add the faultdetail element, use
- * %soup_soap_message_start_fault_detail, and then %soup_soap_message_start_element
- * to add arbitrary sub-elements.
+ * soup_soap_message_start_fault_detail(), and then
+ * soup_soap_message_start_element() to add arbitrary sub-elements.
  */
 void
 soup_soap_message_start_fault (SoupSoapMessage *msg,
@@ -336,7 +345,7 @@ soup_soap_message_start_fault (SoupSoapMessage *msg,
 
 /**
  * soup_soap_message_end_fault:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Closes the current SOAP Fault element.
  */
@@ -348,10 +357,11 @@ soup_soap_message_end_fault (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_start_fault_detail:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
- * Start the faultdetail child element of the current SOAP Fault element. The
- * faultdetail element allows arbitrary data to be sent in a returned fault.
+ * Start the faultdetail child element of the current SOAP Fault
+ * element. The faultdetail element allows arbitrary data to be sent
+ * in a returned fault.
  **/
 void
 soup_soap_message_start_fault_detail (SoupSoapMessage *msg)
@@ -369,7 +379,7 @@ soup_soap_message_start_fault_detail (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_end_fault_detail:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Closes the current SOAP faultdetail element.
  */
@@ -381,15 +391,15 @@ soup_soap_message_end_fault_detail (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_start_header:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Creates a new SOAP Header element. You can call
- * %soup_soap_message_start_header_element after this to add a new header child
- * element. SOAP Header elements allow out-of-band data to be transferred while
- * not interfering with the message body.
+ * soup_soap_message_start_header_element() after this to add a new
+ * header child element. SOAP Header elements allow out-of-band data
+ * to be transferred while not interfering with the message body.
  *
- * This should be called after %soup_soap_message_start_envelope and before
- * %soup_soap_message_start_body.
+ * This should be called after soup_soap_message_start_envelope() and
+ * before soup_soap_message_start_body().
  */
 void
 soup_soap_message_start_header (SoupSoapMessage *msg)
@@ -405,7 +415,7 @@ soup_soap_message_start_header (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_end_header:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Closes the current SOAP Header element.
  */
@@ -417,7 +427,7 @@ soup_soap_message_end_header (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_start_header_element:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @name: name of the header element
  * @must_understand: whether the recipient must understand the header in order
  * to proceed with processing the message
@@ -449,7 +459,7 @@ soup_soap_message_start_header_element (SoupSoapMessage *msg,
 
 /**
  * soup_soap_message_end_header_element:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Closes the current SOAP header element.
  */
@@ -461,13 +471,13 @@ soup_soap_message_end_header_element (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_write_int:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @i: the integer value to write.
  *
- * Writes the stringified value if @i as the current element's content.
+ * Writes the stringified value of @i as the current element's content.
  */
 void
-soup_soap_message_write_int (SoupSoapMessage *msg, long i)
+soup_soap_message_write_int (SoupSoapMessage *msg, glong i)
 {
 	char *str = g_strdup_printf ("%ld", i);
 	soup_soap_message_write_string (msg, str);
@@ -476,10 +486,10 @@ soup_soap_message_write_int (SoupSoapMessage *msg, long i)
 
 /**
  * soup_soap_message_write_double:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @d: the double value to write.
  *
- * Writes the stringified value if @d as the current element's content.
+ * Writes the stringified value of @d as the current element's content.
  */
 void
 soup_soap_message_write_double (SoupSoapMessage *msg, double d)
@@ -491,11 +501,13 @@ soup_soap_message_write_double (SoupSoapMessage *msg, double d)
 
 /**
  * soup_soap_message_write_base64:
- * @msg: the %SoupSoapMessage
+ * @msg: the #SoupSoapMessage
  * @string: the binary data buffer to encode
  * @len: the length of data to encode
  *
- * Writes the Base-64 encoded value of @string as the current element's content. **/
+ * Writes the Base-64 encoded value of @string as the current
+ * element's content.
+ **/
 void
 soup_soap_message_write_base64 (SoupSoapMessage *msg, const char *string, int len)
 {
@@ -506,10 +518,11 @@ soup_soap_message_write_base64 (SoupSoapMessage *msg, const char *string, int le
 
 /**
  * soup_soap_message_write_time:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @timeval: pointer to a time_t to encode
  *
- * Writes the stringified value of @timeval as the current element's content.
+ * Writes the stringified value of @timeval as the current element's
+ * content.
  **/
 void
 soup_soap_message_write_time (SoupSoapMessage *msg, const time_t *timeval)
@@ -520,7 +533,7 @@ soup_soap_message_write_time (SoupSoapMessage *msg, const time_t *timeval)
 
 /**
  * soup_soap_message_write_string:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @string: string to write.
  *
  * Writes the @string as the current element's content.
@@ -538,11 +551,12 @@ soup_soap_message_write_string (SoupSoapMessage *msg, const char *string)
 
 /**
  * soup_soap_message_write_buffer:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @buffer: the string data buffer to write.
  * @len: length of @buffer.
  *
- * Writes the string buffer pointed to by @buffer as the current element's content.
+ * Writes the string buffer pointed to by @buffer as the current
+ * element's content.
  */
 void
 soup_soap_message_write_buffer (SoupSoapMessage *msg, const char *buffer, int len)
@@ -557,11 +571,11 @@ soup_soap_message_write_buffer (SoupSoapMessage *msg, const char *buffer, int le
 
 /**
  * soup_soap_message_set_element_type:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @xsi_type: the type name for the element.
  *
- * Sets the current element's XML schema xsi:type attribute, which specifies
- * the element's type name.
+ * Sets the current element's XML schema xsi:type attribute, which
+ * specifies the element's type name.
  */
 void
 soup_soap_message_set_element_type (SoupSoapMessage *msg, const char *xsi_type)
@@ -576,7 +590,7 @@ soup_soap_message_set_element_type (SoupSoapMessage *msg, const char *xsi_type)
 
 /**
  * soup_soap_message_set_null:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Sets the current element's XML Schema xsi:null attribute.
  */
@@ -593,7 +607,7 @@ soup_soap_message_set_null (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_add_attribute:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @name: name of the attribute
  * @value: value of the attribute
  * @prefix: the namespace prefix
@@ -620,7 +634,7 @@ soup_soap_message_add_attribute (SoupSoapMessage *msg,
 
 /**
  * soup_soap_message_add_namespace:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @prefix: the namespace prefix
  * @ns_uri: the namespace URI, or NULL for empty namespace
  *
@@ -639,12 +653,12 @@ soup_soap_message_add_namespace (SoupSoapMessage *msg, const char *prefix, const
 
 /**
  * soup_soap_message_set_default_namespace:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @ns_uri: the namespace URI.
  *
- * Sets the default namespace to the URI specified in @ns_uri. The default
- * namespace becomes the namespace all non-explicitly namespaced child elements
- * fall into.
+ * Sets the default namespace to the URI specified in @ns_uri. The
+ * default namespace becomes the namespace all non-explicitly
+ * namespaced child elements fall into.
  */
 void
 soup_soap_message_set_default_namespace (SoupSoapMessage *msg, const char *ns_uri)
@@ -659,11 +673,11 @@ soup_soap_message_set_default_namespace (SoupSoapMessage *msg, const char *ns_ur
 
 /**
  * soup_soap_message_set_encoding_style:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @enc_style: the new encodingStyle value
  *
- * Sets the encodingStyle attribute on the current element to the value of
- * @enc_style.
+ * Sets the encodingStyle attribute on the current element to the
+ * value of @enc_style.
  */
 void
 soup_soap_message_set_encoding_style (SoupSoapMessage *msg, const char *enc_style)
@@ -678,7 +692,7 @@ soup_soap_message_set_encoding_style (SoupSoapMessage *msg, const char *enc_styl
 
 /**
  * soup_soap_message_reset:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Resets the internal XML representation of the SOAP message.
  */
@@ -709,9 +723,9 @@ soup_soap_message_reset (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_persist:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
- * Writes the serialized XML tree to the %SoupMessage's buffer.
+ * Writes the serialized XML tree to the #SoupMessage's buffer.
  */
 void
 soup_soap_message_persist (SoupSoapMessage *msg)
@@ -732,7 +746,7 @@ soup_soap_message_persist (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_get_namespace_prefix:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  * @ns_uri: the namespace URI.
  *
  * Returns the namespace prefix for @ns_uri (or an empty string if
@@ -764,12 +778,12 @@ soup_soap_message_get_namespace_prefix (SoupSoapMessage *msg, const char *ns_uri
 
 /**
  * soup_soap_message_get_xml_doc:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
- * Returns the internal XML representation tree of the %SoupSoapMessage pointed
- * to by @msg.
+ * Returns the internal XML representation tree of the
+ * #SoupSoapMessage pointed to by @msg.
  *
- * Return value: the xmlDocPtr representing the SOAP message.
+ * Return value: the #xmlDocPtr representing the SOAP message.
  */
 xmlDocPtr
 soup_soap_message_get_xml_doc (SoupSoapMessage *msg)
@@ -784,12 +798,12 @@ soup_soap_message_get_xml_doc (SoupSoapMessage *msg)
 
 /**
  * soup_soap_message_parse_response:
- * @msg: the %SoupSoapMessage.
+ * @msg: the #SoupSoapMessage.
  *
  * Parses the response returned by the server.
  *
- * Return value: a %SoupSoapResponse representing the response from the server,
- * or %NULL if there was an error.
+ * Return value: a #SoupSoapResponse representing the response from
+ * the server, or %NULL if there was an error.
  */
 SoupSoapResponse *
 soup_soap_message_parse_response (SoupSoapMessage *msg)

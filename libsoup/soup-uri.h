@@ -11,8 +11,26 @@
 
 #include <libsoup/soup-types.h>
 
+/**
+ * SoupProtocol:
+ *
+ * #GQuark is used for SoupProtocol so that the protocol of a #SoupUri
+ * can be tested quickly.
+ **/
 typedef GQuark SoupProtocol;
+
+/**
+ * SOUP_PROTOCOL_HTTP:
+ *
+ * This returns the #SoupProtocol value for "http".
+ **/
 #define SOUP_PROTOCOL_HTTP (g_quark_from_static_string ("http"))
+
+/**
+ * SOUP_PROTOCOL_HTTPS:
+ *
+ * This returns the #SoupProtocol value for "https".
+**/
 #define SOUP_PROTOCOL_HTTPS (g_quark_from_static_string ("https"))
 
 struct SoupUri {

@@ -2,11 +2,12 @@
 soup-message-queue
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Message queue object
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
-
+#SoupMessageQueue maintains the queue of pending messages in a
+#SoupSession.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -14,10 +15,15 @@ soup-message-queue
 
 </para>
 
+<!-- ##### TYPEDEF SoupMessageQueue ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### STRUCT SoupMessageQueueIter ##### -->
 <para>
-An opaque data structure used to iterate the elements of a
-#SoupMessageQueue.
+
 </para>
 
 

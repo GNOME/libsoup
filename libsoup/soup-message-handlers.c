@@ -64,13 +64,13 @@ run_handler (SoupMessage     *msg,
 /**
  * soup_message_run_handlers:
  * @msg: a #SoupMessage
- * @invoke_phase: which group of handlers to run
+ * @phase: which group of handlers to run
  *
- * Run each @invoke_phase handler on @msg. If a handler requeues the
- * message, we stop processing at that point.
+ * Run each @phase handler on @msg. If a handler requeues the message,
+ * we stop processing at that point.
  */
 void
-soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
+soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase phase)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	GSList *copy, *list;
@@ -83,7 +83,7 @@ soup_message_run_handlers (SoupMessage *msg, SoupHandlerPhase invoke_phase)
 	for (list = copy; list; list = list->next) {
 		if (!g_slist_find (priv->content_handlers, list->data))
 			continue;
-		run_handler (msg, invoke_phase, list->data);
+		run_handler (msg, phase, list->data);
 
 		if (SOUP_MESSAGE_IS_STARTING (msg))
 			break;

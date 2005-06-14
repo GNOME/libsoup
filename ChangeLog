@@ -1,3 +1,10 @@
+2005-06-14  Dan Winship  <danw@novell.com>
+
+	* libsoup/*.[ch]: add/fix gtk-doc comments, make functions match
+	prototypes, etc
+
+	* docs/reference/*: update, fix, etc
+
 2005-06-13  Tor Lillqvist  <tml@novell.com>
 
 	* configure.in: Check also for inet_ntop(). Pre-cache knowledge

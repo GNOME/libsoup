@@ -129,6 +129,15 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 	object_class->get_property = get_property;
 
 	/* signals */
+
+	/**
+	 * SoupConnection::connect-result:
+	 * @conn: the connection
+	 * @status: the status
+	 *
+	 * Emitted when a connection attempt succeeds or fails. This
+	 * is used internally by soup_connection_connect_async().
+	 **/
 	signals[CONNECT_RESULT] =
 		g_signal_new ("connect_result",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -138,6 +147,14 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
+
+	/**
+	 * SoupConnection::disconnected:
+	 * @conn: the connection
+	 *
+	 * Emitted when the connection's socket is disconnected, for
+	 * whatever reason.
+	 **/
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -146,6 +163,21 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupConnection::authenticate:
+	 * @conn: the connection
+	 * @msg: the #SoupMessage being sent
+	 * @auth_type: the authentication type
+	 * @auth_realm: the realm being authenticated to
+	 * @username: the signal handler should set this to point to
+	 * the provided username
+	 * @password: the signal handler should set this to point to
+	 * the provided password
+	 *
+	 * Emitted when the connection requires authentication.
+	 * (#SoupConnectionNTLM makes use of this.)
+	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -159,6 +191,21 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_TYPE_STRING,
 			      G_TYPE_POINTER,
 			      G_TYPE_POINTER);
+
+	/**
+	 * SoupConnection::reauthenticate:
+	 * @conn: the connection
+	 * @msg: the #SoupMessage being sent
+	 * @auth_type: the authentication type
+	 * @auth_realm: the realm being authenticated to
+	 * @username: the signal handler should set this to point to
+	 * the provided username
+	 * @password: the signal handler should set this to point to
+	 * the provided password
+	 *
+	 * Emitted when the authentication data acquired by a previous
+	 * %authenticate or %reauthenticate signal fails.
+	 **/
 	signals[REAUTHENTICATE] =
 		g_signal_new ("reauthenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -735,7 +782,7 @@ soup_connection_reserve (SoupConnection *conn)
  * @conn: a #SoupConnection
  *
  * Marks @conn as not "in use". This can be used to cancel the effect
- * of a soup_session_reserve(). It is not necessary to call this
+ * of a soup_connection_reserve(). It is not necessary to call this
  * after soup_connection_send_request().
  **/
 void

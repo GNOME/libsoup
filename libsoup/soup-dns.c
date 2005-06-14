@@ -143,6 +143,13 @@ static GCond *soup_dns_cond;
 static GMutex *soup_gethost_lock;
 #endif
 
+/**
+ * soup_dns_init:
+ *
+ * Initializes the libsoup DNS system. Must be called before any other
+ * soup_dns method is called. Normally this gets called automatically
+ * by #SoupAddress's class_init function.
+ **/
 void
 soup_dns_init (void)
 {

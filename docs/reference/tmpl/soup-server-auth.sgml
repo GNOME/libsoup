@@ -2,7 +2,7 @@
 soup-server-auth
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Server-side authentication structures
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -13,6 +13,15 @@ soup-server-auth
 <para>
 
 </para>
+
+<!-- ##### STRUCT SoupServerAuthContext ##### -->
+<para>
+
+</para>
+
+@types: 
+@callback: 
+@user_data: 
 
 <!-- ##### USER_FUNCTION SoupServerAuthCallbackFn ##### -->
 <para>

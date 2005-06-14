@@ -187,6 +187,26 @@ soup_session_class_init (SoupSessionClass *session_class)
 	object_class->get_property = get_property;
 
 	/* signals */
+
+	/**
+	 * SoupSession::authenticate:
+	 * @session: the session
+	 * @msg: the #SoupMessage being sent
+	 * @auth_type: the authentication type
+	 * @auth_realm: the realm being authenticated to
+	 * @username: the signal handler should set this to point to
+	 * the provided username
+	 * @password: the signal handler should set this to point to
+	 * the provided password
+	 *
+	 * Emitted when the session requires authentication. The
+	 * credentials may come from the user, or from cached
+	 * information. If no credentials are available, leave
+	 * @username and @password unchanged.
+	 *
+	 * If the provided credentials fail, the #reauthenticate
+	 * signal will be emitted.
+	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -200,6 +220,40 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_TYPE_STRING,
 			      G_TYPE_POINTER,
 			      G_TYPE_POINTER);
+
+	/**
+	 * SoupSession::reauthenticate:
+	 * @session: the session
+	 * @msg: the #SoupMessage being sent
+	 * @auth_type: the authentication type
+	 * @auth_realm: the realm being authenticated to
+	 * @username: the signal handler should set this to point to
+	 * the provided username
+	 * @password: the signal handler should set this to point to
+	 * the provided password
+	 *
+	 * Emitted when the credentials provided by the application to
+	 * the #authenticate signal have failed. This gives the
+	 * application a second chance to provide authentication
+	 * credentials. If the new credentials also fail, #SoupSession
+	 * will emit #reauthenticate again, and will continue doing so
+	 * until the provided credentials work, or a #reauthenticate
+	 * signal emission "fails" (because the handler left @username
+	 * and @password unchanged). At that point, the 401 or 407
+	 * error status will be returned to the caller.
+	 *
+	 * If your application only uses cached passwords, it should
+	 * only connect to #authenticate, and not #reauthenticate.
+	 *
+	 * If your application always prompts the user for a password,
+	 * and never uses cached information, then you can connect the
+	 * same handler to #authenticate and #reauthenticate.
+	 *
+	 * To get standard web-browser behavior, return either cached
+	 * information or a user-provided password (whichever is
+	 * available) from the #authenticate handler, but return only
+	 * user-provided information from the #reauthenticate handler.
+	 **/
 	signals[REAUTHENTICATE] =
 		g_signal_new ("reauthenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -1001,7 +1055,8 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
  * @is_new: on return, %TRUE if the returned connection is new and not
  * yet connected
  * 
- * Tries to find or create a connection for @msg.
+ * Tries to find or create a connection for @msg; this is an internal
+ * method for #SoupSession subclasses.
  *
  * If there is an idle connection to the relevant host available, then
  * that connection will be returned (with *@is_new set to %FALSE). The

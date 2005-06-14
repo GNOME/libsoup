@@ -8,6 +8,13 @@
 
 #include <glib.h>
 
+/**
+ * SoupSSLType:
+ * @SOUP_SSL_TYPE_CLIENT: the client side of an SSL connection
+ * @SOUP_SSL_TYPE_SERVER: the server side of an SSL connection
+ *
+ * What kind of SSL connection this is.
+ **/
 typedef enum {
 	SOUP_SSL_TYPE_CLIENT = 0,
 	SOUP_SSL_TYPE_SERVER

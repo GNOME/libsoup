@@ -147,6 +147,15 @@ soup_address_class_init (SoupAddressClass *address_class)
 	object_class->finalize = finalize;
 
 	/* signals */
+
+	/**
+	 * SoupAddress::dns-result:
+	 * @addr: the #SoupAddress
+	 * @status: the DNS status code
+	 *
+	 * Emitted when an address resolution completes. (This is used
+	 * internally by soup_address_resolve_async() itself.)
+	 **/
 	signals[DNS_RESULT] =
 		g_signal_new ("dns_result",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -228,6 +237,17 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 }
 
 /**
+ * SoupAddressFamily:
+ * @SOUP_ADDRESS_FAMILY_IPV4: an IPv4 address
+ * @SOUP_ADDRESS_FAMILY_IPV6: an IPv6 address
+ *
+ * The supported address families. Note that the
+ * %SOUP_ADDRESS_FAMILY_IPV6 constant is available even if libsoup was
+ * built without IPv6 support, but attempting to create an IPv6
+ * address will fail in that case.
+ **/
+
+/**
  * soup_address_new_any:
  * @family: the address family
  * @port: the port number (usually %SOUP_ADDRESS_ANY_PORT)
@@ -281,7 +301,7 @@ soup_address_get_name (SoupAddress *addr)
  * @len: return location for sockaddr length
  *
  * Returns the sockaddr associated with @addr, with its length in
- * *@len. If the sockaddr is not yet know, returns %NULL.
+ * *@len. If the sockaddr is not yet known, returns %NULL.
  *
  * Return value: the sockaddr, or %NULL
  **/

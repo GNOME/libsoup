@@ -62,12 +62,28 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 }
 
 
+/**
+ * soup_session_sync_new:
+ *
+ * Creates an synchronous #SoupSession with the default options.
+ *
+ * Return value: the new session.
+ **/
 SoupSession *
 soup_session_sync_new (void)
 {
 	return g_object_new (SOUP_TYPE_SESSION_SYNC, NULL);
 }
 
+/**
+ * soup_session_sync_new_with_options:
+ * @optname1: name of first property to set
+ * @...: value of @optname1, followed by additional property/value pairs
+ *
+ * Creates an synchronous #SoupSession with the specified options.
+ *
+ * Return value: the new session.
+ **/
 SoupSession *
 soup_session_sync_new_with_options (const char *optname1, ...)
 {

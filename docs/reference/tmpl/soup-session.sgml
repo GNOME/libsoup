@@ -2,7 +2,7 @@
 SoupSession
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Soup session state object
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -14,40 +14,60 @@ SoupSession
 
 </para>
 
-<!-- ##### MACRO SOUP_SESSION_PROXY_URI ##### -->
+<!-- ##### STRUCT SoupSession ##### -->
 <para>
 
 </para>
 
 
-
-<!-- ##### MACRO SOUP_SESSION_MAX_CONNS ##### -->
+<!-- ##### SIGNAL SoupSession::authenticate ##### -->
 <para>
 
 </para>
 
+@session: 
+@msg: 
+@auth_type: 
+@auth_realm: 
+@username: 
+@password: 
 
-
-<!-- ##### MACRO SOUP_SESSION_MAX_CONNS_PER_HOST ##### -->
+<!-- ##### SIGNAL SoupSession::reauthenticate ##### -->
 <para>
 
 </para>
 
+@session: 
+@msg: 
+@auth_type: 
+@auth_realm: 
+@username: 
+@password: 
 
-
-<!-- ##### MACRO SOUP_SESSION_USE_NTLM ##### -->
+<!-- ##### ARG SoupSession:max-conns ##### -->
 <para>
 
 </para>
 
-
-
-<!-- ##### MACRO SOUP_SESSION_SSL_CA_FILE ##### -->
+<!-- ##### ARG SoupSession:max-conns-per-host ##### -->
 <para>
 
 </para>
 
+<!-- ##### ARG SoupSession:proxy-uri ##### -->
+<para>
 
+</para>
+
+<!-- ##### ARG SoupSession:ssl-ca-file ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSession:use-ntlm ##### -->
+<para>
+
+</para>
 
 <!-- ##### FUNCTION soup_session_queue_message ##### -->
 <para>
@@ -58,8 +78,6 @@ SoupSession
 @msg: 
 @callback: 
 @user_data: 
-<!-- # Unused Parameters # -->
-@req: 
 
 
 <!-- ##### FUNCTION soup_session_requeue_message ##### -->
@@ -69,8 +87,6 @@ SoupSession
 
 @session: 
 @msg: 
-<!-- # Unused Parameters # -->
-@req: 
 
 
 <!-- ##### FUNCTION soup_session_send_message ##### -->
@@ -81,8 +97,6 @@ SoupSession
 @session: 
 @msg: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@req: 
 
 
 <!-- ##### FUNCTION soup_session_abort ##### -->
@@ -91,5 +105,88 @@ SoupSession
 </para>
 
 @session: 
+
+
+<!-- ##### FUNCTION soup_session_add_filter ##### -->
+<para>
+
+</para>
+
+@session: 
+@filter: 
+
+
+<!-- ##### FUNCTION soup_session_cancel_message ##### -->
+<para>
+
+</para>
+
+@session: 
+@msg: 
+
+
+<!-- ##### FUNCTION soup_session_get_connection ##### -->
+<para>
+
+</para>
+
+@session: 
+@msg: 
+@try_pruning: 
+@is_new: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_remove_filter ##### -->
+<para>
+
+</para>
+
+@session: 
+@filter: 
+
+
+<!-- ##### FUNCTION soup_session_try_prune_connection ##### -->
+<para>
+
+</para>
+
+@session: 
+@Returns: 
+
+
+<!-- ##### MACRO SOUP_SESSION_PROXY_URI ##### -->
+<para>
+An alias for the "proxy-uri" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_MAX_CONNS ##### -->
+<para>
+An alias for the "max-conns" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_MAX_CONNS_PER_HOST ##### -->
+<para>
+An alias for the "max-conns-per-host" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_USE_NTLM ##### -->
+<para>
+An alias for the "use-ntlm" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_SSL_CA_FILE ##### -->
+<para>
+An alias for the "ssl-ca-file" property.
+</para>
+
 
 

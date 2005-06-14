@@ -43,6 +43,19 @@ typedef struct {
 GType soup_connection_get_type (void);
 
 
+/**
+ * SoupConnectionCallback:
+ * @conn: the #SoupConnection
+ * @status: an HTTP status code indicating success or failure
+ * @data: the data passed to soup_connection_connect_async()
+ *
+ * The callback function passed to soup_connection_connect_async().
+ **/
+typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
+						guint             status,
+						gpointer          data);
+
+
 #define SOUP_CONNECTION_ORIGIN_URI      "origin-uri"
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
@@ -50,10 +63,6 @@ GType soup_connection_get_type (void);
 
 SoupConnection *soup_connection_new            (const char       *propname1,
 						...);
-
-typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
-						guint             status,
-						gpointer          data);
 
 void            soup_connection_connect_async  (SoupConnection   *conn,
 						SoupConnectionCallback callback,

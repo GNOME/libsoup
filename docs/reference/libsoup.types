@@ -5,10 +5,14 @@
 #include <libsoup/soup-connection.h>
 #include <libsoup/soup-connection-ntlm.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-message-filter.h>
 #include <libsoup/soup-server-message.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session.h>
+#include <libsoup/soup-session-sync.h>
+#include <libsoup/soup-session-async.h>
 #include <libsoup/soup-soap-message.h>
+#include <libsoup/soup-soap-response.h>
 #include <libsoup/soup-socket.h>
 
 soup_address_get_type
@@ -18,9 +22,13 @@ soup_auth_digest_get_type
 soup_connection_get_type
 soup_connection_ntlm_get_type
 soup_message_get_type
+soup_message_filter_get_type
 soup_server_message_get_type
 soup_server_get_type
 soup_session_get_type
+soup_session_sync_get_type
+soup_session_async_get_type
 soup_soap_message_get_type
+soup_soap_response_get_type
 soup_socket_get_type
 

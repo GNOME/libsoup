@@ -45,7 +45,7 @@ typedef struct {
 GType       soup_auth_get_type              (void);
 
 
-SoupAuth   *soup_auth_new_from_header_list  (const GSList  *header);
+SoupAuth   *soup_auth_new_from_header_list  (const GSList  *vals);
 
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);

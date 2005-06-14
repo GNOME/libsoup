@@ -2,7 +2,7 @@
 SoupSoapMessage
 
 <!-- ##### SECTION Short_Description ##### -->
-
+A SOAP request/response
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -177,6 +177,8 @@ SoupSoapMessage
 </para>
 
 @msg: 
+@i: 
+<!-- # Unused Parameters # -->
 @Param2: 
 
 
@@ -311,6 +313,15 @@ SoupSoapMessage
 
 
 <!-- ##### FUNCTION soup_soap_message_get_xml_doc ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_soap_message_parse_response ##### -->
 <para>
 
 </para>

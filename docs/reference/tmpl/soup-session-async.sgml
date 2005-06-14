@@ -1,0 +1,42 @@
+<!-- ##### SECTION Title ##### -->
+SoupSessionAsync
+
+<!-- ##### SECTION Short_Description ##### -->
+Soup session for asynchronous (main-loop-based) I/O.
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#SoupSessionASync is an implementation of #SoupSession that uses
+non-blocking I/O via the glib main loop. It is intended for use in
+single-threaded programs.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### STRUCT SoupSessionAsync ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_session_async_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_session_async_new_with_options ##### -->
+<para>
+
+</para>
+
+@optname1: 
+@Varargs: 
+@Returns: 
+
+

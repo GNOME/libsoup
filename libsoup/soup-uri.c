@@ -390,24 +390,24 @@ parts_equal (const char *one, const char *two)
 
 /**
  * soup_uri_equal:
- * @u1: a #SoupUri
- * @u2: another #SoupUri
+ * @uri1: a #SoupUri
+ * @uri2: another #SoupUri
  *
- * Tests whether or not @u1 and @u2 are equal in all parts
+ * Tests whether or not @uri1 and @uri2 are equal in all parts
  *
  * Return value: %TRUE or %FALSE
  **/
 gboolean 
-soup_uri_equal (const SoupUri *u1, const SoupUri *u2)
+soup_uri_equal (const SoupUri *uri1, const SoupUri *uri2)
 {
-	if (u1->protocol != u2->protocol              ||
-	    u1->port     != u2->port                  ||
-	    !parts_equal (u1->user, u2->user)         ||
-	    !parts_equal (u1->passwd, u2->passwd)     ||
-	    !parts_equal (u1->host, u2->host)         ||
-	    !parts_equal (u1->path, u2->path)         ||
-	    !parts_equal (u1->query, u2->query)       ||
-	    !parts_equal (u1->fragment, u2->fragment))
+	if (uri1->protocol != uri2->protocol              ||
+	    uri1->port     != uri2->port                  ||
+	    !parts_equal (uri1->user, uri2->user)         ||
+	    !parts_equal (uri1->passwd, uri2->passwd)     ||
+	    !parts_equal (uri1->host, uri2->host)         ||
+	    !parts_equal (uri1->path, uri2->path)         ||
+	    !parts_equal (uri1->query, uri2->query)       ||
+	    !parts_equal (uri1->fragment, uri2->fragment))
 		return FALSE;
 
 	return TRUE;

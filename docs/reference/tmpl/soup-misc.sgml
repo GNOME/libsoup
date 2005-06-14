@@ -2,7 +2,7 @@
 soup-misc
 
 <!-- ##### SECTION Short_Description ##### -->
-
+Miscellaneous functions
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
@@ -85,8 +85,6 @@ soup-misc
 @c_handler: 
 @data: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@signal: 
 
 
 <!-- ##### FUNCTION soup_str_case_hash ##### -->
