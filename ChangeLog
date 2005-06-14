@@ -1,3 +1,13 @@
+2005-06-13  Tor Lillqvist  <tml@novell.com>
+
+	* configure.in: Check also for inet_ntop(). Pre-cache knowledge
+	that we do have inet_pton() and inet_ntop() on Windows (because we
+	implement them ourselves in soup-dns.c).
+	
+	* libsoup/soup-dns.c (inet_pton, inet_ntop): Fix the Win32
+	implementations, they were completely bogus.
+	(soup_dns_ntop): Make it compile if HAVE_INET_NTOP.
+
 2005-06-08  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Fix this to

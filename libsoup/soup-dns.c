@@ -40,55 +40,74 @@
 #ifdef G_OS_WIN32
 
 static int
-inet_pton (int         af,
-	   const char *src,
-	   void       *dst)
+inet_pton(int af, const char* src, void* dst)
 {
 	int address_length;
+	struct sockaddr_storage sa;
+	struct sockaddr_in *sin = (struct sockaddr_in *)&sa;
+	struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&sa;
 
 	switch (af) {
 	case AF_INET:
 		address_length = sizeof (struct sockaddr_in);
 		break;
-
+		
 	case AF_INET6:
 		address_length = sizeof (struct sockaddr_in6);
 		break;
-
+		
 	default:
-		g_assert_not_reached ();
-		g_error ("invalid address family");
+		return -1;
 	}
+	
+	if (WSAStringToAddress ((LPTSTR) src, af, NULL, (LPSOCKADDR) &sa, &address_length) == 0) {
+		switch (af) {
+		case AF_INET:
+			memcpy (dst, &sin->sin_addr, sizeof (struct in_addr));
+			break;
 
-	return (WSAStringToAddress ((LPTSTR) src, af, NULL,
-				    dst, &address_length) == 0);
+		case AF_INET6:
+			memcpy (dst, &sin6->sin6_addr, sizeof (struct in6_addr));
+			break;
+		}
+		return 1;
+	}
+	
+	return 0;
 }
 
-static int
-inet_ntop (int         af,
-	   const void *src,
-	   char       *dst,
-	   int         cnt)
+static const char* 
+inet_ntop(int af, const void* src, char* dst, size_t size)
 {
 	int address_length;
-	DWORD string_length = cnt;
-
+	DWORD string_length = size;
+	struct sockaddr_storage sa;
+	struct sockaddr_in *sin = (struct sockaddr_in *)&sa;
+	struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&sa;
+	
+	memset (&sa, 0, sizeof (sa));
 	switch (af) {
 	case AF_INET:
 		address_length = sizeof (struct sockaddr_in);
+		sin->sin_family = af;
+		memcpy (&sin->sin_addr, src, sizeof (struct in_addr));
 		break;
-
+		
 	case AF_INET6:
 		address_length = sizeof (struct sockaddr_in6);
+		sin6->sin6_family = af;
+		memcpy (&sin6->sin6_addr, src, sizeof (struct in6_addr));
 		break;
-
+		
 	default:
-		g_assert_not_reached ();
-		g_error ("invalid address family");
+		return NULL;
 	}
-
-	return (WSAAddressToString ((LPSOCKADDR) src, address_length, NULL,
-				    dst, &string_length) == 0);
+	
+	if (WSAAddressToString ((LPSOCKADDR) &sa, address_length, NULL,
+				dst, &string_length) == 0)
+		return dst;
+	
+	return NULL;
 }
 
 #endif
@@ -248,7 +267,7 @@ soup_dns_ntop (struct sockaddr *sa)
 #ifdef HAVE_INET_NTOP
 		char buffer[INET_ADDRSTRLEN];
 
-		inet_ntop (family, &sin->sin_addr, buffer, sizeof (buffer));
+		inet_ntop (AF_INET, &sin->sin_addr, buffer, sizeof (buffer));
 		return g_strdup (buffer);
 #else
 		return g_strdup (inet_ntoa (sin->sin_addr));

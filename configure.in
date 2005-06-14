@@ -89,6 +89,8 @@ case "$host" in
     os_win32=yes
     AC_CACHE_VAL(ac_cv_func_getaddrinfo, [ac_cv_func_getaddrinfo=yes])
     AC_CACHE_VAL(ac_cv_func_getnameinfo, [ac_cv_func_getnameinfo=yes])
+    AC_CACHE_VAL(ac_cv_func_inet_pton, [ac_cv_func_inet_pton=yes])
+    AC_CACHE_VAL(ac_cv_func_inet_ntop, [ac_cv_func_inet_ntop=yes])
     AC_CACHE_VAL(soup_cv_ipv6, [soup_cv_ipv6=yes])
     ;;
   *)
@@ -105,7 +107,7 @@ dnl *********************************
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
 AC_CHECK_FUNC(gethostbyname, , AC_CHECK_LIB(nsl, gethostbyname))
 
-AC_CHECK_FUNCS(inet_pton inet_aton getaddrinfo getnameinfo)
+AC_CHECK_FUNCS(inet_pton inet_ntop inet_aton getaddrinfo getnameinfo)
 
 AC_CACHE_CHECK(IPv6 support, soup_cv_ipv6, [
 	AC_EGREP_HEADER(sockaddr_in6, netinet/in.h, soup_cv_ipv6=yes, soup_cv_ipv6=no)
