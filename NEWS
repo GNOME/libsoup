@@ -1,33 +1,40 @@
-Changes in libsoup from 2.2.2 to 2.2.3:
+Changes in libsoup from 2.2.3 to 2.2.4:
 
-	* Now compiles against gnutls 1.2.0 [57811]
+	* Fixed a problem with NTLM authentication against
+	  multi-domain servers. [306877]
+
+	* Fixed DNS lookups on Solaris. [254551, 268389]
+
+Changes from 2.2.2 to 2.2.3:
+
+	* Now compiles against gnutls 1.2.0 [257811]
 
 	* Fixed a bug that could result in 100% CPU usage if an SSL
-	  server closed the connection uncleanly. [73352]
+	  server closed the connection uncleanly. [273352]
 
 Changes from 2.2.1 to 2.2.2:
 
-	* The SSL validation fix from 2.2.1 [64414] is now completely
+	* The SSL validation fix from 2.2.1 [264414] is now completely
           fixed. (Part of the fix didn't actually make it into 2.2.1)
 
 	* HTTPS certificate validation now works when using an HTTP
-          proxy. [68583]
+          proxy. [268583]
 
 	* HTTP proxy code deals better with proxies that try to make
-          the user do HTML-form-based authentication. [68531]
+          the user do HTML-form-based authentication. [268531]
 
-	* 64-bit fixes for NTLM auth code. [70323, from Michael
+	* 64-bit fixes for NTLM auth code. [270323, from Michael
           Zucchi]
 
 Changes from 2.2.0 to 2.2.1:
 
 	* Updated for a libgcrypt API change between 1.1.9x and 1.2.x
           that caused a crash at runtime if you compiled against
-          1.2.x. [66342]
+          1.2.x. [266342]
 
 	* SSL certificate validation failure should now always result
           in a status of SOUP_STATUS_SSL_FAILED, rather than getting
-          turned into SOUP_STATUS_IO_ERROR. [64414]
+          turned into SOUP_STATUS_IO_ERROR. [264414]
 
 Changes in libsoup from the 2.0 series (1.99.x versions) to 2.2:
 

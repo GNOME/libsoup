@@ -1,3 +1,10 @@
+2005-06-20  Dan Winship  <danw@novell.com>
+
+	* configure.in: Bump version to 2.2.4
+
+	* NEWS: update (and change old bug numbers from bcx to bgo
+	numbers).
+
 2005-06-14  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-dns.c (soup_gethostbyname_internal,
