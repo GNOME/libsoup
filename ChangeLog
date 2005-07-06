@@ -1,3 +1,9 @@
+2005-07-06  Tor Lillqvist  <tml@novell.com>
+
+	* libsoup/soup-date.c (soup_gmtime): Mention in the doc comment
+	that gmtime() is thread-safe on Windows.
+	(soup_date_generate): Use soup_gmtime() instead of gmtime_r().
+
 2005-06-14  Dan Winship  <danw@novell.com>
 
 	* configure.in: check for gmtime_r

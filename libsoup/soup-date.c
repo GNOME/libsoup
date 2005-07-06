@@ -80,7 +80,10 @@ soup_mktime_utc (struct tm *tm)
  * @tm: a struct tm to be filled in with the expansion of @when
  *
  * Expands @when into @tm (as a UTC time). This is just a wrapper
- * around gmtime_r() (or gmtime() on lame platforms).
+ * around gmtime_r() (or gmtime() on lame platforms). (The Microsoft C
+ * library on Windows doesn't have gmtime_r(), but its gmtime() is in
+ * fact thread-safe as it uses a per-thread buffer, so it's not
+ * totally lame ;-)
  **/
 void
 soup_gmtime (const time_t *when, struct tm *tm)
@@ -182,7 +185,7 @@ char *
 soup_date_generate (time_t when)
 {
 	struct tm tm;
-	gmtime_r (&when, &tm);
+	soup_gmtime (&when, &tm);
 
 	/* RFC1123 format, eg, "Sun, 06 Nov 1994 08:49:37 GMT" */
 	return g_strdup_printf ("%s, %02d %s %04d %02d:%02d:%02d GMT",
