@@ -19,7 +19,16 @@ struct {
 	{ "http://us%65r@host", "http://user@host" },
 	{ "http://us%40r@host", "http://us%40r@host" },
 	{ "http://us%3ar@host", "http://us%3ar@host" },
-	{ "http://us%2fr@host", "http://us%2fr@host" }
+	{ "http://us%2fr@host", "http://us%2fr@host" },
+
+	{ "http://control-chars/%01%02%03%04%05%06%07%08%09%0a%0b%0c%0d%0e%0f%10%11%12%13%14%15%16%17%18%19%1a%1b%1c%1d%1e%1f%7f",
+	  "http://control-chars/%01%02%03%04%05%06%07%08%09%0a%0b%0c%0d%0e%0f%10%11%12%13%14%15%16%17%18%19%1a%1b%1c%1d%1e%1f%7f"},
+	{ "http://space/%20",
+	  "http://space/%20" },
+	{ "http://delims/%3c%3e%23%25%22",
+	  "http://delims/%3c%3e%23%25%22" },
+	{ "http://unwise-chars/%7b%7d%7c%5c%5e%5b%5d%60",
+	  "http://unwise-chars/%7b%7d%7c%5c%5e%5b%5d%60" }
 };
 int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

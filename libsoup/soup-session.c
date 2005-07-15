@@ -851,7 +851,11 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	new_loc = soup_message_get_header (msg->response_headers, "Location");
 	if (!new_loc)
 		return;
-	new_uri = soup_uri_new (new_loc);
+
+	/* Location is supposed to be an absolute URI, but some sites
+	 * are lame, so we use soup_uri_new_with_base().
+	 */
+	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
 	if (!new_uri) {
 		soup_message_set_status_full (msg,
 					      SOUP_STATUS_MALFORMED,

@@ -1,3 +1,12 @@
+2005-07-15  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session.c (redirect_handler): Allow relative URIs,
+	since some servers are lame. Based on a patch from Jean-Yves
+	Lefort. [#270688]
+
+	* tests/uri-parsing.c: add some more tests to make sure that
+	things that should be %-escaped do get %-escaped
+
 2005-07-06  Tor Lillqvist  <tml@novell.com>
 
 	* libsoup/soup-date.c (soup_gmtime): Mention in the doc comment
