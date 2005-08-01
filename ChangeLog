@@ -1,5 +1,26 @@
 2005-08-01  Dan Winship  <danw@novell.com>
 
+	* configure.in: drop version back down to 2.2.5 and
+	SOUP_API_VERSION back to 2.2; due to various snafus, there has
+	never yet been an official release of the 2.4 API and the GNOME
+	2.12 betas have been shipping with libsoup 2.2 tarballs (while
+	jhbuild has been using 2.4, with evolution and related packages
+	having configure hacks to build against either). As there never
+	ended up being any API-incompatible changes in the 2.4 series, we
+	can just merge it back into the 2.2 series and kill off 2.4.
+
+	* NEWS: Copy in the 2.2-series news from the gnome-2-10 branch,
+	and add new NEWS
+
+	* libsoup-zip.in: s/2.2/@SOUP_API_VERSION@/
+
+	* libsoup/Makefile.am (libsoupincludedir, lib_LTLIBRARIES,
+	libsoup_2_2_la_LDFLAGS, libsoup_2_2_la_LIBADD,
+	libsoup_2_2_la_SOURCES): s/4/2/ in all the places automake won't
+	let us use a variable.
+
+2005-08-01  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-md5-utils.c (soup_md5_final_hex): Finalize a
 	SoupMD5Context and write out the digest in hex digits.
 

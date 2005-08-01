@@ -12,12 +12,12 @@ rm $ZIP
 current_minus_age=`expr @SOUP_CURRENT@ - @SOUP_AGE@`
 
 zip $ZIP -@ <<EOF
-bin/libsoup-2.4-$current_minus_age.dll
+bin/libsoup-@SOUP_API_VERSION@-$current_minus_age.dll
 EOF
 
 rm $DEVZIP
 zip -r $DEVZIP -@ <<EOF
-include/libsoup-2.4
-lib/libsoup-2.4.dll.a
-lib/pkgconfig/libsoup-2.4.pc
+include/libsoup-@SOUP_API_VERSION@
+lib/libsoup-@SOUP_API_VERSION@.dll.a
+lib/pkgconfig/libsoup-@SOUP_API_VERSION@.pc
 EOF
