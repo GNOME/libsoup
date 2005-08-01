@@ -16,13 +16,6 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-/* parts of this file are :
- * Written March 1993 by Branko Lankester
- * Modified June 1993 by Colin Plumb for altered md5.c.
- * Modified October 1995 by Erik Troan for RPM
- */
-
-
 #ifndef SOUP_MD5_UTILS_H
 #define SOUP_MD5_UTILS_H
 
@@ -36,12 +29,14 @@ typedef struct {
 	gboolean doByteReverse;
 } SoupMD5Context;
 
-void soup_md5_init   (SoupMD5Context *ctx);
-void soup_md5_update (SoupMD5Context *ctx,
-		      const guchar   *buf,
-		      guint32         len);
-void soup_md5_final  (SoupMD5Context *ctx,
-		      guchar          digest[16]);
+void soup_md5_init      (SoupMD5Context *ctx);
+void soup_md5_update    (SoupMD5Context *ctx,
+			 const guchar   *buf,
+			 guint32         len);
+void soup_md5_final     (SoupMD5Context *ctx,
+			 guchar          digest[16]);
+void soup_md5_final_hex (SoupMD5Context *ctx,
+			 guchar          digest[33]);
 
 
 #endif	/* SOUP_MD5_UTILS_H */

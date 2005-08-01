@@ -16,13 +16,6 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-/* parts of this file are :
- * Written March 1993 by Branko Lankester
- * Modified June 1993 by Colin Plumb for altered md5.c.
- * Modified October 1995 by Erik Troan for RPM
- */
-
-
 #include "soup-md5-utils.h"
 #include <string.h>
 
@@ -131,7 +124,8 @@ soup_md5_update (SoupMD5Context *ctx, const guchar *buf, guint32 len)
  * @digest: 16 bytes buffer
  * @ctx: context containing the calculated md5
  * 
- * copy the final md5 hash to a bufer
+ * Performs the final md5 transformation on the context, and
+ * then copies the resulting md5 hash to a buffer
  **/
 void 
 soup_md5_final (SoupMD5Context *ctx, guchar digest[16])
@@ -178,6 +172,33 @@ soup_md5_final (SoupMD5Context *ctx, guchar digest[16])
 }
 
 
+
+/**
+ * soup_md5_final_hex: copy the final md5 hash to a bufer
+ * @digest: 33 bytes buffer (32 hex digits plus NUL)
+ * @ctx: context containing the calculated md5
+ * 
+ * As soup_md5_final(), but copies the final md5 hash
+ * to a buffer as a NUL-terminated hexadecimal string
+ **/
+void 
+soup_md5_final_hex (SoupMD5Context *ctx, guchar hex_digest[33])
+{
+	static const guchar hexdigits[16] =  {
+		'0', '1', '2', '3', '4', '5', '6', '7',
+		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+	};
+	int p;
+
+	soup_md5_final (ctx, hex_digest);
+
+	hex_digest[32] = 0;
+	for (p = 15; p >= 0; p--) {
+		guchar b = hex_digest[p];
+		hex_digest[p * 2 + 1] = hexdigits[ (b & 0x0F ) ];
+		hex_digest[p * 2] = hexdigits[ (b & 0xF0 ) >> 4 ];
+	}
+}
 
 
 /* The four core functions - F1 is optimized somewhat */
@@ -280,3 +301,4 @@ soup_md5_transform (guint32 buf[4], const guint32 in[16])
 	buf[2] += c;
 	buf[3] += d;
 }
+

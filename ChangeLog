@@ -1,3 +1,14 @@
+2005-08-01  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-md5-utils.c (soup_md5_final_hex): Finalize a
+	SoupMD5Context and write out the digest in hex digits.
+
+	* libsoup/soup-auth-digest.c (authenticate, compute_response):
+	* libsoup/soup-server-auth.c (check_digest_passwd): Use that,
+	rather than duplicating the code in both places here.
+
+	Patch from Wim Lewis.
+	
 2005-07-15  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session.c (redirect_handler): Allow relative URIs,

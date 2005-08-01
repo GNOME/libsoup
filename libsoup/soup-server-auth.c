@@ -70,16 +70,6 @@ soup_auth_get_strongest_header (guint          auth_types,
 	return scheme->type;
 }
 
-static void
-digest_hex (guchar *digest, guchar hex[33])
-{
-	guchar *s, *p;
-
-	/* lowercase hexify that bad-boy... */
-	for (s = digest, p = hex; p < hex + 32; s++, p += 2)
-		sprintf (p, "%.2x", *s);
-}
-
 static gboolean 
 check_digest_passwd (SoupServerAuthDigest *digest,
 		     gchar                *passwd)
@@ -111,8 +101,7 @@ check_digest_passwd (SoupServerAuthDigest *digest,
 	}
 
 	/* hexify A1 */
-	soup_md5_final (&ctx, d);
-	digest_hex (d, hex_a1);
+	soup_md5_final_hex (&ctx, hex_a1);
 
 	/* compute A2 */
 	soup_md5_init (&ctx);
@@ -129,8 +118,7 @@ check_digest_passwd (SoupServerAuthDigest *digest,
 	}
 
 	/* hexify A2 */
-	soup_md5_final (&ctx, d);
-	digest_hex (d, hex_a2);
+	soup_md5_final_hex (&ctx, hex_a2);
 
 	/* compute KD */
 	soup_md5_init (&ctx);
@@ -156,9 +144,7 @@ check_digest_passwd (SoupServerAuthDigest *digest,
 	soup_md5_update (&ctx, ":", 1);
 
 	soup_md5_update (&ctx, hex_a2, 32);
-	soup_md5_final (&ctx, d);
-
-	digest_hex (d, o);
+	soup_md5_final_hex (&ctx, o);
 
 	return strcmp (o, digest->digest_response) == 0;
 }

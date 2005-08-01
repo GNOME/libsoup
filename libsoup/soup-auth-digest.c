@@ -243,16 +243,6 @@ get_realm (SoupAuth *auth)
 }
 
 static void
-digest_hex (guchar *digest, guchar hex[33])
-{
-	guchar *s, *p;
-
-	/* lowercase hexify that bad-boy... */
-	for (s = digest, p = hex; p < hex + 32; s++, p += 2)
-		sprintf (p, "%.2x", *s);
-}
-
-static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
@@ -300,8 +290,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	}
 
 	/* hexify A1 */
-	soup_md5_final (&ctx, d);
-	digest_hex (d, priv->hex_a1);
+	soup_md5_final_hex (&ctx, priv->hex_a1);
 }
 
 static gboolean
@@ -314,7 +303,6 @@ static char *
 compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 {
 	guchar hex_a2[33], o[33];
-	guchar d[16];
 	SoupMD5Context md5;
 	char *url;
 	const SoupUri *uri;
@@ -338,8 +326,7 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 	}
 
 	/* now hexify A2 */
-	soup_md5_final (&md5, d);
-	digest_hex (d, hex_a2);
+	soup_md5_final_hex (&md5, hex_a2);
 
 	/* compute KD */
 	soup_md5_init (&md5);
@@ -373,9 +360,7 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 	}
 
 	soup_md5_update (&md5, hex_a2, 32);
-	soup_md5_final (&md5, d);
-
-	digest_hex (d, o);
+	soup_md5_final_hex (&md5, o);
 
 	return g_strdup (o);
 }
