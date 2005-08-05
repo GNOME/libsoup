@@ -1,3 +1,11 @@
+2005-08-05  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-socket.c (finalize): Free priv->read_buf. From
+	Tambet.
+	(soup_socket_connect): Make sure that get_iochannel() gets called
+	if the connect succeeds right away, or the socket will fail on
+	the first read or write. [#312540]
+
 2005-08-01  Dan Winship  <danw@novell.com>
 
 	* configure.in: drop version back down to 2.2.5 and

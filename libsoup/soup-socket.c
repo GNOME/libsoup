@@ -139,6 +139,9 @@ finalize (GObject *object)
 	if (priv->watch)
 		g_source_remove (priv->watch);
 
+	if (priv->read_buf)
+		g_byte_array_free (priv->read_buf, TRUE);
+
 	g_mutex_free (priv->addrlock);
 	g_mutex_free (priv->iolock);
 
@@ -552,7 +555,8 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 			SOUP_CLOSE_SOCKET (priv->sockfd);
 			priv->sockfd = -1;
 		}
-	}
+	} else
+		get_iochannel (priv);
 
  done:
 	if (priv->non_blocking) {
@@ -560,10 +564,8 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 		return SOUP_STATUS_CONTINUE;
 	} else if (SOUP_IS_INVALID_SOCKET (priv->sockfd))
 		return SOUP_STATUS_CANT_CONNECT;
-	else {
-		get_iochannel (priv);
+	else
 		return SOUP_STATUS_OK;
-	}
 }
 
 static gboolean
