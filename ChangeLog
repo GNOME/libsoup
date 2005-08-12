@@ -1,3 +1,11 @@
+2005-08-12  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-server.c (soup_server_get_listener): new method to
+	get the server's listening socket.
+
+	* libsoup/soup-socket.c: add a new "cloexec" property, to set
+	FD_CLOEXEC on the socket. Update everything for that.
+
 2005-08-05  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-socket.c (finalize): Free priv->read_buf. From

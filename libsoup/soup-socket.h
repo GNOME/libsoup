@@ -35,6 +35,7 @@ typedef struct {
 #define SOUP_SOCKET_FLAG_NONBLOCKING "non-blocking"
 #define SOUP_SOCKET_FLAG_NODELAY     "nodelay"
 #define SOUP_SOCKET_FLAG_REUSEADDR   "reuseaddr"
+#define SOUP_SOCKET_FLAG_CLOEXEC     "cloexec"
 #define SOUP_SOCKET_IS_SERVER        "is-server"
 #define SOUP_SOCKET_SSL_CREDENTIALS  "ssl-creds"
 

@@ -42,6 +42,7 @@ enum {
 	PROP_NON_BLOCKING,
 	PROP_NODELAY,
 	PROP_REUSEADDR,
+	PROP_CLOEXEC,
 	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
 
@@ -56,6 +57,7 @@ typedef struct {
 	guint non_blocking:1;
 	guint nodelay:1;
 	guint reuseaddr:1;
+	guint cloexec:1;
 	guint is_server:1;
 	gpointer ssl_creds;
 
@@ -98,6 +100,7 @@ soup_socket_init (SoupSocket *sock)
 	priv->sockfd = -1;
 	priv->non_blocking = priv->nodelay = TRUE;
 	priv->reuseaddr = TRUE;
+	priv->cloexec = FALSE;
 	priv->addrlock = g_mutex_new ();
 	priv->iolock = g_mutex_new ();
 }
@@ -270,6 +273,13 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      TRUE,
 				      G_PARAM_READWRITE));
 	g_object_class_install_property (
+		object_class, PROP_CLOEXEC,
+		g_param_spec_boolean (SOUP_SOCKET_FLAG_CLOEXEC,
+				      "CLOEXEC",
+				      "Whether or not the socket will be closed automatically on exec()",
+				      FALSE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
 		object_class, PROP_IS_SERVER,
 		g_param_spec_boolean (SOUP_SOCKET_IS_SERVER,
 				      "Server",
@@ -310,6 +320,15 @@ update_fdflags (SoupSocketPrivate *priv)
 			flags &= ~O_NONBLOCK;
 		fcntl (priv->sockfd, F_SETFL, flags);
 	}
+       flags = fcntl (sock->priv->sockfd, F_GETFD, 0);
+       if (flags != -1) {
+               if (sock->priv->cloexec)
+                       flags |= FD_CLOEXEC;
+               else
+                       flags &= ~FD_CLOEXEC;
+               fcntl (sock->priv->sockfd, F_SETFD, flags);
+        }
+
 #else
 	if (priv->non_blocking) {
 		u_long val = 1;
@@ -348,6 +367,10 @@ set_property (GObject *object, guint prop_id,
 		priv->reuseaddr = g_value_get_boolean (value);
 		update_fdflags (priv);
 		break;
+	case PROP_CLOEXEC:
+		sock->priv->cloexec = g_value_get_boolean (value);
+		update_fdflags (sock);
+		break;
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
@@ -372,6 +395,9 @@ get_property (GObject *object, guint prop_id,
 	case PROP_REUSEADDR:
 		g_value_set_boolean (value, priv->reuseaddr);
 		break;
+	case PROP_CLOEXEC:
+		g_value_set_boolean (value, sock->priv->cloexec);
+                break;
 	case PROP_IS_SERVER:
 		g_value_set_boolean (value, priv->is_server);
 		break;

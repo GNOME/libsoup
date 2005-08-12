@@ -300,6 +300,13 @@ soup_server_get_protocol (SoupServer *server)
 		return SOUP_PROTOCOL_HTTP;
 }
 
+SoupSocket *
+soup_server_get_listener (SoupServer *server)
+{
+	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
+	
+	return server->priv->listen_sock;
+}
 
 static void start_request (SoupServer *, SoupSocket *);
 
