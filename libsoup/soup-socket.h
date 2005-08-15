@@ -67,7 +67,7 @@ typedef void (*SoupSocketListenerCallback)    (SoupSocket         *listener,
 GType soup_socket_get_type (void);
 
 SoupSocket    *soup_socket_new                (const char         *optname1,
-					       ...);
+					       ...) G_GNUC_NULL_TERMINATED;
 
 guint          soup_socket_connect            (SoupSocket         *sock,
 					       SoupAddress        *remote_addr);

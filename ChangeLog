@@ -1,3 +1,15 @@
+2005-08-15  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-connection.h (soup_connection_new):
+	* libsoup/soup-server.h (soup_server_new):
+	* libsoup/soup-session-async.h (soup_session_async_new_with_options): 
+	* libsoup/soup-session-sync.h (soup_session_sync_new_with_options): 
+	* libsoup/soup-socket.h (soup_socket_new): use G_GNUC_NULL_TERMINATED.
+
+	* libsoup/soup-types.h (G_GNUC_NULL_TERMINATED): steal the
+	definition of this from glib 2.8 for use when compiling against
+	glib 2.6.
+
 2005-08-15  Tambet Ingo  <tambet@ximian.com>
 
 	* libsoup/soup-socket.c (update_fdflags, set_property): Fix compilation

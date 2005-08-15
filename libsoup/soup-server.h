@@ -66,7 +66,7 @@ struct SoupServerHandler {
 #define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
 
 SoupServer        *soup_server_new            (const char            *optname1,
-					       ...);
+					       ...) G_GNUC_NULL_TERMINATED;
 
 SoupProtocol       soup_server_get_protocol   (SoupServer            *serv);
 guint              soup_server_get_port       (SoupServer            *serv);

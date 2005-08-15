@@ -62,7 +62,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_MESSAGE_FILTER  "message-filter"
 
 SoupConnection *soup_connection_new            (const char       *propname1,
-						...);
+						...) G_GNUC_NULL_TERMINATED;
 
 void            soup_connection_connect_async  (SoupConnection   *conn,
 						SoupConnectionCallback callback,

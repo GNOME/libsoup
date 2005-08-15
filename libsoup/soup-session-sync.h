@@ -30,7 +30,7 @@ GType soup_session_sync_get_type (void);
 
 SoupSession *soup_session_sync_new              (void);
 SoupSession *soup_session_sync_new_with_options (const char *optname1,
-						 ...);
+						 ...) G_GNUC_NULL_TERMINATED;
 
 
 #endif /* SOUP_SESSION_SYNC_H */
