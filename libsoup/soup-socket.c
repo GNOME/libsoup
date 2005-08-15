@@ -320,13 +320,13 @@ update_fdflags (SoupSocketPrivate *priv)
 			flags &= ~O_NONBLOCK;
 		fcntl (priv->sockfd, F_SETFL, flags);
 	}
-       flags = fcntl (sock->priv->sockfd, F_GETFD, 0);
+       flags = fcntl (priv->sockfd, F_GETFD, 0);
        if (flags != -1) {
-               if (sock->priv->cloexec)
+               if (priv->cloexec)
                        flags |= FD_CLOEXEC;
                else
                        flags &= ~FD_CLOEXEC;
-               fcntl (sock->priv->sockfd, F_SETFD, flags);
+               fcntl (priv->sockfd, F_SETFD, flags);
         }
 
 #else
@@ -368,8 +368,8 @@ set_property (GObject *object, guint prop_id,
 		update_fdflags (priv);
 		break;
 	case PROP_CLOEXEC:
-		sock->priv->cloexec = g_value_get_boolean (value);
-		update_fdflags (sock);
+		priv->cloexec = g_value_get_boolean (value);
+		update_fdflags (priv);
 		break;
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
@@ -396,7 +396,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_boolean (value, priv->reuseaddr);
 		break;
 	case PROP_CLOEXEC:
-		g_value_set_boolean (value, sock->priv->cloexec);
+		g_value_set_boolean (value, priv->cloexec);
                 break;
 	case PROP_IS_SERVER:
 		g_value_set_boolean (value, priv->is_server);

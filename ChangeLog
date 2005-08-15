@@ -1,3 +1,10 @@
+2005-08-15  Tambet Ingo  <tambet@ximian.com>
+
+	* libsoup/soup-socket.c (update_fdflags, set_property): Fix compilation
+	errors.
+
+	* libsoup/soup-server.c (soup_server_get_listener): ditto.
+
 2005-08-12  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-server.c (soup_server_get_listener): new method to
