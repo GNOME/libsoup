@@ -21,6 +21,7 @@
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-message-filter.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
@@ -75,8 +76,8 @@ static void set_property (GObject *object, guint prop_id,
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
-static void request_done (SoupMessage *req, gpointer user_data);
 static void send_request (SoupConnection *conn, SoupMessage *req);
+static void clear_current_request (SoupConnection *conn);
 
 static void
 soup_connection_init (SoupConnection *conn)
@@ -103,10 +104,8 @@ static void
 dispose (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
-	if (priv->cur_req)
-		request_done (priv->cur_req, conn);
+	clear_current_request (conn);
 	soup_connection_disconnect (conn);
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
@@ -351,9 +350,16 @@ set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 }
 
 static void
-clear_current_request (SoupConnectionPrivate *priv)
+clear_current_request (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
 	if (priv->cur_req) {
+		if (!soup_message_is_keepalive (priv->cur_req))
+			soup_connection_disconnect (conn);
+		else
+			priv->last_used = time (NULL);
+
 		g_object_remove_weak_pointer (G_OBJECT (priv->cur_req),
 					      (gpointer *)priv->cur_req);
 		priv->cur_req = NULL;
@@ -388,7 +394,7 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	guint status = msg->status_code;
 
-	clear_current_request (priv);
+	clear_current_request (conn);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (soup_socket_start_proxy_ssl (priv->socket,
@@ -696,50 +702,18 @@ soup_connection_last_used (SoupConnection *conn)
 }
 
 static void
-request_restarted (SoupMessage *req, gpointer conn)
-{
-	if (!soup_message_is_keepalive (req))
-		soup_connection_disconnect (conn);
-}
-
-static void
-request_done (SoupMessage *req, gpointer user_data)
-{
-	SoupConnection *conn = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	clear_current_request (priv);
-	priv->last_used = time (NULL);
-
-	if (!soup_message_is_keepalive (req))
-		soup_connection_disconnect (conn);
-
-	g_signal_handlers_disconnect_by_func (req, request_done, conn);
-	g_signal_handlers_disconnect_by_func (req, request_restarted, conn);
-	g_object_unref (conn);
-}
-
-static void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	g_object_ref (conn);
-
 	if (req != priv->cur_req) {
 		set_current_request (priv, req);
-
-		g_signal_connect (req, "restarted",
-				  G_CALLBACK (request_restarted), conn);
-		g_signal_connect (req, "finished",
-				  G_CALLBACK (request_done), conn);
-
 		if (priv->filter)
 			soup_message_filter_setup_message (priv->filter, req);
 	}
 
-	soup_message_send_request (req, priv->socket,
-				   priv->proxy_uri != NULL);
+	soup_message_send_request_internal (req, priv->socket, conn,
+					    priv->proxy_uri != NULL);
 }
 
 /**
@@ -790,7 +764,7 @@ soup_connection_release (SoupConnection *conn)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
-	SOUP_CONNECTION_GET_PRIVATE (conn)->in_use = FALSE;
+	clear_current_request (conn);
 }
 
 /**

@@ -10,6 +10,21 @@ Known bugs/warts to fix
 * Expect: 100-continue processing doesn't currently abort sending
   the body if it gets back a non-informational status code
 
+* SoupConnections never time themselves out. They always wait for the
+  server to time them out (and even then they don't time out until you
+  try to use them again).
+	* NTLM connections should stay open longer than plain ones
+
+* URI encoding bugs
+	* query component at least, maybe others must be stored
+	  fully-escaped, because only the endpoints know which
+	  chars are and aren't reserved
+	* When fixing this, also consider:
+		* Merging E2kUri with SoupUri
+		* application/x-www-form-urlencoded, which encodes
+		  space as "+" rather than "%20"
+		* SoupUri doesn't currently allow "*" as a URI
+
 
 HTTP Features
 -------------
@@ -17,6 +32,8 @@ HTTP Features
 * Handle gzip Content-Encoding
 
 * Handle cookies (RFC 2109) via a SoupCookieJar message filter
+	* libexchange has some minimal cookie functionality for
+	  Exchange 2003 forms-based auth
 	* RFC 2965 supposedly obsoletes 2109, but I don't think
 	  anyone uses it
 
@@ -55,15 +72,7 @@ Misc Features
 General/API stuff
 -----------------
 
-* Thread safety
-	* This is mostly done, but need to figure out what other
-	  things need to be thread-safe, and document which ones
-	  aren't.
-
-* Documentation (API, tutorial)
-	* gtk-doc is not currently picking up all of the objects.
-	  This probably has something to do with the fact that
-	  some of the typdefs are in soup-types.h.
+* Documentation (tutorial, hacking, thread safety)
 
 * User-Agent handling: caller should specify a User-Agent string to
   SoupSession, and soup should automatically append libsoup/#.## to
@@ -94,24 +103,13 @@ General/API stuff
 	* Make it possible to implement CONNECT on the server side (by
 	  having a way to steal the socket from the SoupServer).
 
-* Add date-parsing/generating routines (all HTTP-specified formats)
-
 * Special handling on server side for HEAD (don't send response.body).
 
 * Simple higher-level API (a la E2kContext)
 	* the Connector stuff has a lot of Exchange-specific
 	  assumptions and exceptions. Might not be possible to
 	  migrate Connector to a generic API
-
-* URI encoding bugs
-	* query component at least, maybe others must be stored
-	  fully-escaped, because only the endpoints know which
-	  chars are and aren't reserved
-	* When fixing this, also consider:
-		* Merging E2kUri with SoupUri
-		* application/x-www-form-urlencoded, which encodes
-		  space as "+" rather than "%20"
-		* SoupUri doesn't currently allow "*" as a URI
+	* jamesh's HttpResource object
 
 
 Testing

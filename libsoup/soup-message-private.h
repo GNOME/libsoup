@@ -40,8 +40,14 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      guint            *content_len,
 					      gpointer          user_data);
 
+void soup_message_send_request_internal (SoupMessage       *req,
+					 SoupSocket        *sock,
+					 SoupConnection    *conn,
+					 gboolean           via_proxy);
+
 void soup_message_io_client  (SoupMessage               *msg,
 			      SoupSocket                *sock,
+			      SoupConnection            *conn,
 			      SoupMessageGetHeadersFn    get_headers_cb,
 			      SoupMessageParseHeadersFn  parse_headers_cb,
 			      gpointer                   user_data);

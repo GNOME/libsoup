@@ -1,3 +1,32 @@
+2005-08-16  Dan Winship  <danw@novell.com>
+
+	Fix a connection leak reported by Tambet.
+
+	* libsoup/soup-connection.c (send_request): rather than tracking
+	the message progress via signals, call
+	soup_message_send_request_internal() and have it call
+	soup_connection_release() when it's done.
+	(request_restarted, request_done): gone
+	(clear_current_request): handle disconnecting (if necessary) and
+	updating last_used time here.
+	(soup_connection_release): Call clear_current_request().
+	(dispose): Call clear_current_request()
+
+	* libsoup/soup-message-client-io.c
+	(soup_message_send_request_internal): New. Takes a SoupConnection
+	in addition to the other args, and passes that on to
+	soup-message-io.
+
+	* libsoup/soup-message-io.c (SoupMessageIOData): add a
+	SoupConnection field.
+	(io_cleanup): if io->conn is set, unref it.
+	(soup_message_io_stop): if io->conn is set, and we ended in a
+	clean state, call soup_connection_release() on it.
+	(soup_message_io_client): Add a SoupConnection arg, which gets
+	reffed and stored in io->conn.
+
+	* TODO: misc updates
+
 2005-08-15  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-connection.h (soup_connection_new):
