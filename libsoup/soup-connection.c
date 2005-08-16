@@ -25,6 +25,7 @@
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-message-filter.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
@@ -79,8 +80,8 @@ static void set_property (GObject *object, guint prop_id,
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
-static void request_done (SoupMessage *req, gpointer user_data);
 static void send_request (SoupConnection *conn, SoupMessage *req);
+static void clear_current_request (SoupConnection *conn);
 
 static void
 init (GObject *object)
@@ -113,8 +114,7 @@ dispose (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
 
-	if (conn->priv->cur_req)
-		request_done (conn->priv->cur_req, conn);
+	clear_current_request (conn);
 	soup_connection_disconnect (conn);
 
 	G_OBJECT_CLASS (parent_class)->dispose (object);
@@ -319,6 +319,11 @@ static void
 clear_current_request (SoupConnection *conn)
 {
 	if (conn->priv->cur_req) {
+		if (!soup_message_is_keepalive (conn->priv->cur_req))
+			soup_connection_disconnect (conn);
+		else
+			conn->priv->last_used = time (NULL);
+
 		g_object_remove_weak_pointer (G_OBJECT (conn->priv->cur_req),
 					      (gpointer *)conn->priv->cur_req);
 		conn->priv->cur_req = NULL;
@@ -651,47 +656,16 @@ soup_connection_last_used (SoupConnection *conn)
 }
 
 static void
-request_restarted (SoupMessage *req, gpointer conn)
-{
-	if (!soup_message_is_keepalive (req))
-		soup_connection_disconnect (conn);
-}
-
-static void
-request_done (SoupMessage *req, gpointer user_data)
-{
-	SoupConnection *conn = user_data;
-
-	clear_current_request (conn);
-	conn->priv->last_used = time (NULL);
-
-	if (!soup_message_is_keepalive (req))
-		soup_connection_disconnect (conn);
-
-	g_signal_handlers_disconnect_by_func (req, request_done, conn);
-	g_signal_handlers_disconnect_by_func (req, request_restarted, conn);
-	g_object_unref (conn);
-}
-
-static void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
-	g_object_ref (conn);
-
 	if (req != conn->priv->cur_req) {
 		set_current_request (conn, req);
-
-		g_signal_connect (req, "restarted",
-				  G_CALLBACK (request_restarted), conn);
-		g_signal_connect (req, "finished",
-				  G_CALLBACK (request_done), conn);
-
 		if (conn->priv->filter)
 			soup_message_filter_setup_message (conn->priv->filter, req);
 	}
 
-	soup_message_send_request (req, conn->priv->socket,
-				   conn->priv->proxy_uri != NULL);
+	soup_message_send_request_internal (req, conn->priv->socket, conn,
+					    conn->priv->proxy_uri != NULL);
 }
 
 /**
@@ -742,7 +716,7 @@ soup_connection_release (SoupConnection *conn)
 {
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
-	conn->priv->in_use = FALSE;
+	clear_current_request (conn);
 }
 
 /**

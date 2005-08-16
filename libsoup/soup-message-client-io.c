@@ -172,8 +172,15 @@ void
 soup_message_send_request (SoupMessage *req, SoupSocket *sock,
 			   gboolean is_via_proxy)
 {
+	soup_message_send_request_internal (req, sock, NULL, is_via_proxy);
+}
+
+void
+soup_message_send_request_internal (SoupMessage *req, SoupSocket *sock,
+				    SoupConnection *conn, gboolean is_via_proxy)
+{
 	soup_message_cleanup_response (req);
-	soup_message_io_client (req, sock,
+	soup_message_io_client (req, sock, conn,
 				get_request_headers,
 				parse_response_headers,
 				GUINT_TO_POINTER (is_via_proxy));

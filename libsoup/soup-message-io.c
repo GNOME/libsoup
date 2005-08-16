@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-socket.h"
@@ -36,6 +37,7 @@ typedef enum {
 
 typedef struct {
 	SoupSocket           *sock;
+	SoupConnection       *conn;
 	SoupMessageIOMode     mode;
 
 	SoupMessageIOState    read_state;
@@ -81,6 +83,8 @@ io_cleanup (SoupMessage *msg)
 
 	if (io->sock)
 		g_object_unref (io->sock);
+	if (io->conn)
+		g_object_unref (io->conn);
 
 	if (io->read_buf)
 		g_byte_array_free (io->read_buf, TRUE);
@@ -122,6 +126,8 @@ soup_message_io_stop (SoupMessage *msg)
 
 	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE)
 		soup_socket_disconnect (io->sock);
+	else if (io->conn)
+		soup_connection_release (io->conn);
 }
 
 #define SOUP_MESSAGE_IO_EOL            "\r\n"
@@ -698,6 +704,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
  * soup_message_io_client:
  * @msg: a #SoupMessage
  * @sock: socket to send @msg across
+ * @conn: the connection that owns @sock (or %NULL)
  * @get_headers_cb: callback function to generate request headers
  * @parse_headers_cb: callback function to parse response headers
  * @user_data: data to pass to the callbacks
@@ -708,6 +715,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
  **/
 void
 soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
+			SoupConnection *conn,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
 			gpointer user_data)
@@ -716,6 +724,9 @@ soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 
 	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_CLIENT,
 			  get_headers_cb, parse_headers_cb, user_data);
+
+	if (conn)
+		io->conn = g_object_ref (conn);
 
 	io->read_body       = &msg->response;
 	io->write_body      = &msg->request;
