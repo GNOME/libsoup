@@ -131,6 +131,9 @@ finalize (GObject *object)
 	if (sock->priv->watch)
 		g_source_remove (sock->priv->watch);
 
+	if (priv->read_buf)
+		g_byte_array_free (priv->read_buf, TRUE);
+
 	g_mutex_free (sock->priv->addrlock);
 	g_mutex_free (sock->priv->iolock);
 
