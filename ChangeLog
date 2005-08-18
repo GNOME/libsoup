@@ -1,3 +1,8 @@
+2005-08-18  Harish Krishnaswamy <kharish@novell.com>
+	
+	* libsoup/soup-socket.c (finalize) : fix for an error in 
+	the previous commit that borks the build.
+	
 2005-08-17  Tambet Ingo  <tambet@ximian.com>
 
 	* libsoup/soup-socket.c (finalize): Free read_buf.
