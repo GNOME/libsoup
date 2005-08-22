@@ -1,5 +1,12 @@
 2005-08-22  Dan Winship  <danw@novell.com>
 
+	* configure.in: Bump to 2.2.6. Bump SOUP_AGE and SOUP_CURRENT for
+	soup_server_get_socket() addition.
+
+	* NEWS: update
+
+2005-08-22  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-connection.c (set_current_request,
 	clear_current_request): Fix g_object_add/remove_weak_pointer usage
 	to prevent a crash when canceling a request. From Tambet.

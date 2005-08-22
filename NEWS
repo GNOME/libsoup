@@ -1,4 +1,21 @@
-Changes in libsoup from 2.2.4 to 2.2.5:
+Changes in libsoup from 2.2.5 to 2.2.6:
+
+	* Fixed a crash when canceling a message (from Tambet Ingo)
+
+	* Fixed a bug where a connection could be leaked forever in
+          some circumstances if a request got a 30x, 401, or 407
+          response, eventually causing a hang when the session hit its
+          maximum connection limit. (Dan/Tambet)
+
+	* Fixed a memory leak. (Tambet)
+
+	* Fixed a bug that would sometimes show up when connecting to
+	  a server on localhost [#312540]
+
+	* Added some API to SoupServer and SoupSocket to help fix a
+          long-standing rcd bug.
+
+Changes from 2.2.4 to 2.2.5:
 
 	* Win32 support (from Tor Lillqvist)
 
