@@ -1,4 +1,8 @@
-Changes in libsoup from 2.2.5 to 2.2.6:
+Changes in libsoup from 2.2.6 to 2.2.6.1:
+
+	* Fixed a crash when using SoupSoapMessage
+
+Changes from 2.2.5 to 2.2.6:
 
 	* Fixed a crash when canceling a message (from Tambet Ingo)
 

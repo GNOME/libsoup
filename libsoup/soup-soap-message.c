@@ -45,6 +45,8 @@ soup_soap_message_class_init (SoupSoapMessageClass *soup_soap_message_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (soup_soap_message_class);
 
+	g_type_class_add_private (soup_soap_message_class, sizeof (SoupSoapMessagePrivate));
+
 	object_class->finalize = finalize;
 }
 

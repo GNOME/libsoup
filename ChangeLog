@@ -1,5 +1,14 @@
 2005-08-22  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-soap-message.c (soup_soap_message_class_init): Call
+	g_type_class_add_private.
+
+	* configure.in: Bump to 2.2.6.1
+
+	* NEWS: update
+
+2005-08-22  Dan Winship  <danw@novell.com>
+
 	* configure.in: Bump to 2.2.6. Bump SOUP_AGE and SOUP_CURRENT for
 	soup_server_get_socket() addition.
 
