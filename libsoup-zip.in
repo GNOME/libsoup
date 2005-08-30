@@ -20,4 +20,5 @@ zip -r $DEVZIP -@ <<EOF
 include/libsoup-@SOUP_API_VERSION@
 lib/libsoup-@SOUP_API_VERSION@.dll.a
 lib/pkgconfig/libsoup-@SOUP_API_VERSION@.pc
+share/gtk-doc/html/libsoup
 EOF
