@@ -1,5 +1,12 @@
 2005-10-27  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-socket.c (soup_socket_client_new_async,
+	soup_socket_client_new_sync): unref the SoupAddress passed to
+	soup_socket_connect to avoid a leak. Based on a patch from Wang
+	Xin <jedy.wang@sun.com>.
+
+2005-10-27  Dan Winship  <danw@novell.com>
+
 	bgo #316313 / bnc #116762, and probably also bgo #318252
 
 	* libsoup/soup-message-io.c (soup_message_io_stop): clear io->conn

@@ -763,13 +763,16 @@ soup_socket_client_new_async (const char *hostname, guint port,
 			      SoupSocketCallback callback, gpointer user_data)
 {
 	SoupSocket *sock;
+	SoupAddress *addr;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
 
 	sock = g_object_new (SOUP_TYPE_SOCKET,
 			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
 			     NULL);
-	soup_socket_connect (sock, soup_address_new (hostname, port));
+	addr = soup_address_new (hostname, port);
+	soup_socket_connect (sock, addr);
+	g_object_unref (addr);
 
 	if (callback) {
 		soup_signal_connect_once (sock, "connect_result",
@@ -796,6 +799,7 @@ soup_socket_client_new_sync (const char *hostname, guint port,
 {
 	SoupSocket *sock;
 	SoupSocketPrivate *priv;
+	SoupAddress *addr;
 	guint status;
 
 	g_return_val_if_fail (hostname != NULL, NULL);
@@ -805,7 +809,9 @@ soup_socket_client_new_sync (const char *hostname, guint port,
 			     NULL);
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	priv->non_blocking = FALSE;
-	status = soup_socket_connect (sock, soup_address_new (hostname, port));
+	addr = soup_address_new (hostname, port);
+	status = soup_socket_connect (sock, addr);
+	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_object_unref (sock);
