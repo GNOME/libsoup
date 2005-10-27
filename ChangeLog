@@ -1,3 +1,19 @@
+2005-10-27  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-io.c (soup_message_io_stop): clear io->conn
+	(and also unref it rather than leaking it like before).
+
+	* libsoup/soup-connection.c (clear_current_request): Call
+	soup_message_io_stop() on the cleared message (to ensure that its
+	priv->io->conn is cleared).
+
+	Fix bgo #316313 / bnc #116762, and maybe bgo #318252
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_post): do a
+	little dance here to make sure the session can't queue another
+	message on the connection while we're in the process of requeuing
+	the original one.
+
 2005-08-30  Tor Lillqvist  <tml@novell.com>
 
 	* libsoup-zip.in: Include documentation in developer zipfile.

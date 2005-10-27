@@ -355,14 +355,18 @@ clear_current_request (SoupConnection *conn)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	if (priv->cur_req) {
-		if (!soup_message_is_keepalive (priv->cur_req))
-			soup_connection_disconnect (conn);
-		else
-			priv->last_used = time (NULL);
+		SoupMessage *cur_req = priv->cur_req;
 
 		g_object_remove_weak_pointer (G_OBJECT (priv->cur_req),
 					      (gpointer *)&priv->cur_req);
 		priv->cur_req = NULL;
+
+		if (!soup_message_is_keepalive (cur_req))
+			soup_connection_disconnect (conn);
+		else {
+			priv->last_used = time (NULL);
+			soup_message_io_stop (cur_req);
+		}
 	}
 	priv->in_use = FALSE;
 }

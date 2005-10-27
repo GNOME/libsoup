@@ -128,8 +128,12 @@ soup_message_io_stop (SoupMessage *msg)
 
 	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE)
 		soup_socket_disconnect (io->sock);
-	else if (io->conn)
-		soup_connection_release (io->conn);
+	else if (io->conn) {
+		SoupConnection *conn = io->conn;
+		io->conn = NULL;
+		soup_connection_release (conn);
+		g_object_unref (conn);
+	}
 }
 
 #define SOUP_MESSAGE_IO_EOL            "\r\n"

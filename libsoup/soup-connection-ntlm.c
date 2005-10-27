@@ -28,7 +28,6 @@ typedef enum {
 } SoupConnectionNTLMState;
 
 typedef struct {
-	char *user;
 	guchar nt_hash[21], lm_hash[21];
 	SoupConnectionNTLMState state;
 } SoupConnectionNTLMPrivate;
@@ -56,7 +55,6 @@ finalize (GObject *object)
 {
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (object);
 
-	g_free (priv->user);
 	memset (priv->nt_hash, 0, sizeof (priv->nt_hash));
 	memset (priv->lm_hash, 0, sizeof (priv->lm_hash));
 
@@ -161,6 +159,16 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 	    soup_message_get_header (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
 		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
+
+		/* soup_message_restarted() will call soup_message_io_stop(),
+		 * which will release the connection, and may cause another
+		 * message to be queued on the connection before it returns.
+		 * That's no good, so we stop the message first and then
+		 * reclaim the connection so that soup_message_restarted()
+		 * won't be able to steal it.
+		 */
+		soup_message_io_stop (msg);
+		soup_connection_reserve (conn);
 		soup_message_restarted (msg);
 		soup_connection_send_request (conn, msg);
 	}
