@@ -3,7 +3,13 @@
 	* libsoup/soup-socket.c (soup_socket_client_new_async,
 	soup_socket_client_new_sync): unref the SoupAddress passed to
 	soup_socket_connect to avoid a leak. Based on a patch from Wang
-	Xin <jedy.wang@sun.com>.
+	Xin.
+	(socket_read_watch, read_from_network, socket_write_watch,
+	soup_socket_write): request and handle G_IO_ERR and G_IO_HUP
+	events when polling, since poll() will return them whether or not
+	you asked for them, but glib will ignore them unless you did,
+	which will result in CPU suckage if such an error occurs. #319305,
+	patch from Jonathan Matthew.
 
 2005-10-27  Dan Winship  <danw@novell.com>
 

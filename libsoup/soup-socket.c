@@ -1008,7 +1008,11 @@ socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->read_tag = 0;
-	g_signal_emit (sock, signals[READABLE], 0);
+
+	if (cond & (G_IO_ERR | G_IO_HUP))
+		soup_socket_disconnect (sock);
+	else
+		g_signal_emit (sock, signals[READABLE], 0);
 
 	return FALSE;
 }
@@ -1047,7 +1051,8 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 
 		if (!priv->read_tag) {
 			priv->read_tag =
-				g_io_add_watch (priv->iochannel, cond,
+				g_io_add_watch (priv->iochannel,
+						cond | G_IO_HUP | G_IO_ERR,
 						socket_read_watch, sock);
 		}
 		return SOUP_SOCKET_WOULD_BLOCK;
@@ -1200,13 +1205,17 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 }
 
 static gboolean
-socket_write_watch (GIOChannel *chan, GIOCondition condition, gpointer user_data)
+socket_write_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->write_tag = 0;
-	g_signal_emit (sock, signals[WRITABLE], 0);
+
+	if (cond & (G_IO_ERR | G_IO_HUP))
+		soup_socket_disconnect (sock);
+	else
+		g_signal_emit (sock, signals[WRITABLE], 0);
 
 	return FALSE;
 }
@@ -1290,7 +1299,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	}
 
 	priv->write_tag =
-		g_io_add_watch (priv->iochannel, cond, 
+		g_io_add_watch (priv->iochannel,
+				cond | G_IO_HUP | G_IO_ERR, 
 				socket_write_watch, sock);
 	g_mutex_unlock (priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;
