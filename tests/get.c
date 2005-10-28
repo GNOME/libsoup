@@ -202,7 +202,7 @@ get_url (const char *url)
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: get [-c CAfile] [-r] URL\n");
+	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-r] URL\n");
 	exit (1);
 }
 
