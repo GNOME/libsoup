@@ -16,6 +16,9 @@ by #SoupSession.
 #SoupSession, #SoupConnectionNTLM
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT SoupAuth ##### -->
 <para>
 The abstract base class for handling authentication. Specific HTTP

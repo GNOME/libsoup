@@ -25,4 +25,5 @@
     <xi:include href="xml/soup-status.xml"/>
     <xi:include href="xml/soup-uri.xml"/>
   </chapter>
+  <index></index>
 </book>

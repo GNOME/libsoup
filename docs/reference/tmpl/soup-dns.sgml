@@ -14,6 +14,9 @@ Low-level DNS routines
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### FUNCTION soup_dns_init ##### -->
 <para>
 

@@ -20,6 +20,9 @@ synchronous session. You can only use soup_session_send_message().
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT SoupSessionSync ##### -->
 <para>
 

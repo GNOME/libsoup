@@ -15,6 +15,9 @@ NTLM-authenticated connection
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT SoupConnectionNTLM ##### -->
 <para>
 

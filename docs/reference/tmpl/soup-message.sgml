@@ -14,6 +14,9 @@ An HTTP request and response.
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
 <!-- ##### STRUCT SoupMessage ##### -->
 <para>
 
