@@ -346,7 +346,7 @@ set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 	req->status = SOUP_MESSAGE_STATUS_RUNNING;
 	priv->cur_req = req;
 	priv->in_use = TRUE;
-	g_object_add_weak_pointer (G_OBJECT (req), (gpointer *)&priv->cur_req);
+	g_object_add_weak_pointer (G_OBJECT (req), (gpointer)&priv->cur_req);
 }
 
 static void
@@ -358,7 +358,7 @@ clear_current_request (SoupConnection *conn)
 		SoupMessage *cur_req = priv->cur_req;
 
 		g_object_remove_weak_pointer (G_OBJECT (priv->cur_req),
-					      (gpointer *)&priv->cur_req);
+					      (gpointer)&priv->cur_req);
 		priv->cur_req = NULL;
 
 		if (!soup_message_is_keepalive (cur_req))

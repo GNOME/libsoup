@@ -1,3 +1,15 @@
+2005-11-01  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-connection.c (set_current_request,
+	clear_current_request): Cast the argument to
+	g_object_add/remove_weak_pointer to the wrong type, to make gcc
+	4.1 happy, because C is stupid and "void **" means "a pointer to a
+	void *", not "a pointer to any kind of pointer".
+
+	* libsoup/soup-xmlrpc-response.c
+	(soup_xmlrpc_value_dump_internal): fix gccism. #320349, from
+	Roland Illig.
+
 2005-10-27  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-socket.c (soup_socket_client_new_async,
