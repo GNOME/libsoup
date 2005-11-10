@@ -1,5 +1,5 @@
-Known bugs/warts to fix
------------------------
+Known bugs/FIXMEs
+-----------------
 
 * Needs to be possible to register new auth types with soup-auth.c
 
@@ -15,6 +15,9 @@ Known bugs/warts to fix
   try to use them again).
 	* NTLM connections should stay open longer than plain ones
 
+* SoupSessions tend to get leaked because of circular refs (each
+  connection refs its session as a SoupMessageFilter)
+
 * URI encoding bugs
 	* query component at least, maybe others must be stored
 	  fully-escaped, because only the endpoints know which
@@ -24,6 +27,18 @@ Known bugs/warts to fix
 		* application/x-www-form-urlencoded, which encodes
 		  space as "+" rather than "%20"
 		* SoupUri doesn't currently allow "*" as a URI
+
+* soup_session_queue_message() does nothing on SoupSessionSync.
+
+* soup_xmlrpc_value_get_base64() returns the encoded value, not the
+  decoded value.
+
+* The synchronous SoupSocket API is slightly broken. This is mostly
+  not a problem for the HTTP engine, but it's obvious in
+  tests/revserver.c that the stack will eventually overflow. The fix
+  is to have SoupSocket return WOULD_BLOCK when changing direction,
+  and require the caller to unroll the stack back to the top level in
+  that case before trying again.
 
 
 HTTP Features
@@ -35,7 +50,8 @@ HTTP Features
 	* libexchange has some minimal cookie functionality for
 	  Exchange 2003 forms-based auth
 	* RFC 2965 supposedly obsoletes 2109, but I don't think
-	  anyone uses it
+	  anyone uses it. (Yeah, grep for "cookie" here:
+	  http://www.nextthing.org/archives/2005/08/07/fun-with-http-headers)
 
 * Handle caching, also via SoupMessageFilter
 	* rcd has some of the logic for this already
