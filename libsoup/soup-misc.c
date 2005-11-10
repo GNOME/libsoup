@@ -392,3 +392,81 @@ soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 						    closure, FALSE);
 	return ssod->signal_id;
 }
+
+/**
+ * soup_add_io_watch:
+ * @async_context: the #GMainContext to dispatch the I/O watch in, or
+ * %NULL for the default context
+ * @chan: the #GIOChannel to watch
+ * @condition: the condition to watch for
+ * @function: the callback to invoke when @condition occurs
+ * @data: user data to pass to @function
+ *
+ * Adds an I/O watch as with g_io_add_watch(), but using the given
+ * @async_context.
+ *
+ * Return value: a #GSource, which can be removed from @async_context
+ * with g_source_destroy().
+ **/
+GSource *
+soup_add_io_watch (GMainContext *async_context,
+		   GIOChannel *chan, GIOCondition condition,
+		   GIOFunc function, gpointer data)
+{
+	GSource *watch = g_io_create_watch (chan, condition);
+	g_source_set_callback (watch, (GSourceFunc) function, data, NULL);
+	g_source_attach (watch, async_context);
+	g_source_unref (watch);
+	return watch;
+}
+
+/**
+ * soup_add_idle:
+ * @async_context: the #GMainContext to dispatch the idle event in, or
+ * %NULL for the default context
+ * @function: the callback to invoke at idle time
+ * @data: user data to pass to @function
+ *
+ * Adds an idle event as with g_idle_add(), but using the given
+ * @async_context.
+ *
+ * Return value: a #GSource, which can be removed from @async_context
+ * with g_source_destroy().
+ **/
+GSource *
+soup_add_idle (GMainContext *async_context,
+	       GSourceFunc function, gpointer data)
+{
+	GSource *source = g_idle_source_new ();
+	g_source_set_callback (source, function, data, NULL);
+	g_source_attach (source, async_context);
+	g_source_unref (watch);
+	return source;
+}
+
+/**
+ * soup_add_timeout:
+ * @async_context: the #GMainContext to dispatch the timeout in, or
+ * %NULL for the default context
+ * @interval: the timeout interval, in milliseconds
+ * @function: the callback to invoke at timeout time
+ * @data: user data to pass to @function
+ *
+ * Adds a timeout as with g_timeout_add(), but using the given
+ * @async_context.
+ *
+ * Return value: a #GSource, which can be removed from @async_context
+ * with g_source_destroy().
+ **/
+GSource *
+soup_add_timeout (GMainContext *async_context,
+		  guint interval,
+		  GSourceFunc function, gpointer data)
+{
+	GSource *source = g_timeout_source_new (interval);
+	g_source_set_callback (source, function, data, NULL);
+	g_source_attach (source, async_context);
+	g_source_unref (watch);
+	return source;
+}
+

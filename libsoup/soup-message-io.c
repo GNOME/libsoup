@@ -373,6 +373,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				/* Stop and wait for the body now */
 				io->write_state =
 					SOUP_MESSAGE_IO_STATE_BLOCKING;
+				io->read_state = io_body_state (io->read_encoding);
 			} else {
 				/* We just wrote a 1xx response
 				 * header, so stay in STATE_HEADERS.
@@ -570,13 +571,16 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&
 			   (priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
 			/* The client requested a Continue response. */
+			soup_message_set_status (msg, SOUP_STATUS_CONTINUE);
+			
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io->read_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 		} else
 			io->read_state = io_body_state (io->read_encoding);
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
+		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code) &&
+		    !(priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
 			soup_message_got_informational (msg);
 			soup_message_cleanup_response (msg);
 		} else

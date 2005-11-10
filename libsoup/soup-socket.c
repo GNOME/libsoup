@@ -45,6 +45,7 @@ enum {
 	PROP_CLOEXEC,
 	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
+	PROP_ASYNC_CONTEXT,
 
 	LAST_PROP
 };
@@ -61,8 +62,9 @@ typedef struct {
 	guint is_server:1;
 	gpointer ssl_creds;
 
-	guint           watch;
-	guint           read_tag, write_tag, error_tag;
+	GMainContext   *async_context;
+	GSource        *watch_src;
+	GSource        *read_src, *write_src;
 	GByteArray     *read_buf;
 
 	GMutex *iolock, *addrlock;
@@ -112,17 +114,13 @@ disconnect_internal (SoupSocketPrivate *priv)
 	priv->iochannel = NULL;
 	priv->sockfd = -1;
 
-	if (priv->read_tag) {
-		g_source_remove (priv->read_tag);
-		priv->read_tag = 0;
+	if (priv->read_src) {
+		g_source_destroy (priv->read_src);
+		priv->read_src = NULL;
 	}
-	if (priv->write_tag) {
-		g_source_remove (priv->write_tag);
-		priv->write_tag = 0;
-	}
-	if (priv->error_tag) {
-		g_source_remove (priv->error_tag);
-		priv->error_tag = 0;
+	if (priv->write_src) {
+		g_source_destroy (priv->write_src);
+		priv->write_src = NULL;
 	}
 }
 
@@ -139,8 +137,10 @@ finalize (GObject *object)
 	if (priv->remote_addr)
 		g_object_unref (priv->remote_addr);
 
-	if (priv->watch)
-		g_source_remove (priv->watch);
+	if (priv->watch_src)
+		g_source_destroy (priv->watch_src);
+	if (priv->async_context)
+		g_main_context_unref (priv->async_context);
 
 	if (priv->read_buf)
 		g_byte_array_free (priv->read_buf, TRUE);
@@ -292,6 +292,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "SSL credentials",
 				      "SSL credential information, passed from the session to the SSL implementation",
 				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_ASYNC_CONTEXT,
+		g_param_spec_pointer (SOUP_SOCKET_ASYNC_CONTEXT,
+				      "Async GMainContext",
+				      "The GMainContext to dispatch this socket's async I/O in",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 #ifdef G_OS_WIN32
 	/* Make sure WSAStartup() gets called. */
@@ -374,6 +380,11 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
+	case PROP_ASYNC_CONTEXT:
+		priv->async_context = g_value_get_pointer (value);
+		if (priv->async_context)
+			g_main_context_ref (priv->async_context);
+		break;
 	default:
 		break;
 	}
@@ -403,6 +414,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CREDENTIALS:
 		g_value_set_pointer (value, priv->ssl_creds);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
 	default:
 		break;
@@ -459,7 +473,7 @@ idle_connect_result (gpointer user_data)
 	SoupSocket *sock = user_data;
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	priv->watch = 0;
+	priv->watch_src = NULL;
 
 	g_signal_emit (sock, signals[CONNECT_RESULT], 0,
 		       priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT);
@@ -475,8 +489,8 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	int len = sizeof (error);
 
 	/* Remove the watch now in case we don't return immediately */
-	g_source_remove (priv->watch);
-	priv->watch = 0;
+	g_source_destroy (priv->watch_src);
+	priv->watch_src = NULL;
 
 	if (condition & ~(G_IO_IN | G_IO_OUT))
 		goto cant_connect;
@@ -570,12 +584,13 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 	if (SOUP_IS_SOCKET_ERROR (status)) {
 		if (SOUP_IS_CONNECT_STATUS_INPROGRESS ()) {
 			/* Wait for connect to succeed or fail */
-			priv->watch =
-				g_io_add_watch (get_iochannel (priv),
-						G_IO_IN | G_IO_OUT |
-						G_IO_PRI | G_IO_ERR |
-						G_IO_HUP | G_IO_NVAL,
-						connect_watch, sock);
+			priv->watch_src =
+				soup_add_io_watch (priv->async_context,
+						   get_iochannel (priv),
+						   G_IO_IN | G_IO_OUT |
+						   G_IO_PRI | G_IO_ERR |
+						   G_IO_HUP | G_IO_NVAL,
+						   connect_watch, sock);
 			return SOUP_STATUS_CONTINUE;
 		} else {
 			SOUP_CLOSE_SOCKET (priv->sockfd);
@@ -586,7 +601,8 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 
  done:
 	if (priv->non_blocking) {
-		priv->watch = g_idle_add (idle_connect_result, sock);
+		priv->watch_src = soup_add_idle (priv->async_context,
+						 idle_connect_result, sock);
 		return SOUP_STATUS_CONTINUE;
 	} else if (SOUP_IS_INVALID_SOCKET (priv->sockfd))
 		return SOUP_STATUS_CANT_CONNECT;
@@ -603,8 +619,8 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	int sa_len, sockfd;
 
 	if (condition & (G_IO_HUP | G_IO_ERR)) {
-		g_source_remove (priv->watch);
-		priv->watch = 0;
+		g_source_destroy (priv->watch_src);
+		priv->watch_src = NULL;
 		return FALSE;
 	}
 
@@ -616,6 +632,8 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	new = g_object_new (SOUP_TYPE_SOCKET, NULL);
 	new_priv = SOUP_SOCKET_GET_PRIVATE (new);
 	new_priv->sockfd = sockfd;
+	if (priv->async_context)
+		new_priv->async_context = g_main_context_ref (priv->async_context);
 	new_priv->non_blocking = priv->non_blocking;
 	new_priv->nodelay = priv->nodelay;
 	new_priv->is_server = TRUE;
@@ -658,9 +676,10 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	g_return_val_if_fail (priv->is_server, FALSE);
 	g_return_val_if_fail (priv->sockfd == -1, FALSE);
 	g_return_val_if_fail (SOUP_IS_ADDRESS (local_addr), FALSE);
+
+	priv->is_server = TRUE;
 
 	/* @local_addr may have its port set to 0. So we intentionally
 	 * don't store it in priv->local_addr, so that if the
@@ -684,9 +703,10 @@ soup_socket_listen (SoupSocket *sock, SoupAddress *local_addr)
 	if (listen (priv->sockfd, 10) != 0)
 		goto cant_listen;
 
-	priv->watch = g_io_add_watch (get_iochannel (priv),
-				      G_IO_IN | G_IO_ERR | G_IO_HUP,
-				      listen_watch, sock);
+	priv->watch_src = soup_add_io_watch (priv->async_context,
+					     get_iochannel (priv),
+					     G_IO_IN | G_IO_ERR | G_IO_HUP,
+					     listen_watch, sock);
 	return TRUE;
 
  cant_listen:
@@ -754,6 +774,9 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
  *
  * Creates a connection to @hostname and @port. @callback will be
  * called when the connection completes (or fails).
+ *
+ * Uses the default #GMainContext. If you need to use an alternate
+ * context, use soup_socket_new() and soup_socket_connect() directly.
  *
  * Return value: the new socket (not yet ready for use).
  **/
@@ -835,6 +858,9 @@ soup_socket_client_new_sync (const char *hostname, guint port,
  * address. @callback will be called each time a client connects,
  * with a new #SoupSocket.
  *
+ * Uses the default #GMainContext. If you need to use an alternate
+ * context, use soup_socket_new() and soup_socket_listen() directly.
+ *
  * Returns: a new #SoupSocket, or NULL if there was a failure.
  **/
 SoupSocket *
@@ -851,7 +877,6 @@ soup_socket_server_new (SoupAddress *local_addr, gpointer ssl_creds,
 			     SOUP_SOCKET_SSL_CREDENTIALS, ssl_creds,
 			     NULL);
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	priv->is_server = TRUE;
 	if (!soup_socket_listen (sock, local_addr)) {
 		g_object_unref (sock);
 		return NULL;
@@ -1007,7 +1032,7 @@ socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 	SoupSocket *sock = user_data;
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	priv->read_tag = 0;
+	priv->read_src = NULL;
 
 	if (cond & (G_IO_ERR | G_IO_HUP))
 		soup_socket_disconnect (sock);
@@ -1049,11 +1074,12 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		if (*nread > 0)
 			return SOUP_SOCKET_OK;
 
-		if (!priv->read_tag) {
-			priv->read_tag =
-				g_io_add_watch (priv->iochannel,
-						cond | G_IO_HUP | G_IO_ERR,
-						socket_read_watch, sock);
+		if (!priv->read_src) {
+			priv->read_src =
+				soup_add_io_watch (priv->async_context,
+						   priv->iochannel,
+						   cond | G_IO_HUP | G_IO_ERR,
+						   socket_read_watch, sock);
 		}
 		return SOUP_SOCKET_WOULD_BLOCK;
 
@@ -1210,7 +1236,7 @@ socket_write_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 	SoupSocket *sock = user_data;
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	priv->write_tag = 0;
+	priv->write_src = NULL;
 
 	if (cond & (G_IO_ERR | G_IO_HUP))
 		soup_socket_disconnect (sock);
@@ -1262,7 +1288,7 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_EOF;
 	}
-	if (priv->write_tag) {
+	if (priv->write_src) {
 		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_WOULD_BLOCK;
 	}
@@ -1298,10 +1324,11 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		return SOUP_SOCKET_OK;
 	}
 
-	priv->write_tag =
-		g_io_add_watch (priv->iochannel,
-				cond | G_IO_HUP | G_IO_ERR, 
-				socket_write_watch, sock);
+	priv->write_src =
+		soup_add_io_watch (priv->async_context,
+				   priv->iochannel,
+				   cond | G_IO_HUP | G_IO_ERR, 
+				   socket_write_watch, sock);
 	g_mutex_unlock (priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;
 }

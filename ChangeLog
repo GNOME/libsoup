@@ -1,3 +1,26 @@
+2005-11-10  Dan Winship  <danw@novell.com>
+
+	* configure.in: bump version to 2.2.90. This will not be
+	officially released, but once these patches have gotten some
+	testing they may be pulled up to the gnome-2-12 branch.
+
+	* libsoup/soup-connection.c:
+	* libsoup/soup-server.c: 
+	* libsoup/soup-session.c: 
+	* libsoup/soup-socket.c: add an "async-context" property,
+	which gets passed from server to socket, and session to connection
+	to socket, allowing async usage outside the main thread. Based on
+	patches from Armin Bauer and Jürg Billeter.
+
+	* libsoup/soup-misc.c (soup_add_io_watch, soup_add_idle,
+	soup_add_timeout): utility routines to add watches, idles, and
+	timeouts to non-default GMainContexts.
+
+	* libsoup/soup-message-io.c (io_write): set the read state
+	appropriately after writing a "100 Continue" response
+	(io_read): More 100-Continue stuff. I don't think this is quite
+	right so it will probably change again later.
+
 2005-11-01  Dan Winship  <danw@novell.com>
 
 	* docs/reference/libsoup-docs.sgml: tell it to generate an index

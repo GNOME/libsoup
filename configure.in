@@ -3,7 +3,7 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 AC_PREREQ(2.53)
-AC_INIT(libsoup, 2.2.6.1)
+AC_INIT(libsoup, 2.2.90)
 AC_CONFIG_SRCDIR(libsoup.pc.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 
@@ -15,10 +15,10 @@ SOUP_API_VERSION=2.2
 AC_SUBST(SOUP_API_VERSION)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=1
+SOUP_AGE=2
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=9
+SOUP_CURRENT=10
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0

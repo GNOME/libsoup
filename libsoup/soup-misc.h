@@ -36,6 +36,20 @@ int                soup_base64_decode_step   (const guchar *in,
 					      int          *state, 
 					      guint        *save);
 
+/* Non-default-GMainContext operations */
+GSource           *soup_add_io_watch         (GMainContext *async_context,
+					      GIOChannel   *chan,
+					      GIOCondition  condition,
+					      GIOFunc       function,
+					      gpointer      data);
+GSource           *soup_add_idle             (GMainContext *async_context,
+					      GSourceFunc   function,
+					      gpointer      data);
+GSource           *soup_add_timeout          (GMainContext *async_context,
+					      guint         interval,
+					      GSourceFunc   function,
+					      gpointer      data);
+
 /* Misc utils */
 
 guint              soup_signal_connect_once  (gpointer      instance,

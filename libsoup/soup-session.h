@@ -53,6 +53,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_MAX_CONNS_PER_HOST "max-conns-per-host"
 #define SOUP_SESSION_USE_NTLM           "use-ntlm"
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
+#define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
 
 void            soup_session_add_filter       (SoupSession           *session,
 					       SoupMessageFilter     *filter);

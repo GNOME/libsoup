@@ -64,6 +64,7 @@ struct SoupServerHandler {
 #define SOUP_SERVER_INTERFACE     "interface"
 #define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
 #define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
+#define SOUP_SERVER_ASYNC_CONTEXT "async-context"
 
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;

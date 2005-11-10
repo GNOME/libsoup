@@ -41,6 +41,7 @@ typedef struct {
 	gpointer     ssl_creds;
 
 	SoupMessageFilter *filter;
+	GMainContext      *async_context;
 
 	SoupMessage *cur_req;
 	time_t       last_used;
@@ -67,6 +68,7 @@ enum {
 	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
 	PROP_MESSAGE_FILTER,
+	PROP_ASYNC_CONTEXT,
 
 	LAST_PROP
 };
@@ -96,6 +98,8 @@ finalize (GObject *object)
 
 	if (priv->filter)
 		g_object_unref (priv->filter);
+	if (priv->async_context)
+		g_main_context_unref (priv->async_context);
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }
@@ -244,6 +248,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Message filter",
 				      "Message filter object for this connection",
 				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_ASYNC_CONTEXT,
+		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
+				      "Async GMainContext",
+				      "GMainContext to dispatch this connection's async I/O in",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 
@@ -304,7 +314,16 @@ set_property (GObject *object, guint prop_id,
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
 	case PROP_MESSAGE_FILTER:
-		priv->filter = g_object_ref (g_value_get_pointer (value));
+		if (priv->filter)
+			g_object_unref (priv->filter);
+		priv->filter = g_value_get_pointer (value);
+		if (priv->filter)
+			g_object_ref (priv->filter);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		priv->async_context = g_value_get_pointer (value);
+		if (priv->async_context)
+			g_main_context_ref (priv->async_context);
 		break;
 	default:
 		break;
@@ -331,7 +350,10 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_pointer (value, priv->ssl_creds);
 		break;
 	case PROP_MESSAGE_FILTER:
-		g_value_set_pointer (value, g_object_ref (priv->filter));
+		g_value_set_pointer (value, priv->filter ? g_object_ref (priv->filter) : NULL);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
 	default:
 		break;
@@ -513,10 +535,13 @@ soup_connection_connect_async (SoupConnection *conn,
 	}
 
 	priv->socket =
-		soup_socket_client_new_async (priv->conn_uri->host,
-					      priv->conn_uri->port,
-					      priv->ssl_creds,
-					      socket_connect_result, conn);
+		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 NULL);
+	soup_socket_connect (priv->socket, soup_address_new (priv->conn_uri->host,
+							     priv->conn_uri->port));
+	soup_signal_connect_once (priv->socket, "connect_result",
+				  G_CALLBACK (socket_connect_result), conn);
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 }
