@@ -440,7 +440,7 @@ soup_add_idle (GMainContext *async_context,
 	GSource *source = g_idle_source_new ();
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
-	g_source_unref (watch);
+	g_source_unref (source);
 	return source;
 }
 
@@ -466,7 +466,7 @@ soup_add_timeout (GMainContext *async_context,
 	GSource *source = g_timeout_source_new (interval);
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
-	g_source_unref (watch);
+	g_source_unref (source);
 	return source;
 }
 
