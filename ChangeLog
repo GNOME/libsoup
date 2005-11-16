@@ -1,3 +1,9 @@
+2005-11-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-message.c
+	(soup_xmlrpc_message_start_member): add the "name" element to the
+	struct member. #321362, patch from Sebastian Bauer.
+
 2005-11-01  Dan Winship  <danw@novell.com>
 
 	* docs/reference/libsoup-docs.sgml: tell it to generate an index
