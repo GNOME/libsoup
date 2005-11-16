@@ -1,3 +1,9 @@
+2005-11-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-message.c
+	(soup_xmlrpc_message_start_member): add the "name" element to the
+	struct member. #321362, patch from Sebastian Bauer.
+
 2005-11-10  Dan Winship  <danw@novell.com>
 
 	* configure.in: bump version to 2.2.90. This will not be
