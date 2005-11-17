@@ -1,3 +1,21 @@
+Changes in libsoup from 2.2.6.1 to 2.2.7:
+
+	* Fixed a crash when using NTLM connections [316313, probably
+	  also 318252]. (Also 321208, which was a bug introduced in
+	  the original fix for 316313.)
+
+	* Fixed a bug that could cause soup to suck up all available
+          CPU when a connection to a SoupServer was dropped by the
+          other side [319305, patch from Jonathan Matthew]
+
+	* Fixed the creation of struct elements in XMLRPC messages
+	  [321362, patch from Sebastian Bauer]
+
+	* Plugged a small memory leak in SoupSocket (from Wang Xin).
+
+	* Fixed two compile problems, a gccism [320349, patch from
+          Roland Illig], and a strict-aliasing warning from gcc 4.1.
+
 Changes in libsoup from 2.2.6 to 2.2.6.1:
 
 	* Fixed a crash when using SoupSoapMessage
