@@ -75,12 +75,14 @@ static void
 io_cleanup (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-
-	if (!io)
-		return;
+	SoupMessageIOData *io;
 
 	soup_message_io_stop (msg);
+
+	io = priv->io_data;
+	if (!io)
+		return;
+	priv->io_data = NULL;
 
 	if (io->sock)
 		g_object_unref (io->sock);
@@ -94,7 +96,6 @@ io_cleanup (SoupMessage *msg)
 	g_string_free (io->write_buf, TRUE);
 
 	g_free (io);
-	priv->io_data = NULL;
 }
 
 /**

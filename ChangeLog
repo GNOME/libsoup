@@ -1,3 +1,10 @@
+2005-11-17  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-io.c (io_cleanup): clear priv->io_data
+	right away, to protect against this being re-entered mid-cleanup
+	(when we unref the connection). #321208, based on a patch from
+	Jedy Wang.
+
 2005-11-16  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-xmlrpc-message.c
