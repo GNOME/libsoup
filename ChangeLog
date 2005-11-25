@@ -1,3 +1,9 @@
+2005-11-25  Dan Winship  <danw@novell.com>
+
+	* README: sync to text on wiki, and point to wiki
+
+	* TODO: moved to http://live.gnome.org/LibSoup_2fToDo
+
 2005-11-17  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-message-io.c (io_cleanup): clear priv->io_data

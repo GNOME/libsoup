@@ -1,17 +1,8 @@
-Soup is an HTTP library implementation in C. It was originally part of
-a SOAP (Simple Object Access Protocol) implementation, but the SOAP
-code was later removed (and then later partially reimplemented...)
-
-Soup uses GObjects and the glib main loop, and is designed to work
-well with Gtk/GNOME applications. This enables GNOME applications to
-access HTTP servers on the network in a completely asynchronous
-fashion, very similar to the Gtk+ programming model (a synchronous
-operation mode is also supported for those who want it).
-
-Soup also contains code to implement an HTTP/1.1 server.
+libsoup is an HTTP client/server library for GNOME. It uses GObjects
+and the glib main loop, to integrate well with GNOME applications.
 
 Features:
-  * (Optionally) completely asynchronous
+  * Both asynchronous (GMainLoop and callback-based) and synchronous APIs
   * Automatically caches connections
   * SSL Support using GnuTLS
   * Proxy support, including authentication and SSL tunneling
@@ -22,6 +13,8 @@ See the test programs in tests/ for simple examples of how to use the
 code, or evolution-data-server and evolution-exchange for more
 complicated examples.
 
+More information (including future plans) may be available at
+http://live.gnome.org/LibSoup
 
 To subscribe to the Soup discussion list, send mail with the word
 "Subscribe" in the message body to soup-list-request@ximian.com.
