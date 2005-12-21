@@ -1,3 +1,13 @@
+2005-12-21  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-date.c (soup_date_iso8601_parse): fix two bugs in
+	the YYYYMMDD case.
+
+	* tests/date.c: add three more ISO 8601 cases, to exercise all the
+	code paths.
+
+	#324671, from Emmanuele Bassi
+	
 2005-11-25  Dan Winship  <danw@novell.com>
 
 	* README: sync to text on wiki, and point to wiki

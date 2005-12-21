@@ -222,8 +222,8 @@ soup_date_iso8601_parse (const char *timestamp)
 	} else {
 		// YYYYMMDD
 		tm.tm_mday = val % 100;
-		tm.tm_mon = (val % 10000) / 100;
-		tm.tm_year = val / 10000;
+		tm.tm_mon = (val % 10000) / 100 - 1;
+		tm.tm_year = val / 10000 - 1900;
 	}
 
 	if (*timestamp++ != 'T')

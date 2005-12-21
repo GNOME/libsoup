@@ -10,10 +10,13 @@
 
 static int errors = 0;
 
-#define RFC1123_DATE "Sun, 06 Nov 1994 08:49:37 GMT"
-#define RFC850_DATE  "Sunday, 06-Nov-94 08:49:37 GMT"
-#define ASCTIME_DATE "Sun Nov  6 08:49:37 1994"
-#define ISO8601_DATE "1994-11-06T08:49:37"
+#define RFC1123_DATE   "Sun, 06 Nov 1994 08:49:37 GMT"
+#define RFC850_DATE    "Sunday, 06-Nov-94 08:49:37 GMT"
+#define ASCTIME_DATE   "Sun Nov  6 08:49:37 1994"
+#define ISO8601_1_DATE "1994-11-06T08:49:37Z"
+#define ISO8601_2_DATE "19941106T08:49:37Z"
+#define ISO8601_3_DATE "19941106T08:49:37+00:00"
+#define ISO8601_4_DATE "19941106T084937+00:00"
 
 #define EXPECTED     784111777
 
@@ -37,7 +40,10 @@ main (int argc, char **argv)
 	check ("RFC1123", RFC1123_DATE, soup_date_parse (RFC1123_DATE));
 	check ("RFC850", RFC850_DATE, soup_date_parse (RFC850_DATE));
 	check ("asctime", ASCTIME_DATE, soup_date_parse (ASCTIME_DATE));
-	check ("iso8610", ISO8601_DATE, soup_date_iso8601_parse (ISO8601_DATE));
+	check ("iso8610[1]", ISO8601_1_DATE, soup_date_iso8601_parse (ISO8601_1_DATE));
+	check ("iso8610[2]", ISO8601_2_DATE, soup_date_iso8601_parse (ISO8601_2_DATE));
+	check ("iso8610[3]", ISO8601_3_DATE, soup_date_iso8601_parse (ISO8601_3_DATE));
+	check ("iso8610[4]", ISO8601_4_DATE, soup_date_iso8601_parse (ISO8601_4_DATE));
 
 	date = soup_date_generate (EXPECTED);
 	if (strcmp (date, RFC1123_DATE) != 0) {
