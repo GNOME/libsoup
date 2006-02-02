@@ -1,3 +1,9 @@
+2006-02-02  Tor Lillqvist  <tml@novell.com>
+
+	* configure.in: Don't use getaddrinfo() etc or try to support IPv6
+	on Windows, as they are present by default on XP only. We do want
+	to support Windows 2000, too.
+
 2005-12-21  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-date.c (soup_date_iso8601_parse): fix two bugs in

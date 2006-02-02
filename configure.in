@@ -87,11 +87,13 @@ AC_MSG_CHECKING([for Win32])
 case "$host" in
   *-*-mingw*)
     os_win32=yes
-    AC_CACHE_VAL(ac_cv_func_getaddrinfo, [ac_cv_func_getaddrinfo=yes])
-    AC_CACHE_VAL(ac_cv_func_getnameinfo, [ac_cv_func_getnameinfo=yes])
-    AC_CACHE_VAL(ac_cv_func_inet_pton, [ac_cv_func_inet_pton=yes])
-    AC_CACHE_VAL(ac_cv_func_inet_ntop, [ac_cv_func_inet_ntop=yes])
-    AC_CACHE_VAL(soup_cv_ipv6, [soup_cv_ipv6=yes])
+    # Don't do this yet, as we want to support Windows 2000 which
+    # doesn't have these.
+    # AC_CACHE_VAL(ac_cv_func_getaddrinfo, [ac_cv_func_getaddrinfo=yes])
+    # AC_CACHE_VAL(ac_cv_func_getnameinfo, [ac_cv_func_getnameinfo=yes])
+    # AC_CACHE_VAL(ac_cv_func_inet_pton, [ac_cv_func_inet_pton=yes])
+    # AC_CACHE_VAL(ac_cv_func_inet_ntop, [ac_cv_func_inet_ntop=yes])
+    # AC_CACHE_VAL(soup_cv_ipv6, [soup_cv_ipv6=yes])
     ;;
   *)
     os_win32=no
