@@ -46,6 +46,7 @@ typedef struct {
 	SoupMessage *cur_req;
 	time_t       last_used;
 	gboolean     connected, in_use;
+	guint        timeout;
 } SoupConnectionPrivate;
 #define SOUP_CONNECTION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION, SoupConnectionPrivate))
 
@@ -69,6 +70,7 @@ enum {
 	PROP_SSL_CREDS,
 	PROP_MESSAGE_FILTER,
 	PROP_ASYNC_CONTEXT,
+	PROP_TIMEOUT,
 
 	LAST_PROP
 };
@@ -84,6 +86,8 @@ static void clear_current_request (SoupConnection *conn);
 static void
 soup_connection_init (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	priv->timeout = 0;
 }
 
 static void
@@ -254,6 +258,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Async GMainContext",
 				      "GMainContext to dispatch this connection's async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_TIMEOUT,
+		g_param_spec_uint (SOUP_CONNECTION_TIMEOUT,
+				   "Timeout value",
+				   "Value in seconds to timeout a blocking I/O",
+				   0, G_MAXUINT, 0,
+				   G_PARAM_READWRITE));
 }
 
 
@@ -325,6 +336,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_TIMEOUT:
+		priv->timeout = g_value_get_uint (value);
+		break;
 	default:
 		break;
 	}
@@ -354,6 +368,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, priv->timeout);
 		break;
 	default:
 		break;
@@ -558,6 +575,7 @@ guint
 soup_connection_connect_sync (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv;
+	SoupAddress* addr;
 	guint status;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
@@ -565,14 +583,21 @@ soup_connection_connect_sync (SoupConnection *conn)
 	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
 
 	priv->socket =
-		soup_socket_client_new_sync (priv->conn_uri->host,
-					     priv->conn_uri->port,
-					     priv->ssl_creds,
-					     &status);
+		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
+				 SOUP_SOCKET_TIMEOUT, priv->timeout,
+				 NULL);
+
+	addr = soup_address_new (priv->conn_uri->host,
+				 priv->conn_uri->port);
+
+	status = soup_socket_connect (priv->socket, addr);
+	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 
+		
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 

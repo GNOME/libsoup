@@ -54,6 +54,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_USE_NTLM           "use-ntlm"
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 #define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
+#define SOUP_SESSION_TIMEOUT		"timeout"
 
 void            soup_session_add_filter       (SoupSession           *session,
 					       SoupMessageFilter     *filter);

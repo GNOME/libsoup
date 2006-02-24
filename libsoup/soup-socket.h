@@ -39,6 +39,7 @@ typedef struct {
 #define SOUP_SOCKET_IS_SERVER        "is-server"
 #define SOUP_SOCKET_SSL_CREDENTIALS  "ssl-creds"
 #define SOUP_SOCKET_ASYNC_CONTEXT    "async-context"
+#define SOUP_SOCKET_TIMEOUT	     "timeout"
 
 /**
  * SoupSocketCallback:

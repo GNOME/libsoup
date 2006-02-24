@@ -46,6 +46,7 @@ enum {
 	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
 	PROP_ASYNC_CONTEXT,
+	PROP_TIMEOUT,
 
 	LAST_PROP
 };
@@ -68,6 +69,7 @@ typedef struct {
 	GByteArray     *read_buf;
 
 	GMutex *iolock, *addrlock;
+	guint timeout;
 } SoupSocketPrivate;
 #define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
@@ -105,6 +107,7 @@ soup_socket_init (SoupSocket *sock)
 	priv->cloexec = FALSE;
 	priv->addrlock = g_mutex_new ();
 	priv->iolock = g_mutex_new ();
+	priv->timeout = 0;
 }
 
 static void
@@ -299,6 +302,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "The GMainContext to dispatch this socket's async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+	g_object_class_install_property (
+		object_class, PROP_TIMEOUT,
+		g_param_spec_uint (SOUP_SOCKET_TIMEOUT,
+				   "Timeout value",
+				   "Value in seconds to timeout a blocking I/O",
+				   0, G_MAXUINT, 0,
+				   G_PARAM_READWRITE));
+
 #ifdef G_OS_WIN32
 	/* Make sure WSAStartup() gets called. */
 	soup_address_get_type ();
@@ -310,6 +321,7 @@ static void
 update_fdflags (SoupSocketPrivate *priv)
 {
 	int opt;
+	struct timeval timeout;
 #ifndef G_OS_WIN32
 	int flags;
 #endif
@@ -349,6 +361,16 @@ update_fdflags (SoupSocketPrivate *priv)
 	setsockopt (priv->sockfd, IPPROTO_TCP,
 		    TCP_NODELAY, (void *) &opt, sizeof (opt));
 
+	timeout.tv_sec = priv->timeout;
+	timeout.tv_usec = 0;
+	setsockopt (priv->sockfd, SOL_SOCKET,
+		    SO_RCVTIMEO, (void *) &timeout, sizeof (timeout));
+
+	timeout.tv_sec = priv->timeout;
+	timeout.tv_usec = 0;
+	setsockopt (priv->sockfd, SOL_SOCKET,
+		    SO_SNDTIMEO, (void *) &timeout, sizeof (timeout));
+
 	opt = (priv->reuseaddr != 0);
 	setsockopt (priv->sockfd, SOL_SOCKET,
 		    SO_REUSEADDR, (void *) &opt, sizeof (opt));
@@ -385,6 +407,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_TIMEOUT:
+		priv->timeout = g_value_get_uint (value);
+		break;
 	default:
 		break;
 	}
@@ -417,6 +442,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, priv->timeout);
 		break;
 	default:
 		break;
@@ -1074,6 +1102,13 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 		if (*nread > 0)
 			return SOUP_SOCKET_OK;
 
+		/* If the connection/session is sync and  we get
+		   EAGAIN or EWOULDBLOCK, then it will be socket timeout
+		   and should be treated as an error condition.
+		*/
+		if (!priv->non_blocking)
+			return SOUP_SOCKET_ERROR;
+
 		if (!priv->read_src) {
 			priv->read_src =
 				soup_add_io_watch (priv->async_context,
@@ -1312,6 +1347,15 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		g_object_set_data (G_OBJECT (sock),
 				   "SoupSocket-last_error",
 				   NULL);
+	}
+
+	/* If the connection/session is sync and  we get
+	   EAGAIN or EWOULDBLOCK, then it will be socket timeout
+	   and should be treated as an error condition.
+	*/
+	if (!priv->non_blocking && status == G_IO_STATUS_AGAIN) {
+		g_mutex_unlock (priv->iolock);
+		return SOUP_SOCKET_ERROR;
 	}
 
 	if (status != G_IO_STATUS_NORMAL && status != G_IO_STATUS_AGAIN) {

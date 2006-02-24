@@ -56,6 +56,11 @@ typedef struct {
 	GMutex *host_lock;
 
 	GMainContext *async_context;
+
+	/* Holds the timeout value for the connection, when
+	   no response is received.
+	*/
+	guint timeout;
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
@@ -97,6 +102,7 @@ enum {
 	PROP_USE_NTLM,
 	PROP_SSL_CA_FILE,
 	PROP_ASYNC_CONTEXT,
+	PROP_TIMEOUT,
 
 	LAST_PROP
 };
@@ -119,6 +125,8 @@ soup_session_init (SoupSession *session)
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
 	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
+
+	priv->timeout = 0;
 }
 
 static gboolean
@@ -319,6 +327,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_TIMEOUT,
+		g_param_spec_uint (SOUP_SESSION_TIMEOUT,
+				   "Timeout value",
+				   "Value in seconds to timeout a blocking I/O",
+				   0, G_MAXUINT, 0,
+				   G_PARAM_READWRITE));
 }
 
 static void
@@ -415,6 +430,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_TIMEOUT:
+		priv->timeout = g_value_get_uint (value);
+		break;
 	default:
 		break;
 	}
@@ -447,6 +465,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, priv->timeout);
 		break;
 	default:
 		break;
@@ -1163,6 +1184,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
 		SOUP_CONNECTION_MESSAGE_FILTER, session,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
+		SOUP_CONNECTION_TIMEOUT, priv->timeout,
 		NULL);
 	g_signal_connect (conn, "connect_result",
 			  G_CALLBACK (connect_result),

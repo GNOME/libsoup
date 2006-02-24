@@ -1,3 +1,14 @@
+2006-02-25  Veerapuram Varadhan <vvaradhan@novell.com>
+
+	* libsoup/soup-connection.c:
+	* libsoup/soup-session.c:
+	* libsoup/soup-socket.c: add a "timeout" property,
+	which gets passed from server to socket, and session to connection
+	to socket, allowing blocking non-responsive sync connections to 
+	return.  Combination of "EAGAIN" && "Blocking" connection is treated
+	as error and the connection will be terminated and the control 
+	is returned to the caller immediately.
+		
 2006-02-02  Tor Lillqvist  <tml@novell.com>
 
 	* configure.in: Don't use getaddrinfo() etc or try to support IPv6
