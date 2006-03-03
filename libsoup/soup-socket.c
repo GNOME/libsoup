@@ -597,7 +597,8 @@ soup_socket_connect (SoupSocket *sock, SoupAddress *remote_addr)
 			return SOUP_STATUS_CANT_RESOLVE;
 
 		g_object_ref (sock);
-		soup_address_resolve_async (remote_addr, got_address, sock);
+		soup_address_resolve_async_full (remote_addr, priv->async_context,
+						 got_address, sock);
 		return SOUP_STATUS_CONTINUE;
 	}
 

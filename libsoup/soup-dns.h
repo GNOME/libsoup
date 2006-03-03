@@ -37,6 +37,7 @@ typedef void (*SoupDNSCallback) (SoupDNSLookup *lookup, gboolean success, gpoint
 
 gboolean         soup_dns_lookup_resolve       (SoupDNSLookup   *lookup);
 void             soup_dns_lookup_resolve_async (SoupDNSLookup   *lookup,
+						GMainContext    *async_context,
 						SoupDNSCallback  callback,
 						gpointer         user_data);
 void             soup_dns_lookup_cancel        (SoupDNSLookup   *lookup);

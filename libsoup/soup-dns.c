@@ -131,8 +131,10 @@ static GHashTable *soup_dns_cache;
 struct SoupDNSLookup {
 	SoupDNSCacheEntry *entry;
 
+	GMainContext *async_context;
 	SoupDNSCallback callback;
 	gpointer user_data;
+
 	gboolean running;
 };
 
@@ -465,28 +467,18 @@ soup_dns_lookup_address (struct sockaddr *sockaddr)
 }
 
 static gboolean
-do_async_callbacks (gpointer user_data)
+do_async_callback (gpointer user_data)
 {
-	SoupDNSCacheEntry *entry = user_data;
-	GSList *lookups;
-	SoupDNSLookup *lookup;
-	gboolean success = (entry->hostname != NULL && entry->sockaddr != NULL);
+	SoupDNSLookup *lookup = user_data;
 
-	g_mutex_lock (soup_dns_lock);
-	lookups = entry->lookups;
-	entry->lookups = NULL;
-	g_mutex_unlock (soup_dns_lock);
+	if (lookup->running) {
+		SoupDNSCacheEntry *entry = lookup->entry;
+		gboolean success = (entry->hostname != NULL && entry->sockaddr != NULL);
 
-	while (lookups) {
-		lookup = lookups->data;
-		lookups = g_slist_remove (lookups, lookup);
-		if (lookup->running) {
-			lookup->running = FALSE;
-			lookup->callback (lookup, success, lookup->user_data);
-		}
+		lookup->running = FALSE;
+		lookup->callback (lookup, success, lookup->user_data);
 	}
 
-	soup_dns_cache_entry_unref (entry);
 	return FALSE;
 }
 
@@ -494,6 +486,8 @@ static gpointer
 resolver_thread (gpointer user_data)
 {
 	SoupDNSCacheEntry *entry = user_data;
+	GSList *lookups;
+	SoupDNSLookup *lookup;
 
 	if (entry->hostname == NULL)
 		resolve_name (entry);
@@ -502,13 +496,22 @@ resolver_thread (gpointer user_data)
 
 	entry->resolved = TRUE;
 	entry->resolver_thread = NULL;
+
+	g_mutex_lock (soup_dns_lock);
+	lookups = entry->lookups;
+	entry->lookups = NULL;
+	g_mutex_unlock (soup_dns_lock);
+
 	g_cond_broadcast (soup_dns_cond);
 
-	if (entry->lookups)
-		g_idle_add (do_async_callbacks, entry);
-	else
-		soup_dns_cache_entry_unref (entry);
+	while (lookups) {
+		lookup = lookups->data;
+		lookups = g_slist_remove (lookups, lookup);
 
+		soup_add_idle (lookup->async_context, do_async_callback, lookup);
+	}
+
+	soup_dns_cache_entry_unref (entry);
 	return NULL;
 }
 
@@ -548,6 +551,7 @@ soup_dns_lookup_resolve (SoupDNSLookup *lookup)
 /**
  * soup_dns_lookup_resolve_async:
  * @lookup: a #SoupDNSLookup
+ * @async_context: #GMainContext to call @callback in
  * @callback: callback to call when @lookup is resolved
  * @user_data: data to pass to @callback;
  *
@@ -556,13 +560,14 @@ soup_dns_lookup_resolve (SoupDNSLookup *lookup)
  * soup_dns_lookup_cancel().
  **/
 void
-soup_dns_lookup_resolve_async (SoupDNSLookup *lookup,
+soup_dns_lookup_resolve_async (SoupDNSLookup *lookup, GMainContext *async_context,
 			       SoupDNSCallback callback, gpointer user_data)
 {
 	SoupDNSCacheEntry *entry = lookup->entry;
 
 	g_mutex_lock (soup_dns_lock);
 
+	lookup->async_context = async_context;
 	lookup->callback = callback;
 	lookup->user_data = user_data;
 	lookup->running = TRUE;
@@ -574,10 +579,8 @@ soup_dns_lookup_resolve_async (SoupDNSLookup *lookup,
 			entry->resolver_thread =
 				g_thread_create (resolver_thread, entry, FALSE, NULL);
 		}
-	} else {
-		soup_dns_cache_entry_ref (entry);
-		g_idle_add (do_async_callbacks, entry);
-	}
+	} else
+		soup_add_idle (lookup->async_context, do_async_callback, lookup);
 
 	g_mutex_unlock (soup_dns_lock);
 }

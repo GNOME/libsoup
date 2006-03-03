@@ -1,3 +1,20 @@
+2006-03-03  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-dns.c (soup_dns_lookup_resolve_async): Take a
+	GMainContext as well, and update the resolution code to dispatch
+	each lookup result in the correct context.
+
+	* libsoup/soup-address.c (soup_address_resolve_async_full): New
+	method that takes a GMainContext to pass to
+	soup_dns_lookup_resolve_async.
+
+	* libsoup/soup-socket.c (soup_socket_connect): Use
+	soup_address_resolve_async_full. Fixes a problem reported by Armin
+	Bauer.
+
+	* configure.in: update to require glib 2.6, since apparently the
+	code does.
+
 2006-02-25  Veerapuram Varadhan <vvaradhan@novell.com>
 
 	* libsoup/soup-connection.c:

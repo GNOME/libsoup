@@ -78,6 +78,10 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 void             soup_address_resolve_async      (SoupAddress         *addr,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);
+void             soup_address_resolve_async_full (SoupAddress         *addr,
+						  GMainContext        *async_context,
+						  SoupAddressCallback  callback,
+						  gpointer             user_data);
 guint            soup_address_resolve_sync       (SoupAddress         *addr);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);

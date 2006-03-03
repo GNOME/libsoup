@@ -398,6 +398,24 @@ soup_address_resolve_async (SoupAddress *addr,
 			    SoupAddressCallback callback,
 			    gpointer user_data)
 {
+	soup_address_resolve_async_full (addr, NULL, callback, user_data);
+}
+
+/**
+ * soup_address_resolve_async_full:
+ * @addr: a #SoupAddress
+ * @async_context: the #GMainContext to call @callback from
+ * @callback: callback to call with the result
+ * @user_data: data for @callback
+ *
+ * Like soup_address_resolve_async(), but calls @callback from
+ * the given @async_context.
+ **/
+void
+soup_address_resolve_async_full (SoupAddress *addr, GMainContext *async_context,
+				 SoupAddressCallback callback,
+				 gpointer user_data)
+{
 	SoupAddressPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
@@ -408,7 +426,7 @@ soup_address_resolve_async (SoupAddress *addr,
 					  G_CALLBACK (callback), user_data);
 	}
 
-	soup_dns_lookup_resolve_async (priv->lookup, update_address, addr);
+	soup_dns_lookup_resolve_async (priv->lookup, async_context, update_address, addr);
 }
 
 /**
