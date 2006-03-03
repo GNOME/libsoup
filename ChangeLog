@@ -1,5 +1,11 @@
 2006-03-03  Dan Winship  <danw@novell.com>
 
+	* configure.in: bump version to 2.2.91.
+
+	* NEWS: Update
+
+2006-03-03  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-dns.c (soup_dns_lookup_resolve_async): Take a
 	GMainContext as well, and update the resolution code to dispatch
 	each lookup result in the correct context.
