@@ -16,6 +16,8 @@
 	* tests/get.c: replace locale-ish strcasecmps with
 	g_ascii_strcasecmp
 
+	* libsoup/*.c: fix most signed/unsigned mismatch warnings
+
 2006-03-03  Dan Winship  <danw@novell.com>
 
 	* configure.in: bump version to 2.2.91.

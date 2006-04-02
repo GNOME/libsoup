@@ -41,7 +41,7 @@ typedef enum {
 
 typedef struct {
 	char          *user;
-	guchar         hex_a1[33];
+	char           hex_a1[33];
 
 	/* These are provided by the server */
 	char          *realm;
@@ -302,7 +302,7 @@ is_authenticated (SoupAuth *auth)
 static char *
 compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 {
-	guchar hex_a2[33], o[33];
+	char hex_a2[33], o[33];
 	SoupMD5Context md5;
 	char *url;
 	const SoupUri *uri;

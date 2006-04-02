@@ -204,7 +204,7 @@ read_metadata (SoupMessage *msg, const char *boundary)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
-	char read_buf[RESPONSE_BLOCK_SIZE];
+	guchar read_buf[RESPONSE_BLOCK_SIZE];
 	guint boundary_len = strlen (boundary);
 	gsize nread;
 	gboolean done;
@@ -248,7 +248,7 @@ read_body_chunk (SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
-	char read_buf[RESPONSE_BLOCK_SIZE];
+	guchar read_buf[RESPONSE_BLOCK_SIZE];
 	guint len = sizeof (read_buf);
 	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_UNKNOWN);
 	gsize nread;
@@ -265,7 +265,7 @@ read_body_chunk (SoupMessage *msg)
 				break;
 
 			io->read_body->owner  = SOUP_BUFFER_STATIC;
-			io->read_body->body   = read_buf;
+			io->read_body->body   = (char *)read_buf;
 			io->read_body->length = nread;
 
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
@@ -561,7 +561,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 		io->read_meta_buf->len -= SOUP_MESSAGE_IO_EOL_LEN;
 		io->read_meta_buf->data[io->read_meta_buf->len] = '\0';
-		status = io->parse_headers_cb (msg, io->read_meta_buf->data,
+		status = io->parse_headers_cb (msg, (char *)io->read_meta_buf->data,
 					       io->read_meta_buf->len,
 					       &io->read_encoding,
 					       &io->read_length,
@@ -631,7 +631,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	got_body:
 		if (io->read_buf) {
 			io->read_body->owner = SOUP_BUFFER_SYSTEM_OWNED;
-			io->read_body->body = io->read_buf->data;
+			io->read_body->body = (char *)io->read_buf->data;
 			io->read_body->length = io->read_buf->len;
 
 			g_byte_array_free (io->read_buf, FALSE);
@@ -650,7 +650,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		if (!read_metadata (msg, SOUP_MESSAGE_IO_EOL))
 			return;
 
-		io->read_length = strtoul (io->read_meta_buf->data, NULL, 16);
+		io->read_length = strtoul ((char *)io->read_meta_buf->data, NULL, 16);
 		g_byte_array_set_size (io->read_meta_buf, 0);
 
 		if (io->read_length > 0)

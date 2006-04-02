@@ -90,7 +90,7 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 
 	if (gnutls_certificate_type_get (session) == GNUTLS_CRT_X509) {
 		const gnutls_datum* cert_list;
-		int cert_list_size;
+		guint cert_list_size;
 		gnutls_x509_crt cert;
 
 		if (gnutls_x509_crt_init (&cert) < 0) {

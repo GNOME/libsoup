@@ -69,8 +69,9 @@ soup_md5_init (SoupMD5Context *ctx)
  * of bytes. Use this to progressively construct an md5 hash.
  **/
 void 
-soup_md5_update (SoupMD5Context *ctx, const guchar *buf, guint32 len)
+soup_md5_update (SoupMD5Context *ctx, gconstpointer buf, gsize len)
 {
+	const char *cbuf = buf;
 	guint32 t;
 	
 	/* Update bitcount */
@@ -89,30 +90,30 @@ soup_md5_update (SoupMD5Context *ctx, const guchar *buf, guint32 len)
 		
 		t = 64 - t;
 		if (len < t) {
-			memcpy (p, buf, len);
+			memcpy (p, cbuf, len);
 			return;
 		}
-		memcpy (p, buf, t);
+		memcpy (p, cbuf, t);
 		if (ctx->doByteReverse)
 			byte_reverse (ctx->in, 16);
 		soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
-		buf += t;
+		cbuf += t;
 		len -= t;
 	}
 	/* Process data in 64-byte chunks */
 	
 	while (len >= 64) {
-		memcpy (ctx->in, buf, 64);
+		memcpy (ctx->in, cbuf, 64);
 		if (ctx->doByteReverse)
 			byte_reverse (ctx->in, 16);
 		soup_md5_transform (ctx->buf, (guint32 *) ctx->in);
-		buf += 64;
+		cbuf += 64;
 		len -= 64;
 	}
 	
 	/* Handle any remaining bytes of data. */
 	
-	memcpy (ctx->in, buf, len);
+	memcpy (ctx->in, cbuf, len);
 }
 
 /*
@@ -182,19 +183,20 @@ soup_md5_final (SoupMD5Context *ctx, guchar digest[16])
  * to a buffer as a NUL-terminated hexadecimal string
  **/
 void 
-soup_md5_final_hex (SoupMD5Context *ctx, guchar hex_digest[33])
+soup_md5_final_hex (SoupMD5Context *ctx, char hex_digest[33])
 {
-	static const guchar hexdigits[16] =  {
+	static const char hexdigits[16] =  {
 		'0', '1', '2', '3', '4', '5', '6', '7',
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 	};
+	guchar digest[16];
 	int p;
 
-	soup_md5_final (ctx, hex_digest);
+	soup_md5_final (ctx, digest);
 
 	hex_digest[32] = 0;
 	for (p = 15; p >= 0; p--) {
-		guchar b = hex_digest[p];
+		guchar b = digest[p];
 		hex_digest[p * 2 + 1] = hexdigits[ (b & 0x0F ) ];
 		hex_digest[p * 2] = hexdigits[ (b & 0xF0 ) >> 4 ];
 	}

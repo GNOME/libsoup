@@ -76,8 +76,8 @@ check_digest_passwd (SoupServerAuthDigest *digest,
 {
 	SoupMD5Context ctx;
 	guchar d[16];
-	guchar hex_a1 [33], hex_a2[33], o[33];
-	gchar *tmp;
+	char hex_a1 [33], hex_a2[33], o[33];
+	char *tmp;
 
 	/* compute A1 */
 	soup_md5_init (&ctx);

@@ -16,8 +16,8 @@ typedef struct {
 	xmlNodePtr last_node;
 	xmlNsPtr soap_ns;
 	xmlNsPtr xsi_ns;
-	gchar *env_prefix;
-	gchar *env_uri;
+	xmlChar *env_prefix;
+	xmlChar *env_uri;
 	gboolean body_started;
 	gchar *action;
 } SoupSoapMessagePrivate;
@@ -33,9 +33,9 @@ finalize (GObject *object)
 	if (priv->action)
 		g_free (priv->action);
 	if (priv->env_uri)
-                g_free (priv->env_uri);
+                xmlFree (priv->env_uri);
 	if (priv->env_prefix)
-                g_free (priv->env_prefix);
+                xmlFree (priv->env_prefix);
 
 	G_OBJECT_CLASS (soup_soap_message_parent_class)->finalize (object);
 }
@@ -56,9 +56,9 @@ soup_soap_message_init (SoupSoapMessage *msg)
 	SoupSoapMessagePrivate *priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
 	/* initialize XML structures */
-	priv->doc = xmlNewDoc ("1.0");
+	priv->doc = xmlNewDoc ((xmlChar *)"1.0");
 	priv->doc->standalone = FALSE;
-	priv->doc->encoding = g_strdup ("UTF-8");
+	priv->doc->encoding = xmlCharStrdup ("UTF-8");
 }
 
 
@@ -69,11 +69,11 @@ fetch_ns (SoupSoapMessage *msg, const char *prefix, const char *ns_uri)
         xmlNsPtr ns = NULL;
                                                                                 
         if (prefix && ns_uri)
-                ns = xmlNewNs (priv->last_node, ns_uri, prefix);
+                ns = xmlNewNs (priv->last_node, (xmlChar *)ns_uri, (xmlChar *)prefix);
         else if (prefix && !ns_uri) {
-                ns = xmlSearchNs (priv->doc, priv->last_node, prefix);
+                ns = xmlSearchNs (priv->doc, priv->last_node, (xmlChar *)prefix);
                 if (!ns)
-			ns = xmlNewNs (priv->last_node, "", prefix);
+			ns = xmlNewNs (priv->last_node, (xmlChar *)"", (xmlChar *)prefix);
         }
                                                                                 
         return ns;
@@ -142,14 +142,14 @@ soup_soap_message_new_from_uri (const char *method, const SoupUri *uri,
 	priv->doc->standalone = standalone;
 
 	if (xml_encoding) {
-		g_free ((char *) priv->doc->encoding);
-		priv->doc->encoding = g_strdup (xml_encoding);
+		xmlFree ((xmlChar *)priv->doc->encoding);
+		priv->doc->encoding = xmlCharStrdup (xml_encoding);
 	}
 
-	if (env_prefix || env_uri) {
-		priv->env_prefix = g_strdup (env_prefix);
-		priv->env_uri = g_strdup (env_uri);
-	}
+	if (env_prefix)
+		priv->env_prefix = xmlCharStrdup (env_prefix);
+	if (env_uri)
+		priv->env_uri = xmlCharStrdup (env_uri);
 
 	return msg;
 }
@@ -169,35 +169,35 @@ soup_soap_message_start_envelope (SoupSoapMessage *msg)
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
 	priv->last_node = priv->doc->xmlRootNode =
-		xmlNewDocNode (priv->doc, NULL, "Envelope", NULL);
+		xmlNewDocNode (priv->doc, NULL, (xmlChar *)"Envelope", NULL);
 
 	priv->soap_ns = xmlNewNs (priv->doc->xmlRootNode,
 				  priv->env_uri ? priv->env_uri :
-				  "http://schemas.xmlsoap.org/soap/envelope/",
-				  priv->env_prefix ? priv->env_prefix : "SOAP-ENV");
+				  (xmlChar *)"http://schemas.xmlsoap.org/soap/envelope/",
+				  priv->env_prefix ? priv->env_prefix : (xmlChar *)"SOAP-ENV");
 	if (priv->env_uri) {
-		g_free (priv->env_uri);
+		xmlFree (priv->env_uri);
 		priv->env_uri = NULL;
 	}
 	if (priv->env_prefix) {
-		g_free (priv->env_prefix);
+		xmlFree (priv->env_prefix);
 		priv->env_prefix = NULL;
 	}
 
 	xmlSetNs (priv->doc->xmlRootNode, priv->soap_ns);
 
 	xmlNewNs (priv->doc->xmlRootNode,
-		  "http://schemas.xmlsoap.org/soap/encoding/",
-                  "SOAP-ENC");
+		  (xmlChar *)"http://schemas.xmlsoap.org/soap/encoding/",
+                  (xmlChar *)"SOAP-ENC");
 	xmlNewNs (priv->doc->xmlRootNode,
-                  "http://www.w3.org/1999/XMLSchema",
-                  "xsd");
+                  (xmlChar *)"http://www.w3.org/1999/XMLSchema",
+                  (xmlChar *)"xsd");
 	xmlNewNs (priv->doc->xmlRootNode,
-		  "http://schemas.xmlsoap.org/soap/envelope/",
-		  "SOAP-ENV");
+		  (xmlChar *)"http://schemas.xmlsoap.org/soap/envelope/",
+		  (xmlChar *)"SOAP-ENV");
 	priv->xsi_ns = xmlNewNs (priv->doc->xmlRootNode,
-				 "http://www.w3.org/1999/XMLSchema-instance",
-				 "xsi");
+				 (xmlChar *)"http://www.w3.org/1999/XMLSchema-instance",
+				 (xmlChar *)"xsi");
 }
 
 /**
@@ -231,7 +231,7 @@ soup_soap_message_start_body (SoupSoapMessage *msg)
 
 	priv->last_node = xmlNewChild (priv->last_node,
 				       priv->soap_ns,
-				       "Body", NULL);
+				       (xmlChar *)"Body", NULL);
 
 	priv->body_started = TRUE;
 }
@@ -280,7 +280,7 @@ soup_soap_message_start_element (SoupSoapMessage *msg,
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, name, NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)name, NULL);
 
 	xmlSetNs (priv->last_node, fetch_ns (msg, prefix, ns_uri));
 
@@ -333,12 +333,12 @@ soup_soap_message_start_fault (SoupSoapMessage *msg,
 
 	priv->last_node = xmlNewChild (priv->last_node,
 				       priv->soap_ns,
-				       "Fault", NULL);
-	xmlNewChild (priv->last_node, priv->soap_ns, "faultcode", faultcode);
-	xmlNewChild (priv->last_node, priv->soap_ns, "faultstring", faultstring);
+				       (xmlChar *)"Fault", NULL);
+	xmlNewChild (priv->last_node, priv->soap_ns, (xmlChar *)"faultcode", (xmlChar *)faultcode);
+	xmlNewChild (priv->last_node, priv->soap_ns, (xmlChar *)"faultstring", (xmlChar *)faultstring);
 
 	priv->last_node = xmlNewChild (priv->last_node, priv->soap_ns,
-				       "faultfactor", faultfactor);
+				       (xmlChar *)"faultfactor", (xmlChar *)faultfactor);
 	if (!faultfactor)
 		soup_soap_message_set_null (msg);
 
@@ -375,7 +375,7 @@ soup_soap_message_start_fault_detail (SoupSoapMessage *msg)
                                                                                 
         priv->last_node = xmlNewChild (priv->last_node,
 				       priv->soap_ns,
-				       "detail",
+				       (xmlChar *)"detail",
 				       NULL);
 }
 
@@ -412,7 +412,7 @@ soup_soap_message_start_header (SoupSoapMessage *msg)
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
 	priv->last_node = xmlNewChild (priv->last_node, priv->soap_ns,
-				       "Header", NULL);
+				       (xmlChar *)"Header", NULL);
 }
 
 /**
@@ -454,9 +454,9 @@ soup_soap_message_start_header_element (SoupSoapMessage *msg,
 
 	soup_soap_message_start_element (msg, name, prefix, ns_uri);
 	if (actor_uri)
-		xmlNewNsProp (priv->last_node, priv->soap_ns, "actorUri", actor_uri);
+		xmlNewNsProp (priv->last_node, priv->soap_ns, (xmlChar *)"actorUri", (xmlChar *)actor_uri);
 	if (must_understand)
-		xmlNewNsProp (priv->last_node, priv->soap_ns, "mustUnderstand", "1");
+		xmlNewNsProp (priv->last_node, priv->soap_ns, (xmlChar *)"mustUnderstand", (xmlChar *)"1");
 }
 
 /**
@@ -548,7 +548,7 @@ soup_soap_message_write_string (SoupSoapMessage *msg, const char *string)
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNodeAddContent (priv->last_node, string);
+	xmlNodeAddContent (priv->last_node, (xmlChar *)string);
 }
 
 /**
@@ -568,7 +568,7 @@ soup_soap_message_write_buffer (SoupSoapMessage *msg, const char *buffer, int le
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNodeAddContentLen (priv->last_node, buffer, len);
+	xmlNodeAddContentLen (priv->last_node, (xmlChar *)buffer, len);
 }
 
 /**
@@ -587,7 +587,7 @@ soup_soap_message_set_element_type (SoupSoapMessage *msg, const char *xsi_type)
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNewNsProp (priv->last_node, priv->xsi_ns, "type", xsi_type);
+	xmlNewNsProp (priv->last_node, priv->xsi_ns, (xmlChar *)"type", (xmlChar *)xsi_type);
 }
 
 /**
@@ -604,7 +604,7 @@ soup_soap_message_set_null (SoupSoapMessage *msg)
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNewNsProp (priv->last_node, priv->xsi_ns, "null", "1");
+	xmlNewNsProp (priv->last_node, priv->xsi_ns, (xmlChar *)"null", (xmlChar *)"1");
 }
 
 /**
@@ -631,7 +631,7 @@ soup_soap_message_add_attribute (SoupSoapMessage *msg,
 
 	xmlNewNsProp (priv->last_node,
 		      fetch_ns (msg, prefix, ns_uri),
-		      name, value);
+		      (xmlChar *)name, (xmlChar *)value);
 }
 
 /**
@@ -650,7 +650,7 @@ soup_soap_message_add_namespace (SoupSoapMessage *msg, const char *prefix, const
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNewNs (priv->last_node, ns_uri ? ns_uri : "", prefix);
+	xmlNewNs (priv->last_node, (xmlChar *)(ns_uri ? ns_uri : ""), (xmlChar *)prefix);
 }
 
 /**
@@ -689,7 +689,7 @@ soup_soap_message_set_encoding_style (SoupSoapMessage *msg, const char *enc_styl
 	g_return_if_fail (SOUP_IS_SOAP_MESSAGE (msg));
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlNewNsProp (priv->last_node, priv->soap_ns, "encodingStyle", enc_style);
+	xmlNewNsProp (priv->last_node, priv->soap_ns, (xmlChar *)"encodingStyle", (xmlChar *)enc_style);
 }
 
 /**
@@ -707,7 +707,7 @@ soup_soap_message_reset (SoupSoapMessage *msg)
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
 	xmlFreeDoc (priv->doc);
-	priv->doc = xmlNewDoc ("1.0");
+	priv->doc = xmlNewDoc ((xmlChar *)"1.0");
 	priv->last_node = NULL;
 
 	g_free (priv->action);
@@ -715,11 +715,11 @@ soup_soap_message_reset (SoupSoapMessage *msg)
 	priv->body_started = FALSE;
 
 	if (priv->env_uri)
-		g_free (priv->env_uri);
+		xmlFree (priv->env_uri);
 	priv->env_uri = NULL;
 
 	if (priv->env_prefix)
-		g_free (priv->env_prefix);
+		xmlFree (priv->env_prefix);
 	priv->env_prefix = NULL;
 }
 
@@ -743,7 +743,7 @@ soup_soap_message_persist (SoupSoapMessage *msg)
 
 	/* serialize to SoupMessage class */
 	soup_message_set_request (SOUP_MESSAGE (msg), "text/xml",
-				  SOUP_BUFFER_SYSTEM_OWNED, body, len);
+				  SOUP_BUFFER_SYSTEM_OWNED, (char *)body, len);
 }
 
 /**
@@ -767,10 +767,10 @@ soup_soap_message_get_namespace_prefix (SoupSoapMessage *msg, const char *ns_uri
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 	g_return_val_if_fail (ns_uri != NULL, NULL);
 
-	ns = xmlSearchNsByHref (priv->doc, priv->last_node, ns_uri);
+	ns = xmlSearchNsByHref (priv->doc, priv->last_node, (xmlChar *)ns_uri);
 	if (ns) {
 		if (ns->prefix)
-			return ns->prefix;
+			return (char *)ns->prefix;
 		else
 			return "";
 	}

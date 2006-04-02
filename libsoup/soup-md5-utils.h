@@ -31,12 +31,12 @@ typedef struct {
 
 void soup_md5_init      (SoupMD5Context *ctx);
 void soup_md5_update    (SoupMD5Context *ctx,
-			 const guchar   *buf,
-			 guint32         len);
+			 gconstpointer   buf,
+			 gsize           len);
 void soup_md5_final     (SoupMD5Context *ctx,
 			 guchar          digest[16]);
 void soup_md5_final_hex (SoupMD5Context *ctx,
-			 guchar          digest[33]);
+			 char            digest[33]);
 
 
 #endif	/* SOUP_MD5_UTILS_H */
