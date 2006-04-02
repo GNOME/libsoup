@@ -6,6 +6,16 @@
 	* Makefile.am (install-data-local): Install the .pc file mode 644,
 	not 755. #330878
 
+	* libsoup/soup-auth-digest.c:
+	* libsoup/soup-auth.c:
+	* libsoup/soup-message-client-io.c:
+	* libsoup/soup-message-server-io.c:
+	* libsoup/soup-message.c:
+	* libsoup/soup-method.c:
+	* libsoup/soup-server-auth.c:
+	* tests/get.c: replace locale-ish strcasecmps with
+	g_ascii_strcasecmp
+
 2006-03-03  Dan Winship  <danw@novell.com>
 
 	* configure.in: bump version to 2.2.91.

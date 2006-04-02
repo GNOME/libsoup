@@ -127,7 +127,7 @@ decode_data_type (DataType *dtype, const char *name)
 		return 0;
 
         for (i = 0; dtype[i].name; i++) {
-                if (!g_strcasecmp (dtype[i].name, name))
+                if (!g_ascii_strcasecmp (dtype[i].name, name))
 			return dtype[i].type;
         }
 

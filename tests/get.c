@@ -63,7 +63,7 @@ find_hrefs (const SoupUri *base, const char *body, int length)
 			continue;
 		if (base->protocol != uri->protocol ||
 		    base->port != uri->port ||
-		    g_strcasecmp (base->host, uri->host) != 0) {
+		    g_ascii_strcasecmp (base->host, uri->host) != 0) {
 			soup_uri_free (uri);
 			continue;
 		}
@@ -141,7 +141,7 @@ got_url (SoupMessage *msg, gpointer uri)
 	close (fd);
 
 	header = soup_message_get_header (msg->response_headers, "Content-Type");
-	if (header && g_strncasecmp (header, "text/html", 9) != 0)
+	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
 		goto DONE;
 
 	hrefs = find_hrefs (uri, msg->response.body, msg->response.length);

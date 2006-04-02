@@ -49,7 +49,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 				       "Transfer-Encoding");
 
 	if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0)
+		if (g_ascii_strcasecmp (enc, "chunked") == 0)
 			*encoding = SOUP_TRANSFER_CHUNKED;
 		else {
 			g_warning ("Unknown encoding type in HTTP request.");

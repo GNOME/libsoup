@@ -69,7 +69,7 @@ parse_response_headers (SoupMessage *req,
 	 */
 	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
 	if (enc) {
-		if (g_strcasecmp (enc, "chunked") == 0) {
+		if (g_ascii_strcasecmp (enc, "chunked") == 0) {
 			*encoding = SOUP_TRANSFER_CHUNKED;
 			return SOUP_STATUS_OK;
 		} else

@@ -25,55 +25,55 @@ soup_method_get_id (const char *method)
 
 	switch (*method) {
         case 'H':
-		if (g_strcasecmp (method, "HEAD") == 0)
+		if (g_ascii_strcasecmp (method, "HEAD") == 0)
 			return SOUP_METHOD_ID_HEAD;
 		break;
         case 'G':
-		if (g_strcasecmp (method, "GET") == 0)
+		if (g_ascii_strcasecmp (method, "GET") == 0)
 			return SOUP_METHOD_ID_GET;
 		break;
         case 'P':
-		if (g_strcasecmp (method, "POST") == 0)
+		if (g_ascii_strcasecmp (method, "POST") == 0)
 			return SOUP_METHOD_ID_POST;
-		if (g_strcasecmp (method, "PUT") == 0)
+		if (g_ascii_strcasecmp (method, "PUT") == 0)
 			return SOUP_METHOD_ID_PUT;
-		if (g_strcasecmp (method, "PATCH") == 0)
+		if (g_ascii_strcasecmp (method, "PATCH") == 0)
 			return SOUP_METHOD_ID_PATCH;
-		if (g_strcasecmp (method, "PROPFIND") == 0)
+		if (g_ascii_strcasecmp (method, "PROPFIND") == 0)
 			return SOUP_METHOD_ID_PROPFIND;
-		if (g_strcasecmp (method, "PROPPATCH") == 0)
+		if (g_ascii_strcasecmp (method, "PROPPATCH") == 0)
 			return SOUP_METHOD_ID_PROPPATCH;
 		break;
         case 'D':
-		if (g_strcasecmp (method, "DELETE") == 0)
+		if (g_ascii_strcasecmp (method, "DELETE") == 0)
 			return SOUP_METHOD_ID_DELETE;
 		break;
         case 'C':
-		if (g_strcasecmp (method, "CONNECT") == 0)
+		if (g_ascii_strcasecmp (method, "CONNECT") == 0)
 			return SOUP_METHOD_ID_CONNECT;
-		if (g_strcasecmp (method, "COPY") == 0)
+		if (g_ascii_strcasecmp (method, "COPY") == 0)
 			return SOUP_METHOD_ID_COPY;
 		break;
         case 'M':
-		if (g_strcasecmp (method, "MKCOL") == 0)
+		if (g_ascii_strcasecmp (method, "MKCOL") == 0)
 			return SOUP_METHOD_ID_MKCOL;
-		if (g_strcasecmp (method, "MOVE") == 0)
+		if (g_ascii_strcasecmp (method, "MOVE") == 0)
 			return SOUP_METHOD_ID_MOVE;
 		break;
         case 'O':
-		if (g_strcasecmp (method, "OPTIONS") == 0)
+		if (g_ascii_strcasecmp (method, "OPTIONS") == 0)
 			return SOUP_METHOD_ID_OPTIONS;
 		break;
         case 'T':
-		if (g_strcasecmp (method, "TRACE") == 0)
+		if (g_ascii_strcasecmp (method, "TRACE") == 0)
 			return SOUP_METHOD_ID_TRACE;
 		break;
         case 'L':
-		if (g_strcasecmp (method, "LOCK") == 0)
+		if (g_ascii_strcasecmp (method, "LOCK") == 0)
 			return SOUP_METHOD_ID_LOCK;
 		break;
         case 'U':
-		if (g_strcasecmp (method, "UNLOCK") == 0)
+		if (g_ascii_strcasecmp (method, "UNLOCK") == 0)
 			return SOUP_METHOD_ID_UNLOCK;
 		break;
 	}

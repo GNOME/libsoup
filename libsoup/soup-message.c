@@ -844,17 +844,17 @@ soup_message_is_keepalive (SoupMessage *msg)
 
 		if (!c_conn || !s_conn)
 			return FALSE;
-		if (g_strcasecmp (c_conn, "Keep-Alive") != 0 ||
-		    g_strcasecmp (s_conn, "Keep-Alive") != 0)
+		if (g_ascii_strcasecmp (c_conn, "Keep-Alive") != 0 ||
+		    g_ascii_strcasecmp (s_conn, "Keep-Alive") != 0)
 			return FALSE;
 
 		return TRUE;
 	} else {
 		/* Persistent unless either side requested otherwise */
 
-		if (c_conn && g_strcasecmp (c_conn, "close") == 0)
+		if (c_conn && g_ascii_strcasecmp (c_conn, "close") == 0)
 			return FALSE;
-		if (s_conn && g_strcasecmp (s_conn, "close") == 0)
+		if (s_conn && g_ascii_strcasecmp (s_conn, "close") == 0)
 			return FALSE;
 
 		return TRUE;

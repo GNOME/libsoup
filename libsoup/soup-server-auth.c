@@ -48,9 +48,9 @@ soup_auth_get_strongest_header (guint          auth_types,
 			gchar *tryheader = vals->data;
 
 			if ((iter->type & auth_types) &&
-			    !g_strncasecmp (tryheader, 
-					    iter->scheme, 
-					    strlen (iter->scheme))) {
+			    !g_ascii_strncasecmp (tryheader, 
+						  iter->scheme, 
+						  strlen (iter->scheme))) {
 				if (!scheme || 
 				    scheme->strength < iter->strength) {
 					header = tryheader;

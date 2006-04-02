@@ -63,7 +63,7 @@ soup_auth_new_from_header_list (const GSList *vals)
 		char *tryheader = vals->data;
 
 		for (iter = known_auth_schemes; iter->scheme; iter++) {
-			if (!g_strncasecmp (tryheader, iter->scheme, 
+			if (!g_ascii_strncasecmp (tryheader, iter->scheme, 
 					    strlen (iter->scheme))) {
 				if (!scheme || 
 				    scheme->strength < iter->strength) {
