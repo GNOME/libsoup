@@ -184,6 +184,20 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 	soup_message_io_finished (msg);
 }
 
+/* Reads data from io->sock into io->read_meta_buf up until @boundary.
+ * (This function is used to read metadata, and read_body_chunk() is
+ * used to read the message body contents.)
+ *
+ * read_metadata, read_body_chunk, and write_data all use the same
+ * convention for return values: if they return %TRUE, it means
+ * they've completely finished the requested read/write, and the
+ * caller should move on to the next step. If they return %FALSE, it
+ * means that either (a) the socket returned SOUP_SOCKET_WOULD_BLOCK,
+ * so the caller should give up for now and wait for the socket to
+ * emit a signal, or (b) the socket returned an error, and io_error()
+ * was called to process it and cancel the I/O. So either way, if the
+ * function returns %FALSE, the caller should return immediately.
+ */
 static gboolean
 read_metadata (SoupMessage *msg, const char *boundary)
 {
@@ -218,6 +232,16 @@ read_metadata (SoupMessage *msg, const char *boundary)
 	return TRUE;
 }
 
+/* Reads as much message body data as is available on io->sock (but no
+ * further than the end of the current message body or chunk). On a
+ * successful read, emits "got_chunk" (possibly multiple times), and
+ * if io->read_buf is non-%NULL (meaning that the message doesn't have
+ * %SOUP_MESSAGE_OVERWRITE_CHUNKS set), the data will be appended to
+ * it.
+ *
+ * See the note at read_metadata() for an explanation of the return
+ * value.
+ */
 static gboolean
 read_body_chunk (SoupMessage *msg)
 {
@@ -272,6 +296,9 @@ read_body_chunk (SoupMessage *msg)
 	return TRUE;
 }
 
+/* Attempts to write @len bytes from @data. See the note at
+ * read_metadata() for an explanation of the return value.
+ */
 static gboolean
 write_data (SoupMessage *msg, const char *data, guint len)
 {
