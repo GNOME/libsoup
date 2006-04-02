@@ -11,5 +11,5 @@ pkgconfigdir = $(libdir)/pkgconfig
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(pkgconfigdir)
-	$(INSTALL) libsoup.pc $(DESTDIR)$(pkgconfigdir)/libsoup-$(SOUP_API_VERSION).pc
+	$(INSTALL) -m 644 libsoup.pc $(DESTDIR)$(pkgconfigdir)/libsoup-$(SOUP_API_VERSION).pc
 
