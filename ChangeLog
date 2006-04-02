@@ -1,5 +1,8 @@
 2006-04-02  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-headers.c (soup_headers_parse_request): Rewrite
+	Request-Line-parsing code to not have a lame max length. #335040.
+
 	* Makefile.am (install-data-local): Install the .pc file mode 644,
 	not 755. #330878
 

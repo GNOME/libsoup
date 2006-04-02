@@ -5,6 +5,7 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -112,25 +113,37 @@ soup_headers_parse_request (char             *str,
 			    char            **req_path,
 			    SoupHttpVersion  *ver) 
 {
-	guint http_major, http_minor;
-	char method[16], path[1024];
+	gulong http_major, http_minor;
+	char *s1, *s2, *cr, *p;
 
 	if (!str || !*str)
 		return FALSE;
 
-	if (sscanf (str, 
-		    "%16s %1024s HTTP/%1u.%1u", 
-		    method,
-		    path,
-		    &http_major,
-		    &http_minor) < 4)
+	cr = memchr (str, '\r', len);
+	if (!cr)
+		return FALSE;
+
+	s1 = memchr (str, ' ', cr - str);
+	if (!s1)
+		return FALSE;
+	s2 = memchr (s1 + 1, ' ', cr - (s1 + 1));
+	if (!s2)
+		return FALSE;
+
+	if (strncmp (s2, " HTTP/", 6) != 0)
+		return FALSE;
+	http_major = strtoul (s2 + 6, &p, 10);
+	if (*p != '.')
+		return FALSE;
+	http_minor = strtoul (p + 1, &p, 10);
+	if (p != cr)
 		return FALSE;
 
 	if (!soup_headers_parse (str, len, dest)) 
 		return FALSE;
 
-	*req_method = g_strdup (method);
-	*req_path = g_strdup (path);
+	*req_method = g_strndup (str, s1 - str);
+	*req_path = g_strndup (s1 + 1, s2 - (s1 + 1));
 
 	if (ver) {
 		if (http_major == 1 && http_minor == 1) 
