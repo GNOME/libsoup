@@ -1,7 +1,6 @@
 
-
-
-
+[[ Text in double brackets is from the unofficial errata at ]]
+[[ http://skrb.org/ietf/http_errata.html                    ]]
 
 
 Network Working Group                                      R. Fielding
@@ -957,7 +956,7 @@ RFC 2616                        HTTP/1.1                       June 1999
 
 
    The version of an HTTP message is indicated by an HTTP-Version field
-   in the first line of the message.
+   in the first line of the message. [[HTTP-Version is case-sensitive.]]
 
        HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
 
@@ -1085,6 +1084,7 @@ RFC 2616                        HTTP/1.1                       June 1999
 
    Characters other than those in the "reserved" and "unsafe" sets (see
    RFC 2396 [42]) are equivalent to their ""%" HEX HEX" encoding.
+   [[ Ignore reference to "unsafe" set. ]]
 
    For example, the following three URIs are equivalent:
 
@@ -1204,6 +1204,12 @@ RFC 2616                        HTTP/1.1                       June 1999
    [19].
 
        charset = token
+
+[[ HTTP uses charset in two contexts: within an Accept-Charset request ]]
+[[ header (in which the charset value is an unquoted token) and as the ]]
+[[ value of a parameter in a Content-type header (within a request or  ]]
+[[ response), in which case the parameter value of the charset         ]]
+[[ parameter may be quoted.                                            ]]
 
    Although HTTP allows an arbitrary token to be used as a charset
    value, any token that has a predefined value within the IANA
@@ -1354,6 +1360,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    3.6.2), "gzip" (section 3.5), "compress" (section 3.5), and "deflate"
    (section 3.5).
 
+   [[ Remove reference to "identity" token ]]
+
    New transfer-coding value tokens SHOULD be registered in the same way
    as new content-coding value tokens (section 3.5).
 
@@ -1390,6 +1398,9 @@ RFC 2616                        HTTP/1.1                       June 1999
    The chunk-size field is a string of hex digits indicating the size of
    the chunk. The chunked encoding is ended by any chunk whose size is
    zero, followed by the trailer, which is terminated by an empty line.
+
+   [[ "the size of the chunk" means "the size of the chunk-data in    ]]
+   [[ octets"                                                         ]]
 
    The trailer allows the sender to include additional HTTP header
    fields at the end of the message. The Trailer header field can be
@@ -1469,6 +1480,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    Authority (IANA [19]). The media type registration process is
    outlined in RFC 1590 [17]. Use of non-registered media types is
    discouraged.
+
+   [[ "RFC 1590" should be "RFC 2048" ]]
 
 3.7.1 Canonicalization and Text Defaults
 
@@ -1613,6 +1626,8 @@ RFC 2616                        HTTP/1.1                       June 1999
         language-tag  = primary-tag *( "-" subtag )
         primary-tag   = 1*8ALPHA
         subtag        = 1*8ALPHA
+
+   [[ Updated by RFC 3066: subtags may now contain digits ]]
 
    White space is not allowed within the tag and all tags are case-
    insensitive. The name space of language tags is administered by the
@@ -1840,6 +1855,8 @@ RFC 2616                        HTTP/1.1                       June 1999
      defined by use of the "chunked" transfer-coding (section 3.6),
      unless the message is terminated by closing the connection.
 
+     [[ Remove 'and has any value other than "identity"' ]]
+
    3.If a Content-Length header field (section 14.13) is present, its
      decimal value in OCTETs represents both the entity-length and the
      transfer-length. The Content-Length header field MUST NOT be sent
@@ -1889,6 +1906,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    Messages MUST NOT include both a Content-Length header field and a
    non-identity transfer-coding. If the message does include a non-
    identity transfer-coding, the Content-Length MUST be ignored.
+
+   [[ Remove "non-identity" both times ]]
 
    When a Content-Length is given in a message where a message-body is
    allowed, its field value MUST exactly match the number of OCTETs in
@@ -1999,6 +2018,7 @@ RFC 2616                        HTTP/1.1                       June 1999
    identifies the resource upon which to apply the request.
 
        Request-URI    = "*" | absoluteURI | abs_path | authority
+   [[  Request-URI    = "*" | absoluteURI | abs_path [ "?" query ] | authority ]]
 
    The four options for Request-URI are dependent on the nature of the
    request. The asterisk "*" means that the request does not apply to a
@@ -2998,6 +3018,12 @@ RFC 2616                        HTTP/1.1                       June 1999
    identified by the Request-URI in the Request-Line. POST is designed
    to allow a uniform method to cover the following functions:
 
+[[ Should be:                                                             ]]
+[[ The POST method is used to request that the origin server accept the   ]]
+[[ entity enclosed in the request as data to be processed by the resource ]]
+[[ identified by the Request-URI in the Request-Line. POST is designed    ]]
+[[ to allow a uniform method to cover the following functions:            ]]
+
       - Annotation of existing resources;
 
       - Posting a message to a bulletin board, newsgroup, mailing list,
@@ -3014,6 +3040,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    to a directory containing it, a news article is subordinate to a
    newsgroup to which it is posted, or a record is subordinate to a
    database.
+
+   [[ Remove second sentence ("The posted entity is subordinate") above ]]
 
    The action performed by the POST method might not result in a
    resource that can be identified by a URI. In this case, either 200
@@ -3377,6 +3405,12 @@ RFC 2616                        HTTP/1.1                       June 1999
    MUST include all of the entity-headers that would have been returned
    with a 200 (OK) response to the same request.
 
+[[ Should be:                                                       ]]
+[[ If the 206 response is the result of an If-Range request, the    ]]
+[[ response SHOULD NOT include other entity-headers. Otherwise, the ]]
+[[ response MUST include all of the entity-headers that would have  ]]
+[[ been returned with a 200 (OK) response to the same request.      ]]
+
    A cache MUST NOT combine a 206 response with other previously cached
    content if the ETag or Last-Modified headers do not match exactly,
    see 13.5.4.
@@ -3448,6 +3482,15 @@ RFC 2616                        HTTP/1.1                       June 1999
    request unless it can be confirmed by the user, since this might
    change the conditions under which the request was issued.
 
+[[ Should be:                                                         ]]
+[[ If the 301 status code is received in response to a request method ]]
+[[ that is known to be "safe", as defined in section 9.1.1, then the  ]]
+[[ request MAY be automatically redirected by the user agent without  ]]
+[[ confirmation. Otherwise, the user agent MUST NOT automatically     ]]
+[[ redirect the request unless it is confirmed by the user, since the ]]
+[[ new URI might change the conditions under which the request was    ]]
+[[ issued.                                                            ]]
+
       Note: When automatically redirecting a POST request after
       receiving a 301 status code, some existing HTTP/1.0 user agents
       will erroneously change it into a GET request.
@@ -3480,6 +3523,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    than GET or HEAD, the user agent MUST NOT automatically redirect the
    request unless it can be confirmed by the user, since this might
    change the conditions under which the request was issued.
+
+   [[ See errata to 10.3.3 ]]
 
       Note: RFC 1945 and RFC 2068 specify that the client is not allowed
       to change the method on the redirected request.  However, most
@@ -3608,6 +3653,8 @@ RFC 2616                        HTTP/1.1                       June 1999
    than GET or HEAD, the user agent MUST NOT automatically redirect the
    request unless it can be confirmed by the user, since this might
    change the conditions under which the request was issued.
+
+   [[ See errata to 10.3.3 ]]
 
 10.4 Client Error 4xx
 
@@ -5130,7 +5177,7 @@ RFC 2616                        HTTP/1.1                       June 1999
       - Proxy-Authenticate
       - Proxy-Authorization
       - TE
-      - Trailers
+      - Trailers [[should be "Trailer"]]
       - Transfer-Encoding
       - Upgrade
 
@@ -5462,6 +5509,12 @@ RFC 2616                        HTTP/1.1                       June 1999
    on the URI in a Location or Content-Location header MUST only be
    performed if the host part is the same as in the Request-URI.
 
+[[ Should be:                                                          ]]
+[[ An invalidation based on the URI in a Location or Content-Location  ]]
+[[ header MUST NOT be performed if the host part of that URI differs   ]]
+[[ from the host part in the Request-URI. This helps prevent denial of ]]
+[[ service attacks.                                                    ]]
+
    A cache that passes through requests for methods it does not
    understand SHOULD invalidate any entities referred to by the
    Request-URI.
@@ -5718,6 +5771,10 @@ RFC 2616                        HTTP/1.1                       June 1999
 
                           1#( codings [ ";" "q" "=" qvalue ] )
        codings          = ( content-coding | "*" )
+
+   [[ http://lists.w3.org/Archives/Public/ietf-http-wg/2005AprJun/0029.html ]]
+   [[ points out that the "1#" must be "#" to make the examples below and   ]]
+   [[ the text of rule 4 correct.                                           ]]
 
    Examples of its use are:
 
@@ -6541,6 +6598,14 @@ RFC 2616                        HTTP/1.1                       June 1999
 
    HTTP/1.1 applications that do not support persistent connections MUST
    include the "close" connection option in every message.
+
+[[ Should say:                                                          ]]
+[[ An HTTP/1.1 client that does not support persistent connections      ]]
+[[ MUST include the "close" connection option in every request message. ]]
+[[                                                                      ]]
+[[ An HTTP/1.1 server that does not support persistent connections      ]]
+[[ MUST include the "close" connection option in every response         ]]
+[[ message that does not have a 1xx (informational) status code.        ]]
 
    A system receiving an HTTP/1.0 (or lower-version) message that
    includes a Connection header MUST, for each connection-token in this
@@ -7545,6 +7610,7 @@ RFC 2616                        HTTP/1.1                       June 1999
    field value consists of a single absolute URI.
 
        Location       = "Location" ":" absoluteURI
+   [[                                              [ "#" fragment ]   ]]
 
    An example is:
 
@@ -7885,6 +7951,7 @@ RFC 2616                        HTTP/1.1                       June 1999
    If the response is being forwarded through a proxy, the proxy
    application MUST NOT modify the Server response-header. Instead, it
    SHOULD include a Via field (as described in section 14.45).
+   [[ Actually, it MUST ]]
 
       Note: Revealing the specific software version of the server might
       allow the server machine to become more vulnerable to attacks
@@ -8868,6 +8935,11 @@ RFC 2616                        HTTP/1.1                       June 1999
    [17] Postel, J., "Media Type Registration Procedure", RFC 1590,
         November 1996.
 
+[[ Should be:                                                          ]]
+[[ [17] Freed, N., Klensin, J., and Postel, J., "Multipurpose Internet ]]
+[[      Mail Extensions (MIME) Part Four: "Registration Procedure",    ]]
+[[      RFC 2048, November 1996.                                       ]]
+
    [18] Postel, J. and J. Reynolds, "File Transfer Protocol", STD 9, RFC
         959, October 1985.
 
@@ -9400,6 +9472,9 @@ RFC 2616                        HTTP/1.1                       June 1999
    2045. Proxies and gateways from MIME-compliant protocols to HTTP MUST
    remove any non-identity CTE ("quoted-printable" or "base64") encoding
    prior to delivering the response message to an HTTP client.
+
+   [[ "MUST remove any CTE encoding prior to delivering the response ]]
+   [[ message to an HTTP client."                                    ]]
 
    Proxies and gateways from HTTP to MIME-compliant protocols are
    responsible for ensuring that the message is in the correct format

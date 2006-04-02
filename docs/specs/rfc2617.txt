@@ -1,8 +1,6 @@
 
-
-
-
-
+[[ Text in double brackets is from the unofficial errata at ]]
+[[ http://skrb.org/ietf/http_errata.html                    ]]
 
 Network Working Group                                          J. Franks
 Request for Comments: 2617                       Northwestern University
@@ -412,6 +410,8 @@ RFC 2617                  HTTP Authentication                  June 1999
 
 
       domain            = "domain" "=" <"> URI ( 1*SP URI ) <">
+   [[ Should be:                                                 ]]
+   [[ domain            = "domain" "=" <"> URI *( 1*SP URI ) <"> ]]
       URI               = absoluteURI | abs_path
       nonce             = "nonce" "=" nonce-value
       nonce-value       = quoted-string
@@ -1465,6 +1465,8 @@ RFC 2617                  HTTP Authentication                  June 1999
    implementation will be far superior to Basic Authentication.
 
 5 Sample implementation
+
+   [[ WARNING: DigestCalcHA1 IS WRONG ]]
 
    The following code implements the calculations of H(A1), H(A2),
    request-digest and response-digest, and a test program which computes
