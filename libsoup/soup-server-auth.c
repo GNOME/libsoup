@@ -445,7 +445,10 @@ soup_server_auth_context_challenge (SoupServerAuthContext *auth_ctx,
 		else
 			g_string_sprintfa (str, "qop=\"auth,auth-int\", ");
 
-		g_string_sprintfa (str, "algorithm=\"MD5,MD5-sess\"");
+		if (auth_ctx->digest_info.allow_algorithms & SOUP_ALGORITHM_MD5_SESS)
+			g_string_sprintfa (str, "algorithm=\"MD5-sess\"");
+		else
+			g_string_sprintfa (str, "algorithm=\"MD5\"");
 
 		soup_message_add_header (msg->response_headers,
 					 header_name,

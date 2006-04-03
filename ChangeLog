@@ -1,5 +1,8 @@
 2006-04-02  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-server-auth.c (soup_server_auth_context_challenge):
+	Write out correct digest algorithm value. #328615.
+
 	* libsoup/soup-headers.c (soup_headers_parse_request): Rewrite
 	Request-Line-parsing code to not have a lame max length. #335040.
 
