@@ -1,3 +1,15 @@
+Changes in libsoup from 2.2.91 to 2.2.92:
+
+	* Fixed server-side digest auth to return a valid "algorithm"
+	  value and client-side to not crash if it sees an invalid one
+	  [328615].
+
+	* Fixed the Request-Line parsing code to not hardcode a
+          maximum URI length (to allow very long DAAP requests from
+          iTunes in Rhythmbox). [335040]
+
+	* Fixed some warnings (signed/unsigned mismatch).
+
 Changes in libsoup from 2.2.7 to 2.2.91:
 
 	* (The large version number bump is because there was an

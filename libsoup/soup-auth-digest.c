@@ -110,12 +110,14 @@ typedef struct {
 
 static DataType qop_types[] = {
 	{ "auth",     QOP_AUTH     },
-	{ "auth-int", QOP_AUTH_INT }
+	{ "auth-int", QOP_AUTH_INT },
+	{ NULL, NULL }
 };
 
 static DataType algorithm_types[] = {
 	{ "MD5",      ALGORITHM_MD5      },
-	{ "MD5-sess", ALGORITHM_MD5_SESS }
+	{ "MD5-sess", ALGORITHM_MD5_SESS },
+	{ NULL, NULL }
 };
 
 static guint

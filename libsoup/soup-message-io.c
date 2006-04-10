@@ -373,6 +373,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 
+	g_return_if_fail (io->write_state != SOUP_MESSAGE_IO_STATE_DONE);
+
  write_more:
 	switch (io->write_state) {
 	case SOUP_MESSAGE_IO_STATE_NOT_STARTED:
@@ -548,6 +550,8 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	guint status;
+
+	g_return_if_fail (io->read_state != SOUP_MESSAGE_IO_STATE_DONE);
 
  read_more:
 	switch (io->read_state) {

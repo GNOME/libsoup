@@ -1,3 +1,13 @@
+2006-04-10  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-io.c (io_write, io_read): g_return_if_fail
+	if these get called after the IO is done. This isn't supposed to
+	happen, but apparently does. Workaround for #334469.
+
+	* libsoup/soup-auth-digest.c (qop_types, algorithm_types):
+	NULL-terminate these so we don't crash when trying to parse an
+	invalid value. (Flip side of the previous #328615 patch.)
+
 2006-04-02  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-server-auth.c (soup_server_auth_context_challenge):
