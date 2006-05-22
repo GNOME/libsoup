@@ -139,9 +139,15 @@ foreach_free_host (gpointer key, gpointer host, gpointer data)
 static void
 cleanup_hosts (SoupSessionPrivate *priv)
 {
+	GHashTable *old_hosts;
+
 	g_mutex_lock (priv->host_lock);
-	g_hash_table_foreach_remove (priv->hosts, foreach_free_host, NULL);
+	old_hosts = priv->hosts;
+	priv->hosts = g_hash_table_new (host_uri_hash, host_uri_equal);
 	g_mutex_unlock (priv->host_lock);
+
+	g_hash_table_foreach_remove (old_hosts, foreach_free_host, NULL);
+	g_hash_table_destroy (old_hosts);
 }
 
 static void

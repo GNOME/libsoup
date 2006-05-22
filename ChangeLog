@@ -1,3 +1,10 @@
+2006-05-22  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session.c (cleanup_hosts): Don't free the hosts
+	while holding host_lock; that's not allowed and can cause
+	deadlock. #309867. Based on a patch from Veerapuram Varadhan for
+	part of bnc #174255.
+
 2006-04-10  Dan Winship  <danw@novell.com>
 
 	* configure.in: bump version to 2.2.92
