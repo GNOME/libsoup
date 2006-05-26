@@ -1,5 +1,8 @@
 2006-05-26  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-socket.c: #include <sys/time.h> for struct timeval.
+	#342048
+
 	* libsoup/soup-connection.c (soup_connection_connect_sync): Start
 	SSL after CONNECTing! Doh. Part of bnc #174255.
 	(SoupConnectionMode): new enum for the three types of

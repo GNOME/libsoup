@@ -21,6 +21,7 @@
 #include "soup-misc.h"
 #include "soup-ssl.h"
 
+#include <sys/time.h>
 #include <sys/types.h>
 
 G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
