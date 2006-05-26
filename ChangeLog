@@ -1,5 +1,19 @@
 2006-05-26  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-connection.c (soup_connection_connect_sync): Start
+	SSL after CONNECTing! Doh. Part of bnc #174255.
+	(SoupConnectionMode): new enum for the three types of
+	SoupConnection (direct, proxy, tunnel).
+	(set_property): set priv->mode according to proxy_uri and
+	conn_uri.
+	(socket_connect_result, soup_connection_connect_sync): use
+	priv->mode to decide whether or not to tunnel.
+	(send_request): Only pass TRUE for is_proxy to
+	soup_message_send_request if mode is PROXY, not if it's TUNNEL.
+	(Also part of bnc #174255).
+
+2006-05-26  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-message-io.c (soup_message_io_in_progress): tests
 	if IO is currently in progress on a message.
 

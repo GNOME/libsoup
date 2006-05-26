@@ -28,6 +28,12 @@
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
+typedef enum {
+	SOUP_CONNECTION_MODE_DIRECT,
+	SOUP_CONNECTION_MODE_PROXY,
+	SOUP_CONNECTION_MODE_TUNNEL
+} SoupConnectionMode;
+
 typedef struct {
 	SoupSocket  *socket;
 
@@ -39,6 +45,8 @@ typedef struct {
 	 */
 	SoupUri     *proxy_uri, *origin_uri, *conn_uri;
 	gpointer     ssl_creds;
+
+	SoupConnectionMode  mode;
 
 	SoupMessageFilter *filter;
 	GMainContext      *async_context;
@@ -310,17 +318,26 @@ set_property (GObject *object, guint prop_id,
 	case PROP_ORIGIN_URI:
 		pval = g_value_get_pointer (value);
 		priv->origin_uri = pval ? soup_uri_copy (pval) : NULL;
-		if (!priv->proxy_uri)
-			priv->conn_uri = priv->origin_uri;
-		break;
+		goto changed_uri;
+
 	case PROP_PROXY_URI:
 		pval = g_value_get_pointer (value);
 		priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
-		if (priv->proxy_uri)
+
+	changed_uri:
+		if (priv->proxy_uri) {
 			priv->conn_uri = priv->proxy_uri;
-		else
+			if (priv->origin_uri &&
+			    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS)
+				priv->mode = SOUP_CONNECTION_MODE_TUNNEL;
+			else
+				priv->mode = SOUP_CONNECTION_MODE_PROXY;
+		} else {
 			priv->conn_uri = priv->origin_uri;
+			priv->mode = SOUP_CONNECTION_MODE_DIRECT;
+		}
 		break;
+
 	case PROP_SSL_CREDS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
@@ -502,10 +519,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		}
 	}
 
-	/* See if we need to tunnel */
-	if (priv->proxy_uri &&
-	    priv->origin_uri &&
-	    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (priv->mode == SOUP_CONNECTION_MODE_TUNNEL) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
@@ -608,10 +622,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 	}
 
-	/* See if we need to tunnel */
-	if (priv->proxy_uri &&
-	    priv->origin_uri &&
-	    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (priv->mode == SOUP_CONNECTION_MODE_TUNNEL) {
 		SoupMessage *connect_msg;
 
 		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
@@ -630,6 +641,12 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 
 		g_object_unref (connect_msg);
+
+		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			if (!soup_socket_start_proxy_ssl (priv->socket,
+							 priv->origin_uri->host))
+				status = SOUP_STATUS_SSL_FAILED;
+		}
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status))
@@ -767,7 +784,7 @@ send_request (SoupConnection *conn, SoupMessage *req)
 	}
 
 	soup_message_send_request_internal (req, priv->socket, conn,
-					    priv->proxy_uri != NULL);
+					    priv->mode == SOUP_CONNECTION_MODE_PROXY);
 }
 
 /**
