@@ -1,3 +1,13 @@
+2006-05-26  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-io.c (soup_message_io_in_progress): tests
+	if IO is currently in progress on a message.
+
+	* libsoup/soup-session-async.c (run_queue): don't process messages
+	that are io_in_progress. #342545, fix based on analysis from Wang
+	Xin. (In the future we may want to re-fix this by adding a
+	REQUEUED message status separate from QUEUED.)
+
 2006-05-22  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session.c (cleanup_hosts): Don't free the hosts

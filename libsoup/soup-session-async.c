@@ -132,7 +132,8 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
  try_again:
 	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
 
-		if (!SOUP_MESSAGE_IS_STARTING (msg))
+		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
+		    soup_message_io_in_progress (msg))
 			continue;
 
 		conn = soup_session_get_connection (session, msg,

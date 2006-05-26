@@ -325,7 +325,7 @@ void           soup_message_read_request        (SoupMessage       *req,
 void           soup_message_io_stop             (SoupMessage       *msg);
 void           soup_message_io_pause            (SoupMessage       *msg);
 void           soup_message_io_unpause          (SoupMessage       *msg);
-
+gboolean       soup_message_io_in_progress      (SoupMessage       *msg);
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
