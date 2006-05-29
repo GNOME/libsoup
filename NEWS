@@ -1,3 +1,24 @@
+Changes in libsoup from 2.2.92 to 2.2.93:
+
+	* Fixed outgoing data corruption caused when SoupServer
+          started writing out a response a second time after already
+          having started once. [334469]. Also fixed 342640 and another
+          bug caused by the workaround for 334469 in 2.2.92. Based on
+          patches and analysis from William Jon McCann and Armin
+          Bauer.
+
+	* Fixed a deadlock when changing a session's proxy URI.
+          [309867 / bnc 174255, based on a patch by Veerapuram
+          Varadhan].
+
+	* Fixed https-via-proxies in the synchronous case. [bnc 174255]
+
+	* Fixed a crash in evolution-exchange [342545, fix based on an
+          analysis by Wang Xin].
+
+	* Fixed simple-proxy to not crash at startup. Oops. (Alex
+          Larsson)
+
 Changes in libsoup from 2.2.91 to 2.2.92:
 
 	* Fixed server-side digest auth to return a valid "algorithm"

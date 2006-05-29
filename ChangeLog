@@ -1,5 +1,11 @@
 2006-05-29  Dan Winship  <danw@novell.com>
 
+	* configure.in: 2.2.93
+
+	* NEWS: update
+
+2006-05-29  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-message-io.c (SoupMessageIOState): add a new state
 	"FINISHING" which means "done I/O, but not yet done processing and
 	cleanup" before "DONE" (which now always means "completely done").
