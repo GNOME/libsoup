@@ -1,3 +1,29 @@
+2006-05-29  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-io.c (SoupMessageIOState): add a new state
+	"FINISHING" which means "done I/O, but not yet done processing and
+	cleanup" before "DONE" (which now always means "completely done").
+	(soup_message_io_stop): disconnect the socket if the read state is
+	"< FINISHING", not "!= DONE".
+	(io_error): on an EOF-that-signals-end-of-data, set state to
+	FINISHING and run io_read().
+	(io_read, io_write): remove the g_return_if_fails from before.
+	s/DONE/FINISHING/ in most places. In the FINISHING handler, stop
+	listening for the readable/writable signal (eg, so we don't end up
+	reading a following pipelined request), and set the state to DONE.
+	(soup_message_io_unpause): Only reconnect the readable/writable
+	signals if the io state isn't DONE. Guard the calls to
+	io_read/io_write better so that it's safe to call this even after
+	they are both DONE, since it may be easier for us to test that
+	than for the caller to.
+
+	Fixes 334469, 342640, and another bug caused by the earlier
+	workaround to 334469. Based on patches and analysis from William
+	Jon McCann and Armin Bauer.
+
+	* tests/simple-proxy.c (main): add g_thread_init (NULL) to make
+	this work again. (Pointed out by Alex Larsson)
+
 2006-05-26  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-socket.c: #include <sys/time.h> for struct timeval.

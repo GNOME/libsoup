@@ -135,6 +135,7 @@ main (int argc, char **argv)
 	SoupServer *server;
 
 	g_type_init ();
+	g_thread_init (NULL);
 	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "p:s:")) != -1) {

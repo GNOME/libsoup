@@ -32,8 +32,14 @@ typedef enum {
 	SOUP_MESSAGE_IO_STATE_CHUNK,
 	SOUP_MESSAGE_IO_STATE_CHUNK_END,
 	SOUP_MESSAGE_IO_STATE_TRAILERS,
+	SOUP_MESSAGE_IO_STATE_FINISHING,
 	SOUP_MESSAGE_IO_STATE_DONE
 } SoupMessageIOState;
+
+#define SOUP_MESSAGE_IO_STATE_ACTIVE(state) \
+	(state != SOUP_MESSAGE_IO_STATE_NOT_STARTED && \
+	 state != SOUP_MESSAGE_IO_STATE_BLOCKING && \
+	 state != SOUP_MESSAGE_IO_STATE_DONE)
 
 typedef struct {
 	SoupSocket           *sock;
@@ -66,8 +72,8 @@ typedef struct {
  */
 #define dummy_to_make_emacs_happy {
 #define SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK { gboolean cancelled; g_object_ref (msg);
-#define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return; }
-#define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || !io->read_tag || !io->write_tag) return val; }
+#define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || (!io->read_tag && !io->write_tag)) return; }
+#define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || (!io->read_tag && !io->write_tag)) return val; }
 
 #define RESPONSE_BLOCK_SIZE 8192
 
@@ -127,7 +133,7 @@ soup_message_io_stop (SoupMessage *msg)
 		io->err_tag = 0;
 	}
 
-	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE)
+	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
 		soup_socket_disconnect (io->sock);
 	else if (io->conn) {
 		SoupConnection *conn = io->conn;
@@ -154,6 +160,7 @@ soup_message_io_finished (SoupMessage *msg)
 	g_object_unref (msg);
 }
 
+static void io_read (SoupSocket *sock, SoupMessage *msg);
 
 static void
 io_error (SoupSocket *sock, SoupMessage *msg)
@@ -164,8 +171,8 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 	/* Closing the connection to signify EOF is sometimes ok */
 	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
 	    io->read_encoding == SOUP_TRANSFER_UNKNOWN) {
-		io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
-		soup_message_io_finished (msg);
+		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+		io_read (sock, msg);
 		return;
 	}
 
@@ -340,8 +347,6 @@ io_body_state (SoupTransferEncoding encoding)
 		return SOUP_MESSAGE_IO_STATE_BODY;
 }
 
-static void io_read (SoupSocket *sock, SoupMessage *msg);
-
 /*
  * There are two request/response formats: the basic request/response,
  * possibly with one or more unsolicited informational responses (such
@@ -372,8 +377,6 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
-
-	g_return_if_fail (io->write_state != SOUP_MESSAGE_IO_STATE_DONE);
 
  write_more:
 	switch (io->write_state) {
@@ -447,7 +450,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_body->length))
 			return;
 
-		io->write_state = SOUP_MESSAGE_IO_STATE_DONE;
+		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 		soup_message_wrote_body (msg);
@@ -520,7 +523,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 SOUP_MESSAGE_IO_EOL_LEN))
 			return;
 
-		io->write_state = SOUP_MESSAGE_IO_STATE_DONE;
+		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 		soup_message_wrote_body (msg);
@@ -528,7 +531,13 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 		/* fall through */
 
 
-	case SOUP_MESSAGE_IO_STATE_DONE:
+	case SOUP_MESSAGE_IO_STATE_FINISHING:
+		if (io->write_tag) {
+			g_signal_handler_disconnect (io->sock, io->write_tag);
+			io->write_tag = 0;
+		}
+		io->write_state = SOUP_MESSAGE_IO_STATE_DONE;
+
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT) {
 			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io_read (sock, msg);
@@ -537,6 +546,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 		return;
 
 
+	case SOUP_MESSAGE_IO_STATE_DONE:
 	default:
 		g_return_if_reached ();
 	}
@@ -550,8 +560,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	guint status;
-
-	g_return_if_fail (io->read_state != SOUP_MESSAGE_IO_STATE_DONE);
 
  read_more:
 	switch (io->read_state) {
@@ -583,7 +591,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			soup_message_set_status (msg, status);
 			soup_message_add_header (msg->request_headers,
 						 "Connection", "close");
-			io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
+			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 			break;
 		}
 
@@ -642,7 +650,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			io->read_buf = NULL;
 		}
 
-		io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
+		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 		soup_message_got_body (msg);
@@ -693,7 +701,13 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		break;
 
 
-	case SOUP_MESSAGE_IO_STATE_DONE:
+	case SOUP_MESSAGE_IO_STATE_FINISHING:
+		if (io->read_tag) {
+			g_signal_handler_disconnect (io->sock, io->read_tag);
+			io->read_tag = 0;
+		}
+		io->read_state = SOUP_MESSAGE_IO_STATE_DONE;
+
 		if (io->mode == SOUP_MESSAGE_IO_SERVER) {
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io_write (sock, msg);
@@ -702,6 +716,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		return;
 
 
+	case SOUP_MESSAGE_IO_STATE_DONE:
 	default:
 		g_return_if_reached ();
 	}
@@ -855,15 +870,19 @@ soup_message_io_unpause (SoupMessage *msg)
 	if (io->write_tag || io->read_tag)
 		return;
 
-	io->write_tag = g_signal_connect (io->sock, "writable",
-					  G_CALLBACK (io_write), msg);
-	io->read_tag = g_signal_connect (io->sock, "readable",
-					 G_CALLBACK (io_read), msg);
+	if (io->write_state != SOUP_MESSAGE_IO_STATE_DONE) {
+		io->write_tag = g_signal_connect (io->sock, "writable",
+						  G_CALLBACK (io_write), msg);
+	}
 
-	if (io->write_state != SOUP_MESSAGE_IO_STATE_NOT_STARTED &&
-	    io->write_state != SOUP_MESSAGE_IO_STATE_BLOCKING)
+	if (io->read_state != SOUP_MESSAGE_IO_STATE_DONE) {
+		io->read_tag = g_signal_connect (io->sock, "readable",
+						 G_CALLBACK (io_read), msg);
+	}
+
+	if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->write_state))
 		io_write (io->sock, msg);
-	else
+	else if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->read_state))
 		io_read (io->sock, msg);
 }
 
