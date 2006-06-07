@@ -1,3 +1,11 @@
+2006-06-07  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-response.c
+	 (soup_xmlrpc_response_from_string): record whether or not the
+	 response was a fault.
+	 (soup_xmlrpc_response_is_fault): test that. #343973, patch from
+	 Brent Smith.
+
 2006-05-29  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.93

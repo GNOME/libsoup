@@ -156,6 +156,7 @@ soup_xmlrpc_response_from_string (SoupXmlrpcResponse *response, const char *xmls
 	xmlFreeDoc (priv->doc);
 	priv->doc = newdoc;
 	priv->value = body;
+	priv->fault = fault;
 
 	return TRUE;
 
@@ -178,6 +179,14 @@ soup_xmlrpc_response_to_string (SoupXmlrpcResponse *response)
 	xmlDocDumpMemoryEnc (priv->doc, &str, &size, "UTF-8");
 
 	return str;
+}
+
+gboolean
+soup_xmlrpc_response_is_fault (SoupXmlrpcResponse *response)
+{
+	SoupXmlrpcResponsePrivate *priv = SOUP_XMLRPC_RESPONSE_GET_PRIVATE (response);
+
+	return priv->fault;
 }
 
 SoupXmlrpcValue *

@@ -50,6 +50,7 @@ typedef enum {
 	SOUP_XMLRPC_VALUE_TYPE_ARRAY
 } SoupXmlrpcValueType;
 
+gboolean             soup_xmlrpc_response_is_fault  (SoupXmlrpcResponse *response);
 SoupXmlrpcValue     *soup_xmlrpc_response_get_value (SoupXmlrpcResponse *response);
 SoupXmlrpcValueType  soup_xmlrpc_value_get_type     (SoupXmlrpcValue *value);
 
