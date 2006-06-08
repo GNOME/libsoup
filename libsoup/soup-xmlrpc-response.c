@@ -253,7 +253,7 @@ soup_xmlrpc_value_get_int (SoupXmlrpcValue *value, long *i)
 	*i = strtol ((char *)content, &tail, 10);
 	xmlFree (content);
 
-	if (tail != '\0')
+	if (*tail != '\0')
 		return FALSE;
 	else
 		return TRUE;
@@ -279,7 +279,7 @@ soup_xmlrpc_value_get_double (SoupXmlrpcValue *value, double *b)
 	*b = g_ascii_strtod ((char *)content, &tail);
 	xmlFree (content);
 
-	if (tail != '\0')
+	if (*tail != '\0')
 		return FALSE;
 	else
 		return TRUE;
@@ -305,7 +305,7 @@ soup_xmlrpc_value_get_boolean (SoupXmlrpcValue *value, gboolean *b)
 	i = strtol ((char *)content, &tail, 10);
 	xmlFree (content);
 
-	if (tail != '\0')
+	if (*tail != '\0')
 		return FALSE;
 
 	if (i != 0 && i != 1)

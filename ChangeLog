@@ -1,3 +1,10 @@
+2006-06-08  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_int,
+	soup_xmlrpc_value_get_double, soup_xmlrpc_value_get_boolean):
+	Check return value of strtol/g_ascii_strtod correctly. #344222,
+	patch from Brent Smith.
+
 2006-06-07  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-xmlrpc-response.c
