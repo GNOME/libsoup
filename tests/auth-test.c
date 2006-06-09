@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +9,10 @@
 #include "libsoup/soup.h"
 #include "libsoup/soup-auth.h"
 #include "libsoup/soup-session.h"
+
+#ifdef HAVE_APACHE
+#include "apache-wrapper.h"
+#endif
 
 int errors = 0;
 
@@ -37,151 +45,112 @@ typedef struct {
 
 SoupAuthTest tests[] = {
 	{ "No auth available, should fail",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
-	  "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
-	  "4", "04", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Known realm, auth provided, so should succeed immediately",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
-	  "1", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/", "1", "1", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/subdir/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/subdir/", "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should retry last auth, but will fail this time",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
-	  "", "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/realm2/", "", "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Now should use provided auth on first try",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
-	  "2", "2", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "2", "2", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Reuse will fail, but 2nd try will succeed because it's a known realm",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/realm1/index.txt",
-	  "", "21", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/realm1/", "", "21", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try. (Known realm with cached password)",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Basic/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm3/index.txt",
-	  "43", "043", SOUP_STATUS_OK },
+	  "Basic/realm3/", "43", "043", SOUP_STATUS_OK },
 
 
 	{ "No auth available, should fail",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
-	  "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
-	  "4", "04", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Known realm, auth provided, so should succeed immediately",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
-	  "1", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/", "1", "1", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/subdir/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/subdir/", "", "1", SOUP_STATUS_OK },
 
-	{ "Subdir should retry last auth, but will fail this time",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
-	  "", "1", SOUP_STATUS_UNAUTHORIZED },
-
-	{ "Now should use provided auth on first try",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
-	  "2", "2", SOUP_STATUS_OK },
+	{ "Should already know correct domain and use provided auth on first try",
+	  "Digest/realm1/realm2/", "2", "2", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try because of earlier domain directive",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try. (Known realm with cached password)",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Digest/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm3/index.txt",
-	  "43", "043", SOUP_STATUS_OK },
+	  "Digest/realm3/", "43", "043", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/realm2/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Basic/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm3/index.txt",
-	  "", "3", SOUP_STATUS_OK },
+	  "Basic/realm3/", "", "3", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/realm2/realm1/index.txt",
-	  "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm2/index.txt",
-	  "", "2", SOUP_STATUS_OK },
+	  "Digest/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm3/index.txt",
-	  "", "3", SOUP_STATUS_OK },
+	  "Digest/realm3/", "", "3", SOUP_STATUS_OK },
 
 	{ "Now the server will reject the formerly-good password",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/not/index.txt",
-	  "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/not/", "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "http://developer.ximian.com/test/soup-test/Basic/realm1/index.txt",
-	  "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Likewise, reject the formerly-good Digest password",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/not/index.txt",
-	  "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm1/not/", "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "http://developer.ximian.com/test/soup-test/Digest/realm1/index.txt",
-	  "", "0", SOUP_STATUS_UNAUTHORIZED }
+	  "Digest/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED }
 };
 int ntests = sizeof (tests) / sizeof (tests[0]);
 
@@ -279,11 +248,35 @@ main (int argc, char **argv)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	char *expected;
+	char *base_uri, *uri, *expected;
+#ifdef HAVE_APACHE
+	gboolean using_apache = FALSE;
+#endif
 	int i;
 
 	g_type_init ();
 	g_thread_init (NULL);
+
+	if (argc != 1) {
+		char *p;
+
+		base_uri = argv[0];
+		p = strrchr (base_uri, '/');
+		if (!p || p[1])
+			base_uri = g_strdup_printf ("%s/", base_uri);
+	} else {
+#ifdef HAVE_APACHE
+		if (!apache_init ()) {
+			fprintf (stderr, "Could not start apache\n");
+			return 1;
+		}
+		base_uri = "http://localhost:47524/";
+		using_apache = TRUE;
+#else
+		fprintf (stderr, "Must specify base_uri for tests if configured --without-apache\n");
+		return 1;
+#endif
+	}
 
 	session = soup_session_async_new ();
 	g_signal_connect (session, "authenticate",
@@ -294,9 +287,11 @@ main (int argc, char **argv)
 	for (i = 0; i < ntests; i++) {
 		printf ("Test %d: %s\n", i + 1, tests[i].explanation);
 
-		printf ("  GET %s\n", tests[i].url);
+		uri = g_strconcat (base_uri, tests[i].url, NULL);
+		printf ("  GET %s\n", uri);
 
-		msg = soup_message_new (SOUP_METHOD_GET, tests[i].url);
+		msg = soup_message_new (SOUP_METHOD_GET, uri);
+		g_free (uri);
 		if (!msg) {
 			fprintf (stderr, "auth-test: Could not parse URI\n");
 			exit (1);
@@ -318,7 +313,7 @@ main (int argc, char **argv)
 		}
 		if (*expected) {
 			printf ("  expected %d more round(s)\n",
-				strlen (expected));
+				(int)strlen (expected));
 			errors++;
 		}
 		g_free (expected);
@@ -332,6 +327,11 @@ main (int argc, char **argv)
 	}
 
 	g_object_unref (session);
+
+#ifdef HAVE_APACHE
+	if (using_apache)
+		apache_cleanup ();
+#endif
 
 	printf ("\nauth-test: %d errors\n", errors);
 	return errors;

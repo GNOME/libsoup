@@ -670,8 +670,12 @@ lookup_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 			break;
 
                 dir = strrchr (path, '/');
-                if (dir)
-			*dir = '\0';
+                if (dir) {
+			if (dir[1])
+				dir[1] = '\0';
+			else
+				*dir = '\0';
+		}
         } while (dir);
 
 	g_free (path);

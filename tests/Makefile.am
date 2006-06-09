@@ -17,7 +17,7 @@ noinst_PROGRAMS =	\
 	simple-proxy	\
 	uri-parsing
 
-auth_test_SOURCES = auth-test.c
+auth_test_SOURCES = auth-test.c apache-wrapper.c
 date_SOURCES = date.c
 dict_SOURCES = dict.c
 dns_SOURCES = dns.c
@@ -28,4 +28,16 @@ simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 uri_parsing_SOURCES = uri-parsing.c
 
-EXTRA_DIST = libsoup.supp test-cert.pem test-key.pem
+if HAVE_APACHE
+APACHE_TESTS = auth-test
+endif
+
+TESTS = date uri-parsing $(APACHE_TESTS)
+
+EXTRA_DIST =		\
+	libsoup.supp	\
+	test-cert.pem	\
+	test-key.pem	\
+	htdigest	\
+	htpasswd	\
+	httpd.conf.in

@@ -207,6 +207,55 @@ if test "$os_win32" != yes; then
 	CFLAGS="$CFLAGS -D_REENTRANT"
 fi
 
+dnl *************************************
+dnl *** Apache (for regression tests) ***
+dnl *************************************
+
+AC_ARG_WITH(apache-httpd,
+	    [  --with-apache-httpd      Path to apache httpd (for tests)],
+	    APACHE_HTTPD="$withval",
+	    [AC_PATH_PROGS(APACHE_HTTPD, httpd2 httpd, no, ${PATH}:/usr/sbin)])
+if test "$APACHE_HTTPD" != "no"; then
+    AC_MSG_CHECKING([Apache version])
+    apache_version=`$APACHE_HTTPD -v 2>/dev/null | sed -ne 's/Server version: Apache\///p'`
+    case $apache_version in
+    2.2.*)
+	AC_MSG_RESULT([$apache_version (ok)])
+	;;
+    *)
+	AC_MSG_RESULT([$apache_version (ignoring)])
+	APACHE_HTTPD="no"
+	;;
+    esac
+fi
+AC_SUBST(APACHE_HTTPD)
+AC_DEFINE_UNQUOTED(APACHE_HTTPD, "$APACHE_HTTPD", [Apache httpd])
+
+if test "$APACHE_HTTPD" != "no"; then
+    AC_MSG_CHECKING([for Apache module directory])
+    AC_ARG_WITH(apache-module-dir,
+		[  --with-apache-module-dir Apache modules dir (for tests)],
+		APACHE_MODULE_DIR="$withval",
+		[apache_prefix=`dirname \`dirname $APACHE_HTTPD\``
+		# This only works with bash, but should fail harmlessly in sh
+		for dir in $apache_prefix/lib{64,}/{apache,http}{2,}{/modules,}; do
+		    if test -f $dir/mod_auth_digest.so; then
+			APACHE_MODULE_DIR="$dir"
+			break
+		    fi
+		done])
+    AC_MSG_RESULT($APACHE_MODULE_DIR)
+    AC_SUBST(APACHE_MODULE_DIR)
+fi
+
+if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR"; then
+    AC_DEFINE(HAVE_APACHE, 1, [Whether or not apache can be used for tests])
+    have_apache=1
+else
+    have_apache=0
+fi
+AM_CONDITIONAL(HAVE_APACHE, test $have_apache = 1)
+
 dnl *************************
 dnl *** Output Everything ***
 dnl *************************
@@ -217,6 +266,7 @@ AC_OUTPUT([
 	libsoup-zip
 	libsoup/Makefile
 	tests/Makefile
+	tests/httpd.conf
 	docs/Makefile
 	docs/reference/Makefile
 	])

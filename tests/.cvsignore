@@ -6,6 +6,8 @@ dict
 dns
 get
 getbug
+httpd.conf
+httpd.pid
 revserver
 simple-httpd
 simple-proxy
