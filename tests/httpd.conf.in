@@ -15,13 +15,13 @@ LoadModule dir_module         @APACHE_MODULE_DIR@/mod_dir.so
 
 DirectoryIndex httpd.pid
 
-Alias /Basic/realm1/realm2/realm1 @srcdir@
-Alias /Basic/realm1/realm2 @srcdir@
-Alias /Basic/realm1/subdir @srcdir@
-Alias /Basic/realm1/not @srcdir@
-Alias /Basic/realm1 @srcdir@
-Alias /Basic/realm2 @srcdir@
-Alias /Basic/realm3 @srcdir@
+Alias /Basic/realm1/realm2/realm1 @builddir@
+Alias /Basic/realm1/realm2 @builddir@
+Alias /Basic/realm1/subdir @builddir@
+Alias /Basic/realm1/not @builddir@
+Alias /Basic/realm1 @builddir@
+Alias /Basic/realm2 @builddir@
+Alias /Basic/realm3 @builddir@
 
 <Location /Basic/realm1>
   AuthType Basic
@@ -66,13 +66,13 @@ Alias /Basic/realm3 @srcdir@
 </Location>
 
 
-Alias /Digest/realm1/realm2/realm1 @srcdir@
-Alias /Digest/realm1/realm2 @srcdir@
-Alias /Digest/realm1/subdir @srcdir@
-Alias /Digest/realm1/not @srcdir@
-Alias /Digest/realm1 @srcdir@
-Alias /Digest/realm2 @srcdir@
-Alias /Digest/realm3 @srcdir@
+Alias /Digest/realm1/realm2/realm1 @builddir@
+Alias /Digest/realm1/realm2 @builddir@
+Alias /Digest/realm1/subdir @builddir@
+Alias /Digest/realm1/not @builddir@
+Alias /Digest/realm1 @builddir@
+Alias /Digest/realm2 @builddir@
+Alias /Digest/realm3 @builddir@
 
 <Location /Digest/realm1>
   AuthType Digest

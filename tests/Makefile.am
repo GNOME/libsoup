@@ -17,7 +17,7 @@ noinst_PROGRAMS =	\
 	simple-proxy	\
 	uri-parsing
 
-auth_test_SOURCES = auth-test.c apache-wrapper.c
+auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
 date_SOURCES = date.c
 dict_SOURCES = dict.c
 dns_SOURCES = dns.c
