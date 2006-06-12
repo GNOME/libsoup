@@ -1,3 +1,12 @@
+2006-06-12  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_int,
+	soup_xmlrpc_value_get_double): Further fixes from Brent Smith.
+	#344458.
+	(soup_xmlrpc_value_get_boolean): Similar fix, plus actually set
+	the output parameter and make the return value match the other
+	get_* methods.
+
 2006-06-09  Dan Winship  <danw@novell.com>
 
 	* configure.in: Add tests for apache, output tests/httpd.conf

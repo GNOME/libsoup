@@ -239,6 +239,7 @@ soup_xmlrpc_value_get_int (SoupXmlrpcValue *value, long *i)
 	xmlNode *xml;
 	xmlChar *content;
 	char *tail;
+	gboolean ok;
 
 	xml = (xmlNode *) value;
 
@@ -251,20 +252,19 @@ soup_xmlrpc_value_get_int (SoupXmlrpcValue *value, long *i)
 	/* FIXME this should be exactly one text node */
 	content = xmlNodeGetContent (xml);
 	*i = strtol ((char *)content, &tail, 10);
+	ok = (*tail == '\0');
 	xmlFree (content);
 
-	if (*tail != '\0')
-		return FALSE;
-	else
-		return TRUE;
+	return ok;
 }
 
 gboolean
-soup_xmlrpc_value_get_double (SoupXmlrpcValue *value, double *b)
+soup_xmlrpc_value_get_double (SoupXmlrpcValue *value, double *d)
 {
 	xmlNode *xml;
 	xmlChar *content;
 	char *tail;
+	gboolean ok;
 
 	xml = (xmlNode *) value;
 
@@ -276,13 +276,11 @@ soup_xmlrpc_value_get_double (SoupXmlrpcValue *value, double *b)
 
 	/* FIXME this should be exactly one text node */
 	content = xmlNodeGetContent (xml);
-	*b = g_ascii_strtod ((char *)content, &tail);
+	*d = g_ascii_strtod ((char *)content, &tail);
+	ok = (*tail == '\0');
 	xmlFree (content);
 
-	if (*tail != '\0')
-		return FALSE;
-	else
-		return TRUE;
+	return ok;
 }
 
 gboolean
@@ -291,6 +289,7 @@ soup_xmlrpc_value_get_boolean (SoupXmlrpcValue *value, gboolean *b)
 	xmlNode *xml;
 	xmlChar *content;
 	char *tail;
+	gboolean ok;
 	int i;
 
 	xml = (xmlNode *) value;
@@ -303,14 +302,11 @@ soup_xmlrpc_value_get_boolean (SoupXmlrpcValue *value, gboolean *b)
 
 	content = xmlNodeGetContent (xml);
 	i = strtol ((char *)content, &tail, 10);
+	*b = (i == 1);
+	ok = (*tail == '\0');
 	xmlFree (content);
 
-	if (*tail != '\0')
-		return FALSE;
-
-	if (i != 0 && i != 1)
-		return FALSE;
-	return i == 1;
+	return ok;
 }
 
 gboolean
