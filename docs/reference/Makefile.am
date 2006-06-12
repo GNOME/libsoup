@@ -35,7 +35,7 @@ IGNORE_HFILES= soup.h soup-marshal.h soup-types.h
 HTML_IMAGES = 
 
 # Extra XML files that are included by $(DOC_MAIN_SGML_FILE).
-content_files = 
+content_files = client-howto.xml server-howto.xml
 
 # Other files to distribute.
 extra_files =
