@@ -15,12 +15,12 @@
 
 G_BEGIN_DECLS
 
-#define SOUP_TYPE_XMLRPC_MESSAGE           (soup_xmlrpc_message_get_type ())
-#define SOUP_XMLRPC_MESSAGE(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessage))
-#define SOUP_XMLRPC_MESSAGE_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessageClass))
-#define SOUP_IS_XMLRPC_MESSAGE(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_XMLRPC_MESSAGE))
-#define SOUP_IS_SOAP_MESSAGE_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_XMLRPC_MESSAGE))
-#define SOUP_XMLRPC_MESSAGE_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessageClass))
+#define SOUP_TYPE_XMLRPC_MESSAGE            (soup_xmlrpc_message_get_type ())
+#define SOUP_XMLRPC_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessage))
+#define SOUP_XMLRPC_MESSAGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessageClass))
+#define SOUP_IS_XMLRPC_MESSAGE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), SOUP_TYPE_XMLRPC_MESSAGE))
+#define SOUP_IS_XMLRPC_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_XMLRPC_MESSAGE))
+#define SOUP_XMLRPC_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_XMLRPC_MESSAGE, SoupXmlrpcMessageClass))
 
 typedef struct {
 	SoupMessage parent;
