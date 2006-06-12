@@ -60,6 +60,11 @@ a network socket
 
 @sock: 
 
+<!-- ##### ARG SoupSocket:async-context ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG SoupSocket:cloexec ##### -->
 <para>
 
@@ -86,6 +91,11 @@ a network socket
 </para>
 
 <!-- ##### ARG SoupSocket:ssl-creds ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSocket:timeout ##### -->
 <para>
 
 </para>
@@ -301,6 +311,20 @@ An alias for the "reuseaddr" property.
 
 
 
+<!-- ##### MACRO SOUP_SOCKET_FLAG_CLOEXEC ##### -->
+<para>
+An alias for the "cloexec" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_TIMEOUT ##### -->
+<para>
+An alias for the "timeout" property.
+</para>
+
+
+
 <!-- ##### MACRO SOUP_SOCKET_IS_SERVER ##### -->
 <para>
 An alias for the "is-server" property.
@@ -311,6 +335,13 @@ An alias for the "is-server" property.
 <!-- ##### MACRO SOUP_SOCKET_SSL_CREDENTIALS ##### -->
 <para>
 An alias for the "ssl-creds" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_ASYNC_CONTEXT ##### -->
+<para>
+An alias for the "async-context" property.
 </para>
 
 

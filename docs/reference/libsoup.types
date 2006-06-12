@@ -14,6 +14,8 @@
 #include <libsoup/soup-soap-message.h>
 #include <libsoup/soup-soap-response.h>
 #include <libsoup/soup-socket.h>
+#include <libsoup/soup-xmlrpc-message.h>
+#include <libsoup/soup-xmlrpc-response.h>
 
 soup_address_get_type
 soup_auth_get_type
@@ -31,4 +33,5 @@ soup_session_async_get_type
 soup_soap_message_get_type
 soup_soap_response_get_type
 soup_socket_get_type
-
+soup_xmlrpc_message_get_type
+soup_xmlrpc_response_get_type

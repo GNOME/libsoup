@@ -195,7 +195,7 @@ soup_headers_parse_status_line (const char       *status_line,
  * @dest: #GHashTable to store the header values in
  * @ver: on return, will contain the HTTP version
  * @status_code: on return, will contain the HTTP status code
- * @status_pharse: on return, will contain the status phrase
+ * @status_phrase: on return, will contain the status phrase
  *
  * Parses the headers of an HTTP response in @str and stores the
  * results in @ver, @status_code, @status_phrase, and @dest.

@@ -86,6 +86,7 @@ Low-level DNS routines
 </para>
 
 @lookup: 
+@async_context: 
 @callback: 
 @user_data: 
 

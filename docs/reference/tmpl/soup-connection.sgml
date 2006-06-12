@@ -64,6 +64,11 @@ automatically by #SoupSession.
 @username: 
 @password: 
 
+<!-- ##### ARG SoupConnection:async-context ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG SoupConnection:message-filter ##### -->
 <para>
 
@@ -80,6 +85,11 @@ automatically by #SoupSession.
 </para>
 
 <!-- ##### ARG SoupConnection:ssl-creds ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupConnection:timeout ##### -->
 <para>
 
 </para>
@@ -224,6 +234,20 @@ An alias for the "ssl-creds" property.
 <!-- ##### MACRO SOUP_CONNECTION_MESSAGE_FILTER ##### -->
 <para>
 An alias for the "message-filter" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_CONNECTION_ASYNC_CONTEXT ##### -->
+<para>
+An alias for the "async-context" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_CONNECTION_TIMEOUT ##### -->
+<para>
+An alias for the "timeout" property.
 </para>
 
 

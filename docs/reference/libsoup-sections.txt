@@ -89,6 +89,14 @@ soup_message_got_chunk
 soup_message_got_body
 soup_message_finished
 soup_message_restarted
+SoupMessageGetHeadersFn
+SoupMessageParseHeadersFn
+soup_message_cleanup_response
+soup_message_io_client
+soup_message_io_in_progress
+soup_message_io_server
+soup_message_run_handlers
+soup_message_send_request_internal
 </SECTION>
 
 <SECTION>
@@ -115,9 +123,11 @@ SoupServerUnregisterFn
 soup_server_new
 soup_server_get_protocol
 soup_server_get_port
+soup_server_get_listener
 soup_server_run
 soup_server_run_async
 soup_server_quit
+<SUBSECTION>
 SoupServerHandler
 soup_server_add_handler
 soup_server_remove_handler
@@ -125,10 +135,12 @@ soup_server_get_handler
 soup_server_list_handlers
 soup_server_context_get_client_address
 soup_server_context_get_client_host
+<SUBSECTION>
 SOUP_SERVER_PORT
 SOUP_SERVER_INTERFACE
 SOUP_SERVER_SSL_CERT_FILE
 SOUP_SERVER_SSL_KEY_FILE
+SOUP_SERVER_ASYNC_CONTEXT
 <SUBSECTION Standard>
 SOUP_SERVER
 SOUP_IS_SERVER
@@ -138,6 +150,18 @@ SOUP_SERVER_CLASS
 SOUP_IS_SERVER_CLASS
 SOUP_SERVER_GET_CLASS
 SoupServerClass
+<SUBSECTION Private>
+soup_server_auth_check_passwd
+soup_server_auth_context_challenge
+soup_server_auth_free
+soup_server_auth_get_user
+soup_server_auth_new
+SoupServerAuthBasic
+SoupServerAuthCallbackFn
+SoupServerAuthContext
+SoupServerAuthDigest
+SoupAuthType
+SoupDigestAlgorithm
 </SECTION>
 
 <SECTION>
@@ -151,6 +175,7 @@ soup_address_new_from_sockaddr
 soup_address_new_any
 SoupAddressCallback
 soup_address_resolve_async
+soup_address_resolve_async_full
 soup_address_resolve_sync
 soup_address_get_name
 soup_address_get_sockaddr
@@ -267,6 +292,8 @@ SOUP_SESSION_MAX_CONNS
 SOUP_SESSION_MAX_CONNS_PER_HOST
 SOUP_SESSION_USE_NTLM
 SOUP_SESSION_SSL_CA_FILE
+SOUP_SESSION_ASYNC_CONTEXT
+SOUP_SESSION_TIMEOUT
 <SUBSECTION Standard>
 SOUP_IS_SESSION
 SOUP_IS_SESSION_CLASS
@@ -276,6 +303,17 @@ SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
 SoupSessionClass
 soup_session_get_type
+<SUBSECTION Private>
+SoupMessageQueue
+SoupMessageQueueIter
+soup_message_queue_append
+soup_message_queue_destroy
+soup_message_queue_first
+soup_message_queue_free_iter
+soup_message_queue_new
+soup_message_queue_next
+soup_message_queue_remove
+soup_message_queue_remove_message
 </SECTION>
 
 <SECTION>
@@ -378,8 +416,11 @@ soup_socket_write
 SOUP_SOCKET_FLAG_NONBLOCKING
 SOUP_SOCKET_FLAG_NODELAY
 SOUP_SOCKET_FLAG_REUSEADDR
+SOUP_SOCKET_FLAG_CLOEXEC
+SOUP_SOCKET_TIMEOUT
 SOUP_SOCKET_IS_SERVER
 SOUP_SOCKET_SSL_CREDENTIALS
+SOUP_SOCKET_ASYNC_CONTEXT
 <SUBSECTION Standard>
 SOUP_SOCKET
 SOUP_IS_SOCKET
@@ -426,6 +467,8 @@ SOUP_CONNECTION_ORIGIN_URI
 SOUP_CONNECTION_PROXY_URI
 SOUP_CONNECTION_SSL_CREDENTIALS
 SOUP_CONNECTION_MESSAGE_FILTER
+SOUP_CONNECTION_ASYNC_CONTEXT
+SOUP_CONNECTION_TIMEOUT
 <SUBSECTION Standard>
 SOUP_CONNECTION
 SOUP_IS_CONNECTION
@@ -478,6 +521,8 @@ soup_dns_lookup_free
 
 <SECTION>
 <FILE>soup-ssl</FILE>
+soup_ssl_supported
+<SUBSECTION>
 SoupSSLType
 soup_ssl_get_client_credentials
 soup_ssl_free_client_credentials
@@ -491,6 +536,7 @@ SoupSocketError
 
 <SECTION>
 <FILE>soup-uri</FILE>
+<TITLE>SoupUri</TITLE>
 SoupUri
 SoupProtocol
 SOUP_PROTOCOL_HTTP
@@ -521,4 +567,124 @@ SOUP_MESSAGE_FILTER_GET_CLASS
 SOUP_TYPE_MESSAGE_FILTER
 SoupMessageFilterClass
 soup_message_filter_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-misc</FILE>
+<TITLE>Soup Miscellaneous Utilities</TITLE>
+SoupMD5Context
+soup_md5_init
+soup_md5_update
+soup_md5_final
+soup_md5_final_hex
+<SUBSECTION>
+soup_base64_decode
+soup_base64_encode
+soup_base64_decode_step
+soup_base64_encode_step
+soup_base64_encode_close
+<SUBSECTION>
+soup_add_idle
+soup_add_io_watch
+soup_add_timeout
+soup_signal_connect_once
+<SUBSECTION>
+soup_date_parse
+soup_date_iso8601_parse
+soup_date_generate
+soup_gmtime
+soup_mktime_utc
+<SUBSECTION>
+soup_header_param_copy_token
+soup_header_param_decode_token
+soup_header_param_destroy_hash
+soup_header_param_parse_list
+soup_headers_parse_request
+soup_headers_parse_response
+soup_headers_parse_status_line
+<SUBSECTION>
+soup_str_case_equal
+soup_str_case_hash
+</SECTION>
+
+<SECTION>
+<FILE>soup-xmlrpc-message</FILE>
+<TITLE>SoupXmlrpcMessage</TITLE>
+SoupXmlrpcMessage
+soup_xmlrpc_message_new
+soup_xmlrpc_message_new_from_uri
+<SUBSECTION>
+soup_xmlrpc_message_start_call
+soup_xmlrpc_message_end_call
+soup_xmlrpc_message_start_param
+soup_xmlrpc_message_end_param
+<SUBSECTION>
+soup_xmlrpc_message_write_int
+soup_xmlrpc_message_write_boolean
+soup_xmlrpc_message_write_string
+soup_xmlrpc_message_write_double
+soup_xmlrpc_message_write_time
+soup_xmlrpc_message_write_base64
+<SUBSECTION>
+soup_xmlrpc_message_start_struct
+soup_xmlrpc_message_end_struct
+soup_xmlrpc_message_start_member
+soup_xmlrpc_message_end_member
+<SUBSECTION>
+soup_xmlrpc_message_start_array
+soup_xmlrpc_message_end_array
+<SUBSECTION>
+soup_xmlrpc_message_to_string
+soup_xmlrpc_message_persist
+<SUBSECTION>
+soup_xmlrpc_message_parse_response
+<SUBSECTION Standard>
+SOUP_IS_XMLRPC_MESSAGE
+SOUP_TYPE_XMLRPC_MESSAGE
+SOUP_XMLRPC_MESSAGE
+SOUP_XMLRPC_MESSAGE_CLASS
+SOUP_XMLRPC_MESSAGE_GET_CLASS
+SoupXmlrpcMessageClass
+soup_xmlrpc_message_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-xmlrpc-response</FILE>
+<TITLE>SoupXmlrpcResponse</TITLE>
+SoupXmlrpcResponse
+soup_xmlrpc_response_new
+soup_xmlrpc_response_new_from_string
+soup_xmlrpc_response_from_string
+soup_xmlrpc_response_to_string
+<SUBSECTION>
+SoupXmlrpcValue
+SoupXmlrpcValueType
+soup_xmlrpc_response_is_fault
+soup_xmlrpc_response_get_value
+<SUBSECTION>
+soup_xmlrpc_value_get_type
+soup_xmlrpc_value_get_int
+soup_xmlrpc_value_get_double
+soup_xmlrpc_value_get_boolean
+soup_xmlrpc_value_get_string
+soup_xmlrpc_value_get_datetime
+soup_xmlrpc_value_get_base64
+soup_xmlrpc_value_get_struct
+<SUBSECTION>
+SoupXmlrpcValueArrayIterator
+soup_xmlrpc_value_array_get_iterator
+soup_xmlrpc_value_array_iterator_prev
+soup_xmlrpc_value_array_iterator_next
+soup_xmlrpc_value_array_iterator_get_value
+<SUBSECTION>
+soup_xmlrpc_value_dump
+<SUBSECTION Standard>
+SOUP_IS_XMLRPC_RESPONSE
+SOUP_IS_XMLRPC_RESPONSE_CLASS
+SOUP_TYPE_XMLRPC_RESPONSE
+SOUP_XMLRPC_RESPONSE
+SOUP_XMLRPC_RESPONSE_CLASS
+SOUP_XMLRPC_RESPONSE_GET_CLASS
+SoupXmlrpcResponseClass
+soup_xmlrpc_response_get_type
 </SECTION>

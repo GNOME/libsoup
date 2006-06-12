@@ -47,6 +47,11 @@ Soup session state object
 @username: 
 @password: 
 
+<!-- ##### ARG SoupSession:async-context ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG SoupSession:max-conns ##### -->
 <para>
 
@@ -63,6 +68,11 @@ Soup session state object
 </para>
 
 <!-- ##### ARG SoupSession:ssl-ca-file ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupSession:timeout ##### -->
 <para>
 
 </para>
@@ -189,6 +199,20 @@ An alias for the "use-ntlm" property.
 <!-- ##### MACRO SOUP_SESSION_SSL_CA_FILE ##### -->
 <para>
 An alias for the "ssl-ca-file" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_ASYNC_CONTEXT ##### -->
+<para>
+An alias for the "async-context" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SESSION_TIMEOUT ##### -->
+<para>
+An alias for the "timeout" property.
 </para>
 
 

@@ -17,6 +17,12 @@ SSL/TLS handling
 <!-- ##### SECTION Stability_Level ##### -->
 
 
+<!-- ##### VARIABLE soup_ssl_supported ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### ENUM SoupSSLType ##### -->
 <para>
 

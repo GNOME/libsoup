@@ -1,0 +1,206 @@
+<!-- ##### SECTION Title ##### -->
+SoupXmlrpcMessage
+
+<!-- ##### SECTION Short_Description ##### -->
+An XML-RPC Message
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### STRUCT SoupXmlrpcMessage ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_new ##### -->
+<para>
+
+</para>
+
+@uri_string: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_new_from_uri ##### -->
+<para>
+
+</para>
+
+@uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_start_call ##### -->
+<para>
+
+</para>
+
+@msg: 
+@method_name: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_end_call ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_start_param ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_end_param ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_int ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Param2: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_boolean ##### -->
+<para>
+
+</para>
+
+@msg: 
+@b: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_string ##### -->
+<para>
+
+</para>
+
+@msg: 
+@str: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_double ##### -->
+<para>
+
+</para>
+
+@msg: 
+@d: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_time ##### -->
+<para>
+
+</para>
+
+@msg: 
+@timeval: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_write_base64 ##### -->
+<para>
+
+</para>
+
+@msg: 
+@buf: 
+@len: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_start_struct ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_end_struct ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_start_member ##### -->
+<para>
+
+</para>
+
+@msg: 
+@name: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_end_member ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_start_array ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_end_array ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_to_string ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_persist ##### -->
+<para>
+
+</para>
+
+@msg: 
+
+
+<!-- ##### FUNCTION soup_xmlrpc_message_parse_response ##### -->
+<para>
+
+</para>
+
+@msg: 
+@Returns: 
+
+

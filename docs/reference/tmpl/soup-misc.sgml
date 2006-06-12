@@ -14,6 +14,61 @@ Miscellaneous functions
 
 </para>
 
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### STRUCT SoupMD5Context ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### FUNCTION soup_md5_init ##### -->
+<para>
+
+</para>
+
+@ctx: 
+
+
+<!-- ##### FUNCTION soup_md5_update ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@buf: 
+@len: 
+
+
+<!-- ##### FUNCTION soup_md5_final ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@digest: 
+
+
+<!-- ##### FUNCTION soup_md5_final_hex ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@digest: 
+
+
+<!-- ##### FUNCTION soup_base64_decode ##### -->
+<para>
+
+</para>
+
+@text: 
+@out_len: 
+@Returns: 
+
+
 <!-- ##### FUNCTION soup_base64_encode ##### -->
 <para>
 
@@ -24,14 +79,13 @@ Miscellaneous functions
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_encode_close ##### -->
+<!-- ##### FUNCTION soup_base64_decode_step ##### -->
 <para>
 
 </para>
 
 @in: 
-@inlen: 
-@break_lines: 
+@len: 
 @out: 
 @state: 
 @save: 
@@ -52,26 +106,53 @@ Miscellaneous functions
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_decode ##### -->
-<para>
-
-</para>
-
-@text: 
-@out_len: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_base64_decode_step ##### -->
+<!-- ##### FUNCTION soup_base64_encode_close ##### -->
 <para>
 
 </para>
 
 @in: 
-@len: 
+@inlen: 
+@break_lines: 
 @out: 
 @state: 
 @save: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_add_idle ##### -->
+<para>
+
+</para>
+
+@async_context: 
+@function: 
+@data: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_add_io_watch ##### -->
+<para>
+
+</para>
+
+@async_context: 
+@chan: 
+@condition: 
+@function: 
+@data: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_add_timeout ##### -->
+<para>
+
+</para>
+
+@async_context: 
+@interval: 
+@function: 
+@data: 
 @Returns: 
 
 
@@ -87,12 +168,128 @@ Miscellaneous functions
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_str_case_hash ##### -->
+<!-- ##### FUNCTION soup_date_parse ##### -->
 <para>
 
 </para>
 
-@key: 
+@timestamp: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@when: 
+
+
+<!-- ##### FUNCTION soup_date_iso8601_parse ##### -->
+<para>
+
+</para>
+
+@timestamp: 
+@Returns: 
+<!-- # Unused Parameters # -->
+@when: 
+
+
+<!-- ##### FUNCTION soup_date_generate ##### -->
+<para>
+
+</para>
+
+@when: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_gmtime ##### -->
+<para>
+
+</para>
+
+@when: 
+@tm: 
+
+
+<!-- ##### FUNCTION soup_mktime_utc ##### -->
+<para>
+
+</para>
+
+@tm: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_param_copy_token ##### -->
+<para>
+
+</para>
+
+@tokens: 
+@t: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_param_decode_token ##### -->
+<para>
+
+</para>
+
+@in: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_param_destroy_hash ##### -->
+<para>
+
+</para>
+
+@table: 
+
+
+<!-- ##### FUNCTION soup_header_param_parse_list ##### -->
+<para>
+
+</para>
+
+@header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_headers_parse_request ##### -->
+<para>
+
+</para>
+
+@str: 
+@len: 
+@dest: 
+@req_method: 
+@req_path: 
+@ver: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_headers_parse_response ##### -->
+<para>
+
+</para>
+
+@str: 
+@len: 
+@dest: 
+@ver: 
+@status_code: 
+@status_phrase: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_headers_parse_status_line ##### -->
+<para>
+
+</para>
+
+@status_line: 
+@ver: 
+@status_code: 
+@status_phrase: 
 @Returns: 
 
 
@@ -106,9 +303,12 @@ Miscellaneous functions
 @Returns: 
 
 
-<!-- ##### VARIABLE soup_ssl_supported ##### -->
+<!-- ##### FUNCTION soup_str_case_hash ##### -->
 <para>
 
 </para>
+
+@key: 
+@Returns: 
 
 

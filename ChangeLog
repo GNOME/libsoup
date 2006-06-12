@@ -1,5 +1,22 @@
 2006-06-12  Dan Winship  <danw@novell.com>
 
+	* docs/reference/client-howto.xml: 
+	* docs/reference/server-howto.xml: New client and server API
+	tutorials.
+
+	* docs/reference/*: reorganize, regenerate, fill in some missing
+	pieces, etc
+
+	* libsoup/soup-connection.c (soup_connection_new): document the
+	varargs param
+
+	* libsoup/soup-date.h: sync prototypes to declarations for gtk-doc.
+
+	* libsoup/soup-headers.c (soup_headers_parse_response): fix typo
+	in doc.
+
+2006-06-12  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_int,
 	soup_xmlrpc_value_get_double): Further fixes from Brent Smith.
 	#344458.

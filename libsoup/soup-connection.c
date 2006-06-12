@@ -279,7 +279,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 /**
  * soup_connection_new:
  * @propname1: name of first property to set
- * @...:
+ * @...: value of @propname1, followed by additional property/value pairs
  *
  * Creates an HTTP connection. You must set at least one of
  * %SOUP_CONNECTION_ORIGIN_URI or %SOUP_CONNECTION_PROXY_URI. If you

@@ -28,6 +28,11 @@ change in the next release.
 </para>
 
 
+<!-- ##### ARG SoupServer:async-context ##### -->
+<para>
+
+</para>
+
 <!-- ##### ARG SoupServer:interface ##### -->
 <para>
 
@@ -101,6 +106,15 @@ change in the next release.
 
 
 <!-- ##### FUNCTION soup_server_get_port ##### -->
+<para>
+
+</para>
+
+@serv: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_server_get_listener ##### -->
 <para>
 
 </para>
@@ -222,6 +236,13 @@ An alias for the "ssl-cert-file" property.
 <!-- ##### MACRO SOUP_SERVER_SSL_KEY_FILE ##### -->
 <para>
 An alias for the "ssl-key-file" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SERVER_ASYNC_CONTEXT ##### -->
+<para>
+An alias for the "async-context" property.
 </para>
 
 

@@ -60,6 +60,30 @@ MD5 hash utilities
 soup-md5-utils
 
 
+<!-- ##### SECTION ./tmpl/soup-message-filter.sgml.sgml:Long_Description ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-message-filter.sgml.sgml:See_Also ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### SECTION ./tmpl/soup-message-filter.sgml.sgml:Short_Description ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup-message-filter.sgml.sgml:Stability_Level ##### -->
+
+
+
+<!-- ##### SECTION ./tmpl/soup-message-filter.sgml.sgml:Title ##### -->
+Soup Miscellaneous Utilities
+
+
 <!-- ##### SECTION ./tmpl/soup-message-private.sgml:Long_Description ##### -->
 <para>
 
@@ -101,26 +125,6 @@ Message queue object
 soup-message-queue
 
 
-<!-- ##### SECTION ./tmpl/soup-misc.sgml:Long_Description ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### SECTION ./tmpl/soup-misc.sgml:See_Also ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### SECTION ./tmpl/soup-misc.sgml:Short_Description ##### -->
-Miscellaneous functions
-
-
-<!-- ##### SECTION ./tmpl/soup-misc.sgml:Title ##### -->
-soup-misc
-
-
 <!-- ##### SECTION ./tmpl/soup-server-auth.sgml:Long_Description ##### -->
 <para>
 
@@ -156,12 +160,6 @@ soup-server-auth
 
 @SOUP_ALGORITHM_MD5: 
 @SOUP_ALGORITHM_MD5_SESS: 
-
-<!-- ##### STRUCT SoupMD5Context ##### -->
-<para>
-
-</para>
-
 
 <!-- ##### USER_FUNCTION SoupMessageGetHeadersFn ##### -->
 <para>
@@ -243,86 +241,6 @@ soup-server-auth
 @digest_uri: 
 @digest_response: 
 @request_method: 
-
-<!-- ##### FUNCTION soup_base64_decode ##### -->
-<para>
-
-</para>
-
-@text: 
-@out_len: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_base64_decode_step ##### -->
-<para>
-
-</para>
-
-@in: 
-@len: 
-@out: 
-@state: 
-@save: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_base64_encode ##### -->
-<para>
-
-</para>
-
-@text: 
-@len: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_base64_encode_close ##### -->
-<para>
-
-</para>
-
-@in: 
-@inlen: 
-@break_lines: 
-@out: 
-@state: 
-@save: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_base64_encode_step ##### -->
-<para>
-
-</para>
-
-@in: 
-@len: 
-@break_lines: 
-@out: 
-@state: 
-@save: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_md5_final ##### -->
-<para>
-
-</para>
-
-@ctx: 
-@digest: 
-
-<!-- ##### FUNCTION soup_md5_init ##### -->
-<para>
-
-</para>
-
-@ctx: 
-
-<!-- ##### FUNCTION soup_md5_update ##### -->
-<para>
-
-</para>
-
-@ctx: 
-@buf: 
-@len: 
 
 <!-- ##### FUNCTION soup_message_cleanup_response ##### -->
 <para>
@@ -537,39 +455,5 @@ soup-server-auth
 @auth_ctx: 
 @auth_hdrs: 
 @msg: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_signal_connect_once ##### -->
-<para>
-
-</para>
-
-@instance: 
-@detailed_signal: 
-@c_handler: 
-@data: 
-@Returns: 
-
-<!-- ##### VARIABLE soup_ssl_supported ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### FUNCTION soup_str_case_equal ##### -->
-<para>
-
-</para>
-
-@v1: 
-@v2: 
-@Returns: 
-
-<!-- ##### FUNCTION soup_str_case_hash ##### -->
-<para>
-
-</para>
-
-@key: 
 @Returns: 
 

@@ -11,9 +11,9 @@
 time_t  soup_mktime_utc         (struct tm *tm);
 void    soup_gmtime             (const time_t *when, struct tm *tm);
 
-time_t  soup_date_parse         (const char *when);
+time_t  soup_date_parse         (const char *timestamp);
 char   *soup_date_generate      (time_t when);
 
-time_t  soup_date_iso8601_parse (const char *when);
+time_t  soup_date_iso8601_parse (const char *timestamp);
 
 #endif /* SOUP_DATE_H */

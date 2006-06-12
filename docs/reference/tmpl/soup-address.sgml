@@ -103,6 +103,17 @@ IPv4 and IPv6 addresses.
 @user_data: 
 
 
+<!-- ##### FUNCTION soup_address_resolve_async_full ##### -->
+<para>
+
+</para>
+
+@addr: 
+@async_context: 
+@callback: 
+@user_data: 
+
+
 <!-- ##### FUNCTION soup_address_resolve_sync ##### -->
 <para>
 
