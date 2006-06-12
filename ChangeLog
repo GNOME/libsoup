@@ -1,5 +1,11 @@
 2006-06-12  Dan Winship  <danw@novell.com>
 
+	* configure.in: 2.2.94
+
+	* NEWS: update
+
+2006-06-12  Dan Winship  <danw@novell.com>
+
 	* docs/reference/client-howto.xml: 
 	* docs/reference/server-howto.xml: New client and server API
 	tutorials.

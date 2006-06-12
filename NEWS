@@ -1,3 +1,16 @@
+Changes in libsoup from 2.2.93 to 2.2.94:
+
+	* Various fixes to the XML-RPC code (which apparently had not
+	  actually ever worked before) from Brent Smith. [343973,
+	  344222, 344458]
+
+	* Added client and server API tutorials to the docs
+
+	* auth-test now uses a local Apache 2.2 install, if possible,
+          rather than depending on files that used to be on an old
+          Ximian web server but haven't been anywhere for a long time.
+	  [311825]
+
 Changes in libsoup from 2.2.92 to 2.2.93:
 
 	* Fixed outgoing data corruption caused when SoupServer
