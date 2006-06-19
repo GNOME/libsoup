@@ -1,3 +1,10 @@
+2006-06-19  Dan Winship  <danw@novell.com>
+
+	* tests/Makefile.am (noinst_PROGRAMS): don't build xmlrpc-test
+	unless we have apache/php/xmlrpc-epi. Fixes the build. #345342
+
+	* configure.in: fix some quoting
+
 2006-06-14  Dan Winship  <danw@novell.com>
 
 	* configure.in: add tests for apache mod_php5 and xmlrpc-epi-php

@@ -279,7 +279,7 @@ if test "$have_apache" = 1; then
 fi
 
 AC_SUBST(IF_HAVE_PHP)
-AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test $have_xmlrpc_epi_php = yes)
+AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test "$have_xmlrpc_epi_php" = yes)
 
 
 dnl *************************

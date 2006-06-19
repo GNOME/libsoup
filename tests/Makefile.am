@@ -16,7 +16,7 @@ noinst_PROGRAMS =	\
 	simple-httpd	\
 	simple-proxy	\
 	uri-parsing	\
-	xmlrpc-test
+	$(XMLRPC_TESTS)
 
 auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
 date_SOURCES = date.c
