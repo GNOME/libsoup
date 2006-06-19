@@ -46,7 +46,7 @@ apache_init (void)
 void
 apache_cleanup (void)
 {
-	apache_cmd ("stop");
+	apache_cmd ("graceful-stop");
 }
 
 #endif /* HAVE_APACHE */

@@ -356,12 +356,13 @@ soup_xmlrpc_value_get_datetime (SoupXmlrpcValue *value, time_t *timeval)
 	return TRUE;
 }
 
-/* FIXME: this is broken; it returns the encoded value, not decoded */
 gboolean
-soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, char **buf)
+soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, GByteArray **data)
 {
 	xmlNode *xml;
 	xmlChar *content;
+	char *decoded;
+	int len;
 
 	xml = (xmlNode *) value;
 	if (strcmp ((char *)xml->name, "value"))
@@ -371,8 +372,12 @@ soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, char **buf)
 		return FALSE;
 
 	content = xmlNodeGetContent (xml);
-	*buf = content ? g_strdup ((char *)content) : g_strdup ("");
+	decoded = soup_base64_decode ((const char *)content, &len);
 	xmlFree (content);
+
+	*data = g_byte_array_new ();
+	g_byte_array_append (*data, (guchar *)decoded, len);
+	g_free (decoded);
 
 	return TRUE;
 }
@@ -443,11 +448,13 @@ soup_xmlrpc_value_array_get_iterator (SoupXmlrpcValue *value, SoupXmlrpcValueArr
 
 	xml = (xmlNode *) value;
 
-	if (!xml->children || strcmp((char *)xml->children->name, "data") == 0 || xml->children->next)
+	if (!xml->children || strcmp((char *)xml->children->name, "array") != 0 ||
+	    xml->children->next || !xml->children->children ||
+	    strcmp((char *)xml->children->children->name, "data") != 0 ||
+	    xml->children->children->next)
 		return FALSE;
 
-	*iter = (SoupXmlrpcValueArrayIterator *) xml->children;
-
+	*iter = (SoupXmlrpcValueArrayIterator *) xml->children->children->children;
 	return TRUE;
 }
 
@@ -476,17 +483,7 @@ gboolean
 soup_xmlrpc_value_array_iterator_get_value (SoupXmlrpcValueArrayIterator *iter,
 					    SoupXmlrpcValue **value)
 {
-	xmlNode *xml;
-
-	xml = (xmlNode *) iter;
-
-	if (!xml || strcmp((char *)xml->name, "data"))
-		return FALSE;
-	xml = exactly_one_child (xml);
-	if (!xml)
-		return FALSE;
-
-	*value = (SoupXmlrpcValue *) xml;
+	*value = (SoupXmlrpcValue *) iter;
 
 	return TRUE;
 }
@@ -525,6 +522,7 @@ soup_xmlrpc_value_dump_internal (SoupXmlrpcValue *value, int d)
 	char *str;
 	double f;
 	time_t timeval;
+	GByteArray *base64;
 	GHashTable *hash;
 	SoupXmlrpcValueArrayIterator *iter;
 
@@ -580,10 +578,19 @@ soup_xmlrpc_value_dump_internal (SoupXmlrpcValue *value, int d)
 
 		case SOUP_XMLRPC_VALUE_TYPE_BASE64:
 			indent (d);
-			if (!soup_xmlrpc_value_get_base64 (value, &str))
+			if (!soup_xmlrpc_value_get_base64 (value, &base64))
 				g_printerr ("BAD BASE64\n");
-			else
-				g_printerr ("BASE64: %s\n", str);
+			else {
+				GString *hex = g_string_new (NULL);
+				int i;
+
+				for (i = 0; i < base64->len; i++)
+					g_string_append_printf (hex, "%02x", base64->data[i]);
+
+				g_printerr ("BASE64: %s\n", hex->str);
+				g_string_free (hex, TRUE);
+				g_byte_array_free (base64, TRUE);
+			}
 
 			break;
 

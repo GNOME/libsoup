@@ -256,6 +256,32 @@ else
 fi
 AM_CONDITIONAL(HAVE_APACHE, test $have_apache = 1)
 
+if test "$have_apache" = 1; then
+    AC_MSG_CHECKING([for mod_php5])
+    if test -f $APACHE_MODULE_DIR/mod_php5.so; then
+	have_php=yes
+	IF_HAVE_PHP=""
+    else
+	have_php=no
+	IF_HAVE_PHP="#"
+    fi
+    AC_MSG_RESULT($have_php)
+
+    if test "$have_php" = yes; then
+	AC_MSG_CHECKING([for xmlrpc-epi-php])
+	if php5 --rf xmlrpc_server_create | grep -q "does not exist"; then
+	    have_xmlrpc_epi_php=no
+	else
+	    have_xmlrpc_epi_php=yes
+	fi
+	AC_MSG_RESULT($have_xmlrpc_epi_php)
+    fi
+fi
+
+AC_SUBST(IF_HAVE_PHP)
+AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test $have_xmlrpc_epi_php = yes)
+
+
 dnl *************************
 dnl *** Output Everything ***
 dnl *************************

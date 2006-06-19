@@ -4,6 +4,9 @@ ServerName 127.0.0.1
 Listen 127.0.0.1:47524
 
 PidFile @builddir@/httpd.pid
+DocumentRoot @srcdir@
+
+# Change this to "./error.log" if it's failing and you don't know why
 ErrorLog /dev/null
 
 LoadModule alias_module       @APACHE_MODULE_DIR@/mod_alias.so
@@ -12,8 +15,11 @@ LoadModule auth_digest_module @APACHE_MODULE_DIR@/mod_auth_digest.so
 LoadModule authn_file_module  @APACHE_MODULE_DIR@/mod_authn_file.so
 LoadModule authz_user_module  @APACHE_MODULE_DIR@/mod_authz_user.so
 LoadModule dir_module         @APACHE_MODULE_DIR@/mod_dir.so
+LoadModule mime_module        @APACHE_MODULE_DIR@/mod_mime.so
+@IF_HAVE_PHP@LoadModule php5_module        @APACHE_MODULE_DIR@/mod_php5.so
 
 DirectoryIndex httpd.pid
+AddType application/x-httpd-php .php
 
 Alias /Basic/realm1/realm2/realm1 @builddir@
 Alias /Basic/realm1/realm2 @builddir@

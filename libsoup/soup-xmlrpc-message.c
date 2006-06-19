@@ -202,7 +202,7 @@ soup_xmlrpc_message_write_double (SoupXmlrpcMessage *msg, double d)
 }
 
 void
-soup_xmlrpc_message_write_time (SoupXmlrpcMessage *msg, const time_t timeval)
+soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg, const time_t timeval)
 {
 	SoupXmlrpcMessagePrivate *priv;
 	struct tm time;
@@ -212,7 +212,7 @@ soup_xmlrpc_message_write_time (SoupXmlrpcMessage *msg, const time_t timeval)
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
 	soup_gmtime (&timeval, &time);
-	strftime (str, 128, "%Y%m%dT%H%M%s", &time);
+	strftime (str, 128, "%Y%m%dT%H:%M:%S", &time);
 
 	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
 	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"dateTime.iso8601", (xmlChar *)str);
@@ -220,7 +220,7 @@ soup_xmlrpc_message_write_time (SoupXmlrpcMessage *msg, const time_t timeval)
 }
 
 void
-soup_xmlrpc_message_write_base64 (SoupXmlrpcMessage *msg, const char *buf, int len)
+soup_xmlrpc_message_write_base64 (SoupXmlrpcMessage *msg, gconstpointer buf, int len)
 {
 	SoupXmlrpcMessagePrivate *priv;
 	char *str;

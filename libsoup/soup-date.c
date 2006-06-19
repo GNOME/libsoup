@@ -68,7 +68,7 @@ soup_mktime_utc (struct tm *tm)
 	tt = (tm->tm_year - 70) * 365;
 	tt += (tm->tm_year - 68) / 4;
 	tt += days_before[tm->tm_mon] + tm->tm_mday - 1;
-	if (tm->tm_year % 4 == 2 && tm->tm_mon < 2)
+	if (tm->tm_year % 4 == 0 && tm->tm_mon < 2)
 		tt--;
 	tt = ((((tt * 24) + tm->tm_hour) * 60) + tm->tm_min) * 60 + tm->tm_sec;
 	return tt;

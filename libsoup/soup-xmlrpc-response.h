@@ -65,7 +65,7 @@ gboolean soup_xmlrpc_value_get_string   (SoupXmlrpcValue  *value,
 gboolean soup_xmlrpc_value_get_datetime (SoupXmlrpcValue  *value,
 					 time_t           *timeval);
 gboolean soup_xmlrpc_value_get_base64   (SoupXmlrpcValue  *value,
-					 char            **buf);
+					 GByteArray      **data);
 
 gboolean soup_xmlrpc_value_get_struct   (SoupXmlrpcValue  *value,
 					 GHashTable      **table);

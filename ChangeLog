@@ -1,3 +1,39 @@
+2006-06-14  Dan Winship  <danw@novell.com>
+
+	* configure.in: add tests for apache mod_php5 and xmlrpc-epi-php
+
+	* tests/xmlrpc-test.c: XML-RPC regression test
+
+	* tests/xmlrpc-server.php: PHP server for xmlrpc-test
+
+	* tests/httpd.conf.in: add php stuff
+
+	* tests/apache-wrapper.c (apache_cleanup): Use "graceful-stop"
+	rather than "stop", so that it stops listening on the socket
+	before exiting, so that we can immediately start another apache
+	(eg, in "make check").
+
+	* libsoup/soup-date.c (soup_mktime_utc): Fix a bug in leap-year
+	counting.
+
+	* libsoup/soup-xmlrpc-message.c
+	(soup_xmlrpc_message_write_datetime): rename from
+	"..._write_time", to make it consistent with the XML-RPC type name
+	and the corresponding SoupXmlrpcResponse method. Also, fix it to
+	use the same ISO 8601 format as the spec, and use the right value
+	for the seconds field.
+	(soup_xmlrpc_message_write_base64): Change the buf arg to a
+	gconstpointer rather than a const char *.
+
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_base64):
+	Return a GByteArray containing the decoded data, rather than
+	the base64-encoded string.
+	(soup_xmlrpc_value_dump_internal): Update for that (and don't
+	leak it).
+	(soup_xmlrpc_value_array_get_iterator,
+	soup_xmlrpc_value_array_iterator_get_value): Make these actually
+	work.
+
 2006-06-12  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.94

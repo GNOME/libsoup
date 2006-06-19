@@ -36,39 +36,39 @@ GType soup_xmlrpc_message_get_type (void);
 SoupXmlrpcMessage *soup_xmlrpc_message_new          (const char *uri_string);
 SoupXmlrpcMessage *soup_xmlrpc_message_new_from_uri (const SoupUri *uri);
 
-void soup_xmlrpc_message_start_call    (SoupXmlrpcMessage *msg,
-					const char        *method_name);
-void soup_xmlrpc_message_end_call      (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_start_call     (SoupXmlrpcMessage *msg,
+					 const char        *method_name);
+void soup_xmlrpc_message_end_call       (SoupXmlrpcMessage *msg);
 
-void soup_xmlrpc_message_start_param   (SoupXmlrpcMessage *msg);
-void soup_xmlrpc_message_end_param     (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_start_param    (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_end_param      (SoupXmlrpcMessage *msg);
 
-void soup_xmlrpc_message_write_int     (SoupXmlrpcMessage *msg,
-					long               i);
-void soup_xmlrpc_message_write_boolean (SoupXmlrpcMessage *msg,
-					gboolean           b);
-void soup_xmlrpc_message_write_string  (SoupXmlrpcMessage *msg,
-					const char        *str);
-void soup_xmlrpc_message_write_double  (SoupXmlrpcMessage *msg,
-					double             d);
-void soup_xmlrpc_message_write_time    (SoupXmlrpcMessage *msg,
-					const time_t       timeval);
-void soup_xmlrpc_message_write_base64  (SoupXmlrpcMessage *msg,
-					const char        *buf,
-					int                len);
+void soup_xmlrpc_message_write_int      (SoupXmlrpcMessage *msg,
+					 long               i);
+void soup_xmlrpc_message_write_boolean  (SoupXmlrpcMessage *msg,
+					 gboolean           b);
+void soup_xmlrpc_message_write_string   (SoupXmlrpcMessage *msg,
+					 const char        *str);
+void soup_xmlrpc_message_write_double   (SoupXmlrpcMessage *msg,
+					 double             d);
+void soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg,
+					 const time_t       timeval);
+void soup_xmlrpc_message_write_base64   (SoupXmlrpcMessage *msg,
+					 gconstpointer      buf,
+					 int                len);
 
-void soup_xmlrpc_message_start_struct  (SoupXmlrpcMessage *msg);
-void soup_xmlrpc_message_end_struct    (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_start_struct   (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_end_struct     (SoupXmlrpcMessage *msg);
 
-void soup_xmlrpc_message_start_member  (SoupXmlrpcMessage *msg,
-					const char        *name);
-void soup_xmlrpc_message_end_member    (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_start_member   (SoupXmlrpcMessage *msg,
+					 const char        *name);
+void soup_xmlrpc_message_end_member     (SoupXmlrpcMessage *msg);
 
-void soup_xmlrpc_message_start_array   (SoupXmlrpcMessage *msg);
-void soup_xmlrpc_message_end_array     (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_start_array    (SoupXmlrpcMessage *msg);
+void soup_xmlrpc_message_end_array      (SoupXmlrpcMessage *msg);
 
-xmlChar *soup_xmlrpc_message_to_string (SoupXmlrpcMessage *msg);
-void     soup_xmlrpc_message_persist   (SoupXmlrpcMessage *msg);
+xmlChar *soup_xmlrpc_message_to_string  (SoupXmlrpcMessage *msg);
+void     soup_xmlrpc_message_persist    (SoupXmlrpcMessage *msg);
 
 SoupXmlrpcResponse *soup_xmlrpc_message_parse_response (SoupXmlrpcMessage *msg);
 

@@ -12,3 +12,4 @@ revserver
 simple-httpd
 simple-proxy
 uri-parsing
+xmlrpc-test

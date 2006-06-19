@@ -15,7 +15,8 @@ noinst_PROGRAMS =	\
 	revserver	\
 	simple-httpd	\
 	simple-proxy	\
-	uri-parsing
+	uri-parsing	\
+	xmlrpc-test
 
 auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
 date_SOURCES = date.c
@@ -27,12 +28,16 @@ revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 uri_parsing_SOURCES = uri-parsing.c
+xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
 
 if HAVE_APACHE
 APACHE_TESTS = auth-test
 endif
+if HAVE_XMLRPC_EPI_PHP
+XMLRPC_TESTS = xmlrpc-test
+endif
 
-TESTS = date uri-parsing $(APACHE_TESTS)
+TESTS = date uri-parsing $(APACHE_TESTS) $(XMLRPC_TESTS)
 
 EXTRA_DIST =		\
 	libsoup.supp	\
@@ -40,4 +45,5 @@ EXTRA_DIST =		\
 	test-key.pem	\
 	htdigest	\
 	htpasswd	\
-	httpd.conf.in
+	httpd.conf.in	\
+	xmlrpc-server.php
