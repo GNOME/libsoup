@@ -1,3 +1,16 @@
+Changes in libsoup from 2.2.94 to 2.2.95.1:
+
+	* Even more fixes to XML-RPC, found by the new XML-RPC
+          regression test. This includes some API changes that I don't
+          feel guilty about, because the code totally didn't work at
+          all before.
+
+	* Fixed a bug in soup_mktime_utc()
+
+	* (2.2.95 was identical to 2.2.95.1. The only difference is
+	  that the shared library version was belatedly bumped from
+	  8.2.0 to 8.3.0 to reflect the API "additions")
+
 Changes in libsoup from 2.2.93 to 2.2.94:
 
 	* Various fixes to the XML-RPC code (which apparently had not

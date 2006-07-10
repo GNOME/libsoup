@@ -1,3 +1,14 @@
+2006-07-10  Dan Winship  <danw@novell.com>
+
+	* configure.in: 2.2.95.1, and bump SOUP_AGE/SOUP_CURRENT this
+	time. Pointed out by Daniel Holbach.
+	
+2006-07-10  Dan Winship  <danw@novell.com>
+
+	* configure.in: 2.2.95
+
+	* NEWS: update
+
 2006-06-19  Dan Winship  <danw@novell.com>
 
 	* tests/Makefile.am (noinst_PROGRAMS): don't build xmlrpc-test
