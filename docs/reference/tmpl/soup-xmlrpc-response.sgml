@@ -163,7 +163,7 @@ An XML-RPC response
 </para>
 
 @value: 
-@buf: 
+@data: 
 @Returns: 
 
 

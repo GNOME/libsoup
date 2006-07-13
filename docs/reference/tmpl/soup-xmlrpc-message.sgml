@@ -110,7 +110,7 @@ An XML-RPC Message
 @d: 
 
 
-<!-- ##### FUNCTION soup_xmlrpc_message_write_time ##### -->
+<!-- ##### FUNCTION soup_xmlrpc_message_write_datetime ##### -->
 <para>
 
 </para>

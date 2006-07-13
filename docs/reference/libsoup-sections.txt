@@ -623,7 +623,7 @@ soup_xmlrpc_message_write_int
 soup_xmlrpc_message_write_boolean
 soup_xmlrpc_message_write_string
 soup_xmlrpc_message_write_double
-soup_xmlrpc_message_write_time
+soup_xmlrpc_message_write_datetime
 soup_xmlrpc_message_write_base64
 <SUBSECTION>
 soup_xmlrpc_message_start_struct
