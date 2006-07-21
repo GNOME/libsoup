@@ -126,7 +126,8 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	*encoding = soup_message_get_response_encoding (msg, NULL);
 
 	claimed_encoding = soup_server_message_get_encoding (smsg);
-	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH) {
+	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH &&
+	    !soup_message_get_header (msg->response_headers, "Content-Length")) {
 		g_string_append_printf (headers, "Content-Length: %d\r\n",
 					msg->response.length);
 	} else if (claimed_encoding == SOUP_TRANSFER_CHUNKED)
