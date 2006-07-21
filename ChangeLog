@@ -1,5 +1,11 @@
 2006-07-21  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-auth.c (soup_auth_new_from_header_list): if the
+	constructed auth doesn't have a realm, it's invalid, as per RFC
+	2617. Based on a patch from Nate Nielsen on libsoup-list.
+	(soup_auth_get_realm): remove "if available" from docs; all auths
+	always have a realm.
+
 	* libsoup/soup-message-server-io.c (get_response_headers): If the
 	server handler set a Content-Length header on the message, don't
 	add a second one. (Preserves compatibility with an old hacky way

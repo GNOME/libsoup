@@ -86,6 +86,11 @@ soup_auth_new_from_header_list (const GSList *vals)
 		return NULL;
 
 	SOUP_AUTH_GET_CLASS (auth)->construct (auth, header);
+	if (!soup_auth_get_realm (auth)) {
+		g_object_unref (auth);
+		return NULL;
+	}
+
 	return auth;
 }
 
@@ -129,7 +134,7 @@ soup_auth_get_scheme_name (SoupAuth *auth)
  * soup_auth_get_realm:
  * @auth: a #SoupAuth
  *
- * Returns @auth's realm, if any.
+ * Returns @auth's realm.
  *
  * Return value: the realm name
  **/
