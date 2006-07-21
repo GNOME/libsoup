@@ -8,16 +8,22 @@ Features:
   * Proxy support, including authentication and SSL tunneling
   * Client support for Digest, NTLM, and Basic authentication
   * Server support for Digest and Basic authentication
+  * Basic client-side SOAP and XML-RPC support
 
-See the test programs in tests/ for simple examples of how to use the
-code, or evolution-data-server and evolution-exchange for more
-complicated examples.
+See the documentation in docs/reference/ and the test programs in
+tests/ for simple examples of how to use the code. The
+evolution-data-server and evolution-exchange modules in GNOME CVS have
+some more complicated examples.
 
-More information (including future plans) may be available at
+There is a mailing list for libsoup-related questions/discussions at
+gnome.org. Visit http://mail.gnome.org/mailman/listinfo/libsoup-list
+to subscribe or read the archives.
+
+Bugs against libsoup can be filed at the GNOME bugzilla:
+http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup
+
+More information (including the libsoup To Do list) is available at
 http://live.gnome.org/LibSoup
-
-To subscribe to the Soup discussion list, send mail with the word
-"Subscribe" in the message body to soup-list-request@ximian.com.
 
 Licensing:
 libsoup is licensed under the LGPL, see COPYING for more details.

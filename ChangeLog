@@ -1,5 +1,17 @@
 2006-07-21  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-message-server-io.c (get_response_headers): If the
+	server handler set a Content-Length header on the message, don't
+	add a second one. (Preserves compatibility with an old hacky way
+	that people might have been handling HEAD from SoupServer.)
+
+	* README: update to mention mailing list and bugzilla
+
+	* HACKING: kill this since there's nothing here that isn't either
+	obvious, or redundant with the README
+
+2006-07-21  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-server-message.c (soup_server_message_init):
 	initialize encoding to SOUP_TRANSFER_CONTENT_LENGTH rather than
 	SOUP_TRANSFER_UNKNOWN, since SOUP_TRANSFER_UNKNOWN has never
