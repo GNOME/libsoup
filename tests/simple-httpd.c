@@ -29,6 +29,7 @@ static void
 server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 {
 	char *path, *path_to_open, *slash;
+	SoupMethodId method;
 	struct stat st;
 	int fd;
 
@@ -39,7 +40,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	if (msg->request.length)
 		printf ("%.*s\n", msg->request.length, msg->request.body);
 
-	if (soup_method_get_id (msg->method) != SOUP_METHOD_ID_GET) {
+	method = soup_method_get_id (msg->method);
+	if (method != SOUP_METHOD_ID_GET && method != SOUP_METHOD_ID_HEAD) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		goto DONE;
 	}
@@ -96,17 +98,25 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
 	msg->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
 	msg->response.length = st.st_size;
-	msg->response.body = g_malloc (msg->response.length);
 
-	read (fd, msg->response.body, msg->response.length);
+	if (method == SOUP_METHOD_ID_GET) {
+		msg->response.body = g_malloc (msg->response.length);
+		read (fd, msg->response.body, msg->response.length);
+	} else /* method == SOUP_METHOD_ID_HEAD */ {
+		/* SoupServer will ignore response.body and only use
+		 * response.length when responding to HEAD, so we
+		 * could just use the same code for both GET and HEAD.
+		 * But we'll optimize and avoid the extra malloc.
+		 */
+		msg->response.body = NULL;
+	}
+
 	close (fd);
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 
  DONE:
 	g_free (path);
-	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
-					  SOUP_TRANSFER_CONTENT_LENGTH);
 	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 

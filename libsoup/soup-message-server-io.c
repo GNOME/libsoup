@@ -28,7 +28,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupUri *uri;
 	char *req_path = NULL, *url;
-	const char *expect, *length, *enc, *req_host;
+	const char *expect, *req_host;
 	SoupServer *server;
 
 	if (!soup_headers_parse_request (headers, headers_len,
@@ -43,31 +43,15 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 
 	/* Handle request body encoding */
-	length = soup_message_get_header (msg->request_headers,
-					  "Content-Length");
-	enc = soup_message_get_header (msg->request_headers,
-				       "Transfer-Encoding");
-
-	if (enc) {
-		if (g_ascii_strcasecmp (enc, "chunked") == 0)
-			*encoding = SOUP_TRANSFER_CHUNKED;
-		else {
-			g_warning ("Unknown encoding type in HTTP request.");
-			g_free (req_path);
-			return SOUP_STATUS_NOT_IMPLEMENTED;
-		}
-	} else if (length) {
-		int len;
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		len = atoi (length);
-		if (len < 0) {
-			g_free (req_path);
-			return SOUP_STATUS_BAD_REQUEST;
-		}
-		*content_len = len;
-	} else {
+	*encoding = soup_message_get_request_encoding (msg, content_len);
+	if (*encoding == SOUP_TRANSFER_NONE) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
+	} else if (*encoding == SOUP_TRANSFER_UNKNOWN) {
+		if (soup_message_get_header (msg->request_headers, "Transfer-Encoding"))
+			return SOUP_STATUS_NOT_IMPLEMENTED;
+		else
+			return SOUP_STATUS_BAD_REQUEST;
 	}
 
 	/* Generate correct context for request */
@@ -131,6 +115,7 @@ get_response_headers (SoupMessage *msg, GString *headers,
 		      gpointer user_data)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
+	SoupTransferEncoding claimed_encoding;
 
 	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
 				msg->status_code, msg->reason_phrase);
@@ -138,11 +123,13 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	soup_message_foreach_header (msg->response_headers,
 				     write_header, headers);
 
-	*encoding = soup_server_message_get_encoding (smsg);
-	if (*encoding == SOUP_TRANSFER_CONTENT_LENGTH) {
+	*encoding = soup_message_get_response_encoding (msg, NULL);
+
+	claimed_encoding = soup_server_message_get_encoding (smsg);
+	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH) {
 		g_string_append_printf (headers, "Content-Length: %d\r\n",
 					msg->response.length);
-	} else if (*encoding == SOUP_TRANSFER_CHUNKED)
+	} else if (claimed_encoding == SOUP_TRANSFER_CHUNKED)
 		g_string_append (headers, "Transfer-Encoding: chunked\r\n");
 
 	g_string_append (headers, "\r\n");

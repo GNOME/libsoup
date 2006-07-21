@@ -19,9 +19,10 @@
 #define mkdir(path, mode) _mkdir (path)
 #endif
 
-gboolean recurse = FALSE;
 SoupSession *session;
 GMainLoop *loop;
+gboolean recurse = FALSE, debug = FALSE;
+const char *method = SOUP_METHOD_GET;
 char *base;
 SoupUri *base_uri;
 int pending;
@@ -100,6 +101,12 @@ mkdirs (const char *path)
 static void get_url (const char *url);
 
 static void
+print_header (gpointer name, gpointer value, gpointer data)
+{
+	printf ("%s: %s\n", (const char *)name, (const char *)value);
+}
+
+static void
 got_url (SoupMessage *msg, gpointer uri)
 {
 	char *name;
@@ -112,7 +119,17 @@ got_url (SoupMessage *msg, gpointer uri)
 		fprintf (stderr, "  Error: not under %s\n", base_uri->path);
 		goto DONE;
 	}
-	printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
+	if (debug) {
+		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
+		printf ("%s %s HTTP/1.%d\n\n", method, path,
+			soup_message_get_http_version (msg));
+		printf ("HTTP/1.%d %d %s\n",
+			soup_message_get_http_version (msg),
+			msg->status_code, msg->reason_phrase);
+		soup_message_foreach_header (msg->response_headers, print_header, NULL);
+		printf ("\n");
+	} else
+		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 
 	name += strlen (base_uri->path);
 	if (*name == '/')
@@ -122,7 +139,8 @@ got_url (SoupMessage *msg, gpointer uri)
 		unlink (name);
 		header = soup_message_get_header (msg->response_headers, "Location");
 		if (header) {
-			printf ("  -> %s\n", header);
+			if (!debug)
+				printf ("  -> %s\n", header);
 			get_url (header);
 		}
 		goto DONE;
@@ -191,7 +209,7 @@ get_url (const char *url)
 		close (fd);
 	}
 
-	msg = soup_message_new (SOUP_METHOD_GET, url_to_get);
+	msg = soup_message_new (method, url_to_get);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	pending++;
@@ -202,7 +220,7 @@ get_url (const char *url)
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-r] URL\n");
+	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-r] [-h] [-d] URL\n");
 	exit (1);
 }
 
@@ -216,10 +234,19 @@ main (int argc, char **argv)
 	g_type_init ();
 	g_thread_init (NULL);
 
-	while ((opt = getopt (argc, argv, "c:p:r")) != -1) {
+	while ((opt = getopt (argc, argv, "c:dhp:r")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
+			break;
+
+		case 'd':
+			debug = TRUE;
+			break;
+
+		case 'h':
+			method = SOUP_METHOD_HEAD;
+			debug = TRUE;
 			break;
 
 		case 'p':

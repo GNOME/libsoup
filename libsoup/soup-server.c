@@ -337,7 +337,7 @@ request_finished (SoupMessage *msg, gpointer sock)
 {
 	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
 
-	if (soup_message_is_keepalive (msg) && soup_socket_is_connected (sock)) {
+	if (soup_socket_is_connected (sock) && soup_message_is_keepalive (msg)) {
 		/* Start a new request */
 		start_request (soup_server_message_get_server (smsg), sock);
 	} else

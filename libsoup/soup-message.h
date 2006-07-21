@@ -51,18 +51,25 @@ typedef enum {
 
 /**
  * SoupTransferEncoding:
- * @SOUP_TRANSFER_UNKNOWN: HTTP 1.0-style (content ends when the
- * connection is closed)
- * @SOUP_TRANSFER_CHUNKED: chunked encoding (only supported for
- * response)
- * @SOUP_TRANSFER_CONTENT_LENGTH: Content-Length
+ * @SOUP_TRANSFER_UNKNOWN: unknown / error
+ * @SOUP_TRANSFER_CHUNKED: chunked encoding (currently only supported
+ * for response)
+ * @SOUP_TRANSFER_CONTENT_LENGTH: Content-Length encoding
+ * @SOUP_TRANSFER_BYTERANGES: multipart/byteranges (Reserved for future
+ * use: NOT CURRENTLY IMPLEMENTED)
+ * @SOUP_TRANSFER_NONE: no body is present (which is not the same as a
+ * 0-length body, and only occurs in certain places)
+ * @SOUP_TRANSFER_EOF: Response body ends when the connection is closed
  *
  * How the length of a request or response is to be encoded.
  **/
 typedef enum {
 	SOUP_TRANSFER_UNKNOWN = 0,
 	SOUP_TRANSFER_CHUNKED,
-	SOUP_TRANSFER_CONTENT_LENGTH
+	SOUP_TRANSFER_CONTENT_LENGTH,
+	SOUP_TRANSFER_BYTERANGES,
+	SOUP_TRANSFER_NONE,
+	SOUP_TRANSFER_EOF
 } SoupTransferEncoding;
 
 /**
@@ -211,6 +218,11 @@ gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 const SoupUri   *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   const SoupUri     *uri);
+
+SoupTransferEncoding soup_message_get_request_encoding  (SoupMessage *msg,
+							 guint       *content_length);
+SoupTransferEncoding soup_message_get_response_encoding (SoupMessage *msg,
+							 guint       *content_length);
 
 /**
  * SoupMessageFlags:

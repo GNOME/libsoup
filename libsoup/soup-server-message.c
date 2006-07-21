@@ -32,6 +32,7 @@ G_DEFINE_TYPE (SoupServerMessage, soup_server_message, SOUP_TYPE_MESSAGE)
 static void
 soup_server_message_init (SoupServerMessage *smsg)
 {
+	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 }
 
 static void
@@ -95,6 +96,10 @@ soup_server_message_set_encoding (SoupServerMessage *smsg,
 				  SoupTransferEncoding encoding)
 {
 	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
+
+	if (encoding < SOUP_TRANSFER_UNKNOWN ||
+	    encoding > SOUP_TRANSFER_CONTENT_LENGTH)
+		return;
 
 	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding = encoding;
 }

@@ -25,10 +25,8 @@ parse_response_headers (SoupMessage *req,
 			gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-	const char *length, *enc;
 	SoupHttpVersion version;
 	GHashTable *resp_hdrs;
-	SoupMethodId meth_id;
 
 	if (!soup_headers_parse_response (headers, headers_len,
 					  req->response_headers,
@@ -40,56 +38,14 @@ parse_response_headers (SoupMessage *req,
 	if (version < priv->http_version)
 		priv->http_version = version;
 
-	meth_id   = soup_method_get_id (req->method);
 	resp_hdrs = req->response_headers;
 
-	/* 
-	 * Special case zero body handling for:
-	 *   - HEAD requests (where content-length must be ignored) 
-	 *   - CONNECT requests (no body expected) 
-	 *   - No Content (204) responses (no message-body allowed)
-	 *   - Reset Content (205) responses (no entity allowed)
-	 *   - Not Modified (304) responses (no message-body allowed)
-	 *   - 1xx Informational responses (where no body is allowed)
-	 */
-	if (meth_id == SOUP_METHOD_ID_HEAD ||
-	    meth_id == SOUP_METHOD_ID_CONNECT ||
-	    req->status_code  == SOUP_STATUS_NO_CONTENT || 
-	    req->status_code  == SOUP_STATUS_RESET_CONTENT || 
-	    req->status_code  == SOUP_STATUS_NOT_MODIFIED || 
-	    SOUP_STATUS_IS_INFORMATIONAL (req->status_code)) {
+	*encoding = soup_message_get_response_encoding (req, content_len);
+	if (*encoding == SOUP_TRANSFER_NONE) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
-		return SOUP_STATUS_OK;
-	}
-
-	/* 
-	 * Handle Chunked encoding.  Prefer Chunked over a Content-Length to
-	 * support broken Traffic-Server proxies that supply both.  
-	 */
-	enc = soup_message_get_header (resp_hdrs, "Transfer-Encoding");
-	if (enc) {
-		if (g_ascii_strcasecmp (enc, "chunked") == 0) {
-			*encoding = SOUP_TRANSFER_CHUNKED;
-			return SOUP_STATUS_OK;
-		} else
-			return SOUP_STATUS_MALFORMED;
-	}
-
-	/* 
-	 * Handle Content-Length encoding 
-	 */
-	length = soup_message_get_header (resp_hdrs, "Content-Length");
-	if (length) {
-		int len;
-
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		len = atoi (length);
-		if (len < 0)
-			return SOUP_STATUS_MALFORMED;
-		else
-			*content_len = len;
-	}
+	} else if (*encoding == SOUP_TRANSFER_UNKNOWN)
+		return SOUP_STATUS_MALFORMED;
 
 	return SOUP_STATUS_OK;
 }

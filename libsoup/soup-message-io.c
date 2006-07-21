@@ -170,7 +170,7 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 
 	/* Closing the connection to signify EOF is sometimes ok */
 	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
-	    io->read_encoding == SOUP_TRANSFER_UNKNOWN) {
+	    io->read_encoding == SOUP_TRANSFER_EOF) {
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		io_read (sock, msg);
 		return;
@@ -257,7 +257,7 @@ read_body_chunk (SoupMessage *msg)
 	SoupSocketIOStatus status;
 	guchar read_buf[RESPONSE_BLOCK_SIZE];
 	guint len = sizeof (read_buf);
-	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_UNKNOWN);
+	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_EOF);
 	gsize nread;
 
 	while (read_to_eof || io->read_length > 0) {
@@ -343,6 +343,8 @@ io_body_state (SoupTransferEncoding encoding)
 {
 	if (encoding == SOUP_TRANSFER_CHUNKED)
 		return SOUP_MESSAGE_IO_STATE_CHUNK_SIZE;
+	else if (encoding == SOUP_TRANSFER_NONE)
+		return SOUP_MESSAGE_IO_STATE_FINISHING;
 	else
 		return SOUP_MESSAGE_IO_STATE_BODY;
 }
