@@ -67,8 +67,11 @@ void soup_xmlrpc_message_end_member     (SoupXmlrpcMessage *msg);
 void soup_xmlrpc_message_start_array    (SoupXmlrpcMessage *msg);
 void soup_xmlrpc_message_end_array      (SoupXmlrpcMessage *msg);
 
-xmlChar *soup_xmlrpc_message_to_string  (SoupXmlrpcMessage *msg);
-void     soup_xmlrpc_message_persist    (SoupXmlrpcMessage *msg);
+gboolean  soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message,
+					   const char        *xmlstr);
+
+xmlChar  *soup_xmlrpc_message_to_string   (SoupXmlrpcMessage *msg);
+void      soup_xmlrpc_message_persist     (SoupXmlrpcMessage *msg);
 
 SoupXmlrpcResponse *soup_xmlrpc_message_parse_response (SoupXmlrpcMessage *msg);
 

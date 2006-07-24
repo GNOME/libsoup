@@ -327,6 +327,51 @@ soup_xmlrpc_message_to_string (SoupXmlrpcMessage *msg)
 	return body;
 }
 
+gboolean
+soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message, const char *xmlstr)
+{
+	SoupXmlrpcMessagePrivate *priv;
+	xmlDocPtr newdoc;
+	xmlNodePtr body;
+	gboolean fault = TRUE;
+
+	g_return_val_if_fail (SOUP_IS_XMLRPC_MESSAGE (message), FALSE);
+	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (message);
+	g_return_val_if_fail (xmlstr != NULL, FALSE);
+
+	xmlKeepBlanksDefault (0);
+	newdoc = xmlParseMemory (xmlstr, strlen (xmlstr));
+	if (!newdoc)
+		return FALSE;
+
+	body = xmlDocGetRootElement (newdoc);
+	if (!body || strcmp ((char *)body->name, "methodCall"))
+		goto bad;
+
+	body = body->children;
+	if (!body || strcmp ((char *)body->name, "methodName"))
+		goto bad;
+
+	body = body->next;
+	if (!body || strcmp ((char *)body->name, "params"))
+		goto bad;
+
+	body = xmlGetLastChild (body);
+	if (!body)
+		goto bad;
+
+	/* body should be pointing by now to the last param */
+	xmlFreeDoc (priv->doc);
+	priv->doc = newdoc;
+	priv->last_node = body;
+
+	return TRUE;
+
+bad:
+	xmlFreeDoc (newdoc);
+	return FALSE;
+}
+
 void
 soup_xmlrpc_message_persist (SoupXmlrpcMessage *msg)
 {

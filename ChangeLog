@@ -1,3 +1,8 @@
+2006-07-24  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-message.c (soup_xmlrpc_message_from_string):
+	New, from Fernando Herrera, bug 348532.
+
 2006-07-21  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-auth.c (soup_auth_new_from_header_list): if the
