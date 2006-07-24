@@ -1,3 +1,19 @@
+Changes in libsoup from 2.2.95.1 to 2.2.96:
+
+	* SoupServer now works even if you don't explicitly set an
+	  encoding for the response. (In particular, the automatic 404
+	  if you request a path with no handlers now works. Problem
+	  pointed out by Dennis Jacobfeuerborn.)
+
+	* WWW-Authenticate and Proxy-Authenticate responses with no
+          realm parameter are now ignored, as per RFC 2617, fixing a
+          crash pointed out by Nate Nielsen.
+
+	* Added soup_xmlrpc_message_from_string(), from Fernando
+          Herrera [348532].
+
+	* simple-httpd and "get" now support HEAD
+
 Changes in libsoup from 2.2.94 to 2.2.95.1:
 
 	* Even more fixes to XML-RPC, found by the new XML-RPC

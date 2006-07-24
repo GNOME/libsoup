@@ -1,5 +1,9 @@
 2006-07-24  Dan Winship  <danw@novell.com>
 
+	* configure.in: 2.2.96. bump AGE and CURRENT for new API
+
+	* NEWS: update
+
 	* libsoup/soup-xmlrpc-message.c (soup_xmlrpc_message_from_string):
 	New, from Fernando Herrera, bug 348532.
 
