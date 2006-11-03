@@ -13,3 +13,5 @@ install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(pkgconfigdir)
 	$(INSTALL) -m 644 libsoup.pc $(DESTDIR)$(pkgconfigdir)/libsoup-$(SOUP_API_VERSION).pc
 
+uninstall-local:
+	rm -f $(DESTDIR)$(pkgconfigdir)/libsoup-$(SOUP_API_VERSION).pc

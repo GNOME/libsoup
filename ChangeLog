@@ -1,5 +1,8 @@
 2006-11-03  Dan Winship  <danw@novell.com>
 
+	* Makefile.am (uninstall-local): uninstall the pkgconfig file.
+	Based on #356809 from Matthew Barnes.
+
 	* libsoup/soup-server.c (get_property): Fix leaks pointed out by
 	Paolo Borelli. #351500
 
