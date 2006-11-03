@@ -9,6 +9,8 @@
 	* configure.in: Use pkgconfig to find gnutls. Remove old static
 	linking stuff that was only needed for rcd.
 
+	* acinclude.m4: remove gnutls stuff
+
 	* libsoup.pc.in: Use Requires rather than putting xml/ssl
 	dependencies directly into Libs/Cflags. From Mikhail Zabaluev.
 	#343340.
