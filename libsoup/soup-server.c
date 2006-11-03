@@ -229,13 +229,13 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_uint (value, priv->port);
 		break;
 	case PROP_INTERFACE:
-		g_value_set_object (value, g_object_ref (priv->interface));
+		g_value_set_object (value, priv->interface);
 		break;
 	case PROP_SSL_CERT_FILE:
-		g_value_set_string (value, g_strdup (priv->ssl_cert_file));
+		g_value_set_string (value, priv->ssl_cert_file);
 		break;
 	case PROP_SSL_KEY_FILE:
-		g_value_set_string (value, g_strdup (priv->ssl_key_file));
+		g_value_set_string (value, priv->ssl_key_file);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
