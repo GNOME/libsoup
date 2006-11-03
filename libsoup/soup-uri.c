@@ -18,7 +18,7 @@ soup_uri_get_protocol (const char *proto, int len)
 {
 	char proto_buf[128];
 
-	g_return_val_if_fail (len < sizeof (proto_buf), 0);
+	g_return_val_if_fail (len < sizeof (proto_buf) - 1, 0);
 
 	memcpy (proto_buf, proto, len);
 	proto_buf[len] = '\0';

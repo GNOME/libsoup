@@ -11,6 +11,9 @@
 	* libsoup/soup-server.c (get_property): Fix leaks pointed out by
 	Paolo Borelli. #351500
 
+	* libsoup/soup-uri.c (soup_uri_get_protocol): Fix an off by one
+	pointed out by Andrew W. Nosenko.
+
 	* configure.in: Use pkgconfig to find gnutls. Remove old static
 	linking stuff that was only needed for rcd.
 
