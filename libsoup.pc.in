@@ -7,6 +7,6 @@ SOUP_API_VERSION=@SOUP_API_VERSION@
 Name: libsoup
 Description: a glib-based HTTP library
 Version: @VERSION@
-Requires: glib-2.0
-Libs: -L${libdir} -lsoup-${SOUP_API_VERSION} @LIBGNUTLS_LIBS@ @XML_LIBS@
-Cflags: -I${includedir}/libsoup-${SOUP_API_VERSION} @XML_CFLAGS@
+Requires: glib-2.0 libxml-2.0 @SSL_REQUIREMENT@
+Libs: -L${libdir} -lsoup-${SOUP_API_VERSION}
+Cflags: -I${includedir}/libsoup-${SOUP_API_VERSION}

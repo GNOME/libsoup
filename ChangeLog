@@ -1,5 +1,12 @@
 2006-11-03  Dan Winship  <danw@novell.com>
 
+	* configure.in: Use pkgconfig to find gnutls. Remove old static
+	linking stuff that was only needed for rcd.
+
+	* libsoup.pc.in: Use Requires rather than putting xml/ssl
+	dependencies directly into Libs/Cflags. From Mikhail Zabaluev.
+	#343340.
+
 	* libsoup/Makefile.am (libsoup_2_2_la_LDFLAGS): fix build on
 	cygwin. From "Cygwin Ports maintainer", #321827.
 
