@@ -2,7 +2,6 @@
 
 if OS_WIN32
 LIBWS2_32 = -lws2_32
-NO_UNDEFINED = -no-undefined
 endif
 
 INCLUDES = 				\
@@ -61,7 +60,7 @@ libsoupinclude_HEADERS =	\
 lib_LTLIBRARIES = libsoup-2.2.la
 
 libsoup_2_2_la_LDFLAGS =	\
-	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) $(NO_UNDEFINED)
+	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) -no-undefined
 
 libsoup_2_2_la_LIBADD =			\
 	$(GLIB_LIBS)			\

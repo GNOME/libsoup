@@ -1,3 +1,8 @@
+2006-11-03  Dan Winship  <danw@novell.com>
+
+	* libsoup/Makefile.am (libsoup_2_2_la_LDFLAGS): fix build on
+	cygwin. From "Cygwin Ports maintainer", #321827.
+
 2006-07-24  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.96. bump AGE and CURRENT for new API
