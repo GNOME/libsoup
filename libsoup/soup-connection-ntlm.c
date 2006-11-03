@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-ntlm-offset: 8 -*- */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * soup-connection-ntlm.c: NTLM-using Connection
  *
@@ -330,8 +330,9 @@ soup_ntlm_parse_challenge (const char *challenge,
 {
 	int clen, decodelen;
 	NTLMString domain;
-	char *chall;
-	int state, save;
+	guchar *chall;
+	int state;
+	unsigned int save;
 
 	if (strncmp (challenge, "NTLM ", 5) != 0)
 		return FALSE;
@@ -340,7 +341,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 	chall = g_malloc (decodelen);
 
 	state = save = 0;
-	clen = soup_base64_decode_step ((guchar *) challenge + 5, 
+	clen = soup_base64_decode_step ((const guchar *) challenge + 5, 
 					decodelen,
 					chall, 
 					&state, 
@@ -362,7 +363,7 @@ soup_ntlm_parse_challenge (const char *challenge,
 			return FALSE;
 		}
 
-		*default_domain = g_strndup (chall + domain.offset, domain.length);
+		*default_domain = g_strndup ((char *)chall + domain.offset, domain.length);
 	}
 
 	if (nonce) {
@@ -384,13 +385,13 @@ soup_ntlm_response (const char *nonce,
 	int hlen, dlen, ulen, offset;
 	guchar hash[21], lm_resp[24], nt_resp[24];
 	NTLMResponse resp;
-	unsigned char *out, *p;
+	guchar *out, *p;
 	int state, save;
 
 	nt_hash (password, hash);
-	calc_response (hash, nonce, nt_resp);
+	calc_response (hash, (guchar *)nonce, nt_resp);
 	lanmanager_hash (password, hash);
-	calc_response (hash, nonce, lm_resp);
+	calc_response (hash, (guchar *)nonce, lm_resp);
 
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
@@ -410,7 +411,7 @@ soup_ntlm_response (const char *nonce,
 	ntlm_set_string (&resp.nt_resp, &offset, sizeof (nt_resp));
 
 	out = g_malloc (((offset + 3) * 4) / 3 + 6);
-	strncpy (out, "NTLM ", 5);
+	strncpy ((char *)out, "NTLM ", 5);
 	p = out + 5;
 
 	state = save = 0;
@@ -421,19 +422,19 @@ soup_ntlm_response (const char *nonce,
 				      p, 
 				      &state, 
 				      &save);
-	p += soup_base64_encode_step ((guchar *) domain, 
+	p += soup_base64_encode_step ((const guchar *) domain, 
 				      dlen, 
 				      FALSE, 
 				      p, 
 				      &state, 
 				      &save);
-	p += soup_base64_encode_step ((guchar *) user, 
+	p += soup_base64_encode_step ((const guchar *) user, 
 				      ulen, 
 				      FALSE, 
 				      p, 
 				      &state, 
 				      &save);
-	p += soup_base64_encode_step ((guchar *) host, 
+	p += soup_base64_encode_step ((const guchar *) host, 
 				      hlen, 
 				      FALSE, 
 				      p,
@@ -454,7 +455,7 @@ soup_ntlm_response (const char *nonce,
 				       &save);
 	*p = '\0';
 
-	return out;
+	return (char *)out;
 }
 
 /* DES utils */

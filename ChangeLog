@@ -1,5 +1,10 @@
 2006-11-03  Dan Winship  <danw@novell.com>
 
+	* libsoup/*.c: fix lots of warnings. Partially from patches from
+	Andrew W. Nosenko, and also some fixes from libsoup-pre214-branch.
+	
+2006-11-03  Dan Winship  <danw@novell.com>
+
 	* Makefile.am (uninstall-local): uninstall the pkgconfig file.
 	Based on #356809 from Matthew Barnes.
 

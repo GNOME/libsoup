@@ -60,7 +60,7 @@ soup_xmlrpc_response_init (SoupXmlrpcResponse *response)
 {
 	SoupXmlrpcResponsePrivate *priv = SOUP_XMLRPC_RESPONSE_GET_PRIVATE (response);
 
-	priv->doc = xmlNewDoc ((xmlChar *)"1.0");
+	priv->doc = xmlNewDoc ((const xmlChar *)"1.0");
 	priv->fault = FALSE;
 }
 
@@ -130,23 +130,23 @@ soup_xmlrpc_response_from_string (SoupXmlrpcResponse *response, const char *xmls
 		goto very_bad;
 
 	body = xmlDocGetRootElement (newdoc);
-	if (!body || strcmp ((char *)body->name, "methodResponse"))
+	if (!body || strcmp ((const char *)body->name, "methodResponse"))
 		goto bad;
 
 	body = exactly_one_child (body);
 	if (!body)
 		goto bad;
 
-	if (strcmp ((char *)body->name, "params") == 0) {
+	if (strcmp ((const char *)body->name, "params") == 0) {
 		fault = FALSE;
 		body = exactly_one_child (body);
-		if (!body || strcmp ((char *)body->name, "param"))
+		if (!body || strcmp ((const char *)body->name, "param"))
 			goto bad;
-	} else if (strcmp ((char *)body->name, "fault") != 0)
+	} else if (strcmp ((const char *)body->name, "fault") != 0)
 		goto bad;
 
 	body = exactly_one_child (body);
-	if (!body || strcmp ((char *)body->name, "value"))
+	if (!body || strcmp ((const char *)body->name, "value"))
 		goto bad;
 
 	/* body should be pointing by now to the struct of a fault, or the value of a
@@ -206,28 +206,28 @@ soup_xmlrpc_value_get_type (SoupXmlrpcValue *value)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return SOUP_XMLRPC_VALUE_TYPE_BAD;
 
 	xml = exactly_one_child (xml);
 	if (!xml)
 		return SOUP_XMLRPC_VALUE_TYPE_BAD;
 
-	if (strcmp ((char *)xml->name, "i4") == 0 || strcmp ((char *)xml->name, "int") == 0)
+	if (strcmp ((const char *)xml->name, "i4") == 0 || strcmp ((const char *)xml->name, "int") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_INT;
-	else if (strcmp ((char *)xml->name, "boolean") == 0)
+	else if (strcmp ((const char *)xml->name, "boolean") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_BOOLEAN;
-	else if (strcmp ((char *)xml->name, "string") == 0)
+	else if (strcmp ((const char *)xml->name, "string") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_STRING;
-	else if (strcmp ((char *)xml->name, "double") == 0)
+	else if (strcmp ((const char *)xml->name, "double") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_DOUBLE;
-	else if (strcmp ((char *)xml->name, "dateTime.iso8601") == 0)
+	else if (strcmp ((const char *)xml->name, "dateTime.iso8601") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_DATETIME;
-	else if (strcmp ((char *)xml->name, "base64") == 0)
+	else if (strcmp ((const char *)xml->name, "base64") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_BASE64;
-	else if (strcmp ((char *)xml->name, "struct") == 0)
+	else if (strcmp ((const char *)xml->name, "struct") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_STRUCT;
-	else if (strcmp ((char *)xml->name, "array") == 0)
+	else if (strcmp ((const char *)xml->name, "array") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_ARRAY;
 	else
 		return SOUP_XMLRPC_VALUE_TYPE_BAD;
@@ -243,10 +243,10 @@ soup_xmlrpc_value_get_int (SoupXmlrpcValue *value, long *i)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || (strcmp ((char *)xml->name, "int") && strcmp ((char *)xml->name, "i4")))
+	if (!xml || (strcmp ((const char *)xml->name, "int") && strcmp ((const char *)xml->name, "i4")))
 		return FALSE;
 
 	/* FIXME this should be exactly one text node */
@@ -268,10 +268,10 @@ soup_xmlrpc_value_get_double (SoupXmlrpcValue *value, double *d)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || (strcmp ((char *)xml->name, "double")))
+	if (!xml || (strcmp ((const char *)xml->name, "double")))
 		return FALSE;
 
 	/* FIXME this should be exactly one text node */
@@ -294,10 +294,10 @@ soup_xmlrpc_value_get_boolean (SoupXmlrpcValue *value, gboolean *b)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || strcmp ((char *)xml->name, "boolean"))
+	if (!xml || strcmp ((const char *)xml->name, "boolean"))
 		return FALSE;
 
 	content = xmlNodeGetContent (xml);
@@ -317,10 +317,10 @@ soup_xmlrpc_value_get_string (SoupXmlrpcValue *value, char **str)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || strcmp ((char *)xml->name, "string"))
+	if (!xml || strcmp ((const char *)xml->name, "string"))
 		return FALSE;
 
 	content = xmlNodeGetContent (xml);
@@ -338,10 +338,10 @@ soup_xmlrpc_value_get_datetime (SoupXmlrpcValue *value, time_t *timeval)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || (strcmp ((char *)xml->name, "dateTime.iso8601")))
+	if (!xml || (strcmp ((const char *)xml->name, "dateTime.iso8601")))
 		return FALSE;
 
 	/* FIXME this should be exactly one text node */
@@ -365,10 +365,10 @@ soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, GByteArray **data)
 	int len;
 
 	xml = (xmlNode *) value;
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || strcmp ((char *)xml->name, "base64"))
+	if (!xml || strcmp ((const char *)xml->name, "base64"))
 		return FALSE;
 
 	content = xmlNodeGetContent (xml);
@@ -391,11 +391,11 @@ soup_xmlrpc_value_get_struct (SoupXmlrpcValue *value, GHashTable **table)
 
 	xml = (xmlNode *) value;
 
-	if (strcmp ((char *)xml->name, "value"))
+	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
 
-	if (!xml || strcmp ((char *)xml->name, "struct"))
+	if (!xml || strcmp ((const char *)xml->name, "struct"))
 		return FALSE;
 
 	t = g_hash_table_new_full (g_str_hash, g_str_equal, xmlFree, NULL);
@@ -404,19 +404,19 @@ soup_xmlrpc_value_get_struct (SoupXmlrpcValue *value, GHashTable **table)
 		xmlChar *name;
 		xmlNode *val, *cur;
 
-		if (strcmp ((char *)xml->name, "member") || !xml->children)
+		if (strcmp ((const char *)xml->name, "member") || !xml->children)
 			goto bad;
 
 		name = NULL;
 		val = NULL;
 
 		for (cur = xml->children; cur; cur = cur->next) {
-			if (strcmp((char *)cur->name, "name") == 0) {
+			if (strcmp((const char *)cur->name, "name") == 0) {
 				if (name)
 					goto local_bad;
 				name = xmlNodeGetContent (cur);
 			}
-			else if (strcmp ((char *)cur->name, "value") == 0)
+			else if (strcmp ((const char *)cur->name, "value") == 0)
 				val = cur;
 			else goto local_bad;
 
@@ -448,9 +448,9 @@ soup_xmlrpc_value_array_get_iterator (SoupXmlrpcValue *value, SoupXmlrpcValueArr
 
 	xml = (xmlNode *) value;
 
-	if (!xml->children || strcmp((char *)xml->children->name, "array") != 0 ||
+	if (!xml->children || strcmp((const char *)xml->children->name, "array") != 0 ||
 	    xml->children->next || !xml->children->children ||
-	    strcmp((char *)xml->children->children->name, "data") != 0 ||
+	    strcmp((const char *)xml->children->children->name, "data") != 0 ||
 	    xml->children->children->next)
 		return FALSE;
 

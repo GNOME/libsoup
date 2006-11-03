@@ -167,7 +167,7 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 			last = strrchr (base->path, '/');
 			if (last) {
 				newpath = g_strdup_printf ("%.*s/%s",
-							   last - base->path,
+							   (int)(last - base->path),
 							   base->path,
 							   uri->path);
 			} else

@@ -631,7 +631,7 @@ soup_message_add_header (GHashTable *hash, const char *name, const char *value)
 	old_value = g_hash_table_lookup (hash, name);
 
 	if (old_value)
-		g_slist_append (old_value, g_strdup (value));
+		old_value = g_slist_append (old_value, g_strdup (value));
 	else {
 		g_hash_table_insert (hash, g_strdup (name),
 				     g_slist_append (NULL, g_strdup (value)));
@@ -1110,7 +1110,7 @@ soup_message_add_chunk (SoupMessage   *msg,
 	chunk->length = length;
 
 	if (priv->chunks) {
-		g_slist_append (priv->last_chunk, chunk);
+		priv->last_chunk = g_slist_append (priv->last_chunk, chunk);
 		priv->last_chunk = priv->last_chunk->next;
 	} else {
 		priv->chunks = priv->last_chunk =

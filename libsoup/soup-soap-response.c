@@ -51,7 +51,7 @@ soup_soap_response_init (SoupSoapResponse *response)
 {
 	SoupSoapResponsePrivate *priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
 
-	priv->xmldoc = xmlNewDoc ((xmlChar *)"1.0");
+	priv->xmldoc = xmlNewDoc ((const xmlChar *)"1.0");
 }
 
 
@@ -105,7 +105,7 @@ parse_parameters (SoupSoapResponsePrivate *priv, xmlNodePtr xml_method)
 	xmlNodePtr tmp;
 
 	for (tmp = xml_method->xmlChildrenNode; tmp != NULL; tmp = tmp->next) {
-		if (!strcmp ((char *)tmp->name, "Fault")) {
+		if (!strcmp ((const char *)tmp->name, "Fault")) {
 			priv->soap_fault = tmp;
 			continue;
 		} else {
@@ -154,7 +154,7 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 		return FALSE;
 	}
 
-	if (strcmp ((char *)xml_root->name, "Envelope") != 0) {
+	if (strcmp ((const char *)xml_root->name, "Envelope") != 0) {
 		xmlFreeDoc (priv->xmldoc);
 		priv->xmldoc = old_doc;
 		return FALSE;
@@ -162,9 +162,9 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 
 	if (xml_root->xmlChildrenNode != NULL) {
 		xml_body = xml_root->xmlChildrenNode;
-		if (strcmp ((char *)xml_body->name, "Header") == 0)
+		if (strcmp ((const char *)xml_body->name, "Header") == 0)
 			xml_body = xml_root->xmlChildrenNode->next;
-		if (strcmp ((char *)xml_body->name, "Body") != 0) {
+		if (strcmp ((const char *)xml_body->name, "Body") != 0) {
 			xmlFreeDoc (priv->xmldoc);
 			priv->xmldoc = old_doc;
 			return FALSE;
@@ -223,7 +223,7 @@ soup_soap_response_set_method_name (SoupSoapResponse *response, const char *meth
 	g_return_if_fail (priv->xml_method != NULL);
 	g_return_if_fail (method_name != NULL);
 
-	xmlNodeSetName (priv->xml_method, (xmlChar *)method_name);
+	xmlNodeSetName (priv->xml_method, (const xmlChar *)method_name);
 }
 
 /**
@@ -331,7 +331,7 @@ soup_soap_parameter_get_first_child_by_name (SoupSoapParameter *param, const cha
 	for (tmp = soup_soap_parameter_get_first_child (param);
 	     tmp != NULL;
 	     tmp = soup_soap_parameter_get_next_child (tmp)) {
-		if (!strcmp (name, (char *)tmp->name))
+		if (!strcmp (name, (const char *)tmp->name))
 			return tmp;
 	}
 
@@ -383,7 +383,7 @@ soup_soap_parameter_get_next_child_by_name (SoupSoapParameter *param,
 	for (tmp = soup_soap_parameter_get_next_child (param);
 	     tmp != NULL;
 	     tmp = soup_soap_parameter_get_next_child (tmp)) {
-		if (!strcmp (name, (char *)tmp->name))
+		if (!strcmp (name, (const char *)tmp->name))
 			return tmp;
 	}
 
@@ -408,7 +408,7 @@ soup_soap_parameter_get_property (SoupSoapParameter *param, const char *prop_nam
 	g_return_val_if_fail (param != NULL, NULL);
 	g_return_val_if_fail (prop_name != NULL, NULL);
 
-	xml_s = xmlGetProp (param, (xmlChar *)prop_name);
+	xml_s = xmlGetProp (param, (const xmlChar *)prop_name);
 	s = g_strdup ((char *)xml_s);
 	xmlFree (xml_s);
 
@@ -479,7 +479,7 @@ soup_soap_response_get_first_parameter_by_name (SoupSoapResponse *response,
 	for (l = priv->parameters; l != NULL; l = l->next) {
 		SoupSoapParameter *param = (SoupSoapParameter *) l->data;
 
-		if (!strcmp (name, (char *)param->name))
+		if (!strcmp (name, (const char *)param->name))
 			return param;
 	}
 

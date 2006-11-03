@@ -7,7 +7,7 @@
 #include "libsoup/soup-uri.h"
 
 struct {
-	char *uri_string, *result;
+	const char *uri_string, *result;
 } abs_tests[] = {
 	{ "foo:", "foo:" },
 	{ "file:/dev/null", "file:/dev/null" },
@@ -33,9 +33,9 @@ struct {
 int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
 /* From RFC 2396. */
-char *base = "http://a/b/c/d;p?q";
+const char *base = "http://a/b/c/d;p?q";
 struct {
-	char *uri_string, *result;
+	const char *uri_string, *result;
 } rel_tests[] = {
 	{ "g:h", "g:h" },
 	{ "g", "http://a/b/c/g" },

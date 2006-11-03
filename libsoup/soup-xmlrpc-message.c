@@ -57,7 +57,7 @@ soup_xmlrpc_message_init (SoupXmlrpcMessage *msg)
 
 	xmlKeepBlanksDefault (0);
 
-	priv->doc = xmlNewDoc ((xmlChar *)"1.0");
+	priv->doc = xmlNewDoc ((const xmlChar *)"1.0");
 	priv->doc->standalone = FALSE;
 	priv->doc->encoding = xmlCharStrdup ("UTF-8");
 }
@@ -100,14 +100,14 @@ soup_xmlrpc_message_start_call (SoupXmlrpcMessage *msg, const char *method_name)
 
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 
-	root = xmlNewDocNode (priv->doc, NULL, (xmlChar *)"methodCall", NULL);
+	root = xmlNewDocNode (priv->doc, NULL, (const xmlChar *)"methodCall", NULL);
 	xmlDocSetRootElement (priv->doc, root);
 
-	xmlNewChild (root, NULL, (xmlChar *)"methodName", (xmlChar *)method_name);
+	xmlNewChild (root, NULL, (const xmlChar *)"methodName", (const xmlChar *)method_name);
 
 	priv->last_node = root;
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"params", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"params", NULL);
 }
 
 void
@@ -128,7 +128,7 @@ soup_xmlrpc_message_start_param (SoupXmlrpcMessage *msg)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"param", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"param", NULL);
 }
 
 void
@@ -150,8 +150,8 @@ soup_xmlrpc_message_write_int (SoupXmlrpcMessage *msg, long i)
 
 	str = g_strdup_printf ("%ld", i);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"i4", (xmlChar *)str);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"i4", (xmlChar *)str);
 	soup_xmlrpc_message_end_element (msg);
 
 	g_free (str);
@@ -165,8 +165,8 @@ soup_xmlrpc_message_write_boolean (SoupXmlrpcMessage *msg, gboolean b)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewChild (priv->last_node, NULL, (xmlChar *)"boolean", b ? (xmlChar *)"1" : (xmlChar *)"0");
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewChild (priv->last_node, NULL, (const xmlChar *)"boolean", (const xmlChar*)(b ? "1" : "0"));
 	soup_xmlrpc_message_end_element (msg);
 }
 
@@ -178,8 +178,8 @@ soup_xmlrpc_message_write_string (SoupXmlrpcMessage *msg, const char *str)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"string", (xmlChar *)str);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"string", (const xmlChar *)str);
 	soup_xmlrpc_message_end_element (msg);
 }
 
@@ -194,8 +194,8 @@ soup_xmlrpc_message_write_double (SoupXmlrpcMessage *msg, double d)
 
 	str = g_strdup_printf ("%f", d);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"double", (xmlChar *)str);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"double", (xmlChar *)str);
 	soup_xmlrpc_message_end_element (msg);
 
 	g_free (str);
@@ -214,8 +214,8 @@ soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg, const time_t timeval
 	soup_gmtime (&timeval, &time);
 	strftime (str, 128, "%Y%m%dT%H:%M:%S", &time);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"dateTime.iso8601", (xmlChar *)str);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"dateTime.iso8601", (xmlChar *)str);
 	soup_xmlrpc_message_end_element (msg);
 }
 
@@ -230,8 +230,8 @@ soup_xmlrpc_message_write_base64 (SoupXmlrpcMessage *msg, gconstpointer buf, int
 
 	str = soup_base64_encode (buf, len);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (xmlChar *)"base64", (xmlChar *)str);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"base64", (xmlChar *)str);
 	soup_xmlrpc_message_end_element (msg);
 
 	g_free (str);
@@ -245,8 +245,8 @@ soup_xmlrpc_message_start_struct (SoupXmlrpcMessage *msg)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"struct", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"struct", NULL);
 }
 
 void
@@ -266,8 +266,8 @@ soup_xmlrpc_message_start_member (SoupXmlrpcMessage *msg, const char *name)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"member", NULL);
-	xmlNewChild (priv->last_node, NULL, (xmlChar *)"name", (xmlChar *)name);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"member", NULL);
+	xmlNewChild (priv->last_node, NULL, (const xmlChar *)"name", (const xmlChar *)name);
 }
 
 void
@@ -286,9 +286,9 @@ soup_xmlrpc_message_start_array (SoupXmlrpcMessage *msg)
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"value", NULL);
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"array", NULL);
-	priv->last_node = xmlNewChild (priv->last_node, NULL, (xmlChar *)"data", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"array", NULL);
+	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"data", NULL);
 }
 
 void
@@ -333,7 +333,6 @@ soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message, const char *xmlstr)
 	SoupXmlrpcMessagePrivate *priv;
 	xmlDocPtr newdoc;
 	xmlNodePtr body;
-	gboolean fault = TRUE;
 
 	g_return_val_if_fail (SOUP_IS_XMLRPC_MESSAGE (message), FALSE);
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (message);
@@ -345,15 +344,15 @@ soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message, const char *xmlstr)
 		return FALSE;
 
 	body = xmlDocGetRootElement (newdoc);
-	if (!body || strcmp ((char *)body->name, "methodCall"))
+	if (!body || strcmp ((const char *)body->name, "methodCall"))
 		goto bad;
 
 	body = body->children;
-	if (!body || strcmp ((char *)body->name, "methodName"))
+	if (!body || strcmp ((const char *)body->name, "methodName"))
 		goto bad;
 
 	body = body->next;
-	if (!body || strcmp ((char *)body->name, "params"))
+	if (!body || strcmp ((const char *)body->name, "params"))
 		goto bad;
 
 	body = xmlGetLastChild (body);

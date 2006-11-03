@@ -104,20 +104,20 @@ soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
 }
 
 typedef struct {
-	char *name;
+	const char *name;
 	guint type;
 } DataType;
 
 static DataType qop_types[] = {
 	{ "auth",     QOP_AUTH     },
 	{ "auth-int", QOP_AUTH_INT },
-	{ NULL, NULL }
+	{ NULL, 0 }
 };
 
 static DataType algorithm_types[] = {
 	{ "MD5",      ALGORITHM_MD5      },
 	{ "MD5-sess", ALGORITHM_MD5_SESS },
-	{ NULL, NULL }
+	{ NULL, 0 }
 };
 
 static guint

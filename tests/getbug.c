@@ -75,7 +75,7 @@ main (int argc, char **argv)
 {
 	SoupUri *proxy = NULL;
 	SoupXmlrpcMessage *msg;
-	char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
+	const char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
 	int opt, bug;
 
 	g_type_init ();

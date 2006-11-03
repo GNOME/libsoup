@@ -525,7 +525,7 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 		goto cant_connect;
 
 	if (getsockopt (priv->sockfd, SOL_SOCKET, SO_ERROR,
-			(void *) &error, &len) != 0)
+			(void *)&error, (void *)&len) != 0)
 		goto cant_connect;
 	if (error)
 		goto cant_connect;
@@ -655,7 +655,7 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	}
 
 	sa_len = sizeof (sa);
-	sockfd = accept (priv->sockfd, (struct sockaddr *)&sa, &sa_len);
+	sockfd = accept (priv->sockfd, (struct sockaddr *)&sa, (void *)&sa_len);
 	if (SOUP_IS_INVALID_SOCKET (sockfd))
 		return TRUE;
 
@@ -1015,7 +1015,7 @@ soup_socket_get_local_address (SoupSocket *sock)
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
-		getsockname (priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
+		getsockname (priv->sockfd, (struct sockaddr *)&bound_sa, (void *)&sa_len);
 		priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
 	g_mutex_unlock (priv->addrlock);
@@ -1045,7 +1045,7 @@ soup_socket_get_remote_address (SoupSocket *sock)
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
-		getpeername (priv->sockfd, (struct sockaddr *)&bound_sa, &sa_len);
+		getpeername (priv->sockfd, (struct sockaddr *)&bound_sa, (void *)&sa_len);
 		priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&bound_sa, sa_len);
 	}
 	g_mutex_unlock (priv->addrlock);

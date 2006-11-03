@@ -53,7 +53,7 @@ soup_str_case_equal (gconstpointer v1,
 /* Base64 utils (straight from camel-mime-utils.c) */
 #define d(x)
 
-static char *base64_alphabet =
+static const char *base64_alphabet =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /* 
@@ -217,11 +217,10 @@ char *
 soup_base64_encode (const char *text, int len)
 {
         unsigned char *out;
-        int state = 0, outlen;
-        unsigned int save = 0;
+        int state = 0, outlen,  save = 0;
         
         out = g_malloc (len * 4 / 3 + 5);
-        outlen = soup_base64_encode_close (text, 
+        outlen = soup_base64_encode_close ((const guchar *)text,
 					   len, 
 					   FALSE,
 					   out, 
@@ -318,15 +317,17 @@ char *
 soup_base64_decode (const char   *text,
 		    int          *out_len)
 {
-	char *ret;
-	int inlen, state = 0, save = 0;
+	guchar *ret;
+	int inlen, state = 0;
+	unsigned int save = 0;
 
 	inlen = strlen (text);
 	ret = g_malloc0 (inlen);
 
-	*out_len = soup_base64_decode_step (text, inlen, ret, &state, &save);
+	*out_len = soup_base64_decode_step ((const guchar *)text, inlen,
+					    ret, &state, &save);
 
-	return ret; 
+	return (char *)ret; 
 }
 
 typedef struct {
