@@ -1,3 +1,12 @@
+2006-11-05  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-headers.c (soup_headers_parse_request): document
+	this (in particular, point out that str+len must point to exactly
+	the right place). Allow req_method and req_path to be NULL.
+	(soup_headers_parse_status_line, soup_headers_parse_response):
+	document. Also, change "status_phrase" argument to "reason_phrase"
+	to match the spec. Inspired by #339889.
+
 2006-11-03  Dan Winship  <danw@novell.com>
 
 	* libsoup/*.c: fix lots of warnings. Partially from patches from

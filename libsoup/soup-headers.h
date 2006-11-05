@@ -21,14 +21,14 @@ gboolean    soup_headers_parse_request      (char             *str,
 gboolean    soup_headers_parse_status_line  (const char        *status_line,
 					     SoupHttpVersion  *ver,
 					     guint            *status_code,
-					     char            **status_phrase);
+					     char            **reason_phrase);
 
 gboolean    soup_headers_parse_response     (char             *str, 
 					     int               len, 
 					     GHashTable       *dest,
 					     SoupHttpVersion  *ver,
 					     guint            *status_code,
-					     char            **status_phrase);
+					     char            **reason_phrase);
 
 /* HTTP parameterized header parsing */
 

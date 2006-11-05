@@ -105,6 +105,24 @@ soup_headers_parse (char       *str,
 	return TRUE;
 }
 
+/**
+ * soup_headers_parse_request:
+ * @str: the header string (including the trailing blank line)
+ * @len: length of @str
+ * @dest: #GHashTable to store the header values in
+ * @req_method: if non-%NULL, will be filled in with the request method
+ * @req_path: if non-%NULL, will be filled in with the request path
+ * @ver: if non-%NULL, will be filled in with the HTTP version
+ *
+ * Parses the headers of an HTTP request in @str and stores the
+ * results in @req_method, @req_path, @ver, and @dest.
+ *
+ * @len must be the length of @str only up to (and including) the
+ * terminating blank line. Parts of @str up to that point will be
+ * overwritten during parsing.
+ *
+ * Return value: success or failure.
+ **/
 gboolean
 soup_headers_parse_request (char             *str, 
 			    int               len, 
@@ -142,8 +160,10 @@ soup_headers_parse_request (char             *str,
 	if (!soup_headers_parse (str, len, dest)) 
 		return FALSE;
 
-	*req_method = g_strndup (str, s1 - str);
-	*req_path = g_strndup (s1 + 1, s2 - (s1 + 1));
+	if (req_method)
+		*req_method = g_strndup (str, s1 - str);
+	if (req_path)
+		*req_path = g_strndup (s1 + 1, s2 - (s1 + 1));
 
 	if (ver) {
 		if (http_major == 1 && http_minor == 1) 
@@ -155,11 +175,24 @@ soup_headers_parse_request (char             *str,
 	return TRUE;
 }
 
+/**
+ * soup_headers_parse_status_line:
+ * @status_line: an HTTP Status-Line
+ * @ver: if non-%NULL, will be filled in with the HTTP version
+ * @status_code: if non-%NULL, will be filled in with the status code
+ * @reason_phrase: if non-%NULL, will be filled in with the reason
+ * phrase
+ *
+ * Parses the HTTP Status-Line string in @status_line into @ver,
+ * @status_code, and @reason_phrase.
+ *
+ * Return value: %TRUE if @status_line was parsed successfully.
+ **/
 gboolean
 soup_headers_parse_status_line (const char       *status_line,
 				SoupHttpVersion  *ver,
 				guint            *status_code,
-				char            **status_phrase)
+				char            **reason_phrase)
 {
 	guint http_major, http_minor, code;
 	guint phrase_start = 0;
@@ -182,8 +215,8 @@ soup_headers_parse_status_line (const char       *status_line,
 	if (status_code)
 		*status_code = code;
 
-	if (status_phrase)
-		*status_phrase = g_strdup (status_line + phrase_start);
+	if (reason_phrase)
+		*reason_phrase = g_strdup (status_line + phrase_start);
 
 	return TRUE;
 }
@@ -193,12 +226,17 @@ soup_headers_parse_status_line (const char       *status_line,
  * @str: the header string (including the trailing blank line)
  * @len: length of @str
  * @dest: #GHashTable to store the header values in
- * @ver: on return, will contain the HTTP version
- * @status_code: on return, will contain the HTTP status code
- * @status_phrase: on return, will contain the status phrase
+ * @ver: if non-%NULL, will be filled in with the HTTP version
+ * @status_code: if non-%NULL, will be filled in with the status code
+ * @reason_phrase: if non-%NULL, will be filled in with the reason
+ * phrase
  *
  * Parses the headers of an HTTP response in @str and stores the
- * results in @ver, @status_code, @status_phrase, and @dest.
+ * results in @ver, @status_code, @reason_phrase, and @dest.
+ *
+ * @len must be the length of @str only up to (and including) the
+ * terminating blank line. Parts of @str up to that point will be
+ * overwritten during parsing.
  *
  * Return value: success or failure.
  **/
@@ -208,7 +246,7 @@ soup_headers_parse_response (char             *str,
 			     GHashTable       *dest,
 			     SoupHttpVersion  *ver,
 			     guint            *status_code,
-			     char            **status_phrase)
+			     char            **reason_phrase)
 {
 	if (!str || !*str || len < sizeof ("HTTP/0.0 000 A\r\n\r\n"))
 		return FALSE;
@@ -219,7 +257,7 @@ soup_headers_parse_response (char             *str,
 	if (!soup_headers_parse_status_line (str, 
 					     ver, 
 					     status_code, 
-					     status_phrase))
+					     reason_phrase))
 		return FALSE;
 
 	return TRUE;
