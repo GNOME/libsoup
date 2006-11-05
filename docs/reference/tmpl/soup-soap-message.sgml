@@ -181,8 +181,6 @@ A SOAP request
 
 @msg: 
 @i: 
-<!-- # Unused Parameters # -->
-@Param2: 
 
 
 <!-- ##### FUNCTION soup_soap_message_write_double ##### -->

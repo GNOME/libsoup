@@ -130,6 +130,9 @@ An HTTP request and response.
 @SOUP_TRANSFER_UNKNOWN: 
 @SOUP_TRANSFER_CHUNKED: 
 @SOUP_TRANSFER_CONTENT_LENGTH: 
+@SOUP_TRANSFER_BYTERANGES: 
+@SOUP_TRANSFER_NONE: 
+@SOUP_TRANSFER_EOF: 
 
 <!-- ##### ENUM SoupOwnership ##### -->
 <para>
@@ -383,6 +386,26 @@ An HTTP request and response.
 </para>
 
 @msg: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_get_request_encoding ##### -->
+<para>
+
+</para>
+
+@msg: 
+@content_length: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_get_response_encoding ##### -->
+<para>
+
+</para>
+
+@msg: 
+@content_length: 
 @Returns: 
 
 

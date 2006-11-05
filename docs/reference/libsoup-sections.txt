@@ -36,6 +36,8 @@ soup_message_add_chunk
 soup_message_add_final_chunk
 soup_message_pop_chunk
 soup_message_is_keepalive
+soup_message_get_request_encoding
+soup_message_get_response_encoding
 <SUBSECTION>
 SoupHandlerPhase
 soup_message_add_handler
@@ -613,6 +615,7 @@ soup_str_case_hash
 SoupXmlrpcMessage
 soup_xmlrpc_message_new
 soup_xmlrpc_message_new_from_uri
+soup_xmlrpc_message_from_string
 <SUBSECTION>
 soup_xmlrpc_message_start_call
 soup_xmlrpc_message_end_call

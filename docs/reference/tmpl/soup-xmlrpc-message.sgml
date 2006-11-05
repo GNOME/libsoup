@@ -41,6 +41,16 @@ An XML-RPC Message
 @Returns: 
 
 
+<!-- ##### FUNCTION soup_xmlrpc_message_from_string ##### -->
+<para>
+
+</para>
+
+@message: 
+@xmlstr: 
+@Returns: 
+
+
 <!-- ##### FUNCTION soup_xmlrpc_message_start_call ##### -->
 <para>
 

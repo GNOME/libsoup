@@ -31,8 +31,6 @@ Low-level DNS routines
 
 @sa: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@address: 
 
 
 <!-- ##### TYPEDEF SoupDNSLookup ##### -->
@@ -57,8 +55,6 @@ Low-level DNS routines
 
 @sockaddr: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@address: 
 
 
 <!-- ##### FUNCTION soup_dns_lookup_resolve ##### -->

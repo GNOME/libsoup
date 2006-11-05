@@ -175,8 +175,6 @@ Miscellaneous functions
 
 @timestamp: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@when: 
 
 
 <!-- ##### FUNCTION soup_date_iso8601_parse ##### -->
@@ -186,8 +184,6 @@ Miscellaneous functions
 
 @timestamp: 
 @Returns: 
-<!-- # Unused Parameters # -->
-@when: 
 
 
 <!-- ##### FUNCTION soup_date_generate ##### -->
@@ -277,7 +273,7 @@ Miscellaneous functions
 @dest: 
 @ver: 
 @status_code: 
-@status_phrase: 
+@reason_phrase: 
 @Returns: 
 
 
@@ -289,7 +285,7 @@ Miscellaneous functions
 @status_line: 
 @ver: 
 @status_code: 
-@status_phrase: 
+@reason_phrase: 
 @Returns: 
 
 
