@@ -1,3 +1,21 @@
+Changes in libsoup from 2.2.96 to 2.2.97:
+
+	* Fixed SOAP and XML-RPC code to handle whitespace and
+          comments in the XML better. (Based on a patch from Andrew W.
+          Nosenko.)
+
+	* Fixed lots of typecasting/constness warnings in the code
+          (mostly via a patch from Andrew W. Nosenko)
+
+	* Fixed build on Cygwin [321827]
+
+	* Fixed libsoup-2.2.pc fields [343340] and make it get
+          uninstalled correctly [356809]. (Mikhail Zabaluev and
+          Matthew Barnes)
+
+	* Fixed some small leaks in SoupServer pointed out by Paolo
+          Borelli. [351500]
+
 Changes in libsoup from 2.2.95.1 to 2.2.96:
 
 	* SoupServer now works even if you don't explicitly set an

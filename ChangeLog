@@ -1,5 +1,12 @@
 2006-11-06  Dan Winship  <danw@novell.com>
 
+	* configure.in: Bump version to 2.2.97. Bump AGE and CURRENT for
+	addition of soup_xml_real_node.
+
+	* NEWS: update
+
+2006-11-06  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-misc.c (soup_xml_real_node): new method to find a
 	"real" (ie, not comment or whitespace) xml node
 
