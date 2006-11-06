@@ -94,20 +94,11 @@ soup_xmlrpc_response_new_from_string (const char *xmlstr)
 static xmlNode *
 exactly_one_child (xmlNode *node)
 {
-	xmlNode *child, *tmp;
+	xmlNode *child;
 
-	tmp = node->children;
-	while (tmp && xmlIsBlankNode (tmp))
-		tmp = tmp->next;
-
-	child = tmp;
-	if (tmp && tmp->next) {
-		tmp = tmp->next;
-		while (tmp && xmlIsBlankNode (tmp))
-			tmp = tmp->next;
-		if (tmp)
-			return NULL;
-	}
+	child = soup_xml_real_node (node->children);
+	if (!child || soup_xml_real_node (child->next))
+		return NULL;
 
 	return child;
 }
@@ -124,7 +115,6 @@ soup_xmlrpc_response_from_string (SoupXmlrpcResponse *response, const char *xmls
 	priv = SOUP_XMLRPC_RESPONSE_GET_PRIVATE (response);
 	g_return_val_if_fail (xmlstr != NULL, FALSE);
 
-	xmlKeepBlanksDefault (0);
 	newdoc = xmlParseMemory (xmlstr, strlen (xmlstr));
 	if (!newdoc)
 		goto very_bad;
@@ -400,34 +390,41 @@ soup_xmlrpc_value_get_struct (SoupXmlrpcValue *value, GHashTable **table)
 
 	t = g_hash_table_new_full (g_str_hash, g_str_equal, xmlFree, NULL);
 
-	for (xml = xml->children; xml; xml = xml->next) {
+	for (xml = soup_xml_real_node (xml->children);
+	     xml;
+	     xml = soup_xml_real_node (xml->next)) {
 		xmlChar *name;
 		xmlNode *val, *cur;
 
-		if (strcmp ((const char *)xml->name, "member") || !xml->children)
+		if (strcmp ((const char *)xml->name, "member") ||
+		    !xml->children)
 			goto bad;
 
 		name = NULL;
 		val = NULL;
 
-		for (cur = xml->children; cur; cur = cur->next) {
+		for (cur = soup_xml_real_node (xml->children);
+		     cur;
+		     cur = soup_xml_real_node (cur->next)) {
 			if (strcmp((const char *)cur->name, "name") == 0) {
 				if (name)
 					goto local_bad;
 				name = xmlNodeGetContent (cur);
-			}
-			else if (strcmp ((const char *)cur->name, "value") == 0)
+			} else if (strcmp ((const char *)cur->name, "value") == 0)
 				val = cur;
-			else goto local_bad;
+			else
+				goto local_bad;
 
 			continue;
 local_bad:
-			if (name) xmlFree (name);
+			if (name)
+				xmlFree (name);
 			goto bad;
 		}
 
 		if (!name || !val) {
-			if (name) xmlFree (name);
+			if (name)
+				xmlFree (name);
 			goto bad;
 		}
 		g_hash_table_insert (t, name, val);
@@ -444,17 +441,21 @@ bad:
 gboolean
 soup_xmlrpc_value_array_get_iterator (SoupXmlrpcValue *value, SoupXmlrpcValueArrayIterator **iter)
 {
-	xmlNode *xml;
+	xmlNode *xml, *array, *data;
 
 	xml = (xmlNode *) value;
 
-	if (!xml->children || strcmp((const char *)xml->children->name, "array") != 0 ||
-	    xml->children->next || !xml->children->children ||
-	    strcmp((const char *)xml->children->children->name, "data") != 0 ||
-	    xml->children->children->next)
+	array = soup_xml_real_node (xml->children);
+	if (!array || strcmp((const char *)array->name, "array") != 0 ||
+	    soup_xml_real_node (array->next))
 		return FALSE;
 
-	*iter = (SoupXmlrpcValueArrayIterator *) xml->children->children->children;
+	data = soup_xml_real_node (array->children);
+	if (!data || strcmp((const char *)data->name, "data") != 0 ||
+	    soup_xml_real_node (data->next))
+		return FALSE;
+
+	*iter = (SoupXmlrpcValueArrayIterator *) soup_xml_real_node (data->children);
 	return TRUE;
 }
 
@@ -462,11 +463,15 @@ soup_xmlrpc_value_array_get_iterator (SoupXmlrpcValue *value, SoupXmlrpcValueArr
 SoupXmlrpcValueArrayIterator *
 soup_xmlrpc_value_array_iterator_prev (SoupXmlrpcValueArrayIterator *iter)
 {
-	xmlNode *xml;
+	xmlNode *xml, *prev;
 
 	xml = (xmlNode *) iter;
 
-	return (SoupXmlrpcValueArrayIterator *) xml->prev;
+	prev = xml->prev;
+	while (prev != soup_xml_real_node (prev))
+		prev = prev->prev;
+
+	return (SoupXmlrpcValueArrayIterator *) prev;
 }
 
 SoupXmlrpcValueArrayIterator *
@@ -476,7 +481,7 @@ soup_xmlrpc_value_array_iterator_next (SoupXmlrpcValueArrayIterator *iter)
 
 	xml = (xmlNode *) iter;
 
-	return (SoupXmlrpcValueArrayIterator *) xml->next;
+	return (SoupXmlrpcValueArrayIterator *) soup_xml_real_node (xml->next);
 }
 
 gboolean

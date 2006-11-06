@@ -1,3 +1,29 @@
+2006-11-06  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-misc.c (soup_xml_real_node): new method to find a
+	"real" (ie, not comment or whitespace) xml node
+
+	* libsoup/soup-soap-response.c (parse_parameters) 
+	(soup_soap_response_from_string) 
+	(soup_soap_parameter_get_first_child) 
+	(soup_soap_parameter_get_next_child): Use soup_xml_real_node.
+	Based on a patch from Andrew W. Nosenko.
+
+	* libsoup/soup-xmlrpc-message.c (soup_xmlrpc_message_from_string):
+	don't call xmlKeepBlanksDefault, which changes libxml's behavior
+	globally! Instead, use soup_xml_real_node() when traversing the
+	xml tree.
+
+	* libsoup/soup-xmlrpc-response.c
+	(soup_xmlrpc_response_from_string): don't call
+	xmlKeepBlanksDefault.
+	(exactly_one_child): rewrite in terms of soup_xml_real_node()
+	(which means it handles comments now as well)
+	(soup_xmlrpc_value_get_struct)
+	(soup_xmlrpc_value_array_get_iterator)
+	(soup_xmlrpc_value_array_iterator_prev)
+	(soup_xmlrpc_value_array_iterator_next): Use soup_xml_real_node.
+
 2006-11-05  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-headers.c (soup_headers_parse_request): document

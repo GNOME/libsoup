@@ -104,7 +104,9 @@ parse_parameters (SoupSoapResponsePrivate *priv, xmlNodePtr xml_method)
 {
 	xmlNodePtr tmp;
 
-	for (tmp = xml_method->xmlChildrenNode; tmp != NULL; tmp = tmp->next) {
+	for (tmp = soup_xml_real_node (xml_method->children);
+	     tmp != NULL;
+	     tmp = soup_xml_real_node (tmp->next)) {
 		if (!strcmp ((const char *)tmp->name, "Fault")) {
 			priv->soap_fault = tmp;
 			continue;
@@ -130,7 +132,7 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 {
 	SoupSoapResponsePrivate *priv;
 	xmlDocPtr old_doc = NULL;
-	xmlNodePtr xml_root, xml_body = NULL, xml_method = NULL;
+	xmlNodePtr xml_root, xml_body, xml_method = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_RESPONSE (response), FALSE);
 	priv = SOUP_SOAP_RESPONSE_GET_PRIVATE (response);
@@ -160,17 +162,17 @@ soup_soap_response_from_string (SoupSoapResponse *response, const char *xmlstr)
 		return FALSE;
 	}
 
-	if (xml_root->xmlChildrenNode != NULL) {
-		xml_body = xml_root->xmlChildrenNode;
+	xml_body = soup_xml_real_node (xml_root->children);
+	if (xml_body != NULL) {
 		if (strcmp ((const char *)xml_body->name, "Header") == 0)
-			xml_body = xml_root->xmlChildrenNode->next;
+			xml_body = soup_xml_real_node (xml_body->next);
 		if (strcmp ((const char *)xml_body->name, "Body") != 0) {
 			xmlFreeDoc (priv->xmldoc);
 			priv->xmldoc = old_doc;
 			return FALSE;
 		}
 
-		xml_method = xml_body->xmlChildrenNode;
+		xml_method = soup_xml_real_node (xml_body->children);
 
 		/* read all parameters */
 		if (xml_method)
@@ -306,7 +308,7 @@ soup_soap_parameter_get_first_child (SoupSoapParameter *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
-	return param->xmlChildrenNode ? param->xmlChildrenNode : NULL;
+	return soup_xml_real_node (param->children);
 }
 
 /**
@@ -356,7 +358,7 @@ soup_soap_parameter_get_next_child (SoupSoapParameter *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
-	return param->next;
+	return soup_xml_real_node (param->next);
 }
 
 /**

@@ -7,6 +7,7 @@
 #define SOUP_MISC_H 1
 
 #include <glib-object.h>
+#include <libxml/tree.h>
 
 /* Base64 encoding/decoding */
 
@@ -60,6 +61,8 @@ guint              soup_signal_connect_once  (gpointer      instance,
 guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
+
+xmlNode           *soup_xml_real_node        (xmlNode      *node);
 
 /**
  * soup_ssl_supported:

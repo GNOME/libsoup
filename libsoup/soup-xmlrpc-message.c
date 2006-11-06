@@ -55,8 +55,6 @@ soup_xmlrpc_message_init (SoupXmlrpcMessage *msg)
 {
 	SoupXmlrpcMessagePrivate *priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	xmlKeepBlanksDefault (0);
-
 	priv->doc = xmlNewDoc ((const xmlChar *)"1.0");
 	priv->doc->standalone = FALSE;
 	priv->doc->encoding = xmlCharStrdup ("UTF-8");
@@ -338,7 +336,6 @@ soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message, const char *xmlstr)
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (message);
 	g_return_val_if_fail (xmlstr != NULL, FALSE);
 
-	xmlKeepBlanksDefault (0);
 	newdoc = xmlParseMemory (xmlstr, strlen (xmlstr));
 	if (!newdoc)
 		return FALSE;
@@ -347,11 +344,11 @@ soup_xmlrpc_message_from_string (SoupXmlrpcMessage *message, const char *xmlstr)
 	if (!body || strcmp ((const char *)body->name, "methodCall"))
 		goto bad;
 
-	body = body->children;
+	body = soup_xml_real_node (body->children);
 	if (!body || strcmp ((const char *)body->name, "methodName"))
 		goto bad;
 
-	body = body->next;
+	body = soup_xml_real_node (body->next);
 	if (!body || strcmp ((const char *)body->name, "params"))
 		goto bad;
 
