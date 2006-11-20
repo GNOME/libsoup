@@ -292,6 +292,7 @@ soup_gnutls_free (GIOChannel *channel)
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 	g_io_channel_unref (chan->real_sock);
 	gnutls_deinit (chan->session);
+	g_free (chan->hostname);
 	g_free (chan);
 }
 
@@ -379,8 +380,6 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 		goto THROW_CREATE_ERROR;
 	}
 
-	chan = g_new0 (SoupGNUTLSChannel, 1);
-
 	ret = gnutls_init (&session,
 			   (type == SOUP_SSL_TYPE_CLIENT) ? GNUTLS_CLIENT : GNUTLS_SERVER);
 	if (ret)
@@ -398,6 +397,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 
 	gnutls_transport_set_ptr (session, GINT_TO_POINTER (sockfd));
 
+	chan = g_new0 (SoupGNUTLSChannel, 1);
 	chan->fd = sockfd;
 	chan->real_sock = sock;
 	chan->session = session;
@@ -409,7 +409,6 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	gchan = (GIOChannel *) chan;
 	gchan->funcs = &soup_gnutls_channel_funcs;
 	g_io_channel_init (gchan);
-	g_io_channel_set_close_on_unref (gchan, TRUE);
 	gchan->is_readable = gchan->is_writeable = TRUE;
 	gchan->use_buffer = FALSE;
 

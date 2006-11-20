@@ -1,5 +1,24 @@
 2006-11-20  Dan Winship  <danw@novell.com>
 
+	Patch from Andrew W. Nosenko:
+
+	* libsoup/soup-message-client-io.c (parse_response_headers): Avoid
+	memory leak when parse_response_headers() is called on a message
+	that has a 'reason_phrase' already for some reason.
+
+	* libsoup/soup-gnutls.c (soup_gnutls_free): Avoid memory leak:
+	hostname was not freed.
+	(soup_ssl_wrap_iochannel): Avoid memory leak: SoupGNUTLSChannel
+	'chan' was not freed in case of initialization error. Avoid double
+	close of the "real" (plain, non-ssl) channel FD.
+	
+	* libsoup/soup-socket.c (soup_socket_start_proxy_ssl): Avoid
+	memory leak: the "real" (plain, non-ssl) GIOChannel was never
+	"finally" unreffed (one more *_ref() than *_unref()) in case of
+	ssl-wrapping.
+
+2006-11-20  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-connection-ntlm.c (send_request): 
 	* libsoup/soup-session-sync.c (queue_message): 
 	* libsoup/soup-status.c (reason_phrases): Add some missing

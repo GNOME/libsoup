@@ -779,10 +779,11 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GIOChannel *ssl_chan;
+	GIOChannel *real_chan;
 
-	get_iochannel (priv);
+	real_chan = get_iochannel (priv);
 	ssl_chan = soup_ssl_wrap_iochannel (
-		priv->iochannel, priv->is_server ?
+		real_chan, priv->is_server ?
 		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
 		ssl_host, priv->ssl_creds);
 
@@ -790,6 +791,8 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
 		return FALSE;
 
 	priv->iochannel = ssl_chan;
+	g_io_channel_unref (real_chan);
+
 	return TRUE;
 }
 	

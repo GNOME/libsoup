@@ -28,6 +28,8 @@ parse_response_headers (SoupMessage *req,
 	SoupHttpVersion version;
 	GHashTable *resp_hdrs;
 
+	g_free((char*)req->reason_phrase);
+	req->reason_phrase = NULL;
 	if (!soup_headers_parse_response (headers, headers_len,
 					  req->response_headers,
 					  &version,
