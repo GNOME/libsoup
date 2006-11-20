@@ -9,7 +9,7 @@
 
 #include "soup-status.h"
 
-struct {
+static struct {
 	guint code;
 	const char *phrase;
 } reason_phrases [] = {

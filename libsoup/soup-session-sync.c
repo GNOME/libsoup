@@ -18,7 +18,7 @@ typedef struct {
 } SoupSessionSyncPrivate;
 #define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
-void         queue_message  (SoupSession *session, SoupMessage *msg,
+static void  queue_message  (SoupSession *session, SoupMessage *msg,
 			     SoupMessageCallbackFn callback,
 			     gpointer user_data);
 static guint send_message   (SoupSession *session, SoupMessage *msg);
@@ -99,7 +99,7 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 }
 
 
-void
+static void
 queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupMessageCallbackFn callback, gpointer user_data)
 {

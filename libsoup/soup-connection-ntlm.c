@@ -17,7 +17,7 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-void send_request (SoupConnection *conn, SoupMessage *req);
+static void send_request (SoupConnection *conn, SoupMessage *req);
 
 typedef enum {
 	SOUP_CONNECTION_NTLM_NEW,
@@ -186,7 +186,7 @@ ntlm_cleanup_msg (SoupMessage *msg, gpointer conn)
 				     ntlm_authorize_post, conn);
 }
 
-void
+static void
 send_request (SoupConnection *conn, SoupMessage *req)
 {
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
