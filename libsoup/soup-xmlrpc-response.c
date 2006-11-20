@@ -203,6 +203,11 @@ soup_xmlrpc_value_get_type (SoupXmlrpcValue *value)
 	if (!xml)
 		return SOUP_XMLRPC_VALUE_TYPE_BAD;
 
+	if (xml->type == XML_TEXT_NODE)
+		return SOUP_XMLRPC_VALUE_TYPE_STRING;
+	else if (xml->type != XML_ELEMENT_NODE)
+		return SOUP_XMLRPC_VALUE_TYPE_BAD;
+	
 	if (strcmp ((const char *)xml->name, "i4") == 0 || strcmp ((const char *)xml->name, "int") == 0)
 		return SOUP_XMLRPC_VALUE_TYPE_INT;
 	else if (strcmp ((const char *)xml->name, "boolean") == 0)
@@ -310,9 +315,14 @@ soup_xmlrpc_value_get_string (SoupXmlrpcValue *value, char **str)
 	if (strcmp ((const char *)xml->name, "value"))
 		return FALSE;
 	xml = exactly_one_child (xml);
-	if (!xml || strcmp ((const char *)xml->name, "string"))
+	if (!xml)
 		return FALSE;
-
+	if (xml->type == XML_ELEMENT_NODE) {
+		if (strcmp ((char *)xml->name, "string"))
+			return FALSE;
+	} else if (xml->type != XML_TEXT_NODE)
+		return FALSE;
+	
 	content = xmlNodeGetContent (xml);
 	*str = content ? g_strdup ((char *)content) : g_strdup ("");
 	xmlFree (content);

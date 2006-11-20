@@ -1,3 +1,10 @@
+2006-11-20  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_type)
+	(soup_xmlrpc_value_get_string): <value>foo</value> should mean the
+	same thing as <value><string>foo</string></value>. Pointed out by
+	Todd Kulesza. #364490
+
 2006-11-06  Dan Winship  <danw@novell.com>
 
 	* configure.in: Bump version to 2.2.97. Bump AGE and CURRENT for
