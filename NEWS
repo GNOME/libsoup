@@ -1,3 +1,15 @@
+Changes in libsoup from 2.2.97 to 2.2.98:
+
+	* The XML-RPC code now correctly interprets <value>foo</value>
+	  as meaning the same thing as
+	  <value><string>foo</string></value>. [364490] Pointed out by
+	  Todd Kulesza.
+
+	* Memory leak fixes from Andrew W. Nosenko.
+
+	* A few symbols that should have been static before now are.
+	  [376387] Patch from Matthias Clasen.
+
 Changes in libsoup from 2.2.96 to 2.2.97:
 
 	* Fixed SOAP and XML-RPC code to handle whitespace and

@@ -1,5 +1,11 @@
 2006-11-20  Dan Winship  <danw@novell.com>
 
+	* configure.in: 2.2.98
+
+	* NEWS: update
+
+2006-11-20  Dan Winship  <danw@novell.com>
+
 	Patch from Andrew W. Nosenko:
 
 	* libsoup/soup-message-client-io.c (parse_response_headers): Avoid
