@@ -110,6 +110,10 @@ io_cleanup (SoupMessage *msg)
  *
  * Immediately stops I/O on msg; if the connection would be left in an
  * inconsistent state, it will be closed.
+ *
+ * Note: this is a low-level function that does not cause any signals
+ * to be emitted on @msg; it is up to the caller to make sure that
+ * @msg doesn't get "stranded".
  **/
 void
 soup_message_io_stop (SoupMessage *msg)

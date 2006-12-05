@@ -1,3 +1,13 @@
+2006-12-05  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message.c (soup_message_set_uri): Remove the calls
+	to soup_message_io_stop() here; the corresponding calls were
+	needed back in the SoupContext days, but they are wrong now and
+	cause async-redirects-to-other-hosts to fail. #382251. Also
+	clarify docs with respect to soup_session_requeue_message().
+
+	* libsoup/soup-message-io.c (soup_message_io_stop): Clarify docs
+
 2006-11-20  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.98

@@ -871,8 +871,9 @@ soup_message_is_keepalive (SoupMessage *msg)
  * @msg: a #SoupMessage
  * @uri: the new #SoupUri
  *
- * Changes the URI that @msg is directed to (generally as a result
- * of a redirect).
+ * Sets @msg's URI to @uri. If @msg has already been sent and you want
+ * to re-send it with the new URI, you need to call
+ * soup_session_requeue_message().
  **/
 void
 soup_message_set_uri (SoupMessage *msg, const SoupUri *uri)
@@ -881,12 +882,6 @@ soup_message_set_uri (SoupMessage *msg, const SoupUri *uri)
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	if (priv->uri && uri) {
-		if (strcmp (priv->uri->host, uri->host) != 0)
-			soup_message_io_stop (msg);
-	} else if (!uri)
-		soup_message_io_stop (msg);
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
