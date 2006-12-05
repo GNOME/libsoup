@@ -8,6 +8,9 @@
 
 	* libsoup/soup-message-io.c (soup_message_io_stop): Clarify docs
 
+	* libsoup/soup-session.c (finalize): Free ssl_creds. Pointed out
+	by Chris Austin.
+
 2006-11-20  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.98

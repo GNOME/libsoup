@@ -182,6 +182,9 @@ finalize (GObject *object)
 	g_hash_table_destroy (priv->hosts);
 	g_hash_table_destroy (priv->conns);
 
+	if (priv->ssl_creds)
+		soup_ssl_free_client_credentials (priv->ssl_creds);
+
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 
