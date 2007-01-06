@@ -11,7 +11,7 @@
 
 /* HTTP Header Parsing */
 
-gboolean    soup_headers_parse_request      (char             *str, 
+gboolean    soup_headers_parse_request      (const char       *str, 
 					     int               len, 
 					     GHashTable       *dest, 
 					     char            **req_method,
@@ -23,7 +23,7 @@ gboolean    soup_headers_parse_status_line  (const char        *status_line,
 					     guint            *status_code,
 					     char            **reason_phrase);
 
-gboolean    soup_headers_parse_response     (char             *str, 
+gboolean    soup_headers_parse_response     (const char       *str, 
 					     int               len, 
 					     GHashTable       *dest,
 					     SoupHttpVersion  *ver,

@@ -12,6 +12,7 @@ noinst_PROGRAMS =	\
 	dns		\
 	get		\
 	getbug		\
+	header-parsing  \
 	revserver	\
 	simple-httpd	\
 	simple-proxy	\
@@ -24,6 +25,7 @@ dict_SOURCES = dict.c
 dns_SOURCES = dns.c
 get_SOURCES = get.c
 getbug_SOURCES = getbug.c
+header_parsing_SOURCES = header-parsing.c
 revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
@@ -37,7 +39,7 @@ if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test
 endif
 
-TESTS = date uri-parsing $(APACHE_TESTS) $(XMLRPC_TESTS)
+TESTS = date header-parsing uri-parsing $(APACHE_TESTS) $(XMLRPC_TESTS)
 
 EXTRA_DIST =		\
 	libsoup.supp	\
