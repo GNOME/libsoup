@@ -450,7 +450,7 @@ free_headers (gpointer value)
 static int
 do_request_tests (void)
 {
-	int i, len, h, errors;
+	int i, len, h, errors = 0;
 	char *method, *path;
 	GSList *values;
 	SoupHttpVersion version;
@@ -530,7 +530,7 @@ do_request_tests (void)
 static int
 do_response_tests (void)
 {
-	int i, len, h, errors;
+	int i, len, h, errors = 0;
 	guint status_code;
 	char *reason_phrase;
 	GSList *values;
