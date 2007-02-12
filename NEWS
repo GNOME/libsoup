@@ -1,3 +1,12 @@
+Changes in libsoup from 2.2.99 to 2.2.100:
+
+	* Fixed soup_headers_parse_status_line() so WebDAV response
+          parsing will work again. [406997]
+
+	* Fixed a bug in the header-parsing regression test that
+          caused the test to fail sometimes, even though the actual
+          header-parsing code was fine.
+
 Changes in libsoup from 2.2.98 to 2.2.99:
 
 	* Fixed header parsing, including a crash in SoupServer with

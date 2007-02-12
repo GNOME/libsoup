@@ -1,5 +1,9 @@
 2007-02-12  Dan Winship  <danw@novell.com>
 
+	* configure.in: 2.2.100
+
+2007-02-12  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-headers.c (soup_headers_parse_status_line): Fix
 	this to handle "\0"-terminated status lines (eg, from WebDAV
 	responses), like the docs say it does. #406997
