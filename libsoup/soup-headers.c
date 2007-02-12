@@ -23,6 +23,13 @@ soup_headers_parse (const char *str,
 	char *name, *value, *eol, *sol;
 	GSList *hdrs;
 
+	/* Technically, the grammar does allow NUL bytes in the
+	 * headers, but this is probably a bug, and if it's not, we
+	 * can't deal with them anyway.
+	 */
+	if (memchr (str, '\0', len))
+		return FALSE;
+
 	/* As per RFC 2616 section 19.3, we treat '\n' as the
 	 * line terminator, and '\r', if it appears, merely as
 	 * ignorable trailing whitespace.
@@ -106,6 +113,8 @@ soup_headers_parse (const char *str,
  *
  * Parses the headers of an HTTP request in @str and stores the
  * results in @req_method, @req_path, @ver, and @dest.
+ *
+ * Beware that @dest may be modified even on failure.
  *
  * Return value: success or failure.
  **/
@@ -197,7 +206,7 @@ soup_headers_parse_request (const char       *str,
  *
  * Parses the HTTP Status-Line string in @status_line into @ver,
  * @status_code, and @reason_phrase. @status_line must be terminated by
- * either '\0' or '\r\n'.
+ * either "\0" or "\r\n".
  *
  * Return value: %TRUE if @status_line was parsed successfully.
  **/
@@ -235,9 +244,7 @@ soup_headers_parse_status_line (const char       *status_line,
 	phrase_start = code_end;
 	while (*phrase_start == ' ' || *phrase_start == '\t')
 		phrase_start++;
-	phrase_end = strchr (phrase_start, '\n');
-	if (!phrase_end)
-		return FALSE;
+	phrase_end = phrase_start + strcspn (phrase_start, "\n");
 	while (phrase_end > phrase_start &&
 	       (phrase_end[-1] == '\r' || phrase_end[-1] == ' ' || phrase_end[-1] == '\t'))
 		phrase_end--;
@@ -259,6 +266,8 @@ soup_headers_parse_status_line (const char       *status_line,
  *
  * Parses the headers of an HTTP response in @str and stores the
  * results in @ver, @status_code, @reason_phrase, and @dest.
+ *
+ * Beware that @dest may be modified even on failure.
  *
  * Return value: success or failure.
  **/
