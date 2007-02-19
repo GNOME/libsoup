@@ -10,6 +10,7 @@ INCLUDES = 				\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
+	$(LIBGCRYPT_CFLAGS)		\
 	$(LIBGNUTLS_CFLAGS)
 
 MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
@@ -67,6 +68,7 @@ libsoup_2_2_la_LIBADD =			\
 	$(XML_LIBS)			\
 	$(LIBGNUTLS_LIBS_STATIC)	\
 	$(LIBGNUTLS_LIBS)		\
+	$(LIBGCRYPT_LIBS)		\
 	$(LIBWS2_32)
 
 libsoup_2_2_la_SOURCES =		\

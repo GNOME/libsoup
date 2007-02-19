@@ -1,3 +1,10 @@
+2007-02-19  Dan Winship  <danw@novell.com>
+
+	* configure.in: Get gcrypt libs/cflags.
+
+	* libsoup/Makefile.am (INCLUDES, libsoup_2_2_la_LIBADD): add
+	gcrypt flags. Patch from "Cygwin Ports Maintainer", #384498
+
 2007-02-12  Dan Winship  <danw@novell.com>
 
 	* configure.in: 2.2.100
