@@ -2,10 +2,7 @@
 /*
  * soup-gnutls.c
  *
- * Authors:
- *      Ian Peters <itp@ximian.com>
- *
- * Copyright (C) 2003, Ximian, Inc.
+ * Copyright (C) 2003-2006, Novell, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -15,6 +12,7 @@
 #ifdef HAVE_SSL
 
 #include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,21 +127,26 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 	return TRUE;
 }
 
+#define SOUP_GNUTLS_CHANNEL_NONBLOCKING(chan) (fcntl ((chan)->fd, F_GETFL, 0) & O_NONBLOCK)
+
 static GIOStatus
 do_handshake (SoupGNUTLSChannel *chan, GError **err)
 {
 	int result;
 
+again:
 	result = gnutls_handshake (chan->session);
 
-	if (result == GNUTLS_E_AGAIN ||
-	    result == GNUTLS_E_INTERRUPTED) {
-		g_set_error (err, SOUP_SSL_ERROR,
-			     (gnutls_record_get_direction (chan->session) ?
-			      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE :
-			      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ),
-			     "Handshaking...");
-		return G_IO_STATUS_AGAIN;
+	if (result == GNUTLS_E_AGAIN || result == GNUTLS_E_INTERRUPTED) {
+		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan)) {
+			g_set_error (err, SOUP_SSL_ERROR,
+				     (gnutls_record_get_direction (chan->session) ?
+				      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE :
+				      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ),
+				     "Handshaking...");
+			return G_IO_STATUS_AGAIN;
+		} else
+			goto again;
 	}
 
 	if (result < 0) {
@@ -172,6 +175,7 @@ soup_gnutls_read (GIOChannel   *channel,
 
 	*bytes_read = 0;
 
+again:
 	if (!chan->established) {
 		result = do_handshake (chan, err);
 
@@ -186,13 +190,17 @@ soup_gnutls_read (GIOChannel   *channel,
 
 	if (result == GNUTLS_E_REHANDSHAKE) {
 		chan->established = FALSE;
-		return G_IO_STATUS_AGAIN;
+		goto again;
+	}
+
+	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
+		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan))
+			return G_IO_STATUS_AGAIN;
+		else
+			goto again;
 	}
 
 	if (result < 0) {
-		if ((result == GNUTLS_E_INTERRUPTED) ||
-		    (result == GNUTLS_E_AGAIN))
-			return G_IO_STATUS_AGAIN;
 		g_set_error (err, G_IO_CHANNEL_ERROR,
 			     G_IO_CHANNEL_ERROR_FAILED,
 			     "Received corrupted data");
@@ -216,6 +224,7 @@ soup_gnutls_write (GIOChannel   *channel,
 
 	*bytes_written = 0;
 
+again:
 	if (!chan->established) {
 		result = do_handshake (chan, err);
 
@@ -228,15 +237,22 @@ soup_gnutls_write (GIOChannel   *channel,
 
 	result = gnutls_record_send (chan->session, buf, count);
 
+	/* I'm pretty sure this can't actually happen in response to a
+	 * write, but...
+	 */
 	if (result == GNUTLS_E_REHANDSHAKE) {
 		chan->established = FALSE;
-		return G_IO_STATUS_AGAIN;
+		goto again;
+	}
+
+	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
+		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan))
+			return G_IO_STATUS_AGAIN;
+		else
+			goto again;
 	}
 
 	if (result < 0) {
-		if ((result == GNUTLS_E_INTERRUPTED) ||
-		    (result == GNUTLS_E_AGAIN))
-			return G_IO_STATUS_AGAIN;
 		g_set_error (err, G_IO_CHANNEL_ERROR,
 			     G_IO_CHANNEL_ERROR_FAILED,
 			     "Received corrupted data");

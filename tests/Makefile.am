@@ -6,7 +6,6 @@ INCLUDES =		\
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
 noinst_PROGRAMS =	\
-	auth-test	\
 	date		\
 	dict		\
 	dns		\
@@ -17,6 +16,8 @@ noinst_PROGRAMS =	\
 	simple-httpd	\
 	simple-proxy	\
 	uri-parsing	\
+	$(APACHE_TESTS)	\
+	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
 auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
@@ -29,17 +30,21 @@ header_parsing_SOURCES = header-parsing.c
 revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
+ssl_test_SOURCES = ssl-test.c
 uri_parsing_SOURCES = uri-parsing.c
 xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
 
 if HAVE_APACHE
 APACHE_TESTS = auth-test
 endif
+if HAVE_SSL
+SSL_TESTS = ssl-test
+endif
 if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test
 endif
 
-TESTS = date header-parsing uri-parsing $(APACHE_TESTS) $(XMLRPC_TESTS)
+TESTS = date header-parsing uri-parsing $(APACHE_TESTS) $(SSL_TESTS) $(XMLRPC_TESTS)
 
 EXTRA_DIST =		\
 	libsoup.supp	\

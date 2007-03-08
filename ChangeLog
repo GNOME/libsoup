@@ -1,3 +1,24 @@
+2007-03-08  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-gnutls.c (do_handshake): don't return
+	G_IO_STATUS_AGAIN if we're doing blocking I/O; just keep retrying
+	until the handshake is complete.
+	(soup_gnutls_read, soup_gnutls_write): if we get
+	GNUTLS_E_REHANDSHAKE, call do_handshake() immediately rather than
+	returning G_IO_STATUS_AGAIN; if the socket is blocking then
+	G_IO_STATUS_AGAIN is wrong, and if the socket is non-blocking, we
+	might already need to return SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE
+	or SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ.
+
+	#415402, based on a patch from Jacob Berkman.
+
+	* tests/ssl-test.c: basic ssl test. In particular, tests that
+	rehandshake requests are handled correctly during both synchronous
+	and asynchronous I/O. Might eventually test other stuff too...
+
+	* configure.in: 
+	* tests/Makefile.am: updates for ssl-test
+
 2007-02-19  Dan Winship  <danw@novell.com>
 
 	* configure.in: Get gcrypt libs/cflags.

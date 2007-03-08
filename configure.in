@@ -153,6 +153,9 @@ AC_SUBST(LIBGNUTLS_CFLAGS)
 AC_SUBST(LIBGNUTLS_LIBS)
 AC_SUBST(SSL_REQUIREMENT)
 
+dnl This is not supposed to be conditional, but...
+AM_CONDITIONAL(HAVE_SSL, test $enable_ssl != no)
+
 dnl ***************
 dnl *** gtk-doc ***
 dnl ***************
