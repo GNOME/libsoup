@@ -1,3 +1,16 @@
+2007-03-12  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (wait_for_connection): if
+	soup_connection_connect_sync() returns SOUP_STATUS_TRY_AGAIN, then
+	try again. (Duh.) Fixes SSL-via-proxy-when-using-synchronous-I/O-
+	where-the-proxy-closes-the-connection-when-returning-407. (Reported
+	by Varadhan.)
+
+	* tests/get.c: Rewrite to use soup_session_send_message rather
+	than soup_session_queue_message, and add a "-s" flag to use
+	SoupSessionSync rather than SoupSessionAsync (so we can test bugs
+	in the sync code paths).
+
 2007-03-08  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-gnutls.c (do_handshake): don't return

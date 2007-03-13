@@ -130,7 +130,9 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 			 * not return the no-longer-valid connection.
 			 */
 
-			if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+			if (status == SOUP_STATUS_TRY_AGAIN)
+				goto try_again;
+			else if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 				conn = NULL;
 			else if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
 				/* Message was cancelled while we were
