@@ -1,7 +1,8 @@
 INCLUDES =		\
 	-I$(top_srcdir)	\
 	$(XML_CFLAGS)	\
-	$(GLIB_CFLAGS)
+	$(GLIB_CFLAGS)	\
+	$(LIBGNUTLS_CFLAGS)
 
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 

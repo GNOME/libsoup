@@ -1,5 +1,10 @@
 2007-03-12  Dan Winship  <danw@novell.com>
 
+	* tests/Makefile.am (INCLUDES): add $(LIBGNUTLS_CFLAGS) for
+	ssl-test. #417617, patch from Elijah Newren.
+
+2007-03-12  Dan Winship  <danw@novell.com>
+
 	* libsoup/soup-session-sync.c (wait_for_connection): if
 	soup_connection_connect_sync() returns SOUP_STATUS_TRY_AGAIN, then
 	try again. (Duh.) Fixes SSL-via-proxy-when-using-synchronous-I/O-
