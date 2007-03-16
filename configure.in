@@ -211,15 +211,23 @@ if test "$APACHE_HTTPD" != "no"; then
 		[  --with-apache-module-dir Apache modules dir (for tests)],
 		APACHE_MODULE_DIR="$withval",
 		[apache_prefix=`dirname \`dirname $APACHE_HTTPD\``
+		mpm=`$APACHE_HTTPD -V | sed -ne 's/^Server MPM: */-/p' | tr 'A-Z' 'a-z'`
 		# This only works with bash, but should fail harmlessly in sh
-		for dir in $apache_prefix/lib{64,}/{apache,http}{2,}{/modules,}; do
+		for dir in $apache_prefix/lib{64,}/{apache,http}{2,}{$mpm,}{/modules,}; do
 		    if test -f $dir/mod_auth_digest.so; then
 			APACHE_MODULE_DIR="$dir"
-			break
+		    fi
+		    if test -f $dir/mod_ssl.so; then
+			APACHE_SSL_MODULE_DIR="$dir"
+		    fi
+		    if test -f $dir/mod_php5.so; then
+			APACHE_PHP_MODULE_DIR="$dir"
 		    fi
 		done])
     AC_MSG_RESULT($APACHE_MODULE_DIR)
     AC_SUBST(APACHE_MODULE_DIR)
+    AC_SUBST(APACHE_SSL_MODULE_DIR)
+    AC_SUBST(APACHE_PHP_MODULE_DIR)
 fi
 
 if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR"; then
@@ -232,7 +240,7 @@ AM_CONDITIONAL(HAVE_APACHE, test $have_apache = 1)
 
 if test "$have_apache" = 1; then
     AC_MSG_CHECKING([for mod_php5])
-    if test -f $APACHE_MODULE_DIR/mod_php5.so; then
+    if test -f $APACHE_PHP_MODULE_DIR/mod_php5.so; then
 	have_php=yes
 	IF_HAVE_PHP=""
     else

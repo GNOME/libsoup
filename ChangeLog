@@ -1,3 +1,20 @@
+2007-03-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message.c (soup_message_get_response_encoding):
+	update the handling of CONNECT: it has no response body by
+	default, but does have a body if its headers say so.
+
+	* tests/proxy-test.c: test libsoup's behavior when talking to
+	proxies.
+
+	* tests/httpd.conf.in: Load mod_proxy and mod_ssl, and add
+	sections configuring them, for proxy-test
+
+	* configure.in: update the apache-module-dir-finding code to deal
+	with the fact that some modules (eg, mod_ssl) might only be in the
+	mpm-specific module dir, while others (eg, mod_php5) might only be
+	in the generic module dir.
+
 2007-03-12  Dan Winship  <danw@novell.com>
 
 	* tests/Makefile.am (INCLUDES): add $(LIBGNUTLS_CFLAGS) for

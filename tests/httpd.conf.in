@@ -6,21 +6,161 @@ Listen 127.0.0.1:47524
 PidFile @builddir@/httpd.pid
 DocumentRoot @srcdir@
 
+# The tests shut down apache with "graceful-stop", because that makes
+# it close its listening socket right away. But it seems to sometimes
+# result in apache never fully exiting. This fixes that.
+GracefulShutdownTimeout 1
+
 # Change this to "./error.log" if it's failing and you don't know why
 ErrorLog /dev/null
 
-LoadModule alias_module       @APACHE_MODULE_DIR@/mod_alias.so
-LoadModule auth_basic_module  @APACHE_MODULE_DIR@/mod_auth_basic.so
-LoadModule auth_digest_module @APACHE_MODULE_DIR@/mod_auth_digest.so
-LoadModule authn_file_module  @APACHE_MODULE_DIR@/mod_authn_file.so
-LoadModule authz_user_module  @APACHE_MODULE_DIR@/mod_authz_user.so
-LoadModule dir_module         @APACHE_MODULE_DIR@/mod_dir.so
-LoadModule mime_module        @APACHE_MODULE_DIR@/mod_mime.so
-@IF_HAVE_PHP@LoadModule php5_module        @APACHE_MODULE_DIR@/mod_php5.so
+LoadModule alias_module         @APACHE_MODULE_DIR@/mod_alias.so
+LoadModule auth_basic_module    @APACHE_MODULE_DIR@/mod_auth_basic.so
+LoadModule auth_digest_module   @APACHE_MODULE_DIR@/mod_auth_digest.so
+LoadModule authn_file_module    @APACHE_MODULE_DIR@/mod_authn_file.so
+LoadModule authz_host_module    @APACHE_MODULE_DIR@/mod_authz_host.so
+LoadModule authz_user_module    @APACHE_MODULE_DIR@/mod_authz_user.so
+LoadModule dir_module           @APACHE_MODULE_DIR@/mod_dir.so
+LoadModule mime_module          @APACHE_MODULE_DIR@/mod_mime.so
+@IF_HAVE_PHP@LoadModule php5_module          @APACHE_PHP_MODULE_DIR@/mod_php5.so
+LoadModule proxy_module         @APACHE_MODULE_DIR@/mod_proxy.so
+LoadModule proxy_http_module    @APACHE_MODULE_DIR@/mod_proxy_http.so
+LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so
+LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 
 DirectoryIndex httpd.pid
 AddType application/x-httpd-php .php
 
+
+# Proxy #1: unauthenticated
+Listen 127.0.0.1:47526
+<VirtualHost 127.0.0.1:47526>
+  ProxyRequests On
+  AllowCONNECT 47525
+
+  # Deny proxying by default
+  <Proxy *>
+    Order Deny,Allow
+    Deny from all
+  </Proxy>
+
+  # Allow local http connections
+  <Proxy http://127.0.0.1:47524*>
+    Order Allow,Deny
+    Allow from all
+  </Proxy>
+
+  # Allow CONNECT to local https port
+  <Proxy 127.0.0.1:47525>
+    Order Allow,Deny
+    Allow from all
+  </Proxy>
+
+  # Deny non-proxy requests
+  <Directory />
+    Order Deny,Allow
+    Deny from all
+  </Directory>
+</VirtualHost>
+
+# Proxy #2: authenticated
+Listen 127.0.0.1:47527
+<VirtualHost 127.0.0.1:47527>
+  ProxyRequests On
+  AllowCONNECT 47525
+
+  # Deny proxying by default
+  <Proxy *>
+    Order Deny,Allow
+    Deny from all
+  </Proxy>
+
+  # Allow local http connections with authentication
+  <Proxy http://127.0.0.1:47524*>
+    Order Allow,Deny
+    Allow from all
+
+    AuthType Basic
+    AuthName realm1
+    AuthUserFile ./htpasswd
+    Require valid-user
+  </Proxy>
+
+  # Allow CONNECT to local https port with authentication
+  <Proxy 127.0.0.1:47525>
+    Order Allow,Deny
+    Allow from all
+
+    AuthType Basic
+    AuthName realm1
+    AuthUserFile ./htpasswd
+    Require valid-user
+  </Proxy>
+
+  # Fail non-proxy requests
+  <Directory />
+    Order Deny,Allow
+    Deny from all
+  </Directory>
+</VirtualHost>
+
+# Proxy #3: unauthenticatable-to
+Listen 127.0.0.1:47528
+<VirtualHost 127.0.0.1:47528>
+  ProxyRequests On
+  AllowCONNECT 47525
+
+  # Deny proxying by default
+  <Proxy *>
+    Order Deny,Allow
+    Deny from all
+  </Proxy>
+
+  # Allow local http connections with authentication
+  <Proxy http://127.0.0.1:47524*>
+    Order Allow,Deny
+    Allow from all
+
+    AuthType Basic
+    AuthName realm1
+    AuthUserFile ./htpasswd
+    Require user no-such-user
+  </Proxy>
+
+  # Allow CONNECT to local https port with authentication
+  <Proxy 127.0.0.1:47525>
+    Order Allow,Deny
+    Allow from all
+
+    AuthType Basic
+    AuthName realm1
+    AuthUserFile ./htpasswd
+    Require user no-such-user
+  </Proxy>
+
+  # Fail non-proxy requests
+  <Directory />
+    Order Deny,Allow
+    Deny from all
+  </Directory>
+</VirtualHost>
+
+
+# SSL setup
+<IfModule mod_ssl.c>
+  Listen 127.0.0.1:47525
+
+  <VirtualHost 127.0.0.1:47525>
+    SSLEngine on
+
+    SSLCertificateFile test-cert.pem
+    SSLCertificateKeyFile test-key.pem
+
+  </VirtualHost>
+</IfModule>
+
+
+# Basic auth tests
 Alias /Basic/realm1/realm2/realm1 @builddir@
 Alias /Basic/realm1/realm2 @builddir@
 Alias /Basic/realm1/subdir @builddir@
@@ -28,6 +168,7 @@ Alias /Basic/realm1/not @builddir@
 Alias /Basic/realm1 @builddir@
 Alias /Basic/realm2 @builddir@
 Alias /Basic/realm3 @builddir@
+Alias /Basic @builddir@
 
 <Location /Basic/realm1>
   AuthType Basic
@@ -71,7 +212,7 @@ Alias /Basic/realm3 @builddir@
   Require user user3
 </Location>
 
-
+# Digest auth tests
 Alias /Digest/realm1/realm2/realm1 @builddir@
 Alias /Digest/realm1/realm2 @builddir@
 Alias /Digest/realm1/subdir @builddir@
@@ -79,6 +220,7 @@ Alias /Digest/realm1/not @builddir@
 Alias /Digest/realm1 @builddir@
 Alias /Digest/realm2 @builddir@
 Alias /Digest/realm3 @builddir@
+Alias /Digest @builddir@
 
 <Location /Digest/realm1>
   AuthType Digest
@@ -127,4 +269,3 @@ Alias /Digest/realm3 @builddir@
   AuthDigestDomain /Digest/realm3
   Require valid-user
 </Location>
-

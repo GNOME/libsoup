@@ -984,9 +984,7 @@ soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 {
 	SoupMethodId method = soup_method_get_id (msg->method);
 
-	/* FIXME: should CONNECT really be here? Where does it say that? */
 	if (method == SOUP_METHOD_ID_HEAD ||
-	    method == SOUP_METHOD_ID_CONNECT ||
 	    msg->status_code  == SOUP_STATUS_NO_CONTENT ||
 	    msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
 	    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
@@ -1022,7 +1020,9 @@ soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 					*content_length = lval;
 				return SOUP_TRANSFER_CONTENT_LENGTH;
 			}
-		} else
+		} else if (method == SOUP_METHOD_ID_CONNECT)
+			return SOUP_TRANSFER_NONE;
+		else
 			return SOUP_TRANSFER_EOF;
 	}
 }

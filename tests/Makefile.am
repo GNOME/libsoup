@@ -28,6 +28,7 @@ dns_SOURCES = dns.c
 get_SOURCES = get.c
 getbug_SOURCES = getbug.c
 header_parsing_SOURCES = header-parsing.c
+proxy_test_SOURCES = proxy-test.c apache-wrapper.c apache-wrapper.h
 revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
@@ -36,7 +37,7 @@ uri_parsing_SOURCES = uri-parsing.c
 xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
 
 if HAVE_APACHE
-APACHE_TESTS = auth-test
+APACHE_TESTS = auth-test proxy-test
 endif
 if HAVE_SSL
 SSL_TESTS = ssl-test
