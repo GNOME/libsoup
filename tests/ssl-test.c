@@ -1,10 +1,11 @@
 #include <gnutls/gnutls.h>
 #include <glib.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "libsoup/soup-socket.h"
 #include "libsoup/soup-ssl.h"
