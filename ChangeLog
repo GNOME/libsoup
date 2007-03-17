@@ -1,3 +1,31 @@
+2007-03-17  Dan Winship  <danw@novell.com>
+
+	* configure.in: require glib 2.12. check for timegm().
+
+	* libsoup/soup-date.c (soup_mktime_utc): Use timegm if available.
+	(soup_date_iso8601_parse): use g_time_val_from_iso8601. #337010,
+	patch from Emmanuele Bassi.
+
+	* libsoup/soup-types.h: remove local copy of
+	G_GNUC_NULL_TERMINATED since we now depend on a new-enough copy of
+	glib.
+
+	* libsoup/soup-misc.c (soup_base64_encode_close)
+	(soup_base64_encode_step, soup_base64_encode)
+	(soup_base64_decode_step): Make these just be wrappers around the
+	glib base64 methods. (For now; eventually they'll just go away.)
+
+	* libsoup/soup-auth-basic.c (authenticate): 
+	* libsoup/soup-auth-digest.c (authenticate):
+	* libsoup/soup-connection-ntlm.c (soup_ntlm_parse_challenge)
+	(soup_ntlm_response): 
+	* libsoup/soup-server-auth.c (soup_server_auth_new): 
+	* libsoup/soup-soap-message.c (soup_soap_message_write_base64): 
+	* libsoup/soup-xmlrpc-message.c
+	(soup_xmlrpc_message_write_base64): 
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_base64):
+	Use glib base64 methods
+
 2007-03-16  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-message.c (soup_message_get_response_encoding):

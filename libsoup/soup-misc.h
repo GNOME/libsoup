@@ -9,7 +9,8 @@
 #include <glib-object.h>
 #include <libxml/tree.h>
 
-/* Base64 encoding/decoding */
+#ifndef LIBSOUP_DISABLE_DEPRECATED
+/* Base64 encoding/decoding. DEPRECATED: use <glib/base64.h> */
 
 char              *soup_base64_encode        (const char   *text,
 					      int           len);
@@ -36,6 +37,7 @@ int                soup_base64_decode_step   (const guchar *in,
 					      guchar       *out, 
 					      int          *state, 
 					      guint        *save);
+#endif /* LIBSOUP_DISABLE_DEPRECATED */
 
 /* Non-default-GMainContext operations */
 GSource           *soup_add_io_watch         (GMainContext *async_context,

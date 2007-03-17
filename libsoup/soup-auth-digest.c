@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-digest-offset: 8 -*- */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * soup-auth-digest.c: HTTP Digest Authentication
  *
@@ -258,7 +258,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 				auth,
 				(unsigned long) getpid (),
 				(unsigned long) time (0));
-	priv->cnonce = soup_base64_encode (bgen, strlen (bgen));
+	priv->cnonce = g_base64_encode ((guchar *)bgen, strlen (bgen));
 	g_free (bgen);
 
 	priv->user = g_strdup (username);

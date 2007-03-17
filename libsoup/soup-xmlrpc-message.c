@@ -226,7 +226,7 @@ soup_xmlrpc_message_write_base64 (SoupXmlrpcMessage *msg, gconstpointer buf, int
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	str = soup_base64_encode (buf, len);
+	str = g_base64_encode (buf, len);
 
 	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
 	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"base64", (xmlChar *)str);

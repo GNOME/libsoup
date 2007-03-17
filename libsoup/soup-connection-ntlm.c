@@ -328,25 +328,14 @@ soup_ntlm_parse_challenge (const char *challenge,
 			   char      **nonce,
 			   char      **default_domain)
 {
-	int clen, decodelen;
+	gsize clen;
 	NTLMString domain;
 	guchar *chall;
-	int state;
-	unsigned int save;
 
 	if (strncmp (challenge, "NTLM ", 5) != 0)
 		return FALSE;
 
-	decodelen = strlen (challenge) - 5;
-	chall = g_malloc (decodelen);
-
-	state = save = 0;
-	clen = soup_base64_decode_step ((const guchar *) challenge + 5, 
-					decodelen,
-					chall, 
-					&state, 
-					&save);
-
+	chall = g_base64_decode (challenge + 5, &clen);
 	if (clen < NTLM_CHALLENGE_DOMAIN_STRING_OFFSET ||
 	    clen < NTLM_CHALLENGE_NONCE_OFFSET + NTLM_CHALLENGE_NONCE_LENGTH) {
 		g_free (chall);
@@ -385,7 +374,7 @@ soup_ntlm_response (const char *nonce,
 	int hlen, dlen, ulen, offset;
 	guchar hash[21], lm_resp[24], nt_resp[24];
 	NTLMResponse resp;
-	guchar *out, *p;
+	char *out, *p;
 	int state, save;
 
 	nt_hash (password, hash);
@@ -411,51 +400,27 @@ soup_ntlm_response (const char *nonce,
 	ntlm_set_string (&resp.nt_resp, &offset, sizeof (nt_resp));
 
 	out = g_malloc (((offset + 3) * 4) / 3 + 6);
-	strncpy ((char *)out, "NTLM ", 5);
+	strncpy (out, "NTLM ", 5);
 	p = out + 5;
 
 	state = save = 0;
 
-	p += soup_base64_encode_step ((guchar *) &resp, 
-				      sizeof (resp), 
-				      FALSE, 
-				      p, 
-				      &state, 
-				      &save);
-	p += soup_base64_encode_step ((const guchar *) domain, 
-				      dlen, 
-				      FALSE, 
-				      p, 
-				      &state, 
-				      &save);
-	p += soup_base64_encode_step ((const guchar *) user, 
-				      ulen, 
-				      FALSE, 
-				      p, 
-				      &state, 
-				      &save);
-	p += soup_base64_encode_step ((const guchar *) host, 
-				      hlen, 
-				      FALSE, 
-				      p,
-				      &state, 
-				      &save);
-	p += soup_base64_encode_step (lm_resp, 
-				      sizeof (lm_resp), 
-				      FALSE, 
-				      p, 
-				      &state, 
-				      &save);
-
-	p += soup_base64_encode_close (nt_resp, 
-				       sizeof (nt_resp), 
-				       FALSE, 
-				       p, 
-				       &state, 
-				       &save);
+	p += g_base64_encode_step ((const guchar *) &resp, sizeof (resp), 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_step ((const guchar *) domain, dlen, 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_step ((const guchar *) user, ulen, 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_step ((const guchar *) host, hlen, 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_step (lm_resp, sizeof (lm_resp), 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_step (nt_resp, sizeof (nt_resp), 
+				   FALSE, p, &state, &save);
+	p += g_base64_encode_close (FALSE, p, &state, &save);
 	*p = '\0';
 
-	return (char *)out;
+	return out;
 }
 
 /* DES utils */
