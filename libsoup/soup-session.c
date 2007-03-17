@@ -19,6 +19,7 @@
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-filter.h"
+#include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-ssl.h"
 #include "soup-uri.h"
@@ -744,8 +745,7 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 
 static gboolean
 update_auth_internal (SoupSession *session, SoupMessage *msg,
-		      const GSList *headers, gboolean proxy,
-		      gboolean got_unauthorized)
+		      const GSList *headers, gboolean proxy)
 {
 	SoupSessionHost *host;
 	SoupAuth *new_auth, *prior_auth, *old_auth;
@@ -772,20 +772,11 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 		return FALSE;
 
 	/* See if this auth is the same auth we used last time */
-	prior_auth = lookup_auth (session, msg, proxy);
+	prior_auth = proxy ? soup_message_get_proxy_auth (msg) : soup_message_get_auth (msg);
 	if (prior_auth &&
 	    G_OBJECT_TYPE (prior_auth) == G_OBJECT_TYPE (new_auth) &&
 	    !strcmp (soup_auth_get_realm (prior_auth),
 		     soup_auth_get_realm (new_auth))) {
-		if (!got_unauthorized) {
-			/* The user is just trying to preauthenticate
-			 * using information we already have, so
-			 * there's nothing more that needs to be done.
-			 */
-			g_object_unref (new_auth);
-			return TRUE;
-		}
-
 		/* The server didn't like the username/password we
 		 * provided before. Invalidate it and note this fact.
 		 */
@@ -891,7 +882,7 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 	if (!headers)
 		return;
 
-	if (update_auth_internal (session, msg, headers, proxy, TRUE))
+	if (update_auth_internal (session, msg, headers, proxy))
 		soup_session_requeue_message (session, msg);
 }
 
@@ -926,23 +917,18 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 static void
 add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 {
-	const char *header = proxy ? "Proxy-Authorization" : "Authorization";
 	SoupAuth *auth;
-	char *token;
 
 	auth = lookup_auth (session, msg, proxy);
-	if (!auth)
-		return;
-	if (!soup_auth_is_authenticated (auth) &&
-	    !authenticate_auth (session, auth, msg, FALSE, proxy))
-		return;
-
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
-		soup_message_remove_header (msg->request_headers, header);
-		soup_message_add_header (msg->request_headers, header, token);
-		g_free (token);
+	if (auth && !soup_auth_is_authenticated (auth)) {
+		if (!authenticate_auth (session, auth, msg, FALSE, proxy))
+			auth = NULL;
 	}
+
+	if (proxy)
+		soup_message_set_proxy_auth (msg, auth);
+	else
+		soup_message_set_auth (msg, auth);
 }
 
 static void

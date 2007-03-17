@@ -14,6 +14,7 @@
 #include "apache-wrapper.h"
 #endif
 
+GMainLoop *loop;
 int errors = 0;
 
 typedef struct {
@@ -243,12 +244,69 @@ reauthenticate (SoupSession *session, SoupMessage *msg,
 	}
 }
 
+static void
+bug271540_sent (SoupMessage *msg, gpointer data)
+{
+	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
+	gboolean *authenticated = data;
+	int auth = identify_auth (msg);
+
+	if (!*authenticated && auth) {
+		printf ("    using auth on message %d before authenticating!!??\n", n);
+		errors++;
+	} else if (*authenticated && !auth) {
+		printf ("    sent unauthenticated message %d after authenticating!\n", n);
+		errors++;
+	}
+}
+
+static void
+bug271540_authenticate (SoupSession *session, SoupMessage *msg,
+			const char *auth_type, const char *auth_realm,
+			char **username, char **password, gpointer data)
+{
+	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
+	gboolean *authenticated = data;
+
+	if (strcmp (auth_type, "Basic") != 0 ||
+	    strcmp (auth_realm, "realm1") != 0)
+		return;
+
+	if (!*authenticated) {
+		printf ("    authenticating message %d\n", n);
+		*username = g_strdup ("user1");
+		*password = g_strdup ("realm1");
+		*authenticated = TRUE;
+	} else {
+		printf ("    asked to authenticate message %d after authenticating!\n", n);
+		errors++;
+	}
+}
+
+static void
+bug271540_finished (SoupMessage *msg, gpointer data)
+{
+	int *left = data;
+	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		printf ("      got status '%d %s' on message %d!\n",
+			msg->status_code, msg->reason_phrase, n);
+		errors++;
+	}
+
+	(*left)--;
+	if (!*left)
+		g_main_loop_quit (loop);
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupSession *session;
 	SoupMessage *msg;
 	char *base_uri, *uri, *expected;
+	gboolean authenticated;
 #ifdef HAVE_APACHE
 	gboolean using_apache = FALSE;
 #endif
@@ -325,6 +383,30 @@ main (int argc, char **argv)
 
 		g_object_unref (msg);
 	}
+	g_object_unref (session);
+
+	/* And now for a regression test */
+
+	printf ("Regression test for bug 271540:\n");
+	session = soup_session_async_new ();
+
+	authenticated = FALSE;
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (bug271540_authenticate), &authenticated);
+
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+	for (i = 0; i < 10; i++) {
+		msg = soup_message_new (SOUP_METHOD_GET, uri);
+		g_object_set_data (G_OBJECT (msg), "#", GINT_TO_POINTER (i + 1));
+		g_signal_connect (msg, "wrote_headers",
+				  G_CALLBACK (bug271540_sent), &authenticated);
+
+		soup_session_queue_message (session, msg,
+					    bug271540_finished, &i);
+	}
+
+	loop = g_main_loop_new (NULL, TRUE);
+	g_main_loop_run (loop);
 
 	g_object_unref (session);
 

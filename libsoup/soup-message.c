@@ -70,6 +70,11 @@ finalize (GObject *object)
 	if (priv->uri)
 		soup_uri_free (priv->uri);
 
+	if (priv->auth)
+		g_object_unref (priv->auth);
+	if (priv->proxy_auth)
+		g_object_unref (priv->proxy_auth);
+
 	if (msg->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
 		g_free (msg->request.body);
 	if (msg->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
@@ -722,6 +727,110 @@ soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
 	data.func = func;
 	data.user_data = user_data;
 	g_hash_table_foreach (hash, foreach_value_in_list, &data);
+}
+
+/**
+ * soup_message_set_auth:
+ * @msg: a #SoupMessage
+ * @auth: a #SoupAuth, or %NULL
+ *
+ * Sets @msg to authenticate to its destination using @auth, which
+ * must have already been fully authenticated. If @auth is %NULL, @msg
+ * will not authenticate to its destination.
+ **/
+void
+soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
+{
+	SoupMessagePrivate *priv;
+	char *token;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
+	g_return_if_fail (auth == NULL || soup_auth_is_authenticated (auth));
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->auth)
+		g_object_unref (priv->auth);
+	soup_message_remove_header (msg->request_headers, "Authorization");
+	priv->auth = auth;
+	if (!priv->auth)
+		return;
+
+	g_object_ref (priv->auth);
+	token = soup_auth_get_authorization (auth, msg);
+	soup_message_add_header (msg->request_headers, "Authorization", token);
+	g_free (token);
+}
+
+/**
+ * soup_message_get_auth:
+ * @msg: a #SoupMessage
+ *
+ * Gets the #SoupAuth used by @msg for authentication.
+ *
+ * Return value: the #SoupAuth used by @msg for authentication, or
+ * %NULL if @msg is unauthenticated.
+ **/
+SoupAuth *
+soup_message_get_auth (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->auth;
+}
+
+/**
+ * soup_message_set_proxy_auth:
+ * @msg: a #SoupMessage
+ * @auth: a #SoupAuth, or %NULL
+ *
+ * Sets @msg to authenticate to its proxy using @auth, which must have
+ * already been fully authenticated. If @auth is %NULL, @msg will not
+ * authenticate to its proxy.
+ **/
+void
+soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
+{
+	SoupMessagePrivate *priv;
+	char *token;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (auth == NULL || SOUP_IS_AUTH (auth));
+	g_return_if_fail (auth == NULL || soup_auth_is_authenticated (auth));
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->proxy_auth)
+		g_object_unref (priv->proxy_auth);
+	soup_message_remove_header (msg->request_headers,
+				    "Proxy-Authorization");
+	priv->proxy_auth = auth;
+	if (!priv->proxy_auth)
+		return;
+
+	g_object_ref (priv->proxy_auth);
+	token = soup_auth_get_authorization (auth, msg);
+	soup_message_add_header (msg->request_headers,
+				 "Proxy-Authorization", token);
+	g_free (token);
+}
+
+/**
+ * soup_message_get_proxy_auth:
+ * @msg: a #SoupMessage
+ *
+ * Gets the #SoupAuth used by @msg for authentication to its proxy..
+ *
+ * Return value: the #SoupAuth used by @msg for authentication to its
+ * proxy, or %NULL if @msg isn't authenticated to its proxy.
+ **/
+SoupAuth *
+soup_message_get_proxy_auth (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->proxy_auth;
 }
 
 /**

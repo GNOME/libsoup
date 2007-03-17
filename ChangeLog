@@ -1,5 +1,28 @@
 2007-03-17  Dan Winship  <danw@novell.com>
 
+	* libsoup/soup-message.c (soup_message_set_auth)
+	(soup_message_get_auth, soup_message_set_proxy_auth)
+	(soup_message_get_proxy_auth): get/set auth/proxy_auth info for a
+	message.
+
+	* libsoup/soup-session.c (add_auth): Use soup_message_set_auth and
+	soup_message_set_proxy_auth.
+	(update_auth_internal): Call soup_message_get_auth or
+	soup_message_get_proxy_auth to determine the message's prior auth,
+	rather than calling lookup_auth() again, since it isn't guaranteed
+	to return the same thing now as it did when the message was
+	originally sent. Fixes erroneous 401s when queuing multiple
+	messages at once to an as-yet-unauthenticated-to server. #271540
+
+	* libsoup/soup-session-async.c (queue_message): don't run the
+	queue right away, do it at idle time. Otherwise in some cases
+	(especially errors), the message callbacks could be invoked before
+	queue_message returns.
+
+	* tests/auth-test.c: add a regression test for #271540.
+
+2007-03-17  Dan Winship  <danw@novell.com>
+
 	* configure.in: require glib 2.12. check for timegm().
 
 	* libsoup/soup-date.c (soup_mktime_utc): Use timegm if available.
