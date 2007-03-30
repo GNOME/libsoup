@@ -1,3 +1,12 @@
+2007-03-29  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (queue_message): Implement this by
+	sending the message (synchronously) in another thread and then
+	queueing the callback back in the main thread.
+
+	* libsoup/soup-session.c (soup_session_queue_message): update docs
+	to be more explicit about what thread the callback occurs in
+
 2007-03-17  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-message.c (soup_message_set_auth)

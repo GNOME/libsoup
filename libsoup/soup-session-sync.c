@@ -11,6 +11,7 @@
 
 #include "soup-session-sync.h"
 #include "soup-connection.h"
+#include "soup-misc.h"
 
 typedef struct {
 	GMutex *lock;
@@ -98,13 +99,63 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 	return session;
 }
 
+typedef struct {
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupMessageCallbackFn callback;
+	gpointer user_data;
+} SoupSessionSyncAsyncData;
+
+static void
+async_data_free (SoupSessionSyncAsyncData *sad)
+{
+	g_object_unref (sad->session);
+	g_object_unref (sad->msg);
+	g_free (sad);
+}
+
+static gboolean
+queue_message_callback (gpointer data)
+{
+	SoupSessionSyncAsyncData *sad = data;
+
+	sad->callback (sad->msg, sad->user_data);
+	async_data_free (sad);
+	return FALSE;
+}
+
+static gpointer
+queue_message_thread (gpointer data)
+{
+	SoupSessionSyncAsyncData *sad = data;
+
+	soup_session_send_message (sad->session, sad->msg);
+	if (sad->callback) {
+		GMainContext *async_context;
+
+		g_object_get (sad->session,
+			      SOUP_SESSION_ASYNC_CONTEXT, &async_context,
+			      NULL);
+		soup_add_idle (async_context, queue_message_callback, sad);
+	} else
+		async_data_free (sad);
+
+	return NULL;
+}
 
 static void
 queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupMessageCallbackFn callback, gpointer user_data)
 {
-	/* FIXME */
-	g_warning ("soup_session_queue_message called on synchronous session");
+	SoupSessionSyncAsyncData *sad;
+
+	sad = g_new (SoupSessionSyncAsyncData, 1);
+	sad->session = g_object_ref (session);
+	sad->msg = g_object_ref (msg);
+	sad->callback = callback;
+	sad->user_data = user_data;
+
+	g_thread_create (queue_message_thread, sad, FALSE, NULL);
 }
 
 static SoupConnection *

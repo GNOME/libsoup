@@ -1259,8 +1259,9 @@ queue_message (SoupSession *session, SoupMessage *msg,
  * any resources related to the time it was last sent are freed.
  *
  * Upon message completion, the callback specified in @callback will
- * be invoked. If after returning from this callback the message has
- * not been requeued, @msg will be unreffed.
+ * be invoked (in the thread associated with @session's async
+ * context). If after returning from this callback the message has not
+ * been requeued, @msg will be unreffed.
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *msg,
