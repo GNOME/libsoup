@@ -31,6 +31,12 @@ SSL/TLS handling
 @SOUP_SSL_TYPE_CLIENT: 
 @SOUP_SSL_TYPE_SERVER: 
 
+<!-- ##### TYPEDEF SoupSSLCredentials ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### FUNCTION soup_ssl_get_client_credentials ##### -->
 <para>
 
@@ -74,7 +80,7 @@ SSL/TLS handling
 @sock: 
 @type: 
 @remote_host: 
-@credentials: 
+@creds: 
 @Returns: 
 
 

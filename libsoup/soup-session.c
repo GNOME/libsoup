@@ -40,7 +40,7 @@ typedef struct {
 	gboolean use_ntlm;
 
 	char *ssl_ca_file;
-	gpointer ssl_creds;
+	SoupSSLCredentials *ssl_creds;
 
 	GSList *filters;
 

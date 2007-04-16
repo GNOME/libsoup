@@ -99,6 +99,10 @@ soup_message_io_in_progress
 soup_message_io_server
 soup_message_run_handlers
 soup_message_send_request_internal
+soup_message_get_auth
+soup_message_get_proxy_auth
+soup_message_set_auth
+soup_message_set_proxy_auth
 </SECTION>
 
 <SECTION>
@@ -526,6 +530,7 @@ soup_dns_lookup_free
 soup_ssl_supported
 <SUBSECTION>
 SoupSSLType
+SoupSSLCredentials
 soup_ssl_get_client_credentials
 soup_ssl_free_client_credentials
 soup_ssl_get_server_credentials
@@ -607,6 +612,8 @@ soup_headers_parse_status_line
 <SUBSECTION>
 soup_str_case_equal
 soup_str_case_hash
+<SUBSECTION>
+soup_xml_real_node
 </SECTION>
 
 <SECTION>

@@ -33,7 +33,7 @@ typedef struct {
 	guint              port;
 
 	char              *ssl_cert_file, *ssl_key_file;
-	gpointer           ssl_creds;
+	SoupSSLCredentials *ssl_creds;
 
 	GMainLoop         *loop;
 

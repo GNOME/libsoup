@@ -1,3 +1,19 @@
+2007-04-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-ssl.h: Make a real SoupSSLCredentials type rather
+	than just using gpointer
+
+	* libsoup/soup-server.c (SoupServerPrivate): use it
+
+	* libsoup/soup-session.c (SoupSessionPrivate): use it
+
+	* libsoup/soup-gnutls.c: Use it, and consistently use "creds"
+	rather than "cred" as the abbreviation for "credentials".
+
+	* docs/reference/libsoup-sections.txt:
+	* docs/reference/tmpl/soup-misc.sgml: 
+	* docs/reference/tmpl/soup-ssl.sgml: update
+	
 2007-03-29  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-session-sync.c (queue_message): Implement this by
