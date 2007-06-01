@@ -11,6 +11,8 @@
 
 #include <libsoup/soup-status.h>
 
+G_BEGIN_DECLS
+
 typedef struct SoupAddress           SoupAddress;
 typedef struct SoupConnection        SoupConnection;
 typedef struct SoupMessage           SoupMessage;
@@ -48,5 +50,7 @@ GType type_name##_get_type(void)\
 	}						\
 	return type;					\
 }
+
+G_END_DECLS
 
 #endif

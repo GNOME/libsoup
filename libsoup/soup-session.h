@@ -10,6 +10,8 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-message-queue.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_SESSION            (soup_session_get_type ())
 #define SOUP_SESSION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SESSION, SoupSession))
 #define SOUP_SESSION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SESSION, SoupSessionClass))
@@ -83,5 +85,6 @@ SoupConnection *soup_session_get_connection       (SoupSession    *session,
 						   gboolean       *is_new);
 gboolean        soup_session_try_prune_connection (SoupSession    *session);
 
+G_END_DECLS
 
 #endif /* SOUP_SESSION_H */

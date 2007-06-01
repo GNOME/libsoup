@@ -10,6 +10,8 @@
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-uri.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_SERVER            (soup_server_get_type ())
 #define SOUP_SERVER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SERVER, SoupServer))
 #define SOUP_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SERVER, SoupServerClass))
@@ -99,5 +101,6 @@ GSList            *soup_server_list_handlers  (SoupServer            *serv);
 SoupAddress *soup_server_context_get_client_address (SoupServerContext *ctx);
 const char  *soup_server_context_get_client_host    (SoupServerContext *ctx);
 
+G_END_DECLS
 
 #endif /* SOUP_SERVER_H */

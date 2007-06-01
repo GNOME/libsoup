@@ -9,6 +9,8 @@
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-method.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_MESSAGE            (soup_message_get_type ())
 #define SOUP_MESSAGE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_MESSAGE, SoupMessage))
 #define SOUP_MESSAGE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_MESSAGE, SoupMessageClass))
@@ -349,5 +351,7 @@ void soup_message_got_chunk           (SoupMessage *msg);
 void soup_message_got_body            (SoupMessage *msg);
 void soup_message_restarted           (SoupMessage *msg);
 void soup_message_finished            (SoupMessage *msg);
+
+G_END_DECLS
 
 #endif /*SOUP_MESSAGE_H*/

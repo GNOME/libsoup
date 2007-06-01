@@ -1,3 +1,8 @@
+2007-05-16  Jonathon Jongsma  <jjongsma@gnome.org>
+
+	* libsoup/*.h: add G_BEGIN_DECLS / G_END_DECLS to all installed
+	headers so that libsoup can be used from C++ programs. #438776
+
 2007-04-16  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-ssl.h: Make a real SoupSSLCredentials type rather

@@ -11,6 +11,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 /**
  * SoupProtocol:
  *
@@ -71,5 +73,7 @@ char     *soup_uri_encode            (const char    *part,
 void      soup_uri_decode            (char          *part);
 
 gboolean  soup_uri_uses_default_port (const SoupUri *uri);
+
+G_END_DECLS
 
 #endif /*SOUP_URI_H*/

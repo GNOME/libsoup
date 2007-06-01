@@ -9,6 +9,8 @@
 #include <glib.h>
 #include <libsoup/soup-message.h>
 
+G_BEGIN_DECLS
+
 typedef struct SoupMessageQueue SoupMessageQueue; 
 
 /**
@@ -40,5 +42,7 @@ void              soup_message_queue_destroy    (SoupMessageQueue     *queue);
 
 void              soup_message_queue_remove_message (SoupMessageQueue *queue,
 						     SoupMessage      *msg);
+
+G_END_DECLS
 
 #endif /* SOUP_MESSAGE_QUEUE_H */
