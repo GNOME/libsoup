@@ -1,3 +1,8 @@
+2007-06-01  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-filter.h (SOUP_IS_MESSAGE_FILTER_CLASS):
+	fix. noted by "cascardo" on libsoup-list.
+
 2007-05-16  Jonathon Jongsma  <jjongsma@gnome.org>
 
 	* libsoup/*.h: add G_BEGIN_DECLS / G_END_DECLS to all installed
