@@ -1,3 +1,20 @@
+2007-09-14  Dan Winship  <danw@gnome.org>
+
+	Make "make check" pass on Fedora 7:
+
+	* configure.in: update apache/php tests with additional filenames
+
+	* tests/httpd.conf.in: updates for configure.in changes and
+	slightly-more-recent apache
+
+	* tests/ssl-test.c (start_writing): fix uninitialized struct field
+	(main): start server after setting up client since otherwise
+	there's a race condition since soup_gnutls_init() isn't actually
+	thread-safe. (FIXME)
+
+	* tests/xmlrpc-server.php: rewrite to not use $HTTP_RAW_POST_DATA
+	(which only exists if register_globals is set)
+
 2007-06-01  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-message-filter.h (SOUP_IS_MESSAGE_FILTER_CLASS):

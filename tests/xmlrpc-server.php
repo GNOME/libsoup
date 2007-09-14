@@ -66,7 +66,8 @@ xmlrpc_server_register_method($xmlrpc_server, "md5sum", "md5sum");
 xmlrpc_server_register_method($xmlrpc_server, "dateChange", "dateChange");
 xmlrpc_server_register_method($xmlrpc_server, "echo", "echo_");
 
-$response = xmlrpc_server_call_method ($xmlrpc_server, $HTTP_RAW_POST_DATA,
+$response = xmlrpc_server_call_method ($xmlrpc_server,
+				       implode("\r\n", file('php://input')),
 				       0, array ("output_type" => "xml"));
 echo ($response);
 
