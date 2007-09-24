@@ -750,9 +750,10 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->auth)
+	if (priv->auth) {
 		g_object_unref (priv->auth);
-	soup_message_remove_header (msg->request_headers, "Authorization");
+		soup_message_remove_header (msg->request_headers, "Authorization");
+	}
 	priv->auth = auth;
 	if (!priv->auth)
 		return;
@@ -801,10 +802,11 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->proxy_auth)
+	if (priv->proxy_auth) {
 		g_object_unref (priv->proxy_auth);
-	soup_message_remove_header (msg->request_headers,
-				    "Proxy-Authorization");
+		soup_message_remove_header (msg->request_headers,
+					    "Proxy-Authorization");
+	}
 	priv->proxy_auth = auth;
 	if (!priv->proxy_auth)
 		return;
