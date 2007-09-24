@@ -579,12 +579,6 @@ soup_message_filter_get_type
 <SECTION>
 <FILE>soup-misc</FILE>
 <TITLE>Soup Miscellaneous Utilities</TITLE>
-SoupMD5Context
-soup_md5_init
-soup_md5_update
-soup_md5_final
-soup_md5_final_hex
-<SUBSECTION>
 soup_base64_decode
 soup_base64_encode
 soup_base64_decode_step

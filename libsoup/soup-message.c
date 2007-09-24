@@ -151,7 +151,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted immediately after writing a body chunk for a message.
-	 * (This is
 	 **/
 	signals[WROTE_CHUNK] =
 		g_signal_new ("wrote_chunk",
