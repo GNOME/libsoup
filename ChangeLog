@@ -1,5 +1,22 @@
 2007-09-24  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth.h (SoupAuth): add "realm" field to the struct.
+	(SoupAuthClass) remove "get_realm" virtual method.
+
+	* libsoup/soup-auth.c (soup_auth_new_from_header_list): Parse the
+	WWW-Authenticate/Proxy-Authenticate header here, set realm, and
+	pass the params hash to the construct method.
+	(soup_auth_get_info): Return an identifier for the auth:
+	"SCHEME:REALM"
+
+	* libsoup/soup-auth-basic.c:
+	* libsoup/soup-auth-digest.c: update
+
+	* libsoup/soup-session.c (invalidate_auth, update_auth_internal):
+	use soup_auth_get_info().
+
+2007-09-24  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-date.c (soup_date_parse): minor rfc850-date parsing
 	improvement suggested by RFC2616 19.3.
 

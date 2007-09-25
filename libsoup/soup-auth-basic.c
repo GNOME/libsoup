@@ -17,15 +17,14 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static void construct (SoupAuth *auth, const char *header);
+static void construct (SoupAuth *auth, GHashTable *auth_params);
 static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
-static const char *get_realm (SoupAuth *auth);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
 
 typedef struct {
-	char *realm, *token;
+	char *token;
 } SoupAuthBasicPrivate;
 #define SOUP_AUTH_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicPrivate))
 
@@ -41,7 +40,6 @@ finalize (GObject *object)
 {
 	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (object);
 
-	g_free (priv->realm);
 	g_free (priv->token);
 
 	G_OBJECT_CLASS (soup_auth_basic_parent_class)->finalize (object);
@@ -59,7 +57,6 @@ soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 
 	auth_class->construct = construct;
 	auth_class->get_protection_space = get_protection_space;
-	auth_class->get_realm = get_realm;
 	auth_class->authenticate = authenticate;
 	auth_class->is_authenticated = is_authenticated;
 	auth_class->get_authorization = get_authorization;
@@ -69,19 +66,9 @@ soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 
 
 static void
-construct (SoupAuth *auth, const char *header)
+construct (SoupAuth *auth, GHashTable *auth_params)
 {
-	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
-	GHashTable *tokens;
-
-	header += sizeof ("Basic");
-
-	tokens = soup_header_param_parse_list (header);
-	if (!tokens)
-		return;
-
-	priv->realm = soup_header_param_copy_token (tokens, "realm");
-	soup_header_param_destroy_hash (tokens);
+	;
 }
 
 static GSList *
@@ -97,12 +84,6 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 		*p = '\0';
 
 	return g_slist_prepend (NULL, space);
-}
-
-static const char *
-get_realm (SoupAuth *auth)
-{
-	return SOUP_AUTH_BASIC_GET_PRIVATE (auth)->realm;
 }
 
 static void

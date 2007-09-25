@@ -18,6 +18,7 @@
 typedef struct {
 	GObject parent;
 
+	char *realm;
 } SoupAuth;
 
 typedef struct {
@@ -26,12 +27,10 @@ typedef struct {
 	const char *scheme_name;
 
 	void         (*construct)            (SoupAuth      *auth,
-					      const char    *header);
+					      GHashTable    *auth_params);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
 					      const SoupUri *source_uri);
-
-	const char * (*get_realm)            (SoupAuth      *auth);
 
 	void         (*authenticate)         (SoupAuth      *auth,
 					      const char    *username,
@@ -49,6 +48,7 @@ SoupAuth   *soup_auth_new_from_header_list  (const GSList  *vals);
 
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
+char       *soup_auth_get_info              (SoupAuth      *auth);
 
 void        soup_auth_authenticate          (SoupAuth      *auth,
 					     const char    *username,

@@ -14,12 +14,26 @@
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
+#include "soup-headers.h"
 
 G_DEFINE_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
 
 static void
+finalize (GObject *object)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+
+	g_free (auth->realm);
+
+	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
+}
+
+static void
 soup_auth_class_init (SoupAuthClass *auth_class)
 {
+	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
+
+	object_class->finalize = finalize;
 }
 
 static void
@@ -27,15 +41,18 @@ soup_auth_init (SoupAuth *auth)
 {
 }
 
+typedef GType (*GTypeFunc) (void);
+
 typedef struct {
-	const char  *scheme;
-	GType      (*type_func) (void);
-	int          strength;
+	const char *name;
+	int         len;
+	GTypeFunc   type_func;
+	int         strength;
 } AuthScheme; 
 
 static AuthScheme known_auth_schemes [] = {
-	{ "Basic",  soup_auth_basic_get_type,  0 },
-	{ "Digest", soup_auth_digest_get_type, 3 },
+	{ "Basic",  sizeof ("Basic") - 1,  soup_auth_basic_get_type,  0 },
+	{ "Digest", sizeof ("Digest") - 1, soup_auth_digest_get_type, 3 },
 	{ NULL }
 };
 
@@ -53,18 +70,21 @@ static AuthScheme known_auth_schemes [] = {
 SoupAuth *
 soup_auth_new_from_header_list (const GSList *vals)
 {
-	char *header = NULL;
+	char *header = NULL, *realm;
 	AuthScheme *scheme = NULL, *iter;
 	SoupAuth *auth = NULL;
+	GHashTable *params;
 
 	g_return_val_if_fail (vals != NULL, NULL);
 
 	while (vals) {
 		char *tryheader = vals->data;
 
-		for (iter = known_auth_schemes; iter->scheme; iter++) {
-			if (!g_ascii_strncasecmp (tryheader, iter->scheme, 
-					    strlen (iter->scheme))) {
+		for (iter = known_auth_schemes; iter->name; iter++) {
+			if (!g_ascii_strncasecmp (tryheader, iter->name, 
+						  iter->len) &&
+			    (!tryheader[iter->len] ||
+			     g_ascii_isspace (tryheader[iter->len]))) {
 				if (!scheme || 
 				    scheme->strength < iter->strength) {
 					header = tryheader;
@@ -81,16 +101,20 @@ soup_auth_new_from_header_list (const GSList *vals)
 	if (!scheme)
 		return NULL;
 
-	auth = g_object_new (scheme->type_func (), NULL);
-	if (!auth)
+	params = soup_header_param_parse_list (header + scheme->len);
+	if (!params)
 		return NULL;
-
-	SOUP_AUTH_GET_CLASS (auth)->construct (auth, header);
-	if (!soup_auth_get_realm (auth)) {
-		g_object_unref (auth);
+	realm = soup_header_param_copy_token (params, "realm");
+	if (!realm) {
+		soup_header_param_destroy_hash (params);
 		return NULL;
 	}
 
+	auth = g_object_new (scheme->type_func (), NULL);
+	auth->realm = realm;
+
+	SOUP_AUTH_GET_CLASS (auth)->construct (auth, params);
+	soup_header_param_destroy_hash (params);
 	return auth;
 }
 
@@ -143,7 +167,28 @@ soup_auth_get_realm (SoupAuth *auth)
 {
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return SOUP_AUTH_GET_CLASS (auth)->get_realm (auth);
+	return auth->realm;
+}
+
+/**
+ * soup_auth_get_info:
+ * @auth: a #SoupAuth
+ *
+ * Gets an identifier for @auth. #SoupAuth objects from the same
+ * server with the same identifier refer to the same authentication
+ * domain (eg, the URLs associated with them take the same usernames
+ * and passwords).
+ *
+ * Return value: the identifier
+ **/
+char *
+soup_auth_get_info (SoupAuth *auth)
+{
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+
+	return g_strdup_printf ("%s:%s",
+				SOUP_AUTH_GET_CLASS (auth)->scheme_name,
+				auth->realm);
 }
 
 /**
