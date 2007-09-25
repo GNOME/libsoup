@@ -168,6 +168,8 @@ soup_date_parse (const char *timestamp)
 		tm.tm_mday = atoi (timestamp + 2);
 		tm.tm_mon = parse_month (timestamp + 5);
 		tm.tm_year = atoi (timestamp + 9);
+		if (tm.tm_year < 70)
+			tm.tm_year += 100;
 		tm.tm_hour = atoi (timestamp + 12);
 		tm.tm_min = atoi (timestamp + 15);
 		tm.tm_sec = atoi (timestamp + 18);

@@ -180,6 +180,14 @@ struct RequestTest {
 	  }
 	},
 
+	{ "Req w/ incorrect whitespace after Request-Line",
+	  "GET / HTTP/1.1 \r\nHost: example.com\r\n", -1,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "Host", "example.com" },
+	    { NULL }
+	  }
+	},
+
 	/************************/
 	/*** INVALID REQUESTS ***/
 	/************************/
