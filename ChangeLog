@@ -1,5 +1,11 @@
 2007-10-05  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.2.101
+
+	* NEWS: update
+
+2007-10-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Don't crash
 	if the authenticate callback returns a username and no password
 	(even though it's not supposed to do that). #480987
