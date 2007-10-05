@@ -28,7 +28,7 @@ LoadModule proxy_http_module    @APACHE_MODULE_DIR@/mod_proxy_http.so
 LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so
 LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 
-DirectoryIndex httpd.pid
+DirectoryIndex httpd.conf.in
 TypesConfig /dev/null
 AddType application/x-httpd-php .php
 
@@ -83,7 +83,7 @@ Listen 127.0.0.1:47527
 
     AuthType Basic
     AuthName realm1
-    AuthUserFile ./htpasswd
+    AuthUserFile @srcdir@/htpasswd
     Require valid-user
   </Proxy>
 
@@ -94,7 +94,7 @@ Listen 127.0.0.1:47527
 
     AuthType Basic
     AuthName realm1
-    AuthUserFile ./htpasswd
+    AuthUserFile @srcdir@/htpasswd
     Require valid-user
   </Proxy>
 
@@ -124,7 +124,7 @@ Listen 127.0.0.1:47528
 
     AuthType Basic
     AuthName realm1
-    AuthUserFile ./htpasswd
+    AuthUserFile @srcdir@/htpasswd
     Require user no-such-user
   </Proxy>
 
@@ -135,7 +135,7 @@ Listen 127.0.0.1:47528
 
     AuthType Basic
     AuthName realm1
-    AuthUserFile ./htpasswd
+    AuthUserFile @srcdir@/htpasswd
     Require user no-such-user
   </Proxy>
 
@@ -154,22 +154,22 @@ Listen 127.0.0.1:47528
   <VirtualHost 127.0.0.1:47525>
     SSLEngine on
 
-    SSLCertificateFile test-cert.pem
-    SSLCertificateKeyFile test-key.pem
+    SSLCertificateFile @srcdir@/test-cert.pem
+    SSLCertificateKeyFile @srcdir@/test-key.pem
 
   </VirtualHost>
 </IfModule>
 
 
 # Basic auth tests
-Alias /Basic/realm1/realm2/realm1 @builddir@
-Alias /Basic/realm1/realm2 @builddir@
-Alias /Basic/realm1/subdir @builddir@
-Alias /Basic/realm1/not @builddir@
-Alias /Basic/realm1 @builddir@
-Alias /Basic/realm2 @builddir@
-Alias /Basic/realm3 @builddir@
-Alias /Basic @builddir@
+Alias /Basic/realm1/realm2/realm1 @srcdir@
+Alias /Basic/realm1/realm2 @srcdir@
+Alias /Basic/realm1/subdir @srcdir@
+Alias /Basic/realm1/not @srcdir@
+Alias /Basic/realm1 @srcdir@
+Alias /Basic/realm2 @srcdir@
+Alias /Basic/realm3 @srcdir@
+Alias /Basic @srcdir@
 
 <Location /Basic/realm1>
   AuthType Basic
@@ -214,14 +214,14 @@ Alias /Basic @builddir@
 </Location>
 
 # Digest auth tests
-Alias /Digest/realm1/realm2/realm1 @builddir@
-Alias /Digest/realm1/realm2 @builddir@
-Alias /Digest/realm1/subdir @builddir@
-Alias /Digest/realm1/not @builddir@
-Alias /Digest/realm1 @builddir@
-Alias /Digest/realm2 @builddir@
-Alias /Digest/realm3 @builddir@
-Alias /Digest @builddir@
+Alias /Digest/realm1/realm2/realm1 @srcdir@
+Alias /Digest/realm1/realm2 @srcdir@
+Alias /Digest/realm1/subdir @srcdir@
+Alias /Digest/realm1/not @srcdir@
+Alias /Digest/realm1 @srcdir@
+Alias /Digest/realm2 @srcdir@
+Alias /Digest/realm3 @srcdir@
+Alias /Digest @srcdir@
 
 <Location /Digest/realm1>
   AuthType Digest

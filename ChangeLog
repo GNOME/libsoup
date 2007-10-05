@@ -4,6 +4,10 @@
 
 	* NEWS: update
 
+	* tests/httpd.conf.in: 
+	* tests/Makefile.am: 
+	* tests/ssl-test.c: srcdir != builddir fixes
+
 2007-10-05  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Don't crash

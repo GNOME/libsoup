@@ -63,8 +63,8 @@ server_write (gnutls_session_t session, char *buf, int bufsize)
 	}
 }
 
-const char *ssl_cert_file = "test-cert.pem";
-const char *ssl_key_file = "test-key.pem";
+const char *ssl_cert_file = SRCDIR "/test-cert.pem";
+const char *ssl_key_file = SRCDIR "/test-key.pem";
 
 static gpointer
 server_thread (gpointer user_data)

@@ -35,6 +35,7 @@ revserver_SOURCES = revserver.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 ssl_test_SOURCES = ssl-test.c
+ssl_test_CFLAGS = -DSRCDIR=\""$(srcdir)"\"
 uri_parsing_SOURCES = uri-parsing.c
 xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
 
