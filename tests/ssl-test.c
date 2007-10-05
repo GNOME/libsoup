@@ -1,10 +1,11 @@
 #include <gnutls/gnutls.h>
 #include <glib.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "libsoup/soup-socket.h"
 #include "libsoup/soup-ssl.h"
@@ -62,8 +63,8 @@ server_write (gnutls_session_t session, char *buf, int bufsize)
 	}
 }
 
-const char *ssl_cert_file = "test-cert.pem";
-const char *ssl_key_file = "test-key.pem";
+const char *ssl_cert_file = SRCDIR "/test-cert.pem";
+const char *ssl_key_file = SRCDIR "/test-key.pem";
 
 static gpointer
 server_thread (gpointer user_data)
@@ -182,6 +183,7 @@ start_writing (gpointer user_data)
 	data = g_new (AsyncData, 1);
 	for (i = 0; i < BUFSIZE; i++)
 		data->writebuf[i] = i & 0xFF;
+	data->total = 0;
 
 	g_signal_connect (sock, "writable",
 			  G_CALLBACK (async_write), data);
@@ -263,11 +265,7 @@ main (int argc, char **argv)
 	getsockname (listener, (struct sockaddr *)&sin, (void *)&sin_len);
 	port = ntohs (sin.sin_port);
 
-	/* Now spawn server thread */
-	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
-				  FALSE, NULL);
-
-	/* And create the client */
+	/* Create the client */
 	sock = soup_socket_client_new_sync ("127.0.0.1", port,
 					    soup_ssl_get_client_credentials (NULL),
 					    &status);
@@ -277,6 +275,10 @@ main (int argc, char **argv)
 	}
 
 	soup_socket_start_ssl (sock);
+
+	/* Now spawn server thread */
+	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
+				  FALSE, NULL);
 
 	/* Synchronous client test */
 	for (i = 0; i < BUFSIZE; i++)

@@ -513,7 +513,7 @@ soup_soap_message_write_double (SoupSoapMessage *msg, double d)
 void
 soup_soap_message_write_base64 (SoupSoapMessage *msg, const char *string, int len)
 {
-        gchar *str = soup_base64_encode (string, len);
+        gchar *str = g_base64_encode ((const guchar *)string, len);
         soup_soap_message_write_string (msg, str);
         g_free (str);
 }

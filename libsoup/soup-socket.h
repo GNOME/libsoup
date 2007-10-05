@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_SOCKET            (soup_socket_get_type ())
 #define SOUP_SOCKET(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_SOCKET, SoupSocket))
 #define SOUP_SOCKET_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_SOCKET, SoupSocketClass))
@@ -133,5 +135,6 @@ SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    gsize               len,
 					    gsize              *nwrote);
 
+G_END_DECLS
 
 #endif /* SOUP_SOCKET_H */

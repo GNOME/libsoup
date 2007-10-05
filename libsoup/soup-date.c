@@ -26,10 +26,6 @@ static const char *days[] = {
 	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
-static const int days_before[] = {
-	0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
-};
-
 static int
 parse_month (const char *month)
 {
@@ -54,12 +50,18 @@ parse_month (const char *month)
 time_t
 soup_mktime_utc (struct tm *tm)
 {
+#if HAVE_TIMEGM
+	return timegm (tm);
+#else
 	time_t tt;
+	static const int days_before[] = {
+		0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
+	};
 
 	/* We check the month because (a) if we don't, the
 	 * days_before[] part below may access random memory, and (b)
 	 * soup_date_parse() doesn't check the return value of
-	 * parse_month(). The caller is responsible for ensure the
+	 * parse_month(). The caller is responsible for ensuring the
 	 * sanity of everything else.
 	 */
 	if (tm->tm_mon < 0 || tm->tm_mon > 11)
@@ -71,7 +73,9 @@ soup_mktime_utc (struct tm *tm)
 	if (tm->tm_year % 4 == 0 && tm->tm_mon < 2)
 		tt--;
 	tt = ((((tt * 24) + tm->tm_hour) * 60) + tm->tm_min) * 60 + tm->tm_sec;
+	
 	return tt;
+#endif
 }
 
 /**
@@ -164,6 +168,8 @@ soup_date_parse (const char *timestamp)
 		tm.tm_mday = atoi (timestamp + 2);
 		tm.tm_mon = parse_month (timestamp + 5);
 		tm.tm_year = atoi (timestamp + 9);
+		if (tm.tm_year < 70)
+			tm.tm_year += 100;
 		tm.tm_hour = atoi (timestamp + 12);
 		tm.tm_min = atoi (timestamp + 15);
 		tm.tm_sec = atoi (timestamp + 18);
@@ -185,6 +191,7 @@ char *
 soup_date_generate (time_t when)
 {
 	struct tm tm;
+
 	soup_gmtime (&when, &tm);
 
 	/* RFC1123 format, eg, "Sun, 06 Nov 1994 08:49:37 GMT" */
@@ -206,59 +213,10 @@ soup_date_generate (time_t when)
 time_t
 soup_date_iso8601_parse (const char *timestamp)
 {
-	struct tm tm;
-	long val;
-	time_t tt;
+	GTimeVal timeval;
 
-	val = strtoul (timestamp, (char **)&timestamp, 10);
-	if (*timestamp == '-') {
-		// YYYY-MM-DD
-		tm.tm_year = val - 1900;
-		timestamp++;
-		tm.tm_mon = strtoul (timestamp, (char **)&timestamp, 10) - 1;
-		if (*timestamp++ != '-')
-			return -1;
-		tm.tm_mday = strtoul (timestamp, (char **)&timestamp, 10);
-	} else {
-		// YYYYMMDD
-		tm.tm_mday = val % 100;
-		tm.tm_mon = (val % 10000) / 100 - 1;
-		tm.tm_year = val / 10000 - 1900;
-	}
+	if (!g_time_val_from_iso8601 (timestamp, &timeval))
+		return (time_t) -1;
 
-	if (*timestamp++ != 'T')
-		return -1;
-
-	val = strtoul (timestamp, (char **)&timestamp, 10);
-	if (*timestamp == ':') {
-		// hh:mm:ss
-		tm.tm_hour = val;
-		timestamp++;
-		tm.tm_min = strtoul (timestamp, (char **)&timestamp, 10);
-		if (*timestamp++ != ':')
-			return -1;
-		tm.tm_sec = strtoul (timestamp, (char **)&timestamp, 10);
-	} else {
-		// hhmmss
-		tm.tm_sec = val % 100;
-		tm.tm_min = (val % 10000) / 100;
-		tm.tm_hour = val / 10000;
-	}
-
-	tt = soup_mktime_utc (&tm);
-
-	if (*timestamp == '.')
-		strtoul (timestamp + 1, (char **)&timestamp, 10);
-
-	if (*timestamp == '+' || *timestamp == '-') {
-		int sign = (*timestamp == '+') ? -1 : 1;
-		val = strtoul (timestamp + 1, (char **)&timestamp, 10);
-		if (*timestamp == ':')
-			val = 60 * val + strtoul (timestamp + 1, NULL, 10);
-		else
-			val = 60 * (val / 100) + (val % 100);
-		tt += sign * val;
-	}
-
-	return tt;
+	return (time_t) timeval.tv_sec;
 }

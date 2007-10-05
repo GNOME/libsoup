@@ -10,6 +10,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 typedef gboolean (*SoupServerAuthCallbackFn) (SoupServerAuthContext *auth_ctx,
 					      SoupServerAuth        *auth,
 					      SoupMessage           *msg, 
@@ -82,5 +84,7 @@ const gchar    *soup_server_auth_get_user     (SoupServerAuth        *auth);
 
 gboolean        soup_server_auth_check_passwd (SoupServerAuth        *auth,
 					       gchar                 *passwd);
+
+G_END_DECLS
 
 #endif /* SOUP_SERVER_AUTH_H */

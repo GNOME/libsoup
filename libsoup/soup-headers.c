@@ -178,7 +178,7 @@ soup_headers_parse_request (const char       *str,
 		return FALSE;
 
 	headers = version + 8;
-	if (headers < str + len && *headers == '\r')
+	while (headers < str + len && (*headers == '\r' || *headers == ' '))
 		headers++;
 	if (headers >= str + len || *headers != '\n')
 		return FALSE;

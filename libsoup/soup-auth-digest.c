@@ -1,4 +1,4 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-digest-offset: 8 -*- */
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * soup-auth-digest.c: HTTP Digest Authentication
  *
@@ -21,9 +21,8 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static void construct (SoupAuth *auth, const char *header);
+static void construct (SoupAuth *auth, GHashTable *auth_params);
 static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
-static const char *get_realm (SoupAuth *auth);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
@@ -44,7 +43,6 @@ typedef struct {
 	char           hex_a1[33];
 
 	/* These are provided by the server */
-	char          *realm;
 	char          *nonce;
 	QOPType        qop_options;
 	AlgorithmType  algorithm;
@@ -71,8 +69,6 @@ finalize (GObject *object)
 
 	if (priv->user)
 		g_free (priv->user);
-	if (priv->realm)
-		g_free (priv->realm);
 	if (priv->nonce)
 		g_free (priv->nonce);
 	if (priv->domain)
@@ -94,7 +90,6 @@ soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
 	auth_class->scheme_name = "Digest";
 
 	auth_class->get_protection_space = get_protection_space;
-	auth_class->get_realm = get_realm;
 	auth_class->construct = construct;
 	auth_class->authenticate = authenticate;
 	auth_class->is_authenticated = is_authenticated;
@@ -149,27 +144,19 @@ decode_algorithm (const char *name)
 }
 
 static void
-construct (SoupAuth *auth, const char *header)
+construct (SoupAuth *auth, GHashTable *auth_params)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
-	GHashTable *tokens;
 	char *tmp, *ptr;
-
-	header += sizeof ("Digest");
-
-	tokens = soup_header_param_parse_list (header);
-	if (!tokens)
-		return;
 
 	priv->nc = 1;
 	/* We're just going to do qop=auth for now */
 	priv->qop = QOP_AUTH;
 
-	priv->realm = soup_header_param_copy_token (tokens, "realm");
-	priv->domain = soup_header_param_copy_token (tokens, "domain");
-	priv->nonce = soup_header_param_copy_token (tokens, "nonce");
+	priv->domain = soup_header_param_copy_token (auth_params, "domain");
+	priv->nonce = soup_header_param_copy_token (auth_params, "nonce");
 
-	tmp = soup_header_param_copy_token (tokens, "qop");
+	tmp = soup_header_param_copy_token (auth_params, "qop");
 	ptr = tmp;
 
 	while (ptr && *ptr) {
@@ -185,11 +172,9 @@ construct (SoupAuth *auth, const char *header)
 	}
 	g_free (tmp);
 
-	tmp = soup_header_param_copy_token (tokens, "algorithm");
+	tmp = soup_header_param_copy_token (auth_params, "algorithm");
 	priv->algorithm = decode_algorithm (tmp);
 	g_free (tmp);
-
-	soup_header_param_destroy_hash (tokens);
 }
 
 static GSList *
@@ -238,12 +223,6 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 	return space;
 }
 
-static const char *
-get_realm (SoupAuth *auth)
-{
-	return SOUP_AUTH_DIGEST_GET_PRIVATE (auth)->realm;
-}
-
 static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
@@ -258,7 +237,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 				auth,
 				(unsigned long) getpid (),
 				(unsigned long) time (0));
-	priv->cnonce = soup_base64_encode (bgen, strlen (bgen));
+	priv->cnonce = g_base64_encode ((guchar *)bgen, strlen (bgen));
 	g_free (bgen);
 
 	priv->user = g_strdup (username);
@@ -269,11 +248,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	soup_md5_update (&ctx, username, strlen (username));
 
 	soup_md5_update (&ctx, ":", 1);
-	if (priv->realm) {
-		soup_md5_update (&ctx, priv->realm,
-				 strlen (priv->realm));
-	}
-
+	soup_md5_update (&ctx, auth->realm, strlen (auth->realm));
 	soup_md5_update (&ctx, ":", 1);
 	if (password)
 		soup_md5_update (&ctx, password, strlen (password));
@@ -397,7 +372,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 		"Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", %s%s%s "
 		"%s%s%s %s%s%s uri=\"%s\", response=\"%s\"",
 		priv->user,
-		priv->realm,
+		auth->realm,
 		priv->nonce,
 
 		priv->qop ? "cnonce=\"" : "",

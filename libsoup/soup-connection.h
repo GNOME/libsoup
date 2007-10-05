@@ -10,6 +10,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_CONNECTION            (soup_connection_get_type ())
 #define SOUP_CONNECTION(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_CONNECTION, SoupConnection))
 #define SOUP_CONNECTION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_CONNECTION, SoupConnectionClass))
@@ -96,5 +98,6 @@ void            soup_connection_reauthenticate (SoupConnection   *conn,
 						char            **username,
 						char            **password);
 
+G_END_DECLS
 
 #endif /* SOUP_CONNECTION_H */

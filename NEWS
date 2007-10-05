@@ -1,3 +1,49 @@
+Changes in libsoup from 2.2.100 to 2.2.101:
+
+	* Fix build on cygwin [384498]
+
+	* Fix SSL rehandshaking on synchronous sockets [415402, Jacob
+          Berkman] and add a regression test for it.
+
+	* Fix two bugs in https tunnels over proxies that require
+	  authentication (noticed by Varadhan), and add a regression
+	  test for them.
+
+	* Ensure that if you queue multiple messages at once to an
+	  http server that requires authentication but that you
+	  haven't authenticated to yet, that all of the messages get
+	  properly authenticated [271540, James Willcox]. And add a
+	  regression test for it.
+
+	* Fix NTLM authentication, which got broken by the previous
+          fix. [471389, Varadhan]. Add a basic NTLM regression test
+          that doesn't really test the crypto/encoding parts, but at
+          least makes sure that the message flow is correct.
+
+	* Allow trailing whitespace after HTTP version in
+          Response-Line, for compatibility with broken servers
+          [475169, Stephane Loeuillet]. Add that case to the
+          header-parsing regression test.
+
+	* Fix crash then the session's "authenticate" handler returns
+	  a username and no password when using NTLM. [480987, Wendell
+	  MacKenzie]
+
+	* Use "new" glib base64 and iso8601 methods rather than
+          duplicating them. [337010, patch from Emmanuele Bassi].
+
+	* Implement soup_session_queue_message() for SoupSessionSync.
+
+	* Add G_BEGIN_DECLS / G_END_DECLS to all headers that were
+          missing them. [438776, patch from Jonathon Jongsma].
+
+	* Fix broken definition of SOUP_IS_MESSAGE_FILTER_CLASS. Noted
+          by "cascardo" on libsoup-list.
+
+	* Remove documentation of non-public MD5 methods [440092,
+          Jonathon Jongsma]. Removed a mysterious half-sentence in the
+          SoupMessage docs [458116, Marco Barisione].
+
 Changes in libsoup from 2.2.99 to 2.2.100:
 
 	* Fixed soup_headers_parse_status_line() so WebDAV response

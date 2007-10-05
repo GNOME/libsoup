@@ -8,6 +8,10 @@
 #ifndef SOUP_STATUS_H
 #define SOUP_STATUS_H 1
 
+#include <glib/gmacros.h>
+
+G_BEGIN_DECLS
+
 /**
  * SoupStatusClass:
  * @SOUP_STATUS_CLASS_TRANSPORT_ERROR: Network or Soup-level error
@@ -241,5 +245,7 @@ typedef enum {
 } SoupKnownStatusCode;
 
 const char *soup_status_get_phrase (guint status_code);
+
+G_END_DECLS
 
 #endif /* SOUP_STATUS_H */

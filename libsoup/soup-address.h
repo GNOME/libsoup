@@ -11,6 +11,8 @@
 #include <libsoup/soup-portability.h>
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_ADDRESS            (soup_address_get_type ())
 #define SOUP_ADDRESS(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_ADDRESS, SoupAddress))
 #define SOUP_ADDRESS_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_ADDRESS, SoupAddressClass))
@@ -89,5 +91,7 @@ const char      *soup_address_get_physical       (SoupAddress         *addr);
 guint            soup_address_get_port           (SoupAddress         *addr);
 struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,
 						  int                 *len);
+
+G_END_DECLS
 
 #endif /* SOUP_ADDRESS_H */

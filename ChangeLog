@@ -1,3 +1,213 @@
+2007-10-05  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.2.101
+
+	* NEWS: update
+
+	* tests/httpd.conf.in: 
+	* tests/Makefile.am: 
+	* tests/ssl-test.c: srcdir != builddir fixes
+
+2007-10-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): Don't crash
+	if the authenticate callback returns a username and no password
+	(even though it's not supposed to do that). #480987
+
+2007-09-24  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth.h (SoupAuth): add "realm" field to the struct.
+	(SoupAuthClass) remove "get_realm" virtual method.
+
+	* libsoup/soup-auth.c (soup_auth_new_from_header_list): Parse the
+	WWW-Authenticate/Proxy-Authenticate header here, set realm, and
+	pass the params hash to the construct method.
+	(soup_auth_get_info): Return an identifier for the auth:
+	"SCHEME:REALM"
+
+	* libsoup/soup-auth-basic.c:
+	* libsoup/soup-auth-digest.c: update
+
+	* libsoup/soup-session.c (invalidate_auth, update_auth_internal):
+	use soup_auth_get_info().
+
+2007-09-24  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c (soup_date_parse): minor rfc850-date parsing
+	improvement suggested by RFC2616 19.3.
+
+	* libsoup/soup-headers.c (soup_headers_parse_request): allow
+	erroneous trailing whitespace after HTTP version. #475169
+
+	* libsoup/soup-message-server-io.c (parse_request_headers): fix
+	the parsing of the Host header to assume it already includes the
+	port (which it should; the only reason this ever worked is because
+	SoupUri ignores the second port number when parse_request_headers
+	generates a URL like "http://localhost:9999:9999/").
+
+	* tests/header-parsing.c (reqtests): add a test for #475169
+
+2007-09-23  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c (soup_message_class_init): remove a
+	mysterious partial sentence in the ::wrote-chunk docstring.
+	#458116
+
+	* docs/reference/libsoup-sections.txt: Remove documentation of MD5
+	methods, which are not public. #440092
+
+2007-09-23  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c (soup_message_set_auth)
+	(soup_message_set_proxy_auth): Only remove the Authorization /
+	Proxy-Authorization header from the message if it was previously
+	set by soup_message_set_auth(). (Eg, not if it was added by
+	SoupConnectionNTLM.) #471389
+
+	* libsoup/soup-connection-ntlm.h: fix a search-and-replace-o
+
+	* tests/ntlm-test.c: Simple NTLM regression test; doesn't really
+	test the crypto/encoding bits, just that the right headers are
+	being sent at the right times.
+
+2007-09-14  Dan Winship  <danw@gnome.org>
+
+	Make "make check" pass on Fedora 7:
+
+	* configure.in: update apache/php tests with additional filenames
+
+	* tests/httpd.conf.in: updates for configure.in changes and
+	slightly-more-recent apache
+
+	* tests/ssl-test.c (start_writing): fix uninitialized struct field
+	(main): start server after setting up client since otherwise
+	there's a race condition since soup_gnutls_init() isn't actually
+	thread-safe. (FIXME)
+
+	* tests/xmlrpc-server.php: rewrite to not use $HTTP_RAW_POST_DATA
+	(which only exists if register_globals is set)
+
+2007-06-01  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message-filter.h (SOUP_IS_MESSAGE_FILTER_CLASS):
+	fix. noted by "cascardo" on libsoup-list.
+
+2007-05-16  Jonathon Jongsma  <jjongsma@gnome.org>
+
+	* libsoup/*.h: add G_BEGIN_DECLS / G_END_DECLS to all installed
+	headers so that libsoup can be used from C++ programs. #438776
+
+2007-04-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-ssl.h: Make a real SoupSSLCredentials type rather
+	than just using gpointer
+
+	* libsoup/soup-server.c (SoupServerPrivate): use it
+
+	* libsoup/soup-session.c (SoupSessionPrivate): use it
+
+	* libsoup/soup-gnutls.c: Use it, and consistently use "creds"
+	rather than "cred" as the abbreviation for "credentials".
+
+	* docs/reference/libsoup-sections.txt:
+	* docs/reference/tmpl/soup-misc.sgml: 
+	* docs/reference/tmpl/soup-ssl.sgml: update
+	
+2007-03-29  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (queue_message): Implement this by
+	sending the message (synchronously) in another thread and then
+	queueing the callback back in the main thread.
+
+	* libsoup/soup-session.c (soup_session_queue_message): update docs
+	to be more explicit about what thread the callback occurs in
+
+2007-03-17  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message.c (soup_message_set_auth)
+	(soup_message_get_auth, soup_message_set_proxy_auth)
+	(soup_message_get_proxy_auth): get/set auth/proxy_auth info for a
+	message.
+
+	* libsoup/soup-session.c (add_auth): Use soup_message_set_auth and
+	soup_message_set_proxy_auth.
+	(update_auth_internal): Call soup_message_get_auth or
+	soup_message_get_proxy_auth to determine the message's prior auth,
+	rather than calling lookup_auth() again, since it isn't guaranteed
+	to return the same thing now as it did when the message was
+	originally sent. Fixes erroneous 401s when queuing multiple
+	messages at once to an as-yet-unauthenticated-to server. #271540
+
+	* libsoup/soup-session-async.c (queue_message): don't run the
+	queue right away, do it at idle time. Otherwise in some cases
+	(especially errors), the message callbacks could be invoked before
+	queue_message returns.
+
+	* tests/auth-test.c: add a regression test for #271540.
+
+2007-03-17  Dan Winship  <danw@novell.com>
+
+	* configure.in: require glib 2.12. check for timegm().
+
+	* libsoup/soup-date.c (soup_mktime_utc): Use timegm if available.
+	(soup_date_iso8601_parse): use g_time_val_from_iso8601. #337010,
+	patch from Emmanuele Bassi.
+
+	* libsoup/soup-types.h: remove local copy of
+	G_GNUC_NULL_TERMINATED since we now depend on a new-enough copy of
+	glib.
+
+	* libsoup/soup-misc.c (soup_base64_encode_close)
+	(soup_base64_encode_step, soup_base64_encode)
+	(soup_base64_decode_step): Make these just be wrappers around the
+	glib base64 methods. (For now; eventually they'll just go away.)
+
+	* libsoup/soup-auth-basic.c (authenticate): 
+	* libsoup/soup-auth-digest.c (authenticate):
+	* libsoup/soup-connection-ntlm.c (soup_ntlm_parse_challenge)
+	(soup_ntlm_response): 
+	* libsoup/soup-server-auth.c (soup_server_auth_new): 
+	* libsoup/soup-soap-message.c (soup_soap_message_write_base64): 
+	* libsoup/soup-xmlrpc-message.c
+	(soup_xmlrpc_message_write_base64): 
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_base64):
+	Use glib base64 methods
+
+2007-03-16  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-message.c (soup_message_get_response_encoding):
+	update the handling of CONNECT: it has no response body by
+	default, but does have a body if its headers say so.
+
+	* tests/proxy-test.c: test libsoup's behavior when talking to
+	proxies.
+
+	* tests/httpd.conf.in: Load mod_proxy and mod_ssl, and add
+	sections configuring them, for proxy-test
+
+	* configure.in: update the apache-module-dir-finding code to deal
+	with the fact that some modules (eg, mod_ssl) might only be in the
+	mpm-specific module dir, while others (eg, mod_php5) might only be
+	in the generic module dir.
+
+2007-03-12  Dan Winship  <danw@novell.com>
+
+	* tests/Makefile.am (INCLUDES): add $(LIBGNUTLS_CFLAGS) for
+	ssl-test. #417617, patch from Elijah Newren.
+
+2007-03-12  Dan Winship  <danw@novell.com>
+
+	* libsoup/soup-session-sync.c (wait_for_connection): if
+	soup_connection_connect_sync() returns SOUP_STATUS_TRY_AGAIN, then
+	try again. (Duh.) Fixes SSL-via-proxy-when-using-synchronous-I/O-
+	where-the-proxy-closes-the-connection-when-returning-407. (Reported
+	by Varadhan.)
+
+	* tests/get.c: Rewrite to use soup_session_send_message rather
+	than soup_session_queue_message, and add a "-s" flag to use
+	SoupSessionSync rather than SoupSessionAsync (so we can test bugs
+	in the sync code paths).
+
 2007-03-08  Dan Winship  <danw@novell.com>
 
 	* libsoup/soup-gnutls.c (do_handshake): don't return

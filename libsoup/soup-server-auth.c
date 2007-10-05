@@ -352,23 +352,24 @@ soup_server_auth_new (SoupServerAuthContext *auth_ctx,
 	switch (type) {
 	case SOUP_AUTH_TYPE_BASIC:
 		{
-			gchar *userpass, *colon;
-			gint len;
+			guchar *userpass, *colon;
+			gsize len;
 
-			userpass = soup_base64_decode (header, &len);
+			userpass = g_base64_decode (header, &len);
 			if (!userpass)
 				break;
 
-			colon = strchr (userpass, ':');
+			colon = memchr (userpass, ':', len);
 			if (!colon) {
 				g_free (userpass);
 				break;
 			}
 
 			ret->basic.type = SOUP_AUTH_TYPE_BASIC;
-			ret->basic.user = g_strndup (userpass, 
+			ret->basic.user = g_strndup ((char *)userpass, 
 						     colon - userpass);
-			ret->basic.passwd = g_strdup (colon + 1);
+			ret->basic.passwd = g_strndup ((char *)colon + 1,
+						       len - (colon + 1 - userpass));
 
 			g_free (userpass);
 

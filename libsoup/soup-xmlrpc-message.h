@@ -75,4 +75,6 @@ void      soup_xmlrpc_message_persist     (SoupXmlrpcMessage *msg);
 
 SoupXmlrpcResponse *soup_xmlrpc_message_parse_response (SoupXmlrpcMessage *msg);
 
+G_END_DECLS
+
 #endif

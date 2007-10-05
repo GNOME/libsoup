@@ -184,6 +184,19 @@ final_finished (SoupMessage *req, gpointer user_data)
 	run_queue (sa, FALSE);
 }
 
+static gboolean
+idle_run_queue (gpointer user_data)
+{
+	SoupSessionAsync *sa = user_data;
+
+	g_object_add_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
+	g_object_unref (sa);
+
+	if (sa)
+		run_queue (sa, TRUE);
+	return FALSE;
+}
+
 static void
 queue_message (SoupSession *session, SoupMessage *req,
 	       SoupMessageCallbackFn callback, gpointer user_data)
@@ -202,7 +215,8 @@ queue_message (SoupSession *session, SoupMessage *req,
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 
-	run_queue (sa, TRUE);
+	g_object_ref (sa);
+	g_idle_add (idle_run_queue, sa);
 }
 
 static guint

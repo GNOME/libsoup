@@ -26,6 +26,7 @@ const char *method = SOUP_METHOD_GET;
 char *base;
 SoupUri *base_uri;
 int pending;
+GHashTable *fetched_urls;
 
 static GPtrArray *
 find_hrefs (const SoupUri *base, const char *body, int length)
@@ -98,8 +99,6 @@ mkdirs (const char *path)
 	}
 }
 
-static void get_url (const char *url);
-
 static void
 print_header (gpointer name, gpointer value, gpointer data)
 {
@@ -107,18 +106,57 @@ print_header (gpointer name, gpointer value, gpointer data)
 }
 
 static void
-got_url (SoupMessage *msg, gpointer uri)
+get_url (const char *url)
 {
-	char *name;
+	char *url_to_get, *slash, *name;
+	SoupMessage *msg;
 	int fd, i;
+	SoupUri *uri;
 	GPtrArray *hrefs;
 	const char *header;
+
+	if (strncmp (url, base, strlen (base)) != 0)
+		return;
+	if (strchr (url, '?') && strcmp (url, base) != 0)
+		return;
+
+	slash = strrchr (url, '/');
+	if (slash && !slash[1])
+		url_to_get = g_strdup_printf ("%sindex.html", url);
+	else
+		url_to_get = g_strdup (url);
+
+	if (g_hash_table_lookup (fetched_urls, url_to_get))
+		return;
+	g_hash_table_insert (fetched_urls, url_to_get, url_to_get);
+
+	if (recurse) {
+		/* See if we're already downloading it, and create the
+		 * file if not.
+		 */
+
+		name = url_to_get + strlen (base);
+		if (*name == '/')
+			name++;
+		if (access (name, F_OK) == 0)
+			return;
+
+		mkdirs (name);
+		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		close (fd);
+	}
+
+	msg = soup_message_new (method, url_to_get);
+	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+
+	soup_session_send_message (session, msg);
 
 	name = soup_message_get_uri (msg)->path;
 	if (strncmp (base_uri->path, name, strlen (base_uri->path)) != 0) {
 		fprintf (stderr, "  Error: not under %s\n", base_uri->path);
-		goto DONE;
+		return;
 	}
+
 	if (debug) {
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 		printf ("%s %s HTTP/1.%d\n\n", method, path,
@@ -136,18 +174,19 @@ got_url (SoupMessage *msg, gpointer uri)
 		name++;
 
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
-		unlink (name);
+		if (recurse)
+			unlink (name);
 		header = soup_message_get_header (msg->response_headers, "Location");
 		if (header) {
 			if (!debug)
 				printf ("  -> %s\n", header);
 			get_url (header);
 		}
-		goto DONE;
+		return;
 	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
-		goto DONE;
+		return;
 
 	if (recurse)
 		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -155,66 +194,21 @@ got_url (SoupMessage *msg, gpointer uri)
 		fd = STDOUT_FILENO;
 	write (fd, msg->response.body, msg->response.length);
 	if (!recurse)
-		goto DONE;
+		return;
 	close (fd);
 
 	header = soup_message_get_header (msg->response_headers, "Content-Type");
 	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
-		goto DONE;
+		return;
 
+	uri = soup_uri_new (url);
 	hrefs = find_hrefs (uri, msg->response.body, msg->response.length);
+	soup_uri_free (uri);
 	for (i = 0; i < hrefs->len; i++) {
 		get_url (hrefs->pdata[i]);
 		g_free (hrefs->pdata[i]);
 	}
 	g_ptr_array_free (hrefs, TRUE);
-
- DONE:
-	soup_uri_free (uri);
-	if (!--pending)
-		g_main_quit (loop);
-}
-
-static void
-get_url (const char *url)
-{
-	char *url_to_get, *slash, *name;
-	SoupMessage *msg;
-	int fd;
-
-	if (strncmp (url, base, strlen (base)) != 0)
-		return;
-
-	slash = strrchr (url, '/');
-	if (slash && !slash[1])
-		url_to_get = g_strdup_printf ("%sindex.html", url);
-	else
-		url_to_get = g_strdup (url);
-
-	if (recurse) {
-		/* See if we're already downloading it, and create the
-		 * file if not.
-		 */
-
-		name = url_to_get + strlen (base);
-		if (*name == '/')
-			name++;
-		if (access (name, F_OK) == 0) {
-			g_free (url_to_get);
-			return;
-		}
-
-		mkdirs (name);
-		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		close (fd);
-	}
-
-	msg = soup_message_new (method, url_to_get);
-	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-
-	pending++;
-	soup_session_queue_message (session, msg, got_url, soup_uri_new (url));
-	g_free (url_to_get);
 }
 
 static void
@@ -229,12 +223,13 @@ main (int argc, char **argv)
 {
 	const char *cafile = NULL;
 	SoupUri *proxy = NULL;
+	gboolean synchronous = FALSE;
 	int opt;
 
 	g_type_init ();
 	g_thread_init (NULL);
 
-	while ((opt = getopt (argc, argv, "c:dhp:r")) != -1) {
+	while ((opt = getopt (argc, argv, "c:dhp:rs")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
@@ -262,6 +257,10 @@ main (int argc, char **argv)
 			recurse = TRUE;
 			break;
 
+		case 's':
+			synchronous = TRUE;
+			break;
+
 		case '?':
 			usage ();
 			break;
@@ -279,10 +278,19 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	session = soup_session_async_new_with_options (
-		SOUP_SESSION_SSL_CA_FILE, cafile,
-		SOUP_SESSION_PROXY_URI, proxy,
-		NULL);
+	fetched_urls = g_hash_table_new (g_str_hash, g_str_equal);
+
+	if (synchronous) {
+		session = soup_session_sync_new_with_options (
+			SOUP_SESSION_SSL_CA_FILE, cafile,
+			SOUP_SESSION_PROXY_URI, proxy,
+			NULL);
+	} else {
+		session = soup_session_async_new_with_options (
+			SOUP_SESSION_SSL_CA_FILE, cafile,
+			SOUP_SESSION_PROXY_URI, proxy,
+			NULL);
+	}
 
 	if (recurse) {
 		char *outdir;
@@ -297,11 +305,13 @@ main (int argc, char **argv)
 		g_free (outdir);
 	}
 
+	if (!synchronous)
+		loop = g_main_loop_new (NULL, TRUE);
+
 	get_url (base);
 
-	loop = g_main_loop_new (NULL, TRUE);
-	g_main_run (loop);
-	g_main_loop_unref (loop);
+	if (!synchronous)
+		g_main_loop_unref (loop);
 
 	soup_uri_free (base_uri);
 

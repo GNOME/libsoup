@@ -361,8 +361,8 @@ soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, GByteArray **data)
 {
 	xmlNode *xml;
 	xmlChar *content;
-	char *decoded;
-	int len;
+	guchar *decoded;
+	gsize len;
 
 	xml = (xmlNode *) value;
 	if (strcmp ((const char *)xml->name, "value"))
@@ -372,11 +372,11 @@ soup_xmlrpc_value_get_base64 (SoupXmlrpcValue *value, GByteArray **data)
 		return FALSE;
 
 	content = xmlNodeGetContent (xml);
-	decoded = soup_base64_decode ((const char *)content, &len);
+	decoded = g_base64_decode ((const char *)content, &len);
 	xmlFree (content);
 
 	*data = g_byte_array_new ();
-	g_byte_array_append (*data, (guchar *)decoded, len);
+	g_byte_array_append (*data, decoded, len);
 	g_free (decoded);
 
 	return TRUE;

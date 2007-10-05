@@ -6,6 +6,10 @@
 #ifndef SOUP_METHOD_H
 #define SOUP_METHOD_H 1
 
+#include <glib/gmacros.h>
+
+G_BEGIN_DECLS
+
 #define SOUP_METHOD_POST      "POST"
 #define SOUP_METHOD_GET       "GET"
 #define SOUP_METHOD_HEAD      "HEAD"
@@ -44,5 +48,7 @@ typedef enum {
 } SoupMethodId;
 
 SoupMethodId soup_method_get_id (const char *method);
+
+G_END_DECLS
 
 #endif /* SOUP_METHOD_H */

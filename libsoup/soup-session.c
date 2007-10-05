@@ -19,6 +19,7 @@
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-filter.h"
+#include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-ssl.h"
 #include "soup-uri.h"
@@ -39,7 +40,7 @@ typedef struct {
 	gboolean use_ntlm;
 
 	char *ssl_ca_file;
-	gpointer ssl_creds;
+	SoupSSLCredentials *ssl_creds;
 
 	GSList *filters;
 
@@ -691,20 +692,17 @@ lookup_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 static void
 invalidate_auth (SoupSessionHost *host, SoupAuth *auth)
 {
-	char *realm;
+	char *info;
 	gpointer key, value;
 
-	realm = g_strdup_printf ("%s:%s",
-				 soup_auth_get_scheme_name (auth),
-				 soup_auth_get_realm (auth));
-
-	if (g_hash_table_lookup_extended (host->auths, realm, &key, &value) &&
+	info = soup_auth_get_info (auth);
+	if (g_hash_table_lookup_extended (host->auths, info, &key, &value) &&
 	    auth == (SoupAuth *)value) {
-		g_hash_table_remove (host->auths, realm);
+		g_hash_table_remove (host->auths, info);
 		g_free (key);
 		g_object_unref (auth);
 	}
-	g_free (realm);
+	g_free (info);
 }
 
 static gboolean
@@ -744,15 +742,14 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 
 static gboolean
 update_auth_internal (SoupSession *session, SoupMessage *msg,
-		      const GSList *headers, gboolean proxy,
-		      gboolean got_unauthorized)
+		      const GSList *headers, gboolean proxy)
 {
 	SoupSessionHost *host;
 	SoupAuth *new_auth, *prior_auth, *old_auth;
-	gpointer old_path, old_realm;
+	gpointer old_path, old_auth_info;
 	const SoupUri *msg_uri;
 	const char *path;
-	char *realm;
+	char *auth_info;
 	GSList *pspace, *p;
 	gboolean prior_auth_failed = FALSE;
 
@@ -771,26 +768,21 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	if (!new_auth)
 		return FALSE;
 
-	/* See if this auth is the same auth we used last time */
-	prior_auth = lookup_auth (session, msg, proxy);
-	if (prior_auth &&
-	    G_OBJECT_TYPE (prior_auth) == G_OBJECT_TYPE (new_auth) &&
-	    !strcmp (soup_auth_get_realm (prior_auth),
-		     soup_auth_get_realm (new_auth))) {
-		if (!got_unauthorized) {
-			/* The user is just trying to preauthenticate
-			 * using information we already have, so
-			 * there's nothing more that needs to be done.
-			 */
-			g_object_unref (new_auth);
-			return TRUE;
-		}
+	auth_info = soup_auth_get_info (new_auth);
 
-		/* The server didn't like the username/password we
-		 * provided before. Invalidate it and note this fact.
-		 */
-		invalidate_auth (host, prior_auth);
-		prior_auth_failed = TRUE;
+	/* See if this auth is the same auth we used last time */
+	prior_auth = proxy ? soup_message_get_proxy_auth (msg) : soup_message_get_auth (msg);
+	if (prior_auth) {
+		char *old_auth_info = soup_auth_get_info (prior_auth);
+
+		if (!strcmp (old_auth_info, auth_info)) {
+			/* The server didn't like the username/password we
+			 * provided before. Invalidate it and note this fact.
+			 */
+			invalidate_auth (host, prior_auth);
+			prior_auth_failed = TRUE;
+		}
+		g_free (old_auth_info);
 	}
 
 	if (!host->auth_realms) {
@@ -798,18 +790,13 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 		host->auths = g_hash_table_new (g_str_hash, g_str_equal);
 	}
 
-	/* Record where this auth realm is used */
-	realm = g_strdup_printf ("%s:%s",
-				 soup_auth_get_scheme_name (new_auth),
-				 soup_auth_get_realm (new_auth));
-
-	/* 
-	 * RFC 2617 is somewhat unclear about the scope of protection
-	 * spaces with regard to proxies.  The only mention of it is
-	 * as an aside in section 3.2.1, where it is defining the fields
-	 * of a Digest challenge and says that the protection space is
-	 * always the entire proxy.  Is this the case for all authentication
-	 * schemes or just Digest?  Who knows, but we're assuming all.
+	/* Record where this auth realm is used. RFC 2617 is somewhat
+	 * unclear about the scope of protection spaces with regard to
+	 * proxies. The only mention of it is as an aside in section
+	 * 3.2.1, where it is defining the fields of a Digest
+	 * challenge and says that the protection space is always the
+	 * entire proxy. Is this the case for all authentication
+	 * schemes or just Digest? Who knows, but we're assuming all.
 	 */
 	if (proxy)
 		pspace = g_slist_prepend (NULL, g_strdup (""));
@@ -819,14 +806,14 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
 		if (g_hash_table_lookup_extended (host->auth_realms, path,
-						  &old_path, &old_realm)) {
+						  &old_path, &old_auth_info)) {
 			g_hash_table_remove (host->auth_realms, old_path);
 			g_free (old_path);
-			g_free (old_realm);
+			g_free (old_auth_info);
 		}
 
 		g_hash_table_insert (host->auth_realms,
-				     g_strdup (path), g_strdup (realm));
+				     g_strdup (path), g_strdup (auth_info));
 	}
 	soup_auth_free_protection_space (new_auth, pspace);
 
@@ -834,13 +821,13 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	 * pre-existing auth, we keep that rather than the new one,
 	 * since the old one might already be authenticated.)
 	 */
-	old_auth = g_hash_table_lookup (host->auths, realm);
+	old_auth = g_hash_table_lookup (host->auths, auth_info);
 	if (old_auth) {
-		g_free (realm);
+		g_free (auth_info);
 		g_object_unref (new_auth);
 		new_auth = old_auth;
 	} else 
-		g_hash_table_insert (host->auths, realm, new_auth);
+		g_hash_table_insert (host->auths, auth_info, new_auth);
 
 	/* If we need to authenticate, try to do it. */
 	if (!soup_auth_is_authenticated (new_auth)) {
@@ -891,7 +878,7 @@ authorize_handler (SoupMessage *msg, gpointer user_data)
 	if (!headers)
 		return;
 
-	if (update_auth_internal (session, msg, headers, proxy, TRUE))
+	if (update_auth_internal (session, msg, headers, proxy))
 		soup_session_requeue_message (session, msg);
 }
 
@@ -926,23 +913,18 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 static void
 add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 {
-	const char *header = proxy ? "Proxy-Authorization" : "Authorization";
 	SoupAuth *auth;
-	char *token;
 
 	auth = lookup_auth (session, msg, proxy);
-	if (!auth)
-		return;
-	if (!soup_auth_is_authenticated (auth) &&
-	    !authenticate_auth (session, auth, msg, FALSE, proxy))
-		return;
-
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
-		soup_message_remove_header (msg->request_headers, header);
-		soup_message_add_header (msg->request_headers, header, token);
-		g_free (token);
+	if (auth && !soup_auth_is_authenticated (auth)) {
+		if (!authenticate_auth (session, auth, msg, FALSE, proxy))
+			auth = NULL;
 	}
+
+	if (proxy)
+		soup_message_set_proxy_auth (msg, auth);
+	else
+		soup_message_set_auth (msg, auth);
 }
 
 static void
@@ -1273,8 +1255,9 @@ queue_message (SoupSession *session, SoupMessage *msg,
  * any resources related to the time it was last sent are freed.
  *
  * Upon message completion, the callback specified in @callback will
- * be invoked. If after returning from this callback the message has
- * not been requeued, @msg will be unreffed.
+ * be invoked (in the thread associated with @session's async
+ * context). If after returning from this callback the message has not
+ * been requeued, @msg will be unreffed.
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *msg,

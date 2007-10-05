@@ -71,10 +71,9 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 			return SOUP_STATUS_BAD_REQUEST;
 		}
 	} else if (req_host) {
-		url = g_strdup_printf ("%s://%s:%d%s",
+		url = g_strdup_printf ("%s://%s%s",
 				       soup_server_get_protocol (server) == SOUP_PROTOCOL_HTTPS ? "https" : "http",
-				       req_host, soup_server_get_port (server),
-				       req_path);
+				       req_host, req_path);
 	} else if (priv->http_version == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);

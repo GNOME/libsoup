@@ -9,6 +9,8 @@
 #include <glib.h>
 #include <libsoup/soup-message.h>
 
+G_BEGIN_DECLS
+
 /* HTTP Header Parsing */
 
 gboolean    soup_headers_parse_request      (const char       *str, 
@@ -40,5 +42,7 @@ char       *soup_header_param_copy_token    (GHashTable       *tokens,
 					     char             *t);
 
 void        soup_header_param_destroy_hash  (GHashTable       *table);
+
+G_END_DECLS
 
 #endif /*SOUP_HEADERS_H*/

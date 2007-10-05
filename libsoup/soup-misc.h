@@ -9,7 +9,10 @@
 #include <glib-object.h>
 #include <libxml/tree.h>
 
-/* Base64 encoding/decoding */
+G_BEGIN_DECLS
+
+#ifndef LIBSOUP_DISABLE_DEPRECATED
+/* Base64 encoding/decoding. DEPRECATED: use <glib/base64.h> */
 
 char              *soup_base64_encode        (const char   *text,
 					      int           len);
@@ -36,6 +39,7 @@ int                soup_base64_decode_step   (const guchar *in,
 					      guchar       *out, 
 					      int          *state, 
 					      guint        *save);
+#endif /* LIBSOUP_DISABLE_DEPRECATED */
 
 /* Non-default-GMainContext operations */
 GSource           *soup_add_io_watch         (GMainContext *async_context,
@@ -70,5 +74,7 @@ xmlNode           *soup_xml_real_node        (xmlNode      *node);
  * Can be used to test if libsoup was compiled with ssl support.
  **/
 extern gboolean soup_ssl_supported;
+
+G_END_DECLS
 
 #endif /* SOUP_MISC_H */

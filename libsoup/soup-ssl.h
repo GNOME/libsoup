@@ -20,16 +20,19 @@ typedef enum {
 	SOUP_SSL_TYPE_SERVER
 } SoupSSLType;
 
-gpointer    soup_ssl_get_client_credentials  (const char  *ca_file);
-void        soup_ssl_free_client_credentials (gpointer     creds);
-gpointer    soup_ssl_get_server_credentials  (const char  *cert_file,
-					      const char  *key_file);
-void        soup_ssl_free_server_credentials (gpointer     creds);
+typedef struct SoupSSLCredentials SoupSSLCredentials;
 
-GIOChannel *soup_ssl_wrap_iochannel          (GIOChannel  *sock,
-					      SoupSSLType  type,
-					      const char  *remote_host,
-					      gpointer     credentials);
+SoupSSLCredentials *soup_ssl_get_client_credentials  (const char         *ca_file);
+void                soup_ssl_free_client_credentials (SoupSSLCredentials *creds);
+
+SoupSSLCredentials *soup_ssl_get_server_credentials  (const char         *cert_file,
+						      const char         *key_file);
+void                soup_ssl_free_server_credentials (SoupSSLCredentials *creds);
+
+GIOChannel         *soup_ssl_wrap_iochannel          (GIOChannel         *sock,
+						      SoupSSLType         type,
+						      const char         *remote_host,
+						      SoupSSLCredentials *creds);
 
 #define SOUP_SSL_ERROR soup_ssl_error_quark()
 

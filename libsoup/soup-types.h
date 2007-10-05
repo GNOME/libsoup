@@ -11,6 +11,8 @@
 
 #include <libsoup/soup-status.h>
 
+G_BEGIN_DECLS
+
 typedef struct SoupAddress           SoupAddress;
 typedef struct SoupConnection        SoupConnection;
 typedef struct SoupMessage           SoupMessage;
@@ -49,13 +51,6 @@ GType type_name##_get_type(void)\
 	return type;					\
 }
 
-/* Compat for glib 2.6.x */
-#ifndef G_GNUC_NULL_TERMINATED
-#  if __GNUC__ >= 4
-#  define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
-#  else
-#  define G_GNUC_NULL_TERMINATED
-#  endif
-#endif
+G_END_DECLS
 
 #endif

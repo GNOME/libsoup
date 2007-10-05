@@ -6,7 +6,8 @@
 #ifndef SOUP_MESSAGE_PRIVATE_H
 #define SOUP_MESSAGE_PRIVATE_H 1
 
-#include <libsoup/soup-message.h>
+#include "soup-message.h"
+#include "soup-auth.h"
 
 typedef struct {
 	gpointer           io_data;
@@ -20,6 +21,8 @@ typedef struct {
 	SoupHttpVersion    http_version;
 
 	SoupUri           *uri;
+
+	SoupAuth          *auth, *proxy_auth;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
@@ -56,5 +59,13 @@ void soup_message_io_server  (SoupMessage               *msg,
 			      SoupMessageGetHeadersFn    get_headers_cb,
 			      SoupMessageParseHeadersFn  parse_headers_cb,
 			      gpointer                   user_data);
+
+/* Auth handling */
+void           soup_message_set_auth       (SoupMessage *msg,
+					    SoupAuth    *auth);
+SoupAuth      *soup_message_get_auth       (SoupMessage *msg);
+void           soup_message_set_proxy_auth (SoupMessage *msg,
+					    SoupAuth    *auth);
+SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */
