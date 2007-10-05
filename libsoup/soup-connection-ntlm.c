@@ -115,9 +115,11 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg,
 				      "NTLM", domain,
 				      &domain_username, &password);
-	if (!domain_username) {
+	if (!domain_username || !password) {
 		g_free (nonce);
 		g_free (domain);
+		g_free (domain_username);
+		g_free (password);
 		goto done;
 	}
 
