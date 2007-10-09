@@ -111,11 +111,17 @@ run_test (int i, gboolean sync)
 		https_url = g_strconcat (HTTPS_SERVER, tests[i].url, NULL);
 	}
 	test_url (http_url, SIMPLE_PROXY, tests[i].final_status, sync);
+#if HAVE_SSL
 	test_url (https_url, SIMPLE_PROXY, tests[i].final_status, sync);
+#endif
 	test_url (http_url, AUTH_PROXY, tests[i].final_status, sync);
+#if HAVE_SSL
 	test_url (https_url, AUTH_PROXY, tests[i].final_status, sync);
+#endif
 	test_url (http_url, UNAUTH_PROXY, tests[i].final_status, sync);
+#if HAVE_SSL
 	test_url (https_url, UNAUTH_PROXY, tests[i].final_status, sync);
+#endif
 
 	g_free (http_url);
 	g_free (https_url);

@@ -18,31 +18,31 @@ gboolean soup_ssl_supported = FALSE;
 
 GIOChannel *
 soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
-			 const char *hostname, gpointer cred_pointer)
+			 const char *hostname, SoupSSLCredentials *creds)
 {
 	return NULL;
 }
 
-gpointer
+SoupSSLCredentials *
 soup_ssl_get_client_credentials (const char *ca_file)
 {
 	return NULL;
 }
 
 void
-soup_ssl_free_client_credentials (gpointer client_creds)
+soup_ssl_free_client_credentials (SoupSSLCredentials *client_creds)
 {
 	;
 }
 
-gpointer
+SoupSSLCredentials *
 soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 {
 	return NULL;
 }
 
 void
-soup_ssl_free_server_credentials (gpointer server_creds)
+soup_ssl_free_server_credentials (SoupSSLCredentials *server_creds)
 {
 	;
 }
