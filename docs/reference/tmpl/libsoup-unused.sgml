@@ -161,6 +161,12 @@ soup-server-auth
 @SOUP_ALGORITHM_MD5: 
 @SOUP_ALGORITHM_MD5_SESS: 
 
+<!-- ##### STRUCT SoupMD5Context ##### -->
+<para>
+
+</para>
+
+
 <!-- ##### USER_FUNCTION SoupMessageGetHeadersFn ##### -->
 <para>
 
@@ -241,6 +247,38 @@ soup-server-auth
 @digest_uri: 
 @digest_response: 
 @request_method: 
+
+<!-- ##### FUNCTION soup_md5_final ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@digest: 
+
+<!-- ##### FUNCTION soup_md5_final_hex ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@digest: 
+
+<!-- ##### FUNCTION soup_md5_init ##### -->
+<para>
+
+</para>
+
+@ctx: 
+
+<!-- ##### FUNCTION soup_md5_update ##### -->
+<para>
+
+</para>
+
+@ctx: 
+@buf: 
+@len: 
 
 <!-- ##### FUNCTION soup_message_cleanup_response ##### -->
 <para>

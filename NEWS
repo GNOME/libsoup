@@ -1,3 +1,9 @@
+Changes in libsoup from 2.2.101 to 2.2.102:
+
+	* Unbreak the build when building without SSL. Not that you
+          should be building without SSL anyway, but... (reported by
+          guenther).
+
 Changes in libsoup from 2.2.100 to 2.2.101:
 
 	* Fix build on cygwin [384498]
@@ -25,7 +31,7 @@ Changes in libsoup from 2.2.100 to 2.2.101:
           [475169, Stephane Loeuillet]. Add that case to the
           header-parsing regression test.
 
-	* Fix crash then the session's "authenticate" handler returns
+	* Fix crash when the session's "authenticate" handler returns
 	  a username and no password when using NTLM. [480987, Wendell
 	  MacKenzie]
 
