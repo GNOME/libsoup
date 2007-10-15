@@ -1,3 +1,9 @@
+2007-10-15  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.2.102
+
+	* NEWS: update
+
 2007-10-08  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-nossl.c: Update for current soup-ssl.h prototypes
