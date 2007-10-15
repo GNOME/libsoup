@@ -17,48 +17,6 @@ Miscellaneous functions
 <!-- ##### SECTION Stability_Level ##### -->
 
 
-<!-- ##### STRUCT SoupMD5Context ##### -->
-<para>
-
-</para>
-
-
-<!-- ##### FUNCTION soup_md5_init ##### -->
-<para>
-
-</para>
-
-@ctx: 
-
-
-<!-- ##### FUNCTION soup_md5_update ##### -->
-<para>
-
-</para>
-
-@ctx: 
-@buf: 
-@len: 
-
-
-<!-- ##### FUNCTION soup_md5_final ##### -->
-<para>
-
-</para>
-
-@ctx: 
-@digest: 
-
-
-<!-- ##### FUNCTION soup_md5_final_hex ##### -->
-<para>
-
-</para>
-
-@ctx: 
-@digest: 
-
-
 <!-- ##### FUNCTION soup_base64_decode ##### -->
 <para>
 
