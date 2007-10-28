@@ -1,5 +1,11 @@
 2007-10-28  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.2.103
+
+	* NEWS: update
+
+2007-10-28  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-server.c (start_request, request_finished): ref the
 	socket around the processing of the message, since otherwise it
 	might already be freed when request_finished runs. #459896.

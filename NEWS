@@ -1,3 +1,11 @@
+Changes in libsoup from 2.2.102 to 2.2.103:
+
+	* Fix memory corruption in SoupSessionAsync that caused
+          rhythmbox to crash. [#484988, patch from Rob Bradford]
+
+	* Fix socket refcounting in SoupServer to fix warnings /
+          possible crash. [#459896, Emanuele Aina]
+
 Changes in libsoup from 2.2.101 to 2.2.102:
 
 	* Unbreak the build when building without SSL. Not that you
