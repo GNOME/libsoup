@@ -390,6 +390,7 @@ main (int argc, char **argv)
 
 		g_object_unref (msg);
 	}
+	soup_session_abort (session);
 	g_object_unref (session);
 
 	/* And now for a regression test */
@@ -411,10 +412,12 @@ main (int argc, char **argv)
 		soup_session_queue_message (session, msg,
 					    bug271540_finished, &i);
 	}
+	g_free (uri);
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
 
+	soup_session_abort (session);
 	g_object_unref (session);
 
 	apache_cleanup ();

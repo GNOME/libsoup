@@ -196,6 +196,7 @@ main (int argc, char **argv)
 			     rel_tests[i].result))
 			errs++;
 	}
+	soup_uri_free (base_uri);
 
 	dprintf ("\n");
 	if (errs) {

@@ -43,7 +43,7 @@ static const char *const value_type[] = {
 	"array"
 };
 
-static SoupXmlrpcValue *
+static SoupXmlrpcResponse *
 do_xmlrpc (SoupXmlrpcMessage *xmsg, SoupXmlrpcValueType type)
 {
 	SoupMessage *msg = SOUP_MESSAGE (xmsg);
@@ -61,35 +61,42 @@ do_xmlrpc (SoupXmlrpcMessage *xmsg, SoupXmlrpcValueType type)
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		dprintf (1, "ERROR: %d %s\n", status, msg->reason_phrase);
+		g_object_unref (msg);
 		return FALSE;
 	}
 
 	response = soup_xmlrpc_message_parse_response (xmsg);
+	g_object_unref (msg);
 	if (!response || soup_xmlrpc_response_is_fault (response)) {
 		if (!response)
 			dprintf (1, "ERROR: no response\n");
-		else
+		else {
 			dprintf (1, "ERROR: fault\n");
+			g_object_unref (response);
+		}
 		return FALSE;
 	}
 
 	value = soup_xmlrpc_response_get_value (response);
 	if (!value) {
 		dprintf (1, "ERROR: no value?\n");
+		g_object_unref (response);
 		return NULL;
 	} else if (soup_xmlrpc_value_get_type (value) != type) {
 		dprintf (1, "ERROR: wrong value type; expected %s, got %s\n",
 			 value_type[type], value_type[soup_xmlrpc_value_get_type (value)]);
+		g_object_unref (response);
 		return NULL;
 	}
 
-	return value;
+	return response;
 }
 
 static gboolean
 test_sum (void)
 {
 	SoupXmlrpcMessage *msg;
+	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value;
 	int i, val, sum;
 	long result;
@@ -111,14 +118,17 @@ test_sum (void)
 	soup_xmlrpc_message_end_param (msg);
 	soup_xmlrpc_message_end_call (msg);
 
-	value = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_INT);
-	if (!value)
+	response = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_INT);
+	if (!response)
 		return FALSE;
+	value = soup_xmlrpc_response_get_value (response);
 
 	if (!soup_xmlrpc_value_get_int (value, &result)) {
 		dprintf (1, "wrong type?\n");
+		g_object_unref (response);
 		return FALSE;
 	}
+	g_object_unref (response);
 
 	dprintf (2, "%ld: ", result);
 	dprintf (1, "%s\n", result == sum ? "OK!" : "WRONG!");
@@ -129,6 +139,7 @@ static gboolean
 test_countBools (void)
 {
 	SoupXmlrpcMessage *msg;
+	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value;
 	int i, trues, falses;
 	long ret_trues, ret_falses;
@@ -155,23 +166,31 @@ test_countBools (void)
 	soup_xmlrpc_message_end_param (msg);
 	soup_xmlrpc_message_end_call (msg);
 
-	value = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_STRUCT);
-	if (!value)
+	response = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_STRUCT);
+	if (!response)
 		return FALSE;
+	value = soup_xmlrpc_response_get_value (response);
 
 	if (!soup_xmlrpc_value_get_struct (value, &result)) {
 		dprintf (1, "wrong type?\n");
+		g_object_unref (response);
 		return FALSE;
 	}
 
 	if (!soup_xmlrpc_value_get_int (g_hash_table_lookup (result, "true"), &ret_trues)) {
 		dprintf (1, "NO 'true' value in response\n");
+		g_hash_table_destroy (result);
+		g_object_unref (response);
 		return FALSE;
 	}
 	if (!soup_xmlrpc_value_get_int (g_hash_table_lookup (result, "false"), &ret_falses)) {
 		dprintf (1, "NO 'false' value in response\n");
+		g_hash_table_destroy (result);
+		g_object_unref (response);
 		return FALSE;
 	}
+	g_hash_table_destroy (result);
+	g_object_unref (response);
 
 	dprintf (2, "{ true: %ld, false: %ld } ", ret_trues, ret_falses);
 	ok = (trues == ret_trues) && (falses == ret_falses);
@@ -183,6 +202,7 @@ static gboolean
 test_md5sum (void)
 {
 	SoupXmlrpcMessage *msg;
+	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value;
 	GByteArray *result;
 	char data[512];
@@ -202,14 +222,17 @@ test_md5sum (void)
 	soup_xmlrpc_message_end_param (msg);
 	soup_xmlrpc_message_end_call (msg);
 
-	value = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_BASE64);
-	if (!value)
+	response = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_BASE64);
+	if (!response)
 		return FALSE;
+	value = soup_xmlrpc_response_get_value (response);
 
 	if (!soup_xmlrpc_value_get_base64 (value, &result)) {
 		dprintf (1, "wrong type?\n");
+		g_object_unref (response);
 		return FALSE;
 	}
+	g_object_unref (response);
 
 	if (result->len != 16) {
 		dprintf (1, "result has WRONG length (%d)\n", result->len);
@@ -231,6 +254,7 @@ static gboolean
 test_dateChange (void)
 {
 	SoupXmlrpcMessage *msg;
+	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value;
 	struct tm tm;
 	time_t when, result;
@@ -309,14 +333,17 @@ test_dateChange (void)
 	soup_xmlrpc_message_end_param (msg);
 	soup_xmlrpc_message_end_call (msg);
 
-	value = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_DATETIME);
-	if (!value)
+	response = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_DATETIME);
+	if (!response)
 		return FALSE;
+	value = soup_xmlrpc_response_get_value (response);
 
 	if (!soup_xmlrpc_value_get_datetime (value, &result)) {
 		dprintf (1, "wrong type?\n");
+		g_object_unref (response);
 		return FALSE;
 	}
+	g_object_unref (response);
 
 	memset (&tm, 0, sizeof (tm));
 	soup_gmtime (&result, &tm);
@@ -339,6 +366,7 @@ static gboolean
 test_echo (void)
 {
 	SoupXmlrpcMessage *msg;
+	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value, *elt;
 	SoupXmlrpcValueArrayIterator *iter;
 	char *echo;
@@ -359,34 +387,42 @@ test_echo (void)
 	soup_xmlrpc_message_end_param (msg);
 	soup_xmlrpc_message_end_call (msg);
 
-	value = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_ARRAY);
-	if (!value)
+	response = do_xmlrpc (msg, SOUP_XMLRPC_VALUE_TYPE_ARRAY);
+	if (!response)
 		return FALSE;
+	value = soup_xmlrpc_response_get_value (response);
 
 	if (!soup_xmlrpc_value_array_get_iterator (value, &iter)) {
 		dprintf (1, "wrong type?\n");
+		g_object_unref (response);
 		return FALSE;
 	}
 	i = 0;
 	while (iter) {
 		if (!soup_xmlrpc_value_array_iterator_get_value (iter, &elt)) {
 			dprintf (1, " WRONG! Can't get result element %d\n", i + 1);
+			g_object_unref (response);
 			return FALSE;
 		}
 		if (!soup_xmlrpc_value_get_string (elt, &echo)) {
 			dprintf (1, " WRONG! Result element %d is not a string", i + 1);
+			g_object_unref (response);
 			return FALSE;
 		}
 		dprintf (2, "%s\"%s\"", i == 0 ? "[" : ", ", echo);
 		if (strcmp (echo_strings[i], echo) != 0) {
 			dprintf (1, " WRONG! Mismatch at %d\n", i + 1);
+			g_free (echo);
+			g_object_unref (response);
 			return FALSE;
 		}
+		g_free (echo);
 
 		iter = soup_xmlrpc_value_array_iterator_next (iter);
 		i++;
 	}
 	dprintf (2, "] ");
+	g_object_unref (response);
 
 	dprintf (1, "%s\n", i == N_ECHO_STRINGS ? "OK!" : "WRONG! Too few results");
 	return i == N_ECHO_STRINGS;

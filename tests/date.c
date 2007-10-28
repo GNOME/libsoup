@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <libsoup/soup-date.h>
+#include <glib.h>
 
 static int errors = 0;
 
@@ -52,6 +53,7 @@ main (int argc, char **argv)
 			 RFC1123_DATE, date);
 		errors++;
 	}
+	g_free (date);
 
 	if (errors == 0)
 		printf ("date: OK\n");

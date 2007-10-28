@@ -1,5 +1,14 @@
 2007-10-28  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (finalize): free proxy-related stuff
+
+	* libsoup/soup-session-async.c (idle_run_queue): clean up the weak
+	pointer
+
+	* tests/*.c: fix leaks
+
+2007-10-28  Dan Winship  <danw@gnome.org>
+
 	* tests/auth-test.c:
 	* tests/date.c:
 	* tests/header-parsing.c:

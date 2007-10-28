@@ -388,6 +388,9 @@ main (int argc, char **argv)
 	uri->host = g_strdup ("localhost");
 	uri->port = soup_server_get_port (server);
 	errors = do_ntlm_tests (uri);
+	soup_uri_free (uri);
+
+	g_main_loop_unref (loop);
 
 	dprintf ("\n");
 	if (errors) {

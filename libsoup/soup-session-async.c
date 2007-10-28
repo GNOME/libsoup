@@ -192,8 +192,10 @@ idle_run_queue (gpointer user_data)
 	g_object_add_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
 	g_object_unref (sa);
 
-	if (sa)
+	if (sa) {
+		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
 		run_queue (sa, TRUE);
+	}
 	return FALSE;
 }
 

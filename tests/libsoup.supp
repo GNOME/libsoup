@@ -4,11 +4,117 @@
   glib/gtype
   Memcheck:Leak
   fun:calloc
-  fun:type_node_any_new_W
+  fun:g_malloc0
+  obj:*
+  obj:*
+  fun:g_type_init_with_debug_flags
 }
 {
-  gcrypt/uninit
-  Memcheck:Cond
-  fun:*
-  fun:gcry_cipher_encrypt
+   glib/gtype2
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+}
+{
+   glib/gtype3
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_boxed_type_register_static
+   fun:g_value_array_get_type
+   obj:/lib64/libgobject-2.0.so.0.1200.13
+   fun:g_type_init_with_debug_flags
+}
+{
+   glib/gtype4
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   obj:*libglib-2.0*
+   fun:g_slice_alloc
+   fun:g_hash_table_new_full
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+}
+{
+   glib/gtype5
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_hash_table_new_full
+   fun:g_quark_from_static_string
+   fun:g_type_init_with_debug_flags
+}
+{
+   glib/gslice
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_slice_init_nomessage
+}
+{
+   glib/intern1
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_intern_string
+}
+{
+   glib/intern2
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_intern_string
+}
+
+{
+   libxml2/encoding1
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlInitCharEncodingHandlers
+}
+{
+   libxml2/encoding2
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewCharEncodingHandler
+   fun:xmlInitCharEncodingHandlers
+}
+{
+   libxml2/encoding3
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlStrndup
+   fun:xmlNewCharEncodingHandler
+   fun:xmlInitCharEncodingHandlers
+}
+{
+   libxml2/globals
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewMutex
+   fun:xmlInitGlobals
+}
+{
+   libxml2/parser
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewRMutex
+   obj:*libxml2*
+   fun:xmlDictCreate
+   fun:xmlInitParserCtxt
+}
+
+{
+   libsoup/headers
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_hash_table_new_full
+   fun:intern_header_name
 }

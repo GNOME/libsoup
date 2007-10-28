@@ -481,7 +481,7 @@ do_request_tests (void)
 	GHashTable *headers;
 
 	dprintf ("Request tests\n");
-	for (i = 0; i < num_reqtests; i++) {
+	for (i = 0; i < 1; i++) {
 		gboolean ok = TRUE;
 
 		dprintf ("%2d. %s (%s): ", i + 1, reqtests[i].description,
