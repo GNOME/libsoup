@@ -155,6 +155,10 @@ linkend="soup-message-io-pause"><function>soup_message_io_pause</function></link
 on the message before returning from the callback. This will delay
 sending a response until you call <link
 linkend="soup-message-io-unpause"><function>soup_message_io_unpause</function></link>.
+(You must also connect to the <link
+linkend="SoupMessage-finished">finished</link> signal on the message
+in this case, so that you can break off processing if the client
+unexpectedly disconnects before you start sending the data.)
 </para>
 
 <para>
@@ -227,6 +231,15 @@ cause the chunk to be sent. (You do not normally need to call
 <link linkend="soup-message-io-pause"><function>soup_message_io_pause</function></link>,
 because I/O is automatically paused when doing a
 <literal>chunked</literal> transfer if no chunks are available.)
+</para>
+
+<para>
+When using chunked encoding, you must also connect to the <link
+linkend="SoupMessage-finished">finished</link> signal on the message,
+so that you will be notified if the client disconnects between two
+chunks; <type>SoupServer</type> will unref the message if that
+happens, so you must stop adding new chunks to the response at that
+point.
 </para>
 
 <para>

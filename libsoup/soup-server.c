@@ -343,6 +343,7 @@ request_finished (SoupMessage *msg, gpointer sock)
 	} else
 		soup_socket_disconnect (sock);
 	g_object_unref (msg);
+	g_object_unref (sock);
 }
 
 static inline void
@@ -446,6 +447,7 @@ start_request (SoupServer *server, SoupSocket *server_sock)
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), server_sock);
 	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), server_sock);
 
+	g_object_ref (server_sock);
 	soup_message_read_request (msg, server_sock);
 }
 

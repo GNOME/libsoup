@@ -837,9 +837,12 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 
 /**
  * soup_message_io_pause:
- * @msg: a #SoupMessage
+ * @msg: a server-side #SoupMessage
  *
- * Pauses I/O on @msg.
+ * Pauses I/O on @msg. This can be used in a #SoupServer handler when
+ * you don't have the data ready to return yet; call
+ * soup_message_io_unpause() to start sending the response once it is
+ * ready.
  **/
 void  
 soup_message_io_pause (SoupMessage *msg)
@@ -848,6 +851,7 @@ soup_message_io_pause (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
+	g_return_if_fail (io->mode == SOUP_MESSAGE_IO_SERVER);
 
 	if (io->write_tag) {
 		g_signal_handler_disconnect (io->sock, io->write_tag);
@@ -861,9 +865,11 @@ soup_message_io_pause (SoupMessage *msg)
 
 /**
  * soup_message_io_unpause:
- * @msg: a #SoupMessage
+ * @msg: a server-side #SoupMessage
  *
- * Resumes I/O on @msg.
+ * Resumes I/O on @msg. Use this to resume after calling
+ * soup_message_io_pause(), or after adding a new chunk to a chunked
+ * response.
  **/
 void  
 soup_message_io_unpause (SoupMessage *msg)
@@ -872,6 +878,7 @@ soup_message_io_unpause (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
+	g_return_if_fail (io->mode == SOUP_MESSAGE_IO_SERVER);
 
 	if (io->write_tag || io->read_tag)
 		return;
