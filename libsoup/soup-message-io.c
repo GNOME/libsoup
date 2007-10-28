@@ -851,7 +851,6 @@ soup_message_io_pause (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
-	g_return_if_fail (io->mode == SOUP_MESSAGE_IO_SERVER);
 
 	if (io->write_tag) {
 		g_signal_handler_disconnect (io->sock, io->write_tag);
@@ -878,7 +877,6 @@ soup_message_io_unpause (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
-	g_return_if_fail (io->mode == SOUP_MESSAGE_IO_SERVER);
 
 	if (io->write_tag || io->read_tag)
 		return;
