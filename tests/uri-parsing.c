@@ -4,7 +4,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "libsoup/soup-uri.h"
+
+gboolean debug = FALSE;
+
+static void
+dprintf (const char *format, ...)
+{
+	va_list args;
+
+	if (!debug)
+		return;
+
+	va_start (args, format);
+	vprintf (format, args);
+	va_end (args);
+}
 
 struct {
 	const char *uri_string, *result;
@@ -97,21 +113,21 @@ do_uri (SoupUri *base_uri, const char *base_str,
 	char *uri_string;
 
 	if (base_uri) {
-		printf ("<%s> + <%s> = <%s>? ", base_str, in_uri,
-			out_uri ? out_uri : "ERR");
+		dprintf ("<%s> + <%s> = <%s>? ", base_str, in_uri,
+			 out_uri ? out_uri : "ERR");
 		uri = soup_uri_new_with_base (base_uri, in_uri);
 	} else {
-		printf ("<%s> => <%s>? ", in_uri,
-			out_uri ? out_uri : "ERR");
+		dprintf ("<%s> => <%s>? ", in_uri,
+			 out_uri ? out_uri : "ERR");
 		uri = soup_uri_new (in_uri);
 	}
 
 	if (!uri) {
 		if (out_uri) {
-			printf ("ERR\n  Could not parse %s\n", in_uri);
+			dprintf ("ERR\n  Could not parse %s\n", in_uri);
 			return FALSE;
 		} else {
-			printf ("OK\n");
+			dprintf ("OK\n");
 			return TRUE;
 		}
 	}
@@ -120,18 +136,18 @@ do_uri (SoupUri *base_uri, const char *base_str,
 	soup_uri_free (uri);
 
 	if (!out_uri) {
-		printf ("ERR\n  Got %s\n", uri_string);
+		dprintf ("ERR\n  Got %s\n", uri_string);
 		return FALSE;
 	}
 
 	if (strcmp (uri_string, out_uri) != 0) {
-		printf ("NO\n  Unparses to <%s>\n", uri_string);
+		dprintf ("NO\n  Unparses to <%s>\n", uri_string);
 		g_free (uri_string);
 		return FALSE;
 	}
 	g_free (uri_string);
 
-	printf ("OK\n");
+	dprintf ("OK\n");
 	return TRUE;
 }
 
@@ -140,16 +156,27 @@ main (int argc, char **argv)
 {
 	SoupUri *base_uri;
 	char *uri_string;
-	int i, errs = 0;
+	int i, errs = 0, opt;
 
-	printf ("Absolute URI parsing\n");
+	while ((opt = getopt (argc, argv, "d")) != -1) {
+		switch (opt) {
+		case 'd':
+			debug = TRUE;
+			break;
+		default:
+			fprintf (stderr, "Usage: %s [-d]\n", argv[0]);
+			return 1;
+		}
+	}
+
+	dprintf ("Absolute URI parsing\n");
 	for (i = 0; i < num_abs_tests; i++) {
 		if (!do_uri (NULL, NULL, abs_tests[i].uri_string,
 			     abs_tests[i].result))
 			errs++;
 	}
 
-	printf ("\nRelative URI parsing\n");
+	dprintf ("\nRelative URI parsing\n");
 	base_uri = soup_uri_new (base);
 	if (!base_uri) {
 		fprintf (stderr, "Could not parse %s!\n", base);
@@ -169,7 +196,13 @@ main (int argc, char **argv)
 			     rel_tests[i].result))
 			errs++;
 	}
+	soup_uri_free (base_uri);
 
-	printf ("\n%d errors\n", errs);
+	dprintf ("\n");
+	if (errs) {
+		printf ("uri-parsing: %d error(s). Run with '-d' for details\n",
+			errs);
+	} else
+		printf ("uri-parsing: OK\n");
 	return errs;
 }

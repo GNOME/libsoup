@@ -60,9 +60,8 @@ send_chunk (SoupMessage *from, SoupMessage *to)
 static void
 client_msg_failed (SoupMessage *msg, gpointer msg2)
 {
-	/* FIXME
-	soup_message_cancel (msg2);
-	*/
+	soup_message_set_status (msg2, SOUP_STATUS_IO_ERROR);
+	soup_session_cancel_message (session, msg2);
 }
 
 static void

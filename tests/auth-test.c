@@ -2,20 +2,34 @@
 #include "config.h"
 #endif
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "libsoup/soup.h"
 #include "libsoup/soup-auth.h"
 #include "libsoup/soup-session.h"
 
-#ifdef HAVE_APACHE
 #include "apache-wrapper.h"
-#endif
 
 GMainLoop *loop;
 int errors = 0;
+gboolean debug = FALSE;
+
+static void
+dprintf (const char *format, ...)
+{
+	va_list args;
+
+	if (!debug)
+		return;
+
+	va_start (args, format);
+	vprintf (format, args);
+	va_end (args);
+}
 
 typedef struct {
 	/* Explanation of what you should see */
@@ -202,18 +216,18 @@ handler (SoupMessage *msg, gpointer data)
 
 	auth = identify_auth (msg);
 
-	printf ("  %d %s (using %s)\n", msg->status_code, msg->reason_phrase,
-		auths[auth]);
+	dprintf ("  %d %s (using %s)\n", msg->status_code, msg->reason_phrase,
+		 auths[auth]);
 
 	if (*expected) {
 		exp = *expected - '0';
 		if (auth != exp) {
-			printf ("    expected %s!\n", auths[exp]);
+			dprintf ("    expected %s!\n", auths[exp]);
 			errors++;
 		}
 		memmove (expected, expected + 1, strlen (expected));
 	} else {
-		printf ("    expected to be finished\n");
+		dprintf ("    expected to be finished\n");
 		errors++;
 	}
 }
@@ -252,10 +266,10 @@ bug271540_sent (SoupMessage *msg, gpointer data)
 	int auth = identify_auth (msg);
 
 	if (!*authenticated && auth) {
-		printf ("    using auth on message %d before authenticating!!??\n", n);
+		dprintf ("    using auth on message %d before authenticating!!??\n", n);
 		errors++;
 	} else if (*authenticated && !auth) {
-		printf ("    sent unauthenticated message %d after authenticating!\n", n);
+		dprintf ("    sent unauthenticated message %d after authenticating!\n", n);
 		errors++;
 	}
 }
@@ -273,12 +287,12 @@ bug271540_authenticate (SoupSession *session, SoupMessage *msg,
 		return;
 
 	if (!*authenticated) {
-		printf ("    authenticating message %d\n", n);
+		dprintf ("    authenticating message %d\n", n);
 		*username = g_strdup ("user1");
 		*password = g_strdup ("realm1");
 		*authenticated = TRUE;
 	} else {
-		printf ("    asked to authenticate message %d after authenticating!\n", n);
+		dprintf ("    asked to authenticate message %d after authenticating!\n", n);
 		errors++;
 	}
 }
@@ -290,7 +304,7 @@ bug271540_finished (SoupMessage *msg, gpointer data)
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		printf ("      got status '%d %s' on message %d!\n",
+		dprintf ("      got status '%d %s' on message %d!\n",
 			msg->status_code, msg->reason_phrase, n);
 		errors++;
 	}
@@ -307,34 +321,27 @@ main (int argc, char **argv)
 	SoupMessage *msg;
 	char *base_uri, *uri, *expected;
 	gboolean authenticated;
-#ifdef HAVE_APACHE
-	gboolean using_apache = FALSE;
-#endif
-	int i;
+	int i, opt;
 
 	g_type_init ();
 	g_thread_init (NULL);
 
-	if (argc != 1) {
-		char *p;
-
-		base_uri = argv[0];
-		p = strrchr (base_uri, '/');
-		if (!p || p[1])
-			base_uri = g_strdup_printf ("%s/", base_uri);
-	} else {
-#ifdef HAVE_APACHE
-		if (!apache_init ()) {
-			fprintf (stderr, "Could not start apache\n");
+	while ((opt = getopt (argc, argv, "d")) != -1) {
+		switch (opt) {
+		case 'd':
+			debug = TRUE;
+			break;
+		default:
+			fprintf (stderr, "Usage: %s [-d]\n", argv[0]);
 			return 1;
 		}
-		base_uri = "http://localhost:47524/";
-		using_apache = TRUE;
-#else
-		fprintf (stderr, "Must specify base_uri for tests if configured --without-apache\n");
-		return 1;
-#endif
 	}
+
+	if (!apache_init ()) {
+		fprintf (stderr, "Could not start apache\n");
+		return 1;
+	}
+	base_uri = "http://localhost:47524/";
 
 	session = soup_session_async_new ();
 	g_signal_connect (session, "authenticate",
@@ -343,10 +350,10 @@ main (int argc, char **argv)
 			  G_CALLBACK (reauthenticate), &i);
 
 	for (i = 0; i < ntests; i++) {
-		printf ("Test %d: %s\n", i + 1, tests[i].explanation);
+		dprintf ("Test %d: %s\n", i + 1, tests[i].explanation);
 
 		uri = g_strconcat (base_uri, tests[i].url, NULL);
-		printf ("  GET %s\n", uri);
+		dprintf ("  GET %s\n", uri);
 
 		msg = soup_message_new (SOUP_METHOD_GET, uri);
 		g_free (uri);
@@ -365,29 +372,30 @@ main (int argc, char **argv)
 		soup_session_send_message (session, msg);
 		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
 		    msg->status_code != SOUP_STATUS_OK) {
-			printf ("  %d %s !\n", msg->status_code,
+			dprintf ("  %d %s !\n", msg->status_code,
 				msg->reason_phrase);
 			errors++;
 		}
 		if (*expected) {
-			printf ("  expected %d more round(s)\n",
+			dprintf ("  expected %d more round(s)\n",
 				(int)strlen (expected));
 			errors++;
 		}
 		g_free (expected);
 
 		if (msg->status_code != tests[i].final_status)
-			printf ("  expected %d\n", tests[i].final_status);
+			dprintf ("  expected %d\n", tests[i].final_status);
 
-		printf ("\n");
+		dprintf ("\n");
 
 		g_object_unref (msg);
 	}
+	soup_session_abort (session);
 	g_object_unref (session);
 
 	/* And now for a regression test */
 
-	printf ("Regression test for bug 271540:\n");
+	dprintf ("Regression test for bug 271540:\n");
 	session = soup_session_async_new ();
 
 	authenticated = FALSE;
@@ -404,17 +412,21 @@ main (int argc, char **argv)
 		soup_session_queue_message (session, msg,
 					    bug271540_finished, &i);
 	}
+	g_free (uri);
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
 
+	soup_session_abort (session);
 	g_object_unref (session);
 
-#ifdef HAVE_APACHE
-	if (using_apache)
-		apache_cleanup ();
-#endif
+	apache_cleanup ();
 
-	printf ("\nauth-test: %d errors\n", errors);
+	dprintf ("\n");
+	if (errors) {
+		printf ("auth-test: %d error(s). Run with '-d' for details\n",
+			errors);
+	} else
+		printf ("auth-test: OK\n");
 	return errors;
 }

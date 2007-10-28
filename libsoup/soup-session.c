@@ -183,6 +183,11 @@ finalize (GObject *object)
 	g_hash_table_destroy (priv->hosts);
 	g_hash_table_destroy (priv->conns);
 
+	if (priv->proxy_uri)
+		soup_uri_free (priv->proxy_uri);
+	if (priv->proxy_host)
+		free_host (priv->proxy_host);
+
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
 

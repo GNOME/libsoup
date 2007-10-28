@@ -1,3 +1,48 @@
+2007-10-28  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.2.103
+
+	* NEWS: update
+
+2007-10-28  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server.c (start_request, request_finished): ref the
+	socket around the processing of the message, since otherwise it
+	might already be freed when request_finished runs. #459896.
+
+	* libsoup/soup-message-io.c (soup_message_io_pause)
+	(soup_message_io_unpause): Clarify the docs here; this is for
+	server-side use only. Inspired by #452280.
+
+	* docs/reference/server-howto.xml: You need to watch the
+	"finished" signal on the message if using soup_message_io_pause()
+	or chunked encoding, because the client might disconnect while
+	you're paused. Clarification inspired by #471385.
+
+	* tests/simple-proxy.c (client_msg_failed): Fix this to DTRT since
+	server-howto.xml points to it as an example of what to do.
+
+2007-10-28  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (finalize): free proxy-related stuff
+
+	* libsoup/soup-session-async.c (idle_run_queue): clean up the weak
+	pointer. (From the dev repo, but identical to a patch from Rob
+	Bradford in #484988.)
+
+	* tests/*.c: fix leaks
+
+2007-10-28  Dan Winship  <danw@gnome.org>
+
+	* tests/auth-test.c:
+	* tests/date.c:
+	* tests/header-parsing.c:
+	* tests/ntlm-test.c:
+	* tests/proxy-test.c:
+	* tests/uri-parsing.c:
+	* tests/xmlrpc-test.c: Make these less verbose by default (to make
+	it easier to see what failed when a "make check" fails).
+
 2007-10-15  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.2.102
