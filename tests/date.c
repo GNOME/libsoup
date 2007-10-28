@@ -54,8 +54,8 @@ main (int argc, char **argv)
 	}
 
 	if (errors == 0)
-		printf ("OK\n");
+		printf ("date: OK\n");
 	else
-		fprintf (stderr, "%d errors\n", errors);
+		fprintf (stderr, "date: %d errors\n", errors);
 	return errors;
 }

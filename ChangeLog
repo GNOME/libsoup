@@ -1,3 +1,14 @@
+2007-10-28  Dan Winship  <danw@gnome.org>
+
+	* tests/auth-test.c:
+	* tests/date.c:
+	* tests/header-parsing.c:
+	* tests/ntlm-test.c:
+	* tests/proxy-test.c:
+	* tests/uri-parsing.c:
+	* tests/xmlrpc-test.c: Make these less verbose by default (to make
+	it easier to see what failed when a "make check" fails).
+
 2007-10-15  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.2.102

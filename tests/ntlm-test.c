@@ -26,6 +26,21 @@
 #include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 
+gboolean debug = FALSE;
+
+static void
+dprintf (const char *format, ...)
+{
+	va_list args;
+
+	if (!debug)
+		return;
+
+	va_start (args, format);
+	vprintf (format, args);
+	va_end (args);
+}
+
 typedef enum {
 	NTLM_UNAUTHENTICATED,
 	NTLM_RECEIVED_REQUEST,
@@ -204,58 +219,58 @@ do_message (SoupSession *session, SoupUri *base_uri, const char *path,
 			  G_CALLBACK (ntlm_response_check), &state);
 
 	soup_session_send_message (session, msg);
-	printf ("  %-10s -> ", path);
+	dprintf ("  %-10s -> ", path);
 
 	if (state.got_prompt) {
-		printf (" PROMPT");
+		dprintf (" PROMPT");
 		if (!get_prompt) {
-			printf ("???");
+			dprintf ("???");
 			errors++;
 		}
 	} else if (get_prompt) {
-		printf (" no-prompt???");
+		dprintf (" no-prompt???");
 		errors++;
 	}
 
 	if (state.sent_request) {
-		printf (" REQUEST");
+		dprintf (" REQUEST");
 		if (!do_ntlm) {
-			printf ("???");
+			dprintf ("???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		printf (" no-request???");
+		dprintf (" no-request???");
 		errors++;
 	}
 
 	if (state.got_challenge) {
-		printf (" CHALLENGE");
+		dprintf (" CHALLENGE");
 		if (!do_ntlm) {
-			printf ("???");
+			dprintf ("???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		printf (" no-challenge???");
+		dprintf (" no-challenge???");
 		errors++;
 	}
 
 	if (state.sent_response) {
-		printf (" RESPONSE");
+		dprintf (" RESPONSE");
 		if (!do_ntlm) {
-			printf ("???");
+			dprintf ("???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		printf (" no-response???");
+		dprintf (" no-response???");
 		errors++;
 	}
 
-	printf (" -> %s", msg->reason_phrase);
+	dprintf (" -> %s", msg->reason_phrase);
 	if (msg->status_code != status_code) {
-		printf ("???");
+		dprintf ("???");
 		errors++;
 	}
-	printf ("\n");
+	dprintf ("\n");
 
 	return errors;
 }
@@ -311,11 +326,11 @@ do_ntlm_tests (SoupUri *base_uri)
 {
 	int errors = 0;
 
-	printf ("Round 1: Non-NTLM Connection\n");
+	dprintf ("Round 1: Non-NTLM Connection\n");
 	errors += do_ntlm_round (base_uri, NULL);
-	printf ("Round 2: NTLM Connection, user=alice\n");
+	dprintf ("Round 2: NTLM Connection, user=alice\n");
 	errors += do_ntlm_round (base_uri, "alice");
-	printf ("Round 3: NTLM Connection, user=bob\n");
+	dprintf ("Round 3: NTLM Connection, user=bob\n");
 	errors += do_ntlm_round (base_uri, "bob");
 
 	return errors;
@@ -334,7 +349,6 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	SoupServer *server;
 	int opt;
-	int port = SOUP_ADDRESS_ANY_PORT;
 	GHashTable *connections;
 	SoupUri *uri;
 	int errors;
@@ -343,13 +357,13 @@ main (int argc, char **argv)
 	g_thread_init (NULL);
 	signal (SIGINT, quit);
 
-	while ((opt = getopt (argc, argv, "p:")) != -1) {
+	while ((opt = getopt (argc, argv, "d")) != -1) {
 		switch (opt) {
-		case 'p':
-			port = atoi (optarg);
+		case 'd':
+			debug = TRUE;
 			break;
 		default:
-			fprintf (stderr, "Usage: %s [-p port]\n",
+			fprintf (stderr, "Usage: %s [-d]\n",
 				 argv[0]);
 			exit (1);
 		}
@@ -357,10 +371,10 @@ main (int argc, char **argv)
 
 	connections = g_hash_table_new (NULL, NULL);
 
-	server = soup_server_new (SOUP_SERVER_PORT, port,
+	server = soup_server_new (SOUP_SERVER_PORT, 0,
 				  NULL);
 	if (!server) {
-		fprintf (stderr, "Unable to bind to server port %d\n", port);
+		fprintf (stderr, "Unable to bind server\n");
 		exit (1);
 	}
 	soup_server_add_handler (server, NULL, NULL,
@@ -375,6 +389,11 @@ main (int argc, char **argv)
 	uri->port = soup_server_get_port (server);
 	errors = do_ntlm_tests (uri);
 
-	printf ("\n%d errors\n", errors);
+	dprintf ("\n");
+	if (errors) {
+		printf ("ntlm-test: %d error(s). Run with '-d' for details\n",
+			errors);
+	} else
+		printf ("ntlm-test: OK\n");
 	return errors != 0;
 }
