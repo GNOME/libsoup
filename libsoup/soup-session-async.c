@@ -224,6 +224,12 @@ queue_message (SoupSession *session, SoupMessage *req,
 static guint
 send_message (SoupSession *session, SoupMessage *req)
 {
+	GMainContext *async_context;
+
+	g_object_get (G_OBJECT (session),
+		      SOUP_SESSION_ASYNC_CONTEXT, &async_context,
+		      NULL);
+
 	/* Balance out the unref that final_finished will do */
 	g_object_ref (req);
 
@@ -231,7 +237,7 @@ send_message (SoupSession *session, SoupMessage *req)
 
 	while (req->status != SOUP_MESSAGE_STATUS_FINISHED &&
 	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
-		g_main_iteration (TRUE);
+		g_main_context_iteration (async_context, TRUE);
 
 	return req->status_code;
 }

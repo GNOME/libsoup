@@ -1,3 +1,22 @@
+2007-11-16  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-io.c (read_body_chunk): Fix the guards
+	around the got_chunk emission so that it doesn't get messed up if
+	you pause the I/O from the got_chunk handler. (#452280, Marco
+	Barisione).
+	(soup_message_io_pause, soup_message_io_unpause): Update docs
+	again; these are now allowed with client-side I/O as well. Fix
+	unpause() to unpause asynchronously on async sockets.
+	
+	* libsoup/soup-session-async.c (send_message): Iterate session's
+	async_context, not the default main context.
+
+	* tests/pull-api.c: Test/sample of creating a pull-style API using
+	SoupSessionAsync.
+
+	* tests/index.txt: new file to act as DirectoryIndex for the
+	tests. (In particular, pull-api wants this to be largeish.)
+
 2007-10-28  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.2.103
