@@ -1,5 +1,7 @@
 2007-11-20  Dan Winship  <danw@gnome.org>
 
+	Fix up SOUP_SESSION_ASYNC_CONTEXT. #498509, Wouter Cloetens
+
 	* libsoup/soup-message-io.c (soup_message_io_unpause): don't leak
 	the async_context
 
