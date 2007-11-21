@@ -78,8 +78,8 @@ typedef struct {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
-static void
-io_cleanup (SoupMessage *msg)
+void
+soup_message_io_cleanup (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
@@ -157,7 +157,7 @@ static void
 soup_message_io_finished (SoupMessage *msg)
 {
 	g_object_ref (msg);
-	io_cleanup (msg);
+	soup_message_io_cleanup (msg);
 	if (SOUP_MESSAGE_IS_STARTING (msg))
 		soup_message_restarted (msg);
 	else
@@ -770,7 +770,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
 	if (priv->io_data)
-		io_cleanup (msg);
+		soup_message_io_cleanup (msg);
 	priv->io_data = io;
 	return io;
 }

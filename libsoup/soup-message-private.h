@@ -59,6 +59,7 @@ void soup_message_io_server  (SoupMessage               *msg,
 			      SoupMessageGetHeadersFn    get_headers_cb,
 			      SoupMessageParseHeadersFn  parse_headers_cb,
 			      gpointer                   user_data);
+void soup_message_io_cleanup (SoupMessage               *msg);
 
 /* Auth handling */
 void           soup_message_set_auth       (SoupMessage *msg,
