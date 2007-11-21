@@ -1,3 +1,27 @@
+2007-11-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-connection.c (soup_connection_connect_async): don't
+	leak the SoupAddress.
+
+	* libsoup/soup-dns.c (soup_dns_lookup_resolve_async): fix a leak
+	when re-looking up an address
+
+	* libsoup/soup-session.c (soup_session_abort): close all
+	connections in addition to cancelling messages (needed because
+	connections currently end up holding a ref on their session,
+	preventing them from being destroyed).
+
+	* tests/auth-test.c:
+	* tests/ntlm-test.c:
+	* tests/proxy-test.c:
+	* tests/pull-api.c:
+	* tests/ssl-test.c:
+	* tests/xmlrpc-test.c: clean up more memory on exit, to help find
+	leaks in the library
+
+	* tests/libsoup.supp: add a zillion new suppressions so we
+	can use --leak-resolution=med
+
 2007-11-16  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-io.c (read_body_chunk): Fix the guards

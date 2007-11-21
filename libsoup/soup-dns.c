@@ -571,9 +571,9 @@ soup_dns_lookup_resolve_async (SoupDNSLookup *lookup, GMainContext *async_contex
 	lookup->callback = callback;
 	lookup->user_data = user_data;
 	lookup->running = TRUE;
-	entry->lookups = g_slist_prepend (entry->lookups, lookup);
 
 	if (!entry->resolved) {
+		entry->lookups = g_slist_prepend (entry->lookups, lookup);
 		if (!entry->resolver_thread) {
 			soup_dns_cache_entry_ref (entry);
 			entry->resolver_thread =

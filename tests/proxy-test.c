@@ -174,6 +174,7 @@ main (int argc, char **argv)
 	}
 
 	apache_cleanup ();
+	g_main_context_unref (g_main_context_default ());
 
 	dprintf ("\n");
 	if (errors) {

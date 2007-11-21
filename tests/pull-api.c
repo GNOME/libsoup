@@ -58,6 +58,7 @@ get_correct_response (const char *uri)
 	correct_response_len = msg->response.length;
 	correct_response = g_strndup (msg->response.body, correct_response_len);
 
+	g_object_unref (msg);
 	soup_session_abort (session);
 	g_object_unref (session);
 }
@@ -568,6 +569,7 @@ main (int argc, char **argv)
 	g_free (correct_response);
 
 	apache_cleanup ();
+	g_main_context_unref (g_main_context_default ());
 
 	dprintf (1, "\n");
 	if (errors) {

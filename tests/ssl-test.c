@@ -114,6 +114,7 @@ server_thread (gpointer user_data)
 	gnutls_bye (session, GNUTLS_SHUT_WR);
 	gnutls_deinit (session);
 	close (client);
+	gnutls_certificate_free_credentials (creds);
 
 	return NULL;
 }
@@ -147,6 +148,7 @@ async_read (SoupSocket *sock, gpointer user_data)
 	if (memcmp (data->writebuf, data->readbuf, BUFSIZE) != 0)
 		g_error ("Sync read didn't match write");
 
+	g_free (data);
 	g_main_loop_quit (loop);
 }
 
@@ -209,6 +211,7 @@ main (int argc, char **argv)
 	struct sockaddr_in sin;
 	GThread *server;
 	char writebuf[BUFSIZE], readbuf[BUFSIZE];
+	SoupSSLCredentials *creds;
 	SoupSocket *sock;
 	gsize n, total;
 	SoupSocketIOStatus status;
@@ -266,9 +269,9 @@ main (int argc, char **argv)
 	port = ntohs (sin.sin_port);
 
 	/* Create the client */
+	creds = soup_ssl_get_client_credentials (NULL);
 	sock = soup_socket_client_new_sync ("127.0.0.1", port,
-					    soup_ssl_get_client_credentials (NULL),
-					    &status);
+					    creds, &status);
 	if (status != SOUP_STATUS_OK) {
 		g_error ("Could not create client socket: %s",
 			 soup_status_get_phrase (status));
@@ -278,7 +281,7 @@ main (int argc, char **argv)
 
 	/* Now spawn server thread */
 	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
-				  FALSE, NULL);
+				  TRUE, NULL);
 
 	/* Synchronous client test */
 	for (i = 0; i < BUFSIZE; i++)
@@ -316,8 +319,14 @@ main (int argc, char **argv)
 	g_idle_add (start_writing, sock);
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
+	g_main_context_unref (g_main_context_default ());
 
 	printf ("ASYNCHRONOUS SSL TEST PASSED\n");
+
+	g_object_unref (sock);
+	soup_ssl_free_client_credentials (creds);
+	g_thread_join (server);
 
 	/* Success */
 	return 0;

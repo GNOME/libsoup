@@ -416,6 +416,8 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
+	g_main_context_unref (g_main_context_default ());
 
 	soup_session_abort (session);
 	g_object_unref (session);

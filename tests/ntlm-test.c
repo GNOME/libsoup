@@ -272,6 +272,7 @@ do_message (SoupSession *session, SoupUri *base_uri, const char *path,
 	}
 	dprintf ("\n");
 
+	g_object_unref (msg);
 	return errors;
 }
 
@@ -390,7 +391,11 @@ main (int argc, char **argv)
 	errors = do_ntlm_tests (uri);
 	soup_uri_free (uri);
 
+	soup_server_quit (server);
+	g_object_unref (server);
 	g_main_loop_unref (loop);
+	g_hash_table_destroy (connections);
+	g_main_context_unref (g_main_context_default ());
 
 	dprintf ("\n");
 	if (errors) {
