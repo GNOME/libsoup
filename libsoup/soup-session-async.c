@@ -11,6 +11,7 @@
 
 #include "soup-session-async.h"
 #include "soup-connection.h"
+#include "soup-misc.h"
 
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
 
@@ -218,17 +219,15 @@ queue_message (SoupSession *session, SoupMessage *req,
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 
 	g_object_ref (sa);
-	g_idle_add (idle_run_queue, sa);
+	soup_add_idle (soup_session_get_async_context (session),
+		       idle_run_queue, sa);
 }
 
 static guint
 send_message (SoupSession *session, SoupMessage *req)
 {
-	GMainContext *async_context;
-
-	g_object_get (G_OBJECT (session),
-		      SOUP_SESSION_ASYNC_CONTEXT, &async_context,
-		      NULL);
+	GMainContext *async_context =
+		soup_session_get_async_context (session);
 
 	/* Balance out the unref that final_finished will do */
 	g_object_ref (req);

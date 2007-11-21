@@ -531,6 +531,26 @@ soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
 	g_object_unref (filter);
 }
 
+/**
+ * soup_session_get_async_context:
+ * @session: a #SoupSession
+ *
+ * Gets @session's async_context. This does not add a ref to the
+ * context, so you will need to ref it yourself if you want it to
+ * outlive its session.
+ *
+ * Return value: @session's #GMainContext, which may be %NULL
+ **/
+GMainContext *
+soup_session_get_async_context (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	return priv->async_context;
+}
 
 /* Hosts */
 static guint

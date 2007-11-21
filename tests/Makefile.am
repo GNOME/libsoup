@@ -8,6 +8,7 @@ INCLUDES =		\
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
 noinst_PROGRAMS =	\
+	context-test	\
 	date		\
 	dict		\
 	dns		\
@@ -24,6 +25,7 @@ noinst_PROGRAMS =	\
 	$(XMLRPC_TESTS)
 
 auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
+context_test_SOURCES = context-test.c
 date_SOURCES = date.c
 dict_SOURCES = dict.c
 dns_SOURCES = dns.c
@@ -50,7 +52,7 @@ if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test
 endif
 
-TESTS = date header-parsing uri-parsing ntlm-test $(APACHE_TESTS) $(SSL_TESTS) $(XMLRPC_TESTS)
+TESTS = context-test date header-parsing uri-parsing ntlm-test $(APACHE_TESTS) $(SSL_TESTS) $(XMLRPC_TESTS)
 
 EXTRA_DIST =		\
 	libsoup.supp	\

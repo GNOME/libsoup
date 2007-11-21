@@ -926,6 +926,8 @@ soup_message_io_unpause (SoupMessage *msg)
 		soup_add_idle (async_context, io_unpause_internal, msg);
 	else
 		io_unpause_internal (msg);
+	if (async_context)
+		g_main_context_unref (async_context);
 }
 
 /**

@@ -63,6 +63,8 @@ void            soup_session_add_filter       (SoupSession           *session,
 void            soup_session_remove_filter    (SoupSession           *session,
 					       SoupMessageFilter     *filter);
 
+GMainContext   *soup_session_get_async_context(SoupSession           *session);
+
 void            soup_session_queue_message    (SoupSession           *session,
 					       SoupMessage           *msg,
 					       SoupMessageCallbackFn  callback,

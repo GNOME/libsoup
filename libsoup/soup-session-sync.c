@@ -131,12 +131,8 @@ queue_message_thread (gpointer data)
 
 	soup_session_send_message (sad->session, sad->msg);
 	if (sad->callback) {
-		GMainContext *async_context;
-
-		g_object_get (sad->session,
-			      SOUP_SESSION_ASYNC_CONTEXT, &async_context,
-			      NULL);
-		soup_add_idle (async_context, queue_message_callback, sad);
+		soup_add_idle (soup_session_get_async_context (sad->session),
+			       queue_message_callback, sad);
 	} else
 		async_data_free (sad);
 

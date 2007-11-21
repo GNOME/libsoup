@@ -1,5 +1,31 @@
 2007-11-20  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-io.c (soup_message_io_unpause): don't leak
+	the async_context
+
+	* libsoup/soup-server.c (soup_server_quit): disconnect the
+	"new_connection" handler.
+	(soup_server_get_async_context): Convenience method to return the
+	server's async_context.
+
+	* libsoup/soup-server-message.c: don't circularly ref the server,
+	there's no need anyway.
+
+	* libsoup/soup-session.c (soup_session_get_async_context):
+	Convenience method to return the session's async_context.
+
+	* libsoup/soup-session-async.c (queue_message): call run_queue in
+	the session's async_context, not the main context.
+	(send_message): don't leak the async_context
+
+	* libsoup/soup-session-sync.c (queue_message_thread): don't leak
+	the async_context
+
+	* tests/context-test.c: test that SOUP_SESSION_ASYNC_CONTEXT works
+	and doesn't leak
+
+2007-11-20  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-connection.c (soup_connection_connect_async): don't
 	leak the SoupAddress.
 
