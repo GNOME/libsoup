@@ -842,7 +842,7 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 
 /**
  * soup_message_io_pause:
- * @msg: a server-side #SoupMessage
+ * @msg: a #SoupMessage
  *
  * Pauses I/O on @msg. This can be used in a #SoupServer handler when
  * you don't have the data ready to return yet, or with a client-side
@@ -898,7 +898,7 @@ io_unpause_internal (gpointer msg)
 
 /**
  * soup_message_io_unpause:
- * @msg: a server-side #SoupMessage
+ * @msg: a #SoupMessage
  *
  * Resumes I/O on @msg. Use this to resume after calling
  * soup_message_io_pause(), or after adding a new chunk to a chunked
