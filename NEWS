@@ -1,3 +1,24 @@
+Changes in libsoup from 2.2.103 to 2.2.104:
+
+	* soup_message_io_pause() and soup_message_io_pause() are now
+	  allowed for client messages (and in particular, they don't
+	  mess up when called from the "got_chunk" callback).
+	  [#452280, Marco Barisione]
+
+	* Fixed some bugs in SOUP_SESSION_ASYNC_CONTEXT support that
+	  would cause parts of an operation to run in the default
+	  context rather than the session's context. Also fixed some
+	  leaks and added a regression test. [#498509, Wouter
+	  Cloetens]
+
+	* There is a new test/sample program, tests/pull-api.c,
+	  showing how to implement a pull API using SoupSessionAsync.
+	  (This depends on the fixes for #452280 and #498509, so it
+	  won't work with older versions of libsoup.)
+
+	* Discovered "valgrind --leak-resolution=med" and fixed some
+          more memory leaks.
+
 Changes in libsoup from 2.2.102 to 2.2.103:
 
 	* Fix memory corruption in SoupSessionAsync that caused
