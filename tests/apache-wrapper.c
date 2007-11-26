@@ -4,6 +4,9 @@
 
 #ifdef HAVE_APACHE
 
+#include <signal.h>
+#include <stdlib.h>
+
 #include "apache-wrapper.h"
 
 static gboolean
@@ -46,7 +49,21 @@ apache_init (void)
 void
 apache_cleanup (void)
 {
+	pid_t pid;
+	char *contents;
+
+	if (g_file_get_contents ("httpd.pid", &contents, NULL, NULL)) {
+		pid = strtoul (contents, NULL, 10);
+		g_free (contents);
+	} else
+		pid = 0;
+
 	apache_cmd ("graceful-stop");
+
+	if (pid) {
+		while (kill (pid, 0) == 0)
+			g_usleep (100);
+	}
 }
 
 #endif /* HAVE_APACHE */
