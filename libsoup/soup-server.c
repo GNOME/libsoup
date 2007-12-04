@@ -523,10 +523,34 @@ soup_server_quit (SoupServer *server)
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
+	g_signal_handlers_disconnect_by_func (priv->listen_sock,
+					      G_CALLBACK (new_connection),
+					      server);
 	if (priv->loop)
 		g_main_loop_quit (priv->loop);
 
 	g_object_unref (server);
+}
+
+/**
+ * soup_server_get_async_context:
+ * @server: a #SoupServer
+ *
+ * Gets @server's async_context. This does not add a ref to the
+ * context, so you will need to ref it yourself if you want it to
+ * outlive its server.
+ *
+ * Return value: @server's #GMainContext, which may be %NULL
+ **/
+GMainContext *
+soup_server_get_async_context (SoupServer *server)
+{
+	SoupServerPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	return priv->async_context;
 }
 
 static void

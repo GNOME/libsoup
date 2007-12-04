@@ -1,3 +1,89 @@
+2007-11-26  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.2.104
+
+	* NEWS: update
+
+2007-11-21  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-io.c (soup_message_io_cleanup): make this
+	non-static.
+
+	* libsoup/soup-message.c (finalize): Use soup_message_io_cleanup()
+	rather than soup_message_io_stop(), to avoid leaks when finalizing
+	an unfinished message. (Another part of #498509, Wouter Cloetens.)
+
+2007-11-20  Dan Winship  <danw@gnome.org>
+
+	Fix up SOUP_SESSION_ASYNC_CONTEXT. #498509, Wouter Cloetens
+
+	* libsoup/soup-message-io.c (soup_message_io_unpause): don't leak
+	the async_context
+
+	* libsoup/soup-server.c (soup_server_quit): disconnect the
+	"new_connection" handler.
+	(soup_server_get_async_context): Convenience method to return the
+	server's async_context.
+
+	* libsoup/soup-server-message.c: don't circularly ref the server,
+	there's no need anyway.
+
+	* libsoup/soup-session.c (soup_session_get_async_context):
+	Convenience method to return the session's async_context.
+
+	* libsoup/soup-session-async.c (queue_message): call run_queue in
+	the session's async_context, not the main context.
+	(send_message): don't leak the async_context
+
+	* libsoup/soup-session-sync.c (queue_message_thread): don't leak
+	the async_context
+
+	* tests/context-test.c: test that SOUP_SESSION_ASYNC_CONTEXT works
+	and doesn't leak
+
+2007-11-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-connection.c (soup_connection_connect_async): don't
+	leak the SoupAddress.
+
+	* libsoup/soup-dns.c (soup_dns_lookup_resolve_async): fix a leak
+	when re-looking up an address
+
+	* libsoup/soup-session.c (soup_session_abort): close all
+	connections in addition to cancelling messages (needed because
+	connections currently end up holding a ref on their session,
+	preventing them from being destroyed).
+
+	* tests/auth-test.c:
+	* tests/ntlm-test.c:
+	* tests/proxy-test.c:
+	* tests/pull-api.c:
+	* tests/ssl-test.c:
+	* tests/xmlrpc-test.c: clean up more memory on exit, to help find
+	leaks in the library
+
+	* tests/libsoup.supp: add a zillion new suppressions so we
+	can use --leak-resolution=med
+
+2007-11-16  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-io.c (read_body_chunk): Fix the guards
+	around the got_chunk emission so that it doesn't get messed up if
+	you pause the I/O from the got_chunk handler. (#452280, Marco
+	Barisione).
+	(soup_message_io_pause, soup_message_io_unpause): Update docs
+	again; these are now allowed with client-side I/O as well. Fix
+	unpause() to unpause asynchronously on async sockets.
+	
+	* libsoup/soup-session-async.c (send_message): Iterate session's
+	async_context, not the default main context.
+
+	* tests/pull-api.c: Test/sample of creating a pull-style API using
+	SoupSessionAsync.
+
+	* tests/index.txt: new file to act as DirectoryIndex for the
+	tests. (In particular, pull-api wants this to be largeish.)
+
 2007-10-28  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.2.103

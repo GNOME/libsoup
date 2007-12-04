@@ -15,6 +15,7 @@
 #include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
+#include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
@@ -77,8 +78,8 @@ typedef struct {
 
 #define RESPONSE_BLOCK_SIZE 8192
 
-static void
-io_cleanup (SoupMessage *msg)
+void
+soup_message_io_cleanup (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
@@ -156,7 +157,7 @@ static void
 soup_message_io_finished (SoupMessage *msg)
 {
 	g_object_ref (msg);
-	io_cleanup (msg);
+	soup_message_io_cleanup (msg);
 	if (SOUP_MESSAGE_IS_STARTING (msg))
 		soup_message_restarted (msg);
 	else
@@ -275,19 +276,20 @@ read_body_chunk (SoupMessage *msg)
 			if (!nread)
 				break;
 
+			if (io->read_buf)
+				g_byte_array_append (io->read_buf, read_buf, nread);
+			io->read_length -= nread;
+
 			io->read_body->owner  = SOUP_BUFFER_STATIC;
 			io->read_body->body   = (char *)read_buf;
 			io->read_body->length = nread;
 
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 			soup_message_got_chunk (msg);
+			if (priv->io_data == io)
+				memset (io->read_body, 0, sizeof (SoupDataBuffer));
 			SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
 
-			memset (io->read_body, 0, sizeof (SoupDataBuffer));
-
-			if (io->read_buf)
-				g_byte_array_append (io->read_buf, read_buf, nread);
-			io->read_length -= nread;
 			break;
 
 		case SOUP_SOCKET_EOF:
@@ -624,14 +626,17 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		} else
 			io->read_state = io_body_state (io->read_encoding);
 
-		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code) &&
 		    !(priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
+			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 			soup_message_got_informational (msg);
 			soup_message_cleanup_response (msg);
-		} else
+			SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+		} else {
+			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 			soup_message_got_headers (msg);
-		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+			SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+		}
 		break;
 
 
@@ -765,7 +770,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
 	if (priv->io_data)
-		io_cleanup (msg);
+		soup_message_io_cleanup (msg);
 	priv->io_data = io;
 	return io;
 }
@@ -837,12 +842,12 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 
 /**
  * soup_message_io_pause:
- * @msg: a server-side #SoupMessage
+ * @msg: a #SoupMessage
  *
  * Pauses I/O on @msg. This can be used in a #SoupServer handler when
- * you don't have the data ready to return yet; call
- * soup_message_io_unpause() to start sending the response once it is
- * ready.
+ * you don't have the data ready to return yet, or with a client-side
+ * message if you are not ready to process any more of the response at
+ * this time; call soup_message_io_unpause() to resume I/O.
  **/
 void  
 soup_message_io_pause (SoupMessage *msg)
@@ -862,24 +867,16 @@ soup_message_io_pause (SoupMessage *msg)
 	}
 }
 
-/**
- * soup_message_io_unpause:
- * @msg: a server-side #SoupMessage
- *
- * Resumes I/O on @msg. Use this to resume after calling
- * soup_message_io_pause(), or after adding a new chunk to a chunked
- * response.
- **/
-void  
-soup_message_io_unpause (SoupMessage *msg)
+static gboolean
+io_unpause_internal (gpointer msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 
-	g_return_if_fail (io != NULL);
+	g_return_val_if_fail (io != NULL, FALSE);
 
 	if (io->write_tag || io->read_tag)
-		return;
+		return FALSE;
 
 	if (io->write_state != SOUP_MESSAGE_IO_STATE_DONE) {
 		io->write_tag = g_signal_connect (io->sock, "writable",
@@ -895,6 +892,42 @@ soup_message_io_unpause (SoupMessage *msg)
 		io_write (io->sock, msg);
 	else if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->read_state))
 		io_read (io->sock, msg);
+
+	return FALSE;
+}
+
+/**
+ * soup_message_io_unpause:
+ * @msg: a #SoupMessage
+ *
+ * Resumes I/O on @msg. Use this to resume after calling
+ * soup_message_io_pause(), or after adding a new chunk to a chunked
+ * response.
+ *
+ * If @msg is being sent via blocking I/O, this will resume reading or
+ * writing immediately. If @msg is using non-blocking I/O, then
+ * reading or writing won't resume until you return to the main loop.
+ **/
+void
+soup_message_io_unpause (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+	gboolean non_blocking;
+	GMainContext *async_context;
+
+	g_return_if_fail (io != NULL);
+
+	g_object_get (io->sock,
+		      SOUP_SOCKET_FLAG_NONBLOCKING, &non_blocking,
+		      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
+		      NULL);
+	if (non_blocking)
+		soup_add_idle (async_context, io_unpause_internal, msg);
+	else
+		io_unpause_internal (msg);
+	if (async_context)
+		g_main_context_unref (async_context);
 }
 
 /**

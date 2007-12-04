@@ -531,6 +531,26 @@ soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
 	g_object_unref (filter);
 }
 
+/**
+ * soup_session_get_async_context:
+ * @session: a #SoupSession
+ *
+ * Gets @session's async_context. This does not add a ref to the
+ * context, so you will need to ref it yourself if you want it to
+ * outlive its session.
+ *
+ * Return value: @session's #GMainContext, which may be %NULL
+ **/
+GMainContext *
+soup_session_get_async_context (SoupSession *session)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	return priv->async_context;
+}
 
 /* Hosts */
 static guint
@@ -1347,6 +1367,15 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg)
 	SOUP_SESSION_GET_CLASS (session)->cancel_message (session, msg);
 }
 
+static void
+gather_conns (gpointer key, gpointer host, gpointer data)
+{
+	SoupConnection *conn = key;
+	GSList **conns = data;
+
+	*conns = g_slist_prepend (*conns, conn);
+}
+
 /**
  * soup_session_abort:
  * @session: the session
@@ -1356,13 +1385,31 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg)
 void
 soup_session_abort (SoupSession *session)
 {
+	SoupSessionPrivate *priv;
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
+	GSList *conns, *c;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
+	priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
 		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
 		soup_session_cancel_message (session, msg);
 	}
+
+	/* Close all connections */
+	g_mutex_lock (priv->host_lock);
+	conns = NULL;
+	g_hash_table_foreach (priv->conns, gather_conns, &conns);
+
+	for (c = conns; c; c = c->next)
+		g_object_ref (c->data);
+	g_mutex_unlock (priv->host_lock);
+	for (c = conns; c; c = c->next) {
+		soup_connection_disconnect (c->data);
+		g_object_unref (c->data);
+	}
+
+	g_slist_free (conns);
 }

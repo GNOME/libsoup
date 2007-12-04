@@ -47,17 +47,6 @@ finalize (GObject *object)
 }
 
 static void
-dispose (GObject *object)
-{
-	SoupServerMessagePrivate *priv = SOUP_SERVER_MESSAGE_GET_PRIVATE (object);
-
-	if (priv->server)
-		g_object_unref (priv->server);
-
-	G_OBJECT_CLASS (soup_server_message_parent_class)->dispose (object);
-}
-
-static void
 soup_server_message_class_init (SoupServerMessageClass *soup_server_message_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (soup_server_message_class);
@@ -66,7 +55,6 @@ soup_server_message_class_init (SoupServerMessageClass *soup_server_message_clas
 
 	/* virtual method override */
 	object_class->finalize = finalize;
-	object_class->dispose = dispose;
 }
 
 
@@ -78,7 +66,7 @@ soup_server_message_new (SoupServer *server)
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
 
 	smsg = g_object_new (SOUP_TYPE_SERVER_MESSAGE, NULL);
-	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->server = g_object_ref (server);
+	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->server = server;
 
 	return smsg;
 }

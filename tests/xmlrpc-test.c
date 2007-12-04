@@ -475,6 +475,9 @@ main (int argc, char **argv)
 	if (!test_echo ())
 		errors++;
 
+	soup_session_abort (session);
+	g_object_unref (session);
+
 	apache_cleanup ();
 
 	dprintf (1, "\n");

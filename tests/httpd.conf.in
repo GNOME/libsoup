@@ -28,7 +28,7 @@ LoadModule proxy_http_module    @APACHE_MODULE_DIR@/mod_proxy_http.so
 LoadModule proxy_connect_module @APACHE_MODULE_DIR@/mod_proxy_connect.so
 LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 
-DirectoryIndex httpd.conf.in
+DirectoryIndex index.txt
 TypesConfig /dev/null
 AddType application/x-httpd-php .php
 

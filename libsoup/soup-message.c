@@ -65,7 +65,7 @@ finalize (GObject *object)
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	soup_message_io_stop (msg);
+	soup_message_io_cleanup (msg);
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);

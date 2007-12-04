@@ -80,6 +80,7 @@ void               soup_server_run            (SoupServer            *serv);
 void               soup_server_run_async      (SoupServer            *serv);
 void               soup_server_quit           (SoupServer            *serv);
 
+GMainContext      *soup_server_get_async_context (SoupServer         *serv);
 
 /* Handlers */
 
