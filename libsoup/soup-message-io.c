@@ -597,8 +597,8 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			 * closed when we're done.
 			 */
 			soup_message_set_status (msg, status);
-			soup_message_add_header (msg->request_headers,
-						 "Connection", "close");
+			soup_message_headers_append (msg->request_headers,
+						     "Connection", "close");
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 			break;
 		}

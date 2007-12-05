@@ -181,8 +181,8 @@ identify_auth (SoupMessage *msg)
 	const char *header;
 	int num;
 
-	header = soup_message_get_header (msg->request_headers,
-					  "Authorization");
+	header = soup_message_headers_find (msg->request_headers,
+					    "Authorization");
 	if (!header)
 		return 0;
 

@@ -135,8 +135,8 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	soup_message_add_header (SOUP_MESSAGE (msg)->request_headers,
-				 "SOAPAction", "http://services.aonaware.com/webservices/Define");
+	soup_message_headers_append (SOUP_MESSAGE (msg)->request_headers, "SOAPAction",
+				     "http://services.aonaware.com/webservices/Define");
 
 	soup_soap_message_start_envelope (msg);
 	soup_soap_message_start_body (msg);

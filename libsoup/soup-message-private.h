@@ -19,7 +19,7 @@ typedef struct {
 
 	GSList            *content_handlers;
 
-	SoupHttpVersion    http_version;
+	SoupHTTPVersion    http_version;
 
 	SoupUri           *uri;
 

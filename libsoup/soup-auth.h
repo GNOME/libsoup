@@ -7,6 +7,7 @@
 #define SOUP_AUTH_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-headers.h>
 
 #define SOUP_TYPE_AUTH            (soup_auth_get_type ())
 #define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))
@@ -44,7 +45,8 @@ typedef struct {
 GType       soup_auth_get_type              (void);
 
 
-SoupAuth   *soup_auth_new_from_header_list  (const GSList  *vals);
+SoupAuth   *soup_auth_new_from_headers      (SoupMessageHeaders *hdrs,
+					     const char    *header_name);
 
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);

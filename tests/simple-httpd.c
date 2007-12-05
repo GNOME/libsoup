@@ -20,9 +20,9 @@
 #include <libsoup/soup-server-message.h>
 
 static void
-print_header (gpointer name, gpointer value, gpointer data)
+print_header (const char *name, const char *value, gpointer data)
 {
-	printf ("%s: %s\n", (char *)name, (char *)value);
+	printf ("%s: %s\n", name, value);
 }
 
 static void
@@ -36,7 +36,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 	printf ("%s %s HTTP/1.%d\n", msg->method, path,
 		soup_message_get_http_version (msg));
-	soup_message_foreach_header (msg->request_headers, print_header, NULL);
+	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
 	if (msg->request.length)
 		printf ("%.*s\n", msg->request.length, msg->request.body);
 
@@ -75,8 +75,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 
 			uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 			redir_uri = g_strdup_printf ("%s/", uri);
-			soup_message_add_header (msg->response_headers,
-						 "Location", redir_uri);
+			soup_message_headers_append (msg->response_headers,
+						     "Location", redir_uri);
 			soup_message_set_status (msg, SOUP_STATUS_MOVED_PERMANENTLY);
 			g_free (redir_uri);
 			g_free (uri);

@@ -27,9 +27,9 @@
 SoupSession *session;
 
 static void
-copy_header (gpointer name, gpointer value, gpointer dest_headers)
+copy_header (const char *name, const char *value, gpointer dest_headers)
 {
-	soup_message_add_header (dest_headers, name, value);
+	soup_message_headers_append (dest_headers, name, value);
 }
 
 static void
@@ -41,9 +41,9 @@ send_headers (SoupMessage *from, SoupMessage *to)
 
 	soup_message_set_status_full (to, from->status_code,
 				      from->reason_phrase);
-	soup_message_foreach_header (from->response_headers, copy_header,
-				     to->response_headers);
-	soup_message_remove_header (to->response_headers, "Content-Length");
+	soup_message_headers_foreach (from->response_headers, copy_header,
+				      to->response_headers);
+	soup_message_headers_remove (to->response_headers, "Content-Length");
 	soup_message_io_unpause (to);
 }
 
@@ -91,10 +91,11 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	}
 
 	msg2 = soup_message_new (msg->method, uristr);
-	soup_message_foreach_header (msg->request_headers, copy_header,
-				     msg2->request_headers);
-	soup_message_remove_header (msg2->request_headers, "Host");
-	soup_message_remove_header (msg2->request_headers, "Connection");
+        msg2 = soup_message_new (msg->method, uristr);
+	soup_message_headers_foreach (msg->request_headers, copy_header,
+				      msg2->request_headers);
+	soup_message_headers_remove (msg2->request_headers, "Host");
+	soup_message_headers_remove (msg2->request_headers, "Connection");
 
 	if (msg->request.length) {
 		msg2->request.owner = SOUP_BUFFER_USER_OWNED;

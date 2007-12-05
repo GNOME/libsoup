@@ -50,11 +50,8 @@ soup_message_init (SoupMessage *msg)
 {
 	msg->status  = SOUP_MESSAGE_STATUS_IDLE;
 
-	msg->request_headers = g_hash_table_new (soup_str_case_hash,
-						 soup_str_case_equal);
-
-	msg->response_headers = g_hash_table_new (soup_str_case_hash,
-						  soup_str_case_equal);
+	msg->request_headers = soup_message_headers_new ();
+	msg->response_headers = soup_message_headers_new ();
 
 	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = SOUP_HTTP_1_1;
 }
@@ -81,11 +78,8 @@ finalize (GObject *object)
 		g_free (msg->response.body);
 	free_chunks (msg);
 
-	soup_message_clear_headers (msg->request_headers);
-	g_hash_table_destroy (msg->request_headers);
-
-	soup_message_clear_headers (msg->response_headers);
-	g_hash_table_destroy (msg->response_headers);
+	soup_message_headers_free (msg->request_headers);
+	soup_message_headers_free (msg->response_headers);
 
 	g_slist_foreach (priv->content_handlers, (GFunc) g_free, NULL);
 	g_slist_free (priv->content_handlers);
@@ -348,8 +342,7 @@ soup_message_set_request (SoupMessage   *msg,
 	g_return_if_fail (content_type != NULL);
 	g_return_if_fail (req_body != NULL || req_length == 0);
 
-	soup_message_add_header (msg->request_headers,
-				 "Content-Type", content_type);
+	soup_message_headers_append (msg->request_headers, "Content-Type", content_type);
 	msg->request.owner = req_owner;
 	msg->request.body = req_body;
 	msg->request.length = req_length;
@@ -376,8 +369,7 @@ soup_message_set_response (SoupMessage   *msg,
 	g_return_if_fail (content_type != NULL);
 	g_return_if_fail (resp_body != NULL || resp_length == 0);
 
-	soup_message_add_header (msg->response_headers,
-				 "Content-Type", content_type);
+	soup_message_headers_append (msg->response_headers, "Content-Type", content_type);
 	msg->response.owner = resp_owner;
 	msg->response.body = resp_body;
 	msg->response.length = resp_length;
@@ -564,170 +556,6 @@ soup_message_finished (SoupMessage *msg)
 	g_signal_emit (msg, signals[FINISHED], 0);
 }
 
-static gboolean
-free_header_list (gpointer name, gpointer vals, gpointer user_data)
-{
-	g_free (name);
-	g_slist_foreach (vals, (GFunc) g_free, NULL);
-	g_slist_free (vals);
-
-	return TRUE;
-}
-
-/**
- * soup_message_clear_headers:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- *
- * Clears @hash.
- **/
-void
-soup_message_clear_headers (GHashTable *hash)
-{
-	g_return_if_fail (hash != NULL);
-
-	g_hash_table_foreach_remove (hash, free_header_list, NULL);
-}
-
-/**
- * soup_message_remove_header:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- * @name: the header name to remove
- *
- * Removes @name from @hash. If there are multiple values for @name,
- * they are all removed.
- **/
-void
-soup_message_remove_header (GHashTable *hash, const char *name)
-{
-	gpointer old_key, old_vals;
-
-	g_return_if_fail (hash != NULL);
-	g_return_if_fail (name != NULL || name[0] != '\0');
-
-	if (g_hash_table_lookup_extended (hash, name, &old_key, &old_vals)) {
-		g_hash_table_remove (hash, name);
-		free_header_list (old_key, old_vals, NULL);
-	}
-}
-
-/**
- * soup_message_add_header:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- * @name: the header name to add
- * @value: the value of the new header
- *
- * Adds a header with name @name and value @value to @hash. If there
- * was already a header with name @name, this one does not replace it,
- * it is merely added to it.
- **/
-void
-soup_message_add_header (GHashTable *hash, const char *name, const char *value)
-{
-	GSList *old_value;
-
-	g_return_if_fail (hash != NULL);
-	g_return_if_fail (name != NULL || name [0] != '\0');
-	g_return_if_fail (value != NULL);
-
-	old_value = g_hash_table_lookup (hash, name);
-
-	if (old_value)
-		old_value = g_slist_append (old_value, g_strdup (value));
-	else {
-		g_hash_table_insert (hash, g_strdup (name),
-				     g_slist_append (NULL, g_strdup (value)));
-	}
-}
-
-/**
- * soup_message_get_header:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- * @name: header name.
- * 
- * Finds the first header in @hash with name @name.
- * 
- * Return value: the header's value or %NULL if not found.
- **/
-const char *
-soup_message_get_header (GHashTable *hash, const char *name)
-{
-	GSList *vals;
-
-	g_return_val_if_fail (hash != NULL, NULL);
-	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
-
-	vals = g_hash_table_lookup (hash, name);
-	if (vals)
-		return vals->data;
-
-	return NULL;
-}
-
-/**
- * soup_message_get_header_list:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- * @name: header name.
- * 
- * Finds all headers in @hash with name @name.
- * 
- * Return value: a (possibly empty) list of values of headers with
- * name @name. The caller should not modify or free this list.
- **/
-const GSList *
-soup_message_get_header_list (GHashTable *hash, const char *name)
-{
-	g_return_val_if_fail (hash != NULL, NULL);
-	g_return_val_if_fail (name != NULL || name [0] != '\0', NULL);
-
-	return g_hash_table_lookup (hash, name);
-}
-
-typedef struct {
-	GHFunc   func;
-	gpointer user_data;
-} SoupMessageForeachHeaderData;
-
-static void
-foreach_value_in_list (gpointer name, gpointer value, gpointer user_data)
-{
-	GSList *vals = value;
-	SoupMessageForeachHeaderData *data = user_data;
-
-	while (vals) {
-		(*data->func) (name, vals->data, data->user_data);
-		vals = vals->next;
-	}
-}
-
-/**
- * soup_message_foreach_header:
- * @hash: a header table (the %request_headers or %response_headers
- * field of a #SoupMessage)
- * @func: callback function to run for each header
- * @user_data: data to pass to @func
- * 
- * Calls @func once for each header value in @hash. (If there are
- * headers will multiple values, @func will be called once on each
- * value.)
- **/
-void
-soup_message_foreach_header (GHashTable *hash, GHFunc func, gpointer user_data)
-{
-	SoupMessageForeachHeaderData data;
-
-	g_return_if_fail (hash != NULL);
-	g_return_if_fail (func != NULL);
-
-	data.func = func;
-	data.user_data = user_data;
-	g_hash_table_foreach (hash, foreach_value_in_list, &data);
-}
-
 /**
  * soup_message_set_auth:
  * @msg: a #SoupMessage
@@ -751,7 +579,8 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 
 	if (priv->auth) {
 		g_object_unref (priv->auth);
-		soup_message_remove_header (msg->request_headers, "Authorization");
+		soup_message_headers_remove (msg->request_headers,
+					     "Authorization");
 	}
 	priv->auth = auth;
 	if (!priv->auth)
@@ -759,7 +588,8 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 
 	g_object_ref (priv->auth);
 	token = soup_auth_get_authorization (auth, msg);
-	soup_message_add_header (msg->request_headers, "Authorization", token);
+	soup_message_headers_append (msg->request_headers,
+				     "Authorization", token);
 	g_free (token);
 }
 
@@ -803,8 +633,8 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 
 	if (priv->proxy_auth) {
 		g_object_unref (priv->proxy_auth);
-		soup_message_remove_header (msg->request_headers,
-					    "Proxy-Authorization");
+		soup_message_headers_remove (msg->request_headers,
+					     "Proxy-Authorization");
 	}
 	priv->proxy_auth = auth;
 	if (!priv->proxy_auth)
@@ -812,8 +642,8 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 
 	g_object_ref (priv->proxy_auth);
 	token = soup_auth_get_authorization (auth, msg);
-	soup_message_add_header (msg->request_headers,
-				 "Proxy-Authorization", token);
+	soup_message_headers_append (msg->request_headers,
+				     "Proxy-Authorization", token);
 	g_free (token);
 }
 
@@ -854,7 +684,7 @@ soup_message_cleanup_response (SoupMessage *req)
 
 	free_chunks (req);
 
-	soup_message_clear_headers (req->response_headers);
+	soup_message_headers_clear (req->response_headers);
 
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
@@ -904,7 +734,7 @@ soup_message_get_flags (SoupMessage *msg)
  * functionality from being used.
  **/
 void
-soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
+soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
@@ -920,7 +750,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHttpVersion version)
  *
  * Return value: the HTTP version
  **/
-SoupHttpVersion
+SoupHTTPVersion
 soup_message_get_http_version (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_HTTP_1_0);
@@ -942,8 +772,8 @@ soup_message_is_keepalive (SoupMessage *msg)
 {
 	const char *c_conn, *s_conn;
 
-	c_conn = soup_message_get_header (msg->request_headers, "Connection");
-	s_conn = soup_message_get_header (msg->response_headers, "Connection");
+	c_conn = soup_message_headers_find (msg->request_headers, "Connection");
+	s_conn = soup_message_headers_find (msg->response_headers, "Connection");
 
 	if (msg->status_code == SOUP_STATUS_OK &&
 	    soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT)
@@ -1038,10 +868,10 @@ soup_message_get_request_encoding  (SoupMessage *msg, guint *content_length)
 	if (SOUP_IS_SERVER_MESSAGE (msg)) {
 		const char *enc, *len;
 
-		enc = soup_message_get_header (msg->request_headers,
-					       "Transfer-Encoding");
-		len = soup_message_get_header (msg->request_headers,
-					       "Content-Length");
+		enc = soup_message_headers_find (msg->request_headers,
+						 "Transfer-Encoding");
+		len = soup_message_headers_find (msg->request_headers,
+						 "Content-Length");
 		if (enc) {
 			if (g_ascii_strcasecmp (enc, "chunked") == 0)
 				return SOUP_TRANSFER_CHUNKED;
@@ -1111,10 +941,10 @@ soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 	} else {
 		const char *enc, *len;
 
-		enc = soup_message_get_header (msg->response_headers,
-					       "Transfer-Encoding");
-		len = soup_message_get_header (msg->response_headers,
-					       "Content-Length");
+		enc = soup_message_headers_find (msg->response_headers,
+						 "Transfer-Encoding");
+		len = soup_message_headers_find (msg->response_headers,
+						 "Content-Length");
 		if (enc) {
 			if (g_ascii_strcasecmp (enc, "chunked") == 0)
 				return SOUP_TRANSFER_CHUNKED;

@@ -769,13 +769,11 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 }
 
 static gboolean
-update_auth_internal (SoupSession *session, SoupMessage *msg,
-		      const GSList *headers, gboolean proxy)
+update_auth_internal (SoupSession *session, SoupMessage *msg, gboolean proxy)
 {
 	SoupSessionHost *host;
 	SoupAuth *new_auth, *prior_auth, *old_auth;
 	gpointer old_path, old_auth_info;
-	const SoupUri *msg_uri;
 	const char *path;
 	char *auth_info;
 	GSList *pspace, *p;
@@ -791,8 +789,9 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	/* Try to construct a new auth from the headers; if we can't,
 	 * there's no way we'll be able to authenticate.
 	 */
-	msg_uri = soup_message_get_uri (msg);
-	new_auth = soup_auth_new_from_header_list (headers);
+	new_auth = soup_auth_new_from_headers (
+		msg->response_headers,
+		proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
 	if (!new_auth)
 		return FALSE;
 
@@ -829,7 +828,7 @@ update_auth_internal (SoupSession *session, SoupMessage *msg,
 	if (proxy)
 		pspace = g_slist_prepend (NULL, g_strdup (""));
 	else
-		pspace = soup_auth_get_protection_space (new_auth, msg_uri);
+		pspace = soup_auth_get_protection_space (new_auth, soup_message_get_uri (msg));
 
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
@@ -891,22 +890,10 @@ static void
 authorize_handler (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
-	const GSList *headers;
 	gboolean proxy;
 
-	if (msg->status_code == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED) {
-		headers = soup_message_get_header_list (msg->response_headers,
-							"Proxy-Authenticate");
-		proxy = TRUE;
-	} else {
-		headers = soup_message_get_header_list (msg->response_headers,
-							"WWW-Authenticate");
-		proxy = FALSE;
-	}
-	if (!headers)
-		return;
-
-	if (update_auth_internal (session, msg, headers, proxy))
+	proxy = (msg->status_code == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED);
+	if (update_auth_internal (session, msg, proxy))
 		soup_session_requeue_message (session, msg);
 }
 
@@ -917,7 +904,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	const char *new_loc;
 	SoupUri *new_uri;
 
-	new_loc = soup_message_get_header (msg->response_headers, "Location");
+	new_loc = soup_message_headers_find (msg->response_headers, "Location");
 	if (!new_loc)
 		return;
 

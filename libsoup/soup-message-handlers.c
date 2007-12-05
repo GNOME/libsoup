@@ -41,8 +41,8 @@ run_handler (SoupMessage     *msg,
 
 	switch (data->kind) {
 	case SOUP_HANDLER_HEADER:
-		if (!soup_message_get_header (msg->response_headers,
-					      data->data.header))
+		if (!soup_message_headers_find (msg->response_headers,
+						data->data.header))
 			return;
 		break;
 	case SOUP_HANDLER_STATUS_CODE:

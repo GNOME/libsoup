@@ -30,15 +30,17 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	char *req_path = NULL, *url;
 	const char *expect, *req_host;
 	SoupServer *server;
+	guint status;
 
-	if (!soup_headers_parse_request (headers, headers_len,
-					 msg->request_headers,
-					 (char **) &msg->method,
-					 &req_path,
-					 &priv->http_version))
-		return SOUP_STATUS_BAD_REQUEST;
+	status = soup_headers_parse_request (headers, headers_len,
+					     msg->request_headers,
+					     (char **) &msg->method,
+					     &req_path,
+					     &priv->http_version);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+		return status;
 
-	expect = soup_message_get_header (msg->request_headers, "Expect");
+	expect = soup_message_headers_find (msg->request_headers, "Expect");
 	if (expect && !strcmp (expect, "100-continue"))
 		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 
@@ -48,7 +50,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 		*content_len = 0;
 	} else if (*encoding == SOUP_TRANSFER_UNKNOWN) {
-		if (soup_message_get_header (msg->request_headers, "Transfer-Encoding"))
+		if (soup_message_headers_find (msg->request_headers, "Transfer-Encoding"))
 			return SOUP_STATUS_NOT_IMPLEMENTED;
 		else
 			return SOUP_STATUS_BAD_REQUEST;
@@ -56,7 +58,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 
 	/* Generate correct context for request */
 	server = soup_server_message_get_server (SOUP_SERVER_MESSAGE (msg));
-	req_host = soup_message_get_header (msg->request_headers, "Host");
+	req_host = soup_message_headers_find (msg->request_headers, "Host");
 
 	if (*req_path != '/') {
 		/* Check for absolute URI */
@@ -102,10 +104,9 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 }
 
 static void
-write_header (gpointer name, gpointer value, gpointer headers)
+write_header (const char *name, const char *value, gpointer headers)
 {
-	g_string_append_printf (headers, "%s: %s\r\n",
-				(char *)name, (char *)value);
+	g_string_append_printf (headers, "%s: %s\r\n", name, value);
 }
 
 static void
@@ -119,14 +120,14 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
 				msg->status_code, msg->reason_phrase);
 
-	soup_message_foreach_header (msg->response_headers,
-				     write_header, headers);
+	soup_message_headers_foreach (msg->response_headers,
+				      write_header, headers);
 
 	*encoding = soup_message_get_response_encoding (msg, NULL);
 
 	claimed_encoding = soup_server_message_get_encoding (smsg);
 	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH &&
-	    !soup_message_get_header (msg->response_headers, "Content-Length")) {
+	    !soup_message_headers_find (msg->response_headers, "Content-Length")) {
 		g_string_append_printf (headers, "Content-Length: %d\r\n",
 					msg->response.length);
 	} else if (claimed_encoding == SOUP_TRANSFER_CHUNKED)

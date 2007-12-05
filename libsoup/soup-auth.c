@@ -59,27 +59,29 @@ static AuthScheme known_auth_schemes [] = {
 /* FIXME: it should be possible to register new auth schemes! */
 
 /**
- * soup_auth_new_from_header_list:
- * @vals: a list of WWW-Authenticate headers from a server response
+ * soup_auth_new_from_headers:
+ * @hdrs: the response headers from a message
+ * @header_name: the name of the header to look for
+ * ("WWW-Authenticate" or "Proxy-Authenticate")
  *
  * Creates a #SoupAuth value based on the strongest available
- * supported auth type in @vals.
+ * supported auth type in @hdrs.
  *
  * Return value: the new #SoupAuth, or %NULL if none could be created.
  **/
 SoupAuth *
-soup_auth_new_from_header_list (const GSList *vals)
+soup_auth_new_from_headers (SoupMessageHeaders *hdrs, const char *header_name)
 {
-	char *header = NULL, *realm;
+	const char *tryheader, *header = NULL;
 	AuthScheme *scheme = NULL, *iter;
 	SoupAuth *auth = NULL;
 	GHashTable *params;
+	char *realm;
+	int i;
 
-	g_return_val_if_fail (vals != NULL, NULL);
+	g_return_val_if_fail (hdrs != NULL, NULL);
 
-	while (vals) {
-		char *tryheader = vals->data;
-
+	for (i = 0; (tryheader = soup_message_headers_find_nth (hdrs, header_name, i)); i++) {
 		for (iter = known_auth_schemes; iter->name; iter++) {
 			if (!g_ascii_strncasecmp (tryheader, iter->name, 
 						  iter->len) &&
@@ -94,8 +96,6 @@ soup_auth_new_from_header_list (const GSList *vals)
 				break;
 			}
 		}
-
-		vals = vals->next;
 	}
 
 	if (!scheme)

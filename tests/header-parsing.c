@@ -22,15 +22,18 @@ dprintf (const char *format, ...)
 	va_end (args);
 }
 
+typedef struct {
+	char *name, *value;
+} Header;
+
 struct RequestTest {
 	char *description;
 	char *request;
 	int length;
+	guint status;
 	char *method, *path;
-	SoupHttpVersion version;
-	struct {
-		char *name, *value;
-	} headers[4];
+	SoupHTTPVersion version;
+	Header headers[4];
 } reqtests[] = {
 	/**********************/
 	/*** VALID REQUESTS ***/
@@ -38,12 +41,14 @@ struct RequestTest {
 
 	{ "HTTP 1.0 request with no headers",
 	  "GET / HTTP/1.0\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_0,
 	  { { NULL } }
 	},
 
 	{ "Req w/ 1 header",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -52,6 +57,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header, no leading whitespace",
 	  "GET / HTTP/1.1\r\nHost:example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -60,6 +66,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header including trailing whitespace",
 	  "GET / HTTP/1.1\r\nHost: example.com \r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -68,6 +75,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header, wrapped",
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n baz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Foo", "bar baz" },
 	    { NULL }
@@ -76,6 +84,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header, wrapped with additional whitespace",
 	  "GET / HTTP/1.1\r\nFoo: bar \r\n  baz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Foo", "bar baz" },
 	    { NULL }
@@ -84,6 +93,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header, wrapped with tab",
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n\tbaz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Foo", "bar baz" },
 	    { NULL }
@@ -92,6 +102,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header, wrapped before value",
 	  "GET / HTTP/1.1\r\nFoo:\r\n bar baz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Foo", "bar baz" },
 	    { NULL }
@@ -100,6 +111,7 @@ struct RequestTest {
 
 	{ "Req w/ 1 header with empty value",
 	  "GET / HTTP/1.1\r\nHost:\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "" },
 	    { NULL }
@@ -108,6 +120,7 @@ struct RequestTest {
 
 	{ "Req w/ 2 headers",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { "Connection", "close" },
@@ -117,6 +130,7 @@ struct RequestTest {
 
 	{ "Req w/ 3 headers",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\nBlah: blah\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { "Connection", "close" },
@@ -127,6 +141,7 @@ struct RequestTest {
 
 	{ "Req w/ 3 headers, 1st wrapped",
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n baz\r\nConnection: close\r\nBlah: blah\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Foo", "bar baz" },
 	    { "Connection", "close" },
@@ -137,20 +152,33 @@ struct RequestTest {
 
 	{ "Req w/ 3 headers, 2nd wrapped",
 	  "GET / HTTP/1.1\r\nConnection: close\r\nBlah: blah\r\nFoo: bar\r\n baz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Connection", "close" },
-	    { "Foo", "bar baz" },
 	    { "Blah", "blah" },
+	    { "Foo", "bar baz" },
 	    { NULL }
 	  }
 	},
 
 	{ "Req w/ 3 headers, 3rd wrapped",
 	  "GET / HTTP/1.1\r\nConnection: close\r\nBlah: blah\r\nFoo: bar\r\n baz\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Connection", "close" },
 	    { "Blah", "blah" },
 	    { "Foo", "bar baz" },
+	    { NULL }
+	  }
+	},
+
+	{ "Req w/ same header multiple times",
+	  "GET / HTTP/1.1\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "Foo", "bar" },
+	    { "Foo", "baz" },
+	    { "Foo", "quux" },
 	    { NULL }
 	  }
 	},
@@ -163,6 +191,18 @@ struct RequestTest {
 
 	{ "Spurious leading CRLF",
 	  "\r\nGET / HTTP/1.1\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "Host", "example.com" },
+	    { NULL }
+	  }
+	},
+
+	/* RFC 2616 section 3.1 says we MUST accept this */
+
+	{ "HTTP/01.01 request",
+	  "GET / HTTP/01.01\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -173,6 +213,7 @@ struct RequestTest {
 
 	{ "LF instead of CRLF after header",
 	  "GET / HTTP/1.1\nHost: example.com\nConnection: close\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { "Connection", "close" },
@@ -182,6 +223,7 @@ struct RequestTest {
 
 	{ "LF instead of CRLF after Request-Line",
 	  "GET / HTTP/1.1\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -190,6 +232,7 @@ struct RequestTest {
 
 	{ "Req w/ incorrect whitespace in Request-Line",
 	  "GET  /\tHTTP/1.1\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -198,6 +241,7 @@ struct RequestTest {
 
 	{ "Req w/ incorrect whitespace after Request-Line",
 	  "GET / HTTP/1.1 \r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { NULL }
@@ -210,72 +254,91 @@ struct RequestTest {
 
 	{ "HTTP 0.9 request; not supported",
 	  "GET /\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "HTTP 1.2 request; not supported (no such thing)",
+	{ "HTTP 1.2 request (no such thing)",
 	  "GET / HTTP/1.2\r\n", -1,
+	  SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "HTTP 2000 request (no such thing)",
+	  "GET / HTTP/2000.0\r\n", -1,
+	  SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Non-HTTP request",
 	  "GET / SOUP/1.1\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Junk after Request-Line",
 	  "GET / HTTP/1.1 blah\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "NUL in Method",
 	  "G\x00T / HTTP/1.1\r\nHost: example.com\r\n", 37,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "NUL in Path",
 	  "GET /\x00 HTTP/1.1\r\nHost: example.com\r\n", 38,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "NUL in Header",
 	  "GET / HTTP/1.1\r\nHost: example\x00com\r\n", 37,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Header line with no ':'",
 	  "GET / HTTP/1.1\r\nHost example.com\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "No terminating CRLF",
 	  "GET / HTTP/1.1\r\nHost: example.com", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Blank line before headers",
 	  "GET / HTTP/1.1\r\n\r\nHost: example.com\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Blank line in headers",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\n\r\nConnection: close\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
 	{ "Blank line after headers",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n", -1,
+	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
@@ -287,12 +350,10 @@ struct ResponseTest {
 	char *description;
 	char *response;
 	int length;
-	SoupHttpVersion version;
+	SoupHTTPVersion version;
 	guint status_code;
 	char *reason_phrase;
-	struct {
-		char *name, *value;
-	} headers[4];
+	Header headers[4];
 } resptests[] = {
 	/***********************/
 	/*** VALID RESPONSES ***/
@@ -333,6 +394,16 @@ struct ResponseTest {
 	  }
 	},
 
+	{ "Response w/ same header multiple times",
+	  "HTTP/1.1 200 ok\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
+	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
+	  { { "Foo", "bar" },
+	    { "Foo", "baz" },
+	    { "Foo", "quux" },
+	    { NULL }
+	  }
+	},
+
 	{ "Response w/ no reason phrase",
 	  "HTTP/1.1 200 \r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "",
@@ -344,6 +415,16 @@ struct ResponseTest {
 	/*****************************/
 	/*** RECOVERABLE RESPONSES ***/
 	/*****************************/
+
+	/* RFC 2616 section 3.1 says we MUST accept this */
+
+	{ "HTTP/01.01 response",
+	  "HTTP/01.01 200 ok\r\nFoo: bar\r\n", -1,
+	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
+	  { { "Foo", "bar" },
+	    { NULL }
+	  }
+	},
 
 	/* RFC 2616 section 19.3 says we SHOULD accept these */
 
@@ -452,23 +533,42 @@ struct ResponseTest {
 static const int num_resptests = G_N_ELEMENTS (resptests);
 
 static void
-print_header (gpointer key, gpointer value, gpointer data)
+print_header (const char *name, const char *value, gpointer data)
 {
-	GSList *values = value;
-	dprintf ("              '%s': '%s'\n",
-		 (char *)key, (char*)values->data);
+	dprintf ("              '%s': '%s'\n", name, value);
 }
 
-static void
-free_headers (gpointer value)
-{
-	GSList *headers = value;
+typedef struct {
+	Header *headers;
+	int i;
+	gboolean ok;
+} HeaderForeachData;
 
-	/* We know that there are no duplicate headers in any of the
-	 * test cases, so...
-	 */
-	g_free (headers->data);
-	g_slist_free (headers);
+static void
+check_header (const char *name, const char *value, gpointer data)
+{
+	HeaderForeachData *hfd = data;
+
+	if (!hfd->headers[hfd->i].name)
+		hfd->ok = FALSE;
+	else if (strcmp (hfd->headers[hfd->i].name, name) != 0 ||
+	    strcmp (hfd->headers[hfd->i].value, value) != 0)
+		hfd->ok = FALSE;
+
+	hfd->i++;
+}
+
+static gboolean
+check_headers (Header *headers, SoupMessageHeaders *hdrs)
+{
+	HeaderForeachData hfd;
+
+	hfd.headers = headers;
+	hfd.i = 0;
+	hfd.ok = TRUE;
+
+	soup_message_headers_foreach (hdrs, check_header, &hfd);
+	return hfd.ok;
 }
 
 static int
@@ -476,28 +576,28 @@ do_request_tests (void)
 {
 	int i, len, h, errors = 0;
 	char *method, *path;
-	GSList *values;
-	SoupHttpVersion version;
-	GHashTable *headers;
+	SoupHTTPVersion version;
+	SoupMessageHeaders *headers;
+	guint status;
 
 	dprintf ("Request tests\n");
 	for (i = 0; i < 1; i++) {
 		gboolean ok = TRUE;
 
 		dprintf ("%2d. %s (%s): ", i + 1, reqtests[i].description,
-			 reqtests[i].method ? "should parse" : "should NOT parse");
+			 soup_status_get_phrase (reqtests[i].status));
 
-		headers = g_hash_table_new_full (g_str_hash, g_str_equal,
-						 g_free, free_headers);
+		headers = soup_message_headers_new ();
 		method = path = NULL;
 
 		if (reqtests[i].length == -1)
 			len = strlen (reqtests[i].request);
 		else
 			len = reqtests[i].length;
-		if (soup_headers_parse_request (reqtests[i].request, len,
-						headers, &method, &path,
-						&version)) {
+		status = soup_headers_parse_request (reqtests[i].request, len,
+						     headers, &method, &path,
+						     &version);
+		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			if ((reqtests[i].method && strcmp (reqtests[i].method, method) != 0) || !reqtests[i].method)
 				ok = FALSE;
 			if ((reqtests[i].path && strcmp (reqtests[i].path, path) != 0) || !reqtests[i].path)
@@ -505,16 +605,10 @@ do_request_tests (void)
 			if (reqtests[i].version != version)
 				ok = FALSE;
 
-			for (h = 0; reqtests[i].headers[h].name; h++) {
-				values = g_hash_table_lookup (headers, reqtests[i].headers[h].name);
-				if (!values || values->next ||
-				    strcmp (reqtests[i].headers[h].value, values->data) != 0)
-					ok = FALSE;
-			}
-			if (g_hash_table_size (headers) != h)
+			if (!check_headers (reqtests[i].headers, headers))
 				ok = FALSE;
 		} else {
-			if (reqtests[i].method)
+			if (status != reqtests[i].status)
 				ok = FALSE;
 		}
 
@@ -532,19 +626,23 @@ do_request_tests (void)
 						 reqtests[i].headers[h].name,
 						 reqtests[i].headers[h].value);
 				}
-			} else
-				dprintf ("    expected: parse error\n");
+			} else {
+				dprintf ("    expected: %s\n",
+					 soup_status_get_phrase (reqtests[i].status));
+			}
 			if (method) {
 				dprintf ("         got: '%s' '%s' 'HTTP/1.%d'\n",
 					method, path, version);
-				g_hash_table_foreach (headers, print_header, NULL);
-			} else
-				dprintf ("         got: parse error\n");
+				soup_message_headers_foreach (headers, print_header, NULL);
+			} else {
+				dprintf ("         got: %s\n",
+					 soup_status_get_phrase (status));
+			}
 		}
 
 		g_free (method);
 		g_free (path);
-		g_hash_table_destroy (headers);
+		soup_message_headers_free (headers);
 	}
 	dprintf ("\n");
 
@@ -557,9 +655,8 @@ do_response_tests (void)
 	int i, len, h, errors = 0;
 	guint status_code;
 	char *reason_phrase;
-	GSList *values;
-	SoupHttpVersion version;
-	GHashTable *headers;
+	SoupHTTPVersion version;
+	SoupMessageHeaders *headers;
 
 	dprintf ("Response tests\n");
 	for (i = 0; i < num_resptests; i++) {
@@ -568,8 +665,7 @@ do_response_tests (void)
 		dprintf ("%2d. %s (%s): ", i + 1, resptests[i].description,
 			 resptests[i].reason_phrase ? "should parse" : "should NOT parse");
 
-		headers = g_hash_table_new_full (g_str_hash, g_str_equal,
-						 g_free, free_headers);
+		headers = soup_message_headers_new ();
 		reason_phrase = NULL;
 
 		if (resptests[i].length == -1)
@@ -586,13 +682,7 @@ do_response_tests (void)
 			if ((resptests[i].reason_phrase && strcmp (resptests[i].reason_phrase, reason_phrase) != 0) || !resptests[i].reason_phrase)
 				ok = FALSE;
 
-			for (h = 0; resptests[i].headers[h].name; h++) {
-				values = g_hash_table_lookup (headers, resptests[i].headers[h].name);
-				if (!values || values->next ||
-				    strcmp (resptests[i].headers[h].value, values->data) != 0)
-					ok = FALSE;
-			}
-			if (g_hash_table_size (headers) != h)
+			if (!check_headers (resptests[i].headers, headers))
 				ok = FALSE;
 		} else {
 			if (resptests[i].reason_phrase)
@@ -619,13 +709,13 @@ do_response_tests (void)
 			if (reason_phrase) {
 				dprintf ("         got: 'HTTP/1.%d' '%03d' '%s'\n",
 					 version, status_code, reason_phrase);
-				g_hash_table_foreach (headers, print_header, NULL);
+				soup_message_headers_foreach (headers, print_header, NULL);
 			} else
 				dprintf ("         got: parse error\n");
 		}
 
 		g_free (reason_phrase);
-		g_hash_table_destroy (headers);
+		soup_message_headers_free (headers);
 	}
 	dprintf ("\n");
 

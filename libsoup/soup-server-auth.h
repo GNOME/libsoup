@@ -75,7 +75,7 @@ union SoupServerAuth {
 };
 
 SoupServerAuth *soup_server_auth_new          (SoupServerAuthContext *auth_ctx, 
-				               const GSList          *auth_hdrs,
+				               const char            *auth_hdr,
 					       SoupMessage           *msg);
 
 void            soup_server_auth_free         (SoupServerAuth        *auth);

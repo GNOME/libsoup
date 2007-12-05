@@ -18,58 +18,6 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-typedef struct {
-	const gchar   *scheme;
-	SoupAuthType   type;
-	gint           strength;
-} AuthScheme; 
-
-static AuthScheme known_auth_schemes [] = {
-	{ "Basic",  SOUP_AUTH_TYPE_BASIC,  0 },
-	{ "Digest", SOUP_AUTH_TYPE_DIGEST, 3 },
-	{ NULL }
-};
-
-static SoupAuthType
-soup_auth_get_strongest_header (guint          auth_types,
-				const GSList  *vals, 
-				gchar        **out_hdr)
-{
-	gchar *header = NULL;
-	AuthScheme *scheme = NULL, *iter;
-
-	g_return_val_if_fail (vals != NULL, 0);
-
-	if (!auth_types) 
-		return 0;
-
-	while (vals) {
-		for (iter = known_auth_schemes; iter->scheme; iter++) {
-			gchar *tryheader = vals->data;
-
-			if ((iter->type & auth_types) &&
-			    !g_ascii_strncasecmp (tryheader, 
-						  iter->scheme, 
-						  strlen (iter->scheme))) {
-				if (!scheme || 
-				    scheme->strength < iter->strength) {
-					header = tryheader;
-					scheme = iter;
-				}
-				break;
-			}
-		}
-
-		vals = vals->next;
-	}
-
-	if (!scheme) 
-		return 0;
-
-	*out_hdr = header + strlen (scheme->scheme) + 1;
-	return scheme->type;
-}
-
 static gboolean 
 check_digest_passwd (SoupServerAuthDigest *digest,
 		     gchar                *passwd)
@@ -185,7 +133,7 @@ soup_server_auth_get_user (SoupServerAuth *auth)
 
 static gboolean
 parse_digest (SoupServerAuthContext *auth_ctx, 
-	      gchar                 *header,
+	      const char            *header,
 	      SoupMessage           *msg,
 	      SoupServerAuth        *out_auth)
 {
@@ -323,26 +271,29 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 
 SoupServerAuth * 
 soup_server_auth_new (SoupServerAuthContext *auth_ctx, 
-		      const GSList          *auth_hdrs, 
+		      const char            *auth_hdr, 
 		      SoupMessage           *msg)
 {
 	SoupServerAuth *ret;
 	SoupAuthType type;
-	gchar *header = NULL;
+	const char *header = NULL;
 
 	g_return_val_if_fail (auth_ctx != NULL, NULL);
 	g_return_val_if_fail (msg != NULL, NULL);
 
-	if (!auth_hdrs && auth_ctx->types) {
-		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
+	if (!auth_hdr) {
+		if (auth_ctx->types)
+			soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 		return NULL;
 	}
 
-	type = soup_auth_get_strongest_header (auth_ctx->types,
-					       auth_hdrs, 
-					       &header);
-
-	if (!type && auth_ctx->types) {
+	if (!g_ascii_strncasecmp (auth_hdr, "Basic ", 6)) {
+		type = SOUP_AUTH_TYPE_BASIC;
+		header = auth_hdr + 6;
+	} else if (!g_ascii_strncasecmp (auth_hdr, "Digest ", 7)) {
+		type = SOUP_AUTH_TYPE_DIGEST;
+		header = auth_hdr + 7;
+	} else if (auth_ctx->types) {
 		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 		return NULL;
 	}
@@ -420,9 +371,7 @@ soup_server_auth_context_challenge (SoupServerAuthContext *auth_ctx,
 
 		hdr = g_strdup_printf ("Basic realm=\"%s\"", 
 				       auth_ctx->basic_info.realm);
-		soup_message_add_header (msg->response_headers,
-					 header_name,
-					 hdr);
+		soup_message_headers_append (msg->response_headers, header_name, hdr);
 		g_free (hdr);
 	}
 
@@ -451,9 +400,7 @@ soup_server_auth_context_challenge (SoupServerAuthContext *auth_ctx,
 		else
 			g_string_sprintfa (str, "algorithm=\"MD5\"");
 
-		soup_message_add_header (msg->response_headers,
-					 header_name,
-					 str->str);
+		soup_message_headers_append (msg->response_headers, header_name, str->str);
 		g_string_free (str, TRUE);
 	}
 }

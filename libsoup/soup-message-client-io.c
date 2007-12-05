@@ -25,8 +25,7 @@ parse_response_headers (SoupMessage *req,
 			gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-	SoupHttpVersion version;
-	GHashTable *resp_hdrs;
+	SoupHTTPVersion version;
 
 	g_free((char*)req->reason_phrase);
 	req->reason_phrase = NULL;
@@ -40,8 +39,6 @@ parse_response_headers (SoupMessage *req,
 	if (version < priv->http_version)
 		priv->http_version = version;
 
-	resp_hdrs = req->response_headers;
-
 	*encoding = soup_message_get_response_encoding (req, content_len);
 	if (*encoding == SOUP_TRANSFER_NONE) {
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
@@ -53,12 +50,10 @@ parse_response_headers (SoupMessage *req,
 }
 
 static void 
-add_header (gpointer name, gpointer value, gpointer data)
+add_header (const char *name, const char *value, gpointer data)
 {
 	GString *headers = data;
-
-	g_string_append_printf (headers, "%s: %s\r\n",
-				(char *)name, (char *)value);
+	g_string_append_printf (headers, "%s: %s\r\n", name, value);
 }
 
 static void
@@ -99,21 +94,17 @@ get_request_headers (SoupMessage *req, GString *header,
 	g_free (uri_string);
 
 	if (req->request.length > 0) {
-		if (!soup_message_get_header (req->request_headers,
-					      "Content-Type")) {
-			g_string_append (header, "Content-Type: text/xml; "
-					 "charset=utf-8\r\n");
-		}
 		g_string_append_printf (header, "Content-Length: %d\r\n",
 					req->request.length);
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 	}
 
-	soup_message_foreach_header (req->request_headers, add_header, header);
+	soup_message_headers_foreach (req->request_headers, add_header, header);
 	g_string_append (header, "\r\n");
 
-	expect = soup_message_get_header (req->request_headers, "Expect");
-	if (expect && !strcmp (expect, "100-continue"))
+	/* FIXME: parsing */
+	expect = soup_message_headers_find (req->request_headers, "Expect");
+	if (expect && !g_ascii_strcasecmp (expect, "100-continue"))
 		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 

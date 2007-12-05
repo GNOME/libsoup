@@ -14,14 +14,12 @@
 #include "soup-misc.h"
 
 static gboolean
-soup_headers_parse (const char *str, 
-		    int         len, 
-		    GHashTable *dest)
+soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 {
-	const char *end = str + len;
-	const char *name_start, *name_end, *value_start, *value_end;
-	char *name, *value, *eol, *sol;
-	GSList *hdrs;
+	const char *headers_start;
+	char *headers_copy, *name, *name_end, *value, *value_end;
+	char *eol, *sol;
+	gboolean success = FALSE;
 
 	/* Technically, the grammar does allow NUL bytes in the
 	 * headers, but this is probably a bug, and if it's not, we
@@ -36,39 +34,46 @@ soup_headers_parse (const char *str,
 	 */
 
 	/* Skip over the Request-Line / Status-Line */
-	value_end = memchr (str, '\n', len);
-	if (!value_end)
+	headers_start = memchr (str, '\n', len);
+	if (!headers_start)
 		return FALSE;
 
-	while (value_end < end - 1) {
-		name_start = value_end + 1;
-		name_end = memchr (name_start, ':', end - name_start);
+	/* We work on a copy of the headers, which we can write '\0's
+	 * into, so that we don't have to individually g_strndup and
+	 * then g_free each header name and value.
+	 */
+	headers_copy = g_strndup (headers_start, len - (headers_start - str));
+	value_end = headers_copy;
+
+	while (*(value_end + 1)) {
+		name = value_end + 1;
+		name_end = strchr (name, ':');
 		if (!name_end)
-			return FALSE;
+			goto done;
 
 		/* Find the end of the value; ie, an end-of-line that
 		 * isn't followed by a continuation line.
 		 */
-		value_end = memchr (name_start, '\n', end - name_start);
+		value = name_end + 1;
+		value_end = strchr (name, '\n');
 		if (!value_end || value_end < name_end)
-			return FALSE;
-		while (value_end != end - 1 &&
-		       (*(value_end + 1) == ' ' || *(value_end + 1) == '\t')) {
-			value_end = memchr (value_end + 1, '\n', end - value_end);
+			goto done;
+		while (*(value_end + 1) == ' ' || *(value_end + 1) == '\t') {
+			value_end = strchr (value_end + 1, '\n');
 			if (!value_end)
-				return FALSE;
+				goto done;
 		}
 
-		name = g_strndup (name_start, name_end - name_start);
+		*name_end = '\0';
+		*value_end = '\0';
 
-		value_start = name_end + 1;
-		while (value_start < value_end &&
-		       (*value_start == ' ' || *value_start == '\t' ||
-			*value_start == '\r' || *value_start == '\n'))
-			value_start++;
-		value = g_strndup (value_start, value_end - value_start);
+		/* Skip leading whitespace */
+		while (value < value_end &&
+		       (*value == ' ' || *value == '\t' ||
+			*value == '\r' || *value == '\n'))
+			value++;
 
-		/* Collapse continuation lines inside value */
+		/* Collapse continuation lines */
 		while ((eol = strchr (value, '\n'))) {
 			/* find start of next line */
 			sol = eol + 1;
@@ -91,46 +96,46 @@ soup_headers_parse (const char *str,
 			eol--;
 		*eol = '\0';
 
-		hdrs = g_hash_table_lookup (dest, name);
-		hdrs = g_slist_append (hdrs, value);
-		if (!hdrs->next)
-			g_hash_table_insert (dest, name, hdrs);
-		else
-			g_free (name);
+		soup_message_headers_append (dest, name, value);
         }
+	success = TRUE;
 
-	return TRUE;
+done:
+	g_free (headers_copy);
+	return success;
 }
 
 /**
  * soup_headers_parse_request:
  * @str: the header string (including the trailing blank line)
  * @len: length of @str up to (but not including) the terminating blank line.
- * @dest: #GHashTable to store the header values in
+ * @req_headers: #SoupMessageHeaders to store the header values in
  * @req_method: if non-%NULL, will be filled in with the request method
  * @req_path: if non-%NULL, will be filled in with the request path
  * @ver: if non-%NULL, will be filled in with the HTTP version
  *
  * Parses the headers of an HTTP request in @str and stores the
- * results in @req_method, @req_path, @ver, and @dest.
+ * results in @req_method, @req_path, @ver, and @req_headers.
  *
- * Beware that @dest may be modified even on failure.
+ * Beware that @req_headers may be modified even on failure.
  *
- * Return value: success or failure.
+ * Return value: %SOUP_STATUS_OK if the headers could be parsed, or an
+ * HTTP error to be returned to the client if they could not be.
  **/
-gboolean
-soup_headers_parse_request (const char       *str, 
-			    int               len, 
-			    GHashTable       *dest, 
-			    char            **req_method,
-			    char            **req_path,
-			    SoupHttpVersion  *ver) 
+guint
+soup_headers_parse_request (const char          *str, 
+			    int                  len, 
+			    SoupMessageHeaders  *req_headers,
+			    char               **req_method,
+			    char               **req_path,
+			    SoupHTTPVersion     *ver) 
 {
-	const char *method, *method_end, *path, *path_end, *version, *headers;
-	int minor_version;
+	const char *method, *method_end, *path, *path_end;
+	const char *version, *version_end, *headers;
+	unsigned long major_version, minor_version;
+	char *p;
 
-	if (!str || !*str)
-		return FALSE;
+	g_return_val_if_fail (str && *str, SOUP_STATUS_MALFORMED);
 
 	/* RFC 2616 4.1 "servers SHOULD ignore any empty line(s)
 	 * received where a Request-Line is expected."
@@ -148,43 +153,47 @@ soup_headers_parse_request (const char       *str,
 	while (method_end < str + len && *method_end != ' ' && *method_end != '\t')
 		method_end++;
 	if (method_end >= str + len)
-		return FALSE;
+		return SOUP_STATUS_BAD_REQUEST;
 
 	path = method_end;
 	while (path < str + len && (*path == ' ' || *path == '\t'))
 		path++;
 	if (path >= str + len)
-		return FALSE;
+		return SOUP_STATUS_BAD_REQUEST;
 
 	path_end = path;
 	while (path_end < str + len && *path_end != ' ' && *path_end != '\t')
 		path_end++;
 	if (path_end >= str + len)
-		return FALSE;
+		return SOUP_STATUS_BAD_REQUEST;
 
 	version = path_end;
 	while (version < str + len && (*version == ' ' || *version == '\t'))
 		version++;
 	if (version + 8 >= str + len)
-		return FALSE;
+		return SOUP_STATUS_BAD_REQUEST;
 
-	/* FIXME: we want SoupServer to return
-	 * SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED here
-	 */
-	if (strncmp (version, "HTTP/1.", 7) != 0)
-		return FALSE;
-	minor_version = version[7] - '0';
+	if (strncmp (version, "HTTP/", 5) != 0 ||
+	    !g_ascii_isdigit (version[5]))
+		return SOUP_STATUS_BAD_REQUEST;
+	major_version = strtoul (version + 5, &p, 10);
+	if (*p != '.' || !g_ascii_isdigit (p[1]))
+		return SOUP_STATUS_BAD_REQUEST;
+	minor_version = strtoul (p + 1, &p, 10);
+	version_end = p;
+	if (major_version != 1)
+		return SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED;
 	if (minor_version < 0 || minor_version > 1)
-		return FALSE;
+		return SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED;
 
-	headers = version + 8;
+	headers = version_end;
 	while (headers < str + len && (*headers == '\r' || *headers == ' '))
 		headers++;
 	if (headers >= str + len || *headers != '\n')
-		return FALSE;
+		return SOUP_STATUS_BAD_REQUEST;
 
-	if (!soup_headers_parse (str, len, dest)) 
-		return FALSE;
+	if (!soup_headers_parse (str, len, req_headers)) 
+		return SOUP_STATUS_BAD_REQUEST;
 
 	if (req_method)
 		*req_method = g_strndup (method, method_end - method);
@@ -193,7 +202,7 @@ soup_headers_parse_request (const char       *str,
 	if (ver)
 		*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
 
-	return TRUE;
+	return SOUP_STATUS_OK;
 }
 
 /**
@@ -212,22 +221,29 @@ soup_headers_parse_request (const char       *str,
  **/
 gboolean
 soup_headers_parse_status_line (const char       *status_line,
-				SoupHttpVersion  *ver,
+				SoupHTTPVersion  *ver,
 				guint            *status_code,
 				char            **reason_phrase)
 {
-	guint minor_version, code;
+	unsigned long major_version, minor_version, code;
 	const char *code_start, *code_end, *phrase_start, *phrase_end;
+	char *p;
 
-	if (strncmp (status_line, "HTTP/1.", 7) != 0)
+	if (strncmp (status_line, "HTTP/", 5) != 0 ||
+	    !g_ascii_isdigit (status_line[5]))
 		return FALSE;
-	minor_version = status_line[7] - '0';
+	major_version = strtoul (status_line + 5, &p, 10);
+	if (*p != '.' || !g_ascii_isdigit (p[1]))
+		return FALSE;
+	minor_version = strtoul (p + 1, &p, 10);
+	if (major_version != 1)
+		return FALSE;
 	if (minor_version < 0 || minor_version > 1)
 		return FALSE;
 	if (ver)
 		*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
 
-	code_start = status_line + 8;
+	code_start = p;
 	while (*code_start == ' ' || *code_start == '\t')
 		code_start++;
 	code_end = code_start;
@@ -258,31 +274,31 @@ soup_headers_parse_status_line (const char       *status_line,
  * soup_headers_parse_response:
  * @str: the header string (including the trailing blank line)
  * @len: length of @str up to (but not including) the terminating blank line.
- * @dest: #GHashTable to store the header values in
+ * @headers: #SoupMessageheaders to store the header values in
  * @ver: if non-%NULL, will be filled in with the HTTP version
  * @status_code: if non-%NULL, will be filled in with the status code
  * @reason_phrase: if non-%NULL, will be filled in with the reason
  * phrase
  *
  * Parses the headers of an HTTP response in @str and stores the
- * results in @ver, @status_code, @reason_phrase, and @dest.
+ * results in @ver, @status_code, @reason_phrase, and @headers.
  *
- * Beware that @dest may be modified even on failure.
+ * Beware that @headers may be modified even on failure.
  *
  * Return value: success or failure.
  **/
 gboolean
-soup_headers_parse_response (const char       *str, 
-			     int               len, 
-			     GHashTable       *dest,
-			     SoupHttpVersion  *ver,
-			     guint            *status_code,
-			     char            **reason_phrase)
+soup_headers_parse_response (const char          *str, 
+			     int                  len, 
+			     SoupMessageHeaders  *headers,
+			     SoupHTTPVersion     *ver,
+			     guint               *status_code,
+			     char               **reason_phrase)
 {
 	if (!str || !*str)
 		return FALSE;
 
-	if (!soup_headers_parse (str, len, dest)) 
+	if (!soup_headers_parse (str, len, headers)) 
 		return FALSE;
 
 	if (!soup_headers_parse_status_line (str, 

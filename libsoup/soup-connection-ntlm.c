@@ -79,11 +79,11 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnectionNTLM *ntlm = user_data;
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (ntlm);
-	const GSList *headers;
 	const char *val;
 	char *nonce, *header;
 	char *username, *domain_username = NULL, *password = NULL;
 	char *slash, *domain;
+	int i;
 
 	if (priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
 		/* We already authenticated, but then got another 401.
@@ -94,15 +94,13 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	headers = soup_message_get_header_list (msg->response_headers,
-						"WWW-Authenticate");
-	while (headers) {
-		val = headers->data;
+	i = 0;
+	while ((val = soup_message_headers_find_nth (msg->response_headers,
+						     "WWW-Authenticate", i))) {
 		if (!strncmp (val, "NTLM ", 5))
 			break;
-		headers = headers->next;
 	}
-	if (!headers) {
+	if (!val) {
 		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
 	}
@@ -139,9 +137,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	g_free (domain);
 	g_free (nonce);
 
-	soup_message_remove_header (msg->request_headers, "Authorization");
-	soup_message_add_header (msg->request_headers,
-				 "Authorization", header);
+	soup_message_headers_replace (msg->request_headers, "Authorization", header);
 	g_free (header);
 	priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
 
@@ -149,7 +145,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	/* Remove the WWW-Authenticate headers so the session won't try
 	 * to do Basic auth too.
 	 */
-	soup_message_remove_header (msg->response_headers, "WWW-Authenticate");
+	soup_message_headers_remove (msg->response_headers, "WWW-Authenticate");
 }
 
 static void
@@ -158,7 +154,7 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
 
 	if (priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
-	    soup_message_get_header (msg->request_headers, "Authorization")) {
+	    soup_message_headers_find (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
 		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
 
@@ -196,10 +192,8 @@ send_request (SoupConnection *conn, SoupMessage *req)
 	if (priv->state == SOUP_CONNECTION_NTLM_NEW) {
 		char *header = soup_ntlm_request ();
 
-		soup_message_remove_header (req->request_headers,
-					    "Authorization");
-		soup_message_add_header (req->request_headers,
-					 "Authorization", header);
+		soup_message_headers_replace (req->request_headers,
+					      "Authorization", header);
 		g_free (header);
 		priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
 	}

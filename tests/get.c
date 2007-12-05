@@ -100,9 +100,9 @@ mkdirs (const char *path)
 }
 
 static void
-print_header (gpointer name, gpointer value, gpointer data)
+print_header (const char *name, const char *value, gpointer data)
 {
-	printf ("%s: %s\n", (const char *)name, (const char *)value);
+	printf ("%s: %s\n", name, value);
 }
 
 static void
@@ -164,7 +164,7 @@ get_url (const char *url)
 		printf ("HTTP/1.%d %d %s\n",
 			soup_message_get_http_version (msg),
 			msg->status_code, msg->reason_phrase);
-		soup_message_foreach_header (msg->response_headers, print_header, NULL);
+		soup_message_headers_foreach (msg->response_headers, print_header, NULL);
 		printf ("\n");
 	} else
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
@@ -176,7 +176,7 @@ get_url (const char *url)
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		if (recurse)
 			unlink (name);
-		header = soup_message_get_header (msg->response_headers, "Location");
+		header = soup_message_headers_find (msg->response_headers, "Location");
 		if (header) {
 			if (!debug)
 				printf ("  -> %s\n", header);
@@ -197,7 +197,7 @@ get_url (const char *url)
 		return;
 	close (fd);
 
-	header = soup_message_get_header (msg->response_headers, "Content-Type");
+	header = soup_message_headers_find (msg->response_headers, "Content-Type");
 	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
 		return;
 

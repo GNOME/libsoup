@@ -382,11 +382,11 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 
 	if (hand->auth_ctx) {
 		SoupServerAuthContext *auth_ctx = hand->auth_ctx;
-		const GSList *auth_hdrs;
+		const char *auth_hdr;
 
-		auth_hdrs = soup_message_get_header_list (req->request_headers,
-							  "Authorization");
-		auth = soup_server_auth_new (auth_ctx, auth_hdrs, req);
+		auth_hdr = soup_message_headers_find (req->request_headers,
+						      "Authorization");
+		auth = soup_server_auth_new (auth_ctx, auth_hdr, req);
 
 		if (auth_ctx->callback) {
 			gboolean ret = FALSE;

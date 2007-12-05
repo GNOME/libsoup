@@ -1,5 +1,34 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message.h (SoupHTTPVersion): rename (from
+	SoupHttpVersion)
+
+	* libsoup/soup-message-headers.c: New opaque type representing
+	message headers, and new methods that work on it. Uses an array
+	rather than a hash table, to preserve header ordering as required
+	by RFC 2616. (Also fixes the API wart that
+	"soup_message_get_header", etc, did not actually take a
+	SoupMessage.)
+
+	* libsoup/soup-message.c: Kill off old header-manipulating
+	methods.
+
+	* libsoup/soup-headers.c (soup_headers_parse_request): return a
+	guint rather than gboolean, so we can properly return
+	SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED where appropriate. Also fix
+	up HTTP-Version parsing to conform with the RFC.
+	(soup_headers_parse_status_line): Likewise update HTTP-Version
+	parsing.
+	
+	* libsoup/soup-message-server-io.c (parse_request_headers): set
+	return status appropriately on parse errors
+
+	* tests/header-parsing.c: update / add more tests
+
+	* *.c: update
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-misc.c: remove deprecated base64 methods
 
 	* tests/auth-test.c (identify_auth): oops, update to use
