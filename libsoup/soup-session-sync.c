@@ -10,7 +10,7 @@
 #endif
 
 #include "soup-session-sync.h"
-#include "soup-connection.h"
+#include "soup-session-private.h"
 #include "soup-misc.h"
 
 typedef struct {

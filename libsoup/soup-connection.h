@@ -8,7 +8,7 @@
 
 #include <time.h>
 
-#include <libsoup/soup-types.h>
+#include "soup-types.h"
 
 G_BEGIN_DECLS
 
@@ -19,10 +19,10 @@ G_BEGIN_DECLS
 #define SOUP_IS_CONNECTION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_CONNECTION))
 #define SOUP_CONNECTION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_CONNECTION, SoupConnectionClass))
 
-struct SoupConnection {
+typedef struct {
 	GObject parent;
 
-};
+} SoupConnection;
 
 typedef struct {
 	GObjectClass parent_class;

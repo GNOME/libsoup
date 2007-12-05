@@ -10,12 +10,25 @@
 extern "C" {
 #endif
 
+#include <libsoup/soup-address.h>
+#include <libsoup/soup-date.h>
+#include <libsoup/soup-headers.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-message-filter.h>
+#include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
+#include <libsoup/soup-server.h>
+#include <libsoup/soup-server-auth.h>
+#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-sync.h>
+#include <libsoup/soup-soap-message.h>
+#include <libsoup/soup-soap-response.h>
 #include <libsoup/soup-socket.h>
+#include <libsoup/soup-status.h>
 #include <libsoup/soup-uri.h>
+#include <libsoup/soup-xmlrpc-message.h>
+#include <libsoup/soup-xmlrpc-response.h>
 
 #ifdef __cplusplus
 }

@@ -14,13 +14,14 @@
 #include <stdlib.h>
 
 #include "soup-auth.h"
-#include "soup-session.h"
 #include "soup-connection.h"
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-filter.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
+#include "soup-session.h"
+#include "soup-session-private.h"
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
@@ -41,6 +42,8 @@ typedef struct {
 
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
+
+	SoupMessageQueue *queue;
 
 	GSList *filters;
 
@@ -118,7 +121,7 @@ soup_session_init (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	session->queue = soup_message_queue_new ();
+	priv->queue = soup_message_queue_new ();
 
 	priv->host_lock = g_mutex_new ();
 	priv->hosts = g_hash_table_new (host_uri_hash, host_uri_equal);
@@ -177,7 +180,7 @@ finalize (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	soup_message_queue_destroy (session->queue);
+	soup_message_queue_destroy (priv->queue);
 
 	g_mutex_free (priv->host_lock);
 	g_hash_table_destroy (priv->hosts);
@@ -1099,7 +1102,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	 * any messages waiting for this host, since they're out
 	 * of luck.
 	 */
-	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+	for (msg = soup_message_queue_first (priv->queue, &iter); msg; msg = soup_message_queue_next (priv->queue, &iter)) {
 		if (get_host_for_message (session, msg) == host) {
 			if (status == SOUP_STATUS_TRY_AGAIN) {
 				if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
@@ -1238,13 +1241,22 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	return conn;
 }
 
+SoupMessageQueue *
+soup_session_get_queue (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	return priv->queue;
+}
+
 static void
 message_finished (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
-		soup_message_queue_remove_message (session->queue, msg);
+		soup_message_queue_remove_message (priv->queue, msg);
 		g_signal_handlers_disconnect_by_func (msg, message_finished, session);
 	}
 }
@@ -1253,6 +1265,8 @@ static void
 queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupMessageCallbackFn callback, gpointer user_data)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
 	g_signal_connect_after (msg, "finished",
 				G_CALLBACK (message_finished), session);
 
@@ -1264,7 +1278,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	}
 
 	msg->status = SOUP_MESSAGE_STATUS_QUEUED;
-	soup_message_queue_append (session->queue, msg);
+	soup_message_queue_append (priv->queue, msg);
 }
 
 /**
@@ -1345,7 +1359,9 @@ soup_session_send_message (SoupSession *session, SoupMessage *msg)
 static void
 cancel_message (SoupSession *session, SoupMessage *msg)
 {
-	soup_message_queue_remove_message (session->queue, msg);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	soup_message_queue_remove_message (priv->queue, msg);
 	soup_message_finished (msg);
 }
 
@@ -1393,7 +1409,9 @@ soup_session_abort (SoupSession *session)
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+	for (msg = soup_message_queue_first (priv->queue, &iter);
+	     msg;
+	     msg = soup_message_queue_next (priv->queue, &iter)) {
 		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
 		soup_session_cancel_message (session, msg);
 	}

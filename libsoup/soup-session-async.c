@@ -10,7 +10,7 @@
 #endif
 
 #include "soup-session-async.h"
-#include "soup-connection.h"
+#include "soup-session-private.h"
 #include "soup-misc.h"
 
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
@@ -123,6 +123,7 @@ static gboolean
 run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 {
 	SoupSession *session = SOUP_SESSION (sa);
+	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
 	SoupConnection *conn;
@@ -131,7 +132,9 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 	/* FIXME: prefer CONNECTING messages */
 
  try_again:
-	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+	for (msg = soup_message_queue_first (queue, &iter);
+	     msg;
+	     msg = soup_message_queue_next (queue, &iter)) {
 
 		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
 		    soup_message_io_in_progress (msg))

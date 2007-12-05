@@ -775,19 +775,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	return io;
 }
 
-/**
- * soup_message_io_client:
- * @msg: a #SoupMessage
- * @sock: socket to send @msg across
- * @conn: the connection that owns @sock (or %NULL)
- * @get_headers_cb: callback function to generate request headers
- * @parse_headers_cb: callback function to parse response headers
- * @user_data: data to pass to the callbacks
- *
- * Begins the process of sending @msg across @sock.
- *
- * Don't call this. Use soup_message_send_request().
- **/
 void
 soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 			SoupConnection *conn,
@@ -810,18 +797,6 @@ soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 	io_write (sock, msg);
 }
 
-/**
- * soup_message_io_server:
- * @msg: an empty #SoupServerMessage
- * @sock: socket to receive a request on
- * @get_headers_cb: callback function to generate response headers
- * @parse_headers_cb: callback function to parse request headers
- * @user_data: data to pass to the callbacks
- *
- * Begins the process of receiving a request from @sock into @msg.
- *
- * Don't use this. Use soup_message_receive_request() instead.
- **/
 void
 soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 			SoupMessageGetHeadersFn get_headers_cb,

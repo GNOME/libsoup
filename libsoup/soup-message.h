@@ -331,11 +331,6 @@ SoupDataBuffer*soup_message_pop_chunk           (SoupMessage       *msg);
 
 
 /* I/O */
-void           soup_message_send_request        (SoupMessage       *req,
-						 SoupSocket        *sock,
-						 gboolean           is_via_proxy);
-void           soup_message_read_request        (SoupMessage       *req,
-						 SoupSocket        *sock);
 void           soup_message_io_stop             (SoupMessage       *msg);
 void           soup_message_io_pause            (SoupMessage       *msg);
 void           soup_message_io_unpause          (SoupMessage       *msg);

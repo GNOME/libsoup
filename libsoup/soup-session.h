@@ -8,7 +8,6 @@
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-message-queue.h>
 
 G_BEGIN_DECLS
 
@@ -22,8 +21,6 @@ G_BEGIN_DECLS
 struct SoupSession {
 	GObject parent;
 
-	/* protected */
-	SoupMessageQueue *queue;
 };
 
 typedef struct {
@@ -78,14 +75,6 @@ guint           soup_session_send_message     (SoupSession           *session,
 void            soup_session_cancel_message   (SoupSession           *session,
 					       SoupMessage           *msg);
 void            soup_session_abort            (SoupSession           *session);
-
-
-/* Protected methods */
-SoupConnection *soup_session_get_connection       (SoupSession    *session,
-						   SoupMessage    *msg,
-						   gboolean       *try_pruning,
-						   gboolean       *is_new);
-gboolean        soup_session_try_prune_connection (SoupSession    *session);
 
 G_END_DECLS
 

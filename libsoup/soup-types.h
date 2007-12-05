@@ -14,7 +14,6 @@
 G_BEGIN_DECLS
 
 typedef struct SoupAddress           SoupAddress;
-typedef struct SoupConnection        SoupConnection;
 typedef struct SoupMessage           SoupMessage;
 typedef struct SoupMessageFilter     SoupMessageFilter;
 typedef struct SoupServer            SoupServer;

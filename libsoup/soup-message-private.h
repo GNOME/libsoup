@@ -8,6 +8,7 @@
 
 #include "soup-message.h"
 #include "soup-auth.h"
+#include "soup-connection.h"
 
 typedef struct {
 	gpointer           io_data;
@@ -43,10 +44,12 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      guint            *content_len,
 					      gpointer          user_data);
 
-void soup_message_send_request_internal (SoupMessage       *req,
-					 SoupSocket        *sock,
-					 SoupConnection    *conn,
-					 gboolean           via_proxy);
+void           soup_message_send_request        (SoupMessage       *req,
+						 SoupSocket        *sock,
+						 SoupConnection    *conn,
+						 gboolean           via_proxy);
+void           soup_message_read_request        (SoupMessage       *req,
+						 SoupSocket        *sock);
 
 void soup_message_io_client  (SoupMessage               *msg,
 			      SoupSocket                *sock,

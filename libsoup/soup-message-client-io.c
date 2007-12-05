@@ -117,27 +117,9 @@ get_request_headers (SoupMessage *req, GString *header,
 		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 
-/**
- * soup_message_send_request:
- * @req: a #SoupMessage
- * @sock: the #SoupSocket to send @req on
- * @is_via_proxy: %TRUE if @sock is a connection to a proxy server
- * rather than a direct connection to the desired HTTP server
- *
- * Begins the process of sending @msg across @sock. (If @sock is
- * synchronous, then soup_message_send_request() won't return until
- * the response has been received.)
- **/
 void
 soup_message_send_request (SoupMessage *req, SoupSocket *sock,
-			   gboolean is_via_proxy)
-{
-	soup_message_send_request_internal (req, sock, NULL, is_via_proxy);
-}
-
-void
-soup_message_send_request_internal (SoupMessage *req, SoupSocket *sock,
-				    SoupConnection *conn, gboolean is_via_proxy)
+			   SoupConnection *conn, gboolean is_via_proxy)
 {
 	soup_message_cleanup_response (req);
 	soup_message_io_client (req, sock, conn,

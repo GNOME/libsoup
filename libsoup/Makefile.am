@@ -34,12 +34,10 @@ libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-address.h		\
-	soup-connection.h	\
 	soup-date.h		\
 	soup-headers.h		\
 	soup-message.h		\
 	soup-message-filter.h	\
-	soup-message-queue.h	\
 	soup-method.h		\
 	soup-misc.h     	\
 	soup-portability.h	\
@@ -80,6 +78,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-basic.c		\
 	soup-auth-digest.h		\
 	soup-auth-digest.c		\
+	soup-connection.h		\
 	soup-connection.c		\
 	soup-connection-ntlm.h		\
 	soup-connection-ntlm.c		\
@@ -96,6 +95,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message-handlers.c		\
 	soup-message-io.c		\
 	soup-message-private.h		\
+	soup-message-queue.h		\
 	soup-message-queue.c		\
 	soup-message-server-io.c	\
 	soup-method.c			\
@@ -106,6 +106,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-server-message.c		\
 	soup-session.c			\
 	soup-session-async.c		\
+	soup-session-private.h		\
 	soup-session-sync.c		\
 	soup-soap-message.c		\
 	soup-soap-response.c		\

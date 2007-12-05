@@ -1,5 +1,29 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/Makefile.am (libsoupinclude_HEADERS): remove
+	soup-connection.h and soup-message-queue.h
+
+	* libsoup/soup-types.h: remove SoupConnection and SoupMessageQueue
+	which are no longer public
+
+	* libsoup/soup.h: sync this to reality for the first time in years
+
+	* libsoup/soup-session.c (soup_session_get_queue): Add this, for
+	subclasses, as the queue is no longer a public part of the session
+	struct.
+
+	* libsoup/soup-message.h:
+	* libsoup/soup-message-private.h: Move soup_message_send_request()
+	and soup_message_receive_request() to soup-message-private.h,
+	remove soup_message_send_request_internal().
+
+	* libsoup/soup-session-private.h: Move "protected" SoupSession
+	methods (soup_session_get_connection,
+	soup_session_try_prune_connection) here from soup-session.h
+	Add soup_session_get_queue.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* configure.in: bump version to 2.3.0 and SOUP_API_VERSION to 2.4,
 	and drop AGE/CURRENT/REVISION all to 0.
 

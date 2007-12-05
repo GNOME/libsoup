@@ -787,8 +787,8 @@ send_request (SoupConnection *conn, SoupMessage *req)
 			soup_message_filter_setup_message (priv->filter, req);
 	}
 
-	soup_message_send_request_internal (req, priv->socket, conn,
-					    priv->mode == SOUP_CONNECTION_MODE_PROXY);
+	soup_message_send_request (req, priv->socket, conn,
+				   priv->mode == SOUP_CONNECTION_MODE_PROXY);
 }
 
 /**

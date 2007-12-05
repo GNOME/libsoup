@@ -135,13 +135,6 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	g_string_append (headers, "\r\n");
 }
 
-/**
- * soup_message_read_request:
- * @req: an empty #SoupServerMessage
- * @sock: socket to receive the request on
- *
- * Begins the process of receiving a request from @sock into @req.
- **/
 void
 soup_message_read_request (SoupMessage *req, SoupSocket *sock)
 {
