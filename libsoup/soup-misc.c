@@ -50,68 +50,6 @@ soup_str_case_equal (gconstpointer v1,
 	return g_ascii_strcasecmp (string1, string2) == 0;
 }
 
-int
-soup_base64_encode_close (const guchar  *in, 
-			  int            inlen, 
-			  gboolean       break_lines, 
-			  guchar        *out, 
-			  int           *state, 
-			  int           *save)
-{
-	if (inlen > 0) {
-		out += soup_base64_encode_step (in, 
-						inlen, 
-						break_lines, 
-						out, 
-						state, 
-						save);
-	}
-
-	return (int)g_base64_encode_close (break_lines, (char *) out,
-					   state, save);
-}
-
-int
-soup_base64_encode_step (const guchar  *in, 
-			 int            len, 
-			 gboolean       break_lines, 
-			 guchar        *out, 
-			 int           *state, 
-			 int           *save)
-{
-	return (int)g_base64_encode_step (in, len, break_lines,
-					  (char *)out, state, save);
-}
-
-char *
-soup_base64_encode (const char *text, int len)
-{
-	return g_base64_encode ((const guchar *)text, len);
-}
-
-int
-soup_base64_decode_step (const guchar  *in, 
-			 int            len, 
-			 guchar        *out, 
-			 int           *state, 
-			 guint         *save)
-{
-	return (int) g_base64_decode_step ((const char *)in, len,
-					   out, state, save);
-}
-
-char *
-soup_base64_decode (const char   *text,
-		    int          *out_len)
-{
-	char *ret;
-	gsize out_len_tmp;
-
-	ret = (char *) g_base64_decode (text, &out_len_tmp);
-	*out_len = out_len_tmp;
-	return ret;
-}
-
 typedef struct {
 	gpointer instance;
 	guint    signal_id;

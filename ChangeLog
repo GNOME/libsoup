@@ -1,5 +1,12 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-misc.c: remove deprecated base64 methods
+
+	* tests/auth-test.c (identify_auth): oops, update to use
+	g_base64_decode.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/Makefile.am (libsoupinclude_HEADERS): remove
 	soup-connection.h and soup-message-queue.h
 

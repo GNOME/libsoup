@@ -188,9 +188,9 @@ identify_auth (SoupMessage *msg)
 
 	if (!g_ascii_strncasecmp (header, "Basic ", 6)) {
 		char *token;
-		int len;
+		gsize len;
 
-		token = soup_base64_decode (header + 6, &len);
+		token = (char *)g_base64_decode (header + 6, &len);
 		num = token[len - 1] - '0';
 		g_free (token);
 	} else {

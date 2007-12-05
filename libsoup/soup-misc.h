@@ -11,36 +11,6 @@
 
 G_BEGIN_DECLS
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
-/* Base64 encoding/decoding. DEPRECATED: use <glib/base64.h> */
-
-char              *soup_base64_encode        (const char   *text,
-					      int           len);
-
-int                soup_base64_encode_close  (const guchar *in, 
-					      int           inlen, 
-					      gboolean      break_lines, 
-					      guchar       *out, 
-					      int          *state, 
-					      int          *save);
-
-int                soup_base64_encode_step   (const guchar *in, 
-					      int           len, 
-					      gboolean      break_lines, 
-					      guchar       *out, 
-					      int          *state, 
-					      int          *save);
-
-char              *soup_base64_decode        (const gchar  *text,
-					      int          *out_len);
-
-int                soup_base64_decode_step   (const guchar *in, 
-					      int           len, 
-					      guchar       *out, 
-					      int          *state, 
-					      guint        *save);
-#endif /* LIBSOUP_DISABLE_DEPRECATED */
-
 /* Non-default-GMainContext operations */
 GSource           *soup_add_io_watch         (GMainContext *async_context,
 					      GIOChannel   *chan,
