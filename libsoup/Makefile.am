@@ -29,7 +29,7 @@ BUILT_SOURCES = $(MARSHAL_GENERATED)
 
 CLEANFILES = $(MARSHAL_GENERATED)
 
-libsoupincludedir = $(includedir)/libsoup-2.2/libsoup
+libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 
 libsoupinclude_HEADERS =	\
 	soup.h			\
@@ -58,12 +58,12 @@ libsoupinclude_HEADERS =	\
 	soup-xmlrpc-message.h	\
 	soup-xmlrpc-response.h
 
-lib_LTLIBRARIES = libsoup-2.2.la
+lib_LTLIBRARIES = libsoup-2.4.la
 
-libsoup_2_2_la_LDFLAGS =	\
+libsoup_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) -no-undefined
 
-libsoup_2_2_la_LIBADD =			\
+libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
 	$(LIBGNUTLS_LIBS_STATIC)	\
@@ -71,7 +71,7 @@ libsoup_2_2_la_LIBADD =			\
 	$(LIBGCRYPT_LIBS)		\
 	$(LIBWS2_32)
 
-libsoup_2_2_la_SOURCES =		\
+libsoup_2_4_la_SOURCES =		\
 	$(MARSHAL_GENERATED)		\
 	soup-address.c			\
 	soup-auth.h			\
