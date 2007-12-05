@@ -1,5 +1,28 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message.c (soup_message_new)
+	(soup_message_new_from_uri): g_intern_string() the method name
+	rather than assuming it's static. Also remove the NULL==GET
+	assumption.
+
+	* libsoup/soup-method.c:
+	* libsoup/soup-method.h: remove the SOUP_METHOD_ID_* macros, and
+	have the SOUP_METHOD_* macros return interned strings
+
+	* libsoup/soup-server.h (SoupServerContext): remove method_id
+	field.
+
+	* libsoup/soup-server-message.c (finalize): no longer needed,
+	since smsg->method is now an interned string just like with a
+	normal SoupMessage.
+
+	* libsoup/soup-soap-message.c (soup_soap_message_new_from_uri):
+	remove NULL==GET assumption
+
+	* *.c: update
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message.h (SoupHTTPVersion): rename (from
 	SoupHttpVersion)
 

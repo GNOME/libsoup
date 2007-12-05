@@ -67,7 +67,7 @@ get_request_headers (SoupMessage *req, GString *header,
 	const char *expect;
 	char *uri_string;
 
-	if (!strcmp (req->method, "CONNECT")) {
+	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri->host, uri->port);
 	} else {

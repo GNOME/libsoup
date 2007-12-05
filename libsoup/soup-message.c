@@ -284,6 +284,9 @@ soup_message_new (const char *method, const char *uri_string)
 	SoupMessage *msg;
 	SoupUri *uri;
 
+	g_return_val_if_fail (method != NULL, NULL);
+	g_return_val_if_fail (uri_string != NULL, NULL);
+
 	uri = soup_uri_new (uri_string);
 	if (!uri)
 		return NULL;
@@ -294,7 +297,7 @@ soup_message_new (const char *method, const char *uri_string)
 	}
 
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
-	msg->method = method ? method : SOUP_METHOD_GET;
+	msg->method = g_intern_string (method);
 	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = uri;
 
 	return msg;
@@ -314,8 +317,11 @@ soup_message_new_from_uri (const char *method, const SoupUri *uri)
 {
 	SoupMessage *msg;
 
+	g_return_val_if_fail (method != NULL, NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
-	msg->method = method ? method : SOUP_METHOD_GET;
+	msg->method = g_intern_string (method);
 	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = soup_uri_copy (uri);
 
 	return msg;
@@ -776,7 +782,7 @@ soup_message_is_keepalive (SoupMessage *msg)
 	s_conn = soup_message_headers_find (msg->response_headers, "Connection");
 
 	if (msg->status_code == SOUP_STATUS_OK &&
-	    soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT)
+	    msg->method == SOUP_METHOD_CONNECT)
 		return TRUE;
 
 	if (SOUP_MESSAGE_GET_PRIVATE (msg)->http_version == SOUP_HTTP_1_0) {
@@ -922,9 +928,7 @@ soup_message_get_request_encoding  (SoupMessage *msg, guint *content_length)
 SoupTransferEncoding
 soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 {
-	SoupMethodId method = soup_method_get_id (msg->method);
-
-	if (method == SOUP_METHOD_ID_HEAD ||
+	if (msg->method == SOUP_METHOD_HEAD ||
 	    msg->status_code  == SOUP_STATUS_NO_CONTENT ||
 	    msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
 	    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
@@ -960,7 +964,7 @@ soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 					*content_length = lval;
 				return SOUP_TRANSFER_CONTENT_LENGTH;
 			}
-		} else if (method == SOUP_METHOD_ID_CONNECT)
+		} else if (msg->method == SOUP_METHOD_CONNECT)
 			return SOUP_TRANSFER_NONE;
 		else
 			return SOUP_TRANSFER_EOF;

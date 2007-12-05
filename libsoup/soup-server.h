@@ -37,7 +37,6 @@ typedef struct SoupServerHandler SoupServerHandler;
 typedef struct {
 	SoupMessage       *msg;
 	char              *path;
-	SoupMethodId       method_id;
 	SoupServerAuth    *auth;
 	SoupServer        *server;
 	SoupServerHandler *handler;

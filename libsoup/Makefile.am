@@ -100,7 +100,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message-queue.h		\
 	soup-message-queue.c		\
 	soup-message-server-io.c	\
-	soup-method.c			\
 	soup-misc.c     		\
 	soup-nossl.c     		\
 	soup-server.c			\

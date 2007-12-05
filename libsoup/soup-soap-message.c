@@ -136,7 +136,7 @@ soup_soap_message_new_from_uri (const char *method, const SoupUri *uri,
 
 	msg = g_object_new (SOUP_TYPE_SOAP_MESSAGE, NULL);
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
-	SOUP_MESSAGE (msg)->method = method ? method : SOUP_METHOD_GET;
+	SOUP_MESSAGE (msg)->method = g_intern_string (method);
 	soup_message_set_uri (SOUP_MESSAGE (msg), (const SoupUri *) uri);
 
 	priv->doc->standalone = standalone;

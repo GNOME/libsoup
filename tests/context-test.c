@@ -66,7 +66,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 {
 	GSource *timeout;
 
-	if (soup_method_get_id (msg->method) != SOUP_METHOD_ID_GET) {
+	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}

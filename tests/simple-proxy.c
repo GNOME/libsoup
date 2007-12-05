@@ -85,7 +85,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	printf ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
 		soup_message_get_http_version (msg));
 
-	if (soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT) {
+	if (msg->method == SOUP_METHOD_CONNECT) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}

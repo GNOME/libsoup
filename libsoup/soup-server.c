@@ -423,7 +423,6 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 
 		ctx.msg       = req;
 		ctx.path      = uri->path;
-		ctx.method_id = soup_method_get_id (req->method);
 		ctx.auth      = auth;
 		ctx.server    = server;
 		ctx.handler   = hand;

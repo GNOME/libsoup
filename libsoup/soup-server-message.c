@@ -36,25 +36,9 @@ soup_server_message_init (SoupServerMessage *smsg)
 }
 
 static void
-finalize (GObject *object)
-{
-	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (object);
-
-	/* FIXME */
-	g_free ((char *) ((SoupMessage *)smsg)->method);
-
-	G_OBJECT_CLASS (soup_server_message_parent_class)->finalize (object);
-}
-
-static void
 soup_server_message_class_init (SoupServerMessageClass *soup_server_message_class)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (soup_server_message_class);
-
 	g_type_class_add_private (soup_server_message_class, sizeof (SoupServerMessagePrivate));
-
-	/* virtual method override */
-	object_class->finalize = finalize;
 }
 
 

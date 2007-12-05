@@ -22,7 +22,7 @@
 SoupSession *session;
 GMainLoop *loop;
 gboolean recurse = FALSE, debug = FALSE;
-const char *method = SOUP_METHOD_GET;
+const char *method;
 char *base;
 SoupUri *base_uri;
 int pending;
@@ -228,6 +228,8 @@ main (int argc, char **argv)
 
 	g_type_init ();
 	g_thread_init (NULL);
+
+	method = SOUP_METHOD_GET;
 
 	while ((opt = getopt (argc, argv, "c:dhp:rs")) != -1) {
 		switch (opt) {
