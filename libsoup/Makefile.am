@@ -37,7 +37,6 @@ libsoupinclude_HEADERS =	\
 	soup-date.h		\
 	soup-headers.h		\
 	soup-message.h		\
-	soup-message-filter.h	\
 	soup-message-headers.h	\
 	soup-method.h		\
 	soup-misc.h     	\
@@ -92,7 +91,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-md5-utils.c		\
 	soup-message.c			\
 	soup-message-client-io.c	\
-	soup-message-filter.c		\
 	soup-message-handlers.c		\
 	soup-message-headers.c		\
 	soup-message-io.c		\

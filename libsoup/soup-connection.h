@@ -28,15 +28,17 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*connect_result) (SoupConnection *, guint);
-	void (*disconnected)   (SoupConnection *);
+	void (*connect_result)  (SoupConnection *, guint);
+	void (*disconnected)    (SoupConnection *);
 
-	void (*authenticate)   (SoupConnection *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
-	void (*reauthenticate) (SoupConnection *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
+	void (*request_started) (SoupConnection *, SoupMessage *);
+
+	void (*authenticate)    (SoupConnection *, SoupMessage *,
+				 const char *auth_type, const char *auth_realm,
+				 char **username, char **password);
+	void (*reauthenticate)  (SoupConnection *, SoupMessage *,
+				 const char *auth_type, const char *auth_realm,
+				 char **username, char **password);
 
 	/* methods */
 	void (*send_request) (SoupConnection *, SoupMessage *);
@@ -61,7 +63,6 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_ORIGIN_URI      "origin-uri"
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
-#define SOUP_CONNECTION_MESSAGE_FILTER  "message-filter"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT		"timeout"
 

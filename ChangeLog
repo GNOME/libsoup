@@ -1,5 +1,15 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-connection.c:
+	* libsoup/soup-session.c: replace message filters with a
+	"request_started" signal
+
+	* libsoup/soup-message-filter.c: gone
+
+	* libsoup/soup-types.h (SOUP_MAKE_INTERFACE): no longer needed
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-uri.c: Update for RFC 3986 changes, bgo 266516, and
 	general conformance
 	(soup_uri_get_protocol): match protocols case-insensitively

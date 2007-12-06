@@ -22,7 +22,6 @@
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-message-filter.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -48,7 +47,6 @@ typedef struct {
 
 	SoupConnectionMode  mode;
 
-	SoupMessageFilter *filter;
 	GMainContext      *async_context;
 
 	SoupMessage *cur_req;
@@ -63,6 +61,7 @@ G_DEFINE_TYPE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 enum {
 	CONNECT_RESULT,
 	DISCONNECTED,
+	REQUEST_STARTED,
 	AUTHENTICATE,
 	REAUTHENTICATE,
 	LAST_SIGNAL
@@ -76,7 +75,6 @@ enum {
 	PROP_ORIGIN_URI,
 	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
-	PROP_MESSAGE_FILTER,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 
@@ -108,8 +106,6 @@ finalize (GObject *object)
 	if (priv->origin_uri)
 		soup_uri_free (priv->origin_uri);
 
-	if (priv->filter)
-		g_object_unref (priv->filter);
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 
@@ -178,6 +174,23 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupConnection::request-started:
+	 * @conn: the connection
+	 * @msg: the request being sent
+	 *
+	 * Emitted just before a message is sent across the connection.
+	 **/
+	signals[REQUEST_STARTED] =
+		g_signal_new ("request-started",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, request_started),
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
 
 	/**
 	 * SoupConnection::authenticate:
@@ -254,12 +267,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "SSL credentials",
 				      "Opaque SSL credentials for this connection",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_MESSAGE_FILTER,
-		g_param_spec_pointer (SOUP_CONNECTION_MESSAGE_FILTER,
-				      "Message filter",
-				      "Message filter object for this connection",
-				      G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
@@ -341,13 +348,6 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
-	case PROP_MESSAGE_FILTER:
-		if (priv->filter)
-			g_object_unref (priv->filter);
-		priv->filter = g_value_get_pointer (value);
-		if (priv->filter)
-			g_object_ref (priv->filter);
-		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -379,9 +379,6 @@ get_property (GObject *object, guint prop_id,
 				     NULL);
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, priv->ssl_creds);
-		break;
-	case PROP_MESSAGE_FILTER:
-		g_value_set_pointer (value, priv->filter ? g_object_ref (priv->filter) : NULL);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -783,8 +780,7 @@ send_request (SoupConnection *conn, SoupMessage *req)
 
 	if (req != priv->cur_req) {
 		set_current_request (priv, req);
-		if (priv->filter)
-			soup_message_filter_setup_message (priv->filter, req);
+		g_signal_emit (conn, signals[REQUEST_STARTED], 0, req);
 	}
 
 	soup_message_send_request (req, priv->socket, conn,

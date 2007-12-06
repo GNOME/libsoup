@@ -17,7 +17,6 @@
 #include "soup-connection.h"
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
-#include "soup-message-filter.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-session.h"
@@ -45,8 +44,6 @@ typedef struct {
 
 	SoupMessageQueue *queue;
 
-	GSList *filters;
-
 	GHashTable *hosts; /* SoupUri -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
@@ -72,8 +69,6 @@ static guint    host_uri_hash  (gconstpointer key);
 static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
 static void     free_host      (SoupSessionHost *host);
 
-static void setup_message   (SoupMessageFilter *filter, SoupMessage *msg);
-
 static void queue_message   (SoupSession *session, SoupMessage *msg,
 			     SoupMessageCallbackFn callback,
 			     gpointer user_data);
@@ -83,13 +78,10 @@ static void cancel_message  (SoupSession *session, SoupMessage *msg);
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
 
-static void filter_iface_init (SoupMessageFilterClass *filter_class);
-
-G_DEFINE_TYPE_EXTENDED (SoupSession, soup_session, G_TYPE_OBJECT, 0,
-			G_IMPLEMENT_INTERFACE (SOUP_TYPE_MESSAGE_FILTER,
-					       filter_iface_init))
+G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
 
 enum {
+	REQUEST_STARTED,
 	AUTHENTICATE,
 	REAUTHENTICATE,
 	LAST_SIGNAL
@@ -159,17 +151,9 @@ dispose (GObject *object)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	GSList *f;
 
 	soup_session_abort (session);
 	cleanup_hosts (priv);
-
-	if (priv->filters) {
-		for (f = priv->filters; f; f = f->next)
-			g_object_unref (f->data);
-		g_slist_free (priv->filters);
-		priv->filters = NULL;
-	}
 
 	G_OBJECT_CLASS (soup_session_parent_class)->dispose (object);
 }
@@ -219,6 +203,23 @@ soup_session_class_init (SoupSessionClass *session_class)
 	object_class->get_property = get_property;
 
 	/* signals */
+
+	/**
+	 * SoupSession::request-started:
+	 * @session: the session
+	 * @msg: the request being sent
+	 *
+	 * Emitted just before a request is sent.
+	 **/
+	signals[REQUEST_STARTED] =
+		g_signal_new ("request-started",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupSessionClass, request_started),
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
 
 	/**
 	 * SoupSession::authenticate:
@@ -354,14 +355,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   G_PARAM_READWRITE));
 }
 
-static void
-filter_iface_init (SoupMessageFilterClass *filter_class)
-{
-	/* interface implementation */
-	filter_class->setup_message = setup_message;
-}
-
-
 static gboolean
 safe_uri_equal (const SoupUri *a, const SoupUri *b)
 {
@@ -492,47 +485,6 @@ get_property (GObject *object, guint prop_id,
 	}
 }
 
-
-/**
- * soup_session_add_filter:
- * @session: a #SoupSession
- * @filter: an object implementing the #SoupMessageFilter interface
- *
- * Adds @filter to @session's list of message filters to be applied to
- * all messages.
- **/
-void
-soup_session_add_filter (SoupSession *session, SoupMessageFilter *filter)
-{
-	SoupSessionPrivate *priv;
-
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
-	priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	g_object_ref (filter);
-	priv->filters = g_slist_prepend (priv->filters, filter);
-}
-
-/**
- * soup_session_remove_filter:
- * @session: a #SoupSession
- * @filter: an object implementing the #SoupMessageFilter interface
- *
- * Removes @filter from @session's list of message filters
- **/
-void
-soup_session_remove_filter (SoupSession *session, SoupMessageFilter *filter)
-{
-	SoupSessionPrivate *priv;
-
-	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (SOUP_IS_MESSAGE_FILTER (filter));
-	priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	priv->filters = g_slist_remove (priv->filters, filter);
-	g_object_unref (filter);
-}
 
 /**
  * soup_session_get_async_context:
@@ -943,16 +895,13 @@ add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
 }
 
 static void
-setup_message (SoupMessageFilter *filter, SoupMessage *msg)
+connection_started_request (SoupConnection *conn, SoupMessage *msg,
+			    gpointer data)
 {
-	SoupSession *session = SOUP_SESSION (filter);
+	SoupSession *session = data;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	GSList *f;
 
-	for (f = priv->filters; f; f = f->next) {
-		filter = f->data;
-		soup_message_filter_setup_message (filter, msg);
-	}
+	g_signal_emit (session, signals[REQUEST_STARTED], 0, msg);
 
 	add_auth (session, msg, FALSE);
 	soup_message_add_status_code_handler (
@@ -1192,7 +1141,6 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
 		SOUP_CONNECTION_PROXY_URI, priv->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
-		SOUP_CONNECTION_MESSAGE_FILTER, session,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->timeout,
 		NULL);
@@ -1201,6 +1149,9 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 			  session);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
+			  session);
+	g_signal_connect (conn, "request_started",
+			  G_CALLBACK (connection_started_request),
 			  session);
 	g_signal_connect (conn, "authenticate",
 			  G_CALLBACK (connection_authenticate),

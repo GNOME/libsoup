@@ -27,12 +27,13 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*authenticate)   (SoupSession *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
-	void (*reauthenticate) (SoupSession *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
+	void (*request_started) (SoupSession *, SoupMessage *);
+	void (*authenticate)    (SoupSession *, SoupMessage *,
+				 const char *auth_type, const char *auth_realm,
+				 char **username, char **password);
+	void (*reauthenticate)  (SoupSession *, SoupMessage *,
+				 const char *auth_type, const char *auth_realm,
+				 char **username, char **password);
 
 	/* methods */
 	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
@@ -54,11 +55,6 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 #define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
 #define SOUP_SESSION_TIMEOUT		"timeout"
-
-void            soup_session_add_filter       (SoupSession           *session,
-					       SoupMessageFilter     *filter);
-void            soup_session_remove_filter    (SoupSession           *session,
-					       SoupMessageFilter     *filter);
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 

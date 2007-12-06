@@ -14,7 +14,6 @@ extern "C" {
 #include <libsoup/soup-date.h>
 #include <libsoup/soup-headers.h>
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-message-filter.h>
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-server.h>
