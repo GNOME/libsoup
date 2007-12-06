@@ -557,6 +557,7 @@ soup_uri_equal
 soup_uri_free
 soup_uri_encode
 soup_uri_decode
+soup_uri_normalize
 soup_uri_uses_default_port
 </SECTION>
 

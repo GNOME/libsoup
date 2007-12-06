@@ -32,23 +32,48 @@ struct {
 	{ "ftp://user@host:9999/path", "ftp://user@host:9999/path" },
 	{ "ftp://user:password@host/path", "ftp://user@host/path" },
 	{ "ftp://user:password@host:9999/path", "ftp://user@host:9999/path" },
-	{ "http://us%65r@host", "http://user@host" },
-	{ "http://us%40r@host", "http://us%40r@host" },
-	{ "http://us%3ar@host", "http://us%3ar@host" },
-	{ "http://us%2fr@host", "http://us%2fr@host" },
-
-	{ "http://control-chars/%01%02%03%04%05%06%07%08%09%0a%0b%0c%0d%0e%0f%10%11%12%13%14%15%16%17%18%19%1a%1b%1c%1d%1e%1f%7f",
-	  "http://control-chars/%01%02%03%04%05%06%07%08%09%0a%0b%0c%0d%0e%0f%10%11%12%13%14%15%16%17%18%19%1a%1b%1c%1d%1e%1f%7f"},
+	{ "ftp://user:password@host", "ftp://user@host" },
+	{ "http://us%65r@host", "http://user@host/" },
+	{ "http://us%40r@host", "http://us%40r@host/" },
+	{ "http://us%3ar@host", "http://us%3Ar@host/" },
+	{ "http://us%2fr@host", "http://us%2Fr@host/" },
+	{ "http://us%3fr@host", "http://us%3Fr@host/" },
+	{ "http://host?query", "http://host/?query" },
+	{ "http://host/path?query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value",
+	  "http://host/path?query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value" },
+	{ "http://control-chars/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F",
+	  "http://control-chars/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F"},
 	{ "http://space/%20",
 	  "http://space/%20" },
-	{ "http://delims/%3c%3e%23%25%22",
-	  "http://delims/%3c%3e%23%25%22" },
-	{ "http://unwise-chars/%7b%7d%7c%5c%5e%5b%5d%60",
-	  "http://unwise-chars/%7b%7d%7c%5c%5e%5b%5d%60" }
+	{ "http://delims/%3C%3E%23%25%22",
+	  "http://delims/%3C%3E%23%25%22" },
+	{ "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60",
+	  "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60" },
+	{ "http://host/path%", NULL },
+	{ "http://host/path%%", NULL },
+	{ "http://host/path%%%", NULL },
+	{ "http://host/path%/x/", NULL },
+	{ "http://host/path%0x/", NULL },
+
+	/* From RFC 2732 */
+	{ "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html",
+	  "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/index.html" },
+	{ "http://[1080:0:0:0:8:800:200C:417A]/index.html",
+	  "http://[1080:0:0:0:8:800:200C:417A]/index.html" },
+	{ "http://[3ffe:2a00:100:7031::1]",
+	  "http://[3ffe:2a00:100:7031::1]/" },
+	{ "http://[1080::8:800:200C:417A]/foo",
+	  "http://[1080::8:800:200C:417A]/foo" },
+	{ "http://[::192.9.5.5]/ipng",
+	  "http://[::192.9.5.5]/ipng" },
+	{ "http://[::FFFF:129.144.52.38]:80/index.html",
+	  "http://[::FFFF:129.144.52.38]/index.html" },
+	{ "http://[2010:836B:4179::836B:4179]",
+	  "http://[2010:836B:4179::836B:4179]/" }
 };
 int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
-/* From RFC 2396. */
+/* From RFC 3986. */
 const char *base = "http://a/b/c/d;p?q";
 struct {
 	const char *uri_string, *result;
@@ -58,8 +83,8 @@ struct {
 	{ "./g", "http://a/b/c/g" },
 	{ "g/", "http://a/b/c/g/" },
 	{ "/g", "http://a/g" },
-	{ "//g", "http://g" },
-	{ "?y", "http://a/b/c/?y" },
+	{ "//g", "http://g/" },
+	{ "?y", "http://a/b/c/d;p?y" },
 	{ "g?y", "http://a/b/c/g?y" },
 	{ "#s", "http://a/b/c/d;p?q#s" },
 	{ "g#s", "http://a/b/c/g#s" },
@@ -76,10 +101,10 @@ struct {
 	{ "../../", "http://a/" },
 	{ "../../g", "http://a/g" },
 	{ "", "http://a/b/c/d;p?q" },
-	{ "../../../g", "http://a/../g" },
-	{ "../../../../g", "http://a/../../g" },
-	{ "/./g", "http://a/./g" },
-	{ "/../g", "http://a/../g" },
+	{ "../../../g", "http://a/g" },
+	{ "../../../../g", "http://a/g" },
+	{ "/./g", "http://a/g" },
+	{ "/../g", "http://a/g" },
 	{ "g.", "http://a/b/c/g." },
 	{ ".g", "http://a/b/c/.g" },
 	{ "g..", "http://a/b/c/g.." },
@@ -95,7 +120,7 @@ struct {
 	{ "g#s/./x", "http://a/b/c/g#s/./x" },
 	{ "g#s/../x", "http://a/b/c/g#s/../x" },
 
-	/* RFC 2396 notes that some old parsers will parse this as
+	/* RFC 3986 notes that some old parsers will parse this as
 	 * a relative URL ("http://a/b/c/g"), but it should be
 	 * interpreted as absolute. libsoup should parse it
 	 * correctly as being absolute, but then reject it since it's
@@ -104,6 +129,18 @@ struct {
 	{ "http:g", NULL }
 };
 int num_rel_tests = G_N_ELEMENTS(rel_tests);
+
+struct {
+	char *one, *two;
+} eq_tests[] = {
+	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7bfoo%7d" },
+	{ "http://example.com", "http://example.com/" },
+	/* From RFC 2616 */
+	{ "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html" },
+	{ "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html" },
+	{ "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html" },
+};
+int num_eq_tests = G_N_ELEMENTS(eq_tests);
 
 static gboolean
 do_uri (SoupUri *base_uri, const char *base_str,
@@ -154,7 +191,7 @@ do_uri (SoupUri *base_uri, const char *base_str,
 int
 main (int argc, char **argv)
 {
-	SoupUri *base_uri;
+	SoupUri *base_uri, *uri1, *uri2;
 	char *uri_string;
 	int i, errs = 0, opt;
 
@@ -197,6 +234,22 @@ main (int argc, char **argv)
 			errs++;
 	}
 	soup_uri_free (base_uri);
+
+	dprintf ("\nURI equality testing\n");
+	for (i = 0; i < num_eq_tests; i++) {
+		uri1 = soup_uri_new (eq_tests[i].one);
+		uri2 = soup_uri_new (eq_tests[i].two);
+		dprintf ("<%s> == <%s>? ", eq_tests[i].one, eq_tests[i].two);
+		if (soup_uri_equal (uri1, uri2))
+			dprintf ("OK\n");
+		else {
+			dprintf ("NO\n");
+			dprintf ("%s : %s : %s\n%s : %s : %s\n",
+				 g_quark_to_string (uri1->protocol), uri1->host, uri1->path,
+				 g_quark_to_string (uri2->protocol), uri2->host, uri2->path);
+			errs++;
+		}
+	}
 
 	dprintf ("\n");
 	if (errs) {

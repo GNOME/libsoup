@@ -17,11 +17,13 @@ static inline SoupProtocol
 soup_uri_get_protocol (const char *proto, int len)
 {
 	char proto_buf[128];
+	int i;
 
 	g_return_val_if_fail (len < sizeof (proto_buf) - 1, 0);
 
-	memcpy (proto_buf, proto, len);
-	proto_buf[len] = '\0';
+	for (i = 0; i < len; i++)
+		proto_buf[i] = g_ascii_tolower (proto[i]);
+	proto_buf[i] = '\0';
 	return g_quark_from_string (proto_buf);
 }
 
@@ -55,12 +57,13 @@ SoupUri *
 soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 {
 	SoupUri *uri;
-	const char *end, *hash, *colon, *at, *slash, *question;
-	const char *p;
+	const char *end, *hash, *colon, *at, *path, *question;
+	const char *p, *hostend;
+	gboolean remove_dot_segments = TRUE;
 
 	uri = g_new0 (SoupUri, 1);
 
-	/* See RFC2396 for details. IF YOU CHANGE ANYTHING IN THIS
+	/* See RFC 3986 for details. IF YOU CHANGE ANYTHING IN THIS
 	 * FUNCTION, RUN tests/uri-parsing AFTERWARDS.
 	 */
 
@@ -68,13 +71,16 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	end = hash = strchr (uri_string, '#');
 	if (hash && hash[1]) {
 		uri->fragment = g_strdup (hash + 1);
-		soup_uri_decode (uri->fragment);
+		if (!soup_uri_normalize (uri->fragment, NULL)) {
+			soup_uri_free (uri);
+			return NULL;
+		}
 	} else
 		end = uri_string + strlen (uri_string);
 
 	/* Find protocol: initial [a-z+.-]* substring until ":" */
 	p = uri_string;
-	while (p < end && (isalnum ((unsigned char)*p) ||
+	while (p < end && (g_ascii_isalnum (*p) ||
 			   *p == '.' || *p == '+' || *p == '-'))
 		p++;
 
@@ -94,36 +100,64 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	if (strncmp (uri_string, "//", 2) == 0) {
 		uri_string += 2;
 
-		slash = uri_string + strcspn (uri_string, "/#");
+		path = uri_string + strcspn (uri_string, "/?#");
 		at = strchr (uri_string, '@');
-		if (at && at < slash) {
+		if (at && at < path) {
 			colon = strchr (uri_string, ':');
 			if (colon && colon < at) {
 				uri->passwd = g_strndup (colon + 1,
 							 at - colon - 1);
-				soup_uri_decode (uri->passwd);
+				if (!soup_uri_decode (uri->passwd)) {
+					soup_uri_free (uri);
+					return NULL;
+				}
 			} else {
 				uri->passwd = NULL;
 				colon = at;
 			}
 
 			uri->user = g_strndup (uri_string, colon - uri_string);
-			soup_uri_decode (uri->user);
+			if (!soup_uri_decode (uri->user)) {
+				soup_uri_free (uri);
+				return NULL;
+			}
 			uri_string = at + 1;
 		} else
 			uri->user = uri->passwd = NULL;
 
 		/* Find host and port. */
-		colon = strchr (uri_string, ':');
-		if (colon && colon < slash) {
-			uri->host = g_strndup (uri_string, colon - uri_string);
-			uri->port = strtoul (colon + 1, NULL, 10);
+		if (*uri_string == '[') {
+			uri_string++;
+			hostend = strchr (uri_string, ']');
+			if (!hostend || hostend > path) {
+				soup_uri_free (uri);
+				return NULL;
+			}
+			if (*(hostend + 1) == ':')
+				colon = hostend + 1;
+			else
+				colon = NULL;
 		} else {
-			uri->host = g_strndup (uri_string, slash - uri_string);
-			soup_uri_decode (uri->host);
+			colon = memchr (uri_string, ':', path - uri_string);
+			hostend = colon ? colon : path;
 		}
 
-		uri_string = slash;
+		uri->host = g_strndup (uri_string, hostend - uri_string);
+		if (!soup_uri_decode (uri->host)) {
+			soup_uri_free (uri);
+			return NULL;
+		}
+
+		if (colon && colon != path - 1) {
+			char *portend;
+			uri->port = strtoul (colon + 1, &portend, 10);
+			if (portend != (char *)path) {
+				soup_uri_free (uri);
+				return NULL;
+			}
+		}
+
+		uri_string = path;
 	}
 
 	/* Find query */
@@ -132,17 +166,23 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 		if (question[1]) {
 			uri->query = g_strndup (question + 1,
 						end - (question + 1));
-			soup_uri_decode (uri->query);
+			if (!soup_uri_normalize (uri->query, NULL)) {
+				soup_uri_free (uri);
+				return NULL;
+			}
 		}
 		end = question;
 	}
 
 	if (end != uri_string) {
 		uri->path = g_strndup (uri_string, end - uri_string);
-		soup_uri_decode (uri->path);
+		if (!soup_uri_normalize (uri->path, NULL)) {
+			soup_uri_free (uri);
+			return NULL;
+		}
 	}
 
-	/* Apply base URI. Again, this is spelled out in RFC 2396. */
+	/* Apply base URI. Again, this is spelled out in RFC 3986. */
 	if (base && !uri->protocol && uri->host)
 		uri->protocol = base->protocol;
 	else if (base && !uri->protocol) {
@@ -153,16 +193,12 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 		uri->port = base->port;
 
 		if (!uri->path) {
-			if (uri->query)
-				uri->path = g_strdup ("");
-			else {
-				uri->path = g_strdup (base->path);
+			uri->path = g_strdup (base->path);
+			if (!uri->query)
 				uri->query = g_strdup (base->query);
-			}
-		}
-
-		if (*uri->path != '/') {
-			char *newpath, *last, *p, *q;
+			remove_dot_segments = FALSE;
+		} else if (*uri->path != '/') {
+			char *newpath, *last;
 
 			last = strrchr (base->path, '/');
 			if (last) {
@@ -173,54 +209,68 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 			} else
 				newpath = g_strdup_printf ("/%s", uri->path);
 
-			/* Remove "./" where "." is a complete segment. */
-			for (p = newpath + 1; *p; ) {
-				if (*(p - 1) == '/' &&
-				    *p == '.' && *(p + 1) == '/')
-					memmove (p, p + 2, strlen (p + 2) + 1);
-				else
-					p++;
-			}
-			/* Remove "." at end. */
-			if (p > newpath + 2 &&
-			    *(p - 1) == '.' && *(p - 2) == '/')
-				*(p - 1) = '\0';
-			/* Remove "<segment>/../" where <segment> != ".." */
-			for (p = newpath + 1; *p; ) {
-				if (!strncmp (p, "../", 3)) {
-					p += 3;
-					continue;
-				}
-				q = strchr (p + 1, '/');
-				if (!q)
-					break;
-				if (strncmp (q, "/../", 4) != 0) {
-					p = q + 1;
-					continue;
-				}
-				memmove (p, q + 4, strlen (q + 4) + 1);
-				p = newpath + 1;
-			}
-			/* Remove "<segment>/.." at end where <segment> != ".." */
-			q = strrchr (newpath, '/');
-			if (q && !strcmp (q, "/..")) {
-				p = q - 1;
-				while (p > newpath && *p != '/')
-					p--;
-				if (strncmp (p, "/../", 4) != 0)
-					*(p + 1) = 0;
-			}
-
 			g_free (uri->path);
 			uri->path = newpath;
 		}
 	}
 
-	/* Sanity check */
-	if ((uri->protocol == SOUP_PROTOCOL_HTTP ||
-	     uri->protocol == SOUP_PROTOCOL_HTTPS) && !uri->host) {
-		soup_uri_free (uri);
-		return NULL;
+	if (remove_dot_segments && uri->path && *uri->path) {
+		char *p = uri->path, *q;
+
+		/* Remove "./" where "." is a complete segment. */
+		for (p = uri->path + 1; *p; ) {
+			if (*(p - 1) == '/' &&
+			    *p == '.' && *(p + 1) == '/')
+				memmove (p, p + 2, strlen (p + 2) + 1);
+			else
+				p++;
+		}
+		/* Remove "." at end. */
+		if (p > uri->path + 2 &&
+		    *(p - 1) == '.' && *(p - 2) == '/')
+			*(p - 1) = '\0';
+
+		/* Remove "<segment>/../" where <segment> != ".." */
+		for (p = uri->path + 1; *p; ) {
+			if (!strncmp (p, "../", 3)) {
+				p += 3;
+				continue;
+			}
+			q = strchr (p + 1, '/');
+			if (!q)
+				break;
+			if (strncmp (q, "/../", 4) != 0) {
+				p = q + 1;
+				continue;
+			}
+			memmove (p, q + 4, strlen (q + 4) + 1);
+			p = uri->path + 1;
+		}
+		/* Remove "<segment>/.." at end where <segment> != ".." */
+		q = strrchr (uri->path, '/');
+		if (q && !strcmp (q, "/..")) {
+			p = q - 1;
+			while (p > uri->path && *p != '/')
+				p--;
+			if (strncmp (p, "/../", 4) != 0)
+				*(p + 1) = 0;
+		}
+
+		/* Remove extraneous initial "/.."s */
+		while (!strncmp (uri->path, "/../", 4))
+			memmove (uri->path, uri->path + 3, strlen (uri->path) - 2);
+		if (!strcmp (uri->path, "/.."))
+			uri->path[1] = '\0';
+	}
+
+	/* HTTP-specific stuff */
+	if (uri->protocol == SOUP_PROTOCOL_HTTP || uri->protocol == SOUP_PROTOCOL_HTTPS) {
+		if (!uri->host) {
+			soup_uri_free (uri);
+			return NULL;
+		}
+		if (!uri->path)
+			uri->path = g_strdup ("/");
 	}
 
 	if (!uri->port)
@@ -256,16 +306,6 @@ soup_uri_new (const char *uri_string)
 }
 
 
-static inline void
-append_uri (GString *str, const char *in, const char *extra_enc_chars,
-	    gboolean pre_encoded)
-{
-	if (pre_encoded)
-		g_string_append (str, in);
-	else
-		append_uri_encoded (str, in, extra_enc_chars);
-}
-
 /**
  * soup_uri_to_string:
  * @uri: a #SoupUri
@@ -280,7 +320,6 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 {
 	GString *str;
 	char *return_result;
-	gboolean pre_encoded = uri->broken_encoding;
 
 	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
 	 * tests/uri-parsing AFTERWARD.
@@ -293,10 +332,15 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 	if (uri->host && !just_path) {
 		g_string_append (str, "//");
 		if (uri->user) {
-			append_uri (str, uri->user, ":;@/", pre_encoded);
+			append_uri_encoded (str, uri->user, ":;@?/");
 			g_string_append_c (str, '@');
 		}
-		append_uri (str, uri->host, ":/", pre_encoded);
+		if (strchr (uri->host, ':')) {
+			g_string_append_c (str, '[');
+			g_string_append (str, uri->host);
+			g_string_append_c (str, ']');
+		} else
+			append_uri_encoded (str, uri->host, ":/");
 		if (uri->port && uri->port != soup_protocol_default_port (uri->protocol))
 			g_string_append_printf (str, ":%d", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
@@ -304,17 +348,15 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 	}
 
 	if (uri->path && *uri->path)
-		append_uri (str, uri->path, "?", pre_encoded);
-	else if (just_path)
-		g_string_append_c (str, '/');
+		g_string_append (str, uri->path);
 
 	if (uri->query) {
 		g_string_append_c (str, '?');
-		append_uri (str, uri->query, NULL, pre_encoded);
+		g_string_append (str, uri->query);
 	}
 	if (uri->fragment && !just_path) {
 		g_string_append_c (str, '#');
-		append_uri (str, uri->fragment, NULL, pre_encoded);
+		g_string_append (str, uri->fragment);
 	}
 
 	return_result = str->str;
@@ -348,8 +390,6 @@ soup_uri_copy (const SoupUri *uri)
 	dup->query    = g_strdup (uri->query);
 	dup->fragment = g_strdup (uri->fragment);
 
-	dup->broken_encoding = uri->broken_encoding;
-
 	return dup;
 }
 
@@ -379,13 +419,13 @@ soup_uri_copy_root (const SoupUri *uri)
 }
 
 static inline gboolean
-parts_equal (const char *one, const char *two)
+parts_equal (const char *one, const char *two, gboolean insensitive)
 {
 	if (!one && !two)
 		return TRUE;
 	if (!one || !two)
 		return FALSE;
-	return !strcmp (one, two);
+	return insensitive ? !g_ascii_strcasecmp (one, two) : !strcmp (one, two);
 }
 
 /**
@@ -400,14 +440,14 @@ parts_equal (const char *one, const char *two)
 gboolean 
 soup_uri_equal (const SoupUri *uri1, const SoupUri *uri2)
 {
-	if (uri1->protocol != uri2->protocol              ||
-	    uri1->port     != uri2->port                  ||
-	    !parts_equal (uri1->user, uri2->user)         ||
-	    !parts_equal (uri1->passwd, uri2->passwd)     ||
-	    !parts_equal (uri1->host, uri2->host)         ||
-	    !parts_equal (uri1->path, uri2->path)         ||
-	    !parts_equal (uri1->query, uri2->query)       ||
-	    !parts_equal (uri1->fragment, uri2->fragment))
+	if (uri1->protocol != uri2->protocol                 ||
+	    uri1->port     != uri2->port                     ||
+	    !parts_equal (uri1->user, uri2->user, FALSE)     ||
+	    !parts_equal (uri1->passwd, uri2->passwd, FALSE) ||
+	    !parts_equal (uri1->host, uri2->host, TRUE)      ||
+	    !parts_equal (uri1->path, uri2->path, FALSE)     ||
+	    !parts_equal (uri1->query, uri2->query, FALSE)   ||
+	    !parts_equal (uri1->fragment, uri2->fragment, FALSE))
 		return FALSE;
 
 	return TRUE;
@@ -434,16 +474,20 @@ soup_uri_free (SoupUri *uri)
 	g_free (uri);
 }
 
-/* From RFC 2396 2.4.3, the characters that should always be encoded */
+/* From RFC 3986 */
+#define SOUP_URI_UNRESERVED  0
+#define SOUP_URI_PCT_ENCODED 1
+#define SOUP_URI_GEN_DELIMS  2
+#define SOUP_URI_SUB_DELIMS  4
 static const char uri_encoded_char[] = {
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x00 - 0x0f */
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x10 - 0x1f */
-	1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  ' ' - '/'  */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,  /*  '0' - '?'  */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  '@' - 'O'  */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,  /*  'P' - '_'  */
-	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /*  '`' - 'o'  */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1,  /*  'p' - 0x7f */
+	1, 4, 1, 2, 4, 1, 4, 4, 4, 4, 4, 4, 4, 0, 0, 2,  /*  !"#$%&'()*+,-./ */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 1, 4, 1, 2,  /* 0123456789:;<=>? */
+	2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* @ABCDEFGHIJKLMNO */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 1, 0,  /* PQRSTUVWXYZ[\]^_ */
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* `abcdefghijklmno */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1,  /* pqrstuvwxyz{|}~  */
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -460,9 +504,9 @@ append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
 	const unsigned char *s = (const unsigned char *)in;
 
 	while (*s) {
-		if (uri_encoded_char[*s] ||
+		if ((uri_encoded_char[*s] & (SOUP_URI_PCT_ENCODED | SOUP_URI_GEN_DELIMS)) ||
 		    (extra_enc_chars && strchr (extra_enc_chars, *s)))
-			g_string_append_printf (str, "%%%02x", (int)*s++);
+			g_string_append_printf (str, "%%%02X", (int)*s++);
 		else
 			g_string_append_c (str, *s++);
 	}
@@ -471,10 +515,9 @@ append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
 /**
  * soup_uri_encode:
  * @part: a URI part
- * @escape_extra: additional characters beyond " \"%#<>{}|\^[]`"
- * to escape (or %NULL)
+ * @escape_extra: additional reserved characters to escape (or %NULL)
  *
- * This %-encodes the given URI part and returns the escaped version
+ * This %%-encodes the given URI part and returns the escaped version
  * in allocated memory, which the caller must free when it is done.
  *
  * Return value: the encoded URI part
@@ -493,29 +536,81 @@ soup_uri_encode (const char *part, const char *escape_extra)
 	return encoded;
 }
 
+#define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
+#define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
+
 /**
  * soup_uri_decode:
  * @part: a URI part
  *
- * %-decodes the passed-in URI *in place*. The decoded version is
- * never longer than the encoded version, so there does not need to
+ * Fully %%-decodes the passed-in URI *in place*. The decoded version
+ * is never longer than the encoded version, so there does not need to
  * be any additional space at the end of the string.
+ *
+ * Return value: %TRUE on success, %FALSE if an invalid %%-code was
+ * encountered.
  */
-void
+gboolean
 soup_uri_decode (char *part)
 {
 	unsigned char *s, *d;
 
-#define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
-
 	s = d = (unsigned char *)part;
 	do {
-		if (*s == '%' && s[1] && s[2]) {
-			*d++ = (XDIGIT (s[1]) << 4) + XDIGIT (s[2]);
+		if (*s == '%') {
+			if (!g_ascii_isxdigit (s[1]) ||
+			    !g_ascii_isxdigit (s[2]))
+				return FALSE;
+			*d++ = HEXCHAR (s);
 			s += 2;
 		} else
 			*d++ = *s;
 	} while (*s++);
+
+	return TRUE;
+}
+
+/**
+ * soup_uri_normalize:
+ * @part: a URI part
+ * @unescape_extra: reserved characters to unescape (or %NULL)
+ *
+ * %%-decodes any "unreserved" characters (or characters in
+ * @unescape_extra) in the passed-in URI. The decoding is done *in
+ * place*. The decoded version is never longer than the encoded
+ * version, so there does not need to be any additional space at the
+ * end of the string.
+ *
+ * Return value: %TRUE on success, %FALSE if an invalid %%-code was
+ * encountered.
+ */
+gboolean
+soup_uri_normalize (char *part, const char *unescape_extra)
+{
+	unsigned char *s, *d, c;
+
+	s = d = (unsigned char *)part;
+	do {
+		if (*s == '%') {
+			if (!g_ascii_isxdigit (s[1]) ||
+			    !g_ascii_isxdigit (s[2]))
+				return FALSE;
+
+			c = HEXCHAR (s);
+			if (uri_encoded_char[c] == SOUP_URI_UNRESERVED ||
+			    (unescape_extra && strchr (unescape_extra, c))) {
+				*d++ = c;
+				s += 2;
+			} else {
+				*d++ = *s++;
+				*d++ = g_ascii_toupper (*s++);
+				*d++ = g_ascii_toupper (*s);
+			}
+		} else
+			*d++ = *s;
+	} while (*s++);
+
+	return TRUE;
 }
 
 /**

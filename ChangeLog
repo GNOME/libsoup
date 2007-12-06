@@ -1,5 +1,31 @@
 2007-12-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-uri.c: Update for RFC 3986 changes, bgo 266516, and
+	general conformance
+	(soup_uri_get_protocol): match protocols case-insensitively
+	(soup_uri_new_with_base): Don't fully %-decode the fragment,
+	query, and path, but do %-decode anything which isn't supposed to
+	be encoded. Recognize IPv6 address literals. Use stricter
+	"../"-stripping rules on the path. Reject URIs with junk between
+	the port number and the path.
+	(soup_uri_to_string): Update for the fact that the host might be
+	an IPv6 literal, and for the fact that path, query, and fragment
+	are now pre-escaped.
+	(soup_uri_equal): compare hostnames case-insensitively
+	(uri_encoded_char): update to match RFC 3986
+	(append_uri_encoded): use uppercase hex letters as recommended by
+	RFC 3986.
+	(soup_uri_normalize): decode only %-escapes that don't belong
+	there.
+
+	* docs/reference/tmpl/soup-uri.sgml: add some more SoupUri docs
+
+	* tests/uri-parsing.c: Add new tests from RFC 3986, RFC 2732, RFC
+	2616, bgo 266516, and elsewhere. Update some tests to match new
+	parsing/unparsing rules.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message.c (soup_message_new)
 	(soup_message_new_from_uri): g_intern_string() the method name
 	rather than assuming it's static. Also remove the NULL==GET
