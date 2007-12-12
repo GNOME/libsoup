@@ -141,14 +141,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 	/* signals */
 
-	/**
-	 * SoupConnection::connect-result:
-	 * @conn: the connection
-	 * @status: the status
-	 *
-	 * Emitted when a connection attempt succeeds or fails. This
-	 * is used internally by soup_connection_connect_async().
-	 **/
 	signals[CONNECT_RESULT] =
 		g_signal_new ("connect_result",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -158,14 +150,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
-
-	/**
-	 * SoupConnection::disconnected:
-	 * @conn: the connection
-	 *
-	 * Emitted when the connection's socket is disconnected, for
-	 * whatever reason.
-	 **/
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -174,14 +158,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
-
-	/**
-	 * SoupConnection::request-started:
-	 * @conn: the connection
-	 * @msg: the request being sent
-	 *
-	 * Emitted just before a message is sent across the connection.
-	 **/
 	signals[REQUEST_STARTED] =
 		g_signal_new ("request-started",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -191,21 +167,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
-
-	/**
-	 * SoupConnection::authenticate:
-	 * @conn: the connection
-	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
-	 *
-	 * Emitted when the connection requires authentication.
-	 * (#SoupConnectionNTLM makes use of this.)
-	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -219,21 +180,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_TYPE_STRING,
 			      G_TYPE_POINTER,
 			      G_TYPE_POINTER);
-
-	/**
-	 * SoupConnection::reauthenticate:
-	 * @conn: the connection
-	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
-	 *
-	 * Emitted when the authentication data acquired by a previous
-	 * %authenticate or %reauthenticate signal fails.
-	 **/
 	signals[REAUTHENTICATE] =
 		g_signal_new ("reauthenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -396,7 +342,7 @@ set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 {
 	g_return_if_fail (priv->cur_req == NULL);
 
-	req->status = SOUP_MESSAGE_STATUS_RUNNING;
+	soup_message_set_io_status (req, SOUP_MESSAGE_IO_STATUS_RUNNING);
 	priv->cur_req = req;
 	priv->in_use = TRUE;
 	g_object_add_weak_pointer (G_OBJECT (req), (gpointer)&priv->cur_req);
@@ -719,7 +665,8 @@ soup_connection_disconnect (SoupConnection *conn)
 		 * all we need to do to get the message requeued in
 		 * this case is to change its status.
 		 */
-		priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
+		soup_message_set_io_status (priv->cur_req,
+					    SOUP_MESSAGE_IO_STATUS_QUEUED);
 		return;
 	}
 

@@ -44,7 +44,7 @@ send_headers (SoupMessage *from, SoupMessage *to)
 	soup_message_headers_foreach (from->response_headers, copy_header,
 				      to->response_headers);
 	soup_message_headers_remove (to->response_headers, "Content-Length");
-	soup_message_io_unpause (to);
+	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (to)), to);
 }
 
 static void
@@ -54,7 +54,7 @@ send_chunk (SoupMessage *from, SoupMessage *to)
 
 	soup_message_add_chunk (to, SOUP_BUFFER_USER_OWNED,
 				from->response.body, from->response.length);
-	soup_message_io_unpause (to);
+	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (to)), to);
 }
 
 static void
@@ -71,7 +71,7 @@ finish_msg (SoupMessage *msg2, gpointer msg)
 	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
 
 	soup_message_add_final_chunk (msg);
-	soup_message_io_unpause (msg);
+	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (msg)), msg);
 	g_object_unref (msg);
 }
 
@@ -116,7 +116,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_session_queue_message (session, msg2, finish_msg, msg);
 
 	g_object_ref (msg);
-	soup_message_io_pause (msg);
+	soup_server_pause_message (context->server, msg);
 }
 
 static void

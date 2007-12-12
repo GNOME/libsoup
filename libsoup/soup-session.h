@@ -68,6 +68,11 @@ void            soup_session_requeue_message  (SoupSession           *session,
 guint           soup_session_send_message     (SoupSession           *session,
 					       SoupMessage           *msg);
 
+void            soup_session_pause_message    (SoupSession           *session,
+					       SoupMessage           *msg);
+void            soup_session_unpause_message  (SoupSession           *session,
+					       SoupMessage           *msg);
+
 void            soup_session_cancel_message   (SoupSession           *session,
 					       SoupMessage           *msg);
 void            soup_session_abort            (SoupSession           *session);

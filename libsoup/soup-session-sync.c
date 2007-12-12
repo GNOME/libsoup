@@ -11,6 +11,7 @@
 
 #include "soup-session-sync.h"
 #include "soup-session-private.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 
 typedef struct {
@@ -181,7 +182,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 				goto try_again;
 			else if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 				conn = NULL;
-			else if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
+			else if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
 				/* Message was cancelled while we were
 				 * connecting.
 				 */
@@ -201,7 +202,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	g_cond_wait (priv->cond, priv->lock);
 
 	/* See if something bad happened */
-	if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
+	if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
 		g_mutex_unlock (priv->lock);
 		return NULL;
 	}
@@ -225,7 +226,7 @@ send_message (SoupSession *session, SoupMessage *msg)
 
 		soup_connection_send_request (conn, msg);
 		g_cond_broadcast (priv->cond);
-	} while (msg->status != SOUP_MESSAGE_STATUS_FINISHED);
+	} while (soup_message_get_io_status (msg) != SOUP_MESSAGE_IO_STATUS_FINISHED);
 
 	return msg->status_code;
 }

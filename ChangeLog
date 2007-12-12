@@ -1,3 +1,22 @@
+2007-12-12  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c: 
+	* libsoup/soup-message-private.h: Remove SoupMessageStatus,
+	msg->status, and soup_message_io_* from the public API, as they
+	all really belong to the session, not the message. (For now
+	they've just been moved to soup-message-private.h, but some day
+	they'll be fully refactored away from SoupMessage.)
+
+	* libsoup/soup-server.c (soup_server_pause_message)
+	(soup_server_unpause_message): 
+	* libsoup/soup-session.c (soup_session_pause_message)
+	(soup_session_unpause_message): session/server-level methods to
+	replace soup_message_io_pause() and soup_message_io_unpause().
+
+	* libsoup/soup-server-message.c: Remove some unused methods
+
+	* */*.c: Update
+
 2007-12-05  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-connection.c:

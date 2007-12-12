@@ -38,12 +38,6 @@ void                  soup_server_message_set_encoding (SoupServerMessage    *sm
 							SoupTransferEncoding  encoding);
 SoupTransferEncoding  soup_server_message_get_encoding (SoupServerMessage    *smsg);
 
-void                  soup_server_message_start        (SoupServerMessage    *smsg);
-gboolean              soup_server_message_is_started   (SoupServerMessage    *smsg);
-
-void                  soup_server_message_finish       (SoupServerMessage    *smsg);
-gboolean              soup_server_message_is_finished  (SoupServerMessage    *smsg);
-
 G_END_DECLS
 
 #endif /* SOUP_SERVER_H */

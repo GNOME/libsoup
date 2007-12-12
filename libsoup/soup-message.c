@@ -48,7 +48,9 @@ static void free_chunks (SoupMessage *msg);
 static void
 soup_message_init (SoupMessage *msg)
 {
-	msg->status  = SOUP_MESSAGE_STATUS_IDLE;
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	priv->io_status = SOUP_MESSAGE_IO_STATUS_IDLE;
 
 	msg->request_headers = soup_message_headers_new ();
 	msg->response_headers = soup_message_headers_new ();
@@ -545,8 +547,10 @@ soup_message_restarted (SoupMessage *msg)
 static void
 finished (SoupMessage *req)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+
 	soup_message_io_stop (req);
-	req->status = SOUP_MESSAGE_STATUS_FINISHED;
+	priv->io_status = SOUP_MESSAGE_IO_STATUS_FINISHED;
 }
 
 /**
@@ -1118,4 +1122,21 @@ free_chunks (SoupMessage *msg)
 
 	g_slist_free (priv->chunks);
 	priv->chunks = priv->last_chunk = NULL;
+}
+
+void
+soup_message_set_io_status (SoupMessage          *msg,
+			    SoupMessageIOStatus   status)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	priv->io_status = status;
+}
+
+SoupMessageIOStatus
+soup_message_get_io_status (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	return priv->io_status;
 }

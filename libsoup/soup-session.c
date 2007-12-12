@@ -1041,8 +1041,8 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	for (msg = soup_message_queue_first (priv->queue, &iter); msg; msg = soup_message_queue_next (priv->queue, &iter)) {
 		if (get_host_for_message (session, msg) == host) {
 			if (status == SOUP_STATUS_TRY_AGAIN) {
-				if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
-					msg->status = SOUP_MESSAGE_STATUS_QUEUED;
+				if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_CONNECTING)
+					soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 			} else {
 				soup_message_set_status (msg, status);
 				soup_session_cancel_message (session, msg);
@@ -1110,7 +1110,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		}
 	}
 
-	if (msg->status == SOUP_MESSAGE_STATUS_CONNECTING) {
+	if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_CONNECTING) {
 		/* We already started a connection for this
 		 * message, so don't start another one.
 		 */
@@ -1172,7 +1172,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	/* Mark the request as connecting, so we don't try to open
 	 * another new connection for it while waiting for this one.
 	 */
-	msg->status = SOUP_MESSAGE_STATUS_CONNECTING;
+	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_CONNECTING);
 
 	g_mutex_unlock (priv->host_lock);
 	*is_new = TRUE;
@@ -1215,7 +1215,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
 			redirect_handler, session);
 	}
 
-	msg->status = SOUP_MESSAGE_STATUS_QUEUED;
+	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 	soup_message_queue_append (priv->queue, msg);
 }
 
@@ -1250,7 +1250,7 @@ soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 static void
 requeue_message (SoupSession *session, SoupMessage *msg)
 {
-	msg->status = SOUP_MESSAGE_STATUS_QUEUED;
+	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 }
 
 /**
@@ -1291,6 +1291,47 @@ soup_session_send_message (SoupSession *session, SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_STATUS_MALFORMED);
 
 	return SOUP_SESSION_GET_CLASS (session)->send_message (session, msg);
+}
+
+
+/**
+ * soup_session_pause_message:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage currently running on @session
+ *
+ * Pauses HTTP I/O on @msg. Call soup_session_unpause_message() to
+ * resume I/O.
+ **/
+void
+soup_session_pause_message (SoupSession *session,
+			    SoupMessage *msg)
+{
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	soup_message_io_pause (msg);
+}
+
+/**
+ * soup_session_unpause_message:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage currently running on @session
+ *
+ * Resumes HTTP I/O on @msg. Use this to resume after calling
+ * soup_sessino_pause_message().
+ *
+ * If @msg is being sent via blocking I/O, this will resume reading or
+ * writing immediately. If @msg is using non-blocking I/O, then
+ * reading or writing won't resume until you return to the main loop.
+ **/
+void
+soup_session_unpause_message (SoupSession *session,
+			      SoupMessage *msg)
+{
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	soup_message_io_unpause (msg);
 }
 
 

@@ -95,6 +95,10 @@ SoupServerHandler *soup_server_get_handler    (SoupServer            *serv,
 					       const char            *path);
 GSList            *soup_server_list_handlers  (SoupServer            *serv);
 
+void               soup_server_pause_message   (SoupServer           *server,
+						SoupMessage          *msg);
+void               soup_server_unpause_message (SoupServer           *server,
+						SoupMessage          *msg);
 
 /* Functions for accessing information about the specific connection */
 

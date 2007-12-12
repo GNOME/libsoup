@@ -51,11 +51,12 @@ static gboolean
 add_body_chunk (gpointer data)
 {
 	SoupMessage *msg = data;
+	SoupServer *server = soup_server_message_get_server (data);
 
 	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC,
 				"OK\r\n", 4);
 	soup_message_add_final_chunk (msg);
-	soup_message_io_unpause (msg);
+	soup_server_unpause_message (server, msg);
 	g_object_unref (msg);
 
 	return FALSE;
@@ -86,7 +87,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
 					  SOUP_TRANSFER_CHUNKED);
 	g_object_ref (msg);
-	soup_message_io_pause (msg);
+	soup_server_pause_message (context->server, msg);
 
 	timeout = soup_add_timeout (
 		soup_server_get_async_context (context->server),

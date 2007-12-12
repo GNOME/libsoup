@@ -710,3 +710,44 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 		free_handler (server, hand);
 	}
 }
+
+/**
+ * soup_server_pause_message:
+ * @server: a #SoupServer
+ * @msg: a #SoupMessage associated with @server.
+ *
+ * Pauses I/O on @msg. This can be used when you need to return from
+ * the server handler without having the full response ready yet. Use
+ * soup_server_unpause_message() to resume I/O.
+ **/
+void
+soup_server_pause_message (SoupServer *server,
+			   SoupMessage *msg)
+{
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	soup_message_io_unpause (msg);
+}
+
+/**
+ * soup_server_unpause_message:
+ * @server: a #SoupServer
+ * @msg: a #SoupMessage associated with @server.
+ *
+ * Resumes I/O on @msg. Use this to resume after calling
+ * soup_message_io_pause(), or after adding a new chunk to a chunked
+ * response.
+ *
+ * I/O won't actually resume until you return to the main loop.
+ **/
+void
+soup_server_unpause_message (SoupServer *server,
+			     SoupMessage *msg)
+{
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	soup_message_io_unpause (msg);
+}
+

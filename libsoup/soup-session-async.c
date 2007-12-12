@@ -11,6 +11,7 @@
 
 #include "soup-session-async.h"
 #include "soup-session-private.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
@@ -237,7 +238,7 @@ send_message (SoupSession *session, SoupMessage *req)
 
 	queue_message (session, req, NULL, NULL);
 
-	while (req->status != SOUP_MESSAGE_STATUS_FINISHED &&
+	while (soup_message_get_io_status (req) != SOUP_MESSAGE_IO_STATUS_FINISHED &&
 	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
 		g_main_context_iteration (async_context, TRUE);
 

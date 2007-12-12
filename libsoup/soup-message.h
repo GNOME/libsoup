@@ -20,39 +20,6 @@ G_BEGIN_DECLS
 #define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
 
 /**
- * SoupMessageStatus:
- * @SOUP_MESSAGE_STATUS_IDLE: The message has not yet been queued.
- * @SOUP_MESSAGE_STATUS_QUEUED: The message has been queued, but is
- * waiting for a connection to be available.
- * @SOUP_MESSAGE_STATUS_CONNECTING: The message is waiting for a
- * specific connection to finish connecting.
- * @SOUP_MESSAGE_STATUS_RUNNING: The message is being processed.
- * @SOUP_MESSAGE_STATUS_FINISHED: The message is complete (request and
- * response both processed).
- *
- * Enum indicating the lifecycle of a #SoupMessage.
- **/
-typedef enum {
-	SOUP_MESSAGE_STATUS_IDLE,
-	SOUP_MESSAGE_STATUS_QUEUED,
-        SOUP_MESSAGE_STATUS_CONNECTING,
-        SOUP_MESSAGE_STATUS_RUNNING,
-	SOUP_MESSAGE_STATUS_FINISHED
-} SoupMessageStatus;
-
-/**
- * SOUP_MESSAGE_IS_STARTING:
- * @msg: a #SoupMessage
- *
- * Tests if @msg is in a "starting" state, waiting to be sent. (More
- * commonly used to test if a message has been requeued after its
- * first attempt.)
- *
- * Return value: %TRUE if @msg is waiting to be sent.
- **/
-#define SOUP_MESSAGE_IS_STARTING(msg) (msg->status == SOUP_MESSAGE_STATUS_QUEUED || msg->status == SOUP_MESSAGE_STATUS_CONNECTING)
-
-/**
  * SoupTransferEncoding:
  * @SOUP_TRANSFER_UNKNOWN: unknown / error
  * @SOUP_TRANSFER_CHUNKED: chunked encoding (currently only supported
@@ -133,8 +100,6 @@ struct SoupMessage {
 
 	SoupDataBuffer      response;
 	SoupMessageHeaders *response_headers;
-
-	SoupMessageStatus   status;
 };
 
 typedef struct {
@@ -311,12 +276,6 @@ void           soup_message_add_final_chunk     (SoupMessage       *msg);
 
 SoupDataBuffer*soup_message_pop_chunk           (SoupMessage       *msg);
 
-
-/* I/O */
-void           soup_message_io_stop             (SoupMessage       *msg);
-void           soup_message_io_pause            (SoupMessage       *msg);
-void           soup_message_io_unpause          (SoupMessage       *msg);
-gboolean       soup_message_io_in_progress      (SoupMessage       *msg);
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);

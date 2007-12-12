@@ -815,15 +815,6 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 	io_read (sock, msg);
 }
 
-/**
- * soup_message_io_pause:
- * @msg: a #SoupMessage
- *
- * Pauses I/O on @msg. This can be used in a #SoupServer handler when
- * you don't have the data ready to return yet, or with a client-side
- * message if you are not ready to process any more of the response at
- * this time; call soup_message_io_unpause() to resume I/O.
- **/
 void  
 soup_message_io_pause (SoupMessage *msg)
 {
@@ -871,18 +862,6 @@ io_unpause_internal (gpointer msg)
 	return FALSE;
 }
 
-/**
- * soup_message_io_unpause:
- * @msg: a #SoupMessage
- *
- * Resumes I/O on @msg. Use this to resume after calling
- * soup_message_io_pause(), or after adding a new chunk to a chunked
- * response.
- *
- * If @msg is being sent via blocking I/O, this will resume reading or
- * writing immediately. If @msg is using non-blocking I/O, then
- * reading or writing won't resume until you return to the main loop.
- **/
 void
 soup_message_io_unpause (SoupMessage *msg)
 {

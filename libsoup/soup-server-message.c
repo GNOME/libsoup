@@ -22,8 +22,6 @@ typedef struct {
 
 	SoupTransferEncoding encoding;
 
-	gboolean  started;
-	gboolean  finished;
 } SoupServerMessagePrivate;
 #define SOUP_SERVER_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessagePrivate))
 
@@ -82,44 +80,4 @@ soup_server_message_get_encoding (SoupServerMessage *smsg)
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), SOUP_TRANSFER_UNKNOWN);
 
 	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding;
-}
-
-void
-soup_server_message_start (SoupServerMessage *smsg)
-{
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
-
-	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->started = TRUE;
-
-	soup_message_io_unpause (SOUP_MESSAGE (smsg));
-}
-
-gboolean
-soup_server_message_is_started (SoupServerMessage *smsg)
-{
-	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), TRUE);
-
-	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->started;
-}
-
-void
-soup_server_message_finish  (SoupServerMessage *smsg)
-{
-	SoupServerMessagePrivate *priv;
-
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
-	priv = SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg);
-
-	priv->started = TRUE;
-	priv->finished = TRUE;
-
-	soup_message_io_unpause (SOUP_MESSAGE (smsg));
-}
-
-gboolean
-soup_server_message_is_finished (SoupServerMessage *smsg)
-{
-	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), TRUE);
-
-	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->finished;
 }
