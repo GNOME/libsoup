@@ -52,7 +52,7 @@ void soup_xmlrpc_message_write_string   (SoupXmlrpcMessage *msg,
 void soup_xmlrpc_message_write_double   (SoupXmlrpcMessage *msg,
 					 double             d);
 void soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg,
-					 const time_t       timeval);
+					 SoupDate          *date);
 void soup_xmlrpc_message_write_base64   (SoupXmlrpcMessage *msg,
 					 gconstpointer      buf,
 					 int                len);

@@ -63,7 +63,7 @@ gboolean soup_xmlrpc_value_get_boolean  (SoupXmlrpcValue  *value,
 gboolean soup_xmlrpc_value_get_string   (SoupXmlrpcValue  *value,
 					 char            **str);
 gboolean soup_xmlrpc_value_get_datetime (SoupXmlrpcValue  *value,
-					 time_t           *timeval);
+					 SoupDate        **date);
 gboolean soup_xmlrpc_value_get_base64   (SoupXmlrpcValue  *value,
 					 GByteArray      **data);
 

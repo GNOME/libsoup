@@ -1,8 +1,9 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-date.c: Date/time functions
+ * soup-date.c: Date/time handling
  *
  * Copyright (C) 2005, Novell, Inc.
+ * Copyright (C) 2007, Red Hat, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,197 +27,381 @@ static const char *days[] = {
 	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
-static int
-parse_month (const char *month)
+static const int days_before[] = {
+	0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+};
+
+GType
+soup_date_get_type (void)
+{
+	static GType type = 0;
+
+	if (type == 0) {
+		type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupDate"),
+			(GBoxedCopyFunc)soup_date_copy,
+			(GBoxedFreeFunc)soup_date_free);
+	}
+	return type;
+}
+
+SoupDate *
+soup_date_new (int year, int month, int day, 
+	       int hour, int minute, int second)
+{
+	SoupDate *date = g_slice_new (SoupDate);
+
+	date->year   = year;
+	date->month  = month;
+	date->day    = day;
+	date->hour   = hour;
+	date->minute = minute;
+	date->second = second;
+	date->utc    = TRUE;
+	date->offset = 0;
+
+	return date;
+}
+
+static gboolean
+parse_iso8601_date (SoupDate *date, const char *date_string)
+{
+	gulong val;
+
+	if (strlen (date_string) < 15)
+		return FALSE;
+	if (date_string[4] == '-' &&
+	    date_string[7] == '-' &&
+	    date_string[10] == 'T') {
+		/* YYYY-MM-DD */
+		date->year  = atoi (date_string);
+		date->month = atoi (date_string + 5);
+		date->day   = atoi (date_string + 8);
+		date_string += 11;
+	} else if (date_string[8] == 'T') {
+		/* YYYYMMDD */
+		val = atoi (date_string);
+		date->year = val / 10000;
+		date->month = (val % 10000) / 100;
+		date->day = val % 100;
+		date_string += 9;
+	} else
+		return FALSE;
+
+	if (strlen (date_string) >= 8 &&
+	    date_string[2] == ':' && date_string[5] == ':') {
+		/* HH:MM:SS */
+		date->hour   = atoi (date_string);
+		date->minute = atoi (date_string + 3);
+		date->second = atoi (date_string + 6);
+		date_string += 8;
+	} else if (strlen (date_string) >= 6) {
+		/* HHMMSS */
+		val = strtoul (date_string, (char **)&date_string, 10);
+		date->hour   = val / 10000;
+		date->minute = (val % 10000) / 100;
+		date->second = val % 100;
+	} else
+		return FALSE;
+
+	if (*date_string == '.')
+		strtoul (date_string + 1, (char **)&date_string, 10);
+
+	if (*date_string == 'Z') {
+		date_string++;
+		date->utc = TRUE;
+		date->offset = 0;
+	} else if (*date_string == '+' || *date_string == '-') {
+		int sign = (*date_string == '+') ? -1 : 1;
+		val = strtoul (date_string + 1, (char **)&date_string, 10);
+		if (*date_string == ':')
+			val = 60 * val + strtoul (date_string + 1, (char **)&date_string, 10);
+		else
+			val = 60 * (val / 100) + (val % 100);
+		date->offset = sign * val;
+		date->utc = sign && !val;
+	}
+
+	return !*date_string;
+}
+
+static inline gboolean
+parse_day (SoupDate *date, const char **date_string)
+{
+	char *end;
+
+	date->day = strtoul (*date_string, &end, 10);
+	if (end == (char *)date_string)
+		return FALSE;
+
+	while (*end == ' ' || *end == '-')
+		end++;
+	*date_string = end;
+	return TRUE;
+}
+
+static inline gboolean
+parse_month (SoupDate *date, const char **date_string)
 {
 	int i;
 
 	for (i = 0; i < G_N_ELEMENTS (months); i++) {
-		if (!strncmp (month, months[i], 3))
-			return i;
+		if (!strncmp (*date_string, months[i], 3)) {
+			date->month = i + 1;
+			*date_string += 3;
+			while (**date_string == ' ' || **date_string == '-')
+				(*date_string)++;
+			return TRUE;
+		}
 	}
-	return -1;
+	return FALSE;
 }
 
-/**
- * soup_mktime_utc:
- * @tm: the UTC time
- *
- * Converts @tm to a #time_t. Unlike with mktime(), @tm is interpreted
- * as being a UTC time.
- *
- * Return value: @tm as a #time_t
- **/
-time_t
-soup_mktime_utc (struct tm *tm)
+static inline gboolean
+parse_year (SoupDate *date, const char **date_string)
 {
-#if HAVE_TIMEGM
-	return timegm (tm);
-#else
-	time_t tt;
-	static const int days_before[] = {
-		0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
-	};
+	char *end;
 
-	/* We check the month because (a) if we don't, the
-	 * days_before[] part below may access random memory, and (b)
-	 * soup_date_parse() doesn't check the return value of
-	 * parse_month(). The caller is responsible for ensuring the
-	 * sanity of everything else.
+	date->year = strtoul (*date_string, &end, 10);
+	if (end == (char *)date_string)
+		return FALSE;
+
+	if (end == (char *)*date_string + 2) {
+		if (date->year < 70)
+			date->year += 2000;
+		else
+			date->year += 1900;
+	} else if (end == (char *)*date_string + 3)
+		date->year += 1900;
+
+	while (*end == ' ' || *end == '-')
+		end++;
+	*date_string = end;
+	return TRUE;
+}
+
+static inline gboolean
+parse_time (SoupDate *date, const char **date_string)
+{
+	char *p;
+
+	date->hour = strtoul (*date_string, &p, 10);
+	if (*p++ != ':')
+		return FALSE;
+	date->minute = strtoul (p, &p, 10);
+	if (*p++ != ':')
+		return FALSE;
+	date->second = strtoul (p, &p, 10);
+
+	while (*p == ' ')
+		p++;
+	*date_string = p;
+	return TRUE;
+}
+
+static inline gboolean
+parse_timezone (SoupDate *date, const char **date_string)
+{
+	if (**date_string == '+' || **date_string == '-') {
+		gulong val;
+		int sign = (**date_string == '+') ? -1 : 1;
+		val = strtoul (*date_string + 1, (char **)date_string, 10);
+		if (**date_string != ':')
+			return FALSE;
+		val = 60 * val + strtoul (*date_string + 1, (char **)date_string, 10);
+		date->offset = sign * val;
+		date->utc = sign && !val;
+	} else if (**date_string == 'Z') {
+		date->offset = 0;
+		date->utc = TRUE;
+		(*date_string)++;
+	} else if (!strcmp (*date_string, "GMT") ||
+		   !strcmp (*date_string, "UTC")) {
+		date->offset = 0;
+		date->utc = TRUE;
+		(*date_string) += 3;
+	} else if (strchr ("ECMP", **date_string) &&
+		   ((*date_string)[1] == 'D' || (*date_string)[1] == 'S') &&
+		   (*date_string)[2] == 'T') {
+		date->offset = -60 * (5 * strcspn ("ECMP", *date_string));
+		if ((*date_string)[1] == 'D')
+			date->offset += 60;
+		date->utc = FALSE;
+	} else if (!**date_string) {
+		date->utc = FALSE;
+		date->offset = 0;
+	} else
+		return FALSE;
+	return TRUE;
+}
+
+static gboolean
+parse_textual_date (SoupDate *date, const char *date_string)
+{
+	/* If it starts with a word, it must be a weekday, which we skip */
+	while (g_ascii_isalpha (*date_string))
+		date_string++;
+	if (*date_string == ',')
+		date_string++;
+	while (g_ascii_isspace (*date_string))
+		date_string++;
+
+	/* If there's now another word, this must be an asctime-date */
+	if (g_ascii_isalpha (*date_string)) {
+		/* (Sun) Nov  6 08:49:37 1994 */
+		if (!parse_month (date, &date_string) ||
+		    !parse_day (date, &date_string) ||
+		    !parse_time (date, &date_string) ||
+		    !parse_year (date, &date_string))
+			return FALSE;
+
+		/* There shouldn't be a timezone, but check anyway */
+		parse_timezone (date, &date_string);
+	} else {
+		/* Non-asctime date, so some variation of
+		 * (Sun,) 06 Nov 1994 08:49:37 GMT
+		 */
+		if (!parse_day (date, &date_string) ||
+		    !parse_month (date, &date_string) ||
+		    !parse_year (date, &date_string) ||
+		    !parse_time (date, &date_string))
+			return FALSE;
+
+		/* This time there *should* be a timezone, but we
+		 * survive if there isn't.
+		 */
+		parse_timezone (date, &date_string);
+	}
+	return TRUE;
+}
+
+static int
+days_in_month (int month, int year)
+{
+	return days_before[month + 1] - days_before[month] +
+		(((year % 4 == 0) && month == 2) ? 1 : 0);
+}
+
+SoupDate *
+soup_date_new_from_string (const char *date_string)
+{
+	SoupDate *date = g_slice_new (SoupDate);
+	gboolean success;
+
+	while (g_ascii_isspace (*date_string))
+		date_string++;
+
+	/* If it starts with a digit, it's either an ISO 8601 date, or
+	 * an RFC2822 date without the optional weekday; in the later
+	 * case, there will be a month name later on, so look for one
+	 * of the month-start letters.
 	 */
-	if (tm->tm_mon < 0 || tm->tm_mon > 11)
-		return (time_t)-1;
+	if (g_ascii_isdigit (*date_string) &&
+	    !strpbrk (date_string, "JFMASOND"))
+		success = parse_iso8601_date (date, date_string);
+	else
+		success = parse_textual_date (date, date_string);
 
-	tt = (tm->tm_year - 70) * 365;
-	tt += (tm->tm_year - 68) / 4;
-	tt += days_before[tm->tm_mon] + tm->tm_mday - 1;
-	if (tm->tm_year % 4 == 0 && tm->tm_mon < 2)
-		tt--;
-	tt = ((((tt * 24) + tm->tm_hour) * 60) + tm->tm_min) * 60 + tm->tm_sec;
-	
-	return tt;
-#endif
+	if (!success) {
+		g_slice_free (SoupDate, date);
+		return NULL;
+	}
+
+	if (date->year < 1 || date->year > 9999 ||
+	    date->month < 1 || date->month > 12 ||
+	    date->day < 1 ||
+	    date->day > days_in_month (date->month, date->year) ||
+	    date->hour < 0 || date->hour > 23 ||
+	    date->minute < 0 || date->minute > 59 ||
+	    date->second < 0 || date->second > 59) {
+		g_slice_free (SoupDate, date);
+		return NULL;
+	} else
+		return date;
 }
 
-/**
- * soup_gmtime:
- * @when: a #time_t
- * @tm: a struct tm to be filled in with the expansion of @when
- *
- * Expands @when into @tm (as a UTC time). This is just a wrapper
- * around gmtime_r() (or gmtime() on lame platforms). (The Microsoft C
- * library on Windows doesn't have gmtime_r(), but its gmtime() is in
- * fact thread-safe as it uses a per-thread buffer, so it's not
- * totally lame ;-)
- **/
-void
-soup_gmtime (const time_t *when, struct tm *tm)
-{
-#ifdef HAVE_GMTIME_R
-	gmtime_r (when, tm);
-#else
-	*tm = *gmtime (when);
-#endif
-}
-
-/**
- * soup_date_parse:
- * @timestamp: a timestamp, in any of the allowed HTTP 1.1 formats
- *
- * Parses @timestamp and returns its value as a #time_t.
- *
- * Return value: the #time_t corresponding to @timestamp, or -1 if
- * @timestamp couldn't be parsed.
- **/
-time_t
-soup_date_parse (const char *timestamp)
+SoupDate *
+soup_date_new_from_time_t (time_t when)
 {
 	struct tm tm;
-	int len = strlen (timestamp);
 
-	if (len < 4)
-		return (time_t)-1;
+#ifdef HAVE_GMTIME_R
+	gmtime_r (&when, &tm);
+#else
+	tm = *gmtime (when);
+#endif
 
-	switch (timestamp[3]) {
-	case ',':
-		/* rfc1123-date = wkday "," SP date1 SP time SP "GMT"
-		 * date1        = 2DIGIT SP month SP 4DIGIT
-		 * time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT
-		 *
-		 * eg, "Sun, 06 Nov 1994 08:49:37 GMT"
-		 */
-		if (len != 29 || strcmp (timestamp + 25, " GMT") != 0)
-			return (time_t)-1;
+	return soup_date_new (tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+			      tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
 
-		tm.tm_mday = atoi (timestamp + 5);
-		tm.tm_mon = parse_month (timestamp + 8);
-		tm.tm_year = atoi (timestamp + 12) - 1900;
-		tm.tm_hour = atoi (timestamp + 17);
-		tm.tm_min = atoi (timestamp + 20);
-		tm.tm_sec = atoi (timestamp + 23);
-		break;
+static const char *
+soup_date_weekday (SoupDate *date)
+{
+	int day;
 
-	case ' ':
-		/* asctime-date = wkday SP date3 SP time SP 4DIGIT
-		 * date3        = month SP ( 2DIGIT | ( SP 1DIGIT ))
-		 * time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT
-		 *
-		 * eg, "Sun Nov  6 08:49:37 1994"
-		 */
-		if (len != 24)
-			return (time_t)-1;
+	/* Proleptic Gregorian 0001-01-01 was a Monday, which
+	 * corresponds to 1 in the days[] array. So we take the
+	 * number of days since 0000-12-31, modulo 7.
+	 */
+	day = (date->year - 1) * 365 + ((date->year - 1) / 4);
+	day += days_before[date->month] + date->day;
+	if (date->year % 4 == 0 && date->month > 2)
+		day++;
 
-		tm.tm_mon = parse_month (timestamp + 4);
-		tm.tm_mday = atoi (timestamp + 8);
-		tm.tm_hour = atoi (timestamp + 11);
-		tm.tm_min = atoi (timestamp + 14);
-		tm.tm_sec = atoi (timestamp + 17);
-		tm.tm_year = atoi (timestamp + 20) - 1900;
-		break;
+	return days[day % 7];
+}
+
+char *
+soup_date_to_string (SoupDate *date, SoupDateFormat format)
+{
+	/* FIXME: offset, 8601 zones, etc */
+
+	switch (format) {
+	case SOUP_DATE_HTTP:
+		/* "Sun, 06 Nov 1994 08:49:37 GMT" */
+		return g_strdup_printf ("%s, %02d %s %04d %02d:%02d:%02d GMT",
+					soup_date_weekday (date), date->day,
+					months[date->month - 1],
+					date->year, date->hour, date->minute,
+					date->second);
+
+	case SOUP_DATE_COOKIE:
+		/* "Sun, 06-Nov-1994 08:49:37 GMT" */
+		return g_strdup_printf ("%s, %02d-%s-%04d %02d:%02d:%02d GMT",
+					soup_date_weekday (date), date->day,
+					months[date->month - 1],
+					date->year, date->hour, date->minute,
+					date->second);
+
+	case SOUP_DATE_ISO8601_COMPACT:
+		return g_strdup_printf ("%04d%02d%02dT%02d%02d%02d",
+					date->year, date->month, date->day,
+					date->hour, date->minute, date->second);
+	case SOUP_DATE_ISO8601_FULL:
+		return g_strdup_printf ("%04d-%02d-%02dT%02d:%02d:%02d",
+					date->year, date->month, date->day,
+					date->hour, date->minute, date->second);
+	case SOUP_DATE_ISO8601_XMLRPC:
+		return g_strdup_printf ("%04d%02d%02dT%02d:%02d:%02d",
+					date->year, date->month, date->day,
+					date->hour, date->minute, date->second);
 
 	default:
-		/* rfc850-date  = weekday "," SP date2 SP time SP "GMT"
-		 * date2        = 2DIGIT "-" month "-" 2DIGIT
-		 * time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT
-		 *
-		 * eg, "Sunday, 06-Nov-94 08:49:37 GMT"
-		 */
-		timestamp = strchr (timestamp, ',');
-		if (timestamp == NULL || strlen (timestamp) != 24 || strcmp (timestamp + 20, " GMT") != 0)
-			return (time_t)-1;
-
-		tm.tm_mday = atoi (timestamp + 2);
-		tm.tm_mon = parse_month (timestamp + 5);
-		tm.tm_year = atoi (timestamp + 9);
-		if (tm.tm_year < 70)
-			tm.tm_year += 100;
-		tm.tm_hour = atoi (timestamp + 12);
-		tm.tm_min = atoi (timestamp + 15);
-		tm.tm_sec = atoi (timestamp + 18);
-		break;
+		return NULL;
 	}
-
-	return soup_mktime_utc (&tm);
 }
 
-/**
- * soup_date_generate:
- * @when: the time to generate a timestamp for
- *
- * Generates an HTTP 1.1 Date header corresponding to @when.
- *
- * Return value: the timestamp, which the caller must free.
- **/
-char *
-soup_date_generate (time_t when)
+SoupDate *
+soup_date_copy (SoupDate *date)
 {
-	struct tm tm;
+	SoupDate *copy = g_slice_new (SoupDate);
 
-	soup_gmtime (&when, &tm);
-
-	/* RFC1123 format, eg, "Sun, 06 Nov 1994 08:49:37 GMT" */
-	return g_strdup_printf ("%s, %02d %s %04d %02d:%02d:%02d GMT",
-				days[tm.tm_wday], tm.tm_mday,
-				months[tm.tm_mon], tm.tm_year + 1900,
-				tm.tm_hour, tm.tm_min, tm.tm_sec);
+	memcpy (copy, date, sizeof (SoupDate);
 }
 
-/**
- * soup_date_iso8601_parse:
- * @timestamp: an ISO8601 timestamp
- *
- * Converts @timestamp to a %time_t value. @timestamp can be in any of the
- * iso8601 formats that specify both a date and a time.
- *
- * Return value: the %time_t corresponding to @timestamp, or -1 on error.
- **/
-time_t
-soup_date_iso8601_parse (const char *timestamp)
+void
+soup_date_free (SoupDate *date)
 {
-	GTimeVal timeval;
-
-	if (!g_time_val_from_iso8601 (timestamp, &timeval))
-		return (time_t) -1;
-
-	return (time_t) timeval.tv_sec;
+	g_slice_free (SoupDate, date);
 }

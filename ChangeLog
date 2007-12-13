@@ -1,3 +1,17 @@
+2007-12-13  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c: Make a SoupDate type, and redo in terms of
+	that rather than struct tm and time_t. Also be much more liberal
+	when parsing.
+
+	* libsoup/soup-xmlrpc-message.c (soup_xmlrpc_message_write_datetime): 
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_datetime):
+	Use SoupDate.
+
+	* tests/date.c: Use SoupDate, test parsing lots more formats
+
+	* tests/xmlrpc-test.c: update for SoupDate
+
 2007-12-12  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message.c: 

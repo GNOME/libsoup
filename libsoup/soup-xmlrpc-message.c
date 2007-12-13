@@ -200,20 +200,18 @@ soup_xmlrpc_message_write_double (SoupXmlrpcMessage *msg, double d)
 }
 
 void
-soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg, const time_t timeval)
+soup_xmlrpc_message_write_datetime (SoupXmlrpcMessage *msg, SoupDate *date)
 {
 	SoupXmlrpcMessagePrivate *priv;
-	struct tm time;
-	char str[128];
+	char *timestamp;
 
 	g_return_if_fail (SOUP_IS_XMLRPC_MESSAGE (msg));
 	priv = SOUP_XMLRPC_MESSAGE_GET_PRIVATE (msg);
 
-	soup_gmtime (&timeval, &time);
-	strftime (str, 128, "%Y%m%dT%H:%M:%S", &time);
-
 	priv->last_node = xmlNewChild (priv->last_node, NULL, (const xmlChar *)"value", NULL);
-	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"dateTime.iso8601", (xmlChar *)str);
+	timestamp = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
+	xmlNewTextChild (priv->last_node, NULL, (const xmlChar *)"dateTime.iso8601", (xmlChar *)timestamp);
+	g_free (timestamp);
 	soup_xmlrpc_message_end_element (msg);
 }
 

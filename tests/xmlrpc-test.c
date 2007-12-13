@@ -256,9 +256,9 @@ test_dateChange (void)
 	SoupXmlrpcMessage *msg;
 	SoupXmlrpcResponse *response;
 	SoupXmlrpcValue *value;
-	struct tm tm;
-	time_t when, result;
-	char timestamp[128];
+	SoupDate *date, *result;
+	char *timestamp;
+	gboolean ok;
 
 	dprintf (1, "dateChange (struct of time and ints -> time): ");
 
@@ -268,64 +268,64 @@ test_dateChange (void)
 	soup_xmlrpc_message_start_struct (msg);
 
 	soup_xmlrpc_message_start_member (msg, "date");
-	memset (&tm, 0, sizeof (tm));
-	tm.tm_year = 70 + (rand () % 50);
-	tm.tm_mon = rand () % 12;
-	tm.tm_mday = 1 + (rand () % 28);
-	tm.tm_hour = rand () % 24;
-	tm.tm_min = rand () % 60;
-	tm.tm_sec = rand () % 60;
-	when = soup_mktime_utc (&tm);
-	soup_xmlrpc_message_write_datetime (msg, when);
+
+	date = soup_date_new (1970 + (rand () % 50),
+			      1 + rand () % 12,
+			      1 + rand () % 28,
+			      rand () % 24,
+			      rand () % 60,
+			      rand () % 60);
+	soup_xmlrpc_message_write_datetime (msg, date);
 	soup_xmlrpc_message_end_member (msg);
 
-	strftime (timestamp, sizeof (timestamp),
-		  "%Y-%m-%dT%H:%M:%S", &tm);
-	dprintf (2, "{ date: %s", timestamp);
+	if (debug) {
+		timestamp = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
+		dprintf (2, "{ date: %s", timestamp);
+		g_free (timestamp);
+	}
 
 	if (rand () % 3) {
-		tm.tm_year = 70 + (rand () % 50);
-		dprintf (2, ", tm_year: %d", tm.tm_year);
+		date->year = 1970 + (rand () % 50);
+		dprintf (2, ", tm_year: %d", date->year - 1900);
 		soup_xmlrpc_message_start_member (msg, "tm_year");
-		soup_xmlrpc_message_write_int (msg, tm.tm_year);
+		soup_xmlrpc_message_write_int (msg, date->year - 1900);
 		soup_xmlrpc_message_end_member (msg);
 	}
 	if (rand () % 3) {
-		tm.tm_mon = rand () % 12;
-		dprintf (2, ", tm_mon: %d", tm.tm_mon);
+		date->month = rand () % 12 + 1;
+		dprintf (2, ", tm_mon: %d", date->month - 1);
 		soup_xmlrpc_message_start_member (msg, "tm_mon");
-		soup_xmlrpc_message_write_int (msg, tm.tm_mon);
+		soup_xmlrpc_message_write_int (msg, date->month - 1);
 		soup_xmlrpc_message_end_member (msg);
 	}
 	if (rand () % 3) {
-		tm.tm_mday = 1 + (rand () % 28);
-		dprintf (2, ", tm_mday: %d", tm.tm_mday);
+		date->day = 1 + (rand () % 28);
+		dprintf (2, ", tm_mday: %d", date->day);
 		soup_xmlrpc_message_start_member (msg, "tm_mday");
-		soup_xmlrpc_message_write_int (msg, tm.tm_mday);
+		soup_xmlrpc_message_write_int (msg, date->day);
 		soup_xmlrpc_message_end_member (msg);
 	}
 	if (rand () % 3) {
-		tm.tm_hour = rand () % 24;
-		dprintf (2, ", tm_hour: %d", tm.tm_hour);
+		date->hour = rand () % 24;
+		dprintf (2, ", tm_hour: %d", date->hour);
 		soup_xmlrpc_message_start_member (msg, "tm_hour");
-		soup_xmlrpc_message_write_int (msg, tm.tm_hour);
+		soup_xmlrpc_message_write_int (msg, date->hour);
 		soup_xmlrpc_message_end_member (msg);
 	}
 	if (rand () % 3) {
-		tm.tm_min = rand () % 60;
-		dprintf (2, ", tm_min: %d", tm.tm_min);
+		date->minute = rand () % 60;
+		dprintf (2, ", tm_min: %d", date->minute);
 		soup_xmlrpc_message_start_member (msg, "tm_min");
-		soup_xmlrpc_message_write_int (msg, tm.tm_min);
+		soup_xmlrpc_message_write_int (msg, date->minute);
 		soup_xmlrpc_message_end_member (msg);
 	}
 	if (rand () % 3) {
-		tm.tm_sec = rand () % 60;
-		dprintf (2, ", tm_sec: %d", tm.tm_sec);
+		date->second = rand () % 60;
+		dprintf (2, ", tm_sec: %d", date->second);
 		soup_xmlrpc_message_start_member (msg, "tm_sec");
-		soup_xmlrpc_message_write_int (msg, tm.tm_sec);
+		soup_xmlrpc_message_write_int (msg, date->second);
 		soup_xmlrpc_message_end_member (msg);
 	}
-	when = soup_mktime_utc (&tm);
 
 	dprintf (2, " } -> ");
 
@@ -345,13 +345,23 @@ test_dateChange (void)
 	}
 	g_object_unref (response);
 
-	memset (&tm, 0, sizeof (tm));
-	soup_gmtime (&result, &tm);
-	strftime (timestamp, sizeof (timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
-	dprintf (2, "%s: ", timestamp);
+	if (debug) {
+		timestamp = soup_date_to_string (result, SOUP_DATE_ISO8601_XMLRPC);
+		dprintf (2, "%s: ", timestamp);
+		g_free (timestamp);
+	}
 
-	dprintf (1, "%s\n", (when == result) ? "OK!" : "WRONG!");
-	return (when == result);
+	ok = ((date->year   == result->year) &&
+	      (date->month  == result->month) &&
+	      (date->day    == result->day) &&
+	      (date->hour   == result->hour) &&
+	      (date->minute == result->minute) &&
+	      (date->second == result->second));
+	soup_date_free (date);
+	soup_date_free (result);
+
+	dprintf (1, "%s\n", ok ? "OK!" : "WRONG!");
+	return ok;
 }
 
 static const char *const echo_strings[] = {

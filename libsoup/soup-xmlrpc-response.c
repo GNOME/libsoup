@@ -331,7 +331,7 @@ soup_xmlrpc_value_get_string (SoupXmlrpcValue *value, char **str)
 }
 
 gboolean
-soup_xmlrpc_value_get_datetime (SoupXmlrpcValue *value, time_t *timeval)
+soup_xmlrpc_value_get_datetime (SoupXmlrpcValue *value, SoupDate **date)
 {
 	xmlNode *xml;
 	xmlChar *content;
@@ -346,14 +346,10 @@ soup_xmlrpc_value_get_datetime (SoupXmlrpcValue *value, time_t *timeval)
 
 	/* FIXME this should be exactly one text node */
 	content = xmlNodeGetContent (xml);
-	if (xmlStrlen (content) != 17) {
-		xmlFree (content);
-		return FALSE;
-	}
-
-	*timeval = soup_date_iso8601_parse ((char *)content);
+	*date = soup_date_new_from_string ((char *)content);
 	xmlFree (content);
-	return TRUE;
+
+	return *date != NULL;
 }
 
 gboolean
@@ -536,7 +532,7 @@ soup_xmlrpc_value_dump_internal (SoupXmlrpcValue *value, int d)
 	gboolean b;
 	char *str;
 	double f;
-	time_t timeval;
+	SoupDate *date;
 	GByteArray *base64;
 	GHashTable *hash;
 	SoupXmlrpcValueArrayIterator *iter;
@@ -585,10 +581,13 @@ soup_xmlrpc_value_dump_internal (SoupXmlrpcValue *value, int d)
 
 		case SOUP_XMLRPC_VALUE_TYPE_DATETIME:
 			indent (d);
-			if (!soup_xmlrpc_value_get_datetime (value, &timeval))
+			if (!soup_xmlrpc_value_get_datetime (value, &date))
 				g_printerr ("BAD DATETIME\n");
-			else
-				g_printerr ("DATETIME: %s\n", asctime (gmtime (&timeval)));
+			else {
+				str = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
+				g_printerr ("DATETIME: %s\n", str);
+				g_free (str);
+			}
 			break;
 
 		case SOUP_XMLRPC_VALUE_TYPE_BASE64:
