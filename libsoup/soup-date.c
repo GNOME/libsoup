@@ -397,7 +397,7 @@ soup_date_copy (SoupDate *date)
 {
 	SoupDate *copy = g_slice_new (SoupDate);
 
-	memcpy (copy, date, sizeof (SoupDate);
+	memcpy (copy, date, sizeof (SoupDate));
 }
 
 void
