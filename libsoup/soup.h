@@ -12,6 +12,7 @@ extern "C" {
 
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-date.h>
+#include <libsoup/soup-enum-types.h>
 #include <libsoup/soup-headers.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-method.h>

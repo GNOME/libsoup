@@ -32,19 +32,18 @@ typedef struct {
 	void (*dns_result) (SoupAddress *addr, guint status);
 } SoupAddressClass;
 
-/* This is messy, but gtk-doc doesn't understand if the #if occurs
- * inside the typedef.
- */
-#ifdef AF_INET6
+/* gtk-doc gets confused if there's an #ifdef inside the typedef */
+#ifndef AF_INET6
+#define AF_INET6 -1
+#endif
+
 typedef enum {
 	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
 	SOUP_ADDRESS_FAMILY_IPV6 = AF_INET6
 } SoupAddressFamily;
-#else
-typedef enum {
-	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
-	SOUP_ADDRESS_FAMILY_IPV6 = -1
-} SoupAddressFamily;
+
+#if AF_INET6 == -1
+#undef AF_INET6
 #endif
 
 /**

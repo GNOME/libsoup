@@ -1,3 +1,11 @@
+2007-12-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am: Use glib-mkenums to build soup-enum-types.c
+	and soup-enum-types.h
+
+	* libsoup/soup-address.h (SoupAddressFamily): redo this definition
+	again, to make glib-mkenums happy.
+
 2007-12-13  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-xmlrpc.c: New easier-to-use and

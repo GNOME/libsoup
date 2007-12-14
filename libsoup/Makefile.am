@@ -16,22 +16,36 @@ INCLUDES = 				\
 MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
 
 soup-marshal.h: soup-marshal.list
-	( @GLIB_GENMARSHAL@ --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
+	( $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.h ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
 
 soup-marshal.c: soup-marshal.h
-	( (echo '#include "soup-marshal.h"'; @GLIB_GENMARSHAL@ --prefix=soup_marshal $(srcdir)/soup-marshal.list --body) > soup-marshal.tmp \
+	( (echo '#include "soup-marshal.h"'; $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --body) > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.c ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
+
+soup-enum-types.h: $(soup_headers)
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.h.tmpl \
+		$(soup_headers) ) > soup-enum-types.h.tmp \
+	&& mv soup-enum-types.h.tmp soup-enum-types.h \
+	|| rm -f soup-enum-type.h.tmp
+
+soup-enum-types.c: $(libsoupinclude_HEADERS)
+	( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.c.tmpl \
+		$(soup_headers) ) > soup-enum-types.c.tmp \
+	&& mv soup-enum-types.c.tmp soup-enum-types.c \
+	|| rm -f soup-enum-type.c.tmp
 
 BUILT_SOURCES = $(MARSHAL_GENERATED)
 
 CLEANFILES = $(MARSHAL_GENERATED)
 
+DISTCLEANFILES = soup-enum-types.h soup-enum-types.c
+
 libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 
-libsoupinclude_HEADERS =	\
+soup_headers =			\
 	soup.h			\
 	soup-address.h		\
 	soup-date.h		\
@@ -55,6 +69,10 @@ libsoupinclude_HEADERS =	\
 	soup-uri.h		\
 	soup-value-utils.h	\
 	soup-xmlrpc.h
+
+libsoupinclude_HEADERS =	\
+	$(soup_headers)		\
+	soup-enum-types.h
 
 lib_LTLIBRARIES = libsoup-2.4.la
 
@@ -83,6 +101,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection-ntlm.h		\
 	soup-connection-ntlm.c		\
 	soup-date.c			\
+	soup-enum-types.c		\
 	soup-dns.h			\
 	soup-dns.c			\
 	soup-gnutls.c			\
