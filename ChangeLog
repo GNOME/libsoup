@@ -1,5 +1,13 @@
 2007-12-14  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message.c: use GObject properties for SoupMessage
+	fields.
+
+	* libsoup/soup-message-server-io.c: 
+	* libsoup/soup-soap-message.c: update for that
+
+2007-12-14  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-uri.c: Rename from SoupUri to SoupURI. Use the
 	slice allocator and register as a boxed type.
 	(SoupURI): Rename "protocol" field to "scheme" and "passwd" to

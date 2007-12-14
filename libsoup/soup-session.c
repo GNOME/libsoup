@@ -304,10 +304,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/* properties */
 	g_object_class_install_property (
 		object_class, PROP_PROXY_URI,
-		g_param_spec_pointer (SOUP_SESSION_PROXY_URI,
-				      "Proxy URI",
-				      "The HTTP Proxy to use for this session",
-				      G_PARAM_READWRITE));
+		g_param_spec_boxed (SOUP_SESSION_PROXY_URI,
+				    "Proxy URI",
+				    "The HTTP Proxy to use for this session",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
 		g_param_spec_int (SOUP_SESSION_MAX_CONNS,
@@ -385,22 +386,22 @@ set_property (GObject *object, guint prop_id,
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	gpointer pval;
+	SoupURI *uri;
 	gboolean need_abort = FALSE;
 	gboolean ca_file_changed = FALSE;
 	const char *new_ca_file;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
-		pval = g_value_get_pointer (value);
+		uri = g_value_get_boxed (value);
 
-		if (!safe_uri_equal (priv->proxy_uri, pval))
+		if (!safe_uri_equal (priv->proxy_uri, uri))
 			need_abort = TRUE;
 
 		if (priv->proxy_uri)
 			soup_uri_free (priv->proxy_uri);
 
-		priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+		priv->proxy_uri = uri ? soup_uri_copy (uri) : NULL;
 
 		if (need_abort) {
 			soup_session_abort (session);
@@ -458,9 +459,7 @@ get_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
-		g_value_set_pointer (value, priv->proxy_uri ?
-				     soup_uri_copy (priv->proxy_uri) :
-				     NULL);
+		g_value_set_boxed (value, priv->proxy_uri);
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);

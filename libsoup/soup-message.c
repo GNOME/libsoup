@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "soup-auth.h"
+#include "soup-enum-types.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -37,6 +38,19 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+enum {
+	PROP_0,
+
+	PROP_METHOD,
+	PROP_URI,
+	PROP_HTTP_VERSION,
+	PROP_FLAGS,
+	PROP_STATUS_CODE,
+	PROP_REASON_PHRASE,
+
+	LAST_PROP
+};
+
 static void wrote_body (SoupMessage *req);
 static void got_headers (SoupMessage *req);
 static void got_chunk (SoupMessage *req);
@@ -44,6 +58,11 @@ static void got_body (SoupMessage *req);
 static void restarted (SoupMessage *req);
 static void finished (SoupMessage *req);
 static void free_chunks (SoupMessage *msg);
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 soup_message_init (SoupMessage *msg)
@@ -108,6 +127,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
 
 	/* signals */
 
@@ -267,6 +288,114 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_METHOD,
+		g_param_spec_string (SOUP_MESSAGE_METHOD,
+				     "Method",
+				     "The message's HTTP method",
+				     SOUP_METHOD_GET,
+				     G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_URI,
+		g_param_spec_boxed (SOUP_MESSAGE_URI,
+				    "URI",
+				    "The message's Request-URI",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_HTTP_VERSION,
+		g_param_spec_enum (SOUP_MESSAGE_HTTP_VERSION,
+				   "HTTP Version",
+				   "The HTTP protocol version to use",
+				   SOUP_TYPE_HTTP_VERSION,
+				   SOUP_HTTP_1_1,
+				   G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_FLAGS,
+		g_param_spec_flags (SOUP_MESSAGE_FLAGS,
+				    "Flags",
+				    "Various message options",
+				    SOUP_TYPE_MESSAGE_FLAGS,
+				    0,
+				    G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_STATUS_CODE,
+		g_param_spec_uint (SOUP_MESSAGE_STATUS_CODE,
+				   "Status code",
+				   "The HTTP response status code",
+				   0, 599, 0,
+				   G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_REASON_PHRASE,
+		g_param_spec_string (SOUP_MESSAGE_REASON_PHRASE,
+				     "Reason phrase",
+				     "The HTTP response reason phrase",
+				     NULL,
+				     G_PARAM_READWRITE));
+}
+
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupMessage *msg = SOUP_MESSAGE (object);
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		msg->method = g_intern_string (g_value_get_string (value));
+		break;
+	case PROP_URI:
+		soup_message_set_uri (msg, g_value_get_boxed (value));
+		break;
+	case PROP_HTTP_VERSION:
+		soup_message_set_http_version (msg, g_value_get_enum (value));
+		break;
+	case PROP_FLAGS:
+		soup_message_set_flags (msg, g_value_get_flags (value));
+		break;
+	case PROP_STATUS_CODE:
+		soup_message_set_status (msg, g_value_get_uint (value));
+		break;
+	case PROP_REASON_PHRASE:
+		soup_message_set_status_full (msg, msg->status_code,
+					      g_value_get_string (value));
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupMessage *msg = SOUP_MESSAGE (object);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		g_value_set_string (value, msg->method);
+		break;
+	case PROP_URI:
+		g_value_set_boxed (value, priv->uri);
+		break;
+	case PROP_HTTP_VERSION:
+		g_value_set_enum (value, priv->http_version);
+		break;
+	case PROP_FLAGS:
+		g_value_set_flags (value, priv->msg_flags);
+		break;
+	case PROP_STATUS_CODE:
+		g_value_set_uint (value, msg->status_code);
+		break;
+	case PROP_REASON_PHRASE:
+		g_value_set_string (value, msg->reason_phrase);
+		break;
+	default:
+		break;
+	}
 }
 
 
@@ -292,16 +421,13 @@ soup_message_new (const char *method, const char *uri_string)
 	uri = soup_uri_new (uri_string);
 	if (!uri)
 		return NULL;
-
 	if (!uri->host) {
 		soup_uri_free (uri);
 		return NULL;
 	}
 
-	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
-	msg->method = g_intern_string (method);
-	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = uri;
-
+	msg = soup_message_new_from_uri (method, uri);
+	soup_uri_free (uri);
 	return msg;
 }
 
@@ -317,16 +443,10 @@ soup_message_new (const char *method, const char *uri_string)
 SoupMessage *
 soup_message_new_from_uri (const char *method, const SoupURI *uri)
 {
-	SoupMessage *msg;
-
-	g_return_val_if_fail (method != NULL, NULL);
-	g_return_val_if_fail (uri != NULL, NULL);
-
-	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
-	msg->method = g_intern_string (method);
-	SOUP_MESSAGE_GET_PRIVATE (msg)->uri = soup_uri_copy (uri);
-
-	return msg;
+	return g_object_new (SOUP_TYPE_MESSAGE,
+			     SOUP_MESSAGE_METHOD, method,
+			     SOUP_MESSAGE_URI, uri,
+			     NULL);
 }
 
 /**

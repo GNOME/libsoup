@@ -120,6 +120,13 @@ typedef struct {
 
 GType soup_message_get_type (void);
 
+#define SOUP_MESSAGE_METHOD        "method"
+#define SOUP_MESSAGE_URI           "uri"
+#define SOUP_MESSAGE_HTTP_VERSION  "http-version"
+#define SOUP_MESSAGE_FLAGS         "flags"
+#define SOUP_MESSAGE_STATUS_CODE   "status-code"
+#define SOUP_MESSAGE_REASON_PHRASE "reason-phrase"
+
 /**
  * SoupMessageCallbackFn:
  * @req: the #SoupMessage in question

@@ -40,7 +40,9 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		return status;
 
-	msg->method = g_intern_string (req_method);
+	g_object_set (G_OBJECT (msg),
+		      SOUP_MESSAGE_METHOD, req_method,
+		      NULL);
 	g_free (req_method);
 
 	expect = soup_message_headers_find (msg->request_headers, "Expect");
