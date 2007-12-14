@@ -246,6 +246,9 @@ typedef enum {
 
 const char *soup_status_get_phrase (guint status_code);
 
+#define SOUP_HTTP_ERROR soup_http_error_quark()
+GQuark soup_http_error_quark (void);
+
 G_END_DECLS
 
 #endif /* SOUP_STATUS_H */

@@ -26,8 +26,8 @@ extern "C" {
 #include <libsoup/soup-socket.h>
 #include <libsoup/soup-status.h>
 #include <libsoup/soup-uri.h>
-#include <libsoup/soup-xmlrpc-message.h>
-#include <libsoup/soup-xmlrpc-response.h>
+#include <libsoup/soup-value-utils.h>
+#include <libsoup/soup-xmlrpc.h>
 
 #ifdef __cplusplus
 }

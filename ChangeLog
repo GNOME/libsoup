@@ -1,5 +1,19 @@
 2007-12-13  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-xmlrpc.c: New easier-to-use and
+	easier-to-do-language-bindings-of XML-RPC code.
+
+	* libsoup/soup-xmlrpc-message.c: 
+	* libsoup/soup-xmlrpc-response.c: gone
+
+	* libsoup/soup-value-utils.c: Utilites for working with
+	GValueArray, and GHashTables of GValues, used by soup-xmlrpc.
+
+	* tests/getbug.c: 
+	* tests/xmlrpc-test.c: Update to use new XML-RPC stuff
+
+2007-12-13  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-date.c: Make a SoupDate type, and redo in terms of
 	that rather than struct tm and time_t. Also be much more liberal
 	when parsing.

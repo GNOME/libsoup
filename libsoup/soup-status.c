@@ -104,3 +104,13 @@ soup_status_get_phrase (guint status_code)
 
 	return "Unknown Error";
 }
+
+
+GQuark
+soup_http_error_quark (void)
+{
+	static GQuark error;
+	if (!error)
+		error = g_quark_from_static_string ("soup_http_error_quark");
+	return error;
+}

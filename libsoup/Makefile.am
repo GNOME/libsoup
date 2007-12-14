@@ -53,8 +53,8 @@ libsoupinclude_HEADERS =	\
 	soup-status.h		\
 	soup-types.h		\
 	soup-uri.h		\
-	soup-xmlrpc-message.h	\
-	soup-xmlrpc-response.h
+	soup-value-utils.h	\
+	soup-xmlrpc.h
 
 lib_LTLIBRARIES = libsoup-2.4.la
 
@@ -113,7 +113,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-ssl.h			\
 	soup-status.c			\
 	soup-uri.c			\
-	soup-xmlrpc-message.c		\
-	soup-xmlrpc-response.c
+	soup-value-utils.c		\
+	soup-xmlrpc.c
 
 EXTRA_DIST= soup-marshal.list
