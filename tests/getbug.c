@@ -91,7 +91,7 @@ usage (void)
 int
 main (int argc, char **argv)
 {
-	SoupUri *proxy = NULL;
+	SoupURI *proxy = NULL;
 	SoupMessage *msg;
 	const char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
 	int opt, bug;

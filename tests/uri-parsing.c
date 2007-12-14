@@ -143,10 +143,10 @@ struct {
 int num_eq_tests = G_N_ELEMENTS(eq_tests);
 
 static gboolean
-do_uri (SoupUri *base_uri, const char *base_str,
+do_uri (SoupURI *base_uri, const char *base_str,
 	const char *in_uri, const char *out_uri)
 {
-	SoupUri *uri;
+	SoupURI *uri;
 	char *uri_string;
 
 	if (base_uri) {
@@ -191,7 +191,7 @@ do_uri (SoupUri *base_uri, const char *base_str,
 int
 main (int argc, char **argv)
 {
-	SoupUri *base_uri, *uri1, *uri2;
+	SoupURI *base_uri, *uri1, *uri2;
 	char *uri_string;
 	int i, errs = 0, opt;
 
@@ -245,8 +245,8 @@ main (int argc, char **argv)
 		else {
 			dprintf ("NO\n");
 			dprintf ("%s : %s : %s\n%s : %s : %s\n",
-				 g_quark_to_string (uri1->protocol), uri1->host, uri1->path,
-				 g_quark_to_string (uri2->protocol), uri2->host, uri2->path);
+				 uri1->scheme, uri1->host, uri1->path,
+				 uri2->scheme, uri2->host, uri2->path);
 			errs++;
 		}
 	}

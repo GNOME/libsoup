@@ -13,32 +13,35 @@
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
 
-static inline SoupProtocol
-soup_uri_get_protocol (const char *proto, int len)
-{
-	char proto_buf[128];
-	int i;
-
-	g_return_val_if_fail (len < sizeof (proto_buf) - 1, 0);
-
-	for (i = 0; i < len; i++)
-		proto_buf[i] = g_ascii_tolower (proto[i]);
-	proto_buf[i] = '\0';
-	return g_quark_from_string (proto_buf);
-}
+static const char *http_scheme, *https_scheme;
 
 static inline const char *
-soup_protocol_name (SoupProtocol proto)
+soup_uri_get_scheme (const char *scheme, int len)
 {
-	return g_quark_to_string (proto);
+	if (len == 4 && !strncmp (scheme, "http", 4)) {
+		if (G_UNLIKELY (!http_scheme))
+			http_scheme = g_intern_static_string ("http");
+		return http_scheme;
+	} else if (len == 5 && !strncmp (scheme, "https", 5)) {
+		if (G_UNLIKELY (!https_scheme))
+			https_scheme = g_intern_static_string ("https");
+		return https_scheme;
+	} else {
+		char *lower_scheme;
+
+		lower_scheme = g_ascii_strdown (scheme, len);
+		scheme = g_intern_string (lower_scheme);
+		g_free (lower_scheme);
+		return scheme;
+	}
 }
 
 static inline guint
-soup_protocol_default_port (SoupProtocol proto)
+soup_scheme_default_port (const char *scheme)
 {
-	if (proto == SOUP_PROTOCOL_HTTP)
+	if (scheme == http_scheme)
 		return 80;
-	else if (proto == SOUP_PROTOCOL_HTTPS)
+	else if (scheme == https_scheme)
 		return 443;
 	else
 		return 0;
@@ -51,17 +54,17 @@ soup_protocol_default_port (SoupProtocol proto)
  *
  * Parses @uri_string relative to @base.
  *
- * Return value: a parsed #SoupUri.
+ * Return value: a parsed #SoupURI.
  **/
-SoupUri *
-soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
+SoupURI *
+soup_uri_new_with_base (const SoupURI *base, const char *uri_string)
 {
-	SoupUri *uri;
+	SoupURI *uri;
 	const char *end, *hash, *colon, *at, *path, *question;
 	const char *p, *hostend;
 	gboolean remove_dot_segments = TRUE;
 
-	uri = g_new0 (SoupUri, 1);
+	uri = g_slice_new0 (SoupURI);
 
 	/* See RFC 3986 for details. IF YOU CHANGE ANYTHING IN THIS
 	 * FUNCTION, RUN tests/uri-parsing AFTERWARDS.
@@ -78,15 +81,15 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	} else
 		end = uri_string + strlen (uri_string);
 
-	/* Find protocol: initial [a-z+.-]* substring until ":" */
+	/* Find scheme: initial [a-z+.-]* substring until ":" */
 	p = uri_string;
 	while (p < end && (g_ascii_isalnum (*p) ||
 			   *p == '.' || *p == '+' || *p == '-'))
 		p++;
 
 	if (p > uri_string && *p == ':') {
-		uri->protocol = soup_uri_get_protocol (uri_string, p - uri_string);
-		if (!uri->protocol) {
+		uri->scheme = soup_uri_get_scheme (uri_string, p - uri_string);
+		if (!uri->scheme) {
 			soup_uri_free (uri);
 			return NULL;
 		}
@@ -105,14 +108,14 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 		if (at && at < path) {
 			colon = strchr (uri_string, ':');
 			if (colon && colon < at) {
-				uri->passwd = g_strndup (colon + 1,
-							 at - colon - 1);
-				if (!soup_uri_decode (uri->passwd)) {
+				uri->password = g_strndup (colon + 1,
+							   at - colon - 1);
+				if (!soup_uri_decode (uri->password)) {
 					soup_uri_free (uri);
 					return NULL;
 				}
 			} else {
-				uri->passwd = NULL;
+				uri->password = NULL;
 				colon = at;
 			}
 
@@ -123,7 +126,7 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 			}
 			uri_string = at + 1;
 		} else
-			uri->user = uri->passwd = NULL;
+			uri->user = uri->password = NULL;
 
 		/* Find host and port. */
 		if (*uri_string == '[') {
@@ -183,12 +186,12 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	}
 
 	/* Apply base URI. Again, this is spelled out in RFC 3986. */
-	if (base && !uri->protocol && uri->host)
-		uri->protocol = base->protocol;
-	else if (base && !uri->protocol) {
-		uri->protocol = base->protocol;
+	if (base && !uri->scheme && uri->host)
+		uri->scheme = base->scheme;
+	else if (base && !uri->scheme) {
+		uri->scheme = base->scheme;
 		uri->user = g_strdup (base->user);
-		uri->passwd = g_strdup (base->passwd);
+		uri->password = g_strdup (base->password);
 		uri->host = g_strdup (base->host);
 		uri->port = base->port;
 
@@ -264,7 +267,7 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	}
 
 	/* HTTP-specific stuff */
-	if (uri->protocol == SOUP_PROTOCOL_HTTP || uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (uri->scheme == http_scheme || uri->scheme == https_scheme) {
 		if (!uri->host) {
 			soup_uri_free (uri);
 			return NULL;
@@ -274,7 +277,7 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
 	}
 
 	if (!uri->port)
-		uri->port = soup_protocol_default_port (uri->protocol);
+		uri->port = soup_scheme_default_port (uri->scheme);
 	if (!uri->path)
 		uri->path = g_strdup ("");
 
@@ -287,17 +290,17 @@ soup_uri_new_with_base (const SoupUri *base, const char *uri_string)
  *
  * Parses an absolute URI.
  *
- * Return value: a #SoupUri, or %NULL.
+ * Return value: a #SoupURI, or %NULL.
  **/
-SoupUri *
+SoupURI *
 soup_uri_new (const char *uri_string)
 {
-	SoupUri *uri;
+	SoupURI *uri;
 
 	uri = soup_uri_new_with_base (NULL, uri_string);
 	if (!uri)
 		return NULL;
-	if (!uri->protocol) {
+	if (!uri->scheme) {
 		soup_uri_free (uri);
 		return NULL;
 	}
@@ -308,7 +311,7 @@ soup_uri_new (const char *uri_string)
 
 /**
  * soup_uri_to_string:
- * @uri: a #SoupUri
+ * @uri: a #SoupURI
  * @just_path: if %TRUE, output just the path and query portions
  *
  * Returns a string representing @uri.
@@ -316,7 +319,7 @@ soup_uri_new (const char *uri_string)
  * Return value: a string representing @uri, which the caller must free.
  **/
 char *
-soup_uri_to_string (const SoupUri *uri, gboolean just_path)
+soup_uri_to_string (const SoupURI *uri, gboolean just_path)
 {
 	GString *str;
 	char *return_result;
@@ -327,8 +330,8 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 
 	str = g_string_sized_new (20);
 
-	if (uri->protocol && !just_path)
-		g_string_sprintfa (str, "%s:", soup_protocol_name (uri->protocol));
+	if (uri->scheme && !just_path)
+		g_string_sprintfa (str, "%s:", uri->scheme);
 	if (uri->host && !just_path) {
 		g_string_append (str, "//");
 		if (uri->user) {
@@ -341,7 +344,7 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 			g_string_append_c (str, ']');
 		} else
 			append_uri_encoded (str, uri->host, ":/");
-		if (uri->port && uri->port != soup_protocol_default_port (uri->protocol))
+		if (uri->port && uri->port != soup_scheme_default_port (uri->scheme))
 			g_string_append_printf (str, ":%d", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
 			g_string_append_c (str, '/');
@@ -367,23 +370,23 @@ soup_uri_to_string (const SoupUri *uri, gboolean just_path)
 
 /**
  * soup_uri_copy:
- * @uri: a #SoupUri
+ * @uri: a #SoupURI
  *
  * Copies @uri
  *
  * Return value: a copy of @uri, which must be freed with soup_uri_free()
  **/
-SoupUri *
-soup_uri_copy (const SoupUri *uri)
+SoupURI *
+soup_uri_copy (const SoupURI *uri)
 {
-	SoupUri *dup;
+	SoupURI *dup;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	dup = g_new0 (SoupUri, 1);
-	dup->protocol = uri->protocol;
+	dup = g_slice_new0 (SoupURI);
+	dup->scheme   = uri->scheme;
 	dup->user     = g_strdup (uri->user);
-	dup->passwd   = g_strdup (uri->passwd);
+	dup->password = g_strdup (uri->password);
 	dup->host     = g_strdup (uri->host);
 	dup->port     = uri->port;
 	dup->path     = g_strdup (uri->path);
@@ -393,27 +396,20 @@ soup_uri_copy (const SoupUri *uri)
 	return dup;
 }
 
-/**
- * soup_uri_copy_root:
- * @uri: a #SoupUri
- *
- * Copies the protocol, host, and port of @uri into a new #SoupUri
- * (all other fields in the new URI will be empty.)
- *
- * Return value: a partial copy of @uri, which must be freed with
- * soup_uri_free()
- **/
-SoupUri *
-soup_uri_copy_root (const SoupUri *uri)
+/* Temporarily still used by SoupSession, but no longer public */
+SoupURI *soup_uri_copy_root (const SoupURI *uri);
+
+SoupURI *
+soup_uri_copy_root (const SoupURI *uri)
 {
-	SoupUri *dup;
+	SoupURI *dup;
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	dup = g_new0 (SoupUri, 1);
-	dup->protocol = uri->protocol;
-	dup->host     = g_strdup (uri->host);
-	dup->port     = uri->port;
+	dup = g_slice_new0 (SoupURI);
+	dup->scheme = uri->scheme;
+	dup->host   = g_strdup (uri->host);
+	dup->port   = uri->port;
 
 	return dup;
 }
@@ -430,23 +426,23 @@ parts_equal (const char *one, const char *two, gboolean insensitive)
 
 /**
  * soup_uri_equal:
- * @uri1: a #SoupUri
- * @uri2: another #SoupUri
+ * @uri1: a #SoupURI
+ * @uri2: another #SoupURI
  *
  * Tests whether or not @uri1 and @uri2 are equal in all parts
  *
  * Return value: %TRUE or %FALSE
  **/
 gboolean 
-soup_uri_equal (const SoupUri *uri1, const SoupUri *uri2)
+soup_uri_equal (const SoupURI *uri1, const SoupURI *uri2)
 {
-	if (uri1->protocol != uri2->protocol                 ||
-	    uri1->port     != uri2->port                     ||
-	    !parts_equal (uri1->user, uri2->user, FALSE)     ||
-	    !parts_equal (uri1->passwd, uri2->passwd, FALSE) ||
-	    !parts_equal (uri1->host, uri2->host, TRUE)      ||
-	    !parts_equal (uri1->path, uri2->path, FALSE)     ||
-	    !parts_equal (uri1->query, uri2->query, FALSE)   ||
+	if (uri1->scheme != uri2->scheme                         ||
+	    uri1->port   != uri2->port                           ||
+	    !parts_equal (uri1->user, uri2->user, FALSE)         ||
+	    !parts_equal (uri1->password, uri2->password, FALSE) ||
+	    !parts_equal (uri1->host, uri2->host, TRUE)          ||
+	    !parts_equal (uri1->path, uri2->path, FALSE)         ||
+	    !parts_equal (uri1->query, uri2->query, FALSE)       ||
 	    !parts_equal (uri1->fragment, uri2->fragment, FALSE))
 		return FALSE;
 
@@ -455,23 +451,23 @@ soup_uri_equal (const SoupUri *uri1, const SoupUri *uri2)
 
 /**
  * soup_uri_free:
- * @uri: a #SoupUri
+ * @uri: a #SoupURI
  *
  * Frees @uri.
  **/
 void
-soup_uri_free (SoupUri *uri)
+soup_uri_free (SoupURI *uri)
 {
 	g_return_if_fail (uri != NULL);
 
 	g_free (uri->user);
-	g_free (uri->passwd);
+	g_free (uri->password);
 	g_free (uri->host);
 	g_free (uri->path);
 	g_free (uri->query);
 	g_free (uri->fragment);
 
-	g_free (uri);
+	g_slice_free (SoupURI, uri);
 }
 
 /* From RFC 3986 */
@@ -613,17 +609,46 @@ soup_uri_normalize (char *part, const char *unescape_extra)
 	return TRUE;
 }
 
+
 /**
  * soup_uri_uses_default_port:
- * @uri: a #SoupUri
+ * @uri: a #SoupURI
  *
- * Tests if @uri uses the default port for its protocol. (Eg, 80 for
+ * Tests if @uri uses the default port for its scheme. (Eg, 80 for
  * http.)
  *
  * Return value: %TRUE or %FALSE
  **/
 gboolean
-soup_uri_uses_default_port (const SoupUri *uri)
+soup_uri_uses_default_port (const SoupURI *uri)
 {
-	return uri->port == soup_protocol_default_port (uri->protocol);
+	return uri->port == soup_scheme_default_port (uri->scheme);
+}
+
+/**
+ * soup_uri_is_https:
+ * @uri: a #SoupURI
+ *
+ * Tests if @uri uses the "https" scheme.
+ *
+ * Return value: %TRUE or %FALSE
+ **/
+gboolean
+soup_uri_is_https (const SoupURI *uri)
+{
+	return https_scheme && uri->scheme == https_scheme;
+}
+
+GType
+soup_uri_get_type (void)
+{
+	static GType type = 0;
+
+	if (G_UNLIKELY (type == 0)) {
+		type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupURI"),
+			(GBoxedCopyFunc)soup_uri_copy,
+			(GBoxedFreeFunc)soup_uri_free);
+	}
+	return type;
 }

@@ -194,10 +194,10 @@ ntlm_response_check (SoupMessage *msg, gpointer user_data)
 }
 
 static int
-do_message (SoupSession *session, SoupUri *base_uri, const char *path,
+do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	    gboolean get_prompt, gboolean do_ntlm, guint status_code)
 {
-	SoupUri *uri;
+	SoupURI *uri;
 	SoupMessage *msg;
 	NTLMState state = { FALSE, FALSE, FALSE, FALSE };
 	int errors = 0;
@@ -278,7 +278,7 @@ do_message (SoupSession *session, SoupUri *base_uri, const char *path,
 }
 
 static int
-do_ntlm_round (SoupUri *base_uri, const char *user)
+do_ntlm_round (SoupURI *base_uri, const char *user)
 {
 	SoupSession *session;
 	int errors = 0;
@@ -324,7 +324,7 @@ do_ntlm_round (SoupUri *base_uri, const char *user)
 }
 
 static int
-do_ntlm_tests (SoupUri *base_uri)
+do_ntlm_tests (SoupURI *base_uri)
 {
 	int errors = 0;
 
@@ -352,7 +352,7 @@ main (int argc, char **argv)
 	SoupServer *server;
 	int opt;
 	GHashTable *connections;
-	SoupUri *uri;
+	SoupURI *uri;
 	int errors;
 
 	g_type_init ();
@@ -385,9 +385,7 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	uri = g_new0 (SoupUri, 1);
-	uri->protocol = SOUP_PROTOCOL_HTTP;
-	uri->host = g_strdup ("localhost");
+	uri = soup_uri_new ("http://localhost/");
 	uri->port = soup_server_get_port (server);
 	errors = do_ntlm_tests (uri);
 	soup_uri_free (uri);

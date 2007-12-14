@@ -24,7 +24,7 @@ typedef struct SoupSession           SoupSession;
 typedef struct SoupSessionAsync      SoupSessionAsync;
 typedef struct SoupSessionSync       SoupSessionSync;
 typedef struct SoupSocket            SoupSocket;
-typedef struct SoupUri               SoupUri;
+typedef struct SoupURI               SoupURI;
 
 G_END_DECLS
 

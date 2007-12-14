@@ -94,7 +94,7 @@ usage (void)
 int
 main (int argc, char **argv)
 {
-	SoupUri *proxy = NULL;
+	SoupURI *proxy = NULL;
 	SoupSoapMessage *msg;
 	int opt;
 

@@ -22,7 +22,7 @@
 #include "soup-uri.h"
 
 static void construct (SoupAuth *auth, GHashTable *auth_params);
-static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
+static GSList *get_protection_space (SoupAuth *auth, const SoupURI *source_uri);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
@@ -178,11 +178,11 @@ construct (SoupAuth *auth, GHashTable *auth_params)
 }
 
 static GSList *
-get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
+get_protection_space (SoupAuth *auth, const SoupURI *source_uri)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	GSList *space = NULL;
-	SoupUri *uri;
+	SoupURI *uri;
 	char **dvec, *d, *dir, *slash;
 	int dix;
 
@@ -200,7 +200,7 @@ get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
 			dir = g_strdup (d);
 		else {
 			uri = soup_uri_new (d);
-			if (uri && uri->protocol == source_uri->protocol &&
+			if (uri && uri->scheme == source_uri->scheme &&
 			    uri->port == source_uri->port &&
 			    !strcmp (uri->host, source_uri->host))
 				dir = g_strdup (uri->path);
@@ -282,7 +282,7 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 	char hex_a2[33], o[33];
 	SoupMD5Context md5;
 	char *url;
-	const SoupUri *uri;
+	const SoupURI *uri;
 
 	uri = soup_message_get_uri (msg);
 	g_return_val_if_fail (uri != NULL, NULL);
@@ -351,7 +351,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	char *nc;
 	char *url;
 	char *out;
-	const SoupUri *uri;
+	const SoupURI *uri;
 
 	uri = soup_message_get_uri (msg);
 	g_return_val_if_fail (uri != NULL, NULL);

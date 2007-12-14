@@ -99,7 +99,7 @@ soup_soap_message_new (const char *method, const char *uri_string,
 		       const char *env_prefix, const char *env_uri)
 {
 	SoupSoapMessage *msg;
-	SoupUri *uri;
+	SoupURI *uri;
 
 	uri = soup_uri_new (uri_string);
 	if (!uri)
@@ -116,7 +116,7 @@ soup_soap_message_new (const char *method, const char *uri_string,
 /**
  * soup_soap_message_new_from_uri:
  * @method: the HTTP method for the created request.
- * @uri: the destination endpoint (as a #SoupUri).
+ * @uri: the destination endpoint (as a #SoupURI).
  * @standalone: ??? FIXME
  * @xml_encoding: ??? FIXME
  * @env_prefix: ??? FIXME
@@ -127,7 +127,7 @@ soup_soap_message_new (const char *method, const char *uri_string,
  * Returns: the new #SoupSoapMessage
  */
 SoupSoapMessage *
-soup_soap_message_new_from_uri (const char *method, const SoupUri *uri,
+soup_soap_message_new_from_uri (const char *method, const SoupURI *uri,
 				gboolean standalone, const char *xml_encoding,
 				const char *env_prefix, const char *env_uri)
 {
@@ -137,7 +137,7 @@ soup_soap_message_new_from_uri (const char *method, const SoupUri *uri,
 	msg = g_object_new (SOUP_TYPE_SOAP_MESSAGE, NULL);
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 	SOUP_MESSAGE (msg)->method = g_intern_string (method);
-	soup_message_set_uri (SOUP_MESSAGE (msg), (const SoupUri *) uri);
+	soup_message_set_uri (SOUP_MESSAGE (msg), (const SoupURI *) uri);
 
 	priv->doc->standalone = standalone;
 

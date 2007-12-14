@@ -154,8 +154,8 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 
 	/* Check uri */
 	{
-		SoupUri *dig_uri;
-		const SoupUri *req_uri;
+		SoupURI *dig_uri;
+		const SoupURI *req_uri;
 
 		uri = soup_header_param_copy_token (tokens, "uri");
 		if (!uri)

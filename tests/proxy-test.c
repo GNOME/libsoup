@@ -73,7 +73,7 @@ static void
 test_url (const char *url, int proxy, guint expected, gboolean sync)
 {
 	SoupSession *session;
-	SoupUri *proxy_uri;
+	SoupURI *proxy_uri;
 	SoupMessage *msg;
 
 	dprintf ("  GET %s via %s\n", url, proxy_names[proxy]);

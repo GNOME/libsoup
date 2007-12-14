@@ -132,7 +132,7 @@ typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
 SoupMessage   *soup_message_new_from_uri        (const char        *method,
-						 const SoupUri     *uri);
+						 const SoupURI     *uri);
 
 void           soup_message_set_request         (SoupMessage       *msg,
 						 const char        *content_type,
@@ -164,9 +164,9 @@ SoupHTTPVersion  soup_message_get_http_version    (SoupMessage       *msg);
 
 gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 
-const SoupUri   *soup_message_get_uri             (SoupMessage       *msg);
+const SoupURI   *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
-						   const SoupUri     *uri);
+						   const SoupURI     *uri);
 
 SoupTransferEncoding soup_message_get_request_encoding  (SoupMessage *msg,
 							 guint       *content_length);

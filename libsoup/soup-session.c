@@ -25,7 +25,7 @@
 #include "soup-uri.h"
 
 typedef struct {
-	SoupUri    *root_uri;
+	SoupURI    *root_uri;
 
 	GSList     *connections;      /* CONTAINS: SoupConnection */
 	guint       num_conns;
@@ -35,7 +35,7 @@ typedef struct {
 } SoupSessionHost;
 
 typedef struct {
-	SoupUri *proxy_uri;
+	SoupURI *proxy_uri;
 	guint max_conns, max_conns_per_host;
 	gboolean use_ntlm;
 
@@ -44,7 +44,7 @@ typedef struct {
 
 	SoupMessageQueue *queue;
 
-	GHashTable *hosts; /* SoupUri -> SoupSessionHost */
+	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 
@@ -356,7 +356,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 }
 
 static gboolean
-safe_uri_equal (const SoupUri *a, const SoupUri *b)
+safe_uri_equal (const SoupURI *a, const SoupURI *b)
 {
 	if (!a && !b)
 		return TRUE;
@@ -511,18 +511,18 @@ soup_session_get_async_context (SoupSession *session)
 static guint
 host_uri_hash (gconstpointer key)
 {
-	const SoupUri *uri = key;
+	const SoupURI *uri = key;
 
-	return (uri->protocol << 16) + uri->port + g_str_hash (uri->host);
+	return GPOINTER_TO_UINT (uri->scheme) + uri->port + g_str_hash (uri->host);
 }
 
 static gboolean
 host_uri_equal (gconstpointer v1, gconstpointer v2)
 {
-	const SoupUri *one = v1;
-	const SoupUri *two = v2;
+	const SoupURI *one = v1;
+	const SoupURI *two = v2;
 
-	if (one->protocol != two->protocol)
+	if (one->scheme != two->scheme)
 		return FALSE;
 	if (one->port != two->port)
 		return FALSE;
@@ -530,8 +530,11 @@ host_uri_equal (gconstpointer v1, gconstpointer v2)
 	return strcmp (one->host, two->host) == 0;
 }
 
+/* temporary until we fix this to index hosts by SoupAddress */
+extern SoupURI *soup_uri_copy_root (const SoupURI *uri);
+
 static SoupSessionHost *
-soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
+soup_session_host_new (SoupSession *session, const SoupURI *source_uri)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
@@ -539,8 +542,7 @@ soup_session_host_new (SoupSession *session, const SoupUri *source_uri)
 	host = g_new0 (SoupSessionHost, 1);
 	host->root_uri = soup_uri_copy_root (source_uri);
 
-	if (host->root_uri->protocol == SOUP_PROTOCOL_HTTPS &&
-	    !priv->ssl_creds) {
+	if (soup_uri_is_https (host->root_uri) && !priv->ssl_creds) {
 		priv->ssl_creds =
 			soup_ssl_get_client_credentials (priv->ssl_ca_file);
 	}
@@ -557,7 +559,7 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	const SoupUri *source = soup_message_get_uri (msg);
+	const SoupURI *source = soup_message_get_uri (msg);
 
 	host = g_hash_table_lookup (priv->hosts, source);
 	if (host)
@@ -691,7 +693,7 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 		   gboolean proxy)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	const SoupUri *uri;
+	const SoupURI *uri;
 	char *username = NULL, *password = NULL;
 
 	if (proxy)
@@ -699,8 +701,8 @@ authenticate_auth (SoupSession *session, SoupAuth *auth,
 	else
 		uri = soup_message_get_uri (msg);
 
-	if (uri->passwd && !prior_auth_failed) {
-		soup_auth_authenticate (auth, uri->user, uri->passwd);
+	if (uri->password && !prior_auth_failed) {
+		soup_auth_authenticate (auth, uri->user, uri->password);
 		return TRUE;
 	}
 
@@ -854,7 +856,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
 	const char *new_loc;
-	SoupUri *new_uri;
+	SoupURI *new_uri;
 
 	new_loc = soup_message_headers_find (msg->response_headers, "Location");
 	if (!new_loc)

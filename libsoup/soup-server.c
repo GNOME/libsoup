@@ -306,18 +306,15 @@ soup_server_get_port (SoupServer *server)
 	return SOUP_SERVER_GET_PRIVATE (server)->port;
 }
 
-SoupProtocol
-soup_server_get_protocol (SoupServer *server)
+gboolean
+soup_server_is_https (SoupServer *server)
 {
 	SoupServerPrivate *priv;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (priv->ssl_cert_file && priv->ssl_key_file)
-		return SOUP_PROTOCOL_HTTPS;
-	else
-		return SOUP_PROTOCOL_HTTP;
+	return (priv->ssl_cert_file && priv->ssl_key_file);
 }
 
 SoupSocket *
@@ -418,7 +415,7 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 	}
 
 	if (hand->callback) {
-		const SoupUri *uri = soup_message_get_uri (req);
+		const SoupURI *uri = soup_message_get_uri (req);
 		SoupServerContext ctx;
 
 		ctx.msg       = req;

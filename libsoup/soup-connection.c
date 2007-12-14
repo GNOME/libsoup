@@ -42,7 +42,7 @@ typedef struct {
 	 * connected to, which will be proxy_uri if there's a proxy
 	 * and origin_uri if not.
 	 */
-	SoupUri     *proxy_uri, *origin_uri, *conn_uri;
+	SoupURI     *proxy_uri, *origin_uri, *conn_uri;
 	gpointer     ssl_creds;
 
 	SoupConnectionMode  mode;
@@ -281,7 +281,7 @@ set_property (GObject *object, guint prop_id,
 		if (priv->proxy_uri) {
 			priv->conn_uri = priv->proxy_uri;
 			if (priv->origin_uri &&
-			    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS)
+			    soup_uri_is_https (priv->origin_uri))
 				priv->mode = SOUP_CONNECTION_MODE_TUNNEL;
 			else
 				priv->mode = SOUP_CONNECTION_MODE_PROXY;
@@ -455,7 +455,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
 
-	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (soup_uri_is_https (priv->conn_uri)) {
 		if (!soup_socket_start_ssl (sock)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
@@ -562,7 +562,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
-	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
+	if (soup_uri_is_https (priv->conn_uri)) {
 		if (!soup_socket_start_ssl (priv->socket)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;

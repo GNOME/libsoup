@@ -70,7 +70,7 @@ struct SoupServerHandler {
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
-SoupProtocol       soup_server_get_protocol   (SoupServer            *serv);
+gboolean           soup_server_is_https       (SoupServer            *serv);
 guint              soup_server_get_port       (SoupServer            *serv);
 
 SoupSocket        *soup_server_get_listener   (SoupServer            *serv);

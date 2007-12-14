@@ -284,7 +284,7 @@ SoupMessage *
 soup_message_new (const char *method, const char *uri_string)
 {
 	SoupMessage *msg;
-	SoupUri *uri;
+	SoupURI *uri;
 
 	g_return_val_if_fail (method != NULL, NULL);
 	g_return_val_if_fail (uri_string != NULL, NULL);
@@ -308,14 +308,14 @@ soup_message_new (const char *method, const char *uri_string)
 /**
  * soup_message_new_from_uri:
  * @method: the HTTP method for the created request
- * @uri: the destination endpoint (as a #SoupUri)
+ * @uri: the destination endpoint (as a #SoupURI)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
  * Return value: the new #SoupMessage
  */
 SoupMessage *
-soup_message_new_from_uri (const char *method, const SoupUri *uri)
+soup_message_new_from_uri (const char *method, const SoupURI *uri)
 {
 	SoupMessage *msg;
 
@@ -819,14 +819,14 @@ soup_message_is_keepalive (SoupMessage *msg)
 /**
  * soup_message_set_uri:
  * @msg: a #SoupMessage
- * @uri: the new #SoupUri
+ * @uri: the new #SoupURI
  *
  * Sets @msg's URI to @uri. If @msg has already been sent and you want
  * to re-send it with the new URI, you need to call
  * soup_session_requeue_message().
  **/
 void
-soup_message_set_uri (SoupMessage *msg, const SoupUri *uri)
+soup_message_set_uri (SoupMessage *msg, const SoupURI *uri)
 {
 	SoupMessagePrivate *priv;
 
@@ -846,7 +846,7 @@ soup_message_set_uri (SoupMessage *msg, const SoupUri *uri)
  *
  * Return value: the URI @msg is targeted for.
  **/
-const SoupUri *
+const SoupURI *
 soup_message_get_uri (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);

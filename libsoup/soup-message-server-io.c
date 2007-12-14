@@ -26,7 +26,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       gpointer sock)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupUri *uri;
+	SoupURI *uri;
 	char *req_method, *req_path, *url;
 	const char *expect, *req_host;
 	SoupServer *server;
@@ -65,7 +65,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 
 	if (*req_path != '/') {
 		/* Check for absolute URI */
-		SoupUri *absolute;
+		SoupURI *absolute;
 
 		absolute = soup_uri_new (req_path);
 		if (absolute) {
@@ -77,7 +77,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		}
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s%s",
-				       soup_server_get_protocol (server) == SOUP_PROTOCOL_HTTPS ? "https" : "http",
+				       soup_server_is_https (server) ? "https" : "http",
 				       req_host, req_path);
 	} else if (priv->http_version == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
@@ -85,7 +85,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		const char *host = soup_address_get_physical (addr);
 
 		url = g_strdup_printf ("%s://%s:%d%s",
-				       soup_server_get_protocol (server) == SOUP_PROTOCOL_HTTPS ? "https" : "http",
+				       soup_server_is_https (server) ? "https" : "http",
 				       host, soup_server_get_port (server),
 				       req_path);
 	} else {

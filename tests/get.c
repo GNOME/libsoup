@@ -24,18 +24,18 @@ GMainLoop *loop;
 gboolean recurse = FALSE, debug = FALSE;
 const char *method;
 char *base;
-SoupUri *base_uri;
+SoupURI *base_uri;
 int pending;
 GHashTable *fetched_urls;
 
 static GPtrArray *
-find_hrefs (const SoupUri *base, const char *body, int length)
+find_hrefs (const SoupURI *base, const char *body, int length)
 {
 	GPtrArray *hrefs = g_ptr_array_new ();
 	char *buf = g_strndup (body, length);
 	char *start = buf, *end;
 	char *href, *frag;
-	SoupUri *uri;
+	SoupURI *uri;
 
 	while ((start = strstr (start, "href"))) {
 		start += 4;
@@ -63,7 +63,7 @@ find_hrefs (const SoupUri *base, const char *body, int length)
 
 		if (!uri)
 			continue;
-		if (base->protocol != uri->protocol ||
+		if (base->scheme != uri->scheme ||
 		    base->port != uri->port ||
 		    g_ascii_strcasecmp (base->host, uri->host) != 0) {
 			soup_uri_free (uri);
@@ -111,7 +111,7 @@ get_url (const char *url)
 	char *url_to_get, *slash, *name;
 	SoupMessage *msg;
 	int fd, i;
-	SoupUri *uri;
+	SoupURI *uri;
 	GPtrArray *hrefs;
 	const char *header;
 
@@ -222,7 +222,7 @@ int
 main (int argc, char **argv)
 {
 	const char *cafile = NULL;
-	SoupUri *proxy = NULL;
+	SoupURI *proxy = NULL;
 	gboolean synchronous = FALSE;
 	int opt;
 

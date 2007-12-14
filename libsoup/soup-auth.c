@@ -242,7 +242,7 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  * soup_auth_free_protection_space().
  **/
 GSList *
-soup_auth_get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
+soup_auth_get_protection_space (SoupAuth *auth, const SoupURI *source_uri)
 {
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 	g_return_val_if_fail (source_uri != NULL, NULL);
