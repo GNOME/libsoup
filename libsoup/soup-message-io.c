@@ -169,7 +169,24 @@ soup_message_io_finished (SoupMessage *msg)
 static void io_read (SoupSocket *sock, SoupMessage *msg);
 
 static void
-io_error (SoupSocket *sock, SoupMessage *msg)
+io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
+{
+	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+		if (error && error->domain == SOUP_SSL_ERROR) {
+			soup_message_set_status_full (msg,
+						      SOUP_STATUS_SSL_FAILED,
+						      error->message);
+		} else
+			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+	}
+	if (error)
+		g_error_free (error);
+
+	soup_message_io_finished (msg);
+}
+
+static void
+io_disconnected (SoupSocket *sock, SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
@@ -182,19 +199,7 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 		return;
 	}
 
-	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
-		GError *err = g_object_get_data (G_OBJECT (sock),
-						 "SoupSocket-last_error");
-
-		if (err && err->domain == SOUP_SSL_ERROR) {
-			soup_message_set_status_full (msg,
-						      SOUP_STATUS_SSL_FAILED,
-						      err->message);
-		} else
-			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
-	}
-
-	soup_message_io_finished (msg);
+	io_error (sock, msg, NULL);
 }
 
 /* Reads data from io->sock into io->read_meta_buf up until @boundary.
@@ -221,12 +226,13 @@ read_metadata (SoupMessage *msg, const char *boundary)
 	guint boundary_len = strlen (boundary);
 	gsize nread;
 	gboolean done;
+	GError *error = NULL;
 
 	do {
 		status = soup_socket_read_until (io->sock, read_buf,
 						 sizeof (read_buf),
 						 boundary, boundary_len,
-						 &nread, &done);
+						 &nread, &done, &error);
 		switch (status) {
 		case SOUP_SOCKET_OK:
 			g_byte_array_append (io->read_meta_buf, read_buf, nread);
@@ -234,7 +240,7 @@ read_metadata (SoupMessage *msg, const char *boundary)
 
 		case SOUP_SOCKET_ERROR:
 		case SOUP_SOCKET_EOF:
-			io_error (io->sock, msg);
+			io_error (io->sock, msg, error);
 			return FALSE;
 
 		case SOUP_SOCKET_WOULD_BLOCK:
@@ -264,13 +270,15 @@ read_body_chunk (SoupMessage *msg)
 	guint len = sizeof (read_buf);
 	gboolean read_to_eof = (io->read_encoding == SOUP_ENCODING_EOF);
 	gsize nread;
+	GError *error = NULL;
 	SoupBuffer *buffer;
 
 	while (read_to_eof || io->read_length > 0) {
 		if (!read_to_eof)
 			len = MIN (len, io->read_length);
 
-		status = soup_socket_read (io->sock, read_buf, len, &nread);
+		status = soup_socket_read (io->sock, read_buf, len,
+					   &nread, &error);
 
 		switch (status) {
 		case SOUP_SOCKET_OK:
@@ -296,7 +304,7 @@ read_body_chunk (SoupMessage *msg)
 			/* else fall through */
 
 		case SOUP_SOCKET_ERROR:
-			io_error (io->sock, msg);
+			io_error (io->sock, msg, error);
 			return FALSE;
 
 		case SOUP_SOCKET_WOULD_BLOCK:
@@ -317,16 +325,17 @@ write_data (SoupMessage *msg, const char *data, guint len)
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	gsize nwrote;
+	GError *error = NULL;
 
 	while (len > io->written) {
 		status = soup_socket_write (io->sock,
 					    data + io->written,
 					    len - io->written,
-					    &nwrote);
+					    &nwrote, &error);
 		switch (status) {
 		case SOUP_SOCKET_EOF:
 		case SOUP_SOCKET_ERROR:
-			io_error (io->sock, msg);
+			io_error (io->sock, msg, error);
 			return FALSE;
 
 		case SOUP_SOCKET_WOULD_BLOCK:
@@ -748,7 +757,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_tag = g_signal_connect (io->sock, "writable",
 					  G_CALLBACK (io_write), msg);
 	io->err_tag   = g_signal_connect (io->sock, "disconnected",
-					  G_CALLBACK (io_error), msg);
+					  G_CALLBACK (io_disconnected), msg);
 
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;

@@ -51,7 +51,7 @@ main (int argc, char **argv)
 			exit (1);
 		}
 
-		soup_address_resolve_async (addr, resolve_callback, NULL);
+		soup_address_resolve_async (addr, NULL, resolve_callback, NULL);
 		nlookups++;
 	}
 

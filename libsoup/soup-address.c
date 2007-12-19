@@ -384,6 +384,7 @@ update_address (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
 /**
  * soup_address_resolve_async:
  * @addr: a #SoupAddress
+ * @async_context: the #GMainContext to call @callback from
  * @callback: callback to call with the result
  * @user_data: data for @callback
  *
@@ -394,27 +395,9 @@ update_address (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
  * resolution finishes (successfully or not).
  **/
 void
-soup_address_resolve_async (SoupAddress *addr,
+soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 			    SoupAddressCallback callback,
 			    gpointer user_data)
-{
-	soup_address_resolve_async_full (addr, NULL, callback, user_data);
-}
-
-/**
- * soup_address_resolve_async_full:
- * @addr: a #SoupAddress
- * @async_context: the #GMainContext to call @callback from
- * @callback: callback to call with the result
- * @user_data: data for @callback
- *
- * Like soup_address_resolve_async(), but calls @callback from
- * the given @async_context.
- **/
-void
-soup_address_resolve_async_full (SoupAddress *addr, GMainContext *async_context,
-				 SoupAddressCallback callback,
-				 gpointer user_data)
 {
 	SoupAddressPrivate *priv;
 

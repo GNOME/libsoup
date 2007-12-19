@@ -77,9 +77,6 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 						  guint                port);
 
 void             soup_address_resolve_async      (SoupAddress         *addr,
-						  SoupAddressCallback  callback,
-						  gpointer             user_data);
-void             soup_address_resolve_async_full (SoupAddress         *addr,
 						  GMainContext        *async_context,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);

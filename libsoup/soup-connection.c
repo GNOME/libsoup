@@ -510,14 +510,12 @@ soup_connection_connect_async (SoupConnection *conn,
 	}
 
 	addr = soup_address_new (priv->conn_uri->host, priv->conn_uri->port);
-
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
-	soup_socket_connect (priv->socket, addr);
-	soup_signal_connect_once (priv->socket, "connect_result",
-				  G_CALLBACK (socket_connect_result), conn);
+	soup_socket_connect_async (priv->socket, socket_connect_result, conn);
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
@@ -543,21 +541,20 @@ soup_connection_connect_sync (SoupConnection *conn)
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
 
+	addr = soup_address_new (priv->conn_uri->host,
+				 priv->conn_uri->port);
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->timeout,
 				 NULL);
 
-	addr = soup_address_new (priv->conn_uri->host,
-				 priv->conn_uri->port);
-
-	status = soup_socket_connect (priv->socket, addr);
+	status = soup_socket_connect_sync (priv->socket);
 	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
-
 		
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);

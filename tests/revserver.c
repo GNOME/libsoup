@@ -48,7 +48,8 @@ rev_write (SoupSocket *sock, GString *buf)
 	gsize nwrote;
 
 	do {
-		status = soup_socket_write (sock, buf->str, buf->len, &nwrote);
+		status = soup_socket_write (sock, buf->str, buf->len,
+					    &nwrote, NULL);
 		memmove (buf->str, buf->str + nwrote, buf->len - nwrote);
 		buf->len -= nwrote;
 	} while (status == SOUP_SOCKET_OK && buf->len);
@@ -82,7 +83,7 @@ rev_read (SoupSocket *sock, GString *buf)
 
 	do {
 		status = soup_socket_read_until (sock, tmp, sizeof (tmp),
-						 "\n", 1, &nread, &eol);
+						 "\n", 1, &nread, &eol, NULL);
 		if (status == SOUP_SOCKET_OK)
 			g_string_append_len (buf, tmp, nread);
 	} while (status == SOUP_SOCKET_OK && !eol);
@@ -168,13 +169,15 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	listener = soup_socket_server_new (addr, NULL,
-					   new_connection, NULL);
+	listener = soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, addr,
+				    NULL);
 	g_object_unref (addr);
-	if (!listener) {
+	if (!listener || !soup_socket_listen (listener)) {
 		fprintf (stderr, "Could not create listening socket\n");
 		exit (1);
 	}
+	g_signal_connect (listener, "new_connection",
+			  G_CALLBACK (new_connection), NULL);
 	printf ("Listening on port %d\n",
 		soup_address_get_port (
 			soup_socket_get_local_address (listener)));

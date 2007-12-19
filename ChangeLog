@@ -1,5 +1,27 @@
 2007-12-19  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-socket.c: Cleanup. Remove the "connect_result"
+	signal. Make local_address and remote_address
+	into (construct-only) properties.
+	(soup_socket_connect_async, soup_socket_connect_sync): Replace
+	soup_socket_connect. _async takes a callback+user_data (like the
+	old soup_socket_client_new_async), but doesn't implement the
+	callback in terms of a connect_result signal.
+	(soup_socket_client_new_async, soup_socket_client_new_sync): Gone.
+	(Unused since the async_context addition anyway). Replaced by the
+	new construct properties and connect methods.
+	(soup_socket_read, soup_socket_read_until, soup_socket_write):
+	Make these actually take a GError rather than doing an ugly hack
+	to preserve the old API.
+	(SOUP_SOCKET_FLAG_NODELAY, SOUP_SOCKET_FLAG_REUSEADDR)
+	(SOUP_SOCKET_FLAG_CLOEXEC): kill these off (all three are always
+	TRUE now); SoupSocket is libsoup's socket API; it's not
+	necessarily intended to be generically useful for everyone.
+
+	* *.c: Update for SoupSocket changes
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-server-message.c: Kill!
 
 	* libsoup/soup-message-server-io.c (parse_request_headers):

@@ -278,10 +278,11 @@ soup_server_new (const char *optname1, ...)
 	}
 
 	priv->listen_sock =
-		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->interface,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
-	if (!soup_socket_listen (priv->listen_sock, priv->interface)) {
+	if (!soup_socket_listen (priv->listen_sock)) {
 		g_object_unref (server);
 		return NULL;
 	}
