@@ -104,8 +104,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		soup_message_body_append_buffer (msg2->request_body, request);
 		soup_buffer_free (request);
 	}
-	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
-					  SOUP_TRANSFER_CHUNKED);
+	soup_message_headers_set_encoding (msg->response_headers,
+					   SOUP_ENCODING_CHUNKED);
 
 	g_signal_connect (msg2, "got_headers",
 			  G_CALLBACK (send_headers), msg);

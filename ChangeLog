@@ -1,5 +1,28 @@
 2007-12-19  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-headers.c: Add some more fields to
+	SoupMessageHeaders, and start caching the parsed values of certain
+	important headers.
+	(soup_message_headers_get/set_encoding): replaces old SoupMessage
+	methods, and only deals with the declared transfer encoding, not
+	the wire encoding.
+	(soup_message_headers_get/set_content_length): Handle
+	Content-Length.
+	(soup_message_headers_get_expectations): Handle Expect. (Replaces
+	the SOUP_MESSAGE_EXPECT_CONTINUE flag).
+
+	* libsoup/soup-message.c (soup_message_get_request_encoding):
+	(soup_message_get_response_encoding):
+	(soup_message_set_response_encoding): replaced by
+	SoupMessageHeaders methods.
+
+	* libsoup/soup-message-client-io.c:
+	* libsoup/soup-message-server-io.c:
+	* libsoup/soup-message-io.c: Update for SoupMessageHeaders changes
+	with encoding/content-length stuff.
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-body.c (SoupMessageBody): new opaque type
 	for request/response bodies allowing less hacky handling of
 	chunked encoding.

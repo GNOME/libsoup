@@ -84,8 +84,8 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		return;
 	}
 
-	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
-					  SOUP_TRANSFER_CHUNKED);
+	soup_message_headers_set_encoding (msg->response_headers,
+					   SOUP_ENCODING_CHUNKED);
 	g_object_ref (msg);
 	soup_server_pause_message (context->server, msg);
 

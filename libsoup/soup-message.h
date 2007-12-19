@@ -21,29 +21,6 @@ G_BEGIN_DECLS
 #define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
 
 /**
- * SoupTransferEncoding:
- * @SOUP_TRANSFER_UNKNOWN: unknown / error
- * @SOUP_TRANSFER_CHUNKED: chunked encoding (currently only supported
- * for response)
- * @SOUP_TRANSFER_CONTENT_LENGTH: Content-Length encoding
- * @SOUP_TRANSFER_BYTERANGES: multipart/byteranges (Reserved for future
- * use: NOT CURRENTLY IMPLEMENTED)
- * @SOUP_TRANSFER_NONE: no body is present (which is not the same as a
- * 0-length body, and only occurs in certain places)
- * @SOUP_TRANSFER_EOF: Response body ends when the connection is closed
- *
- * How the length of a request or response is to be encoded.
- **/
-typedef enum {
-	SOUP_TRANSFER_UNKNOWN = 0,
-	SOUP_TRANSFER_CHUNKED,
-	SOUP_TRANSFER_CONTENT_LENGTH,
-	SOUP_TRANSFER_BYTERANGES,
-	SOUP_TRANSFER_NONE,
-	SOUP_TRANSFER_EOF
-} SoupTransferEncoding;
-
-/**
  * SoupMessage:
  * @method: the HTTP method
  * @status_code: the HTTP status code
@@ -147,11 +124,6 @@ const SoupURI   *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   const SoupURI     *uri);
 
-SoupTransferEncoding soup_message_get_request_encoding  (SoupMessage *msg,
-							 guint       *content_length);
-SoupTransferEncoding soup_message_get_response_encoding (SoupMessage *msg,
-							 guint       *content_length);
-
 /**
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
@@ -161,10 +133,6 @@ SoupTransferEncoding soup_message_get_response_encoding (SoupMessage *msg,
  * %response will still be empty after the message is complete. You
  * can use this to save memory if you expect the response to be large
  * and you are able to process it a chunk at a time.
- * @SOUP_MESSAGE_EXPECT_CONTINUE: This will cause an "Expect:
- * 100-continue" header to be added to the outgoing request, giving
- * the server the opportunity to reject the message (eg, with a 401
- * Unauthorized) before the full request body is sent.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -172,7 +140,6 @@ SoupTransferEncoding soup_message_get_response_encoding (SoupMessage *msg,
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
-	SOUP_MESSAGE_EXPECT_CONTINUE  = (1 << 4)
 } SoupMessageFlags;
 
 void           soup_message_set_flags           (SoupMessage        *msg,

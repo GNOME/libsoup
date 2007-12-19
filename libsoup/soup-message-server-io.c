@@ -22,13 +22,12 @@
 
 static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
-		       SoupTransferEncoding *encoding, guint *content_len,
-		       gpointer sock)
+		       SoupEncoding *encoding, gpointer sock)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupURI *uri;
 	char *req_method, *req_path, *url;
-	const char *expect, *req_host;
+	const char *req_host;
 	SoupServer *server;
 	guint status;
 
@@ -45,16 +44,11 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		      NULL);
 	g_free (req_method);
 
-	expect = soup_message_headers_find (msg->request_headers, "Expect");
-	if (expect && !strcmp (expect, "100-continue"))
-		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
+
 
 	/* Handle request body encoding */
-	*encoding = soup_message_get_request_encoding (msg, content_len);
-	if (*encoding == SOUP_TRANSFER_NONE) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = 0;
-	} else if (*encoding == SOUP_TRANSFER_UNKNOWN) {
+	*encoding = soup_message_headers_get_encoding (msg->request_headers);
+	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
 		if (soup_message_headers_find (msg->request_headers, "Transfer-Encoding"))
 			return SOUP_STATUS_NOT_IMPLEMENTED;
 		else
@@ -116,28 +110,34 @@ write_header (const char *name, const char *value, gpointer headers)
 
 static void
 get_response_headers (SoupMessage *msg, GString *headers,
-		      SoupTransferEncoding *encoding,
-		      gpointer user_data)
+		      SoupEncoding *encoding, gpointer user_data)
 {
-	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
-	SoupTransferEncoding claimed_encoding;
+	SoupEncoding claimed_encoding;
 
 	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
 				msg->status_code, msg->reason_phrase);
 
+	claimed_encoding = soup_message_headers_get_encoding (msg->response_headers);
+	if ((msg->method == SOUP_METHOD_HEAD ||
+	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
+	     msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
+	     SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) ||
+	    (msg->method == SOUP_METHOD_CONNECT &&
+	     SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)))
+		*encoding = SOUP_ENCODING_NONE;
+	else
+		*encoding = claimed_encoding;
+
+	if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+	    !soup_message_headers_get_content_length (msg->response_headers)) {
+		gsize content_length = soup_message_body_get_length (msg->response_body);
+
+		soup_message_headers_set_content_length (msg->response_headers,
+							 content_length);
+	}
+
 	soup_message_headers_foreach (msg->response_headers,
 				      write_header, headers);
-
-	*encoding = soup_message_get_response_encoding (msg, NULL);
-
-	claimed_encoding = soup_server_message_get_encoding (smsg);
-	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH &&
-	    !soup_message_headers_find (msg->response_headers, "Content-Length")) {
-		g_string_append_printf (headers, "Content-Length: %lu\r\n",
-					(unsigned long)soup_message_body_get_length (msg->response_body));
-	} else if (claimed_encoding == SOUP_TRANSFER_CHUNKED)
-		g_string_append (headers, "Transfer-Encoding: chunked\r\n");
-
 	g_string_append (headers, "\r\n");
 }
 

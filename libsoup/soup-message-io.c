@@ -48,13 +48,13 @@ typedef struct {
 	SoupMessageIOMode     mode;
 
 	SoupMessageIOState    read_state;
-	SoupTransferEncoding  read_encoding;
+	SoupEncoding          read_encoding;
 	GByteArray           *read_meta_buf;
 	SoupMessageBody      *read_body;
 	guint                 read_length;
 
 	SoupMessageIOState    write_state;
-	SoupTransferEncoding  write_encoding;
+	SoupEncoding          write_encoding;
 	GString              *write_buf;
 	SoupMessageBody      *write_body;
 	SoupBuffer           *write_chunk;
@@ -176,7 +176,7 @@ io_error (SoupSocket *sock, SoupMessage *msg)
 
 	/* Closing the connection to signify EOF is sometimes ok */
 	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
-	    io->read_encoding == SOUP_TRANSFER_EOF) {
+	    io->read_encoding == SOUP_ENCODING_EOF) {
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		io_read (sock, msg);
 		return;
@@ -262,7 +262,7 @@ read_body_chunk (SoupMessage *msg)
 	SoupSocketIOStatus status;
 	guchar read_buf[RESPONSE_BLOCK_SIZE];
 	guint len = sizeof (read_buf);
-	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_EOF);
+	gboolean read_to_eof = (io->read_encoding == SOUP_ENCODING_EOF);
 	gsize nread;
 	SoupBuffer *buffer;
 
@@ -343,12 +343,10 @@ write_data (SoupMessage *msg, const char *data, guint len)
 }
 
 static inline SoupMessageIOState
-io_body_state (SoupTransferEncoding encoding)
+io_body_state (SoupEncoding encoding)
 {
-	if (encoding == SOUP_TRANSFER_CHUNKED)
+	if (encoding == SOUP_ENCODING_CHUNKED)
 		return SOUP_MESSAGE_IO_STATE_CHUNK_SIZE;
-	else if (encoding == SOUP_TRANSFER_NONE)
-		return SOUP_MESSAGE_IO_STATE_FINISHING;
 	else
 		return SOUP_MESSAGE_IO_STATE_BODY;
 }
@@ -423,7 +421,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 */
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-			   priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE) {
+			   soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE) {
 			/* Need to wait for the Continue response */
 			io->write_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
@@ -578,7 +576,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		status = io->parse_headers_cb (msg, (char *)io->read_meta_buf->data,
 					       io->read_meta_buf->len,
 					       &io->read_encoding,
-					       &io->read_length,
 					       io->user_data);
 		g_byte_array_set_size (io->read_meta_buf, 0);
 
@@ -597,6 +594,13 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			break;
 		}
 
+		if (io->read_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
+			SoupMessageHeaders *hdrs =
+				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
+				msg->response_headers : msg->request_headers;
+			io->read_length = soup_message_headers_get_content_length (hdrs);
+		}
+
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
 			if (msg->status_code == SOUP_STATUS_CONTINUE &&
@@ -611,7 +615,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 				io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&
-			   (priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
+			   soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE) {
 			/* The client requested a Continue response. */
 			soup_message_set_status (msg, SOUP_STATUS_CONTINUE);
 			
@@ -621,7 +625,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			io->read_state = io_body_state (io->read_encoding);
 
 		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code) &&
-		    !(priv->msg_flags & SOUP_MESSAGE_EXPECT_CONTINUE)) {
+		    !(soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE)) {
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 			soup_message_got_informational (msg);
 			soup_message_cleanup_response (msg);
@@ -735,9 +739,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->get_headers_cb   = get_headers_cb;
 	io->parse_headers_cb = parse_headers_cb;
 	io->user_data        = user_data;
-
-	io->read_encoding    = SOUP_TRANSFER_UNKNOWN;
-	io->write_encoding   = SOUP_TRANSFER_UNKNOWN;
 
 	io->read_meta_buf    = g_byte_array_new ();
 	io->write_buf        = g_string_new (NULL);

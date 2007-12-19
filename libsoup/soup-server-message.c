@@ -20,8 +20,6 @@
 typedef struct {
 	SoupServer *server;
 
-	SoupTransferEncoding encoding;
-
 } SoupServerMessagePrivate;
 #define SOUP_SERVER_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER_MESSAGE, SoupServerMessagePrivate))
 
@@ -30,7 +28,8 @@ G_DEFINE_TYPE (SoupServerMessage, soup_server_message, SOUP_TYPE_MESSAGE)
 static void
 soup_server_message_init (SoupServerMessage *smsg)
 {
-	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+	soup_message_headers_set_encoding (SOUP_MESSAGE (smsg)->response_headers,
+					   SOUP_ENCODING_CONTENT_LENGTH);
 }
 
 static void
@@ -59,25 +58,4 @@ soup_server_message_get_server (SoupServerMessage *smsg)
 	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), NULL);
 
 	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->server;
-}
-
-void
-soup_server_message_set_encoding (SoupServerMessage *smsg,
-				  SoupTransferEncoding encoding)
-{
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (smsg));
-
-	if (encoding < SOUP_TRANSFER_UNKNOWN ||
-	    encoding > SOUP_TRANSFER_CONTENT_LENGTH)
-		return;
-
-	SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding = encoding;
-}
-
-SoupTransferEncoding
-soup_server_message_get_encoding (SoupServerMessage *smsg)
-{
-	g_return_val_if_fail (SOUP_IS_SERVER_MESSAGE (smsg), SOUP_TRANSFER_UNKNOWN);
-
-	return SOUP_SERVER_MESSAGE_GET_PRIVATE (smsg)->encoding;
 }

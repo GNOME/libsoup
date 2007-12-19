@@ -20,8 +20,7 @@
 static guint
 parse_response_headers (SoupMessage *req,
 			char *headers, guint headers_len,
-			SoupTransferEncoding *encoding,
-			guint *content_len,
+			SoupEncoding *encoding,
 			gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
@@ -39,11 +38,17 @@ parse_response_headers (SoupMessage *req,
 	if (version < priv->http_version)
 		priv->http_version = version;
 
-	*encoding = soup_message_get_response_encoding (req, content_len);
-	if (*encoding == SOUP_TRANSFER_NONE) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = 0;
-	} else if (*encoding == SOUP_TRANSFER_UNKNOWN)
+	if ((req->method == SOUP_METHOD_HEAD ||
+	     req->status_code  == SOUP_STATUS_NO_CONTENT ||
+	     req->status_code  == SOUP_STATUS_NOT_MODIFIED ||
+	     SOUP_STATUS_IS_INFORMATIONAL (req->status_code)) ||
+	    (req->method == SOUP_METHOD_CONNECT &&
+	     SOUP_STATUS_IS_SUCCESSFUL (req->status_code)))
+		*encoding = SOUP_ENCODING_NONE;
+	else
+		*encoding = soup_message_headers_get_encoding (req->response_headers);
+
+	if (*encoding == SOUP_ENCODING_UNRECOGNIZED)
 		return SOUP_STATUS_MALFORMED;
 
 	return SOUP_STATUS_OK;
@@ -58,13 +63,11 @@ add_header (const char *name, const char *value, gpointer data)
 
 static void
 get_request_headers (SoupMessage *req, GString *header,
-		     SoupTransferEncoding *encoding,
-		     gpointer user_data)
+		     SoupEncoding *encoding, gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	const SoupURI *uri = soup_message_get_uri (req);
-	const char *expect;
 	char *uri_string;
 	gsize content_length;
 
@@ -94,20 +97,15 @@ get_request_headers (SoupMessage *req, GString *header,
 	}
 	g_free (uri_string);
 
+	*encoding = soup_message_headers_get_encoding (req->request_headers);
 	content_length = soup_message_body_get_length (req->request_body);
-	if (content_length > 0) {
-		g_string_append_printf (header, "Content-Length: %lu\r\n",
-					(unsigned long)content_length);
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+	if (*encoding != SOUP_ENCODING_CHUNKED && content_length > 0) {
+		soup_message_headers_set_content_length (req->request_headers,
+							 content_length);
 	}
 
 	soup_message_headers_foreach (req->request_headers, add_header, header);
 	g_string_append (header, "\r\n");
-
-	/* FIXME: parsing */
-	expect = soup_message_headers_find (req->request_headers, "Expect");
-	if (expect && !g_ascii_strcasecmp (expect, "100-continue"))
-		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 
 void

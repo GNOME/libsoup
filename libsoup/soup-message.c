@@ -72,9 +72,9 @@ soup_message_init (SoupMessage *msg)
 	priv->http_version = SOUP_HTTP_1_1;
 
 	msg->request_body = soup_message_body_new ();
-	msg->request_headers = soup_message_headers_new ();
+	msg->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
 	msg->response_body = soup_message_body_new ();
-	msg->response_headers = soup_message_headers_new ();
+	msg->response_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
 }
 
 static void
@@ -973,7 +973,7 @@ soup_message_is_keepalive (SoupMessage *msg)
 			return FALSE;
 
 		/* But not if the server sent a terminate-by-EOF response */
-		if (soup_message_get_response_encoding (msg, NULL) == SOUP_TRANSFER_EOF)
+		if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_EOF)
 			return FALSE;
 
 		return TRUE;
@@ -1016,129 +1016,6 @@ soup_message_get_uri (SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->uri;
-}
-
-/**
- * soup_message_get_request_encoding:
- * @msg: a #SoupMessage
- * @content_length: a pointer to store the Content-Length in (or
- * %NULL).
- *
- * Gets @msg's request encoding. For an outgoing (client) request,
- * this is only valid after the message has been fully set up (from
- * the library's perspective, that means not until the message has
- * been queued). For an incoming (server) request, this is valid after
- * the request headers have been read and @msg->request_headers filled
- * in.
- *
- * Return value: the request encoding (which cannot be
- * %SOUP_TRANSFER_UNKNOWN or %SOUP_TRANSFER_EOF). If it is
- * %SOUP_TRANSFER_CONTENT_LENGTH, *@content_length will be set to the
- * request body's length.
- **/
-SoupTransferEncoding
-soup_message_get_request_encoding  (SoupMessage *msg, guint *content_length)
-{
-	if (SOUP_IS_SERVER_MESSAGE (msg)) {
-		const char *enc, *len;
-
-		enc = soup_message_headers_find (msg->request_headers,
-						 "Transfer-Encoding");
-		len = soup_message_headers_find (msg->request_headers,
-						 "Content-Length");
-		if (enc) {
-			if (g_ascii_strcasecmp (enc, "chunked") == 0)
-				return SOUP_TRANSFER_CHUNKED;
-			else
-				return SOUP_TRANSFER_UNKNOWN;
-		} else if (len) {
-			int lval = atoi (len);
-
-			if (lval < 0)
-				return SOUP_TRANSFER_UNKNOWN;
-			else {
-				if (content_length)
-					*content_length = lval;
-				return SOUP_TRANSFER_CONTENT_LENGTH;
-			}
-		} else
-			return SOUP_TRANSFER_NONE;
-	} else {
-		gsize length = soup_message_body_get_length (msg->request_body);
-
-		if (length) {
-			if (content_length)
-				*content_length = length;
-			return SOUP_TRANSFER_CONTENT_LENGTH;
-		} else
-			return SOUP_TRANSFER_NONE;
-	}
-}
-
-/**
- * soup_message_get_response_encoding:
- * @msg: a #SoupMessage
- * @content_length: a pointer to store the Content-Length in (or
- * %NULL).
- *
- * Gets @msg's response encoding. For an outgoing (client) request,
- * this is only valid after the response headers have been read and
- * @msg->response_headers filled in. For an incoming (server) request,
- * this is valid after the server handler has run.
- *
- * Note that the returned value is the encoding actually used on the
- * wire; this will not agree with the response headers in some cases
- * (eg, a HEAD response may have a Content-Length header, but will
- * still be considered %SOUP_TRANSFER_NONE by this function).
- *
- * Return value: the response encoding (which will not be
- * %SOUP_TRANSFER_UNKNOWN). If it is %SOUP_TRANSFER_CONTENT_LENGTH,
- * *@content_length will be set to the response body's length.
- **/
-SoupTransferEncoding
-soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
-{
-	if (msg->method == SOUP_METHOD_HEAD ||
-	    msg->status_code  == SOUP_STATUS_NO_CONTENT ||
-	    msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
-	    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
-		return SOUP_TRANSFER_NONE;
-
-	if (SOUP_IS_SERVER_MESSAGE (msg)) {
-		SoupTransferEncoding enc =
-			soup_server_message_get_encoding ((SoupServerMessage *)msg);
-		if (enc == SOUP_TRANSFER_UNKNOWN)
-			enc = SOUP_TRANSFER_CONTENT_LENGTH;
-		if (enc == SOUP_TRANSFER_CONTENT_LENGTH && content_length)
-			*content_length = soup_message_body_get_length (msg->response_body);
-		return enc;
-	} else {
-		const char *enc, *len;
-
-		enc = soup_message_headers_find (msg->response_headers,
-						 "Transfer-Encoding");
-		len = soup_message_headers_find (msg->response_headers,
-						 "Content-Length");
-		if (enc) {
-			if (g_ascii_strcasecmp (enc, "chunked") == 0)
-				return SOUP_TRANSFER_CHUNKED;
-			else
-				return SOUP_TRANSFER_UNKNOWN;
-		} else if (len) {
-			int lval = atoi (len);
-
-			if (lval < 0)
-				return SOUP_TRANSFER_UNKNOWN;
-			else {
-				if (content_length)
-					*content_length = lval;
-				return SOUP_TRANSFER_CONTENT_LENGTH;
-			}
-		} else if (msg->method == SOUP_METHOD_CONNECT)
-			return SOUP_TRANSFER_NONE;
-		else
-			return SOUP_TRANSFER_EOF;
-	}
 }
 
 /**

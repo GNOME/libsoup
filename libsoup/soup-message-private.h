@@ -44,13 +44,12 @@ void             soup_message_cleanup_response (SoupMessage      *req);
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
 					      GString          *headers,
-					      SoupTransferEncoding *encoding,
+					      SoupEncoding     *encoding,
 					      gpointer          user_data);
 typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      char             *headers,
 					      guint             header_len,
-					      SoupTransferEncoding *encoding,
-					      guint            *content_len,
+					      SoupEncoding     *encoding,
 					      gpointer          user_data);
 
 void           soup_message_send_request        (SoupMessage       *req,

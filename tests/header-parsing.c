@@ -587,7 +587,7 @@ do_request_tests (void)
 		dprintf ("%2d. %s (%s): ", i + 1, reqtests[i].description,
 			 soup_status_get_phrase (reqtests[i].status));
 
-		headers = soup_message_headers_new ();
+		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
 		method = path = NULL;
 
 		if (reqtests[i].length == -1)
@@ -665,7 +665,7 @@ do_response_tests (void)
 		dprintf ("%2d. %s (%s): ", i + 1, resptests[i].description,
 			 resptests[i].reason_phrase ? "should parse" : "should NOT parse");
 
-		headers = soup_message_headers_new ();
+		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
 		reason_phrase = NULL;
 
 		if (resptests[i].length == -1)

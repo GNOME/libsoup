@@ -34,10 +34,6 @@ SoupServerMessage    *soup_server_message_new          (SoupServer           *se
 
 SoupServer           *soup_server_message_get_server   (SoupServerMessage    *smsg);
 
-void                  soup_server_message_set_encoding (SoupServerMessage    *smsg,
-							SoupTransferEncoding  encoding);
-SoupTransferEncoding  soup_server_message_get_encoding (SoupServerMessage    *smsg);
-
 G_END_DECLS
 
 #endif /* SOUP_SERVER_H */
