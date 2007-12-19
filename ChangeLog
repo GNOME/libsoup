@@ -1,3 +1,10 @@
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-xmlrpc.c:
+	* libsoup/soup-value-utils.c: Oops. Change the API a bunch so this
+	works on x86; apparently I was doing illegal things with va_lists
+	before that only work on x86_64.
+
 2007-12-14  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message.c: use GObject properties for SoupMessage

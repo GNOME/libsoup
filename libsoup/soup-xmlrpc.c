@@ -357,23 +357,17 @@ soup_xmlrpc_build_fault (int fault_code, const char *fault_format, ...)
  * Sets the status code and response body of @msg to indicate a
  * successful XML-RPC call, with a return value given by @type and the
  * following varargs argument, of the type indicated by @type.
- *
- * Return value: %TRUE on success, %FALSE if the return value could
- * not be parsed.
  **/
-gboolean
+void
 soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
 {
 	va_list args;
 	GValue value;
-	gboolean success;
 	char *body;
 
 	va_start (args, type);
-	success = soup_value_getv (&value, type, args);
+	SOUP_VALUE_GETV (&value, type, args);
 	va_end (args);
-	if (!success)
-		return FALSE;
 
 	body = soup_xmlrpc_build_method_response (&value);
 	g_value_unset (&value);
@@ -381,7 +375,6 @@ soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
 	soup_message_set_request (msg, "text/xml",
 				  SOUP_BUFFER_SYSTEM_OWNED,
 				  body, strlen (body));
-	return TRUE;
 }
 
 /**
@@ -747,7 +740,7 @@ fail:
  * but @error will be unset.)
  *
  * Return value: %TRUE if a return value was parsed, %FALSE if the
- * response could not be parsed, or contained a <fault>.
+ * response was of the wrong type, or contained a <fault>.
  **/
 gboolean
 soup_xmlrpc_extract_method_response (const char *method_response, int length,
@@ -755,17 +748,18 @@ soup_xmlrpc_extract_method_response (const char *method_response, int length,
 {
 	GValue value;
 	va_list args;
-	gboolean success;
 
 	if (!soup_xmlrpc_parse_method_response (method_response, length,
 						&value, error))
 		return FALSE;
+	if (!G_VALUE_HOLDS (&value, type))
+		return FALSE;
 
 	va_start (args, type);
-	success = soup_value_getv (&value, type, args);
+	SOUP_VALUE_GETV (&value, type, args);
 	va_end (args);
 
-	return success;
+	return TRUE;
 }
 
 

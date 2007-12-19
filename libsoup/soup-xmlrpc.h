@@ -40,7 +40,7 @@ char        *soup_xmlrpc_build_method_response   (GValue       *value);
 char        *soup_xmlrpc_build_fault             (int           fault_code,
 						  const char   *fault_format,
 						  ...);
-gboolean     soup_xmlrpc_set_response            (SoupMessage  *msg,
+void         soup_xmlrpc_set_response            (SoupMessage  *msg,
 						  GType         type,
 						  ...);
 void         soup_xmlrpc_set_fault               (SoupMessage  *msg,

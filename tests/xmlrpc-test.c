@@ -41,25 +41,23 @@ static const char *const value_type[] = {
 };
 
 static gboolean
-do_xmlrpc (const char *method, ...)
+do_xmlrpc (const char *method, GValue *retval, ...)
 {
 	SoupMessage *msg;
 	va_list args;
 	GValueArray *params;
-	GValue value;
 	GError *err = NULL;
 	char *body;
-	GType type;
 
-	va_start (args, method);
+	va_start (args, retval);
 	params = soup_value_array_from_args (args);
+	va_end (args);
+
 	body = soup_xmlrpc_build_method_call (method, params->values,
 					      params->n_values);
 	g_value_array_free (params);
-	if (!body) {
-		va_end (args);
+	if (!body)
 		return FALSE;
-	}
 
 	msg = soup_message_new ("POST", uri);
 	soup_message_set_request (msg, "text/xml",
@@ -76,32 +74,38 @@ do_xmlrpc (const char *method, ...)
 		dprintf (1, "ERROR: %d %s\n", msg->status_code,
 			 msg->reason_phrase);
 		g_object_unref (msg);
-		va_end (args);
 		return FALSE;
 	}
 
 	if (!soup_xmlrpc_parse_method_response (msg->response.body,
 						msg->response.length,
-						&value, &err)) {
+						retval, &err)) {
 		if (err) {
 			dprintf (1, "FAULT: %d %s\n", err->code, err->message);
 			g_error_free (err);
 		} else
 			dprintf (1, "ERROR: could not parse response\n");
 		g_object_unref (msg);
-		va_end (args);
 		return FALSE;
 	}
 	g_object_unref (msg);
 
-	type = va_arg (args, GType);
-	if (!soup_value_getv (&value, type, args)) {
+	return TRUE;
+}
+
+static gboolean
+check_xmlrpc (GValue *value, GType type, ...)
+{
+	va_list args;
+
+	if (!G_VALUE_HOLDS (value, type)) {
 		dprintf (1, "ERROR: could not parse response\n");
-		g_value_unset (&value);
-		va_end (args);
+		g_value_unset (value);
 		return FALSE;
 	}
 
+	va_start (args, type);
+	SOUP_VALUE_GETV (value, type, args);
 	va_end (args);
 	return TRUE;
 }
@@ -111,6 +115,7 @@ test_sum (void)
 {
 	GValueArray *ints;
 	int i, val, sum, result;
+	GValue retval;
 	gboolean ok;
 
 	dprintf (1, "sum (array of int -> int): ");
@@ -124,10 +129,10 @@ test_sum (void)
 	}
 	dprintf (2, "] -> ");
 
-	ok = do_xmlrpc ("sum",
+	ok = (do_xmlrpc ("sum", &retval,
 			G_TYPE_VALUE_ARRAY, ints,
-			G_TYPE_INVALID,
-			G_TYPE_INT, &result);
+			G_TYPE_INVALID) &&
+	      check_xmlrpc (&retval, G_TYPE_INT, &result));
 	g_value_array_free (ints);
 
 	if (!ok)
@@ -143,6 +148,7 @@ test_countBools (void)
 {
 	GValueArray *bools;
 	int i, trues, falses;
+	GValue retval;
 	int ret_trues, ret_falses;
 	gboolean val, ok;
 	GHashTable *result;
@@ -161,10 +167,10 @@ test_countBools (void)
 	}
 	dprintf (2, "] -> ");
 
-	ok = do_xmlrpc ("countBools",
-			G_TYPE_VALUE_ARRAY, bools,
-			G_TYPE_INVALID,
-			G_TYPE_HASH_TABLE, &result);
+	ok = (do_xmlrpc ("countBools", &retval,
+			 G_TYPE_VALUE_ARRAY, bools,
+			 G_TYPE_INVALID) &&
+	      check_xmlrpc (&retval, G_TYPE_HASH_TABLE, &result));
 	g_value_array_free (bools);
 	if (!ok)
 		return FALSE;
@@ -192,6 +198,7 @@ test_md5sum (void)
 	int i;
 	SoupMD5Context md5;
 	guchar digest[16];
+	GValue retval;
 	gboolean ok;
 
 	dprintf (1, "md5sum (base64 -> base64): ");
@@ -205,10 +212,10 @@ test_md5sum (void)
 	soup_md5_update (&md5, data->data, data->len);
 	soup_md5_final (&md5, digest);
 
-	ok = do_xmlrpc ("md5sum",
-			SOUP_TYPE_BYTE_ARRAY, data,
-			G_TYPE_INVALID,
-			SOUP_TYPE_BYTE_ARRAY, &result);
+	ok = (do_xmlrpc ("md5sum", &retval,
+			 SOUP_TYPE_BYTE_ARRAY, data,
+			 G_TYPE_INVALID) &&
+	      check_xmlrpc (&retval, SOUP_TYPE_BYTE_ARRAY, &result));
 	g_byte_array_free (data, TRUE);
 	if (!ok)
 		return FALSE;
@@ -231,6 +238,7 @@ test_dateChange (void)
 	GHashTable *structval;
 	SoupDate *date, *result;
 	char *timestamp;
+	GValue retval;
 	gboolean ok;
 
 	dprintf (1, "dateChange (struct of time and ints -> time): ");
@@ -290,10 +298,10 @@ test_dateChange (void)
 
 	dprintf (2, " } -> ");
 
-	ok = do_xmlrpc ("dateChange",
-			G_TYPE_HASH_TABLE, structval,
-			G_TYPE_INVALID,
-			SOUP_TYPE_DATE, &result);
+	ok = (do_xmlrpc ("dateChange", &retval,
+			 G_TYPE_HASH_TABLE, structval,
+			 G_TYPE_INVALID) &&
+	      check_xmlrpc (&retval, SOUP_TYPE_DATE, &result));
 	g_hash_table_destroy (structval);
 	if (!ok) {
 		soup_date_free (date);
@@ -331,6 +339,7 @@ static gboolean
 test_echo (void)
 {
 	GValueArray *originals, *echoes;
+	GValue retval;
 	int i;
 
 	dprintf (1, "echo (array of string -> array of string): ");
@@ -342,10 +351,10 @@ test_echo (void)
 	}
 	dprintf (2, "] -> ");
 
-	if (!do_xmlrpc ("echo",
-			G_TYPE_VALUE_ARRAY, originals,
-			G_TYPE_INVALID,
-			G_TYPE_VALUE_ARRAY, &echoes)) {
+	if (!(do_xmlrpc ("echo", &retval,
+			 G_TYPE_VALUE_ARRAY, originals,
+			 G_TYPE_INVALID) &&
+	      check_xmlrpc (&retval, G_TYPE_VALUE_ARRAY, &echoes))) {
 		g_value_array_free (originals);
 		return FALSE;
 	}

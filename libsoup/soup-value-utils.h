@@ -7,21 +7,55 @@
 #define SOUP_VALUE_UTILS_H 1
 
 #include <libsoup/soup-types.h>
+#include <gobject/gvaluecollector.h>
 
 G_BEGIN_DECLS
 
-gboolean     soup_value_getv              (GValue      *val,
-					   GType        type,
-					   va_list      args);
-gboolean     soup_value_setv              (GValue      *val,
-					   GType        type,
-					   va_list      args);
+/**
+ * SOUP_VALUE_SETV:
+ * @val: a #GValue
+ * @type: a #GType
+ * @args: #va_list pointing to a value of type @type
+ *
+ * Copies an argument of type @type from @args into @val. @val will
+ * point directly to the value in @args rather than copying it, so you
+ * must g_value_copy() it if you want it to remain valid.
+ **/
+#define SOUP_VALUE_SETV(val, type, args)				\
+G_STMT_START {								\
+	char *error = NULL;						\
+									\
+	memset (val, 0, sizeof (GValue));				\
+	g_value_init (val, type);					\
+	G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &error);	\
+	if (error)							\
+		g_free (error);						\
+} G_STMT_END
+
+/**
+ * SOUP_VALUE_GETV:
+ * @val: a #GValue
+ * @type: a #GType
+ * @args: #va_list pointing to a value of type pointer-to-@type
+ *
+ * Extracts a value of type @type from @val into @args. The return
+ * value will point to the same data as @val rather than being a copy
+ * of it.
+ **/
+#define SOUP_VALUE_GETV(val, type, args)				\
+G_STMT_START {								\
+	char *error = NULL;						\
+									\
+	G_VALUE_LCOPY (val, args, G_VALUE_NOCOPY_CONTENTS, &error);	\
+	if (error)							\
+		g_free (error);						\
+} G_STMT_END
 
 GHashTable  *soup_value_hash_new          (void);
 void         soup_value_hash_insert_value (GHashTable  *hash,
 					   const char  *key,
 					   GValue      *value);
-gboolean     soup_value_hash_insert       (GHashTable  *hash,
+void         soup_value_hash_insert       (GHashTable  *hash,
 					   const char  *key,
 					   GType        type,
 					   ...);
@@ -34,16 +68,13 @@ GValueArray *soup_value_array_from_args   (va_list      args);
 gboolean     soup_value_array_to_args     (GValueArray *array,
 					   va_list      args);
 
-gboolean     soup_value_array_insert      (GValueArray *array,
+void         soup_value_array_insert      (GValueArray *array,
 					   guint        index_,
 					   GType        type,
 					   ...);
-gboolean     soup_value_array_append      (GValueArray *array,
+void         soup_value_array_append      (GValueArray *array,
 					   GType        type,
 					   ...);
-gboolean     soup_value_array_appendv     (GValueArray *array,
-					   GType        type,
-					   va_list      args);
 gboolean     soup_value_array_get_nth     (GValueArray *array,
 					   guint        index_,
 					   GType        type,
