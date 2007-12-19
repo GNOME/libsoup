@@ -17,7 +17,6 @@
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 
 /* WARNING: this is really really really not especially compliant with
@@ -25,6 +24,7 @@
  */
 
 SoupSession *session;
+SoupServer *server;
 
 static void
 copy_header (const char *name, const char *value, gpointer dest_headers)
@@ -44,7 +44,7 @@ send_headers (SoupMessage *from, SoupMessage *to)
 	soup_message_headers_foreach (from->response_headers, copy_header,
 				      to->response_headers);
 	soup_message_headers_remove (to->response_headers, "Content-Length");
-	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (to)), to);
+	soup_server_unpause_message (server, to);
 }
 
 static void
@@ -54,7 +54,7 @@ send_chunk (SoupMessage *from, SoupBuffer *chunk, SoupMessage *to)
 		(unsigned long)chunk->length);
 
 	soup_message_body_append_buffer (to->response_body, chunk);
-	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (to)), to);
+	soup_server_unpause_message (server, to);
 }
 
 static void
@@ -73,7 +73,7 @@ finish_msg (SoupMessage *msg2, gpointer data)
 	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
 
 	soup_message_body_complete (msg->response_body);
-	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (msg)), msg);
+	soup_server_unpause_message (server, msg);
 	g_object_unref (msg);
 }
 
@@ -133,7 +133,6 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	int opt;
 	int port = SOUP_ADDRESS_ANY_PORT;
-	SoupServer *server;
 
 	g_type_init ();
 	g_thread_init (NULL);

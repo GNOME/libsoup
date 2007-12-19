@@ -17,7 +17,6 @@
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 
 static void
 print_header (const char *name, const char *value, gpointer data)

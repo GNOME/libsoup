@@ -18,7 +18,6 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-sync.h>
 
@@ -40,24 +39,32 @@ dprintf (const char *format, ...)
 	va_end (args);
 }
 
+typedef struct {
+	SoupServer *server;
+	SoupMessage *msg;
+	GSource *timeout;
+} SlowData;
+
 static void
-request_failed (SoupMessage *msg, gpointer timeout)
+request_failed (SoupMessage *msg, gpointer data)
 {
+	SlowData *sd = data;
+
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		g_source_destroy (timeout);
+		g_source_destroy (sd->timeout);
+	g_free (sd);
 }
 
 static gboolean
 add_body_chunk (gpointer data)
 {
-	SoupMessage *msg = data;
-	SoupServer *server = soup_server_message_get_server (data);
+	SlowData *sd = data;
 
-	soup_message_body_append (msg->response_body, "OK\r\n", 4,
+	soup_message_body_append (sd->msg->response_body, "OK\r\n", 4,
 				  SOUP_MEMORY_STATIC);
-	soup_message_body_complete (msg->response_body);
-	soup_server_unpause_message (server, msg);
-	g_object_unref (msg);
+	soup_message_body_complete (sd->msg->response_body);
+	soup_server_unpause_message (sd->server, sd->msg);
+	g_object_unref (sd->msg);
 
 	return FALSE;
 }
@@ -65,7 +72,7 @@ add_body_chunk (gpointer data)
 static void
 server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 {
-	GSource *timeout;
+	SlowData *sd;
 
 	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -89,11 +96,14 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	g_object_ref (msg);
 	soup_server_pause_message (context->server, msg);
 
-	timeout = soup_add_timeout (
+	sd = g_new (SlowData, 1);
+	sd->server = context->server;
+	sd->msg = msg;
+	sd->timeout = soup_add_timeout (
 		soup_server_get_async_context (context->server),
-		200, add_body_chunk, msg);
+		200, add_body_chunk, sd);
 	g_signal_connect (msg, "finished",
-			  G_CALLBACK (request_failed), timeout);
+			  G_CALLBACK (request_failed), sd);
 }
 
 static gpointer

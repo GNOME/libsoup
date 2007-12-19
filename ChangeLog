@@ -1,5 +1,16 @@
 2007-12-19  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server-message.c: Kill!
+
+	* libsoup/soup-message-server-io.c (parse_request_headers):
+	Generate the full request URL from the socket's data, since we no
+	longer have soup_server_message_get_server().
+
+	* libsoup/soup-server.c (request_finished, call_handler)
+	(start_request, new_connection): update
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-headers.c: Add some more fields to
 	SoupMessageHeaders, and start caching the parsed values of certain
 	important headers.

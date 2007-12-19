@@ -23,7 +23,6 @@
 #include "soup-headers.h"
 #include "soup-message-private.h"
 #include "soup-server-auth.h"
-#include "soup-server-message.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
@@ -333,11 +332,11 @@ static void start_request (SoupServer *, SoupSocket *);
 static void
 request_finished (SoupMessage *msg, gpointer sock)
 {
-	SoupServerMessage *smsg = SOUP_SERVER_MESSAGE (msg);
+	SoupServer *server = g_object_get_data (sock, "SoupServer");
 
 	if (soup_socket_is_connected (sock) && soup_message_is_keepalive (msg)) {
 		/* Start a new request */
-		start_request (soup_server_message_get_server (smsg), sock);
+		start_request (server, sock);
 	} else
 		soup_socket_disconnect (sock);
 	g_object_unref (msg);
@@ -366,9 +365,11 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 	SoupServerAuth *auth = NULL;
 	const char *handler_path;
 
-	g_return_if_fail (SOUP_IS_SERVER_MESSAGE (req));
+	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
 
-	server = soup_server_message_get_server (SOUP_SERVER_MESSAGE (req));
+	if (req->status_code != 0)
+		return;
+
 	handler_path = soup_message_get_uri (req)->path;
 
 	hand = soup_server_get_handler (server, handler_path);
@@ -439,7 +440,9 @@ start_request (SoupServer *server, SoupSocket *server_sock)
 	SoupMessage *msg;
 
 	/* Listen for another request on this connection */
-	msg = (SoupMessage *)soup_server_message_new (server);
+	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
+        soup_message_headers_set_encoding (msg->response_headers,
+                                           SOUP_ENCODING_CONTENT_LENGTH);
 
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), server_sock);
 	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), server_sock);
@@ -465,6 +468,7 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 
 	g_object_ref (sock);
+	g_object_set_data (G_OBJECT (sock), "SoupServer", server);
 	priv->client_socks = g_slist_prepend (priv->client_socks, sock);
 	g_signal_connect (sock, "disconnected",
 			  G_CALLBACK (socket_disconnected), server);

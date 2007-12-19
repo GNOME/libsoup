@@ -57,7 +57,6 @@ soup_headers =			\
 	soup-misc.h     	\
 	soup-portability.h	\
 	soup-server-auth.h	\
-	soup-server-message.h	\
 	soup-server.h		\
 	soup-session.h		\
 	soup-session-async.h	\
@@ -123,7 +122,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-nossl.c     		\
 	soup-server.c			\
 	soup-server-auth.c		\
-	soup-server-message.c		\
 	soup-session.c			\
 	soup-session-async.c		\
 	soup-session-private.h		\

@@ -16,7 +16,6 @@
 #include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-headers.h"
-#include "soup-server-message.h"
 #include "soup-server.h"
 #include "soup-socket.h"
 
@@ -28,7 +27,6 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	SoupURI *uri;
 	char *req_method, *req_path, *url;
 	const char *req_host;
-	SoupServer *server;
 	guint status;
 
 	status = soup_headers_parse_request (headers, headers_len,
@@ -56,46 +54,38 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	}
 
 	/* Generate correct context for request */
-	server = soup_server_message_get_server (SOUP_SERVER_MESSAGE (msg));
 	req_host = soup_message_headers_find (msg->request_headers, "Host");
 
 	if (*req_path != '/') {
 		/* Check for absolute URI */
-		SoupURI *absolute;
-
-		absolute = soup_uri_new (req_path);
-		if (absolute) {
-			url = g_strdup (req_path);
-			soup_uri_free (absolute);
-		} else {
+		uri = soup_uri_new (req_path);
+		if (!uri) {
 			g_free (req_path);
 			return SOUP_STATUS_BAD_REQUEST;
 		}
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s%s",
-				       soup_server_is_https (server) ? "https" : "http",
+				       soup_socket_is_ssl (sock) ? "https" : "http",
 				       req_host, req_path);
+		uri = soup_uri_new (url);
+		g_free (url);
 	} else if (priv->http_version == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);
 		const char *host = soup_address_get_physical (addr);
 
 		url = g_strdup_printf ("%s://%s:%d%s",
-				       soup_server_is_https (server) ? "https" : "http",
-				       host, soup_server_get_port (server),
+				       soup_socket_is_ssl (sock) ? "https" : "http",
+				       host, soup_address_get_port (addr),
 				       req_path);
-	} else {
-		g_free (req_path);
-		return SOUP_STATUS_BAD_REQUEST;
-	}
+		uri = soup_uri_new (url);
+		g_free (url);
+	} else
+		uri = NULL;
 
-	uri = soup_uri_new (url);
-	g_free (url);
 	g_free (req_path);
-
 	if (!uri)
 		return SOUP_STATUS_BAD_REQUEST;
-
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
 

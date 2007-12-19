@@ -19,7 +19,6 @@ typedef struct SoupMessageFilter     SoupMessageFilter;
 typedef struct SoupServer            SoupServer;
 typedef union  SoupServerAuth        SoupServerAuth;
 typedef struct SoupServerAuthContext SoupServerAuthContext;
-typedef struct SoupServerMessage     SoupServerMessage;
 typedef struct SoupSession           SoupSession;
 typedef struct SoupSessionAsync      SoupSessionAsync;
 typedef struct SoupSessionSync       SoupSessionSync;

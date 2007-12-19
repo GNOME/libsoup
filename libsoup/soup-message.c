@@ -14,7 +14,6 @@
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
-#include "soup-server-message.h"
 #include "soup-uri.h"
 
 G_DEFINE_TYPE (SoupMessage, soup_message, G_TYPE_OBJECT)

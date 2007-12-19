@@ -796,6 +796,13 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host)
 	return TRUE;
 }
 	
+gboolean
+soup_socket_is_ssl (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	return priv->ssl_creds != NULL;
+}
 
 /**
  * soup_socket_client_new_async:

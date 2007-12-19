@@ -80,6 +80,7 @@ gboolean       soup_socket_listen             (SoupSocket         *sock,
 gboolean       soup_socket_start_ssl          (SoupSocket         *sock);
 gboolean       soup_socket_start_proxy_ssl    (SoupSocket         *sock,
 					       const char         *ssl_host);
+gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 
 void           soup_socket_disconnect         (SoupSocket         *sock);
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
