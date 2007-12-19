@@ -7,6 +7,7 @@
 #define SOUP_MESSAGE_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-message-body.h>
 #include <libsoup/soup-message-headers.h>
 #include <libsoup/soup-method.h>
 
@@ -43,37 +44,6 @@ typedef enum {
 } SoupTransferEncoding;
 
 /**
- * SoupOwnership:
- * @SOUP_BUFFER_SYSTEM_OWNED: The data is owned by soup and it can
- * free it when it is done with it.
- * @SOUP_BUFFER_USER_OWNED: The data is owned by the user, who is
- * responsible for freeing it at the right point
- * @SOUP_BUFFER_STATIC: The data should not be freed.
- *
- * Used by #SoupDataBuffer (and several functions) to indicate the
- * ownership of a buffer.
- **/
-typedef enum {
-	SOUP_BUFFER_SYSTEM_OWNED = 0,
-	SOUP_BUFFER_USER_OWNED,
-	SOUP_BUFFER_STATIC
-} SoupOwnership;
-
-/**
- * SoupDataBuffer:
- * @owner: the ownership of the data
- * @body: the data itself
- * @length: length of @body
- *
- * A data buffer used in several places.
- **/
-typedef struct {
-	SoupOwnership  owner;
-	char          *body;
-	guint          length;
-} SoupDataBuffer;
-
-/**
  * SoupMessage:
  * @method: the HTTP method
  * @status_code: the HTTP status code
@@ -95,10 +65,10 @@ struct SoupMessage {
 	guint               status_code;
 	const char         *reason_phrase;
 
-	SoupDataBuffer      request;
+	SoupMessageBody    *request_body;
 	SoupMessageHeaders *request_headers;
 
-	SoupDataBuffer      response;
+	SoupMessageBody    *response_body;
 	SoupMessageHeaders *response_headers;
 };
 
@@ -108,11 +78,11 @@ typedef struct {
 	/* signals */
 	void     (*wrote_informational) (SoupMessage *msg);
 	void     (*wrote_headers)       (SoupMessage *msg);
-	void     (*wrote_chunk)         (SoupMessage *msg);
+	void     (*wrote_chunk)         (SoupMessage *msg, SoupBuffer *chunk);
 	void     (*wrote_body)          (SoupMessage *msg);
 	void     (*got_informational)   (SoupMessage *msg);
 	void     (*got_headers)         (SoupMessage *msg);
-	void     (*got_chunk)           (SoupMessage *msg);
+	void     (*got_chunk)           (SoupMessage *msg, SoupBuffer *chunk);
 	void     (*got_body)            (SoupMessage *msg);
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
@@ -143,15 +113,17 @@ SoupMessage   *soup_message_new_from_uri        (const char        *method,
 
 void           soup_message_set_request         (SoupMessage       *msg,
 						 const char        *content_type,
-						 SoupOwnership      req_owner,
-						 char              *req_body,
-						 gulong             req_length);
+						 SoupMemoryUse      req_use,
+						 const char        *req_body,
+						 gsize              req_length);
+SoupBuffer    *soup_message_get_request         (SoupMessage       *msg);
 
 void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *content_type,
-						 SoupOwnership      resp_owner,
-						 char              *resp_body,
-						 gulong             resp_length);
+						 SoupMemoryUse      resp_use,
+						 const char        *resp_body,
+						 gsize              resp_length);
+SoupBuffer    *soup_message_get_response        (SoupMessage       *msg);
 
 /**
  * SoupHTTPVersion:
@@ -184,11 +156,11 @@ SoupTransferEncoding soup_message_get_response_encoding (SoupMessage *msg,
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
  * (3xx) responses received by this message.
- * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Rather than building up the
- * response body in %response, each new chunk should overwrite the
- * previous one. (This can be used if you are connecting to the
- * %got_chunk signal or have installed a %SOUP_MESSAGE_BODY_CHUNK
- * handler.
+ * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Each chunk of the response will be
+ * freed after its corresponding %got_chunk signal is emitted, meaning
+ * %response will still be empty after the message is complete. You
+ * can use this to save memory if you expect the response to be large
+ * and you are able to process it a chunk at a time.
  * @SOUP_MESSAGE_EXPECT_CONTINUE: This will cause an "Expect:
  * 100-continue" header to be added to the outgoing request, giving
  * the server the opportunity to reject the message (eg, with a 401
@@ -274,23 +246,13 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 						 const char        *reason_phrase);
 
 
-/* Chunked encoding */
-void           soup_message_add_chunk           (SoupMessage       *msg,
-						 SoupOwnership      owner,
-						 const char        *body,
-						 guint              length);
-void           soup_message_add_final_chunk     (SoupMessage       *msg);
-
-SoupDataBuffer*soup_message_pop_chunk           (SoupMessage       *msg);
-
-
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
-void soup_message_wrote_chunk         (SoupMessage *msg);
+void soup_message_wrote_chunk         (SoupMessage *msg, SoupBuffer *chunk);
 void soup_message_wrote_body          (SoupMessage *msg);
 void soup_message_got_informational   (SoupMessage *msg);
 void soup_message_got_headers         (SoupMessage *msg);
-void soup_message_got_chunk           (SoupMessage *msg);
+void soup_message_got_chunk           (SoupMessage *msg, SoupBuffer *chunk);
 void soup_message_got_body            (SoupMessage *msg);
 void soup_message_restarted           (SoupMessage *msg);
 void soup_message_finished            (SoupMessage *msg);

@@ -51,6 +51,7 @@ soup_headers =			\
 	soup-date.h		\
 	soup-headers.h		\
 	soup-message.h		\
+	soup-message-body.h	\
 	soup-message-headers.h	\
 	soup-method.h		\
 	soup-misc.h     	\
@@ -109,6 +110,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-md5-utils.h		\
 	soup-md5-utils.c		\
 	soup-message.c			\
+	soup-message-body.c		\
 	soup-message-client-io.c	\
 	soup-message-handlers.c		\
 	soup-message-headers.c		\

@@ -49,15 +49,16 @@ typedef struct {
 
 	SoupMessageIOState    read_state;
 	SoupTransferEncoding  read_encoding;
-	GByteArray           *read_buf;
 	GByteArray           *read_meta_buf;
-	SoupDataBuffer       *read_body;
+	SoupMessageBody      *read_body;
 	guint                 read_length;
 
 	SoupMessageIOState    write_state;
 	SoupTransferEncoding  write_encoding;
 	GString              *write_buf;
-	SoupDataBuffer       *write_body;
+	SoupMessageBody      *write_body;
+	SoupBuffer           *write_chunk;
+	gsize                 write_body_offset;
 	guint                 written;
 
 	guint read_tag, write_tag, err_tag;
@@ -96,11 +97,11 @@ soup_message_io_cleanup (SoupMessage *msg)
 	if (io->conn)
 		g_object_unref (io->conn);
 
-	if (io->read_buf)
-		g_byte_array_free (io->read_buf, TRUE);
 	g_byte_array_free (io->read_meta_buf, TRUE);
 
 	g_string_free (io->write_buf, TRUE);
+	if (io->write_chunk)
+		soup_buffer_free (io->write_chunk);
 
 	g_free (io);
 }
@@ -247,9 +248,8 @@ read_metadata (SoupMessage *msg, const char *boundary)
 /* Reads as much message body data as is available on io->sock (but no
  * further than the end of the current message body or chunk). On a
  * successful read, emits "got_chunk" (possibly multiple times), and
- * if io->read_buf is non-%NULL (meaning that the message doesn't have
- * %SOUP_MESSAGE_OVERWRITE_CHUNKS set), the data will be appended to
- * it.
+ * if %SOUP_MESSAGE_OVERWRITE_CHUNKS wasn't set, appends the chunk
+ * to io->read_body.
  *
  * See the note at read_metadata() for an explanation of the return
  * value.
@@ -264,6 +264,7 @@ read_body_chunk (SoupMessage *msg)
 	guint len = sizeof (read_buf);
 	gboolean read_to_eof = (io->read_encoding == SOUP_TRANSFER_EOF);
 	gsize nread;
+	SoupBuffer *buffer;
 
 	while (read_to_eof || io->read_length > 0) {
 		if (!read_to_eof)
@@ -276,20 +277,17 @@ read_body_chunk (SoupMessage *msg)
 			if (!nread)
 				break;
 
-			if (io->read_buf)
-				g_byte_array_append (io->read_buf, read_buf, nread);
+			buffer = soup_buffer_new (read_buf, nread,
+						  SOUP_MEMORY_TEMPORARY);
+			if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
+				soup_message_body_append_buffer (io->read_body, buffer);
+
 			io->read_length -= nread;
 
-			io->read_body->owner  = SOUP_BUFFER_STATIC;
-			io->read_body->body   = (char *)read_buf;
-			io->read_body->length = nread;
-
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-			soup_message_got_chunk (msg);
-			if (priv->io_data == io)
-				memset (io->read_body, 0, sizeof (SoupDataBuffer));
+			soup_message_got_chunk (msg, buffer);
+			soup_buffer_free (buffer);
 			SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
-
 			break;
 
 		case SOUP_SOCKET_EOF:
@@ -454,9 +452,13 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (!write_data (msg, io->write_body->body,
-				 io->write_body->length))
+		if (!io->write_chunk)
+			io->write_chunk = soup_message_body_flatten (io->write_body);
+		if (!write_data (msg, io->write_chunk->data,
+				 io->write_chunk->length))
 			return;
+		soup_buffer_free (io->write_chunk);
+		io->write_chunk = NULL;
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
@@ -467,22 +469,15 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK_SIZE:
-		if (!io->write_buf->len) {
-			SoupDataBuffer *chunk;
-
-			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-			chunk = soup_message_pop_chunk (msg);
-			SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
-
-			if (!chunk) {
+		if (!io->write_chunk) {
+			io->write_chunk = soup_message_body_get_chunk (io->write_body, io->write_body_offset);
+			if (!io->write_chunk) {
 				soup_message_io_pause (msg);
 				return;
 			}
-			memcpy (io->write_body, chunk, sizeof (SoupDataBuffer));
-			g_free (chunk);
-
-			g_string_append_printf (io->write_buf, "%x\r\n",
-						io->write_body->length);
+			g_string_append_printf (io->write_buf, "%lx\r\n",
+						(unsigned long) io->write_chunk->length);
+			io->write_body_offset += io->write_chunk->length;
 		}
 
 		if (!write_data (msg, io->write_buf->str, io->write_buf->len))
@@ -490,7 +485,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 		g_string_truncate (io->write_buf, 0);
 
-		if (io->write_body->length == 0) {
+		if (io->write_chunk->length == 0) {
 			/* The last chunk has no CHUNK_END... */
 			io->write_state = SOUP_MESSAGE_IO_STATE_TRAILERS;
 			break;
@@ -501,15 +496,18 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK:
-		if (!write_data (msg, io->write_body->body,
-				 io->write_body->length))
+		if (!write_data (msg, io->write_chunk->data,
+				 io->write_chunk->length))
 			return;
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_CHUNK_END;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_wrote_chunk (msg);
+		soup_message_wrote_chunk (msg, io->write_chunk);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+
+		soup_buffer_free (io->write_chunk);
+		io->write_chunk = NULL;
 		/* fall through */
 
 
@@ -517,10 +515,6 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 		if (!write_data (msg, SOUP_MESSAGE_IO_EOL,
 				 SOUP_MESSAGE_IO_EOL_LEN))
 			return;
-
-		if (io->write_body->owner == SOUP_BUFFER_SYSTEM_OWNED)
-			g_free (io->write_body->body);
-		memset (io->write_body, 0, sizeof (SoupDataBuffer));
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_CHUNK_SIZE;
 		break;
@@ -652,15 +646,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			return;
 
 	got_body:
-		if (io->read_buf) {
-			io->read_body->owner = SOUP_BUFFER_SYSTEM_OWNED;
-			io->read_body->body = (char *)io->read_buf->data;
-			io->read_body->length = io->read_buf->len;
-
-			g_byte_array_free (io->read_buf, FALSE);
-			io->read_buf = NULL;
-		}
-
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
@@ -755,8 +740,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_encoding   = SOUP_TRANSFER_UNKNOWN;
 
 	io->read_meta_buf    = g_byte_array_new ();
-	if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
-		io->read_buf = g_byte_array_new ();
 	io->write_buf        = g_string_new (NULL);
 
 	io->read_tag  = g_signal_connect (io->sock, "readable",
@@ -790,8 +773,8 @@ soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
 	if (conn)
 		io->conn = g_object_ref (conn);
 
-	io->read_body       = &msg->response;
-	io->write_body      = &msg->request;
+	io->read_body       = msg->response_body;
+	io->write_body      = msg->request_body;
 
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
 	io_write (sock, msg);
@@ -808,8 +791,8 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_SERVER,
 			  get_headers_cb, parse_headers_cb, user_data);
 
-	io->read_body       = &msg->request;
-	io->write_body      = &msg->response;
+	io->read_body       = msg->request_body;
+	io->write_body      = msg->response_body;
 
 	io->read_state      = SOUP_MESSAGE_IO_STATE_HEADERS;
 	io_read (sock, msg);

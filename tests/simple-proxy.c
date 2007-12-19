@@ -48,12 +48,12 @@ send_headers (SoupMessage *from, SoupMessage *to)
 }
 
 static void
-send_chunk (SoupMessage *from, SoupMessage *to)
+send_chunk (SoupMessage *from, SoupBuffer *chunk, SoupMessage *to)
 {
-	printf ("[%p]   writing chunk of %d bytes\n", to, from->response.length);
+	printf ("[%p]   writing chunk of %lu bytes\n", to,
+		(unsigned long)chunk->length);
 
-	soup_message_add_chunk (to, SOUP_BUFFER_USER_OWNED,
-				from->response.body, from->response.length);
+	soup_message_body_append_buffer (to->response_body, chunk);
 	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (to)), to);
 }
 
@@ -65,12 +65,14 @@ client_msg_failed (SoupMessage *msg, gpointer msg2)
 }
 
 static void
-finish_msg (SoupMessage *msg2, gpointer msg)
+finish_msg (SoupMessage *msg2, gpointer data)
 {
+	SoupMessage *msg = data;
+
 	printf ("[%p]   done\n\n", msg);
 	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
 
-	soup_message_add_final_chunk (msg);
+	soup_message_body_complete (msg->response_body);
 	soup_server_unpause_message (soup_server_message_get_server (SOUP_SERVER_MESSAGE (msg)), msg);
 	g_object_unref (msg);
 }
@@ -97,10 +99,10 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_headers_remove (msg2->request_headers, "Host");
 	soup_message_headers_remove (msg2->request_headers, "Connection");
 
-	if (msg->request.length) {
-		msg2->request.owner = SOUP_BUFFER_USER_OWNED;
-		msg2->request.body = msg->request.body;
-		msg2->request.length = msg->request.length;
+	if (soup_message_body_get_length (msg->request_body)) {
+		SoupBuffer *request = soup_message_get_request (msg);
+		soup_message_body_append_buffer (msg2->request_body, request);
+		soup_buffer_free (request);
 	}
 	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
 					  SOUP_TRANSFER_CHUNKED);
@@ -109,7 +111,6 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 			  G_CALLBACK (send_headers), msg);
 	g_signal_connect (msg2, "got_chunk",
 			  G_CALLBACK (send_chunk), msg);
-	soup_message_set_flags (msg2, SOUP_MESSAGE_OVERWRITE_CHUNKS);
 
 	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), msg2);
 

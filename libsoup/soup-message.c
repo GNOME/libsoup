@@ -53,11 +53,10 @@ enum {
 
 static void wrote_body (SoupMessage *req);
 static void got_headers (SoupMessage *req);
-static void got_chunk (SoupMessage *req);
+static void got_chunk (SoupMessage *req, SoupBuffer *chunk);
 static void got_body (SoupMessage *req);
 static void restarted (SoupMessage *req);
 static void finished (SoupMessage *req);
-static void free_chunks (SoupMessage *msg);
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
@@ -70,11 +69,12 @@ soup_message_init (SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	priv->io_status = SOUP_MESSAGE_IO_STATUS_IDLE;
+	priv->http_version = SOUP_HTTP_1_1;
 
+	msg->request_body = soup_message_body_new ();
 	msg->request_headers = soup_message_headers_new ();
+	msg->response_body = soup_message_body_new ();
 	msg->response_headers = soup_message_headers_new ();
-
-	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = SOUP_HTTP_1_1;
 }
 
 static void
@@ -93,13 +93,9 @@ finalize (GObject *object)
 	if (priv->proxy_auth)
 		g_object_unref (priv->proxy_auth);
 
-	if (msg->request.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (msg->request.body);
-	if (msg->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (msg->response.body);
-	free_chunks (msg);
-
+	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);
+	soup_message_body_free (msg->response_body);
 	soup_message_headers_free (msg->response_headers);
 
 	g_slist_foreach (priv->content_handlers, (GFunc) g_free, NULL);
@@ -166,6 +162,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/**
 	 * SoupMessage::wrote-chunk:
 	 * @msg: the message
+	 * @chunk: the just-written chunk
 	 *
 	 * Emitted immediately after writing a body chunk for a message.
 	 **/
@@ -175,8 +172,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_chunk),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
-			      G_TYPE_NONE, 0);
+			      soup_marshal_NONE__POINTER,
+			      G_TYPE_NONE, 1,
+			      G_TYPE_POINTER);
 
 	/**
 	 * SoupMessage::wrote-body:
@@ -227,6 +225,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/**
 	 * SoupMessage::got-chunk:
 	 * @msg: the message
+	 * @chunk: the just-read chunk
 	 *
 	 * Emitted after receiving a chunk of a message body. Note
 	 * that "chunk" in this context means any subpiece of the
@@ -239,8 +238,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_chunk),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
-			      G_TYPE_NONE, 0);
+			      soup_marshal_NONE__POINTER,
+			      G_TYPE_NONE, 1,
+			      G_TYPE_POINTER);
 
 	/**
 	 * SoupMessage::got-body:
@@ -453,54 +453,104 @@ soup_message_new_from_uri (const char *method, const SoupURI *uri)
  * soup_message_set_request:
  * @msg: the message
  * @content_type: MIME Content-Type of the body
- * @req_owner: the #SoupOwnership of the passed data buffer.
+ * @req_use: a #SoupMemoryUse describing how to handle @req_body
  * @req_body: a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
- * Convenience function to set the request body of a #SoupMessage
+ * Convenience function to set the request body of a #SoupMessage.
+ * If @content_type is %NULL, the request body will be cleared.
  */
 void
-soup_message_set_request (SoupMessage   *msg,
-			  const char    *content_type,
-			  SoupOwnership  req_owner,
-			  char          *req_body,
-			  gulong         req_length)
+soup_message_set_request (SoupMessage    *msg,
+			  const char     *content_type,
+			  SoupMemoryUse   req_use,
+			  const char     *req_body,
+			  gsize           req_length)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (content_type != NULL);
-	g_return_if_fail (req_body != NULL || req_length == 0);
+	g_return_if_fail (content_type != NULL || req_length == 0);
 
-	soup_message_headers_append (msg->request_headers, "Content-Type", content_type);
-	msg->request.owner = req_owner;
-	msg->request.body = req_body;
-	msg->request.length = req_length;
+	if (content_type) {
+		soup_message_headers_replace (msg->request_headers,
+					      "Content-Type", content_type);
+		soup_message_body_append (msg->request_body,
+					  req_body, req_length, req_use);
+	} else {
+		soup_message_headers_remove (msg->request_headers,
+					     "Content-Type");
+		soup_message_body_truncate (msg->request_body);
+	}
+}
+
+/**
+ * soup_message_get_request:
+ * @msg: a #SoupMessage
+ *
+ * Gets a #SoupBuffer containing @msg's request body. If @msg's
+ * request body uses chunked encoding, this will coalesce the chunks
+ * into a single buffer.
+ *
+ * Return value: the request body, which must be freed with
+ * soup_buffer_free() when you are done with it.
+ **/
+SoupBuffer *
+soup_message_get_request (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	return soup_message_body_flatten (msg->request_body);
 }
 
 /**
  * soup_message_set_response:
  * @msg: the message
  * @content_type: MIME Content-Type of the body
- * @resp_owner: the #SoupOwnership of the passed data buffer.
+ * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
  * @resp_body: a data buffer containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  * 
- * Convenience function to set the response body of a #SoupMessage
+ * Convenience function to set the response body of a #SoupMessage.
+ * If @content_type is %NULL, the response body will be cleared.
  */
 void
-soup_message_set_response (SoupMessage   *msg,
-			   const char    *content_type,
-			   SoupOwnership  resp_owner,
-			   char          *resp_body,
-			   gulong         resp_length)
+soup_message_set_response (SoupMessage    *msg,
+			   const char     *content_type,
+			   SoupMemoryUse   resp_use,
+			   const char     *resp_body,
+			   gsize           resp_length)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	g_return_if_fail (content_type != NULL);
-	g_return_if_fail (resp_body != NULL || resp_length == 0);
+	g_return_if_fail (content_type != NULL || resp_length == 0);
 
-	soup_message_headers_append (msg->response_headers, "Content-Type", content_type);
-	msg->response.owner = resp_owner;
-	msg->response.body = resp_body;
-	msg->response.length = resp_length;
+	if (content_type) {
+		soup_message_headers_replace (msg->response_headers,
+					      "Content-Type", content_type);
+		soup_message_body_append (msg->response_body,
+					  resp_body, resp_length, resp_use);
+	} else {
+		soup_message_headers_remove (msg->response_headers,
+					     "Content-Type");
+		soup_message_body_truncate (msg->response_body);
+	}
+}
+
+/**
+ * soup_message_get_response:
+ * @msg: a #SoupMessage
+ *
+ * Gets a #SoupBuffer containing @msg's response body. If @msg's
+ * response body uses chunked encoding, this will coalesce the chunks
+ * into a single buffer.
+ *
+ * Return value: the response body, which must be freed with
+ * soup_buffer_free() when you are done with it.
+ **/
+SoupBuffer *
+soup_message_get_response (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	return soup_message_body_flatten (msg->response_body);
 }
 
 /**
@@ -532,14 +582,15 @@ soup_message_wrote_headers (SoupMessage *msg)
 /**
  * soup_message_wrote_chunk:
  * @msg: a #SoupMessage
+ * @chunk: the just-written chunk
  *
  * Emits the %wrote_chunk signal, indicating that the IO layer
  * finished writing a chunk of @msg's body.
  **/
 void
-soup_message_wrote_chunk (SoupMessage *msg)
+soup_message_wrote_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
-	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
+	g_signal_emit (msg, signals[WROTE_CHUNK], 0, chunk);
 }
 
 static void
@@ -600,7 +651,7 @@ soup_message_got_headers (SoupMessage *msg)
 }
 
 static void
-got_chunk (SoupMessage *req)
+got_chunk (SoupMessage *req, SoupBuffer *chunk)
 {
 	g_object_ref (req);
 	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
@@ -612,14 +663,15 @@ got_chunk (SoupMessage *req)
 /**
  * soup_message_got_chunk:
  * @msg: a #SoupMessage
+ * @chunk: the newly-read chunk
  *
  * Emits the %got_chunk signal, indicating that the IO layer finished
  * reading a chunk of @msg's body.
  **/
 void
-soup_message_got_chunk (SoupMessage *msg)
+soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
-	g_signal_emit (msg, signals[GOT_CHUNK], 0);
+	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
 }
 
 static void
@@ -805,15 +857,7 @@ soup_message_get_proxy_auth (SoupMessage *msg)
 void
 soup_message_cleanup_response (SoupMessage *req)
 {
-	if (req->response.owner == SOUP_BUFFER_SYSTEM_OWNED)
-		g_free (req->response.body);
-
-	req->response.owner = 0;
-	req->response.body = NULL;
-	req->response.length = 0;
-
-	free_chunks (req);
-
+	soup_message_body_truncate (req->response_body);
 	soup_message_headers_clear (req->response_headers);
 
 	req->status_code = SOUP_STATUS_NONE;
@@ -1020,9 +1064,11 @@ soup_message_get_request_encoding  (SoupMessage *msg, guint *content_length)
 		} else
 			return SOUP_TRANSFER_NONE;
 	} else {
-		if (msg->request.length) {
+		gsize length = soup_message_body_get_length (msg->request_body);
+
+		if (length) {
 			if (content_length)
-				*content_length = msg->request.length;
+				*content_length = length;
 			return SOUP_TRANSFER_CONTENT_LENGTH;
 		} else
 			return SOUP_TRANSFER_NONE;
@@ -1064,7 +1110,7 @@ soup_message_get_response_encoding (SoupMessage *msg, guint *content_length)
 		if (enc == SOUP_TRANSFER_UNKNOWN)
 			enc = SOUP_TRANSFER_CONTENT_LENGTH;
 		if (enc == SOUP_TRANSFER_CONTENT_LENGTH && content_length)
-			*content_length = msg->response.length;
+			*content_length = soup_message_body_get_length (msg->response_body);
 		return enc;
 	} else {
 		const char *enc, *len;
@@ -1136,112 +1182,6 @@ soup_message_set_status_full (SoupMessage *msg,
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (reason_phrase);
-}
-
-
-/**
- * soup_message_add_chunk:
- * @msg: a #SoupMessage
- * @owner: the ownership of @body
- * @body: body data
- * @length: length of @body
- *
- * Adds a chunk of response data to @body. (Note that currently
- * there is no way to send a request using chunked encoding.)
- **/
-void
-soup_message_add_chunk (SoupMessage   *msg,
-			SoupOwnership  owner,
-			const char    *body,
-			guint          length)
-{
-	SoupMessagePrivate *priv;
-	SoupDataBuffer *chunk;
-
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	g_return_if_fail (body != NULL || length == 0);
-
-	chunk = g_new0 (SoupDataBuffer, 1);
-	if (owner == SOUP_BUFFER_USER_OWNED) {
-		chunk->owner = SOUP_BUFFER_SYSTEM_OWNED;
-		chunk->body = g_memdup (body, length);
-	} else {
-		chunk->owner = owner;
-		chunk->body = (char *)body;
-	}
-	chunk->length = length;
-
-	if (priv->chunks) {
-		priv->last_chunk = g_slist_append (priv->last_chunk, chunk);
-		priv->last_chunk = priv->last_chunk->next;
-	} else {
-		priv->chunks = priv->last_chunk =
-			g_slist_append (NULL, chunk);
-	}
-}
-
-/**
- * soup_message_add_final_chunk:
- * @msg: a #SoupMessage
- *
- * Adds a final, empty chunk of response data to @body. This must
- * be called after adding the last real chunk, to indicate that
- * there is no more data.
- **/
-void
-soup_message_add_final_chunk (SoupMessage *msg)
-{
-	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC, NULL, 0);
-}
-
-/**
- * soup_message_pop_chunk:
- * @msg: a #SoupMessage
- *
- * Pops a chunk of response data from @msg's chunk list. The caller
- * must free @chunk itself, and must handle the data in @chunk
- * according to its %ownership.
- *
- * Return value: the chunk, or %NULL if there are no chunks left.
- **/
-SoupDataBuffer *
-soup_message_pop_chunk (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv;
-	SoupDataBuffer *chunk;
-
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	if (!priv->chunks)
-		return NULL;
-
-	chunk = priv->chunks->data;
-	priv->chunks = g_slist_remove (priv->chunks, chunk);
-	if (!priv->chunks)
-		priv->last_chunk = NULL;
-
-	return chunk;
-}
-
-static void
-free_chunks (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupDataBuffer *chunk;
-	GSList *ch;
-
-	for (ch = priv->chunks; ch; ch = ch->next) {
-		chunk = ch->data;
-
-		if (chunk->owner == SOUP_BUFFER_SYSTEM_OWNED)
-			g_free (chunk->body);
-		g_free (chunk);
-	}
-
-	g_slist_free (priv->chunks);
-	priv->chunks = priv->last_chunk = NULL;
 }
 
 void

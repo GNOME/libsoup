@@ -133,8 +133,8 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	claimed_encoding = soup_server_message_get_encoding (smsg);
 	if (claimed_encoding == SOUP_TRANSFER_CONTENT_LENGTH &&
 	    !soup_message_headers_find (msg->response_headers, "Content-Length")) {
-		g_string_append_printf (headers, "Content-Length: %d\r\n",
-					msg->response.length);
+		g_string_append_printf (headers, "Content-Length: %lu\r\n",
+					(unsigned long)soup_message_body_get_length (msg->response_body));
 	} else if (claimed_encoding == SOUP_TRANSFER_CHUNKED)
 		g_string_append (headers, "Transfer-Encoding: chunked\r\n");
 

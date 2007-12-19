@@ -107,7 +107,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		else {
 			soup_message_set_response (msg, "text/plain",
-						   SOUP_BUFFER_STATIC,
+						   SOUP_MEMORY_STATIC,
 						   "OK\r\n", 4);
 			soup_message_set_status (msg, SOUP_STATUS_OK);
 		}

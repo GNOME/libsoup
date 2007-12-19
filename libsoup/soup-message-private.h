@@ -24,8 +24,6 @@ typedef struct {
 
 	guint              msg_flags;
 
-	GSList            *chunks, *last_chunk;
-
 	GSList            *content_handlers;
 
 	SoupHTTPVersion    http_version;

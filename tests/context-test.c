@@ -53,9 +53,9 @@ add_body_chunk (gpointer data)
 	SoupMessage *msg = data;
 	SoupServer *server = soup_server_message_get_server (data);
 
-	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC,
-				"OK\r\n", 4);
-	soup_message_add_final_chunk (msg);
+	soup_message_body_append (msg->response_body, "OK\r\n", 4,
+				  SOUP_MEMORY_STATIC);
+	soup_message_body_complete (msg->response_body);
 	soup_server_unpause_message (server, msg);
 	g_object_unref (msg);
 
@@ -80,7 +80,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	if (!strcmp (context->path, "/fast")) {
 		soup_message_set_response (msg, "text/plain",
-					   SOUP_BUFFER_STATIC, "OK\r\n", 4);
+					   SOUP_MEMORY_STATIC, "OK\r\n", 4);
 		return;
 	}
 

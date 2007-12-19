@@ -745,7 +745,7 @@ soup_soap_message_persist (SoupSoapMessage *msg)
 
 	/* serialize to SoupMessage class */
 	soup_message_set_request (SOUP_MESSAGE (msg), "text/xml",
-				  SOUP_BUFFER_SYSTEM_OWNED, (char *)body, len);
+				  SOUP_MEMORY_TAKE, (char *)body, len);
 }
 
 /**
@@ -815,12 +815,15 @@ soup_soap_message_parse_response (SoupSoapMessage *msg)
 	SoupSoapMessagePrivate *priv;
 	char *xmlstr;
 	SoupSoapResponse *soap_response;
+	SoupBuffer *response;
 
 	g_return_val_if_fail (SOUP_IS_SOAP_MESSAGE (msg), NULL);
 	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	xmlstr = g_malloc0 (SOUP_MESSAGE (msg)->response.length + 1);
-	strncpy (xmlstr, SOUP_MESSAGE (msg)->response.body, SOUP_MESSAGE (msg)->response.length);
+	response = soup_message_get_response (SOUP_MESSAGE (msg));
+	xmlstr = g_malloc0 (response->length + 1);
+	strncpy (xmlstr, response->data, response->length);
+	soup_buffer_free (response);
 
 	soap_response = soup_soap_response_new_from_string (xmlstr);
 	g_free (xmlstr);

@@ -1,5 +1,23 @@
 2007-12-19  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.c (SoupMessageBody): new opaque type
+	for request/response bodies allowing less hacky handling of
+	chunked encoding.
+	(SoupBuffer): refcounted buffer type
+
+	* libsoup/soup-message.h (SoupMessage): turn request and response
+	members into SoupMessageBody.
+	(SoupOwnership, SoupDataBuffer): gone, replaced by
+	SoupMessageBody/SoupBuffer.
+
+	* libsoup/soup-message.c (soup_message_wrote_chunk)
+	(soup_message_got_chunk): add the chunk as a signal param rather
+	than having it be visible in msg->request/response.
+	(soup_message_add_chunk, soup_message_add_final_chunk)
+	(soup_message_pop_chunk): replaced by SoupMessageBody methods now.
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-xmlrpc.c:
 	* libsoup/soup-value-utils.c: Oops. Change the API a bunch so this
 	works on x86; apparently I was doing illegal things with va_lists

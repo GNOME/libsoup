@@ -29,6 +29,7 @@ static void
 server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 {
 	char *path, *path_to_open, *slash;
+	SoupBuffer *request;
 	struct stat st;
 	int fd;
 
@@ -36,8 +37,10 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	printf ("%s %s HTTP/1.%d\n", msg->method, path,
 		soup_message_get_http_version (msg));
 	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
-	if (msg->request.length)
-		printf ("%.*s\n", msg->request.length, msg->request.body);
+	request = soup_message_get_request (msg);
+	if (request->length)
+		printf ("%.*s\n", (int)request->length, request->data);
+	soup_buffer_free (request);
 
 	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -94,22 +97,26 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		goto DONE;
 	}
 
-	msg->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	msg->response.length = st.st_size;
-
 	if (msg->method == SOUP_METHOD_GET) {
-		msg->response.body = g_malloc (msg->response.length);
-		read (fd, msg->response.body, msg->response.length);
-	} else /* msg->method == SOUP_METHOD_HEAD */ {
-		/* SoupServer will ignore response.body and only use
-		 * response.length when responding to HEAD, so we
-		 * could just use the same code for both GET and HEAD.
-		 * But we'll optimize and avoid the extra malloc.
-		 */
-		msg->response.body = NULL;
-	}
+		char *buf;
 
-	close (fd);
+		buf = g_malloc (st.st_size);
+		read (fd, buf, st.st_size);
+		close (fd);
+		soup_message_body_append (msg->response_body, buf, st.st_size,
+					  SOUP_MEMORY_TAKE);
+	} else /* msg->method == SOUP_METHOD_HEAD */ {
+		char *length;
+
+		/* We could just use the same code for both GET and
+		 * HEAD. But we'll optimize and avoid the extra
+		 * malloc.
+		 */
+		length = g_strdup_printf ("%lu", (gulong)st.st_size);
+		soup_message_headers_append (msg->response_headers,
+					     "Content-Length", length);
+		g_free (length);
+	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 

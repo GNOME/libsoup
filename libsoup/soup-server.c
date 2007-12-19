@@ -352,9 +352,9 @@ set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
 	else
 		soup_message_set_status (req, code);
 
-	req->response.owner = SOUP_BUFFER_STATIC;
-	req->response.body = body;
-	req->response.length = body ? strlen (req->response.body) : 0;
+	soup_message_body_append (req->response_body,
+				  body, body ? strlen (body) : 0,
+				  SOUP_MEMORY_STATIC);
 }
 
 

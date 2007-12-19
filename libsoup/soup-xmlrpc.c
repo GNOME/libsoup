@@ -197,8 +197,7 @@ soup_xmlrpc_request_newv (const char *uri, const char *method_name, va_list args
 		return NULL;
 
 	msg = soup_message_new ("POST", uri);
-	soup_message_set_request (msg, "text/xml",
-				  SOUP_BUFFER_SYSTEM_OWNED,
+	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
 				  body, strlen (body));
 	return msg;
 }
@@ -372,8 +371,7 @@ soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
 	body = soup_xmlrpc_build_method_response (&value);
 	g_value_unset (&value);
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_request (msg, "text/xml",
-				  SOUP_BUFFER_SYSTEM_OWNED,
+	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
 				  body, strlen (body));
 }
 
@@ -400,8 +398,7 @@ soup_xmlrpc_set_fault (SoupMessage *msg, int fault_code,
 	va_end (args);
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_request (msg, "text/xml",
-				  SOUP_BUFFER_SYSTEM_OWNED,
+	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
 				  body, strlen (body));
 }
 

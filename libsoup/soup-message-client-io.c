@@ -66,6 +66,7 @@ get_request_headers (SoupMessage *req, GString *header,
 	const SoupURI *uri = soup_message_get_uri (req);
 	const char *expect;
 	char *uri_string;
+	gsize content_length;
 
 	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -93,9 +94,10 @@ get_request_headers (SoupMessage *req, GString *header,
 	}
 	g_free (uri_string);
 
-	if (req->request.length > 0) {
-		g_string_append_printf (header, "Content-Length: %d\r\n",
-					req->request.length);
+	content_length = soup_message_body_get_length (req->request_body);
+	if (content_length > 0) {
+		g_string_append_printf (header, "Content-Length: %lu\r\n",
+					(unsigned long)content_length);
 		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
 	}
 
