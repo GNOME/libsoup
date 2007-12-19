@@ -22,11 +22,22 @@
 #include "soup-address.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
+#include "soup-marshal.h"
 #include "soup-server-auth.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
 G_DEFINE_TYPE (SoupServer, soup_server, G_TYPE_OBJECT)
+
+enum {
+	REQUEST_STARTED,
+	REQUEST_READ,
+	REQUEST_FINISHED,
+	REQUEST_ABORTED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct {
 	SoupAddress       *interface;
@@ -144,6 +155,108 @@ soup_server_class_init (SoupServerClass *server_class)
 	object_class->finalize = finalize;
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
+
+	/* signals */
+
+	/**
+	 * SoupServer::request-started
+	 * @server: the server
+	 * @connection: an (opaque) connection ID
+	 * @message: the new message
+	 *
+	 * Emitted when the server has started reading a new request.
+	 * @message will be completely blank; not even the
+	 * Request-Line will have been read yet. About the only thing
+	 * you can usefully do with it is connect to its signals.
+	 *
+	 * If the request is read successfully, this will eventually
+	 * be followed by a #request-read signal. If a response is
+	 * then sent, the request processing will end with a
+	 * #request-finished signal. If a network error occurs, the
+	 * processing will instead end with #request-aborted.
+	 **/
+	signals[REQUEST_STARTED] =
+		g_signal_new ("request-started",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupServerClass, request_started),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
+
+	/**
+	 * SoupServer::request-read
+	 * @server: the server
+	 * @connection: an (opaque) connection ID
+	 * @message: the message
+	 *
+	 * Emitted when the server has successfully read a request.
+	 * @message will have all of its request-side information
+	 * filled in. This signal is emitted before any handlers are
+	 * called for the message, and if it sets the message's
+	 * #status_code, then normal handler processing will be
+	 * skipped.
+	 **/
+	signals[REQUEST_READ] =
+		g_signal_new ("request-read",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupServerClass, request_read),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
+
+	/**
+	 * SoupServer::request-finished
+	 * @server: the server
+	 * @connection: an (opaque) connection ID
+	 * @message: the message
+	 *
+	 * Emitted when the server has finished writing a response to
+	 * a request.
+	 **/
+	signals[REQUEST_FINISHED] =
+		g_signal_new ("request-finished",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupServerClass, request_finished),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
+
+	/**
+	 * SoupServer::request-aborted
+	 * @server: the server
+	 * @connection: an (opaque) connection ID
+	 * @message: the message
+	 *
+	 * Emitted when processing has failed for a message; this
+	 * could mean either that it could not be read (if
+	 * #request-read has not been emitted for it yet), or that the
+	 * response could not be written back (if #request-read has
+	 * been emitted but #request-finished has not been).
+	 *
+	 * @message is in an undefined state when this signal is
+	 * emitted; the signal exists primarily to allow the server to
+	 * free any state that it may have allocated in
+	 * #request-started.
+	 **/
+	signals[REQUEST_ABORTED] =
+		g_signal_new ("request-aborted",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupServerClass, request_aborted),
+			      NULL, NULL,
+			      soup_marshal_NONE__POINTER_OBJECT,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_POINTER,
+			      SOUP_TYPE_MESSAGE);
 
 	/* properties */
 	g_object_class_install_property (
@@ -335,6 +448,11 @@ request_finished (SoupMessage *msg, gpointer sock)
 {
 	SoupServer *server = g_object_get_data (sock, "SoupServer");
 
+	g_signal_emit (server,
+		       msg->status_code == SOUP_STATUS_IO_ERROR ?
+		       signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
+		       0, sock, msg);
+
 	if (soup_socket_is_connected (sock) && soup_message_is_keepalive (msg)) {
 		/* Start a new request */
 		start_request (server, sock);
@@ -359,17 +477,49 @@ set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
 
 
 static void
-call_handler (SoupMessage *req, SoupSocket *sock)
+check_auth (SoupMessage *req, SoupSocket *sock)
 {
 	SoupServer *server;
 	SoupServerHandler *hand;
+	SoupServerAuthContext *auth_ctx;
+	const char *auth_hdr;
 	SoupServerAuth *auth = NULL;
 	const char *handler_path;
 
 	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
 
+	handler_path = soup_message_get_uri (req)->path;
+
+	hand = soup_server_get_handler (server, handler_path);
+	if (!hand || !hand->auth_ctx)
+		return;
+
+	auth_ctx = hand->auth_ctx;
+	auth_hdr = soup_message_headers_find (req->request_headers,
+					      "Authorization");
+	auth = soup_server_auth_new (auth_ctx, auth_hdr, req);
+	g_object_set_data_full (G_OBJECT (req), "SoupServerAuth", auth,
+				(GDestroyNotify)soup_server_auth_free);
+
+	if (!auth_ctx->callback (auth_ctx, auth, req, auth_ctx->user_data)) {
+		soup_server_auth_context_challenge (auth_ctx, req,
+						    "WWW-Authenticate");
+		if (!req->status_code)
+			set_response_error (req, SOUP_STATUS_UNAUTHORIZED, NULL, NULL);
+	}
+}
+
+static void
+call_handler (SoupMessage *req, SoupSocket *sock)
+{
+	SoupServer *server;
+	SoupServerHandler *hand;
+	const char *handler_path;
+
 	if (req->status_code != 0)
 		return;
+
+	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
 
 	handler_path = soup_message_get_uri (req)->path;
 
@@ -379,50 +529,13 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 		return;
 	}
 
-	if (hand->auth_ctx) {
-		SoupServerAuthContext *auth_ctx = hand->auth_ctx;
-		const char *auth_hdr;
-
-		auth_hdr = soup_message_headers_find (req->request_headers,
-						      "Authorization");
-		auth = soup_server_auth_new (auth_ctx, auth_hdr, req);
-
-		if (auth_ctx->callback) {
-			gboolean ret = FALSE;
-
-			ret = (*auth_ctx->callback) (auth_ctx,
-						     auth,
-						     req,
-						     auth_ctx->user_data);
-			if (!ret) {
-				soup_server_auth_context_challenge (
-					auth_ctx,
-					req,
-					"WWW-Authenticate");
-
-				if (!req->status_code)
-					soup_message_set_status (
-						req,
-						SOUP_STATUS_UNAUTHORIZED);
-
-				return;
-			}
-		} else if (req->status_code) {
-			soup_server_auth_context_challenge (
-				auth_ctx,
-				req,
-				"WWW-Authenticate");
-			return;
-		}
-	}
-
 	if (hand->callback) {
 		const SoupURI *uri = soup_message_get_uri (req);
 		SoupServerContext ctx;
 
 		ctx.msg       = req;
 		ctx.path      = uri->path;
-		ctx.auth      = auth;
+		ctx.auth      = g_object_get_data (G_OBJECT (req), "SoupServerAuth");
 		ctx.server    = server;
 		ctx.handler   = hand;
 		ctx.sock      = sock;
@@ -430,9 +543,6 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 		/* Call method handler */
 		(*hand->callback) (&ctx, req, hand->user_data);
 	}
-
-	if (auth)
-		soup_server_auth_free (auth);
 }
 
 static void
@@ -445,8 +555,12 @@ start_request (SoupServer *server, SoupSocket *server_sock)
         soup_message_headers_set_encoding (msg->response_headers,
                                            SOUP_ENCODING_CONTENT_LENGTH);
 
+	g_signal_connect (msg, "got_headers", G_CALLBACK (check_auth), server_sock);
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), server_sock);
 	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), server_sock);
+
+	g_signal_emit (server, signals[REQUEST_STARTED], 0,
+		       server_sock, msg);
 
 	g_object_ref (server_sock);
 	soup_message_read_request (msg, server_sock);
@@ -738,8 +852,8 @@ soup_server_pause_message (SoupServer *server,
  * @msg: a #SoupMessage associated with @server.
  *
  * Resumes I/O on @msg. Use this to resume after calling
- * soup_message_io_pause(), or after adding a new chunk to a chunked
- * response.
+ * soup_server_pause_message(), or after adding a new chunk to a
+ * chunked response.
  *
  * I/O won't actually resume until you return to the main loop.
  **/

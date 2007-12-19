@@ -7,7 +7,6 @@
 #define SOUP_SERVER_H 1
 
 #include <libsoup/soup-types.h>
-#include <libsoup/soup-method.h>
 #include <libsoup/soup-uri.h>
 
 G_BEGIN_DECLS
@@ -26,6 +25,12 @@ struct SoupServer {
 
 typedef struct {
 	GObjectClass parent_class;
+
+	/* signals */
+	void (*request_started)  (SoupServer *, SoupSocket *, SoupMessage *);
+	void (*request_read)     (SoupServer *, SoupSocket *, SoupMessage *);
+	void (*request_finished) (SoupServer *, SoupSocket *, SoupMessage *);
+	void (*request_aborted)  (SoupServer *, SoupSocket *, SoupMessage *);
 
 } SoupServerClass;
 

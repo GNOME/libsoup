@@ -1,5 +1,21 @@
 2007-12-19  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server.c: define new request_started, request_read,
+	request_finished, and request_aborted signals, for finer-grained
+	tracking than normal handlers allow.
+	(check_auth): split this out of call_handler, and run it
+	immediately after "got_headers", not "got_body", so that we can
+	preemptively reject "Expect: 100-continue" messages that will
+	require auth.
+
+	* libsoup/soup-message-io.c (io_write, io_read): Fix up
+	100-continue processing
+
+	* tests/continue-test.c: new test of client/server 100-continue
+	processing
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-socket.c: Cleanup. Remove the "connect_result"
 	signal. Make local_address and remote_address
 	into (construct-only) properties.

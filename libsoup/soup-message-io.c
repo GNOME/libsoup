@@ -373,14 +373,15 @@ io_body_state (SoupEncoding encoding)
  *      W:DONE     / R:BODY           <-  R:DONE     / W:BODY
  *      W:DONE     / R:DONE               R:DONE     / W:DONE
  *     
- * and the "Expect: 100-continue" request/response, in which each
- * writer has to pause and wait for the other at some point:
+ * and the "Expect: 100-continue" request/response, with the client
+ * blocking halfway through its request, and then either continuing or
+ * aborting, depending on the server response:
  *
  *     Client                            Server
  *      W:HEADERS  / R:NOT_STARTED    ->  R:HEADERS  / W:NOT_STARTED
- *      W:BLOCKING / R:HEADERS (100)  <-  R:BLOCKING / W:HEADERS (100)
- *      W:BODY     / R:BLOCKING       ->  R:BODY     / W:BLOCKING
- *      W:DONE     / R:HEADERS        <-  R:DONE     / W:HEADERS
+ *      W:BLOCKING / R:HEADERS        <-  R:BLOCKING / W:HEADERS
+ *     [W:BODY     / R:BLOCKING       ->  R:BODY     / W:BLOCKING]
+ *     [W:DONE     / R:HEADERS        <-  R:DONE     / W:HEADERS]
  *      W:DONE     / R:BODY           <-  R:DONE     / W:BODY
  *      W:DONE     / R:DONE               R:DONE     / W:DONE
  */
@@ -434,13 +435,23 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 			/* Need to wait for the Continue response */
 			io->write_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 			io->read_state = SOUP_MESSAGE_IO_STATE_HEADERS;
-		} else
+		} else {
 			io->write_state = io_body_state (io->write_encoding);
 
+			/* If the client was waiting for a Continue
+			 * but we sent something else, then they're
+			 * now done writing.
+			 */
+			if (io->mode == SOUP_MESSAGE_IO_SERVER &&
+			    io->read_state == SOUP_MESSAGE_IO_STATE_BLOCKING)
+				io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+		}
+
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code))
+		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
 			soup_message_wrote_informational (msg);
-		else
+			soup_message_cleanup_response (msg);
+		} else
 			soup_message_wrote_headers (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 		break;
@@ -625,16 +636,27 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			}
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&
 			   soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE) {
-			/* The client requested a Continue response. */
+			/* The client requested a Continue response. The
+			 * got_headers handler may change this to something
+			 * else though.
+			 */
 			soup_message_set_status (msg, SOUP_STATUS_CONTINUE);
-			
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io->read_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
-		} else
+		} else {
 			io->read_state = io_body_state (io->read_encoding);
 
-		if (SOUP_STATUS_IS_INFORMATIONAL (msg->status_code) &&
-		    !(soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE)) {
+			/* If the client was waiting for a Continue
+			 * but got something else, then it's done
+			 * writing.
+			 */
+			if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+			    io->write_state == SOUP_MESSAGE_IO_STATE_BLOCKING)
+				io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+		}
+
+		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
 			soup_message_got_informational (msg);
 			soup_message_cleanup_response (msg);
