@@ -959,16 +959,16 @@ soup_message_is_keepalive (SoupMessage *msg)
 
 		if (!c_conn || !s_conn)
 			return FALSE;
-		if (g_ascii_strcasecmp (c_conn, "Keep-Alive") != 0 ||
-		    g_ascii_strcasecmp (s_conn, "Keep-Alive") != 0)
+		if (soup_header_contains (c_conn, "Keep-Alive") ||
+		    soup_header_contains (s_conn, "Keep-Alive"))
 			return FALSE;
 
 		return TRUE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
-		if (c_conn && g_ascii_strcasecmp (c_conn, "close") == 0)
+		if (c_conn && soup_header_contains (c_conn, "close"))
 			return FALSE;
-		if (s_conn && g_ascii_strcasecmp (s_conn, "close") == 0)
+		if (s_conn && soup_header_contains (s_conn, "close"))
 			return FALSE;
 
 		/* But not if the server sent a terminate-by-EOF response */

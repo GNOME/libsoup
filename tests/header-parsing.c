@@ -532,6 +532,29 @@ struct ResponseTest {
 };
 static const int num_resptests = G_N_ELEMENTS (resptests);
 
+struct QValueTest {
+	char *header_value;
+	char *acceptable[7];
+	char *unacceptable[2];
+} qvaluetests[] = {
+	{ "text/plain; q=0.5, text/html,\t  text/x-dvi; q=0.8, text/x-c",
+	  { "text/html", "text/x-c", "text/x-dvi", "text/plain", NULL },
+	  { NULL },
+	},
+
+	{ "text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.5",
+	  { "text/html;level=1", "text/html", "*/*", "text/html;level=2",
+	    "text/*", NULL },
+	  { NULL }
+	},
+
+	{ "gzip;q=1.0, identity; q=0.5, *;q=0",
+	  { "gzip", "identity", NULL },
+	  { "*", NULL },
+	}
+};
+static const int num_qvaluetests = G_N_ELEMENTS (qvaluetests);
+
 static void
 print_header (const char *name, const char *value, gpointer data)
 {
@@ -722,6 +745,67 @@ do_response_tests (void)
 	return errors;
 }
 
+static int
+do_qvalue_tests (void)
+{
+	int i, j, errors = 0;
+	GSList *acceptable, *unacceptable, *iter;
+	gboolean wrong;
+
+	dprintf ("qvalue tests\n");
+	for (i = 0; i < num_qvaluetests; i++) {
+		dprintf ("%2d. %s:\n", i + 1, qvaluetests[i].header_value);
+
+		unacceptable = NULL;
+		acceptable = soup_header_parse_quality_list (qvaluetests[i].header_value,
+							     &unacceptable);
+
+		dprintf ("    acceptable: ");
+		wrong = FALSE;
+		if (acceptable) {
+			for (iter = acceptable, j = 0; iter; iter = iter->next, j++) {
+				dprintf ("%s ", iter->data);
+				if (!qvaluetests[i].acceptable[j] ||
+				    strcmp (iter->data, qvaluetests[i].acceptable[j]) != 0)
+					wrong = TRUE;
+			}
+			dprintf ("\n");
+		} else
+			dprintf ("(none)\n");
+		if (wrong) {
+			dprintf ("    WRONG! expected: ");
+			for (j = 0; qvaluetests[i].acceptable[j]; j++)
+				dprintf ("%s ", qvaluetests[i].acceptable[j]);
+			dprintf ("\n");
+			errors++;
+		}
+
+		dprintf ("  unacceptable: ");
+		wrong = FALSE;
+		if (unacceptable) {
+			for (iter = unacceptable, j = 0; iter; iter = iter->next, j++) {
+				dprintf ("%s ", iter->data);
+				if (!qvaluetests[i].unacceptable[j] ||
+				    strcmp (iter->data, qvaluetests[i].unacceptable[j]) != 0)
+					wrong = TRUE;
+			}
+			dprintf ("\n");
+		} else
+			dprintf ("(none)\n");
+		if (wrong) {
+			dprintf ("    WRONG! expected: ");
+			for (j = 0; qvaluetests[i].unacceptable[j]; j++)
+				dprintf ("%s ", qvaluetests[i].unacceptable[j]);
+			dprintf ("\n");
+			errors++;
+		}
+
+		dprintf ("\n");
+	}
+
+	return errors;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -740,6 +824,7 @@ main (int argc, char **argv)
 
 	errors = do_request_tests ();
 	errors += do_response_tests ();
+	errors += do_qvalue_tests ();
 
 	dprintf ("\n");
 	if (errors) {

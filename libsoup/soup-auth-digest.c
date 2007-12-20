@@ -145,19 +145,14 @@ decode_data_type (DataType *dtype, const char *name)
 static inline guint
 decode_qop (const char *qop_value)
 {
-	char *ptr = (char *)qop_value;
+	GSList *qop_values, *iter;
 	guint qop = 0;
 
-	while (ptr && *ptr) {
-		char *token;
-
-		token = soup_header_param_decode_token (&ptr);
-		if (token)
-			qop |= decode_data_type (qop_types, token);
-		g_free (token);
-
-		if (*ptr == ',')
-			ptr++;
+	if (qop_value) {
+		qop_values = soup_header_parse_list (qop_value);
+		for (iter = qop_values; iter; iter = iter->next)
+			qop |= decode_data_type (qop_types, iter->data);
+		soup_header_free_list (qop_values);
 	}
 
 	return qop;
@@ -184,9 +179,9 @@ update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 	priv->proxy = (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED);
 	priv->nc = 1;
 
-	priv->domain = soup_header_param_copy_token (auth_params, "domain");
-	priv->nonce = soup_header_param_copy_token (auth_params, "nonce");
-	priv->opaque = soup_header_param_copy_token (auth_params, "opaque");
+	priv->domain = g_strdup (g_hash_table_lookup (auth_params, "domain"));
+	priv->nonce = g_strdup (g_hash_table_lookup (auth_params, "nonce"));
+	priv->opaque = g_strdup (g_hash_table_lookup (auth_params, "opaque"));
 
 	qop_options = decode_qop (g_hash_table_lookup (auth_params, "qop"));
 	/* We're just going to do qop=auth for now */
@@ -395,17 +390,17 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 					    "Authentication-Info");
 	g_return_if_fail (header != NULL);
 
-	auth_params = soup_header_param_parse_list (header);
+	auth_params = soup_header_parse_param_list (header);
 	if (!auth_params)
 		return;
 
-	nextnonce = soup_header_param_copy_token (auth_params, "nextnonce");
+	nextnonce = g_strdup (g_hash_table_lookup (auth_params, "nextnonce"));
 	if (nextnonce) {
 		g_free (priv->nonce);
 		priv->nonce = nextnonce;
 	}
 
-	soup_header_param_destroy_hash (auth_params);
+	soup_header_free_param_list (auth_params);
 }
 
 static char *

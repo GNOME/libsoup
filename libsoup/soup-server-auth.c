@@ -138,68 +138,56 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 	      SoupServerAuth        *out_auth)
 {
 	GHashTable *tokens;
-	gchar *user, *realm, *uri, *response;
-	gchar *nonce, *cnonce;
-	gint nonce_count;
+	const char *uri, *qop, *realm, *username;
+	const char *nonce, *nc, *cnonce, *response;
+	int nonce_count;
 	gboolean integrity;
+	SoupURI *dig_uri;
+	const SoupURI *req_uri;
 
-	user = realm = uri = response = NULL;
-	nonce = cnonce = NULL;
-	nonce_count = 0;
-	integrity = FALSE;
-
-	tokens = soup_header_param_parse_list (header);
+	tokens = soup_header_parse_param_list (header);
 	if (!tokens) 
-		goto DIGEST_AUTH_FAIL;
+		return FALSE;
 
 	/* Check uri */
-	{
-		SoupURI *dig_uri;
-		const SoupURI *req_uri;
+	uri = g_hash_table_lookup (tokens, "uri");
+	if (!uri)
+		goto DIGEST_AUTH_FAIL;
 
-		uri = soup_header_param_copy_token (tokens, "uri");
-		if (!uri)
-			goto DIGEST_AUTH_FAIL;
-
-		req_uri = soup_message_get_uri (msg);
-
-		dig_uri = soup_uri_new (uri);
-		if (dig_uri) {
-			if (!soup_uri_equal (dig_uri, req_uri)) {
-				soup_uri_free (dig_uri);
-				goto DIGEST_AUTH_FAIL;
-			}
+	req_uri = soup_message_get_uri (msg);
+	dig_uri = soup_uri_new (uri);
+	if (dig_uri) {
+		if (!soup_uri_equal (dig_uri, req_uri)) {
 			soup_uri_free (dig_uri);
-		} else {	
-			char *req_path;
-
-			req_path = soup_uri_to_string (req_uri, TRUE);
-			if (strcmp (uri, req_path) != 0) {
-				g_free (req_path);
-				goto DIGEST_AUTH_FAIL;
-			}
-			g_free (req_path);
+			goto DIGEST_AUTH_FAIL;
 		}
+		soup_uri_free (dig_uri);
+	} else {	
+		char *req_path;
+
+		req_path = soup_uri_to_string (req_uri, TRUE);
+		if (strcmp (uri, req_path) != 0) {
+			g_free (req_path);
+			goto DIGEST_AUTH_FAIL;
+		}
+		g_free (req_path);
 	}
 
 	/* Check qop */
-	{
-		gchar *qop;
-		qop = soup_header_param_copy_token (tokens, "qop");
-		if (!qop)
-			goto DIGEST_AUTH_FAIL;
+	qop = g_hash_table_lookup (tokens, "qop");
+	if (!qop)
+		goto DIGEST_AUTH_FAIL;
 
-		if (!strcmp (qop, "auth-int")) {
-			g_free (qop);
-			integrity = TRUE;
-		} else if (auth_ctx->digest_info.force_integrity) {
-			g_free (qop);
+	if (!strcmp (qop, "auth-int"))
+		integrity = TRUE;
+	else {
+		if (auth_ctx->digest_info.force_integrity)
 			goto DIGEST_AUTH_FAIL;
-		}
-	}			
+		integrity = FALSE;
+	}
 
 	/* Check realm */
-	realm = soup_header_param_copy_token (tokens, "realm");
+	realm = g_hash_table_lookup (tokens, "realm");
 	if (!realm && auth_ctx->digest_info.realm)
 		goto DIGEST_AUTH_FAIL;
 	else if (realm && 
@@ -208,64 +196,48 @@ parse_digest (SoupServerAuthContext *auth_ctx,
 		goto DIGEST_AUTH_FAIL;
 
 	/* Check username */
-	user = soup_header_param_copy_token (tokens, "username");
-	if (!user)
+	username = g_hash_table_lookup (tokens, "username");
+	if (!username)
 		goto DIGEST_AUTH_FAIL;
 
 	/* Check nonce */
-	nonce = soup_header_param_copy_token (tokens, "nonce");
+	nonce = g_hash_table_lookup (tokens, "nonce");
 	if (!nonce)
 		goto DIGEST_AUTH_FAIL;
 
 	/* Check nonce count */
-	{
-		gchar *nc;
-		nc = soup_header_param_copy_token (tokens, "nc");
-		if (!nc)
-			goto DIGEST_AUTH_FAIL;
+	nc = g_hash_table_lookup (tokens, "nc");
+	if (!nc)
+		goto DIGEST_AUTH_FAIL;
 
-		nonce_count = atoi (nc);
-		if (nonce_count <= 0) {
-			g_free (nc);
-			goto DIGEST_AUTH_FAIL;
-		}
-		g_free (nc);
-	}
+	nonce_count = atoi (nc);
+	if (nonce_count <= 0)
+		goto DIGEST_AUTH_FAIL;
 
-	cnonce = soup_header_param_copy_token (tokens, "cnonce");
+	cnonce = g_hash_table_lookup (tokens, "cnonce");
 	if (!cnonce)
 		goto DIGEST_AUTH_FAIL;
 
-	response = soup_header_param_copy_token (tokens, "response");
+	response = g_hash_table_lookup (tokens, "response");
 	if (!response)
 		goto DIGEST_AUTH_FAIL;
 
 	out_auth->digest.type            = SOUP_AUTH_TYPE_DIGEST;
-	out_auth->digest.digest_uri      = uri;
+	out_auth->digest.digest_uri      = g_strdup (uri);
 	out_auth->digest.integrity       = integrity;
-	out_auth->digest.realm           = realm;
-	out_auth->digest.user            = user;
-	out_auth->digest.nonce           = nonce;
+	out_auth->digest.realm           = g_strdup (realm);
+	out_auth->digest.user            = g_strdup (username);
+	out_auth->digest.nonce           = g_strdup (nonce);
 	out_auth->digest.nonce_count     = nonce_count;
-	out_auth->digest.cnonce          = cnonce;
-	out_auth->digest.digest_response = response;
+	out_auth->digest.cnonce          = g_strdup (cnonce);
+	out_auth->digest.digest_response = g_strdup (response);
 	out_auth->digest.request_method  = msg->method;
 
-	soup_header_param_destroy_hash (tokens);
-
+	soup_header_free_param_list (tokens);
 	return TRUE;
 
  DIGEST_AUTH_FAIL:
-	if (tokens)
-		soup_header_param_destroy_hash (tokens);
-
-	g_free (user);
-	g_free (realm);
-	g_free (nonce);
-	g_free (response);
-	g_free (cnonce);
-	g_free (uri);
-
+	soup_header_free_param_list (tokens);
 	return FALSE;
 }
 

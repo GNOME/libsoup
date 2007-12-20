@@ -312,149 +312,314 @@ soup_headers_parse_response (const char          *str,
 
 
 /*
- * HTTP parameterized header parsing
+ * Parsing of specific HTTP header types
  */
 
-char *
-soup_header_param_copy_token (GHashTable *tokens, char *t)
+static const char *
+skip_lws (const char *s)
 {
-	char *data;
+	while (g_ascii_isspace (*s))
+		s++;
+	return s;
+}
 
-	g_return_val_if_fail (tokens, NULL);
-	g_return_val_if_fail (t, NULL);
+static const char *
+unskip_lws (const char *s, const char *start)
+{
+	while (s > start && g_ascii_isspace (*(s - 1)))
+		s--;
+	return s;
+}
 
-	if ( (data = g_hash_table_lookup (tokens, t)))
-		return g_strdup (data);
+static const char *
+skip_commas (const char *s)
+{
+	/* The grammar allows for multiple commas */
+	while (g_ascii_isspace (*s) || *s == ',')
+		s++;
+	return s;
+}
+
+static const char *
+skip_item (const char *s)
+{
+	gboolean quoted = FALSE;
+	const char *start = s;
+
+	/* A list item ends at the last non-whitespace character
+	 * before a comma which is not inside a quoted-string. Or at
+	 * the end of the string.
+	 */
+
+	while (*s) {
+		if (*s == '"')
+			quoted = !quoted;
+		else if (quoted) {
+			if (*s == '\\' && *(s + 1))
+				s++;
+		} else {
+			if (*s == ',')
+				break;
+		}
+		s++;
+	}
+
+	return unskip_lws (s, start);
+}
+
+/**
+ * soup_header_parse_list:
+ * @header: a header value
+ *
+ * Parses a header whose content is described by RFC2616 as
+ * "#something", where "something" does not itself contain commas,
+ * except as part of quoted-strings.
+ *
+ * Return value: a #GSList of list elements, as allocated strings
+ **/
+GSList *
+soup_header_parse_list (const char *header)
+{
+	GSList *list = NULL;
+	const char *end;
+
+	header = skip_commas (header);
+	while (*header) {
+		end = skip_item (header);
+		list = g_slist_prepend (list, g_strndup (header, end - header));
+		header = skip_commas (end);
+	}
+
+	return g_slist_reverse (list);
+}
+
+typedef struct {
+	char *item;
+	double qval;
+} QualityItem;
+
+static int
+sort_by_qval (const void *a, const void *b)
+{
+	QualityItem *qia = (QualityItem *)a;
+	QualityItem *qib = (QualityItem *)b;
+
+	if (qia->qval == qib->qval)
+		return 0;
+	else if (qia->qval < qib->qval)
+		return 1;
 	else
-		return NULL;
+		return -1;
+}
+
+/**
+ * soup_header_parse_quality_list:
+ * @header: a header value
+ * @unacceptable: on return, will contain a list of unacceptable
+ * values
+ *
+ * Parses a header whose content is a list of items with optional
+ * "qvalue"s (eg, Accept, Accept-Charset, Accept-Encoding,
+ * Accept-Language, TE).
+ *
+ * If @unacceptable is not %NULL, then on return, it will contain the
+ * items with qvalue 0. Either way, those items will be removed from
+ * the main list.
+ *
+ * Return value: a #GSList of acceptable values (as allocated
+ * strings), highest-qvalue first.
+ **/
+GSList *
+soup_header_parse_quality_list (const char *header, GSList **unacceptable)
+{
+	GSList *unsorted;
+	QualityItem *array;
+	GSList *sorted, *iter;
+	char *item, *semi;
+	const char *param, *equal, *value;
+	double qval;
+	int n;
+
+	if (unacceptable)
+		*unacceptable = NULL;
+
+	unsorted = soup_header_parse_list (header);
+	array = g_new0 (QualityItem, g_slist_length (unsorted));
+	for (iter = unsorted, n = 0; iter; iter = iter->next) {
+		item = iter->data;
+		qval = 1.0;
+		for (semi = strchr (item, ';'); semi; semi = strchr (semi + 1, ';')) {
+			param = skip_lws (semi + 1);
+			if (*param != 'q')
+				continue;
+			equal = skip_lws (param + 1);
+			if (!equal || *equal != '=')
+				continue;
+			value = skip_lws (equal + 1);
+			if (!value)
+				continue;
+
+			if (value[0] != '0' && value[0] != '1')
+				continue;
+			qval = (double)(value[0] - '0');
+			if (value[0] == '0' && value[1] == '.') {
+				if (g_ascii_isdigit (value[2]))
+					qval += (double)(value[2] - '0') / 10;
+				if (g_ascii_isdigit (value[3]))
+					qval += (double)(value[3] - '0') / 100;
+				if (g_ascii_isdigit (value[4]))
+					qval += (double)(value[4] - '0') / 1000;
+			}
+
+			*semi = '\0';
+			break;
+		}
+
+		if (qval == 0.0) {
+			if (unacceptable) {
+				*unacceptable = g_slist_prepend (*unacceptable,
+								 item);
+			}
+		} else {
+			array[n].item = item;
+			array[n].qval = qval;
+			n++;
+		}
+	}
+	g_slist_free (unsorted);
+
+	qsort (array, n, sizeof (QualityItem), sort_by_qval);
+	sorted = NULL;
+	while (n--)
+		sorted = g_slist_prepend (sorted, array[n].item);
+	g_free (array);
+
+	return sorted;
+}
+
+/**
+ * soup_header_free_list:
+ * @list: a #GSList returned from soup_header_parse_list() or
+ * soup_header_parse_quality_list()
+ *
+ * Frees @list.
+ **/
+void
+soup_header_free_list (GSList *list)
+{
+	GSList *l;
+
+	for (l = list; l; l = l->next)
+		g_free (l->data);
+	g_slist_free (l);
+}
+
+/**
+ * soup_header_contains:
+ * @header: An HTTP header suitable for parsing with
+ * soup_header_parse_list()
+ * @token: a token
+ *
+ * Parses @header to see if it contains the token @token (matched
+ * case-insensitively). Note that this can't be used with lists
+ * that have qvalues.
+ *
+ * Return value: whether or not @header contains @token
+ **/
+gboolean
+soup_header_contains (const char *header, const char *token)
+{
+	const char *end;
+	guint len = strlen (token);
+
+	header = skip_commas (header);
+	while (*header) {
+		end = skip_item (header);
+		if (end - header == len &&
+		    !g_ascii_strncasecmp (header, token, len))
+			return TRUE;
+		header = skip_commas (end);
+	}
+
+	return FALSE;
 }
 
 static void
-decode_lwsp (char **in)
+decode_quoted_string (char *quoted_string)
 {
-	char *inptr = *in;
+	char *src, *dst;
 
-	while (isspace (*inptr))
-		inptr++;
-
-	*in = inptr;
-}
-
-static char *
-decode_quoted_string (char **in)
-{
-	char *inptr = *in;
-	char *out = NULL, *outptr;
-	int outlen;
-	int c;
-
-	decode_lwsp (&inptr);
-	if (*inptr == '"') {
-		char *intmp;
-		int skip = 0;
-
-                /* first, calc length */
-                inptr++;
-                intmp = inptr;
-                while ( (c = *intmp++) && c != '"') {
-                        if (c == '\\' && *intmp) {
-                                intmp++;
-                                skip++;
-                        }
-                }
-
-                outlen = intmp - inptr - skip;
-                out = outptr = g_malloc (outlen + 1);
-
-                while ( (c = *inptr++) && c != '"') {
-                        if (c == '\\' && *inptr) {
-                                c = *inptr++;
-                        }
-                        *outptr++ = c;
-                }
-                *outptr = 0;
-        }
-
-        *in = inptr;
-
-        return out;
-}
-
-char *
-soup_header_param_decode_token (char **in)
-{
-	char *inptr = *in;
-	char *start;
-
-	decode_lwsp (&inptr);
-	start = inptr;
-
-	while (*inptr && *inptr != '=' && *inptr != ',')
-		inptr++;
-
-	if (inptr > start) {
-		*in = inptr;
-		return g_strndup (start, inptr - start);
+	src = quoted_string + 1;
+	dst = quoted_string;
+	while (*src && *src != '"') {
+		if (*src == '\\' && *(src + 1))
+			src++;
+		*dst++ = *src++;
 	}
-	else
-		return NULL;
+	*dst = '\0';
 }
 
-static char *
-decode_value (char **in)
-{
-	char *inptr = *in;
-
-	decode_lwsp (&inptr);
-	if (*inptr == '"')
-		return decode_quoted_string (in);
-	else
-		return soup_header_param_decode_token (in);
-}
-
+/**
+ * soup_header_parse_param_list:
+ * @header: a header value
+ *
+ * Parses a header which is a list of something like
+ *   token [ "=" ( token | quoted-string ) ]
+ *
+ * Tokens that don't have an associated value will still be added to
+ * the resulting hash table, but with a %NULL value.
+ * 
+ * Return value: a #GHashTable of list elements.
+ **/
 GHashTable *
-soup_header_param_parse_list (const char *header)
+soup_header_parse_param_list (const char *header)
 {
-	char *ptr;
-	gboolean added = FALSE;
-	GHashTable *params = g_hash_table_new (soup_str_case_hash, 
-					       soup_str_case_equal);
+	GHashTable *params;
+	GSList *list, *iter;
+	char *item, *eq, *name_end, *value;
 
-	ptr = (char *) header;
-	while (ptr && *ptr) {
-		char *name;
-		char *value;
+	list = soup_header_parse_list (header);
+	if (!list)
+		return NULL;
 
-		name = soup_header_param_decode_token (&ptr);
-		if (*ptr == '=') {
-			ptr++;
-			value = decode_value (&ptr);
-			g_hash_table_insert (params, name, value);
-			added = TRUE;
-		}
+	params = g_hash_table_new_full (soup_str_case_hash, 
+					soup_str_case_equal,
+					g_free, NULL);
 
-		if (*ptr == ',')
-			ptr++;
-	}
+	for (iter = list; iter; iter = iter->next) {
+		item = iter->data;
 
-	if (!added) {
-		g_hash_table_destroy (params);
-		params = NULL;
+		eq = strchr (item, '=');
+		if (eq) {
+			name_end = (char *)unskip_lws (eq, item);
+			if (name_end == item) {
+				/* That's no good... */
+				g_free (item);
+				continue;
+			}
+
+			*name_end = '\0';
+
+			value = (char *)skip_lws (eq + 1);
+			if (*value == '"')
+				decode_quoted_string (value);
+		} else
+			value = NULL;
+
+		g_hash_table_insert (params, item, value);
 	}
 
 	return params;
 }
 
-static void
-destroy_param_hash_elements (gpointer key, gpointer value, gpointer user_data)
-{
-	g_free (key);
-	g_free (value);
-}
-
+/**
+ * soup_header_free_param_list:
+ * @param_list: a #GHashTable returned from soup_header_parse_param_list()
+ *
+ * Frees @param_list.
+ **/
 void
-soup_header_param_destroy_hash (GHashTable *table)
+soup_header_free_param_list (GHashTable *param_list)
 {
-	g_hash_table_foreach (table, destroy_param_hash_elements, NULL);
-	g_hash_table_destroy (table);
+	g_hash_table_destroy (param_list);
 }

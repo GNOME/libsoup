@@ -72,7 +72,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 		return NULL;
 	}
 
-	params = soup_header_param_parse_list (auth_header + strlen (scheme));
+	params = soup_header_parse_param_list (auth_header + strlen (scheme));
 	if (!params) {
 		g_object_unref (auth);
 		return NULL;
@@ -80,7 +80,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 
 	realm = g_hash_table_lookup (params, "realm");
 	if (!realm) {
-		soup_header_param_destroy_hash (params);
+		soup_header_free_param_list (params);
 		g_object_unref (auth);
 		return NULL;
 	}
@@ -91,7 +91,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 		g_object_unref (auth);
 		auth = NULL;
 	}
-	soup_header_param_destroy_hash (params);
+	soup_header_free_param_list (params);
 	return auth;
 }
 
@@ -123,18 +123,18 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	if (strncmp (auth_header, scheme, strlen (scheme)) != 0)
 		return FALSE;
 
-	params = soup_header_param_parse_list (auth_header + strlen (scheme));
+	params = soup_header_parse_param_list (auth_header + strlen (scheme));
 	if (!params)
 		return FALSE;
 
 	realm = g_hash_table_lookup (params, "realm");
 	if (!realm || strcmp (realm, auth->realm) != 0) {
-		soup_header_param_destroy_hash (params);
+		soup_header_free_param_list (params);
 		return FALSE;
 	}
 
 	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
-	soup_header_param_destroy_hash (params);
+	soup_header_free_param_list (params);
 	return success;
 }
 
