@@ -37,34 +37,17 @@ typedef struct {
 GType soup_server_get_type (void);
 
 
-typedef struct SoupServerHandler SoupServerHandler;
-
 typedef struct {
 	SoupMessage       *msg;
 	char              *path;
 	SoupServerAuth    *auth;
 	SoupServer        *server;
-	SoupServerHandler *handler;
 	SoupSocket        *sock;
 } SoupServerContext;
 
 typedef void (*SoupServerCallbackFn) (SoupServerContext    *context,
 				      SoupMessage          *msg, 
 				      gpointer              user_data);
-
-typedef void (*SoupServerUnregisterFn) (SoupServer        *server,
-					SoupServerHandler *handler,
-					gpointer           user_data);
-
-struct SoupServerHandler {
-	char                   *path;
-
-	SoupServerAuthContext  *auth_ctx;
-
-	SoupServerCallbackFn    callback;
-	SoupServerUnregisterFn  unregister;
-	gpointer                user_data;
-};
 
 #define SOUP_SERVER_PORT          "port"
 #define SOUP_SERVER_INTERFACE     "interface"
@@ -92,13 +75,12 @@ void               soup_server_add_handler    (SoupServer            *serv,
 					       const char            *path,
 					       SoupServerAuthContext *auth_ctx,
 					       SoupServerCallbackFn   callback,
-					       SoupServerUnregisterFn unreg,
+					       GDestroyNotify         destroy,
 					       gpointer               data);
 void               soup_server_remove_handler (SoupServer            *serv,
 					       const char            *path);
-SoupServerHandler *soup_server_get_handler    (SoupServer            *serv,
-					       const char            *path);
-GSList            *soup_server_list_handlers  (SoupServer            *serv);
+
+/* I/O */
 
 void               soup_server_pause_message   (SoupServer           *server,
 						SoupMessage          *msg);

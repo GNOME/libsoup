@@ -1,3 +1,15 @@
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-path-map.c: New type representing a sparse
+	path->something mapping
+
+	* libsoup/soup-server.c: Use SoupPathMap to record handlers. Make
+	SoupServerHandler a private type.
+	(soup_server_new): Rewrite this to just be a thin wrapper, and put
+	all of the code into a constructor override. #491653
+	(soup_server_add_handler): Turn the "unregister" arg into a
+	GDestroyNotify, for better bindability.
+
 2007-12-19  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-server.c: define new request_started, request_read,

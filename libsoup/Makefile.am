@@ -120,6 +120,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message-server-io.c	\
 	soup-misc.c     		\
 	soup-nossl.c     		\
+	soup-path-map.h     		\
+	soup-path-map.c     		\
 	soup-server.c			\
 	soup-server-auth.c		\
 	soup-session.c			\

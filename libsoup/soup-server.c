@@ -23,6 +23,7 @@
 #include "soup-headers.h"
 #include "soup-message-private.h"
 #include "soup-marshal.h"
+#include "soup-path-map.h" 
 #include "soup-server-auth.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -40,6 +41,16 @@ enum {
 static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct {
+	char                   *path;
+
+	SoupServerAuthContext  *auth_ctx;
+
+	SoupServerCallbackFn    callback;
+	GDestroyNotify          destroy;
+	gpointer                user_data;
+} SoupServerHandler;
+
+typedef struct {
 	SoupAddress       *interface;
 	guint              port;
 
@@ -51,7 +62,7 @@ typedef struct {
 	SoupSocket        *listen_sock;
 	GSList            *client_socks;
 
-	GHashTable        *handlers; /* KEY: path, VALUE: SoupServerHandler */
+	SoupPathMap       *handlers;
 	SoupServerHandler *default_handler;
 	
 	GMainContext      *async_context;
@@ -70,25 +81,17 @@ enum {
 	LAST_PROP
 };
 
+static GObject *constructor (GType                  type,
+			     guint                  n_construct_properties,
+			     GObjectConstructParam *construct_properties);
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
 static void
-soup_server_init (SoupServer *server)
+free_handler (SoupServerHandler *hand)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	priv->handlers = g_hash_table_new (g_str_hash, g_str_equal);
-}
-
-static void
-free_handler (SoupServer *server, SoupServerHandler *hand)
-{
-	if (hand->unregister)
-		(*hand->unregister) (server, hand, hand->user_data);
-
 	if (hand->auth_ctx) {
 		g_free ((char *) hand->auth_ctx->basic_info.realm);
 		g_free ((char *) hand->auth_ctx->digest_info.realm);
@@ -100,9 +103,11 @@ free_handler (SoupServer *server, SoupServerHandler *hand)
 }
 
 static void
-free_handler_foreach (gpointer key, gpointer hand, gpointer server)
+soup_server_init (SoupServer *server)
 {
-	free_handler (server, hand);
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	priv->handlers = soup_path_map_new ((GDestroyNotify)free_handler);
 }
 
 static void
@@ -131,10 +136,8 @@ finalize (GObject *object)
 	}
 
 	if (priv->default_handler)
-		free_handler (server, priv->default_handler);
-
-	g_hash_table_foreach (priv->handlers, free_handler_foreach, server);
-	g_hash_table_destroy (priv->handlers);
+		free_handler (priv->default_handler);
+	soup_path_map_free (priv->handlers);
 
 	if (priv->loop)
 		g_main_loop_unref (priv->loop);
@@ -152,6 +155,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	g_type_class_add_private (server_class, sizeof (SoupServerPrivate));
 
 	/* virtual method override */
+	object_class->constructor = constructor;
 	object_class->finalize = finalize;
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
@@ -295,6 +299,56 @@ soup_server_class_init (SoupServerClass *server_class)
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
+static GObject *
+constructor (GType                  type,
+	     guint                  n_construct_properties,
+	     GObjectConstructParam *construct_properties)
+{
+	GObject *server;
+	SoupServerPrivate *priv;
+
+	server = G_OBJECT_CLASS (soup_server_parent_class)->constructor (
+		type, n_construct_properties, construct_properties);
+	if (!server)
+		return NULL;
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	if (!priv->interface) {
+		priv->interface =
+			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
+					      priv->port);
+	}
+
+	if (priv->ssl_cert_file && priv->ssl_key_file) {
+		priv->ssl_creds = soup_ssl_get_server_credentials (
+			priv->ssl_cert_file,
+			priv->ssl_key_file);
+		if (!priv->ssl_creds) {
+			g_object_unref (server);
+			return NULL;
+		}
+	}
+
+	priv->listen_sock =
+		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->interface,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 NULL);
+	if (!soup_socket_listen (priv->listen_sock)) {
+		g_object_unref (server);
+		return NULL;
+	}
+
+	/* Re-resolve the interface address, in particular in case
+	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
+	 */
+	g_object_unref (priv->interface);
+	priv->interface = soup_socket_get_local_address (priv->listen_sock);
+	g_object_ref (priv->interface);
+	priv->port = soup_address_get_port (priv->interface);
+
+	return server;
+}
 
 static void
 set_property (GObject *object, guint prop_id,
@@ -362,51 +416,12 @@ SoupServer *
 soup_server_new (const char *optname1, ...)
 {
 	SoupServer *server;
-	SoupServerPrivate *priv;
 	va_list ap;
 
 	va_start (ap, optname1);
 	server = (SoupServer *)g_object_new_valist (SOUP_TYPE_SERVER,
 						    optname1, ap);
 	va_end (ap);
-
-	if (!server)
-		return NULL;
-	priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	if (!priv->interface) {
-		priv->interface =
-			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
-					      priv->port);
-	}
-
-	if (priv->ssl_cert_file && priv->ssl_key_file) {
-		priv->ssl_creds = soup_ssl_get_server_credentials (
-			priv->ssl_cert_file,
-			priv->ssl_key_file);
-		if (!priv->ssl_creds) {
-			g_object_unref (server);
-			return NULL;
-		}
-	}
-
-	priv->listen_sock =
-		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->interface,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
-				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
-				 NULL);
-	if (!soup_socket_listen (priv->listen_sock)) {
-		g_object_unref (server);
-		return NULL;
-	}
-
-	/* Re-resolve the interface address, in particular in case
-	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
-	 */
-	g_object_unref (priv->interface);
-	priv->interface = soup_socket_get_local_address (priv->listen_sock);
-	g_object_ref (priv->interface);
-	priv->port = soup_address_get_port (priv->interface);
 
 	return server;
 }
@@ -475,6 +490,22 @@ set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
 				  SOUP_MEMORY_STATIC);
 }
 
+static SoupServerHandler *
+soup_server_get_handler (SoupServer *server, const char *path)
+{
+	SoupServerPrivate *priv;
+	SoupServerHandler *hand;
+
+	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	if (path) {
+		hand = soup_path_map_lookup (priv->handlers, path);
+		if (hand)
+			return hand;
+	}
+	return priv->default_handler;
+}
 
 static void
 check_auth (SoupMessage *req, SoupSocket *sock)
@@ -537,7 +568,6 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 		ctx.path      = uri->path;
 		ctx.auth      = g_object_get_data (G_OBJECT (req), "SoupServerAuth");
 		ctx.server    = server;
-		ctx.handler   = hand;
 		ctx.sock      = sock;
 
 		/* Call method handler */
@@ -669,64 +699,6 @@ soup_server_get_async_context (SoupServer *server)
 	return priv->async_context;
 }
 
-static void
-append_handler (gpointer key, gpointer value, gpointer user_data)
-{
-	GSList **ret = user_data;
-
-	*ret = g_slist_prepend (*ret, value);
-}
-
-GSList *
-soup_server_list_handlers (SoupServer *server)
-{
-	SoupServerPrivate *priv;
-	GSList *ret = NULL;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	g_hash_table_foreach (priv->handlers, append_handler, &ret);
-
-	return ret;
-}
-
-SoupServerHandler *
-soup_server_get_handler (SoupServer *server, const char *path)
-{
-	SoupServerPrivate *priv;
-	char *mypath, *dir;
-	SoupServerHandler *hand = NULL;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	if (!path || !priv->handlers)
-		return priv->default_handler;
-
-	mypath = g_strdup (path);
-
-	dir = strchr (mypath, '?');
-	if (dir) *dir = '\0';
-
-	dir = mypath;
-
-	do {
-		hand = g_hash_table_lookup (priv->handlers, mypath);
-		if (hand) {
-			g_free (mypath);
-			return hand;
-		}
-
-		dir = strrchr (mypath, '/');
-		if (dir) *dir = '\0';
-	} while (dir);
-
-	g_free (mypath);
-
-	return priv->default_handler;
-}
-
 SoupAddress *
 soup_server_context_get_client_address (SoupServerContext *context)
 {
@@ -773,7 +745,7 @@ soup_server_add_handler (SoupServer            *server,
 			 const char            *path,
 			 SoupServerAuthContext *auth_ctx,
 			 SoupServerCallbackFn   callback,
-			 SoupServerUnregisterFn unregister,
+			 GDestroyNotify         destroy,
 			 gpointer               user_data)
 {
 	SoupServerPrivate *priv;
@@ -791,16 +763,21 @@ soup_server_add_handler (SoupServer            *server,
 	hand->path       = g_strdup (path);
 	hand->auth_ctx   = new_auth_ctx;
 	hand->callback   = callback;
-	hand->unregister = unregister;
+	hand->destroy    = destroy;
 	hand->user_data  = user_data;
 
-	if (path) {
-		soup_server_remove_handler (server, path);
-		g_hash_table_insert (priv->handlers, hand->path, hand);
-	} else {
-		soup_server_remove_handler (server, NULL);
+	soup_server_remove_handler (server, path);
+	if (path)
+		soup_path_map_add (priv->handlers, path, hand);
+	else
 		priv->default_handler = hand;
-	}
+}
+
+static void
+unregister_handler (SoupServerHandler *handler)
+{
+	if (handler->destroy)
+		handler->destroy (handler->user_data);
 }
 
 void
@@ -814,16 +791,17 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 
 	if (!path) {
 		if (priv->default_handler) {
-			free_handler (server, priv->default_handler);
+			unregister_handler (priv->default_handler);
+			free_handler (priv->default_handler);
 			priv->default_handler = NULL;
 		}
 		return;
 	}
 
-	hand = g_hash_table_lookup (priv->handlers, path);
-	if (hand) {
-		g_hash_table_remove (priv->handlers, path);
-		free_handler (server, hand);
+	hand = soup_path_map_lookup (priv->handlers, path);
+	if (hand && !strcmp (path, hand->path)) {
+		unregister_handler (hand);
+		soup_path_map_remove (priv->handlers, path);
 	}
 }
 
