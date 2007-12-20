@@ -25,15 +25,15 @@ print_header (const char *name, const char *value, gpointer data)
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+		 SoupClientContext *context, gpointer data)
 {
-	char *path, *path_to_open, *slash;
+	char *path_to_open, *slash;
 	SoupBuffer *request;
 	struct stat st;
 	int fd;
 
-	path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
-	printf ("%s %s HTTP/1.%d\n", msg->method, path,
+	printf ("%s %s HTTP/1.%d\n", msg->method, uri->path,
 		soup_message_get_http_version (msg));
 	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
 	request = soup_message_get_request (msg);
@@ -46,15 +46,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		goto DONE;
 	}
 
-	if (path) {
-		if (*path != '/') {
-			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
-			goto DONE;
-		}
-	} else
-		path = g_strdup ("");
-
-	path_to_open = g_strdup_printf (".%s", path);
+	path_to_open = g_strdup_printf (".%s", uri->path);
 
  AGAIN:
 	if (stat (path_to_open, &st) == -1) {
@@ -85,7 +77,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		}
 
 		g_free (path_to_open);
-		path_to_open = g_strdup_printf (".%s/index.html", path);
+		path_to_open = g_strdup_printf (".%s/index.html", uri->path);
 		goto AGAIN;
 	}
 
@@ -120,7 +112,6 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 
  DONE:
-	g_free (path);
 	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 
@@ -172,7 +163,7 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 	printf ("\nStarting Server on port %d\n",
 		soup_server_get_port (server));
@@ -189,7 +180,7 @@ main (int argc, char **argv)
 			fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
 			exit (1);
 		}
-		soup_server_add_handler (ssl_server, NULL, NULL,
+		soup_server_add_handler (ssl_server, NULL,
 					 server_callback, NULL, NULL);
 		printf ("Starting SSL Server on port %d\n", 
 			soup_server_get_port (ssl_server));

@@ -38,16 +38,16 @@ GType soup_server_get_type (void);
 
 
 typedef struct {
-	SoupMessage       *msg;
-	char              *path;
-	SoupServerAuth    *auth;
-	SoupServer        *server;
-	SoupSocket        *sock;
-} SoupServerContext;
+	SoupSocket *sock;
+	const char *auth_user;
+	const char *auth_realm;
+} SoupClientContext;
 
-typedef void (*SoupServerCallbackFn) (SoupServerContext    *context,
-				      SoupMessage          *msg, 
-				      gpointer              user_data);
+typedef void (*SoupServerCallbackFn) (SoupServer        *server,
+				      SoupMessage       *msg, 
+				      SoupURI           *request_uri,
+				      SoupClientContext *context,
+				      gpointer           user_data);
 
 #define SOUP_SERVER_PORT          "port"
 #define SOUP_SERVER_INTERFACE     "interface"
@@ -69,16 +69,20 @@ void               soup_server_quit           (SoupServer            *serv);
 
 GMainContext      *soup_server_get_async_context (SoupServer         *serv);
 
-/* Handlers */
+/* Handlers and auth */
 
 void               soup_server_add_handler    (SoupServer            *serv,
 					       const char            *path,
-					       SoupServerAuthContext *auth_ctx,
 					       SoupServerCallbackFn   callback,
 					       GDestroyNotify         destroy,
 					       gpointer               data);
 void               soup_server_remove_handler (SoupServer            *serv,
 					       const char            *path);
+
+void               soup_server_add_auth_domain    (SoupServer     *serv,
+						   SoupAuthDomain *auth_domain);
+void               soup_server_remove_auth_domain (SoupServer     *serv,
+						   SoupAuthDomain *auth_domain);
 
 /* I/O */
 
@@ -87,10 +91,10 @@ void               soup_server_pause_message   (SoupServer           *server,
 void               soup_server_unpause_message (SoupServer           *server,
 						SoupMessage          *msg);
 
-/* Functions for accessing information about the specific connection */
+/* Client context */
 
-SoupAddress *soup_server_context_get_client_address (SoupServerContext *ctx);
-const char  *soup_server_context_get_client_host    (SoupServerContext *ctx);
+SoupAddress *soup_client_context_get_address (SoupClientContext *ctx);
+const char  *soup_client_context_get_host    (SoupClientContext *ctx);
 
 G_END_DECLS
 

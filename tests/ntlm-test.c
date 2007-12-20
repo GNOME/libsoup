@@ -56,11 +56,11 @@ typedef enum {
 #define NTLM_RESPONSE_USER(response) ((response)[87] == 'h' ? NTLM_AUTHENTICATED_ALICE : NTLM_AUTHENTICATED_BOB)
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+		 SoupClientContext *context, gpointer data)
 {
 	GHashTable *connections = data;
 	const char *auth;
-	char *path;
 	NTLMServerState state, required_user;
 	gboolean not_found = FALSE;
 
@@ -69,16 +69,14 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		return;
 	}
 
-	path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
-	if (!strcmp (path, "/noauth"))
+	if (!strcmp (uri->path, "/noauth"))
 		required_user = 0;
-	else if (!strncmp (path, "/alice", 6))
+	else if (!strncmp (uri->path, "/alice", 6))
 		required_user = NTLM_AUTHENTICATED_ALICE;
-	else if (!strncmp (path, "/bob", 4))
+	else if (!strncmp (uri->path, "/bob", 4))
 		required_user = NTLM_AUTHENTICATED_BOB;
-	if (strstr (path, "/404"))
+	if (strstr (uri->path, "/404"))
 		not_found = TRUE;
-	g_free (path);
 
 	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, context->sock));
 	auth = soup_message_headers_find (msg->request_headers, "Authorization");
@@ -378,7 +376,7 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind server\n");
 		exit (1);
 	}
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, connections);
 	soup_server_run_async (server);
 

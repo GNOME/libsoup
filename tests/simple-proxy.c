@@ -78,12 +78,13 @@ finish_msg (SoupMessage *msg2, gpointer data)
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+		 SoupClientContext *context, gpointer data)
 {
 	SoupMessage *msg2;
 	char *uristr;
 
-	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+	uristr = soup_uri_to_string (uri, FALSE);
 	printf ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
 		soup_message_get_http_version (msg));
 
@@ -117,7 +118,7 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_session_queue_message (session, msg2, finish_msg, msg);
 
 	g_object_ref (msg);
-	soup_server_pause_message (context->server, msg);
+	soup_server_pause_message (server, msg);
 }
 
 static void
@@ -156,7 +157,7 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 
 	printf ("\nStarting proxy on port %d\n",

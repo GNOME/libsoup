@@ -21,6 +21,7 @@ noinst_PROGRAMS =	\
 	simple-httpd	\
 	simple-proxy	\
 	uri-parsing	\
+	$(CURL_TESTS)	\
 	$(APACHE_TESTS)	\
 	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
@@ -38,6 +39,7 @@ ntlm_test_SOURCES = ntlm-test.c
 proxy_test_SOURCES = proxy-test.c apache-wrapper.c apache-wrapper.h
 pull_api_SOURCES = pull-api.c apache-wrapper.c apache-wrapper.h
 revserver_SOURCES = revserver.c
+server_auth_test_SOURCES = server-auth-test.c
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 ssl_test_SOURCES = ssl-test.c
@@ -47,6 +49,9 @@ xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
 if HAVE_APACHE
 APACHE_TESTS = auth-test proxy-test pull-api
 endif
+if HAVE_CURL
+CURL_TESTS = server-auth-test
+endif
 if HAVE_SSL
 SSL_TESTS = ssl-test
 endif
@@ -54,7 +59,17 @@ if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test
 endif
 
-TESTS = context-test continue-test date header-parsing uri-parsing ntlm-test $(APACHE_TESTS) $(SSL_TESTS) $(XMLRPC_TESTS)
+TESTS =			\
+	context-test	\
+	continue-test	\
+	date		\
+	header-parsing	\
+	uri-parsing	\
+	ntlm-test	\
+	$(APACHE_TESTS)	\
+	$(CURL_TESTS)	\
+	$(SSL_TESTS)	\
+	$(XMLRPC_TESTS)
 
 EXTRA_DIST =		\
 	libsoup.supp	\

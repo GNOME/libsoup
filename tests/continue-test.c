@@ -10,8 +10,8 @@
 #include <unistd.h>
 
 #include <libsoup/soup.h>
+#include <libsoup/soup-auth-domain-basic.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-auth.h>
 
 #define SHORT_BODY "This is a test.\r\n"
 #define LONG_BODY (SHORT_BODY SHORT_BODY)
@@ -409,18 +409,15 @@ request_started (SoupServer *server, SoupSocket *sock,
 }
 
 static gboolean
-auth_callback (SoupServerAuthContext *auth_ctx, SoupServerAuth *auth,
-	       SoupMessage *msg, gpointer data)
+auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+	       const char *username, gpointer password, gpointer user_data)
 {
-	if (!auth || !soup_server_auth_get_user (auth))
-		return FALSE;
-	if (strcmp (soup_server_auth_get_user (auth), "user") != 0)
-		return FALSE;
-	return soup_server_auth_check_passwd (auth, "pass");
+	return !strcmp (username, "user") && !strcmp (password, "pass");
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+		 SoupClientContext *context, gpointer data)
 {
 	if (msg->method != SOUP_METHOD_POST) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -436,7 +433,7 @@ static SoupServer *
 setup_server (void)
 {
 	SoupServer *server;
-	SoupServerAuthContext auth_ctx;
+	SoupAuthDomain *auth_domain;
 
 	server = soup_server_new (SOUP_SERVER_PORT, 0,
 				  NULL);
@@ -444,16 +441,15 @@ setup_server (void)
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (request_started), NULL);
 
-	soup_server_add_handler (server, "/unauth", NULL,
-				 server_callback, NULL, NULL);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 
-	memset (&auth_ctx, 0, sizeof (auth_ctx));
-	auth_ctx.types            = SOUP_AUTH_TYPE_BASIC;
-	auth_ctx.callback         = auth_callback;
-	auth_ctx.user_data        = NULL;
-	auth_ctx.basic_info.realm = "continue-test";
-	soup_server_add_handler (server, "/auth", &auth_ctx,
-				 server_callback, NULL, NULL);
+	auth_domain = soup_auth_domain_basic_new (
+		SOUP_AUTH_DOMAIN_REALM, "continue-test",
+		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
+		NULL);
+	g_signal_connect (auth_domain, "authenticate",
+			  G_CALLBACK (auth_callback), NULL);
+	soup_server_add_auth_domain (server, auth_domain);
 
 	return server;
 }

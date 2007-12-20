@@ -70,7 +70,8 @@ add_body_chunk (gpointer data)
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+		 SoupClientContext *context, gpointer data)
 {
 	SlowData *sd;
 
@@ -79,13 +80,13 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 		return;
 	}
 
-	if (!strcmp (context->path, "/shutdown")) {
-		soup_server_quit (context->server);
+	if (!strcmp (uri->path, "/shutdown")) {
+		soup_server_quit (server);
 		return;
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	if (!strcmp (context->path, "/fast")) {
+	if (!strcmp (uri->path, "/fast")) {
 		soup_message_set_response (msg, "text/plain",
 					   SOUP_MEMORY_STATIC, "OK\r\n", 4);
 		return;
@@ -94,13 +95,13 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	soup_message_headers_set_encoding (msg->response_headers,
 					   SOUP_ENCODING_CHUNKED);
 	g_object_ref (msg);
-	soup_server_pause_message (context->server, msg);
+	soup_server_pause_message (server, msg);
 
 	sd = g_new (SlowData, 1);
-	sd->server = context->server;
+	sd->server = server;
 	sd->msg = msg;
 	sd->timeout = soup_add_timeout (
-		soup_server_get_async_context (context->server),
+		soup_server_get_async_context (server),
 		200, add_body_chunk, sd);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (request_failed), sd);
@@ -111,7 +112,7 @@ run_server_thread (gpointer user_data)
 {
 	SoupServer *server = user_data;
 
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 	soup_server_run (server);
 	g_object_unref (server);

@@ -272,6 +272,11 @@ fi
 AC_SUBST(IF_HAVE_PHP)
 AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test "$have_xmlrpc_epi_php" = yes)
 
+dnl *******************************
+dnl *** curl (for regression tests)
+dnl *******************************
+AC_PATH_PROG(CURL, curl, no)
+AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 
 dnl *************************
 dnl *** Output Everything ***

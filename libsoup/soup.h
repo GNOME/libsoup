@@ -11,6 +11,9 @@ extern "C" {
 #endif
 
 #include <libsoup/soup-address.h>
+#include <libsoup/soup-auth-domain.h>
+#include <libsoup/soup-auth-domain-basic.h>
+#include <libsoup/soup-auth-domain-digest.h>
 #include <libsoup/soup-date.h>
 #include <libsoup/soup-enum-types.h>
 #include <libsoup/soup-headers.h>
@@ -18,7 +21,6 @@ extern "C" {
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-auth.h>
 #include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-sync.h>
 #include <libsoup/soup-soap-message.h>

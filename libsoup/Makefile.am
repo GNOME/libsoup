@@ -48,6 +48,9 @@ libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 soup_headers =			\
 	soup.h			\
 	soup-address.h		\
+	soup-auth-domain.h	\
+	soup-auth-domain-basic.h  \
+	soup-auth-domain-digest.h \
 	soup-date.h		\
 	soup-headers.h		\
 	soup-message.h		\
@@ -56,7 +59,6 @@ soup_headers =			\
 	soup-method.h		\
 	soup-misc.h     	\
 	soup-portability.h	\
-	soup-server-auth.h	\
 	soup-server.h		\
 	soup-session.h		\
 	soup-session-async.h	\
@@ -96,6 +98,9 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-basic.c		\
 	soup-auth-digest.h		\
 	soup-auth-digest.c		\
+	soup-auth-domain.c		\
+	soup-auth-domain-basic.c	\
+	soup-auth-domain-digest.c	\
 	soup-auth-manager.h		\
 	soup-auth-manager.c		\
 	soup-connection.h		\
@@ -125,7 +130,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\
 	soup-server.c			\
-	soup-server-auth.c		\
 	soup-session.c			\
 	soup-session-async.c		\
 	soup-session-private.h		\

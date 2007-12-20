@@ -20,11 +20,11 @@
 
 #include "soup-server.h"
 #include "soup-address.h"
+#include "soup-auth-domain.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
 #include "soup-marshal.h"
 #include "soup-path-map.h" 
-#include "soup-server-auth.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
@@ -42,8 +42,6 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 typedef struct {
 	char                   *path;
-
-	SoupServerAuthContext  *auth_ctx;
 
 	SoupServerCallbackFn    callback;
 	GDestroyNotify          destroy;
@@ -65,6 +63,8 @@ typedef struct {
 	SoupPathMap       *handlers;
 	SoupServerHandler *default_handler;
 	
+	GSList            *auth_domains;
+
 	GMainContext      *async_context;
 } SoupServerPrivate;
 #define SOUP_SERVER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER, SoupServerPrivate))
@@ -92,12 +92,6 @@ static void get_property (GObject *object, guint prop_id,
 static void
 free_handler (SoupServerHandler *hand)
 {
-	if (hand->auth_ctx) {
-		g_free ((char *) hand->auth_ctx->basic_info.realm);
-		g_free ((char *) hand->auth_ctx->digest_info.realm);
-		g_free (hand->auth_ctx);
-	}
-
 	g_free (hand->path);
 	g_free (hand);
 }
@@ -115,6 +109,7 @@ finalize (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	GSList *iter;
 
 	if (priv->interface)
 		g_object_unref (priv->interface);
@@ -138,6 +133,10 @@ finalize (GObject *object)
 	if (priv->default_handler)
 		free_handler (priv->default_handler);
 	soup_path_map_free (priv->handlers);
+
+	for (iter = priv->auth_domains; iter; iter = iter->next)
+		g_object_unref (iter->data);
+	g_slist_free (priv->auth_domains);
 
 	if (priv->loop)
 		g_main_loop_unref (priv->loop);
@@ -477,19 +476,6 @@ request_finished (SoupMessage *msg, gpointer sock)
 	g_object_unref (sock);
 }
 
-static inline void
-set_response_error (SoupMessage *req, guint code, char *phrase, char *body)
-{
-	if (phrase)
-		soup_message_set_status_full (req, code, phrase);
-	else
-		soup_message_set_status (req, code);
-
-	soup_message_body_append (req->response_body,
-				  body, body ? strlen (body) : 0,
-				  SOUP_MEMORY_STATIC);
-}
-
 static SoupServerHandler *
 soup_server_get_handler (SoupServer *server, const char *path)
 {
@@ -511,32 +497,43 @@ static void
 check_auth (SoupMessage *req, SoupSocket *sock)
 {
 	SoupServer *server;
-	SoupServerHandler *hand;
-	SoupServerAuthContext *auth_ctx;
-	const char *auth_hdr;
-	SoupServerAuth *auth = NULL;
-	const char *handler_path;
+	SoupServerPrivate *priv;
+	SoupAuthDomain *domain;
+	GSList *iter;
+	gboolean rejected = FALSE;
+	char *auth_user;
 
 	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
+	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	handler_path = soup_message_get_uri (req)->path;
+	for (iter = priv->auth_domains; iter; iter = iter->next) {
+		domain = iter->data;
 
-	hand = soup_server_get_handler (server, handler_path);
-	if (!hand || !hand->auth_ctx)
+		if (soup_auth_domain_covers (domain, req)) {
+			auth_user = soup_auth_domain_accepts (domain, req);
+			if (auth_user) {
+				g_object_set_data_full (G_OBJECT (req),
+							"SoupServer-auth_user",
+							auth_user, g_free);
+				g_object_set_data (G_OBJECT (req),
+						   "SoupServer-auth_realm",
+						   (char *)soup_auth_domain_get_realm (domain));
+				return;
+			}
+
+			rejected = TRUE;
+		}
+	}
+
+	/* If no auth domain rejected it, then it's ok. */
+	if (!rejected)
 		return;
 
-	auth_ctx = hand->auth_ctx;
-	auth_hdr = soup_message_headers_find (req->request_headers,
-					      "Authorization");
-	auth = soup_server_auth_new (auth_ctx, auth_hdr, req);
-	g_object_set_data_full (G_OBJECT (req), "SoupServerAuth", auth,
-				(GDestroyNotify)soup_server_auth_free);
+	for (iter = priv->auth_domains; iter; iter = iter->next) {
+		domain = iter->data;
 
-	if (!auth_ctx->callback (auth_ctx, auth, req, auth_ctx->user_data)) {
-		soup_server_auth_context_challenge (auth_ctx, req,
-						    "WWW-Authenticate");
-		if (!req->status_code)
-			set_response_error (req, SOUP_STATUS_UNAUTHORIZED, NULL, NULL);
+		if (soup_auth_domain_covers (domain, req))
+			soup_auth_domain_challenge (domain, req);
 	}
 }
 
@@ -556,22 +553,23 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 
 	hand = soup_server_get_handler (server, handler_path);
 	if (!hand) {
-		set_response_error (req, SOUP_STATUS_NOT_FOUND, NULL, NULL);
+		soup_message_set_status (req, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
 
 	if (hand->callback) {
-		const SoupURI *uri = soup_message_get_uri (req);
-		SoupServerContext ctx;
+		SoupClientContext ctx;
 
-		ctx.msg       = req;
-		ctx.path      = uri->path;
-		ctx.auth      = g_object_get_data (G_OBJECT (req), "SoupServerAuth");
-		ctx.server    = server;
-		ctx.sock      = sock;
+		ctx.sock        = sock;
+		ctx.auth_user   = g_object_get_data (G_OBJECT (req),
+						     "SoupServer-auth_user");
+		ctx.auth_realm  = g_object_get_data (G_OBJECT (req),
+						     "SoupServer-auth_realm");
 
 		/* Call method handler */
-		(*hand->callback) (&ctx, req, hand->user_data);
+		(*hand->callback) (server, req,
+				   (SoupURI *)soup_message_get_uri (req),
+				   &ctx, hand->user_data);
 	}
 }
 
@@ -700,7 +698,7 @@ soup_server_get_async_context (SoupServer *server)
 }
 
 SoupAddress *
-soup_server_context_get_client_address (SoupServerContext *context)
+soup_client_context_get_address (SoupClientContext *context)
 {
 	g_return_val_if_fail (context != NULL, NULL);
 
@@ -708,60 +706,30 @@ soup_server_context_get_client_address (SoupServerContext *context)
 }
 
 const char *
-soup_server_context_get_client_host (SoupServerContext *context)
+soup_client_context_get_host (SoupClientContext *context)
 {
 	SoupAddress *address;
 
-	address = soup_server_context_get_client_address (context);
+	address = soup_client_context_get_address (context);
 	return soup_address_get_physical (address);
-}
-
-static SoupServerAuthContext *
-auth_context_copy (SoupServerAuthContext *auth_ctx)
-{
-	SoupServerAuthContext *new_auth_ctx = NULL;
-
-	new_auth_ctx = g_new0 (SoupServerAuthContext, 1);
-
-	new_auth_ctx->types = auth_ctx->types;
-	new_auth_ctx->callback = auth_ctx->callback;
-	new_auth_ctx->user_data = auth_ctx->user_data;
-
-	new_auth_ctx->basic_info.realm =
-		g_strdup (auth_ctx->basic_info.realm);
-
-	new_auth_ctx->digest_info.realm =
-		g_strdup (auth_ctx->digest_info.realm);
-	new_auth_ctx->digest_info.allow_algorithms =
-		auth_ctx->digest_info.allow_algorithms;
-	new_auth_ctx->digest_info.force_integrity =
-		auth_ctx->digest_info.force_integrity;
-
-	return new_auth_ctx;
 }
 
 void
 soup_server_add_handler (SoupServer            *server,
 			 const char            *path,
-			 SoupServerAuthContext *auth_ctx,
 			 SoupServerCallbackFn   callback,
 			 GDestroyNotify         destroy,
 			 gpointer               user_data)
 {
 	SoupServerPrivate *priv;
 	SoupServerHandler *hand;
-	SoupServerAuthContext *new_auth_ctx = NULL;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (auth_ctx)
-		new_auth_ctx = auth_context_copy (auth_ctx);
-
 	hand = g_new0 (SoupServerHandler, 1);
 	hand->path       = g_strdup (path);
-	hand->auth_ctx   = new_auth_ctx;
 	hand->callback   = callback;
 	hand->destroy    = destroy;
 	hand->user_data  = user_data;
@@ -803,6 +771,29 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 		unregister_handler (hand);
 		soup_path_map_remove (priv->handlers, path);
 	}
+}
+
+void
+soup_server_add_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
+{
+	SoupServerPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	priv->auth_domains = g_slist_prepend (priv->auth_domains, auth_domain);
+}
+
+void
+soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
+{
+	SoupServerPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	priv->auth_domains = g_slist_remove (priv->auth_domains, auth_domain);
+	g_object_unref (auth_domain);
 }
 
 /**

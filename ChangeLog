@@ -1,5 +1,31 @@
 2007-12-20  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-domain.c:
+	* libsoup/soup-auth-domain-basic.c:
+	* libsoup/soup-auth-domain-digest.c: New server-side auth system.
+
+	* libsoup/soup-server.c: remove SoupServerAuth / SoupAuthContext
+	stuff, add SoupAuthDomain support.
+	(SoupServerCallbackFn): improve the args here
+	(SoupClientContext): renamed from SoupServerContext and made less
+	redundant
+
+	* libsoup/soup-server-auth.c: gone!
+
+	* libsoup/soup-auth-digest.c (soup_auth_digest_parse_algorithm)
+	(soup_auth_digest_get_algorithm, soup_auth_digest_parse_qop)
+	(soup_auth_digest_get_qop, soup_auth_digest_compute_hex_urp)
+	(soup_auth_digest_compute_hex_a1)
+	(soup_auth_digest_compute_response): New routines shared between
+	client-side and server-side digest auth.
+
+	* tests/server-auth-test.c: test server-side auth, using curl for
+	the client side
+
+	* configure.in: check for curl, for server-auth-test
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-headers.c (soup_header_parse_list)
 	(soup_header_parse_quality_list): New methods to parse list-type
 	headers (with optional qvalues) correctly.
