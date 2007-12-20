@@ -461,10 +461,11 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	token = g_string_free (out, FALSE);
 
 	soup_message_add_header_handler (msg,
+					 "got_headers",
 					 priv->proxy ?
 					 "Proxy-Authentication-Info" :
 					 "Authentication-Info",
-					 SOUP_HANDLER_PRE_BODY,
-					 authentication_info_cb, auth);
+					 G_CALLBACK (authentication_info_cb),
+					 auth);
 	return token;
 }

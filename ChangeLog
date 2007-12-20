@@ -1,5 +1,24 @@
 2007-12-20  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message.c (soup_message_add_header_handler)
+	(soup_message_add_status_code_handler): Make these be wrappers
+	around g_signal_connect() rather than having a completely separate
+	system.
+	(soup_message_class_init): improve signal docs. Use
+	"got_foo_signal_wrapper" to wrap the got-foo signals.
+	(got_foo_signal_wrapper): Wraps the marshaller for the got-foo
+	signals and cancels the signal emission if the message gets
+	cancelled or requeued.
+	(got_informational, got_headers, got_chunk, got_body): remove
+	no-longer-needed default implementations.
+
+	* libsoup/soup-message-handlers.c: gone
+
+	* tests/ntlm-test.c (do_message): Simplify now that callback
+	processing doesn't happen in two separate phases.
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-domain.c:
 	* libsoup/soup-auth-domain-basic.c:
 	* libsoup/soup-auth-domain-digest.c: New server-side auth system.

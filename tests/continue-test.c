@@ -288,7 +288,7 @@ run_tests (void)
 			      "server-wrote_body",
 			      "server-finished",
 			      "client-got_headers",
-			      /* "client-got_body" gets suppressed */
+			      "client-got_body",
 			      "client-wrote_headers",
 			      "client-wrote_body",
 			      "server-got_headers",
@@ -309,7 +309,7 @@ run_tests (void)
 			      "server-wrote_body",
 			      "server-finished",
 			      "client-got_headers",
-			      /* "client-got_body" gets suppressed */
+			      "client-got_body",
 			      "client-wrote_headers",
 			      "client-wrote_body",
 			      "server-got_headers",
@@ -328,6 +328,7 @@ run_tests (void)
 			      "server-wrote_body",
 			      "server-finished",
 			      "client-got_headers",
+			      "client-got_body",
 			      "client-wrote_headers",
 			      "server-got_headers",
 			      "server-wrote_informational", SOUP_STATUS_CONTINUE,
@@ -348,6 +349,7 @@ run_tests (void)
 			      "server-wrote_body",
 			      "server-finished",
 			      "client-got_headers",
+			      "client-got_body",
 			      "client-wrote_headers",
 			      "server-got_headers",
 			      "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,

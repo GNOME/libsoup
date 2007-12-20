@@ -603,6 +603,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	const char *new_loc;
 	SoupURI *new_uri;
 
+	if (!SOUP_STATUS_IS_REDIRECTION (msg->status_code))
+		return;
+
 	new_loc = soup_message_headers_find (msg->response_headers, "Location");
 	if (!new_loc)
 		return;
@@ -918,10 +921,9 @@ queue_message (SoupSession *session, SoupMessage *msg,
 				G_CALLBACK (message_finished), session);
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_status_class_handler (
-			msg, SOUP_STATUS_CLASS_REDIRECT,
-			SOUP_HANDLER_POST_BODY,
-			redirect_handler, session);
+		soup_message_add_header_handler (
+			msg, "got_body", "Location",
+			G_CALLBACK (redirect_handler), session);
 	}
 
 	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);

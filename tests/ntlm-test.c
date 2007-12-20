@@ -205,12 +205,10 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
-	soup_message_add_header_handler (msg, "WWW-Authenticate",
-					 SOUP_HANDLER_PRE_BODY,
-					 ntlm_prompt_check, &state);
-	soup_message_add_header_handler (msg, "WWW-Authenticate",
-					 SOUP_HANDLER_PRE_BODY,
-					 ntlm_challenge_check, &state);
+	g_signal_connect (msg, "got_headers",
+			  G_CALLBACK (ntlm_prompt_check), &state);
+	g_signal_connect (msg, "got_headers",
+			  G_CALLBACK (ntlm_challenge_check), &state);
 	g_signal_connect (msg, "wrote-headers",
 			  G_CALLBACK (ntlm_request_check), &state);
 	g_signal_connect (msg, "wrote-headers",

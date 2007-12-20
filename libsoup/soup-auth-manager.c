@@ -390,18 +390,16 @@ session_request_started (SoupSession *session, SoupMessage *msg,
 		auth = NULL;
 	soup_message_set_auth (msg, auth);
 	soup_message_add_status_code_handler (
-		msg, SOUP_STATUS_UNAUTHORIZED,
-		SOUP_HANDLER_POST_BODY,
-		authorize_handler, manager);
+		msg, "got_body", SOUP_STATUS_UNAUTHORIZED,
+		G_CALLBACK (authorize_handler), manager);
 
 	auth = manager->proxy_auth;
 	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, TRUE))
 		auth = NULL;
 	soup_message_set_proxy_auth (msg, auth);
 	soup_message_add_status_code_handler (
-		msg, SOUP_STATUS_PROXY_UNAUTHORIZED,
-		SOUP_HANDLER_POST_BODY,
-		proxy_authorize_handler, manager);
+		msg, "got_body", SOUP_STATUS_PROXY_UNAUTHORIZED,
+		G_CALLBACK (proxy_authorize_handler), manager);
 }
 
 

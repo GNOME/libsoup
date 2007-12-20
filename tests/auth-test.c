@@ -349,9 +349,9 @@ do_digest_nonce_test (SoupSession *session,
 				  G_CALLBACK (digest_nonce_authenticate),
 				  NULL);
 	}
-	soup_message_add_status_code_handler (msg, SOUP_STATUS_UNAUTHORIZED,
-					      SOUP_HANDLER_PRE_BODY,
-					      digest_nonce_unauthorized,
+	soup_message_add_status_code_handler (msg, "got_headers",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (digest_nonce_unauthorized),
 					      &got_401);
 	got_401 = FALSE;
 	soup_session_send_message (session, msg);
@@ -422,11 +422,11 @@ main (int argc, char **argv)
 
 		expected = g_strdup (tests[i].expected);
 		soup_message_add_status_code_handler (
-			msg, SOUP_STATUS_UNAUTHORIZED,
-			SOUP_HANDLER_PRE_BODY, handler, expected);
+			msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
+			G_CALLBACK (handler), expected);
 		soup_message_add_status_code_handler (
-			msg, SOUP_STATUS_OK, SOUP_HANDLER_PRE_BODY,
-			handler, expected);
+			msg, "got_headers", SOUP_STATUS_OK,
+			G_CALLBACK (handler), expected);
 		soup_session_send_message (session, msg);
 		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
 		    msg->status_code != SOUP_STATUS_OK) {

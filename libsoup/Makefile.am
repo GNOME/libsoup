@@ -118,7 +118,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message.c			\
 	soup-message-body.c		\
 	soup-message-client-io.c	\
-	soup-message-handlers.c		\
 	soup-message-headers.c		\
 	soup-message-io.c		\
 	soup-message-private.h		\

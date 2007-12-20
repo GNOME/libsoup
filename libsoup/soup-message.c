@@ -50,10 +50,12 @@ enum {
 	LAST_PROP
 };
 
-static void wrote_body (SoupMessage *req);
-static void got_headers (SoupMessage *req);
-static void got_chunk (SoupMessage *req, SoupBuffer *chunk);
-static void got_body (SoupMessage *req);
+static void got_foo_signal_wrapper (GClosure *closure, GValue *return_value,
+				    guint n_param_values,
+				    const GValue *param_values,
+				    gpointer invocation_hint,
+				    gpointer marshal_data);
+
 static void restarted (SoupMessage *req);
 static void finished (SoupMessage *req);
 
@@ -97,9 +99,6 @@ finalize (GObject *object)
 	soup_message_body_free (msg->response_body);
 	soup_message_headers_free (msg->response_headers);
 
-	g_slist_foreach (priv->content_handlers, (GFunc) g_free, NULL);
-	g_slist_free (priv->content_handlers);
-
 	g_free ((char *) msg->reason_phrase);
 
 	G_OBJECT_CLASS (soup_message_parent_class)->finalize (object);
@@ -113,10 +112,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
-	message_class->wrote_body   = wrote_body;
-	message_class->got_headers  = got_headers;
-	message_class->got_chunk    = got_chunk;
-	message_class->got_body     = got_body;
 	message_class->restarted    = restarted;
 	message_class->finished     = finished;
 
@@ -132,7 +127,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted immediately after writing a 1xx (Informational)
-	 * response for a message.
+	 * response for a (server-side) message.
 	 **/
 	signals[WROTE_INFORMATIONAL] =
 		g_signal_new ("wrote_informational",
@@ -147,7 +142,10 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::wrote-headers:
 	 * @msg: the message
 	 *
-	 * Emitted immediately after writing the headers for a message.
+	 * Emitted immediately after writing the headers for a
+	 * message. (For a client-side message, this is after writing
+	 * the request headers; for a server-side message, it is after
+	 * writing the response headers.)
 	 **/
 	signals[WROTE_HEADERS] =
 		g_signal_new ("wrote_headers",
@@ -179,7 +177,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::wrote-body:
 	 * @msg: the message
 	 *
-	 * Emitted immediately after writing the complete body for a message.
+	 * Emitted immediately after writing the complete body for a
+	 * message. (For a client-side message, this means that
+	 * libsoup is done writing and is now waiting for the response
+	 * from the server. For a server-side message, this means that
+	 * libsoup has finished writing the response and is nearly
+	 * done with the message.)
 	 **/
 	signals[WROTE_BODY] =
 		g_signal_new ("wrote_body",
@@ -195,7 +198,14 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted after receiving a 1xx (Informational) response for
-	 * a message.
+	 * a (client-side) message. The response_headers will be
+	 * filled in with the headers associated with the
+	 * informational response; however, those header values will
+	 * be erased after this signal is done.
+	 *
+	 * If you cancel or requeue @msg while processing this signal,
+	 * the signal emission will be stopped, and @msg's connection
+	 * will be closed.
 	 **/
 	signals[GOT_INFORMATIONAL] =
 		g_signal_new ("got_informational",
@@ -203,7 +213,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_informational),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      got_foo_signal_wrapper,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -211,6 +221,22 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted after receiving all message headers for a message.
+	 * (For a client-side message, this is after receiving the
+	 * Status-Line and response headers; for a server-side
+	 * message, it is after receiving the Request-Line and request
+	 * headers.)
+	 *
+	 * See also soup_message_add_header_handler() and
+	 * soup_message_add_status_code_handler(), which can be used
+	 * to connect to a subset of emissions of this signal.
+	 *
+	 * If you cancel or requeue @msg while processing this signal,
+	 * the signal emission will be stopped, and @msg's connection
+	 * will be closed. (If you need to requeue a message--eg,
+	 * after handling authentication or redirection--it is usually
+	 * better to requeue it from a ::got-body handler rather than
+	 * a ::got-header handler, so that the existing HTTP
+	 * connection can be reused.)
 	 **/
 	signals[GOT_HEADERS] =
 		g_signal_new ("got_headers",
@@ -218,7 +244,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_headers),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      got_foo_signal_wrapper,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -230,6 +256,10 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * that "chunk" in this context means any subpiece of the
 	 * body, not necessarily the specific HTTP 1.1 chunks sent by
 	 * the other side.
+	 *
+	 * If you cancel or requeue @msg while processing this signal,
+	 * the signal emission will be stopped, and @msg's connection
+	 * will be closed.
 	 **/
 	signals[GOT_CHUNK] =
 		g_signal_new ("got_chunk",
@@ -237,7 +267,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_chunk),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER,
+			      got_foo_signal_wrapper,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_POINTER);
 
@@ -245,7 +275,21 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::got-body:
 	 * @msg: the message
 	 *
-	 * Emitted after receiving the complete message body.
+	 * Emitted after receiving the complete message body. (For a
+	 * server-side message, this means it has received the request
+	 * body. For a client-side message, this means it has received
+	 * the response body and is nearly done with the message.)
+	 *
+	 * See also soup_message_add_header_handler() and
+	 * soup_message_add_status_code_handler(), which can be used
+	 * to connect to a subset of emissions of this signal.
+	 *
+	 * If you cancel or requeue @msg while processing this signal,
+	 * the signal emission will be stopped. However, unlike with
+	 * the other "got" signals, this will not necessarily result
+	 * in @msg's connection being closed, since the server is
+	 * already done with the message at this point and so the
+	 * connection is already ready for a new request.
 	 **/
 	signals[GOT_BODY] =
 		g_signal_new ("got_body",
@@ -253,14 +297,17 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_body),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      got_foo_signal_wrapper,
 			      G_TYPE_NONE, 0);
 
 	/**
 	 * SoupMessage::restarted:
 	 * @msg: the message
 	 *
-	 * Emitted when a message is about to be re-queued.
+	 * Emitted when a request that was already sent once is now
+	 * being sent again (eg, because the first attempt received a
+	 * redirection response, or because we needed to use
+	 * authentication).
 	 **/
 	signals[RESTARTED] =
 		g_signal_new ("restarted",
@@ -276,8 +323,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted when all HTTP processing is finished for a message.
-	 * (After #read-body for client-side code, or after
-	 * #wrote-body for server-side code.)
+	 * (After ::got-body for client-side messages, or after
+	 * ::wrote-body for server-side messages.)
 	 **/
 	signals[FINISHED] =
 		g_signal_new ("finished",
@@ -592,14 +639,6 @@ soup_message_wrote_chunk (SoupMessage *msg, SoupBuffer *chunk)
 	g_signal_emit (msg, signals[WROTE_CHUNK], 0, chunk);
 }
 
-static void
-wrote_body (SoupMessage *req)
-{
-	g_object_ref (req);
-	soup_message_run_handlers (req, SOUP_HANDLER_POST_REQUEST);
-	g_object_unref (req);
-}
-
 /**
  * soup_message_wrote_body:
  * @msg: a #SoupMessage
@@ -611,6 +650,33 @@ void
 soup_message_wrote_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_BODY], 0);
+}
+
+/* Wraps the marshaller for got_informational, got_headers, got_chunk,
+ * and got_body, and stops the emission afterward if the message has
+ * been requeued. We can't use a GSignalAccumulator, because that
+ * doesn't have access to the object it's accumulating for. Hrmph.
+ */
+static void
+got_foo_signal_wrapper (GClosure *closure, GValue *return_value,
+			guint n_param_values, const GValue *param_values,
+			gpointer invocation_hint, gpointer marshal_data)
+{
+	SoupMessage *msg = g_value_get_object (&param_values[0]);
+	GSignalInvocationHint *hint = invocation_hint;
+
+	if (hint->signal_id == signals[GOT_CHUNK]) {
+		soup_marshal_NONE__POINTER (closure, return_value,
+					    n_param_values, param_values,
+					    invocation_hint, marshal_data);
+	} else {
+		soup_marshal_NONE__NONE (closure, return_value,
+					 n_param_values, param_values,
+					 invocation_hint, marshal_data);
+	}
+
+	if (SOUP_MESSAGE_IS_STARTING (msg))
+		g_signal_stop_emission (msg, hint->signal_id, hint->detail);
 }
 
 /**
@@ -626,16 +692,6 @@ soup_message_got_informational (SoupMessage *msg)
 	g_signal_emit (msg, signals[GOT_INFORMATIONAL], 0);
 }
 
-static void
-got_headers (SoupMessage *req)
-{
-	g_object_ref (req);
-	soup_message_run_handlers (req, SOUP_HANDLER_PRE_BODY);
-	if (SOUP_MESSAGE_IS_STARTING (req))
-		g_signal_stop_emission (req, signals[GOT_HEADERS], 0);
-	g_object_unref (req);
-}
-
 /**
  * soup_message_got_headers:
  * @msg: a #SoupMessage
@@ -647,16 +703,6 @@ void
 soup_message_got_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_HEADERS], 0);
-}
-
-static void
-got_chunk (SoupMessage *req, SoupBuffer *chunk)
-{
-	g_object_ref (req);
-	soup_message_run_handlers (req, SOUP_HANDLER_BODY_CHUNK);
-	if (SOUP_MESSAGE_IS_STARTING (req))
-		g_signal_stop_emission (req, signals[GOT_CHUNK], 0);
-	g_object_unref (req);
 }
 
 /**
@@ -671,16 +717,6 @@ void
 soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
 	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
-}
-
-static void
-got_body (SoupMessage *req)
-{
-	g_object_ref (req);
-	soup_message_run_handlers (req, SOUP_HANDLER_POST_BODY);
-	if (SOUP_MESSAGE_IS_STARTING (req))
-		g_signal_stop_emission (req, signals[GOT_BODY], 0);
-	g_object_unref (req);
 }
 
 /**
@@ -736,6 +772,146 @@ soup_message_finished (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[FINISHED], 0);
 }
+
+typedef struct {
+	SoupMessage *msg;
+	char *header_name;
+} SoupMessageHeaderHandlerData;
+
+static void
+header_handler_free (gpointer data, GClosure *closure)
+{
+	SoupMessageHeaderHandlerData *hhd = data;
+
+	g_free (hhd->header_name);
+	g_free (hhd);
+}
+
+static void
+header_handler_metamarshal (GClosure *closure, GValue *return_value,
+			    guint n_param_values, const GValue *param_values,
+			    gpointer invocation_hint, gpointer marshal_data)
+{
+	SoupMessageHeaderHandlerData *hhd = marshal_data;
+	SoupMessageHeaders *hdrs;
+
+	/* If status_code is 0, we're still processing the request
+	 * side; if it's not, we're processing the response side.
+	 */
+	hdrs = (hhd->msg->status_code == 0) ?
+		hhd->msg->request_headers : hhd->msg->response_headers;
+
+	if (soup_message_headers_find (hdrs, hhd->header_name)) {
+		closure->marshal (closure, return_value, n_param_values,
+				  param_values, invocation_hint,
+				  ((GCClosure *)closure)->callback);
+	}
+}
+
+/**
+ * soup_message_add_header_handler:
+ * @msg: a #SoupMessage
+ * @signal: signal to connect the handler to.
+ * @header: HTTP response header to match against
+ * @callback: the header handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a signal handler to @msg for @signal, as with
+ * g_signal_connect(). However, @callback will only be run if @msg has
+ * a header named @header.
+ *
+ * If @signal is one of the "got" signals (eg, "got_headers"),
+ * "finished" or "restarted", then @header is matched against the
+ * incoming message headers (that is, the #request_headers for a
+ * client #SoupMessage, or the #response_headers for a server
+ * #SoupMessage). If @signal is one of the "wrote" signals, then
+ * @header is matched against the outgoing message headers.
+ *
+ * Return value: the handler ID from g_signal_connect()
+ **/
+guint
+soup_message_add_header_handler (SoupMessage *msg,
+				 const char  *signal,
+				 const char  *header,
+				 GCallback    callback,
+				 gpointer     user_data)
+{
+	SoupMessagePrivate *priv;
+	GClosure *closure;
+	SoupMessageHeaderHandlerData *hhd;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
+	g_return_val_if_fail (signal != NULL, 0);
+	g_return_val_if_fail (header != NULL, 0);
+	g_return_val_if_fail (callback != NULL, 0);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	closure = g_cclosure_new (callback, user_data, NULL);
+
+	hhd = g_new (SoupMessageHeaderHandlerData, 1);
+	hhd->msg = msg;
+	hhd->header_name = g_strdup (header);
+	g_closure_set_meta_marshal (closure, hhd, header_handler_metamarshal);
+	g_closure_add_finalize_notifier (closure, hhd, header_handler_free);
+
+	return g_signal_connect_closure (msg, signal, closure, FALSE);
+}
+
+static void
+status_handler_metamarshal (GClosure *closure, GValue *return_value,
+			    guint n_param_values, const GValue *param_values,
+			    gpointer invocation_hint, gpointer marshal_data)
+{
+	SoupMessage *msg = g_value_get_object (&param_values[0]);
+	guint status = GPOINTER_TO_UINT (marshal_data);
+
+	if (msg->status_code == status) {
+		closure->marshal (closure, return_value, n_param_values,
+				  param_values, invocation_hint,
+				  ((GCClosure *)closure)->callback);
+	}
+}
+
+/**
+ * soup_message_add_status_code_handler:
+ * @msg: a #SoupMessage
+ * @signal: signal to connect the handler to.
+ * @status_code: status code to match against
+ * @callback: the header handler
+ * @user_data: data to pass to @handler_cb
+ *
+ * Adds a signal handler to @msg for @signal, as with
+ * g_signal_connect(). However, @callback will only be run if @msg has
+ * the status @status_code.
+ *
+ * @signal must be a signal that will be emitted after @msg's status
+ * is set. For a client #SoupMessage, this means it can't be a "wrote"
+ * signal. For a server #SoupMessage, this means it can't be a "got"
+ * signal.
+ *
+ * Return value: the handler ID from g_signal_connect()
+ **/
+guint
+soup_message_add_status_code_handler (SoupMessage *msg,
+				      const char  *signal,
+				      guint        status_code,
+				      GCallback    callback,
+				      gpointer     user_data)
+{
+	GClosure *closure;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
+	g_return_val_if_fail (signal != NULL, 0);
+	g_return_val_if_fail (callback != NULL, 0);
+
+	closure = g_cclosure_new (callback, user_data, NULL);
+	g_closure_set_meta_marshal (closure, GUINT_TO_POINTER (status_code),
+				    status_handler_metamarshal);
+
+	return g_signal_connect_closure (msg, signal, closure, FALSE);
+}
+
 
 /**
  * soup_message_set_auth:

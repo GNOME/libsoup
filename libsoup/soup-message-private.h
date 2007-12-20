@@ -24,8 +24,6 @@ typedef struct {
 
 	guint              msg_flags;
 
-	GSList            *content_handlers;
-
 	SoupHTTPVersion    http_version;
 
 	SoupURI           *uri;
@@ -35,9 +33,6 @@ typedef struct {
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
 #define SOUP_MESSAGE_IS_STARTING(msg) (SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_QUEUED || SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_CONNECTING)
-
-void             soup_message_run_handlers     (SoupMessage      *msg,
-						SoupHandlerPhase  phase);
 
 void             soup_message_cleanup_response (SoupMessage      *req);
 

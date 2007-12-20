@@ -147,59 +147,18 @@ void           soup_message_set_flags           (SoupMessage        *msg,
 
 guint          soup_message_get_flags           (SoupMessage        *msg);
 
-/*
- * Handler Registration 
- */
-
-/**
- * SoupHandlerPhase:
- * @SOUP_HANDLER_POST_REQUEST: The handler should run immediately
- * after sending the request body
- * @SOUP_HANDLER_PRE_BODY: The handler should run before reading the
- * response body (after reading the headers).
- * @SOUP_HANDLER_BODY_CHUNK: The handler should run after every body
- * chunk is read. (See also %SOUP_MESSAGE_OVERWRITE_CHUNKS.)
- * @SOUP_HANDLER_POST_BODY: The handler should run after the entire
- * message body has been read.
- *
- * Indicates when a handler added with soup_message_add_handler() or
- * the like will be run.
- **/
-typedef enum {
-	SOUP_HANDLER_POST_REQUEST = 1,
-	SOUP_HANDLER_PRE_BODY,
-	SOUP_HANDLER_BODY_CHUNK,
-	SOUP_HANDLER_POST_BODY
-} SoupHandlerPhase;
-
-void           soup_message_add_handler         (SoupMessage       *msg,
-						 SoupHandlerPhase   phase,
-						 SoupMessageCallbackFn     handler_cb,
-						 gpointer           user_data);
-
-void           soup_message_add_header_handler  (SoupMessage       *msg,
+/* Specialized signal handlers */
+guint          soup_message_add_header_handler  (SoupMessage       *msg,
+						 const char        *signal,
 						 const char        *header,
-						 SoupHandlerPhase   phase,
-						 SoupMessageCallbackFn handler_cb,
+						 GCallback          callback,
 						 gpointer           user_data);
 
-void           soup_message_add_status_code_handler (
+guint          soup_message_add_status_code_handler (
 						 SoupMessage       *msg,
+						 const char        *signal,
 						 guint              status_code,
-						 SoupHandlerPhase   phase,
-						 SoupMessageCallbackFn handler_cb,
-						 gpointer           user_data);
-
-void           soup_message_add_status_class_handler (
-						 SoupMessage       *msg,
-						 SoupStatusClass    status_class,
-						 SoupHandlerPhase   phase,
-						 SoupMessageCallbackFn handler_cb,
-						 gpointer           user_data);
-
-void           soup_message_remove_handler      (SoupMessage       *msg, 
-						 SoupHandlerPhase   phase,
-						 SoupMessageCallbackFn handler_cb,
+						 GCallback          callback,
 						 gpointer           user_data);
 
 /*
