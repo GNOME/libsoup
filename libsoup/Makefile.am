@@ -96,6 +96,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-basic.c		\
 	soup-auth-digest.h		\
 	soup-auth-digest.c		\
+	soup-auth-manager.h		\
+	soup-auth-manager.c		\
 	soup-connection.h		\
 	soup-connection.c		\
 	soup-connection-ntlm.h		\

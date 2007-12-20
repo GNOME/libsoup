@@ -1,5 +1,32 @@
 2007-12-20  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-manager.c: Move auth-related code from
+	SoupSession and SoupAuth here, and make various cleanups and
+	beginnings of cleanups.
+
+	* libsoup/soup-session.c: lots of stuff moved to
+	soup-auth-manager.c
+
+	* libsoup/soup-auth.c (soup_auth_new_from_headers): partly moved
+	to soup-auth-manager.c, partly renamed to soup_auth_new().
+	(soup_auth_update): new method to update an existing auth based on
+	a new WWW-Authenticate/Proxy-Authenticate header. Also replaces
+	the old "construct" method.
+
+	* libsoup/soup-auth-digest.c (update): Implement. If the new auth
+	has stale=true, don't invalidate the auth, just update the nonce.
+	(get_authorization): add a header handler to the message to catch
+	Authentication-Info/Proxy-Authentication-Info headers so that if
+	there's a nextnonce, we can start using it. #471380.
+
+	* libsoup/soup-auth-basic.c (update): Implement. (Updating an
+	existing Basic auth always invalidates it.)
+
+	* tests/http.conf.in:
+	* tests/auth-test.c: add a test for digest nonce handling
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-path-map.c: New type representing a sparse
 	path->something mapping
 

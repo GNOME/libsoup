@@ -217,6 +217,7 @@ Alias /Basic @srcdir@
 Alias /Digest/realm1/realm2/realm1 @srcdir@
 Alias /Digest/realm1/realm2 @srcdir@
 Alias /Digest/realm1/subdir @srcdir@
+Alias /Digest/realm1/expire @srcdir@
 Alias /Digest/realm1/not @srcdir@
 Alias /Digest/realm1 @srcdir@
 Alias /Digest/realm2 @srcdir@
@@ -228,6 +229,15 @@ Alias /Digest @srcdir@
   AuthName realm1
   AuthUserFile @srcdir@/htdigest
   AuthDigestDomain /Digest/realm1 /Digest/realm1/realm2/realm1
+  Require valid-user
+</Location>
+
+<Location /Digest/realm1/expire>
+  AuthType Digest
+  AuthName realm1
+  AuthUserFile @srcdir@/htdigest
+  AuthDigestDomain /Digest/realm1 /Digest/realm1/realm2/realm1
+  AuthDigestNonceLifetime 2
   Require valid-user
 </Location>
 

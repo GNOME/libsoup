@@ -14,6 +14,8 @@
 #include <stdlib.h>
 
 #include "soup-auth.h"
+#include "soup-auth-basic.h"
+#include "soup-auth-digest.h"
 #include "soup-connection.h"
 #include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
@@ -36,6 +38,8 @@ typedef struct {
 
 typedef struct {
 	SoupURI *proxy_uri;
+	SoupAuth *proxy_auth;
+
 	guint max_conns, max_conns_per_host;
 	gboolean use_ntlm;
 
@@ -44,11 +48,11 @@ typedef struct {
 
 	SoupMessageQueue *queue;
 
+	SoupAuthManager *auth_manager;
+
 	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
-
-	SoupSessionHost *proxy_host;
 
 	/* Must hold the host_lock before potentially creating a
 	 * new SoupSessionHost, or adding/removing a connection.
@@ -65,8 +69,6 @@ typedef struct {
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
-static guint    host_uri_hash  (gconstpointer key);
-static gboolean host_uri_equal (gconstpointer v1, gconstpointer v2);
 static void     free_host      (SoupSessionHost *host);
 
 static void queue_message   (SoupSession *session, SoupMessage *msg,
@@ -74,6 +76,12 @@ static void queue_message   (SoupSession *session, SoupMessage *msg,
 			     gpointer user_data);
 static void requeue_message (SoupSession *session, SoupMessage *msg);
 static void cancel_message  (SoupSession *session, SoupMessage *msg);
+
+/* temporary until we fix this to index hosts by SoupAddress */
+extern guint     soup_uri_host_hash  (gconstpointer  key);
+extern gboolean  soup_uri_host_equal (gconstpointer  v1,
+				      gconstpointer  v2);
+extern SoupURI  *soup_uri_copy_root  (const SoupURI *uri);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
@@ -116,13 +124,18 @@ soup_session_init (SoupSession *session)
 	priv->queue = soup_message_queue_new ();
 
 	priv->host_lock = g_mutex_new ();
-	priv->hosts = g_hash_table_new (host_uri_hash, host_uri_equal);
+	priv->hosts = g_hash_table_new (soup_uri_host_hash,
+					soup_uri_host_equal);
 	priv->conns = g_hash_table_new (NULL, NULL);
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
 	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
 
 	priv->timeout = 0;
+
+	priv->auth_manager = soup_auth_manager_new (session);
+	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_BASIC);
+	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_DIGEST);
 }
 
 static gboolean
@@ -139,7 +152,8 @@ cleanup_hosts (SoupSessionPrivate *priv)
 
 	g_mutex_lock (priv->host_lock);
 	old_hosts = priv->hosts;
-	priv->hosts = g_hash_table_new (host_uri_hash, host_uri_equal);
+	priv->hosts = g_hash_table_new (soup_uri_host_hash,
+					soup_uri_host_equal);
 	g_mutex_unlock (priv->host_lock);
 
 	g_hash_table_foreach_remove (old_hosts, foreach_free_host, NULL);
@@ -170,10 +184,10 @@ finalize (GObject *object)
 	g_hash_table_destroy (priv->hosts);
 	g_hash_table_destroy (priv->conns);
 
+	soup_auth_manager_free (priv->auth_manager);
+
 	if (priv->proxy_uri)
 		soup_uri_free (priv->proxy_uri);
-	if (priv->proxy_host)
-		free_host (priv->proxy_host);
 
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
@@ -507,30 +521,6 @@ soup_session_get_async_context (SoupSession *session)
 }
 
 /* Hosts */
-static guint
-host_uri_hash (gconstpointer key)
-{
-	const SoupURI *uri = key;
-
-	return GPOINTER_TO_UINT (uri->scheme) + uri->port + g_str_hash (uri->host);
-}
-
-static gboolean
-host_uri_equal (gconstpointer v1, gconstpointer v2)
-{
-	const SoupURI *one = v1;
-	const SoupURI *two = v2;
-
-	if (one->scheme != two->scheme)
-		return FALSE;
-	if (one->port != two->port)
-		return FALSE;
-
-	return strcmp (one->host, two->host) == 0;
-}
-
-/* temporary until we fix this to index hosts by SoupAddress */
-extern SoupURI *soup_uri_copy_root (const SoupURI *uri);
 
 static SoupSessionHost *
 soup_session_host_new (SoupSession *session, const SoupURI *source_uri)
@@ -570,36 +560,6 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	return host;
 }
 
-/* Note: get_proxy_host doesn't lock the host_lock. The caller must do
- * it itself if there's a chance the host doesn't already exist.
- */
-static SoupSessionHost *
-get_proxy_host (SoupSession *session)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	if (priv->proxy_host || !priv->proxy_uri)
-		return priv->proxy_host;
-
-	priv->proxy_host =
-		soup_session_host_new (session, priv->proxy_uri);
-	return priv->proxy_host;
-}
-
-static void
-free_realm (gpointer path, gpointer scheme_realm, gpointer data)
-{
-	g_free (path);
-	g_free (scheme_realm);
-}
-
-static void
-free_auth (gpointer scheme_realm, gpointer auth, gpointer data)
-{
-	g_free (scheme_realm);
-	g_object_unref (auth);
-}
-
 static void
 free_host (SoupSessionHost *host)
 {
@@ -610,245 +570,30 @@ free_host (SoupSessionHost *host)
 		soup_connection_disconnect (conn);
 	}
 
-	if (host->auth_realms) {
-		g_hash_table_foreach (host->auth_realms, free_realm, NULL);
-		g_hash_table_destroy (host->auth_realms);
-	}
-	if (host->auths) {
-		g_hash_table_foreach (host->auths, free_auth, NULL);
-		g_hash_table_destroy (host->auths);
-	}
-
 	soup_uri_free (host->root_uri);
 	g_free (host);
 }	
 
-/* Authentication */
-
-static SoupAuth *
-lookup_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
-{
-	SoupSessionHost *host;
-	char *path, *dir;
-	const char *realm, *const_path;
-
-	if (proxy) {
-		host = get_proxy_host (session);
-		const_path = "/";
-	} else {
-		host = get_host_for_message (session, msg);
-		const_path = soup_message_get_uri (msg)->path;
-
-		if (!const_path)
-			const_path = "/";
-	}
-	g_return_val_if_fail (host != NULL, NULL);
-
-	if (!host->auth_realms)
-		return NULL;
-
-	path = g_strdup (const_path);
-	dir = path;
-        do {
-                realm = g_hash_table_lookup (host->auth_realms, path);
-                if (realm)
-			break;
-
-                dir = strrchr (path, '/');
-                if (dir) {
-			if (dir[1])
-				dir[1] = '\0';
-			else
-				*dir = '\0';
-		}
-        } while (dir);
-
-	g_free (path);
-	if (realm)
-		return g_hash_table_lookup (host->auths, realm);
-	else
-		return NULL;
-}
-
-static void
-invalidate_auth (SoupSessionHost *host, SoupAuth *auth)
-{
-	char *info;
-	gpointer key, value;
-
-	info = soup_auth_get_info (auth);
-	if (g_hash_table_lookup_extended (host->auths, info, &key, &value) &&
-	    auth == (SoupAuth *)value) {
-		g_hash_table_remove (host->auths, info);
-		g_free (key);
-		g_object_unref (auth);
-	}
-	g_free (info);
-}
-
-static gboolean
-authenticate_auth (SoupSession *session, SoupAuth *auth,
-		   SoupMessage *msg, gboolean prior_auth_failed,
-		   gboolean proxy)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	const SoupURI *uri;
-	char *username = NULL, *password = NULL;
-
-	if (proxy)
-		uri = priv->proxy_uri;
-	else
-		uri = soup_message_get_uri (msg);
-
-	if (uri->password && !prior_auth_failed) {
-		soup_auth_authenticate (auth, uri->user, uri->password);
-		return TRUE;
-	}
-
-	g_signal_emit (session, signals[prior_auth_failed ? REAUTHENTICATE : AUTHENTICATE], 0,
-		       msg, soup_auth_get_scheme_name (auth),
-		       soup_auth_get_realm (auth),
-		       &username, &password);
-	if (username || password)
-		soup_auth_authenticate (auth, username, password);
-	if (username)
-		g_free (username);
-	if (password) {
-		memset (password, 0, strlen (password));
-		g_free (password);
-	}
-
-	return soup_auth_is_authenticated (auth);
-}
-
-static gboolean
-update_auth_internal (SoupSession *session, SoupMessage *msg, gboolean proxy)
-{
-	SoupSessionHost *host;
-	SoupAuth *new_auth, *prior_auth, *old_auth;
-	gpointer old_path, old_auth_info;
-	const char *path;
-	char *auth_info;
-	GSList *pspace, *p;
-	gboolean prior_auth_failed = FALSE;
-
-	if (proxy)
-		host = get_proxy_host (session);
-	else
-		host = get_host_for_message (session, msg);
-
-	g_return_val_if_fail (host != NULL, FALSE);
-
-	/* Try to construct a new auth from the headers; if we can't,
-	 * there's no way we'll be able to authenticate.
-	 */
-	new_auth = soup_auth_new_from_headers (
-		msg->response_headers,
-		proxy ? "Proxy-Authenticate" : "WWW-Authenticate");
-	if (!new_auth)
-		return FALSE;
-
-	auth_info = soup_auth_get_info (new_auth);
-
-	/* See if this auth is the same auth we used last time */
-	prior_auth = proxy ? soup_message_get_proxy_auth (msg) : soup_message_get_auth (msg);
-	if (prior_auth) {
-		char *old_auth_info = soup_auth_get_info (prior_auth);
-
-		if (!strcmp (old_auth_info, auth_info)) {
-			/* The server didn't like the username/password we
-			 * provided before. Invalidate it and note this fact.
-			 */
-			invalidate_auth (host, prior_auth);
-			prior_auth_failed = TRUE;
-		}
-		g_free (old_auth_info);
-	}
-
-	if (!host->auth_realms) {
-		host->auth_realms = g_hash_table_new (g_str_hash, g_str_equal);
-		host->auths = g_hash_table_new (g_str_hash, g_str_equal);
-	}
-
-	/* Record where this auth realm is used. RFC 2617 is somewhat
-	 * unclear about the scope of protection spaces with regard to
-	 * proxies. The only mention of it is as an aside in section
-	 * 3.2.1, where it is defining the fields of a Digest
-	 * challenge and says that the protection space is always the
-	 * entire proxy. Is this the case for all authentication
-	 * schemes or just Digest? Who knows, but we're assuming all.
-	 */
-	if (proxy)
-		pspace = g_slist_prepend (NULL, g_strdup (""));
-	else
-		pspace = soup_auth_get_protection_space (new_auth, soup_message_get_uri (msg));
-
-	for (p = pspace; p; p = p->next) {
-		path = p->data;
-		if (g_hash_table_lookup_extended (host->auth_realms, path,
-						  &old_path, &old_auth_info)) {
-			g_hash_table_remove (host->auth_realms, old_path);
-			g_free (old_path);
-			g_free (old_auth_info);
-		}
-
-		g_hash_table_insert (host->auth_realms,
-				     g_strdup (path), g_strdup (auth_info));
-	}
-	soup_auth_free_protection_space (new_auth, pspace);
-
-	/* Now, make sure the auth is recorded. (If there's a
-	 * pre-existing auth, we keep that rather than the new one,
-	 * since the old one might already be authenticated.)
-	 */
-	old_auth = g_hash_table_lookup (host->auths, auth_info);
-	if (old_auth) {
-		g_free (auth_info);
-		g_object_unref (new_auth);
-		new_auth = old_auth;
-	} else 
-		g_hash_table_insert (host->auths, auth_info, new_auth);
-
-	/* If we need to authenticate, try to do it. */
-	if (!soup_auth_is_authenticated (new_auth)) {
-		return authenticate_auth (session, new_auth,
-					  msg, prior_auth_failed, proxy);
-	}
-
-	/* Otherwise we're good. */
-	return TRUE;
-}
-
-static void
-connection_authenticate (SoupConnection *conn, SoupMessage *msg,
-			 const char *auth_type, const char *auth_realm,
-			 char **username, char **password, gpointer session)
+void
+soup_session_emit_authenticate (SoupSession *session, SoupMessage *msg,
+				const char *auth_type, const char *auth_realm,
+				char **username, char **password,
+				gpointer data)
 {
 	g_signal_emit (session, signals[AUTHENTICATE], 0,
 		       msg, auth_type, auth_realm, username, password);
 }
 
-static void
-connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
-			   const char *auth_type, const char *auth_realm,
-			   char **username, char **password,
-			   gpointer user_data)
+void
+soup_session_emit_reauthenticate (SoupSession *session, SoupMessage *msg,
+				  const char *auth_type, const char *auth_realm,
+				  char **username, char **password,
+				  gpointer data)
 {
-	g_signal_emit (conn, signals[REAUTHENTICATE], 0,
+	g_signal_emit (session, signals[REAUTHENTICATE], 0,
 		       msg, auth_type, auth_realm, username, password);
 }
 
-
-static void
-authorize_handler (SoupMessage *msg, gpointer user_data)
-{
-	SoupSession *session = user_data;
-	gboolean proxy;
-
-	proxy = (msg->status_code == SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED);
-	if (update_auth_internal (session, msg, proxy))
-		soup_session_requeue_message (session, msg);
-}
 
 static void
 redirect_handler (SoupMessage *msg, gpointer user_data)
@@ -879,44 +624,12 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-add_auth (SoupSession *session, SoupMessage *msg, gboolean proxy)
-{
-	SoupAuth *auth;
-
-	auth = lookup_auth (session, msg, proxy);
-	if (auth && !soup_auth_is_authenticated (auth)) {
-		if (!authenticate_auth (session, auth, msg, FALSE, proxy))
-			auth = NULL;
-	}
-
-	if (proxy)
-		soup_message_set_proxy_auth (msg, auth);
-	else
-		soup_message_set_auth (msg, auth);
-}
-
-static void
 connection_started_request (SoupConnection *conn, SoupMessage *msg,
 			    gpointer data)
 {
 	SoupSession *session = data;
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0, msg);
-
-	add_auth (session, msg, FALSE);
-	soup_message_add_status_code_handler (
-		msg, SOUP_STATUS_UNAUTHORIZED,
-		SOUP_HANDLER_POST_BODY,
-		authorize_handler, session);
-
-	if (priv->proxy_uri) {
-		add_auth (session, msg, TRUE);
-		soup_message_add_status_code_handler  (
-			msg, SOUP_STATUS_PROXY_UNAUTHORIZED,
-			SOUP_HANDLER_POST_BODY,
-			authorize_handler, session);
-	}
 }
 
 static void
@@ -1130,12 +843,6 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		return NULL;
 	}
 
-	/* Make sure priv->proxy_host gets set now while
-	 * we have the host_lock.
-	 */
-	if (priv->proxy_uri)
-		get_proxy_host (session);
-
 	conn = g_object_new (
 		(priv->use_ntlm ?
 		 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
@@ -1154,12 +861,12 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	g_signal_connect (conn, "request_started",
 			  G_CALLBACK (connection_started_request),
 			  session);
-	g_signal_connect (conn, "authenticate",
-			  G_CALLBACK (connection_authenticate),
-			  session);
-	g_signal_connect (conn, "reauthenticate",
-			  G_CALLBACK (connection_reauthenticate),
-			  session);
+	g_signal_connect_swapped (conn, "authenticate",
+				  G_CALLBACK (soup_session_emit_authenticate),
+				  session);
+	g_signal_connect_swapped (conn, "reauthenticate",
+				  G_CALLBACK (soup_session_emit_reauthenticate),
+				  session);
 
 	g_hash_table_insert (priv->conns, conn, host);
 

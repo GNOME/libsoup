@@ -314,6 +314,64 @@ bug271540_finished (SoupMessage *msg, gpointer data)
 		g_main_loop_quit (loop);
 }
 
+static void
+digest_nonce_authenticate (SoupSession *session, SoupMessage *msg,
+			   const char *auth_type, const char *auth_realm,
+			   char **username, char **password, gpointer data)
+{
+	if (strcmp (auth_type, "Digest") != 0 ||
+	    strcmp (auth_realm, "realm1") != 0)
+		return;
+
+	*username = g_strdup ("user1");
+	*password = g_strdup ("realm1");
+}
+
+static void
+digest_nonce_unauthorized (SoupMessage *msg, gpointer data)
+{
+	gboolean *got_401 = data;
+	*got_401 = TRUE;
+}
+
+static int
+do_digest_nonce_test (SoupSession *session,
+		      const char *nth, const char *uri,
+		      gboolean expect_401, gboolean expect_signal)
+{
+	SoupMessage *msg;
+	gboolean got_401;
+	int errors = 0;
+
+	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	if (expect_signal) {
+		g_signal_connect (session, "authenticate",
+				  G_CALLBACK (digest_nonce_authenticate),
+				  NULL);
+	}
+	soup_message_add_status_code_handler (msg, SOUP_STATUS_UNAUTHORIZED,
+					      SOUP_HANDLER_PRE_BODY,
+					      digest_nonce_unauthorized,
+					      &got_401);
+	got_401 = FALSE;
+	soup_session_send_message (session, msg);
+	if (got_401 != expect_401) {
+		dprintf ("  %s request %s a 401 Unauthorized!\n", nth,
+			 got_401 ? "got" : "did not get");
+		errors++;
+	}
+	if (msg->status_code != SOUP_STATUS_OK) {
+		dprintf ("  %s request got status %d %s!\n", nth,
+			 msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (errors == 0)
+		dprintf ("  %s request succeeded\n", nth);
+	g_object_unref (msg);
+
+	return errors;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -393,9 +451,9 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	/* And now for a regression test */
+	/* And now for some regression tests */
 
-	dprintf ("Regression test for bug 271540:\n");
+	dprintf ("Testing pipelined auth (bug 271540):\n");
 	session = soup_session_async_new ();
 
 	authenticated = FALSE;
@@ -416,6 +474,95 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+
+	dprintf ("\nTesting digest nonce expiration:\n");
+
+	/* We test two different things here:
+	 *
+	 *   1. If we get a 401 response with
+	 *      "WWW-Authenticate: Digest stale=true...", we should
+	 *      retry and succeed *without* the session asking for a
+	 *      password again.
+	 *
+	 *   2. If we get a successful response with
+	 *      "Authentication-Info: nextnonce=...", we should update
+	 *      the nonce automatically so as to avoid getting a
+	 *      stale nonce error on the next request.
+	 *
+	 * In our Apache config, /Digest/realm1 and
+	 * /Digest/realm1/expire are set up to use the same auth info,
+	 * but only the latter has an AuthDigestNonceLifetime (of 2
+	 * seconds). The way nonces work in Apache, a nonce received
+	 * from /Digest/realm1 will still expire in
+	 * /Digest/realm1/expire, but it won't issue a nextnonce for a
+	 * request in /Digest/realm1. This lets us test both
+	 * behaviors.
+	 *
+	 * The expected conversation is:
+	 *
+	 * First message
+	 *   GET /Digest/realm1
+	 *
+	 *   401 Unauthorized
+	 *   WWW-Authenticate: Digest nonce=A
+	 *
+	 *   [emit 'authenticate']
+	 *
+	 *   GET /Digest/realm1
+	 *   Authorization: Digest nonce=A
+	 *
+	 *   200 OK
+	 *   [No Authentication-Info]
+	 *
+	 * [sleep 2 seconds: nonce A is no longer valid, but we have no
+	 * way of knowing that]
+	 *
+	 * Second message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=A
+	 *
+	 *   401 Unauthorized
+	 *   WWW-Authenticate: Digest stale=true nonce=B
+	 *
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=B
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=C
+	 *
+	 * [sleep 1 second]
+	 *
+	 * Third message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=C
+	 *   [nonce=B would work here too]
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=D
+	 *
+	 * [sleep 1 second; nonces B and C are no longer valid, but D is]
+	 *
+	 * Fourth message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=D
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=D
+	 *
+	 */
+
+	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+	errors += do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
+	g_free (uri);
+	sleep (2);
+	uri = g_strconcat (base_uri, "Digest/realm1/expire/", NULL);
+	errors += do_digest_nonce_test (session, "Second", uri, TRUE, FALSE);
+	sleep (1);
+	errors += do_digest_nonce_test (session, "Third", uri, FALSE, FALSE);
+	sleep (1);
+	errors += do_digest_nonce_test (session, "Fourth", uri, FALSE, FALSE);
+	g_free (uri);
+
 	g_main_loop_unref (loop);
 	g_main_context_unref (g_main_context_default ());
 

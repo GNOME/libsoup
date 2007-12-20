@@ -41,81 +41,101 @@ soup_auth_init (SoupAuth *auth)
 {
 }
 
-typedef GType (*GTypeFunc) (void);
-
-typedef struct {
-	const char *name;
-	int         len;
-	GTypeFunc   type_func;
-	int         strength;
-} AuthScheme; 
-
-static AuthScheme known_auth_schemes [] = {
-	{ "Basic",  sizeof ("Basic") - 1,  soup_auth_basic_get_type,  0 },
-	{ "Digest", sizeof ("Digest") - 1, soup_auth_digest_get_type, 3 },
-	{ NULL }
-};
-
-/* FIXME: it should be possible to register new auth schemes! */
-
 /**
- * soup_auth_new_from_headers:
- * @hdrs: the response headers from a message
- * @header_name: the name of the header to look for
- * ("WWW-Authenticate" or "Proxy-Authenticate")
+ * soup_auth_new:
+ * @type: the type of auth to create (a subtype of #SoupAuth)
+ * @msg: the #SoupMessage the auth is being created for
+ * @auth_header: the WWW-Authenticate/Proxy-Authenticate header
  *
- * Creates a #SoupAuth value based on the strongest available
- * supported auth type in @hdrs.
+ * Creates a new #SoupAuth of type @type with the information from
+ * @msg and @auth_header.
  *
- * Return value: the new #SoupAuth, or %NULL if none could be created.
+ * Return value: the new #SoupAuth, or %NULL if it could not be
+ * created
  **/
 SoupAuth *
-soup_auth_new_from_headers (SoupMessageHeaders *hdrs, const char *header_name)
+soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 {
-	const char *tryheader, *header = NULL;
-	AuthScheme *scheme = NULL, *iter;
-	SoupAuth *auth = NULL;
+	SoupAuth *auth;
 	GHashTable *params;
-	char *realm;
-	int i;
+	const char *scheme, *realm;
 
-	g_return_val_if_fail (hdrs != NULL, NULL);
+	g_return_val_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH), NULL);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+	g_return_val_if_fail (auth_header != NULL, NULL);
 
-	for (i = 0; (tryheader = soup_message_headers_find_nth (hdrs, header_name, i)); i++) {
-		for (iter = known_auth_schemes; iter->name; iter++) {
-			if (!g_ascii_strncasecmp (tryheader, iter->name, 
-						  iter->len) &&
-			    (!tryheader[iter->len] ||
-			     g_ascii_isspace (tryheader[iter->len]))) {
-				if (!scheme || 
-				    scheme->strength < iter->strength) {
-					header = tryheader;
-					scheme = iter;
-				}
+	auth = g_object_new (type, NULL);
 
-				break;
-			}
-		}
+	scheme = soup_auth_get_scheme_name (auth);
+	if (strncmp (auth_header, scheme, strlen (scheme)) != 0) {
+		g_object_unref (auth);
+		return NULL;
 	}
 
-	if (!scheme)
+	params = soup_header_param_parse_list (auth_header + strlen (scheme));
+	if (!params) {
+		g_object_unref (auth);
 		return NULL;
+	}
 
-	params = soup_header_param_parse_list (header + scheme->len);
-	if (!params)
-		return NULL;
-	realm = soup_header_param_copy_token (params, "realm");
+	realm = g_hash_table_lookup (params, "realm");
 	if (!realm) {
 		soup_header_param_destroy_hash (params);
+		g_object_unref (auth);
 		return NULL;
 	}
 
-	auth = g_object_new (scheme->type_func (), NULL);
-	auth->realm = realm;
+	auth->realm = g_strdup (realm);
 
-	SOUP_AUTH_GET_CLASS (auth)->construct (auth, params);
+	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
+		g_object_unref (auth);
+		auth = NULL;
+	}
 	soup_header_param_destroy_hash (params);
 	return auth;
+}
+
+/**
+ * soup_auth_update:
+ * @auth: a #SoupAuth
+ * @msg: the #SoupMessage @auth is being updated for
+ * @auth_header: the WWW-Authenticate/Proxy-Authenticate header
+ *
+ * Updates @auth with the information from @msg and @auth_header,
+ * possibly un-authenticating it.
+ *
+ * Return value: %TRUE if @auth is still a valid (but potentially
+ * unauthenticated) #SoupAuth. %FALSE if something about @auth_params
+ * could not be parsed or incorporated into @auth at all.
+ **/
+gboolean
+soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
+{
+	GHashTable *params;
+	const char *scheme, *realm;
+	gboolean success;
+
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+	g_return_val_if_fail (auth_header != NULL, FALSE);
+
+	scheme = soup_auth_get_scheme_name (auth);
+	if (strncmp (auth_header, scheme, strlen (scheme)) != 0)
+		return FALSE;
+
+	params = soup_header_param_parse_list (auth_header + strlen (scheme));
+	if (!params)
+		return FALSE;
+
+	realm = g_hash_table_lookup (params, "realm");
+	if (!realm || strcmp (realm, auth->realm) != 0) {
+		soup_header_param_destroy_hash (params);
+		return FALSE;
+	}
+
+	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
+	soup_header_param_destroy_hash (params);
+	return success;
 }
 
 /**

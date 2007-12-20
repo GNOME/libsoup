@@ -18,10 +18,11 @@
 #include "soup-headers.h"
 #include "soup-md5-utils.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static void construct (SoupAuth *auth, GHashTable *auth_params);
+static gboolean update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params);
 static GSList *get_protection_space (SoupAuth *auth, const SoupURI *source_uri);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
@@ -39,11 +40,15 @@ typedef enum {
 } AlgorithmType;
 
 typedef struct {
+	gboolean       proxy;
+
 	char          *user;
+	char           hex_urp[33];
 	char           hex_a1[33];
 
 	/* These are provided by the server */
 	char          *nonce;
+	char          *opaque;
 	QOPType        qop_options;
 	AlgorithmType  algorithm;
 	char          *domain;
@@ -54,6 +59,8 @@ typedef struct {
 	QOPType        qop;
 } SoupAuthDigestPrivate;
 #define SOUP_AUTH_DIGEST_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DIGEST, SoupAuthDigestPrivate))
+
+static void recompute_hex_a1 (SoupAuthDigestPrivate *priv);
 
 G_DEFINE_TYPE (SoupAuthDigest, soup_auth_digest, SOUP_TYPE_AUTH)
 
@@ -76,6 +83,9 @@ finalize (GObject *object)
 	if (priv->cnonce)
 		g_free (priv->cnonce);
 
+	memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
+	memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+
 	G_OBJECT_CLASS (soup_auth_digest_parent_class)->finalize (object);
 }
 
@@ -88,9 +98,10 @@ soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
 	g_type_class_add_private (auth_digest_class, sizeof (SoupAuthDigestPrivate));
 
 	auth_class->scheme_name = "Digest";
+	auth_class->strength = 5;
 
 	auth_class->get_protection_space = get_protection_space;
-	auth_class->construct = construct;
+	auth_class->update = update;
 	auth_class->authenticate = authenticate;
 	auth_class->is_authenticated = is_authenticated;
 	auth_class->get_authorization = get_authorization;
@@ -132,9 +143,24 @@ decode_data_type (DataType *dtype, const char *name)
 }
 
 static inline guint
-decode_qop (const char *name)
+decode_qop (const char *qop_value)
 {
-	return decode_data_type (qop_types, name);
+	char *ptr = (char *)qop_value;
+	guint qop = 0;
+
+	while (ptr && *ptr) {
+		char *token;
+
+		token = soup_header_param_decode_token (&ptr);
+		if (token)
+			qop |= decode_data_type (qop_types, token);
+		g_free (token);
+
+		if (*ptr == ',')
+			ptr++;
+	}
+
+	return qop;
 }
 
 static inline guint
@@ -143,38 +169,46 @@ decode_algorithm (const char *name)
 	return decode_data_type (algorithm_types, name);
 }
 
-static void
-construct (SoupAuth *auth, GHashTable *auth_params)
+static gboolean
+update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
-	char *tmp, *ptr;
+	const char *stale;
+	guint qop_options;
+	gboolean ok = TRUE;
 
+	g_free (priv->domain);
+	g_free (priv->nonce);
+	g_free (priv->opaque);
+
+	priv->proxy = (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED);
 	priv->nc = 1;
-	/* We're just going to do qop=auth for now */
-	priv->qop = QOP_AUTH;
 
 	priv->domain = soup_header_param_copy_token (auth_params, "domain");
 	priv->nonce = soup_header_param_copy_token (auth_params, "nonce");
+	priv->opaque = soup_header_param_copy_token (auth_params, "opaque");
 
-	tmp = soup_header_param_copy_token (auth_params, "qop");
-	ptr = tmp;
+	qop_options = decode_qop (g_hash_table_lookup (auth_params, "qop"));
+	/* We're just going to do qop=auth for now */
+	if (!(qop_options & QOP_AUTH))
+		ok = FALSE;
+	priv->qop = QOP_AUTH;
 
-	while (ptr && *ptr) {
-		char *token;
+	priv->algorithm = decode_algorithm (g_hash_table_lookup (auth_params, "algorithm"));
 
-		token = soup_header_param_decode_token ((char **)&ptr);
-		if (token)
-			priv->qop_options |= decode_qop (token);
-		g_free (token);
+	stale = g_hash_table_lookup (auth_params, "stale");
+	if (stale && !g_ascii_strcasecmp (stale, "TRUE") && *priv->hex_urp)
+		recompute_hex_a1 (priv);
+	else {
+		g_free (priv->user);
+		priv->user = NULL;
+		g_free (priv->cnonce);
+		priv->cnonce = NULL;
+		memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
+		memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
+        }
 
-		if (*ptr == ',')
-			ptr++;
-	}
-	g_free (tmp);
-
-	tmp = soup_header_param_copy_token (auth_params, "algorithm");
-	priv->algorithm = decode_algorithm (tmp);
-	g_free (tmp);
+	return ok;
 }
 
 static GSList *
@@ -224,15 +258,37 @@ get_protection_space (SoupAuth *auth, const SoupURI *source_uri)
 }
 
 static void
+recompute_hex_a1 (SoupAuthDigestPrivate *priv)
+{
+	if (priv->algorithm == ALGORITHM_MD5) {
+		/* In MD5, A1 is just user:realm:password, so hex_A1
+		 * is just hex_urp.
+		 */
+		memcpy (priv->hex_a1, priv->hex_urp, sizeof (priv->hex_a1));
+	} else {
+		SoupMD5Context ctx;
+
+		/* In MD5-sess, A1 is hex_urp:nonce:cnonce */
+
+		soup_md5_init (&ctx);
+		soup_md5_update (&ctx, priv->hex_urp, strlen (priv->hex_urp));
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, priv->nonce, strlen (priv->nonce));
+		soup_md5_update (&ctx, ":", 1);
+		soup_md5_update (&ctx, priv->cnonce, strlen (priv->cnonce));
+
+		soup_md5_final_hex (&ctx, priv->hex_a1);
+	}
+}
+
+static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	SoupMD5Context ctx;
-	guchar d[16];
 	char *bgen;
 
-	g_return_if_fail (username != NULL);
-
+	/* Create client nonce */
 	bgen = g_strdup_printf ("%p:%lu:%lu",
 				auth,
 				(unsigned long) getpid (),
@@ -242,32 +298,19 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 
 	priv->user = g_strdup (username);
 
-	/* compute A1 */
+	/* compute "URP" (user:realm:password) */
 	soup_md5_init (&ctx);
-
 	soup_md5_update (&ctx, username, strlen (username));
-
 	soup_md5_update (&ctx, ":", 1);
 	soup_md5_update (&ctx, auth->realm, strlen (auth->realm));
 	soup_md5_update (&ctx, ":", 1);
 	if (password)
 		soup_md5_update (&ctx, password, strlen (password));
 
-	if (priv->algorithm == ALGORITHM_MD5_SESS) {
-		soup_md5_final (&ctx, d);
+	soup_md5_final_hex (&ctx, priv->hex_urp);
 
-		soup_md5_init (&ctx);
-		soup_md5_update (&ctx, d, 16);
-		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, priv->nonce,
-				 strlen (priv->nonce));
-		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, priv->cnonce,
-				 strlen (priv->cnonce));
-	}
-
-	/* hexify A1 */
-	soup_md5_final_hex (&ctx, priv->hex_a1);
+	/* And compute A1 from that */
+	recompute_hex_a1 (priv);
 }
 
 static gboolean
@@ -286,7 +329,7 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 
 	uri = soup_message_get_uri (msg);
 	g_return_val_if_fail (uri != NULL, NULL);
-	url = soup_uri_to_string (uri, TRUE);
+	url = soup_uri_to_string (uri, !priv->proxy);
 
 	/* compute A2 */
 	soup_md5_init (&md5);
@@ -295,12 +338,6 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 	soup_md5_update (&md5, url, strlen (url));
 
 	g_free (url);
-
-	if (priv->qop == QOP_AUTH_INT) {
-		/* FIXME: Actually implement. Ugh. */
-		soup_md5_update (&md5, ":", 1);
-		soup_md5_update (&md5, "00000000000000000000000000000000", 32);
-	}
 
 	/* now hexify A2 */
 	soup_md5_final_hex (&md5, hex_a2);
@@ -327,8 +364,6 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 
 		if (priv->qop == QOP_AUTH)
 			tmp = "auth";
-		else if (priv->qop == QOP_AUTH_INT)
-			tmp = "auth-int";
 		else
 			g_assert_not_reached ();
 
@@ -342,15 +377,45 @@ compute_response (SoupAuthDigestPrivate *priv, SoupMessage *msg)
 	return g_strdup (o);
 }
 
+static void
+authentication_info_cb (SoupMessage *msg, gpointer data)
+{
+	SoupAuth *auth = data;
+	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
+	const char *header;
+	GHashTable *auth_params;
+	char *nextnonce;
+
+	if (auth != soup_message_get_auth (msg))
+		return;
+
+	header = soup_message_headers_find (msg->response_headers,
+					    priv->proxy ?
+					    "Proxy-Authentication-Info" :
+					    "Authentication-Info");
+	g_return_if_fail (header != NULL);
+
+	auth_params = soup_header_param_parse_list (header);
+	if (!auth_params)
+		return;
+
+	nextnonce = soup_header_param_copy_token (auth_params, "nextnonce");
+	if (nextnonce) {
+		g_free (priv->nonce);
+		priv->nonce = nextnonce;
+	}
+
+	soup_header_param_destroy_hash (auth_params);
+}
+
 static char *
 get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
-	char *response;
+	char *response, *token;
 	char *qop = NULL;
-	char *nc;
 	char *url;
-	char *out;
+	GString *out;
 	const SoupURI *uri;
 
 	uri = soup_message_get_uri (msg);
@@ -366,35 +431,34 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	else
 		g_assert_not_reached ();
 
-	nc = g_strdup_printf ("%.8x", priv->nc);
+	out = g_string_new ("Digest ");
 
-	out = g_strdup_printf (
-		"Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", %s%s%s "
-		"%s%s%s %s%s%s uri=\"%s\", response=\"%s\"",
-		priv->user,
-		auth->realm,
-		priv->nonce,
+	/* FIXME: doesn't deal with quotes in the %s strings */
+	g_string_append_printf (out, "username=\"%s\", realm=\"%s\", "
+				"nonce=\"%s\", uri=\"%s\", response=\"%s\"",
+				priv->user, auth->realm, priv->nonce,
+				url, response);
 
-		priv->qop ? "cnonce=\"" : "",
-		priv->qop ? priv->cnonce : "",
-		priv->qop ? "\"," : "",
+	if (priv->opaque)
+		g_string_append_printf (out, ", opaque=\"%s\"", priv->opaque);
 
-		priv->qop ? "nc=" : "",
-		priv->qop ? nc : "",
-		priv->qop ? "," : "",
-
-		priv->qop ? "qop=" : "",
-		priv->qop ? qop : "",
-		priv->qop ? "," : "",
-
-		url,
-		response);
+	if (priv->qop) {
+		g_string_append_printf (out, ", cnonce=\"%s\", nc=\"%.8x\", qop=\"%s\"",
+					priv->cnonce, priv->nc, qop);
+	}
 
 	g_free (response);
 	g_free (url);
-	g_free (nc);
 
 	priv->nc++;
 
-	return out;
+	token = g_string_free (out, FALSE);
+
+	soup_message_add_header_handler (msg,
+					 priv->proxy ?
+					 "Proxy-Authentication-Info" :
+					 "Authentication-Info",
+					 SOUP_HANDLER_PRE_BODY,
+					 authentication_info_cb, auth);
+	return token;
 }

@@ -26,8 +26,10 @@ typedef struct {
 	GObjectClass parent_class;
 
 	const char *scheme_name;
+	guint        strength;
 
-	void         (*construct)            (SoupAuth      *auth,
+	gboolean     (*update)               (SoupAuth      *auth,
+					      SoupMessage   *msg,
 					      GHashTable    *auth_params);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
@@ -44,9 +46,12 @@ typedef struct {
 
 GType       soup_auth_get_type              (void);
 
-
-SoupAuth   *soup_auth_new_from_headers      (SoupMessageHeaders *hdrs,
-					     const char    *header_name);
+SoupAuth   *soup_auth_new                   (GType          type,
+					     SoupMessage   *msg,
+					     const char    *auth_header);
+gboolean    soup_auth_update                (SoupAuth      *auth,
+					     SoupMessage   *msg,
+					     const char    *auth_header);
 
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
