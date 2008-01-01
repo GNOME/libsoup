@@ -112,7 +112,7 @@ async_data_free (SoupSessionSyncAsyncData *sad)
 {
 	g_object_unref (sad->session);
 	g_object_unref (sad->msg);
-	g_free (sad);
+	g_slice_free (SoupSessionSyncAsyncData, sad);
 }
 
 static gboolean
@@ -146,7 +146,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
 {
 	SoupSessionSyncAsyncData *sad;
 
-	sad = g_new (SoupSessionSyncAsyncData, 1);
+	sad = g_slice_new (SoupSessionSyncAsyncData);
 	sad->session = g_object_ref (session);
 	sad->msg = g_object_ref (msg);
 	sad->callback = callback;

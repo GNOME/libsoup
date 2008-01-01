@@ -30,7 +30,7 @@ soup_message_queue_new (void)
 {
 	SoupMessageQueue *queue;
 
-	queue = g_new0 (SoupMessageQueue, 1);
+	queue = g_slice_new0 (SoupMessageQueue);
 	queue->mutex = g_mutex_new ();
 	return queue;
 }
@@ -49,7 +49,7 @@ soup_message_queue_destroy (SoupMessageQueue *queue)
 	g_list_free (queue->head);
 	g_list_free (queue->iters);
 	g_mutex_free (queue->mutex);
-	g_free (queue);
+	g_slice_free (SoupMessageQueue, queue);
 }
 
 /**

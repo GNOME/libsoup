@@ -466,7 +466,7 @@ idle_connect_result (gpointer user_data)
 	sacd->callback (sacd->sock, 
 			priv->sockfd != -1 ? SOUP_STATUS_OK : SOUP_STATUS_CANT_CONNECT,
 			sacd->user_data);
-	g_free (sacd);
+	g_slice_free (SoupSocketAsyncConnectData, sacd);
 	return FALSE;
 }
 
@@ -495,7 +495,7 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 
  cant_connect:
 	sacd->callback (sacd->sock, SOUP_STATUS_CANT_CONNECT, sacd->user_data);
-	g_free (sacd);
+	g_slice_free (SoupSocketAsyncConnectData, sacd);
 	return FALSE;
 }
 
@@ -506,12 +506,12 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		sacd->callback (sacd->sock, status, sacd->user_data);
-		g_free (sacd);
+		g_slice_free (SoupSocketAsyncConnectData, sacd);
 		return;
 	}
 
 	soup_socket_connect_async (sacd->sock, sacd->callback, sacd->user_data);
-	g_free (sacd);
+	g_slice_free (SoupSocketAsyncConnectData, sacd);
 }
 
 /**
@@ -536,7 +536,7 @@ soup_socket_connect_async (SoupSocket *sock, SoupSocketCallback callback,
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	g_return_if_fail (priv->remote_addr != NULL);
 
-	sacd = g_new (SoupSocketAsyncConnectData, 1);
+	sacd = g_slice_new (SoupSocketAsyncConnectData);
 	sacd->sock = sock;
 	sacd->callback = callback;
 	sacd->user_data = user_data;

@@ -58,7 +58,7 @@ typedef struct {
 static void
 signal_once_object_destroyed (gpointer ssod, GObject *ex_object)
 {
-	g_free (ssod);
+	g_slice_free (SoupSignalOnceData, ssod);
 }
 
 static void
@@ -75,7 +75,7 @@ signal_once_metamarshal (GClosure *closure, GValue *return_value,
 	if (g_signal_handler_is_connected (ssod->instance, ssod->signal_id))
 		g_signal_handler_disconnect (ssod->instance, ssod->signal_id);
 	g_object_weak_unref (G_OBJECT (ssod->instance), signal_once_object_destroyed, ssod);
-	g_free (ssod);
+	g_slice_free (SoupSignalOnceData, ssod);
 }
 
 /**
@@ -102,7 +102,7 @@ soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 	g_return_val_if_fail (detailed_signal != NULL, 0);
 	g_return_val_if_fail (c_handler != NULL, 0);
 
-	ssod = g_new0 (SoupSignalOnceData, 1);
+	ssod = g_slice_new0 (SoupSignalOnceData);
 	ssod->instance = instance;
 	g_object_weak_ref (G_OBJECT (instance), signal_once_object_destroyed, ssod);
 

@@ -784,7 +784,7 @@ header_handler_free (gpointer data, GClosure *closure)
 	SoupMessageHeaderHandlerData *hhd = data;
 
 	g_free (hhd->header_name);
-	g_free (hhd);
+	g_slice_free (SoupMessageHeaderHandlerData, hhd);
 }
 
 static void
@@ -849,7 +849,7 @@ soup_message_add_header_handler (SoupMessage *msg,
 
 	closure = g_cclosure_new (callback, user_data, NULL);
 
-	hhd = g_new (SoupMessageHeaderHandlerData, 1);
+	hhd = g_slice_new (SoupMessageHeaderHandlerData);
 	hhd->msg = msg;
 	hhd->header_name = g_strdup (header);
 	g_closure_set_meta_marshal (closure, hhd, header_handler_metamarshal);

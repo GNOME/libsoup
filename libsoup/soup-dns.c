@@ -226,7 +226,7 @@ soup_dns_cache_entry_unref (SoupDNSCacheEntry *entry)
 		 * have reached zero. So no cleanup needed there.
 		 */
 
-		g_free (entry);
+		g_slice_free (SoupDNSCacheEntry, entry);
 	}
 }
 
@@ -235,7 +235,7 @@ soup_dns_cache_entry_new (const char *name)
 {
 	SoupDNSCacheEntry *entry;
 
-	entry = g_new0 (SoupDNSCacheEntry, 1);
+	entry = g_slice_new0 (SoupDNSCacheEntry);
 	entry->entry_name = g_strdup (name);
 	entry->ref_count = 2; /* One for the caller, one for the cache */
 	soup_dns_cache_entry_set_from_phys (entry);
@@ -425,7 +425,7 @@ soup_dns_lookup_name (const char *name)
 			entry->resolved = TRUE;
 	}
 
-	lookup = g_new0 (SoupDNSLookup, 1);
+	lookup = g_slice_new0 (SoupDNSLookup);
 	lookup->entry = entry;
 	g_mutex_unlock (soup_dns_lock);
 
@@ -459,7 +459,7 @@ soup_dns_lookup_address (struct sockaddr *sockaddr)
 		entry = soup_dns_cache_entry_new (name); // FIXME
 	g_free (name);
 
-	lookup = g_new0 (SoupDNSLookup, 1);
+	lookup = g_slice_new0 (SoupDNSLookup);
 	lookup->entry = entry;
 	g_mutex_unlock (soup_dns_lock);
 
@@ -651,5 +651,5 @@ soup_dns_lookup_free (SoupDNSLookup *lookup)
 	if (lookup->running)
 		soup_dns_lookup_cancel (lookup);
 	soup_dns_cache_entry_unref (lookup->entry);
-	g_free (lookup);
+	g_slice_free (SoupDNSLookup, lookup);
 }

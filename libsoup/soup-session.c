@@ -474,7 +474,7 @@ soup_session_host_new (SoupSession *session, const SoupURI *source_uri)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
-	host = g_new0 (SoupSessionHost, 1);
+	host = g_slice_new0 (SoupSessionHost);
 	host->root_uri = soup_uri_copy_root (source_uri);
 
 	if (soup_uri_is_https (host->root_uri) && !priv->ssl_creds) {
@@ -517,7 +517,7 @@ free_host (SoupSessionHost *host)
 	}
 
 	soup_uri_free (host->root_uri);
-	g_free (host);
+	g_slice_free (SoupSessionHost, host);
 }	
 
 void

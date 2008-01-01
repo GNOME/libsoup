@@ -93,7 +93,7 @@ static void
 free_handler (SoupServerHandler *hand)
 {
 	g_free (hand->path);
-	g_free (hand);
+	g_slice_free (SoupServerHandler, hand);
 }
 
 static void
@@ -728,7 +728,7 @@ soup_server_add_handler (SoupServer            *server,
 	g_return_if_fail (callback != NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	hand = g_new0 (SoupServerHandler, 1);
+	hand = g_slice_new0 (SoupServerHandler);
 	hand->path       = g_strdup (path);
 	hand->callback   = callback;
 	hand->destroy    = destroy;

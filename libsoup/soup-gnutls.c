@@ -309,7 +309,7 @@ soup_gnutls_free (GIOChannel *channel)
 	g_io_channel_unref (chan->real_sock);
 	gnutls_deinit (chan->session);
 	g_free (chan->hostname);
-	g_free (chan);
+	g_slice_free (SoupGNUTLSChannel, chan);
 }
 
 static GIOStatus
@@ -412,7 +412,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 
 	gnutls_transport_set_ptr (session, GINT_TO_POINTER (sockfd));
 
-	chan = g_new0 (SoupGNUTLSChannel, 1);
+	chan = g_slice_new0 (SoupGNUTLSChannel);
 	chan->fd = sockfd;
 	chan->real_sock = sock;
 	chan->session = session;
@@ -475,7 +475,7 @@ soup_ssl_get_client_credentials (const char *ca_file)
 	if (!soup_gnutls_inited)
 		soup_gnutls_init ();
 
-	creds = g_new0 (SoupSSLCredentials, 1);
+	creds = g_slice_new0 (SoupSSLCredentials);
 	gnutls_certificate_allocate_credentials (&creds->creds);
 
 	if (ca_file) {
@@ -507,7 +507,7 @@ void
 soup_ssl_free_client_credentials (SoupSSLCredentials *creds)
 {
 	gnutls_certificate_free_credentials (creds->creds);
-	g_free (creds);
+	g_slice_free (SoupSSLCredentials, creds);
 }
 
 /**
@@ -535,7 +535,7 @@ soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 			return NULL;
 	}
 
-	creds = g_new0 (SoupSSLCredentials, 1);
+	creds = g_slice_new0 (SoupSSLCredentials);
 	gnutls_certificate_allocate_credentials (&creds->creds);
 
 	if (gnutls_certificate_set_x509_key_file (creds->creds,
@@ -562,7 +562,7 @@ void
 soup_ssl_free_server_credentials (SoupSSLCredentials *creds)
 {
 	gnutls_certificate_free_credentials (creds->creds);
-	g_free (creds);
+	g_slice_free (SoupSSLCredentials, creds);
 }
 
 #endif /* HAVE_SSL */

@@ -40,7 +40,7 @@ soup_path_map_new (GDestroyNotify data_free_func)
 {
 	SoupPathMap *map;
 
-	map = g_new0 (SoupPathMap, 1);
+	map = g_slice_new0 (SoupPathMap);
 	map->mappings = g_array_new (FALSE, FALSE, sizeof (SoupPathMapping));
 	map->free_func = data_free_func;
 
@@ -66,7 +66,7 @@ soup_path_map_free (SoupPathMap *map)
 	}
 	g_array_free (map->mappings, TRUE);
 	
-	g_free (map);
+	g_slice_free (SoupPathMap, map);
 }
 
 /* Scan @map looking for @path or one of its ancestors.

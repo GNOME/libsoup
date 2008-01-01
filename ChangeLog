@@ -1,5 +1,20 @@
 2008-01-01  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-manager.c:
+	* libsoup/soup-dns.c: 
+	* libsoup/soup-gnutls.c: 
+	* libsoup/soup-message.c: 
+	* libsoup/soup-message-io.c: 
+	* libsoup/soup-message-queue.c: 
+	* libsoup/soup-misc.c: 
+	* libsoup/soup-path-map.c: 
+	* libsoup/soup-server.c: 
+	* libsoup/soup-session.c: 
+	* libsoup/soup-session-sync.c: 
+	* libsoup/soup-socket.c: Use g_slice.
+
+2008-01-01  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session.c (soup_session_cancel_message): add a
 	"status_code" argument rather than having the caller set the
 	status code separately, to prevent a race condition.

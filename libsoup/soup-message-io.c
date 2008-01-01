@@ -103,7 +103,7 @@ soup_message_io_cleanup (SoupMessage *msg)
 	if (io->write_chunk)
 		soup_buffer_free (io->write_chunk);
 
-	g_free (io);
+	g_slice_free (SoupMessageIOData, io);
 }
 
 /**
@@ -764,7 +764,7 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
 
-	io = g_new0 (SoupMessageIOData, 1);
+	io = g_slice_new0 (SoupMessageIOData);
 	io->sock = g_object_ref (sock);
 	io->mode = mode;
 	io->get_headers_cb   = get_headers_cb;

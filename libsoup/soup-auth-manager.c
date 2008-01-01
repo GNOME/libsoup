@@ -46,7 +46,7 @@ soup_auth_manager_new (SoupSession *session)
 {
 	SoupAuthManager *manager;
 
-	manager = g_new0 (SoupAuthManager, 1);
+	manager = g_slice_new0 (SoupAuthManager);
 	manager->session = session;
 	manager->auth_types = g_hash_table_new (g_str_hash, g_str_equal);
 	manager->auth_hosts = g_hash_table_new (soup_uri_host_hash,
@@ -68,7 +68,7 @@ foreach_free_host (gpointer key, gpointer value, gpointer data)
 		g_hash_table_destroy (host->auths);
 
 	soup_uri_free (host->root_uri);
-	g_free (host);
+	g_slice_free (SoupAuthHost, host);
 
 	return TRUE;
 }
@@ -88,7 +88,7 @@ soup_auth_manager_free (SoupAuthManager *manager)
 	if (manager->proxy_auth)
 		g_object_unref (manager->proxy_auth);
 
-	g_free (manager);
+	g_slice_free (SoupAuthManager, manager);
 }
 
 void
@@ -194,7 +194,7 @@ get_auth_host_for_message (SoupAuthManager *manager, SoupMessage *msg)
 	if (host)
 		return host;
 
-	host = g_new0 (SoupAuthHost, 1);
+	host = g_slice_new0 (SoupAuthHost);
 	host->root_uri = soup_uri_copy_root (source);
 	g_hash_table_insert (manager->auth_hosts, host->root_uri, host);
 
