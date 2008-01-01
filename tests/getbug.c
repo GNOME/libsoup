@@ -68,7 +68,7 @@ got_response (SoupMessage *msg, gpointer user_data)
 		if (!error) {
 			fprintf (stderr, "Could not parse XMLRPC response:\n%d %s\n\n",
 				 msg->status_code, msg->reason_phrase);
-			fprintf (stderr, "%.*s\n", response->length,
+			fprintf (stderr, "%.*s\n", (int)response->length,
 				 response->data);
 		} else {
 			fprintf (stderr, "XML-RPC error: %d %s",
