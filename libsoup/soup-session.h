@@ -42,7 +42,8 @@ typedef struct {
 	void  (*requeue_message) (SoupSession *session, SoupMessage *msg);
 	guint (*send_message)    (SoupSession *session, SoupMessage *msg);
 
-	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg);
+	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg,
+				  guint status_code);
 
 } SoupSessionClass;
 
@@ -74,7 +75,8 @@ void            soup_session_unpause_message  (SoupSession           *session,
 					       SoupMessage           *msg);
 
 void            soup_session_cancel_message   (SoupSession           *session,
-					       SoupMessage           *msg);
+					       SoupMessage           *msg,
+					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
 
 G_END_DECLS

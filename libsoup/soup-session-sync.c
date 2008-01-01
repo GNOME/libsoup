@@ -23,7 +23,8 @@ typedef struct {
 static void  queue_message  (SoupSession *session, SoupMessage *msg,
 			     SoupSessionCallback callback, gpointer user_data);
 static guint send_message   (SoupSession *session, SoupMessage *msg);
-static void  cancel_message (SoupSession *session, SoupMessage *msg);
+static void  cancel_message (SoupSession *session, SoupMessage *msg,
+			     guint status_code);
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
@@ -231,11 +232,11 @@ send_message (SoupSession *session, SoupMessage *msg)
 }
 
 static void
-cancel_message (SoupSession *session, SoupMessage *msg)
+cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg);
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg, status_code);
 	g_cond_broadcast (priv->cond);
 }
 

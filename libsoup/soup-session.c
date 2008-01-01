@@ -75,7 +75,8 @@ static void     free_host      (SoupSessionHost *host);
 static void queue_message   (SoupSession *session, SoupMessage *msg,
 			     SoupSessionCallback callback, gpointer user_data);
 static void requeue_message (SoupSession *session, SoupMessage *msg);
-static void cancel_message  (SoupSession *session, SoupMessage *msg);
+static void cancel_message  (SoupSession *session, SoupMessage *msg,
+			     guint status_code);
 
 /* temporary until we fix this to index hosts by SoupAddress */
 extern guint     soup_uri_host_hash  (gconstpointer  key);
@@ -699,8 +700,8 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 				if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_CONNECTING)
 					soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 			} else {
-				soup_message_set_status (msg, status);
-				soup_session_cancel_message (session, msg);
+				soup_session_cancel_message (session, msg,
+							     status);
 			}
 		}
 	}
@@ -981,11 +982,13 @@ soup_session_unpause_message (SoupSession *session,
 
 
 static void
-cancel_message (SoupSession *session, SoupMessage *msg)
+cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	soup_message_queue_remove_message (priv->queue, msg);
+	soup_message_io_stop (msg);
+	soup_message_set_status (msg, status_code);
 	soup_message_finished (msg);
 }
 
@@ -993,18 +996,21 @@ cancel_message (SoupSession *session, SoupMessage *msg)
  * soup_session_cancel_message:
  * @session: a #SoupSession
  * @msg: the message to cancel
+ * @status_code: status code to set on @msg (generally
+ * %SOUP_STATUS_CANCELLED)
  *
- * Causes @session to immediately finish processing @msg. You should
- * set a status code on @msg with soup_message_set_status() before
- * calling this function.
+ * Causes @session to immediately finish processing @msg, with a final
+ * status_code of @status_code. Depending on when you cancel it, the
+ * response state may be incomplete or inconsistent.
  **/
 void
-soup_session_cancel_message (SoupSession *session, SoupMessage *msg)
+soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
+			     guint status_code)
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	SOUP_SESSION_GET_CLASS (session)->cancel_message (session, msg);
+	SOUP_SESSION_GET_CLASS (session)->cancel_message (session, msg, status_code);
 }
 
 static void
@@ -1036,8 +1042,8 @@ soup_session_abort (SoupSession *session)
 	for (msg = soup_message_queue_first (priv->queue, &iter);
 	     msg;
 	     msg = soup_message_queue_next (priv->queue, &iter)) {
-		soup_message_set_status (msg, SOUP_STATUS_CANCELLED);
-		soup_session_cancel_message (session, msg);
+		soup_session_cancel_message (session, msg,
+					     SOUP_STATUS_CANCELLED);
 	}
 
 	/* Close all connections */

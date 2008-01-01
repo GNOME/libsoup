@@ -1,5 +1,11 @@
 2008-01-01  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (soup_session_cancel_message): add a
+	"status_code" argument rather than having the caller set the
+	status code separately, to prevent a race condition.
+
+2008-01-01  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session.c (soup_session_queue_message): change the
 	callback type to include the SoupSession as a parameter as well.
 
