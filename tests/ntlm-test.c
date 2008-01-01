@@ -21,6 +21,7 @@
 
 #include <glib.h>
 #include <libsoup/soup-address.h>
+#include <libsoup/soup-auth.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session-async.h>
@@ -122,13 +123,9 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer user)
 {
-	const char *user = data;
-
-	*username = g_strdup (user);
-	*password = g_strdup ("password");
+	soup_auth_authenticate (auth, user, "password");
 }
 
 typedef struct {

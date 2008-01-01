@@ -92,7 +92,6 @@ G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
 enum {
 	REQUEST_STARTED,
 	AUTHENTICATE,
-	REAUTHENTICATE,
 	LAST_SIGNAL
 };
 
@@ -240,20 +239,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * SoupSession::authenticate:
 	 * @session: the session
 	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
+	 * @auth: the #SoupAuth to authenticate
+	 * @retrying: %TRUE if this is the second (or later) attempt
 	 *
-	 * Emitted when the session requires authentication. The
-	 * credentials may come from the user, or from cached
-	 * information. If no credentials are available, leave
-	 * @username and @password unchanged.
-	 *
-	 * If the provided credentials fail, the #reauthenticate
-	 * signal will be emitted.
+	 * Emitted when the session requires authentication. If
+	 * credentials are available call soup_auth_authenticate() on
+	 * @auth. If these credentials fail, the signal will be
+	 * emitted again, with @retrying set to %TRUE, which will
+	 * continue until you return without calling
+	 * soup_auth_authenticate() on @auth.
 	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
@@ -261,60 +255,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, authenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
+			      soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
-
-	/**
-	 * SoupSession::reauthenticate:
-	 * @session: the session
-	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
-	 *
-	 * Emitted when the credentials provided by the application to
-	 * the #authenticate signal have failed. This gives the
-	 * application a second chance to provide authentication
-	 * credentials. If the new credentials also fail, #SoupSession
-	 * will emit #reauthenticate again, and will continue doing so
-	 * until the provided credentials work, or a #reauthenticate
-	 * signal emission "fails" (because the handler left @username
-	 * and @password unchanged). At that point, the 401 or 407
-	 * error status will be returned to the caller.
-	 *
-	 * If your application only uses cached passwords, it should
-	 * only connect to #authenticate, and not #reauthenticate.
-	 *
-	 * If your application always prompts the user for a password,
-	 * and never uses cached information, then you can connect the
-	 * same handler to #authenticate and #reauthenticate.
-	 *
-	 * To get standard web-browser behavior, return either cached
-	 * information or a user-provided password (whichever is
-	 * available) from the #authenticate handler, but return only
-	 * user-provided information from the #reauthenticate handler.
-	 **/
-	signals[REAUTHENTICATE] =
-		g_signal_new ("reauthenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupSessionClass, reauthenticate),
-			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
-			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
+			      SOUP_TYPE_AUTH,
+			      G_TYPE_BOOLEAN);
 
 	/* properties */
 	g_object_class_install_property (
@@ -577,24 +522,17 @@ free_host (SoupSessionHost *host)
 
 void
 soup_session_emit_authenticate (SoupSession *session, SoupMessage *msg,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password,
-				gpointer data)
+				SoupAuth *auth, gboolean retrying)
 {
-	g_signal_emit (session, signals[AUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
+	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }
 
-void
-soup_session_emit_reauthenticate (SoupSession *session, SoupMessage *msg,
-				  const char *auth_type, const char *auth_realm,
-				  char **username, char **password,
-				  gpointer data)
+static void
+reemit_authenticate (SoupConnection *conn, SoupMessage *msg,
+		     SoupAuth *auth, gboolean retrying, gpointer session)
 {
-	g_signal_emit (session, signals[REAUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
+	soup_session_emit_authenticate (session, msg, auth, retrying);
 }
-
 
 static void
 redirect_handler (SoupMessage *msg, gpointer user_data)
@@ -865,12 +803,9 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	g_signal_connect (conn, "request_started",
 			  G_CALLBACK (connection_started_request),
 			  session);
-	g_signal_connect_swapped (conn, "authenticate",
-				  G_CALLBACK (soup_session_emit_authenticate),
-				  session);
-	g_signal_connect_swapped (conn, "reauthenticate",
-				  G_CALLBACK (soup_session_emit_reauthenticate),
-				  session);
+	g_signal_connect (conn, "authenticate",
+			  G_CALLBACK (reemit_authenticate),
+			  session);
 
 	g_hash_table_insert (priv->conns, conn, host);
 

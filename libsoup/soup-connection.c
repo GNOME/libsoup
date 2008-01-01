@@ -63,7 +63,6 @@ enum {
 	DISCONNECTED,
 	REQUEST_STARTED,
 	AUTHENTICATE,
-	REAUTHENTICATE,
 	LAST_SIGNAL
 };
 
@@ -173,26 +172,11 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupConnectionClass, authenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
+			      soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
-	signals[REAUTHENTICATE] =
-		g_signal_new ("reauthenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupConnectionClass, reauthenticate),
-			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
-			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
+			      SOUP_TYPE_AUTH,
+			      G_TYPE_BOOLEAN);
 
 	/* properties */
 	g_object_class_install_property (
@@ -786,44 +770,15 @@ soup_connection_release (SoupConnection *conn)
  * soup_connection_authenticate:
  * @conn: a #SoupConnection
  * @msg: the message to authenticate
- * @auth_type: type of authentication to use
- * @auth_realm: authentication realm
- * @username: on successful return, will contain the username to
- * authenticate with
- * @password: on successful return, will contain the password to
- * authenticate with
+ * @auth: the #SoupAuth to authenticate
+ * @retrying: %TRUE if this is the second or later try
  *
  * Emits the %authenticate signal on @conn. For use by #SoupConnection
  * subclasses.
  **/
 void
 soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
-			      const char *auth_type, const char *auth_realm,
-			      char **username, char **password)
+			      SoupAuth *auth, gboolean retrying)
 {
-	g_signal_emit (conn, signals[AUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
-}
-
-/**
- * soup_connection_reauthenticate:
- * @conn: a #SoupConnection
- * @msg: the message to authenticate
- * @auth_type: type of authentication to use
- * @auth_realm: authentication realm
- * @username: on successful return, will contain the username to
- * authenticate with
- * @password: on successful return, will contain the password to
- * authenticate with
- *
- * Emits the %reauthenticate signal on @conn. For use by
- * #SoupConnection subclasses.
- **/
-void
-soup_connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password)
-{
-	g_signal_emit (conn, signals[REAUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
+	g_signal_emit (conn, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }

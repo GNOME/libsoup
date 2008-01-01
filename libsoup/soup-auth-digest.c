@@ -29,8 +29,6 @@ static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
 
 typedef struct {
-	gboolean                 proxy;
-
 	char                    *user;
 	char                     hex_urp[33];
 	char                     hex_a1[33];
@@ -173,7 +171,6 @@ update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 	g_free (priv->nonce);
 	g_free (priv->opaque);
 
-	priv->proxy = (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED);
 	priv->nc = 1;
 
 	priv->domain = g_strdup (g_hash_table_lookup (auth_params, "domain"));
@@ -399,7 +396,7 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 		return;
 
 	header = soup_message_headers_find (msg->response_headers,
-					    priv->proxy ?
+					    soup_auth_is_for_proxy (auth) ?
 					    "Proxy-Authentication-Info" :
 					    "Authentication-Info");
 	g_return_if_fail (header != NULL);
@@ -462,7 +459,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 	soup_message_add_header_handler (msg,
 					 "got_headers",
-					 priv->proxy ?
+					 soup_auth_is_for_proxy (auth) ?
 					 "Proxy-Authentication-Info" :
 					 "Authentication-Info",
 					 G_CALLBACK (authentication_info_cb),

@@ -15,19 +15,8 @@ G_BEGIN_DECLS
 /* internal methods */
 void              soup_session_emit_authenticate    (SoupSession *session,
 						     SoupMessage *msg,
-						     const char  *auth_type,
-						     const char  *auth_realm,
-						     char       **username,
-						     char       **password,
-						     gpointer     data);
-void              soup_session_emit_reauthenticate  (SoupSession *session,
-						     SoupMessage *msg,
-						     const char  *auth_type,
-						     const char  *auth_realm,
-						     char       **username,
-						     char       **password,
-						     gpointer     data);
-
+						     SoupAuth    *auth,
+						     gboolean     retrying);
 
 /* "protected" methods for subclasses */
 SoupMessageQueue *soup_session_get_queue            (SoupSession *session);

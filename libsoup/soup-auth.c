@@ -15,15 +15,42 @@
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
 #include "soup-headers.h"
+#include "soup-uri.h"
+
+typedef struct {
+	gboolean proxy;
+	char *host;
+
+} SoupAuthPrivate;
+#define SOUP_AUTH_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH, SoupAuthPrivate))
 
 G_DEFINE_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
+
+enum {
+	PROP_0,
+
+	PROP_SCHEME_NAME,
+	PROP_REALM,
+	PROP_HOST,
+	PROP_IS_FOR_PROXY,
+	PROP_IS_AUTHENTICATED,
+
+	LAST_PROP
+};
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 finalize (GObject *object)
 {
 	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (auth);
 
 	g_free (auth->realm);
+	g_free (priv->host);
 
 	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
 }
@@ -33,12 +60,103 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
 
+	g_type_class_add_private (auth_class, sizeof (SoupAuthPrivate));
+
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_SCHEME_NAME,
+		g_param_spec_string (SOUP_AUTH_SCHEME_NAME,
+				     "Scheme name",
+				     "Authentication scheme name",
+				     NULL,
+				     G_PARAM_READABLE));
+	g_object_class_install_property (
+		object_class, PROP_REALM,
+		g_param_spec_string (SOUP_AUTH_REALM,
+				     "Realm",
+				     "Authentication realm",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_HOST,
+		g_param_spec_string (SOUP_AUTH_HOST,
+				     "Host",
+				     "Authentication host",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_IS_FOR_PROXY,
+		g_param_spec_boolean (SOUP_AUTH_IS_FOR_PROXY,
+				      "For Proxy",
+				      "Whether or not the auth is for a proxy server",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_IS_AUTHENTICATED,
+		g_param_spec_boolean (SOUP_AUTH_IS_AUTHENTICATED,
+				      "Authenticated",
+				      "Whether or not the auth is authenticated",
+				      FALSE,
+				      G_PARAM_READABLE));
 }
 
 static void
 soup_auth_init (SoupAuth *auth)
 {
+}
+
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_REALM:
+		auth->realm = g_value_dup_string (value);
+		break;
+	case PROP_HOST:
+		priv->host = g_value_dup_string (value);
+		break;
+	case PROP_IS_FOR_PROXY:
+		priv->proxy = g_value_get_boolean (value);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_SCHEME_NAME:
+		g_value_set_string (value, soup_auth_get_scheme_name (auth));
+		break;
+	case PROP_REALM:
+		g_value_set_string (value, soup_auth_get_realm (auth));
+		break;
+	case PROP_HOST:
+		g_value_set_string (value, soup_auth_get_host (auth));
+		break;
+	case PROP_IS_FOR_PROXY:
+		g_value_set_boolean (value, priv->proxy);
+		break;
+	case PROP_IS_AUTHENTICATED:
+		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
+		break;
+	default:
+		break;
+	}
 }
 
 /**
@@ -64,7 +182,10 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 	g_return_val_if_fail (auth_header != NULL, NULL);
 
-	auth = g_object_new (type, NULL);
+	auth = g_object_new (type,
+			     SOUP_AUTH_IS_FOR_PROXY, (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED),
+			     SOUP_AUTH_HOST, soup_message_get_uri (msg)->host,
+			     NULL);
 
 	scheme = soup_auth_get_scheme_name (auth);
 	if (strncmp (auth_header, scheme, strlen (scheme)) != 0) {
@@ -113,7 +234,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 {
 	GHashTable *params;
 	const char *scheme, *realm;
-	gboolean success;
+	gboolean was_authenticated, success;
 
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
@@ -133,7 +254,10 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 		return FALSE;
 	}
 
+	was_authenticated = soup_auth_is_authenticated (auth);
 	success = SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params);
+	if (was_authenticated != soup_auth_is_authenticated (auth))
+		g_object_notify (G_OBJECT (auth), SOUP_AUTH_IS_AUTHENTICATED);
 	soup_header_free_param_list (params);
 	return success;
 }
@@ -144,18 +268,38 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
  * @username: the username provided by the user or client
  * @password: the password provided by the user or client
  *
- * This is called by the session after requesting a username and
- * password from the application. @auth will take the information
- * and do whatever scheme-specific processing is needed.
+ * Call this on an auth to authenticate it; normally this will cause
+ * the auth's message to be requeued with the new authentication info.
  **/
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
 {
-	g_return_if_fail (SOUP_IS_AUTH (auth));
-	g_return_if_fail (username != NULL);
-	g_return_if_fail (password != NULL);
+	gboolean was_authenticated;
 
+	g_return_if_fail (SOUP_IS_AUTH (auth));
+	g_return_if_fail (username != NULL || password == NULL);
+
+	was_authenticated = soup_auth_is_authenticated (auth);
 	SOUP_AUTH_GET_CLASS (auth)->authenticate (auth, username, password);
+	if (was_authenticated != soup_auth_is_authenticated (auth))
+		g_object_notify (G_OBJECT (auth), SOUP_AUTH_IS_AUTHENTICATED);
+}
+
+/**
+ * soup_auth_is_for_proxy:
+ * @auth: a #SoupAuth
+ *
+ * Tests whether or not @auth is associated with a proxy server rather
+ * than an "origin" server.
+ *
+ * Return value: %TRUE or %FALSE
+ **/
+gboolean
+soup_auth_is_for_proxy (SoupAuth *auth)
+{
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), FALSE);
+
+	return SOUP_AUTH_GET_PRIVATE (auth)->proxy;
 }
 
 /**
@@ -173,6 +317,23 @@ soup_auth_get_scheme_name (SoupAuth *auth)
 
 	return SOUP_AUTH_GET_CLASS (auth)->scheme_name;
 }
+
+/**
+ * soup_auth_get_host:
+ * @auth: a #SoupAuth
+ *
+ * Returns the host that @auth is associated with.
+ *
+ * Return value: the hostname
+ **/
+const char *
+soup_auth_get_host (SoupAuth *auth)
+{
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
+
+	return SOUP_AUTH_GET_PRIVATE (auth)->host;
+}
+
 
 /**
  * soup_auth_get_realm:

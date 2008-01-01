@@ -1,3 +1,25 @@
+2007-12-31  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_class_init): change
+	the "authenticate" signal to include a SoupAuth rather than its
+	components, and to have a "retrying" parameter rather than
+	separating "authenticate" and "reauthenticate".
+
+	* libsoup/soup-connection.c (soup_connection_class_init): Likewise
+
+	* libsoup/soup-auth-manager.c (authenticate_auth): update
+
+	* libsoup/soup-auth.c: make various attributes into gobject
+	properties.
+	(soup_auth_is_for_proxy): check whether an auth is plain or proxy
+	(soup_auth_get_host): get the hostname associated with an auth
+
+	* libsoup/soup-auth-ntlm.c: dummy class used by SoupConnectionNTLM
+	in the authenticate signal
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): update for
+	authenticate signals changes; use a fake SoupAuthNTLM to assist.
+
 2007-12-20  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message.c (soup_message_add_header_handler)

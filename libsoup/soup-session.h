@@ -29,11 +29,7 @@ typedef struct {
 	/* signals */
 	void (*request_started) (SoupSession *, SoupMessage *);
 	void (*authenticate)    (SoupSession *, SoupMessage *,
-				 const char *auth_type, const char *auth_realm,
-				 char **username, char **password);
-	void (*reauthenticate)  (SoupSession *, SoupMessage *,
-				 const char *auth_type, const char *auth_realm,
-				 char **username, char **password);
+				 SoupAuth *, gboolean);
 
 	/* methods */
 	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,

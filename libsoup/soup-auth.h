@@ -16,16 +16,16 @@
 #define SOUP_IS_AUTH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH))
 #define SOUP_AUTH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH, SoupAuthClass))
 
-typedef struct {
+struct SoupAuth {
 	GObject parent;
 
 	char *realm;
-} SoupAuth;
+};
 
 typedef struct {
 	GObjectClass parent_class;
 
-	const char *scheme_name;
+	const char  *scheme_name;
 	guint        strength;
 
 	gboolean     (*update)               (SoupAuth      *auth,
@@ -44,6 +44,12 @@ typedef struct {
 					      SoupMessage   *msg);
 } SoupAuthClass;
 
+#define SOUP_AUTH_SCHEME_NAME      "scheme-name"
+#define SOUP_AUTH_REALM            "realm"
+#define SOUP_AUTH_HOST             "host"
+#define SOUP_AUTH_IS_FOR_PROXY     "is-for-proxy"
+#define SOUP_AUTH_IS_AUTHENTICATED "is-authenticated"
+
 GType       soup_auth_get_type              (void);
 
 SoupAuth   *soup_auth_new                   (GType          type,
@@ -53,7 +59,9 @@ gboolean    soup_auth_update                (SoupAuth      *auth,
 					     SoupMessage   *msg,
 					     const char    *auth_header);
 
+gboolean    soup_auth_is_for_proxy          (SoupAuth      *auth);
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
+const char *soup_auth_get_host              (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
 char       *soup_auth_get_info              (SoupAuth      *auth);
 

@@ -34,11 +34,7 @@ typedef struct {
 	void (*request_started) (SoupConnection *, SoupMessage *);
 
 	void (*authenticate)    (SoupConnection *, SoupMessage *,
-				 const char *auth_type, const char *auth_realm,
-				 char **username, char **password);
-	void (*reauthenticate)  (SoupConnection *, SoupMessage *,
-				 const char *auth_type, const char *auth_realm,
-				 char **username, char **password);
+				 SoupAuth *, gboolean);
 
 	/* methods */
 	void (*send_request) (SoupConnection *, SoupMessage *);
@@ -88,16 +84,8 @@ void            soup_connection_release        (SoupConnection   *conn);
 /* protected */
 void            soup_connection_authenticate   (SoupConnection   *conn,
 						SoupMessage      *msg,
-						const char       *auth_type,
-						const char       *auth_realm,
-						char            **username,
-						char            **password);
-void            soup_connection_reauthenticate (SoupConnection   *conn,
-						SoupMessage      *msg,
-						const char       *auth_type,
-						const char       *auth_realm,
-						char            **username,
-						char            **password);
+						SoupAuth         *auth,
+						gboolean          retrying);
 
 G_END_DECLS
 

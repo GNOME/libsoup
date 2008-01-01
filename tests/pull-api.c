@@ -32,11 +32,10 @@ dprintf (int level, const char *format, ...)
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
-	*username = g_strdup ("user2");
-	*password = g_strdup ("realm2");
+	if (!retrying)
+		soup_auth_authenticate (auth, "user2", "realm2");
 }
 
 static void

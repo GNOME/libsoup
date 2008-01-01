@@ -62,11 +62,10 @@ static const char *proxy_names[] = {
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
-	*username = g_strdup ("user1");
-	*password = g_strdup ("realm1");
+	if (!retrying)
+		soup_auth_authenticate (auth, "user1", "realm1");
 }
 
 static void

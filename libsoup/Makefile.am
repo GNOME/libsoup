@@ -98,6 +98,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-basic.c		\
 	soup-auth-digest.h		\
 	soup-auth-digest.c		\
+	soup-auth-ntlm.h		\
+	soup-auth-ntlm.c		\
 	soup-auth-domain.c		\
 	soup-auth-domain-basic.c	\
 	soup-auth-domain-digest.c	\

@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "soup-connection-ntlm.h"
+#include "soup-auth-ntlm.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
@@ -80,9 +81,10 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnectionNTLM *ntlm = user_data;
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (ntlm);
+	SoupAuth *auth;
 	const char *val;
 	char *nonce, *header;
-	char *username, *domain_username = NULL, *password = NULL;
+	const char *username = NULL, *password = NULL;
 	char *slash, *domain;
 	int i;
 
@@ -111,32 +113,30 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg,
-				      "NTLM", domain,
-				      &domain_username, &password);
-	if (!domain_username || !password) {
+	auth = soup_auth_ntlm_new (domain, soup_message_get_uri (msg)->host);
+	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg, auth, FALSE);
+	username = soup_auth_ntlm_get_username (auth);
+	password = soup_auth_ntlm_get_password (auth);
+	if (!username || !password) {
 		g_free (nonce);
 		g_free (domain);
-		g_free (domain_username);
-		g_free (password);
+		g_object_unref (auth);
 		goto done;
 	}
 
-	slash = strpbrk (domain_username, "\\/");
+	slash = strpbrk (username, "\\/");
 	if (slash) {
 		g_free (domain);
+		domain = g_strdup (username);
+		slash = strpbrk (domain, "\\/");
 		*slash = '\0';
-		domain = domain_username;
 		username = slash + 1;
-		domain_username = NULL;
-	} else
-		username = domain_username;
+	}
 
 	header = soup_ntlm_response (nonce, username, password, NULL, domain);
-	g_free (domain_username);
-	g_free (password);
 	g_free (domain);
 	g_free (nonce);
+	g_object_unref (auth);
 
 	soup_message_headers_replace (msg->request_headers, "Authorization", header);
 	g_free (header);

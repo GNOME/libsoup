@@ -226,7 +226,6 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy)
 {
-	char *username = NULL, *password = NULL;
 	SoupURI *uri;
 
 	if (soup_auth_is_authenticated (auth))
@@ -246,26 +245,8 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	}
 	soup_uri_free (uri);
 
-	if (prior_auth_failed) {
-		soup_session_emit_reauthenticate (
-			manager->session, msg, soup_auth_get_scheme_name (auth),
-			soup_auth_get_realm (auth), &username, &password,
-			NULL);
-	} else {
-		soup_session_emit_authenticate (
-			manager->session, msg, soup_auth_get_scheme_name (auth),
-			soup_auth_get_realm (auth), &username, &password,
-			NULL);
-	}
-	if (username || password)
-		soup_auth_authenticate (auth, username, password);
-	if (username)
-		g_free (username);
-	if (password) {
-		memset (password, 0, strlen (password));
-		g_free (password);
-	}
-
+	soup_session_emit_authenticate (manager->session,
+					msg, auth, prior_auth_failed);
 	return soup_auth_is_authenticated (auth);
 }
 

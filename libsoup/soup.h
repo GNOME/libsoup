@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 #include <libsoup/soup-address.h>
+#include <libsoup/soup-auth.h>
 #include <libsoup/soup-auth-domain.h>
 #include <libsoup/soup-auth-domain-basic.h>
 #include <libsoup/soup-auth-domain-digest.h>

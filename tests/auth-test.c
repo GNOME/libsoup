@@ -234,28 +234,26 @@ handler (SoupMessage *msg, gpointer data)
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
 	int *i = data;
+	char *username, *password;
+	char num;
 
-	if (tests[*i].provided[0]) {
-		*username = g_strdup_printf ("user%c", tests[*i].provided[0]);
-		*password = g_strdup_printf ("realm%c", tests[*i].provided[0]);
-	}
-}
+	if (!tests[*i].provided[0])
+		return;
+	if (retrying) {
+		if (!tests[*i].provided[1])
+			return;
+		num = tests[*i].provided[1];
+	} else
+		num = tests[*i].provided[0];
 
-static void
-reauthenticate (SoupSession *session, SoupMessage *msg, 
-		const char *auth_type, const char *auth_realm,
-		char **username, char **password, gpointer data)
-{
-	int *i = data;
-
-	if (tests[*i].provided[0] && tests[*i].provided[1]) {
-		*username = g_strdup_printf ("user%c", tests[*i].provided[1]);
-		*password = g_strdup_printf ("realm%c", tests[*i].provided[1]);
-	}
+	username = g_strdup_printf ("user%c", num);
+	password = g_strdup_printf ("realm%c", num);
+	soup_auth_authenticate (auth, username, password);
+	g_free (username);
+	g_free (password);
 }
 
 static void
@@ -276,20 +274,18 @@ bug271540_sent (SoupMessage *msg, gpointer data)
 
 static void
 bug271540_authenticate (SoupSession *session, SoupMessage *msg,
-			const char *auth_type, const char *auth_realm,
-			char **username, char **password, gpointer data)
+			SoupAuth *auth, gboolean retrying, gpointer data)
 {
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
 	gboolean *authenticated = data;
 
-	if (strcmp (auth_type, "Basic") != 0 ||
-	    strcmp (auth_realm, "realm1") != 0)
+	if (strcmp (soup_auth_get_scheme_name (auth), "Basic") != 0 ||
+	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
 		return;
 
 	if (!*authenticated) {
 		dprintf ("    authenticating message %d\n", n);
-		*username = g_strdup ("user1");
-		*password = g_strdup ("realm1");
+		soup_auth_authenticate (auth, "user1", "realm1");
 		*authenticated = TRUE;
 	} else {
 		dprintf ("    asked to authenticate message %d after authenticating!\n", n);
@@ -316,15 +312,16 @@ bug271540_finished (SoupMessage *msg, gpointer data)
 
 static void
 digest_nonce_authenticate (SoupSession *session, SoupMessage *msg,
-			   const char *auth_type, const char *auth_realm,
-			   char **username, char **password, gpointer data)
+			   SoupAuth *auth, gboolean retrying, gpointer data)
 {
-	if (strcmp (auth_type, "Digest") != 0 ||
-	    strcmp (auth_realm, "realm1") != 0)
+	if (retrying)
 		return;
 
-	*username = g_strdup ("user1");
-	*password = g_strdup ("realm1");
+	if (strcmp (soup_auth_get_scheme_name (auth), "Digest") != 0 ||
+	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
+		return;
+
+	soup_auth_authenticate (auth, "user1", "realm1");
 }
 
 static void
@@ -404,8 +401,6 @@ main (int argc, char **argv)
 	session = soup_session_async_new ();
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), &i);
-	g_signal_connect (session, "reauthenticate",
-			  G_CALLBACK (reauthenticate), &i);
 
 	for (i = 0; i < ntests; i++) {
 		dprintf ("Test %d: %s\n", i + 1, tests[i].explanation);
