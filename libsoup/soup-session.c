@@ -73,8 +73,7 @@ typedef struct {
 static void     free_host      (SoupSessionHost *host);
 
 static void queue_message   (SoupSession *session, SoupMessage *msg,
-			     SoupMessageCallbackFn callback,
-			     gpointer user_data);
+			     SoupSessionCallback callback, gpointer user_data);
 static void requeue_message (SoupSession *session, SoupMessage *msg);
 static void cancel_message  (SoupSession *session, SoupMessage *msg);
 
@@ -848,7 +847,7 @@ message_finished (SoupMessage *msg, gpointer user_data)
 
 static void
 queue_message (SoupSession *session, SoupMessage *msg,
-	       SoupMessageCallbackFn callback, gpointer user_data)
+	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
@@ -869,7 +868,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
  * soup_session_queue_message:
  * @session: a #SoupSession
  * @msg: the message to queue
- * @callback: a #SoupMessageCallbackFn which will be called after the
+ * @callback: a #SoupSessionCallback which will be called after the
  * message completes or when an unrecoverable error occurs.
  * @user_data: a pointer passed to @callback.
  * 
@@ -884,7 +883,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *msg,
-			    SoupMessageCallbackFn callback, gpointer user_data)
+			    SoupSessionCallback callback, gpointer user_data)
 {
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));

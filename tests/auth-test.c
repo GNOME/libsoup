@@ -294,7 +294,7 @@ bug271540_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-bug271540_finished (SoupMessage *msg, gpointer data)
+bug271540_finished (SoupSession *session, SoupMessage *msg, gpointer data)
 {
 	int *left = data;
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));

@@ -21,8 +21,7 @@ typedef struct {
 #define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
 static void  queue_message  (SoupSession *session, SoupMessage *msg,
-			     SoupMessageCallbackFn callback,
-			     gpointer user_data);
+			     SoupSessionCallback callback, gpointer user_data);
 static guint send_message   (SoupSession *session, SoupMessage *msg);
 static void  cancel_message (SoupSession *session, SoupMessage *msg);
 
@@ -103,7 +102,7 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 typedef struct {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupMessageCallbackFn callback;
+	SoupSessionCallback callback;
 	gpointer user_data;
 } SoupSessionSyncAsyncData;
 
@@ -120,7 +119,7 @@ queue_message_callback (gpointer data)
 {
 	SoupSessionSyncAsyncData *sad = data;
 
-	sad->callback (sad->msg, sad->user_data);
+	sad->callback (sad->session, sad->msg, sad->user_data);
 	async_data_free (sad);
 	return FALSE;
 }
@@ -142,7 +141,7 @@ queue_message_thread (gpointer data)
 
 static void
 queue_message (SoupSession *session, SoupMessage *msg,
-	       SoupMessageCallbackFn callback, gpointer user_data)
+	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionSyncAsyncData *sad;
 

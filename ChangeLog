@@ -1,3 +1,10 @@
+2008-01-01  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_queue_message): change the
+	callback type to include the SoupSession as a parameter as well.
+
+	* *.c: update
+
 2007-12-31  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c (soup_session_class_init): change

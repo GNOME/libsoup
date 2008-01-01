@@ -74,15 +74,6 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_STATUS_CODE   "status-code"
 #define SOUP_MESSAGE_REASON_PHRASE "reason-phrase"
 
-/**
- * SoupMessageCallbackFn:
- * @req: the #SoupMessage in question
- * @user_data: user data
- *
- * A callback function used by many #SoupMessage methods.
- **/
-typedef void (*SoupMessageCallbackFn) (SoupMessage *req, gpointer user_data);
-
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
 SoupMessage   *soup_message_new_from_uri        (const char        *method,

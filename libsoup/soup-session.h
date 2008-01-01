@@ -18,6 +18,10 @@ G_BEGIN_DECLS
 #define SOUP_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION))
 #define SOUP_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION, SoupSessionClass))
 
+typedef void (*SoupSessionCallback) (SoupSession           *session,
+				     SoupMessage           *msg,
+				     gpointer               user_data);
+
 struct SoupSession {
 	GObject parent;
 
@@ -33,7 +37,7 @@ typedef struct {
 
 	/* methods */
 	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
-				  SoupMessageCallbackFn callback,
+				  SoupSessionCallback callback,
 				  gpointer user_data);
 	void  (*requeue_message) (SoupSession *session, SoupMessage *msg);
 	guint (*send_message)    (SoupSession *session, SoupMessage *msg);
@@ -56,7 +60,7 @@ GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
 void            soup_session_queue_message    (SoupSession           *session,
 					       SoupMessage           *msg,
-					       SoupMessageCallbackFn  callback,
+					       SoupSessionCallback    callback,
 					       gpointer               user_data);
 void            soup_session_requeue_message  (SoupSession           *session,
 					       SoupMessage           *msg);

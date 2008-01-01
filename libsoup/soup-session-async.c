@@ -17,8 +17,7 @@
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
-			      SoupMessageCallbackFn callback,
-			      gpointer user_data);
+			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
 
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
@@ -176,14 +175,27 @@ request_restarted (SoupMessage *req, gpointer sa)
 	run_queue (sa, FALSE);
 }
 
+typedef struct {
+	SoupSessionAsync *sa;
+	SoupSessionCallback callback;
+	gpointer callback_data;
+} SoupSessionAsyncQueueData;
+
 static void
 final_finished (SoupMessage *req, gpointer user_data)
 {
-	SoupSessionAsync *sa = user_data;
+	SoupSessionAsyncQueueData *saqd = user_data;
+	SoupSessionAsync *sa = saqd->sa;
 
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
-		g_signal_handlers_disconnect_by_func (req, final_finished, sa);
+		g_signal_handlers_disconnect_by_func (req, final_finished, saqd);
+		if (saqd->callback) {
+			saqd->callback ((SoupSession *)sa, req,
+					saqd->callback_data);
+		}
+
 		g_object_unref (req);
+		g_slice_free (SoupSessionAsyncQueueData, saqd);
 	}
 
 	run_queue (sa, FALSE);
@@ -206,19 +218,20 @@ idle_run_queue (gpointer user_data)
 
 static void
 queue_message (SoupSession *session, SoupMessage *req,
-	       SoupMessageCallbackFn callback, gpointer user_data)
+	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionAsync *sa = SOUP_SESSION_ASYNC (session);
+	SoupSessionAsyncQueueData *saqd;
 
 	g_signal_connect (req, "restarted",
 			  G_CALLBACK (request_restarted), sa);
 
-	if (callback) {
-		g_signal_connect (req, "finished",
-				  G_CALLBACK (callback), user_data);
-	}
+	saqd = g_slice_new (SoupSessionAsyncQueueData);
+	saqd->sa = sa;
+	saqd->callback = callback;
+	saqd->callback_data = user_data;
 	g_signal_connect_after (req, "finished",
-				G_CALLBACK (final_finished), sa);
+				G_CALLBACK (final_finished), saqd);
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 

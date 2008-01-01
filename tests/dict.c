@@ -16,11 +16,10 @@
 #include <libsoup/soup-soap-message.h>
 #include <libsoup/soup-soap-response.h>
 
-SoupSession *session;
 GMainLoop *loop;
 
 static void
-got_response (SoupMessage *msg, gpointer user_data)
+got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupSoapResponse *response;
 	SoupSoapParameter *param, *subparam;
@@ -94,6 +93,7 @@ usage (void)
 int
 main (int argc, char **argv)
 {
+	SoupSession *session;
 	SoupURI *proxy = NULL;
 	SoupSoapMessage *msg;
 	int opt;

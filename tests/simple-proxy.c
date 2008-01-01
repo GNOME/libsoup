@@ -65,7 +65,7 @@ client_msg_failed (SoupMessage *msg, gpointer msg2)
 }
 
 static void
-finish_msg (SoupMessage *msg2, gpointer data)
+finish_msg (SoupSession *session, SoupMessage *msg2, gpointer data)
 {
 	SoupMessage *msg = data;
 

@@ -81,7 +81,8 @@ typedef struct {
 static void fully_async_got_headers (SoupMessage *msg, gpointer user_data);
 static void fully_async_got_chunk   (SoupMessage *msg, SoupBuffer *chunk,
 				     gpointer user_data);
-static void fully_async_finished    (SoupMessage *msg, gpointer user_data);
+static void fully_async_finished    (SoupSession *session, SoupMessage *msg,
+				     gpointer user_data);
 static gboolean fully_async_request_chunk (gpointer user_data);
 
 static void
@@ -245,7 +246,8 @@ fully_async_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 }
 
 static void
-fully_async_finished (SoupMessage *msg, gpointer user_data)
+fully_async_finished (SoupSession *session, SoupMessage *msg,
+		      gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
@@ -283,7 +285,8 @@ static void        sync_async_cleanup    (SoupMessage *msg);
 static void sync_async_got_headers (SoupMessage *msg, gpointer user_data);
 static void sync_async_copy_chunk  (SoupMessage *msg, SoupBuffer *chunk,
 				    gpointer user_data);
-static void sync_async_finished    (SoupMessage *msg, gpointer user_data);
+static void sync_async_finished    (SoupSession *session, SoupMessage *msg,
+				    gpointer user_data);
 
 static void
 do_synchronously_async_test (SoupSession *session,
@@ -473,7 +476,7 @@ sync_async_copy_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 }
 
 static void
-sync_async_finished (SoupMessage *msg, gpointer user_data)
+sync_async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 

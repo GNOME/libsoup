@@ -218,7 +218,7 @@ idle_start_test1_thread (gpointer loop)
 }
 
 static void
-test1_finished (SoupMessage *msg, gpointer loop)
+test1_finished (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
 	g_main_loop_quit (loop);
 }

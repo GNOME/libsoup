@@ -14,7 +14,6 @@
 
 #include <libsoup/soup.h>
 
-SoupSession *session;
 GMainLoop *loop;
 
 static void
@@ -49,7 +48,7 @@ print_struct_field (gpointer key, gpointer value, gpointer data)
 }
 
 static void
-got_response (SoupMessage *msg, gpointer user_data)
+got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	GHashTable *hash;
 	SoupBuffer *response;
@@ -94,6 +93,7 @@ usage (void)
 int
 main (int argc, char **argv)
 {
+	SoupSession *session;
 	SoupURI *proxy = NULL;
 	SoupMessage *msg;
 	const char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
