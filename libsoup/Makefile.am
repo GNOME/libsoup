@@ -52,6 +52,7 @@ soup_headers =			\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
 	soup-date.h		\
+	soup-form.h		\
 	soup-headers.h		\
 	soup-message.h		\
 	soup-message-body.h	\
@@ -113,6 +114,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-enum-types.c		\
 	soup-dns.h			\
 	soup-dns.c			\
+	soup-form.c			\
 	soup-gnutls.c			\
 	soup-headers.c			\
 	soup-md5-utils.h		\

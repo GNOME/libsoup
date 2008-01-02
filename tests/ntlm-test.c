@@ -57,7 +57,8 @@ typedef enum {
 #define NTLM_RESPONSE_USER(response) ((response)[87] == 'h' ? NTLM_AUTHENTICATED_ALICE : NTLM_AUTHENTICATED_BOB)
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	GHashTable *connections = data;
@@ -70,13 +71,13 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 		return;
 	}
 
-	if (!strcmp (uri->path, "/noauth"))
+	if (!strcmp (path, "/noauth"))
 		required_user = 0;
-	else if (!strncmp (uri->path, "/alice", 6))
+	else if (!strncmp (path, "/alice", 6))
 		required_user = NTLM_AUTHENTICATED_ALICE;
-	else if (!strncmp (uri->path, "/bob", 4))
+	else if (!strncmp (path, "/bob", 4))
 		required_user = NTLM_AUTHENTICATED_BOB;
-	if (strstr (uri->path, "/404"))
+	if (strstr (path, "/404"))
 		not_found = TRUE;
 
 	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, context->sock));

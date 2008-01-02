@@ -246,7 +246,8 @@ digest_get_auth_info (SoupAuthDomain *auth_domain, SoupMessage *msg,
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {

@@ -25,7 +25,8 @@ print_header (const char *name, const char *value, gpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	char *path_to_open, *slash;
@@ -33,7 +34,7 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 	struct stat st;
 	int fd;
 
-	printf ("%s %s HTTP/1.%d\n", msg->method, uri->path,
+	printf ("%s %s HTTP/1.%d\n", msg->method, path,
 		soup_message_get_http_version (msg));
 	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
 	request = soup_message_get_request (msg);
@@ -46,7 +47,7 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 		goto DONE;
 	}
 
-	path_to_open = g_strdup_printf (".%s", uri->path);
+	path_to_open = g_strdup_printf (".%s", path);
 
  AGAIN:
 	if (stat (path_to_open, &st) == -1) {
@@ -77,7 +78,7 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 		}
 
 		g_free (path_to_open);
-		path_to_open = g_strdup_printf (".%s/index.html", uri->path);
+		path_to_open = g_strdup_printf (".%s/index.html", path);
 		goto AGAIN;
 	}
 

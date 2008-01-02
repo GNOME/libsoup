@@ -38,6 +38,7 @@ header_parsing_SOURCES = header-parsing.c
 ntlm_test_SOURCES = ntlm-test.c
 proxy_test_SOURCES = proxy-test.c apache-wrapper.c apache-wrapper.h
 pull_api_SOURCES = pull-api.c apache-wrapper.c apache-wrapper.h
+query_test_SOURCES = query-test.c
 revserver_SOURCES = revserver.c
 server_auth_test_SOURCES = server-auth-test.c
 simple_httpd_SOURCES = simple-httpd.c
@@ -50,7 +51,7 @@ if HAVE_APACHE
 APACHE_TESTS = auth-test proxy-test pull-api
 endif
 if HAVE_CURL
-CURL_TESTS = server-auth-test
+CURL_TESTS = query-test server-auth-test
 endif
 if HAVE_SSL
 SSL_TESTS = ssl-test

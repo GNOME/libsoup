@@ -173,8 +173,8 @@ void
 soup_message_body_append (SoupMessageBody *body,
 			  gconstpointer data, gsize length, SoupMemoryUse use)
 {
-	g_return_if_fail (length > 0);
-	append_buffer (body, soup_buffer_new (data, length, use));
+	if (length > 0)
+		append_buffer (body, soup_buffer_new (data, length, use));
 }
 
 /**

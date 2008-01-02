@@ -70,7 +70,8 @@ add_body_chunk (gpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	SlowData *sd;
@@ -80,13 +81,13 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 		return;
 	}
 
-	if (!strcmp (uri->path, "/shutdown")) {
+	if (!strcmp (path, "/shutdown")) {
 		soup_server_quit (server);
 		return;
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	if (!strcmp (uri->path, "/fast")) {
+	if (!strcmp (path, "/fast")) {
 		soup_message_set_response (msg, "text/plain",
 					   SOUP_MEMORY_STATIC, "OK\r\n", 4);
 		return;

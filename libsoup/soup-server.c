@@ -21,6 +21,7 @@
 #include "soup-server.h"
 #include "soup-address.h"
 #include "soup-auth-domain.h"
+#include "soup-form.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
 #include "soup-marshal.h"
@@ -43,7 +44,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 typedef struct {
 	char                   *path;
 
-	SoupServerCallbackFn    callback;
+	SoupServerCallback      callback;
 	GDestroyNotify          destroy;
 	gpointer                user_data;
 } SoupServerHandler;
@@ -542,23 +543,28 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 {
 	SoupServer *server;
 	SoupServerHandler *hand;
-	const char *handler_path;
+	SoupURI *uri;
+	char *path;
 
 	if (req->status_code != 0)
 		return;
 
 	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
 
-	handler_path = soup_message_get_uri (req)->path;
+	uri = soup_message_get_uri (req);
+	path = g_strdup (uri->path);
+	soup_uri_decode (path);
 
-	hand = soup_server_get_handler (server, handler_path);
+	hand = soup_server_get_handler (server, path);
 	if (!hand) {
+		g_free (path);
 		soup_message_set_status (req, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
 
 	if (hand->callback) {
 		SoupClientContext ctx;
+		GHashTable *form_data_set;
 
 		ctx.sock        = sock;
 		ctx.auth_user   = g_object_get_data (G_OBJECT (req),
@@ -566,11 +572,21 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 		ctx.auth_realm  = g_object_get_data (G_OBJECT (req),
 						     "SoupServer-auth_realm");
 
+		if (uri->query)
+			form_data_set = soup_form_decode_urlencoded (uri->query);
+		else
+			form_data_set = NULL;
+
 		/* Call method handler */
 		(*hand->callback) (server, req,
-				   (SoupURI *)soup_message_get_uri (req),
+				   path, form_data_set,
 				   &ctx, hand->user_data);
+
+		if (form_data_set)
+			g_hash_table_destroy (form_data_set);
 	}
+
+	g_free (path);
 }
 
 static void
@@ -717,7 +733,7 @@ soup_client_context_get_host (SoupClientContext *context)
 void
 soup_server_add_handler (SoupServer            *server,
 			 const char            *path,
-			 SoupServerCallbackFn   callback,
+			 SoupServerCallback     callback,
 			 GDestroyNotify         destroy,
 			 gpointer               user_data)
 {

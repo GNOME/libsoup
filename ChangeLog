@@ -1,5 +1,26 @@
 2008-01-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-form.c: new HTML-form-related methods (just URI
+	decoding/encoding at the moment).
+
+	* libsoup/soup-server.h (SoupServerCallback): change the prototype
+	to include the decoded path and query rather than the undecoded
+	URI.
+
+	* libsoup/soup-server.c (call_handler): %-decode the URI path
+	before looking up a handler. Decode query if available. Pass path
+	and query to the callback.
+
+	* libsoup/soup-auth-domain.c (soup_auth_domain_covers): fix this
+	to %-decode the URI path before testing it
+
+	* libsoup/soup-message-body.c (soup_message_body_append): allow
+	0-length appends
+
+	* tests/query-test.c: URI query parsing test
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-uri.c:
 	* libsoup/soup-uri.h: Change all the "const SoupURI *" to just
 	"SoupURI *", since the const is just there to be annoying.

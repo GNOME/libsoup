@@ -77,13 +77,14 @@ finish_msg (SoupSession *session, SoupMessage *msg2, gpointer data)
 }
 
 static void
-server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	SoupMessage *msg2;
 	char *uristr;
 
-	uristr = soup_uri_to_string (uri, FALSE);
+	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 	printf ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
 		soup_message_get_http_version (msg));
 

@@ -43,11 +43,12 @@ typedef struct {
 	const char *auth_realm;
 } SoupClientContext;
 
-typedef void (*SoupServerCallbackFn) (SoupServer        *server,
-				      SoupMessage       *msg, 
-				      SoupURI           *request_uri,
-				      SoupClientContext *context,
-				      gpointer           user_data);
+typedef void (*SoupServerCallback) (SoupServer        *server,
+				    SoupMessage       *msg, 
+				    const char        *path,
+				    GHashTable        *query,
+				    SoupClientContext *context,
+				    gpointer           user_data);
 
 #define SOUP_SERVER_PORT          "port"
 #define SOUP_SERVER_INTERFACE     "interface"
@@ -73,7 +74,7 @@ GMainContext      *soup_server_get_async_context (SoupServer         *serv);
 
 void               soup_server_add_handler    (SoupServer            *serv,
 					       const char            *path,
-					       SoupServerCallbackFn   callback,
+					       SoupServerCallback     callback,
 					       GDestroyNotify         destroy,
 					       gpointer               data);
 void               soup_server_remove_handler (SoupServer            *serv,

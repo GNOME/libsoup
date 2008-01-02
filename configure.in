@@ -276,6 +276,9 @@ dnl *******************************
 dnl *** curl (for regression tests)
 dnl *******************************
 AC_PATH_PROG(CURL, curl, no)
+if test "$CURL" != no; then
+    AC_DEFINE(HAVE_CURL, 1, [Whether or not curl can be used for tests])
+fi
 AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 
 dnl *************************
