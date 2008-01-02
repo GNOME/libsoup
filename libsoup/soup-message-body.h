@@ -82,10 +82,10 @@ void             soup_message_body_truncate      (SoupMessageBody *body);
 void             soup_message_body_complete      (SoupMessageBody *body);
 
 SoupBuffer      *soup_message_body_flatten       (SoupMessageBody *body);
-gsize            soup_message_body_get_length    (SoupMessageBody *body);
+goffset          soup_message_body_get_length    (SoupMessageBody *body);
 
 SoupBuffer      *soup_message_body_get_chunk     (SoupMessageBody *body,
-						  gsize            offset);
+						  goffset          offset);
 
 void             soup_message_body_free          (SoupMessageBody *body);
 

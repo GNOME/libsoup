@@ -22,7 +22,7 @@ struct SoupMessageHeaders {
 	SoupMessageHeadersType type;
 
 	SoupEncoding encoding;
-	gsize content_length;
+	goffset content_length;
 	SoupExpectation expectations;
 };
 
@@ -319,7 +319,7 @@ content_length_setter (SoupMessageHeaders *hdrs, const char *value)
 	if (value) {
 		char *end;
 
-		hdrs->content_length = strtoul (value, &end, 10);
+		hdrs->content_length = g_ascii_strtoull (value, &end, 10);
 		if (*end)
 			hdrs->encoding = SOUP_ENCODING_UNRECOGNIZED;
 		else
@@ -411,7 +411,7 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
  *
  * Return value: the message body length declared by @hdrs.
  **/
-gsize
+goffset
 soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
 {
 	return (hdrs->encoding == SOUP_ENCODING_CONTENT_LENGTH) ?
@@ -437,11 +437,12 @@ soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
  **/
 void
 soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
-					 gsize               content_length)
+					 goffset             content_length)
 {
 	char length[128];
 
-	snprintf (length, sizeof (length), "%lu", (unsigned long)content_length);
+	snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
+		  content_length);
 	soup_message_headers_remove (hdrs, "Transfer-Encoding");
 	soup_message_headers_replace (hdrs, "Content-Length", length);
 }

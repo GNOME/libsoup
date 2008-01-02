@@ -69,9 +69,9 @@ SoupEncoding    soup_message_headers_get_encoding        (SoupMessageHeaders *hd
 void            soup_message_headers_set_encoding        (SoupMessageHeaders *hdrs,
 							  SoupEncoding        encoding);
 
-gsize           soup_message_headers_get_content_length  (SoupMessageHeaders *hdrs);
+goffset         soup_message_headers_get_content_length  (SoupMessageHeaders *hdrs);
 void            soup_message_headers_set_content_length  (SoupMessageHeaders *hdrs,
-							  gsize               content_length);
+							  goffset             content_length);
 
 typedef enum {
 	SOUP_EXPECTATION_UNRECOGNIZED = (1 << 0),

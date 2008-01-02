@@ -242,7 +242,7 @@ SoupBuffer *
 soup_message_body_flatten (SoupMessageBody *body)
 {
 	guchar *buf, *ptr;
-	gsize size;
+	goffset size;
 	GSList *iter;
 	SoupBuffer *chunk;
 
@@ -259,6 +259,9 @@ soup_message_body_flatten (SoupMessageBody *body)
 		return soup_buffer_copy (body->chunks->data);
 
 	size = soup_message_body_get_length (body);
+#if GLIB_SIZEOF_SIZE_T < 8
+	g_return_val_if_fail (size < G_MAXSIZE, NULL);
+#endif
 	buf = g_malloc (size);
 	for (iter = body->chunks, ptr = buf; iter; iter = iter->next) {
 		chunk = iter->data;
@@ -277,10 +280,10 @@ soup_message_body_flatten (SoupMessageBody *body)
  *
  * Return value: the total length of @body
  **/
-gsize
+goffset
 soup_message_body_get_length (SoupMessageBody *body)
 {
-	gsize size;
+	goffset size;
 	GSList *iter;
 	SoupBuffer *chunk;
 
@@ -316,7 +319,7 @@ soup_message_body_get_length (SoupMessageBody *body)
  * Return value: a #SoupBuffer, or %NULL.
  **/
 SoupBuffer *
-soup_message_body_get_chunk (SoupMessageBody *body, gsize offset)
+soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 {
 	GSList *iter;
 	SoupBuffer *chunk = NULL;
