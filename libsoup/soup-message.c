@@ -801,7 +801,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 	hdrs = (hhd->msg->status_code == 0) ?
 		hhd->msg->request_headers : hhd->msg->response_headers;
 
-	if (soup_message_headers_find (hdrs, hhd->header_name)) {
+	if (soup_message_headers_get (hdrs, hhd->header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
@@ -1121,8 +1121,8 @@ soup_message_is_keepalive (SoupMessage *msg)
 {
 	const char *c_conn, *s_conn;
 
-	c_conn = soup_message_headers_find (msg->request_headers, "Connection");
-	s_conn = soup_message_headers_find (msg->response_headers, "Connection");
+	c_conn = soup_message_headers_get (msg->request_headers, "Connection");
+	s_conn = soup_message_headers_get (msg->response_headers, "Connection");
 
 	if (msg->status_code == SOUP_STATUS_OK &&
 	    msg->method == SOUP_METHOD_CONNECT)

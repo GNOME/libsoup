@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-manager.h"
+#include "soup-headers.h"
 #include "soup-message-private.h"
 #include "soup-path-map.h"
 #include "soup-session.h"
@@ -23,7 +24,7 @@ static void session_request_started (SoupSession *session, SoupMessage *msg,
 
 struct SoupAuthManager {
 	SoupSession *session;
-	GHashTable *auth_types;
+	GPtrArray *auth_types;
 
 	SoupAuth *proxy_auth;
 	GHashTable *auth_hosts;
@@ -48,7 +49,7 @@ soup_auth_manager_new (SoupSession *session)
 
 	manager = g_slice_new0 (SoupAuthManager);
 	manager->session = session;
-	manager->auth_types = g_hash_table_new (g_str_hash, g_str_equal);
+	manager->auth_types = g_ptr_array_new ();
 	manager->auth_hosts = g_hash_table_new (soup_uri_host_hash,
 						soup_uri_host_equal);
 
@@ -76,11 +77,15 @@ foreach_free_host (gpointer key, gpointer value, gpointer data)
 void
 soup_auth_manager_free (SoupAuthManager *manager)
 {
+	int i;
+
 	g_signal_handlers_disconnect_by_func (
 		manager->session,
 		G_CALLBACK (session_request_started), manager);
 
-	g_hash_table_destroy (manager->auth_types);
+	for (i = 0; i < manager->auth_types->len; i++)
+		g_type_class_unref (manager->auth_types->pdata[i]);
+	g_ptr_array_free (manager->auth_types, TRUE);
 
 	g_hash_table_foreach_remove (manager->auth_hosts, foreach_free_host, NULL);
 	g_hash_table_destroy (manager->auth_hosts);
@@ -91,6 +96,15 @@ soup_auth_manager_free (SoupAuthManager *manager)
 	g_slice_free (SoupAuthManager, manager);
 }
 
+static int
+auth_type_compare_func (gconstpointer a, gconstpointer b)
+{
+	SoupAuthClass *auth1 = (SoupAuthClass *)a;
+	SoupAuthClass *auth2 = (SoupAuthClass *)b;
+
+	return auth2->strength - auth1->strength;
+}
+
 void
 soup_auth_manager_add_type (SoupAuthManager *manager, GType type)
 {
@@ -99,89 +113,140 @@ soup_auth_manager_add_type (SoupAuthManager *manager, GType type)
 	g_return_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH));
 
 	auth_class = g_type_class_ref (type);
-	g_hash_table_insert (manager->auth_types,
-			     (char *)auth_class->scheme_name,
-			     auth_class);
+	g_ptr_array_add (manager->auth_types, auth_class);
+	g_ptr_array_sort (manager->auth_types, auth_type_compare_func);
 }
 
 void
 soup_auth_manager_remove_type (SoupAuthManager *manager, GType type)
 {
 	SoupAuthClass *auth_class;
+	int i;
 
 	g_return_if_fail (g_type_is_a (type, SOUP_TYPE_AUTH));
 
 	auth_class = g_type_class_peek (type);
-	g_hash_table_remove (manager->auth_types, auth_class->scheme_name);
-	g_type_class_unref (auth_class);
+	for (i = 0; i < manager->auth_types->len; i++) {
+		if (manager->auth_types->pdata[i] == (gpointer)auth_class) {
+			g_ptr_array_remove_index (manager->auth_types, i);
+			g_type_class_unref (auth_class);
+			return;
+		}
+	}
 }
 
 static inline const char *
-header_name_for_message (SoupMessage *msg)
+auth_header_for_message (SoupMessage *msg)
 {
-	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED)
-		return "Proxy-Authenticate";
-	else
-		return "WWW-Authenticate";
+	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		return soup_message_headers_get (msg->response_headers,
+						 "Proxy-Authenticate");
+	} else {
+		return soup_message_headers_get (msg->response_headers,
+						 "WWW-Authenticate");
+	}
 }
 
-static SoupAuthClass *
-auth_class_for_header (SoupAuthManager *manager, const char *header)
+static char *
+extract_challenge (const char *challenges, const char *scheme)
 {
-	char *scheme;
-	SoupAuthClass *auth_class;
+	GSList *items, *i;
+	int schemelen = strlen (scheme);
+	char *item, *space, *equals;
+	GString *challenge;
 
-	scheme = g_strndup (header, strcspn (header, " "));
-	auth_class = g_hash_table_lookup (manager->auth_types, scheme);
-	g_free (scheme);
-	return auth_class;
+	/* The relevant grammar:
+	 *
+	 * WWW-Authenticate   = 1#challenge
+	 * Proxy-Authenticate = 1#challenge
+	 * challenge          = auth-scheme 1#auth-param
+	 * auth-scheme        = token
+	 * auth-param         = token "=" ( token | quoted-string )
+	 *
+	 * The fact that quoted-strings can contain commas, equals
+	 * signs, and auth scheme names makes it tricky to "cheat" on
+	 * the parsing. We just use soup_header_parse_list(), and then
+	 * reassemble the pieces after we find the one we want.
+	 */
+
+	items = soup_header_parse_list (challenges);
+
+	/* First item will start with the scheme name, followed by a
+	 * space and then the first auth-param.
+	 */
+	for (i = items; i; i = i->next) {
+		item = i->data;
+		if (!g_ascii_strncasecmp (item, scheme, schemelen) &&
+		    g_ascii_isspace (item[schemelen]))
+			break;
+	}
+	if (!i)
+		return NULL;
+
+	/* The challenge extends from this item until the end, or until
+	 * the next item that has a space before an equals sign.
+	 */
+	challenge = g_string_new (item);
+	for (i = i->next; i; i = i->next) {
+		item = i->data;
+		space = strpbrk (item, " \t");
+		equals = strchr (item, '=');
+		if (!equals || (space && equals > space))
+			break;
+
+		g_string_append (challenge, ", ");
+		g_string_append (challenge, item);
+	}
+
+	soup_header_free_list (items);
+	return g_string_free (challenge, FALSE);
 }
 
 static SoupAuth *
 create_auth (SoupAuthManager *manager, SoupMessage *msg)
 {
-	const char *header_name, *tryheader, *header = NULL;
-	SoupAuthClass *auth_class = NULL, *try_class;
+	const char *header;
+	SoupAuthClass *auth_class;
+	char *challenge = NULL;
+	SoupAuth *auth;
 	int i;
 
-	header_name = header_name_for_message (msg);
-
-	for (i = 0; (tryheader = soup_message_headers_find_nth (msg->response_headers, header_name, i)); i++) {
-		try_class = auth_class_for_header (manager, tryheader);
-		if (!try_class)
-			continue;
-		if (!auth_class ||
-		    auth_class->strength < try_class->strength) {
-			header = tryheader;
-			auth_class = try_class;
-		}
-	}
-
-	if (!auth_class)
+	header = auth_header_for_message (msg);
+	if (!header)
 		return NULL;
-	return soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, header);
+
+	for (i = manager->auth_types->len - 1; i >= 0; i--) {
+		auth_class = manager->auth_types->pdata[i];
+		challenge = extract_challenge (header, auth_class->scheme_name);
+		if (challenge)
+			break;
+	}
+	if (!challenge)
+		return NULL;
+
+	auth = soup_auth_new (G_TYPE_FROM_CLASS (auth_class), msg, challenge);
+	g_free (challenge);
+	return auth;
 }
 
 static gboolean
 check_auth (SoupAuthManager *manager, SoupMessage *msg, SoupAuth *auth)
 {
-	const char *header_name, *tryheader, *scheme_name;
-	int scheme_len, i;
+	const char *header;
+	char *challenge;
+	gboolean ok;
 
-	header_name = header_name_for_message (msg);
-	scheme_name = soup_auth_get_scheme_name (auth);
-	scheme_len = strlen (scheme_name);
-
-	for (i = 0; (tryheader = soup_message_headers_find_nth (msg->response_headers, header_name, i)); i++) {
-		if (!strncmp (tryheader, scheme_name, scheme_len) &&
-		    (!tryheader[scheme_len] || tryheader[scheme_len] == ' '))
-			break;
-	}
-
-	if (!tryheader)
+	header = auth_header_for_message (msg);
+	if (!header)
 		return FALSE;
 
-	return soup_auth_update (auth, msg, tryheader);
+	challenge = extract_challenge (header, soup_auth_get_scheme_name (auth));
+	if (!challenge)
+		return FALSE;
+
+	ok = soup_auth_update (auth, msg, challenge);
+	g_free (challenge);
+	return ok;
 }
 
 static SoupAuthHost *

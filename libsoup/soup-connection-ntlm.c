@@ -86,7 +86,6 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	char *nonce, *header;
 	const char *username = NULL, *password = NULL;
 	char *slash, *domain;
-	int i;
 
 	if (priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
 		/* We already authenticated, but then got another 401.
@@ -97,12 +96,10 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	i = 0;
-	while ((val = soup_message_headers_find_nth (msg->response_headers,
-						     "WWW-Authenticate", i))) {
-		if (!strncmp (val, "NTLM ", 5))
-			break;
-	}
+	val = soup_message_headers_get (msg->response_headers,
+					"WWW-Authenticate");
+	if (val)
+		val = strstr (val, "NTLM ");
 	if (!val) {
 		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
@@ -155,7 +152,7 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
 
 	if (priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
-	    soup_message_headers_find (msg->request_headers, "Authorization")) {
+	    soup_message_headers_get (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
 		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
 

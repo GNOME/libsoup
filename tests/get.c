@@ -177,7 +177,7 @@ get_url (const char *url)
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		if (recurse)
 			unlink (name);
-		header = soup_message_headers_find (msg->response_headers, "Location");
+		header = soup_message_headers_get (msg->response_headers, "Location");
 		if (header) {
 			if (!debug)
 				printf ("  -> %s\n", header);
@@ -201,7 +201,7 @@ get_url (const char *url)
 	}
 	close (fd);
 
-	header = soup_message_headers_find (msg->response_headers, "Content-Type");
+	header = soup_message_headers_get (msg->response_headers, "Content-Type");
 	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0) {
 		soup_buffer_free (response);
 		return;

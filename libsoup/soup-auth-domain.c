@@ -229,7 +229,7 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
 	const char *header;
 
-	header = soup_message_headers_find (msg->request_headers,
+	header = soup_message_headers_get (msg->request_headers,
 					    priv->proxy ?
 					    "Proxy-Authorization" :
 					    "Authorization");

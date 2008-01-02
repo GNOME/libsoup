@@ -47,14 +47,14 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	/* Handle request body encoding */
 	*encoding = soup_message_headers_get_encoding (msg->request_headers);
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
-		if (soup_message_headers_find (msg->request_headers, "Transfer-Encoding"))
+		if (soup_message_headers_get (msg->request_headers, "Transfer-Encoding"))
 			return SOUP_STATUS_NOT_IMPLEMENTED;
 		else
 			return SOUP_STATUS_BAD_REQUEST;
 	}
 
 	/* Generate correct context for request */
-	req_host = soup_message_headers_find (msg->request_headers, "Host");
+	req_host = soup_message_headers_get (msg->request_headers, "Host");
 
 	if (*req_path != '/') {
 		/* Check for absolute URI */

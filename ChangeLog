@@ -1,3 +1,20 @@
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-headers.c (soup_message_headers_get):
+	Renamed from soup_message_headers_find, and with new behavior; now
+	multiple headers with the same name are automatically merged
+	together into a single comma-separated value, to ensure that apps
+	treat multivalued headers the same regardless of how upstream
+	servers generate them.
+	(soup_message_headers_find_nth): no longer needed/wanted
+
+	* libsoup/soup-auth-manager.c: Update to deal with
+	SoupMessageHeaders change. (Ugh.)
+
+	* tests/header-parsing.c: Update multiple-values test, and undo a
+	change that mistakenly got committed while debugging something
+	earlier.
+
 2008-01-01  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-manager.c:

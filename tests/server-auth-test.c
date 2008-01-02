@@ -263,14 +263,14 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 static void
 got_headers_callback (SoupMessage *msg, gpointer data)
 {
-	int i;
 	const char *header;
 
-	i = 0;
-	while ((header = soup_message_headers_find_nth (msg->request_headers, "Authorization", i++))) {
-		if (!strncmp (header, "Basic ", 6))
+	header = soup_message_headers_get (msg->request_headers,
+					   "Authorization");
+	if (header) {
+		if (strstr (header, "Basic "))
 			test_data.client_sent_basic = TRUE;
-		else if (!strncmp (header, "Digest ", 7))
+		if (strstr (header, "Digest "))
 			test_data.client_sent_digest = TRUE;
 	}
 }
@@ -278,14 +278,14 @@ got_headers_callback (SoupMessage *msg, gpointer data)
 static void
 wrote_headers_callback (SoupMessage *msg, gpointer data)
 {
-	int i;
 	const char *header;
 
-	i = 0;
-	while ((header = soup_message_headers_find_nth (msg->response_headers, "WWW-Authenticate", i++))) {
-		if (!strncmp (header, "Basic ", 6))
+	header = soup_message_headers_get (msg->response_headers,
+					   "WWW-Authenticate");
+	if (header) {
+		if (strstr (header, "Basic "))
 			test_data.server_requested_basic = TRUE;
-		else if (!strncmp (header, "Digest ", 7))
+		if (strstr (header, "Digest "))
 			test_data.server_requested_digest = TRUE;
 	}
 }

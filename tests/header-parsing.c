@@ -176,9 +176,7 @@ struct RequestTest {
 	  "GET / HTTP/1.1\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
-	  { { "Foo", "bar" },
-	    { "Foo", "baz" },
-	    { "Foo", "quux" },
+	  { { "Foo", "bar, baz, quux" },
 	    { NULL }
 	  }
 	},
@@ -397,9 +395,7 @@ struct ResponseTest {
 	{ "Response w/ same header multiple times",
 	  "HTTP/1.1 200 ok\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
-	  { { "Foo", "bar" },
-	    { "Foo", "baz" },
-	    { "Foo", "quux" },
+	  { { "Foo", "bar, baz, quux" },
 	    { NULL }
 	  }
 	},
@@ -567,31 +563,18 @@ typedef struct {
 	gboolean ok;
 } HeaderForeachData;
 
-static void
-check_header (const char *name, const char *value, gpointer data)
-{
-	HeaderForeachData *hfd = data;
-
-	if (!hfd->headers[hfd->i].name)
-		hfd->ok = FALSE;
-	else if (strcmp (hfd->headers[hfd->i].name, name) != 0 ||
-	    strcmp (hfd->headers[hfd->i].value, value) != 0)
-		hfd->ok = FALSE;
-
-	hfd->i++;
-}
-
 static gboolean
 check_headers (Header *headers, SoupMessageHeaders *hdrs)
 {
-	HeaderForeachData hfd;
+	int i;
+	const char *value;
 
-	hfd.headers = headers;
-	hfd.i = 0;
-	hfd.ok = TRUE;
-
-	soup_message_headers_foreach (hdrs, check_header, &hfd);
-	return hfd.ok;
+	for (i = 0; headers[i].name; i++) {
+		value = soup_message_headers_get (hdrs, headers[i].name);
+		if (strcmp (value, headers[i].value) != 0)
+			return FALSE;
+	}
+	return TRUE;
 }
 
 static int
@@ -604,7 +587,7 @@ do_request_tests (void)
 	guint status;
 
 	dprintf ("Request tests\n");
-	for (i = 0; i < 1; i++) {
+	for (i = 0; i < num_reqtests; i++) {
 		gboolean ok = TRUE;
 
 		dprintf ("%2d. %s (%s): ", i + 1, reqtests[i].description,

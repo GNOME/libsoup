@@ -80,7 +80,7 @@ server_callback (SoupServer *server, SoupMessage *msg, SoupURI *uri,
 		not_found = TRUE;
 
 	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, context->sock));
-	auth = soup_message_headers_find (msg->request_headers, "Authorization");
+	auth = soup_message_headers_get (msg->request_headers, "Authorization");
 
 	if (auth && !strncmp (auth, "NTLM ", 5)) {
 		if (!strncmp (auth + 5, NTLM_REQUEST_START,
@@ -143,7 +143,7 @@ ntlm_prompt_check (SoupMessage *msg, gpointer user_data)
 
 	if (state->sent_request)
 		return;
-	header = soup_message_headers_find (msg->response_headers,
+	header = soup_message_headers_get (msg->response_headers,
 					    "WWW-Authenticate");
 	if (header && !strcmp (header, "NTLM"))
 		state->got_prompt = TRUE;
@@ -155,7 +155,7 @@ ntlm_challenge_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_find (msg->response_headers,
+	header = soup_message_headers_get (msg->response_headers,
 					    "WWW-Authenticate");
 	if (header && !strncmp (header, "NTLM ", 5))
 		state->got_challenge = TRUE;
@@ -167,7 +167,7 @@ ntlm_request_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_find (msg->request_headers,
+	header = soup_message_headers_get (msg->request_headers,
 					    "Authorization");
 	if (header && !strncmp (header, "NTLM " NTLM_REQUEST_START,
 				strlen ("NTLM " NTLM_REQUEST_START)))
@@ -180,7 +180,7 @@ ntlm_response_check (SoupMessage *msg, gpointer user_data)
 	NTLMState *state = user_data;
 	const char *header;
 
-	header = soup_message_headers_find (msg->request_headers,
+	header = soup_message_headers_get (msg->request_headers,
 					    "Authorization");
 	if (header && !strncmp (header, "NTLM " NTLM_RESPONSE_START,
 				strlen ("NTLM " NTLM_RESPONSE_START)))

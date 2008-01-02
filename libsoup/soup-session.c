@@ -544,7 +544,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	if (!SOUP_STATUS_IS_REDIRECTION (msg->status_code))
 		return;
 
-	new_loc = soup_message_headers_find (msg->response_headers, "Location");
+	new_loc = soup_message_headers_get (msg->response_headers, "Location");
 	if (!new_loc)
 		return;
 

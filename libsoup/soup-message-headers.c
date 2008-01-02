@@ -2,7 +2,7 @@
 /*
  * soup-message-headers.c: HTTP message header arrays
  *
- * Copyright (C) 2005 Novell, Inc.
+ * Copyright (C) 2007, 2008 Red Hat, Inc.
  */
 
 #include "soup-message-headers.h"
@@ -18,6 +18,7 @@ typedef struct {
 
 struct SoupMessageHeaders {
 	GArray *array;
+	GHashTable *concat;
 	SoupMessageHeadersType type;
 
 	SoupEncoding encoding;
@@ -77,6 +78,9 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
 		g_free (hdr_array[i].value);
 	g_array_set_size (hdrs->array, 0);
 
+	if (hdrs->concat)
+		g_hash_table_destroy (hdrs->concat);
+
 	hdrs->encoding = -1;
 }
 
@@ -86,9 +90,7 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
  * @name: the header name to add
  * @value: the new value of @name
  *
- * Appends a new header with name @name and value @value to @hdrs. If
- * there were already other instances of header @name in @hdrs, they
- * are preserved.
+ * Appends a new header with name @name and value @value to @hdrs.
  **/
 void
 soup_message_headers_append (SoupMessageHeaders *hdrs,
@@ -99,9 +101,11 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 
 	header.name = intern_header_name (name, &setter);
 	header.value = g_strdup (value);
+	g_array_append_val (hdrs->array, header);
+	if (hdrs->concat)
+		g_hash_table_remove (hdrs->concat, header.name);
 	if (setter)
 		setter (hdrs, header.value);
-	g_array_append_val (hdrs->array, header);
 }
 
 /**
@@ -110,9 +114,7 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
  * @name: the header name to replace
  * @value: the new value of @name
  *
- * Replaces the value of the header @name in @hdrs with @value. If
- * there were previously multiple values for @name, all of the other
- * values are removed.
+ * Replaces the value of the header @name in @hdrs with @value.
  **/
 void
 soup_message_headers_replace (SoupMessageHeaders *hdrs,
@@ -153,47 +155,64 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
 
 	name = intern_header_name (name, &setter);
 	while ((index = find_header (hdr_array, name, 0)) != -1) {
-		if (setter)
-			setter (hdrs, NULL);
 		g_free (hdr_array[index].value);
 		g_array_remove_index (hdrs->array, index);
 	}
+	if (hdrs->concat)
+		g_hash_table_remove (hdrs->concat, name);
+	if (setter)
+		setter (hdrs, NULL);
 }
 
 /**
- * soup_message_headers_find:
+ * soup_message_headers_get:
  * @hdrs: a #SoupMessageHeaders
  * @name: header name
  * 
- * Finds the first header in @hdrs with name @name.
+ * Gets the value of header @name in @hdrs.
+ *
+ * If @name has multiple values in @hdrs, soup_message_headers_get()
+ * will concatenate all of the values together, separated by commas.
+ * This is sometimes awkward to parse (eg, WWW-Authenticate,
+ * Set-Cookie), but you have to be able to deal with it anyway,
+ * because an upstream proxy could do the same thing.
  * 
  * Return value: the header's value or %NULL if not found.
  **/
 const char *
-soup_message_headers_find (SoupMessageHeaders *hdrs, const char *name)
-{
-	return soup_message_headers_find_nth (hdrs, name, 0);
-}
-
-/**
- * soup_message_headers_find_nth:
- * @hdrs: a #SoupMessageHeaders
- * @name: header name
- * @nth: which instance of header @name to find
- * 
- * Finds the @nth header in @hdrs with name @name (counting from 0).
- * 
- * Return value: the header's value or %NULL if not found.
- **/
-const char *
-soup_message_headers_find_nth (SoupMessageHeaders *hdrs,
-			       const char *name, int nth)
+soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
 {
 	SoupHeader *hdr_array = (SoupHeader *)(hdrs->array->data);
-	int index = find_header (hdr_array, intern_header_name (name, NULL), nth);
-	return index == -1 ? NULL : hdr_array[index].value;
-}
+	GString *concat;
+	char *value;
+	int index, i;
 
+	name = intern_header_name (name, NULL);
+	if (hdrs->concat) {
+		value = g_hash_table_lookup (hdrs->concat, name);
+		if (value)
+			return value;
+	}
+
+	index = find_header (hdr_array, name, 0);
+	if (index == -1)
+		return NULL;
+	else if (find_header (hdr_array, name, 1) == -1)
+		return hdr_array[index].value;
+
+	concat = g_string_new (NULL);
+	for (i = 0; (index = find_header (hdr_array, name, i)) != -1; i++) {
+		if (i != 0)
+			g_string_append (concat, ", ");
+		g_string_append (concat, hdr_array[index].value);
+	}
+	value = g_string_free (concat, FALSE);
+
+	if (!hdrs->concat)
+		hdrs->concat = g_hash_table_new_full (NULL, NULL, NULL, g_free);
+	g_hash_table_insert (hdrs->concat, (gpointer)name, value);
+	return value;
+}
 
 /**
  * soup_message_headers_foreach:
@@ -201,9 +220,16 @@ soup_message_headers_find_nth (SoupMessageHeaders *hdrs,
  * @func: callback function to run for each header
  * @user_data: data to pass to @func
  * 
- * Calls @func once for each header value in @hdrs. (If there are
- * headers with multiple values, @func will be called once on each
- * value.)
+ * Calls @func once for each header value in @hdrs.
+ *
+ * Beware that unlike soup_message_headers_get(), this processes the
+ * headers in exactly the way they were added, rather than
+ * concatenating multiple same-named headers into a single value.
+ * (This is intentional; it ensures that if you call
+ * soup_message_headers_append() multiple times with the same name,
+ * then the I/O code will output multiple copies of the header when
+ * sending the message to the remote implementation, which may be
+ * required for interoperability in some cases.)
  **/
 void
 soup_message_headers_foreach (SoupMessageHeaders *hdrs,
@@ -324,7 +350,7 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 	/* If Transfer-Encoding was set, hdrs->encoding would already
 	 * be set. So we don't need to check that possibility.
 	 */
-	header = soup_message_headers_find (hdrs, "Content-Length");
+	header = soup_message_headers_get (hdrs, "Content-Length");
 	if (header) {
 		content_length_setter (hdrs, header);
 		if (hdrs->encoding != -1)

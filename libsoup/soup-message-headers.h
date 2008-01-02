@@ -29,11 +29,8 @@ void                soup_message_headers_remove   (SoupMessageHeaders *hdrs,
 						   const char         *name);
 void                soup_message_headers_clear    (SoupMessageHeaders *hdrs);
 
-const char         *soup_message_headers_find     (SoupMessageHeaders *hdrs,
+const char         *soup_message_headers_get      (SoupMessageHeaders *hdrs,
 						   const char         *name);
-const char         *soup_message_headers_find_nth (SoupMessageHeaders *hdrs,
-						   const char         *name,
-						   int                 index);
 
 typedef void      (*SoupMessageHeadersForeachFunc)(const char         *name,
 						   const char         *value,
