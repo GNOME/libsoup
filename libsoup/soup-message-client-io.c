@@ -67,7 +67,7 @@ get_request_headers (SoupMessage *req, GString *header,
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
-	const SoupURI *uri = soup_message_get_uri (req);
+	SoupURI *uri = soup_message_get_uri (req);
 	char *uri_string;
 	gsize content_length;
 

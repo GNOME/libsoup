@@ -18,7 +18,7 @@
 #include "soup-uri.h"
 
 static gboolean update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params);
-static GSList *get_protection_space (SoupAuth *auth, const SoupURI *source_uri);
+static GSList *get_protection_space (SoupAuth *auth, SoupURI *source_uri);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
@@ -85,7 +85,7 @@ update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 }
 
 static GSList *
-get_protection_space (SoupAuth *auth, const SoupURI *source_uri)
+get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 {
 	char *space, *p;
 

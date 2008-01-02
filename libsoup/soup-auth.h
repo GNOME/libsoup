@@ -33,7 +33,7 @@ typedef struct {
 					      GHashTable    *auth_params);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
-					      const SoupURI *source_uri);
+					      SoupURI       *source_uri);
 
 	void         (*authenticate)         (SoupAuth      *auth,
 					      const char    *username,
@@ -74,7 +74,7 @@ char       *soup_auth_get_authorization     (SoupAuth      *auth,
 					     SoupMessage   *msg);
 
 GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
-					     const SoupURI *source_uri);
+					     SoupURI       *source_uri);
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
 

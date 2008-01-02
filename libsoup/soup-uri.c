@@ -58,7 +58,7 @@ soup_scheme_default_port (const char *scheme)
  * Return value: a parsed #SoupURI.
  **/
 SoupURI *
-soup_uri_new_with_base (const SoupURI *base, const char *uri_string)
+soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 {
 	SoupURI *uri;
 	const char *end, *hash, *colon, *at, *path, *question;
@@ -320,7 +320,7 @@ soup_uri_new (const char *uri_string)
  * Return value: a string representing @uri, which the caller must free.
  **/
 char *
-soup_uri_to_string (const SoupURI *uri, gboolean just_path)
+soup_uri_to_string (SoupURI *uri, gboolean just_path)
 {
 	GString *str;
 	char *return_result;
@@ -378,7 +378,7 @@ soup_uri_to_string (const SoupURI *uri, gboolean just_path)
  * Return value: a copy of @uri, which must be freed with soup_uri_free()
  **/
 SoupURI *
-soup_uri_copy (const SoupURI *uri)
+soup_uri_copy (SoupURI *uri)
 {
 	SoupURI *dup;
 
@@ -398,12 +398,12 @@ soup_uri_copy (const SoupURI *uri)
 }
 
 /* Temporarily still used by SoupSession, but no longer public */
-SoupURI *soup_uri_copy_root (const SoupURI *uri);
+SoupURI *soup_uri_copy_root (SoupURI *uri);
 gboolean soup_uri_host_equal (gconstpointer v1, gconstpointer v2);
 guint    soup_uri_host_hash (gconstpointer key);
 
 SoupURI *
-soup_uri_copy_root (const SoupURI *uri)
+soup_uri_copy_root (SoupURI *uri)
 {
 	SoupURI *dup;
 
@@ -460,7 +460,7 @@ parts_equal (const char *one, const char *two, gboolean insensitive)
  * Return value: %TRUE or %FALSE
  **/
 gboolean 
-soup_uri_equal (const SoupURI *uri1, const SoupURI *uri2)
+soup_uri_equal (SoupURI *uri1, SoupURI *uri2)
 {
 	if (uri1->scheme != uri2->scheme                         ||
 	    uri1->port   != uri2->port                           ||
@@ -646,7 +646,7 @@ soup_uri_normalize (char *part, const char *unescape_extra)
  * Return value: %TRUE or %FALSE
  **/
 gboolean
-soup_uri_uses_default_port (const SoupURI *uri)
+soup_uri_uses_default_port (SoupURI *uri)
 {
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
@@ -660,7 +660,7 @@ soup_uri_uses_default_port (const SoupURI *uri)
  * Return value: %TRUE or %FALSE
  **/
 gboolean
-soup_uri_is_https (const SoupURI *uri)
+soup_uri_is_https (SoupURI *uri)
 {
 	return https_scheme && uri->scheme == https_scheme;
 }

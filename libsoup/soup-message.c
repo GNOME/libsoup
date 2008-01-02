@@ -487,7 +487,7 @@ soup_message_new (const char *method, const char *uri_string)
  * Return value: the new #SoupMessage
  */
 SoupMessage *
-soup_message_new_from_uri (const char *method, const SoupURI *uri)
+soup_message_new_from_uri (const char *method, SoupURI *uri)
 {
 	return g_object_new (SOUP_TYPE_MESSAGE,
 			     SOUP_MESSAGE_METHOD, method,
@@ -1165,7 +1165,7 @@ soup_message_is_keepalive (SoupMessage *msg)
  * soup_session_requeue_message().
  **/
 void
-soup_message_set_uri (SoupMessage *msg, const SoupURI *uri)
+soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 {
 	SoupMessagePrivate *priv;
 
@@ -1185,7 +1185,7 @@ soup_message_set_uri (SoupMessage *msg, const SoupURI *uri)
  *
  * Return value: the URI @msg is targeted for.
  **/
-const SoupURI *
+SoupURI *
 soup_message_get_uri (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);

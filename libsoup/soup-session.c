@@ -82,7 +82,7 @@ static void cancel_message  (SoupSession *session, SoupMessage *msg,
 extern guint     soup_uri_host_hash  (gconstpointer  key);
 extern gboolean  soup_uri_host_equal (gconstpointer  v1,
 				      gconstpointer  v2);
-extern SoupURI  *soup_uri_copy_root  (const SoupURI *uri);
+extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
@@ -317,7 +317,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 }
 
 static gboolean
-safe_uri_equal (const SoupURI *a, const SoupURI *b)
+safe_uri_equal (SoupURI *a, SoupURI *b)
 {
 	if (!a && !b)
 		return TRUE;
@@ -469,7 +469,7 @@ soup_session_get_async_context (SoupSession *session)
 /* Hosts */
 
 static SoupSessionHost *
-soup_session_host_new (SoupSession *session, const SoupURI *source_uri)
+soup_session_host_new (SoupSession *session, SoupURI *source_uri)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
@@ -494,7 +494,7 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	const SoupURI *source = soup_message_get_uri (msg);
+	SoupURI *source = soup_message_get_uri (msg);
 
 	host = g_hash_table_lookup (priv->hosts, source);
 	if (host)

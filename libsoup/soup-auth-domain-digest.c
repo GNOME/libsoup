@@ -109,8 +109,7 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 	const char *nonce, *nc, *cnonce, *response;
 	char hex_a1[33], hex_urp[33], computed_response[33], *ret_user;
 	int nonce_count;
-	SoupURI *dig_uri;
-	const SoupURI *req_uri;
+	SoupURI *dig_uri, *req_uri;
 	gboolean accept = FALSE, ok = FALSE;
 
 	if (strncmp (header, "Digest ", 7) != 0)

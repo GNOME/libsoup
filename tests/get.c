@@ -29,7 +29,7 @@ int pending;
 GHashTable *fetched_urls;
 
 static GPtrArray *
-find_hrefs (const SoupURI *base, const char *body, int length)
+find_hrefs (SoupURI *base, const char *body, int length)
 {
 	GPtrArray *hrefs = g_ptr_array_new ();
 	char *buf = g_strndup (body, length);

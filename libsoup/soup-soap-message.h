@@ -34,7 +34,7 @@ GType             soup_soap_message_get_type (void);
 SoupSoapMessage  *soup_soap_message_new (const char *method, const char *uri_string,
 					 gboolean standalone, const char *xml_encoding,
 					 const char *env_prefix, const char *env_uri);
-SoupSoapMessage  *soup_soap_message_new_from_uri (const char *method, const SoupURI *uri,
+SoupSoapMessage  *soup_soap_message_new_from_uri (const char *method, SoupURI *uri,
 						  gboolean standalone, const char *xml_encoding,
 						  const char *env_prefix, const char *env_uri);
 

@@ -1,5 +1,13 @@
 2008-01-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-uri.c:
+	* libsoup/soup-uri.h: Change all the "const SoupURI *" to just
+	"SoupURI *", since the const is just there to be annoying.
+
+	* */*.c: update
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-body.c (soup_message_body_get_length)
 	(soup_message_body_get_chunk): Use goffset rather than gsize for
 	references to the entire size of the message body. (SoupBuffer

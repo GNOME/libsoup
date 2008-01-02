@@ -127,7 +127,7 @@ soup_soap_message_new (const char *method, const char *uri_string,
  * Returns: the new #SoupSoapMessage
  */
 SoupSoapMessage *
-soup_soap_message_new_from_uri (const char *method, const SoupURI *uri,
+soup_soap_message_new_from_uri (const char *method, SoupURI *uri,
 				gboolean standalone, const char *xml_encoding,
 				const char *env_prefix, const char *env_uri)
 {

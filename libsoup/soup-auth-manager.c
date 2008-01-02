@@ -40,7 +40,7 @@ typedef struct {
 extern guint     soup_uri_host_hash  (gconstpointer  key);
 extern gboolean  soup_uri_host_equal (gconstpointer  v1,
 				      gconstpointer  v2);
-extern SoupURI  *soup_uri_copy_root  (const SoupURI *uri);
+extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 
 SoupAuthManager *
 soup_auth_manager_new (SoupSession *session)
@@ -253,7 +253,7 @@ static SoupAuthHost *
 get_auth_host_for_message (SoupAuthManager *manager, SoupMessage *msg)
 {
 	SoupAuthHost *host;
-	const SoupURI *source = soup_message_get_uri (msg);
+	SoupURI *source = soup_message_get_uri (msg);
 
 	host = g_hash_table_lookup (manager->auth_hosts, source);
 	if (host)

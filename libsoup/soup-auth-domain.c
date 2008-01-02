@@ -213,7 +213,7 @@ gboolean
 soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
-	const SoupURI *uri = soup_message_get_uri (msg);
+	SoupURI *uri = soup_message_get_uri (msg);
 
 	if (!soup_path_map_lookup (priv->paths, uri->path))
 		return FALSE;

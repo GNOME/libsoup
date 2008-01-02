@@ -30,28 +30,28 @@ struct SoupURI {
 GType     soup_uri_get_type          (void);
 #define SOUP_TYPE_URI (soup_uri_get_type ())
 
-SoupURI  *soup_uri_new_with_base     (const SoupURI *base,
-				      const char    *uri_string);
-SoupURI  *soup_uri_new               (const char    *uri_string);
+SoupURI  *soup_uri_new_with_base     (SoupURI    *base,
+				      const char *uri_string);
+SoupURI  *soup_uri_new               (const char *uri_string);
 
-char     *soup_uri_to_string         (const SoupURI *uri, 
-				      gboolean       just_path);
+char     *soup_uri_to_string         (SoupURI    *uri, 
+				      gboolean    just_path);
 
-SoupURI  *soup_uri_copy              (const SoupURI *uri);
+SoupURI  *soup_uri_copy              (SoupURI    *uri);
 
-gboolean  soup_uri_equal             (const SoupURI *uri1, 
-				      const SoupURI *uri2);
+gboolean  soup_uri_equal             (SoupURI    *uri1, 
+				      SoupURI    *uri2);
 
-void      soup_uri_free              (SoupURI       *uri);
+void      soup_uri_free              (SoupURI    *uri);
 
-char     *soup_uri_encode            (const char    *part,
-				      const char    *escape_extra);
-gboolean  soup_uri_decode            (char          *part);
-gboolean  soup_uri_normalize         (char          *part,
-				      const char    *unescape_extra);
+char     *soup_uri_encode            (const char *part,
+				      const char *escape_extra);
+gboolean  soup_uri_decode            (char       *part);
+gboolean  soup_uri_normalize         (char       *part,
+				      const char *unescape_extra);
 
-gboolean  soup_uri_uses_default_port (const SoupURI *uri);
-gboolean  soup_uri_is_https          (const SoupURI *uri);
+gboolean  soup_uri_uses_default_port (SoupURI    *uri);
+gboolean  soup_uri_is_https          (SoupURI    *uri);
 
 G_END_DECLS
 
