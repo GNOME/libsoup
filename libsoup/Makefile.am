@@ -48,6 +48,7 @@ libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 soup_headers =			\
 	soup.h			\
 	soup-address.h		\
+	soup-auth.h		\
 	soup-auth-domain.h	\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
@@ -93,7 +94,6 @@ libsoup_2_4_la_LIBADD =			\
 libsoup_2_4_la_SOURCES =		\
 	$(MARSHAL_GENERATED)		\
 	soup-address.c			\
-	soup-auth.h			\
 	soup-auth.c			\
 	soup-auth-basic.h		\
 	soup-auth-basic.c		\

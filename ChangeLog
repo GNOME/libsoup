@@ -1,5 +1,9 @@
 2008-01-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/Makefile.am (soup_headers): oops, move soup-auth.h here
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-form.c: new HTML-form-related methods (just URI
 	decoding/encoding at the moment).
 
