@@ -47,7 +47,6 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 	va_list args;
 	GValueArray *params;
 	GError *err = NULL;
-	SoupBuffer *response;
 	char *body;
 
 	va_start (args, retval);
@@ -66,16 +65,10 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 	soup_session_send_message (session, msg);
 
 	if (debug >= 3) {
-		SoupBuffer *request, *response;
-
-		request = soup_message_get_request (msg);
-		response = soup_message_get_response (msg);
-		dprintf (3, "\n%.*s\n%d %s\n%.*s\n",
-			 (int)request->length, request->data,
+		dprintf (3, "\n%s\n%d %s\n%s\n",
+			 msg->request_body->data,
 			 msg->status_code, msg->reason_phrase,
-			 (int)response->length, response->data);
-		soup_buffer_free (request);
-		soup_buffer_free (response);
+			 msg->response_body->data);
 	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
@@ -85,20 +78,17 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 		return FALSE;
 	}
 
-	response = soup_message_get_response (msg);
-	if (!soup_xmlrpc_parse_method_response (response->data,
-						response->length,
+	if (!soup_xmlrpc_parse_method_response (msg->response_body->data,
+						msg->response_body->length,
 						retval, &err)) {
 		if (err) {
 			dprintf (1, "FAULT: %d %s\n", err->code, err->message);
 			g_error_free (err);
 		} else
 			dprintf (1, "ERROR: could not parse response\n");
-		soup_buffer_free (response);
 		g_object_unref (msg);
 		return FALSE;
 	}
-	soup_buffer_free (response);
 	g_object_unref (msg);
 
 	return TRUE;

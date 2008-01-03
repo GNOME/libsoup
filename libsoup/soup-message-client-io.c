@@ -69,7 +69,6 @@ get_request_headers (SoupMessage *req, GString *header,
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	SoupURI *uri = soup_message_get_uri (req);
 	char *uri_string;
-	gsize content_length;
 
 	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -98,10 +97,10 @@ get_request_headers (SoupMessage *req, GString *header,
 	g_free (uri_string);
 
 	*encoding = soup_message_headers_get_encoding (req->request_headers);
-	content_length = soup_message_body_get_length (req->request_body);
-	if (*encoding != SOUP_ENCODING_CHUNKED && content_length > 0) {
+	if (*encoding != SOUP_ENCODING_CHUNKED &&
+	    req->request_body->length > 0) {
 		soup_message_headers_set_content_length (req->request_headers,
-							 content_length);
+							 req->request_body->length);
 	}
 
 	soup_message_headers_foreach (req->request_headers, add_header, header);

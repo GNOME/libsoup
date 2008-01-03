@@ -120,10 +120,8 @@ get_response_headers (SoupMessage *msg, GString *headers,
 
 	if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
 	    !soup_message_headers_get_content_length (msg->response_headers)) {
-		gsize content_length = soup_message_body_get_length (msg->response_body);
-
 		soup_message_headers_set_content_length (msg->response_headers,
-							 content_length);
+							 msg->response_body->length);
 	}
 
 	soup_message_headers_foreach (msg->response_headers,

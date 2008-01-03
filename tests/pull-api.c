@@ -53,7 +53,7 @@ get_correct_response (const char *uri)
 		exit (1);
 	}
 
-	correct_response = soup_message_get_response (msg);
+	correct_response = soup_message_body_flatten (msg->response_body);
 
 	g_object_unref (msg);
 	soup_session_abort (session);

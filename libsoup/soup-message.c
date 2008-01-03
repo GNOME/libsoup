@@ -56,6 +56,7 @@ static void got_foo_signal_wrapper (GClosure *closure, GValue *return_value,
 				    gpointer invocation_hint,
 				    gpointer marshal_data);
 
+static void got_body (SoupMessage *req);
 static void restarted (SoupMessage *req);
 static void finished (SoupMessage *req);
 
@@ -112,6 +113,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
+	message_class->got_body     = got_body;
 	message_class->restarted    = restarted;
 	message_class->finished     = finished;
 
@@ -529,25 +531,6 @@ soup_message_set_request (SoupMessage    *msg,
 }
 
 /**
- * soup_message_get_request:
- * @msg: a #SoupMessage
- *
- * Gets a #SoupBuffer containing @msg's request body. If @msg's
- * request body uses chunked encoding, this will coalesce the chunks
- * into a single buffer.
- *
- * Return value: the request body, which must be freed with
- * soup_buffer_free() when you are done with it.
- **/
-SoupBuffer *
-soup_message_get_request (SoupMessage *msg)
-{
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	return soup_message_body_flatten (msg->request_body);
-}
-
-/**
  * soup_message_set_response:
  * @msg: the message
  * @content_type: MIME Content-Type of the body
@@ -578,25 +561,6 @@ soup_message_set_response (SoupMessage    *msg,
 					     "Content-Type");
 		soup_message_body_truncate (msg->response_body);
 	}
-}
-
-/**
- * soup_message_get_response:
- * @msg: a #SoupMessage
- *
- * Gets a #SoupBuffer containing @msg's response body. If @msg's
- * response body uses chunked encoding, this will coalesce the chunks
- * into a single buffer.
- *
- * Return value: the response body, which must be freed with
- * soup_buffer_free() when you are done with it.
- **/
-SoupBuffer *
-soup_message_get_response (SoupMessage *msg)
-{
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-
-	return soup_message_body_flatten (msg->response_body);
 }
 
 /**
@@ -717,6 +681,23 @@ void
 soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
 	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
+}
+
+static void
+got_body (SoupMessage *req)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+
+	if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS)) {
+		SoupBuffer *buffer;
+
+		/* Figure out *which* body we read, and flatten it. */
+		if (req->status_code == 0)
+			buffer = soup_message_body_flatten (req->request_body);
+		else
+			buffer = soup_message_body_flatten (req->response_body);
+		soup_buffer_free (buffer);
+	}
 }
 
 /**

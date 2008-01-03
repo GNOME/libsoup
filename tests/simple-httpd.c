@@ -30,17 +30,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *context, gpointer data)
 {
 	char *path_to_open, *slash;
-	SoupBuffer *request;
 	struct stat st;
 	int fd;
 
 	printf ("%s %s HTTP/1.%d\n", msg->method, path,
 		soup_message_get_http_version (msg));
 	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
-	request = soup_message_get_request (msg);
-	if (request->length)
-		printf ("%.*s\n", (int)request->length, request->data);
-	soup_buffer_free (request);
+	if (msg->request_body->length)
+		printf ("%s\n", msg->request_body->data);
 
 	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);

@@ -812,21 +812,7 @@ soup_soap_message_get_xml_doc (SoupSoapMessage *msg)
 SoupSoapResponse *
 soup_soap_message_parse_response (SoupSoapMessage *msg)
 {
-	SoupSoapMessagePrivate *priv;
-	char *xmlstr;
-	SoupSoapResponse *soap_response;
-	SoupBuffer *response;
-
 	g_return_val_if_fail (SOUP_IS_SOAP_MESSAGE (msg), NULL);
-	priv = SOUP_SOAP_MESSAGE_GET_PRIVATE (msg);
 
-	response = soup_message_get_response (SOUP_MESSAGE (msg));
-	xmlstr = g_malloc0 (response->length + 1);
-	strncpy (xmlstr, response->data, response->length);
-	soup_buffer_free (response);
-
-	soap_response = soup_soap_response_new_from_string (xmlstr);
-	g_free (xmlstr);
-
-	return soap_response;
+	return soup_soap_response_new_from_string (SOUP_MESSAGE (msg)->response_body->data);
 }

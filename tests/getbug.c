@@ -51,7 +51,6 @@ static void
 got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	GHashTable *hash;
-	SoupBuffer *response;
 	GError *error = NULL;
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
@@ -59,23 +58,20 @@ got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 		exit (1);
 	}
 
-	response = soup_message_get_response (msg);
-	if (!soup_xmlrpc_extract_method_response (response->data,
-						  response->length,
+	if (!soup_xmlrpc_extract_method_response (msg->response_body->data,
+						  msg->response_body->length,
 						  &error,
 						  G_TYPE_HASH_TABLE, &hash)) {
 		if (!error) {
 			fprintf (stderr, "Could not parse XMLRPC response:\n%d %s\n\n",
 				 msg->status_code, msg->reason_phrase);
-			fprintf (stderr, "%.*s\n", (int)response->length,
-				 response->data);
+			fprintf (stderr, "%s\n", msg->response_body->data);
 		} else {
 			fprintf (stderr, "XML-RPC error: %d %s",
 				 error->code, error->message);
 		}
 		exit (1);
 	}
-	soup_buffer_free (response);
 
 	g_hash_table_foreach (hash, print_struct_field, NULL);
 	g_hash_table_destroy (hash);

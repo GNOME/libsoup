@@ -114,7 +114,6 @@ get_url (const char *url)
 	SoupURI *uri;
 	GPtrArray *hrefs;
 	const char *header;
-	SoupBuffer *response;
 
 	if (strncmp (url, base, strlen (base)) != 0)
 		return;
@@ -193,30 +192,23 @@ get_url (const char *url)
 		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	else
 		fd = STDOUT_FILENO;
-	response = soup_message_get_response (msg);
-	write (fd, response->data, response->length);
-	if (!recurse) {
-		soup_buffer_free (response);
+	write (fd, msg->response_body->data, msg->response_body->length);
+	if (!recurse)
 		return;
-	}
 	close (fd);
 
 	header = soup_message_headers_get (msg->response_headers, "Content-Type");
-	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0) {
-		soup_buffer_free (response);
+	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
 		return;
-	}
 
 	uri = soup_uri_new (url);
-	hrefs = find_hrefs (uri, response->data, response->length);
+	hrefs = find_hrefs (uri, msg->response_body->data, msg->response_body->length);
 	soup_uri_free (uri);
 	for (i = 0; i < hrefs->len; i++) {
 		get_url (hrefs->pdata[i]);
 		g_free (hrefs->pdata[i]);
 	}
 	g_ptr_array_free (hrefs, TRUE);
-
-	soup_buffer_free (response);
 }
 
 static void

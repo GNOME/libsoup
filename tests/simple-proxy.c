@@ -100,8 +100,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_headers_remove (msg2->request_headers, "Host");
 	soup_message_headers_remove (msg2->request_headers, "Connection");
 
-	if (soup_message_body_get_length (msg->request_body)) {
-		SoupBuffer *request = soup_message_get_request (msg);
+	if (msg->request_body->length) {
+		SoupBuffer *request = soup_message_body_flatten (msg->request_body);
 		soup_message_body_append_buffer (msg2->request_body, request);
 		soup_buffer_free (request);
 	}

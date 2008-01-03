@@ -84,14 +84,11 @@ void           soup_message_set_request         (SoupMessage       *msg,
 						 SoupMemoryUse      req_use,
 						 const char        *req_body,
 						 gsize              req_length);
-SoupBuffer    *soup_message_get_request         (SoupMessage       *msg);
-
 void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *content_type,
 						 SoupMemoryUse      resp_use,
 						 const char        *resp_body,
 						 gsize              resp_length);
-SoupBuffer    *soup_message_get_response        (SoupMessage       *msg);
 
 /**
  * SoupHTTPVersion:

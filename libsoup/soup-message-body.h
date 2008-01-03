@@ -65,10 +65,27 @@ void        soup_buffer_free          (SoupBuffer    *buffer);
 
 /**
  * SoupMessageBody:
+ * @data: the data
+ * @length: length of @data
  *
  * A #SoupMessage request or response body.
+ *
+ * Note that while @length always reflects the full length of the
+ * message body, @data is normally %NULL, and will only be filled in
+ * after soup_message_body_flatten() is called. For client-side
+ * messages, this automatically happens for the response body after it
+ * has been fully read, unless you set the
+ * %SOUP_MESSAGE_OVERWRITE_CHUNKS flags. Likewise, for server-side
+ * messages, the request body is automatically filled in after being
+ * read.
+ *
+ * As an added bonus, when @data is filled in, it is always terminated
+ * with a '\0' byte (which is not reflected in @length).
  **/
-typedef struct SoupMessageBody SoupMessageBody;
+typedef struct {
+	const char *data;
+	goffset     length;
+} SoupMessageBody;
 
 SoupMessageBody *soup_message_body_new           (void);
 
@@ -82,7 +99,6 @@ void             soup_message_body_truncate      (SoupMessageBody *body);
 void             soup_message_body_complete      (SoupMessageBody *body);
 
 SoupBuffer      *soup_message_body_flatten       (SoupMessageBody *body);
-goffset          soup_message_body_get_length    (SoupMessageBody *body);
 
 SoupBuffer      *soup_message_body_get_chunk     (SoupMessageBody *body,
 						  goffset          offset);

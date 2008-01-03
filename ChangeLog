@@ -1,5 +1,26 @@
 2008-01-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.h (SoupMessageBody): add data and
+	length parameters like SoupBuffer, to make this easier for callers
+	to use.
+
+	* libsoup/soup-message-body.c (soup_message_body_append)
+	(soup_message_body_append_buffer)
+	(soup_message_body_truncate): Update body->length
+	(soup_message_body_flatten): Fill in body->data (and NUL-terminate
+	it as an added bonus).
+
+	* libsoup/soup-message.c (got_body): flatten the newly-gotten
+	body.
+	(soup_message_get_request, soup_message_get_response): gone
+	
+	* libsoup/soup-message-client-io.c (get_request_headers): 
+	* libsoup/soup-message-server-io.c (get_response_headers): 
+	* libsoup/soup-soap-message.c (soup_soap_message_parse_response):
+	* tests/*.c: simplify
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/Makefile.am (soup_headers): oops, move soup-auth.h here
 
 2008-01-02  Dan Winship  <danw@gnome.org>

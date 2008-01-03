@@ -132,9 +132,11 @@ soup_buffer_free (SoupBuffer *buffer)
 	}
 }
 
-struct SoupMessageBody {
+typedef struct {
+	SoupMessageBody body;
 	GSList *chunks, *last;
-};
+	SoupBuffer *flattened;
+} SoupMessageBodyPrivate;
 
 /**
  * soup_message_body_new:
@@ -147,17 +149,26 @@ struct SoupMessageBody {
 SoupMessageBody *
 soup_message_body_new (void)
 {
-	return g_slice_new0 (SoupMessageBody);
+	return (SoupMessageBody *)g_slice_new0 (SoupMessageBodyPrivate);
 }
 
 static void
 append_buffer (SoupMessageBody *body, SoupBuffer *buffer)
 {
-	if (body->last) {
-		body->last = g_slist_append (body->last, buffer);
-		body->last = body->last->next;
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
+	if (priv->last) {
+		priv->last = g_slist_append (priv->last, buffer);
+		priv->last = priv->last->next;
 	} else
-		body->chunks = body->last = g_slist_append (NULL, buffer);
+		priv->chunks = priv->last = g_slist_append (NULL, buffer);
+
+	if (priv->flattened) {
+		soup_buffer_free (priv->flattened);
+		priv->flattened = NULL;
+		body->data = NULL;
+	}
+	body->length += buffer->length;
 }
 
 /**
@@ -203,12 +214,20 @@ soup_message_body_append_buffer (SoupMessageBody *body, SoupBuffer *buffer)
 void
 soup_message_body_truncate (SoupMessageBody *body)
 {
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 	GSList *iter;
 
-	for (iter = body->chunks; iter; iter = iter->next)
+	for (iter = priv->chunks; iter; iter = iter->next)
 		soup_buffer_free (iter->data);
-	g_slist_free (body->chunks);
-	body->chunks = body->last = NULL;
+	g_slist_free (priv->chunks);
+	priv->chunks = priv->last = NULL;
+
+	if (priv->flattened) {
+		soup_buffer_free (priv->flattened);
+		priv->flattened = NULL;
+		body->data = NULL;
+	}
+	body->length = 0;
 }
 
 /**
@@ -228,71 +247,40 @@ soup_message_body_complete (SoupMessageBody *body)
  * soup_message_body_flatten:
  * @body: a #SoupMessageBody
  *
- * Generates a single #SoupBuffer containing all of the data in @body.
- * (In particular, if @body was built up with multiple
- * soup_message_body_append() or soup_message_body_append_buffer()
- * calls, the appended chunks will not actually be merged together
- * unless you call this method.)
+ * Fills in @body's data field with a buffer containing all of the
+ * data in @body (plus an additional '\0' byte not counted by @body's
+ * length field).
  *
- * Return value: a #SoupBuffer containing all of the data in @body,
- * which must be freed with soup_buffer_free() when you are done with
- * it.
+ * Return value: a #SoupBuffer containing the same data as @body.
+ * (You must free this buffer if you do not want it.)
  **/
 SoupBuffer *
 soup_message_body_flatten (SoupMessageBody *body)
 {
-	guchar *buf, *ptr;
-	goffset size;
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+	char *buf, *ptr;
 	GSList *iter;
 	SoupBuffer *chunk;
 
-	if (!body->chunks)
-		return soup_buffer_new (NULL, 0, SOUP_MEMORY_STATIC);
-
-	/* If there is only 1 chunk (or 1 non-empty chunk followed by
-	 * an empty one), just return it rather than building a new
-	 * buffer.
-	 */
-	if ((body->last == body->chunks) ||
-	    (body->last == body->chunks->next &&
-	     ((SoupBuffer *)body->last)->length == 0))
-		return soup_buffer_copy (body->chunks->data);
-
-	size = soup_message_body_get_length (body);
+	if (!priv->flattened) {
 #if GLIB_SIZEOF_SIZE_T < 8
-	g_return_val_if_fail (size < G_MAXSIZE, NULL);
+		g_return_val_if_fail (body->length < G_MAXSIZE, NULL);
 #endif
-	buf = g_malloc (size);
-	for (iter = body->chunks, ptr = buf; iter; iter = iter->next) {
-		chunk = iter->data;
-		memcpy (ptr, chunk->data, chunk->length);
-		ptr += chunk->length;
-	}
-	
-	return soup_buffer_new (buf, size, SOUP_MEMORY_TAKE);
-}
 
-/**
- * soup_message_body_get_length:
- * @body: a #SoupMessageBody
- *
- * Gets the total length of @body.
- *
- * Return value: the total length of @body
- **/
-goffset
-soup_message_body_get_length (SoupMessageBody *body)
-{
-	goffset size;
-	GSList *iter;
-	SoupBuffer *chunk;
+		buf = ptr = g_malloc (body->length + 1);
+		for (iter = priv->chunks; iter; iter = iter->next) {
+			chunk = iter->data;
+			memcpy (ptr, chunk->data, chunk->length);
+			ptr += chunk->length;
+		}
+		*ptr = '\0';
 
-	for (iter = body->chunks, size = 0; iter; iter = iter->next) {
-		chunk = iter->data;
-		size += chunk->length;
+		priv->flattened = soup_buffer_new (buf, body->length,
+						   SOUP_MEMORY_TAKE);
+		body->data = priv->flattened->data;
 	}
 
-	return size;
+	return soup_buffer_copy (priv->flattened);
 }
 
 /**
@@ -321,10 +309,11 @@ soup_message_body_get_length (SoupMessageBody *body)
 SoupBuffer *
 soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 {
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 	GSList *iter;
 	SoupBuffer *chunk = NULL;
 
-	for (iter = body->chunks; iter; iter = iter->next) {
+	for (iter = priv->chunks; iter; iter = iter->next) {
 		chunk = iter->data;
 
 		if (offset < chunk->length || offset == 0)
@@ -347,6 +336,8 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 void
 soup_message_body_free (SoupMessageBody *body)
 {
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
 	soup_message_body_truncate (body);
-	g_slice_free (SoupMessageBody, body);
+	g_slice_free (SoupMessageBodyPrivate, priv);
 }

@@ -425,7 +425,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (msg->method != SOUP_METHOD_POST) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		soup_message_headers_append (msg->response_headers, "Connection", "close");
-	} else if (soup_message_body_get_length (msg->request_body) > MAX_POST_LENGTH) {
+	} else if (msg->request_body->length > MAX_POST_LENGTH) {
 		soup_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
 		soup_message_headers_append (msg->response_headers, "Connection", "close");
 	} else
