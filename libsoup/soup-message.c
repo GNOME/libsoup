@@ -161,7 +161,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 	/**
 	 * SoupMessage::wrote-chunk:
 	 * @msg: the message
-	 * @chunk: the just-written chunk
 	 *
 	 * Emitted immediately after writing a body chunk for a message.
 	 **/
@@ -171,9 +170,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_chunk),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER,
-			      G_TYPE_NONE, 1,
-			      G_TYPE_POINTER);
+			      soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 
 	/**
 	 * SoupMessage::wrote-body:
@@ -521,8 +519,8 @@ soup_message_set_request (SoupMessage    *msg,
 	if (content_type) {
 		soup_message_headers_replace (msg->request_headers,
 					      "Content-Type", content_type);
-		soup_message_body_append (msg->request_body,
-					  req_body, req_length, req_use);
+		soup_message_body_append (msg->request_body, req_use,
+					  req_body, req_length);
 	} else {
 		soup_message_headers_remove (msg->request_headers,
 					     "Content-Type");
@@ -554,8 +552,8 @@ soup_message_set_response (SoupMessage    *msg,
 	if (content_type) {
 		soup_message_headers_replace (msg->response_headers,
 					      "Content-Type", content_type);
-		soup_message_body_append (msg->response_body,
-					  resp_body, resp_length, resp_use);
+		soup_message_body_append (msg->response_body, resp_use,
+					  resp_body, resp_length);
 	} else {
 		soup_message_headers_remove (msg->response_headers,
 					     "Content-Type");
@@ -592,15 +590,14 @@ soup_message_wrote_headers (SoupMessage *msg)
 /**
  * soup_message_wrote_chunk:
  * @msg: a #SoupMessage
- * @chunk: the just-written chunk
  *
  * Emits the %wrote_chunk signal, indicating that the IO layer
  * finished writing a chunk of @msg's body.
  **/
 void
-soup_message_wrote_chunk (SoupMessage *msg, SoupBuffer *chunk)
+soup_message_wrote_chunk (SoupMessage *msg)
 {
-	g_signal_emit (msg, signals[WROTE_CHUNK], 0, chunk);
+	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
 }
 
 /**

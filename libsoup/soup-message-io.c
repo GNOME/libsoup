@@ -285,8 +285,8 @@ read_body_chunk (SoupMessage *msg)
 			if (!nread)
 				break;
 
-			buffer = soup_buffer_new (read_buf, nread,
-						  SOUP_MEMORY_TEMPORARY);
+			buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
+						  read_buf, nread);
 			if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
 				soup_message_body_append_buffer (io->read_body, buffer);
 
@@ -518,14 +518,15 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_chunk->length))
 			return;
 
+		soup_buffer_free (io->write_chunk);
+		io->write_chunk = NULL;
+
 		io->write_state = SOUP_MESSAGE_IO_STATE_CHUNK_END;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_wrote_chunk (msg, io->write_chunk);
+		soup_message_wrote_chunk (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 
-		soup_buffer_free (io->write_chunk);
-		io->write_chunk = NULL;
 		/* fall through */
 
 

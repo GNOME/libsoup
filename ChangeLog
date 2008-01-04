@@ -1,5 +1,17 @@
 2008-01-04  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.c (soup_buffer_new)
+	(soup_message_body_append): Reorder the arguments to match
+	soup_message_set_request/response, so it's not confusing.
+
+	* libsoup/soup-message.c (wrote_chunk): remove the "chunk" arg
+	from the signal, as it turns out to be *in*convenient, since most
+	callers use this signal to mean "need another chunk", so they want
+	it to have the same prototype as "wrote_headers", which means
+	"need first chunk".
+
+2008-01-04  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-domain.c: add documentation
 	(soup_auth_domain_set_filter): take a GDestroyNotify, for better
 	bindability

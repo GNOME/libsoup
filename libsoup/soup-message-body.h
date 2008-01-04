@@ -17,7 +17,7 @@ G_BEGIN_DECLS
  * need to worry about it being modified or freed.
  * @SOUP_MEMORY_TAKE: The caller has allocated the memory for the
  * #SoupBuffer's use; libsoup will assume ownership of it and free it
- * when it is done with it.
+ * (with g_free()) when it is done with it.
  * @SOUP_MEMORY_COPY: The passed-in data belongs to the caller; the
  * #SoupBuffer will copy it into new memory, leaving the caller free
  * to reuse the original memory.
@@ -53,9 +53,9 @@ typedef struct {
 	gsize       length;
 } SoupBuffer;
 
-SoupBuffer *soup_buffer_new           (gconstpointer  data,
-				       gsize          length,
-				       SoupMemoryUse  use);
+SoupBuffer *soup_buffer_new           (SoupMemoryUse  use,
+				       gconstpointer  data,
+				       gsize          length);
 SoupBuffer *soup_buffer_new_subbuffer (SoupBuffer    *parent,
 				       gsize          offset,
 				       gsize          length);
@@ -90,9 +90,9 @@ typedef struct {
 SoupMessageBody *soup_message_body_new           (void);
 
 void             soup_message_body_append        (SoupMessageBody *body,
+						  SoupMemoryUse    use,
 						  gconstpointer    data,
-						  gsize            length,
-						  SoupMemoryUse    use);
+						  gsize            length);
 void             soup_message_body_append_buffer (SoupMessageBody *body,
 						  SoupBuffer      *buffer);
 void             soup_message_body_truncate      (SoupMessageBody *body);

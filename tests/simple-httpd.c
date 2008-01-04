@@ -92,8 +92,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		buf = g_malloc (st.st_size);
 		read (fd, buf, st.st_size);
 		close (fd);
-		soup_message_body_append (msg->response_body, buf, st.st_size,
-					  SOUP_MEMORY_TAKE);
+		soup_message_body_append (msg->response_body, SOUP_MEMORY_TAKE,
+					  buf, st.st_size);
 	} else /* msg->method == SOUP_METHOD_HEAD */ {
 		char *length;
 

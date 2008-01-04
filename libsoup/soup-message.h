@@ -55,7 +55,7 @@ typedef struct {
 	/* signals */
 	void     (*wrote_informational) (SoupMessage *msg);
 	void     (*wrote_headers)       (SoupMessage *msg);
-	void     (*wrote_chunk)         (SoupMessage *msg, SoupBuffer *chunk);
+	void     (*wrote_chunk)         (SoupMessage *msg);
 	void     (*wrote_body)          (SoupMessage *msg);
 	void     (*got_informational)   (SoupMessage *msg);
 	void     (*got_headers)         (SoupMessage *msg);
@@ -162,7 +162,7 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
-void soup_message_wrote_chunk         (SoupMessage *msg, SoupBuffer *chunk);
+void soup_message_wrote_chunk         (SoupMessage *msg);
 void soup_message_wrote_body          (SoupMessage *msg);
 void soup_message_got_informational   (SoupMessage *msg);
 void soup_message_got_headers         (SoupMessage *msg);

@@ -60,8 +60,8 @@ add_body_chunk (gpointer data)
 {
 	SlowData *sd = data;
 
-	soup_message_body_append (sd->msg->response_body, "OK\r\n", 4,
-				  SOUP_MEMORY_STATIC);
+	soup_message_body_append (sd->msg->response_body,
+				  SOUP_MEMORY_STATIC, "OK\r\n", 4);
 	soup_message_body_complete (sd->msg->response_body);
 	soup_server_unpause_message (sd->server, sd->msg);
 	g_object_unref (sd->msg);

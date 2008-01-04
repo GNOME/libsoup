@@ -18,16 +18,16 @@ typedef struct {
 
 /**
  * soup_buffer_new:
+ * @use: how @data is to be used by the buffer
  * @data: data
  * @length: length of @data
- * @use: how @data is to be used by the buffer
  *
  * Creates a new #SoupBuffer containing @length bytes from @data.
  *
  * Return value: the new #SoupBuffer.
  **/
 SoupBuffer *
-soup_buffer_new (gconstpointer data, gsize length, SoupMemoryUse use)
+soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
 {
 	SoupBufferPrivate *priv = g_slice_new0 (SoupBufferPrivate);
 
@@ -67,8 +67,8 @@ soup_buffer_new_subbuffer (SoupBuffer *parent, gsize offset, gsize length)
 	 * into new memory.
 	 */
 	if (parent_priv->use == SOUP_MEMORY_TEMPORARY) {
-		return soup_buffer_new (parent->data + offset, length,
-					SOUP_MEMORY_COPY);
+		return soup_buffer_new (SOUP_MEMORY_COPY,
+					parent->data + offset, length);
 	}
 
 	/* Otherwise don't copy anything, and just reuse the existing
@@ -174,18 +174,18 @@ append_buffer (SoupMessageBody *body, SoupBuffer *buffer)
 /**
  * soup_message_body_append:
  * @body: a #SoupMessageBody
+ * @use: how to use @data
  * @data: data to append
  * @length: length of @data
- * @use: how to use @data
  *
  * Appends @length bytes from @data to @body according to @use.
  **/
 void
-soup_message_body_append (SoupMessageBody *body,
-			  gconstpointer data, gsize length, SoupMemoryUse use)
+soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
+			  gconstpointer data, gsize length)
 {
 	if (length > 0)
-		append_buffer (body, soup_buffer_new (data, length, use));
+		append_buffer (body, soup_buffer_new (use, data, length));
 }
 
 /**
@@ -240,7 +240,7 @@ soup_message_body_truncate (SoupMessageBody *body)
 void
 soup_message_body_complete (SoupMessageBody *body)
 {
-	append_buffer (body, soup_buffer_new (NULL, 0, SOUP_MEMORY_STATIC));
+	append_buffer (body, soup_buffer_new (SOUP_MEMORY_STATIC, NULL, 0));
 }
 
 /**
@@ -275,8 +275,8 @@ soup_message_body_flatten (SoupMessageBody *body)
 		}
 		*ptr = '\0';
 
-		priv->flattened = soup_buffer_new (buf, body->length,
-						   SOUP_MEMORY_TAKE);
+		priv->flattened = soup_buffer_new (SOUP_MEMORY_TAKE,
+						   buf, body->length);
 		body->data = priv->flattened->data;
 	}
 
