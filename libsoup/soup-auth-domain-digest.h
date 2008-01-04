@@ -23,22 +23,35 @@ typedef struct {
 typedef struct {
 	SoupAuthDomainClass parent_class;
 
-	/* signals */
-	gboolean (*get_auth_info) (SoupAuthDomainDigest *domain,
-				   SoupMessage *msg,
-				   const char *username,
-				   char hex_urp[33]);
-
 } SoupAuthDomainDigestClass;
+
+#define SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK "auth-callback"
+#define SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA     "auth-data"
 
 GType soup_auth_domain_digest_get_type (void);
 
 SoupAuthDomain *soup_auth_domain_digest_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;
 
-void soup_auth_domain_digest_compute_hex_urp (const char *username,
-					      const char *realm,
-					      const char *password,
-					      char        hex_urp[33]);
+typedef	char * (*SoupAuthDomainDigestAuthCallback) (SoupAuthDomain *domain,
+						    SoupMessage    *msg,
+						    const char     *username,
+						    gpointer        user_data);
+
+void    soup_auth_domain_digest_set_auth_callback  (SoupAuthDomain *domain,
+						    SoupAuthDomainDigestAuthCallback callback,
+						    gpointer        user_data,
+						    GDestroyNotify  dnotify);
+
+char   *soup_auth_domain_digest_encode_password    (const char     *username,
+						    const char     *realm,
+						    const char     *password);
+
+
+gboolean soup_auth_domain_digest_evil_check_password (SoupAuthDomain *domain,
+						      SoupMessage    *msg,
+						      const char     *username,
+						      const char     *password);
+
 
 #endif /* SOUP_AUTH_DOMAIN_DIGEST_H */

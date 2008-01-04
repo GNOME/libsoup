@@ -34,6 +34,7 @@ typedef struct {
 	gboolean proxy;
 	SoupAuthDomainFilter filter;
 	gpointer filter_data;
+	GDestroyNotify filter_dnotify;
 	SoupPathMap *paths;
 } SoupAuthDomainPrivate;
 
@@ -61,6 +62,9 @@ finalize (GObject *object)
 
 	g_free (priv->realm);
 	soup_path_map_free (priv->paths);
+
+	if (priv->filter_dnotify)
+		priv->filter_dnotify (priv->filter_data);
 
 	G_OBJECT_CLASS (soup_auth_domain_parent_class)->finalize (object);
 }
@@ -145,6 +149,10 @@ set_property (GObject *object, guint prop_id,
 		priv->filter = g_value_get_pointer (value);
 		break;
 	case PROP_FILTER_DATA:
+		if (priv->filter_dnotify) {
+			priv->filter_dnotify (priv->filter_data);
+			priv->filter_dnotify = NULL;
+		}
 		priv->filter_data = g_value_get_pointer (value);
 		break;
 	default:
@@ -176,6 +184,19 @@ get_property (GObject *object, guint prop_id,
 	}
 }
 
+/**
+ * soup_auth_domain_add_path:
+ * @domain: a #SoupAuthDomain
+ * @path: the path to add to @domain
+ *
+ * Adds @path to @domain, such that requests under @path on @domain's
+ * server will require authentication (unless overridden by
+ * soup_auth_domain_remove_path() or soup_auth_domain_set_filter()).
+ *
+ * You can also add paths by setting the %SOUP_AUTH_DOMAIN_ADD_PATH
+ * property, which can also be used to add one or more paths at
+ * construct time.
+ **/
 void
 soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 {
@@ -184,6 +205,26 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (TRUE));
 }
 
+/**
+ * soup_auth_domain_remove_path:
+ * @domain: a #SoupAuthDomain
+ * @path: the path to remove from @domain
+ *
+ * Removes @path from @domain, such that requests under @path on
+ * @domain's server will NOT require authentication.
+ *
+ * This is not simply an undo-er for soup_auth_domain_add_path(); it
+ * can be used to "carve out" a subtree that does not require
+ * authentication inside a hierarchy that does. Note also that unlike
+ * with soup_auth_domain_add_path(), this cannot be overridden by
+ * adding a filter, as filters can only bypass authentication that
+ * would otherwise be required, not require it where it would
+ * otherwise be unnecessary.
+ *
+ * You can also remove paths by setting the
+ * %SOUP_AUTH_DOMAIN_REMOVE_PATH property, which can also be used to
+ * remove one or more paths at construct time.
+ **/
 void
 soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 {
@@ -192,17 +233,63 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (FALSE));
 }
 
+/**
+ * soup_auth_domain_set_filter:
+ * @domain: a #SoupAuthDomain
+ * @filter: the auth filter for @domain
+ * @filter_data: data to pass to @filter
+ * @dnotify: destroy notifier to free @filter_data when @domain
+ * is destroyed
+ *
+ * Adds @filter as an authentication filter to @domain. The filter
+ * gets a chance to bypass authentication for certain requests that
+ * would otherwise require it. Eg, it might check the message's path
+ * in some way that is too complicated to do via the other methods, or
+ * it might check the message's method, and allow GETs but not PUTs.
+ *
+ * The filter function returns %TRUE if the request should still
+ * require authentication, or %FALSE if authentication is unnecessary
+ * for this request.
+ *
+ * To help prevent security holes, your filter should return %TRUE by
+ * default, and only return %FALSE under specifically-tested
+ * circumstances, rather than the other way around. Eg, in the example
+ * above, where you want to authenticate PUTs but not GETs, you should
+ * check if the method is GET and return %FALSE in that case, and then
+ * return %TRUE for all other methods (rather than returning %TRUE for
+ * PUT and %FALSE for all other methods). This way if it turned out
+ * (now or later) that some paths supported additional methods besides
+ * GET and PUT, those methods would default to being NOT allowed for
+ * unauthenticated users.
+ *
+ * You can also set the filter by setting the %SOUP_AUTH_DOMAIN_FILTER
+ * and %SOUP_AUTH_DOMAIN_FILTER_DATA properties, which can also be
+ * used to set the filter at construct time.
+ **/
 void
 soup_auth_domain_set_filter (SoupAuthDomain *domain,
 			     SoupAuthDomainFilter filter,
-			     gpointer filter_data)
+			     gpointer        filter_data,
+			     GDestroyNotify  dnotify)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
 
+	if (priv->filter_dnotify)
+		priv->filter_dnotify (priv->filter_data);
+
 	priv->filter = filter;
 	priv->filter_data = filter_data;
+	priv->filter_dnotify = dnotify;
 }
 
+/**
+ * soup_auth_domain_get_realm:
+ * @domain: a #SoupAuthDomain
+ *
+ * Gets the realm name associated with @domain
+ *
+ * Return value: @domain's realm
+ **/
 const char *
 soup_auth_domain_get_realm (SoupAuthDomain *domain)
 {
@@ -211,6 +298,21 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
 	return priv->realm;
 }
 
+/**
+ * soup_auth_domain_covers:
+ * @domain: a #SoupAuthDomain
+ * @msg: a #SoupMessage
+ *
+ * Checks if @domain requires @msg to be authenticated (according to
+ * its paths and filter function). This does not actually look at
+ * whether @msg *is* authenticated, merely whether or not is needs to
+ * be.
+ *
+ * This is used by #SoupServer internally and is probably of no use to
+ * anyone else.
+ *
+ * Return value: %TRUE if @domain requires @msg to be authenticated
+ **/
 gboolean
 soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 {
@@ -238,6 +340,21 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 		return TRUE;
 }
 
+/**
+ * soup_auth_domain_accepts:
+ * @domain: a #SoupAuthDomain
+ * @msg: a #SoupMessage
+ *
+ * Checks if @msg contains appropriate authorization for @domain to
+ * accept it. Mirroring soup_auth_domain_covers(), this does not check
+ * whether or not @domain *cares* if @msg is authorized.
+ *
+ * This is used by #SoupServer internally and is probably of no use to
+ * anyone else.
+ *
+ * Return value: the username that @msg has authenticated as, if in
+ * fact it has authenticated. %NULL otherwise.
+ **/
 char *
 soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 {
@@ -253,6 +370,18 @@ soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)
 	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->accepts (domain, msg, header);
 }
 
+/**
+ * soup_auth_domain_challenge:
+ * @domain: a #SoupAuthDomain
+ * @msg: a #SoupMessage
+ *
+ * Adds a "WWW-Authenticate" or "Proxy-Authenticate" header to @msg,
+ * requesting that the client authenticate, and sets @msg's status
+ * accordingly.
+ *
+ * This is used by #SoupServer internally and is probably of no use to
+ * anyone else.
+ **/
 void
 soup_auth_domain_challenge (SoupAuthDomain *domain, SoupMessage *msg)
 {

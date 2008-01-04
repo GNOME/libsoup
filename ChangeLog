@@ -1,3 +1,17 @@
+2008-01-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-domain.c: add documentation
+	(soup_auth_domain_set_filter): take a GDestroyNotify, for better
+	bindability
+
+	* libsoup/soup-auth-domain-basic.c:
+	* libsoup/soup-auth-domain-digest.c: Add documentation. Replace
+	authentication signals with more-easily-bindable authentication
+	callbacks (with GDestroyNotifys).
+	(soup_auth_domain_digest_evil_check_password): Add this for the
+	benefit of code that depends on being able to do the equivalent
+	of the old soup_server_auth_check_passwd().
+
 2008-01-02  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-body.h (SoupMessageBody): add data and

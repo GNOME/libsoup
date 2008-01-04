@@ -19,14 +19,25 @@
 #include "soup-message.h"
 #include "soup-uri.h"
 
-G_DEFINE_TYPE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
-
 enum {
-	GET_AUTH_INFO,
-	LAST_SIGNAL
+	PROP_0,
+
+	PROP_AUTH_CALLBACK,
+	PROP_AUTH_DATA,
+
+	LAST_PROP
 };
 
-static guint signals[LAST_SIGNAL] = { 0 };
+typedef struct {
+	SoupAuthDomainDigestAuthCallback auth_callback;
+	gpointer auth_data;
+	GDestroyNotify auth_dnotify;
+
+} SoupAuthDomainDigestPrivate;
+
+#define SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN_DIGEST, SoupAuthDomainDigestPrivate))
+
+G_DEFINE_TYPE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
 
 static char *accepts   (SoupAuthDomain *domain,
 			SoupMessage    *msg,
@@ -34,9 +45,26 @@ static char *accepts   (SoupAuthDomain *domain,
 static char *challenge (SoupAuthDomain *domain,
 			SoupMessage    *msg);
 
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
+
 static void
 soup_auth_domain_digest_init (SoupAuthDomainDigest *digest)
 {
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
+
+	G_OBJECT_CLASS (soup_auth_domain_digest_parent_class)->finalize (object);
 }
 
 static void
@@ -46,42 +74,69 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 		SOUP_AUTH_DOMAIN_CLASS (digest_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (digest_class);
 
+	g_type_class_add_private (digest_class, sizeof (SoupAuthDomainDigestPrivate));
+
 	auth_domain_class->accepts   = accepts;
 	auth_domain_class->challenge = challenge;
 
-	/**
-	 * SoupAuthDomainDigest::get_auth_info:
-	 * @digest: the auth domain
-	 * @msg: the message being authenticated
-	 * @username: the provided username
-	 * @hex_urp: on return, the hexified hash of the
-	 * user:realm:password string for @username.
-	 *
-	 * Emitted when the auth domain needs to authenticate a user.
-	 * @username is the username. If the handler recognizes that
-	 * user, it should set @hex_urp accordingly, and return %TRUE.
-	 * Otherwise it should return %FALSE.
-	 *
-	 * If you have a plaintext password database, you can use
-	 * soup_auth_digest_domain_compute_hex_urp() to generate the
-	 * hex_urp string from the username, realm, and plaintext
-	 * password. (If you have neither a plaintext password nor a
-	 * hex_urp, it is impossible to use Digest auth.)
-	 *
-	 * Return value: whether or not @username is known.
-	 **/
-	/* FIXME: what if there are multiple signal handlers? */
-	signals[GET_AUTH_INFO] =
-		g_signal_new ("get_auth_info",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupAuthDomainDigestClass, get_auth_info),
-			      NULL, NULL,
-			      soup_marshal_BOOLEAN__OBJECT_STRING_POINTER,
-			      G_TYPE_BOOLEAN, 3,
-			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER);
+	object_class->finalize     = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	g_object_class_install_property (
+		object_class, PROP_AUTH_CALLBACK,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
+				      "Authentication callback",
+				      "Password-finding callback",
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_AUTH_DATA,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,
+				      "Authentication callback data",
+				      "Data to pass to authentication callback",
+				      G_PARAM_READWRITE));
+}
+
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_AUTH_CALLBACK:
+		priv->auth_callback = g_value_get_pointer (value);
+		break;
+	case PROP_AUTH_DATA:
+		if (priv->auth_dnotify) {
+			priv->auth_dnotify (priv->auth_data);
+			priv->auth_dnotify = NULL;
+		}
+		priv->auth_data = g_value_get_pointer (value);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_AUTH_CALLBACK:
+		g_value_set_pointer (value, priv->auth_callback);
+		break;
+	case PROP_AUTH_DATA:
+		g_value_set_pointer (value, priv->auth_data);
+		break;
+	default:
+		break;
+	}
 }
 
 SoupAuthDomain *
@@ -100,17 +155,72 @@ soup_auth_domain_digest_new (const char *optname1, ...)
 	return domain;
 }
 
+/**
+ * SoupAuthDomainDigestAuthCallback:
+ * @domain: the domain
+ * @msg: the message being authenticated
+ * @username: the username provided by the client
+ * @user_data: the data passed to soup_auth_domain_digest_set_auth_callback()
+ *
+ * Callback used by #SoupAuthDomainDigest for authentication purposes.
+ * The application should look up @username in its password database,
+ * and return the corresponding encoded password (see
+ * soup_auth_domain_digest_encode_password()).
+ *
+ * Return value: the encoded password, or %NULL if @username is not a
+ * valid user. @domain will free the password when it is done with it.
+ **/
+
+/**
+ * soup_auth_domain_digest_set_auth_callback:
+ * @domain: the domain
+ * @auth_callback: the callback
+ * @user_data: data to pass to @auth_callback
+ * @dnotify: destroy notifier to free @user_data when @domain
+ * is destroyed
+ *
+ * Sets the callback that @domain will use to authenticate incoming
+ * requests. For each request containing authorization, @domain will
+ * invoke the callback, and then either accept or reject the request
+ * based on @auth_callback's return value.
+ *
+ * You can also set the auth callback by setting the
+ * %SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK and
+ * %SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA properties, which can also be
+ * used to set the callback at construct time.
+ **/
+void
+soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
+					   SoupAuthDomainDigestAuthCallback auth_callback,
+					   gpointer        user_data,
+					   GDestroyNotify  dnotify)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
+
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
+
+	priv->auth_callback = auth_callback;
+	priv->auth_data = user_data;
+	priv->auth_dnotify = dnotify;
+}
+
 static char *
 accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 {
-	SoupAuthDomainDigest *digest = (SoupAuthDomainDigest *)domain;
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
 	GHashTable *params;
 	const char *uri, *qop, *realm, *username;
 	const char *nonce, *nc, *cnonce, *response;
-	char hex_a1[33], hex_urp[33], computed_response[33], *ret_user;
+	char *hex_urp, hex_a1[33], computed_response[33], *ret_user;
 	int nonce_count;
 	SoupURI *dig_uri, *req_uri;
-	gboolean accept = FALSE, ok = FALSE;
+	gboolean accept = FALSE;
+
+	if (!priv->auth_callback)
+		return NULL;
 
 	if (strncmp (header, "Digest ", 7) != 0)
 		return NULL;
@@ -172,20 +282,18 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 	if (!response)
 		goto DONE;
 
-	g_signal_emit (digest, signals[GET_AUTH_INFO], 0,
-		       msg, username, hex_urp, &ok);
-	if (!ok)
-		goto DONE;
-
-	soup_auth_digest_compute_hex_a1 (hex_urp,
-					 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
-					 nonce, cnonce, hex_a1);
-	soup_auth_digest_compute_response (msg->method, uri, hex_a1,
-					   SOUP_AUTH_DIGEST_QOP_AUTH,
-					   nonce, cnonce, nonce_count,
-					   computed_response);
-
-	accept = (strcmp (response, computed_response) == 0);
+	hex_urp = priv->auth_callback (domain, msg, username, priv->auth_data);
+	if (hex_urp) {
+		soup_auth_digest_compute_hex_a1 (hex_urp,
+						 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
+						 nonce, cnonce, hex_a1);
+		g_free (hex_urp);
+		soup_auth_digest_compute_response (msg->method, uri, hex_a1,
+						   SOUP_AUTH_DIGEST_QOP_AUTH,
+						   nonce, cnonce, nonce_count,
+						   computed_response);
+		accept = (strcmp (response, computed_response) == 0);
+	}
 
  DONE:
 	ret_user = accept ? g_strdup (username) : NULL;
@@ -215,25 +323,109 @@ challenge (SoupAuthDomain *domain, SoupMessage *msg)
 }
 
 /**
- * soup_auth_domain_digest_compute_hex_urp:
+ * soup_auth_domain_digest_encode_password:
  * @username: a username
  * @realm: an auth realm name
  * @password: the password for @username in @realm
- * @hex_urp: used to store the return value.
  *
- * Computes H(@username, ":", @realm, ":", @password), converts it to
- * hex digits, and returns it in @hex_urp.
+ * Encodes the username/realm/password triplet for Digest
+ * authentication. (That is, it returns a stringified MD5 hash of
+ * @username, @realm, and @password concatenated together). This is
+ * the form that is needed as the return value of
+ * #SoupAuthDomainDigest's auth handler.
  *
- * This can be used when connecting to #SoupAuthDomainDigest's
- * %get_auth_info signal; if you have a plaintext password database,
- * you can use soup_auth_domain_digest_compute_hex_urp() to create the
- * return value for that signal.
+ * For security reasons, you should store the encoded hash, rather
+ * than storing the cleartext password itself and calling this method
+ * only when you need to verify it. This way, if your server is
+ * compromised, the attackers will not gain access to cleartext
+ * passwords which might also be usable at other sites. (Note also
+ * that the encoded password returned by this method is identical to
+ * the encoded password stored in an Apache .htdigest file.)
+ *
+ * Return value: the encoded password
  **/
-void
-soup_auth_domain_digest_compute_hex_urp (const char *username,
+char *
+soup_auth_domain_digest_encode_password (const char *username,
 					 const char *realm,
-					 const char *password,
-					 char        hex_urp[33])
+					 const char *password)
 {
+	char hex_urp[33];
+
 	soup_auth_digest_compute_hex_urp (username, realm, password, hex_urp);
+	return g_strdup (hex_urp);
+}
+
+static char *
+evil_auth_callback (SoupAuthDomain *domain, SoupMessage *msg,
+		    const char *username, gpointer encoded_password)
+{
+	return g_strdup (encoded_password);
+}
+
+/**
+ * soup_auth_domain_digest_evil_check_password:
+ * @domain: the auth domain
+ * @msg: the possibly-authenticated request
+ * @username: the username to check @msg against
+ * @password: the password to check @msg against
+ *
+ * Checks if @msg correctly authenticates @username via @password in
+ * @domain.
+ *
+ * Don't use this method; it's evil. It requires you to have a
+ * cleartext password database, which means that if your server is
+ * compromised, the attackers will have access to all of your users'
+ * passwords, which may also be their passwords on other servers. It
+ * is much better to store the passwords encoded in some format (eg,
+ * via soup_auth_domain_digest_encode_password() when using Digest
+ * authentication), so that if the server is compromised, the
+ * attackers won't be able to use the encoded passwords elsewhere.
+ *
+ * At any rate, even if you do have a cleartext password database, you
+ * still don't need to use this method, as you can just call
+ * soup_auth_domain_digest_encode_password() on the cleartext password
+ * from the #SoupAuthDomainDigestAuthCallback anyway. This method
+ * really only exists so as not to break certain libraries written
+ * against libsoup 2.2 whose public APIs depend on the existence of a
+ * "check this password against this request" method.
+ *
+ * Return value: %TRUE if @msg matches @username and @password,
+ * %FALSE if not.
+ **/
+gboolean
+soup_auth_domain_digest_evil_check_password (SoupAuthDomain *domain,
+					     SoupMessage    *msg,
+					     const char     *username,
+					     const char     *password)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
+	char *encoded_password;
+	const char *header;
+	SoupAuthDomainDigestAuthCallback old_callback;
+	gpointer old_data;
+	char *matched_username;
+
+	encoded_password = soup_auth_domain_digest_encode_password (
+		username, soup_auth_domain_get_realm (domain), password);
+
+	old_callback = priv->auth_callback;
+	old_data = priv->auth_data;
+
+	priv->auth_callback = evil_auth_callback;
+	priv->auth_data = encoded_password;
+
+	header = soup_message_headers_get (msg->request_headers, "Authorization");
+	matched_username = accepts (domain, msg, header);
+
+	priv->auth_callback = old_callback;
+	priv->auth_data = old_data;
+
+	g_free (encoded_password);
+
+	if (matched_username) {
+		g_free (matched_username);
+		return TRUE;
+	} else
+		return FALSE;
 }

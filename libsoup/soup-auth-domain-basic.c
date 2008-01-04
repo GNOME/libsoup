@@ -15,14 +15,24 @@
 #include "soup-marshal.h"
 #include "soup-message.h"
 
-G_DEFINE_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
-
 enum {
-	AUTHENTICATE,
-	LAST_SIGNAL
+	PROP_0,
+
+	PROP_AUTH_CALLBACK,
+	PROP_AUTH_DATA,
+
+	LAST_PROP
 };
 
-static guint signals[LAST_SIGNAL] = { 0 };
+typedef struct {
+	SoupAuthDomainBasicAuthCallback auth_callback;
+	gpointer auth_data;
+	GDestroyNotify auth_dnotify;
+} SoupAuthDomainBasicPrivate;
+
+#define SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasicPrivate))
+
+G_DEFINE_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
 
 static char *accepts   (SoupAuthDomain *domain,
 			SoupMessage    *msg,
@@ -30,9 +40,26 @@ static char *accepts   (SoupAuthDomain *domain,
 static char *challenge (SoupAuthDomain *domain,
 			SoupMessage    *msg);
 
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
+
 static void
 soup_auth_domain_basic_init (SoupAuthDomainBasic *basic)
 {
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupAuthDomainBasicPrivate *priv =
+		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
+
+	G_OBJECT_CLASS (soup_auth_domain_basic_parent_class)->finalize (object);
 }
 
 static void
@@ -42,41 +69,80 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 		SOUP_AUTH_DOMAIN_CLASS (basic_class);
 	GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
 
+	g_type_class_add_private (basic_class, sizeof (SoupAuthDomainBasicPrivate));
+
 	auth_domain_class->accepts   = accepts;
 	auth_domain_class->challenge = challenge;
 
-	/**
-	 * SoupAuthDomainBasic::authenticate:
-	 * @basic: the auth domain
-	 * @msg: the message being authenticated
-	 * @username: the provided username
-	 * @password: the provided password
-	 *
-	 * Emitted when the auth domain needs to authenticate a
-	 * username/password combination.
-	 *
-	 * Handlers for this signal should consider declaring the
-	 * @password argument as a #gpointer rather than as a
-	 * const char *, so that if the program crashes while
-	 * handling the signal, bug-buddy won't capture the password
-	 * in the stack trace.
-	 *
-	 * Return value: whether or not to accept the password
-	 **/
-	/* FIXME: what if there are multiple signal handlers? */
-	signals[AUTHENTICATE] =
-		g_signal_new ("authenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (SoupAuthDomainBasicClass, authenticate),
-			      NULL, NULL,
-			      soup_marshal_BOOLEAN__OBJECT_STRING_STRING,
-			      G_TYPE_BOOLEAN, 3,
-			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING);
+	object_class->finalize     = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	g_object_class_install_property (
+		object_class, PROP_AUTH_CALLBACK,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
+				      "Authentication callback",
+				      "Password-checking callback",
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_AUTH_DATA,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
+				      "Authentication callback data",
+				      "Data to pass to authentication callback",
+				      G_PARAM_READWRITE));
 }
 
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomainBasicPrivate *priv =
+		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_AUTH_CALLBACK:
+		priv->auth_callback = g_value_get_pointer (value);
+		break;
+	case PROP_AUTH_DATA:
+		if (priv->auth_dnotify) {
+			priv->auth_dnotify (priv->auth_data);
+			priv->auth_dnotify = NULL;
+		}
+		priv->auth_data = g_value_get_pointer (value);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomainBasicPrivate *priv =
+		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_AUTH_CALLBACK:
+		g_value_set_pointer (value, priv->auth_callback);
+		break;
+	case PROP_AUTH_DATA:
+		g_value_set_pointer (value, priv->auth_data);
+		break;
+	default:
+		break;
+	}
+}
+
+/**
+ * soup_auth_domain_basic_new:
+ * @optname1: name of first option, or %NULL
+ * @...: option name/value pairs
+ *
+ * Creates a #SoupAuthDomainBasic
+ *
+ * Return value: the new #SoupAuthDomain
+ **/
 SoupAuthDomain *
 soup_auth_domain_basic_new (const char *optname1, ...)
 {
@@ -93,6 +159,67 @@ soup_auth_domain_basic_new (const char *optname1, ...)
 	return domain;
 }
 
+/**
+ * SoupAuthDomainBasicAuthCallback:
+ * @domain: the domain
+ * @msg: the message being authenticated
+ * @username: the username provided by the client
+ * @password: the password provided by the client
+ * @user_data: the data passed to soup_auth_domain_basic_set_auth_callback()
+ *
+ * Callback used by #SoupAuthDomainBasic for authentication purposes.
+ * The application should verify that @username and @password and valid
+ * and return %TRUE or %FALSE.
+ *
+ * If you are maintaining your own password database (rather than
+ * using the password to authenticate against some other system like
+ * PAM or a remote server), you should make sure you know what you are
+ * doing. In particular, don't store cleartext passwords, or
+ * easily-computed hashes of cleartext passwords, even if you don't
+ * care that much about the security of your server, because users
+ * will frequently use the same password for multiple sites, and so
+ * compromising any site with a cleartext (or easily-cracked) password
+ * database may give attackers access to other more-interesting sites
+ * as well.
+ *
+ * Return value: %TRUE if @username and @password are valid
+ **/
+
+/**
+ * soup_auth_domain_basic_set_auth_callback:
+ * @domain: the domain
+ * @auth_callback: the callback
+ * @user_data: data to pass to @auth_callback
+ * @dnotify: destroy notifier to free @user_data when @domain
+ * is destroyed
+ *
+ * Sets the callback that @domain will use to authenticate incoming
+ * requests. For each request containing authorization, @domain will
+ * invoke the callback, and then either accept or reject the request
+ * based on @auth_callback's return value.
+ *
+ * You can also set the auth callback by setting the
+ * %SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK and
+ * %SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA properties, which can also be
+ * used to set the callback at construct time.
+ **/
+void
+soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
+					  SoupAuthDomainBasicAuthCallback auth_callback,
+					  gpointer        user_data,
+					  GDestroyNotify  dnotify)
+{
+	SoupAuthDomainBasicPrivate *priv =
+		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
+
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
+
+	priv->auth_callback = auth_callback;
+	priv->auth_data = user_data;
+	priv->auth_dnotify = dnotify;
+}
+
 static void
 pw_free (char *pw)
 {
@@ -103,11 +230,15 @@ pw_free (char *pw)
 static char *
 accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 {
-	SoupAuthDomainBasic *basic = (SoupAuthDomainBasic *)domain;
+	SoupAuthDomainBasicPrivate *priv =
+		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
 	char *decoded, *colon;
 	gsize len, plen;
 	char *username, *password;
 	gboolean ok = FALSE;
+
+	if (!priv->auth_callback)
+		return NULL;
 
 	if (strncmp (header, "Basic ", 6) != 0)
 		return NULL;
@@ -128,8 +259,8 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 	memset (colon + 1, 0, plen);
 	username = decoded;
 
-	g_signal_emit (basic, signals[AUTHENTICATE], 0,
-		       msg, username, password, &ok);
+	ok = priv->auth_callback (domain, msg, username, password,
+				  priv->auth_data);
 	pw_free (password);
 
 	if (ok)

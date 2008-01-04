@@ -48,7 +48,8 @@ void        soup_auth_domain_remove_path (SoupAuthDomain       *domain,
 
 void        soup_auth_domain_set_filter  (SoupAuthDomain       *domain,
 					  SoupAuthDomainFilter  filter,
-					  gpointer              filter_data);
+					  gpointer              filter_data,
+					  GDestroyNotify        dnotify);
 
 const char *soup_auth_domain_get_realm   (SoupAuthDomain       *domain);
 

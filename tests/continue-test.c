@@ -412,7 +412,7 @@ request_started (SoupServer *server, SoupSocket *sock,
 
 static gboolean
 auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
-	       const char *username, gpointer password, gpointer user_data)
+	       const char *username, const char *password, gpointer user_data)
 {
 	return !strcmp (username, "user") && !strcmp (password, "pass");
 }
@@ -449,9 +449,8 @@ setup_server (void)
 	auth_domain = soup_auth_domain_basic_new (
 		SOUP_AUTH_DOMAIN_REALM, "continue-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
+		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
 		NULL);
-	g_signal_connect (auth_domain, "authenticate",
-			  G_CALLBACK (auth_callback), NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 
 	return server;

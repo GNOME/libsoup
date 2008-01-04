@@ -23,17 +23,25 @@ typedef struct {
 typedef struct {
 	SoupAuthDomainClass parent_class;
 
-	/* signals */
-	gboolean (*authenticate) (SoupAuthDomainBasic *domain,
-				  SoupMessage *msg,
-				  const char *username,
-				  const char *password);
-
 } SoupAuthDomainBasicClass;
+
+#define SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK "auth-callback"
+#define SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA     "auth-data"
 
 GType soup_auth_domain_basic_get_type (void);
 
 SoupAuthDomain *soup_auth_domain_basic_new (const char *optname1,
 					    ...) G_GNUC_NULL_TERMINATED;
+
+typedef	gboolean (*SoupAuthDomainBasicAuthCallback) (SoupAuthDomain *domain,
+						     SoupMessage    *msg,
+						     const char     *username,
+						     const char     *password,
+						     gpointer        user_data);
+
+void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
+						     SoupAuthDomainBasicAuthCallback callback,
+						     gpointer        user_data,
+						     GDestroyNotify  dnotify);
 
 #endif /* SOUP_AUTH_DOMAIN_BASIC_H */

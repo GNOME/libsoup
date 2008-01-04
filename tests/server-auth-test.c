@@ -227,22 +227,27 @@ do_auth_tests (SoupURI *base_uri)
 }
 
 static gboolean
-basic_authenticate (SoupAuthDomain *auth_domain, SoupMessage *msg,
-		    const char *username, gpointer password, gpointer data)
+basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+		     const char *username, const char *password, gpointer data)
 {
 	return !strcmp (username, "user") && !strcmp (password, "password");
 }
 
-static gboolean
-digest_get_auth_info (SoupAuthDomain *auth_domain, SoupMessage *msg,
-		      const char *username, char hex_urp[33], gpointer data)
+static char *
+digest_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+		      const char *username, gpointer data)
 {
 	if (strcmp (username, "user") != 0)
-		return FALSE;
+		return NULL;
 
-	soup_auth_domain_digest_compute_hex_urp ("user", "server-auth-test",
-						 "password", hex_urp);
-	return TRUE;
+	/* Note: this is exactly how you *shouldn't* do it in the real
+	 * world; you should have the pre-encoded password stored in a
+	 * database of some sort rather than using the cleartext
+	 * password in the callback.
+	 */
+	return soup_auth_domain_digest_encode_password ("user",
+							"server-auth-test",
+							"password");
 }
 
 static void
@@ -345,18 +350,16 @@ main (int argc, char **argv)
 		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Basic",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
+		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, basic_auth_callback,
 		NULL);
-	g_signal_connect (auth_domain, "authenticate",
-			  G_CALLBACK (basic_authenticate), NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 
 	auth_domain = soup_auth_domain_digest_new (
 		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Digest",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
+		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, digest_auth_callback,
 		NULL);
-	g_signal_connect (auth_domain, "get_auth_info",
-			  G_CALLBACK (digest_get_auth_info), NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 
 	soup_server_run_async (server);
