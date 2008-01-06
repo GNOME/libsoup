@@ -36,18 +36,12 @@ typedef struct {
 
 GType soup_server_get_type (void);
 
-
-typedef struct {
-	SoupSocket *sock;
-	const char *auth_user;
-	const char *auth_realm;
-} SoupClientContext;
-
+typedef struct SoupClientContext SoupClientContext;
 typedef void (*SoupServerCallback) (SoupServer        *server,
 				    SoupMessage       *msg, 
 				    const char        *path,
 				    GHashTable        *query,
-				    SoupClientContext *context,
+				    SoupClientContext *client,
 				    gpointer           user_data);
 
 #define SOUP_SERVER_PORT          "port"
@@ -75,8 +69,8 @@ GMainContext      *soup_server_get_async_context (SoupServer         *server);
 void               soup_server_add_handler    (SoupServer            *serv,
 					       const char            *path,
 					       SoupServerCallback     callback,
-					       GDestroyNotify         destroy,
-					       gpointer               data);
+					       gpointer               data,
+					       GDestroyNotify         destroy);
 void               soup_server_remove_handler (SoupServer            *serv,
 					       const char            *path);
 
@@ -94,8 +88,11 @@ void               soup_server_unpause_message (SoupServer           *server,
 
 /* Client context */
 
-SoupAddress *soup_client_context_get_address (SoupClientContext *ctx);
-const char  *soup_client_context_get_host    (SoupClientContext *ctx);
+SoupSocket     *soup_client_context_get_socket      (SoupClientContext *client);
+SoupAddress    *soup_client_context_get_address     (SoupClientContext *client);
+const char     *soup_client_context_get_host        (SoupClientContext *client);
+SoupAuthDomain *soup_client_context_get_auth_domain (SoupClientContext *client);
+const char     *soup_client_context_get_auth_user   (SoupClientContext *client);
 
 G_END_DECLS
 

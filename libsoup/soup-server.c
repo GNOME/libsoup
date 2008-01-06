@@ -37,6 +37,13 @@ enum {
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+struct SoupClientContext {
+	SoupServer     *server;
+	SoupSocket     *sock;
+	SoupAuthDomain *auth_domain;
+	char           *auth_user;
+};
+
 typedef struct {
 	char                   *path;
 
@@ -161,7 +168,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer::request-started
 	 * @server: the server
-	 * @connection: an (opaque) connection ID
+	 * @client: the client context
 	 * @message: the new message
 	 *
 	 * Emitted when the server has started reading a new request.
@@ -170,10 +177,11 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * you can usefully do with it is connect to its signals.
 	 *
 	 * If the request is read successfully, this will eventually
-	 * be followed by a #request-read signal. If a response is
-	 * then sent, the request processing will end with a
-	 * #request-finished signal. If a network error occurs, the
-	 * processing will instead end with #request-aborted.
+	 * be followed by a #SoupServer::request_read signal. If a
+	 * response is then sent, the request processing will end with
+	 * a #SoupServer::request_finished signal. If a network error
+	 * occurs, the processing will instead end with
+	 * #SoupServer::request_aborted.
 	 **/
 	signals[REQUEST_STARTED] =
 		g_signal_new ("request-started",
@@ -189,15 +197,16 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer::request-read
 	 * @server: the server
-	 * @connection: an (opaque) connection ID
+	 * @client: the client context
 	 * @message: the message
 	 *
 	 * Emitted when the server has successfully read a request.
 	 * @message will have all of its request-side information
-	 * filled in. This signal is emitted before any handlers are
-	 * called for the message, and if it sets the message's
-	 * #status_code, then normal handler processing will be
-	 * skipped.
+	 * filled in, and if the message was authenticated, @client
+	 * will have information about that. This signal is emitted
+	 * before any handlers are called for the message, and if it
+	 * sets the message's #status_code, then normal handler
+	 * processing will be skipped.
 	 **/
 	signals[REQUEST_READ] =
 		g_signal_new ("request-read",
@@ -213,7 +222,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer::request-finished
 	 * @server: the server
-	 * @connection: an (opaque) connection ID
+	 * @client: the client context
 	 * @message: the message
 	 *
 	 * Emitted when the server has finished writing a response to
@@ -233,19 +242,20 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer::request-aborted
 	 * @server: the server
-	 * @connection: an (opaque) connection ID
+	 * @client: the client context
 	 * @message: the message
 	 *
 	 * Emitted when processing has failed for a message; this
 	 * could mean either that it could not be read (if
-	 * #request-read has not been emitted for it yet), or that the
-	 * response could not be written back (if #request-read has
-	 * been emitted but #request-finished has not been).
+	 * #SoupServer::request_read has not been emitted for it yet),
+	 * or that the response could not be written back (if
+	 * #SoupServer::request_read has been emitted but
+	 * #SoupServer::request_finished has not been).
 	 *
 	 * @message is in an undefined state when this signal is
 	 * emitted; the signal exists primarily to allow the server to
 	 * free any state that it may have allocated in
-	 * #request-started.
+	 * #SoupServer::request_started.
 	 **/
 	signals[REQUEST_ABORTED] =
 		g_signal_new ("request-aborted",
@@ -491,23 +501,40 @@ soup_server_get_listener (SoupServer *server)
 	return priv->listen_sock;
 }
 
-static void start_request (SoupServer *, SoupSocket *);
+static void start_request (SoupServer *, SoupClientContext *);
 
 static void
-request_finished (SoupMessage *msg, gpointer sock)
+soup_client_context_cleanup (SoupClientContext *client)
 {
-	SoupServer *server = g_object_get_data (sock, "SoupServer");
+	if (client->auth_domain) {
+		g_object_unref (client->auth_domain);
+		client->auth_domain = NULL;
+	}
+	if (client->auth_user) {
+		g_free (client->auth_user);
+		client->auth_user = NULL;
+	}
+}
+
+static void
+request_finished (SoupMessage *msg, SoupClientContext *client)
+{
+	SoupServer *server = client->server;
+	SoupSocket *sock = client->sock;
 
 	g_signal_emit (server,
 		       msg->status_code == SOUP_STATUS_IO_ERROR ?
 		       signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
-		       0, sock, msg);
+		       0, client, msg);
 
+	soup_client_context_cleanup (client);
 	if (soup_socket_is_connected (sock) && soup_message_is_keepalive (msg)) {
 		/* Start a new request */
-		start_request (server, sock);
-	} else
+		start_request (server, client);
+	} else {
 		soup_socket_disconnect (sock);
+		g_slice_free (SoupClientContext, client);
+	}
 	g_object_unref (msg);
 	g_object_unref (sock);
 }
@@ -530,17 +557,14 @@ soup_server_get_handler (SoupServer *server, const char *path)
 }
 
 static void
-check_auth (SoupMessage *req, SoupSocket *sock)
+check_auth (SoupMessage *req, SoupClientContext *client)
 {
-	SoupServer *server;
-	SoupServerPrivate *priv;
+	SoupServer *server = client->server;
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupAuthDomain *domain;
 	GSList *iter;
 	gboolean rejected = FALSE;
 	char *auth_user;
-
-	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
-	priv = SOUP_SERVER_GET_PRIVATE (server);
 
 	for (iter = priv->auth_domains; iter; iter = iter->next) {
 		domain = iter->data;
@@ -548,12 +572,8 @@ check_auth (SoupMessage *req, SoupSocket *sock)
 		if (soup_auth_domain_covers (domain, req)) {
 			auth_user = soup_auth_domain_accepts (domain, req);
 			if (auth_user) {
-				g_object_set_data_full (G_OBJECT (req),
-							"SoupServer-auth_user",
-							auth_user, g_free);
-				g_object_set_data (G_OBJECT (req),
-						   "SoupServer-auth_realm",
-						   (char *)soup_auth_domain_get_realm (domain));
+				client->auth_domain = g_object_ref (domain);
+				client->auth_user = auth_user;
 				return;
 			}
 
@@ -574,17 +594,15 @@ check_auth (SoupMessage *req, SoupSocket *sock)
 }
 
 static void
-call_handler (SoupMessage *req, SoupSocket *sock)
+call_handler (SoupMessage *req, SoupClientContext *client)
 {
-	SoupServer *server;
+	SoupServer *server = client->server;
 	SoupServerHandler *hand;
 	SoupURI *uri;
 	char *path;
 
 	if (req->status_code != 0)
 		return;
-
-	server = g_object_get_data (G_OBJECT (sock), "SoupServer");
 
 	uri = soup_message_get_uri (req);
 	path = g_strdup (uri->path);
@@ -598,14 +616,7 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 	}
 
 	if (hand->callback) {
-		SoupClientContext ctx;
 		GHashTable *form_data_set;
-
-		ctx.sock        = sock;
-		ctx.auth_user   = g_object_get_data (G_OBJECT (req),
-						     "SoupServer-auth_user");
-		ctx.auth_realm  = g_object_get_data (G_OBJECT (req),
-						     "SoupServer-auth_realm");
 
 		if (uri->query)
 			form_data_set = soup_form_decode_urlencoded (uri->query);
@@ -615,7 +626,7 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 		/* Call method handler */
 		(*hand->callback) (server, req,
 				   path, form_data_set,
-				   &ctx, hand->user_data);
+				   client, hand->user_data);
 
 		if (form_data_set)
 			g_hash_table_destroy (form_data_set);
@@ -625,24 +636,26 @@ call_handler (SoupMessage *req, SoupSocket *sock)
 }
 
 static void
-start_request (SoupServer *server, SoupSocket *server_sock)
+start_request (SoupServer *server, SoupClientContext *client)
 {
 	SoupMessage *msg;
+
+	soup_client_context_cleanup (client);
 
 	/* Listen for another request on this connection */
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
         soup_message_headers_set_encoding (msg->response_headers,
                                            SOUP_ENCODING_CONTENT_LENGTH);
 
-	g_signal_connect (msg, "got_headers", G_CALLBACK (check_auth), server_sock);
-	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), server_sock);
-	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), server_sock);
+	g_signal_connect (msg, "got_headers", G_CALLBACK (check_auth), client);
+	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), client);
+	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), client);
 
 	g_signal_emit (server, signals[REQUEST_STARTED], 0,
-		       server_sock, msg);
+		       client, msg);
 
-	g_object_ref (server_sock);
-	soup_message_read_request (msg, server_sock);
+	g_object_ref (client->sock);
+	soup_message_read_request (msg, client->sock);
 }
 
 static void
@@ -660,13 +673,14 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 {
 	SoupServer *server = user_data;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupClientContext *client = g_slice_new0 (SoupClientContext);
 
-	g_object_ref (sock);
-	g_object_set_data (G_OBJECT (sock), "SoupServer", server);
+	client->server = server;
+	client->sock = g_object_ref (sock);
 	priv->client_socks = g_slist_prepend (priv->client_socks, sock);
 	g_signal_connect (sock, "disconnected",
 			  G_CALLBACK (socket_disconnected), server);
-	start_request (server, sock);
+	start_request (server, client);
 }
 
 /**
@@ -784,8 +798,48 @@ soup_server_get_async_context (SoupServer *server)
 }
 
 /**
+ * SoupClientContext:
+ *
+ * A #SoupClientContext provides additional information about the
+ * client making a particular request. In particular, you can use
+ * soup_client_context_get_auth_domain() and
+ * soup_client_context_get_auth_user() to determine if HTTP
+ * authentication was used successfully.
+ *
+ * soup_client_context_get_address() and/or
+ * soup_client_context_get_host() can be used to get information for
+ * logging or debugging purposes. soup_client_context_get_socket() may
+ * also be of use in some situations (eg, tracking when multiple
+ * requests are made on the same connection).
+ **/
+
+/**
+ * soup_client_context_get_socket:
+ * @client: a #SoupClientContext
+ *
+ * Retrieves the #SoupSocket that @client is associated with.
+ *
+ * If you are using this method to observe when multiple requests are
+ * made on the same persistent HTTP connection (eg, as the ntlm-test
+ * test program does), you will need to pay attention to socket
+ * destruction as well (either by using weak references, or by
+ * connecting to the #SoupSocket::disconnected signal), so that you do
+ * not get fooled when the allocator reuses the memory address of a
+ * previously-destroyed socket to represent a new socket.
+ *
+ * Return value: the #SoupSocket that @client is associated with.
+ **/
+SoupSocket *
+soup_client_context_get_socket (SoupClientContext *client)
+{
+	g_return_val_if_fail (client != NULL, NULL);
+
+	return client->sock;
+}
+
+/**
  * soup_client_context_get_address:
- * @context: a #SoupClientContext
+ * @client: a #SoupClientContext
  *
  * Retrieves the #SoupAddress associated with the remote end
  * of a connection.
@@ -794,16 +848,16 @@ soup_server_get_async_context (SoupServer *server)
  * connection.
  **/
 SoupAddress *
-soup_client_context_get_address (SoupClientContext *context)
+soup_client_context_get_address (SoupClientContext *client)
 {
-	g_return_val_if_fail (context != NULL, NULL);
+	g_return_val_if_fail (client != NULL, NULL);
 
-	return soup_socket_get_remote_address (context->sock);
+	return soup_socket_get_remote_address (client->sock);
 }
 
 /**
  * soup_client_context_get_host:
- * @context: a #SoupClientContext
+ * @client: a #SoupClientContext
  *
  * Retrieves the IP address associated with the remote end of a
  * connection. (If you want the actual hostname, you'll have to call
@@ -814,12 +868,50 @@ soup_client_context_get_address (SoupClientContext *context)
  * connection.
  **/
 const char *
-soup_client_context_get_host (SoupClientContext *context)
+soup_client_context_get_host (SoupClientContext *client)
 {
 	SoupAddress *address;
 
-	address = soup_client_context_get_address (context);
+	address = soup_client_context_get_address (client);
 	return soup_address_get_physical (address);
+}
+
+/**
+ * soup_client_context_get_auth_domain:
+ * @client: a #SoupClientContext
+ *
+ * Checks whether the request associated with @client has been
+ * authenticated, and if so returns the #SoupAuthDomain that
+ * authenticated it.
+ *
+ * Return value: a #SoupAuthDomain, or %NULL if the request was not
+ * authenticated.
+ **/
+SoupAuthDomain *
+soup_client_context_get_auth_domain (SoupClientContext *client)
+{
+	g_return_val_if_fail (client != NULL, NULL);
+
+	return client->auth_domain;
+}
+
+/**
+ * soup_client_context_get_auth_user:
+ * @client: a #SoupClientContext
+ *
+ * Checks whether the request associated with @client has been
+ * authenticated, and if so returns the username that the client
+ * authenticated as.
+ *
+ * Return value: the authenticated-as user, or %NULL if the request
+ * was not authenticated.
+ **/
+const char *
+soup_client_context_get_auth_user (SoupClientContext *client)
+{
+	g_return_val_if_fail (client != NULL, NULL);
+
+	return client->auth_user;
 }
 
 /**
@@ -828,7 +920,7 @@ soup_client_context_get_host (SoupClientContext *context)
  * @msg: the message being processed
  * @path: the path component of @msg's Request-URI
  * @query: the parsed query component of @msg's Request-URI
- * @context: additional contextual information about the client
+ * @client: additional contextual information about the client
  * @user_data: the data passed to @soup_server_add_handler
  *
  * A callback used to handle requests to a #SoupServer. The callback
@@ -866,20 +958,14 @@ soup_client_context_get_host (SoupClientContext *context)
  * soup_message_body_complete() to indicate that no more chunks are
  * coming.
  **/
-typedef void (*SoupServerCallback) (SoupServer        *server,
-				    SoupMessage       *msg, 
-				    const char        *path,
-				    GHashTable        *query,
-				    SoupClientContext *context,
-				    gpointer           user_data);
 
 /**
  * soup_server_add_handler:
  * @server: a #SoupServer
  * @path: the toplevel path for the handler
  * @callback: callback to invoke for requests under @path
- * @destroy: destroy notifier to free @user_data
  * @user_data: data for @callback
+ * @destroy: destroy notifier to free @user_data
  *
  * Adds a handler to @server for requests under @path. See the
  * documentation for #SoupServerCallback for information about
@@ -889,8 +975,8 @@ void
 soup_server_add_handler (SoupServer            *server,
 			 const char            *path,
 			 SoupServerCallback     callback,
-			 GDestroyNotify         destroy,
-			 gpointer               user_data)
+			 gpointer               user_data,
+			 GDestroyNotify         destroy)
 {
 	SoupServerPrivate *priv;
 	SoupServerHandler *hand;

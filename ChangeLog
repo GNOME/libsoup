@@ -1,5 +1,18 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server.c (SoupClientContext): Make this opaque.
+	(soup_client_context_get_socket)
+	(soup_client_context_get_auth_domain)
+	(soup_client_context_get_auth_user): New accessors
+	(soup_server_class_init): Make the signals take a
+	SoupClientContext rather than a SoupSocket.
+	(start_request, check_auth, call_handler, request_finished): Clean
+	these up by using a SoupClientContext to communicate between them.
+	(soup_server_add_handler): tweak the argument order to match the
+	gtk standard (callback, user_data, destroynotify).
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-address.c: remove the "dns_result" signal, which
 	was just an implementation detail of soup_address_resolve_async().
 

@@ -59,7 +59,7 @@ typedef enum {
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
+		 SoupClientContext *client, gpointer data)
 {
 	GHashTable *connections = data;
 	const char *auth;
@@ -80,7 +80,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (strstr (path, "/404"))
 		not_found = TRUE;
 
-	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, context->sock));
+	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, soup_client_context_get_socket (client)));
 	auth = soup_message_headers_get (msg->request_headers, "Authorization");
 
 	if (auth && !strncmp (auth, "NTLM ", 5)) {
@@ -118,7 +118,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Connection", "close");
 	}
 
-	g_hash_table_insert (connections, context->sock,
+	g_hash_table_insert (connections, soup_client_context_get_socket (client),
 			     GINT_TO_POINTER (state));
 }
 
@@ -373,7 +373,7 @@ main (int argc, char **argv)
 		exit (1);
 	}
 	soup_server_add_handler (server, NULL,
-				 server_callback, NULL, connections);
+				 server_callback, connections, NULL);
 	soup_server_run_async (server);
 
 	loop = g_main_loop_new (NULL, TRUE);
