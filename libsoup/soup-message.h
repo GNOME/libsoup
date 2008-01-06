@@ -25,13 +25,29 @@ G_BEGIN_DECLS
  * @method: the HTTP method
  * @status_code: the HTTP status code
  * @reason_phrase: the status phrase associated with @status_code
- * @request: the request buffer
+ * @request_body: the request body
  * @request_headers: the request headers
- * @response: the response buffer
+ * @response_body: the response body
  * @response_headers: the response headers
- * @status: the processing status of the message
  *
  * Represents an HTTP message being sent or received.
+ *
+ * As described in the #SoupMessageBody documentation, the
+ * @request_body and @response_body %data fields will not necessarily
+ * be filled in at all times. When they are filled in, they will be
+ * terminated with a '\0' byte (which is not included in the %length),
+ * so you can use them as ordinary C strings (assuming that you know
+ * that the body doesn't have any other '\0' bytes).
+ *
+ * For a client-side #SoupMessage, @request_body's %data is usually
+ * filled in right before libsoup writes the request to the network,
+ * but you should not count on this; use soup_message_body_flatten()
+ * if you want to ensure that %data is filled in. @response_body's
+ * %data will be filled in before #SoupMessage::finished is emitted,
+ * unless you set the %SOUP_MESSAGE_OVERWRITE_CHUNKS flag.
+ *
+ * For a server-side #SoupMessage, @request_body's %data will be
+ * filled in before #SoupMessage::got_body is emitted.
  **/
 struct SoupMessage {
 	GObject parent;

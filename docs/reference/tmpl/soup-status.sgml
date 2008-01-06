@@ -17,17 +17,13 @@ HTTP and Soup status codes
 <!-- ##### SECTION Stability_Level ##### -->
 
 
-<!-- ##### ENUM SoupStatusClass ##### -->
+<!-- ##### MACRO SOUP_STATUS_IS_TRANSPORT_ERROR ##### -->
 <para>
 
 </para>
 
-@SOUP_STATUS_CLASS_TRANSPORT_ERROR: 
-@SOUP_STATUS_CLASS_INFORMATIONAL: 
-@SOUP_STATUS_CLASS_SUCCESS: 
-@SOUP_STATUS_CLASS_REDIRECT: 
-@SOUP_STATUS_CLASS_CLIENT_ERROR: 
-@SOUP_STATUS_CLASS_SERVER_ERROR: 
+@status: 
+
 
 <!-- ##### MACRO SOUP_STATUS_IS_INFORMATIONAL ##### -->
 <para>
@@ -148,5 +144,12 @@ HTTP and Soup status codes
 
 @status_code: 
 @Returns: 
+
+
+<!-- ##### MACRO SOUP_HTTP_ERROR ##### -->
+<para>
+
+</para>
+
 
 

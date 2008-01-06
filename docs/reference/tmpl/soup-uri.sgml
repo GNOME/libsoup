@@ -20,67 +20,19 @@ at the uri field of an incoming message to determine how to process it.
 <!-- ##### SECTION Stability_Level ##### -->
 
 
-<!-- ##### STRUCT SoupUri ##### -->
-<para>
-Note that the <structfield>user</structfield> and
-<structfield>passwd</structfield> fields are <emphasis>not</emphasis>
-the standard mechanism for authentication in
-<application>libsoup</application>. Client-side authentication should
-normally use the <type>SoupSession</type> <link
-linkend="SoupSession-authenticate">authenticate</link> signal
-(although the <type>SoupUri</type> fields are also supported).
-Server-side authentication uses <type>SoupServer</type>'s
-authentication mechanisms and never makes use of the
-<type>SoupUri</type> fields.
-</para>
-
-<para>
-The <structfield>path</structfield> field is never empty or %NULL; if
-a stringified URI is given with no path, the <type>SoupUri</type> form
-has <literal>"/"</literal> as its path. Likewise,
-<structfield>port</structfield> is always filled in, even if it wasn't
-filled in in the stringified URI.
-</para>
-
-<para>
-The <structfield>path</structfield>, <structfield>query</structfield>,
-and <structfield>fragment</structfield> fields may have
-<literal>%</literal>-encoded characters in them; this is because only
-the server that the URI belongs to can say for sure whether
-<literal>"%%2F"</literal> means the same thing as
-<literal>"/"</literal>, or something different. Servers can use
-soup_uri_normalize() to decode characters from the "reserved" set that
-they are not using for reserved purposes.
-</para>
-
-@protocol: the URI's protocol, either %SOUP_PROTOCOL_HTTP or %SOUP_PROTOCOL_HTTPS
-@user: the username, or %NULL
-@passwd: the password, or %NULL
-@host: the hostname
-@port: the port
-@path: the path, possibly "%%-encoded"
-@query: the query string, possibly "%%-encoded", or %NULL
-@fragment: the fragment identifier, possibly "%%-encoded", or %NULL
-
-<!-- ##### TYPEDEF SoupProtocol ##### -->
+<!-- ##### STRUCT SoupURI ##### -->
 <para>
 
 </para>
 
-
-<!-- ##### MACRO SOUP_PROTOCOL_HTTP ##### -->
-<para>
-
-</para>
-
-
-
-<!-- ##### MACRO SOUP_PROTOCOL_HTTPS ##### -->
-<para>
-
-</para>
-
-
+@scheme: 
+@user: 
+@password: 
+@host: 
+@port: 
+@path: 
+@query: 
+@fragment: 
 
 <!-- ##### FUNCTION soup_uri_new_with_base ##### -->
 <para>
@@ -112,15 +64,6 @@ they are not using for reserved purposes.
 
 
 <!-- ##### FUNCTION soup_uri_copy ##### -->
-<para>
-
-</para>
-
-@uri: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_uri_copy_root ##### -->
 <para>
 
 </para>
@@ -177,6 +120,15 @@ they are not using for reserved purposes.
 
 
 <!-- ##### FUNCTION soup_uri_uses_default_port ##### -->
+<para>
+
+</para>
+
+@uri: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_uri_is_https ##### -->
 <para>
 
 </para>

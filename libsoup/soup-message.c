@@ -234,9 +234,9 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * the signal emission will be stopped, and @msg's connection
 	 * will be closed. (If you need to requeue a message--eg,
 	 * after handling authentication or redirection--it is usually
-	 * better to requeue it from a ::got-body handler rather than
-	 * a ::got-header handler, so that the existing HTTP
-	 * connection can be reused.)
+	 * better to requeue it from a #SoupMessage::got_body handler
+	 * rather than a #SoupMessage::got_header handler, so that the
+	 * existing HTTP connection can be reused.)
 	 **/
 	signals[GOT_HEADERS] =
 		g_signal_new ("got_headers",
@@ -323,8 +323,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted when all HTTP processing is finished for a message.
-	 * (After ::got-body for client-side messages, or after
-	 * ::wrote-body for server-side messages.)
+	 * (After #SoupMessage::got_body for client-side messages, or
+	 * after #SoupMessage::wrote_body for server-side messages.)
 	 **/
 	signals[FINISHED] =
 		g_signal_new ("finished",
@@ -503,8 +503,8 @@ soup_message_new_from_uri (const char *method, SoupURI *uri)
  * @req_body: a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
- * Convenience function to set the request body of a #SoupMessage.
- * If @content_type is %NULL, the request body will be cleared.
+ * Convenience function to set the request body of a #SoupMessage. If
+ * @content_type is %NULL, the request body must be empty as well.
  */
 void
 soup_message_set_request (SoupMessage    *msg,
@@ -536,8 +536,8 @@ soup_message_set_request (SoupMessage    *msg,
  * @resp_body: a data buffer containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  * 
- * Convenience function to set the response body of a #SoupMessage.
- * If @content_type is %NULL, the response body will be cleared.
+ * Convenience function to set the response body of a #SoupMessage. If
+ * @content_type is %NULL, the response body must be empty as well.
  */
 void
 soup_message_set_response (SoupMessage    *msg,
@@ -798,7 +798,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  * g_signal_connect(). However, @callback will only be run if @msg has
  * a header named @header.
  *
- * If @signal is one of the "got" signals (eg, "got_headers"),
+ * If @signal is one of the "got" signals (eg, "got_headers"), or
  * "finished" or "restarted", then @header is matched against the
  * incoming message headers (that is, the #request_headers for a
  * client #SoupMessage, or the #response_headers for a server
@@ -1090,7 +1090,8 @@ soup_message_get_http_version (SoupMessage *msg)
  * @msg: a #SoupMessage
  *
  * Determines whether or not @msg's connection can be kept alive for
- * further requests after processing @msg.
+ * further requests after processing @msg, based on the HTTP version,
+ * Connection header, etc.
  *
  * Return value: %TRUE or %FALSE.
  **/

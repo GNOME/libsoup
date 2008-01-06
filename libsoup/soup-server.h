@@ -59,16 +59,16 @@ typedef void (*SoupServerCallback) (SoupServer        *server,
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
-gboolean           soup_server_is_https       (SoupServer            *serv);
-guint              soup_server_get_port       (SoupServer            *serv);
+gboolean           soup_server_is_https       (SoupServer            *server);
+guint              soup_server_get_port       (SoupServer            *server);
 
-SoupSocket        *soup_server_get_listener   (SoupServer            *serv);
+SoupSocket        *soup_server_get_listener   (SoupServer            *server);
 
-void               soup_server_run            (SoupServer            *serv);
-void               soup_server_run_async      (SoupServer            *serv);
-void               soup_server_quit           (SoupServer            *serv);
+void               soup_server_run            (SoupServer            *server);
+void               soup_server_run_async      (SoupServer            *server);
+void               soup_server_quit           (SoupServer            *server);
 
-GMainContext      *soup_server_get_async_context (SoupServer         *serv);
+GMainContext      *soup_server_get_async_context (SoupServer         *server);
 
 /* Handlers and auth */
 

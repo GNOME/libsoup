@@ -139,6 +139,18 @@ get_property (GObject *object, guint prop_id,
 	}
 }
 
+/**
+ * soup_auth_domain_digest_new:
+ * @optname1: name of first option, or %NULL
+ * @...: option name/value pairs
+ *
+ * Creates a #SoupAuthDomainDigest. You must set the
+ * %SOUP_AUTH_DOMAIN_REALM parameter, to indicate the realm name to be
+ * returned with the authentication challenge to the client. Other
+ * parameters are optional.
+ *
+ * Return value: the new #SoupAuthDomain
+ **/
 SoupAuthDomain *
 soup_auth_domain_digest_new (const char *optname1, ...)
 {
@@ -174,7 +186,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
 /**
  * soup_auth_domain_digest_set_auth_callback:
  * @domain: the domain
- * @auth_callback: the callback
+ * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
  * is destroyed
@@ -182,7 +194,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * Sets the callback that @domain will use to authenticate incoming
  * requests. For each request containing authorization, @domain will
  * invoke the callback, and then either accept or reject the request
- * based on @auth_callback's return value.
+ * based on @callback's return value.
  *
  * You can also set the auth callback by setting the
  * %SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK and
@@ -191,7 +203,7 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  **/
 void
 soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
-					   SoupAuthDomainDigestAuthCallback auth_callback,
+					   SoupAuthDomainDigestAuthCallback callback,
 					   gpointer        user_data,
 					   GDestroyNotify  dnotify)
 {

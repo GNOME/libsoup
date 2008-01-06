@@ -1,3 +1,20 @@
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/*.c: misc documentation updates/gtk-doc fixes
+
+	* libsoup/soup-server.c: finally start documenting this properly.
+
+	* libsoup/soup-status.h (SoupStatusClass): kill this, since
+	soup_message_add_status_class_handler() is gone now.
+
+	* libsoup/soup-status.c (soup_status_get_phrase): Update docs to
+	explain that you probably don't want to use this.
+
+	* libsoup/soup-misc.h (SOUP_SSL_ERROR, SoupSSLError): Move these
+	here, since soup-ssl.h isn't installed.
+
+	* docs/references: start updating this...
+
 2008-01-04  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-body.c (soup_buffer_new)

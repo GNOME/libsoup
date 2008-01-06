@@ -115,11 +115,11 @@ insert_value (xmlNode *parent, GValue *value)
 
 /**
  * soup_xmlrpc_build_method_call:
- * @method: the name of the XML-RPC method
+ * @method_name: the name of the XML-RPC method
  * @params: arguments to @method
  * @n_params: length of @params
  *
- * This creates an XML-RPC <methodCall> and returns it as a string.
+ * This creates an XML-RPC methodCall and returns it as a string.
  * This is the low-level method that soup_xmlrpc_request_new() and
  * soup_xmlrpc_call() are built on.
  *
@@ -141,7 +141,7 @@ insert_value (xmlNode *parent, GValue *value)
  * For structs, use a #GHashTable that maps strings to #GValue;
  * soup_value_hash_new() and related methods can help with this.
  *
- * Return value: the text of the <methodCall>, or %NULL on error
+ * Return value: the text of the methodCall, or %NULL on error
  **/
 char *
 soup_xmlrpc_build_method_call (const char *method_name,
@@ -205,10 +205,10 @@ soup_xmlrpc_request_newv (const char *uri, const char *method_name, va_list args
 /**
  * soup_xmlrpc_request_new:
  * @uri: URI of the XML-RPC service
- * @method: the name of the XML-RPC method to invoke at @uri
+ * @method_name: the name of the XML-RPC method to invoke at @uri
  * @...: parameters for @method
  *
- * Creates an XML-RPC <methodCall> and returns a #SoupMessage, ready
+ * Creates an XML-RPC methodCall and returns a #SoupMessage, ready
  * to send, for that method call.
  *
  * The parameters are passed as type/value pairs; ie, first a #GType,
@@ -234,14 +234,14 @@ soup_xmlrpc_request_new (const char *uri, const char *method_name, ...)
  * soup_xmlrpc_build_method_response:
  * @value: the return value
  *
- * This creates a (successful) XML-RPC <methodResponse> and returns it
- * as a string. To create a <fault> response, use
+ * This creates a (successful) XML-RPC methodResponse and returns it
+ * as a string. To create a fault response, use
  * soup_xmlrpc_build_fault().
  *
  * The glib type to XML-RPC type mapping is as with
  * soup_xmlrpc_build_method_call(), qv.
  *
- * Return value: the text of the <methodResponse>, or %NULL on error
+ * Return value: the text of the methodResponse, or %NULL on error
  **/
 char *
 soup_xmlrpc_build_method_response (GValue *value)
@@ -329,11 +329,11 @@ soup_xmlrpc_build_faultv (int fault_code, const char *fault_format, va_list args
  * @fault_format: a printf()-style format string
  * @...: the parameters to @fault_format
  *
- * This creates an XML-RPC <fault> response and returns it as a
- * string. (To create a successful response, use
+ * This creates an XML-RPC fault response and returns it as a string.
+ * (To create a successful response, use
  * soup_xmlrpc_build_method_response().)
  *
- * Return value: the text of the <fault>
+ * Return value: the text of the fault
  **/
 char *
 soup_xmlrpc_build_fault (int fault_code, const char *fault_format, ...)
@@ -534,9 +534,9 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 
 /**
  * soup_xmlrpc_parse_method_call:
- * @method_call: the XML-RPC <methodCall> string
+ * @method_call: the XML-RPC methodCall string
  * @length: the length of @method_call, or -1 if it is NUL-terminated
- * @method_name: on return, the <methodName> from @method_call
+ * @method_name: on return, the methodName from @method_call
  * @params: on return, the parameters from @method_call
  *
  * Parses @method_call to get the name and parameters, and returns the
@@ -599,9 +599,9 @@ fail:
 
 /**
  * soup_xmlrpc_extract_method_call:
- * @method_call: the XML-RPC <methodCall> string
+ * @method_call: the XML-RPC methodCall string
  * @length: the length of @method_call, or -1 if it is NUL-terminated
- * @method_name: on return, the <methodName> from @method_call
+ * @method_name: on return, the methodName from @method_call
  * @...: return types and locations for parameters
  *
  * Parses @method_call to get the name and parameters, and puts
@@ -639,13 +639,13 @@ soup_xmlrpc_extract_method_call (const char *method_call, int length,
 
 /**
  * soup_xmlrpc_parse_method_response:
- * @method_response: the XML-RPC <methodResponse> string
+ * @method_response: the XML-RPC methodResponse string
  * @length: the length of @method_response, or -1 if it is NUL-terminated
  * @value: on return, the return value from @method_call
  * @error: error return value
  *
  * Parses @method_response and returns the return value in @value. If
- * @method_response is a <fault>, @value will be unchanged, and @error
+ * @method_response is a fault, @value will be unchanged, and @error
  * will be set to an error of type %SOUP_XMLRPC_FAULT, with the error
  * #code containing the fault code, and the error #message containing
  * the fault string. (If @method_response cannot be parsed at all,
@@ -653,7 +653,7 @@ soup_xmlrpc_extract_method_call (const char *method_call, int length,
  * will be unset.)
  *
  * Return value: %TRUE if a return value was parsed, %FALSE if the
- * response could not be parsed, or contained a <fault>.
+ * response could not be parsed, or contained a fault.
  **/
 gboolean
 soup_xmlrpc_parse_method_response (const char *method_response, int length,
@@ -720,7 +720,7 @@ fail:
 
 /**
  * soup_xmlrpc_extract_method_response:
- * @method_response: the XML-RPC <methodResponse> string
+ * @method_response: the XML-RPC methodResponse string
  * @length: the length of @method_response, or -1 if it is NUL-terminated
  * @error: error return value
  * @type: the expected type of the return value
@@ -729,7 +729,7 @@ fail:
  * Parses @method_response and extracts the return value into
  * a variable of the correct type.
  *
- * If @method_response is a <fault>, the return value will be unset,
+ * If @method_response is a fault, the return value will be unset,
  * and @error will be set to an error of type %SOUP_XMLRPC_FAULT, with
  * the error #code containing the fault code, and the error #message
  * containing the fault string. (If @method_response cannot be parsed
@@ -737,7 +737,7 @@ fail:
  * but @error will be unset.)
  *
  * Return value: %TRUE if a return value was parsed, %FALSE if the
- * response was of the wrong type, or contained a <fault>.
+ * response was of the wrong type, or contained a fault.
  **/
 gboolean
 soup_xmlrpc_extract_method_response (const char *method_response, int length,

@@ -1,0 +1,164 @@
+<!-- ##### SECTION Title ##### -->
+SoupMessageBody
+
+<!-- ##### SECTION Short_Description ##### -->
+HTTP Message Body
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#SoupMessageBody represents the request or response body of a
+#SoupMessage.
+</para>
+
+<para>
+In addition to #SoupMessageBody, libsoup also defines a "smaller" data
+buffer type, #SoupBuffer, which is primarily used as a component of
+#SoupMessageBody. In particular, when using chunked encoding to
+transmit or receive a message, each chunk is represented as a
+#SoupBuffer.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+#SoupMessage
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### STRUCT SoupBuffer ##### -->
+<para>
+
+</para>
+
+@data: 
+@length: 
+
+<!-- ##### ENUM SoupMemoryUse ##### -->
+<para>
+
+</para>
+
+@SOUP_MEMORY_STATIC: 
+@SOUP_MEMORY_TAKE: 
+@SOUP_MEMORY_COPY: 
+@SOUP_MEMORY_TEMPORARY: 
+
+<!-- ##### FUNCTION soup_buffer_new ##### -->
+<para>
+
+</para>
+
+@use: 
+@data: 
+@length: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_buffer_new_subbuffer ##### -->
+<para>
+
+</para>
+
+@parent: 
+@offset: 
+@length: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_buffer_copy ##### -->
+<para>
+
+</para>
+
+@buffer: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_buffer_free ##### -->
+<para>
+
+</para>
+
+@buffer: 
+
+
+<!-- ##### STRUCT SoupMessageBody ##### -->
+<para>
+
+</para>
+
+@data: 
+@length: 
+
+<!-- ##### FUNCTION soup_message_body_new ##### -->
+<para>
+
+</para>
+
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_body_free ##### -->
+<para>
+
+</para>
+
+@body: 
+
+
+<!-- ##### FUNCTION soup_message_body_append ##### -->
+<para>
+
+</para>
+
+@body: 
+@use: 
+@data: 
+@length: 
+
+
+<!-- ##### FUNCTION soup_message_body_append_buffer ##### -->
+<para>
+
+</para>
+
+@body: 
+@buffer: 
+
+
+<!-- ##### FUNCTION soup_message_body_truncate ##### -->
+<para>
+
+</para>
+
+@body: 
+
+
+<!-- ##### FUNCTION soup_message_body_complete ##### -->
+<para>
+
+</para>
+
+@body: 
+
+
+<!-- ##### FUNCTION soup_message_body_flatten ##### -->
+<para>
+
+</para>
+
+@body: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_body_get_chunk ##### -->
+<para>
+
+</para>
+
+@body: 
+@offset: 
+@Returns: 
+
+

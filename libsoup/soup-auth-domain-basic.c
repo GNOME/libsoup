@@ -139,7 +139,10 @@ get_property (GObject *object, guint prop_id,
  * @optname1: name of first option, or %NULL
  * @...: option name/value pairs
  *
- * Creates a #SoupAuthDomainBasic
+ * Creates a #SoupAuthDomainBasic. You must set the
+ * %SOUP_AUTH_DOMAIN_REALM parameter, to indicate the realm name to be
+ * returned with the authentication challenge to the client. Other
+ * parameters are optional.
  *
  * Return value: the new #SoupAuthDomain
  **/
@@ -188,7 +191,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
 /**
  * soup_auth_domain_basic_set_auth_callback:
  * @domain: the domain
- * @auth_callback: the callback
+ * @callback: the callback
  * @user_data: data to pass to @auth_callback
  * @dnotify: destroy notifier to free @user_data when @domain
  * is destroyed
@@ -196,7 +199,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  * Sets the callback that @domain will use to authenticate incoming
  * requests. For each request containing authorization, @domain will
  * invoke the callback, and then either accept or reject the request
- * based on @auth_callback's return value.
+ * based on @callback's return value.
  *
  * You can also set the auth callback by setting the
  * %SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK and
@@ -205,7 +208,7 @@ soup_auth_domain_basic_new (const char *optname1, ...)
  **/
 void
 soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
-					  SoupAuthDomainBasicAuthCallback auth_callback,
+					  SoupAuthDomainBasicAuthCallback callback,
 					  gpointer        user_data,
 					  GDestroyNotify  dnotify)
 {
@@ -215,7 +218,7 @@ soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
 
-	priv->auth_callback = auth_callback;
+	priv->auth_callback = callback;
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
 }

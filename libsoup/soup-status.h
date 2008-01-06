@@ -13,27 +13,6 @@
 G_BEGIN_DECLS
 
 /**
- * SoupStatusClass:
- * @SOUP_STATUS_CLASS_TRANSPORT_ERROR: Network or Soup-level error
- * @SOUP_STATUS_CLASS_INFORMATIONAL: HTTP 1xx response providing
- * partial information about the state of a request
- * @SOUP_STATUS_CLASS_SUCCESS: HTTP 2xx successful response
- * @SOUP_STATUS_CLASS_REDIRECT: HTTP 3xx redirection response
- * @SOUP_STATUS_CLASS_CLIENT_ERROR: HTTP 4xx client error response
- * @SOUP_STATUS_CLASS_SERVER_ERROR: HTTP 5xx server error response
- *
- * The classes of HTTP and Soup status codes
- **/
-typedef enum {
-	SOUP_STATUS_CLASS_TRANSPORT_ERROR = 0,
-	SOUP_STATUS_CLASS_INFORMATIONAL,
-	SOUP_STATUS_CLASS_SUCCESS,
-	SOUP_STATUS_CLASS_REDIRECT,
-	SOUP_STATUS_CLASS_CLIENT_ERROR,
-	SOUP_STATUS_CLASS_SERVER_ERROR
-} SoupStatusClass;
-
-/**
  * SOUP_STATUS_IS_TRANSPORT_ERROR:
  * @status: a status code
  *

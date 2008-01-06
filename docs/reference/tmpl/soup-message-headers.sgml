@@ -1,0 +1,192 @@
+<!-- ##### SECTION Title ##### -->
+SoupMessageHeaders
+
+<!-- ##### SECTION Short_Description ##### -->
+HTTP Message Headers
+
+<!-- ##### SECTION Long_Description ##### -->
+<para>
+#SoupMessageHeaders represents the HTTP message headers associated
+with a request or response.
+</para>
+
+<!-- ##### SECTION See_Also ##### -->
+<para>
+#SoupMessage
+</para>
+
+<!-- ##### SECTION Stability_Level ##### -->
+
+
+<!-- ##### TYPEDEF SoupMessageHeaders ##### -->
+<para>
+
+</para>
+
+
+<!-- ##### ENUM SoupMessageHeadersType ##### -->
+<para>
+
+</para>
+
+@SOUP_MESSAGE_HEADERS_REQUEST: 
+@SOUP_MESSAGE_HEADERS_RESPONSE: 
+
+<!-- ##### FUNCTION soup_message_headers_new ##### -->
+<para>
+
+</para>
+
+@type: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_headers_free ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+
+
+<!-- ##### FUNCTION soup_message_headers_append ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@name: 
+@value: 
+
+
+<!-- ##### FUNCTION soup_message_headers_replace ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@name: 
+@value: 
+
+
+<!-- ##### FUNCTION soup_message_headers_remove ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@name: 
+
+
+<!-- ##### FUNCTION soup_message_headers_clear ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+
+
+<!-- ##### FUNCTION soup_message_headers_get ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@name: 
+@Returns: 
+
+
+<!-- ##### USER_FUNCTION SoupMessageHeadersForeachFunc ##### -->
+<para>
+
+</para>
+
+@name: 
+@value: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_message_headers_foreach ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@func: 
+@user_data: 
+
+
+<!-- ##### ENUM SoupEncoding ##### -->
+<para>
+
+</para>
+
+@SOUP_ENCODING_UNRECOGNIZED: 
+@SOUP_ENCODING_NONE: 
+@SOUP_ENCODING_CONTENT_LENGTH: 
+@SOUP_ENCODING_EOF: 
+@SOUP_ENCODING_CHUNKED: 
+@SOUP_ENCODING_BYTERANGES: 
+
+<!-- ##### FUNCTION soup_message_headers_get_encoding ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_headers_set_encoding ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@encoding: 
+
+
+<!-- ##### FUNCTION soup_message_headers_get_content_length ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_headers_set_content_length ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@content_length: 
+
+
+<!-- ##### ENUM SoupExpectation ##### -->
+<para>
+
+</para>
+
+@SOUP_EXPECTATION_UNRECOGNIZED: 
+@SOUP_EXPECTATION_CONTINUE: 
+
+<!-- ##### FUNCTION soup_message_headers_get_expectations ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_message_headers_set_expectations ##### -->
+<para>
+
+</para>
+
+@hdrs: 
+@expectations: 
+
+

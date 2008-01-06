@@ -10,8 +10,36 @@ HTTP server
 </para>
 
 <para>
-This API is less stable than the soup client API, and will most likely
-change in the next release.
+To begin, create a server using soup_server_new(). Add at least one
+handler by calling soup_server_add_handler(); the handler will be
+called to process any requests underneath the path passed to
+soup_server_add_handler(). (If you want all requests to go to the same
+handler, just pass "/" (or %NULL) for the path.) Any request that does
+not match any handler will automatically be returned to the client
+with a 404 (Not Found) status.
+</para>
+
+<para>
+To add authentication to some or all paths, create an appropriate
+#SoupAuthDomain (qv), and add it to the server via
+soup_server_add_auth_domain.
+</para>
+
+<para>
+Additional processing options are available via #SoupServer's signals;
+Connect to #SoupServer::request-started to be notified every time a
+new request is being processed. (This gives you a chance to connect to
+the #SoupMessage "got-" signals in case you want to do processing
+before the body has been fully read.)
+</para>
+
+<para>
+Once the server is set up, start it processing connections by calling
+soup_server_run_async() or soup_server_run().  #SoupServer runs via
+the glib main loop; if you need to have a server that runs in another
+thread (or merely isn't bound to the default main loop), create a
+#GMainContext for it to use, and set that via the
+#SOUP_SERVER_ASYNC_CONTEXT property. 
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
@@ -27,6 +55,42 @@ change in the next release.
 
 </para>
 
+
+<!-- ##### SIGNAL SoupServer::request-aborted ##### -->
+<para>
+
+</para>
+
+@soupserver: the object which received the signal.
+@arg1: 
+@arg2: 
+
+<!-- ##### SIGNAL SoupServer::request-finished ##### -->
+<para>
+
+</para>
+
+@soupserver: the object which received the signal.
+@arg1: 
+@arg2: 
+
+<!-- ##### SIGNAL SoupServer::request-read ##### -->
+<para>
+
+</para>
+
+@soupserver: the object which received the signal.
+@arg1: 
+@arg2: 
+
+<!-- ##### SIGNAL SoupServer::request-started ##### -->
+<para>
+
+</para>
+
+@soupserver: the object which received the signal.
+@arg1: 
+@arg2: 
 
 <!-- ##### ARG SoupServer:async-context ##### -->
 <para>
@@ -53,39 +117,6 @@ change in the next release.
 
 </para>
 
-<!-- ##### STRUCT SoupServerContext ##### -->
-<para>
-
-</para>
-
-@msg: 
-@path: 
-@method_id: 
-@auth: 
-@server: 
-@handler: 
-@sock: 
-
-<!-- ##### USER_FUNCTION SoupServerCallbackFn ##### -->
-<para>
-
-</para>
-
-@context: 
-@msg: 
-@user_data: 
-
-
-<!-- ##### USER_FUNCTION SoupServerUnregisterFn ##### -->
-<para>
-
-</para>
-
-@server: 
-@handler: 
-@user_data: 
-
-
 <!-- ##### FUNCTION soup_server_new ##### -->
 <para>
 
@@ -96,12 +127,12 @@ change in the next release.
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_server_get_protocol ##### -->
+<!-- ##### FUNCTION soup_server_is_https ##### -->
 <para>
 
 </para>
 
-@serv: 
+@server: 
 @Returns: 
 
 
@@ -110,7 +141,7 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 @Returns: 
 
 
@@ -119,7 +150,7 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 @Returns: 
 
 
@@ -128,7 +159,7 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 
 
 <!-- ##### FUNCTION soup_server_run_async ##### -->
@@ -136,7 +167,7 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 
 
 <!-- ##### FUNCTION soup_server_quit ##### -->
@@ -144,13 +175,29 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 
 
-<!-- ##### TYPEDEF SoupServerHandler ##### -->
+<!-- ##### FUNCTION soup_server_get_async_context ##### -->
 <para>
 
 </para>
+
+@server: 
+@Returns: 
+
+
+<!-- ##### USER_FUNCTION SoupServerCallback ##### -->
+<para>
+
+</para>
+
+@server: 
+@msg: 
+@path: 
+@query: 
+@context: 
+@user_data: 
 
 
 <!-- ##### FUNCTION soup_server_add_handler ##### -->
@@ -158,11 +205,10 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 @path: 
-@auth_ctx: 
 @callback: 
-@unreg: 
+@destroy: 
 @data: 
 
 
@@ -171,30 +217,20 @@ change in the next release.
 
 </para>
 
-@serv: 
+@server: 
 @path: 
 
 
-<!-- ##### FUNCTION soup_server_get_handler ##### -->
+<!-- ##### STRUCT SoupClientContext ##### -->
 <para>
 
 </para>
 
-@serv: 
-@path: 
-@Returns: 
+@sock: 
+@auth_user: 
+@auth_realm: 
 
-
-<!-- ##### FUNCTION soup_server_list_handlers ##### -->
-<para>
-
-</para>
-
-@serv: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_server_context_get_client_address ##### -->
+<!-- ##### FUNCTION soup_client_context_get_address ##### -->
 <para>
 
 </para>
@@ -203,13 +239,49 @@ change in the next release.
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_server_context_get_client_host ##### -->
+<!-- ##### FUNCTION soup_client_context_get_host ##### -->
 <para>
 
 </para>
 
 @ctx: 
 @Returns: 
+
+
+<!-- ##### FUNCTION soup_server_add_auth_domain ##### -->
+<para>
+
+</para>
+
+@server: 
+@auth_domain: 
+
+
+<!-- ##### FUNCTION soup_server_remove_auth_domain ##### -->
+<para>
+
+</para>
+
+@server: 
+@auth_domain: 
+
+
+<!-- ##### FUNCTION soup_server_pause_message ##### -->
+<para>
+
+</para>
+
+@server: 
+@msg: 
+
+
+<!-- ##### FUNCTION soup_server_unpause_message ##### -->
+<para>
+
+</para>
+
+@server: 
+@msg: 
 
 
 <!-- ##### MACRO SOUP_SERVER_PORT ##### -->

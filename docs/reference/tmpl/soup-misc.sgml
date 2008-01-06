@@ -17,64 +17,220 @@ Miscellaneous functions
 <!-- ##### SECTION Stability_Level ##### -->
 
 
-<!-- ##### FUNCTION soup_base64_decode ##### -->
+<!-- ##### STRUCT SoupDate ##### -->
 <para>
 
 </para>
 
-@text: 
-@out_len: 
+@year: 
+@month: 
+@day: 
+@hour: 
+@minute: 
+@second: 
+@utc: 
+@offset: 
+
+<!-- ##### ENUM SoupDateFormat ##### -->
+<para>
+
+</para>
+
+@SOUP_DATE_HTTP: 
+@SOUP_DATE_COOKIE: 
+@SOUP_DATE_RFC2822: 
+@SOUP_DATE_ISO8601_COMPACT: 
+@SOUP_DATE_ISO8601_FULL: 
+@SOUP_DATE_ISO8601: 
+@SOUP_DATE_ISO8601_XMLRPC: 
+
+<!-- ##### FUNCTION soup_date_new ##### -->
+<para>
+
+</para>
+
+@year: 
+@month: 
+@day: 
+@hour: 
+@minute: 
+@second: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_encode ##### -->
+<!-- ##### FUNCTION soup_date_new_from_string ##### -->
 <para>
 
 </para>
 
-@text: 
+@date_string: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_date_new_from_time_t ##### -->
+<para>
+
+</para>
+
+@when: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_date_to_string ##### -->
+<para>
+
+</para>
+
+@date: 
+@format: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_date_free ##### -->
+<para>
+
+</para>
+
+@date: 
+
+
+<!-- ##### FUNCTION soup_form_decode_urlencoded ##### -->
+<para>
+
+</para>
+
+@encoded_form: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_form_encode_urlencoded ##### -->
+<para>
+
+</para>
+
+@form_data_set: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_form_encode_urlencoded_list ##### -->
+<para>
+
+</para>
+
+@form_data_set: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_headers_parse_request ##### -->
+<para>
+
+</para>
+
+@str: 
 @len: 
+@req_headers: 
+@req_method: 
+@req_path: 
+@ver: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_decode_step ##### -->
+<!-- ##### FUNCTION soup_headers_parse_response ##### -->
 <para>
 
 </para>
 
-@in: 
+@str: 
 @len: 
-@out: 
-@state: 
-@save: 
+@headers: 
+@ver: 
+@status_code: 
+@reason_phrase: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_encode_step ##### -->
+<!-- ##### FUNCTION soup_headers_parse_status_line ##### -->
 <para>
 
 </para>
 
-@in: 
-@len: 
-@break_lines: 
-@out: 
-@state: 
-@save: 
+@status_line: 
+@ver: 
+@status_code: 
+@reason_phrase: 
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_base64_encode_close ##### -->
+<!-- ##### FUNCTION soup_header_parse_list ##### -->
 <para>
 
 </para>
 
-@in: 
-@inlen: 
-@break_lines: 
-@out: 
-@state: 
-@save: 
+@header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_parse_quality_list ##### -->
+<para>
+
+</para>
+
+@header: 
+@unacceptable: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_free_list ##### -->
+<para>
+
+</para>
+
+@list: 
+
+
+<!-- ##### FUNCTION soup_header_contains ##### -->
+<para>
+
+</para>
+
+@header: 
+@token: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_parse_param_list ##### -->
+<para>
+
+</para>
+
+@header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_header_free_param_list ##### -->
+<para>
+
+</para>
+
+@param_list: 
+
+
+<!-- ##### FUNCTION soup_str_case_equal ##### -->
+<para>
+
+</para>
+
+@v1: 
+@v2: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_str_case_hash ##### -->
+<para>
+
+</para>
+
+@key: 
 @Returns: 
 
 
@@ -114,164 +270,9 @@ Miscellaneous functions
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_signal_connect_once ##### -->
+<!-- ##### VARIABLE soup_ssl_supported ##### -->
 <para>
 
 </para>
-
-@instance: 
-@detailed_signal: 
-@c_handler: 
-@data: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_date_parse ##### -->
-<para>
-
-</para>
-
-@timestamp: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_date_iso8601_parse ##### -->
-<para>
-
-</para>
-
-@timestamp: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_date_generate ##### -->
-<para>
-
-</para>
-
-@when: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_gmtime ##### -->
-<para>
-
-</para>
-
-@when: 
-@tm: 
-
-
-<!-- ##### FUNCTION soup_mktime_utc ##### -->
-<para>
-
-</para>
-
-@tm: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_header_param_copy_token ##### -->
-<para>
-
-</para>
-
-@tokens: 
-@t: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_header_param_decode_token ##### -->
-<para>
-
-</para>
-
-@in: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_header_param_destroy_hash ##### -->
-<para>
-
-</para>
-
-@table: 
-
-
-<!-- ##### FUNCTION soup_header_param_parse_list ##### -->
-<para>
-
-</para>
-
-@header: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_headers_parse_request ##### -->
-<para>
-
-</para>
-
-@str: 
-@len: 
-@dest: 
-@req_method: 
-@req_path: 
-@ver: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_headers_parse_response ##### -->
-<para>
-
-</para>
-
-@str: 
-@len: 
-@dest: 
-@ver: 
-@status_code: 
-@reason_phrase: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_headers_parse_status_line ##### -->
-<para>
-
-</para>
-
-@status_line: 
-@ver: 
-@status_code: 
-@reason_phrase: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_str_case_equal ##### -->
-<para>
-
-</para>
-
-@v1: 
-@v2: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_str_case_hash ##### -->
-<para>
-
-</para>
-
-@key: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_xml_real_node ##### -->
-<para>
-
-</para>
-
-@node: 
-@Returns: 
 
 

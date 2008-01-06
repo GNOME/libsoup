@@ -168,6 +168,9 @@ get_property (GObject *object, guint prop_id,
  * Creates a new #SoupAuth of type @type with the information from
  * @msg and @auth_header.
  *
+ * This is called by #SoupSession; you will normally not create auths
+ * yourself.
+ *
  * Return value: the new #SoupAuth, or %NULL if it could not be
  * created
  **/
@@ -223,7 +226,8 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
  * @auth_header: the WWW-Authenticate/Proxy-Authenticate header
  *
  * Updates @auth with the information from @msg and @auth_header,
- * possibly un-authenticating it.
+ * possibly un-authenticating it. As with soup_auth_new(), this is
+ * normally only used by #SoupSession.
  *
  * Return value: %TRUE if @auth is still a valid (but potentially
  * unauthenticated) #SoupAuth. %FALSE if something about @auth_params
@@ -306,7 +310,7 @@ soup_auth_is_for_proxy (SoupAuth *auth)
  * soup_auth_get_scheme_name:
  * @auth: a #SoupAuth
  *
- * Returns @auth's scheme name. (Eg, "Basic")
+ * Returns @auth's scheme name. (Eg, "Basic", "Digest", or "NTLM")
  *
  * Return value: the scheme name
  **/
@@ -339,7 +343,10 @@ soup_auth_get_host (SoupAuth *auth)
  * soup_auth_get_realm:
  * @auth: a #SoupAuth
  *
- * Returns @auth's realm.
+ * Returns @auth's realm. This is an identifier that distinguishes
+ * separate authentication spaces on a given server, and may be some
+ * string that is meaningful to the user. (Although it is probably not
+ * localized.)
  *
  * Return value: the realm name
  **/
@@ -355,10 +362,10 @@ soup_auth_get_realm (SoupAuth *auth)
  * soup_auth_get_info:
  * @auth: a #SoupAuth
  *
- * Gets an identifier for @auth. #SoupAuth objects from the same
- * server with the same identifier refer to the same authentication
- * domain (eg, the URLs associated with them take the same usernames
- * and passwords).
+ * Gets an opaque identifier for @auth, for use as a hash key or the
+ * like. #SoupAuth objects from the same server with the same
+ * identifier refer to the same authentication domain (eg, the URLs
+ * associated with them take the same usernames and passwords).
  *
  * Return value: the identifier
  **/

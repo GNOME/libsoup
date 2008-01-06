@@ -23,14 +23,6 @@ a network socket
 </para>
 
 
-<!-- ##### SIGNAL SoupSocket::connect-result ##### -->
-<para>
-
-</para>
-
-@sock: 
-@status: 
-
 <!-- ##### SIGNAL SoupSocket::disconnected ##### -->
 <para>
 
@@ -65,17 +57,12 @@ a network socket
 
 </para>
 
-<!-- ##### ARG SoupSocket:cloexec ##### -->
-<para>
-
-</para>
-
 <!-- ##### ARG SoupSocket:is-server ##### -->
 <para>
 
 </para>
 
-<!-- ##### ARG SoupSocket:nodelay ##### -->
+<!-- ##### ARG SoupSocket:local-address ##### -->
 <para>
 
 </para>
@@ -85,7 +72,7 @@ a network socket
 
 </para>
 
-<!-- ##### ARG SoupSocket:reuseaddr ##### -->
+<!-- ##### ARG SoupSocket:remote-address ##### -->
 <para>
 
 </para>
@@ -110,13 +97,32 @@ a network socket
 @Returns: 
 
 
-<!-- ##### FUNCTION soup_socket_connect ##### -->
+<!-- ##### USER_FUNCTION SoupSocketCallback ##### -->
 <para>
 
 </para>
 
 @sock: 
-@remote_addr: 
+@status: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_socket_connect_async ##### -->
+<para>
+
+</para>
+
+@sock: 
+@callback: 
+@user_data: 
+
+
+<!-- ##### FUNCTION soup_socket_connect_sync ##### -->
+<para>
+
+</para>
+
+@sock: 
 @Returns: 
 
 
@@ -126,7 +132,6 @@ a network socket
 </para>
 
 @sock: 
-@local_addr: 
 @Returns: 
 
 
@@ -163,63 +168,6 @@ a network socket
 </para>
 
 @sock: 
-@Returns: 
-
-
-<!-- ##### USER_FUNCTION SoupSocketCallback ##### -->
-<para>
-
-</para>
-
-@sock: 
-@status: 
-@user_data: 
-
-
-<!-- ##### USER_FUNCTION SoupSocketListenerCallback ##### -->
-<para>
-
-</para>
-
-@listener: 
-@sock: 
-@user_data: 
-
-
-<!-- ##### FUNCTION soup_socket_client_new_async ##### -->
-<para>
-
-</para>
-
-@hostname: 
-@port: 
-@ssl_creds: 
-@callback: 
-@user_data: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_socket_client_new_sync ##### -->
-<para>
-
-</para>
-
-@hostname: 
-@port: 
-@ssl_creds: 
-@status_ret: 
-@Returns: 
-
-
-<!-- ##### FUNCTION soup_socket_server_new ##### -->
-<para>
-
-</para>
-
-@local_addr: 
-@ssl_creds: 
-@callback: 
-@user_data: 
 @Returns: 
 
 
@@ -260,6 +208,7 @@ a network socket
 @buffer: 
 @len: 
 @nread: 
+@error: 
 @Returns: 
 
 
@@ -275,6 +224,7 @@ a network socket
 @boundary_len: 
 @nread: 
 @got_boundary: 
+@error: 
 @Returns: 
 
 
@@ -287,40 +237,43 @@ a network socket
 @buffer: 
 @len: 
 @nwrote: 
+@error: 
 @Returns: 
+
+
+<!-- ##### MACRO SOUP_SSL_ERROR ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### ENUM SoupSSLError ##### -->
+<para>
+
+</para>
+
+@SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ: 
+@SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE: 
+@SOUP_SSL_ERROR_CERTIFICATE: 
+
+<!-- ##### MACRO SOUP_SOCKET_LOCAL_ADDRESS ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_REMOTE_ADDRESS ##### -->
+<para>
+
+</para>
+
 
 
 <!-- ##### MACRO SOUP_SOCKET_FLAG_NONBLOCKING ##### -->
 <para>
 An alias for the "non-blocking" property.
-</para>
-
-
-
-<!-- ##### MACRO SOUP_SOCKET_FLAG_NODELAY ##### -->
-<para>
-An alias for the "nodelay" property.
-</para>
-
-
-
-<!-- ##### MACRO SOUP_SOCKET_FLAG_REUSEADDR ##### -->
-<para>
-An alias for the "reuseaddr" property.
-</para>
-
-
-
-<!-- ##### MACRO SOUP_SOCKET_FLAG_CLOEXEC ##### -->
-<para>
-An alias for the "cloexec" property.
-</para>
-
-
-
-<!-- ##### MACRO SOUP_SOCKET_TIMEOUT ##### -->
-<para>
-An alias for the "timeout" property.
 </para>
 
 
@@ -342,6 +295,13 @@ An alias for the "ssl-creds" property.
 <!-- ##### MACRO SOUP_SOCKET_ASYNC_CONTEXT ##### -->
 <para>
 An alias for the "async-context" property.
+</para>
+
+
+
+<!-- ##### MACRO SOUP_SOCKET_TIMEOUT ##### -->
+<para>
+An alias for the "timeout" property.
 </para>
 
 

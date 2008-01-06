@@ -30,7 +30,9 @@ struct SoupMessageHeaders {
  * soup_message_headers_new:
  * @type: the type of headers
  *
- * Creates a #SoupMessageHeaders
+ * Creates a #SoupMessageHeaders. (#SoupMessage does this
+ * automatically for its own headers. You would only need to use this
+ * method if you are manually parsing or generating message headers.)
  *
  * Return value: a new #SoupMessageHeaders
  **/
@@ -213,6 +215,15 @@ soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
 	g_hash_table_insert (hdrs->concat, (gpointer)name, value);
 	return value;
 }
+
+/**
+ * SoupMessageHeadersForeachFunc:
+ * @name: the header name
+ * @value: the header value
+ * @user_data: the data passed to soup_message_headers_foreach()
+ *
+ * The callback passed to soup_message_headers_foreach().
+ **/
 
 /**
  * soup_message_headers_foreach:
@@ -480,8 +491,15 @@ soup_message_headers_get_expectations (SoupMessageHeaders *hdrs)
  * @hdrs: a #SoupMessageHeaders
  * @expectations: the expectations to set
  *
- * Sets @hdrs's "Expect" header according to @expectations. Currently
- * %SOUP_EXPECTATION_CONTINUE is the only known expectation value.
+ * Sets @hdrs's "Expect" header according to @expectations.
+ *
+ * Currently %SOUP_EXPECTATION_CONTINUE is the only known expectation
+ * value. You should set this value on a request if you are sending a
+ * large message body (eg, via POST or PUT), and want to give the
+ * server a chance to reject the request after seeing just the headers
+ * (eg, because it will require authentication before allowing you to
+ * post). This saves you from having to transmit the large request
+ * body when the server is just going to ignore it anyway.
  **/
 void
 soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,

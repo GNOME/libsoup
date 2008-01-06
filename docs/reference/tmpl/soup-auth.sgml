@@ -7,13 +7,13 @@ HTTP Authentication support
 <!-- ##### SECTION Long_Description ##### -->
 <para>
 #SoupAuth objects store the authentication data associated with a
-given bit of webspace. They are created and maintained automatically
+given bit of webspace. They are created automatically
 by #SoupSession.
 </para>
 
 <!-- ##### SECTION See_Also ##### -->
 <para>
-#SoupSession, #SoupConnectionNTLM
+#SoupSession
 </para>
 
 <!-- ##### SECTION Stability_Level ##### -->
@@ -22,30 +22,65 @@ by #SoupSession.
 <!-- ##### STRUCT SoupAuth ##### -->
 <para>
 The abstract base class for handling authentication. Specific HTTP
-Authentication mechanisms are implemented by its subclasses. (NTLM
-authentication, which works quite differently from normal HTTP
-authentication, is handled by #SoupConnectionNTLM.)
+Authentication mechanisms are implemented by its subclasses, but
+applications never need to be aware of the specific subclasses being
+used.
 </para>
 
 
-<!-- ##### STRUCT SoupAuthBasic ##### -->
-<para>
-An object representing Basic HTTP authentication.
-</para>
-
-
-<!-- ##### STRUCT SoupAuthDigest ##### -->
-<para>
-An object representing Digest HTTP authentication.
-</para>
-
-
-<!-- ##### FUNCTION soup_auth_new_from_header_list ##### -->
+<!-- ##### ARG SoupAuth:host ##### -->
 <para>
 
 </para>
 
-@vals: 
+<!-- ##### ARG SoupAuth:is-authenticated ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupAuth:is-for-proxy ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupAuth:realm ##### -->
+<para>
+
+</para>
+
+<!-- ##### ARG SoupAuth:scheme-name ##### -->
+<para>
+
+</para>
+
+<!-- ##### FUNCTION soup_auth_new ##### -->
+<para>
+
+</para>
+
+@type: 
+@msg: 
+@auth_header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_update ##### -->
+<para>
+
+</para>
+
+@auth: 
+@msg: 
+@auth_header: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_is_for_proxy ##### -->
+<para>
+
+</para>
+
+@auth: 
 @Returns: 
 
 
@@ -58,7 +93,25 @@ An object representing Digest HTTP authentication.
 @Returns: 
 
 
+<!-- ##### FUNCTION soup_auth_get_host ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
 <!-- ##### FUNCTION soup_auth_get_realm ##### -->
+<para>
+
+</para>
+
+@auth: 
+@Returns: 
+
+
+<!-- ##### FUNCTION soup_auth_get_info ##### -->
 <para>
 
 </para>
@@ -113,5 +166,40 @@ An object representing Digest HTTP authentication.
 
 @auth: 
 @space: 
+
+
+<!-- ##### MACRO SOUP_AUTH_SCHEME_NAME ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_AUTH_REALM ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_AUTH_HOST ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_AUTH_IS_FOR_PROXY ##### -->
+<para>
+
+</para>
+
+
+
+<!-- ##### MACRO SOUP_AUTH_IS_AUTHENTICATED ##### -->
+<para>
+
+</para>
+
 
 

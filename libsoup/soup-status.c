@@ -90,6 +90,10 @@ static struct {
  *
  * Looks up the stock HTTP description of @status_code.
  *
+ * You should not need to use this; if you are interested in the
+ * textual description for the %status_code of a given #SoupMessage,
+ * just look at the message's %reason_phrase.
+ *
  * Return value: the (English) description of @status_code
  **/
 const char *

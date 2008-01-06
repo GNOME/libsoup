@@ -2,13 +2,13 @@
 SoupAddress
 
 <!-- ##### SECTION Short_Description ##### -->
-Higher-level IP address object
+DNS support
 
 <!-- ##### SECTION Long_Description ##### -->
 <para>
 #SoupAddress represents the address of a TCP connection endpoint; both
 the IP address and the port. (It is somewhat like an object-oriented
-version of struct #sockaddr.)
+version of <literal>struct sockaddr</literal>.)
 </para>
 
 <para>
@@ -94,16 +94,6 @@ IPv4 and IPv6 addresses.
 
 
 <!-- ##### FUNCTION soup_address_resolve_async ##### -->
-<para>
-
-</para>
-
-@addr: 
-@callback: 
-@user_data: 
-
-
-<!-- ##### FUNCTION soup_address_resolve_async_full ##### -->
 <para>
 
 </para>

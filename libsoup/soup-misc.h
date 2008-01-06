@@ -45,6 +45,16 @@ xmlNode           *soup_xml_real_node        (xmlNode      *node);
  **/
 extern gboolean soup_ssl_supported;
 
+#define SOUP_SSL_ERROR soup_ssl_error_quark()
+
+GQuark soup_ssl_error_quark (void);
+
+typedef enum {
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ,
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE,
+	SOUP_SSL_ERROR_CERTIFICATE,
+} SoupSSLError;
+
 G_END_DECLS
 
 #endif /* SOUP_MISC_H */

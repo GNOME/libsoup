@@ -5,10 +5,6 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-/*
- * FIXME: Split into SoupServerTCP and SoupServerCGI subclasses
- */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -412,6 +408,13 @@ get_property (GObject *object, guint prop_id,
 	}
 }
 
+/**
+ * soup_server_new:
+ * @optname1: name of first property to set
+ * @...: value of @optname1, followed by additional property/value pairs
+ *
+ * Creates a new #SoupServer.
+ **/
 SoupServer *
 soup_server_new (const char *optname1, ...)
 {
@@ -426,6 +429,16 @@ soup_server_new (const char *optname1, ...)
 	return server;
 }
 
+/**
+ * soup_server_get_port:
+ * @server: a #SoupServer
+ *
+ * Gets the TCP port that @server is listening on. This is most useful
+ * when you did not request a specific port (or explicitly requested
+ * %SOUP_ADDRESS_ANY_PORT).
+ *
+ * Return value: the port @server is listening on.
+ **/
 guint
 soup_server_get_port (SoupServer *server)
 {
@@ -434,6 +447,18 @@ soup_server_get_port (SoupServer *server)
 	return SOUP_SERVER_GET_PRIVATE (server)->port;
 }
 
+/**
+ * soup_server_is_https:
+ * @server: a #SoupServer
+ *
+ * Checks whether @server is running plain http or https.
+ *
+ * In order for a server to run https, you must set the
+ * %SOUP_SERVER_SSL_CERT_FILE and %SOUP_SERVER_SSL_KEY_FILE properties
+ * to provide it with an SSL certificate to use.
+ *
+ * Return value: %TRUE if @server is serving https.
+ **/
 gboolean
 soup_server_is_https (SoupServer *server)
 {
@@ -445,6 +470,16 @@ soup_server_is_https (SoupServer *server)
 	return (priv->ssl_cert_file && priv->ssl_key_file);
 }
 
+/**
+ * soup_server_get_listener:
+ * @server: a #SoupServer
+ *
+ * Gets @server's listening socket. You should treat this as
+ * read-only; writing to it or modifiying it may cause @server to
+ * malfunction.
+ *
+ * Return value: the listening socket.
+ **/
 SoupSocket *
 soup_server_get_listener (SoupServer *server)
 {
@@ -634,6 +669,22 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 	start_request (server, sock);
 }
 
+/**
+ * soup_server_run_async:
+ * @server: a #SoupServer
+ *
+ * Starts @server, causing it to listen for and process incoming
+ * connections.
+ *
+ * The server actually runs in @server's #GMainContext. It will not
+ * actually perform any processing unless the appropriate main loop is
+ * running. In the simple case where you did not set the server's
+ * %SOUP_SERVER_ASYNC_CONTEXT property, this means the server will run
+ * whenever the glib main loop is running.
+ *
+ * soup_server_run_async() refs @server, so you should run
+ * soup_server_quit() to unref it when you are done.
+ **/
 void
 soup_server_run_async (SoupServer *server)
 {
@@ -658,6 +709,15 @@ soup_server_run_async (SoupServer *server)
 
 }
 
+/**
+ * soup_server_run:
+ * @server: a #SoupServer
+ *
+ * Starts @server, causing it to listen for and process incoming
+ * connections. Unlike soup_server_run_async(), this creates a
+ * #GMainLoop and runs it, and it will not return until someone calls
+ * soup_server_quit() to stop the server.
+ **/
 void
 soup_server_run (SoupServer *server)
 {
@@ -675,6 +735,16 @@ soup_server_run (SoupServer *server)
 		g_main_loop_run (priv->loop);
 }
 
+/**
+ * soup_server_quit:
+ * @server: a #SoupServer
+ *
+ * Stops processing for @server. Call this to clean up after
+ * soup_server_run_async(), or to terminate a call to soup_server_run().
+ *
+ * @server is still in a working state after this call; you can start
+ * and stop a server as many times as you want.
+ **/
 void
 soup_server_quit (SoupServer *server)
 {
@@ -713,6 +783,16 @@ soup_server_get_async_context (SoupServer *server)
 	return priv->async_context;
 }
 
+/**
+ * soup_client_context_get_address:
+ * @context: a #SoupClientContext
+ *
+ * Retrieves the #SoupAddress associated with the remote end
+ * of a connection.
+ *
+ * Return value: the #SoupAddress associated with the remote end of a
+ * connection.
+ **/
 SoupAddress *
 soup_client_context_get_address (SoupClientContext *context)
 {
@@ -721,6 +801,18 @@ soup_client_context_get_address (SoupClientContext *context)
 	return soup_socket_get_remote_address (context->sock);
 }
 
+/**
+ * soup_client_context_get_host:
+ * @context: a #SoupClientContext
+ *
+ * Retrieves the IP address associated with the remote end of a
+ * connection. (If you want the actual hostname, you'll have to call
+ * soup_client_context_get_address() and then call the appropriate
+ * #SoupAddress method to resolve it.)
+ *
+ * Return value: the IP address associated with the remote end of a
+ * connection.
+ **/
 const char *
 soup_client_context_get_host (SoupClientContext *context)
 {
@@ -730,6 +822,69 @@ soup_client_context_get_host (SoupClientContext *context)
 	return soup_address_get_physical (address);
 }
 
+/**
+ * SoupServerCallback:
+ * @server: the #SoupServer
+ * @msg: the message being processed
+ * @path: the path component of @msg's Request-URI
+ * @query: the parsed query component of @msg's Request-URI
+ * @context: additional contextual information about the client
+ * @user_data: the data passed to @soup_server_add_handler
+ *
+ * A callback used to handle requests to a #SoupServer. The callback
+ * will be invoked after receiving the request body; @msg's %method,
+ * %request_headers, and %request_body fields will be filled in.
+ *
+ * @path contains the request path, and @query contains the "query"
+ * component of the Request-URI, parsed according to the rules for
+ * HTML form handling. (Although this is the only commonly-used query
+ * format in HTTP, there is nothing that actually requires that HTTP
+ * request queries use this format; if your server needs to use some
+ * other format, you can just ignore @query, and call
+ * soup_message_get_uri() and parse the uri's query field yourself.)
+ *
+ * At a minimum, the callback must call soup_message_set_status() (or
+ * soup_message_set_status_full()) on @msg to set the response status
+ * code. Additionally, the handler may need to set response headers
+ * and/or fill in the response body.
+ *
+ * If the callback cannot fully fill in the response before returning
+ * (eg, if it needs to wait for information from a database, or
+ * another network server), it should call soup_server_pause_message()
+ * to tell #SoupServer to not send the response right away. When the
+ * response is ready, call soup_server_unpause_message() to cause it
+ * to be sent.
+ *
+ * To send the response body a bit at a time using "chunked" encoding,
+ * first call soup_message_headers_set_encoding() to set
+ * %SOUP_ENCODING_CHUNKED on the %response_headers. Then call
+ * soup_message_body_append() (or soup_message_body_append_buffer())
+ * to append each chunk as it becomes ready, and
+ * soup_server_unpause_message() to make sure it's running. (The
+ * server will automatically pause the message if it is using chunked
+ * encoding but no more chunks are available.) When you are done, call
+ * soup_message_body_complete() to indicate that no more chunks are
+ * coming.
+ **/
+typedef void (*SoupServerCallback) (SoupServer        *server,
+				    SoupMessage       *msg, 
+				    const char        *path,
+				    GHashTable        *query,
+				    SoupClientContext *context,
+				    gpointer           user_data);
+
+/**
+ * soup_server_add_handler:
+ * @server: a #SoupServer
+ * @path: the toplevel path for the handler
+ * @callback: callback to invoke for requests under @path
+ * @destroy: destroy notifier to free @user_data
+ * @user_data: data for @callback
+ *
+ * Adds a handler to @server for requests under @path. See the
+ * documentation for #SoupServerCallback for information about
+ * how callbacks should behave.
+ **/
 void
 soup_server_add_handler (SoupServer            *server,
 			 const char            *path,
@@ -764,6 +919,13 @@ unregister_handler (SoupServerHandler *handler)
 		handler->destroy (handler->user_data);
 }
 
+/**
+ * soup_server_remove_handler:
+ * @server: a #SoupServer
+ * @path: the toplevel path for the handler
+ *
+ * Removes the handler registered at @path.
+ **/
 void
 soup_server_remove_handler (SoupServer *server, const char *path)
 {
@@ -789,6 +951,23 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 	}
 }
 
+/**
+ * soup_server_add_auth_domain:
+ * @server: a #SoupServer
+ * @auth_domain: a #SoupAuthDomain
+ *
+ * Adds an authentication domain to @server. Each auth domain will
+ * have the chance to require authentication for each request that
+ * comes in; normally auth domains will require authentication for
+ * requests on certain paths that they have been set up to watch, or
+ * that meet other criteria set by the caller. If an auth domain
+ * determines that a request requires authentication (and the request
+ * doesn't contain authentication), @server will automatically reject
+ * the request with an appropriate status (401 Unauthorized or 407
+ * Proxy Authentication Required). If the request used the
+ * "100-continue" Expectation, @server will reject it before the
+ * request body is sent.
+ **/
 void
 soup_server_add_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
 {
@@ -800,6 +979,13 @@ soup_server_add_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
 	priv->auth_domains = g_slist_prepend (priv->auth_domains, auth_domain);
 }
 
+/**
+ * soup_server_remove_auth_domain:
+ * @server: a #SoupServer
+ * @auth_domain: a #SoupAuthDomain
+ *
+ * Removes @auth_domain from @server.
+ **/
 void
 soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
 {
