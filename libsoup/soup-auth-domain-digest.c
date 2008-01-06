@@ -213,7 +213,7 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 	if (priv->auth_dnotify)
 		priv->auth_dnotify (priv->auth_data);
 
-	priv->auth_callback = auth_callback;
+	priv->auth_callback = callback;
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
 }
