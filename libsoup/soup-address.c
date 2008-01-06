@@ -15,7 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <signal.h>
 
 #include "soup-address.h"
 #include "soup-dns.h"
@@ -99,13 +98,6 @@ typedef struct {
 	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
 
-enum {
-	DNS_RESULT,
-	LAST_SIGNAL
-};
-
-static guint signals[LAST_SIGNAL] = { 0 };
-
 G_DEFINE_TYPE (SoupAddress, soup_address, G_TYPE_OBJECT)
 
 static void
@@ -145,26 +137,6 @@ soup_address_class_init (SoupAddressClass *address_class)
 
 	/* virtual method override */
 	object_class->finalize = finalize;
-
-	/* signals */
-
-	/**
-	 * SoupAddress::dns-result:
-	 * @addr: the #SoupAddress
-	 * @status: the DNS status code
-	 *
-	 * Emitted when an address resolution completes. (This is used
-	 * internally by soup_address_resolve_async() itself.)
-	 **/
-	signals[DNS_RESULT] =
-		g_signal_new ("dns_result",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupAddressClass, dns_result),
-			      NULL, NULL,
-			      soup_marshal_NONE__INT,
-			      G_TYPE_NONE, 1,
-			      G_TYPE_INT);
 
 #ifdef G_OS_WIN32
 	/* This hopefully is a good place to call WSAStartup */
@@ -363,22 +335,53 @@ soup_address_get_port (SoupAddress *addr)
 
 
 static void
-update_address (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
+update_address (SoupAddress *addr, SoupDNSLookup *lookup)
 {
-	SoupAddress *addr = user_data;
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (success) {
-		if (!priv->name)
-			priv->name = soup_dns_lookup_get_hostname (lookup);
+	if (!priv->name)
+		priv->name = soup_dns_lookup_get_hostname (lookup);
 
-		if (!priv->sockaddr) {
-			priv->sockaddr = soup_dns_lookup_get_address (lookup);
-			SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
-		}
+	if (!priv->sockaddr) {
+		priv->sockaddr = soup_dns_lookup_get_address (lookup);
+		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
 	}
+}
 
-	g_signal_emit (addr, signals[DNS_RESULT], 0, success ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE);
+typedef struct {
+	SoupAddress         *addr;
+	SoupAddressCallback  callback;
+	gpointer             callback_data;
+} SoupAddressResolveAsyncData;
+
+static void
+free_res_data (gpointer res_data, GObject *ex_addr)
+{
+	g_free (res_data);
+}
+
+static void
+lookup_resolved (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
+{
+	SoupAddressResolveAsyncData *res_data = user_data;
+	SoupAddress *addr;
+	SoupAddressCallback callback;
+	gpointer callback_data;
+	guint status;
+
+	addr = res_data->addr;
+	callback = res_data->callback;
+	callback_data = res_data->callback_data;
+	g_object_weak_unref (G_OBJECT (addr), free_res_data, res_data);
+	g_free (res_data);
+
+	if (success)
+		update_address (addr, lookup);
+
+	if (callback) {
+		status = success ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE;
+		callback (addr, status, callback_data);
+	}
 }
 
 /**
@@ -400,16 +403,18 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 			    gpointer user_data)
 {
 	SoupAddressPrivate *priv;
+	SoupAddressResolveAsyncData *res_data;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (callback) {
-		soup_signal_connect_once (addr, "dns_result",
-					  G_CALLBACK (callback), user_data);
-	}
+	res_data = g_new (SoupAddressResolveAsyncData, 1);
+	res_data->addr          = addr;
+	res_data->callback      = callback;
+	res_data->callback_data = user_data;
 
-	soup_dns_lookup_resolve_async (priv->lookup, async_context, update_address, addr);
+	g_object_weak_ref (G_OBJECT (addr), free_res_data, res_data);
+	soup_dns_lookup_resolve_async (priv->lookup, async_context, lookup_resolved, res_data);
 }
 
 /**
@@ -431,6 +436,7 @@ soup_address_resolve_sync (SoupAddress *addr)
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
 	success = soup_dns_lookup_resolve (priv->lookup);
-	update_address (priv->lookup, success, addr);
+	if (success)
+		update_address (addr, priv->lookup);
 	return success ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE;
 }

@@ -28,8 +28,6 @@ struct SoupAddress {
 typedef struct {
 	GObjectClass parent_class;
 
-	/* signals */
-	void (*dns_result) (SoupAddress *addr, guint status);
 } SoupAddressClass;
 
 /* gtk-doc gets confused if there's an #ifdef inside the typedef */

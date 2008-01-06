@@ -1,5 +1,10 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-address.c: remove the "dns_result" signal, which
+	was just an implementation detail of soup_address_resolve_async().
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/*.c: misc documentation updates/gtk-doc fixes
 
 	* libsoup/soup-server.c: finally start documenting this properly.
