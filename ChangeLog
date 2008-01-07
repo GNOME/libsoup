@@ -1,5 +1,10 @@
 2008-01-07  Dan Winship  <danw@gnome.org>
 
+	* docs/reference/porting-2.2-2.4.xml: Notes on porting from 2.2 to
+	2.4
+
+2008-01-07  Dan Winship  <danw@gnome.org>
+
 	* libsoup/*.c: Move gtk-doc stuff from docs/reference/tmpl/ to the
 	C files themselves. Some updates.
 
