@@ -269,7 +269,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      got_foo_signal_wrapper,
 			      G_TYPE_NONE, 1,
-			      G_TYPE_POINTER);
+			      SOUP_TYPE_BUFFER);
 
 	/**
 	 * SoupMessage::got-body:
@@ -627,7 +627,7 @@ got_foo_signal_wrapper (GClosure *closure, GValue *return_value,
 	GSignalInvocationHint *hint = invocation_hint;
 
 	if (hint->signal_id == signals[GOT_CHUNK]) {
-		soup_marshal_NONE__POINTER (closure, return_value,
+		soup_marshal_NONE__BOXED (closure, return_value,
 					    n_param_values, param_values,
 					    invocation_hint, marshal_data);
 	} else {

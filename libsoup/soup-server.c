@@ -191,7 +191,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__POINTER_OBJECT,
 			      G_TYPE_NONE, 2,
-			      G_TYPE_POINTER,
+			      SOUP_TYPE_CLIENT_CONTEXT,
 			      SOUP_TYPE_MESSAGE);
 
 	/**
@@ -216,7 +216,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__POINTER_OBJECT,
 			      G_TYPE_NONE, 2,
-			      G_TYPE_POINTER,
+			      SOUP_TYPE_CLIENT_CONTEXT,
 			      SOUP_TYPE_MESSAGE);
 
 	/**
@@ -236,7 +236,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__POINTER_OBJECT,
 			      G_TYPE_NONE, 2,
-			      G_TYPE_POINTER,
+			      SOUP_TYPE_CLIENT_CONTEXT,
 			      SOUP_TYPE_MESSAGE);
 
 	/**
@@ -265,7 +265,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__POINTER_OBJECT,
 			      G_TYPE_NONE, 2,
-			      G_TYPE_POINTER,
+			      SOUP_TYPE_CLIENT_CONTEXT,
 			      SOUP_TYPE_MESSAGE);
 
 	/* properties */
@@ -812,6 +812,15 @@ soup_server_get_async_context (SoupServer *server)
  * also be of use in some situations (eg, tracking when multiple
  * requests are made on the same connection).
  **/
+GType
+soup_client_context_get_type (void)
+{
+	static GType type = 0;
+
+	if (type == 0)
+		type = g_pointer_type_register_static ("SoupClientContext");
+	return type;
+}
 
 /**
  * soup_client_context_get_socket:

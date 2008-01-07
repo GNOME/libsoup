@@ -53,6 +53,9 @@ typedef struct {
 	gsize       length;
 } SoupBuffer;
 
+GType soup_buffer_get_type (void);
+#define SOUP_TYPE_BUFFER (soup_buffer_get_type ())
+
 SoupBuffer *soup_buffer_new           (SoupMemoryUse  use,
 				       gconstpointer  data,
 				       gsize          length);

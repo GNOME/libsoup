@@ -1,5 +1,20 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.c (soup_buffer_get_type): Register
+	SoupBuffer as a boxed type.
+
+	* libsoup/soup-message.c (soup_message_class_init): Use
+	SOUP_TYPE_BUFFER in got_chunk signal definition
+
+	* libsoup/soup-server.c (soup_client_context_get_type): Register
+	SoupClientContext as a pointer type
+	(soup_server_class_init): use SOUP_TYPE_CLIENT_CONTEXT in signal
+	definitions.
+
+	* libsoup/soup-marshal.list: clean this up
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-server.c (SoupClientContext): Make this opaque.
 	(soup_client_context_get_socket)
 	(soup_client_context_get_auth_domain)

@@ -132,6 +132,20 @@ soup_buffer_free (SoupBuffer *buffer)
 	}
 }
 
+GType
+soup_buffer_get_type (void)
+{
+	static GType type = 0;
+
+	if (type == 0) {
+		type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupBuffer"),
+			(GBoxedCopyFunc)soup_buffer_copy,
+			(GBoxedFreeFunc)soup_buffer_free);
+	}
+	return type;
+}
+
 typedef struct {
 	SoupMessageBody body;
 	GSList *chunks, *last;
