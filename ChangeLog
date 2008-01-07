@@ -1,5 +1,8 @@
 2008-01-07  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (soup_session_class_init): Change
+	request_started signal to have a SoupSocket as its last parameter.
+
 	* libsoup/soup-server.c: Fix request_* signals to all be (server,
 	msg, client) rather than (server, client, msg).
 
