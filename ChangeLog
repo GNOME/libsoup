@@ -1,3 +1,14 @@
+2008-01-07  Dan Winship  <danw@gnome.org>
+
+	* libsoup/*.c: Move gtk-doc stuff from docs/reference/tmpl/ to the
+	C files themselves. Some updates.
+
+	* docs/reference/Makefile.am: fix (kludge?) this up to not require
+	tmpl/ to exist
+
+	* docs/reference/client-howto.xml: 
+	* docs/reference/server-howto.xml: update
+
 2008-01-06  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-soap-message.c:

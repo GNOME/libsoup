@@ -70,17 +70,17 @@ GMainContext      *soup_server_get_async_context (SoupServer         *server);
 
 /* Handlers and auth */
 
-void               soup_server_add_handler    (SoupServer            *serv,
+void               soup_server_add_handler    (SoupServer            *server,
 					       const char            *path,
 					       SoupServerCallback     callback,
 					       gpointer               data,
 					       GDestroyNotify         destroy);
-void               soup_server_remove_handler (SoupServer            *serv,
+void               soup_server_remove_handler (SoupServer            *server,
 					       const char            *path);
 
-void               soup_server_add_auth_domain    (SoupServer     *serv,
+void               soup_server_add_auth_domain    (SoupServer     *server,
 						   SoupAuthDomain *auth_domain);
-void               soup_server_remove_auth_domain (SoupServer     *serv,
+void               soup_server_remove_auth_domain (SoupServer     *server,
 						   SoupAuthDomain *auth_domain);
 
 /* I/O */

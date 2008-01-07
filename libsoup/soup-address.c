@@ -30,6 +30,18 @@
 #define INADDR_NONE -1
 #endif
 
+/**
+ * SECTION:soup-address
+ * @short_description: DNS support
+ *
+ * #SoupAddress represents the address of a TCP connection endpoint;
+ * both the IP address and the port. (It is somewhat like an
+ * object-oriented version of struct sockaddr.)
+ *
+ * If libsoup was built with IPv6 support, #SoupAddress will allow
+ * both IPv4 and IPv6 addresses.
+ **/
+
 typedef struct {
 	struct sockaddr *sockaddr;
 
@@ -220,6 +232,13 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
  **/
 
 /**
+ * SOUP_ADDRESS_ANY_PORT:
+ *
+ * This can be passed to any #SoupAddress method that expects a port,
+ * to indicate that you don't care what port is used.
+ **/
+
+/**
  * soup_address_new_any:
  * @family: the address family
  * @port: the port number (usually %SOUP_ADDRESS_ANY_PORT)
@@ -383,6 +402,16 @@ lookup_resolved (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
 		callback (addr, status, callback_data);
 	}
 }
+
+/**
+ * SoupAddressCallback:
+ * @addr: the #SoupAddress that was resolved
+ * @status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
+ * @data: the user data that was passed to
+ * soup_address_resolve_async()
+ *
+ * The callback function passed to soup_address_resolve_async().
+ **/
 
 /**
  * soup_address_resolve_async:

@@ -9,6 +9,34 @@
 
 #include <string.h>
 
+/**
+ * SECTION:soup-value-utils
+ * @short_description: #GValue utilities
+ *
+ **/
+
+/**
+ * SOUP_VALUE_SETV:
+ * @val: a #GValue
+ * @type: a #GType
+ * @args: #va_list pointing to a value of type @type
+ *
+ * Copies an argument of type @type from @args into @val. @val will
+ * point directly to the value in @args rather than copying it, so you
+ * must g_value_copy() it if you want it to remain valid.
+ **/
+
+/**
+ * SOUP_VALUE_GETV:
+ * @val: a #GValue
+ * @type: a #GType
+ * @args: #va_list pointing to a value of type pointer-to-@type
+ *
+ * Extracts a value of type @type from @val into @args. The return
+ * value will point to the same data as @val rather than being a copy
+ * of it.
+ **/
+
 static void
 soup_value_hash_value_free (gpointer val)
 {

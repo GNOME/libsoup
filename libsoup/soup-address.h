@@ -44,23 +44,8 @@ typedef enum {
 #undef AF_INET6
 #endif
 
-/**
- * SOUP_ADDRESS_ANY_PORT:
- *
- * This can be passed to any #SoupAddress method that expects a port,
- * to indicate that you don't care what port is used.
- **/
 #define SOUP_ADDRESS_ANY_PORT 0
 
-/**
- * SoupAddressCallback:
- * @addr: the #SoupAddress that was resolved
- * @status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
- * @data: the user data that was passed to
- * soup_address_resolve_async()
- *
- * The callback function passed to soup_address_resolve_async().
- **/
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
 						  gpointer             data);

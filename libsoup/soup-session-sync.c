@@ -14,6 +14,14 @@
 #include "soup-message-private.h"
 #include "soup-misc.h"
 
+/**
+ * SECTION:soup-session-sync
+ * @short_description: Soup session for blocking I/O in multithreaded programs.
+ *
+ * #SoupSessionSync is an implementation of #SoupSession that uses
+ * synchronous I/O, intended for use in multi-threaded programs.
+ **/
+
 typedef struct {
 	GMutex *lock;
 	GCond *cond;

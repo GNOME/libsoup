@@ -12,6 +12,18 @@
 #include "soup-uri.h"
 #include "soup-misc.h"
 
+/**
+ * SECTION:soup-uri
+ * @short_description: URIs
+ *
+ * A #SoupURI represents a (parsed) URI.
+ *
+ * Many applications will not need to use #SoupURI directly at all; on
+ * the client side, soup_message_new() takes a stringified URI, and on
+ * the server side, the path and query components are provided for you
+ * in the server callback.
+ **/
+
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
 
 static const char *http_scheme, *https_scheme;

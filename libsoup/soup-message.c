@@ -16,6 +16,43 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-message
+ * @short_description: An HTTP request and response.
+ * @see_also: #SoupMessageHeaders, #SoupMessageBody
+ *
+ **/
+
+/**
+ * SoupMessage:
+ * @method: the HTTP method
+ * @status_code: the HTTP status code
+ * @reason_phrase: the status phrase associated with @status_code
+ * @request_body: the request body
+ * @request_headers: the request headers
+ * @response_body: the response body
+ * @response_headers: the response headers
+ *
+ * Represents an HTTP message being sent or received.
+ *
+ * As described in the #SoupMessageBody documentation, the
+ * @request_body and @response_body %data fields will not necessarily
+ * be filled in at all times. When they are filled in, they will be
+ * terminated with a '\0' byte (which is not included in the %length),
+ * so you can use them as ordinary C strings (assuming that you know
+ * that the body doesn't have any other '\0' bytes).
+ *
+ * For a client-side #SoupMessage, @request_body's %data is usually
+ * filled in right before libsoup writes the request to the network,
+ * but you should not count on this; use soup_message_body_flatten()
+ * if you want to ensure that %data is filled in. @response_body's
+ * %data will be filled in before #SoupMessage::finished is emitted,
+ * unless you set the %SOUP_MESSAGE_OVERWRITE_CHUNKS flag.
+ *
+ * For a server-side #SoupMessage, @request_body's %data will be
+ * filled in before #SoupMessage::got_body is emitted.
+ **/
+
 G_DEFINE_TYPE (SoupMessage, soup_message, G_TYPE_OBJECT)
 
 enum {
@@ -1021,6 +1058,20 @@ soup_message_cleanup_response (SoupMessage *req)
 }
 
 /**
+ * SoupMessageFlags:
+ * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
+ * (3xx) responses received by this message.
+ * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Each chunk of the response will be
+ * freed after its corresponding %got_chunk signal is emitted, meaning
+ * %response will still be empty after the message is complete. You
+ * can use this to save memory if you expect the response to be large
+ * and you are able to process it a chunk at a time.
+ *
+ * Various flags that can be set on a #SoupMessage to alter its
+ * behavior.
+ **/
+
+/**
  * soup_message_set_flags:
  * @msg: a #SoupMessage
  * @flags: a set of #SoupMessageFlags values
@@ -1028,7 +1079,7 @@ soup_message_cleanup_response (SoupMessage *req)
  * Sets the specified flags on @msg.
  **/
 void
-soup_message_set_flags (SoupMessage *msg, guint flags)
+soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
@@ -1043,13 +1094,21 @@ soup_message_set_flags (SoupMessage *msg, guint flags)
  *
  * Return value: the flags
  **/
-guint
+SoupMessageFlags
 soup_message_get_flags (SoupMessage *msg)
 {
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), 0);
 
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags;
 }
+
+/**
+ * SoupHTTPVersion:
+ * @SOUP_HTTP_1_0: HTTP 1.0 (RFC 1945)
+ * @SOUP_HTTP_1_1: HTTP 1.1 (RFC 2616)
+ *
+ * Indicates the HTTP protocol version being used.
+ **/
 
 /**
  * soup_message_set_http_version:

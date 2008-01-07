@@ -19,6 +19,14 @@
 #include "soup-message.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-auth-domain-digest
+ * @short_description: Server-side "Digest" authentication
+ *
+ * #SoupAuthDomainBasic handles the server side of HTTP "Digest"
+ * authentication.
+ **/
+
 enum {
 	PROP_0,
 

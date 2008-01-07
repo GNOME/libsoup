@@ -43,14 +43,6 @@ typedef struct {
 GType soup_connection_get_type (void);
 
 
-/**
- * SoupConnectionCallback:
- * @conn: the #SoupConnection
- * @status: an HTTP status code indicating success or failure
- * @data: the data passed to soup_connection_connect_async()
- *
- * The callback function passed to soup_connection_connect_async().
- **/
 typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);

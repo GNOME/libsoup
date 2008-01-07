@@ -1,9 +1,4 @@
 <FUNCTION>
-<NAME>soup_dns_lookup_get_address</NAME>
-<RETURNS>struct sockaddr *</RETURNS>
-SoupDNSLookup   *lookup
-</FUNCTION>
-<FUNCTION>
 <NAME>soup_address_get_sockaddr</NAME>
 <RETURNS>struct sockaddr *</RETURNS>
 SoupAddress         *addr,

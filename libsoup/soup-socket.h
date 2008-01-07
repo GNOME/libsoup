@@ -41,14 +41,6 @@ typedef struct {
 #define SOUP_SOCKET_ASYNC_CONTEXT    "async-context"
 #define SOUP_SOCKET_TIMEOUT	     "timeout"
 
-/**
- * SoupSocketCallback:
- * @sock: the #SoupSocket
- * @status: an HTTP status code indicating success or failure
- * @user_data: the data passed to soup_socket_connect_async()
- *
- * The callback function passed to soup_socket_connect_async().
- **/
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,
 					       gpointer            user_data);
@@ -77,15 +69,6 @@ SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 SoupAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
 
 
-/**
- * SoupSocketIOStatus:
- * @SOUP_SOCKET_OK: Success
- * @SOUP_SOCKET_WOULD_BLOCK: Cannot read/write any more at this time
- * @SOUP_SOCKET_EOF: End of file
- * @SOUP_SOCKET_ERROR: Other error
- *
- * Return value from the #SoupSocket IO methods.
- **/
 typedef enum {
 	SOUP_SOCKET_OK,
 	SOUP_SOCKET_WOULD_BLOCK,

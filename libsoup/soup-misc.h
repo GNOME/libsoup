@@ -35,11 +35,6 @@ guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
-/**
- * soup_ssl_supported:
- *
- * Can be used to test if libsoup was compiled with ssl support.
- **/
 extern gboolean soup_ssl_supported;
 
 #define SOUP_SSL_ERROR soup_ssl_error_quark()

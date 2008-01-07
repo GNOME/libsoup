@@ -14,6 +14,15 @@
 #include "soup-message-private.h"
 #include "soup-misc.h"
 
+/**
+ * SECTION:soup-session-async
+ * @short_description: Soup session for asynchronous (main-loop-based) I/O.
+ *
+ * #SoupSessionAsync is an implementation of #SoupSession that uses
+ * non-blocking I/O via the glib main loop. It is intended for use in
+ * single-threaded programs.
+ **/
+
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,

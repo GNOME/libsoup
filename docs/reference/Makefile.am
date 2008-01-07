@@ -29,7 +29,13 @@ HFILE_GLOB=
 CFILE_GLOB=
 
 # Header files to ignore when scanning.
-IGNORE_HFILES= soup.h soup-marshal.h soup-types.h
+IGNORE_HFILES= soup.h soup-marshal.h \
+	soup-message-private.h soup-session-private.h \
+	soup-types.h soup-enum-types.h \
+	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
+	soup-connection.h soup-connection-ntlm.h \
+	soup-dns.h soup-auth-manager.h soup-md5-utils.h \
+	soup-message-queue.h soup-path-map.h soup-ssl.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES = 
@@ -51,7 +57,11 @@ GTKDOC_CFLAGS =				\
 
 GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
-
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make
 
+# kludges
+tmpl/*.sgml:
+
+clean: clean-am
+	rm -rf tmpl

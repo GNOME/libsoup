@@ -24,6 +24,12 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+/**
+ * SECTION:soup-socket
+ * @short_description: A network socket
+ *
+ **/
+
 G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
 
 enum {
@@ -513,6 +519,15 @@ got_address (SoupAddress *addr, guint status, gpointer user_data)
 	soup_socket_connect_async (sacd->sock, sacd->callback, sacd->user_data);
 	g_slice_free (SoupSocketAsyncConnectData, sacd);
 }
+
+/**
+ * SoupSocketCallback:
+ * @sock: the #SoupSocket
+ * @status: an HTTP status code indicating success or failure
+ * @user_data: the data passed to soup_socket_connect_async()
+ *
+ * The callback function passed to soup_socket_connect_async().
+ **/
 
 /**
  * soup_socket_connect_async:
@@ -1007,6 +1022,16 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
 
 	return SOUP_SOCKET_OK;
 }
+
+/**
+ * SoupSocketIOStatus:
+ * @SOUP_SOCKET_OK: Success
+ * @SOUP_SOCKET_WOULD_BLOCK: Cannot read/write any more at this time
+ * @SOUP_SOCKET_EOF: End of file
+ * @SOUP_SOCKET_ERROR: Other error
+ *
+ * Return value from the #SoupSocket IO methods.
+ **/
 
 /**
  * soup_socket_read:

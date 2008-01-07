@@ -16,6 +16,28 @@
 #include "soup-path-map.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-auth-domain
+ * @short_description: Server-side authentication
+ * @see_also: #SoupServer
+ *
+ * A #SoupAuthDomain manages authentication for all or part of a
+ * #SoupServer. To make a server require authentication, first create
+ * an appropriate subclass of #SoupAuthDomain, and then add it to the
+ * server with soup_server_add_auth_domain().
+ *
+ * In order for an auth domain to have any effect, you must add one or
+ * more paths to it (via soup_auth_domain_add_path() or the
+ * %SOUP_AUTH_DOMAIN_ADD_PATH property). To require authentication for
+ * all requests, add the path "/".
+ *
+ * If you need greater control over which requests should and
+ * shouldn't be authenticated, add paths covering everything you
+ * <emphasis>might</emphasis> want authenticated, and then use a
+ * filter (soup_auth_domain_set_filter()) to bypass authentication for
+ * those requests that don't need it.
+ **/
+
 enum {
 	PROP_0,
 

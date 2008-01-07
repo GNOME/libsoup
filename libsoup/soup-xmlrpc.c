@@ -21,6 +21,12 @@
 #include "soup-misc.h"
 #include "soup-session.h"
 
+/**
+ * SECTION:soup-xmlrpc
+ * @short_description: XML-RPC support
+ *
+ **/
+
 static xmlNode *find_real_node (xmlNode *node);
 
 static gboolean insert_value (xmlNode *parent, GValue *value);

@@ -26,6 +26,39 @@
 #include "soup-socket.h"
 #include "soup-ssl.h"
 
+/**
+ * SECTION:soup-server
+ * @short_description: HTTP server
+ * @see_also: #SoupAuthDomain
+ *
+ * #SoupServer implements a simple HTTP server.
+ * 
+ * To begin, create a server using soup_server_new(). Add at least one
+ * handler by calling soup_server_add_handler(); the handler will be
+ * called to process any requests underneath the path passed to
+ * soup_server_add_handler(). (If you want all requests to go to the
+ * same handler, just pass "/" (or %NULL) for the path.) Any request
+ * that does not match any handler will automatically be returned to
+ * the client with a 404 (Not Found) status.
+ * 
+ * To add authentication to some or all paths, create an appropriate
+ * #SoupAuthDomain (qv), and add it to the server via
+ * soup_server_add_auth_domain.
+ * 
+ * Additional processing options are available via #SoupServer's
+ * signals; Connect to #SoupServer::request-started to be notified
+ * every time a new request is being processed. (This gives you a
+ * chance to connect to the #SoupMessage "got-" signals in case you
+ * want to do processing before the body has been fully read.)
+ * 
+ * Once the server is set up, start it processing connections by
+ * calling soup_server_run_async() or soup_server_run(). #SoupServer
+ * runs via the glib main loop; if you need to have a server that runs
+ * in another thread (or merely isn't bound to the default main loop),
+ * create a #GMainContext for it to use, and set that via the
+ * #SOUP_SERVER_ASYNC_CONTEXT property.
+ **/
+
 G_DEFINE_TYPE (SoupServer, soup_server, G_TYPE_OBJECT)
 
 enum {

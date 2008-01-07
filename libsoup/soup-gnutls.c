@@ -26,6 +26,11 @@
 #include "soup-ssl.h"
 #include "soup-misc.h"
 
+/**
+ * soup_ssl_supported:
+ *
+ * Can be used to test if libsoup was compiled with ssl support.
+ **/
 gboolean soup_ssl_supported = TRUE;
 
 #define DH_BITS 1024

@@ -8,6 +8,29 @@
 
 G_BEGIN_DECLS
 
+/**
+ * SECTION:soup-method
+ * @short_description: HTTP method definitions
+ *
+ * soup-method.h contains a number of defines for standard HTTP and
+ * WebDAV headers. You do not need to use these defines; you can pass
+ * arbitrary strings to soup_message_new() if you prefer.
+ * 
+ * The thing that these defines <emphasis>are</emphasis> useful for is
+ * performing quick comparisons against #SoupMessage's %method field;
+ * because that field always contains an interned string, and these
+ * macros return interned strings, you can compare %method directly
+ * against these macros rather than needing to use strcmp(). This is
+ * most useful in SoupServer handlers. Eg:
+ * 
+ * <informalexample><programlisting>
+ * 	if (msg->method != SOUP_METHOD_GET &amp;&amp; msg->method != SOUP_METHOD_HEAD) {
+ * 		soup_message_set_status (msg, SOUP_METHOD_NOT_IMPLEMENTED);
+ * 		return;
+ * 	}
+ * </programlisting></informalexample>
+ **/
+
 #define SOUP_METHOD_POST      (g_intern_static_string ("POST"))
 #define SOUP_METHOD_GET       (g_intern_static_string ("GET"))
 #define SOUP_METHOD_HEAD      (g_intern_static_string ("HEAD"))

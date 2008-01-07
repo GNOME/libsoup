@@ -20,35 +20,6 @@ G_BEGIN_DECLS
 #define SOUP_IS_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_MESSAGE))
 #define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
 
-/**
- * SoupMessage:
- * @method: the HTTP method
- * @status_code: the HTTP status code
- * @reason_phrase: the status phrase associated with @status_code
- * @request_body: the request body
- * @request_headers: the request headers
- * @response_body: the response body
- * @response_headers: the response headers
- *
- * Represents an HTTP message being sent or received.
- *
- * As described in the #SoupMessageBody documentation, the
- * @request_body and @response_body %data fields will not necessarily
- * be filled in at all times. When they are filled in, they will be
- * terminated with a '\0' byte (which is not included in the %length),
- * so you can use them as ordinary C strings (assuming that you know
- * that the body doesn't have any other '\0' bytes).
- *
- * For a client-side #SoupMessage, @request_body's %data is usually
- * filled in right before libsoup writes the request to the network,
- * but you should not count on this; use soup_message_body_flatten()
- * if you want to ensure that %data is filled in. @response_body's
- * %data will be filled in before #SoupMessage::finished is emitted,
- * unless you set the %SOUP_MESSAGE_OVERWRITE_CHUNKS flag.
- *
- * For a server-side #SoupMessage, @request_body's %data will be
- * filled in before #SoupMessage::got_body is emitted.
- **/
 struct SoupMessage {
 	GObject parent;
 
@@ -106,13 +77,6 @@ void           soup_message_set_response        (SoupMessage       *msg,
 						 const char        *resp_body,
 						 gsize              resp_length);
 
-/**
- * SoupHTTPVersion:
- * @SOUP_HTTP_1_0: HTTP 1.0 (RFC 1945)
- * @SOUP_HTTP_1_1: HTTP 1.1 (RFC 2616)
- *
- * Indicates the HTTP protocol version being used.
- **/
 typedef enum {
 	SOUP_HTTP_1_0 = 0,
 	SOUP_HTTP_1_1 = 1
@@ -128,28 +92,15 @@ SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
 
-/**
- * SoupMessageFlags:
- * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
- * (3xx) responses received by this message.
- * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Each chunk of the response will be
- * freed after its corresponding %got_chunk signal is emitted, meaning
- * %response will still be empty after the message is complete. You
- * can use this to save memory if you expect the response to be large
- * and you are able to process it a chunk at a time.
- *
- * Various flags that can be set on a #SoupMessage to alter its
- * behavior.
- **/
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
 } SoupMessageFlags;
 
 void           soup_message_set_flags           (SoupMessage        *msg,
-						 guint               flags);
+						 SoupMessageFlags    flags);
 
-guint          soup_message_get_flags           (SoupMessage        *msg);
+SoupMessageFlags soup_message_get_flags         (SoupMessage        *msg);
 
 /* Specialized signal handlers */
 guint          soup_message_add_header_handler  (SoupMessage       *msg,

@@ -17,6 +17,25 @@
 #include "soup-headers.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-auth
+ * @short_description: HTTP client-side authentication support
+ * @see_also: #SoupSession
+ *
+ * #SoupAuth objects store the authentication data associated with a
+ * given bit of web space. They are created automatically by
+ * #SoupSession.
+ **/
+
+/**
+ * SoupAuth:
+ *
+ * The abstract base class for handling authentication. Specific HTTP
+ * Authentication mechanisms are implemented by its subclasses, but
+ * applications never need to be aware of the specific subclasses
+ * being used.
+ **/
+
 typedef struct {
 	gboolean proxy;
 	char *host;

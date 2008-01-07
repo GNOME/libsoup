@@ -27,6 +27,12 @@
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-session
+ * @short_description: Soup session state object
+ *
+ **/
+
 typedef struct {
 	SoupURI    *root_uri;
 

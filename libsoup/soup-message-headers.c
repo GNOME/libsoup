@@ -10,6 +10,15 @@
 #include "soup-message-headers.h"
 #include "soup-misc.h"
 
+/**
+ * SECTION:soup-message-headers
+ * @short_description: HTTP message headers
+ * @see_also: #SoupMessage
+ *
+ * #SoupMessageHeaders represents the HTTP message headers associated
+ * with a request or response.
+ **/
+
 typedef void (*SoupHeaderSetter) (SoupMessageHeaders *, const char *);
 static const char *intern_header_name (const char *name, SoupHeaderSetter *setter);
 

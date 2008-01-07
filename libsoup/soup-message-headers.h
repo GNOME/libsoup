@@ -42,20 +42,6 @@ void                soup_message_headers_foreach  (SoupMessageHeaders *hdrs,
 
 /* Specific headers */
 
-/**
- * SoupEncoding:
- * @SOUP_ENCODING_UNRECOGNIZED: unknown / error
- * @SOUP_ENCODING_NONE: no body is present (which is not the same as a
- * 0-length body, and only occurs in certain places)
- * @SOUP_ENCODING_CONTENT_LENGTH: Content-Length encoding
- * @SOUP_ENCODING_EOF: Response body ends when the connection is closed
- * @SOUP_ENCODING_CHUNKED: chunked encoding (currently only supported
- * for response)
- * @SOUP_ENCODING_BYTERANGES: multipart/byteranges (Reserved for future
- * use: NOT CURRENTLY IMPLEMENTED)
- *
- * How a message body is encoded for transport
- **/
 typedef enum {
 	SOUP_ENCODING_UNRECOGNIZED,
 	SOUP_ENCODING_NONE,

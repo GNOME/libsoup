@@ -39,8 +39,6 @@ SOUP_MESSAGE_CLASS
 SOUP_IS_MESSAGE_CLASS
 SOUP_MESSAGE_GET_CLASS
 SoupMessageClass
-SoupMessagePrivate
-SOUP_MESSAGE_GET_PRIVATE
 <SUBSECTION Private>
 soup_message_wrote_informational
 soup_message_wrote_headers
@@ -121,6 +119,9 @@ soup_message_body_truncate
 soup_message_body_complete
 soup_message_body_flatten
 soup_message_body_get_chunk
+<SUBSECTION Standard>
+SOUP_TYPE_BUFFER
+soup_buffer_get_type
 </SECTION>
 
 <SECTION>
@@ -155,9 +156,13 @@ soup_server_get_async_context
 SoupServerCallback
 soup_server_add_handler
 soup_server_remove_handler
+<SUBSECTION>
 SoupClientContext
+soup_client_context_get_socket
 soup_client_context_get_address
 soup_client_context_get_host
+soup_client_context_get_auth_domain
+soup_client_context_get_auth_user
 <SUBSECTION>
 soup_server_add_auth_domain
 soup_server_remove_auth_domain
@@ -170,6 +175,7 @@ SOUP_SERVER_INTERFACE
 SOUP_SERVER_SSL_CERT_FILE
 SOUP_SERVER_SSL_KEY_FILE
 SOUP_SERVER_ASYNC_CONTEXT
+SOUP_SERVER_RAW_PATHS
 <SUBSECTION Standard>
 SOUP_SERVER
 SOUP_IS_SERVER
@@ -179,6 +185,8 @@ SOUP_SERVER_CLASS
 SOUP_IS_SERVER_CLASS
 SOUP_SERVER_GET_CLASS
 SoupServerClass
+SOUP_TYPE_CLIENT_CONTEXT
+soup_client_context_get_type
 </SECTION>
 
 <SECTION>
@@ -188,6 +196,7 @@ SoupAuthDomain
 <SUBSECTION>
 soup_auth_domain_add_path
 soup_auth_domain_remove_path
+SoupAuthDomainFilter
 soup_auth_domain_set_filter
 soup_auth_domain_get_realm
 <SUBSECTION>
@@ -286,6 +295,8 @@ SOUP_ADDRESS_CLASS
 SOUP_IS_ADDRESS_CLASS
 SOUP_ADDRESS_GET_CLASS
 SoupAddressClass
+<SUBSECTION Private>
+AF_INET6
 </SECTION>
 
 <SECTION>
@@ -299,6 +310,9 @@ soup_session_requeue_message
 soup_session_send_message
 soup_session_cancel_message
 soup_session_abort
+<SUBSECTION>
+soup_session_pause_message
+soup_session_unpause_message
 <SUBSECTION>
 soup_session_get_async_context
 <SUBSECTION>
@@ -404,6 +418,7 @@ soup_socket_listen
 <SUBSECTION>
 soup_socket_start_ssl
 soup_socket_start_proxy_ssl
+soup_socket_is_ssl
 <SUBSECTION>
 soup_socket_disconnect
 soup_socket_is_connected
@@ -467,6 +482,7 @@ SoupDateFormat
 soup_date_new
 soup_date_new_from_string
 soup_date_new_from_time_t
+soup_date_new_from_now
 soup_date_to_string
 soup_date_free
 <SUBSECTION>
@@ -496,7 +512,8 @@ soup_ssl_supported
 <SUBSECTION Private>
 soup_date_copy
 soup_signal_connect_once
-soup_xml_real_node
+SOUP_TYPE_DATE
+soup_date_get_type
 </SECTION>
 
 <SECTION>
@@ -506,6 +523,7 @@ soup_xml_real_node
 soup_xmlrpc_build_method_call
 soup_xmlrpc_request_new
 soup_xmlrpc_parse_method_response
+soup_xmlrpc_extract_method_response
 <SUBSECTION>
 soup_xmlrpc_parse_method_call
 soup_xmlrpc_extract_method_call

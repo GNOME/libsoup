@@ -15,6 +15,14 @@
 #include "soup-marshal.h"
 #include "soup-message.h"
 
+/**
+ * SECTION:soup-auth-domain-basic
+ * @short_description: Server-side "Basic" authentication
+ *
+ * #SoupAuthDomainBasic handles the server side of HTTP "Basic" (ie,
+ * cleartext password) authentication.
+ **/
+
 enum {
 	PROP_0,
 
