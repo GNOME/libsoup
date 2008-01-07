@@ -190,21 +190,3 @@ soup_add_timeout (GMainContext *async_context,
 	g_source_unref (source);
 	return source;
 }
-
-/**
- * soup_xml_real_node:
- * @node: an %xmlNodePtr
- *
- * Finds the first "real" node (ie, not a comment or whitespace) at or
- * after @node at its level in the tree.
- *
- * Return: a node, or %NULL
- **/
-xmlNode *
-soup_xml_real_node (xmlNode *node)
-{
-	while (node && (node->type == XML_COMMENT_NODE ||
-			xmlIsBlankNode (node)))
-		node = node->next;
-	return node;
-}

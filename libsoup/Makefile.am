@@ -65,8 +65,6 @@ soup_headers =			\
 	soup-session.h		\
 	soup-session-async.h	\
 	soup-session-sync.h	\
-	soup-soap-message.h	\
-	soup-soap-response.h	\
 	soup-socket.h		\
 	soup-status.h		\
 	soup-types.h		\
@@ -137,8 +135,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session-async.c		\
 	soup-session-private.h		\
 	soup-session-sync.c		\
-	soup-soap-message.c		\
-	soup-soap-response.c		\
 	soup-socket.c			\
 	soup-ssl.h			\
 	soup-status.c			\

@@ -1,5 +1,19 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-soap-message.c:
+	* libsoup/soup-soap-response.c: For the second time, remove SOAP
+	support from libsoup... These APIs are not really all that helpful
+	in the grand scheme of SOAPiness, and are only used by the
+	Evolution GroupWise backend, which can just import this code and
+	integrate it better there.
+
+	* libsoup/soup-misc.c (soup_xml_real_node): 
+	* libsoup/soup-xmlrpc.c: Move soup_xml_real_node out of soup-misc
+	to soup-xmlrpc, and make it private. libxml is no longer exposed
+	in the public API.
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-date.c (soup_date_new_from_now): new method to
 	generate a date relative to now.
 	(soup_date_new, etc): document SoupDate methods

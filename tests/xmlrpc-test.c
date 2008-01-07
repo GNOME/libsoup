@@ -3,6 +3,8 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 

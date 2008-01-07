@@ -11,7 +11,6 @@ noinst_PROGRAMS =	\
 	context-test	\
 	continue-test	\
 	date		\
-	dict		\
 	dns		\
 	get		\
 	getbug		\
@@ -30,7 +29,6 @@ auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
 context_test_SOURCES = context-test.c
 continue_test_SOURCES = continue-test.c
 date_SOURCES = date.c
-dict_SOURCES = dict.c
 dns_SOURCES = dns.c
 get_SOURCES = get.c
 getbug_SOURCES = getbug.c

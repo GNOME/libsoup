@@ -21,6 +21,8 @@
 #include "soup-misc.h"
 #include "soup-session.h"
 
+static xmlNode *find_real_node (xmlNode *node);
+
 static gboolean insert_value (xmlNode *parent, GValue *value);
 
 static void
@@ -413,7 +415,7 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 
 	memset (value, 0, sizeof (GValue));
 
-	typenode = soup_xml_real_node (xmlvalue->children);
+	typenode = find_real_node (xmlvalue->children);
 	if (!typenode) {
 		/* If no type node, it's a string */
 		content = xmlNodeGetContent (typenode);
@@ -469,9 +471,9 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 		GValue mgval;
 		
 		hash = soup_value_hash_new ();
-		for (member = soup_xml_real_node (typenode->children);
+		for (member = find_real_node (typenode->children);
 		     member;
-		     member = soup_xml_real_node (member->next)) {
+		     member = find_real_node (member->next)) {
 			if (strcmp ((const char *)member->name, "member") != 0) {
 				g_hash_table_destroy (hash);
 				return FALSE;
@@ -479,9 +481,9 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 			mname = mxval = NULL;
 			memset (&mgval, 0, sizeof (mgval));
 
-			for (child = soup_xml_real_node (member->children);
+			for (child = find_real_node (member->children);
 			     child;
-			     child = soup_xml_real_node (child->next)) {
+			     child = find_real_node (child->next)) {
 				if (!strcmp ((const char *)child->name, "name"))
 					mname = child;
 				else if (!strcmp ((const char *)child->name, "value"))
@@ -506,14 +508,14 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 		GValueArray *array;
 		GValue gval;
 
-		data = soup_xml_real_node (typenode->children);
+		data = find_real_node (typenode->children);
 		if (!data || strcmp ((const char *)data->name, "data") != 0)
 			return FALSE;
 
 		array = g_value_array_new (1);
-		for (xval = soup_xml_real_node (data->children);
+		for (xval = find_real_node (data->children);
 		     xval;
-		     xval = soup_xml_real_node (xval->next)) {
+		     xval = find_real_node (xval->next)) {
 			memset (&gval, 0, sizeof (gval));
 			if (strcmp ((const char *)xval->name, "value") != 0 ||
 			    !parse_value (xval, &gval)) {
@@ -565,19 +567,19 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 	if (!node || strcmp ((const char *)node->name, "methodCall") != 0)
 		goto fail;
 
-	node = soup_xml_real_node (node->children);
+	node = find_real_node (node->children);
 	if (!node || strcmp ((const char *)node->name, "methodName") != 0)
 		goto fail;
 	xmlMethodName = xmlNodeGetContent (node);
 
-	node = soup_xml_real_node (node->next);
+	node = find_real_node (node->next);
 	if (!node || strcmp ((const char *)node->name, "params") != 0)
 		goto fail;
 
 	*params = g_value_array_new (1);
-	param = soup_xml_real_node (node->children);
+	param = find_real_node (node->children);
 	while (param && !strcmp ((const char *)param->name, "param")) {
-		xval = soup_xml_real_node (param->children);
+		xval = find_real_node (param->children);
 		if (!xval || !strcmp ((const char *)xval->name, "value") ||
 		    !parse_value (xval, &value)) {
 			g_value_array_free (*params);
@@ -672,7 +674,7 @@ soup_xmlrpc_parse_method_response (const char *method_response, int length,
 	if (!node || strcmp ((const char *)node->name, "methodResponse") != 0)
 		goto fail;
 
-	node = soup_xml_real_node (node->children);
+	node = find_real_node (node->children);
 	if (!node)
 		goto fail;
 
@@ -680,9 +682,9 @@ soup_xmlrpc_parse_method_response (const char *method_response, int length,
 		int fault_code = -1;
 		xmlChar *fault_string = NULL;
 
-		for (node = soup_xml_real_node (node->children);
+		for (node = find_real_node (node->children);
 		     node;
-		     node = soup_xml_real_node (node->next)) {
+		     node = find_real_node (node->next)) {
 			if (!strcmp ((const char *)node->name, "faultCode")) {
 				xmlChar *content = xmlNodeGetContent (node);
 				fault_code = atoi ((char *)content);
@@ -702,10 +704,10 @@ soup_xmlrpc_parse_method_response (const char *method_response, int length,
 		if (fault_string)
 			xmlFree (fault_string);
 	} else if (!strcmp ((const char *)node->name, "params")) {
-		node = soup_xml_real_node (node->children);
+		node = find_real_node (node->children);
 		if (!node || strcmp ((const char *)node->name, "param") != 0)
 			goto fail;
-		node = soup_xml_real_node (node->children);
+		node = find_real_node (node->children);
 		if (!node || strcmp ((const char *)node->name, "value") != 0)
 			goto fail;
 		if (!parse_value (node, value))
@@ -776,4 +778,13 @@ soup_xmlrpc_fault_quark (void)
 	if (!error)
 		error = g_quark_from_static_string ("soup_xmlrpc_fault_quark");
 	return error;
+}
+
+static xmlNode *
+find_real_node (xmlNode *node)
+{
+	while (node && (node->type == XML_COMMENT_NODE ||
+			xmlIsBlankNode (node)))
+		node = node->next;
+	return node;
 }

@@ -5,6 +5,8 @@
  * Copyright (C) 2007, 2008 Red Hat, Inc.
  */
 
+#include <stdio.h>
+
 #include "soup-message-headers.h"
 #include "soup-misc.h"
 
