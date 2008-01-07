@@ -90,6 +90,7 @@ SoupDate *soup_date_new             (int             year,
 				     int             second);
 SoupDate *soup_date_new_from_string (const char     *date_string);
 SoupDate *soup_date_new_from_time_t (time_t          when);
+SoupDate *soup_date_new_from_now    (int             offset_seconds);
 
 char     *soup_date_to_string       (SoupDate       *date,
 				     SoupDateFormat  format);

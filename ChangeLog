@@ -1,5 +1,14 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-date.c (soup_date_new_from_now): new method to
+	generate a date relative to now.
+	(soup_date_new, etc): document SoupDate methods
+
+	* libsoup/soup-server.c (got_headers): set Date header, as
+	required by RFC 2616
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-server.c (got_headers): if raw_paths isn't set,
 	decode the request's uri->path before doing anything else
 	(soup_server_class_init): add "raw-paths" property, to tell

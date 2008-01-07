@@ -17,6 +17,7 @@
 #include "soup-server.h"
 #include "soup-address.h"
 #include "soup-auth-domain.h"
+#include "soup-date.h"
 #include "soup-form.h"
 #include "soup-headers.h"
 #include "soup-message-private.h"
@@ -577,6 +578,8 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	SoupServer *server = client->server;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupURI *uri;
+	SoupDate *date;
+	char *date_string;
 	SoupAuthDomain *domain;
 	GSList *iter;
 	gboolean rejected = FALSE;
@@ -587,6 +590,19 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 		soup_uri_decode (uri->path);
 	}
 
+	/* Add required response headers */
+	date = soup_date_new_from_now (0);
+	date_string = soup_date_to_string (date, SOUP_DATE_HTTP);
+	soup_message_headers_replace (req->response_headers, "Date",
+				      date_string);
+	g_free (date_string);
+	soup_date_free (date);
+	
+	/* Now handle authentication. (We do this here so that if
+	 * the request uses "Expect: 100-continue", we can reject it
+	 * immediately rather than waiting for the request body to
+	 * be sent.
+	 */
 	for (iter = priv->auth_domains; iter; iter = iter->next) {
 		domain = iter->data;
 

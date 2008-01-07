@@ -45,6 +45,19 @@ soup_date_get_type (void)
 	return type;
 }
 
+/**
+ * soup_date_new:
+ * @year: the year (1-9999)
+ * @month: the month (1-12)
+ * @day: the day of the month (1-31, as appropriate for @month)
+ * @hour: the hour (0-23)
+ * @minute: the minute (0-59)
+ * @second: the second (0-59)
+ *
+ * Creates a #SoupDate representing the indicated time, UTC.
+ *
+ * Return value: a new #SoupDate
+ **/
 SoupDate *
 soup_date_new (int year, int month, int day, 
 	       int hour, int minute, int second)
@@ -61,6 +74,22 @@ soup_date_new (int year, int month, int day,
 	date->offset = 0;
 
 	return date;
+}
+
+/**
+ * soup_date_new_from_now:
+ * @offset_seconds: offset from current time
+ *
+ * Creates a #SoupDate representing a time @offset_seconds after the
+ * current time (or before it, if @offset_seconds is negative). If
+ * offset_seconds is 0, returns the current time.
+ *
+ * Return value: a new #SoupDate
+ **/
+SoupDate *
+soup_date_new_from_now (int offset_seconds)
+{
+	return soup_date_new_from_time_t (time (NULL) + offset_seconds);
 }
 
 static gboolean
@@ -282,6 +311,18 @@ days_in_month (int month, int year)
 		(((year % 4 == 0) && month == 2) ? 1 : 0);
 }
 
+/**
+ * soup_date_from_now:
+ * @date_string: the date in some plausible format
+ *
+ * Parses @date_string and tries to extract a date from it. This
+ * recognizes all of the "HTTP-date" formats from RFC 2616, all ISO
+ * 8601 formats containing both a time and a date, RFC 2822 dates,
+ * and reasonable approximations thereof. (Eg, it is lenient about
+ * whitespace, leading "0"s, etc.)
+ *
+ * Return value: a new #SoupDate
+ **/
 SoupDate *
 soup_date_new_from_string (const char *date_string)
 {
@@ -320,6 +361,14 @@ soup_date_new_from_string (const char *date_string)
 		return date;
 }
 
+/**
+ * soup_date_new_from_time_t:
+ * @when: a #time_t
+ *
+ * Creates a #SoupDate corresponding to @when
+ *
+ * Return value: a new #SoupDate
+ **/
 SoupDate *
 soup_date_new_from_time_t (time_t when)
 {
@@ -352,6 +401,15 @@ soup_date_weekday (SoupDate *date)
 	return days[day % 7];
 }
 
+/**
+ * soup_date_to_string:
+ * @date: a #SoupDate
+ * @format: the format to generate the date in
+ *
+ * Converts @date to a string in the format described by @format.
+ *
+ * Return value: @date as a string
+ **/
 char *
 soup_date_to_string (SoupDate *date, SoupDateFormat format)
 {
@@ -392,6 +450,12 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
 	}
 }
 
+/**
+ * soup_date_copy:
+ * @date: a #SoupDate
+ *
+ * Copies @date.
+ **/
 SoupDate *
 soup_date_copy (SoupDate *date)
 {
@@ -401,6 +465,12 @@ soup_date_copy (SoupDate *date)
 	return copy;
 }
 
+/**
+ * soup_date_free:
+ * @date: a #SoupDate
+ *
+ * Frees @date.
+ **/
 void
 soup_date_free (SoupDate *date)
 {
