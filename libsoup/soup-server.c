@@ -64,6 +64,7 @@ typedef struct {
 	SoupSocket        *listen_sock;
 	GSList            *client_socks;
 
+	gboolean           raw_paths;
 	SoupPathMap       *handlers;
 	SoupServerHandler *default_handler;
 	
@@ -81,6 +82,7 @@ enum {
 	PROP_SSL_CERT_FILE,
 	PROP_SSL_KEY_FILE,
 	PROP_ASYNC_CONTEXT,
+	PROP_RAW_PATHS,
 
 	LAST_PROP
 };
@@ -303,6 +305,13 @@ soup_server_class_init (SoupServerClass *server_class)
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_RAW_PATHS,
+		g_param_spec_boolean (SOUP_SERVER_RAW_PATHS,
+				      "Raw paths",
+				      "If %TRUE, percent-encoding in the Request-URI path will not be automatically decoded.",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static GObject *
@@ -386,6 +395,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_RAW_PATHS:
+		priv->raw_paths = g_value_get_boolean (value);
+		break;
 	default:
 		break;
 	}
@@ -412,6 +424,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_RAW_PATHS:
+		g_value_set_boolean (value, priv->raw_paths);
 		break;
 	default:
 		break;
@@ -557,14 +572,20 @@ soup_server_get_handler (SoupServer *server, const char *path)
 }
 
 static void
-check_auth (SoupMessage *req, SoupClientContext *client)
+got_headers (SoupMessage *req, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupURI *uri;
 	SoupAuthDomain *domain;
 	GSList *iter;
 	gboolean rejected = FALSE;
 	char *auth_user;
+
+	if (!priv->raw_paths) {
+		uri = soup_message_get_uri (req);
+		soup_uri_decode (uri->path);
+	}
 
 	for (iter = priv->auth_domains; iter; iter = iter->next) {
 		domain = iter->data;
@@ -599,18 +620,13 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 	SoupServer *server = client->server;
 	SoupServerHandler *hand;
 	SoupURI *uri;
-	char *path;
 
 	if (req->status_code != 0)
 		return;
 
 	uri = soup_message_get_uri (req);
-	path = g_strdup (uri->path);
-	soup_uri_decode (path);
-
-	hand = soup_server_get_handler (server, path);
+	hand = soup_server_get_handler (server, uri->path);
 	if (!hand) {
-		g_free (path);
 		soup_message_set_status (req, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
@@ -625,14 +641,12 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 
 		/* Call method handler */
 		(*hand->callback) (server, req,
-				   path, form_data_set,
+				   uri->path, form_data_set,
 				   client, hand->user_data);
 
 		if (form_data_set)
 			g_hash_table_destroy (form_data_set);
 	}
-
-	g_free (path);
 }
 
 static void
@@ -647,7 +661,7 @@ start_request (SoupServer *server, SoupClientContext *client)
         soup_message_headers_set_encoding (msg->response_headers,
                                            SOUP_ENCODING_CONTENT_LENGTH);
 
-	g_signal_connect (msg, "got_headers", G_CALLBACK (check_auth), client);
+	g_signal_connect (msg, "got_headers", G_CALLBACK (got_headers), client);
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), client);
 	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), client);
 
@@ -936,18 +950,30 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * will be invoked after receiving the request body; @msg's %method,
  * %request_headers, and %request_body fields will be filled in.
  *
- * @path contains the request path, and @query contains the "query"
- * component of the Request-URI, parsed according to the rules for
- * HTML form handling. (Although this is the only commonly-used query
- * format in HTTP, there is nothing that actually requires that HTTP
- * request queries use this format; if your server needs to use some
- * other format, you can just ignore @query, and call
- * soup_message_get_uri() and parse the uri's query field yourself.)
+ * @path and @query contain the likewise-named components of the
+ * Request-URI, subject to certain assumptions. By default,
+ * #SoupServer decodes all percent-encoding in the URI path, such that
+ * "/foo%%2Fbar" is treated the same as "/foo/bar". If your server is
+ * serving resources in some non-POSIX-filesystem namespace, you may
+ * want to distinguish those as two distinct paths. In that case, you
+ * can set the %SOUP_SERVER_RAW_PATHS property when creating the
+ * #SoupServer, and it will leave those characters undecoded. (You may
+ * want to call soup_uri_normalize() to decode any percent-encoded
+ * characters that you aren't handling specially.)
  *
- * At a minimum, the callback must call soup_message_set_status() (or
+ * @query contains the query component of the Request-URI parsed
+ * according to the rules for HTML form handling. Although this is the
+ * only commonly-used query string format in HTTP, there is nothing
+ * that actually requires that HTTP URIs use that format; if your
+ * server needs to use some other format, you can just ignore @query,
+ * and call soup_message_get_uri() and parse the URI's query field
+ * yourself.
+ *
+ * After determining what to do with the request, the callback must at
+ * a minimum call soup_message_set_status() (or
  * soup_message_set_status_full()) on @msg to set the response status
- * code. Additionally, the handler may need to set response headers
- * and/or fill in the response body.
+ * code. Additionally, it may set response headers and/or fill in the
+ * response body.
  *
  * If the callback cannot fully fill in the response before returning
  * (eg, if it needs to wait for information from a database, or

@@ -317,22 +317,11 @@ gboolean
 soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
-	char *decoded_path;
 	const char *path;
 
 	path = soup_message_get_uri (msg)->path;
-	if (strchr (path, '%')) {
-		decoded_path = g_strdup (path);
-		soup_uri_decode (decoded_path);
-		path = decoded_path;
-	} else
-		decoded_path = NULL;
-
-	if (!soup_path_map_lookup (priv->paths, path)) {
-		g_free (decoded_path);
+	if (!soup_path_map_lookup (priv->paths, path))
 		return FALSE;
-	} 
-	g_free (decoded_path);
 
 	if (priv->filter && !priv->filter (domain, msg, priv->filter_data))
 		return FALSE;

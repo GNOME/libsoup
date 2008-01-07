@@ -52,6 +52,7 @@ typedef void (*SoupServerCallback) (SoupServer        *server,
 #define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
 #define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
 #define SOUP_SERVER_ASYNC_CONTEXT "async-context"
+#define SOUP_SERVER_RAW_PATHS     "raw-paths"
 
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;

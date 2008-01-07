@@ -1,5 +1,16 @@
 2008-01-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server.c (got_headers): if raw_paths isn't set,
+	decode the request's uri->path before doing anything else
+	(soup_server_class_init): add "raw-paths" property, to tell
+	SoupServer to NOT decode the Request-URI path.
+
+	* libsoup/soup-auth-domain.c (soup_auth_domain_covers): Revert
+	earlier path-decoding change; that happens at the SoupServer level
+	now.
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-body.c (soup_buffer_get_type): Register
 	SoupBuffer as a boxed type.
 
