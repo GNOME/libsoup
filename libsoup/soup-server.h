@@ -18,6 +18,10 @@ G_BEGIN_DECLS
 #define SOUP_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SERVER))
 #define SOUP_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SERVER, SoupServerClass))
 
+typedef struct SoupClientContext SoupClientContext;
+GType soup_client_context_get_type (void);
+#define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())
+
 struct SoupServer {
 	GObject parent;
 
@@ -27,18 +31,14 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*request_started)  (SoupServer *, SoupSocket *, SoupMessage *);
-	void (*request_read)     (SoupServer *, SoupSocket *, SoupMessage *);
-	void (*request_finished) (SoupServer *, SoupSocket *, SoupMessage *);
-	void (*request_aborted)  (SoupServer *, SoupSocket *, SoupMessage *);
+	void (*request_started)  (SoupServer *, SoupMessage *, SoupClientContext *);
+	void (*request_read)     (SoupServer *, SoupMessage *, SoupClientContext *);
+	void (*request_finished) (SoupServer *, SoupMessage *, SoupClientContext *);
+	void (*request_aborted)  (SoupServer *, SoupMessage *, SoupClientContext *);
 
 } SoupServerClass;
 
 GType soup_server_get_type (void);
-
-typedef struct SoupClientContext SoupClientContext;
-GType soup_client_context_get_type (void);
-#define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())
 
 typedef void (*SoupServerCallback) (SoupServer        *server,
 				    SoupMessage       *msg, 
@@ -73,7 +73,7 @@ GMainContext      *soup_server_get_async_context (SoupServer         *server);
 void               soup_server_add_handler    (SoupServer            *server,
 					       const char            *path,
 					       SoupServerCallback     callback,
-					       gpointer               data,
+					       gpointer               user_data,
 					       GDestroyNotify         destroy);
 void               soup_server_remove_handler (SoupServer            *server,
 					       const char            *path);

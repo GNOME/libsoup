@@ -64,6 +64,8 @@ guint           soup_connection_connect_sync   (SoupConnection   *conn);
 
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
+SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
+
 gboolean        soup_connection_is_in_use      (SoupConnection   *conn);
 time_t          soup_connection_last_used      (SoupConnection   *conn);
 

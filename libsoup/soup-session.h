@@ -31,7 +31,7 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*request_started) (SoupSession *, SoupMessage *);
+	void (*request_started) (SoupSession *, SoupMessage *, SoupSocket *);
 	void (*authenticate)    (SoupSession *, SoupMessage *,
 				 SoupAuth *, gboolean);
 

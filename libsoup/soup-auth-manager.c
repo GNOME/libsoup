@@ -20,7 +20,7 @@
 #include "soup-uri.h"
 
 static void session_request_started (SoupSession *session, SoupMessage *msg,
-				     gpointer data);
+				     SoupSocket *socket, gpointer data);
 
 struct SoupAuthManager {
 	SoupSession *session;
@@ -426,7 +426,7 @@ proxy_authorize_handler (SoupMessage *msg, gpointer user_data)
 
 static void
 session_request_started (SoupSession *session, SoupMessage *msg,
-			 gpointer data)
+			 SoupSocket *socket, gpointer data)
 {
 	SoupAuthManager *manager = data;
 	SoupAuth *auth;

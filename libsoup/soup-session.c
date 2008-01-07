@@ -24,6 +24,7 @@
 #include "soup-message-queue.h"
 #include "soup-session.h"
 #include "soup-session-private.h"
+#include "soup-socket.h"
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
@@ -228,6 +229,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * SoupSession::request-started:
 	 * @session: the session
 	 * @msg: the request being sent
+	 * @socket: the socket the request is being sent on
 	 *
 	 * Emitted just before a request is sent.
 	 **/
@@ -237,9 +239,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, request_started),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
-			      G_TYPE_NONE, 1,
-			      SOUP_TYPE_MESSAGE);
+			      soup_marshal_NONE__OBJECT_OBJECT,
+			      G_TYPE_NONE, 2,
+			      SOUP_TYPE_MESSAGE,
+			      SOUP_TYPE_SOCKET);
 
 	/**
 	 * SoupSession::authenticate:
@@ -577,7 +580,8 @@ connection_started_request (SoupConnection *conn, SoupMessage *msg,
 {
 	SoupSession *session = data;
 
-	g_signal_emit (session, signals[REQUEST_STARTED], 0, msg);
+	g_signal_emit (session, signals[REQUEST_STARTED], 0,
+		       msg, soup_connection_get_socket (conn));
 }
 
 static void

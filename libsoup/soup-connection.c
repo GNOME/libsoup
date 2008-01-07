@@ -667,6 +667,14 @@ soup_connection_disconnect (SoupConnection *conn)
 	 */
 }
 
+SoupSocket *
+soup_connection_get_socket (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->socket;
+}
+
 /**
  * soup_connection_is_in_use:
  * @conn: a connection

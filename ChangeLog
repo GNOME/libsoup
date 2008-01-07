@@ -1,5 +1,10 @@
 2008-01-07  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server.c: Fix request_* signals to all be (server,
+	msg, client) rather than (server, client, msg).
+
+2008-01-07  Dan Winship  <danw@gnome.org>
+
 	* docs/reference/porting-2.2-2.4.xml: Notes on porting from 2.2 to
 	2.4
 

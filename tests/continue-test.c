@@ -388,8 +388,8 @@ server_got_headers (SoupMessage *msg, gpointer server)
 }	
 
 static void
-request_started (SoupServer *server, SoupSocket *sock,
-		 SoupMessage *msg, gpointer user_data)
+request_started (SoupServer *server, SoupMessage *msg,
+		 SoupClientContext *client, gpointer user_data)
 {
 	g_signal_connect (msg, "got_headers",
 			  G_CALLBACK (server_got_headers), server);

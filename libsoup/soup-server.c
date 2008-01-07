@@ -204,8 +204,8 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SoupServer::request-started
 	 * @server: the server
-	 * @client: the client context
 	 * @message: the new message
+	 * @client: the client context
 	 *
 	 * Emitted when the server has started reading a new request.
 	 * @message will be completely blank; not even the
@@ -225,16 +225,16 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_started),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
-			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_CLIENT_CONTEXT,
-			      SOUP_TYPE_MESSAGE);
+			      soup_marshal_NONE__OBJECT_POINTER,
+			      G_TYPE_NONE, 2, 
+			      SOUP_TYPE_MESSAGE,
+			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
 	 * SoupServer::request-read
 	 * @server: the server
-	 * @client: the client context
 	 * @message: the message
+	 * @client: the client context
 	 *
 	 * Emitted when the server has successfully read a request.
 	 * @message will have all of its request-side information
@@ -250,16 +250,16 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_read),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
+			      soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_CLIENT_CONTEXT,
-			      SOUP_TYPE_MESSAGE);
+			      SOUP_TYPE_MESSAGE,
+			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
 	 * SoupServer::request-finished
 	 * @server: the server
-	 * @client: the client context
 	 * @message: the message
+	 * @client: the client context
 	 *
 	 * Emitted when the server has finished writing a response to
 	 * a request.
@@ -270,16 +270,16 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_finished),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
+			      soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_CLIENT_CONTEXT,
-			      SOUP_TYPE_MESSAGE);
+			      SOUP_TYPE_MESSAGE,
+			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
 	 * SoupServer::request-aborted
 	 * @server: the server
-	 * @client: the client context
 	 * @message: the message
+	 * @client: the client context
 	 *
 	 * Emitted when processing has failed for a message; this
 	 * could mean either that it could not be read (if
@@ -299,10 +299,10 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_aborted),
 			      NULL, NULL,
-			      soup_marshal_NONE__POINTER_OBJECT,
+			      soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
-			      SOUP_TYPE_CLIENT_CONTEXT,
-			      SOUP_TYPE_MESSAGE);
+			      SOUP_TYPE_MESSAGE,
+			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/* properties */
 	g_object_class_install_property (
@@ -574,7 +574,7 @@ request_finished (SoupMessage *msg, SoupClientContext *client)
 	g_signal_emit (server,
 		       msg->status_code == SOUP_STATUS_IO_ERROR ?
 		       signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
-		       0, client, msg);
+		       0, msg, client);
 
 	soup_client_context_cleanup (client);
 	if (soup_socket_is_connected (sock) && soup_message_is_keepalive (msg)) {
@@ -715,7 +715,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), client);
 
 	g_signal_emit (server, signals[REQUEST_STARTED], 0,
-		       client, msg);
+		       msg, client);
 
 	g_object_ref (client->sock);
 	soup_message_read_request (msg, client->sock);

@@ -297,8 +297,8 @@ wrote_headers_callback (SoupMessage *msg, gpointer data)
 }
 
 static void
-request_started_callback (SoupServer *server, SoupSocket *sock,
-			  SoupMessage *msg, gpointer data)
+request_started_callback (SoupServer *server, SoupMessage *msg,
+			  SoupClientContext *client, gpointer data)
 {
 	g_signal_connect (msg, "got_headers",
 			  G_CALLBACK (got_headers_callback), NULL);
