@@ -467,7 +467,7 @@ changed in a few ways:
     </para></listitem>
 
     <listitem><para>
-	The field formerly called <structfield>protocol</structfield> is not
+	The field formerly called <structfield>protocol</structfield> is now
 	<structfield>scheme</structfield>, to match the spec, and it's an
 	interned string rather than a quark. You can use <link
 linkend="soup-uri-is-https"><function>soup_uri_is_https</function></link>
