@@ -242,7 +242,9 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 *
 	 * Emitted when a listening socket (set up with
 	 * soup_socket_listen() or soup_socket_server_new()) receives a
-	 * new connection.
+	 * new connection. If you want to keep the connection, do not forget 
+	 * to add a reference to it. Otherwise the @new socket will be closed
+	 * after this signal.
 	 **/
 	signals[NEW_CONNECTION] =
 		g_signal_new ("new_connection",
