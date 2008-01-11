@@ -1,5 +1,10 @@
 2008-01-11  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.c (soup_buffer_copy): When copying a
+	TEMPORARY buffer, keep a reference to the copy, so that a second
+	copy will get that same buffer, rather than actually copying it
+	again.
+
 	* libsoup/soup-types.h: remove SoupMessageFilter, which doesn't
 	exist any more
 

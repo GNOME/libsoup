@@ -61,7 +61,13 @@ typedef struct {
 	SoupBuffer     buffer;
 	SoupMemoryUse  use;
 	guint          refcount;
-	SoupBuffer    *parent;
+
+	/* @other is used in subbuffers to store a reference to
+	 * the parent buffer, or in TEMPORARY buffers to store a
+	 * reference to a copy (see soup_buffer_copy()). Either
+	 * way, we hold a ref.
+	 */
+	SoupBuffer    *other;
 } SoupBufferPrivate;
 
 /**
@@ -108,23 +114,11 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
 SoupBuffer *
 soup_buffer_new_subbuffer (SoupBuffer *parent, gsize offset, gsize length)
 {
-	SoupBufferPrivate *parent_priv = (SoupBufferPrivate *)parent;
 	SoupBufferPrivate *priv;
 
-	/* If the parent is TEMPORARY, copy just the subbuffer part
-	 * into new memory.
-	 */
-	if (parent_priv->use == SOUP_MEMORY_TEMPORARY) {
-		return soup_buffer_new (SOUP_MEMORY_COPY,
-					parent->data + offset, length);
-	}
-
-	/* Otherwise don't copy anything, and just reuse the existing
-	 * memory.
-	 */
 	priv = g_slice_new0 (SoupBufferPrivate);
-	priv->parent = soup_buffer_copy (parent);
-	priv->buffer.data = priv->parent->data + offset;
+	priv->other = soup_buffer_copy (parent);
+	priv->buffer.data = priv->other->data + offset;
 	priv->buffer.length = length;
 	priv->use = SOUP_MEMORY_STATIC;
 	priv->refcount = 1;
@@ -149,13 +143,22 @@ soup_buffer_copy (SoupBuffer *buffer)
 {
 	SoupBufferPrivate *priv = (SoupBufferPrivate *)buffer;
 
-	/* Only actually copy it if it's temporary memory */
-	if (priv->use == SOUP_MEMORY_TEMPORARY)
-		return soup_buffer_new_subbuffer (buffer, 0, buffer->length);
+	/* For non-TEMPORARY buffers, this is just a ref */
+	if (priv->use != SOUP_MEMORY_TEMPORARY) {
+		priv->refcount++;
+		return buffer;
+	}
 
-	/* Otherwise just bump the refcount */
-	priv->refcount++;
-	return buffer;
+	/* For TEMPORARY buffers, we need to do a real copy the
+	 * first time, and then after that, we just keep returning
+	 * the copy. Use priv->other to store the copy.
+	 */
+
+	if (!priv->other) {
+		priv->other = soup_buffer_new (SOUP_MEMORY_COPY,
+					       buffer->data, buffer->length);
+	}
+	return soup_buffer_copy (priv->other);
 }
 
 /**
@@ -174,8 +177,8 @@ soup_buffer_free (SoupBuffer *buffer)
 	if (!--priv->refcount) {
 		if (priv->use == SOUP_MEMORY_TAKE)
 			g_free ((gpointer)buffer->data);
-		if (priv->parent)
-			soup_buffer_free (priv->parent);
+		if (priv->other)
+			soup_buffer_free (priv->other);
 		g_slice_free (SoupBufferPrivate, priv);
 	}
 }
