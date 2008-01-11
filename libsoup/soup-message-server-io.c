@@ -24,25 +24,25 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		       SoupEncoding *encoding, gpointer sock)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupURI *uri;
 	char *req_method, *req_path, *url;
+	SoupHTTPVersion version;
 	const char *req_host;
 	guint status;
+	SoupURI *uri;
 
 	status = soup_headers_parse_request (headers, headers_len,
 					     msg->request_headers,
 					     &req_method,
 					     &req_path,
-					     &priv->http_version);
+					     &version);
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		return status;
 
 	g_object_set (G_OBJECT (msg),
 		      SOUP_MESSAGE_METHOD, req_method,
+		      SOUP_MESSAGE_HTTP_VERSION, version,
 		      NULL);
 	g_free (req_method);
-
-
 
 	/* Handle request body encoding */
 	*encoding = soup_message_headers_get_encoding (msg->request_headers);

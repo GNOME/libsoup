@@ -1055,6 +1055,8 @@ soup_message_cleanup_response (SoupMessage *req)
 		g_free ((char *) req->reason_phrase);
 		req->reason_phrase = NULL;
 	}
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
 }
 
 /**
@@ -1084,6 +1086,7 @@ soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags = flags;
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
 }
 
 /**
@@ -1125,6 +1128,7 @@ soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = version;
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
 }
 
 /**
@@ -1213,6 +1217,8 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 	if (priv->uri)
 		soup_uri_free (priv->uri);
 	priv->uri = soup_uri_copy (uri);
+
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_URI);
 }
 
 /**
@@ -1249,6 +1255,8 @@ soup_message_set_status (SoupMessage *msg, guint status_code)
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
 }
 
 /**
@@ -1272,6 +1280,8 @@ soup_message_set_status_full (SoupMessage *msg,
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (reason_phrase);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
 }
 
 void

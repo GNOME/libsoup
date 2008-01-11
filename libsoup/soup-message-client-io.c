@@ -35,8 +35,13 @@ parse_response_headers (SoupMessage *req,
 					  (char **) &req->reason_phrase))
 		return SOUP_STATUS_MALFORMED;
 
-	if (version < priv->http_version)
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
+
+	if (version < priv->http_version) {
 		priv->http_version = version;
+		g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
+	}
 
 	if ((req->method == SOUP_METHOD_HEAD ||
 	     req->status_code  == SOUP_STATUS_NO_CONTENT ||

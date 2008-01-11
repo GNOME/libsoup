@@ -229,6 +229,9 @@ soup_auth_domain_basic_set_auth_callback (SoupAuthDomain *domain,
 	priv->auth_callback = callback;
 	priv->auth_data = user_data;
 	priv->auth_dnotify = dnotify;
+
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK);
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA);
 }
 
 static void

@@ -302,6 +302,9 @@ soup_auth_domain_set_filter (SoupAuthDomain *domain,
 	priv->filter = filter;
 	priv->filter_data = filter_data;
 	priv->filter_dnotify = dnotify;
+
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_FILTER);
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_FILTER_DATA);
 }
 
 /**
