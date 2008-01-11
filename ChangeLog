@@ -1,5 +1,9 @@
 2008-01-11  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (soup_session_class_init): bump the
+	default value of SOUP_SESSION_MAX_CONNS_PER_HOST down to 2, per
+	RFC 2616.
+
 	* libsoup/soup-message-body.c (soup_buffer_copy): When copying a
 	TEMPORARY buffer, keep a reference to the copy, so that a second
 	copy will get that same buffer, rather than actually copying it

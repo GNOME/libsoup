@@ -294,7 +294,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  "The maximum number of connections that the session can open at once to a given host",
 				  1,
 				  G_MAXINT,
-				  4,
+				  2,
 				  G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_USE_NTLM,
