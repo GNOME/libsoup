@@ -11,24 +11,9 @@
 #include "libsoup/soup.h"
 #include "libsoup/soup-session.h"
 
-#include "apache-wrapper.h"
+#include "test-utils.h"
 
-int errors = 0;
-int debug = 0;
 SoupBuffer *correct_response;
-
-static void
-dprintf (int level, const char *format, ...)
-{
-	va_list args;
-
-	if (debug < level)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
@@ -44,7 +29,7 @@ get_correct_response (const char *uri)
 	SoupSession *session;
 	SoupMessage *msg;
 
-	session = soup_session_async_new ();
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
@@ -98,7 +83,7 @@ do_fully_async_test (SoupSession *session,
 	loop = g_main_loop_new (NULL, FALSE);
 
 	uri = g_build_filename (base_uri, sub_uri, NULL);
-	dprintf (1, "GET %s\n", uri);
+	debug_printf (1, "GET %s\n", uri);
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	g_free (uri);
@@ -153,10 +138,10 @@ fully_async_request_chunk (gpointer user_data)
 	FullyAsyncData *ad = user_data;
 
 	if (!ad->did_first_timeout) {
-		dprintf (1, "  first timeout\n");
+		debug_printf (1, "  first timeout\n");
 		ad->did_first_timeout = TRUE;
 	} else
-		dprintf (2, "  timeout\n");
+		debug_printf (2, "  timeout\n");
 	ad->timeout = 0;
 
 	/* ad->chunks_ready and ad->chunk_wanted are used because
@@ -181,15 +166,15 @@ fully_async_got_headers (SoupMessage *msg, gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
-	dprintf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
 		/* Let soup handle this one; this got_headers handler
 		 * will get called again next time around.
 		 */
 		return;
 	} else if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf (1, "  unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 		return;
 	}
@@ -211,24 +196,24 @@ fully_async_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
-	dprintf (2, "  got chunk from %lu - %lu\n",
-		 (unsigned long) ad->read_so_far,
-		 (unsigned long) ad->read_so_far + chunk->length);
+	debug_printf (2, "  got chunk from %lu - %lu\n",
+		      (unsigned long) ad->read_so_far,
+		      (unsigned long) ad->read_so_far + chunk->length);
 
 	/* We've got a chunk, let's process it. In the case of the
 	 * test program, that means comparing it against
 	 * correct_response to make sure that we got the right data.
 	 */
 	if (ad->read_so_far + chunk->length > correct_response->length) {
-		dprintf (1, "  read too far! (%lu > %lu)\n",
-			 (unsigned long) (ad->read_so_far + chunk->length),
-			 (unsigned long) correct_response->length);
+		debug_printf (1, "  read too far! (%lu > %lu)\n",
+			      (unsigned long) (ad->read_so_far + chunk->length),
+			      (unsigned long) correct_response->length);
 		errors++;
 	} else if (memcmp (chunk->data,
 			   correct_response->data + ad->read_so_far,
 			   chunk->length) != 0) {
-		dprintf (1, "  data mismatch in block starting at %lu\n",
-			 (unsigned long) ad->read_so_far);
+		debug_printf (1, "  data mismatch in block starting at %lu\n",
+			      (unsigned long) ad->read_so_far);
 		errors++;
 	}
 	ad->read_so_far += chunk->length;
@@ -252,8 +237,8 @@ fully_async_finished (SoupSession *session, SoupMessage *msg,
 	FullyAsyncData *ad = user_data;
 
 	if (msg->status_code != ad->expected_status) {
-		dprintf (1, "  unexpected final status: %d %s !\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected final status: %d %s !\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 
@@ -299,7 +284,7 @@ do_synchronously_async_test (SoupSession *session,
 	SoupBuffer *chunk;
 
 	uri = g_build_filename (base_uri, sub_uri, NULL);
-	dprintf (1, "GET %s\n", uri);
+	debug_printf (1, "GET %s\n", uri);
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	g_free (uri);
@@ -313,11 +298,11 @@ do_synchronously_async_test (SoupSession *session,
 	sync_async_send (session, msg);
 	if (sync_async_is_finished (msg) &&
 	    expected_status == SOUP_STATUS_OK) {
-		dprintf (1, "  finished without reading response!\n");
+		debug_printf (1, "  finished without reading response!\n");
 		errors++;
 	} else if (!sync_async_is_finished (msg) &&
 		   expected_status != SOUP_STATUS_OK) {
-		dprintf (1, "  request failed to fail!\n");
+		debug_printf (1, "  request failed to fail!\n");
 		errors++;
 	}
 
@@ -326,20 +311,20 @@ do_synchronously_async_test (SoupSession *session,
 	 */
 	read_so_far = 0;
 	while ((chunk = sync_async_read_chunk (msg))) {
-		dprintf (2, "  read chunk from %lu - %lu\n",
-			 (unsigned long) read_so_far,
-			 (unsigned long) read_so_far + chunk->length);
+		debug_printf (2, "  read chunk from %lu - %lu\n",
+			      (unsigned long) read_so_far,
+			      (unsigned long) read_so_far + chunk->length);
 
 		if (read_so_far + chunk->length > correct_response->length) {
-			dprintf (1, "  read too far! (%lu > %lu)\n",
-				 (unsigned long) read_so_far + chunk->length,
-				 (unsigned long) correct_response->length);
+			debug_printf (1, "  read too far! (%lu > %lu)\n",
+				      (unsigned long) read_so_far + chunk->length,
+				      (unsigned long) correct_response->length);
 			errors++;
 		} else if (memcmp (chunk->data,
 				   correct_response->data + read_so_far,
 				   chunk->length) != 0) {
-			dprintf (1, "  data mismatch in block starting at %lu\n",
-				 (unsigned long) read_so_far);
+			debug_printf (1, "  data mismatch in block starting at %lu\n",
+				      (unsigned long) read_so_far);
 			errors++;
 		}
 		read_so_far += chunk->length;
@@ -349,11 +334,11 @@ do_synchronously_async_test (SoupSession *session,
 	if (!sync_async_is_finished (msg) ||
 	    (msg->status_code == SOUP_STATUS_OK &&
 	     read_so_far != correct_response->length)) {
-		dprintf (1, "  loop ended before message was fully read!\n");
+		debug_printf (1, "  loop ended before message was fully read!\n");
 		errors++;
 	} else if (msg->status_code != expected_status) {
-		dprintf (1, "  unexpected final status: %d %s !\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected final status: %d %s !\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 
@@ -413,15 +398,15 @@ sync_async_got_headers (SoupMessage *msg, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 
-	dprintf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
 		/* Let soup handle this one; this got_headers handler
 		 * will get called again next time around.
 		 */
 		return;
 	} else if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf (1, "  unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 		return;
 	}
@@ -506,31 +491,15 @@ main (int argc, char **argv)
 {
 	SoupSession *session;
 	char *base_uri;
-	int opt;
 
-	g_type_init ();
-	g_thread_init (NULL);
+	test_init (argc, argv, NULL);
+	apache_init ();
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug++;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d [-d]]\n", argv[0]);
-			return 1;
-		}
-	}
-
-	if (!apache_init ()) {
-		fprintf (stderr, "Could not start apache\n");
-		return 1;
-	}
 	base_uri = "http://localhost:47524/";
 	get_correct_response (base_uri);
 
-	dprintf (1, "\nFully async, fast requests\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nFully async, fast requests\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -542,8 +511,8 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	dprintf (1, "\nFully async, slow requests\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nFully async, slow requests\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -555,8 +524,8 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	dprintf (1, "\nSynchronously async\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nSynchronously async\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_synchronously_async_test (session, base_uri, "/",
@@ -571,14 +540,6 @@ main (int argc, char **argv)
 
 	soup_buffer_free (correct_response);
 
-	apache_cleanup ();
-	g_main_context_unref (g_main_context_default ());
-
-	dprintf (1, "\n");
-	if (errors) {
-		printf ("pull-api: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("pull-api: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

@@ -1,3 +1,17 @@
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* tests/test-utils.c: renamed from apache-wrappers and expanded.
+	(test_init): do option parsing and general setup
+	(test_cleanup): print error count and do cleanup
+	(debug_printf): define here rather than in each test, and rename
+	from dprintf [#501631]
+	(soup_test_server_new): create a SoupServer, optionally in its own
+	thread, and clean it up when exiting.
+	(soup_test_session_new): create a SoupSession, optionally with
+	an attached SoupLogger (if requested via command line)
+	
+	* tests/*.c: use test-utils
+
 2008-01-13  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-logger.c: New HTTP debug logging object. (Based on

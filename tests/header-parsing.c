@@ -7,20 +7,7 @@
 #include "libsoup/soup-message.h"
 #include "libsoup/soup-headers.h"
 
-gboolean debug = FALSE;
-
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
+#include "test-utils.h"
 
 typedef struct {
 	char *name, *value;
@@ -554,7 +541,7 @@ static const int num_qvaluetests = G_N_ELEMENTS (qvaluetests);
 static void
 print_header (const char *name, const char *value, gpointer data)
 {
-	dprintf ("              '%s': '%s'\n", name, value);
+	debug_printf (1, "              '%s': '%s'\n", name, value);
 }
 
 typedef struct {
@@ -577,21 +564,21 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 	return TRUE;
 }
 
-static int
+static void
 do_request_tests (void)
 {
-	int i, len, h, errors = 0;
+	int i, len, h;
 	char *method, *path;
 	SoupHTTPVersion version;
 	SoupMessageHeaders *headers;
 	guint status;
 
-	dprintf ("Request tests\n");
+	debug_printf (1, "Request tests\n");
 	for (i = 0; i < num_reqtests; i++) {
 		gboolean ok = TRUE;
 
-		dprintf ("%2d. %s (%s): ", i + 1, reqtests[i].description,
-			 soup_status_get_phrase (reqtests[i].status));
+		debug_printf (1, "%2d. %s (%s): ", i + 1, reqtests[i].description,
+			      soup_status_get_phrase (reqtests[i].status));
 
 		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
 		method = path = NULL;
@@ -619,30 +606,31 @@ do_request_tests (void)
 		}
 
 		if (ok)
-			dprintf ("OK!\n");
+			debug_printf (1, "OK!\n");
 		else {
-			dprintf ("BAD!\n");
+			debug_printf (1, "BAD!\n");
 			errors++;
 			if (reqtests[i].method) {
-				dprintf ("    expected: '%s' '%s' 'HTTP/1.%d'\n",
-					 reqtests[i].method, reqtests[i].path,
-					 reqtests[i].version);
+				debug_printf (1, "    expected: '%s' '%s' 'HTTP/1.%d'\n",
+					      reqtests[i].method,
+					      reqtests[i].path,
+					      reqtests[i].version);
 				for (h = 0; reqtests[i].headers[h].name; h++) {
-					dprintf ("              '%s': '%s'\n",
-						 reqtests[i].headers[h].name,
-						 reqtests[i].headers[h].value);
+					debug_printf (1, "              '%s': '%s'\n",
+						      reqtests[i].headers[h].name,
+						      reqtests[i].headers[h].value);
 				}
 			} else {
-				dprintf ("    expected: %s\n",
-					 soup_status_get_phrase (reqtests[i].status));
+				debug_printf (1, "    expected: %s\n",
+					      soup_status_get_phrase (reqtests[i].status));
 			}
 			if (method) {
-				dprintf ("         got: '%s' '%s' 'HTTP/1.%d'\n",
-					method, path, version);
+				debug_printf (1, "         got: '%s' '%s' 'HTTP/1.%d'\n",
+					      method, path, version);
 				soup_message_headers_foreach (headers, print_header, NULL);
 			} else {
-				dprintf ("         got: %s\n",
-					 soup_status_get_phrase (status));
+				debug_printf (1, "         got: %s\n",
+					      soup_status_get_phrase (status));
 			}
 		}
 
@@ -650,26 +638,24 @@ do_request_tests (void)
 		g_free (path);
 		soup_message_headers_free (headers);
 	}
-	dprintf ("\n");
-
-	return errors;
+	debug_printf (1, "\n");
 }
 
-static int
+static void
 do_response_tests (void)
 {
-	int i, len, h, errors = 0;
+	int i, len, h;
 	guint status_code;
 	char *reason_phrase;
 	SoupHTTPVersion version;
 	SoupMessageHeaders *headers;
 
-	dprintf ("Response tests\n");
+	debug_printf (1, "Response tests\n");
 	for (i = 0; i < num_resptests; i++) {
 		gboolean ok = TRUE;
 
-		dprintf ("%2d. %s (%s): ", i + 1, resptests[i].description,
-			 resptests[i].reason_phrase ? "should parse" : "should NOT parse");
+		debug_printf (1, "%2d. %s (%s): ", i + 1, resptests[i].description,
+			      resptests[i].reason_phrase ? "should parse" : "should NOT parse");
 
 		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
 		reason_phrase = NULL;
@@ -696,124 +682,104 @@ do_response_tests (void)
 		}
 
 		if (ok)
-			dprintf ("OK!\n");
+			debug_printf (1, "OK!\n");
 		else {
-			dprintf ("BAD!\n");
+			debug_printf (1, "BAD!\n");
 			errors++;
 			if (resptests[i].reason_phrase) {
-				dprintf ("    expected: 'HTTP/1.%d' '%03d' '%s'\n",
-					 resptests[i].version,
-					 resptests[i].status_code,
-					 resptests[i].reason_phrase);
+				debug_printf (1, "    expected: 'HTTP/1.%d' '%03d' '%s'\n",
+					      resptests[i].version,
+					      resptests[i].status_code,
+					      resptests[i].reason_phrase);
 				for (h = 0; resptests[i].headers[h].name; h++) {
-					dprintf ("              '%s': '%s'\n",
-						 resptests[i].headers[h].name,
-						 resptests[i].headers[h].value);
+					debug_printf (1, "              '%s': '%s'\n",
+						      resptests[i].headers[h].name,
+						      resptests[i].headers[h].value);
 				}
 			} else
-				dprintf ("    expected: parse error\n");
+				debug_printf (1, "    expected: parse error\n");
 			if (reason_phrase) {
-				dprintf ("         got: 'HTTP/1.%d' '%03d' '%s'\n",
-					 version, status_code, reason_phrase);
+				debug_printf (1, "         got: 'HTTP/1.%d' '%03d' '%s'\n",
+					      version, status_code, reason_phrase);
 				soup_message_headers_foreach (headers, print_header, NULL);
 			} else
-				dprintf ("         got: parse error\n");
+				debug_printf (1, "         got: parse error\n");
 		}
 
 		g_free (reason_phrase);
 		soup_message_headers_free (headers);
 	}
-	dprintf ("\n");
-
-	return errors;
+	debug_printf (1, "\n");
 }
 
-static int
+static void
 do_qvalue_tests (void)
 {
-	int i, j, errors = 0;
+	int i, j;
 	GSList *acceptable, *unacceptable, *iter;
 	gboolean wrong;
 
-	dprintf ("qvalue tests\n");
+	debug_printf (1, "qvalue tests\n");
 	for (i = 0; i < num_qvaluetests; i++) {
-		dprintf ("%2d. %s:\n", i + 1, qvaluetests[i].header_value);
+		debug_printf (1, "%2d. %s:\n", i + 1, qvaluetests[i].header_value);
 
 		unacceptable = NULL;
 		acceptable = soup_header_parse_quality_list (qvaluetests[i].header_value,
 							     &unacceptable);
 
-		dprintf ("    acceptable: ");
+		debug_printf (1, "    acceptable: ");
 		wrong = FALSE;
 		if (acceptable) {
 			for (iter = acceptable, j = 0; iter; iter = iter->next, j++) {
-				dprintf ("%s ", iter->data);
+				debug_printf (1, "%s ", iter->data);
 				if (!qvaluetests[i].acceptable[j] ||
 				    strcmp (iter->data, qvaluetests[i].acceptable[j]) != 0)
 					wrong = TRUE;
 			}
-			dprintf ("\n");
+			debug_printf (1, "\n");
 		} else
-			dprintf ("(none)\n");
+			debug_printf (1, "(none)\n");
 		if (wrong) {
-			dprintf ("    WRONG! expected: ");
+			debug_printf (1, "    WRONG! expected: ");
 			for (j = 0; qvaluetests[i].acceptable[j]; j++)
-				dprintf ("%s ", qvaluetests[i].acceptable[j]);
-			dprintf ("\n");
+				debug_printf (1, "%s ", qvaluetests[i].acceptable[j]);
+			debug_printf (1, "\n");
 			errors++;
 		}
 
-		dprintf ("  unacceptable: ");
+		debug_printf (1, "  unacceptable: ");
 		wrong = FALSE;
 		if (unacceptable) {
 			for (iter = unacceptable, j = 0; iter; iter = iter->next, j++) {
-				dprintf ("%s ", iter->data);
+				debug_printf (1, "%s ", iter->data);
 				if (!qvaluetests[i].unacceptable[j] ||
 				    strcmp (iter->data, qvaluetests[i].unacceptable[j]) != 0)
 					wrong = TRUE;
 			}
-			dprintf ("\n");
+			debug_printf (1, "\n");
 		} else
-			dprintf ("(none)\n");
+			debug_printf (1, "(none)\n");
 		if (wrong) {
-			dprintf ("    WRONG! expected: ");
+			debug_printf (1, "    WRONG! expected: ");
 			for (j = 0; qvaluetests[i].unacceptable[j]; j++)
-				dprintf ("%s ", qvaluetests[i].unacceptable[j]);
-			dprintf ("\n");
+				debug_printf (1, "%s ", qvaluetests[i].unacceptable[j]);
+			debug_printf (1, "\n");
 			errors++;
 		}
 
-		dprintf ("\n");
+		debug_printf (1, "\n");
 	}
-
-	return errors;
 }
 
 int
 main (int argc, char **argv)
 {
-	int opt, errors;
+	test_init (argc, argv, NULL);
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n", argv[0]);
-			return 1;
-		}
-	}
+	do_request_tests ();
+	do_response_tests ();
+	do_qvalue_tests ();
 
-	errors = do_request_tests ();
-	errors += do_response_tests ();
-	errors += do_qvalue_tests ();
-
-	dprintf ("\n");
-	if (errors) {
-		printf ("header-parsing: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("header-parsing: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

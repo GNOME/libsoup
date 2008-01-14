@@ -19,47 +19,26 @@
 #include <libsoup/soup-server.h>
 
 static void
-print_header (const char *name, const char *value, gpointer data)
+do_get (SoupServer *server, SoupMessage *msg, const char *path)
 {
-	printf ("%s: %s\n", name, value);
-}
-
-static void
-server_callback (SoupServer *server, SoupMessage *msg,
-		 const char *path, GHashTable *query,
-		 SoupClientContext *context, gpointer data)
-{
-	char *path_to_open, *slash;
+	char *slash;
 	struct stat st;
 	int fd;
 
-	printf ("%s %s HTTP/1.%d\n", msg->method, path,
-		soup_message_get_http_version (msg));
-	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
-	if (msg->request_body->length)
-		printf ("%s\n", msg->request_body->data);
-
-	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-		goto DONE;
-	}
-
-	path_to_open = g_strdup_printf (".%s", path);
-
- AGAIN:
-	if (stat (path_to_open, &st) == -1) {
-		g_free (path_to_open);
+	if (stat (path, &st) == -1) {
 		if (errno == EPERM)
 			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
 		else if (errno == ENOENT)
 			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		else
 			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-		goto DONE;
+		return;
 	}
 
 	if (S_ISDIR (st.st_mode)) {
-		slash = strrchr (path_to_open, '/');
+		char *index_path;
+
+		slash = strrchr (path, '/');
 		if (!slash || slash[1]) {
 			char *uri, *redir_uri;
 
@@ -70,20 +49,19 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			soup_message_set_status (msg, SOUP_STATUS_MOVED_PERMANENTLY);
 			g_free (redir_uri);
 			g_free (uri);
-			g_free (path_to_open);
-			goto DONE;
+			return;
 		}
 
-		g_free (path_to_open);
-		path_to_open = g_strdup_printf (".%s/index.html", path);
-		goto AGAIN;
+		index_path = g_strdup_printf ("%s/index.html", path);
+		do_get (server, msg, index_path);
+		g_free (index_path);
+		return;
 	}
 
-	fd = open (path_to_open, O_RDONLY);
-	g_free (path_to_open);
+	fd = open (path, O_RDONLY);
 	if (fd == -1) {
 		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-		goto DONE;
+		return;
 	}
 
 	if (msg->method == SOUP_METHOD_GET) {
@@ -108,8 +86,71 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
+}
 
- DONE:
+static void
+do_put (SoupServer *server, SoupMessage *msg, const char *path)
+{
+	struct stat st;
+	FILE *f;
+	gboolean created = TRUE;
+
+	if (stat (path, &st) != -1) {
+		const char *match = soup_message_headers_get (msg->request_headers, "If-None-Match");
+		if (match && !strcmp (match, "*")) {
+			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
+			return;
+		}
+
+		if (!S_ISREG (st.st_mode)) {
+			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+			return;
+		}
+
+		created = FALSE;
+	}
+
+	f = fopen (path, "w");
+	if (!f) {
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	fwrite (msg->request_body->data, 1, msg->request_body->length, f);
+	fclose (f);
+
+	soup_message_set_status (msg, created ? SOUP_STATUS_CREATED : SOUP_STATUS_OK);
+}
+
+static void
+print_header (const char *name, const char *value, gpointer data)
+{
+	printf ("%s: %s\n", name, value);
+}
+
+static void
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
+{
+	char *file_path;
+
+	printf ("%s %s HTTP/1.%d\n", msg->method, path,
+		soup_message_get_http_version (msg));
+	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
+	if (msg->request_body->length)
+		printf ("%s\n", msg->request_body->data);
+
+	file_path = g_strdup_printf (".%s", path);
+
+	if (msg->method == SOUP_METHOD_GET || msg->method == SOUP_METHOD_HEAD)
+		do_get (server, msg, file_path);
+	else if (msg->method == SOUP_METHOD_PUT)
+		do_put (server, msg, file_path);
+	else
+		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+
+	g_free (file_path);
 	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 

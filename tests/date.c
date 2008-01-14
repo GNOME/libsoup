@@ -9,7 +9,7 @@
 #include <libsoup/soup-date.h>
 #include <glib.h>
 
-static int errors = 0;
+#include "test-utils.h"
 
 const char *date_tests[] = {
 	/* rfc1123-date, and broken variants */
@@ -90,14 +90,13 @@ main (int argc, char **argv)
 {
 	int i;
 
+	test_init (argc, argv, NULL);
+
 	for (i = 0; i < G_N_ELEMENTS (date_tests); i++) {
 		check (date_tests[i], soup_date_new_from_string (date_tests[i]));
 	}
 	check (TIME_T_STRING, soup_date_new_from_time_t (TIME_T));
 
-	if (errors == 0)
-		printf ("date: OK\n");
-	else
-		fprintf (stderr, "date: %d errors\n", errors);
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

@@ -11,24 +11,10 @@
 #include <libsoup/soup.h>
 #include <libsoup/soup-md5-utils.h>
 
-#include "apache-wrapper.h"
+#include "test-utils.h"
 
 SoupSession *session;
 static const char *uri = "http://localhost:47524/xmlrpc-server.php";
-int debug;
-
-static void
-dprintf (int level, const char *format, ...)
-{
-	va_list args;
-
-	if (debug < level)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
 
 static const char *const value_type[] = {
 	"BAD",
@@ -66,16 +52,16 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 				  body, strlen (body));
 	soup_session_send_message (session, msg);
 
-	if (debug >= 3) {
-		dprintf (3, "\n%s\n%d %s\n%s\n",
-			 msg->request_body->data,
-			 msg->status_code, msg->reason_phrase,
-			 msg->response_body->data);
+	if (debug_level >= 3) {
+		debug_printf (3, "\n%s\n%d %s\n%s\n",
+			      msg->request_body->data,
+			      msg->status_code, msg->reason_phrase,
+			      msg->response_body->data);
 	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		dprintf (1, "ERROR: %d %s\n", msg->status_code,
-			 msg->reason_phrase);
+		debug_printf (1, "ERROR: %d %s\n", msg->status_code,
+			      msg->reason_phrase);
 		g_object_unref (msg);
 		return FALSE;
 	}
@@ -84,10 +70,10 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 						msg->response_body->length,
 						retval, &err)) {
 		if (err) {
-			dprintf (1, "FAULT: %d %s\n", err->code, err->message);
+			debug_printf (1, "FAULT: %d %s\n", err->code, err->message);
 			g_error_free (err);
 		} else
-			dprintf (1, "ERROR: could not parse response\n");
+			debug_printf (1, "ERROR: could not parse response\n");
 		g_object_unref (msg);
 		return FALSE;
 	}
@@ -102,7 +88,7 @@ check_xmlrpc (GValue *value, GType type, ...)
 	va_list args;
 
 	if (!G_VALUE_HOLDS (value, type)) {
-		dprintf (1, "ERROR: could not parse response\n");
+		debug_printf (1, "ERROR: could not parse response\n");
 		g_value_unset (value);
 		return FALSE;
 	}
@@ -121,16 +107,16 @@ test_sum (void)
 	GValue retval;
 	gboolean ok;
 
-	dprintf (1, "sum (array of int -> int): ");
+	debug_printf (1, "sum (array of int -> int): ");
 
 	ints = g_value_array_new (10);
 	for (i = sum = 0; i < 10; i++) {
 		val = rand () % 100;
-		dprintf (2, "%s%d", i == 0 ? "[" : ", ", val);
+		debug_printf (2, "%s%d", i == 0 ? "[" : ", ", val);
 		soup_value_array_append (ints, G_TYPE_INT, val);
 		sum += val;
 	}
-	dprintf (2, "] -> ");
+	debug_printf (2, "] -> ");
 
 	ok = (do_xmlrpc ("sum", &retval,
 			G_TYPE_VALUE_ARRAY, ints,
@@ -141,8 +127,8 @@ test_sum (void)
 	if (!ok)
 		return FALSE;
 
-	dprintf (2, "%d: ", result);
-	dprintf (1, "%s\n", result == sum ? "OK!" : "WRONG!");
+	debug_printf (2, "%d: ", result);
+	debug_printf (1, "%s\n", result == sum ? "OK!" : "WRONG!");
 	return result == sum;
 }
 
@@ -156,19 +142,19 @@ test_countBools (void)
 	gboolean val, ok;
 	GHashTable *result;
 
-	dprintf (1, "countBools (array of boolean -> struct of ints): ");
+	debug_printf (1, "countBools (array of boolean -> struct of ints): ");
 
 	bools = g_value_array_new (10);
 	for (i = trues = falses = 0; i < 10; i++) {
 		val = rand () > (RAND_MAX / 2);
-		dprintf (2, "%s%c", i == 0 ? "[" : ", ", val ? 'T' : 'F');
+		debug_printf (2, "%s%c", i == 0 ? "[" : ", ", val ? 'T' : 'F');
 		soup_value_array_append (bools, G_TYPE_BOOLEAN, val);
 		if (val)
 			trues++;
 		else
 			falses++;
 	}
-	dprintf (2, "] -> ");
+	debug_printf (2, "] -> ");
 
 	ok = (do_xmlrpc ("countBools", &retval,
 			 G_TYPE_VALUE_ARRAY, bools,
@@ -179,18 +165,18 @@ test_countBools (void)
 		return FALSE;
 
 	if (!soup_value_hash_lookup (result, "true", G_TYPE_INT, &ret_trues)) {
-		dprintf (1, "NO 'true' value in response\n");
+		debug_printf (1, "NO 'true' value in response\n");
 		return FALSE;
 	}
 	if (!soup_value_hash_lookup (result, "false", G_TYPE_INT, &ret_falses)) {
-		dprintf (1, "NO 'false' value in response\n");
+		debug_printf (1, "NO 'false' value in response\n");
 		return FALSE;
 	}
 	g_hash_table_destroy (result);
 
-	dprintf (2, "{ true: %d, false: %d } ", ret_trues, ret_falses);
+	debug_printf (2, "{ true: %d, false: %d } ", ret_trues, ret_falses);
 	ok = (trues == ret_trues) && (falses == ret_falses);
-	dprintf (1, "%s\n", ok ? "OK!" : "WRONG!");
+	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
 	return ok;
 }
 
@@ -204,7 +190,7 @@ test_md5sum (void)
 	GValue retval;
 	gboolean ok;
 
-	dprintf (1, "md5sum (base64 -> base64): ");
+	debug_printf (1, "md5sum (base64 -> base64): ");
 
 	data = g_byte_array_new ();
 	g_byte_array_set_size (data, 256);
@@ -224,13 +210,13 @@ test_md5sum (void)
 		return FALSE;
 
 	if (result->len != 16) {
-		dprintf (1, "result has WRONG length (%d)\n", result->len);
+		debug_printf (1, "result has WRONG length (%d)\n", result->len);
 		g_byte_array_free (result, TRUE);
 		return FALSE;
 	}
 
 	ok = (memcmp (digest, result->data, 16) == 0);
-	dprintf (1, "%s\n", ok ? "OK!" : "WRONG!");
+	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
 	g_byte_array_free (result, TRUE);
 	return ok;
 }
@@ -244,7 +230,7 @@ test_dateChange (void)
 	GValue retval;
 	gboolean ok;
 
-	dprintf (1, "dateChange (struct of time and ints -> time): ");
+	debug_printf (1, "dateChange (struct of time and ints -> time): ");
 
 	structval = soup_value_hash_new ();
 
@@ -256,50 +242,50 @@ test_dateChange (void)
 			      rand () % 60);
 	soup_value_hash_insert (structval, "date", SOUP_TYPE_DATE, date);
 
-	if (debug >= 2) {
+	if (debug_level >= 2) {
 		timestamp = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-		dprintf (2, "{ date: %s", timestamp);
+		debug_printf (2, "{ date: %s", timestamp);
 		g_free (timestamp);
 	}
 
 	if (rand () % 3) {
 		date->year = 1970 + (rand () % 50);
-		dprintf (2, ", tm_year: %d", date->year - 1900);
+		debug_printf (2, ", tm_year: %d", date->year - 1900);
 		soup_value_hash_insert (structval, "tm_year",
 					G_TYPE_INT, date->year - 1900);
 	}
 	if (rand () % 3) {
 		date->month = 1 + rand () % 12;
-		dprintf (2, ", tm_mon: %d", date->month - 1);
+		debug_printf (2, ", tm_mon: %d", date->month - 1);
 		soup_value_hash_insert (structval, "tm_mon",
 					G_TYPE_INT, date->month - 1);
 	}
 	if (rand () % 3) {
 		date->day = 1 + rand () % 28;
-		dprintf (2, ", tm_mday: %d", date->day);
+		debug_printf (2, ", tm_mday: %d", date->day);
 		soup_value_hash_insert (structval, "tm_mday",
 					G_TYPE_INT, date->day);
 	}
 	if (rand () % 3) {
 		date->hour = rand () % 24;
-		dprintf (2, ", tm_hour: %d", date->hour);
+		debug_printf (2, ", tm_hour: %d", date->hour);
 		soup_value_hash_insert (structval, "tm_hour",
 					G_TYPE_INT, date->hour);
 	}
 	if (rand () % 3) {
 		date->minute = rand () % 60;
-		dprintf (2, ", tm_min: %d", date->minute);
+		debug_printf (2, ", tm_min: %d", date->minute);
 		soup_value_hash_insert (structval, "tm_min",
 					G_TYPE_INT, date->minute);
 	}
 	if (rand () % 3) {
 		date->second = rand () % 60;
-		dprintf (2, ", tm_sec: %d", date->second);
+		debug_printf (2, ", tm_sec: %d", date->second);
 		soup_value_hash_insert (structval, "tm_sec",
 					G_TYPE_INT, date->second);
 	}
 
-	dprintf (2, " } -> ");
+	debug_printf (2, " } -> ");
 
 	ok = (do_xmlrpc ("dateChange", &retval,
 			 G_TYPE_HASH_TABLE, structval,
@@ -311,9 +297,9 @@ test_dateChange (void)
 		return FALSE;
 	}
 
-	if (debug >= 2) {
+	if (debug_level >= 2) {
 		timestamp = soup_date_to_string (result, SOUP_DATE_ISO8601_XMLRPC);
-		dprintf (2, "%s: ", timestamp);
+		debug_printf (2, "%s: ", timestamp);
 		g_free (timestamp);
 	}
 
@@ -326,7 +312,7 @@ test_dateChange (void)
 	soup_date_free (date);
 	soup_date_free (result);
 
-	dprintf (1, "%s\n", ok ? "OK!" : "WRONG!");
+	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
 	return ok;
 }
 
@@ -345,14 +331,14 @@ test_echo (void)
 	GValue retval;
 	int i;
 
-	dprintf (1, "echo (array of string -> array of string): ");
+	debug_printf (1, "echo (array of string -> array of string): ");
 
 	originals = g_value_array_new (N_ECHO_STRINGS);
 	for (i = 0; i < N_ECHO_STRINGS; i++) {
 		soup_value_array_append (originals, G_TYPE_STRING, echo_strings[i]);
-		dprintf (2, "%s\"%s\"", i == 0 ? "[" : ", ", echo_strings[i]);
+		debug_printf (2, "%s\"%s\"", i == 0 ? "[" : ", ", echo_strings[i]);
 	}
-	dprintf (2, "] -> ");
+	debug_printf (2, "] -> ");
 
 	if (!(do_xmlrpc ("echo", &retval,
 			 G_TYPE_VALUE_ARRAY, originals,
@@ -363,68 +349,42 @@ test_echo (void)
 	}
 	g_value_array_free (originals);
 
-	if (debug >= 2) {
+	if (debug_level >= 2) {
 		for (i = 0; i < echoes->n_values; i++) {
-			dprintf (2, "%s\"%s\"", i == 0 ? "[" : ", ",
-				 g_value_get_string (&echoes->values[i]));
+			debug_printf (2, "%s\"%s\"", i == 0 ? "[" : ", ",
+				      g_value_get_string (&echoes->values[i]));
 		}
-		dprintf (2, "] -> ");
+		debug_printf (2, "] -> ");
 	}
 
 	if (echoes->n_values != N_ECHO_STRINGS) {
-		dprintf (1, " WRONG! Wrong number of return strings");
+		debug_printf (1, " WRONG! Wrong number of return strings");
 		g_value_array_free (echoes);
 		return FALSE;
 	}
 
 	for (i = 0; i < echoes->n_values; i++) {
 		if (strcmp (echo_strings[i], g_value_get_string (&echoes->values[i])) != 0) {
-			dprintf (1, " WRONG! Mismatch at %d\n", i + 1);
+			debug_printf (1, " WRONG! Mismatch at %d\n", i + 1);
 			g_value_array_free (echoes);
 			return FALSE;
 		}
 	}
 
-	dprintf (1, "OK!\n");
+	debug_printf (1, "OK!\n");
 	g_value_array_free (echoes);
 	return TRUE;
-}
-
-static void
-usage (void)
-{
-	fprintf (stderr, "Usage: xmlrpc-test [-d] [-d]\n");
-	exit (1);
 }
 
 int
 main (int argc, char **argv)
 {
-	int opt, errors = 0;
-
-	g_type_init ();
-	g_thread_init (NULL);
-
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug++;
-			break;
-
-		case '?':
-			usage ();
-			break;
-		}
-	}
+	test_init (argc, argv, NULL);
+	apache_init ();
 
 	srand (time (NULL));
 
-	if (!apache_init ()) {
-		fprintf (stderr, "Could not start apache\n");
-		return 1;
-	}
-
-	session = soup_session_sync_new ();
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
 	if (!test_sum ())
 		errors++;
@@ -440,13 +400,6 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	apache_cleanup ();
-
-	dprintf (1, "\n");
-	if (errors) {
-		printf ("xmlrpc-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("xmlrpc-test: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors = 0;
 }

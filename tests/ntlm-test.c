@@ -26,20 +26,9 @@
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session-async.h>
 
-gboolean debug = FALSE;
+#include "test-utils.h"
 
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
+GHashTable *connections;
 
 typedef enum {
 	NTLM_UNAUTHENTICATED,
@@ -188,14 +177,13 @@ ntlm_response_check (SoupMessage *msg, gpointer user_data)
 		state->sent_response = TRUE;
 }
 
-static int
+static void
 do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	    gboolean get_prompt, gboolean do_ntlm, guint status_code)
 {
 	SoupURI *uri;
 	SoupMessage *msg;
 	NTLMState state = { FALSE, FALSE, FALSE, FALSE };
-	int errors = 0;
 
 	uri = soup_uri_copy (base_uri);
 	g_free (uri->path);
@@ -213,129 +201,115 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 			  G_CALLBACK (ntlm_response_check), &state);
 
 	soup_session_send_message (session, msg);
-	dprintf ("  %-10s -> ", path);
+	debug_printf (1, "  %-10s -> ", path);
 
 	if (state.got_prompt) {
-		dprintf (" PROMPT");
+		debug_printf (1, " PROMPT");
 		if (!get_prompt) {
-			dprintf ("???");
+			debug_printf (1, "???");
 			errors++;
 		}
 	} else if (get_prompt) {
-		dprintf (" no-prompt???");
+		debug_printf (1, " no-prompt???");
 		errors++;
 	}
 
 	if (state.sent_request) {
-		dprintf (" REQUEST");
+		debug_printf (1, " REQUEST");
 		if (!do_ntlm) {
-			dprintf ("???");
+			debug_printf (1, "???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		dprintf (" no-request???");
+		debug_printf (1, " no-request???");
 		errors++;
 	}
 
 	if (state.got_challenge) {
-		dprintf (" CHALLENGE");
+		debug_printf (1, " CHALLENGE");
 		if (!do_ntlm) {
-			dprintf ("???");
+			debug_printf (1, "???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		dprintf (" no-challenge???");
+		debug_printf (1, " no-challenge???");
 		errors++;
 	}
 
 	if (state.sent_response) {
-		dprintf (" RESPONSE");
+		debug_printf (1, " RESPONSE");
 		if (!do_ntlm) {
-			dprintf ("???");
+			debug_printf (1, "???");
 			errors++;
 		}
 	} else if (do_ntlm) {
-		dprintf (" no-response???");
+		debug_printf (1, " no-response???");
 		errors++;
 	}
 
-	dprintf (" -> %s", msg->reason_phrase);
+	debug_printf (1, " -> %s", msg->reason_phrase);
 	if (msg->status_code != status_code) {
-		dprintf ("???");
+		debug_printf (1, "???");
 		errors++;
 	}
-	dprintf ("\n");
+	debug_printf (1, "\n");
 
 	g_object_unref (msg);
-	return errors;
 }
 
-static int
+static void
 do_ntlm_round (SoupURI *base_uri, const char *user)
 {
 	SoupSession *session;
-	int errors = 0;
 	gboolean use_ntlm = user != NULL;
 	gboolean alice = use_ntlm && !strcmp (user, "alice");
 	gboolean bob = use_ntlm && !strcmp (user, "bob");
 
-	g_return_val_if_fail (use_ntlm || !alice, 0);
+	g_return_if_fail (use_ntlm || !alice);
 
-	session = soup_session_async_new_with_options (
+	session = soup_test_session_new (
+		SOUP_TYPE_SESSION_ASYNC,
 		SOUP_SESSION_USE_NTLM, use_ntlm,
 		NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), (char *)user);
 
-	errors += do_message (session, base_uri, "/noauth",
-			      FALSE, use_ntlm, SOUP_STATUS_OK);
-	errors += do_message (session, base_uri, "/alice",
-			      !use_ntlm || bob, FALSE,
-			      alice ? SOUP_STATUS_OK :
-			      SOUP_STATUS_UNAUTHORIZED);
-	errors += do_message (session, base_uri, "/alice/404",
-			      !use_ntlm, bob,
-			      alice ? SOUP_STATUS_NOT_FOUND :
-			      SOUP_STATUS_UNAUTHORIZED);
-	errors += do_message (session, base_uri, "/alice",
-			      !use_ntlm, bob,
-			      alice ? SOUP_STATUS_OK :
-			      SOUP_STATUS_UNAUTHORIZED);
-	errors += do_message (session, base_uri, "/bob",
-			      !use_ntlm || alice, bob,
-			      bob ? SOUP_STATUS_OK :
-			      SOUP_STATUS_UNAUTHORIZED);
-	errors += do_message (session, base_uri, "/alice",
-			      !use_ntlm || bob, alice,
-			      alice ? SOUP_STATUS_OK :
-			      SOUP_STATUS_UNAUTHORIZED);
+	do_message (session, base_uri, "/noauth",
+		    FALSE, use_ntlm, SOUP_STATUS_OK);
+	do_message (session, base_uri, "/alice",
+		    !use_ntlm || bob, FALSE,
+		    alice ? SOUP_STATUS_OK :
+		    SOUP_STATUS_UNAUTHORIZED);
+	do_message (session, base_uri, "/alice/404",
+		    !use_ntlm, bob,
+		    alice ? SOUP_STATUS_NOT_FOUND :
+		    SOUP_STATUS_UNAUTHORIZED);
+	do_message (session, base_uri, "/alice",
+		    !use_ntlm, bob,
+		    alice ? SOUP_STATUS_OK :
+		    SOUP_STATUS_UNAUTHORIZED);
+	do_message (session, base_uri, "/bob",
+		    !use_ntlm || alice, bob,
+		    bob ? SOUP_STATUS_OK :
+		    SOUP_STATUS_UNAUTHORIZED);
+	do_message (session, base_uri, "/alice",
+		    !use_ntlm || bob, alice,
+		    alice ? SOUP_STATUS_OK :
+		    SOUP_STATUS_UNAUTHORIZED);
 
 	soup_session_abort (session);
 	g_object_unref (session);
-
-	return errors;
-}
-
-static int
-do_ntlm_tests (SoupURI *base_uri)
-{
-	int errors = 0;
-
-	dprintf ("Round 1: Non-NTLM Connection\n");
-	errors += do_ntlm_round (base_uri, NULL);
-	dprintf ("Round 2: NTLM Connection, user=alice\n");
-	errors += do_ntlm_round (base_uri, "alice");
-	dprintf ("Round 3: NTLM Connection, user=bob\n");
-	errors += do_ntlm_round (base_uri, "bob");
-
-	return errors;
 }
 
 static void
-quit (int sig)
+do_ntlm_tests (SoupURI *base_uri)
 {
-	/* Exit cleanly on ^C in case we're valgrinding. */
-	exit (0);
+	debug_printf (1, "Round 1: Non-NTLM Connection\n");
+	do_ntlm_round (base_uri, NULL);
+	debug_printf (1, "Round 2: NTLM Connection, user=alice\n");
+	do_ntlm_round (base_uri, "alice");
+	debug_printf (1, "Round 3: NTLM Connection, user=bob\n");
+	do_ntlm_round (base_uri, "bob");
 }
 
 int
@@ -343,57 +317,26 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	int opt;
 	GHashTable *connections;
 	SoupURI *uri;
-	int errors;
 
-	g_type_init ();
-	g_thread_init (NULL);
-	signal (SIGINT, quit);
+	test_init (argc, argv, NULL);
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n",
-				 argv[0]);
-			exit (1);
-		}
-	}
-
+	server = soup_test_server_new (FALSE);
 	connections = g_hash_table_new (NULL, NULL);
-
-	server = soup_server_new (SOUP_SERVER_PORT, 0,
-				  NULL);
-	if (!server) {
-		fprintf (stderr, "Unable to bind server\n");
-		exit (1);
-	}
 	soup_server_add_handler (server, NULL,
 				 server_callback, connections, NULL);
-	soup_server_run_async (server);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
 	uri = soup_uri_new ("http://localhost/");
 	uri->port = soup_server_get_port (server);
-	errors = do_ntlm_tests (uri);
+	do_ntlm_tests (uri);
 	soup_uri_free (uri);
 
-	soup_server_quit (server);
-	g_object_unref (server);
 	g_main_loop_unref (loop);
 	g_hash_table_destroy (connections);
-	g_main_context_unref (g_main_context_default ());
 
-	dprintf ("\n");
-	if (errors) {
-		printf ("ntlm-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("ntlm-test: OK\n");
+	test_cleanup ();
 	return errors != 0;
 }

@@ -23,27 +23,15 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
 
+#include "test-utils.h"
+
 GMainLoop *loop;
-gboolean debug = FALSE;
 
 struct {
 	gboolean client_sent_basic, client_sent_digest;
 	gboolean server_requested_basic, server_requested_digest;
 	gboolean succeeded;
 } test_data;
-
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
 
 static void
 curl_exited (GPid pid, int status, gpointer data)
@@ -54,7 +42,7 @@ curl_exited (GPid pid, int status, gpointer data)
 	test_data.succeeded = (status == 0);
 }
 
-static int
+static void
 do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
 	 gboolean offer_basic, gboolean offer_digest,
 	 gboolean client_sends_basic, gboolean client_sends_digest,
@@ -66,12 +54,11 @@ do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
 	GPtrArray *args;
 	GPid pid;
 	gboolean done;
-	int errors = 0;
 
-	dprintf ("%2d. %s, %soffer Basic, %soffer Digest, %s password\n",
-		 n, path, offer_basic ? "" : "don't ",
-		 offer_digest ? "" : "don't ",
-		 good_password ? "good" : "bad");
+	debug_printf (1, "%2d. %s, %soffer Basic, %soffer Digest, %s password\n",
+		      n, path, offer_basic ? "" : "don't ",
+		      offer_digest ? "" : "don't ",
+		      good_password ? "good" : "bad");
 
 	uri = soup_uri_new_with_base (base_uri, path);
 	uri_str = soup_uri_to_string (uri, FALSE);
@@ -115,46 +102,44 @@ do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
 	if (server_requests_basic != test_data.server_requested_basic) {
 		errors++;
 		if (test_data.server_requested_basic)
-			dprintf ("  Server sent WWW-Authenticate: Basic, but shouldn't have!\n");
+			debug_printf (1, "  Server sent WWW-Authenticate: Basic, but shouldn't have!\n");
 		else
-			dprintf ("  Server didn't send WWW-Authenticate: Basic, but should have!\n");
+			debug_printf (1, "  Server didn't send WWW-Authenticate: Basic, but should have!\n");
 	}
 	if (server_requests_digest != test_data.server_requested_digest) {
 		errors++;
 		if (test_data.server_requested_digest)
-			dprintf ("  Server sent WWW-Authenticate: Digest, but shouldn't have!\n");
+			debug_printf (1, "  Server sent WWW-Authenticate: Digest, but shouldn't have!\n");
 		else
-			dprintf ("  Server didn't send WWW-Authenticate: Digest, but should have!\n");
+			debug_printf (1, "  Server didn't send WWW-Authenticate: Digest, but should have!\n");
 	}
 	if (client_sends_basic != test_data.client_sent_basic) {
 		errors++;
 		if (test_data.client_sent_basic)
-			dprintf ("  Client sent Authorization: Basic, but shouldn't have!\n");
+			debug_printf (1, "  Client sent Authorization: Basic, but shouldn't have!\n");
 		else
-			dprintf ("  Client didn't send Authorization: Basic, but should have!\n");
+			debug_printf (1, "  Client didn't send Authorization: Basic, but should have!\n");
 	}
 	if (client_sends_digest != test_data.client_sent_digest) {
 		errors++;
 		if (test_data.client_sent_digest)
-			dprintf ("  Client sent Authorization: Digest, but shouldn't have!\n");
+			debug_printf (1, "  Client sent Authorization: Digest, but shouldn't have!\n");
 		else
-			dprintf ("  Client didn't send Authorization: Digest, but should have!\n");
+			debug_printf (1, "  Client didn't send Authorization: Digest, but should have!\n");
 	}
 	if (success && !test_data.succeeded) {
 		errors++;
-		dprintf ("  Should have succeeded, but didn't!\n");
+		debug_printf (1, "  Should have succeeded, but didn't!\n");
 	} else if (!success && test_data.succeeded) {
 		errors++;
-		dprintf ("  Should not have succeeded, but did!\n");
+		debug_printf (1, "  Should not have succeeded, but did!\n");
 	}
-
-	return errors;
 }
 
-static int
+static void
 do_auth_tests (SoupURI *base_uri)
 {
-	int i, n = 1, errors = 0;
+	int i, n = 1;
 	gboolean use_basic, use_digest, good_password;
 	gboolean preemptive_basic;
 
@@ -172,58 +157,56 @@ do_auth_tests (SoupURI *base_uri)
 		 * Authorization headers completely, and the request
 		 * will always succeed.
 		 */
-		errors += do_test (n++, base_uri, "/foo", good_password,
-				   /* request */
-				   use_basic, use_digest,
-				   /* expected from client */
-				   preemptive_basic, FALSE,
-				   /* expected from server */
-				   FALSE, FALSE,
-				   /* success? */
-				   TRUE);
+		do_test (n++, base_uri, "/foo", good_password,
+			 /* request */
+			 use_basic, use_digest,
+			 /* expected from client */
+			 preemptive_basic, FALSE,
+			 /* expected from server */
+			 FALSE, FALSE,
+			 /* success? */
+			 TRUE);
 
 		/* 2. Basic auth required. The server will send
 		 * "WWW-Authenticate: Basic" if the client fails to
 		 * send an Authorization: Basic on the first request,
 		 * or if it sends a bad password.
 		 */
-		errors += do_test (n++, base_uri, "/Basic/foo", good_password,
-				   /* request */
-				   use_basic, use_digest,
-				   /* expected from client */
-				   use_basic, FALSE,
-				   /* expected from server */
-				   !preemptive_basic || !good_password, FALSE,
-				   /* success? */
-				   use_basic && good_password);
+		do_test (n++, base_uri, "/Basic/foo", good_password,
+			 /* request */
+			 use_basic, use_digest,
+			 /* expected from client */
+			 use_basic, FALSE,
+			 /* expected from server */
+			 !preemptive_basic || !good_password, FALSE,
+			 /* success? */
+			 use_basic && good_password);
 
 		/* 3. Digest auth required. Simpler than the basic
 		 * case because the client can't send Digest auth
 		 * premptively.
 		 */
-		errors += do_test (n++, base_uri, "/Digest/foo", good_password,
-				   /* request */
-				   use_basic, use_digest,
-				   /* expected from client */
-				   preemptive_basic, use_digest,
-				   /* expected from server */
-				   FALSE, TRUE,
-				   /* success? */
-				   use_digest && good_password);
+		do_test (n++, base_uri, "/Digest/foo", good_password,
+			 /* request */
+			 use_basic, use_digest,
+			 /* expected from client */
+			 preemptive_basic, use_digest,
+			 /* expected from server */
+			 FALSE, TRUE,
+			 /* success? */
+			 use_digest && good_password);
 
 		/* 4. Any auth required. */
-		errors += do_test (n++, base_uri, "/Any/foo", good_password,
-				   /* request */
-				   use_basic, use_digest,
-				   /* expected from client */
-				   preemptive_basic, use_digest,
-				   /* expected from server */
-				   !preemptive_basic || !good_password, !preemptive_basic || !good_password,
-				   /* success? */
-				   (use_basic || use_digest) && good_password);
+		do_test (n++, base_uri, "/Any/foo", good_password,
+			 /* request */
+			 use_basic, use_digest,
+			 /* expected from client */
+			 preemptive_basic, use_digest,
+			 /* expected from server */
+			 !preemptive_basic || !good_password, !preemptive_basic || !good_password,
+			 /* success? */
+			 (use_basic || use_digest) && good_password);
 	}
-
-	return errors;
 }
 
 static gboolean
@@ -306,41 +289,27 @@ request_started_callback (SoupServer *server, SoupMessage *msg,
 			  G_CALLBACK (wrote_headers_callback), NULL);
 }
 
+gboolean run_tests = TRUE;
+
+static GOptionEntry no_test_entry[] = {
+        { "no-tests", 'n', G_OPTION_FLAG_NO_ARG | G_OPTION_FLAG_REVERSE,
+          G_OPTION_ARG_NONE, &run_tests,
+          "Don't run tests, just run the test server", NULL },
+        { NULL }
+};
+
 int
 main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	int opt;
 	SoupURI *uri;
-	int errors;
 	SoupAuthDomain *auth_domain;
 	gboolean run_tests = TRUE;
 
-	g_type_init ();
-	g_thread_init (NULL);
+	test_init (argc, argv, no_test_entry);
 
-	while ((opt = getopt (argc, argv, "dn")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		case 'n':
-			run_tests = FALSE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n",
-				 argv[0]);
-			exit (1);
-		}
-	}
-
-	server = soup_server_new (SOUP_SERVER_PORT, 0,
-				  NULL);
-	if (!server) {
-		fprintf (stderr, "Unable to bind server\n");
-		exit (1);
-	}
+	server = soup_test_server_new (FALSE);
 	g_signal_connect (server, "request_started",
 			  G_CALLBACK (request_started_callback), NULL);
 	soup_server_add_handler (server, NULL,
@@ -362,14 +331,12 @@ main (int argc, char **argv)
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
 
-	soup_server_run_async (server);
-
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
 		uri = soup_uri_new ("http://localhost");
 		uri->port = soup_server_get_port (server);
-		errors = do_auth_tests (uri);
+		do_auth_tests (uri);
 		soup_uri_free (uri);
 	} else {
 		printf ("Listening on port %d\n", soup_server_get_port (server));
@@ -378,11 +345,7 @@ main (int argc, char **argv)
 
 	g_main_loop_unref (loop);
 
-	dprintf ("\n");
-	if (errors) {
-		printf ("server-auth-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("server-auth-test: OK\n");
+	if (run_tests)
+		test_cleanup ();
 	return errors != 0;
 }

@@ -22,21 +22,9 @@
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session-sync.h>
 
+#include "test-utils.h"
+
 GMainLoop *loop;
-gboolean debug = FALSE;
-
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
 
 struct {
 	char *title, *name;
@@ -68,19 +56,18 @@ struct {
 	{ "Mr.", "Foo %2f Bar", "Hello, MR. Foo %2f Bar" },
 };
 
-static int
+static void
 do_test (int n, gboolean extra, const char *uri)
 {
 	GPtrArray *args;
-	int errors = 0;
 	GHashTable *form_data_set;
 	char *title_arg = NULL, *name_arg = NULL;
 	char *stdout = NULL;
 
-	dprintf ("%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
-		 tests[n].title ? tests[n].title : "(null)",
-		 tests[n].name  ? tests[n].name  : "(null)",
-		 extra ? " + extra" : "");
+	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
+		      tests[n].title ? tests[n].title : "(null)",
+		      tests[n].name  ? tests[n].name  : "(null)",
+		      extra ? " + extra" : "");
 
 	form_data_set = g_hash_table_new (g_str_hash, g_str_equal);
 
@@ -115,37 +102,34 @@ do_test (int n, gboolean extra, const char *uri)
 			  NULL, NULL,
 			  &stdout, NULL, NULL, NULL)) {
 		if (stdout && !strcmp (stdout, tests[n].result))
-			dprintf ("OK!\n");
+			debug_printf (1, "OK!\n");
 		else {
-			dprintf ("WRONG!\n");
-			dprintf ("  expected '%s', got '%s'\n",
-				 tests[n].result, stdout ? stdout : "(error)");
+			debug_printf (1, "WRONG!\n");
+			debug_printf (1, "  expected '%s', got '%s'\n",
+				      tests[n].result,
+				      stdout ? stdout : "(error)");
 			errors++;
 		}
 		g_free (stdout);
 	} else {
-		dprintf ("ERROR!\n");
+		debug_printf (1, "ERROR!\n");
 		errors++;
 	}
 	g_ptr_array_free (args, TRUE);
 	g_hash_table_destroy (form_data_set);
 	g_free (title_arg);
 	g_free (name_arg);
-
-	return errors;
 }
 
-static int
+static void
 do_query_tests (const char *uri)
 {
-	int n, errors = 0;
+	int n;
 
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
-		errors += do_test (n, FALSE, uri);
-		errors += do_test (n, TRUE, uri);
+		do_test (n, FALSE, uri);
+		do_test (n, TRUE, uri);
 	}
-
-	return errors;
 }
 
 GThread *server_thread;
@@ -161,11 +145,6 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_HEAD) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-		return;
-	}
-
-	if (!strcmp (path, "/shutdown")) {
-		soup_server_quit (server);
 		return;
 	}
 
@@ -209,93 +188,31 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
-static gpointer
-run_server_thread (gpointer user_data)
-{
-	SoupServer *server = user_data;
+gboolean run_tests = TRUE;
 
-	soup_server_add_handler (server, NULL,
-				 server_callback, NULL, NULL);
-	soup_server_run (server);
-	g_object_unref (server);
-
-	return NULL;
-}
-
-static guint
-create_server (void)
-{
-	SoupServer *server;
-	GMainContext *async_context;
-	guint port;
-
-	async_context = g_main_context_new ();
-	server = soup_server_new (SOUP_SERVER_PORT, 0,
-				  SOUP_SERVER_ASYNC_CONTEXT, async_context,
-				  NULL);
-	g_main_context_unref (async_context);
-
-	if (!server) {
-		fprintf (stderr, "Unable to bind server\n");
-		exit (1);
-	}
-
-	port = soup_server_get_port (server);
-	server_thread = g_thread_create (run_server_thread, server, TRUE, NULL);
-
-	return port;
-}
-
-static void
-shutdown_server (const char *base_uri)
-{
-	SoupSession *session;
-	char *uri;
-	SoupMessage *msg;
-
-	session = soup_session_sync_new ();
-	uri = g_build_filename (base_uri, "shutdown", NULL);
-	msg = soup_message_new ("GET", uri);
-	soup_session_send_message (session, msg);
-	g_object_unref (msg);
-	g_free (uri);
-
-	soup_session_abort (session);
-	g_object_unref (session);
-
-	g_thread_join (server_thread);
-}
+static GOptionEntry no_test_entry[] = {
+        { "no-tests", 'n', G_OPTION_FLAG_NO_ARG | G_OPTION_FLAG_REVERSE,
+          G_OPTION_ARG_NONE, &run_tests,
+          "Don't run tests, just run the test server", NULL },
+        { NULL }
+};
 
 int
 main (int argc, char **argv)
 {
 	GMainLoop *loop;
+	SoupServer *server;
 	guint port;
-	int opt;
-	int errors;
-	gboolean run_tests = TRUE;
 	SoupURI *uri;
 	char *uri_str;
 
-	g_type_init ();
-	g_thread_init (NULL);
+	test_init (argc, argv, no_test_entry);
 
-	while ((opt = getopt (argc, argv, "dn")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		case 'n':
-			run_tests = FALSE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n",
-				 argv[0]);
-			exit (1);
-		}
-	}
+	server = soup_test_server_new (TRUE);
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+	port = 	soup_server_get_port (server);
 
-	port = create_server ();
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
@@ -304,8 +221,7 @@ main (int argc, char **argv)
 		uri_str = soup_uri_to_string (uri, FALSE);
 		soup_uri_free (uri);
 
-		errors = do_query_tests (uri_str);
-		shutdown_server (uri_str);
+		do_query_tests (uri_str);
 		g_free (uri_str);
 	} else {
 		printf ("Listening on port %d\n", port);
@@ -314,11 +230,7 @@ main (int argc, char **argv)
 
 	g_main_loop_unref (loop);
 
-	dprintf ("\n");
-	if (errors) {
-		printf ("query-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("query-test: OK\n");
+	if (run_tests)
+		test_cleanup ();
 	return errors != 0;
 }

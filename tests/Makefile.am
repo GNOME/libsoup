@@ -25,25 +25,27 @@ noinst_PROGRAMS =	\
 	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
-auth_test_SOURCES = auth-test.c apache-wrapper.c apache-wrapper.h
-context_test_SOURCES = context-test.c
-continue_test_SOURCES = continue-test.c
-date_SOURCES = date.c
+TEST_SRCS = test-utils.c test-utils.h
+
+auth_test_SOURCES = auth-test.c $(TEST_SRCS)
+context_test_SOURCES = context-test.c $(TEST_SRCS)
+continue_test_SOURCES = continue-test.c $(TEST_SRCS)
+date_SOURCES = date.c $(TEST_SRCS)
 dns_SOURCES = dns.c
 get_SOURCES = get.c
 getbug_SOURCES = getbug.c
-header_parsing_SOURCES = header-parsing.c
-ntlm_test_SOURCES = ntlm-test.c
-proxy_test_SOURCES = proxy-test.c apache-wrapper.c apache-wrapper.h
-pull_api_SOURCES = pull-api.c apache-wrapper.c apache-wrapper.h
-query_test_SOURCES = query-test.c
+header_parsing_SOURCES = header-parsing.c $(TEST_SRCS)
+ntlm_test_SOURCES = ntlm-test.c $(TEST_SRCS)
+proxy_test_SOURCES = proxy-test.c $(TEST_SRCS)
+pull_api_SOURCES = pull-api.c $(TEST_SRCS)
+query_test_SOURCES = query-test.c $(TEST_SRCS)
 revserver_SOURCES = revserver.c
-server_auth_test_SOURCES = server-auth-test.c
+server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
-ssl_test_SOURCES = ssl-test.c
-uri_parsing_SOURCES = uri-parsing.c
-xmlrpc_test_SOURCES = xmlrpc-test.c apache-wrapper.c apache-wrapper.h
+ssl_test_SOURCES = ssl-test.c $(TEST_SRCS)
+uri_parsing_SOURCES = uri-parsing.c $(TEST_SRCS)
+xmlrpc_test_SOURCES = xmlrpc-test.c $(TEST_SRCS)
 
 if HAVE_APACHE
 APACHE_TESTS = auth-test proxy-test pull-api

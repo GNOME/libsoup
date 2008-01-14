@@ -8,23 +8,7 @@
 #include <unistd.h>
 
 #include "libsoup/soup.h"
-#include "apache-wrapper.h"
-
-int errors = 0;
-gboolean debug = FALSE;
-
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
+#include "test-utils.h"
 
 typedef struct {
 	const char *explanation;
@@ -75,7 +59,7 @@ test_url (const char *url, int proxy, guint expected, gboolean sync)
 	SoupURI *proxy_uri;
 	SoupMessage *msg;
 
-	dprintf ("  GET %s via %s\n", url, proxy_names[proxy]);
+	debug_printf (1, "  GET %s via %s\n", url, proxy_names[proxy]);
 	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)
 		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
 
@@ -98,9 +82,9 @@ test_url (const char *url, int proxy, guint expected, gboolean sync)
 
 	soup_session_send_message (session, msg);
 
-	dprintf ("  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code != expected) {
-		dprintf ("  EXPECTED %d!\n", expected);
+		debug_printf (1, "  EXPECTED %d!\n", expected);
 		errors++;
 	}
 
@@ -114,8 +98,8 @@ run_test (int i, gboolean sync)
 {
 	char *http_url, *https_url;
 
-	dprintf ("Test %d: %s (%s)\n", i + 1, tests[i].explanation,
-		 sync ? "sync" : "async");
+	debug_printf (1, "Test %d: %s (%s)\n", i + 1, tests[i].explanation,
+		      sync ? "sync" : "async");
 
 	if (!strncmp (tests[i].url, "http", 4)) {
 		http_url = g_strdup (tests[i].url);
@@ -140,46 +124,22 @@ run_test (int i, gboolean sync)
 	g_free (http_url);
 	g_free (https_url);
 
-	dprintf ("\n");
+	debug_printf (1, "\n");
 }
 
 int
 main (int argc, char **argv)
 {
-	int i, opt;
+	int i;
 
-	g_type_init ();
-	g_thread_init (NULL);
-
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n", argv[0]);
-			return 1;
-		}
-	}
-
-	if (!apache_init ()) {
-		fprintf (stderr, "Could not start apache\n");
-		return 1;
-	}
+	test_init (argc, argv, NULL);
+	apache_init ();
 
 	for (i = 0; i < ntests; i++) {
 		run_test (i, FALSE);
 		run_test (i, TRUE);
 	}
 
-	apache_cleanup ();
-	g_main_context_unref (g_main_context_default ());
-
-	dprintf ("\n");
-	if (errors) {
-		printf ("proxy-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("proxy-test: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }
