@@ -265,7 +265,7 @@ set_property (GObject *object, guint prop_id,
 		if (priv->proxy_uri) {
 			priv->conn_uri = priv->proxy_uri;
 			if (priv->origin_uri &&
-			    soup_uri_is_https (priv->origin_uri))
+			    priv->origin_uri->scheme == SOUP_URI_SCHEME_HTTPS)
 				priv->mode = SOUP_CONNECTION_MODE_TUNNEL;
 			else
 				priv->mode = SOUP_CONNECTION_MODE_PROXY;
@@ -440,7 +440,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
 
-	if (soup_uri_is_https (priv->conn_uri)) {
+	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
 		if (!soup_socket_start_ssl (sock, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
@@ -545,7 +545,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
-	if (soup_uri_is_https (priv->conn_uri)) {
+	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
 		if (!soup_socket_start_ssl (priv->socket, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;

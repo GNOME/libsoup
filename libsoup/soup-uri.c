@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 #include "soup-uri.h"
+#include "soup-form.h"
 #include "soup-misc.h"
 
 /**
@@ -24,7 +25,61 @@
  * in the server callback.
  **/
 
+/**
+ * SoupURI:
+ * @scheme: the URI scheme (eg, "http")
+ * @user: a username, or %NULL
+ * @password: a password, or %NULL
+ * @host: the hostname or IP address
+ * @port: the port number on @host
+ * @path: the path on @host
+ * @query: a query for @path, or %NULL
+ * @fragment: a fragment identifier within @path, or %NULL
+ *
+ * A #SoupURI represents a (parsed) URI. #SoupURI supports RFC 3986
+ * (URI Generic Syntax), and can parse any valid URI. However, libsoup
+ * only uses "http" and "https" URIs internally.
+ *
+ * @scheme will always be set in any URI. It is an interned string and
+ * is always all lowercase. (If you parse a URI with a non-lowercase
+ * scheme, it will be converted to lowercase.) The macros
+ * %SOUP_URI_SCHEME_HTTP and %SOUP_URI_SCHEME_HTTPS provide the
+ * interned values for "http" and "https" and can be compared against
+ * URI @scheme values.
+ *
+ * @user and @password are parsed as defined in the older URI specs
+ * (ie, separated by a colon; RFC 3986 only talks about a single
+ * "userinfo" field). Note that @password is not included in the
+ * output of soup_uri_to_string(). libsoup does not normally use these
+ * fields; authentication is handled via #SoupSession signals.
+ *
+ * @host contains the hostname, and @port the port specified in the
+ * URI. If the URI doesn't contain a hostname, @host will be %NULL,
+ * and if it doesn't specify a port, @port may be 0. However, for
+ * "http" and "https" URIs, @host is guaranteed to be non-%NULL
+ * (trying to parse an http URI with no @host will return %NULL), and
+ * @port will always be non-0 (because libsoup knows the default value
+ * to use when it is not specified in the URI).
+ *
+ * @path is always non-%NULL. For http/https URIs, @path will never be
+ * an empty string either; if the input URI has no path, the parsed
+ * #SoupURI will have a @path of "/".
+ *
+ * @query and @fragment are optional for all URI types.
+ * soup_form_decode_urlencoded() may be useful for parsing @query.
+ *
+ * Note that @path, @query, and @fragment may contain
+ * %<!-- -->-encoded characters. soup_uri_new() calls
+ * soup_uri_normalize() on them, but not soup_uri_decode(). This is
+ * necessary to ensure that soup_uri_to_string() will generate a URI
+ * that has exactly the same meaning as the original. (In theory,
+ * #SoupURI should leave @user, @password, and @host partially-encoded
+ * as well, but this would be more annoying than useful.)
+ **/
+
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
+static char *uri_decoded_copy (const char *str, int length);
+static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 
 static const char *http_scheme, *https_scheme;
 
@@ -86,8 +141,9 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	/* Find fragment. */
 	end = hash = strchr (uri_string, '#');
 	if (hash && hash[1]) {
-		uri->fragment = g_strdup (hash + 1);
-		if (!soup_uri_normalize (uri->fragment, NULL)) {
+		uri->fragment = uri_normalized_copy (hash + 1, strlen (hash + 1),
+						     NULL);
+		if (!uri->fragment) {
 			soup_uri_free (uri);
 			return NULL;
 		}
@@ -121,9 +177,9 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		if (at && at < path) {
 			colon = strchr (uri_string, ':');
 			if (colon && colon < at) {
-				uri->password = g_strndup (colon + 1,
-							   at - colon - 1);
-				if (!soup_uri_decode (uri->password)) {
+				uri->password = uri_decoded_copy (colon + 1,
+								  at - colon - 1);
+				if (!uri->password) {
 					soup_uri_free (uri);
 					return NULL;
 				}
@@ -132,8 +188,9 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 				colon = at;
 			}
 
-			uri->user = g_strndup (uri_string, colon - uri_string);
-			if (!soup_uri_decode (uri->user)) {
+			uri->user = uri_decoded_copy (uri_string,
+						      colon - uri_string);
+			if (!uri->user) {
 				soup_uri_free (uri);
 				return NULL;
 			}
@@ -158,8 +215,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 			hostend = colon ? colon : path;
 		}
 
-		uri->host = g_strndup (uri_string, hostend - uri_string);
-		if (!soup_uri_decode (uri->host)) {
+		uri->host = uri_decoded_copy (uri_string, hostend - uri_string);
+		if (!uri->host) {
 			soup_uri_free (uri);
 			return NULL;
 		}
@@ -180,9 +237,10 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	question = memchr (uri_string, '?', end - uri_string);
 	if (question) {
 		if (question[1]) {
-			uri->query = g_strndup (question + 1,
-						end - (question + 1));
-			if (!soup_uri_normalize (uri->query, NULL)) {
+			uri->query = uri_normalized_copy (question + 1,
+							  end - (question + 1),
+							  NULL);
+			if (!uri->query) {
 				soup_uri_free (uri);
 				return NULL;
 			}
@@ -191,8 +249,9 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	}
 
 	if (end != uri_string) {
-		uri->path = g_strndup (uri_string, end - uri_string);
-		if (!soup_uri_normalize (uri->path, NULL)) {
+		uri->path = uri_normalized_copy (uri_string, end - uri_string,
+						 NULL);
+		if (!uri->path) {
 			soup_uri_free (uri);
 			return NULL;
 		}
@@ -303,12 +362,18 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
  *
  * Parses an absolute URI.
  *
+ * You can also pass %NULL for @uri_string if you want to get back an
+ * "empty" #SoupURI that you can fill in by hand.
+ *
  * Return value: a #SoupURI, or %NULL.
  **/
 SoupURI *
 soup_uri_new (const char *uri_string)
 {
 	SoupURI *uri;
+
+	if (!uri_string)
+		return g_slice_new0 (SoupURI);
 
 	uri = soup_uri_new_with_base (NULL, uri_string);
 	if (!uri)
@@ -325,14 +390,18 @@ soup_uri_new (const char *uri_string)
 /**
  * soup_uri_to_string:
  * @uri: a #SoupURI
- * @just_path: if %TRUE, output just the path and query portions
+ * @just_path_and_query: if %TRUE, output just the path and query portions
  *
  * Returns a string representing @uri.
+ *
+ * If @just_path_and_query is %TRUE, this concatenates the path and query
+ * together. That is, it constructs the string that would be needed in
+ * the Request-Line of an HTTP request for @uri.
  *
  * Return value: a string representing @uri, which the caller must free.
  **/
 char *
-soup_uri_to_string (SoupURI *uri, gboolean just_path)
+soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 {
 	GString *str;
 	char *return_result;
@@ -343,9 +412,9 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path)
 
 	str = g_string_sized_new (20);
 
-	if (uri->scheme && !just_path)
+	if (uri->scheme && !just_path_and_query)
 		g_string_sprintfa (str, "%s:", uri->scheme);
-	if (uri->host && !just_path) {
+	if (uri->host && !just_path_and_query) {
 		g_string_append (str, "//");
 		if (uri->user) {
 			append_uri_encoded (str, uri->user, ":;@?/");
@@ -370,7 +439,7 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path)
 		g_string_append_c (str, '?');
 		g_string_append (str, uri->query);
 	}
-	if (uri->fragment && !just_path) {
+	if (uri->fragment && !just_path_and_query) {
 		g_string_append_c (str, '#');
 		g_string_append (str, uri->fragment);
 	}
@@ -551,8 +620,9 @@ append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
  * @part: a URI part
  * @escape_extra: additional reserved characters to escape (or %NULL)
  *
- * This %%-encodes the given URI part and returns the escaped version
- * in allocated memory, which the caller must free when it is done.
+ * This %<!-- -->-encodes the given URI part and returns the escaped
+ * version in allocated memory, which the caller must free when it is
+ * done.
  *
  * Return value: the encoded URI part
  **/
@@ -573,62 +643,58 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
-/**
- * soup_uri_decode:
- * @part: a URI part
- *
- * Fully %%-decodes the passed-in URI *in place*. The decoded version
- * is never longer than the encoded version, so there does not need to
- * be any additional space at the end of the string.
- *
- * Return value: %TRUE on success, %FALSE if an invalid %%-code was
- * encountered.
- */
-gboolean
-soup_uri_decode (char *part)
+char *
+uri_decoded_copy (const char *part, int length)
 {
 	unsigned char *s, *d;
+	char *decoded = g_strndup (part, length);
 
-	s = d = (unsigned char *)part;
+	s = d = (unsigned char *)decoded;
 	do {
 		if (*s == '%') {
 			if (!g_ascii_isxdigit (s[1]) ||
-			    !g_ascii_isxdigit (s[2]))
-				return FALSE;
+			    !g_ascii_isxdigit (s[2])) {
+				g_free (decoded);
+				return NULL;
+			}
 			*d++ = HEXCHAR (s);
 			s += 2;
 		} else
 			*d++ = *s;
 	} while (*s++);
 
-	return TRUE;
+	return decoded;
 }
 
 /**
- * soup_uri_normalize:
+ * soup_uri_decode:
  * @part: a URI part
- * @unescape_extra: reserved characters to unescape (or %NULL)
  *
- * %%-decodes any "unreserved" characters (or characters in
- * @unescape_extra) in the passed-in URI. The decoding is done *in
- * place*. The decoded version is never longer than the encoded
- * version, so there does not need to be any additional space at the
- * end of the string.
+ * Fully %<!-- -->-decodes @part.
  *
- * Return value: %TRUE on success, %FALSE if an invalid %%-code was
- * encountered.
+ * Return value: the decoded URI part, or %NULL if an invalid percent
+ * code was encountered.
  */
-gboolean
-soup_uri_normalize (char *part, const char *unescape_extra)
+char *
+soup_uri_decode (const char *part)
+{
+	return uri_decoded_copy (part, strlen (part));
+}
+
+char *
+uri_normalized_copy (const char *part, int length, const char *unescape_extra)
 {
 	unsigned char *s, *d, c;
+	char *normalized = g_strndup (part, length);
 
-	s = d = (unsigned char *)part;
+	s = d = (unsigned char *)normalized;
 	do {
 		if (*s == '%') {
 			if (!g_ascii_isxdigit (s[1]) ||
-			    !g_ascii_isxdigit (s[2]))
-				return FALSE;
+			    !g_ascii_isxdigit (s[2])) {
+				g_free (normalized);
+				return NULL;
+			}
 
 			c = HEXCHAR (s);
 			if (uri_encoded_char[c] == SOUP_URI_UNRESERVED ||
@@ -644,7 +710,34 @@ soup_uri_normalize (char *part, const char *unescape_extra)
 			*d++ = *s;
 	} while (*s++);
 
-	return TRUE;
+	return normalized;
+}
+
+/**
+ * soup_uri_normalize:
+ * @part: a URI part
+ * @unescape_extra: reserved characters to unescape (or %NULL)
+ *
+ * %<!-- -->-decodes any "unreserved" characters (or characters in
+ * @unescape_extra) in @part.
+ *
+ * "Unreserved" characters are those that are not allowed to be used
+ * for punctuation according to the URI spec. For example, letters are
+ * unreserved, so soup_uri_normalize() will turn
+ * <literal>http://example.com/foo/b%<!-- -->61r</literal> into
+ * <literal>http://example.com/foo/bar</literal>, which is guaranteed
+ * to mean the same thing. However, "/" is "reserved", so
+ * <literal>http://example.com/foo%<!-- -->2Fbar</literal> would not
+ * be changed, because it might mean something different to the
+ * server.
+ *
+ * Return value: the normalized URI part, or %NULL if an invalid percent
+ * code was encountered.
+ */
+char *
+soup_uri_normalize (const char *part, const char *unescape_extra)
+{
+	return uri_normalized_copy (part, strlen (part), unescape_extra);
 }
 
 
@@ -653,29 +746,172 @@ soup_uri_normalize (char *part, const char *unescape_extra)
  * @uri: a #SoupURI
  *
  * Tests if @uri uses the default port for its scheme. (Eg, 80 for
- * http.)
+ * http.) (This only works for http and https; libsoup does not know
+ * the default ports of other protocols.)
  *
  * Return value: %TRUE or %FALSE
  **/
 gboolean
 soup_uri_uses_default_port (SoupURI *uri)
 {
+	g_return_val_if_fail (uri->scheme == http_scheme ||
+			      uri->scheme == https_scheme, FALSE);
+
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
 
 /**
- * soup_uri_is_https:
- * @uri: a #SoupURI
+ * SOUP_URI_SCHEME_HTTP:
  *
- * Tests if @uri uses the "https" scheme.
- *
- * Return value: %TRUE or %FALSE
+ * "http" as an interned string. This can be compared directly against
+ * the value of a #SoupURI's <structfield>scheme</structfield>
  **/
-gboolean
-soup_uri_is_https (SoupURI *uri)
+
+/**
+ * SOUP_URI_SCHEME_HTTPS:
+ *
+ * "https" as an interned string. This can be compared directly
+ * against the value of a #SoupURI's <structfield>scheme</structfield>
+ **/
+
+/**
+ * soup_uri_set_scheme:
+ * @uri: a #SoupURI
+ * @scheme: the URI scheme
+ *
+ * Sets @uri's scheme to @scheme. (If @scheme is "http" or "https",
+ * then you are responsible for making sure that @uri is otherwise
+ * valid in the other ways libsoup expects, as described in the
+ * #SoupURI documentation.)
+ **/
+void
+soup_uri_set_scheme (SoupURI *uri, const char *scheme)
 {
-	return https_scheme && uri->scheme == https_scheme;
+	uri->scheme = soup_uri_get_scheme (scheme, strlen (scheme));
 }
+
+/**
+ * soup_uri_set_user:
+ * @uri: a #SoupURI
+ * @user: the username, or %NULL
+ *
+ * Sets @uri's user to @user.
+ **/
+void
+soup_uri_set_user (SoupURI *uri, const char *user)
+{
+	g_free (uri->user);
+	uri->user = g_strdup (user);
+}
+
+/**
+ * soup_uri_set_password:
+ * @uri: a #SoupURI
+ * @password: the password, or %NULL
+ *
+ * Sets @uri's password to @password.
+ **/
+void
+soup_uri_set_password (SoupURI *uri, const char *password)
+{
+	g_free (uri->password);
+	uri->password = g_strdup (password);
+}
+
+/**
+ * soup_uri_set_host:
+ * @uri: a #SoupURI
+ * @host: the hostname or IP address, or %NULL
+ *
+ * Sets @uri's host to @host.
+ *
+ * If @host is an IPv6 IP address, it should not include the brackets
+ * required by the URI syntax; they will be added automatically when
+ * converting @uri to a string.
+ **/
+void
+soup_uri_set_host (SoupURI *uri, const char *host)
+{
+	g_free (uri->host);
+	uri->host = g_strdup (host);
+}
+
+/**
+ * soup_uri_set_port:
+ * @uri: a #SoupURI
+ * @port: the port, or 0
+ *
+ * Sets @uri's port to @port. If @port is 0, @uri will not have an
+ * explicitly-specified port.
+ *
+ * Note that when constructing an http or https URI by hand, you MUST
+ * set its port to the appropriate value. It will not default to
+ * anything.
+ **/
+void
+soup_uri_set_port (SoupURI *uri, guint port)
+{
+	uri->port = port;
+}
+
+/**
+ * soup_uri_set_path:
+ * @uri: a #SoupURI
+ * @path: the path
+ *
+ * Sets @uri's path to @path.
+ **/
+void
+soup_uri_set_path (SoupURI *uri, const char *path)
+{
+	g_free (uri->path);
+	uri->path = g_strdup (path);
+}
+
+/**
+ * soup_uri_set_query:
+ * @uri: a #SoupURI
+ * @query: the query
+ *
+ * Sets @uri's query to @query.
+ **/
+void
+soup_uri_set_query (SoupURI *uri, const char *query)
+{
+	g_free (uri->query);
+	uri->query = g_strdup (query);
+}
+
+/**
+ * soup_uri_set_query_from_form:
+ * @uri: a #SoupURI
+ * @form: a #GHashTable containing HTML form information
+ *
+ * Sets @uri's query to the result of encoding @form according to the
+ * HTML form rules. See soup_form_encode_urlencoded() for more
+ * information.
+ **/
+void
+soup_uri_set_query_from_form (SoupURI *uri, GHashTable *form)
+{
+	g_free (uri->query);
+	uri->query = soup_form_encode_urlencoded (form);
+}
+
+/**
+ * soup_uri_set_fragment:
+ * @uri: a #SoupURI
+ * @fragment: the fragment
+ *
+ * Sets @uri's fragment to @fragment.
+ **/
+void
+soup_uri_set_fragment (SoupURI *uri, const char *fragment)
+{
+	g_free (uri->fragment);
+	uri->fragment = g_strdup (fragment);
+}
+
 
 GType
 soup_uri_get_type (void)

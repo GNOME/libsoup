@@ -203,7 +203,6 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	SoupServer *server;
 	guint port;
-	SoupURI *uri;
 	char *uri_str;
 
 	test_init (argc, argv, no_test_entry);
@@ -216,11 +215,7 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
-		uri = soup_uri_new ("http://localhost");
-		uri->port = port;
-		uri_str = soup_uri_to_string (uri, FALSE);
-		soup_uri_free (uri);
-
+		uri_str = g_strdup_printf ("http://localhost:%u", port);
 		do_query_tests (uri_str);
 		g_free (uri_str);
 	} else {

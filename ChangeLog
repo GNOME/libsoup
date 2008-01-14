@@ -1,5 +1,19 @@
 2008-01-14  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-uri.c: Add more documentation.
+	(soup_uri_is_https): gone, replaced by SOUP_URI_SCHEME_HTTP /
+	SOUP_URI_SCHEME_HTTPS
+	(soup_uri_new): allow passing NULL to get back an "empty" SoupURI.
+	(soup_uri_to_string): rename just_path to just_path_and_query, to
+	avoid fooling people.
+	(soup_uri_decode, soup_uri_normalize): Change these to return the
+	decoded/normalized string rather than modifying it in place.
+	(soup_uri_set_scheme, etc): provide setters for SoupURI parts.
+	(soup_uri_set_query_from_form): set uri->query via
+	soup_form_encode_urlencoded().
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
 	* configure.in: require glib 2.15.0, and gio
 
 	* libsoup/soup-dns.c (soup_dns_lookup_resolve)

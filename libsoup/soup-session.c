@@ -486,7 +486,8 @@ soup_session_host_new (SoupSession *session, SoupURI *source_uri)
 	host = g_slice_new0 (SoupSessionHost);
 	host->root_uri = soup_uri_copy_root (source_uri);
 
-	if (soup_uri_is_https (host->root_uri) && !priv->ssl_creds) {
+	if (host->root_uri->scheme == SOUP_URI_SCHEME_HTTPS &&
+	    !priv->ssl_creds) {
 		priv->ssl_creds =
 			soup_ssl_get_client_credentials (priv->ssl_ca_file);
 	}

@@ -185,9 +185,7 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 	SoupMessage *msg;
 	NTLMState state = { FALSE, FALSE, FALSE, FALSE };
 
-	uri = soup_uri_copy (base_uri);
-	g_free (uri->path);
-	uri->path = g_strdup (path);
+	uri = soup_uri_new_with_base (base_uri, path);
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
@@ -330,7 +328,7 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	uri = soup_uri_new ("http://localhost/");
-	uri->port = soup_server_get_port (server);
+	soup_uri_set_port (uri, soup_server_get_port (server));
 	do_ntlm_tests (uri);
 	soup_uri_free (uri);
 

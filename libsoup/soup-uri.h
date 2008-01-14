@@ -30,28 +30,49 @@ struct SoupURI {
 GType     soup_uri_get_type          (void);
 #define SOUP_TYPE_URI (soup_uri_get_type ())
 
-SoupURI  *soup_uri_new_with_base     (SoupURI    *base,
-				      const char *uri_string);
-SoupURI  *soup_uri_new               (const char *uri_string);
+#define SOUP_URI_SCHEME_HTTP  (g_intern_static_string ("http"))
+#define SOUP_URI_SCHEME_HTTPS (g_intern_static_string ("https"))
 
-char     *soup_uri_to_string         (SoupURI    *uri, 
-				      gboolean    just_path);
+SoupURI  *soup_uri_new_with_base       (SoupURI    *base,
+					const char *uri_string);
+SoupURI  *soup_uri_new                 (const char *uri_string);
 
-SoupURI  *soup_uri_copy              (SoupURI    *uri);
+char     *soup_uri_to_string           (SoupURI    *uri, 
+					gboolean    just_path_and_query);
 
-gboolean  soup_uri_equal             (SoupURI    *uri1, 
-				      SoupURI    *uri2);
+SoupURI  *soup_uri_copy                (SoupURI    *uri);
 
-void      soup_uri_free              (SoupURI    *uri);
+gboolean  soup_uri_equal               (SoupURI    *uri1, 
+					SoupURI    *uri2);
 
-char     *soup_uri_encode            (const char *part,
-				      const char *escape_extra);
-gboolean  soup_uri_decode            (char       *part);
-gboolean  soup_uri_normalize         (char       *part,
-				      const char *unescape_extra);
+void      soup_uri_free                (SoupURI    *uri);
 
-gboolean  soup_uri_uses_default_port (SoupURI    *uri);
-gboolean  soup_uri_is_https          (SoupURI    *uri);
+char     *soup_uri_encode              (const char *part,
+					const char *escape_extra);
+char     *soup_uri_decode              (const char *part);
+char     *soup_uri_normalize           (const char *part,
+					const char *unescape_extra);
+
+gboolean  soup_uri_uses_default_port   (SoupURI    *uri);
+
+void      soup_uri_set_scheme          (SoupURI    *uri,
+					const char *scheme);
+void      soup_uri_set_user            (SoupURI    *uri,
+					const char *user);
+void      soup_uri_set_password        (SoupURI    *uri,
+					const char *password);
+void      soup_uri_set_host            (SoupURI    *uri,
+					const char *host);
+void      soup_uri_set_port            (SoupURI    *uri,
+					guint       port);
+void      soup_uri_set_path            (SoupURI    *uri,
+					const char *path);
+void      soup_uri_set_query           (SoupURI    *uri,
+					const char *query);
+void      soup_uri_set_query_from_form (SoupURI    *uri,
+					GHashTable *form);
+void      soup_uri_set_fragment        (SoupURI    *uri,
+					const char *fragment);
 
 G_END_DECLS
 

@@ -619,8 +619,11 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	char *auth_user;
 
 	if (!priv->raw_paths) {
+		char *decoded_path;
+
 		uri = soup_message_get_uri (req);
-		soup_uri_decode (uri->path);
+		decoded_path = soup_uri_decode (uri->path);
+		soup_uri_set_path (uri, decoded_path);
 	}
 
 	/* Add required response headers */
@@ -1002,12 +1005,12 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * @path and @query contain the likewise-named components of the
  * Request-URI, subject to certain assumptions. By default,
  * #SoupServer decodes all percent-encoding in the URI path, such that
- * "/foo%%2Fbar" is treated the same as "/foo/bar". If your server is
- * serving resources in some non-POSIX-filesystem namespace, you may
- * want to distinguish those as two distinct paths. In that case, you
- * can set the %SOUP_SERVER_RAW_PATHS property when creating the
- * #SoupServer, and it will leave those characters undecoded. (You may
- * want to call soup_uri_normalize() to decode any percent-encoded
+ * "/foo%<!-- -->2Fbar" is treated the same as "/foo/bar". If your
+ * server is serving resources in some non-POSIX-filesystem namespace,
+ * you may want to distinguish those as two distinct paths. In that
+ * case, you can set the %SOUP_SERVER_RAW_PATHS property when creating
+ * the #SoupServer, and it will leave those characters undecoded. (You
+ * may want to call soup_uri_normalize() to decode any percent-encoded
  * characters that you aren't handling specially.)
  *
  * @query contains the query component of the Request-URI parsed
