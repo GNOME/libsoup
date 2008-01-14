@@ -16,7 +16,6 @@ noinst_PROGRAMS =	\
 	getbug		\
 	header-parsing  \
 	ntlm-test	\
-	revserver	\
 	simple-httpd	\
 	simple-proxy	\
 	uri-parsing	\
@@ -39,7 +38,6 @@ ntlm_test_SOURCES = ntlm-test.c $(TEST_SRCS)
 proxy_test_SOURCES = proxy-test.c $(TEST_SRCS)
 pull_api_SOURCES = pull-api.c $(TEST_SRCS)
 query_test_SOURCES = query-test.c $(TEST_SRCS)
-revserver_SOURCES = revserver.c
 server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c

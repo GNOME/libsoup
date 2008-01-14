@@ -1,3 +1,30 @@
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* configure.in: require glib 2.15.0, and gio
+
+	* libsoup/soup-dns.c (soup_dns_lookup_resolve)
+	(soup_dns_lookup_resolve_async): Add GCancellables, and support
+	cancellation of DNS lookups.
+	(resolve_address, resolve_name): If we get a DNS failure (eg,
+	because we're disconnected from the network), don't cache that
+	result, just try again next time someone asks. [#508593]
+
+	* libsoup/soup-address.c (soup_address_resolve_async)
+	(soup_address_resolve_sync): Add GCancellables, pass them to
+	soup-dns.
+
+	* libsoup/soup-socket.c (soup_socket_connect_async)
+	(soup_socket_connect_sync): Add GCancellables and implement
+	cancellation.
+	(soup_socket_start_ssl, soup_socket_start_proxy_ssl)
+	(soup_socket_read, soup_socket_read_until, soup_socket_write): add
+	GCancellables, though these routines don't actually implement
+	cancellation yet.
+	(soup_socket_disconnect): Don't close() the socket if someone is
+	doing I/O on it, as that creates a race condition. (The fd number
+	might be quickly recycled.) Instead, keep the socket open but
+	dead, via shutdown().
+
 2008-01-14  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-socket.c: (soup_socket_class_init): clarify docs for

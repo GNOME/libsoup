@@ -385,7 +385,8 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (soup_socket_start_proxy_ssl (priv->socket,
-						 priv->origin_uri->host))
+						 priv->origin_uri->host,
+						 NULL))
 			priv->connected = TRUE;
 		else
 			status = SOUP_STATUS_SSL_FAILED;
@@ -440,7 +441,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		goto done;
 
 	if (soup_uri_is_https (priv->conn_uri)) {
-		if (!soup_socket_start_ssl (sock)) {
+		if (!soup_socket_start_ssl (sock, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
 		}
@@ -499,7 +500,8 @@ soup_connection_connect_async (SoupConnection *conn,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
-	soup_socket_connect_async (priv->socket, socket_connect_result, conn);
+	soup_socket_connect_async (priv->socket, NULL,
+				   socket_connect_result, conn);
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
@@ -534,7 +536,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 				 SOUP_SOCKET_TIMEOUT, priv->timeout,
 				 NULL);
 
-	status = soup_socket_connect_sync (priv->socket);
+	status = soup_socket_connect_sync (priv->socket, NULL);
 	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
@@ -544,7 +546,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 			  G_CALLBACK (socket_disconnected), conn);
 
 	if (soup_uri_is_https (priv->conn_uri)) {
-		if (!soup_socket_start_ssl (priv->socket)) {
+		if (!soup_socket_start_ssl (priv->socket, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;
 		}
@@ -572,7 +574,8 @@ soup_connection_connect_sync (SoupConnection *conn)
 
 		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			if (!soup_socket_start_proxy_ssl (priv->socket,
-							 priv->origin_uri->host))
+							  priv->origin_uri->host,
+							  NULL))
 				status = SOUP_STATUS_SSL_FAILED;
 		}
 	}

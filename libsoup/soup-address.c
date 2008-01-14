@@ -374,39 +374,32 @@ typedef struct {
 } SoupAddressResolveAsyncData;
 
 static void
-free_res_data (gpointer res_data, GObject *ex_addr)
-{
-	g_free (res_data);
-}
-
-static void
-lookup_resolved (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
+lookup_resolved (SoupDNSLookup *lookup, guint status, gpointer user_data)
 {
 	SoupAddressResolveAsyncData *res_data = user_data;
 	SoupAddress *addr;
 	SoupAddressCallback callback;
 	gpointer callback_data;
-	guint status;
 
 	addr = res_data->addr;
 	callback = res_data->callback;
 	callback_data = res_data->callback_data;
-	g_object_weak_unref (G_OBJECT (addr), free_res_data, res_data);
 	g_free (res_data);
 
-	if (success)
+	if (status == SOUP_STATUS_OK)
 		update_address (addr, lookup);
 
-	if (callback) {
-		status = success ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE;
+	if (callback)
 		callback (addr, status, callback_data);
-	}
+
+	g_object_unref (addr);
 }
 
 /**
  * SoupAddressCallback:
  * @addr: the #SoupAddress that was resolved
- * @status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
+ * @status: %SOUP_STATUS_OK, %SOUP_STATUS_CANT_RESOLVE, or
+ * %SOUP_STATUS_CANCELLED
  * @data: the user data that was passed to
  * soup_address_resolve_async()
  *
@@ -417,19 +410,23 @@ lookup_resolved (SoupDNSLookup *lookup, gboolean success, gpointer user_data)
  * soup_address_resolve_async:
  * @addr: a #SoupAddress
  * @async_context: the #GMainContext to call @callback from
+ * @cancellable: a #GCancellable object, or %NULL
  * @callback: callback to call with the result
  * @user_data: data for @callback
  *
  * Asynchronously resolves the missing half of @addr. (Its IP address
  * if it was created with soup_address_new(), or its hostname if it
  * was created with soup_address_new_from_sockaddr() or
- * soup_address_new_any().) @callback will be called when the
- * resolution finishes (successfully or not).
+ * soup_address_new_any().)
+ *
+ * If @cancellable is non-%NULL, it can be used to cancel the
+ * resolution. @callback will still be invoked in this case, with a
+ * status of %SOUP_STATUS_CANCELLED.
  **/
 void
 soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
-			    SoupAddressCallback callback,
-			    gpointer user_data)
+			    GCancellable *cancellable,
+			    SoupAddressCallback callback, gpointer user_data)
 {
 	SoupAddressPrivate *priv;
 	SoupAddressResolveAsyncData *res_data;
@@ -442,30 +439,39 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	res_data->callback      = callback;
 	res_data->callback_data = user_data;
 
-	g_object_weak_ref (G_OBJECT (addr), free_res_data, res_data);
-	soup_dns_lookup_resolve_async (priv->lookup, async_context, lookup_resolved, res_data);
+	g_object_ref (addr);
+	soup_dns_lookup_resolve_async (priv->lookup, async_context, cancellable,
+				       lookup_resolved, res_data);
 }
 
 /**
  * soup_address_resolve_sync:
  * @addr: a #SoupAddress
+ * @cancellable: a #GCancellable object, or %NULL
  *
  * Synchronously resolves the missing half of @addr, as with
  * soup_address_resolve_async().
  *
- * Return value: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
+ * If @cancellable is non-%NULL, it can be used to cancel the
+ * resolution. soup_address_resolve_sync() will then return a status
+ * of %SOUP_STATUS_CANCELLED.
+ *
+ * Return value: %SOUP_STATUS_OK, %SOUP_STATUS_CANT_RESOLVE, or
+ * %SOUP_STATUS_CANCELLED.
  **/
 guint
-soup_address_resolve_sync (SoupAddress *addr)
+soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 {
 	SoupAddressPrivate *priv;
-	gboolean success;
+	guint status;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	success = soup_dns_lookup_resolve (priv->lookup);
-	if (success)
+	g_object_ref (addr);
+	status = soup_dns_lookup_resolve (priv->lookup, cancellable);
+	if (status == SOUP_STATUS_OK)
 		update_address (addr, priv->lookup);
-	return success ? SOUP_STATUS_OK : SOUP_STATUS_CANT_RESOLVE;
+	g_object_unref (addr);
+	return status;
 }

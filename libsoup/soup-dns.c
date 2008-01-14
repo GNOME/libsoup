@@ -19,6 +19,7 @@
 
 #include "soup-dns.h"
 #include "soup-misc.h"
+#include "soup-status.h"
 
 #ifndef INET_ADDRSTRLEN
 #  define INET_ADDRSTRLEN 16
@@ -122,7 +123,7 @@ typedef struct {
 
 	gboolean resolved;
 	GThread *resolver_thread;
-	GSList *lookups;
+	GSList *async_lookups;
 } SoupDNSCacheEntry;
 
 static GHashTable *soup_dns_cache;
@@ -132,10 +133,9 @@ struct SoupDNSLookup {
 	SoupDNSCacheEntry *entry;
 
 	GMainContext *async_context;
+	GCancellable *cancellable;
 	SoupDNSCallback callback;
 	gpointer user_data;
-
-	gboolean running;
 };
 
 static GMutex *soup_dns_lock;
@@ -320,8 +320,10 @@ resolve_address (SoupDNSCacheEntry *entry)
 	retval = getaddrinfo (entry->hostname, NULL, &hints, &res);
 	if (retval == 0) {
 		entry->sockaddr = g_memdup (res->ai_addr, res->ai_addrlen);
+		entry->resolved = TRUE;
 		freeaddrinfo (res);
-	}
+	} else
+		entry->resolved = (retval != EAI_AGAIN);
 
 #else /* !HAVE_GETADDRINFO */
 
@@ -336,7 +338,10 @@ resolve_address (SoupDNSCacheEntry *entry)
 		sin.sin_family = AF_INET;
 		memcpy (&sin.sin_addr, h->h_addr_list[0], sizeof (struct in_addr));
 		entry->sockaddr = g_memdup (&sin, sizeof (struct sockaddr_in));
-	}
+		entry->resolved = TRUE;
+	} else
+		entry->resolved = (h || h_errno != TRY_AGAIN);
+
 
 	g_mutex_unlock (soup_gethost_lock);
 
@@ -363,10 +368,13 @@ resolve_name (SoupDNSCacheEntry *entry)
 #endif
 		);
 
-	if (retval == 0)
+	if (retval == 0) {
 		entry->hostname = name;
-	else
+		entry->resolved = TRUE;
+	} else {
 		g_free (name);
+		entry->resolved = (retval != EAI_AGAIN);
+	}
 
 #else /* !HAVE_GETNAMEINFO */
 
@@ -377,8 +385,11 @@ resolve_name (SoupDNSCacheEntry *entry)
 
 	if (sin->sin_family == AF_INET) {
 		h = gethostbyaddr (&sin->sin_addr, sizeof (sin->sin_addr), AF_INET);
-		if (h)
+		if (h) {
 			entry->hostname = g_strdup (h->h_name);
+			entry->resolved = TRUE;
+		} else
+			entry->resolved = (h_errno != TRY_AGAIN);
 	}
 
 	g_mutex_unlock (soup_gethost_lock);
@@ -466,18 +477,30 @@ soup_dns_lookup_address (struct sockaddr *sockaddr)
 	return lookup;
 }
 
+static inline guint
+resolve_status (SoupDNSCacheEntry *entry, GCancellable *cancellable)
+{
+	if (entry->resolved)
+		return SOUP_STATUS_OK;
+	else if (g_cancellable_is_cancelled (cancellable))
+		return SOUP_STATUS_CANCELLED;
+	else
+		return SOUP_STATUS_CANT_RESOLVE;
+}
+
+static void async_cancel (GCancellable *cancellable, gpointer user_data);
+
 static gboolean
 do_async_callback (gpointer user_data)
 {
 	SoupDNSLookup *lookup = user_data;
+	SoupDNSCacheEntry *entry = lookup->entry;
+	GCancellable *cancellable = lookup->cancellable;
 
-	if (lookup->running) {
-		SoupDNSCacheEntry *entry = lookup->entry;
-		gboolean success = (entry->hostname != NULL && entry->sockaddr != NULL);
-
-		lookup->running = FALSE;
-		lookup->callback (lookup, success, lookup->user_data);
-	}
+	lookup->callback (lookup, resolve_status (entry, cancellable),
+			  lookup->user_data);
+	if (cancellable)
+		g_signal_handlers_disconnect_by_func (cancellable, async_cancel, lookup);
 
 	return FALSE;
 }
@@ -486,27 +509,26 @@ static gpointer
 resolver_thread (gpointer user_data)
 {
 	SoupDNSCacheEntry *entry = user_data;
-	GSList *lookups;
+	GSList *async_lookups;
 	SoupDNSLookup *lookup;
 
 	if (entry->hostname == NULL)
 		resolve_name (entry);
-	if (entry->sockaddr == NULL)
+	else if (entry->sockaddr == NULL)
 		resolve_address (entry);
 
-	entry->resolved = TRUE;
 	entry->resolver_thread = NULL;
 
 	g_mutex_lock (soup_dns_lock);
-	lookups = entry->lookups;
-	entry->lookups = NULL;
+	async_lookups = entry->async_lookups;
+	entry->async_lookups = NULL;
 	g_mutex_unlock (soup_dns_lock);
 
 	g_cond_broadcast (soup_dns_cond);
 
-	while (lookups) {
-		lookup = lookups->data;
-		lookups = g_slist_remove (lookups, lookup);
+	while (async_lookups) {
+		lookup = async_lookups->data;
+		async_lookups = g_slist_remove (async_lookups, lookup);
 
 		soup_add_idle (lookup->async_context, do_async_callback, lookup);
 	}
@@ -515,52 +537,100 @@ resolver_thread (gpointer user_data)
 	return NULL;
 }
 
+static void
+sync_cancel (GCancellable *cancellable, gpointer user_data)
+{
+	/* We can't actually cancel the resolver thread. So we just
+	 * wake up the blocking thread, which will see that
+	 * @cancellable has been cancelled and then stop waiting for
+	 * the result. If the resolver thread eventually finishes,
+	 * its result will make it to the cache.
+	 */
+	g_cond_broadcast (soup_dns_cond);
+}
+
 /**
  * soup_dns_lookup_resolve:
  * @lookup: a #SoupDNSLookup
+ * @cancellable: a #GCancellable, or %NULL
  *
- * Synchronously resolves @lookup. You can cancel a pending resolution
- * using soup_dns_lookup_cancel().
+ * Synchronously resolves @lookup.
  *
- * Return value: success or failure.
+ * Return value: %SOUP_STATUS_OK, %SOUP_STATUS_CANT_RESOLVE, or
+ * %SOUP_STATUS_CANCELLED
  **/
-gboolean
-soup_dns_lookup_resolve (SoupDNSLookup *lookup)
+guint
+soup_dns_lookup_resolve (SoupDNSLookup *lookup, GCancellable *cancellable)
 {
 	SoupDNSCacheEntry *entry = lookup->entry;
+	guint cancel_id = 0;
 
 	g_mutex_lock (soup_dns_lock);
 
-	lookup->running = TRUE;
+	if (!entry->resolved) {
+		if (!entry->resolver_thread) {
+			soup_dns_cache_entry_ref (entry);
+			entry->resolver_thread =
+				g_thread_create (resolver_thread, entry,
+						 FALSE, NULL);
+		}
 
-	if (!entry->resolved && !entry->resolver_thread) {
-		soup_dns_cache_entry_ref (entry);
-		entry->resolver_thread =
-			g_thread_create (resolver_thread, entry, FALSE, NULL);
+		if (cancellable) {
+			cancel_id = g_signal_connect (cancellable, "cancelled",
+						      G_CALLBACK (sync_cancel),
+						      NULL);
+		}
 	}
 
-	while (!entry->resolved && lookup->running)
+	while (entry->resolver_thread &&
+	       !g_cancellable_is_cancelled (cancellable))
 		g_cond_wait (soup_dns_cond, soup_dns_lock);
 
-	lookup->running = FALSE;
+	if (cancel_id)
+		g_signal_handler_disconnect (cancellable, cancel_id);
 
 	g_mutex_unlock (soup_dns_lock);
-	return entry->hostname != NULL && entry->sockaddr != NULL;
+
+	return resolve_status (entry, cancellable);
+}
+
+static void
+async_cancel (GCancellable *cancellable, gpointer user_data)
+{
+	SoupDNSLookup *lookup = user_data;
+	SoupDNSCacheEntry *entry = lookup->entry;
+
+	/* We can't actually cancel the resolver thread. So we just
+	 * remove @lookup from the list of pending async lookups and
+	 * invoke its callback now. If the resolver thread eventually
+	 * finishes, its result will make it to the cache.
+	 */
+	g_mutex_lock (soup_dns_lock);
+
+	if (g_slist_find (entry->async_lookups, lookup)) {
+		entry->async_lookups = g_slist_remove (entry->async_lookups,
+						       lookup);
+		soup_add_idle (lookup->async_context, do_async_callback, lookup);
+	}
+
+	g_mutex_unlock (soup_dns_lock);
 }
 
 /**
  * soup_dns_lookup_resolve_async:
  * @lookup: a #SoupDNSLookup
  * @async_context: #GMainContext to call @callback in
+ * @cancellable: a #GCancellable, or %NULL
  * @callback: callback to call when @lookup is resolved
  * @user_data: data to pass to @callback;
  *
  * Tries to asynchronously resolve @lookup. Invokes @callback when it
- * has succeeded or failed. You can cancel a pending resolution using
- * soup_dns_lookup_cancel().
+ * has succeeded or failed.
  **/
 void
-soup_dns_lookup_resolve_async (SoupDNSLookup *lookup, GMainContext *async_context,
+soup_dns_lookup_resolve_async (SoupDNSLookup *lookup,
+			       GMainContext *async_context,
+			       GCancellable *cancellable,
 			       SoupDNSCallback callback, gpointer user_data)
 {
 	SoupDNSCacheEntry *entry = lookup->entry;
@@ -568,43 +638,28 @@ soup_dns_lookup_resolve_async (SoupDNSLookup *lookup, GMainContext *async_contex
 	g_mutex_lock (soup_dns_lock);
 
 	lookup->async_context = async_context;
+	lookup->cancellable = cancellable;
 	lookup->callback = callback;
 	lookup->user_data = user_data;
-	lookup->running = TRUE;
 
 	if (!entry->resolved) {
-		entry->lookups = g_slist_prepend (entry->lookups, lookup);
+		entry->async_lookups = g_slist_prepend (entry->async_lookups,
+							lookup);
+		if (cancellable) {
+			g_signal_connect (cancellable, "cancelled",
+					  G_CALLBACK (async_cancel), lookup);
+		}
+
 		if (!entry->resolver_thread) {
 			soup_dns_cache_entry_ref (entry);
 			entry->resolver_thread =
-				g_thread_create (resolver_thread, entry, FALSE, NULL);
+				g_thread_create (resolver_thread, entry,
+						 FALSE, NULL);
 		}
 	} else
 		soup_add_idle (lookup->async_context, do_async_callback, lookup);
 
 	g_mutex_unlock (soup_dns_lock);
-}
-
-/**
- * soup_dns_lookup_cancel:
- * @lookup: a #SoupDNSLookup
- *
- * Cancels @lookup. If @lookup was running synchronously in another
- * thread, it will immediately return %FALSE. If @lookup was running
- * asynchronously, its callback function will not be called.
- **/
-void
-soup_dns_lookup_cancel (SoupDNSLookup *lookup)
-{
-	/* We never really cancel the DNS lookup itself (since GThread
-	 * doesn't have a kill function, and it might mess up
-	 * underlying resolver data anyway). But clearing lookup->running
-	 * and broadcasting on soup_dns_cond will immediately stop any
-	 * blocking synchronous lookups, and clearing lookup->running
-	 * will also make sure that its async callback is never invoked.
-	 */
-	lookup->running = FALSE;
-	g_cond_broadcast (soup_dns_cond);
 }
 
 /**
@@ -642,14 +697,12 @@ soup_dns_lookup_get_address (SoupDNSLookup *lookup)
  * soup_dns_lookup_free:
  * @lookup: a #SoupDNSLookup
  *
- * Frees @lookup. If @lookup is still running, it will be canceled
- * first.
+ * Frees @lookup. It is an error to cancel a lookup while it is
+ * running.
  **/
 void
 soup_dns_lookup_free (SoupDNSLookup *lookup)
 {
-	if (lookup->running)
-		soup_dns_lookup_cancel (lookup);
 	soup_dns_cache_entry_unref (lookup->entry);
 	g_slice_free (SoupDNSLookup, lookup);
 }

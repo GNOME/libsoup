@@ -7,6 +7,7 @@
 #define SOUP_SOCKET_H 1
 
 #include <libsoup/soup-types.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -51,15 +52,19 @@ SoupSocket    *soup_socket_new                (const char         *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
 void           soup_socket_connect_async      (SoupSocket         *sock,
+					       GCancellable       *cancellable,
 					       SoupSocketCallback  callback,
 					       gpointer            user_data);
-guint          soup_socket_connect_sync       (SoupSocket         *sock);
+guint          soup_socket_connect_sync       (SoupSocket         *sock,
+					       GCancellable       *cancellable);
 
 gboolean       soup_socket_listen             (SoupSocket         *sock);
 
-gboolean       soup_socket_start_ssl          (SoupSocket         *sock);
+gboolean       soup_socket_start_ssl          (SoupSocket         *sock,
+					       GCancellable       *cancellable);
 gboolean       soup_socket_start_proxy_ssl    (SoupSocket         *sock,
-					       const char         *ssl_host);
+					       const char         *ssl_host,
+					       GCancellable       *cancellable);
 gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 
 void           soup_socket_disconnect         (SoupSocket         *sock);
@@ -80,6 +85,7 @@ SoupSocketIOStatus  soup_socket_read       (SoupSocket         *sock,
 					    gpointer            buffer,
 					    gsize               len,
 					    gsize              *nread,
+					    GCancellable       *cancellable,
 					    GError            **error);
 SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    gpointer            buffer,
@@ -88,12 +94,14 @@ SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    gsize               boundary_len,
 					    gsize              *nread,
 					    gboolean           *got_boundary,
+					    GCancellable       *cancellable,
 					    GError            **error);
 
 SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    gconstpointer       buffer,
 					    gsize               len,
 					    gsize              *nwrote,
+					    GCancellable       *cancellable,
 					    GError            **error);
 
 G_END_DECLS

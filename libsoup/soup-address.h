@@ -8,6 +8,8 @@
 
 #include <sys/types.h>
 
+#include <gio/gio.h>
+
 #include <libsoup/soup-portability.h>
 #include <libsoup/soup-types.h>
 
@@ -61,9 +63,11 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 
 void             soup_address_resolve_async      (SoupAddress         *addr,
 						  GMainContext        *async_context,
+						  GCancellable        *cancellable,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);
-guint            soup_address_resolve_sync       (SoupAddress         *addr);
+guint            soup_address_resolve_sync       (SoupAddress         *addr,
+						  GCancellable        *cancellable);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);
 const char      *soup_address_get_physical       (SoupAddress         *addr);

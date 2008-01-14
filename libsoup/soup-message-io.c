@@ -232,7 +232,7 @@ read_metadata (SoupMessage *msg, const char *boundary)
 		status = soup_socket_read_until (io->sock, read_buf,
 						 sizeof (read_buf),
 						 boundary, boundary_len,
-						 &nread, &done, &error);
+						 &nread, &done, NULL, &error);
 		switch (status) {
 		case SOUP_SOCKET_OK:
 			g_byte_array_append (io->read_meta_buf, read_buf, nread);
@@ -278,7 +278,7 @@ read_body_chunk (SoupMessage *msg)
 			len = MIN (len, io->read_length);
 
 		status = soup_socket_read (io->sock, read_buf, len,
-					   &nread, &error);
+					   &nread, NULL, &error);
 
 		switch (status) {
 		case SOUP_SOCKET_OK:
@@ -331,7 +331,7 @@ write_data (SoupMessage *msg, const char *data, guint len)
 		status = soup_socket_write (io->sock,
 					    data + io->written,
 					    len - io->written,
-					    &nwrote, &error);
+					    &nwrote, NULL, &error);
 		switch (status) {
 		case SOUP_SOCKET_EOF:
 		case SOUP_SOCKET_ERROR:

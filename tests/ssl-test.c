@@ -137,7 +137,8 @@ async_read (SoupSocket *sock, gpointer user_data)
 
 	do {
 		status = soup_socket_read (sock, data->readbuf + data->total,
-					   BUFSIZE - data->total, &n, &error);
+					   BUFSIZE - data->total, &n,
+					   NULL, &error);
 		if (status == SOUP_SOCKET_OK)
 			data->total += n;
 	} while (status == SOUP_SOCKET_OK && data->total < BUFSIZE);
@@ -165,7 +166,8 @@ async_write (SoupSocket *sock, gpointer user_data)
 
 	do {
 		status = soup_socket_write (sock, data->writebuf + data->total,
-					    BUFSIZE - data->total, &n, &error);
+					    BUFSIZE - data->total, &n,
+					    NULL, &error);
 		if (status == SOUP_SOCKET_OK)
 			data->total += n;
 	} while (status == SOUP_SOCKET_OK && data->total < BUFSIZE);
@@ -283,13 +285,13 @@ main (int argc, char **argv)
 				SOUP_SOCKET_SSL_CREDENTIALS, creds,
 				NULL);
 	g_object_unref (addr);
-	status = soup_socket_connect_sync (sock);
+	status = soup_socket_connect_sync (sock, NULL);
 	if (status != SOUP_STATUS_OK) {
 		g_error ("Could not create client socket: %s",
 			 soup_status_get_phrase (status));
 	}
 
-	soup_socket_start_ssl (sock);
+	soup_socket_start_ssl (sock, NULL);
 
 	/* Now spawn server thread */
 	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
@@ -302,7 +304,8 @@ main (int argc, char **argv)
 	total = 0;
 	while (total < BUFSIZE) {
 		status = soup_socket_write (sock, writebuf + total,
-					    BUFSIZE - total, &n, &error);
+					    BUFSIZE - total, &n,
+					    NULL, &error);
 		if (status != SOUP_SOCKET_OK)
 			g_error ("Sync write got status %d: %s", status,
 				 error ? error->message : "(unknown)");
@@ -312,7 +315,8 @@ main (int argc, char **argv)
 	total = 0;
 	while (total < BUFSIZE) {
 		status = soup_socket_read (sock, readbuf + total,
-					   BUFSIZE - total, &n, &error);
+					   BUFSIZE - total, &n,
+					   NULL, &error);
 		if (status != SOUP_SOCKET_OK)
 			g_error ("Sync read got status %d: %s", status,
 				 error ? error->message : "(unknown)");
