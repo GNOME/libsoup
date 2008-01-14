@@ -561,3 +561,29 @@ SOUP_TYPE_BYTE_ARRAY
 <SUBSECTION Private>
 soup_byte_array_get_type
 </SECTION>
+
+<SECTION>
+<FILE>soup-logger</FILE>
+<TITLE>SoupLogger</TITLE>
+SoupLogger
+SoupLoggerLogLevel
+soup_logger_new
+soup_logger_attach
+soup_logger_detach
+<SUBSECTION>
+SoupLoggerFilter
+soup_logger_set_request_filter
+soup_logger_set_response_filter
+<SUBSECTION>
+SoupLoggerPrinter
+soup_logger_set_printer
+<SUBSECTION Standard>
+SoupLoggerClass
+soup_logger_get_type
+SOUP_IS_LOGGER
+SOUP_IS_LOGGER_CLASS
+SOUP_LOGGER
+SOUP_LOGGER_CLASS
+SOUP_LOGGER_GET_CLASS
+SOUP_TYPE_LOGGER
+</SECTION>

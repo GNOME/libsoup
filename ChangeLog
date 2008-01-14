@@ -1,3 +1,16 @@
+2008-01-13  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-logger.c: New HTTP debug logging object. (Based on
+	E2K_DEBUG and its clones.)
+
+	* libsoup/soup-message.c (soup_message_class_init)
+	(soup_message_add_header_handler)
+	(soup_message_add_status_code_handler): Change things around a
+	little; remove the "requeuing or cancelling the message stops
+	signal emission" rule, and instead make that be a feature of just
+	the header and status code handlers. (Makes the basic signal
+	handlers behave more predictably.)
+
 2008-01-11  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-domain.c (soup_auth_domain_set_filter):
