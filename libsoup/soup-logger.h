@@ -47,7 +47,7 @@ struct SoupLoggerClass {
 
 GType       soup_logger_get_type    (void);
 
-SoupLogger *soup_logger_new         (SoupLoggerLogLevel  log_level,
+SoupLogger *soup_logger_new         (SoupLoggerLogLevel  level,
 				     int                 max_body_size);
 void        soup_logger_attach      (SoupLogger         *logger,
 				     SoupSession        *session);
