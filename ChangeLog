@@ -1,5 +1,9 @@
 2008-01-15  Dan Winship  <danw@gnome.org>
 
+	* docs/reference/porting-2.2-2.4.xml: add a few more updates
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-digest.c: Use GChecksum for MD5
 
 	* libsoup/soup-md5-utils.[ch]: gone

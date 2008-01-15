@@ -313,9 +313,13 @@ language-bindability.
     linkend="soup-message-add-status-code-handler"><function>soup_message_add_status_code_handler</function></link>
     are now just clever wrappers around
     <function>g_signal_connect</function>. In particular, you now pass
-    a signal name to them rather than a
-    <type>SoupHandlerPhase</type>, and you remove them with the
-    normal signal handler remove methods.
+    a signal name to them rather than a <type>SoupHandlerPhase</type>,
+    and you remove them with the normal signal handler remove methods.
+    However, they still retain the special behavior that if the
+    message has been cancelled or requeued when the time comes for the
+    handler to run, then the handler will be skipped. (Use plain
+    <function>g_signal_connect</function> if you don't want that
+    behavior.)
 </para>
 </refsect3>
 
@@ -407,6 +411,19 @@ language-bindability.
 </refsect3>
 
 <refsect3>
+<title><type>SoupLogger</type></title>
+
+<para>
+<link linkend="libsoup-SoupLogger"><type>SoupLogger</type></link> is a
+new object that copies the behavior of
+<application>evolution-exchange</application>'s
+<literal>E2K_DEBUG</literal> and its clones. That is, it causes a
+<type>SoupSession</type> to start logging some or all of its HTTP
+traffic to stdout, for debugging purposes.
+</para>
+</refsect3>
+
+<refsect3>
 <title><type>SoupMessageFilter</type></title>
 
 <para>
@@ -414,6 +431,7 @@ language-bindability.
     can now connect to the <link
     linkend="SoupSession-request-started"><literal>SoupSession::request-started</literal></link>
     signal to get a chance to act on each message as it is sent.
+    (This is how <type>SoupLogger</type> works.)
 </para>
 </refsect3>
 
@@ -443,8 +461,9 @@ changed in a few ways:
 	    is necessary to ensure that complicated URIs (eg, URIs
 	    that include other URIs as query parameters) can be
 	    round-tripped correctly. This corresponds to the old
-	    <structfield>broken_encoding</structfield> behavior, but that flag
-	    no longer exists, since it is the default.
+	    <structfield>broken_encoding</structfield> behavior, but
+	    that flag no longer exists, since it is the default and
+	    there's no way to turn it off.
 	</para>
 
 	<para>
@@ -466,24 +485,55 @@ changed in a few ways:
 	addresses.
     </para></listitem>
 
-    <listitem><para>
-	The field formerly called <structfield>protocol</structfield> is now
-	<structfield>scheme</structfield>, to match the spec, and it's an
-	interned string rather than a quark. You can use <link
-linkend="soup-uri-is-https"><function>soup_uri_is_https</function></link>
-	to quickly check if a given URI is "https" or not.
-    </para></listitem>
+    <listitem>
+	<para>
+	    The field formerly called
+	    <structfield>protocol</structfield> is now
+	    <structfield>scheme</structfield>, to match the spec, and
+	    it's an interned string rather than a quark. The names of
+	    the predefined values have changed to match:
+	</para>
+
+	<variablelist>
+	    <varlistentry>
+		<term><function>SOUP_PROTOCOL_HTTP</function></term>
+		<listitem><para>
+		    &#8594; <link linkend="SOUP-URI-SCHEME-HTTP:CAPS"><literal>SOUP_URI_SCHEME_HTTP</literal></link>
+		</para></listitem>
+	    </varlistentry>
+	    <varlistentry>
+		<term><function>SOUP_PROTOCOL_HTTPS</function></term>
+		<listitem><para>
+		    &#8594; <link linkend="SOUP-URI-SCHEME-HTTPS:CAPS"><literal>SOUP_URI_SCHEME_HTTPS</literal></link>
+		</para></listitem>
+	    </varlistentry>
+	</variablelist>
+    </listitem>
 </itemizedlist>
 
 <para>
-In addition, <type>SoupURI</type> (as well as most other struct types
-in <application>libsoup</application>) now uses the glib "slice"
+<link linkend="soup-uri-decode"><function>soup_uri_decode</function></link>
+now returns a new string rather than modifying its input string in
+place. The new method <link
+linkend="soup-uri-normalize"><function>soup_uri_normalize</function></link>,
+which removes some, but not all, %-encoding, behaves similarly.
+</para>
+
+<para>
+Finally, <type>SoupURI</type> (as well as most other struct types in
+<application>libsoup</application>) now uses the glib "slice"
 allocator, so any code that uses <link
 linkend="g-new"><function>g_new</function></link> to create
-<type>SoupURI</type>s is wrong. In general, it's preferable to create
-URIs with <link
-linkend="soup-uri-new"><function>soup_uri_new</function></link>, and
-then change/update whatever fields you're unhappy with.
+<type>SoupURI</type>s is wrong. If you want to create a URI "by hand",
+you can call <link
+linkend="soup-uri-new"><function>soup_uri_new</function></link>,
+passing <literal>NULL</literal>, and you will get back an empty
+<type>SoupURI</type>. There are also now methods that can be used to
+set its fields (eg, <link
+linkend="soup-uri-set-scheme"><function>soup_uri_set_scheme</function></link>,
+<link
+linkend="soup-uri-set-path"><function>soup_uri_set_path</function></link>,
+etc) rather than mucking with the fields directly.
 </para>
 
 <refsect3>
@@ -499,6 +549,9 @@ into a <type>GHashTable</type>. <link
 linkend="soup-form-encode-urlencoded">soup_form_encode_urlencoded</link>
 reverses the process, allowing you to fill in a
 <literal>uri->query</literal> with a properly-encoded form dataset.
+(<type>SoupURI</type> also provides <link
+linkend="soup-uri-set-query-from-form"><function>soup_uri_set_query_from_form</function></link>
+to help with this.)
 </para>
 </refsect3>
 
@@ -747,6 +800,21 @@ void           soup_server_add_handler (SoupServer         *server,
 </para>
 </refsect3>
 
+<refsect3>
+<title><function>soup_server_run</function> / <function>soup_server_quit</function></title>
+
+<para>
+    <link
+    linkend="soup-server-run"><function>soup_server_run</function></link>
+    and <link
+    linkend="soup-server-run-async"><function>soup_server_run_async</function></link>
+    no longer <function>g_object_ref</function> the server, and
+    <link
+    linkend="soup-server-quit"><function>soup_server_quit</function></link>
+    no longer unrefs it.
+</para>
+</refsect3>
+
 </refsect2>
 
 <refsect2>
@@ -772,13 +840,28 @@ void           soup_server_add_handler (SoupServer         *server,
 </refsect3>
 
 <refsect3>
-<title>SoupSocket</title>
+<title>SoupAddress, SoupSocket</title>
 
 <para>
     <type>SoupSocket</type> has had various simplifications made to
     reflect the fact that this is specifically libsoup's socket
     implementation, not some random generic socket API.
 </para>
+
+<para>
+    Various <type>SoupAddress</type> and <type>SoupSocket</type>
+    methods now take arguments of the new <link
+    linkend="GCancellable"><type>GCancellable</type></link> type, from
+    libgio. When porting old code, you can just pass
+    <literal>NULL</literal> for these. (<link
+    linkend="soup-address-resolve-async"><function>soup_address_resolve_async</function></link>
+    also takes another new argument, a <link
+    linkend="GMainContext"><type>GMainContext</type></link> that
+    you'll want to pass <literal>NULL</literal> for.) If you pass a
+    <type>GCancellable</type>, you can use it to cleanly cancel the
+    address resolution / socket operation.
+</para>
+
 </refsect3>
 
 <refsect3>
