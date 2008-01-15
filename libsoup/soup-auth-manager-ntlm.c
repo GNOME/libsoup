@@ -1,8 +1,9 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * soup-connection-ntlm.c: NTLM-using Connection
+ * soup-auth-manager-ntlm.c: NTLM auth manager
  *
- * Copyright (C) 2001-2003, Ximian, Inc.
+ * Copyright (C) 2001-2007 Novell, Inc.
+ * Copyright (C) 2008 Red Hat, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -12,30 +13,36 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "soup-connection-ntlm.h"
+#include "soup-auth-manager-ntlm.h"
 #include "soup-auth-ntlm.h"
 #include "soup-message.h"
-#include "soup-message-private.h"
 #include "soup-misc.h"
+#include "soup-session.h"
+#include "soup-session-private.h"
 #include "soup-uri.h"
 
-static void send_request (SoupConnection *conn, SoupMessage *req);
-
 typedef enum {
-	SOUP_CONNECTION_NTLM_NEW,
-	SOUP_CONNECTION_NTLM_SENT_REQUEST,
-	SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE,
-	SOUP_CONNECTION_NTLM_SENT_RESPONSE,
-	SOUP_CONNECTION_NTLM_FAILED
-} SoupConnectionNTLMState;
+	SOUP_NTLM_NEW,
+	SOUP_NTLM_SENT_REQUEST,
+	SOUP_NTLM_RECEIVED_CHALLENGE,
+	SOUP_NTLM_SENT_RESPONSE,
+	SOUP_NTLM_FAILED
+} SoupNTLMState;
 
 typedef struct {
-	guchar nt_hash[21], lm_hash[21];
-	SoupConnectionNTLMState state;
-} SoupConnectionNTLMPrivate;
-#define SOUP_CONNECTION_NTLM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION_NTLM, SoupConnectionNTLMPrivate))
+	SoupSocket *socket;
+	SoupNTLMState state;
+	char *response_header;
+} SoupNTLMConnection;
 
-G_DEFINE_TYPE (SoupConnectionNTLM, soup_connection_ntlm, SOUP_TYPE_CONNECTION)
+struct SoupAuthManagerNTLM {
+	SoupSession *session;
+	GHashTable *connections_by_msg;
+	GHashTable *connections_by_id;
+};
+
+static void ntlm_request_started (SoupSession *session, SoupMessage *msg,
+				  SoupSocket *socket, gpointer ntlm);
 
 static char     *soup_ntlm_request         (void);
 static gboolean  soup_ntlm_parse_challenge (const char  *challenge,
@@ -47,52 +54,129 @@ static char     *soup_ntlm_response        (const char  *nonce,
 					    const char  *host, 
 					    const char  *domain);
 
-static void
-soup_connection_ntlm_init (SoupConnectionNTLM *ntlm)
+SoupAuthManagerNTLM *
+soup_auth_manager_ntlm_new (SoupSession *session)
 {
+	SoupAuthManagerNTLM *ntlm;
+
+	ntlm = g_slice_new (SoupAuthManagerNTLM);
+	ntlm->session = session;
+	ntlm->connections_by_id = g_hash_table_new (NULL, NULL);
+	ntlm->connections_by_msg = g_hash_table_new (NULL, NULL);
+	g_signal_connect (session, "request_started",
+			  G_CALLBACK (ntlm_request_started), ntlm);
+	return ntlm;
 }
 
 static void
-finalize (GObject *object)
+free_ntlm_connection (SoupNTLMConnection *conn)
 {
-	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (object);
-
-	memset (priv->nt_hash, 0, sizeof (priv->nt_hash));
-	memset (priv->lm_hash, 0, sizeof (priv->lm_hash));
-
-	G_OBJECT_CLASS (soup_connection_ntlm_parent_class)->finalize (object);
+	g_free (conn->response_header);
+	g_slice_free (SoupNTLMConnection, conn);
 }
 
 static void
-soup_connection_ntlm_class_init (SoupConnectionNTLMClass *connection_ntlm_class)
+free_ntlm_connection_foreach (gpointer key, gpointer value, gpointer user_data)
 {
-	SoupConnectionClass *connection_class = SOUP_CONNECTION_CLASS (connection_ntlm_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (connection_ntlm_class);
-
-	g_type_class_add_private (connection_ntlm_class, sizeof (SoupConnectionNTLMPrivate));
-
-	connection_class->send_request = send_request;
-	object_class->finalize = finalize;
+	free_ntlm_connection (value);
 }
 
+void
+soup_auth_manager_ntlm_free (SoupAuthManagerNTLM *ntlm)
+{
+	g_hash_table_foreach (ntlm->connections_by_id,
+			      free_ntlm_connection_foreach, NULL);
+	g_hash_table_destroy (ntlm->connections_by_id);
+	g_hash_table_destroy (ntlm->connections_by_msg);
+	g_signal_handlers_disconnect_by_func (ntlm->session,
+					      ntlm_request_started, ntlm);
+
+	g_slice_free (SoupAuthManagerNTLM, ntlm);
+}
+
+static void
+delete_conn (SoupSocket *socket, gpointer user_data)
+{
+	SoupAuthManagerNTLM *ntlm = user_data;
+	SoupNTLMConnection *conn;
+
+	conn = g_hash_table_lookup (ntlm->connections_by_id, socket);
+	if (conn)
+		free_ntlm_connection (conn);
+	g_hash_table_remove (ntlm->connections_by_id, socket);
+	g_signal_handlers_disconnect_by_func (socket, delete_conn, ntlm);
+}
+
+static SoupNTLMConnection *
+get_connection (SoupAuthManagerNTLM *ntlm, SoupSocket *socket)
+{
+	SoupNTLMConnection *conn;
+
+	conn = g_hash_table_lookup (ntlm->connections_by_id, socket);
+	if (conn)
+		return conn;
+
+	conn = g_slice_new0 (SoupNTLMConnection);
+	conn->socket = socket;
+	conn->state = SOUP_NTLM_NEW;
+	g_hash_table_insert (ntlm->connections_by_id, socket, conn);
+
+	g_signal_connect (socket, "disconnected",
+			  G_CALLBACK (delete_conn), ntlm);
+	return conn;
+}
+
+static void
+unset_conn (SoupMessage *msg, gpointer user_data)
+{
+	SoupAuthManagerNTLM *ntlm = user_data;
+
+	g_hash_table_remove (ntlm->connections_by_msg, msg);
+	g_signal_handlers_disconnect_by_func (msg, unset_conn, ntlm);
+}
+
+static SoupNTLMConnection *
+set_connection_for_msg (SoupAuthManagerNTLM *ntlm, SoupMessage *msg,
+			SoupNTLMConnection *conn)
+{
+	if (!g_hash_table_lookup (ntlm->connections_by_msg, msg)) {
+		g_signal_connect (msg, "finished",
+				  G_CALLBACK (unset_conn), ntlm);
+		g_signal_connect (msg, "restarted",
+				  G_CALLBACK (unset_conn), ntlm);
+	}
+	g_hash_table_insert (ntlm->connections_by_msg, msg, conn);
+
+	return conn;
+}
+
+static SoupNTLMConnection *
+get_connection_for_msg (SoupAuthManagerNTLM *ntlm, SoupMessage *msg)
+{
+	return g_hash_table_lookup (ntlm->connections_by_msg, msg);
+}
 
 static void
 ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
-	SoupConnectionNTLM *ntlm = user_data;
-	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (ntlm);
+	SoupAuthManagerNTLM *ntlm = user_data;
+	SoupNTLMConnection *conn;
 	SoupAuth *auth;
 	const char *val;
-	char *nonce, *header;
+	char *nonce;
 	const char *username = NULL, *password = NULL;
 	char *slash, *domain;
 
-	if (priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
+	conn = get_connection_for_msg (ntlm, msg);
+	if (!conn)
+		return;
+
+	if (conn->state > SOUP_NTLM_SENT_REQUEST) {
 		/* We already authenticated, but then got another 401.
 		 * That means "permission denied", so don't try to
 		 * authenticate again.
 		 */
-		priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		conn->state = SOUP_NTLM_FAILED;
 		goto done;
 	}
 
@@ -101,17 +185,17 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	if (val)
 		val = strstr (val, "NTLM ");
 	if (!val) {
-		priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		conn->state = SOUP_NTLM_FAILED;
 		goto done;
 	}
 
 	if (!soup_ntlm_parse_challenge (val, &nonce, &domain)) {
-		priv->state = SOUP_CONNECTION_NTLM_FAILED;
+		conn->state = SOUP_NTLM_FAILED;
 		goto done;
 	}
 
 	auth = soup_auth_ntlm_new (domain, soup_message_get_uri (msg)->host);
-	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg, auth, FALSE);
+	soup_session_emit_authenticate (ntlm->session, msg, auth, FALSE);
 	username = soup_auth_ntlm_get_username (auth);
 	password = soup_auth_ntlm_get_password (auth);
 	if (!username || !password) {
@@ -125,19 +209,18 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	if (slash) {
 		g_free (domain);
 		domain = g_strdup (username);
-		slash = strpbrk (domain, "\\/");
+		slash = domain + (slash - username);
 		*slash = '\0';
 		username = slash + 1;
 	}
 
-	header = soup_ntlm_response (nonce, username, password, NULL, domain);
+	conn->response_header =
+		soup_ntlm_response (nonce, username, password, NULL, domain);
+	conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
+
 	g_free (domain);
 	g_free (nonce);
 	g_object_unref (auth);
-
-	soup_message_headers_replace (msg->request_headers, "Authorization", header);
-	g_free (header);
-	priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
 
  done:
 	/* Remove the WWW-Authenticate headers so the session won't try
@@ -147,79 +230,83 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-ntlm_authorize_post (SoupMessage *msg, gpointer conn)
+ntlm_authorize_post (SoupMessage *msg, gpointer user_data)
 {
-	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
+	SoupAuthManagerNTLM *ntlm = user_data;
+	SoupNTLMConnection *conn;
 
-	if (priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
-	    soup_message_headers_get (msg->request_headers, "Authorization")) {
-		/* We just added the last Auth header, so restart it. */
-		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
+	conn = get_connection_for_msg (ntlm, msg);
+	if (!conn)
+		return;
 
-		/* soup_message_restarted() will call soup_message_io_stop(),
-		 * which will release the connection, and may cause another
-		 * message to be queued on the connection before it returns.
-		 * That's no good, so we stop the message first and then
-		 * reclaim the connection so that soup_message_restarted()
-		 * won't be able to steal it.
-		 */
-		soup_message_io_stop (msg);
-		soup_connection_reserve (conn);
-		soup_message_restarted (msg);
-		soup_connection_send_request (conn, msg);
-	}
+	if (conn->state == SOUP_NTLM_RECEIVED_CHALLENGE &&
+	    conn->response_header)
+		soup_session_requeue_message (ntlm->session, msg);
 }
 
 static void
-ntlm_cleanup_msg (SoupMessage *msg, gpointer conn)
+ntlm_cleanup_msg (SoupMessage *msg, gpointer ntlm)
 {
 	/* Do this when the message is restarted, in case it's
 	 * restarted on a different connection.
 	 */
-	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, conn);
-	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, conn);
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, ntlm);
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, ntlm);
 }
 
 static void
-send_request (SoupConnection *conn, SoupMessage *req)
+ntlm_request_started (SoupSession *session, SoupMessage *msg,
+		      SoupSocket *socket, gpointer user_data)
 {
-	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
+	SoupAuthManagerNTLM *ntlm = user_data;
+	SoupNTLMConnection *conn;
+	char *header = NULL;
 
-	if (priv->state == SOUP_CONNECTION_NTLM_NEW) {
-		char *header = soup_ntlm_request ();
+	conn = get_connection (ntlm, socket);
+	set_connection_for_msg (ntlm, msg, conn);
 
-		soup_message_headers_replace (req->request_headers,
-					      "Authorization", header);
-		g_free (header);
-		priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
+	switch (conn->state) {
+	case SOUP_NTLM_NEW:
+		header = soup_ntlm_request ();
+		conn->state = SOUP_NTLM_SENT_REQUEST;
+		break;
+	case SOUP_NTLM_RECEIVED_CHALLENGE:
+		header = conn->response_header;
+		conn->response_header = NULL;
+		conn->state = SOUP_NTLM_SENT_RESPONSE;
+		break;
+	default:
+		break;
 	}
 
-	soup_message_add_status_code_handler (req, "got_headers",
+	if (header) {
+		soup_message_headers_replace (msg->request_headers,
+					      "Authorization", header);
+		g_free (header);
+	}
+
+	soup_message_add_status_code_handler (msg, "got_headers",
 					      SOUP_STATUS_UNAUTHORIZED,
 					      G_CALLBACK (ntlm_authorize_pre),
-					      conn);
-
-	soup_message_add_status_code_handler (req, "got_body",
+					      ntlm);
+	soup_message_add_status_code_handler (msg, "got_body",
 					      SOUP_STATUS_UNAUTHORIZED,
 					      G_CALLBACK (ntlm_authorize_post),
-					      conn);
+					      ntlm);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
 
-	g_signal_connect (req, "restarted",
-			  G_CALLBACK (ntlm_cleanup_msg), conn);
-	g_signal_connect (req, "finished",
-			  G_CALLBACK (ntlm_cleanup_msg), conn);
-
-	SOUP_CONNECTION_CLASS (soup_connection_ntlm_parent_class)->send_request (conn, req);
 }
 
 
+/* NTLM code */
 
-/* MD4 */
 static void md4sum                (const unsigned char *in, 
 				   int                  nbytes, 
 				   unsigned char        digest[16]);
 
-/* DES */
 typedef guint32 DES_KS[16][2]; /* Single-key DES key schedule */
 
 static void deskey                (DES_KS, unsigned char *, int);
@@ -736,9 +823,7 @@ static guint32 Spbox[8][64] = {
 }
 /* Encrypt or decrypt a block of data in ECB mode */
 static void
-des(ks,block)
-guint32 ks[16][2];	/* Key schedule */
-unsigned char block[8];		/* Data block */
+des (guint32 ks[16][2], unsigned char block[8])
 {
 	guint32 left,right,work;
 	
@@ -873,10 +958,7 @@ static int bytebit[] = {
  * depending on the value of "decrypt"
  */
 static void
-deskey(k,key,decrypt)
-DES_KS k;			/* Key schedule array */
-unsigned char *key;		/* 64 bits (will use only 56) */
-int decrypt;			/* 0 = encrypt, 1 = decrypt */
+deskey (DES_KS k, unsigned char *key, int decrypt)
 {
 	unsigned char pc1m[56];		/* place to modify pc1 into */
 	unsigned char pcr[56];		/* place to rotate pc1 into */

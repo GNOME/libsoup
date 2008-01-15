@@ -62,7 +62,6 @@ enum {
 	CONNECT_RESULT,
 	DISCONNECTED,
 	REQUEST_STARTED,
-	AUTHENTICATE,
 	LAST_SIGNAL
 };
 
@@ -166,17 +165,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
-	signals[AUTHENTICATE] =
-		g_signal_new ("authenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupConnectionClass, authenticate),
-			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
-			      G_TYPE_NONE, 3,
-			      SOUP_TYPE_MESSAGE,
-			      SOUP_TYPE_AUTH,
-			      G_TYPE_BOOLEAN);
 
 	/* properties */
 	g_object_class_install_property (
@@ -775,21 +763,4 @@ soup_connection_release (SoupConnection *conn)
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 
 	clear_current_request (conn);
-}
-
-/**
- * soup_connection_authenticate:
- * @conn: a #SoupConnection
- * @msg: the message to authenticate
- * @auth: the #SoupAuth to authenticate
- * @retrying: %TRUE if this is the second or later try
- *
- * Emits the %authenticate signal on @conn. For use by #SoupConnection
- * subclasses.
- **/
-void
-soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
-			      SoupAuth *auth, gboolean retrying)
-{
-	g_signal_emit (conn, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }

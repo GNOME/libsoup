@@ -1,5 +1,16 @@
 2008-01-15  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-manager-ntlm.c: Replaces SoupConnectionNTLM;
+	now works as a SoupSession::request_started watcher.
+
+	* libsoup/soup-connection.c: remove the no-longer-needed
+	"authenticate" signal
+
+	* libsoup/soup-session.c: Use a SoupAuthManagerNTLM if USE_NTLM is
+	set. Remove connection-authenticate-signal references.
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
 	* Merge libsoup-2.4 branch to trunk
 	
 2008-01-15  Dan Winship  <danw@gnome.org>

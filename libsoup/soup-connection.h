@@ -33,9 +33,6 @@ typedef struct {
 
 	void (*request_started) (SoupConnection *, SoupMessage *);
 
-	void (*authenticate)    (SoupConnection *, SoupMessage *,
-				 SoupAuth *, gboolean);
-
 	/* methods */
 	void (*send_request) (SoupConnection *, SoupMessage *);
 } SoupConnectionClass;
@@ -74,12 +71,6 @@ void            soup_connection_send_request   (SoupConnection   *conn,
 
 void            soup_connection_reserve        (SoupConnection   *conn);
 void            soup_connection_release        (SoupConnection   *conn);
-
-/* protected */
-void            soup_connection_authenticate   (SoupConnection   *conn,
-						SoupMessage      *msg,
-						SoupAuth         *auth,
-						gboolean          retrying);
 
 G_END_DECLS
 
