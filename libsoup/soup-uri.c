@@ -779,15 +779,14 @@ soup_uri_uses_default_port (SoupURI *uri)
  * @uri: a #SoupURI
  * @scheme: the URI scheme
  *
- * Sets @uri's scheme to @scheme. (If @scheme is "http" or "https",
- * then you are responsible for making sure that @uri is otherwise
- * valid in the other ways libsoup expects, as described in the
- * #SoupURI documentation.)
+ * Sets @uri's scheme to @scheme. This will also set @uri's port to
+ * the default port for @scheme, if known.
  **/
 void
 soup_uri_set_scheme (SoupURI *uri, const char *scheme)
 {
 	uri->scheme = soup_uri_get_scheme (scheme, strlen (scheme));
+	uri->port = soup_scheme_default_port (uri->scheme);
 }
 
 /**
@@ -843,10 +842,6 @@ soup_uri_set_host (SoupURI *uri, const char *host)
  *
  * Sets @uri's port to @port. If @port is 0, @uri will not have an
  * explicitly-specified port.
- *
- * Note that when constructing an http or https URI by hand, you MUST
- * set its port to the appropriate value. It will not default to
- * anything.
  **/
 void
 soup_uri_set_port (SoupURI *uri, guint port)
