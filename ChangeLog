@@ -1,5 +1,21 @@
 2008-01-14  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-address.h:
+	* libsoup/soup-auth-domain-basic.h:
+	* libsoup/soup-auth-domain-digest.h:
+	* libsoup/soup-auth-domain.h:
+	* libsoup/soup-auth.h:
+	* libsoup/soup-logger.h:
+	* libsoup/soup-message.h:
+	* libsoup/soup-server.h:
+	* libsoup/soup-session-async.h:
+	* libsoup/soup-session-sync.h:
+	* libsoup/soup-session.h:
+	* libsoup/soup-socket.h: Add padding for future expansion to class
+	structs
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-uri.c: Add more documentation.
 	(soup_uri_is_https): gone, replaced by SOUP_URI_SCHEME_HTTP /
 	SOUP_URI_SCHEME_HTTPS

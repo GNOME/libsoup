@@ -23,6 +23,11 @@ typedef struct {
 typedef struct {
 	SoupAuthDomainClass parent_class;
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupAuthDomainDigestClass;
 
 #define SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK "auth-callback"

@@ -50,6 +50,12 @@ typedef struct {
 	void     (*got_body)            (SoupMessage *msg);
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
+
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupMessageClass;
 
 GType soup_message_get_type (void);

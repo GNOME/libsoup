@@ -32,6 +32,12 @@ typedef struct {
 	void (*disconnected)   (SoupSocket *);
 
 	void (*new_connection) (SoupSocket *, SoupSocket *);
+
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSocketClass;
 
 #define SOUP_SOCKET_LOCAL_ADDRESS    "local-address"

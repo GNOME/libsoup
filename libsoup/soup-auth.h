@@ -42,6 +42,11 @@ typedef struct {
 
 	char *       (*get_authorization)    (SoupAuth      *auth,
 					      SoupMessage   *msg);
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupAuthClass;
 
 #define SOUP_AUTH_SCHEME_NAME      "scheme-name"

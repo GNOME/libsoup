@@ -26,6 +26,11 @@ struct SoupSessionAsync {
 typedef struct {
 	SoupSessionClass parent_class;
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSessionAsyncClass;
 
 GType soup_session_async_get_type (void);

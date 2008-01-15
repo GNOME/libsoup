@@ -26,6 +26,11 @@ struct SoupSessionSync {
 typedef struct {
 	SoupSessionClass parent_class;
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSessionSyncClass;
 
 GType soup_session_sync_get_type (void);

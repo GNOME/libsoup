@@ -43,6 +43,11 @@ struct SoupLogger {
 struct SoupLoggerClass {
 	GObjectClass parent_class;
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 };
 
 GType       soup_logger_get_type    (void);

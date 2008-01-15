@@ -45,6 +45,11 @@ typedef struct {
 	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg,
 				  guint status_code);
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSessionClass;
 
 GType soup_session_get_type (void);

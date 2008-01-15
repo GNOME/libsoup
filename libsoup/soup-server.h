@@ -36,6 +36,11 @@ typedef struct {
 	void (*request_finished) (SoupServer *, SoupMessage *, SoupClientContext *);
 	void (*request_aborted)  (SoupServer *, SoupMessage *, SoupClientContext *);
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupServerClass;
 
 GType soup_server_get_type (void);

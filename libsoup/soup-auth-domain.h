@@ -28,6 +28,12 @@ typedef struct {
 			       const char      *header);
 	char *   (*challenge) (SoupAuthDomain  *domain,
 			       SoupMessage     *msg);
+
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupAuthDomainClass;
 
 #define SOUP_AUTH_DOMAIN_REALM       "realm"
