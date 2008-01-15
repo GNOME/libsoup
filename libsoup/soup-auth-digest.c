@@ -16,7 +16,6 @@
 
 #include "soup-auth-digest.h"
 #include "soup-headers.h"
-#include "soup-md5-utils.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
@@ -254,15 +253,16 @@ soup_auth_digest_compute_hex_urp (const char *username,
 				  const char *password,
 				  char        hex_urp[33])
 {
-	SoupMD5Context ctx;
+	GChecksum *checksum;
 
-	soup_md5_init (&ctx);
-	soup_md5_update (&ctx, username, strlen (username));
-	soup_md5_update (&ctx, ":", 1);
-	soup_md5_update (&ctx, realm, strlen (realm));
-	soup_md5_update (&ctx, ":", 1);
-	soup_md5_update (&ctx, password, strlen (password));
-	soup_md5_final_hex (&ctx, hex_urp);
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (checksum, username, strlen (username));
+	g_checksum_update (checksum, ":", 1);
+	g_checksum_update (checksum, realm, strlen (realm));
+	g_checksum_update (checksum, ":", 1);
+	g_checksum_update (checksum, password, strlen (password));
+	strncpy (hex_urp, g_checksum_get_string (checksum), 33);
+	g_checksum_free (checksum);
 }
 
 void
@@ -281,18 +281,18 @@ soup_auth_digest_compute_hex_a1 (const char              *hex_urp,
 		 */
 		memcpy (hex_a1, hex_urp, 33);
 	} else {
-		SoupMD5Context ctx;
+		GChecksum *checksum;
 
 		/* In MD5-sess, A1 is hex_urp:nonce:cnonce */
 
-		soup_md5_init (&ctx);
-		soup_md5_update (&ctx, hex_urp, strlen (hex_urp));
-		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, nonce, strlen (nonce));
-		soup_md5_update (&ctx, ":", 1);
-		soup_md5_update (&ctx, cnonce, strlen (cnonce));
-
-		soup_md5_final_hex (&ctx, hex_a1);
+		checksum = g_checksum_new (G_CHECKSUM_MD5);
+		g_checksum_update (checksum, hex_urp, strlen (hex_urp));
+		g_checksum_update (checksum, ":", 1);
+		g_checksum_update (checksum, nonce, strlen (nonce));
+		g_checksum_update (checksum, ":", 1);
+		g_checksum_update (checksum, cnonce, strlen (cnonce));
+		strncpy (hex_a1, g_checksum_get_string (checksum), 33);
+		g_checksum_free (checksum);
 	}
 }
 
@@ -348,39 +348,41 @@ soup_auth_digest_compute_response (const char        *method,
 				   char               response[33])
 {
 	char hex_a2[33];
-	SoupMD5Context md5;
+	GChecksum *checksum;
 
 	/* compute A2 */
-	soup_md5_init (&md5);
-	soup_md5_update (&md5, method, strlen (method));
-	soup_md5_update (&md5, ":", 1);
-	soup_md5_update (&md5, uri, strlen (uri));
-	soup_md5_final_hex (&md5, hex_a2);
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (checksum, method, strlen (method));
+	g_checksum_update (checksum, ":", 1);
+	g_checksum_update (checksum, uri, strlen (uri));
+	strncpy (hex_a2, g_checksum_get_string (checksum), 33);
+	g_checksum_free (checksum);
 
 	/* compute KD */
-	soup_md5_init (&md5);
-	soup_md5_update (&md5, hex_a1, strlen (hex_a1));
-	soup_md5_update (&md5, ":", 1);
-	soup_md5_update (&md5, nonce, strlen (nonce));
-	soup_md5_update (&md5, ":", 1);
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (checksum, hex_a1, strlen (hex_a1));
+	g_checksum_update (checksum, ":", 1);
+	g_checksum_update (checksum, nonce, strlen (nonce));
+	g_checksum_update (checksum, ":", 1);
 
 	if (qop) {
 		char tmp[9];
 
 		snprintf (tmp, 9, "%.8x", nc);
-		soup_md5_update (&md5, tmp, strlen (tmp));
-		soup_md5_update (&md5, ":", 1);
-		soup_md5_update (&md5, cnonce, strlen (cnonce));
-		soup_md5_update (&md5, ":", 1);
+		g_checksum_update (checksum, tmp, strlen (tmp));
+		g_checksum_update (checksum, ":", 1);
+		g_checksum_update (checksum, cnonce, strlen (cnonce));
+		g_checksum_update (checksum, ":", 1);
 
 		if (qop != SOUP_AUTH_DIGEST_QOP_AUTH)
 			g_assert_not_reached ();
-		soup_md5_update (&md5, "auth", strlen ("auth"));
-		soup_md5_update (&md5, ":", 1);
+		g_checksum_update (checksum, "auth", strlen ("auth"));
+		g_checksum_update (checksum, ":", 1);
 	}
 
-	soup_md5_update (&md5, hex_a2, 32);
-	soup_md5_final_hex (&md5, response);
+	g_checksum_update (checksum, hex_a2, 32);
+	strncpy (response, g_checksum_get_string (checksum), 33);
+	g_checksum_free (checksum);
 }
 
 static void

@@ -117,8 +117,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-gnutls.c			\
 	soup-headers.c			\
 	soup-logger.c			\
-	soup-md5-utils.h		\
-	soup-md5-utils.c		\
 	soup-message.c			\
 	soup-message-body.c		\
 	soup-message-client-io.c	\

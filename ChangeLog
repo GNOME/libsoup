@@ -1,5 +1,11 @@
 2008-01-15  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-digest.c: Use GChecksum for MD5
+
+	* libsoup/soup-md5-utils.[ch]: gone
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-server.c (soup_server_run_async):
 	(soup_server_quit): Don't ref/unref the server here. It doesn't
 	match the way other things work. #494128, Mathias Hasselmann.

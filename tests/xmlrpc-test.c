@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include <libsoup/soup.h>
-#include <libsoup/soup-md5-utils.h>
 
 #include "test-utils.h"
 
@@ -185,8 +184,9 @@ test_md5sum (void)
 {
 	GByteArray *data, *result;
 	int i;
-	SoupMD5Context md5;
+	GChecksum *checksum;
 	guchar digest[16];
+	gsize digest_len = sizeof (digest);
 	GValue retval;
 	gboolean ok;
 
@@ -197,9 +197,10 @@ test_md5sum (void)
 	for (i = 0; i < data->len; i++)
 		data->data[i] = (char)(rand ());
 
-	soup_md5_init (&md5);
-	soup_md5_update (&md5, data->data, data->len);
-	soup_md5_final (&md5, digest);
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (checksum, data->data, data->len);
+	g_checksum_get_digest (checksum, digest, &digest_len);
+	g_checksum_free (checksum);
 
 	ok = (do_xmlrpc ("md5sum", &retval,
 			 SOUP_TYPE_BYTE_ARRAY, data,
@@ -209,13 +210,13 @@ test_md5sum (void)
 	if (!ok)
 		return FALSE;
 
-	if (result->len != 16) {
+	if (result->len != digest_len) {
 		debug_printf (1, "result has WRONG length (%d)\n", result->len);
 		g_byte_array_free (result, TRUE);
 		return FALSE;
 	}
 
-	ok = (memcmp (digest, result->data, 16) == 0);
+	ok = (memcmp (digest, result->data, digest_len) == 0);
 	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
 	g_byte_array_free (result, TRUE);
 	return ok;
