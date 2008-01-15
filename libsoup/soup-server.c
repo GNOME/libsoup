@@ -761,9 +761,6 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
  * running. In the simple case where you did not set the server's
  * %SOUP_SERVER_ASYNC_CONTEXT property, this means the server will run
  * whenever the glib main loop is running.
- *
- * soup_server_run_async() refs @server, so you should run
- * soup_server_quit() to unref it when you are done.
  **/
 void
 soup_server_run_async (SoupServer *server)
@@ -783,7 +780,6 @@ soup_server_run_async (SoupServer *server)
 
 	g_signal_connect (priv->listen_sock, "new_connection",
 			  G_CALLBACK (new_connection), server);
-	g_object_ref (server);
 
 	return;
 
@@ -838,8 +834,6 @@ soup_server_quit (SoupServer *server)
 					      server);
 	if (priv->loop)
 		g_main_loop_quit (priv->loop);
-
-	g_object_unref (server);
 }
 
 /**
