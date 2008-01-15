@@ -105,10 +105,10 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-domain-digest.c	\
 	soup-auth-manager.h		\
 	soup-auth-manager.c		\
+	soup-auth-manager-ntlm.h	\
+	soup-auth-manager-ntlm.c	\
 	soup-connection.h		\
 	soup-connection.c		\
-	soup-connection-ntlm.h		\
-	soup-connection-ntlm.c		\
 	soup-date.c			\
 	soup-enum-types.c		\
 	soup-dns.h			\

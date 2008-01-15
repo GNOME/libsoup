@@ -17,8 +17,8 @@
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
 #include "soup-auth-manager.h"
+#include "soup-auth-manager-ntlm.h"
 #include "soup-connection.h"
-#include "soup-connection-ntlm.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
@@ -49,7 +49,6 @@ typedef struct {
 	SoupAuth *proxy_auth;
 
 	guint max_conns, max_conns_per_host;
-	gboolean use_ntlm;
 
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
@@ -57,6 +56,7 @@ typedef struct {
 	SoupMessageQueue *queue;
 
 	SoupAuthManager *auth_manager;
+	SoupAuthManagerNTLM *ntlm_manager;
 
 	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
@@ -385,7 +385,15 @@ set_property (GObject *object, guint prop_id,
 		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_USE_NTLM:
-		priv->use_ntlm = g_value_get_boolean (value);
+		if (g_value_get_boolean (value)) {
+			if (!priv->ntlm_manager)
+				priv->ntlm_manager = soup_auth_manager_ntlm_new (session);
+		} else {
+			if (priv->ntlm_manager) {
+				soup_auth_manager_ntlm_free (priv->ntlm_manager);
+				priv->ntlm_manager = NULL;
+			}
+		}
 		break;
 	case PROP_SSL_CA_FILE:
 		new_ca_file = g_value_get_string (value);
@@ -437,7 +445,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_int (value, priv->max_conns_per_host);
 		break;
 	case PROP_USE_NTLM:
-		g_value_set_boolean (value, priv->use_ntlm);
+		g_value_set_boolean (value, priv->ntlm_manager != NULL);
 		break;
 	case PROP_SSL_CA_FILE:
 		g_value_set_string (value, priv->ssl_ca_file);
@@ -535,13 +543,6 @@ soup_session_emit_authenticate (SoupSession *session, SoupMessage *msg,
 				SoupAuth *auth, gboolean retrying)
 {
 	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
-}
-
-static void
-reemit_authenticate (SoupConnection *conn, SoupMessage *msg,
-		     SoupAuth *auth, gboolean retrying, gpointer session)
-{
-	soup_session_emit_authenticate (session, msg, auth, retrying);
 }
 
 static void
@@ -796,9 +797,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		return NULL;
 	}
 
-	conn = g_object_new (
-		(priv->use_ntlm ?
-		 SOUP_TYPE_CONNECTION_NTLM : SOUP_TYPE_CONNECTION),
+	conn = soup_connection_new (
 		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
 		SOUP_CONNECTION_PROXY_URI, priv->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
@@ -813,9 +812,6 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 			  session);
 	g_signal_connect (conn, "request_started",
 			  G_CALLBACK (connection_started_request),
-			  session);
-	g_signal_connect (conn, "authenticate",
-			  G_CALLBACK (reemit_authenticate),
 			  session);
 
 	g_hash_table_insert (priv->conns, conn, host);
