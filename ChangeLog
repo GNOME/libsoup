@@ -1,5 +1,9 @@
 2008-01-15  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-dns.c (resolve_status): Fix the logic here
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
 	* docs/reference/porting-2.2-2.4.xml: add a few more updates
 
 2008-01-15  Dan Winship  <danw@gnome.org>

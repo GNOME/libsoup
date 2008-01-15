@@ -480,7 +480,7 @@ soup_dns_lookup_address (struct sockaddr *sockaddr)
 static inline guint
 resolve_status (SoupDNSCacheEntry *entry, GCancellable *cancellable)
 {
-	if (entry->resolved)
+	if (entry->hostname && entry->sockaddr)
 		return SOUP_STATUS_OK;
 	else if (g_cancellable_is_cancelled (cancellable))
 		return SOUP_STATUS_CANCELLED;
