@@ -13,7 +13,9 @@
 #include <string.h>
 
 #include "soup-connection-ntlm.h"
+#include "soup-auth-ntlm.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-uri.h"
 
@@ -79,10 +81,10 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnectionNTLM *ntlm = user_data;
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (ntlm);
-	const GSList *headers;
+	SoupAuth *auth;
 	const char *val;
 	char *nonce, *header;
-	char *username, *domain_username = NULL, *password = NULL;
+	const char *username = NULL, *password = NULL;
 	char *slash, *domain;
 
 	if (priv->state > SOUP_CONNECTION_NTLM_SENT_REQUEST) {
@@ -94,15 +96,11 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	headers = soup_message_get_header_list (msg->response_headers,
-						"WWW-Authenticate");
-	while (headers) {
-		val = headers->data;
-		if (!strncmp (val, "NTLM ", 5))
-			break;
-		headers = headers->next;
-	}
-	if (!headers) {
+	val = soup_message_headers_get (msg->response_headers,
+					"WWW-Authenticate");
+	if (val)
+		val = strstr (val, "NTLM ");
+	if (!val) {
 		priv->state = SOUP_CONNECTION_NTLM_FAILED;
 		goto done;
 	}
@@ -112,36 +110,32 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg,
-				      "NTLM", domain,
-				      &domain_username, &password);
-	if (!domain_username || !password) {
+	auth = soup_auth_ntlm_new (domain, soup_message_get_uri (msg)->host);
+	soup_connection_authenticate (SOUP_CONNECTION (ntlm), msg, auth, FALSE);
+	username = soup_auth_ntlm_get_username (auth);
+	password = soup_auth_ntlm_get_password (auth);
+	if (!username || !password) {
 		g_free (nonce);
 		g_free (domain);
-		g_free (domain_username);
-		g_free (password);
+		g_object_unref (auth);
 		goto done;
 	}
 
-	slash = strpbrk (domain_username, "\\/");
+	slash = strpbrk (username, "\\/");
 	if (slash) {
 		g_free (domain);
+		domain = g_strdup (username);
+		slash = strpbrk (domain, "\\/");
 		*slash = '\0';
-		domain = domain_username;
 		username = slash + 1;
-		domain_username = NULL;
-	} else
-		username = domain_username;
+	}
 
 	header = soup_ntlm_response (nonce, username, password, NULL, domain);
-	g_free (domain_username);
-	g_free (password);
 	g_free (domain);
 	g_free (nonce);
+	g_object_unref (auth);
 
-	soup_message_remove_header (msg->request_headers, "Authorization");
-	soup_message_add_header (msg->request_headers,
-				 "Authorization", header);
+	soup_message_headers_replace (msg->request_headers, "Authorization", header);
 	g_free (header);
 	priv->state = SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE;
 
@@ -149,7 +143,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 	/* Remove the WWW-Authenticate headers so the session won't try
 	 * to do Basic auth too.
 	 */
-	soup_message_remove_header (msg->response_headers, "WWW-Authenticate");
+	soup_message_headers_remove (msg->response_headers, "WWW-Authenticate");
 }
 
 static void
@@ -158,7 +152,7 @@ ntlm_authorize_post (SoupMessage *msg, gpointer conn)
 	SoupConnectionNTLMPrivate *priv = SOUP_CONNECTION_NTLM_GET_PRIVATE (conn);
 
 	if (priv->state == SOUP_CONNECTION_NTLM_RECEIVED_CHALLENGE &&
-	    soup_message_get_header (msg->request_headers, "Authorization")) {
+	    soup_message_headers_get (msg->request_headers, "Authorization")) {
 		/* We just added the last Auth header, so restart it. */
 		priv->state = SOUP_CONNECTION_NTLM_SENT_RESPONSE;
 
@@ -182,10 +176,8 @@ ntlm_cleanup_msg (SoupMessage *msg, gpointer conn)
 	/* Do this when the message is restarted, in case it's
 	 * restarted on a different connection.
 	 */
-	soup_message_remove_handler (msg, SOUP_HANDLER_PRE_BODY,
-				     ntlm_authorize_pre, conn);
-	soup_message_remove_handler (msg, SOUP_HANDLER_POST_BODY,
-				     ntlm_authorize_post, conn);
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, conn);
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, conn);
 }
 
 static void
@@ -196,21 +188,21 @@ send_request (SoupConnection *conn, SoupMessage *req)
 	if (priv->state == SOUP_CONNECTION_NTLM_NEW) {
 		char *header = soup_ntlm_request ();
 
-		soup_message_remove_header (req->request_headers,
-					    "Authorization");
-		soup_message_add_header (req->request_headers,
-					 "Authorization", header);
+		soup_message_headers_replace (req->request_headers,
+					      "Authorization", header);
 		g_free (header);
 		priv->state = SOUP_CONNECTION_NTLM_SENT_REQUEST;
 	}
 
-	soup_message_add_status_code_handler (req, SOUP_STATUS_UNAUTHORIZED,
-					      SOUP_HANDLER_PRE_BODY,
-					      ntlm_authorize_pre, conn);
+	soup_message_add_status_code_handler (req, "got_headers",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (ntlm_authorize_pre),
+					      conn);
 
-	soup_message_add_status_code_handler (req, SOUP_STATUS_UNAUTHORIZED,
-					      SOUP_HANDLER_POST_BODY,
-					      ntlm_authorize_post, conn);
+	soup_message_add_status_code_handler (req, "got_body",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (ntlm_authorize_post),
+					      conn);
 
 	g_signal_connect (req, "restarted",
 			  G_CALLBACK (ntlm_cleanup_msg), conn);

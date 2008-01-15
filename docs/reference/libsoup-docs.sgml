@@ -10,35 +10,31 @@
     <title>libsoup Tutorial</title>
     <xi:include href="client-howto.xml"/>
     <xi:include href="server-howto.xml"/>
+    <xi:include href="porting-2.2-2.4.xml"/>
   </chapter>
 
   <chapter>
     <title>libsoup API Reference</title>
     <xi:include href="xml/soup-address.xml"/>
     <xi:include href="xml/soup-auth.xml"/>
-    <xi:include href="xml/soup-connection.xml"/>
-    <xi:include href="xml/soup-connection-ntlm.xml"/>
+    <xi:include href="xml/soup-auth-domain.xml"/>
+    <xi:include href="xml/soup-auth-domain-basic.xml"/>
+    <xi:include href="xml/soup-auth-domain-digest.xml"/>
+    <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-message.xml"/>
-    <xi:include href="xml/soup-message-filter.xml"/>
-    <xi:include href="xml/soup-server-message.xml"/>
+    <xi:include href="xml/soup-message-headers.xml"/>
+    <xi:include href="xml/soup-message-body.xml"/>
+    <xi:include href="xml/soup-method.xml"/>
     <xi:include href="xml/soup-server.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-session-async.xml"/>
     <xi:include href="xml/soup-session-sync.xml"/>
-    <xi:include href="xml/soup-soap-message.xml"/>
-    <xi:include href="xml/soup-soap-response.xml"/>
     <xi:include href="xml/soup-socket.xml"/>
     <xi:include href="xml/soup-status.xml"/>
     <xi:include href="xml/soup-uri.xml"/>
-    <xi:include href="xml/soup-xmlrpc-message.xml"/>
-    <xi:include href="xml/soup-xmlrpc-response.xml"/>
+    <xi:include href="xml/soup-value-utils.xml"/>
+    <xi:include href="xml/soup-xmlrpc.xml"/>
     <xi:include href="xml/soup-misc.xml"/>
-  </chapter>
-
-  <chapter>
-    <title>libsoup internals</title>
-    <xi:include href="xml/soup-dns.xml"/>
-    <xi:include href="xml/soup-ssl.xml"/>
   </chapter>
 
   <index></index>

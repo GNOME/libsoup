@@ -1,5 +1,4 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* url-util.h : utility functions to parse URLs */
 
 /* 
  * Copyright 1999-2002 Ximian, Inc.
@@ -13,66 +12,67 @@
 
 G_BEGIN_DECLS
 
-/**
- * SoupProtocol:
- *
- * #GQuark is used for SoupProtocol so that the protocol of a #SoupUri
- * can be tested quickly.
- **/
-typedef GQuark SoupProtocol;
+struct SoupURI {
+	const char *scheme;
 
-/**
- * SOUP_PROTOCOL_HTTP:
- *
- * This returns the #SoupProtocol value for "http".
- **/
-#define SOUP_PROTOCOL_HTTP (g_quark_from_static_string ("http"))
+	char       *user;
+	char       *password;
 
-/**
- * SOUP_PROTOCOL_HTTPS:
- *
- * This returns the #SoupProtocol value for "https".
-**/
-#define SOUP_PROTOCOL_HTTPS (g_quark_from_static_string ("https"))
+	char       *host;
+	guint       port;
 
-struct SoupUri {
-	SoupProtocol  protocol;
+	char       *path;
+	char       *query;
 
-	char         *user;
-	char         *passwd;
-
-	char         *host;
-	guint         port;
-
-	char         *path;
-	char         *query;
-
-	char         *fragment;
-
-	/* Don't use this */
-	gboolean      broken_encoding;
+	char       *fragment;
 };
 
-SoupUri  *soup_uri_new_with_base     (const SoupUri *base,
-				      const char    *uri_string);
-SoupUri  *soup_uri_new               (const char    *uri_string);
+GType     soup_uri_get_type          (void);
+#define SOUP_TYPE_URI (soup_uri_get_type ())
 
-char     *soup_uri_to_string         (const SoupUri *uri, 
-				      gboolean       just_path);
+#define SOUP_URI_SCHEME_HTTP  (g_intern_static_string ("http"))
+#define SOUP_URI_SCHEME_HTTPS (g_intern_static_string ("https"))
 
-SoupUri  *soup_uri_copy              (const SoupUri *uri);
-SoupUri  *soup_uri_copy_root         (const SoupUri *uri);
+SoupURI  *soup_uri_new_with_base       (SoupURI    *base,
+					const char *uri_string);
+SoupURI  *soup_uri_new                 (const char *uri_string);
 
-gboolean  soup_uri_equal             (const SoupUri *uri1, 
-				      const SoupUri *uri2);
+char     *soup_uri_to_string           (SoupURI    *uri, 
+					gboolean    just_path_and_query);
 
-void      soup_uri_free              (SoupUri       *uri);
+SoupURI  *soup_uri_copy                (SoupURI    *uri);
 
-char     *soup_uri_encode            (const char    *part,
-				      const char    *escape_extra);
-void      soup_uri_decode            (char          *part);
+gboolean  soup_uri_equal               (SoupURI    *uri1, 
+					SoupURI    *uri2);
 
-gboolean  soup_uri_uses_default_port (const SoupUri *uri);
+void      soup_uri_free                (SoupURI    *uri);
+
+char     *soup_uri_encode              (const char *part,
+					const char *escape_extra);
+char     *soup_uri_decode              (const char *part);
+char     *soup_uri_normalize           (const char *part,
+					const char *unescape_extra);
+
+gboolean  soup_uri_uses_default_port   (SoupURI    *uri);
+
+void      soup_uri_set_scheme          (SoupURI    *uri,
+					const char *scheme);
+void      soup_uri_set_user            (SoupURI    *uri,
+					const char *user);
+void      soup_uri_set_password        (SoupURI    *uri,
+					const char *password);
+void      soup_uri_set_host            (SoupURI    *uri,
+					const char *host);
+void      soup_uri_set_port            (SoupURI    *uri,
+					guint       port);
+void      soup_uri_set_path            (SoupURI    *uri,
+					const char *path);
+void      soup_uri_set_query           (SoupURI    *uri,
+					const char *query);
+void      soup_uri_set_query_from_form (SoupURI    *uri,
+					GHashTable *form);
+void      soup_uri_set_fragment        (SoupURI    *uri,
+					const char *fragment);
 
 G_END_DECLS
 

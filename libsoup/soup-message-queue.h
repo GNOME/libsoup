@@ -13,14 +13,7 @@ G_BEGIN_DECLS
 
 typedef struct SoupMessageQueue SoupMessageQueue; 
 
-/**
- * SoupMessageQueueIter:
- *
- * An opaque data structure used to iterate the elements of a
- * #SoupMessageQueue.
- **/
 typedef struct {
-	/*< private >*/
 	GList *cur, *next;
 } SoupMessageQueueIter;
 

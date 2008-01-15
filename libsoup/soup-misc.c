@@ -11,6 +11,12 @@
 #include "soup-misc.h"
 
 /**
+ * SECTION:soup-misc
+ * @short_description: Miscellaneous functions
+ *
+ **/
+
+/**
  * soup_str_case_hash:
  * @key: ASCII string to hash
  *
@@ -50,68 +56,6 @@ soup_str_case_equal (gconstpointer v1,
 	return g_ascii_strcasecmp (string1, string2) == 0;
 }
 
-int
-soup_base64_encode_close (const guchar  *in, 
-			  int            inlen, 
-			  gboolean       break_lines, 
-			  guchar        *out, 
-			  int           *state, 
-			  int           *save)
-{
-	if (inlen > 0) {
-		out += soup_base64_encode_step (in, 
-						inlen, 
-						break_lines, 
-						out, 
-						state, 
-						save);
-	}
-
-	return (int)g_base64_encode_close (break_lines, (char *) out,
-					   state, save);
-}
-
-int
-soup_base64_encode_step (const guchar  *in, 
-			 int            len, 
-			 gboolean       break_lines, 
-			 guchar        *out, 
-			 int           *state, 
-			 int           *save)
-{
-	return (int)g_base64_encode_step (in, len, break_lines,
-					  (char *)out, state, save);
-}
-
-char *
-soup_base64_encode (const char *text, int len)
-{
-	return g_base64_encode ((const guchar *)text, len);
-}
-
-int
-soup_base64_decode_step (const guchar  *in, 
-			 int            len, 
-			 guchar        *out, 
-			 int           *state, 
-			 guint         *save)
-{
-	return (int) g_base64_decode_step ((const char *)in, len,
-					   out, state, save);
-}
-
-char *
-soup_base64_decode (const char   *text,
-		    int          *out_len)
-{
-	char *ret;
-	gsize out_len_tmp;
-
-	ret = (char *) g_base64_decode (text, &out_len_tmp);
-	*out_len = out_len_tmp;
-	return ret;
-}
-
 typedef struct {
 	gpointer instance;
 	guint    signal_id;
@@ -120,7 +64,7 @@ typedef struct {
 static void
 signal_once_object_destroyed (gpointer ssod, GObject *ex_object)
 {
-	g_free (ssod);
+	g_slice_free (SoupSignalOnceData, ssod);
 }
 
 static void
@@ -137,7 +81,7 @@ signal_once_metamarshal (GClosure *closure, GValue *return_value,
 	if (g_signal_handler_is_connected (ssod->instance, ssod->signal_id))
 		g_signal_handler_disconnect (ssod->instance, ssod->signal_id);
 	g_object_weak_unref (G_OBJECT (ssod->instance), signal_once_object_destroyed, ssod);
-	g_free (ssod);
+	g_slice_free (SoupSignalOnceData, ssod);
 }
 
 /**
@@ -164,7 +108,7 @@ soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 	g_return_val_if_fail (detailed_signal != NULL, 0);
 	g_return_val_if_fail (c_handler != NULL, 0);
 
-	ssod = g_new0 (SoupSignalOnceData, 1);
+	ssod = g_slice_new0 (SoupSignalOnceData);
 	ssod->instance = instance;
 	g_object_weak_ref (G_OBJECT (instance), signal_once_object_destroyed, ssod);
 
@@ -251,22 +195,4 @@ soup_add_timeout (GMainContext *async_context,
 	g_source_attach (source, async_context);
 	g_source_unref (source);
 	return source;
-}
-
-/**
- * soup_xml_real_node:
- * @node: an %xmlNodePtr
- *
- * Finds the first "real" node (ie, not a comment or whitespace) at or
- * after @node at its level in the tree.
- *
- * Return: a node, or %NULL
- **/
-xmlNode *
-soup_xml_real_node (xmlNode *node)
-{
-	while (node && (node->type == XML_COMMENT_NODE ||
-			xmlIsBlankNode (node)))
-		node = node->next;
-	return node;
 }

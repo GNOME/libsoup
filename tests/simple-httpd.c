@@ -17,106 +17,140 @@
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 
 static void
-print_header (gpointer name, gpointer value, gpointer data)
+do_get (SoupServer *server, SoupMessage *msg, const char *path)
 {
-	printf ("%s: %s\n", (char *)name, (char *)value);
-}
-
-static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
-{
-	char *path, *path_to_open, *slash;
-	SoupMethodId method;
+	char *slash;
 	struct stat st;
 	int fd;
 
-	path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
-	printf ("%s %s HTTP/1.%d\n", msg->method, path,
-		soup_message_get_http_version (msg));
-	soup_message_foreach_header (msg->request_headers, print_header, NULL);
-	if (msg->request.length)
-		printf ("%.*s\n", msg->request.length, msg->request.body);
-
-	method = soup_method_get_id (msg->method);
-	if (method != SOUP_METHOD_ID_GET && method != SOUP_METHOD_ID_HEAD) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-		goto DONE;
-	}
-
-	if (path) {
-		if (*path != '/') {
-			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
-			goto DONE;
-		}
-	} else
-		path = g_strdup ("");
-
-	path_to_open = g_strdup_printf (".%s", path);
-
- AGAIN:
-	if (stat (path_to_open, &st) == -1) {
-		g_free (path_to_open);
+	if (stat (path, &st) == -1) {
 		if (errno == EPERM)
 			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
 		else if (errno == ENOENT)
 			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		else
 			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-		goto DONE;
+		return;
 	}
 
 	if (S_ISDIR (st.st_mode)) {
-		slash = strrchr (path_to_open, '/');
+		char *index_path;
+
+		slash = strrchr (path, '/');
 		if (!slash || slash[1]) {
 			char *uri, *redir_uri;
 
 			uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 			redir_uri = g_strdup_printf ("%s/", uri);
-			soup_message_add_header (msg->response_headers,
-						 "Location", redir_uri);
+			soup_message_headers_append (msg->response_headers,
+						     "Location", redir_uri);
 			soup_message_set_status (msg, SOUP_STATUS_MOVED_PERMANENTLY);
 			g_free (redir_uri);
 			g_free (uri);
-			g_free (path_to_open);
-			goto DONE;
+			return;
 		}
 
-		g_free (path_to_open);
-		path_to_open = g_strdup_printf (".%s/index.html", path);
-		goto AGAIN;
+		index_path = g_strdup_printf ("%s/index.html", path);
+		do_get (server, msg, index_path);
+		g_free (index_path);
+		return;
 	}
 
-	fd = open (path_to_open, O_RDONLY);
-	g_free (path_to_open);
+	fd = open (path, O_RDONLY);
 	if (fd == -1) {
 		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-		goto DONE;
+		return;
 	}
 
-	msg->response.owner = SOUP_BUFFER_SYSTEM_OWNED;
-	msg->response.length = st.st_size;
+	if (msg->method == SOUP_METHOD_GET) {
+		char *buf;
 
-	if (method == SOUP_METHOD_ID_GET) {
-		msg->response.body = g_malloc (msg->response.length);
-		read (fd, msg->response.body, msg->response.length);
-	} else /* method == SOUP_METHOD_ID_HEAD */ {
-		/* SoupServer will ignore response.body and only use
-		 * response.length when responding to HEAD, so we
-		 * could just use the same code for both GET and HEAD.
-		 * But we'll optimize and avoid the extra malloc.
+		buf = g_malloc (st.st_size);
+		read (fd, buf, st.st_size);
+		close (fd);
+		soup_message_body_append (msg->response_body, SOUP_MEMORY_TAKE,
+					  buf, st.st_size);
+	} else /* msg->method == SOUP_METHOD_HEAD */ {
+		char *length;
+
+		/* We could just use the same code for both GET and
+		 * HEAD. But we'll optimize and avoid the extra
+		 * malloc.
 		 */
-		msg->response.body = NULL;
+		length = g_strdup_printf ("%lu", (gulong)st.st_size);
+		soup_message_headers_append (msg->response_headers,
+					     "Content-Length", length);
+		g_free (length);
 	}
-
-	close (fd);
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
+}
 
- DONE:
-	g_free (path);
+static void
+do_put (SoupServer *server, SoupMessage *msg, const char *path)
+{
+	struct stat st;
+	FILE *f;
+	gboolean created = TRUE;
+
+	if (stat (path, &st) != -1) {
+		const char *match = soup_message_headers_get (msg->request_headers, "If-None-Match");
+		if (match && !strcmp (match, "*")) {
+			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
+			return;
+		}
+
+		if (!S_ISREG (st.st_mode)) {
+			soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+			return;
+		}
+
+		created = FALSE;
+	}
+
+	f = fopen (path, "w");
+	if (!f) {
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	fwrite (msg->request_body->data, 1, msg->request_body->length, f);
+	fclose (f);
+
+	soup_message_set_status (msg, created ? SOUP_STATUS_CREATED : SOUP_STATUS_OK);
+}
+
+static void
+print_header (const char *name, const char *value, gpointer data)
+{
+	printf ("%s: %s\n", name, value);
+}
+
+static void
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
+{
+	char *file_path;
+
+	printf ("%s %s HTTP/1.%d\n", msg->method, path,
+		soup_message_get_http_version (msg));
+	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
+	if (msg->request_body->length)
+		printf ("%s\n", msg->request_body->data);
+
+	file_path = g_strdup_printf (".%s", path);
+
+	if (msg->method == SOUP_METHOD_GET || msg->method == SOUP_METHOD_HEAD)
+		do_get (server, msg, file_path);
+	else if (msg->method == SOUP_METHOD_PUT)
+		do_put (server, msg, file_path);
+	else
+		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+
+	g_free (file_path);
 	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 
@@ -168,7 +202,7 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 	printf ("\nStarting Server on port %d\n",
 		soup_server_get_port (server));
@@ -185,7 +219,7 @@ main (int argc, char **argv)
 			fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
 			exit (1);
 		}
-		soup_server_add_handler (ssl_server, NULL, NULL,
+		soup_server_add_handler (ssl_server, NULL,
 					 server_callback, NULL, NULL);
 		printf ("Starting SSL Server on port %d\n", 
 			soup_server_get_port (ssl_server));

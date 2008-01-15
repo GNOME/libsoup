@@ -3,7 +3,7 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 AC_PREREQ(2.53)
-AC_INIT(libsoup, 2.2.104)
+AC_INIT(libsoup, 2.3.0)
 AC_CONFIG_SRCDIR(libsoup.pc.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 
@@ -11,14 +11,14 @@ AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 AC_PROG_MAKE_SET
 
-SOUP_API_VERSION=2.2
+SOUP_API_VERSION=2.4
 AC_SUBST(SOUP_API_VERSION)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=5
+SOUP_AGE=0
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=13
+SOUP_CURRENT=0
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0
@@ -73,7 +73,7 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-AM_PATH_GLIB_2_0(2.12.0,,,gobject gthread)
+AM_PATH_GLIB_2_0(2.15.0,,,gobject gthread gio)
 
 PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)
@@ -272,6 +272,14 @@ fi
 AC_SUBST(IF_HAVE_PHP)
 AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test "$have_xmlrpc_epi_php" = yes)
 
+dnl *******************************
+dnl *** curl (for regression tests)
+dnl *******************************
+AC_PATH_PROG(CURL, curl, no)
+if test "$CURL" != no; then
+    AC_DEFINE(HAVE_CURL, 1, [Whether or not curl can be used for tests])
+fi
+AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 
 dnl *************************
 dnl *** Output Everything ***

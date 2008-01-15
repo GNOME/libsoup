@@ -17,7 +17,6 @@
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 
 /* WARNING: this is really really really not especially compliant with
@@ -25,11 +24,12 @@
  */
 
 SoupSession *session;
+SoupServer *server;
 
 static void
-copy_header (gpointer name, gpointer value, gpointer dest_headers)
+copy_header (const char *name, const char *value, gpointer dest_headers)
 {
-	soup_message_add_header (dest_headers, name, value);
+	soup_message_headers_append (dest_headers, name, value);
 }
 
 static void
@@ -41,42 +41,45 @@ send_headers (SoupMessage *from, SoupMessage *to)
 
 	soup_message_set_status_full (to, from->status_code,
 				      from->reason_phrase);
-	soup_message_foreach_header (from->response_headers, copy_header,
-				     to->response_headers);
-	soup_message_remove_header (to->response_headers, "Content-Length");
-	soup_message_io_unpause (to);
+	soup_message_headers_foreach (from->response_headers, copy_header,
+				      to->response_headers);
+	soup_message_headers_remove (to->response_headers, "Content-Length");
+	soup_server_unpause_message (server, to);
 }
 
 static void
-send_chunk (SoupMessage *from, SoupMessage *to)
+send_chunk (SoupMessage *from, SoupBuffer *chunk, SoupMessage *to)
 {
-	printf ("[%p]   writing chunk of %d bytes\n", to, from->response.length);
+	printf ("[%p]   writing chunk of %lu bytes\n", to,
+		(unsigned long)chunk->length);
 
-	soup_message_add_chunk (to, SOUP_BUFFER_USER_OWNED,
-				from->response.body, from->response.length);
-	soup_message_io_unpause (to);
+	soup_message_body_append_buffer (to->response_body, chunk);
+	soup_server_unpause_message (server, to);
 }
 
 static void
 client_msg_failed (SoupMessage *msg, gpointer msg2)
 {
-	soup_message_set_status (msg2, SOUP_STATUS_IO_ERROR);
-	soup_session_cancel_message (session, msg2);
+	soup_session_cancel_message (session, msg2, SOUP_STATUS_IO_ERROR);
 }
 
 static void
-finish_msg (SoupMessage *msg2, gpointer msg)
+finish_msg (SoupSession *session, SoupMessage *msg2, gpointer data)
 {
+	SoupMessage *msg = data;
+
 	printf ("[%p]   done\n\n", msg);
 	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
 
-	soup_message_add_final_chunk (msg);
-	soup_message_io_unpause (msg);
+	soup_message_body_complete (msg->response_body);
+	soup_server_unpause_message (server, msg);
 	g_object_unref (msg);
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
 {
 	SoupMessage *msg2;
 	char *uristr;
@@ -85,37 +88,37 @@ server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
 	printf ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
 		soup_message_get_http_version (msg));
 
-	if (soup_method_get_id (msg->method) == SOUP_METHOD_ID_CONNECT) {
+	if (msg->method == SOUP_METHOD_CONNECT) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}
 
 	msg2 = soup_message_new (msg->method, uristr);
-	soup_message_foreach_header (msg->request_headers, copy_header,
-				     msg2->request_headers);
-	soup_message_remove_header (msg2->request_headers, "Host");
-	soup_message_remove_header (msg2->request_headers, "Connection");
+        msg2 = soup_message_new (msg->method, uristr);
+	soup_message_headers_foreach (msg->request_headers, copy_header,
+				      msg2->request_headers);
+	soup_message_headers_remove (msg2->request_headers, "Host");
+	soup_message_headers_remove (msg2->request_headers, "Connection");
 
-	if (msg->request.length) {
-		msg2->request.owner = SOUP_BUFFER_USER_OWNED;
-		msg2->request.body = msg->request.body;
-		msg2->request.length = msg->request.length;
+	if (msg->request_body->length) {
+		SoupBuffer *request = soup_message_body_flatten (msg->request_body);
+		soup_message_body_append_buffer (msg2->request_body, request);
+		soup_buffer_free (request);
 	}
-	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
-					  SOUP_TRANSFER_CHUNKED);
+	soup_message_headers_set_encoding (msg->response_headers,
+					   SOUP_ENCODING_CHUNKED);
 
 	g_signal_connect (msg2, "got_headers",
 			  G_CALLBACK (send_headers), msg);
 	g_signal_connect (msg2, "got_chunk",
 			  G_CALLBACK (send_chunk), msg);
-	soup_message_set_flags (msg2, SOUP_MESSAGE_OVERWRITE_CHUNKS);
 
 	g_signal_connect (msg, "finished", G_CALLBACK (client_msg_failed), msg2);
 
 	soup_session_queue_message (session, msg2, finish_msg, msg);
 
 	g_object_ref (msg);
-	soup_message_io_pause (msg);
+	soup_server_pause_message (server, msg);
 }
 
 static void
@@ -131,7 +134,6 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	int opt;
 	int port = SOUP_ADDRESS_ANY_PORT;
-	SoupServer *server;
 
 	g_type_init ();
 	g_thread_init (NULL);
@@ -155,7 +157,7 @@ main (int argc, char **argv)
 		fprintf (stderr, "Unable to bind to server port %d\n", port);
 		exit (1);
 	}
-	soup_server_add_handler (server, NULL, NULL,
+	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 
 	printf ("\nStarting proxy on port %d\n",

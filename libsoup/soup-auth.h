@@ -7,6 +7,7 @@
 #define SOUP_AUTH_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-headers.h>
 
 #define SOUP_TYPE_AUTH            (soup_auth_get_type ())
 #define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))
@@ -15,22 +16,24 @@
 #define SOUP_IS_AUTH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH))
 #define SOUP_AUTH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH, SoupAuthClass))
 
-typedef struct {
+struct SoupAuth {
 	GObject parent;
 
 	char *realm;
-} SoupAuth;
+};
 
 typedef struct {
 	GObjectClass parent_class;
 
-	const char *scheme_name;
+	const char  *scheme_name;
+	guint        strength;
 
-	void         (*construct)            (SoupAuth      *auth,
+	gboolean     (*update)               (SoupAuth      *auth,
+					      SoupMessage   *msg,
 					      GHashTable    *auth_params);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
-					      const SoupUri *source_uri);
+					      SoupURI       *source_uri);
 
 	void         (*authenticate)         (SoupAuth      *auth,
 					      const char    *username,
@@ -39,14 +42,31 @@ typedef struct {
 
 	char *       (*get_authorization)    (SoupAuth      *auth,
 					      SoupMessage   *msg);
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupAuthClass;
+
+#define SOUP_AUTH_SCHEME_NAME      "scheme-name"
+#define SOUP_AUTH_REALM            "realm"
+#define SOUP_AUTH_HOST             "host"
+#define SOUP_AUTH_IS_FOR_PROXY     "is-for-proxy"
+#define SOUP_AUTH_IS_AUTHENTICATED "is-authenticated"
 
 GType       soup_auth_get_type              (void);
 
+SoupAuth   *soup_auth_new                   (GType          type,
+					     SoupMessage   *msg,
+					     const char    *auth_header);
+gboolean    soup_auth_update                (SoupAuth      *auth,
+					     SoupMessage   *msg,
+					     const char    *auth_header);
 
-SoupAuth   *soup_auth_new_from_header_list  (const GSList  *vals);
-
+gboolean    soup_auth_is_for_proxy          (SoupAuth      *auth);
 const char *soup_auth_get_scheme_name       (SoupAuth      *auth);
+const char *soup_auth_get_host              (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
 char       *soup_auth_get_info              (SoupAuth      *auth);
 
@@ -59,7 +79,7 @@ char       *soup_auth_get_authorization     (SoupAuth      *auth,
 					     SoupMessage   *msg);
 
 GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
-					     const SoupUri *source_uri);
+					     SoupURI       *source_uri);
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
 

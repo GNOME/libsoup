@@ -7,39 +7,8 @@
 #define SOUP_MISC_H 1
 
 #include <glib-object.h>
-#include <libxml/tree.h>
 
 G_BEGIN_DECLS
-
-#ifndef LIBSOUP_DISABLE_DEPRECATED
-/* Base64 encoding/decoding. DEPRECATED: use <glib/base64.h> */
-
-char              *soup_base64_encode        (const char   *text,
-					      int           len);
-
-int                soup_base64_encode_close  (const guchar *in, 
-					      int           inlen, 
-					      gboolean      break_lines, 
-					      guchar       *out, 
-					      int          *state, 
-					      int          *save);
-
-int                soup_base64_encode_step   (const guchar *in, 
-					      int           len, 
-					      gboolean      break_lines, 
-					      guchar       *out, 
-					      int          *state, 
-					      int          *save);
-
-char              *soup_base64_decode        (const gchar  *text,
-					      int          *out_len);
-
-int                soup_base64_decode_step   (const guchar *in, 
-					      int           len, 
-					      guchar       *out, 
-					      int          *state, 
-					      guint        *save);
-#endif /* LIBSOUP_DISABLE_DEPRECATED */
 
 /* Non-default-GMainContext operations */
 GSource           *soup_add_io_watch         (GMainContext *async_context,
@@ -66,14 +35,17 @@ guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
-xmlNode           *soup_xml_real_node        (xmlNode      *node);
-
-/**
- * soup_ssl_supported:
- *
- * Can be used to test if libsoup was compiled with ssl support.
- **/
 extern gboolean soup_ssl_supported;
+
+#define SOUP_SSL_ERROR soup_ssl_error_quark()
+
+GQuark soup_ssl_error_quark (void);
+
+typedef enum {
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ,
+	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE,
+	SOUP_SSL_ERROR_CERTIFICATE,
+} SoupSSLError;
 
 G_END_DECLS
 

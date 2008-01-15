@@ -22,7 +22,6 @@
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-message-filter.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -43,12 +42,11 @@ typedef struct {
 	 * connected to, which will be proxy_uri if there's a proxy
 	 * and origin_uri if not.
 	 */
-	SoupUri     *proxy_uri, *origin_uri, *conn_uri;
+	SoupURI     *proxy_uri, *origin_uri, *conn_uri;
 	gpointer     ssl_creds;
 
 	SoupConnectionMode  mode;
 
-	SoupMessageFilter *filter;
 	GMainContext      *async_context;
 
 	SoupMessage *cur_req;
@@ -63,8 +61,8 @@ G_DEFINE_TYPE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 enum {
 	CONNECT_RESULT,
 	DISCONNECTED,
+	REQUEST_STARTED,
 	AUTHENTICATE,
-	REAUTHENTICATE,
 	LAST_SIGNAL
 };
 
@@ -76,7 +74,6 @@ enum {
 	PROP_ORIGIN_URI,
 	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
-	PROP_MESSAGE_FILTER,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 
@@ -108,8 +105,6 @@ finalize (GObject *object)
 	if (priv->origin_uri)
 		soup_uri_free (priv->origin_uri);
 
-	if (priv->filter)
-		g_object_unref (priv->filter);
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 
@@ -145,14 +140,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 	/* signals */
 
-	/**
-	 * SoupConnection::connect-result:
-	 * @conn: the connection
-	 * @status: the status
-	 *
-	 * Emitted when a connection attempt succeeds or fails. This
-	 * is used internally by soup_connection_connect_async().
-	 **/
 	signals[CONNECT_RESULT] =
 		g_signal_new ("connect_result",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -162,14 +149,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      soup_marshal_NONE__INT,
 			      G_TYPE_NONE, 1,
 			      G_TYPE_INT);
-
-	/**
-	 * SoupConnection::disconnected:
-	 * @conn: the connection
-	 *
-	 * Emitted when the connection's socket is disconnected, for
-	 * whatever reason.
-	 **/
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -178,62 +157,26 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
-
-	/**
-	 * SoupConnection::authenticate:
-	 * @conn: the connection
-	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
-	 *
-	 * Emitted when the connection requires authentication.
-	 * (#SoupConnectionNTLM makes use of this.)
-	 **/
+	signals[REQUEST_STARTED] =
+		g_signal_new ("request-started",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupConnectionClass, request_started),
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupConnectionClass, authenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
+			      soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
-
-	/**
-	 * SoupConnection::reauthenticate:
-	 * @conn: the connection
-	 * @msg: the #SoupMessage being sent
-	 * @auth_type: the authentication type
-	 * @auth_realm: the realm being authenticated to
-	 * @username: the signal handler should set this to point to
-	 * the provided username
-	 * @password: the signal handler should set this to point to
-	 * the provided password
-	 *
-	 * Emitted when the authentication data acquired by a previous
-	 * %authenticate or %reauthenticate signal fails.
-	 **/
-	signals[REAUTHENTICATE] =
-		g_signal_new ("reauthenticate",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      G_STRUCT_OFFSET (SoupConnectionClass, reauthenticate),
-			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_STRING_STRING_POINTER_POINTER,
-			      G_TYPE_NONE, 5,
-			      SOUP_TYPE_MESSAGE,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
-			      G_TYPE_POINTER);
+			      SOUP_TYPE_AUTH,
+			      G_TYPE_BOOLEAN);
 
 	/* properties */
 	g_object_class_install_property (
@@ -254,12 +197,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "SSL credentials",
 				      "Opaque SSL credentials for this connection",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_MESSAGE_FILTER,
-		g_param_spec_pointer (SOUP_CONNECTION_MESSAGE_FILTER,
-				      "Message filter",
-				      "Message filter object for this connection",
-				      G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
@@ -328,7 +265,7 @@ set_property (GObject *object, guint prop_id,
 		if (priv->proxy_uri) {
 			priv->conn_uri = priv->proxy_uri;
 			if (priv->origin_uri &&
-			    priv->origin_uri->protocol == SOUP_PROTOCOL_HTTPS)
+			    priv->origin_uri->scheme == SOUP_URI_SCHEME_HTTPS)
 				priv->mode = SOUP_CONNECTION_MODE_TUNNEL;
 			else
 				priv->mode = SOUP_CONNECTION_MODE_PROXY;
@@ -340,13 +277,6 @@ set_property (GObject *object, guint prop_id,
 
 	case PROP_SSL_CREDS:
 		priv->ssl_creds = g_value_get_pointer (value);
-		break;
-	case PROP_MESSAGE_FILTER:
-		if (priv->filter)
-			g_object_unref (priv->filter);
-		priv->filter = g_value_get_pointer (value);
-		if (priv->filter)
-			g_object_ref (priv->filter);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
@@ -380,9 +310,6 @@ get_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, priv->ssl_creds);
 		break;
-	case PROP_MESSAGE_FILTER:
-		g_value_set_pointer (value, priv->filter ? g_object_ref (priv->filter) : NULL);
-		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
@@ -399,7 +326,7 @@ set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 {
 	g_return_if_fail (priv->cur_req == NULL);
 
-	req->status = SOUP_MESSAGE_STATUS_RUNNING;
+	soup_message_set_io_status (req, SOUP_MESSAGE_IO_STATUS_RUNNING);
 	priv->cur_req = req;
 	priv->in_use = TRUE;
 	g_object_add_weak_pointer (G_OBJECT (req), (gpointer)&priv->cur_req);
@@ -458,7 +385,8 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (soup_socket_start_proxy_ssl (priv->socket,
-						 priv->origin_uri->host))
+						 priv->origin_uri->host,
+						 NULL))
 			priv->connected = TRUE;
 		else
 			status = SOUP_STATUS_SSL_FAILED;
@@ -512,8 +440,8 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
 
-	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
-		if (!soup_socket_start_ssl (sock)) {
+	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+		if (!soup_socket_start_ssl (sock, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
 		}
@@ -567,14 +495,13 @@ soup_connection_connect_async (SoupConnection *conn,
 	}
 
 	addr = soup_address_new (priv->conn_uri->host, priv->conn_uri->port);
-
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
-	soup_socket_connect (priv->socket, addr);
-	soup_signal_connect_once (priv->socket, "connect_result",
-				  G_CALLBACK (socket_connect_result), conn);
+	soup_socket_connect_async (priv->socket, NULL,
+				   socket_connect_result, conn);
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
@@ -600,27 +527,26 @@ soup_connection_connect_sync (SoupConnection *conn)
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
 
+	addr = soup_address_new (priv->conn_uri->host,
+				 priv->conn_uri->port);
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->timeout,
 				 NULL);
 
-	addr = soup_address_new (priv->conn_uri->host,
-				 priv->conn_uri->port);
-
-	status = soup_socket_connect (priv->socket, addr);
+	status = soup_socket_connect_sync (priv->socket, NULL);
 	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
-
 		
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
-	if (priv->conn_uri->protocol == SOUP_PROTOCOL_HTTPS) {
-		if (!soup_socket_start_ssl (priv->socket)) {
+	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+		if (!soup_socket_start_ssl (priv->socket, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;
 		}
@@ -648,7 +574,8 @@ soup_connection_connect_sync (SoupConnection *conn)
 
 		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			if (!soup_socket_start_proxy_ssl (priv->socket,
-							 priv->origin_uri->host))
+							  priv->origin_uri->host,
+							  NULL))
 				status = SOUP_STATUS_SSL_FAILED;
 		}
 	}
@@ -722,7 +649,8 @@ soup_connection_disconnect (SoupConnection *conn)
 		 * all we need to do to get the message requeued in
 		 * this case is to change its status.
 		 */
-		priv->cur_req->status = SOUP_MESSAGE_STATUS_QUEUED;
+		soup_message_set_io_status (priv->cur_req,
+					    SOUP_MESSAGE_IO_STATUS_QUEUED);
 		return;
 	}
 
@@ -740,6 +668,14 @@ soup_connection_disconnect (SoupConnection *conn)
 	 * fresh connection and get an error, at which point the error
 	 * will finally be returned to the caller.
 	 */
+}
+
+SoupSocket *
+soup_connection_get_socket (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->socket;
 }
 
 /**
@@ -783,12 +719,11 @@ send_request (SoupConnection *conn, SoupMessage *req)
 
 	if (req != priv->cur_req) {
 		set_current_request (priv, req);
-		if (priv->filter)
-			soup_message_filter_setup_message (priv->filter, req);
+		g_signal_emit (conn, signals[REQUEST_STARTED], 0, req);
 	}
 
-	soup_message_send_request_internal (req, priv->socket, conn,
-					    priv->mode == SOUP_CONNECTION_MODE_PROXY);
+	soup_message_send_request (req, priv->socket, conn,
+				   priv->mode == SOUP_CONNECTION_MODE_PROXY);
 }
 
 /**
@@ -846,44 +781,15 @@ soup_connection_release (SoupConnection *conn)
  * soup_connection_authenticate:
  * @conn: a #SoupConnection
  * @msg: the message to authenticate
- * @auth_type: type of authentication to use
- * @auth_realm: authentication realm
- * @username: on successful return, will contain the username to
- * authenticate with
- * @password: on successful return, will contain the password to
- * authenticate with
+ * @auth: the #SoupAuth to authenticate
+ * @retrying: %TRUE if this is the second or later try
  *
  * Emits the %authenticate signal on @conn. For use by #SoupConnection
  * subclasses.
  **/
 void
 soup_connection_authenticate (SoupConnection *conn, SoupMessage *msg,
-			      const char *auth_type, const char *auth_realm,
-			      char **username, char **password)
+			      SoupAuth *auth, gboolean retrying)
 {
-	g_signal_emit (conn, signals[AUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
-}
-
-/**
- * soup_connection_reauthenticate:
- * @conn: a #SoupConnection
- * @msg: the message to authenticate
- * @auth_type: type of authentication to use
- * @auth_realm: authentication realm
- * @username: on successful return, will contain the username to
- * authenticate with
- * @password: on successful return, will contain the password to
- * authenticate with
- *
- * Emits the %reauthenticate signal on @conn. For use by
- * #SoupConnection subclasses.
- **/
-void
-soup_connection_reauthenticate (SoupConnection *conn, SoupMessage *msg,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password)
-{
-	g_signal_emit (conn, signals[REAUTHENTICATE], 0,
-		       msg, auth_type, auth_realm, username, password);
+	g_signal_emit (conn, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }

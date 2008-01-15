@@ -20,13 +20,11 @@
 static guint
 parse_response_headers (SoupMessage *req,
 			char *headers, guint headers_len,
-			SoupTransferEncoding *encoding,
-			guint *content_len,
+			SoupEncoding *encoding,
 			gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-	SoupHttpVersion version;
-	GHashTable *resp_hdrs;
+	SoupHTTPVersion version;
 
 	g_free((char*)req->reason_phrase);
 	req->reason_phrase = NULL;
@@ -37,42 +35,47 @@ parse_response_headers (SoupMessage *req,
 					  (char **) &req->reason_phrase))
 		return SOUP_STATUS_MALFORMED;
 
-	if (version < priv->http_version)
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
+
+	if (version < priv->http_version) {
 		priv->http_version = version;
+		g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
+	}
 
-	resp_hdrs = req->response_headers;
+	if ((req->method == SOUP_METHOD_HEAD ||
+	     req->status_code  == SOUP_STATUS_NO_CONTENT ||
+	     req->status_code  == SOUP_STATUS_NOT_MODIFIED ||
+	     SOUP_STATUS_IS_INFORMATIONAL (req->status_code)) ||
+	    (req->method == SOUP_METHOD_CONNECT &&
+	     SOUP_STATUS_IS_SUCCESSFUL (req->status_code)))
+		*encoding = SOUP_ENCODING_NONE;
+	else
+		*encoding = soup_message_headers_get_encoding (req->response_headers);
 
-	*encoding = soup_message_get_response_encoding (req, content_len);
-	if (*encoding == SOUP_TRANSFER_NONE) {
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
-		*content_len = 0;
-	} else if (*encoding == SOUP_TRANSFER_UNKNOWN)
+	if (*encoding == SOUP_ENCODING_UNRECOGNIZED)
 		return SOUP_STATUS_MALFORMED;
 
 	return SOUP_STATUS_OK;
 }
 
 static void 
-add_header (gpointer name, gpointer value, gpointer data)
+add_header (const char *name, const char *value, gpointer data)
 {
 	GString *headers = data;
-
-	g_string_append_printf (headers, "%s: %s\r\n",
-				(char *)name, (char *)value);
+	g_string_append_printf (headers, "%s: %s\r\n", name, value);
 }
 
 static void
 get_request_headers (SoupMessage *req, GString *header,
-		     SoupTransferEncoding *encoding,
-		     gpointer user_data)
+		     SoupEncoding *encoding, gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
-	const SoupUri *uri = soup_message_get_uri (req);
-	const char *expect;
+	SoupURI *uri = soup_message_get_uri (req);
 	char *uri_string;
 
-	if (!strcmp (req->method, "CONNECT")) {
+	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri->host, uri->port);
 	} else {
@@ -98,46 +101,20 @@ get_request_headers (SoupMessage *req, GString *header,
 	}
 	g_free (uri_string);
 
-	if (req->request.length > 0) {
-		if (!soup_message_get_header (req->request_headers,
-					      "Content-Type")) {
-			g_string_append (header, "Content-Type: text/xml; "
-					 "charset=utf-8\r\n");
-		}
-		g_string_append_printf (header, "Content-Length: %d\r\n",
-					req->request.length);
-		*encoding = SOUP_TRANSFER_CONTENT_LENGTH;
+	*encoding = soup_message_headers_get_encoding (req->request_headers);
+	if (*encoding != SOUP_ENCODING_CHUNKED &&
+	    req->request_body->length > 0) {
+		soup_message_headers_set_content_length (req->request_headers,
+							 req->request_body->length);
 	}
 
-	soup_message_foreach_header (req->request_headers, add_header, header);
+	soup_message_headers_foreach (req->request_headers, add_header, header);
 	g_string_append (header, "\r\n");
-
-	expect = soup_message_get_header (req->request_headers, "Expect");
-	if (expect && !strcmp (expect, "100-continue"))
-		priv->msg_flags |= SOUP_MESSAGE_EXPECT_CONTINUE;
 }
 
-/**
- * soup_message_send_request:
- * @req: a #SoupMessage
- * @sock: the #SoupSocket to send @req on
- * @is_via_proxy: %TRUE if @sock is a connection to a proxy server
- * rather than a direct connection to the desired HTTP server
- *
- * Begins the process of sending @msg across @sock. (If @sock is
- * synchronous, then soup_message_send_request() won't return until
- * the response has been received.)
- **/
 void
 soup_message_send_request (SoupMessage *req, SoupSocket *sock,
-			   gboolean is_via_proxy)
-{
-	soup_message_send_request_internal (req, sock, NULL, is_via_proxy);
-}
-
-void
-soup_message_send_request_internal (SoupMessage *req, SoupSocket *sock,
-				    SoupConnection *conn, gboolean is_via_proxy)
+			   SoupConnection *conn, gboolean is_via_proxy)
 {
 	soup_message_cleanup_response (req);
 	soup_message_io_client (req, sock, conn,

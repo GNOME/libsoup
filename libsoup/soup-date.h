@@ -1,23 +1,57 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2005 Novell, Inc.
+ * Copyright (C) 2007 Red Hat, Inc.
  */
 
 #ifndef SOUP_DATE_H
 #define SOUP_DATE_H 1
 
 #include <time.h>
-#include <glib/gmacros.h>
+#include <libsoup/soup-types.h>
 
 G_BEGIN_DECLS
 
-time_t  soup_mktime_utc         (struct tm *tm);
-void    soup_gmtime             (const time_t *when, struct tm *tm);
+typedef struct {
+	int      year;
+	int      month;
+	int      day;
 
-time_t  soup_date_parse         (const char *timestamp);
-char   *soup_date_generate      (time_t when);
+	int      hour;
+	int      minute;
+	int      second;
 
-time_t  soup_date_iso8601_parse (const char *timestamp);
+	gboolean utc;
+	int      offset;
+} SoupDate;
+
+typedef enum {
+	SOUP_DATE_HTTP = 1,
+	SOUP_DATE_COOKIE,
+	SOUP_DATE_RFC2822,
+	SOUP_DATE_ISO8601_COMPACT,
+	SOUP_DATE_ISO8601_FULL,
+	SOUP_DATE_ISO8601 = SOUP_DATE_ISO8601_FULL,
+	SOUP_DATE_ISO8601_XMLRPC
+} SoupDateFormat;
+
+GType soup_date_get_type (void);
+#define SOUP_TYPE_DATE (soup_date_get_type ())
+
+SoupDate *soup_date_new             (int             year,
+				     int             month,
+				     int             day, 
+				     int             hour,
+				     int             minute,
+				     int             second);
+SoupDate *soup_date_new_from_string (const char     *date_string);
+SoupDate *soup_date_new_from_time_t (time_t          when);
+SoupDate *soup_date_new_from_now    (int             offset_seconds);
+
+char     *soup_date_to_string       (SoupDate       *date,
+				     SoupDateFormat  format);
+SoupDate *soup_date_copy            (SoupDate       *date);
+void      soup_date_free            (SoupDate       *date);
 
 G_END_DECLS
 

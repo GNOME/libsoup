@@ -18,138 +18,75 @@
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-server.h>
-#include <libsoup/soup-server-message.h>
 #include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-sync.h>
 
-gboolean debug = FALSE;
-int errors = 0;
-GThread *server_thread;
+#include "test-utils.h"
+
 char *base_uri;
 
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
+typedef struct {
+	SoupServer *server;
+	SoupMessage *msg;
+	GSource *timeout;
+} SlowData;
 
 static void
-request_failed (SoupMessage *msg, gpointer timeout)
+request_failed (SoupMessage *msg, gpointer data)
 {
+	SlowData *sd = data;
+
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		g_source_destroy (timeout);
+		g_source_destroy (sd->timeout);
+	g_free (sd);
 }
 
 static gboolean
 add_body_chunk (gpointer data)
 {
-	SoupMessage *msg = data;
+	SlowData *sd = data;
 
-	soup_message_add_chunk (msg, SOUP_BUFFER_STATIC,
-				"OK\r\n", 4);
-	soup_message_add_final_chunk (msg);
-	soup_message_io_unpause (msg);
-	g_object_unref (msg);
+	soup_message_body_append (sd->msg->response_body,
+				  SOUP_MEMORY_STATIC, "OK\r\n", 4);
+	soup_message_body_complete (sd->msg->response_body);
+	soup_server_unpause_message (sd->server, sd->msg);
+	g_object_unref (sd->msg);
 
 	return FALSE;
 }
 
 static void
-server_callback (SoupServerContext *context, SoupMessage *msg, gpointer data)
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
 {
-	GSource *timeout;
+	SlowData *sd;
 
-	if (soup_method_get_id (msg->method) != SOUP_METHOD_ID_GET) {
+	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}
 
-	if (!strcmp (context->path, "/shutdown")) {
-		soup_server_quit (context->server);
-		return;
-	}
-
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	if (!strcmp (context->path, "/fast")) {
+	if (!strcmp (path, "/fast")) {
 		soup_message_set_response (msg, "text/plain",
-					   SOUP_BUFFER_STATIC, "OK\r\n", 4);
+					   SOUP_MEMORY_STATIC, "OK\r\n", 4);
 		return;
 	}
 
-	soup_server_message_set_encoding (SOUP_SERVER_MESSAGE (msg),
-					  SOUP_TRANSFER_CHUNKED);
+	soup_message_headers_set_encoding (msg->response_headers,
+					   SOUP_ENCODING_CHUNKED);
 	g_object_ref (msg);
-	soup_message_io_pause (msg);
+	soup_server_pause_message (server, msg);
 
-	timeout = soup_add_timeout (
-		soup_server_get_async_context (context->server),
-		200, add_body_chunk, msg);
+	sd = g_new (SlowData, 1);
+	sd->server = server;
+	sd->msg = msg;
+	sd->timeout = soup_add_timeout (
+		soup_server_get_async_context (server),
+		200, add_body_chunk, sd);
 	g_signal_connect (msg, "finished",
-			  G_CALLBACK (request_failed), timeout);
-}
-
-static gpointer
-run_server_thread (gpointer user_data)
-{
-	SoupServer *server = user_data;
-
-	soup_server_add_handler (server, NULL, NULL,
-				 server_callback, NULL, NULL);
-	soup_server_run (server);
-	g_object_unref (server);
-
-	return NULL;
-}
-
-static guint
-create_server (void)
-{
-	SoupServer *server;
-	GMainContext *async_context;
-	guint port;
-
-	async_context = g_main_context_new ();
-	server = soup_server_new (SOUP_SERVER_PORT, 0,
-				  SOUP_SERVER_ASYNC_CONTEXT, async_context,
-				  NULL);
-	g_main_context_unref (async_context);
-
-	if (!server) {
-		fprintf (stderr, "Unable to bind server\n");
-		exit (1);
-	}
-
-	port = soup_server_get_port (server);
-	server_thread = g_thread_create (run_server_thread, server, TRUE, NULL);
-
-	return port;
-}
-
-static void
-shutdown_server (void)
-{
-	SoupSession *session;
-	char *uri;
-	SoupMessage *msg;
-
-	session = soup_session_sync_new ();
-	uri = g_build_filename (base_uri, "shutdown", NULL);
-	msg = soup_message_new ("GET", uri);
-	soup_session_send_message (session, msg);
-	g_object_unref (msg);
-	g_free (uri);
-
-	soup_session_abort (session);
-	g_object_unref (session);
-
-	g_thread_join (server_thread);
+			  G_CALLBACK (request_failed), sd);
 }
 
 /* Test 1: An async session in another thread with its own
@@ -168,7 +105,7 @@ do_test1 (void)
 {
 	GMainLoop *loop;
 
-	dprintf ("Test 1: blocking the main thread does not block other thread\n");
+	debug_printf (1, "Test 1: blocking the main thread does not block other thread\n");
 
 	test1_cond = g_cond_new ();
 	test1_mutex = g_mutex_new ();
@@ -196,7 +133,7 @@ idle_start_test1_thread (gpointer loop)
 	if (g_cond_timed_wait (test1_cond, test1_mutex, &time))
 		g_thread_join (thread);
 	else {
-		dprintf ("  timeout!\n");
+		debug_printf (1, "  timeout!\n");
 		errors++;
 	}
 
@@ -206,7 +143,7 @@ idle_start_test1_thread (gpointer loop)
 }
 
 static void
-test1_finished (SoupMessage *msg, gpointer loop)
+test1_finished (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
 	g_main_loop_quit (loop);
 }
@@ -225,24 +162,25 @@ test1_thread (gpointer user_data)
 	g_mutex_unlock (test1_mutex);
 
 	async_context = g_main_context_new ();
-	session = soup_session_async_new_with_options (
+	session = soup_test_session_new (
+		SOUP_TYPE_SESSION_ASYNC,
 		SOUP_SESSION_ASYNC_CONTEXT, async_context,
 		NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
 
-	dprintf ("  send_message\n");
+	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf ("    unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "    unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 	g_object_unref (msg);
 
-	dprintf ("  queue_message\n");
+	debug_printf (1, "  queue_message\n");
 	msg = soup_message_new ("GET", uri);
 	loop = g_main_loop_new (async_context, FALSE);
 	g_object_ref (msg);
@@ -250,8 +188,8 @@ test1_thread (gpointer user_data)
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 	if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf ("    unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "    unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 	g_object_unref (msg);
@@ -279,24 +217,25 @@ do_test2 (void)
 	char *uri;
 	SoupMessage *msg;
 
-	dprintf ("Test 2: a session with its own context is independent of the main loop.\n");
+	debug_printf (1, "Test 2: a session with its own context is independent of the main loop.\n");
 
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
 
 	async_context = g_main_context_new ();
-	session = soup_session_async_new_with_options (
+	session = soup_test_session_new (
+		SOUP_TYPE_SESSION_ASYNC,
 		SOUP_SESSION_ASYNC_CONTEXT, async_context,
 		NULL);
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
 
-	dprintf ("  send_message\n");
+	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf ("    unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "    unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 	g_object_unref (msg);
@@ -311,56 +250,29 @@ do_test2 (void)
 static gboolean
 idle_test2_fail (gpointer user_data)
 {
-	dprintf ("  idle ran!\n");
+	debug_printf (1, "  idle ran!\n");
 	errors++;
 	return FALSE;
 }
 
 
-static void
-quit (int sig)
-{
-	/* Exit cleanly on ^C in case we're valgrinding. */
-	exit (0);
-}
-
 int
 main (int argc, char **argv)
 {
-	int opt;
-	guint port;
+	SoupServer *server;
 
-	g_type_init ();
-	g_thread_init (NULL);
-	signal (SIGINT, quit);
+	test_init (argc, argv, NULL);
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n",
-				 argv[0]);
-			exit (1);
-		}
-	}
-
-	port = create_server ();
-	base_uri = g_strdup_printf ("http://localhost:%u/", port);
+	server = soup_test_server_new (TRUE);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	base_uri = g_strdup_printf ("http://localhost:%u/",
+				    soup_server_get_port (server));
 
 	do_test1 ();
 	do_test2 ();
 
-	shutdown_server ();
 	g_free (base_uri);
-	g_main_context_unref (g_main_context_default ());
 
-	dprintf ("\n");
-	if (errors) {
-		printf ("context-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("context-test: OK\n");
+	test_cleanup ();
 	return errors != 0;
 }

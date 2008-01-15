@@ -22,20 +22,20 @@
 SoupSession *session;
 GMainLoop *loop;
 gboolean recurse = FALSE, debug = FALSE;
-const char *method = SOUP_METHOD_GET;
+const char *method;
 char *base;
-SoupUri *base_uri;
+SoupURI *base_uri;
 int pending;
 GHashTable *fetched_urls;
 
 static GPtrArray *
-find_hrefs (const SoupUri *base, const char *body, int length)
+find_hrefs (SoupURI *base, const char *body, int length)
 {
 	GPtrArray *hrefs = g_ptr_array_new ();
 	char *buf = g_strndup (body, length);
 	char *start = buf, *end;
 	char *href, *frag;
-	SoupUri *uri;
+	SoupURI *uri;
 
 	while ((start = strstr (start, "href"))) {
 		start += 4;
@@ -63,7 +63,7 @@ find_hrefs (const SoupUri *base, const char *body, int length)
 
 		if (!uri)
 			continue;
-		if (base->protocol != uri->protocol ||
+		if (base->scheme != uri->scheme ||
 		    base->port != uri->port ||
 		    g_ascii_strcasecmp (base->host, uri->host) != 0) {
 			soup_uri_free (uri);
@@ -100,9 +100,9 @@ mkdirs (const char *path)
 }
 
 static void
-print_header (gpointer name, gpointer value, gpointer data)
+print_header (const char *name, const char *value, gpointer data)
 {
-	printf ("%s: %s\n", (const char *)name, (const char *)value);
+	printf ("%s: %s\n", name, value);
 }
 
 static void
@@ -111,7 +111,7 @@ get_url (const char *url)
 	char *url_to_get, *slash, *name;
 	SoupMessage *msg;
 	int fd, i;
-	SoupUri *uri;
+	SoupURI *uri;
 	GPtrArray *hrefs;
 	const char *header;
 
@@ -164,7 +164,7 @@ get_url (const char *url)
 		printf ("HTTP/1.%d %d %s\n",
 			soup_message_get_http_version (msg),
 			msg->status_code, msg->reason_phrase);
-		soup_message_foreach_header (msg->response_headers, print_header, NULL);
+		soup_message_headers_foreach (msg->response_headers, print_header, NULL);
 		printf ("\n");
 	} else
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
@@ -176,7 +176,7 @@ get_url (const char *url)
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		if (recurse)
 			unlink (name);
-		header = soup_message_get_header (msg->response_headers, "Location");
+		header = soup_message_headers_get (msg->response_headers, "Location");
 		if (header) {
 			if (!debug)
 				printf ("  -> %s\n", header);
@@ -192,17 +192,17 @@ get_url (const char *url)
 		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	else
 		fd = STDOUT_FILENO;
-	write (fd, msg->response.body, msg->response.length);
+	write (fd, msg->response_body->data, msg->response_body->length);
 	if (!recurse)
 		return;
 	close (fd);
 
-	header = soup_message_get_header (msg->response_headers, "Content-Type");
+	header = soup_message_headers_get (msg->response_headers, "Content-Type");
 	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
 		return;
 
 	uri = soup_uri_new (url);
-	hrefs = find_hrefs (uri, msg->response.body, msg->response.length);
+	hrefs = find_hrefs (uri, msg->response_body->data, msg->response_body->length);
 	soup_uri_free (uri);
 	for (i = 0; i < hrefs->len; i++) {
 		get_url (hrefs->pdata[i]);
@@ -222,12 +222,14 @@ int
 main (int argc, char **argv)
 {
 	const char *cafile = NULL;
-	SoupUri *proxy = NULL;
+	SoupURI *proxy = NULL;
 	gboolean synchronous = FALSE;
 	int opt;
 
 	g_type_init ();
 	g_thread_init (NULL);
+
+	method = SOUP_METHOD_GET;
 
 	while ((opt = getopt (argc, argv, "c:dhp:rs")) != -1) {
 		switch (opt) {

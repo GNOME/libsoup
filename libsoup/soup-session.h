@@ -8,7 +8,6 @@
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-message.h>
-#include <libsoup/soup-message-queue.h>
 
 G_BEGIN_DECLS
 
@@ -19,33 +18,38 @@ G_BEGIN_DECLS
 #define SOUP_IS_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION))
 #define SOUP_SESSION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION, SoupSessionClass))
 
+typedef void (*SoupSessionCallback) (SoupSession           *session,
+				     SoupMessage           *msg,
+				     gpointer               user_data);
+
 struct SoupSession {
 	GObject parent;
 
-	/* protected */
-	SoupMessageQueue *queue;
 };
 
 typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*authenticate)   (SoupSession *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
-	void (*reauthenticate) (SoupSession *, SoupMessage *,
-				const char *auth_type, const char *auth_realm,
-				char **username, char **password);
+	void (*request_started) (SoupSession *, SoupMessage *, SoupSocket *);
+	void (*authenticate)    (SoupSession *, SoupMessage *,
+				 SoupAuth *, gboolean);
 
 	/* methods */
 	void  (*queue_message)   (SoupSession *session, SoupMessage *msg,
-				  SoupMessageCallbackFn callback,
+				  SoupSessionCallback callback,
 				  gpointer user_data);
 	void  (*requeue_message) (SoupSession *session, SoupMessage *msg);
 	guint (*send_message)    (SoupSession *session, SoupMessage *msg);
 
-	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg);
+	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg,
+				  guint status_code);
 
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSessionClass;
 
 GType soup_session_get_type (void);
@@ -58,16 +62,11 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
 #define SOUP_SESSION_TIMEOUT		"timeout"
 
-void            soup_session_add_filter       (SoupSession           *session,
-					       SoupMessageFilter     *filter);
-void            soup_session_remove_filter    (SoupSession           *session,
-					       SoupMessageFilter     *filter);
-
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
 void            soup_session_queue_message    (SoupSession           *session,
 					       SoupMessage           *msg,
-					       SoupMessageCallbackFn  callback,
+					       SoupSessionCallback    callback,
 					       gpointer               user_data);
 void            soup_session_requeue_message  (SoupSession           *session,
 					       SoupMessage           *msg);
@@ -75,17 +74,15 @@ void            soup_session_requeue_message  (SoupSession           *session,
 guint           soup_session_send_message     (SoupSession           *session,
 					       SoupMessage           *msg);
 
-void            soup_session_cancel_message   (SoupSession           *session,
+void            soup_session_pause_message    (SoupSession           *session,
 					       SoupMessage           *msg);
+void            soup_session_unpause_message  (SoupSession           *session,
+					       SoupMessage           *msg);
+
+void            soup_session_cancel_message   (SoupSession           *session,
+					       SoupMessage           *msg,
+					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
-
-
-/* Protected methods */
-SoupConnection *soup_session_get_connection       (SoupSession    *session,
-						   SoupMessage    *msg,
-						   gboolean       *try_pruning,
-						   gboolean       *is_new);
-gboolean        soup_session_try_prune_connection (SoupSession    *session);
 
 G_END_DECLS
 

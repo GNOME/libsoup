@@ -11,33 +11,16 @@
 #include "libsoup/soup.h"
 #include "libsoup/soup-session.h"
 
-#include "apache-wrapper.h"
+#include "test-utils.h"
 
-int errors = 0;
-int debug = 0;
-char *correct_response;
-guint correct_response_len;
-
-static void
-dprintf (int level, const char *format, ...)
-{
-	va_list args;
-
-	if (debug < level)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
+SoupBuffer *correct_response;
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
-	*username = g_strdup ("user2");
-	*password = g_strdup ("realm2");
+	if (!retrying)
+		soup_auth_authenticate (auth, "user2", "realm2");
 }
 
 static void
@@ -46,7 +29,7 @@ get_correct_response (const char *uri)
 	SoupSession *session;
 	SoupMessage *msg;
 
-	session = soup_session_async_new ();
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
@@ -55,8 +38,7 @@ get_correct_response (const char *uri)
 		exit (1);
 	}
 
-	correct_response_len = msg->response.length;
-	correct_response = g_strndup (msg->response.body, correct_response_len);
+	correct_response = soup_message_body_flatten (msg->response_body);
 
 	g_object_unref (msg);
 	soup_session_abort (session);
@@ -71,6 +53,7 @@ get_correct_response (const char *uri)
 
 typedef struct {
 	GMainLoop *loop;
+	SoupSession *session;
 	SoupMessage *msg;
 	guint timeout;
 	gboolean chunks_ready;
@@ -81,8 +64,10 @@ typedef struct {
 } FullyAsyncData;
 
 static void fully_async_got_headers (SoupMessage *msg, gpointer user_data);
-static void fully_async_got_chunk   (SoupMessage *msg, gpointer user_data);
-static void fully_async_finished    (SoupMessage *msg, gpointer user_data);
+static void fully_async_got_chunk   (SoupMessage *msg, SoupBuffer *chunk,
+				     gpointer user_data);
+static void fully_async_finished    (SoupSession *session, SoupMessage *msg,
+				     gpointer user_data);
 static gboolean fully_async_request_chunk (gpointer user_data);
 
 static void
@@ -98,12 +83,13 @@ do_fully_async_test (SoupSession *session,
 	loop = g_main_loop_new (NULL, FALSE);
 
 	uri = g_build_filename (base_uri, sub_uri, NULL);
-	dprintf (1, "GET %s\n", uri);
+	debug_printf (1, "GET %s\n", uri);
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	g_free (uri);
 
 	ad.loop = loop;
+	ad.session = session;
 	ad.msg = msg;
 	ad.chunks_ready = FALSE;
 	ad.chunk_wanted = FALSE;
@@ -112,8 +98,8 @@ do_fully_async_test (SoupSession *session,
 	ad.expected_status = expected_status;
 
 	/* Since we aren't going to look at the final value of
-	 * msg->response.body, we set OVERWRITE_CHUNKS, to tell
-	 * libsoup to not even bother generating it.
+	 * msg->response, we set OVERWRITE_CHUNKS, to tell libsoup to
+	 * not even bother generating it.
 	 */
 	soup_message_set_flags (msg, SOUP_MESSAGE_OVERWRITE_CHUNKS);
 
@@ -152,23 +138,23 @@ fully_async_request_chunk (gpointer user_data)
 	FullyAsyncData *ad = user_data;
 
 	if (!ad->did_first_timeout) {
-		dprintf (1, "  first timeout\n");
+		debug_printf (1, "  first timeout\n");
 		ad->did_first_timeout = TRUE;
 	} else
-		dprintf (2, "  timeout\n");
+		debug_printf (2, "  timeout\n");
 	ad->timeout = 0;
 
 	/* ad->chunks_ready and ad->chunk_wanted are used because
 	 * there's a race condition between the application requesting
 	 * the first chunk, and the message reaching a point where
 	 * it's actually ready to read chunks. If chunks_ready has
-	 * been set, we can just call soup_message_io_unpause() to
+	 * been set, we can just call soup_session_unpause_message() to
 	 * cause the first chunk to be read. But if it's not, we just
 	 * set chunk_wanted, to let the got_headers handler below know
 	 * that a chunk has already been requested.
 	 */
 	if (ad->chunks_ready)
-		soup_message_io_unpause (ad->msg);
+		soup_session_unpause_message (ad->session, ad->msg);
 	else
 		ad->chunk_wanted = TRUE;
 
@@ -180,15 +166,15 @@ fully_async_got_headers (SoupMessage *msg, gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
-	dprintf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
 		/* Let soup handle this one; this got_headers handler
 		 * will get called again next time around.
 		 */
 		return;
 	} else if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf (1, "  unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 		return;
 	}
@@ -202,42 +188,35 @@ fully_async_got_headers (SoupMessage *msg, gpointer user_data)
 	g_signal_connect (msg, "got_chunk",
 			  G_CALLBACK (fully_async_got_chunk), ad);
 	if (!ad->chunk_wanted)
-		soup_message_io_pause (msg);
+		soup_session_pause_message (ad->session, msg);
 }
 
 static void
-fully_async_got_chunk (SoupMessage *msg, gpointer user_data)
+fully_async_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
-	dprintf (2, "  got chunk from %lu - %lu\n",
-		 (unsigned long) ad->read_so_far,
-		 (unsigned long) ad->read_so_far + msg->response.length);
+	debug_printf (2, "  got chunk from %lu - %lu\n",
+		      (unsigned long) ad->read_so_far,
+		      (unsigned long) ad->read_so_far + chunk->length);
 
 	/* We've got a chunk, let's process it. In the case of the
 	 * test program, that means comparing it against
 	 * correct_response to make sure that we got the right data.
-	 * We're using SOUP_MESSAGE_OVERWRITE_CHUNKS, so msg->response
-	 * contains just the latest chunk. ad->read_so_far tells us
-	 * how far we've read so far.
-	 *
-	 * Note that since we're using OVERWRITE_CHUNKS, msg->response
-	 * is only good until we return from this signal handler; if
-	 * you wanted to process it later, you'd need to copy it
-	 * somewhere.
 	 */
-	if (ad->read_so_far + msg->response.length > correct_response_len) {
-		dprintf (1, "  read too far! (%lu > %lu)\n",
-			 (unsigned long) (ad->read_so_far + msg->response.length),
-			 (unsigned long) correct_response_len);
+	if (ad->read_so_far + chunk->length > correct_response->length) {
+		debug_printf (1, "  read too far! (%lu > %lu)\n",
+			      (unsigned long) (ad->read_so_far + chunk->length),
+			      (unsigned long) correct_response->length);
 		errors++;
-	} else if (memcmp (msg->response.body, correct_response + ad->read_so_far,
-			   msg->response.length) != 0) {
-		dprintf (1, "  data mismatch in block starting at %lu\n",
-			 (unsigned long) ad->read_so_far);
+	} else if (memcmp (chunk->data,
+			   correct_response->data + ad->read_so_far,
+			   chunk->length) != 0) {
+		debug_printf (1, "  data mismatch in block starting at %lu\n",
+			      (unsigned long) ad->read_so_far);
 		errors++;
 	}
-	ad->read_so_far += msg->response.length;
+	ad->read_so_far += chunk->length;
 
 	/* Now pause I/O, and prepare to read another chunk later.
 	 * (Again, the timeout just abstractly represents the idea of
@@ -245,20 +224,21 @@ fully_async_got_chunk (SoupMessage *msg, gpointer user_data)
 	 * point in the future. You wouldn't be using a timeout in a
 	 * real program.)
 	 */
-	soup_message_io_pause (msg);
+	soup_session_pause_message (ad->session, msg);
 	ad->chunk_wanted = FALSE;
 
 	ad->timeout = g_timeout_add (10, fully_async_request_chunk, ad);
 }
 
 static void
-fully_async_finished (SoupMessage *msg, gpointer user_data)
+fully_async_finished (SoupSession *session, SoupMessage *msg,
+		      gpointer user_data)
 {
 	FullyAsyncData *ad = user_data;
 
 	if (msg->status_code != ad->expected_status) {
-		dprintf (1, "  unexpected final status: %d %s !\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected final status: %d %s !\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 
@@ -277,17 +257,21 @@ fully_async_finished (SoupMessage *msg, gpointer user_data)
 
 typedef struct {
 	GMainLoop *loop;
-	GByteArray *chunk;
+	SoupSession *session;
+	SoupBuffer *chunk;
 } SyncAsyncData;
 
 static void        sync_async_send       (SoupSession *session,
 					  SoupMessage *msg);
-static GByteArray *sync_async_read_chunk (SoupMessage *msg);
+static gboolean    sync_async_is_finished(SoupMessage *msg);
+static SoupBuffer *sync_async_read_chunk (SoupMessage *msg);
 static void        sync_async_cleanup    (SoupMessage *msg);
 
 static void sync_async_got_headers (SoupMessage *msg, gpointer user_data);
-static void sync_async_copy_chunk  (SoupMessage *msg, gpointer user_data);
-static void sync_async_finished    (SoupMessage *msg, gpointer user_data);
+static void sync_async_copy_chunk  (SoupMessage *msg, SoupBuffer *chunk,
+				    gpointer user_data);
+static void sync_async_finished    (SoupSession *session, SoupMessage *msg,
+				    gpointer user_data);
 
 static void
 do_synchronously_async_test (SoupSession *session,
@@ -297,10 +281,10 @@ do_synchronously_async_test (SoupSession *session,
 	SoupMessage *msg;
 	char *uri;
 	gsize read_so_far;
-	GByteArray *chunk;
+	SoupBuffer *chunk;
 
 	uri = g_build_filename (base_uri, sub_uri, NULL);
-	dprintf (1, "GET %s\n", uri);
+	debug_printf (1, "GET %s\n", uri);
 
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	g_free (uri);
@@ -312,13 +296,13 @@ do_synchronously_async_test (SoupSession *session,
 
 	/* Send the message, get back headers */
 	sync_async_send (session, msg);
-	if (msg->status == SOUP_MESSAGE_STATUS_FINISHED &&
+	if (sync_async_is_finished (msg) &&
 	    expected_status == SOUP_STATUS_OK) {
-		dprintf (1, "  finished without reading response!\n");
+		debug_printf (1, "  finished without reading response!\n");
 		errors++;
-	} else if (msg->status != SOUP_MESSAGE_STATUS_FINISHED &&
+	} else if (!sync_async_is_finished (msg) &&
 		   expected_status != SOUP_STATUS_OK) {
-		dprintf (1, "  request failed to fail!\n");
+		debug_printf (1, "  request failed to fail!\n");
 		errors++;
 	}
 
@@ -327,34 +311,34 @@ do_synchronously_async_test (SoupSession *session,
 	 */
 	read_so_far = 0;
 	while ((chunk = sync_async_read_chunk (msg))) {
-		dprintf (2, "  read chunk from %lu - %lu\n",
-			 (unsigned long) read_so_far,
-			 (unsigned long) read_so_far + chunk->len);
+		debug_printf (2, "  read chunk from %lu - %lu\n",
+			      (unsigned long) read_so_far,
+			      (unsigned long) read_so_far + chunk->length);
 
-		if (read_so_far + chunk->len > correct_response_len) {
-			dprintf (1, "  read too far! (%lu > %lu)\n",
-				 (unsigned long) read_so_far + chunk->len,
-				 (unsigned long) correct_response_len);
+		if (read_so_far + chunk->length > correct_response->length) {
+			debug_printf (1, "  read too far! (%lu > %lu)\n",
+				      (unsigned long) read_so_far + chunk->length,
+				      (unsigned long) correct_response->length);
 			errors++;
 		} else if (memcmp (chunk->data,
-				   correct_response + read_so_far,
-				   chunk->len) != 0) {
-			dprintf (1, "  data mismatch in block starting at %lu\n",
-				 (unsigned long) read_so_far);
+				   correct_response->data + read_so_far,
+				   chunk->length) != 0) {
+			debug_printf (1, "  data mismatch in block starting at %lu\n",
+				      (unsigned long) read_so_far);
 			errors++;
 		}
-		read_so_far += chunk->len;
-		g_byte_array_free (chunk, TRUE);
+		read_so_far += chunk->length;
+		soup_buffer_free (chunk);
 	}
 
-	if (msg->status != SOUP_MESSAGE_STATUS_FINISHED ||
+	if (!sync_async_is_finished (msg) ||
 	    (msg->status_code == SOUP_STATUS_OK &&
-	     read_so_far != correct_response_len)) {
-		dprintf (1, "  loop ended before message was fully read!\n");
+	     read_so_far != correct_response->length)) {
+		debug_printf (1, "  loop ended before message was fully read!\n");
 		errors++;
 	} else if (msg->status_code != expected_status) {
-		dprintf (1, "  unexpected final status: %d %s !\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected final status: %d %s !\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 
@@ -382,6 +366,7 @@ sync_async_send (SoupSession *session, SoupMessage *msg)
 	 * want to pass that, rather than NULL, here.
 	 */
 	ad->loop = g_main_loop_new (NULL, FALSE);
+	ad->session = session;
 
 	g_signal_connect (msg, "got_headers",
 			  G_CALLBACK (sync_async_got_headers), ad);
@@ -413,42 +398,48 @@ sync_async_got_headers (SoupMessage *msg, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 
-	dprintf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
+	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
 		/* Let soup handle this one; this got_headers handler
 		 * will get called again next time around.
 		 */
 		return;
 	} else if (msg->status_code != SOUP_STATUS_OK) {
-		dprintf (1, "  unexpected status: %d %s\n",
-			 msg->status_code, msg->reason_phrase);
+		debug_printf (1, "  unexpected status: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 		return;
 	}
 
 	/* Stop I/O and return to the caller */
-	soup_message_io_pause (msg);
+	soup_session_pause_message (ad->session, msg);
 	g_main_loop_quit (ad->loop);
 }
 
-/* Tries to read a chunk. Returns %NULL on error/end-of-response. (The
- * cases can be distinguished by looking at msg->status and
- * msg->status_code.)
- */
-static GByteArray *
+static gboolean
+sync_async_is_finished (SoupMessage *msg)
+{
+	SyncAsyncData *ad = g_object_get_data (G_OBJECT (msg), "SyncAsyncData");
+
+	/* sync_async_finished clears ad->loop */
+	return ad->loop == NULL;
+}
+
+/* Tries to read a chunk. Returns %NULL on error/end-of-response. */
+static SoupBuffer *
 sync_async_read_chunk (SoupMessage *msg)
 {
 	SyncAsyncData *ad = g_object_get_data (G_OBJECT (msg), "SyncAsyncData");
 	guint handler;
 
-	if (msg->status == SOUP_MESSAGE_STATUS_FINISHED)
+	if (sync_async_is_finished (msg))
 		return NULL;
 
 	ad->chunk = NULL;
 	handler = g_signal_connect (msg, "got_chunk",
 				    G_CALLBACK (sync_async_copy_chunk),
 				    ad);
-	soup_message_io_unpause (msg);
+	soup_session_unpause_message (ad->session, msg);
 	g_main_loop_run (ad->loop);
 	g_signal_handler_disconnect (msg, handler);
 
@@ -456,27 +447,21 @@ sync_async_read_chunk (SoupMessage *msg)
 }
 
 static void
-sync_async_copy_chunk (SoupMessage *msg, gpointer user_data)
+sync_async_copy_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 
-	/* It's unfortunate that we have to do an extra copy here,
-	 * but the data in msg->response.body won't last beyond
-	 * the invocation of this handler.
-	 */
-	ad->chunk = g_byte_array_new ();
-	g_byte_array_append (ad->chunk, (gpointer)msg->response.body,
-			     msg->response.length);
+	ad->chunk = soup_buffer_copy (chunk);
 
 	/* Now pause and return from the g_main_loop_run() call in
 	 * sync_async_read_chunk().
 	 */
-	soup_message_io_pause (msg);
+	soup_session_pause_message (ad->session, msg);
 	g_main_loop_quit (ad->loop);
 }
 
 static void
-sync_async_finished (SoupMessage *msg, gpointer user_data)
+sync_async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SyncAsyncData *ad = user_data;
 
@@ -486,6 +471,8 @@ sync_async_finished (SoupMessage *msg, gpointer user_data)
 	 * the final tests there.
 	 */
 	g_main_loop_quit (ad->loop);
+	g_main_loop_unref (ad->loop);
+	ad->loop = NULL;
 }
 
 static void
@@ -493,7 +480,8 @@ sync_async_cleanup (SoupMessage *msg)
 {
 	SyncAsyncData *ad = g_object_get_data (G_OBJECT (msg), "SyncAsyncData");
 
-	g_main_loop_unref (ad->loop);
+	if (ad->loop)
+		g_main_loop_unref (ad->loop);
 	g_free (ad);
 }
 
@@ -503,31 +491,15 @@ main (int argc, char **argv)
 {
 	SoupSession *session;
 	char *base_uri;
-	int opt;
 
-	g_type_init ();
-	g_thread_init (NULL);
+	test_init (argc, argv, NULL);
+	apache_init ();
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug++;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d [-d]]\n", argv[0]);
-			return 1;
-		}
-	}
-
-	if (!apache_init ()) {
-		fprintf (stderr, "Could not start apache\n");
-		return 1;
-	}
 	base_uri = "http://localhost:47524/";
 	get_correct_response (base_uri);
 
-	dprintf (1, "\nFully async, fast requests\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nFully async, fast requests\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -539,8 +511,8 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	dprintf (1, "\nFully async, slow requests\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nFully async, slow requests\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_fully_async_test (session, base_uri, "/",
@@ -552,8 +524,8 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	dprintf (1, "\nSynchronously async\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "\nSynchronously async\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	do_synchronously_async_test (session, base_uri, "/",
@@ -566,16 +538,8 @@ main (int argc, char **argv)
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	g_free (correct_response);
+	soup_buffer_free (correct_response);
 
-	apache_cleanup ();
-	g_main_context_unref (g_main_context_default ());
-
-	dprintf (1, "\n");
-	if (errors) {
-		printf ("pull-api: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("pull-api: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

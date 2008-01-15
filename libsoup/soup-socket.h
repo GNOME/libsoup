@@ -7,6 +7,7 @@
 #define SOUP_SOCKET_H 1
 
 #include <libsoup/soup-types.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -26,46 +27,29 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*connect_result) (SoupSocket *, guint);
 	void (*readable)       (SoupSocket *);
 	void (*writable)       (SoupSocket *);
 	void (*disconnected)   (SoupSocket *);
 
 	void (*new_connection) (SoupSocket *, SoupSocket *);
+
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupSocketClass;
 
+#define SOUP_SOCKET_LOCAL_ADDRESS    "local-address"
+#define SOUP_SOCKET_REMOTE_ADDRESS   "remote-address"
 #define SOUP_SOCKET_FLAG_NONBLOCKING "non-blocking"
-#define SOUP_SOCKET_FLAG_NODELAY     "nodelay"
-#define SOUP_SOCKET_FLAG_REUSEADDR   "reuseaddr"
-#define SOUP_SOCKET_FLAG_CLOEXEC     "cloexec"
 #define SOUP_SOCKET_IS_SERVER        "is-server"
 #define SOUP_SOCKET_SSL_CREDENTIALS  "ssl-creds"
 #define SOUP_SOCKET_ASYNC_CONTEXT    "async-context"
 #define SOUP_SOCKET_TIMEOUT	     "timeout"
 
-/**
- * SoupSocketCallback:
- * @sock: the #SoupSocket
- * @status: an HTTP status code indicating success or failure
- * @user_data: the data passed to soup_socket_client_new_async()
- *
- * The callback function passed to soup_socket_client_new_async().
- **/
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,
-					       gpointer            user_data);
-
-/**
- * SoupSocketListenerCallback:
- * @listener: the listening #SoupSocket
- * @sock: the newly-received #SoupSocket
- * @user_data: the data passed to soup_socket_server_new().
- *
- * The callback function passed to soup_socket_server_new(), which
- * receives new connections.
- **/
-typedef void (*SoupSocketListenerCallback)    (SoupSocket         *listener,
-					       SoupSocket         *sock,
 					       gpointer            user_data);
 
 GType soup_socket_get_type (void);
@@ -73,44 +57,29 @@ GType soup_socket_get_type (void);
 SoupSocket    *soup_socket_new                (const char         *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;
 
-guint          soup_socket_connect            (SoupSocket         *sock,
-					       SoupAddress        *remote_addr);
-gboolean       soup_socket_listen             (SoupSocket         *sock,
-					       SoupAddress        *local_addr);
-gboolean       soup_socket_start_ssl          (SoupSocket         *sock);
+void           soup_socket_connect_async      (SoupSocket         *sock,
+					       GCancellable       *cancellable,
+					       SoupSocketCallback  callback,
+					       gpointer            user_data);
+guint          soup_socket_connect_sync       (SoupSocket         *sock,
+					       GCancellable       *cancellable);
+
+gboolean       soup_socket_listen             (SoupSocket         *sock);
+
+gboolean       soup_socket_start_ssl          (SoupSocket         *sock,
+					       GCancellable       *cancellable);
 gboolean       soup_socket_start_proxy_ssl    (SoupSocket         *sock,
-					       const char         *ssl_host);
+					       const char         *ssl_host,
+					       GCancellable       *cancellable);
+gboolean       soup_socket_is_ssl             (SoupSocket         *sock);
 
 void           soup_socket_disconnect         (SoupSocket         *sock);
 gboolean       soup_socket_is_connected       (SoupSocket         *sock);
-
-SoupSocket    *soup_socket_client_new_async   (const char         *hostname,
-					       guint               port,
-					       gpointer            ssl_creds,
-					       SoupSocketCallback  callback,
-					       gpointer            user_data);
-SoupSocket    *soup_socket_client_new_sync    (const char         *hostname,
-					       guint               port,
-					       gpointer            ssl_creds,
-					       guint              *status_ret);
-SoupSocket    *soup_socket_server_new         (SoupAddress        *local_addr,
-					       gpointer            ssl_creds,
-					       SoupSocketListenerCallback callback,
-					       gpointer            user_data);
 
 SoupAddress   *soup_socket_get_local_address  (SoupSocket         *sock);
 SoupAddress   *soup_socket_get_remote_address (SoupSocket         *sock);
 
 
-/**
- * SoupSocketIOStatus:
- * @SOUP_SOCKET_OK: Success
- * @SOUP_SOCKET_WOULD_BLOCK: Cannot read/write any more at this time
- * @SOUP_SOCKET_EOF: End of file
- * @SOUP_SOCKET_ERROR: Other error
- *
- * Return value from the #SoupSocket IO methods.
- **/
 typedef enum {
 	SOUP_SOCKET_OK,
 	SOUP_SOCKET_WOULD_BLOCK,
@@ -121,19 +90,25 @@ typedef enum {
 SoupSocketIOStatus  soup_socket_read       (SoupSocket         *sock,
 					    gpointer            buffer,
 					    gsize               len,
-					    gsize              *nread);
+					    gsize              *nread,
+					    GCancellable       *cancellable,
+					    GError            **error);
 SoupSocketIOStatus  soup_socket_read_until (SoupSocket         *sock,
 					    gpointer            buffer,
 					    gsize               len,
 					    gconstpointer       boundary,
 					    gsize               boundary_len,
 					    gsize              *nread,
-					    gboolean           *got_boundary);
+					    gboolean           *got_boundary,
+					    GCancellable       *cancellable,
+					    GError            **error);
 
 SoupSocketIOStatus  soup_socket_write      (SoupSocket         *sock,
 					    gconstpointer       buffer,
 					    gsize               len,
-					    gsize              *nwrote);
+					    gsize              *nwrote,
+					    GCancellable       *cancellable,
+					    GError            **error);
 
 G_END_DECLS
 

@@ -13,53 +13,69 @@
 #include <unistd.h>
 
 #include <libsoup/soup.h>
-#include <libsoup/soup-xmlrpc-message.h>
-#include <libsoup/soup-xmlrpc-response.h>
 
-SoupSession *session;
 GMainLoop *loop;
+
+static void
+print_value (GValue *value)
+{
+	if (G_VALUE_HOLDS_STRING (value))
+		printf ("%s", g_value_get_string (value));
+	else if (G_VALUE_HOLDS_INT (value))
+		printf ("%d", g_value_get_int (value));
+	else if (G_VALUE_HOLDS_DOUBLE (value))
+		printf ("%f", g_value_get_double (value));
+	else if (G_VALUE_TYPE (value) == G_TYPE_VALUE_ARRAY) {
+		GValueArray *array = g_value_get_boxed (value);
+		int i;
+		printf ("[ ");
+		for (i = 0; i < array->n_values; i++) {
+			if (i != 0)
+				printf (", ");
+			print_value (&array->values[i]);
+		}
+		printf (" ]");
+	} else
+		printf ("(%s)", g_type_name (G_VALUE_TYPE (value)));
+}
 
 static void
 print_struct_field (gpointer key, gpointer value, gpointer data)
 {
-	char *str;
-	if (soup_xmlrpc_value_get_string (value, &str))
-		printf ("%s: %s\n", (char *)key, str);
+	printf ("%s: ", (char *)key);
+	print_value (value);
+	printf ("\n");
 }
 
 static void
-got_response (SoupMessage *msg, gpointer user_data)
+got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-	SoupXmlrpcResponse *response;
-	SoupXmlrpcValue *value;
 	GHashTable *hash;
+	GError *error = NULL;
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		fprintf (stderr, "%d %s\n", msg->status_code, msg->reason_phrase);
 		exit (1);
 	}
 
-	response = soup_xmlrpc_message_parse_response (SOUP_XMLRPC_MESSAGE (msg));
-	if (!response) {
-		fprintf (stderr, "Could not parse XMLRPC response\n");
-		exit (1);
-	}
-
-	value = soup_xmlrpc_response_get_value (response);
-	if (!value) {
-		fprintf (stderr, "No response value in XMLRPC response\n");
-		exit (1);
-	}
-
-	if (!soup_xmlrpc_value_get_struct (value, &hash)) {
-		fprintf (stderr, "Could not extract result from XMLRPC response\n");
+	if (!soup_xmlrpc_extract_method_response (msg->response_body->data,
+						  msg->response_body->length,
+						  &error,
+						  G_TYPE_HASH_TABLE, &hash)) {
+		if (!error) {
+			fprintf (stderr, "Could not parse XMLRPC response:\n%d %s\n\n",
+				 msg->status_code, msg->reason_phrase);
+			fprintf (stderr, "%s\n", msg->response_body->data);
+		} else {
+			fprintf (stderr, "XML-RPC error: %d %s",
+				 error->code, error->message);
+		}
 		exit (1);
 	}
 
 	g_hash_table_foreach (hash, print_struct_field, NULL);
 	g_hash_table_destroy (hash);
 
-	g_object_unref (response);
 	g_main_quit (loop);
 }
 
@@ -73,8 +89,9 @@ usage (void)
 int
 main (int argc, char **argv)
 {
-	SoupUri *proxy = NULL;
-	SoupXmlrpcMessage *msg;
+	SoupSession *session;
+	SoupURI *proxy = NULL;
+	SoupMessage *msg;
 	const char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
 	int opt, bug;
 
@@ -113,19 +130,13 @@ main (int argc, char **argv)
 		SOUP_SESSION_PROXY_URI, proxy,
 		NULL);
 
-	msg = soup_xmlrpc_message_new (uri);
+	msg = soup_xmlrpc_request_new (uri, "bugzilla.getBug",
+				       G_TYPE_INT, bug,
+				       G_TYPE_INVALID);
 	if (!msg) {
 		fprintf (stderr, "Could not create web service request to '%s'\n", uri);
 		exit (1);
 	}
-
-	soup_xmlrpc_message_start_call (msg, "bugzilla.getBug");
-	soup_xmlrpc_message_start_param (msg);
-	soup_xmlrpc_message_write_int (msg, bug);
-	soup_xmlrpc_message_end_param (msg);
-	soup_xmlrpc_message_end_call (msg);
-
-	soup_xmlrpc_message_persist (msg);
 	soup_session_queue_message (session, SOUP_MESSAGE (msg),
 				    got_response, NULL);
 

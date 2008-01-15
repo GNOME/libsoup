@@ -13,35 +13,37 @@ G_BEGIN_DECLS
 
 /* HTTP Header Parsing */
 
-gboolean    soup_headers_parse_request      (const char       *str, 
-					     int               len, 
-					     GHashTable       *dest, 
-					     char            **req_method,
-					     char            **req_path,
-					     SoupHttpVersion  *ver);
+guint       soup_headers_parse_request      (const char          *str,
+					     int                  len,
+					     SoupMessageHeaders  *req_headers,
+					     char               **req_method,
+					     char               **req_path,
+					     SoupHTTPVersion     *ver);
 
-gboolean    soup_headers_parse_status_line  (const char        *status_line,
-					     SoupHttpVersion  *ver,
-					     guint            *status_code,
-					     char            **reason_phrase);
+gboolean    soup_headers_parse_status_line  (const char          *status_line,
+					     SoupHTTPVersion     *ver,
+					     guint               *status_code,
+					     char               **reason_phrase);
 
-gboolean    soup_headers_parse_response     (const char       *str, 
-					     int               len, 
-					     GHashTable       *dest,
-					     SoupHttpVersion  *ver,
-					     guint            *status_code,
-					     char            **reason_phrase);
+gboolean    soup_headers_parse_response     (const char          *str,
+					     int                  len,
+					     SoupMessageHeaders  *headers,
+					     SoupHTTPVersion     *ver,
+					     guint               *status_code,
+					     char               **reason_phrase);
 
-/* HTTP parameterized header parsing */
+/* Individual header parsing */
 
-char       *soup_header_param_decode_token  (char            **in);
+GSList     *soup_header_parse_list          (const char       *header);
+GSList     *soup_header_parse_quality_list  (const char       *header,
+					     GSList          **unacceptable);
+void        soup_header_free_list           (GSList           *list);
 
-GHashTable *soup_header_param_parse_list    (const char       *header);
+gboolean    soup_header_contains            (const char       *header,
+					     const char       *token);
 
-char       *soup_header_param_copy_token    (GHashTable       *tokens, 
-					     char             *t);
-
-void        soup_header_param_destroy_hash  (GHashTable       *table);
+GHashTable *soup_header_parse_param_list    (const char       *header);
+void        soup_header_free_param_list     (GHashTable       *param_list);
 
 G_END_DECLS
 

@@ -8,13 +8,6 @@
 
 #include <glib.h>
 
-/**
- * SoupSSLType:
- * @SOUP_SSL_TYPE_CLIENT: the client side of an SSL connection
- * @SOUP_SSL_TYPE_SERVER: the server side of an SSL connection
- *
- * What kind of SSL connection this is.
- **/
 typedef enum {
 	SOUP_SSL_TYPE_CLIENT = 0,
 	SOUP_SSL_TYPE_SERVER
@@ -33,15 +26,5 @@ GIOChannel         *soup_ssl_wrap_iochannel          (GIOChannel         *sock,
 						      SoupSSLType         type,
 						      const char         *remote_host,
 						      SoupSSLCredentials *creds);
-
-#define SOUP_SSL_ERROR soup_ssl_error_quark()
-
-GQuark soup_ssl_error_quark (void);
-
-typedef enum {
-	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ,
-	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE,
-	SOUP_SSL_ERROR_CERTIFICATE,
-} SoupSocketError;
 
 #endif /* SOUP_SSL_H */

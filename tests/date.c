@@ -9,55 +9,94 @@
 #include <libsoup/soup-date.h>
 #include <glib.h>
 
-static int errors = 0;
+#include "test-utils.h"
 
-#define RFC1123_DATE   "Sun, 06 Nov 1994 08:49:37 GMT"
-#define RFC850_DATE    "Sunday, 06-Nov-94 08:49:37 GMT"
-#define ASCTIME_DATE   "Sun Nov  6 08:49:37 1994"
-#define ISO8601_1_DATE "1994-11-06T08:49:37Z"
-#define ISO8601_2_DATE "19941106T08:49:37Z"
-#define ISO8601_3_DATE "19941106T08:49:37+00:00"
-#define ISO8601_4_DATE "19941106T084937+00:00"
+const char *date_tests[] = {
+	/* rfc1123-date, and broken variants */
+	"Sun, 06 Nov 2004 08:09:07 GMT",
+	"Sun, 6 Nov 2004 08:09:07 GMT",
+	"Sun,  6 Nov 2004 08:09:07 GMT",
 
-#define EXPECTED     784111777
+	/* rfc850-date, and broken variants */
+	"Sunday, 06-Nov-04 08:09:07 GMT",
+	"Sunday, 6-Nov-04 08:09:07 GMT",
+	"Sunday,  6-Nov-04 08:09:07 GMT",
+	"Sunday, 06-Nov-104 08:09:07 GMT",
+
+	/* asctime-date, and broken variants */
+	"Sun Nov  6 08:09:07 2004",
+	"Sun Nov 06 08:09:07 2004",
+	"Sun Nov 6 08:09:07 2004",
+	"Sun Nov  6 08:09:07 2004 GMT",
+
+	/* ISO 8601 */
+	"2004-11-06T08:09:07Z",
+	"20041106T08:09:07Z",
+	"20041106T08:09:07+00:00",
+	"20041106T080907+00:00",
+
+	/* Netscape cookie spec date, and broken variants */
+	"Sun, 06-Nov-2004 08:09:07 GMT",
+	"Sun, 6-Nov-2004 08:09:07 GMT",
+	"Sun,  6-Nov-2004 08:09:07 GMT",
+
+	/* Original version of Netscape cookie spec, and broken variants */
+	"Sun, 06-Nov-04 08:09:07 GMT",
+	"Sun, 6-Nov-04 08:09:07 GMT",
+	"Sun,  6-Nov-04 08:09:07 GMT",
+	"Sun, 06-Nov-104 08:09:07 GMT",
+
+	/* Netscape cookie spec example syntax, and broken variants */
+	"Sunday, 06-Nov-04 08:09:07 GMT",
+	"Sunday, 6-Nov-04 08:09:07 GMT",
+	"Sunday,  6-Nov-04 08:09:07 GMT",
+	"Sunday, 06-Nov-104 08:09:07 GMT",
+	"Sunday, 06-Nov-2004 08:09:07 GMT",
+	"Sunday, 6-Nov-2004 08:09:07 GMT",
+	"Sunday,  6-Nov-2004 08:09:07 GMT",
+
+	/* Miscellaneous broken formats seen on the web */
+	"Sun 06-Nov-2004  08:9:07",
+	"Sunday, 06-Nov-04 8:9:07 GMT",
+	"Sun, 06 Nov 2004 08:09:7 GMT",
+	"Sun, 06-Nov-2004 08:09:07"
+};
+
+#define TIME_T 1099728547L
+#define TIME_T_STRING "1099728547"
 
 static void
-check (const char *test, const char *date, time_t got)
+check (const char *strdate, SoupDate *date)
 {
-	if (got == EXPECTED)
+	if (date &&
+	    date->year == 2004 && date->month == 11 && date->day == 6 &&
+	    date->hour == 8 && date->minute == 9 && date->second == 7) {
+		soup_date_free (date);
 		return;
+	}
 
-	fprintf (stderr, "%s date parsing failed for '%s'.\n", test, date);
-	fprintf (stderr, "  expected: %lu, got: %lu\n\n",
-		 (unsigned long)EXPECTED, (unsigned long)got);
+	fprintf (stderr, "date parsing failed for '%s'.\n", strdate);
+	if (date) {
+		fprintf (stderr, "  got: %d %d %d - %d %d %d\n\n",
+			 date->year, date->month, date->day,
+			 date->hour, date->minute, date->second);
+		soup_date_free (date);
+	}
 	errors++;
 }
 
 int
 main (int argc, char **argv)
 {
-	char *date;
+	int i;
 
-	check ("RFC1123", RFC1123_DATE, soup_date_parse (RFC1123_DATE));
-	check ("RFC850", RFC850_DATE, soup_date_parse (RFC850_DATE));
-	check ("asctime", ASCTIME_DATE, soup_date_parse (ASCTIME_DATE));
-	check ("iso8610[1]", ISO8601_1_DATE, soup_date_iso8601_parse (ISO8601_1_DATE));
-	check ("iso8610[2]", ISO8601_2_DATE, soup_date_iso8601_parse (ISO8601_2_DATE));
-	check ("iso8610[3]", ISO8601_3_DATE, soup_date_iso8601_parse (ISO8601_3_DATE));
-	check ("iso8610[4]", ISO8601_4_DATE, soup_date_iso8601_parse (ISO8601_4_DATE));
+	test_init (argc, argv, NULL);
 
-	date = soup_date_generate (EXPECTED);
-	if (strcmp (date, RFC1123_DATE) != 0) {
-		fprintf (stderr, "date generation failed.\n");
-		fprintf (stderr, "  expected: %s\n  got:      %s\n\n",
-			 RFC1123_DATE, date);
-		errors++;
+	for (i = 0; i < G_N_ELEMENTS (date_tests); i++) {
+		check (date_tests[i], soup_date_new_from_string (date_tests[i]));
 	}
-	g_free (date);
+	check (TIME_T_STRING, soup_date_new_from_time_t (TIME_T));
 
-	if (errors == 0)
-		printf ("date: OK\n");
-	else
-		fprintf (stderr, "date: %d errors\n", errors);
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

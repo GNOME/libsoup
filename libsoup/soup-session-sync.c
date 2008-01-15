@@ -10,8 +10,17 @@
 #endif
 
 #include "soup-session-sync.h"
-#include "soup-connection.h"
+#include "soup-session-private.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
+
+/**
+ * SECTION:soup-session-sync
+ * @short_description: Soup session for blocking I/O in multithreaded programs.
+ *
+ * #SoupSessionSync is an implementation of #SoupSession that uses
+ * synchronous I/O, intended for use in multi-threaded programs.
+ **/
 
 typedef struct {
 	GMutex *lock;
@@ -20,10 +29,10 @@ typedef struct {
 #define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
 static void  queue_message  (SoupSession *session, SoupMessage *msg,
-			     SoupMessageCallbackFn callback,
-			     gpointer user_data);
+			     SoupSessionCallback callback, gpointer user_data);
 static guint send_message   (SoupSession *session, SoupMessage *msg);
-static void  cancel_message (SoupSession *session, SoupMessage *msg);
+static void  cancel_message (SoupSession *session, SoupMessage *msg,
+			     guint status_code);
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
@@ -102,7 +111,7 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 typedef struct {
 	SoupSession *session;
 	SoupMessage *msg;
-	SoupMessageCallbackFn callback;
+	SoupSessionCallback callback;
 	gpointer user_data;
 } SoupSessionSyncAsyncData;
 
@@ -111,7 +120,7 @@ async_data_free (SoupSessionSyncAsyncData *sad)
 {
 	g_object_unref (sad->session);
 	g_object_unref (sad->msg);
-	g_free (sad);
+	g_slice_free (SoupSessionSyncAsyncData, sad);
 }
 
 static gboolean
@@ -119,7 +128,7 @@ queue_message_callback (gpointer data)
 {
 	SoupSessionSyncAsyncData *sad = data;
 
-	sad->callback (sad->msg, sad->user_data);
+	sad->callback (sad->session, sad->msg, sad->user_data);
 	async_data_free (sad);
 	return FALSE;
 }
@@ -141,11 +150,11 @@ queue_message_thread (gpointer data)
 
 static void
 queue_message (SoupSession *session, SoupMessage *msg,
-	       SoupMessageCallbackFn callback, gpointer user_data)
+	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionSyncAsyncData *sad;
 
-	sad = g_new (SoupSessionSyncAsyncData, 1);
+	sad = g_slice_new (SoupSessionSyncAsyncData);
 	sad->session = g_object_ref (session);
 	sad->msg = g_object_ref (msg);
 	sad->callback = callback;
@@ -181,7 +190,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 				goto try_again;
 			else if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 				conn = NULL;
-			else if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
+			else if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
 				/* Message was cancelled while we were
 				 * connecting.
 				 */
@@ -201,7 +210,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	g_cond_wait (priv->cond, priv->lock);
 
 	/* See if something bad happened */
-	if (msg->status == SOUP_MESSAGE_STATUS_FINISHED) {
+	if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
 		g_mutex_unlock (priv->lock);
 		return NULL;
 	}
@@ -225,17 +234,17 @@ send_message (SoupSession *session, SoupMessage *msg)
 
 		soup_connection_send_request (conn, msg);
 		g_cond_broadcast (priv->cond);
-	} while (msg->status != SOUP_MESSAGE_STATUS_FINISHED);
+	} while (soup_message_get_io_status (msg) != SOUP_MESSAGE_IO_STATUS_FINISHED);
 
 	return msg->status_code;
 }
 
 static void
-cancel_message (SoupSession *session, SoupMessage *msg)
+cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg);
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg, status_code);
 	g_cond_broadcast (priv->cond);
 }
 

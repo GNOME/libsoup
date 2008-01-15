@@ -1,7 +1,808 @@
-2008-01-09  Benjamin Otte  <otte@gnome.org>
+2008-01-15  Dan Winship  <danw@gnome.org>
+
+	* Merge libsoup-2.4 branch to trunk
+	
+2008-01-15  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-dns.c (resolve_status): Fix the logic here
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/porting-2.2-2.4.xml: add a few more updates
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-digest.c: Use GChecksum for MD5
+
+	* libsoup/soup-md5-utils.[ch]: gone
+
+2008-01-15  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server.c (soup_server_run_async):
+	(soup_server_quit): Don't ref/unref the server here. It doesn't
+	match the way other things work. #494128, Mathias Hasselmann.
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-address.h:
+	* libsoup/soup-auth-domain-basic.h:
+	* libsoup/soup-auth-domain-digest.h:
+	* libsoup/soup-auth-domain.h:
+	* libsoup/soup-auth.h:
+	* libsoup/soup-logger.h:
+	* libsoup/soup-message.h:
+	* libsoup/soup-server.h:
+	* libsoup/soup-session-async.h:
+	* libsoup/soup-session-sync.h:
+	* libsoup/soup-session.h:
+	* libsoup/soup-socket.h: Add padding for future expansion to class
+	structs
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c: Add more documentation.
+	(soup_uri_is_https): gone, replaced by SOUP_URI_SCHEME_HTTP /
+	SOUP_URI_SCHEME_HTTPS
+	(soup_uri_new): allow passing NULL to get back an "empty" SoupURI.
+	(soup_uri_to_string): rename just_path to just_path_and_query, to
+	avoid fooling people.
+	(soup_uri_decode, soup_uri_normalize): Change these to return the
+	decoded/normalized string rather than modifying it in place.
+	(soup_uri_set_scheme, etc): provide setters for SoupURI parts.
+	(soup_uri_set_query_from_form): set uri->query via
+	soup_form_encode_urlencoded().
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* configure.in: require glib 2.15.0, and gio
+
+	* libsoup/soup-dns.c (soup_dns_lookup_resolve)
+	(soup_dns_lookup_resolve_async): Add GCancellables, and support
+	cancellation of DNS lookups.
+	(resolve_address, resolve_name): If we get a DNS failure (eg,
+	because we're disconnected from the network), don't cache that
+	result, just try again next time someone asks. [#508593]
+
+	* libsoup/soup-address.c (soup_address_resolve_async)
+	(soup_address_resolve_sync): Add GCancellables, pass them to
+	soup-dns.
+
+	* libsoup/soup-socket.c (soup_socket_connect_async)
+	(soup_socket_connect_sync): Add GCancellables and implement
+	cancellation.
+	(soup_socket_start_ssl, soup_socket_start_proxy_ssl)
+	(soup_socket_read, soup_socket_read_until, soup_socket_write): add
+	GCancellables, though these routines don't actually implement
+	cancellation yet.
+	(soup_socket_disconnect): Don't close() the socket if someone is
+	doing I/O on it, as that creates a race condition. (The fd number
+	might be quickly recycled.) Instead, keep the socket open but
+	dead, via shutdown().
+
+2008-01-14  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-socket.c: (soup_socket_class_init): clarify docs for
-	new-connetion signal.
+	new-connection signal.
+
+2008-01-14  Dan Winship  <danw@gnome.org>
+
+	* tests/test-utils.c: renamed from apache-wrappers and expanded.
+	(test_init): do option parsing and general setup
+	(test_cleanup): print error count and do cleanup
+	(debug_printf): define here rather than in each test, and rename
+	from dprintf [#501631]
+	(soup_test_server_new): create a SoupServer, optionally in its own
+	thread, and clean it up when exiting.
+	(soup_test_session_new): create a SoupSession, optionally with
+	an attached SoupLogger (if requested via command line)
+	
+	* tests/*.c: use test-utils
+
+2008-01-13  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-logger.c: New HTTP debug logging object. (Based on
+	E2K_DEBUG and its clones.)
+
+	* libsoup/soup-message.c (soup_message_class_init)
+	(soup_message_add_header_handler)
+	(soup_message_add_status_code_handler): Change things around a
+	little; remove the "requeuing or cancelling the message stops
+	signal emission" rule, and instead make that be a feature of just
+	the header and status code handlers. (Makes the basic signal
+	handlers behave more predictably.)
+
+2008-01-11  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-domain.c (soup_auth_domain_set_filter):
+	* libsoup/soup-auth-domain-basic.c
+	(soup_auth_domain_basic_set_auth_callback):
+	* libsoup/soup-auth-domain-digest.c
+	(soup_auth_domain_digest_set_auth_callback):
+	* libsoup/soup-message.c (soup_message_cleanup_response)
+	(soup_message_set_flags, soup_message_set_http_version)
+	(soup_message_set_uri, soup_message_set_status)
+	(soup_message_set_status_full): 
+	* libsoup/soup-message-client-io.c (parse_response_headers): 
+	* libsoup/soup-message-server-io.c (parse_request_headers):
+	Call g_object_notify() when changing properties.	
+
+	* libsoup/soup-session.c (soup_session_class_init): bump the
+	default value of SOUP_SESSION_MAX_CONNS_PER_HOST down to 2, per
+	RFC 2616.
+
+	* libsoup/soup-message-body.c (soup_buffer_copy): When copying a
+	TEMPORARY buffer, keep a reference to the copy, so that a second
+	copy will get that same buffer, rather than actually copying it
+	again.
+
+	* libsoup/soup-types.h: remove SoupMessageFilter, which doesn't
+	exist any more
+
+2008-01-07  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_class_init): Change
+	request_started signal to have a SoupSocket as its last parameter.
+
+	* libsoup/soup-server.c: Fix request_* signals to all be (server,
+	msg, client) rather than (server, client, msg).
+
+2008-01-07  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/porting-2.2-2.4.xml: Notes on porting from 2.2 to
+	2.4
+
+2008-01-07  Dan Winship  <danw@gnome.org>
+
+	* libsoup/*.c: Move gtk-doc stuff from docs/reference/tmpl/ to the
+	C files themselves. Some updates.
+
+	* docs/reference/Makefile.am: fix (kludge?) this up to not require
+	tmpl/ to exist
+
+	* docs/reference/client-howto.xml: 
+	* docs/reference/server-howto.xml: update
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-soap-message.c:
+	* libsoup/soup-soap-response.c: For the second time, remove SOAP
+	support from libsoup... These APIs are not really all that helpful
+	in the grand scheme of SOAPiness, and are only used by the
+	Evolution GroupWise backend, which can just import this code and
+	integrate it better there.
+
+	* libsoup/soup-misc.c (soup_xml_real_node): 
+	* libsoup/soup-xmlrpc.c: Move soup_xml_real_node out of soup-misc
+	to soup-xmlrpc, and make it private. libxml is no longer exposed
+	in the public API.
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c (soup_date_new_from_now): new method to
+	generate a date relative to now.
+	(soup_date_new, etc): document SoupDate methods
+
+	* libsoup/soup-server.c (got_headers): set Date header, as
+	required by RFC 2616
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server.c (got_headers): if raw_paths isn't set,
+	decode the request's uri->path before doing anything else
+	(soup_server_class_init): add "raw-paths" property, to tell
+	SoupServer to NOT decode the Request-URI path.
+
+	* libsoup/soup-auth-domain.c (soup_auth_domain_covers): Revert
+	earlier path-decoding change; that happens at the SoupServer level
+	now.
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.c (soup_buffer_get_type): Register
+	SoupBuffer as a boxed type.
+
+	* libsoup/soup-message.c (soup_message_class_init): Use
+	SOUP_TYPE_BUFFER in got_chunk signal definition
+
+	* libsoup/soup-server.c (soup_client_context_get_type): Register
+	SoupClientContext as a pointer type
+	(soup_server_class_init): use SOUP_TYPE_CLIENT_CONTEXT in signal
+	definitions.
+
+	* libsoup/soup-marshal.list: clean this up
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server.c (SoupClientContext): Make this opaque.
+	(soup_client_context_get_socket)
+	(soup_client_context_get_auth_domain)
+	(soup_client_context_get_auth_user): New accessors
+	(soup_server_class_init): Make the signals take a
+	SoupClientContext rather than a SoupSocket.
+	(start_request, check_auth, call_handler, request_finished): Clean
+	these up by using a SoupClientContext to communicate between them.
+	(soup_server_add_handler): tweak the argument order to match the
+	gtk standard (callback, user_data, destroynotify).
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-address.c: remove the "dns_result" signal, which
+	was just an implementation detail of soup_address_resolve_async().
+
+2008-01-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/*.c: misc documentation updates/gtk-doc fixes
+
+	* libsoup/soup-server.c: finally start documenting this properly.
+
+	* libsoup/soup-status.h (SoupStatusClass): kill this, since
+	soup_message_add_status_class_handler() is gone now.
+
+	* libsoup/soup-status.c (soup_status_get_phrase): Update docs to
+	explain that you probably don't want to use this.
+
+	* libsoup/soup-misc.h (SOUP_SSL_ERROR, SoupSSLError): Move these
+	here, since soup-ssl.h isn't installed.
+
+	* docs/references: start updating this...
+
+2008-01-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.c (soup_buffer_new)
+	(soup_message_body_append): Reorder the arguments to match
+	soup_message_set_request/response, so it's not confusing.
+
+	* libsoup/soup-message.c (wrote_chunk): remove the "chunk" arg
+	from the signal, as it turns out to be *in*convenient, since most
+	callers use this signal to mean "need another chunk", so they want
+	it to have the same prototype as "wrote_headers", which means
+	"need first chunk".
+
+2008-01-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-domain.c: add documentation
+	(soup_auth_domain_set_filter): take a GDestroyNotify, for better
+	bindability
+
+	* libsoup/soup-auth-domain-basic.c:
+	* libsoup/soup-auth-domain-digest.c: Add documentation. Replace
+	authentication signals with more-easily-bindable authentication
+	callbacks (with GDestroyNotifys).
+	(soup_auth_domain_digest_evil_check_password): Add this for the
+	benefit of code that depends on being able to do the equivalent
+	of the old soup_server_auth_check_passwd().
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.h (SoupMessageBody): add data and
+	length parameters like SoupBuffer, to make this easier for callers
+	to use.
+
+	* libsoup/soup-message-body.c (soup_message_body_append)
+	(soup_message_body_append_buffer)
+	(soup_message_body_truncate): Update body->length
+	(soup_message_body_flatten): Fill in body->data (and NUL-terminate
+	it as an added bonus).
+
+	* libsoup/soup-message.c (got_body): flatten the newly-gotten
+	body.
+	(soup_message_get_request, soup_message_get_response): gone
+	
+	* libsoup/soup-message-client-io.c (get_request_headers): 
+	* libsoup/soup-message-server-io.c (get_response_headers): 
+	* libsoup/soup-soap-message.c (soup_soap_message_parse_response):
+	* tests/*.c: simplify
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am (soup_headers): oops, move soup-auth.h here
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-form.c: new HTML-form-related methods (just URI
+	decoding/encoding at the moment).
+
+	* libsoup/soup-server.h (SoupServerCallback): change the prototype
+	to include the decoded path and query rather than the undecoded
+	URI.
+
+	* libsoup/soup-server.c (call_handler): %-decode the URI path
+	before looking up a handler. Decode query if available. Pass path
+	and query to the callback.
+
+	* libsoup/soup-auth-domain.c (soup_auth_domain_covers): fix this
+	to %-decode the URI path before testing it
+
+	* libsoup/soup-message-body.c (soup_message_body_append): allow
+	0-length appends
+
+	* tests/query-test.c: URI query parsing test
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c:
+	* libsoup/soup-uri.h: Change all the "const SoupURI *" to just
+	"SoupURI *", since the const is just there to be annoying.
+
+	* */*.c: update
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.c (soup_message_body_get_length)
+	(soup_message_body_get_chunk): Use goffset rather than gsize for
+	references to the entire size of the message body. (SoupBuffer
+	still uses gsize, so individual chunks can only be G_MAXSIZE
+	long.)
+	
+	* libsoup/soup-message-headers.c
+	(soup_message_headers_get_content_length):
+	(soup_message_headers_set_content_length): Likewise, use goffset.
+
+2008-01-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-headers.c (soup_message_headers_get):
+	Renamed from soup_message_headers_find, and with new behavior; now
+	multiple headers with the same name are automatically merged
+	together into a single comma-separated value, to ensure that apps
+	treat multivalued headers the same regardless of how upstream
+	servers generate them.
+	(soup_message_headers_find_nth): no longer needed/wanted
+
+	* libsoup/soup-auth-manager.c: Update to deal with
+	SoupMessageHeaders change. (Ugh.)
+
+	* tests/header-parsing.c: Update multiple-values test, and undo a
+	change that mistakenly got committed while debugging something
+	earlier.
+
+2008-01-01  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-manager.c:
+	* libsoup/soup-dns.c: 
+	* libsoup/soup-gnutls.c: 
+	* libsoup/soup-message.c: 
+	* libsoup/soup-message-io.c: 
+	* libsoup/soup-message-queue.c: 
+	* libsoup/soup-misc.c: 
+	* libsoup/soup-path-map.c: 
+	* libsoup/soup-server.c: 
+	* libsoup/soup-session.c: 
+	* libsoup/soup-session-sync.c: 
+	* libsoup/soup-socket.c: Use g_slice.
+
+2008-01-01  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_cancel_message): add a
+	"status_code" argument rather than having the caller set the
+	status code separately, to prevent a race condition.
+
+2008-01-01  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_queue_message): change the
+	callback type to include the SoupSession as a parameter as well.
+
+	* *.c: update
+
+2007-12-31  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_class_init): change
+	the "authenticate" signal to include a SoupAuth rather than its
+	components, and to have a "retrying" parameter rather than
+	separating "authenticate" and "reauthenticate".
+
+	* libsoup/soup-connection.c (soup_connection_class_init): Likewise
+
+	* libsoup/soup-auth-manager.c (authenticate_auth): update
+
+	* libsoup/soup-auth.c: make various attributes into gobject
+	properties.
+	(soup_auth_is_for_proxy): check whether an auth is plain or proxy
+	(soup_auth_get_host): get the hostname associated with an auth
+
+	* libsoup/soup-auth-ntlm.c: dummy class used by SoupConnectionNTLM
+	in the authenticate signal
+
+	* libsoup/soup-connection-ntlm.c (ntlm_authorize_pre): update for
+	authenticate signals changes; use a fake SoupAuthNTLM to assist.
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c (soup_message_add_header_handler)
+	(soup_message_add_status_code_handler): Make these be wrappers
+	around g_signal_connect() rather than having a completely separate
+	system.
+	(soup_message_class_init): improve signal docs. Use
+	"got_foo_signal_wrapper" to wrap the got-foo signals.
+	(got_foo_signal_wrapper): Wraps the marshaller for the got-foo
+	signals and cancels the signal emission if the message gets
+	cancelled or requeued.
+	(got_informational, got_headers, got_chunk, got_body): remove
+	no-longer-needed default implementations.
+
+	* libsoup/soup-message-handlers.c: gone
+
+	* tests/ntlm-test.c (do_message): Simplify now that callback
+	processing doesn't happen in two separate phases.
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-domain.c:
+	* libsoup/soup-auth-domain-basic.c:
+	* libsoup/soup-auth-domain-digest.c: New server-side auth system.
+
+	* libsoup/soup-server.c: remove SoupServerAuth / SoupAuthContext
+	stuff, add SoupAuthDomain support.
+	(SoupServerCallbackFn): improve the args here
+	(SoupClientContext): renamed from SoupServerContext and made less
+	redundant
+
+	* libsoup/soup-server-auth.c: gone!
+
+	* libsoup/soup-auth-digest.c (soup_auth_digest_parse_algorithm)
+	(soup_auth_digest_get_algorithm, soup_auth_digest_parse_qop)
+	(soup_auth_digest_get_qop, soup_auth_digest_compute_hex_urp)
+	(soup_auth_digest_compute_hex_a1)
+	(soup_auth_digest_compute_response): New routines shared between
+	client-side and server-side digest auth.
+
+	* tests/server-auth-test.c: test server-side auth, using curl for
+	the client side
+
+	* configure.in: check for curl, for server-auth-test
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-headers.c (soup_header_parse_list)
+	(soup_header_parse_quality_list): New methods to parse list-type
+	headers (with optional qvalues) correctly.
+	(soup_header_parse_param_list): Rename to match the other methods,
+	and update the semantics a bit.
+	(soup_header_contains): Correctly check for a token in a list
+
+	* libsoup/soup-message.c (soup_message_is_keepalive):
+	* libsoup/soup-message-client-io.c (get_request_headers):
+	* libsoup/soup-message-server-io.c (parse_request_headers): Use
+	soup_header_contains() with Connection headers.
+
+	* tests/header-parsing.c (do_qvalue_tests): add
+	soup_header_parse_quality_list() test
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-manager.c: Move auth-related code from
+	SoupSession and SoupAuth here, and make various cleanups and
+	beginnings of cleanups.
+
+	* libsoup/soup-session.c: lots of stuff moved to
+	soup-auth-manager.c
+
+	* libsoup/soup-auth.c (soup_auth_new_from_headers): partly moved
+	to soup-auth-manager.c, partly renamed to soup_auth_new().
+	(soup_auth_update): new method to update an existing auth based on
+	a new WWW-Authenticate/Proxy-Authenticate header. Also replaces
+	the old "construct" method.
+
+	* libsoup/soup-auth-digest.c (update): Implement. If the new auth
+	has stale=true, don't invalidate the auth, just update the nonce.
+	(get_authorization): add a header handler to the message to catch
+	Authentication-Info/Proxy-Authentication-Info headers so that if
+	there's a nextnonce, we can start using it. #471380.
+
+	* libsoup/soup-auth-basic.c (update): Implement. (Updating an
+	existing Basic auth always invalidates it.)
+
+	* tests/http.conf.in:
+	* tests/auth-test.c: add a test for digest nonce handling
+
+2007-12-20  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-path-map.c: New type representing a sparse
+	path->something mapping
+
+	* libsoup/soup-server.c: Use SoupPathMap to record handlers. Make
+	SoupServerHandler a private type.
+	(soup_server_new): Rewrite this to just be a thin wrapper, and put
+	all of the code into a constructor override. #491653
+	(soup_server_add_handler): Turn the "unregister" arg into a
+	GDestroyNotify, for better bindability.
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server.c: define new request_started, request_read,
+	request_finished, and request_aborted signals, for finer-grained
+	tracking than normal handlers allow.
+	(check_auth): split this out of call_handler, and run it
+	immediately after "got_headers", not "got_body", so that we can
+	preemptively reject "Expect: 100-continue" messages that will
+	require auth.
+
+	* libsoup/soup-message-io.c (io_write, io_read): Fix up
+	100-continue processing
+
+	* tests/continue-test.c: new test of client/server 100-continue
+	processing
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-socket.c: Cleanup. Remove the "connect_result"
+	signal. Make local_address and remote_address
+	into (construct-only) properties.
+	(soup_socket_connect_async, soup_socket_connect_sync): Replace
+	soup_socket_connect. _async takes a callback+user_data (like the
+	old soup_socket_client_new_async), but doesn't implement the
+	callback in terms of a connect_result signal.
+	(soup_socket_client_new_async, soup_socket_client_new_sync): Gone.
+	(Unused since the async_context addition anyway). Replaced by the
+	new construct properties and connect methods.
+	(soup_socket_read, soup_socket_read_until, soup_socket_write):
+	Make these actually take a GError rather than doing an ugly hack
+	to preserve the old API.
+	(SOUP_SOCKET_FLAG_NODELAY, SOUP_SOCKET_FLAG_REUSEADDR)
+	(SOUP_SOCKET_FLAG_CLOEXEC): kill these off (all three are always
+	TRUE now); SoupSocket is libsoup's socket API; it's not
+	necessarily intended to be generically useful for everyone.
+
+	* *.c: Update for SoupSocket changes
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-server-message.c: Kill!
+
+	* libsoup/soup-message-server-io.c (parse_request_headers):
+	Generate the full request URL from the socket's data, since we no
+	longer have soup_server_message_get_server().
+
+	* libsoup/soup-server.c (request_finished, call_handler)
+	(start_request, new_connection): update
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-headers.c: Add some more fields to
+	SoupMessageHeaders, and start caching the parsed values of certain
+	important headers.
+	(soup_message_headers_get/set_encoding): replaces old SoupMessage
+	methods, and only deals with the declared transfer encoding, not
+	the wire encoding.
+	(soup_message_headers_get/set_content_length): Handle
+	Content-Length.
+	(soup_message_headers_get_expectations): Handle Expect. (Replaces
+	the SOUP_MESSAGE_EXPECT_CONTINUE flag).
+
+	* libsoup/soup-message.c (soup_message_get_request_encoding):
+	(soup_message_get_response_encoding):
+	(soup_message_set_response_encoding): replaced by
+	SoupMessageHeaders methods.
+
+	* libsoup/soup-message-client-io.c:
+	* libsoup/soup-message-server-io.c:
+	* libsoup/soup-message-io.c: Update for SoupMessageHeaders changes
+	with encoding/content-length stuff.
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.c (SoupMessageBody): new opaque type
+	for request/response bodies allowing less hacky handling of
+	chunked encoding.
+	(SoupBuffer): refcounted buffer type
+
+	* libsoup/soup-message.h (SoupMessage): turn request and response
+	members into SoupMessageBody.
+	(SoupOwnership, SoupDataBuffer): gone, replaced by
+	SoupMessageBody/SoupBuffer.
+
+	* libsoup/soup-message.c (soup_message_wrote_chunk)
+	(soup_message_got_chunk): add the chunk as a signal param rather
+	than having it be visible in msg->request/response.
+	(soup_message_add_chunk, soup_message_add_final_chunk)
+	(soup_message_pop_chunk): replaced by SoupMessageBody methods now.
+
+2007-12-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-xmlrpc.c:
+	* libsoup/soup-value-utils.c: Oops. Change the API a bunch so this
+	works on x86; apparently I was doing illegal things with va_lists
+	before that only work on x86_64.
+
+2007-12-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c: use GObject properties for SoupMessage
+	fields.
+
+	* libsoup/soup-message-server-io.c: 
+	* libsoup/soup-soap-message.c: update for that
+
+2007-12-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c: Rename from SoupUri to SoupURI. Use the
+	slice allocator and register as a boxed type.
+	(SoupURI): Rename "protocol" field to "scheme" and "passwd" to
+	"password". Make scheme an interned string. Replace
+	SOUP_PROTOCOL_HTTPS with soup_uri_is_https().
+
+	* *.c: update
+	
+2007-12-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am: Use glib-mkenums to build soup-enum-types.c
+	and soup-enum-types.h
+
+	* libsoup/soup-address.h (SoupAddressFamily): redo this definition
+	again, to make glib-mkenums happy.
+
+2007-12-13  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-xmlrpc.c: New easier-to-use and
+	easier-to-do-language-bindings-of XML-RPC code.
+
+	* libsoup/soup-xmlrpc-message.c: 
+	* libsoup/soup-xmlrpc-response.c: gone
+
+	* libsoup/soup-value-utils.c: Utilites for working with
+	GValueArray, and GHashTables of GValues, used by soup-xmlrpc.
+
+	* tests/getbug.c: 
+	* tests/xmlrpc-test.c: Update to use new XML-RPC stuff
+
+2007-12-13  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c: Make a SoupDate type, and redo in terms of
+	that rather than struct tm and time_t. Also be much more liberal
+	when parsing.
+
+	* libsoup/soup-xmlrpc-message.c (soup_xmlrpc_message_write_datetime): 
+	* libsoup/soup-xmlrpc-response.c (soup_xmlrpc_value_get_datetime):
+	Use SoupDate.
+
+	* tests/date.c: Use SoupDate, test parsing lots more formats
+
+	* tests/xmlrpc-test.c: update for SoupDate
+
+2007-12-12  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c: 
+	* libsoup/soup-message-private.h: Remove SoupMessageStatus,
+	msg->status, and soup_message_io_* from the public API, as they
+	all really belong to the session, not the message. (For now
+	they've just been moved to soup-message-private.h, but some day
+	they'll be fully refactored away from SoupMessage.)
+
+	* libsoup/soup-server.c (soup_server_pause_message)
+	(soup_server_unpause_message): 
+	* libsoup/soup-session.c (soup_session_pause_message)
+	(soup_session_unpause_message): session/server-level methods to
+	replace soup_message_io_pause() and soup_message_io_unpause().
+
+	* libsoup/soup-server-message.c: Remove some unused methods
+
+	* */*.c: Update
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-connection.c:
+	* libsoup/soup-session.c: replace message filters with a
+	"request_started" signal
+
+	* libsoup/soup-message-filter.c: gone
+
+	* libsoup/soup-types.h (SOUP_MAKE_INTERFACE): no longer needed
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c: Update for RFC 3986 changes, bgo 266516, and
+	general conformance
+	(soup_uri_get_protocol): match protocols case-insensitively
+	(soup_uri_new_with_base): Don't fully %-decode the fragment,
+	query, and path, but do %-decode anything which isn't supposed to
+	be encoded. Recognize IPv6 address literals. Use stricter
+	"../"-stripping rules on the path. Reject URIs with junk between
+	the port number and the path.
+	(soup_uri_to_string): Update for the fact that the host might be
+	an IPv6 literal, and for the fact that path, query, and fragment
+	are now pre-escaped.
+	(soup_uri_equal): compare hostnames case-insensitively
+	(uri_encoded_char): update to match RFC 3986
+	(append_uri_encoded): use uppercase hex letters as recommended by
+	RFC 3986.
+	(soup_uri_normalize): decode only %-escapes that don't belong
+	there.
+
+	* docs/reference/tmpl/soup-uri.sgml: add some more SoupUri docs
+
+	* tests/uri-parsing.c: Add new tests from RFC 3986, RFC 2732, RFC
+	2616, bgo 266516, and elsewhere. Update some tests to match new
+	parsing/unparsing rules.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c (soup_message_new)
+	(soup_message_new_from_uri): g_intern_string() the method name
+	rather than assuming it's static. Also remove the NULL==GET
+	assumption.
+
+	* libsoup/soup-method.c:
+	* libsoup/soup-method.h: remove the SOUP_METHOD_ID_* macros, and
+	have the SOUP_METHOD_* macros return interned strings
+
+	* libsoup/soup-server.h (SoupServerContext): remove method_id
+	field.
+
+	* libsoup/soup-server-message.c (finalize): no longer needed,
+	since smsg->method is now an interned string just like with a
+	normal SoupMessage.
+
+	* libsoup/soup-soap-message.c (soup_soap_message_new_from_uri):
+	remove NULL==GET assumption
+
+	* *.c: update
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.h (SoupHTTPVersion): rename (from
+	SoupHttpVersion)
+
+	* libsoup/soup-message-headers.c: New opaque type representing
+	message headers, and new methods that work on it. Uses an array
+	rather than a hash table, to preserve header ordering as required
+	by RFC 2616. (Also fixes the API wart that
+	"soup_message_get_header", etc, did not actually take a
+	SoupMessage.)
+
+	* libsoup/soup-message.c: Kill off old header-manipulating
+	methods.
+
+	* libsoup/soup-headers.c (soup_headers_parse_request): return a
+	guint rather than gboolean, so we can properly return
+	SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED where appropriate. Also fix
+	up HTTP-Version parsing to conform with the RFC.
+	(soup_headers_parse_status_line): Likewise update HTTP-Version
+	parsing.
+	
+	* libsoup/soup-message-server-io.c (parse_request_headers): set
+	return status appropriately on parse errors
+
+	* tests/header-parsing.c: update / add more tests
+
+	* *.c: update
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-misc.c: remove deprecated base64 methods
+
+	* tests/auth-test.c (identify_auth): oops, update to use
+	g_base64_decode.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am (libsoupinclude_HEADERS): remove
+	soup-connection.h and soup-message-queue.h
+
+	* libsoup/soup-types.h: remove SoupConnection and SoupMessageQueue
+	which are no longer public
+
+	* libsoup/soup.h: sync this to reality for the first time in years
+
+	* libsoup/soup-session.c (soup_session_get_queue): Add this, for
+	subclasses, as the queue is no longer a public part of the session
+	struct.
+
+	* libsoup/soup-message.h:
+	* libsoup/soup-message-private.h: Move soup_message_send_request()
+	and soup_message_receive_request() to soup-message-private.h,
+	remove soup_message_send_request_internal().
+
+	* libsoup/soup-session-private.h: Move "protected" SoupSession
+	methods (soup_session_get_connection,
+	soup_session_try_prune_connection) here from soup-session.h
+	Add soup_session_get_queue.
+
+2007-12-05  Dan Winship  <danw@gnome.org>
+
+	* configure.in: bump version to 2.3.0 and SOUP_API_VERSION to 2.4,
+	and drop AGE/CURRENT/REVISION all to 0.
+
+	* libsoup/Makefile.am: Rename library to libsoup-2.4.la
+
+	(start of libsoup-2.4 branch)
 
 2007-11-26  Dan Winship  <danw@gnome.org>
 

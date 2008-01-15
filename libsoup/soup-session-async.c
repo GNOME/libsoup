@@ -10,14 +10,23 @@
 #endif
 
 #include "soup-session-async.h"
-#include "soup-connection.h"
+#include "soup-session-private.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
+
+/**
+ * SECTION:soup-session-async
+ * @short_description: Soup session for asynchronous (main-loop-based) I/O.
+ *
+ * #SoupSessionAsync is an implementation of #SoupSession that uses
+ * non-blocking I/O via the glib main loop. It is intended for use in
+ * single-threaded programs.
+ **/
 
 static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
-			      SoupMessageCallbackFn callback,
-			      gpointer user_data);
+			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
 
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
@@ -123,6 +132,7 @@ static gboolean
 run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 {
 	SoupSession *session = SOUP_SESSION (sa);
+	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
 	SoupConnection *conn;
@@ -131,7 +141,9 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 	/* FIXME: prefer CONNECTING messages */
 
  try_again:
-	for (msg = soup_message_queue_first (session->queue, &iter); msg; msg = soup_message_queue_next (session->queue, &iter)) {
+	for (msg = soup_message_queue_first (queue, &iter);
+	     msg;
+	     msg = soup_message_queue_next (queue, &iter)) {
 
 		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
 		    soup_message_io_in_progress (msg))
@@ -172,14 +184,27 @@ request_restarted (SoupMessage *req, gpointer sa)
 	run_queue (sa, FALSE);
 }
 
+typedef struct {
+	SoupSessionAsync *sa;
+	SoupSessionCallback callback;
+	gpointer callback_data;
+} SoupSessionAsyncQueueData;
+
 static void
 final_finished (SoupMessage *req, gpointer user_data)
 {
-	SoupSessionAsync *sa = user_data;
+	SoupSessionAsyncQueueData *saqd = user_data;
+	SoupSessionAsync *sa = saqd->sa;
 
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
-		g_signal_handlers_disconnect_by_func (req, final_finished, sa);
+		g_signal_handlers_disconnect_by_func (req, final_finished, saqd);
+		if (saqd->callback) {
+			saqd->callback ((SoupSession *)sa, req,
+					saqd->callback_data);
+		}
+
 		g_object_unref (req);
+		g_slice_free (SoupSessionAsyncQueueData, saqd);
 	}
 
 	run_queue (sa, FALSE);
@@ -202,19 +227,20 @@ idle_run_queue (gpointer user_data)
 
 static void
 queue_message (SoupSession *session, SoupMessage *req,
-	       SoupMessageCallbackFn callback, gpointer user_data)
+	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionAsync *sa = SOUP_SESSION_ASYNC (session);
+	SoupSessionAsyncQueueData *saqd;
 
 	g_signal_connect (req, "restarted",
 			  G_CALLBACK (request_restarted), sa);
 
-	if (callback) {
-		g_signal_connect (req, "finished",
-				  G_CALLBACK (callback), user_data);
-	}
+	saqd = g_slice_new (SoupSessionAsyncQueueData);
+	saqd->sa = sa;
+	saqd->callback = callback;
+	saqd->callback_data = user_data;
 	g_signal_connect_after (req, "finished",
-				G_CALLBACK (final_finished), sa);
+				G_CALLBACK (final_finished), saqd);
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 
@@ -234,7 +260,7 @@ send_message (SoupSession *session, SoupMessage *req)
 
 	queue_message (session, req, NULL, NULL);
 
-	while (req->status != SOUP_MESSAGE_STATUS_FINISHED &&
+	while (soup_message_get_io_status (req) != SOUP_MESSAGE_IO_STATUS_FINISHED &&
 	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
 		g_main_context_iteration (async_context, TRUE);
 

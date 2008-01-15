@@ -17,8 +17,8 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static void construct (SoupAuth *auth, GHashTable *auth_params);
-static GSList *get_protection_space (SoupAuth *auth, const SoupUri *source_uri);
+static gboolean update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params);
+static GSList *get_protection_space (SoupAuth *auth, SoupURI *source_uri);
 static void authenticate (SoupAuth *auth, const char *username, const char *password);
 static gboolean is_authenticated (SoupAuth *auth);
 static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
@@ -54,8 +54,9 @@ soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 	g_type_class_add_private (auth_basic_class, sizeof (SoupAuthBasicPrivate));
 
 	auth_class->scheme_name = "Basic";
+	auth_class->strength = 1;
 
-	auth_class->construct = construct;
+	auth_class->update = update;
 	auth_class->get_protection_space = get_protection_space;
 	auth_class->authenticate = authenticate;
 	auth_class->is_authenticated = is_authenticated;
@@ -65,14 +66,26 @@ soup_auth_basic_class_init (SoupAuthBasicClass *auth_basic_class)
 }
 
 
-static void
-construct (SoupAuth *auth, GHashTable *auth_params)
+static gboolean
+update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 {
-	;
+	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
+
+	/* If we're updating a pre-existing auth, the
+	 * username/password must be bad now, so forget it.
+	 * Other than that, there's nothing to do here.
+	 */
+	if (priv->token) {
+		memset (priv->token, 0, strlen (priv->token));
+		g_free (priv->token);
+		priv->token = NULL;
+	}
+
+	return TRUE;
 }
 
 static GSList *
-get_protection_space (SoupAuth *auth, const SoupUri *source_uri)
+get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 {
 	char *space, *p;
 

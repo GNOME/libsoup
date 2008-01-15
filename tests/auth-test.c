@@ -12,24 +12,9 @@
 #include "libsoup/soup-auth.h"
 #include "libsoup/soup-session.h"
 
-#include "apache-wrapper.h"
+#include "test-utils.h"
 
 GMainLoop *loop;
-int errors = 0;
-gboolean debug = FALSE;
-
-static void
-dprintf (const char *format, ...)
-{
-	va_list args;
-
-	if (!debug)
-		return;
-
-	va_start (args, format);
-	vprintf (format, args);
-	va_end (args);
-}
 
 typedef struct {
 	/* Explanation of what you should see */
@@ -181,16 +166,16 @@ identify_auth (SoupMessage *msg)
 	const char *header;
 	int num;
 
-	header = soup_message_get_header (msg->request_headers,
-					  "Authorization");
+	header = soup_message_headers_get (msg->request_headers,
+					    "Authorization");
 	if (!header)
 		return 0;
 
 	if (!g_ascii_strncasecmp (header, "Basic ", 6)) {
 		char *token;
-		int len;
+		gsize len;
 
-		token = soup_base64_decode (header + 6, &len);
+		token = (char *)g_base64_decode (header + 6, &len);
 		num = token[len - 1] - '0';
 		g_free (token);
 	} else {
@@ -216,46 +201,45 @@ handler (SoupMessage *msg, gpointer data)
 
 	auth = identify_auth (msg);
 
-	dprintf ("  %d %s (using %s)\n", msg->status_code, msg->reason_phrase,
-		 auths[auth]);
+	debug_printf (1, "  %d %s (using %s)\n",
+		      msg->status_code, msg->reason_phrase,
+		      auths[auth]);
 
 	if (*expected) {
 		exp = *expected - '0';
 		if (auth != exp) {
-			dprintf ("    expected %s!\n", auths[exp]);
+			debug_printf (1, "    expected %s!\n", auths[exp]);
 			errors++;
 		}
 		memmove (expected, expected + 1, strlen (expected));
 	} else {
-		dprintf ("    expected to be finished\n");
+		debug_printf (1, "    expected to be finished\n");
 		errors++;
 	}
 }
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
-	      const char *auth_type, const char *auth_realm,
-	      char **username, char **password, gpointer data)
+	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
 	int *i = data;
+	char *username, *password;
+	char num;
 
-	if (tests[*i].provided[0]) {
-		*username = g_strdup_printf ("user%c", tests[*i].provided[0]);
-		*password = g_strdup_printf ("realm%c", tests[*i].provided[0]);
-	}
-}
+	if (!tests[*i].provided[0])
+		return;
+	if (retrying) {
+		if (!tests[*i].provided[1])
+			return;
+		num = tests[*i].provided[1];
+	} else
+		num = tests[*i].provided[0];
 
-static void
-reauthenticate (SoupSession *session, SoupMessage *msg, 
-		const char *auth_type, const char *auth_realm,
-		char **username, char **password, gpointer data)
-{
-	int *i = data;
-
-	if (tests[*i].provided[0] && tests[*i].provided[1]) {
-		*username = g_strdup_printf ("user%c", tests[*i].provided[1]);
-		*password = g_strdup_printf ("realm%c", tests[*i].provided[1]);
-	}
+	username = g_strdup_printf ("user%c", num);
+	password = g_strdup_printf ("realm%c", num);
+	soup_auth_authenticate (auth, username, password);
+	g_free (username);
+	g_free (password);
 }
 
 static void
@@ -266,52 +250,106 @@ bug271540_sent (SoupMessage *msg, gpointer data)
 	int auth = identify_auth (msg);
 
 	if (!*authenticated && auth) {
-		dprintf ("    using auth on message %d before authenticating!!??\n", n);
+		debug_printf (1, "    using auth on message %d before authenticating!!??\n", n);
 		errors++;
 	} else if (*authenticated && !auth) {
-		dprintf ("    sent unauthenticated message %d after authenticating!\n", n);
+		debug_printf (1, "    sent unauthenticated message %d after authenticating!\n", n);
 		errors++;
 	}
 }
 
 static void
 bug271540_authenticate (SoupSession *session, SoupMessage *msg,
-			const char *auth_type, const char *auth_realm,
-			char **username, char **password, gpointer data)
+			SoupAuth *auth, gboolean retrying, gpointer data)
 {
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
 	gboolean *authenticated = data;
 
-	if (strcmp (auth_type, "Basic") != 0 ||
-	    strcmp (auth_realm, "realm1") != 0)
+	if (strcmp (soup_auth_get_scheme_name (auth), "Basic") != 0 ||
+	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
 		return;
 
 	if (!*authenticated) {
-		dprintf ("    authenticating message %d\n", n);
-		*username = g_strdup ("user1");
-		*password = g_strdup ("realm1");
+		debug_printf (1, "    authenticating message %d\n", n);
+		soup_auth_authenticate (auth, "user1", "realm1");
 		*authenticated = TRUE;
 	} else {
-		dprintf ("    asked to authenticate message %d after authenticating!\n", n);
+		debug_printf (1, "    asked to authenticate message %d after authenticating!\n", n);
 		errors++;
 	}
 }
 
 static void
-bug271540_finished (SoupMessage *msg, gpointer data)
+bug271540_finished (SoupSession *session, SoupMessage *msg, gpointer data)
 {
 	int *left = data;
 	int n = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "#"));
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		dprintf ("      got status '%d %s' on message %d!\n",
-			msg->status_code, msg->reason_phrase, n);
+		debug_printf (1, "      got status '%d %s' on message %d!\n",
+			      msg->status_code, msg->reason_phrase, n);
 		errors++;
 	}
 
 	(*left)--;
 	if (!*left)
 		g_main_loop_quit (loop);
+}
+
+static void
+digest_nonce_authenticate (SoupSession *session, SoupMessage *msg,
+			   SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	if (retrying)
+		return;
+
+	if (strcmp (soup_auth_get_scheme_name (auth), "Digest") != 0 ||
+	    strcmp (soup_auth_get_realm (auth), "realm1") != 0)
+		return;
+
+	soup_auth_authenticate (auth, "user1", "realm1");
+}
+
+static void
+digest_nonce_unauthorized (SoupMessage *msg, gpointer data)
+{
+	gboolean *got_401 = data;
+	*got_401 = TRUE;
+}
+
+static void
+do_digest_nonce_test (SoupSession *session,
+		      const char *nth, const char *uri,
+		      gboolean expect_401, gboolean expect_signal)
+{
+	SoupMessage *msg;
+	gboolean got_401;
+
+	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	if (expect_signal) {
+		g_signal_connect (session, "authenticate",
+				  G_CALLBACK (digest_nonce_authenticate),
+				  NULL);
+	}
+	soup_message_add_status_code_handler (msg, "got_headers",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (digest_nonce_unauthorized),
+					      &got_401);
+	got_401 = FALSE;
+	soup_session_send_message (session, msg);
+	if (got_401 != expect_401) {
+		debug_printf (1, "  %s request %s a 401 Unauthorized!\n", nth,
+			      got_401 ? "got" : "did not get");
+		errors++;
+	}
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "  %s request got status %d %s!\n", nth,
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (errors == 0)
+		debug_printf (1, "  %s request succeeded\n", nth);
+	g_object_unref (msg);
 }
 
 int
@@ -321,39 +359,22 @@ main (int argc, char **argv)
 	SoupMessage *msg;
 	char *base_uri, *uri, *expected;
 	gboolean authenticated;
-	int i, opt;
+	int i;
 
-	g_type_init ();
-	g_thread_init (NULL);
+	test_init (argc, argv, NULL);
+	apache_init ();
 
-	while ((opt = getopt (argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			debug = TRUE;
-			break;
-		default:
-			fprintf (stderr, "Usage: %s [-d]\n", argv[0]);
-			return 1;
-		}
-	}
-
-	if (!apache_init ()) {
-		fprintf (stderr, "Could not start apache\n");
-		return 1;
-	}
 	base_uri = "http://localhost:47524/";
 
-	session = soup_session_async_new ();
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), &i);
-	g_signal_connect (session, "reauthenticate",
-			  G_CALLBACK (reauthenticate), &i);
 
 	for (i = 0; i < ntests; i++) {
-		dprintf ("Test %d: %s\n", i + 1, tests[i].explanation);
+		debug_printf (1, "Test %d: %s\n", i + 1, tests[i].explanation);
 
 		uri = g_strconcat (base_uri, tests[i].url, NULL);
-		dprintf ("  GET %s\n", uri);
+		debug_printf (1, "  GET %s\n", uri);
 
 		msg = soup_message_new (SOUP_METHOD_GET, uri);
 		g_free (uri);
@@ -364,39 +385,41 @@ main (int argc, char **argv)
 
 		expected = g_strdup (tests[i].expected);
 		soup_message_add_status_code_handler (
-			msg, SOUP_STATUS_UNAUTHORIZED,
-			SOUP_HANDLER_PRE_BODY, handler, expected);
+			msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
+			G_CALLBACK (handler), expected);
 		soup_message_add_status_code_handler (
-			msg, SOUP_STATUS_OK, SOUP_HANDLER_PRE_BODY,
-			handler, expected);
+			msg, "got_headers", SOUP_STATUS_OK,
+			G_CALLBACK (handler), expected);
 		soup_session_send_message (session, msg);
 		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
 		    msg->status_code != SOUP_STATUS_OK) {
-			dprintf ("  %d %s !\n", msg->status_code,
-				msg->reason_phrase);
+			debug_printf (1, "  %d %s !\n", msg->status_code,
+				      msg->reason_phrase);
 			errors++;
 		}
 		if (*expected) {
-			dprintf ("  expected %d more round(s)\n",
-				(int)strlen (expected));
+			debug_printf (1, "  expected %d more round(s)\n",
+				      (int)strlen (expected));
 			errors++;
 		}
 		g_free (expected);
 
-		if (msg->status_code != tests[i].final_status)
-			dprintf ("  expected %d\n", tests[i].final_status);
+		if (msg->status_code != tests[i].final_status) {
+			debug_printf (1, "  expected %d\n",
+				      tests[i].final_status);
+		}
 
-		dprintf ("\n");
+		debug_printf (1, "\n");
 
 		g_object_unref (msg);
 	}
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	/* And now for a regression test */
+	/* And now for some regression tests */
 
-	dprintf ("Regression test for bug 271540:\n");
-	session = soup_session_async_new ();
+	debug_printf (1, "Testing pipelined auth (bug 271540):\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	authenticated = FALSE;
 	g_signal_connect (session, "authenticate",
@@ -416,19 +439,100 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+
+	debug_printf (1, "\nTesting digest nonce expiration:\n");
+
+	/* We test two different things here:
+	 *
+	 *   1. If we get a 401 response with
+	 *      "WWW-Authenticate: Digest stale=true...", we should
+	 *      retry and succeed *without* the session asking for a
+	 *      password again.
+	 *
+	 *   2. If we get a successful response with
+	 *      "Authentication-Info: nextnonce=...", we should update
+	 *      the nonce automatically so as to avoid getting a
+	 *      stale nonce error on the next request.
+	 *
+	 * In our Apache config, /Digest/realm1 and
+	 * /Digest/realm1/expire are set up to use the same auth info,
+	 * but only the latter has an AuthDigestNonceLifetime (of 2
+	 * seconds). The way nonces work in Apache, a nonce received
+	 * from /Digest/realm1 will still expire in
+	 * /Digest/realm1/expire, but it won't issue a nextnonce for a
+	 * request in /Digest/realm1. This lets us test both
+	 * behaviors.
+	 *
+	 * The expected conversation is:
+	 *
+	 * First message
+	 *   GET /Digest/realm1
+	 *
+	 *   401 Unauthorized
+	 *   WWW-Authenticate: Digest nonce=A
+	 *
+	 *   [emit 'authenticate']
+	 *
+	 *   GET /Digest/realm1
+	 *   Authorization: Digest nonce=A
+	 *
+	 *   200 OK
+	 *   [No Authentication-Info]
+	 *
+	 * [sleep 2 seconds: nonce A is no longer valid, but we have no
+	 * way of knowing that]
+	 *
+	 * Second message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=A
+	 *
+	 *   401 Unauthorized
+	 *   WWW-Authenticate: Digest stale=true nonce=B
+	 *
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=B
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=C
+	 *
+	 * [sleep 1 second]
+	 *
+	 * Third message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=C
+	 *   [nonce=B would work here too]
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=D
+	 *
+	 * [sleep 1 second; nonces B and C are no longer valid, but D is]
+	 *
+	 * Fourth message
+	 *   GET /Digest/realm1/expire/
+	 *   Authorization: Digest nonce=D
+	 *
+	 *   200 OK
+	 *   Authentication-Info: nextnonce=D
+	 *
+	 */
+
+	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
+	do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
+	g_free (uri);
+	sleep (2);
+	uri = g_strconcat (base_uri, "Digest/realm1/expire/", NULL);
+	do_digest_nonce_test (session, "Second", uri, TRUE, FALSE);
+	sleep (1);
+	do_digest_nonce_test (session, "Third", uri, FALSE, FALSE);
+	sleep (1);
+	do_digest_nonce_test (session, "Fourth", uri, FALSE, FALSE);
+	g_free (uri);
+
 	g_main_loop_unref (loop);
-	g_main_context_unref (g_main_context_default ());
 
 	soup_session_abort (session);
 	g_object_unref (session);
 
-	apache_cleanup ();
-
-	dprintf ("\n");
-	if (errors) {
-		printf ("auth-test: %d error(s). Run with '-d' for details\n",
-			errors);
-	} else
-		printf ("auth-test: OK\n");
-	return errors;
+	test_cleanup ();
+	return errors != 0;
 }

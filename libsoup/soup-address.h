@@ -8,6 +8,8 @@
 
 #include <sys/types.h>
 
+#include <gio/gio.h>
+
 #include <libsoup/soup-portability.h>
 #include <libsoup/soup-types.h>
 
@@ -28,42 +30,29 @@ struct SoupAddress {
 typedef struct {
 	GObjectClass parent_class;
 
-	/* signals */
-	void (*dns_result) (SoupAddress *addr, guint status);
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
 } SoupAddressClass;
 
-/* This is messy, but gtk-doc doesn't understand if the #if occurs
- * inside the typedef.
- */
-#ifdef AF_INET6
+/* gtk-doc gets confused if there's an #ifdef inside the typedef */
+#ifndef AF_INET6
+#define AF_INET6 -1
+#endif
+
 typedef enum {
 	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
 	SOUP_ADDRESS_FAMILY_IPV6 = AF_INET6
 } SoupAddressFamily;
-#else
-typedef enum {
-	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
-	SOUP_ADDRESS_FAMILY_IPV6 = -1
-} SoupAddressFamily;
+
+#if AF_INET6 == -1
+#undef AF_INET6
 #endif
 
-/**
- * SOUP_ADDRESS_ANY_PORT:
- *
- * This can be passed to any #SoupAddress method that expects a port,
- * to indicate that you don't care what port is used.
- **/
 #define SOUP_ADDRESS_ANY_PORT 0
 
-/**
- * SoupAddressCallback:
- * @addr: the #SoupAddress that was resolved
- * @status: %SOUP_STATUS_OK or %SOUP_STATUS_CANT_RESOLVE
- * @data: the user data that was passed to
- * soup_address_resolve_async()
- *
- * The callback function passed to soup_address_resolve_async().
- **/
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
 						  gpointer             data);
@@ -78,13 +67,12 @@ SoupAddress     *soup_address_new_any            (SoupAddressFamily    family,
 						  guint                port);
 
 void             soup_address_resolve_async      (SoupAddress         *addr,
-						  SoupAddressCallback  callback,
-						  gpointer             user_data);
-void             soup_address_resolve_async_full (SoupAddress         *addr,
 						  GMainContext        *async_context,
+						  GCancellable        *cancellable,
 						  SoupAddressCallback  callback,
 						  gpointer             user_data);
-guint            soup_address_resolve_sync       (SoupAddress         *addr);
+guint            soup_address_resolve_sync       (SoupAddress         *addr,
+						  GCancellable        *cancellable);
 
 const char      *soup_address_get_name           (SoupAddress         *addr);
 const char      *soup_address_get_physical       (SoupAddress         *addr);
