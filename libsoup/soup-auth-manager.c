@@ -99,10 +99,10 @@ soup_auth_manager_free (SoupAuthManager *manager)
 static int
 auth_type_compare_func (gconstpointer a, gconstpointer b)
 {
-	SoupAuthClass *auth1 = (SoupAuthClass *)a;
-	SoupAuthClass *auth2 = (SoupAuthClass *)b;
+	SoupAuthClass **auth1 = (SoupAuthClass **)a;
+	SoupAuthClass **auth2 = (SoupAuthClass **)b;
 
-	return auth2->strength - auth1->strength;
+	return (*auth2)->strength - (*auth1)->strength;
 }
 
 void
@@ -180,8 +180,10 @@ extract_challenge (const char *challenges, const char *scheme)
 		    g_ascii_isspace (item[schemelen]))
 			break;
 	}
-	if (!i)
+	if (!i) {
+		soup_header_free_list (items);
 		return NULL;
+	}
 
 	/* The challenge extends from this item until the end, or until
 	 * the next item that has a space before an equals sign.
@@ -315,9 +317,10 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	return soup_auth_is_authenticated (auth);
 }
 
-static gboolean
-update_auth (SoupAuthManager *manager, SoupMessage *msg)
+static void
+update_auth (SoupMessage *msg, gpointer user_data)
 {
+	SoupAuthManager *manager = user_data;
 	SoupAuthHost *host;
 	SoupAuth *auth, *prior_auth, *old_auth;
 	const char *path;
@@ -336,7 +339,7 @@ update_auth (SoupAuthManager *manager, SoupMessage *msg)
 	} else {
 		auth = create_auth (manager, msg);
 		if (!auth)
-			return FALSE;
+			return;
 	}
 	auth_info = soup_auth_get_info (auth);
 
@@ -378,13 +381,24 @@ update_auth (SoupAuthManager *manager, SoupMessage *msg)
 	}
 
 	/* If we need to authenticate, try to do it. */
-	return authenticate_auth (manager, auth, msg,
-				  prior_auth_failed, FALSE);
+	authenticate_auth (manager, auth, msg,
+			   prior_auth_failed, FALSE);
 }
 
-static gboolean
-update_proxy_auth (SoupAuthManager *manager, SoupMessage *msg)
+static void
+requeue_if_authenticated (SoupMessage *msg, gpointer user_data)
 {
+	SoupAuthManager *manager = user_data;
+	SoupAuth *auth = lookup_auth (manager, msg);
+
+	if (auth && soup_auth_is_authenticated (auth))
+		soup_session_requeue_message (manager->session, msg);
+}
+
+static void
+update_proxy_auth (SoupMessage *msg, gpointer user_data)
+{
+	SoupAuthManager *manager = user_data;
 	SoupAuth *prior_auth;
 	gboolean prior_auth_failed = FALSE;
 
@@ -398,29 +412,21 @@ update_proxy_auth (SoupAuthManager *manager, SoupMessage *msg)
 	if (!manager->proxy_auth) {
 		manager->proxy_auth = create_auth (manager, msg);
 		if (!manager->proxy_auth)
-			return FALSE;
+			return;
 	}
 
 	/* If we need to authenticate, try to do it. */
-	return authenticate_auth (manager, manager->proxy_auth, msg,
-				  prior_auth_failed, TRUE);
+	authenticate_auth (manager, manager->proxy_auth, msg,
+			   prior_auth_failed, TRUE);
 }
 
 static void
-authorize_handler (SoupMessage *msg, gpointer user_data)
+requeue_if_proxy_authenticated (SoupMessage *msg, gpointer user_data)
 {
 	SoupAuthManager *manager = user_data;
+	SoupAuth *auth = manager->proxy_auth;
 
-	if (update_auth (manager, msg))
-		soup_session_requeue_message (manager->session, msg);
-}
-
-static void
-proxy_authorize_handler (SoupMessage *msg, gpointer user_data)
-{
-	SoupAuthManager *manager = user_data;
-
-	if (update_proxy_auth (manager, msg))
+	if (auth && soup_auth_is_authenticated (auth))
 		soup_session_requeue_message (manager->session, msg);
 }
 
@@ -436,16 +442,20 @@ session_request_started (SoupSession *session, SoupMessage *msg,
 		auth = NULL;
 	soup_message_set_auth (msg, auth);
 	soup_message_add_status_code_handler (
+		msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
+		G_CALLBACK (update_auth), manager);
+	soup_message_add_status_code_handler (
 		msg, "got_body", SOUP_STATUS_UNAUTHORIZED,
-		G_CALLBACK (authorize_handler), manager);
+		G_CALLBACK (requeue_if_authenticated), manager);
 
 	auth = manager->proxy_auth;
 	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, TRUE))
 		auth = NULL;
 	soup_message_set_proxy_auth (msg, auth);
 	soup_message_add_status_code_handler (
+		msg, "got_headers", SOUP_STATUS_PROXY_UNAUTHORIZED,
+		G_CALLBACK (update_proxy_auth), manager);
+	soup_message_add_status_code_handler (
 		msg, "got_body", SOUP_STATUS_PROXY_UNAUTHORIZED,
-		G_CALLBACK (proxy_authorize_handler), manager);
+		G_CALLBACK (requeue_if_proxy_authenticated), manager);
 }
-
-

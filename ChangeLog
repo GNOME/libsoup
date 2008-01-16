@@ -1,5 +1,23 @@
 2008-01-16  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-manager.c (authorize_handler, etc): Allow the
+	session authenticate signal to be handled asynchronously, by
+	pausing the message and then authenticating the auth later.
+	(auth_type_compare_func): make this work. oops.
+	(extract_challenge): plug leak
+
+	* libsoup/soup-auth-manager-ntlm.c: Make this work async too.
+
+	* libsoup/soup-headers.c (soup_header_parse_list):
+	(soup_header_parse_param_list): plug leaks
+
+	* tests/auth-test.c (do_async_auth_test): test async auth
+
+	* docs/reference/client-howto.xml (Handling Authentication):
+	mention async auth
+
+2008-01-16  Dan Winship  <danw@gnome.org>
+
 	* configure.in: Bomb out if glib 2.15.0 isn't found.
 	(AM_PATH_GLIB_2_0 doesn't do this itself.)
 

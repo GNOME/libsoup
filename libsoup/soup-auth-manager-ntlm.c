@@ -33,6 +33,9 @@ typedef struct {
 	SoupSocket *socket;
 	SoupNTLMState state;
 	char *response_header;
+
+	char *nonce, *domain;
+	SoupAuth *auth;
 } SoupNTLMConnection;
 
 struct SoupAuthManagerNTLM {
@@ -72,6 +75,10 @@ static void
 free_ntlm_connection (SoupNTLMConnection *conn)
 {
 	g_free (conn->response_header);
+	g_free (conn->nonce);
+	g_free (conn->domain);
+	if (conn->auth)
+		g_object_unref (conn->auth);
 	g_slice_free (SoupNTLMConnection, conn);
 }
 
@@ -161,11 +168,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 {
 	SoupAuthManagerNTLM *ntlm = user_data;
 	SoupNTLMConnection *conn;
-	SoupAuth *auth;
 	const char *val;
-	char *nonce;
-	const char *username = NULL, *password = NULL;
-	char *slash, *domain;
 
 	conn = get_connection_for_msg (ntlm, msg);
 	if (!conn)
@@ -189,38 +192,15 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer user_data)
 		goto done;
 	}
 
-	if (!soup_ntlm_parse_challenge (val, &nonce, &domain)) {
+	if (!soup_ntlm_parse_challenge (val, &conn->nonce, &conn->domain)) {
 		conn->state = SOUP_NTLM_FAILED;
 		goto done;
 	}
 
-	auth = soup_auth_ntlm_new (domain, soup_message_get_uri (msg)->host);
-	soup_session_emit_authenticate (ntlm->session, msg, auth, FALSE);
-	username = soup_auth_ntlm_get_username (auth);
-	password = soup_auth_ntlm_get_password (auth);
-	if (!username || !password) {
-		g_free (nonce);
-		g_free (domain);
-		g_object_unref (auth);
-		goto done;
-	}
-
-	slash = strpbrk (username, "\\/");
-	if (slash) {
-		g_free (domain);
-		domain = g_strdup (username);
-		slash = domain + (slash - username);
-		*slash = '\0';
-		username = slash + 1;
-	}
-
-	conn->response_header =
-		soup_ntlm_response (nonce, username, password, NULL, domain);
 	conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
-
-	g_free (domain);
-	g_free (nonce);
-	g_object_unref (auth);
+	conn->auth = soup_auth_ntlm_new (conn->domain,
+					 soup_message_get_uri (msg)->host);
+	soup_session_emit_authenticate (ntlm->session, msg, conn->auth, FALSE);
 
  done:
 	/* Remove the WWW-Authenticate headers so the session won't try
@@ -234,14 +214,41 @@ ntlm_authorize_post (SoupMessage *msg, gpointer user_data)
 {
 	SoupAuthManagerNTLM *ntlm = user_data;
 	SoupNTLMConnection *conn;
+	const char *username = NULL, *password = NULL;
+	char *slash, *domain;
 
 	conn = get_connection_for_msg (ntlm, msg);
-	if (!conn)
+	if (!conn || !conn->auth)
 		return;
 
-	if (conn->state == SOUP_NTLM_RECEIVED_CHALLENGE &&
-	    conn->response_header)
-		soup_session_requeue_message (ntlm->session, msg);
+	username = soup_auth_ntlm_get_username (conn->auth);
+	password = soup_auth_ntlm_get_password (conn->auth);
+	if (!username || !password)
+		goto done;
+
+	slash = strpbrk (username, "\\/");
+	if (slash) {
+		domain = g_strdup (username);
+		slash = domain + (slash - username);
+		*slash = '\0';
+		username = slash + 1;
+	} else
+		domain = conn->domain;
+
+	conn->response_header = soup_ntlm_response (conn->nonce,
+						    username, password,
+						    NULL, domain);
+	soup_session_requeue_message (ntlm->session, msg);
+
+done:
+	if (domain != conn->domain)
+		g_free (domain);
+	g_free (conn->domain);
+	conn->domain = NULL;
+	g_free (conn->nonce);
+	conn->nonce = NULL;
+	g_object_unref (conn->auth);
+	conn->auth = NULL;
 }
 
 static void

@@ -511,7 +511,7 @@ soup_header_free_list (GSList *list)
 
 	for (l = list; l; l = l->next)
 		g_free (l->data);
-	g_slist_free (l);
+	g_slist_free (list);
 }
 
 /**
@@ -609,6 +609,7 @@ soup_header_parse_param_list (const char *header)
 		g_hash_table_insert (params, item, value);
 	}
 
+	g_slist_free (list);
 	return params;
 }
 

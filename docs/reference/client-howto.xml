@@ -345,6 +345,19 @@ at which point <application>libsoup</application> will allow the
 message to fail (with status 401 or 407).
 </para>
 
+<para>
+If you need to handle authentication asynchronously (eg, to pop up a
+password dialog without recursively entering the main loop), you can
+do that as well. Just call <link
+linkend="soup-session-pause-message"><function>soup_session_pause_message</function></link>
+on the message before returning from the signal handler, and
+<function>g_object_ref</function> the <type>SoupAuth</type>. Then,
+later on, after calling <function>soup_auth_authenticate</function>
+(or deciding not to), call <link
+linkend="soup-session-unpause-message"><function>soup_session_unpause_message</function></link>
+to resume the paused message.
+</para>
+
 </refsect2>
 
 <refsect2>

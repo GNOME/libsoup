@@ -257,6 +257,15 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * emitted again, with @retrying set to %TRUE, which will
 	 * continue until you return without calling
 	 * soup_auth_authenticate() on @auth.
+	 *
+	 * Note that this may be emitted before @msg's body has been
+	 * fully read.
+	 *
+	 * If you call soup_session_pause_message() on @msg before
+	 * returning, then you can authenticate @auth asynchronously
+	 * (as long as you g_object_ref() it to make sure it doesn't
+	 * get destroyed), and then unpause @msg when you are ready
+	 * for it to continue.
 	 **/
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",

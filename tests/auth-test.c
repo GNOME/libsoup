@@ -352,6 +352,148 @@ do_digest_nonce_test (SoupSession *session,
 	g_object_unref (msg);
 }
 
+/* Async auth test. We queue three requests to /Basic/realm1, ensuring
+ * that they are sent in order. The first and third ones will be
+ * paused from the authentication callback. The second will be allowed
+ * to fail. Shortly after the third one requests auth, we'll provide
+ * the auth and unpause the two remaining messages, allowing them to
+ * succeed.
+ */
+
+static void
+async_authenticate (SoupSession *session, SoupMessage *msg,
+		    SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	SoupAuth **saved_auth = data;
+	int id = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "id"));
+
+	debug_printf (2, "  async_authenticate msg%d\n", id);
+
+	/* The session will try to authenticate msg3 *before* sending
+	 * it, because it already knows it's going to need the auth.
+	 * Ignore that.
+	 */
+	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (2, "    (ignoring)\n");
+		return;
+	}
+
+	soup_session_pause_message (session, msg);
+	if (saved_auth)
+		*saved_auth = g_object_ref (auth);
+	g_main_loop_quit (loop);
+}
+
+static void
+async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	int *finished = user_data;
+	int id = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "id"));
+
+	debug_printf (2, "  async_finished msg%d\n", id);
+
+	(*finished)++;
+	if (*finished == 2)
+		g_main_loop_quit (loop);
+}
+
+static void
+do_async_auth_test (const char *base_uri)
+{
+	SoupSession *session;
+	SoupMessage *msg1, *msg2, *msg3, msg2_bak;
+	guint auth_id;
+	char *uri;
+	SoupAuth *auth = NULL;
+	int finished = 0;
+
+	debug_printf (1, "\nTesting async auth:\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+
+	msg1 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate), &auth);
+	g_object_ref (msg1);
+	soup_session_queue_message (session, msg1, async_finished, &finished);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+
+	/* async_authenticate will pause msg1 and quit loop */
+
+	msg2 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg2), "id", GINT_TO_POINTER (2));
+	soup_session_send_message (session, msg2);
+
+	if (msg2->status_code == SOUP_STATUS_UNAUTHORIZED)
+		debug_printf (1, "  msg2 failed as expected\n");
+	else {
+		debug_printf (1, "  msg2 got wrong status! (%u)\n",
+			      msg2->status_code);
+		errors++;
+	}
+
+	/* msg2 should be done at this point; assuming everything is
+	 * working correctly, the session won't look at it again; we
+	 * ensure that if it does, it will crash the test program.
+	 */
+	memcpy (&msg2_bak, msg2, sizeof (SoupMessage));
+	memset (msg2, 0, sizeof (SoupMessage));
+
+	msg3 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg3), "id", GINT_TO_POINTER (3));
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate), NULL);
+	g_object_ref (msg3);
+	soup_session_queue_message (session, msg3, async_finished, &finished);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+
+	/* async_authenticate will pause msg3 and quit loop */
+
+	/* Now do the auth, and restart */
+	if (auth) {
+		soup_auth_authenticate (auth, "user1", "realm1");
+		soup_session_unpause_message (session, msg1);
+		soup_session_unpause_message (session, msg3);
+
+		g_main_loop_run (loop);
+
+		/* async_finished will quit the loop */
+	} else {
+		debug_printf (1, "  msg1 didn't get authenticate signal!\n");
+		errors++;
+	}
+
+	if (msg1->status_code == SOUP_STATUS_OK)
+		debug_printf (1, "  msg1 succeeded\n");
+	else {
+		debug_printf (1, "  msg1 FAILED! (%u %s)\n",
+			      msg1->status_code, msg1->reason_phrase);
+		errors++;
+	}
+	if (msg3->status_code == SOUP_STATUS_OK)
+		debug_printf (1, "  msg3 succeeded\n");
+	else {
+		debug_printf (1, "  msg3 FAILED! (%u %s)\n",
+			      msg3->status_code, msg3->reason_phrase);
+		errors++;
+	}
+
+	soup_session_abort (session);
+	g_object_unref (session);
+
+	g_object_unref (msg1);
+	g_object_unref (msg3);
+	memcpy (msg2, &msg2_bak, sizeof (SoupMessage));
+	g_object_unref (msg2);
+	g_object_unref (auth);
+	g_free (uri);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -417,6 +559,7 @@ main (int argc, char **argv)
 	g_object_unref (session);
 
 	/* And now for some regression tests */
+	loop = g_main_loop_new (NULL, TRUE);
 
 	debug_printf (1, "Testing pipelined auth (bug 271540):\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -437,8 +580,9 @@ main (int argc, char **argv)
 	}
 	g_free (uri);
 
-	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);
+	soup_session_abort (session);
+	g_object_unref (session);
 
 	debug_printf (1, "\nTesting digest nonce expiration:\n");
 
@@ -516,6 +660,8 @@ main (int argc, char **argv)
 	 *
 	 */
 
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
 	do_digest_nonce_test (session, "First", uri, TRUE, TRUE);
 	g_free (uri);
@@ -528,10 +674,13 @@ main (int argc, char **argv)
 	do_digest_nonce_test (session, "Fourth", uri, FALSE, FALSE);
 	g_free (uri);
 
-	g_main_loop_unref (loop);
-
 	soup_session_abort (session);
 	g_object_unref (session);
+
+	/* Async auth */
+	do_async_auth_test (base_uri);
+
+	g_main_loop_unref (loop);
 
 	test_cleanup ();
 	return errors != 0;
