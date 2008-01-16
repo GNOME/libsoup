@@ -1,3 +1,8 @@
+2008-01-16  Dan Winship  <danw@gnome.org>
+
+	* configure.in: Bomb out if glib 2.15.0 isn't found.
+	(AM_PATH_GLIB_2_0 doesn't do this itself.)
+
 2008-01-15  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-manager-ntlm.c: Replaces SoupConnectionNTLM;
