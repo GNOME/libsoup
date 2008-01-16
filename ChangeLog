@@ -1,5 +1,13 @@
 2008-01-16  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-headers.c (soup_headers_parse_status_line): Deal
+	with Shoutcast servers, which return "ICY 200 OK", but are
+	otherwise straight HTTP/1.0. #502325, Wouter Cloetens.
+
+	* tests/header-parsing.c (resptests): add a test for it
+
+2008-01-16  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-manager.c (authorize_handler, etc): Allow the
 	session authenticate signal to be handled asynchronously, by
 	pausing the message and then authenticating the auth later.

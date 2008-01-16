@@ -229,19 +229,23 @@ soup_headers_parse_status_line (const char       *status_line,
 	const char *code_start, *code_end, *phrase_start, *phrase_end;
 	char *p;
 
-	if (strncmp (status_line, "HTTP/", 5) != 0 ||
-	    !g_ascii_isdigit (status_line[5]))
-		return FALSE;
-	major_version = strtoul (status_line + 5, &p, 10);
-	if (*p != '.' || !g_ascii_isdigit (p[1]))
-		return FALSE;
-	minor_version = strtoul (p + 1, &p, 10);
-	if (major_version != 1)
-		return FALSE;
-	if (minor_version < 0 || minor_version > 1)
-		return FALSE;
-	if (ver)
-		*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
+	if (strncmp (status_line, "HTTP/", 5) == 0 &&
+	    g_ascii_isdigit (status_line[5])) {
+		major_version = strtoul (status_line + 5, &p, 10);
+		if (*p != '.' || !g_ascii_isdigit (p[1]))
+			return FALSE;
+		minor_version = strtoul (p + 1, &p, 10);
+		if (major_version != 1)
+			return FALSE;
+		if (minor_version < 0 || minor_version > 1)
+			return FALSE;
+		if (ver)
+			*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
+	} else if (!strncmp (status_line, "ICY", 3)) {
+		/* Shoutcast not-quite-HTTP format */
+		*ver = SOUP_HTTP_1_0;
+		p = (char *)status_line + 3;
+	}
 
 	code_start = p;
 	while (*code_start == ' ' || *code_start == '\t')

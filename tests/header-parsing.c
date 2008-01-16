@@ -443,6 +443,14 @@ struct ResponseTest {
 	  }
 	},
 
+	{ "Shoutcast server not-quite-HTTP",
+	  "ICY 200 OK\r\nFoo: bar\r\n", -1,
+	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "OK",
+	  { { "Foo", "bar" },
+	    { NULL }
+	  }
+	},
+
 	/*************************/
 	/*** INVALID RESPONSES ***/
 	/*************************/
