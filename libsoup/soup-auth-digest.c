@@ -256,11 +256,11 @@ soup_auth_digest_compute_hex_urp (const char *username,
 	GChecksum *checksum;
 
 	checksum = g_checksum_new (G_CHECKSUM_MD5);
-	g_checksum_update (checksum, username, strlen (username));
-	g_checksum_update (checksum, ":", 1);
-	g_checksum_update (checksum, realm, strlen (realm));
-	g_checksum_update (checksum, ":", 1);
-	g_checksum_update (checksum, password, strlen (password));
+	g_checksum_update (checksum, (guchar *)username, strlen (username));
+	g_checksum_update (checksum, (guchar *)":", 1);
+	g_checksum_update (checksum, (guchar *)realm, strlen (realm));
+	g_checksum_update (checksum, (guchar *)":", 1);
+	g_checksum_update (checksum, (guchar *)password, strlen (password));
 	strncpy (hex_urp, g_checksum_get_string (checksum), 33);
 	g_checksum_free (checksum);
 }
@@ -286,11 +286,11 @@ soup_auth_digest_compute_hex_a1 (const char              *hex_urp,
 		/* In MD5-sess, A1 is hex_urp:nonce:cnonce */
 
 		checksum = g_checksum_new (G_CHECKSUM_MD5);
-		g_checksum_update (checksum, hex_urp, strlen (hex_urp));
-		g_checksum_update (checksum, ":", 1);
-		g_checksum_update (checksum, nonce, strlen (nonce));
-		g_checksum_update (checksum, ":", 1);
-		g_checksum_update (checksum, cnonce, strlen (cnonce));
+		g_checksum_update (checksum, (guchar *)hex_urp, strlen (hex_urp));
+		g_checksum_update (checksum, (guchar *)":", 1);
+		g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
+		g_checksum_update (checksum, (guchar *)":", 1);
+		g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));
 		strncpy (hex_a1, g_checksum_get_string (checksum), 33);
 		g_checksum_free (checksum);
 	}
@@ -352,35 +352,35 @@ soup_auth_digest_compute_response (const char        *method,
 
 	/* compute A2 */
 	checksum = g_checksum_new (G_CHECKSUM_MD5);
-	g_checksum_update (checksum, method, strlen (method));
-	g_checksum_update (checksum, ":", 1);
-	g_checksum_update (checksum, uri, strlen (uri));
+	g_checksum_update (checksum, (guchar *)method, strlen (method));
+	g_checksum_update (checksum, (guchar *)":", 1);
+	g_checksum_update (checksum, (guchar *)uri, strlen (uri));
 	strncpy (hex_a2, g_checksum_get_string (checksum), 33);
 	g_checksum_free (checksum);
 
 	/* compute KD */
 	checksum = g_checksum_new (G_CHECKSUM_MD5);
-	g_checksum_update (checksum, hex_a1, strlen (hex_a1));
-	g_checksum_update (checksum, ":", 1);
-	g_checksum_update (checksum, nonce, strlen (nonce));
-	g_checksum_update (checksum, ":", 1);
+	g_checksum_update (checksum, (guchar *)hex_a1, strlen (hex_a1));
+	g_checksum_update (checksum, (guchar *)":", 1);
+	g_checksum_update (checksum, (guchar *)nonce, strlen (nonce));
+	g_checksum_update (checksum, (guchar *)":", 1);
 
 	if (qop) {
 		char tmp[9];
 
 		snprintf (tmp, 9, "%.8x", nc);
-		g_checksum_update (checksum, tmp, strlen (tmp));
-		g_checksum_update (checksum, ":", 1);
-		g_checksum_update (checksum, cnonce, strlen (cnonce));
-		g_checksum_update (checksum, ":", 1);
+		g_checksum_update (checksum, (guchar *)tmp, strlen (tmp));
+		g_checksum_update (checksum, (guchar *)":", 1);
+		g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));
+		g_checksum_update (checksum, (guchar *)":", 1);
 
 		if (qop != SOUP_AUTH_DIGEST_QOP_AUTH)
 			g_assert_not_reached ();
-		g_checksum_update (checksum, "auth", strlen ("auth"));
-		g_checksum_update (checksum, ":", 1);
+		g_checksum_update (checksum, (guchar *)"auth", strlen ("auth"));
+		g_checksum_update (checksum, (guchar *)":", 1);
 	}
 
-	g_checksum_update (checksum, hex_a2, 32);
+	g_checksum_update (checksum, (guchar *)hex_a2, 32);
 	strncpy (response, g_checksum_get_string (checksum), 33);
 	g_checksum_free (checksum);
 }
