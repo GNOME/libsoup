@@ -1,5 +1,11 @@
 2008-01-18  Dan Winship  <danw@gnome.org>
 
+	* configure.in: require glib 2.15.3, not 2.15.0, since
+	AM_PATH_GLIB_2_0 didn't know about gio until post-2.15.2. Pointed
+	out by Matthew Barnes, #510216.
+
+2008-01-18  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-domain.c
 	(soup_auth_domain_set_generic_auth_callback):
 	(soup_auth_domain_check_password): add a new generic auth callback
