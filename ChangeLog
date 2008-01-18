@@ -1,5 +1,9 @@
 2008-01-18  Dan Winship  <danw@gnome.org>
 
+	* tests/server-auth-test.c: test SOUP_AUTH_DOMAIN_REMOVE_PATH
+
+2008-01-18  Dan Winship  <danw@gnome.org>
+
 	* configure.in: require glib 2.15.3, not 2.15.0, since
 	AM_PATH_GLIB_2_0 didn't know about gio until post-2.15.2. Pointed
 	out by Matthew Barnes, #510216.

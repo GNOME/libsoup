@@ -206,6 +206,19 @@ do_auth_tests (SoupURI *base_uri)
 			 !preemptive_basic || !good_password, !preemptive_basic || !good_password,
 			 /* success? */
 			 (use_basic || use_digest) && good_password);
+
+		/* 5. No auth required again. (Makes sure that
+		 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
+		 */
+		do_test (n++, base_uri, "/Any/Not/foo", good_password,
+			 /* request */
+			 use_basic, use_digest,
+			 /* expected from client */
+			 preemptive_basic, FALSE,
+			 /* expected from server */
+			 FALSE, FALSE,
+			 /* success? */
+			 TRUE);
 	}
 }
 
@@ -319,6 +332,7 @@ main (int argc, char **argv)
 		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Basic",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
+		SOUP_AUTH_DOMAIN_REMOVE_PATH, "/Any/Not",
 		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, basic_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
@@ -327,6 +341,7 @@ main (int argc, char **argv)
 		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Digest",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/Any",
+		SOUP_AUTH_DOMAIN_REMOVE_PATH, "/Any/Not",
 		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, digest_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
