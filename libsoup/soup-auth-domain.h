@@ -23,14 +23,17 @@ struct SoupAuthDomain {
 typedef struct {
 	GObjectClass parent_class;
 
-	char *   (*accepts)   (SoupAuthDomain  *domain,
-			       SoupMessage     *msg,
-			       const char      *header);
-	char *   (*challenge) (SoupAuthDomain  *domain,
-			       SoupMessage     *msg);
+	char *   (*accepts)        (SoupAuthDomain *domain,
+				    SoupMessage    *msg,
+				    const char     *header);
+	char *   (*challenge)      (SoupAuthDomain *domain,
+				    SoupMessage    *msg);
+	gboolean (*check_password) (SoupAuthDomain *domain,
+				    SoupMessage    *msg,
+				    const char     *username,
+				    const char     *password);
 
 	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
 	void (*_libsoup_reserved4) (void);
@@ -42,8 +45,17 @@ typedef struct {
 #define SOUP_AUTH_DOMAIN_REMOVE_PATH "remove-path"
 #define SOUP_AUTH_DOMAIN_FILTER      "filter"
 #define SOUP_AUTH_DOMAIN_FILTER_DATA "filter-data"
+#define SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK "generic-auth-callback"
+#define SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA     "generic-auth-data"
 
-typedef gboolean (*SoupAuthDomainFilter) (SoupAuthDomain *, SoupMessage *, gpointer);
+typedef gboolean (*SoupAuthDomainFilter) (SoupAuthDomain *domain,
+					  SoupMessage    *msg,
+					  gpointer        user_data);
+
+typedef gboolean (*SoupAuthDomainGenericAuthCallback) (SoupAuthDomain *domain,
+						       SoupMessage    *msg,
+						       const char     *username,
+						       gpointer        user_data);
 
 GType       soup_auth_domain_get_type    (void);
 
@@ -59,11 +71,25 @@ void        soup_auth_domain_set_filter  (SoupAuthDomain       *domain,
 
 const char *soup_auth_domain_get_realm   (SoupAuthDomain       *domain);
 
+void        soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
+							SoupAuthDomainGenericAuthCallback auth_callback,
+							gpointer        auth_data,
+							GDestroyNotify  dnotify);
+gboolean    soup_auth_domain_check_password (SoupAuthDomain    *domain,
+					     SoupMessage       *msg,
+					     const char        *username,
+					     const char        *password);
+
 gboolean    soup_auth_domain_covers      (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
 char       *soup_auth_domain_accepts     (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
 void        soup_auth_domain_challenge   (SoupAuthDomain       *domain,
 					  SoupMessage          *msg);
+
+/* protected */
+gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
+							SoupMessage    *msg,
+							const char     *username);
 
 #endif /* SOUP_AUTH_DOMAIN_H */

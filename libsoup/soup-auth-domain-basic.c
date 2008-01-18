@@ -42,11 +42,15 @@ typedef struct {
 
 G_DEFINE_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
 
-static char *accepts   (SoupAuthDomain *domain,
-			SoupMessage    *msg,
-			const char     *header);
-static char *challenge (SoupAuthDomain *domain,
-			SoupMessage    *msg);
+static char    *accepts        (SoupAuthDomain *domain,
+				SoupMessage    *msg,
+				const char     *header);
+static char    *challenge      (SoupAuthDomain *domain,
+				SoupMessage    *msg);
+static gboolean check_password (SoupAuthDomain *domain,
+				SoupMessage    *msg,
+				const char     *username,
+				const char     *password);
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
@@ -79,8 +83,9 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 
 	g_type_class_add_private (basic_class, sizeof (SoupAuthDomainBasicPrivate));
 
-	auth_domain_class->accepts   = accepts;
-	auth_domain_class->challenge = challenge;
+	auth_domain_class->accepts        = accepts;
+	auth_domain_class->challenge      = challenge;
+	auth_domain_class->check_password = check_password;
 
 	object_class->finalize     = finalize;
 	object_class->set_property = set_property;
@@ -241,40 +246,53 @@ pw_free (char *pw)
 	g_free (pw);
 }
 
+static gboolean
+parse_basic (SoupMessage *msg, const char *header,
+	     char **username, char **password)
+{
+	char *decoded, *colon;
+	gsize len, plen;
+
+	if (strncmp (header, "Basic ", 6) != 0)
+		return FALSE;
+
+	decoded = (char *)g_base64_decode (header + 6, &len);
+	if (!decoded)
+		return FALSE;
+
+	colon = memchr (decoded, ':', len);
+	if (!colon) {
+		pw_free (decoded);
+		return FALSE;
+	}
+	*colon = '\0';
+	plen = len - (colon - decoded) - 1;
+
+	*password = g_strndup (colon + 1, plen);
+	memset (colon + 1, 0, plen);
+	*username = decoded;
+	return TRUE;
+}
+
 static char *
 accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
-	char *decoded, *colon;
-	gsize len, plen;
 	char *username, *password;
 	gboolean ok = FALSE;
 
-	if (!priv->auth_callback)
+	if (!parse_basic (msg, header, &username, &password))
 		return NULL;
 
-	if (strncmp (header, "Basic ", 6) != 0)
-		return NULL;
-
-	decoded = (char *)g_base64_decode (header + 6, &len);
-	if (!decoded)
-		return NULL;
-
-	colon = memchr (decoded, ':', len);
-	if (!colon) {
-		pw_free (decoded);
-		return NULL;
+	if (priv->auth_callback) {
+		ok = priv->auth_callback (domain, msg, username, password,
+					  priv->auth_data);
+	} else {
+		ok = soup_auth_domain_try_generic_auth_callback (
+			domain, msg, username);
 	}
-	*colon = '\0';
-	plen = len - (colon - decoded) - 1;
 
-	password = g_strndup (colon + 1, plen);
-	memset (colon + 1, 0, plen);
-	username = decoded;
-
-	ok = priv->auth_callback (domain, msg, username, password,
-				  priv->auth_data);
 	pw_free (password);
 
 	if (ok)
@@ -291,4 +309,26 @@ challenge (SoupAuthDomain *domain, SoupMessage *msg)
 	/* FIXME: if realm has '"'s or '\'s in it, need to escape them */
 	return g_strdup_printf ("Basic realm=\"%s\"",
 				soup_auth_domain_get_realm (domain));
+}
+
+static gboolean
+check_password (SoupAuthDomain *domain,
+		SoupMessage    *msg,
+		const char     *username,
+		const char     *password)
+{
+	const char *header;
+	char *msg_username, *msg_password;
+	gboolean ok;
+
+	header = soup_message_headers_get (msg->request_headers, "Authorization");
+	if (!parse_basic (msg, header, &msg_username, &msg_password))
+		return FALSE;
+
+	ok = (!strcmp (username, msg_username) &&
+	      !strcmp (password, msg_password));
+	g_free (msg_username);
+	pw_free (msg_password);
+
+	return ok;
 }

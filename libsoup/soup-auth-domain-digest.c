@@ -47,11 +47,15 @@ typedef struct {
 
 G_DEFINE_TYPE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
 
-static char *accepts   (SoupAuthDomain *domain,
-			SoupMessage    *msg,
-			const char     *header);
-static char *challenge (SoupAuthDomain *domain,
-			SoupMessage    *msg);
+static char    *accepts        (SoupAuthDomain *domain,
+				SoupMessage    *msg,
+				const char     *header);
+static char    *challenge      (SoupAuthDomain *domain,
+				SoupMessage    *msg);
+static gboolean check_password (SoupAuthDomain *domain,
+				SoupMessage    *msg,
+				const char     *username,
+				const char     *password);
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
@@ -84,8 +88,9 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 
 	g_type_class_add_private (digest_class, sizeof (SoupAuthDomainDigestPrivate));
 
-	auth_domain_class->accepts   = accepts;
-	auth_domain_class->challenge = challenge;
+	auth_domain_class->accepts        = accepts;
+	auth_domain_class->challenge      = challenge;
+	auth_domain_class->check_password = check_password;
 
 	object_class->finalize     = finalize;
 	object_class->set_property = set_property;
@@ -229,40 +234,32 @@ soup_auth_domain_digest_set_auth_callback (SoupAuthDomain *domain,
 	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA);
 }
 
-static char *
-accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
+static gboolean
+check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
+	       GHashTable *params, const char *username,
+	       const char *hex_urp)
 {
-	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
-	GHashTable *params;
-	const char *uri, *qop, *realm, *username;
+	const char *uri, *qop, *realm, *msg_username;
 	const char *nonce, *nc, *cnonce, *response;
-	char *hex_urp, hex_a1[33], computed_response[33], *ret_user;
+	char hex_a1[33], computed_response[33];
 	int nonce_count;
 	SoupURI *dig_uri, *req_uri;
-	gboolean accept = FALSE;
 
-	if (!priv->auth_callback)
-		return NULL;
-
-	if (strncmp (header, "Digest ", 7) != 0)
-		return NULL;
-
-	params = soup_header_parse_param_list (header + 7);
-	if (!params)
-		return NULL;
+	msg_username = g_hash_table_lookup (params, "username");
+	if (!msg_username || strcmp (msg_username, username) != 0)
+		return FALSE;
 
 	/* Check uri */
 	uri = g_hash_table_lookup (params, "uri");
 	if (!uri)
-		goto DONE;
+		return FALSE;
 
 	req_uri = soup_message_get_uri (msg);
 	dig_uri = soup_uri_new (uri);
 	if (dig_uri) {
 		if (!soup_uri_equal (dig_uri, req_uri)) {
 			soup_uri_free (dig_uri);
-			goto DONE;
+			return FALSE;
 		}
 		soup_uri_free (dig_uri);
 	} else {	
@@ -271,7 +268,7 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 		req_path = soup_uri_to_string (req_uri, TRUE);
 		if (strcmp (uri, req_path) != 0) {
 			g_free (req_path);
-			goto DONE;
+			return FALSE;
 		}
 		g_free (req_path);
 	}
@@ -279,46 +276,75 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 	/* Check qop; we only support "auth" for now */
 	qop = g_hash_table_lookup (params, "qop");
 	if (!qop || strcmp (qop, "auth") != 0)
-		goto DONE;
+		return FALSE;
 
 	/* Check realm */
 	realm = g_hash_table_lookup (params, "realm");
 	if (!realm || strcmp (realm, soup_auth_domain_get_realm (domain)) != 0)
-		goto DONE;
+		return FALSE;
 
-	username = g_hash_table_lookup (params, "username");
-	if (!username)
-		goto DONE;
 	nonce = g_hash_table_lookup (params, "nonce");
 	if (!nonce)
-		goto DONE;
+		return FALSE;
 	nc = g_hash_table_lookup (params, "nc");
 	if (!nc)
-		goto DONE;
+		return FALSE;
 	nonce_count = atoi (nc);
 	if (nonce_count <= 0)
-		goto DONE;
+		return FALSE;
 	cnonce = g_hash_table_lookup (params, "cnonce");
 	if (!cnonce)
-		goto DONE;
+		return FALSE;
 	response = g_hash_table_lookup (params, "response");
 	if (!response)
-		goto DONE;
+		return FALSE;
 
-	hex_urp = priv->auth_callback (domain, msg, username, priv->auth_data);
-	if (hex_urp) {
-		soup_auth_digest_compute_hex_a1 (hex_urp,
-						 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
-						 nonce, cnonce, hex_a1);
-		g_free (hex_urp);
-		soup_auth_digest_compute_response (msg->method, uri, hex_a1,
-						   SOUP_AUTH_DIGEST_QOP_AUTH,
-						   nonce, cnonce, nonce_count,
-						   computed_response);
-		accept = (strcmp (response, computed_response) == 0);
+	soup_auth_digest_compute_hex_a1 (hex_urp,
+					 SOUP_AUTH_DIGEST_ALGORITHM_MD5,
+					 nonce, cnonce, hex_a1);
+	soup_auth_digest_compute_response (msg->method, uri,
+					   hex_a1,
+					   SOUP_AUTH_DIGEST_QOP_AUTH,
+					   nonce, cnonce, nonce_count,
+					   computed_response);
+	return strcmp (response, computed_response) == 0;
+}
+
+static char *
+accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
+{
+	SoupAuthDomainDigestPrivate *priv =
+		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
+	GHashTable *params;
+	const char *username;
+	gboolean accept = FALSE;
+	char *ret_user;
+
+	if (strncmp (header, "Digest ", 7) != 0)
+		return NULL;
+
+	params = soup_header_parse_param_list (header + 7);
+	if (!params)
+		return NULL;
+
+	username = g_hash_table_lookup (params, "username");
+	if (!username) {
+		soup_header_free_param_list (params);
+		return NULL;
 	}
 
- DONE:
+	if (priv->auth_callback) {
+		char *hex_urp;
+
+		hex_urp = priv->auth_callback (domain, msg, username,
+					       priv->auth_data);
+		accept = check_hex_urp (domain, msg, params, username, hex_urp);
+		g_free (hex_urp);
+	} else {
+		accept = soup_auth_domain_try_generic_auth_callback (
+			domain, msg, username);
+	}
+
 	ret_user = accept ? g_strdup (username) : NULL;
 	soup_header_free_param_list (params);
 	return ret_user;
@@ -378,77 +404,36 @@ soup_auth_domain_digest_encode_password (const char *username,
 	return g_strdup (hex_urp);
 }
 
-static char *
-evil_auth_callback (SoupAuthDomain *domain, SoupMessage *msg,
-		    const char *username, gpointer encoded_password)
+static gboolean
+check_password (SoupAuthDomain *domain,
+		SoupMessage    *msg,
+		const char     *username,
+		const char     *password)
 {
-	return g_strdup (encoded_password);
-}
-
-/**
- * soup_auth_domain_digest_evil_check_password:
- * @domain: the auth domain
- * @msg: the possibly-authenticated request
- * @username: the username to check @msg against
- * @password: the password to check @msg against
- *
- * Checks if @msg correctly authenticates @username via @password in
- * @domain.
- *
- * Don't use this method; it's evil. It requires you to have a
- * cleartext password database, which means that if your server is
- * compromised, the attackers will have access to all of your users'
- * passwords, which may also be their passwords on other servers. It
- * is much better to store the passwords encoded in some format (eg,
- * via soup_auth_domain_digest_encode_password() when using Digest
- * authentication), so that if the server is compromised, the
- * attackers won't be able to use the encoded passwords elsewhere.
- *
- * At any rate, even if you do have a cleartext password database, you
- * still don't need to use this method, as you can just call
- * soup_auth_domain_digest_encode_password() on the cleartext password
- * from the #SoupAuthDomainDigestAuthCallback anyway. This method
- * really only exists so as not to break certain libraries written
- * against libsoup 2.2 whose public APIs depend on the existence of a
- * "check this password against this request" method.
- *
- * Return value: %TRUE if @msg matches @username and @password,
- * %FALSE if not.
- **/
-gboolean
-soup_auth_domain_digest_evil_check_password (SoupAuthDomain *domain,
-					     SoupMessage    *msg,
-					     const char     *username,
-					     const char     *password)
-{
-	SoupAuthDomainDigestPrivate *priv =
-		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
-	char *encoded_password;
 	const char *header;
-	SoupAuthDomainDigestAuthCallback old_callback;
-	gpointer old_data;
-	char *matched_username;
-
-	encoded_password = soup_auth_domain_digest_encode_password (
-		username, soup_auth_domain_get_realm (domain), password);
-
-	old_callback = priv->auth_callback;
-	old_data = priv->auth_data;
-
-	priv->auth_callback = evil_auth_callback;
-	priv->auth_data = encoded_password;
+	GHashTable *params;
+	const char *msg_username;
+	char hex_urp[33];
+	gboolean accept;
 
 	header = soup_message_headers_get (msg->request_headers, "Authorization");
-	matched_username = accepts (domain, msg, header);
-
-	priv->auth_callback = old_callback;
-	priv->auth_data = old_data;
-
-	g_free (encoded_password);
-
-	if (matched_username) {
-		g_free (matched_username);
-		return TRUE;
-	} else
+	if (strncmp (header, "Digest ", 7) != 0)
 		return FALSE;
+
+	params = soup_header_parse_param_list (header + 7);
+	if (!params)
+		return FALSE;
+
+	msg_username = g_hash_table_lookup (params, "username");
+	if (!msg_username || strcmp (msg_username, username) != 0) {
+		soup_header_free_param_list (params);
+		return FALSE;
+	}
+
+	soup_auth_digest_compute_hex_urp (username,
+					  soup_auth_domain_get_realm (domain),
+					  password, hex_urp);
+	accept = check_hex_urp (domain, msg, params, username, hex_urp);
+	soup_header_free_param_list (params);
+	return accept;
 }

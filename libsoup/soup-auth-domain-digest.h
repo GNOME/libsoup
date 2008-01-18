@@ -52,11 +52,4 @@ char   *soup_auth_domain_digest_encode_password    (const char     *username,
 						    const char     *realm,
 						    const char     *password);
 
-
-gboolean soup_auth_domain_digest_evil_check_password (SoupAuthDomain *domain,
-						      SoupMessage    *msg,
-						      const char     *username,
-						      const char     *password);
-
-
 #endif /* SOUP_AUTH_DOMAIN_DIGEST_H */

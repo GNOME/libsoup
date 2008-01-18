@@ -1,3 +1,17 @@
+2008-01-18  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-domain.c
+	(soup_auth_domain_set_generic_auth_callback):
+	(soup_auth_domain_check_password): add a new generic auth callback
+	that can be used with any subclass to do cleartext password
+	checking against messages. Suggested by Mathias Hasselmann.
+
+	* libsoup/soup-auth-domain-basic.c: Implement generic auth
+
+	* libsoup/soup-auth-domain-digest.c: Implement generic auth.
+	(soup_auth_domain_digest_evil_check_password): Gone, use the
+	generic version now.
+
 2008-01-17  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-digest.c (soup_auth_digest_compute_hex_urp)

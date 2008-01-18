@@ -47,6 +47,8 @@ enum {
 	PROP_REMOVE_PATH,
 	PROP_FILTER,
 	PROP_FILTER_DATA,
+	PROP_GENERIC_AUTH_CALLBACK,
+	PROP_GENERIC_AUTH_DATA,
 
 	LAST_PROP
 };
@@ -54,10 +56,16 @@ enum {
 typedef struct {
 	char *realm;
 	gboolean proxy;
+	SoupPathMap *paths;
+
 	SoupAuthDomainFilter filter;
 	gpointer filter_data;
 	GDestroyNotify filter_dnotify;
-	SoupPathMap *paths;
+
+	SoupAuthDomainGenericAuthCallback auth_callback;
+	gpointer auth_data;
+	GDestroyNotify auth_dnotify;
+
 } SoupAuthDomainPrivate;
 
 #define SOUP_AUTH_DOMAIN_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainPrivate))
@@ -87,6 +95,8 @@ finalize (GObject *object)
 
 	if (priv->filter_dnotify)
 		priv->filter_dnotify (priv->filter_data);
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
 
 	G_OBJECT_CLASS (soup_auth_domain_parent_class)->finalize (object);
 }
@@ -142,6 +152,18 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      "Filter data",
 				      "Data to pass to filter",
 				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_GENERIC_AUTH_CALLBACK,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK,
+				      "Generic authentication callback",
+				      "An authentication callback that can be used with any SoupAuthDomain subclass",
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_GENERIC_AUTH_DATA,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA,
+				      "Authentication callback data",
+				      "Data to pass to auth callback",
+				      G_PARAM_READWRITE));
 }
 
 static void
@@ -177,6 +199,16 @@ set_property (GObject *object, guint prop_id,
 		}
 		priv->filter_data = g_value_get_pointer (value);
 		break;
+	case PROP_GENERIC_AUTH_CALLBACK:
+		priv->auth_callback = g_value_get_pointer (value);
+		break;
+	case PROP_GENERIC_AUTH_DATA:
+		if (priv->auth_dnotify) {
+			priv->auth_dnotify (priv->auth_data);
+			priv->auth_dnotify = NULL;
+		}
+		priv->auth_data = g_value_get_pointer (value);
+		break;
 	default:
 		break;
 	}
@@ -200,6 +232,12 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FILTER_DATA:
 		g_value_set_pointer (value, priv->filter_data);
+		break;
+	case PROP_GENERIC_AUTH_CALLBACK:
+		g_value_set_pointer (value, priv->auth_callback);
+		break;
+	case PROP_GENERIC_AUTH_DATA:
+		g_value_set_pointer (value, priv->auth_data);
 		break;
 	default:
 		break;
@@ -254,6 +292,18 @@ soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 
 	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (FALSE));
 }
+
+/**
+ * SoupAuthDomainFilter:
+ * @domain: a #SoupAuthDomain
+ * @msg: a #SoupMessage
+ * @user_data: the data passed to soup_auth_domain_set_filter()
+ *
+ * The prototype for a #SoupAuthDomain filter; see
+ * soup_auth_domain_set_filter() for details.
+ *
+ * Return value: %TRUE if @msg requires authentication, %FALSE if not.
+ **/
 
 /**
  * soup_auth_domain_set_filter:
@@ -321,6 +371,105 @@ soup_auth_domain_get_realm (SoupAuthDomain *domain)
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
 
 	return priv->realm;
+}
+
+/**
+ * SoupAuthDomainGenericAuthCallback:
+ * @domain: a #SoupAuthDomain
+ * @msg: the #SoupMessage being authenticated
+ * @username: the username from @msg
+ * @user_data: the data passed to
+ * soup_auth_domain_set_generic_auth_callback()
+ *
+ * The prototype for a #SoupAuthDomain generic authentication callback.
+ *
+ * The callback should look up the user's password, call
+ * soup_auth_domain_check_password(), and use the return value from
+ * that method as its own return value.
+ *
+ * In general, for security reasons, it is preferable to use the
+ * auth-domain-specific auth callbacks (eg,
+ * #SoupAuthDomainBasicAuthCallback and
+ * #SoupAuthDomainDigestAuthCallback), because they don't require
+ * keeping a cleartext password database. Most users will use the same
+ * password for many different sites, meaning if any site with a
+ * cleartext password database is compromised, accounts on other
+ * servers might be compromised as well. For many of the cases where
+ * #SoupServer is used, this is not really relevant, but it may still
+ * be worth considering.
+ *
+ * Return value: %TRUE if @msg is authenticated, %FALSE if not.
+ **/
+
+/**
+ * soup_auth_domain_set_generic_auth_callback:
+ * @domain: a #SoupAuthDomain
+ * @auth_callback: the auth callback
+ * @auth_data: data to pass to @auth_callback
+ * @dnotify: destroy notifier to free @auth_data when @domain
+ * is destroyed
+ *
+ * Sets @auth_callback as an authentication-handling callback for
+ * @domain. Whenever a request comes in to @domain which cannot be
+ * authenticated via a domain-specific auth callback (eg,
+ * #SoupAuthDomainDigestAuthCallback), the generic auth callback
+ * will be invoked. See #SoupAuthDomainGenericAuthCallback for information
+ * on what the callback should do.
+ **/
+void
+soup_auth_domain_set_generic_auth_callback (SoupAuthDomain *domain,
+					    SoupAuthDomainGenericAuthCallback auth_callback,
+					    gpointer        auth_data,
+					    GDestroyNotify  dnotify)
+{
+	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+
+	if (priv->auth_dnotify)
+		priv->auth_dnotify (priv->auth_data);
+
+	priv->auth_callback = auth_callback;
+	priv->auth_data = auth_data;
+	priv->auth_dnotify = dnotify;
+
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK);
+	g_object_notify (G_OBJECT (domain), SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA);
+}
+
+gboolean
+soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
+					    SoupMessage    *msg,
+					    const char     *username)
+{
+	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+
+	if (priv->auth_callback)
+		return priv->auth_callback (domain, msg, username, priv->auth_data);
+	else
+		return FALSE;
+}
+
+/**
+ * soup_auth_domain_check_password:
+ * @domain: a #SoupAuthDomain
+ * @msg: a #SoupMessage
+ * @username: a username
+ * @password: a password
+ *
+ * Checks if @msg authenticates to @domain via @username and
+ * @password. This would normally be called from a
+ * #SoupAuthDomainGenericAuthCallback.
+ *
+ * Return value: whether or not the message is authenticated
+ **/
+gboolean
+soup_auth_domain_check_password (SoupAuthDomain *domain,
+				 SoupMessage    *msg,
+				 const char     *username,
+				 const char     *password)
+{
+	return SOUP_AUTH_DOMAIN_GET_CLASS (domain)->check_password (domain, msg,
+								    username,
+								    password);
 }
 
 /**
