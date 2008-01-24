@@ -1,3 +1,21 @@
+2008-01-23  Tor Lillqvist  <tml@novell.com>
+
+	* configure.in: Allow autogening even without AM_PATH_LIBGCRYPT
+	available
+
+	* libsoup/soup-date.c (soup_date_new_from_time_t): Correct use of
+	gmtime().
+
+	* libsoup/soup-headers.c (soup_headers_parse_status_line): Return
+	FALSE if neither HTTP nor ICY. Avoids crash in
+	tests/header-parsing.
+
+	* libsoup/soup-socket.c: On Windows SHUT_RDWR is called SD_BOTH.
+	(set_nonblocking): Fix typo.
+
+	* tests/continue-test.c: Seems to build fine without <pthread.h>,
+	so drop that.
+
 2008-01-18  Dan Winship  <danw@gnome.org>
 
 	* tests/server-auth-test.c: test SOUP_AUTH_DOMAIN_REMOVE_PATH

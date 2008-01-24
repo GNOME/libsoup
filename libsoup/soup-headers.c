@@ -245,7 +245,8 @@ soup_headers_parse_status_line (const char       *status_line,
 		/* Shoutcast not-quite-HTTP format */
 		*ver = SOUP_HTTP_1_0;
 		p = (char *)status_line + 3;
-	}
+	} else
+		return FALSE;
 
 	code_start = p;
 	while (*code_start == ' ' || *code_start == '\t')

@@ -90,6 +90,7 @@ static void get_property (GObject *object, guint prop_id,
 #define SOUP_IS_SOCKET_ERROR(status) ((status) == SOCKET_ERROR)
 #define SOUP_IS_INVALID_SOCKET(socket) ((socket) == INVALID_SOCKET)
 #define SOUP_IS_CONNECT_STATUS_INPROGRESS() (WSAGetLastError () == WSAEWOULDBLOCK)
+#define SHUT_RDWR SD_BOTH
 #else
 #define SOUP_IS_SOCKET_ERROR(status) ((status) == -1)
 #define SOUP_IS_INVALID_SOCKET(socket) ((socket) < 0)
@@ -298,7 +299,7 @@ set_nonblocking (SoupSocketPrivate *priv)
 #ifndef G_OS_WIN32
 	int flags;
 #else
-	u_log val;
+	u_long val;
 #endif
 
 	if (priv->sockfd == -1)

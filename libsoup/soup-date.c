@@ -423,7 +423,7 @@ soup_date_new_from_time_t (time_t when)
 #ifdef HAVE_GMTIME_R
 	gmtime_r (&when, &tm);
 #else
-	tm = *gmtime (when);
+	tm = *gmtime (&when);
 #endif
 
 	return soup_date_new (tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,

@@ -3,7 +3,6 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

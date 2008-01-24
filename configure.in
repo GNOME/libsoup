@@ -133,6 +133,8 @@ dnl **********************************
 dnl *** SSL Library check (GnuTLS) ***
 dnl **********************************
 
+dnl Allow autogening even without AM_PATH_LIBGCRYPT available
+m4_ifdef([AM_PATH_LIBGCRYPT],,[m4_define(AM_PATH_LIBGCRYPT,)])
 AC_ARG_ENABLE(ssl, 
 	      [  --enable-ssl             Turn on Secure Sockets Layer support [default=yes]],,
 	      enable_ssl=auto)
