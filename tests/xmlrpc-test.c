@@ -13,7 +13,8 @@
 #include "test-utils.h"
 
 SoupSession *session;
-static const char *uri = "http://localhost:47524/xmlrpc-server.php";
+static const char *default_uri = "http://localhost:47524/xmlrpc-server.php";
+const char *uri = NULL;
 
 static const char *const value_type[] = {
 	"BAD",
@@ -50,13 +51,6 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
 				  body, strlen (body));
 	soup_session_send_message (session, msg);
-
-	if (debug_level >= 3) {
-		debug_printf (3, "\n%s\n%d %s\n%s\n",
-			      msg->request_body->data,
-			      msg->status_code, msg->reason_phrase,
-			      msg->response_body->data);
-	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		debug_printf (1, "ERROR: %d %s\n", msg->status_code,
@@ -231,9 +225,7 @@ test_dateChange (void)
 	GValue retval;
 	gboolean ok;
 
-	debug_printf (1, "dateChange (struct of time and ints -> time): ");
-
-	structval = soup_value_hash_new ();
+	debug_printf (1, "dateChange (date, struct of ints -> time): ");
 
 	date = soup_date_new (1970 + (rand () % 50),
 			      1 + rand () % 12,
@@ -241,54 +233,55 @@ test_dateChange (void)
 			      rand () % 24,
 			      rand () % 60,
 			      rand () % 60);
-	soup_value_hash_insert (structval, "date", SOUP_TYPE_DATE, date);
-
 	if (debug_level >= 2) {
 		timestamp = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-		debug_printf (2, "{ date: %s", timestamp);
+		debug_printf (2, "date: %s, {", timestamp);
 		g_free (timestamp);
 	}
 
+	structval = soup_value_hash_new ();
+
 	if (rand () % 3) {
 		date->year = 1970 + (rand () % 50);
-		debug_printf (2, ", tm_year: %d", date->year - 1900);
+		debug_printf (2, "tm_year: %d, ", date->year - 1900);
 		soup_value_hash_insert (structval, "tm_year",
 					G_TYPE_INT, date->year - 1900);
 	}
 	if (rand () % 3) {
 		date->month = 1 + rand () % 12;
-		debug_printf (2, ", tm_mon: %d", date->month - 1);
+		debug_printf (2, "tm_mon: %d, ", date->month - 1);
 		soup_value_hash_insert (structval, "tm_mon",
 					G_TYPE_INT, date->month - 1);
 	}
 	if (rand () % 3) {
 		date->day = 1 + rand () % 28;
-		debug_printf (2, ", tm_mday: %d", date->day);
+		debug_printf (2, "tm_mday: %d, ", date->day);
 		soup_value_hash_insert (structval, "tm_mday",
 					G_TYPE_INT, date->day);
 	}
 	if (rand () % 3) {
 		date->hour = rand () % 24;
-		debug_printf (2, ", tm_hour: %d", date->hour);
+		debug_printf (2, "tm_hour: %d, ", date->hour);
 		soup_value_hash_insert (structval, "tm_hour",
 					G_TYPE_INT, date->hour);
 	}
 	if (rand () % 3) {
 		date->minute = rand () % 60;
-		debug_printf (2, ", tm_min: %d", date->minute);
+		debug_printf (2, "tm_min: %d, ", date->minute);
 		soup_value_hash_insert (structval, "tm_min",
 					G_TYPE_INT, date->minute);
 	}
 	if (rand () % 3) {
 		date->second = rand () % 60;
-		debug_printf (2, ", tm_sec: %d", date->second);
+		debug_printf (2, "tm_sec: %d, ", date->second);
 		soup_value_hash_insert (structval, "tm_sec",
 					G_TYPE_INT, date->second);
 	}
 
-	debug_printf (2, " } -> ");
+	debug_printf (2, "} -> ");
 
 	ok = (do_xmlrpc ("dateChange", &retval,
+			 SOUP_TYPE_DATE, date,
 			 G_TYPE_HASH_TABLE, structval,
 			 G_TYPE_INVALID) &&
 	      check_xmlrpc (&retval, SOUP_TYPE_DATE, &result));
@@ -377,11 +370,82 @@ test_echo (void)
 	return TRUE;
 }
 
+static gboolean
+do_bad_xmlrpc (const char *body)
+{
+	SoupMessage *msg;
+	GError *err = NULL;
+	GValue retval;
+
+	msg = soup_message_new ("POST", uri);
+	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_COPY,
+				  body, strlen (body));
+	soup_session_send_message (session, msg);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "ERROR: %d %s\n", msg->status_code,
+			      msg->reason_phrase);
+		g_object_unref (msg);
+		return FALSE;
+	}
+
+	if (!soup_xmlrpc_parse_method_response (msg->response_body->data,
+						msg->response_body->length,
+						&retval, &err)) {
+		if (err) {
+			debug_printf (1, "FAULT: %d %s (OK!)\n",
+				      err->code, err->message);
+			g_error_free (err);
+			g_object_unref (msg);
+			return TRUE;
+		} else
+			debug_printf (1, "ERROR: could not parse response\n");
+	} else
+		debug_printf (1, "Unexpectedly got successful response!\n");
+
+	g_object_unref (msg);
+	return FALSE;
+}
+
+static gboolean
+test_fault_malformed (void)
+{
+	debug_printf (1, "malformed request: ");
+
+	return do_bad_xmlrpc ("<methodCall/>");
+}
+
+static gboolean
+test_fault_method (void)
+{
+	debug_printf (1, "request to non-existent method: ");
+
+	return do_bad_xmlrpc ("<methodCall><methodName>no_such_method</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
+}
+
+static gboolean
+test_fault_args (void)
+{
+	debug_printf (1, "request with invalid args: ");
+
+	return do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
+}
+
+static GOptionEntry uri_entry[] = {
+        { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri,
+          "Alternate URI for server", NULL },
+        { NULL }
+};
+
 int
 main (int argc, char **argv)
 {
-	test_init (argc, argv, NULL);
-	apache_init ();
+	test_init (argc, argv, uri_entry);
+
+	if (!uri) {
+		apache_init ();
+		uri = default_uri;
+	}
 
 	srand (time (NULL));
 
@@ -397,10 +461,16 @@ main (int argc, char **argv)
 		errors++;
 	if (!test_echo ())
 		errors++;
+	if (!test_fault_malformed ())
+		errors++;
+	if (!test_fault_method ())
+		errors++;
+	if (!test_fault_args ())
+		errors++;
 
 	soup_session_abort (session);
 	g_object_unref (session);
 
 	test_cleanup ();
-	return errors = 0;
+	return errors != 0;
 }

@@ -817,6 +817,17 @@
    fun:g_child_watch_source_init_multi_threaded
    fun:g_child_watch_source_init
 }
+{
+   glib/childwatch2b
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:g_thread_create_posix_impl
+   fun:g_thread_create_full
+   fun:g_child_watch_source_init_multi_threaded
+   fun:g_child_watch_source_init
+}
 
 
 {

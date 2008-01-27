@@ -517,9 +517,9 @@ resolver_thread (gpointer user_data)
 	else if (entry->sockaddr == NULL)
 		resolve_address (entry);
 
+	g_mutex_lock (soup_dns_lock);
 	entry->resolver_thread = NULL;
 
-	g_mutex_lock (soup_dns_lock);
 	async_lookups = entry->async_lookups;
 	entry->async_lookups = NULL;
 	g_mutex_unlock (soup_dns_lock);

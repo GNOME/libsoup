@@ -1,9 +1,26 @@
 <?php
 
+function paramfault ()
+{
+	# xmlrpc-epi-php translates this into a real <fault>
+	$fault["faultCode"] = -32602;
+	$fault["faultString"] = "bad parameter";
+	return $fault;
+}
+
+# We only check the params in sum(), because that's the one that
+# xmlrpc-test tests will fail if given bad args
+
 function sum ($method_name, $params, $app_data)
 {
+	if (xmlrpc_get_type ($params[0]) != "array")
+		return paramfault();
+
 	$sum = 0;
 	foreach ($params[0] as $val) {
+		if (xmlrpc_get_type ($val) != "int")
+			return paramfault();
+			
 		$sum = $sum + $val;
 	}
 	return $sum;
@@ -13,9 +30,6 @@ function countBools ($method_name, $params, $app_data)
 {
 	$counts["true"] = $counts["false"] = 0;
 	foreach ($params[0] as $val) {
-		if (xmlrpc_get_type ($val) != "boolean")
-			return "bad value: $val";
-
 		if ($val)
 			$counts["true"] = $counts["true"] + 1;
 		else
@@ -33,10 +47,10 @@ function md5sum ($method_name, $params, $app_data)
 
 function dateChange ($method_name, $params, $app_data)
 {
-	$date_str = $params[0]["date"]->scalar;
+	$date_str = $params[0]->scalar;
 	$date = strptime ($date_str, "%Y%m%dT%H:%M:%S");
 
-	foreach ($params[0] as $name => $val) {
+	foreach ($params[1] as $name => $val) {
 		if ($name == "date")
 			continue;
 		$date[$name] = $val;

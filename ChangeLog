@@ -1,5 +1,37 @@
 2008-01-27  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-dns.c (resolver_thread): fix mutex use to avoid a
+	race condition
+
+	* libsoup/soup-xmlrpc.c (soup_xmlrpc_build_faultv):
+	(soup_xmlrpc_set_response, soup_xmlrpc_set_fault):
+	(soup_xmlrpc_parse_method_call): Fix misc server-side stuff
+	(soup_xmlrpc_parse_method_response): Fix fault parsing
+
+	* libsoup/soup-xmlrpc.h (SoupXMLRPCFault): add semi-standard fault
+	codes from
+	http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
+
+	* tests/xmlrpc-server.php (sum): return a <fault> if the arguments
+	are wrong (so that xmlrpc-test can test that case).
+	(dateChange): change to take two parameters, a date and a struct,
+	instead of putting the date in the struct, since we weren't
+	previously testing multiple parameter handling.
+
+	* tests/xmlrpc-test.c (main): Add a -u flag to specify an
+	alternate URL.
+	(do_xmlrpc): Remove level 3 debug output, which is now redundant
+	with the SoupLogger stuff.
+	(test_dateChange): update for dateChange prototype change
+	(test_fault_malformed, test_fault_method, test_fault_args): test
+	handling of faults
+
+	* tests/xmlrpc-server-test.c: Test the server-side XML-RPC API (by
+	implementing the same methods as xmlrpc-server.php and then
+	using xmlrpc-test)
+
+2008-01-27  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-headers.c (soup_header_parse_quality_list): fix to
 	not sometimes read beyond the end of the string.
 

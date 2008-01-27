@@ -301,23 +301,23 @@ soup_xmlrpc_build_faultv (int fault_code, const char *fault_format, va_list args
 	node = xmlNewDocNode (doc, NULL,
 			      (const xmlChar *)"methodResponse", NULL);
 	xmlDocSetRootElement (doc, node);
-	node = xmlNewDocNode (doc, NULL, (const xmlChar *)"fault", NULL);
-	node = xmlNewDocNode (doc, NULL, (const xmlChar *)"value", NULL);
-	node = xmlNewDocNode (doc, NULL, (const xmlChar *)"struct", NULL);
+	node = xmlNewChild (node, NULL, (const xmlChar *)"fault", NULL);
+	node = xmlNewChild (node, NULL, (const xmlChar *)"value", NULL);
+	node = xmlNewChild (node, NULL, (const xmlChar *)"struct", NULL);
 
 	memset (&value, 0, sizeof (value));
 
-	member = xmlNewDocNode (doc, NULL, (const xmlChar *)"member", NULL);
-	xmlNewDocNode (doc, NULL,
-		       (const xmlChar *)"name", (const xmlChar *)"faultCode");
+	member = xmlNewChild (node, NULL, (const xmlChar *)"member", NULL);
+	xmlNewChild (member, NULL,
+		     (const xmlChar *)"name", (const xmlChar *)"faultCode");
 	g_value_init (&value, G_TYPE_INT);
 	g_value_set_int (&value, fault_code);
 	insert_value (member, &value);
 	g_value_unset (&value);
 
-	member = xmlNewDocNode (doc, NULL, (const xmlChar *)"member", NULL);
-	xmlNewDocNode (doc, NULL,
-		       (const xmlChar *)"name", (const xmlChar *)"faultString");
+	member = xmlNewChild (node, NULL, (const xmlChar *)"member", NULL);
+	xmlNewChild (member, NULL,
+		     (const xmlChar *)"name", (const xmlChar *)"faultString");
 	g_value_init (&value, G_TYPE_STRING);
 	g_value_take_string (&value, fault_string);
 	insert_value (member, &value);
@@ -373,14 +373,14 @@ soup_xmlrpc_set_response (SoupMessage *msg, GType type, ...)
 	char *body;
 
 	va_start (args, type);
-	SOUP_VALUE_GETV (&value, type, args);
+	SOUP_VALUE_SETV (&value, type, args);
 	va_end (args);
 
 	body = soup_xmlrpc_build_method_response (&value);
 	g_value_unset (&value);
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
-				  body, strlen (body));
+	soup_message_set_response (msg, "text/xml", SOUP_MEMORY_TAKE,
+				   body, strlen (body));
 }
 
 /**
@@ -406,8 +406,8 @@ soup_xmlrpc_set_fault (SoupMessage *msg, int fault_code,
 	va_end (args);
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
-				  body, strlen (body));
+	soup_message_set_response (msg, "text/xml", SOUP_MEMORY_TAKE,
+				   body, strlen (body));
 }
 
 
@@ -586,13 +586,15 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 	param = find_real_node (node->children);
 	while (param && !strcmp ((const char *)param->name, "param")) {
 		xval = find_real_node (param->children);
-		if (!xval || !strcmp ((const char *)xval->name, "value") ||
+		if (!xval || strcmp ((const char *)xval->name, "value") != 0 ||
 		    !parse_value (xval, &value)) {
 			g_value_array_free (*params);
 			goto fail;
 		}
 		g_value_array_append (*params, &value);
 		g_value_unset (&value);
+
+		param = find_real_node (param->next);
 	}
 
 	success = TRUE;
@@ -685,30 +687,32 @@ soup_xmlrpc_parse_method_response (const char *method_response, int length,
 		goto fail;
 
 	if (!strcmp ((const char *)node->name, "fault") && error) {
-		int fault_code = -1;
-		xmlChar *fault_string = NULL;
+		int fault_code;
+		char *fault_string;
+		GValue fault_val;
+		GHashTable *fault_hash;
 
-		for (node = find_real_node (node->children);
-		     node;
-		     node = find_real_node (node->next)) {
-			if (!strcmp ((const char *)node->name, "faultCode")) {
-				xmlChar *content = xmlNodeGetContent (node);
-				fault_code = atoi ((char *)content);
-				xmlFree (content);
-			} else if (!strcmp ((const char *)node->name, "faultString")) {
-				fault_string = xmlNodeGetContent (node);
-			} else {
-				if (fault_string)
-					xmlFree (fault_string);
-				goto fail;
-			}
+		node = find_real_node (node->children);
+		if (!node || strcmp ((const char *)node->name, "value") != 0)
+			goto fail;
+		if (!parse_value (node, &fault_val))
+			goto fail;
+		if (!G_VALUE_HOLDS (&fault_val, G_TYPE_HASH_TABLE)) {
+			g_value_unset (&fault_val);
+			goto fail;
 		}
-		if (fault_code != -1 && fault_string != NULL) {
-			g_set_error (error, SOUP_XMLRPC_FAULT,
-				     fault_code, "%s", fault_string);
+		fault_hash = g_value_get_boxed (&fault_val);
+		if (!soup_value_hash_lookup (fault_hash, "faultCode",
+					     G_TYPE_INT, &fault_code) ||
+		    !soup_value_hash_lookup (fault_hash, "faultString",
+					     G_TYPE_STRING, &fault_string)) {
+			g_value_unset (&fault_val);
+			goto fail;
 		}
-		if (fault_string)
-			xmlFree (fault_string);
+
+		g_set_error (error, SOUP_XMLRPC_FAULT,
+			     fault_code, "%s", fault_string);
+		g_value_unset (&fault_val);
 	} else if (!strcmp ((const char *)node->name, "params")) {
 		node = find_real_node (node->children);
 		if (!node || strcmp ((const char *)node->name, "param") != 0)
