@@ -92,7 +92,7 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
 	g_array_set_size (hdrs->array, 0);
 
 	if (hdrs->concat)
-		g_hash_table_destroy (hdrs->concat);
+		g_hash_table_remove_all (hdrs->concat);
 
 	hdrs->encoding = -1;
 }

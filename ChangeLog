@@ -1,3 +1,11 @@
+2008-01-25  Srinivasa Ragavan  <sragavan@novell.com>
+
+	** Fix for bug #511980
+
+	* libsoup/soup-message-headers.c: (soup_message_headers_clear):
+	Instead of destroying the hashtable, just remove the contents of the
+	table.
+
 2008-01-23  Tor Lillqvist  <tml@novell.com>
 
 	* configure.in: Allow autogening even without AM_PATH_LIBGCRYPT
