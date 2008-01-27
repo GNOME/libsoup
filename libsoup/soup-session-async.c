@@ -196,18 +196,24 @@ final_finished (SoupMessage *req, gpointer user_data)
 	SoupSessionAsyncQueueData *saqd = user_data;
 	SoupSessionAsync *sa = saqd->sa;
 
+	g_object_add_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
+
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
 		g_signal_handlers_disconnect_by_func (req, final_finished, saqd);
 		if (saqd->callback) {
 			saqd->callback ((SoupSession *)sa, req,
 					saqd->callback_data);
+			/* callback might destroy sa */
 		}
 
 		g_object_unref (req);
 		g_slice_free (SoupSessionAsyncQueueData, saqd);
 	}
 
-	run_queue (sa, FALSE);
+	if (sa) {
+		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
+		run_queue (sa, FALSE);
+	}
 }
 
 static gboolean

@@ -1,3 +1,9 @@
+2008-01-27  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session-async.c (final_finished): Don't run the
+	queue again if the callback destroyed the session. #511868, Stef
+	Walter.
+
 2008-01-25  Srinivasa Ragavan  <sragavan@novell.com>
 
 	** Fix for bug #511980
