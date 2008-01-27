@@ -192,6 +192,8 @@ finalize (GObject *object)
 	g_hash_table_destroy (priv->conns);
 
 	soup_auth_manager_free (priv->auth_manager);
+	if (priv->ntlm_manager)
+		soup_auth_manager_ntlm_free (priv->ntlm_manager);
 
 	if (priv->proxy_uri)
 		soup_uri_free (priv->proxy_uri);

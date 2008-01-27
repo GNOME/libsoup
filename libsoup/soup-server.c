@@ -624,6 +624,7 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 		uri = soup_message_get_uri (req);
 		decoded_path = soup_uri_decode (uri->path);
 		soup_uri_set_path (uri, decoded_path);
+		g_free (decoded_path);
 	}
 
 	/* Add required response headers */

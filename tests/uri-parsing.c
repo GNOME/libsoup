@@ -228,6 +228,8 @@ main (int argc, char **argv)
 				      uri2->scheme, uri2->host, uri2->path);
 			errors++;
 		}
+		soup_uri_free (uri1);
+		soup_uri_free (uri2);
 	}
 
 	test_cleanup ();

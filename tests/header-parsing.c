@@ -745,6 +745,7 @@ do_qvalue_tests (void)
 					wrong = TRUE;
 			}
 			debug_printf (1, "\n");
+			soup_header_free_list (acceptable);
 		} else
 			debug_printf (1, "(none)\n");
 		if (wrong) {
@@ -765,6 +766,7 @@ do_qvalue_tests (void)
 					wrong = TRUE;
 			}
 			debug_printf (1, "\n");
+			soup_header_free_list (unacceptable);
 		} else
 			debug_printf (1, "(none)\n");
 		if (wrong) {

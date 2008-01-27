@@ -1,5 +1,23 @@
 2008-01-27  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-headers.c (soup_header_parse_quality_list): fix to
+	not sometimes read beyond the end of the string.
+
+	* libsoup/soup-message-body.c (soup_message_body_append): When
+	appending a 0-length SOUP_MEMORY_TAKE buffer, we need to free the
+	passed-in buffer rather than just ignoring it.
+
+	* libsoup/soup-server.c (got_headers): fix leak when decoding path
+
+	* libsoup/soup-session.c (finalize): free ntlm_manager
+
+	* tests/libsoup.supp: update for libsoup 2.4, glib 2.14, etc
+
+	* tests/header-parsing.c (do_qvalue_tests):
+	* tests/uri-parsing.c (main): more cleanup
+
+2008-01-27  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-logger.c (soup_logger_attach): Fix session ids by
 	using weak refs for the logger cleanup rather than trying to use
 	the same qdata for two different things.

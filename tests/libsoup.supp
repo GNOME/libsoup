@@ -6,9 +6,9 @@
    fun:malloc
    fun:g_malloc
    fun:g_slice_alloc
-   fun:g_hash_node_new
+   fun:g_hash_table_insert_internal
    fun:g_hash_table_insert
-   fun:g_quark_from_static_string
+   fun:g_quark_new
 }
 {
    glib/quark2
@@ -16,7 +16,7 @@
    fun:malloc
    fun:realloc
    fun:g_realloc
-   fun:g_quark_from_static_string
+   fun:g_quark_new
 }
 {
    glib/quark3
@@ -25,65 +25,30 @@
    fun:g_malloc
    fun:g_slice_alloc
    fun:g_hash_table_new_full
-   fun:g_quark_from_static_string
+   fun:g_hash_table_new
+   fun:g_quark_new
 }
 {
    glib/quark4
    Memcheck:Leak
-   fun:malloc
-   fun:g_malloc
-   fun:g_strdup
-   fun:g_quark_from_string
-}
-{
-   glib/quark5
-   Memcheck:Leak
-   fun:malloc
-   fun:realloc
-   fun:g_realloc
-   fun:g_quark_from_string
-}
-{
-   glib/quark6
-   Memcheck:Leak
-   fun:malloc
-   fun:g_malloc
-   fun:g_slice_alloc
-   fun:g_hash_node_new
-   fun:g_hash_table_insert
-   fun:g_quark_from_string
-}
-{
-   glib/quark7
-   Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:g_hash_table_new_full
-   fun:g_quark_from_string
-}
-{
-   glib/quark8
-   Memcheck:Leak
-   fun:malloc
-   fun:g_malloc
-   fun:g_slice_alloc
-   fun:g_hash_table_new_full
-   fun:g_quark_from_string
-}
-{
-   glib/quark9
-   Memcheck:Leak
    fun:calloc
    fun:g_malloc0
    fun:g_hash_table_resize
-   fun:g_quark_from_string
+   fun:g_hash_table_maybe_resize
+   fun:g_hash_table_insert_internal
+   fun:g_hash_table_insert
+   fun:g_quark_new
 }
 {
    glib/typeinit1
    Memcheck:Leak
    fun:realloc
    fun:g_realloc
+   fun:g_bsearch_array_grow
+   fun:g_bsearch_array_insert
+   fun:g_bsearch_array_replace
    fun:g_value_register_transform_func
+   fun:g_value_transforms_init
    fun:g_type_init_with_debug_flags
 }
 {
@@ -91,8 +56,8 @@
    Memcheck:Leak
    fun:calloc
    fun:g_malloc0
-   fun:type_data_make_W
-   fun:g_type_init_with_debug_flags
+   fun:type_class_init_Wm
+   fun:g_type_class_ref
 }
 {
    glib/typeinit3
@@ -101,6 +66,14 @@
    fun:g_malloc0
    fun:type_node_any_new_W
    fun:type_node_fundamental_new_W
+   fun:g_type_init_with_debug_flags
+}
+{
+   glib/typeinit4
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:type_data_make_W
    fun:g_type_init_with_debug_flags
 }
 {
@@ -137,6 +110,15 @@
    fun:g_param_spec_types_init
 }
 {
+   glib/boxedtype
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_bsearch_array_grow
+   fun:g_bsearch_array_insert
+   fun:g_boxed_type_register_static
+}
+{
    glib/typereg1
    Memcheck:Leak
    fun:calloc
@@ -158,7 +140,11 @@
    fun:calloc
    fun:g_malloc0
    fun:g_hash_table_resize
+   fun:g_hash_table_maybe_resize
+   fun:g_hash_table_insert_internal
+   fun:g_hash_table_insert
    fun:type_node_any_new_W
+   fun:type_node_new_W
    fun:g_type_register_static
 }
 {
@@ -175,6 +161,7 @@
    fun:calloc
    fun:g_malloc0
    fun:type_node_any_new_W
+   fun:type_node_new_W
    fun:g_type_register_static
 }
 {
@@ -183,6 +170,7 @@
    fun:realloc
    fun:g_realloc
    fun:type_node_any_new_W
+   fun:type_node_new_W
    fun:g_type_register_static
 }
 {
@@ -204,7 +192,26 @@
    fun:g_type_register_static
 }
 {
-   glib/typeregf1
+   glib/typereg9
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:type_set_qdata_W
+   fun:type_add_flags_W
+   fun:g_type_register_fundamental
+}
+{
+   glib/typereg10
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:type_set_qdata_W
+   fun:type_add_flags_W
+   fun:g_type_register_fundamental
+}
+{
+   glib/typereg11
    Memcheck:Leak
    fun:calloc
    fun:g_malloc0
@@ -212,21 +219,26 @@
    fun:g_type_register_fundamental
 }
 {
-   glib/typeregf2
+   glib/typereg12
    Memcheck:Leak
    fun:malloc
    fun:realloc
    fun:g_realloc
-   fun:type_add_flags_W
-   fun:g_type_register_fundamental
+   fun:type_node_any_new_W
+   fun:type_node_new_W
+   fun:g_type_register_static
 }
 {
-   glib/typeregf3
+   glib/typereg13
    Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:type_add_flags_W
-   fun:g_type_register_fundamental
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_quark_from_string_internal
+   fun:g_quark_from_string
+   fun:type_node_any_new_W
+   fun:type_node_new_W
+   fun:g_type_register_static
 }
 {
    glib/interface1
@@ -282,11 +294,36 @@
    fun:g_param_spec_internal
 }
 {
-   glib/signalinit
+   glib/paramspec3
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_param_spec_string
+}
+{
+   glib/signalinit1
    Memcheck:Leak
    fun:calloc
    fun:g_malloc0
    fun:g_hash_table_new_full
+   fun:g_signal_init
+}
+{
+   glib/signalinit2
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_bsearch_array_create
+   fun:g_signal_init
+}
+{
+   glib/signalinit3
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
    fun:g_signal_init
 }
 {
@@ -343,6 +380,44 @@
    fun:g_signal_newv
 }
 {
+   glib/signal8
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_quark_from_string_internal
+   fun:g_quark_from_string
+   fun:g_signal_newv
+}
+{
+   glib/signal9
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_bsearch_array_grow
+   fun:g_bsearch_array_insert
+   fun:g_signal_newv
+}
+{
+   glib/signal10
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_bsearch_array_grow
+   fun:g_bsearch_array_insert
+   fun:signal_add_class_closure
+   fun:g_signal_newv
+}
+{
+   glib/signal11
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_hash_table_new_full
+   fun:g_hash_table_new
+   fun:g_signal_init
+}
+{
    glib/gslice
    Memcheck:Leak
    fun:calloc
@@ -384,21 +459,10 @@
 {
    glib/typeref5
    Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:g_hash_table_new_full
-   fun:g_param_spec_pool_new
-   fun:g_object_do_class_init
-   fun:g_type_class_ref
-}
-{
-   glib/typeref6
-   Memcheck:Leak
    fun:malloc
    fun:g_malloc
    fun:g_param_spec_pool_new
    fun:g_object_do_class_init
-   fun:g_type_class_ref
 }
 {
    glib/typeref7
@@ -438,25 +502,39 @@
    fun:g_type_class_ref
 }
 {
+   glib/typeref11
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_type_add_interface_check
+}
+{
+   glib/typeref12
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_slist_copy
+   fun:g_object_base_class_init
+   fun:type_class_init_Wm
+   fun:g_type_class_ref
+}
+{
    glib/langnames1
    Memcheck:Leak
    fun:malloc
    fun:g_malloc
    fun:g_strdup
+   fun:read_aliases
+   fun:unalias_lang
    fun:g_get_language_names
-   fun:main
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
    glib/langnames2
-   Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:g_hash_table_resize
-   fun:g_get_language_names
-   fun:main
-}
-{
-   glib/langnames3
    Memcheck:Leak
    fun:realloc
    fun:g_realloc
@@ -464,7 +542,21 @@
    fun:g_array_set_size
    fun:g_static_private_set
    fun:g_get_language_names
-   fun:main
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
+}
+{
+   glib/langnames3
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strconcat
+   fun:_g_compute_locale_variants
+   fun:g_get_language_names
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
    glib/langnames4
@@ -472,17 +564,20 @@
    fun:malloc
    fun:g_malloc
    fun:g_get_language_names
-   fun:main
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
    glib/langnames5
    Memcheck:Leak
    fun:malloc
    fun:g_malloc
-   fun:g_strconcat
-   fun:_g_compute_locale_variants
+   fun:g_strdup
    fun:g_get_language_names
-   fun:main
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
    glib/langnames6
@@ -490,31 +585,51 @@
    fun:calloc
    fun:g_malloc0
    fun:g_get_language_names
-   fun:main
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
-   glib/intern1
+   glib/langnames7
    Memcheck:Leak
    fun:malloc
    fun:g_malloc
    fun:g_strdup
-   fun:g_intern_string
+   fun:g_get_language_names
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
-   glib/intern2
+   glib/charsets
    Memcheck:Leak
    fun:malloc
-   fun:realloc
-   fun:g_realloc
-   fun:g_intern_string
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_array_sized_new
+   fun:g_array_new
+   fun:g_static_private_set
+   fun:g_get_filename_charsets
+   fun:_g_convert_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
 }
 {
-   glib/intern3
+   glib/prgname
    Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:g_hash_table_resize
-   fun:g_intern_static_string
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_set_prgname
+}
+{
+   glib/intern
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_quark_from_string_internal
+   fun:g_intern_string
 }
 {
    glib/gthreadinit1
@@ -683,6 +798,25 @@
    fun:g_hash_table_new_full
    fun:g_data_initialize
 }
+{
+   glib/childwatch1
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_thread_create_full
+   fun:g_child_watch_source_init_multi_threaded
+}
+{
+   glib/childwatch2
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.1
+   fun:g_thread_create_posix_impl
+   fun:g_thread_create_full
+   fun:g_child_watch_source_init_multi_threaded
+   fun:g_child_watch_source_init
+}
 
 
 {
@@ -703,6 +837,7 @@
    Memcheck:Leak
    fun:malloc
    fun:xmlStrndup
+   fun:xmlStrdup
    fun:xmlNewCharEncodingHandler
    fun:xmlInitCharEncodingHandlers
 }
@@ -727,32 +862,40 @@
    fun:xmlNewMutex
    fun:xmlInitMemory
 }
+{
+   libxml2/parse
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewRMutex
+   obj:/usr/lib/libxml2.so.2.6.31
+   fun:xmlDictCreate
+   fun:xmlInitParserCtxt
+}
 
 {
    gnutls/init1
    Memcheck:Leak
-   fun:malloc
-   fun:gcry_pthread_mutex_init
-   fun:initialize_basics
-   fun:gcry_control
+   fun:calloc
+   fun:_asn1_add_node
+   fun:asn1_array2tree
    fun:gnutls_global_init
 }
 {
    gnutls/init2
    Memcheck:Leak
-   fun:malloc
-   fun:gcry_pthread_mutex_init
-   fun:initialize_basics
-   fun:gcry_control
+   fun:calloc
+   fun:_asn1_add_node_only
+   fun:_asn1_expand_object_id
+   fun:asn1_array2tree
    fun:gnutls_global_init
 }
 {
    gnutls/init3
    Memcheck:Leak
    fun:malloc
-   fun:gcry_pthread_mutex_init
-   fun:global_init
-   fun:gcry_check_version
+   fun:strdup
+   fun:_asn1_set_name
+   fun:asn1_array2tree
    fun:gnutls_global_init
 }
 {
@@ -767,21 +910,23 @@
    gnutls/init5
    Memcheck:Leak
    fun:malloc
-   fun:gcry_pthread_mutex_init
-   fun:mutex_init
-   fun:_gcry_ath_mutex_lock
-   fun:_gcry_cipher_init
-   fun:global_init
-   fun:gcry_check_version
+   fun:strdup
+   fun:_asn1_set_name
+   fun:_asn1_expand_object_id
+   fun:asn1_array2tree
    fun:gnutls_global_init
 }
 {
    gnutls/init6
    Memcheck:Leak
    fun:malloc
-   fun:_asn1_set_value
-   fun:_asn1_change_integer_value
-   fun:asn1_array2tree
+   fun:_gcry_malloc
+   fun:gcry_malloc
+   fun:gcry_xmalloc
+   fun:gcry_xcalloc
+   fun:initialize
+   fun:gcry_randomize
+   fun:gc_pseudo_random
    fun:gnutls_global_init
 }
 {
@@ -797,6 +942,7 @@
    gnutls/init8
    Memcheck:Leak
    fun:malloc
+   fun:_gcry_private_malloc
    fun:_gcry_malloc
    fun:gcry_malloc
    fun:_gcry_module_add
@@ -810,75 +956,59 @@
    gnutls/init9
    Memcheck:Leak
    fun:malloc
-   fun:_gcry_malloc
-   fun:gcry_malloc
-   fun:gcry_xmalloc
-   fun:gcry_xcalloc
-   fun:initialize
-   fun:gcry_randomize
-   fun:gc_pseudo_random
+   fun:_asn1_set_value
+   fun:_asn1_change_integer_value
+   fun:asn1_array2tree
    fun:gnutls_global_init
 }
 {
    gnutls/init10
    Memcheck:Leak
-   fun:calloc
-   fun:_asn1_add_node
-   fun:asn1_array2tree
-   fun:gnutls_global_init
+   fun:malloc
+   fun:gcry_pthread_mutex_init
+   fun:mutex_init
+   fun:_gcry_ath_mutex_lock
+   fun:_gcry_cipher_init
+   fun:global_init
 }
 {
    gnutls/init11
    Memcheck:Leak
    fun:malloc
-   fun:strdup
-   fun:_asn1_set_name
-   fun:_asn1_expand_object_id
-   fun:asn1_array2tree
+   fun:gcry_pthread_mutex_init
+   fun:_gcry_ath_init
+   fun:global_init
+   fun:gcry_check_version
    fun:gnutls_global_init
 }
 {
    gnutls/init12
    Memcheck:Leak
    fun:malloc
-   fun:_asn1_set_value
-   fun:asn1_array2tree
+   fun:gcry_pthread_mutex_init
+   fun:mutex_init
+   fun:initialize_basics
+   fun:gcry_control
    fun:gnutls_global_init
 }
 {
    gnutls/init13
    Memcheck:Leak
    fun:malloc
-   fun:strdup
-   fun:_asn1_set_name
-   fun:asn1_array2tree
+   fun:gcry_pthread_mutex_init
+   fun:mutex_init
+   fun:initialize_basics
+   fun:gcry_control
    fun:gnutls_global_init
 }
-{
-   gnutls/init14
-   Memcheck:Leak
-   fun:calloc
-   fun:_asn1_add_node_only
-   fun:_asn1_expand_object_id
-   fun:asn1_array2tree
-   fun:gnutls_global_init
-}
-{
-   gnutls/init15
-   Memcheck:Leak
-   fun:calloc
-   fun:_asn1_add_node
-   fun:asn1_array2tree
-   fun:gnutls_global_init
-}
-
 
 {
    libsoup/headers
    Memcheck:Leak
    fun:malloc
    fun:g_malloc
-   fun:g_hash_table_new_full
+   fun:g_strdup
+   fun:intern_header_locked
    fun:intern_header_name
 }
 {

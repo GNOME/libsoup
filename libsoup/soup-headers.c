@@ -468,12 +468,14 @@ soup_header_parse_quality_list (const char *header, GSList **unacceptable)
 				continue;
 			qval = (double)(value[0] - '0');
 			if (value[0] == '0' && value[1] == '.') {
-				if (g_ascii_isdigit (value[2]))
+				if (g_ascii_isdigit (value[2])) {
 					qval += (double)(value[2] - '0') / 10;
-				if (g_ascii_isdigit (value[3]))
-					qval += (double)(value[3] - '0') / 100;
-				if (g_ascii_isdigit (value[4]))
-					qval += (double)(value[4] - '0') / 1000;
+					if (g_ascii_isdigit (value[3])) {
+						qval += (double)(value[3] - '0') / 100;
+						if (g_ascii_isdigit (value[4]))
+							qval += (double)(value[4] - '0') / 1000;
+					}
+				}
 			}
 
 			*semi = '\0';

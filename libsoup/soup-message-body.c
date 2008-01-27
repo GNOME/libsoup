@@ -272,6 +272,8 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
 {
 	if (length > 0)
 		append_buffer (body, soup_buffer_new (use, data, length));
+	else if (use == SOUP_MEMORY_TAKE)
+		g_free ((gpointer)data);
 }
 
 /**
