@@ -72,6 +72,8 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 {
 	soup_message_headers_clear (hdrs);
 	g_array_free (hdrs->array, TRUE);
+	if (hdrs->concat)
+		g_hash_table_destroy (hdrs->concat);
 	g_slice_free (SoupMessageHeaders, hdrs);
 }
 

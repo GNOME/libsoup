@@ -39,6 +39,9 @@
 	appending a 0-length SOUP_MEMORY_TAKE buffer, we need to free the
 	passed-in buffer rather than just ignoring it.
 
+	* libsoup/soup-message-headers.c (soup_message_headers_free): Fix
+	leak introduced by patch for 511980.
+
 	* libsoup/soup-server.c (got_headers): fix leak when decoding path
 
 	* libsoup/soup-session.c (finalize): free ntlm_manager
