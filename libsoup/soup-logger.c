@@ -38,7 +38,7 @@
  * <informalexample><screen>
  * > POST /unauth HTTP/1.1
  * > Soup-Debug-Timestamp: 1200171744
- * > Soup-Debug: session 1 (0x612190), msg 1 (0x617000), conn 1 (0x612220)
+ * > Soup-Debug: SoupSessionAsync 1 (0x612190), SoupMessage 1 (0x617000), SoupSocket 1 (0x612220)
  * > Host: localhost
  * > Content-Type: text/plain
  * > Connection: close
@@ -47,7 +47,7 @@
  *   
  * &lt; HTTP/1.1 201 Created
  * &lt; Soup-Debug-Timestamp: 1200171744
- * &lt; Soup-Debug: msg 1 (0x617000)
+ * &lt; Soup-Debug: SoupMessage 1 (0x617000)
  * &lt; Date: Sun, 12 Jan 2008 21:02:24 GMT
  * &lt; Content-Length: 0
  * </screen></informalexample>
@@ -323,6 +323,12 @@ soup_logger_clear_id (SoupLogger *logger, gpointer object)
 static void request_started (SoupSession *session, SoupMessage *msg,
 			     SoupSocket *socket, gpointer user_data);
 
+static void
+weak_notify_unref (gpointer logger, GObject *ex_session)
+{
+	g_object_unref (logger);
+}
+
 /**
  * soup_logger_attach:
  * @logger: a #SoupLogger
@@ -339,16 +345,13 @@ void
 soup_logger_attach (SoupLogger  *logger,
 		    SoupSession *session)
 {
-	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
-
 	if (!soup_logger_get_id (logger, session))
 		soup_logger_set_id (logger, session);
 	g_signal_connect (session, "request_started",
 			  G_CALLBACK (request_started), logger);
 
-	g_object_set_qdata_full (G_OBJECT (session), priv->tag,
-				 g_object_ref (logger),
-				 g_object_unref);
+	g_object_weak_ref (G_OBJECT (session),
+			   weak_notify_unref, g_object_ref (logger));
 }
 
 /**
@@ -362,11 +365,10 @@ void
 soup_logger_detach (SoupLogger  *logger,
 		    SoupSession *session)
 {
-	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
-
 	g_signal_handlers_disconnect_by_func (session, request_started, logger);
 
-	g_object_set_qdata (G_OBJECT (session), priv->tag, NULL);
+	g_object_weak_unref (G_OBJECT (session),
+			     weak_notify_unref, logger);
 }
 
 static void
@@ -467,9 +469,12 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 			   "Soup-Debug-Timestamp: %lu",
 			   (unsigned long)time (0));
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
-			   "Soup-Debug: session %u (%p), msg %u (%p), conn %u (%p)%s",
+			   "Soup-Debug: %s %u (%p), %s %u (%p), %s %u (%p)%s",
+			   g_type_name_from_instance ((GTypeInstance *)session),
 			   soup_logger_get_id (logger, session), session,
+			   g_type_name_from_instance ((GTypeInstance *)msg),
 			   soup_logger_get_id (logger, msg), msg,
+			   g_type_name_from_instance ((GTypeInstance *)socket),
 			   soup_logger_get_id (logger, socket), socket,
 			   restarted ? ", restarted" : "");
 
@@ -521,7 +526,8 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 			   "Soup-Debug-Timestamp: %lu",
 			   (unsigned long)time (0));
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
-			   "Soup-Debug: msg %u (%p)",
+			   "Soup-Debug: %s %u (%p)",
+			   g_type_name_from_instance ((GTypeInstance *)msg),
 			   soup_logger_get_id (logger, msg), msg);
 
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)

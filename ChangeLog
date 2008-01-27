@@ -1,5 +1,14 @@
 2008-01-27  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-logger.c (soup_logger_attach): Fix session ids by
+	using weak refs for the logger cleanup rather than trying to use
+	the same qdata for two different things.
+	(print_request, print_response): use full type names in the
+	Soup-Debug line, since SoupSessionSync and SoupSessionAsync get
+	numbered separately.
+
+2008-01-27  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session-async.c (final_finished): Don't run the
 	queue again if the callback destroyed the session. #511868, Stef
 	Walter.
