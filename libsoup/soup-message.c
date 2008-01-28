@@ -925,8 +925,8 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 
 	g_object_ref (priv->auth);
 	token = soup_auth_get_authorization (auth, msg);
-	soup_message_headers_append (msg->request_headers,
-				     "Authorization", token);
+	soup_message_headers_replace (msg->request_headers,
+				      "Authorization", token);
 	g_free (token);
 }
 
@@ -979,8 +979,8 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 
 	g_object_ref (priv->proxy_auth);
 	token = soup_auth_get_authorization (auth, msg);
-	soup_message_headers_append (msg->request_headers,
-				     "Proxy-Authorization", token);
+	soup_message_headers_replace (msg->request_headers,
+				      "Proxy-Authorization", token);
 	g_free (token);
 }
 

@@ -16,6 +16,7 @@
 #include "soup-auth-manager-ntlm.h"
 #include "soup-auth-ntlm.h"
 #include "soup-message.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 #include "soup-session.h"
 #include "soup-session-private.h"
@@ -286,7 +287,7 @@ ntlm_request_started (SoupSession *session, SoupMessage *msg,
 		break;
 	}
 
-	if (header) {
+	if (header && !soup_message_get_auth (msg)) {
 		soup_message_headers_replace (msg->request_headers,
 					      "Authorization", header);
 		g_free (header);
