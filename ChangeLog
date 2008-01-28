@@ -1,3 +1,10 @@
+2008-01-28  Wouter Bolsterlee  <wbolster@svn.gnome.org>
+
+	* docs/reference/libsoup-docs.sgml:
+
+	Changed section titles so that they actually show
+	something useful in DevHelp.
+
 2008-01-27  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-dns.c (resolver_thread): fix mutex use to avoid a

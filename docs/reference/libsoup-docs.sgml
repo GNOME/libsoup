@@ -7,14 +7,14 @@
   </bookinfo>
 
   <chapter>
-    <title>libsoup Tutorial</title>
+    <title>Tutorial</title>
     <xi:include href="client-howto.xml"/>
     <xi:include href="server-howto.xml"/>
     <xi:include href="porting-2.2-2.4.xml"/>
   </chapter>
 
   <chapter>
-    <title>libsoup API Reference</title>
+    <title>API Reference</title>
     <xi:include href="xml/soup-address.xml"/>
     <xi:include href="xml/soup-auth.xml"/>
     <xi:include href="xml/soup-auth-domain.xml"/>
@@ -37,5 +37,8 @@
     <xi:include href="xml/soup-misc.xml"/>
   </chapter>
 
-  <index></index>
+  <index>
+    <title>Index</title>
+  </index>
+
 </book>
