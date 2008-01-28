@@ -1,3 +1,65 @@
+Changes in libsoup from the 2.2 series to 2.3.0.1:
+
+	libsoup 2.3.0 is the first beta release of the libsoup 2.4
+        series. It is an API break from the earlier 2.2 series that
+        fixes various bugs and API warts and lays the groundwork for
+        language bindings and various new features in upcoming
+        releases.
+
+	(2.3.0.1 is identical to the 2.3.0 release in terms of code,
+	but includes this updated NEWS file which was accidentally
+	left out of the 2.3.0 tarball.)
+
+	http://library.gnome.org/devel/libsoup/unstable/libsoup-porting-2.2-2.4.html
+	goes over the API changes in detail. If you have questions not
+	answered by the porting document, please send mail to
+	libsoup-list@gnome.org.
+
+	Specific user-reported bugs fixed in this release:
+
+	* SoupURI now correctly handles URIs with complex encoded
+          queries [#266516, Jean-Yves Lefort]
+
+	* It is now possible for a SoupServer to use Digest auth
+          without needing to have the cleartext password available.
+          [#347108, Anas Nashif]
+
+	* Digest authentication now properly handles "stale=true" and
+          "nextnonce=..." [#471380, Jari Urpalainen]
+
+	* SoupServer is now subclassible [#491653, Mathias Hasselmann]
+
+	* soup_server_run_async and soup_server_quit no longer ref and
+          unref the server, as that doesn't match ordinary GObject
+          conventions [#494128, Mathias Hasselmann]
+
+	* The test programs no longer use a symbol name that conflicts
+          with Cygwin [#501631, Cygwin Ports Maintainer]
+
+	* libsoup can now handle the not-quite-HTTP responses returned
+          by Shoutcast servers [#502325, Wouter Cloetens]
+
+	* If you use libsoup while disconnected from the network, it
+          no longer caches the failed DNS results [#508593, Bradley
+          Worley]
+
+	Items from http://live.gnome.org/LibSoup/ToDo fixed:
+
+	* "Expect: 100-continue" processing now works correctly on
+	  both client and server.
+
+	* SoupSessions are no longer leaked
+
+	* The XML-RPC API is improved. The SOAP API is gone...
+
+	* Added utility functions for HTML form handling
+
+	* Improved message header handling
+
+	* SoupServer now automatically adds a "Date" header
+
+==========
+
 Changes in libsoup from 2.2.103 to 2.2.104:
 
 	* soup_message_io_pause() and soup_message_io_pause() are now
