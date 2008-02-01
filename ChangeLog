@@ -1,3 +1,9 @@
+2008-02-01  Dan Winship  <danw@gnome.org>
+
+	* tests/query-test.c (do_test): don't use "stdout" as a variable
+	name; it's allowed to be a macro  (and it is one on Solaris).
+	#513602, patch from Jeff Cai.
+
 2008-01-31  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-date.c (soup_date_to_time_t): new

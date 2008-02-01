@@ -61,7 +61,7 @@ do_test (int n, gboolean extra, const char *uri)
 {
 	GPtrArray *args;
 	char *title_arg = NULL, *name_arg = NULL;
-	char *stdout = NULL;
+	char *str_stdout = NULL;
 
 	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
 		      tests[n].title ? tests[n].title : "(null)",
@@ -91,17 +91,17 @@ do_test (int n, gboolean extra, const char *uri)
 	if (g_spawn_sync (NULL, (char **)args->pdata, NULL,
 			  G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
 			  NULL, NULL,
-			  &stdout, NULL, NULL, NULL)) {
-		if (stdout && !strcmp (stdout, tests[n].result))
+			  &str_stdout, NULL, NULL, NULL)) {
+		if (str_stdout && !strcmp (str_stdout, tests[n].result))
 			debug_printf (1, "OK!\n");
 		else {
 			debug_printf (1, "WRONG!\n");
 			debug_printf (1, "  expected '%s', got '%s'\n",
 				      tests[n].result,
-				      stdout ? stdout : "(error)");
+				      str_stdout ? str_stdout : "(error)");
 			errors++;
 		}
-		g_free (stdout);
+		g_free (str_stdout);
 	} else {
 		debug_printf (1, "ERROR!\n");
 		errors++;
