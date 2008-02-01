@@ -1,5 +1,10 @@
 2008-02-01  Dan Winship  <danw@gnome.org>
 
+	* docs/reference/Makefile.am (TARGET_DIR): override this to
+	include the API version, to fix the last remaining parallel
+	install issue between libsoup 2.2 and 2.4. #512810, Daniel
+	Gryniewicz.
+
 	* tests/query-test.c (do_test): don't use "stdout" as a variable
 	name; it's allowed to be a macro  (and it is one on Solaris).
 	#513602, patch from Jeff Cai.

@@ -60,6 +60,9 @@ GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make
 
+# Override
+override TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-$(SOUP_API_VERSION)
+
 # kludges
 tmpl/*.sgml:
 
