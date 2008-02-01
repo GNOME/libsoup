@@ -883,14 +883,37 @@ soup_uri_set_query (SoupURI *uri, const char *query)
  * @form: a #GHashTable containing HTML form information
  *
  * Sets @uri's query to the result of encoding @form according to the
- * HTML form rules. See soup_form_encode_urlencoded() for more
- * information.
+ * HTML form rules. See soup_form_encode_hash() for more information.
  **/
 void
 soup_uri_set_query_from_form (SoupURI *uri, GHashTable *form)
 {
 	g_free (uri->query);
 	uri->query = soup_form_encode_urlencoded (form);
+}
+
+/**
+ * soup_uri_set_query_from_fields:
+ * @uri: a #SoupURI
+ * @first_field: name of the first form field to encode into query
+ * @...: value of @first_field, followed by additional field names
+ * and values, terminated by %NULL.
+ *
+ * Sets @uri's query to the result of encoding the given form fields
+ * and values according to the * HTML form rules. See
+ * soup_form_encode() for more information.
+ **/
+void
+soup_uri_set_query_from_fields (SoupURI    *uri,
+				const char *first_field,
+				...)
+{
+	va_list args;
+
+	g_free (uri->query);
+	va_start (args, first_field);
+	uri->query = soup_form_encode_valist (first_field, args);
+	va_end (args);
 }
 
 /**

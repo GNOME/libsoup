@@ -60,7 +60,6 @@ static void
 do_test (int n, gboolean extra, const char *uri)
 {
 	GPtrArray *args;
-	GHashTable *form_data_set;
 	char *title_arg = NULL, *name_arg = NULL;
 	char *stdout = NULL;
 
@@ -69,24 +68,16 @@ do_test (int n, gboolean extra, const char *uri)
 		      tests[n].name  ? tests[n].name  : "(null)",
 		      extra ? " + extra" : "");
 
-	form_data_set = g_hash_table_new (g_str_hash, g_str_equal);
-
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
 	g_ptr_array_add (args, "-G");
 	if (tests[n].title) {
-		g_hash_table_insert (form_data_set, "title", tests[n].title);
-		title_arg = soup_form_encode_urlencoded (form_data_set);
-		g_hash_table_remove_all (form_data_set);
-
+		title_arg = soup_form_encode ("title", tests[n].title, NULL);
 		g_ptr_array_add (args, "-d");
 		g_ptr_array_add (args, title_arg);
 	}
 	if (tests[n].name) {
-		g_hash_table_insert (form_data_set, "name", tests[n].name);
-		name_arg = soup_form_encode_urlencoded (form_data_set);
-		g_hash_table_remove_all (form_data_set);
-
+		name_arg = soup_form_encode ("name", tests[n].name, NULL);
 		g_ptr_array_add (args, "-d");
 		g_ptr_array_add (args, name_arg);
 	}
@@ -116,7 +107,6 @@ do_test (int n, gboolean extra, const char *uri)
 		errors++;
 	}
 	g_ptr_array_free (args, TRUE);
-	g_hash_table_destroy (form_data_set);
 	g_free (title_arg);
 	g_free (name_arg);
 }

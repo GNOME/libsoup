@@ -497,6 +497,57 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
 }
 
 /**
+ * soup_date_to_time_t:
+ * @date: a #SoupDate
+ *
+ * Converts @date to a %time_t
+ *
+ * Return value: @date as a %time_t
+ **/
+time_t
+soup_date_to_time_t (SoupDate *date)
+{
+#ifndef HAVE_TIMEGM
+	time_t tt;
+	static const int days_before[] = {
+		0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
+	};
+#endif
+	struct tm tm;
+
+	/* FIXME: offset, etc */
+
+	tm.tm_year = date->year - 1900;
+	tm.tm_mon  = date->month - 1;
+	tm.tm_mday = date->day;
+	tm.tm_hour = date->hour;
+	tm.tm_min  = date->minute;
+	tm.tm_sec  = date->second;
+
+#if HAVE_TIMEGM
+	return timegm (&tm);
+#else
+	/* We check the month because (a) if we don't, the
+	 * days_before[] part below may access random memory, and (b)
+	 * soup_date_parse() doesn't check the return value of
+	 * parse_month(). The caller is responsible for ensuring the
+	 * sanity of everything else.
+	 */
+	if (tm.tm_mon < 0 || tm.tm_mon > 11)
+		return (time_t)-1;
+
+	tt = (tm.tm_year - 70) * 365;
+	tt += (tm.tm_year - 68) / 4;
+	tt += days_before[tm.tm_mon] + tm.tm_mday - 1;
+	if (tm.tm_year % 4 == 0 && tm.tm_mon < 2)
+		tt--;
+	tt = ((((tt * 24) + tm.tm_hour) * 60) + tm.tm_min) * 60 + tm.tm_sec;
+	
+	return tt;
+#endif
+}
+
+/**
  * soup_date_copy:
  * @date: a #SoupDate
  *

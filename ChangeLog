@@ -1,3 +1,27 @@
+2008-01-31  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c (soup_date_to_time_t): new
+
+	* libsoup/soup-form.c (soup_form_decode): Remove "_urlencoded"
+	from name. (And add back-compat #define.)
+	(soup_form_encode): New, takes varargs parameters for each form
+	construction.
+	(soup_form_encode_hash, soup_form_encode_datalist): renamed, with
+	back-compat #defines
+	(soup_form_request_new, soup_form_request_new_from_hash)
+	(soup_form_request_new_from_datalist): New methods to construct a
+	GET or POST message with form data.
+
+	* libsoup/soup-uri.c (soup_uri_set_query_from_fields): New, takes
+	varargs like soup_form_encode().
+
+	* libsoup/soup-value-utils.c (soup_value_hash_new_with_vals)
+	(soup_value_hash_insert_vals, soup_value_hash_lookup_vals): New
+	routines to work with multiple value hash values at once.
+	(soup_value_array_new): tiny wrapper, for naming consistency
+	(soup_value_array_new_with_vals, soup_value_array_append_vals):
+	New routines to work with multiple value array values at once.
+
 2008-01-28  Dan Winship  <danw@gnome.org>
 
 	* configure.in: post-release bump to 2.3.1

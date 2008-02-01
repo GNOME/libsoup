@@ -57,6 +57,48 @@ soup_value_hash_new (void)
 				      g_free, soup_value_hash_value_free);
 }
 
+static void
+soup_value_hash_insert_valist (GHashTable *hash, const char *first_key,
+			       va_list args)
+{
+	const char *key;
+	GType type;
+	GValue value;
+
+	key = first_key;
+	while (key) {
+		type = va_arg (args, GType);
+		SOUP_VALUE_SETV (&value, type, args);
+
+		soup_value_hash_insert_value (hash, key, &value);
+		key = va_arg (args, const char *);
+	}
+}
+
+/**
+ * soup_value_hash_new_with_vals:
+ * @first_key: the key for the first value
+ * @...: the type of @first_key, followed by the value, followed
+ * by additional key/type/value triplets, terminated by %NULL
+ *
+ * Creates a #GHashTable whose keys are strings and whose values
+ * are #GValue, and initializes it with the provided data. As
+ * with soup_value_hash_insert(), the keys and values are copied
+ * rather than being inserted directly.
+ **/
+GHashTable *
+soup_value_hash_new_with_vals (const char *first_key, ...)
+{
+	GHashTable *hash = soup_value_hash_new ();
+	va_list args;
+
+	va_start (args, first_key);
+	soup_value_hash_insert_valist (hash, first_key, args);
+	va_end (args);
+
+	return hash;
+}
+
 /**
  * soup_value_hash_insert_value:
  * @hash: a value hash
@@ -99,6 +141,27 @@ soup_value_hash_insert (GHashTable *hash, const char *key, GType type, ...)
 }
 
 /**
+ * soup_value_hash_insert_vals:
+ * @hash: a value hash
+ * @first_key: the key for the first value
+ * @...: the type of @first_key, followed by the value, followed
+ * by additional key/type/value triplets, terminated by %NULL
+ *
+ * Inserts the given data into @hash. As with
+ * soup_value_hash_insert(), the keys and values are copied rather
+ * than being inserted directly.
+ **/
+void
+soup_value_hash_insert_vals (GHashTable *hash, const char *first_key, ...)
+{
+	va_list args;
+
+	va_start (args, first_key);
+	soup_value_hash_insert_valist (hash, first_key, args);
+	va_end (args);
+}
+
+/**
  * soup_value_hash_lookup:
  * @hash: a value hash
  * @key: the key to look up
@@ -126,6 +189,51 @@ soup_value_hash_lookup (GHashTable *hash, const char *key, GType type, ...)
 	va_end (args);
 
 	return TRUE;
+}
+
+/**
+ * soup_value_hash_lookup_vals:
+ * @hash: a value hash
+ * @first_key: the first key to look up
+ * @...: the type of @first_key, a pointer to that type, and
+ * then additional key/type/pointer triplets, terminated
+ * by %NULL.
+ *
+ * Looks up a number of keys in @hash and returns their values.
+ *
+ * Return value: %TRUE if all of the keys were found, %FALSE
+ * if any were missing; note that you will generally need to
+ * initialize each destination variable to a reasonable default
+ * value, since there is no way to tell which keys were found
+ * and which were not.
+ **/
+gboolean
+soup_value_hash_lookup_vals (GHashTable *hash, const char *first_key, ...)
+{
+	va_list args;
+	GValue *value;
+	const char *key;
+	GType type;
+	gboolean found_all = TRUE;
+
+	va_start (args, first_key);
+	key = first_key;
+	while (key) {
+		type = va_arg (args, GType);
+
+		value = g_hash_table_lookup (hash, key);
+		if (!value || !G_VALUE_HOLDS (value, type)) {
+			found_all = FALSE;
+			/* skip a pointer */
+			va_arg (args, gpointer);
+		} else
+			SOUP_VALUE_GETV (value, type, args);
+
+		key = va_arg (args, const char *);
+	}
+	va_end (args);
+
+	return found_all;
 }
 
 
@@ -187,6 +295,60 @@ soup_value_array_to_args (GValueArray *array, va_list args)
 }
 
 /**
+ * soup_value_array_new:
+ *
+ * Creates a new %GValueArray. (This is just a wrapper around
+ * g_value_array_new(), for naming consistency purposes.)
+ *
+ * Return value: a new %GValueArray
+ **/
+GValueArray *
+soup_value_array_new (void)
+{
+	return g_value_array_new (1);
+}
+
+static void
+soup_value_array_append_valist (GValueArray *array,
+				GType first_type, va_list args)
+{
+	GType type;
+	GValue value;
+
+	type = first_type;
+	while (type != G_TYPE_INVALID) {
+		SOUP_VALUE_SETV (&value, type, args);
+
+		g_value_array_append (array, &value);
+		type = va_arg (args, GType);
+	}
+}
+
+/**
+ * soup_value_array_new_with_vals:
+ * @first_type: the type of the first value to add
+ * @...: the first value to add, followed by other type/value
+ * pairs, terminated by %G_TYPE_INVALID
+ *
+ * Creates a new %GValueArray and copies the provided values
+ * into it.
+ *
+ * Return value: a new %GValueArray
+ **/
+GValueArray *
+soup_value_array_new_with_vals (GType first_type, ...)
+{
+	GValueArray *array = soup_value_array_new ();
+	va_list args;
+
+	va_start (args, first_type);
+	soup_value_array_append_valist (array, first_type, args);
+	va_end (args);
+
+	return array;
+}
+
+/**
  * soup_value_array_insert:
  * @array: a #GValueArray
  * @index_: the index to insert at
@@ -229,6 +391,27 @@ soup_value_array_append (GValueArray *array, GType type, ...)
 	SOUP_VALUE_SETV (&val, type, args);
 	va_end (args);
 	g_value_array_append (array, &val);
+}
+
+/**
+ * soup_value_array_append_values:
+ * @array: a #GValueArray
+ * @first_type: the type of the first value to add
+ * @...: the first value to add, followed by other type/value
+ * pairs, terminated by %G_TYPE_INVALID
+ *
+ * Appends the provided values into @array as with
+ * g_value_array_append(). (The provided data is copied rather than
+ * being inserted directly.)
+ **/
+void
+soup_value_array_append_vals (GValueArray *array, GType first_type, ...)
+{
+	va_list args;
+
+	va_start (args, first_type);
+	soup_value_array_append_valist (array, first_type, args);
+	va_end (args);
 }
 
 /**

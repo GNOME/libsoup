@@ -31,37 +31,52 @@ G_STMT_START {								\
 		g_free (error);						\
 } G_STMT_END
 
-GHashTable  *soup_value_hash_new          (void);
-void         soup_value_hash_insert_value (GHashTable  *hash,
-					   const char  *key,
-					   GValue      *value);
-void         soup_value_hash_insert       (GHashTable  *hash,
-					   const char  *key,
-					   GType        type,
-					   ...);
-gboolean     soup_value_hash_lookup       (GHashTable  *hash,
-					   const char  *key,
-					   GType        type,
-					   ...);
+GHashTable  *soup_value_hash_new            (void);
+GHashTable  *soup_value_hash_new_with_vals  (const char  *first_key,
+					     ...) G_GNUC_NULL_TERMINATED;
+void         soup_value_hash_insert_value   (GHashTable  *hash,
+					     const char  *key,
+					     GValue      *value);
+void         soup_value_hash_insert         (GHashTable  *hash,
+					     const char  *key,
+					     GType        type,
+					     ...);
+void         soup_value_hash_insert_vals    (GHashTable  *hash,
+					     const char  *first_key,
+					     ...) G_GNUC_NULL_TERMINATED;
+gboolean     soup_value_hash_lookup         (GHashTable  *hash,
+					     const char  *key,
+					     GType        type,
+					     ...);
+gboolean     soup_value_hash_lookup_vals    (GHashTable  *hash,
+					     const char  *first_key,
+					     ...);
 
-GValueArray *soup_value_array_from_args   (va_list      args);
-gboolean     soup_value_array_to_args     (GValueArray *array,
-					   va_list      args);
+GValueArray *soup_value_array_from_args     (va_list      args);
+gboolean     soup_value_array_to_args       (GValueArray *array,
+					     va_list      args);
 
-void         soup_value_array_insert      (GValueArray *array,
-					   guint        index_,
-					   GType        type,
-					   ...);
-void         soup_value_array_append      (GValueArray *array,
-					   GType        type,
-					   ...);
-gboolean     soup_value_array_get_nth     (GValueArray *array,
-					   guint        index_,
-					   GType        type,
-					   ...);
+GValueArray *soup_value_array_new           (void);
+GValueArray *soup_value_array_new_with_vals (GType        first_type,
+					     ...) G_GNUC_NULL_TERMINATED;
+
+void         soup_value_array_insert        (GValueArray *array,
+					     guint        index_,
+					     GType        type,
+					     ...);
+void         soup_value_array_append        (GValueArray *array,
+					     GType        type,
+					     ...);
+void         soup_value_array_append_vals   (GValueArray *array,
+					     GType        first_type,
+					     ...) G_GNUC_NULL_TERMINATED;
+gboolean     soup_value_array_get_nth       (GValueArray *array,
+					     guint        index_,
+					     GType        type,
+					     ...);
 
 
-GType        soup_byte_array_get_type     (void);
+GType        soup_byte_array_get_type       (void);
 #define SOUP_TYPE_BYTE_ARRAY (soup_byte_array_get_type ())
 
 G_END_DECLS
