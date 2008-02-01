@@ -9,6 +9,9 @@
 #include <libsoup/soup-types.h>
 
 typedef struct SoupMessageHeaders SoupMessageHeaders;
+GType soup_message_headers_get_type (void);
+#define SOUP_TYPE_MESSAGE_HEADERS (soup_message_headers_get_type ())
+
 typedef enum {
 	SOUP_MESSAGE_HEADERS_REQUEST,
 	SOUP_MESSAGE_HEADERS_RESPONSE

@@ -934,13 +934,14 @@ soup_uri_set_fragment (SoupURI *uri, const char *fragment)
 GType
 soup_uri_get_type (void)
 {
-	static GType type = 0;
+	static volatile gsize type_volatile = 0;
 
-	if (G_UNLIKELY (type == 0)) {
-		type = g_boxed_type_register_static (
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
 			g_intern_static_string ("SoupURI"),
-			(GBoxedCopyFunc)soup_uri_copy,
-			(GBoxedFreeFunc)soup_uri_free);
+			(GBoxedCopyFunc) soup_uri_copy,
+			(GBoxedFreeFunc) soup_uri_free);
+		g_once_init_leave (&type_volatile, type);
 	}
-	return type;
+	return type_volatile;
 }

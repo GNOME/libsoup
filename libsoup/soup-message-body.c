@@ -186,15 +186,16 @@ soup_buffer_free (SoupBuffer *buffer)
 GType
 soup_buffer_get_type (void)
 {
-	static GType type = 0;
+	static volatile gsize type_volatile = 0;
 
-	if (type == 0) {
-		type = g_boxed_type_register_static (
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
 			g_intern_static_string ("SoupBuffer"),
-			(GBoxedCopyFunc)soup_buffer_copy,
-			(GBoxedFreeFunc)soup_buffer_free);
+			(GBoxedCopyFunc) soup_buffer_copy,
+			(GBoxedFreeFunc) soup_buffer_free);
+		g_once_init_leave (&type_volatile, type);
 	}
-	return type;
+	return type_volatile;
 }
 
 
@@ -222,6 +223,7 @@ typedef struct {
 	SoupMessageBody body;
 	GSList *chunks, *last;
 	SoupBuffer *flattened;
+	int ref_count;
 } SoupMessageBodyPrivate;
 
 /**
@@ -235,7 +237,12 @@ typedef struct {
 SoupMessageBody *
 soup_message_body_new (void)
 {
-	return (SoupMessageBody *)g_slice_new0 (SoupMessageBodyPrivate);
+	SoupMessageBodyPrivate *priv;
+
+	priv = g_slice_new0 (SoupMessageBodyPrivate);
+	priv->ref_count = 1;
+
+	return (SoupMessageBody *)priv;
 }
 
 static void
@@ -421,11 +428,37 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 	}
 }
 
+static SoupMessageBody *
+soup_message_body_copy (SoupMessageBody *body)
+{
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
+	priv->ref_count++;
+	return body;
+}
+
 void
 soup_message_body_free (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
 
-	soup_message_body_truncate (body);
-	g_slice_free (SoupMessageBodyPrivate, priv);
+	if (--priv->ref_count == 0) {
+		soup_message_body_truncate (body);
+		g_slice_free (SoupMessageBodyPrivate, priv);
+	}
+}
+
+GType
+soup_message_body_get_type (void)
+{
+	static volatile gsize type_volatile = 0;
+
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupMessageBody"),
+			(GBoxedCopyFunc) soup_message_body_copy,
+			(GBoxedFreeFunc) soup_message_body_free);
+		g_once_init_leave (&type_volatile, type);
+	}
+	return type_volatile;
 }

@@ -31,10 +31,14 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*request_started)  (SoupServer *, SoupMessage *, SoupClientContext *);
-	void (*request_read)     (SoupServer *, SoupMessage *, SoupClientContext *);
-	void (*request_finished) (SoupServer *, SoupMessage *, SoupClientContext *);
-	void (*request_aborted)  (SoupServer *, SoupMessage *, SoupClientContext *);
+	void (*request_started)  (SoupServer *server, SoupMessage *msg,
+				  SoupClientContext *client);
+	void (*request_read)     (SoupServer *server, SoupMessage *msg,
+				  SoupClientContext *client);
+	void (*request_finished) (SoupServer *server, SoupMessage *msg,
+				  SoupClientContext *client);
+	void (*request_aborted)  (SoupServer *server, SoupMessage *msg,
+				  SoupClientContext *client);
 
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);

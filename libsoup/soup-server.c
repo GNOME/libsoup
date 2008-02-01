@@ -76,6 +76,8 @@ struct SoupClientContext {
 	SoupSocket     *sock;
 	SoupAuthDomain *auth_domain;
 	char           *auth_user;
+
+	int             ref_count;
 };
 
 typedef struct {
@@ -552,6 +554,18 @@ soup_server_get_listener (SoupServer *server)
 
 static void start_request (SoupServer *, SoupClientContext *);
 
+static SoupClientContext *
+soup_client_context_new (SoupServer *server, SoupSocket *sock)
+{
+	SoupClientContext *client = g_slice_new0 (SoupClientContext);
+
+	client->server = server;
+	client->sock = sock;
+	client->ref_count = 1;
+
+	return client;
+}
+
 static void
 soup_client_context_cleanup (SoupClientContext *client)
 {
@@ -562,6 +576,22 @@ soup_client_context_cleanup (SoupClientContext *client)
 	if (client->auth_user) {
 		g_free (client->auth_user);
 		client->auth_user = NULL;
+	}
+}
+
+static SoupClientContext *
+soup_client_context_ref (SoupClientContext *client)
+{
+	client->ref_count++;
+	return client;
+}
+
+static void
+soup_client_context_unref (SoupClientContext *client)
+{
+	if (--client->ref_count == 0) {
+		soup_client_context_cleanup (client);
+		g_slice_free (SoupClientContext, client);
 	}
 }
 
@@ -582,7 +612,7 @@ request_finished (SoupMessage *msg, SoupClientContext *client)
 		start_request (server, client);
 	} else {
 		soup_socket_disconnect (sock);
-		g_slice_free (SoupClientContext, client);
+		soup_client_context_unref (client);
 	}
 	g_object_unref (msg);
 	g_object_unref (sock);
@@ -740,10 +770,9 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 {
 	SoupServer *server = user_data;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
-	SoupClientContext *client = g_slice_new0 (SoupClientContext);
+	SoupClientContext *client;
 
-	client->server = server;
-	client->sock = g_object_ref (sock);
+	client = soup_client_context_new (server, g_object_ref (sock));
 	priv->client_socks = g_slist_prepend (priv->client_socks, sock);
 	g_signal_connect (sock, "disconnected",
 			  G_CALLBACK (socket_disconnected), server);
@@ -876,11 +905,16 @@ soup_server_get_async_context (SoupServer *server)
 GType
 soup_client_context_get_type (void)
 {
-	static GType type = 0;
+	static volatile gsize type_volatile = 0;
 
-	if (type == 0)
-		type = g_pointer_type_register_static ("SoupClientContext");
-	return type;
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupClientContext"),
+			(GBoxedCopyFunc) soup_client_context_ref,
+			(GBoxedFreeFunc) soup_client_context_unref);
+		g_once_init_leave (&type_volatile, type);
+	}
+	return type_volatile;
 }
 
 /**

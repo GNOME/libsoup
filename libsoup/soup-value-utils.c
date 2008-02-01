@@ -463,13 +463,14 @@ soup_byte_array_free (GByteArray *ba)
 GType
 soup_byte_array_get_type (void)
 {
-	static GType type = 0;
+	static volatile gsize type_volatile = 0;
 
-	if (type == 0) {
-		type = g_boxed_type_register_static (
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
 			g_intern_static_string ("GByteArray"),
-			(GBoxedCopyFunc)soup_byte_array_copy,
-			(GBoxedFreeFunc)soup_byte_array_free);
+			(GBoxedCopyFunc) soup_byte_array_copy,
+			(GBoxedFreeFunc) soup_byte_array_free);
+		g_once_init_leave (&type_volatile, type);
 	}
-	return type;
+	return type_volatile;
 }

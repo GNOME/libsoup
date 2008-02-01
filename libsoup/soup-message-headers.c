@@ -35,6 +35,8 @@ struct SoupMessageHeaders {
 	SoupEncoding encoding;
 	goffset content_length;
 	SoupExpectation expectations;
+
+	int ref_count;
 };
 
 /**
@@ -57,7 +59,15 @@ soup_message_headers_new (SoupMessageHeadersType type)
 	hdrs->array = g_array_sized_new (TRUE, FALSE, sizeof (SoupHeader), 5);
 	hdrs->type = type;
 	hdrs->encoding = -1;
+	hdrs->ref_count = 1;
 
+	return hdrs;
+}
+
+static SoupMessageHeaders *
+soup_message_headers_copy (SoupMessageHeaders *hdrs)
+{
+	hdrs->ref_count++;
 	return hdrs;
 }
 
@@ -70,11 +80,28 @@ soup_message_headers_new (SoupMessageHeadersType type)
 void
 soup_message_headers_free (SoupMessageHeaders *hdrs)
 {
-	soup_message_headers_clear (hdrs);
-	g_array_free (hdrs->array, TRUE);
-	if (hdrs->concat)
-		g_hash_table_destroy (hdrs->concat);
-	g_slice_free (SoupMessageHeaders, hdrs);
+	if (--hdrs->ref_count == 0) {
+		soup_message_headers_clear (hdrs);
+		g_array_free (hdrs->array, TRUE);
+		if (hdrs->concat)
+			g_hash_table_destroy (hdrs->concat);
+		g_slice_free (SoupMessageHeaders, hdrs);
+	}
+}
+
+GType
+soup_message_headers_get_type (void)
+{
+	static volatile gsize type_volatile = 0;
+
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupMessageHeaders"),
+			(GBoxedCopyFunc) soup_message_headers_copy,
+			(GBoxedFreeFunc) soup_message_headers_free);
+		g_once_init_leave (&type_volatile, type);
+	}
+	return type_volatile;
 }
 
 /**

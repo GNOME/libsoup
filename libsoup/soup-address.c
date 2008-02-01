@@ -18,6 +18,7 @@
 
 #include "soup-address.h"
 #include "soup-dns.h"
+#include "soup-enum-types.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
 
@@ -41,6 +42,18 @@
  * If libsoup was built with IPv6 support, #SoupAddress will allow
  * both IPv4 and IPv6 addresses.
  **/
+
+enum {
+	PROP_0,
+
+	PROP_NAME,
+	PROP_FAMILY,
+	PROP_PORT,
+	PROP_PHYSICAL,
+	PROP_SOCKADDR,
+
+	LAST_PROP
+};
 
 typedef struct {
 	struct sockaddr *sockaddr;
@@ -110,6 +123,14 @@ typedef struct {
 	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
 
+static GObject *constructor (GType                  type,
+			     guint                  n_construct_properties,
+			     GObjectConstructParam *construct_properties);
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
+
 G_DEFINE_TYPE (SoupAddress, soup_address, G_TYPE_OBJECT)
 
 static void
@@ -148,7 +169,47 @@ soup_address_class_init (SoupAddressClass *address_class)
 	g_type_class_add_private (address_class, sizeof (SoupAddressPrivate));
 
 	/* virtual method override */
+	object_class->constructor = constructor;
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_NAME,
+		g_param_spec_string (SOUP_ADDRESS_NAME,
+				     "Name",
+				     "Hostname for this address",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_FAMILY,
+		g_param_spec_enum (SOUP_ADDRESS_FAMILY,
+				   "Family",
+				   "Address family for this address",
+				   SOUP_TYPE_ADDRESS_FAMILY,
+				   SOUP_ADDRESS_FAMILY_INVALID,
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_PORT,
+		g_param_spec_int (SOUP_ADDRESS_PORT,
+				  "Port",
+				  "Port for this address",
+				  -1, 65535, -1,
+				  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_PHYSICAL,
+		g_param_spec_string (SOUP_ADDRESS_PHYSICAL,
+				     "Physical address",
+				     "IP address for this address",
+				     NULL,
+				     G_PARAM_READABLE));
+	g_object_class_install_property (
+		object_class, PROP_SOCKADDR,
+		g_param_spec_pointer (SOUP_ADDRESS_SOCKADDR,
+				      "sockaddr",
+				      "struct sockaddr for this address",
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 #ifdef G_OS_WIN32
 	/* This hopefully is a good place to call WSAStartup */
@@ -160,6 +221,119 @@ soup_address_class_init (SoupAddressClass *address_class)
 #endif
 }
 
+static GObject *
+constructor (GType                  type,
+	     guint                  n_construct_properties,
+	     GObjectConstructParam *construct_properties)
+{
+	GObject *addr;
+	SoupAddressPrivate *priv;
+
+	addr = G_OBJECT_CLASS (soup_address_parent_class)->constructor (
+		type, n_construct_properties, construct_properties);
+	if (!addr)
+		return NULL;
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	if (priv->name) {
+		if (!priv->sockaddr)
+			priv->lookup = soup_dns_lookup_name (priv->name);
+	} else if (priv->sockaddr)
+		priv->lookup = soup_dns_lookup_address (priv->sockaddr);
+	else {
+		g_object_unref (addr);
+		return NULL;
+	}
+
+	return addr;
+}
+
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+	SoupAddressFamily family;
+	struct sockaddr *sa;
+	int len, port;
+
+	/* This is a mess because the properties are mostly orthogonal,
+	 * but g_object_constructor wants to set a default value for each
+	 * of them.
+	 */
+
+	switch (prop_id) {
+	case PROP_NAME:
+		priv->name = g_value_dup_string (value);
+		break;
+
+	case PROP_FAMILY:
+		family = g_value_get_enum (value);
+		if (family == SOUP_ADDRESS_FAMILY_INVALID)
+			return;
+		g_return_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family));
+		g_return_if_fail (priv->sockaddr == NULL);
+
+		priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
+		SOUP_ADDRESS_SET_FAMILY (priv, family);
+		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
+		break;
+
+	case PROP_PORT:
+		port = g_value_get_int (value);
+		if (port == -1)
+			return;
+		g_return_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port));
+
+		priv->port = port;
+		if (priv->sockaddr)
+			SOUP_ADDRESS_SET_PORT (priv, htons (port));
+		break;
+
+	case PROP_SOCKADDR:
+		sa = g_value_get_pointer (value);
+		if (!sa)
+			return;
+		g_return_if_fail (priv->sockaddr == NULL);
+
+		len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family);
+		priv->sockaddr = g_memdup (sa, len);
+		priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_NAME:
+		g_value_set_string (value, priv->name);
+		break;
+	case PROP_FAMILY:
+		if (priv->sockaddr)
+			g_value_set_enum (value, SOUP_ADDRESS_GET_FAMILY (priv));
+		else
+			g_value_set_enum (value, 0);
+		break;
+	case PROP_PORT:
+		g_value_set_int (value, priv->port);
+		break;
+	case PROP_PHYSICAL:
+		g_value_set_string (value, soup_address_get_physical (SOUP_ADDRESS (object)));
+		break;
+	case PROP_SOCKADDR:
+		g_value_set_pointer (value, priv->sockaddr);
+		break;
+	default:
+		break;
+	}
+}
 
 /**
  * soup_address_new:
@@ -176,19 +350,13 @@ soup_address_class_init (SoupAddressClass *address_class)
 SoupAddress *
 soup_address_new (const char *name, guint port)
 {
-	SoupAddress *addr;
-	SoupAddressPrivate *priv;
-
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
 
-	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
-	priv->name = g_strdup (name);
-	priv->port = port;
-	priv->lookup = soup_dns_lookup_name (priv->name);
-
-	return addr;
+	return g_object_new (SOUP_TYPE_ADDRESS,
+			     SOUP_ADDRESS_NAME, name,
+			     SOUP_ADDRESS_PORT, port,
+			     NULL);
 }
 
 /**
@@ -204,20 +372,13 @@ soup_address_new (const char *name, guint port)
 SoupAddress *
 soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 {
-	SoupAddress *addr;
-	SoupAddressPrivate *priv;
-
 	g_return_val_if_fail (sa != NULL, NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (sa->sa_family), NULL);
 	g_return_val_if_fail (len == SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family), NULL);
 
-	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
-	priv->sockaddr = g_memdup (sa, len);
-	priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
-	priv->lookup = soup_dns_lookup_address (priv->sockaddr);
-
-	return addr;
+	return g_object_new (SOUP_TYPE_ADDRESS,
+			     SOUP_ADDRESS_SOCKADDR, sa,
+			     NULL);
 }
 
 /**
@@ -252,22 +413,13 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 SoupAddress *
 soup_address_new_any (SoupAddressFamily family, guint port)
 {
-	SoupAddress *addr;
-	SoupAddressPrivate *priv;
-
 	g_return_val_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family), NULL);
 	g_return_val_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port), NULL);
 
-	addr = g_object_new (SOUP_TYPE_ADDRESS, NULL);
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
-	priv->port = port;
-
-	priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
-	SOUP_ADDRESS_SET_FAMILY (priv, family);
-	SOUP_ADDRESS_SET_PORT (priv, htons (port));
-	priv->lookup = soup_dns_lookup_address (priv->sockaddr);
-
-	return addr;
+	return g_object_new (SOUP_TYPE_ADDRESS,
+			     SOUP_ADDRESS_FAMILY, family,
+			     SOUP_ADDRESS_PORT, port,
+			     NULL);
 }
 
 /**

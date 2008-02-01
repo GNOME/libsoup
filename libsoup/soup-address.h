@@ -37,12 +37,20 @@ typedef struct {
 	void (*_libsoup_reserved4) (void);
 } SoupAddressClass;
 
+#define SOUP_ADDRESS_NAME     "name"
+#define SOUP_ADDRESS_FAMILY   "family"
+#define SOUP_ADDRESS_PORT     "port"
+#define SOUP_ADDRESS_PHYSICAL "physical"
+#define SOUP_ADDRESS_SOCKADDR "sockaddr"
+
 /* gtk-doc gets confused if there's an #ifdef inside the typedef */
 #ifndef AF_INET6
 #define AF_INET6 -1
 #endif
 
 typedef enum {
+	SOUP_ADDRESS_FAMILY_INVALID = -1,
+
 	SOUP_ADDRESS_FAMILY_IPV4 = AF_INET,
 	SOUP_ADDRESS_FAMILY_IPV6 = AF_INET6
 } SoupAddressFamily;

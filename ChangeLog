@@ -1,5 +1,23 @@
 2008-02-01  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-address.c: Use GObject properties.
+	(soup_address_new, soup_address_new_from_sockaddr)
+	(soup_address_new_any): Make these just wrappers around
+	g_object_new.
+
+	* libsoup/soup-message-body.c (soup_message_body_get_type):
+	* libsoup/soup-message-headers.c (soup_message_headers_get_type):
+	* libsoup/soup-server.c (soup_client_context_get_type): 
+	Register these as boxed types, for language bindings.
+
+	* libsoup/soup-date.c (soup_date_get_type):
+	* libsoup/soup-message-body.c (soup_buffer_get_type):
+	* libsoup/soup-value-utils.c (soup_byte_array_get_type):
+	* libsoup/soup-uri.c (soup_uri_get_type): Upgrade to the latest
+	yummiest type-registering idiom.
+
+2008-02-01  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-connection.c (soup_connection_disconnect):
 	Reorganize this; emitting DISCONNECTED may cause the session to
 	unref the connection, causing it to be destroyed, so do everything

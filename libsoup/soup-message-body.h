@@ -40,6 +40,9 @@ typedef struct {
 	goffset     length;
 } SoupMessageBody;
 
+GType soup_message_body_get_type (void);
+#define SOUP_TYPE_MESSAGE_BODY (soup_message_body_get_type ())
+
 SoupMessageBody *soup_message_body_new           (void);
 
 void             soup_message_body_append        (SoupMessageBody *body,
