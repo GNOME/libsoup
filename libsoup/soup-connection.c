@@ -325,6 +325,7 @@ clear_current_request (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
+	priv->in_use = FALSE;
 	if (priv->cur_req) {
 		SoupMessage *cur_req = priv->cur_req;
 
@@ -339,7 +340,6 @@ clear_current_request (SoupConnection *conn)
 			soup_message_io_stop (cur_req);
 		}
 	}
-	priv->in_use = FALSE;
 }
 
 static void
@@ -613,49 +613,49 @@ soup_connection_disconnect (SoupConnection *conn)
 		return;
 
 	priv->connected = FALSE;
-	g_signal_emit (conn, signals[DISCONNECTED], 0);
 
-	if (!priv->cur_req ||
-	    priv->cur_req->status_code != SOUP_STATUS_IO_ERROR)
-		return;
-
-	/* There was a message queued on this connection, but the
-	 * socket was closed while it was being sent.
-	 */
-
-	if (priv->last_used != 0) {
-		/* If last_used is not 0, then that means at least one
-		 * message was successfully sent on this connection
-		 * before, and so the most likely cause of the
-		 * IO_ERROR is that the connection was idle for too
-		 * long and the server timed out and closed it (and we
-		 * didn't notice until after we started sending the
-		 * message). So we want the message to get tried again
-		 * on a new connection. The only code path that could
-		 * have gotten us to this point is through the call to
-		 * io_cleanup() in soup_message_io_finished(), and so
-		 * all we need to do to get the message requeued in
-		 * this case is to change its status.
+	if (priv->cur_req &&
+	    priv->cur_req->status_code == SOUP_STATUS_IO_ERROR &&
+	    priv->last_used != 0) {
+		/* There was a message queued on this connection, but
+		 * the socket was closed while it was being sent.
+		 * Since last_used is not 0, then that means at least
+		 * one message was successfully sent on this
+		 * connection before, and so the most likely cause of
+		 * the IO_ERROR is that the connection was idle for
+		 * too long and the server timed out and closed it
+		 * (and we didn't notice until after we started
+		 * sending the message). So we want the message to get
+		 * tried again on a new connection. The only code path
+		 * that could have gotten us to this point is through
+		 * the call to io_cleanup() in
+		 * soup_message_io_finished(), and so all we need to
+		 * do to get the message requeued in this case is to
+		 * change its status.
 		 */
+		soup_message_cleanup_response (priv->cur_req);
 		soup_message_set_io_status (priv->cur_req,
 					    SOUP_MESSAGE_IO_STATUS_QUEUED);
-		return;
 	}
 
-	/* If priv->last_used is 0, then that means this was the
-	 * first message to be sent on this connection, so the error
-	 * probably means that there's some network or server problem,
-	 * so we let the IO_ERROR be returned to the caller.
+	/* If cur_req is non-NULL but priv->last_used is 0, then that
+	 * means this was the first message to be sent on this
+	 * connection, and it failed, so the error probably means that
+	 * there's some network or server problem, so we let the
+	 * IO_ERROR be returned to the caller.
 	 *
-	 * Of course, it's also possible that the error in the
+	 * (Of course, it's also possible that the error in the
 	 * last_used != 0 case was because of a network/server problem
 	 * too. It's even possible that the message crashed the
 	 * server. In this case, requeuing it was the wrong thing to
 	 * do, but presumably, the next attempt will also get an
 	 * error, and eventually the message will be requeued onto a
 	 * fresh connection and get an error, at which point the error
-	 * will finally be returned to the caller.
+	 * will finally be returned to the caller.)
 	 */
+
+	/* NB: this might cause conn to be destroyed. */
+	g_signal_emit (conn, signals[DISCONNECTED], 0);
 }
 
 SoupSocket *
