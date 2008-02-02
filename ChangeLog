@@ -1,3 +1,12 @@
+2008-02-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-method.h (SOUP_METHOD_GET, etc): Fix these so that
+	direct comparisons against them actually *are* faster than doing
+	strcmp, as the docs claim.
+
+	* libsoup/soup-uri.h (SOUP_URI_SCHEME_HTTP,
+	SOUP_URI_SCHEME_HTTPS): likewise
+
 2008-02-01  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-address.c: Use GObject properties.

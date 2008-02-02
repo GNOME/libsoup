@@ -30,8 +30,9 @@ struct SoupURI {
 GType     soup_uri_get_type          (void);
 #define SOUP_TYPE_URI (soup_uri_get_type ())
 
-#define SOUP_URI_SCHEME_HTTP  (g_intern_static_string ("http"))
-#define SOUP_URI_SCHEME_HTTPS (g_intern_static_string ("https"))
+#define SOUP_URI_SCHEME_HTTP  (_SOUP_URI_SCHEME_HTTP ? _SOUP_URI_SCHEME_HTTP : (_SOUP_URI_SCHEME_HTTP = g_intern_static_string ("http")))
+#define SOUP_URI_SCHEME_HTTPS (_SOUP_URI_SCHEME_HTTPS ? _SOUP_URI_SCHEME_HTTPS : (_SOUP_URI_SCHEME_HTTPS = g_intern_static_string ("https")))
+extern const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
 
 SoupURI  *soup_uri_new_with_base         (SoupURI    *base,
 					  const char *uri_string);

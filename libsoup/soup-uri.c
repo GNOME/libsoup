@@ -81,19 +81,15 @@ static void append_uri_encoded (GString *str, const char *in, const char *extra_
 static char *uri_decoded_copy (const char *str, int length);
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 
-static const char *http_scheme, *https_scheme;
+const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
 
 static inline const char *
 soup_uri_get_scheme (const char *scheme, int len)
 {
 	if (len == 4 && !strncmp (scheme, "http", 4)) {
-		if (G_UNLIKELY (!http_scheme))
-			http_scheme = g_intern_static_string ("http");
-		return http_scheme;
+		return SOUP_URI_SCHEME_HTTP;
 	} else if (len == 5 && !strncmp (scheme, "https", 5)) {
-		if (G_UNLIKELY (!https_scheme))
-			https_scheme = g_intern_static_string ("https");
-		return https_scheme;
+		return SOUP_URI_SCHEME_HTTPS;
 	} else {
 		char *lower_scheme;
 
@@ -107,9 +103,9 @@ soup_uri_get_scheme (const char *scheme, int len)
 static inline guint
 soup_scheme_default_port (const char *scheme)
 {
-	if (scheme == http_scheme)
+	if (scheme == SOUP_URI_SCHEME_HTTP)
 		return 80;
-	else if (scheme == https_scheme)
+	else if (scheme == SOUP_URI_SCHEME_HTTPS)
 		return 443;
 	else
 		return 0;
@@ -339,7 +335,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	}
 
 	/* HTTP-specific stuff */
-	if (uri->scheme == http_scheme || uri->scheme == https_scheme) {
+	if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
+	    uri->scheme == SOUP_URI_SCHEME_HTTPS) {
 		if (!uri->host) {
 			soup_uri_free (uri);
 			return NULL;
@@ -754,8 +751,8 @@ soup_uri_normalize (const char *part, const char *unescape_extra)
 gboolean
 soup_uri_uses_default_port (SoupURI *uri)
 {
-	g_return_val_if_fail (uri->scheme == http_scheme ||
-			      uri->scheme == https_scheme, FALSE);
+	g_return_val_if_fail (uri->scheme == SOUP_URI_SCHEME_HTTP ||
+			      uri->scheme == SOUP_URI_SCHEME_HTTPS, FALSE);
 
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
