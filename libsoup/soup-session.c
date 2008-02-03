@@ -563,12 +563,46 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	const char *new_loc;
 	SoupURI *new_uri;
 
-	if (!SOUP_STATUS_IS_REDIRECTION (msg->status_code))
-		return;
-
 	new_loc = soup_message_headers_get (msg->response_headers, "Location");
-	if (!new_loc)
+	g_return_if_fail (new_loc != NULL);
+
+	if (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY ||
+	    msg->status_code == SOUP_STATUS_FOUND ||
+	    msg->status_code == SOUP_STATUS_TEMPORARY_REDIRECT) {
+		/* Don't redirect non-safe methods */
+		if (msg->method != SOUP_METHOD_GET &&
+		    msg->method != SOUP_METHOD_HEAD &&
+		    msg->method != SOUP_METHOD_OPTIONS)
+			return;
+	} else if (msg->status_code == SOUP_STATUS_SEE_OTHER) {
+		/* Redirect using a GET */
+		g_object_set (msg,
+			      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
+			      NULL);
+		soup_message_set_request (msg, NULL,
+					  SOUP_MEMORY_STATIC, NULL, 0);
+		soup_message_headers_set_encoding (msg->request_headers,
+						   SOUP_ENCODING_NONE);
+	} else {
+		/* Three possibilities:
+		 *
+		 *   1) This was a non-3xx response that happened to
+		 *      have a "Location" header
+		 *   2) It's a non-redirecty 3xx response (300, 304,
+		 *      305, 306)
+		 *   3) It's some newly-defined 3xx response (308+)
+		 *
+		 * We ignore all of these cases. In the first two,
+		 * redirecting would be explicitly wrong, and in the
+		 * last case, we have no clue if the 3xx response is
+		 * supposed to be redirecty or non-redirecty. Plus,
+		 * 2616 says unrecognized status codes should be
+		 * treated as the equivalent to the x00 code, and we
+		 * don't redirect on 300, so therefore we shouldn't
+		 * redirect on 308+ either.
+		 */
 		return;
+	}
 
 	/* Location is supposed to be an absolute URI, but some sites
 	 * are lame, so we use soup_uri_new_with_base().

@@ -1,5 +1,14 @@
 2008-02-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (redirect_handler): Misc fixes: don't
+	redirect on "300 Multiple Choices", "304 Not Modified", "305 Use
+	Proxy", or any unrecognized status code. Don't redirect unsafe
+	methods on 301, 302, or 307. Redirect POST to GET on 303.
+
+	* tests/redirect-test.c: test of redirection handling behavior.
+
+2008-02-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-method.h (SOUP_METHOD_GET, etc): Fix these so that
 	direct comparisons against them actually *are* faster than doing
 	strcmp, as the docs claim.
