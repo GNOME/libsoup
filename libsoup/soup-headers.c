@@ -105,6 +105,23 @@ done:
 	return success;
 }
 
+/* RFC 2616 14.10 */
+static void
+soup_headers_clean_for_10 (SoupMessageHeaders *hdrs)
+{
+	const char *connection;
+	GSList *tokens, *t;
+
+	connection = soup_message_headers_get (hdrs, "Connection");
+	if (!connection)
+		return;
+
+	tokens = soup_header_parse_list (connection);
+	for (t = tokens; t; t = t->next)
+		soup_message_headers_remove (hdrs, t->data);
+	soup_header_free_list (tokens);
+}
+
 /**
  * soup_headers_parse_request:
  * @str: the header string (including the trailing blank line)
@@ -194,6 +211,12 @@ soup_headers_parse_request (const char          *str,
 
 	if (!soup_headers_parse (str, len, req_headers)) 
 		return SOUP_STATUS_BAD_REQUEST;
+
+	if (soup_message_headers_get_expectations (req_headers) &
+	    SOUP_EXPECTATION_UNRECOGNIZED)
+		return SOUP_STATUS_EXPECTATION_FAILED;
+	if (minor_version == 0)
+		soup_headers_clean_for_10 (req_headers);
 
 	if (req_method)
 		*req_method = g_strndup (method, method_end - method);
@@ -300,6 +323,8 @@ soup_headers_parse_response (const char          *str,
 			     guint               *status_code,
 			     char               **reason_phrase)
 {
+	SoupHTTPVersion version;
+
 	if (!str || !*str)
 		return FALSE;
 
@@ -307,10 +332,15 @@ soup_headers_parse_response (const char          *str,
 		return FALSE;
 
 	if (!soup_headers_parse_status_line (str, 
-					     ver, 
+					     &version, 
 					     status_code, 
 					     reason_phrase))
 		return FALSE;
+	if (ver)
+		*ver = version;
+
+	if (version == SOUP_HTTP_1_0)
+		soup_headers_clean_for_10 (headers);
 
 	return TRUE;
 }

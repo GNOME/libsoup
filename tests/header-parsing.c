@@ -168,6 +168,16 @@ struct RequestTest {
 	  }
 	},
 
+	{ "Connection header on HTTP/1.0 message",
+	  "GET / HTTP/1.0\r\nFoo: bar\r\nConnection: Bar, Quux\r\nBar: baz\r\nQuux: foo\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_0,
+	  { { "Foo", "bar" },
+	    { "Connection", "Bar, Quux" },
+	    { NULL }
+	  }
+	},
+
 	/****************************/
 	/*** RECOVERABLE REQUESTS ***/
 	/****************************/
@@ -328,6 +338,12 @@ struct RequestTest {
 	  { { NULL } }
 	},
 
+	{ "Unrecognized expectation",
+	  "GET / HTTP/1.1\r\nHost: example.com\r\nExpect: the-impossible\r\n", -1,
+	  SOUP_STATUS_EXPECTATION_FAILED,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	}
 };
 static const int num_reqtests = G_N_ELEMENTS (reqtests);
 
@@ -391,6 +407,15 @@ struct ResponseTest {
 	  "HTTP/1.1 200 \r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "",
 	  { { "Foo", "bar" },
+	    { NULL }
+	  }
+	},
+
+	{ "Connection header on HTTP/1.0 message",
+	  "HTTP/1.0 200 ok\r\nFoo: bar\r\nConnection: Bar\r\nBar: quux\r\n", -1,
+	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
+	  { { "Foo", "bar" },
+	    { "Connection", "Bar" },
 	    { NULL }
 	  }
 	},
@@ -552,24 +577,41 @@ print_header (const char *name, const char *value, gpointer data)
 	debug_printf (1, "              '%s': '%s'\n", name, value);
 }
 
-typedef struct {
-	Header *headers;
-	int i;
-	gboolean ok;
-} HeaderForeachData;
+static void
+add_header_name (const char *name, const char *value, gpointer data)
+{
+	GSList **names = data;
+
+	if (!g_slist_find_custom (*names, name, (GCompareFunc)strcmp))
+		*names = g_slist_append (*names, (char *)name);
+}
 
 static gboolean
 check_headers (Header *headers, SoupMessageHeaders *hdrs)
 {
-	int i;
+	GSList *header_names, *h;
 	const char *value;
+	gboolean ok = TRUE;
+	int i;
 
-	for (i = 0; headers[i].name; i++) {
+	header_names = NULL;
+	soup_message_headers_foreach (hdrs, add_header_name, &header_names);
+
+	for (i = 0, h = header_names; headers[i].name && h; i++, h = h->next) {
+		if (strcmp (h->data, headers[i].name) != 0) {
+			ok = FALSE;
+			break;
+		}
 		value = soup_message_headers_get (hdrs, headers[i].name);
-		if (strcmp (value, headers[i].value) != 0)
-			return FALSE;
+		if (strcmp (value, headers[i].value) != 0) {
+			ok = FALSE;
+			break;
+		}
 	}
-	return TRUE;
+	if (headers[i].name || h)
+		ok = FALSE;
+	g_slist_free (header_names);
+	return ok;
 }
 
 static void

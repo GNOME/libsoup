@@ -1,5 +1,16 @@
 2008-02-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-headers.c (soup_headers_parse_request): if the
+	request headers contain an unrecognized Expect: header, return
+	SOUP_STATUS_EXPECTATION_FAILED. Also, process Connection headers
+	in HTTP/1.0 messages as required by 2616 14.10.
+	(soup_headers_parse_response): Likewise handle Connection headers
+	in HTTP/1.0 messages
+
+	* tests/header-parsing.c: test those things
+
+2008-02-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session.c (redirect_handler): Misc fixes: don't
 	redirect on "300 Multiple Choices", "304 Not Modified", "305 Use
 	Proxy", or any unrecognized status code. Don't redirect unsafe
