@@ -95,6 +95,8 @@ typedef struct {
 	char              *ssl_cert_file, *ssl_key_file;
 	SoupSSLCredentials *ssl_creds;
 
+	char              *server_header;
+
 	GMainLoop         *loop;
 
 	SoupSocket        *listen_sock;
@@ -110,6 +112,8 @@ typedef struct {
 } SoupServerPrivate;
 #define SOUP_SERVER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SERVER, SoupServerPrivate))
 
+#define SOUP_SERVER_SERVER_HEADER_BASE "libsoup/" PACKAGE_VERSION
+
 enum {
 	PROP_0,
 
@@ -119,6 +123,7 @@ enum {
 	PROP_SSL_KEY_FILE,
 	PROP_ASYNC_CONTEXT,
 	PROP_RAW_PATHS,
+	PROP_SERVER_HEADER,
 
 	LAST_PROP
 };
@@ -160,6 +165,8 @@ finalize (GObject *object)
 	g_free (priv->ssl_key_file);
 	if (priv->ssl_creds)
 		soup_ssl_free_server_credentials (priv->ssl_creds);
+
+	g_free (priv->server_header);
 
 	if (priv->listen_sock)
 		g_object_unref (priv->listen_sock);
@@ -348,6 +355,14 @@ soup_server_class_init (SoupServerClass *server_class)
 				      "If %TRUE, percent-encoding in the Request-URI path will not be automatically decoded.",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property (
+		object_class, PROP_SERVER_HEADER,
+		g_param_spec_string (SOUP_SERVER_SERVER_HEADER,
+				     "Server header",
+				     "Server header",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 }
 
 static GObject *
@@ -406,6 +421,7 @@ set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
+	const char *header;
 
 	switch (prop_id) {
 	case PROP_PORT:
@@ -433,6 +449,21 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_RAW_PATHS:
 		priv->raw_paths = g_value_get_boolean (value);
+		break;
+	case PROP_SERVER_HEADER:
+		g_free (priv->server_header);
+		header = g_value_get_string (value);
+		if (!header)
+			priv->server_header = NULL;
+		else if (!*header) {
+			priv->server_header =
+				g_strdup (SOUP_SERVER_SERVER_HEADER_BASE);
+		} else if (g_str_has_suffix (header, " ")) {
+			priv->server_header =
+				g_strdup_printf ("%s%s", header,
+						 SOUP_SERVER_SERVER_HEADER_BASE);
+		} else
+			priv->server_header = g_strdup (header);
 		break;
 	default:
 		break;
@@ -463,6 +494,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_RAW_PATHS:
 		g_value_set_boolean (value, priv->raw_paths);
+		break;
+	case PROP_SERVER_HEADER:
+		g_value_set_string (value, priv->server_header);
 		break;
 	default:
 		break;
@@ -735,6 +769,7 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 static void
 start_request (SoupServer *server, SoupClientContext *client)
 {
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupMessage *msg;
 
 	soup_client_context_cleanup (client);
@@ -743,6 +778,10 @@ start_request (SoupServer *server, SoupClientContext *client)
 	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
         soup_message_headers_set_encoding (msg->response_headers,
                                            SOUP_ENCODING_CONTENT_LENGTH);
+	if (priv->server_header) {
+		soup_message_headers_append (msg->response_headers, "Server",
+					     priv->server_header);
+	}
 
 	g_signal_connect (msg, "got_headers", G_CALLBACK (got_headers), client);
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), client);

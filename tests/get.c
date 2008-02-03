@@ -286,11 +286,13 @@ main (int argc, char **argv)
 		session = soup_session_sync_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 			SOUP_SESSION_PROXY_URI, proxy,
+			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	} else {
 		session = soup_session_async_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 			SOUP_SESSION_PROXY_URI, proxy,
+			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	}
 

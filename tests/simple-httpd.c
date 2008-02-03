@@ -197,6 +197,7 @@ main (int argc, char **argv)
 	}
 
 	server = soup_server_new (SOUP_SERVER_PORT, port,
+				  SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
 				  NULL);
 	if (!server) {
 		fprintf (stderr, "Unable to bind to server port %d\n", port);

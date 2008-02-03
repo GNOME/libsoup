@@ -55,6 +55,8 @@ typedef struct {
 
 	SoupMessageQueue *queue;
 
+	char *user_agent;
+
 	SoupAuthManager *auth_manager;
 	SoupAuthManagerNTLM *ntlm_manager;
 
@@ -92,7 +94,9 @@ extern gboolean  soup_uri_host_equal (gconstpointer  v1,
 extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
-#define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 4
+#define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
+
+#define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
 G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
 
@@ -114,6 +118,7 @@ enum {
 	PROP_SSL_CA_FILE,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
+	PROP_USER_AGENT,
 
 	LAST_PROP
 };
@@ -296,7 +301,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  "The maximum number of connections that the session can open at once",
 				  1,
 				  G_MAXINT,
-				  10,
+				  SOUP_SESSION_MAX_CONNS_DEFAULT,
 				  G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS_PER_HOST,
@@ -305,7 +310,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  "The maximum number of connections that the session can open at once to a given host",
 				  1,
 				  G_MAXINT,
-				  2,
+				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
 				  G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_USE_NTLM,
@@ -334,6 +339,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_USER_AGENT,
+		g_param_spec_string (SOUP_SESSION_USER_AGENT,
+				     "User-Agent string",
+				     "User-Agent string",
+				     NULL,
+				     G_PARAM_READWRITE));
 }
 
 static gboolean
@@ -369,7 +381,7 @@ set_property (GObject *object, guint prop_id,
 	SoupURI *uri;
 	gboolean need_abort = FALSE;
 	gboolean ca_file_changed = FALSE;
-	const char *new_ca_file;
+	const char *new_ca_file, *user_agent;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
@@ -433,6 +445,21 @@ set_property (GObject *object, guint prop_id,
 	case PROP_TIMEOUT:
 		priv->timeout = g_value_get_uint (value);
 		break;
+	case PROP_USER_AGENT:
+		g_free (priv->user_agent);
+		user_agent = g_value_get_string (value);
+		if (!user_agent)
+			priv->user_agent = NULL;
+		else if (!*user_agent) {
+			priv->user_agent =
+				g_strdup (SOUP_SESSION_USER_AGENT_BASE);
+		} else if (g_str_has_suffix (user_agent, " ")) {
+			priv->user_agent =
+				g_strdup_printf ("%s%s", user_agent,
+						 SOUP_SESSION_USER_AGENT_BASE);
+		} else
+			priv->user_agent = g_strdup (user_agent);
+		break;
 	default:
 		break;
 	}
@@ -466,6 +493,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->timeout);
+		break;
+	case PROP_USER_AGENT:
+		g_value_set_string (value, priv->user_agent);
 		break;
 	default:
 		break;
@@ -626,6 +656,12 @@ connection_started_request (SoupConnection *conn, SoupMessage *msg,
 			    gpointer data)
 {
 	SoupSession *session = data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	if (priv->user_agent) {
+		soup_message_headers_replace (msg->request_headers,
+					      "User-Agent", priv->user_agent);
+	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       msg, soup_connection_get_socket (conn));

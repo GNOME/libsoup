@@ -62,6 +62,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_SSL_CA_FILE        "ssl-ca-file"
 #define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
 #define SOUP_SESSION_TIMEOUT		"timeout"
+#define SOUP_SESSION_USER_AGENT         "user-agent"
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 

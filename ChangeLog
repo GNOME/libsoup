@@ -1,5 +1,17 @@
 2008-02-02  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c: fix default connections-per-host again;
+	it was defined in two places. Add SOUP_SESSION_USER_AGENT property
+	(setup_message): set the User-Agent request header on the request
+
+	* libsoup/soup-server.c: add SOUP_SERVER_SERVER_HEADER property
+	(start_request): set the Server response header on the request.
+
+	* tests/get.c:
+	* tests/simple-httpd.c: set the User-Agent/Server headers
+
+2008-02-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-headers.c (soup_headers_parse_request): if the
 	request headers contain an unrecognized Expect: header, return
 	SOUP_STATUS_EXPECTATION_FAILED. Also, process Connection headers
