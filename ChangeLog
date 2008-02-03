@@ -1,3 +1,7 @@
+2008-02-03  Benjamin Otte  <otte@gnome.org>
+
+	* libsoup/soup-socket.c: update documentation to new API
+
 2008-02-02  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c: fix default connections-per-host again;

@@ -1255,7 +1255,7 @@ socket_write_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
  *
  * Attempts to write @len bytes from @buffer to @sock. If some data is
  * successfully written, the resturn status will be
- * %SOUP_SOCKET_SUCCESS, and *@nwrote will contain the number of bytes
+ * %SOUP_SOCKET_OK, and *@nwrote will contain the number of bytes
  * actually written.
  *
  * If @sock is non-blocking, and no data could be written right away,
