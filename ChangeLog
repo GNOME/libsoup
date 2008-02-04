@@ -1,3 +1,8 @@
+2008-02-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am: Fix the handling of soup-enum-types.h to
+	ensure that it gets built before the things that depend on it.
+
 2008-02-03  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-socket.c: update documentation to new API

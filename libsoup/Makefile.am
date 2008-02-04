@@ -14,6 +14,7 @@ INCLUDES = 				\
 	$(LIBGNUTLS_CFLAGS)
 
 MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
+MKENUMS_GENERATED = soup-enum-types.c soup-enum-types.h
 
 soup-marshal.h: soup-marshal.list
 	( $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
@@ -37,11 +38,9 @@ soup-enum-types.c: $(libsoupinclude_HEADERS)
 	&& mv soup-enum-types.c.tmp soup-enum-types.c \
 	|| rm -f soup-enum-type.c.tmp
 
-BUILT_SOURCES = $(MARSHAL_GENERATED)
+BUILT_SOURCES = $(MARSHAL_GENERATED) $(MKENUMS_GENERATED)
 
-CLEANFILES = $(MARSHAL_GENERATED)
-
-DISTCLEANFILES = soup-enum-types.h soup-enum-types.c
+CLEANFILES = $(MARSHAL_GENERATED) $(MKENUMS_GENERATED)
 
 libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
 
@@ -91,7 +90,7 @@ libsoup_2_4_la_LIBADD =			\
 	$(LIBWS2_32)
 
 libsoup_2_4_la_SOURCES =		\
-	$(MARSHAL_GENERATED)		\
+	$(BUILT_SOURCES)		\
 	soup-address.c			\
 	soup-auth.c			\
 	soup-auth-basic.h		\
@@ -110,7 +109,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection.h		\
 	soup-connection.c		\
 	soup-date.c			\
-	soup-enum-types.c		\
 	soup-dns.h			\
 	soup-dns.c			\
 	soup-form.c			\
@@ -143,4 +141,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-value-utils.c		\
 	soup-xmlrpc.c
 
-EXTRA_DIST= soup-marshal.list
+EXTRA_DIST=				\
+	soup-marshal.list		\
+	soup-enum-types.h.tmpl		\
+	soup-enum-types.c.tmpl
