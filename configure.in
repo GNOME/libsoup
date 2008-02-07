@@ -109,7 +109,6 @@ dnl *******************
 dnl *** Misc checks ***
 dnl *******************
 AC_CHECK_FUNCS(gmtime_r)
-AC_CHECK_FUNCS(timegm)
 
 dnl *********************************
 dnl *** Networking library checks ***

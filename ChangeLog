@@ -1,3 +1,11 @@
+2008-02-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c (soup_date_to_time_t): clamp the result to
+	the time_t range, and document that. Remove the #ifdef HAVE_TIMEGM
+	branch.
+
+	* configure.in: remove check for timegm
+
 2008-02-04  Dan Winship  <danw@gnome.org>
 
 	* libsoup/Makefile.am: Fix the handling of soup-enum-types.h to
