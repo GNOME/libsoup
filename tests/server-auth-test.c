@@ -336,6 +336,7 @@ main (int argc, char **argv)
 		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, basic_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
+	g_object_unref (auth_domain);
 
 	auth_domain = soup_auth_domain_digest_new (
 		SOUP_AUTH_DOMAIN_REALM, "server-auth-test",
@@ -345,6 +346,7 @@ main (int argc, char **argv)
 		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, digest_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, auth_domain);
+	g_object_unref (auth_domain);
 
 	loop = g_main_loop_new (NULL, TRUE);
 

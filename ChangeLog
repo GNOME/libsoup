@@ -1,5 +1,14 @@
 2008-02-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-server.c (soup_server_add_auth_domain): Ref the
+	auth domain when adding it.
+
+	* tests/continue-test.c (setup_server):
+	* tests/server-auth-test.c (main): Add unrefs here to avoid
+	leaking now
+
+2008-02-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message.c (soup_message_set_chunk_allocator): New
 	method that lets the application set a callback function to use to
 	allocate SoupBuffers for reading into, so as to avoid needing
