@@ -132,6 +132,15 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 						 guint              status_code, 
 						 const char        *reason_phrase);
 
+/* I/O */
+typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
+						 gsize              max_len,
+						 gpointer           user_data);
+
+void           soup_message_set_chunk_allocator (SoupMessage       *msg,
+						 SoupChunkAllocator allocator,
+						 gpointer           user_data,
+						 GDestroyNotify     destroy_notify);
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);

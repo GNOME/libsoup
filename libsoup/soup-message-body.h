@@ -25,15 +25,21 @@ typedef struct {
 GType soup_buffer_get_type (void);
 #define SOUP_TYPE_BUFFER (soup_buffer_get_type ())
 
-SoupBuffer *soup_buffer_new           (SoupMemoryUse  use,
-				       gconstpointer  data,
-				       gsize          length);
-SoupBuffer *soup_buffer_new_subbuffer (SoupBuffer    *parent,
-				       gsize          offset,
-				       gsize          length);
+SoupBuffer *soup_buffer_new            (SoupMemoryUse   use,
+					gconstpointer   data,
+					gsize           length);
+SoupBuffer *soup_buffer_new_subbuffer  (SoupBuffer     *parent,
+					gsize           offset,
+					gsize           length);
 
-SoupBuffer *soup_buffer_copy          (SoupBuffer    *buffer);
-void        soup_buffer_free          (SoupBuffer    *buffer);
+SoupBuffer *soup_buffer_new_with_owner (gconstpointer   data,
+					gsize           length,
+					gpointer        owner,
+					GDestroyNotify  owner_dnotify);
+gpointer    soup_buffer_get_owner      (SoupBuffer     *buffer);
+
+SoupBuffer *soup_buffer_copy           (SoupBuffer     *buffer);
+void        soup_buffer_free           (SoupBuffer     *buffer);
 
 typedef struct {
 	const char *data;

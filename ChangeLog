@@ -1,5 +1,25 @@
 2008-02-06  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message.c (soup_message_set_chunk_allocator): New
+	method that lets the application set a callback function to use to
+	allocate SoupBuffers for reading into, so as to avoid needing
+	extra copies.
+
+	* libsoup/soup-message-body.c (soup_buffer_new_with_owner): new,
+	to create a SoupBuffer pointing to memory owned by another object,
+	with a GDestroyNotify to unref/free that object when the
+	SoupBuffer is freed.
+	(soup_buffer_get_owner): Returns the owner of a buffer created
+	with soup_buffer_new_with_owner.
+	(soup_buffer_free, etc): update SoupBuffer code for owned buffers.
+
+	Suggested by Wouter Cloetens, #513810.
+
+	* tests/simple-httpd.c (do_get): Use mmap() and
+	soup_buffer_new_with_owner(), as a demo/test.
+
+2008-02-06  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-date.c (soup_date_to_time_t): clamp the result to
 	the time_t range, and document that. Remove the #ifdef HAVE_TIMEGM
 	branch.

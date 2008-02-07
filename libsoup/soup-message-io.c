@@ -266,27 +266,39 @@ read_body_chunk (SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
-	guchar read_buf[RESPONSE_BLOCK_SIZE];
-	guint len = sizeof (read_buf);
+	guchar *stack_buf = NULL;
+	gsize len;
 	gboolean read_to_eof = (io->read_encoding == SOUP_ENCODING_EOF);
 	gsize nread;
 	GError *error = NULL;
 	SoupBuffer *buffer;
 
 	while (read_to_eof || io->read_length > 0) {
-		if (!read_to_eof)
-			len = MIN (len, io->read_length);
+		if (priv->chunk_allocator) {
+			buffer = priv->chunk_allocator (msg, io->read_length, priv->chunk_allocator_data);
+			if (!buffer) {
+				soup_message_io_pause (msg);
+				return FALSE;
+			}
+		} else {
+			if (!stack_buf)
+				stack_buf = alloca (RESPONSE_BLOCK_SIZE);
+			buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
+						  stack_buf,
+						  RESPONSE_BLOCK_SIZE);
+		}
 
-		status = soup_socket_read (io->sock, read_buf, len,
+		if (read_to_eof)
+			len = buffer->length;
+		else
+			len = MIN (buffer->length, io->read_length);
+
+		status = soup_socket_read (io->sock,
+					   (guchar *)buffer->data, len,
 					   &nread, NULL, &error);
 
-		switch (status) {
-		case SOUP_SOCKET_OK:
-			if (!nread)
-				break;
-
-			buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
-						  read_buf, nread);
+		if (status == SOUP_SOCKET_OK && nread) {
+			buffer->length = nread;
 			if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
 				soup_message_body_append_buffer (io->read_body, buffer);
 
@@ -296,6 +308,12 @@ read_body_chunk (SoupMessage *msg)
 			soup_message_got_chunk (msg, buffer);
 			soup_buffer_free (buffer);
 			SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+			continue;
+		}
+
+		soup_buffer_free (buffer);
+		switch (status) {
+		case SOUP_SOCKET_OK:
 			break;
 
 		case SOUP_SOCKET_EOF:

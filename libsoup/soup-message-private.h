@@ -22,6 +22,10 @@ typedef struct {
 	gpointer           io_data;
 	SoupMessageIOStatus io_status;
 
+	SoupChunkAllocator chunk_allocator;
+	gpointer           chunk_allocator_data;
+	GDestroyNotify     chunk_allocator_dnotify;
+
 	guint              msg_flags;
 
 	SoupHTTPVersion    http_version;

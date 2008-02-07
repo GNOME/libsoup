@@ -43,7 +43,16 @@
  *
  * Describes how #SoupBuffer should use the data passed in by the
  * caller.
+ *
+ * See also soup_buffer_new_with_owner(), which allows to you create a
+ * buffer containing data which is owned by another object.
  **/
+
+/* Internal SoupMemoryUse values */
+enum {
+	SOUP_MEMORY_SUBBUFFER = SOUP_MEMORY_TEMPORARY + 1,
+	SOUP_MEMORY_OWNED
+};
 
 /**
  * SoupBuffer:
@@ -62,12 +71,8 @@ typedef struct {
 	SoupMemoryUse  use;
 	guint          refcount;
 
-	/* @other is used in subbuffers to store a reference to
-	 * the parent buffer, or in TEMPORARY buffers to store a
-	 * reference to a copy (see soup_buffer_copy()). Either
-	 * way, we hold a ref.
-	 */
-	SoupBuffer    *other;
+	gpointer       owner;
+	GDestroyNotify owner_dnotify;
 } SoupBufferPrivate;
 
 /**
@@ -86,14 +91,19 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
 	SoupBufferPrivate *priv = g_slice_new0 (SoupBufferPrivate);
 
 	if (use == SOUP_MEMORY_COPY) {
-		priv->buffer.data = g_memdup (data, length);
-		priv->use = SOUP_MEMORY_TAKE;
-	} else {
-		priv->buffer.data = data;
-		priv->use = use;
+		data = g_memdup (data, length);
+		use = SOUP_MEMORY_TAKE;
 	}
+
+	priv->buffer.data = data;
 	priv->buffer.length = length;
+	priv->use = use;
 	priv->refcount = 1;
+
+	if (use == SOUP_MEMORY_TAKE) {
+		priv->owner = (gpointer)data;
+		priv->owner_dnotify = g_free;
+	}
 
 	return (SoupBuffer *)priv;
 }
@@ -116,13 +126,82 @@ soup_buffer_new_subbuffer (SoupBuffer *parent, gsize offset, gsize length)
 {
 	SoupBufferPrivate *priv;
 
+	/* Normally this is just a ref, but if @parent is TEMPORARY,
+	 * it will do an actual copy.
+	 */
+	parent = soup_buffer_copy (parent);
+
 	priv = g_slice_new0 (SoupBufferPrivate);
-	priv->other = soup_buffer_copy (parent);
-	priv->buffer.data = priv->other->data + offset;
+	priv->buffer.data = parent->data + offset;
 	priv->buffer.length = length;
-	priv->use = SOUP_MEMORY_STATIC;
+	priv->use = SOUP_MEMORY_SUBBUFFER;
+	priv->owner = parent;
+	priv->owner_dnotify = (GDestroyNotify)soup_buffer_free;
 	priv->refcount = 1;
+
 	return (SoupBuffer *)priv;
+}
+
+/**
+ * soup_buffer_new_with_owner:
+ * @data: data
+ * @length: length of @data
+ * @owner: pointer to an object that owns @data
+ * @owner_dnotify: a function to free/unref @owner when the buffer is
+ * freed
+ *
+ * Creates a new #SoupBuffer containing @length bytes from @data. When
+ * the #SoupBuffer is freed, it will call @owner_dnotify, passing
+ * @owner to it. You must ensure that @data will remain valid until
+ * @owner_dnotify is called.
+ *
+ * For example, you could use this to create a buffer containing data
+ * returned from libxml without needing to do an extra copy:
+ *
+ * <informalexample><programlisting>
+ *	xmlDocDumpMemory (doc, &xmlbody, &len);
+ *	return soup_buffer_new_with_owner (xmlbody, len, xmlbody,
+ *	                                   (GDestroyNotify)xmlFree);
+ * </programlisting></informalexample>
+ *
+ * In this example, @data and @owner are the same, but in other cases
+ * they would be different (eg, @owner would be a object, and @data
+ * would be a pointer to one of the object's fields).
+ *
+ * Return value: the new #SoupBuffer.
+ **/
+SoupBuffer *
+soup_buffer_new_with_owner (gconstpointer  data, gsize length,
+			    gpointer owner, GDestroyNotify owner_dnotify)
+{
+	SoupBufferPrivate *priv = g_slice_new0 (SoupBufferPrivate);
+
+	priv->buffer.data = data;
+	priv->buffer.length = length;
+	priv->use = SOUP_MEMORY_OWNED;
+	priv->owner = owner;
+	priv->owner_dnotify = owner_dnotify;
+	priv->refcount = 1;
+
+	return (SoupBuffer *)priv;
+}
+
+/**
+ * soup_buffer_get_owner:
+ * @buffer: a #SoupBuffer created with soup_buffer_new_with_owner()
+ *
+ * Gets the "owner" object for a buffer created with
+ * soup_buffer_new_with_owner().
+ *
+ * Return value: the owner pointer
+ **/
+gpointer
+soup_buffer_get_owner (SoupBuffer *buffer)
+{
+	SoupBufferPrivate *priv = (SoupBufferPrivate *)buffer;
+
+	g_return_val_if_fail (priv->use == SOUP_MEMORY_OWNED, NULL);
+	return priv->owner;
 }
 
 /**
@@ -149,16 +228,20 @@ soup_buffer_copy (SoupBuffer *buffer)
 		return buffer;
 	}
 
-	/* For TEMPORARY buffers, we need to do a real copy the
-	 * first time, and then after that, we just keep returning
-	 * the copy. Use priv->other to store the copy.
+	/* For TEMPORARY buffers, we need to do a real copy the first
+	 * time, and then after that, we just keep returning the copy.
+	 * We store the copy in priv->owner, which is technically
+	 * backwards, but it saves us from having to keep an extra
+	 * pointer in SoupBufferPrivate.
 	 */
 
-	if (!priv->other) {
-		priv->other = soup_buffer_new (SOUP_MEMORY_COPY,
-					       buffer->data, buffer->length);
+	if (!priv->owner) {
+		priv->owner = soup_buffer_new (SOUP_MEMORY_COPY,
+					       buffer->data,
+					       buffer->length);
+		priv->owner_dnotify = (GDestroyNotify)soup_buffer_free;
 	}
-	return soup_buffer_copy (priv->other);
+	return soup_buffer_copy (priv->owner);
 }
 
 /**
@@ -175,10 +258,8 @@ soup_buffer_free (SoupBuffer *buffer)
 	SoupBufferPrivate *priv = (SoupBufferPrivate *)buffer;
 
 	if (!--priv->refcount) {
-		if (priv->use == SOUP_MEMORY_TAKE)
-			g_free ((gpointer)buffer->data);
-		if (priv->other)
-			soup_buffer_free (priv->other);
+		if (priv->owner_dnotify)
+			priv->owner_dnotify (priv->owner);
 		g_slice_free (SoupBufferPrivate, priv);
 	}
 }

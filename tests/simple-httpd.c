@@ -3,6 +3,8 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
+#include "config.h"
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -13,10 +15,26 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <glib.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#endif
+
+#include <libsoup/soup.h>
+
+#ifdef HAVE_MMAP
+struct mapping {
+	void   *start;
+	size_t  length;
+};
+
+static void
+free_mapping (gpointer data)
+{
+	struct mapping *mapping = data;
+	munmap (mapping->start, mapping->length);
+	g_slice_free (struct mapping, mapping);
+}
+#endif
 
 static void
 do_get (SoupServer *server, SoupMessage *msg, const char *path)
@@ -65,6 +83,19 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 	}
 
 	if (msg->method == SOUP_METHOD_GET) {
+#ifdef HAVE_MMAP
+		struct mapping *mapping = g_slice_new (struct mapping);
+		SoupBuffer *buffer;
+
+		mapping->start = mmap (NULL, st.st_size, PROT_READ,
+				       MAP_PRIVATE, fd, 0);
+		mapping->length = st.st_size;
+		buffer = soup_buffer_new_with_owner (mapping->start,
+						     mapping->length,
+						     mapping, free_mapping);
+		soup_message_body_append_buffer (msg->response_body, buffer);
+		soup_buffer_free (buffer);
+#else
 		char *buf;
 
 		buf = g_malloc (st.st_size);
@@ -72,6 +103,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		close (fd);
 		soup_message_body_append (msg->response_body, SOUP_MEMORY_TAKE,
 					  buf, st.st_size);
+#endif
 	} else /* msg->method == SOUP_METHOD_HEAD */ {
 		char *length;
 
