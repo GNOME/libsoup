@@ -1,5 +1,13 @@
 2008-02-07  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-connection.c (soup_connection_disconnect):
+	Reorganize this; emitting DISCONNECTED may cause the session to
+	unref the connection, causing it to be destroyed, so do everything
+	else before that. #437835 and dups. Also, call
+	soup_message_cleanup_response() when requeuing an IO_ERROR-ed
+	message, so soup_session_send_message() will requeue it rather
+	than treating it as failed.
+
 	* docs/reference/Makefile.am (TARGET_DIR): override this to
 	include the API version, to fix the last remaining parallel
 	install issue between libsoup 2.2 and 2.4. #512810, Daniel
