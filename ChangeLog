@@ -1,5 +1,14 @@
 2008-02-09  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-misc.h: remove prototype for
+	soup_signal_connect_once, which is only used by soup-connection
+	now, and will go away once that code is rewritten.
+
+	* libsoup/soup-connection.c: prototype it here now (the definition
+	is still in soup-misc.c)
+
+2008-02-09  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-manager-ntlm.c: mark the DES magic number
 	arrays const
 

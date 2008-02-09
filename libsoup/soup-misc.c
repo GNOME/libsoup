@@ -84,19 +84,12 @@ signal_once_metamarshal (GClosure *closure, GValue *return_value,
 	g_slice_free (SoupSignalOnceData, ssod);
 }
 
-/**
- * soup_signal_connect_once:
- * @instance: an object
- * @detailed_signal: "signal-name" or "signal-name::detail" to connect to
- * @c_handler: the #GCallback to connect
- * @data: data to pass to @c_handler calls
- *
- * Connects a #GCallback function to a signal as with
- * g_signal_connect(), but automatically removes the signal handler
- * after its first invocation.
- *
- * Return value: the signal handler id
- **/
+/* No longer prototyped in soup-misc.h, because it's only used by
+ * soup-connection.c, and will be going away once that usage is removed.
+ */
+guint soup_signal_connect_once  (gpointer instance, const char *detailed_signal,
+				 GCallback c_handler, gpointer data);
+
 guint
 soup_signal_connect_once (gpointer instance, const char *detailed_signal,
 			  GCallback c_handler, gpointer data)

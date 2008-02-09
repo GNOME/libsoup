@@ -26,14 +26,11 @@ GSource           *soup_add_timeout          (GMainContext *async_context,
 
 /* Misc utils */
 
-guint              soup_signal_connect_once  (gpointer      instance,
-					      const char   *detailed_signal,
-					      GCallback     c_handler,
-					      gpointer      data);
-
 guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
+
+/* SSL stuff */
 
 extern const gboolean soup_ssl_supported;
 

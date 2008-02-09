@@ -457,6 +457,10 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		       proxified_status (priv, status));
 }
 
+/* from soup-misc.c... will eventually go away */
+guint soup_signal_connect_once  (gpointer instance, const char *detailed_signal,
+				 GCallback c_handler, gpointer data);
+
 /**
  * soup_connection_connect_async:
  * @conn: the connection
