@@ -1,0 +1,81 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * soup-forms.override: overrides for soup-forms
+ */
+%%
+ignore-glob
+  soup_form_encode_*
+  soup_form_request_new_*
+%%
+override soup_form_decode kwargs
+static PyObject *
+_wrap_soup_form_decode (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "encoded_form", NULL };
+    char *encoded_form;
+    GHashTable *hash;
+    PyObject *dict;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s:soup.form_decode",
+				      kwlist, &encoded_form))
+        return NULL;
+
+    hash = soup_form_decode (encoded_form);
+    dict = pysoup_ghashtable_to_pydict (hash);
+    g_hash_table_destroy (hash);
+    return dict;
+}
+%%
+override soup_form_encode kwargs
+static PyObject *
+_wrap_soup_form_encode (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "form_data_set", NULL };
+    PyObject *py_form, *py_encoded;
+    GHashTable *form;
+    char *encoded;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O:soup.form_encode",
+				      kwlist, &py_form))
+        return NULL;
+    if (!PyDict_Check (py_form)) {
+	PyErr_SetString (PyExc_TypeError, "soup.form_encode: argument must be a dict");
+	return NULL;
+    }
+
+    form = pysoup_pydict_to_ghashtable (py_form);
+    encoded = soup_form_encode_hash (form);
+    py_encoded = PyString_FromString (encoded);
+
+    g_free (encoded);
+    g_hash_table_destroy (form);
+    return py_encoded;
+}
+%%
+override soup_form_request_new kwargs
+static PyObject *
+_wrap_soup_form_request_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "method", "uri", "form_data_set", NULL };
+    char *method, *uri;
+    PyObject *py_form;
+    GHashTable *form;
+    SoupMessage *msg;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "ssO:soup.form_request_new",
+				      kwlist, &method, &uri, &py_form))
+        return NULL;
+    if (!PyDict_Check (py_form)) {
+	PyErr_SetString (PyExc_TypeError, "soup.form_request_new: 'form_data_set' must be a dict");
+	return NULL;
+    }
+
+    form = pysoup_pydict_to_ghashtable (py_form);
+    msg = soup_form_request_new_from_hash (method, uri, form);
+
+    g_hash_table_destroy (form);
+    return pygobject_new (G_OBJECT (msg));
+}

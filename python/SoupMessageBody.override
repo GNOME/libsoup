@@ -1,0 +1,60 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * SoupMessageBody.override: overrides for SoupMessageBody
+ */
+%%
+override soup_message_body_append kwargs
+static PyObject *
+_wrap_soup_message_body_append (PyObject *self,
+				PyObject *args,
+				PyObject *kwargs)
+{
+    static char *kwlist[] = { "data", "length", NULL };
+    char *data;
+    int length, caller_length = 0;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s#|i:SoupMessageBody.append",
+				      kwlist, &data, &length, &caller_length))
+	return NULL;
+
+    if (caller_length)
+	length = caller_length;
+
+    /* FIXME: Add a way to create a SoupBuffer that refs data's PyObject */
+    soup_message_body_append (pyg_boxed_get(self, SoupMessageBody),
+			      SOUP_MEMORY_COPY, data, length);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+%%
+override soup_message_body_get_chunk kwargs
+static PyObject *
+_wrap_soup_message_body_get_chunk (PyObject *self,
+				   PyObject *args,
+				   PyObject *kwargs)
+{
+    static char *kwlist[] = { "offset", NULL };
+    long long offset;
+    SoupBuffer *chunk;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "L:SoupMessageBody.get_chunk",
+				      kwlist, &offset))
+	return NULL;
+
+    chunk = soup_message_body_get_chunk (pyg_boxed_get(self, SoupMessageBody),
+					 offset);
+    return pyg_boxed_new(SOUP_TYPE_BUFFER, chunk, TRUE, TRUE);
+}
+%%
+override-attr SoupMessageBody.length
+static PyObject *
+_wrap_soup_message_body__get_length(PyObject *self, void *closure)
+{
+    goffset length;
+
+    length = pyg_boxed_get(self, SoupMessageBody)->length;
+    return PyLong_FromLongLong(length);
+}

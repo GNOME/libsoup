@@ -1,0 +1,591 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * libsoup.override: overrides for libsoup
+ */
+%%
+headers
+#define NO_IMPORT_PYGOBJECT
+#include "pygobject.h"
+#include <libsoup/soup.h>
+
+%%
+modulename soup
+%%
+import gobject.GObject as PyGObject_Type
+import gio.GCancellable as PyGCancellable_Type
+%%
+include
+  SoupLogger.override
+  SoupMessageBody.override
+  SoupMessageHeaders.override
+  SoupURI.override
+  soup-forms.override
+  soup-headers.override
+  soup-xmlrpc.override
+%%
+ignore
+  soup_auth_free_protection_space
+  soup_buffer_new
+  soup_message_new_from_uri
+  soup_signal_connect_once
+%%
+ignore-glob
+  *_get_async_context
+  *_get_type
+  *_new_with_options
+  *_quark
+  soup_address_new_*
+  soup_date_new_*
+  soup_value_array_*
+  soup_value_hash_*
+  soup_str_case_*
+  soup_add_*
+%%
+body
+static int
+pysoup_generic_construct (PyGObject *self, PyObject *kwargs)
+{
+    PyObject *key, *item;
+    Py_ssize_t i, n_params;
+    GObjectClass *klass;
+    GParamSpec *pspec;
+    GParameter *params;
+    int ret = -1, n;
+
+    if (!kwargs)
+	return pygobject_constructv (self, 0, NULL);
+
+    klass = g_type_class_ref (pyg_type_from_object((PyObject *) self));
+    n_params = PyDict_Size (kwargs);
+    params = g_new0 (GParameter, n_params);
+
+    i = n = 0;
+    while (PyDict_Next (kwargs, &i, &key, &item)) {
+	params[n].name = PyString_AsString (key);
+
+	pspec = g_object_class_find_property (klass, params[n].name);
+	if (!pspec) {
+	    PyErr_Format (PyExc_TypeError, "'%s' is an invalid keyword argument for this function", params[n].name);
+	    goto cleanup;
+	}
+
+	g_value_init (&params[n].value, pspec->value_type);
+	if (pyg_value_from_pyobject (&params[n].value, item) == -1) {
+	    PyErr_Format(PyExc_TypeError, "could not convert parameter '%s' of type '%s'",
+			 params[n].name, g_type_name (pspec->value_type));
+	    goto cleanup;
+	}
+	n++;
+    }
+
+    ret = pygobject_constructv (self, n_params, params);
+
+cleanup:
+    for (i = 0; i < n_params; i++)
+	g_value_unset (&params[i].value);
+    g_free (params);
+    g_type_class_unref (klass);
+
+    return ret;
+}
+
+static gboolean
+pysoup_value_from_pyobject (GValue *value, PyObject *pyo)
+{
+    memset (value, 0, sizeof (GValue));
+
+    if (PyBool_Check (pyo)) {
+	g_value_init (value, G_TYPE_BOOLEAN);
+	g_value_set_boolean (value, PyObject_IsTrue (pyo));
+    } else if (PyInt_Check (pyo)) {
+	g_value_init (value, G_TYPE_INT);
+	g_value_set_int (value, PyInt_AsLong (pyo));
+    } else if (PyFloat_Check (pyo)) {
+	g_value_init (value, G_TYPE_DOUBLE);
+	g_value_set_double (value, PyFloat_AsDouble (pyo));
+    } else if (PyString_Check (pyo)) {
+	g_value_init (value, G_TYPE_STRING);
+	g_value_set_string (value, PyString_AsString (pyo));
+    } else if (pyg_boxed_check (pyo, SOUP_TYPE_DATE)) {
+	g_value_init (value, SOUP_TYPE_DATE);
+	g_value_set_boxed (value, pyg_boxed_get (pyo, SoupDate));
+    } else if (PyTuple_Check (pyo) && PyTuple_Size (pyo) == 1 &&
+	       PyString_Check (PyTuple_GetItem (pyo, 0))) {
+	GByteArray *ba;
+	char *data;
+	Py_ssize_t len;
+
+	PyString_AsStringAndSize (PyTuple_GetItem (pyo, 0), &data, &len);
+	ba = g_byte_array_new ();
+	g_byte_array_append (ba, (guchar *)data, len);
+	
+	g_value_init (value, SOUP_TYPE_BYTE_ARRAY);
+	g_value_take_boxed (value, ba);
+    } else if (PyDict_Check (pyo)) {
+	GHashTable *dict;
+	Py_ssize_t i = 0;
+	PyObject *key, *item;
+	char *string_key;
+	GValue member;
+
+	dict = soup_value_hash_new ();
+	while (PyDict_Next (pyo, &i, &key, &item)) {
+	    string_key = PyString_AsString (key);
+	    if (!pysoup_value_from_pyobject (&member, item)) {
+		g_hash_table_destroy (dict);
+		return FALSE;
+	    }
+	    g_hash_table_insert (dict, g_strdup (string_key),
+				 g_memdup (&member, sizeof (GValue)));
+	}
+
+	g_value_init (value, G_TYPE_HASH_TABLE);
+	g_value_take_boxed (value, dict);
+    } else if (PyList_Check (pyo)) {
+	GValueArray *array;
+	PyObject *item;
+	Py_ssize_t len, i;
+
+	len = PyList_Size (pyo);
+	array = g_value_array_new (len);
+	for (i = 0; i < len; i++) {
+	    item = PyList_GetItem (pyo, i);
+	    if (!pysoup_value_from_pyobject (&array->values[i], item)) {
+		g_value_array_free (array);
+		return FALSE;
+	    }
+	    array->n_values++;
+	}
+
+	g_value_init (value, G_TYPE_VALUE_ARRAY);
+	g_value_take_boxed (value, array);
+    } else {
+	PyErr_Format(PyExc_TypeError, "Could not convert argument");
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+static PyObject *
+pysoup_value_to_pyobject (GValue *value)
+{
+    if (G_VALUE_HOLDS_BOOLEAN (value)) {
+	if (g_value_get_boolean (value))
+	    Py_RETURN_TRUE;
+	else
+	    Py_RETURN_FALSE;
+    } else if (G_VALUE_HOLDS_INT (value)) {
+	return PyInt_FromLong (g_value_get_int (value));
+    } else if (G_VALUE_HOLDS_DOUBLE (value)) {
+	return PyFloat_FromDouble (g_value_get_double (value));
+    } else if (G_VALUE_HOLDS_STRING (value)) {
+	return PyString_FromString (g_value_get_string (value));
+    } else if (G_VALUE_TYPE (value) == SOUP_TYPE_DATE) {
+	return pyg_boxed_new (SOUP_TYPE_DATE, g_value_get_boxed (value),
+			      TRUE, TRUE);
+    } else if (G_VALUE_TYPE (value) == SOUP_TYPE_BYTE_ARRAY) {
+	GByteArray *ba = g_value_get_boxed (value);
+
+	return PyString_FromStringAndSize ((char *)ba->data, ba->len);
+    } else if (G_VALUE_TYPE (value) == G_TYPE_HASH_TABLE) {
+	GHashTable *dict = g_value_get_boxed (value);
+	GHashTableIter iter;
+	gpointer key, value;
+	PyObject *py_dict, *py_member;
+
+	py_dict = PyDict_New ();
+	g_hash_table_iter_init (&iter, dict);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+	    py_member = pysoup_value_to_pyobject (value);
+	    if (!py_member) {
+		Py_DECREF (py_dict);
+		return NULL;
+	    }
+	    PyDict_SetItemString (py_dict, key, py_member);
+	}
+	return py_dict;
+    } else if (G_VALUE_TYPE (value) == G_TYPE_VALUE_ARRAY) {
+	GValueArray *array = g_value_get_boxed (value);
+	PyObject *py_list, *py_member;
+	int i;
+
+	py_list = PyList_New (array->n_values);
+	for (i = 0; i < array->n_values; i++) {
+	    py_member = pysoup_value_to_pyobject (&array->values[i]);
+	    if (!py_member) {
+		Py_DECREF (py_list);
+		return FALSE;
+	    }
+	    PyList_SetItem (py_list, i, py_member);
+	}
+	return py_list;
+    }
+
+    PyErr_Format(PyExc_TypeError, "Could not convert argument");
+    return NULL;
+}
+
+static PyObject *
+pysoup_gslist_to_pylist (GSList *gslist)
+{
+    PyObject *pylist;
+    int i;
+
+    pylist = PyList_New (g_slist_length (gslist));
+    for (i = 0; gslist; i++, gslist = gslist->next)
+	PyList_SetItem (pylist, i, PyString_FromString (gslist->data));
+    return pylist;
+}
+
+static PyObject *
+pysoup_ghashtable_to_pydict (GHashTable *dict)
+{
+    GHashTableIter iter;
+    gpointer key, value;
+    PyObject *py_dict;
+
+    py_dict = PyDict_New ();
+    g_hash_table_iter_init (&iter, dict);
+    while (g_hash_table_iter_next (&iter, &key, &value)) {
+	PyDict_SetItemString (py_dict, key,
+			      PyString_FromString (value ? value : ""));
+    }
+    return py_dict;
+}
+
+static GHashTable *
+pysoup_pydict_to_ghashtable (PyObject *dict)
+{
+    GHashTable *hash;
+    PyObject *key, *item;
+    char *string_key, *string_item;
+    Py_ssize_t i = 0;
+
+    g_return_val_if_fail (PyDict_Check (dict), NULL);
+
+    hash = g_hash_table_new (g_str_hash, g_str_equal);
+    while (PyDict_Next (dict, &i, &key, &item)) {
+	string_key = PyString_AsString (key);
+	string_item = PyString_AsString (item);
+	if (!string_item) {
+	    PyErr_Format (PyExc_TypeError, "value of key '%s' is not a string", string_key);
+	    g_hash_table_destroy (hash);
+	    return NULL;
+	}
+	g_hash_table_insert (hash, string_key, string_item);
+    }
+
+    return hash;
+}
+
+typedef struct {
+    PyObject *func, *data;
+} PySoupCallback;
+
+static PySoupCallback *
+pysoup_callback_new (PyObject *func, PyObject *data)
+{
+    PySoupCallback *psc;
+
+    psc = g_slice_new (PySoupCallback);
+    psc->func = func;
+    psc->data = data;
+    Py_INCREF (psc->func);
+    Py_XINCREF (psc->data);
+    return psc;
+}
+
+static void
+pysoup_callback_destroy_notify (gpointer data)
+{
+    PySoupCallback *psc = data;
+
+    Py_DECREF (psc->func);
+    Py_XDECREF (psc->data);
+    g_slice_free (PySoupCallback, psc);
+}
+
+%%
+override soup_date_new kwargs
+static int
+_wrap_soup_date_new(PyGBoxed *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "year", "month", "day", "hour", "minute",
+			      "second", "utc", "offset", "date_string",
+			      "time_t", "from_now", NULL };
+    int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+    int offset = 0, from_now = 0;
+    PyObject *py_utc = NULL;
+    char *date_string = NULL;
+    long timet = 0;
+    SoupDate *date;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|iiiiiiOizli:SoupDate.__init__",
+                                     kwlist, &year, &month, &day, &hour,
+				     &minute, &second, &py_utc, &offset,
+				     &date_string, &timet, &from_now))
+        return -1;
+
+    self->gtype = SOUP_TYPE_DATE;
+    self->free_on_dealloc = FALSE;
+
+    if (date_string) {
+	if (year || month || day || hour || minute || second ||
+	    py_utc || offset || timet || from_now) {
+	    PyErr_SetString(PyExc_TypeError, "SoupDate.__init__() called with contradictory arguments");
+	    return -1;
+	}
+	self->boxed = soup_date_new_from_string (date_string);
+    } else if (timet) {
+	if (year || month || day || hour || minute || second ||
+	    py_utc || offset || from_now) {
+	    PyErr_SetString(PyExc_TypeError, "SoupDate.__init__() called with contradictory arguments");
+	    return -1;
+	}
+	self->boxed = soup_date_new_from_time_t (timet);
+    } else if (year && month && day) {
+	if (from_now) {
+	    PyErr_SetString(PyExc_TypeError, "SoupDate.__init__() called with contradictory arguments");
+	    return -1;
+	}
+	self->boxed = date = soup_date_new (year, month, day, hour, minute, second);
+	if (py_utc && PyObject_IsTrue(py_utc))
+	    date->utc = TRUE;
+	date->offset = offset;
+    } else {
+	if (year && !from_now) {
+	    from_now = year;
+	    year = 0;
+	}
+	if (year || month || day || hour || minute || second ||
+	    py_utc || offset) {
+	    PyErr_SetString(PyExc_TypeError, "SoupDate.__init__() called with incomplete or contradictory arguments");
+	    return -1;
+	}
+	self->boxed = soup_date_new_from_now (from_now);
+    }
+
+    if (!self->boxed) {
+        PyErr_SetString(PyExc_RuntimeError, "could not create SoupDate object");
+        return -1;
+    }
+    self->free_on_dealloc = TRUE;
+    return 0;
+}
+%%
+new-constructor SOUP_TYPE_ADDRESS
+%%
+override soup_address_new kwargs
+static int
+_wrap_soup_address_new(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "name_or_family", "port", NULL };
+    PyObject *py_name_or_family = NULL;
+    int port = 0;
+    char *name;
+    SoupAddressFamily family;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O|i:SoupAddress.__init__",
+				      kwlist, &py_name_or_family, &port))
+        return -1;
+    if (PyString_Check (py_name_or_family)) {
+	name = PyString_AsString (py_name_or_family);
+	if (pygobject_construct (self, "name", name, "port", port, NULL) == -1)
+	    return -1;
+    } else {
+	if (pyg_enum_get_value (SOUP_TYPE_ADDRESS_FAMILY, py_name_or_family, (gpointer)&family) == -1) {
+            PyErr_SetString (PyExc_TypeError, "Parameter 'name_or_family' must be a string or a SoupAddressFamily");
+	    return -1;
+	}
+	if (pygobject_construct (self, "family", family, "port", port, NULL) == -1)
+	    return -1;
+    }
+
+    return 0;
+}
+%%
+override soup_auth_get_protection_space kwargs
+static PyObject *
+_wrap_soup_auth_get_protection_space (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "source_uri", NULL };
+    PyObject *py_uri;
+    SoupURI *source_uri;
+    GSList *pspace;
+    PyObject *py_ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O:SoupAuth.get_protection_space",
+				      kwlist, &py_uri))
+        return NULL;
+    if (!pyg_boxed_check (py_uri, SOUP_TYPE_URI)) {
+	PyErr_SetString (PyExc_TypeError, "source_uri must be a SoupURI");
+	return NULL;
+    }
+    source_uri = pyg_boxed_get (py_uri, SoupURI);
+
+    pspace = soup_auth_get_protection_space (SOUP_AUTH (self->obj), source_uri);
+    py_ret = pysoup_gslist_to_pylist (pspace);
+    soup_auth_free_protection_space (SOUP_AUTH (self->obj), pspace);
+
+    return py_ret;
+}
+
+%%
+new-constructor SOUP_TYPE_AUTH_DOMAIN_BASIC
+%%
+override soup_auth_domain_basic_new kwargs
+static int
+_wrap_soup_auth_domain_basic_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}
+%%
+new-constructor SOUP_TYPE_AUTH_DOMAIN_DIGEST
+%%
+override soup_auth_domain_digest_new kwargs
+static int
+_wrap_soup_auth_domain_digest_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}
+%%
+new-constructor SOUP_TYPE_MESSAGE
+%%
+override soup_message_new kwargs
+static int
+_wrap_soup_message_new(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "method", "uri", NULL };
+    char *method, *uri_str;
+    PyObject *py_uri;
+    SoupURI *uri;
+    gboolean free_uri = FALSE;
+    int ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "sO:SoupMessage.__init__",
+				      kwlist, &method, &py_uri))
+        return -1;
+    if (PyString_Check (py_uri)) {
+	uri_str = PyString_AsString (py_uri);
+	uri = soup_uri_new (uri_str);
+	free_uri = TRUE;
+	if (!uri) {
+	    PyErr_SetString (PyExc_TypeError, "invalid URI");
+	    return -1;
+	}
+    } else if (pyg_boxed_check (py_uri, SOUP_TYPE_URI)) {
+        uri = pyg_boxed_get (py_uri, SoupURI);
+    } else {
+        PyErr_SetString (PyExc_TypeError, "uri should be a string or SoupURI");
+	return -1;
+    }
+
+    ret = pygobject_construct (self, "method", method, "uri", uri, NULL);
+    if (free_uri)
+	soup_uri_free (uri);
+
+    if (ret == -1)
+        PyErr_SetString(PyExc_RuntimeError, "invalid URI");
+    return ret;
+}
+%%
+new-constructor SOUP_TYPE_SERVER
+%%
+override soup_server_new kwargs
+static int
+_wrap_soup_server_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}
+%%
+override soup_session_queue_message
+
+static void
+pysoup_queue_message_callback (SoupSession *session, SoupMessage *msg,
+			       gpointer user_data)
+{
+    PySoupCallback *psc = user_data;
+    PyGILState_STATE state;
+    PyObject *py_session, *py_msg, *py_ret;
+
+    state = pyg_gil_state_ensure ();
+
+    py_session = pygobject_new ((GObject *)session);
+    py_msg = pygobject_new ((GObject *)msg);
+    if (psc->data) {
+        py_ret = PyEval_CallFunction (psc->func, "(NNO)", py_session, py_msg,
+				      psc->data);
+    } else
+        py_ret = PyEval_CallFunction (psc->func, "(NN)", py_session, py_msg);
+
+    if (py_ret != NULL)
+	Py_DECREF (py_ret);
+    else
+	PyErr_Print ();
+
+    pyg_gil_state_release (state);
+}
+
+static PyObject *
+_wrap_soup_session_queue_message (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "msg", "callback", "user_data", NULL };
+    PyGObject *pymsg;
+    PyObject *pyfunc, *pyarg = NULL;
+    PySoupCallback *psc;
+    SoupMessage *msg;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "OO|O:SoupSession.queue_message",
+				      kwlist, &pymsg, pyfunc, &pyarg))
+        return NULL;
+    if (!pygobject_check (pymsg, &PySoupMessage_Type)) {
+        PyErr_SetString (PyExc_TypeError, "msg must be a SoupMessage");
+        return NULL;
+    }
+    if (!PyCallable_Check (pyfunc)) {
+        PyErr_SetString (PyExc_TypeError, "callback must be a callable object");
+        return NULL;
+    }
+
+    /* soup_session_queue_message steals a ref, so add an extra one. */
+    msg = g_object_ref (pymsg->obj);
+
+    psc = pysoup_callback_new (pyfunc, pyarg);
+    soup_session_queue_message (SOUP_SESSION (self->obj), msg,
+				pysoup_queue_message_callback, psc);
+
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+%%
+new-constructor SOUP_TYPE_SESSION_ASYNC
+%%
+override soup_session_async_new kwargs
+static int
+_wrap_soup_session_async_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}
+%%
+new-constructor SOUP_TYPE_SESSION_SYNC
+%%
+override soup_session_sync_new kwargs
+static int
+_wrap_soup_session_sync_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}
+%%
+new-constructor SOUP_TYPE_SOCKET
+%%
+override soup_socket_new kwargs
+static int
+_wrap_soup_socket_new (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    return pysoup_generic_construct (self, kwargs);
+}

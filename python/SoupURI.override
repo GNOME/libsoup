@@ -1,0 +1,153 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * SoupURI.override: overrides for SoupURI
+ */
+%%
+ignore-glob
+  soup_uri_set_*
+%%
+override-slot SoupURI.tp_str
+static PyObject *
+_wrap_soup_uri_tp_str (PyObject *self)
+{
+    char *str;
+    PyObject *ret;
+
+    str = soup_uri_to_string (pyg_boxed_get (self, SoupURI), FALSE);
+    ret = PyString_FromString (str);
+    g_free (str);
+
+    return ret;
+}
+%%
+override-slot SoupURI.tp_repr
+static PyObject *
+_wrap_soup_uri_tp_repr (PyObject *self)
+{
+    SoupURI *uri = pyg_boxed_get (self, SoupURI);
+    char *str, *repr;
+    PyObject *ret;
+
+    str = soup_uri_to_string (uri, FALSE);
+    repr = g_strdup_printf ("<SoupURI '%s' at %p>", str, uri);
+    ret = PyString_FromString (repr);
+    g_free (repr);
+    g_free (str);
+
+    return ret;
+}
+%%
+override-attr SoupURI.scheme
+static int
+_wrap_soup_uri__set_scheme (PyObject *self, PyObject *value, void *closure)
+{
+    char *scheme = PyString_AsString (value);
+
+    if (!scheme)
+	return -1;
+    soup_uri_set_scheme (pyg_boxed_get (self, SoupURI), scheme);
+
+    return 0;
+}
+%%
+override-attr SoupURI.user
+static int
+_wrap_soup_uri__set_user (PyObject *self, PyObject *value, void *closure)
+{
+    char *user = PyString_AsString (value);
+
+    if (!user)
+	return -1;
+    soup_uri_set_user (pyg_boxed_get (self, SoupURI), user);
+
+    return 0;
+}
+%%
+override-attr SoupURI.password
+static int
+_wrap_soup_uri__set_password (PyObject *self, PyObject *value, void *closure)
+{
+    char *password = PyString_AsString (value);
+
+    if (!password)
+	return -1;
+    soup_uri_set_password (pyg_boxed_get (self, SoupURI), password);
+
+    return 0;
+}
+%%
+override-attr SoupURI.host
+static int
+_wrap_soup_uri__set_host (PyObject *self, PyObject *value, void *closure)
+{
+    char *host = PyString_AsString (value);
+
+    if (!host)
+	return -1;
+    soup_uri_set_host (pyg_boxed_get (self, SoupURI), host);
+
+    return 0;
+}
+%%
+override-attr SoupURI.port
+static int
+_wrap_soup_uri__set_port (PyObject *self, PyObject *value, void *closure)
+{
+    int port = PyInt_AsLong (value);
+
+    if (PyErr_Occurred())
+	return -1;
+    soup_uri_set_port (pyg_boxed_get (self, SoupURI), port);
+
+    return 0;
+}
+%%
+override-attr SoupURI.path
+static int
+_wrap_soup_uri__set_path (PyObject *self, PyObject *value, void *closure)
+{
+    char *path = PyString_AsString (value);
+
+    if (!path)
+	return -1;
+    soup_uri_set_path (pyg_boxed_get (self, SoupURI), path);
+
+    return 0;
+}
+%%
+override-attr SoupURI.query
+static int
+_wrap_soup_uri__set_query (PyObject *self, PyObject *value, void *closure)
+{
+    if (PyString_Check (value)) {
+	char *string_query = PyString_AsString (value);
+
+	soup_uri_set_query (pyg_boxed_get (self, SoupURI), string_query);
+    } else if (PyDict_Check (value)) {
+	GHashTable *dict_query = pysoup_pydict_to_ghashtable (value);
+
+	if (!dict_query)
+	    return -1;
+
+	soup_uri_set_query_from_form (pyg_boxed_get (self, SoupURI), dict_query);
+	g_hash_table_destroy (dict_query);
+    } else {
+	PyErr_SetString (PyExc_TypeError, "query value must be a string or a dict");
+	return -1;
+    }
+
+    return 0;
+}
+%%
+override-attr SoupURI.fragment
+static int
+_wrap_soup_uri__set_fragment (PyObject *self, PyObject *value, void *closure)
+{
+    char *fragment = PyString_AsString (value);
+
+    if (!fragment)
+	return -1;
+    soup_uri_set_fragment (pyg_boxed_get (self, SoupURI), fragment);
+
+    return 0;
+}

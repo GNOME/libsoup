@@ -1,0 +1,6 @@
+Incomplete, unfinished, not heavily tested, etc, etc, etc
+
+If you want to use these, you'll have to copy the sources into your
+project and build them locally.
+
+Eventually they will be installed along with libsoup...

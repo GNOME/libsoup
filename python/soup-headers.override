@@ -1,0 +1,215 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * soup-headers.override: overrides for soup-headers
+ */
+%%
+ignore
+  soup_header_free_list
+  soup_header_free_param_list
+%%
+override soup_header_parse_list kwargs
+static PyObject *
+_wrap_soup_header_parse_list (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "header", NULL };
+    char *header;
+    GSList *parsed;
+    PyObject *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s:soup.header_parse_list",
+				      kwlist, &header))
+        return NULL;
+
+    parsed = soup_header_parse_list (header);
+    ret = pysoup_gslist_to_pylist (parsed);
+    soup_header_free_list (parsed);
+
+    return ret;
+}
+%%
+override soup_header_parse_quality_list kwargs
+static PyObject *
+_wrap_soup_header_parse_quality_list (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "header", NULL };
+    char *header;
+    GSList *acceptable, *unacceptable;
+    PyObject *py_acceptable, *py_unacceptable, *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s:soup.header_parse_quality_list",
+				      kwlist, &header))
+        return NULL;
+
+    acceptable = soup_header_parse_quality_list (header, &unacceptable);
+    py_acceptable = pysoup_gslist_to_pylist (acceptable);
+    py_unacceptable = pysoup_gslist_to_pylist (unacceptable);
+    soup_header_free_list (acceptable);
+    soup_header_free_list (unacceptable);
+
+    ret = PyTuple_New (2);
+    PyTuple_SetItem (ret, 0, py_acceptable);
+    PyTuple_SetItem (ret, 1, py_unacceptable);
+    return ret;
+}
+%%
+override soup_header_parse_param_list kwargs
+static PyObject *
+_wrap_soup_header_parse_param_list (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "header", NULL };
+    char *header;
+    GHashTable *params;
+    PyObject *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s:soup.header_parse_quality_list",
+				      kwlist, &header))
+        return NULL;
+
+    params = soup_header_parse_param_list (header);
+    ret = pysoup_ghashtable_to_pydict (params);
+    soup_header_free_param_list (params);
+    return ret;
+}
+%%
+override soup_headers_parse_request kwargs
+static PyObject *
+_wrap_soup_headers_parse_request (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "str", "len", NULL };
+    char *str;
+    int len = -1, status_code;
+    SoupMessageHeaders *headers;
+    char *method, *path;
+    SoupHTTPVersion version;
+    PyObject *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s|i:soup.headers_parse_request",
+				      kwlist, &str, &len))
+        return NULL;
+    if (len == -1)
+	len = strlen (str);
+
+    headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
+    status_code = soup_headers_parse_request (str, len, headers,
+					      &method, &path, &version);
+
+    ret = PyTuple_New (5);
+    PyTuple_SetItem (ret, 0, PyInt_FromLong (status_code));
+    if (SOUP_STATUS_IS_SUCCESSFUL (status_code)) {
+	PyTuple_SetItem (ret, 1, pyg_boxed_new (SOUP_TYPE_MESSAGE_HEADERS,
+						headers, FALSE, TRUE));
+	PyTuple_SetItem (ret, 2, PyString_FromString (method));
+	PyTuple_SetItem (ret, 3, PyString_FromString (path));
+	PyTuple_SetItem (ret, 4, pyg_enum_from_gtype (SOUP_TYPE_HTTP_VERSION, version));
+
+	g_free (method);
+	g_free (path);
+    } else {
+	soup_message_headers_free (headers);
+
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 1, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 2, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 3, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 4, Py_None);
+    }
+
+    return ret;
+}
+%%
+override soup_headers_parse_response kwargs
+static PyObject *
+_wrap_soup_headers_parse_response (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "str", "len", NULL };
+    char *str;
+    int len = -1;
+    SoupMessageHeaders *headers;
+    SoupHTTPVersion version;
+    guint status_code;
+    char *reason_phrase;
+    gboolean ok;
+    PyObject *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s|i:soup.headers_parse_response",
+				      kwlist, &str, &len))
+        return NULL;
+    if (len == -1)
+	len = strlen (str);
+
+    headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+    ok = soup_headers_parse_response (str, len, headers,
+				     &version, &status_code, &reason_phrase);
+
+    ret = PyTuple_New (4);
+    if (ok) {
+	PyTuple_SetItem (ret, 0, pyg_boxed_new (SOUP_TYPE_MESSAGE_HEADERS,
+						headers, FALSE, TRUE));
+	PyTuple_SetItem (ret, 1, pyg_enum_from_gtype (SOUP_TYPE_HTTP_VERSION, version));
+	PyTuple_SetItem (ret, 2, PyInt_FromLong (status_code));
+	PyTuple_SetItem (ret, 3, PyString_FromString (reason_phrase));
+
+	g_free (reason_phrase);
+    } else {
+	soup_message_headers_free (headers);
+
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 0, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 1, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 2, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 3, Py_None);
+    }
+
+    return ret;
+}
+%%
+override soup_headers_parse_status_line kwargs
+static PyObject *
+_wrap_soup_headers_parse_status_line (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "status_line", NULL };
+    char *status_line;
+    SoupHTTPVersion version;
+    guint status_code;
+    char *reason_phrase;
+    gboolean ok;
+    PyObject *ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "s:soup.headers_parse_response",
+				      kwlist, &status_line))
+        return NULL;
+
+    ok = soup_headers_parse_status_line (status_line,
+					 &version, &status_code,
+					 &reason_phrase);
+
+    ret = PyTuple_New (3);
+    if (ok) {
+	PyTuple_SetItem (ret, 0, pyg_enum_from_gtype (SOUP_TYPE_HTTP_VERSION, version));
+	PyTuple_SetItem (ret, 1, PyInt_FromLong (status_code));
+	PyTuple_SetItem (ret, 2, PyString_FromString (reason_phrase));
+
+	g_free (reason_phrase);
+    } else {
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 0, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 1, Py_None);
+	Py_INCREF(Py_None);
+	PyTuple_SetItem (ret, 2, Py_None);
+    }
+
+    return ret;
+}

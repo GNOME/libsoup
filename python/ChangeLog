@@ -1,0 +1,4 @@
+2008-02-09  Dan Winship  <danw@gnome.org>
+
+	First draft of libsoup python bindings. Not complete, not final,
+	etc. (And not built by default and not installed.)

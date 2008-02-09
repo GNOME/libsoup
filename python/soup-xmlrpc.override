@@ -1,0 +1,134 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * soup-xmlrpc.override: overrides for soup-xmlrpc
+ */
+%%
+ignore
+  soup_xmlrpc_extract_method_response
+%%
+override soup_xmlrpc_build_method_call
+
+static char *
+pysoup_xmlrpc_build_method_call (PyObject *args, int name_arg)
+{
+    PyObject *py_method_name, *py_param;
+    Py_ssize_t size, i;
+    char *method_name, *method_call;
+    GValueArray *params;
+    GValue value;
+
+    size = PyTuple_Size (args);
+    if (size <= name_arg) {
+	PyErr_SetString (PyExc_TypeError, "soup.xmlrpc_build_method_call: 'method_name' not specified");
+	return NULL;
+    }
+    py_method_name = PyTuple_GetItem (args, name_arg);
+    if (!PyString_Check (py_method_name)) {
+	PyErr_SetString (PyExc_TypeError, "soup.xmlrpc_build_method_call: 'method_name' must be a string");
+	return NULL;
+    }
+    method_name = PyString_AsString (py_method_name);
+
+    params = g_value_array_new (size - name_arg - 1);
+    for (i = name_arg + 1; i < size; i++) {
+	py_param = PyTuple_GetItem (args, i);
+	if (!pysoup_value_from_pyobject (&value, py_param)) {
+	    PyErr_Format (PyExc_TypeError, "soup.xmlrpc_build_method_call: parameter %d could not be converted", (int)i);
+	    g_value_array_free (params);
+	    return NULL;
+	}
+	g_value_array_append (params, &value);
+	g_value_unset (&value);
+    }
+
+    method_call = soup_xmlrpc_build_method_call (method_name, params->values,
+						 params->n_values);
+    g_value_array_free (params);
+    
+    return method_call;
+}
+
+static PyObject *
+_wrap_soup_xmlrpc_build_method_call (PyObject *self, PyObject *args)
+{
+    char *method_call;
+    PyObject *py_ret;
+
+    method_call = pysoup_xmlrpc_build_method_call (args, 0);
+    if (!method_call)
+	return NULL;
+
+    py_ret = PyString_FromString (method_call);
+    g_free (method_call);
+    
+    return py_ret;
+}
+%%
+override soup_xmlrpc_request_new
+static PyObject *
+_wrap_soup_xmlrpc_request_new (PyObject *self, PyObject *args)
+{
+    char *uri, *method_call;
+    SoupMessage *msg;
+    PyObject *py_uri;
+
+    if (PyTuple_Size (args) < 1) {
+	PyErr_SetString (PyExc_TypeError, "soup.xmlrpc_request_new: 'uri' not specified");
+	return NULL;
+    }
+    py_uri = PyTuple_GetItem (args, 0);
+    if (!PyString_Check (py_uri)) {
+	PyErr_SetString (PyExc_TypeError, "soup.xmlrpc_request_new: 'uri' must be a string");
+	return NULL;
+    }
+    uri = PyString_AsString (py_uri);
+
+    method_call = pysoup_xmlrpc_build_method_call (args, 1);
+    if (!method_call)
+	return NULL;
+
+    msg = soup_message_new ("POST", uri);
+    soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
+			      method_call, strlen (method_call));    
+
+    return pygobject_new (G_OBJECT (msg));
+}
+%%
+override soup_xmlrpc_parse_method_response kwargs
+static PyObject *
+_wrap_soup_xmlrpc_parse_method_response (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "method_response", NULL };
+    PyObject *py_method_response;
+    char *method_response;
+    Py_ssize_t length;
+    GError *error = NULL;
+    GValue value;
+    PyObject *py_ret;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O:soup.xmlrpc_parse_method_response",
+				      kwlist, &py_method_response))
+        return NULL;
+
+    if (PyString_Check (py_method_response))
+	PyString_AsStringAndSize (py_method_response, &method_response, &length);
+    else if (pygobject_check (py_method_response, &PySoupMessage_Type)) {
+	SoupMessage *msg = (SoupMessage *)(((PyGObject *)py_method_response)->obj);
+	method_response = (char *)msg->response_body->data;
+	length = msg->response_body->length;
+    } else {
+	PyErr_SetString (PyExc_TypeError, "method_response should be a string or SoupMessage");
+	return NULL;
+    }
+
+    if (!soup_xmlrpc_parse_method_response (method_response, length,
+					    &value, &error)) {
+	pyg_error_check (&error);
+	return NULL;
+    }
+
+    py_ret = pysoup_value_to_pyobject (&value);
+    g_value_unset (&value);
+    return py_ret;
+}

@@ -1,0 +1,140 @@
+/* -*- Mode: C; c-basic-offset: 4 -*-
+ *
+ * SoupLogger.override: overrides for SoupLogger
+ */
+%%
+override soup_logger_set_request_filter kwargs
+
+static SoupLoggerLogLevel
+pysoup_logger_filter (SoupLogger *logger, SoupMessage *msg, gpointer user_data)
+{
+    PySoupCallback *psc = user_data;
+    PyGILState_STATE state;
+    PyObject *py_msg, *py_ret;
+    SoupLoggerLogLevel ret = SOUP_LOGGER_LOG_NONE;
+ 
+    state = pyg_gil_state_ensure ();
+ 
+    py_msg = pygobject_new ((GObject *)msg);
+    if (psc->data)
+        py_ret = PyEval_CallFunction (psc->func, "(NO)", py_msg, psc->data);
+    else
+        py_ret = PyEval_CallFunction (psc->func, "(N)", py_msg);
+
+    if (py_ret != NULL) {
+	if (pyg_enum_get_value (SOUP_TYPE_LOGGER_LOG_LEVEL,
+				py_ret, (gpointer)&ret) != 0)
+	    PyErr_Print ();
+	Py_DECREF (py_ret);
+    } else
+	PyErr_Print ();
+
+    pyg_gil_state_release (state);
+    return ret;
+}
+
+static PyObject *
+_wrap_soup_logger_set_request_filter (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "request_filter", "filter_data", NULL };
+    PyObject *pyfunc, *pyarg = NULL;
+    PySoupCallback *psc;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O|O:SoupLogger.set_request_filter",
+				      kwlist, &pyfunc, &pyarg))
+        return NULL;
+    if (!PyCallable_Check (pyfunc)) {
+        PyErr_SetString (PyExc_TypeError, "request_filter must be a callable object");
+        return NULL;
+    }
+
+    psc = pysoup_callback_new (pyfunc, pyarg);
+    soup_logger_set_request_filter (SOUP_LOGGER (self->obj),
+				    pysoup_logger_filter, psc,
+				    pysoup_callback_destroy_notify);
+
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+%%
+override soup_logger_set_response_filter kwargs
+static PyObject *
+_wrap_soup_logger_set_response_filter (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "response_filter", "filter_data", NULL };
+    PyObject *pyfunc, *pyarg = NULL;
+    PySoupCallback *psc;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O|O:SoupLogger.set_response_filter",
+				      kwlist, &pyfunc, &pyarg))
+        return NULL;
+    if (!PyCallable_Check (pyfunc)) {
+        PyErr_SetString (PyExc_TypeError, "response_filter must be a callable object");
+        return NULL;
+    }
+
+    psc = pysoup_callback_new (pyfunc, pyarg);
+    soup_logger_set_response_filter (SOUP_LOGGER (self->obj),
+				    pysoup_logger_filter, psc,
+				    pysoup_callback_destroy_notify);
+
+    Py_INCREF (Py_None);
+    return Py_None;
+}
+%%
+override soup_logger_set_printer kwargs
+
+static void
+pysoup_printer (SoupLogger *logger, SoupLoggerLogLevel level,
+		char direction, const char *data, gpointer user_data)
+{
+    PySoupCallback *psc = user_data;
+    PyGILState_STATE state;
+    PyObject *py_level, *py_ret;
+ 
+    state = pyg_gil_state_ensure ();
+ 
+    py_level = pyg_enum_from_gtype (SOUP_TYPE_LOGGER_LOG_LEVEL, level);
+
+    if (psc->data) {
+        py_ret = PyEval_CallFunction (psc->func, "(NcsO)", py_level,
+				      direction, data, psc->data);
+    } else {
+        py_ret = PyEval_CallFunction (psc->func, "(Ncs)", py_level,
+				      direction, data);
+    }
+
+    if (py_ret != NULL)
+	Py_DECREF (py_ret);
+    else
+	PyErr_Print ();
+
+    pyg_gil_state_release (state);
+}
+
+static PyObject *
+_wrap_soup_logger_set_printer (PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+    static char *kwlist[] = { "printer", "filter_data", NULL };
+    PyObject *pyfunc, *pyarg = NULL;
+    PySoupCallback *psc;
+
+    if (!PyArg_ParseTupleAndKeywords (args, kwargs,
+				      "O|O:SoupLogger.set_printer",
+				      kwlist, &pyfunc, &pyarg))
+        return NULL;
+    if (!PyCallable_Check (pyfunc)) {
+        PyErr_SetString (PyExc_TypeError, "printer must be a callable object");
+        return NULL;
+    }
+
+    psc = pysoup_callback_new (pyfunc, pyarg);
+    soup_logger_set_printer (SOUP_LOGGER (self->obj),
+			     pysoup_printer, psc,
+			     pysoup_callback_destroy_notify);
+
+    Py_INCREF (Py_None);
+    return Py_None;
+}

@@ -1,0 +1,5 @@
+(define-boxed Array
+  (in-module "GByte")
+  (c-name "GByteArray")
+  (gtype-id "G_TYPE_BYTE_ARRAY")
+)
