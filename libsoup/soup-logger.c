@@ -91,7 +91,6 @@ typedef struct {
 	SoupLoggerPrinter   printer;
 	gpointer            printer_data;
 	GDestroyNotify      printer_dnotify;
-	char                direction;
 } SoupLoggerPrivate;
 #define SOUP_LOGGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_LOGGER, SoupLoggerPrivate))
 
@@ -373,7 +372,7 @@ soup_logger_detach (SoupLogger  *logger,
 
 static void
 soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
-		   const char *format, ...)
+		   char direction, const char *format, ...)
 {
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 	va_list args;
@@ -394,10 +393,10 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 		if (end)
 			*end = '\0';
 		if (priv->printer) {
-			priv->printer (logger, level, priv->direction,
+			priv->printer (logger, level, direction,
 				       line, priv->printer_data);
 		} else
-			printf ("%c %s\n", priv->direction, line);
+			printf ("%c %s\n", direction, line);
 
 		line = end + 1;
 	} while (end && *line);
@@ -406,28 +405,22 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 }
 
 static void
-print_header (const char *name, const char *value, gpointer logger)
+soup_logger_print_basic_auth (SoupLogger *logger, const char *value)
 {
-	if (!g_ascii_strcasecmp (name, "Authorization") &&
-	    !g_ascii_strncasecmp (value, "Basic ", 6)) {
-		char *decoded, *p;
-		gsize len;
+	char *decoded, *p;
+	gsize len;
 
-		decoded = (char *)g_base64_decode (value + 6, &len);
-		if (!decoded)
-			decoded = g_strdup (value);
-		p = strchr (decoded, ':');
-		if (p) {
-			while (++p < decoded + len)
-				*p = '*';
-		}
-		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS,
-				   "%s: Basic [%.*s]", name, len, decoded);
-		g_free (decoded);
-	} else {
-		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS,
-				   "%s: %s", name, value);
+	decoded = (char *)g_base64_decode (value + 6, &len);
+	if (!decoded)
+		decoded = g_strdup (value);
+	p = strchr (decoded, ':');
+	if (p) {
+		while (++p < decoded + len)
+			*p = '*';
 	}
+	soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
+			   "Authorization: Basic [%.*s]", len, decoded);
+	g_free (decoded);
 }
 
 static void
@@ -437,6 +430,8 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 {
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 	SoupLoggerLogLevel log_level;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 	SoupURI *uri;
 
 	if (priv->request_filter) {
@@ -448,16 +443,14 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_NONE)
 		return;
 
-	priv->direction = '>';
-
 	uri = soup_message_get_uri (msg);
 	if (msg->method == SOUP_METHOD_CONNECT) {
-		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "CONNECT %s:%u HTTP/1.%d",
 				   uri->host, uri->port,
 				   soup_message_get_http_version (msg));
 	} else {
-		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "%s %s%s%s HTTP/1.%d",
 				   msg->method, uri->path,
 				   uri->query ? "?" : "",
@@ -465,10 +458,10 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 				   soup_message_get_http_version (msg));
 	}
 
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 			   "Soup-Debug-Timestamp: %lu",
 			   (unsigned long)time (0));
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 			   "Soup-Debug: %s %u (%p), %s %u (%p), %s %u (%p)%s",
 			   g_type_name_from_instance ((GTypeInstance *)session),
 			   soup_logger_get_id (logger, session), session,
@@ -481,9 +474,18 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	print_header ("Host", uri->host, logger);
-	soup_message_headers_foreach (msg->request_headers,
-				      print_header, logger);
+	soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
+			   "Host: %s", uri->host);
+	soup_message_headers_iter_init (&iter, msg->request_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value)) {
+		if (!g_ascii_strcasecmp (name, "Authorization") &&
+		    !g_ascii_strncasecmp (value, "Basic ", 6))
+			soup_logger_print_basic_auth (logger, value);
+		else {
+			soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
+					   "%s: %s", name, value);
+		}
+	}
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
 		return;
 
@@ -494,7 +496,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 		soup_buffer_free (request);
 
 		if (soup_message_headers_get_expectations (msg->request_headers) != SOUP_EXPECTATION_CONTINUE) {
-			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY,
+			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>',
 					   "\n%s", msg->request_body->data);
 		}
 	}
@@ -505,6 +507,8 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 {
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 	SoupLoggerLogLevel log_level;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 
 	if (priv->response_filter) {
 		log_level = priv->response_filter (logger, msg,
@@ -515,17 +519,15 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	if (log_level == SOUP_LOGGER_LOG_NONE)
 		return;
 
-	priv->direction = '<';
-
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
 			   "HTTP/1.%d %u %s\n",
 			   soup_message_get_http_version (msg),
 			   msg->status_code, msg->reason_phrase);
 
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
 			   "Soup-Debug-Timestamp: %lu",
 			   (unsigned long)time (0));
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '<',
 			   "Soup-Debug: %s %u (%p)",
 			   g_type_name_from_instance ((GTypeInstance *)msg),
 			   soup_logger_get_id (logger, msg), msg);
@@ -533,13 +535,16 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	soup_message_headers_foreach (msg->response_headers,
-				     print_header, logger);
+	soup_message_headers_iter_init (&iter, msg->response_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value)) {
+		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '<',
+				   "%s: %s", name, value);
+	}
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
 		return;
 
 	if (msg->response_body->length) {
-		soup_logger_print (logger, SOUP_LOGGER_LOG_BODY,
+		soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '<',
 				   "\n%s", msg->response_body->data);
 	}
 }
@@ -553,14 +558,12 @@ got_informational (SoupMessage *msg, gpointer user_data)
 	g_mutex_lock (priv->lock);
 
 	print_response (logger, msg);
-	priv->direction = ' ';
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 
 	if (msg->status_code == SOUP_STATUS_CONTINUE && msg->request_body->data) {
 		SoupLoggerLogLevel log_level;
 
-		priv->direction = '>';
-		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL,
+		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, '>',
 				   "[Now sending request body...]");
 
 		if (priv->request_filter) {
@@ -570,12 +573,11 @@ got_informational (SoupMessage *msg, gpointer user_data)
 			log_level = priv->level;
 
 		if (log_level == SOUP_LOGGER_LOG_BODY) {
-			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY,
+			soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '>',
 					   "%s", msg->request_body->data);
 		}
 
-		priv->direction = ' ';
-		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, "");
+		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 	}
 
 	g_mutex_unlock (priv->lock);
@@ -590,8 +592,7 @@ got_body (SoupMessage *msg, gpointer user_data)
 	g_mutex_lock (priv->lock);
 
 	print_response (logger, msg);
-	priv->direction = ' ';
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 
 	g_mutex_unlock (priv->lock);
 }
@@ -613,7 +614,6 @@ request_started (SoupSession *session, SoupMessage *msg,
 		 SoupSocket *socket, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
-	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 	gboolean restarted;
 	guint msg_id;
 
@@ -639,6 +639,5 @@ request_started (SoupSession *session, SoupMessage *msg,
 		soup_logger_set_id (logger, socket);
 
 	print_request (logger, msg, session, socket, restarted);
-	priv->direction = ' ';
-	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, "");
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 }

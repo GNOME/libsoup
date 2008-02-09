@@ -93,16 +93,12 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 }
 
 static void
-write_header (const char *name, const char *value, gpointer headers)
-{
-	g_string_append_printf (headers, "%s: %s\r\n", name, value);
-}
-
-static void
 get_response_headers (SoupMessage *msg, GString *headers,
 		      SoupEncoding *encoding, gpointer user_data)
 {
 	SoupEncoding claimed_encoding;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 
 	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
 				msg->status_code, msg->reason_phrase);
@@ -124,8 +120,9 @@ get_response_headers (SoupMessage *msg, GString *headers,
 							 msg->response_body->length);
 	}
 
-	soup_message_headers_foreach (msg->response_headers,
-				      write_header, headers);
+	soup_message_headers_iter_init (&iter, msg->response_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		g_string_append_printf (headers, "%s: %s\r\n", name, value);
 	g_string_append (headers, "\r\n");
 }
 

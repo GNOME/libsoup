@@ -1,3 +1,24 @@
+2008-02-08  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-headers.c (SoupMessageHeadersIter)
+	(soup_message_headers_iter_init, soup_message_headers_iter_next):
+	Add an iterator type for SoupMessageHeaders.
+
+	* libsoup/soup-message-client-io.c (get_request_headers):
+	* libsoup/soup-message-server-io.c (get_response_headers): Use
+	SoupMessageHeadersIter.
+
+	* libsoup/soup-logger.c (print_request, print_response): Use
+	SoupMessageHeadersIter. And take advantage of the simplification
+	to fix the kludge where 'direction' was stored as a field in
+	SoupLoggerPrivate rather than being an argument to
+	soup_logger_print.
+
+	* tests/get.c (get_url):
+	* tests/header-parsing.c (check_headers):
+	* tests/simple-httpd.c (server_callback): Use
+	SoupMessageHeadersIter
+
 2008-02-06  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-server.c (soup_server_add_auth_domain): Ref the

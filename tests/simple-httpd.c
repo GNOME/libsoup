@@ -155,21 +155,19 @@ do_put (SoupServer *server, SoupMessage *msg, const char *path)
 }
 
 static void
-print_header (const char *name, const char *value, gpointer data)
-{
-	printf ("%s: %s\n", name, value);
-}
-
-static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
 	char *file_path;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 
 	printf ("%s %s HTTP/1.%d\n", msg->method, path,
 		soup_message_get_http_version (msg));
-	soup_message_headers_foreach (msg->request_headers, print_header, NULL);
+	soup_message_headers_iter_init (&iter, msg->request_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		printf ("%s: %s\n", name, value);
 	if (msg->request_body->length)
 		printf ("%s\n", msg->request_body->data);
 

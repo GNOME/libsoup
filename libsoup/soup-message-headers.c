@@ -257,6 +257,71 @@ soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
 }
 
 /**
+ * SoupMessageHeadersIter:
+ *
+ * An opaque type used to iterate over a %SoupMessageHeaders
+ * structure.
+ *
+ * After intializing the iterator with
+ * soup_message_headers_iter_init(), call
+ * soup_message_headers_iter_next() to fetch data from it.
+ *
+ * You may not modify the headers while iterating over them.
+ **/
+
+typedef struct {
+	SoupMessageHeaders *hdrs;
+	int index;
+} SoupMessageHeadersIterReal;
+
+/**
+ * soup_message_headers_iter_init:
+ * @iter: a pointer to a %SoupMessageHeadersIter structure
+ * @hdrs: a %SoupMessageHeaders
+ *
+ * Initializes @iter for iterating @hdrs.
+ **/
+void
+soup_message_headers_iter_init (SoupMessageHeadersIter *iter,
+				SoupMessageHeaders *hdrs)
+{
+	SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
+
+	real->hdrs = hdrs;
+	real->index = 0;
+}
+
+/**
+ * soup_message_headers_iter_next:
+ * @iter: a %SoupMessageHeadersIter
+ * @name: pointer to a variable to return the header name in
+ * @value: pointer to a variable to return the header value in
+ *
+ * Yields the next name/value pair in the %SoupMessageHeaders being
+ * iterated by @iter. If @iter has already yielded the last header,
+ * then soup_message_headers_iter_next() will return %FALSE and @name
+ * and @value will be unchanged.
+ *
+ * Return value: %TRUE if another name and value were returned, %FALSE
+ * if the end of the headers has been reached.
+ **/
+gboolean
+soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
+				const char **name, const char **value)
+{
+	SoupMessageHeadersIterReal *real = (SoupMessageHeadersIterReal *)iter;
+	SoupHeader *hdr_array = (SoupHeader *)real->hdrs->array->data;
+
+	if (real->index >= real->hdrs->array->len)
+		return FALSE;
+
+	*name = hdr_array[real->index].name;
+	*value = hdr_array[real->index].value;
+	real->index++;
+	return TRUE;
+}
+
+/**
  * SoupMessageHeadersForeachFunc:
  * @name: the header name
  * @value: the header value
@@ -281,6 +346,8 @@ soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
  * then the I/O code will output multiple copies of the header when
  * sending the message to the remote implementation, which may be
  * required for interoperability in some cases.)
+ *
+ * You may not modify the headers from @func.
  **/
 void
 soup_message_headers_foreach (SoupMessageHeaders *hdrs,

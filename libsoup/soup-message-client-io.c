@@ -59,13 +59,6 @@ parse_response_headers (SoupMessage *req,
 	return SOUP_STATUS_OK;
 }
 
-static void 
-add_header (const char *name, const char *value, gpointer data)
-{
-	GString *headers = data;
-	g_string_append_printf (headers, "%s: %s\r\n", name, value);
-}
-
 static void
 get_request_headers (SoupMessage *req, GString *header,
 		     SoupEncoding *encoding, gpointer user_data)
@@ -74,6 +67,8 @@ get_request_headers (SoupMessage *req, GString *header,
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	SoupURI *uri = soup_message_get_uri (req);
 	char *uri_string;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 
 	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
@@ -108,7 +103,9 @@ get_request_headers (SoupMessage *req, GString *header,
 							 req->request_body->length);
 	}
 
-	soup_message_headers_foreach (req->request_headers, add_header, header);
+	soup_message_headers_iter_init (&iter, req->request_headers);
+	while (soup_message_headers_iter_next (&iter, &name, &value))
+		g_string_append_printf (header, "%s: %s\r\n", name, value);
 	g_string_append (header, "\r\n");
 }
 

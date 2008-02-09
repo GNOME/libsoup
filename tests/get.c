@@ -100,12 +100,6 @@ mkdirs (const char *path)
 }
 
 static void
-print_header (const char *name, const char *value, gpointer data)
-{
-	printf ("%s: %s\n", name, value);
-}
-
-static void
 get_url (const char *url)
 {
 	char *url_to_get, *slash, *name;
@@ -158,13 +152,19 @@ get_url (const char *url)
 	}
 
 	if (debug) {
+		SoupMessageHeadersIter iter;
+		const char *name, *value;
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
+
 		printf ("%s %s HTTP/1.%d\n\n", method, path,
 			soup_message_get_http_version (msg));
 		printf ("HTTP/1.%d %d %s\n",
 			soup_message_get_http_version (msg),
 			msg->status_code, msg->reason_phrase);
-		soup_message_headers_foreach (msg->response_headers, print_header, NULL);
+
+		soup_message_headers_iter_init (&iter, msg->response_headers);
+		while (soup_message_headers_iter_next (&iter, &name, &value))
+			printf ("%s: %s\r\n", name, value);
 		printf ("\n");
 	} else
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);

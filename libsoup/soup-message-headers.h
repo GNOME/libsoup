@@ -43,6 +43,16 @@ void                soup_message_headers_foreach  (SoupMessageHeaders *hdrs,
 						   SoupMessageHeadersForeachFunc func,
 						   gpointer            user_data);
 
+typedef struct {
+	gpointer dummy[3];
+} SoupMessageHeadersIter;
+
+void                soup_message_headers_iter_init (SoupMessageHeadersIter  *iter,
+						    SoupMessageHeaders      *hdrs);
+gboolean            soup_message_headers_iter_next (SoupMessageHeadersIter  *iter,
+						    const char             **name,
+						    const char             **value);
+
 /* Specific headers */
 
 typedef enum {

@@ -577,25 +577,22 @@ print_header (const char *name, const char *value, gpointer data)
 	debug_printf (1, "              '%s': '%s'\n", name, value);
 }
 
-static void
-add_header_name (const char *name, const char *value, gpointer data)
-{
-	GSList **names = data;
-
-	if (!g_slist_find_custom (*names, name, (GCompareFunc)strcmp))
-		*names = g_slist_append (*names, (char *)name);
-}
-
 static gboolean
 check_headers (Header *headers, SoupMessageHeaders *hdrs)
 {
 	GSList *header_names, *h;
-	const char *value;
+	SoupMessageHeadersIter iter;
+	const char *name, *value;
 	gboolean ok = TRUE;
 	int i;
 
 	header_names = NULL;
-	soup_message_headers_foreach (hdrs, add_header_name, &header_names);
+	soup_message_headers_iter_init (&iter, hdrs);
+	while (soup_message_headers_iter_next (&iter, &name, &value)) {
+		if (!g_slist_find_custom (header_names, name,
+					  (GCompareFunc)strcmp))
+			header_names = g_slist_append (header_names, (char *)name);
+	}
 
 	for (i = 0, h = header_names; headers[i].name && h; i++, h = h->next) {
 		if (strcmp (h->data, headers[i].name) != 0) {
