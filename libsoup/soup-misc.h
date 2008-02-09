@@ -35,7 +35,7 @@ guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
-extern gboolean soup_ssl_supported;
+extern const gboolean soup_ssl_supported;
 
 #define SOUP_SSL_ERROR soup_ssl_error_quark()
 

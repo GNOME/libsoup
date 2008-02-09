@@ -277,7 +277,11 @@ main (int argc, char **argv)
 	getsockname (listener, (struct sockaddr *)&sin, (void *)&sin_len);
 	port = ntohs (sin.sin_port);
 
-	/* Create the client */
+	/* Now spawn server thread */
+	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
+				  TRUE, NULL);
+
+	/* And create the client */
 	addr = soup_address_new ("127.0.0.1", port);
 	creds = soup_ssl_get_client_credentials (NULL);
 	sock = soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
@@ -292,10 +296,6 @@ main (int argc, char **argv)
 	}
 
 	soup_socket_start_ssl (sock, NULL);
-
-	/* Now spawn server thread */
-	server = g_thread_create (server_thread, GINT_TO_POINTER (listener),
-				  TRUE, NULL);
 
 	/* Synchronous client test */
 	for (i = 0; i < BUFSIZE; i++)

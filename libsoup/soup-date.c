@@ -37,13 +37,13 @@
  **/
 
 /* Do not internationalize */
-static const char *months[] = {
+static const char *const months[] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
 
 /* Do not internationalize */
-static const char *days[] = {
+static const char *const days[] = {
 	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
@@ -513,9 +513,6 @@ time_t
 soup_date_to_time_t (SoupDate *date)
 {
 	time_t tt;
-	static const int days_before[] = {
-		0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
-	};
 
 	/* FIXME: offset, etc */
 
@@ -533,7 +530,7 @@ soup_date_to_time_t (SoupDate *date)
 
 	tt = (date->year - 1970) * 365;
 	tt += (date->year - 1968) / 4;
-	tt += days_before[date->month - 1] + date->day - 1;
+	tt += days_before[date->month] + date->day - 1;
 	if (date->year % 4 == 0 && date->month <= 2)
 		tt--;
 	tt = ((((tt * 24) + date->hour) * 60) + date->minute) * 60 + date->second;

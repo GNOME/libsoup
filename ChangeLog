@@ -1,3 +1,23 @@
+2008-02-09  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-manager-ntlm.c: mark the DES magic number
+	arrays const
+
+	* libsoup/soup-date.c (months, days): add an extra "const" to each
+	of these declarations, as one "const" is apparently not enough.
+	(soup_date_to_time_t): remove redundant copy of days_before array.
+
+	* libsoup/soup-dns.c (soup_dns_init): use g_once_init_enter/leave
+
+	* libsoup/soup-gnutls.c (soup_ssl_supported)
+	(soup_gnutls_channel_funcs): Mark these const
+	(soup_gnutls_init, init_dh_params): Use g_once_init_enter/leave
+
+	* libsoup/soup-status.c (reason_phrases): mark this const
+
+	* tests/ssl-test.c: Remove the workaround for soup_gnutls_init()
+	not being thread-safe, since it is now.
+
 2008-02-08  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-headers.c (SoupMessageHeadersIter)

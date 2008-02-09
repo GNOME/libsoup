@@ -155,13 +155,17 @@ static GMutex *soup_gethost_lock;
 void
 soup_dns_init (void)
 {
-	if (soup_dns_cache == NULL) {
+	static volatile gsize inited_dns = 0;
+
+	if (g_once_init_enter (&inited_dns)) {
 		soup_dns_cache = g_hash_table_new (soup_str_case_hash, soup_str_case_equal);
 		soup_dns_lock = g_mutex_new ();
 		soup_dns_cond = g_cond_new ();
 #if !defined (HAVE_GETADDRINFO) || !defined (HAVE_GETNAMEINFO)
 		soup_gethost_lock = g_mutex_new ();
 #endif
+
+		g_once_init_leave (&inited_dns, TRUE);
 	}
 }
 

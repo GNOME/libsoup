@@ -31,7 +31,7 @@
  *
  * Can be used to test if libsoup was compiled with ssl support.
  **/
-gboolean soup_ssl_supported = TRUE;
+const gboolean soup_ssl_supported = TRUE;
 
 #define DH_BITS 1024
 
@@ -335,7 +335,7 @@ soup_gnutls_get_flags (GIOChannel *channel)
 	return chan->real_sock->funcs->io_get_flags (channel);
 }
 
-GIOFuncs soup_gnutls_channel_funcs = {
+const GIOFuncs soup_gnutls_channel_funcs = {
 	soup_gnutls_read,
 	soup_gnutls_write,
 	soup_gnutls_seek,
@@ -351,21 +351,20 @@ static gnutls_dh_params dh_params = NULL;
 static gboolean
 init_dh_params (void)
 {
-	if (gnutls_dh_params_init (&dh_params) != 0)
-		goto THROW_CREATE_ERROR;
+	static volatile gsize inited_dh_params = 0;
 
-	if (gnutls_dh_params_generate2 (dh_params, DH_BITS) != 0)
-		goto THROW_CREATE_ERROR;
-
-	return TRUE;
-
-THROW_CREATE_ERROR:
-	if (dh_params) {
-		gnutls_dh_params_deinit (dh_params);
-		dh_params = NULL;
+	if (g_once_init_enter (&inited_dh_params)) {
+		if (gnutls_dh_params_init (&dh_params) != 0 ||
+		    gnutls_dh_params_generate2 (dh_params, DH_BITS) != 0) {
+			if (dh_params) {
+				gnutls_dh_params_deinit (dh_params);
+				dh_params = NULL;
+			}
+		}
+		g_once_init_leave (&inited_dh_params, TRUE);
 	}
 
-	return FALSE;
+	return dh_params != NULL;
 }
 
 /**
@@ -427,7 +426,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	g_io_channel_ref (sock);
 
 	gchan = (GIOChannel *) chan;
-	gchan->funcs = &soup_gnutls_channel_funcs;
+	gchan->funcs = (GIOFuncs *)&soup_gnutls_channel_funcs;
 	g_io_channel_init (gchan);
 	gchan->is_readable = gchan->is_writeable = TRUE;
 	gchan->use_buffer = FALSE;
@@ -440,8 +439,6 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	return NULL;
 }
 
-static gboolean soup_gnutls_inited = FALSE;
-
 #ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
@@ -449,11 +446,15 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 static void
 soup_gnutls_init (void)
 {
+	static volatile gsize inited_gnutls = 0;
+
+	if (g_once_init_enter (&inited_gnutls)) {
 #ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
-	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+		gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #endif
-	gnutls_global_init ();
-	soup_gnutls_inited = TRUE;
+		gnutls_global_init ();
+		g_once_init_leave (&inited_gnutls, TRUE);
+	}
 }
 
 /**
@@ -477,8 +478,7 @@ soup_ssl_get_client_credentials (const char *ca_file)
 	SoupSSLCredentials *creds;
 	int status;
 
-	if (!soup_gnutls_inited)
-		soup_gnutls_init ();
+	soup_gnutls_init ();
 
 	creds = g_slice_new0 (SoupSSLCredentials);
 	gnutls_certificate_allocate_credentials (&creds->creds);
@@ -533,12 +533,9 @@ soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 {
 	SoupSSLCredentials *creds;
 
-	if (!soup_gnutls_inited)
-		soup_gnutls_init ();
-	if (!dh_params) {
-		if (!init_dh_params ())
-			return NULL;
-	}
+	soup_gnutls_init ();
+	if (!init_dh_params ())
+		return NULL;
 
 	creds = g_slice_new0 (SoupSSLCredentials);
 	gnutls_certificate_allocate_credentials (&creds->creds);

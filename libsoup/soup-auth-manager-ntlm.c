@@ -685,7 +685,7 @@ md4sum (const unsigned char *in, int nbytes, unsigned char digest[16])
 
 
 /* Public domain DES implementation from Phil Karn */
-static guint32 Spbox[8][64] = {
+static const guint32 Spbox[8][64] = {
 	{ 0x01010400,0x00000000,0x00010000,0x01010404,
 	  0x01010004,0x00010404,0x00000004,0x00010000,
 	  0x00000400,0x01010400,0x01010404,0x00000400,
@@ -924,7 +924,7 @@ des (guint32 ks[16][2], unsigned char block[8])
 /* Key schedule-related tables from FIPS-46 */
 
 /* permuted choice table (key) */
-static unsigned char pc1[] = {
+static const unsigned char pc1[] = {
 	57, 49, 41, 33, 25, 17,  9,
 	 1, 58, 50, 42, 34, 26, 18,
 	10,  2, 59, 51, 43, 35, 27,
@@ -937,12 +937,12 @@ static unsigned char pc1[] = {
 };
 
 /* number left rotations of pc1 */
-static unsigned char totrot[] = {
+static const unsigned char totrot[] = {
 	1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28
 };
 
 /* permuted choice key (table) */
-static unsigned char pc2[] = {
+static const unsigned char pc2[] = {
 	14, 17, 11, 24,  1,  5,
 	 3, 28, 15,  6, 21, 10,
 	23, 19, 12,  4, 26,  8,
@@ -957,7 +957,7 @@ static unsigned char pc2[] = {
 
 
 /* bit 0 is left-most in byte */
-static int bytebit[] = {
+static const int bytebit[] = {
 	0200,0100,040,020,010,04,02,01
 };
 

@@ -14,7 +14,7 @@
 
 #ifndef HAVE_SSL
 
-gboolean soup_ssl_supported = FALSE;
+const gboolean soup_ssl_supported = FALSE;
 
 GIOChannel *
 soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,

@@ -148,7 +148,7 @@
  * network and internal errors.
  **/
 
-static struct {
+static const struct {
 	guint code;
 	const char *phrase;
 } reason_phrases [] = {
