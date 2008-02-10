@@ -13,9 +13,6 @@ soup_message_set_http_version
 soup_message_get_http_version
 soup_message_get_uri
 soup_message_set_uri
-SoupMessageFlags
-soup_message_set_flags
-soup_message_get_flags
 <SUBSECTION>
 soup_message_set_status
 soup_message_set_status_full
@@ -23,6 +20,12 @@ soup_message_is_keepalive
 <SUBSECTION>
 soup_message_add_header_handler
 soup_message_add_status_code_handler
+<SUBSECTION>
+SoupMessageFlags
+soup_message_set_flags
+soup_message_get_flags
+SoupChunkAllocator
+soup_message_set_chunk_allocator
 <SUBSECTION>
 SOUP_MESSAGE_METHOD
 SOUP_MESSAGE_URI
@@ -62,6 +65,7 @@ SOUP_METHOD_POST
 SOUP_METHOD_DELETE
 SOUP_METHOD_TRACE
 SOUP_METHOD_CONNECT
+<SUBSECTION>
 SOUP_METHOD_PROPFIND
 SOUP_METHOD_PROPPATCH
 SOUP_METHOD_MKCOL
@@ -69,7 +73,6 @@ SOUP_METHOD_COPY
 SOUP_METHOD_MOVE
 SOUP_METHOD_LOCK
 SOUP_METHOD_UNLOCK
-SOUP_METHOD_PATCH
 </SECTION>
 
 <SECTION>
@@ -85,8 +88,13 @@ soup_message_headers_replace
 soup_message_headers_remove
 soup_message_headers_clear
 soup_message_headers_get
+<SUBSECTION>
 SoupMessageHeadersForeachFunc
 soup_message_headers_foreach
+<SUBSECTION>
+SoupMessageHeadersIter
+soup_message_headers_iter_init
+soup_message_headers_iter_next
 <SUBSECTION>
 SoupEncoding
 soup_message_headers_get_encoding
@@ -97,6 +105,9 @@ soup_message_headers_set_content_length
 SoupExpectation
 soup_message_headers_get_expectations
 soup_message_headers_set_expectations
+<SUBSECTION Standard>
+SOUP_TYPE_MESSAGE_HEADERS
+soup_message_headers_get_type
 </SECTION>
 
 <SECTION>
@@ -106,6 +117,8 @@ SoupBuffer
 SoupMemoryUse
 soup_buffer_new
 soup_buffer_new_subbuffer
+soup_buffer_new_with_owner
+soup_buffer_get_owner
 soup_buffer_copy
 soup_buffer_free
 <SUBSECTION>
@@ -122,6 +135,8 @@ soup_message_body_get_chunk
 <SUBSECTION Standard>
 SOUP_TYPE_BUFFER
 soup_buffer_get_type
+SOUP_TYPE_MESSAGE_BODY
+soup_message_body_get_type
 </SECTION>
 
 <SECTION>
@@ -176,6 +191,7 @@ SOUP_SERVER_SSL_CERT_FILE
 SOUP_SERVER_SSL_KEY_FILE
 SOUP_SERVER_ASYNC_CONTEXT
 SOUP_SERVER_RAW_PATHS
+SOUP_SERVER_SERVER_HEADER
 <SUBSECTION Standard>
 SOUP_SERVER
 SOUP_IS_SERVER
@@ -200,6 +216,10 @@ SoupAuthDomainFilter
 soup_auth_domain_set_filter
 soup_auth_domain_get_realm
 <SUBSECTION>
+SoupAuthDomainGenericAuthCallback
+soup_auth_domain_set_generic_auth_callback
+soup_auth_domain_check_password
+<SUBSECTION>
 soup_auth_domain_covers
 soup_auth_domain_accepts
 soup_auth_domain_challenge
@@ -210,6 +230,10 @@ SOUP_AUTH_DOMAIN_ADD_PATH
 SOUP_AUTH_DOMAIN_REMOVE_PATH
 SOUP_AUTH_DOMAIN_FILTER
 SOUP_AUTH_DOMAIN_FILTER_DATA
+SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK
+SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA
+<SUBSECTION Private>
+soup_auth_domain_try_generic_auth_callback
 <SUBSECTION Standard>
 SOUP_AUTH_DOMAIN
 SOUP_IS_AUTH_DOMAIN
@@ -253,8 +277,6 @@ SoupAuthDomainDigestAuthCallback
 soup_auth_domain_digest_set_auth_callback
 soup_auth_domain_digest_encode_password
 <SUBSECTION>
-soup_auth_domain_digest_evil_check_password
-<SUBSECTION>
 SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK
 SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA
 <SUBSECTION Standard>
@@ -286,6 +308,12 @@ soup_address_get_name
 soup_address_get_sockaddr
 soup_address_get_physical
 soup_address_get_port
+<SUBSECTION>
+SOUP_ADDRESS_FAMILY
+SOUP_ADDRESS_NAME
+SOUP_ADDRESS_PHYSICAL
+SOUP_ADDRESS_PORT
+SOUP_ADDRESS_SOCKADDR
 <SUBSECTION Standard>
 SOUP_ADDRESS
 SOUP_IS_ADDRESS
@@ -323,6 +351,7 @@ SOUP_SESSION_USE_NTLM
 SOUP_SESSION_SSL_CA_FILE
 SOUP_SESSION_ASYNC_CONTEXT
 SOUP_SESSION_TIMEOUT
+SOUP_SESSION_USER_AGENT
 <SUBSECTION Standard>
 SOUP_IS_SESSION
 SOUP_IS_SESSION_CLASS
@@ -482,6 +511,7 @@ soup_uri_set_port
 soup_uri_set_path
 soup_uri_set_query
 soup_uri_set_query_from_form
+soup_uri_set_query_from_fields
 soup_uri_set_fragment
 <SUBSECTION Standard>
 SOUP_TYPE_URI
@@ -498,11 +528,17 @@ soup_date_new_from_string
 soup_date_new_from_time_t
 soup_date_new_from_now
 soup_date_to_string
+soup_date_to_time_t
 soup_date_free
 <SUBSECTION>
-soup_form_decode_urlencoded
-soup_form_encode_urlencoded
-soup_form_encode_urlencoded_list
+soup_form_decode
+soup_form_encode
+soup_form_encode_datalist
+soup_form_encode_hash
+soup_form_encode_valist
+soup_form_request_new
+soup_form_request_new_from_datalist
+soup_form_request_new_from_hash
 <SUBSECTION>
 soup_headers_parse_request
 soup_headers_parse_response
@@ -525,9 +561,11 @@ soup_add_timeout
 soup_ssl_supported
 <SUBSECTION Private>
 soup_date_copy
-soup_signal_connect_once
 SOUP_TYPE_DATE
 soup_date_get_type
+soup_form_decode_urlencoded
+soup_form_encode_urlencoded
+soup_form_encode_urlencoded_list
 </SECTION>
 
 <SECTION>
@@ -549,6 +587,7 @@ soup_xmlrpc_set_fault
 SOUP_XMLRPC_ERROR
 SoupXMLRPCError
 SOUP_XMLRPC_FAULT
+SoupXMLRPCFault
 <SUBSECTION Private>
 soup_xmlrpc_error_quark
 soup_xmlrpc_fault_quark
@@ -558,14 +597,20 @@ soup_xmlrpc_fault_quark
 <FILE>soup-value-utils</FILE>
 <TITLE>GValue Support</TITLE>
 soup_value_hash_new
+soup_value_hash_new_with_vals
 soup_value_hash_insert_value
 soup_value_hash_insert
+soup_value_hash_insert_vals
 soup_value_hash_lookup
+soup_value_hash_lookup_vals
 <SUBSECTION>
 soup_value_array_from_args
 soup_value_array_to_args
+soup_value_array_new
+soup_value_array_new_with_vals
 soup_value_array_insert
 soup_value_array_append
+soup_value_array_append_vals
 soup_value_array_get_nth
 <SUBSECTION>
 SOUP_VALUE_SETV

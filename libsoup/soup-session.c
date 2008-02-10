@@ -32,6 +32,26 @@
  * SECTION:soup-session
  * @short_description: Soup session state object
  *
+ * #SoupSession is the object that controls client-side HTTP. A
+ * #SoupSession encapsulates all of the state that libsoup is keeping
+ * on behalf of your program; cached HTTP connections, authentication
+ * information, etc.
+ *
+ * Most applications will only need a single #SoupSession; the primary
+ * reason you might need multiple sessions is if you need to have
+ * multiple independent authentication contexts. (Eg, you are
+ * connecting to a server and authenticating as two different users at
+ * different times; the easiest way to ensure that each #SoupMessage
+ * is sent with the authentication information you intended is to use
+ * one session for the first user, and a second session for the other
+ * user.)
+ *
+ * #SoupSession itself is an abstract class, with two subclasses. If
+ * you are using the glib main loop, you will generally want to use
+ * #SoupSessionAsync, which uses non-blocking I/O and callbacks. On
+ * the other hand, if your application is threaded and you want to do
+ * synchronous I/O in a separate thread from the UI, use
+ * #SoupSessionSync.
  **/
 
 typedef struct {
@@ -952,6 +972,16 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 	soup_message_queue_append (priv->queue, msg);
 }
+
+/**
+ * SoupSessionCallback:
+ * @session: the session
+ * @msg: the message that has finished
+ * @user_data: the data passed to soup_session_queue_message
+ *
+ * Prototype for the callback passed to soup_session_queue_message(),
+ * qv.
+ **/
 
 /**
  * soup_session_queue_message:

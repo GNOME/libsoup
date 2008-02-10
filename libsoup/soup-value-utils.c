@@ -13,6 +13,12 @@
  * SECTION:soup-value-utils
  * @short_description: #GValue utilities
  *
+ * These methods are useful for manipulating #GValue<!-- -->s, and in
+ * particular, arrays and hash tables of #GValue<!-- -->s, in a
+ * slightly nicer way than the standard #GValue API.
+ *
+ * They are written for use with soup-xmlrpc, but they also work with
+ * types not used by XML-RPC.
  **/
 
 /**
@@ -49,6 +55,8 @@ soup_value_hash_value_free (gpointer val)
  *
  * Creates a #GHashTable whose keys are strings and whose values
  * are #GValue.
+ *
+ * Return value: a new empty #GHashTable
  **/
 GHashTable *
 soup_value_hash_new (void)
@@ -85,6 +93,8 @@ soup_value_hash_insert_valist (GHashTable *hash, const char *first_key,
  * are #GValue, and initializes it with the provided data. As
  * with soup_value_hash_insert(), the keys and values are copied
  * rather than being inserted directly.
+ *
+ * Return value: a new #GHashTable, initialized with the given values
  **/
 GHashTable *
 soup_value_hash_new_with_vals (const char *first_key, ...)
@@ -394,7 +404,7 @@ soup_value_array_append (GValueArray *array, GType type, ...)
 }
 
 /**
- * soup_value_array_append_values:
+ * soup_value_array_append_vals:
  * @array: a #GValueArray
  * @first_type: the type of the first value to add
  * @...: the first value to add, followed by other type/value
@@ -460,6 +470,12 @@ soup_byte_array_free (GByteArray *ba)
 	g_byte_array_free (ba, TRUE);
 }
 
+/**
+ * SOUP_TYPE_BYTE_ARRAY:
+ *
+ * glib does not define a #GType for #GByteArray, so libsoup
+ * defines this one itself.
+ **/
 GType
 soup_byte_array_get_type (void)
 {
@@ -467,7 +483,7 @@ soup_byte_array_get_type (void)
 
 	if (g_once_init_enter (&type_volatile)) {
 		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("GByteArray"),
+			g_intern_static_string ("SoupByteArray"),
 			(GBoxedCopyFunc) soup_byte_array_copy,
 			(GBoxedFreeFunc) soup_byte_array_free);
 		g_once_init_leave (&type_volatile, type);

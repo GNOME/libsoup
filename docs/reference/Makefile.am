@@ -34,7 +34,7 @@ IGNORE_HFILES= soup.h soup-marshal.h \
 	soup-types.h soup-enum-types.h \
 	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
 	soup-connection.h soup-connection-ntlm.h \
-	soup-dns.h soup-auth-manager.h soup-md5-utils.h \
+	soup-dns.h soup-auth-manager.h soup-auth-manager-ntlm.h \
 	soup-message-queue.h soup-path-map.h soup-ssl.h
 
 # Images to copy into HTML directory.

@@ -44,6 +44,7 @@ void                soup_message_headers_foreach  (SoupMessageHeaders *hdrs,
 						   gpointer            user_data);
 
 typedef struct {
+	/*< private >*/
 	gpointer dummy[3];
 } SoupMessageHeadersIter;
 

@@ -35,7 +35,7 @@
  * SECTION:soup-address
  * @short_description: DNS support
  *
- * #SoupAddress represents the address of a TCP connection endpoint;
+ * #SoupAddress represents the address of a TCP connection endpoint:
  * both the IP address and the port. (It is somewhat like an
  * object-oriented version of struct sockaddr.)
  *
@@ -383,6 +383,7 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 
 /**
  * SoupAddressFamily:
+ * @SOUP_ADDRESS_FAMILY_INVALID: an invalid %SoupAddress
  * @SOUP_ADDRESS_FAMILY_IPV4: an IPv4 address
  * @SOUP_ADDRESS_FAMILY_IPV6: an IPv6 address
  *
@@ -566,7 +567,7 @@ lookup_resolved (SoupDNSLookup *lookup, guint status, gpointer user_data)
  * @callback: callback to call with the result
  * @user_data: data for @callback
  *
- * Asynchronously resolves the missing half of @addr. (Its IP address
+ * Asynchronously resolves the missing half of @addr (its IP address
  * if it was created with soup_address_new(), or its hostname if it
  * was created with soup_address_new_from_sockaddr() or
  * soup_address_new_any().)

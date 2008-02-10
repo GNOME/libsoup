@@ -509,6 +509,8 @@ get_property (GObject *object, guint prop_id,
  * @...: value of @optname1, followed by additional property/value pairs
  *
  * Creates a new #SoupServer.
+ *
+ * Return value: a new #SoupServer
  **/
 SoupServer *
 soup_server_new (const char *optname1, ...)

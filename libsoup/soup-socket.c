@@ -28,6 +28,10 @@
  * SECTION:soup-socket
  * @short_description: A network socket
  *
+ * #SoupSocket is libsoup's TCP socket type. While it is primarily
+ * intended for internal use, #SoupSocket<!-- -->s are exposed in the
+ * API in various places, and some of their methods (eg,
+ * soup_socket_get_remote_address()) may be useful to applications.
  **/
 
 G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
@@ -859,6 +863,16 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	return TRUE;
 }
 	
+/**
+ * soup_socket_is_ssl:
+ * @sock: a #SoupSocket
+ *
+ * Tests if @sock is set up to do SSL. Note that this simply means
+ * that the %SOUP_SOCKET_SSL_CREDENTIALS property has been set; it
+ * does not mean that soup_socket_start_ssl() has been called.
+ *
+ * Return value: %TRUE if @sock has SSL credentials set
+ **/
 gboolean
 soup_socket_is_ssl (SoupSocket *sock)
 {

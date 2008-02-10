@@ -16,10 +16,27 @@
 
 /**
  * SECTION:soup-session-sync
- * @short_description: Soup session for blocking I/O in multithreaded programs.
+ * @short_description: Soup session for blocking I/O in multithreaded
+ * programs.
  *
  * #SoupSessionSync is an implementation of #SoupSession that uses
  * synchronous I/O, intended for use in multi-threaded programs.
+ *
+ * You can use #SoupSessionSync from multiple threads concurrently.
+ * Eg, you can send a #SoupMessage in one thread, and then while
+ * waiting for the response, send another #SoupMessage from another
+ * thread. You can also send a message from one thread and then call
+ * soup_session_cancel_message() on it from any other thread (although
+ * you need to be careful to avoid race conditions, where the message
+ * finishes and is then unreffed by the sending thread just before you
+ * cancel it).
+ *
+ * However, the majority of other types and methods in libsoup are not
+ * MT-safe. In particular, you <emphasis>cannot</emphasis> modify or
+ * examine a #SoupMessage while it is being transmitted by
+ * #SoupSessionSync in another thread. Once a message has been handed
+ * off to #SoupSessionSync, it can only be manipulated from its signal
+ * handler callbacks, until I/O is complete.
  **/
 
 typedef struct {

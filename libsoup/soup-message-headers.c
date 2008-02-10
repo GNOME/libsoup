@@ -19,6 +19,15 @@
  * with a request or response.
  **/
 
+/**
+ * SoupMessageHeadersType:
+ * @SOUP_MESSAGE_HEADERS_REQUEST: request headers
+ * @SOUP_MESSAGE_HEADERS_RESPONSE: response headers
+ *
+ * Value passed to soup_message_headers_new() to set certain default
+ * behaviors.
+ **/
+
 typedef void (*SoupHeaderSetter) (SoupMessageHeaders *, const char *);
 static const char *intern_header_name (const char *name, SoupHeaderSetter *setter);
 
@@ -593,6 +602,14 @@ expectation_setter (SoupMessageHeaders *hdrs, const char *value)
 }
 
 /**
+ * SoupExpectation:
+ * @SOUP_EXPECTATION_CONTINUE: "100-continue"
+ * @SOUP_EXPECTATION_UNRECOGNIZED: any unrecognized expectation
+ *
+ * Represents the parsed value of the "Expect" header.
+ **/
+
+/**
  * soup_message_headers_get_expectations:
  * @hdrs: a #SoupMessageHeaders
  *
@@ -620,8 +637,9 @@ soup_message_headers_get_expectations (SoupMessageHeaders *hdrs)
  * large message body (eg, via POST or PUT), and want to give the
  * server a chance to reject the request after seeing just the headers
  * (eg, because it will require authentication before allowing you to
- * post). This saves you from having to transmit the large request
- * body when the server is just going to ignore it anyway.
+ * post, or because you're POSTing to a URL that doesn't exist). This
+ * saves you from having to transmit the large request body when the
+ * server is just going to ignore it anyway.
  **/
 void
 soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,

@@ -15,15 +15,27 @@
 #define SOUP_IS_LOGGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_LOGGER))
 #define SOUP_LOGGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_LOGGER, SoupLoggerClass))
 
-typedef struct SoupLogger      SoupLogger;
-typedef struct SoupLoggerClass SoupLoggerClass;
-
 typedef enum {
 	SOUP_LOGGER_LOG_NONE,
 	SOUP_LOGGER_LOG_MINIMAL,
 	SOUP_LOGGER_LOG_HEADERS,
 	SOUP_LOGGER_LOG_BODY
 } SoupLoggerLogLevel;
+
+typedef struct {
+	GObject parent;
+
+} SoupLogger;
+
+typedef struct {
+	GObjectClass parent_class;
+
+	/* Padding for future expansion */
+	void (*_libsoup_reserved1) (void);
+	void (*_libsoup_reserved2) (void);
+	void (*_libsoup_reserved3) (void);
+	void (*_libsoup_reserved4) (void);
+} SoupLoggerClass;
 
 typedef SoupLoggerLogLevel (*SoupLoggerFilter)  (SoupLogger         *logger,
 						 SoupMessage        *msg,
@@ -34,21 +46,6 @@ typedef void               (*SoupLoggerPrinter) (SoupLogger         *logger,
 						 char                direction,
 						 const char         *data,
 						 gpointer            user_data);
-
-struct SoupLogger {
-	GObject parent;
-
-};
-
-struct SoupLoggerClass {
-	GObjectClass parent_class;
-
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
-};
 
 GType       soup_logger_get_type    (void);
 

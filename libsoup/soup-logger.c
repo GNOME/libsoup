@@ -157,6 +157,8 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
  * If you need finer control over what message parts are and aren't
  * logged, use soup_logger_set_request_filter() and
  * soup_logger_set_response_filter().
+ *
+ * Returns: a new #SoupLogger
  **/
 SoupLogger *
 soup_logger_new (SoupLoggerLogLevel level, int max_body_size) 

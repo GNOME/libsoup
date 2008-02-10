@@ -21,6 +21,22 @@
  * @short_description: An HTTP request and response.
  * @see_also: #SoupMessageHeaders, #SoupMessageBody
  *
+ * A #SoupMessage represents an HTTP message that is being sent or
+ * received.
+ *
+ * For client-side usage, you would create a #SoupMessage with
+ * soup_message_new() or soup_message_new_from_uri(), set up its
+ * fields appropriate, and send it via a #SoupSession.
+ *
+ * For server-side usage, #SoupServer will create #SoupMessage<!--
+ * -->s automatically for incoming requests, which your application
+ * will receive via handlers.
+ *
+ * Note that libsoup's terminology here does not quite match the HTTP
+ * specification: in RFC 2616, an "HTTP-message" is
+ * <emphasis>either</emphasis> a Request, <emphasis>or</emphasis> a
+ * Response. In libsoup, a #SoupMessage combines both the request and
+ * the response.
  **/
 
 /**

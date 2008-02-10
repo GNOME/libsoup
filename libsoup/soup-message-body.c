@@ -518,6 +518,13 @@ soup_message_body_copy (SoupMessageBody *body)
 	return body;
 }
 
+/**
+ * soup_message_body_free:
+ * @body: a #SoupMessageBody
+ *
+ * Frees @body. You will not normally need to use this, as
+ * #SoupMessage frees its associated message bodies automatically.
+ **/
 void
 soup_message_body_free (SoupMessageBody *body)
 {

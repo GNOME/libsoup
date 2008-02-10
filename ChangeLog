@@ -1,5 +1,9 @@
 2008-02-09  Dan Winship  <danw@gnome.org>
 
+	* Misc gtk-doc fix-ups
+
+2008-02-09  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-misc.h: remove prototype for
 	soup_signal_connect_once, which is only used by soup-connection
 	now, and will go away once that code is rewritten.
