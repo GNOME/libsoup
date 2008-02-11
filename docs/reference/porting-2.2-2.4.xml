@@ -92,7 +92,7 @@ language-bindability.
     <varlistentry>
 	<term><function>soup_message_clear_headers</function></term>
 	<listitem><para>
-	    &#8594; <link linkend="soup-message-headers-clear"><function>soup_message_headers_append</function></link>
+	    &#8594; <link linkend="soup-message-headers-clear"><function>soup_message_headers_clear</function></link>
 	</para></listitem>
     </varlistentry>
 </variablelist>
