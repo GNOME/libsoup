@@ -359,6 +359,34 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
+
+	/**
+	 * SoupSession:user-agent:
+	 *
+	 * If non-%NULL, the value to use for the "User-Agent" header
+	 * on #SoupMessage<!-- -->s sent from this session.
+	 *
+	 * RFC 2616 says: "The User-Agent request-header field
+	 * contains information about the user agent originating the
+	 * request. This is for statistical purposes, the tracing of
+	 * protocol violations, and automated recognition of user
+	 * agents for the sake of tailoring responses to avoid
+	 * particular user agent limitations. User agents SHOULD
+	 * include this field with requests."
+	 *
+	 * The User-Agent header contains a list of one or more
+	 * product tokens, separated by whitespace, with the most
+	 * significant product token coming first. The tokens must be
+	 * brief, ASCII, and mostly alphanumeric (although "-", "_",
+	 * and "." are also allowed), and may optionally include a "/"
+	 * followed by a version string. You may also put comments,
+	 * enclosed in parentheses, between or after the tokens.
+	 *
+	 * If you set a %user_agent property that has trailing
+	 * whitespace, #SoupSession will append its own product token
+	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
+	 * header for you.
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_USER_AGENT,
 		g_param_spec_string (SOUP_SESSION_USER_AGENT,

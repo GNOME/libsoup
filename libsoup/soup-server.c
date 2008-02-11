@@ -356,6 +356,34 @@ soup_server_class_init (SoupServerClass *server_class)
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+	/**
+	 * SoupServer:server-header:
+	 *
+	 * If non-%NULL, the value to use for the "Server" header on
+	 * #SoupMessage<!-- -->s processed by this server.
+	 *
+	 * The Server header is the server equivalent of the
+	 * User-Agent header, and provides information about the
+	 * server and its components. It contains a list of one or
+	 * more product tokens, separated by whitespace, with the most
+	 * significant product token coming first. The tokens must be
+	 * brief, ASCII, and mostly alphanumeric (although "-", "_",
+	 * and "." are also allowed), and may optionally include a "/"
+	 * followed by a version string. You may also put comments,
+	 * enclosed in parentheses, between or after the tokens.
+	 *
+	 * Some HTTP server implementations intentionally do not use
+	 * version numbers in their Server header, so that
+	 * installations running older versions of the server don't
+	 * end up advertising their vulnerability to specific security
+	 * holes.
+	 *
+	 * As with #SoupSession:user_agent, if you set a
+	 * %server_header property that has trailing whitespace,
+	 * #SoupServer will append its own product token (eg,
+	 * "<literal>libsoup/2.3.2</literal>") to the end of the
+	 * header for you.
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SERVER_HEADER,
 		g_param_spec_string (SOUP_SERVER_SERVER_HEADER,
