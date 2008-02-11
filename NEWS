@@ -1,3 +1,93 @@
+Changes in libsoup from 2.3.0.1 to 2.3.2:
+
+	API changes / Behavior changes:
+
+	* soup_server_add_auth_domain() now refs the auth domain when
+          adding it. (soup_server_remove_auth_domain() already
+          unreffed it.) This means existing applications using
+          SoupAuthDomain will now have a small memory leak. Those
+          applications should update their libsoup-2.4 requirement to
+          ">= 2.3.2" at some point before the final GNOME 2.22.0
+          release, and then fix the code to unref the auth domain
+          after adding it to the server.
+
+	* SoupSession's automatic redirect-handling behavior now obeys
+          RFC 2616 more closely. In particular, status codes 300 and
+          304 are no longer mistakenly considered redirects; POSTs
+          that receive 303 are now redirected into GETs; and POSTs
+          that receive 301, 302, or 307 are now not redirected.
+
+	  Applications that were using the SOUP_MESSAGE_NO_REDIRECT
+	  flag to prevent libsoup from redirecting POSTs incorrectly
+	  before should now be able to remove that if they depend on
+	  libsoup-2.4 >= 2.3.2.
+
+	API additions:
+
+	* Added a SOUP_SESSION_USER_AGENT property to SoupSession, and
+          SOUP_SERVER_SERVER_HEADER to SoupServer, to support
+          automatically adding "User-Agent" and "Server" headers to
+          messages. (The default behavior is to do nothing, as
+          before.)
+
+	* Added several new methods to soup-forms.h. Applications that
+          are encoding a fixed set of form fields can now just pass
+          them to soup_form_encode(), rather than needing to construct
+          a GHashTable or GData list. (Likewise, the new
+          soup_uri_set_query_from_fields() behaves similarly for
+          directly updating a URI with form data.) There are also now
+          soup_form_request_new() and other related methods, to
+          directly create a GET or POST SoupMessage for submitting a
+          form query.
+
+	  The original soup_form_* methods have all been renamed,
+	  although #defines exist for backward compatibility.
+
+	* Added soup_message_set_chunk_allocator() and
+	  soup_buffer_new_with_owner(), to give applications more
+	  control over memory usage/copying when doing streaming HTTP.
+	  [Wouter Cloetens, #513810].
+
+	* Added several new methods to soup-value-utils.h for working
+          with multiple array or hash table values at once:
+          soup_value_hash_new_with_vals(),
+          soup_value_hash_insert_vals(),
+          soup_value_hash_lookup_vals(),
+          soup_value_array_new_with_vals(), and
+          soup_value_array_append_vals().
+
+	  This helps to simplify XML-RPC calls that send or receive
+          structs or arrays.
+
+	* Added soup_date_to_time_t().
+
+	* Added SoupMessageHeadersIterator, an iterator type for
+          SoupMessageHeaders that can be used instead of
+          soup_message_headers_foreach().
+
+	Bug fixes:
+
+	* Fixed a crash-when-idle in evolution-exchange [#437835] and
+          rhythmbox [#506552].
+
+	* Added the API version to the gtk-doc installation dir, to
+          prevent parallel-installation problems with libsoup 2.2 and
+          2.4. [#512810, Daniel Gryniewicz].
+
+	* Fixed tests/query-test to compile correctly on Solaris.
+          [#513602, patch from Jeff Cai]
+
+	* Fixed some other minor HTTP conformance issues.
+
+	Python bindings:
+
+	* Although not present in the release tarball, there are now
+          experimental python bindings for libsoup in GNOME subversion
+          (in the python/ subdirectory of libsoup trunk). These are
+          not yet stable (and are not built by default or installed
+          even when building from svn), but comments on them are
+          welcome at libsoup-list@gnome.org
+
 Changes in libsoup from the 2.2 series to 2.3.0.1:
 
 	libsoup 2.3.0 is the first beta release of the libsoup 2.4
