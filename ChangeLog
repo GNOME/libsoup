@@ -1,5 +1,9 @@
 2008-02-11  Dan Winship  <danw@gnome.org>
 
+	* configure.in: post-release bump to 2.3.3
+
+2008-02-11  Dan Winship  <danw@gnome.org>
+
 	* configure.in: 2.3.2
 	(SOUP_CURRENT): bump for API changes
 
