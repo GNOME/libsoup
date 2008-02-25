@@ -1,8 +1,0 @@
-*.lo
-*.la
-.deps
-.libs
-Makefile
-Makefile.in
-soup-marshal.c
-soup-marshal.h
