@@ -1,5 +1,11 @@
 2008-02-25  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.3.4
+
+	* NEWS: Update
+
+2008-02-25  Dan Winship  <danw@gnome.org>
+
 	* docs/reference/Makefile.am (DOC_MODULE): rename from libsoup to
 	libsoup-2.4
 	(TARGET_DIR): don't need to override this now
