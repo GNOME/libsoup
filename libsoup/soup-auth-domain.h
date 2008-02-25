@@ -15,7 +15,7 @@
 #define SOUP_IS_AUTH_DOMAIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH_DOMAIN))
 #define SOUP_AUTH_DOMAIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainClass))
 
-struct SoupAuthDomain {
+struct _SoupAuthDomain {
 	GObject parent;
 
 };

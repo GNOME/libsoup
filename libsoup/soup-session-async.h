@@ -18,7 +18,7 @@ G_BEGIN_DECLS
 #define SOUP_IS_SESSION_ASYNC_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_SESSION_ASYNC))
 #define SOUP_SESSION_ASYNC_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncClass))
 
-struct SoupSessionAsync {
+struct _SoupSessionAsync {
 	SoupSession parent;
 
 };

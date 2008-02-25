@@ -22,7 +22,7 @@ typedef struct SoupClientContext SoupClientContext;
 GType soup_client_context_get_type (void);
 #define SOUP_TYPE_CLIENT_CONTEXT (soup_client_context_get_type ())
 
-struct SoupServer {
+struct _SoupServer {
 	GObject parent;
 
 };

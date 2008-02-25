@@ -12,7 +12,7 @@
 
 G_BEGIN_DECLS
 
-struct SoupURI {
+struct _SoupURI {
 	const char *scheme;
 
 	char       *user;

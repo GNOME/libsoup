@@ -1,3 +1,18 @@
+2008-02-25  Benjamin Otte  <otte@gnome.org>
+
+	* libsoup/soup-address.h:
+	* libsoup/soup-auth-domain.h:
+	* libsoup/soup-auth.h:
+	* libsoup/soup-message.h:
+	* libsoup/soup-server.h:
+	* libsoup/soup-session-async.h:
+	* libsoup/soup-session-sync.h:
+	* libsoup/soup-session.h:
+	* libsoup/soup-socket.h:
+	* libsoup/soup-types.h:
+	* libsoup/soup-uri.h:
+	use an underscore for struct definitions. Fixes bug #518317.
+
 2008-02-20  Sebastian Dröge  <slomo@circular-chaos.org>
 
 	* libsoup.pc.in: Add gobject-2.0 and gio-2.0 to Requires.

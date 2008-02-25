@@ -13,16 +13,16 @@
 
 G_BEGIN_DECLS
 
-typedef struct SoupAddress           SoupAddress;
-typedef struct SoupAuth              SoupAuth;
-typedef struct SoupAuthDomain        SoupAuthDomain;
-typedef struct SoupMessage           SoupMessage;
-typedef struct SoupServer            SoupServer;
-typedef struct SoupSession           SoupSession;
-typedef struct SoupSessionAsync      SoupSessionAsync;
-typedef struct SoupSessionSync       SoupSessionSync;
-typedef struct SoupSocket            SoupSocket;
-typedef struct SoupURI               SoupURI;
+typedef struct _SoupAddress           SoupAddress;
+typedef struct _SoupAuth              SoupAuth;
+typedef struct _SoupAuthDomain        SoupAuthDomain;
+typedef struct _SoupMessage           SoupMessage;
+typedef struct _SoupServer            SoupServer;
+typedef struct _SoupSession           SoupSession;
+typedef struct _SoupSessionAsync      SoupSessionAsync;
+typedef struct _SoupSessionSync       SoupSessionSync;
+typedef struct _SoupSocket            SoupSocket;
+typedef struct _SoupURI               SoupURI;
 
 G_END_DECLS
 

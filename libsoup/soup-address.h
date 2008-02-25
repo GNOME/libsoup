@@ -22,7 +22,7 @@ G_BEGIN_DECLS
 #define SOUP_IS_ADDRESS_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_ADDRESS))
 #define SOUP_ADDRESS_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_ADDRESS, SoupAddressClass))
 
-struct SoupAddress {
+struct _SoupAddress {
 	GObject parent;
 
 };

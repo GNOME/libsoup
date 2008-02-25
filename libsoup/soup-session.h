@@ -22,7 +22,7 @@ typedef void (*SoupSessionCallback) (SoupSession           *session,
 				     SoupMessage           *msg,
 				     gpointer               user_data);
 
-struct SoupSession {
+struct _SoupSession {
 	GObject parent;
 
 };

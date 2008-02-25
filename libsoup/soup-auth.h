@@ -16,7 +16,7 @@
 #define SOUP_IS_AUTH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_AUTH))
 #define SOUP_AUTH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_AUTH, SoupAuthClass))
 
-struct SoupAuth {
+struct _SoupAuth {
 	GObject parent;
 
 	char *realm;

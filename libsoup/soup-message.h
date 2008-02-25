@@ -20,7 +20,7 @@ G_BEGIN_DECLS
 #define SOUP_IS_MESSAGE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_MESSAGE))
 #define SOUP_MESSAGE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_MESSAGE, SoupMessageClass))
 
-struct SoupMessage {
+struct _SoupMessage {
 	GObject parent;
 
 	/*< public >*/
