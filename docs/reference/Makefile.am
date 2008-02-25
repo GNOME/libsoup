@@ -2,7 +2,7 @@
 AUTOMAKE_OPTIONS = 1.6
 
 # The name of the module
-DOC_MODULE=libsoup
+DOC_MODULE=libsoup-2.4
 
 # The top-level SGML file.
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
@@ -59,9 +59,6 @@ GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make
-
-# Override
-override TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-$(SOUP_API_VERSION)
 
 # kludges
 tmpl/*.sgml:

@@ -1,3 +1,18 @@
+2008-02-25  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/Makefile.am (DOC_MODULE): rename from libsoup to
+	libsoup-2.4
+	(TARGET_DIR): don't need to override this now
+
+	* docs/reference/libsoup-2.4.types:
+	* docs/reference/libsoup-2.4-docs.txt:
+	* docs/reference/libsoup-2.4-overrides.txt:
+	* docs/reference/libsoup-2.4-sections.txt: Rename these from
+	unversioned, to match DOC_MODULE
+
+	Fixes doc installation to work with devhelp again. #518384, Mart
+	Raudsepp.
+
 2008-02-25  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-address.h:
