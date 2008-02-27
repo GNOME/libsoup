@@ -1040,7 +1040,9 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 	GIOCondition cond = G_IO_IN;
 	GError *my_err = NULL;
 
-	if (!priv->iochannel) 
+	*nread = 0;
+
+	if (!priv->iochannel)
 		return SOUP_SOCKET_EOF;
 
 	status = g_io_channel_read_chars (priv->iochannel,
@@ -1151,6 +1153,8 @@ soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len,
 	SoupSocketIOStatus status;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	g_return_val_if_fail (nread != NULL, SOUP_SOCKET_ERROR);
+
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	g_mutex_lock (priv->iolock);
@@ -1196,8 +1200,10 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 	guint8 *p, *end;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
-	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_val_if_fail (nread != NULL, SOUP_SOCKET_ERROR);
 	g_return_val_if_fail (len >= boundary_len, SOUP_SOCKET_ERROR);
+
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	g_mutex_lock (priv->iolock);
 
@@ -1296,6 +1302,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	GError *my_err = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
+	g_return_val_if_fail (nwrote != NULL, SOUP_SOCKET_ERROR);
+
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	g_mutex_lock (priv->iolock);

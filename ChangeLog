@@ -1,3 +1,10 @@
+2008-02-27  Benjamin Otte  <otte@gnome.org>
+
+	* libsoup/soup-socket.c: (read_from_network), (soup_socket_read),
+	(soup_socket_read_until), (soup_socket_write):
+	ensure that nread/nwrote parameters aren't NULL. They are also
+	properly set on error paths now.
+
 2008-02-25  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.3.4
