@@ -25,7 +25,7 @@ typedef struct {
 struct {
 	TestRequest requests[3];
 } tests[] = {
-	/* A redirecty response to a GET should could a redirect */
+	/* A redirecty response to a GET should cause a redirect */
 
 	{ { { "GET", "/301", 301 },
 	    { "GET", "/", 200 },
