@@ -59,11 +59,12 @@ struct {
 	    { "GET", "/302", 302 },
 	    { "GET", "/", 200 } } },
 
-	/* POST should only automatically redirect on 303 */
+	/* POST should only automatically redirect on 302 and 303 */
 
 	{ { { "POST", "/301", 301 },
 	    { NULL } } },
 	{ { { "POST", "/302", 302 },
+	    { "GET", "/", 200 },
 	    { NULL } } },
 	{ { { "POST", "/303", 303 },
 	    { "GET", "/", 200 },

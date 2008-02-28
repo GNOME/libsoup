@@ -67,8 +67,9 @@ TESTS =			\
 	continue-test	\
 	date		\
 	header-parsing	\
-	uri-parsing	\
 	ntlm-test	\
+	redirect-test	\
+	uri-parsing	\
 	$(APACHE_TESTS)	\
 	$(CURL_TESTS)	\
 	$(SSL_TESTS)	\

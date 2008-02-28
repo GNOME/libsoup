@@ -2,6 +2,17 @@
 
 	* libsoup/soup-session.c (finalize): free priv->user_agent.
 	#518798, Wouter Cloetens.
+	(redirect_handler): PROPFIND is defined to be "safe and
+	idempotent", so allow automatic redirects of it. (Pointed out by
+	Christian Kellner. FIXME: need a way for apps to declare
+	additional safe methods). Also, treat 302 like 307, not like 303,
+	because that behavior is universal in the real world, despite the
+	spec's protests.
+
+	* tests/redirect-test.c (tests): update POST 302 behavior check
+
+	* tests/Makefile.am (TESTS): oops, add redirect-test so it gets
+	run by "make check"/"make distcheck"
 
 	* tests/ssl-test.c: Re-revert the change from 2008-02-09; the
 	problem with ssl-test.c was not that soup_gnutls_init() wasn't

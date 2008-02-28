@@ -647,14 +647,15 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	g_return_if_fail (new_loc != NULL);
 
 	if (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY ||
-	    msg->status_code == SOUP_STATUS_FOUND ||
 	    msg->status_code == SOUP_STATUS_TEMPORARY_REDIRECT) {
 		/* Don't redirect non-safe methods */
 		if (msg->method != SOUP_METHOD_GET &&
 		    msg->method != SOUP_METHOD_HEAD &&
-		    msg->method != SOUP_METHOD_OPTIONS)
+		    msg->method != SOUP_METHOD_OPTIONS &&
+		    msg->method != SOUP_METHOD_PROPFIND)
 			return;
-	} else if (msg->status_code == SOUP_STATUS_SEE_OTHER) {
+	} else if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
+		   msg->status_code == SOUP_STATUS_FOUND) {
 		/* Redirect using a GET */
 		g_object_set (msg,
 			      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
