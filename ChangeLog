@@ -3,6 +3,13 @@
 	* libsoup/soup-session.c (finalize): free priv->user_agent.
 	#518798, Wouter Cloetens.
 
+	* tests/ssl-test.c: Re-revert the change from 2008-02-09; the
+	problem with ssl-test.c was not that soup_gnutls_init() wasn't
+	thread-safe, it's that the server thread doesn't do anything that
+	would ever cause soup_gnutls_init() to be called, and so if the
+	client thread doesn't start first, the server thread will run
+	without initializing GNUTLS.
+
 2008-02-27  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-socket.c: (read_from_network), (soup_socket_read),
