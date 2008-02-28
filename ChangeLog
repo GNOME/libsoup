@@ -1,3 +1,8 @@
+2008-02-28  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (finalize): free priv->user_agent.
+	#518798, Wouter Cloetens.
+
 2008-02-27  Benjamin Otte  <otte@gnome.org>
 
 	* libsoup/soup-socket.c: (read_from_network), (soup_socket_read),
