@@ -1,3 +1,16 @@
+Changes in libsoup from 2.3.4 to 2.4.0:
+
+	* Fixed a small memory leak in SoupSession. [#518798, Wouter
+          Cloetens]
+
+	* Minor fixes to redirect behavior; PROPFINDs can now be
+          automatically redirected (pointed out by Christian Kellner),
+          and 302 is treated like 307, not 303. Also fixed to make
+          sure that redirect-test actually gets run by "make check".
+
+	* The SoupSocket I/O methods now set nread/nwrote even on
+          error. [Benjamin Otte]
+
 Changes in libsoup from 2.3.2 to 2.3.4:
 
 	* The documentation should be accessible from devhelp again
