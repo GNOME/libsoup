@@ -1,3 +1,15 @@
+2008-03-13  Xan Lopez  <xan@gnome.org>
+
+        * tests/dns.c: (main):
+        * tests/get.c: (main):
+        * tests/getbug.c: (main):
+        * tests/simple-httpd.c: (main):
+        * tests/simple-proxy.c: (main):
+        * tests/ssl-test.c: (main):
+        * tests/test-utils.c: (test_init):
+
+        g_thread_init should be called before any other glib function. (#522117)
+
 2008-03-10  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.4.0!

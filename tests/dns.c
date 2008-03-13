@@ -41,8 +41,8 @@ main (int argc, char **argv)
 	if (argc < 2)
 		usage ();
 
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 
 	for (i = 1; i < argc; i++) {
 		addr = soup_address_new (argv[i], 0);

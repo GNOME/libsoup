@@ -226,8 +226,8 @@ main (int argc, char **argv)
 	gboolean synchronous = FALSE;
 	int opt;
 
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 
 	method = SOUP_METHOD_GET;
 

@@ -95,8 +95,8 @@ main (int argc, char **argv)
 	const char *uri = "http://bugzilla.redhat.com/bugzilla/xmlrpc.cgi";
 	int opt, bug;
 
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 
 	while ((opt = getopt (argc, argv, "p:")) != -1) {
 		switch (opt) {

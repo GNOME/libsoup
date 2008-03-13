@@ -225,8 +225,8 @@ main (int argc, char **argv)
 	SoupSocketIOStatus status;
 	GError *error = NULL;
 
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 
 	while ((opt = getopt (argc, argv, "c:d:k:")) != -1) {
 		switch (opt) {

@@ -201,8 +201,8 @@ main (int argc, char **argv)
 	int ssl_port = SOUP_ADDRESS_ANY_PORT;
 	const char *ssl_cert_file = NULL, *ssl_key_file = NULL;
 
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "p:k:c:s:")) != -1) {
