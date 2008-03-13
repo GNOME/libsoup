@@ -301,6 +301,7 @@ set_property (GObject *object, guint prop_id,
 		priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
@@ -331,6 +332,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_pointer (value, priv->sockaddr);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }

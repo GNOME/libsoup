@@ -146,6 +146,7 @@ set_property (GObject *object, guint prop_id,
 		priv->proxy = g_value_get_boolean (value);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
@@ -174,6 +175,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }

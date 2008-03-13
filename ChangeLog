@@ -1,5 +1,22 @@
 2008-03-13  Xan Lopez  <xan@gnome.org>
 
+        * libsoup/soup-address.c:
+        * libsoup/soup-auth-domain-basic.c:
+        * libsoup/soup-auth-domain-digest.c:
+        * libsoup/soup-auth-domain.c:
+        * libsoup/soup-auth.c:
+        * libsoup/soup-connection.c:
+        * libsoup/soup-message.c:
+        * libsoup/soup-server.c:
+        * libsoup/soup-session.c:
+        * libsoup/soup-socket.c:
+
+	Use G_OBJECT_WARN_INVALID_PROPERTY_ID in all get/set_property functions.
+
+	Bug #522115
+	
+2008-03-13  Xan Lopez  <xan@gnome.org>:ChangeLog
+
         * tests/dns.c: (main):
         * tests/get.c: (main):
         * tests/getbug.c: (main):

@@ -403,6 +403,7 @@ set_property (GObject *object, guint prop_id,
 		priv->timeout = g_value_get_uint (value);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
@@ -436,6 +437,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_uint (value, priv->timeout);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }

@@ -124,6 +124,7 @@ set_property (GObject *object, guint prop_id,
 		priv->auth_data = g_value_get_pointer (value);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
@@ -143,6 +144,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_pointer (value, priv->auth_data);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }

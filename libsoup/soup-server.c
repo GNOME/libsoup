@@ -494,6 +494,7 @@ set_property (GObject *object, guint prop_id,
 			priv->server_header = g_strdup (header);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
@@ -527,6 +528,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_string (value, priv->server_header);
 		break;
 	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
 }
