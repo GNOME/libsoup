@@ -1934,3 +1934,38 @@ soup_message_get_https_status (SoupMessage           *msg,
 		*errors = priv->tls_errors;
 	return priv->tls_certificate != NULL;
 }
+
+/**
+ * soup_message_set_redirect:
+ * @msg: a #SoupMessage
+ * @status_code: a 3xx status code
+ * @redirect_uri: the URI to redirect @msg to
+ *
+ * Sets @msg's status_code to @status_code and adds a Location header
+ * pointing to @redirect_uri. Use this from a #SoupServer when you
+ * want to redirect the client to another URI.
+ *
+ * @redirect_uri can be a relative URI, in which case it is
+ * interpreted relative to @msg's current URI. In particular, if
+ * @redirect_uri is just a path, it will replace the path
+ * <emphasis>and query</emphasis> of @msg's URI.
+ *
+ * Since: 2.38
+ */
+void
+soup_message_set_redirect (SoupMessage *msg, guint status_code,
+			   const char *redirect_uri)
+{
+	SoupURI *location;
+	char *location_str;
+
+	location = soup_uri_new_with_base (soup_message_get_uri (msg), redirect_uri);
+	g_return_if_fail (location != NULL);
+
+	soup_message_set_status (msg, status_code);
+	location_str = soup_uri_to_string (location, FALSE);
+	soup_message_headers_replace (msg->response_headers, "Location",
+				      location_str);
+	g_free (location_str);
+	soup_uri_free (location);
+}

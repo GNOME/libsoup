@@ -155,6 +155,10 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 						 guint              status_code, 
 						 const char        *reason_phrase);
 
+void           soup_message_set_redirect        (SoupMessage       *msg,
+						 guint              status_code,
+						 const char        *redirect_uri);
+
 /* I/O */
 typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
 						 gsize              max_len,

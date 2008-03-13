@@ -395,9 +395,7 @@ md5_post_callback (SoupServer *server, SoupMessage *msg,
 					NULL);
 	redirect_uri = soup_uri_to_string (uri, FALSE);
 
-	soup_message_set_status (msg, SOUP_STATUS_SEE_OTHER);
-	soup_message_headers_replace (msg->response_headers, "Location",
-				      redirect_uri);
+	soup_message_set_redirect (msg, SOUP_STATUS_SEE_OTHER, redirect_uri);
 
 	g_free (redirect_uri);
 	soup_uri_free (uri);

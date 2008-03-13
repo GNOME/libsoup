@@ -1392,32 +1392,126 @@ auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 				     method == SOUP_METHOD_OPTIONS || \
 				     method == SOUP_METHOD_PROPFIND)
 
-static void
-redirect_handler (SoupMessage *msg, gpointer user_data)
+#define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
+	((msg)->status_code == SOUP_STATUS_SEE_OTHER || \
+	 ((msg)->status_code == SOUP_STATUS_FOUND && \
+	  !SOUP_METHOD_IS_SAFE ((msg)->method)) || \
+	 ((msg)->status_code == SOUP_STATUS_MOVED_PERMANENTLY && \
+	  (msg)->method == SOUP_METHOD_POST))
+
+#define SOUP_SESSION_WOULD_REDIRECT_AS_SAFE(session, msg) \
+	(((msg)->status_code == SOUP_STATUS_MOVED_PERMANENTLY || \
+	  (msg)->status_code == SOUP_STATUS_TEMPORARY_REDIRECT || \
+	  (msg)->status_code == SOUP_STATUS_FOUND) && \
+	 SOUP_METHOD_IS_SAFE ((msg)->method))
+
+static inline SoupURI *
+redirection_uri (SoupMessage *msg)
 {
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	const char *new_loc;
 	SoupURI *new_uri;
 
 	new_loc = soup_message_headers_get_one (msg->response_headers,
 						"Location");
-	g_return_if_fail (new_loc != NULL);
+	if (!new_loc)
+		return NULL;
+	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
+	if (!new_uri || !new_uri->host) {
+		if (new_uri)
+			soup_uri_free (new_uri);
+		return NULL;
+	}
 
+	return new_uri;
+}
+
+/**
+ * soup_session_would_redirect:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage that has response headers
+ *
+ * Checks if @msg contains a response that would cause @session to
+ * redirect it to a new URL (ignoring @msg's %SOUP_MESSAGE_NO_REDIRECT
+ * flag, and the number of times it has already been redirected).
+ *
+ * Return value: whether @msg would be redirected
+ *
+ * Since: 2.38
+ */
+gboolean
+soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupURI *new_uri;
+
+	/* It must have an appropriate status code and method */
+	if (!SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg) &&
+	    !SOUP_SESSION_WOULD_REDIRECT_AS_SAFE (session, msg))
+		return FALSE;
+
+	/* and a Location header that parses to an http URI */
+	if (!soup_message_headers_get_one (msg->response_headers, "Location"))
+		return FALSE;
+	new_uri = redirection_uri (msg);
+	if (!new_uri)
+		return FALSE;
+	if (!new_uri->host || !*new_uri->host ||
+	    (!uri_is_http (priv, new_uri) && !uri_is_https (priv, new_uri))) {
+		soup_uri_free (new_uri);
+		return FALSE;
+	}
+
+	soup_uri_free (new_uri);
+	return TRUE;
+}
+
+/**
+ * soup_session_redirect_message:
+ * @session: the session
+ * @msg: a #SoupMessage that has received a 3xx response
+ *
+ * Updates @msg's URI according to its status code and "Location"
+ * header, and requeues it on @session. Use this when you have set
+ * %SOUP_MESSAGE_NO_REDIRECT on a message, but have decided to allow a
+ * particular redirection to occur, or if you want to allow a
+ * redirection that #SoupSession will not perform automatically (eg,
+ * redirecting a non-safe method such as DELETE).
+ *
+ * If @msg's status code indicates that it should be retried as a GET
+ * request, then @msg will be modified accordingly.
+ *
+ * If @msg has already been redirected too many times, this will
+ * cause it to fail with %SOUP_STATUS_TOO_MANY_REDIRECTS.
+ *
+ * Return value: %TRUE if a redirection was applied, %FALSE if not
+ * (eg, because there was no Location header, or it could not be
+ * parsed).
+ *
+ * Since: 2.38
+ */
+gboolean
+soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
+{
+	SoupMessageQueueItem *item;
+	SoupURI *new_uri;
+
+	new_uri = redirection_uri (msg);
+	if (!new_uri)
+		return FALSE;
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
+	if (!item)
+		return FALSE;
 	if (item->redirection_count >= SOUP_SESSION_MAX_REDIRECTION_COUNT) {
 		soup_session_cancel_message (session, msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
-		return;
+		soup_message_queue_item_unref (item);
+		return FALSE;
 	}
 	item->redirection_count++;
+	soup_message_queue_item_unref (item);
 
-	if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
-	    (msg->status_code == SOUP_STATUS_FOUND &&
-	     !SOUP_METHOD_IS_SAFE (msg->method)) ||
-	    (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY &&
-	     msg->method == SOUP_METHOD_POST)) {
+	if (SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg)) {
 		if (msg->method != SOUP_METHOD_HEAD) {
-			/* Redirect using a GET */
 			g_object_set (msg,
 				      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
 				      NULL);
@@ -1426,66 +1520,39 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 					  SOUP_MEMORY_STATIC, NULL, 0);
 		soup_message_headers_set_encoding (msg->request_headers,
 						   SOUP_ENCODING_NONE);
-	} else if (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY ||
-		   msg->status_code == SOUP_STATUS_TEMPORARY_REDIRECT ||
-		   msg->status_code == SOUP_STATUS_FOUND) {
-		/* Don't redirect non-safe methods */
-		if (!SOUP_METHOD_IS_SAFE (msg->method))
-			return;
-	} else {
-		/* Three possibilities:
-		 *
-		 *   1) This was a non-3xx response that happened to
-		 *      have a "Location" header
-		 *   2) It's a non-redirecty 3xx response (300, 304,
-		 *      305, 306)
-		 *   3) It's some newly-defined 3xx response (308+)
-		 *
-		 * We ignore all of these cases. In the first two,
-		 * redirecting would be explicitly wrong, and in the
-		 * last case, we have no clue if the 3xx response is
-		 * supposed to be redirecty or non-redirecty. Plus,
-		 * 2616 says unrecognized status codes should be
-		 * treated as the equivalent to the x00 code, and we
-		 * don't redirect on 300, so therefore we shouldn't
-		 * redirect on 308+ either.
-		 */
-		return;
-	}
-
-	/* Location is supposed to be an absolute URI, but some sites
-	 * are lame, so we use soup_uri_new_with_base().
-	 */
-	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
-	if (!new_uri || !new_uri->host) {
-		if (new_uri)
-			soup_uri_free (new_uri);
-		soup_message_set_status_full (msg,
-					      SOUP_STATUS_MALFORMED,
-					      "Invalid Redirect URL");
-		return;
-	}
-
-	/* If the URI is not "http" or "https" or a recognized alias,
-	 * then we let the redirect response be returned to the caller.
-	 */
-	if (!uri_is_http (priv, new_uri) && !uri_is_https (priv, new_uri)) {
-		soup_uri_free (new_uri);
-		return;
-	}
-
-	if (!new_uri->host) {
-		soup_uri_free (new_uri);
-		soup_message_set_status_full (msg,
-					      SOUP_STATUS_MALFORMED,
-					      "Invalid Redirect URL");
-		return;
 	}
 
 	soup_message_set_uri (msg, new_uri);
 	soup_uri_free (new_uri);
 
 	soup_session_requeue_message (session, msg);
+	return TRUE;
+}
+
+static void
+redirect_handler (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
+
+	if (!soup_session_would_redirect (session, msg)) {
+		SoupURI *new_uri = redirection_uri (msg);
+		gboolean invalid = !new_uri || !new_uri->host;
+
+		if (new_uri)
+			soup_uri_free (new_uri);
+		if (invalid) {
+			/* Really we should just leave the status as-is,
+			 * but that would be an API break.
+			 */
+			soup_message_set_status_full (msg,
+						      SOUP_STATUS_MALFORMED,
+						      "Invalid Redirect URL");
+		}
+		return;
+	}
+
+	soup_session_redirect_message (session, msg);
 }
 
 void

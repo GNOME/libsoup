@@ -112,15 +112,12 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 
 		slash = strrchr (path, '/');
 		if (!slash || slash[1]) {
-			char *uri, *redir_uri;
+			char *redir_uri;
 
-			uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
-			redir_uri = g_strdup_printf ("%s/", uri);
-			soup_message_headers_append (msg->response_headers,
-						     "Location", redir_uri);
-			soup_message_set_status (msg, SOUP_STATUS_MOVED_PERMANENTLY);
+			redir_uri = g_strdup_printf ("%s/", soup_message_get_uri (msg)->path);
+			soup_message_set_redirect (msg, SOUP_STATUS_MOVED_PERMANENTLY,
+						   redir_uri);
 			g_free (redir_uri);
-			g_free (uri);
 			return;
 		}
 

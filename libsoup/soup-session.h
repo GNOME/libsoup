@@ -104,6 +104,11 @@ void            soup_session_abort            (SoupSession           *session);
 void            soup_session_prepare_for_uri  (SoupSession           *session,
 					       SoupURI               *uri);
 
+gboolean        soup_session_would_redirect   (SoupSession           *session,
+					       SoupMessage           *msg);
+gboolean        soup_session_redirect_message (SoupSession           *session,
+					       SoupMessage           *msg);
+
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);
 void                soup_session_add_feature_by_type    (SoupSession        *session,

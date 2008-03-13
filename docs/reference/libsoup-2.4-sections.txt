@@ -18,6 +18,7 @@ soup_message_get_address
 <SUBSECTION>
 soup_message_set_status
 soup_message_set_status_full
+soup_message_set_redirect
 soup_message_is_keepalive
 soup_message_get_https_status
 <SUBSECTION>
@@ -390,6 +391,9 @@ soup_session_send_message
 soup_session_cancel_message
 soup_session_prepare_for_uri
 soup_session_abort
+<SUBSECTION>
+soup_session_would_redirect
+soup_session_redirect_message
 <SUBSECTION>
 soup_session_pause_message
 soup_session_unpause_message

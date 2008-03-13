@@ -141,13 +141,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 
 	if (!strcmp (path, "/redirect")) {
-		soup_message_set_status (msg, SOUP_STATUS_FOUND);
-		soup_message_headers_append (msg->response_headers,
-					     /* Kids: don't try this at home!
-					      * RFC2616 says to use an
-					      * absolute URI!
-					      */
-					     "Location", "/");
+		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
 		return;
 	}
 

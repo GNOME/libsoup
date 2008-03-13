@@ -434,9 +434,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	char *md5;
 
 	if (g_str_has_prefix (path, "/redirect")) {
-		soup_message_set_status (msg, SOUP_STATUS_FOUND);
-		soup_message_headers_replace (msg->response_headers,
-					      "Location", "/");
+		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
 		return;
 	}
 

@@ -430,14 +430,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (*remainder == '/')
 		soup_message_set_http_version (msg, SOUP_HTTP_1_0);
 
-	soup_message_set_status (msg, status_code);
-	if (*remainder) {
-		soup_message_headers_replace (msg->response_headers,
-					      "Location", remainder);
-	} else {
-		soup_message_headers_replace (msg->response_headers,
-					      "Location", "/");
-	}
+	soup_message_set_redirect (msg, status_code,
+				   *remainder ? remainder : "/");
 }
 
 static void
