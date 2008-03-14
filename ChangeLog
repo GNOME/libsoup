@@ -1,5 +1,11 @@
 2008-03-14  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-client-io.c (get_request_headers): Fix Host
+	header syntax when the host is an IPv6 address literal. Noticed
+	while poking at #522519.
+
+2008-03-14  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-private.h (SoupMessagePrivate): add
 	an orig_http_version field.
 

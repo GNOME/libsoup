@@ -66,13 +66,19 @@ get_request_headers (SoupMessage *req, GString *header,
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	gboolean proxy = GPOINTER_TO_UINT (user_data);
 	SoupURI *uri = soup_message_get_uri (req);
+	char *uri_host;
 	char *uri_string;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
+	if (strchr (uri->host, ':'))
+		uri_host = g_strdup_printf ("[%s]", uri->host);
+	else
+		uri_host = uri->host;
+
 	if (req->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
-		uri_string = g_strdup_printf ("%s:%d", uri->host, uri->port);
+		uri_string = g_strdup_printf ("%s:%d", uri_host, uri->port);
 	} else {
 		/* Proxy expects full URI to destination. Otherwise
 		 * just the path.
@@ -88,13 +94,15 @@ get_request_headers (SoupMessage *req, GString *header,
 					req->method, uri_string);
 		if (soup_uri_uses_default_port (uri)) {
 			g_string_append_printf (header, "Host: %s\r\n",
-						uri->host);
+						uri_host);
 		} else {
 			g_string_append_printf (header, "Host: %s:%d\r\n",
-						uri->host, uri->port);
+						uri_host, uri->port);
 		}
 	}
 	g_free (uri_string);
+	if (uri_host != uri->host)
+		g_free (uri_host);
 
 	*encoding = soup_message_headers_get_encoding (req->request_headers);
 	if (*encoding != SOUP_ENCODING_CHUNKED &&
