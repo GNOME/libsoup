@@ -199,6 +199,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			return;
 		}
 
+		/* Make sure that a HTTP/1.0 redirect doesn't cause an
+		 * HTTP/1.0 re-request. (#521848)
+		 */
+		if (soup_message_get_http_version (msg) == SOUP_HTTP_1_0) {
+			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+			return;
+		}
+
 		soup_message_set_status (msg, SOUP_STATUS_OK);
 		soup_message_set_response (msg, "text/plain",
 					   SOUP_MEMORY_STATIC,
@@ -212,6 +220,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
+
+	/* See above comment re bug 521848. */
+	soup_message_set_http_version (msg, SOUP_HTTP_1_0);
 
 	soup_message_set_status (msg, status_code);
 	if (*remainder) {

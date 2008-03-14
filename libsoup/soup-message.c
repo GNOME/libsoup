@@ -118,7 +118,7 @@ soup_message_init (SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	priv->io_status = SOUP_MESSAGE_IO_STATUS_IDLE;
-	priv->http_version = SOUP_HTTP_1_1;
+	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 
 	msg->request_body = soup_message_body_new ();
 	msg->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
@@ -1032,6 +1032,8 @@ soup_message_get_proxy_auth (SoupMessage *msg)
 void
 soup_message_cleanup_response (SoupMessage *req)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+
 	soup_message_body_truncate (req->response_body);
 	soup_message_headers_clear (req->response_headers);
 
@@ -1040,8 +1042,11 @@ soup_message_cleanup_response (SoupMessage *req)
 		g_free ((char *) req->reason_phrase);
 		req->reason_phrase = NULL;
 	}
+	priv->http_version = priv->orig_http_version;
+
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
 }
 
 /**
@@ -1110,9 +1115,14 @@ soup_message_get_flags (SoupMessage *msg)
 void
 soup_message_set_http_version (SoupMessage *msg, SoupHTTPVersion version)
 {
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	SoupMessagePrivate *priv;
 
-	SOUP_MESSAGE_GET_PRIVATE (msg)->http_version = version;
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	priv->http_version = version;
+	if (msg->status_code == SOUP_STATUS_NONE)
+		priv->orig_http_version = version;
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
 }
 

@@ -1,3 +1,24 @@
+2008-03-14  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-private.h (SoupMessagePrivate): add
+	an orig_http_version field.
+
+	* libsoup/soup-message.c (soup_message_init): initialize
+	orig_http_version.
+	(soup_message_set_http_version): If called before the status code
+	is received, set orig_http_version too.
+	(soup_message_cleanup_response): Restore orig_http_version, so
+	that we don't send an HTTP/1.0 request in response to an HTTP/1.0
+	redirect. #521848, Tommi Komulainen.
+
+	* libsoup/soup-message-server-io.c (get_response_headers):
+	actually output "HTTP/1.0", not "HTTP/1.1", if the message's http
+	version is 1.0.
+
+	* tests/redirect-test.c (server_callback): Add a regression test;
+	set http_version to 1.0 when returning a redirect, but require it
+	to be 1.1 when processing the following request
+
 2008-03-13  Xan Lopez  <xan@gnome.org>
 
         * libsoup/soup-address.c:

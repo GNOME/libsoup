@@ -100,7 +100,8 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
-	g_string_append_printf (headers, "HTTP/1.1 %d %s\r\n",
+	g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
+				soup_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',
 				msg->status_code, msg->reason_phrase);
 
 	claimed_encoding = soup_message_headers_get_encoding (msg->response_headers);

@@ -28,7 +28,7 @@ typedef struct {
 
 	guint              msg_flags;
 
-	SoupHTTPVersion    http_version;
+	SoupHTTPVersion    http_version, orig_http_version;
 
 	SoupURI           *uri;
 
