@@ -168,6 +168,11 @@ finalize (GObject *object)
 
 	g_slist_free (priv->disabled_features);
 
+	while (priv->decoders) {
+		g_object_unref (priv->decoders->data);
+		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
+	}
+
 	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);
 	soup_message_body_free (msg->response_body);
@@ -1227,6 +1232,12 @@ soup_message_cleanup_response (SoupMessage *req)
 						   SOUP_ENCODING_CONTENT_LENGTH);
 	}
 
+	while (priv->decoders) {
+		g_object_unref (priv->decoders->data);
+		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
+	}
+	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
+
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
 		g_free (req->reason_phrase);
@@ -1237,6 +1248,7 @@ soup_message_cleanup_response (SoupMessage *req)
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_FLAGS);
 }
 
 /**

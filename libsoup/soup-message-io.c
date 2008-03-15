@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "soup-coding.h"
 #include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -345,6 +346,40 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 	return TRUE;
 }
 
+static SoupBuffer *
+content_decode (SoupMessage *msg, SoupBuffer *buf)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupCoding *decoder;
+	SoupBuffer *decoded;
+	GError *error = NULL;
+	GSList *d;
+
+	for (d = priv->decoders; d; d = d->next) {
+		decoder = d->data;
+
+		decoded = soup_coding_apply (decoder, buf->data, buf->length,
+					     FALSE, &error);
+		if (error) {
+			if (g_error_matches (error, SOUP_CODING_ERROR, SOUP_CODING_ERROR_INTERNAL_ERROR))
+				g_warning ("Content-Decoding error: %s\n", error->message);
+			g_error_free (error);
+
+			soup_message_set_flags (msg, priv->msg_flags & ~SOUP_MESSAGE_CONTENT_DECODED);
+			break;
+		}
+		if (buf)
+			soup_buffer_free (buf);
+
+		if (decoded)
+			buf = decoded;
+		else
+			return NULL;
+	}
+
+	return buf;
+}
+
 /* Reads as much message body data as is available on io->sock (but no
  * further than the end of the current message body or chunk). On a
  * successful read, emits "got_chunk" (possibly multiple times), and
@@ -395,9 +430,13 @@ read_body_chunk (SoupMessage *msg)
 
 		if (status == SOUP_SOCKET_OK && nread) {
 			buffer->length = nread;
-			soup_message_body_got_chunk (io->read_body, buffer);
-
 			io->read_length -= nread;
+
+			buffer = content_decode (msg, buffer);
+			if (!buffer)
+				continue;
+
+			soup_message_body_got_chunk (io->read_body, buffer);
 
 			if (io->need_content_sniffed) {
 				soup_message_body_append_buffer (io->sniff_data, buffer);

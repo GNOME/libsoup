@@ -13,6 +13,7 @@ LIBS =			\
 
 noinst_PROGRAMS =	\
 	chunk-test	\
+	coding-test	\
 	context-test	\
 	continue-test	\
 	date		\
@@ -39,6 +40,7 @@ TEST_SRCS = test-utils.c test-utils.h
 
 auth_test_SOURCES = auth-test.c $(TEST_SRCS)
 chunk_test_SOURCES = chunk-test.c $(TEST_SRCS)
+coding_test_SOURCES = coding-test.c $(TEST_SRCS)
 context_test_SOURCES = context-test.c $(TEST_SRCS)
 continue_test_SOURCES = continue-test.c $(TEST_SRCS)
 date_SOURCES = date.c $(TEST_SRCS)
@@ -82,6 +84,7 @@ endif
 
 TESTS =			\
 	chunk-test	\
+	coding-test	\
 	context-test	\
 	continue-test	\
 	date		\
