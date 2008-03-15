@@ -40,6 +40,7 @@ typedef struct {
 	SoupAuth          *auth, *proxy_auth;
 
 	GSList            *disabled_features;
+	GSList            *decoders;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 

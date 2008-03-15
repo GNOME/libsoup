@@ -48,6 +48,11 @@ get_url (const char *url)
 
 		printf ("%s %s HTTP/1.%d\n\n", method, path,
 			soup_message_get_http_version (msg));
+		soup_message_headers_iter_init (&iter, msg->request_headers);
+		while (soup_message_headers_iter_next (&iter, &hname, &value))
+			printf ("%s: %s\r\n", hname, value);
+		printf ("\n");
+
 		printf ("HTTP/1.%d %d %s\n",
 			soup_message_get_http_version (msg),
 			msg->status_code, msg->reason_phrase);
@@ -145,6 +150,7 @@ main (int argc, char **argv)
 #ifdef HAVE_GNOME
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
 #endif
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	} else {
@@ -153,6 +159,7 @@ main (int argc, char **argv)
 #ifdef HAVE_GNOME
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
 #endif
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	}
