@@ -398,6 +398,24 @@ async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
 }
 
 static void
+async_authenticate_522601 (SoupSession *session, SoupMessage *msg,
+			   SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	gboolean *been_here = data;
+
+	debug_printf (2, "  async_authenticate_522601\n");
+
+	if (*been_here) {
+		debug_printf (1, "  ERROR: async_authenticate_522601 called twice\n");
+		errors++;
+	}
+	*been_here = TRUE;
+
+	soup_session_pause_message (session, msg);
+	g_main_loop_quit (loop);
+}
+
+static void
 do_async_auth_test (const char *base_uri)
 {
 	SoupSession *session;
@@ -406,6 +424,7 @@ do_async_auth_test (const char *base_uri)
 	char *uri;
 	SoupAuth *auth = NULL;
 	int finished = 0;
+	gboolean been_there = FALSE;
 
 	debug_printf (1, "\nTesting async auth:\n");
 
@@ -457,6 +476,7 @@ do_async_auth_test (const char *base_uri)
 	/* Now do the auth, and restart */
 	if (auth) {
 		soup_auth_authenticate (auth, "user1", "realm1");
+		g_object_unref (auth);
 		soup_session_unpause_message (session, msg1);
 		soup_session_unpause_message (session, msg3);
 
@@ -490,7 +510,38 @@ do_async_auth_test (const char *base_uri)
 	g_object_unref (msg3);
 	memcpy (msg2, &msg2_bak, sizeof (SoupMessage));
 	g_object_unref (msg2);
+
+	/* Test that giving the wrong password doesn't cause multiple
+	 * authenticate signals the second time.
+	 */
+	debug_printf (1, "\nTesting async auth with wrong password (#522601):\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	auth = NULL;
+
+	msg1 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate), &auth);
+	g_object_ref (msg1);
+	soup_session_queue_message (session, msg1, async_finished, &finished);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+	soup_auth_authenticate (auth, "user1", "wrong");
 	g_object_unref (auth);
+	soup_session_unpause_message (session, msg1);
+
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate_522601),
+				    &been_there);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+
+	soup_session_abort (session);
+	g_object_unref (session);
+
+	g_object_unref (msg1);
+
 	g_free (uri);
 }
 

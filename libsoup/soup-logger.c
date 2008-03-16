@@ -321,8 +321,12 @@ soup_logger_clear_id (SoupLogger *logger, gpointer object)
 	g_object_set_qdata (object, priv->tag, NULL);
 }
 
+static void request_queued (SoupSession *session, SoupMessage *msg,
+			    gpointer user_data);
 static void request_started (SoupSession *session, SoupMessage *msg,
 			     SoupSocket *socket, gpointer user_data);
+static void request_unqueued (SoupSession *session, SoupMessage *msg,
+			      gpointer user_data);
 
 static void
 weak_notify_unref (gpointer logger, GObject *ex_session)
@@ -348,8 +352,12 @@ soup_logger_attach (SoupLogger  *logger,
 {
 	if (!soup_logger_get_id (logger, session))
 		soup_logger_set_id (logger, session);
+	g_signal_connect (session, "request_queued",
+			  G_CALLBACK (request_queued), logger);
 	g_signal_connect (session, "request_started",
 			  G_CALLBACK (request_started), logger);
+	g_signal_connect (session, "request_unqueued",
+			  G_CALLBACK (request_unqueued), logger);
 
 	g_object_weak_ref (G_OBJECT (session),
 			   weak_notify_unref, g_object_ref (logger));
@@ -366,7 +374,9 @@ void
 soup_logger_detach (SoupLogger  *logger,
 		    SoupSession *session)
 {
+	g_signal_handlers_disconnect_by_func (session, request_queued, logger);
 	g_signal_handlers_disconnect_by_func (session, request_started, logger);
+	g_signal_handlers_disconnect_by_func (session, request_unqueued, logger);
 
 	g_object_weak_unref (G_OBJECT (session),
 			     weak_notify_unref, logger);
@@ -600,15 +610,16 @@ got_body (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-finished_handler (SoupMessage *msg, gpointer user_data)
+request_queued (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
 
-	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
-	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
-	g_signal_handlers_disconnect_by_func (msg, finished_handler, logger);
-
-	soup_logger_clear_id (logger, msg);
+	g_signal_connect (msg, "got-informational",
+			  G_CALLBACK (got_informational),
+			  logger);
+	g_signal_connect (msg, "got-body",
+			  G_CALLBACK (got_body),
+			  logger);
 }
 
 static void
@@ -623,18 +634,8 @@ request_started (SoupSession *session, SoupMessage *msg,
 	if (msg_id)
 		restarted = TRUE;
 	else {
-		msg_id = soup_logger_set_id (logger, msg);
+		soup_logger_set_id (logger, msg);
 		restarted = FALSE;
-
-		g_signal_connect (msg, "got-informational",
-				  G_CALLBACK (got_informational),
-				  logger);
-		g_signal_connect (msg, "got-body",
-				  G_CALLBACK (got_body),
-				  logger);
-		g_signal_connect (msg, "finished",
-				  G_CALLBACK (finished_handler),
-				  logger);
 	}
 
 	if (!soup_logger_get_id (logger, socket))
@@ -642,4 +643,15 @@ request_started (SoupSession *session, SoupMessage *msg,
 
 	print_request (logger, msg, session, socket, restarted);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+}
+
+static void
+request_unqueued (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	SoupLogger *logger = user_data;
+
+	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
+	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
+
+	soup_logger_clear_id (logger, msg);
 }

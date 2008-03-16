@@ -45,8 +45,12 @@ struct SoupAuthManagerNTLM {
 	GHashTable *connections_by_id;
 };
 
+static void ntlm_request_queued (SoupSession *session, SoupMessage *msg,
+				 gpointer ntlm);
 static void ntlm_request_started (SoupSession *session, SoupMessage *msg,
 				  SoupSocket *socket, gpointer ntlm);
+static void ntlm_request_unqueued (SoupSession *session, SoupMessage *msg,
+				   gpointer ntlm);
 
 static char     *soup_ntlm_request         (void);
 static gboolean  soup_ntlm_parse_challenge (const char  *challenge,
@@ -67,8 +71,12 @@ soup_auth_manager_ntlm_new (SoupSession *session)
 	ntlm->session = session;
 	ntlm->connections_by_id = g_hash_table_new (NULL, NULL);
 	ntlm->connections_by_msg = g_hash_table_new (NULL, NULL);
+	g_signal_connect (session, "request_queued",
+			  G_CALLBACK (ntlm_request_queued), ntlm);
 	g_signal_connect (session, "request_started",
 			  G_CALLBACK (ntlm_request_started), ntlm);
+	g_signal_connect (session, "request_unqueued",
+			  G_CALLBACK (ntlm_request_unqueued), ntlm);
 	return ntlm;
 }
 
@@ -97,7 +105,11 @@ soup_auth_manager_ntlm_free (SoupAuthManagerNTLM *ntlm)
 	g_hash_table_destroy (ntlm->connections_by_id);
 	g_hash_table_destroy (ntlm->connections_by_msg);
 	g_signal_handlers_disconnect_by_func (ntlm->session,
+					      ntlm_request_queued, ntlm);
+	g_signal_handlers_disconnect_by_func (ntlm->session,
 					      ntlm_request_started, ntlm);
+	g_signal_handlers_disconnect_by_func (ntlm->session,
+					      ntlm_request_unqueued, ntlm);
 
 	g_slice_free (SoupAuthManagerNTLM, ntlm);
 }
@@ -253,13 +265,16 @@ done:
 }
 
 static void
-ntlm_cleanup_msg (SoupMessage *msg, gpointer ntlm)
+ntlm_request_queued (SoupSession *session, SoupMessage *msg, gpointer ntlm)
 {
-	/* Do this when the message is restarted, in case it's
-	 * restarted on a different connection.
-	 */
-	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, ntlm);
-	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, ntlm);
+	soup_message_add_status_code_handler (msg, "got_headers",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (ntlm_authorize_pre),
+					      ntlm);
+	soup_message_add_status_code_handler (msg, "got_body",
+					      SOUP_STATUS_UNAUTHORIZED,
+					      G_CALLBACK (ntlm_authorize_post),
+					      ntlm);
 }
 
 static void
@@ -292,20 +307,14 @@ ntlm_request_started (SoupSession *session, SoupMessage *msg,
 					      "Authorization", header);
 		g_free (header);
 	}
+}
 
-	soup_message_add_status_code_handler (msg, "got_headers",
-					      SOUP_STATUS_UNAUTHORIZED,
-					      G_CALLBACK (ntlm_authorize_pre),
-					      ntlm);
-	soup_message_add_status_code_handler (msg, "got_body",
-					      SOUP_STATUS_UNAUTHORIZED,
-					      G_CALLBACK (ntlm_authorize_post),
-					      ntlm);
-	g_signal_connect (msg, "restarted",
-			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (ntlm_cleanup_msg), ntlm);
-
+static void
+ntlm_request_unqueued (SoupSession *session, SoupMessage *msg,
+		       gpointer ntlm)
+{
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, ntlm);
+	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, ntlm);
 }
 
 

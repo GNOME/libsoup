@@ -1,3 +1,18 @@
+2008-03-15  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c: Define two new signals, request_queued
+	and request_unqueued, to provided a clearer (and
+	clearly-documented) lifecycle for messages, helping us (and other
+	people) avoid bugs like #522601, SoupSession::authenticate signal
+	emitted multiple times per message (reported and analyzed by Tommi
+	Komulainen).
+
+	* libsoup/soup-logger.c:
+	* libsoup/soup-auth-manager.c:
+	* libsoup/soup-auth-manager-ntlm.c: Use request_queued/unqueued
+
+	* tests/auth-test.c (do_async_auth_test): add a regression test
+
 2008-03-14  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-client-io.c (get_request_headers): Fix Host

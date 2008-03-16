@@ -121,7 +121,9 @@ extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
 
 enum {
+	REQUEST_QUEUED,
 	REQUEST_STARTED,
+	REQUEST_UNQUEUED,
 	AUTHENTICATE,
 	LAST_SIGNAL
 };
@@ -255,12 +257,65 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/* signals */
 
 	/**
+	 * SoupSession::request-queued:
+	 * @session: the session
+	 * @msg: the request that was queued
+	 *
+	 * Emitted when a request is queued on @session. (Note that
+	 * "queued" doesn't just mean soup_session_queue_message();
+	 * soup_session_send_message() implicitly queues the message
+	 * as well.)
+	 *
+	 * When sending a request, first #SoupSession::request_queued
+	 * is emitted, indicating that the session has become aware of
+	 * the request.
+	 *
+	 * Once a connection is available to send the request on, the
+	 * session emits #SoupSession::request_started. Then, various
+	 * #SoupMessage signals are emitted as the message is
+	 * processed. If the message is requeued, it will emit
+	 * #SoupMessage::restarted, which will then be followed by
+	 * another #SoupSession::request_started and another set of
+	 * #SoupMessage signals when the message is re-sent.
+	 *
+	 * Eventually, the message will emit #SoupMessage::finished.
+	 * Normally, this signals the completion of message
+	 * processing. However, it is possible that the application
+	 * will requeue the message from the "finished" handler (or
+	 * equivalently, from the soup_session_queue_message()
+	 * callback). In that case, the process will loop back to
+	 * #SoupSession::request_started.
+	 *
+	 * Eventually, a message will reach "finished" and not be
+	 * requeued. At that point, the session will emit
+	 * #SoupSession::request_unqueued to indicate that it is done
+	 * with the message.
+	 *
+	 * To sum up: #SoupSession::request_queued and
+	 * #SoupSession::request_unqueued are guaranteed to be emitted
+	 * exactly once, but #SoupSession::request_started and
+	 * #SoupMessage::finished (and all of the other #SoupMessage
+	 * signals) may be invoked multiple times for a given message.
+	 **/
+	signals[REQUEST_QUEUED] =
+		g_signal_new ("request-queued",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0, /* FIXME? */
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
+
+	/**
 	 * SoupSession::request-started:
 	 * @session: the session
 	 * @msg: the request being sent
 	 * @socket: the socket the request is being sent on
 	 *
-	 * Emitted just before a request is sent.
+	 * Emitted just before a request is sent. See
+	 * #SoupSession::request_queued for a detailed description of
+	 * the message lifecycle within a session.
 	 **/
 	signals[REQUEST_STARTED] =
 		g_signal_new ("request-started",
@@ -272,6 +327,26 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_SOCKET);
+
+	/**
+	 * SoupSession::request-unqueued:
+	 * @session: the session
+	 * @msg: the request that was unqueued
+	 *
+	 * Emitted when a request is removed from @session's queue,
+	 * indicating that @session is done with it. See
+	 * #SoupSession::request_queued for a detailed description of the
+	 * message lifecycle within a session.
+	 **/
+	signals[REQUEST_UNQUEUED] =
+		g_signal_new ("request-unqueued",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0, /* FIXME? */
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_MESSAGE);
 
 	/**
 	 * SoupSession::authenticate:
@@ -716,6 +791,12 @@ connection_started_request (SoupConnection *conn, SoupMessage *msg,
 					      "User-Agent", priv->user_agent);
 	}
 
+	/* Kludge to deal with the fact that CONNECT msgs come from the
+	 * SoupConnection rather than being queued normally.
+	 */
+	if (msg->method == SOUP_METHOD_CONNECT)
+		g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
+
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       msg, soup_connection_get_socket (conn));
 }
@@ -984,6 +1065,8 @@ message_finished (SoupMessage *msg, gpointer user_data)
 	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
 		soup_message_queue_remove_message (priv->queue, msg);
 		g_signal_handlers_disconnect_by_func (msg, message_finished, session);
+		g_signal_handlers_disconnect_by_func (msg, redirect_handler, session);
+		g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, msg);
 	}
 }
 
@@ -1004,6 +1087,8 @@ queue_message (SoupSession *session, SoupMessage *msg,
 
 	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 	soup_message_queue_append (priv->queue, msg);
+
+	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 }
 
 /**
