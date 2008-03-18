@@ -1,5 +1,27 @@
 2008-03-18  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (soup_session_class_init): Add a new
+	property, SOUP_SESSION_IDLE_TIMEOUT, to specify a timeout after
+	which idle connections should be closed.
+	(soup_session_get_connection): pass the idle_timeout value on to
+	the connection.
+
+	* libsoup/soup-connection.c (soup_connection_class_init): Add
+	SOUP_CONNECTION_IDLE_TIMEOUT.
+	(start_idle_timer, stop_idle_timer): add/remove a timeout to call
+	soup_connection_disconnect().
+	(socket_connect_result, soup_connection_connect_sync): start the
+	idle timer after connection is complete
+	(set_current_request): call stop_idle_timer() when starting a new
+	request
+	(clear_current_request): call start_idle_timer() when finishing a
+	request
+	(dispose): call stop_idle_timer() when destroying the connection
+
+	#518214, based on a patch from Jorn Baayen.
+
+2008-03-18  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-io.c (soup_message_io_unpause): if delaying
 	the unpause to idle time, we need to keep track of the idle source
 	(soup_message_io_stop): if the message is waiting to unpause

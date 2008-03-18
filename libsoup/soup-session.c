@@ -68,8 +68,6 @@ typedef struct {
 	SoupURI *proxy_uri;
 	SoupAuth *proxy_auth;
 
-	guint max_conns, max_conns_per_host;
-
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
 
@@ -83,6 +81,8 @@ typedef struct {
 	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
+	guint max_conns, max_conns_per_host;
+	guint io_timeout, idle_timeout;
 
 	/* Must hold the host_lock before potentially creating a
 	 * new SoupSessionHost, or adding/removing a connection.
@@ -91,11 +91,6 @@ typedef struct {
 	GMutex *host_lock;
 
 	GMainContext *async_context;
-
-	/* Holds the timeout value for the connection, when
-	   no response is received.
-	*/
-	guint timeout;
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
@@ -141,6 +136,7 @@ enum {
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
+	PROP_IDLE_TIMEOUT,
 
 	LAST_PROP
 };
@@ -164,8 +160,6 @@ soup_session_init (SoupSession *session)
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
 	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
-
-	priv->timeout = 0;
 
 	priv->auth_manager = soup_auth_manager_new (session);
 	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_BASIC);
@@ -410,6 +404,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
 				  G_PARAM_READWRITE));
 	g_object_class_install_property (
+		object_class, PROP_IDLE_TIMEOUT,
+		g_param_spec_uint (SOUP_SESSION_IDLE_TIMEOUT,
+				   "Idle Timeout",
+				   "Connection lifetime when idle",
+				   0, G_MAXUINT, 0,
+				   G_PARAM_READWRITE));
+	g_object_class_install_property (
 		object_class, PROP_USE_NTLM,
 		g_param_spec_boolean (SOUP_SESSION_USE_NTLM,
 				      "Use NTLM",
@@ -568,7 +569,7 @@ set_property (GObject *object, guint prop_id,
 			g_main_context_ref (priv->async_context);
 		break;
 	case PROP_TIMEOUT:
-		priv->timeout = g_value_get_uint (value);
+		priv->io_timeout = g_value_get_uint (value);
 		break;
 	case PROP_USER_AGENT:
 		g_free (priv->user_agent);
@@ -584,6 +585,9 @@ set_property (GObject *object, guint prop_id,
 						 SOUP_SESSION_USER_AGENT_BASE);
 		} else
 			priv->user_agent = g_strdup (user_agent);
+		break;
+	case PROP_IDLE_TIMEOUT:
+		priv->idle_timeout = g_value_get_uint (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -618,10 +622,13 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
 	case PROP_TIMEOUT:
-		g_value_set_uint (value, priv->timeout);
+		g_value_set_uint (value, priv->io_timeout);
 		break;
 	case PROP_USER_AGENT:
 		g_value_set_string (value, priv->user_agent);
+		break;
+	case PROP_IDLE_TIMEOUT:
+		g_value_set_uint (value, priv->idle_timeout);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1017,7 +1024,8 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		SOUP_CONNECTION_PROXY_URI, priv->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
-		SOUP_CONNECTION_TIMEOUT, priv->timeout,
+		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
+		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
 		NULL);
 	g_signal_connect (conn, "connect_result",
 			  G_CALLBACK (connect_result),

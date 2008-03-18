@@ -49,7 +49,8 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
-#define SOUP_CONNECTION_TIMEOUT		"timeout"
+#define SOUP_CONNECTION_TIMEOUT         "timeout"
+#define SOUP_CONNECTION_IDLE_TIMEOUT    "idle-timeout"
 
 SoupConnection *soup_connection_new            (const char       *propname1,
 						...) G_GNUC_NULL_TERMINATED;
