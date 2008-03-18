@@ -1,3 +1,13 @@
+2008-03-18  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-io.c (soup_message_io_unpause): if delaying
+	the unpause to idle time, we need to keep track of the idle source
+	(soup_message_io_stop): if the message is waiting to unpause
+	itself, cancel that
+
+	* libsoup/soup-server.c (soup_server_pause_message): call
+	soup_message_io_pause(), not soup_message_io_unpause(). Duh.
+
 2008-03-15  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c: Define two new signals, request_queued

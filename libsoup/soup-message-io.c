@@ -62,6 +62,7 @@ typedef struct {
 	guint                 written;
 
 	guint read_tag, write_tag, err_tag;
+	GSource *unpause_source;
 
 	SoupMessageGetHeadersFn   get_headers_cb;
 	SoupMessageParseHeadersFn parse_headers_cb;
@@ -137,6 +138,11 @@ soup_message_io_stop (SoupMessage *msg)
 	if (io->err_tag) {
 		g_signal_handler_disconnect (io->sock, io->err_tag);
 		io->err_tag = 0;
+	}
+
+	if (io->unpause_source) {
+		g_source_destroy (io->unpause_source);
+		io->unpause_source = NULL;
 	}
 
 	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
@@ -874,6 +880,7 @@ io_unpause_internal (gpointer msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_val_if_fail (io != NULL, FALSE);
+	io->unpause_source = NULL;
 
 	if (io->write_tag || io->read_tag)
 		return FALSE;
@@ -910,9 +917,12 @@ soup_message_io_unpause (SoupMessage *msg)
 		      SOUP_SOCKET_FLAG_NONBLOCKING, &non_blocking,
 		      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
 		      NULL);
-	if (non_blocking)
-		soup_add_idle (async_context, io_unpause_internal, msg);
-	else
+	if (non_blocking) {
+		if (!io->unpause_source) {
+			io->unpause_source = soup_add_idle (
+				async_context, io_unpause_internal, msg);
+		}
+	} else
 		io_unpause_internal (msg);
 	if (async_context)
 		g_main_context_unref (async_context);
