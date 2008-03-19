@@ -125,18 +125,16 @@ soup_auth_digest_parse_qop (const char *qop)
 	GSList *qop_values, *iter;
 	SoupAuthDigestQop out = 0;
 
-	if (qop) {
-		qop_values = soup_header_parse_list (qop);
-		for (iter = qop_values; iter; iter = iter->next) {
-			if (!g_ascii_strcasecmp (iter->data, "auth"))
-				out |= SOUP_AUTH_DIGEST_QOP_AUTH;
-			else if (!g_ascii_strcasecmp (iter->data, "auth-int"))
-				out |= SOUP_AUTH_DIGEST_QOP_AUTH_INT;
-			else
-				out = -1;
-		}
-		soup_header_free_list (qop_values);
+	g_return_val_if_fail (qop != NULL, 0);
+
+	qop_values = soup_header_parse_list (qop);
+	for (iter = qop_values; iter; iter = iter->next) {
+		if (!g_ascii_strcasecmp (iter->data, "auth"))
+			out |= SOUP_AUTH_DIGEST_QOP_AUTH;
+		else if (!g_ascii_strcasecmp (iter->data, "auth-int"))
+			out |= SOUP_AUTH_DIGEST_QOP_AUTH_INT;
 	}
+	soup_header_free_list (qop_values);
 
 	return out;
 }
@@ -162,7 +160,7 @@ static gboolean
 update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
-	const char *stale;
+	const char *stale, *qop;
 	guint qop_options;
 	gboolean ok = TRUE;
 
@@ -176,11 +174,15 @@ update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 	priv->nonce = g_strdup (g_hash_table_lookup (auth_params, "nonce"));
 	priv->opaque = g_strdup (g_hash_table_lookup (auth_params, "opaque"));
 
-	qop_options = soup_auth_digest_parse_qop (g_hash_table_lookup (auth_params, "qop"));
-	/* We're just going to do qop=auth for now */
-	if (qop_options == -1 || !(qop_options & SOUP_AUTH_DIGEST_QOP_AUTH))
-		ok = FALSE;
-	priv->qop = SOUP_AUTH_DIGEST_QOP_AUTH;
+	qop = g_hash_table_lookup (auth_params, "qop");
+	if (qop) {
+		qop_options = soup_auth_digest_parse_qop (qop);
+		/* We only support auth */
+		if (!(qop_options & SOUP_AUTH_DIGEST_QOP_AUTH))
+			ok = FALSE;
+		priv->qop = qop_options;
+	} else
+		priv->qop = 0;
 
 	priv->algorithm = soup_auth_digest_parse_algorithm (g_hash_table_lookup (auth_params, "algorithm"));
 	if (priv->algorithm == -1)

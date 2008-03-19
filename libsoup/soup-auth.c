@@ -212,7 +212,7 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 			     NULL);
 
 	scheme = soup_auth_get_scheme_name (auth);
-	if (strncmp (auth_header, scheme, strlen (scheme)) != 0) {
+	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0) {
 		g_object_unref (auth);
 		return NULL;
 	}

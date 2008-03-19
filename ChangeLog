@@ -1,3 +1,19 @@
+2008-03-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth.c (soup_auth_new): compare WWW-Authenticate
+	auth schemes case-insensitively.
+
+	* libsoup/soup-auth-digest.c (update): allow Digest
+	WWW-Authenticate header with no "qop" option. (The original RFC
+	2069 style of Digest auth.)
+	(soup_auth_digest_parse_qop): this returns a bitfield, so don't
+	return -1 if there are no recognized values.
+
+	* tests/httpd.conf.in: use "AuthDigestQop none" in /Digest/realm3
+	so we test that
+
+	Fixes #498484 (Digest auth against Apple's Calendar Server).
+
 2008-03-18  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c (soup_session_class_init): Add a new

@@ -279,4 +279,6 @@ Alias /Digest @srcdir@
   AuthUserFile @srcdir@/htdigest
   AuthDigestDomain /Digest/realm3
   Require valid-user
+  # test RFC2069-style Digest
+  AuthDigestQop none
 </Location>
