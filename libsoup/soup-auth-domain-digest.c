@@ -340,8 +340,12 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 
 		hex_urp = priv->auth_callback (domain, msg, username,
 					       priv->auth_data);
-		accept = check_hex_urp (domain, msg, params, username, hex_urp);
-		g_free (hex_urp);
+		if (hex_urp) {
+			accept = check_hex_urp (domain, msg, params,
+						username, hex_urp);
+			g_free (hex_urp);
+		} else
+			accept = FALSE;
 	} else {
 		accept = soup_auth_domain_try_generic_auth_callback (
 			domain, msg, username);

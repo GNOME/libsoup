@@ -43,7 +43,8 @@ curl_exited (GPid pid, int status, gpointer data)
 }
 
 static void
-do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
+do_test (int n, SoupURI *base_uri, const char *path,
+	 gboolean good_user, gboolean good_password,
 	 gboolean offer_basic, gboolean offer_digest,
 	 gboolean client_sends_basic, gboolean client_sends_digest,
 	 gboolean server_requests_basic, gboolean server_requests_digest,
@@ -55,9 +56,10 @@ do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
 	GPid pid;
 	gboolean done;
 
-	debug_printf (1, "%2d. %s, %soffer Basic, %soffer Digest, %s password\n",
+	debug_printf (1, "%2d. %s, %soffer Basic, %soffer Digest, %s user, %s password\n",
 		      n, path, offer_basic ? "" : "don't ",
 		      offer_digest ? "" : "don't ",
+		      good_user ? "good" : "bad",
 		      good_password ? "good" : "bad");
 
 	uri = soup_uri_new_with_base (base_uri, path);
@@ -70,10 +72,17 @@ do_test (int n, SoupURI *base_uri, const char *path, gboolean good_password,
 	g_ptr_array_add (args, "-s");
 	if (offer_basic || offer_digest) {
 		g_ptr_array_add (args, "-u");
-		if (good_password)
-			g_ptr_array_add (args, "user:password");
-		else
-			g_ptr_array_add (args, "user:badpassword");
+		if (good_user) {
+			if (good_password)
+				g_ptr_array_add (args, "user:password");
+			else
+				g_ptr_array_add (args, "user:badpassword");
+		} else {
+			if (good_password)
+				g_ptr_array_add (args, "baduser:password");
+			else
+				g_ptr_array_add (args, "baduser:badpassword");
+		}
 
 		if (offer_basic && offer_digest)
 			g_ptr_array_add (args, "--anyauth");
@@ -140,13 +149,16 @@ static void
 do_auth_tests (SoupURI *base_uri)
 {
 	int i, n = 1;
-	gboolean use_basic, use_digest, good_password;
-	gboolean preemptive_basic;
+	gboolean use_basic, use_digest, good_user, good_password;
+	gboolean preemptive_basic, good_auth;
 
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 16; i++) {
 		use_basic     = (i & 1) == 1;
 		use_digest    = (i & 2) == 2;
-		good_password = (i & 4) == 4;
+		good_user     = (i & 4) == 4;
+		good_password = (i & 8) == 8;
+
+		good_auth = good_user && good_password;
 
 		/* Curl will preemptively send Basic if it's told to
 		 * use Basic but not Digest.
@@ -157,7 +169,8 @@ do_auth_tests (SoupURI *base_uri)
 		 * Authorization headers completely, and the request
 		 * will always succeed.
 		 */
-		do_test (n++, base_uri, "/foo", good_password,
+		do_test (n++, base_uri, "/foo",
+			 good_user, good_password,
 			 /* request */
 			 use_basic, use_digest,
 			 /* expected from client */
@@ -172,21 +185,23 @@ do_auth_tests (SoupURI *base_uri)
 		 * send an Authorization: Basic on the first request,
 		 * or if it sends a bad password.
 		 */
-		do_test (n++, base_uri, "/Basic/foo", good_password,
+		do_test (n++, base_uri, "/Basic/foo",
+			 good_user, good_password,
 			 /* request */
 			 use_basic, use_digest,
 			 /* expected from client */
 			 use_basic, FALSE,
 			 /* expected from server */
-			 !preemptive_basic || !good_password, FALSE,
+			 !preemptive_basic || !good_auth, FALSE,
 			 /* success? */
-			 use_basic && good_password);
+			 use_basic && good_auth);
 
 		/* 3. Digest auth required. Simpler than the basic
 		 * case because the client can't send Digest auth
 		 * premptively.
 		 */
-		do_test (n++, base_uri, "/Digest/foo", good_password,
+		do_test (n++, base_uri, "/Digest/foo",
+			 good_user, good_password,
 			 /* request */
 			 use_basic, use_digest,
 			 /* expected from client */
@@ -194,23 +209,25 @@ do_auth_tests (SoupURI *base_uri)
 			 /* expected from server */
 			 FALSE, TRUE,
 			 /* success? */
-			 use_digest && good_password);
+			 use_digest && good_auth);
 
 		/* 4. Any auth required. */
-		do_test (n++, base_uri, "/Any/foo", good_password,
+		do_test (n++, base_uri, "/Any/foo",
+			 good_user, good_password,
 			 /* request */
 			 use_basic, use_digest,
 			 /* expected from client */
 			 preemptive_basic, use_digest,
 			 /* expected from server */
-			 !preemptive_basic || !good_password, !preemptive_basic || !good_password,
+			 !preemptive_basic || !good_auth, !preemptive_basic || !good_auth,
 			 /* success? */
-			 (use_basic || use_digest) && good_password);
+			 (use_basic || use_digest) && good_auth);
 
 		/* 5. No auth required again. (Makes sure that
 		 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
 		 */
-		do_test (n++, base_uri, "/Any/Not/foo", good_password,
+		do_test (n++, base_uri, "/Any/Not/foo",
+			 good_user, good_password,
 			 /* request */
 			 use_basic, use_digest,
 			 /* expected from client */
