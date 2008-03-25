@@ -318,7 +318,6 @@ main (int argc, char **argv)
 	SoupServer *server;
 	SoupURI *uri;
 	SoupAuthDomain *auth_domain;
-	gboolean run_tests = TRUE;
 
 	test_init (argc, argv, no_test_entry);
 

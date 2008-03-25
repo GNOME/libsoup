@@ -1,3 +1,8 @@
+2008-03-25  Dan Winship  <danw@gnome.org>
+
+	* tests/server-auth-test.c (main): Remove erroneous local
+	run_tests variable. (Noted by "Curtman" on IRC.)
+
 2008-03-19  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth.c (soup_auth_new): compare WWW-Authenticate
