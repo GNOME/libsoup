@@ -1,3 +1,18 @@
+2008-03-29  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-date.c (parse_day): fix the test for no-day-parsed
+	(parse_year): likewise fix the test for no-year-parsed
+	(parse_time): don't accept empty components here
+	(parse_textual_date): don't accept a comma if it wasn't preceded
+	by a weekday
+	(soup_date_weekday): Fix leap year handling here; the code this
+	was originally based on only had to work between 1970 and 2038, so
+	it didn't worry about the mod 100 and mod 400 rules...
+
+	* tests/date.c: Add date/string conversion tests (in particular,
+	to make sure soup_date_weekday is working). Also add test cases
+	with missing components and make sure they *don't* parse.
+
 2008-03-25  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-domain-digest.c (accepts): don't crash if the

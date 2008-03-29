@@ -47,9 +47,46 @@ static const char *const days[] = {
 	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
-static const int days_before[] = {
+static const int nonleap_days_in_month[] = {
+	0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+};
+
+static const int nonleap_days_before[] = {
 	0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
 };
+
+static inline gboolean
+is_leap_year (int year)
+{
+	return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+/* Computes the number of days since proleptic Gregorian 0000-12-31.
+ * (That is, 0001-01-01 is "1", and 1970-01-01 is 719163.
+ */
+static int
+rata_die_day (SoupDate *date)
+{
+	int day;
+
+	day = (date->year - 1) * 365 + ((date->year - 1) / 4) -
+		((date->year - 1) / 100) + ((date->year - 1) / 400);
+	day += nonleap_days_before[date->month] + date->day;
+	if (is_leap_year (date->year) && date->month > 2)
+		day++;
+	return day;
+}
+
+#define TIME_T_EPOCH_RATA_DIE_DAY 719163
+
+static inline int
+days_in_month (int month, int year)
+{
+	if (month == 2 && is_leap_year (year))
+		return 29;
+	else
+		return nonleap_days_in_month[month];
+}
 
 GType
 soup_date_get_type (void)
@@ -181,7 +218,7 @@ parse_day (SoupDate *date, const char **date_string)
 	char *end;
 
 	date->day = strtoul (*date_string, &end, 10);
-	if (end == (char *)date_string)
+	if (end == (char *)*date_string)
 		return FALSE;
 
 	while (*end == ' ' || *end == '-')
@@ -213,7 +250,7 @@ parse_year (SoupDate *date, const char **date_string)
 	char *end;
 
 	date->year = strtoul (*date_string, &end, 10);
-	if (end == (char *)date_string)
+	if (end == (char *)*date_string)
 		return FALSE;
 
 	if (end == (char *)*date_string + 2) {
@@ -233,15 +270,20 @@ parse_year (SoupDate *date, const char **date_string)
 static inline gboolean
 parse_time (SoupDate *date, const char **date_string)
 {
-	char *p;
+	char *p, *end;
 
-	date->hour = strtoul (*date_string, &p, 10);
-	if (*p++ != ':')
+	date->hour = strtoul (*date_string, &end, 10);
+	if (end == (char *)*date_string || *end++ != ':')
 		return FALSE;
-	date->minute = strtoul (p, &p, 10);
-	if (*p++ != ':')
+	p = end;
+	date->minute = strtoul (p, &end, 10);
+	if (end == p || *end++ != ':')
 		return FALSE;
-	date->second = strtoul (p, &p, 10);
+	p = end;
+	date->second = strtoul (p, &end, 10);
+	if (end == p)
+		return FALSE;
+	p = end;
 
 	while (*p == ' ')
 		p++;
@@ -289,12 +331,14 @@ static gboolean
 parse_textual_date (SoupDate *date, const char *date_string)
 {
 	/* If it starts with a word, it must be a weekday, which we skip */
-	while (g_ascii_isalpha (*date_string))
-		date_string++;
-	if (*date_string == ',')
-		date_string++;
-	while (g_ascii_isspace (*date_string))
-		date_string++;
+	if (g_ascii_isalpha (*date_string)) {
+		while (g_ascii_isalpha (*date_string))
+			date_string++;
+		if (*date_string == ',')
+			date_string++;
+		while (g_ascii_isspace (*date_string))
+			date_string++;
+	}
 
 	/* If there's now another word, this must be an asctime-date */
 	if (g_ascii_isalpha (*date_string)) {
@@ -323,13 +367,6 @@ parse_textual_date (SoupDate *date, const char *date_string)
 		parse_timezone (date, &date_string);
 	}
 	return TRUE;
-}
-
-static int
-days_in_month (int month, int year)
-{
-	return days_before[month + 1] - days_before[month] +
-		(((year % 4 == 0) && month == 2) ? 1 : 0);
 }
 
 /**
@@ -434,18 +471,10 @@ soup_date_new_from_time_t (time_t when)
 static const char *
 soup_date_weekday (SoupDate *date)
 {
-	int day;
-
 	/* Proleptic Gregorian 0001-01-01 was a Monday, which
-	 * corresponds to 1 in the days[] array. So we take the
-	 * number of days since 0000-12-31, modulo 7.
+	 * corresponds to 1 in the days[] array.
 	 */
-	day = (date->year - 1) * 365 + ((date->year - 1) / 4);
-	day += days_before[date->month] + date->day;
-	if (date->year % 4 == 0 && date->month > 2)
-		day++;
-
-	return days[day % 7];
+	return days[rata_die_day (date) % 7];
 }
 
 /**
@@ -528,11 +557,7 @@ soup_date_to_time_t (SoupDate *date)
 	if (sizeof (time_t) == 4 && date->year > 2038)
 		return (time_t)0x7fffffff;
 
-	tt = (date->year - 1970) * 365;
-	tt += (date->year - 1968) / 4;
-	tt += days_before[date->month] + date->day - 1;
-	if (date->year % 4 == 0 && date->month <= 2)
-		tt--;
+	tt = rata_die_day (date) - TIME_T_EPOCH_RATA_DIE_DAY;
 	tt = ((((tt * 24) + date->hour) * 60) + date->minute) * 60 + date->second;
 
 	if (sizeof (time_t) == 4 && tt < 0)
