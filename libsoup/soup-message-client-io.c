@@ -26,13 +26,13 @@ parse_response_headers (SoupMessage *req,
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	SoupHTTPVersion version;
 
-	g_free((char*)req->reason_phrase);
+	g_free(req->reason_phrase);
 	req->reason_phrase = NULL;
 	if (!soup_headers_parse_response (headers, headers_len,
 					  req->response_headers,
 					  &version,
 					  &req->status_code,
-					  (char **) &req->reason_phrase))
+					  &req->reason_phrase))
 		return SOUP_STATUS_MALFORMED;
 
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);

@@ -27,7 +27,7 @@ struct _SoupMessage {
 	const char         *method;
 
 	guint               status_code;
-	const char         *reason_phrase;
+	char               *reason_phrase;
 
 	SoupMessageBody    *request_body;
 	SoupMessageHeaders *request_headers;

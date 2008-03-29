@@ -149,7 +149,7 @@ finalize (GObject *object)
 	soup_message_body_free (msg->response_body);
 	soup_message_headers_free (msg->response_headers);
 
-	g_free ((char *) msg->reason_phrase);
+	g_free (msg->reason_phrase);
 
 	G_OBJECT_CLASS (soup_message_parent_class)->finalize (object);
 }
@@ -1039,7 +1039,7 @@ soup_message_cleanup_response (SoupMessage *req)
 
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
-		g_free ((char *) req->reason_phrase);
+		g_free (req->reason_phrase);
 		req->reason_phrase = NULL;
 	}
 	priv->http_version = priv->orig_http_version;
@@ -1246,7 +1246,7 @@ soup_message_set_status (SoupMessage *msg, guint status_code)
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 	g_return_if_fail (status_code != 0);
 
-	g_free ((char *) msg->reason_phrase);
+	g_free (msg->reason_phrase);
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (soup_status_get_phrase (status_code));
@@ -1271,7 +1271,7 @@ soup_message_set_status_full (SoupMessage *msg,
 	g_return_if_fail (status_code != 0);
 	g_return_if_fail (reason_phrase != NULL);
 
-	g_free ((char *) msg->reason_phrase);
+	g_free (msg->reason_phrase);
 
 	msg->status_code = status_code;
 	msg->reason_phrase = g_strdup (reason_phrase);
