@@ -1,3 +1,16 @@
+2008-04-03  Dan Winship  <danw@gnome.org>
+
+	Be more aggressive about closing unused persistent connections
+	when needed, to avoid slow load times in WebKit.
+
+	* libsoup/soup-session-async.c (run_queue): Remove the
+	"try_pruning" flag from here and from all the callers, and
+	*always* try pruning idle connections if it would help.
+
+	* libsoup/soup-session.c (soup_session_try_prune_connection):
+	Rather than only closing a single connection, close all idle
+	connections.
+
 2008-03-29  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message.h (SoupMessage): de-constify

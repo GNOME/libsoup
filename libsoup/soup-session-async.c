@@ -23,7 +23,8 @@
  * single-threaded programs.
  **/
 
-static gboolean run_queue (SoupSessionAsync *sa, gboolean try_pruning);
+static gboolean run_queue (SoupSessionAsync *sa);
+static void do_idle_run_queue (SoupSession *session);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
@@ -85,12 +86,12 @@ soup_session_async_new_with_options (const char *optname1, ...)
 
 
 static void
-connection_closed (SoupConnection *conn, SoupSessionAsync *sa)
+connection_closed (SoupConnection *conn, gpointer session)
 {
 	/* Run the queue in case anyone was waiting for a connection
 	 * to be closed.
 	 */
-	run_queue (sa, FALSE);
+	do_idle_run_queue (session);
 }
 
 static void
@@ -109,7 +110,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		 * queue that were waiting for the connection count
 		 * to go down, so run the queue now.
 		 */
-		run_queue (sa, FALSE);
+		run_queue (sa);
 		return;
 	}
 
@@ -125,24 +126,25 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	 * idle pool and then just run the queue and see what happens.
 	 */
 	soup_connection_release (conn);
-	run_queue (sa, FALSE);
+	run_queue (sa);
 }
 
 static gboolean
-run_queue (SoupSessionAsync *sa, gboolean try_pruning)
+run_queue (SoupSessionAsync *sa)
 {
 	SoupSession *session = SOUP_SESSION (sa);
 	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueIter iter;
 	SoupMessage *msg;
 	SoupConnection *conn;
-	gboolean should_prune = FALSE, started_any = FALSE, is_new;
+	gboolean try_pruning = TRUE, should_prune = FALSE;
+	gboolean started_any = FALSE, is_new;
 
 	/* FIXME: prefer CONNECTING messages */
 
  try_again:
 	for (msg = soup_message_queue_first (queue, &iter);
-	     msg;
+	     msg && !should_prune;
 	     msg = soup_message_queue_next (queue, &iter)) {
 
 		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
@@ -159,15 +161,12 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 						       session);
 		} else
 			soup_connection_send_request (conn, msg);
-
-		started_any = TRUE;
 	}
 
-	if (try_pruning && should_prune && !started_any) {
-		/* We didn't manage to start any message, but there is
-		 * at least one message in the queue that could be
-		 * sent if we pruned an idle connection from some
-		 * other server.
+	if (try_pruning && should_prune) {
+		/* There is at least one message in the queue that
+		 * could be sent if we pruned an idle connection from
+		 * some other server.
 		 */
 		if (soup_session_try_prune_connection (session)) {
 			try_pruning = FALSE;
@@ -181,7 +180,7 @@ run_queue (SoupSessionAsync *sa, gboolean try_pruning)
 static void
 request_restarted (SoupMessage *req, gpointer sa)
 {
-	run_queue (sa, FALSE);
+	run_queue (sa);
 }
 
 typedef struct {
@@ -212,7 +211,7 @@ final_finished (SoupMessage *req, gpointer user_data)
 
 	if (sa) {
 		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-		run_queue (sa, FALSE);
+		run_queue (sa);
 	}
 }
 
@@ -226,9 +225,16 @@ idle_run_queue (gpointer user_data)
 
 	if (sa) {
 		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-		run_queue (sa, TRUE);
+		run_queue (sa);
 	}
 	return FALSE;
+}
+
+static void
+do_idle_run_queue (SoupSession *session)
+{
+	soup_add_idle (soup_session_get_async_context (session),
+		       idle_run_queue, g_object_ref (session));
 }
 
 static void
@@ -249,10 +255,7 @@ queue_message (SoupSession *session, SoupMessage *req,
 				G_CALLBACK (final_finished), saqd);
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
-
-	g_object_ref (sa);
-	soup_add_idle (soup_session_get_async_context (session),
-		       idle_run_queue, sa);
+	do_idle_run_queue (session);
 }
 
 static guint

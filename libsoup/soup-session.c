@@ -808,55 +808,41 @@ connection_started_request (SoupConnection *conn, SoupMessage *msg,
 		       msg, soup_connection_get_socket (conn));
 }
 
-static void
-find_oldest_connection (gpointer key, gpointer host, gpointer data)
-{
-	SoupConnection *conn = key, **oldest = data;
-
-	/* Don't prune a connection that is currently in use, or
-	 * hasn't been used yet.
-	 */
-	if (soup_connection_is_in_use (conn) ||
-	    soup_connection_last_used (conn) == 0)
-		return;
-
-	if (!*oldest || (soup_connection_last_used (conn) <
-			 soup_connection_last_used (*oldest)))
-		*oldest = conn;
-}
-
-/**
- * soup_session_try_prune_connection:
- * @session: a #SoupSession
- *
- * Finds the least-recently-used idle connection in @session and closes
- * it.
- *
- * Return value: %TRUE if a connection was closed, %FALSE if there are
- * no idle connections.
- **/
 gboolean
 soup_session_try_prune_connection (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupConnection *oldest = NULL;
+	GPtrArray *conns;
+	GHashTableIter iter;
+	gpointer conn, host;
+	int i;
+
+	conns = g_ptr_array_new ();
 
 	g_mutex_lock (priv->host_lock);
-	g_hash_table_foreach (priv->conns, find_oldest_connection,
-			      &oldest);
-	if (oldest) {
-		/* Ref the connection before unlocking the mutex in
-		 * case someone else tries to prune it too.
+	g_hash_table_iter_init (&iter, priv->conns);
+	while (g_hash_table_iter_next (&iter, &conn, &host)) {
+		/* Don't prune a connection that is currently in use,
+		 * or hasn't been used yet.
 		 */
-		g_object_ref (oldest);
-		g_mutex_unlock (priv->host_lock);
-		soup_connection_disconnect (oldest);
-		g_object_unref (oldest);
-		return TRUE;
-	} else {
-		g_mutex_unlock (priv->host_lock);
+		if (!soup_connection_is_in_use (conn) &&
+		    soup_connection_last_used (conn) > 0)
+			g_ptr_array_add (conns, g_object_ref (conn));
+	}
+	g_mutex_unlock (priv->host_lock);
+
+	if (!conns->len) {
+		g_ptr_array_free (conns, TRUE);
 		return FALSE;
 	}
+
+	for (i = 0; i < conns->len; i++) {
+		soup_connection_disconnect (conns->pdata[i]);
+		g_object_unref (conns->pdata[i]);
+	}
+	g_ptr_array_free (conns, TRUE);
+
+	return TRUE;
 }
 
 static void
