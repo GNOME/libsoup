@@ -145,6 +145,7 @@ void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
 void soup_message_wrote_chunk         (SoupMessage *msg);
+void soup_message_wrote_body_data     (SoupMessage *msg, SoupBuffer *chunk);
 void soup_message_wrote_body          (SoupMessage *msg);
 void soup_message_got_informational   (SoupMessage *msg);
 void soup_message_got_headers         (SoupMessage *msg);

@@ -75,6 +75,7 @@ enum {
 	WROTE_INFORMATIONAL,
 	WROTE_HEADERS,
 	WROTE_CHUNK,
+	WROTE_BODY_DATA,
 	WROTE_BODY,
 
 	GOT_INFORMATIONAL,
@@ -212,6 +213,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 *
 	 * Emitted immediately after writing a body chunk for a message.
+	 *
+	 * Note that this signal is not parallel to
+	 * #SoupMessage::got_chunk; it is emitted only when a complete
+	 * chunk (added with soup_message_body_append() or
+	 * soup_message_body_append_buffer()) has been written. To get
+	 * more useful continuous progress information, use
+	 * #SoupMessage::wrote_body_data.
 	 **/
 	signals[WROTE_CHUNK] =
 		g_signal_new ("wrote_chunk",
@@ -221,6 +229,28 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::wrote-body-data:
+	 * @msg: the message
+	 * @chunk: the data written
+	 *
+	 * Emitted immediately after writing a portion of the message
+	 * body to the network.
+	 *
+	 * Unlike #SoupMessage::wrote_chunk, this is emitted after
+	 * every successful write() call, not only after finishing a
+	 * complete "chunk".
+	 **/
+	signals[WROTE_BODY_DATA] =
+		g_signal_new ("wrote_body_data",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0, /* FIXME after next ABI break */
+			      NULL, NULL,
+			      soup_marshal_NONE__BOXED,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_BUFFER);
 
 	/**
 	 * SoupMessage::wrote-body:
@@ -319,7 +349,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__BOXED,
 			      G_TYPE_NONE, 1,
-			      SOUP_TYPE_BUFFER);
+			      /* Use %G_SIGNAL_TYPE_STATIC_SCOPE so that
+			       * the %SOUP_MEMORY_TEMPORARY buffers used
+			       * by soup-message-io.c when emitting this
+			       * signal don't get forcibly copied by
+			       * g_signal_emit().
+			       */
+			      SOUP_TYPE_BUFFER | G_SIGNAL_TYPE_STATIC_SCOPE);
 
 	/**
 	 * SoupMessage::got-body:
@@ -643,6 +679,20 @@ void
 soup_message_wrote_chunk (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
+}
+
+/**
+ * soup_message_wrote_body_data:
+ * @msg: a #SoupMessage
+ * @chunk: the data written
+ *
+ * Emits the %wrote_body_data signal, indicating that the IO layer
+ * finished writing a portion of @msg's body.
+ **/
+void
+soup_message_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk)
+{
+	g_signal_emit (msg, signals[WROTE_BODY_DATA], 0, chunk);
 }
 
 /**

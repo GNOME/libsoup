@@ -1,3 +1,23 @@
+2008-04-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message.c: add a new signal "wrote-body-data" to
+	address the problem that "wrote-chunk" is not usable for progress
+	info (especially with non-chunked encoding). #525101, suggested by
+	Christian Kellner.
+
+	* libsoup/soup-message-io.c (write_data): emit wrote-body-data as
+	appropriate.
+	(io_write): update so that (a) Content-Length writes can be done
+	in multiple chunks (as long as the caller explicitly sets the
+	Content-Length header beforehand), and (b) the body data doesn't
+	get copied an extra time. Based on a patch from Christian.
+
+	* libsoup/soup-message-client-io.c (get_request_headers): Don't
+	update the Content-Length header if it's already set, even if it
+	doesn't match the (current) body length.
+
+	* tests/chunk-test.c: test some chunk-encoding-related behavior
+
 2008-04-03  Dan Winship  <danw@gnome.org>
 
 	Be more aggressive about closing unused persistent connections

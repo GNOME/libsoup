@@ -9,6 +9,7 @@ INCLUDES =		\
 LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
 
 noinst_PROGRAMS =	\
+	chunk-test	\
 	context-test	\
 	continue-test	\
 	date		\
@@ -29,6 +30,7 @@ noinst_PROGRAMS =	\
 TEST_SRCS = test-utils.c test-utils.h
 
 auth_test_SOURCES = auth-test.c $(TEST_SRCS)
+chunk_test_SOURCES = chunk-test.c $(TEST_SRCS)
 context_test_SOURCES = context-test.c $(TEST_SRCS)
 continue_test_SOURCES = continue-test.c $(TEST_SRCS)
 date_SOURCES = date.c $(TEST_SRCS)
@@ -63,6 +65,7 @@ XMLRPC_TESTS = xmlrpc-test xmlrpc-server-test
 endif
 
 TESTS =			\
+	chunk-test	\
 	context-test	\
 	continue-test	\
 	date		\

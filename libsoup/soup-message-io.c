@@ -59,6 +59,7 @@ typedef struct {
 	SoupMessageBody      *write_body;
 	SoupBuffer           *write_chunk;
 	gsize                 write_body_offset;
+	guint                 write_length;
 	guint                 written;
 
 	guint read_tag, write_tag, err_tag;
@@ -343,13 +344,15 @@ read_body_chunk (SoupMessage *msg)
  * read_metadata() for an explanation of the return value.
  */
 static gboolean
-write_data (SoupMessage *msg, const char *data, guint len)
+write_data (SoupMessage *msg, const char *data, guint len, gboolean body)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	gsize nwrote;
 	GError *error = NULL;
+	SoupBuffer *chunk;
+	const char *start;
 
 	while (len > io->written) {
 		status = soup_socket_write (io->sock,
@@ -366,7 +369,20 @@ write_data (SoupMessage *msg, const char *data, guint len)
 			return FALSE;
 
 		case SOUP_SOCKET_OK:
+			start = data + io->written;
 			io->written += nwrote;
+
+			if (body) {
+				if (io->write_length)
+					io->write_length -= nwrote;
+
+				chunk = soup_buffer_new (SOUP_MEMORY_TEMPORARY,
+							 start, nwrote);
+				SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
+				soup_message_wrote_body_data (msg, chunk);
+				soup_buffer_free (chunk);
+				SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+			}
 			break;
 		}
 	}
@@ -433,10 +449,18 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 			}
 		}
 
-		if (!write_data (msg, io->write_buf->str, io->write_buf->len))
+		if (!write_data (msg, io->write_buf->str,
+				 io->write_buf->len, FALSE))
 			return;
 
 		g_string_truncate (io->write_buf, 0);
+
+		if (io->write_encoding != SOUP_ENCODING_CHUNKED) {
+			SoupMessageHeaders *hdrs =
+				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
+				msg->request_headers : msg->response_headers;
+			io->write_length = soup_message_headers_get_content_length (hdrs);
+		}
 
 		if (io->mode == SOUP_MESSAGE_IO_SERVER &&
 		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
@@ -494,21 +518,45 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (!io->write_chunk)
-			io->write_chunk = soup_message_body_flatten (io->write_body);
+		if (!io->write_length) {
+			io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+
+			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
+			soup_message_wrote_body (msg);
+			SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+			break;
+		}
+
+		if (!io->write_chunk) {
+			io->write_chunk = soup_message_body_get_chunk (io->write_body, io->write_body_offset);
+			if (!io->write_chunk) {
+				soup_message_io_pause (msg);
+				return;
+			}
+			if (io->write_chunk->length > io->write_length) {
+				/* App is trying to write more than it
+				 * claimed it would; we have to truncate.
+				 */
+				SoupBuffer *truncated =
+					soup_buffer_new_subbuffer (io->write_chunk,
+								   0, io->write_length);
+				soup_buffer_free (io->write_chunk);
+				io->write_chunk = truncated;
+			}
+		}
+
 		if (!write_data (msg, io->write_chunk->data,
-				 io->write_chunk->length))
+				 io->write_chunk->length, TRUE))
 			return;
+
 		soup_buffer_free (io->write_chunk);
+		io->write_body_offset += io->write_chunk->length;
 		io->write_chunk = NULL;
 
-		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
-
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_wrote_body (msg);
+		soup_message_wrote_chunk (msg);
 		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 		break;
-
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK_SIZE:
 		if (!io->write_chunk) {
@@ -522,7 +570,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 			io->write_body_offset += io->write_chunk->length;
 		}
 
-		if (!write_data (msg, io->write_buf->str, io->write_buf->len))
+		if (!write_data (msg, io->write_buf->str,
+				 io->write_buf->len, FALSE))
 			return;
 
 		g_string_truncate (io->write_buf, 0);
@@ -539,7 +588,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK:
 		if (!write_data (msg, io->write_chunk->data,
-				 io->write_chunk->length))
+				 io->write_chunk->length, TRUE))
 			return;
 
 		soup_buffer_free (io->write_chunk);
@@ -556,7 +605,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK_END:
 		if (!write_data (msg, SOUP_MESSAGE_IO_EOL,
-				 SOUP_MESSAGE_IO_EOL_LEN))
+				 SOUP_MESSAGE_IO_EOL_LEN, FALSE))
 			return;
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_CHUNK_SIZE;
@@ -565,7 +614,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 	case SOUP_MESSAGE_IO_STATE_TRAILERS:
 		if (!write_data (msg, SOUP_MESSAGE_IO_EOL,
-				 SOUP_MESSAGE_IO_EOL_LEN))
+				 SOUP_MESSAGE_IO_EOL_LEN, FALSE))
 			return;
 
 		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
