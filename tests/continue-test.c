@@ -19,11 +19,11 @@
 
 #define MAX_POST_LENGTH (sizeof (SHORT_BODY))
 
-int port;
-GSList *events;
+static int port;
+static GSList *events;
 
 static void
-event (SoupMessage *msg, char *side, char *message)
+event (SoupMessage *msg, const char *side, const char *message)
 {
 	char *data = g_strdup_printf ("%s-%s", side, message);
 	gboolean record_status =
@@ -62,7 +62,8 @@ do_message (const char *path, gboolean long_body,
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	char *uri, *body;
+	const char *body;
+	char *uri;
 	va_list ap;
 	const char *expected_event;
 	char *actual_event;
@@ -115,7 +116,7 @@ do_message (const char *path, gboolean long_body,
 	while ((expected_event = va_arg (ap, const char *))) {
 
 		if (!events) {
-			actual_event = "";
+			actual_event = g_strdup ("");
 			debug_printf (1, "  Expected '%s', got end of list\n",
 				      expected_event);
 			errors++;

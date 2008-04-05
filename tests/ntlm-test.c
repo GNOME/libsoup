@@ -28,8 +28,6 @@
 
 #include "test-utils.h"
 
-GHashTable *connections;
-
 typedef enum {
 	NTLM_UNAUTHENTICATED,
 	NTLM_RECEIVED_REQUEST,

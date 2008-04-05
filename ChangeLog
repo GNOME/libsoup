@@ -1,5 +1,41 @@
 2008-04-05  Dan Winship  <danw@gnome.org>
 
+	Misc fixes noticed by "sparse" or by running gcc with additional
+	-W flags
+
+	* libsoup/soup-auth-manager-ntlm.c (ntlm_authorize_post): fix a
+	potentially uninitialized variable. (Grumble. gcc needs
+	-Wdo-optimization-so-you-can-generate-code-flow-related-warnings-
+	but-then-emit-unoptimized-code-for-ease-of-debugging)
+
+	* libsoup/soup-gnutls.c (soup_gnutls_channel_funcs): make this
+	static
+
+	* libsoup/soup-uri.c (uri_decoded_copy, uri_normalized_copy): add
+	"static". (This doesn't change the generated code; the prototype
+	was already declared static and so gcc was treating the function
+	as static even though the main declaration *wasn't* declared
+	static. I'm not sure if this is a bug in gcc or an oddity of the
+	spec, but it's confusing, so...)
+
+	* libsoup/soup-xmlrpc.c (soup_xmlrpc_build_method_response):
+	s/FALSE/NULL/
+
+	* libsoup/soup-xmlrpc.h: add G_GNUC_PRINTF to
+	soup_xmlrpc_build_format
+
+	* tests/*.c: misc minor fixes, mostly involving missing "const"s
+	and "static"s to get better warnings, and then remove some unused
+	variables.
+
+	* tests/continue-test.c (do_message): fix a crash when the test
+	fails
+
+	* tests/test-utils.h (debug_printf): add G_GNUC_PRINTF to
+	prototype
+
+2008-04-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-method.c: Explicitly assign each of the variables
 	to NULL, because that apparently causes the OS X linker to treat
 	them differently than if they are left implicitly NULL. #522957.

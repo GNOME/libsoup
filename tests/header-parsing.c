@@ -13,12 +13,12 @@ typedef struct {
 	char *name, *value;
 } Header;
 
-struct RequestTest {
-	char *description;
-	char *request;
+static struct RequestTest {
+	const char *description;
+	const char *request;
 	int length;
 	guint status;
-	char *method, *path;
+	const char *method, *path;
 	SoupHTTPVersion version;
 	Header headers[4];
 } reqtests[] = {
@@ -347,13 +347,13 @@ struct RequestTest {
 };
 static const int num_reqtests = G_N_ELEMENTS (reqtests);
 
-struct ResponseTest {
-	char *description;
-	char *response;
+static struct ResponseTest {
+	const char *description;
+	const char *response;
 	int length;
 	SoupHTTPVersion version;
 	guint status_code;
-	char *reason_phrase;
+	const char *reason_phrase;
 	Header headers[4];
 } resptests[] = {
 	/***********************/
@@ -548,7 +548,7 @@ struct ResponseTest {
 };
 static const int num_resptests = G_N_ELEMENTS (resptests);
 
-struct QValueTest {
+static struct QValueTest {
 	char *header_value;
 	char *acceptable[7];
 	char *unacceptable[2];
@@ -778,7 +778,7 @@ do_qvalue_tests (void)
 		wrong = FALSE;
 		if (acceptable) {
 			for (iter = acceptable, j = 0; iter; iter = iter->next, j++) {
-				debug_printf (1, "%s ", iter->data);
+				debug_printf (1, "%s ", (char *)iter->data);
 				if (!qvaluetests[i].acceptable[j] ||
 				    strcmp (iter->data, qvaluetests[i].acceptable[j]) != 0)
 					wrong = TRUE;
@@ -799,7 +799,7 @@ do_qvalue_tests (void)
 		wrong = FALSE;
 		if (unacceptable) {
 			for (iter = unacceptable, j = 0; iter; iter = iter->next, j++) {
-				debug_printf (1, "%s ", iter->data);
+				debug_printf (1, "%s ", (char *)iter->data);
 				if (!qvaluetests[i].unacceptable[j] ||
 				    strcmp (iter->data, qvaluetests[i].unacceptable[j]) != 0)
 					wrong = TRUE;

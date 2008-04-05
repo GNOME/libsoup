@@ -228,7 +228,7 @@ ntlm_authorize_post (SoupMessage *msg, gpointer user_data)
 	SoupAuthManagerNTLM *ntlm = user_data;
 	SoupNTLMConnection *conn;
 	const char *username = NULL, *password = NULL;
-	char *slash, *domain;
+	char *slash, *domain = NULL;
 
 	conn = get_connection_for_msg (ntlm, msg);
 	if (!conn || !conn->auth)

@@ -10,7 +10,7 @@
 
 #include "test-utils.h"
 
-struct {
+static struct {
 	const char *uri_string, *result;
 } abs_tests[] = {
 	{ "foo:", "foo:" },
@@ -59,11 +59,11 @@ struct {
 	{ "http://[2010:836B:4179::836B:4179]",
 	  "http://[2010:836B:4179::836B:4179]/" }
 };
-int num_abs_tests = G_N_ELEMENTS(abs_tests);
+static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
 /* From RFC 3986. */
-const char *base = "http://a/b/c/d;p?q";
-struct {
+static const char *base = "http://a/b/c/d;p?q";
+static struct {
 	const char *uri_string, *result;
 } rel_tests[] = {
 	{ "g:h", "g:h" },
@@ -116,10 +116,10 @@ struct {
 	 */
 	{ "http:g", NULL }
 };
-int num_rel_tests = G_N_ELEMENTS(rel_tests);
+static int num_rel_tests = G_N_ELEMENTS(rel_tests);
 
-struct {
-	char *one, *two;
+static struct {
+	const char *one, *two;
 } eq_tests[] = {
 	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7bfoo%7d" },
 	{ "http://example.com", "http://example.com/" },
@@ -128,7 +128,7 @@ struct {
 	{ "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html" },
 	{ "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html" },
 };
-int num_eq_tests = G_N_ELEMENTS(eq_tests);
+static int num_eq_tests = G_N_ELEMENTS(eq_tests);
 
 static gboolean
 do_uri (SoupURI *base_uri, const char *base_str,

@@ -24,11 +24,9 @@
 
 #include "test-utils.h"
 
-GMainLoop *loop;
-
-struct {
-	char *title, *name;
-	char *result;
+static struct {
+	const char *title, *name;
+	const char *result;
 } tests[] = {
 	/* Both fields must be filled in */
 	{ NULL, "Name", "" },
@@ -122,8 +120,6 @@ do_query_tests (const char *uri)
 	}
 }
 
-GThread *server_thread;
-
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -178,7 +174,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
-gboolean run_tests = TRUE;
+static gboolean run_tests = TRUE;
 
 static GOptionEntry no_test_entry[] = {
         { "no-tests", 'n', G_OPTION_FLAG_NO_ARG | G_OPTION_FLAG_REVERSE,

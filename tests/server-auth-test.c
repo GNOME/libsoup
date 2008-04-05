@@ -25,9 +25,7 @@
 
 #include "test-utils.h"
 
-GMainLoop *loop;
-
-struct {
+static struct {
 	gboolean client_sent_basic, client_sent_digest;
 	gboolean server_requested_basic, server_requested_digest;
 	gboolean succeeded;
@@ -319,7 +317,7 @@ request_started_callback (SoupServer *server, SoupMessage *msg,
 			  G_CALLBACK (wrote_headers_callback), NULL);
 }
 
-gboolean run_tests = TRUE;
+static gboolean run_tests = TRUE;
 
 static GOptionEntry no_test_entry[] = {
         { "no-tests", 'n', G_OPTION_FLAG_NO_ARG | G_OPTION_FLAG_REVERSE,

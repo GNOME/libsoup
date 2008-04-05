@@ -13,7 +13,7 @@
 
 #include "test-utils.h"
 
-SoupBuffer *correct_response;
+static SoupBuffer *correct_response;
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
@@ -490,7 +490,7 @@ int
 main (int argc, char **argv)
 {
 	SoupSession *session;
-	char *base_uri;
+	const char *base_uri;
 
 	test_init (argc, argv, NULL);
 	apache_init ();

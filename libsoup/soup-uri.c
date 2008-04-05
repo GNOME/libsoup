@@ -640,7 +640,7 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
-char *
+static char *
 uri_decoded_copy (const char *part, int length)
 {
 	unsigned char *s, *d;
@@ -678,7 +678,7 @@ soup_uri_decode (const char *part)
 	return uri_decoded_copy (part, strlen (part));
 }
 
-char *
+static char *
 uri_normalized_copy (const char *part, int length, const char *unescape_extra)
 {
 	unsigned char *s, *d, c;

@@ -14,8 +14,8 @@
 #define BUFSIZE 1024
 #define DH_BITS 1024
 
-GMainLoop *loop;
-gnutls_dh_params_t dh_params;
+static GMainLoop *loop;
+static gnutls_dh_params_t dh_params;
 
 /* SERVER */
 
@@ -64,8 +64,8 @@ server_write (gnutls_session_t session, char *buf, int bufsize)
 	}
 }
 
-const char *ssl_cert_file = SRCDIR "/test-cert.pem";
-const char *ssl_key_file = SRCDIR "/test-key.pem";
+static const char *ssl_cert_file = SRCDIR "/test-cert.pem";
+static const char *ssl_key_file = SRCDIR "/test-key.pem";
 
 static gpointer
 server_thread (gpointer user_data)
@@ -203,8 +203,6 @@ start_writing (gpointer user_data)
 	return FALSE;
 }
 
-int debug;
-
 static void
 debug_log (int level, const char *str)
 {
@@ -214,7 +212,7 @@ debug_log (int level, const char *str)
 int
 main (int argc, char **argv)
 {
-	int opt, listener, sin_len, port, i;
+	int opt, debug = 0, listener, sin_len, port, i;
 	struct sockaddr_in sin;
 	GThread *server;
 	char writebuf[BUFSIZE], readbuf[BUFSIZE];

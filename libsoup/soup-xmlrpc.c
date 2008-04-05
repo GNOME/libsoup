@@ -272,7 +272,7 @@ soup_xmlrpc_build_method_response (GValue *value)
 	node = xmlNewChild (node, NULL, (const xmlChar *)"param", NULL);
 	if (!insert_value (node, value)) {
 		xmlFreeDoc (doc);
-		return FALSE;
+		return NULL;
 	}
 
 	xmlDocDumpMemory (doc, &xmlbody, &len);

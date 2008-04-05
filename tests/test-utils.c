@@ -17,12 +17,13 @@
 static gboolean apache_running;
 #endif
 static SoupServer *test_server;
-GThread *server_thread;
+static GThread *server_thread;
 static void test_server_shutdown (void);
 
 static SoupLogger *logger;
 
-int debug_level, http_debug_level, errors;
+int debug_level, errors;
+static int http_debug_level;
 
 static gboolean
 increment_debug_level (const char *option_name, const char *value,

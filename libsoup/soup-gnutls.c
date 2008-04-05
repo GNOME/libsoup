@@ -335,7 +335,7 @@ soup_gnutls_get_flags (GIOChannel *channel)
 	return chan->real_sock->funcs->io_get_flags (channel);
 }
 
-const GIOFuncs soup_gnutls_channel_funcs = {
+static const GIOFuncs soup_gnutls_channel_funcs = {
 	soup_gnutls_read,
 	soup_gnutls_write,
 	soup_gnutls_seek,

@@ -14,7 +14,7 @@
 
 #include "test-utils.h"
 
-GMainLoop *loop;
+static GMainLoop *loop;
 
 typedef struct {
 	/* Explanation of what you should see */
@@ -43,7 +43,7 @@ typedef struct {
 	guint final_status;
 } SoupAuthTest;
 
-SoupAuthTest tests[] = {
+static SoupAuthTest tests[] = {
 	{ "No auth available, should fail",
 	  "Basic/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
 
@@ -152,7 +152,7 @@ SoupAuthTest tests[] = {
 	{ "Make sure we've forgotten it",
 	  "Digest/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED }
 };
-int ntests = sizeof (tests) / sizeof (tests[0]);
+static int ntests = sizeof (tests) / sizeof (tests[0]);
 
 static const char *auths[] = {
 	"no password", "password 1",
@@ -550,7 +550,8 @@ main (int argc, char **argv)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	char *base_uri, *uri, *expected;
+	const char *base_uri;
+	char *uri, *expected;
 	gboolean authenticated;
 	int i;
 

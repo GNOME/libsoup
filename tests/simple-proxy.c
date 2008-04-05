@@ -23,8 +23,8 @@
  * RFC 2616. But it does work for basic stuff.
  */
 
-SoupSession *session;
-SoupServer *server;
+static SoupSession *session;
+static SoupServer *server;
 
 static void
 copy_header (const char *name, const char *value, gpointer dest_headers)

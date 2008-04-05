@@ -19,14 +19,13 @@
 #define mkdir(path, mode) _mkdir (path)
 #endif
 
-SoupSession *session;
-GMainLoop *loop;
-gboolean recurse = FALSE, debug = FALSE;
-const char *method;
-char *base;
-SoupURI *base_uri;
-int pending;
-GHashTable *fetched_urls;
+static SoupSession *session;
+static GMainLoop *loop;
+static gboolean recurse = FALSE, debug = FALSE;
+static const char *method;
+static char *base;
+static SoupURI *base_uri;
+static GHashTable *fetched_urls;
 
 static GPtrArray *
 find_hrefs (SoupURI *base, const char *body, int length)

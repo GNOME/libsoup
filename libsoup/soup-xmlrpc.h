@@ -39,7 +39,7 @@ gboolean     soup_xmlrpc_extract_method_call     (const char   *method_call,
 char        *soup_xmlrpc_build_method_response   (GValue       *value);
 char        *soup_xmlrpc_build_fault             (int           fault_code,
 						  const char   *fault_format,
-						  ...);
+						  ...) G_GNUC_PRINTF (2, 3);
 void         soup_xmlrpc_set_response            (SoupMessage  *msg,
 						  GType         type,
 						  ...);

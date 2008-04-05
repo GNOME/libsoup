@@ -12,9 +12,9 @@
 
 #include "test-utils.h"
 
-SoupSession *session;
+static SoupSession *session;
 static const char *default_uri = "http://localhost:47524/xmlrpc-server.php";
-const char *uri = NULL;
+static const char *uri = NULL;
 
 static const char *const value_type[] = {
 	"BAD",

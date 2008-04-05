@@ -16,14 +16,14 @@ typedef struct {
 	const guint final_status;
 } SoupProxyTest;
 
-SoupProxyTest tests[] = {
+static SoupProxyTest tests[] = {
 	{ "GET -> 200", "", SOUP_STATUS_OK },
 	{ "GET -> 404", "/not-found", SOUP_STATUS_NOT_FOUND },
 	{ "GET -> 401 -> 200", "/Basic/realm1/", SOUP_STATUS_OK },
 	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED },
 	{ "GET -> 403", "http://no-proxy.example.com/", SOUP_STATUS_FORBIDDEN },
 };
-int ntests = sizeof (tests) / sizeof (tests[0]);
+static int ntests = sizeof (tests) / sizeof (tests[0]);
 
 #define HTTP_SERVER    "http://127.0.0.1:47524"
 #define HTTPS_SERVER   "https://127.0.0.1:47525"

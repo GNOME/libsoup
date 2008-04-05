@@ -23,7 +23,7 @@
 
 #include "test-utils.h"
 
-char *base_uri;
+static char *base_uri;
 
 typedef struct {
 	SoupServer *server;
@@ -97,8 +97,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 static gboolean idle_start_test1_thread (gpointer loop);
 static gpointer test1_thread (gpointer user_data);
 
-GCond *test1_cond;
-GMutex *test1_mutex;
+static GCond *test1_cond;
+static GMutex *test1_mutex;
 
 static void
 do_test1 (void)

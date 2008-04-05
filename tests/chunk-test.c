@@ -138,7 +138,7 @@ do_request_test (SoupSession *session, SoupURI *base_uri)
 	}
 	if (msg->request_body->length != length || length != ptd.nwrote) {
 		debug_printf (1, "  sent length mismatch: %d vs %d vs %d\n",
-			      msg->request_body->length, length, ptd.nwrote);
+			      (int)msg->request_body->length, length, ptd.nwrote);
 		errors++;
 	}
 

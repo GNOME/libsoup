@@ -14,15 +14,13 @@
 
 #include "test-utils.h"
 
-GMainLoop *loop;
-
 typedef struct {
 	const char *method;
 	const char *path;
 	guint status_code;
 } TestRequest;
 
-struct {
+static struct {
 	TestRequest requests[3];
 } tests[] = {
 	/* A redirecty response to a GET should cause a redirect */
@@ -177,8 +175,6 @@ do_redirect_tests (SoupURI *base_uri)
 	g_object_unref (session);
 }
 
-GThread *server_thread;
-
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -234,7 +230,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 }
 
-gboolean run_tests = TRUE;
+static gboolean run_tests = TRUE;
 
 static GOptionEntry no_test_entry[] = {
         { "no-tests", 'n', G_OPTION_FLAG_NO_ARG | G_OPTION_FLAG_REVERSE,

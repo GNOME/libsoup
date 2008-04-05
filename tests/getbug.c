@@ -14,7 +14,7 @@
 
 #include <libsoup/soup.h>
 
-GMainLoop *loop;
+static GMainLoop *loop;
 
 static void
 print_value (GValue *value)
