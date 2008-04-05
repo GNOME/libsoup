@@ -64,6 +64,7 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_URI           "uri"
 #define SOUP_MESSAGE_HTTP_VERSION  "http-version"
 #define SOUP_MESSAGE_FLAGS         "flags"
+#define SOUP_MESSAGE_SERVER_SIDE   "server-side"
 #define SOUP_MESSAGE_STATUS_CODE   "status-code"
 #define SOUP_MESSAGE_REASON_PHRASE "reason-phrase"
 
@@ -100,7 +101,9 @@ void             soup_message_set_uri             (SoupMessage       *msg,
 
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
+#ifndef LIBSOUP_DISABLE_DEPRECATED
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
+#endif
 } SoupMessageFlags;
 
 void           soup_message_set_flags           (SoupMessage        *msg,

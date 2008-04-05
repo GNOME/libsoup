@@ -98,10 +98,10 @@ do_fully_async_test (SoupSession *session,
 	ad.expected_status = expected_status;
 
 	/* Since we aren't going to look at the final value of
-	 * msg->response, we set OVERWRITE_CHUNKS, to tell libsoup to
-	 * not even bother generating it.
+	 * msg->response_body, we tell libsoup to not even bother
+	 * generating it.
 	 */
-	soup_message_set_flags (msg, SOUP_MESSAGE_OVERWRITE_CHUNKS);
+	soup_message_body_set_accumulate (msg->response_body, FALSE);
 
 	/* Connect to "got_headers", from which we'll decide where to
 	 * go next.
@@ -289,10 +289,10 @@ do_synchronously_async_test (SoupSession *session,
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	g_free (uri);
 
-	/* As in the fully-async case, we set OVERWRITE_CHUNKS as an
+	/* As in the fully-async case, we turn off accumulate, as an
 	 * optimization.
 	 */
-	soup_message_set_flags (msg, SOUP_MESSAGE_OVERWRITE_CHUNKS);
+	soup_message_body_set_accumulate (msg->response_body, FALSE);
 
 	/* Send the message, get back headers */
 	sync_async_send (session, msg);

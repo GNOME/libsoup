@@ -261,8 +261,7 @@ read_metadata (SoupMessage *msg, const char *boundary)
 /* Reads as much message body data as is available on io->sock (but no
  * further than the end of the current message body or chunk). On a
  * successful read, emits "got_chunk" (possibly multiple times), and
- * if %SOUP_MESSAGE_OVERWRITE_CHUNKS wasn't set, appends the chunk
- * to io->read_body.
+ * (unless told not to) appends the chunk to io->read_body.
  *
  * See the note at read_metadata() for an explanation of the return
  * value.
@@ -306,8 +305,7 @@ read_body_chunk (SoupMessage *msg)
 
 		if (status == SOUP_SOCKET_OK && nread) {
 			buffer->length = nread;
-			if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS))
-				soup_message_body_append_buffer (io->read_body, buffer);
+			soup_message_body_got_chunk (io->read_body, buffer);
 
 			io->read_length -= nread;
 
@@ -549,6 +547,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_chunk->length, TRUE))
 			return;
 
+		soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
 		soup_buffer_free (io->write_chunk);
 		io->write_body_offset += io->write_chunk->length;
 		io->write_chunk = NULL;
@@ -591,6 +590,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_chunk->length, TRUE))
 			return;
 
+		soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
 		soup_buffer_free (io->write_chunk);
 		io->write_chunk = NULL;
 

@@ -62,11 +62,16 @@
  * filled in right before libsoup writes the request to the network,
  * but you should not count on this; use soup_message_body_flatten()
  * if you want to ensure that %data is filled in. @response_body's
- * %data will be filled in before #SoupMessage::finished is emitted,
- * unless you set the %SOUP_MESSAGE_OVERWRITE_CHUNKS flag.
+ * %data will be filled in before #SoupMessage::finished is emitted.
  *
  * For a server-side #SoupMessage, @request_body's %data will be
  * filled in before #SoupMessage::got_body is emitted.
+ *
+ * To prevent the %data field from being filled in at all (eg, if you
+ * are handling the data from a #SoupMessage::got_chunk, and so don't
+ * need to see it all at the end), call
+ * soup_message_body_set_accumulate() on @response_body or
+ * @request_body as appropriate, passing %FALSE.
  **/
 
 G_DEFINE_TYPE (SoupMessage, soup_message, G_TYPE_OBJECT)
@@ -98,6 +103,7 @@ enum {
 	PROP_URI,
 	PROP_HTTP_VERSION,
 	PROP_FLAGS,
+	PROP_SERVER_SIDE,
 	PROP_STATUS_CODE,
 	PROP_REASON_PHRASE,
 
@@ -446,6 +452,13 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    0,
 				    G_PARAM_READWRITE));
 	g_object_class_install_property (
+		object_class, PROP_SERVER_SIDE,
+		g_param_spec_boolean (SOUP_MESSAGE_SERVER_SIDE,
+				      "Server-side",
+				      "Whether or not the message is server-side rather than client-side",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
 		object_class, PROP_STATUS_CODE,
 		g_param_spec_uint (SOUP_MESSAGE_STATUS_CODE,
 				   "Status code",
@@ -466,6 +479,7 @@ set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -479,6 +493,9 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FLAGS:
 		soup_message_set_flags (msg, g_value_get_flags (value));
+		break;
+	case PROP_SERVER_SIDE:
+		priv->server_side = g_value_get_boolean (value);
 		break;
 	case PROP_STATUS_CODE:
 		soup_message_set_status (msg, g_value_get_uint (value));
@@ -512,6 +529,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FLAGS:
 		g_value_set_flags (value, priv->msg_flags);
+		break;
+	case PROP_SERVER_SIDE:
+		g_value_set_boolean (value, priv->server_side);
 		break;
 	case PROP_STATUS_CODE:
 		g_value_set_uint (value, msg->status_code);
@@ -752,15 +772,13 @@ static void
 got_body (SoupMessage *req)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessageBody *body;
 
-	if (!(priv->msg_flags & SOUP_MESSAGE_OVERWRITE_CHUNKS)) {
+	body = priv->server_side ? req->request_body : req->response_body;
+	if (soup_message_body_get_accumulate (body)) {
 		SoupBuffer *buffer;
 
-		/* Figure out *which* body we read, and flatten it. */
-		if (req->status_code == 0)
-			buffer = soup_message_body_flatten (req->request_body);
-		else
-			buffer = soup_message_body_flatten (req->response_body);
+		buffer = soup_message_body_flatten (body);
 		soup_buffer_free (buffer);
 	}
 }
@@ -838,13 +856,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_RUNNING)
 		return;
 
-	/* If status_code is SOUP_STATUS_NONE, we're still processing
-	 * the request side; if it's not, we're processing the
-	 * response side.
-	 */
-	hdrs = (msg->status_code == SOUP_STATUS_NONE) ?
-		msg->request_headers : msg->response_headers;
-
+	hdrs = priv->server_side ? msg->request_headers : msg->response_headers;
 	if (soup_message_headers_get (hdrs, header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
@@ -1103,11 +1115,9 @@ soup_message_cleanup_response (SoupMessage *req)
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
  * (3xx) responses received by this message.
- * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Each chunk of the response will be
- * freed after its corresponding %got_chunk signal is emitted, meaning
- * %response will still be empty after the message is complete. You
- * can use this to save memory if you expect the response to be large
- * and you are able to process it a chunk at a time.
+ * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Deprecated: equivalent to calling
+ * soup_message_body_set_accumulate() on the incoming message body
+ * (ie, %response_body for a client-side request), passing %FALSE.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
@@ -1123,9 +1133,18 @@ soup_message_cleanup_response (SoupMessage *req)
 void
 soup_message_set_flags (SoupMessage *msg, SoupMessageFlags flags)
 {
-	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	SoupMessagePrivate *priv;
 
-	SOUP_MESSAGE_GET_PRIVATE (msg)->msg_flags = flags;
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if ((priv->msg_flags ^ flags) & SOUP_MESSAGE_OVERWRITE_CHUNKS) {
+		soup_message_body_set_accumulate (
+			priv->server_side ? msg->request_body : msg->response_body,
+			!(flags & SOUP_MESSAGE_OVERWRITE_CHUNKS));
+	}
+
+	priv->msg_flags = flags;
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
 }
 
@@ -1387,23 +1406,22 @@ soup_message_get_io_status (SoupMessage *msg)
  * %length to indicate how much data it read.
  *
  * Generally, a custom chunk allocator would be used in conjunction
- * with %SOUP_MESSAGE_OVERWRITE_CHUNKS and #SoupMessage::got_chunk, as
- * part of a strategy to avoid unnecessary copying of data. However,
- * you cannot assume that every call to the allocator will be followed
- * by a call to your %got_chunk handler; if an I/O error occurs, then
- * the buffer will be unreffed without ever having been used. If your
- * buffer-allocation strategy requires special cleanup, use
- * soup_buffer_new_with_owner() rather than doing the cleanup from the
- * %got_chunk handler.
+ * with soup_message_body_set_accumulate() %FALSE and
+ * #SoupMessage::got_chunk, as part of a strategy to avoid unnecessary
+ * copying of data. However, you cannot assume that every call to the
+ * allocator will be followed by a call to your %got_chunk handler; if
+ * an I/O error occurs, then the buffer will be unreffed without ever
+ * having been used. If your buffer-allocation strategy requires
+ * special cleanup, use soup_buffer_new_with_owner() rather than doing
+ * the cleanup from the %got_chunk handler.
  *
- * The other thing to remember when using
- * %SOUP_MESSAGE_OVERWRITE_CHUNKS is that the buffer passed to the
- * %got_chunk handler will be unreffed after the handler returns, just
- * as it would be in the non-custom-allocated case. If you want to
- * hand the chunk data off to some other part of your program to use
- * later, you'll need to ref the #SoupBuffer (or its owner, in the
- * soup_buffer_new_with_owner() case) to ensure that the data remains
- * valid.
+ * The other thing to remember when using non-accumulating message
+ * bodies is that the buffer passed to the %got_chunk handler will be
+ * unreffed after the handler returns, just as it would be in the
+ * non-custom-allocated case. If you want to hand the chunk data off
+ * to some other part of your program to use later, you'll need to ref
+ * the #SoupBuffer (or its owner, in the soup_buffer_new_with_owner()
+ * case) to ensure that the data remains valid.
  **/
 void
 soup_message_set_chunk_allocator (SoupMessage *msg,

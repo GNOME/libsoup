@@ -51,6 +51,10 @@ GType soup_message_body_get_type (void);
 
 SoupMessageBody *soup_message_body_new           (void);
 
+void             soup_message_body_set_accumulate(SoupMessageBody *body,
+						  gboolean         accumulate);
+gboolean         soup_message_body_get_accumulate(SoupMessageBody *body);
+
 void             soup_message_body_append        (SoupMessageBody *body,
 						  SoupMemoryUse    use,
 						  gconstpointer    data,
@@ -64,6 +68,11 @@ SoupBuffer      *soup_message_body_flatten       (SoupMessageBody *body);
 
 SoupBuffer      *soup_message_body_get_chunk     (SoupMessageBody *body,
 						  goffset          offset);
+
+void             soup_message_body_got_chunk     (SoupMessageBody *body,
+						  SoupBuffer      *chunk);
+void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
+						  SoupBuffer      *chunk);
 
 void             soup_message_body_free          (SoupMessageBody *body);
 

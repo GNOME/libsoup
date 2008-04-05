@@ -1,5 +1,40 @@
 2008-04-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-body.c (soup_message_body_set_accumulate)
+	(soup_message_body_get_accumulate): New, replaces
+	SOUP_MESSAGE_OVERWRITE_CHUNKS, but can be set on either the
+	incoming or outgoing message body.
+	(soup_message_body_get_chunk): update to still dtrt if !accumulate
+	(soup_message_body_got_chunk, soup_message_body_wrote_chunk): New
+	methods to handle accumulating/discarding chunks.
+
+	* libsoup/soup-message-io.c (read_body_chunk): Use
+	soup_message_body_got_chunk.
+	(io_write): Use soup_message_body_wrote_chunk, to discard unneeded
+	chunks after writing them. Fixes most of #522146.
+
+	* libsoup/soup-message.c (soup_message_class_init): add a new
+	flag, "server-side", to indicate whether the message is
+	client-side or server-side, and update several methods to use it.
+	(got_body): Update for accumulate
+	(soup_message_set_flags): If the caller changes OVERWRITE_CHUNKS,
+	update the corresponding accumulate flag.
+
+	* libsoup/soup-message.h (SOUP_MESSAGE_OVERWRITE_CHUNKS):
+	deprecated now
+
+	* tests/chunk-test.c (do_request_test): Use
+	soup_message_body_set_accumulate() now, and verify that the chunks
+	are being discarded appropriately.
+	(do_response_test): Use
+	soup_message_body_set_accumulate() instead of OVERWRITE_CHUNKS.
+
+	* tests/pull-api.c (do_fully_async_test)
+	(do_synchronously_async_test): Use
+	soup_message_body_set_accumulate().
+
+2008-04-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-dns.c (resolve_address): fix test for
 	AI_ADDRCONFIG. Noticed while looking at #526321.
 

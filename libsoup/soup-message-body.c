@@ -304,6 +304,8 @@ typedef struct {
 	SoupMessageBody body;
 	GSList *chunks, *last;
 	SoupBuffer *flattened;
+	gboolean accumulate;
+	goffset base_offset;
 	int ref_count;
 } SoupMessageBodyPrivate;
 
@@ -321,9 +323,61 @@ soup_message_body_new (void)
 	SoupMessageBodyPrivate *priv;
 
 	priv = g_slice_new0 (SoupMessageBodyPrivate);
+	priv->accumulate = TRUE;
 	priv->ref_count = 1;
 
 	return (SoupMessageBody *)priv;
+}
+
+/**
+ * soup_message_body_set_accumulate:
+ * @body: a #SoupMessageBody
+ * @accumulate: whether or not to accumulate body chunks in @body
+ *
+ * Sets or clears the accumulate flag on @body. (The default value
+ * is %TRUE.)
+ *
+ * If you set this flag to %FALSE on an "incoming" message body (that
+ * is, the %response_body of a client-side message, or %request_body
+ * of a server-side message), this will cause each chunk of the body
+ * to be discarded after its corresponding #SoupMessage::got_chunk
+ * signal is emitted. (This is equivalent to setting the deprecated
+ * %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the message.)
+ *
+ * If you set this flag to %FALSE on an "outgoing" message body (the
+ * %request_body of a client-side message, or %response_body of a
+ * server-side message), it will cause each chunk of the body to be
+ * discarded after its corresponding #SoupMessage::wrote_chunk signal
+ * is emitted.
+ *
+ * In either case, @body's %data field will not be filled in after the
+ * body is fully sent/received, since the body data will no longer be
+ * available
+ **/
+void
+soup_message_body_set_accumulate (SoupMessageBody *body,
+				  gboolean         accumulate)
+{
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
+	priv->accumulate = accumulate;
+}
+
+/**
+ * soup_message_body_get_accumulate:
+ * @body: a #SoupMessageBody
+ *
+ * Gets the accumulate flag on @body; see
+ * soup_message_body_set_accumulate() for details.
+ *
+ * Return value: the accumulate flag for @body.
+ **/
+gboolean
+soup_message_body_get_accumulate (SoupMessageBody *body)
+{
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
+	return priv->accumulate;
 }
 
 static void
@@ -438,6 +492,8 @@ soup_message_body_flatten (SoupMessageBody *body)
 	GSList *iter;
 	SoupBuffer *chunk;
 
+	g_return_val_if_fail (priv->accumulate == TRUE, NULL);
+
 	if (!priv->flattened) {
 #if GLIB_SIZEOF_SIZE_T < 8
 		g_return_val_if_fail (body->length < G_MAXSIZE, NULL);
@@ -489,6 +545,7 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 	GSList *iter;
 	SoupBuffer *chunk = NULL;
 
+	offset -= priv->base_offset;
 	for (iter = priv->chunks; iter; iter = iter->next) {
 		chunk = iter->data;
 
@@ -507,6 +564,63 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
 		return soup_buffer_new_subbuffer (chunk, offset,
 						  chunk->length - offset);
 	}
+}
+
+/**
+ * soup_message_body_got_chunk:
+ * @body: a #SoupMessageBody
+ * @chunk: a #SoupBuffer received from the network
+ *
+ * Handles the #SoupMessageBody part of receiving a chunk of data from
+ * the network. Normally this means appending @chunk to @body, exactly
+ * as with soup_message_body_append_buffer(), but if you have set
+ * @body's accumulate flag to %FALSE, then that will not happen.
+ *
+ * This is a low-level method which you should not normally need to
+ * use.
+ **/
+void
+soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
+{
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+
+	if (!priv->accumulate)
+		return;
+
+	soup_message_body_append_buffer (body, chunk);
+}
+
+/**
+ * soup_message_body_wrote_chunk:
+ * @body: a #SoupMessageBody
+ * @chunk: a #SoupBuffer received from the network
+ *
+ * Handles the #SoupMessageBody part of writing a chunk of data to the
+ * network. Normally this is a no-op, but if you have set @body's
+ * accumulate flag to %FALSE, then this will cause @chunk (and any
+ * chunks preceding it in @body) to be discarded to free up memory.
+ *
+ * This is a low-level method which you should not normally need to
+ * use.
+ **/
+void
+soup_message_body_wrote_chunk (SoupMessageBody *body, SoupBuffer *chunk)
+{
+	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
+	SoupBuffer *chunk2;
+
+	if (priv->accumulate)
+		return;
+
+	do {
+		chunk2 = priv->chunks->data;
+		priv->chunks = g_slist_remove (priv->chunks, chunk2);
+		priv->base_offset += chunk2->length;
+		soup_buffer_free (chunk2);
+	} while (priv->chunks && chunk2 != chunk);
+
+	if (!priv->chunks)
+		priv->last = NULL;
 }
 
 static SoupMessageBody *

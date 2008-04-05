@@ -36,12 +36,10 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 
 	debug_printf (2, "  writing chunk\n");
 
-#ifdef IMPLEMENTED_OVERWRITE_CHUNKS_FOR_REQUESTS
 	if (ptd->next > 0 && ptd->chunks[ptd->next - 1]) {
 		debug_printf (1, "  error: next chunk requested before last one freed!\n");
 		errors++;
 	}
-#endif
 
 	if (ptd->next < G_N_ELEMENTS (ptd->chunks)) {
 		soup_message_body_append_buffer (msg->request_body,
@@ -117,6 +115,7 @@ do_request_test (SoupSession *session, SoupURI *base_uri)
 
 	msg = soup_message_new_from_uri ("PUT", base_uri);
 	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
+	soup_message_body_set_accumulate (msg->request_body, FALSE);
 	soup_message_set_chunk_allocator (msg, error_chunk_allocator, NULL, NULL);
 	g_signal_connect (msg, "wrote_headers",
 			  G_CALLBACK (write_next_chunk), &ptd);
@@ -206,7 +205,7 @@ do_response_test (SoupSession *session, SoupURI *base_uri)
 	gtd.check = g_checksum_new (G_CHECKSUM_MD5);
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
-	soup_message_set_flags (msg, SOUP_MESSAGE_OVERWRITE_CHUNKS);
+	soup_message_body_set_accumulate (msg->response_body, FALSE);
 	soup_message_set_chunk_allocator (msg, chunk_allocator, &gtd, NULL);
 	g_signal_connect (msg, "got_chunk",
 			  G_CALLBACK (got_chunk), &gtd);

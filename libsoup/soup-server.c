@@ -807,7 +807,9 @@ start_request (SoupServer *server, SoupClientContext *client)
 	soup_client_context_cleanup (client);
 
 	/* Listen for another request on this connection */
-	msg = g_object_new (SOUP_TYPE_MESSAGE, NULL);
+	msg = g_object_new (SOUP_TYPE_MESSAGE,
+			    SOUP_MESSAGE_SERVER_SIDE, TRUE,
+			    NULL);
         soup_message_headers_set_encoding (msg->response_headers,
                                            SOUP_ENCODING_CONTENT_LENGTH);
 	if (priv->server_header) {

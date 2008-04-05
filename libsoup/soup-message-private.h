@@ -27,6 +27,7 @@ typedef struct {
 	GDestroyNotify     chunk_allocator_dnotify;
 
 	guint              msg_flags;
+	gboolean           server_side;
 
 	SoupHTTPVersion    http_version, orig_http_version;
 
