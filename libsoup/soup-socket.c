@@ -162,6 +162,10 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (socket_class);
 
+#ifdef SIGPIPE
+	signal (SIGPIPE, SIG_IGN);
+#endif
+
 	g_type_class_add_private (socket_class, sizeof (SoupSocketPrivate));
 
 	/* virtual method override */
@@ -1297,9 +1301,6 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 {
 	SoupSocketPrivate *priv;
 	GIOStatus status;
-#ifdef SIGPIPE
-	gpointer pipe_handler;
-#endif
 	GIOCondition cond = G_IO_OUT;
 	GError *my_err = NULL;
 
@@ -1319,14 +1320,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		return SOUP_SOCKET_WOULD_BLOCK;
 	}
 
-#ifdef SIGPIPE
-	pipe_handler = signal (SIGPIPE, SIG_IGN);
-#endif
 	status = g_io_channel_write_chars (priv->iochannel,
 					   buffer, len, nwrote, &my_err);
-#ifdef SIGPIPE
-	signal (SIGPIPE, pipe_handler);
-#endif
 	if (my_err) {
 		if (my_err->domain == SOUP_SSL_ERROR &&
 		    my_err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ)
