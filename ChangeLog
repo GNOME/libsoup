@@ -1,5 +1,13 @@
 2008-04-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-dns.c (resolve_address, resolve_name): Don't
+	cache negative results, even if the DNS server explicitly states
+	that the host does not exist; some servers give different answers
+	to clients inside and outside their firewall. #523269, Jörgen
+	Scheibengruber.
+
+2008-04-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-body.c (soup_message_body_set_accumulate)
 	(soup_message_body_get_accumulate): New, replaces
 	SOUP_MESSAGE_OVERWRITE_CHUNKS, but can be set on either the

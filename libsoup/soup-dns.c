@@ -326,8 +326,7 @@ resolve_address (SoupDNSCacheEntry *entry)
 		entry->sockaddr = g_memdup (res->ai_addr, res->ai_addrlen);
 		entry->resolved = TRUE;
 		freeaddrinfo (res);
-	} else
-		entry->resolved = (retval != EAI_AGAIN);
+	}
 
 #else /* !HAVE_GETADDRINFO */
 
@@ -343,9 +342,7 @@ resolve_address (SoupDNSCacheEntry *entry)
 		memcpy (&sin.sin_addr, h->h_addr_list[0], sizeof (struct in_addr));
 		entry->sockaddr = g_memdup (&sin, sizeof (struct sockaddr_in));
 		entry->resolved = TRUE;
-	} else
-		entry->resolved = (h || h_errno != TRY_AGAIN);
-
+	}
 
 	g_mutex_unlock (soup_gethost_lock);
 
@@ -375,10 +372,8 @@ resolve_name (SoupDNSCacheEntry *entry)
 	if (retval == 0) {
 		entry->hostname = name;
 		entry->resolved = TRUE;
-	} else {
+	} else
 		g_free (name);
-		entry->resolved = (retval != EAI_AGAIN);
-	}
 
 #else /* !HAVE_GETNAMEINFO */
 
@@ -392,8 +387,7 @@ resolve_name (SoupDNSCacheEntry *entry)
 		if (h) {
 			entry->hostname = g_strdup (h->h_name);
 			entry->resolved = TRUE;
-		} else
-			entry->resolved = (h_errno != TRY_AGAIN);
+		}
 	}
 
 	g_mutex_unlock (soup_gethost_lock);
