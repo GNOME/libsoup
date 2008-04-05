@@ -1,3 +1,9 @@
+2008-04-05  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-method.c: Explicitly assign each of the variables
+	to NULL, because that apparently causes the OS X linker to treat
+	them differently than if they are left implicitly NULL. #522957.
+
 2008-04-04  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message.c: add a new signal "wrote-body-data" to
