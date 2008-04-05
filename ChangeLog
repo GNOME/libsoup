@@ -1,5 +1,10 @@
 2008-04-05  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-dns.c (resolve_address): fix test for
+	AI_ADDRCONFIG. Noticed while looking at #526321.
+
+2008-04-05  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-socket.c (soup_socket_class_init)
 	(soup_socket_write): globally ignore SIGPIPE rather than only
 	doing it around socket write calls, since with SSL even socket

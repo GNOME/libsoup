@@ -312,7 +312,7 @@ resolve_address (SoupDNSCacheEntry *entry)
 	int retval;
 
 	memset (&hints, 0, sizeof (struct addrinfo));
-#  ifdef HAVE_AI_ADDRCONFIG
+#  ifdef AI_ADDRCONFIG
 	hints.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;
 #  else
 	hints.ai_flags = AI_CANONNAME;
