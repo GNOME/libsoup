@@ -33,6 +33,7 @@ SOUP_MESSAGE_HTTP_VERSION
 SOUP_MESSAGE_FLAGS
 SOUP_MESSAGE_STATUS_CODE
 SOUP_MESSAGE_REASON_PHRASE
+SOUP_MESSAGE_SERVER_SIDE
 <SUBSECTION Standard>
 SOUP_MESSAGE
 SOUP_IS_MESSAGE
@@ -46,6 +47,7 @@ SoupMessageClass
 soup_message_wrote_informational
 soup_message_wrote_headers
 soup_message_wrote_chunk
+soup_message_wrote_body_data
 soup_message_wrote_body
 soup_message_got_informational
 soup_message_got_headers
@@ -126,12 +128,18 @@ SoupMessageBody
 soup_message_body_new
 soup_message_body_free
 <SUBSECTION>
+soup_message_body_set_accumulate
+soup_message_body_get_accumulate
+<SUBSECTION>
 soup_message_body_append
 soup_message_body_append_buffer
 soup_message_body_truncate
 soup_message_body_complete
 soup_message_body_flatten
 soup_message_body_get_chunk
+<SUBSECTION>
+soup_message_body_got_chunk
+soup_message_body_wrote_chunk
 <SUBSECTION Standard>
 SOUP_TYPE_BUFFER
 soup_buffer_get_type
@@ -351,6 +359,7 @@ SOUP_SESSION_USE_NTLM
 SOUP_SESSION_SSL_CA_FILE
 SOUP_SESSION_ASYNC_CONTEXT
 SOUP_SESSION_TIMEOUT
+SOUP_SESSION_IDLE_TIMEOUT
 SOUP_SESSION_USER_AGENT
 <SUBSECTION Standard>
 SOUP_IS_SESSION

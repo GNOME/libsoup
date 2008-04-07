@@ -1,3 +1,68 @@
+Changes in libsoup from 2.4.0 to 2.4.1:
+
+	* Fixed SoupMessage to not downgrade to HTTP/1.0 for the
+          second attempt when it receives an HTTP/1.0 redirect or 401.
+          [#521848, Tommu Komulainen]
+
+	* Fixed Host: header syntax when the host is an IPv6 address
+          literal.
+
+	* Fixed SoupSession to not emit "authenticate" multiple times
+	  for messages that have been requeued. [#522601, Tommi
+	  Komulainen]. Also added two new signals to SoupSession,
+	  request-queued and request-unqueued, to help simplify
+	  certain session-helpers and avoid bugs like this in the
+	  future.
+
+	* Fixed soup_server_pause_message() to actually work (rather
+          than *un*pausing the message).
+
+	* Added a property SOUP_SESSION_IDLE_TIMEOUT that can be used
+          to set a timeout after which idle connections will
+          automatically be closed. [#518214, Jorn Baayen]
+
+	* Implemented RFC 2069-style Digest auth, and fixed SoupAuth
+          to compare auth scheme names case-insensitively, to fix
+          authentication against Apple's calendar server. [#498484]
+
+	* Fixed a crash in SoupAuthDomainDigest if the client provided
+          an unrecognized username. [pointed out by Curtis Magyar on
+          IRC]
+
+	* Fixed a few SoupDate bugs. (In particular, it was outputting
+          the wrong day of the week when stringifying dates.)
+
+	* Improved the cleanup of idle connections, to fix slow load
+          times with the libsoup backend of WebKit.
+
+	* Added a new SoupMessage signal "wrote-body-data" that can be
+          used for progress information when sending a large request
+          body. Also allow providing the request body in multiple
+          chunks even when using Content-Length encoding. [#525101,
+          Christian Kellner]
+
+	* libsoup now ignores SIGPIPE globally, instead of
+          un-thread-safe-ly ignoring it only around network writes. In
+          particular, this means it is ignored when the SSL code needs
+          to unexpectedly do a write when we asked it to do a read.
+          [#524397, Curtis Magyar]
+
+	* The discard-body-chunks-once-they're-no-longer-needed
+          behavior, confusingly called SOUP_MESSAGE_OVERWRITE_CHUNKS,
+          is now controlled by a SoupMessageBody method
+          (soup_message_body_set_accumulate()), and can be applied to
+          either the request body or the response body.
+          (OVERWRITE_CHUNKS is still available for backward
+          compatibility.) [#522146, Christian Kellner]
+
+	* The DNS cache no longer caches "no such host" results, since
+          some name servers lie to clients outside their firewall,
+          which could then cause problems for laptops moved between
+          networks. [#523269, Jörgen Scheibengruber]
+
+	* Added some new regression tests, fixed some small bugs in
+          the existing ones.
+
 Changes in libsoup from 2.3.4 to 2.4.0:
 
 	* Fixed a small memory leak in SoupSession. [#518798, Wouter

@@ -1,5 +1,13 @@
 2008-04-07  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.4.1. Bump AGE and CURRENT.
+
+	* NEWS: update
+
+	* docs/reference/libsoup-2.4-sections.txt: add new symbols
+
+2008-04-07  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-io.c (soup_message_io_pause): If pausing a
 	message that was waiting to unpause, cancel the unpause.
 
