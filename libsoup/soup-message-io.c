@@ -920,6 +920,11 @@ soup_message_io_pause (SoupMessage *msg)
 		g_signal_handler_disconnect (io->sock, io->read_tag);
 		io->read_tag = 0;
 	}
+
+	if (io->unpause_source) {
+		g_source_destroy (io->unpause_source);
+		io->unpause_source = NULL;
+	}
 }
 
 static gboolean

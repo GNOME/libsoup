@@ -1,3 +1,8 @@
+2008-04-07  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-io.c (soup_message_io_pause): If pausing a
+	message that was waiting to unpause, cancel the unpause.
+
 2008-04-05  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-dns.c (resolve_address, resolve_name): Don't
