@@ -16,7 +16,6 @@
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
-#include "soup-auth-manager.h"
 #include "soup-auth-manager-ntlm.h"
 #include "soup-connection.h"
 #include "soup-marshal.h"
@@ -78,7 +77,6 @@ typedef struct {
 
 	GSList *features;
 	SoupAuthManager *auth_manager;
-	SoupAuthManagerNTLM *ntlm_manager;
 
 	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
@@ -103,6 +101,10 @@ static void queue_message   (SoupSession *session, SoupMessage *msg,
 static void requeue_message (SoupSession *session, SoupMessage *msg);
 static void cancel_message  (SoupSession *session, SoupMessage *msg,
 			     guint status_code);
+
+static void auth_manager_authenticate (SoupAuthManager *manager,
+				       SoupMessage *msg, SoupAuth *auth,
+				       gboolean retrying, gpointer user_data);
 
 /* temporary until we fix this to index hosts by SoupAddress */
 extern guint     soup_uri_host_hash  (gconstpointer  key);
@@ -166,9 +168,14 @@ soup_session_init (SoupSession *session)
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
 	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
 
-	priv->auth_manager = soup_auth_manager_new (session);
+	priv->auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM,
+					   SOUP_AUTH_MANAGER_NTLM_USE_NTLM, FALSE,
+					   NULL);
+	g_signal_connect (priv->auth_manager, "authenticate",
+			  G_CALLBACK (auth_manager_authenticate), session);
 	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_BASIC);
 	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_DIGEST);
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->auth_manager));
 }
 
 static gboolean
@@ -222,9 +229,8 @@ finalize (GObject *object)
 
 	g_free (priv->user_agent);
 
-	soup_auth_manager_free (priv->auth_manager);
-	if (priv->ntlm_manager)
-		soup_auth_manager_ntlm_free (priv->ntlm_manager);
+	if (priv->auth_manager)
+		g_object_unref (priv->auth_manager);
 
 	if (priv->proxy_uri)
 		soup_uri_free (priv->proxy_uri);
@@ -564,15 +570,9 @@ set_property (GObject *object, guint prop_id,
 		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_USE_NTLM:
-		if (g_value_get_boolean (value)) {
-			if (!priv->ntlm_manager)
-				priv->ntlm_manager = soup_auth_manager_ntlm_new (session);
-		} else {
-			if (priv->ntlm_manager) {
-				soup_auth_manager_ntlm_free (priv->ntlm_manager);
-				priv->ntlm_manager = NULL;
-			}
-		}
+		g_object_set_property (G_OBJECT (priv->auth_manager),
+				       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
+				       value);
 		break;
 	case PROP_SSL_CA_FILE:
 		new_ca_file = g_value_get_string (value);
@@ -652,7 +652,9 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_int (value, priv->max_conns_per_host);
 		break;
 	case PROP_USE_NTLM:
-		g_value_set_boolean (value, priv->ntlm_manager != NULL);
+		g_object_get_property (G_OBJECT (priv->auth_manager),
+				       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
+				       value);
 		break;
 	case PROP_SSL_CA_FILE:
 		g_value_set_string (value, priv->ssl_ca_file);
@@ -752,9 +754,10 @@ free_host (SoupSessionHost *host)
 	g_slice_free (SoupSessionHost, host);
 }	
 
-void
-soup_session_emit_authenticate (SoupSession *session, SoupMessage *msg,
-				SoupAuth *auth, gboolean retrying)
+static void
+auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
+			   SoupAuth *auth, gboolean retrying,
+			   gpointer session)
 {
 	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }

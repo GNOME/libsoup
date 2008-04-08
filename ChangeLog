@@ -1,5 +1,25 @@
 2008-04-08  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-auth-manager.c: Make this a GObject and
+	specifically a SoupSessionFeature. Add an "authenticate" signal,
+	and emit that rather than explicitly calling into the SoupSession
+	and telling it when to emit its own authenticate signal.
+
+	* libsoup/soup-auth-manager-ntlm.c: Make this a subclass of
+	SoupAuthManager, with NTLM support controllable via a property.
+
+	* libsoup/soup-session.c (soup_session_init): create an
+	auth_manager of type SOUP_TYPE_AUTH_MANAGER_NTLM, but defaulting
+	to USE_NTLM=FALSE. Connect to its "authenticate" signal, and call
+	soup_session_add_feature() on it.
+	(set_property, get_property): proxy the USE_NTLM property to the
+	auth manager.
+	(auth_manager_authenticate): signal handler for SoupAuthManager
+	"authenticate" signal. (Replaces soup_session_emit_authenticate(),
+	which is no longer needed)
+
+2008-04-08  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session-feature.c: New interface type representing
 	a feature that can be added to a SoupSession.
 
