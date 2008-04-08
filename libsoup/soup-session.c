@@ -23,6 +23,7 @@
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-session.h"
+#include "soup-session-feature.h"
 #include "soup-session-private.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -75,6 +76,7 @@ typedef struct {
 
 	char *user_agent;
 
+	GSList *features;
 	SoupAuthManager *auth_manager;
 	SoupAuthManagerNTLM *ntlm_manager;
 
@@ -137,6 +139,9 @@ enum {
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
 	PROP_IDLE_TIMEOUT,
+	PROP_ADD_FEATURE,
+	PROP_ADD_FEATURE_BY_TYPE,
+	PROP_REMOVE_FEATURE_BY_TYPE,
 
 	LAST_PROP
 };
@@ -196,6 +201,9 @@ dispose (GObject *object)
 
 	soup_session_abort (session);
 	cleanup_hosts (priv);
+
+	while (priv->features)
+		soup_session_remove_feature (session, priv->features->data);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->dispose (object);
 }
@@ -472,6 +480,28 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "User-Agent string",
 				     NULL,
 				     G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class, PROP_ADD_FEATURE,
+		g_param_spec_object (SOUP_SESSION_ADD_FEATURE,
+				     "Add Feature",
+				     "Add a feature object to the session",
+				     SOUP_TYPE_SESSION_FEATURE,
+				     G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_ADD_FEATURE_BY_TYPE,
+		g_param_spec_gtype (SOUP_SESSION_ADD_FEATURE_BY_TYPE,
+				    "Add Feature By Type",
+				    "Add a feature object of the given type to the session",
+				    SOUP_TYPE_SESSION_FEATURE,
+				    G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_REMOVE_FEATURE_BY_TYPE,
+		g_param_spec_gtype (SOUP_SESSION_REMOVE_FEATURE_BY_TYPE,
+				    "Remove Feature By Type",
+				    "Remove features of the given type from the session",
+				    SOUP_TYPE_SESSION_FEATURE,
+				    G_PARAM_READWRITE));
 }
 
 static gboolean
@@ -588,6 +618,15 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);
+		break;
+	case PROP_ADD_FEATURE:
+		soup_session_add_feature (session, g_value_get_object (value));
+		break;
+	case PROP_ADD_FEATURE_BY_TYPE:
+		soup_session_add_feature_by_type (session, g_value_get_gtype (value));
+		break;
+	case PROP_REMOVE_FEATURE_BY_TYPE:
+		soup_session_remove_feature_by_type (session, g_value_get_gtype (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1290,4 +1329,63 @@ soup_session_abort (SoupSession *session)
 	}
 
 	g_slist_free (conns);
+}
+
+void
+soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
+	soup_session_feature_attach (feature, session);
+}
+
+void
+soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
+{
+	SoupSessionFeature *feature;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE));
+
+	feature = g_object_new (feature_type, NULL);
+	soup_session_add_feature (session, feature);
+	g_object_unref (feature);
+}
+
+void
+soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
+{
+	SoupSessionPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	if (g_slist_find (priv->features, feature)) {
+		priv->features = g_slist_remove (priv->features, feature);
+		soup_session_feature_detach (feature, session);
+		g_object_unref (feature);
+	}
+}
+
+void
+soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
+{
+	SoupSessionPrivate *priv;
+	GSList *f;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+restart:
+	for (f = priv->features; f; f = f->next) {
+		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type)) {
+			soup_session_remove_feature (session, f->data);
+			goto restart;
+		}
+	}
 }

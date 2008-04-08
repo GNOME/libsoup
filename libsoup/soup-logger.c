@@ -15,6 +15,8 @@
 
 #include "soup-logger.h"
 #include "soup-message.h"
+#include "soup-session.h"
+#include "soup-session-feature.h"
 #include "soup-uri.h"
 
 /**
@@ -66,7 +68,18 @@
  * connection.
  **/
 
-G_DEFINE_TYPE (SoupLogger, soup_logger, G_TYPE_OBJECT)
+static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
+
+static void request_queued  (SoupSessionFeature *feature, SoupSession *session,
+			     SoupMessage *msg);
+static void request_started  (SoupSessionFeature *feature, SoupSession *session,
+			      SoupMessage *msg, SoupSocket *socket);
+static void request_unqueued  (SoupSessionFeature *feature,
+			       SoupSession *session, SoupMessage *msg);
+
+G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						soup_logger_session_feature_init));
 
 typedef struct {
 	/* We use a mutex so that if requests are being run in
@@ -131,6 +144,15 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 	g_type_class_add_private (logger_class, sizeof (SoupLoggerPrivate));
 
 	object_class->finalize = finalize;
+}
+
+static void
+soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+				  gpointer interface_data)
+{
+	feature_interface->request_queued = request_queued;
+	feature_interface->request_started = request_started;
+	feature_interface->request_unqueued = request_unqueued;
 }
 
 /**
@@ -313,27 +335,6 @@ soup_logger_set_id (SoupLogger *logger, gpointer object)
 	return GPOINTER_TO_UINT (id);
 }
 
-static void
-soup_logger_clear_id (SoupLogger *logger, gpointer object)
-{
-	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
-
-	g_object_set_qdata (object, priv->tag, NULL);
-}
-
-static void request_queued (SoupSession *session, SoupMessage *msg,
-			    gpointer user_data);
-static void request_started (SoupSession *session, SoupMessage *msg,
-			     SoupSocket *socket, gpointer user_data);
-static void request_unqueued (SoupSession *session, SoupMessage *msg,
-			      gpointer user_data);
-
-static void
-weak_notify_unref (gpointer logger, GObject *ex_session)
-{
-	g_object_unref (logger);
-}
-
 /**
  * soup_logger_attach:
  * @logger: a #SoupLogger
@@ -345,22 +346,14 @@ weak_notify_unref (gpointer logger, GObject *ex_session)
  * (The session will take a reference on @logger, which will be
  * removed when you call soup_logger_detach(), or when the session is
  * destroyed.)
+ *
+ * Deprecated: Use soup_session_add_feature() instead.
  **/
 void
 soup_logger_attach (SoupLogger  *logger,
 		    SoupSession *session)
 {
-	if (!soup_logger_get_id (logger, session))
-		soup_logger_set_id (logger, session);
-	g_signal_connect (session, "request_queued",
-			  G_CALLBACK (request_queued), logger);
-	g_signal_connect (session, "request_started",
-			  G_CALLBACK (request_started), logger);
-	g_signal_connect (session, "request_unqueued",
-			  G_CALLBACK (request_unqueued), logger);
-
-	g_object_weak_ref (G_OBJECT (session),
-			   weak_notify_unref, g_object_ref (logger));
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
 }
 
 /**
@@ -369,17 +362,14 @@ soup_logger_attach (SoupLogger  *logger,
  * @session: a #SoupSession
  *
  * Stops @logger from watching @session.
+ *
+ * Deprecated: Use soup_session_remove_feature() instead.
  **/
 void
 soup_logger_detach (SoupLogger  *logger,
 		    SoupSession *session)
 {
-	g_signal_handlers_disconnect_by_func (session, request_queued, logger);
-	g_signal_handlers_disconnect_by_func (session, request_started, logger);
-	g_signal_handlers_disconnect_by_func (session, request_unqueued, logger);
-
-	g_object_weak_unref (G_OBJECT (session),
-			     weak_notify_unref, logger);
+	soup_session_remove_feature (session, SOUP_SESSION_FEATURE (logger));
 }
 
 static void
@@ -610,10 +600,9 @@ got_body (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_queued (SoupSession *session, SoupMessage *msg, gpointer user_data)
+request_queued (SoupSessionFeature *logger, SoupSession *session,
+		SoupMessage *msg)
 {
-	SoupLogger *logger = user_data;
-
 	g_signal_connect (msg, "got-informational",
 			  G_CALLBACK (got_informational),
 			  logger);
@@ -623,10 +612,10 @@ request_queued (SoupSession *session, SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_started (SoupSession *session, SoupMessage *msg,
-		 SoupSocket *socket, gpointer user_data)
+request_started (SoupSessionFeature *feature, SoupSession *session,
+		 SoupMessage *msg, SoupSocket *socket)
 {
-	SoupLogger *logger = user_data;
+	SoupLogger *logger = SOUP_LOGGER (feature);
 	gboolean restarted;
 	guint msg_id;
 
@@ -638,6 +627,9 @@ request_started (SoupSession *session, SoupMessage *msg,
 		restarted = FALSE;
 	}
 
+	if (!soup_logger_get_id (logger, session))
+		soup_logger_set_id (logger, session);
+
 	if (!soup_logger_get_id (logger, socket))
 		soup_logger_set_id (logger, socket);
 
@@ -646,12 +638,9 @@ request_started (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-request_unqueued (SoupSession *session, SoupMessage *msg, gpointer user_data)
+request_unqueued (SoupSessionFeature *logger, SoupSession *session,
+		  SoupMessage *msg)
 {
-	SoupLogger *logger = user_data;
-
 	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
 	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
-
-	soup_logger_clear_id (logger, msg);
 }

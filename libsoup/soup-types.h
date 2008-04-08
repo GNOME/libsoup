@@ -20,6 +20,7 @@ typedef struct _SoupMessage           SoupMessage;
 typedef struct _SoupServer            SoupServer;
 typedef struct _SoupSession           SoupSession;
 typedef struct _SoupSessionAsync      SoupSessionAsync;
+typedef struct _SoupSessionFeature    SoupSessionFeature;
 typedef struct _SoupSessionSync       SoupSessionSync;
 typedef struct _SoupSocket            SoupSocket;
 typedef struct _SoupURI               SoupURI;

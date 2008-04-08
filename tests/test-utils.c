@@ -3,9 +3,7 @@
 #endif
 
 #include "test-utils.h"
-#include "libsoup/soup-logger.h"
-#include "libsoup/soup-misc.h"
-#include "libsoup/soup-server.h"
+#include "libsoup/soup.h"
 
 #include <signal.h>
 #include <stdio.h>
@@ -222,7 +220,7 @@ soup_test_session_new (GType type, ...)
 	}
 
 	if (logger)
-		soup_logger_attach (logger, session);
+		soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
 
 	return session;
 }

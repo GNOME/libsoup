@@ -1,5 +1,27 @@
 2008-04-08  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session-feature.c: New interface type representing
+	a feature that can be added to a SoupSession.
+
+	* libsoup/soup-session.c (soup_session_add_feature): Add a feature
+	to the session by prepending it to priv->features and calling
+	soup_session_feature_attach() on it.
+	(soup_session_add_feature_by_type): Add a feature to the session
+	by creating an object of the indicated type and passing it to
+	soup_session_add_feature.
+	(soup_session_remove_feature)
+	(soup_session_remove_feature_by_type): Likewise, remove features
+	(soup_session_class_init, set_property): register/handle
+	construct-time feature adding/removing properties
+	(dispose): cleanup features
+
+	* libsoup/soup-logger.c: port to SoupSessionFeature
+
+	* tests/test-utils.c (soup_test_session_new): Use
+	soup_session_add_feature rather than soup_logger_attach.
+
+2008-04-08  Dan Winship  <danw@gnome.org>
+
 	* configure.in: Having branched for gnome-2-22, bump version to
 	2.23.0 for the GNOME 2.23 series. SOUP_API_VERSION will stay at
 	2.4, which is confusing but seemed like the best solution at this

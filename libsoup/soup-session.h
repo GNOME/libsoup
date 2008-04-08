@@ -64,6 +64,9 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_TIMEOUT            "timeout"
 #define SOUP_SESSION_USER_AGENT         "user-agent"
 #define SOUP_SESSION_IDLE_TIMEOUT       "idle-timeout"
+#define SOUP_SESSION_ADD_FEATURE            "add-feature"
+#define SOUP_SESSION_ADD_FEATURE_BY_TYPE    "add-feature-by-type"
+#define SOUP_SESSION_REMOVE_FEATURE_BY_TYPE "remove-feature-by-type"
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
@@ -86,6 +89,16 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       SoupMessage           *msg,
 					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
+
+
+void            soup_session_add_feature            (SoupSession        *session,
+						     SoupSessionFeature *feature);
+void            soup_session_add_feature_by_type    (SoupSession        *session,
+						     GType               feature_type);
+void            soup_session_remove_feature         (SoupSession        *session,
+						     SoupSessionFeature *feature);
+void            soup_session_remove_feature_by_type (SoupSession        *session,
+						     GType               feature_type);
 
 G_END_DECLS
 
