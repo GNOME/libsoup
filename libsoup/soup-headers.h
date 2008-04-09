@@ -42,8 +42,9 @@ void        soup_header_free_list           (GSList           *list);
 gboolean    soup_header_contains            (const char       *header,
 					     const char       *token);
 
-GHashTable *soup_header_parse_param_list    (const char       *header);
-void        soup_header_free_param_list     (GHashTable       *param_list);
+GHashTable *soup_header_parse_param_list      (const char       *header);
+GHashTable *soup_header_parse_semi_param_list (const char       *header);
+void        soup_header_free_param_list       (GHashTable       *param_list);
 
 G_END_DECLS
 

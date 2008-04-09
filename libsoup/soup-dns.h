@@ -14,6 +14,7 @@
 
 void             soup_dns_init                 (void);
 char            *soup_dns_ntop                 (struct sockaddr *sa);
+gboolean         soup_dns_is_ip_address        (const char *name);
 
 typedef struct SoupDNSLookup SoupDNSLookup;
 

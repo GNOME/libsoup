@@ -12,7 +12,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct {
+struct _SoupDate {
 	int      year;
 	int      month;
 	int      day;
@@ -23,7 +23,7 @@ typedef struct {
 
 	gboolean utc;
 	int      offset;
-} SoupDate;
+};
 
 typedef enum {
 	SOUP_DATE_HTTP = 1,
@@ -51,6 +51,8 @@ SoupDate *soup_date_new_from_now    (int             offset_seconds);
 char     *soup_date_to_string       (SoupDate       *date,
 				     SoupDateFormat  format);
 time_t    soup_date_to_time_t       (SoupDate       *date);
+
+gboolean  soup_date_is_past         (SoupDate       *date);
 
 SoupDate *soup_date_copy            (SoupDate       *date);
 void      soup_date_free            (SoupDate       *date);

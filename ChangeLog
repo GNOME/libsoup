@@ -1,5 +1,29 @@
 2008-04-08  Dan Winship  <danw@gnome.org>
 
+	Initial HTTP cookie support imported from development git repo,
+	including patches from Xan Lopez.
+
+	TODO: make sure the logic in soup_cookie_jar_get_cookies() is
+	right. Add a test program to tests/.
+
+	* libsoup/soup-cookie.c: Code for parsing and generating HTTP
+	cookies.
+
+	* libsoup/soup-cookie-jar.c: Code for managing SoupCookies and
+	integrating cookie management with a SoupSession.
+
+	* libsoup/soup-date.c (soup_date_is_past): New, checks if a
+	SoupDate refers to a time in the past
+
+	* libsoup/soup-dns.c (soup_dns_is_ip_address): New, checks if a
+	string is a valid IP address
+
+	* libsoup/soup-headers.c (soup_header_parse_semi_param_list): New,
+	like soup_header_parse_param_list, but for semicolon-delimited
+	data.
+
+2008-04-08  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-auth-manager.c: Make this a GObject and
 	specifically a SoupSessionFeature. Add an "authenticate" signal,
 	and emit that rather than explicitly calling into the SoupSession

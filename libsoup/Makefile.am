@@ -51,6 +51,8 @@ soup_headers =			\
 	soup-auth-domain.h	\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
+	soup-cookie.h		\
+	soup-cookie-jar.h	\
 	soup-date.h		\
 	soup-form.h		\
 	soup-headers.h		\
@@ -109,6 +111,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-manager-ntlm.c	\
 	soup-connection.h		\
 	soup-connection.c		\
+	soup-cookie.c			\
+	soup-cookie-jar.c		\
 	soup-date.c			\
 	soup-dns.h			\
 	soup-dns.c			\

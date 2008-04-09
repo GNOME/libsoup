@@ -367,23 +367,23 @@ unskip_lws (const char *s, const char *start)
 }
 
 static const char *
-skip_commas (const char *s)
+skip_delims (const char *s, char delim)
 {
-	/* The grammar allows for multiple commas */
-	while (g_ascii_isspace (*s) || *s == ',')
+	/* The grammar allows for multiple delimiters */
+	while (g_ascii_isspace (*s) || *s == delim)
 		s++;
 	return s;
 }
 
 static const char *
-skip_item (const char *s)
+skip_item (const char *s, char delim)
 {
 	gboolean quoted = FALSE;
 	const char *start = s;
 
 	/* A list item ends at the last non-whitespace character
-	 * before a comma which is not inside a quoted-string. Or at
-	 * the end of the string.
+	 * before a delimiter which is not inside a quoted-string. Or
+	 * at the end of the string.
 	 */
 
 	while (*s) {
@@ -393,13 +393,29 @@ skip_item (const char *s)
 			if (*s == '\\' && *(s + 1))
 				s++;
 		} else {
-			if (*s == ',')
+			if (*s == delim)
 				break;
 		}
 		s++;
 	}
 
 	return unskip_lws (s, start);
+}
+
+static GSList *
+parse_list (const char *header, char delim)
+{
+	GSList *list = NULL;
+	const char *end;
+
+	header = skip_delims (header, delim);
+	while (*header) {
+		end = skip_item (header, delim);
+		list = g_slist_prepend (list, g_strndup (header, end - header));
+		header = skip_delims (end, delim);
+	}
+
+	return g_slist_reverse (list);
 }
 
 /**
@@ -415,17 +431,7 @@ skip_item (const char *s)
 GSList *
 soup_header_parse_list (const char *header)
 {
-	GSList *list = NULL;
-	const char *end;
-
-	header = skip_commas (header);
-	while (*header) {
-		end = skip_item (header);
-		list = g_slist_prepend (list, g_strndup (header, end - header));
-		header = skip_commas (end);
-	}
-
-	return g_slist_reverse (list);
+	return parse_list (header, ',');
 }
 
 typedef struct {
@@ -569,13 +575,13 @@ soup_header_contains (const char *header, const char *token)
 	const char *end;
 	guint len = strlen (token);
 
-	header = skip_commas (header);
+	header = skip_delims (header, ',');
 	while (*header) {
-		end = skip_item (header);
+		end = skip_item (header, ',');
 		if (end - header == len &&
 		    !g_ascii_strncasecmp (header, token, len))
 			return TRUE;
-		header = skip_commas (end);
+		header = skip_delims (end, ',');
 	}
 
 	return FALSE;
@@ -596,26 +602,14 @@ decode_quoted_string (char *quoted_string)
 	*dst = '\0';
 }
 
-/**
- * soup_header_parse_param_list:
- * @header: a header value
- *
- * Parses a header which is a list of something like
- *   token [ "=" ( token | quoted-string ) ]
- *
- * Tokens that don't have an associated value will still be added to
- * the resulting hash table, but with a %NULL value.
- * 
- * Return value: a #GHashTable of list elements.
- **/
-GHashTable *
-soup_header_parse_param_list (const char *header)
+static GHashTable *
+parse_param_list (const char *header, char delim)
 {
 	GHashTable *params;
 	GSList *list, *iter;
 	char *item, *eq, *name_end, *value;
 
-	list = soup_header_parse_list (header);
+	list = parse_list (header, delim);
 	if (!list)
 		return NULL;
 
@@ -648,6 +642,45 @@ soup_header_parse_param_list (const char *header)
 
 	g_slist_free (list);
 	return params;
+}
+
+/**
+ * soup_header_parse_param_list:
+ * @header: a header value
+ *
+ * Parses a header which is a comma-delimited list of something like
+ *
+ *   token [ "=" ( token | quoted-string ) ]
+ *
+ * Tokens that don't have an associated value will still be added to
+ * the resulting hash table, but with a %NULL value.
+ * 
+ * Return value: a #GHashTable of list elements.
+ **/
+GHashTable *
+soup_header_parse_param_list (const char *header)
+{
+	return parse_param_list (header, ',');
+}
+
+/**
+ * soup_header_parse_semi_param_list:
+ * @header: a header value
+ *
+ * Parses a header which is a semicolon-delimited list of something
+ * like
+ *
+ *   token [ "=" ( token | quoted-string ) ]
+ *
+ * Tokens that don't have an associated value will still be added to
+ * the resulting hash table, but with a %NULL value.
+ * 
+ * Return value: a #GHashTable of list elements.
+ **/
+GHashTable *
+soup_header_parse_semi_param_list (const char *header)
+{
+	return parse_param_list (header, ';');
 }
 
 /**

@@ -303,6 +303,31 @@ soup_dns_ntop (struct sockaddr *sa)
 	}
 }
 
+gboolean
+soup_dns_is_ip_address (const char *name)
+{
+	struct sockaddr_in sin;
+#ifdef HAVE_IPV6
+	struct sockaddr_in6 sin6;
+
+	if (inet_pton (AF_INET, name, &sin.sin_addr) > 0 ||
+	    inet_pton (AF_INET6, name, &sin6.sin6_addr) > 0)
+		return TRUE;
+#else /* !HAVE_IPV6 */
+#if defined(HAVE_INET_PTON)
+	if (inet_pton (AF_INET, name, &sin.sin_addr) > 0)
+		return TRUE;
+#elif defined(HAVE_INET_ATON)
+	if (inet_aton (name, &sin.sin_addr) != 0)
+		return TRUE;
+#else
+	if (inet_addr (entry->entry_name) != INADDR_NONE)
+		return TRUE;
+#endif
+#endif /* HAVE_IPV6 */
+	return FALSE;
+}
+
 static void
 resolve_address (SoupDNSCacheEntry *entry)
 {

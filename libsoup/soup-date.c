@@ -566,6 +566,24 @@ soup_date_to_time_t (SoupDate *date)
 }
 
 /**
+ * soup_date_is_past:
+ * @date: a #SoupDate
+ *
+ * Determines if @date is in the past.
+ *
+ * Return value: %TRUE if @date is in the past
+ **/
+gboolean
+soup_date_is_past (SoupDate *date)
+{
+	/* optimization */
+	if (date->year < 2008)
+		return TRUE;
+
+	return soup_date_to_time_t (date) < time (NULL);
+}
+
+/**
  * soup_date_copy:
  * @date: a #SoupDate
  *
