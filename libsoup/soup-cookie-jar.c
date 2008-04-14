@@ -263,8 +263,10 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	g_return_if_fail (cookie != NULL);
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
-	set_cookie (jar, soup_cookie);
-	/* set_cookie will steal or free soup_cookie */
+	if (soup_cookie) {
+		set_cookie (jar, soup_cookie);
+		/* set_cookie will steal or free soup_cookie */
+	}
 }
 
 static void

@@ -1,3 +1,10 @@
+2008-04-14  Chris Lord  <chrislord.net@gmail.com>
+
+	reviewed by: Dan Winship <danw@gnome.org>
+
+	* libsoup/soup-cookie-jar.c (soup_cookie_jar_set_cookie):
+	Check that the cookie was parsed successfully before setting it
+
 2008-04-08  Dan Winship  <danw@gnome.org>
 
 	Initial HTTP cookie support imported from development git repo,
