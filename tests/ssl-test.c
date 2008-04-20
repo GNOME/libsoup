@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
 
 #include "libsoup/soup-address.h"
 #include "libsoup/soup-socket.h"
@@ -13,6 +11,12 @@
 
 #define BUFSIZE 1024
 #define DH_BITS 1024
+
+#ifndef G_OS_WIN32
+#define SOCKET_PRINT_ERROR(M) perror(M);
+#else
+#define SOCKET_PRINT_ERROR(M) g_error("%s: %d", M, WSAGetLastError());
+#endif
 
 static GMainLoop *loop;
 static gnutls_dh_params_t dh_params;
@@ -64,8 +68,8 @@ server_write (gnutls_session_t session, char *buf, int bufsize)
 	}
 }
 
-static const char *ssl_cert_file = SRCDIR "/test-cert.pem";
-static const char *ssl_key_file = SRCDIR "/test-key.pem";
+static const char *ssl_cert_file = SRCDIR G_DIR_SEPARATOR_S "test-cert.pem";
+static const char *ssl_key_file = SRCDIR G_DIR_SEPARATOR_S "test-key.pem";
 
 static gpointer
 server_thread (gpointer user_data)
@@ -226,6 +230,9 @@ main (int argc, char **argv)
 	g_thread_init (NULL);
 	g_type_init ();
 
+	/* On Windows, this will call WSAStartup() */
+	soup_address_get_type ();
+
 	while ((opt = getopt (argc, argv, "c:d:k:")) != -1) {
 		switch (opt) {
 		case 'c':
@@ -253,7 +260,7 @@ main (int argc, char **argv)
 	/* Create server socket */
 	listener = socket (AF_INET, SOCK_STREAM, 0);
 	if (listener == -1) {
-		perror ("creating listening socket");
+		SOCKET_PRINT_ERROR ("creating listening socket");
 		exit (1);
 	}
 
@@ -262,12 +269,12 @@ main (int argc, char **argv)
 	sin.sin_addr.s_addr = INADDR_ANY;
 
 	if (bind (listener, (struct sockaddr *) &sin, sizeof (sin))  == -1) {
-		perror ("binding listening socket");
+		SOCKET_PRINT_ERROR ("binding listening socket");
 		exit (1);
 	}
 
 	if (listen (listener, 1) == -1) {
-		perror ("listening on socket");
+		SOCKET_PRINT_ERROR ("listening on socket");
 		exit (1);
 	}
 

@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -856,7 +857,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 
 	real_chan = priv->iochannel;
 	ssl_chan = soup_ssl_wrap_iochannel (
-		real_chan, priv->is_server ?
+		real_chan, priv->non_blocking, priv->is_server ?
 		SOUP_SSL_TYPE_SERVER : SOUP_SSL_TYPE_CLIENT,
 		ssl_host, priv->ssl_creds);
 

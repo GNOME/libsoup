@@ -17,8 +17,9 @@
 const gboolean soup_ssl_supported = FALSE;
 
 GIOChannel *
-soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
-			 const char *hostname, SoupSSLCredentials *creds)
+soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
+			 SoupSSLType type, const char *hostname,
+			 SoupSSLCredentials *creds)
 {
 	return NULL;
 }

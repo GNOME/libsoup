@@ -13,11 +13,14 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <glib.h>
+
+#ifndef G_OS_WIN32
+#include <pthread.h>
+#endif
 
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
@@ -44,6 +47,7 @@ typedef struct {
 	GIOChannel channel;
 	int fd;
 	GIOChannel *real_sock;
+	gboolean non_blocking;
 	gnutls_session session;
 	SoupSSLCredentials *creds;
 	char *hostname;
@@ -132,8 +136,6 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 	return TRUE;
 }
 
-#define SOUP_GNUTLS_CHANNEL_NONBLOCKING(chan) (fcntl ((chan)->fd, F_GETFL, 0) & O_NONBLOCK)
-
 static GIOStatus
 do_handshake (SoupGNUTLSChannel *chan, GError **err)
 {
@@ -143,7 +145,7 @@ again:
 	result = gnutls_handshake (chan->session);
 
 	if (result == GNUTLS_E_AGAIN || result == GNUTLS_E_INTERRUPTED) {
-		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan)) {
+		if (chan->non_blocking) {
 			g_set_error (err, SOUP_SSL_ERROR,
 				     (gnutls_record_get_direction (chan->session) ?
 				      SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE :
@@ -199,7 +201,7 @@ again:
 	}
 
 	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
-		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan))
+		if (chan->non_blocking)
 			return G_IO_STATUS_AGAIN;
 		else
 			goto again;
@@ -251,7 +253,7 @@ again:
 	}
 
 	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
-		if (SOUP_GNUTLS_CHANNEL_NONBLOCKING (chan))
+		if (chan->non_blocking)
 			return G_IO_STATUS_AGAIN;
 		else
 			goto again;
@@ -370,6 +372,7 @@ init_dh_params (void)
 /**
  * soup_ssl_wrap_iochannel:
  * @sock: a #GIOChannel wrapping a TCP socket.
+ * @non_blocking: whether the underlying socket is blocking or not
  * @type: whether this is a client or server socket
  * @remote_host: the hostname of the remote machine
  * @creds: a client or server credentials structure
@@ -381,8 +384,9 @@ init_dh_params (void)
  * failure.
  **/
 GIOChannel *
-soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
-			 const char *remote_host, SoupSSLCredentials *creds)
+soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking, 
+			 SoupSSLType type, const char *remote_host, 
+			 SoupSSLCredentials *creds)
 {
 	SoupGNUTLSChannel *chan = NULL;
 	GIOChannel *gchan = NULL;
@@ -423,6 +427,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	chan->creds = creds;
 	chan->hostname = g_strdup (remote_host);
 	chan->type = type;
+	chan->non_blocking = non_blocking;
 	g_io_channel_ref (sock);
 
 	gchan = (GIOChannel *) chan;
@@ -439,7 +444,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, SoupSSLType type,
 	return NULL;
 }
 
-#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
+#if defined(GCRY_THREAD_OPTION_PTHREAD_IMPL) && !defined(G_OS_WIN32)
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
 
@@ -449,7 +454,7 @@ soup_gnutls_init (void)
 	static volatile gsize inited_gnutls = 0;
 
 	if (g_once_init_enter (&inited_gnutls)) {
-#ifdef GCRY_THREAD_OPTION_PTHREAD_IMPL
+#if defined(GCRY_THREAD_OPTION_PTHREAD_IMPL) && !defined(G_OS_WIN32)
 		gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 #endif
 		gnutls_global_init ();

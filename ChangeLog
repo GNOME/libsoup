@@ -1,3 +1,22 @@
+2008-04-20  Dan Winship  <danw@gnome.org>
+
+	Fixes for GnuTLS support on Win32. #528752, patch from Marc Maurer
+
+	* libsoup/soup-gnutls.c (soup_ssl_wrap_iochannel): add an argument
+	saying whether or not the socket is non-blocking, since there's no
+	way to determine this from the fd in WinSock.
+	(do_handshake, soup_gnutls_read, soup_gnutls_write): Update for
+	that.
+
+	* libsoup/soup-socket.c (soup_socket_start_proxy_ssl): Update for
+	that
+
+	* libsoup/soup-nossl.c (soup_ssl_wrap_iochannel): update the
+	declaration here too
+
+	* tests/ssl-test.c: Some updates to get this closer to working on
+	Windows...
+
 2008-04-14  Chris Lord  <chrislord.net@gmail.com>
 
 	reviewed by: Dan Winship <danw@gnome.org>
