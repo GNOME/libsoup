@@ -1,3 +1,21 @@
+Changes in libsoup from 2.4.1 to 2.23.1:
+
+	* This is the first unstable release leading up to GNOME 2.24.
+          Bumped the libsoup version number up to 2.23.x to match the
+          GNOME version; note that the API version is still "2.4",
+          meaning in particular that you still call it "libsoup-2.4"
+          when using pkg-config.
+
+	* Added SoupSessionFeature, an interface type that will be
+          used for several new features. Ported SoupLogger and
+          SoupAuthManager to use it.
+
+	* Added SoupCookie and SoupCookieJar. This API is already
+          being used in Epiphany, via WebKit, but it is not yet
+          complete.
+
+	* Fixed GnuTLS support on Win32. [#528752, Marc Maurer]
+
 Changes in libsoup from 2.4.0 to 2.4.1:
 
 	* Fixed SoupMessage to not downgrade to HTTP/1.0 for the

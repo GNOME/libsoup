@@ -1,3 +1,9 @@
+2008-04-21  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.23.1, bump AGE and CURRENT
+
+	* NEWS: update
+
 2008-04-20  Dan Winship  <danw@gnome.org>
 
 	Fixes for GnuTLS support on Win32. #528752, patch from Marc Maurer
