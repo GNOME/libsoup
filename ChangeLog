@@ -1,3 +1,9 @@
+2008-04-29  Tor Lillqvist  <tml@novell.com>
+
+	* libsoup/soup-dns.c (soup_dns_is_ip_address): Fix compilation
+	error in the !HAVE_IPV6 && !HAVE_INET_PTON && !HAVE_INET_ATON
+	case.
+
 2008-04-21  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.23.1, bump AGE and CURRENT

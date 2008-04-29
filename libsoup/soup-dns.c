@@ -321,7 +321,7 @@ soup_dns_is_ip_address (const char *name)
 	if (inet_aton (name, &sin.sin_addr) != 0)
 		return TRUE;
 #else
-	if (inet_addr (entry->entry_name) != INADDR_NONE)
+	if (inet_addr (name) != INADDR_NONE)
 		return TRUE;
 #endif
 #endif /* HAVE_IPV6 */
