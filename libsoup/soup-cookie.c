@@ -847,8 +847,8 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	 * no one is really that crazy.
 	 */
 	plen = strlen (cookie->path);
-	if (strncmp (cookie->path, uri->path, plen) != 0)
-		return FALSE;
+	if (cookie->path[plen - 1] == '/')
+		plen--;
 	if (uri->path[plen] && uri->path[plen] != '/')
 		return FALSE;
 
