@@ -333,8 +333,8 @@ static void
 set_fdflags (SoupSocketPrivate *priv)
 {
 	int opt;
-	struct timeval timeout;
 #ifndef G_OS_WIN32
+	struct timeval timeout;
 	int flags;
 #endif
 
@@ -357,6 +357,7 @@ set_fdflags (SoupSocketPrivate *priv)
 	setsockopt (priv->sockfd, SOL_SOCKET,
 		    SO_REUSEADDR, (void *) &opt, sizeof (opt));
 
+#ifndef G_OS_WIN32
 	timeout.tv_sec = priv->timeout;
 	timeout.tv_usec = 0;
 	setsockopt (priv->sockfd, SOL_SOCKET,
@@ -366,6 +367,18 @@ set_fdflags (SoupSocketPrivate *priv)
 	timeout.tv_usec = 0;
 	setsockopt (priv->sockfd, SOL_SOCKET,
 		    SO_SNDTIMEO, (void *) &timeout, sizeof (timeout));
+#else
+	if (priv->timeout < G_MAXINT / 1000)
+		opt = priv->timeout * 1000;
+	else
+		opt = 0;
+
+	setsockopt (priv->sockfd, SOL_SOCKET,
+		    SO_RCVTIMEO, (void *) &opt, sizeof (opt));
+	
+	setsockopt (priv->sockfd, SOL_SOCKET,
+		    SO_SNDTIMEO, (void *) &opt, sizeof (opt));
+#endif
 
 #ifndef G_OS_WIN32
 	priv->iochannel =

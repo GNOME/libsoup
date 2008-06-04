@@ -1,3 +1,13 @@
+2008-06-04  Tor Lillqvist  <tml@novell.com>
+
+	* libsoup/soup-socket.c (set_fdflags): The SO_RCVTIMEO and
+	SO_SNDTIMEO options to setsockopt() take int values, in
+	milliseconds, on Windows. Not struct timeval. Eek. So passing a
+	struct timeval meant that the tv_sec value (which is first in the
+	struct) is interpreted as milliseconds. setsockopt apparently
+	doesn't even get upset by the fact that the option size doesn't
+	match the sizeof(int) it should expect.
+
 2008-05-02  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-cookie.c (soup_cookie_applies_to_uri): fix the path
