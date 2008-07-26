@@ -45,6 +45,9 @@
 	read_length, write_length, and written to goffset so we can
 	properly handle message bodies > 4G. #539861, Peter Christensen.
 
+	* libsoup/soup-gnutls.c: Fix horrible bizarre brokenness in
+	GIOChannel subclassing. #536417, Tor Lillqvist.
+
 2008-06-04  Tor Lillqvist  <tml@novell.com>
 
 	* libsoup/soup-socket.c (set_fdflags): The SO_RCVTIMEO and

@@ -45,7 +45,6 @@ struct SoupSSLCredentials {
 
 typedef struct {
 	GIOChannel channel;
-	int fd;
 	GIOChannel *real_sock;
 	gboolean non_blocking;
 	gnutls_session session;
@@ -279,7 +278,7 @@ soup_gnutls_seek (GIOChannel  *channel,
 {
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 
-	return chan->real_sock->funcs->io_seek (channel, offset, type, err);
+	return chan->real_sock->funcs->io_seek (chan->real_sock, offset, type, err);
 }
 
 static GIOStatus
@@ -296,7 +295,7 @@ soup_gnutls_close (GIOChannel  *channel,
 		} while (ret == GNUTLS_E_INTERRUPTED);
 	}
 
-	return chan->real_sock->funcs->io_close (channel, err);
+	return chan->real_sock->funcs->io_close (chan->real_sock, err);
 }
 
 static GSource *
@@ -305,7 +304,7 @@ soup_gnutls_create_watch (GIOChannel   *channel,
 {
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 
-	return chan->real_sock->funcs->io_create_watch (channel,
+	return chan->real_sock->funcs->io_create_watch (chan->real_sock,
 							condition);
 }
 
@@ -326,7 +325,7 @@ soup_gnutls_set_flags (GIOChannel  *channel,
 {
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 
-	return chan->real_sock->funcs->io_set_flags (channel, flags, err);
+	return chan->real_sock->funcs->io_set_flags (chan->real_sock, flags, err);
 }
 
 static GIOFlags
@@ -334,7 +333,7 @@ soup_gnutls_get_flags (GIOChannel *channel)
 {
 	SoupGNUTLSChannel *chan = (SoupGNUTLSChannel *) channel;
 
-	return chan->real_sock->funcs->io_get_flags (channel);
+	return chan->real_sock->funcs->io_get_flags (chan->real_sock);
 }
 
 static const GIOFuncs soup_gnutls_channel_funcs = {
@@ -421,7 +420,6 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 	gnutls_transport_set_ptr (session, GINT_TO_POINTER (sockfd));
 
 	chan = g_slice_new0 (SoupGNUTLSChannel);
-	chan->fd = sockfd;
 	chan->real_sock = sock;
 	chan->session = session;
 	chan->creds = creds;
