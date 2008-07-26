@@ -55,7 +55,7 @@ GTKDOC_CFLAGS =				\
 	$(XML_CFLAGS)			\
 	$(GNUTLS_CFLAGS)
 
-GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
+GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la $(GLIB_LIBS)
 
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make

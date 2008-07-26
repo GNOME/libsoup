@@ -1,3 +1,10 @@
+2008-07-26  Dan Winship  <danw@gnome.org>
+
+	* tests/Makefile.am (LIBS): add $(GLIB_LIBS) so this still works
+	when building with weird LDFLAGS. #541506, Götz Waschk.
+
+	* docs/reference/Makefile.am (GTKDOC_LIBS): likewise
+
 2008-06-04  Tor Lillqvist  <tml@novell.com>
 
 	* libsoup/soup-socket.c (set_fdflags): The SO_RCVTIMEO and

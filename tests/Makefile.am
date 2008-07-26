@@ -6,7 +6,9 @@ INCLUDES =		\
 	$(GLIB_CFLAGS)	\
 	$(LIBGNUTLS_CFLAGS)
 
-LIBS = $(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la
+LIBS =			\
+	$(top_builddir)/libsoup/libsoup-$(SOUP_API_VERSION).la \
+	$(GLIB_LIBS)
 
 noinst_PROGRAMS =	\
 	chunk-test	\
