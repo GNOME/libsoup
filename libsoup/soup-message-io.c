@@ -51,7 +51,7 @@ typedef struct {
 	SoupEncoding          read_encoding;
 	GByteArray           *read_meta_buf;
 	SoupMessageBody      *read_body;
-	guint                 read_length;
+	goffset               read_length;
 
 	SoupMessageIOState    write_state;
 	SoupEncoding          write_encoding;
@@ -59,8 +59,8 @@ typedef struct {
 	SoupMessageBody      *write_body;
 	SoupBuffer           *write_chunk;
 	gsize                 write_body_offset;
-	guint                 write_length;
-	guint                 written;
+	goffset               write_length;
+	goffset               written;
 
 	guint read_tag, write_tag, err_tag;
 	GSource *unpause_source;
