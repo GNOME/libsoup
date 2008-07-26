@@ -98,9 +98,7 @@ soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
 SoupAuthDigestAlgorithm
 soup_auth_digest_parse_algorithm (const char *algorithm)
 {
-	if (!algorithm)
-		return SOUP_AUTH_DIGEST_ALGORITHM_NONE;
-	else if (!g_ascii_strcasecmp (algorithm, "MD5"))
+	if (!algorithm || !g_ascii_strcasecmp (algorithm, "MD5"))
 		return SOUP_AUTH_DIGEST_ALGORITHM_MD5;
 	else if (!g_ascii_strcasecmp (algorithm, "MD5-sess"))
 		return SOUP_AUTH_DIGEST_ALGORITHM_MD5_SESS;
