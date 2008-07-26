@@ -19,6 +19,7 @@ noinst_PROGRAMS =	\
 	get		\
 	getbug		\
 	header-parsing  \
+	misc-test	\
 	ntlm-test	\
 	redirect-test	\
 	simple-httpd	\
@@ -40,6 +41,7 @@ dns_SOURCES = dns.c
 get_SOURCES = get.c
 getbug_SOURCES = getbug.c
 header_parsing_SOURCES = header-parsing.c $(TEST_SRCS)
+misc_test_SOURCES = misc-test.c $(TEST_SRCS)
 ntlm_test_SOURCES = ntlm-test.c $(TEST_SRCS)
 proxy_test_SOURCES = proxy-test.c $(TEST_SRCS)
 pull_api_SOURCES = pull-api.c $(TEST_SRCS)
@@ -72,6 +74,7 @@ TESTS =			\
 	continue-test	\
 	date		\
 	header-parsing	\
+	misc-test	\
 	ntlm-test	\
 	redirect-test	\
 	uri-parsing	\

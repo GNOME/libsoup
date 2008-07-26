@@ -476,8 +476,12 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
-			   "Host: %s", uri->host);
+	if (!soup_message_headers_get (msg->request_headers, "Host")) {
+		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
+				   "Host: %s%c%u", uri->host,
+				   soup_uri_uses_default_port (uri) ? '\0' : ':',
+				   uri->port);
+	}
 	soup_message_headers_iter_init (&iter, msg->request_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (!g_ascii_strcasecmp (name, "Authorization") &&

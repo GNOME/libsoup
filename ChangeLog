@@ -1,5 +1,17 @@
 2008-07-26  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-client-io.c (get_request_headers): don't
+	add a Host header to the message if the caller already added one.
+	#539803, Marc Maurer.
+
+	* libsoup/soup-logger.c (print_request): likewise
+
+	* tests/misc-test.c: new test file for small miscellaneous test
+	cases.
+	(do_host_test): test Host-header overriding
+
+2008-07-26  Dan Winship  <danw@gnome.org>
+
 	* tests/Makefile.am (LIBS): add $(GLIB_LIBS) so this still works
 	when building with weird LDFLAGS. #541506, Götz Waschk.
 
