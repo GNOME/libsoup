@@ -19,6 +19,9 @@ GSource           *soup_add_io_watch         (GMainContext *async_context,
 GSource           *soup_add_idle             (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
+GSource           *soup_add_completion	     (GMainContext *async_context,
+					      GSourceFunc   function,
+					      gpointer      data);
 GSource           *soup_add_timeout          (GMainContext *async_context,
 					      guint         interval,
 					      GSourceFunc   function,

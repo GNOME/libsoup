@@ -150,6 +150,10 @@ soup_add_io_watch (GMainContext *async_context,
  * Adds an idle event as with g_idle_add(), but using the given
  * @async_context.
  *
+ * If you want @function to run "right away", use
+ * soup_add_completion(), since that sets a higher priority on the
+ * #GSource than soup_add_idle() does.
+ *
  * Return value: a #GSource, which can be removed from @async_context
  * with g_source_destroy().
  **/
@@ -158,6 +162,32 @@ soup_add_idle (GMainContext *async_context,
 	       GSourceFunc function, gpointer data)
 {
 	GSource *source = g_idle_source_new ();
+	g_source_set_callback (source, function, data, NULL);
+	g_source_attach (source, async_context);
+	g_source_unref (source);
+	return source;
+}
+
+/**
+ * soup_add_completion:
+ * @async_context: the #GMainContext to dispatch the idle event in, or
+ * %NULL for the default context
+ * @function: the callback to invoke
+ * @data: user data to pass to @function
+ *
+ * Adds @function to be executed from inside @async_context with the
+ * default priority. Use this when you want to complete an action in
+ * @async_context's main loop, as soon as possible.
+ *
+ * Return value: a #GSource, which can be removed from @async_context
+ * with g_source_destroy().
+ **/
+GSource *
+soup_add_completion (GMainContext *async_context,
+	             GSourceFunc function, gpointer data)
+{
+	GSource *source = g_idle_source_new ();
+	g_source_set_priority (source, G_PRIORITY_DEFAULT);
 	g_source_set_callback (source, function, data, NULL);
 	g_source_attach (source, async_context);
 	g_source_unref (source);

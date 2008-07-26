@@ -973,7 +973,7 @@ soup_message_io_unpause (SoupMessage *msg)
 		      NULL);
 	if (non_blocking) {
 		if (!io->unpause_source) {
-			io->unpause_source = soup_add_idle (
+			io->unpause_source = soup_add_completion (
 				async_context, io_unpause_internal, msg);
 		}
 	} else

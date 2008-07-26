@@ -563,6 +563,7 @@ soup_header_free_param_list
 soup_str_case_equal
 soup_str_case_hash
 <SUBSECTION>
+soup_add_completion
 soup_add_idle
 soup_add_io_watch
 soup_add_timeout

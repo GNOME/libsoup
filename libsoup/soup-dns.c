@@ -553,7 +553,7 @@ resolver_thread (gpointer user_data)
 		lookup = async_lookups->data;
 		async_lookups = g_slist_remove (async_lookups, lookup);
 
-		soup_add_idle (lookup->async_context, do_async_callback, lookup);
+		soup_add_completion (lookup->async_context, do_async_callback, lookup);
 	}
 
 	soup_dns_cache_entry_unref (entry);
@@ -633,7 +633,7 @@ async_cancel (GCancellable *cancellable, gpointer user_data)
 	if (g_slist_find (entry->async_lookups, lookup)) {
 		entry->async_lookups = g_slist_remove (entry->async_lookups,
 						       lookup);
-		soup_add_idle (lookup->async_context, do_async_callback, lookup);
+		soup_add_completion (lookup->async_context, do_async_callback, lookup);
 	}
 
 	g_mutex_unlock (soup_dns_lock);
@@ -680,7 +680,7 @@ soup_dns_lookup_resolve_async (SoupDNSLookup *lookup,
 						 FALSE, NULL);
 		}
 	} else
-		soup_add_idle (lookup->async_context, do_async_callback, lookup);
+		soup_add_completion (lookup->async_context, do_async_callback, lookup);
 
 	g_mutex_unlock (soup_dns_lock);
 }

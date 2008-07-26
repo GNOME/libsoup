@@ -1,5 +1,25 @@
 2008-07-26  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-misc.c (soup_add_completion): Add this to schedule
+	a callback in a GMainContext "right away", as opposed to
+	soup_add_idle(), which uses a lower priority and therefore may not
+	end up calling the callback for a long time if the application is
+	busy with I/O. #536676, Benjamin Otte.
+
+	* libsoup/soup-dns.c (resolver_thread, async_cancel)
+	(soup_dns_lookup_resolve_async):
+	* libsoup/soup-message-io.c (soup_message_io_unpause):
+	* libsoup/soup-session-sync.c (queue_message_thread):
+	* libsoup/soup-session-async.c (do_idle_run_queue):
+	* libsoup/soup-socket.c (async_cancel)
+	(soup_socket_connect_async):
+	* tests/test-utils.c (test_server_shutdown): Use
+	soup_add_completion() rather than soup_add_idle().
+
+	* docs/reference/libsoup-2.4-sections.txt: add soup_add_completion
+
+2008-07-26  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-client-io.c (get_request_headers): don't
 	add a Host header to the message if the caller already added one.
 	#539803, Marc Maurer.

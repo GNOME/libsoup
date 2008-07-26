@@ -272,8 +272,8 @@ static void
 test_server_shutdown (void)
 {
 	if (server_thread) {
-		soup_add_idle (soup_server_get_async_context (test_server),
-			       idle_quit_server, test_server);
+		soup_add_completion (soup_server_get_async_context (test_server),
+				     idle_quit_server, test_server);
 		g_thread_join (server_thread);
 	} else
 		soup_server_quit (test_server);

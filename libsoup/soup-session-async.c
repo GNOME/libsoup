@@ -233,8 +233,8 @@ idle_run_queue (gpointer user_data)
 static void
 do_idle_run_queue (SoupSession *session)
 {
-	soup_add_idle (soup_session_get_async_context (session),
-		       idle_run_queue, g_object_ref (session));
+	soup_add_completion (soup_session_get_async_context (session),
+			     idle_run_queue, g_object_ref (session));
 }
 
 static void

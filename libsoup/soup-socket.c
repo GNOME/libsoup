@@ -562,8 +562,8 @@ async_cancel (GCancellable *cancellable, gpointer user_data)
 	if (priv->watch_src)
 		g_source_destroy (priv->watch_src);
 	disconnect_internal (priv);
-	priv->watch_src = soup_add_idle (priv->async_context,
-					 idle_connect_result, sacd);
+	priv->watch_src = soup_add_completion (priv->async_context,
+					       idle_connect_result, sacd);
 }
 
 static guint
@@ -661,8 +661,8 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 						  sacd);
 		}
 	} else {
-		priv->watch_src = soup_add_idle (priv->async_context,
-						 idle_connect_result, sacd);
+		priv->watch_src = soup_add_completion (priv->async_context,
+						       idle_connect_result, sacd);
 	}
 }
 
