@@ -1,3 +1,22 @@
+Changes in libsoup from 2.23.1 to 2.23.6:
+
+	* Fixed use of g_idle_add() so that heavy I/O won't end up
+          blocking libsoup callbacks. [#536676, Benjamin Otte]
+
+	* Allow the caller to override the Host header. [#539803, Marc
+          Maurer]
+
+	* Properly handle responses larger than 4G. [#539861, Peter
+          Christensen]
+
+	* Fixed the build when using certain LDFLAGS [#541506, Götz
+          Waschk]
+
+	* Fixed a small bug in Digest auth handling. [#544681, Mads
+          Chr. Olesen]
+
+	* Fixed multiple Windows bugs [Tor Lillqvist]
+
 Changes in libsoup from 2.4.1 to 2.23.1:
 
 	* This is the first unstable release leading up to GNOME 2.24.
