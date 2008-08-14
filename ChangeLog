@@ -2,7 +2,13 @@
 
 	* libsoup.pc.in (Requires): Add gthread-2.0; the app must call
 	g_thread_init(), but libsoup won't pull it in itself if built with
-	--as-needed, so make sure it gets pulled in from here.
+	--as-needed, so make sure it gets pulled in from here. Noted by
+	Zeeshan Ali.
+
+	* libsoup/soup-auth.c (soup_auth_authenticate): g_return_if_fail
+	if either username or password is NULL. Noted on the mailing list.
+
+	* libsoup/soup-auth-basic.c (authenticate): remove redundant check
 
 2008-08-04  Dan Winship  <danw@gnome.org>
 

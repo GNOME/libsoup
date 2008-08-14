@@ -106,9 +106,6 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	char *user_pass;
 	int len;
 
-	g_return_if_fail (username != NULL);
-	g_return_if_fail (password != NULL);
-
 	user_pass = g_strdup_printf ("%s:%s", username, password);
 	len = strlen (user_pass);
 
