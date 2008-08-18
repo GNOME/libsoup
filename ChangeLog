@@ -1,3 +1,12 @@
+2008-08-18  Dan Winship  <danw@gnome.org>
+
+	* libsoup.pc.in (Requires): Revert previous commit; that would
+	still fail in the case of an application linking against a library
+	that privately links against libsoup. The only correct solution in
+	the face of --as-needed (or on OSes where the linker always works
+	that way) is for the module that actually calls g_thread_init() to
+	explicitly link against libgthread.
+
 2008-08-14  Dan Winship  <danw@gnome.org>
 
 	* libsoup.pc.in (Requires): Add gthread-2.0; the app must call
