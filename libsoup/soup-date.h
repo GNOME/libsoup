@@ -51,6 +51,8 @@ SoupDate *soup_date_new_from_now    (int             offset_seconds);
 char     *soup_date_to_string       (SoupDate       *date,
 				     SoupDateFormat  format);
 time_t    soup_date_to_time_t       (SoupDate       *date);
+void      soup_date_to_timeval      (SoupDate       *date,
+				     GTimeVal       *time);
 
 gboolean  soup_date_is_past         (SoupDate       *date);
 

@@ -542,6 +542,7 @@ time_t
 soup_date_to_time_t (SoupDate *date)
 {
 	time_t tt;
+	GTimeVal val;
 
 	/* FIXME: offset, etc */
 
@@ -557,12 +558,29 @@ soup_date_to_time_t (SoupDate *date)
 	if (sizeof (time_t) == 4 && date->year > 2038)
 		return (time_t)0x7fffffff;
 
-	tt = rata_die_day (date) - TIME_T_EPOCH_RATA_DIE_DAY;
-	tt = ((((tt * 24) + date->hour) * 60) + date->minute) * 60 + date->second;
+	soup_date_to_timeval (date, &val);
+	tt = val.tv_sec;
 
 	if (sizeof (time_t) == 4 && tt < 0)
 		return (time_t)0x7fffffff;
 	return tt;
+}
+
+/**
+ * soup_date_to_timeval:
+ * @date: a #SoupDate
+ * @time: a #GTimeVal structure in which to store the converted time.
+ *
+ * Converts @date to a #GTimeVal.
+ */
+void
+soup_date_to_timeval (SoupDate *date, GTimeVal *time)
+{
+	/* FIXME: offset, etc */
+
+	time->tv_sec = rata_die_day (date) - TIME_T_EPOCH_RATA_DIE_DAY;
+	time->tv_sec = ((((time->tv_sec * 24) + date->hour) * 60) + date->minute) * 60 + date->second;
+	time->tv_usec = 0;
 }
 
 /**

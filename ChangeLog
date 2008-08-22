@@ -1,3 +1,11 @@
+2008-08-22  Bastien Nocera  <hadess@hadess.net>
+
+	* libsoup/soup-date.c (soup_date_to_time_t),
+	(soup_date_to_timeval):
+	* libsoup/soup-date.h: Add a SoupDate to GTimeVal conversion
+	function, for use in gvfs. #549006, with help from Dan Winship
+	<danw@gnome.org>
+
 2008-08-18  Dan Winship  <danw@gnome.org>
 
 	* libsoup.pc.in (Requires): Revert previous commit; that would
