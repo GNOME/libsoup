@@ -78,6 +78,8 @@ void      soup_uri_set_query_from_fields (SoupURI    *uri,
 void      soup_uri_set_fragment          (SoupURI    *uri,
 					  const char *fragment);
 
+#define   SOUP_URI_VALID_FOR_HTTP(uri) ((uri) && ((uri)->scheme == SOUP_URI_SCHEME_HTTP || (uri)->scheme == SOUP_URI_SCHEME_HTTPS) && (uri)->host)
+
 G_END_DECLS
 
 #endif /*SOUP_URI_H*/

@@ -38,7 +38,9 @@
  *
  * A #SoupURI represents a (parsed) URI. #SoupURI supports RFC 3986
  * (URI Generic Syntax), and can parse any valid URI. However, libsoup
- * only uses "http" and "https" URIs internally.
+ * only uses "http" and "https" URIs internally; You can use
+ * SOUP_URI_VALID_FOR_HTTP() to test if a #SoupURI is a valid HTTP
+ * URI.
  *
  * @scheme will always be set in any URI. It is an interned string and
  * is always all lowercase. (If you parse a URI with a non-lowercase
@@ -75,6 +77,16 @@
  * that has exactly the same meaning as the original. (In theory,
  * #SoupURI should leave @user, @password, and @host partially-encoded
  * as well, but this would be more annoying than useful.)
+ **/
+
+/**
+ * SOUP_URI_VALID_FOR_HTTP:
+ * @uri: a #SoupURI
+ *
+ * Tests if @uri is a valid #SoupURI for HTTP communication; that is, if
+ * it can be used to construct a #SoupMessage.
+ *
+ * Return value: %TRUE if @uri is a valid "http" or "https" URI.
  **/
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
@@ -337,7 +349,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	/* HTTP-specific stuff */
 	if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
 	    uri->scheme == SOUP_URI_SCHEME_HTTPS) {
-		if (!uri->host) {
+		if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
 			soup_uri_free (uri);
 			return NULL;
 		}

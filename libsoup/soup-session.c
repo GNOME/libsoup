@@ -815,7 +815,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	 * are lame, so we use soup_uri_new_with_base().
 	 */
 	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
-	if (!new_uri) {
+	if (!SOUP_URI_VALID_FOR_HTTP (new_uri)) {
+		if (new_uri)
+			soup_uri_free (new_uri);
 		soup_message_set_status_full (msg,
 					      SOUP_STATUS_MALFORMED,
 					      "Invalid Redirect URL");

@@ -1,3 +1,25 @@
+2008-08-25  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.h (SOUP_URI_VALID_FOR_HTTP): new macro to check
+	if a URI is a valid http or https URI.
+
+	* libsoup/soup-uri.c (soup_uri_new_with_base): Update http/https
+	check to use SOUP_URI_VALID_FOR_HTTP().
+
+	* libsoup/soup-session.c (redirect_handler): Check
+	SOUP_URI_VALID_FOR_HTTP() and call it an error if the check fails.
+
+	* libsoup/soup-message.c (soup_message_new): Remove the uri->host
+	check from here. Update docs to clarify that @uri must be an
+	http/https URI.
+	(soup_message_new_from_uri): Check SOUP_URI_VALID_FOR_HTTP().
+	Update docs.
+	(soup_message_set_uri): Check SOUP_URI_VALID_FOR_HTTP(). Update
+	docs.
+
+	Should prevent the crash in #528882, but there's still something
+	going wrong there at a higher level.
+
 2008-08-22  Bastien Nocera  <hadess@hadess.net>
 
 	* libsoup/soup-date.c (soup_date_to_time_t),

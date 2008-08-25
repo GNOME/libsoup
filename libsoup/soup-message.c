@@ -554,7 +554,7 @@ get_property (GObject *object, guint prop_id,
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
  * Return value: the new #SoupMessage (or %NULL if @uri could not
- * be parsed).
+ * be parsed or is not a valid HTTP/HTTPS URI).
  */
 SoupMessage *
 soup_message_new (const char *method, const char *uri_string)
@@ -568,10 +568,6 @@ soup_message_new (const char *method, const char *uri_string)
 	uri = soup_uri_new (uri_string);
 	if (!uri)
 		return NULL;
-	if (!uri->host) {
-		soup_uri_free (uri);
-		return NULL;
-	}
 
 	msg = soup_message_new_from_uri (method, uri);
 	soup_uri_free (uri);
@@ -583,13 +579,20 @@ soup_message_new (const char *method, const char *uri_string)
  * @method: the HTTP method for the created request
  * @uri: the destination endpoint (as a #SoupURI)
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri
+ * Creates a new empty #SoupMessage, which will connect to @uri.
  *
- * Return value: the new #SoupMessage
+ * Return value: the new #SoupMessage (or %NULL if @uri is not a
+ * valid HTTP/HTTPS URI)
  */
 SoupMessage *
 soup_message_new_from_uri (const char *method, SoupURI *uri)
 {
+	g_return_val_if_fail (method != NULL, NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+		return NULL;
+
 	return g_object_new (SOUP_TYPE_MESSAGE,
 			     SOUP_MESSAGE_METHOD, method,
 			     SOUP_MESSAGE_URI, uri,
@@ -1266,8 +1269,9 @@ soup_message_is_keepalive (SoupMessage *msg)
  * @msg: a #SoupMessage
  * @uri: the new #SoupURI
  *
- * Sets @msg's URI to @uri. If @msg has already been sent and you want
- * to re-send it with the new URI, you need to call
+ * Sets @msg's URI to @uri, which must be a valid HTTP/HTTPS URI (per
+ * SOUP_URI_VALID_FOR_HTTP()). If @msg has already been sent and you
+ * want to re-send it with the new URI, you need to call
  * soup_session_requeue_message().
  **/
 void
@@ -1276,8 +1280,9 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 	SoupMessagePrivate *priv;
 
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	g_return_if_fail (SOUP_URI_VALID_FOR_HTTP (uri));
 
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	if (priv->uri)
 		soup_uri_free (priv->uri);
 	priv->uri = soup_uri_copy (uri);
