@@ -1,3 +1,14 @@
+Changes in libsoup from 2.23.6 to 2.23.91:
+
+	* Fixed a crash in gvfs [#528882], though there is still an
+          unknown bug there. As part of this fix, libsoup will now
+          return an error if you try to do an operation on a non-HTTP
+          URI. (Previously it was just treating any URI scheme except
+          "https" as HTTP.)
+
+	* Added soup_date_to_timeval() for gvfs. [#549006, patch from
+          Bastien Nocera]
+
 Changes in libsoup from 2.23.1 to 2.23.6:
 
 	* Fixed use of g_idle_add() so that heavy I/O won't end up
