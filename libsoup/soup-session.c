@@ -762,6 +762,11 @@ auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }
 
+#define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
+				     method == SOUP_METHOD_HEAD || \
+				     method == SOUP_METHOD_OPTIONS || \
+				     method == SOUP_METHOD_PROPFIND)
+
 static void
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
@@ -772,16 +777,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	new_loc = soup_message_headers_get (msg->response_headers, "Location");
 	g_return_if_fail (new_loc != NULL);
 
-	if (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY ||
-	    msg->status_code == SOUP_STATUS_TEMPORARY_REDIRECT) {
-		/* Don't redirect non-safe methods */
-		if (msg->method != SOUP_METHOD_GET &&
-		    msg->method != SOUP_METHOD_HEAD &&
-		    msg->method != SOUP_METHOD_OPTIONS &&
-		    msg->method != SOUP_METHOD_PROPFIND)
-			return;
-	} else if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
-		   msg->status_code == SOUP_STATUS_FOUND) {
+	if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
+	    (msg->status_code == SOUP_STATUS_FOUND &&
+	     !SOUP_METHOD_IS_SAFE (msg->method))) {
 		/* Redirect using a GET */
 		g_object_set (msg,
 			      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
@@ -790,6 +788,12 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 					  SOUP_MEMORY_STATIC, NULL, 0);
 		soup_message_headers_set_encoding (msg->request_headers,
 						   SOUP_ENCODING_NONE);
+	} else if (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY ||
+		   msg->status_code == SOUP_STATUS_TEMPORARY_REDIRECT ||
+		   msg->status_code == SOUP_STATUS_FOUND) {
+		/* Don't redirect non-safe methods */
+		if (!SOUP_METHOD_IS_SAFE (msg->method))
+			return;
 	} else {
 		/* Three possibilities:
 		 *

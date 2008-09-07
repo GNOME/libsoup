@@ -1,3 +1,11 @@
+2008-09-07  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (redirect_handler): a 302 response to
+	HEAD (or any other safe method) should be treated like a 307, not
+	a 303. #551190, Jonathan Matthew.
+
+	* tests/redirect-test.c: test that
+
 2008-09-01  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.23.91

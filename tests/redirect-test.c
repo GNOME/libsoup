@@ -23,7 +23,7 @@ typedef struct {
 static struct {
 	TestRequest requests[3];
 } tests[] = {
-	/* A redirecty response to a GET should cause a redirect */
+	/* A redirecty response to a GET or HEAD should cause a redirect */
 
 	{ { { "GET", "/301", 301 },
 	    { "GET", "/", 200 },
@@ -37,8 +37,20 @@ static struct {
 	{ { { "GET", "/307", 307 },
 	    { "GET", "/", 200 },
 	    { NULL } } },
+	{ { { "HEAD", "/301", 301 },
+	    { "HEAD", "/", 200 },
+	    { NULL } } },
+	{ { { "HEAD", "/302", 302 },
+	    { "HEAD", "/", 200 },
+	    { NULL } } },
+	/* 303 is a nonsensical response to HEAD, so we don't care
+	 * what happens there.
+	 */
+	{ { { "HEAD", "/307", 307 },
+	    { "HEAD", "/", 200 },
+	    { NULL } } },
 
-	/* A non-redirecty response to a GET should not */
+	/* A non-redirecty response to a GET or HEAD should not */
 
 	{ { { "GET", "/300", 300 },
 	    { NULL } } },
@@ -50,12 +62,25 @@ static struct {
 	    { NULL } } },
 	{ { { "GET", "/308", 308 },
 	    { NULL } } },
+	{ { { "HEAD", "/300", 300 },
+	    { NULL } } },
+	{ { { "HEAD", "/304", 304 },
+	    { NULL } } },
+	{ { { "HEAD", "/305", 305 },
+	    { NULL } } },
+	{ { { "HEAD", "/306", 306 },
+	    { NULL } } },
+	{ { { "HEAD", "/308", 308 },
+	    { NULL } } },
 	
 	/* Test double-redirect */
 
 	{ { { "GET", "/301/302", 301 },
 	    { "GET", "/302", 302 },
 	    { "GET", "/", 200 } } },
+	{ { { "HEAD", "/301/302", 301 },
+	    { "HEAD", "/302", 302 },
+	    { "HEAD", "/", 200 } } },
 
 	/* POST should only automatically redirect on 302 and 303 */
 
@@ -184,7 +209,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	guint status_code;
 
 	if (!strcmp (path, "/")) {
-		if (msg->method != SOUP_METHOD_GET) {
+		if (msg->method != SOUP_METHOD_GET &&
+		    msg->method != SOUP_METHOD_HEAD) {
 			soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
 			return;
 		}
@@ -204,9 +230,17 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		}
 
 		soup_message_set_status (msg, SOUP_STATUS_OK);
-		soup_message_set_response (msg, "text/plain",
-					   SOUP_MEMORY_STATIC,
-					   "OK\r\n", 4);
+
+		/* FIXME: this is wrong, though it doesn't matter for
+		 * the purposes of this test, and to do the right
+		 * thing currently we'd have to set Content-Length by
+		 * hand.
+		 */
+		if (msg->method != SOUP_METHOD_HEAD) {
+			soup_message_set_response (msg, "text/plain",
+						   SOUP_MEMORY_STATIC,
+						   "OK\r\n", 4);
+		}
 		return;
 	}
 
