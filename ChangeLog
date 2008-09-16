@@ -1,3 +1,9 @@
+2008-09-08  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.23.92
+
+	* NEWS: update
+
 2008-09-07  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c (redirect_handler): a 302 response to

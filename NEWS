@@ -1,3 +1,9 @@
+Changes in libsoup from 2.23.91 to 2.23.92:
+
+	* Fixed the handling of a 302 response to a HEAD request,
+	  which should NOT be treated like a 303 response. [#551190,
+	  Jonathan Matthew]
+
 Changes in libsoup from 2.23.6 to 2.23.91:
 
 	* Fixed a crash in gvfs [#528882], though there is still an
