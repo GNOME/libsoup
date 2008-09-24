@@ -1,3 +1,8 @@
+Changes in libsoup from 2.23.92 to 2.24.0.1:
+
+	* Reverted part of the fix for #528882, which caused the DAAP
+          plugin in rhythmbox to crash. [#553466]
+
 Changes in libsoup from 2.23.91 to 2.23.92:
 
 	* Fixed the handling of a 302 response to a HEAD request,
