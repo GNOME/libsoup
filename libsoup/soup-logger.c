@@ -79,7 +79,7 @@ static void request_unqueued  (SoupSessionFeature *feature,
 
 G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_logger_session_feature_init));
+						soup_logger_session_feature_init))
 
 typedef struct {
 	/* We use a mutex so that if requests are being run in

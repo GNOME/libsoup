@@ -14,7 +14,7 @@ typedef enum {
 	SOUP_MEMORY_STATIC,
 	SOUP_MEMORY_TAKE,
 	SOUP_MEMORY_COPY,
-	SOUP_MEMORY_TEMPORARY,
+	SOUP_MEMORY_TEMPORARY
 } SoupMemoryUse;
 
 typedef struct {

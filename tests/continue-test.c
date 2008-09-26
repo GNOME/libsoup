@@ -47,13 +47,13 @@ name (SoupMessage *msg, gpointer side)		\
 	event (msg, side, #name);		\
 }
 
-EVENT_HANDLER (got_informational);
-EVENT_HANDLER (got_headers);
-EVENT_HANDLER (got_body);
-EVENT_HANDLER (wrote_informational);
-EVENT_HANDLER (wrote_headers);
-EVENT_HANDLER (wrote_body);
-EVENT_HANDLER (finished);
+EVENT_HANDLER (got_informational)
+EVENT_HANDLER (got_headers)
+EVENT_HANDLER (got_body)
+EVENT_HANDLER (wrote_informational)
+EVENT_HANDLER (wrote_headers)
+EVENT_HANDLER (wrote_body)
+EVENT_HANDLER (finished)
 
 static void
 do_message (const char *path, gboolean long_body,

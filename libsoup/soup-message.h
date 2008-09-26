@@ -100,10 +100,10 @@ void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
 
 typedef enum {
-	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
 #ifndef LIBSOUP_DISABLE_DEPRECATED
 	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
 #endif
+	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1)
 } SoupMessageFlags;
 
 void           soup_message_set_flags           (SoupMessage        *msg,

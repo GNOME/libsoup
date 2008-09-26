@@ -490,7 +490,7 @@ soup_dns_lookup_address (struct sockaddr *sockaddr)
 
 	entry = soup_dns_cache_entry_lookup (name);
 	if (!entry)
-		entry = soup_dns_cache_entry_new (name); // FIXME
+		entry = soup_dns_cache_entry_new (name); /* FIXME */
 	g_free (name);
 
 	lookup = g_slice_new0 (SoupDNSLookup);
