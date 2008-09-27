@@ -90,6 +90,8 @@ typedef struct {
 	GMutex *host_lock;
 
 	GMainContext *async_context;
+
+	GResolver *resolver;
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
@@ -174,6 +176,11 @@ soup_session_init (SoupSession *session)
 	soup_auth_manager_add_type (auth_manager, SOUP_TYPE_AUTH_DIGEST);
 	soup_session_add_feature (session, SOUP_SESSION_FEATURE (auth_manager));
 	g_object_unref (auth_manager);
+
+	/* We'll be doing DNS continuously-ish while the session is active,
+	 * so hold a ref on the default GResolver.
+	 */
+	priv->resolver = g_resolver_get_default ();
 }
 
 static void
@@ -211,6 +218,8 @@ finalize (GObject *object)
 		g_main_context_unref (priv->async_context);
 
 	g_hash_table_destroy (priv->features_cache);
+
+	g_object_unref (priv->resolver);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }

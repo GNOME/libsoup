@@ -14,7 +14,6 @@
 
 #include "soup-cookie.h"
 #include "soup-date.h"
-#include "soup-dns.h"
 #include "soup-headers.h"
 #include "soup-message.h"
 #include "soup-message-headers.h"
@@ -359,7 +358,7 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 		/* If the domain string isn't an IP addr, and doesn't
 		 * start with a '.', prepend one.
 		 */
-		if (!soup_dns_is_ip_address (cookie->domain) &&
+		if (!g_hostname_is_ip_address (cookie->domain) &&
 		    cookie->domain[0] != '.') {
 			char *tmp = g_strdup_printf (".%s", cookie->domain);
 			g_free (cookie->domain);

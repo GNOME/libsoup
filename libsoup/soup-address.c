@@ -16,8 +16,9 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <gio/gio.h>
+
 #include "soup-address.h"
-#include "soup-dns.h"
 #include "soup-enum-types.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
@@ -155,8 +156,6 @@ static void
 soup_address_class_init (SoupAddressClass *address_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (address_class);
-
-	soup_dns_init ();
 
 	g_type_class_add_private (address_class, sizeof (SoupAddressPrivate));
 
@@ -478,8 +477,21 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
 
 	if (priv->sockaddr && len)
 		*len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv));
-
 	return priv->sockaddr;
+}
+
+static GInetAddress *
+soup_address_make_inet_address (SoupAddress *addr)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	GSocketAddress *gsa;
+	GInetAddress *gia;
+
+	gsa = g_socket_address_new_from_native (priv->sockaddr,
+						SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv)));
+	gia = g_inet_socket_address_get_address ((GInetSocketAddress *)gsa);
+	g_object_unref (gsa);
+	return gia;
 }
 
 /**
@@ -502,8 +514,13 @@ soup_address_get_physical (SoupAddress *addr)
 	if (!priv->sockaddr)
 		return NULL;
 
-	if (!priv->physical)
-		priv->physical = soup_dns_ntop (priv->sockaddr);
+	if (!priv->physical) {
+		GInetAddress *gia;
+
+		gia = soup_address_make_inet_address (addr);
+		priv->physical = g_inet_address_to_string (gia);
+		g_object_unref (gia);
+	}
 
 	return priv->physical;
 }
@@ -525,47 +542,122 @@ soup_address_get_port (SoupAddress *addr)
 }
 
 
-static void
-update_address (SoupAddress *addr, SoupDNSLookup *lookup)
+static guint
+update_addrs (SoupAddress *addr, GList *addrs, GError *error)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	GInetAddress *gia;
+	GSocketAddress *gsa;
+	gsize len;
+
+	if (error) {
+		if (error->domain == G_IO_ERROR &&
+		    error->code == G_IO_ERROR_CANCELLED)
+			return SOUP_STATUS_CANCELLED;
+		else
+			return SOUP_STATUS_CANT_RESOLVE;
+	} else if (!addrs)
+		return SOUP_STATUS_CANT_RESOLVE;
+	else if (priv->sockaddr)
+		return SOUP_STATUS_OK;
+
+	gia = addrs->data;
+	gsa = g_inet_socket_address_new (gia, priv->port);
+
+	len = g_socket_address_get_native_size (gsa);
+	priv->sockaddr = g_malloc (len);
+	g_socket_address_to_native (gsa, priv->sockaddr, len, NULL);
+
+	return SOUP_STATUS_OK;
+}
+
+static guint
+update_name (SoupAddress *addr, const char *name, GError *error)
 {
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (!priv->name)
-		priv->name = soup_dns_lookup_get_hostname (lookup);
+	if (error) {
+		if (error->domain == G_IO_ERROR &&
+		    error->code == G_IO_ERROR_CANCELLED)
+			return SOUP_STATUS_CANCELLED;
+		else
+			return SOUP_STATUS_CANT_RESOLVE;
+	} else if (!name)
+		return SOUP_STATUS_CANT_RESOLVE;
+	else if (priv->name)
+		return SOUP_STATUS_OK;
 
-	if (!priv->sockaddr) {
-		priv->sockaddr = soup_dns_lookup_get_address (lookup);
-		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
-	}
+	priv->name = g_strdup (name);
+	return SOUP_STATUS_OK;
 }
 
 typedef struct {
 	SoupAddress         *addr;
 	SoupAddressCallback  callback;
 	gpointer             callback_data;
+	gboolean             lookup_name;
+
+	GMainContext        *async_context;
+	GCancellable        *cancellable;
+	guint                status;
 } SoupAddressResolveAsyncData;
 
 static void
-lookup_resolved (SoupDNSLookup *lookup, guint status, gpointer user_data)
+complete_resolve_async (SoupAddressResolveAsyncData *res_data)
 {
-	SoupAddressResolveAsyncData *res_data = user_data;
-	SoupAddress *addr;
-	SoupAddressCallback callback;
-	gpointer callback_data;
-
-	addr = res_data->addr;
-	callback = res_data->callback;
-	callback_data = res_data->callback_data;
-	g_free (res_data);
-
-	if (status == SOUP_STATUS_OK)
-		update_address (addr, lookup);
+	SoupAddress *addr = res_data->addr;
+	SoupAddressCallback callback = res_data->callback;
+	gpointer callback_data = res_data->callback_data;
 
 	if (callback)
-		callback (addr, status, callback_data);
+		callback (addr, res_data->status, callback_data);
+
+	if (res_data->async_context)
+		g_main_context_unref (res_data->async_context);
+	if (res_data->cancellable)
+		g_object_unref (res_data->cancellable);
 
 	g_object_unref (addr);
-	soup_dns_lookup_free (lookup);
+	g_slice_free (SoupAddressResolveAsyncData, res_data);
+}
+
+static void
+lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	GResolver *resolver = G_RESOLVER (source);
+	SoupAddressResolveAsyncData *res_data = user_data;
+	SoupAddress *addr = res_data->addr;
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	GError *error = NULL;
+
+	if (!priv->sockaddr) {
+		GList *addrs;
+
+		addrs = g_resolver_lookup_by_name_finish (resolver, result,
+							  &error);
+		res_data->status = update_addrs (addr, addrs, error);
+		g_resolver_free_addresses (addrs);
+	} else if (!priv->name) {
+		char *name;
+
+		name = g_resolver_lookup_by_address_finish (resolver, result,
+							    &error);
+		res_data->status = update_name (addr, name, error);
+		g_free (name);
+	} else
+		res_data->status = SOUP_STATUS_OK;
+
+	if (error)
+		g_error_free (error);
+
+	complete_resolve_async (res_data);
+}
+
+static gboolean
+idle_complete_resolve (gpointer res_data)
+{
+	complete_resolve_async (res_data);
+	return FALSE;
 }
 
 /**
@@ -603,22 +695,48 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 {
 	SoupAddressPrivate *priv;
 	SoupAddressResolveAsyncData *res_data;
-	SoupDNSLookup *lookup;
+	GResolver *resolver;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	g_return_if_fail (priv->name || priv->sockaddr);
 
-	res_data = g_new (SoupAddressResolveAsyncData, 1);
+	res_data = g_slice_new0 (SoupAddressResolveAsyncData);
 	res_data->addr          = g_object_ref (addr);
 	res_data->callback      = callback;
 	res_data->callback_data = user_data;
 
-	if (priv->name)
-		lookup = soup_dns_lookup_name (priv->name);
-	else
-		lookup = soup_dns_lookup_address (priv->sockaddr);
-	soup_dns_lookup_resolve_async (lookup, async_context, cancellable,
-				       lookup_resolved, res_data);
+	if (priv->name && priv->sockaddr) {
+		res_data->status = SOUP_STATUS_OK;
+		soup_add_completion (async_context, idle_complete_resolve, res_data);
+		return;
+	}
+
+	resolver = g_resolver_get_default ();
+
+	if (async_context && async_context != g_main_context_default ())
+		g_main_context_push_thread_default (async_context);
+
+	if (priv->name) {
+		res_data->lookup_name = TRUE;
+		g_resolver_lookup_by_name_async (resolver, priv->name,
+						 cancellable,
+						 lookup_resolved, res_data);
+	} else {
+		GInetAddress *gia;
+
+		res_data->lookup_name = FALSE;
+		gia = soup_address_make_inet_address (addr);
+		g_resolver_lookup_by_address_async (resolver, gia,
+						    cancellable,
+						    lookup_resolved, res_data);
+		g_object_unref (gia);
+	}
+
+	if (async_context && async_context != g_main_context_default ())
+		g_main_context_pop_thread_default (async_context);
+
+	g_object_unref (resolver);
 }
 
 /**
@@ -640,22 +758,40 @@ guint
 soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 {
 	SoupAddressPrivate *priv;
-	SoupDNSLookup *lookup;
+	GResolver *resolver;
+	GError *error = NULL;
 	guint status;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	g_return_val_if_fail (priv->name || priv->sockaddr, SOUP_STATUS_MALFORMED);
 
-	g_object_ref (addr);
-	if (priv->name)
-		lookup = soup_dns_lookup_name (priv->name);
-	else
-		lookup = soup_dns_lookup_address (priv->sockaddr);
-	status = soup_dns_lookup_resolve (lookup, cancellable);
-	if (status == SOUP_STATUS_OK)
-		update_address (addr, lookup);
-	g_object_unref (addr);
-	soup_dns_lookup_free (lookup);
+	resolver = g_resolver_get_default ();
+
+	if (!priv->sockaddr) {
+		GList *addrs;
+
+		addrs = g_resolver_lookup_by_name (resolver, priv->name,
+						   cancellable, &error);
+		status = update_addrs (addr, addrs, error);
+		g_resolver_free_addresses (addrs);
+	} else if (!priv->name) {
+		GInetAddress *gia;
+		char *name;
+
+		gia = soup_address_make_inet_address (addr);
+		name = g_resolver_lookup_by_address (resolver, gia,
+						     cancellable, &error);
+		g_object_unref (gia);
+		status = update_name (addr, name, error);
+		g_free (name);
+	} else
+		status = SOUP_STATUS_OK;
+
+	if (error)
+		g_error_free (error);
+	g_object_unref (resolver);
+
 	return status;
 }
 

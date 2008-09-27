@@ -125,8 +125,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-cookie-jar.c		\
 	soup-cookie-jar-text.c		\
 	soup-date.c			\
-	soup-dns.h			\
-	soup-dns.c			\
 	soup-form.c			\
 	soup-gnutls.c			\
 	soup-headers.c			\
