@@ -189,15 +189,13 @@ do_redirect_tests (SoupURI *base_uri)
 	debug_printf (1, "Async session\n");
 	for (n = 0; n < n_tests; n++)
 		do_test (session, base_uri, n);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	debug_printf (1, "Sync session\n");
 	for (n = 0; n < n_tests; n++)
 		do_test (session, base_uri, n);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 static void

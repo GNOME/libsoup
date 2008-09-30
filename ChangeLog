@@ -1,3 +1,35 @@
+2008-09-30  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session-async.c (do_idle_run_queue): store the
+	GSource in priv, don't ref the session. Otherwise the session
+	won't get destroyed if you abort it and then don't return to its
+	main loop. (addendum to #498509, Arnout Vandecappelle)
+	(finalize): Destroy the idle_run_queue source when finalizing.
+	(run_queue, got_connection): Ref the session when calling
+	soup_connection_connect_async(), and do a
+	do_idle_run_queue()+unref in got_connection, to ensure correct
+	handling regardless of what the application does with its own ref
+	on the session.
+	(final_finished): Likewise, ref/do_idle_run_queue/unref rather
+	than calling run_queue directly and playing with weak pointers.
+
+	* libsoup/soup-session.c (connect_result): ref the session around
+	the cancel-if-error loop
+
+	Fixes #533473, crash in seahorse when connecting to a
+	non-responsive key server.
+
+	* tests/misc-test.c (do_callback_unref_test): Add a test for the
+	bug in #533473.
+
+	* tests/test-utils.c (soup_test_session_abort_unref): abort and
+	unref a SoupSession, and consider it an error if the session still
+	exists afterward. Suggested by Arnout Vandecappelle.
+	(test_server_shutdown): Likewise, consider it an error if the
+	server is leaked.
+
+	* tests/*.c: Use soup_test_session_abort_unref().
+
 2008-09-26  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-manager-ntlm.c

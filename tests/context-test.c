@@ -194,8 +194,7 @@ test1_thread (gpointer user_data)
 	}
 	g_object_unref (msg);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 	g_free (uri);
 
 	g_cond_signal (test1_cond);
@@ -240,8 +239,7 @@ do_test2 (void)
 	}
 	g_object_unref (msg);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 	g_free (uri);
 
 	g_source_remove (idle);

@@ -109,8 +109,7 @@ do_message (const char *path, gboolean long_body,
 	events = NULL;
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	soup_session_send_message (session, msg);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	va_start (ap, auth);
 	while ((expected_event = va_arg (ap, const char *))) {

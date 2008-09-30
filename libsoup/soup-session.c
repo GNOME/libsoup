@@ -960,6 +960,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	 * any messages waiting for this host, since they're out
 	 * of luck.
 	 */
+	g_object_ref (session);
 	for (msg = soup_message_queue_first (priv->queue, &iter); msg; msg = soup_message_queue_next (priv->queue, &iter)) {
 		if (get_host_for_message (session, msg) == host) {
 			if (status == SOUP_STATUS_TRY_AGAIN) {
@@ -971,6 +972,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 			}
 		}
 	}
+	g_object_unref (session);
 }
 
 /**

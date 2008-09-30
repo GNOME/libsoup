@@ -503,8 +503,7 @@ do_async_auth_test (const char *base_uri)
 		errors++;
 	}
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	g_object_unref (msg1);
 	g_object_unref (msg3);
@@ -537,8 +536,7 @@ do_async_auth_test (const char *base_uri)
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	g_object_unref (msg1);
 
@@ -607,8 +605,7 @@ main (int argc, char **argv)
 
 		g_object_unref (msg);
 	}
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	/* And now for some regression tests */
 	loop = g_main_loop_new (NULL, TRUE);
@@ -633,8 +630,7 @@ main (int argc, char **argv)
 	g_free (uri);
 
 	g_main_loop_run (loop);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "\nTesting digest nonce expiration:\n");
 
@@ -726,8 +722,7 @@ main (int argc, char **argv)
 	do_digest_nonce_test (session, "Fourth", uri, FALSE, FALSE);
 	g_free (uri);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	/* Async auth */
 	do_async_auth_test (base_uri);

@@ -385,8 +385,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 		    user != NULL ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 static void

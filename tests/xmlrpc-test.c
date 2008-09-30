@@ -468,8 +468,7 @@ main (int argc, char **argv)
 	if (!test_fault_args ())
 		errors++;
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	test_cleanup ();
 	return errors != 0;

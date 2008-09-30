@@ -41,8 +41,7 @@ get_correct_response (const char *uri)
 	correct_response = soup_message_body_flatten (msg->response_body);
 
 	g_object_unref (msg);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 /* Pull API version 1: fully-async. More like a "poke" API. Rather
@@ -508,8 +507,7 @@ main (int argc, char **argv)
 			     TRUE, SOUP_STATUS_UNAUTHORIZED);
 	do_fully_async_test (session, base_uri, "/Basic/realm2/",
 			     TRUE, SOUP_STATUS_OK);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "\nFully async, slow requests\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -521,8 +519,7 @@ main (int argc, char **argv)
 			     FALSE, SOUP_STATUS_UNAUTHORIZED);
 	do_fully_async_test (session, base_uri, "/Basic/realm2/",
 			     FALSE, SOUP_STATUS_OK);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "\nSynchronously async\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -534,9 +531,7 @@ main (int argc, char **argv)
 				     SOUP_STATUS_UNAUTHORIZED);
 	do_synchronously_async_test (session, base_uri, "/Basic/realm2/",
 				     SOUP_STATUS_OK);
-
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 
 	soup_buffer_free (correct_response);
 

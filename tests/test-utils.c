@@ -100,14 +100,6 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 void
 test_cleanup (void)
 {
-	debug_printf (1, "\n");
-	if (errors) {
-		printf ("%s: %d error(s).%s\n",
-			g_get_prgname (), errors,
-			debug_level == 0 ? " Run with '-d' for details" : "");
-	} else
-		printf ("%s: OK\n", g_get_prgname ());
-
 #ifdef HAVE_APACHE
 	if (apache_running)
 		apache_cleanup ();
@@ -119,6 +111,14 @@ test_cleanup (void)
 		g_object_unref (logger);
 
 	g_main_context_unref (g_main_context_default ());
+
+	debug_printf (1, "\n");
+	if (errors) {
+		printf ("%s: %d error(s).%s\n",
+			g_get_prgname (), errors,
+			debug_level == 0 ? " Run with '-d' for details" : "");
+	} else
+		printf ("%s: OK\n", g_get_prgname ());
 }
 
 void
@@ -225,6 +225,21 @@ soup_test_session_new (GType type, ...)
 	return session;
 }
 
+void
+soup_test_session_abort_unref (SoupSession *session)
+{
+	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
+
+	soup_session_abort (session);
+	g_object_unref (session);
+
+	if (session) {
+		errors++;
+		debug_printf (1, "leaked SoupSession!\n");
+		g_object_remove_weak_pointer (G_OBJECT (session), (gpointer *)&session);
+	}
+}
+
 static gpointer run_server_thread (gpointer user_data);
 
 SoupServer *
@@ -271,6 +286,9 @@ idle_quit_server (gpointer server)
 static void
 test_server_shutdown (void)
 {
+	g_object_add_weak_pointer (G_OBJECT (test_server),
+				   (gpointer *)&test_server);
+
 	if (server_thread) {
 		soup_add_completion (soup_server_get_async_context (test_server),
 				     idle_quit_server, test_server);
@@ -278,6 +296,11 @@ test_server_shutdown (void)
 	} else
 		soup_server_quit (test_server);
 	g_object_unref (test_server);
+
+	if (test_server) {
+		errors++;
+		debug_printf (1, "leaked SoupServer!\n");
+		g_object_remove_weak_pointer (G_OBJECT (test_server),
+					      (gpointer *)&test_server);
+	}
 }
-
-
