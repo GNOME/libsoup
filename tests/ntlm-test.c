@@ -110,6 +110,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			if (!strncmp (decoded, "alice:password", len) ||
 			    !strncmp (decoded, "bob:password", len))
 				auth_required = FALSE;
+			g_free (decoded);
 		}
 	}
 

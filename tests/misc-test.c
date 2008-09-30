@@ -151,6 +151,7 @@ do_callback_unref_test (void)
 	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
 	two = soup_message_new ("GET", bad_uri);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
+	g_free (bad_uri);
 
 	soup_session_queue_message (session, one, cu_one_completed, loop);
 	soup_session_queue_message (session, two, cu_two_completed, loop);

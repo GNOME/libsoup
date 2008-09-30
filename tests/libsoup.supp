@@ -241,6 +241,52 @@
    fun:g_type_register_static
 }
 {
+   glib/typereg14
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_memdup
+   fun:type_node_any_new_W
+   fun:g_type_register_static
+}
+{
+   glib/typereg15
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:type_set_qdata_W
+   fun:type_add_interface_Wm
+}
+{
+   glib/typereg16
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_memdup
+   fun:type_node_any_new_W
+   fun:type_node_new_W
+   fun:g_type_register_static
+}
+{
+   glib/typereg17
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:type_set_qdata_W
+   fun:type_add_flags_W
+   fun:g_type_register_static
+}
+{
+   glib/typereg18
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:type_set_qdata_W
+   fun:type_add_flags_W
+   fun:g_type_register_static
+}
+{
    glib/interface1
    Memcheck:Leak
    fun:calloc
@@ -274,6 +320,15 @@
    fun:type_node_add_iface_entry_W
    fun:type_add_interface_Wm
    fun:g_type_add_interface_static
+}
+{
+   glib/interface5
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:type_iface_add_prerequisite_W
+   fun:g_type_interface_add_prerequisite
 }
 {
    glib/paramspec1
@@ -471,7 +526,6 @@
    fun:g_malloc0
    fun:type_iface_ensure_dflt_vtable_Wm
    fun:type_iface_vtable_base_init_Wm
-   fun:g_type_class_ref
 }
 {
    glib/typeref8
@@ -480,7 +534,6 @@
    fun:g_malloc
    fun:g_memdup
    fun:type_iface_vtable_base_init_Wm
-   fun:g_type_class_ref
 }
 {
    glib/typeref9
@@ -595,6 +648,37 @@
    fun:malloc
    fun:g_malloc
    fun:g_strdup
+   fun:g_get_language_names
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
+}
+{
+   glib/langnames8
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_hash_table_new_full
+   fun:g_hash_table_new
+   fun:read_aliases
+   fun:unalias_lang
+   fun:g_get_language_names
+   fun:_g_utils_thread_init
+   fun:g_thread_init_glib
+   fun:g_thread_init
+}
+{
+   glib/langnames9
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_hash_table_resize
+   fun:g_hash_table_maybe_resize
+   fun:g_hash_table_insert_internal
+   fun:g_hash_table_insert
+   fun:read_aliases
+   fun:unalias_lang
    fun:g_get_language_names
    fun:_g_utils_thread_init
    fun:g_thread_init_glib
@@ -796,6 +880,7 @@
    fun:calloc
    fun:g_malloc0
    fun:g_hash_table_new_full
+   fun:g_hash_table_new
    fun:g_data_initialize
 }
 {
@@ -878,7 +963,6 @@
    Memcheck:Leak
    fun:malloc
    fun:xmlNewRMutex
-   obj:/usr/lib/libxml2.so.2.6.31
    fun:xmlDictCreate
    fun:xmlInitParserCtxt
 }
@@ -931,14 +1015,12 @@
    gnutls/init6
    Memcheck:Leak
    fun:malloc
+   fun:do_malloc
    fun:_gcry_malloc
-   fun:gcry_malloc
-   fun:gcry_xmalloc
-   fun:gcry_xcalloc
+   fun:_gcry_xmalloc
+   fun:_gcry_xcalloc
    fun:initialize
-   fun:gcry_randomize
-   fun:gc_pseudo_random
-   fun:gnutls_global_init
+   fun:_gcry_randomize
 }
 {
    gnutls/init7
@@ -954,14 +1036,11 @@
    Memcheck:Leak
    fun:malloc
    fun:_gcry_private_malloc
+   fun:do_malloc
    fun:_gcry_malloc
-   fun:gcry_malloc
    fun:_gcry_module_add
    fun:gcry_cipher_register_default
    fun:_gcry_cipher_init
-   fun:global_init
-   fun:gcry_check_version
-   fun:gnutls_global_init
 }
 {
    gnutls/init9
@@ -989,8 +1068,6 @@
    fun:gcry_pthread_mutex_init
    fun:_gcry_ath_init
    fun:global_init
-   fun:gcry_check_version
-   fun:gnutls_global_init
 }
 {
    gnutls/init12
@@ -999,8 +1076,6 @@
    fun:gcry_pthread_mutex_init
    fun:mutex_init
    fun:initialize_basics
-   fun:gcry_control
-   fun:gnutls_global_init
 }
 {
    gnutls/init13
@@ -1011,6 +1086,30 @@
    fun:initialize_basics
    fun:gcry_control
    fun:gnutls_global_init
+}
+{
+   gnutls/deflate
+   Memcheck:Cond
+   fun:longest_match
+   fun:deflate_fast
+   fun:deflate
+   fun:_gnutls_compress
+   fun:_gnutls_m_plaintext2compressed
+   fun:_gnutls_encrypt
+   fun:_gnutls_send_int
+   fun:gnutls_record_send
+}
+{
+   gnutls/handshake
+   Memcheck:Leak
+   fun:malloc
+   fun:_gnutls_mpi_dprint_lz
+   fun:_gnutls_dh_set_peer_public
+   fun:_gnutls_proc_dh_common_server_kx
+   fun:proc_dhe_server_kx
+   fun:_gnutls_recv_server_kx_message
+   fun:_gnutls_handshake_client
+   fun:gnutls_handshake
 }
 
 {

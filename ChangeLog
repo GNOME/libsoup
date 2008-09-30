@@ -1,5 +1,17 @@
 2008-09-30  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-xmlrpc.c (parse_value):
+	soup_value_hash_insert_value() copies the value, so we have to
+	g_value_unset() our copy.
+
+	* tests/chunk-test.c:
+	* tests/misc-test.c:
+	* tests/ntlm-test.c: fix leaks
+
+	* tests/libsoup.supp: update
+
+2008-09-30  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session-async.c (do_idle_run_queue): store the
 	GSource in priv, don't ref the session. Otherwise the session
 	won't get destroyed if you abort it and then don't return to its
