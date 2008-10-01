@@ -1,5 +1,9 @@
 2008-10-01  Dan Winship  <danw@gnome.org>
 
+	* configure.in: bump version to 2.25.0
+
+2008-10-01  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-cookie-jar.c:
 	* libsoup/soup-cookie.c:
 	* libsoup/soup-cookie.h:
