@@ -35,7 +35,7 @@ static void request_unqueued (SoupSessionFeature *feature,
 
 G_DEFINE_TYPE_WITH_CODE (SoupAuthManagerNTLM, soup_auth_manager_ntlm, SOUP_TYPE_AUTH_MANAGER,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_auth_manager_ntlm_session_feature_init));
+						soup_auth_manager_ntlm_session_feature_init))
 
 enum {
 	PROP_0,

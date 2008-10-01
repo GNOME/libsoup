@@ -34,6 +34,9 @@
  * url="http://msdn2.microsoft.com/en-us/library/ms533046.aspx">Microsoft's
  * HttpOnly extension attribute</ulink>, and observed real-world usage
  * (and, in particular, based on what Firefox does).
+ *
+ * To have a #SoupSession handle cookies for your appliction
+ * automatically, use a #SoupCookieJar.
  **/
 
 /**
@@ -391,13 +394,13 @@ soup_cookie_new (const char *name, const char *value,
 
 /**
  * soup_cookie_parse:
- * @cookie: a cookie string (eg, the value of a Set-Cookie header)
+ * @header: a cookie string (eg, the value of a Set-Cookie header)
  * @origin: origin of the cookie, or %NULL
  *
- * Parses @cookie and returns a #SoupCookie. (If @cookie contains
+ * Parses @header and returns a #SoupCookie. (If @header contains
  * multiple cookies, only the first one will be parsed.)
  *
- * If @cookie does not have "path" or "domain" attributes, they will
+ * If @header does not have "path" or "domain" attributes, they will
  * be defaulted from @origin. If @origin is %NULL, path will default
  * to "/", but domain will be left as %NULL. Note that this is not a
  * valid state for a #SoupCookie, and you will need to fill in some
@@ -502,6 +505,31 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
 	} else
 		cookie->expires = soup_date_new_from_now (max_age);
 }
+
+/**
+ * SOUP_COOKIE_MAX_AGE_ONE_HOUR:
+ *
+ * A constant corresponding to 1 hour, for use with soup_cookie_new()
+ * and soup_cookie_set_max_age().
+ **/
+/**
+ * SOUP_COOKIE_MAX_AGE_ONE_DAY:
+ *
+ * A constant corresponding to 1 day, for use with soup_cookie_new()
+ * and soup_cookie_set_max_age().
+ **/
+/**
+ * SOUP_COOKIE_MAX_AGE_ONE_WEEK:
+ *
+ * A constant corresponding to 1 week, for use with soup_cookie_new()
+ * and soup_cookie_set_max_age().
+ **/
+/**
+ * SOUP_COOKIE_MAX_AGE_ONE_YEAR:
+ *
+ * A constant corresponding to 1 year, for use with soup_cookie_new()
+ * and soup_cookie_set_max_age().
+ **/
 
 /**
  * soup_cookie_set_expires:
@@ -656,7 +684,7 @@ soup_cookie_free (SoupCookie *cookie)
  *
  * Parses @msg's Set-Cookie response headers and returns a #GSList of
  * #SoupCookie<!-- -->s. Cookies that do not specify "path" or
- * "domain" attributes will have their values defaulted from @origin.
+ * "domain" attributes will have their values defaulted from @msg.
  *
  * Return value: a #GSList of #SoupCookie<!-- -->s, which can be freed
  * with soup_cookies_free().

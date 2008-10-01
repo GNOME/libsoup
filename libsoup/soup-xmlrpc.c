@@ -506,6 +506,7 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 			content = xmlNodeGetContent (mname);
 			soup_value_hash_insert_value (hash, (char *)content, &mgval);
 			xmlFree (content);
+			g_value_unset (&mgval);
 		}
 		g_value_init (value, G_TYPE_HASH_TABLE);
 		g_value_take_boxed (value, hash);

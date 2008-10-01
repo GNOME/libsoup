@@ -40,7 +40,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_auth_manager_session_feature_init));
+						soup_auth_manager_session_feature_init))
 
 typedef struct {
 	SoupSession *session;

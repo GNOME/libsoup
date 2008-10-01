@@ -32,7 +32,7 @@
  * optionally configure it with soup_logger_set_request_filter(),
  * soup_logger_set_response_filter(), and soup_logger_set_printer(),
  * and then attach it to a session (or multiple sessions) with
- * soup_logger_attach().
+ * soup_session_add_feature().
  *
  * By default, the debugging output is sent to %stdout, and looks
  * something like:
@@ -79,7 +79,7 @@ static void request_unqueued  (SoupSessionFeature *feature,
 
 G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_logger_session_feature_init));
+						soup_logger_session_feature_init))
 
 typedef struct {
 	/* We use a mutex so that if requests are being run in

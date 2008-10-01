@@ -48,7 +48,7 @@ void        soup_cookie_set_expires             (SoupCookie  *cookie,
 void        soup_cookie_set_secure              (SoupCookie  *cookie,
 						 gboolean     secure);
 void        soup_cookie_set_http_only           (SoupCookie  *cookie,
-						 gboolean     secure);
+						 gboolean     http_only);
 
 char       *soup_cookie_to_set_cookie_header    (SoupCookie  *cookie);
 char       *soup_cookie_to_cookie_header        (SoupCookie  *cookie);

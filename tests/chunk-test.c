@@ -69,6 +69,7 @@ clear_buffer_ptr (gpointer data)
 	debug_printf (2, "  clearing chunk\n");
 	if (*buffer_ptr) {
 		(*buffer_ptr)->length = 0;
+		g_free ((char *)(*buffer_ptr)->data);
 		*buffer_ptr = NULL;
 	} else {
 		debug_printf (2, "  chunk is already clear!\n");
@@ -83,7 +84,7 @@ clear_buffer_ptr (gpointer data)
 static void
 make_put_chunk (SoupBuffer **buffer, const char *text)
 {
-	*buffer = soup_buffer_new_with_owner (text, strlen (text),
+	*buffer = soup_buffer_new_with_owner (g_strdup (text), strlen (text),
 					      buffer, clear_buffer_ptr);
 }
 
@@ -248,8 +249,7 @@ do_chunk_tests (SoupURI *base_uri)
 	do_request_test (session, base_uri);
 	debug_printf (2, "\n\n");
 	do_response_test (session, base_uri);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 static void

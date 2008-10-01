@@ -21,7 +21,7 @@
 
 /**
  * SECTION:soup-cookie-jar
- * @short_description: 
+ * @short_description: Automatic cookie handling for #SoupSession
  *
  * A #SoupCookieJar stores #SoupCookie<!-- -->s and arrange for them
  * to be sent with the appropriate #SoupMessage<!-- -->s.
@@ -43,7 +43,7 @@ static void request_unqueued (SoupSessionFeature *feature, SoupSession *session,
 
 G_DEFINE_TYPE_WITH_CODE (SoupCookieJar, soup_cookie_jar, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_cookie_jar_session_feature_init));
+						soup_cookie_jar_session_feature_init))
 
 typedef struct {
 	GHashTable *domains;

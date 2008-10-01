@@ -11,6 +11,26 @@
 
 #include "soup-session-feature.h"
 
+/**
+ * SECTION:soup-session-feature
+ * @short_description: Interface for miscellaneous session features
+ *
+ * #SoupSessionFeature is the interface used by classes that extend
+ * the functionality of a #SoupSession. Some features like HTTP
+ * authentication handling are implemented internally via
+ * #SoupSessionFeature<!-- -->s. Other features can be added to the session
+ * by the application. (Eg, #SoupLogger, #SoupCookieJar.)
+ *
+ * See soup_session_add_feature(), etc, to add a feature to a session.
+ **/
+
+/**
+ * SoupSessionFeature:
+ *
+ * The interface implemented by objects that implement features for
+ * #SoupSession.
+ **/
+
 static void soup_session_feature_interface_init (SoupSessionFeatureInterface *interface);
 
 static void attach (SoupSessionFeature *feature, SoupSession *session);
@@ -93,13 +113,6 @@ attach (SoupSessionFeature *feature, SoupSession *session)
 	}
 }
 
-/**
- * soup_session_feature_attach:
- * @feature: a #SoupSessionFeature
- * @session: a #SoupSession
- *
- * Adds @feature to @session.
- **/
 void
 soup_session_feature_attach (SoupSessionFeature *feature,
 			     SoupSession        *session)
@@ -119,15 +132,6 @@ detach (SoupSessionFeature *feature, SoupSession *session)
 	g_object_unref (feature);
 }
 
-/**
- * soup_session_feature_detach:
- * @feature: a #SoupSessionFeature
- * @session: a #SoupSession
- *
- * Removes @feature from @session.
- *
- * Return value: success or failure
- **/
 void
 soup_session_feature_detach (SoupSessionFeature *feature,
 			     SoupSession        *session)

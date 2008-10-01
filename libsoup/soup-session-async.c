@@ -24,7 +24,7 @@
  **/
 
 static gboolean run_queue (SoupSessionAsync *sa);
-static void do_idle_run_queue (SoupSession *session);
+static void do_idle_run_queue (SoupSessionAsync *sa);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
@@ -32,19 +32,41 @@ static guint send_message    (SoupSession *session, SoupMessage *req);
 
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
+typedef struct {
+	GSource *idle_run_queue_source;
+} SoupSessionAsyncPrivate;
+#define SOUP_SESSION_ASYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncPrivate))
+
 static void
 soup_session_async_init (SoupSessionAsync *sa)
 {
 }
 
 static void
+finalize (GObject *object)
+{
+	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
+
+	if (priv->idle_run_queue_source)
+		g_source_destroy (priv->idle_run_queue_source);
+
+	G_OBJECT_CLASS (soup_session_async_parent_class)->finalize (object);
+}
+
+static void
 soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 {
 	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (session_class);
+
+	g_type_class_add_private (soup_session_async_class,
+				  sizeof (SoupSessionAsyncPrivate));
 
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
+
+	object_class->finalize = finalize;
 }
 
 
@@ -86,12 +108,12 @@ soup_session_async_new_with_options (const char *optname1, ...)
 
 
 static void
-connection_closed (SoupConnection *conn, gpointer session)
+connection_closed (SoupConnection *conn, gpointer sa)
 {
 	/* Run the queue in case anyone was waiting for a connection
 	 * to be closed.
 	 */
-	do_idle_run_queue (session);
+	do_idle_run_queue (sa);
 }
 
 static void
@@ -99,34 +121,29 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupSessionAsync *sa = user_data;
 
-	if (status != SOUP_STATUS_OK) {
-		/* The connection attempt failed, and thus @conn was
-		 * closed and the open connection count for the
-		 * session has been decremented. (If the failure was
-		 * fatal, then SoupSession itself will have dealt
-		 * with cancelling any pending messages for that
-		 * host, so we don't need to worry about that here.)
-		 * However, there may be other messages in the
-		 * queue that were waiting for the connection count
-		 * to go down, so run the queue now.
+	if (status == SOUP_STATUS_OK) {
+		g_signal_connect (conn, "disconnected",
+				  G_CALLBACK (connection_closed), sa);
+
+		/* @conn has been marked reserved by SoupSession, but
+		 * we don't actually have any specific message in mind
+		 * for it. (In particular, the message we were
+		 * originally planning to queue on it may have already
+		 * been queued on some other connection that became
+		 * available while we were waiting for this one to
+		 * connect.) So we release the connection into the
+		 * idle pool and then just run the queue and see what
+		 * happens.
 		 */
-		run_queue (sa);
-		return;
+		soup_connection_release (conn);
 	}
 
-	g_signal_connect (conn, "disconnected",
-			  G_CALLBACK (connection_closed), sa);
-
-	/* @conn has been marked reserved by SoupSession, but we don't
-	 * actually have any specific message in mind for it. (In
-	 * particular, the message we were originally planning to
-	 * queue on it may have already been queued on some other
-	 * connection that became available while we were waiting for
-	 * this one to connect.) So we release the connection into the
-	 * idle pool and then just run the queue and see what happens.
+	/* Even if the connection failed, we run the queue, since
+	 * there may have been messages waiting for the connection
+	 * count to go down.
 	 */
-	soup_connection_release (conn);
-	run_queue (sa);
+	do_idle_run_queue (sa);
+	g_object_unref (sa);
 }
 
 static gboolean
@@ -158,7 +175,7 @@ run_queue (SoupSessionAsync *sa)
 
 		if (is_new) {
 			soup_connection_connect_async (conn, got_connection,
-						       session);
+						       g_object_ref (session));
 		} else
 			soup_connection_send_request (conn, msg);
 	}
@@ -195,46 +212,42 @@ final_finished (SoupMessage *req, gpointer user_data)
 	SoupSessionAsyncQueueData *saqd = user_data;
 	SoupSessionAsync *sa = saqd->sa;
 
-	g_object_add_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-
+	g_object_ref (sa);
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
 		g_signal_handlers_disconnect_by_func (req, final_finished, saqd);
 		if (saqd->callback) {
 			saqd->callback ((SoupSession *)sa, req,
 					saqd->callback_data);
-			/* callback might destroy sa */
 		}
 
 		g_object_unref (req);
 		g_slice_free (SoupSessionAsyncQueueData, saqd);
 	}
 
-	if (sa) {
-		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-		run_queue (sa);
-	}
+	do_idle_run_queue (sa);
+	g_object_unref (sa);
 }
 
 static gboolean
-idle_run_queue (gpointer user_data)
+idle_run_queue (gpointer sa)
 {
-	SoupSessionAsync *sa = user_data;
+	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
 
-	g_object_add_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-	g_object_unref (sa);
-
-	if (sa) {
-		g_object_remove_weak_pointer (G_OBJECT (sa), (gpointer)&sa);
-		run_queue (sa);
-	}
+	priv->idle_run_queue_source = NULL;
+	run_queue (sa);
 	return FALSE;
 }
 
 static void
-do_idle_run_queue (SoupSession *session)
+do_idle_run_queue (SoupSessionAsync *sa)
 {
-	soup_add_completion (soup_session_get_async_context (session),
-			     idle_run_queue, g_object_ref (session));
+	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
+
+	if (!priv->idle_run_queue_source) {
+		priv->idle_run_queue_source = soup_add_completion (
+			soup_session_get_async_context ((SoupSession *)sa),
+			idle_run_queue, sa);
+	}
 }
 
 static void
@@ -255,7 +268,7 @@ queue_message (SoupSession *session, SoupMessage *req,
 				G_CALLBACK (final_finished), saqd);
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
-	do_idle_run_queue (session);
+	do_idle_run_queue (sa);
 }
 
 static guint

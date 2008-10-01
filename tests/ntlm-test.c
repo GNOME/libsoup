@@ -33,7 +33,7 @@ typedef enum {
 	NTLM_RECEIVED_REQUEST,
 	NTLM_SENT_CHALLENGE,
 	NTLM_AUTHENTICATED_ALICE,
-	NTLM_AUTHENTICATED_BOB,
+	NTLM_AUTHENTICATED_BOB
 } NTLMServerState;
 
 #define NTLM_REQUEST_START "TlRMTVNTUAABAAAA"
@@ -110,6 +110,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			if (!strncmp (decoded, "alice:password", len) ||
 			    !strncmp (decoded, "bob:password", len))
 				auth_required = FALSE;
+			g_free (decoded);
 		}
 	}
 
@@ -385,8 +386,7 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 		    user != NULL ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
 
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 static void
