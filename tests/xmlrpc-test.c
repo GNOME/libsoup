@@ -15,6 +15,7 @@
 static SoupSession *session;
 static const char *default_uri = "http://localhost:47524/xmlrpc-server.php";
 static const char *uri = NULL;
+static gboolean server_test = FALSE;
 
 static const char *const value_type[] = {
 	"BAD",
@@ -318,12 +319,20 @@ static const char *const echo_strings[] = {
 };
 #define N_ECHO_STRINGS G_N_ELEMENTS (echo_strings)
 
+static const char *const echo_strings_broken[] = {
+	"This is a test",
+	" so is this",
+	"and so is this",
+	"amp; so is lt;thisgt;"
+};
+
 static gboolean
 test_echo (void)
 {
 	GValueArray *originals, *echoes;
 	GValue retval;
 	int i;
+	gboolean php_bug = FALSE;
 
 	debug_printf (1, "echo (array of string -> array of string): ");
 
@@ -359,13 +368,20 @@ test_echo (void)
 
 	for (i = 0; i < echoes->n_values; i++) {
 		if (strcmp (echo_strings[i], g_value_get_string (&echoes->values[i])) != 0) {
-			debug_printf (1, " WRONG! Mismatch at %d\n", i + 1);
-			g_value_array_free (echoes);
-			return FALSE;
+			if (!server_test && strcmp (echo_strings_broken[i], g_value_get_string (&echoes->values[i])) == 0)
+				php_bug = TRUE;
+			else {
+				debug_printf (1, " WRONG! Mismatch at %d\n", i + 1);
+				g_value_array_free (echoes);
+				return FALSE;
+			}
 		}
 	}
 
-	debug_printf (1, "OK!\n");
+	if (php_bug)
+		debug_printf (1, "WRONG, but it's php's fault\n");
+	else
+		debug_printf (1, "OK!\n");
 	g_value_array_free (echoes);
 	return TRUE;
 }
@@ -431,16 +447,18 @@ test_fault_args (void)
 	return do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
 }
 
-static GOptionEntry uri_entry[] = {
+static GOptionEntry xmlrpc_entries[] = {
         { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri,
           "Alternate URI for server", NULL },
+        { "server-test", 's', 0, G_OPTION_ARG_NONE, &server_test,
+          "If this is being run from xmlrpc-server-test", NULL },
         { NULL }
 };
 
 int
 main (int argc, char **argv)
 {
-	test_init (argc, argv, uri_entry);
+	test_init (argc, argv, xmlrpc_entries);
 
 	if (!uri) {
 		apache_init ();

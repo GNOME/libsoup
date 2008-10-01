@@ -262,7 +262,7 @@ xmlrpc_test_print (GIOChannel *io, GIOCondition cond, gpointer data)
 static void
 do_xmlrpc_tests (SoupURI *uri)
 {
-	char *argv[7];
+	char *argv[8];
 	int arg, out;
 	gboolean ok;
 	GPid pid;
@@ -270,19 +270,20 @@ do_xmlrpc_tests (SoupURI *uri)
 	GIOChannel *child_out;
 
 	argv[0] = "./xmlrpc-test";
-	argv[1] = "-u";
-	argv[2] = soup_uri_to_string (uri, FALSE);
+	argv[1] = "-s";
+	argv[2] = "-u";
+	argv[3] = soup_uri_to_string (uri, FALSE);
 
 	for (arg = 0; arg < debug_level && arg < 3; arg++)
-		argv[arg + 3] = "-d";
-	argv[arg + 3] = NULL;
+		argv[arg + 4] = "-d";
+	argv[arg + 4] = NULL;
 
 	ok = g_spawn_async_with_pipes (NULL, argv, NULL,
 				       G_SPAWN_DO_NOT_REAP_CHILD,
 				       NULL, NULL, &pid,
 				       NULL, &out, NULL,
 				       &error);
-	g_free (argv[2]);
+	g_free (argv[3]);
 
 	if (!ok) {
 		printf ("Could not run xmlrpc-test: %s\n", error->message);

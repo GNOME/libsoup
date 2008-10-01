@@ -1,5 +1,17 @@
 2008-10-01  Dan Winship  <danw@gnome.org>
 
+	* tests/xmlrpc-test.c (main): add a new -s flag to indicate that
+	it's being run from inside xmlrpc-server-test.
+	(test_echo): if we aren't running inside xmlrpc-server-test, and
+	the response strings don't match the request strings, then compare
+	them to echo_strings_broken instead; a bug in php-xmlrpc manifests
+	when using libxml2 >= 2.7.1, resulting in incorrect responses. :-/
+
+	* tests/xmlrpc-server-test.c (do_xmlrpc_tests): Pass -s to
+	xmlrpc-test
+
+2008-10-01  Dan Winship  <danw@gnome.org>
+
 	* configure.in: bump version to 2.25.0
 
 2008-10-01  Dan Winship  <danw@gnome.org>
