@@ -820,6 +820,61 @@ do_qvalue_tests (void)
 	}
 }
 
+#define RFC2231_TEST_FILENAME "t\xC3\xA9st.txt"
+#define RFC2231_TEST_HEADER "attachment; filename*=UTF-8''t%C3%A9st.txt"
+
+static void
+do_rfc2231_tests (void)
+{
+	SoupMessageHeaders *hdrs;
+	GHashTable *params;
+	const char *header, *filename;
+	char *disposition;
+
+	debug_printf (1, "rfc2231 tests\n");
+
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	params = g_hash_table_new (g_str_hash, g_str_equal);
+	g_hash_table_insert (params, "filename", RFC2231_TEST_FILENAME);
+	soup_message_headers_set_content_disposition (hdrs, "attachment", params);
+	g_hash_table_destroy (params);
+
+	header = soup_message_headers_get (hdrs, "Content-Disposition");
+	if (!strcmp (header, RFC2231_TEST_HEADER))
+		debug_printf (1, "  encoded OK\n");
+	else {
+		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      RFC2231_TEST_HEADER, header);
+		errors++;
+	}
+
+	soup_message_headers_clear (hdrs);
+	soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC2231_TEST_HEADER);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		debug_printf (1, "  decoding FAILED!\n    could not parse\n");
+		errors++;
+		return;
+	}
+	g_free (disposition);
+
+	filename = g_hash_table_lookup (params, "filename");
+	if (!filename) {
+		debug_printf (1, "  decoding FAILED!\n    could not file filename\n");
+		errors++;
+	} else if (strcmp (filename, RFC2231_TEST_FILENAME) != 0) {
+		debug_printf (1, "  decoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      RFC2231_TEST_FILENAME, filename);
+		errors++;
+	} else
+		debug_printf (1, "  decoded OK\n");
+
+	g_hash_table_destroy (params);
+	soup_message_headers_free (hdrs);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -828,6 +883,7 @@ main (int argc, char **argv)
 	do_request_tests ();
 	do_response_tests ();
 	do_qvalue_tests ();
+	do_rfc2231_tests ();
 
 	test_cleanup ();
 	return errors != 0;

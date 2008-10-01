@@ -12,6 +12,7 @@
 
 #include "soup-headers.h"
 #include "soup-misc.h"
+#include "soup-uri.h"
 
 static gboolean
 soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
@@ -602,6 +603,29 @@ decode_quoted_string (char *quoted_string)
 	*dst = '\0';
 }
 
+static gboolean
+decode_rfc2231 (char *encoded_string)
+{
+	char *q, *decoded;
+
+	q = strchr (encoded_string, '\'');
+	if (!q)
+		return FALSE;
+	if (g_ascii_strncasecmp (encoded_string, "UTF-8",
+				 q - encoded_string) != 0)
+		return FALSE;
+
+	q = strchr (q + 1, '\'');
+	if (!q)
+		return FALSE;
+
+	decoded = soup_uri_decode (q + 1);
+	/* strlen(decoded) <= strlen(q + 1) < strlen(encoded_string) */
+	strcpy (encoded_string, decoded);
+	g_free (decoded);
+	return TRUE;
+}
+
 static GHashTable *
 parse_param_list (const char *header, char delim)
 {
@@ -632,7 +656,14 @@ parse_param_list (const char *header, char delim)
 			*name_end = '\0';
 
 			value = (char *)skip_lws (eq + 1);
-			if (*value == '"')
+
+			if (name_end[-1] == '*' && name_end > item + 1) {
+				name_end[-1] = '\0';
+				if (!decode_rfc2231 (value)) {
+					g_free (item);
+					continue;
+				}
+			} else if (*value == '"')
 				decode_quoted_string (value);
 		} else
 			value = NULL;
@@ -654,6 +685,10 @@ parse_param_list (const char *header, char delim)
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
+ * This also handles RFC2231 encoding (which in HTTP is mostly used
+ * for giving UTF8-encoded filenames in the Content-Disposition
+ * header).
+ *
  * Return value: a #GHashTable of list elements, which can be freed
  * with soup_header_free_param_list().
  **/
@@ -673,6 +708,10 @@ soup_header_parse_param_list (const char *header)
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
+ * This also handles RFC2231 encoding (which in HTTP is mostly used
+ * for giving UTF8-encoded filenames in the Content-Disposition
+ * header).
+ *
  * Return value: a #GHashTable of list elements, which can be freed
  * with soup_header_free_param_list().
  **/
@@ -693,4 +732,68 @@ void
 soup_header_free_param_list (GHashTable *param_list)
 {
 	g_hash_table_destroy (param_list);
+}
+
+static void
+append_param_rfc2231 (GString *string, const char *value)
+{
+	char *encoded;
+
+	g_string_append (string, "*=UTF-8''");
+	encoded = soup_uri_encode (value, " *'%()<>@,;:\\\"/[]?=");
+	g_string_append (string, encoded);
+	g_free (encoded);
+}
+
+static void
+append_param_quoted (GString *string, const char *value)
+{
+	int len;
+
+	g_string_append (string, "=\"");
+	while (*value) {
+		while (*value == '\\' || *value == '"') {
+			g_string_append_c (string, '\\');
+			g_string_append_c (string, *value++);
+		}
+		len = strcspn (value, "\\\"");
+		g_string_append_len (string, value, len);
+		value += len;
+	}
+	g_string_append_c (string, '"');
+}
+
+/**
+ * soup_header_g_string_append_param:
+ * @string: a #GString being used to construct an HTTP header value
+ * @name: a parameter name
+ * @value: a parameter value
+ *
+ * Appends something like <literal>@name="@value"</literal> to @string,
+ * taking care to appropriately escape any quotes or backslashes in @value.
+ *
+ * Alternatively, if @value is a non-ASCII UTF-8 string, it will be
+ * appended using RFC2231 syntax. Although in theory this is supposed
+ * to work anywhere in HTTP that uses this style of parameter, in
+ * reality, it can only be used portably with the Content-Disposition
+ * "filename" parameter.
+ **/
+void
+soup_header_g_string_append_param (GString *string, const char *name,
+				   const char *value)
+{
+	const char *v;
+
+	g_string_append (string, name);
+
+	for (v = value; *v; v++) {
+		if (*v & 0x80) {
+			if (g_utf8_validate (value, -1, NULL)) {
+				append_param_rfc2231 (string, value);
+				return;
+			} else
+				break;
+		}
+	}
+	append_param_quoted (string, value);
 }

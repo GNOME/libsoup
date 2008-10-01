@@ -82,4 +82,17 @@ SoupExpectation soup_message_headers_get_expectations    (SoupMessageHeaders *hd
 void            soup_message_headers_set_expectations    (SoupMessageHeaders *hdrs,
 							  SoupExpectation     expectations);
 
+const char *soup_message_headers_get_content_type     (SoupMessageHeaders  *hdrs,
+						       GHashTable         **params);
+void        soup_message_headers_set_content_type     (SoupMessageHeaders  *hdrs,
+						       const char          *content_type,
+						       GHashTable          *params);
+
+gboolean soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
+						       char               **disposition,
+						       GHashTable         **params);
+void     soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,
+						       const char          *disposition,
+						       GHashTable          *params);
+
 #endif /* SOUP_MESSAGE_HEADERS_H */

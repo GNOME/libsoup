@@ -6,8 +6,10 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "soup-message-headers.h"
+#include "soup-headers.h"
 #include "soup-misc.h"
 
 /**
@@ -44,6 +46,7 @@ struct SoupMessageHeaders {
 	SoupEncoding encoding;
 	goffset content_length;
 	SoupExpectation expectations;
+	char *content_type;
 
 	int ref_count;
 };
@@ -94,6 +97,7 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 		g_array_free (hdrs->array, TRUE);
 		if (hdrs->concat)
 			g_hash_table_destroy (hdrs->concat);
+		g_free (hdrs->content_type);
 		g_slice_free (SoupMessageHeaders, hdrs);
 	}
 }
@@ -377,6 +381,7 @@ static GHashTable *header_pool, *header_setters;
 static void transfer_encoding_setter (SoupMessageHeaders *, const char *);
 static void content_length_setter (SoupMessageHeaders *, const char *);
 static void expectation_setter (SoupMessageHeaders *, const char *);
+static void content_type_setter (SoupMessageHeaders *, const char *);
 
 static char *
 intern_header_locked (const char *name)
@@ -411,6 +416,9 @@ intern_header_name (const char *name, SoupHeaderSetter *setter)
 		g_hash_table_insert (header_setters,
 				     intern_header_locked ("Expect"),
 				     expectation_setter);
+		g_hash_table_insert (header_setters,
+				     intern_header_locked ("Content-Type"),
+				     content_type_setter);
 	}
 
 	interned = intern_header_locked (name);
@@ -652,3 +660,186 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
 	else
 		soup_message_headers_remove (hdrs, "Expect");
 }
+
+static gboolean
+parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
+		   char **foo, GHashTable **params)
+{
+	const char *header;
+	char *semi;
+
+	header = soup_message_headers_get (hdrs, header_name);
+	if (!header)
+		return FALSE;
+
+	if (foo) {
+		*foo = g_strdup (header);
+		semi = strchr (*foo, ';');
+		if (semi) {
+			char *p = semi;
+
+			*semi++ = '\0';
+			while (p - 1 > *foo && g_ascii_isspace(p[-1]))
+				*(--p) = '\0';
+		}
+	} else {
+		semi = strchr (header, ';');
+		if (semi)
+			semi++;
+	}
+
+	if (!params)
+		return TRUE;
+
+	if (!semi) {
+		*params = soup_header_parse_semi_param_list ("");
+		return TRUE;
+	}
+
+	*params = soup_header_parse_semi_param_list (semi);
+	return TRUE;
+}
+
+static void
+set_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
+		 const char *foo, GHashTable *params)
+{
+	GString *str;
+	GHashTableIter iter;
+	gpointer key, value;
+
+	str = g_string_new (foo);
+	if (params) {
+		g_hash_table_iter_init (&iter, params);
+		while (g_hash_table_iter_next (&iter, &key, &value)) {
+			g_string_append (str, "; ");
+			soup_header_g_string_append_param (str, key, value);
+		}
+	}
+
+	soup_message_headers_replace (hdrs, header_name,
+				      g_string_free (str, FALSE));
+}
+
+static void
+content_type_setter (SoupMessageHeaders *hdrs, const char *value)
+{
+	g_free (hdrs->content_type);
+	if (value) {
+		parse_content_foo (hdrs, "Content-Type",
+				   &hdrs->content_type, NULL);
+	} else
+		hdrs->content_type = NULL;
+}
+
+/**
+ * soup_message_headers_get_content_type:
+ * @hdrs: a #SoupMessageHeaders
+ * @params: return location for the Content-Type parameters (eg,
+ * "charset"), or %NULL
+ *
+ * Looks up the "Content-Type" header in @hdrs, parses it, and returns
+ * its value in *@content_type and *@params. @params can be %NULL if you
+ * are only interested in the content type itself.
+ *
+ * Return value: %TRUE if @hdrs contains a "Content-Type" header,
+ * %FALSE if not (in which case *@content_type and *@params will be
+ * unchanged).
+ **/
+const char *
+soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
+				       GHashTable         **params)
+{
+	if (!hdrs->content_type)
+		return FALSE;
+
+	if (params)
+		parse_content_foo (hdrs, "Content-Type", NULL, params);
+	return hdrs->content_type;
+}
+
+/**
+ * soup_message_headers_set_content_type:
+ * @hdrs: a #SoupMessageHeaders
+ * @content_type: the MIME type
+ * @params: additional parameters, or %NULL
+ *
+ * Sets the "Content-Type" header in @hdrs to @content_type,
+ * optionally with additional parameters specified in @params.
+ **/
+void
+soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
+				       const char          *content_type,
+				       GHashTable          *params)
+{
+	set_content_foo (hdrs, "Content-Type", content_type, params);
+}
+
+/**
+ * soup_message_headers_get_content_disposition:
+ * @hdrs: a #SoupMessageHeaders
+ * @disposition: return location for the disposition-type, or %NULL
+ * @params: return location for the Content-Disposition parameters, or
+ * %NULL
+ *
+ * Looks up the "Content-Disposition" header in @hdrs, parses it, and
+ * returns its value in *@disposition and *@params. @params can be
+ * %NULL if you are only interested in the disposition-type.
+ *
+ * In HTTP, the most common use of this header is to set a
+ * disposition-type of "attachment", to suggest to the browser that a
+ * response should be saved to disk rather than displayed in the
+ * browser. If @params contains a "filename" parameter, this is a
+ * suggestion of a filename to use. (If the parameter value in the
+ * header contains an absolute or relative path, libsoup will truncate
+ * it down to just the final path component, so you do not need to
+ * test this yourself.)
+ *
+ * Return value: %TRUE if @hdrs contains a "Content-Disposition"
+ * header, %FALSE if not (in which case *@disposition and *@params
+ * will be unchanged).
+ **/
+gboolean
+soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
+					      char               **disposition,
+					      GHashTable         **params)
+{
+	gpointer orig_key, orig_value;
+
+	if (!parse_content_foo (hdrs, "Content-Disposition",
+				disposition, params))
+		return FALSE;
+
+	/* If there is a filename parameter, make sure it contains
+	 * only a single path component
+	 */
+	if (params && g_hash_table_lookup_extended (*params, "filename",
+						    &orig_key, &orig_value)) {
+		char *filename = strrchr (orig_value, '/');
+
+		if (filename)
+			g_hash_table_insert (*params, orig_key, filename + 1);
+	}
+	return TRUE;
+}
+
+/**
+ * soup_message_headers_set_content_disposition:
+ * @hdrs: a #SoupMessageHeaders
+ * @disposition: the disposition-type
+ * @params: additional parameters, or %NULL
+ *
+ * Sets the "Content-Disposition" header in @hdrs to @disposition,
+ * optionally with additional parameters specified in @params.
+ *
+ * See soup_message_headers_get_content_disposition() for a discussion
+ * of how Content-Disposition is used in HTTP.
+ **/
+void
+soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,
+					      const char          *disposition,
+					      GHashTable          *params)
+{
+	set_content_foo (hdrs, "Content-Disposition", disposition, params);
+}
+

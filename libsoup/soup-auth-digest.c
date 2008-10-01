@@ -436,20 +436,29 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 	out = g_string_new ("Digest ");
 
-	/* FIXME: doesn't deal with quotes in the %s strings */
-	g_string_append_printf (out, "username=\"%s\", realm=\"%s\", "
-				"nonce=\"%s\", uri=\"%s\", response=\"%s\"",
-				priv->user, auth->realm, priv->nonce,
-				url, response);
+	soup_header_g_string_append_param (out, "username", priv->user);
+	g_string_append (out, ", ");
+	soup_header_g_string_append_param (out, "realm", auth->realm);
+	g_string_append (out, ", ");
+	soup_header_g_string_append_param (out, "nonce", priv->nonce);
+	g_string_append (out, ", ");
+	soup_header_g_string_append_param (out, "uri", url);
+	g_string_append (out, ", ");
+	soup_header_g_string_append_param (out, "response", response);
 
-	if (priv->opaque)
-		g_string_append_printf (out, ", opaque=\"%s\"", priv->opaque);
+	if (priv->opaque) {
+		g_string_append (out, ", ");
+		soup_header_g_string_append_param (out, "opaque", priv->opaque);
+	}
 
 	if (priv->qop) {
 		char *qop = soup_auth_digest_get_qop (priv->qop);
 
-		g_string_append_printf (out, ", cnonce=\"%s\", nc=\"%.8x\", qop=\"%s\"",
-					priv->cnonce, priv->nc, qop);
+		g_string_append (out, ", ");
+		soup_header_g_string_append_param (out, "cnonce", priv->cnonce);
+		g_string_append_printf (out, ", nc=\"%.8x\"", priv->nc);
+		g_string_append (out, ", ");
+		soup_header_g_string_append_param (out, "qop", qop);
 		g_free (qop);
 	}
 

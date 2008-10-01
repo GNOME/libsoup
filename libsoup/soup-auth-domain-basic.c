@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-domain-basic.h"
+#include "soup-headers.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 
@@ -308,9 +309,11 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 static char *
 challenge (SoupAuthDomain *domain, SoupMessage *msg)
 {
-	/* FIXME: if realm has '"'s or '\'s in it, need to escape them */
-	return g_strdup_printf ("Basic realm=\"%s\"",
-				soup_auth_domain_get_realm (domain));
+	GString *challenge;
+
+	challenge = g_string_new ("Basic ");
+	soup_header_g_string_append_param (challenge, "realm", soup_auth_domain_get_realm (domain));
+	return g_string_free (challenge, FALSE);
 }
 
 static gboolean

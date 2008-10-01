@@ -196,8 +196,8 @@ get_url (const char *url)
 		return;
 	close (fd);
 
-	header = soup_message_headers_get (msg->response_headers, "Content-Type");
-	if (header && g_ascii_strncasecmp (header, "text/html", 9) != 0)
+	header = soup_message_headers_get_content_type (msg->response_headers, NULL);
+	if (header && g_ascii_strcasecmp (header, "text/html") != 0)
 		return;
 
 	uri = soup_uri_new (url);

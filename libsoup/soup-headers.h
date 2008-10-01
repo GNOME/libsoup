@@ -46,6 +46,10 @@ GHashTable *soup_header_parse_param_list      (const char       *header);
 GHashTable *soup_header_parse_semi_param_list (const char       *header);
 void        soup_header_free_param_list       (GHashTable       *param_list);
 
+void        soup_header_g_string_append_param (GString          *string,
+					       const char       *name,
+					       const char       *value);
+
 G_END_DECLS
 
 #endif /*SOUP_HEADERS_H*/
