@@ -21,7 +21,7 @@
 
 /**
  * SECTION:soup-cookie-jar
- * @short_description: 
+ * @short_description: Automatic cookie handling for #SoupSession
  *
  * A #SoupCookieJar stores #SoupCookie<!-- -->s and arrange for them
  * to be sent with the appropriate #SoupMessage<!-- -->s.

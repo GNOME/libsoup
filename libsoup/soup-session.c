@@ -1340,6 +1340,15 @@ soup_session_abort (SoupSession *session)
 	g_slist_free (conns);
 }
 
+/**
+ * soup_session_add_feature:
+ * @session: a #SoupSession
+ * @feature: an object that implements #SoupSessionFeature
+ *
+ * Adds @feature's functionality to @session. You can also add a
+ * feature to the session at construct time by using the
+ * %SOUP_SESSION_ADD_FEATURE property.
+ **/
 void
 soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 {
@@ -1353,6 +1362,17 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	soup_session_feature_attach (feature, session);
 }
 
+/**
+ * soup_session_add_feature_by_type:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of a class that implements #SoupSessionFeature
+ *
+ * Creates a new feature of type @feature_type and adds it to
+ * @session. You can use this instead of soup_session_add_feature() in
+ * the case wher you don't need to customize the new feature in any
+ * way. You can also add a feature to the session at construct time by
+ * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
+ **/
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 {
@@ -1366,6 +1386,13 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 	g_object_unref (feature);
 }
 
+/**
+ * soup_session_remove_feature:
+ * @session: a #SoupSession
+ * @feature: a feature that has previously been added to @session
+ *
+ * Removes @feature's functionality from @session.
+ **/
 void
 soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 {
@@ -1381,6 +1408,16 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 	}
 }
 
+/**
+ * soup_session_remove_feature_by_type:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of a class that implements #SoupSessionFeature
+ *
+ * Removes all features of type @feature_type (or any subclass of
+ * @feature_type) from @session. You can also remove standard features
+ * from the session at construct time by using the
+ * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE property.
+ **/
 void
 soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 {

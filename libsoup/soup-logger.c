@@ -32,7 +32,7 @@
  * optionally configure it with soup_logger_set_request_filter(),
  * soup_logger_set_response_filter(), and soup_logger_set_printer(),
  * and then attach it to a session (or multiple sessions) with
- * soup_logger_attach().
+ * soup_session_add_feature().
  *
  * By default, the debugging output is sent to %stdout, and looks
  * something like:

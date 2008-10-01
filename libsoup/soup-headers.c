@@ -648,14 +648,14 @@ parse_param_list (const char *header, char delim)
  * soup_header_parse_param_list:
  * @header: a header value
  *
- * Parses a header which is a comma-delimited list of something like
- *
- *   token [ "=" ( token | quoted-string ) ]
+ * Parses a header which is a comma-delimited list of something like:
+ * <literal>token [ "=" ( token | quoted-string ) ]</literal>.
  *
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
- * Return value: a #GHashTable of list elements.
+ * Return value: a #GHashTable of list elements, which can be freed
+ * with soup_header_free_param_list().
  **/
 GHashTable *
 soup_header_parse_param_list (const char *header)
@@ -668,14 +668,13 @@ soup_header_parse_param_list (const char *header)
  * @header: a header value
  *
  * Parses a header which is a semicolon-delimited list of something
- * like
- *
- *   token [ "=" ( token | quoted-string ) ]
+ * like: <literal>token [ "=" ( token | quoted-string ) ]</literal>.
  *
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
- * Return value: a #GHashTable of list elements.
+ * Return value: a #GHashTable of list elements, which can be freed
+ * with soup_header_free_param_list().
  **/
 GHashTable *
 soup_header_parse_semi_param_list (const char *header)
@@ -686,6 +685,7 @@ soup_header_parse_semi_param_list (const char *header)
 /**
  * soup_header_free_param_list:
  * @param_list: a #GHashTable returned from soup_header_parse_param_list()
+ * or soup_header_parse_semi_param_list()
  *
  * Frees @param_list.
  **/

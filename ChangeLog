@@ -1,3 +1,18 @@
+2008-10-01  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie-jar.c:
+	* libsoup/soup-cookie.c:
+	* libsoup/soup-cookie.h:
+	* libsoup/soup-headers.c:
+	* libsoup/soup-logger.c:
+	* libsoup/soup-session-feature.c:
+	* libsoup/soup-session-feature.h:
+	* libsoup/soup-session.c: doc fixups
+
+	* docs/reference/libsoup-2.4-docs.sgml:
+	* docs/reference/libsoup-2.4-sections.txt:
+	* docs/reference/libsoup-2.4.types: Add missing bits
+
 2008-09-30  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-xmlrpc.c (parse_value):
