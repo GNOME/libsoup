@@ -15,6 +15,33 @@
 #include "soup-message.h"
 #include "soup-uri.h"
 
+/**
+ * SECTION:soup-form
+ * @short_description: HTML form handling
+ * @see_also: #SoupMultipart
+ *
+ * libsoup contains several help methods for processing HTML forms as
+ * defined by <ulink
+ * url="http://www.w3.org/TR/html401/interact/forms.html#h-17.13">the
+ * HTML 4.01 specification</ulink>.
+ **/
+
+/**
+ * SOUP_FORM_MIME_TYPE_URLENCODED:
+ *
+ * A macro containing the value
+ * <literal>"application/x-www-form-urlencoded"</literal>; the default
+ * MIME type for POSTing HTML form data.
+ **/
+
+/**
+ * SOUP_FORM_MIME_TYPE_MULTIPART:
+ *
+ * A macro containing the value
+ * <literal>"multipart/form-data"</literal>; the MIME type used for
+ * posting form data that contains files to be uploaded.
+ **/
+
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
@@ -77,6 +104,98 @@ soup_form_decode (const char *encoded_form)
 	}
 	g_free (pairs);
 
+	return form_data_set;
+}
+
+/**
+ * soup_form_decode_multipart:
+ * @msg: a #SoupMessage containing a "multipart/form-data" request body
+ * @file_control_name: the name of the HTML file upload control, or %NULL
+ * @filename: return location for the name of the uploaded file
+ * @content_type: return location for the MIME type of the uploaded file
+ * @file: return location for the uploaded file data
+ *
+ * Decodes the "multipart/form-data" request in @msg; this is a
+ * convenience method for the case when you have a single file upload
+ * control in a form. (Or when you don't have any file upload
+ * controls, but are still using "multipart/form-data" anyway.) Pass
+ * the name of the file upload control in @file_control_name, and
+ * soup_form_decode_multipart() will extract the uploaded file data
+ * into @filename, @content_type, and @file. All of the other form
+ * control data will be returned (as strings, as with
+ * soup_form_decode()) in the returned #GHashTable.
+ *
+ * You may pass %NULL for @filename and/or @content_type if you do not
+ * care about those fields. soup_form_decode_multipart() may also
+ * return %NULL in those fields if the client did not provide that
+ * information. You must free the returned filename and content-type
+ * with g_free(), and the returned file data with soup_buffer_free().
+ *
+ * If you have a form with more than one file upload control, you will
+ * need to decode it manually, using soup_multipart_new_from_message()
+ * and soup_multipart_get_part().
+ *
+ * Return value: a hash table containing the name/value pairs (other
+ * than @file_control_name) from @msg, which you can free with
+ * g_hash_table_destroy(). On error, it will return %NULL.
+ **/
+GHashTable *
+soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
+			    char **filename, char **content_type,
+			    SoupBuffer **file)
+{
+	SoupMultipart *multipart;
+	GHashTable *form_data_set, *params;
+	SoupMessageHeaders *part_headers;
+	SoupBuffer *part_body;
+	char *disposition, *name;
+	int i;
+
+	multipart = soup_multipart_new_from_message (msg->request_headers,
+						     msg->request_body);
+	if (!multipart)
+		return NULL;
+
+	if (filename)
+		*filename = NULL;
+	if (content_type)
+		*content_type = NULL;
+	*file = NULL;
+
+	form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
+					       g_free, g_free);
+	for (i = 0; i < soup_multipart_get_length (multipart); i++) {
+		soup_multipart_get_part (multipart, i, &part_headers, &part_body);
+		if (!soup_message_headers_get_content_disposition (
+			    part_headers, &disposition, &params))
+			continue;
+		name = g_hash_table_lookup (params, "name");
+		if (g_ascii_strcasecmp (disposition, "form-data") != 0 ||
+		    !name) {
+			g_free (disposition);
+			g_hash_table_destroy (params);
+			continue;
+		}
+
+		if (!strcmp (name, file_control_name)) {
+			if (filename)
+				*filename = g_strdup (g_hash_table_lookup (params, "filename"));
+			if (content_type)
+				*content_type = g_strdup (soup_message_headers_get_content_type (part_headers, NULL));
+			if (file)
+				*file = soup_buffer_copy (part_body);
+		} else {
+			g_hash_table_insert (form_data_set,
+					     g_strdup (name),
+					     g_strndup (part_body->data,
+							part_body->length));
+		}
+
+		g_free (disposition);
+		g_hash_table_destroy (params);
+	}
+
+	soup_multipart_free (multipart);
 	return form_data_set;
 }
 
@@ -243,7 +362,7 @@ soup_form_request_for_data (const char *method, const char *uri_string,
 
 	if (!strcmp (method, "POST")) {
 		soup_message_set_request (
-			msg, "application/x-www-form-urlencoded",
+			msg, SOUP_FORM_MIME_TYPE_URLENCODED,
 			SOUP_MEMORY_TAKE,
 			form_data, strlen (form_data));
 		form_data = NULL;
@@ -322,4 +441,36 @@ soup_form_request_new_from_datalist (const char *method, const char *uri,
 {
 	return soup_form_request_for_data (
 		method, uri, soup_form_encode_datalist (form_data_set));
+}
+
+/**
+ * soup_form_request_new_from_multipart:
+ * @uri: the URI to send the form data to
+ * @multipart: a "multipart/form-data" #SoupMultipart
+ *
+ * Creates a new %SoupMessage and sets it up to send @multipart to
+ * @uri via POST.
+ *
+ * To send a <literal>"multipart/form-data"</literal> POST, first
+ * create a #SoupMultipart, using %SOUP_FORM_MIME_TYPE_MULTIPART as
+ * the MIME type. Then use soup_multipart_append_form_string() and
+ * soup_multipart_append_form_file() to add the value of each form
+ * control to the multipart. (These are just convenience methods, and
+ * you can use soup_multipart_append_part() if you need greater
+ * control over the part headers.) Finally, call
+ * soup_form_request_new_from_multipart() to serialize the multipart
+ * structure and create a #SoupMessage.
+ *
+ * Return value: the new %SoupMessage
+ **/
+SoupMessage *
+soup_form_request_new_from_multipart (const char *uri,
+				      SoupMultipart *multipart)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("POST", uri);
+	soup_multipart_to_message (multipart, msg->request_headers,
+				   msg->request_body);
+	return msg;
 }

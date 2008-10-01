@@ -14,7 +14,8 @@ GType soup_message_headers_get_type (void);
 
 typedef enum {
 	SOUP_MESSAGE_HEADERS_REQUEST,
-	SOUP_MESSAGE_HEADERS_RESPONSE
+	SOUP_MESSAGE_HEADERS_RESPONSE,
+	SOUP_MESSAGE_HEADERS_MULTIPART
 } SoupMessageHeadersType;
 
 SoupMessageHeaders *soup_message_headers_new      (SoupMessageHeadersType type);
@@ -81,6 +82,34 @@ typedef enum {
 SoupExpectation soup_message_headers_get_expectations    (SoupMessageHeaders *hdrs);
 void            soup_message_headers_set_expectations    (SoupMessageHeaders *hdrs,
 							  SoupExpectation     expectations);
+
+typedef struct {
+	goffset start;
+	goffset end;
+} SoupRange;
+
+gboolean        soup_message_headers_get_ranges          (SoupMessageHeaders  *hdrs,
+							  goffset              total_length,
+							  SoupRange          **ranges,
+							  int                 *length);
+void            soup_message_headers_free_ranges         (SoupMessageHeaders  *hdrs,
+							  SoupRange           *ranges);
+void            soup_message_headers_set_ranges          (SoupMessageHeaders  *hdrs,
+							  SoupRange           *ranges,
+							  int                  length);
+void            soup_message_headers_set_range           (SoupMessageHeaders  *hdrs,
+							  goffset              start,
+							  goffset              end);
+
+gboolean        soup_message_headers_get_content_range   (SoupMessageHeaders  *hdrs,
+							  goffset             *start,
+							  goffset             *end,
+							  goffset             *total_length);
+void            soup_message_headers_set_content_range   (SoupMessageHeaders  *hdrs,
+							  goffset              start,
+							  goffset              end,
+							  goffset              total_length);
+
 
 const char *soup_message_headers_get_content_type     (SoupMessageHeaders  *hdrs,
 						       GHashTable         **params);

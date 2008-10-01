@@ -13,6 +13,10 @@ G_BEGIN_DECLS
 
 /* HTTP Header Parsing */
 
+gboolean    soup_headers_parse              (const char          *str,
+					     int                  len,
+					     SoupMessageHeaders  *dest);
+
 guint       soup_headers_parse_request      (const char          *str,
 					     int                  len,
 					     SoupMessageHeaders  *req_headers,

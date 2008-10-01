@@ -1,5 +1,40 @@
 2008-10-01  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-multipart.c: New type and methods for working with
+	multipart HTTP bodies (eg, multipart/form-data and
+	multipart/byte-ranges)
+
+	* libsoup/soup-message-headers.c (soup_message_headers_get_ranges)
+	(soup_message_headers_set_ranges)
+	(soup_message_headers_set_range)
+	(soup_message_headers_get_content_range)
+	(soup_message_headers_set_content_range): New methods for dealing
+	with the Range and Content-Range headers.
+
+	* libsoup/soup-form.h (SOUP_FORM_MIME_TYPE_URLENCODED)
+	(SOUP_FORM_MIME_TYPE_MULTIPART): #define these MIME types here
+
+	* libsoup/soup-form.c (soup_form_decode_multipart): new utility
+	for parsing multipart/form-data forms.
+	(soup_form_request_new_from_multipart): new utility for
+	constructing multipart/form-data forms
+
+	* libsoup/soup-headers.c (soup_headers_parse): this is now
+	non-static, for use by soup-multipart
+
+	* libsoup/soup-message-server-io.c (get_response_headers)
+	(handle_partial_get): if the client requested a partial GET, and
+	the SoupServer is returning the full body, rebuild the response to
+	include only the requested range instead
+
+	* tests/forms-test.c: renamed from query-test and updated to do
+	both application/x-www-form-urlencoded and multipart/form-data
+	tests
+
+	* tests/range-test.c: test of Range/Content-Range functionality
+
+2008-10-01  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-headers.c (soup_header_parse_param_list)
 	(soup_header_parse_semi_param_list): Update these to deal with
 	RFC2231-encoded UTF-8 header params

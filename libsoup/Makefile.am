@@ -62,6 +62,7 @@ soup_headers =			\
 	soup-message-headers.h	\
 	soup-method.h		\
 	soup-misc.h     	\
+	soup-multipart.h     	\
 	soup-portability.h	\
 	soup-server.h		\
 	soup-session.h		\
@@ -131,6 +132,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message-server-io.c	\
 	soup-method.c     		\
 	soup-misc.c     		\
+	soup-multipart.c	     	\
 	soup-nossl.c     		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\

@@ -14,7 +14,23 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static gboolean
+/**
+ * soup_headers_parse:
+ * @str: the header string (including the Request-Line or Status-Line,
+ * and the trailing blank line)
+ * @len: length of @str up to (but not including) the terminating blank line.
+ * @dest: #SoupMessageHeaders to store the header values in
+ *
+ * Parses the headers of an HTTP request or response in @str and
+ * stores the results in @dest. Beware that @dest may be modified even
+ * on failure.
+ *
+ * This is a low-level method; normally you would use
+ * soup_headers_parse_request() or soup_headers_parse_response().
+ *
+ * Return value: success or failure
+ **/
+gboolean
 soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 {
 	const char *headers_start;

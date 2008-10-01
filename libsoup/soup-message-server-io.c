@@ -16,6 +16,7 @@
 #include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-headers.h"
+#include "soup-multipart.h"
 #include "soup-server.h"
 #include "soup-socket.h"
 
@@ -93,12 +94,106 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 }
 
 static void
+handle_partial_get (SoupMessage *msg)
+{
+	SoupRange *ranges;
+	int nranges;
+	SoupBuffer *full_response;
+
+	/* Make sure the message is set up right for us to return a
+	 * partial response; it has to be a GET, the status must be
+	 * 200 OK (and in particular, NOT already 206 Partial
+	 * Content), and the SoupServer must have already filled in
+	 * the response body
+	 */
+	if (msg->method != SOUP_METHOD_GET ||
+	    msg->status_code != SOUP_STATUS_OK ||
+	    soup_message_headers_get_encoding (msg->response_headers) !=
+	    SOUP_ENCODING_CONTENT_LENGTH ||
+	    msg->response_body->length == 0)
+		return;
+
+	/* Oh, and there has to have been a valid Range header on the
+	 * request, of course.
+	 */
+	if (!soup_message_headers_get_ranges (msg->request_headers,
+					      msg->response_body->length,
+					      &ranges, &nranges))
+		return;
+
+	full_response = soup_message_body_flatten (msg->response_body);
+	if (!full_response)
+		return;
+
+	soup_message_set_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
+	soup_message_body_truncate (msg->response_body);
+
+	if (nranges == 1) {
+		SoupBuffer *range_buf;
+
+		/* Single range, so just set Content-Range and fix the body. */
+
+		soup_message_headers_set_content_range (msg->response_headers,
+							ranges[0].start,
+							ranges[0].end,
+							full_response->length);
+		range_buf = soup_buffer_new_subbuffer (full_response,
+						       ranges[0].start,
+						       ranges[0].end - ranges[0].start + 1);
+		soup_message_body_append_buffer (msg->response_body, range_buf);
+		soup_buffer_free (range_buf);
+	} else {
+		SoupMultipart *multipart;
+		SoupMessageHeaders *part_headers;
+		SoupBuffer *part_body;
+		const char *content_type;
+		int i;
+
+		/* Multiple ranges, so build a multipart/byteranges response
+		 * to replace msg->response_body with.
+		 */
+
+		multipart = soup_multipart_new ("multipart/byteranges");
+		content_type = soup_message_headers_get (msg->response_headers,
+							 "Content-Type");
+		for (i = 0; i < nranges; i++) {
+			part_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+			if (content_type) {
+				soup_message_headers_append (part_headers,
+							     "Content-Type",
+							     content_type);
+			}
+			soup_message_headers_set_content_range (part_headers,
+								ranges[i].start,
+								ranges[i].end,
+								full_response->length);
+			part_body = soup_buffer_new_subbuffer (full_response,
+							       ranges[i].start,
+							       ranges[i].end - ranges[i].start + 1);
+			soup_multipart_append_part (multipart, part_headers,
+						    part_body);
+			soup_message_headers_free (part_headers);
+			soup_buffer_free (part_body);
+		}
+
+		soup_multipart_to_message (multipart, msg->response_headers,
+					   msg->response_body);
+		soup_multipart_free (multipart);
+	}
+
+	soup_buffer_free (full_response);
+	soup_message_headers_free_ranges (msg->request_headers, ranges);
+}
+
+static void
 get_response_headers (SoupMessage *msg, GString *headers,
 		      SoupEncoding *encoding, gpointer user_data)
 {
 	SoupEncoding claimed_encoding;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
+
+	handle_partial_get (msg);
 
 	g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
 				soup_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',

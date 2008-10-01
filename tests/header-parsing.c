@@ -833,7 +833,7 @@ do_rfc2231_tests (void)
 
 	debug_printf (1, "rfc2231 tests\n");
 
-	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
 	g_hash_table_insert (params, "filename", RFC2231_TEST_FILENAME);
 	soup_message_headers_set_content_disposition (hdrs, "attachment", params);

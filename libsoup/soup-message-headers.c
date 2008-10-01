@@ -507,8 +507,8 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 			return hdrs->encoding;
 	}
 
-	hdrs->encoding = (hdrs->type == SOUP_MESSAGE_HEADERS_REQUEST) ?
-		SOUP_ENCODING_NONE : SOUP_ENCODING_EOF;
+	hdrs->encoding = (hdrs->type == SOUP_MESSAGE_HEADERS_RESPONSE) ?
+		SOUP_ENCODING_EOF : SOUP_ENCODING_NONE;
 	return hdrs->encoding;
 }
 
@@ -661,6 +661,264 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
 		soup_message_headers_remove (hdrs, "Expect");
 }
 
+/**
+ * SoupRange:
+ * @start: the start of the range
+ * @end: the end of the range
+ *
+ * Represents a byte range as used in the Range header.
+ *
+ * If @end is non-negative, then @start and @end represent the bounds
+ * of of the range, counting from %0. (Eg, the first 500 bytes would be
+ * represented as @start = %0 and @end = %499.)
+ *
+ * If @end is %-1 and @start is non-negative, then this represents a
+ * range starting at @start and ending with the last byte of the
+ * requested resource body. (Eg, all but the first 500 bytes would be
+ * @start = %500, and @end = %-1.)
+ *
+ * If @end is %-1 and @start is negative, then it represents a "suffix
+ * range", referring to the last -@start bytes of the resource body.
+ * (Eg, the last 500 bytes would be @start = %-500 and @end = %-1.)
+ **/
+
+/**
+ * soup_message_headers_get_ranges:
+ * @hdrs: a #SoupMessageHeaders
+ * @total_length: the total_length of the response body
+ * @ranges: return location for an array of #SoupRange
+ * @length: the length of the returned array
+ *
+ * Parses @hdrs's Range header and returns an array of the requested
+ * byte ranges. The returned array must be freed with
+ * soup_message_headers_free_ranges().
+ *
+ * If @total_length is non-0, its value will be used to adjust the
+ * returned ranges to have explicit start and end values. If
+ * @total_length is 0, then some ranges may have an end value of -1,
+ * as described under #SoupRange.
+ *
+ * Return value: %TRUE if @hdrs contained a "Range" header containing
+ * byte ranges which could be parsed, %FALSE otherwise (in which case
+ * @range and @length will not be set).
+ **/
+gboolean
+soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
+				 goffset              total_length,
+				 SoupRange          **ranges,
+				 int                 *length)
+{
+	const char *range = soup_message_headers_get (hdrs, "Range");
+	GSList *range_list, *r;
+	GArray *array;
+	SoupRange cur;
+	char *spec, *end;
+
+	if (!range || strncmp (range, "bytes", 5) != 0)
+		return FALSE;
+
+	range += 5;
+	while (g_ascii_isspace (*range))
+		range++;
+	if (*range++ != '=')
+		return FALSE;
+	while (g_ascii_isspace (*range))
+		range++;
+
+	range_list = soup_header_parse_list (range);
+	if (!range_list)
+		return FALSE;
+
+	array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
+	for (r = range_list; r; r = r->next) {
+		spec = r->data;
+		if (*spec == '-') {
+			cur.start = g_ascii_strtoll (spec, &end, 10) + total_length;
+			cur.end = total_length - 1;
+		} else {
+			cur.start = g_ascii_strtoull (spec, &end, 10);
+			if (*end == '-')
+				end++;
+			if (*end)
+				cur.end = g_ascii_strtoull (end, &end, 10);
+			else
+				cur.end = total_length - 1;
+		}
+		if (*end) {
+			g_array_free (array, TRUE);
+			soup_header_free_list (range_list);
+			return FALSE;
+		}
+
+		g_array_append_val (array, cur);
+	}
+
+	soup_header_free_list (range_list);
+	*ranges = (SoupRange *)array->data;
+	*length = array->len;
+	g_array_free (array, FALSE);
+	return TRUE;
+}
+
+/**
+ * soup_message_headers_free_ranges:
+ * @hdrs: a #SoupMessageHeaders
+ * @ranges: an array of #SoupRange
+ *
+ * Frees the array of ranges returned from soup_message_headers_get_ranges().
+ **/
+void
+soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
+				  SoupRange           *ranges)
+{
+	g_free (ranges);
+}
+
+/**
+ * soup_message_headers_set_ranges:
+ * @hdrs: a #SoupMessageHeaders
+ * @ranges: an array of #SoupRange
+ * @length: the length of @range
+ *
+ * Sets @hdrs's Range header to request the indicated ranges. (If you
+ * only want to request a single range, you can use
+ * soup_message_headers_set_range().)
+ **/
+void
+soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
+				 SoupRange           *ranges,
+				 int                  length)
+{
+	GString *header;
+	int i;
+
+	header = g_string_new ("bytes=");
+	for (i = 0; i < length; i++) {
+		if (i > 0)
+			g_string_append_c (header, ',');
+		if (ranges[i].end >= 0) {
+			g_string_append_printf (header, "%" G_GINT64_FORMAT "-%" G_GINT64_FORMAT,
+						ranges[i].start, ranges[i].end);
+		} else if (ranges[i].start >= 0) {
+			g_string_append_printf (header,"%" G_GINT64_FORMAT "-",
+						ranges[i].start);
+		} else {
+			g_string_append_printf (header, "%" G_GINT64_FORMAT,
+						ranges[i].start);
+		}
+	}
+
+	soup_message_headers_replace (hdrs, "Range", header->str);
+	g_string_free (header, TRUE);
+}
+
+/**
+ * soup_message_headers_set_range:
+ * @hdrs: a #SoupMessageHeaders
+ * @start: the start of the range to request
+ * @end: the end of the range to request
+ *
+ * Sets @hdrs's Range header to request the indicated range.
+ * @start and @end are interpreted as in a #SoupRange.
+ *
+ * If you need to request multiple ranges, use
+ * soup_message_headers_set_ranges().
+ **/
+void
+soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
+				goffset              start,
+				goffset              end)
+{
+	SoupRange range;
+
+	range.start = start;
+	range.end = end;
+	soup_message_headers_set_ranges (hdrs, &range, 1);
+}
+
+/**
+ * soup_message_headers_get_content_range:
+ * @hdrs: a #SoupMessageHeaders
+ * @start: return value for the start of the range
+ * @end: return value for the end of the range
+ * @total_length: return value for the total length of the resource,
+ * or %NULL if you don't care.
+ *
+ * Parses @hdrs's Content-Range header and returns it in @start,
+ * @end, and @total_length. If the total length field in the header
+ * was specified as "*", then @total_length will be set to -1.
+ *
+ * Return value: %TRUE if @hdrs contained a "Content-Range" header
+ * containing a byte range which could be parsed, %FALSE otherwise.
+ **/
+gboolean
+soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
+					goffset             *start,
+					goffset             *end,
+					goffset             *total_length)
+{
+	const char *header = soup_message_headers_get (hdrs, "Content-Range");
+	goffset length;
+	char *p;
+
+	if (!header || strncmp (header, "bytes ", 6) != 0)
+		return FALSE;
+
+	header += 6;
+	while (g_ascii_isspace (*header))
+		header++;
+	if (!g_ascii_isdigit (*header))
+		return FALSE;
+
+	*start = g_ascii_strtoull (header, &p, 10);
+	if (*p != '-')
+		return FALSE;
+	*end = g_ascii_strtoull (p + 1, &p, 10);
+	if (*p != '/')
+		return FALSE;
+	p++;
+	if (*p == '*') {
+		length = -1;
+		p++;
+	} else
+		length = g_ascii_strtoull (p, &p, 10);
+
+	if (total_length)
+		*total_length = length;
+	return *p == '\0';
+}
+
+/**
+ * soup_message_headers_set_content_range:
+ * @hdrs: a #SoupMessageHeaders
+ * @start: the start of the range
+ * @end: the end of the range
+ * @total_length: the total length of the resource, or -1 if unknown
+ *
+ * Sets @hdrs's Content-Range header according to the given values.
+ * (Note that @total_length is the total length of the entire resource
+ * that this is a range of, not simply @end - @start + 1.)
+ **/
+void
+soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
+					goffset              start,
+					goffset              end,
+					goffset              total_length)
+{
+	char *header;
+
+	if (total_length >= 0) {
+		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
+					  G_GINT64_FORMAT "/%" G_GINT64_FORMAT,
+					  start, end, total_length);
+	} else {
+		header = g_strdup_printf ("bytes %" G_GINT64_FORMAT "-%"
+					  G_GINT64_FORMAT "/*", start, end);
+	}
+	soup_message_headers_replace (hdrs, "Content-Range", header);
+	g_free (header);
+}
+
 static gboolean
 parse_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
 		   char **foo, GHashTable **params)
@@ -794,6 +1052,10 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * header contains an absolute or relative path, libsoup will truncate
  * it down to just the final path component, so you do not need to
  * test this yourself.)
+ *
+ * Content-Disposition is also used in "multipart/form-data", however
+ * this is handled automatically by #SoupMultipart and the associated
+ * form methods.
  *
  * Return value: %TRUE if @hdrs contains a "Content-Disposition"
  * header, %FALSE if not (in which case *@disposition and *@params
