@@ -2,7 +2,8 @@
 /*
  * soup-message-queue.c: Message queue
  *
- * Copyright (C) 2003, Ximian, Inc.
+ * Copyright (C) 2003 Novell, Inc.
+ * Copyright (C) 2008 Red Hat, Inc.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -11,230 +12,243 @@
 
 #include "soup-message-queue.h"
 
+/**
+ * SECTION:soup-message-queue
+ *
+ * This is an internal structure used by #SoupSession and its
+ * subclasses to keep track of the status of messages currently being
+ * processed.
+ *
+ * The #SoupMessageQueue itself is mostly just a linked list of
+ * #SoupMessageQueueItem, with some added cleverness to allow the list
+ * to be walked safely while other threads / re-entrant loops are
+ * adding items to and removing items from it. In particular, this is
+ * handled by refcounting items and then keeping "removed" items in
+ * the list until their ref_count drops to 0, but skipping over the
+ * "removed" ones when walking the queue.
+ **/
+
 struct SoupMessageQueue {
-	GList *head, *tail;
-	GList *iters;
+	SoupSession *session;
 
 	GMutex *mutex;
+	SoupMessageQueueItem *head, *tail;
 };
 
-/**
- * soup_message_queue_new:
- *
- * Creates a new #SoupMessageQueue
- *
- * Return value: a new #SoupMessageQueue object
- **/
 SoupMessageQueue *
-soup_message_queue_new (void)
+soup_message_queue_new (SoupSession *session)
 {
 	SoupMessageQueue *queue;
 
 	queue = g_slice_new0 (SoupMessageQueue);
+	queue->session = session;
 	queue->mutex = g_mutex_new ();
 	return queue;
 }
 
-/**
- * soup_message_queue_destroy:
- * @queue: a message queue
- *
- * Frees memory associated with @queue, which must be empty.
- **/
 void
 soup_message_queue_destroy (SoupMessageQueue *queue)
 {
 	g_return_if_fail (queue->head == NULL);
 
-	g_list_free (queue->head);
-	g_list_free (queue->iters);
 	g_mutex_free (queue->mutex);
 	g_slice_free (SoupMessageQueue, queue);
 }
 
 /**
  * soup_message_queue_append:
- * @queue: a queue
- * @msg: a message
+ * @queue: a #SoupMessageQueue
+ * @msg: a #SoupMessage
+ * @callback: the callback for @msg
+ * @user_data: the data to pass to @callback
  *
- * Appends @msg to the end of @queue
+ * Creates a new #SoupMessageQueueItem and appends it to @queue.
+ *
+ * Return value: the new item, which you must unref with
+ * soup_message_queue_unref_item() when you are done with.
  **/
-void
-soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg)
+SoupMessageQueueItem *
+soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
+			   SoupSessionCallback callback, gpointer user_data)
 {
+	SoupMessageQueueItem *item;
+
+	item = g_slice_new0 (SoupMessageQueueItem);
+	item->session = queue->session;
+	item->queue = queue;
+	item->msg = g_object_ref (msg);
+	item->callback = callback;
+	item->callback_data = user_data;
+
+	/* Note: the initial ref_count of 1 represents the caller's
+	 * ref; the queue's own ref is indicated by the absence of the
+	 * "removed" flag.
+	 */
+	item->ref_count = 1;
+
 	g_mutex_lock (queue->mutex);
 	if (queue->head) {
-		queue->tail = g_list_append (queue->tail, msg);
-		queue->tail = queue->tail->next;
+		queue->tail->next = item;
+		item->prev = queue->tail;
+		queue->tail = item;
 	} else
-		queue->head = queue->tail = g_list_append (NULL, msg);
+		queue->head = queue->tail = item;
 
-	g_object_add_weak_pointer (G_OBJECT (msg), &queue->tail->data);
 	g_mutex_unlock (queue->mutex);
+	return item;
+}
+
+/**
+ * soup_message_queue_item_ref:
+ * @item: a #SoupMessageQueueItem
+ *
+ * Refs @item.
+ **/ 
+void
+soup_message_queue_item_ref (SoupMessageQueueItem *item)
+{
+	item->ref_count++;
+}
+
+/**
+ * soup_message_queue_item_unref:
+ * @item: a #SoupMessageQueueItem
+ *
+ * Unrefs @item; use this on a #SoupMessageQueueItem that you are done
+ * with (but that you aren't passing to
+ * soup_message_queue_item_next()).
+ **/ 
+void
+soup_message_queue_item_unref (SoupMessageQueueItem *item)
+{
+	g_mutex_lock (item->queue->mutex);
+
+	/* Decrement the ref_count; if it's still non-zero OR if the
+	 * item is still in the queue, then return.
+	 */
+	if (--item->ref_count || !item->removed) {
+		g_mutex_unlock (item->queue->mutex);
+		return;
+	}
+
+	/* OK, @item is dead. Rewrite @queue around it */
+	if (item->prev)
+		item->prev->next = item->next;
+	else
+		item->queue->head = item->next;
+	if (item->next)
+		item->next->prev = item->prev;
+	else
+		item->queue->tail = item->prev;
+
+	g_mutex_unlock (item->queue->mutex);
+
+	/* And free it */
+	g_object_unref (item->msg);
+	g_slice_free (SoupMessageQueueItem, item);
+}
+
+/**
+ * soup_message_queue_lookup:
+ * @queue: a #SoupMessageQueue
+ * @msg: a #SoupMessage
+ *
+ * Finds the #SoupMessageQueueItem for @msg in @queue. You must unref
+ * the item with soup_message_queue_unref_item() when you are done
+ * with it.
+ *
+ * Return value: the queue item for @msg, or %NULL
+ **/ 
+SoupMessageQueueItem *
+soup_message_queue_lookup (SoupMessageQueue *queue, SoupMessage *msg)
+{
+	SoupMessageQueueItem *item;
+
+	g_mutex_lock (queue->mutex);
+
+	item = queue->tail;
+	while (item && (item->removed || item->msg != msg))
+		item = item->prev;
+
+	if (item)
+		item->ref_count++;
+
+	g_mutex_unlock (queue->mutex);
+	return item;
 }
 
 /**
  * soup_message_queue_first:
- * @queue: a queue
- * @iter: pointer to a #SoupMessageQueueIter
+ * @queue: a #SoupMessageQueue
  *
- * Initializes @iter and returns the first element of @queue. If you
- * do not iterate all the way to the end of the list, you must call
- * soup_message_queue_free_iter() to dispose the iterator when you are
- * done.
+ * Gets the first item in @queue. You must unref the item by calling
+ * soup_message_queue_unref_item() on it when you are done.
+ * (soup_message_queue_next() does this for you automatically, so you
+ * only need to unref the item yourself if you are not going to
+ * finishing walking the queue.)
  *
- * Return value: the first element of @queue, or %NULL if it is empty.
- **/
-SoupMessage *
-soup_message_queue_first (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
+ * Return value: the first item in @queue.
+ **/ 
+SoupMessageQueueItem *
+soup_message_queue_first (SoupMessageQueue *queue)
 {
+	SoupMessageQueueItem *item;
+
 	g_mutex_lock (queue->mutex);
 
-	if (!queue->head) {
-		g_mutex_unlock (queue->mutex);
-		return NULL;
-	}
+	item = queue->head;
+	while (item && item->removed)
+		item = item->next;
 
-	queue->iters = g_list_prepend (queue->iters, iter);
+	if (item)
+		item->ref_count++;
 
-	iter->cur = NULL;
-	iter->next = queue->head;
 	g_mutex_unlock (queue->mutex);
-
-	return soup_message_queue_next (queue, iter);
-}
-
-static SoupMessage *
-queue_remove_internal (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
-{
-	GList *i;
-	SoupMessageQueueIter *iter2;
-	SoupMessage *msg;
-
-	if (!iter->cur) {
-		/* We're at end of list or this item was already removed */
-		return NULL;
-	}
-
-	/* Fix any other iters pointing to iter->cur */
-	for (i = queue->iters; i; i = i->next) {
-		iter2 = i->data;
-		if (iter2 != iter) {
-			if (iter2->cur == iter->cur)
-				iter2->cur = NULL;
-			else if (iter2->next == iter->cur)
-				iter2->next = iter->cur->next;
-		}
-	}
-
-	msg = iter->cur->data;
-	if (msg)
-		g_object_remove_weak_pointer (G_OBJECT (msg), &iter->cur->data);
-
-	/* If deleting the last item, fix tail */
-	if (queue->tail == iter->cur)
-		queue->tail = queue->tail->prev;
-
-	/* Remove the item */
-	queue->head = g_list_delete_link (queue->head, iter->cur);
-	iter->cur = NULL;
-
-	return msg;
+	return item;
 }
 
 /**
  * soup_message_queue_next:
- * @queue: a queue
- * @iter: pointer to an initialized #SoupMessageQueueIter
+ * @queue: a #SoupMessageQueue
+ * @item: a #SoupMessageQueueItem
  *
- * Returns the next element of @queue
+ * Unrefs @item and gets the next item after it in @queue. As with
+ * soup_message_queue_first(), you must unref the returned item
+ * yourself with soup_message_queue_unref_item() if you do not finish
+ * walking the queue.
  *
- * Return value: the next element, or %NULL if there are no more.
- **/
-SoupMessage *
-soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
+ * Return value: the next item in @queue.
+ **/ 
+SoupMessageQueueItem *
+soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueItem *item)
 {
+	SoupMessageQueueItem *next;
+
 	g_mutex_lock (queue->mutex);
 
-	while (iter->next) {
-		iter->cur = iter->next;
-		iter->next = iter->cur->next;
-		if (iter->cur->data) {
-			g_mutex_unlock (queue->mutex);
-			return iter->cur->data;
-		}
-
-		/* Message was finalized, remove dead queue element */
-		queue_remove_internal (queue, iter);
-	}
-
-	/* Nothing left */
-	iter->cur = NULL;
-	queue->iters = g_list_remove (queue->iters, iter);
+	next = item->next;
+	while (next && next->removed)
+		next = next->next;
+	if (next)
+		next->ref_count++;
 
 	g_mutex_unlock (queue->mutex);
-	return NULL;
+	soup_message_queue_item_unref (item);
+	return next;
 }
 
 /**
  * soup_message_queue_remove:
- * @queue: a queue
- * @iter: pointer to an initialized #SoupMessageQueueIter
+ * @queue: a #SoupMessageQueue
+ * @item: a #SoupMessageQueueItem
  *
- * Removes the queue element pointed to by @iter; that is, the last
- * message returned by soup_message_queue_first() or
- * soup_message_queue_next().
- *
- * Return value: the removed message, or %NULL if the element pointed
- * to by @iter was already removed.
- **/
-SoupMessage *
-soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueIter *iter)
-{
-	SoupMessage *msg;
-
-	g_mutex_lock (queue->mutex);
-	msg = queue_remove_internal (queue, iter);
-	g_mutex_unlock (queue->mutex);
-
-	return msg;
-}
-
-/**
- * soup_message_queue_remove_message:
- * @queue: a queue
- * @msg: a #SoupMessage
- *
- * Removes the indicated message from @queue.
- **/
+ * Removes @item from @queue. Note that you probably also need to call
+ * soup_message_queue_unref_item() after this.
+ **/ 
 void
-soup_message_queue_remove_message (SoupMessageQueue *queue, SoupMessage *msg)
-{
-	SoupMessageQueueIter iter;
-	SoupMessage *msg2;
-
-	for (msg2 = soup_message_queue_first (queue, &iter); msg2; msg2 = soup_message_queue_next (queue, &iter)) {
-		if (msg2 == msg) {
-			soup_message_queue_remove (queue, &iter);
-			soup_message_queue_free_iter (queue, &iter);
-			return;
-		}
-	}
-}
-
-
-/**
- * soup_message_queue_free_iter:
- * @queue: a queue
- * @iter: pointer to an initialized #SoupMessageQueueIter
- *
- * Removes @iter from the list of active iterators in @queue.
- **/
-void
-soup_message_queue_free_iter (SoupMessageQueue *queue,
-			      SoupMessageQueueIter *iter)
+soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueItem *item)
 {
 	g_mutex_lock (queue->mutex);
-	queue->iters = g_list_remove (queue->iters, iter);
+	item->removed = TRUE;
 	g_mutex_unlock (queue->mutex);
 }

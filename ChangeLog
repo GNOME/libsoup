@@ -1,3 +1,17 @@
+2008-10-03  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-queue.c: Make this more complicated, with a
+	SoupMessageQueueItem to keep track of the session's per-message
+	state. (Part of the process of moving session-related state out of
+	SoupMessagePrivate.)
+
+	* libsoup/soup-session.c: Update to work in terms of
+	SoupMessageQueueItem
+
+	* libsoup/soup-session-async.c:
+	* libsoup/soup-session-sync.c: use SoupMessageQueueItem (and get
+	rid of SoupSessionAsyncQueueData and SoupSessionSyncAsyncData).
+
 2008-10-01  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-multipart.c: New type and methods for working with

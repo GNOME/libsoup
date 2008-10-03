@@ -158,7 +158,7 @@ soup_session_init (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	priv->queue = soup_message_queue_new ();
+	priv->queue = soup_message_queue_new (session);
 
 	priv->host_lock = g_mutex_new ();
 	priv->hosts = g_hash_table_new (soup_uri_host_hash,
@@ -920,7 +920,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	SoupSession *session = user_data;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	SoupMessageQueueIter iter;
+	SoupMessageQueueItem *item;
 	SoupMessage *msg;
 
 	g_mutex_lock (priv->host_lock);
@@ -961,7 +961,8 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
 	 * of luck.
 	 */
 	g_object_ref (session);
-	for (msg = soup_message_queue_first (priv->queue, &iter); msg; msg = soup_message_queue_next (priv->queue, &iter)) {
+	for (item = soup_message_queue_first (priv->queue); item; item = soup_message_queue_next (priv->queue, item)) {
+		msg = item->msg;
 		if (get_host_for_message (session, msg) == host) {
 			if (status == SOUP_STATUS_TRY_AGAIN) {
 				if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_CONNECTING)
@@ -1101,14 +1102,16 @@ soup_session_get_queue (SoupSession *session)
 static void
 message_finished (SoupMessage *msg, gpointer user_data)
 {
-	SoupSession *session = user_data;
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
-		soup_message_queue_remove_message (priv->queue, msg);
+		soup_message_queue_remove (priv->queue, item);
 		g_signal_handlers_disconnect_by_func (msg, message_finished, session);
 		g_signal_handlers_disconnect_by_func (msg, redirect_handler, session);
 		g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, msg);
+		soup_message_queue_item_unref (item);
 	}
 }
 
@@ -1117,18 +1120,19 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+
+	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
+	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 
 	g_signal_connect_after (msg, "finished",
-				G_CALLBACK (message_finished), session);
+				G_CALLBACK (message_finished), item);
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), session);
 	}
-
-	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
-	soup_message_queue_append (priv->queue, msg);
 
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 }
@@ -1263,8 +1267,14 @@ static void
 cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
 
-	soup_message_queue_remove_message (priv->queue, msg);
+	item = soup_message_queue_lookup (priv->queue, msg);
+	if (item) {
+		soup_message_queue_remove (priv->queue, item);
+		soup_message_queue_item_unref (item);
+	}
+
 	soup_message_io_stop (msg);
 	soup_message_set_status (msg, status_code);
 	soup_message_finished (msg);
@@ -1297,7 +1307,7 @@ gather_conns (gpointer key, gpointer host, gpointer data)
 	SoupConnection *conn = key;
 	GSList **conns = data;
 
-	*conns = g_slist_prepend (*conns, conn);
+	*conns = g_slist_prepend (*conns, g_object_ref (conn));
 }
 
 /**
@@ -1310,17 +1320,16 @@ void
 soup_session_abort (SoupSession *session)
 {
 	SoupSessionPrivate *priv;
-	SoupMessageQueueIter iter;
-	SoupMessage *msg;
+	SoupMessageQueueItem *item;
 	GSList *conns, *c;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	for (msg = soup_message_queue_first (priv->queue, &iter);
-	     msg;
-	     msg = soup_message_queue_next (priv->queue, &iter)) {
-		soup_session_cancel_message (session, msg,
+	for (item = soup_message_queue_first (priv->queue);
+	     item;
+	     item = soup_message_queue_next (priv->queue, item)) {
+		soup_session_cancel_message (session, item->msg,
 					     SOUP_STATUS_CANCELLED);
 	}
 
@@ -1329,8 +1338,6 @@ soup_session_abort (SoupSession *session)
 	conns = NULL;
 	g_hash_table_foreach (priv->conns, gather_conns, &conns);
 
-	for (c = conns; c; c = c->next)
-		g_object_ref (c->data);
 	g_mutex_unlock (priv->host_lock);
 	for (c = conns; c; c = c->next) {
 		soup_connection_disconnect (c->data);

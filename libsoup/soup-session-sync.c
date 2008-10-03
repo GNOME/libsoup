@@ -125,61 +125,6 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 	return session;
 }
 
-typedef struct {
-	SoupSession *session;
-	SoupMessage *msg;
-	SoupSessionCallback callback;
-	gpointer user_data;
-} SoupSessionSyncAsyncData;
-
-static void
-async_data_free (SoupSessionSyncAsyncData *sad)
-{
-	g_object_unref (sad->session);
-	g_object_unref (sad->msg);
-	g_slice_free (SoupSessionSyncAsyncData, sad);
-}
-
-static gboolean
-queue_message_callback (gpointer data)
-{
-	SoupSessionSyncAsyncData *sad = data;
-
-	sad->callback (sad->session, sad->msg, sad->user_data);
-	async_data_free (sad);
-	return FALSE;
-}
-
-static gpointer
-queue_message_thread (gpointer data)
-{
-	SoupSessionSyncAsyncData *sad = data;
-
-	soup_session_send_message (sad->session, sad->msg);
-	if (sad->callback) {
-		soup_add_completion (soup_session_get_async_context (sad->session),
-				     queue_message_callback, sad);
-	} else
-		async_data_free (sad);
-
-	return NULL;
-}
-
-static void
-queue_message (SoupSession *session, SoupMessage *msg,
-	       SoupSessionCallback callback, gpointer user_data)
-{
-	SoupSessionSyncAsyncData *sad;
-
-	sad = g_slice_new (SoupSessionSyncAsyncData);
-	sad->session = g_object_ref (session);
-	sad->msg = g_object_ref (msg);
-	sad->callback = callback;
-	sad->user_data = user_data;
-
-	g_thread_create (queue_message_thread, sad, FALSE, NULL);
-}
-
 static SoupConnection *
 wait_for_connection (SoupSession *session, SoupMessage *msg)
 {
@@ -235,25 +180,84 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	goto try_again;
 }
 
-static guint
-send_message (SoupSession *session, SoupMessage *msg)
+static void
+process_queue_item (SoupMessageQueueItem *item)
 {
-	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (item->session);
+	SoupMessage *msg = item->msg;
 	SoupConnection *conn;
-
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
 
 	do {
 		/* Get a connection */
-		conn = wait_for_connection (session, msg);
+		conn = wait_for_connection (item->session, msg);
 		if (!conn)
-			return msg->status_code;
+			break;
 
 		soup_connection_send_request (conn, msg);
 		g_cond_broadcast (priv->cond);
 	} while (soup_message_get_io_status (msg) != SOUP_MESSAGE_IO_STATUS_FINISHED);
 
-	return msg->status_code;
+	soup_message_queue_remove (item->queue, item);
+}
+
+static gboolean
+queue_message_callback (gpointer data)
+{
+	SoupMessageQueueItem *item = data;
+
+	item->callback (item->session, item->msg, item->callback_data);
+	g_object_unref (item->session);
+	soup_message_queue_item_unref (item);
+	return FALSE;
+}
+
+static gpointer
+queue_message_thread (gpointer data)
+{
+	SoupMessageQueueItem *item = data;
+
+	process_queue_item (item);
+	if (item->callback) {
+		soup_add_completion (soup_session_get_async_context (item->session),
+				     queue_message_callback, item);
+	} else {
+		g_object_unref (item->session);
+		soup_message_queue_item_unref (item);
+	}
+
+	return NULL;
+}
+
+static void
+queue_message (SoupSession *session, SoupMessage *msg,
+	       SoupSessionCallback callback, gpointer user_data)
+{
+	SoupMessageQueueItem *item;
+
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
+		queue_message (g_object_ref (session), msg, callback, user_data);
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
+	g_return_if_fail (item != NULL);
+
+	g_thread_create (queue_message_thread, item, FALSE, NULL);
+}
+
+static guint
+send_message (SoupSession *session, SoupMessage *msg)
+{
+	SoupMessageQueueItem *item;
+	guint status;
+
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
+	g_return_val_if_fail (item != NULL, SOUP_STATUS_MALFORMED);
+
+	process_queue_item (item);
+	status = msg->status_code;
+	soup_message_queue_item_unref (item);
+	return status;
 }
 
 static void

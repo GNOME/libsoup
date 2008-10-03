@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2003, Ximian, Inc.
+ * Copyright (C) 2003 Novell, Inc.
+ * Copyright (C) 2008 Red Hat, Inc.
  */
 
 #ifndef SOUP_MESSAGE_QUEUE_H
@@ -8,33 +9,47 @@
 
 #include <glib.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-session.h>
 
 G_BEGIN_DECLS
 
 typedef struct SoupMessageQueue SoupMessageQueue; 
+typedef struct SoupMessageQueueItem SoupMessageQueueItem;
 
-typedef struct {
-	GList *cur, *next;
-} SoupMessageQueueIter;
+struct SoupMessageQueueItem {
+	/*< public >*/
+	SoupSession *session;
+	SoupMessageQueue *queue;
+	SoupMessage *msg;
+	SoupSessionCallback callback;
+	gpointer callback_data;
 
-SoupMessageQueue *soup_message_queue_new        (void);
-void              soup_message_queue_append     (SoupMessageQueue     *queue,
-						 SoupMessage          *msg);
+	/*< private >*/
+	guint removed              : 1;
+	guint ref_count            : 31;
+	SoupMessageQueueItem *prev, *next;
+};
 
-SoupMessage      *soup_message_queue_first      (SoupMessageQueue     *queue,
-						 SoupMessageQueueIter *iter);
-SoupMessage      *soup_message_queue_next       (SoupMessageQueue     *queue,
-						 SoupMessageQueueIter *iter);
-SoupMessage      *soup_message_queue_remove     (SoupMessageQueue     *queue,
-						 SoupMessageQueueIter *iter);
+SoupMessageQueue     *soup_message_queue_new        (SoupSession          *session);
+SoupMessageQueueItem *soup_message_queue_append     (SoupMessageQueue     *queue,
+						     SoupMessage          *msg,
+						     SoupSessionCallback   callback,
+						     gpointer              user_data);
 
-void              soup_message_queue_free_iter  (SoupMessageQueue     *queue,
-						 SoupMessageQueueIter *iter);
+SoupMessageQueueItem *soup_message_queue_lookup     (SoupMessageQueue     *queue,
+						     SoupMessage          *msg);
 
-void              soup_message_queue_destroy    (SoupMessageQueue     *queue);
+SoupMessageQueueItem *soup_message_queue_first      (SoupMessageQueue     *queue);
+SoupMessageQueueItem *soup_message_queue_next       (SoupMessageQueue     *queue,
+						     SoupMessageQueueItem *item);
 
-void              soup_message_queue_remove_message (SoupMessageQueue *queue,
-						     SoupMessage      *msg);
+void                  soup_message_queue_remove     (SoupMessageQueue     *queue,
+						     SoupMessageQueueItem *item);
+
+void                  soup_message_queue_item_ref   (SoupMessageQueueItem *item);
+void                  soup_message_queue_item_unref (SoupMessageQueueItem *item);
+
+void                  soup_message_queue_destroy    (SoupMessageQueue     *queue);
 
 G_END_DECLS
 

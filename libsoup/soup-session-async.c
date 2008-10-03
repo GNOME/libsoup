@@ -24,7 +24,7 @@
  **/
 
 static gboolean run_queue (SoupSessionAsync *sa);
-static void do_idle_run_queue (SoupSessionAsync *sa);
+static void do_idle_run_queue (SoupSession *session);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
@@ -108,22 +108,22 @@ soup_session_async_new_with_options (const char *optname1, ...)
 
 
 static void
-connection_closed (SoupConnection *conn, gpointer sa)
+connection_closed (SoupConnection *conn, gpointer session)
 {
 	/* Run the queue in case anyone was waiting for a connection
 	 * to be closed.
 	 */
-	do_idle_run_queue (sa);
+	do_idle_run_queue (session);
 }
 
 static void
 got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
-	SoupSessionAsync *sa = user_data;
+	SoupSession *session = user_data;
 
 	if (status == SOUP_STATUS_OK) {
 		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_closed), sa);
+				  G_CALLBACK (connection_closed), session);
 
 		/* @conn has been marked reserved by SoupSession, but
 		 * we don't actually have any specific message in mind
@@ -142,8 +142,8 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	 * there may have been messages waiting for the connection
 	 * count to go down.
 	 */
-	do_idle_run_queue (sa);
-	g_object_unref (sa);
+	do_idle_run_queue (session);
+	g_object_unref (session);
 }
 
 static gboolean
@@ -151,7 +151,7 @@ run_queue (SoupSessionAsync *sa)
 {
 	SoupSession *session = SOUP_SESSION (sa);
 	SoupMessageQueue *queue = soup_session_get_queue (session);
-	SoupMessageQueueIter iter;
+	SoupMessageQueueItem *item;
 	SoupMessage *msg;
 	SoupConnection *conn;
 	gboolean try_pruning = TRUE, should_prune = FALSE;
@@ -160,9 +160,10 @@ run_queue (SoupSessionAsync *sa)
 	/* FIXME: prefer CONNECTING messages */
 
  try_again:
-	for (msg = soup_message_queue_first (queue, &iter);
-	     msg && !should_prune;
-	     msg = soup_message_queue_next (queue, &iter)) {
+	for (item = soup_message_queue_first (queue);
+	     item && !should_prune;
+	     item = soup_message_queue_next (queue, item)) {
+		msg = item->msg;
 
 		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
 		    soup_message_io_in_progress (msg))
@@ -179,6 +180,8 @@ run_queue (SoupSessionAsync *sa)
 		} else
 			soup_connection_send_request (conn, msg);
 	}
+	if (item)
+		soup_message_queue_item_unref (item);
 
 	if (try_pruning && should_prune) {
 		/* There is at least one message in the queue that
@@ -186,7 +189,7 @@ run_queue (SoupSessionAsync *sa)
 		 * some other server.
 		 */
 		if (soup_session_try_prune_connection (session)) {
-			try_pruning = FALSE;
+			try_pruning = should_prune = FALSE;
 			goto try_again;
 		}
 	}
@@ -200,32 +203,25 @@ request_restarted (SoupMessage *req, gpointer sa)
 	run_queue (sa);
 }
 
-typedef struct {
-	SoupSessionAsync *sa;
-	SoupSessionCallback callback;
-	gpointer callback_data;
-} SoupSessionAsyncQueueData;
-
 static void
 final_finished (SoupMessage *req, gpointer user_data)
 {
-	SoupSessionAsyncQueueData *saqd = user_data;
-	SoupSessionAsync *sa = saqd->sa;
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
 
-	g_object_ref (sa);
+	g_object_ref (session);
+
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
-		g_signal_handlers_disconnect_by_func (req, final_finished, saqd);
-		if (saqd->callback) {
-			saqd->callback ((SoupSession *)sa, req,
-					saqd->callback_data);
-		}
+		g_signal_handlers_disconnect_by_func (req, final_finished, item);
+		if (item->callback)
+			item->callback (session, req, item->callback_data);
 
 		g_object_unref (req);
-		g_slice_free (SoupSessionAsyncQueueData, saqd);
+		soup_message_queue_item_unref (item);
 	}
 
-	do_idle_run_queue (sa);
-	g_object_unref (sa);
+	do_idle_run_queue (session);
+	g_object_unref (session);
 }
 
 static gboolean
@@ -239,14 +235,14 @@ idle_run_queue (gpointer sa)
 }
 
 static void
-do_idle_run_queue (SoupSessionAsync *sa)
+do_idle_run_queue (SoupSession *session)
 {
-	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
+	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (session);
 
 	if (!priv->idle_run_queue_source) {
 		priv->idle_run_queue_source = soup_add_completion (
-			soup_session_get_async_context ((SoupSession *)sa),
-			idle_run_queue, sa);
+			soup_session_get_async_context (session),
+			idle_run_queue, session);
 	}
 }
 
@@ -254,21 +250,19 @@ static void
 queue_message (SoupSession *session, SoupMessage *req,
 	       SoupSessionCallback callback, gpointer user_data)
 {
-	SoupSessionAsync *sa = SOUP_SESSION_ASYNC (session);
-	SoupSessionAsyncQueueData *saqd;
-
-	g_signal_connect (req, "restarted",
-			  G_CALLBACK (request_restarted), sa);
-
-	saqd = g_slice_new (SoupSessionAsyncQueueData);
-	saqd->sa = sa;
-	saqd->callback = callback;
-	saqd->callback_data = user_data;
-	g_signal_connect_after (req, "finished",
-				G_CALLBACK (final_finished), saqd);
+	SoupMessageQueueItem *item;
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
-	do_idle_run_queue (sa);
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), req);
+	g_return_if_fail (item != NULL);
+
+	g_signal_connect (req, "restarted",
+			  G_CALLBACK (request_restarted), session);
+	g_signal_connect_after (req, "finished",
+				G_CALLBACK (final_finished), item);
+
+	do_idle_run_queue (session);
 }
 
 static guint
