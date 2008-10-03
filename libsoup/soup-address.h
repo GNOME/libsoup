@@ -87,6 +87,15 @@ const char      *soup_address_get_physical       (SoupAddress         *addr);
 guint            soup_address_get_port           (SoupAddress         *addr);
 struct sockaddr *soup_address_get_sockaddr       (SoupAddress         *addr,
 						  int                 *len);
+gboolean         soup_address_is_resolved        (SoupAddress         *addr);
+
+guint            soup_address_hash_by_name       (gconstpointer        addr);
+gboolean         soup_address_equal_by_name      (gconstpointer        addr1,
+						  gconstpointer        addr2);
+guint            soup_address_hash_by_ip         (gconstpointer        addr);
+gboolean         soup_address_equal_by_ip        (gconstpointer        addr1,
+						  gconstpointer        addr2);
+
 
 G_END_DECLS
 

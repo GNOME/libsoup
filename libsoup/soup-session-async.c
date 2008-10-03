@@ -11,6 +11,7 @@
 
 #include "soup-session-async.h"
 #include "soup-session-private.h"
+#include "soup-address.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
 
@@ -108,6 +109,47 @@ soup_session_async_new_with_options (const char *optname1, ...)
 
 
 static void
+resolved_msg_addr (SoupAddress *addr, guint status, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
+
+	if (item->removed) {
+		/* Message was cancelled before its address resolved */
+		soup_message_queue_item_unref (item);
+		return;
+	}
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		soup_session_cancel_message (session, item->msg, status);
+		soup_message_queue_item_unref (item);
+		return;
+	}
+
+	item->msg_addr = g_object_ref (addr);
+	item->resolving_msg_addr = FALSE;
+
+	soup_message_queue_item_unref (item);
+
+	/* If we got here we know session still exists */
+	run_queue ((SoupSessionAsync *)session);
+}
+
+static void
+resolve_msg_addr (SoupMessageQueueItem *item)
+{
+	if (item->resolving_msg_addr)
+		return;
+	item->resolving_msg_addr = TRUE;
+
+	soup_message_queue_item_ref (item);
+	soup_address_resolve_async (soup_message_get_address (item->msg),
+				    soup_session_get_async_context (item->session),
+				    item->cancellable,
+				    resolved_msg_addr, item);
+}
+
+static void
 connection_closed (SoupConnection *conn, gpointer session)
 {
 	/* Run the queue in case anyone was waiting for a connection
@@ -169,6 +211,11 @@ run_queue (SoupSessionAsync *sa)
 		    soup_message_io_in_progress (msg))
 			continue;
 
+		if (!item->msg_addr) {
+			resolve_msg_addr (item);
+			continue;
+		}
+
 		conn = soup_session_get_connection (session, msg,
 						    &should_prune, &is_new);
 		if (!conn)
@@ -198,9 +245,17 @@ run_queue (SoupSessionAsync *sa)
 }
 
 static void
-request_restarted (SoupMessage *req, gpointer sa)
+request_restarted (SoupMessage *req, gpointer user_data)
 {
-	run_queue (sa);
+	SoupMessageQueueItem *item = user_data;
+
+	if (item->msg_addr &&
+	    item->msg_addr != soup_message_get_address (item->msg)) {
+		g_object_unref (item->msg_addr);
+		item->msg_addr = NULL;
+	}
+
+	run_queue ((SoupSessionAsync *)item->session);
 }
 
 static void
@@ -258,7 +313,7 @@ queue_message (SoupSession *session, SoupMessage *req,
 	g_return_if_fail (item != NULL);
 
 	g_signal_connect (req, "restarted",
-			  G_CALLBACK (request_restarted), session);
+			  G_CALLBACK (request_restarted), item);
 	g_signal_connect_after (req, "finished",
 				G_CALLBACK (final_finished), item);
 

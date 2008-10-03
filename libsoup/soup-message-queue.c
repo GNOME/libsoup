@@ -79,6 +79,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	item->msg = g_object_ref (msg);
 	item->callback = callback;
 	item->callback_data = user_data;
+	item->cancellable = g_cancellable_new ();
 
 	/* Note: the initial ref_count of 1 represents the caller's
 	 * ref; the queue's own ref is indicated by the absence of the
@@ -145,6 +146,9 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 
 	/* And free it */
 	g_object_unref (item->msg);
+	g_object_unref (item->cancellable);
+	if (item->msg_addr)
+		g_object_unref (item->msg_addr);
 	g_slice_free (SoupMessageQueueItem, item);
 }
 

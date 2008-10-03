@@ -98,6 +98,7 @@ gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
+SoupAddress     *soup_message_get_address         (SoupMessage       *msg);
 
 typedef enum {
 #ifndef LIBSOUP_DISABLE_DEPRECATED

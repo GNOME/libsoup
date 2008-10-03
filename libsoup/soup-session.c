@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
@@ -55,17 +56,15 @@
  **/
 
 typedef struct {
-	SoupURI    *root_uri;
+	SoupAddress *addr;
 
-	GSList     *connections;      /* CONTAINS: SoupConnection */
-	guint       num_conns;
-
-	GHashTable *auth_realms;      /* path -> scheme:realm */
-	GHashTable *auths;            /* scheme:realm -> SoupAuth */
+	GSList      *connections;      /* CONTAINS: SoupConnection */
+	guint        num_conns;
 } SoupSessionHost;
 
 typedef struct {
 	SoupURI *proxy_uri;
+	SoupAddress *proxy_addr;
 	SoupAuth *proxy_auth;
 
 	char *ssl_ca_file;
@@ -78,7 +77,7 @@ typedef struct {
 	GSList *features;
 	SoupAuthManager *auth_manager;
 
-	GHashTable *hosts; /* SoupURI -> SoupSessionHost */
+	GHashTable *hosts; /* SoupAddress -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 	guint max_conns, max_conns_per_host;
@@ -105,12 +104,6 @@ static void cancel_message  (SoupSession *session, SoupMessage *msg,
 static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
 				       gboolean retrying, gpointer user_data);
-
-/* temporary until we fix this to index hosts by SoupAddress */
-extern guint     soup_uri_host_hash  (gconstpointer  key);
-extern gboolean  soup_uri_host_equal (gconstpointer  v1,
-				      gconstpointer  v2);
-extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
@@ -161,8 +154,8 @@ soup_session_init (SoupSession *session)
 	priv->queue = soup_message_queue_new (session);
 
 	priv->host_lock = g_mutex_new ();
-	priv->hosts = g_hash_table_new (soup_uri_host_hash,
-					soup_uri_host_equal);
+	priv->hosts = g_hash_table_new (soup_address_hash_by_ip,
+					soup_address_equal_by_ip);
 	priv->conns = g_hash_table_new (NULL, NULL);
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
@@ -192,8 +185,8 @@ cleanup_hosts (SoupSessionPrivate *priv)
 
 	g_mutex_lock (priv->host_lock);
 	old_hosts = priv->hosts;
-	priv->hosts = g_hash_table_new (soup_uri_host_hash,
-					soup_uri_host_equal);
+	priv->hosts = g_hash_table_new (soup_address_hash_by_ip,
+					soup_address_equal_by_ip);
 	g_mutex_unlock (priv->host_lock);
 
 	g_hash_table_foreach_remove (old_hosts, foreach_free_host, NULL);
@@ -234,6 +227,8 @@ finalize (GObject *object)
 
 	if (priv->proxy_uri)
 		soup_uri_free (priv->proxy_uri);
+	if (priv->proxy_addr)
+		g_object_unref (priv->proxy_addr);
 
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
@@ -554,8 +549,13 @@ set_property (GObject *object, guint prop_id,
 
 		if (priv->proxy_uri)
 			soup_uri_free (priv->proxy_uri);
+		if (priv->proxy_addr)
+			g_object_unref (priv->proxy_addr);
 
 		priv->proxy_uri = uri ? soup_uri_copy (uri) : NULL;
+		priv->proxy_addr = uri ?
+			soup_address_new (uri->host, uri->port) :
+			NULL;
 
 		if (need_abort) {
 			soup_session_abort (session);
@@ -702,20 +702,12 @@ soup_session_get_async_context (SoupSession *session)
 /* Hosts */
 
 static SoupSessionHost *
-soup_session_host_new (SoupSession *session, SoupURI *source_uri)
+soup_session_host_new (SoupSession *session, SoupAddress *addr)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
 	host = g_slice_new0 (SoupSessionHost);
-	host->root_uri = soup_uri_copy_root (source_uri);
-
-	if (host->root_uri->scheme == SOUP_URI_SCHEME_HTTPS &&
-	    !priv->ssl_creds) {
-		priv->ssl_creds =
-			soup_ssl_get_client_credentials (priv->ssl_ca_file);
-	}
-
+	host->addr = g_object_ref (addr);
 	return host;
 }
 
@@ -728,14 +720,14 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	SoupURI *source = soup_message_get_uri (msg);
+	SoupAddress *addr = soup_message_get_address (msg);
 
-	host = g_hash_table_lookup (priv->hosts, source);
+	host = g_hash_table_lookup (priv->hosts, addr);
 	if (host)
 		return host;
 
-	host = soup_session_host_new (session, source);
-	g_hash_table_insert (priv->hosts, host->root_uri, host);
+	host = soup_session_host_new (session, addr);
+	g_hash_table_insert (priv->hosts, host->addr, host);
 
 	return host;
 }
@@ -750,7 +742,7 @@ free_host (SoupSessionHost *host)
 		soup_connection_disconnect (conn);
 	}
 
-	soup_uri_free (host->root_uri);
+	g_object_unref (host->addr);
 	g_slice_free (SoupSessionHost, host);
 }	
 
@@ -1021,7 +1013,9 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *conn;
 	SoupSessionHost *host;
+	SoupSSLCredentials *ssl_creds;
 	GSList *conns;
+	SoupURI *uri;
 
 	g_mutex_lock (priv->host_lock);
 
@@ -1054,10 +1048,18 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 		return NULL;
 	}
 
+	uri = soup_message_get_uri (msg);
+	if (uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+		if (!priv->ssl_creds)
+			priv->ssl_creds = soup_ssl_get_client_credentials (priv->ssl_ca_file);
+		ssl_creds = priv->ssl_creds;
+	} else
+		ssl_creds = NULL;
+
 	conn = soup_connection_new (
-		SOUP_CONNECTION_ORIGIN_URI, host->root_uri,
-		SOUP_CONNECTION_PROXY_URI, priv->proxy_uri,
-		SOUP_CONNECTION_SSL_CREDENTIALS, priv->ssl_creds,
+		SOUP_CONNECTION_SERVER_ADDRESS, host->addr,
+		SOUP_CONNECTION_PROXY_ADDRESS, priv->proxy_addr,
+		SOUP_CONNECTION_SSL_CREDENTIALS, ssl_creds,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
@@ -1272,6 +1274,8 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 	item = soup_message_queue_lookup (priv->queue, msg);
 	if (item) {
 		soup_message_queue_remove (priv->queue, item);
+		if (item->cancellable)
+			g_cancellable_cancel (item->cancellable);
 		soup_message_queue_item_unref (item);
 	}
 

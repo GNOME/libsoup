@@ -45,8 +45,8 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						gpointer          data);
 
 
-#define SOUP_CONNECTION_ORIGIN_URI      "origin-uri"
-#define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
+#define SOUP_CONNECTION_SERVER_ADDRESS  "server_address"
+#define SOUP_CONNECTION_PROXY_ADDRESS   "proxy-address"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"

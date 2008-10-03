@@ -60,9 +60,6 @@ typedef struct {
 
 	char *name, *physical;
 	guint port;
-
-	SoupDNSLookup *lookup;
-	guint timeout_id;
 } SoupAddressPrivate;
 #define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
 
@@ -151,11 +148,6 @@ finalize (GObject *object)
 	if (priv->physical)
 		g_free (priv->physical);
 
-	if (priv->lookup)
-		soup_dns_lookup_free (priv->lookup);
-	if (priv->timeout_id)
-		g_source_remove (priv->timeout_id);
-
 	G_OBJECT_CLASS (soup_address_parent_class)->finalize (object);
 }
 
@@ -235,12 +227,7 @@ constructor (GType                  type,
 		return NULL;
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (priv->name) {
-		if (!priv->sockaddr)
-			priv->lookup = soup_dns_lookup_name (priv->name);
-	} else if (priv->sockaddr)
-		priv->lookup = soup_dns_lookup_address (priv->sockaddr);
-	else {
+	if (!priv->name && !priv->sockaddr) {
 		g_object_unref (addr);
 		return NULL;
 	}
@@ -548,6 +535,7 @@ lookup_resolved (SoupDNSLookup *lookup, guint status, gpointer user_data)
 		callback (addr, status, callback_data);
 
 	g_object_unref (addr);
+	soup_dns_lookup_free (lookup);
 }
 
 /**
@@ -585,17 +573,21 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 {
 	SoupAddressPrivate *priv;
 	SoupAddressResolveAsyncData *res_data;
+	SoupDNSLookup *lookup;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
 	res_data = g_new (SoupAddressResolveAsyncData, 1);
-	res_data->addr          = addr;
+	res_data->addr          = g_object_ref (addr);
 	res_data->callback      = callback;
 	res_data->callback_data = user_data;
 
-	g_object_ref (addr);
-	soup_dns_lookup_resolve_async (priv->lookup, async_context, cancellable,
+	if (priv->name)
+		lookup = soup_dns_lookup_name (priv->name);
+	else
+		lookup = soup_dns_lookup_address (priv->sockaddr);
+	soup_dns_lookup_resolve_async (lookup, async_context, cancellable,
 				       lookup_resolved, res_data);
 }
 
@@ -618,15 +610,149 @@ guint
 soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 {
 	SoupAddressPrivate *priv;
+	SoupDNSLookup *lookup;
 	guint status;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), SOUP_STATUS_MALFORMED);
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
 	g_object_ref (addr);
-	status = soup_dns_lookup_resolve (priv->lookup, cancellable);
+	if (priv->name)
+		lookup = soup_dns_lookup_name (priv->name);
+	else
+		lookup = soup_dns_lookup_address (priv->sockaddr);
+	status = soup_dns_lookup_resolve (lookup, cancellable);
 	if (status == SOUP_STATUS_OK)
-		update_address (addr, priv->lookup);
+		update_address (addr, lookup);
 	g_object_unref (addr);
+	soup_dns_lookup_free (lookup);
 	return status;
+}
+
+gboolean
+soup_address_is_resolved (SoupAddress *addr)
+{
+	SoupAddressPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), FALSE);
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	return priv->sockaddr && priv->name;
+}
+
+/**
+ * soup_address_hash_by_name:
+ * @addr: a #SoupAddress
+ *
+ * A hash function (for #GHashTable) that corresponds to
+ * soup_address_equal_by_name(), qv
+ *
+ * Return value: the named-based hash value for @addr.
+ **/
+guint
+soup_address_hash_by_name (gconstpointer addr)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	g_return_val_if_fail (priv->name != NULL, 0);
+	return g_str_hash (priv->name);
+}
+
+/**
+ * soup_address_equal_by_name:
+ * @addr1: a #SoupAddress with a resolved name
+ * @addr2: another #SoupAddress with a resolved name
+ *
+ * Tests if @addr1 and @addr2 have the same "name". This method can be
+ * used with soup_address_hash_by_name() to create a #GHashTable that
+ * hashes on address "names".
+ *
+ * Comparing by name normally means comparing the addresses by their
+ * hostnames. But if the address was originally created using an IP
+ * address literal, then it will be compared by that instead.
+ *
+ * In particular, if "www.example.com" has the IP address 10.0.0.1,
+ * and @addr1 was created with the name "www.example.com" and @addr2
+ * was created with the name "10.0.0.1", then they will compare as
+ * unequal for purposes of soup_address_equal_by_name().
+ *
+ * This would be used to distinguish hosts in situations where
+ * different virtual hosts on the same IP address should be considered
+ * different. Eg, for purposes of HTTP authentication or cookies, two
+ * hosts with the same IP address but different names are considered
+ * to be different hosts.
+ *
+ * See also soup_address_equal_by_ip(), which compares by IP address
+ * rather than by name.
+ *
+ * Return value: whether or not @addr1 and @addr2 have the same name
+ **/
+gboolean
+soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
+{
+	SoupAddressPrivate *priv1 = SOUP_ADDRESS_GET_PRIVATE (addr1);
+	SoupAddressPrivate *priv2 = SOUP_ADDRESS_GET_PRIVATE (addr2);
+
+	g_return_val_if_fail (priv1->name != NULL, FALSE);
+	g_return_val_if_fail (priv2->name != NULL, FALSE);
+	return !g_ascii_strcasecmp (priv1->name, priv2->name);
+}
+
+/**
+ * soup_address_hash_by_ip:
+ * @addr: a #SoupAddress
+ *
+ * A hash function (for #GHashTable) that corresponds to
+ * soup_address_equal_by_ip(), qv
+ *
+ * Return value: the IP-based hash value for @addr.
+ **/
+guint
+soup_address_hash_by_ip (gconstpointer addr)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	guint hash;
+
+	g_return_val_if_fail (priv->sockaddr != NULL, 0);
+
+	memcpy (&hash, SOUP_ADDRESS_GET_DATA (priv),
+		MIN (sizeof (hash), SOUP_ADDRESS_FAMILY_DATA_SIZE (priv->sockaddr->sa_family)));
+	return hash;
+}
+
+/**
+ * soup_address_equal_by_ip:
+ * @addr1: a #SoupAddress with a resolved IP address
+ * @addr2: another #SoupAddress with a resolved IP address
+ *
+ * Tests if @addr1 and @addr2 have the same IP address. This method
+ * can be used with soup_address_hash_by_ip() to create a
+ * #GHashTable that hashes on IP address.
+ *
+ * This would be used to distinguish hosts in situations where
+ * different virtual hosts on the same IP address should be considered
+ * the same. Eg, if "www.example.com" and "www.example.net" have the
+ * same IP address, then a single #SoupConnection can be used to talk
+ * to either of them.
+ *
+ * See also soup_address_equal_by_name(), which compares by name
+ * rather than by IP address.
+ *
+ * Return value: whether or not @addr1 and @addr2 have the same IP
+ * address.
+ **/
+gboolean
+soup_address_equal_by_ip (gconstpointer addr1, gconstpointer addr2)
+{
+	SoupAddressPrivate *priv1 = SOUP_ADDRESS_GET_PRIVATE (addr1);
+	SoupAddressPrivate *priv2 = SOUP_ADDRESS_GET_PRIVATE (addr2);
+	int size;
+
+	g_return_val_if_fail (priv1->sockaddr != NULL, FALSE);
+	g_return_val_if_fail (priv2->sockaddr != NULL, FALSE);
+
+	size = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (priv1->sockaddr->sa_family);
+	return (priv1->sockaddr->sa_family ==
+		priv2->sockaddr->sa_family &&
+		!memcmp (priv1->sockaddr, priv2->sockaddr, size));
 }

@@ -487,49 +487,6 @@ soup_uri_copy (SoupURI *uri)
 	return dup;
 }
 
-/* Temporarily still used by SoupSession, but no longer public */
-SoupURI *soup_uri_copy_root (SoupURI *uri);
-gboolean soup_uri_host_equal (gconstpointer v1, gconstpointer v2);
-guint    soup_uri_host_hash (gconstpointer key);
-
-SoupURI *
-soup_uri_copy_root (SoupURI *uri)
-{
-	SoupURI *dup;
-
-	g_return_val_if_fail (uri != NULL, NULL);
-
-	dup = g_slice_new0 (SoupURI);
-	dup->scheme = uri->scheme;
-	dup->host   = g_strdup (uri->host);
-	dup->port   = uri->port;
-
-	return dup;
-}
-
-guint
-soup_uri_host_hash (gconstpointer key)
-{
-	const SoupURI *uri = key;
-
-	return GPOINTER_TO_UINT (uri->scheme) + uri->port +
-		soup_str_case_hash (uri->host);
-}
-
-gboolean
-soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
-{
-	const SoupURI *one = v1;
-	const SoupURI *two = v2;
-
-	if (one->scheme != two->scheme)
-		return FALSE;
-	if (one->port != two->port)
-		return FALSE;
-
-	return g_ascii_strcasecmp (one->host, two->host) == 0;
-}
-
 static inline gboolean
 parts_equal (const char *one, const char *two, gboolean insensitive)
 {

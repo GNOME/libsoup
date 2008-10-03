@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-manager.h"
+#include "soup-address.h"
 #include "soup-headers.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
@@ -52,16 +53,10 @@ typedef struct {
 #define SOUP_AUTH_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate))
 
 typedef struct {
-	SoupURI     *root_uri;
+	SoupAddress *addr;
 	SoupPathMap *auth_realms;      /* path -> scheme:realm */
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
-
-/* temporary until we fix this to index hosts by SoupAddress */
-extern guint     soup_uri_host_hash  (gconstpointer  key);
-extern gboolean  soup_uri_host_equal (gconstpointer  v1,
-				      gconstpointer  v2);
-extern SoupURI  *soup_uri_copy_root  (SoupURI *uri);
 
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
@@ -69,8 +64,8 @@ soup_auth_manager_init (SoupAuthManager *manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 
 	priv->auth_types = g_ptr_array_new ();
-	priv->auth_hosts = g_hash_table_new (soup_uri_host_hash,
-					     soup_uri_host_equal);
+	priv->auth_hosts = g_hash_table_new (soup_address_hash_by_name,
+					     soup_address_equal_by_name);
 }
 
 static gboolean
@@ -83,7 +78,7 @@ foreach_free_host (gpointer key, gpointer value, gpointer data)
 	if (host->auths)
 		g_hash_table_destroy (host->auths);
 
-	soup_uri_free (host->root_uri);
+	g_object_unref (host->addr);
 	g_slice_free (SoupAuthHost, host);
 
 	return TRUE;
@@ -323,15 +318,15 @@ static SoupAuthHost *
 get_auth_host_for_message (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
 	SoupAuthHost *host;
-	SoupURI *source = soup_message_get_uri (msg);
+	SoupAddress *addr = soup_message_get_address (msg);
 
-	host = g_hash_table_lookup (priv->auth_hosts, source);
+	host = g_hash_table_lookup (priv->auth_hosts, addr);
 	if (host)
 		return host;
 
 	host = g_slice_new0 (SoupAuthHost);
-	host->root_uri = soup_uri_copy_root (source);
-	g_hash_table_insert (priv->auth_hosts, host->root_uri, host);
+	host->addr = g_object_ref (addr);
+	g_hash_table_insert (priv->auth_hosts, host->addr, host);
 
 	return host;
 }

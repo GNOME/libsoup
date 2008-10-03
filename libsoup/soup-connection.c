@@ -36,13 +36,13 @@ typedef enum {
 typedef struct {
 	SoupSocket  *socket;
 
-	/* proxy_uri is the URI of the proxy server we are connected
-	 * to, if any. origin_uri is the URI of the origin server.
-	 * conn_uri is the uri of the host we are actually directly
-	 * connected to, which will be proxy_uri if there's a proxy
-	 * and origin_uri if not.
+	/* proxy_addr is the address of the proxy server we are
+	 * connected to, if any. server_addr is the address of the
+	 * origin server. conn_addr is the uri of the host we are
+	 * actually directly connected to, which will be proxy_addr if
+	 * there's a proxy and server_addr if not.
 	 */
-	SoupURI     *proxy_uri, *origin_uri, *conn_uri;
+	SoupAddress *proxy_addr, *server_addr, *conn_addr;
 	gpointer     ssl_creds;
 
 	SoupConnectionMode  mode;
@@ -71,8 +71,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
-	PROP_ORIGIN_URI,
-	PROP_PROXY_URI,
+	PROP_SERVER_ADDRESS,
+	PROP_PROXY_ADDRESS,
 	PROP_SSL_CREDS,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
@@ -101,10 +101,10 @@ finalize (GObject *object)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
-	if (priv->proxy_uri)
-		soup_uri_free (priv->proxy_uri);
-	if (priv->origin_uri)
-		soup_uri_free (priv->origin_uri);
+	if (priv->proxy_addr)
+		g_object_unref (priv->proxy_addr);
+	if (priv->server_addr)
+		g_object_unref (priv->server_addr);
 
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
@@ -175,17 +175,19 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 	/* properties */
 	g_object_class_install_property (
-		object_class, PROP_ORIGIN_URI,
-		g_param_spec_pointer (SOUP_CONNECTION_ORIGIN_URI,
-				      "Origin URI",
-				      "The HTTP origin server to use for this connection",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		object_class, PROP_SERVER_ADDRESS,
+		g_param_spec_object (SOUP_CONNECTION_SERVER_ADDRESS,
+				     "Server address",
+				     "The address of the HTTP origin server for this connection",
+				     SOUP_TYPE_ADDRESS,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
-		object_class, PROP_PROXY_URI,
-		g_param_spec_pointer (SOUP_CONNECTION_PROXY_URI,
-				      "Proxy URI",
-				      "The HTTP Proxy to use for this connection",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		object_class, PROP_PROXY_ADDRESS,
+		g_param_spec_object (SOUP_CONNECTION_PROXY_ADDRESS,
+				     "Proxy address",
+				     "The address of the HTTP Proxy to use for this connection",
+				     SOUP_TYPE_ADDRESS,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDS,
 		g_param_spec_pointer (SOUP_CONNECTION_SSL_CREDENTIALS,
@@ -220,12 +222,21 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
  * @propname1: name of first property to set
  * @...: value of @propname1, followed by additional property/value pairs
  *
- * Creates an HTTP connection. You must set at least one of
- * %SOUP_CONNECTION_ORIGIN_URI or %SOUP_CONNECTION_PROXY_URI. If you
- * set an origin server URI but no proxy URI, this will be a direct
- * connection. If you set a proxy URI and an https origin server URI,
- * this will be a tunnel. Otherwise it will be an http proxy
- * connection.
+ * Creates an HTTP connection. There are three possibilities:
+ *
+ * If you set %SOUP_CONNECTION_SERVER_ADDRESS and not
+ * %SOUP_CONNECTION_PROXY_ADDRESS, this will be a direct connection to
+ * the indicated origin server.
+ *
+ * If you set %SOUP_CONNECTION_PROXY_ADDRESS and not
+ * %SOUP_CONNECTION_SSL_CREDENTIALS, this will be a standard proxy
+ * connection, which can be used for requests to multiple origin
+ * servers.
+ *
+ * If you set %SOUP_CONNECTION_SERVER_ADDRESS,
+ * %SOUP_CONNECTION_PROXY_ADDRESS, and
+ * %SOUP_CONNECTION_SSL_CREDENTIALS, this will be a tunnel through the
+ * proxy to the origin server.
  *
  * You must call soup_connection_connect_async() or
  * soup_connection_connect_sync() to connect it after creating it.
@@ -251,35 +262,33 @@ set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
-	gpointer pval;
 
 	switch (prop_id) {
-	case PROP_ORIGIN_URI:
-		pval = g_value_get_pointer (value);
-		priv->origin_uri = pval ? soup_uri_copy (pval) : NULL;
-		goto changed_uri;
+	case PROP_SERVER_ADDRESS:
+		priv->server_addr = g_value_dup_object (value);
+		goto changed_connection;
 
-	case PROP_PROXY_URI:
-		pval = g_value_get_pointer (value);
-		priv->proxy_uri = pval ? soup_uri_copy (pval) : NULL;
+	case PROP_PROXY_ADDRESS:
+		priv->proxy_addr = g_value_dup_object (value);
+		goto changed_connection;
 
-	changed_uri:
-		if (priv->proxy_uri) {
-			priv->conn_uri = priv->proxy_uri;
-			if (priv->origin_uri &&
-			    priv->origin_uri->scheme == SOUP_URI_SCHEME_HTTPS)
+	case PROP_SSL_CREDS:
+		priv->ssl_creds = g_value_get_pointer (value);
+		goto changed_connection;
+
+	changed_connection:
+		if (priv->proxy_addr) {
+			priv->conn_addr = priv->proxy_addr;
+			if (priv->server_addr && priv->ssl_creds)
 				priv->mode = SOUP_CONNECTION_MODE_TUNNEL;
 			else
 				priv->mode = SOUP_CONNECTION_MODE_PROXY;
 		} else {
-			priv->conn_uri = priv->origin_uri;
+			priv->conn_addr = priv->server_addr;
 			priv->mode = SOUP_CONNECTION_MODE_DIRECT;
 		}
 		break;
 
-	case PROP_SSL_CREDS:
-		priv->ssl_creds = g_value_get_pointer (value);
-		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -304,15 +313,12 @@ get_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
 	switch (prop_id) {
-	case PROP_ORIGIN_URI:
-		g_value_set_pointer (value, priv->origin_uri ?
-				     soup_uri_copy (priv->origin_uri) :
-				     NULL);
+	case PROP_SERVER_ADDRESS:
+		g_value_set_object (value, priv->server_addr);
 		break;
-	case PROP_PROXY_URI:
-		g_value_set_pointer (value, priv->proxy_uri ?
-				     soup_uri_copy (priv->proxy_uri) :
-				     NULL);
+	case PROP_PROXY_ADDRESS:
+		g_value_set_object (value, priv->proxy_addr);
+		break;
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, priv->ssl_creds);
 		break;
@@ -405,7 +411,7 @@ socket_disconnected (SoupSocket *sock, gpointer conn)
 static inline guint
 proxified_status (SoupConnectionPrivate *priv, guint status)
 {
-	if (!priv->proxy_uri)
+	if (!priv->proxy_addr)
 		return status;
 
 	if (status == SOUP_STATUS_CANT_RESOLVE)
@@ -414,6 +420,22 @@ proxified_status (SoupConnectionPrivate *priv, guint status)
 		return SOUP_STATUS_CANT_CONNECT_PROXY;
 	else
 		return status;
+}
+
+static SoupMessage *
+connect_message (SoupConnectionPrivate *priv)
+{
+	SoupURI *uri;
+	SoupMessage *msg;
+
+	uri = soup_uri_new (NULL);
+	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
+	soup_uri_set_host (uri, soup_address_get_name (priv->server_addr));
+	soup_uri_set_port (uri, soup_address_get_port (priv->server_addr));
+	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
+	soup_uri_free (uri);
+
+	return msg;
 }
 
 static void
@@ -425,9 +447,10 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 
 	clear_current_request (conn);
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (soup_socket_start_proxy_ssl (priv->socket,
-						 priv->origin_uri->host,
+	if (SOUP_STATUS_IS_SUCCESSFUL (status) && priv->ssl_creds) {
+		const char *server_name =
+			soup_address_get_name (priv->server_addr);
+		if (soup_socket_start_proxy_ssl (priv->socket, server_name,
 						 NULL))
 			priv->connected = TRUE;
 		else
@@ -482,7 +505,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
 
-	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+	if (priv->mode == SOUP_CONNECTION_MODE_DIRECT && priv->ssl_creds) {
 		if (!soup_socket_start_ssl (sock, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto done;
@@ -490,10 +513,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	}
 
 	if (priv->mode == SOUP_CONNECTION_MODE_TUNNEL) {
-		SoupMessage *connect_msg;
-
-		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
-							 priv->origin_uri);
+		SoupMessage *connect_msg = connect_message (priv);
 
 		g_signal_connect (connect_msg, "restarted",
 				  G_CALLBACK (tunnel_connect_restarted), conn);
@@ -516,6 +536,28 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 guint soup_signal_connect_once  (gpointer instance, const char *detailed_signal,
 				 GCallback c_handler, gpointer data);
 
+static void
+address_resolved (SoupAddress *addr, guint status, gpointer data)
+{
+	SoupConnection *conn = data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	if (status != SOUP_STATUS_OK) {
+		socket_connect_result (NULL, status, conn);
+		return;
+	}
+
+	priv->socket =
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 NULL);
+	soup_socket_connect_async (priv->socket, NULL,
+				   socket_connect_result, conn);
+	g_signal_connect (priv->socket, "disconnected",
+			  G_CALLBACK (socket_disconnected), conn);
+}
+
 /**
  * soup_connection_connect_async:
  * @conn: the connection
@@ -530,7 +572,6 @@ soup_connection_connect_async (SoupConnection *conn,
 			       gpointer user_data)
 {
 	SoupConnectionPrivate *priv;
-	SoupAddress *addr;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -541,18 +582,8 @@ soup_connection_connect_async (SoupConnection *conn,
 					  G_CALLBACK (callback), user_data);
 	}
 
-	addr = soup_address_new (priv->conn_uri->host, priv->conn_uri->port);
-	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
-				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
-				 NULL);
-	soup_socket_connect_async (priv->socket, NULL,
-				   socket_connect_result, conn);
-	g_signal_connect (priv->socket, "disconnected",
-			  G_CALLBACK (socket_disconnected), conn);
-
-	g_object_unref (addr);
+	soup_address_resolve_async (priv->conn_addr, priv->async_context, NULL,
+				    address_resolved, conn);
 }
 
 /**
@@ -567,24 +598,24 @@ guint
 soup_connection_connect_sync (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv;
-	SoupAddress* addr;
 	guint status;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
 
-	addr = soup_address_new (priv->conn_uri->host,
-				 priv->conn_uri->port);
+	status = soup_address_resolve_sync (priv->conn_addr, NULL);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+		goto fail;
+
 	priv->socket =
-		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
+		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->conn_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 NULL);
 
 	status = soup_socket_connect_sync (priv->socket, NULL);
-	g_object_unref (addr);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
@@ -592,7 +623,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), conn);
 
-	if (priv->conn_uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+	if (priv->mode == SOUP_CONNECTION_MODE_DIRECT && priv->ssl_creds) {
 		if (!soup_socket_start_ssl (priv->socket, NULL)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;
@@ -600,10 +631,8 @@ soup_connection_connect_sync (SoupConnection *conn)
 	}
 
 	if (priv->mode == SOUP_CONNECTION_MODE_TUNNEL) {
-		SoupMessage *connect_msg;
+		SoupMessage *connect_msg = connect_message (priv);
 
-		connect_msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT,
-							 priv->origin_uri);
 		soup_connection_send_request (conn, connect_msg);
 		status = connect_msg->status_code;
 
@@ -620,8 +649,10 @@ soup_connection_connect_sync (SoupConnection *conn)
 		g_object_unref (connect_msg);
 
 		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			const char *server_name =
+				soup_address_get_name (priv->server_addr);
 			if (!soup_socket_start_proxy_ssl (priv->socket,
-							  priv->origin_uri->host,
+							  server_name,
 							  NULL))
 				status = SOUP_STATUS_SSL_FAILED;
 		}

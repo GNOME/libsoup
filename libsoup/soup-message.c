@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-enum-types.h"
 #include "soup-marshal.h"
@@ -145,6 +146,8 @@ finalize (GObject *object)
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
+	if (priv->addr)
+		g_object_unref (priv->addr);
 
 	if (priv->auth)
 		g_object_unref (priv->auth);
@@ -1280,6 +1283,10 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
+	if (priv->addr) {
+		g_object_unref (priv->addr);
+		priv->addr = NULL;
+	}
 	priv->uri = soup_uri_copy (uri);
 
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_URI);
@@ -1299,6 +1306,31 @@ soup_message_get_uri (SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->uri;
+}
+
+/**
+ * soup_message_get_address:
+ * @msg: a #SoupMessage
+ *
+ * Gets the address @msg's URI points to. After first setting the
+ * URI on a message, this will be unresolved, although the message's
+ * session will resolve it before sending the message.
+ *
+ * Return value: the address @msg's URI points to
+ **/
+SoupAddress *
+soup_message_get_address (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	if (!priv->addr) {
+		priv->addr = soup_address_new (priv->uri->host,
+					       priv->uri->port);
+	}
+	return priv->addr;
 }
 
 /**

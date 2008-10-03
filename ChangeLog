@@ -1,5 +1,55 @@
 2008-10-03  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-connection.c: Change the SoupURI properties to
+	SoupAddress properties.
+
+	* libsoup/soup-address.c (soup_address_resolve_async)
+	(soup_address_resolve_sync): Redo slightly so that multiple
+	simultaneous attempts to resolve the same address won't cause
+	problems.
+	(soup_address_hash_by_name, soup_address_equal_by_name):
+	(soup_address_hash_by_ip, soup_address_equal_by_ip): methods to
+	hash addresses by name or IP address
+
+	* libsoup/soup-message.c (soup_message_get_address): gets a
+	SoupAddress corresponding to the message's URI
+
+	* libsoup/soup-auth-manager.c (SoupAuthHost): hash hosts by
+	soup_address_hash_by_name() rather than by URI.
+
+	* libsoup/soup-session.c (soup_session_get_connection): pass
+	addresses to soup_connection_new(), not URIs.
+	(SoupSessionHost): hash hosts by soup_address_hash_by_ip() rather
+	than by URI. This requires that the addresses will have already
+	been resolved by the SoupSession subclasses before calling
+	soup_session_get_connection(), but also means that now requests
+	made to different virtual hosts on the same IP address can share a
+	connection.
+
+	* libsoup/soup-message-queue.c (SoupMessageQueueItem): add
+	address-resolving state
+
+	* libsoup/soup-session-sync.c (process_queue_item): resolve the
+	message's address before getting a connection
+
+	* libsoup/soup-session-async.c (run_queue, resolve_msg_addr)
+	(resolved_msg_addr): resolve the message's address before getting
+	a connection
+	(request_restarted): if the message gets requeued to a different
+	host, we'll need to re-resolve the address.
+
+	* libsoup/soup-uri.c (soup_uri_copy_root, soup_uri_host_hash)
+	(soup_uri_host_equal): No longer needed
+
+	* libsoup/soup-dns.c (do_async_callback): disconnect from the
+	cancellable before invoking the callback
+
+	* tests/proxy-test.c (tests): fix the 403 example; hostnames are
+	resolved by the session now, even when sending to a proxy, so we
+	need to use a hostname that actually exists
+
+2008-10-03  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-message-queue.c: Make this more complicated, with a
 	SoupMessageQueueItem to keep track of the session's per-message
 	state. (Part of the process of moving session-related state out of

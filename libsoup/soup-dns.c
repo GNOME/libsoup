@@ -520,10 +520,10 @@ do_async_callback (gpointer user_data)
 	SoupDNSCacheEntry *entry = lookup->entry;
 	GCancellable *cancellable = lookup->cancellable;
 
-	lookup->callback (lookup, resolve_status (entry, cancellable),
-			  lookup->user_data);
 	if (cancellable)
 		g_signal_handlers_disconnect_by_func (cancellable, async_cancel, lookup);
+	lookup->callback (lookup, resolve_status (entry, cancellable),
+			  lookup->user_data);
 
 	return FALSE;
 }

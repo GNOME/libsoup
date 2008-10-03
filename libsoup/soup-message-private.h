@@ -32,6 +32,7 @@ typedef struct {
 	SoupHTTPVersion    http_version, orig_http_version;
 
 	SoupURI           *uri;
+	SoupAddress       *addr;
 
 	SoupAuth          *auth, *proxy_auth;
 } SoupMessagePrivate;

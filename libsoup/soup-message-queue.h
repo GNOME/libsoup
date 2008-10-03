@@ -8,6 +8,7 @@
 #define SOUP_MESSAGE_QUEUE_H 1
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-session.h>
 
@@ -24,9 +25,14 @@ struct SoupMessageQueueItem {
 	SoupSessionCallback callback;
 	gpointer callback_data;
 
+	GCancellable *cancellable;
+	SoupAddress *msg_addr;
+
+	guint resolving_msg_addr   : 1;
+
 	/*< private >*/
 	guint removed              : 1;
-	guint ref_count            : 31;
+	guint ref_count            : 30;
 	SoupMessageQueueItem *prev, *next;
 };
 
