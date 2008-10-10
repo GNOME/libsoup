@@ -1,3 +1,8 @@
+2008-10-09  Andrew W. Nosenko  <andrew.w.nosenko@gmail.com>
+
+	* libsoup/soup-uri.c (soup_uri_to_string): Verify whether uri is
+	non-NULL and avoid crash on NULL pointer dereference therefore.
+
 2008-10-03  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-connection.c: Change the SoupURI properties to

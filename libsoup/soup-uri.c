@@ -415,6 +415,8 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	GString *str;
 	char *return_result;
 
+	g_return_val_if_fail (uri != NULL, NULL);
+
 	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
 	 * tests/uri-parsing AFTERWARD.
 	 */
