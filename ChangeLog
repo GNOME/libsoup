@@ -1,3 +1,12 @@
+2008-10-10  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-headers.c
+	(soup_message_headers_get_ranges): if the caller passed the
+	total_length of the message body, then sort sort the ranges and
+	merge overlapping ones to generate a minimal set.
+
+	* tests/range-test.c: test it
+
 2008-10-09  Andrew W. Nosenko  <andrew.w.nosenko@gmail.com>
 
 	* libsoup/soup-uri.c (soup_uri_to_string): Verify whether uri is

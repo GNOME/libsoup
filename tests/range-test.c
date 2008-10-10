@@ -85,13 +85,10 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 }
 
 static void
-request_single_range (SoupSession *session, char *uri,
-		      int start, int end)
+do_single_range (SoupSession *session, SoupMessage *msg,
+		 int start, int end)
 {
-	SoupMessage *msg;
-
-	msg = soup_message_new ("GET", uri);
-	soup_message_headers_set_range (msg->request_headers, start, end);
+	const char *content_type;
 
 	debug_printf (1, "    Range: %s\n",
 		      soup_message_headers_get (msg->request_headers, "Range"));
@@ -106,13 +103,34 @@ request_single_range (SoupSession *session, char *uri,
 		return;
 	}
 
+	content_type = soup_message_headers_get_content_type (
+		msg->response_headers, NULL);
+	if (content_type && !strcmp (content_type, "multipart/byteranges")) {
+		debug_printf (1, "    Response body should not have been multipart/byteranges\n");
+		g_object_unref (msg);
+		errors++;
+		return;
+	}
+
 	check_part (msg->response_headers, msg->response_body->data,
 		    msg->response_body->length, TRUE, start, end);
 	g_object_unref (msg);
 }
 
 static void
-request_multi_range (SoupSession *session, SoupMessage *msg)
+request_single_range (SoupSession *session, char *uri,
+		      int start, int end)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("GET", uri);
+	soup_message_headers_set_range (msg->request_headers, start, end);
+	do_single_range (session, msg, start, end);
+}
+
+static void
+do_multi_range (SoupSession *session, SoupMessage *msg,
+		int expected_return_ranges)
 {
 	SoupMultipart *multipart;
 	const char *content_type;
@@ -150,6 +168,12 @@ request_multi_range (SoupSession *session, SoupMessage *msg)
 	}
 
 	length = soup_multipart_get_length (multipart);
+	if (length != expected_return_ranges) {
+		debug_printf (1, "    Expected %d ranges, got %d\n",
+			      expected_return_ranges, length);
+		errors++;
+	}
+
 	for (i = 0; i < length; i++) {
 		SoupMessageHeaders *headers;
 		SoupBuffer *body;
@@ -166,7 +190,8 @@ request_multi_range (SoupSession *session, SoupMessage *msg)
 static void
 request_double_range (SoupSession *session, char *uri,
 		      int first_start, int first_end,
-		      int second_start, int second_end)
+		      int second_start, int second_end,
+		      int expected_return_ranges)
 {
 	SoupMessage *msg;
 	SoupRange ranges[2];
@@ -178,14 +203,20 @@ request_double_range (SoupSession *session, char *uri,
 	ranges[1].end = second_end;
 	soup_message_headers_set_ranges (msg->request_headers, ranges, 2);
 
-	request_multi_range (session, msg);
+	if (expected_return_ranges == 1) {
+		do_single_range (session, msg,
+				 MIN (first_start, second_start),
+				 MAX (first_end, second_end));
+	} else
+		do_multi_range (session, msg, expected_return_ranges);
 }
 
 static void
 request_triple_range (SoupSession *session, char *uri,
 		      int first_start, int first_end,
 		      int second_start, int second_end,
-		      int third_start, int third_end)
+		      int third_start, int third_end,
+		      int expected_return_ranges)
 {
 	SoupMessage *msg;
 	SoupRange ranges[3];
@@ -199,46 +230,96 @@ request_triple_range (SoupSession *session, char *uri,
 	ranges[2].end = third_end;
 	soup_message_headers_set_ranges (msg->request_headers, ranges, 3);
 
-	request_multi_range (session, msg);
+	if (expected_return_ranges == 1) {
+		do_single_range (session, msg,
+				 MIN (first_start, MIN (second_start, third_start)),
+				 MAX (first_end, MAX (second_end, third_end)));
+	} else
+		do_multi_range (session, msg, expected_return_ranges);
 }
 
 static void
-do_range_test (SoupSession *session, char *uri)
+do_range_test (SoupSession *session, char *uri, gboolean expect_coalesce)
 {
-	int sevenths = full_response->length / 7;
+	int twelfths = full_response->length / 12;
 
 	memset (test_response, 0, full_response->length);
 
-	debug_printf (1, "Requesting %d-%d\n", 0 * sevenths, 1 * sevenths);
-	request_single_range (session, uri,
-			      0 * sevenths, 1 * sevenths);
-
-	/* These two are redundant in terms of data coverage (except
-	 * maybe for a single byte because of rounding), but they may
-	 * still catch Range-header-generating bugs.
+	/* We divide the response into 12 ranges and request them
+	 * as follows:
+	 *
+	 *  0: A (first single request)
+	 *  1: D (2nd part of triple request)
+	 *  2: C (1st part of double request)
+	 *  3: D (1st part of triple request)
+	 *  4: F (trickier overlapping request)
+	 *  5: C (2nd part of double request)
+	 *  6: D (3rd part of triple request)
+	 *  7: E (overlapping request)
+	 *  8: E (overlapping request)
+	 *  9: F (trickier overlapping request)
+	 * 10: F (trickier overlapping request)
+	 * 11: B (second and third single requests)
 	 */
-	debug_printf (1, "Requesting %d-\n", 6 * sevenths);
-	request_single_range (session, uri,
-			      6 * sevenths, -1);
-	debug_printf (1, "Requesting -%d\n", 1 * sevenths);
-	request_single_range (session, uri,
-			      -1 * sevenths, -1);
 
+	/* A: 0, simple request */
+	debug_printf (1, "Requesting %d-%d\n", 0 * twelfths, 1 * twelfths);
+	request_single_range (session, uri,
+			      0 * twelfths, 1 * twelfths);
+
+	/* B: 11, end-relative request. These two are mostly redundant
+	 * in terms of data coverage, but they may still catch
+	 * Range-header-generating bugs.
+	 */
+	debug_printf (1, "Requesting %d-\n", 11 * twelfths);
+	request_single_range (session, uri,
+			      11 * twelfths, -1);
+	debug_printf (1, "Requesting -%d\n", 1 * twelfths);
+	request_single_range (session, uri,
+			      -1 * twelfths, -1);
+
+	/* C: 2 and 5 */
 	debug_printf (1, "Requesting %d-%d,%d-%d\n",
-		      2 * sevenths, 3 * sevenths,
-		      5 * sevenths, 6 * sevenths);
+		      2 * twelfths, 3 * twelfths,
+		      5 * twelfths, 6 * twelfths);
 	request_double_range (session, uri,
-			      2 * sevenths, 3 * sevenths,
-			      5 * sevenths, 6 * sevenths);
+			      2 * twelfths, 3 * twelfths,
+			      5 * twelfths, 6 * twelfths,
+			      2);
 
+	/* D: 1, 3, 6 */
 	debug_printf (1, "Requesting %d-%d,%d-%d,%d-%d\n",
-		      3 * sevenths, 4 * sevenths,
-		      1 * sevenths, 2 * sevenths,
-		      4 * sevenths, 5 * sevenths);
+		      3 * twelfths, 4 * twelfths,
+		      1 * twelfths, 2 * twelfths,
+		      6 * twelfths, 7 * twelfths);
 	request_triple_range (session, uri,
-			      3 * sevenths, 4 * sevenths,
-			      1 * sevenths, 2 * sevenths,
-			      4 * sevenths, 5 * sevenths);
+			      3 * twelfths, 4 * twelfths,
+			      1 * twelfths, 2 * twelfths,
+			      6 * twelfths, 7 * twelfths,
+			      3);
+
+	/* E: 7 and 8: should coalesce into a single response */
+	debug_printf (1, "Requesting %d-%d,%d-%d (can coalesce)\n",
+		      7 * twelfths, 8 * twelfths,
+		      8 * twelfths, 9 * twelfths);
+	request_double_range (session, uri,
+			      7 * twelfths, 8 * twelfths,
+			      8 * twelfths, 9 * twelfths,
+			      expect_coalesce ? 1 : 2);
+
+	/* F: 4, 9, 10: 9 and 10 should coalesce even though 4 was
+	 * requested between them. (Also, they actually overlap in
+	 * this case, as opposed to just touching.)
+	 */
+	debug_printf (1, "Requesting %d-%d,%d-%d,%d-%d (can partially coalesce)\n",
+		      9 * twelfths, 10 * twelfths + 5,
+		      4 * twelfths, 5 * twelfths,
+		      10 * twelfths - 5, 11 * twelfths);
+	request_triple_range (session, uri,
+			      9 * twelfths, 10 * twelfths + 5,
+			      4 * twelfths, 5 * twelfths,
+			      10 * twelfths - 5, 11 * twelfths,
+			      expect_coalesce ? 2 : 3);
 
 	if (memcmp (full_response->data, test_response, full_response->length) != 0) {
 		debug_printf (1, "\nfull_response and test_response don't match\n");
@@ -275,14 +356,14 @@ main (int argc, char **argv)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "1. Testing against apache\n");
-	do_range_test (session, "http://localhost:47524/");
+	do_range_test (session, "http://localhost:47524/", FALSE);
 
 	debug_printf (1, "\n2. Testing against SoupServer\n");
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	base_uri = g_strdup_printf ("http://localhost:%u/",
 				    soup_server_get_port (server));
-	do_range_test (session, base_uri);
+	do_range_test (session, base_uri, TRUE);
 
 	soup_test_session_abort_unref (session);
 

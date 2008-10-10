@@ -682,6 +682,15 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * (Eg, the last 500 bytes would be @start = %-500 and @end = %-1.)
  **/
 
+static int
+sort_ranges (gconstpointer a, gconstpointer b)
+{
+	SoupRange *ra = (SoupRange *)a;
+	SoupRange *rb = (SoupRange *)b;
+
+	return ra->start - rb->start;
+}
+
 /**
  * soup_message_headers_get_ranges:
  * @hdrs: a #SoupMessageHeaders
@@ -694,9 +703,11 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * soup_message_headers_free_ranges().
  *
  * If @total_length is non-0, its value will be used to adjust the
- * returned ranges to have explicit start and end values. If
+ * returned ranges to have explicit start and end values, and the
+ * returned ranges will be sorted and non-overlapping. If
  * @total_length is 0, then some ranges may have an end value of -1,
- * as described under #SoupRange.
+ * as described under #SoupRange, and some of the ranges may be
+ * redundant.
  *
  * Return value: %TRUE if @hdrs contained a "Range" header containing
  * byte ranges which could be parsed, %FALSE otherwise (in which case
@@ -713,6 +724,7 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 	GArray *array;
 	SoupRange cur;
 	char *spec, *end;
+	int i;
 
 	if (!range || strncmp (range, "bytes", 5) != 0)
 		return FALSE;
@@ -754,8 +766,23 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 	}
 
 	soup_header_free_list (range_list);
+
+	if (total_length) {
+		g_array_sort (array, sort_ranges);
+		for (i = 1; i < array->len; i++) {
+			SoupRange *cur = &((SoupRange *)array->data)[i];
+			SoupRange *prev = &((SoupRange *)array->data)[i - 1];
+
+			if (cur->start <= prev->end) {
+				prev->end = MAX (prev->end, cur->end);
+				g_array_remove_index (array, i);
+			}
+		}
+	}
+
 	*ranges = (SoupRange *)array->data;
 	*length = array->len;
+
 	g_array_free (array, FALSE);
 	return TRUE;
 }
