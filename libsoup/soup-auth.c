@@ -266,7 +266,7 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 	g_return_val_if_fail (auth_header != NULL, FALSE);
 
 	scheme = soup_auth_get_scheme_name (auth);
-	if (strncmp (auth_header, scheme, strlen (scheme)) != 0)
+	if (g_ascii_strncasecmp (auth_header, scheme, strlen (scheme)) != 0)
 		return FALSE;
 
 	params = soup_header_parse_param_list (auth_header + strlen (scheme));

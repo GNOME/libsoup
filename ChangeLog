@@ -1,3 +1,9 @@
+2008-10-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth.c (soup_auth_update): compare scheme name
+	case-insensitively, to prevent an infinite loop when it's not in
+	standard form. #536285
+
 2008-10-10  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-headers.c
