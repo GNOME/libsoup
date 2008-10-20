@@ -424,7 +424,7 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	str = g_string_sized_new (20);
 
 	if (uri->scheme && !just_path_and_query)
-		g_string_sprintfa (str, "%s:", uri->scheme);
+		g_string_append_printf (str, "%s:", uri->scheme);
 	if (uri->host && !just_path_and_query) {
 		g_string_append (str, "//");
 		if (uri->user) {

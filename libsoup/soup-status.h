@@ -8,7 +8,7 @@
 #ifndef SOUP_STATUS_H
 #define SOUP_STATUS_H 1
 
-#include <glib/gmacros.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 

@@ -8,6 +8,7 @@ INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
+	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
 	$(LIBGCRYPT_CFLAGS)		\

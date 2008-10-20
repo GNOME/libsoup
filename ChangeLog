@@ -1,3 +1,14 @@
+2008-10-20  Cosimo Cecchi  <cosimoc@gnome.org>
+
+	* configure.in:
+	* libsoup/Makefile.am:
+	* libsoup/soup-status.h:
+	* libsoup/soup-types.h:
+	* libsoup/soup-uri.c: (soup_uri_to_string):
+	Build with G_DISABLE_DEPRECATED and G_DISABLE_SINGLE_INCLUDES; enforce
+	the first switch under maintainer mode and the second one
+	unconditionally (#557072).
+
 2008-10-19  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth.c (soup_auth_update): compare scheme name
