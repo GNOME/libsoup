@@ -76,7 +76,7 @@ got_response (SoupSession *session, SoupMessage *msg, gpointer user_data)
 	g_hash_table_foreach (hash, print_struct_field, NULL);
 	g_hash_table_destroy (hash);
 
-	g_main_quit (loop);
+	g_main_loop_quit (loop);
 }
 
 static void
@@ -141,7 +141,7 @@ main (int argc, char **argv)
 				    got_response, NULL);
 
 	loop = g_main_loop_new (NULL, TRUE);
-	g_main_run (loop);
+	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 
 	return 0;

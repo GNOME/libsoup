@@ -57,7 +57,7 @@ main (int argc, char **argv)
 	}
 
 	loop = g_main_loop_new (NULL, TRUE);
-	g_main_run (loop);
+	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 
 	return 0;

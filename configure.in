@@ -50,6 +50,11 @@ fi
 
 AC_SUBST(SOUP_DEBUG_FLAGS)
 
+# Set the maintainer flags
+if test "x$enable_maintainer_mode" = "xyes"; then
+	SOUP_MAINTAINER_FLAGS="-DG_DISABLE_DEPRECATED"
+	AC_SUBST(SOUP_MAINTAINER_FLAGS)
+fi
 
 dnl ***************************
 dnl *** Checks for programs ***
@@ -77,6 +82,7 @@ AM_PATH_GLIB_2_0(2.15.3,,,gobject gthread gio)
 if test "$GLIB_LIBS" = ""; then
    AC_MSG_ERROR(GLIB 2.15.3 or later is required to build libsoup)
 fi
+GLIB_CFLAGS="$GLIB_CFLAGS -DG_DISABLE_SINGLE_INCLUDES"
 
 PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)

@@ -100,7 +100,7 @@ do_test (int n, SoupURI *base_uri, const char *path,
 		g_child_watch_add (pid, curl_exited, &done);
 
 		while (!done)
-			g_main_iteration (TRUE);
+			g_main_context_iteration (NULL, TRUE);
 	} else
 		test_data.succeeded = FALSE;
 	g_ptr_array_free (args, TRUE);

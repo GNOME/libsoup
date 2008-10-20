@@ -1,3 +1,35 @@
+2008-10-20  Dan Winship  <danw@gnome.org>
+
+	* tests/Makefile.am (INCLUDES): add SOUP_MAINTAINER_FLAGS here
+	too.
+
+	* tests/dns.c (main):
+	* tests/getbug.c (main):
+	* tests/server-auth-test.c (do_test): replace deprecated glib
+	functions
+
+2008-10-20  Cosimo Cecchi  <cosimoc@gnome.org>
+
+	* configure.in:
+	* libsoup/Makefile.am:
+	* libsoup/soup-status.h:
+	* libsoup/soup-types.h:
+	* libsoup/soup-uri.c: (soup_uri_to_string):
+	Build with G_DISABLE_DEPRECATED and G_DISABLE_SINGLE_INCLUDES; enforce
+	the first switch under maintainer mode and the second one
+	unconditionally (#557072).
+
+2008-10-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth.c (soup_auth_update): compare scheme name
+	case-insensitively, to prevent an infinite loop when it's not in
+	standard form. #536285
+
+2008-10-09  Andrew W. Nosenko  <andrew.w.nosenko@gmail.com>
+
+	* libsoup/soup-uri.c (soup_uri_to_string): Verify whether uri is
+	non-NULL and avoid crash on NULL pointer dereference therefore.
+
 2008-10-01  Dan Winship  <danw@gnome.org>
 
 	* tests/xmlrpc-test.c (main): add a new -s flag to indicate that

@@ -2,6 +2,7 @@ INCLUDES =		\
 	-I$(top_srcdir)	\
 	-DSRCDIR=\""$(srcdir)"\" \
 	-DLIBSOUP_DISABLE_DEPRECATED \
+	$(SOUP_MAINTAINER_FLAGS) \
 	$(XML_CFLAGS)	\
 	$(GLIB_CFLAGS)	\
 	$(LIBGNUTLS_CFLAGS)
