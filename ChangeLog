@@ -1,5 +1,11 @@
 2008-10-20  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.24.1
+
+	* NEWS: update
+
+2008-10-20  Dan Winship  <danw@gnome.org>
+
 	* tests/Makefile.am (INCLUDES): add SOUP_MAINTAINER_FLAGS here
 	too.
 

@@ -1,3 +1,33 @@
+Changes in libsoup from 2.24.0.1 to 2.24.1:
+
+	* Fixed a crash when unreffing the session from a
+          soup_session_queue_message() callback [#533473], and added
+          regression test. In particular, this fixes a crash in
+          seahorse when trying to connect to a non-responsive
+          keyserver.
+
+	* Fixed an infinite loop when giving a bad password to a site
+          that uses non-standard capitalization in the
+          WWW-Authenticate header (eg, gmail.com) [#536285].
+
+	* Fixed a leak in SoupSessionAsync when using a non-default
+          GMainContext. [addendum to #498509, Arnout Vandecappelle]
+          Added additional code to the regression tests to make sure
+          sessions and servers do not get leaked.
+
+	* Fixed a leak in the XML-RPC code
+
+	* Compile fixes for "gcc -pedantic" [#553976, Sander Dijkhuis]
+          and -DG_DISABLE_DEPRECATED / -DG_DISABLE_SINGLE_INCLUDES
+          [#557072, Cosimo Cecchi]
+
+	* Patched xmlrpc-test to accept the incorrect response to
+          test_echo() that php-xmlrpc gives when it's built against
+          libxml2 >= 2.7.1 (qv http://bugs.php.net/45996), so that
+	  I can "make distcheck"...
+
+	* Updated generated documentation
+
 Changes in libsoup from 2.23.92 to 2.24.0.1:
 
 	* Reverted part of the fix for #528882, which caused the DAAP
