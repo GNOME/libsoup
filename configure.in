@@ -193,9 +193,11 @@ if test "$os_win32" != yes; then
 	CFLAGS="$CFLAGS -D_REENTRANT"
 fi
 
-dnl *************************************
-dnl *** Apache (for regression tests) ***
-dnl *************************************
+dnl ******************************
+dnl *** Stuff for regression tests
+dnl ******************************
+AC_MSG_NOTICE([checking for programs needed for regression tests])
+MISSING_REGRESSION_TEST_PACKAGES=""
 
 AC_ARG_WITH(apache-httpd,
 	    [  --with-apache-httpd      Path to apache httpd (for tests)],
@@ -220,27 +222,29 @@ AC_DEFINE_UNQUOTED(APACHE_HTTPD, "$APACHE_HTTPD", [Apache httpd])
 if test "$APACHE_HTTPD" != "no"; then
     AC_MSG_CHECKING([for Apache module directory])
     AC_ARG_WITH(apache-module-dir,
-		[  --with-apache-module-dir Apache modules dir (for tests)],
-		APACHE_MODULE_DIR="$withval",
+		[  --with-apache-module-dir Apache modules dirs (for tests)],
+		apache_module_dirs="$withval",
 		[apache_prefix=`dirname \`dirname $APACHE_HTTPD\``
 		mpm=`$APACHE_HTTPD -V | sed -ne 's/^Server MPM: */-/p' | tr 'A-Z' 'a-z'`
 		# This only works with bash, but should fail harmlessly in sh
-		for dir in $apache_prefix/lib{64,}/{apache,apache2,http,http2,httpd}{$mpm,}{/modules,}; do
-		    if test -f $dir/mod_auth_digest.so; then
-			APACHE_MODULE_DIR="$dir"
-		    fi
-		    if test -f $dir/mod_ssl.so; then
-			APACHE_SSL_MODULE_DIR="$dir"
-		    fi
-		    if test -f $dir/mod_php5.so; then
-			APACHE_PHP_MODULE_DIR="$dir"
-			APACHE_PHP_MODULE=mod_php5.so
-		    fi
-		    if test -f $dir/libphp5.so; then
-			APACHE_PHP_MODULE_DIR="$dir"
-			APACHE_PHP_MODULE=libphp5.so
-		    fi
-		done])
+		apache_module_dirs=`echo $apache_prefix/lib{64,}/{apache,apache2,http,http2,httpd}{$mpm,}{/modules,}`])
+    for dir in $apache_module_dirs; do
+        if test -f $dir/mod_auth_digest.so; then
+	    APACHE_MODULE_DIR="$dir"
+        fi
+        if test -f $dir/mod_ssl.so; then
+	    APACHE_SSL_MODULE_DIR="$dir"
+	    IF_HAVE_APACHE_SSL=""
+        fi
+        if test -f $dir/mod_php5.so; then
+	    APACHE_PHP_MODULE_DIR="$dir"
+	    APACHE_PHP_MODULE=mod_php5.so
+        fi
+        if test -f $dir/libphp5.so; then
+	    APACHE_PHP_MODULE_DIR="$dir"
+	    APACHE_PHP_MODULE=libphp5.so
+        fi
+    done
     AC_MSG_RESULT($APACHE_MODULE_DIR)
     AC_SUBST(APACHE_MODULE_DIR)
     AC_SUBST(APACHE_SSL_MODULE_DIR)
@@ -248,11 +252,19 @@ if test "$APACHE_HTTPD" != "no"; then
     AC_SUBST(APACHE_PHP_MODULE)
 fi
 
-if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR"; then
+if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MODULE_DIR"; then
     AC_DEFINE(HAVE_APACHE, 1, [Whether or not apache can be used for tests])
     have_apache=1
+    if test -z "$APACHE_PHP_MODULE_DIR"; then
+        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_php5"
+    fi
 else
     have_apache=0
+    if test "$APACHE_HTTPD" == "no" -o -z "$APACHE_MODULE_DIR"; then
+        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES apache"
+    else
+        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_ssl"
+    fi
 fi
 AM_CONDITIONAL(HAVE_APACHE, test $have_apache = 1)
 
@@ -266,6 +278,7 @@ if test "$have_apache" = 1; then
     else
 	have_php=no
 	IF_HAVE_PHP="#"
+	MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php5"
     fi
     AC_MSG_RESULT($have_php)
 
@@ -273,6 +286,7 @@ if test "$have_apache" = 1; then
 	AC_MSG_CHECKING([for xmlrpc-epi-php])
 	if $PHP --rf xmlrpc_server_create | grep -q "does not exist"; then
 	    have_xmlrpc_epi_php=no
+	    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php-xmlrpc"
 	else
 	    have_xmlrpc_epi_php=yes
 	fi
@@ -283,14 +297,19 @@ fi
 AC_SUBST(IF_HAVE_PHP)
 AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test "$have_xmlrpc_epi_php" = yes)
 
-dnl *******************************
-dnl *** curl (for regression tests)
-dnl *******************************
 AC_PATH_PROG(CURL, curl, no)
 if test "$CURL" != no; then
     AC_DEFINE(HAVE_CURL, 1, [Whether or not curl can be used for tests])
+else
+    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES curl"
 fi
 AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
+
+if test -n "$MISSING_REGRESSION_TEST_PACKAGES"; then
+    AC_MSG_NOTICE([Some regression tests will not be run due to missing packages:$MISSING_REGRESSION_TEST_PACKAGES])
+fi
+AC_SUBST(MISSING_REGRESSION_TEST_PACKAGES)
+AM_CONDITIONAL(MISSING_REGRESSION_TEST_PACKAGES, test -n "$MISSING_REGRESSION_TEST_PACKAGES")
 
 dnl *************************
 dnl *** Output Everything ***

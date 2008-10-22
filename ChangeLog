@@ -1,3 +1,10 @@
+2008-10-22  Dan Winship  <danw@gnome.org>
+
+	* configure.in:
+	* tests/Makefile.am: fix up some of the regression test
+	configuration stuff, and print warnings when some tests aren't run
+	do to missing dependencies
+
 2008-10-20  Dan Winship  <danw@gnome.org>
 
 	* tests/Makefile.am (INCLUDES): add SOUP_MAINTAINER_FLAGS here

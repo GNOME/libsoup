@@ -96,5 +96,12 @@ EXTRA_DIST =		\
 	index.txt	\
 	xmlrpc-server.php
 
+if MISSING_REGRESSION_TEST_PACKAGES
+check-local: check-TESTS
+	@echo ""
+	@echo "NOTE: some tests were not run due to missing packages:" $(MISSING_REGRESSION_TEST_PACKAGES)
+	@echo ""
+endif
+
 kill-httpd:
 	$(APACHE_HTTPD) -d `pwd` -f httpd.conf -k stop
