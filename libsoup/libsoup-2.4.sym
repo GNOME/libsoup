@@ -364,8 +364,13 @@ soup_requester_new
 soup_requester_request
 soup_requester_request_uri
 soup_server_add_auth_domain
+soup_server_add_feature
+soup_server_add_feature_by_type
 soup_server_add_handler
 soup_server_disconnect
+soup_server_feature_attach
+soup_server_feature_detach
+soup_server_feature_get_type
 soup_server_get_async_context
 soup_server_get_listener
 soup_server_get_listeners
@@ -381,6 +386,8 @@ soup_server_listen_options_get_type
 soup_server_listen_socket
 soup_server_new
 soup_server_pause_message
+soup_server_remove_feature
+soup_server_remove_feature_by_type
 soup_server_quit
 soup_server_remove_auth_domain
 soup_server_remove_handler

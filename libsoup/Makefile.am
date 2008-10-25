@@ -57,6 +57,7 @@ soup_headers =			\
 	soup-request-http.h	\
 	soup-requester.h	\
 	soup-server.h		\
+	soup-server-feature.h	\
 	soup-session.h		\
 	soup-session-async.h	\
 	soup-session-feature.h	\
@@ -170,6 +171,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-request-http.c		\
 	soup-requester.c		\
 	soup-server.c			\
+	soup-server-feature.c		\
 	soup-session.c			\
 	soup-session-async.c		\
 	soup-session-feature.c		\

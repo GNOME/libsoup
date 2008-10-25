@@ -874,14 +874,14 @@ do_select_auth_test (void)
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/",
 		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, server_basic_auth_callback,
 		NULL);
-	soup_server_add_auth_domain (server, basic_auth_domain);
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (basic_auth_domain));
 
 	digest_auth_domain = soup_auth_domain_digest_new (
 		SOUP_AUTH_DOMAIN_REALM, "auth-test",
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/",
 		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, server_digest_auth_callback,
 		NULL);
-	soup_server_add_auth_domain (server, digest_auth_domain);
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (digest_auth_domain));
 
 	debug_printf (1, "  Testing with no auth\n");
 	select_auth_test_one (uri, FALSE, NULL,
@@ -925,10 +925,10 @@ do_select_auth_test (void)
 	 * *still* gets used.
 	 */
 
-	soup_server_remove_auth_domain (server, basic_auth_domain);
-	soup_server_remove_auth_domain (server, digest_auth_domain);
-	soup_server_add_auth_domain (server, digest_auth_domain);
-	soup_server_add_auth_domain (server, basic_auth_domain);
+	soup_server_remove_feature (server, SOUP_SERVER_FEATURE (basic_auth_domain));
+	soup_server_remove_feature (server, SOUP_SERVER_FEATURE (digest_auth_domain));
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (digest_auth_domain));
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (basic_auth_domain));
 
 	debug_printf (1, "  Testing flipped with no auth\n");
 	select_auth_test_one (uri, FALSE, NULL,

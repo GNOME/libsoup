@@ -62,11 +62,14 @@ typedef void (*SoupServerCallback) (SoupServer        *server,
 				    SoupClientContext *client,
 				    gpointer           user_data);
 
-#define SOUP_SERVER_TLS_CERTIFICATE "tls-certificate"
-#define SOUP_SERVER_RAW_PATHS       "raw-paths"
-#define SOUP_SERVER_SERVER_HEADER   "server-header"
-#define SOUP_SERVER_HTTP_ALIASES    "http-aliases"
-#define SOUP_SERVER_HTTPS_ALIASES   "https-aliases"
+#define SOUP_SERVER_TLS_CERTIFICATE        "tls-certificate"
+#define SOUP_SERVER_RAW_PATHS              "raw-paths"
+#define SOUP_SERVER_SERVER_HEADER          "server-header"
+#define SOUP_SERVER_HTTP_ALIASES           "http-aliases"
+#define SOUP_SERVER_HTTPS_ALIASES          "https-aliases"
+#define SOUP_SERVER_ADD_FEATURE            "add-feature"
+#define SOUP_SERVER_ADD_FEATURE_BY_TYPE    "add-feature-by-type"
+#define SOUP_SERVER_REMOVE_FEATURE_BY_TYPE "remove-feature-by-type"
 
 SoupServer     *soup_server_new                (const char               *optname1,
 					        ...) G_GNUC_NULL_TERMINATED;
@@ -121,10 +124,26 @@ void            soup_server_add_handler        (SoupServer         *server,
 void            soup_server_remove_handler     (SoupServer         *server,
 					        const char         *path);
 
+
+SOUP_DEPRECATED_IN_2_50
 void            soup_server_add_auth_domain    (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
+SOUP_DEPRECATED_IN_2_50
 void            soup_server_remove_auth_domain (SoupServer         *server,
 					        SoupAuthDomain     *auth_domain);
+
+SOUP_AVAILABLE_IN_2_50
+void            soup_server_add_feature            (SoupServer        *server,
+						    SoupServerFeature *feature);
+SOUP_AVAILABLE_IN_2_50
+void            soup_server_add_feature_by_type    (SoupServer        *server,
+						    GType              feature_type);
+SOUP_AVAILABLE_IN_2_50
+void            soup_server_remove_feature         (SoupServer        *server,
+						    SoupServerFeature *feature);
+SOUP_AVAILABLE_IN_2_50
+void            soup_server_remove_feature_by_type (SoupServer        *server,
+						    GType              feature_type);
 
 /* I/O */
 

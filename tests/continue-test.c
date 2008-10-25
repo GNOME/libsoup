@@ -434,7 +434,7 @@ setup_server (void)
 		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
 		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
 		NULL);
-	soup_server_add_auth_domain (server, auth_domain);
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (auth_domain));
 	g_object_unref (auth_domain);
 
 	return server;
