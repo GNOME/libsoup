@@ -183,16 +183,6 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *context, gpointer data)
 {
 	char *file_path;
-	SoupMessageHeadersIter iter;
-	const char *name, *value;
-
-	g_print ("%s %s HTTP/1.%d\n", msg->method, path,
-		 soup_message_get_http_version (msg));
-	soup_message_headers_iter_init (&iter, msg->request_headers);
-	while (soup_message_headers_iter_next (&iter, &name, &value))
-		g_print ("%s: %s\n", name, value);
-	if (msg->request_body->length)
-		g_print ("%s\n", msg->request_body->data);
 
 	file_path = g_strdup_printf (".%s", path);
 
@@ -204,7 +194,6 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 
 	g_free (file_path);
-	g_print ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 
 static void
@@ -239,6 +228,7 @@ main (int argc, char **argv)
 	GSList *uris, *u;
 	char *str;
 	GTlsCertificate *cert;
+	SoupLogger *logger;
 	GError *error = NULL;
 
 	opts = g_option_context_new (NULL);
@@ -279,6 +269,10 @@ main (int argc, char **argv)
 
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
+
+	logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+	soup_server_add_feature (server, SOUP_SERVER_FEATURE (logger));
+	g_object_unref (logger);
 
 	uris = soup_server_get_uris (server);
 	for (u = uris; u; u = u->next) {
