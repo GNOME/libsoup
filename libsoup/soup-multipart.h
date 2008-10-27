@@ -10,6 +10,8 @@
 #include <libsoup/soup-message-body.h>
 #include <libsoup/soup-message-headers.h>
 
+G_BEGIN_DECLS
+
 typedef struct SoupMultipart SoupMultipart;
 
 GType soup_multipart_get_type (void);
@@ -43,5 +45,7 @@ void     soup_multipart_to_message         (SoupMultipart       *multipart,
 					    SoupMessageBody     *dest_body);
 
 void     soup_multipart_free               (SoupMultipart       *multipart);
+
+G_END_DECLS
 
 #endif /* SOUP_MULTIPART_H */

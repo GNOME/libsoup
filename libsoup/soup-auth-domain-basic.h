@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-auth-domain.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_AUTH_DOMAIN_BASIC            (soup_auth_domain_basic_get_type ())
 #define SOUP_AUTH_DOMAIN_BASIC(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasic))
 #define SOUP_AUTH_DOMAIN_BASIC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DOMAIN_BASIC, SoupAuthDomainBasicClass))
@@ -48,5 +50,7 @@ void      soup_auth_domain_basic_set_auth_callback  (SoupAuthDomain *domain,
 						     SoupAuthDomainBasicAuthCallback callback,
 						     gpointer        user_data,
 						     GDestroyNotify  dnotify);
+
+G_END_DECLS
 
 #endif /* SOUP_AUTH_DOMAIN_BASIC_H */

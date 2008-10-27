@@ -1,3 +1,19 @@
+2008-10-27  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie.c (soup_cookie_free): free the expires date,
+	if set
+
+	* libsoup/soup-auth-domain-basic.h:
+	* libsoup/soup-auth-domain-digest.h:
+	* libsoup/soup-auth-domain.h:
+	* libsoup/soup-cookie-jar.h:
+	* libsoup/soup-logger.h:
+	* libsoup/soup-multipart.h: add G_BEGIN/END_DECLS
+
+	* libsoup/soup-date.c: add some g_return_if_fails
+
+	Patches from and inspired by Xan Lopez, #522125
+
 2008-10-22  Dan Winship  <danw@gnome.org>
 
 	* configure.in:

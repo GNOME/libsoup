@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_AUTH_DOMAIN            (soup_auth_domain_get_type ())
 #define SOUP_AUTH_DOMAIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomain))
 #define SOUP_AUTH_DOMAIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainClass))
@@ -91,5 +93,7 @@ void        soup_auth_domain_challenge   (SoupAuthDomain       *domain,
 gboolean    soup_auth_domain_try_generic_auth_callback (SoupAuthDomain *domain,
 							SoupMessage    *msg,
 							const char     *username);
+
+G_END_DECLS
 
 #endif /* SOUP_AUTH_DOMAIN_H */

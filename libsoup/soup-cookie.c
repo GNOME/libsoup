@@ -675,6 +675,9 @@ soup_cookie_free (SoupCookie *cookie)
 	g_free (cookie->domain);
 	g_free (cookie->path);
 
+	if (cookie->expires)
+		soup_date_free (cookie->expires);
+
 	g_slice_free (SoupCookie, cookie);
 }
 

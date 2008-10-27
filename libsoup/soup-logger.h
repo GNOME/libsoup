@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_LOGGER            (soup_logger_get_type ())
 #define SOUP_LOGGER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_LOGGER, SoupLogger))
 #define SOUP_LOGGER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_LOGGER, SoupLoggerClass))
@@ -72,5 +74,7 @@ void        soup_logger_set_printer         (SoupLogger        *logger,
 					     SoupLoggerPrinter  printer,
 					     gpointer           printer_data,
 					     GDestroyNotify     destroy);
+
+G_END_DECLS
 
 #endif /* SOUP_LOGGER_H */
