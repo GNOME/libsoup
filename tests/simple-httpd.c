@@ -6,6 +6,7 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
@@ -36,6 +37,58 @@ free_mapping (gpointer data)
 }
 #endif
 
+static int
+compare_strings (gconstpointer a, gconstpointer b)
+{
+	const char **sa = (const char **)a;
+	const char **sb = (const char **)b;
+
+	return strcmp (*sa, *sb);
+}
+
+static GString *
+get_directory_listing (const char *path)
+{
+	GPtrArray *entries;
+	GString *listing;
+	char *escaped;
+	DIR *dir;
+	struct dirent *dent;
+	int i;
+
+	entries = g_ptr_array_new ();
+	dir = opendir (path);
+	if (dir) {
+		while ((dent = readdir (dir))) {
+			if (!strcmp (dent->d_name, ".") ||
+			    (!strcmp (dent->d_name, "..") &&
+			     !strcmp (path, "./")))
+				continue;
+			escaped = g_markup_escape_text (dent->d_name, -1);
+			g_ptr_array_add (entries, escaped);
+		}
+		closedir (dir);
+	}
+
+	g_ptr_array_sort (entries, (GCompareFunc)compare_strings);
+
+	listing = g_string_new ("<html>\r\n");
+	escaped = g_markup_escape_text (strchr (path, '/'), -1);
+	g_string_append_printf (listing, "<head><title>Index of %s</title></head>\r\n", escaped);
+	g_string_append_printf (listing, "<body><h1>Index of %s</h1>\r\n<p>\r\n", escaped);
+	g_free (escaped);
+	for (i = 0; i < entries->len; i++) {
+		g_string_append_printf (listing, "<a href=\"%s\">%s</a><br>\r\n",
+					(char *)entries->pdata[i], 
+					(char *)entries->pdata[i]);
+		g_free (entries->pdata[i]);
+	}
+	g_string_append (listing, "</body>\r\n</html>\r\n");
+
+	g_ptr_array_free (entries, TRUE);
+	return listing;
+}
+
 static void
 do_get (SoupServer *server, SoupMessage *msg, const char *path)
 {
@@ -54,6 +107,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 	}
 
 	if (S_ISDIR (st.st_mode)) {
+		GString *listing;
 		char *index_path;
 
 		slash = strrchr (path, '/');
@@ -71,8 +125,17 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		}
 
 		index_path = g_strdup_printf ("%s/index.html", path);
-		do_get (server, msg, index_path);
-		g_free (index_path);
+		if (stat (index_path, &st) != -1) {
+			do_get (server, msg, index_path);
+			g_free (index_path);
+			return;
+		}
+
+		listing = get_directory_listing (path);
+		soup_message_set_response (msg, "text/html",
+					   SOUP_MEMORY_TAKE,
+					   listing->str, listing->len);
+		g_string_free (listing, FALSE);
 		return;
 	}
 

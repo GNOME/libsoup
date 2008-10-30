@@ -1,3 +1,8 @@
+2008-10-30  Dan Winship  <danw@gnome.org>
+
+	* tests/simple-httpd.c: do directory listings. (wrote this a long
+	time ago, it just never made it into svn)
+
 2008-10-27  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-cookie.c (soup_cookie_free): free the expires date,
