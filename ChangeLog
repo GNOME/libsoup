@@ -1,5 +1,43 @@
 2008-10-31  Dan Winship  <danw@gnome.org>
 
+	Add libsoup-gnome, for new features that depend on GNOME
+	libraries.
+
+	* configure.in: Check for libproxy and/or gconf, accept
+	--without-gnome option, output libsoup-gnome-2.4.pc
+
+	* libsoup-gnome-2.4.pc: pc file for libsoup with GNOME support
+
+	* libsoup/Makefile.am: build libsoup-gnome.la if so configured
+
+	* libsoup/soup-gnome.h: base header for libsoup-gnome
+
+	* libsoup/soup-proxy-resolver-libproxy.c: An implementation of
+	SoupProxyResolver that uses libproxy.
+
+	* libsoup/soup-proxy-resolver-gconf.c: An implementation of
+	SoupProxyResolver that uses the proxy keys in GConf. Does not
+	completely handle ignore_hosts; this is currently just used as a
+	fallback if libproxy is not available.
+
+	* libsoup/soup-gnome-features.c: provides
+	SOUP_TYPE_PROXY_RESOLVER_GNOME (abstracting over
+	SoupProxyResolverGConf and SoupProxyResolverLibproxy) and
+	SOUP_TYPE_GNOME_FEATURES_2_26, which adds "all GNOME-specific
+	features in libsoup 2.26", which is currently just the proxy
+	resolver.
+
+	* libsoup/soup-session-async.c (resolved_proxy_addr): set
+	item->resolved_proxy_addr
+	(run_queue): resolve the proxy if !item->resolved_proxy_addr, not
+	if !item->proxy_addr, since the proxy addr might resolve to NULL.
+
+	* tests/Makefile.am (get_LDADD):
+	* tests/get.c: If we built libsoup-gnome, use it in "get" for
+	automatic proxy support
+
+2008-10-31  Dan Winship  <danw@gnome.org>
+
 	* libsoup-2.4.pc.in: rename from libsoup.pc.in; the attempt to
 	keep the source tree API-version-generic wasn't really working,
 	and we're probably not ever going to change the API version again
