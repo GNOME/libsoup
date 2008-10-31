@@ -169,6 +169,46 @@ AC_SUBST(SSL_REQUIREMENT)
 dnl This is not supposed to be conditional, but...
 AM_CONDITIONAL(HAVE_SSL, test $enable_ssl != no)
 
+
+dnl *********************
+dnl *** GNOME support ***
+dnl *********************
+AC_MSG_CHECKING(whether to build libsoup-gnome)
+AC_ARG_WITH(gnome,
+	    AS_HELP_STRING([--without-gnome], [Do not build libsoup-gnome]),
+	    :, [if test $os_win32 = yes; then with_gnome=no; else with_gnome=yes; fi])
+AC_MSG_RESULT($with_gnome)
+
+AM_CONDITIONAL(BUILD_LIBSOUP_GNOME, test $with_gnome != no)
+
+if test $with_gnome != no; then
+	AC_DEFINE(HAVE_GNOME, 1, [Defined if GNOME support is enabled])
+
+	PKG_CHECK_MODULES(LIBPROXY, libproxy-1.0,
+			  have_libproxy=yes, have_libproxy=no)
+	if test $have_libproxy = yes; then
+		AC_DEFINE(HAVE_LIBPROXY, 1, [Defined if libproxy support is enabled])
+	else
+		PKG_CHECK_MODULES(GCONF, gconf-2.0, , [AC_MSG_ERROR(dnl
+[Could not find libproxy or GConf:
+
+$LIBPROXY_PKG_ERRORS
+
+$GCONF_PKG_ERRORS
+
+One or the other is required for GNOME proxy support.
+Pass "--without-gnome" to configure if you want to build without GNOME support.])])
+	fi
+fi
+AC_SUBST(HAVE_GNOME)
+AC_SUBST(GCONF_CFLAGS)
+AC_SUBST(GCONF_LIBS)
+AC_SUBST(HAVE_LIBPROXY)
+AC_SUBST(LIBPROXY_CFLAGS)
+AC_SUBST(LIBPROXY_LIBS)
+AM_CONDITIONAL(WITH_LIBPROXY, [test -n "$LIBPROXY_LIBS"])
+
+
 dnl ***************
 dnl *** gtk-doc ***
 dnl ***************
@@ -318,6 +358,7 @@ dnl *************************
 
 AC_OUTPUT([
 	libsoup-2.4.pc
+	libsoup-gnome-2.4.pc
 	Makefile
 	libsoup-zip
 	libsoup/Makefile

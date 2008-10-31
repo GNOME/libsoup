@@ -170,6 +170,7 @@ resolved_proxy_addr (SoupProxyResolver *proxy_resolver, SoupMessage *msg,
 	}
 
 	item->resolving_proxy_addr = FALSE;
+	item->resolved_proxy_addr = TRUE;
 	item->proxy_addr = proxy_addr ? g_object_ref (proxy_addr) : NULL;
 
 	soup_message_queue_item_unref (item);
@@ -261,7 +262,7 @@ run_queue (SoupSessionAsync *sa)
 			resolve_msg_addr (item);
 			continue;
 		}
-		if (proxy_resolver && !item->proxy_addr) {
+		if (proxy_resolver && !item->resolved_proxy_addr) {
 			resolve_proxy_addr (item, proxy_resolver);
 			continue;
 		}
@@ -309,6 +310,7 @@ request_restarted (SoupMessage *req, gpointer user_data)
 		g_object_unref (item->proxy_addr);
 		item->proxy_addr = NULL;
 	}
+	item->resolved_proxy_addr = FALSE;
 
 	run_queue ((SoupSessionAsync *)item->session);
 }

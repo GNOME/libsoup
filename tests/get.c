@@ -3,6 +3,10 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -12,7 +16,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef HAVE_GNOME
+#include <libsoup/soup-gnome.h>
+#else
 #include <libsoup/soup.h>
+#endif
 
 #ifdef G_OS_WIN32
 #include <io.h>
@@ -285,12 +293,18 @@ main (int argc, char **argv)
 		session = soup_session_sync_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 			SOUP_SESSION_PROXY_URI, proxy,
+#ifdef HAVE_GNOME
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
+#endif
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	} else {
 		session = soup_session_async_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 			SOUP_SESSION_PROXY_URI, proxy,
+#ifdef HAVE_GNOME
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
+#endif
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	}

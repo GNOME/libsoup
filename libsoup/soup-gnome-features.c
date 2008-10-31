@@ -1,0 +1,62 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * soup-gnome-features.c: GNOME-specific features
+ *
+ * Copyright (C) 2008 Red Hat, Inc.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "soup-gnome-features.h"
+
+#ifdef HAVE_LIBPROXY
+#include "soup-proxy-resolver-libproxy.h"
+#else
+#include "soup-proxy-resolver-gconf.h"
+#endif
+
+/**
+ * SOUP_TYPE_PROXY_RESOLVER_GNOME:
+ *
+ * This returns the #GType of a #SoupProxyResolver that can be used to
+ * resolve HTTP proxies for GNOME applications. You can add this to
+ * a session using soup_session_add_feature_by_type() or by using the
+ * %SOUP_SESSION_ADD_FEATURE_BY_TIME construct-time property.
+ *
+ * This feature is included in %SOUP_TYPE_GNOME_FEATURES_2_26, so if
+ * you are using that feature, you do not need to include this feature
+ * separately.
+ **/
+GType
+soup_proxy_resolver_gnome_get_type (void)
+{
+#ifdef HAVE_LIBPROXY
+	return SOUP_TYPE_PROXY_RESOLVER_LIBPROXY;
+#else
+	return SOUP_TYPE_PROXY_RESOLVER_GCONF;
+#endif
+}
+
+/**
+ * SOUP_TYPE_GNOME_FEATURES_2_26:
+ *
+ * This returns the #GType of a #SoupSessionFeature that automatically
+ * adds all of the GNOME features defined for libsoup 2.26. At the
+ * moment, this is just %SOUP_TYPE_PROXY_RESOLVER_GNOME.
+ *
+ * You can add this to a session using
+ * soup_session_add_feature_by_type() or by using the
+ * %SOUP_SESSION_ADD_FEATURE_BY_TIME construct-time property.
+ **/
+GType
+soup_gnome_features_2_26_get_type (void)
+{
+	/* Eventually this needs to be a special SoupSessionFeature
+	 * class that registers other features. But for now we can
+	 * just do this:
+	 */
+	return SOUP_TYPE_PROXY_RESOLVER_GNOME;
+}
+

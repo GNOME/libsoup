@@ -153,7 +153,6 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 		}
 	}
 
-
 	conn = soup_session_get_connection (session, msg, proxy_addr,
 					    &try_pruning, &is_new);
 	if (conn) {

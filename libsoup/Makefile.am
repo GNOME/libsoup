@@ -11,6 +11,8 @@ INCLUDES = 				\
 	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
+	$(GCONF_CFLAGS)			\
+	$(LIBPROXY_CFLAGS)		\
 	$(LIBGCRYPT_CFLAGS)		\
 	$(LIBGNUTLS_CFLAGS)
 
@@ -153,6 +155,42 @@ libsoup_2_4_la_SOURCES =		\
 	soup-uri.c			\
 	soup-value-utils.c		\
 	soup-xmlrpc.c
+
+if BUILD_LIBSOUP_GNOME
+
+libsoupgnomeincludedir = $(libsoupincludedir)
+
+libsoupgnomeinclude_HEADERS =	\
+	soup-gnome.h		\
+	soup-gnome-features.h
+
+lib_LTLIBRARIES += libsoup-gnome-2.4.la
+
+libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
+
+libsoup_gnome_2_4_la_LIBADD = libsoup-2.4.la
+
+libsoup_gnome_2_4_la_SOURCES =		\
+	soup-gnome-features.c
+
+if WITH_LIBPROXY
+libsoup_gnome_2_4_la_SOURCES +=		\
+	soup-proxy-resolver-libproxy.h	\
+	soup-proxy-resolver-libproxy.c
+
+libsoup_gnome_2_4_la_LIBADD +=		\
+	$(LIBPROXY_LIBS)
+else
+libsoup_gnome_2_4_la_SOURCES +=		\
+	soup-proxy-resolver-gconf.h	\
+	soup-proxy-resolver-gconf.c
+
+libsoup_gnome_2_4_la_LIBADD +=		\
+	$(GCONF_LIBS)
+endif
+
+endif
+
 
 EXTRA_DIST=				\
 	soup-marshal.list		\

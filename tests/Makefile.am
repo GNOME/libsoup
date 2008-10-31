@@ -42,6 +42,9 @@ date_SOURCES = date.c $(TEST_SRCS)
 dns_SOURCES = dns.c
 forms_test_SOURCES = forms-test.c $(TEST_SRCS)
 get_SOURCES = get.c
+if BUILD_LIBSOUP_GNOME
+get_LDADD = $(top_srcdir)/libsoup/libsoup-gnome-2.4.la
+endif
 getbug_SOURCES = getbug.c
 header_parsing_SOURCES = header-parsing.c $(TEST_SRCS)
 misc_test_SOURCES = misc-test.c $(TEST_SRCS)
