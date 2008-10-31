@@ -1,5 +1,24 @@
 2008-10-31  Dan Winship  <danw@gnome.org>
 
+	* libsoup-2.4.pc.in: rename from libsoup.pc.in; the attempt to
+	keep the source tree API-version-generic wasn't really working,
+	and we're probably not ever going to change the API version again
+	anyway.
+
+	* Makefile.am (pkgconfig_DATA): install the .pc file the normal
+	way rather than using an install-data-local rule to rename the .pc
+	file as we install it
+
+	* libsoup/Makefile.am (libsoupincludedir):
+	* tests/Makefile.am (LIBS):
+	* docs/reference/Makefile.am (GTKDOC_LIBS): Say "2.4" everywhere,
+	instead of 2.4 in some places and $(SOUP_API_VERSION) in others.
+
+	* configure.in: updates for .pc renaming. Also, use
+	AS_HELP_STRING() in AC_ARG_ENABLE() and AC_ARG_WITH() rules
+
+2008-10-31  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-proxy-resolver.c: new abstract base class for a
 	SoupSessionFeature that determines what proxy to use for a given
 	URI.

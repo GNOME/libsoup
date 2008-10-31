@@ -43,7 +43,7 @@ BUILT_SOURCES = $(MARSHAL_GENERATED) $(MKENUMS_GENERATED)
 
 CLEANFILES = $(MARSHAL_GENERATED) $(MKENUMS_GENERATED)
 
-libsoupincludedir = $(includedir)/libsoup-$(SOUP_API_VERSION)/libsoup
+libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
 soup_headers =			\
 	soup.h			\
