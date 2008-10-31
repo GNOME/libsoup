@@ -408,20 +408,6 @@ socket_disconnected (SoupSocket *sock, gpointer conn)
 	soup_connection_disconnect (conn);
 }
 
-static inline guint
-proxified_status (SoupConnectionPrivate *priv, guint status)
-{
-	if (!priv->proxy_addr)
-		return status;
-
-	if (status == SOUP_STATUS_CANT_RESOLVE)
-		return SOUP_STATUS_CANT_RESOLVE_PROXY;
-	else if (status == SOUP_STATUS_CANT_CONNECT)
-		return SOUP_STATUS_CANT_CONNECT_PROXY;
-	else
-		return status;
-}
-
 static SoupMessage *
 connect_message (SoupConnectionPrivate *priv)
 {
@@ -460,8 +446,9 @@ tunnel_connect_finished (SoupMessage *msg, gpointer user_data)
 		status = SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED;
 	}
 
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (priv, status));
+	if (priv->proxy_addr)
+		status = soup_status_proxify (status);
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 	g_object_unref (msg);
 }
 
@@ -528,8 +515,9 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	start_idle_timer (conn);
 
  done:
-	g_signal_emit (conn, signals[CONNECT_RESULT], 0,
-		       proxified_status (priv, status));
+	if (priv->proxy_addr)
+		status = soup_status_proxify (status);
+	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 }
 
 /* from soup-misc.c... will eventually go away */
@@ -669,7 +657,8 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 	}
 
-	status = proxified_status (priv, status);
+	if (priv->proxy_addr)
+		status = soup_status_proxify (status);
 	g_signal_emit (conn, signals[CONNECT_RESULT], 0, status);
 	return status;
 }

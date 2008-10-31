@@ -248,6 +248,26 @@ soup_status_get_phrase (guint status_code)
 	return "Unknown Error";
 }
 
+/**
+ * soup_status_proxify:
+ * @status: a status code
+ *
+ * Turns SOUP_STATUS_CANT_RESOLVE into SOUP_STATUS_CANT_RESOLVE_PROXY
+ * and SOUP_STATUS_CANT_CONNECT into SOUP_STATUS_CANT_CONNECT_PROXY.
+ * Other status codes are passed through unchanged.
+ *
+ * Return value: the "proxified" equivalent of @status.
+ **/
+guint
+soup_status_proxify (guint status_code)
+{
+	if (status_code == SOUP_STATUS_CANT_RESOLVE)
+		return SOUP_STATUS_CANT_RESOLVE_PROXY;
+	else if (status_code == SOUP_STATUS_CANT_CONNECT)
+		return SOUP_STATUS_CANT_CONNECT_PROXY;
+	else
+		return status_code;
+}
 
 GQuark
 soup_http_error_quark (void)

@@ -26,13 +26,14 @@ struct SoupMessageQueueItem {
 	gpointer callback_data;
 
 	GCancellable *cancellable;
-	SoupAddress *msg_addr;
+	SoupAddress *msg_addr, *proxy_addr;
 
 	guint resolving_msg_addr   : 1;
+	guint resolving_proxy_addr : 1;
 
 	/*< private >*/
 	guint removed              : 1;
-	guint ref_count            : 30;
+	guint ref_count            : 29;
 	SoupMessageQueueItem *prev, *next;
 };
 

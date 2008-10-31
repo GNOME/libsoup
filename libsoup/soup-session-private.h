@@ -9,6 +9,7 @@
 #include "soup-session.h"
 #include "soup-connection.h"
 #include "soup-message-queue.h"
+#include "soup-proxy-resolver.h"
 
 G_BEGIN_DECLS
 
@@ -17,9 +18,12 @@ SoupMessageQueue *soup_session_get_queue            (SoupSession *session);
 
 SoupConnection   *soup_session_get_connection       (SoupSession *session,
 						     SoupMessage *msg,
+						     SoupAddress *proxy,
 						     gboolean    *try_pruning,
 						     gboolean    *is_new);
 gboolean          soup_session_try_prune_connection (SoupSession *session);
+
+SoupProxyResolver *soup_session_get_proxy_resolver  (SoupSession *session);
 
 G_END_DECLS
 

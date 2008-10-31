@@ -92,6 +92,7 @@ typedef enum {
 } SoupKnownStatusCode;
 
 const char *soup_status_get_phrase (guint status_code);
+guint       soup_status_proxify    (guint status_code);
 
 #define SOUP_HTTP_ERROR soup_http_error_quark()
 GQuark soup_http_error_quark (void);

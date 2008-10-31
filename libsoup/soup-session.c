@@ -22,6 +22,7 @@
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
+#include "soup-proxy-resolver-static.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
 #include "soup-session-private.h"
@@ -63,9 +64,7 @@ typedef struct {
 } SoupSessionHost;
 
 typedef struct {
-	SoupURI *proxy_uri;
-	SoupAddress *proxy_addr;
-	SoupAuth *proxy_auth;
+	SoupProxyResolver *proxy_resolver;
 
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
@@ -224,11 +223,6 @@ finalize (GObject *object)
 
 	if (priv->auth_manager)
 		g_object_unref (priv->auth_manager);
-
-	if (priv->proxy_uri)
-		soup_uri_free (priv->proxy_uri);
-	if (priv->proxy_addr)
-		g_object_unref (priv->proxy_addr);
 
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
@@ -506,18 +500,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 }
 
 static gboolean
-safe_uri_equal (SoupURI *a, SoupURI *b)
-{
-	if (!a && !b)
-		return TRUE;
-
-	if ((a && !b) || (b && !a))
-		return FALSE;
-
-	return soup_uri_equal (a, b);
-}
-
-static gboolean
 safe_str_equal (const char *a, const char *b)
 {
 	if (!a && !b)
@@ -536,7 +518,6 @@ set_property (GObject *object, guint prop_id,
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupURI *uri;
-	gboolean need_abort = FALSE;
 	gboolean ca_file_changed = FALSE;
 	const char *new_ca_file, *user_agent;
 
@@ -544,24 +525,16 @@ set_property (GObject *object, guint prop_id,
 	case PROP_PROXY_URI:
 		uri = g_value_get_boxed (value);
 
-		if (!safe_uri_equal (priv->proxy_uri, uri))
-			need_abort = TRUE;
+		if (uri) {
+			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
+			priv->proxy_resolver = soup_proxy_resolver_static_new (uri);
+			soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->proxy_resolver));
+			g_object_unref (priv->proxy_resolver);
+		} else if (priv->proxy_resolver && SOUP_IS_PROXY_RESOLVER_STATIC (priv->proxy_resolver))
+			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
 
-		if (priv->proxy_uri)
-			soup_uri_free (priv->proxy_uri);
-		if (priv->proxy_addr)
-			g_object_unref (priv->proxy_addr);
-
-		priv->proxy_uri = uri ? soup_uri_copy (uri) : NULL;
-		priv->proxy_addr = uri ?
-			soup_address_new (uri->host, uri->port) :
-			NULL;
-
-		if (need_abort) {
-			soup_session_abort (session);
-			cleanup_hosts (priv);
-		}
-
+		soup_session_abort (session);
+		cleanup_hosts (priv);
 		break;
 	case PROP_MAX_CONNS:
 		priv->max_conns = g_value_get_int (value);
@@ -643,7 +616,12 @@ get_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
-		g_value_set_boxed (value, priv->proxy_uri);
+		if (priv->proxy_resolver && SOUP_IS_PROXY_RESOLVER_STATIC (priv->proxy_resolver)) {
+			g_object_get_property (G_OBJECT (priv->proxy_resolver),
+					       SOUP_PROXY_RESOLVER_STATIC_PROXY_URI,
+					       value);
+		} else
+			g_value_set_boxed (value, NULL);
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);
@@ -1008,6 +986,7 @@ connect_result (SoupConnection *conn, guint status, gpointer user_data)
  **/
 SoupConnection *
 soup_session_get_connection (SoupSession *session, SoupMessage *msg,
+			     SoupAddress *proxy_addr,
 			     gboolean *try_pruning, gboolean *is_new)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
@@ -1058,7 +1037,7 @@ soup_session_get_connection (SoupSession *session, SoupMessage *msg,
 
 	conn = soup_connection_new (
 		SOUP_CONNECTION_SERVER_ADDRESS, host->addr,
-		SOUP_CONNECTION_PROXY_ADDRESS, priv->proxy_addr,
+		SOUP_CONNECTION_PROXY_ADDRESS, proxy_addr,
 		SOUP_CONNECTION_SSL_CREDENTIALS, ssl_creds,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
@@ -1371,6 +1350,9 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
 	soup_session_feature_attach (feature, session);
+
+	if (SOUP_IS_PROXY_RESOLVER (feature))
+		priv->proxy_resolver = SOUP_PROXY_RESOLVER (feature);
 }
 
 /**
@@ -1416,6 +1398,9 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 		priv->features = g_slist_remove (priv->features, feature);
 		soup_session_feature_detach (feature, session);
 		g_object_unref (feature);
+
+		if (feature == (SoupSessionFeature *)priv->proxy_resolver)
+			priv->proxy_resolver = NULL;
 	}
 }
 
@@ -1445,4 +1430,12 @@ restart:
 			goto restart;
 		}
 	}
+}
+
+SoupProxyResolver *
+soup_session_get_proxy_resolver (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	return priv->proxy_resolver;
 }

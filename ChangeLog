@@ -1,3 +1,37 @@
+2008-10-31  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-proxy-resolver.c: new abstract base class for a
+	SoupSessionFeature that determines what proxy to use for a given
+	URI.
+
+	* libsoup/soup-proxy-resolver-static.c: a SoupProxyResolver that
+	always returns the same value.
+
+	* libsoup/soup-session.c (set_property, get_property): implement
+	the SOUP_SESSION_PROXY_URI property by creating/destroying a
+	SoupProxyResolverStatic as needed.
+	(soup_session_get_connection): Use the proxy address passed by the
+	caller rather than priv->proxy_uri.
+
+	* libsoup/soup-session-async.c (run_queue): if the session has a
+	proxy resolver, use it, and pass the resolved proxy to
+	soup_session_get_connection().
+	(request_restarted): clear the previously-resolved proxy address
+	when restarting the message
+
+	* libsoup/soup-session-sync.c (wait_for_connection): if the
+	session has a proxy resolver, use it, and pass the resolved proxy
+	to soup_session_get_connection().
+
+	* libsoup/soup-message-queue.h (SoupMessageQueueItem): add
+	proxy-address-resolving fields
+
+	* libsoup/soup-status.c (soup_status_proxify): moved from
+	soup-connection; turn SOUP_STATUS_CANT_RESOLVE into
+	SOUP_STATUS_CANT_RESOLVE_PROXY, and SOUP_STATUS_CANT_CONNECT into
+	SOUP_STATUS_CANT_CONNECT_PROXY (and pass all other statuses
+	through unchanged)
+
 2008-10-30  Dan Winship  <danw@gnome.org>
 
 	* tests/simple-httpd.c: do directory listings. (wrote this a long

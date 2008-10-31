@@ -149,6 +149,8 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_object_unref (item->cancellable);
 	if (item->msg_addr)
 		g_object_unref (item->msg_addr);
+	if (item->proxy_addr)
+		g_object_unref (item->proxy_addr);
 	g_slice_free (SoupMessageQueueItem, item);
 }
 

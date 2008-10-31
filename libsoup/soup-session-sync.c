@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include "soup-address.h"
 #include "soup-session-sync.h"
 #include "soup-session-private.h"
 #include "soup-address.h"
@@ -130,14 +131,30 @@ static SoupConnection *
 wait_for_connection (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
-	SoupConnection *conn;
 	gboolean try_pruning = FALSE, is_new = FALSE;
+	SoupProxyResolver *proxy_resolver;
+	SoupAddress *proxy_addr = NULL;
+	SoupConnection *conn;
 	guint status;
 
+	proxy_resolver = soup_session_get_proxy_resolver (session);
 	g_mutex_lock (priv->lock);
 
  try_again:
-	conn = soup_session_get_connection (session, msg,
+	if (proxy_addr) {
+		g_object_unref (proxy_addr);
+		proxy_addr = NULL;
+	}
+	if (proxy_resolver) {
+		status = soup_proxy_resolver_get_proxy_sync (proxy_resolver, msg, NULL, &proxy_addr);
+		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			soup_session_cancel_message (session, msg, status);
+			return NULL;
+		}
+	}
+
+
+	conn = soup_session_get_connection (session, msg, proxy_addr,
 					    &try_pruning, &is_new);
 	if (conn) {
 		if (is_new) {
