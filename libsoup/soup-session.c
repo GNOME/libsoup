@@ -1257,7 +1257,6 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 
 	item = soup_message_queue_lookup (priv->queue, msg);
 	if (item) {
-		soup_message_queue_remove (priv->queue, item);
 		if (item->cancellable)
 			g_cancellable_cancel (item->cancellable);
 		soup_message_queue_item_unref (item);

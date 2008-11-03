@@ -1,5 +1,23 @@
 2008-11-03  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session-sync.c (process_queue_item): don't remove
+	the item from the queue here; it should already have happened in
+	all circumstances. Possible fix for #559052.
+
+	* libsoup/soup-session.c (cancel_message): don't remove the item
+	from the queue here; the call to soup_message_finished() will do
+	that.
+
+	* libsoup/soup-message-queue.c (soup_message_queue_remove): This
+	should only be called once, so g_return_if_fail (!item->removed)
+
+	* tests/test-utils.c (test_init): install a new default g_log
+	handler that increments the error count when it's called so that a
+	test won't pass if it triggers a g_warning() or
+	g_return_if_fail().
+
+2008-11-03  Dan Winship  <danw@gnome.org>
+
 	* tests/Makefile.am (get_LDADD): fix srcdir/builddir mixup.
 
 2008-11-03  Dan Winship  <danw@gnome.org>

@@ -62,6 +62,15 @@ quit (int sig)
 	exit (1);
 }
 
+static void
+test_log_handler (const char *log_domain, GLogLevelFlags log_level,
+		  const char *message, gpointer user_data)
+{
+	g_log_default_handler (log_domain, log_level, message, user_data);
+	if (log_level & (G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL))
+		errors++;
+}
+
 void
 test_init (int argc, char **argv, GOptionEntry *entries)
 {
@@ -95,6 +104,8 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 
 	/* Exit cleanly on ^C in case we're valgrinding. */
 	signal (SIGINT, quit);
+
+	g_log_set_default_handler (test_log_handler, NULL);
 }
 
 void

@@ -222,8 +222,6 @@ process_queue_item (SoupMessageQueueItem *item)
 		soup_connection_send_request (conn, msg);
 		g_cond_broadcast (priv->cond);
 	} while (soup_message_get_io_status (msg) != SOUP_MESSAGE_IO_STATUS_FINISHED);
-
-	soup_message_queue_remove (item->queue, item);
 }
 
 static gboolean

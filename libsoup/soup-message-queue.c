@@ -254,6 +254,8 @@ soup_message_queue_next (SoupMessageQueue *queue, SoupMessageQueueItem *item)
 void
 soup_message_queue_remove (SoupMessageQueue *queue, SoupMessageQueueItem *item)
 {
+	g_return_if_fail (!item->removed);
+
 	g_mutex_lock (queue->mutex);
 	item->removed = TRUE;
 	g_mutex_unlock (queue->mutex);
