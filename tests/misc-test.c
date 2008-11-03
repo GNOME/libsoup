@@ -18,7 +18,14 @@
 
 #include "test-utils.h"
 
-static char *base_uri;
+SoupURI *base_uri;
+
+static gboolean
+auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+	       const char *username, const char *password, gpointer data)
+{
+	return !strcmp (username, "user") && !strcmp (password, "password");
+}
 
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
@@ -29,6 +36,17 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+		return;
+	}
+
+	if (!strcmp (path, "/redirect")) {
+		soup_message_set_status (msg, SOUP_STATUS_FOUND);
+		soup_message_headers_append (msg->response_headers,
+					     /* Kids: don't try this at home!
+					      * RFC2616 says to use an
+					      * absolute URI!
+					      */
+					     "Location", "/");
 		return;
 	}
 
@@ -58,8 +76,8 @@ do_host_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
-	one = soup_message_new ("GET", base_uri);
-	two = soup_message_new ("GET", base_uri);
+	one = soup_message_new_from_uri ("GET", base_uri);
+	two = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_headers_replace (two->request_headers, "Host", "foo");
 
 	soup_session_send_message (session, one);
@@ -134,7 +152,7 @@ do_callback_unref_test (void)
 	GMainLoop *loop;
 	char *bad_uri;
 
-	debug_printf (1, "Callback unref handling\n");
+	debug_printf (1, "\nCallback unref handling\n");
 
 	/* Get a guaranteed-bad URI */
 	bad_server = soup_server_new (NULL, NULL);
@@ -181,22 +199,116 @@ do_callback_unref_test (void)
 	/* Otherwise, if we haven't crashed, we're ok. */
 }
 
+/* SoupSession should clean up all signal handlers on a message after
+ * it is finished, allowing the message to be reused if desired.
+ * #559054
+ */
+static void
+ensure_no_signal_handlers (SoupMessage *msg)
+{
+	static guint *ids, n_ids;
+	int i;
+
+	if (!ids)
+		ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_ids);
+
+	for (i = 0; i < n_ids; i++) {
+		if (g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, ids[i],
+					   0, NULL, NULL, NULL)) {
+			debug_printf (1, "    Message has handler for '%s'\n",
+				      g_signal_name (ids[i]));
+			errors++;
+		}
+	}
+}
+
+static void
+reuse_test_authenticate (SoupSession *session, SoupMessage *msg,
+			 SoupAuth *auth, gboolean retrying)
+{
+	/* Get it wrong the first time, then succeed */
+	if (!retrying)
+		soup_auth_authenticate (auth, "user", "wrong password");
+	else
+		soup_auth_authenticate (auth, "user", "password");
+}
+
+static void
+do_msg_reuse_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+
+	debug_printf (1, "\nSoupMessage reuse\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (reuse_test_authenticate), NULL);
+
+	debug_printf (1, "  First message\n");
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_send_message (session, msg);
+	ensure_no_signal_handlers (msg);
+
+	debug_printf (1, "  Redirect message\n");
+	uri = soup_uri_new_with_base (base_uri, "/redirect");
+	soup_message_set_uri (msg, uri);
+	soup_uri_free (uri);
+	soup_session_send_message (session, msg);
+	if (!soup_uri_equal (soup_message_get_uri (msg), base_uri)) {
+		debug_printf (1, "    Message did not get redirected!\n");
+		errors++;
+	}
+	ensure_no_signal_handlers (msg);
+
+	debug_printf (1, "  Auth message\n");
+	uri = soup_uri_new_with_base (base_uri, "/auth");
+	soup_message_set_uri (msg, uri);
+	soup_uri_free (uri);
+	soup_session_send_message (session, msg);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "    Message did not get authenticated!\n");
+		errors++;
+	}
+	ensure_no_signal_handlers (msg);
+
+	/* One last try to make sure the auth stuff got cleaned up */
+	debug_printf (1, "  Last message\n");
+	soup_message_set_uri (msg, base_uri);
+	soup_session_send_message (session, msg);
+	ensure_no_signal_handlers (msg);
+
+	soup_test_session_abort_unref (session);
+	g_object_unref (msg);
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	SoupAuthDomain *auth_domain;
 
 	test_init (argc, argv, NULL);
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = g_strdup_printf ("http://localhost:%u/",
-				    soup_server_get_port (server));
+	base_uri = soup_uri_new ("http://localhost/");
+	soup_uri_set_port (base_uri, soup_server_get_port (server));
+
+	auth_domain = soup_auth_domain_basic_new (
+		SOUP_AUTH_DOMAIN_REALM, "misc-test",
+		SOUP_AUTH_DOMAIN_ADD_PATH, "/auth",
+		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+		NULL);
+	soup_server_add_auth_domain (server, auth_domain);
+	g_object_unref (auth_domain);
 
 	do_host_test ();
 	do_callback_unref_test ();
+	do_msg_reuse_test ();
 
-	g_free (base_uri);
+	soup_uri_free (base_uri);
 
 	test_cleanup ();
 	return errors != 0;

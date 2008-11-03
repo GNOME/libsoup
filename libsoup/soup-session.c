@@ -1089,8 +1089,13 @@ message_finished (SoupMessage *msg, gpointer user_data)
 
 	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
 		soup_message_queue_remove (priv->queue, item);
-		g_signal_handlers_disconnect_by_func (msg, message_finished, session);
-		g_signal_handlers_disconnect_by_func (msg, redirect_handler, session);
+		g_signal_handlers_disconnect_by_func (msg, message_finished, item);
+		/* g_signal_handlers_disconnect_by_func doesn't work if you
+		 * have a metamarshal, meaning it doesn't work with
+		 * soup_message_add_header_handler()
+		 */
+		g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+						      0, 0, NULL, NULL, session);
 		g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, msg);
 		soup_message_queue_item_unref (item);
 	}

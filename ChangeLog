@@ -1,3 +1,17 @@
+2008-11-03  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (message_finished): Fix the signal
+	handler disconnection here: for "finished" we were passing the
+	wrong user_data to g_signal_handlers_disconnect_by_func(), and for
+	"got_body" it turns out you can't use _disconnect_by_func() when
+	there's a metamarshal, making it incompatible
+	withsoup_message_add_header_handler(). Fixes a crash in
+	evolution-exchange, #559054.
+
+	* tests/misc-test.c (do_msg_reuse_test): Ensure that SoupSession
+	and its features disconnect all of their signals from a message
+	when they're done with it.
+
 2008-10-31  Dan Winship  <danw@gnome.org>
 
 	Add libsoup-gnome, for new features that depend on GNOME
