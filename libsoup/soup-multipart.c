@@ -61,6 +61,10 @@ generate_boundary (void)
 		int counter;
 	} data;
 
+	/* avoid valgrind warning */
+	if (sizeof (data) != sizeof (data.timeval) + sizeof (data.counter))
+		memset (&data, 0, sizeof (data));
+
 	g_get_current_time (&data.timeval);
 	data.counter = counter++;
 

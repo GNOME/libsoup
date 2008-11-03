@@ -204,19 +204,15 @@ do_callback_unref_test (void)
  * #559054
  */
 static void
-ensure_no_signal_handlers (SoupMessage *msg)
+ensure_no_signal_handlers (SoupMessage *msg, guint *signal_ids, guint n_signal_ids)
 {
-	static guint *ids, n_ids;
 	int i;
 
-	if (!ids)
-		ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_ids);
-
-	for (i = 0; i < n_ids; i++) {
-		if (g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, ids[i],
+	for (i = 0; i < n_signal_ids; i++) {
+		if (g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, signal_ids[i],
 					   0, NULL, NULL, NULL)) {
 			debug_printf (1, "    Message has handler for '%s'\n",
-				      g_signal_name (ids[i]));
+				      g_signal_name (signal_ids[i]));
 			errors++;
 		}
 	}
@@ -239,8 +235,11 @@ do_msg_reuse_test (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
+	guint *signal_ids, n_signal_ids;
 
 	debug_printf (1, "\nSoupMessage reuse\n");
+
+	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	g_signal_connect (session, "authenticate",
@@ -249,7 +248,7 @@ do_msg_reuse_test (void)
 	debug_printf (1, "  First message\n");
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_session_send_message (session, msg);
-	ensure_no_signal_handlers (msg);
+	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Redirect message\n");
 	uri = soup_uri_new_with_base (base_uri, "/redirect");
@@ -260,7 +259,7 @@ do_msg_reuse_test (void)
 		debug_printf (1, "    Message did not get redirected!\n");
 		errors++;
 	}
-	ensure_no_signal_handlers (msg);
+	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Auth message\n");
 	uri = soup_uri_new_with_base (base_uri, "/auth");
@@ -271,16 +270,17 @@ do_msg_reuse_test (void)
 		debug_printf (1, "    Message did not get authenticated!\n");
 		errors++;
 	}
-	ensure_no_signal_handlers (msg);
+	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	/* One last try to make sure the auth stuff got cleaned up */
 	debug_printf (1, "  Last message\n");
 	soup_message_set_uri (msg, base_uri);
 	soup_session_send_message (session, msg);
-	ensure_no_signal_handlers (msg);
+	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	soup_test_session_abort_unref (session);
 	g_object_unref (msg);
+	g_free (signal_ids);
 }
 
 int

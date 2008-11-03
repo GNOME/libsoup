@@ -141,10 +141,6 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	g_mutex_lock (priv->lock);
 
  try_again:
-	if (proxy_addr) {
-		g_object_unref (proxy_addr);
-		proxy_addr = NULL;
-	}
 	if (proxy_resolver) {
 		status = soup_proxy_resolver_get_proxy_sync (proxy_resolver, msg, NULL, &proxy_addr);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
@@ -155,6 +151,8 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 
 	conn = soup_session_get_connection (session, msg, proxy_addr,
 					    &try_pruning, &is_new);
+	if (proxy_addr)
+		g_object_unref (proxy_addr);
 	if (conn) {
 		if (is_new) {
 			status = soup_connection_connect_sync (conn);

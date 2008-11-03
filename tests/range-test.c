@@ -364,6 +364,7 @@ main (int argc, char **argv)
 	base_uri = g_strdup_printf ("http://localhost:%u/",
 				    soup_server_get_port (server));
 	do_range_test (session, base_uri, TRUE);
+	g_free (base_uri);
 
 	soup_test_session_abort_unref (session);
 

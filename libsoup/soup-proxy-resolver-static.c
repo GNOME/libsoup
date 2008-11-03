@@ -201,8 +201,14 @@ get_proxy_sync (SoupProxyResolver  *proxy_resolver,
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (proxy_resolver);
+	guint status;
 
 	*addr = soup_address_new (priv->proxy_uri->host,
 				  priv->proxy_uri->port);
-	return soup_status_proxify (soup_address_resolve_sync (*addr, cancellable));
+	status = soup_status_proxify (soup_address_resolve_sync (*addr, cancellable));
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		g_object_unref (*addr);
+		*addr = NULL;
+	}
+	return status;
 }

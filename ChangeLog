@@ -1,5 +1,25 @@
 2008-11-03  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-message-headers.c (set_content_foo): don't leak the
+	header string
+
+	* libsoup/soup-multipart.c (generate_boundary): avoid a (harmless)
+	valgrind warning
+
+	* libsoup/soup-proxy-resolver-static.c (get_proxy_sync): don't
+	leak the address on error
+
+	* libsoup/soup-session-sync.c (wait_for_connection): don't leak
+	proxy_addr
+
+	* tests/misc-test.c: don't leak the SoupMessage signal ids
+
+	* tests/range-test.c (main): don't leak base_uri
+
+	* tests/libsoup.supp: update this using lots and lots of wildcards
+
+2008-11-03  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-session.c (message_finished): Fix the signal
 	handler disconnection here: for "finished" we were passing the
 	wrong user_data to g_signal_handlers_disconnect_by_func(), and for

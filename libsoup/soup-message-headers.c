@@ -1002,8 +1002,8 @@ set_content_foo (SoupMessageHeaders *hdrs, const char *header_name,
 		}
 	}
 
-	soup_message_headers_replace (hdrs, header_name,
-				      g_string_free (str, FALSE));
+	soup_message_headers_replace (hdrs, header_name, str->str);
+	g_string_free (str, TRUE);
 }
 
 static void
