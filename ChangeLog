@@ -27,14 +27,16 @@
 
 	* libsoup/soup-cookie-jar-text.c: implementation of SoupCookieJar
 	that persists to a text file in the old Mozilla cookies.txt
-	format.
+	format. Written by Xan Lopez and myself.
 
 	* libsoup/soup-cookie-jar-sqlite.c: implementation of
 	SoupCookieJar that persists to an sqlite database in the new
-	Mozilla cookies.sqlite format. (Part of libsoup-gnome.)
+	Mozilla cookies.sqlite format. (Part of libsoup-gnome.) Written by
+	Diego Escalante Urrelo, based on soup-cookie-jar-text.c.
 
 	* libsoup/soup-cookie-jar.c: add various functionality needed by
-	the two new subclasses. Does not break API/ABI compat with 2.24.
+	the two new subclasses. (Mostly written by Xan.) Does not break
+	API/ABI compat with 2.24.
 
 	* libsoup/soup-cookie.c (soup_cookie_get_type): register
 	SoupCookie as a boxed type.
