@@ -1,3 +1,24 @@
+2008-11-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie-jar-text.c: implementation of SoupCookieJar
+	that persists to a text file in the old Mozilla cookies.txt
+	format.
+
+	* libsoup/soup-cookie-jar-sqlite.c: implementation of
+	SoupCookieJar that persists to an sqlite database in the new
+	Mozilla cookies.sqlite format. (Part of libsoup-gnome.)
+
+	* libsoup/soup-cookie-jar.c: add various functionality needed by
+	the two new subclasses. Does not break API/ABI compat with 2.24.
+
+	* libsoup/soup-cookie.c (soup_cookie_get_type): register
+	SoupCookie as a boxed type.
+	(domain_matches): fix a bug here that meant "foo.com" couldn't set
+	a cookie for domain=.foo.com
+	(soup_cookie_applies_to_uri): fix path checking
+
+	* configure.in: if building --with-gnome, require sqlite3
+
 2008-11-03  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session-sync.c (process_queue_item): don't remove

@@ -15,6 +15,7 @@
 #include "soup-cookie.h"
 #include "soup-cookie-jar.h"
 #include "soup-date.h"
+#include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-session-feature.h"
 #include "soup-uri.h"
@@ -45,10 +46,31 @@ G_DEFINE_TYPE_WITH_CODE (SoupCookieJar, soup_cookie_jar, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_cookie_jar_session_feature_init))
 
+enum {
+	CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
+enum {
+	PROP_0,
+
+	PROP_READ_ONLY,
+
+	LAST_PROP
+};
+
 typedef struct {
+	gboolean constructed, read_only;
 	GHashTable *domains;
 } SoupCookieJarPrivate;
 #define SOUP_COOKIE_JAR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR, SoupCookieJarPrivate))
+
+static void set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec);
+static void get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec);
 
 static void
 soup_cookie_jar_init (SoupCookieJar *jar)
@@ -57,6 +79,14 @@ soup_cookie_jar_init (SoupCookieJar *jar)
 
 	priv->domains = g_hash_table_new_full (g_str_hash, g_str_equal,
 					       g_free, NULL);
+}
+
+static void
+constructed (GObject *object)
+{
+	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (object);
+
+	priv->constructed = TRUE;
 }
 
 static void
@@ -81,7 +111,29 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 
 	g_type_class_add_private (jar_class, sizeof (SoupCookieJarPrivate));
 
+	object_class->constructed = constructed;
 	object_class->finalize = finalize;
+	object_class->set_property = set_property;
+	object_class->get_property = get_property;
+
+	signals[CHANGED] =
+		g_signal_new ("changed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupCookieJarClass, changed),
+			      NULL, NULL,
+			      soup_marshal_NONE__BOXED_BOXED,
+			      G_TYPE_NONE, 2, 
+			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE,
+			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE);
+
+	g_object_class_install_property (
+		object_class, PROP_READ_ONLY,
+		g_param_spec_boolean (SOUP_COOKIE_JAR_READ_ONLY,
+				      "Read-only",
+				      "Whether or not the cookie jar is read-only",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -93,10 +145,45 @@ soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_inter
 	feature_interface->request_unqueued = request_unqueued;
 }
 
+static void
+set_property (GObject *object, guint prop_id,
+	      const GValue *value, GParamSpec *pspec)
+{
+	SoupCookieJarPrivate *priv =
+		SOUP_COOKIE_JAR_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_READ_ONLY:
+		priv->read_only = g_value_get_boolean (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+get_property (GObject *object, guint prop_id,
+	      GValue *value, GParamSpec *pspec)
+{
+	SoupCookieJarPrivate *priv =
+		SOUP_COOKIE_JAR_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_READ_ONLY:
+		g_value_set_boolean (value, priv->read_only);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
 /**
  * soup_cookie_jar_new:
  *
- * Creates a new #SoupCookieJar.
+ * Creates a new #SoupCookieJar. The base #SoupCookieJar class does
+ * not support persistent storage of cookies; use a subclass for that.
  *
  * Returns: a new #SoupCookieJar
  **/
@@ -106,18 +193,22 @@ soup_cookie_jar_new (void)
 	return g_object_new (SOUP_TYPE_COOKIE_JAR, NULL);
 }
 
-/**
- * soup_cookie_jar_save:
- * @jar: a SoupCookieJar
- *
- * Tells @jar to save the state of its (non-session) cookies to some
- * sort of permanent storage.
- **/
 void
 soup_cookie_jar_save (SoupCookieJar *jar)
 {
-	if (SOUP_COOKIE_JAR_GET_CLASS (jar)->save)
-		SOUP_COOKIE_JAR_GET_CLASS (jar)->save (jar);
+	/* Does nothing, obsolete */
+}
+
+static void
+soup_cookie_jar_changed (SoupCookieJar *jar,
+			 SoupCookie *old, SoupCookie *new)
+{
+	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+
+	if (priv->read_only || !priv->constructed)
+		return;
+
+	g_signal_emit (jar, signals[CHANGED], 0, old, new);
 }
 
 /**
@@ -148,6 +239,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	SoupCookieJarPrivate *priv;
 	GSList *cookies, *domain_cookies;
 	char *domain, *cur, *next, *result;
+	GSList *new_head, *cookies_to_remove = NULL, *p;
 
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
@@ -161,20 +253,37 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	domain = cur = g_strdup_printf (".%s", uri->host);
 	next = domain + 1;
 	do {
-		domain_cookies = g_hash_table_lookup (priv->domains, cur);
+		new_head = domain_cookies = g_hash_table_lookup (priv->domains, cur);
 		while (domain_cookies) {
+			GSList *next = domain_cookies->next;
 			SoupCookie *cookie = domain_cookies->data;
 
-			if (soup_cookie_applies_to_uri (cookie, uri) &&
-			    (for_http || !cookie->http_only))
+			if (cookie->expires && soup_date_is_past (cookie->expires)) {
+				cookies_to_remove = g_slist_append (cookies_to_remove,
+								    cookie);
+				new_head = g_slist_delete_link (new_head, domain_cookies);
+				g_hash_table_insert (priv->domains,
+						     g_strdup (cur),
+						     new_head);
+			} else if (soup_cookie_applies_to_uri (cookie, uri) &&
+				   (for_http || !cookie->http_only))
 				cookies = g_slist_append (cookies, cookie);
-			domain_cookies = domain_cookies->next;
+
+			domain_cookies = next;
 		}
 		cur = next;
 		if (cur)
 			next = strchr (cur + 1, '.');
 	} while (cur);
 	g_free (domain);
+
+	for (p = cookies_to_remove; p; p = p->next) {
+		SoupCookie *cookie = p->data;
+
+		soup_cookie_jar_changed (jar, cookie, NULL);
+		soup_cookie_free (cookie);
+	}
+	g_slist_free (cookies_to_remove);
 
 	if (cookies) {
 		/* FIXME: sort? */
@@ -185,63 +294,71 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 		return NULL;
 }
 
-static GSList *
-get_cookies_for_domain (SoupCookieJar *jar, const char *domain)
+/**
+ * soup_cookie_jar_add_cookie:
+ * @jar: a #SoupCookieJar
+ * @cookie: a #SoupCookie
+ *
+ * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
+ * an existing cookie or adding a valid new cookie ('valid' means
+ * that the cookie's expire date is not in the past).
+ *
+ * @cookie will be 'stolen' by the jar, so don't free it afterwards.
+ **/
+void
+soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 {
-	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
-	GSList *cookies, *orig_cookies, *c;
-	SoupCookie *cookie;
-
-	cookies = g_hash_table_lookup (priv->domains, domain);
-	c = orig_cookies = cookies;
-	while (c) {
-		cookie = c->data;
-		c = c->next;
-		if (cookie->expires && soup_date_is_past (cookie->expires)) {
-			cookies = g_slist_remove (cookies, cookie);
-			soup_cookie_free (cookie);
-		}
-	}
-
-	if (cookies != orig_cookies)
-		g_hash_table_insert (priv->domains, g_strdup (domain), cookies);
-	return cookies;
-}
-
-static void
-set_cookie (SoupCookieJar *jar, SoupCookie *cookie)
-{
-	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	SoupCookieJarPrivate *priv;
 	GSList *old_cookies, *oc, *prev = NULL;
 	SoupCookie *old_cookie;
 
-	old_cookies = get_cookies_for_domain (jar, cookie->domain);
+	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+	g_return_if_fail (cookie != NULL);
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	old_cookies = g_hash_table_lookup (priv->domains, cookie->domain);
 	for (oc = old_cookies; oc; oc = oc->next) {
 		old_cookie = oc->data;
 		if (!strcmp (cookie->name, old_cookie->name)) {
-			/* The new cookie is a replacement for an old
-			 * cookie. It might be pre-expired, but we
-			 * don't worry about that here;
-			 * get_cookies_for_domain() will delete it
-			 * later.
-			 */
-			soup_cookie_free (old_cookie);
-			oc->data = cookie;
+			if (cookie->expires && soup_date_is_past (cookie->expires)) {
+				/* The new cookie has an expired date,
+				 * this is the way the the server has
+				 * of telling us that we have to
+				 * remove the cookie.
+				 */
+				old_cookies = g_slist_delete_link (old_cookies, oc);
+				g_hash_table_insert (priv->domains,
+						     g_strdup (cookie->domain),
+						     old_cookies);
+				soup_cookie_jar_changed (jar, old_cookie, NULL);
+				soup_cookie_free (old_cookie);
+				soup_cookie_free (cookie);
+			} else {
+				oc->data = cookie;
+				soup_cookie_jar_changed (jar, old_cookie, cookie);
+				soup_cookie_free (old_cookie);
+			}
+
 			return;
 		}
 		prev = oc;
 	}
 
 	/* The new cookie is... a new cookie */
-	if (cookie->expires && soup_date_is_past (cookie->expires))
+	if (cookie->expires && soup_date_is_past (cookie->expires)) {
 		soup_cookie_free (cookie);
-	else if (prev)
+		return;
+	}
+
+	if (prev)
 		prev = g_slist_append (prev, cookie);
 	else {
 		old_cookies = g_slist_append (NULL, cookie);
 		g_hash_table_insert (priv->domains, g_strdup (cookie->domain),
 				     old_cookies);
 	}
+
+	soup_cookie_jar_changed (jar, NULL, cookie);
 }
 
 /**
@@ -264,8 +381,8 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
 	if (soup_cookie) {
-		set_cookie (jar, soup_cookie);
-		/* set_cookie will steal or free soup_cookie */
+		/* will steal or free soup_cookie */
+		soup_cookie_jar_add_cookie (jar, soup_cookie);
 	}
 }
 
@@ -277,7 +394,7 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 
 	new_cookies = soup_cookies_from_response (msg);
 	for (nc = new_cookies; nc; nc = nc->next)
-		set_cookie (jar, nc->data);
+		soup_cookie_jar_add_cookie (jar, nc->data);
 	g_slist_free (new_cookies);
 }
 
@@ -311,3 +428,75 @@ request_unqueued (SoupSessionFeature *feature, SoupSession *session,
 	g_signal_handlers_disconnect_by_func (msg, process_set_cookie_header, feature);
 }
 
+/**
+ * soup_cookie_jar_all_cookies:
+ * @jar: a #SoupCookieJar
+ *
+ * Constructs a #GSList with every cookie inside the @jar.
+ * The cookies in the list are a copy of the original, so
+ * you have to free them when you are done with them.
+ *
+ * Return value: a #GSList with all the cookies in the @jar.
+ **/
+GSList *
+soup_cookie_jar_all_cookies (SoupCookieJar *jar)
+{
+	SoupCookieJarPrivate *priv;
+	GHashTableIter iter;
+	GSList *l = NULL;
+	gpointer key, value;
+
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+
+	g_hash_table_iter_init (&iter, priv->domains);
+
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		GSList *p, *cookies = value;
+		for (p = cookies; p; p = p->next)
+			l = g_slist_prepend (l, soup_cookie_copy (p->data));
+	}
+
+	return l;
+}
+
+/**
+ * soup_cookie_jar_delete_cookie:
+ * @jar: a #SoupCookieJar
+ * @cookie: a #SoupCookie
+ *
+ * Deletes @cookie from @jar, emitting the 'changed' signal.
+ **/
+void
+soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
+			       SoupCookie    *cookie)
+{
+	SoupCookieJarPrivate *priv;
+	GSList *cookies, *p;
+	char *domain;
+
+	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+	g_return_if_fail (cookie != NULL);
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+
+	domain = g_strdup (cookie->domain);
+
+	cookies = g_hash_table_lookup (priv->domains, domain);
+	if (cookies == NULL)
+		return;
+
+	for (p = cookies; p; p = p->next ) {
+		SoupCookie *c = (SoupCookie*)p->data;
+		if (soup_cookie_equal (cookie, c)) {
+			cookies = g_slist_delete_link (cookies, p);
+			g_hash_table_insert (priv->domains,
+					     domain,
+					     cookies);
+			soup_cookie_jar_changed (jar, c, NULL);
+			soup_cookie_free (c);
+			return;
+		}
+	}
+}

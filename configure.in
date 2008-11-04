@@ -199,6 +199,13 @@ $GCONF_PKG_ERRORS
 One or the other is required for GNOME proxy support.
 Pass "--without-gnome" to configure if you want to build without GNOME support.])])
 	fi
+
+	PKG_CHECK_MODULES(SQLITE, sqlite3, :, [AC_MSG_ERROR(dnl
+[Could not find sqlite3 devel files:
+
+$SQLITE_PKG_ERRORS
+
+Pass "--without-gnome" to configure if you want to build without GNOME support.])])
 fi
 AC_SUBST(HAVE_GNOME)
 AC_SUBST(GCONF_CFLAGS)
@@ -207,6 +214,8 @@ AC_SUBST(HAVE_LIBPROXY)
 AC_SUBST(LIBPROXY_CFLAGS)
 AC_SUBST(LIBPROXY_LIBS)
 AM_CONDITIONAL(WITH_LIBPROXY, [test -n "$LIBPROXY_LIBS"])
+AC_SUBST(SQLITE_CFLAGS)
+AC_SUBST(SQLITE_LIBS)
 
 
 dnl ***************

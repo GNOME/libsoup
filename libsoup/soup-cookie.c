@@ -122,6 +122,44 @@
  * have a trailing ";".
  */
 
+GType
+soup_cookie_get_type (void)
+{
+	static volatile gsize type_volatile = 0;
+
+	if (g_once_init_enter (&type_volatile)) {
+		GType type = g_boxed_type_register_static (
+			g_intern_static_string ("SoupCookie"),
+			(GBoxedCopyFunc) soup_cookie_copy,
+			(GBoxedFreeFunc) soup_cookie_free);
+		g_once_init_leave (&type_volatile, type);
+	}
+	return type_volatile;
+}
+
+/**
+ * soup_cookie_copy:
+ * @cookie: a #SoupCookie
+ *
+ * Copies @cookie.
+ **/
+SoupCookie *
+soup_cookie_copy (SoupCookie *cookie)
+{
+	SoupCookie *copy = g_slice_new0 (SoupCookie);
+
+	copy->name = g_strdup (cookie->name);
+	copy->value = g_strdup (cookie->value);
+	copy->domain = g_strdup (cookie->domain);
+	copy->path = g_strdup (cookie->path);
+	if (cookie->expires)
+		copy->expires = soup_date_copy(cookie->expires);
+	copy->secure = cookie->secure;
+	copy->http_only = cookie->http_only;
+
+	return copy;
+}
+
 static gboolean
 domain_matches (const char *domain, const char *host)
 {
@@ -132,6 +170,8 @@ domain_matches (const char *domain, const char *host)
 		return TRUE;
 	if (*domain != '.')
 		return FALSE;
+	if (!g_ascii_strcasecmp (domain + 1, host))
+		return TRUE;
 	dlen = strlen (domain);
 	while ((match = strstr (host, domain))) {
 		if (!match[dlen])
@@ -883,5 +923,16 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	if (uri->path[plen] && uri->path[plen] != '/')
 		return FALSE;
 
-	return TRUE;
+	return !strncmp (cookie->path, uri->path, plen);
+}
+
+gboolean
+soup_cookie_equal (SoupCookie *cookie1, SoupCookie *cookie2)
+{
+	g_return_val_if_fail (cookie1, FALSE);
+	g_return_val_if_fail (cookie2, FALSE);
+
+	return (!strcmp (cookie1->name, cookie2->name) &&
+		!strcmp (cookie1->value, cookie2->value) &&
+		!strcmp (cookie1->path, cookie2->path));
 }

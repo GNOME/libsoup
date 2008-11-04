@@ -8,6 +8,7 @@
 
 #include <libsoup/soup.h>
 
+#include <libsoup/soup-cookie-jar-sqlite.h>
 #include <libsoup/soup-gnome-features.h>
 
 #endif /* SOUP_GNOME_H */

@@ -13,6 +13,7 @@ INCLUDES = 				\
 	$(XML_CFLAGS)			\
 	$(GCONF_CFLAGS)			\
 	$(LIBPROXY_CFLAGS)		\
+	$(SQLITE_CFLAGS)		\
 	$(LIBGCRYPT_CFLAGS)		\
 	$(LIBGNUTLS_CFLAGS)
 
@@ -56,6 +57,7 @@ soup_headers =			\
 	soup-auth-domain-digest.h \
 	soup-cookie.h		\
 	soup-cookie-jar.h	\
+	soup-cookie-jar-text.h	\
 	soup-date.h		\
 	soup-form.h		\
 	soup-headers.h		\
@@ -118,6 +120,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection.c		\
 	soup-cookie.c			\
 	soup-cookie-jar.c		\
+	soup-cookie-jar-text.c		\
 	soup-date.c			\
 	soup-dns.h			\
 	soup-dns.c			\
@@ -161,6 +164,7 @@ if BUILD_LIBSOUP_GNOME
 libsoupgnomeincludedir = $(libsoupincludedir)
 
 libsoupgnomeinclude_HEADERS =	\
+	soup-cookie-jar-sqlite.h\
 	soup-gnome.h		\
 	soup-gnome-features.h
 
@@ -168,9 +172,12 @@ lib_LTLIBRARIES += libsoup-gnome-2.4.la
 
 libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
 
-libsoup_gnome_2_4_la_LIBADD = libsoup-2.4.la
+libsoup_gnome_2_4_la_LIBADD =		\
+	libsoup-2.4.la			\
+	$(SQLITE_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
+	soup-cookie-jar-sqlite.c	\
 	soup-gnome-features.c
 
 if WITH_LIBPROXY

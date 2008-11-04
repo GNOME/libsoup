@@ -20,6 +20,9 @@ struct _SoupCookie {
 	gboolean  http_only;
 };
 
+GType soup_cookie_get_type (void);
+#define SOUP_TYPE_COOKIE (soup_cookie_get_type())
+
 #define SOUP_COOKIE_MAX_AGE_ONE_HOUR (60 * 60)
 #define SOUP_COOKIE_MAX_AGE_ONE_DAY  (SOUP_COOKIE_MAX_AGE_ONE_HOUR * 24)
 #define SOUP_COOKIE_MAX_AGE_ONE_WEEK (SOUP_COOKIE_MAX_AGE_ONE_DAY * 7)
@@ -32,6 +35,7 @@ SoupCookie *soup_cookie_new                     (const char  *name,
 						 int          max_age);
 SoupCookie *soup_cookie_parse                   (const char  *header,
 						 SoupURI     *origin);
+SoupCookie *soup_cookie_copy                    (SoupCookie  *cookie);
 
 void        soup_cookie_set_name                (SoupCookie  *cookie,
 						 const char  *name);
@@ -53,6 +57,11 @@ void        soup_cookie_set_http_only           (SoupCookie  *cookie,
 char       *soup_cookie_to_set_cookie_header    (SoupCookie  *cookie);
 char       *soup_cookie_to_cookie_header        (SoupCookie  *cookie);
 
+gboolean    soup_cookie_applies_to_uri          (SoupCookie  *cookie,
+						 SoupURI     *uri);
+gboolean    soup_cookie_equal                   (SoupCookie  *cookie1,
+						 SoupCookie  *cookie2);
+
 void        soup_cookie_free                    (SoupCookie  *cookie);
 
 GSList     *soup_cookies_from_response          (SoupMessage *msg);
@@ -66,9 +75,6 @@ void        soup_cookies_to_request             (GSList      *cookies,
 void        soup_cookies_free                   (GSList      *cookies);
 
 char       *soup_cookies_to_cookie_header       (GSList      *cookies);
-
-gboolean    soup_cookie_applies_to_uri          (SoupCookie  *cookie,
-						 SoupURI     *uri);
 
 G_END_DECLS
 
