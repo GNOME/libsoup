@@ -31,9 +31,6 @@ typedef struct {
 } SoupCookieJarTextClass;
 
 #define SOUP_COOKIE_JAR_TEXT_FILENAME  "filename"
-#ifndef LIBSOUP_DISABLE_DEPRECATED
-#define SOUP_COOKIE_JAR_TEXT_READ_ONLY SOUP_COOKIE_JAR_READ_ONLY
-#endif
 
 GType soup_cookie_jar_text_get_type (void);
 

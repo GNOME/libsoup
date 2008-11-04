@@ -13,7 +13,7 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 DOC_SOURCE_DIR=../../libsoup
 
 # Extra options to supply to gtkdoc-scan.
-SCAN_OPTIONS=
+SCAN_OPTIONS=--deprecated-guards=LIBSOUP_DISABLE_DEPRECATED
 
 # Extra options to supply to gtkdoc-scangobj.
 SCANGOBJ_OPTIONS=--type-init-func 'g_type_init(); g_thread_init(NULL)'
@@ -35,7 +35,9 @@ IGNORE_HFILES= soup.h soup-marshal.h \
 	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
 	soup-connection.h soup-connection-ntlm.h \
 	soup-dns.h soup-auth-manager.h soup-auth-manager-ntlm.h \
-	soup-message-queue.h soup-path-map.h soup-ssl.h
+	soup-message-queue.h soup-path-map.h soup-ssl.h \
+	soup-proxy-resolver-libproxy.h soup-proxy-resolver-gconf.h \
+	soup-proxy-resolver-static.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES = 
@@ -55,7 +57,7 @@ GTKDOC_CFLAGS =				\
 	$(XML_CFLAGS)			\
 	$(GNUTLS_CFLAGS)
 
-GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-2.4.la $(GLIB_LIBS)
+GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
 
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make

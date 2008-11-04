@@ -116,6 +116,20 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
 
+	/**
+	 * SoupCookieJar::changed
+	 * @jar: the #SoupCookieJar
+	 * @old_cookie: the old #SoupCookie value
+	 * @new_cookie: the new #SoupCookie value
+	 *
+	 * Emitted when @jar changes. If a cookie has been added,
+	 * @new_cookie will contain the newly-added cookie and
+	 * @old_cookie will be %NULL. If a cookie has been deleted,
+	 * @old_cookie will contain the to-be-deleted cookie and
+	 * @new_cookie will be %NULL. If a cookie has been changed,
+	 * @old_cookie will contain its old value, and @new_cookie its
+	 * new value.
+	 **/
 	signals[CHANGED] =
 		g_signal_new ("changed",
 			      G_OBJECT_CLASS_TYPE (object_class),

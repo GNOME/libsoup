@@ -25,6 +25,7 @@
  * SoupMessageHeadersType:
  * @SOUP_MESSAGE_HEADERS_REQUEST: request headers
  * @SOUP_MESSAGE_HEADERS_RESPONSE: response headers
+ * @SOUP_MESSAGE_HEADERS_MULTIPART: multipart body part headers
  *
  * Value passed to soup_message_headers_new() to set certain default
  * behaviors.

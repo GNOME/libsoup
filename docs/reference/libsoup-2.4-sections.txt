@@ -13,6 +13,7 @@ soup_message_set_http_version
 soup_message_get_http_version
 soup_message_get_uri
 soup_message_set_uri
+soup_message_get_address
 <SUBSECTION>
 soup_message_set_status
 soup_message_set_status_full
@@ -171,6 +172,7 @@ SOUP_STATUS_IS_CLIENT_ERROR
 SOUP_STATUS_IS_SERVER_ERROR
 SoupKnownStatusCode
 soup_status_get_phrase
+soup_status_proxify
 <SUBSECTION>
 SOUP_HTTP_ERROR
 <SUBSECTION Private>
@@ -325,11 +327,17 @@ soup_address_new_any
 SoupAddressCallback
 soup_address_resolve_async
 soup_address_resolve_sync
+soup_address_is_resolved
 <SUBSECTION>
 soup_address_get_name
 soup_address_get_sockaddr
 soup_address_get_physical
 soup_address_get_port
+<SUBSECTION>
+soup_address_equal_by_name
+soup_address_hash_by_name
+soup_address_equal_by_ip
+soup_address_hash_by_ip
 <SUBSECTION>
 SOUP_ADDRESS_FAMILY
 SOUP_ADDRESS_NAME
@@ -712,6 +720,8 @@ SOUP_TYPE_LOGGER
 SoupCookie
 soup_cookie_new
 soup_cookie_parse
+soup_cookie_copy
+soup_cookie_equal
 soup_cookie_free
 <SUBSECTION>
 soup_cookie_set_name
@@ -738,6 +748,9 @@ soup_cookies_to_request
 soup_cookies_to_response
 soup_cookies_to_cookie_header
 soup_cookies_free
+<SUBSECTION Standard>
+SOUP_TYPE_COOKIE
+soup_cookie_get_type
 </SECTION>
 
 <SECTION>
@@ -748,6 +761,12 @@ soup_cookie_jar_new
 soup_cookie_jar_save
 soup_cookie_jar_get_cookies
 soup_cookie_jar_set_cookie
+<SUBSECTION>
+soup_cookie_jar_add_cookie
+soup_cookie_jar_delete_cookie
+soup_cookie_jar_all_cookies
+<SUBSECTION>
+SOUP_COOKIE_JAR_READ_ONLY
 <SUBSECTION Standard>
 SoupCookieJarClass
 SOUP_COOKIE_JAR
@@ -776,4 +795,67 @@ soup_multipart_to_message
 <SUBSECTION Standard>
 SOUP_TYPE_MULTIPART
 soup_multipart_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-cookie-jar-text</FILE>
+<TITLE>SoupCookieJarText</TITLE>
+SoupCookieJarText
+soup_cookie_jar_text_new
+<SUBSECTION>
+SOUP_COOKIE_JAR_TEXT_FILENAME
+<SUBSECTION Standard>
+SoupCookieJarTextClass
+SOUP_COOKIE_JAR_TEXT
+SOUP_COOKIE_JAR_TEXT_CLASS
+SOUP_COOKIE_JAR_TEXT_GET_CLASS
+SOUP_TYPE_COOKIE_JAR_TEXT
+SOUP_IS_COOKIE_JAR_TEXT
+SOUP_IS_COOKIE_JAR_TEXT_CLASS
+soup_cookie_jar_text_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-cookie-jar-sqlite</FILE>
+<TITLE>SoupCookieJarSqlite</TITLE>
+SoupCookieJarSqlite
+soup_cookie_jar_sqlite_new
+<SUBSECTION>
+SOUP_COOKIE_JAR_SQLITE_FILENAME
+<SUBSECTION Standard>
+SoupCookieJarSqliteClass
+SOUP_COOKIE_JAR_SQLITE
+SOUP_COOKIE_JAR_SQLITE_CLASS
+SOUP_COOKIE_JAR_SQLITE_GET_CLASS
+SOUP_TYPE_COOKIE_JAR_SQLITE
+SOUP_IS_COOKIE_JAR_SQLITE
+SOUP_IS_COOKIE_JAR_SQLITE_CLASS
+soup_cookie_jar_sqlite_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-proxy-resolver</FILE>
+<TITLE>SoupProxyResolver</TITLE>
+SoupProxyResolver
+SoupProxyResolverCallback
+soup_proxy_resolver_get_proxy_async
+soup_proxy_resolver_get_proxy_sync
+<SUBSECTION Standard>
+SoupProxyResolverInterface
+SOUP_PROXY_RESOLVER
+SOUP_PROXY_RESOLVER_CLASS
+SOUP_PROXY_RESOLVER_GET_CLASS
+SOUP_TYPE_PROXY_RESOLVER
+SOUP_IS_PROXY_RESOLVER
+SOUP_IS_PROXY_RESOLVER_CLASS
+soup_proxy_resolver_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-gnome-features</FILE>
+SOUP_TYPE_GNOME_FEATURES_2_26
+SOUP_TYPE_PROXY_RESOLVER_GNOME
+<SUBSECTION Standard>
+soup_proxy_resolver_gnome_get_type
+soup_gnome_features_2_26_get_type
 </SECTION>

@@ -142,6 +142,8 @@ soup_cookie_get_type (void)
  * @cookie: a #SoupCookie
  *
  * Copies @cookie.
+ *
+ * Return value: a copy of @cookie
  **/
 SoupCookie *
 soup_cookie_copy (SoupCookie *cookie)

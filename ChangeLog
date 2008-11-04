@@ -1,5 +1,30 @@
 2008-11-04  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-address.c (soup_address_is_resolved):
+	* libsoup/soup-cookie.c (soup_cookie_copy):
+	* libsoup/soup-cookie-jar.c (soup_cookie_jar_class_init):
+	* libsoup/soup-message-headers.c (SoupMessageHeadersType):
+	* libsoup/soup-proxy-resolver.c
+	(soup_proxy_resolver_get_proxy_async)
+	(soup_proxy_resolver_get_proxy_sync):
+	* libsoup/soup-status.c (soup_status_proxyify): misc doc fixes
+
+	* libsoup/soup-cookie-jar-text.h: remove a "deprecated" API that
+	was never actually released
+
+	* libsoup/soup.h: include soup-proxy-resolver.h
+
+	* docs/reference/Makefile.am (SCAN_OPTIONS): set
+	--deprecated-guards correctly
+	(IGNORE_HFILES): ignore some more internal files
+	(GTKDOC_LIBS): link against libsoup-gnome, not libsoup
+
+	* docs/reference/libsoup-2.4-docs.sgml:
+	* docs/reference/libsoup-2.4.types:
+	* docs/reference/libsoup-2.4-sections.txt: add new stuff
+
+2008-11-04  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-cookie-jar-text.c: implementation of SoupCookieJar
 	that persists to a text file in the old Mozilla cookies.txt
 	format.

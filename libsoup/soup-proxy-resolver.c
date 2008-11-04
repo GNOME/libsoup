@@ -34,7 +34,7 @@ soup_proxy_resolver_get_type (void)
 }
 
 /**
- * soup_proxy_resovler_get_proxy_async:
+ * soup_proxy_resolver_get_proxy_async:
  * @proxy_resolver: the #SoupProxyResolver
  * @msg: the #SoupMessage you want a proxy for
  * @async_context: the #GMainContext to invoke @callback in
@@ -60,7 +60,7 @@ soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
 }
 
 /**
- * soup_proxy_resovler_get_proxy_sync:
+ * soup_proxy_resolver_get_proxy_sync:
  * @proxy_resolver: the #SoupProxyResolver
  * @msg: the #SoupMessage you want a proxy for
  * @cancellable: a #GCancellable, or %NULL

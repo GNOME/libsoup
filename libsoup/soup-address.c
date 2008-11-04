@@ -629,6 +629,14 @@ soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 	return status;
 }
 
+/**
+ * soup_address_is_resolved:
+ * @addr: a #SoupAddress
+ *
+ * Tests if @addr has already been resolved.
+ *
+ * Return value: %TRUE if @addr has been resolved.
+ **/
 gboolean
 soup_address_is_resolved (SoupAddress *addr)
 {

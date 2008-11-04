@@ -250,13 +250,13 @@ soup_status_get_phrase (guint status_code)
 
 /**
  * soup_status_proxify:
- * @status: a status code
+ * @status_code: a status code
  *
  * Turns SOUP_STATUS_CANT_RESOLVE into SOUP_STATUS_CANT_RESOLVE_PROXY
  * and SOUP_STATUS_CANT_CONNECT into SOUP_STATUS_CANT_CONNECT_PROXY.
  * Other status codes are passed through unchanged.
  *
- * Return value: the "proxified" equivalent of @status.
+ * Return value: the "proxified" equivalent of @status_code.
  **/
 guint
 soup_status_proxify (guint status_code)

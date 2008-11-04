@@ -21,12 +21,14 @@
     <xi:include href="xml/soup-auth-domain-digest.xml"/>
     <xi:include href="xml/soup-cookie.xml"/>
     <xi:include href="xml/soup-cookie-jar.xml"/>
+    <xi:include href="xml/soup-cookie-jar-text.xml"/>
     <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-message.xml"/>
     <xi:include href="xml/soup-message-headers.xml"/>
     <xi:include href="xml/soup-message-body.xml"/>
     <xi:include href="xml/soup-method.xml"/>
     <xi:include href="xml/soup-multipart.xml"/>
+    <xi:include href="xml/soup-proxy-resolver.xml"/>
     <xi:include href="xml/soup-server.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-session-async.xml"/>
@@ -41,6 +43,12 @@
     <xi:include href="xml/soup-forms.xml"/>
     <xi:include href="xml/soup-xmlrpc.xml"/>
     <xi:include href="xml/soup-value-utils.xml"/>
+  </chapter>
+
+  <chapter>
+    <title>GNOME integration</title>
+    <xi:include href="xml/soup-gnome-features.xml"/>
+    <xi:include href="xml/soup-cookie-jar-sqlite.xml"/>
   </chapter>
 
   <chapter>
