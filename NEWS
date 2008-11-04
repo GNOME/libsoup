@@ -1,3 +1,112 @@
+Changes in libsoup from 2.24.1 to 2.25.1:
+
+	libsoup 2.25.1 introduces a new library, libsoup-gnome, which
+	will be used for features which are important to GNOME apps,
+	but which require GNOME-specific libraries that non-GNOME apps
+	may not want to add dependencies on.
+
+	In 2.25.1, libsoup-gnome contains:
+
+	    * SOUP_TYPE_PROXY_RESOLVER_GNOME, a SoupSessionFeature
+              type that can be added to a SoupSession to provide
+              automatic proxy handling via the GConf proxy keys. (See
+              below) The default implementation uses libproxy, which
+              also handles WPAD, PAC, etc, but if libproxy is not
+              available it will use GConf directly, supporting only
+              the basic HTTP proxy functionality.
+
+	    * SoupCookieJarSqlite, a SoupSessionFeature that handles
+              cookies and stores them in a Firefox 3-compatible sqlite
+              file. (This is not actually a "GNOME-specific" feature,
+              but I didn't want to make libsoup itself depend on
+              sqlite, and I didn't want to make the dependency
+              optional. This might change before 2.26.)
+
+	    * SOUP_TYPE_GNOME_FEATURES_2_26: a SoupSessionFeature type
+              that can be added to a SoupSession to add all
+              GNOME-integration features that are available for 2.26;
+              as of 2.25.1, this is just the GNOME proxy resolver, but
+              by 2.26.0 it may also include gnome-keyring support and
+              possibly other features.
+
+	Applications/libraries that are currently doing GConf proxy
+	lookup by hand can be updated as follows:
+
+	    * Remove all of the existing code that listens to the
+              GConf keys and sets SOUP_SESSION_PROXY_URI
+
+	    * Change the configure check to require
+	      "libsoup-gnome-2.4 >= 2.25.1" instead of "libsoup-2.4"
+
+	    * #include <libsoup/soup-gnome.h>
+
+	    * After creating your SoupSession, do:
+
+	          soup_session_add_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_GNOME);
+
+	      (Or alternatively, use SOUP_SESSION_ADD_FEATURE_BY_TYPE
+	      with soup_session_async_new_with_options() or
+	      soup_session_sync_new_with_options().)
+
+
+	Other new features and bug fixes in 2.25.1 include:
+
+	* SoupCookieJarText, like SoupCookieJarSqlite, but using the
+          old-style cookies.txt format, and in the base libsoup rather
+          than libsoup-gnome.
+
+	* Various bugfixes to SoupCookie and SoupCookieJar to fix the
+          problems with cookies not working on certain sites.
+
+	* The new SoupMultipart type provides support for multipart
+          MIME bodies, and soup-form now includes several methods for
+          generating and parsing multipart form data and file uploads.
+
+	* SoupMessageHeaders now has methods for easy handling of the
+	  Content-Type, Content-Disposition, Range, and Content-Range
+	  headers. The Content-Disposition handling recognizes
+	  RFC2231-encoded UTF-8 filenames.
+
+	* SoupServer now automatically handles partial GET requests;
+          if your server returns SOUP_STATUS_OK in response to a
+          partial GET, libsoup will automatically convert it to a
+          SOUP_STATUS_PARTIAL_CONTENT response with only the requested
+          portions.
+
+	Thanks to Xan Lopez and Diego Escalante Urrelo for their work
+	on SoupCookie, SoupCookieJar, SoupCookieJarText, and
+	SoupCookieJarSqlite.
+
+Changes in libsoup from 2.24.0.1 to 2.24.1:
+
+	* Fixed a crash when unreffing the session from a
+          soup_session_queue_message() callback [#533473], and added
+          regression test. In particular, this fixes a crash in
+          seahorse when trying to connect to a non-responsive
+          keyserver.
+
+	* Fixed an infinite loop when giving a bad password to a site
+          that uses non-standard capitalization in the
+          WWW-Authenticate header (eg, gmail.com) [#536285].
+
+	* Fixed a leak in SoupSessionAsync when using a non-default
+          GMainContext. [addendum to #498509, Arnout Vandecappelle]
+          Added additional code to the regression tests to make sure
+          sessions and servers do not get leaked.
+
+	* Fixed a leak in the XML-RPC code
+
+	* Compile fixes for "gcc -pedantic" [#553976, Sander Dijkhuis]
+          and -DG_DISABLE_DEPRECATED / -DG_DISABLE_SINGLE_INCLUDES
+          [#557072, Cosimo Cecchi]
+
+	* Patched xmlrpc-test to accept the incorrect response to
+          test_echo() that php-xmlrpc gives when it's built against
+          libxml2 >= 2.7.1 (qv http://bugs.php.net/45996), so that
+	  I can "make distcheck"...
+
+	* Updated generated documentation
+
 Changes in libsoup from 2.23.92 to 2.24.0.1:
 
 	* Reverted part of the fix for #528882, which caused the DAAP
