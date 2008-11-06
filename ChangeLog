@@ -1,3 +1,8 @@
+2008-11-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/Makefile.am (libsoup_gnome_2_4_la_LIBADD): fix linking
+	with --as-needed. #559342, pointed out by Götz Waschk
+
 2008-11-04  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.25.1

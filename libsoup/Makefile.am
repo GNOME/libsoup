@@ -174,6 +174,7 @@ libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
 
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
+	$(GLIB_LIBS)			\
 	$(SQLITE_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
