@@ -132,6 +132,8 @@ domain_matches (const char *domain, const char *host)
 		return TRUE;
 	if (*domain != '.')
 		return FALSE;
+	if (!g_ascii_strcasecmp (domain + 1, host))
+		return TRUE;
 	dlen = strlen (domain);
 	while ((match = strstr (host, domain))) {
 		if (!match[dlen])
@@ -675,6 +677,9 @@ soup_cookie_free (SoupCookie *cookie)
 	g_free (cookie->domain);
 	g_free (cookie->path);
 
+	if (cookie->expires)
+		soup_date_free (cookie->expires);
+
 	g_slice_free (SoupCookie, cookie);
 }
 
@@ -880,5 +885,5 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	if (uri->path[plen] && uri->path[plen] != '/')
 		return FALSE;
 
-	return TRUE;
+	return !strncmp (cookie->path, uri->path, plen);
 }

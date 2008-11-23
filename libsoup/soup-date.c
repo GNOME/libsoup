@@ -410,8 +410,12 @@ parse_textual_date (SoupDate *date, const char *date_string)
 SoupDate *
 soup_date_new_from_string (const char *date_string)
 {
-	SoupDate *date = g_slice_new (SoupDate);
+	SoupDate *date;
 	gboolean success;
+
+	g_return_val_if_fail (date_string != NULL, NULL);
+
+	date = g_slice_new (SoupDate);
 
 	while (g_ascii_isspace (*date_string))
 		date_string++;
@@ -489,6 +493,8 @@ soup_date_weekday (SoupDate *date)
 char *
 soup_date_to_string (SoupDate *date, SoupDateFormat format)
 {
+	g_return_val_if_fail (date != NULL, NULL);
+
 	/* FIXME: offset, 8601 zones, etc */
 
 	switch (format) {
@@ -544,6 +550,8 @@ soup_date_to_time_t (SoupDate *date)
 	time_t tt;
 	GTimeVal val;
 
+	g_return_val_if_fail (date != NULL, 0);
+
 	/* FIXME: offset, etc */
 
 	if (date->year < 1970)
@@ -576,6 +584,9 @@ soup_date_to_time_t (SoupDate *date)
 void
 soup_date_to_timeval (SoupDate *date, GTimeVal *time)
 {
+	g_return_if_fail (date != NULL);
+	g_return_if_fail (time != NULL);
+
 	/* FIXME: offset, etc */
 
 	time->tv_sec = rata_die_day (date) - TIME_T_EPOCH_RATA_DIE_DAY;
@@ -594,6 +605,8 @@ soup_date_to_timeval (SoupDate *date, GTimeVal *time)
 gboolean
 soup_date_is_past (SoupDate *date)
 {
+	g_return_val_if_fail (date != NULL, TRUE);
+
 	/* optimization */
 	if (date->year < 2008)
 		return TRUE;
@@ -610,8 +623,11 @@ soup_date_is_past (SoupDate *date)
 SoupDate *
 soup_date_copy (SoupDate *date)
 {
-	SoupDate *copy = g_slice_new (SoupDate);
+	SoupDate *copy;
 
+	g_return_val_if_fail (date != NULL, NULL);
+
+	copy = g_slice_new (SoupDate);
 	memcpy (copy, date, sizeof (SoupDate));
 	return copy;
 }
@@ -625,5 +641,7 @@ soup_date_copy (SoupDate *date)
 void
 soup_date_free (SoupDate *date)
 {
+	g_return_if_fail (date != NULL);
+
 	g_slice_free (SoupDate, date);
 }

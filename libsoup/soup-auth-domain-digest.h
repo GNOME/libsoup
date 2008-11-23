@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-auth-domain.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_AUTH_DOMAIN_DIGEST            (soup_auth_domain_digest_get_type ())
 #define SOUP_AUTH_DOMAIN_DIGEST(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH_DOMAIN_DIGEST, SoupAuthDomainDigest))
 #define SOUP_AUTH_DOMAIN_DIGEST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DOMAIN_DIGEST, SoupAuthDomainDigestClass))
@@ -51,5 +53,7 @@ void    soup_auth_domain_digest_set_auth_callback  (SoupAuthDomain *domain,
 char   *soup_auth_domain_digest_encode_password    (const char     *username,
 						    const char     *realm,
 						    const char     *password);
+
+G_END_DECLS
 
 #endif /* SOUP_AUTH_DOMAIN_DIGEST_H */

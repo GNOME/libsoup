@@ -1,3 +1,30 @@
+2008-11-04  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/Makefile.am (SCAN_OPTIONS): set
+	--deprecated-guards correctly
+
+2008-11-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie.c (domain_matches): fix a bug here that
+	meant "foo.com" couldn't set a cookie for domain=.foo.com
+	(soup_cookie_applies_to_uri): fix path checking
+
+2008-10-27  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie.c (soup_cookie_free): free the expires date,
+	if set
+
+	* libsoup/soup-auth-domain-basic.h:
+	* libsoup/soup-auth-domain-digest.h:
+	* libsoup/soup-auth-domain.h:
+	* libsoup/soup-cookie-jar.h:
+	* libsoup/soup-logger.h:
+	* libsoup/soup-multipart.h: add G_BEGIN/END_DECLS
+
+	* libsoup/soup-date.c: add some g_return_if_fails
+
+	Patches from and inspired by Xan Lopez, #522125
+
 2008-10-20  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.24.1
