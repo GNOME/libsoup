@@ -1,3 +1,9 @@
+2008-11-24  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-logger.c: clarify exactly when stuff gets logged
+	(and in particular, that SoupSession::authenticate gets emitted
+	before the response it is authenticating gets logged).
+
 2008-11-06  Dan Winship  <danw@gnome.org>
 
 	* libsoup/Makefile.am (libsoup_gnome_2_4_la_LIBADD): fix linking

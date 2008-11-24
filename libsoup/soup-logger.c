@@ -66,6 +66,17 @@
  * across the lifetime of the #SoupLogger. In particular, this can be
  * used to identify when multiple messages are sent across the same
  * connection.
+ *
+ * The request half of the message is logged just before the first
+ * byte of the request gets written to the network (from the
+ * #SoupSession::request_started signal), and the response is logged
+ * just after the last byte of the response body is read from the
+ * network (from the #SoupMessage::got_body or
+ * #SoupMessage::got_informational signal). In particular, note that
+ * the #SoupMessage::got_headers signal, and anything triggered off it
+ * (such as #SoupSession::authenticate) will be emitted
+ * <emphasis>before</emphasis> the response headers are actually
+ * logged.
  **/
 
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
