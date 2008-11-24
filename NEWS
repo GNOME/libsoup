@@ -1,3 +1,12 @@
+Changes in libsoup from 2.24.1 to 2.24.2:
+
+	* Fixed two bugs and a memory leak in cookie handling
+
+	* Added G_BEGIN_DECLS/G_END_DECLS to those public headers that
+          were missing them
+
+	* Minor updates to gtk-docs
+
 Changes in libsoup from 2.24.0.1 to 2.24.1:
 
 	* Fixed a crash when unreffing the session from a

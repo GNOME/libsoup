@@ -1,5 +1,11 @@
 2008-11-24  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.24.2
+
+	* NEWS: update
+
+2008-11-24  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-logger.c: clarify exactly when stuff gets logged
 	(and in particular, that SoupSession::authenticate gets emitted
 	before the response it is authenticating gets logged).
