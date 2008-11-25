@@ -505,6 +505,7 @@ soup_uri_copy_root (SoupURI *uri)
 	dup->scheme = uri->scheme;
 	dup->host   = g_strdup (uri->host);
 	dup->port   = uri->port;
+	dup->path   = g_strdup ("/");
 
 	return dup;
 }

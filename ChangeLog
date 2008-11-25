@@ -1,3 +1,11 @@
+2008-11-25  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c (soup_uri_copy_root): set a path, since the
+	docs say SoupURI always has a path, and the URIs returned from
+	here get used as the URIs for proxy CONNECT requests, which might
+	get examined by various session features. Fixes a crash in the
+	cookie code. #562191, Mark Lee.
+
 2008-11-24  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.24.2
