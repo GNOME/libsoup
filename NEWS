@@ -1,4 +1,4 @@
-Changes in libsoup from 2.24.1 to 2.24.2:
+Changes in libsoup from 2.24.1 to 2.24.2.1:
 
 	* Fixed two bugs and a memory leak in cookie handling
 
@@ -6,6 +6,9 @@ Changes in libsoup from 2.24.1 to 2.24.2:
           were missing them
 
 	* Minor updates to gtk-docs
+
+	* (2.24.2.1 fixes a crash in the cookie code introduced in
+          2.24.2. [#562191])
 
 Changes in libsoup from 2.24.0.1 to 2.24.1:
 
