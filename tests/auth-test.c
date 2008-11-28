@@ -543,6 +543,215 @@ do_async_auth_test (const char *base_uri)
 	g_free (uri);
 }
 
+typedef struct {
+	const char *password;
+	struct {
+		const char *headers;
+		const char *response;
+	} round[2];
+} SelectAuthData;
+
+static void
+select_auth_authenticate (SoupSession *session, SoupMessage *msg,
+			  SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	SelectAuthData *sad = data;
+	const char *header, *basic, *digest;
+	int round = retrying ? 1 : 0;
+
+	header = soup_message_headers_get (msg->response_headers, "WWW-Authenticate");
+	basic = strstr (header, "Basic");
+	digest = strstr (header, "Digest");
+	if (basic && digest) {
+		if (basic < digest)
+			sad->round[round].headers = "Basic, Digest";
+		else
+			sad->round[round].headers = "Digest, Basic";
+	} else if (basic)
+		sad->round[round].headers = "Basic";
+	else if (digest)
+		sad->round[round].headers = "Digest";
+
+	sad->round[round].response = soup_auth_get_scheme_name (auth);
+	if (sad->password && !retrying)
+		soup_auth_authenticate (auth, "user", sad->password);
+}
+
+static void
+select_auth_test_one (SoupURI *uri, const char *password,
+		      const char *first_headers, const char *first_response,
+		      const char *second_headers, const char *second_response,
+		      guint final_status)
+{
+	SelectAuthData sad;
+	SoupMessage *msg;
+	SoupSession *session;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (select_auth_authenticate), &sad);
+	memset (&sad, 0, sizeof (sad));
+	sad.password = password;
+
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (session, msg);
+
+	if (strcmp (sad.round[0].headers, first_headers) != 0) {
+		debug_printf (1, "    Header order wrong: expected %s, got %s\n",
+			      first_headers, sad.round[0].headers);
+		errors++;
+	}
+	if (strcmp (sad.round[0].response, first_response) != 0) {
+		debug_printf (1, "    Selected auth type wrong: expected %s, got %s\n",
+			      first_response, sad.round[0].response);
+		errors++;
+	}
+
+	if (second_headers && !sad.round[1].headers) {
+		debug_printf (1, "    Expected a second round!\n");
+		errors++;
+	} else if (!second_headers && sad.round[1].headers) {
+		debug_printf (1, "    Didn't expect a second round!\n");
+		errors++;
+	} else if (second_headers) {
+		if (strcmp (sad.round[1].headers, second_headers) != 0) {
+			debug_printf (1, "    Second round header order wrong: expected %s, got %s\n",
+				      second_headers, sad.round[1].headers);
+			errors++;
+		}
+		if (strcmp (sad.round[1].response, second_response) != 0) {
+			debug_printf (1, "    Second round selected auth type wrong: expected %s, got %s\n",
+				      second_response, sad.round[1].response);
+			errors++;
+		}
+	}
+
+	if (msg->status_code != final_status) {
+		debug_printf (1, "    Final status wrong: expected %u, got %u\n",
+			      final_status, msg->status_code);
+		errors++;
+	}
+
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+}
+
+static void
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
+{
+	soup_message_set_response (msg, "text/plain",
+				   SOUP_MEMORY_STATIC,
+				   "OK\r\n", 4);
+	soup_message_set_status (msg, SOUP_STATUS_OK);
+}
+
+static gboolean
+server_basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+			    const char *username, const char *password, gpointer data)
+{
+	return FALSE;
+}
+
+static char *
+server_digest_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+			     const char *username, gpointer data)
+{
+	if (strcmp (username, "user") != 0)
+		return NULL;
+	return soup_auth_domain_digest_encode_password ("user",
+							"auth-test",
+							"good");
+}
+
+static void
+do_select_auth_test (void)
+{
+	SoupServer *server;
+	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
+	SoupURI *uri;
+
+	debug_printf (1, "\nTesting selection among multiple auths:\n");
+
+	/* It doesn't seem to be possible to configure Apache to serve
+	 * multiple auth types for a single URL. So we have to use
+	 * SoupServer here. We know that SoupServer handles the server
+	 * side of this scenario correctly, because we test it against
+	 * curl in server-auth-test.
+	 */
+	server = soup_test_server_new (FALSE);
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+
+	uri = soup_uri_new ("http://localhost/");
+	soup_uri_set_port (uri, soup_server_get_port (server));
+
+	basic_auth_domain = soup_auth_domain_basic_new (
+		SOUP_AUTH_DOMAIN_REALM, "auth-test",
+		SOUP_AUTH_DOMAIN_ADD_PATH, "/",
+		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, server_basic_auth_callback,
+		NULL);
+	soup_server_add_auth_domain (server, basic_auth_domain);
+
+	digest_auth_domain = soup_auth_domain_digest_new (
+		SOUP_AUTH_DOMAIN_REALM, "auth-test",
+		SOUP_AUTH_DOMAIN_ADD_PATH, "/",
+		SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK, server_digest_auth_callback,
+		NULL);
+	soup_server_add_auth_domain (server, digest_auth_domain);
+
+	/* FIXME: when we support disabling auth types in the session,
+	 * test that too.
+	 */
+
+	debug_printf (1, "  Testing with no auth\n");
+	select_auth_test_one (uri, NULL,
+			      "Basic, Digest", "Digest",
+			      NULL, NULL,
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing with bad password\n");
+	select_auth_test_one (uri, "bad",
+			      "Basic, Digest", "Digest",
+			      "Basic, Digest", "Digest",
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing with good password\n");
+	select_auth_test_one (uri, "good",
+			      "Basic, Digest", "Digest",
+			      NULL, NULL,
+			      SOUP_STATUS_OK);
+
+	/* Now flip the order of the domains, verify that this flips
+	 * the order of the headers, and make sure that digest auth
+	 * *still* gets used.
+	 */
+
+	soup_server_remove_auth_domain (server, basic_auth_domain);
+	soup_server_remove_auth_domain (server, digest_auth_domain);
+	soup_server_add_auth_domain (server, digest_auth_domain);
+	soup_server_add_auth_domain (server, basic_auth_domain);
+
+	debug_printf (1, "  Testing flipped with no auth\n");
+	select_auth_test_one (uri, NULL,
+			      "Digest, Basic", "Digest",
+			      NULL, NULL,
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing flipped with bad password\n");
+	select_auth_test_one (uri, "bad",
+			      "Digest, Basic", "Digest",
+			      "Digest, Basic", "Digest",
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing flipped with good password\n");
+	select_auth_test_one (uri, "good",
+			      "Digest, Basic", "Digest",
+			      NULL, NULL,
+			      SOUP_STATUS_OK);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -726,6 +935,9 @@ main (int argc, char **argv)
 
 	/* Async auth */
 	do_async_auth_test (base_uri);
+
+	/* Selecting correct auth when multiple auth types are available */
+	do_select_auth_test ();
 
 	g_main_loop_unref (loop);
 
