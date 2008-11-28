@@ -161,7 +161,7 @@ libsoup_2_4_la_SOURCES =		\
 
 if BUILD_LIBSOUP_GNOME
 
-libsoupgnomeincludedir = $(libsoupincludedir)
+libsoupgnomeincludedir = $(includedir)/libsoup-gnome-2.4/libsoup
 
 libsoupgnomeinclude_HEADERS =	\
 	soup-cookie-jar-sqlite.h\

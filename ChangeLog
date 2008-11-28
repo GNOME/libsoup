@@ -1,5 +1,12 @@
 2008-11-28  Dan Winship  <danw@gnome.org>
 
+	* libsoup/Makefile.am (libsoupgnomeincludedir): make this
+	$(includedir)/libsoup-gnome-2.4/libsoup rather than being the same
+	as $(libsoupincludedir). Makes it easier to split into two
+	packages.
+
+2008-11-28  Dan Winship  <danw@gnome.org>
+
 	* docs/reference/client-howto.xml: fix method name in example.
 	#562411, Andreas Bruse.
 
