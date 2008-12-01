@@ -1,3 +1,9 @@
+2008-12-01  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.25.2
+
+	* NEWS: update
+
 2008-11-28  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-manager.c (auth_type_compare_func): Fix this

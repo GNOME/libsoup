@@ -1,3 +1,20 @@
+Changes in libsoup from 2.25.1 to 2.25.2:
+
+	* Fixed client behavior when presented with multiple auth
+          types to choose the *strongest* auth type (eg, Digest)
+          rather than the *weakest* one [#562339, Pontus Oldberg].
+          Added a regression test for this.
+
+	* Moved libsoup-gnome headers to a different directory to make
+          it easier to split libsoup and libsoup-gnome into separate
+          packages, and to ensure that things that only want to be
+          looking at plain libsoup headers (like gir-repository) don't
+          accidentally see the libsoup-gnome ones.
+
+	* Some minor doc fixes
+
+	* Fixed libsoup-gnome linking with --as-needed. [#559342]
+
 Changes in libsoup from 2.24.1 to 2.25.1:
 
 	libsoup 2.25.1 introduces a new library, libsoup-gnome, which
