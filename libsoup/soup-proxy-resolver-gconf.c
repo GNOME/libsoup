@@ -76,6 +76,8 @@ finalize (GObject *object)
 	SoupProxyResolverGConfPrivate *priv =
 		SOUP_PROXY_RESOLVER_GCONF_GET_PRIVATE (object);
 
+	g_signal_handlers_disconnect_by_func (priv->gconf, gconf_value_changed,
+					      object);
 	free_proxy_settings (priv);
 	g_object_unref (priv->gconf);
 	g_mutex_free (priv->lock);
