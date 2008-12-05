@@ -1,3 +1,10 @@
+2008-12-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-form.c (soup_form_decode): Correctly handle forms
+	that have URI-encoded parameter names. #563302, Evan Nemerson.
+
+	* tests/forms-test.c: test that
+
 2008-12-03  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-proxy-resolver-gconf.c (finalize): disconnect from

@@ -72,7 +72,7 @@ do_hello_test (int n, gboolean extra, const char *uri)
 		g_ptr_array_add (args, title_arg);
 	}
 	if (tests[n].name) {
-		name_arg = soup_form_encode ("name", tests[n].name, NULL);
+		name_arg = soup_form_encode ("n@me", tests[n].name, NULL);
 		g_ptr_array_add (args, "-d");
 		g_ptr_array_add (args, name_arg);
 	}
@@ -238,7 +238,7 @@ hello_callback (SoupServer *server, SoupMessage *msg,
 
 	if (query) {
 		title = g_hash_table_lookup (query, "title");
-		name = g_hash_table_lookup (query, "name");
+		name = g_hash_table_lookup (query, "n@me");
 		fmt = g_hash_table_lookup (query, "fmt");
 	} else
 		title = name = fmt = NULL;
@@ -254,7 +254,7 @@ hello_callback (SoupServer *server, SoupMessage *msg,
 		}
 		g_string_append (buf, "<form action='/hello' method='get'>"
 				 "<p>Title: <input name='title'></p>"
-				 "<p>Name: <input name='name'></p>"
+				 "<p>Name: <input name='n@me'></p>"
 				 "<p><input type=hidden name='fmt' value='html'></p>"
 				 "<p><input type=submit></p>"
 				 "</form>\r\n");
