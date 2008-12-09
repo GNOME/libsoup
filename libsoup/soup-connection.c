@@ -418,6 +418,7 @@ connect_message (SoupConnectionPrivate *priv)
 	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
 	soup_uri_set_host (uri, soup_address_get_name (priv->server_addr));
 	soup_uri_set_port (uri, soup_address_get_port (priv->server_addr));
+	soup_uri_set_path (uri, "");
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
 	soup_uri_free (uri);
 

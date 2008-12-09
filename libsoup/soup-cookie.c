@@ -916,16 +916,21 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	if (cookie->expires && soup_date_is_past (cookie->expires))
 		return FALSE;
 
+	/* uri->path is required to be non-NULL */
+	g_return_val_if_fail (uri->path != NULL, FALSE);
+
 	/* The spec claims "/foo would match /foobar", but fortunately
 	 * no one is really that crazy.
 	 */
 	plen = strlen (cookie->path);
 	if (cookie->path[plen - 1] == '/')
 		plen--;
+	if (strncmp (cookie->path, uri->path, plen) != 0)
+		return FALSE;
 	if (uri->path[plen] && uri->path[plen] != '/')
 		return FALSE;
 
-	return !strncmp (cookie->path, uri->path, plen);
+	return TRUE;
 }
 
 gboolean

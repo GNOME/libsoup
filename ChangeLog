@@ -1,3 +1,17 @@
+2008-12-09  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-uri.c (soup_uri_new): Explicitly document the fact
+	that you have to call soup_uri_set_path() when using
+	soup_uri_new(NULL), since path is required to be non-%NULL.
+
+	* libsoup/soup-connection.c (connect_message): initialize
+	uri->path
+
+	* libsoup/soup-cookie.c (soup_cookie_applies_to_uri):
+	g_return_val_if_fail() rather than crashing if uri->path is %NULL.
+	Also, fix the cookie/uri path comparison to not potentially read
+	off the end of uri->path. #562191, Mark Lee.
+
 2008-12-04  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-form.c (soup_form_decode): Correctly handle forms

@@ -372,7 +372,9 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
  * Parses an absolute URI.
  *
  * You can also pass %NULL for @uri_string if you want to get back an
- * "empty" #SoupURI that you can fill in by hand.
+ * "empty" #SoupURI that you can fill in by hand. (You will need to
+ * call at least soup_uri_set_scheme() and soup_uri_set_path(), since
+ * those fields are required.)
  *
  * Return value: a #SoupURI, or %NULL.
  **/
