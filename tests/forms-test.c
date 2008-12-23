@@ -22,8 +22,8 @@
 #include "test-utils.h"
 
 static struct {
-	char *title, *name;
-	char *result;
+	const char *title, *name;
+	const char *result;
 } tests[] = {
 	/* Both fields must be filled in */
 	{ NULL, "Name", "" },

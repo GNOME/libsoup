@@ -10,7 +10,7 @@
 #include "test-utils.h"
 
 typedef struct {
-	char *name, *value;
+	const char *name, *value;
 } Header;
 
 static struct RequestTest {
@@ -549,9 +549,9 @@ static struct ResponseTest {
 static const int num_resptests = G_N_ELEMENTS (resptests);
 
 static struct QValueTest {
-	char *header_value;
-	char *acceptable[7];
-	char *unacceptable[2];
+	const char *header_value;
+	const char *acceptable[7];
+	const char *unacceptable[2];
 } qvaluetests[] = {
 	{ "text/plain; q=0.5, text/html,\t  text/x-dvi; q=0.8, text/x-c",
 	  { "text/html", "text/x-c", "text/x-dvi", "text/plain", NULL },

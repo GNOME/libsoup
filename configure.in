@@ -235,7 +235,10 @@ AC_ARG_ENABLE(more-warnings,
 if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 	CFLAGS="$CFLAGS \
 		-Wall -Wstrict-prototypes -Wmissing-declarations \
-		-Wmissing-prototypes -Wnested-externs -Wpointer-arith"
+		-Wmissing-prototypes -Wnested-externs -Wpointer-arith \
+		-Wdeclaration-after-statement -Wformat=2 -Winit-self \
+		-Wmissing-include-dirs -Wundef -Waggregate-return \
+		-Wmissing-format-attribute"
 fi
 
 if test "$os_win32" != yes; then

@@ -118,7 +118,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-request_single_range (SoupSession *session, char *uri,
+request_single_range (SoupSession *session, const char *uri,
 		      int start, int end)
 {
 	SoupMessage *msg;
@@ -188,7 +188,7 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-request_double_range (SoupSession *session, char *uri,
+request_double_range (SoupSession *session, const char *uri,
 		      int first_start, int first_end,
 		      int second_start, int second_end,
 		      int expected_return_ranges)
@@ -212,7 +212,7 @@ request_double_range (SoupSession *session, char *uri,
 }
 
 static void
-request_triple_range (SoupSession *session, char *uri,
+request_triple_range (SoupSession *session, const char *uri,
 		      int first_start, int first_end,
 		      int second_start, int second_end,
 		      int third_start, int third_end,
@@ -239,7 +239,7 @@ request_triple_range (SoupSession *session, char *uri,
 }
 
 static void
-do_range_test (SoupSession *session, char *uri, gboolean expect_coalesce)
+do_range_test (SoupSession *session, const char *uri, gboolean expect_coalesce)
 {
 	int twelfths = full_response->length / 12;
 

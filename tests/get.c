@@ -36,7 +36,7 @@ static SoupURI *base_uri;
 static GHashTable *fetched_urls;
 
 static GPtrArray *
-find_hrefs (SoupURI *base, const char *body, int length)
+find_hrefs (SoupURI *doc_base, const char *body, int length)
 {
 	GPtrArray *hrefs = g_ptr_array_new ();
 	char *buf = g_strndup (body, length);
@@ -65,19 +65,19 @@ find_hrefs (SoupURI *base, const char *body, int length)
 		if (frag)
 			*frag = '\0';
 
-		uri = soup_uri_new_with_base (base, href);
+		uri = soup_uri_new_with_base (doc_base, href);
 		g_free (href);
 
 		if (!uri)
 			continue;
-		if (base->scheme != uri->scheme ||
-		    base->port != uri->port ||
-		    g_ascii_strcasecmp (base->host, uri->host) != 0) {
+		if (doc_base->scheme != uri->scheme ||
+		    doc_base->port != uri->port ||
+		    g_ascii_strcasecmp (doc_base->host, uri->host) != 0) {
 			soup_uri_free (uri);
 			continue;
 		}
 
-		if (strncmp (base->path, uri->path, strlen (base->path)) != 0) {
+		if (strncmp (doc_base->path, uri->path, strlen (doc_base->path)) != 0) {
 			soup_uri_free (uri);
 			continue;
 		}
@@ -160,7 +160,7 @@ get_url (const char *url)
 
 	if (debug) {
 		SoupMessageHeadersIter iter;
-		const char *name, *value;
+		const char *hname, *value;
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 
 		printf ("%s %s HTTP/1.%d\n\n", method, path,
@@ -170,8 +170,8 @@ get_url (const char *url)
 			msg->status_code, msg->reason_phrase);
 
 		soup_message_headers_iter_init (&iter, msg->response_headers);
-		while (soup_message_headers_iter_next (&iter, &name, &value))
-			printf ("%s: %s\r\n", name, value);
+		while (soup_message_headers_iter_next (&iter, &hname, &value))
+			printf ("%s: %s\r\n", hname, value);
 		printf ("\n");
 	} else
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);

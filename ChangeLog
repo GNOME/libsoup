@@ -1,3 +1,28 @@
+2008-12-23  Dan Winship  <danw@gnome.org>
+
+	* configure.in: add some more warning CFLAGS, inspired by Benjamin
+	Otte's blog post, although none of them picked out any actual
+	bugs. Annoyingly, the most interesting warnings came from
+	-Wwrite-strings and -Wshadow, both of which I decided against
+	keeping, because they had too many false positives.
+
+	* libsoup/soup-cookie-jar.c (soup_cookie_jar_get_cookies): rename
+	a variable to avoid shadowing.
+
+	* libsoup/soup-message-headers.c
+	(soup_message_headers_get_ranges): move a variable declaration to
+	avoid a possibly-confusing shadowing.
+
+	* tests/forms-test.c:
+	* tests/header-parsing.c:
+	* tests/range-test.c:
+	* tests/test-utils.c: constify some "char *"s that should have
+	already been const.
+
+	* tests/get.c (find_hrefs): rename an arg whose name shadowed a
+	global, to avoid possible future confusion
+	(get_url): Likewise with a functional-internal shadowing.
+
 2008-12-09  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-uri.c (soup_uri_new): Explicitly document the fact

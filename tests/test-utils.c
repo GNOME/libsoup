@@ -148,9 +148,9 @@ debug_printf (int level, const char *format, ...)
 #ifdef HAVE_APACHE
 
 static gboolean
-apache_cmd (char *cmd)
+apache_cmd (const char *cmd)
 {
-	char *argv[8];
+	const char *argv[8];
 	char *cwd, *conf;
 	int status;
 	gboolean ok;
@@ -167,7 +167,7 @@ apache_cmd (char *cmd)
 	argv[6] = cmd;
 	argv[7] = NULL;
 
-	ok = g_spawn_sync (cwd, argv, NULL, 0, NULL, NULL,
+	ok = g_spawn_sync (cwd, (char **)argv, NULL, 0, NULL, NULL,
 			   NULL, NULL, &status, NULL);
 	if (ok)
 		ok = (status == 0);

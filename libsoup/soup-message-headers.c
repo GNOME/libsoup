@@ -723,7 +723,6 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 	const char *range = soup_message_headers_get (hdrs, "Range");
 	GSList *range_list, *r;
 	GArray *array;
-	SoupRange cur;
 	char *spec, *end;
 	int i;
 
@@ -744,6 +743,8 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 
 	array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
 	for (r = range_list; r; r = r->next) {
+		SoupRange cur;
+
 		spec = r->data;
 		if (*spec == '-') {
 			cur.start = g_ascii_strtoll (spec, &end, 10) + total_length;

@@ -252,7 +252,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 {
 	SoupCookieJarPrivate *priv;
 	GSList *cookies, *domain_cookies;
-	char *domain, *cur, *next, *result;
+	char *domain, *cur, *next_domain, *result;
 	GSList *new_head, *cookies_to_remove = NULL, *p;
 
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
@@ -265,7 +265,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	 */
 	cookies = NULL;
 	domain = cur = g_strdup_printf (".%s", uri->host);
-	next = domain + 1;
+	next_domain = domain + 1;
 	do {
 		new_head = domain_cookies = g_hash_table_lookup (priv->domains, cur);
 		while (domain_cookies) {
@@ -285,9 +285,9 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 
 			domain_cookies = next;
 		}
-		cur = next;
+		cur = next_domain;
 		if (cur)
-			next = strchr (cur + 1, '.');
+			next_domain = strchr (cur + 1, '.');
 	} while (cur);
 	g_free (domain);
 
