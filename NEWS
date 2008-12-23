@@ -1,3 +1,14 @@
+Changes in libsoup from 2.25.2 to 2.25.3:
+
+	* Fixed a crash when using both cookies and a proxy. [#562191,
+          Mark Lee]
+
+	* Fixed soup_form_decode() to correctly handle forms with
+          URI-encoded parameter names [#563302, Evan Nemerson] and
+          added a regression test.
+
+	* Fixed a crash in SoupProxyResolverGConf. [#563145]
+
 Changes in libsoup from 2.25.1 to 2.25.2:
 
 	* Fixed client behavior when presented with multiple auth

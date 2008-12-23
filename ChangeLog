@@ -1,5 +1,7 @@
 2008-12-23  Dan Winship  <danw@gnome.org>
 
+	* configure.in: belated post-release bump to 2.25.4
+
 	* libsoup/soup-session.c (soup_session_get_features)
 	(soup_session_get_feature): add these to query session features.
 	#565392.
@@ -28,6 +30,12 @@
 	* tests/get.c (find_hrefs): rename an arg whose name shadowed a
 	global, to avoid possible future confusion
 	(get_url): Likewise with a functional-internal shadowing.
+
+2008-12-15  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.25.3
+
+	* NEWS: update
 
 2008-12-09  Dan Winship  <danw@gnome.org>
 
