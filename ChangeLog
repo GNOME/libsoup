@@ -1,5 +1,11 @@
 2008-12-23  Dan Winship  <danw@gnome.org>
 
+	* libsoup/soup-session.c (soup_session_get_features)
+	(soup_session_get_feature): add these to query session features.
+	#565392.
+
+2008-12-23  Dan Winship  <danw@gnome.org>
+
 	* configure.in: add some more warning CFLAGS, inspired by Benjamin
 	Otte's blog post, although none of them picked out any actual
 	bugs. Annoyingly, the most interesting warnings came from

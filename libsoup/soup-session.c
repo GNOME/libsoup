@@ -1436,6 +1436,62 @@ restart:
 	}
 }
 
+/**
+ * soup_session_get_features:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of the class of features to get
+ *
+ * Generates a list of @session's features of type @feature_type. (If
+ * you want to see all features, you can pass %G_TYPE_SESSION_FEATURE
+ * for @feature_type.)
+ *
+ * Return value: a list of features. You must free the list, but not
+ * its contents
+ **/
+GSList *
+soup_session_get_features (SoupSession *session, GType feature_type)
+{
+	SoupSessionPrivate *priv;
+	GSList *f, *ret;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	for (f = priv->features, ret = NULL; f; f = f->next) {
+		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
+			ret = g_slist_prepend (ret, f->data);
+	}
+	return g_slist_reverse (ret);
+}
+
+/**
+ * soup_session_get_feature:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of the feature to get
+ *
+ * Gets the first feature in @session of type @feature_type. For
+ * features where there may be more than one feature of a given type,
+ * use soup_session_get_features().
+ *
+ * Return value: a #SoupSessionFeature, or %NULL. The feature is owned
+ * by @session.
+ **/
+SoupSessionFeature *
+soup_session_get_feature (SoupSession *session, GType feature_type)
+{
+	SoupSessionPrivate *priv;
+	GSList *f;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	for (f = priv->features; f; f = f->next) {
+		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
+			return f->data;
+	}
+	return NULL;
+}
+
 SoupProxyResolver *
 soup_session_get_proxy_resolver (SoupSession *session)
 {

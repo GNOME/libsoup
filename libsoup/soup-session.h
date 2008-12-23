@@ -91,14 +91,18 @@ void            soup_session_cancel_message   (SoupSession           *session,
 void            soup_session_abort            (SoupSession           *session);
 
 
-void            soup_session_add_feature            (SoupSession        *session,
-						     SoupSessionFeature *feature);
-void            soup_session_add_feature_by_type    (SoupSession        *session,
-						     GType               feature_type);
-void            soup_session_remove_feature         (SoupSession        *session,
-						     SoupSessionFeature *feature);
-void            soup_session_remove_feature_by_type (SoupSession        *session,
-						     GType               feature_type);
+void                soup_session_add_feature            (SoupSession        *session,
+							 SoupSessionFeature *feature);
+void                soup_session_add_feature_by_type    (SoupSession        *session,
+							 GType               feature_type);
+void                soup_session_remove_feature         (SoupSession        *session,
+							 SoupSessionFeature *feature);
+void                soup_session_remove_feature_by_type (SoupSession        *session,
+							 GType               feature_type);
+GSList             *soup_session_get_features           (SoupSession        *session,
+							 GType               feature_type);
+SoupSessionFeature *soup_session_get_feature            (SoupSession        *session,
+							 GType               feature_type);
 
 G_END_DECLS
 
