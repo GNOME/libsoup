@@ -1,3 +1,9 @@
+2009-01-05  Dan Winship  <danw@gnome.org>
+
+	2.25.4
+
+	* NEWS: update
+
 2008-12-23  Dan Winship  <danw@gnome.org>
 
 	* configure.in: belated post-release bump to 2.25.4

@@ -1,3 +1,10 @@
+Changes in libsoup from 2.25.3 to 2.25.4:
+
+	* Added soup_session_get_feature() and
+          soup_session_get_features(), to query the features currently
+          available in a session (which is needed by the patch in
+	  https://bugs.webkit.org/show_bug.cgi?id=22624)
+
 Changes in libsoup from 2.25.2 to 2.25.3:
 
 	* Fixed a crash when using both cookies and a proxy. [#562191,
