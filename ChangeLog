@@ -1,3 +1,12 @@
+2009-01-12  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie-jar.c (request_started): Don't pass NULL to
+	soup_message_headers_replace(), call soup_message_headers_remove()
+	if there are no cookies. Likely fix for webkit bug #23240.
+
+	* libsoup/soup-message-headers.c (soup_message_headers_append):
+	g_return_if_fail (value != NULL)
+
 2009-01-05  Dan Winship  <danw@gnome.org>
 
 	2.25.4

@@ -430,9 +430,12 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 	char *cookies;
 
 	cookies = soup_cookie_jar_get_cookies (jar, soup_message_get_uri (msg), TRUE);
-	soup_message_headers_replace (msg->request_headers,
-				      "Cookie", cookies);
-	g_free (cookies);
+	if (cookies) {
+		soup_message_headers_replace (msg->request_headers,
+					      "Cookie", cookies);
+		g_free (cookies);
+	} else
+		soup_message_headers_remove (msg->request_headers, "Cookie");
 }
 
 static void
