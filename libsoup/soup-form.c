@@ -63,15 +63,15 @@ soup_form_decode (const char *encoded_form)
 	for (i = 0; pairs[i]; i++) {
 		name = pairs[i];
 		eq = strchr (name, '=');
-		if (!form_decode (name)) {
-			g_free (name);
-			continue;
-		}
 		if (eq) {
 			*eq = '\0';
 			value = eq + 1;
 		} else
 			value = NULL;
+		if (!form_decode (name) || (value && !form_decode (value))) {
+			g_free (name);
+			continue;
+		}
 
 		g_hash_table_insert (form_data_set, name, value);
 	}

@@ -1,3 +1,35 @@
+2009-01-12  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-cookie-jar.c (request_started): Don't pass NULL to
+	soup_message_headers_replace(), call soup_message_headers_remove()
+	if there are no cookies. Likely fix for webkit bug #23240.
+
+	* libsoup/soup-message-headers.c (soup_message_headers_append):
+	g_return_if_fail (value != NULL)
+
+2008-12-04  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-form.c (soup_form_decode): Correctly handle forms
+	that have URI-encoded parameter names. #563302, Evan Nemerson.
+
+2008-11-28  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-manager.c (auth_type_compare_func): Fix this
+	so we choose the *strongest* auth type first, rather than the
+	weakest. Doh. #562339, Pontus Oldberg.
+
+	* libsoup/soup-server.c (soup_server_add_auth_domain): use
+	g_slist_append() rather than prepend(), so auth headers get added
+	in the same order as the SoupAuthDomains were.
+
+	* tests/auth-test.c (do_select_auth_test): add a test of selecting
+	between Basic and Digest auth
+
+2008-11-28  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/client-howto.xml: fix method name in example.
+	#562411, Andreas Bruse.
+
 2008-11-25  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.24.2.1 (sigh)

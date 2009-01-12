@@ -150,6 +150,9 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 	SoupHeader header;
 	SoupHeaderSetter setter;
 
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (value != NULL);
+
 	header.name = intern_header_name (name, &setter);
 	header.value = g_strdup (value);
 	g_array_append_val (hdrs->array, header);
@@ -204,6 +207,8 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
 	SoupHeaderSetter setter;
 	int index;
 
+	g_return_if_fail (name != NULL);
+
 	name = intern_header_name (name, &setter);
 	while ((index = find_header (hdr_array, name, 0)) != -1) {
 		g_free (hdr_array[index].value);
@@ -237,6 +242,8 @@ soup_message_headers_get (SoupMessageHeaders *hdrs, const char *name)
 	GString *concat;
 	char *value;
 	int index, i;
+
+	g_return_val_if_fail (name != NULL, NULL);
 
 	name = intern_header_name (name, NULL);
 	if (hdrs->concat) {

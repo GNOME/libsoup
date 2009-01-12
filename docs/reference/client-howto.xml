@@ -178,7 +178,7 @@ linkend="soup-session-send-message"><function>soup_session_send_message</functio
 <informalexample><programlisting>
 	guint status;
 
-	status = soup_session_send (session, msg);
+	status = soup_session_send_message (session, msg);
 </programlisting></informalexample>
 
 <para>

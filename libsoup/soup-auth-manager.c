@@ -150,7 +150,7 @@ auth_type_compare_func (gconstpointer a, gconstpointer b)
 	SoupAuthClass **auth1 = (SoupAuthClass **)a;
 	SoupAuthClass **auth2 = (SoupAuthClass **)b;
 
-	return (*auth2)->strength - (*auth1)->strength;
+	return (*auth1)->strength - (*auth2)->strength;
 }
 
 void
