@@ -1,3 +1,20 @@
+Changes in libsoup from 2.24.2.1 to 2.24.3:
+
+	* Fixed SoupCookieJar to not send "Cookie: (null)", which is
+          (a) wrong, and (b) confusing to some servers.
+          [bugs.webkit.org #23240]
+
+	* Fixed soup_form_decode() to correctly handle forms with
+          URI-encoded parameter names. [#563302, Evan Nemerson]
+
+	* Fixed SoupSession to use Digest auth when both Digest and
+          Basic are available. (It was mistakenly comparing the
+          strengths backwards before, choosing the weakest-available
+          auth instead of the strongest.) [#562339, Pontus Oldberg]
+
+	* Fixed a bug in the Client How-To docs. [#562411, Andreas
+          Bruse]
+
 Changes in libsoup from 2.24.1 to 2.24.2.1:
 
 	* Fixed two bugs and a memory leak in cookie handling
