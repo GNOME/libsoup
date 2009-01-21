@@ -1,3 +1,19 @@
+2009-01-21  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session-feature.h: remove the dummy typedef for
+	struct SoupSessionFeature that was needed because we weren't
+	scanning soup-types.h. Fixes the build with non-GNU compilers.
+
+	* libsoup/soup-session-feature.c: document
+	SoupSessionFeatureInterface
+
+	* docs/reference/Makefile.am (IGNORE_HFILES): oops, don't ignore
+	soup-types.h
+
+	* docs/reference/libsoup-2.4-docs.sgml:
+	* docs/reference/libsoup-2.4-sections.txt: Split
+	SoupSessionFeature into its own file.
+
 2009-01-12  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-cookie-jar.c (request_started): Don't pass NULL to

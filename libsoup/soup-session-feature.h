@@ -17,17 +17,14 @@ G_BEGIN_DECLS
 #define SOUP_IS_SESSION_FEATURE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_SESSION_FEATURE))
 #define SOUP_SESSION_FEATURE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_INTERFACE ((obj), SOUP_TYPE_SESSION_FEATURE, SoupSessionFeatureInterface))
 
-/* dummy struct for gtk-doc */
-struct _SoupSessionFeature {};
-
 typedef struct {
 	GTypeInterface parent;
 
 	/* methods */
-	void (*attach) (SoupSessionFeature *feature,
-			SoupSession        *session);
-	void (*detach) (SoupSessionFeature *feature,
-			SoupSession        *session);
+	void (*attach)           (SoupSessionFeature *feature,
+				  SoupSession        *session);
+	void (*detach)           (SoupSessionFeature *feature,
+				  SoupSession        *session);
 
 	void (*request_queued)   (SoupSessionFeature *feature,
 				  SoupSession        *session,

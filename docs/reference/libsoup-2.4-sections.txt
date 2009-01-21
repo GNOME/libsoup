@@ -374,11 +374,12 @@ soup_session_unpause_message
 <SUBSECTION>
 soup_session_get_async_context
 <SUBSECTION>
-SoupSessionFeature
 soup_session_add_feature
 soup_session_add_feature_by_type
 soup_session_remove_feature
 soup_session_remove_feature_by_type
+soup_session_get_feature
+soup_session_get_features
 <SUBSECTION>
 SOUP_SESSION_PROXY_URI
 SOUP_SESSION_MAX_CONNS
@@ -401,17 +402,6 @@ SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
 SoupSessionClass
 soup_session_get_type
-<SUBSECTION Private>
-soup_session_feature_attach
-soup_session_feature_detach
-SoupSessionFeatureInterface
-soup_session_feature_get_type
-SOUP_SESSION_FEATURE
-SOUP_SESSION_FEATURE_CLASS
-SOUP_SESSION_FEATURE_GET_CLASS
-SOUP_IS_SESSION_FEATURE
-SOUP_IS_SESSION_FEATURE_CLASS
-SOUP_TYPE_SESSION_FEATURE
 </SECTION>
 
 <SECTION>
@@ -446,6 +436,24 @@ SOUP_SESSION_SYNC_GET_CLASS
 SOUP_TYPE_SESSION_SYNC
 SoupSessionSyncClass
 soup_session_sync_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-session-feature</FILE>
+<TITLE>SoupSessionFeature</TITLE>
+SoupSessionFeature
+SoupSessionFeatureInterface
+<SUBSECTION Standard>
+soup_session_feature_get_type
+SOUP_SESSION_FEATURE
+SOUP_SESSION_FEATURE_CLASS
+SOUP_SESSION_FEATURE_GET_CLASS
+SOUP_IS_SESSION_FEATURE
+SOUP_IS_SESSION_FEATURE_CLASS
+SOUP_TYPE_SESSION_FEATURE
+<SUBSECTION Private>
+soup_session_feature_attach
+soup_session_feature_detach
 </SECTION>
 
 <SECTION>

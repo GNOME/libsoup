@@ -27,8 +27,20 @@
 /**
  * SoupSessionFeature:
  *
- * The interface implemented by objects that implement features for
+ * An object that implement some sort of optional feature for
  * #SoupSession.
+ **/
+
+/**
+ * SoupSessionFeatureInterface:
+ * @parent: The parent interface.
+ * @attach: Perform setup when a feature is added to a session
+ * @detach: Perform cleanup when a feature is removed from a session
+ * @request_queued: Proxies the session's #SoupSession::request_queued signal
+ * @request_started: Proxies the session's #SoupSession::request_started signal
+ * @request_unqueued: Proxies the session's #SoupSession::request_unqueued signal
+ *
+ * The interface implemented by #SoupSessionFeature<!-- -->s.
  **/
 
 static void soup_session_feature_interface_init (SoupSessionFeatureInterface *interface);

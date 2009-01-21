@@ -29,9 +29,8 @@ HFILE_GLOB=
 CFILE_GLOB=
 
 # Header files to ignore when scanning.
-IGNORE_HFILES= soup.h soup-marshal.h \
+IGNORE_HFILES= soup.h soup-marshal.h soup-enum-types.h \
 	soup-message-private.h soup-session-private.h \
-	soup-types.h soup-enum-types.h \
 	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
 	soup-connection.h soup-connection-ntlm.h \
 	soup-dns.h soup-auth-manager.h soup-auth-manager-ntlm.h \
