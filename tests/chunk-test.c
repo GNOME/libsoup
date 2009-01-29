@@ -240,6 +240,66 @@ do_response_test (SoupSession *session, SoupURI *base_uri)
 	g_checksum_free (gtd.check);
 }
 
+/* Make sure TEMPORARY buffers are handled properly with non-accumulating
+ * message bodies. Part of https://bugs.webkit.org/show_bug.cgi?id=18343
+ */
+
+static void
+temp_test_wrote_chunk (SoupMessage *msg, gpointer session)
+{
+	/* When the bug is present, the second chunk will also be
+	 * discarded after the first is written, which will cause
+	 * the I/O to stall since soup-message-io will think it's
+	 * done, but it hasn't written Content-Length bytes yet.
+	 * So add in another chunk to keep it going.
+	 */
+	if (!soup_message_body_get_chunk (msg->request_body,
+					  5)) {
+		debug_printf (1, "  Lost second chunk!\n");
+		errors++;
+		soup_session_abort (session);
+	}
+
+	g_signal_handlers_disconnect_by_func (msg, temp_test_wrote_chunk, session);
+}
+
+static void
+do_temporary_test (SoupSession *session, SoupURI *base_uri)
+{
+	SoupMessage *msg;
+	const char *client_md5, *server_md5;
+
+	debug_printf (1, "PUT w/ temporary buffers\n");
+
+	msg = soup_message_new_from_uri ("PUT", base_uri);
+	soup_message_body_append (msg->request_body, SOUP_MEMORY_TEMPORARY,
+				  "one\r\n", 5);
+	soup_message_body_append (msg->request_body, SOUP_MEMORY_STATIC,
+				  "two\r\n", 5);
+	soup_message_body_set_accumulate (msg->request_body, FALSE);
+
+	client_md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5,
+						    "one\r\ntwo\r\n", 10);
+	g_signal_connect (msg, "wrote_chunk",
+			  G_CALLBACK (temp_test_wrote_chunk), session);
+	soup_session_send_message (session, msg);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "  message failed: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+
+	server_md5 = soup_message_headers_get (msg->response_headers, "Content-MD5");
+	if (!server_md5 || strcmp (client_md5, server_md5) != 0) {
+		debug_printf (1, "  client/server data mismatch: %s vs %s\n",
+			      client_md5, server_md5 ? server_md5 : "(null)");
+		errors++;
+	}
+
+	g_object_unref (msg);
+}
+
 static void
 do_chunk_tests (SoupURI *base_uri)
 {
@@ -249,6 +309,8 @@ do_chunk_tests (SoupURI *base_uri)
 	do_request_test (session, base_uri);
 	debug_printf (2, "\n\n");
 	do_response_test (session, base_uri);
+	debug_printf (2, "\n\n");
+	do_temporary_test (session, base_uri);
 	soup_test_session_abort_unref (session);
 }
 

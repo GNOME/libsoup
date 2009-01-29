@@ -593,15 +593,16 @@ soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
 /**
  * soup_message_body_wrote_chunk:
  * @body: a #SoupMessageBody
- * @chunk: a #SoupBuffer received from the network
+ * @chunk: a #SoupBuffer returned from soup_message_body_get_chunk()
  *
  * Handles the #SoupMessageBody part of writing a chunk of data to the
  * network. Normally this is a no-op, but if you have set @body's
- * accumulate flag to %FALSE, then this will cause @chunk (and any
- * chunks preceding it in @body) to be discarded to free up memory.
+ * accumulate flag to %FALSE, then this will cause @chunk to be
+ * discarded to free up memory.
  *
- * This is a low-level method which you should not normally need to
- * use.
+ * This is a low-level method which you should not need to use, and
+ * there are further restrictions on its proper use which are not
+ * documented here.
  **/
 void
 soup_message_body_wrote_chunk (SoupMessageBody *body, SoupBuffer *chunk)
@@ -612,15 +613,16 @@ soup_message_body_wrote_chunk (SoupMessageBody *body, SoupBuffer *chunk)
 	if (priv->accumulate)
 		return;
 
-	do {
-		chunk2 = priv->chunks->data;
-		priv->chunks = g_slist_remove (priv->chunks, chunk2);
-		priv->base_offset += chunk2->length;
-		soup_buffer_free (chunk2);
-	} while (priv->chunks && chunk2 != chunk);
+	chunk2 = priv->chunks->data;
+	g_return_if_fail (chunk->length == chunk2->length);
+	g_return_if_fail (chunk == chunk2 || ((SoupBufferPrivate *)chunk2)->use == SOUP_MEMORY_TEMPORARY);
 
+	priv->chunks = g_slist_remove (priv->chunks, chunk2);
 	if (!priv->chunks)
 		priv->last = NULL;
+
+	priv->base_offset += chunk2->length;
+	soup_buffer_free (chunk2);
 }
 
 static SoupMessageBody *

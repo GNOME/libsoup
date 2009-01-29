@@ -548,8 +548,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 			return;
 
 		soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
-		soup_buffer_free (io->write_chunk);
 		io->write_body_offset += io->write_chunk->length;
+		soup_buffer_free (io->write_chunk);
 		io->write_chunk = NULL;
 
 		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;

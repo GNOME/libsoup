@@ -1,3 +1,15 @@
+2009-01-29  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-message-body.c (soup_message_body_wrote_chunk): Fix
+	this; previously it would discard the entire message body after
+	writing a SOUP_MEMORY_TEMPORARY chunk. Part of WebKit bug 18343.
+
+	* libsoup/soup-message-io.c (io_write): use
+	io->write_chunk->length *before* freeing io->write_chunk.
+
+	* tests/chunk-test.c (do_temporary_test): new test to make sure
+	that TEMPORARY buffers are handled properly.
+
 2009-01-21  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session-feature.h: remove the dummy typedef for
