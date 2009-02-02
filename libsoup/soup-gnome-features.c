@@ -11,11 +11,7 @@
 
 #include "soup-gnome-features.h"
 
-#ifdef HAVE_LIBPROXY
 #include "soup-proxy-resolver-libproxy.h"
-#else
-#include "soup-proxy-resolver-gconf.h"
-#endif
 
 /**
  * SOUP_TYPE_PROXY_RESOLVER_GNOME:
@@ -32,19 +28,15 @@
 GType
 soup_proxy_resolver_gnome_get_type (void)
 {
-#ifdef HAVE_LIBPROXY
 	return SOUP_TYPE_PROXY_RESOLVER_LIBPROXY;
-#else
-	return SOUP_TYPE_PROXY_RESOLVER_GCONF;
-#endif
 }
 
 /**
  * SOUP_TYPE_GNOME_FEATURES_2_26:
  *
  * This returns the #GType of a #SoupSessionFeature that automatically
- * adds all of the GNOME features defined for libsoup 2.26. At the
- * moment, this is just %SOUP_TYPE_PROXY_RESOLVER_GNOME.
+ * adds all of the GNOME features defined for libsoup 2.26 (which is
+ * just %SOUP_TYPE_PROXY_RESOLVER_GNOME).
  *
  * You can add this to a session using
  * soup_session_add_feature_by_type() or by using the

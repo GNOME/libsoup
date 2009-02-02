@@ -1,3 +1,15 @@
+2009-02-02  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-proxy-resolver-gconf.h:
+	* libsoup/soup-proxy-resolver-gconf.c: Remove this, as it was
+	incomplete, and libproxy is now officially a dependency of GNOME.
+
+	* libsoup/Makefile.am:
+	* libsoup/soup-gnome-features.c: remove gconf-vs-libproxy ifdefs
+
+	* configure.in: Remove GConf checks, require libproxy if building
+	libsoup-gnome.
+
 2009-01-29  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-message-body.c (soup_message_body_wrote_chunk): Fix

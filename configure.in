@@ -185,35 +185,28 @@ if test $with_gnome != no; then
 	AC_DEFINE(HAVE_GNOME, 1, [Defined if GNOME support is enabled])
 
 	PKG_CHECK_MODULES(LIBPROXY, libproxy-1.0,
-			  have_libproxy=yes, have_libproxy=no)
-	if test $have_libproxy = yes; then
-		AC_DEFINE(HAVE_LIBPROXY, 1, [Defined if libproxy support is enabled])
-	else
-		PKG_CHECK_MODULES(GCONF, gconf-2.0, , [AC_MSG_ERROR(dnl
-[Could not find libproxy or GConf:
+			  :, [AC_MSG_ERROR(dnl
+[Could not find libproxy:
 
 $LIBPROXY_PKG_ERRORS
 
-$GCONF_PKG_ERRORS
+libproxy is now a dependency of GNOME, and is required for proxy
+support in libsoup.
 
-One or the other is required for GNOME proxy support.
-Pass "--without-gnome" to configure if you want to build without GNOME support.])])
-	fi
+Pass "--without-gnome" to configure if you want to build libsoup
+without GNOME support.])])
 
 	PKG_CHECK_MODULES(SQLITE, sqlite3, :, [AC_MSG_ERROR(dnl
 [Could not find sqlite3 devel files:
 
 $SQLITE_PKG_ERRORS
 
-Pass "--without-gnome" to configure if you want to build without GNOME support.])])
+Pass "--without-gnome" to configure if you want to build libsoup
+without GNOME support.])])
 fi
 AC_SUBST(HAVE_GNOME)
-AC_SUBST(GCONF_CFLAGS)
-AC_SUBST(GCONF_LIBS)
-AC_SUBST(HAVE_LIBPROXY)
 AC_SUBST(LIBPROXY_CFLAGS)
 AC_SUBST(LIBPROXY_LIBS)
-AM_CONDITIONAL(WITH_LIBPROXY, [test -n "$LIBPROXY_LIBS"])
 AC_SUBST(SQLITE_CFLAGS)
 AC_SUBST(SQLITE_LIBS)
 
