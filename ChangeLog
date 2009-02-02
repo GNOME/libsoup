@@ -1,5 +1,11 @@
 2009-02-02  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.25.5
+
+	* NEWS: update
+
+2009-02-02  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-proxy-resolver-gconf.h:
 	* libsoup/soup-proxy-resolver-gconf.c: Remove this, as it was
 	incomplete, and libproxy is now officially a dependency of GNOME.

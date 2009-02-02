@@ -1,3 +1,19 @@
+Changes in libsoup from 2.25.4 to 2.25.5:
+
+	* SoupProxyResolverGConf (which was incomplete) is gone, and
+          libsoup-gnome now requires libproxy, which is now officially
+          an external dependency of GNOME.
+
+	* Fixed a bug in SoupCookieJar that was making it send
+          "Cookie: (null)" when it had no cookies for a site, which
+          confused some web servers (WebKit bug 23240).
+
+	* Fixed a bug with using SOUP_MEMORY_TEMPORARY buffers and
+          soup_message_body_set_accumulate(FALSE). (Part of WebKit bug
+          18343, noticed by Gustavo Noronha Silva.)
+
+	* Fixed the build with non-gcc compilers
+
 Changes in libsoup from 2.25.3 to 2.25.4:
 
 	* Added soup_session_get_feature() and
