@@ -366,6 +366,9 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		g_object_get (G_OBJECT (priv->session),
 			      SOUP_SESSION_PROXY_URI, &uri,
 			      NULL);
+		/* FIXME: temporary workaround for proxy auth brokenness */
+		if (!uri)
+			return FALSE;
 	} else
 		uri = soup_uri_copy (soup_message_get_uri (msg));
 

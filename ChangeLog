@@ -1,3 +1,11 @@
+2009-02-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-auth-manager.c (authenticate_auth): Fix crash when
+	getting a 407 when using SoupProxyResolverGNOME (or when not using
+	any proxy). Launchpad bug #326099. (Note that this doesn't
+	actually make proxy-auth-with-SoupProxyResolverGNOME *work*, it
+	just makes it not crash.)
+
 2009-02-02  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.25.5
