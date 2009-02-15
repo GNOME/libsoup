@@ -1,3 +1,15 @@
+2009-02-15  Dan Winship  <danw@gnome.org>
+
+	* docs/reference/client-howto.xml: Updates: Mention
+	SoupSessionFeature (and link to SoupLogger, SoupCookieJar, and
+	SoupProxyResolverGNOME specifically). Mention forms and XML-RPC
+	support. Mention header-parsing methods. Give a concrete example
+	of connecting to SoupMessage signals. Document the (minimal)
+	thread-safety guarantees
+
+	* docs/reference/build-howto.xml: basic notes on pkg-config and
+	#include usage.
+
 2009-02-06  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-auth-manager.c (authenticate_auth): Fix crash when

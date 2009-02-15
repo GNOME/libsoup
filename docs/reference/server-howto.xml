@@ -30,7 +30,7 @@ various additional options:
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-PORT:CAPS"><literal>SOUP_SERVER_PORT</literal></link></term>
+	<term><link linkend="SOUP-SERVER-PORT--CAPS"><literal>SOUP_SERVER_PORT</literal></link></term>
 	<listitem><para>
 	    The TCP port to listen on. If <literal>0</literal> (or
 	    left unspecified), some unused port will be selected for
@@ -39,7 +39,7 @@ various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-INTERFACE:CAPS"><literal>SOUP_SERVER_INTERFACE</literal></link></term>
+	<term><link linkend="SOUP-SERVER-INTERFACE--CAPS"><literal>SOUP_SERVER_INTERFACE</literal></link></term>
 	<listitem><para>
 	    A <link linkend="SoupAddress"><type>SoupAddress</type></link>,
 	    specifying the IP address of the network interface to run
@@ -48,7 +48,7 @@ various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-SSL-CERT-FILE:CAPS"><literal>SOUP_SERVER_SSL_CERT_FILE</literal></link></term>
+	<term><link linkend="SOUP-SERVER-SSL-CERT-FILE--CAPS"><literal>SOUP_SERVER_SSL_CERT_FILE</literal></link></term>
 	<listitem><para>
 	    Points to a file containing an SSL certificate to use. If
 	    this is set, then the server will speak HTTPS; otherwise
@@ -56,7 +56,7 @@ various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-SSL-KEY-FILE:CAPS"><literal>SOUP_SERVER_SSL_KEY_FILE</literal></link></term>
+	<term><link linkend="SOUP-SERVER-SSL-KEY-FILE--CAPS"><literal>SOUP_SERVER_SSL_KEY_FILE</literal></link></term>
 	<listitem><para>
 	    Points to a file containing the private key for the
 	    <literal>SOUP_SERVER_SSL_CERT_FILE</literal>. (It may
@@ -64,7 +64,7 @@ various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-ASYNC-CONTEXT:CAPS"><literal>SOUP_SERVER_ASYNC_CONTEXT</literal></link></term>
+	<term><link linkend="SOUP-SERVER-ASYNC-CONTEXT--CAPS"><literal>SOUP_SERVER_ASYNC_CONTEXT</literal></link></term>
 	<listitem><para>
 	    A <link linkend="GMainContext"><type>GMainContext</type></link> which
 	    the server will use for asynchronous operations. This can
@@ -73,7 +73,7 @@ various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-RAW-PATHS:CAPS"><literal>SOUP_SERVER_RAW_PATHS</literal></link></term>
+	<term><link linkend="SOUP-SERVER-RAW-PATHS--CAPS"><literal>SOUP_SERVER_RAW_PATHS</literal></link></term>
 	<listitem><para>
 	    Set this to <literal>TRUE</literal> if you don't want
 	    <application>libsoup</application> to decode %-encoding
