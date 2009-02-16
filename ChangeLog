@@ -1,3 +1,9 @@
+2009-02-16  Dan Winship  <danw@gnome.org>
+
+	* configure.in: 2.25.91
+
+	* NEWS: update
+
 2009-02-15  Dan Winship  <danw@gnome.org>
 
 	* docs/reference/client-howto.xml: Updates: Mention

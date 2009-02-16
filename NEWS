@@ -1,5 +1,13 @@
 Changes in libsoup from 2.25.4 to 2.25.5:
 
+	* Fixed a crash in SoupProxyResolverGNOME when the proxy
+          requires authentication. (This does not make proxy
+          authentication *work* yet, it just makes it not crash.)
+
+	* Updated documentation
+
+Changes in libsoup from 2.25.4 to 2.25.5:
+
 	* SoupProxyResolverGConf (which was incomplete) is gone, and
           libsoup-gnome now requires libproxy, which is now officially
           an external dependency of GNOME.
