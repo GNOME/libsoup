@@ -26,6 +26,7 @@ noinst_PROGRAMS =	\
 	redirect-test	\
 	simple-httpd	\
 	simple-proxy	\
+	streaming-test	\
 	uri-parsing	\
 	$(CURL_TESTS)	\
 	$(APACHE_TESTS)	\
@@ -57,6 +58,7 @@ server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 ssl_test_SOURCES = ssl-test.c $(TEST_SRCS)
+streaming_test_SOURCES = streaming-test.c $(TEST_SRCS)
 uri_parsing_SOURCES = uri-parsing.c $(TEST_SRCS)
 xmlrpc_test_SOURCES = xmlrpc-test.c $(TEST_SRCS)
 xmlrpc_server_test_SOURCES = xmlrpc-server-test.c $(TEST_SRCS)
@@ -83,6 +85,7 @@ TESTS =			\
 	misc-test	\
 	ntlm-test	\
 	redirect-test	\
+	streaming-test	\
 	uri-parsing	\
 	$(APACHE_TESTS)	\
 	$(CURL_TESTS)	\

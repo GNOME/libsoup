@@ -107,9 +107,11 @@ get_request_headers (SoupMessage *req, GString *header,
 		g_free (uri_host);
 
 	*encoding = soup_message_headers_get_encoding (req->request_headers);
-	if (*encoding != SOUP_ENCODING_CHUNKED &&
+	if ((*encoding == SOUP_ENCODING_CONTENT_LENGTH ||
+	     *encoding == SOUP_ENCODING_NONE) &&
 	    req->request_body->length > 0 &&
 	    !soup_message_headers_get_content_length (req->request_headers)) {
+		*encoding = SOUP_ENCODING_CONTENT_LENGTH;
 		soup_message_headers_set_content_length (req->request_headers,
 							 req->request_body->length);
 	}

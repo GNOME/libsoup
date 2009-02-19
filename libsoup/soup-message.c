@@ -499,6 +499,10 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SERVER_SIDE:
 		priv->server_side = g_value_get_boolean (value);
+		if (priv->server_side) {
+			soup_message_headers_set_encoding (msg->response_headers,
+							   SOUP_ENCODING_CONTENT_LENGTH);
+		}
 		break;
 	case PROP_STATUS_CODE:
 		soup_message_set_status (msg, g_value_get_uint (value));
@@ -1101,6 +1105,10 @@ soup_message_cleanup_response (SoupMessage *req)
 
 	soup_message_body_truncate (req->response_body);
 	soup_message_headers_clear (req->response_headers);
+	if (priv->server_side) {
+		soup_message_headers_set_encoding (req->response_headers,
+						   SOUP_ENCODING_CONTENT_LENGTH);
+	}
 
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
@@ -1237,6 +1245,10 @@ soup_message_is_keepalive (SoupMessage *msg)
 	    msg->method == SOUP_METHOD_CONNECT)
 		return TRUE;
 
+	/* Not persistent if the server sent a terminate-by-EOF response */
+	if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_EOF)
+		return FALSE;
+
 	if (SOUP_MESSAGE_GET_PRIVATE (msg)->http_version == SOUP_HTTP_1_0) {
 		/* Only persistent if the client requested keepalive
 		 * and the server agreed.
@@ -1244,11 +1256,9 @@ soup_message_is_keepalive (SoupMessage *msg)
 
 		if (!c_conn || !s_conn)
 			return FALSE;
-		if (soup_header_contains (c_conn, "Keep-Alive") ||
-		    soup_header_contains (s_conn, "Keep-Alive"))
+		if (!soup_header_contains (c_conn, "Keep-Alive") ||
+		    !soup_header_contains (s_conn, "Keep-Alive"))
 			return FALSE;
-
-		return TRUE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
 		if (c_conn && soup_header_contains (c_conn, "close"))
@@ -1256,12 +1266,10 @@ soup_message_is_keepalive (SoupMessage *msg)
 		if (s_conn && soup_header_contains (s_conn, "close"))
 			return FALSE;
 
-		/* But not if the server sent a terminate-by-EOF response */
-		if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_EOF)
-			return FALSE;
-
 		return TRUE;
 	}
+
+	return TRUE;
 }
 
 /**

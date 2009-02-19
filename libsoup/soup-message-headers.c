@@ -515,6 +515,13 @@ soup_message_headers_get_encoding (SoupMessageHeaders *hdrs)
 			return hdrs->encoding;
 	}
 
+	/* Per RFC 2616 4.4, a response body that doesn't indicate its
+	 * encoding otherwise is terminated by connection close, and a
+	 * request that doesn't indicate otherwise has no body. Note
+	 * that SoupMessage calls soup_message_headers_set_encoding()
+	 * to override the response body default for our own
+	 * server-side messages.
+	 */
 	hdrs->encoding = (hdrs->type == SOUP_MESSAGE_HEADERS_RESPONSE) ?
 		SOUP_ENCODING_EOF : SOUP_ENCODING_NONE;
 	return hdrs->encoding;

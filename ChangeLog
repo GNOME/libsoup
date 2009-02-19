@@ -1,5 +1,36 @@
 2009-02-19  Dan Winship  <danw@gnome.org>
 
+	Bug 572153 – SoupServer doesn't support SOUP_ENCODING_EOF
+
+	* libsoup/soup-message-io.c (io_write): Various fixes to make
+	SOUP_ENCODING_EOF work correctly when sending response
+	bodies. (Previously, the code assumed that SoupServer responses
+	would always be chunked or Content-Length-encoded.)
+
+	* libsoup/soup-message-client-io.c (get_request_headers): when
+	changing a request body from SOUP_ENCODING_NONE to
+	SOUP_ENCODING_CONTENT_LENGTH, return the new encoding value to
+	soup-message-io, not the old one.
+
+	* libsoup/soup-message.c (set_property): when setting
+	priv->server_side to TRUE, set the default encoding on the
+	response headers to CONTENT_LENGTH. (Moved from SoupServer.)
+	(soup_message_cleanup_response): If priv->server_side is TRUE,
+	re-fix the response header encoding after clearing the headers.
+	Otherwise the response headers revert to SOUP_ENCODING_EOF after
+	sending a "100 Continue".
+	(soup_message_is_keepalive): reorganize a little, fix a bug in the
+	HTTP/1.0 case.
+
+	* libsoup/soup-server.c (start_request): remove request encoding
+	override from here.
+
+	* tests/streaming-test.c: new test of SoupServer response
+	streaming, testing chunked, content-length, and eof-terminated
+	responses
+
+2009-02-19  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-socket.c (soup_socket_read_until): explain why @len
 	normally needs to be at least @boundary_len+1. Suggested by
 	Benjamin Otte.

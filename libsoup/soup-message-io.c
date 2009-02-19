@@ -453,7 +453,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 		g_string_truncate (io->write_buf, 0);
 
-		if (io->write_encoding != SOUP_ENCODING_CHUNKED) {
+		if (io->write_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
 			SoupMessageHeaders *hdrs =
 				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
 				msg->request_headers : msg->response_headers;
@@ -516,7 +516,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (!io->write_length) {
+		if (!io->write_length && io->write_encoding != SOUP_ENCODING_EOF) {
+		wrote_body:
 			io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 
 			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
@@ -531,7 +532,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				soup_message_io_pause (msg);
 				return;
 			}
-			if (io->write_chunk->length > io->write_length) {
+			if (io->write_chunk->length > io->write_length &&
+			    io->write_encoding != SOUP_ENCODING_EOF) {
 				/* App is trying to write more than it
 				 * claimed it would; we have to truncate.
 				 */
@@ -540,7 +542,9 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 								   0, io->write_length);
 				soup_buffer_free (io->write_chunk);
 				io->write_chunk = truncated;
-			}
+			} else if (io->write_encoding == SOUP_ENCODING_EOF &&
+				   !io->write_chunk->length)
+				goto wrote_body;
 		}
 
 		if (!write_data (msg, io->write_chunk->data,
