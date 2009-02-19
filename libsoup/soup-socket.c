@@ -181,7 +181,8 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * @sock: the socket
 	 *
 	 * Emitted when an async socket is readable. See
-	 * soup_socket_read() and soup_socket_read_until().
+	 * soup_socket_read(), soup_socket_read_until() and
+	 * #SoupSocket:non-blocking.
 	 **/
 	signals[READABLE] =
 		g_signal_new ("readable",
@@ -197,7 +198,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * @sock: the socket
 	 *
 	 * Emitted when an async socket is writable. See
-	 * soup_socket_write().
+	 * soup_socket_write() and #SoupSocket:non-blocking.
 	 **/
 	signals[WRITABLE] =
 		g_signal_new ("writable",
@@ -260,6 +261,30 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Address of remote end of socket",
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SoupSocket:non-blocking:
+	 *
+	 * Whether or not the socket uses non-blocking I/O.
+	 *
+	 * #SoupSocket's I/O methods are designed around the idea of
+	 * using a single codepath for both synchronous and
+	 * asynchronous I/O. If you want to read off a #SoupSocket,
+	 * the "correct" way to do it is to call soup_socket_read() or
+	 * soup_socket_read_until() repeatedly until you have read
+	 * everything you want. If it returns %SOUP_SOCKET_WOULD_BLOCK
+	 * at any point, stop reading and wait for it to emit the
+	 * #SoupSocket::readable signal. Then go back to the
+	 * reading-as-much-as-you-can loop. Likewise, for writing to a
+	 * #SoupSocket, you should call soup_socket_write() either
+	 * until you have written everything, or it returns
+	 * %SOUP_SOCKET_WOULD_BLOCK (in which case you wait for
+	 * #SoupSocket::writable and then go back into the loop).
+	 *
+	 * Code written this way will work correctly with both
+	 * blocking and non-blocking sockets; blocking sockets will
+	 * simply never return %SOUP_SOCKET_WOULD_BLOCK, and so the
+	 * code that handles that case just won't get used for them.
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_NON_BLOCKING,
 		g_param_spec_boolean (SOUP_SOCKET_FLAG_NONBLOCKING,
@@ -1151,14 +1176,15 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
  * Attempts to read up to @len bytes from @sock into @buffer. If some
  * data is successfully read, soup_socket_read() will return
  * %SOUP_SOCKET_OK, and *@nread will contain the number of bytes
- * actually read.
+ * actually read (which may be less than @len).
  *
  * If @sock is non-blocking, and no data is available, the return
  * value will be %SOUP_SOCKET_WOULD_BLOCK. In this case, the caller
- * can connect to the %readable signal to know when there is more data
- * to read. (NB: You MUST read all available data off the socket
- * first. The %readable signal will only be emitted after
- * soup_socket_read() has returned %SOUP_SOCKET_WOULD_BLOCK.)
+ * can connect to the #SoupSocket::readable signal to know when there
+ * is more data to read. (NB: You MUST read all available data off the
+ * socket first. #SoupSocket::readable is only emitted after
+ * soup_socket_read() returns %SOUP_SOCKET_WOULD_BLOCK, and it is only
+ * emitted once. See the documentation for #SoupSocket:non-blocking.)
  *
  * Return value: a #SoupSocketIOStatus, as described above (or
  * %SOUP_SOCKET_EOF if the socket is no longer connected, or
@@ -1204,6 +1230,14 @@ soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len,
  * occurrence of @boundary. (If the boundary is found, it will be
  * included in the returned data, and *@got_boundary will be set to
  * %TRUE.) Any data after the boundary will returned in future reads.
+ *
+ * soup_socket_read_until() will almost always return fewer than @len
+ * bytes: if the boundary is found, then it will only return the bytes
+ * up until the end of the boundary, and if the boundary is not found,
+ * then it will leave the last <literal>(boundary_len - 1)</literal>
+ * bytes in its internal buffer, in case they form the start of the
+ * boundary string. Thus, @len normally needs to be at least 1 byte
+ * longer than @boundary_len if you want to make any progress at all.
  *
  * Return value: as for soup_socket_read()
  **/
@@ -1294,15 +1328,17 @@ socket_write_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
  * @error: error pointer
  *
  * Attempts to write @len bytes from @buffer to @sock. If some data is
- * successfully written, the resturn status will be
- * %SOUP_SOCKET_OK, and *@nwrote will contain the number of bytes
- * actually written.
+ * successfully written, the return status will be %SOUP_SOCKET_OK,
+ * and *@nwrote will contain the number of bytes actually written
+ * (which may be less than @len).
  *
  * If @sock is non-blocking, and no data could be written right away,
  * the return value will be %SOUP_SOCKET_WOULD_BLOCK. In this case,
- * the caller can connect to the %writable signal to know when more
- * data can be written. (NB: %writable is only emitted after a
- * %SOUP_SOCKET_WOULD_BLOCK.)
+ * the caller can connect to the #SoupSocket::writable signal to know
+ * when more data can be written. (NB: #SoupSocket::writable is only
+ * emitted after soup_socket_write() returns %SOUP_SOCKET_WOULD_BLOCK,
+ * and it is only emitted once. See the documentation for
+ * #SoupSocket:non-blocking.)
  *
  * Return value: a #SoupSocketIOStatus, as described above (or
  * %SOUP_SOCKET_EOF or %SOUP_SOCKET_ERROR. @error will be set if the

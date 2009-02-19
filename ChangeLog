@@ -1,3 +1,11 @@
+2009-02-19  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-socket.c (soup_socket_read_until): explain why @len
+	normally needs to be at least @boundary_len+1. Suggested by
+	Benjamin Otte.
+	(soup_socket_class_init): add longer gtk-docs to the non-blocking
+	property, to explain the way non-blocking I/O works in SoupSocket.
+
 2009-02-19  Xan Lopez  <xan@gnome.org>
 
         * libsoup/soup-cookie-jar-sqlite.c:
