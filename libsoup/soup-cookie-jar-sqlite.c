@@ -157,8 +157,9 @@ soup_cookie_jar_sqlite_new (const char *filename, gboolean read_only)
 }
 
 #define QUERY_ALL "SELECT * FROM moz_cookies;"
+#define CREATE_TABLE "CREATE TABLE moz_cookies (id INTEGER PRIMARY KEY, name TEXT, value TEXT, host TEXT, path TEXT,expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER)"
 #define QUERY_INSERT "INSERT INTO moz_cookies VALUES(NULL, %Q, %Q, %Q, %Q, %d, NULL, %d, %d);"
-#define QUERY_DELETE "DELETE FROM moz_cookies WHERE name=%Q AND domain=%Q;"
+#define QUERY_DELETE "DELETE FROM moz_cookies WHERE name=%Q AND host=%Q;"
 
 enum {
 	COL_ID,
@@ -194,8 +195,8 @@ callback (void *data, int argc, char **argv, char **colname)
 	if (max_age <= 0)
 		return 0;
 
-	http_only = (strcmp (argv[COL_HTTP_ONLY], "FALSE") != 0);
-	secure = (strcmp (argv[COL_SECURE], "FALSE") != 0);
+	http_only = (strcmp (argv[COL_HTTP_ONLY], "1") == 0);
+	secure = (strcmp (argv[COL_SECURE], "1") == 0);
 
 	cookie = soup_cookie_new (name, value, host, path, max_age);
 
@@ -210,23 +211,54 @@ callback (void *data, int argc, char **argv, char **colname)
 }
 
 static void
+try_create_table (sqlite3 *db)
+{
+	char *error = 0;
+
+	if (sqlite3_exec (db, CREATE_TABLE, NULL, NULL, &error)) {
+		g_warning ("Failed to execute query: %s", error);
+		sqlite3_free (error);
+	}
+}
+
+static void
+exec_query_with_try_create_table (sqlite3 *db,
+				  const char *sql,
+				  int (*callback)(void*,int,char**,char**),
+				  void *argument)
+{
+	char *error = 0;
+	gboolean try_create = TRUE;
+
+try_exec:
+	if (sqlite3_exec (db, sql, callback, argument, &error)) {
+		if (try_create) {
+			try_create = FALSE;
+			try_create_table (db);
+			sqlite3_free (error);
+			goto try_exec;
+		} else {
+			g_warning ("Failed to execute query: %s", error);
+			sqlite3_free (error);
+		}
+	}
+}
+					 
+static void
 load (SoupCookieJar *jar)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
 
 	sqlite3 *db;
-	char *error = 0;
 
 	if (sqlite3_open (priv->filename, &db)) {
 		sqlite3_close (db);
-		g_debug ("Can't open %s", priv->filename);
+		g_warning ("Can't open %s", priv->filename);
+		return;
 	}
 
-	if (sqlite3_exec (db, QUERY_ALL, callback, (void *)jar, &error)) {
-		g_debug ("Failed to execute query: %s", error);
-		sqlite3_free (error);
-	}
+	exec_query_with_try_create_table (db, QUERY_ALL, callback, jar);
 
 	sqlite3_close (db);
 }
@@ -239,7 +271,6 @@ changed (SoupCookieJar *jar,
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
 	sqlite3 *db;
-	char *error = NULL;
 	char *query;
 
 	if (sqlite3_open (priv->filename, &db)) {
@@ -252,21 +283,14 @@ changed (SoupCookieJar *jar,
 		query = sqlite3_mprintf (QUERY_DELETE,
 					 old_cookie->name,
 					 old_cookie->domain);
-		if (sqlite3_exec (db, query, NULL, NULL, &error)) {
-			g_warning ("Failed to execute query: %s", error);
-			sqlite3_free (error);
-		}
+		exec_query_with_try_create_table (db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 
-	if (new_cookie) {
-		int expires;
-
-		if (new_cookie->expires)
-			expires = soup_date_to_time_t (new_cookie->expires);
-		else
-			expires = 0;
-
+	if (new_cookie && new_cookie->expires) {
+		gulong expires;
+		
+		expires = (gulong)soup_date_to_time_t (new_cookie->expires);
 		query = sqlite3_mprintf (QUERY_INSERT, 
 					 new_cookie->name,
 					 new_cookie->value,
@@ -275,10 +299,7 @@ changed (SoupCookieJar *jar,
 					 expires,
 					 new_cookie->secure,
 					 new_cookie->http_only);
-		if (sqlite3_exec (db, query, NULL, NULL, &error)) {
-			g_warning ("Failed to execute query: %s", error);
-			sqlite3_free (error);
-		}
+		exec_query_with_try_create_table (db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 

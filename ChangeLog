@@ -1,3 +1,21 @@
+2009-02-19  Xan Lopez  <xan@gnome.org>
+
+        * libsoup/soup-cookie-jar-sqlite.c:
+        (callback):
+        (try_create_table):
+        (exec_query_with_try_create_table):
+        (load):
+        (changed):
+
+        Fix a series of issues that prevented SoupCookieJarSQLite from working:
+
+        - Try to create cookies table on errors. The table was never created before.
+        - Store max_age in a gulong, not int.
+        - Parse correctly boolean values from query. It's 0/1, not FALSE/TRUE.
+	- The host is stored as host in the table, not as domain.
+
+        #572409
+
 2009-02-16  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.25.91
