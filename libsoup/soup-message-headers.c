@@ -1043,16 +1043,16 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * its value in *@content_type and *@params. @params can be %NULL if you
  * are only interested in the content type itself.
  *
- * Return value: %TRUE if @hdrs contains a "Content-Type" header,
- * %FALSE if not (in which case *@content_type and *@params will be
- * unchanged).
+ * Return value: a string with the value of the "Content-Type" header
+ * or NULL if @hdrs does not contain that header (in which case
+ * *@params will be * unchanged, is it has been given).
  **/
 const char *
 soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
 				       GHashTable         **params)
 {
 	if (!hdrs->content_type)
-		return FALSE;
+		return NULL;
 
 	if (params)
 		parse_content_foo (hdrs, "Content-Type", NULL, params);

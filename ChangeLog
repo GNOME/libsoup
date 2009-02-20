@@ -1,3 +1,11 @@
+2009-02-20  Gustavo Noronha Silva  <gns@gnome.org>
+
+	* libsoup/soup-message-headers.c
+	(soup_message_headers_get_content_type): now returns NULL if there
+	is no Content-Type header; fix documentation to account for this
+	change and to actually be correct about how the Content-Type is
+	returned.
+
 2009-02-19  Dan Winship  <danw@gnome.org>
 
 	Bug 572153 – SoupServer doesn't support SOUP_ENCODING_EOF
