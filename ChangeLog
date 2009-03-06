@@ -1,3 +1,12 @@
+2009-03-06  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session-async.c (run_queue): Process messages in
+	the CONNECTING iostate before messages in the QUEUED iostate.
+	Otherwise, if a bunch of messages are queued all at once, and the
+	server doesn't support persistent connections, some messages can
+	get stranded in the queue. Fixes #574365 (reported by Xan Lopez)
+	and removes a five-year-old FIXME...
+
 2009-02-20  Gustavo Noronha Silva  <gns@gnome.org>
 
 	* libsoup/soup-message-headers.c

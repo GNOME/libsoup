@@ -25,7 +25,7 @@
  * single-threaded programs.
  **/
 
-static gboolean run_queue (SoupSessionAsync *sa);
+static void run_queue (SoupSessionAsync *sa);
 static void do_idle_run_queue (SoupSession *session);
 
 static void  queue_message   (SoupSession *session, SoupMessage *req,
@@ -233,7 +233,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	g_object_unref (session);
 }
 
-static gboolean
+static void
 run_queue (SoupSessionAsync *sa)
 {
 	SoupSession *session = SOUP_SESSION (sa);
@@ -242,11 +242,10 @@ run_queue (SoupSessionAsync *sa)
 	SoupProxyResolver *proxy_resolver =
 		soup_session_get_proxy_resolver (session);
 	SoupMessage *msg;
+	SoupMessageIOStatus cur_io_status = SOUP_MESSAGE_IO_STATUS_CONNECTING;
 	SoupConnection *conn;
 	gboolean try_pruning = TRUE, should_prune = FALSE;
-	gboolean started_any = FALSE, is_new;
-
-	/* FIXME: prefer CONNECTING messages */
+	gboolean is_new;
 
  try_again:
 	for (item = soup_message_queue_first (queue);
@@ -254,7 +253,7 @@ run_queue (SoupSessionAsync *sa)
 	     item = soup_message_queue_next (queue, item)) {
 		msg = item->msg;
 
-		if (!SOUP_MESSAGE_IS_STARTING (msg) ||
+		if (soup_message_get_io_status (msg) != cur_io_status ||
 		    soup_message_io_in_progress (msg))
 			continue;
 
@@ -282,6 +281,11 @@ run_queue (SoupSessionAsync *sa)
 	if (item)
 		soup_message_queue_item_unref (item);
 
+	if (cur_io_status == SOUP_MESSAGE_IO_STATUS_CONNECTING) {
+		cur_io_status = SOUP_MESSAGE_IO_STATUS_QUEUED;
+		goto try_again;
+	}
+
 	if (try_pruning && should_prune) {
 		/* There is at least one message in the queue that
 		 * could be sent if we pruned an idle connection from
@@ -292,8 +296,6 @@ run_queue (SoupSessionAsync *sa)
 			goto try_again;
 		}
 	}
-
-	return started_any;
 }
 
 static void
