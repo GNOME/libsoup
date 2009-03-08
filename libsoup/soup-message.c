@@ -250,6 +250,8 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Unlike #SoupMessage::wrote_chunk, this is emitted after
 	 * every successful write() call, not only after finishing a
 	 * complete "chunk".
+	 *
+	 * Since: 2.4.1
 	 **/
 	signals[WROTE_BODY_DATA] =
 		g_signal_new ("wrote_body_data",
@@ -424,6 +426,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_NONE, 0);
 
 	/* properties */
+	/**
+	 * SOUP_MESSAGE_METHOD:
+	 *
+	 * Alias for the #SoupMessage:method property. (The message's
+	 * HTTP method.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_METHOD,
 		g_param_spec_string (SOUP_MESSAGE_METHOD,
@@ -431,6 +439,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "The message's HTTP method",
 				     SOUP_METHOD_GET,
 				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_URI:
+	 *
+	 * Alias for the #SoupMessage:uri property. (The message's
+	 * #SoupURI.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_URI,
 		g_param_spec_boxed (SOUP_MESSAGE_URI,
@@ -438,6 +452,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "The message's Request-URI",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_HTTP_VERSION:
+	 *
+	 * Alias for the #SoupMessage:http-version property. (The
+	 * message's #SoupHTTPVersion.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_HTTP_VERSION,
 		g_param_spec_enum (SOUP_MESSAGE_HTTP_VERSION,
@@ -446,6 +466,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   SOUP_TYPE_HTTP_VERSION,
 				   SOUP_HTTP_1_1,
 				   G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_FLAGS:
+	 *
+	 * Alias for the #SoupMessage:flags property. (The message's
+	 * #SoupMessageFlags.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_FLAGS,
 		g_param_spec_flags (SOUP_MESSAGE_FLAGS,
@@ -454,6 +480,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    SOUP_TYPE_MESSAGE_FLAGS,
 				    0,
 				    G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_SERVER_SIDE:
+	 *
+	 * Alias for the #SoupMessage:server-side property. (%TRUE if
+	 * the message was created by #SoupServer.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SERVER_SIDE,
 		g_param_spec_boolean (SOUP_MESSAGE_SERVER_SIDE,
@@ -461,6 +493,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				      "Whether or not the message is server-side rather than client-side",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_MESSAGE_STATUS_CODE:
+	 *
+	 * Alias for the #SoupMessage:status-code property. (The
+	 * message's HTTP response status code.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_STATUS_CODE,
 		g_param_spec_uint (SOUP_MESSAGE_STATUS_CODE,
@@ -468,6 +506,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   "The HTTP response status code",
 				   0, 599, 0,
 				   G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_REASON_PHRASE:
+	 *
+	 * Alias for the #SoupMessage:reason-phrase property. (The
+	 * message's HTTP response reason phrase.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REASON_PHRASE,
 		g_param_spec_string (SOUP_MESSAGE_REASON_PHRASE,
@@ -1325,6 +1369,8 @@ soup_message_get_uri (SoupMessage *msg)
  * session will resolve it before sending the message.
  *
  * Return value: the address @msg's URI points to
+ *
+ * Since: 2.26
  **/
 SoupAddress *
 soup_message_get_address (SoupMessage *msg)

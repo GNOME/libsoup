@@ -293,6 +293,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * exactly once, but #SoupSession::request_started and
 	 * #SoupMessage::finished (and all of the other #SoupMessage
 	 * signals) may be invoked multiple times for a given message.
+	 *
+	 * Since: 2.4.1
 	 **/
 	signals[REQUEST_QUEUED] =
 		g_signal_new ("request-queued",
@@ -334,6 +336,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * indicating that @session is done with it. See
 	 * #SoupSession::request_queued for a detailed description of the
 	 * message lifecycle within a session.
+	 *
+	 * Since: 2.4.1
 	 **/
 	signals[REQUEST_UNQUEUED] =
 		g_signal_new ("request-unqueued",
@@ -381,6 +385,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_TYPE_BOOLEAN);
 
 	/* properties */
+	/**
+	 * SOUP_SESSION_PROXY_URI:
+	 *
+	 * Alias for the #SoupSession:proxy-uri property. (The HTTP
+	 * proxy to use for this session.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_PROXY_URI,
 		g_param_spec_boxed (SOUP_SESSION_PROXY_URI,
@@ -388,6 +398,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "The HTTP Proxy to use for this session",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_MAX_CONNS:
+	 *
+	 * Alias for the #SoupSession:max-conns property. (The maximum
+	 * number of connections that the session can open at once.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
 		g_param_spec_int (SOUP_SESSION_MAX_CONNS,
@@ -397,6 +413,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_DEFAULT,
 				  G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_MAX_CONNS_PER_HOST:
+	 *
+	 * Alias for the #SoupSession:max-conns-per-host property.
+	 * (The maximum number of connections that the session can
+	 * open at once to a given host.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS_PER_HOST,
 		g_param_spec_int (SOUP_SESSION_MAX_CONNS_PER_HOST,
@@ -406,6 +429,21 @@ soup_session_class_init (SoupSessionClass *session_class)
 				  G_MAXINT,
 				  SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT,
 				  G_PARAM_READWRITE));
+	/**
+	 * SoupSession:idle-timeout:
+	 *
+	 * Connection lifetime when idle
+	 *
+	 * Since: 2.4.1
+	 **/
+	/**
+	 * SOUP_SESSION_IDLE_TIMEOUT:
+	 *
+	 * Alias for the #SoupSession:idle-timeout property. (The idle
+	 * connection lifetime.)
+	 *
+	 * Since: 2.4.1
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_IDLE_TIMEOUT,
 		g_param_spec_uint (SOUP_SESSION_IDLE_TIMEOUT,
@@ -413,6 +451,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Connection lifetime when idle",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_USE_NTLM:
+	 *
+	 * Alias for the #SoupSession:use-ntlm property. (Whether or
+	 * not to use NTLM authentication.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_USE_NTLM,
 		g_param_spec_boolean (SOUP_SESSION_USE_NTLM,
@@ -420,6 +464,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Whether or not to use NTLM authentication",
 				      FALSE,
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_SSL_CA_FILE:
+	 *
+	 * Alias for the #SoupSession:ssl-ca-file property. (File
+	 * containing SSL CA certificates.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CA_FILE,
 		g_param_spec_string (SOUP_SESSION_SSL_CA_FILE,
@@ -427,12 +477,24 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "File containing SSL CA certificates",
 				     NULL,
 				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_ASYNC_CONTEXT:
+	 *
+	 * Alias for the #SoupSession:async-context property. (The
+	 * session's #GMainContext.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_SESSION_ASYNC_CONTEXT,
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SESSION_TIMEOUT:
+	 *
+	 * Alias for the #SoupSession:timeout property. (The timeout
+	 * in seconds for blocking socket I/O operations.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
 		g_param_spec_uint (SOUP_SESSION_TIMEOUT,
@@ -468,6 +530,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
 	 **/
+	/**
+	 * SOUP_SESSION_USER_AGENT:
+	 *
+	 * Alias for the #SoupSession:user-agent property, qv.
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_USER_AGENT,
 		g_param_spec_string (SOUP_SESSION_USER_AGENT,
@@ -476,6 +543,22 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     NULL,
 				     G_PARAM_READWRITE));
 
+	/**
+	 * SoupSession:add-feature:
+	 *
+	 * Add a feature object to the session. (Shortcut for calling
+	 * soup_session_add_feature().)
+	 *
+	 * Since: 2.24
+	 **/
+	/**
+	 * SOUP_SESSION_ADD_FEATURE:
+	 *
+	 * Alias for the #SoupSession:add-feature property. (Shortcut
+	 * for calling soup_session_add_feature().
+	 *
+	 * Since: 2.24
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_FEATURE,
 		g_param_spec_object (SOUP_SESSION_ADD_FEATURE,
@@ -483,6 +566,22 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Add a feature object to the session",
 				     SOUP_TYPE_SESSION_FEATURE,
 				     G_PARAM_READWRITE));
+	/**
+	 * SoupSession:add-feature-by-type:
+	 *
+	 * Add a feature object of the given type to the session.
+	 * (Shortcut for calling soup_session_add_feature_by_type().)
+	 *
+	 * Since: 2.24
+	 **/
+	/**
+	 * SOUP_SESSION_ADD_FEATURE_BY_TYPE:
+	 *
+	 * Alias for the #SoupSession:add-feature-by-type property.
+	 * (Shortcut for calling soup_session_add_feature_by_type().
+	 *
+	 * Since: 2.24
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_FEATURE_BY_TYPE,
 		g_param_spec_gtype (SOUP_SESSION_ADD_FEATURE_BY_TYPE,
@@ -490,6 +589,23 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "Add a feature object of the given type to the session",
 				    SOUP_TYPE_SESSION_FEATURE,
 				    G_PARAM_READWRITE));
+	/**
+	 * SoupSession:remove-feature-by-type:
+	 *
+	 * Remove feature objects from the session. (Shortcut for
+	 * calling soup_session_remove_feature_by_type().)
+	 *
+	 * Since: 2.24
+	 **/
+	/**
+	 * SOUP_SESSION_REMOVE_FEATURE_BY_TYPE:
+	 *
+	 * Alias for the #SoupSession:remove-feature-by-type
+	 * property. (Shortcut for calling
+	 * soup_session_remove_feature_by_type().
+	 *
+	 * Since: 2.24
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOVE_FEATURE_BY_TYPE,
 		g_param_spec_gtype (SOUP_SESSION_REMOVE_FEATURE_BY_TYPE,
@@ -1342,6 +1458,8 @@ soup_session_abort (SoupSession *session)
  * Adds @feature's functionality to @session. You can also add a
  * feature to the session at construct time by using the
  * %SOUP_SESSION_ADD_FEATURE property.
+ *
+ * Since: 2.24
  **/
 void
 soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -1369,6 +1487,8 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * the case wher you don't need to customize the new feature in any
  * way. You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
+ *
+ * Since: 2.24
  **/
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
@@ -1389,6 +1509,8 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
  * @feature: a feature that has previously been added to @session
  *
  * Removes @feature's functionality from @session.
+ *
+ * Since: 2.24
  **/
 void
 soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
@@ -1417,6 +1539,8 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
  * @feature_type) from @session. You can also remove standard features
  * from the session at construct time by using the
  * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE property.
+ *
+ * Since: 2.24
  **/
 void
 soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
@@ -1447,6 +1571,8 @@ restart:
  *
  * Return value: a list of features. You must free the list, but not
  * its contents
+ *
+ * Since: 2.26
  **/
 GSList *
 soup_session_get_features (SoupSession *session, GType feature_type)
@@ -1475,6 +1601,8 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  *
  * Return value: a #SoupSessionFeature, or %NULL. The feature is owned
  * by @session.
+ *
+ * Since: 2.26
  **/
 SoupSessionFeature *
 soup_session_get_feature (SoupSession *session, GType feature_type)

@@ -1,3 +1,8 @@
+2009-03-08  Dan Winship  <danw@gnome.org>
+
+	* libsoup/*.c: gtk-doc updates. In particular, document a bunch of
+	convenience #defines, and add "Since" tags where appropriate.
+
 2009-03-06  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session-async.c (run_queue): Process messages in

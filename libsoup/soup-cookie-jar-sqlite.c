@@ -85,6 +85,12 @@ soup_cookie_jar_sqlite_class_init (SoupCookieJarSqliteClass *sqlite_class)
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
 
+	/**
+	 * SOUP_COOKIE_JAR_SQLITE_FILENAME:
+	 *
+	 * Alias for the #SoupCookieJarSqlite:filename property. (The
+	 * cookie-storage filename.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILENAME,
 		g_param_spec_string (SOUP_COOKIE_JAR_SQLITE_FILENAME,
@@ -144,6 +150,8 @@ get_property (GObject *object, guint prop_id,
  * jar is destroyed.)
  *
  * Return value: the new #SoupCookieJar
+ *
+ * Since: 2.26
  **/
 SoupCookieJar *
 soup_cookie_jar_sqlite_new (const char *filename, gboolean read_only)

@@ -24,6 +24,8 @@
  * This feature is included in %SOUP_TYPE_GNOME_FEATURES_2_26, so if
  * you are using that feature, you do not need to include this feature
  * separately.
+ *
+ * Since: 2.26
  **/
 GType
 soup_proxy_resolver_gnome_get_type (void)
@@ -41,6 +43,8 @@ soup_proxy_resolver_gnome_get_type (void)
  * You can add this to a session using
  * soup_session_add_feature_by_type() or by using the
  * %SOUP_SESSION_ADD_FEATURE_BY_TIME construct-time property.
+ *
+ * Since: 2.26
  **/
 GType
 soup_gnome_features_2_26_get_type (void)

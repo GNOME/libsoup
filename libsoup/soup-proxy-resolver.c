@@ -44,6 +44,8 @@ soup_proxy_resolver_get_type (void)
  *
  * Asynchronously determines a proxy server address to use for @msg
  * and calls @callback.
+ *
+ * Since: 2.26
  **/
 void
 soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
@@ -72,6 +74,8 @@ soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
  *
  * Return value: SOUP_STATUS_OK if successful, or a transport-level
  * error.
+ *
+ * Since: 2.26
  **/
 guint
 soup_proxy_resolver_get_proxy_sync (SoupProxyResolver  *proxy_resolver,

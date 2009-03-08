@@ -29,6 +29,8 @@
  *
  * An object that implement some sort of optional feature for
  * #SoupSession.
+ *
+ * Since: 2.24
  **/
 
 /**
@@ -41,6 +43,8 @@
  * @request_unqueued: Proxies the session's #SoupSession::request_unqueued signal
  *
  * The interface implemented by #SoupSessionFeature<!-- -->s.
+ *
+ * Since: 2.24
  **/
 
 static void soup_session_feature_interface_init (SoupSessionFeatureInterface *interface);

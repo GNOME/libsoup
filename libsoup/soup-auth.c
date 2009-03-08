@@ -86,6 +86,12 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 	object_class->get_property = get_property;
 
 	/* properties */
+	/**
+	 * SOUP_AUTH_SCHEME_NAME:
+	 *
+	 * An alias for the #SoupAuth:scheme property. (The
+	 * authentication scheme name.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SCHEME_NAME,
 		g_param_spec_string (SOUP_AUTH_SCHEME_NAME,
@@ -93,6 +99,12 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Authentication scheme name",
 				     NULL,
 				     G_PARAM_READABLE));
+	/**
+	 * SOUP_AUTH_REALM:
+	 *
+	 * An alias for the #SoupAuth:realm property. (The
+	 * authentication realm.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REALM,
 		g_param_spec_string (SOUP_AUTH_REALM,
@@ -100,6 +112,12 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Authentication realm",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_AUTH_HOST:
+	 *
+	 * An alias for the #SoupAuth:host property. (The
+	 * host being authenticated to.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_HOST,
 		g_param_spec_string (SOUP_AUTH_HOST,
@@ -107,6 +125,12 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Authentication host",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_AUTH_IS_FOR_PROXY:
+	 *
+	 * An alias for the #SoupAuth:is-for-proxy property. (Whether
+	 * or not the auth is for a proxy server.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_FOR_PROXY,
 		g_param_spec_boolean (SOUP_AUTH_IS_FOR_PROXY,
@@ -114,6 +138,12 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      "Whether or not the auth is for a proxy server",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_AUTH_IS_AUTHENTICATED:
+	 *
+	 * An alias for the #SoupAuth:is-authenticated property.
+	 * (Whether or not the auth has been authenticated.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_AUTHENTICATED,
 		g_param_spec_boolean (SOUP_AUTH_IS_AUTHENTICATED,

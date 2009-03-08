@@ -167,6 +167,12 @@ soup_address_class_init (SoupAddressClass *address_class)
 	object_class->get_property = get_property;
 
 	/* properties */
+	/**
+	 * SOUP_ADDRESS_NAME:
+	 *
+	 * Alias for the #SoupAddress:name property. (The hostname for
+	 * this address.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_NAME,
 		g_param_spec_string (SOUP_ADDRESS_NAME,
@@ -174,6 +180,12 @@ soup_address_class_init (SoupAddressClass *address_class)
 				     "Hostname for this address",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_ADDRESS_FAMILY:
+	 *
+	 * Alias for the #SoupAddress:family property. (The
+	 * #SoupAddressFamily for this address.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_FAMILY,
 		g_param_spec_enum (SOUP_ADDRESS_FAMILY,
@@ -182,6 +194,12 @@ soup_address_class_init (SoupAddressClass *address_class)
 				   SOUP_TYPE_ADDRESS_FAMILY,
 				   SOUP_ADDRESS_FAMILY_INVALID,
 				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_ADDRESS_PORT:
+	 *
+	 * An alias for the #SoupAddress:port property. (The port for
+	 * this address.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_PORT,
 		g_param_spec_int (SOUP_ADDRESS_PORT,
@@ -189,6 +207,12 @@ soup_address_class_init (SoupAddressClass *address_class)
 				  "Port for this address",
 				  -1, 65535, -1,
 				  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_ADDRESS_PHYSICAL:
+	 *
+	 * An alias for the #SoupAddress:physical property. (The
+	 * stringified IP address for this address.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_PHYSICAL,
 		g_param_spec_string (SOUP_ADDRESS_PHYSICAL,
@@ -196,6 +220,12 @@ soup_address_class_init (SoupAddressClass *address_class)
 				     "IP address for this address",
 				     NULL,
 				     G_PARAM_READABLE));
+	/**
+	 * SOUP_ADDRESS_SOCKADDR:
+	 *
+	 * An alias for the #SoupAddress:sockaddr property. (A pointer
+	 * to the struct sockaddr for this address.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SOCKADDR,
 		g_param_spec_pointer (SOUP_ADDRESS_SOCKADDR,
@@ -656,6 +686,8 @@ soup_address_is_resolved (SoupAddress *addr)
  * soup_address_equal_by_name(), qv
  *
  * Return value: the named-based hash value for @addr.
+ *
+ * Since: 2.26
  **/
 guint
 soup_address_hash_by_name (gconstpointer addr)
@@ -694,6 +726,8 @@ soup_address_hash_by_name (gconstpointer addr)
  * rather than by name.
  *
  * Return value: whether or not @addr1 and @addr2 have the same name
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
@@ -714,6 +748,8 @@ soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
  * soup_address_equal_by_ip(), qv
  *
  * Return value: the IP-based hash value for @addr.
+ *
+ * Since: 2.26
  **/
 guint
 soup_address_hash_by_ip (gconstpointer addr)
@@ -748,6 +784,8 @@ soup_address_hash_by_ip (gconstpointer addr)
  *
  * Return value: whether or not @addr1 and @addr2 have the same IP
  * address.
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_address_equal_by_ip (gconstpointer addr1, gconstpointer addr2)

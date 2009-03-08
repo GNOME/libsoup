@@ -353,6 +353,8 @@ soup_message_body_new (void)
  * In either case, @body's %data field will not be filled in after the
  * body is fully sent/received, since the body data will no longer be
  * available
+ *
+ * Since: 2.4.1
  **/
 void
 soup_message_body_set_accumulate (SoupMessageBody *body,
@@ -371,6 +373,8 @@ soup_message_body_set_accumulate (SoupMessageBody *body,
  * soup_message_body_set_accumulate() for details.
  *
  * Return value: the accumulate flag for @body.
+ *
+ * Since: 2.4.1
  **/
 gboolean
 soup_message_body_get_accumulate (SoupMessageBody *body)
@@ -578,6 +582,8 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
  *
  * This is a low-level method which you should not normally need to
  * use.
+ *
+ * Since: 2.4.1
  **/
 void
 soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
@@ -603,6 +609,8 @@ soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
  * This is a low-level method which you should not need to use, and
  * there are further restrictions on its proper use which are not
  * documented here.
+ *
+ * Since: 2.4.1
  **/
 void
 soup_message_body_wrote_chunk (SoupMessageBody *body, SoupBuffer *chunk)

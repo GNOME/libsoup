@@ -51,7 +51,14 @@ soup_ssl_free_server_credentials (SoupSSLCredentials *server_creds)
 #endif /* ! HAVE_SSL */
 
 /**
+ * SOUP_SSL_ERROR:
+ *
+ * A #GError domain representing an SSL error. Used with #SoupSSLError.
+ **/
+/**
  * soup_ssl_error_quark:
+ *
+ * The quark used as %SOUP_SSL_ERROR
  *
  * Return value: The quark used as %SOUP_SSL_ERROR
  **/
@@ -63,3 +70,15 @@ soup_ssl_error_quark (void)
 		error = g_quark_from_static_string ("soup_ssl_error_quark");
 	return error;
 }
+
+/**
+ * SoupSSLError:
+ * @SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ: Internal error. Never exposed
+ * outside of libsoup.
+ * @SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE: Internal error. Never exposed
+ * outside of libsoup.
+ * @SOUP_SSL_ERROR_CERTIFICATE: Indicates an error validating an SSL
+ * certificate
+ *
+ * SSL-related I/O errors.
+ **/

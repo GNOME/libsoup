@@ -31,6 +31,8 @@
  * have "binary" Content-Transfer-Encoding, even if its headers
  * explicitly state otherwise. In other words, don't try to use
  * #SoupMultipart for handling real MIME multiparts.
+ *
+ * Since: 2.26
  **/
 
 struct SoupMultipart {
@@ -85,6 +87,8 @@ generate_boundary (void)
  * including "multipart/".
  *
  * Return value: a new empty #SoupMultipart of the given @mime_type
+ *
+ * Since: 2.26
  **/
 SoupMultipart *
 soup_multipart_new (const char *mime_type)
@@ -120,6 +124,8 @@ find_boundary (const char *start, const char *boundary, int boundary_len)
  *
  * Return value: a new #SoupMultipart (or %NULL if the message couldn't
  * be parsed or wasn't multipart).
+ *
+ * Since: 2.26
  **/
 SoupMultipart *
 soup_multipart_new_from_message (SoupMessageHeaders *headers,
@@ -214,6 +220,8 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
  * Gets the number of body parts in @multipart
  *
  * Return value: the number of body parts in @multipart
+ *
+ * Since: 2.26
  **/
 int
 soup_multipart_get_length (SoupMultipart *multipart)
@@ -232,6 +240,8 @@ soup_multipart_get_length (SoupMultipart *multipart)
  *
  * Return value: %TRUE on success, %FALSE if @part is out of range (in
  * which case @headers and @body won't be set)
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_multipart_get_part (SoupMultipart *multipart, int part,
@@ -254,6 +264,8 @@ soup_multipart_get_part (SoupMultipart *multipart, int part,
  * (The multipart will make its own copies of @headers and @body, so
  * you should free your copies if you are not using them for anything
  * else.)
+ *
+ * Since: 2.26
  **/
 void
 soup_multipart_append_part (SoupMultipart      *multipart,
@@ -304,6 +316,8 @@ soup_multipart_append_part (SoupMultipart      *multipart,
  * "Content-Disposition: form-data", as per the HTML forms
  * specification. See soup_form_request_new_from_multipart() for more
  * details.
+ *
+ * Since: 2.26
  **/ 
 void
 soup_multipart_append_form_string (SoupMultipart *multipart,
@@ -329,6 +343,8 @@ soup_multipart_append_form_string (SoupMultipart *multipart,
  * "Content-Disposition: form-data", as per the HTML forms
  * specification. See soup_form_request_new_from_multipart() for more
  * details.
+ *
+ * Since: 2.26
  **/ 
 void
 soup_multipart_append_form_file (SoupMultipart *multipart,
@@ -379,6 +395,8 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
  * @dest_body: the body of the HTTP message to serialize @multipart to
  *
  * Serializes @multipart to @dest_headers and @dest_body.
+ *
+ * Since: 2.26
  **/
 void
 soup_multipart_to_message (SoupMultipart *multipart,
@@ -436,6 +454,8 @@ soup_multipart_to_message (SoupMultipart *multipart,
  * @multipart: a #SoupMultipart
  *
  * Frees @multipart
+ *
+ * Since: 2.26
  **/
 void
 soup_multipart_free (SoupMultipart *multipart)

@@ -112,6 +112,12 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
 
+	/**
+	 * SOUP_AUTH_DOMAIN_REALM:
+	 *
+	 * Alias for the #SoupAuthDomain:realm property. (The realm of
+	 * this auth domain.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REALM,
 		g_param_spec_string (SOUP_AUTH_DOMAIN_REALM,
@@ -119,6 +125,12 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "The realm of this auth domain",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_AUTH_DOMAIN_PROXY:
+	 *
+	 * Alias for the #SoupAuthDomain:proxy property. (Whether or
+	 * not this is a proxy auth domain.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_PROXY,
 		g_param_spec_boolean (SOUP_AUTH_DOMAIN_PROXY,
@@ -126,6 +138,12 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      "Whether or not this is a proxy auth domain",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_AUTH_DOMAIN_ADD_PATH:
+	 *
+	 * Alias for the #SoupAuthDomain:add-path property. (Shortcut
+	 * for calling soup_auth_domain_add_path().)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ADD_PATH,
 		g_param_spec_string (SOUP_AUTH_DOMAIN_ADD_PATH,
@@ -133,6 +151,12 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "Add a path covered by this auth domain",
 				     NULL,
 				     G_PARAM_WRITABLE));
+	/**
+	 * SOUP_AUTH_DOMAIN_REMOVE_PATH:
+	 *
+	 * Alias for the #SoupAuthDomain:remove-path property.
+	 * (Shortcut for calling soup_auth_domain_remove_path().)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOVE_PATH,
 		g_param_spec_string (SOUP_AUTH_DOMAIN_REMOVE_PATH,
@@ -140,24 +164,48 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				     "Remove a path covered by this auth domain",
 				     NULL,
 				     G_PARAM_WRITABLE));
+	/**
+	 * SOUP_AUTH_DOMAIN_FILTER:
+	 *
+	 * Alias for the #SoupAuthDomain:filter property. (The
+	 * #SoupAuthDomainFilter for the domain.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILTER,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER,
 				      "Filter",
 				      "A filter for deciding whether or not to require authentication",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_FILTER_DATA:
+	 *
+	 * Alias for the #SoupAuthDomain:filter-data property. (Data
+	 * to pass to the #SoupAuthDomainFilter.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_FILTER_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_FILTER_DATA,
 				      "Filter data",
 				      "Data to pass to filter",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK:
+	 *
+	 * Alias for the #SoupAuthDomain:auth-callback property.
+	 * (The #SoupAuthDomainGenericAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_GENERIC_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK,
 				      "Generic authentication callback",
 				      "An authentication callback that can be used with any SoupAuthDomain subclass",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA:
+	 *
+	 * Alias for the #SoupAuthDomain:auth-data property.
+	 * (The data to pass to the #SoupAuthDomainGenericAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_GENERIC_AUTH_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA,

@@ -314,6 +314,12 @@ soup_server_class_init (SoupServerClass *server_class)
 			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/* properties */
+	/**
+	 * SOUP_SERVER_PORT:
+	 *
+	 * Alias for the #SoupServer:port property. (The port the
+	 * server listens on.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_PORT,
 		g_param_spec_uint (SOUP_SERVER_PORT,
@@ -321,6 +327,12 @@ soup_server_class_init (SoupServerClass *server_class)
 				   "Port to listen on",
 				   0, 65536, 0,
 				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_INTERFACE:
+	 *
+	 * Alias for the #SoupServer:interface property. (The address
+	 * of the network interface the server listens on.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_INTERFACE,
 		g_param_spec_object (SOUP_SERVER_INTERFACE,
@@ -328,6 +340,12 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "Address of interface to listen on",
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_SSL_CERT_FILE:
+	 *
+	 * Alias for the #SoupServer:ssl-cert-file property. (The file
+	 * containing the SSL certificate for the server.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CERT_FILE,
 		g_param_spec_string (SOUP_SERVER_SSL_CERT_FILE,
@@ -335,6 +353,12 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "File containing server SSL certificate",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_SSL_KEY_FILE:
+	 *
+	 * Alias for the #SoupServer:ssl-key-file property. (The file
+	 * containing the SSL certificate key for the server.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_KEY_FILE,
 		g_param_spec_string (SOUP_SERVER_SSL_KEY_FILE,
@@ -342,12 +366,25 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "File containing server SSL key",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_ASYNC_CONTEXT:
+	 *
+	 * Alias for the #SoupServer:async-context property. (The
+	 * server's #GMainContext.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_SERVER_ASYNC_CONTEXT,
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_RAW_PATHS:
+	 *
+	 * Alias for the #SoupServer:raw-paths property. (If %TRUE,
+	 * percent-encoding in the Request-URI path will not be
+	 * automatically decoded.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_RAW_PATHS,
 		g_param_spec_boolean (SOUP_SERVER_RAW_PATHS,
@@ -383,6 +420,11 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * #SoupServer will append its own product token (eg,
 	 * "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
+	 **/
+	/**
+	 * SOUP_SERVER_SERVER_HEADER:
+	 *
+	 * Alias for the #SoupServer:server-header property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SERVER_HEADER,

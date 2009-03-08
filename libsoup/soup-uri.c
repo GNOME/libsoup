@@ -87,6 +87,8 @@
  * it can be used to construct a #SoupMessage.
  *
  * Return value: %TRUE if @uri is a valid "http" or "https" URI.
+ *
+ * Since: 2.24
  **/
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);

@@ -96,12 +96,24 @@ soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
 
+	/**
+	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK:
+	 *
+	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
+	 * (The #SoupAuthDomainDigestAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
 				      "Authentication callback",
 				      "Password-finding callback",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA:
+	 *
+	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
+	 * (The #SoupAuthDomainDigestAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,

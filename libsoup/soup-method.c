@@ -29,3 +29,79 @@ const char *_SOUP_METHOD_PROPPATCH = NULL;
 const char *_SOUP_METHOD_PUT = NULL;
 const char *_SOUP_METHOD_TRACE = NULL;
 const char *_SOUP_METHOD_UNLOCK = NULL;
+
+/**
+ * SOUP_METHOD_OPTIONS:
+ *
+ * "OPTIONS" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_GET:
+ *
+ * "GET" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_HEAD:
+ *
+ * "HEAD" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_POST:
+ *
+ * "POST" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_PUT:
+ *
+ * "PUT" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_DELETE:
+ *
+ * "DELETE" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_TRACE:
+ *
+ * "TRACE" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_CONNECT:
+ *
+ * "CONNECT" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_PROPFIND:
+ *
+ * "PROPFIND" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_PROPPATCH:
+ *
+ * "PROPPATCH" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_MKCOL:
+ *
+ * "MKCOL" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_COPY:
+ *
+ * "COPY" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_MOVE:
+ *
+ * "MOVE" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_LOCK:
+ *
+ * "LOCK" as an interned string.
+ **/
+/**
+ * SOUP_METHOD_UNLOCK:
+ *
+ * "UNLOCK" as an interned string.
+ **/

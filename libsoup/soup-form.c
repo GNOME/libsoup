@@ -32,6 +32,8 @@
  * A macro containing the value
  * <literal>"application/x-www-form-urlencoded"</literal>; the default
  * MIME type for POSTing HTML form data.
+ *
+ * Since: 2.26
  **/
 
 /**
@@ -40,6 +42,8 @@
  * A macro containing the value
  * <literal>"multipart/form-data"</literal>; the MIME type used for
  * posting form data that contains files to be uploaded.
+ *
+ * Since: 2.26
  **/
 
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
@@ -138,6 +142,8 @@ soup_form_decode (const char *encoded_form)
  * Return value: a hash table containing the name/value pairs (other
  * than @file_control_name) from @msg, which you can free with
  * g_hash_table_destroy(). On error, it will return %NULL.
+ *
+ * Since: 2.26
  **/
 GHashTable *
 soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
@@ -462,6 +468,8 @@ soup_form_request_new_from_datalist (const char *method, const char *uri,
  * structure and create a #SoupMessage.
  *
  * Return value: the new %SoupMessage
+ *
+ * Since: 2.26
  **/
 SoupMessage *
 soup_form_request_new_from_multipart (const char *uri,

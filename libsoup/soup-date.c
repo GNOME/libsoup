@@ -580,6 +580,8 @@ soup_date_to_time_t (SoupDate *date)
  * @time: a #GTimeVal structure in which to store the converted time.
  *
  * Converts @date to a #GTimeVal.
+ *
+ * Since: 2.24
  */
 void
 soup_date_to_timeval (SoupDate *date, GTimeVal *time)
@@ -601,6 +603,8 @@ soup_date_to_timeval (SoupDate *date, GTimeVal *time)
  * Determines if @date is in the past.
  *
  * Return value: %TRUE if @date is in the past
+ *
+ * Since: 2.24
  **/
 gboolean
 soup_date_is_past (SoupDate *date)

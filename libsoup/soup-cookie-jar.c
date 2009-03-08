@@ -141,6 +141,12 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE,
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE);
 
+	/**
+	 * SOUP_COOKIE_JAR_READ_ONLY:
+	 *
+	 * Alias for the #SoupCookieJar:read-only property. (Whether
+	 * or not the cookie jar is read-only.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_READ_ONLY,
 		g_param_spec_boolean (SOUP_COOKIE_JAR_READ_ONLY,
@@ -200,6 +206,8 @@ get_property (GObject *object, guint prop_id,
  * not support persistent storage of cookies; use a subclass for that.
  *
  * Returns: a new #SoupCookieJar
+ *
+ * Since: 2.24
  **/
 SoupCookieJar *
 soup_cookie_jar_new (void) 
@@ -245,6 +253,8 @@ soup_cookie_jar_changed (SoupCookieJar *jar,
  *
  * Return value: the cookies, in string form, or %NULL if there are no
  * cookies for @uri.
+ *
+ * Since: 2.24
  **/
 char *
 soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
@@ -318,6 +328,8 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
  * that the cookie's expire date is not in the past).
  *
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
+ *
+ * Since: 2.24
  **/
 void
 soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
@@ -383,6 +395,8 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  *
  * Adds @cookie to @jar, exactly as though it had appeared in a
  * Set-Cookie header returned from a request to @uri.
+ *
+ * Since: 2.24
  **/
 void
 soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
@@ -454,6 +468,8 @@ request_unqueued (SoupSessionFeature *feature, SoupSession *session,
  * you have to free them when you are done with them.
  *
  * Return value: a #GSList with all the cookies in the @jar.
+ *
+ * Since: 2.24
  **/
 GSList *
 soup_cookie_jar_all_cookies (SoupCookieJar *jar)
@@ -484,6 +500,8 @@ soup_cookie_jar_all_cookies (SoupCookieJar *jar)
  * @cookie: a #SoupCookie
  *
  * Deletes @cookie from @jar, emitting the 'changed' signal.
+ *
+ * Since: 2.24
  **/
 void
 soup_cookie_jar_delete_cookie (SoupCookieJar *jar,

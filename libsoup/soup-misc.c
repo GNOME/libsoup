@@ -181,6 +181,8 @@ soup_add_idle (GMainContext *async_context,
  *
  * Return value: a #GSource, which can be removed from @async_context
  * with g_source_destroy().
+ *
+ * Since: 2.24
  **/
 GSource *
 soup_add_completion (GMainContext *async_context,

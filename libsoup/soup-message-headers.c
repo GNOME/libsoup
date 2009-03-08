@@ -695,6 +695,8 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * If @end is %-1 and @start is negative, then it represents a "suffix
  * range", referring to the last -@start bytes of the resource body.
  * (Eg, the last 500 bytes would be @start = %-500 and @end = %-1.)
+ *
+ * Since: 2.26
  **/
 
 static int
@@ -727,6 +729,8 @@ sort_ranges (gconstpointer a, gconstpointer b)
  * Return value: %TRUE if @hdrs contained a "Range" header containing
  * byte ranges which could be parsed, %FALSE otherwise (in which case
  * @range and @length will not be set).
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
@@ -809,6 +813,8 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
  * @ranges: an array of #SoupRange
  *
  * Frees the array of ranges returned from soup_message_headers_get_ranges().
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
@@ -826,6 +832,8 @@ soup_message_headers_free_ranges (SoupMessageHeaders  *hdrs,
  * Sets @hdrs's Range header to request the indicated ranges. (If you
  * only want to request a single range, you can use
  * soup_message_headers_set_range().)
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
@@ -866,6 +874,8 @@ soup_message_headers_set_ranges (SoupMessageHeaders  *hdrs,
  *
  * If you need to request multiple ranges, use
  * soup_message_headers_set_ranges().
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
@@ -893,6 +903,8 @@ soup_message_headers_set_range (SoupMessageHeaders  *hdrs,
  *
  * Return value: %TRUE if @hdrs contained a "Content-Range" header
  * containing a byte range which could be parsed, %FALSE otherwise.
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
@@ -941,6 +953,8 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  * Sets @hdrs's Content-Range header according to the given values.
  * (Note that @total_length is the total length of the entire resource
  * that this is a range of, not simply @end - @start + 1.)
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_set_content_range (SoupMessageHeaders  *hdrs,
@@ -1046,6 +1060,8 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * Return value: a string with the value of the "Content-Type" header
  * or NULL if @hdrs does not contain that header (in which case
  * *@params will be * unchanged, is it has been given).
+ *
+ * Since: 2.26
  **/
 const char *
 soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
@@ -1067,6 +1083,8 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  *
  * Sets the "Content-Type" header in @hdrs to @content_type,
  * optionally with additional parameters specified in @params.
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
@@ -1103,6 +1121,8 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
  * Return value: %TRUE if @hdrs contains a "Content-Disposition"
  * header, %FALSE if not (in which case *@disposition and *@params
  * will be unchanged).
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
@@ -1139,6 +1159,8 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  *
  * See soup_message_headers_get_content_disposition() for a discussion
  * of how Content-Disposition is used in HTTP.
+ *
+ * Since: 2.26
  **/
 void
 soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,

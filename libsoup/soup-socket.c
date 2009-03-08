@@ -247,6 +247,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      SOUP_TYPE_SOCKET);
 
 	/* properties */
+	/**
+	 * SOUP_SOCKET_LOCAL_ADDRESS:
+	 *
+	 * Alias for the #SoupSocket:local-address property. (Address
+	 * of local end of socket.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_LOCAL_ADDRESS,
 		g_param_spec_object (SOUP_SOCKET_LOCAL_ADDRESS,
@@ -254,6 +260,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Address of local end of socket",
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SOCKET_REMOTE_ADDRESS:
+	 *
+	 * Alias for the #SoupSocket:remote-address property. (Address
+	 * of remote end of socket.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_REMOTE_ADDRESS,
 		g_param_spec_object (SOUP_SOCKET_REMOTE_ADDRESS,
@@ -285,6 +297,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * simply never return %SOUP_SOCKET_WOULD_BLOCK, and so the
 	 * code that handles that case just won't get used for them.
 	 **/
+	/**
+	 * SOUP_SOCKET_FLAG_NONBLOCKING:
+	 *
+	 * Alias for the #SoupSocket:non-blocking property. (Whether
+	 * or not the socket uses non-blocking I/O.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_NON_BLOCKING,
 		g_param_spec_boolean (SOUP_SOCKET_FLAG_NONBLOCKING,
@@ -292,6 +310,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Whether or not the socket uses non-blocking I/O",
 				      TRUE,
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_SOCKET_IS_SERVER:
+	 *
+	 * Alias for the #SoupSocket:is-server property. (Whether or
+	 * not the socket is a server socket.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_SERVER,
 		g_param_spec_boolean (SOUP_SOCKET_IS_SERVER,
@@ -299,12 +323,24 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Whether or not the socket is a server socket",
 				      FALSE,
 				      G_PARAM_READABLE));
+	/**
+	 * SOUP_SOCKET_SSL_CREDENTIALS:
+	 *
+	 * Alias for the #SoupSocket:ssl-credentials property.
+	 * (SSL credential information.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDENTIALS,
 		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
 				      "SSL credentials",
 				      "SSL credential information, passed from the session to the SSL implementation",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_SOCKET_ASYNC_CONTEXT:
+	 *
+	 * Alias for the #SoupSocket:async-context property. (The
+	 * socket's #GMainContext.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_SOCKET_ASYNC_CONTEXT,
@@ -312,6 +348,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "The GMainContext to dispatch this socket's async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+	/**
+	 * SOUP_SOCKET_TIMEOUT:
+	 *
+	 * Alias for the #SoupSocket:timeout property. (The timeout
+	 * in seconds for blocking socket I/O operations.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
 		g_param_spec_uint (SOUP_SOCKET_TIMEOUT,

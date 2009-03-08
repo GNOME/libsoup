@@ -29,6 +29,8 @@
  * soup_headers_parse_request() or soup_headers_parse_response().
  *
  * Return value: success or failure
+ *
+ * Since: 2.26
  **/
 gboolean
 soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
@@ -730,6 +732,8 @@ soup_header_parse_param_list (const char *header)
  *
  * Return value: a #GHashTable of list elements, which can be freed
  * with soup_header_free_param_list().
+ *
+ * Since: 2.24
  **/
 GHashTable *
 soup_header_parse_semi_param_list (const char *header)
@@ -793,6 +797,8 @@ append_param_quoted (GString *string, const char *value)
  * to work anywhere in HTTP that uses this style of parameter, in
  * reality, it can only be used portably with the Content-Disposition
  * "filename" parameter.
+ *
+ * Since: 2.26
  **/
 void
 soup_header_g_string_append_param (GString *string, const char *name,

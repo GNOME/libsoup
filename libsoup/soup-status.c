@@ -148,6 +148,14 @@
  * network and internal errors.
  **/
 
+/**
+ * SOUP_HTTP_ERROR:
+ *
+ * A #GError domain representing an HTTP status. Use a
+ * #SoupKnownStatusCode for the <structfield>code</structfield>
+ * value.
+ **/
+
 static const struct {
 	guint code;
 	const char *phrase;
@@ -257,6 +265,8 @@ soup_status_get_phrase (guint status_code)
  * Other status codes are passed through unchanged.
  *
  * Return value: the "proxified" equivalent of @status_code.
+ *
+ * Since: 2.26
  **/
 guint
 soup_status_proxify (guint status_code)

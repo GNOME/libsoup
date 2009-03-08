@@ -92,12 +92,24 @@ soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
 
+	/**
+	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK:
+	 *
+	 * Alias for the #SoupAuthDomainBasic:auth-callback property.
+	 * (The #SoupAuthDomainBasicAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_AUTH_CALLBACK,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
 				      "Authentication callback",
 				      "Password-checking callback",
 				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA:
+	 *
+	 * Alias for the #SoupAuthDomainBasic:auth-data property.
+	 * (The data to pass to the #SoupAuthDomainBasicAuthCallback.)
+	 **/
 	g_object_class_install_property (
 		object_class, PROP_AUTH_DATA,
 		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
