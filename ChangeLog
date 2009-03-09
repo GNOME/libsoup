@@ -1,3 +1,24 @@
+2009-03-09  Dan Winship  <danw@gnome.org>
+
+	Bug 571527 – gvfsd-http crashed with SIGSEGV in
+	g_hash_table_lookup().
+
+	As currently written, libproxy's gnome plugin causes intermittent
+	gvfsd-http crashes, and I didn't have time to come up with either
+	a fix or a workaround. So for 2.26.0 we will fall back to using
+	the GConf-based proxy resolver. Hopefully to be fixed for 2.26.1.
+
+	* configure.in: require both gconf and libproxy if building
+	--with-gnome
+
+	* libsoup/soup-proxy-resolver-gconf.c: bring this back.
+
+	* libsoup/soup-gnome-features.c
+	(soup_proxy_resolver_gnome_get_type): use gconf instead of
+	libproxy
+
+	* libsoup/Makefile.am: updates
+
 2009-03-08  Dan Winship  <danw@gnome.org>
 
 	* libsoup/*.c: gtk-doc updates. In particular, document a bunch of

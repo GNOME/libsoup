@@ -11,7 +11,7 @@
 
 #include "soup-gnome-features.h"
 
-#include "soup-proxy-resolver-libproxy.h"
+#include "soup-proxy-resolver-gconf.h"
 
 /**
  * SOUP_TYPE_PROXY_RESOLVER_GNOME:
@@ -19,7 +19,7 @@
  * This returns the #GType of a #SoupProxyResolver that can be used to
  * resolve HTTP proxies for GNOME applications. You can add this to
  * a session using soup_session_add_feature_by_type() or by using the
- * %SOUP_SESSION_ADD_FEATURE_BY_TIME construct-time property.
+ * %SOUP_SESSION_ADD_FEATURE_BY_TYPE construct-time property.
  *
  * This feature is included in %SOUP_TYPE_GNOME_FEATURES_2_26, so if
  * you are using that feature, you do not need to include this feature
@@ -30,7 +30,7 @@
 GType
 soup_proxy_resolver_gnome_get_type (void)
 {
-	return SOUP_TYPE_PROXY_RESOLVER_LIBPROXY;
+	return SOUP_TYPE_PROXY_RESOLVER_GCONF;
 }
 
 /**

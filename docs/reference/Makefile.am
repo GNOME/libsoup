@@ -35,7 +35,8 @@ IGNORE_HFILES= soup.h soup-marshal.h soup-enum-types.h \
 	soup-connection.h soup-connection-ntlm.h \
 	soup-dns.h soup-auth-manager.h soup-auth-manager-ntlm.h \
 	soup-message-queue.h soup-path-map.h soup-ssl.h \
-	soup-proxy-resolver-libproxy.h soup-proxy-resolver-static.h
+	soup-proxy-resolver-libproxy.h soup-proxy-resolver-gconf.h \
+	soup-proxy-resolver-static.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES = 

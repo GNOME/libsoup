@@ -11,6 +11,7 @@ INCLUDES = 				\
 	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
+	$(GCONF_CFLAGS)			\
 	$(LIBPROXY_CFLAGS)		\
 	$(SQLITE_CFLAGS)		\
 	$(LIBGCRYPT_CFLAGS)		\
@@ -174,12 +175,15 @@ libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
 	$(GLIB_LIBS)			\
+	$(GCONF_LIBS)			\
 	$(LIBPROXY_LIBS)		\
 	$(SQLITE_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
 	soup-cookie-jar-sqlite.c	\
 	soup-gnome-features.c		\
+	soup-proxy-resolver-gconf.h	\
+	soup-proxy-resolver-gconf.c	\
 	soup-proxy-resolver-libproxy.h	\
 	soup-proxy-resolver-libproxy.c
 
