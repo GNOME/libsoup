@@ -77,8 +77,7 @@
  * @SOUP_STATUS_IO_ERROR: A network error occurred, or the other end
  * closed the connection unexpectedly
  * @SOUP_STATUS_MALFORMED: Malformed data (usually a programmer error)
- * @SOUP_STATUS_TRY_AGAIN: Try again. (Only returned in certain
- * specifically documented cases)
+ * @SOUP_STATUS_TRY_AGAIN: Formerly used internally. Now unused.
  * @SOUP_STATUS_CONTINUE: 100 Continue (HTTP)
  * @SOUP_STATUS_SWITCHING_PROTOCOLS: 101 Switching Protocols (HTTP)
  * @SOUP_STATUS_PROCESSING: 102 Processing (WebDAV)
@@ -156,6 +155,19 @@
  * value.
  **/
 
+
+/* The reason_phrases are not localized because:
+ *
+ * 1. Only ASCII can be used portably in the HTTP Status-Line, so we
+ *    would not be able to return localized reason phrases from
+ *    SoupServer anyway.
+ *
+ * 2. Having a way for clients to get a localized version of a status
+ *    code would just encourage them to present those strings to the
+ *    user, which is bad because many of them are fairly
+ *    incomprehensible anyway.
+ */
+
 static const struct {
 	guint code;
 	const char *phrase;
@@ -169,7 +181,6 @@ static const struct {
 	{ SOUP_STATUS_SSL_FAILED,                 "SSL handshake failed" },
 	{ SOUP_STATUS_IO_ERROR,                   "Connection terminated unexpectedly" },
 	{ SOUP_STATUS_MALFORMED,                  "Message Corrupt" },
-	/* SOUP_STATUS_TRY_AGAIN should never be returned to the caller */
 
 	/* Informational */
 	{ SOUP_STATUS_CONTINUE,                   "Continue" },
@@ -235,13 +246,21 @@ static const struct {
  * soup_status_get_phrase:
  * @status_code: an HTTP status code
  *
- * Looks up the stock HTTP description of @status_code.
+ * Looks up the stock HTTP description of @status_code. This is used
+ * by soup_message_set_status() to get the correct text to go with a
+ * given status code.
  *
- * You should not need to use this; if you are interested in the
- * textual description for the %status_code of a given #SoupMessage,
- * just look at the message's %reason_phrase.
+ * <emphasis>There is no reason for you to ever use this
+ * function.</emphasis> If you wanted the textual description for the
+ * %status_code of a given #SoupMessage, you should just look at the
+ * message's %reason_phrase. However, you should only do that for use
+ * in debugging messages; HTTP reason phrases are not localized, and
+ * are not generally very descriptive anyway, and so they should never
+ * be presented to the user directly. Instead, you should create you
+ * own error messages based on the status code, and on what you were
+ * trying to do.
  *
- * Return value: the (English) description of @status_code
+ * Return value: the (terse, English) description of @status_code
  **/
 const char *
 soup_status_get_phrase (guint status_code)
@@ -260,9 +279,10 @@ soup_status_get_phrase (guint status_code)
  * soup_status_proxify:
  * @status_code: a status code
  *
- * Turns SOUP_STATUS_CANT_RESOLVE into SOUP_STATUS_CANT_RESOLVE_PROXY
- * and SOUP_STATUS_CANT_CONNECT into SOUP_STATUS_CANT_CONNECT_PROXY.
- * Other status codes are passed through unchanged.
+ * Turns %SOUP_STATUS_CANT_RESOLVE into
+ * %SOUP_STATUS_CANT_RESOLVE_PROXY and %SOUP_STATUS_CANT_CONNECT into
+ * %SOUP_STATUS_CANT_CONNECT_PROXY. Other status codes are passed
+ * through unchanged.
  *
  * Return value: the "proxified" equivalent of @status_code.
  *

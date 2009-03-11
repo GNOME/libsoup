@@ -1,3 +1,17 @@
+2009-03-11  Dan Winship  <danw@gnome.org>
+
+	* libsoup/soup-session.c (soup_session_cancel_message): add more
+	detail to the doc comment
+
+	* libsoup/soup-message.c (SoupMessage): Note in the doc comment
+	that reason phrases are not very useful, and should not be
+	presented to the user.
+
+	* libsoup/soup-status.c: add a comment explaining why reason
+	phrases aren't localized. Also some misc doc fixes.
+	(soup_status_get_phrase): Note in the doc comment that you
+	shouldn't present reason phrases to the user.
+
 2009-03-09  Dan Winship  <danw@gnome.org>
 
 	Bug 571527 – gvfsd-http crashed with SIGSEGV in

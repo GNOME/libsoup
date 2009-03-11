@@ -1390,9 +1390,24 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
  * @status_code: status code to set on @msg (generally
  * %SOUP_STATUS_CANCELLED)
  *
- * Causes @session to immediately finish processing @msg, with a final
- * status_code of @status_code. Depending on when you cancel it, the
- * response state may be incomplete or inconsistent.
+ * Causes @session to immediately finish processing @msg (regardless
+ * of its current state) with a final status_code of @status_code. You
+ * may call this at any time after handing @msg off to @session; if
+ * @session has started sending the request but has not yet received
+ * the complete response, then it will close the request's connection.
+ * Note that with non-idempotent requests (eg, %POST, %PUT, %DELETE)
+ * it is possible that you might cancel the request after the server
+ * acts on it, but before it returns a response, leaving the remote
+ * resource in an unknown state.
+ *
+ * If the message is cancelled while its response body is being read,
+ * then the response body in @msg will be left partially-filled-in.
+ * The response headers, on the other hand, will always be either
+ * empty or complete.
+ *
+ * For messages queued with soup_session_queue_message() (and
+ * cancelled from the same thread), the callback will be invoked
+ * before soup_session_cancel_message() returns.
  **/
 void
 soup_session_cancel_message (SoupSession *session, SoupMessage *msg,

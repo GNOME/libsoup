@@ -52,6 +52,17 @@
  *
  * Represents an HTTP message being sent or received.
  *
+ * @status_code will normally be a #SoupKnownStatusCode, eg,
+ * %SOUP_STATUS_OK, though of course it might actually be an unknown
+ * status code. @reason_phrase is the actual text returned from the
+ * server, which may or may not correspond to the "standard"
+ * description of @status_code. At any rate, it is almost certainly
+ * not localized, and not very descriptive even if it is in the user's
+ * language; you should not use @reason_phrase in user-visible
+ * messages. Rather, you should look at @status_code, and determine an
+ * end-user-appropriate message based on that and on what you were
+ * trying to do.
+ *
  * As described in the #SoupMessageBody documentation, the
  * @request_body and @response_body %data fields will not necessarily
  * be filled in at all times. When they are filled in, they will be
