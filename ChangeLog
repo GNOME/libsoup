@@ -1,3 +1,12 @@
+2009-03-14  Xan Lopez  <xan@gnome.org>
+
+        Add G_{BEGIN,END}_DECLS guards to public headers.
+
+        * libsoup/soup-auth.h:
+        * libsoup/soup-cookie-jar-sqlite.h:
+        * libsoup/soup-cookie-jar-text.h:
+        * libsoup/soup-proxy-resolver.h:
+
 2009-03-11  Dan Winship  <danw@gnome.org>
 
 	* libsoup/soup-session.c (soup_session_cancel_message): add more

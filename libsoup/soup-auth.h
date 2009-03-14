@@ -9,6 +9,8 @@
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-headers.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_AUTH            (soup_auth_get_type ())
 #define SOUP_AUTH(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_AUTH, SoupAuth))
 #define SOUP_AUTH_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH, SoupAuthClass))
@@ -82,5 +84,7 @@ GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
 					     SoupURI       *source_uri);
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
+
+G_END_DECLS
 
 #endif /* SOUP_AUTH_H */

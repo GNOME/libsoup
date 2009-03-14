@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-cookie-jar.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_COOKIE_JAR_TEXT            (soup_cookie_jar_text_get_type ())
 #define SOUP_COOKIE_JAR_TEXT(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), SOUP_TYPE_COOKIE_JAR_TEXT, SoupCookieJarText))
 #define SOUP_COOKIE_JAR_TEXT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_COOKIE_JAR_TEXT, SoupCookieJarTextClass))
@@ -36,5 +38,7 @@ GType soup_cookie_jar_text_get_type (void);
 
 SoupCookieJar *soup_cookie_jar_text_new (const char *filename,
 					 gboolean    read_only);
+
+G_END_DECLS
 
 #endif /* SOUP_COOKIE_JAR_TEXT_H */

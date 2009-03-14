@@ -9,6 +9,8 @@
 #include <libsoup/soup-types.h>
 #include <gio/gio.h>
 
+G_BEGIN_DECLS
+
 #define SOUP_TYPE_PROXY_RESOLVER            (soup_proxy_resolver_get_type ())
 #define SOUP_PROXY_RESOLVER(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_PROXY_RESOLVER, SoupProxyResolver))
 #define SOUP_PROXY_RESOLVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_PROXY_RESOLVER, SoupProxyResolverInterface))
@@ -45,5 +47,7 @@ guint soup_proxy_resolver_get_proxy_sync  (SoupProxyResolver  *proxy_resolver,
 					   SoupMessage        *msg,
 					   GCancellable       *cancellable,
 					   SoupAddress       **addr);
+
+G_END_DECLS
 
 #endif /*SOUP_PROXY_RESOLVER_H*/
