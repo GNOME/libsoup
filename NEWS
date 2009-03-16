@@ -1,4 +1,30 @@
-Changes in libsoup from 2.25.4 to 2.25.5:
+Changes in libsoup from 2.25.91 to 2.26.0:
+
+	* Temporarily disable libproxy support to work around a bug in
+          its gnome plugin that causes gvfsd-http (and probably
+          eventually other apps) to crash. [#571527]. For now,
+          SoupProxyResolverGNOME uses only GConf. To be fixed in
+          2.26.1
+
+	* Fixed a bug that showed up in WebKit, where if many messages
+          were queued all at once to a server that doesn't support
+          persistent connections, some of the requests will get lost.
+          #574365, reported by Xan Lopez.
+
+	* Fixed SoupServer to support using SOUP_ENCODING_EOF, so you
+          can stream responses of unknown length to HTTP/1.0 clients.
+          [#572153]. Added a regression test for this, and for chunked
+          and Content-Length-based streaming.
+
+	* Fixed several bugs that prevented SoupCookieJarSqlite from
+          working. [#572409, patch from Xan Lopez]
+
+	* Added G_{BEGIN,END}_DECLS guards to public headers that were
+          missing it. (Xan Lopez)
+
+	* Misc gtk-doc improvements
+
+Changes in libsoup from 2.25.5 to 2.25.91:
 
 	* Fixed a crash in SoupProxyResolverGNOME when the proxy
           requires authentication. (This does not make proxy
