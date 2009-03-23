@@ -1,3 +1,18 @@
+2009-03-23  Dan Winship  <danw@gnome.org>
+
+	Bug 566530 - Handle (illegal) unencoded spaces in URIs
+
+	* libsoup/soup-uri.c (uri_normalized_copy): optionally fix up
+	parts with unencoded spaces in them.
+	(soup_uri_new_with_base): tell uri_normalized_copy() to fix up
+	spaces in the path and query components
+
+	* tests/uri-parsing.c (abs_tests): test parsing and unparsing a
+	URI with an unencoded space in it.
+
+	* tests/redirect-test.c (tests, server_callback): add a test of
+	redirecting to a URI with an unencoded space in it.
+
 2009-03-15  Dan Winship  <danw@gnome.org>
 
 	* configure.in: 2.26.0

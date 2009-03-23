@@ -57,7 +57,11 @@ static struct {
 	{ "http://[::FFFF:129.144.52.38]:80/index.html",
 	  "http://[::FFFF:129.144.52.38]/index.html" },
 	{ "http://[2010:836B:4179::836B:4179]",
-	  "http://[2010:836B:4179::836B:4179]/" }
+	  "http://[2010:836B:4179::836B:4179]/" },
+
+	/* Try to recover certain kinds of invalid URIs */
+	{ "http://host/path with spaces",
+	  "http://host/path%20with%20spaces" }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

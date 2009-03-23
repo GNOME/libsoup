@@ -93,7 +93,7 @@
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
 static char *uri_decoded_copy (const char *str, int length);
-static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
+static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra, gboolean fixup);
 
 const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
 
@@ -152,7 +152,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	end = hash = strchr (uri_string, '#');
 	if (hash && hash[1]) {
 		uri->fragment = uri_normalized_copy (hash + 1, strlen (hash + 1),
-						     NULL);
+						     NULL, FALSE);
 		if (!uri->fragment) {
 			soup_uri_free (uri);
 			return NULL;
@@ -249,7 +249,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		if (question[1]) {
 			uri->query = uri_normalized_copy (question + 1,
 							  end - (question + 1),
-							  NULL);
+							  NULL, TRUE);
 			if (!uri->query) {
 				soup_uri_free (uri);
 				return NULL;
@@ -260,7 +260,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 	if (end != uri_string) {
 		uri->path = uri_normalized_copy (uri_string, end - uri_string,
-						 NULL);
+						 NULL, TRUE);
 		if (!uri->path) {
 			soup_uri_free (uri);
 			return NULL;
@@ -654,10 +654,12 @@ soup_uri_decode (const char *part)
 }
 
 static char *
-uri_normalized_copy (const char *part, int length, const char *unescape_extra)
+uri_normalized_copy (const char *part, int length,
+		     const char *unescape_extra, gboolean fixup)
 {
 	unsigned char *s, *d, c;
 	char *normalized = g_strndup (part, length);
+	gboolean need_fixup = FALSE;
 
 	s = d = (unsigned char *)normalized;
 	do {
@@ -678,9 +680,26 @@ uri_normalized_copy (const char *part, int length, const char *unescape_extra)
 				*d++ = g_ascii_toupper (*s++);
 				*d++ = g_ascii_toupper (*s);
 			}
-		} else
+		} else {
+			if (*s == ' ')
+				need_fixup = TRUE;
 			*d++ = *s;
+		}
 	} while (*s++);
+
+	if (fixup && need_fixup) {
+		char *tmp, *sp;
+		/* This code is lame, but so are people who put
+		 * unencoded spaces in URLs!
+		 */
+		while ((sp = strchr (normalized, ' '))) {
+			tmp = g_strdup_printf ("%.*s%%20%s",
+					       (int)(sp - normalized),
+					       normalized, sp + 1);
+			g_free (normalized);
+			normalized = tmp;
+		};
+	}
 
 	return normalized;
 }
@@ -709,7 +728,7 @@ uri_normalized_copy (const char *part, int length, const char *unescape_extra)
 char *
 soup_uri_normalize (const char *part, const char *unescape_extra)
 {
-	return uri_normalized_copy (part, strlen (part), unescape_extra);
+	return uri_normalized_copy (part, strlen (part), unescape_extra, FALSE);
 }
 
 
