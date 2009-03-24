@@ -1,3 +1,14 @@
+2009-03-24  Dan Winship  <danw@gnome.org>
+
+	Bug 571283 - Allow LF LF instead of CRLF CRLF as header/body separator
+
+	* libsoup/soup-message-io.c (read_metadata): Change how this
+	works; instead of taking a boundary string, just always pass "\n"
+	as the boundary to soup_socket_read_until(), but call it multiple
+	times if the caller wants us to read until a blank line.
+	(io_read): update to deal with the fact that the headers might be
+	terminated by LF LF rather than CRLF CRLF.
+
 2009-03-23  Dan Winship  <danw@gnome.org>
 
 	Bug 566530 - Handle (illegal) unencoded spaces in URIs

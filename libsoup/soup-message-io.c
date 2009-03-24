@@ -158,8 +158,6 @@ soup_message_io_stop (SoupMessage *msg)
 
 #define SOUP_MESSAGE_IO_EOL            "\r\n"
 #define SOUP_MESSAGE_IO_EOL_LEN        2
-#define SOUP_MESSAGE_IO_DOUBLE_EOL     "\r\n\r\n"
-#define SOUP_MESSAGE_IO_DOUBLE_EOL_LEN 4
 
 static void
 soup_message_io_finished (SoupMessage *msg)
@@ -209,9 +207,12 @@ io_disconnected (SoupSocket *sock, SoupMessage *msg)
 	io_error (sock, msg, NULL);
 }
 
-/* Reads data from io->sock into io->read_meta_buf up until @boundary.
- * (This function is used to read metadata, and read_body_chunk() is
- * used to read the message body contents.)
+/* Reads data from io->sock into io->read_meta_buf. If @to_blank is
+ * %TRUE, it reads up until a blank line ("CRLF CRLF" or "LF LF").
+ * Otherwise, it reads up until a single CRLF or LF.
+ *
+ * This function is used to read metadata, and read_body_chunk() is
+ * used to read the message body contents.
  *
  * read_metadata, read_body_chunk, and write_data all use the same
  * convention for return values: if they return %TRUE, it means
@@ -224,22 +225,21 @@ io_disconnected (SoupSocket *sock, SoupMessage *msg)
  * function returns %FALSE, the caller should return immediately.
  */
 static gboolean
-read_metadata (SoupMessage *msg, const char *boundary)
+read_metadata (SoupMessage *msg, gboolean to_blank)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	SoupSocketIOStatus status;
 	guchar read_buf[RESPONSE_BLOCK_SIZE];
-	guint boundary_len = strlen (boundary);
 	gsize nread;
-	gboolean done;
+	gboolean got_lf;
 	GError *error = NULL;
 
-	do {
+	while (1) {
 		status = soup_socket_read_until (io->sock, read_buf,
 						 sizeof (read_buf),
-						 boundary, boundary_len,
-						 &nread, &done, NULL, &error);
+						 "\n", 1, &nread, &got_lf,
+						 NULL, &error);
 		switch (status) {
 		case SOUP_SOCKET_OK:
 			g_byte_array_append (io->read_meta_buf, read_buf, nread);
@@ -253,7 +253,14 @@ read_metadata (SoupMessage *msg, const char *boundary)
 		case SOUP_SOCKET_WOULD_BLOCK:
 			return FALSE;
 		}
-	} while (!done);
+
+		if (got_lf) {
+			if (!to_blank)
+				break;
+			if (nread == 1 || (nread == 2 && read_buf[0] == '\r'))
+				break;
+		}
+	}
 
 	return TRUE;
 }
@@ -666,10 +673,18 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
-		if (!read_metadata (msg, SOUP_MESSAGE_IO_DOUBLE_EOL))
+		if (!read_metadata (msg, TRUE))
 			return;
 
-		io->read_meta_buf->len -= SOUP_MESSAGE_IO_EOL_LEN;
+		/* We need to "rewind" io->read_meta_buf back one line.
+		 * That SHOULD be two characters (CR LF), but if the
+		 * web server was stupid, it might only be one.
+		 */
+		if (io->read_meta_buf->len < 3 ||
+		    io->read_meta_buf->data[io->read_meta_buf->len - 2] == '\n')
+			io->read_meta_buf->len--;
+		else
+			io->read_meta_buf->len -= 2;
 		io->read_meta_buf->data[io->read_meta_buf->len] = '\0';
 		status = io->parse_headers_cb (msg, (char *)io->read_meta_buf->data,
 					       io->read_meta_buf->len,
@@ -768,7 +783,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK_SIZE:
-		if (!read_metadata (msg, SOUP_MESSAGE_IO_EOL))
+		if (!read_metadata (msg, FALSE))
 			return;
 
 		io->read_length = strtoul ((char *)io->read_meta_buf->data, NULL, 16);
@@ -790,7 +805,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_CHUNK_END:
-		if (!read_metadata (msg, SOUP_MESSAGE_IO_EOL))
+		if (!read_metadata (msg, FALSE))
 			return;
 
 		g_byte_array_set_size (io->read_meta_buf, 0);
@@ -799,10 +814,10 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 
 
 	case SOUP_MESSAGE_IO_STATE_TRAILERS:
-		if (!read_metadata (msg, SOUP_MESSAGE_IO_EOL))
+		if (!read_metadata (msg, FALSE))
 			return;
 
-		if (io->read_meta_buf->len == SOUP_MESSAGE_IO_EOL_LEN)
+		if (io->read_meta_buf->len <= SOUP_MESSAGE_IO_EOL_LEN)
 			goto got_body;
 
 		/* FIXME: process trailers */
