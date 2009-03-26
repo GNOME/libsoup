@@ -144,6 +144,7 @@ wait_for_connection (SoupSession *session, SoupMessage *msg)
 	if (proxy_resolver) {
 		status = soup_proxy_resolver_get_proxy_sync (proxy_resolver, msg, NULL, &proxy_addr);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			g_mutex_unlock (priv->lock);
 			soup_session_cancel_message (session, msg, status);
 			return NULL;
 		}

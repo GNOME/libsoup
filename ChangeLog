@@ -1,3 +1,10 @@
+2009-03-26  Milan Crha  <mcrha@redhat.com>
+
+	Bug 574957 - soup-session-sync doesn't unlock mutex on proxy error
+
+	* libsoup/soup-session-sync.c: (wait_for_connection):
+	Unlock private lock also on proxy error.
+
 2009-03-24  Dan Winship  <danw@gnome.org>
 
 	Bug 571283 - Allow LF LF instead of CRLF CRLF as header/body separator
