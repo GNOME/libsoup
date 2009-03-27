@@ -102,7 +102,7 @@ you can specify various additional options:
 	<term><link linkend="SOUP-SESSION-ASYNC-CONTEXT--CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link></term>
 	<listitem><para>
 	    A <link
-	    linkend="GMainContext"><type>GMainContext</type>type></link>
+	    linkend="GMainContext"><type>GMainContext</type></link>
 	    which the session will use for asynchronous operations.
 	    This can be set if you want to use a
 	    <type>SoupSessionAsync</type> in a thread other than the
@@ -495,6 +495,17 @@ linkend="SoupMessage"><type>SoupMessage</type></link> methods on it
 from any thread other than the one in which it is being sent. (That
 is, you should not call any <type>SoupMessage</type> methods on it
 except from a message or session callback or signal handler.)
+</para>
+
+<para>
+All other objects (including <link
+linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link>)
+should only be used from a single thread, with objects that are also
+only be used from that thread. (And in particular, if you set a
+non-default <link
+linkend="GMainContext"><type>GMainContext</type></link> on a session,
+socket, etc, then you can only use that object from the thread in
+which that <type>GMainContext</type> is running.)
 </para>
 
 </refsect2>
