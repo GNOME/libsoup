@@ -263,7 +263,7 @@ main (int argc, char **argv)
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = g_strdup_printf ("http://localhost:%u/",
+	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				    soup_server_get_port (server));
 
 	do_test1 ();

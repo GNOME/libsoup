@@ -356,12 +356,12 @@ main (int argc, char **argv)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "1. Testing against apache\n");
-	do_range_test (session, "http://localhost:47524/", FALSE);
+	do_range_test (session, "http://127.0.0.1:47524/", FALSE);
 
 	debug_printf (1, "\n2. Testing against SoupServer\n");
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-	base_uri = g_strdup_printf ("http://localhost:%u/",
+	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				    soup_server_get_port (server));
 	do_range_test (session, base_uri, TRUE);
 	g_free (base_uri);

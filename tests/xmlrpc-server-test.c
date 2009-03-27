@@ -322,7 +322,7 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
-		uri = soup_uri_new ("http://localhost/xmlrpc-server.php");
+		uri = soup_uri_new ("http://127.0.0.1/xmlrpc-server.php");
 		soup_uri_set_port (uri, soup_server_get_port (server));
 		do_xmlrpc_tests (uri);
 		soup_uri_free (uri);

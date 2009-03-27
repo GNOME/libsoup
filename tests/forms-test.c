@@ -412,11 +412,11 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
-		uri_str = g_strdup_printf ("http://localhost:%u/hello", port);
+		uri_str = g_strdup_printf ("http://127.0.0.1:%u/hello", port);
 		do_hello_tests (uri_str);
 		g_free (uri_str);
 
-		uri_str = g_strdup_printf ("http://localhost:%u/md5", port);
+		uri_str = g_strdup_printf ("http://127.0.0.1:%u/md5", port);
 		do_md5_tests (uri_str);
 		g_free (uri_str);
 	} else {

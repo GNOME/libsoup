@@ -1,5 +1,16 @@
 2009-03-27  Dan Winship  <danw@gnome.org>
 
+	Bug 576583 – Tests fail if "localhost" resolves to ::1
+
+	* tests/*.c: Use "127.0.0.1" in URIs rather than "localhost",
+	since the default SoupServer config only listen on IPv4 (qv bug
+	522519), and tests/httpd.conf.in only configures apache to listen
+	on IPv4, and we don't handle multiple IP addresses (qv bug 526321)
+	but the machine might be configured to return "::1" rather than
+	"127.0.0.1" first for "localhost". Patch from Andreas Rottmann.
+
+2009-03-27  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-cookie.c (soup_cookie_new): Fix docs to not claim
 	that the cookie domain can be %NULL. Add some g_return_if_fail()s.
 

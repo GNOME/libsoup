@@ -494,7 +494,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 	apache_init ();
 
-	base_uri = "http://localhost:47524/";
+	base_uri = "http://127.0.0.1:47524/";
 	get_correct_response (base_uri);
 
 	debug_printf (1, "\nFully async, fast requests\n");

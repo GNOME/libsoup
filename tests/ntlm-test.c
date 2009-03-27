@@ -419,7 +419,7 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	uri = soup_uri_new ("http://localhost/");
+	uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (uri, soup_server_get_port (server));
 	do_ntlm_tests (uri);
 	soup_uri_free (uri);

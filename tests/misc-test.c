@@ -156,7 +156,7 @@ do_callback_unref_test (void)
 
 	/* Get a guaranteed-bad URI */
 	bad_server = soup_server_new (NULL, NULL);
-	bad_uri = g_strdup_printf ("http://localhost:%u/",
+	bad_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				   soup_server_get_port (bad_server));
 	g_object_unref (bad_server);
 
@@ -293,7 +293,7 @@ main (int argc, char **argv)
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_uri_new ("http://localhost/");
+	base_uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
 	auth_domain = soup_auth_domain_basic_new (

@@ -13,7 +13,7 @@
 #include "test-utils.h"
 
 static SoupSession *session;
-static const char *default_uri = "http://localhost:47524/xmlrpc-server.php";
+static const char *default_uri = "http://127.0.0.1:47524/xmlrpc-server.php";
 static const char *uri = NULL;
 static gboolean server_test = FALSE;
 
