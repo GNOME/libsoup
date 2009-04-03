@@ -1,5 +1,14 @@
 2009-04-03  Dan Winship  <danw@gnome.org>
 
+	Bug 577386 – Fails to handle HTTPS redirect from a certain site.
+
+	* libsoup/soup-gnutls.c (soup_gnutls_read): Treat abnormal
+	EOFs as though they were normal, rather than as errors. Shrug.
+
+	Reported by Diego Escalante Urrelo.
+
+2009-04-03  Dan Winship  <danw@gnome.org>
+
 	Bug 577360 – handle cookies with same name but different path
 
 	* libsoup/soup-cookie-jar.c (soup_cookie_jar_add_cookie): check

@@ -206,6 +206,19 @@ again:
 			goto again;
 	}
 
+	if (result == GNUTLS_E_UNEXPECTED_PACKET_LENGTH) {
+		/* This means the connection was either corrupted or
+		 * interrupted. One particular thing that it can mean
+		 * is that the remote end closed the connection
+		 * abruptly without doing a proper TLS Close. There
+		 * are security reasons why it's bad to treat this as
+		 * not-an-error, but for compatibility reasons (eg,
+		 * bug 577386) we kinda have to. And it's not like
+		 * we're very secure anyway.
+		 */
+		return G_IO_STATUS_EOF;
+	}
+
 	if (result < 0) {
 		g_set_error (err, G_IO_CHANNEL_ERROR,
 			     G_IO_CHANNEL_ERROR_FAILED,
