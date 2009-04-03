@@ -1106,8 +1106,15 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
 {
 	g_free (hdrs->content_type);
 	if (value) {
-		parse_content_foo (hdrs, "Content-Type",
-				   &hdrs->content_type, NULL);
+		char *content_type, *p;
+
+		parse_content_foo (hdrs, "Content-Type", &content_type, NULL);
+		p = strpbrk (content_type, " /");
+		if (!p || *p != '/' || strpbrk (p + 1, " /")) {
+			g_free (content_type);
+			hdrs->content_type = NULL;
+		} else
+			hdrs->content_type = content_type;
 	} else
 		hdrs->content_type = NULL;
 }
@@ -1123,8 +1130,8 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * are only interested in the content type itself.
  *
  * Return value: a string with the value of the "Content-Type" header
- * or NULL if @hdrs does not contain that header (in which case
- * *@params will be * unchanged, is it has been given).
+ * or NULL if @hdrs does not contain that header or it cannot be
+ * parsed (in which case *@params will be unchanged).
  *
  * Since: 2.26
  **/

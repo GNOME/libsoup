@@ -1,5 +1,15 @@
 2009-04-02  Dan Winship  <danw@gnome.org>
 
+	Bug 577630 – libsoup should ignore broken Content-Type headers
+
+	* libsoup/soup-message-headers.c (content_type_setter): Ignore
+	Content-Type if it's not at least minimally syntactically correct.
+	(soup_message_headers_get_content_type): Document that.
+
+	* tests/header-parsing.c (do_content_type_tests): test it.
+
+2009-04-02  Dan Winship  <danw@gnome.org>
+
 	Bug 577728 – soup_header_g_string_append_param should handle NULL values
 
 	* libsoup/soup-headers.c (soup_header_g_string_append_param):

@@ -882,6 +882,8 @@ do_rfc2231_tests (void)
 #define CONTENT_TYPE_TEST_VALUE     "US-ASCII"
 #define CONTENT_TYPE_TEST_HEADER    "text/plain; charset=\"US-ASCII\""
 
+#define CONTENT_TYPE_BAD_HEADER     "plain text, not text/html"
+
 static void
 do_content_type_tests (void)
 {
@@ -918,10 +920,9 @@ do_content_type_tests (void)
 	if (!mime_type) {
 		debug_printf (1, "  decoding FAILED!\n    could not parse\n");
 		errors++;
-		return;
 	}
 
-	if (strcmp (mime_type, CONTENT_TYPE_TEST_MIME_TYPE) != 0) {
+	if (mime_type && strcmp (mime_type, CONTENT_TYPE_TEST_MIME_TYPE) != 0) {
 		debug_printf (1, "  decoding FAILED!\n    bad returned MIME type: %s\n",
 			      mime_type);
 		errors++;
@@ -934,6 +935,17 @@ do_content_type_tests (void)
 
 	if (params)
 		g_hash_table_destroy (params);
+
+	soup_message_headers_clear (hdrs);
+	soup_message_headers_append (hdrs, "Content-Type",
+				     CONTENT_TYPE_BAD_HEADER);
+	mime_type = soup_message_headers_get_content_type (hdrs, &params);
+	if (mime_type) {
+		debug_printf (1, "  Bad content rejection FAILED!\n");
+		errors++;
+	} else
+		debug_printf (1, "  Bad content rejection OK\n");
+
 	soup_message_headers_free (hdrs);
 
 	debug_printf (1, "\n");
