@@ -40,7 +40,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 	goffset start, end, total_length;
 
 	debug_printf (1, "    Content-Range: %s\n",
-		      soup_message_headers_get (headers, "Content-Range"));
+		      soup_message_headers_get_one (headers, "Content-Range"));
 
 	if (!soup_message_headers_get_content_range (headers, &start, &end, &total_length)) {
 		debug_printf (1, "    Could not find/parse Content-Range\n");
@@ -91,7 +91,7 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 	const char *content_type;
 
 	debug_printf (1, "    Range: %s\n",
-		      soup_message_headers_get (msg->request_headers, "Range"));
+		      soup_message_headers_get_one (msg->request_headers, "Range"));
 
 	soup_session_send_message (session, msg);
 
@@ -137,7 +137,7 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 	int i, length;
 
 	debug_printf (1, "    Range: %s\n",
-		      soup_message_headers_get (msg->request_headers, "Range"));
+		      soup_message_headers_get_one (msg->request_headers, "Range"));
 
 	soup_session_send_message (session, msg);
 

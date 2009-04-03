@@ -191,7 +191,7 @@ do_put (SoupServer *server, SoupMessage *msg, const char *path)
 	gboolean created = TRUE;
 
 	if (stat (path, &st) != -1) {
-		const char *match = soup_message_headers_get (msg->request_headers, "If-None-Match");
+		const char *match = soup_message_headers_get_one (msg->request_headers, "If-None-Match");
 		if (match && !strcmp (match, "*")) {
 			soup_message_set_status (msg, SOUP_STATUS_CONFLICT);
 			return;

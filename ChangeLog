@@ -1,3 +1,25 @@
+2009-04-02  Dan Winship  <danw@gnome.org>
+
+	Bug 576760 – soup_message_headers_get_content_type returns bad headers
+
+	* libsoup/soup-message-headers.c (soup_message_headers_get_one)
+	(soup_message_headers_get_list): New replacements for
+	soup_message_headers_get(), indicating explicitly whether the
+	caller expects the header to be a list or not; for non-list-type
+	headers, if there's more than one, the second one should be
+	ignored rather than concatenated to the first.
+	(soup_message_headers_get): deprecate this.
+
+	* libsoup/*.c:
+	* tests/*.c: Update to use soup_message_headers_get_one() or
+	_get_list() as appropriate.
+
+	* tests/header-parsing.c (do_content_type_tests): Add some tests
+	of Content-Type parsing/setting, including making sure that
+	duplicate Content-Type headers are ignored.
+
+	* docs/reference/libsoup-2.4-sections.txt: update
+
 2009-03-27  Dan Winship  <danw@gnome.org>
 
 	Bug 576583 – Tests fail if "localhost" resolves to ::1

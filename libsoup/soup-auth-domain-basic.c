@@ -338,7 +338,8 @@ check_password (SoupAuthDomain *domain,
 	char *msg_username, *msg_password;
 	gboolean ok;
 
-	header = soup_message_headers_get (msg->request_headers, "Authorization");
+	header = soup_message_headers_get_one (msg->request_headers,
+					       "Authorization");
 	if (!parse_basic (msg, header, &msg_username, &msg_password))
 		return FALSE;
 

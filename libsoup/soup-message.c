@@ -919,7 +919,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 		return;
 
 	hdrs = priv->server_side ? msg->request_headers : msg->response_headers;
-	if (soup_message_headers_get (hdrs, header_name)) {
+	if (soup_message_headers_get_one (hdrs, header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
 				  ((GCClosure *)closure)->callback);
@@ -1293,8 +1293,10 @@ soup_message_is_keepalive (SoupMessage *msg)
 {
 	const char *c_conn, *s_conn;
 
-	c_conn = soup_message_headers_get (msg->request_headers, "Connection");
-	s_conn = soup_message_headers_get (msg->response_headers, "Connection");
+	c_conn = soup_message_headers_get_list (msg->request_headers,
+						"Connection");
+	s_conn = soup_message_headers_get_list (msg->response_headers,
+						"Connection");
 
 	if (msg->status_code == SOUP_STATUS_OK &&
 	    msg->method == SOUP_METHOD_CONNECT)

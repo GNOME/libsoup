@@ -397,10 +397,10 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 	if (auth != soup_message_get_auth (msg))
 		return;
 
-	header = soup_message_headers_get (msg->response_headers,
-					    soup_auth_is_for_proxy (auth) ?
-					    "Proxy-Authentication-Info" :
-					    "Authentication-Info");
+	header = soup_message_headers_get_one (msg->response_headers,
+					       soup_auth_is_for_proxy (auth) ?
+					       "Proxy-Authentication-Info" :
+					       "Authentication-Info");
 	g_return_if_fail (header != NULL);
 
 	auth_params = soup_header_parse_param_list (header);

@@ -202,11 +202,11 @@ static inline const char *
 auth_header_for_message (SoupMessage *msg)
 {
 	if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
-		return soup_message_headers_get (msg->response_headers,
-						 "Proxy-Authenticate");
+		return soup_message_headers_get_list (msg->response_headers,
+						      "Proxy-Authenticate");
 	} else {
-		return soup_message_headers_get (msg->response_headers,
-						 "WWW-Authenticate");
+		return soup_message_headers_get_list (msg->response_headers,
+						      "WWW-Authenticate");
 	}
 }
 

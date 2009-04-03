@@ -282,8 +282,8 @@ got_headers_callback (SoupMessage *msg, gpointer data)
 {
 	const char *header;
 
-	header = soup_message_headers_get (msg->request_headers,
-					   "Authorization");
+	header = soup_message_headers_get_one (msg->request_headers,
+					       "Authorization");
 	if (header) {
 		if (strstr (header, "Basic "))
 			test_data.client_sent_basic = TRUE;
@@ -297,8 +297,8 @@ wrote_headers_callback (SoupMessage *msg, gpointer data)
 {
 	const char *header;
 
-	header = soup_message_headers_get (msg->response_headers,
-					   "WWW-Authenticate");
+	header = soup_message_headers_get_list (msg->response_headers,
+						"WWW-Authenticate");
 	if (header) {
 		if (strstr (header, "Basic "))
 			test_data.server_requested_basic = TRUE;

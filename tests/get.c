@@ -183,7 +183,8 @@ get_url (const char *url)
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		if (recurse)
 			unlink (name);
-		header = soup_message_headers_get (msg->response_headers, "Location");
+		header = soup_message_headers_get_one (msg->response_headers,
+						       "Location");
 		if (header) {
 			if (!debug)
 				printf ("  -> %s\n", header);

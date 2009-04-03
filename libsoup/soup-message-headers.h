@@ -35,6 +35,10 @@ void                soup_message_headers_clear    (SoupMessageHeaders *hdrs);
 
 const char         *soup_message_headers_get      (SoupMessageHeaders *hdrs,
 						   const char         *name);
+const char         *soup_message_headers_get_one  (SoupMessageHeaders *hdrs,
+						   const char         *name);
+const char         *soup_message_headers_get_list (SoupMessageHeaders *hdrs,
+						   const char         *name);
 
 typedef void      (*SoupMessageHeadersForeachFunc)(const char         *name,
 						   const char         *value,

@@ -860,7 +860,8 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	const char *new_loc;
 	SoupURI *new_uri;
 
-	new_loc = soup_message_headers_get (msg->response_headers, "Location");
+	new_loc = soup_message_headers_get_one (msg->response_headers,
+						"Location");
 	g_return_if_fail (new_loc != NULL);
 
 	if (msg->status_code == SOUP_STATUS_SEE_OTHER ||

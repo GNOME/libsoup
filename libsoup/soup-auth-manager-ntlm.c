@@ -280,8 +280,8 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 	if (!conn)
 		return;
 
-	val = soup_message_headers_get (msg->response_headers,
-					"WWW-Authenticate");
+	val = soup_message_headers_get_list (msg->response_headers,
+					     "WWW-Authenticate");
 	if (val)
 		val = strstr (val, "NTLM ");
 	if (!val)

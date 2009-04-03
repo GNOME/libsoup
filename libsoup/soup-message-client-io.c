@@ -92,7 +92,7 @@ get_request_headers (SoupMessage *req, GString *header,
 	} else {
 		g_string_append_printf (header, "%s %s HTTP/1.1\r\n",
 					req->method, uri_string);
-		if (!soup_message_headers_get (req->request_headers, "Host")) {
+		if (!soup_message_headers_get_one (req->request_headers, "Host")) {
 			if (soup_uri_uses_default_port (uri)) {
 				g_string_append_printf (header, "Host: %s\r\n",
 							uri_host);

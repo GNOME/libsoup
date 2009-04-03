@@ -131,7 +131,7 @@ soup_headers_clean_for_10 (SoupMessageHeaders *hdrs)
 	const char *connection;
 	GSList *tokens, *t;
 
-	connection = soup_message_headers_get (hdrs, "Connection");
+	connection = soup_message_headers_get_list (hdrs, "Connection");
 	if (!connection)
 		return;
 

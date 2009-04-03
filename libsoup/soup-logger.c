@@ -487,7 +487,7 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_MINIMAL)
 		return;
 
-	if (!soup_message_headers_get (msg->request_headers, "Host")) {
+	if (!soup_message_headers_get_one (msg->request_headers, "Host")) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
 				   "Host: %s%c%u", uri->host,
 				   soup_uri_uses_default_port (uri) ? '\0' : ':',

@@ -359,8 +359,8 @@ server_got_headers (SoupMessage *msg, gpointer server)
 	    SOUP_EXPECTATION_CONTINUE) {
 		const char *length;
 
-		length = soup_message_headers_get (msg->request_headers,
-						    "Content-Length");
+		length = soup_message_headers_get_one (msg->request_headers,
+						       "Content-Length");
 		if (length && atoi (length) > MAX_POST_LENGTH) {
 			soup_message_set_status (msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
 			soup_message_headers_append (msg->response_headers, "Connection", "close");

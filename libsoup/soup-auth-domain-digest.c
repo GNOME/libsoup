@@ -429,7 +429,8 @@ check_password (SoupAuthDomain *domain,
 	char hex_urp[33];
 	gboolean accept;
 
-	header = soup_message_headers_get (msg->request_headers, "Authorization");
+	header = soup_message_headers_get_one (msg->request_headers,
+					       "Authorization");
 	if (strncmp (header, "Digest ", 7) != 0)
 		return FALSE;
 

@@ -111,7 +111,8 @@ got_headers (SoupMessage *msg, gpointer user_data)
 
 	debug_printf (2, "    -> %d %s\n", msg->status_code,
 		      msg->reason_phrase);
-	location = soup_message_headers_get (msg->response_headers, "Location");
+	location = soup_message_headers_get_one (msg->response_headers,
+						 "Location");
 	if (location)
 		debug_printf (2, "       Location: %s\n", location);
 

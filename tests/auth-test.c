@@ -166,8 +166,8 @@ identify_auth (SoupMessage *msg)
 	const char *header;
 	int num;
 
-	header = soup_message_headers_get (msg->request_headers,
-					    "Authorization");
+	header = soup_message_headers_get_one (msg->request_headers,
+					       "Authorization");
 	if (!header)
 		return 0;
 
@@ -559,7 +559,8 @@ select_auth_authenticate (SoupSession *session, SoupMessage *msg,
 	const char *header, *basic, *digest;
 	int round = retrying ? 1 : 0;
 
-	header = soup_message_headers_get (msg->response_headers, "WWW-Authenticate");
+	header = soup_message_headers_get_list (msg->response_headers,
+						"WWW-Authenticate");
 	basic = strstr (header, "Basic");
 	digest = strstr (header, "Digest");
 	if (basic && digest) {

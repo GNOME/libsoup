@@ -90,6 +90,8 @@ soup_message_headers_append
 soup_message_headers_replace
 soup_message_headers_remove
 soup_message_headers_clear
+soup_message_headers_get_one
+soup_message_headers_get_list
 soup_message_headers_get
 <SUBSECTION>
 SoupMessageHeadersForeachFunc

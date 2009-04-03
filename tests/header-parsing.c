@@ -599,7 +599,7 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 			ok = FALSE;
 			break;
 		}
-		value = soup_message_headers_get (hdrs, headers[i].name);
+		value = soup_message_headers_get_list (hdrs, headers[i].name);
 		if (strcmp (value, headers[i].value) != 0) {
 			ok = FALSE;
 			break;
@@ -839,7 +839,7 @@ do_rfc2231_tests (void)
 	soup_message_headers_set_content_disposition (hdrs, "attachment", params);
 	g_hash_table_destroy (params);
 
-	header = soup_message_headers_get (hdrs, "Content-Disposition");
+	header = soup_message_headers_get_one (hdrs, "Content-Disposition");
 	if (!strcmp (header, RFC2231_TEST_HEADER))
 		debug_printf (1, "  encoded OK\n");
 	else {
@@ -873,6 +873,68 @@ do_rfc2231_tests (void)
 
 	g_hash_table_destroy (params);
 	soup_message_headers_free (hdrs);
+
+	debug_printf (1, "\n");
+}
+
+#define CONTENT_TYPE_TEST_MIME_TYPE "text/plain"
+#define CONTENT_TYPE_TEST_ATTRIBUTE "charset"
+#define CONTENT_TYPE_TEST_VALUE     "US-ASCII"
+#define CONTENT_TYPE_TEST_HEADER    "text/plain; charset=\"US-ASCII\""
+
+static void
+do_content_type_tests (void)
+{
+	SoupMessageHeaders *hdrs;
+	GHashTable *params;
+	const char *header, *mime_type;
+
+	debug_printf (1, "Content-Type tests\n");
+
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	params = g_hash_table_new (g_str_hash, g_str_equal);
+	g_hash_table_insert (params, CONTENT_TYPE_TEST_ATTRIBUTE,
+			     CONTENT_TYPE_TEST_VALUE);
+	soup_message_headers_set_content_type (hdrs, CONTENT_TYPE_TEST_MIME_TYPE, params);
+	g_hash_table_destroy (params);
+
+	header = soup_message_headers_get_one (hdrs, "Content-Type");
+	if (!strcmp (header, CONTENT_TYPE_TEST_HEADER))
+		debug_printf (1, "  encoded OK\n");
+	else {
+		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      CONTENT_TYPE_TEST_HEADER, header);
+		errors++;
+	}
+
+	soup_message_headers_clear (hdrs);
+	soup_message_headers_append (hdrs, "Content-Type",
+				     CONTENT_TYPE_TEST_MIME_TYPE);
+	/* Add a second Content-Type header: should be ignored */
+	soup_message_headers_append (hdrs, "Content-Type",
+				     CONTENT_TYPE_TEST_MIME_TYPE);
+
+	mime_type = soup_message_headers_get_content_type (hdrs, &params);
+	if (!mime_type) {
+		debug_printf (1, "  decoding FAILED!\n    could not parse\n");
+		errors++;
+		return;
+	}
+
+	if (strcmp (mime_type, CONTENT_TYPE_TEST_MIME_TYPE) != 0) {
+		debug_printf (1, "  decoding FAILED!\n    bad returned MIME type: %s\n",
+			      mime_type);
+		errors++;
+	} else if (params && g_hash_table_size (params) != 0) {
+		debug_printf (1, "  decoding FAILED!\n    params contained %d params (should be 0)\n",
+			      g_hash_table_size (params));
+		errors++;
+	} else
+		debug_printf (1, "  decoded OK\n");
+
+	if (params)
+		g_hash_table_destroy (params);
+	soup_message_headers_free (hdrs);
 }
 
 int
@@ -884,6 +946,7 @@ main (int argc, char **argv)
 	do_response_tests ();
 	do_qvalue_tests ();
 	do_rfc2231_tests ();
+	do_content_type_tests ();
 
 	test_cleanup ();
 	return errors != 0;

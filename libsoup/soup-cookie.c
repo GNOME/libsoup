@@ -841,8 +841,13 @@ soup_cookies_from_request (SoupMessage *msg)
 	GHashTable *params;
 	GHashTableIter iter;
 	gpointer name, value;
+	const char *header;
 
-	params = soup_header_parse_semi_param_list (soup_message_headers_get (msg->request_headers, "Cookie"));
+	header = soup_message_headers_get_one (msg->request_headers, "Cookie");
+	if (!header)
+		return NULL;
+
+	params = soup_header_parse_semi_param_list (header);
 	g_hash_table_iter_init (&iter, params);
 	while (g_hash_table_iter_next (&iter, &name, &value)) {
 		cookie = soup_cookie_new (name, value, NULL, NULL, 0);
@@ -898,8 +903,8 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 {
 	GString *header;
 
-	header = g_string_new (soup_message_headers_get (msg->request_headers,
-							 "Cookie"));
+	header = g_string_new (soup_message_headers_get_one (msg->request_headers,
+							     "Cookie"));
 	while (cookies) {
 		serialize_cookie (cookies->data, header, FALSE);
 		cookies = cookies->next;
