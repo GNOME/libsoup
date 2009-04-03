@@ -1,3 +1,13 @@
+2009-04-03  Dan Winship  <danw@gnome.org>
+
+	Bug 577360 – handle cookies with same name but different path
+
+	* libsoup/soup-cookie-jar.c (soup_cookie_jar_add_cookie): check
+	both name and path when matching cookies; "foo=one; path=/bar"
+	should not replace "foo=two; path=/". They are separate cookies.
+
+	Reported by Alexander V. Butenko.
+
 2009-04-02  Dan Winship  <danw@gnome.org>
 
 	Bug 577630 – libsoup should ignore broken Content-Type headers

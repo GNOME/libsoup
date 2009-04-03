@@ -345,7 +345,8 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 	old_cookies = g_hash_table_lookup (priv->domains, cookie->domain);
 	for (oc = old_cookies; oc; oc = oc->next) {
 		old_cookie = oc->data;
-		if (!strcmp (cookie->name, old_cookie->name)) {
+		if (!strcmp (cookie->name, old_cookie->name) &&
+		    !g_strcmp0 (cookie->path, old_cookie->path)) {
 			if (cookie->expires && soup_date_is_past (cookie->expires)) {
 				/* The new cookie has an expired date,
 				 * this is the way the the server has
