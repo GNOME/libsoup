@@ -935,6 +935,45 @@ do_content_type_tests (void)
 	if (params)
 		g_hash_table_destroy (params);
 	soup_message_headers_free (hdrs);
+
+	debug_printf (1, "\n");
+}
+
+struct {
+	const char *name, *value;
+} test_params[] = {
+	{ "one", "foo" },
+	{ "two", "test with spaces" },
+	{ "three", "test with \"quotes\" and \\s" },
+	{ "four", NULL },
+	{ "five", "test with \xC3\xA1\xC3\xA7\xC4\x89\xC3\xA8\xC3\xB1\xC5\xA3\xC5\xA1" }
+};
+
+#define TEST_PARAMS_RESULT "one=\"foo\", two=\"test with spaces\", three=\"test with \\\"quotes\\\" and \\\\s\", four, five*=UTF-8''test%20with%20%C3%A1%C3%A7%C4%89%C3%A8%C3%B1%C5%A3%C5%A1"
+
+static void
+do_append_param_tests (void)
+{
+	GString *params;
+	int i;
+
+	debug_printf (1, "soup_header_g_string_append_param() tests\n");
+
+	params = g_string_new (NULL);
+	for (i = 0; i < G_N_ELEMENTS (test_params); i++) {
+		if (i > 0)
+			g_string_append (params, ", ");
+		soup_header_g_string_append_param (params,
+						   test_params[i].name,
+						   test_params[i].value);
+	}
+	if (strcmp (params->str, TEST_PARAMS_RESULT) != 0) {
+		debug_printf (1, "  FAILED!\n    expected: %s\n    got: %s\n",
+			      TEST_PARAMS_RESULT, params->str);
+		errors++;
+	} else
+		debug_printf (1, "  OK\n");
+	g_string_free (params, TRUE);
 }
 
 int
@@ -947,6 +986,7 @@ main (int argc, char **argv)
 	do_qvalue_tests ();
 	do_rfc2231_tests ();
 	do_content_type_tests ();
+	do_append_param_tests ();
 
 	test_cleanup ();
 	return errors != 0;

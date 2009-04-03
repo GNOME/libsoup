@@ -1,5 +1,15 @@
 2009-04-02  Dan Winship  <danw@gnome.org>
 
+	Bug 577728 – soup_header_g_string_append_param should handle NULL values
+
+	* libsoup/soup-headers.c (soup_header_g_string_append_param):
+	allow @value to be %NULL.
+
+	* tests/header-parsing.c (do_append_param_tests): test
+	soup_header_g_string_append_param()
+
+2009-04-02  Dan Winship  <danw@gnome.org>
+
 	Bug 576760 – soup_message_headers_get_content_type returns bad headers
 
 	* libsoup/soup-message-headers.c (soup_message_headers_get_one)

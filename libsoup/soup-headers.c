@@ -787,16 +787,19 @@ append_param_quoted (GString *string, const char *value)
  * soup_header_g_string_append_param:
  * @string: a #GString being used to construct an HTTP header value
  * @name: a parameter name
- * @value: a parameter value
+ * @value: a parameter value, or %NULL
  *
- * Appends something like <literal>@name="@value"</literal> to @string,
- * taking care to appropriately escape any quotes or backslashes in @value.
+ * Appends something like <literal>@name="@value"</literal> to
+ * @string, taking care to appropriately escape any quotes or
+ * backslashes in @value.
  *
  * Alternatively, if @value is a non-ASCII UTF-8 string, it will be
  * appended using RFC2231 syntax. Although in theory this is supposed
  * to work anywhere in HTTP that uses this style of parameter, in
  * reality, it can only be used portably with the Content-Disposition
  * "filename" parameter.
+ *
+ * If @value is %NULL, this will just append @name to @string.
  *
  * Since: 2.26
  **/
@@ -807,6 +810,8 @@ soup_header_g_string_append_param (GString *string, const char *name,
 	const char *v;
 
 	g_string_append (string, name);
+	if (!value)
+		return;
 
 	for (v = value; *v; v++) {
 		if (*v & 0x80) {
