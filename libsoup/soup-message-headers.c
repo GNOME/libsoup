@@ -146,7 +146,13 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
  * @name: the header name to add
  * @value: the new value of @name
  *
- * Appends a new header with name @name and value @value to @hdrs.
+ * Appends a new header with name @name and value @value to @hdrs. (If
+ * there is an existing header with name @name, then this creates a
+ * second one, which is only allowed for list-valued headers; see also
+ * soup_message_headers_replace().)
+ *
+ * The caller is expected to make sure that @name and @value are
+ * syntactically correct.
  **/
 void
 soup_message_headers_append (SoupMessageHeaders *hdrs,
@@ -157,6 +163,25 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 
 	g_return_if_fail (name != NULL);
 	g_return_if_fail (value != NULL);
+
+	/* Setting a syntactically invalid header name or value is
+	 * considered to be a programming error. However, it can also
+	 * be a security hole, so we want to fail here even if
+	 * compiled with G_DISABLE_CHECKS.
+	 */
+#ifndef G_DISABLE_CHECKS
+	g_return_if_fail (strpbrk (name, " \t\r\n:") == NULL);
+	g_return_if_fail (strpbrk (value, "\r\n") == NULL);
+#else
+	if (strpbrk (name, " \t\r\n:")) {
+		g_warning ("soup_message_headers_append: Ignoring bad name '%s'", name);
+		return;
+	}
+	if (strpbrk (value, "\r\n")) {
+		g_warning ("soup_message_headers_append: Ignoring bad value '%s'", value);
+		return;
+	}
+#endif
 
 	header.name = intern_header_name (name, &setter);
 	header.value = g_strdup (value);
@@ -173,7 +198,11 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
  * @name: the header name to replace
  * @value: the new value of @name
  *
- * Replaces the value of the header @name in @hdrs with @value.
+ * Replaces the value of the header @name in @hdrs with @value. (See
+ * also soup_message_headers_append().)
+ *
+ * The caller is expected to make sure that @name and @value are
+ * syntactically correct.
  **/
 void
 soup_message_headers_replace (SoupMessageHeaders *hdrs,

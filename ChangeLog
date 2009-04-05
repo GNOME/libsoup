@@ -1,3 +1,12 @@
+2009-04-05  Dan Winship  <danw@gnome.org>
+
+	Don't allow CR/LF in header names or values
+
+	* libsoup/soup-message-headers.c (soup_message_headers_append):
+	Don't let the caller create a header with whitespace or ":" in its
+	name, or with CR or LF in its value, since that would result in us
+	generating syntactically invalid headers.
+
 2009-04-03  Dan Winship  <danw@gnome.org>
 
 	Bug 577386 – Fails to handle HTTPS redirect from a certain site.
