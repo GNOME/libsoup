@@ -1,3 +1,53 @@
+Changes in libsoup from 2.26.0 to 2.26.0.9:
+
+	* libsoup uses libproxy for PAC and WPAD proxy resolution
+          again. However, it arranges to do all communication with
+          GConf itself, to ensure that libproxy doesn't call it in
+          non-thread-safe ways. [#571527] Also, fixed a bug in
+          SoupSessionSync when proxy resolution failed. [#574957,
+          patch from Milan Crha]
+
+	* SoupURI now handles unencoded spaces in URIs. In particular,
+          redirects via Location headers with spaces in them now work.
+          [#566530]
+
+	* libsoup can now deal with servers (and clients) that
+          erroneously use LF LF instead of CR LF CR LF to separate
+          the headers and body. [#571283]
+
+	* Added soup_message_headers_get_one() and
+          soup_message_headers_get_list(), which will eventually
+          deprecate soup_message_headers_get(). This lets applications
+          deal correctly with implementations that erroneously send
+          multiple copies of single-valued headers. [#576760]
+
+	* In particular, soup_message_headers_get_content_type() now
+          ignores duplicate Content-Type headers [#576760] and also
+          ignores syntactically-incorrect Content-Type headers.
+          [#577630]
+
+	* SoupCookieJar can now store multiple cookies with the same
+          domain and name, but different paths. [#577360]
+
+	* Abnormal SSL connection closes are now treated as ordinary
+          EOFs, for compatibility with certain sites. [#577386]
+
+	* soup_header_g_string_append_param() now allows NULL values.
+          [#577728]
+
+	* soup_message_headers_append() now rejects header names and
+          values with newlines or certain other illegal data in them,
+          rather than generating syntactically invalid headers.
+
+	* Fixed a small bug in soup_date_new_from_string's ISO 8601
+          handling [qv #578369 for g_time_val_from_iso8601].
+
+	* The regression tests now work correctly on machines where
+          "localhost" resolves to "::1" instead of "127.0.0.1".
+          [#576583, patch from Andreas Rottmann]
+
+	* Miscellaneous documentation fixes/clarifications.
+
 Changes in libsoup from 2.25.91 to 2.26.0:
 
 	* Temporarily disable libproxy support to work around a bug in

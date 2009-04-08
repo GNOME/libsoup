@@ -1,5 +1,13 @@
 2009-04-08  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.26.0.9, aka "I can't believe it's not 2.26.1!",
+	a pre-release to give the proxy resolver fix a bit of extra
+	testing before next week.
+
+	* NEWS: Update
+
+2009-04-08  Dan Winship  <danw@gnome.org>
+
 	Re-fix GNOME proxy resolution (qv bug 571527)
 
 	* libsoup/soup-proxy-resolver-gnome.c: New and improved GNOME
