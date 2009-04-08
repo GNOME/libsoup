@@ -182,10 +182,8 @@ libsoup_gnome_2_4_la_LIBADD =		\
 libsoup_gnome_2_4_la_SOURCES =		\
 	soup-cookie-jar-sqlite.c	\
 	soup-gnome-features.c		\
-	soup-proxy-resolver-gconf.h	\
-	soup-proxy-resolver-gconf.c	\
-	soup-proxy-resolver-libproxy.h	\
-	soup-proxy-resolver-libproxy.c
+	soup-proxy-resolver-gnome.h	\
+	soup-proxy-resolver-gnome.c
 
 endif
 

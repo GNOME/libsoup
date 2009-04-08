@@ -1,5 +1,22 @@
 2009-04-08  Dan Winship  <danw@gnome.org>
 
+	Re-fix GNOME proxy resolution (qv bug 571527)
+
+	* libsoup/soup-proxy-resolver-gnome.c: New and improved GNOME
+	proxy resolver; gets information out of GConf in a thread-safe
+	manner, and then passes it on to libproxy via environment
+	variables, so that libproxy won't try to access GConf itself, but
+	we still can use it for PAC, WPAD, and ignore_hosts.
+
+	* libsoup/soup-proxy-resolver-gconf.c:
+	* libsoup/soup-proxy-resolver-libproxy.c: gone now
+
+	* libsoup/soup-gnome-features.c: update for the fact that
+	SoupProxyResolverGNOME is actually a real type now, not
+	compile-time-defined alias
+
+2009-04-08  Dan Winship  <danw@gnome.org>
+
 	Fix ISO 8601 parsing to accept either "." or ","
 
 	* libsoup/soup-date.c (parse_iso8601_date): accept either "." or

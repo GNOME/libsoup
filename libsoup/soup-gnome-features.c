@@ -11,8 +11,6 @@
 
 #include "soup-gnome-features.h"
 
-#include "soup-proxy-resolver-gconf.h"
-
 /**
  * SOUP_TYPE_PROXY_RESOLVER_GNOME:
  *
@@ -27,11 +25,7 @@
  *
  * Since: 2.26
  **/
-GType
-soup_proxy_resolver_gnome_get_type (void)
-{
-	return SOUP_TYPE_PROXY_RESOLVER_GCONF;
-}
+/* This is actually declared in soup-proxy-resolver-gnome now */
 
 /**
  * SOUP_TYPE_GNOME_FEATURES_2_26:
