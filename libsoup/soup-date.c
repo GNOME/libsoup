@@ -191,7 +191,7 @@ parse_iso8601_date (SoupDate *date, const char *date_string)
 	} else
 		return FALSE;
 
-	if (*date_string == '.')
+	if (*date_string == '.' || *date_string == ',')
 		strtoul (date_string + 1, (char **)&date_string, 10);
 
 	if (*date_string == 'Z') {

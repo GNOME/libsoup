@@ -1,3 +1,10 @@
+2009-04-08  Dan Winship  <danw@gnome.org>
+
+	Fix ISO 8601 parsing to accept either "." or ","
+
+	* libsoup/soup-date.c (parse_iso8601_date): accept either "." or
+	"," as decimal separator, per the spec. qv glib bug 578369.
+
 2009-04-05  Dan Winship  <danw@gnome.org>
 
 	Don't allow CR/LF in header names or values
