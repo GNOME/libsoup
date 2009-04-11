@@ -134,6 +134,7 @@ soup_proxy_resolver_gnome_init (SoupProxyResolverGNOME *resolver_gnome)
 			g_mutex_lock (id.lock);
 			g_idle_add (init_gconf, &id);
 			g_cond_wait (id.cond, id.lock);
+			g_mutex_unlock (id.lock);
 
 			g_cond_free (id.cond);
 			g_mutex_free (id.lock);
