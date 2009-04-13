@@ -1,5 +1,15 @@
 2009-04-13  Dan Winship  <danw@gnome.org>
 
+	Bug 578809 – warnings in soup_address_equal_by_ip
+
+	* libsoup/soup-session.c (get_host_for_message): don't try to look
+	up unresolved addresses in the hosts hash; just return NULL. The
+	"cancel other messages for the bad host" code in connect_result()
+	will loop over the whole queue, including messages with unresolved
+	addresses.
+
+2009-04-13  Dan Winship  <danw@gnome.org>
+
 	Bug 578746 – http_proxy env var set to "http://:80" in session
 	despite proxy mode "none"
 

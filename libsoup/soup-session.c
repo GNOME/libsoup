@@ -816,6 +816,9 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	SoupSessionHost *host;
 	SoupAddress *addr = soup_message_get_address (msg);
 
+	if (!soup_address_is_resolved (addr))
+		return NULL;
+
 	host = g_hash_table_lookup (priv->hosts, addr);
 	if (host)
 		return host;
