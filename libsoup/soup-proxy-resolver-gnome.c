@@ -418,7 +418,7 @@ get_proxy_async (SoupProxyResolver  *proxy_resolver,
 	sgad->proxy_resolver = g_object_ref (proxy_resolver);
 	sgad->msg = g_object_ref (msg);
 	sgad->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
-	sgad->async_context = async_context ? g_main_context_ref (sgad->async_context) : NULL;
+	sgad->async_context = async_context ? g_main_context_ref (async_context) : NULL;
 	sgad->callback = callback;
 	sgad->user_data = user_data;
 
