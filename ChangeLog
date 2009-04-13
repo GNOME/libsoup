@@ -1,3 +1,12 @@
+2009-04-13  Dan Winship  <danw@gnome.org>
+
+	Bug 578746 – http_proxy env var set to "http://:80" in session
+	despite proxy mode "none"
+
+	* libsoup/soup-proxy-resolver-gnome.c (update_proxy_settings):
+	Don't set anything if proxy_mode is NONE, and properly ignore the
+	proxy host if it's empty.
+
 2009-04-11  Dan Winship  <danw@gnome.org>
 
 	Bug 578645 – crash in Rhythmbox Music Player

@@ -183,14 +183,20 @@ update_proxy_settings (void)
 	mode = gconf_client_get_string (
 		gconf_client, SOUP_GCONF_PROXY_MODE, NULL);
 	if (!mode || !gconf_string_to_enum (proxy_mode_map, mode,
-					    (int *)&proxy_mode)) {
+					    (int *)&proxy_mode))
 		proxy_mode = SOUP_PROXY_RESOLVER_GNOME_MODE_NONE;
-		g_free (mode);
-		return;
-	}
 	g_free (mode);
 
-	if (proxy_mode == SOUP_PROXY_RESOLVER_GNOME_MODE_AUTO) {
+	if (proxy_mode == SOUP_PROXY_RESOLVER_GNOME_MODE_NONE) {
+		if (libproxy_factory) {
+			/* Unset anything we previously set */
+			g_unsetenv ("PX_CONFIG_ORDER");
+			g_unsetenv ("http_proxy");
+			g_unsetenv ("https_proxy");
+			g_unsetenv ("no_proxy");
+		}
+		return;
+	} else if (proxy_mode == SOUP_PROXY_RESOLVER_GNOME_MODE_AUTO) {
 		char *autoconfig_url;
 
 		autoconfig_url = gconf_client_get_string (
@@ -206,7 +212,7 @@ update_proxy_settings (void)
 
 		host = gconf_client_get_string (
 			gconf_client, SOUP_GCONF_HTTP_PROXY_HOST, NULL);
-		if (!host && !*host) {
+		if (!host || !*host) {
 			g_free (host);
 			proxy_mode = SOUP_PROXY_RESOLVER_GNOME_MODE_NONE;
 			return;
