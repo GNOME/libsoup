@@ -1,11 +1,14 @@
-Changes in libsoup from 2.26.0 to 2.26.0.9:
+Changes in libsoup from 2.26.0 to 2.26.1:
 
 	* libsoup uses libproxy for PAC and WPAD proxy resolution
           again. However, it arranges to do all communication with
           GConf itself, to ensure that libproxy doesn't call it in
           non-thread-safe ways. [#571527] Also, fixed a bug in
           SoupSessionSync when proxy resolution failed. [#574957,
-          patch from Milan Crha]
+          patch from Milan Crha].
+
+	  (Also fixed three SoupProxyResolverGNOME bugs since the
+	  2.26.0.9 preview release. [#578746, #578809])
 
 	* SoupURI now handles unencoded spaces in URIs. In particular,
           redirects via Location headers with spaces in them now work.
@@ -45,6 +48,9 @@ Changes in libsoup from 2.26.0 to 2.26.0.9:
 	* The regression tests now work correctly on machines where
           "localhost" resolves to "::1" instead of "127.0.0.1".
           [#576583, patch from Andreas Rottmann]
+
+	* Fixed warnings when a message has a network problem when
+          many other messages are queued. [#578809]
 
 	* Miscellaneous documentation fixes/clarifications.
 
