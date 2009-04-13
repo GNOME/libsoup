@@ -1,5 +1,11 @@
 2009-04-13  Dan Winship  <danw@gnome.org>
 
+	* configure.in: 2.26.1
+
+	* NEWS: update
+
+2009-04-13  Dan Winship  <danw@gnome.org>
+
 	* libsoup/soup-proxy-resolver-gnome.c (get_proxy_async): fix
 	use of async context here
 
