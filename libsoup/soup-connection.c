@@ -540,6 +540,7 @@ address_resolved (SoupAddress *addr, guint status, gpointer data)
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 NULL);
 	soup_socket_connect_async (priv->socket, NULL,
 				   socket_connect_result, conn);

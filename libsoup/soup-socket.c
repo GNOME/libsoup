@@ -68,11 +68,13 @@ typedef struct {
 
 	guint non_blocking:1;
 	guint is_server:1;
+	guint timed_out:1;
 	gpointer ssl_creds;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
 	GSource        *read_src, *write_src;
+	GSource        *read_timeout, *write_timeout;
 	GByteArray     *read_buf;
 
 	GMutex *iolock, *addrlock;
@@ -128,6 +130,14 @@ disconnect_internal (SoupSocketPrivate *priv)
 	if (priv->write_src) {
 		g_source_destroy (priv->write_src);
 		priv->write_src = NULL;
+	}
+	if (priv->read_timeout) {
+		g_source_destroy (priv->read_timeout);
+		priv->read_timeout = NULL;
+	}
+	if (priv->write_timeout) {
+		g_source_destroy (priv->write_timeout);
+		priv->write_timeout = NULL;
 	}
 }
 
@@ -1100,7 +1110,29 @@ soup_socket_get_remote_address (SoupSocket *sock)
 }
 
 
+static gboolean
+socket_timeout (gpointer sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	gboolean readable = FALSE, writable = FALSE;
 
+	priv->timed_out = TRUE;
+	if (priv->read_timeout) {
+		priv->read_timeout = NULL;
+		readable = TRUE;
+	}
+	if (priv->write_timeout) {
+		priv->write_timeout = NULL;
+		writable = TRUE;
+	}
+
+	if (readable)
+		g_signal_emit (sock, signals[READABLE], 0);
+	if (writable)
+		g_signal_emit (sock, signals[WRITABLE], 0);
+
+	return FALSE;
+}
 
 static gboolean
 socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
@@ -1109,6 +1141,10 @@ socket_read_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->read_src = NULL;
+	if (priv->read_timeout) {
+		g_source_destroy (priv->read_timeout);
+		priv->read_timeout = NULL;
+	}
 
 	if (cond & (G_IO_ERR | G_IO_HUP))
 		soup_socket_disconnect (sock);
@@ -1131,6 +1167,9 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 
 	if (!priv->iochannel)
 		return SOUP_SOCKET_EOF;
+
+	if (priv->timed_out)
+		return SOUP_SOCKET_ERROR;
 
 	status = g_io_channel_read_chars (priv->iochannel,
 					  buffer, len, nread, &my_err);
@@ -1162,6 +1201,12 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 						   priv->iochannel,
 						   cond | G_IO_HUP | G_IO_ERR,
 						   socket_read_watch, sock);
+			if (priv->timeout) {
+				priv->read_timeout =
+					soup_add_timeout (priv->async_context,
+							  priv->timeout * 1000,
+							  socket_timeout, sock);
+			}
 		}
 		g_clear_error (error);
 		return SOUP_SOCKET_WOULD_BLOCK;
@@ -1351,6 +1396,10 @@ socket_write_watch (GIOChannel *chan, GIOCondition cond, gpointer user_data)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->write_src = NULL;
+	if (priv->write_timeout) {
+		g_source_destroy (priv->write_timeout);
+		priv->write_timeout = NULL;
+	}
 
 	if (cond & (G_IO_ERR | G_IO_HUP))
 		soup_socket_disconnect (sock);
@@ -1407,6 +1456,10 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_EOF;
 	}
+	if (priv->timed_out) {
+		g_mutex_unlock (priv->iolock);
+		return SOUP_SOCKET_ERROR;
+	}
 	if (priv->write_src) {
 		g_mutex_unlock (priv->iolock);
 		return SOUP_SOCKET_WOULD_BLOCK;
@@ -1446,6 +1499,12 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 				   priv->iochannel,
 				   cond | G_IO_HUP | G_IO_ERR, 
 				   socket_write_watch, sock);
+	if (priv->timeout) {
+		priv->write_timeout = soup_add_timeout (priv->async_context,
+							priv->timeout * 1000,
+							socket_timeout, sock);
+	}
+
 	g_mutex_unlock (priv->iolock);
 	return SOUP_SOCKET_WOULD_BLOCK;
 }
