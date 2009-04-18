@@ -18,4 +18,5 @@ void apache_cleanup (void);
 SoupSession *soup_test_session_new         (GType type, ...);
 void         soup_test_session_abort_unref (SoupSession *session);
 
-SoupServer  *soup_test_server_new  (gboolean in_own_thread);
+SoupServer  *soup_test_server_new     (gboolean in_own_thread);
+SoupServer  *soup_test_server_new_ssl (gboolean in_own_thread);

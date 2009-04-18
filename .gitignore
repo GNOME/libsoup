@@ -70,6 +70,7 @@ tests/simple-httpd
 tests/simple-proxy
 tests/ssl-test
 tests/streaming-test
+tests/timeout-test
 tests/uri-parsing
 tests/xmlrpc-server-test
 tests/xmlrpc-test

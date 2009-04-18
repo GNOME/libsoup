@@ -253,13 +253,26 @@ soup_test_session_abort_unref (SoupSession *session)
 
 static gpointer run_server_thread (gpointer user_data);
 
-SoupServer *
-soup_test_server_new (gboolean in_own_thread)
+static SoupServer *
+test_server_new (gboolean in_own_thread, gboolean ssl)
 {
 	GMainContext *async_context;
+	const char *ssl_cert_file, *ssl_key_file;
+
+	if (test_server)
+		test_server_shutdown ();
 
 	async_context = in_own_thread ? g_main_context_new () : NULL;
+
+	if (ssl) {
+		ssl_cert_file = SRCDIR "/test-cert.pem";
+		ssl_key_file = SRCDIR "/test-key.pem";
+	} else
+		ssl_cert_file = ssl_key_file = NULL;
+
 	test_server = soup_server_new (SOUP_SERVER_ASYNC_CONTEXT, async_context,
+				       SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
+				       SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
 				       NULL);
 	if (async_context)
 		g_main_context_unref (async_context);
@@ -276,6 +289,18 @@ soup_test_server_new (gboolean in_own_thread)
 		soup_server_run_async (test_server);
 
 	return test_server;
+}
+
+SoupServer *
+soup_test_server_new (gboolean in_own_thread)
+{
+	return test_server_new (in_own_thread, FALSE);
+}
+
+SoupServer *
+soup_test_server_new_ssl (gboolean in_own_thread)
+{
+	return test_server_new (in_own_thread, TRUE);
 }
 
 static gpointer
