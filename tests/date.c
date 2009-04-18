@@ -17,9 +17,7 @@ static const struct {
 } good_dates[] = {
 	{ SOUP_DATE_HTTP,            "Sat, 06 Nov 2004 08:09:07 GMT" },
 	{ SOUP_DATE_COOKIE,          "Sat, 06-Nov-2004 08:09:07 GMT" },
-#ifdef NOT_YET
-	{ SOUP_DATE_RFC2822,         "Sat, 06 Nov 2004 08:09:07 +0000" },
-#endif
+	{ SOUP_DATE_RFC2822,         "Sat, 6 Nov 2004 08:09:07 -0430" },
 	{ SOUP_DATE_ISO8601_COMPACT, "20041106T080907" },
 	{ SOUP_DATE_ISO8601_FULL,    "2004-11-06T08:09:07" },
 	{ SOUP_DATE_ISO8601_XMLRPC,  "20041106T08:09:07" }

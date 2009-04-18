@@ -298,9 +298,10 @@ parse_timezone (SoupDate *date, const char **date_string)
 		gulong val;
 		int sign = (**date_string == '+') ? -1 : 1;
 		val = strtoul (*date_string + 1, (char **)date_string, 10);
-		if (**date_string != ':')
-			return FALSE;
-		val = 60 * val + strtoul (*date_string + 1, (char **)date_string, 10);
+		if (**date_string == ':')
+			val = 60 * val + strtoul (*date_string + 1, (char **)date_string, 10);
+		else
+			val =  60 * (val / 100) + (val % 100);
 		date->offset = sign * val;
 		date->utc = sign && !val;
 	} else if (**date_string == 'Z') {
@@ -526,7 +527,17 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
 		return g_strdup_printf ("%04d%02d%02dT%02d:%02d:%02d",
 					date->year, date->month, date->day,
 					date->hour, date->minute, date->second);
-
+	case SOUP_DATE_RFC2822:
+	{
+		int hour_offset = abs (date->offset) / 60;
+		/* "Sun, 6 Nov 1994 09:49:37 -0100" */
+		return g_strdup_printf ("%s, %d %s %04d %02d:%02d:%02d %c%02d%02d",
+					soup_date_weekday (date), date->day,
+					months[date->month - 1],
+					date->year, date->hour, date->minute,
+					date->second, (date->offset > 0) ? '-' : '+',
+					hour_offset, abs (date->offset) - (hour_offset * 60));
+	}
 	default:
 		return NULL;
 	}
