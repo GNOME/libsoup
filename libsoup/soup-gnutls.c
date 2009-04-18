@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <glib.h>
 
@@ -46,7 +47,8 @@ struct SoupSSLCredentials {
 typedef struct {
 	GIOChannel channel;
 	GIOChannel *real_sock;
-	gboolean non_blocking;
+	int sockfd;
+	gboolean non_blocking, eagain;
 	gnutls_session session;
 	SoupSSLCredentials *creds;
 	char *hostname;
@@ -200,7 +202,7 @@ again:
 	}
 
 	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
-		if (chan->non_blocking)
+		if (chan->non_blocking || chan->eagain)
 			return G_IO_STATUS_AGAIN;
 		else
 			goto again;
@@ -265,7 +267,7 @@ again:
 	}
 
 	if (result == GNUTLS_E_INTERRUPTED || result == GNUTLS_E_AGAIN) {
-		if (chan->non_blocking)
+		if (chan->non_blocking || chan->eagain)
 			return G_IO_STATUS_AGAIN;
 		else
 			goto again;
@@ -381,6 +383,30 @@ init_dh_params (void)
 	return dh_params != NULL;
 }
 
+static ssize_t
+soup_gnutls_pull_func (gnutls_transport_ptr_t transport_data,
+		       void *buf, size_t buflen)
+{
+	SoupGNUTLSChannel *chan = transport_data;
+	ssize_t nread;
+
+	nread = read (chan->sockfd, buf, buflen);
+	chan->eagain = (nread == -1 && errno == EAGAIN);
+	return nread;
+}
+
+static ssize_t
+soup_gnutls_push_func (gnutls_transport_ptr_t transport_data,
+		       const void *buf, size_t buflen)
+{
+	SoupGNUTLSChannel *chan = transport_data;
+	ssize_t nwrote;
+
+	nwrote = write (chan->sockfd, buf, buflen);
+	chan->eagain = (nwrote == -1 && errno == EAGAIN);
+	return nwrote;
+}
+
 /**
  * soup_ssl_wrap_iochannel:
  * @sock: a #GIOChannel wrapping a TCP socket.
@@ -430,16 +456,19 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 	if (type == SOUP_SSL_TYPE_SERVER)
 		gnutls_dh_set_prime_bits (session, DH_BITS);
 
-	gnutls_transport_set_ptr (session, GINT_TO_POINTER (sockfd));
-
 	chan = g_slice_new0 (SoupGNUTLSChannel);
 	chan->real_sock = sock;
+	chan->sockfd = sockfd;
 	chan->session = session;
 	chan->creds = creds;
 	chan->hostname = g_strdup (remote_host);
 	chan->type = type;
 	chan->non_blocking = non_blocking;
 	g_io_channel_ref (sock);
+
+	gnutls_transport_set_ptr (session, chan);
+	gnutls_transport_set_push_function (session, soup_gnutls_push_func);
+	gnutls_transport_set_pull_function (session, soup_gnutls_pull_func);
 
 	gchan = (GIOChannel *) chan;
 	gchan->funcs = (GIOFuncs *)&soup_gnutls_channel_funcs;
