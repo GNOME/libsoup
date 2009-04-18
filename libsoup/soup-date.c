@@ -103,6 +103,64 @@ soup_date_get_type (void)
 	return type_volatile;
 }
 
+static void
+soup_date_fixup (SoupDate *date)
+{
+	/* We only correct date->second if it's negative or too high
+	 * to be a leap second.
+	 */
+	if (date->second < 0 || date->second > 61) {
+		date->minute += date->second / 60;
+		date->second %= 60;
+		if (date->second < 0)
+			date->second += 60;
+	}
+
+	if (date->minute < 0 || date->minute > 59) {
+		date->hour += date->minute / 60;
+		date->minute %= 60;
+		if (date->minute < 0)
+			date->minute += 60;
+	}
+
+	if (date->hour < 0 || date->hour > 23) {
+		date->day += date->hour / 24;
+		date->hour %= 24;
+		if (date->hour < 0)
+			date->hour += 24;
+	}
+
+	/* Have to make sure month is valid before we can look at the
+	 * day.
+	 */
+	if (date->month < 1 || date->month > 12) {
+		date->year += ((date->month - 1) / 12) + 1;
+		date->month = ((date->month - 1) % 12) + 1;
+		if (date->month < 1)
+			date->month += 12;
+	}
+
+	if (date->day < 0) {
+		while (date->day < 0) {
+			if (date->month == 1) {
+				date->month = 12;
+				date->year--;
+			} else
+				date->month--;
+			date->day += days_in_month (date->month, date->year);
+		}
+	} else {
+		while (date->day > days_in_month (date->month, date->year)) {
+			date->day -= days_in_month (date->month, date->year);
+			if (date->month == 12) {
+				date->month = 1;
+				date->year++;
+			} else
+				date->month++;
+		}
+	}
+}
+
 /**
  * soup_date_new:
  * @year: the year (1-9999)
@@ -110,7 +168,7 @@ soup_date_get_type (void)
  * @day: the day of the month (1-31, as appropriate for @month)
  * @hour: the hour (0-23)
  * @minute: the minute (0-59)
- * @second: the second (0-59)
+ * @second: the second (0-59, or up to 61 for leap seconds)
  *
  * Creates a #SoupDate representing the indicated time, UTC.
  *
@@ -206,7 +264,10 @@ parse_iso8601_date (SoupDate *date, const char *date_string)
 		else
 			val = 60 * (val / 100) + (val % 100);
 		date->offset = sign * val;
-		date->utc = sign && !val;
+		date->utc = !val;
+	} else {
+		date->offset = 0;
+		date->utc = FALSE;
 	}
 
 	return !*date_string;
@@ -303,7 +364,7 @@ parse_timezone (SoupDate *date, const char **date_string)
 		else
 			val =  60 * (val / 100) + (val % 100);
 		date->offset = sign * val;
-		date->utc = sign && !val;
+		date->utc = (sign == -1) && !val;
 	} else if (**date_string == 'Z') {
 		date->offset = 0;
 		date->utc = TRUE;
@@ -406,7 +467,8 @@ parse_textual_date (SoupDate *date, const char *date_string)
  * and reasonable approximations thereof. (Eg, it is lenient about
  * whitespace, leading "0"s, etc.)
  *
- * Return value: a new #SoupDate
+ * Return value: a new #SoupDate, or %NULL if @date_string could not
+ * be parsed.
  **/
 SoupDate *
 soup_date_new_from_string (const char *date_string)
@@ -441,13 +503,25 @@ soup_date_new_from_string (const char *date_string)
 	    date->month < 1 || date->month > 12 ||
 	    date->day < 1 ||
 	    date->day > days_in_month (date->month, date->year) ||
-	    date->hour < 0 || date->hour > 23 ||
+	    date->hour < 0 || date->hour > 24 ||
 	    date->minute < 0 || date->minute > 59 ||
-	    date->second < 0 || date->second > 59) {
-		g_slice_free (SoupDate, date);
+	    date->second < 0 || date->second > 61) {
+		soup_date_free (date);
 		return NULL;
-	} else
-		return date;
+	}
+	if (date->hour == 24) {
+		/* ISO8601 allows this explicitly. We allow it for
+		 * other types as well just for simplicity.
+		 */
+		if (date->minute == 0 && date->second == 0)
+			soup_date_fixup (date);
+		else {
+			soup_date_free (date);
+			return NULL;
+		}
+	}
+
+	return date;
 }
 
 /**
@@ -496,50 +570,110 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
 {
 	g_return_val_if_fail (date != NULL, NULL);
 
-	/* FIXME: offset, 8601 zones, etc */
+	if (format == SOUP_DATE_HTTP || format == SOUP_DATE_COOKIE) {
+		/* HTTP and COOKIE formats require UTC timestamp, so coerce
+		 * @date if it's non-UTC.
+		 */
+		SoupDate utcdate;
 
-	switch (format) {
-	case SOUP_DATE_HTTP:
-		/* "Sun, 06 Nov 1994 08:49:37 GMT" */
-		return g_strdup_printf ("%s, %02d %s %04d %02d:%02d:%02d GMT",
-					soup_date_weekday (date), date->day,
-					months[date->month - 1],
-					date->year, date->hour, date->minute,
-					date->second);
+		if (date->offset != 0) {
+			memcpy (&utcdate, date, sizeof (SoupDate));
+			utcdate.minute += utcdate.offset;
+			utcdate.offset = 0;
+			utcdate.utc = TRUE;
+			soup_date_fixup (&utcdate);
+			date = &utcdate;
+		}
 
-	case SOUP_DATE_COOKIE:
-		/* "Sun, 06-Nov-1994 08:49:37 GMT" */
-		return g_strdup_printf ("%s, %02d-%s-%04d %02d:%02d:%02d GMT",
-					soup_date_weekday (date), date->day,
-					months[date->month - 1],
-					date->year, date->hour, date->minute,
-					date->second);
+		switch (format) {
+		case SOUP_DATE_HTTP:
+			/* "Sun, 06 Nov 1994 08:49:37 GMT" */
+			return g_strdup_printf (
+				"%s, %02d %s %04d %02d:%02d:%02d GMT",
+				soup_date_weekday (date), date->day,
+				months[date->month - 1], date->year,
+				date->hour, date->minute, date->second);
 
-	case SOUP_DATE_ISO8601_COMPACT:
-		return g_strdup_printf ("%04d%02d%02dT%02d%02d%02d",
-					date->year, date->month, date->day,
-					date->hour, date->minute, date->second);
-	case SOUP_DATE_ISO8601_FULL:
-		return g_strdup_printf ("%04d-%02d-%02dT%02d:%02d:%02d",
-					date->year, date->month, date->day,
-					date->hour, date->minute, date->second);
-	case SOUP_DATE_ISO8601_XMLRPC:
+		case SOUP_DATE_COOKIE:
+			/* "Sun, 06-Nov-1994 08:49:37 GMT" */
+			return g_strdup_printf (
+				"%s, %02d-%s-%04d %02d:%02d:%02d GMT",
+				soup_date_weekday (date), date->day,
+				months[date->month - 1], date->year,
+				date->hour, date->minute, date->second);
+
+		default:
+			g_return_val_if_reached (NULL);
+		}
+	} else if (format == SOUP_DATE_ISO8601_XMLRPC) {
+		/* Always "floating", ignore offset */
 		return g_strdup_printf ("%04d%02d%02dT%02d:%02d:%02d",
 					date->year, date->month, date->day,
 					date->hour, date->minute, date->second);
-	case SOUP_DATE_RFC2822:
-	{
-		int hour_offset = abs (date->offset) / 60;
-		/* "Sun, 6 Nov 1994 09:49:37 -0100" */
-		return g_strdup_printf ("%s, %d %s %04d %02d:%02d:%02d %c%02d%02d",
-					soup_date_weekday (date), date->day,
-					months[date->month - 1],
-					date->year, date->hour, date->minute,
-					date->second, (date->offset > 0) ? '-' : '+',
-					hour_offset, abs (date->offset) - (hour_offset * 60));
-	}
-	default:
-		return NULL;
+	} else {
+		int hour_offset, minute_offset;
+		char zone[8], sign;
+
+		/* For other ISO8601 formats or RFC2822, use the
+		 * offset given in @date. For ISO8601 formats, use "Z"
+		 * for UTC, +-offset for non-UTC, and nothing for
+		 * floating. For RFC2822, use +-offset for UTC or
+		 * non-UTC, and -0000 for floating.
+		 */
+		hour_offset = abs (date->offset) / 60;
+		minute_offset = abs (date->offset) - hour_offset * 60;
+
+		switch (format) {
+		case SOUP_DATE_ISO8601_COMPACT:
+			/* "19941106T084937[zone]" */
+			if (date->utc)
+				strcpy (zone, "Z");
+			else if (date->offset) {
+				g_snprintf (zone, sizeof (zone), "%c%02d%02d",
+					    date->offset > 0 ? '-' : '+',
+					    hour_offset, minute_offset);
+			} else
+				*zone = '\0';			
+
+			return g_strdup_printf (
+				"%04d%02d%02dT%02d%02d%02d%s",
+				date->year, date->month, date->day,
+				date->hour, date->minute, date->second,
+				zone);
+
+		case SOUP_DATE_ISO8601_FULL:
+			/* "1994-11-06T08:49:37[zone]" */
+			if (date->utc)
+				strcpy (zone, "Z");
+			else if (date->offset) {
+				g_snprintf (zone, sizeof (zone), "%c%02d:%02d",
+					    date->offset > 0 ? '-' : '+',
+					    hour_offset, minute_offset);
+			} else
+				*zone = '\0';			
+
+			return g_strdup_printf (
+				"%04d-%02d-%02dT%02d:%02d:%02d%s",
+				date->year, date->month, date->day,
+				date->hour, date->minute, date->second,
+				zone);
+
+		case SOUP_DATE_RFC2822:
+			/* "Sun, 6 Nov 1994 09:49:37 -0100" */
+			if (date->offset)
+				sign = (date->offset > 0) ? '-' : '+';
+			else
+				sign = date->utc ? '+' : '-';
+			return g_strdup_printf (
+				"%s, %d %s %04d %02d:%02d:%02d %c%02d%02d",
+				soup_date_weekday (date), date->day,
+				months[date->month - 1], date->year,
+				date->hour, date->minute, date->second,
+				sign, hour_offset, minute_offset);
+
+		default:
+			return NULL;
+		}
 	}
 }
 
