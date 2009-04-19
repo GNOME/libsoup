@@ -67,15 +67,24 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	while (*(value_end + 1)) {
 		name = value_end + 1;
 		name_end = strchr (name, ':');
-		if (!name_end)
-			goto done;
+		if (!name_end || name + strcspn (name, " \t\r\n") < name_end) {
+			/* Bad header; just ignore this line. Note
+			 * that if it has continuation lines, we'll
+			 * end up ignoring them too since they'll
+			 * start with spaces.
+			 */
+			value_end = strchr (name, '\n');
+			if (!value_end)
+				goto done;
+			continue;
+		}
 
 		/* Find the end of the value; ie, an end-of-line that
 		 * isn't followed by a continuation line.
 		 */
 		value = name_end + 1;
 		value_end = strchr (name, '\n');
-		if (!value_end || value_end < name_end)
+		if (!value_end)
 			goto done;
 		while (*(value_end + 1) == ' ' || *(value_end + 1) == '\t') {
 			value_end = strchr (value_end + 1, '\n');
