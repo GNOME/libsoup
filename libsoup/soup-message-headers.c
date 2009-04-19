@@ -170,10 +170,10 @@ soup_message_headers_append (SoupMessageHeaders *hdrs,
 	 * compiled with G_DISABLE_CHECKS.
 	 */
 #ifndef G_DISABLE_CHECKS
-	g_return_if_fail (strpbrk (name, " \t\r\n:") == NULL);
+	g_return_if_fail (*name && strpbrk (name, " \t\r\n:") == NULL);
 	g_return_if_fail (strpbrk (value, "\r\n") == NULL);
 #else
-	if (strpbrk (name, " \t\r\n:")) {
+	if (*name && strpbrk (name, " \t\r\n:")) {
 		g_warning ("soup_message_headers_append: Ignoring bad name '%s'", name);
 		return;
 	}
