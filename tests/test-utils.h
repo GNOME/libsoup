@@ -8,6 +8,7 @@ void test_init    (int argc, char **argv, GOptionEntry *entries);
 void test_cleanup (void);
 
 extern int debug_level, errors;
+extern gboolean expect_warning;
 void debug_printf (int level, const char *format, ...) G_GNUC_PRINTF (2, 3);
 
 #ifdef HAVE_APACHE

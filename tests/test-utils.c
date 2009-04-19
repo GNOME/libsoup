@@ -21,6 +21,7 @@ static void test_server_shutdown (void);
 static SoupLogger *logger;
 
 int debug_level, errors;
+gboolean expect_warning;
 static int http_debug_level;
 
 static gboolean
@@ -66,9 +67,15 @@ static void
 test_log_handler (const char *log_domain, GLogLevelFlags log_level,
 		  const char *message, gpointer user_data)
 {
+	if (log_level & (G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL)) {
+		if (expect_warning) {
+			expect_warning = FALSE;
+			debug_printf (2, "Got expected warning: %s\n", message);
+			return;
+		} else
+			errors++;
+	}
 	g_log_default_handler (log_domain, log_level, message, user_data);
-	if (log_level & (G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL))
-		errors++;
 }
 
 void
