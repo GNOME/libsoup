@@ -243,6 +243,17 @@ static struct RequestTest {
 	  }
 	},
 
+	/* qv bug 579318, do_bad_header_tests() below */
+	{ "Req w/ mangled header",
+	  "GET / HTTP/1.1\r\nHost: example.com\r\nFoo one\r\nBar: two\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "Host", "example.com" },
+	    { "Bar", "two" },
+	    { NULL }
+	  }
+	},
+
 	/************************/
 	/*** INVALID REQUESTS ***/
 	/************************/
@@ -303,36 +314,8 @@ static struct RequestTest {
 	  { { NULL } }
 	},
 
-	{ "Header line with no ':'",
-	  "GET / HTTP/1.1\r\nHost example.com\r\n", -1,
-	  SOUP_STATUS_BAD_REQUEST,
-	  NULL, NULL, -1,
-	  { { NULL } }
-	},
-
 	{ "No terminating CRLF",
 	  "GET / HTTP/1.1\r\nHost: example.com", -1,
-	  SOUP_STATUS_BAD_REQUEST,
-	  NULL, NULL, -1,
-	  { { NULL } }
-	},
-
-	{ "Blank line before headers",
-	  "GET / HTTP/1.1\r\n\r\nHost: example.com\r\n", -1,
-	  SOUP_STATUS_BAD_REQUEST,
-	  NULL, NULL, -1,
-	  { { NULL } }
-	},
-
-	{ "Blank line in headers",
-	  "GET / HTTP/1.1\r\nHost: example.com\r\n\r\nConnection: close\r\n", -1,
-	  SOUP_STATUS_BAD_REQUEST,
-	  NULL, NULL, -1,
-	  { { NULL } }
-	},
-
-	{ "Blank line after headers",
-	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n", -1,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
@@ -468,10 +451,21 @@ static struct ResponseTest {
 	  }
 	},
 
+	/* Shoutcast support */
 	{ "Shoutcast server not-quite-HTTP",
 	  "ICY 200 OK\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "OK",
 	  { { "Foo", "bar" },
+	    { NULL }
+	  }
+	},
+
+	/* qv bug 579318, do_bad_header_tests() below */
+	{ "Response w/ mangled header",
+	  "HTTP/1.1 200 ok\r\nFoo: one\r\nBar two:2\r\nBaz: three\r\n", -1,
+	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
+	  { { "Foo", "one" },
+	    { "Baz", "three" },
 	    { NULL }
 	  }
 	},
@@ -986,6 +980,44 @@ do_append_param_tests (void)
 	} else
 		debug_printf (1, "  OK\n");
 	g_string_free (params, TRUE);
+
+	debug_printf (1, "\n");
+}
+
+static const struct {
+	const char *description, *name, *value;
+} bad_headers[] = {
+	{ "Empty name", "", "value" },
+	{ "Name with spaces", "na me", "value" },
+	{ "Name with colon", "na:me", "value" },
+	{ "Name with CR", "na\rme", "value" },
+	{ "Name with LF", "na\nme", "value" },
+	{ "Name with tab", "na\tme", "value" },
+	{ "Value with CR", "name", "val\rue" },
+	{ "Value with LF", "name", "val\nue" },
+	{ "Value with LWS", "name", "val\r\n ue" }
+};
+
+static void
+do_bad_header_tests (void)
+{
+	SoupMessageHeaders *hdrs;
+	int i;
+
+	debug_printf (1, "bad header rejection tests\n");
+
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	for (i = 0; i < G_N_ELEMENTS (bad_headers); i++) {
+		debug_printf (1, "  %s\n", bad_headers[i].description);
+		expect_warning = TRUE;
+		soup_message_headers_append (hdrs, bad_headers[i].name,
+					     bad_headers[i].value);
+		if (expect_warning) {
+			expect_warning = FALSE;
+			debug_printf (1, "    FAILED: soup_message_headers_append() did not reject it\n");
+			errors++;
+		}
+	}
 }
 
 int
@@ -999,6 +1031,7 @@ main (int argc, char **argv)
 	do_rfc2231_tests ();
 	do_content_type_tests ();
 	do_append_param_tests ();
+	do_bad_header_tests ();
 
 	test_cleanup ();
 	return errors != 0;
