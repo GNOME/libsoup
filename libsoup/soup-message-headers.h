@@ -33,8 +33,10 @@ void                soup_message_headers_remove   (SoupMessageHeaders *hdrs,
 						   const char         *name);
 void                soup_message_headers_clear    (SoupMessageHeaders *hdrs);
 
+#ifndef LIBSOUP_DISABLE_DEPRECATED
 const char         *soup_message_headers_get      (SoupMessageHeaders *hdrs,
 						   const char         *name);
+#endif
 const char         *soup_message_headers_get_one  (SoupMessageHeaders *hdrs,
 						   const char         *name);
 const char         *soup_message_headers_get_list (SoupMessageHeaders *hdrs,
