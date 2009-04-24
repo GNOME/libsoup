@@ -36,7 +36,7 @@
  *
  * You can add this to a session using
  * soup_session_add_feature_by_type() or by using the
- * %SOUP_SESSION_ADD_FEATURE_BY_TIME construct-time property.
+ * %SOUP_SESSION_ADD_FEATURE_BY_TYPE construct-time property.
  *
  * Since: 2.26
  **/
