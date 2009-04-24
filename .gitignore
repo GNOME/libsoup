@@ -24,6 +24,7 @@ docs/reference/html.stamp
 docs/reference/html
 docs/reference/libsoup-2.4-decl-list.txt
 docs/reference/libsoup-2.4-decl.txt
+docs/reference/libsoup-2.4-scan.c
 docs/reference/libsoup-2.4-undeclared.txt
 docs/reference/libsoup-2.4-undocumented.txt
 docs/reference/libsoup-2.4-unused.txt
