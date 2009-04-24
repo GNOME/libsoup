@@ -5,7 +5,7 @@ dnl *******************************************
 AC_PREREQ(2.53)
 AC_INIT(libsoup, 2.26.1)
 AC_CONFIG_SRCDIR(libsoup-2.4.pc.in)
-AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+AM_INIT_AUTOMAKE([foreign])
 
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
