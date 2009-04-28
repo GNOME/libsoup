@@ -48,6 +48,22 @@ static void
 authenticate (SoupSession *session, SoupMessage *msg,
 	      SoupAuth *auth, gboolean retrying, gpointer data)
 {
+	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED) {
+		if (soup_auth_is_for_proxy (auth)) {
+			debug_printf (1, "  got proxy auth object for 401!\n");
+			errors++;
+		}
+	} else if (msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		if (!soup_auth_is_for_proxy (auth)) {
+			debug_printf (1, "  got regular auth object for 407!\n");
+			errors++;
+		}
+	} else {
+		debug_printf (1, "  got authenticate signal with status %d\n",
+			      msg->status_code);
+		errors++;
+	}
+
 	if (!retrying)
 		soup_auth_authenticate (auth, "user1", "realm1");
 }
@@ -67,9 +83,9 @@ test_url (const char *url, int proxy, guint expected, gboolean sync)
 	 * connections/auth aren't cached between tests.
 	 */
 	proxy_uri = soup_uri_new (proxies[proxy]);
-	session = g_object_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
-				SOUP_SESSION_PROXY_URI, proxy_uri,
-				NULL);
+	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 NULL);
 	soup_uri_free (proxy_uri);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
