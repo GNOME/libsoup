@@ -16,7 +16,7 @@
   <maintainer>
     <foaf:Person>
       <foaf:name>Dan Winship</foaf:name>
-      <foaf:mbox rdf:resource="danw@gnome.org" />
+      <foaf:mbox rdf:resource="mailto:danw@gnome.org" />
       <gnome:userid>danw</gnome:userid>
     </foaf:Person>
   </maintainer>
