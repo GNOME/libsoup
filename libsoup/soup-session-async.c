@@ -327,6 +327,7 @@ final_finished (SoupMessage *req, gpointer user_data)
 
 	if (!SOUP_MESSAGE_IS_STARTING (req)) {
 		g_signal_handlers_disconnect_by_func (req, final_finished, item);
+		g_signal_handlers_disconnect_by_func (req, request_restarted, item);
 		if (item->callback)
 			item->callback (session, req, item->callback_data);
 

@@ -241,7 +241,7 @@ do_msg_reuse_test (void)
 
 	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (reuse_test_authenticate), NULL);
 
