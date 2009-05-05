@@ -1,3 +1,53 @@
+Changes in libsoup from 2.26.1 to 2.26.2:
+
+	* SOUP_SESSION_TIMEOUT now works properly with
+          SoupSessionAsync [#574414] and SSL [#578928]. Added
+          tests/timeout-test to test this.
+
+	* SoupDate fixes:
+
+		* soup_date_to_string() now handles SOUP_DATE_RFC2822
+		  [#579055, Enrico Tröger]
+
+		* soup_date_new_from_string() now accepts 24:00 as a
+		  time in ISO8601 timestamps
+
+		* soup_date_to_string() now coerces the date to UTC
+		  for HTTP and cookie dates, and outputs the UTC
+		  correct offset for the other date types.
+
+		* Added regression tests to tests/date
+
+	* soup_headers_parse() now completely ignores
+          syntactically-incorrect headers, rather than passing them to
+          soup_message_headers_append() and causing a g_warning.
+          soup_message_headers_append() now also rejects 0-length
+          header names. Updated tests/header-parsing to check this.
+          [#579318]
+
+	* Fix a crash when cancelling a message from a "restarted"
+          handler, and updated a regression test to notice the
+          underlying cause. [#580193]
+
+	* TLS1.1 support in gnutls has been temporarily disabled, to
+          work around what appears to be a bug in gnutls's support for
+          backward-compatibility with older servers. [#581342]
+
+	* DNS resolution should be slightly faster, as we no longer
+          set a flag that resulted in additional unnecessary DNS
+          requests.
+
+	* The --disable-more-warnings flag to configure is no longer
+          required when you are using gcc < 3.4. [#578851]
+
+	* Fixed a bug in the new body parsing code [qv #571283 below]
+	  that caused libsoup to mistakenly reject some responses with
+	  SOUP_STATUS_MALFORMED, "Message Corrupt". [#582002]
+
+	* soup_form_request_for_data() now allows you to use "PUT" as
+          the method, because apparently some web service authors
+          think that's how you spell "POST", or something. [#581860]
+
 Changes in libsoup from 2.26.0 to 2.26.1:
 
 	* libsoup uses libproxy for PAC and WPAD proxy resolution
