@@ -27,7 +27,7 @@ Changes in libsoup from 2.26.1 to 2.27.1:
 
 	* Fix a crash when cancelling a message from a "restarted"
           handler, and updated a regression test to notice the
-          underlying cause. [#380193]
+          underlying cause. [#580193]
 
 	* Completing the API updates for #576760 from 2.26.1,
           soup_message_headers_get() is now marked deprecated in favor
