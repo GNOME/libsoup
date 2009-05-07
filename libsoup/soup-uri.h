@@ -74,7 +74,7 @@ void      soup_uri_set_query_from_form   (SoupURI    *uri,
 					  GHashTable *form);
 void      soup_uri_set_query_from_fields (SoupURI    *uri,
 					  const char *first_field,
-					  ...);
+					  ...) G_GNUC_NULL_TERMINATED;
 void      soup_uri_set_fragment          (SoupURI    *uri,
 					  const char *fragment);
 
