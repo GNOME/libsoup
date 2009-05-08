@@ -366,7 +366,7 @@ soup_form_request_for_data (const char *method, const char *uri_string,
 
 	msg = soup_message_new_from_uri (method, uri);
 
-	if (!strcmp (method, "POST")) {
+	if (!strcmp (method, "POST") || !strcmp (method, "PUT")) {
 		soup_message_set_request (
 			msg, SOUP_FORM_MIME_TYPE_URLENCODED,
 			SOUP_MEMORY_TAKE,
