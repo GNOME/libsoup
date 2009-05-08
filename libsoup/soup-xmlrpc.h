@@ -46,7 +46,7 @@ void         soup_xmlrpc_set_response            (SoupMessage  *msg,
 void         soup_xmlrpc_set_fault               (SoupMessage  *msg,
 						  int           fault_code,
 						  const char   *fault_format,
-						  ...);
+						  ...) G_GNUC_PRINTF (3, 4);
 
 
 /* Errors */

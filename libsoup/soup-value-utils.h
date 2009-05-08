@@ -50,7 +50,7 @@ gboolean     soup_value_hash_lookup         (GHashTable  *hash,
 					     ...);
 gboolean     soup_value_hash_lookup_vals    (GHashTable  *hash,
 					     const char  *first_key,
-					     ...);
+					     ...) G_GNUC_NULL_TERMINATED;
 
 GValueArray *soup_value_array_from_args     (va_list      args);
 gboolean     soup_value_array_to_args       (GValueArray *array,
