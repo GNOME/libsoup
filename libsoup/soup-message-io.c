@@ -258,12 +258,12 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 			if (!to_blank)
 				break;
 			if (nread == 1 &&
-			    !strncmp (io->read_meta_buf->data +
+			    !strncmp ((char *)io->read_meta_buf->data +
 				      io->read_meta_buf->len - 2,
 				      "\n\n", 2))
 				break;
 			else if (nread == 2 &&
-				 !strncmp (io->read_meta_buf->data +
+				 !strncmp ((char *)io->read_meta_buf->data +
 					   io->read_meta_buf->len - 3,
 					   "\n\r\n", 3))
 				break;
