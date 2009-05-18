@@ -447,8 +447,7 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 		goto THROW_CREATE_ERROR;
 
 	/* See http://bugzilla.gnome.org/show_bug.cgi?id=581342 */
-	if (gnutls_priority_set_direct (session, "NORMAL:%SSL3_RECORD_VERSION", NULL) != 0 &&
-	    gnutls_priority_set_direct (session, "NORMAL:!VERS-TLS1.1", NULL) != 0)
+	if (gnutls_priority_set_direct (session, "NORMAL:!VERS-TLS1.1", NULL) != 0)
 		goto THROW_CREATE_ERROR;
 
 	if (gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE,
