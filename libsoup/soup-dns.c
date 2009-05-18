@@ -338,9 +338,7 @@ resolve_address (SoupDNSCacheEntry *entry)
 
 	memset (&hints, 0, sizeof (struct addrinfo));
 #  ifdef AI_ADDRCONFIG
-	hints.ai_flags = AI_CANONNAME | AI_ADDRCONFIG;
-#  else
-	hints.ai_flags = AI_CANONNAME;
+	hints.ai_flags = AI_ADDRCONFIG;
 #  endif
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
