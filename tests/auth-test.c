@@ -50,8 +50,8 @@ static SoupAuthTest tests[] = {
 	{ "Should fail with no auth, fail again with bad password, and give up",
 	  "Basic/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
-	{ "Known realm, auth provided, so should succeed immediately",
-	  "Basic/realm1/", "1", "1", SOUP_STATUS_OK },
+	{ "Auth provided this time, so should succeed",
+	  "Basic/realm1/", "1", "01", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
 	  "Basic/realm1/", "", "1", SOUP_STATUS_OK },
@@ -62,8 +62,8 @@ static SoupAuthTest tests[] = {
 	{ "Subdir should retry last auth, but will fail this time",
 	  "Basic/realm1/realm2/", "", "1", SOUP_STATUS_UNAUTHORIZED },
 
-	{ "Now should use provided auth on first try",
-	  "Basic/realm1/realm2/", "2", "2", SOUP_STATUS_OK },
+	{ "Now should use provided auth",
+	  "Basic/realm1/realm2/", "2", "02", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
 	  "Basic/realm1/realm2/", "", "2", SOUP_STATUS_OK },
@@ -84,14 +84,17 @@ static SoupAuthTest tests[] = {
 	{ "Should fail with no auth, fail again with bad password, and give up",
 	  "Digest/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
 
-	{ "Known realm, auth provided, so should succeed immediately",
-	  "Digest/realm1/", "1", "1", SOUP_STATUS_OK },
+	{ "Known realm, auth provided, so should succeed",
+	  "Digest/realm1/", "1", "01", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
 	  "Digest/realm1/", "", "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
 	  "Digest/realm1/subdir/", "", "1", SOUP_STATUS_OK },
+
+	{ "Password provided, should succeed",
+	  "Digest/realm2/", "2", "02", SOUP_STATUS_OK },
 
 	{ "Should already know correct domain and use provided auth on first try",
 	  "Digest/realm1/realm2/", "2", "2", SOUP_STATUS_OK },
@@ -101,9 +104,6 @@ static SoupAuthTest tests[] = {
 
 	{ "Should succeed on first try because of earlier domain directive",
 	  "Digest/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
-
-	{ "Should succeed on first try. (Known realm with cached password)",
-	  "Digest/realm2/", "", "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
 	  "Digest/realm3/", "43", "043", SOUP_STATUS_OK },
@@ -398,15 +398,15 @@ async_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
 }
 
 static void
-async_authenticate_522601 (SoupSession *session, SoupMessage *msg,
-			   SoupAuth *auth, gboolean retrying, gpointer data)
+async_authenticate_assert_once (SoupSession *session, SoupMessage *msg,
+                                SoupAuth *auth, gboolean retrying, gpointer data)
 {
 	gboolean *been_here = data;
 
-	debug_printf (2, "  async_authenticate_522601\n");
+	debug_printf (2, "  async_authenticate_assert_once\n");
 
 	if (*been_here) {
-		debug_printf (1, "  ERROR: async_authenticate_522601 called twice\n");
+		debug_printf (1, "  ERROR: async_authenticate_assert_once called twice\n");
 		errors++;
 	}
 	*been_here = TRUE;
@@ -531,8 +531,52 @@ do_async_auth_test (const char *base_uri)
 	soup_session_unpause_message (session, msg1);
 
 	auth_id = g_signal_connect (session, "authenticate",
-				    G_CALLBACK (async_authenticate_522601),
+				    G_CALLBACK (async_authenticate_assert_once),
 				    &been_there);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+
+	soup_test_session_abort_unref (session);
+
+	g_object_unref (msg1);
+
+
+	/* Test that giving no password doesn't cause multiple
+	 * authenticate signals the second time.
+	 */
+	debug_printf (1, "\nTesting async auth with no password (#583462):\n");
+
+	/* For this test, our first message will not finish twice */
+	finished = 1;
+	been_there = FALSE;
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	/* Send a message that doesn't actually authenticate
+	 */
+	msg1 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate), NULL);
+	g_object_ref (msg1);
+	soup_session_queue_message (session, msg1, async_finished, &finished);
+	g_main_loop_run (loop);
+	g_signal_handler_disconnect (session, auth_id);
+	soup_session_unpause_message (session, msg1);
+	g_main_loop_run (loop);
+	g_object_unref(msg1);
+
+	/* Now send a second message */
+	finished = 1;
+	msg1 = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (2));
+	g_object_ref (msg1);
+	auth_id = g_signal_connect (session, "authenticate",
+				    G_CALLBACK (async_authenticate_assert_once),
+				    &been_there);
+	soup_session_queue_message (session, msg1, async_finished, &finished);
+	g_main_loop_run (loop);
+	soup_session_unpause_message (session, msg1);
+
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 

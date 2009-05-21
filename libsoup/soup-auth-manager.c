@@ -354,7 +354,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 static gboolean
 authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
-		   gboolean proxy)
+		   gboolean proxy, gboolean can_interact)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupURI *uri;
@@ -379,8 +379,11 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	}
 	soup_uri_free (uri);
 
-	soup_auth_manager_emit_authenticate (manager, msg, auth,
-					     prior_auth_failed);
+	if (can_interact) {
+		soup_auth_manager_emit_authenticate (manager, msg, auth,
+						     prior_auth_failed);
+	}
+
 	return soup_auth_is_authenticated (auth);
 }
 
@@ -449,7 +452,7 @@ update_auth (SoupMessage *msg, gpointer manager)
 
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, auth, msg,
-			   prior_auth_failed, FALSE);
+			   prior_auth_failed, FALSE, TRUE);
 }
 
 static void
@@ -484,7 +487,7 @@ update_proxy_auth (SoupMessage *msg, gpointer manager)
 
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, priv->proxy_auth, msg,
-			   prior_auth_failed, TRUE);
+			   prior_auth_failed, TRUE, TRUE);
 }
 
 static void
@@ -525,12 +528,12 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 	SoupAuth *auth;
 
 	auth = lookup_auth (priv, msg);
-	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, FALSE))
+	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE))
 		auth = NULL;
 	soup_message_set_auth (msg, auth);
 
 	auth = priv->proxy_auth;
-	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, TRUE))
+	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, TRUE, FALSE))
 		auth = NULL;
 	soup_message_set_proxy_auth (msg, auth);
 }
