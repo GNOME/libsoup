@@ -17,10 +17,10 @@ G_BEGIN_DECLS
 #define SOUP_IS_COOKIE_JAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_COOKIE_JAR))
 #define SOUP_COOKIE_JAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_COOKIE_JAR, SoupCookieJarClass))
 
-typedef struct {
+struct _SoupCookieJar {
 	GObject parent;
 
-} SoupCookieJar;
+};
 
 typedef struct {
 	GObjectClass parent_class;
