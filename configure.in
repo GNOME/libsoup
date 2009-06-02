@@ -329,7 +329,7 @@ if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MO
     fi
 else
     have_apache=0
-    if test "$APACHE_HTTPD" == "no" -o -z "$APACHE_MODULE_DIR"; then
+    if test "$APACHE_HTTPD" = "no" -o -z "$APACHE_MODULE_DIR"; then
         MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES apache"
     else
         MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_ssl"
