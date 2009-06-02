@@ -421,7 +421,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	char response[33], *token;
-	char *url;
+	char *url, *algorithm;
 	GString *out;
 	SoupURI *uri;
 
@@ -443,6 +443,10 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	soup_header_g_string_append_param (out, "nonce", priv->nonce);
 	g_string_append (out, ", ");
 	soup_header_g_string_append_param (out, "uri", url);
+	g_string_append (out, ", ");
+	algorithm = soup_auth_digest_get_algorithm (priv->algorithm);
+	soup_header_g_string_append_param (out, "algorithm", algorithm);
+	g_free (algorithm);
 	g_string_append (out, ", ");
 	soup_header_g_string_append_param (out, "response", response);
 
