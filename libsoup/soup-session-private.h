@@ -9,7 +9,7 @@
 #include "soup-session.h"
 #include "soup-connection.h"
 #include "soup-message-queue.h"
-#include "soup-proxy-resolver.h"
+#include "soup-proxy-uri-resolver.h"
 
 G_BEGIN_DECLS
 
@@ -26,7 +26,7 @@ void                  soup_session_connection_failed    (SoupSession          *s
 							 SoupConnection       *conn,
 							 guint                 status);
 
-SoupProxyResolver    *soup_session_get_proxy_resolver   (SoupSession          *session);
+SoupProxyURIResolver *soup_session_get_proxy_resolver   (SoupSession          *session);
 
 void                  soup_session_send_queue_item      (SoupSession          *session,
 							 SoupMessageQueueItem *item,

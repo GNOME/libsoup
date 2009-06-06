@@ -31,7 +31,7 @@ typedef struct {
 	SoupSocket  *socket;
 
 	SoupAddress *remote_addr, *tunnel_addr;
-	gboolean     is_proxy;
+	SoupURI     *proxy_uri;
 	gpointer     ssl_creds;
 
 	GMainContext      *async_context;
@@ -58,7 +58,7 @@ enum {
 
 	PROP_REMOTE_ADDRESS,
 	PROP_TUNNEL_ADDRESS,
-	PROP_IS_PROXY,
+	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
@@ -152,12 +152,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
-		object_class, PROP_IS_PROXY,
-		g_param_spec_boolean (SOUP_CONNECTION_IS_PROXY,
-				      "Is proxy",
-				      "Whether or not this is a connection to an HTTP Proxy",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		object_class, PROP_PROXY_URI,
+		g_param_spec_boxed (SOUP_CONNECTION_PROXY_URI,
+				    "Proxy URI",
+				    "URI of the HTTP proxy this connection connects to",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDS,
 		g_param_spec_pointer (SOUP_CONNECTION_SSL_CREDENTIALS,
@@ -214,8 +214,10 @@ set_property (GObject *object, guint prop_id,
 	case PROP_TUNNEL_ADDRESS:
 		priv->tunnel_addr = g_value_dup_object (value);
 		break;
-	case PROP_IS_PROXY:
-		priv->is_proxy = g_value_get_boolean (value);
+	case PROP_PROXY_URI:
+		if (priv->proxy_uri)
+			soup_uri_free (priv->proxy_uri);
+		priv->proxy_uri = g_value_dup_boxed (value);
 		break;
 	case PROP_SSL_CREDS:
 		priv->ssl_creds = g_value_get_pointer (value);
@@ -250,8 +252,8 @@ get_property (GObject *object, guint prop_id,
 	case PROP_TUNNEL_ADDRESS:
 		g_value_set_object (value, priv->tunnel_addr);
 		break;
-	case PROP_IS_PROXY:
-		g_value_set_boolean (value, priv->is_proxy);
+	case PROP_PROXY_URI:
+		g_value_set_boxed (value, priv->proxy_uri);
 		break;
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, priv->ssl_creds);
@@ -375,7 +377,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 
  done:
 	if (data->callback) {
-		if (priv->is_proxy)
+		if (priv->proxy_uri != NULL)
 			status = soup_status_proxify (status);
 		data->callback (data->conn, status, data->callback_data);
 	}
@@ -472,7 +474,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 		}
 	}
 
-	if (priv->is_proxy)
+	if (priv->proxy_uri != NULL)
 		status = soup_status_proxify (status);
 	return status;
 }
@@ -585,6 +587,14 @@ soup_connection_get_socket (SoupConnection *conn)
 	return SOUP_CONNECTION_GET_PRIVATE (conn)->socket;
 }
 
+SoupURI *
+soup_connection_get_proxy_uri (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
+
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->proxy_uri;
+}
+
 SoupConnectionState
 soup_connection_get_state (SoupConnection *conn)
 {
@@ -643,5 +653,6 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 
 	if (req != priv->cur_req)
 		set_current_request (priv, req);
-	soup_message_send_request (req, priv->socket, conn, priv->is_proxy);
+	soup_message_send_request (req, priv->socket, conn,
+				   priv->proxy_uri != NULL);
 }

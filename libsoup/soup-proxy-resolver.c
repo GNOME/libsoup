@@ -10,7 +10,14 @@
 #endif
 
 #include "soup-proxy-resolver.h"
+#include "soup-proxy-uri-resolver.h"
+#include "soup-address.h"
+#include "soup-message.h"
 #include "soup-session-feature.h"
+#include "soup-uri.h"
+
+static void soup_proxy_resolver_interface_init (GTypeInterface *interface);
+static void soup_proxy_resolver_uri_resolver_interface_init (SoupProxyURIResolverInterface *uri_resolver_interface);
 
 GType
 soup_proxy_resolver_get_type (void)
@@ -22,7 +29,7 @@ soup_proxy_resolver_get_type (void)
         g_type_register_static_simple (G_TYPE_INTERFACE,
                                        g_intern_static_string ("SoupProxyResolver"),
                                        sizeof (SoupProxyResolverInterface),
-                                       (GClassInitFunc)NULL,
+                                       (GClassInitFunc)soup_proxy_resolver_interface_init,
                                        0,
                                        (GInstanceInitFunc)NULL,
                                        (GTypeFlags) 0);
@@ -33,20 +40,44 @@ soup_proxy_resolver_get_type (void)
   return g_define_type_id__volatile;
 }
 
-/**
- * soup_proxy_resolver_get_proxy_async:
- * @proxy_resolver: the #SoupProxyResolver
- * @msg: the #SoupMessage you want a proxy for
- * @async_context: the #GMainContext to invoke @callback in
- * @cancellable: a #GCancellable, or %NULL
- * @callback: callback to invoke with the proxy address
- * @user_data: data for @callback
- *
- * Asynchronously determines a proxy server address to use for @msg
- * and calls @callback.
- *
- * Since: 2.26
- **/
+static void
+proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
+{
+	GTypeInterface *interface = g_iface;
+	GTypeClass *klass;
+
+	if (interface->g_type != SOUP_TYPE_PROXY_RESOLVER)
+		return;
+
+	klass = g_type_class_peek (interface->g_instance_type);
+	/* If the class hasn't already declared that it implements
+	 * SoupProxyURIResolver, add our own compat implementation.
+	 */
+	if (!g_type_interface_peek (klass, SOUP_TYPE_PROXY_URI_RESOLVER)) {
+		const GInterfaceInfo uri_resolver_interface_info = {
+			(GInterfaceInitFunc) soup_proxy_resolver_uri_resolver_interface_init, NULL, NULL
+		};
+		g_type_add_interface_static (interface->g_instance_type,
+					     SOUP_TYPE_PROXY_URI_RESOLVER,
+					     &uri_resolver_interface_info);
+	}
+}
+
+
+static void
+soup_proxy_resolver_interface_init (GTypeInterface *interface)
+{
+	/* Add an interface_check where we can kludgily add the
+	 * SoupProxyURIResolver interface to all SoupProxyResolvers.
+	 * (SoupProxyResolver can't just implement
+	 * SoupProxyURIResolver itself because interface types can't
+	 * implement other interfaces.) This is an ugly hack, but it
+	 * only gets used if someone actually creates a
+	 * SoupProxyResolver...
+	 */
+	g_type_add_interface_check (NULL, proxy_resolver_interface_check);
+}
+
 void
 soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
 				     SoupMessage        *msg,
@@ -61,22 +92,6 @@ soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
 				 callback, user_data);
 }
 
-/**
- * soup_proxy_resolver_get_proxy_sync:
- * @proxy_resolver: the #SoupProxyResolver
- * @msg: the #SoupMessage you want a proxy for
- * @cancellable: a #GCancellable, or %NULL
- * @addr: on return, will contain the proxy address
- *
- * Synchronously determines a proxy server address to use for @msg. If
- * @msg should be sent via proxy, *@addr will be set to the address of
- * the proxy, else it will be set to %NULL.
- *
- * Return value: SOUP_STATUS_OK if successful, or a transport-level
- * error.
- *
- * Since: 2.26
- **/
 guint
 soup_proxy_resolver_get_proxy_sync (SoupProxyResolver  *proxy_resolver,
 				    SoupMessage        *msg,
@@ -85,4 +100,91 @@ soup_proxy_resolver_get_proxy_sync (SoupProxyResolver  *proxy_resolver,
 {
 	return SOUP_PROXY_RESOLVER_GET_CLASS (proxy_resolver)->
 		get_proxy_sync (proxy_resolver, msg, cancellable, addr);
+}
+
+/* SoupProxyURIResolver implementation */
+
+static SoupURI *
+uri_from_address (SoupAddress *addr)
+{
+	SoupURI *proxy_uri;
+
+	proxy_uri = soup_uri_new (NULL);
+	soup_uri_set_scheme (proxy_uri, SOUP_URI_SCHEME_HTTP);
+	soup_uri_set_host (proxy_uri, soup_address_get_name (addr));
+	soup_uri_set_port (proxy_uri, soup_address_get_port (addr));
+	return proxy_uri;
+}
+
+typedef struct {
+	SoupProxyURIResolverCallback callback;
+	gpointer user_data;
+} ProxyURIResolverAsyncData;
+
+static void
+compat_got_proxy (SoupProxyResolver *proxy_resolver,
+		  SoupMessage *msg, guint status, SoupAddress *proxy_addr,
+		  gpointer user_data)
+{
+	ProxyURIResolverAsyncData *purad = user_data;
+	SoupURI *proxy_uri;
+
+	proxy_uri = proxy_addr ? uri_from_address (proxy_addr) : NULL;
+	purad->callback (SOUP_PROXY_URI_RESOLVER (proxy_resolver),
+			 status, proxy_uri, purad->user_data);
+	g_object_unref (msg);
+	if (proxy_uri)
+		soup_uri_free (proxy_uri);
+	g_slice_free (ProxyURIResolverAsyncData, purad);
+}
+
+static void
+compat_get_proxy_uri_async (SoupProxyURIResolver *proxy_uri_resolver,
+			    SoupURI *uri, GMainContext *async_context,
+			    GCancellable *cancellable,
+			    SoupProxyURIResolverCallback callback,
+			    gpointer user_data)
+{
+	SoupMessage *dummy_msg;
+	ProxyURIResolverAsyncData *purad;
+
+	dummy_msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+
+	purad = g_slice_new (ProxyURIResolverAsyncData);
+	purad->callback = callback;
+	purad->user_data = user_data;
+
+	soup_proxy_resolver_get_proxy_async (
+		SOUP_PROXY_RESOLVER (proxy_uri_resolver), dummy_msg,
+		async_context, cancellable,
+		compat_got_proxy, purad);
+}
+
+static guint
+compat_get_proxy_uri_sync (SoupProxyURIResolver *proxy_uri_resolver,
+			   SoupURI *uri, GCancellable *cancellable,
+			   SoupURI **proxy_uri)
+{
+	SoupMessage *dummy_msg;
+	SoupAddress *proxy_addr = NULL;
+	guint status;
+
+	dummy_msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+	status = soup_proxy_resolver_get_proxy_sync (
+		SOUP_PROXY_RESOLVER (proxy_uri_resolver), dummy_msg,
+		cancellable, &proxy_addr);
+	g_object_unref (dummy_msg);
+	if (!proxy_addr)
+		return status;
+
+	*proxy_uri = uri_from_address (proxy_addr);
+	g_object_unref (proxy_addr);
+	return status;
+}
+
+static void
+soup_proxy_resolver_uri_resolver_interface_init (SoupProxyURIResolverInterface *uri_resolver_interface)
+{
+	uri_resolver_interface->get_proxy_uri_async = compat_get_proxy_uri_async;
+	uri_resolver_interface->get_proxy_uri_sync = compat_get_proxy_uri_sync;
 }

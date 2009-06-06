@@ -24,6 +24,7 @@
 #include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-proxy-resolver-static.h"
+#include "soup-proxy-uri-resolver.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
 #include "soup-session-private.h"
@@ -66,7 +67,7 @@ typedef struct {
 } SoupSessionHost;
 
 typedef struct {
-	SoupProxyResolver *proxy_resolver;
+	SoupProxyURIResolver *proxy_resolver;
 
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
@@ -623,7 +624,7 @@ set_property (GObject *object, guint prop_id,
 
 		if (uri) {
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
-			priv->proxy_resolver = soup_proxy_resolver_static_new (uri);
+			priv->proxy_resolver = SOUP_PROXY_URI_RESOLVER (soup_proxy_resolver_static_new (uri));
 			soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->proxy_resolver));
 			g_object_unref (priv->proxy_resolver);
 		} else if (priv->proxy_resolver && SOUP_IS_PROXY_RESOLVER_STATIC (priv->proxy_resolver))
@@ -1021,6 +1022,23 @@ soup_session_connection_failed (SoupSession *session,
 	g_object_unref (session);
 }
 
+static void
+tunnel_connected (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+		SoupMessageQueueItem *item =
+			soup_message_queue_lookup (priv->queue, msg);
+
+		/* Clear the connection's proxy_uri, since it is now
+		 * (effectively) directly connected.
+		 */
+		g_object_set (item->conn,
+			      SOUP_CONNECTION_PROXY_URI, NULL,
+			      NULL);
+	}
+}
+
 SoupMessageQueueItem *
 soup_session_make_connect_message (SoupSession *session,
 				   SoupAddress *server_addr)
@@ -1042,7 +1060,7 @@ soup_session_make_connect_message (SoupSession *session,
 	 * directly, to add msg to the SoupMessageQueue and cause all
 	 * the right signals to be emitted.
 	 */
-	queue_message (session, msg, NULL, NULL);
+	queue_message (session, msg, tunnel_connected, NULL);
 	return soup_message_queue_lookup (priv->queue, msg);
 }
 
@@ -1092,7 +1110,7 @@ soup_session_get_connection (SoupSession *session,
 	SoupAddress *remote_addr, *tunnel_addr;
 	SoupSSLCredentials *ssl_creds;
 	GSList *conns;
-	gboolean has_pending = FALSE, is_proxy;
+	gboolean has_pending = FALSE;
 	SoupURI *uri;
 
 	g_mutex_lock (priv->host_lock);
@@ -1130,11 +1148,9 @@ soup_session_get_connection (SoupSession *session,
 	if (item->proxy_addr) {
 		remote_addr = item->proxy_addr;
 		tunnel_addr = NULL;
-		is_proxy = TRUE;
 	} else {
 		remote_addr = host->addr;
 		tunnel_addr = NULL;
-		is_proxy = FALSE;
 	}
 
 	uri = soup_message_get_uri (item->msg);
@@ -1143,17 +1159,15 @@ soup_session_get_connection (SoupSession *session,
 			priv->ssl_creds = soup_ssl_get_client_credentials (priv->ssl_ca_file);
 		ssl_creds = priv->ssl_creds;
 
-		if (is_proxy) {
-			is_proxy = FALSE;
+		if (item->proxy_addr)
 			tunnel_addr = host->addr;
-		}
 	} else
 		ssl_creds = NULL;
 
 	conn = soup_connection_new (
 		SOUP_CONNECTION_REMOTE_ADDRESS, remote_addr,
 		SOUP_CONNECTION_TUNNEL_ADDRESS, tunnel_addr,
-		SOUP_CONNECTION_IS_PROXY, is_proxy,
+		SOUP_CONNECTION_PROXY_URI, item->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, ssl_creds,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
@@ -1482,8 +1496,8 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
 	soup_session_feature_attach (feature, session);
 
-	if (SOUP_IS_PROXY_RESOLVER (feature))
-		priv->proxy_resolver = SOUP_PROXY_RESOLVER (feature);
+	if (SOUP_IS_PROXY_URI_RESOLVER (feature))
+		priv->proxy_resolver = SOUP_PROXY_URI_RESOLVER (feature);
 }
 
 /**
@@ -1629,7 +1643,7 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
 	return NULL;
 }
 
-SoupProxyResolver *
+SoupProxyURIResolver *
 soup_session_get_proxy_resolver (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);

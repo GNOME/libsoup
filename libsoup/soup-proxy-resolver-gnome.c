@@ -13,8 +13,7 @@
 #include <stdlib.h>
 
 #include "soup-proxy-resolver-gnome.h"
-#include "soup-address.h"
-#include "soup-dns.h"
+#include "soup-proxy-uri-resolver.h"
 #include "soup-message.h"
 #include "soup-misc.h"
 #include "soup-session-feature.h"
@@ -37,15 +36,16 @@ typedef enum {
 G_LOCK_DEFINE_STATIC (resolver_gnome);
 static SoupProxyResolverGNOMEMode proxy_mode;
 static GConfClient *gconf_client;
+static char *proxy_user, *proxy_password;
 
 static pxProxyFactory *libproxy_factory;
 static GThreadPool *libproxy_threadpool;
 
-static void soup_proxy_resolver_gnome_interface_init (SoupProxyResolverInterface *proxy_resolver_interface);
+static void soup_proxy_resolver_gnome_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);
 
 G_DEFINE_TYPE_EXTENDED (SoupProxyResolverGNOME, soup_proxy_resolver_gnome, G_TYPE_OBJECT, 0,
 			G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE, NULL)
-			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_RESOLVER, soup_proxy_resolver_gnome_interface_init))
+			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_URI_RESOLVER, soup_proxy_resolver_gnome_interface_init))
 
 static void gconf_value_changed (GConfClient *client, const char *key,
 				 GConfValue *value, gpointer user_data);
@@ -53,16 +53,16 @@ static void update_proxy_settings (void);
 
 static void libproxy_threadpool_func (gpointer thread_data, gpointer user_data);
 
-static void get_proxy_async (SoupProxyResolver  *proxy_resolver,
-			     SoupMessage        *msg,
-			     GMainContext       *async_context,
-			     GCancellable       *cancellable,
-			     SoupProxyResolverCallback callback,
-			     gpointer            user_data);
-static guint get_proxy_sync (SoupProxyResolver  *proxy_resolver,
-			     SoupMessage        *msg,
-			     GCancellable       *cancellable,
-			     SoupAddress       **addr);
+static void get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_resolver,
+				 SoupURI               *uri,
+				 GMainContext          *async_context,
+				 GCancellable          *cancellable,
+				 SoupProxyURIResolverCallback callback,
+				 gpointer               user_data);
+static guint get_proxy_uri_sync (SoupProxyURIResolver  *proxy_uri_resolver,
+				 SoupURI               *uri,
+				 GCancellable          *cancellable,
+				 SoupURI              **proxy_uri);
 
 typedef struct {
 	GMutex *lock;
@@ -149,16 +149,19 @@ soup_proxy_resolver_gnome_class_init (SoupProxyResolverGNOMEClass *gconf_class)
 }
 
 static void
-soup_proxy_resolver_gnome_interface_init (SoupProxyResolverInterface *proxy_resolver_interface)
+soup_proxy_resolver_gnome_interface_init (SoupProxyURIResolverInterface *proxy_uri_resolver_interface)
 {
-	proxy_resolver_interface->get_proxy_async = get_proxy_async;
-	proxy_resolver_interface->get_proxy_sync = get_proxy_sync;
+	proxy_uri_resolver_interface->get_proxy_uri_async = get_proxy_uri_async;
+	proxy_uri_resolver_interface->get_proxy_uri_sync = get_proxy_uri_sync;
 }
 
 #define SOUP_GCONF_PROXY_MODE           "/system/proxy/mode"
 #define SOUP_GCONF_PROXY_AUTOCONFIG_URL "/system/proxy/autoconfig_url"
 #define SOUP_GCONF_HTTP_PROXY_HOST      "/system/http_proxy/host"
 #define SOUP_GCONF_HTTP_PROXY_PORT      "/system/http_proxy/port"
+#define SOUP_GCONF_HTTP_USE_AUTH        "/system/http_proxy/use_authentication"
+#define SOUP_GCONF_HTTP_PROXY_USER      "/system/http_proxy/authentication_user"
+#define SOUP_GCONF_HTTP_PROXY_PASSWORD  "/system/http_proxy/authentication_password"
 #define SOUP_GCONF_HTTPS_PROXY_HOST     "/system/proxy/secure_host"
 #define SOUP_GCONF_HTTPS_PROXY_PORT     "/system/proxy/secure_port"
 #define SOUP_GCONF_USE_SAME_PROXY       "/system/http_proxy/use_same_proxy"
@@ -178,6 +181,16 @@ update_proxy_settings (void)
 	GSList *ignore;
 
 	/* resolver_gnome is locked */
+
+	if (proxy_user) {
+		g_free (proxy_user);
+		proxy_user = NULL;
+	}
+	if (proxy_password) {
+		memset (proxy_password, 0, strlen (proxy_password));
+		g_free (proxy_password);
+		proxy_password = NULL;
+	}
 
 	/* Get new settings */
 	mode = gconf_client_get_string (
@@ -244,6 +257,13 @@ update_proxy_settings (void)
 			}
 			g_free (host);
 		}
+
+		if (gconf_client_get_bool (gconf_client, SOUP_GCONF_HTTP_USE_AUTH, NULL)) {
+			proxy_user = gconf_client_get_string (
+				gconf_client, SOUP_GCONF_HTTP_PROXY_USER, NULL);
+			proxy_password = gconf_client_get_string (
+				gconf_client, SOUP_GCONF_HTTP_PROXY_PASSWORD, NULL);
+		}
 	}
 
 	ignore = gconf_client_get_list (
@@ -304,33 +324,31 @@ gconf_value_changed (GConfClient *client, const char *key,
 }
 
 static guint
-get_proxy_for_message (SoupMessage *msg, SoupAddress **addr)
+get_proxy_for_uri (SoupURI *uri, SoupURI **proxy_uri)
 {
-	char *msg_uri, **proxies;
-	SoupURI *proxy_uri;
+	char *uristr, **proxies;
 	gboolean got_proxy;
 	int i;
 
+	*proxy_uri = NULL;
+
 	/* resolver_gnome is locked */
 
-	msg_uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
-	proxies = px_proxy_factory_get_proxies (libproxy_factory, msg_uri);
-	g_free (msg_uri);
+	uristr = soup_uri_to_string (uri, FALSE);
+	proxies = px_proxy_factory_get_proxies (libproxy_factory, uristr);
+	g_free (uristr);
 
-	if (!proxies) {
-		*addr = NULL;
+	if (!proxies)
 		return SOUP_STATUS_OK;
-	}
 
 	got_proxy = FALSE;
 	for (i = 0; proxies[i]; i++) {
 		if (!strcmp (proxies[i], "direct://")) {
-			proxy_uri = NULL;
 			got_proxy = TRUE;
 			break;
 		}
 		if (strncmp (proxies[i], "http://", 7) == 0) {
-			proxy_uri = soup_uri_new (proxies[i]);
+			*proxy_uri = soup_uri_new (proxies[i]);
 			got_proxy = TRUE;
 			break;
 		}
@@ -339,55 +357,45 @@ get_proxy_for_message (SoupMessage *msg, SoupAddress **addr)
 		free (proxies[i]);
 	free (proxies);
 
-	if (!got_proxy) {
-		*addr = NULL;
-		return SOUP_STATUS_CANT_RESOLVE_PROXY;
-	}
+	if (got_proxy) {
+		if (*proxy_uri && proxy_user) {
+			soup_uri_set_user (*proxy_uri, proxy_user);
+			soup_uri_set_password (*proxy_uri, proxy_password);
+		}
 
-	if (proxy_uri) {
-		*addr = soup_address_new (proxy_uri->host, proxy_uri->port);
-		soup_uri_free (proxy_uri);
+		return SOUP_STATUS_OK;
 	} else
-		*addr = NULL;
-	return SOUP_STATUS_OK;
+		return SOUP_STATUS_CANT_RESOLVE_PROXY;
 }
 
 typedef struct {
-	SoupProxyResolver *proxy_resolver;
-	SoupMessage *msg;
-	SoupAddress *addr;
+	SoupProxyURIResolver *proxy_uri_resolver;
+	SoupURI *uri, *proxy_uri;
 	GMainContext *async_context;
 	GCancellable *cancellable;
 	guint status;
-	SoupProxyResolverCallback callback;
+	SoupProxyURIResolverCallback callback;
 	gpointer user_data;
 } SoupGNOMEAsyncData;
 
-static void
-resolved_address (SoupAddress *addr, guint status, gpointer data)
+static gboolean
+resolved_proxy (gpointer data)
 {
 	SoupGNOMEAsyncData *sgad = data;
 
-	sgad->callback (sgad->proxy_resolver, sgad->msg,
-			soup_status_proxify (status), addr,
-			sgad->user_data);
-	g_object_unref (sgad->proxy_resolver);
-	g_object_unref (sgad->msg);
+	sgad->callback (sgad->proxy_uri_resolver, sgad->status,
+			sgad->proxy_uri, sgad->user_data);
+	g_object_unref (sgad->proxy_uri_resolver);
+	if (sgad->uri)
+		soup_uri_free (sgad->uri);
 	if (sgad->async_context)
 		g_main_context_unref (sgad->async_context);
 	if (sgad->cancellable)
 		g_object_unref (sgad->cancellable);
-	if (addr)
-		g_object_unref (addr);
+	if (sgad->proxy_uri)
+		soup_uri_free (sgad->proxy_uri);
 	g_slice_free (SoupGNOMEAsyncData, sgad);
-}
 
-static gboolean
-idle_resolved_address (gpointer data)
-{
-	SoupGNOMEAsyncData *sgad = data;
-
-	resolved_address (sgad->addr, sgad->status, data);
 	return FALSE;
 }
 
@@ -396,36 +404,35 @@ libproxy_threadpool_func (gpointer user_data, gpointer thread_data)
 {
 	SoupGNOMEAsyncData *sgad = user_data;
 
-	/* We don't just call get_libproxy_proxy_for_message here,
-	 * since it's possible that the proxy mode has changed...
+	/* We don't just call get_proxy_for_uri here, since it's
+	 * possible that the proxy mode has changed...
 	 */
-	sgad->status = get_proxy_sync (NULL, sgad->msg, sgad->cancellable,
-				       &sgad->addr);
-	soup_add_completion (sgad->async_context, idle_resolved_address, sgad);
+	sgad->status = get_proxy_uri_sync (sgad->proxy_uri_resolver,
+					   sgad->uri, sgad->cancellable,
+					   &sgad->proxy_uri);
+	soup_add_completion (sgad->async_context, resolved_proxy, sgad);
 }
 
 static void
-get_proxy_async (SoupProxyResolver  *proxy_resolver,
-		 SoupMessage        *msg,
-		 GMainContext       *async_context,
-		 GCancellable       *cancellable,
-		 SoupProxyResolverCallback callback,
-		 gpointer            user_data)
+get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_resolver,
+		     SoupURI               *uri,
+		     GMainContext          *async_context,
+		     GCancellable          *cancellable,
+		     SoupProxyURIResolverCallback callback,
+		     gpointer               user_data)
 {
 	SoupGNOMEAsyncData *sgad;
 
 	sgad = g_slice_new0 (SoupGNOMEAsyncData);
-	sgad->proxy_resolver = g_object_ref (proxy_resolver);
-	sgad->msg = g_object_ref (msg);
+	sgad->proxy_uri_resolver = g_object_ref (proxy_uri_resolver);
 	sgad->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
-	sgad->async_context = async_context ? g_main_context_ref (async_context) : NULL;
 	sgad->callback = callback;
 	sgad->user_data = user_data;
 
 	G_LOCK (resolver_gnome);
 	switch (proxy_mode) {
 	case SOUP_PROXY_RESOLVER_GNOME_MODE_NONE:
-		sgad->addr = NULL;
+		sgad->proxy_uri = NULL;
 		sgad->status = SOUP_STATUS_OK;
 		break;
 
@@ -433,48 +440,37 @@ get_proxy_async (SoupProxyResolver  *proxy_resolver,
 		/* We know libproxy won't do PAC or WPAD in this case,
 		 * so we can make a "blocking" call to it.
 		 */
-		sgad->status = get_proxy_for_message (msg, &sgad->addr);
+		sgad->status = get_proxy_for_uri (uri, &sgad->proxy_uri);
 		break;
 
 	case SOUP_PROXY_RESOLVER_GNOME_MODE_AUTO:
 		/* FIXME: cancellable */
+		sgad->uri = soup_uri_copy (uri);
+		sgad->async_context = async_context ? g_main_context_ref (async_context) : NULL;
 		g_thread_pool_push (libproxy_threadpool, sgad, NULL);
 		G_UNLOCK (resolver_gnome);
 		return;
 	}
 	G_UNLOCK (resolver_gnome);
 
-	if (sgad->addr) {
-		soup_address_resolve_async (sgad->addr, async_context,
-					    cancellable, resolved_address,
-					    sgad);
-	} else
-		soup_add_idle (async_context, idle_resolved_address, sgad);
+	soup_add_completion (async_context, resolved_proxy, sgad);
 }
 
 static guint
-get_proxy_sync (SoupProxyResolver  *proxy_resolver,
-		SoupMessage        *msg,
-		GCancellable       *cancellable,
-		SoupAddress       **addr)
+get_proxy_uri_sync (SoupProxyURIResolver  *proxy_uri_resolver,
+		    SoupURI               *uri,
+		    GCancellable          *cancellable,
+		    SoupURI              **proxy_uri)
 {
 	guint status;
 
 	G_LOCK (resolver_gnome);
 	if (proxy_mode == SOUP_PROXY_RESOLVER_GNOME_MODE_NONE) {
-		*addr = NULL;
+		*proxy_uri = NULL;
 		status = SOUP_STATUS_OK;
 	} else
-		status = get_proxy_for_message (msg, addr);
+		status = get_proxy_for_uri (uri, proxy_uri);
 	G_UNLOCK (resolver_gnome);
 
-	if (!*addr || status != SOUP_STATUS_OK)
-		return status;
-
-	status = soup_address_resolve_sync (*addr, cancellable);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_object_unref (*addr);
-		*addr = NULL;
-	}
-	return soup_status_proxify (status);
+	return status;
 }

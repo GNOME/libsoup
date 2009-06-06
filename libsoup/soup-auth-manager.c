@@ -16,9 +16,11 @@
 #include "soup-headers.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
+#include "soup-message-queue.h"
 #include "soup-path-map.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
+#include "soup-session-private.h"
 #include "soup-uri.h"
 
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
@@ -363,21 +365,26 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		return TRUE;
 
 	if (proxy) {
-		g_object_get (G_OBJECT (priv->session),
-			      SOUP_SESSION_PROXY_URI, &uri,
-			      NULL);
-		/* FIXME: temporary workaround for proxy auth brokenness */
+		SoupMessageQueue *queue;
+		SoupMessageQueueItem *item;
+
+		queue = soup_session_get_queue (priv->session);
+		item = soup_message_queue_lookup (queue, msg);
+		if (item) {
+			uri = soup_connection_get_proxy_uri (item->conn);
+			soup_message_queue_item_unref (item);
+		} else
+			uri = NULL;
+
 		if (!uri)
 			return FALSE;
 	} else
-		uri = soup_uri_copy (soup_message_get_uri (msg));
+		uri = soup_message_get_uri (msg);
 
 	if (uri->password && !prior_auth_failed) {
 		soup_auth_authenticate (auth, uri->user, uri->password);
-		soup_uri_free (uri);
 		return TRUE;
 	}
-	soup_uri_free (uri);
 
 	if (can_interact) {
 		soup_auth_manager_emit_authenticate (manager, msg, auth,
