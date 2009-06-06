@@ -21,7 +21,7 @@ static SoupProxyTest tests[] = {
 	{ "GET -> 404", "/not-found", SOUP_STATUS_NOT_FOUND },
 	{ "GET -> 401 -> 200", "/Basic/realm1/", SOUP_STATUS_OK },
 	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED },
-	{ "GET -> 403", "http://www.example.com/", SOUP_STATUS_FORBIDDEN },
+	{ "GET -> 403", "http://no-such-hostname.xx/", SOUP_STATUS_FORBIDDEN },
 };
 static int ntests = sizeof (tests) / sizeof (tests[0]);
 

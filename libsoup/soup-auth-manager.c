@@ -53,7 +53,7 @@ typedef struct {
 #define SOUP_AUTH_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate))
 
 typedef struct {
-	SoupAddress *addr;
+	SoupURI     *uri;
 	SoupPathMap *auth_realms;      /* path -> scheme:realm */
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
@@ -64,8 +64,8 @@ soup_auth_manager_init (SoupAuthManager *manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 
 	priv->auth_types = g_ptr_array_new ();
-	priv->auth_hosts = g_hash_table_new (soup_address_hash_by_name,
-					     soup_address_equal_by_name);
+	priv->auth_hosts = g_hash_table_new (soup_uri_host_hash,
+					     soup_uri_host_equal);
 }
 
 static gboolean
@@ -78,7 +78,7 @@ foreach_free_host (gpointer key, gpointer value, gpointer data)
 	if (host->auths)
 		g_hash_table_destroy (host->auths);
 
-	g_object_unref (host->addr);
+	soup_uri_free (host->uri);
 	g_slice_free (SoupAuthHost, host);
 
 	return TRUE;
@@ -318,15 +318,15 @@ static SoupAuthHost *
 get_auth_host_for_message (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
 	SoupAuthHost *host;
-	SoupAddress *addr = soup_message_get_address (msg);
+	SoupURI *uri = soup_message_get_uri (msg);
 
-	host = g_hash_table_lookup (priv->auth_hosts, addr);
+	host = g_hash_table_lookup (priv->auth_hosts, uri);
 	if (host)
 		return host;
 
 	host = g_slice_new0 (SoupAuthHost);
-	host->addr = g_object_ref (addr);
-	g_hash_table_insert (priv->auth_hosts, host->addr, host);
+	host->uri = soup_uri_copy_host (uri);
+	g_hash_table_insert (priv->auth_hosts, host->uri, host);
 
 	return host;
 }

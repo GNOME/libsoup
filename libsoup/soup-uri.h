@@ -78,6 +78,11 @@ void      soup_uri_set_query_from_fields (SoupURI    *uri,
 void      soup_uri_set_fragment          (SoupURI    *uri,
 					  const char *fragment);
 
+SoupURI  *soup_uri_copy_host             (SoupURI    *uri);
+guint     soup_uri_host_hash             (gconstpointer key);
+gboolean  soup_uri_host_equal            (gconstpointer v1,
+					  gconstpointer v2);
+
 #define   SOUP_URI_VALID_FOR_HTTP(uri) ((uri) && ((uri)->scheme == SOUP_URI_SCHEME_HTTP || (uri)->scheme == SOUP_URI_SCHEME_HTTPS) && (uri)->host)
 
 G_END_DECLS

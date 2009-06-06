@@ -110,47 +110,6 @@ soup_session_async_new_with_options (const char *optname1, ...)
 
 
 static void
-resolved_msg_addr (SoupAddress *addr, guint status, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
-
-	if (item->removed) {
-		/* Message was cancelled before its address resolved */
-		soup_message_queue_item_unref (item);
-		return;
-	}
-
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		soup_session_cancel_message (session, item->msg, status);
-		soup_message_queue_item_unref (item);
-		return;
-	}
-
-	item->msg_addr = g_object_ref (addr);
-	item->resolving_msg_addr = FALSE;
-
-	soup_message_queue_item_unref (item);
-
-	/* If we got here we know session still exists */
-	run_queue ((SoupSessionAsync *)session);
-}
-
-static void
-resolve_msg_addr (SoupMessageQueueItem *item)
-{
-	if (item->resolving_msg_addr)
-		return;
-	item->resolving_msg_addr = TRUE;
-
-	soup_message_queue_item_ref (item);
-	soup_address_resolve_async (soup_message_get_address (item->msg),
-				    soup_session_get_async_context (item->session),
-				    item->cancellable,
-				    resolved_msg_addr, item);
-}
-
-static void
 resolved_proxy_addr (SoupProxyResolver *proxy_resolver, SoupMessage *msg,
 		     guint status, SoupAddress *proxy_addr, gpointer user_data)
 {
@@ -257,10 +216,6 @@ run_queue (SoupSessionAsync *sa)
 		    soup_message_io_in_progress (msg))
 			continue;
 
-		if (!item->msg_addr) {
-			resolve_msg_addr (item);
-			continue;
-		}
 		if (proxy_resolver && !item->resolved_proxy_addr) {
 			resolve_proxy_addr (item, proxy_resolver);
 			continue;
@@ -303,11 +258,6 @@ request_restarted (SoupMessage *req, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
-	if (item->msg_addr &&
-	    item->msg_addr != soup_message_get_address (item->msg)) {
-		g_object_unref (item->msg_addr);
-		item->msg_addr = NULL;
-	}
 	if (item->proxy_addr) {
 		g_object_unref (item->proxy_addr);
 		item->proxy_addr = NULL;
