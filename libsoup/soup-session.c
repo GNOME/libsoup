@@ -22,6 +22,7 @@
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
+#include "soup-misc.h"
 #include "soup-proxy-resolver-static.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
@@ -57,6 +58,7 @@
  **/
 
 typedef struct {
+	SoupURI *uri;
 	SoupAddress *addr;
 
 	GSList      *connections;      /* CONTAINS: SoupConnection */
@@ -76,7 +78,7 @@ typedef struct {
 	GSList *features;
 	SoupAuthManager *auth_manager;
 
-	GHashTable *hosts; /* SoupAddress -> SoupSessionHost */
+	GHashTable *hosts; /* char* -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 	guint max_conns, max_conns_per_host;
@@ -153,8 +155,9 @@ soup_session_init (SoupSession *session)
 	priv->queue = soup_message_queue_new (session);
 
 	priv->host_lock = g_mutex_new ();
-	priv->hosts = g_hash_table_new (soup_address_hash_by_ip,
-					soup_address_equal_by_ip);
+	priv->hosts = g_hash_table_new_full (soup_uri_host_hash,
+					     soup_uri_host_equal,
+					     NULL, (GDestroyNotify)free_host);
 	priv->conns = g_hash_table_new (NULL, NULL);
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
@@ -170,28 +173,6 @@ soup_session_init (SoupSession *session)
 	soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->auth_manager));
 }
 
-static gboolean
-foreach_free_host (gpointer key, gpointer host, gpointer data)
-{
-	free_host (host);
-	return TRUE;
-}
-
-static void
-cleanup_hosts (SoupSessionPrivate *priv)
-{
-	GHashTable *old_hosts;
-
-	g_mutex_lock (priv->host_lock);
-	old_hosts = priv->hosts;
-	priv->hosts = g_hash_table_new (soup_address_hash_by_ip,
-					soup_address_equal_by_ip);
-	g_mutex_unlock (priv->host_lock);
-
-	g_hash_table_foreach_remove (old_hosts, foreach_free_host, NULL);
-	g_hash_table_destroy (old_hosts);
-}
-
 static void
 dispose (GObject *object)
 {
@@ -199,7 +180,6 @@ dispose (GObject *object)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	soup_session_abort (session);
-	cleanup_hosts (priv);
 
 	while (priv->features)
 		soup_session_remove_feature (session, priv->features->data);
@@ -650,7 +630,6 @@ set_property (GObject *object, guint prop_id,
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
 
 		soup_session_abort (session);
-		cleanup_hosts (priv);
 		break;
 	case PROP_MAX_CONNS:
 		priv->max_conns = g_value_get_int (value);
@@ -672,13 +651,9 @@ set_property (GObject *object, guint prop_id,
 		g_free (priv->ssl_ca_file);
 		priv->ssl_ca_file = g_strdup (new_ca_file);
 
-		if (ca_file_changed) {
-			if (priv->ssl_creds) {
-				soup_ssl_free_client_credentials (priv->ssl_creds);
-				priv->ssl_creds = NULL;
-			}
-
-			cleanup_hosts (priv);
+		if (ca_file_changed && priv->ssl_creds) {
+			soup_ssl_free_client_credentials (priv->ssl_creds);
+			priv->ssl_creds = NULL;
 		}
 
 		break;
@@ -796,12 +771,14 @@ soup_session_get_async_context (SoupSession *session)
 /* Hosts */
 
 static SoupSessionHost *
-soup_session_host_new (SoupSession *session, SoupAddress *addr)
+soup_session_host_new (SoupSession *session, SoupURI *uri)
 {
 	SoupSessionHost *host;
 
 	host = g_slice_new0 (SoupSessionHost);
-	host->addr = g_object_ref (addr);
+	host->uri = soup_uri_copy_host (uri);
+	host->addr = soup_address_new (host->uri->host, host->uri->port);
+
 	return host;
 }
 
@@ -814,17 +791,14 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	SoupAddress *addr = soup_message_get_address (msg);
+	SoupURI *uri = soup_message_get_uri (msg);
 
-	if (!soup_address_is_resolved (addr))
-		return NULL;
-
-	host = g_hash_table_lookup (priv->hosts, addr);
+	host = g_hash_table_lookup (priv->hosts, uri);
 	if (host)
 		return host;
 
-	host = soup_session_host_new (session, addr);
-	g_hash_table_insert (priv->hosts, host->addr, host);
+	host = soup_session_host_new (session, uri);
+	g_hash_table_insert (priv->hosts, host->uri, host);
 
 	return host;
 }
@@ -839,6 +813,7 @@ free_host (SoupSessionHost *host)
 		soup_connection_disconnect (conn);
 	}
 
+	soup_uri_free (host->uri);
 	g_object_unref (host->addr);
 	g_slice_free (SoupSessionHost, host);
 }	

@@ -921,6 +921,79 @@ soup_uri_set_fragment (SoupURI *uri, const char *fragment)
 	uri->fragment = g_strdup (fragment);
 }
 
+/**
+ * soup_uri_copy_host:
+ * @uri: a #SoupUri
+ *
+ * Makes a copy of @uri, considering only the protocol, host, and port
+ *
+ * Return value: the new #SoupUri
+ *
+ * Since: 2.26.3
+ **/
+SoupURI *
+soup_uri_copy_host (SoupURI *uri)
+{
+	SoupURI *dup;
+
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	dup = soup_uri_new (NULL);
+	dup->scheme = uri->scheme;
+	dup->host   = g_strdup (uri->host);
+	dup->port   = uri->port;
+	if (dup->scheme == SOUP_URI_SCHEME_HTTP ||
+	    dup->scheme == SOUP_URI_SCHEME_HTTPS)
+		dup->path = g_strdup ("");
+
+	return dup;
+}
+
+/**
+ * soup_uri_host_hash:
+ * @key: a #SoupURI
+ *
+ * Hashes @key, considering only the scheme, host, and port.
+ *
+ * Return value: a hash
+ *
+ * Since: 2.26.3
+ **/
+guint
+soup_uri_host_hash (gconstpointer key)
+{
+	const SoupURI *uri = key;
+
+	return GPOINTER_TO_UINT (uri->scheme) + uri->port +
+		soup_str_case_hash (uri->host);
+}
+
+/**
+ * soup_uri_host_equal:
+ * @v1: a #SoupURI
+ * @v2: a #SoupURI
+ *
+ * Compares @v1 and @v2, considering only the scheme, host, and port.
+ *
+ * Return value: whether or not the URIs are equal in scheme, host,
+ * and port.
+ *
+ * Since: 2.26.3
+ **/
+gboolean
+soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
+{
+	const SoupURI *one = v1;
+	const SoupURI *two = v2;
+
+	if (one->scheme != two->scheme)
+		return FALSE;
+	if (one->port != two->port)
+		return FALSE;
+
+	return g_ascii_strcasecmp (one->host, two->host) == 0;
+}
+
 
 GType
 soup_uri_get_type (void)

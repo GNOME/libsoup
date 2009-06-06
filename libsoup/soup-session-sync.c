@@ -202,20 +202,8 @@ process_queue_item (SoupMessageQueueItem *item)
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (item->session);
 	SoupMessage *msg = item->msg;
 	SoupConnection *conn;
-	SoupAddress *addr;
-	guint status;
 
 	do {
-		/* Resolve address */
-		addr = soup_message_get_address (msg);
-		status = soup_address_resolve_sync (addr, item->cancellable);
-		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-			if (status != SOUP_STATUS_CANCELLED)
-				soup_session_cancel_message (item->session, msg, status);
-			break;
-		}
-
-		/* Get a connection */
 		conn = wait_for_connection (item->session, msg);
 		if (!conn)
 			break;
