@@ -15,6 +15,8 @@
 #include "soup-address.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
+#include "soup-proxy-uri-resolver.h"
+#include "soup-uri.h"
 
 /**
  * SECTION:soup-session-async
@@ -108,29 +110,36 @@ soup_session_async_new_with_options (const char *optname1, ...)
 	return session;
 }
 
+static gboolean
+item_failed (SoupMessageQueueItem *item, guint status)
+{
+	if (item->removed) {
+		soup_message_queue_item_unref (item);
+		return TRUE;
+	}
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		if (status != SOUP_STATUS_CANCELLED)
+			soup_session_cancel_message (item->session, item->msg, status);
+		soup_message_queue_item_unref (item);
+		return TRUE;
+	}
+
+	return FALSE;
+}
 
 static void
-resolved_proxy_addr (SoupProxyResolver *proxy_resolver, SoupMessage *msg,
-		     guint status, SoupAddress *proxy_addr, gpointer user_data)
+resolved_proxy_addr (SoupAddress *addr, guint status, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
 
-	if (item->removed) {
-		/* Message was cancelled before its proxy addr resolved */
-		soup_message_queue_item_unref (item);
+	if (item_failed (item, status))
 		return;
-	}
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		soup_session_cancel_message (session, item->msg, status);
-		soup_message_queue_item_unref (item);
-		return;
-	}
-
+	item->proxy_addr = g_object_ref (addr);
 	item->resolving_proxy_addr = FALSE;
 	item->resolved_proxy_addr = TRUE;
-	item->proxy_addr = proxy_addr ? g_object_ref (proxy_addr) : NULL;
 
 	soup_message_queue_item_unref (item);
 
@@ -139,18 +148,50 @@ resolved_proxy_addr (SoupProxyResolver *proxy_resolver, SoupMessage *msg,
 }
 
 static void
+resolved_proxy_uri (SoupProxyURIResolver *proxy_resolver,
+		    guint status, SoupURI *proxy_uri, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
+
+	if (item_failed (item, status))
+		return;
+
+	if (proxy_uri) {
+		SoupAddress *proxy_addr;
+
+		item->proxy_uri = soup_uri_copy (proxy_uri);
+		proxy_addr = soup_address_new (proxy_uri->host,
+					       proxy_uri->port);
+		soup_address_resolve_async (proxy_addr,
+					    soup_session_get_async_context (session),
+					    item->cancellable,
+					    resolved_proxy_addr, item);
+		g_object_unref (proxy_addr);
+		return;
+	}
+
+	item->resolving_proxy_addr = FALSE;
+	item->resolved_proxy_addr = TRUE;
+	soup_message_queue_item_unref (item);
+
+	/* If we got here we know session still exists */
+	run_queue ((SoupSessionAsync *)session);
+}
+
+static void
 resolve_proxy_addr (SoupMessageQueueItem *item,
-		    SoupProxyResolver *proxy_resolver)
+		    SoupProxyURIResolver *proxy_resolver)
 {
 	if (item->resolving_proxy_addr)
 		return;
 	item->resolving_proxy_addr = TRUE;
 
 	soup_message_queue_item_ref (item);
-	soup_proxy_resolver_get_proxy_async (proxy_resolver, item->msg,
-					     soup_session_get_async_context (item->session),
-					     item->cancellable,
-					     resolved_proxy_addr, item);
+	soup_proxy_uri_resolver_get_proxy_uri_async (
+		proxy_resolver, soup_message_get_uri (item->msg),
+		soup_session_get_async_context (item->session),
+		item->cancellable, resolved_proxy_uri, item);
 }
 
 static void
@@ -255,7 +296,7 @@ run_queue (SoupSessionAsync *sa)
 	SoupSession *session = SOUP_SESSION (sa);
 	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueItem *item;
-	SoupProxyResolver *proxy_resolver =
+	SoupProxyURIResolver *proxy_resolver =
 		soup_session_get_proxy_resolver (session);
 	SoupMessage *msg;
 	SoupMessageIOStatus cur_io_status = SOUP_MESSAGE_IO_STATUS_CONNECTING;

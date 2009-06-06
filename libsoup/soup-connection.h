@@ -49,7 +49,7 @@ typedef enum {
 
 #define SOUP_CONNECTION_REMOTE_ADDRESS  "remote-address"
 #define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
-#define SOUP_CONNECTION_IS_PROXY        "is-proxy"
+#define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
@@ -68,6 +68,7 @@ gboolean        soup_connection_start_ssl      (SoupConnection   *conn);
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
+SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,

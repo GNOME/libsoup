@@ -28,6 +28,7 @@ struct SoupMessageQueueItem {
 
 	GCancellable *cancellable;
 	SoupAddress *proxy_addr;
+	SoupURI *proxy_uri;
 	SoupConnection *conn;
 
 	guint resolving_proxy_addr : 1;

@@ -11,6 +11,7 @@
 #endif
 
 #include "soup-message-queue.h"
+#include "soup-uri.h"
 
 /**
  * SECTION:soup-message-queue
@@ -166,6 +167,8 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_object_unref (item->cancellable);
 	if (item->proxy_addr)
 		g_object_unref (item->proxy_addr);
+	if (item->proxy_uri)
+		soup_uri_free (item->proxy_uri);
 	if (item->conn)
 		g_object_unref (item->conn);
 	g_slice_free (SoupMessageQueueItem, item);

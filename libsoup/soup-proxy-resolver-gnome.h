@@ -6,7 +6,6 @@
 #ifndef SOUP_PROXY_RESOLVER_GNOME_H
 #define SOUP_PROXY_RESOLVER_GNOME_H 1
 
-#include "soup-proxy-resolver.h"
 #include "soup-gnome-features.h"
 
 /* SOUP_TYPE_PROXY_RESOLVER_GNOME and soup_proxy_resolver_gnome_get_type()

@@ -14,7 +14,9 @@
 #include "soup-session-private.h"
 #include "soup-address.h"
 #include "soup-message-private.h"
+#include "soup-proxy-uri-resolver.h"
 #include "soup-misc.h"
+#include "soup-uri.h"
 
 /**
  * SECTION:soup-session-sync
@@ -162,19 +164,34 @@ wait_for_connection (SoupMessageQueueItem *item)
 	SoupMessage *msg = item->msg;
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 	gboolean try_pruning = FALSE;
-	SoupProxyResolver *proxy_resolver;
+	SoupProxyURIResolver *proxy_resolver;
 	SoupAddress *tunnel_addr;
 	SoupConnection *conn;
 	guint status;
 
 	proxy_resolver = soup_session_get_proxy_resolver (session);
 	if (proxy_resolver && !item->resolved_proxy_addr) {
-		status = soup_proxy_resolver_get_proxy_sync (
-			proxy_resolver, msg, NULL, &item->proxy_addr);
+		status = soup_proxy_uri_resolver_get_proxy_uri_sync (
+			proxy_resolver, soup_message_get_uri (msg),
+			item->cancellable, &item->proxy_uri);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-			soup_session_cancel_message (session, msg, status);
+			if (status != SOUP_STATUS_CANCELLED)
+				soup_session_cancel_message (session, msg, status);
 			return NULL;
 		}
+
+		if (item->proxy_uri) {
+			item->proxy_addr = soup_address_new (
+				item->proxy_uri->host, item->proxy_uri->port);
+			status = soup_address_resolve_sync (item->proxy_addr,
+							    item->cancellable);
+			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+				if (status != SOUP_STATUS_CANCELLED)
+					soup_session_cancel_message (session, msg, status);
+				return NULL;
+			}
+		}
+
 		item->resolved_proxy_addr = TRUE;
 	}
 
