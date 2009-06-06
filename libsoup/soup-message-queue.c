@@ -55,6 +55,18 @@ soup_message_queue_destroy (SoupMessageQueue *queue)
 	g_slice_free (SoupMessageQueue, queue);
 }
 
+static void
+queue_message_restarted (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (item->proxy_addr) {
+		g_object_unref (item->proxy_addr);
+		item->proxy_addr = NULL;
+	}
+	item->resolved_proxy_addr = FALSE;
+}
+
 /**
  * soup_message_queue_append:
  * @queue: a #SoupMessageQueue
@@ -80,6 +92,9 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	item->callback = callback;
 	item->callback_data = user_data;
 	item->cancellable = g_cancellable_new ();
+
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (queue_message_restarted), item);
 
 	/* Note: the initial ref_count of 1 represents the caller's
 	 * ref; the queue's own ref is indicated by the absence of the
@@ -145,10 +160,14 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_mutex_unlock (item->queue->mutex);
 
 	/* And free it */
+	g_signal_handlers_disconnect_by_func (item->msg,
+					      queue_message_restarted, item);
 	g_object_unref (item->msg);
 	g_object_unref (item->cancellable);
 	if (item->proxy_addr)
 		g_object_unref (item->proxy_addr);
+	if (item->conn)
+		g_object_unref (item->conn);
 	g_slice_free (SoupMessageQueueItem, item);
 }
 

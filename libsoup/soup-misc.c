@@ -56,63 +56,6 @@ soup_str_case_equal (gconstpointer v1,
 	return g_ascii_strcasecmp (string1, string2) == 0;
 }
 
-typedef struct {
-	gpointer instance;
-	guint    signal_id;
-} SoupSignalOnceData;
-
-static void
-signal_once_object_destroyed (gpointer ssod, GObject *ex_object)
-{
-	g_slice_free (SoupSignalOnceData, ssod);
-}
-
-static void
-signal_once_metamarshal (GClosure *closure, GValue *return_value,
-			 guint n_param_values, const GValue *param_values,
-			 gpointer invocation_hint, gpointer marshal_data)
-{
-	SoupSignalOnceData *ssod = marshal_data;
-
-	closure->marshal (closure, return_value, n_param_values,
-			  param_values, invocation_hint,
-			  ((GCClosure *)closure)->callback);
-
-	if (g_signal_handler_is_connected (ssod->instance, ssod->signal_id))
-		g_signal_handler_disconnect (ssod->instance, ssod->signal_id);
-	g_object_weak_unref (G_OBJECT (ssod->instance), signal_once_object_destroyed, ssod);
-	g_slice_free (SoupSignalOnceData, ssod);
-}
-
-/* No longer prototyped in soup-misc.h, because it's only used by
- * soup-connection.c, and will be going away once that usage is removed.
- */
-guint soup_signal_connect_once  (gpointer instance, const char *detailed_signal,
-				 GCallback c_handler, gpointer data);
-
-guint
-soup_signal_connect_once (gpointer instance, const char *detailed_signal,
-			  GCallback c_handler, gpointer data)
-{
-	SoupSignalOnceData *ssod;
-	GClosure *closure;
-
-	g_return_val_if_fail (G_TYPE_CHECK_INSTANCE (instance), 0);
-	g_return_val_if_fail (detailed_signal != NULL, 0);
-	g_return_val_if_fail (c_handler != NULL, 0);
-
-	ssod = g_slice_new0 (SoupSignalOnceData);
-	ssod->instance = instance;
-	g_object_weak_ref (G_OBJECT (instance), signal_once_object_destroyed, ssod);
-
-	closure = g_cclosure_new (c_handler, data, NULL);
-	g_closure_set_meta_marshal (closure, ssod, signal_once_metamarshal);
-
-	ssod->signal_id = g_signal_connect_closure (instance, detailed_signal,
-						    closure, FALSE);
-	return ssod->signal_id;
-}
-
 /**
  * soup_add_io_watch:
  * @async_context: the #GMainContext to dispatch the I/O watch in, or
