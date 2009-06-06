@@ -151,7 +151,7 @@ soup_message_io_stop (SoupMessage *msg)
 	else if (io->conn) {
 		SoupConnection *conn = io->conn;
 		io->conn = NULL;
-		soup_connection_release (conn);
+		soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
 		g_object_unref (conn);
 	}
 }

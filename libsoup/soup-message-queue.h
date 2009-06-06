@@ -9,6 +9,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <libsoup/soup-connection.h>
 #include <libsoup/soup-message.h>
 #include <libsoup/soup-session.h>
 
@@ -27,6 +28,7 @@ struct SoupMessageQueueItem {
 
 	GCancellable *cancellable;
 	SoupAddress *proxy_addr;
+	SoupConnection *conn;
 
 	guint resolving_proxy_addr : 1;
 	guint resolved_proxy_addr  : 1;

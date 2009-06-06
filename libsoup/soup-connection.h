@@ -28,13 +28,8 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*connect_result)  (SoupConnection *, guint);
 	void (*disconnected)    (SoupConnection *);
 
-	void (*request_started) (SoupConnection *, SoupMessage *);
-
-	/* methods */
-	void (*send_request) (SoupConnection *, SoupMessage *);
 } SoupConnectionClass;
 
 GType soup_connection_get_type (void);
@@ -44,9 +39,17 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);
 
+typedef enum {
+	SOUP_CONNECTION_NEW,
+	SOUP_CONNECTION_CONNECTING,
+	SOUP_CONNECTION_IDLE,
+	SOUP_CONNECTION_IN_USE,
+	SOUP_CONNECTION_DISCONNECTED
+} SoupConnectionState;
 
-#define SOUP_CONNECTION_SERVER_ADDRESS  "server_address"
-#define SOUP_CONNECTION_PROXY_ADDRESS   "proxy-address"
+#define SOUP_CONNECTION_REMOTE_ADDRESS  "remote-address"
+#define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
+#define SOUP_CONNECTION_IS_PROXY        "is-proxy"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
@@ -59,19 +62,20 @@ void            soup_connection_connect_async  (SoupConnection   *conn,
 						SoupConnectionCallback callback,
 						gpointer          user_data);
 guint           soup_connection_connect_sync   (SoupConnection   *conn);
+SoupAddress    *soup_connection_get_tunnel_addr(SoupConnection   *conn);
+gboolean        soup_connection_start_ssl      (SoupConnection   *conn);
 
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
 
-gboolean        soup_connection_is_in_use      (SoupConnection   *conn);
+SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
+void                soup_connection_set_state  (SoupConnection   *conn,
+						SoupConnectionState state);
 time_t          soup_connection_last_used      (SoupConnection   *conn);
 
 void            soup_connection_send_request   (SoupConnection   *conn,
 						SoupMessage      *req);
-
-void            soup_connection_reserve        (SoupConnection   *conn);
-void            soup_connection_release        (SoupConnection   *conn);
 
 G_END_DECLS
 

@@ -896,7 +896,10 @@ finished (SoupMessage *req)
 void
 soup_message_finished (SoupMessage *msg)
 {
-	g_signal_emit (msg, signals[FINISHED], 0);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_FINISHED)
+		g_signal_emit (msg, signals[FINISHED], 0);
 }
 
 static void

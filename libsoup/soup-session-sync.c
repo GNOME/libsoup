@@ -127,54 +127,78 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 	return session;
 }
 
-static SoupConnection *
-wait_for_connection (SoupSession *session, SoupMessage *msg)
+static gboolean
+tunnel_connect (SoupSession *session, SoupConnection *conn,
+		SoupAddress *tunnel_addr)
 {
+	SoupMessageQueueItem *item;
+	guint status;
+
+	item = soup_session_make_connect_message (session, tunnel_addr);
+	do
+		soup_session_send_queue_item (session, item, conn);
+	while (SOUP_MESSAGE_IS_STARTING (item->msg));
+
+	status = item->msg->status_code;
+	soup_message_queue_item_unref (item);
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		if (!soup_connection_start_ssl (conn))
+			status = SOUP_STATUS_SSL_FAILED;
+	}
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (status))
+		return TRUE;
+	else {
+		soup_session_connection_failed (session, conn, status);
+		return FALSE;
+	}
+}
+
+static SoupConnection *
+wait_for_connection (SoupMessageQueueItem *item)
+{
+	SoupSession *session = item->session;
+	SoupMessage *msg = item->msg;
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
-	gboolean try_pruning = FALSE, is_new = FALSE;
+	gboolean try_pruning = FALSE;
 	SoupProxyResolver *proxy_resolver;
-	SoupAddress *proxy_addr = NULL;
+	SoupAddress *tunnel_addr;
 	SoupConnection *conn;
 	guint status;
 
 	proxy_resolver = soup_session_get_proxy_resolver (session);
-	g_mutex_lock (priv->lock);
-
- try_again:
-	if (proxy_resolver) {
-		status = soup_proxy_resolver_get_proxy_sync (proxy_resolver, msg, NULL, &proxy_addr);
+	if (proxy_resolver && !item->resolved_proxy_addr) {
+		status = soup_proxy_resolver_get_proxy_sync (
+			proxy_resolver, msg, NULL, &item->proxy_addr);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-			g_mutex_unlock (priv->lock);
 			soup_session_cancel_message (session, msg, status);
 			return NULL;
 		}
+		item->resolved_proxy_addr = TRUE;
 	}
 
-	conn = soup_session_get_connection (session, msg, proxy_addr,
-					    &try_pruning, &is_new);
-	if (proxy_addr)
-		g_object_unref (proxy_addr);
+	g_mutex_lock (priv->lock);
+
+ try_again:
+	conn = soup_session_get_connection (session, item, &try_pruning);
 	if (conn) {
-		if (is_new) {
+		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
 			status = soup_connection_connect_sync (conn);
 
-			/* If the connection attempt fails, SoupSession
-			 * will notice, unref conn, and set an error
-			 * status on msg. So all we need to do is just
-			 * not return the no-longer-valid connection.
-			 */
-
-			if (status == SOUP_STATUS_TRY_AGAIN)
-				goto try_again;
-			else if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+				soup_session_connection_failed (session, conn, status);
 				conn = NULL;
-			else if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
+			} else if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
 				/* Message was cancelled while we were
 				 * connecting.
 				 */
 				soup_connection_disconnect (conn);
 				conn = NULL;
-			}
+			} else if ((tunnel_addr = soup_connection_get_tunnel_addr (conn))) {
+				if (!tunnel_connect (session, conn, tunnel_addr))
+					conn = NULL;
+                        }
 		}
 
 		g_mutex_unlock (priv->lock);
@@ -200,17 +224,17 @@ static void
 process_queue_item (SoupMessageQueueItem *item)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (item->session);
-	SoupMessage *msg = item->msg;
 	SoupConnection *conn;
 
 	do {
-		conn = wait_for_connection (item->session, msg);
+		conn = wait_for_connection (item);
 		if (!conn)
 			break;
 
-		soup_connection_send_request (conn, msg);
+		soup_session_send_queue_item (item->session, item, conn);
 		g_cond_broadcast (priv->cond);
-	} while (soup_message_get_io_status (msg) != SOUP_MESSAGE_IO_STATUS_FINISHED);
+	} while (soup_message_get_io_status (item->msg) !=
+		 SOUP_MESSAGE_IO_STATUS_FINISHED);
 }
 
 static gboolean
