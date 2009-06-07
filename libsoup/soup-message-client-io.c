@@ -109,7 +109,8 @@ get_request_headers (SoupMessage *req, GString *header,
 	*encoding = soup_message_headers_get_encoding (req->request_headers);
 	if ((*encoding == SOUP_ENCODING_CONTENT_LENGTH ||
 	     *encoding == SOUP_ENCODING_NONE) &&
-	    req->request_body->length > 0 &&
+	    (req->request_body->length > 0 ||
+	     soup_message_headers_get_one (req->request_headers, "Content-Type")) &&
 	    !soup_message_headers_get_content_length (req->request_headers)) {
 		*encoding = SOUP_ENCODING_CONTENT_LENGTH;
 		soup_message_headers_set_content_length (req->request_headers,
