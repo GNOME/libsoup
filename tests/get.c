@@ -22,141 +22,24 @@
 #include <libsoup/soup.h>
 #endif
 
-#ifdef G_OS_WIN32
-#include <io.h>
-#define mkdir(path, mode) _mkdir (path)
-#endif
-
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean recurse = FALSE, debug = FALSE;
+static gboolean debug = FALSE;
 static const char *method;
-static char *base;
-static SoupURI *base_uri;
-static GHashTable *fetched_urls;
-
-static GPtrArray *
-find_hrefs (SoupURI *doc_base, const char *body, int length)
-{
-	GPtrArray *hrefs = g_ptr_array_new ();
-	char *buf = g_strndup (body, length);
-	char *start = buf, *end;
-	char *href, *frag;
-	SoupURI *uri;
-
-	while ((start = strstr (start, "href"))) {
-		start += 4;
-		while (isspace ((unsigned char) *start))
-			start++;
-		if (*start++ != '=') 
-			continue;
-		while (isspace ((unsigned char) *start))
-			start++;
-		if (*start++ != '"')
-			continue;
-
-		end = strchr (start, '"');
-		if (!end)
-			break;
-
-		href = g_strndup (start, end - start);
-		start = end;
-		frag = strchr (href, '#');
-		if (frag)
-			*frag = '\0';
-
-		uri = soup_uri_new_with_base (doc_base, href);
-		g_free (href);
-
-		if (!uri)
-			continue;
-		if (doc_base->scheme != uri->scheme ||
-		    doc_base->port != uri->port ||
-		    g_ascii_strcasecmp (doc_base->host, uri->host) != 0) {
-			soup_uri_free (uri);
-			continue;
-		}
-
-		if (strncmp (doc_base->path, uri->path, strlen (doc_base->path)) != 0) {
-			soup_uri_free (uri);
-			continue;
-		}
-
-		g_ptr_array_add (hrefs, soup_uri_to_string (uri, FALSE));
-		soup_uri_free (uri);
-	}
-	g_free (buf);
-
-	return hrefs;
-}
-
-static void
-mkdirs (const char *path)
-{
-	char *slash;
-
-	for (slash = strchr (path, '/'); slash; slash = strchr (slash + 1, '/')) {
-		*slash = '\0';
-		if (*path && mkdir (path, 0755) == -1 && errno != EEXIST) {
-			fprintf (stderr, "Could not create '%s'\n", path);
-			g_main_loop_quit (loop);
-			return;
-		}
-		*slash = '/';
-	}
-}
 
 static void
 get_url (const char *url)
 {
-	char *url_to_get, *slash, *name;
+	const char *name;
 	SoupMessage *msg;
-	int fd, i;
-	SoupURI *uri;
-	GPtrArray *hrefs;
 	const char *header;
 
-	if (strncmp (url, base, strlen (base)) != 0)
-		return;
-	if (strchr (url, '?') && strcmp (url, base) != 0)
-		return;
-
-	slash = strrchr (url, '/');
-	if (slash && !slash[1])
-		url_to_get = g_strdup_printf ("%sindex.html", url);
-	else
-		url_to_get = g_strdup (url);
-
-	if (g_hash_table_lookup (fetched_urls, url_to_get))
-		return;
-	g_hash_table_insert (fetched_urls, url_to_get, url_to_get);
-
-	if (recurse) {
-		/* See if we're already downloading it, and create the
-		 * file if not.
-		 */
-
-		name = url_to_get + strlen (base);
-		if (*name == '/')
-			name++;
-		if (access (name, F_OK) == 0)
-			return;
-
-		mkdirs (name);
-		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		close (fd);
-	}
-
-	msg = soup_message_new (method, url_to_get);
+	msg = soup_message_new (method, url);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	soup_session_send_message (session, msg);
 
 	name = soup_message_get_uri (msg)->path;
-	if (strncmp (base_uri->path, name, strlen (base_uri->path)) != 0) {
-		fprintf (stderr, "  Error: not under %s\n", base_uri->path);
-		return;
-	}
 
 	if (debug) {
 		SoupMessageHeadersIter iter;
@@ -176,13 +59,7 @@ get_url (const char *url)
 	} else
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 
-	name += strlen (base_uri->path);
-	if (*name == '/')
-		name++;
-
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
-		if (recurse)
-			unlink (name);
 		header = soup_message_headers_get_one (msg->response_headers,
 						       "Location");
 		if (header) {
@@ -190,47 +67,24 @@ get_url (const char *url)
 				printf ("  -> %s\n", header);
 			get_url (header);
 		}
-		return;
+	} else if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		fwrite (msg->response_body->data, 1,
+			msg->response_body->length, stdout);
 	}
-
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
-		return;
-
-	if (recurse)
-		fd = open (name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	else
-		fd = STDOUT_FILENO;
-	write (fd, msg->response_body->data, msg->response_body->length);
-	if (!recurse)
-		return;
-	close (fd);
-
-	header = soup_message_headers_get_content_type (msg->response_headers, NULL);
-	if (header && g_ascii_strcasecmp (header, "text/html") != 0)
-		return;
-
-	uri = soup_uri_new (url);
-	hrefs = find_hrefs (uri, msg->response_body->data, msg->response_body->length);
-	soup_uri_free (uri);
-	for (i = 0; i < hrefs->len; i++) {
-		get_url (hrefs->pdata[i]);
-		g_free (hrefs->pdata[i]);
-	}
-	g_ptr_array_free (hrefs, TRUE);
 }
 
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-r] [-h] [-d] URL\n");
+	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-h] [-d] URL\n");
 	exit (1);
 }
 
 int
 main (int argc, char **argv)
 {
-	const char *cafile = NULL;
-	SoupURI *proxy = NULL;
+	const char *cafile = NULL, *url;
+	SoupURI *proxy = NULL, *parsed;
 	gboolean synchronous = FALSE;
 	int opt;
 
@@ -239,7 +93,7 @@ main (int argc, char **argv)
 
 	method = SOUP_METHOD_GET;
 
-	while ((opt = getopt (argc, argv, "c:dhp:rs")) != -1) {
+	while ((opt = getopt (argc, argv, "c:dhp:s")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
@@ -263,10 +117,6 @@ main (int argc, char **argv)
 			}
 			break;
 
-		case 'r':
-			recurse = TRUE;
-			break;
-
 		case 's':
 			synchronous = TRUE;
 			break;
@@ -281,14 +131,13 @@ main (int argc, char **argv)
 
 	if (argc != 1)
 		usage ();
-	base = argv[0];
-	base_uri = soup_uri_new (base);
-	if (!base_uri) {
-		fprintf (stderr, "Could not parse '%s' as a URL\n", base);
+	url = argv[0];
+	parsed = soup_uri_new (url);
+	if (!parsed) {
+		fprintf (stderr, "Could not parse '%s' as a URL\n", url);
 		exit (1);
 	}
-
-	fetched_urls = g_hash_table_new (g_str_hash, g_str_equal);
+	soup_uri_free (parsed);
 
 	if (synchronous) {
 		session = soup_session_sync_new_with_options (
@@ -318,28 +167,13 @@ main (int argc, char **argv)
 			      NULL);
 	}
 
-	if (recurse) {
-		char *outdir;
-
-		outdir = g_strdup_printf ("%lu", (unsigned long)getpid ());
-		if (mkdir (outdir, 0755) != 0) {
-			fprintf (stderr, "Could not make output directory\n");
-			exit (1);
-		}
-		printf ("Output directory is '%s'\n", outdir);
-		chdir (outdir);
-		g_free (outdir);
-	}
-
 	if (!synchronous)
 		loop = g_main_loop_new (NULL, TRUE);
 
-	get_url (base);
+	get_url (url);
 
 	if (!synchronous)
 		g_main_loop_unref (loop);
-
-	soup_uri_free (base_uri);
 
 	return 0;
 }
