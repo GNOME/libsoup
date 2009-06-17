@@ -226,6 +226,20 @@ find_header (SoupHeader *hdr_array, const char *interned_name, int nth)
 	return -1;
 }
 
+static int
+find_last_header (SoupHeader *hdr_array, guint length, const char *interned_name, int nth)
+{
+	int i;
+
+	for (i = length; i >= 0; i--) {
+		if (hdr_array[i].name == interned_name) {
+			if (nth-- == 0)
+				return i;
+		}
+	}
+	return -1;
+}
+
 /**
  * soup_message_headers_remove:
  * @hdrs: a #SoupMessageHeaders
@@ -277,12 +291,15 @@ const char *
 soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
 {
 	SoupHeader *hdr_array = (SoupHeader *)(hdrs->array->data);
+	guint hdr_length = hdrs->array->len;
 	int index;
 
 	g_return_val_if_fail (name != NULL, NULL);
 
 	name = intern_header_name (name, NULL);
-	index = find_header (hdr_array, name, 0);
+
+	index = find_last_header (hdr_array, hdr_length, name, 0);
+
 	return (index == -1) ? NULL : hdr_array[index].value;
 }
 

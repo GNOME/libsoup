@@ -69,6 +69,7 @@ tests/redirect-test
 tests/server-auth-test
 tests/simple-httpd
 tests/simple-proxy
+tests/sniffing-test
 tests/ssl-test
 tests/streaming-test
 tests/timeout-test

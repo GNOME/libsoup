@@ -15,6 +15,7 @@ extern "C" {
 #include <libsoup/soup-auth-domain.h>
 #include <libsoup/soup-auth-domain-basic.h>
 #include <libsoup/soup-auth-domain-digest.h>
+#include <libsoup/soup-content-sniffer.h>
 #include <libsoup/soup-cookie.h>
 #include <libsoup/soup-cookie-jar.h>
 #include <libsoup/soup-cookie-jar-text.h>

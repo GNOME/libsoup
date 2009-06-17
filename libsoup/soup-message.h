@@ -155,6 +155,7 @@ void soup_message_got_informational   (SoupMessage *msg);
 void soup_message_got_headers         (SoupMessage *msg);
 void soup_message_got_chunk           (SoupMessage *msg, SoupBuffer *chunk);
 void soup_message_got_body            (SoupMessage *msg);
+void soup_message_content_sniffed     (SoupMessage *msg, const char *content_type, GHashTable *params);
 void soup_message_restarted           (SoupMessage *msg);
 void soup_message_finished            (SoupMessage *msg);
 

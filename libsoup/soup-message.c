@@ -99,6 +99,7 @@ enum {
 	GOT_HEADERS,
 	GOT_CHUNK,
 	GOT_BODY,
+	CONTENT_SNIFFED,
 
 	RESTARTED,
 	FINISHED,
@@ -400,6 +401,44 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::content-sniffed:
+	 * @msg: the message
+	 * @type: the content type that we got from sniffing
+	 * @params: a #GHashTable with the parameters
+	 *
+	 * This signal is emitted after %got-headers, and before the
+	 * first %got-chunk. If content sniffing is disabled, or no
+	 * content sniffing will be performed, due to the sniffer
+	 * deciding to trust the Content-Type sent by the server, this
+	 * signal is emitted immediately after %got_headers, and @type
+	 * is %NULL.
+	 *
+	 * If the #SoupContentSniffer feature is enabled, and the
+	 * sniffer decided to perform sniffing, the first %got_chunk
+	 * emission may be delayed, so that the sniffer has enough
+	 * data to correctly sniff the content. It notified the
+	 * library user that the content has been sniffed, and allows
+	 * it to change the header contents in the message, if
+	 * desired.
+	 *
+	 * After this signal is emitted, the data that was spooled so
+	 * that sniffing could be done is delivered on the first
+	 * emission of %got_chunk.
+	 *
+	 * Since: 2.27.3
+	 **/
+	signals[CONTENT_SNIFFED] =
+		g_signal_new ("content_sniffed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0,
+			      NULL, NULL,
+			      soup_marshal_NONE__STRING_BOXED,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_STRING,
+			      G_TYPE_HASH_TABLE);
 
 	/**
 	 * SoupMessage::restarted:
@@ -856,6 +895,24 @@ void
 soup_message_got_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_BODY], 0);
+}
+
+/**
+ * soup_message_content_sniffed:
+ * @msg: a #SoupMessage
+ * @type: a string with the sniffed content type
+ * @params: a #GHashTable with the parameters
+ *
+ * Emits the %content_sniffed signal, indicating that the IO layer
+ * finished sniffing the content type for @msg. If content sniffing
+ * will not be performed, due to the sniffer deciding to trust the
+ * Content-Type sent by the server, this signal is emitted immediately
+ * after %got_headers, with %NULL as @content_type.
+ **/
+void
+soup_message_content_sniffed (SoupMessage *msg, const char *content_type, GHashTable *params)
+{
+	g_signal_emit (msg, signals[CONTENT_SNIFFED], 0, content_type, params);
 }
 
 static void

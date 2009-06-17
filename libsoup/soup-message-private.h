@@ -9,6 +9,7 @@
 #include "soup-message.h"
 #include "soup-auth.h"
 #include "soup-connection.h"
+#include "soup-content-sniffer.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_STATUS_IDLE,
@@ -28,6 +29,10 @@ typedef struct {
 
 	guint              msg_flags;
 	gboolean           server_side;
+
+	SoupContentSniffer *sniffer;
+	gboolean           should_sniff_content;
+	gsize              bytes_for_sniffing;
 
 	SoupHTTPVersion    http_version, orig_http_version;
 
