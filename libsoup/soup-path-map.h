@@ -6,7 +6,7 @@
 #ifndef SOUP_PATH_MAP_H
 #define SOUP_PATH_MAP_H 1
 
-#include <soup-types.h>
+#include <libsoup/soup-types.h>
 
 typedef struct SoupPathMap SoupPathMap;
 
