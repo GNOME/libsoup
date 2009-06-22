@@ -845,7 +845,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 
 	if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
 	    (msg->status_code == SOUP_STATUS_FOUND &&
-	     !SOUP_METHOD_IS_SAFE (msg->method))) {
+	     !SOUP_METHOD_IS_SAFE (msg->method)) ||
+	    (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY &&
+	     msg->method == SOUP_METHOD_POST)) {
 		/* Redirect using a GET */
 		g_object_set (msg,
 			      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
