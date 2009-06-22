@@ -82,9 +82,10 @@ static struct {
 	    { "HEAD", "/302", 302 },
 	    { "HEAD", "/", 200 } } },
 
-	/* POST should only automatically redirect on 302 and 303 */
+	/* POST should only automatically redirect on 301, 302 and 303 */
 
 	{ { { "POST", "/301", 301 },
+	    { "GET", "/", 200 },
 	    { NULL } } },
 	{ { { "POST", "/302", 302 },
 	    { "GET", "/", 200 },
