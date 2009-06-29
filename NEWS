@@ -1,3 +1,54 @@
+Changes in libsoup from 2.26.2 to 2.26.3:
+
+	* Replaced SoupProxyResolver with SoupProxyURIResolver, which
+          is a bit simpler, works with non-HTTP URIs (and so could be
+          used by gvfsd-ftp) and supports proxy auth correctly.
+          [#580051]
+
+	* Fixed SoupSession to not try to resolve http server
+          hostnames when it's just going to pass the hostname off to a
+          proxy server anyway. This fixes things on hosts that use a
+          proxy for everything and have no working DNS config
+          [#577532] and also makes WebKitGTK behave more like other
+          browsers in terms of per-host connection limits (we now
+          limit connections based on hostname rather than on IP
+          address).
+
+	* libsoup now always uses SSL 3.0 (not TLS 1.0 or 1.1) for
+          https URIs, to work around problems with older servers that
+          don't implement the (apparently quite confusing) TLS/SSL
+          compatibility rules correctly. Makes a bunch of
+          previously-inaccessible sites now accessible in WebKitGTK
+          (notably PayPal) [#581342]. Will eventually be revisited, to
+          first try TLS 1.1 and fall back if that fails.
+
+	* Fixed Digest auth to (recent) Apple CalDAV servers.
+          [#583091]
+
+	* Changed the way the SoupSession "authenticate" signal works
+          a bit. We now never emit "authenticate" before sending a
+          request, even if we know for sure that it's going to fail,
+          because this makes the semantics of the authenticate handler
+          too complicated (and because we'll only get into this
+          situation if a previous call to the authenticate handler
+          failed anyway). Fixes problems in WebKitGTK when you cancel
+          a password dialog, and then later try to load the page
+          again. [#583462, mostly figured out by Gustavo Noronha
+          Silva].
+
+	* Fix a few small bugs that affected various web sites: the
+          handling of 301 responses to POST to match web browsers
+          [#586692], and the use of Content-Length in empty POST
+          requests.
+
+	* Applied some minor bugfixes to configure.in and autogen.sh
+          [#583911, #583942]. Fixed configure.in to not use gcc
+          warning options that the installed version of gcc doesn't
+          recognize [#578851].
+
+	* Added G_GNUC_NULL_TERMINATED and G_GNUC_PRINTF to a few
+          methods that should have had them. [#581754, Ross Burton]
+
 Changes in libsoup from 2.26.1 to 2.26.2:
 
 	* SOUP_SESSION_TIMEOUT now works properly with
