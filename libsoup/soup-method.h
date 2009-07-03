@@ -7,6 +7,7 @@
 #define SOUP_METHOD_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-misc.h>
 
 G_BEGIN_DECLS
 
@@ -33,24 +34,26 @@ G_BEGIN_DECLS
  * </programlisting></informalexample>
  **/
 
+#define _SOUP_INTERN_METHOD(method) (_SOUP_ATOMIC_INTERN_STRING (_SOUP_METHOD_##method, #method))
+
 /* HTTP/1.1 methods */
-#define SOUP_METHOD_OPTIONS   (_SOUP_METHOD_OPTIONS ? _SOUP_METHOD_OPTIONS : (_SOUP_METHOD_OPTIONS = g_intern_static_string ("OPTIONS")))
-#define SOUP_METHOD_GET       (_SOUP_METHOD_GET ? _SOUP_METHOD_GET : (_SOUP_METHOD_GET = g_intern_static_string ("GET")))
-#define SOUP_METHOD_HEAD      (_SOUP_METHOD_HEAD ? _SOUP_METHOD_HEAD : (_SOUP_METHOD_HEAD = g_intern_static_string ("HEAD")))
-#define SOUP_METHOD_POST      (_SOUP_METHOD_POST ? _SOUP_METHOD_POST : (_SOUP_METHOD_POST = g_intern_static_string ("POST")))
-#define SOUP_METHOD_PUT       (_SOUP_METHOD_PUT ? _SOUP_METHOD_PUT : (_SOUP_METHOD_PUT = g_intern_static_string ("PUT")))
-#define SOUP_METHOD_DELETE    (_SOUP_METHOD_DELETE ? _SOUP_METHOD_DELETE : (_SOUP_METHOD_DELETE = g_intern_static_string ("DELETE")))
-#define SOUP_METHOD_TRACE     (_SOUP_METHOD_TRACE ? _SOUP_METHOD_TRACE : (_SOUP_METHOD_TRACE = g_intern_static_string ("TRACE")))
-#define SOUP_METHOD_CONNECT   (_SOUP_METHOD_CONNECT ? _SOUP_METHOD_CONNECT : (_SOUP_METHOD_CONNECT = g_intern_static_string ("CONNECT")))
+#define SOUP_METHOD_OPTIONS   _SOUP_INTERN_METHOD (OPTIONS)
+#define SOUP_METHOD_GET       _SOUP_INTERN_METHOD (GET)
+#define SOUP_METHOD_HEAD      _SOUP_INTERN_METHOD (HEAD)
+#define SOUP_METHOD_POST      _SOUP_INTERN_METHOD (POST)
+#define SOUP_METHOD_PUT       _SOUP_INTERN_METHOD (PUT)
+#define SOUP_METHOD_DELETE    _SOUP_INTERN_METHOD (DELETE)
+#define SOUP_METHOD_TRACE     _SOUP_INTERN_METHOD (TRACE)
+#define SOUP_METHOD_CONNECT   _SOUP_INTERN_METHOD (CONNECT)
 
 /* WebDAV methods */
-#define SOUP_METHOD_PROPFIND  (_SOUP_METHOD_PROPFIND ? _SOUP_METHOD_PROPFIND : (_SOUP_METHOD_PROPFIND = g_intern_static_string ("PROPFIND")))
-#define SOUP_METHOD_PROPPATCH (_SOUP_METHOD_PROPPATCH ? _SOUP_METHOD_PROPPATCH : (_SOUP_METHOD_PROPPATCH = g_intern_static_string ("PROPPATCH")))
-#define SOUP_METHOD_MKCOL     (_SOUP_METHOD_MKCOL ? _SOUP_METHOD_MKCOL : (_SOUP_METHOD_MKCOL = g_intern_static_string ("MKCOL")))
-#define SOUP_METHOD_COPY      (_SOUP_METHOD_COPY ? _SOUP_METHOD_COPY : (_SOUP_METHOD_COPY = g_intern_static_string ("COPY")))
-#define SOUP_METHOD_MOVE      (_SOUP_METHOD_MOVE ? _SOUP_METHOD_MOVE : (_SOUP_METHOD_MOVE = g_intern_static_string ("MOVE")))
-#define SOUP_METHOD_LOCK      (_SOUP_METHOD_LOCK ? _SOUP_METHOD_LOCK : (_SOUP_METHOD_LOCK = g_intern_static_string ("LOCK")))
-#define SOUP_METHOD_UNLOCK    (_SOUP_METHOD_UNLOCK ? _SOUP_METHOD_UNLOCK : (_SOUP_METHOD_UNLOCK = g_intern_static_string ("UNLOCK")))
+#define SOUP_METHOD_PROPFIND  _SOUP_INTERN_METHOD (PROPFIND)
+#define SOUP_METHOD_PROPPATCH _SOUP_INTERN_METHOD (PROPPATCH)
+#define SOUP_METHOD_MKCOL     _SOUP_INTERN_METHOD (MKCOL)
+#define SOUP_METHOD_COPY      _SOUP_INTERN_METHOD (COPY)
+#define SOUP_METHOD_MOVE      _SOUP_INTERN_METHOD (MOVE)
+#define SOUP_METHOD_LOCK      _SOUP_INTERN_METHOD (LOCK)
+#define SOUP_METHOD_UNLOCK    _SOUP_INTERN_METHOD (UNLOCK)
 
 /* Do not use these variables directly; use the macros above, which
  * ensure that they get initialized properly.

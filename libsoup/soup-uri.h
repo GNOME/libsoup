@@ -9,6 +9,7 @@
 #define  SOUP_URI_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-misc.h>
 
 G_BEGIN_DECLS
 
@@ -30,8 +31,8 @@ struct _SoupURI {
 GType     soup_uri_get_type          (void);
 #define SOUP_TYPE_URI (soup_uri_get_type ())
 
-#define SOUP_URI_SCHEME_HTTP  (_SOUP_URI_SCHEME_HTTP ? _SOUP_URI_SCHEME_HTTP : (_SOUP_URI_SCHEME_HTTP = g_intern_static_string ("http")))
-#define SOUP_URI_SCHEME_HTTPS (_SOUP_URI_SCHEME_HTTPS ? _SOUP_URI_SCHEME_HTTPS : (_SOUP_URI_SCHEME_HTTPS = g_intern_static_string ("https")))
+#define SOUP_URI_SCHEME_HTTP  _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_HTTP, "http")
+#define SOUP_URI_SCHEME_HTTPS _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_HTTPS, "https")
 extern const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
 
 SoupURI  *soup_uri_new_with_base         (SoupURI    *base,

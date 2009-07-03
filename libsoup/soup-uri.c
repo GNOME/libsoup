@@ -100,16 +100,17 @@ const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
 static inline const char *
 soup_uri_get_scheme (const char *scheme, int len)
 {
-	if (len == 4 && !strncmp (scheme, "http", 4)) {
+	if (len == 4 && !g_ascii_strncasecmp (scheme, "http", len)) {
 		return SOUP_URI_SCHEME_HTTP;
-	} else if (len == 5 && !strncmp (scheme, "https", 5)) {
+	} else if (len == 5 && !g_ascii_strncasecmp (scheme, "https", len)) {
 		return SOUP_URI_SCHEME_HTTPS;
 	} else {
 		char *lower_scheme;
 
 		lower_scheme = g_ascii_strdown (scheme, len);
-		scheme = g_intern_string (lower_scheme);
-		g_free (lower_scheme);
+		scheme = g_intern_static_string (lower_scheme);
+		if (scheme != (const char *)lower_scheme)
+			g_free (lower_scheme);
 		return scheme;
 	}
 }
