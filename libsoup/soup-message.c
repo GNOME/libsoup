@@ -120,6 +120,10 @@ enum {
 	PROP_STATUS_CODE,
 	PROP_REASON_PHRASE,
 	PROP_FIRST_PARTY,
+	PROP_REQUEST_BODY,
+	PROP_REQUEST_HEADERS,
+	PROP_RESPONSE_BODY,
+	PROP_RESPONSE_HEADERS,
 
 	LAST_PROP
 };
@@ -579,7 +583,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "The HTTP response reason phrase",
 				     NULL,
 				     G_PARAM_READWRITE));
-
 	/**
 	 * SOUP_MESSAGE_FIRST_PARTY:
 	 *
@@ -594,6 +597,58 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "The URI loaded in the application when the message was requested.",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_REQUEST_BODY:
+	 *
+	 * Alias for the #SoupMessage:request-body property. (The
+	 * message's HTTP request body.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_BODY,
+		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_BODY,
+				    "Request Body",
+				    "The HTTP request content",
+				    SOUP_TYPE_MESSAGE_BODY,
+				    G_PARAM_READABLE));
+	/**
+	 * SOUP_MESSAGE_REQUEST_HEADERS:
+	 *
+	 * Alias for the #SoupMessage:request-headers property. (The
+	 * message's HTTP request headers.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_HEADERS,
+		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_HEADERS,
+				    "Request Headers",
+				    "The HTTP request headers",
+				    SOUP_TYPE_MESSAGE_HEADERS,
+				    G_PARAM_READABLE));
+	/**
+	 * SOUP_MESSAGE_RESPONSE_BODY:
+	 *
+	 * Alias for the #SoupMessage:response-body property. (The
+	 * message's HTTP response body.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_RESPONSE_BODY,
+		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_BODY,
+				    "Response Body",
+				    "The HTTP response content",
+				    SOUP_TYPE_MESSAGE_BODY,
+				    G_PARAM_READABLE));
+	/**
+	 * SOUP_MESSAGE_RESPONSE_HEADERS:
+	 *
+	 * Alias for the #SoupMessage:response-headers property. (The
+	 * message's HTTP response headers.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_RESPONSE_HEADERS,
+		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_HEADERS,
+				    "Response Headers",
+				     "The HTTP response headers",
+				    SOUP_TYPE_MESSAGE_HEADERS,
+				    G_PARAM_READABLE));
 }
 
 static void
@@ -670,6 +725,18 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FIRST_PARTY:
 		g_value_set_boxed (value, priv->first_party);
+		break;
+	case PROP_REQUEST_BODY:
+		g_value_set_boxed (value, msg->request_body);
+		break;
+	case PROP_REQUEST_HEADERS:
+		g_value_set_boxed (value, msg->request_headers);
+		break;
+	case PROP_RESPONSE_BODY:
+		g_value_set_boxed (value, msg->response_body);
+		break;
+	case PROP_RESPONSE_HEADERS:
+		g_value_set_boxed (value, msg->response_headers);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

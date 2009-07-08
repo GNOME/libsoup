@@ -60,14 +60,18 @@ typedef struct {
 
 GType soup_message_get_type (void);
 
-#define SOUP_MESSAGE_METHOD        "method"
-#define SOUP_MESSAGE_URI           "uri"
-#define SOUP_MESSAGE_HTTP_VERSION  "http-version"
-#define SOUP_MESSAGE_FLAGS         "flags"
-#define SOUP_MESSAGE_SERVER_SIDE   "server-side"
-#define SOUP_MESSAGE_STATUS_CODE   "status-code"
-#define SOUP_MESSAGE_REASON_PHRASE "reason-phrase"
-#define SOUP_MESSAGE_FIRST_PARTY   "first-party"
+#define SOUP_MESSAGE_METHOD           "method"
+#define SOUP_MESSAGE_URI              "uri"
+#define SOUP_MESSAGE_HTTP_VERSION     "http-version"
+#define SOUP_MESSAGE_FLAGS            "flags"
+#define SOUP_MESSAGE_SERVER_SIDE      "server-side"
+#define SOUP_MESSAGE_STATUS_CODE      "status-code"
+#define SOUP_MESSAGE_REASON_PHRASE    "reason-phrase"
+#define SOUP_MESSAGE_FIRST_PARTY      "first-party"
+#define SOUP_MESSAGE_REQUEST_BODY     "request-body"
+#define SOUP_MESSAGE_REQUEST_HEADERS  "request-headers"
+#define SOUP_MESSAGE_RESPONSE_BODY    "response-body"
+#define SOUP_MESSAGE_RESPONSE_HEADERS "response-headers"
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
