@@ -56,6 +56,15 @@ void      soup_date_to_timeval      (SoupDate       *date,
 
 gboolean  soup_date_is_past         (SoupDate       *date);
 
+int       soup_date_get_year        (SoupDate       *date);
+int       soup_date_get_month       (SoupDate       *date);
+int       soup_date_get_day         (SoupDate       *date);
+int       soup_date_get_hour        (SoupDate       *date);
+int       soup_date_get_minute      (SoupDate       *date);
+int       soup_date_get_second      (SoupDate       *date);
+int       soup_date_get_utc         (SoupDate       *date);
+int       soup_date_get_offset      (SoupDate       *date);
+
 SoupDate *soup_date_copy            (SoupDate       *date);
 void      soup_date_free            (SoupDate       *date);
 

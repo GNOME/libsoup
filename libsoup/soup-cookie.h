@@ -37,20 +37,27 @@ SoupCookie *soup_cookie_parse                   (const char  *header,
 						 SoupURI     *origin);
 SoupCookie *soup_cookie_copy                    (SoupCookie  *cookie);
 
+const char *soup_cookie_get_name                (SoupCookie  *cookie);
 void        soup_cookie_set_name                (SoupCookie  *cookie,
 						 const char  *name);
+const char *soup_cookie_get_value               (SoupCookie  *cookie);
 void        soup_cookie_set_value               (SoupCookie  *cookie,
 						 const char  *value);
+const char *soup_cookie_get_domain              (SoupCookie  *cookie);
 void        soup_cookie_set_domain              (SoupCookie  *cookie,
 						 const char  *domain);
+const char *soup_cookie_get_path                (SoupCookie  *cookie);
 void        soup_cookie_set_path                (SoupCookie  *cookie,
 						 const char  *path);
 void        soup_cookie_set_max_age             (SoupCookie  *cookie,
 						 int          max_age);
+SoupDate   *soup_cookie_get_expires             (SoupCookie  *cookie);
 void        soup_cookie_set_expires             (SoupCookie  *cookie,
 						 SoupDate    *expires);
+gboolean    soup_cookie_get_secure              (SoupCookie  *cookie);
 void        soup_cookie_set_secure              (SoupCookie  *cookie,
 						 gboolean     secure);
+gboolean    soup_cookie_get_http_only           (SoupCookie  *cookie);
 void        soup_cookie_set_http_only           (SoupCookie  *cookie,
 						 gboolean     http_only);
 

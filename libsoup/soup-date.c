@@ -764,6 +764,136 @@ soup_date_is_past (SoupDate *date)
 }
 
 /**
+ * soup_date_get_year:
+ * @date: a #SoupDate
+ *
+ * Gets @date's year.
+ *
+ * Return value: @date's year
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_year (SoupDate *date)
+{
+	return date->year;
+}
+
+/**
+ * soup_date_get_month:
+ * @date: a #SoupDate
+ *
+ * Gets @date's month.
+ *
+ * Return value: @date's month
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_month (SoupDate *date)
+{
+	return date->month;
+}
+
+/**
+ * soup_date_get_day:
+ * @date: a #SoupDate
+ *
+ * Gets @date's day.
+ *
+ * Return value: @date's day
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_day (SoupDate *date)
+{
+	return date->day;
+}
+
+/**
+ * soup_date_get_hour:
+ * @date: a #SoupDate
+ *
+ * Gets @date's hour.
+ *
+ * Return value: @date's hour
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_hour (SoupDate *date)
+{
+	return date->hour;
+}
+
+/**
+ * soup_date_get_minute:
+ * @date: a #SoupDate
+ *
+ * Gets @date's minute.
+ *
+ * Return value: @date's minute
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_minute (SoupDate *date)
+{
+	return date->minute;
+}
+
+/**
+ * soup_date_get_second:
+ * @date: a #SoupDate
+ *
+ * Gets @date's second.
+ *
+ * Return value: @date's second
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_second (SoupDate *date)
+{
+	return date->second;
+}
+
+/**
+ * soup_date_get_utc:
+ * @date: a #SoupDate
+ *
+ * Gets @date's UTC flag
+ *
+ * Return value: %TRUE if @date is UTC.
+ *
+ * Since: 2.32
+ **/
+gboolean
+soup_date_get_utc (SoupDate *date)
+{
+	return date->utc;
+}
+
+/**
+ * soup_date_get_offset:
+ * @date: a #SoupDate
+ *
+ * Gets @date's offset from UTC.
+ *
+ * Return value: @date's offset from UTC. If soup_date_get_utc()
+ * returns %FALSE but soup_date_get_offset() returns 0, that means the
+ * date is a "floating" time with no associated offset information.
+ *
+ * Since: 2.32
+ **/
+int
+soup_date_get_offset (SoupDate *date)
+{
+	return date->offset;
+}
+
+/**
  * soup_date_copy:
  * @date: a #SoupDate
  *

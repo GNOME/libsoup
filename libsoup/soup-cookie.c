@@ -429,6 +429,22 @@ soup_cookie_parse (const char *cookie, SoupURI *origin)
 }
 
 /**
+ * soup_cookie_get_name:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's name
+ *
+ * Return value: @cookie's name
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_cookie_get_name (SoupCookie *cookie)
+{
+	return cookie->name;
+}
+
+/**
  * soup_cookie_set_name:
  * @cookie: a #SoupCookie
  * @name: the new name
@@ -442,6 +458,22 @@ soup_cookie_set_name (SoupCookie *cookie, const char *name)
 {
 	g_free (cookie->name);
 	cookie->name = g_strdup (name);
+}
+
+/**
+ * soup_cookie_get_value:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's value
+ *
+ * Return value: @cookie's value
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_cookie_get_value (SoupCookie *cookie)
+{
+	return cookie->value;
 }
 
 /**
@@ -461,6 +493,22 @@ soup_cookie_set_value (SoupCookie *cookie, const char *value)
 }
 
 /**
+ * soup_cookie_get_domain:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's domain
+ *
+ * Return value: @cookie's domain
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_cookie_get_domain (SoupCookie *cookie)
+{
+	return cookie->domain;
+}
+
+/**
  * soup_cookie_set_domain:
  * @cookie: a #SoupCookie
  * @domain: the new domain
@@ -474,6 +522,22 @@ soup_cookie_set_domain (SoupCookie *cookie, const char *domain)
 {
 	g_free (cookie->domain);
 	cookie->domain = g_strdup (domain);
+}
+
+/**
+ * soup_cookie_get_path:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's path
+ *
+ * Return value: @cookie's path
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_cookie_get_path (SoupCookie *cookie)
+{
+	return cookie->path;
 }
 
 /**
@@ -561,6 +625,23 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  **/
 
 /**
+ * soup_cookie_get_expires:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's expiration time
+ *
+ * Return value: @cookie's expiration time, which is owned
+ * by @cookie and should not be modified or freed.
+ *
+ * Since: 2.32
+ **/
+SoupDate *
+soup_cookie_get_expires (SoupCookie *cookie)
+{
+	return cookie->expires;
+}
+
+/**
  * soup_cookie_set_expires:
  * @cookie: a #SoupCookie
  * @expires: the new expiration time, or %NULL
@@ -586,6 +667,22 @@ soup_cookie_set_expires (SoupCookie *cookie, SoupDate *expires)
 }
 
 /**
+ * soup_cookie_get_secure:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's secure attribute
+ *
+ * Return value: @cookie's secure attribute
+ *
+ * Since: 2.32
+ **/
+gboolean
+soup_cookie_get_secure (SoupCookie *cookie)
+{
+	return cookie->secure;
+}
+
+/**
  * soup_cookie_set_secure:
  * @cookie: a #SoupCookie
  * @secure: the new value for the secure attribute
@@ -600,6 +697,22 @@ void
 soup_cookie_set_secure (SoupCookie *cookie, gboolean secure)
 {
 	cookie->secure = secure;
+}
+
+/**
+ * soup_cookie_get_http_only:
+ * @cookie: a #SoupCookie
+ *
+ * Gets @cookie's HttpOnly attribute
+ *
+ * Return value: @cookie's HttpOnly attribute
+ *
+ * Since: 2.32
+ **/
+gboolean
+soup_cookie_get_http_only (SoupCookie *cookie)
+{
+	return cookie->http_only;
 }
 
 /**

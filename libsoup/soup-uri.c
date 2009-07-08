@@ -100,7 +100,7 @@ gpointer _SOUP_URI_SCHEME_FTP;
 gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA;
 
 static inline const char *
-soup_uri_get_scheme (const char *scheme, int len)
+soup_uri_parse_scheme (const char *scheme, int len)
 {
 	if (len == 4 && !g_ascii_strncasecmp (scheme, "http", len)) {
 		return SOUP_URI_SCHEME_HTTP;
@@ -191,7 +191,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		p++;
 
 	if (p > uri_string && *p == ':') {
-		uri->scheme = soup_uri_get_scheme (uri_string, p - uri_string);
+		uri->scheme = soup_uri_parse_scheme (uri_string, p - uri_string);
 		uri_string = p + 1;
 	}
 
@@ -762,6 +762,22 @@ soup_uri_uses_default_port (SoupURI *uri)
  **/
 
 /**
+ * soup_uri_get_scheme:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's scheme.
+ *
+ * Return value: @uri's scheme.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_scheme (SoupURI *uri)
+{
+	return uri->scheme;
+}
+
+/**
  * soup_uri_set_scheme:
  * @uri: a #SoupURI
  * @scheme: the URI scheme
@@ -772,8 +788,24 @@ soup_uri_uses_default_port (SoupURI *uri)
 void
 soup_uri_set_scheme (SoupURI *uri, const char *scheme)
 {
-	uri->scheme = soup_uri_get_scheme (scheme, strlen (scheme));
+	uri->scheme = soup_uri_parse_scheme (scheme, strlen (scheme));
 	uri->port = soup_scheme_default_port (uri->scheme);
+}
+
+/**
+ * soup_uri_get_user:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's user.
+ *
+ * Return value: @uri's user.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_user (SoupURI *uri)
+{
+	return uri->user;
 }
 
 /**
@@ -791,6 +823,22 @@ soup_uri_set_user (SoupURI *uri, const char *user)
 }
 
 /**
+ * soup_uri_get_password:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's password.
+ *
+ * Return value: @uri's password.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_password (SoupURI *uri)
+{
+	return uri->password;
+}
+
+/**
  * soup_uri_set_password:
  * @uri: a #SoupURI
  * @password: the password, or %NULL
@@ -802,6 +850,22 @@ soup_uri_set_password (SoupURI *uri, const char *password)
 {
 	g_free (uri->password);
 	uri->password = g_strdup (password);
+}
+
+/**
+ * soup_uri_get_host:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's host.
+ *
+ * Return value: @uri's host.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_host (SoupURI *uri)
+{
+	return uri->host;
 }
 
 /**
@@ -823,6 +887,22 @@ soup_uri_set_host (SoupURI *uri, const char *host)
 }
 
 /**
+ * soup_uri_get_port:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's port.
+ *
+ * Return value: @uri's port.
+ *
+ * Since: 2.32
+ **/
+guint
+soup_uri_get_port (SoupURI *uri)
+{
+	return uri->port;
+}
+
+/**
  * soup_uri_set_port:
  * @uri: a #SoupURI
  * @port: the port, or 0
@@ -837,6 +917,22 @@ soup_uri_set_port (SoupURI *uri, guint port)
 }
 
 /**
+ * soup_uri_get_path:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's path.
+ *
+ * Return value: @uri's path.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_path (SoupURI *uri)
+{
+	return uri->path;
+}
+
+/**
  * soup_uri_set_path:
  * @uri: a #SoupURI
  * @path: the path
@@ -848,6 +944,22 @@ soup_uri_set_path (SoupURI *uri, const char *path)
 {
 	g_free (uri->path);
 	uri->path = g_strdup (path);
+}
+
+/**
+ * soup_uri_get_query:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's query.
+ *
+ * Return value: @uri's query.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_query (SoupURI *uri)
+{
+	return uri->query;
 }
 
 /**
@@ -901,6 +1013,22 @@ soup_uri_set_query_from_fields (SoupURI    *uri,
 	va_start (args, first_field);
 	uri->query = soup_form_encode_valist (first_field, args);
 	va_end (args);
+}
+
+/**
+ * soup_uri_get_fragment:
+ * @uri: a #SoupURI
+ *
+ * Gets @uri's fragment.
+ *
+ * Return value: @uri's fragment.
+ *
+ * Since: 2.32
+ **/
+const char *
+soup_uri_get_fragment (SoupURI *uri)
+{
+	return uri->fragment;
 }
 
 /**
