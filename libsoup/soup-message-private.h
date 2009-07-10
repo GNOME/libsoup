@@ -31,7 +31,6 @@ typedef struct {
 	gboolean           server_side;
 
 	SoupContentSniffer *sniffer;
-	gboolean           should_sniff_content;
 	gsize              bytes_for_sniffing;
 
 	SoupHTTPVersion    http_version, orig_http_version;

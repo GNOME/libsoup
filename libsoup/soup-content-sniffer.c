@@ -541,7 +541,6 @@ soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniff
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupContentSnifferClass *content_sniffer_class = SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer);
 
-	priv->should_sniff_content = TRUE;
 	priv->bytes_for_sniffing = content_sniffer_class->get_buffer_size (sniffer);
 }
 

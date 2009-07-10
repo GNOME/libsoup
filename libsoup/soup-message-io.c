@@ -18,7 +18,6 @@
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
-#include "soup-uri.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_CLIENT,
@@ -54,10 +53,8 @@ typedef struct {
 	SoupMessageBody      *read_body;
 	goffset               read_length;
 
-	gboolean              acked_content_sniff_decision;
-	gboolean              delay_got_chunks;
-	SoupMessageBody      *delayed_chunk_data;
-	gsize                 delayed_chunk_length;
+	gboolean              need_content_sniffed, need_got_chunk;
+	SoupMessageBody      *sniff_data;
 
 	SoupMessageIOState    write_state;
 	SoupEncoding          write_encoding;
@@ -111,8 +108,8 @@ soup_message_io_cleanup (SoupMessage *msg)
 	if (io->write_chunk)
 		soup_buffer_free (io->write_chunk);
 
-	if (io->delayed_chunk_data)
-		soup_message_body_free (io->delayed_chunk_data);
+	if (io->sniff_data)
+		soup_message_body_free (io->sniff_data);
 
 	g_slice_free (SoupMessageIOData, io);
 }
@@ -217,30 +214,50 @@ io_disconnected (SoupSocket *sock, SoupMessage *msg)
 }
 
 static gboolean
-io_sniff_content (SoupMessage *msg)
+io_handle_sniffing (SoupMessage *msg, gboolean done_reading)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
-	SoupBuffer *sniffed_buffer = soup_message_body_flatten (io->delayed_chunk_data);
+	SoupBuffer *sniffed_buffer;
 	char *sniffed_mime_type;
 	GHashTable *params = NULL;
 
-	io->delay_got_chunks = FALSE;
+	if (!priv->sniffer)
+		return TRUE;
 
-	sniffed_mime_type = soup_content_sniffer_sniff (priv->sniffer, msg, sniffed_buffer, &params);
-	SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-	soup_message_content_sniffed (msg, sniffed_mime_type, params);
-	g_free (sniffed_mime_type);
-	if (params)
-		g_hash_table_destroy (params);
-	SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+	if (!io->sniff_data) {
+		io->sniff_data = soup_message_body_new ();
+		io->need_content_sniffed = TRUE;
+	}
 
-	SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-	soup_message_got_chunk (msg, sniffed_buffer);
-	soup_buffer_free (sniffed_buffer);
-	soup_message_body_free (io->delayed_chunk_data);
-	io->delayed_chunk_data = NULL;
-	SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+	if (io->need_content_sniffed) {
+		if (io->sniff_data->length < priv->bytes_for_sniffing &&
+		    !done_reading)
+			return TRUE;
+
+		io->need_content_sniffed = FALSE;
+		sniffed_buffer = soup_message_body_flatten (io->sniff_data);
+		sniffed_mime_type = soup_content_sniffer_sniff (priv->sniffer, msg, sniffed_buffer, &params);
+
+		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
+		soup_message_content_sniffed (msg, sniffed_mime_type, params);
+		g_free (sniffed_mime_type);
+		if (params)
+			g_hash_table_destroy (params);
+		if (sniffed_buffer)
+			soup_buffer_free (sniffed_buffer);
+		SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+	}
+
+	if (io->need_got_chunk) {
+		io->need_got_chunk = FALSE;
+		sniffed_buffer = soup_message_body_flatten (io->sniff_data);
+
+		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
+		soup_message_got_chunk (msg, sniffed_buffer);
+		soup_buffer_free (sniffed_buffer);
+		SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+	}
 
 	return TRUE;
 }
@@ -332,20 +349,8 @@ read_body_chunk (SoupMessage *msg)
 	GError *error = NULL;
 	SoupBuffer *buffer;
 
-	if (!io->acked_content_sniff_decision) {
-		/* The content sniffer feature decides whether a
-		 * message needs to be sniffed while handling
-		 * got-headers, but the message may be paused in a
-		 * user handler, so we need to make sure the signal is
-		 * emitted, or delay_got_chunks is correctly setup
-		 * here.
-		 */
-		if (priv->should_sniff_content)
-			io->delay_got_chunks = TRUE;
-		else if (priv->sniffer)
-			soup_message_content_sniffed (msg, NULL, NULL);
-		io->acked_content_sniff_decision = TRUE;
-	}
+	if (!io_handle_sniffing (msg, FALSE))
+		return FALSE;
 
 	while (read_to_eof || io->read_length > 0) {
 		if (priv->chunk_allocator) {
@@ -377,24 +382,18 @@ read_body_chunk (SoupMessage *msg)
 
 			io->read_length -= nread;
 
-			if (io->delay_got_chunks) {
-				if (!io->delayed_chunk_data)
-					io->delayed_chunk_data = soup_message_body_new ();
-
-				soup_message_body_append_buffer (io->delayed_chunk_data, buffer);
-				io->delayed_chunk_length += buffer->length;
-
-				/* We already have enough data to perform sniffing, so do it */
-				if (io->delayed_chunk_length > priv->bytes_for_sniffing) {
-					if (!io_sniff_content (msg))
-						return FALSE;
-				}
-			} else {
-				SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-				soup_message_got_chunk (msg, buffer);
-				soup_buffer_free (buffer);
-				SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
+			if (io->need_content_sniffed) {
+				soup_message_body_append_buffer (io->sniff_data, buffer);
+				io->need_got_chunk = TRUE;
+				if (!io_handle_sniffing (msg, FALSE))
+					return FALSE;
+				continue;
 			}
+
+			SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
+			soup_message_got_chunk (msg, buffer);
+			soup_buffer_free (buffer);
+			SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
 			continue;
 		}
 
@@ -742,23 +741,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	guint status;
 
  read_more:
-	/* We have delayed chunks, but are no longer delaying, so this
-	 * means we already sniffed but the message got paused while
-	 * content-sniffed was being handled, in which case we did not
-	 * emit the necessary got-chunk; See also the handling for
-	 * state SOUP_MESSAGE_IO_STATE_BODY in the switch bellow.
-	 */
-	if (io->delayed_chunk_data && !io->delay_got_chunks) {
-		SoupBuffer *sniffed_buffer = soup_message_body_flatten (io->delayed_chunk_data);
-
-		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_got_chunk (msg, sniffed_buffer);
-		soup_buffer_free (sniffed_buffer);
-		soup_message_body_free (io->delayed_chunk_data);
-		io->delayed_chunk_data = NULL;
-		SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
-	}
-
 	switch (io->read_state) {
 	case SOUP_MESSAGE_IO_STATE_NOT_STARTED:
 		return;
@@ -866,35 +848,19 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			return;
 
 	got_body:
-		/* If we end up returning, read_state needs to be set
-		 * to IO_STATE_BODY, and read_length must be 0; since
-		 * we may be coming from STATE_TRAILERS, or may be
-		 * doing a read-to-eof, we sanitize these here.
-		 */
-		io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
-		io->read_length = 0;
-
-		/* A chunk of data may have been read and the emission
-		 * of got_chunk delayed because we wanted to wait for
-		 * more chunks to arrive, for doing content sniffing,
-		 * but the body was too small, so we need to check if
-		 * an emission is in order here, along with the
-		 * sniffing, if we haven't done it yet, of course.
-		 */
-		if (io->delayed_chunk_data) {
-			if (io->delay_got_chunks) {
-				if (!io_sniff_content (msg))
-					return;
-			} else {
-				SoupBuffer *sniffed_buffer = soup_message_body_flatten (io->delayed_chunk_data);
-
-				SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-				soup_message_got_chunk (msg, sniffed_buffer);
-				soup_buffer_free (sniffed_buffer);
-				soup_message_body_free (io->delayed_chunk_data);
-				io->delayed_chunk_data = NULL;
-				SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
+		if (!io_handle_sniffing (msg, TRUE)) {
+			/* If the message was paused (as opposed to
+			 * cancelled), we need to make sure we wind up
+			 * back here when it's unpaused, even if it
+			 * was doing a chunked or EOF-terminated read
+			 * before.
+			 */
+			if (io == priv->io_data) {
+				io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
+				io->read_encoding = SOUP_ENCODING_CONTENT_LENGTH;
+				io->read_length = 0;
 			}
+			return;
 		}
 
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
@@ -999,9 +965,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
-
-	if (priv->should_sniff_content)
-		io->delay_got_chunks = TRUE;
 
 	if (priv->io_data)
 		soup_message_io_cleanup (msg);
