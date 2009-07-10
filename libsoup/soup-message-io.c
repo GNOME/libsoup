@@ -866,6 +866,14 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			return;
 
 	got_body:
+		/* If we end up returning, read_state needs to be set
+		 * to IO_STATE_BODY, and read_length must be 0; since
+		 * we may be coming from STATE_TRAILERS, or may be
+		 * doing a read-to-eof, we sanitize these here.
+		 */
+		io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
+		io->read_length = 0;
+
 		/* A chunk of data may have been read and the emission
 		 * of got_chunk delayed because we wanted to wait for
 		 * more chunks to arrive, for doing content sniffing,
@@ -885,16 +893,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 				soup_buffer_free (sniffed_buffer);
 				soup_message_body_free (io->delayed_chunk_data);
 				io->delayed_chunk_data = NULL;
-
-				/* If we end up returning, read_state
-				 * needs to be set to IO_STATE_BODY,
-				 * and read_length must be 0; since we
-				 * may be coming from STATE_TRAILERS,
-				 * or may be doing a read-to-eof, we
-				 * sanitize these here.
-				 */
-				io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
-				io->read_length = 0;
 				SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED;
 			}
 		}

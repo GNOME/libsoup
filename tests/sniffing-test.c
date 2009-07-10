@@ -24,6 +24,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	char *chunked;
 	char *contents;
 	gsize length;
+	gboolean use_chunked_encoding = FALSE;
 
 	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -34,9 +35,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (query) {
 		chunked = g_hash_table_lookup (query, "chunked");
-		if (chunked && g_str_equal (chunked, "yes"))
+		if (chunked && g_str_equal (chunked, "yes")) {
 			soup_message_headers_set_encoding (msg->response_headers,
 							   SOUP_ENCODING_CHUNKED);
+			use_chunked_encoding = TRUE;
+		}
 	}
 
 	if (!strcmp (path, "/mbox")) {
@@ -160,6 +163,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Content-Type", "text/plain");
 	}
 
+	if (use_chunked_encoding)
+		soup_message_body_complete (msg->response_body);
 }
 
 static gboolean
@@ -244,6 +249,8 @@ do_signals_test (gboolean should_content_sniff,
 
 	if (chunked_encoding)
 		soup_uri_set_query (uri, "chunked=yes");
+
+	soup_message_set_uri (msg, uri);
 
 	soup_message_body_set_accumulate (msg->response_body, should_accumulate);
 
