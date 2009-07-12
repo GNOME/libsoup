@@ -33,6 +33,7 @@
 
 typedef void (*SoupHeaderSetter) (SoupMessageHeaders *, const char *);
 static const char *intern_header_name (const char *name, SoupHeaderSetter *setter);
+static void clear_special_headers (SoupMessageHeaders *hdrs);
 
 typedef struct {
 	const char *name;
@@ -98,7 +99,6 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 		g_array_free (hdrs->array, TRUE);
 		if (hdrs->concat)
 			g_hash_table_destroy (hdrs->concat);
-		g_free (hdrs->content_type);
 		g_slice_free (SoupMessageHeaders, hdrs);
 	}
 }
@@ -137,7 +137,7 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
 	if (hdrs->concat)
 		g_hash_table_remove_all (hdrs->concat);
 
-	hdrs->encoding = -1;
+	clear_special_headers (hdrs);
 }
 
 /**
@@ -548,6 +548,22 @@ intern_header_name (const char *name, SoupHeaderSetter *setter)
 	return interned;
 }
 
+static void
+clear_special_headers (SoupMessageHeaders *hdrs)
+{
+	SoupHeaderSetter setter;
+	GHashTableIter iter;
+	gpointer key, value;
+
+	/* Make sure header_setters has been initialized */
+	intern_header_name ("", NULL);
+
+	g_hash_table_iter_init (&iter, header_setters);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		setter = value;
+		setter (hdrs, NULL);
+	}
+}
 
 /* Specific headers */
 
