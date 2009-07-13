@@ -75,6 +75,7 @@ typedef struct {
 	GSource        *watch_src;
 	GSource        *read_src, *write_src;
 	GSource        *read_timeout, *write_timeout;
+	GSource        *connect_timeout;
 	GByteArray     *read_buf;
 
 	GMutex *iolock, *addrlock;
@@ -156,6 +157,8 @@ finalize (GObject *object)
 
 	if (priv->watch_src)
 		g_source_destroy (priv->watch_src);
+	if (priv->connect_timeout)
+		g_source_destroy (priv->connect_timeout);
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 
@@ -604,6 +607,10 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	/* Remove the watch now in case we don't return immediately */
 	g_source_destroy (priv->watch_src);
 	priv->watch_src = NULL;
+	if (priv->connect_timeout) {
+		g_source_destroy (priv->connect_timeout);
+		priv->connect_timeout = NULL;
+	}
 
 	if ((condition & ~(G_IO_IN | G_IO_OUT)) ||
 	    (getsockopt (priv->sockfd, SOL_SOCKET, SO_ERROR,
@@ -611,6 +618,22 @@ connect_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 	    error)
 		disconnect_internal (priv);
 
+	return idle_connect_result (sacd);
+}
+
+static gboolean
+connect_timeout (gpointer data)
+{
+	SoupSocketAsyncConnectData *sacd = data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sacd->sock);
+
+	/* Remove the watch now in case we don't return immediately */
+	g_source_destroy (priv->watch_src);
+	priv->watch_src = NULL;
+	g_source_destroy (priv->connect_timeout);
+	priv->connect_timeout = NULL;
+
+	disconnect_internal (priv);
 	return idle_connect_result (sacd);
 }
 
@@ -731,6 +754,12 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 					   G_IO_PRI | G_IO_ERR |
 					   G_IO_HUP | G_IO_NVAL,
 					   connect_watch, sacd);
+		if (priv->timeout) {
+			priv->connect_timeout =
+				soup_add_timeout (priv->async_context,
+						  priv->timeout * 1000,
+						  connect_timeout, sacd);
+		}
 		if (cancellable) {
 			sacd->cancel_id =
 				g_signal_connect (cancellable, "cancelled",
