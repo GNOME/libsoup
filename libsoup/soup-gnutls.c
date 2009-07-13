@@ -408,7 +408,7 @@ soup_gnutls_push_func (gnutls_transport_ptr_t transport_data,
 
 	nwrote = send (chan->sockfd, buf, buflen, 0);
 #ifdef G_OS_WIN32
-	chan->eagain = (nread == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
+	chan->eagain = (nwrote == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
 #else
 	chan->eagain = (nwrote == -1 && errno == EAGAIN);
 #endif
