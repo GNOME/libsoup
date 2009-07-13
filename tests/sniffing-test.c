@@ -256,7 +256,7 @@ do_signals_test (gboolean should_content_sniff,
 	char *contents;
 	gsize length;
 	GError *error = NULL;
-	SoupBuffer *body;
+	SoupBuffer *body = NULL;
 
 	debug_printf (1, "do_signals_test(%ssniff, %spause, %saccumulate, %schunked, %sempty)\n",
 		      should_content_sniff ? "" : "!",
@@ -324,17 +324,18 @@ do_signals_test (gboolean should_content_sniff,
 	} else if (msg->response_body)
 		body = soup_message_body_flatten (msg->response_body);
 
-	if (body->length != length) {
+	if (body && body->length != length) {
 		debug_printf (1, "  lengths do not match\n");
 		errors++;
 	}
 
-	if (memcmp (body->data, contents, length)) {
+	if (body && memcmp (body->data, contents, length)) {
 		debug_printf (1, "  downloaded data does not match\n");
 		errors++;
 	}
 
-	soup_buffer_free (body);
+	if (body)
+		soup_buffer_free (body);
 
 	soup_uri_free (uri);
 	g_object_unref (msg);
