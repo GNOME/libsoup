@@ -390,8 +390,12 @@ soup_gnutls_pull_func (gnutls_transport_ptr_t transport_data,
 	SoupGNUTLSChannel *chan = transport_data;
 	ssize_t nread;
 
-	nread = read (chan->sockfd, buf, buflen);
+	nread = recv (chan->sockfd, buf, buflen, 0);
+#ifdef G_OS_WIN32
+	chan->eagain = (nread == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
+#else
 	chan->eagain = (nread == -1 && errno == EAGAIN);
+#endif
 	return nread;
 }
 
@@ -402,8 +406,12 @@ soup_gnutls_push_func (gnutls_transport_ptr_t transport_data,
 	SoupGNUTLSChannel *chan = transport_data;
 	ssize_t nwrote;
 
-	nwrote = write (chan->sockfd, buf, buflen);
+	nwrote = send (chan->sockfd, buf, buflen, 0);
+#ifdef G_OS_WIN32
+	chan->eagain = (nread == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
+#else
 	chan->eagain = (nwrote == -1 && errno == EAGAIN);
+#endif
 	return nwrote;
 }
 
