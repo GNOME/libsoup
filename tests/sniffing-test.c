@@ -50,7 +50,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			contents = g_strdup ("");
 			length = 0;
 		} else {
-			g_file_get_contents ("resources/mbox",
+			g_file_get_contents (SRCDIR "/resources/mbox",
 					     &contents, &length,
 					     &error);
 		}
@@ -67,7 +67,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/text_or_binary/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf ("resources/%s", base_name);
+		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
 		g_file_get_contents (file_name,
 				     &contents, &length,
@@ -88,7 +88,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/unknown/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf ("resources/%s", base_name);
+		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
 		g_file_get_contents (file_name,
 				     &contents, &length,
@@ -112,7 +112,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		char *ptr;
 
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf ("resources/%s", base_name);
+		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
 		g_file_get_contents (file_name,
 				     &contents, &length,
@@ -138,7 +138,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/multiple_headers/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf ("resources/%s", base_name);
+		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
 		g_file_get_contents (file_name,
 				     &contents, &length,
@@ -306,7 +306,7 @@ do_signals_test (gboolean should_content_sniff,
 		contents = g_strdup ("");
 		length = 0;
 	} else {
-		g_file_get_contents ("resources/mbox",
+		g_file_get_contents (SRCDIR "/resources/mbox",
 				     &contents, &length,
 				     &error);
 	}

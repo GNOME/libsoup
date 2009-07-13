@@ -98,15 +98,23 @@ TESTS =			\
 	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
-EXTRA_DIST =		\
-	libsoup.supp	\
-	test-cert.pem	\
-	test-key.pem	\
-	htdigest	\
-	htpasswd	\
-	httpd.conf.in	\
-	index.txt	\
-	xmlrpc-server.php
+SNIFFING_FILES =		\
+	resources/atom.xml	\
+	resources/home.gif	\
+	resources/mbox		\
+	resources/rss20.xml	\
+	resources/test.html
+
+EXTRA_DIST =			\
+	htdigest		\
+	htpasswd		\
+	httpd.conf.in		\
+	index.txt		\
+	libsoup.supp		\
+	test-cert.pem		\
+	test-key.pem		\
+	xmlrpc-server.php	\
+	$(SNIFFING_FILES)
 
 if MISSING_REGRESSION_TEST_PACKAGES
 check-local: check-TESTS
