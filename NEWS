@@ -1,3 +1,25 @@
+Changes in libsoup from 2.27.2 to 2.27.4:
+
+	* Added SoupContentSniffer and the "content-sniffed" signal on
+          SoupMessage, to do Content-Type sniffing per the HTML5 /
+          draft-abarth-mime-sniff algorithm. [#572589, Gustavo Noronha
+          Silva]
+
+	* Updated the earlier SoupSession timeout fixes ([#574414],
+          [#578928]) so that async connect() also times out [#588177,
+          Mark Nauwelaerts] and SSL works on Windows again [#587910,
+          Fridrich Strba].
+
+	* Fixed the behavior on a 301 response to a POST to match
+          real-world usage rather than what the spec says. (We were
+          doing the right thing on 302 and 303, but had missed 301.)
+	  [#586692]
+
+	* Changed configure so that if GNUTLS isn't found then it
+	  errors out, rather than silently building an SSL-less
+	  libsoup. Configure with --disable-ssl if you actually don't
+	  want SSL. [#584955]
+
 Changes in libsoup from 2.27.1 to 2.27.2:
 
 	* Replaced SoupProxyResolver with SoupProxyURIResolver, which
