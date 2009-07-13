@@ -413,17 +413,27 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 	int resource_length = MIN (512, buffer->length);
 	int pos = 0;
 
+	if (resource_length < 3)
+		goto text_html;
+
 	/* Skip a leading UTF-8 BOM */
 	if (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF)
 		pos = 3;
 
  look_for_tag:
+	if (pos > resource_length)
+		goto text_html;
+
 	/* Skip insignificant white space */
 	while ((resource[pos] == '\x09') ||
 	       (resource[pos] == '\x20') ||
 	       (resource[pos] == '\x0A') ||
-	       (resource[pos] == '\x0D'))
+	       (resource[pos] == '\x0D')) {
 		pos++;
+
+		if (pos > resource_length)
+			goto text_html;
+	}
 
 	/* != < */
 	if (resource[pos] != '\x3C')
@@ -431,24 +441,40 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 
 	pos++;
 
+	if ((pos + 2) > resource_length)
+		goto text_html;
+
 	/* Skipping comments */
 	if ((resource[pos] == '\x2D') ||
 	    (resource[pos+1] == '\x2D') ||
 	    (resource[pos+2] == '\x3E')) {
 		pos = pos + 3;
 
+		if ((pos + 2) > resource_length)
+			goto text_html;
+
 		while ((resource[pos] != '\x2D') &&
 		       (resource[pos+1] != '\x2D') &&
-		       (resource[pos+2] != '\x3E'))
+		       (resource[pos+2] != '\x3E')) {
 			pos++;
+
+			if ((pos + 2) > resource_length)
+				goto text_html;
+		}
 
 		goto look_for_tag;
 	}
+
+	if (pos > resource_length)
+		goto text_html;
 
 	/* == ! */
 	if (resource[pos] == '\x21') {
 		do {
 			pos++;
+
+			if (pos > resource_length)
+				goto text_html;
 		} while (resource[pos] != '\x3E');
 
 		pos++;
@@ -457,6 +483,9 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 	} else if (resource[pos] == '\x3F') { /* ? */
 		do {
 			pos++;
+
+			if ((pos + 1) > resource_length)
+				goto text_html;
 		} while ((resource[pos] != '\x3F') &&
 			 (resource[pos+1] != '\x3E'));
 
@@ -465,10 +494,16 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 		goto look_for_tag;
 	}
 
+	if ((pos + 2) > resource_length)
+		goto text_html;
+
 	if ((resource[pos] == '\x72') &&
 	    (resource[pos+1] == '\x73') &&
 	    (resource[pos+2] == '\x73'))
 		return g_strdup ("application/rss+xml");
+
+	if ((pos + 3) > resource_length)
+		goto text_html;
 
 	if ((resource[pos] == '\x66') &&
 	    (resource[pos+1] == '\x65') &&
@@ -476,6 +511,7 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 	    (resource[pos+3] == '\x64'))
 		return g_strdup ("application/atom+xml");
 
+ text_html:
 	return g_strdup ("text/html");
 }
 
