@@ -537,6 +537,10 @@ soup_ssl_get_client_credentials (const char *ca_file)
 	creds = g_slice_new0 (SoupSSLCredentials);
 	gnutls_certificate_allocate_credentials (&creds->creds);
 
+	/* http://bugzilla.gnome.org/show_bug.cgi?id=589323 */
+	gnutls_certificate_set_verify_flags (creds->creds,
+					     GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT);
+
 	if (ca_file) {
 		creds->have_ca_file = TRUE;
 		status = gnutls_certificate_set_x509_trust_file (
