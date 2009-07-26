@@ -76,6 +76,8 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_ADD_FEATURE            "add-feature"
 #define SOUP_SESSION_ADD_FEATURE_BY_TYPE    "add-feature-by-type"
 #define SOUP_SESSION_REMOVE_FEATURE_BY_TYPE "remove-feature-by-type"
+#define SOUP_SESSION_HTTP_ALIASES       "http-aliases"
+#define SOUP_SESSION_HTTPS_ALIASES      "https-aliases"
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
