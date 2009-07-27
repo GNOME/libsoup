@@ -334,25 +334,31 @@ soup_message_body_new (void)
  * @body: a #SoupMessageBody
  * @accumulate: whether or not to accumulate body chunks in @body
  *
- * Sets or clears the accumulate flag on @body. (The default value
- * is %TRUE.)
+ * Sets or clears the accumulate flag on @body. (The default value is
+ * %TRUE.) If set to %FALSE, @body's %data field will not be filled in
+ * after the body is fully sent/received, and the chunks that make up
+ * @body may be discarded when they are no longer needed.
  *
- * If you set this flag to %FALSE on an "incoming" message body (that
- * is, the %response_body of a client-side message, or %request_body
- * of a server-side message), this will cause each chunk of the body
- * to be discarded after its corresponding #SoupMessage::got_chunk
- * signal is emitted. (This is equivalent to setting the deprecated
- * %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the message.)
+ * In particular, if you set this flag to %FALSE on an "incoming"
+ * message body (that is, the %response_body of a client-side message,
+ * or %request_body of a server-side message), this will cause each
+ * chunk of the body to be discarded after its corresponding
+ * #SoupMessage::got_chunk signal is emitted. (This is equivalent to
+ * setting the deprecated %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the
+ * message.)
  *
- * If you set this flag to %FALSE on an "outgoing" message body (the
- * %request_body of a client-side message, or %response_body of a
- * server-side message), it will cause each chunk of the body to be
+ * If you set this flag to %FALSE on the %response_body of a
+ * server-side message, it will cause each chunk of the body to be
  * discarded after its corresponding #SoupMessage::wrote_chunk signal
  * is emitted.
  *
- * In either case, @body's %data field will not be filled in after the
- * body is fully sent/received, since the body data will no longer be
- * available
+ * (If you set the flag to %FALSE on the %request_body of a
+ * client-side message, it will block the accumulation of chunks into
+ * @body's %data field, but it will not cause the chunks to be
+ * discarded after being written like in the server-side
+ * %response_body case, because the request body needs to be kept
+ * around in case the request needs to be sent a second time due to
+ * redirection or authentication.)
  *
  * Since: 2.4.1
  **/

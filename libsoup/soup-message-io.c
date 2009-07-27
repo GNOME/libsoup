@@ -632,7 +632,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_chunk->length, TRUE))
 			return;
 
-		soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
+		if (io->mode == SOUP_MESSAGE_IO_SERVER)
+			soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
 		io->write_body_offset += io->write_chunk->length;
 		soup_buffer_free (io->write_chunk);
 		io->write_chunk = NULL;
@@ -675,7 +676,8 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 				 io->write_chunk->length, TRUE))
 			return;
 
-		soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
+		if (io->mode == SOUP_MESSAGE_IO_SERVER)
+			soup_message_body_wrote_chunk (io->write_body, io->write_chunk);
 		soup_buffer_free (io->write_chunk);
 		io->write_chunk = NULL;
 
