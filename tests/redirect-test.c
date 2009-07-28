@@ -22,85 +22,89 @@ typedef struct {
 
 static struct {
 	TestRequest requests[3];
+	guint final_status;
 } tests[] = {
 	/* A redirecty response to a GET or HEAD should cause a redirect */
 
 	{ { { "GET", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "GET", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "GET", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "GET", "/307", 307 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "HEAD", "/301", 301 },
 	    { "HEAD", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "HEAD", "/302", 302 },
 	    { "HEAD", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	/* 303 is a nonsensical response to HEAD, so we don't care
 	 * what happens there.
 	 */
 	{ { { "HEAD", "/307", 307 },
 	    { "HEAD", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 
 	/* A non-redirecty response to a GET or HEAD should not */
 
 	{ { { "GET", "/300", 300 },
-	    { NULL } } },
+	    { NULL } }, 300 },
 	{ { { "GET", "/304", 304 },
-	    { NULL } } },
+	    { NULL } }, 304 },
 	{ { { "GET", "/305", 305 },
-	    { NULL } } },
+	    { NULL } }, 305 },
 	{ { { "GET", "/306", 306 },
-	    { NULL } } },
+	    { NULL } }, 306 },
 	{ { { "GET", "/308", 308 },
-	    { NULL } } },
+	    { NULL } }, 308 },
 	{ { { "HEAD", "/300", 300 },
-	    { NULL } } },
+	    { NULL } }, 300 },
 	{ { { "HEAD", "/304", 304 },
-	    { NULL } } },
+	    { NULL } }, 304 },
 	{ { { "HEAD", "/305", 305 },
-	    { NULL } } },
+	    { NULL } }, 305 },
 	{ { { "HEAD", "/306", 306 },
-	    { NULL } } },
+	    { NULL } }, 306 },
 	{ { { "HEAD", "/308", 308 },
-	    { NULL } } },
+	    { NULL } }, 308 },
 	
 	/* Test double-redirect */
 
 	{ { { "GET", "/301/302", 301 },
 	    { "GET", "/302", 302 },
-	    { "GET", "/", 200 } } },
+	    { "GET", "/", 200 } }, 200 },
 	{ { { "HEAD", "/301/302", 301 },
 	    { "HEAD", "/302", 302 },
-	    { "HEAD", "/", 200 } } },
+	    { "HEAD", "/", 200 } }, 200 },
 
 	/* POST should only automatically redirect on 301, 302 and 303 */
 
 	{ { { "POST", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "POST", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "POST", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } } },
+	    { NULL } }, 200 },
 	{ { { "POST", "/307", 307 },
-	    { NULL } } },
+	    { NULL } }, 307 },
 
-	/* Test behavior with recoverably-bad Location header
-	 */
+	/* Test behavior with recoverably-bad Location header */
 	{ { { "GET", "/bad", 302 },
 	    { "GET", "/bad%20with%20spaces", 200 },
-	    { NULL } } }
+	    { NULL } }, 200 },
+
+	/* Test behavior with irrecoverably-bad Location header */
+	{ { { "GET", "/bad-no-host", 302 },
+	    { NULL } }, SOUP_STATUS_MALFORMED }
 };
 static const int n_tests = G_N_ELEMENTS (tests);
 
@@ -183,6 +187,13 @@ do_test (SoupSession *session, SoupURI *base_uri, int n)
 			  G_CALLBACK (restarted), &req);
 
 	soup_session_send_message (session, msg);
+
+	if (msg->status_code != tests[n].final_status) {
+		debug_printf (1, "    - Expected final status of %d, got %d !\n",
+			      tests[n].final_status, msg->status_code);
+		errors++;
+	}
+
 	g_object_unref (msg);
 	debug_printf (2, "\n");
 }
@@ -220,6 +231,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_replace (msg->response_headers,
 						      "Location",
 						      "/bad with spaces");
+		} else if (!strcmp (path, "/bad-no-host")) {
+			soup_message_set_status (msg, SOUP_STATUS_FOUND);
+			soup_message_headers_replace (msg->response_headers,
+						      "Location",
+						      "about:blank");
 		} else if (!strcmp (path, "/bad with spaces"))
 			soup_message_set_status (msg, SOUP_STATUS_OK);
 		else
