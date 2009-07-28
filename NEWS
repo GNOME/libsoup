@@ -1,3 +1,18 @@
+Changes in libsoup from 2.27.4 to 2.27.5:
+
+	* Fixed a crash when a web server redirected a request to a
+          non-http URI (eg, "about:blank"). [#528882]
+
+	* Fixed a hang when trying to create an attachment on certain
+          bugzilla installations from epiphany. [#584645]
+
+	* Fixed verification of V1 TLS certificates [#589323, Patrick
+          Ohly]
+
+	* Fixed compile problems on Windows (in the ssl code), and on
+          Linux (when the most recent version of gtk-doc was
+          installed).
+
 Changes in libsoup from 2.27.2 to 2.27.4:
 
 	* Added SoupContentSniffer and the "content-sniffed" signal on
