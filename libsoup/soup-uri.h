@@ -33,7 +33,7 @@ GType     soup_uri_get_type          (void);
 
 #define SOUP_URI_SCHEME_HTTP  _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_HTTP, "http")
 #define SOUP_URI_SCHEME_HTTPS _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_HTTPS, "https")
-extern const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
+extern gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 
 SoupURI  *soup_uri_new_with_base         (SoupURI    *base,
 					  const char *uri_string);

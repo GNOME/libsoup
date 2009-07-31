@@ -14,21 +14,21 @@
 /* Explicit assignment to NULL is to help the OS X linker not be
  * stupid. #522957
  */
-const char *_SOUP_METHOD_CONNECT = NULL;
-const char *_SOUP_METHOD_COPY = NULL;
-const char *_SOUP_METHOD_DELETE = NULL;
-const char *_SOUP_METHOD_GET = NULL;
-const char *_SOUP_METHOD_HEAD = NULL;
-const char *_SOUP_METHOD_LOCK = NULL;
-const char *_SOUP_METHOD_MKCOL = NULL;
-const char *_SOUP_METHOD_MOVE = NULL;
-const char *_SOUP_METHOD_OPTIONS = NULL;
-const char *_SOUP_METHOD_POST = NULL;
-const char *_SOUP_METHOD_PROPFIND = NULL;
-const char *_SOUP_METHOD_PROPPATCH = NULL;
-const char *_SOUP_METHOD_PUT = NULL;
-const char *_SOUP_METHOD_TRACE = NULL;
-const char *_SOUP_METHOD_UNLOCK = NULL;
+gpointer _SOUP_METHOD_CONNECT = NULL;
+gpointer _SOUP_METHOD_COPY = NULL;
+gpointer _SOUP_METHOD_DELETE = NULL;
+gpointer _SOUP_METHOD_GET = NULL;
+gpointer _SOUP_METHOD_HEAD = NULL;
+gpointer _SOUP_METHOD_LOCK = NULL;
+gpointer _SOUP_METHOD_MKCOL = NULL;
+gpointer _SOUP_METHOD_MOVE = NULL;
+gpointer _SOUP_METHOD_OPTIONS = NULL;
+gpointer _SOUP_METHOD_POST = NULL;
+gpointer _SOUP_METHOD_PROPFIND = NULL;
+gpointer _SOUP_METHOD_PROPPATCH = NULL;
+gpointer _SOUP_METHOD_PUT = NULL;
+gpointer _SOUP_METHOD_TRACE = NULL;
+gpointer _SOUP_METHOD_UNLOCK = NULL;
 
 /**
  * SOUP_METHOD_OPTIONS:

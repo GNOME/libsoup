@@ -95,7 +95,7 @@ static void append_uri_encoded (GString *str, const char *in, const char *extra_
 static char *uri_decoded_copy (const char *str, int length);
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra, gboolean fixup);
 
-const char *_SOUP_URI_SCHEME_HTTP, *_SOUP_URI_SCHEME_HTTPS;
+gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 
 static inline const char *
 soup_uri_get_scheme (const char *scheme, int len)

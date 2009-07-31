@@ -33,7 +33,7 @@ guint              soup_str_case_hash        (gconstpointer key);
 gboolean           soup_str_case_equal       (gconstpointer v1,
 					      gconstpointer v2);
 
-#define _SOUP_ATOMIC_INTERN_STRING(variable, value) (g_once_init_enter ((gsize *)&variable) ? (g_once_init_leave ((gsize *)&variable, GPOINTER_TO_SIZE (g_intern_static_string (value))), variable) : variable)
+#define _SOUP_ATOMIC_INTERN_STRING(variable, value) (g_atomic_pointer_get (&(variable)) ? (variable) : (g_atomic_pointer_set (&(variable), (gpointer)g_intern_static_string (value)), (variable)))
 
 /* SSL stuff */
 
