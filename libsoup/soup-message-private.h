@@ -39,6 +39,8 @@ typedef struct {
 	SoupAddress       *addr;
 
 	SoupAuth          *auth, *proxy_auth;
+
+	GSList            *disabled_features;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
@@ -94,4 +96,6 @@ void                soup_message_io_pause       (SoupMessage          *msg);
 void                soup_message_io_unpause     (SoupMessage          *msg);
 gboolean            soup_message_io_in_progress (SoupMessage          *msg);
 
+gboolean soup_message_disables_feature (SoupMessage *msg,
+					gpointer     feature);
 #endif /* SOUP_MESSAGE_PRIVATE_H */

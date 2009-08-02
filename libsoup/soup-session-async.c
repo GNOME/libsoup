@@ -317,7 +317,8 @@ run_queue (SoupSessionAsync *sa)
 		    soup_message_io_in_progress (msg))
 			continue;
 
-		if (proxy_resolver && !item->resolved_proxy_addr) {
+		if (proxy_resolver && !item->resolved_proxy_addr &&
+		    !soup_message_disables_feature (item->msg, proxy_resolver)) {
 			resolve_proxy_addr (item, proxy_resolver);
 			continue;
 		}

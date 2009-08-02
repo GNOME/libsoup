@@ -343,15 +343,12 @@ do_signals_test (gboolean should_content_sniff,
 }
 
 static void
-sniffing_content_sniffed (SoupMessage *msg, char *content_type, GHashTable *params, gpointer data)
+sniffing_content_sniffed (SoupMessage *msg, const char *content_type,
+			  GHashTable *params, gpointer data)
 {
-	char *expected_type = (char*)data;
+	char **sniffed_type = (char **)data;
 
-	if (strcmp (content_type, expected_type)) {
-		debug_printf (1, "  sniffing failed! expected %s, got %s\n",
-			      expected_type, content_type);
-		errors++;
-	}
+	*sniffed_type = g_strdup (content_type);
 }
 
 static void
@@ -360,18 +357,60 @@ test_sniffing (const char *path, const char *expected_type)
 	SoupURI *uri = soup_uri_new_with_base (base_uri, path);
 	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
 	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+	char *sniffed_type = NULL;
 
 	debug_printf (1, "test_sniffing(\"%s\", \"%s\")\n", path, expected_type);
 
-	g_object_connect (msg,
-			  "signal::content_sniffed", sniffing_content_sniffed, expected_type,
-			  NULL);
+	g_signal_connect (msg, "content-sniffed",
+			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
 	g_object_ref (msg);
 
 	soup_session_queue_message (session, msg, finished, loop);
 
 	g_main_loop_run (loop);
+
+	if (!sniffed_type) {
+		debug_printf (1, "  message was not sniffed!\n");
+		errors++;
+	} else if (strcmp (sniffed_type, expected_type) != 0) {
+		debug_printf (1, "  sniffing failed! expected %s, got %s\n",
+			      expected_type, sniffed_type);
+		errors++;
+	}
+	g_free (sniffed_type);
+
+	soup_uri_free (uri);
+	g_object_unref (msg);
+	g_main_loop_unref (loop);
+}
+
+static void
+test_disabled (const char *path)
+{
+	SoupURI *uri = soup_uri_new_with_base (base_uri, path);
+	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
+	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+	char *sniffed_type = NULL;
+
+	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
+
+	debug_printf (1, "test_disabled(\"%s\")\n", path);
+
+	g_signal_connect (msg, "content-sniffed",
+			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
+
+	g_object_ref (msg);
+
+	soup_session_queue_message (session, msg, finished, loop);
+
+	g_main_loop_run (loop);
+
+	if (sniffed_type) {
+		debug_printf (1, "  message was sniffed!\n");
+		errors++;
+		g_free (sniffed_type);
+	}
 
 	soup_uri_free (uri);
 	g_object_unref (msg);
@@ -473,6 +512,10 @@ main (int argc, char **argv)
 	/* The spec tells us to only use the last Content-Type header */
 
 	test_sniffing ("/multiple_headers/home.gif", "image/gif");
+
+	/* Test that disabling the sniffer works correctly */
+
+	test_disabled ("/text_or_binary/home.gif");
 
 	soup_uri_free (base_uri);
 

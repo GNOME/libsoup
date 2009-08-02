@@ -10,6 +10,7 @@
 #endif
 
 #include "soup-session-feature.h"
+#include "soup-message-private.h"
 
 /**
  * SECTION:soup-session-feature
@@ -88,6 +89,9 @@ weak_notify_unref (gpointer feature, GObject *ex_object)
 static void
 request_queued (SoupSession *session, SoupMessage *msg, gpointer feature)
 {
+	if (soup_message_disables_feature (msg, feature))
+		return;
+
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
 		request_queued (feature, session, msg);
 }
@@ -96,6 +100,9 @@ static void
 request_started (SoupSession *session, SoupMessage *msg,
 		 SoupSocket *socket, gpointer feature)
 {
+	if (soup_message_disables_feature (msg, feature))
+		return;
+
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
 		request_started (feature, session, msg, socket);
 }
@@ -103,6 +110,9 @@ request_started (SoupSession *session, SoupMessage *msg,
 static void
 request_unqueued (SoupSession *session, SoupMessage *msg, gpointer feature)
 {
+	if (soup_message_disables_feature (msg, feature))
+		return;
+
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->
 		request_unqueued (feature, session, msg);
 }

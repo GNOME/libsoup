@@ -146,6 +146,9 @@ void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 						 gpointer           user_data,
 						 GDestroyNotify     destroy_notify);
 
+void           soup_message_disable_feature     (SoupMessage       *msg,
+						 GType              feature_type);
+
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
 void soup_message_wrote_chunk         (SoupMessage *msg);

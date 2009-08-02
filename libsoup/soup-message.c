@@ -166,6 +166,8 @@ finalize (GObject *object)
 	if (priv->proxy_auth)
 		g_object_unref (priv->proxy_auth);
 
+	g_slist_free (priv->disabled_features);
+
 	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);
 	soup_message_body_free (msg->response_body);
@@ -1600,4 +1602,54 @@ soup_message_set_chunk_allocator (SoupMessage *msg,
 	priv->chunk_allocator         = allocator;
 	priv->chunk_allocator_data    = user_data;
 	priv->chunk_allocator_dnotify = destroy_notify;
+}
+
+/**
+ * soup_message_disable_feature:
+ * @msg: a #SoupMessage
+ * @feature_type: the #GType of a #SoupSessionFeature
+ *
+ * This disables the actions of #SoupSessionFeature<!-- -->s with the
+ * given @feature_type (or a subclass of that type) on @msg, so that
+ * @msg is processed as though the feature(s) hadn't been added to the
+ * session. Eg, passing #SOUP_TYPE_PROXY_RESOLVER for @feature_type
+ * will disable proxy handling and cause @msg to be sent directly to
+ * the indicated origin server, regardless of system proxy
+ * configuration.
+ *
+ * You must call this before queueing @msg on a session; calling it on
+ * a message that has already been queued is undefined. In particular,
+ * you cannot call this on a message that is being requeued after a
+ * redirect or authentication.
+ *
+ * Since: 2.28
+ **/
+void
+soup_message_disable_feature (SoupMessage *msg, GType feature_type)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	priv->disabled_features = g_slist_prepend (priv->disabled_features,
+						   GSIZE_TO_POINTER (feature_type));
+}
+
+gboolean
+soup_message_disables_feature (SoupMessage *msg, gpointer feature)
+{
+	SoupMessagePrivate *priv;
+	GSList *f;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	for (f = priv->disabled_features; f; f = f->next) {
+		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, (GType) GPOINTER_TO_SIZE (f->data)))
+			return TRUE;
+	}
+	return FALSE;
 }
