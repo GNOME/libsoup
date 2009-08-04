@@ -56,6 +56,18 @@ parse_response_headers (SoupMessage *req,
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED)
 		return SOUP_STATUS_MALFORMED;
 
+        /* mirror Mozilla here:
+         * (see netwerk/protocol/http/src/nsHttpTransaction.cpp for details)
+         *
+         * HTTP servers have been known to send erroneous Content-Length headers.
+         * So, unless the connection is persistent, we must make allowances for a
+         * possibly invalid Content-Length header. Thus, if NOT persistent, we 
+         * simply accept the whole message.
+         */
+        if (*encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+            !soup_message_is_keepalive (req))
+                *encoding = SOUP_ENCODING_EOF;
+
 	return SOUP_STATUS_OK;
 }
 
