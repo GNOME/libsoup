@@ -40,10 +40,15 @@
  * same handler, just pass "/" (or %NULL) for the path.) Any request
  * that does not match any handler will automatically be returned to
  * the client with a 404 (Not Found) status.
+ *
+ * If you want to handle the special "*" URI (eg, "OPTIONS *"), you
+ * must explicitly register a handler for "*"; the default handler
+ * will not be used for that case.
  * 
  * To add authentication to some or all paths, create an appropriate
  * #SoupAuthDomain (qv), and add it to the server via
- * soup_server_add_auth_domain.
+ * soup_server_add_auth_domain(). (As with handlers, you must
+ * explicitly add "*" to an auth domain if you want it to be covered.)
  * 
  * Additional processing options are available via #SoupServer's
  * signals; Connect to #SoupServer::request-started to be notified
@@ -739,6 +744,8 @@ soup_server_get_handler (SoupServer *server, const char *path)
 		hand = soup_path_map_lookup (priv->handlers, path);
 		if (hand)
 			return hand;
+		if (!strcmp (path, "*"))
+			return NULL;
 	}
 	return priv->default_handler;
 }
@@ -1199,6 +1206,12 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * Adds a handler to @server for requests under @path. See the
  * documentation for #SoupServerCallback for information about
  * how callbacks should behave.
+ *
+ * If @path is %NULL or "/", then this will be the default handler for
+ * all requests that don't have a more specific handler. Note though
+ * that if you want to handle requests to the special "*" URI, you
+ * must explicitly register a handler for "*"; the default handler
+ * will not be used for that case.
  **/
 void
 soup_server_add_handler (SoupServer            *server,
@@ -1213,6 +1226,13 @@ soup_server_add_handler (SoupServer            *server,
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	/* "" was never documented as meaning the same this as "/",
+	 * but it effectively was. We have to special case it now or
+	 * otherwise it would match "*" too.
+	 */
+	if (path && (!*path || !strcmp (path, "/")))
+		path = NULL;
 
 	hand = g_slice_new0 (SoupServerHandler);
 	hand->path       = g_strdup (path);
@@ -1250,7 +1270,7 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (!path) {
+	if (!path || !*path || !strcmp (path, "/")) {
 		if (priv->default_handler) {
 			unregister_handler (priv->default_handler);
 			free_handler (priv->default_handler);

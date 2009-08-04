@@ -56,14 +56,23 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 
 	/* Generate correct context for request */
 	req_host = soup_message_headers_get_one (msg->request_headers, "Host");
+	if (strchr (req_host, '/')) {
+		g_free (req_path);
+		return SOUP_STATUS_BAD_REQUEST;
+	}
 
-	if (*req_path != '/') {
-		/* Check for absolute URI */
+	if (!strcmp (req_path, "*") && req_host) {
+		/* Eg, "OPTIONS * HTTP/1.1" */
+		url = g_strdup_printf ("%s://%s",
+				       soup_socket_is_ssl (sock) ? "https" : "http",
+				       req_host);
+		uri = soup_uri_new (url);
+		if (uri)
+			soup_uri_set_path (uri, "*");
+		g_free (url);
+	} else if (*req_path != '/') {
+		/* Must be an absolute URI */
 		uri = soup_uri_new (req_path);
-		if (!uri) {
-			g_free (req_path);
-			return SOUP_STATUS_BAD_REQUEST;
-		}
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s%s",
 				       soup_socket_is_ssl (sock) ? "https" : "http",

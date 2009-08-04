@@ -18,6 +18,7 @@
 
 #include "test-utils.h"
 
+SoupServer *server;
 SoupURI *base_uri;
 
 static gboolean
@@ -33,6 +34,16 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *context, gpointer data)
 {
 	SoupURI *uri = soup_message_get_uri (msg);
+
+	soup_message_headers_append (msg->response_headers,
+				     "X-Handled-By", "server_callback");
+
+	if (!strcmp (path, "*")) {
+		debug_printf (1, "    default server_callback got request for '*'!\n");
+		errors++;
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		return;
+	}
 
 	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -60,6 +71,29 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					   SOUP_MEMORY_STATIC, "index", 5);
 		return;
 	}
+}
+
+static void
+server_star_callback (SoupServer *server, SoupMessage *msg,
+		      const char *path, GHashTable *query,
+		      SoupClientContext *context, gpointer data)
+{
+	soup_message_headers_append (msg->response_headers,
+				     "X-Handled-By", "star_callback");
+
+	if (strcmp (path, "*") != 0) {
+		debug_printf (1, "    server_star_callback got request for '%s'!\n", path);
+		errors++;
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	if (msg->method != SOUP_METHOD_OPTIONS) {
+		soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+		return;
+	}
+
+	soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
 /* Host header handling: client must be able to override the default
@@ -283,10 +317,68 @@ do_msg_reuse_test (void)
 	g_free (signal_ids);
 }
 
+static void
+do_star_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *star_uri;
+	const char *handled_by;
+
+	debug_printf (1, "\nOPTIONS *\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	star_uri = soup_uri_copy (base_uri);
+	soup_uri_set_path (star_uri, "*");
+
+	debug_printf (1, "  Testing with no handler\n");
+	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != SOUP_STATUS_NOT_FOUND) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	handled_by = soup_message_headers_get_one (msg->response_headers,
+						   "X-Handled-By");
+	if (handled_by) {
+		/* Should have been rejected by SoupServer directly */
+		debug_printf (1, "    Message reached handler '%s'\n",
+			      handled_by);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_server_add_handler (server, "*", server_star_callback, NULL, NULL);
+
+	debug_printf (1, "  Testing with handler\n");
+	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	handled_by = soup_message_headers_get_one (msg->response_headers,
+						   "X-Handled-By");
+	if (!handled_by) {
+		debug_printf (1, "    Message did not reach handler!\n");
+		errors++;
+	} else if (strcmp (handled_by, "star_callback") != 0) {
+		debug_printf (1, "    Message reached incorrect handler '%s'\n",
+			      handled_by);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
-	SoupServer *server;
 	SoupAuthDomain *auth_domain;
 
 	test_init (argc, argv, NULL);
@@ -307,6 +399,7 @@ main (int argc, char **argv)
 	do_host_test ();
 	do_callback_unref_test ();
 	do_msg_reuse_test ();
+	do_star_test ();
 
 	soup_uri_free (base_uri);
 

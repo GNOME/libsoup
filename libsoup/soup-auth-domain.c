@@ -29,7 +29,9 @@
  * In order for an auth domain to have any effect, you must add one or
  * more paths to it (via soup_auth_domain_add_path() or the
  * %SOUP_AUTH_DOMAIN_ADD_PATH property). To require authentication for
- * all requests, add the path "/".
+ * all ordinary requests, add the path "/". (Note that this does not
+ * include the special "*" URI (eg, "OPTIONS *"), which must be added
+ * as a separate path if you want to cover it.)
  *
  * If you need greater control over which requests should and
  * shouldn't be authenticated, add paths covering everything you
@@ -312,6 +314,10 @@ soup_auth_domain_add_path (SoupAuthDomain *domain, const char *path)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
 
+	/* "" should not match "*" */
+	if (!*path)
+		path = "/";
+
 	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (TRUE));
 }
 
@@ -339,6 +345,10 @@ void
 soup_auth_domain_remove_path (SoupAuthDomain *domain, const char *path)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
+
+	/* "" should not match "*" */
+	if (!*path)
+		path = "/";
 
 	soup_path_map_add (priv->paths, path, GINT_TO_POINTER (FALSE));
 }
@@ -529,8 +539,8 @@ soup_auth_domain_check_password (SoupAuthDomain *domain,
  *
  * Checks if @domain requires @msg to be authenticated (according to
  * its paths and filter function). This does not actually look at
- * whether @msg *is* authenticated, merely whether or not is needs to
- * be.
+ * whether @msg <emphasis>is</emphasis> authenticated, merely whether
+ * or not it needs to be.
  *
  * This is used by #SoupServer internally and is probably of no use to
  * anyone else.
@@ -560,7 +570,8 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
  *
  * Checks if @msg contains appropriate authorization for @domain to
  * accept it. Mirroring soup_auth_domain_covers(), this does not check
- * whether or not @domain *cares* if @msg is authorized.
+ * whether or not @domain <emphasis>cares</emphasis> if @msg is
+ * authorized.
  *
  * This is used by #SoupServer internally and is probably of no use to
  * anyone else.
