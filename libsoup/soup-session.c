@@ -1354,7 +1354,7 @@ soup_session_pause_message (SoupSession *session,
  * @msg: a #SoupMessage currently running on @session
  *
  * Resumes HTTP I/O on @msg. Use this to resume after calling
- * soup_sessino_pause_message().
+ * soup_session_pause_message().
  *
  * If @msg is being sent via blocking I/O, this will resume reading or
  * writing immediately. If @msg is using non-blocking I/O, then
