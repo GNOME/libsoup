@@ -56,6 +56,7 @@ extra_files =
 # if $(DOC_MODULE).types is non-empty.
 GTKDOC_CFLAGS =				\
 	-I$(top_srcdir)			\
+	-I$(top_builddir)		\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
 	$(GNUTLS_CFLAGS)		\
