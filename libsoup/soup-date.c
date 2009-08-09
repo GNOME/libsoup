@@ -211,7 +211,7 @@ soup_date_new_from_now (int offset_seconds)
 static gboolean
 parse_iso8601_date (SoupDate *date, const char *date_string)
 {
-	gulong val;
+	gulong val, ignored;
 
 	if (strlen (date_string) < 15)
 		return FALSE;
@@ -250,7 +250,7 @@ parse_iso8601_date (SoupDate *date, const char *date_string)
 		return FALSE;
 
 	if (*date_string == '.' || *date_string == ',')
-		strtoul (date_string + 1, (char **)&date_string, 10);
+		ignored = strtoul (date_string + 1, (char **)&date_string, 10);
 
 	if (*date_string == 'Z') {
 		date_string++;
