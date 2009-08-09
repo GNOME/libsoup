@@ -46,6 +46,7 @@ libsoup/soup-marshal.c
 libsoup/soup-marshal.h
 libtool
 ltmain.sh
+m4
 missing
 python/COPYING
 stamp-h1

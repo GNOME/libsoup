@@ -5,8 +5,9 @@ dnl *******************************************
 AC_PREREQ(2.53)
 AC_INIT(libsoup, 2.27.5)
 AC_CONFIG_SRCDIR(libsoup-2.4.pc.in)
-AM_INIT_AUTOMAKE([foreign])
+AC_CONFIG_MACRO_DIR([m4])
 
+AM_INIT_AUTOMAKE([foreign])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 
 AM_CONFIG_HEADER(config.h)
