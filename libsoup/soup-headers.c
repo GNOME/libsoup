@@ -231,7 +231,7 @@ soup_headers_parse_request (const char          *str,
 	version_end = p;
 	if (major_version != 1)
 		return SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED;
-	if (minor_version < 0 || minor_version > 1)
+	if (minor_version > 1)
 		return SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED;
 
 	headers = version_end;
@@ -293,7 +293,7 @@ soup_headers_parse_status_line (const char       *status_line,
 		minor_version = strtoul (p + 1, &p, 10);
 		if (major_version != 1)
 			return FALSE;
-		if (minor_version < 0 || minor_version > 1)
+		if (minor_version > 1)
 			return FALSE;
 		if (ver)
 			*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
