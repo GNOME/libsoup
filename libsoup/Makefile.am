@@ -21,23 +21,23 @@ MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
 MKENUMS_GENERATED = soup-enum-types.c soup-enum-types.h
 
 soup-marshal.h: soup-marshal.list
-	( $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
+	$(AM_V_GEN) ( $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --header > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.h ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
 
 soup-marshal.c: soup-marshal.h
-	( (echo '#include "soup-marshal.h"'; $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --body) > soup-marshal.tmp \
+	$(AM_V_GEN) ( (echo '#include "soup-marshal.h"'; $(GLIB_GENMARSHAL) --prefix=soup_marshal $(srcdir)/soup-marshal.list --body) > soup-marshal.tmp \
 	&& mv soup-marshal.tmp soup-marshal.c ) \
 	|| ( rm -f soup-marshal.tmp && exit 1 )
 
 soup-enum-types.h: $(soup_headers)
-	( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.h.tmpl \
+	$(AM_V_GEN) ( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.h.tmpl \
 		$(soup_headers) ) > soup-enum-types.h.tmp \
 	&& mv soup-enum-types.h.tmp soup-enum-types.h \
 	|| rm -f soup-enum-type.h.tmp
 
 soup-enum-types.c: $(libsoupinclude_HEADERS)
-	( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.c.tmpl \
+	$(AM_V_GEN) ( cd $(srcdir) && $(GLIB_MKENUMS) --template soup-enum-types.c.tmpl \
 		$(soup_headers) ) > soup-enum-types.c.tmp \
 	&& mv soup-enum-types.c.tmp soup-enum-types.c \
 	|| rm -f soup-enum-type.c.tmp
