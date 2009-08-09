@@ -68,7 +68,7 @@ GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
 include $(top_srcdir)/gtk-doc.make
 
 # kludges
-tmpl/*.sgml:
+$(srcdir)/tmpl/*.sgml:
 
 clean: clean-am
 	rm -rf tmpl
