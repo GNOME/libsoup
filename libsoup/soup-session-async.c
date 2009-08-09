@@ -296,8 +296,7 @@ run_queue (SoupSessionAsync *sa)
 	SoupSession *session = SOUP_SESSION (sa);
 	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueItem *item;
-	SoupProxyURIResolver *proxy_resolver =
-		soup_session_get_proxy_resolver (session);
+	SoupProxyURIResolver *proxy_resolver;
 	SoupMessage *msg;
 	SoupMessageIOStatus cur_io_status = SOUP_MESSAGE_IO_STATUS_CONNECTING;
 	SoupConnection *conn;
@@ -317,10 +316,13 @@ run_queue (SoupSessionAsync *sa)
 		    soup_message_io_in_progress (msg))
 			continue;
 
-		if (proxy_resolver && !item->resolved_proxy_addr &&
-		    !soup_message_disables_feature (item->msg, proxy_resolver)) {
-			resolve_proxy_addr (item, proxy_resolver);
-			continue;
+		if (!item->resolved_proxy_addr) {
+			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
+			if (proxy_resolver) {
+				resolve_proxy_addr (item, proxy_resolver);
+				continue;
+			} else
+				item->resolved_proxy_addr = TRUE;
 		}
 
 		conn = soup_session_get_connection (session, item,

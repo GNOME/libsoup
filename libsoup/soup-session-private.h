@@ -26,8 +26,6 @@ void                  soup_session_connection_failed    (SoupSession          *s
 							 SoupConnection       *conn,
 							 guint                 status);
 
-SoupProxyURIResolver *soup_session_get_proxy_resolver   (SoupSession          *session);
-
 void                  soup_session_send_queue_item      (SoupSession          *session,
 							 SoupMessageQueueItem *item,
 							 SoupConnection       *conn);

@@ -169,9 +169,8 @@ wait_for_connection (SoupMessageQueueItem *item)
 	SoupConnection *conn;
 	guint status;
 
-	proxy_resolver = soup_session_get_proxy_resolver (session);
-	if (proxy_resolver && !item->resolved_proxy_addr &&
-	    !soup_message_disables_feature (item->msg, proxy_resolver)) {
+	proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
+	if (proxy_resolver && !item->resolved_proxy_addr) {
 		status = soup_proxy_uri_resolver_get_proxy_uri_sync (
 			proxy_resolver, soup_message_get_uri (msg),
 			item->cancellable, &item->proxy_uri);

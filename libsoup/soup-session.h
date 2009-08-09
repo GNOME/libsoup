@@ -103,6 +103,9 @@ GSList             *soup_session_get_features           (SoupSession        *ses
 							 GType               feature_type);
 SoupSessionFeature *soup_session_get_feature            (SoupSession        *session,
 							 GType               feature_type);
+SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *session,
+							 GType               feature_type,
+							 SoupMessage        *msg);
 
 G_END_DECLS
 

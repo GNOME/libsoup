@@ -67,8 +67,6 @@ typedef struct {
 } SoupSessionHost;
 
 typedef struct {
-	SoupProxyURIResolver *proxy_resolver;
-
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
 
@@ -77,7 +75,7 @@ typedef struct {
 	char *user_agent;
 
 	GSList *features;
-	SoupAuthManager *auth_manager;
+	GHashTable *features_cache;
 
 	GHashTable *hosts; /* char* -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
@@ -152,6 +150,7 @@ static void
 soup_session_init (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupAuthManager *auth_manager;
 
 	priv->queue = soup_message_queue_new (session);
 
@@ -164,14 +163,17 @@ soup_session_init (SoupSession *session)
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
 	priv->max_conns_per_host = SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT;
 
-	priv->auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM,
-					   SOUP_AUTH_MANAGER_NTLM_USE_NTLM, FALSE,
-					   NULL);
-	g_signal_connect (priv->auth_manager, "authenticate",
+	priv->features_cache = g_hash_table_new (NULL, NULL);
+
+	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM,
+				     SOUP_AUTH_MANAGER_NTLM_USE_NTLM, FALSE,
+				     NULL);
+	g_signal_connect (auth_manager, "authenticate",
 			  G_CALLBACK (auth_manager_authenticate), session);
-	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_BASIC);
-	soup_auth_manager_add_type (priv->auth_manager, SOUP_TYPE_AUTH_DIGEST);
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->auth_manager));
+	soup_auth_manager_add_type (auth_manager, SOUP_TYPE_AUTH_BASIC);
+	soup_auth_manager_add_type (auth_manager, SOUP_TYPE_AUTH_DIGEST);
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (auth_manager));
+	g_object_unref (auth_manager);
 }
 
 static void
@@ -202,14 +204,13 @@ finalize (GObject *object)
 
 	g_free (priv->user_agent);
 
-	if (priv->auth_manager)
-		g_object_unref (priv->auth_manager);
-
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
 
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
+
+	g_hash_table_destroy (priv->features_cache);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
@@ -617,6 +618,7 @@ set_property (GObject *object, guint prop_id,
 	SoupURI *uri;
 	gboolean ca_file_changed = FALSE;
 	const char *new_ca_file, *user_agent;
+	SoupSessionFeature *feature;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
@@ -624,11 +626,11 @@ set_property (GObject *object, guint prop_id,
 
 		if (uri) {
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
-			priv->proxy_resolver = SOUP_PROXY_URI_RESOLVER (soup_proxy_resolver_static_new (uri));
-			soup_session_add_feature (session, SOUP_SESSION_FEATURE (priv->proxy_resolver));
-			g_object_unref (priv->proxy_resolver);
-		} else if (priv->proxy_resolver && SOUP_IS_PROXY_RESOLVER_STATIC (priv->proxy_resolver))
-			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
+			feature = SOUP_SESSION_FEATURE (soup_proxy_resolver_static_new (uri));
+			soup_session_add_feature (session, feature);
+			g_object_unref (feature);
+		} else
+			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_STATIC);
 
 		soup_session_abort (session);
 		break;
@@ -639,9 +641,13 @@ set_property (GObject *object, guint prop_id,
 		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_USE_NTLM:
-		g_object_set_property (G_OBJECT (priv->auth_manager),
-				       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
-				       value);
+		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
+		if (feature) {
+			g_object_set_property (G_OBJECT (feature),
+					       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
+					       value);
+		} else
+			g_warning ("Trying to set use-ntlm on session with no auth-manager");
 		break;
 	case PROP_SSL_CA_FILE:
 		new_ca_file = g_value_get_string (value);
@@ -705,11 +711,13 @@ get_property (GObject *object, guint prop_id,
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionFeature *feature;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
-		if (priv->proxy_resolver && SOUP_IS_PROXY_RESOLVER_STATIC (priv->proxy_resolver)) {
-			g_object_get_property (G_OBJECT (priv->proxy_resolver),
+		feature = soup_session_get_feature (session, SOUP_TYPE_PROXY_RESOLVER_STATIC);
+		if (feature) {
+			g_object_get_property (G_OBJECT (feature),
 					       SOUP_PROXY_RESOLVER_STATIC_PROXY_URI,
 					       value);
 		} else
@@ -722,9 +730,13 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_int (value, priv->max_conns_per_host);
 		break;
 	case PROP_USE_NTLM:
-		g_object_get_property (G_OBJECT (priv->auth_manager),
-				       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
-				       value);
+		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
+		if (feature) {
+			g_object_get_property (G_OBJECT (feature),
+					       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
+					       value);
+		} else
+			g_value_set_boolean (value, FALSE);
 		break;
 	case PROP_SSL_CA_FILE:
 		g_value_set_string (value, priv->ssl_ca_file);
@@ -1496,10 +1508,8 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
+	g_hash_table_remove_all (priv->features_cache);
 	soup_session_feature_attach (feature, session);
-
-	if (SOUP_IS_PROXY_URI_RESOLVER (feature))
-		priv->proxy_resolver = SOUP_PROXY_URI_RESOLVER (feature);
 }
 
 /**
@@ -1547,11 +1557,9 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	if (g_slist_find (priv->features, feature)) {
 		priv->features = g_slist_remove (priv->features, feature);
+		g_hash_table_remove_all (priv->features_cache);
 		soup_session_feature_detach (feature, session);
 		g_object_unref (feature);
-
-		if (feature == (SoupSessionFeature *)priv->proxy_resolver)
-			priv->proxy_resolver = NULL;
 	}
 }
 
@@ -1633,22 +1641,57 @@ SoupSessionFeature *
 soup_session_get_feature (SoupSession *session, GType feature_type)
 {
 	SoupSessionPrivate *priv;
+	SoupSessionFeature *feature;
 	GSList *f;
 
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 
 	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	feature = g_hash_table_lookup (priv->features_cache,
+				       GSIZE_TO_POINTER (feature_type));
+	if (feature)
+		return feature;
+
 	for (f = priv->features; f; f = f->next) {
-		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
-			return f->data;
+		feature = f->data;
+		if (G_TYPE_CHECK_INSTANCE_TYPE (feature, feature_type)) {
+			g_hash_table_insert (priv->features_cache,
+					     GSIZE_TO_POINTER (feature_type),
+					     feature);
+			return feature;
+		}
 	}
 	return NULL;
 }
 
-SoupProxyURIResolver *
-soup_session_get_proxy_resolver (SoupSession *session)
+/**
+ * soup_session_get_feature_for_message:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of the feature to get
+ * @msg: a #SoupMessage
+ *
+ * Gets the first feature in @session of type @feature_type, provided
+ * that it is not disabled for @msg. As with
+ * soup_session_get_feature(), this should only be used for features
+ * where @feature_type is only expected to match a single feature. In
+ * particular, if there are two matching features, and the first is
+ * disabled on @msg, and the second is not, then this will return
+ * %NULL, not the second feature.
+ *
+ * Return value: a #SoupSessionFeature, or %NULL. The feature is owned
+ * by @session.
+ *
+ * Since: 2.28
+ **/
+SoupSessionFeature *
+soup_session_get_feature_for_message (SoupSession *session, GType feature_type,
+				      SoupMessage *msg)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionFeature *feature;
 
-	return priv->proxy_resolver;
+	feature = soup_session_get_feature (session, feature_type);
+	if (feature && soup_message_disables_feature (msg, feature))
+		return NULL;
+	return feature;
 }
