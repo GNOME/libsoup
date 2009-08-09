@@ -97,116 +97,116 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
  */
 typedef struct {
 	/* @has_ws is TRUE if @pattern contains "generic" whitespace */
-	gboolean    has_ws;
-	const char *mask;
-	const char *pattern;
-	guint       pattern_length;
-	const char *sniffed_type;
-	gboolean    scriptable;
+	gboolean      has_ws;
+	const guchar *mask;
+	const guchar *pattern;
+	guint         pattern_length;
+	const char   *sniffed_type;
+	gboolean      scriptable;
 } SoupContentSnifferPattern;
 
 static SoupContentSnifferPattern types_table[] = {
 	{ FALSE,
-	  "\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
-	  "\x3C\x21\x44\x4F\x43\x54\x59\x50\x45\x20\x48\x54\x4D\x4C",
+	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)"\x3C\x21\x44\x4F\x43\x54\x59\x50\x45\x20\x48\x54\x4D\x4C",
 	  14,
 	  "text/html",
 	  TRUE },
 
 	{ TRUE,
-	  "\xFF\xFF\xDF\xDF\xDF\xDF",
-	  " \x3C\x48\x54\x4D\x4C",
+	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" \x3C\x48\x54\x4D\x4C",
 	  5,
 	  "text/html",
 	  TRUE },
 
 	{ TRUE,
-	  "\xFF\xFF\xDF\xDF\xDF\xDF",
-	  " \x3C\x48\x45\x41\x44",
+	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" \x3C\x48\x45\x41\x44",
 	  5,
 	  "text/html",
 	  TRUE },
 
 	{ TRUE,
-	  "\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-	  " \x3C\x53\x43\x52\x49\x50\x54",
+	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" \x3C\x53\x43\x52\x49\x50\x54",
 	  7,
 	  "text/html",
 	  TRUE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF\xFF",
-	  "\x25\x50\x44\x46\x2D",
+	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x25\x50\x44\x46\x2D",
 	  5,
 	  "application/pdf",
 	  TRUE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-	  "\x25\x21\x50\x53\x2D\x41\x64\x6F\x62\x65\x2D",
+	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x25\x21\x50\x53\x2D\x41\x64\x6F\x62\x65\x2D",
 	  11,
 	  "application/postscript",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\x00\x00",
-	  "\xFE\xFF\x00\x00",
+	  (const guchar *)"\xFF\xFF\x00\x00",
+	  (const guchar *)"\xFE\xFF\x00\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\x00\x00",
-	  "\xFF\xFF\x00\x00",
+	  (const guchar *)"\xFF\xFF\x00\x00",
+	  (const guchar *)"\xFF\xFF\x00\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\x00",
-	  "\xEF\xBB\xBF\x00",
+	  (const guchar *)"\xFF\xFF\xFF\x00",
+	  (const guchar *)"\xEF\xBB\xBF\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF\xFF\xFF",
-	  "\x47\x49\x46\x38\x37\x61",
+	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x47\x49\x46\x38\x37\x61",
 	  6,
 	  "image/gif",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF\xFF\xFF",
-	  "\x47\x49\x46\x38\x39\x61",
+	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x47\x49\x46\x38\x39\x61",
 	  6,
 	  "image/gif",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-	  "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
+	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
 	  8,
 	  "image/png",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF",
-	  "\xFF\xD8\xFF",
+	  (const guchar *)"\xFF\xFF\xFF",
+	  (const guchar *)"\xFF\xD8\xFF",
 	  3,
 	  "image/jpeg",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF",
-	  "\x42\x4D",
+	  (const guchar *)"\xFF\xFF",
+	  (const guchar *)"\x42\x4D",
 	  2,
 	  "image/bmp",
 	  FALSE },
 
 	{ FALSE,
-	  "\xFF\xFF\xFF\xFF",
-	  "\x00\x00\x01\x00",
+	  (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x00\x00\x01\x00",
 	  4,
 	  "image/vnd.microsoft.icon",
 	  FALSE }
@@ -261,7 +261,7 @@ static char*
 sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
 	       SoupBuffer *buffer, gboolean for_text_or_binary)
 {
-	const char *resource = buffer->data;
+	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	char *gio_guess;
 	int i;
@@ -352,7 +352,7 @@ static char*
 sniff_text_or_binary (SoupContentSniffer *sniffer, SoupMessage *msg,
 		      SoupBuffer *buffer)
 {
-	const char *resource = buffer->data;
+	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	gboolean looks_binary = FALSE;
 	int i;
@@ -367,7 +367,7 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupMessage *msg,
 
 	/* Look to see if any of the first n bytes looks binary */
 	for (i = 0; i < resource_length; i++) {
-		if (byte_looks_binary[(unsigned char)resource[i]]) {
+		if (byte_looks_binary[resource[i]]) {
 			looks_binary = TRUE;
 			break;
 		}
@@ -383,7 +383,7 @@ static char*
 sniff_images (SoupContentSniffer *sniffer, SoupMessage *msg,
 	      SoupBuffer *buffer, const char *content_type)
 {
-	const char *resource = buffer->data;
+	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int i;
 
@@ -409,7 +409,7 @@ sniff_images (SoupContentSniffer *sniffer, SoupMessage *msg,
 static char*
 sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer)
 {
-	const char *resource = buffer->data;
+	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int pos = 0;
 
