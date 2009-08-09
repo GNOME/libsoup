@@ -27,25 +27,32 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 SoupSSLCredentials *
 soup_ssl_get_client_credentials (const char *ca_file)
 {
-	return NULL;
+	/* We need to return something non-NULL, so SoupSocket will
+	 * realize it's supposed to do SSL. If we returned NULL here,
+	 * we'd eventually end up trying to speak plain http to an
+	 * https server, probably resulting in a SOUP_STATUS_IO_ERROR
+	 * or SOUP_STATUS_MALFORMED instead of SOUP_STATUS_SSL_FAILED.
+	 */
+	return g_malloc (1);
 }
 
 void
 soup_ssl_free_client_credentials (SoupSSLCredentials *client_creds)
 {
-	;
+	g_free (client_creds);
 }
 
 SoupSSLCredentials *
 soup_ssl_get_server_credentials (const char *cert_file, const char *key_file)
 {
-	return NULL;
+	/* See soup_ssl_get_client_credentials() */
+	return g_malloc (1);
 }
 
 void
 soup_ssl_free_server_credentials (SoupSSLCredentials *server_creds)
 {
-	;
+	g_free (server_creds);
 }
 
 #endif /* ! HAVE_SSL */
