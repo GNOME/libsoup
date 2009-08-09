@@ -40,6 +40,9 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	char *eol, *sol;
 	gboolean success = FALSE;
 
+	g_return_val_if_fail (str != NULL, FALSE);
+	g_return_val_if_fail (dest != NULL, FALSE);
+
 	/* Technically, the grammar does allow NUL bytes in the
 	 * headers, but this is probably a bug, and if it's not, we
 	 * can't deal with them anyway.
@@ -280,6 +283,8 @@ soup_headers_parse_status_line (const char       *status_line,
 	const char *code_start, *code_end, *phrase_start, *phrase_end;
 	char *p;
 
+	g_return_val_if_fail (status_line != NULL, FALSE);
+
 	if (strncmp (status_line, "HTTP/", 5) == 0 &&
 	    g_ascii_isdigit (status_line[5])) {
 		major_version = strtoul (status_line + 5, &p, 10);
@@ -294,7 +299,8 @@ soup_headers_parse_status_line (const char       *status_line,
 			*ver = (minor_version == 0) ? SOUP_HTTP_1_0 : SOUP_HTTP_1_1;
 	} else if (!strncmp (status_line, "ICY", 3)) {
 		/* Shoutcast not-quite-HTTP format */
-		*ver = SOUP_HTTP_1_0;
+		if (ver)
+			*ver = SOUP_HTTP_1_0;
 		p = (char *)status_line + 3;
 	} else
 		return FALSE;
@@ -353,8 +359,7 @@ soup_headers_parse_response (const char          *str,
 {
 	SoupHTTPVersion version;
 
-	if (!str || !*str)
-		return FALSE;
+	g_return_val_if_fail (str && *str, FALSE);
 
 	if (!soup_headers_parse (str, len, headers)) 
 		return FALSE;
@@ -459,6 +464,8 @@ parse_list (const char *header, char delim)
 GSList *
 soup_header_parse_list (const char *header)
 {
+	g_return_val_if_fail (header != NULL, NULL);
+
 	return parse_list (header, ',');
 }
 
@@ -508,6 +515,8 @@ soup_header_parse_quality_list (const char *header, GSList **unacceptable)
 	const char *param, *equal, *value;
 	double qval;
 	int n;
+
+	g_return_val_if_fail (header != NULL, NULL);
 
 	if (unacceptable)
 		*unacceptable = NULL;
@@ -602,6 +611,9 @@ soup_header_contains (const char *header, const char *token)
 {
 	const char *end;
 	guint len = strlen (token);
+
+	g_return_val_if_fail (header != NULL, FALSE);
+	g_return_val_if_fail (token != NULL, FALSE);
 
 	header = skip_delims (header, ',');
 	while (*header) {
@@ -722,6 +734,8 @@ parse_param_list (const char *header, char delim)
 GHashTable *
 soup_header_parse_param_list (const char *header)
 {
+	g_return_val_if_fail (header != NULL, NULL);
+
 	return parse_param_list (header, ',');
 }
 
@@ -747,6 +761,8 @@ soup_header_parse_param_list (const char *header)
 GHashTable *
 soup_header_parse_semi_param_list (const char *header)
 {
+	g_return_val_if_fail (header != NULL, NULL);
+
 	return parse_param_list (header, ';');
 }
 
@@ -760,6 +776,8 @@ soup_header_parse_semi_param_list (const char *header)
 void
 soup_header_free_param_list (GHashTable *param_list)
 {
+	g_return_if_fail (param_list != NULL);
+
 	g_hash_table_destroy (param_list);
 }
 
@@ -817,6 +835,9 @@ soup_header_g_string_append_param (GString *string, const char *name,
 				   const char *value)
 {
 	const char *v;
+
+	g_return_if_fail (string != NULL);
+	g_return_if_fail (name != NULL);
 
 	g_string_append (string, name);
 	if (!value)
