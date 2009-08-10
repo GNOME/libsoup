@@ -1,3 +1,34 @@
+Changes in libsoup from 2.27.5 to 2.27.90:
+
+	* libsoup now uses glib's GResolver rather than its own DNS
+          code. For 2.27.90, the only visible change should be that
+          internationalized domain names are now supported. [#548287]
+
+	* Added soup_message_disable_feature(), which allows you to
+          disable particular features (eg, cookies, proxy,
+          content-sniffing, etc) on a per-message basis. [#574773]
+
+	* It is now possible to implement "OPTIONS *" in a SoupServer;
+          you must explicitly register a handler for "*" in order to
+          do this. [#590751]
+
+	* Ignore Content-Length on EOF-terminated responses, to match
+          other browsers and therefore cope with broken servers that
+          send the wrong length. [Patch from Benjamin Otte.]
+
+	* Fixed the status code when trying to fetch an https URI with
+          a non-gnutls build of libsoup. [#590464]
+
+	* Fixed strict-aliasing warnings introduced in 2.27.4
+          [#588771]
+
+	* Fixed some warnings noted by fortify [#591226] and -Wextra.
+
+	* libsoup now uses automake 1.11's silent-rules support by
+          default (if you are building with automake 1.11). Use
+          "./configure --disable-silent-rules" or "make V=1" to
+          disable.
+
 Changes in libsoup from 2.27.4 to 2.27.5:
 
 	* Fixed a crash when a web server redirected a request to a
