@@ -21,23 +21,28 @@
     <xi:include href="xml/soup-auth-domain-basic.xml"/>
     <xi:include href="xml/soup-auth-domain-digest.xml"/>
     <xi:include href="xml/soup-cookie.xml"/>
-    <xi:include href="xml/soup-cookie-jar.xml"/>
-    <xi:include href="xml/soup-cookie-jar-text.xml"/>
-    <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-message.xml"/>
     <xi:include href="xml/soup-message-headers.xml"/>
     <xi:include href="xml/soup-message-body.xml"/>
     <xi:include href="xml/soup-method.xml"/>
     <xi:include href="xml/soup-multipart.xml"/>
-    <xi:include href="xml/soup-proxy-resolver.xml"/>
     <xi:include href="xml/soup-server.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-session-async.xml"/>
     <xi:include href="xml/soup-session-sync.xml"/>
-    <xi:include href="xml/soup-session-feature.xml"/>
     <xi:include href="xml/soup-status.xml"/>
     <xi:include href="xml/soup-uri.xml"/>
     <xi:include href="xml/soup-misc.xml"/>
+  </chapter>
+
+  <chapter>
+    <title>Additional Features</title>
+    <xi:include href="xml/soup-session-feature.xml"/>
+    <xi:include href="xml/soup-content-sniffer.xml"/>
+    <xi:include href="xml/soup-cookie-jar.xml"/>
+    <xi:include href="xml/soup-cookie-jar-text.xml"/>
+    <xi:include href="xml/soup-logger.xml"/>
+    <xi:include href="xml/soup-proxy-uri-resolver.xml"/>
   </chapter>
 
   <chapter>

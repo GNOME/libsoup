@@ -19,8 +19,9 @@ G_BEGIN_DECLS
 
 typedef struct _SoupProxyURIResolver SoupProxyURIResolver;
 
-typedef void (*SoupProxyURIResolverCallback) (SoupProxyURIResolver *,
-					      guint, SoupURI *, gpointer);
+typedef void (*SoupProxyURIResolverCallback) (SoupProxyURIResolver *resolver,
+					      guint status, SoupURI *proxy_uri,
+					      gpointer user_data);
 
 typedef struct {
 	GTypeInterface base;

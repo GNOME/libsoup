@@ -28,6 +28,8 @@ soup_message_get_flags
 SoupChunkAllocator
 soup_message_set_chunk_allocator
 <SUBSECTION>
+soup_message_disable_feature
+<SUBSECTION>
 SOUP_MESSAGE_METHOD
 SOUP_MESSAGE_URI
 SOUP_MESSAGE_HTTP_VERSION
@@ -52,6 +54,7 @@ soup_message_wrote_body_data
 soup_message_wrote_body
 soup_message_got_informational
 soup_message_got_headers
+soup_message_content_sniffed
 soup_message_got_chunk
 soup_message_got_body
 soup_message_finished
@@ -380,8 +383,9 @@ soup_session_add_feature
 soup_session_add_feature_by_type
 soup_session_remove_feature
 soup_session_remove_feature_by_type
-soup_session_get_feature
 soup_session_get_features
+soup_session_get_feature
+soup_session_get_feature_for_message
 <SUBSECTION>
 SOUP_SESSION_PROXY_URI
 SOUP_SESSION_MAX_CONNS
@@ -844,21 +848,21 @@ soup_cookie_jar_sqlite_get_type
 </SECTION>
 
 <SECTION>
-<FILE>soup-proxy-resolver</FILE>
-<TITLE>SoupProxyResolver</TITLE>
-SoupProxyResolver
-SoupProxyResolverCallback
-soup_proxy_resolver_get_proxy_async
-soup_proxy_resolver_get_proxy_sync
+<FILE>soup-proxy-uri-resolver</FILE>
+<TITLE>SoupProxyURIResolver</TITLE>
+SoupProxyURIResolver
+SoupProxyURIResolverCallback
+soup_proxy_uri_resolver_get_proxy_uri_async
+soup_proxy_uri_resolver_get_proxy_uri_sync
 <SUBSECTION Standard>
-SoupProxyResolverInterface
-SOUP_PROXY_RESOLVER
-SOUP_PROXY_RESOLVER_CLASS
-SOUP_PROXY_RESOLVER_GET_CLASS
-SOUP_TYPE_PROXY_RESOLVER
-SOUP_IS_PROXY_RESOLVER
-SOUP_IS_PROXY_RESOLVER_CLASS
-soup_proxy_resolver_get_type
+SoupProxyURIResolverInterface
+SOUP_IS_PROXY_URI_RESOLVER
+SOUP_IS_PROXY_URI_RESOLVER_CLASS
+SOUP_PROXY_URI_RESOLVER
+SOUP_PROXY_URI_RESOLVER_CLASS
+SOUP_PROXY_URI_RESOLVER_GET_CLASS
+SOUP_TYPE_PROXY_URI_RESOLVER
+soup_proxy_uri_resolver_get_type
 </SECTION>
 
 <SECTION>
@@ -868,4 +872,22 @@ SOUP_TYPE_PROXY_RESOLVER_GNOME
 <SUBSECTION Standard>
 soup_proxy_resolver_gnome_get_type
 soup_gnome_features_2_26_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-content-sniffer</FILE>
+<TITLE>SoupContentSniffer</TITLE>
+SoupContentSniffer
+soup_content_sniffer_new
+soup_content_sniffer_sniff
+<SUBSECTION Standard>
+SOUP_CONTENT_SNIFFER
+SOUP_CONTENT_SNIFFER_CLASS
+SOUP_CONTENT_SNIFFER_GET_CLASS
+SOUP_IS_CONTENT_SNIFFER
+SOUP_IS_CONTENT_SNIFFER_CLASS
+SOUP_TYPE_CONTENT_SNIFFER
+SoupContentSnifferClass
+SoupContentSnifferPrivate
+soup_content_sniffer_get_type
 </SECTION>
