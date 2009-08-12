@@ -72,6 +72,13 @@ const char *soup_auth_get_host              (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
 char       *soup_auth_get_info              (SoupAuth      *auth);
 
+GSList     *soup_auth_get_saved_users       (SoupAuth      *auth);
+const char *soup_auth_get_saved_password    (SoupAuth      *auth,
+					     const char    *user);
+void        soup_auth_save_password         (SoupAuth      *auth,
+					     const char    *username,
+					     const char    *password);
+
 void        soup_auth_authenticate          (SoupAuth      *auth,
 					     const char    *username,
 					     const char    *password);
@@ -84,6 +91,10 @@ GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
 					     SoupURI       *source_uri);
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
+
+void        soup_auth_has_saved_password    (SoupAuth      *auth,
+					     const char    *username,
+					     const char    *password);
 
 G_END_DECLS
 

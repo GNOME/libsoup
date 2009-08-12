@@ -46,8 +46,11 @@ typedef struct {
 	void  (*cancel_message)  (SoupSession *session, SoupMessage *msg,
 				  guint status_code);
 
+	void  (*auth_required)   (SoupSession *session, SoupMessage *msg,
+				  SoupAuth *auth, gboolean retrying);
+
+
 	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
 	void (*_libsoup_reserved4) (void);

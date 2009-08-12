@@ -30,8 +30,6 @@ typedef struct {
 			      SoupAuth *auth, gboolean retrying);
 } SoupAuthManagerClass;
 
-#define SOUP_AUTH_MANAGER_NTLM_USE_NTLM "use-ntlm"
-
 GType soup_auth_manager_get_type (void);
 
 void soup_auth_manager_add_type          (SoupAuthManager *manager,

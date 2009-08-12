@@ -27,6 +27,8 @@ typedef struct {
 
 } SoupAuthManagerNTLMClass;
 
+#define SOUP_AUTH_MANAGER_NTLM_USE_NTLM "use-ntlm"
+
 GType soup_auth_manager_ntlm_get_type (void);
 
 G_END_DECLS

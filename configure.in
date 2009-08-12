@@ -183,6 +183,16 @@ AC_ARG_WITH(gnome,
 	    :, [if test $os_win32 = yes; then with_gnome=no; else with_gnome=yes; fi])
 AC_MSG_RESULT($with_gnome)
 
+if test $with_gnome != no; then
+	PKG_CHECK_MODULES(GNOME_KEYRING, gnome-keyring-1, :,
+			  AC_MSG_ERROR(
+[Could not find gnome-keyring devel files.
+Configure with --without-gnome if you wish to build only libsoup
+without GNOME-specific features.]))
+fi
+AC_SUBST(GNOME_KEYRING_CFLAGS)
+AC_SUBST(GNOME_KEYRING_LIBS)
+
 AM_CONDITIONAL(BUILD_LIBSOUP_GNOME, test $with_gnome != no)
 
 if test $with_gnome != no; then

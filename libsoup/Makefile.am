@@ -14,6 +14,7 @@ INCLUDES = 				\
 	$(GCONF_CFLAGS)			\
 	$(LIBPROXY_CFLAGS)		\
 	$(SQLITE_CFLAGS)		\
+	$(GNOME_KEYRING_CFLAGS)		\
 	$(LIBGCRYPT_CFLAGS)		\
 	$(LIBGNUTLS_CFLAGS)
 
@@ -69,6 +70,7 @@ soup_headers =			\
 	soup-method.h		\
 	soup-misc.h     	\
 	soup-multipart.h     	\
+	soup-password-manager.h	\
 	soup-portability.h	\
 	soup-proxy-resolver.h	\
 	soup-proxy-uri-resolver.h \
@@ -142,6 +144,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-misc.c     		\
 	soup-multipart.c	     	\
 	soup-nossl.c     		\
+	soup-password-manager.c		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\
 	soup-proxy-resolver.c		\
@@ -168,7 +171,8 @@ libsoupgnomeincludedir = $(includedir)/libsoup-gnome-2.4/libsoup
 libsoupgnomeinclude_HEADERS =	\
 	soup-cookie-jar-sqlite.h\
 	soup-gnome.h		\
-	soup-gnome-features.h
+	soup-gnome-features.h	\
+	soup-password-manager-gnome.h
 
 lib_LTLIBRARIES += libsoup-gnome-2.4.la
 
@@ -179,13 +183,16 @@ libsoup_gnome_2_4_la_LIBADD =		\
 	$(GLIB_LIBS)			\
 	$(GCONF_LIBS)			\
 	$(LIBPROXY_LIBS)		\
-	$(SQLITE_LIBS)
+	$(SQLITE_LIBS)			\
+	$(GNOME_KEYRING_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
 	soup-cookie-jar-sqlite.c	\
 	soup-gnome-features.c		\
 	soup-proxy-resolver-gnome.h	\
-	soup-proxy-resolver-gnome.c
+	soup-proxy-resolver-gnome.c	\
+	soup-password-manager-gnome.h	\
+	soup-password-manager-gnome.c
 
 endif
 

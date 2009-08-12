@@ -102,6 +102,8 @@ static void queue_message   (SoupSession *session, SoupMessage *msg,
 static void requeue_message (SoupSession *session, SoupMessage *msg);
 static void cancel_message  (SoupSession *session, SoupMessage *msg,
 			     guint status_code);
+static void auth_required   (SoupSession *session, SoupMessage *msg,
+			     SoupAuth *auth, gboolean retrying);
 
 static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
@@ -235,6 +237,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	session_class->queue_message = queue_message;
 	session_class->requeue_message = requeue_message;
 	session_class->cancel_message = cancel_message;
+	session_class->auth_required = auth_required;
 
 	/* virtual method override */
 	object_class->dispose = dispose;
@@ -841,11 +844,19 @@ free_host (SoupSessionHost *host)
 }	
 
 static void
+auth_required (SoupSession *session, SoupMessage *msg,
+	       SoupAuth *auth, gboolean retrying)
+{
+	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
+}
+
+static void
 auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 			   SoupAuth *auth, gboolean retrying,
 			   gpointer session)
 {
-	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
+	SOUP_SESSION_GET_CLASS (session)->auth_required (
+		session, msg, auth, retrying);
 }
 
 #define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \

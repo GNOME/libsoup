@@ -28,6 +28,7 @@ extern "C" {
 #include <libsoup/soup-method.h>
 #include <libsoup/soup-misc.h>
 #include <libsoup/soup-multipart.h>
+#include <libsoup/soup-password-manager.h>
 #include <libsoup/soup-proxy-resolver.h>
 #include <libsoup/soup-proxy-uri-resolver.h>
 #include <libsoup/soup-server.h>

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <termios.h>
 #include <unistd.h>
 
 #ifdef HAVE_GNOME
@@ -74,6 +75,75 @@ get_url (const char *url)
 }
 
 static void
+authenticate (SoupSession *session, SoupMessage *msg,
+	      SoupAuth *auth, gpointer user_data)
+{
+	char *uri;
+	GSList *saved_users;
+	struct termios t;
+	int old_lflag;
+	char user[80], pwbuf[80];
+	const char *password;
+
+	if (tcgetattr (STDIN_FILENO, &t) != 0)
+		return;
+
+	uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+	fprintf (stderr, "Authentication required for %s:\n", uri);
+	g_free (uri);
+	fprintf (stderr, "  Realm: %s, Auth type: %s\n",
+		soup_auth_get_realm (auth), soup_auth_get_scheme_name (auth));
+
+	saved_users = soup_auth_get_saved_users (auth);
+	if (saved_users) {
+		GSList *u;
+
+		fprintf (stderr, "  Passwords saved for: ");
+		for (u = saved_users; u; u = u->next) {
+			if (u != saved_users)
+				fprintf (stderr, ", ");
+			fprintf (stderr, "%s", (char *)u->data);
+		}
+		fprintf (stderr, "\n");
+	}
+	g_slist_free (saved_users);
+
+	fprintf (stderr, "  username: ");
+	fflush (stderr);
+
+	if (!fgets (user, sizeof (user), stdin) || user[0] == '\n')
+		return;
+	*strchr (user, '\n') = '\0';
+
+	password = soup_auth_get_saved_password (auth, user);
+	if (!password) {
+		fprintf (stderr, "  password: ");
+		fflush (stderr);
+
+		old_lflag = t.c_lflag;
+		t.c_lflag = (t.c_lflag | ICANON | ECHONL) & ~ECHO;
+		tcsetattr (STDIN_FILENO, TCSANOW, &t);
+
+		/* For some reason, fgets can return EINTR on
+		 * Linux if ECHO is false...
+		 */
+		do
+			password = fgets (pwbuf, sizeof (pwbuf), stdin);
+		while (password == NULL && errno == EINTR);
+
+		t.c_lflag = old_lflag;
+		tcsetattr (STDIN_FILENO, TCSANOW, &t);
+
+		if (!password || pwbuf[0] == '\n')
+			return;
+		*strchr (pwbuf, '\n') = '\0';
+	}
+
+	soup_auth_authenticate (auth, user, password);
+	soup_auth_save_password (auth, user, password);
+}
+
+static void
 usage (void)
 {
 	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-h] [-d] URL\n");
@@ -90,6 +160,7 @@ main (int argc, char **argv)
 
 	g_thread_init (NULL);
 	g_type_init ();
+	g_set_application_name ("get");
 
 	method = SOUP_METHOD_GET;
 
@@ -144,6 +215,7 @@ main (int argc, char **argv)
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 #ifdef HAVE_GNOME
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PASSWORD_MANAGER_GNOME,
 #endif
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
@@ -152,10 +224,13 @@ main (int argc, char **argv)
 			SOUP_SESSION_SSL_CA_FILE, cafile,
 #ifdef HAVE_GNOME
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PASSWORD_MANAGER_GNOME,
 #endif
 			SOUP_SESSION_USER_AGENT, "get ",
 			NULL);
 	}
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (authenticate), NULL);
 
 	/* Need to do this after creating the session, since adding
 	 * SOUP_TYPE_GNOME_FEATURE_2_26 will add a proxy resolver, thereby

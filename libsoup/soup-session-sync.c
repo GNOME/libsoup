@@ -14,8 +14,9 @@
 #include "soup-session-private.h"
 #include "soup-address.h"
 #include "soup-message-private.h"
-#include "soup-proxy-uri-resolver.h"
 #include "soup-misc.h"
+#include "soup-password-manager.h"
+#include "soup-proxy-uri-resolver.h"
 #include "soup-uri.h"
 
 /**
@@ -54,6 +55,8 @@ static void  queue_message  (SoupSession *session, SoupMessage *msg,
 static guint send_message   (SoupSession *session, SoupMessage *msg);
 static void  cancel_message (SoupSession *session, SoupMessage *msg,
 			     guint status_code);
+static void  auth_required  (SoupSession *session, SoupMessage *msg,
+			     SoupAuth *auth, gboolean retrying);
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
@@ -89,6 +92,7 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
 	session_class->cancel_message = cancel_message;
+	session_class->auth_required = auth_required;
 	object_class->finalize = finalize;
 }
 
@@ -323,3 +327,20 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 	g_cond_broadcast (priv->cond);
 }
 
+static void
+auth_required (SoupSession *session, SoupMessage *msg,
+	       SoupAuth *auth, gboolean retrying)
+{
+	SoupSessionFeature *password_manager;
+
+	password_manager = soup_session_get_feature_for_message (
+		session, SOUP_TYPE_PASSWORD_MANAGER, msg);
+	if (password_manager) {
+		soup_password_manager_get_passwords_sync (
+			SOUP_PASSWORD_MANAGER (password_manager),
+			msg, auth, NULL); /* FIXME cancellable */
+	}
+
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
+		auth_required (session, msg, auth, retrying);
+}

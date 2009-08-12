@@ -15,6 +15,7 @@
 #include "soup-address.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
+#include "soup-password-manager.h"
 #include "soup-proxy-uri-resolver.h"
 #include "soup-uri.h"
 
@@ -33,6 +34,9 @@ static void do_idle_run_queue (SoupSession *session);
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
+
+static void  auth_required   (SoupSession *session, SoupMessage *msg,
+			      SoupAuth *auth, gboolean retrying);
 
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
@@ -69,6 +73,7 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
+	session_class->auth_required = auth_required;
 
 	object_class->finalize = finalize;
 }
@@ -443,4 +448,37 @@ send_message (SoupSession *session, SoupMessage *req)
 		g_main_context_iteration (async_context, TRUE);
 
 	return req->status_code;
+}
+
+static void
+got_passwords (SoupPasswordManager *password_manager, SoupMessage *msg,
+	       SoupAuth *auth, gboolean retrying, gpointer session)
+{
+	soup_session_unpause_message (session, msg);
+	SOUP_SESSION_CLASS (soup_session_async_parent_class)->
+		auth_required (session, msg, auth, retrying);
+	g_object_unref (auth);
+}
+
+static void
+auth_required (SoupSession *session, SoupMessage *msg,
+	       SoupAuth *auth, gboolean retrying)
+{
+	SoupSessionFeature *password_manager;
+
+	password_manager = soup_session_get_feature_for_message (
+		session, SOUP_TYPE_PASSWORD_MANAGER, msg);
+	if (password_manager) {
+		soup_session_pause_message (session, msg);
+		g_object_ref (auth);
+		soup_password_manager_get_passwords_async (
+			SOUP_PASSWORD_MANAGER (password_manager),
+			msg, auth, retrying,
+			soup_session_get_async_context (session),
+			NULL, /* FIXME cancellable */
+			got_passwords, session);
+	} else {
+		SOUP_SESSION_CLASS (soup_session_async_parent_class)->
+			auth_required (session, msg, auth, retrying);
+	}
 }
