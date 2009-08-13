@@ -56,7 +56,7 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 
 	/* Generate correct context for request */
 	req_host = soup_message_headers_get_one (msg->request_headers, "Host");
-	if (strchr (req_host, '/')) {
+	if (req_host && strchr (req_host, '/')) {
 		g_free (req_path);
 		return SOUP_STATUS_BAD_REQUEST;
 	}
