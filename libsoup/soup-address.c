@@ -566,7 +566,11 @@ update_addrs (SoupAddress *addr, GList *addrs, GError *error)
 
 	len = g_socket_address_get_native_size (gsa);
 	priv->sockaddr = g_malloc (len);
-	g_socket_address_to_native (gsa, priv->sockaddr, len, NULL);
+	if (!g_socket_address_to_native (gsa, priv->sockaddr, len, NULL)) {
+                /* can't happen: We know the address format is supported
+                 * and the buffer is large enough */
+                g_warn_if_reached ();
+        }
 
 	return SOUP_STATUS_OK;
 }
