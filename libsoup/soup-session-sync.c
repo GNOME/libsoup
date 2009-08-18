@@ -201,6 +201,8 @@ wait_for_connection (SoupMessageQueueItem *item)
 
 	g_mutex_lock (priv->lock);
 
+	soup_session_cleanup_connections (session, FALSE);
+
  try_again:
 	conn = soup_session_get_connection (session, item, &try_pruning);
 	if (conn) {
@@ -226,8 +228,11 @@ wait_for_connection (SoupMessageQueueItem *item)
 		return conn;
 	}
 
-	if (try_pruning && soup_session_try_prune_connection (session))
-		goto try_again;
+	if (try_pruning) {
+		try_pruning = FALSE;
+		if (soup_session_cleanup_connections (session, TRUE))
+			goto try_again;
+	}
 
 	/* Wait... */
 	g_cond_wait (priv->cond, priv->lock);

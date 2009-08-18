@@ -958,38 +958,35 @@ soup_session_send_queue_item (SoupSession *session,
 }
 
 gboolean
-soup_session_try_prune_connection (SoupSession *session)
+soup_session_cleanup_connections (SoupSession *session,
+				  gboolean     prune_idle)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	GPtrArray *conns;
+	GSList *conns = NULL, *c;
 	GHashTableIter iter;
 	gpointer conn, host;
-	int i;
-
-	conns = g_ptr_array_new ();
+	SoupConnectionState state;
 
 	g_mutex_lock (priv->host_lock);
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &host)) {
-		/* Don't prune a connection that is currently in use,
-		 * or hasn't been used yet.
-		 */
-		if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE &&
-		    soup_connection_last_used (conn) > 0)
-			g_ptr_array_add (conns, g_object_ref (conn));
+		state = soup_connection_get_state (conn);
+		if (state == SOUP_CONNECTION_REMOTE_DISCONNECTED ||
+		    (prune_idle && state == SOUP_CONNECTION_IDLE &&
+		     soup_connection_last_used (conn) > 0))
+			conns = g_slist_prepend (conns, g_object_ref (conn));
 	}
 	g_mutex_unlock (priv->host_lock);
 
-	if (!conns->len) {
-		g_ptr_array_free (conns, TRUE);
+	if (!conns)
 		return FALSE;
-	}
 
-	for (i = 0; i < conns->len; i++) {
-		soup_connection_disconnect (conns->pdata[i]);
-		g_object_unref (conns->pdata[i]);
+	for (c = conns; c; c = c->next) {
+		conn = c->data;
+		soup_connection_disconnect (conn);
+		g_object_unref (conn);
 	}
-	g_ptr_array_free (conns, TRUE);
+	g_slist_free (conns);
 
 	return TRUE;
 }

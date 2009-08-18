@@ -21,7 +21,8 @@ SoupMessageQueueItem *soup_session_make_connect_message (SoupSession          *s
 SoupConnection       *soup_session_get_connection       (SoupSession          *session,
 							 SoupMessageQueueItem *item,
 							 gboolean             *try_pruning);
-gboolean              soup_session_try_prune_connection (SoupSession          *session);
+gboolean              soup_session_cleanup_connections  (SoupSession          *session,
+							 gboolean              prune_idle);
 void                  soup_session_connection_failed    (SoupSession          *session,
 							 SoupConnection       *conn,
 							 guint                 status);

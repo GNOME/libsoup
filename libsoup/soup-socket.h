@@ -63,6 +63,7 @@ void           soup_socket_connect_async      (SoupSocket         *sock,
 					       gpointer            user_data);
 guint          soup_socket_connect_sync       (SoupSocket         *sock,
 					       GCancellable       *cancellable);
+int            soup_socket_get_fd             (SoupSocket         *sock);
 
 gboolean       soup_socket_listen             (SoupSocket         *sock);
 

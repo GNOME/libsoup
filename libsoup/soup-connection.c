@@ -598,10 +598,25 @@ soup_connection_get_proxy_uri (SoupConnection *conn)
 SoupConnectionState
 soup_connection_get_state (SoupConnection *conn)
 {
+	SoupConnectionPrivate *priv;
+
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn),
 			      SOUP_CONNECTION_DISCONNECTED);
+	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	return SOUP_CONNECTION_GET_PRIVATE (conn)->state;
+#ifdef G_OS_UNIX
+	if (priv->state == SOUP_CONNECTION_IDLE) {
+		GPollFD pfd;
+
+		pfd.fd = soup_socket_get_fd (priv->socket);
+		pfd.events = G_IO_IN;
+		pfd.revents = 0;
+		if (g_poll (&pfd, 1, 0) == 1)
+			priv->state = SOUP_CONNECTION_REMOTE_DISCONNECTED;
+	}
+#endif
+
+	return priv->state;
 }
 
 void

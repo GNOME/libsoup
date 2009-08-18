@@ -307,6 +307,8 @@ run_queue (SoupSessionAsync *sa)
 	SoupConnection *conn;
 	gboolean try_pruning = TRUE, should_prune = FALSE;
 
+	soup_session_cleanup_connections (session, FALSE);
+
  try_again:
 	for (item = soup_message_queue_first (queue);
 	     item && !should_prune;
@@ -354,7 +356,7 @@ run_queue (SoupSessionAsync *sa)
 		 * could be sent if we pruned an idle connection from
 		 * some other server.
 		 */
-		if (soup_session_try_prune_connection (session)) {
+		if (soup_session_cleanup_connections (session, TRUE)) {
 			try_pruning = should_prune = FALSE;
 			goto try_again;
 		}

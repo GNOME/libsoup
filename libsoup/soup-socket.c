@@ -831,6 +831,14 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	return status;
 }
 
+int
+soup_socket_get_fd (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), -1);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->sockfd;
+}
+
 static gboolean
 listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 {
