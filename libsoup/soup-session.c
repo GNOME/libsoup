@@ -973,7 +973,7 @@ soup_session_cleanup_connections (SoupSession *session,
 		state = soup_connection_get_state (conn);
 		if (state == SOUP_CONNECTION_REMOTE_DISCONNECTED ||
 		    (prune_idle && state == SOUP_CONNECTION_IDLE &&
-		     soup_connection_last_used (conn) > 0))
+		     soup_connection_get_age (conn) > 5))
 			conns = g_slist_prepend (conns, g_object_ref (conn));
 	}
 	g_mutex_unlock (priv->host_lock);
