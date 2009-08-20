@@ -1369,14 +1369,13 @@ soup_message_is_keepalive (SoupMessage *msg)
 		return FALSE;
 
 	if (SOUP_MESSAGE_GET_PRIVATE (msg)->http_version == SOUP_HTTP_1_0) {
-		/* Only persistent if the client requested keepalive
-		 * and the server agreed.
+		/* In theory, HTTP/1.0 connections are only persistent
+		 * if the client requests it, and the server agrees.
+		 * But some servers do keep-alive even if the client
+		 * doesn't request it. So ignore c_conn.
 		 */
 
-		if (!c_conn || !s_conn)
-			return FALSE;
-		if (!soup_header_contains (c_conn, "Keep-Alive") ||
-		    !soup_header_contains (s_conn, "Keep-Alive"))
+		if (!s_conn || !soup_header_contains (s_conn, "Keep-Alive"))
 			return FALSE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
