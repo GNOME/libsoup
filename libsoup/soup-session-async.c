@@ -303,7 +303,6 @@ run_queue (SoupSessionAsync *sa)
 	SoupMessageQueueItem *item;
 	SoupProxyURIResolver *proxy_resolver;
 	SoupMessage *msg;
-	SoupMessageIOStatus cur_io_status = SOUP_MESSAGE_IO_STATUS_CONNECTING;
 	SoupConnection *conn;
 	gboolean try_pruning = TRUE, should_prune = FALSE;
 
@@ -319,8 +318,7 @@ run_queue (SoupSessionAsync *sa)
 		if (msg->method == SOUP_METHOD_CONNECT)
 			continue;
 
-		if (soup_message_get_io_status (msg) != cur_io_status ||
-		    soup_message_io_in_progress (msg))
+		if (soup_message_io_in_progress (msg))
 			continue;
 
 		if (!item->resolved_proxy_addr) {
@@ -345,11 +343,6 @@ run_queue (SoupSessionAsync *sa)
 	}
 	if (item)
 		soup_message_queue_item_unref (item);
-
-	if (cur_io_status == SOUP_MESSAGE_IO_STATUS_CONNECTING) {
-		cur_io_status = SOUP_MESSAGE_IO_STATUS_QUEUED;
-		goto try_again;
-	}
 
 	if (try_pruning && should_prune) {
 		/* There is at least one message in the queue that

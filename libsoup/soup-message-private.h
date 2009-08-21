@@ -14,7 +14,6 @@
 typedef enum {
 	SOUP_MESSAGE_IO_STATUS_IDLE,
 	SOUP_MESSAGE_IO_STATUS_QUEUED,
-        SOUP_MESSAGE_IO_STATUS_CONNECTING,
         SOUP_MESSAGE_IO_STATUS_RUNNING,
 	SOUP_MESSAGE_IO_STATUS_FINISHED
 } SoupMessageIOStatus;
@@ -44,7 +43,7 @@ typedef struct {
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
-#define SOUP_MESSAGE_IS_STARTING(msg) (SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_QUEUED || SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_CONNECTING)
+#define SOUP_MESSAGE_IS_STARTING(msg) (SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_QUEUED)
 
 void             soup_message_cleanup_response (SoupMessage      *req);
 
