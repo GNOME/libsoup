@@ -67,16 +67,17 @@
  * used to identify when multiple messages are sent across the same
  * connection.
  *
- * The request half of the message is logged just before the first
- * byte of the request gets written to the network (from the
- * #SoupSession::request_started signal), and the response is logged
- * just after the last byte of the response body is read from the
- * network (from the #SoupMessage::got_body or
- * #SoupMessage::got_informational signal). In particular, note that
- * the #SoupMessage::got_headers signal, and anything triggered off it
- * (such as #SoupSession::authenticate) will be emitted
- * <emphasis>before</emphasis> the response headers are actually
- * logged.
+ * Currently, the request half of the message is logged just before
+ * the first byte of the request gets written to the network (from the
+ * #SoupSession::request_started signal), which means that if you have
+ * not made the complete request body available at that point, it will
+ * not be logged. The response is logged just after the last byte of
+ * the response body is read from the network (from the
+ * #SoupMessage::got_body or #SoupMessage::got_informational signal),
+ * which means that the #SoupMessage::got_headers signal, and anything
+ * triggered off it (such as #SoupSession::authenticate) will be
+ * emitted <emphasis>before</emphasis> the response headers are
+ * actually logged.
  **/
 
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
@@ -506,10 +507,12 @@ print_request (SoupLogger *logger, SoupMessage *msg,
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
 		return;
 
-	if (msg->request_body->length) {
+	if (msg->request_body->length &&
+	    soup_message_body_get_accumulate (msg->request_body)) {
 		SoupBuffer *request;
 
 		request = soup_message_body_flatten (msg->request_body);
+		g_return_if_fail (request != NULL);
 		soup_buffer_free (request);
 
 		if (soup_message_headers_get_expectations (msg->request_headers) != SOUP_EXPECTATION_CONTINUE) {
@@ -560,7 +563,7 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 	if (log_level == SOUP_LOGGER_LOG_HEADERS)
 		return;
 
-	if (msg->response_body->length) {
+	if (msg->response_body->data) {
 		soup_logger_print (logger, SOUP_LOGGER_LOG_BODY, '<',
 				   "\n%s", msg->response_body->data);
 	}
