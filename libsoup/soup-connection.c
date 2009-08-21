@@ -38,7 +38,7 @@ typedef struct {
 
 	SoupMessage *cur_req;
 	SoupConnectionState state;
-	time_t       last_used;
+	gboolean     ever_used;
 	guint        io_timeout, idle_timeout;
 	GSource     *idle_timeout_src;
 } SoupConnectionPrivate;
@@ -78,9 +78,7 @@ static void clear_current_request (SoupConnection *conn);
 static void
 soup_connection_init (SoupConnection *conn)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	priv->last_used = time (NULL);
+	;
 }
 
 static void
@@ -287,7 +285,6 @@ start_idle_timer (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	priv->last_used = time (NULL);
 	if (priv->idle_timeout > 0 && !priv->idle_timeout_src) {
 		priv->idle_timeout_src =
 			soup_add_timeout (priv->async_context,
@@ -337,8 +334,10 @@ clear_current_request (SoupConnection *conn)
 
 		if (!soup_message_is_keepalive (cur_req))
 			soup_connection_disconnect (conn);
-		else
+		else {
+			priv->ever_used = TRUE;
 			soup_message_io_stop (cur_req);
+		}
 	}
 }
 
@@ -538,10 +537,12 @@ soup_connection_disconnect (SoupConnection *conn)
 
 	if (priv->cur_req &&
 	    priv->cur_req->status_code == SOUP_STATUS_IO_ERROR &&
-	    soup_connection_get_age (conn) > 5) {
+	    priv->ever_used) {
 		/* There was a message queued on this connection, but
 		 * the socket was closed while it was being sent.
-		 * Since the connection is idle, the most likely cause of
+		 * Since ever_used is TRUE, then that means at least
+		 * one message was successfully sent on this
+		 * connection before, and so the most likely cause of
 		 * the IO_ERROR is that the connection was idle for
 		 * too long and the server timed out and closed it
 		 * (and we didn't notice until after we started
@@ -558,14 +559,14 @@ soup_connection_disconnect (SoupConnection *conn)
 					    SOUP_MESSAGE_IO_STATUS_QUEUED);
 	}
 
-	/* If cur_req is non-NULL but the connection was NOT idle when
-	 * it was sent, then that means this was the first message to
-	 * be sent on this connection, and it failed, so the error
-	 * probably means that there's some network or server problem,
-	 * so we let the IO_ERROR be returned to the caller.
+	/* If cur_req is non-NULL but priv->ever_used is FALSE, then that
+	 * means this was the first message to be sent on this
+	 * connection, and it failed, so the error probably means that
+	 * there's some network or server problem, so we let the
+	 * IO_ERROR be returned to the caller.
 	 *
 	 * (Of course, it's also possible that the error in the
-	 * idle-connection case was because of a network/server problem
+	 * ever_used == TRUE case was because of a network/server problem
 	 * too. It's even possible that the message crashed the
 	 * server. In this case, requeuing it was the wrong thing to
 	 * do, but presumably, the next attempt will also get an
@@ -628,14 +629,6 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	SOUP_CONNECTION_GET_PRIVATE (conn)->state = state;
 	if (state == SOUP_CONNECTION_IDLE)
 		clear_current_request (conn);
-}
-
-guint
-soup_connection_get_age (SoupConnection *conn)
-{
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
-
-	return time (NULL) - SOUP_CONNECTION_GET_PRIVATE (conn)->last_used;
 }
 
 /**
