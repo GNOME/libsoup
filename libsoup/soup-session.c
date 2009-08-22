@@ -1030,23 +1030,14 @@ soup_session_connection_failed (SoupSession *session,
 
 	connection_disconnected (conn, session);
 
-	if (host->connections) {
-		/* Something went wrong this time, but we have at
-		 * least one open connection to this host. So just
-		 * leave the message in the queue so it can use that
-		 * connection once it's free.
-		 */
-		return;
-	}
-
-	/* Assume that there's something wrong with the host, and
-	 * cancel any other messages waiting for a connection to it,
+	/* Cancel any other messages waiting for a connection to it,
 	 * since they're out of luck.
 	 */
 	g_object_ref (session);
 	for (item = soup_message_queue_first (priv->queue); item; item = soup_message_queue_next (priv->queue, item)) {
 		msg = item->msg;
-		if (get_host_for_message (session, msg) == host)
+		if (SOUP_MESSAGE_IS_STARTING (msg) &&
+		    get_host_for_message (session, msg) == host)
 			soup_session_cancel_message (session, msg, status);
 	}
 	g_object_unref (session);
