@@ -162,6 +162,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	start = find_boundary (flattened->data, boundary, boundary_len);
 	if (!start) {
 		soup_multipart_free (multipart);
+		soup_buffer_free (flattened);
 		return NULL;
 	}
 
@@ -169,12 +170,14 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		end = find_boundary (start + 2 + boundary_len, boundary, boundary_len);
 		if (!end) {
 			soup_multipart_free (multipart);
+			soup_buffer_free (flattened);
 			return NULL;
 		}
 
 		split = strstr (start, "\r\n\r\n");
 		if (!split || split > end) {
 			soup_multipart_free (multipart);
+			soup_buffer_free (flattened);
 			return NULL;
 		}
 		split += 4;
@@ -193,6 +196,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 		if (!soup_headers_parse (start, split - 2 - start,
 					 part_headers)) {
 			soup_multipart_free (multipart);
+			soup_buffer_free (flattened);
 			return NULL;
 		}
 
