@@ -1,3 +1,33 @@
+Changes in libsoup from 2.27.90 to 2.27.91:
+
+	* Added SoupPasswordManager, an interface for managing
+	  persistent password storage, and SoupPasswordManagerGNOME
+	  (in libsoup-gnome), which implements it using gnome-keyring.
+	  tests/get.c provides a minimal example of how to use it.
+
+	* libsoup should now notice when the server closes a
+          persistent connection, and close its side of the connection
+          sooner. This should hopefully fix the spurious "Connection
+          terminated unexpectedly" errors in WebKitGTK. [#578990]
+
+	* Fixed some problems with connection management in
+          SoupSession that could cause a session to eventually "stall"
+          and be unable to process new requests. [#592084]
+
+	* Fixed an infinite loop that caused 100% CPU usage if the
+          network went down at exactly the right time while there were
+          unsent messages in the queue. [#592492]
+
+	* Fixed a crash in SoupLogger. [#591857]
+
+	* Fixed the definition of soup_message_is_keepalive() for
+          HTTP/1.0 messages, to fix a problem introduced in 2.27.90
+          where some messages would load completely but never emit
+          "finished".
+
+	* Fixed a crash in SoupServer introduced in 2.27.90 when
+          processing a request with no "Host" header.
+
 Changes in libsoup from 2.27.5 to 2.27.90:
 
 	* libsoup now uses glib's GResolver rather than its own DNS
