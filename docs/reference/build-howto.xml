@@ -82,7 +82,7 @@ Code using <application>libsoup</application> should do:
 </para>
 
 <informalexample><programlisting>
-#include &lt;libsoup/libsoup.h&gt;
+#include &lt;libsoup/soup.h&gt;
 </programlisting></informalexample>
 
 <para>
@@ -90,13 +90,13 @@ or, for <application>libsoup-gnome</application>:
 </para>
 
 <informalexample><programlisting>
-#include &lt;libsoup/libsoup-gnome.h&gt;
+#include &lt;libsoup/soup-gnome.h&gt;
 </programlisting></informalexample>
 
 <para>
 Including individual headers besides the two main header files is not
-recommended. You may include both <literal>libsoup.h</literal> and
-<literal>libsoup-gnome.h</literal> (though this is not required; the
+recommended. You may include both <literal>soup.h</literal> and
+<literal>soup-gnome.h</literal> (though this is not required; the
 latter automatically includes the former).
 </para>
 
