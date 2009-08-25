@@ -329,7 +329,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
  *
  * @cookie will be 'stolen' by the jar, so don't free it afterwards.
  *
- * Since: 2.24
+ * Since: 2.26
  **/
 void
 soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
@@ -470,7 +470,7 @@ request_unqueued (SoupSessionFeature *feature, SoupSession *session,
  *
  * Return value: a #GSList with all the cookies in the @jar.
  *
- * Since: 2.24
+ * Since: 2.26
  **/
 GSList *
 soup_cookie_jar_all_cookies (SoupCookieJar *jar)
@@ -502,7 +502,7 @@ soup_cookie_jar_all_cookies (SoupCookieJar *jar)
  *
  * Deletes @cookie from @jar, emitting the 'changed' signal.
  *
- * Since: 2.24
+ * Since: 2.26
  **/
 void
 soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
