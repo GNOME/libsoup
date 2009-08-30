@@ -99,6 +99,7 @@ main (int argc, char **argv)
 	g_free (fast_uri);
 	g_free (slow_uri);
 
+#ifdef HAVE_SSL
 	debug_printf (1, "https\n");
 	server = soup_test_server_new_ssl (TRUE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
@@ -109,6 +110,7 @@ main (int argc, char **argv)
 	do_timeout_tests (fast_uri, slow_uri);
 	g_free (fast_uri);
 	g_free (slow_uri);
+#endif
 
 	test_cleanup ();
 	return errors != 0;
