@@ -281,6 +281,9 @@ dnl *** Stuff for regression tests
 dnl ******************************
 AC_MSG_NOTICE([checking for programs needed for regression tests])
 MISSING_REGRESSION_TEST_PACKAGES=""
+if test $have_ssl = "no"; then
+    MISSING_REGRESSION_TEST_PACKAGES=" gnutls"
+fi
 
 AC_ARG_WITH(apache-httpd,
 	    AS_HELP_STRING([--with-apache-httpd], [Path to apache httpd (for tests)]),
