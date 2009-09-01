@@ -221,7 +221,7 @@ callback (void *data, int argc, char **argv, char **colname)
 static void
 try_create_table (sqlite3 *db)
 {
-	char *error = 0;
+	char *error = NULL;
 
 	if (sqlite3_exec (db, CREATE_TABLE, NULL, NULL, &error)) {
 		g_warning ("Failed to execute query: %s", error);
@@ -235,7 +235,7 @@ exec_query_with_try_create_table (sqlite3 *db,
 				  int (*callback)(void*,int,char**,char**),
 				  void *argument)
 {
-	char *error = 0;
+	char *error = NULL;
 	gboolean try_create = TRUE;
 
 try_exec:
@@ -244,6 +244,7 @@ try_exec:
 			try_create = FALSE;
 			try_create_table (db);
 			sqlite3_free (error);
+			error = NULL;
 			goto try_exec;
 		} else {
 			g_warning ("Failed to execute query: %s", error);
