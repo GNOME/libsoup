@@ -247,14 +247,12 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	/* Find query */
 	question = memchr (uri_string, '?', end - uri_string);
 	if (question) {
-		if (question[1]) {
-			uri->query = uri_normalized_copy (question + 1,
-							  end - (question + 1),
-							  NULL, TRUE);
-			if (!uri->query) {
-				soup_uri_free (uri);
-				return NULL;
-			}
+		uri->query = uri_normalized_copy (question + 1,
+						  end - (question + 1),
+						  NULL, TRUE);
+		if (!uri->query) {
+			soup_uri_free (uri);
+			return NULL;
 		}
 		end = question;
 	}

@@ -61,7 +61,11 @@ static struct {
 
 	/* Try to recover certain kinds of invalid URIs */
 	{ "http://host/path with spaces",
-	  "http://host/path%20with%20spaces" }
+	  "http://host/path%20with%20spaces" },
+
+	/* Bug 594405; 0-length is different from not-present */
+	{ "http://host/path?", "http://host/path?" },
+	{ "http://host/path#", "http://host/path#" }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
