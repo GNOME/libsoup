@@ -6,6 +6,8 @@
 #ifndef SOUP_PASSWORD_MANAGER_H
 #define SOUP_PASSWORD_MANAGER_H 1
 
+#ifdef LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
+
 #include <libsoup/soup-types.h>
 #include <gio/gio.h>
 
@@ -51,5 +53,7 @@ void  soup_password_manager_get_passwords_sync  (SoupPasswordManager  *password_
 						 SoupMessage          *msg,
 						 SoupAuth             *auth,
 						 GCancellable         *cancellable);
+
+#endif /* LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY */
 
 #endif /* SOUP_PASSWORD_MANAGER_H */

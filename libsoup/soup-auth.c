@@ -9,6 +9,8 @@
 #include <config.h>
 #endif
 
+#define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
+
 #include <string.h>
 
 #include "soup-auth.h"

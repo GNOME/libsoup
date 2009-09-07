@@ -9,6 +9,8 @@
 #include <config.h>
 #endif
 
+#define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
+
 #include "soup-password-manager-gnome.h"
 #include "soup-auth.h"
 #include "soup-session-feature.h"
@@ -50,12 +52,6 @@ soup_password_manager_gnome_interface_init (SoupPasswordManagerInterface *passwo
 {
 	password_manager_interface->get_passwords_async = get_passwords_async;
 	password_manager_interface->get_passwords_sync = get_passwords_sync;
-}
-
-SoupPasswordManager *
-soup_password_manager_gnome_new (void)
-{
-	return g_object_new (SOUP_TYPE_PASSWORD_MANAGER_GNOME, NULL);
 }
 
 

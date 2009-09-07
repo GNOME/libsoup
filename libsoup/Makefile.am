@@ -171,8 +171,7 @@ libsoupgnomeincludedir = $(includedir)/libsoup-gnome-2.4/libsoup
 libsoupgnomeinclude_HEADERS =	\
 	soup-cookie-jar-sqlite.h\
 	soup-gnome.h		\
-	soup-gnome-features.h	\
-	soup-password-manager-gnome.h
+	soup-gnome-features.h
 
 lib_LTLIBRARIES += libsoup-gnome-2.4.la
 

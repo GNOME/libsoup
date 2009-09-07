@@ -10,6 +10,5 @@
 
 #include <libsoup/soup-cookie-jar-sqlite.h>
 #include <libsoup/soup-gnome-features.h>
-#include <libsoup/soup-password-manager-gnome.h>
 
 #endif /* SOUP_GNOME_H */
