@@ -14,13 +14,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <termios.h>
 #include <unistd.h>
 
 #ifdef HAVE_GNOME
 #include <libsoup/soup-gnome.h>
 #else
 #include <libsoup/soup.h>
+#endif
+
+#ifdef G_OS_UNIX
+#include <termios.h>
 #endif
 
 static SoupSession *session;
@@ -80,13 +83,17 @@ authenticate (SoupSession *session, SoupMessage *msg,
 {
 	char *uri;
 	GSList *saved_users;
+#ifdef G_OS_UNIX
 	struct termios t;
 	int old_lflag;
+#endif
 	char user[80], pwbuf[80];
 	const char *password;
 
+#ifdef G_OS_UNIX
 	if (tcgetattr (STDIN_FILENO, &t) != 0)
 		return;
+#endif
 
 	uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 	fprintf (stderr, "Authentication required for %s:\n", uri);
@@ -120,9 +127,11 @@ authenticate (SoupSession *session, SoupMessage *msg,
 		fprintf (stderr, "  password: ");
 		fflush (stderr);
 
+#ifdef G_OS_UNIX
 		old_lflag = t.c_lflag;
 		t.c_lflag = (t.c_lflag | ICANON | ECHONL) & ~ECHO;
 		tcsetattr (STDIN_FILENO, TCSANOW, &t);
+#endif
 
 		/* For some reason, fgets can return EINTR on
 		 * Linux if ECHO is false...
@@ -131,8 +140,10 @@ authenticate (SoupSession *session, SoupMessage *msg,
 			password = fgets (pwbuf, sizeof (pwbuf), stdin);
 		while (password == NULL && errno == EINTR);
 
+#ifdef G_OS_UNIX
 		t.c_lflag = old_lflag;
 		tcsetattr (STDIN_FILENO, TCSANOW, &t);
+#endif
 
 		if (!password || pwbuf[0] == '\n')
 			return;
