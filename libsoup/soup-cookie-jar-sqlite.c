@@ -4,6 +4,7 @@
  *
  * Using danw's soup-cookie-jar-text as template
  * Copyright (C) 2008 Diego Escalante Urrelo
+ * Copyright (C) 2009 Collabora Ltd.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -37,7 +38,7 @@ enum {
 
 typedef struct {
 	char *filename;
-
+	sqlite3 *db;
 } SoupCookieJarSqlitePrivate;
 
 #define SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR_SQLITE, SoupCookieJarSqlitePrivate))
@@ -66,6 +67,9 @@ finalize (GObject *object)
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (object);
 
 	g_free (priv->filename);
+
+	if (priv->db)
+		sqlite3_close (priv->db);
 
 	G_OBJECT_CLASS (soup_cookie_jar_sqlite_parent_class)->finalize (object);
 }
@@ -252,24 +256,43 @@ try_exec:
 		}
 	}
 }
-					 
+
+/* Follows sqlite3 convention; returns TRUE on error */
+static gboolean
+open_db (SoupCookieJar *jar)
+{
+	SoupCookieJarSqlitePrivate *priv =
+		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
+
+	char *error = NULL;
+
+	if (sqlite3_open (priv->filename, &priv->db)) {
+		sqlite3_close (priv->db);
+		priv->db = NULL;
+		g_warning ("Can't open %s", priv->filename);
+		return TRUE;
+	}
+
+	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF", NULL, NULL, &error)) {
+		g_warning ("Failed to execute query: %s", error);
+		sqlite3_free (error);
+	}
+
+	return FALSE;
+}
+
 static void
 load (SoupCookieJar *jar)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
 
-	sqlite3 *db;
-
-	if (sqlite3_open (priv->filename, &db)) {
-		sqlite3_close (db);
-		g_warning ("Can't open %s", priv->filename);
-		return;
+	if (priv->db == NULL) {
+		if (open_db (jar))
+			return;
 	}
 
-	exec_query_with_try_create_table (db, QUERY_ALL, callback, jar);
-
-	sqlite3_close (db);
+	exec_query_with_try_create_table (priv->db, QUERY_ALL, callback, jar);
 }
 
 static void
@@ -279,20 +302,18 @@ changed (SoupCookieJar *jar,
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
-	sqlite3 *db;
 	char *query;
 
-	if (sqlite3_open (priv->filename, &db)) {
-		sqlite3_close (db);
-		g_warning ("Can't open %s", priv->filename);
-		return;
+	if (priv->db == NULL) {
+		if (open_db (jar))
+			return;
 	}
 
 	if (old_cookie) {
 		query = sqlite3_mprintf (QUERY_DELETE,
 					 old_cookie->name,
 					 old_cookie->domain);
-		exec_query_with_try_create_table (db, query, NULL, NULL);
+		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
 
@@ -308,9 +329,7 @@ changed (SoupCookieJar *jar,
 					 expires,
 					 new_cookie->secure,
 					 new_cookie->http_only);
-		exec_query_with_try_create_table (db, query, NULL, NULL);
+		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
-
-	sqlite3_close (db);
 }
