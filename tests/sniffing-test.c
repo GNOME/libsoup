@@ -166,6 +166,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					  MIN(500, length - offset));
 	}
 	soup_message_body_complete (msg->response_body);
+
+	g_free (contents);
 }
 
 static gboolean
@@ -271,7 +273,7 @@ do_signals_test (gboolean should_content_sniff,
 	if (empty_response) {
 		if (uri->query) {
 			char *tmp = uri->query;
-			uri->query = g_strdup_printf("%s&empty_response=yes", tmp);
+			uri->query = g_strdup_printf ("%s&empty_response=yes", tmp);
 			g_free (tmp);
 		} else
 			soup_uri_set_query (uri, "empty_response=yes");
@@ -317,11 +319,9 @@ do_signals_test (gboolean should_content_sniff,
 		exit (1);
 	}
 
-	if (!should_accumulate && chunk_data) {
+	if (!should_accumulate && chunk_data)
 		body = soup_message_body_flatten (chunk_data);
-		soup_message_body_free (chunk_data);
-		chunk_data = NULL;
-	} else if (msg->response_body)
+	else if (msg->response_body)
 		body = soup_message_body_flatten (msg->response_body);
 
 	if (body && body->length != length) {
@@ -334,8 +334,13 @@ do_signals_test (gboolean should_content_sniff,
 		errors++;
 	}
 
+	g_free (contents);
 	if (body)
 		soup_buffer_free (body);
+	if (chunk_data) {
+		soup_message_body_free (chunk_data);
+		chunk_data = NULL;
+	}
 
 	soup_uri_free (uri);
 	g_object_unref (msg);
@@ -421,7 +426,6 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupContentSniffer *sniffer;
 
 	test_init (argc, argv, NULL);
 
@@ -450,8 +454,7 @@ main (int argc, char **argv)
 	do_signals_test (FALSE, TRUE, TRUE, FALSE, TRUE);
 	do_signals_test (FALSE, TRUE, TRUE, TRUE, TRUE);
 
-	sniffer = soup_content_sniffer_new ();
-	soup_session_add_feature (session, (SoupSessionFeature*)sniffer);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
 	/* Now, with a sniffer, content_sniffed must be emitted after
 	 * got-headers, and before got-chunk.
@@ -519,6 +522,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 
+	soup_test_session_abort_unref (session);
 	test_cleanup ();
 	return errors != 0;
 }

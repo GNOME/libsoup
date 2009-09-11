@@ -374,6 +374,7 @@ do_star_test (void)
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
+	soup_uri_free (star_uri);
 }
 
 int

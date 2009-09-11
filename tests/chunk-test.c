@@ -253,18 +253,21 @@ do_response_test (SoupSession *session, SoupURI *base_uri)
 static void
 temp_test_wrote_chunk (SoupMessage *msg, gpointer session)
 {
+	SoupBuffer *chunk;
+
+	chunk = soup_message_body_get_chunk (msg->request_body, 5);
+
 	/* When the bug is present, the second chunk will also be
 	 * discarded after the first is written, which will cause
 	 * the I/O to stall since soup-message-io will think it's
 	 * done, but it hasn't written Content-Length bytes yet.
-	 * So add in another chunk to keep it going.
 	 */
-	if (!soup_message_body_get_chunk (msg->request_body,
-					  5)) {
+	if (!chunk) {
 		debug_printf (1, "  Lost second chunk!\n");
 		errors++;
 		soup_session_abort (session);
-	}
+	} else
+		soup_buffer_free (chunk);
 
 	g_signal_handlers_disconnect_by_func (msg, temp_test_wrote_chunk, session);
 }
@@ -273,7 +276,8 @@ static void
 do_temporary_test (SoupSession *session, SoupURI *base_uri)
 {
 	SoupMessage *msg;
-	const char *client_md5, *server_md5;
+	char *client_md5;
+	const char *server_md5;
 
 	debug_printf (1, "PUT w/ temporary buffers\n");
 
@@ -304,6 +308,7 @@ do_temporary_test (SoupSession *session, SoupURI *base_uri)
 		errors++;
 	}
 
+	g_free (client_md5);
 	g_object_unref (msg);
 }
 

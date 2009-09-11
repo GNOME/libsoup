@@ -182,6 +182,8 @@ main (int argc, char **argv)
 
 	g_main_loop_unref (loop);
 
+	g_free (full_response);
+	g_free (full_response_md5);
 	test_cleanup ();
 	return errors != 0;
 }

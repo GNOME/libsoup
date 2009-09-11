@@ -152,6 +152,19 @@
    fun:g_object_class_install_property
 }
 {
+   glib/g_object_class_install_property_8
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_object_class_install_property
+}
+{
    glib/g_param_spec_types_init_2
    Memcheck:Leak
    fun:*
@@ -174,6 +187,16 @@
    fun:*
    fun:*
    fun:g_param_spec_types_init
+}
+{
+   glib/g_param_spec_internal_5
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_param_spec_internal
 }
 {
    glib/g_type_register_static_1
@@ -377,6 +400,17 @@
    fun:g_signal_new
 }
 {
+   glib/g_signal_handlers_destroy_6
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_signal_handlers_destroy
+}
+{
    glib/g_get_language_names_2
    Memcheck:Leak
    fun:*
@@ -403,6 +437,31 @@
 {
    glib/g_get_language_names_5
    Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_get_language_names
+}
+{
+   glib/g_get_language_names_7
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_get_language_names
+}
+{
+   glib/g_get_language_names_8
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
    fun:*
    fun:*
    fun:*
@@ -483,8 +542,21 @@
    fun:g_thread_init_glib
 }
 {
-   glib/g_thread_init_glib_y
+   glib/g_thread_init_glib_7
    Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_thread_init_glib
+}
+{
+   glib/g_thread_init_glib_8
+   Memcheck:Leak
+   fun:*
    fun:*
    fun:*
    fun:*
@@ -613,6 +685,16 @@
    fun:g_data_initialize
 }
 {
+   glib/g_data_initialize_5
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_data_initialize
+}
+{
    glib/g_static_rw_lock_writer_lock_3
    Memcheck:Leak
    fun:*
@@ -654,6 +736,152 @@
    fun:*
    fun:*
    fun:g_child_watch_source_init_multi_threaded
+}
+{
+   glib/g_static_private_set_4
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_static_private_set
+}
+{
+   glib/g_main_context_push_thread_default_4
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_queue_new
+   fun:g_main_context_push_thread_default
+}
+{
+   glib/g_resolver_get_default_9
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_resolver_get_default
+}
+{
+   glib/g_threaded_resolver_init_4
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_threaded_resolver_init
+}
+{
+   glib/g_threaded_resolver_init_5
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_threaded_resolver_init
+}
+{
+   glib/g_threaded_resolver_init_7
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_threaded_resolver_init
+}
+{
+   glib/xdg_mime_init_4
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_3
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_2
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_8
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_9
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_10
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
+}
+{
+   glib/xdg_mime_init_11
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:xdg_mime_init
 }
 
 
@@ -749,8 +977,35 @@
    fun:gnutls_global_init
 }
 {
+   gnutls/gnutls_global_init_11
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_global_init
+}
+{
    gnutls/soup_gnutls_init_gcry_control_4
    Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gcry_control
+   fun:soup_gnutls_init
+}
+{
+   gnutls/soup_gnutls_init_gcry_control_5
+   Memcheck:Leak
+   fun:*
    fun:*
    fun:*
    fun:*
@@ -786,6 +1041,21 @@
    fun:soup_gnutls_init
 }
 {
+   gnutls/soup_gnutls_init_gcry_control_9
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gcry_control
+   fun:soup_gnutls_init
+}
+{
    gnutls/gnutls_handshake_5
    Memcheck:Leak
    fun:*
@@ -805,6 +1075,93 @@
    fun:*
    fun:*
    fun:gnutls_handshake
+}
+{
+   gnutls/init_dh_params_1
+   Memcheck:Leak
+   fun:*
+   fun:gnutls_dh_params_init
+   fun:init_dh_params
+}
+{
+   gnutls/init_dh_params_8
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_dh_params_generate2
+   fun:init_dh_params
+}
+{
+   gnutls/init_dh_params_9
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_dh_params_generate2
+   fun:init_dh_params
+}
+{
+   gnutls/init_dh_params_10
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_dh_params_generate2
+   fun:init_dh_params
+}
+{
+   gnutls/init_dh_params_11
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_dh_params_generate2
+   fun:init_dh_params
+}
+{
+   gnutls/init_dh_params_12
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:gnutls_dh_params_generate2
+   fun:init_dh_params
 }
 
 {
@@ -835,36 +1192,23 @@
    fun:intern_header_name
 }
 {
-   libsoup/soup_dns_cache_entry_new_3
+   libsoup/intern_header_name_7
    Memcheck:Leak
    fun:*
    fun:*
    fun:*
-   fun:soup_dns_cache_entry_new
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:intern_header_name
 }
 {
-   libsoup/soup_dns_cache_entry_new_4
+   libsoup/soup_uri_get_scheme
    Memcheck:Leak
    fun:*
    fun:*
    fun:*
-   fun:*
-   fun:soup_dns_cache_entry_new
-}
-{
-   libsoup/soup_dns_lookup_name_3
-   Memcheck:Leak
-   fun:*
-   fun:*
-   fun:*
-   fun:soup_dns_lookup_name
-}
-{
-   libsoup/resolver_thread_4
-   Memcheck:Leak
-   fun:*
-   fun:*
-   fun:*
-   fun:*
-   fun:resolver_thread
+   fun:g_ascii_strdown
+   fun:soup_uri_get_scheme
 }

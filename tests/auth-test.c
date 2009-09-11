@@ -795,6 +795,10 @@ do_select_auth_test (void)
 			      "Digest, Basic", "Digest",
 			      NULL, NULL,
 			      SOUP_STATUS_OK);
+
+	g_object_unref (basic_auth_domain);
+	g_object_unref (digest_auth_domain);
+	soup_uri_free (uri);
 }
 
 int
