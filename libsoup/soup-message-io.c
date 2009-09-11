@@ -384,6 +384,7 @@ read_body_chunk (SoupMessage *msg)
 
 			if (io->need_content_sniffed) {
 				soup_message_body_append_buffer (io->sniff_data, buffer);
+				soup_buffer_free (buffer);
 				io->need_got_chunk = TRUE;
 				if (!io_handle_sniffing (msg, FALSE))
 					return FALSE;

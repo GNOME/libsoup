@@ -571,6 +571,7 @@ update_addrs (SoupAddress *addr, GList *addrs, GError *error)
                  * and the buffer is large enough */
                 g_warn_if_reached ();
         }
+	g_object_unref (gsa);
 
 	return SOUP_STATUS_OK;
 }

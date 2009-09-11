@@ -65,6 +65,10 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 		g_object_unref (item->proxy_addr);
 		item->proxy_addr = NULL;
 	}
+	if (item->proxy_uri) {
+		soup_uri_free (item->proxy_uri);
+		item->proxy_uri = NULL;
+	}
 	item->resolved_proxy_addr = FALSE;
 }
 

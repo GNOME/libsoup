@@ -1067,6 +1067,7 @@ soup_session_make_connect_message (SoupSession *session,
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupURI *uri;
 	SoupMessage *msg;
+	SoupMessageQueueItem *item;
 
 	uri = soup_uri_new (NULL);
 	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
@@ -1082,7 +1083,9 @@ soup_session_make_connect_message (SoupSession *session,
 	 * the right signals to be emitted.
 	 */
 	queue_message (session, msg, tunnel_connected, NULL);
-	return soup_message_queue_lookup (priv->queue, msg);
+	item = soup_message_queue_lookup (priv->queue, msg);
+	g_object_unref (msg);
+	return item;
 }
 
 /**
