@@ -1,3 +1,17 @@
+Changes in libsoup from 2.27.92 to 2.28.0:
+
+	* Fixed a handful of leaks found with valgrind, including a
+          large one in SoupContentSniffer [WebKit bug 28148].
+
+	* Changed the behavior of SoupCookieJarSqlite to improve
+          performance. [#584522, patch from Gustavo Noronha Silva]
+
+	* Fixed a crash in SoupSocket that affected gupnp. [#594951,
+          patch from Olivier Crête]
+
+	* Fixed the type of the SOUP_METHOD_* and SOUP_URI_SCHEME_*
+          macros to be const char * rather than gpointer. [#594508]
+
 Changes in libsoup from 2.27.91 to 2.27.92:
 
 	* Removed SoupPasswordManager from the public API until its
