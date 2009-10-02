@@ -75,6 +75,7 @@ typedef struct {
 	SoupMessageQueue *queue;
 
 	char *user_agent;
+	char *accept_language;
 
 	GSList *features;
 	GHashTable *features_cache;
@@ -141,6 +142,7 @@ enum {
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
+	PROP_ACCEPT_LANGUAGE,
 	PROP_IDLE_TIMEOUT,
 	PROP_ADD_FEATURE,
 	PROP_ADD_FEATURE_BY_TYPE,
@@ -216,6 +218,7 @@ finalize (GObject *object)
 	g_hash_table_destroy (priv->conns);
 
 	g_free (priv->user_agent);
+	g_free (priv->accept_language);
 
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
@@ -569,6 +572,26 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_READWRITE));
 
 	/**
+	 * SoupSession:accept-language:
+	 *
+	 * If non-%NULL, the value to use for the "Accept-Language" header
+	 * on #SoupMessage<!-- -->s sent from this session.
+	 *
+	 **/
+	/**
+	 * SOUP_SESSION_ACCEPT_LANGUAGE:
+	 *
+	 * Alias for the #SoupSession:accept-language property, qv.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_ACCEPT_LANGUAGE,
+		g_param_spec_string (SOUP_SESSION_ACCEPT_LANGUAGE,
+				     "Accept-Language string",
+				     "Accept-Language string",
+				     NULL,
+				     G_PARAM_READWRITE));
+
+	/**
 	 * SoupSession:add-feature:
 	 *
 	 * Add a feature object to the session. (Shortcut for calling
@@ -730,6 +753,10 @@ set_property (GObject *object, guint prop_id,
 		} else
 			priv->user_agent = g_strdup (user_agent);
 		break;
+	case PROP_ACCEPT_LANGUAGE:
+		g_free (priv->accept_language);
+		priv->accept_language = g_strdup (g_value_get_string (value));
+		break;
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);
 		break;
@@ -792,6 +819,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_USER_AGENT:
 		g_value_set_string (value, priv->user_agent);
+		break;
+	case PROP_ACCEPT_LANGUAGE:
+		g_value_set_string (value, priv->accept_language);
 		break;
 	case PROP_IDLE_TIMEOUT:
 		g_value_set_uint (value, priv->idle_timeout);
@@ -989,6 +1019,12 @@ soup_session_send_queue_item (SoupSession *session,
 	if (priv->user_agent) {
 		soup_message_headers_replace (item->msg->request_headers,
 					      "User-Agent", priv->user_agent);
+	}
+
+	if (priv->accept_language) {
+		soup_message_headers_replace (item->msg->request_headers,
+					      "Accept-Language",
+					      priv->accept_language);
 	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,

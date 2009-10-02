@@ -66,6 +66,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_ASYNC_CONTEXT      "async-context"
 #define SOUP_SESSION_TIMEOUT            "timeout"
 #define SOUP_SESSION_USER_AGENT         "user-agent"
+#define SOUP_SESSION_ACCEPT_LANGUAGE    "accept-language"
 #define SOUP_SESSION_IDLE_TIMEOUT       "idle-timeout"
 #define SOUP_SESSION_ADD_FEATURE            "add-feature"
 #define SOUP_SESSION_ADD_FEATURE_BY_TYPE    "add-feature-by-type"
