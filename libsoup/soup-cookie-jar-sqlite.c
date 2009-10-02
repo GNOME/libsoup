@@ -168,7 +168,7 @@ soup_cookie_jar_sqlite_new (const char *filename, gboolean read_only)
 			     NULL);
 }
 
-#define QUERY_ALL "SELECT * FROM moz_cookies;"
+#define QUERY_ALL "SELECT id, name, value, host, path, expiry, lastAccessed, isSecure, isHttpOnly FROM moz_cookies;"
 #define CREATE_TABLE "CREATE TABLE moz_cookies (id INTEGER PRIMARY KEY, name TEXT, value TEXT, host TEXT, path TEXT,expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER)"
 #define QUERY_INSERT "INSERT INTO moz_cookies VALUES(NULL, %Q, %Q, %Q, %Q, %d, NULL, %d, %d);"
 #define QUERY_DELETE "DELETE FROM moz_cookies WHERE name=%Q AND host=%Q;"
