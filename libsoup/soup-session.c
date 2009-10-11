@@ -64,6 +64,8 @@ typedef struct {
 
 	GSList      *connections;      /* CONTAINS: SoupConnection */
 	guint        num_conns;
+
+	guint        num_messages;
 } SoupSessionHost;
 
 typedef struct {
@@ -1134,7 +1136,7 @@ soup_session_get_connection (SoupSession *session,
 	SoupAddress *remote_addr, *tunnel_addr;
 	SoupSSLCredentials *ssl_creds;
 	GSList *conns;
-	gboolean has_pending = FALSE;
+	int num_pending = 0;
 	SoupURI *uri;
 
 	g_mutex_lock (priv->host_lock);
@@ -1146,14 +1148,13 @@ soup_session_get_connection (SoupSession *session,
 			g_mutex_unlock (priv->host_lock);
 			return conns->data;
 		} else if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_CONNECTING)
-			has_pending = TRUE;
+			num_pending++;
 	}
 
-	if (has_pending) {
-		/* We've already started one connection to this
-		 * address, so don't start another one until it's
-		 * done.
-		 */
+	/* Limit the number of pending connections; num_messages / 2
+	 * is somewhat arbitrary...
+	 */
+	if (num_pending > host->num_messages / 2) {
 		g_mutex_unlock (priv->host_lock);
 		return NULL;
 	}
@@ -1225,6 +1226,7 @@ message_finished (SoupMessage *msg, gpointer user_data)
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionHost *host;
 
 	if (item->conn) {
 		g_object_unref (item->conn);
@@ -1233,6 +1235,12 @@ message_finished (SoupMessage *msg, gpointer user_data)
 
 	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
 		soup_message_queue_remove (priv->queue, item);
+
+		g_mutex_lock (priv->host_lock);
+		host = get_host_for_message (session, item->msg);
+		host->num_messages--;
+		g_mutex_unlock (priv->host_lock);
+
 		g_signal_handlers_disconnect_by_func (msg, message_finished, item);
 		/* g_signal_handlers_disconnect_by_func doesn't work if you
 		 * have a metamarshal, meaning it doesn't work with
@@ -1251,8 +1259,15 @@ queue_message (SoupSession *session, SoupMessage *msg,
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupMessageQueueItem *item;
+	SoupSessionHost *host;
 
 	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
+
+	g_mutex_lock (priv->host_lock);
+	host = get_host_for_message (session, item->msg);
+	host->num_messages++;
+	g_mutex_unlock (priv->host_lock);
+
 	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 
 	g_signal_connect_after (msg, "finished",
