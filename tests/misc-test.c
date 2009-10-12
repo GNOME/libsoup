@@ -377,6 +377,61 @@ do_star_test (void)
 	soup_uri_free (star_uri);
 }
 
+static gboolean
+ea_abort_session (gpointer session)
+{
+	soup_session_abort (session);
+	return FALSE;
+}
+
+static void
+ea_connection_state_changed (GObject *conn, GParamSpec *pspec, gpointer session)
+{
+	SoupConnectionState state;
+
+	g_object_get (conn, "state", &state, NULL);
+	if (state == SOUP_CONNECTION_CONNECTING) {
+		g_idle_add_full (G_PRIORITY_HIGH,
+				 ea_abort_session,
+				 session, NULL);
+		g_signal_handlers_disconnect_by_func (conn, ea_connection_state_changed, session);
+	}
+}		
+
+static void
+ea_connection_created (SoupSession *session, GObject *conn, gpointer user_data)
+{
+	g_signal_connect (conn, "notify::state",
+			  G_CALLBACK (ea_connection_state_changed), session);
+	g_signal_handlers_disconnect_by_func (session, ea_connection_created, user_data);
+}
+
+static void
+do_early_abort_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+
+	debug_printf (1, "\nAbort with pending connection\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+
+	g_signal_connect (session, "connection-created",
+			  G_CALLBACK (ea_connection_created), NULL);
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != SOUP_STATUS_CANCELLED) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -401,6 +456,7 @@ main (int argc, char **argv)
 	do_callback_unref_test ();
 	do_msg_reuse_test ();
 	do_star_test ();
+	do_early_abort_test ();
 
 	soup_uri_free (base_uri);
 

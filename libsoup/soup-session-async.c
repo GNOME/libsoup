@@ -245,7 +245,6 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 	do_idle_run_queue (data->session);
 
 done:
-	g_object_unref (data->session);
 	soup_message_queue_item_unref (data->item);
 	g_slice_free (SoupSessionAsyncTunnelData, data);
 }
@@ -255,47 +254,50 @@ got_connection (SoupConnection *conn, guint status, gpointer session)
 {
 	SoupAddress *tunnel_addr;
 
-	if (status == SOUP_STATUS_OK) {
-		tunnel_addr = soup_connection_get_tunnel_addr (conn);
-		if (tunnel_addr) {
-			SoupSessionAsyncTunnelData *data;
-
-			data = g_slice_new (SoupSessionAsyncTunnelData);
-			data->session = session;
-			data->conn = conn;
-			data->item = soup_session_make_connect_message (session, tunnel_addr);
-			g_signal_emit_by_name (session, "tunneling", conn);
-			g_signal_connect (data->item->msg, "finished",
-					  G_CALLBACK (tunnel_connected), data);
-			g_signal_connect (data->item->msg, "restarted",
-					  G_CALLBACK (tunnel_connected), data);
-			soup_session_send_queue_item (session, data->item, conn);
-			return;
-		}
-
-		g_signal_connect (conn, "disconnected",
-				  G_CALLBACK (connection_closed), session);
-
-		/* @conn has been marked reserved by SoupSession, but
-		 * we don't actually have any specific message in mind
-		 * for it. (In particular, the message we were
-		 * originally planning to queue on it may have already
-		 * been queued on some other connection that became
-		 * available while we were waiting for this one to
-		 * connect.) So we release the connection into the
-		 * idle pool and then just run the queue and see what
-		 * happens.
+	if (status != SOUP_STATUS_OK) {
+		/* There may have been messages waiting for the
+		 * connection count to go down, so queue a run_queue.
 		 */
-		soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
-	} else
-		soup_session_connection_failed (session, conn, status);
+		do_idle_run_queue (session);
 
-	/* Even if the connection failed, we run the queue, since
-	 * there may have been messages waiting for the connection
-	 * count to go down.
+		soup_session_connection_failed (session, conn, status);
+		/* session may be destroyed at this point */
+
+		return;
+	}
+
+	tunnel_addr = soup_connection_get_tunnel_addr (conn);
+	if (tunnel_addr) {
+		SoupSessionAsyncTunnelData *data;
+
+		data = g_slice_new (SoupSessionAsyncTunnelData);
+		data->session = session;
+		data->conn = conn;
+		data->item = soup_session_make_connect_message (session, tunnel_addr);
+		g_signal_emit_by_name (session, "tunneling", conn);
+		g_signal_connect (data->item->msg, "finished",
+				  G_CALLBACK (tunnel_connected), data);
+		g_signal_connect (data->item->msg, "restarted",
+				  G_CALLBACK (tunnel_connected), data);
+		soup_session_send_queue_item (session, data->item, conn);
+		return;
+	}
+
+	g_signal_connect (conn, "disconnected",
+			  G_CALLBACK (connection_closed), session);
+
+	/* @conn has been marked reserved by SoupSession, but
+	 * we don't actually have any specific message in mind
+	 * for it. (In particular, the message we were
+	 * originally planning to queue on it may have already
+	 * been queued on some other connection that became
+	 * available while we were waiting for this one to
+	 * connect.) So we release the connection into the
+	 * idle pool and then just run the queue and see what
+	 * happens.
 	 */
+	soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
 	do_idle_run_queue (session);
-	g_object_unref (session);
 }
 
 static void
@@ -340,7 +342,7 @@ run_queue (SoupSessionAsync *sa)
 
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
 			soup_connection_connect_async (conn, got_connection,
-						       g_object_ref (session));
+						       session);
 		} else
 			soup_session_send_queue_item (session, item, conn);
 	}
