@@ -39,9 +39,6 @@
  * #SoupAddress represents the address of a TCP connection endpoint:
  * both the IP address and the port. (It is somewhat like an
  * object-oriented version of struct sockaddr.)
- *
- * If libsoup was built with IPv6 support, #SoupAddress will allow
- * both IPv4 and IPv6 addresses.
  **/
 
 enum {
@@ -66,15 +63,12 @@ typedef struct {
 
 /* sockaddr generic macros */
 #define SOUP_SIN(priv) ((struct sockaddr_in *)priv->sockaddr)
-#ifdef HAVE_IPV6
 #define SOUP_SIN6(priv) ((struct sockaddr_in6 *)priv->sockaddr)
-#endif
 
 /* sockaddr family macros */
 #define SOUP_ADDRESS_GET_FAMILY(priv) (priv->sockaddr->sa_family)
 #define SOUP_ADDRESS_SET_FAMILY(priv, family) \
 	(priv->sockaddr->sa_family = family)
-#ifdef HAVE_IPV6
 #define SOUP_ADDRESS_FAMILY_IS_VALID(family) \
 	(family == AF_INET || family == AF_INET6)
 #define SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE(family) \
@@ -83,15 +77,9 @@ typedef struct {
 #define SOUP_ADDRESS_FAMILY_DATA_SIZE(family) \
 	(family == AF_INET ? sizeof (struct in_addr) : \
 			     sizeof (struct in6_addr))
-#else
-#define SOUP_ADDRESS_FAMILY_IS_VALID(family) (family == AF_INET)
-#define SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE(family) sizeof (struct sockaddr_in)
-#define SOUP_ADDRESS_FAMILY_DATA_SIZE(family) sizeof (struct in_addr)
-#endif
 
 /* sockaddr port macros */
 #define SOUP_ADDRESS_PORT_IS_VALID(port) (port >= 0 && port <= 65535)
-#ifdef HAVE_IPV6
 #define SOUP_ADDRESS_GET_PORT(priv) \
 	(priv->sockaddr->sa_family == AF_INET ? \
 		SOUP_SIN(priv)->sin_port : \
@@ -103,20 +91,12 @@ typedef struct {
 	else						\
 		SOUP_SIN6(priv)->sin6_port = port;	\
 	} G_STMT_END
-#else
-#define SOUP_ADDRESS_GET_PORT(priv) (SOUP_SIN(priv)->sin_port)
-#define SOUP_ADDRESS_SET_PORT(priv, port) (SOUP_SIN(priv)->sin_port = port)
-#endif
 
 /* sockaddr data macros */
-#ifdef HAVE_IPV6
 #define SOUP_ADDRESS_GET_DATA(priv) \
 	(priv->sockaddr->sa_family == AF_INET ? \
 		(gpointer)&SOUP_SIN(priv)->sin_addr : \
 		(gpointer)&SOUP_SIN6(priv)->sin6_addr)
-#else
-#define SOUP_ADDRESS_GET_DATA(priv) ((gpointer)&SOUP_SIN(priv)->sin_addr)
-#endif
 #define SOUP_ADDRESS_SET_DATA(priv, data, length) \
 	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
@@ -405,10 +385,7 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
  * @SOUP_ADDRESS_FAMILY_IPV4: an IPv4 address
  * @SOUP_ADDRESS_FAMILY_IPV6: an IPv6 address
  *
- * The supported address families. Note that the
- * %SOUP_ADDRESS_FAMILY_IPV6 constant is available even if libsoup was
- * built without IPv6 support, but attempting to create an IPv6
- * address will fail in that case.
+ * The supported address families.
  **/
 
 /**

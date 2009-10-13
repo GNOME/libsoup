@@ -83,12 +83,6 @@ typedef struct {
 } SoupSocketPrivate;
 #define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
-#ifdef HAVE_IPV6
-#define soup_sockaddr_max sockaddr_in6
-#else
-#define soup_sockaddr_max sockaddr_in
-#endif
-
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
 static void get_property (GObject *object, guint prop_id,
@@ -844,7 +838,7 @@ listen_watch (GIOChannel* iochannel, GIOCondition condition, gpointer data)
 {
 	SoupSocket *sock = data, *new;
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock), *new_priv;
-	struct soup_sockaddr_max sa;
+	struct sockaddr_storage sa;
 	int sa_len, sockfd;
 
 	if (condition & (G_IO_HUP | G_IO_ERR)) {
@@ -1111,7 +1105,7 @@ soup_socket_get_local_address (SoupSocket *sock)
 
 	g_mutex_lock (priv->addrlock);
 	if (!priv->local_addr) {
-		struct soup_sockaddr_max bound_sa;
+		struct sockaddr_storage bound_sa;
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
@@ -1141,7 +1135,7 @@ soup_socket_get_remote_address (SoupSocket *sock)
 
 	g_mutex_lock (priv->addrlock);
 	if (!priv->remote_addr) {
-		struct soup_sockaddr_max bound_sa;
+		struct sockaddr_storage bound_sa;
 		int sa_len;
 
 		sa_len = sizeof (bound_sa);
