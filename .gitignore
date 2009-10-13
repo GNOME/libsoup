@@ -46,9 +46,12 @@ libsoup/soup-marshal.c
 libsoup/soup-marshal.h
 libtool
 ltmain.sh
-m4
+m4/gtk-doc.m4
+m4/libtool.m4
+m4/lt*.m4
 missing
 python/COPYING
+python/m4
 stamp-h1
 tests/auth-test
 tests/chunk-test
