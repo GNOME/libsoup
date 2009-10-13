@@ -151,7 +151,7 @@ AC_ARG_ENABLE(ssl,
 
 have_ssl=no
 if test "$enable_ssl" != "no"; then
-	PKG_CHECK_MODULES(LIBGNUTLS, gnutls,
+	PKG_CHECK_MODULES(LIBGNUTLS, gnutls >= 2.1.7,
 		[AM_PATH_LIBGCRYPT([], have_ssl=yes, have_ssl=no)], have_ssl=no)
 fi
 if test "$have_ssl" = "yes"; then
