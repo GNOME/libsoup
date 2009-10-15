@@ -467,6 +467,7 @@ soup_address_make_inet_address (SoupAddress *addr)
 	gsa = g_socket_address_new_from_native (priv->sockaddr,
 						SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (SOUP_ADDRESS_GET_FAMILY (priv)));
 	gia = g_inet_socket_address_get_address ((GInetSocketAddress *)gsa);
+	g_object_ref (gia);
 	g_object_unref (gsa);
 	return gia;
 }
