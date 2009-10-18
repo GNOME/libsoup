@@ -179,10 +179,27 @@ soup_message_io_finished (SoupMessage *msg)
 
 static void io_read (SoupSocket *sock, SoupMessage *msg);
 
+static gboolean
+request_is_idempotent (SoupMessage *msg)
+{
+	/* FIXME */
+	return (msg->method == SOUP_METHOD_GET);
+}
+
 static void
 io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 {
-	if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+
+	if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+	    io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
+	    io->read_meta_buf->len == 0 &&
+	    !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
+	    request_is_idempotent (msg)) {
+		/* Connection got closed, but we can safely try again */
+		priv->io_status = SOUP_MESSAGE_IO_STATUS_QUEUED;
+	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
 		if (error && error->domain == SOUP_SSL_ERROR) {
 			soup_message_set_status_full (msg,
 						      SOUP_STATUS_SSL_FAILED,

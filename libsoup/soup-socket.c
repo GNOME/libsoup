@@ -1206,8 +1206,11 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 	if (!priv->iochannel)
 		return SOUP_SOCKET_EOF;
 
-	if (priv->timed_out)
+	if (priv->timed_out) {
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
+				     "Timed out");
 		return SOUP_SOCKET_ERROR;
+	}
 
 	status = g_io_channel_read_chars (priv->iochannel,
 					  buffer, len, nread, &my_err);
@@ -1230,8 +1233,11 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 		 * a socket timeout and should be treated as an error
 		 * condition.
 		 */
-		if (!priv->non_blocking)
+		if (!priv->non_blocking) {
+			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
+					     "Timed out");
 			return SOUP_SOCKET_ERROR;
+		}
 
 		if (!priv->read_src) {
 			priv->read_src =
@@ -1496,6 +1502,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	}
 	if (priv->timed_out) {
 		g_mutex_unlock (priv->iolock);
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
+				     "Timed out");
 		return SOUP_SOCKET_ERROR;
 	}
 	if (priv->write_src) {
@@ -1517,6 +1525,8 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	 */
 	if (!priv->non_blocking && status == G_IO_STATUS_AGAIN) {
 		g_mutex_unlock (priv->iolock);
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
+				     "Timed out");
 		return SOUP_SOCKET_ERROR;
 	}
 

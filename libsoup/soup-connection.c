@@ -38,7 +38,7 @@ typedef struct {
 
 	SoupMessage *cur_req;
 	SoupConnectionState state;
-	gboolean     ever_used;
+	time_t       unused_timeout;
 	guint        io_timeout, idle_timeout;
 	GSource     *idle_timeout_src;
 } SoupConnectionPrivate;
@@ -74,6 +74,11 @@ static void get_property (GObject *object, guint prop_id,
 
 static void stop_idle_timer (SoupConnectionPrivate *priv);
 static void clear_current_request (SoupConnection *conn);
+
+/* Number of seconds after which we close a connection that hasn't yet
+ * been used.
+ */
+#define SOUP_CONNECTION_UNUSED_TIMEOUT 3
 
 static void
 soup_connection_init (SoupConnection *conn)
@@ -310,6 +315,7 @@ set_current_request (SoupConnectionPrivate *priv, SoupMessage *req)
 	g_return_if_fail (priv->cur_req == NULL);
 
 	stop_idle_timer (priv);
+	priv->unused_timeout = 0;
 
 	soup_message_set_io_status (req, SOUP_MESSAGE_IO_STATUS_RUNNING);
 	priv->cur_req = req;
@@ -336,10 +342,8 @@ clear_current_request (SoupConnection *conn)
 
 		if (!soup_message_is_keepalive (cur_req))
 			soup_connection_disconnect (conn);
-		else {
-			priv->ever_used = TRUE;
+		else
 			soup_message_io_stop (cur_req);
-		}
 	}
 }
 
@@ -375,6 +379,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 			  G_CALLBACK (socket_disconnected), data->conn);
 
 	priv->state = SOUP_CONNECTION_IDLE;
+	priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 	start_idle_timer (data->conn);
 
  done:
@@ -467,6 +472,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		priv->state = SOUP_CONNECTION_IDLE;
+		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
 	} else {
 	fail:
@@ -536,47 +542,6 @@ soup_connection_disconnect (SoupConnection *conn)
 		return;
 
 	priv->state = SOUP_CONNECTION_DISCONNECTED;
-
-	if (priv->cur_req &&
-	    priv->cur_req->status_code == SOUP_STATUS_IO_ERROR &&
-	    priv->ever_used) {
-		/* There was a message queued on this connection, but
-		 * the socket was closed while it was being sent.
-		 * Since ever_used is TRUE, then that means at least
-		 * one message was successfully sent on this
-		 * connection before, and so the most likely cause of
-		 * the IO_ERROR is that the connection was idle for
-		 * too long and the server timed out and closed it
-		 * (and we didn't notice until after we started
-		 * sending the message). So we want the message to get
-		 * tried again on a new connection. The only code path
-		 * that could have gotten us to this point is through
-		 * the call to io_cleanup() in
-		 * soup_message_io_finished(), and so all we need to
-		 * do to get the message requeued in this case is to
-		 * change its status.
-		 */
-		soup_message_cleanup_response (priv->cur_req);
-		soup_message_set_io_status (priv->cur_req,
-					    SOUP_MESSAGE_IO_STATUS_QUEUED);
-	}
-
-	/* If cur_req is non-NULL but priv->ever_used is FALSE, then that
-	 * means this was the first message to be sent on this
-	 * connection, and it failed, so the error probably means that
-	 * there's some network or server problem, so we let the
-	 * IO_ERROR be returned to the caller.
-	 *
-	 * (Of course, it's also possible that the error in the
-	 * ever_used == TRUE case was because of a network/server problem
-	 * too. It's even possible that the message crashed the
-	 * server. In this case, requeuing it was the wrong thing to
-	 * do, but presumably, the next attempt will also get an
-	 * error, and eventually the message will be requeued onto a
-	 * fresh connection and get an error, at which point the error
-	 * will finally be returned to the caller.)
-	 */
-
 	/* NB: this might cause conn to be destroyed. */
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 }
@@ -617,6 +582,9 @@ soup_connection_get_state (SoupConnection *conn)
 			priv->state = SOUP_CONNECTION_REMOTE_DISCONNECTED;
 	}
 #endif
+	if (priv->state == SOUP_CONNECTION_IDLE &&
+	    priv->unused_timeout && priv->unused_timeout < time (NULL))
+		priv->state = SOUP_CONNECTION_REMOTE_DISCONNECTED;
 
 	return priv->state;
 }
