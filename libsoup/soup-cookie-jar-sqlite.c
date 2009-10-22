@@ -207,8 +207,8 @@ callback (void *data, int argc, char **argv, char **colname)
 	if (max_age <= 0)
 		return 0;
 
-	http_only = (strcmp (argv[COL_HTTP_ONLY], "1") == 0);
-	secure = (strcmp (argv[COL_SECURE], "1") == 0);
+	http_only = (g_strcmp0 (argv[COL_HTTP_ONLY], "1") == 0);
+	secure = (g_strcmp0 (argv[COL_SECURE], "1") == 0);
 
 	cookie = soup_cookie_new (name, value, host, path, max_age);
 
