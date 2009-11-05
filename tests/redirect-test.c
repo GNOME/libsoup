@@ -44,9 +44,12 @@ static struct {
 	{ { { "HEAD", "/302", 302 },
 	    { "HEAD", "/", 200 },
 	    { NULL } }, 200 },
-	/* 303 is a nonsensical response to HEAD, so we don't care
-	 * what happens there.
+	/* 303 is a nonsensical response to HEAD, but some sites do
+	 * it anyway. :-/
 	 */
+	{ { { "HEAD", "/303", 303 },
+	    { "HEAD", "/", 200 },
+	    { NULL } }, 200 },
 	{ { { "HEAD", "/307", 307 },
 	    { "HEAD", "/", 200 },
 	    { NULL } }, 200 },

@@ -882,10 +882,12 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	     !SOUP_METHOD_IS_SAFE (msg->method)) ||
 	    (msg->status_code == SOUP_STATUS_MOVED_PERMANENTLY &&
 	     msg->method == SOUP_METHOD_POST)) {
-		/* Redirect using a GET */
-		g_object_set (msg,
-			      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
-			      NULL);
+		if (msg->method != SOUP_METHOD_HEAD) {
+			/* Redirect using a GET */
+			g_object_set (msg,
+				      SOUP_MESSAGE_METHOD, SOUP_METHOD_GET,
+				      NULL);
+		}
 		soup_message_set_request (msg, NULL,
 					  SOUP_MEMORY_STATIC, NULL, 0);
 		soup_message_headers_set_encoding (msg->request_headers,
