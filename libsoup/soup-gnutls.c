@@ -392,7 +392,17 @@ soup_gnutls_pull_func (gnutls_transport_ptr_t transport_data,
 
 	nread = recv (chan->sockfd, buf, buflen, 0);
 #ifdef G_OS_WIN32
-	chan->eagain = (nread == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
+	{
+		int wsa_errno = WSAGetLastError ();
+		chan->eagain = (nread == SOCKET_ERROR && (wsa_errno == WSAEWOULDBLOCK ||
+							  wsa_errno == WSAETIMEDOUT));
+		if (nread == SOCKET_ERROR)
+			gnutls_transport_set_errno (chan->session,
+						    ((wsa_errno == WSAEWOULDBLOCK ||
+						      wsa_errno == WSAETIMEDOUT) ? EAGAIN :
+						     (wsa_errno == WSAEINTR ? EINTR :
+						      EIO)));
+	}
 #else
 	chan->eagain = (nread == -1 && errno == EAGAIN);
 #endif
@@ -408,7 +418,15 @@ soup_gnutls_push_func (gnutls_transport_ptr_t transport_data,
 
 	nwrote = send (chan->sockfd, buf, buflen, 0);
 #ifdef G_OS_WIN32
-	chan->eagain = (nwrote == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK);
+	{
+		int wsa_errno = WSAGetLastError ();
+		chan->eagain = (nwrote == SOCKET_ERROR && wsa_errno == WSAEWOULDBLOCK);
+		if (nwrote == SOCKET_ERROR)
+			gnutls_transport_set_errno (chan->session,
+						    (wsa_errno == WSAEWOULDBLOCK ? EAGAIN :
+						     (wsa_errno == WSAEINTR ? EINTR :
+						      EIO)));
+	}
 #else
 	chan->eagain = (nwrote == -1 && errno == EAGAIN);
 #endif
