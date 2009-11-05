@@ -497,6 +497,54 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #endif
 
+#ifdef G_OS_WIN32
+
+static int
+soup_gcry_win32_mutex_init (void **priv)
+{
+	int err = 0;
+	CRITICAL_SECTION *lock = (CRITICAL_SECTION*)malloc (sizeof (CRITICAL_SECTION));
+
+	if (!lock)
+		err = ENOMEM;
+	if (!err) {
+		InitializeCriticalSection (lock);
+		*priv = lock;
+	}
+	return err;
+}
+
+static int
+soup_gcry_win32_mutex_destroy (void **lock)
+{
+	DeleteCriticalSection ((CRITICAL_SECTION*)*lock);
+	free (*lock);
+	return 0;
+}
+
+static int
+soup_gcry_win32_mutex_lock (void **lock)
+{
+	EnterCriticalSection ((CRITICAL_SECTION*)*lock);
+	return 0;
+}
+
+static int
+soup_gcry_win32_mutex_unlock (void **lock)
+{
+	LeaveCriticalSection ((CRITICAL_SECTION*)*lock);
+	return 0;
+}
+
+
+static struct gcry_thread_cbs soup_gcry_threads_win32 = {		 \
+	(GCRY_THREAD_OPTION_USER | (GCRY_THREAD_OPTION_VERSION << 8)),	 \
+	NULL, soup_gcry_win32_mutex_init, soup_gcry_win32_mutex_destroy, \
+	soup_gcry_win32_mutex_lock, soup_gcry_win32_mutex_unlock,	 \
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+
+#endif
+
 static void
 soup_gnutls_init (void)
 {
@@ -505,6 +553,8 @@ soup_gnutls_init (void)
 	if (g_once_init_enter (&inited_gnutls)) {
 #if defined(GCRY_THREAD_OPTION_PTHREAD_IMPL) && !defined(G_OS_WIN32)
 		gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+#elif defined(G_OS_WIN32)
+		gcry_control (GCRYCTL_SET_THREAD_CBS, &soup_gcry_threads_win32);
 #endif
 		gnutls_global_init ();
 		g_once_init_leave (&inited_gnutls, TRUE);
