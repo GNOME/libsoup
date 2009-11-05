@@ -35,7 +35,18 @@
  * soup_socket_get_remote_address()) may be useful to applications.
  **/
 
-G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
+static void
+_soup_networking_init (void)
+{
+#ifdef G_OS_WIN32
+  WSADATA wsadata;
+  if (WSAStartup (MAKEWORD (2, 0), &wsadata) != 0)
+    g_error ("Windows Sockets could not be initialized");
+#endif
+}
+
+G_DEFINE_TYPE_WITH_CODE (SoupSocket, soup_socket, G_TYPE_OBJECT,
+			 _soup_networking_init ();)
 
 enum {
 	READABLE,
@@ -368,11 +379,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
-
-#ifdef G_OS_WIN32
-	/* Make sure WSAStartup() gets called. */
-	soup_address_get_type ();
-#endif
 }
 
 

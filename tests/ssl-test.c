@@ -231,7 +231,7 @@ main (int argc, char **argv)
 	g_type_init ();
 
 	/* On Windows, this will call WSAStartup() */
-	soup_address_get_type ();
+	soup_socket_get_type ();
 
 	while ((opt = getopt (argc, argv, "c:d:k:")) != -1) {
 		switch (opt) {

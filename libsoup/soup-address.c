@@ -211,15 +211,6 @@ soup_address_class_init (SoupAddressClass *address_class)
 				      "sockaddr",
 				      "struct sockaddr for this address",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
-#ifdef G_OS_WIN32
-	/* This hopefully is a good place to call WSAStartup */
-	{
-		WSADATA wsadata;
-		if (WSAStartup (MAKEWORD (2, 0), &wsadata) != 0)
-			g_error ("Windows Sockets could not be initialized");
-	}
-#endif
 }
 
 static GObject *
