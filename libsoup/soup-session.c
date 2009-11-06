@@ -1048,8 +1048,10 @@ soup_session_connection_failed (SoupSession *session,
 }
 
 static void
-tunnel_connected (SoupSession *session, SoupMessage *msg, gpointer user_data)
+tunnel_connected (SoupMessage *msg, gpointer user_data)
 {
+	SoupSession *session = user_data;
+
 	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 		SoupMessageQueueItem *item =
@@ -1061,6 +1063,7 @@ tunnel_connected (SoupSession *session, SoupMessage *msg, gpointer user_data)
 		g_object_set (item->conn,
 			      SOUP_CONNECTION_PROXY_URI, NULL,
 			      NULL);
+		soup_message_queue_item_unref (item);
 	}
 }
 
@@ -1084,9 +1087,13 @@ soup_session_make_connect_message (SoupSession *session,
 
 	/* Call the base implementation of soup_session_queue_message
 	 * directly, to add msg to the SoupMessageQueue and cause all
-	 * the right signals to be emitted.
+	 * the right signals to be emitted. We can't use
+	 * queue_message's callback arg in this case because that's
+	 * actually implemented by the subclasses.
 	 */
-	queue_message (session, msg, tunnel_connected, NULL);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (tunnel_connected), session);
+	queue_message (session, msg, NULL, NULL);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_object_unref (msg);
 	return item;
