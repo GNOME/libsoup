@@ -569,27 +569,17 @@ typedef struct {
 	SoupAddress         *addr;
 	SoupAddressCallback  callback;
 	gpointer             callback_data;
-	gboolean             lookup_name;
-
-	GMainContext        *async_context;
-	GCancellable        *cancellable;
-	guint                status;
 } SoupAddressResolveAsyncData;
 
 static void
-complete_resolve_async (SoupAddressResolveAsyncData *res_data)
+complete_resolve_async (SoupAddressResolveAsyncData *res_data, guint status)
 {
 	SoupAddress *addr = res_data->addr;
 	SoupAddressCallback callback = res_data->callback;
 	gpointer callback_data = res_data->callback_data;
 
 	if (callback)
-		callback (addr, res_data->status, callback_data);
-
-	if (res_data->async_context)
-		g_main_context_unref (res_data->async_context);
-	if (res_data->cancellable)
-		g_object_unref (res_data->cancellable);
+		callback (addr, status, callback_data);
 
 	g_object_unref (addr);
 	g_slice_free (SoupAddressResolveAsyncData, res_data);
@@ -603,34 +593,35 @@ lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 	SoupAddress *addr = res_data->addr;
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	GError *error = NULL;
+	guint status;
 
 	if (!priv->sockaddr) {
 		GList *addrs;
 
 		addrs = g_resolver_lookup_by_name_finish (resolver, result,
 							  &error);
-		res_data->status = update_addrs (addr, addrs, error);
+		status = update_addrs (addr, addrs, error);
 		g_resolver_free_addresses (addrs);
 	} else if (!priv->name) {
 		char *name;
 
 		name = g_resolver_lookup_by_address_finish (resolver, result,
 							    &error);
-		res_data->status = update_name (addr, name, error);
+		status = update_name (addr, name, error);
 		g_free (name);
 	} else
-		res_data->status = SOUP_STATUS_OK;
+		status = SOUP_STATUS_OK;
 
 	if (error)
 		g_error_free (error);
 
-	complete_resolve_async (res_data);
+	complete_resolve_async (res_data, status);
 }
 
 static gboolean
 idle_complete_resolve (gpointer res_data)
 {
-	complete_resolve_async (res_data);
+	complete_resolve_async (res_data, SOUP_STATUS_OK);
 	return FALSE;
 }
 
@@ -681,7 +672,6 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	res_data->callback_data = user_data;
 
 	if (priv->name && priv->sockaddr) {
-		res_data->status = SOUP_STATUS_OK;
 		soup_add_completion (async_context, idle_complete_resolve, res_data);
 		return;
 	}
@@ -692,14 +682,12 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 		g_main_context_push_thread_default (async_context);
 
 	if (priv->name) {
-		res_data->lookup_name = TRUE;
 		g_resolver_lookup_by_name_async (resolver, priv->name,
 						 cancellable,
 						 lookup_resolved, res_data);
 	} else {
 		GInetAddress *gia;
 
-		res_data->lookup_name = FALSE;
 		gia = soup_address_make_inet_address (addr);
 		g_resolver_lookup_by_address_async (resolver, gia,
 						    cancellable,
