@@ -58,6 +58,9 @@ typedef struct {
 
 	char *name, *physical;
 	guint port;
+
+	GMutex *lock;
+	GSList *async_lookups;
 } SoupAddressPrivate;
 #define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
 
@@ -114,6 +117,9 @@ G_DEFINE_TYPE (SoupAddress, soup_address, G_TYPE_OBJECT)
 static void
 soup_address_init (SoupAddress *addr)
 {
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	priv->lock = g_mutex_new ();
 }
 
 static void
@@ -128,6 +134,8 @@ finalize (GObject *object)
 		g_free (priv->name);
 	if (priv->physical)
 		g_free (priv->physical);
+
+	g_mutex_free (priv->lock);
 
 	G_OBJECT_CLASS (soup_address_parent_class)->finalize (object);
 }
@@ -415,6 +423,11 @@ soup_address_new_any (SoupAddressFamily family, guint port)
  *
  * Returns the hostname associated with @addr.
  *
+ * This method is not thread-safe; if you call it while @addr is being
+ * resolved in another thread, it may return garbage. You can use
+ * soup_address_is_resolved() to safely test whether or not an address
+ * is resolved before fetching its name or address.
+ *
  * Return value: the hostname, or %NULL if it is not known.
  **/
 const char *
@@ -432,6 +445,11 @@ soup_address_get_name (SoupAddress *addr)
  *
  * Returns the sockaddr associated with @addr, with its length in
  * *@len. If the sockaddr is not yet known, returns %NULL.
+ *
+ * This method is not thread-safe; if you call it while @addr is being
+ * resolved in another thread, it may return garbage. You can use
+ * soup_address_is_resolved() to safely test whether or not an address
+ * is resolved before fetching its name or address.
  *
  * Return value: the sockaddr, or %NULL
  **/
@@ -469,6 +487,11 @@ soup_address_make_inet_address (SoupAddress *addr)
  *
  * Returns the physical address associated with @addr as a string.
  * (Eg, "127.0.0.1"). If the address is not yet known, returns %NULL.
+ *
+ * This method is not thread-safe; if you call it while @addr is being
+ * resolved in another thread, it may return garbage. You can use
+ * soup_address_is_resolved() to safely test whether or not an address
+ * is resolved before fetching its name or address.
  *
  * Return value: the physical address, or %NULL
  **/
@@ -566,31 +589,39 @@ update_name (SoupAddress *addr, const char *name, GError *error)
 }
 
 typedef struct {
-	SoupAddress         *addr;
 	SoupAddressCallback  callback;
 	gpointer             callback_data;
 } SoupAddressResolveAsyncData;
 
 static void
-complete_resolve_async (SoupAddressResolveAsyncData *res_data, guint status)
+complete_resolve_async (SoupAddress *addr, guint status)
 {
-	SoupAddress *addr = res_data->addr;
-	SoupAddressCallback callback = res_data->callback;
-	gpointer callback_data = res_data->callback_data;
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	SoupAddressResolveAsyncData *res_data;
+	GSList *lookups, *l;
 
-	if (callback)
-		callback (addr, status, callback_data);
+	lookups = priv->async_lookups;
+	priv->async_lookups = NULL;
+
+	for (l = lookups; l; l = l->next) {
+		res_data = l->data;
+
+		if (res_data->callback) {
+			res_data->callback (addr, status,
+					    res_data->callback_data);
+		}
+		g_slice_free (SoupAddressResolveAsyncData, res_data);
+	}
+	g_slist_free (l);
 
 	g_object_unref (addr);
-	g_slice_free (SoupAddressResolveAsyncData, res_data);
 }
 
 static void
 lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 {
 	GResolver *resolver = G_RESOLVER (source);
-	SoupAddressResolveAsyncData *res_data = user_data;
-	SoupAddress *addr = res_data->addr;
+	SoupAddress *addr = user_data;
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	GError *error = NULL;
 	guint status;
@@ -615,13 +646,13 @@ lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 	if (error)
 		g_error_free (error);
 
-	complete_resolve_async (res_data, status);
+	complete_resolve_async (addr, status);
 }
 
 static gboolean
-idle_complete_resolve (gpointer res_data)
+idle_complete_resolve (gpointer addr)
 {
-	complete_resolve_async (res_data, SOUP_STATUS_OK);
+	complete_resolve_async (addr, SOUP_STATUS_OK);
 	return FALSE;
 }
 
@@ -652,6 +683,12 @@ idle_complete_resolve (gpointer res_data)
  * If @cancellable is non-%NULL, it can be used to cancel the
  * resolution. @callback will still be invoked in this case, with a
  * status of %SOUP_STATUS_CANCELLED.
+ *
+ * It is safe to call this more than once on a given address, from the
+ * same thread, with the same @async_context (and doing so will not
+ * result in redundant DNS queries being made). But it is not safe to
+ * call from multiple threads, or with different @async_contexts, or
+ * mixed with calls to soup_address_resolve_sync().
  **/
 void
 soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
@@ -661,43 +698,56 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	SoupAddressPrivate *priv;
 	SoupAddressResolveAsyncData *res_data;
 	GResolver *resolver;
+	gboolean already_started;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	g_return_if_fail (priv->name || priv->sockaddr);
 
+	/* We don't need to do locking here because the async case is
+	 * not intended to be thread-safe.
+	 */
+
+	if (priv->name && priv->sockaddr && !callback)
+		return;
+
 	res_data = g_slice_new0 (SoupAddressResolveAsyncData);
-	res_data->addr          = g_object_ref (addr);
-	res_data->callback      = callback;
+	res_data->callback = callback;
 	res_data->callback_data = user_data;
 
+	already_started = priv->async_lookups != NULL;
+	priv->async_lookups = g_slist_prepend (priv->async_lookups, res_data);
+
+	if (already_started)
+		return;
+
+	g_object_ref (addr);
+
 	if (priv->name && priv->sockaddr) {
-		soup_add_completion (async_context, idle_complete_resolve, res_data);
+		soup_add_completion (async_context, idle_complete_resolve, addr);
 		return;
 	}
 
 	resolver = g_resolver_get_default ();
-
 	if (async_context && async_context != g_main_context_default ())
 		g_main_context_push_thread_default (async_context);
 
 	if (priv->name) {
 		g_resolver_lookup_by_name_async (resolver, priv->name,
 						 cancellable,
-						 lookup_resolved, res_data);
+						 lookup_resolved, addr);
 	} else {
 		GInetAddress *gia;
 
 		gia = soup_address_make_inet_address (addr);
 		g_resolver_lookup_by_address_async (resolver, gia,
 						    cancellable,
-						    lookup_resolved, res_data);
+						    lookup_resolved, addr);
 		g_object_unref (gia);
 	}
 
 	if (async_context && async_context != g_main_context_default ())
 		g_main_context_pop_thread_default (async_context);
-
 	g_object_unref (resolver);
 }
 
@@ -712,6 +762,11 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
  * If @cancellable is non-%NULL, it can be used to cancel the
  * resolution. soup_address_resolve_sync() will then return a status
  * of %SOUP_STATUS_CANCELLED.
+ *
+ * It is safe to call this more than once, even from different
+ * threads, but it is not safe to mix calls to
+ * soup_address_resolve_sync() with calls to
+ * soup_address_resolve_async() on the same address.
  *
  * Return value: %SOUP_STATUS_OK, %SOUP_STATUS_CANT_RESOLVE, or
  * %SOUP_STATUS_CANCELLED.
@@ -730,25 +785,39 @@ soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
 
 	resolver = g_resolver_get_default ();
 
+	/* We could optimize this to avoid multiple lookups the same
+	 * way _resolve_async does, but we don't currently. So, first
+	 * lock the mutex to ensure we have a consistent view of
+	 * priv->sockaddr and priv->name, unlock it around the
+	 * blocking op, and then re-lock it to modify @addr.
+	 */
+	g_mutex_lock (priv->lock);
 	if (!priv->sockaddr) {
 		GList *addrs;
 
+		g_mutex_unlock (priv->lock);
 		addrs = g_resolver_lookup_by_name (resolver, priv->name,
 						   cancellable, &error);
+		g_mutex_lock (priv->lock);
+
 		status = update_addrs (addr, addrs, error);
 		g_resolver_free_addresses (addrs);
 	} else if (!priv->name) {
 		GInetAddress *gia;
 		char *name;
 
+		g_mutex_unlock (priv->lock);
 		gia = soup_address_make_inet_address (addr);
 		name = g_resolver_lookup_by_address (resolver, gia,
 						     cancellable, &error);
 		g_object_unref (gia);
+		g_mutex_lock (priv->lock);
+
 		status = update_name (addr, name, error);
 		g_free (name);
 	} else
 		status = SOUP_STATUS_OK;
+	g_mutex_unlock (priv->lock);
 
 	if (error)
 		g_error_free (error);
@@ -761,7 +830,9 @@ soup_address_resolve_sync (SoupAddress *addr, GCancellable *cancellable)
  * soup_address_is_resolved:
  * @addr: a #SoupAddress
  *
- * Tests if @addr has already been resolved.
+ * Tests if @addr has already been resolved. Unlike the other
+ * #SoupAddress "get" methods, this is safe to call when @addr might
+ * be being resolved in another thread.
  *
  * Return value: %TRUE if @addr has been resolved.
  **/
@@ -769,11 +840,16 @@ gboolean
 soup_address_is_resolved (SoupAddress *addr)
 {
 	SoupAddressPrivate *priv;
+	gboolean resolved;
 
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), FALSE);
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	return priv->sockaddr && priv->name;
+	g_mutex_lock (priv->lock);
+	resolved = priv->sockaddr && priv->name;
+	g_mutex_unlock (priv->lock);
+
+	return resolved;
 }
 
 /**
