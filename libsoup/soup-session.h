@@ -93,6 +93,8 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
 
+void            soup_session_prepare_for_uri  (SoupSession           *session,
+					       SoupURI               *uri);
 
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);

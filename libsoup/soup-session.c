@@ -809,16 +809,12 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	return host;
 }
 
-/* Note: get_host_for_message doesn't lock the host_lock. The caller
- * must do it itself if there's a chance the host doesn't already
- * exist.
- */
+/* Requires host_lock to be locked */
 static SoupSessionHost *
-get_host_for_message (SoupSession *session, SoupMessage *msg)
+get_host_for_uri (SoupSession *session, SoupURI *uri)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
-	SoupURI *uri = soup_message_get_uri (msg);
 
 	host = g_hash_table_lookup (priv->hosts, uri);
 	if (host)
@@ -828,6 +824,16 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 	g_hash_table_insert (priv->hosts, host->uri, host);
 
 	return host;
+}
+
+/* Note: get_host_for_message doesn't lock the host_lock. The caller
+ * must do it itself if there's a chance the host doesn't already
+ * exist.
+ */
+static SoupSessionHost *
+get_host_for_message (SoupSession *session, SoupMessage *msg)
+{
+	return get_host_for_uri (session, soup_message_get_uri (msg));
 }
 
 static void
@@ -1519,6 +1525,38 @@ soup_session_abort (SoupSession *session)
 	}
 
 	g_slist_free (conns);
+}
+
+/**
+* soup_session_prepare_for_uri:
+* @session: a #SoupSession
+* @uri: a #SoupURI which may be required
+*
+* Tells @session that @uri may be requested shortly, and so the
+* session can try to prepare (resolving the domain name, obtaining
+* proxy address, etc.) in order to work more quickly once the URI is
+* actually requested.
+*
+* This method acts asynchronously, in @session's %async_context.
+* If you are using #SoupSessionSync and do not have a main loop running,
+* then you can't use this method.
+*
+* Since: 2.30
+**/
+void
+soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionHost *host;
+	SoupAddress *addr;
+
+	g_mutex_lock (priv->host_lock);
+	host = get_host_for_uri (session, uri);
+	addr = g_object_ref (host->addr);
+	g_mutex_unlock (priv->host_lock);
+
+	soup_address_resolve_async (addr, priv->async_context,
+				    NULL, NULL, NULL);
 }
 
 /**
