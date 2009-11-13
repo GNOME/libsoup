@@ -4,7 +4,7 @@ and the glib main loop, to integrate well with GNOME applications.
 Features:
   * Both asynchronous (GMainLoop and callback-based) and synchronous APIs
   * Automatically caches connections
-  * SSL Support using GnuTLS
+  * SSL support
   * Proxy support, including authentication and SSL tunneling
   * Client support for Digest, NTLM, and Basic authentication
   * Server support for Digest and Basic authentication

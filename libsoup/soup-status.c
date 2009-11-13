@@ -181,11 +181,7 @@ static const struct {
 	{ SOUP_STATUS_CANT_RESOLVE_PROXY,         "Cannot resolve proxy hostname" },
 	{ SOUP_STATUS_CANT_CONNECT,               "Cannot connect to destination" },
 	{ SOUP_STATUS_CANT_CONNECT_PROXY,         "Cannot connect to proxy" },
-#ifdef HAVE_SSL
 	{ SOUP_STATUS_SSL_FAILED,                 "SSL handshake failed" },
-#else
-	{ SOUP_STATUS_SSL_FAILED,                 "SSL support not available" },
-#endif
 	{ SOUP_STATUS_IO_ERROR,                   "Connection terminated unexpectedly" },
 	{ SOUP_STATUS_MALFORMED,                  "Message Corrupt" },
 	{ SOUP_STATUS_TOO_MANY_REDIRECTS,         "Too many redirects" },

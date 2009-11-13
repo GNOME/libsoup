@@ -7,7 +7,6 @@
 #define SOUP_PROXY_RESOLVER_H 1
 
 #include <libsoup/soup-types.h>
-#include <gio/gio.h>
 
 G_BEGIN_DECLS
 

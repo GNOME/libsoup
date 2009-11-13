@@ -6,8 +6,7 @@
 #ifndef SOUP_TYPES_H
 #define SOUP_TYPES_H 1
 
-#include <glib.h>
-#include <glib-object.h>
+#include <gio/gio.h>
 
 #include <libsoup/soup-status.h>
 

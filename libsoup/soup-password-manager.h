@@ -9,7 +9,6 @@
 #ifdef LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
 
 #include <libsoup/soup-types.h>
-#include <gio/gio.h>
 
 #define SOUP_TYPE_PASSWORD_MANAGER            (soup_password_manager_get_type ())
 #define SOUP_PASSWORD_MANAGER(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_PASSWORD_MANAGER, SoupPasswordManager))

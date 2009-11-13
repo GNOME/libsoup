@@ -176,8 +176,7 @@ main (int argc, char **argv)
 	g_free (slow_uri);
 	soup_test_server_quit_unref (server);
 
-#ifdef HAVE_SSL
-	debug_printf (1, "https\n");
+	debug_printf (1, "\nhttps\n");
 	server = soup_test_server_new_ssl (TRUE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	fast_uri = g_strdup_printf ("https://127.0.0.1:%u/",
@@ -188,7 +187,6 @@ main (int argc, char **argv)
 	g_free (fast_uri);
 	g_free (slow_uri);
 	soup_test_server_quit_unref (server);
-#endif
 
 	test_cleanup ();
 	return errors != 0;

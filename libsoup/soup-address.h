@@ -8,8 +8,6 @@
 
 #include <sys/types.h>
 
-#include <gio/gio.h>
-
 #include <libsoup/soup-portability.h>
 #include <libsoup/soup-types.h>
 

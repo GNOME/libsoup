@@ -6,8 +6,6 @@
 #ifndef SOUP_CONNECTION_H
 #define SOUP_CONNECTION_H 1
 
-#include <gio/gio.h>
-
 #include "soup-types.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"

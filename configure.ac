@@ -72,9 +72,9 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-AM_PATH_GLIB_2_0(2.21.3,,,gobject gthread gio)
+AM_PATH_GLIB_2_0(2.27.4,,,gobject gthread gio)
 if test "$GLIB_LIBS" = ""; then
-   AC_MSG_ERROR(GLIB 2.21.3 or later is required to build libsoup)
+   AC_MSG_ERROR(GLIB 2.27.4 or later is required to build libsoup)
 fi
 GLIB_CFLAGS="$GLIB_CFLAGS -DG_DISABLE_SINGLE_INCLUDES"
 
@@ -105,39 +105,6 @@ dnl *******************
 AC_CHECK_FUNCS(gmtime_r)
 AC_CHECK_FUNCS(mmap)
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
-
-dnl **********************************
-dnl *** SSL Library check (GnuTLS) ***
-dnl **********************************
-
-AC_ARG_ENABLE(ssl, 
-	      AS_HELP_STRING([--disable-ssl], [Disable SSL/TLS support (not recommended)]),,
-	      enable_ssl=auto)
-
-have_ssl=no
-if test "$enable_ssl" != "no"; then
-	PKG_CHECK_MODULES(LIBGNUTLS, gnutls >= 2.1.7,
-		[AM_PATH_LIBGCRYPT([], have_ssl=yes, have_ssl=no)], have_ssl=no)
-fi
-if test "$have_ssl" = "yes"; then
-	AC_DEFINE(HAVE_SSL, 1, [Defined if you have SSL support])
-	SSL_REQUIREMENT="gnutls"
-else
-	if test "$enable_ssl" = "no"; then
-		AC_MSG_WARN(Disabling SSL support);
-	else
-		AC_MSG_ERROR([Could not configure SSL support.
-Pass "--disable-ssl" if you really want to build without SSL support]);
-	fi
-fi
-
-AC_SUBST(LIBGNUTLS_CFLAGS)
-AC_SUBST(LIBGNUTLS_LIBS)
-AC_SUBST(SSL_REQUIREMENT)
-
-dnl This is not supposed to be conditional, but...
-AM_CONDITIONAL(HAVE_SSL, test $enable_ssl != no)
-
 
 dnl *********************
 dnl *** GNOME support ***
@@ -256,9 +223,6 @@ dnl *** Stuff for regression tests
 dnl ******************************
 AC_MSG_NOTICE([checking for programs needed for regression tests])
 MISSING_REGRESSION_TEST_PACKAGES=""
-if test $have_ssl = "no"; then
-    MISSING_REGRESSION_TEST_PACKAGES=" gnutls"
-fi
 
 AC_ARG_WITH(apache-httpd,
 	    AS_HELP_STRING([--with-apache-httpd], [Path to apache httpd (for tests)]),

@@ -7,9 +7,6 @@
 #ifndef SOUP_MESSAGE_QUEUE_H
 #define SOUP_MESSAGE_QUEUE_H 1
 
-#include <glib.h>
-#include <gio/gio.h>
-
 #include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-session.h"

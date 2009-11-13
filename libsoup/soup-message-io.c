@@ -185,7 +185,7 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 
-	if (error && error->domain == SOUP_SSL_ERROR) {
+	if (error && error->domain == G_TLS_ERROR) {
 		soup_message_set_status_full (msg,
 					      SOUP_STATUS_SSL_FAILED,
 					      error->message);

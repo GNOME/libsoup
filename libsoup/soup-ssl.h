@@ -6,7 +6,7 @@
 #ifndef SOUP_SSL_H
 #define SOUP_SSL_H 1
 
-#include <glib.h>
+#include "soup-types.h"
 
 typedef enum {
 	SOUP_SSL_TYPE_CLIENT = 0,
@@ -15,17 +15,15 @@ typedef enum {
 
 typedef struct SoupSSLCredentials SoupSSLCredentials;
 
-SoupSSLCredentials *soup_ssl_get_client_credentials  (const char         *ca_file);
-void                soup_ssl_free_client_credentials (SoupSSLCredentials *creds);
+SoupSSLCredentials   *soup_ssl_get_client_credentials           (const char           *ca_file);
+void                  soup_ssl_free_client_credentials          (SoupSSLCredentials   *creds);
+gboolean              soup_ssl_credentials_verify_certificate   (SoupSSLCredentials   *creds,
+								 GTlsCertificate      *cert,
+								 GTlsCertificateFlags  errors);
 
-SoupSSLCredentials *soup_ssl_get_server_credentials  (const char         *cert_file,
-						      const char         *key_file);
-void                soup_ssl_free_server_credentials (SoupSSLCredentials *creds);
-
-GIOChannel         *soup_ssl_wrap_iochannel          (GIOChannel         *sock,
-						      gboolean            non_blocking,
-						      SoupSSLType         type,
-						      const char         *remote_host,
-						      SoupSSLCredentials *creds);
+SoupSSLCredentials   *soup_ssl_get_server_credentials           (const char           *cert_file,
+								 const char           *key_file);
+void                  soup_ssl_free_server_credentials          (SoupSSLCredentials   *creds);
+GTlsCertificate      *soup_ssl_credentials_get_certificate      (SoupSSLCredentials *creds);
 
 #endif /* SOUP_SSL_H */

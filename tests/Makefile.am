@@ -4,8 +4,7 @@ INCLUDES =		\
 	-DLIBSOUP_DISABLE_DEPRECATED \
 	$(SOUP_MAINTAINER_FLAGS) \
 	$(XML_CFLAGS)	\
-	$(GLIB_CFLAGS)	\
-	$(LIBGNUTLS_CFLAGS)
+	$(GLIB_CFLAGS)
 
 LIBS =			\
 	$(top_builddir)/libsoup/libsoup-2.4.la \
@@ -35,7 +34,6 @@ noinst_PROGRAMS =	\
 	uri-parsing	\
 	$(CURL_TESTS)	\
 	$(APACHE_TESTS) \
-	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
 TEST_SRCS = test-utils.c test-utils.h
@@ -65,7 +63,6 @@ server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 sniffing_test_SOURCES = sniffing-test.c  $(TEST_SRCS)
-ssl_test_SOURCES = ssl-test.c $(TEST_SRCS)
 streaming_test_SOURCES = streaming-test.c $(TEST_SRCS)
 timeout_test_SOURCES = timeout-test.c $(TEST_SRCS)
 uri_parsing_SOURCES = uri-parsing.c $(TEST_SRCS)
@@ -77,9 +74,6 @@ APACHE_TESTS = auth-test proxy-test pull-api range-test
 endif
 if HAVE_CURL
 CURL_TESTS = forms-test server-auth-test
-endif
-if HAVE_SSL
-SSL_TESTS = ssl-test
 endif
 if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test xmlrpc-server-test
@@ -102,7 +96,6 @@ TESTS =			\
 	uri-parsing	\
 	$(APACHE_TESTS) \
 	$(CURL_TESTS)	\
-	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
 SNIFFING_FILES =		\

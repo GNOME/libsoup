@@ -14,9 +14,7 @@ INCLUDES = 				\
 	$(GCONF_CFLAGS)			\
 	$(LIBPROXY_CFLAGS)		\
 	$(SQLITE_CFLAGS)		\
-	$(GNOME_KEYRING_CFLAGS)		\
-	$(LIBGCRYPT_CFLAGS)		\
-	$(LIBGNUTLS_CFLAGS)
+	$(GNOME_KEYRING_CFLAGS)
 
 MARSHAL_GENERATED = soup-marshal.c soup-marshal.h
 MKENUMS_GENERATED = soup-enum-types.c soup-enum-types.h
@@ -100,9 +98,6 @@ libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
 	-lz				\
-	$(LIBGNUTLS_LIBS_STATIC)	\
-	$(LIBGNUTLS_LIBS)		\
-	$(LIBGCRYPT_LIBS)		\
 	$(LIBWS2_32)
 
 libsoup_2_4_la_SOURCES =		\
@@ -135,7 +130,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-cookie-jar-text.c		\
 	soup-date.c			\
 	soup-form.c			\
-	soup-gnutls.c			\
 	soup-headers.c			\
 	soup-logger.c			\
 	soup-message.c			\
@@ -150,7 +144,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-method.c     		\
 	soup-misc.c     		\
 	soup-multipart.c	     	\
-	soup-nossl.c     		\
 	soup-password-manager.c		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\
@@ -166,6 +159,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session-sync.c		\
 	soup-socket.c			\
 	soup-ssl.h			\
+	soup-ssl.c	     		\
 	soup-status.c			\
 	soup-uri.c			\
 	soup-value-utils.c		\
