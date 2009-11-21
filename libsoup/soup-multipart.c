@@ -98,19 +98,27 @@ soup_multipart_new (const char *mime_type)
 }
 
 static const char *
-find_boundary (const char *start, const char *boundary, int boundary_len)
+find_boundary (const char *start, const char *end,
+	       const char *boundary, int boundary_len)
 {
-	const char *b, *end;
+	const char *b;
 
-	end = start + 2;
-	while ((b = strstr (end, boundary))) {
-		end = b + boundary_len;
-		if (b[-1] == '-' && b[-2] == '-' &&
-		    (b == start + 2 || (b[-3] == '\n' && b[-4] == '\r'))) {
-			if ((end[0] == '-' && end[1] == '-') ||
-			    (end[0] == '\r' && end[1] == '\n'))
-				return b - 2;
-		}
+	for (b = memchr (start, '-', end - start);
+	     b && b + boundary_len + 4 < end;
+	     b = memchr (b + 2, '-', end - (b + 2))) {
+		/* Check for "--boundary" */
+		if (b[1] != '-' ||
+		    memcmp (b + 2, boundary, boundary_len) != 0)
+			continue;
+
+		/* Check that it's at start of line */
+		if (!(b == start || (b[-1] == '\n' && b[-2] == '\r')))
+			continue;
+
+		/* Check for "--" or "\r\n" after boundary */
+		if ((b[boundary_len + 2] == '-' && b[boundary_len + 3] == '-') ||
+		    (b[boundary_len + 2] == '\r' && b[boundary_len + 3] == '\n'))
+			return b;
 	}
 	return NULL;
 }
@@ -136,7 +144,7 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	GHashTable *params;
 	int boundary_len;
 	SoupBuffer *flattened;
-	const char *start, *split, *end;
+	const char *start, *split, *end, *body_end;
 	SoupMessageHeaders *part_headers;
 	SoupBuffer *part_body;
 
@@ -155,11 +163,13 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	g_hash_table_destroy (params);
 
 	flattened = soup_message_body_flatten (body);
+	body_end = flattened->data + flattened->length;
 	boundary = multipart->boundary;
 	boundary_len = strlen (boundary);
 
 	/* skip preamble */
-	start = find_boundary (flattened->data, boundary, boundary_len);
+	start = find_boundary (flattened->data, body_end,
+			       boundary, boundary_len);
 	if (!start) {
 		soup_multipart_free (multipart);
 		soup_buffer_free (flattened);
@@ -167,7 +177,8 @@ soup_multipart_new_from_message (SoupMessageHeaders *headers,
 	}
 
 	while (start[2 + boundary_len] != '-') {
-		end = find_boundary (start + 2 + boundary_len, boundary, boundary_len);
+		end = find_boundary (start + 2 + boundary_len, body_end,
+				     boundary, boundary_len);
 		if (!end) {
 			soup_multipart_free (multipart);
 			soup_buffer_free (flattened);

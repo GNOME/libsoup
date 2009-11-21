@@ -158,8 +158,13 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 	g_free (file_arg);
 }
 
+#define MD5_TEST_FILE SRCDIR "/resources/home.gif"
+#define MD5_TEST_FILE_BASENAME "home.gif"
+#define MD5_TEST_FILE_MIME_TYPE "image/gif"
+
 static void
-do_md5_test_libsoup (const char *uri, const char *contents, const char *md5)
+do_md5_test_libsoup (const char *uri, const char *contents,
+		     gsize length, const char *md5)
 {
 	SoupMultipart *multipart;
 	SoupBuffer *buffer;
@@ -169,9 +174,10 @@ do_md5_test_libsoup (const char *uri, const char *contents, const char *md5)
 	debug_printf (1, "  via libsoup: ");
 
 	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
-	buffer = soup_buffer_new (SOUP_MEMORY_COPY, contents, strlen (contents));
+	buffer = soup_buffer_new (SOUP_MEMORY_COPY, contents, length);
 	soup_multipart_append_form_file (multipart, "file",
-					 "index.txt", "text/plain",
+					 MD5_TEST_FILE_BASENAME,
+					 MD5_TEST_FILE_MIME_TYPE,
 					 buffer);
 	soup_buffer_free (buffer);
 	soup_multipart_append_form_string (multipart, "fmt", "text");
@@ -206,8 +212,8 @@ do_md5_tests (const char *uri)
 
 	debug_printf (1, "\nMD5 tests (POST, multipart/form-data)\n");
 
-	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		debug_printf (1, "  ERROR: Could not read " SRCDIR "/index.txt: %s\n", error->message);
+	if (!g_file_get_contents (MD5_TEST_FILE, &contents, &length, &error)) {
+		debug_printf (1, "  ERROR: Could not read " MD5_TEST_FILE ": %s\n", error->message);
 		g_error_free (error);
 		errors++;
 		return;
@@ -215,8 +221,8 @@ do_md5_tests (const char *uri)
 
 	md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, contents, length);
 
-	do_md5_test_curl (uri, SRCDIR "/index.txt", md5);
-	do_md5_test_libsoup (uri, contents, md5);
+	do_md5_test_curl (uri, MD5_TEST_FILE, md5);
+	do_md5_test_libsoup (uri, contents, length, md5);
 
 	g_free (contents);
 	g_free (md5);
