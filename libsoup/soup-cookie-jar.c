@@ -267,6 +267,10 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 
 	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+		return NULL;
 
 	/* The logic here is a little weird, but the plan is that if
 	 * uri->host is "www.foo.com", we will end up looking up
@@ -406,7 +410,11 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	SoupCookie *soup_cookie;
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+	g_return_if_fail (uri != NULL);
 	g_return_if_fail (cookie != NULL);
+
+	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+		return;
 
 	soup_cookie = soup_cookie_parse (cookie, uri);
 	if (soup_cookie) {

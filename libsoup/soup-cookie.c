@@ -283,6 +283,8 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 	gboolean has_value;
 	SoupCookie *cookie;	
 
+	g_return_val_if_fail (origin == NULL || SOUP_URI_VALID_FOR_HTTP (origin), NULL);
+
 	cookie = g_slice_new0 (SoupCookie);
 
 	/* Parse the NAME */
