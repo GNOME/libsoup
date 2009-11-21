@@ -399,6 +399,23 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 	return cookie;
 }
 
+static SoupCookie *
+cookie_new_internal (const char *name, const char *value,
+		     const char *domain, const char *path,
+		     int max_age)
+{
+	SoupCookie *cookie;
+
+	cookie = g_slice_new0 (SoupCookie);
+	cookie->name = g_strdup (name);
+	cookie->value = g_strdup (value);
+	cookie->domain = g_strdup (domain);
+	cookie->path = g_strdup (path);
+	soup_cookie_set_max_age (cookie, max_age);
+
+	return cookie;
+}
+
 /**
  * soup_cookie_new:
  * @name: cookie name
@@ -430,8 +447,6 @@ soup_cookie_new (const char *name, const char *value,
 		 const char *domain, const char *path,
 		 int max_age)
 {
-	SoupCookie *cookie;	
-
 	g_return_val_if_fail (name != NULL, NULL);
 	g_return_val_if_fail (value != NULL, NULL);
 
@@ -444,14 +459,7 @@ soup_cookie_new (const char *name, const char *value,
 	 */
 	g_warn_if_fail (domain != NULL);
 
-	cookie = g_slice_new0 (SoupCookie);
-	cookie->name = g_strdup (name);
-	cookie->value = g_strdup (value);
-	cookie->domain = g_strdup (domain);
-	cookie->path = g_strdup (path);
-	soup_cookie_set_max_age (cookie, max_age);
-
-	return cookie;
+	return cookie_new_internal (name, value, domain, path, max_age);
 }
 
 /**
@@ -851,8 +859,11 @@ soup_cookies_from_request (SoupMessage *msg)
 	params = soup_header_parse_semi_param_list (header);
 	g_hash_table_iter_init (&iter, params);
 	while (g_hash_table_iter_next (&iter, &name, &value)) {
-		cookie = soup_cookie_new (name, value, NULL, NULL, 0);
-		cookies = g_slist_prepend (cookies, cookie);
+		if (name && value) {
+			cookie = cookie_new_internal (name, value,
+						      NULL, NULL, 0);
+			cookies = g_slist_prepend (cookies, cookie);
+		}
 	}
 	soup_header_free_param_list (params);
 
