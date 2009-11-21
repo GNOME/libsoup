@@ -350,12 +350,12 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	/* HTTP-specific stuff */
 	if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
 	    uri->scheme == SOUP_URI_SCHEME_HTTPS) {
+		if (!uri->path)
+			uri->path = g_strdup ("/");
 		if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
 			soup_uri_free (uri);
 			return NULL;
 		}
-		if (!uri->path)
-			uri->path = g_strdup ("/");
 	}
 
 	if (!uri->port)
