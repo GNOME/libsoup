@@ -58,8 +58,8 @@ soup_str_case_equal (gconstpointer v1,
 
 /**
  * soup_add_io_watch:
- * @async_context: the #GMainContext to dispatch the I/O watch in, or
- * %NULL for the default context
+ * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * watch in, or %NULL for the default context
  * @chan: the #GIOChannel to watch
  * @condition: the condition to watch for
  * @function: the callback to invoke when @condition occurs
@@ -85,8 +85,8 @@ soup_add_io_watch (GMainContext *async_context,
 
 /**
  * soup_add_idle:
- * @async_context: the #GMainContext to dispatch the idle event in, or
- * %NULL for the default context
+ * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * watch in, or %NULL for the default context
  * @function: the callback to invoke at idle time
  * @data: user data to pass to @function
  *
@@ -113,8 +113,8 @@ soup_add_idle (GMainContext *async_context,
 
 /**
  * soup_add_completion:
- * @async_context: the #GMainContext to dispatch the idle event in, or
- * %NULL for the default context
+ * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * watch in, or %NULL for the default context
  * @function: the callback to invoke
  * @data: user data to pass to @function
  *
@@ -141,8 +141,8 @@ soup_add_completion (GMainContext *async_context,
 
 /**
  * soup_add_timeout:
- * @async_context: the #GMainContext to dispatch the timeout in, or
- * %NULL for the default context
+ * @async_context: (allow-none): the #GMainContext to dispatch the I/O
+ * watch in, or %NULL for the default context
  * @interval: the timeout interval, in milliseconds
  * @function: the callback to invoke at timeout time
  * @data: user data to pass to @function

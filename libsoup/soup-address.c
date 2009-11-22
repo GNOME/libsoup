@@ -720,7 +720,7 @@ idle_complete_resolve (gpointer addr)
 /**
  * soup_address_resolve_async:
  * @addr: a #SoupAddress
- * @async_context: the #GMainContext to call @callback from
+ * @async_context: (allow-none): the #GMainContext to call @callback from
  * @cancellable: a #GCancellable object, or %NULL
  * @callback: (scope async): callback to call with the result
  * @user_data: data for @callback

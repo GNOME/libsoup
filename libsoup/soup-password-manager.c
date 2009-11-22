@@ -41,7 +41,7 @@ soup_password_manager_get_type (void)
  * @msg: the #SoupMessage being authenticated
  * @auth: the #SoupAuth being authenticated
  * @retrying: whether or not this is a re-attempt to authenticate
- * @async_context: the #GMainContext to invoke @callback in
+ * @async_context: (allow-none): the #GMainContext to invoke @callback in
  * @cancellable: a #GCancellable, or %NULL
  * @callback: callback to invoke after fetching passwords
  * @user_data: data for @callback
