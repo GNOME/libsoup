@@ -264,6 +264,7 @@ got_connection (SoupConnection *conn, guint status, gpointer session)
 			data->session = session;
 			data->conn = conn;
 			data->item = soup_session_make_connect_message (session, tunnel_addr);
+			g_signal_emit_by_name (session, "tunneling", conn);
 			g_signal_connect (data->item->msg, "finished",
 					  G_CALLBACK (tunnel_connected), data);
 			g_signal_connect (data->item->msg, "restarted",

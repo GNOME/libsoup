@@ -142,6 +142,7 @@ tunnel_connect (SoupSession *session, SoupConnection *conn,
 	SoupMessageQueueItem *item;
 	guint status;
 
+	g_signal_emit_by_name (session, "tunneling", conn);
 	item = soup_session_make_connect_message (session, tunnel_addr);
 	do
 		soup_session_send_queue_item (session, item, conn);

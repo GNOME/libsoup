@@ -123,6 +123,8 @@ enum {
 	REQUEST_STARTED,
 	REQUEST_UNQUEUED,
 	AUTHENTICATE,
+	CONNECTION_CREATED,
+	TUNNELING,
 	LAST_SIGNAL
 };
 
@@ -379,6 +381,27 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_AUTH,
 			      G_TYPE_BOOLEAN);
+
+	signals[CONNECTION_CREATED] =
+		g_signal_new ("connection-created",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0,
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_CONNECTION);
+
+	signals[TUNNELING] =
+		g_signal_new ("tunneling",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0,
+			      NULL, NULL,
+			      soup_marshal_NONE__OBJECT,
+			      G_TYPE_NONE, 1,
+			      SOUP_TYPE_CONNECTION);
+
 
 	/* properties */
 	/**
@@ -1216,6 +1239,8 @@ soup_session_get_connection (SoupSession *session,
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
 			  session);
+
+	g_signal_emit (session, signals[CONNECTION_CREATED], 0, conn);
 
 	g_hash_table_insert (priv->conns, conn, host);
 

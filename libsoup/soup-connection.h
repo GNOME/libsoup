@@ -9,6 +9,7 @@
 #include <time.h>
 
 #include "soup-types.h"
+#include "soup-misc.h"
 
 G_BEGIN_DECLS
 
@@ -39,15 +40,6 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);
 
-typedef enum {
-	SOUP_CONNECTION_NEW,
-	SOUP_CONNECTION_CONNECTING,
-	SOUP_CONNECTION_IDLE,
-	SOUP_CONNECTION_IN_USE,
-	SOUP_CONNECTION_REMOTE_DISCONNECTED,
-	SOUP_CONNECTION_DISCONNECTED
-} SoupConnectionState;
-
 #define SOUP_CONNECTION_REMOTE_ADDRESS  "remote-address"
 #define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
@@ -55,6 +47,8 @@ typedef enum {
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
 #define SOUP_CONNECTION_IDLE_TIMEOUT    "idle-timeout"
+#define SOUP_CONNECTION_STATE           "state"
+#define SOUP_CONNECTION_MESSAGE         "message"
 
 SoupConnection *soup_connection_new            (const char       *propname1,
 						...) G_GNUC_NULL_TERMINATED;
