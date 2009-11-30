@@ -303,7 +303,7 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 	nc = g_hash_table_lookup (params, "nc");
 	if (!nc)
 		return FALSE;
-	nonce_count = atoi (nc);
+	nonce_count = strtoul (nc, NULL, 16);
 	if (nonce_count <= 0)
 		return FALSE;
 	cnonce = g_hash_table_lookup (params, "cnonce");
