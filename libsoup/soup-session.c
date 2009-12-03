@@ -390,7 +390,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
-			      SOUP_TYPE_CONNECTION);
+			      /* SoupConnection is public, so we can't use
+			       * SOUP_TYPE_CONNECTION here */
+			      G_TYPE_OBJECT);
 
 	signals[TUNNELING] =
 		g_signal_new ("tunneling",
@@ -400,7 +402,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
-			      SOUP_TYPE_CONNECTION);
+			      /* SoupConnection is public, so we can't use
+			       * SOUP_TYPE_CONNECTION here */
+			      G_TYPE_OBJECT);
 
 
 	/* properties */
