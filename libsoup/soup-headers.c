@@ -188,10 +188,12 @@ soup_headers_parse_request (const char          *str,
 	/* RFC 2616 4.1 "servers SHOULD ignore any empty line(s)
 	 * received where a Request-Line is expected."
 	 */
-	while (*str == '\r' || *str == '\n') {
+	while ((*str == '\r' || *str == '\n') && len > 0) {
 		str++;
 		len--;
 	}
+	if (!len)
+		return SOUP_STATUS_BAD_REQUEST;
 
 	/* RFC 2616 19.3 "[servers] SHOULD accept any amount of SP or
 	 * HT characters between [Request-Line] fields"
@@ -360,6 +362,17 @@ soup_headers_parse_response (const char          *str,
 	SoupHTTPVersion version;
 
 	g_return_val_if_fail (str && *str, FALSE);
+
+	/* Workaround for broken servers that send extra line breaks
+	 * after a response, which we then see prepended to the next
+	 * response on that connection.
+	 */
+	while ((*str == '\r' || *str == '\n') && len > 0) {
+		str++;
+		len--;
+	}
+	if (!len)
+		return FALSE;
 
 	if (!soup_headers_parse (str, len, headers)) 
 		return FALSE;
