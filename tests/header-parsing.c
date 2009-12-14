@@ -470,6 +470,14 @@ static struct ResponseTest {
 	  }
 	},
 
+	/* qv bug 602863 */
+	{ "HTTP 1.1 response with leading line break",
+	  "\nHTTP/1.1 200 ok\r\nFoo: bar\r\n", -1,
+	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
+	  { { "Foo", "bar" },
+	    { NULL } }
+	},
+
 	/*************************/
 	/*** INVALID RESPONSES ***/
 	/*************************/
