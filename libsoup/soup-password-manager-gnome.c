@@ -113,6 +113,13 @@ update_auth_for_passwords (SoupAuth *auth, SoupMessage *msg,
 		passwords = passwords->next;
 	}
 
+	uri = g_object_get_data (G_OBJECT (auth),
+				 "SoupPasswordManagerGNOME-save_password-uri");
+	if (uri) {
+		g_signal_handlers_disconnect_by_func (auth, async_save_password, uri);
+		g_signal_handlers_disconnect_by_func (auth, sync_save_password, uri);
+	}
+
 	uri = soup_uri_copy (soup_message_get_uri (msg));
 	g_signal_connect (auth, "save_password",
 			  G_CALLBACK (async ? async_save_password : sync_save_password),
