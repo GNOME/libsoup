@@ -1,3 +1,67 @@
+Changes in libsoup from 2.28.1 to 2.28.2:
+
+	* Fixed a crash in SoupCookieJarSqlite when using cookie
+          databases not created by libsoup (eg, upgraded epiphany
+          installations). [Patch from Emilio Pozuelo Monfort]
+
+	* Fixed SoupCookieJar to handle non-http URIs properly (so
+          that, eg, JavaScript bookmarklets that try to set/read
+          cookies won't cause crashes). [#602498]
+
+	* Fixed a bug in SoupPasswordManagerGNOME that could cause
+          crashes if you typed the wrong password once and then tried
+          again. [#595554, debugged by Gustavo Noronha Silva]
+
+	* Fixed a crash in SoupAuthDigest if the server claims support
+          for both qop=auth and qop=auth-int. (This was not noticed
+          sooner because no one actually supports qop=auth-int, and
+          the server in question here was probably confused. :)
+
+	* Added SoupContentDecoder, providing support for
+          Content-Encoding: gzip for WebKitGTK. [#522772]
+
+	* HEAD requests that receive a "303 See Other" response will
+	  now do a HEAD, not a GET, on the redirected-to resource.
+	  Fixes gvfs access to some sites, including certain
+	  youtube.com URIs. [#600830]
+
+	* Fixed a g_warning that would always trigger in the
+          server-side SoupCookie code. [#602389]
+
+	* Fixed the server-side SoupMultipart code to be able to parse
+          multiparts containing binary attachments, rather than
+          rejecting them as malformed. [#601640]
+
+	* Fixed the Request-Line format in the https-over-proxy case.
+          Among other things, this fixes access to bugzilla.gnome.org
+          from WebKitGTK-based browsers. [#598277, #600826]
+
+	* Fixed a leak in SoupSession if a message was cancelled while
+          the initial socket connection was in progress. [#596074,
+          debugged by Arnout Vandecappelle]
+
+	* Fixed server-side parsing of Digest auth. [#602898, Chris
+          Head]
+
+	* Handle spurious CR/LFs between responses. [#602863,
+          Alexander V. Butenko]
+
+	* Fixed WinSock initialization on Windows. [#600689, Tor
+          Lillqvist]
+
+	* Fixed a sporadic crash in the SSL code on Windows. [#600748,
+          Tor Lillqvist]
+
+	* Fixed handling of https connections with timeouts on
+          Windows. [#600749, Tor Lillqvist]
+
+	* Added soup_session_prepare_for_uri(), to allow DNS
+          prefetching for faster browsing. [#598948, José Millán Soto]
+
+	* SoupSession now avoids redundant DNS lookups again when
+          first connecting to a new site, resulting in (probably
+          imperceptibly) faster loads.
+
 Changes in libsoup from 2.28.0 to 2.28.1:
 
 	* libsoup will now attempt to make multiple connections to a
