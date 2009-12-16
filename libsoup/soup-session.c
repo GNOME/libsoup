@@ -76,6 +76,7 @@ typedef struct {
 
 	char *user_agent;
 	char *accept_language;
+	gboolean accept_language_auto;
 
 	GSList *features;
 	GHashTable *features_cache;
@@ -143,6 +144,7 @@ enum {
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
 	PROP_ACCEPT_LANGUAGE,
+	PROP_ACCEPT_LANGUAGE_AUTO,
 	PROP_IDLE_TIMEOUT,
 	PROP_ADD_FEATURE,
 	PROP_ADD_FEATURE_BY_TYPE,
@@ -592,6 +594,27 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     G_PARAM_READWRITE));
 
 	/**
+	 * SoupSession:accept-language-auto:
+	 *
+	 * If %TRUE, #SoupSession will automatically set the string
+	 * for the "Accept-Language" header on every #SoupMessage
+	 * sent, based on the return value of g_get_language_names().
+	 *
+	 **/
+	/**
+	 * SOUP_SESSION_ACCEPT_LANGUAGE_AUTO:
+	 *
+	 * Alias for the #SoupSession:accept-language-auto property, qv.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_ACCEPT_LANGUAGE_AUTO,
+		g_param_spec_boolean (SOUP_SESSION_ACCEPT_LANGUAGE_AUTO,
+				      "Accept-Language automatic mode",
+				      "Accept-Language automatic mode",
+				      FALSE,
+				      G_PARAM_READWRITE));
+
+	/**
 	 * SoupSession:add-feature:
 	 *
 	 * Add a feature object to the session. (Shortcut for calling
@@ -675,6 +698,103 @@ safe_str_equal (const char *a, const char *b)
 	return strcmp (a, b) == 0;
 }
 
+/* Converts a language in POSIX format and to be RFC2616 compliant    */
+/* Based on code from epiphany-webkit (ephy_langs_append_languages()) */
+static gchar *
+posix_lang_to_rfc2616 (const gchar *language)
+{
+	char *lang = NULL;
+
+	if (strstr (language, ".") == 0 &&
+	    strstr (language, "@") == 0 &&
+	    strcmp (language, "C") != 0)
+	{
+		/* change to lowercase and '_' to '-' */
+		lang = g_strdelimit (g_ascii_strdown
+				     (language, -1), "_", '-');
+	}
+
+	return lang;
+}
+
+/* Adds a quality value to a string (any value between 0 and 1). */
+static gchar *
+add_quality_value (const gchar *str, float qvalue)
+{
+	char *qv_str = NULL;
+
+	g_return_val_if_fail (str != NULL, NULL);
+
+	if ((qvalue >= 0.0) && (qvalue <= 1.0)) {
+		int qv_int = (qvalue * 1000 + 0.5);
+		qv_str = g_strdup_printf ("%s;q=%d.%d",
+					  str,
+					  (int) (qv_int / 1000),
+					  qv_int % 1000);
+	} else {
+		/* Just dup the string in this case */
+		qv_str = g_strdup (str);
+	}
+
+	return qv_str;
+}
+
+/* Returns a RFC2616 compliant languages list from system locales */
+static gchar *
+accept_languages_from_system (void)
+{
+	const char * const * lang_names;
+	GArray *langs_garray = NULL;
+	char *cur_lang = NULL;
+	char *prev_lang = NULL;
+	char **langs_array;
+	char *langs_str;
+	float delta;
+	int i, n_lang_names;
+
+	lang_names = g_get_language_names ();
+	g_return_val_if_fail (lang_names != NULL, NULL);
+
+	/* Calculate delta for setting the quality values */
+	n_lang_names = g_strv_length ((gchar **)lang_names);
+	delta = 0.999 / (n_lang_names - 1);
+
+	/* Build the array of languages */
+	langs_garray = g_array_new (TRUE, FALSE, sizeof (char*));
+	for (i = 0; lang_names[i] != NULL; i++) {
+		cur_lang = posix_lang_to_rfc2616 (lang_names[i]);
+
+		/* Apart from getting a valid RFC2616 compliant
+		 * language, also get rid of extra variants
+		 */
+		if ((cur_lang != NULL) &&
+		    (!prev_lang ||
+		     (!g_strcmp0 (prev_lang, cur_lang) ||
+		      !g_strstr_len (prev_lang, -1, cur_lang)))) {
+
+			gchar *qv_lang = NULL;
+
+			/* Save reference for further comparison */
+			prev_lang = cur_lang;
+
+			/* Add the quality value and append it */
+			qv_lang = add_quality_value (cur_lang, 1 - i * delta);
+			g_array_append_val (langs_garray, qv_lang);
+		}
+	}
+
+	/* Fallback: add "en" if list is empty */
+	if (langs_garray->len == 0) {
+		char *default_lang = g_strdup ("en");
+		g_array_append_val (langs_garray, default_lang);
+	}
+
+	langs_array = (char **) g_array_free (langs_garray, FALSE);
+	langs_str = g_strjoinv (", ", langs_array);
+
+	return langs_str;
+}
+
 static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
@@ -756,6 +876,18 @@ set_property (GObject *object, guint prop_id,
 	case PROP_ACCEPT_LANGUAGE:
 		g_free (priv->accept_language);
 		priv->accept_language = g_strdup (g_value_get_string (value));
+		priv->accept_language_auto = FALSE;
+		break;
+	case PROP_ACCEPT_LANGUAGE_AUTO:
+		priv->accept_language_auto = g_value_get_boolean (value);
+		if (priv->accept_language) {
+			g_free (priv->accept_language);
+			priv->accept_language = NULL;
+		}
+
+		/* Get languages from system if needed */
+		if (priv->accept_language_auto)
+			priv->accept_language = accept_languages_from_system ();
 		break;
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);
@@ -822,6 +954,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ACCEPT_LANGUAGE:
 		g_value_set_string (value, priv->accept_language);
+		break;
+	case PROP_ACCEPT_LANGUAGE_AUTO:
+		g_value_set_boolean (value, priv->accept_language_auto);
 		break;
 	case PROP_IDLE_TIMEOUT:
 		g_value_set_uint (value, priv->idle_timeout);
@@ -1021,10 +1156,12 @@ soup_session_send_queue_item (SoupSession *session,
 					      "User-Agent", priv->user_agent);
 	}
 
-	if (priv->accept_language) {
-		soup_message_headers_replace (item->msg->request_headers,
-					      "Accept-Language",
-					      priv->accept_language);
+	if (priv->accept_language &&
+	    !soup_message_headers_get_list (item->msg->request_headers,
+					    "Accept-Language")) {
+		soup_message_headers_append (item->msg->request_headers,
+					     "Accept-Language",
+					     priv->accept_language);
 	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
