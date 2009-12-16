@@ -105,6 +105,7 @@ SNIFFING_FILES =		\
 	resources/atom.xml	\
 	resources/home.gif	\
 	resources/mbox		\
+	resources/mbox.gz	\
 	resources/rss20.xml	\
 	resources/test.html
 
