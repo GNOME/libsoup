@@ -24,7 +24,7 @@
 
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean debug = FALSE;
+static gboolean debug = FALSE, quiet = FALSE;
 static const char *method;
 
 static void
@@ -61,16 +61,24 @@ get_url (const char *url)
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
 			printf ("%s: %s\r\n", hname, value);
 		printf ("\n");
-	} else
+	} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		header = soup_message_headers_get_one (msg->response_headers,
 						       "Location");
 		if (header) {
-			if (!debug)
+			SoupURI *uri;
+			char *uri_string;
+
+			if (!debug && !quiet)
 				printf ("  -> %s\n", header);
-			get_url (header);
+
+			uri = soup_uri_new_with_base (soup_message_get_uri (msg), header);
+			uri_string = soup_uri_to_string (uri, FALSE);
+			get_url (uri_string);
+			g_free (uri_string);
+			soup_uri_free (uri);
 		}
 	} else if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		fwrite (msg->response_body->data, 1,
@@ -98,7 +106,7 @@ main (int argc, char **argv)
 
 	method = SOUP_METHOD_GET;
 
-	while ((opt = getopt (argc, argv, "c:dhp:s")) != -1) {
+	while ((opt = getopt (argc, argv, "c:dhp:qs")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
@@ -120,6 +128,10 @@ main (int argc, char **argv)
 					 optarg);
 				exit (1);
 			}
+			break;
+
+		case 'q':
+			quiet = TRUE;
 			break;
 
 		case 's':
@@ -151,6 +163,7 @@ main (int argc, char **argv)
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
 #endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
 			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 			NULL);
@@ -161,6 +174,7 @@ main (int argc, char **argv)
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
 #endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
+			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
 			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 			NULL);
