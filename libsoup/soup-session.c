@@ -579,6 +579,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * If non-%NULL, the value to use for the "Accept-Language" header
 	 * on #SoupMessage<!-- -->s sent from this session.
 	 *
+	 * Setting this will disable
+	 * #SoupSession:accept-language-auto.
+	 *
+	 * Since: 2.30
 	 **/
 	/**
 	 * SOUP_SESSION_ACCEPT_LANGUAGE:
@@ -600,6 +604,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * for the "Accept-Language" header on every #SoupMessage
 	 * sent, based on the return value of g_get_language_names().
 	 *
+	 * Setting this will override any previous value of
+	 * #SoupSession:accept-language.
+	 *
+	 * Since: 2.30
 	 **/
 	/**
 	 * SOUP_SESSION_ACCEPT_LANGUAGE_AUTO:
@@ -703,40 +711,32 @@ safe_str_equal (const char *a, const char *b)
 static gchar *
 posix_lang_to_rfc2616 (const gchar *language)
 {
-	char *lang = NULL;
+	/* Don't include charset variants, etc */
+	if (strchr (language, '.') || strchr (language, '@'))
+		return NULL;
 
-	if (strstr (language, ".") == 0 &&
-	    strstr (language, "@") == 0 &&
-	    strcmp (language, "C") != 0)
-	{
-		/* change to lowercase and '_' to '-' */
-		lang = g_strdelimit (g_ascii_strdown
-				     (language, -1), "_", '-');
-	}
+	/* Ignore "C" locale, which g_get_language_names() always
+	 * includes as a fallback.
+	 */
+	if (!strcmp (language, "C"))
+		return NULL;
 
-	return lang;
+	return g_strdelimit (g_ascii_strdown (language, -1), "_", '-');
 }
 
-/* Adds a quality value to a string (any value between 0 and 1). */
+/* Converts @quality from 0-100 to 0.0-1.0 and appends to @str */
 static gchar *
-add_quality_value (const gchar *str, float qvalue)
+add_quality_value (const gchar *str, int quality)
 {
-	char *qv_str = NULL;
-
 	g_return_val_if_fail (str != NULL, NULL);
 
-	if ((qvalue >= 0.0) && (qvalue <= 1.0)) {
-		int qv_int = (qvalue * 1000 + 0.5);
-		qv_str = g_strdup_printf ("%s;q=%d.%d",
-					  str,
-					  (int) (qv_int / 1000),
-					  qv_int % 1000);
+	if (quality > 0 && quality < 100) {
+		double qvalue = quality / 100.0;
+		return g_strdup_printf ("%s;q=%.2g", str, qvalue);
 	} else {
 		/* Just dup the string in this case */
-		qv_str = g_strdup (str);
+		return g_strdup (str);
 	}
-
-	return qv_str;
 }
 
 /* Returns a RFC2616 compliant languages list from system locales */
@@ -744,53 +744,46 @@ static gchar *
 accept_languages_from_system (void)
 {
 	const char * const * lang_names;
-	GArray *langs_garray = NULL;
-	char *cur_lang = NULL;
-	char *prev_lang = NULL;
-	char **langs_array;
-	char *langs_str;
-	float delta;
-	int i, n_lang_names;
+	GPtrArray *langs = NULL;
+	char *lang, **langs_array, *langs_str;
+	int delta;
+	int i;
 
 	lang_names = g_get_language_names ();
 	g_return_val_if_fail (lang_names != NULL, NULL);
 
-	/* Calculate delta for setting the quality values */
-	n_lang_names = g_strv_length ((gchar **)lang_names);
-	delta = 0.999 / (n_lang_names - 1);
-
 	/* Build the array of languages */
-	langs_garray = g_array_new (TRUE, FALSE, sizeof (char*));
+	langs = g_ptr_array_new ();
 	for (i = 0; lang_names[i] != NULL; i++) {
-		cur_lang = posix_lang_to_rfc2616 (lang_names[i]);
+		lang = posix_lang_to_rfc2616 (lang_names[i]);
+		if (lang)
+			g_ptr_array_add (langs, lang);
+	}
 
-		/* Apart from getting a valid RFC2616 compliant
-		 * language, also get rid of extra variants
-		 */
-		if ((cur_lang != NULL) &&
-		    (!prev_lang ||
-		     (!g_strcmp0 (prev_lang, cur_lang) ||
-		      !g_strstr_len (prev_lang, -1, cur_lang)))) {
+	/* Add quality values */
+	if (langs->len < 10)
+		delta = 10;
+	else if (langs->len < 20)
+		delta = 5;
+	else
+		delta = 1;
 
-			gchar *qv_lang = NULL;
-
-			/* Save reference for further comparison */
-			prev_lang = cur_lang;
-
-			/* Add the quality value and append it */
-			qv_lang = add_quality_value (cur_lang, 1 - i * delta);
-			g_array_append_val (langs_garray, qv_lang);
-		}
+	for (i = 0; i < langs->len; i++) {
+		lang = langs->pdata[i];
+		langs->pdata[i] = add_quality_value (lang, 100 - i * delta);
+		g_free (lang);
 	}
 
 	/* Fallback: add "en" if list is empty */
-	if (langs_garray->len == 0) {
-		char *default_lang = g_strdup ("en");
-		g_array_append_val (langs_garray, default_lang);
-	}
+	if (langs->len == 0)
+		g_ptr_array_add (langs, g_strdup ("en"));
 
-	langs_array = (char **) g_array_free (langs_garray, FALSE);
+	g_ptr_array_add (langs, NULL);
+	langs_array = (char **)langs->pdata;
 	langs_str = g_strjoinv (", ", langs_array);
+
+	g_strfreev (langs_array);
+	g_ptr_array_free (langs, FALSE);
 
 	return langs_str;
 }

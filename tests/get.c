@@ -46,7 +46,7 @@ get_url (const char *url)
 		const char *hname, *value;
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 
-		printf ("%s %s HTTP/1.%d\n\n", method, path,
+		printf ("%s %s HTTP/1.%d\n", method, path,
 			soup_message_get_http_version (msg));
 		soup_message_headers_iter_init (&iter, msg->request_headers);
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
@@ -152,6 +152,7 @@ main (int argc, char **argv)
 #endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_USER_AGENT, "get ",
+			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 			NULL);
 	} else {
 		session = soup_session_async_new_with_options (
@@ -161,6 +162,7 @@ main (int argc, char **argv)
 #endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_USER_AGENT, "get ",
+			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 			NULL);
 	}
 
