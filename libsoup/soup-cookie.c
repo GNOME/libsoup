@@ -306,11 +306,12 @@ parse_one_cookie (const char *header, SoupURI *origin)
 		if (!cookie->path) {
 			char *slash;
 
-			cookie->path = g_strdup (origin->path);
-			if (strcmp (cookie->path, "/") != 0) {
-				slash = strrchr (cookie->path, '/');
-				if (slash)
-					*slash = '\0';
+			slash = strrchr (origin->path, '/');
+			if (!slash || slash == origin->path)
+				cookie->path = g_strdup ("/");
+			else {
+				cookie->path = g_strndup (origin->path,
+							  slash - origin->path);
 			}
 		}
 	}
@@ -922,15 +923,11 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	/* uri->path is required to be non-NULL */
 	g_return_val_if_fail (uri->path != NULL, FALSE);
 
-	/* The spec claims "/foo would match /foobar", but fortunately
-	 * no one is really that crazy.
-	 */
 	plen = strlen (cookie->path);
-	if (cookie->path[plen - 1] == '/')
-		plen--;
 	if (strncmp (cookie->path, uri->path, plen) != 0)
 		return FALSE;
-	if (uri->path[plen] && uri->path[plen] != '/')
+	if (cookie->path[plen - 1] != '/' &&
+	    uri->path[plen] && uri->path[plen] != '/')
 		return FALSE;
 
 	return TRUE;
