@@ -63,7 +63,8 @@ enum {
 
 typedef struct {
 	gboolean constructed, read_only;
-	GHashTable *domains;
+	GHashTable *domains, *serials;
+	guint serial;
 } SoupCookieJarPrivate;
 #define SOUP_COOKIE_JAR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR, SoupCookieJarPrivate))
 
@@ -77,8 +78,10 @@ soup_cookie_jar_init (SoupCookieJar *jar)
 {
 	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 
-	priv->domains = g_hash_table_new_full (g_str_hash, g_str_equal,
+	priv->domains = g_hash_table_new_full (soup_str_case_hash,
+					       soup_str_case_equal,
 					       g_free, NULL);
+	priv->serials = g_hash_table_new (NULL, NULL);
 }
 
 static void
@@ -100,6 +103,7 @@ finalize (GObject *object)
 	while (g_hash_table_iter_next (&iter, &key, &value))
 		soup_cookies_free (value);
 	g_hash_table_destroy (priv->domains);
+	g_hash_table_destroy (priv->serials);
 
 	G_OBJECT_CLASS (soup_cookie_jar_parent_class)->finalize (object);
 }
@@ -227,10 +231,43 @@ soup_cookie_jar_changed (SoupCookieJar *jar,
 {
 	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 
+	if (old && old != new)
+		g_hash_table_remove (priv->serials, old);
+	if (new) {
+		priv->serial++;
+		g_hash_table_insert (priv->serials, new, GUINT_TO_POINTER (priv->serial));
+	}
+
 	if (priv->read_only || !priv->constructed)
 		return;
 
 	g_signal_emit (jar, signals[CHANGED], 0, old, new);
+}
+
+static int
+compare_cookies (gconstpointer a, gconstpointer b, gpointer jar)
+{
+	SoupCookie *ca = (SoupCookie *)a;
+	SoupCookie *cb = (SoupCookie *)b;
+	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	int alen, blen;
+	guint aserial, bserial;
+
+	/* "Cookies with longer path fields are listed before cookies
+	 * with shorter path field."
+	 */
+	alen = ca->path ? strlen (ca->path) : 0;
+	blen = cb->path ? strlen (cb->path) : 0;
+	if (alen != blen)
+		return blen - alen;
+
+	/* "Among cookies that have equal length path fields, cookies
+	 * with earlier creation dates are listed before cookies with
+	 * later creation dates."
+	 */
+	aserial = GPOINTER_TO_UINT (g_hash_table_lookup (priv->serials, ca));
+	bserial = GPOINTER_TO_UINT (g_hash_table_lookup (priv->serials, cb));
+	return aserial - bserial;
 }
 
 /**
@@ -314,9 +351,14 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	g_slist_free (cookies_to_remove);
 
 	if (cookies) {
-		/* FIXME: sort? */
+		cookies = g_slist_sort_with_data (cookies, compare_cookies, jar);
 		result = soup_cookies_to_cookie_header (cookies);
 		g_slist_free (cookies);
+
+		if (!*result) {
+			g_free (result);
+			result = NULL;
+		}
 		return result;
 	} else
 		return NULL;

@@ -74,56 +74,6 @@
  * Since: 2.24
  **/
 
-/* Our Set-Cookie grammar is something like the following, in terms of
- * RFC 2616 BNF:
- *
- * set-cookie             =  "Set-Cookie:" cookies
- * cookies                =  #cookie
- *
- * cookie                 =  [ NAME "=" ] VALUE *(";" [ cookie-av ] )
- * NAME                   =  cookie-attr
- * VALUE                  =  cookie-comma-value
- * cookie-av              =  "Domain" "=" cookie-value
- *                        |  "Expires" "=" cookie-date-value
- *                        |  "HttpOnly"
- *                        |  "Max-Age" "=" cookie-value
- *                        |  "Path" "=" cookie-value
- *                        |  "Secure"
- *                        |  cookie-attr [ "=" cookie-value ]
- *
- * cookie-attr            =  1*<any CHAR except CTLs or ";" or "," or "=">
- *
- * cookie-value           =  cookie-raw-value | cookie-quoted-string
- * cookie-raw-value       =  *<any CHAR except CTLs or ";" or ",">
- *
- * cookie-comma-value     =  cookie-raw-comma-value | cookie-quoted-string
- * cookie-raw-comma-value =  *<any CHAR except CTLs or ";">
- *
- * cookie-date-value      =  cookie-raw-date-value | cookie-quoted-string
- * cookie-raw-date-value  =  [ token "," ] cookie-raw-value
- *
- * cookie-quoted-string   =  quoted-string [ cookie-raw-value ]
- *
- * NAME is optional, as described in
- * https://bugzilla.mozilla.org/show_bug.cgi?id=169091#c16
- *
- * When VALUE is a quoted-string, the quotes (and any internal
- * backslashes) are considered part of the value, and returned
- * literally. When other cookie-values or cookie-comma-values are
- * quoted-strings, the quotes are NOT part of the value. If a
- * cookie-value or cookie-comma-value has trailing junk after the
- * quoted-string, it is discarded.
- *
- * Note that VALUE and "Expires" are allowed to have commas in them,
- * but anywhere else, a comma indicates a new cookie.
- *
- * The literal strings in cookie-av ("Domain", "Expires", etc) are all
- * case-insensitive. Unrecognized cookie attributes are discarded.
- *
- * Cookies are allowed to have excess ";"s, and in particular, can
- * have a trailing ";".
- */
-
 GType
 soup_cookie_get_type (void)
 {
@@ -204,44 +154,22 @@ unskip_lws (const char *s, const char *start)
 }
 
 #define is_attr_ender(ch) ((ch) < ' ' || (ch) == ';' || (ch) == ',' || (ch) == '=')
-#define is_value_ender(ch, allow_comma) ((ch) < ' ' || (ch) == ';' || (!(allow_comma) && (ch) == ','))
+#define is_value_ender(ch) ((ch) < ' ' || (ch) == ';')
 
 static char *
-parse_value (const char **val_p, gboolean keep_quotes, gboolean allow_comma)
+parse_value (const char **val_p)
 {
 	const char *start, *end, *p;
-	char *value, *q;
+	char *value;
 
 	p = *val_p;
 	if (*p == '=')
 		p++;
 	start = skip_lws (p);
-	if (*start == '"') {
-		for (p = start + 1; *p && *p != '"'; p++) {
-			if (*p == '\\' && *(p + 1))
-				p++;
-		}
-		if (keep_quotes)
-			value = g_strndup (start, p - start + 1);
-		else {
-			value = g_malloc (p - (start + 1) + 1);
-			for (p = start + 1, q = value; *p && *p != '"'; p++, q++) {
-				if (*p == '\\' && *(p + 1))
-					p++;
-				*q = *p;
-			}
-			*q = '\0';
-		}
-
-		/* Skip anything after the quoted-string */
-		while (!is_value_ender (*p, FALSE))
-			p++;
-	} else {
-		for (p = start; !is_value_ender (*p, allow_comma); p++)
-			;
-		end = unskip_lws (p, start);
-		value = g_strndup (start, end - start);
-	}
+	for (p = start; !is_value_ender (*p); p++)
+		;
+	end = unskip_lws (p, start);
+	value = g_strndup (start, end - start);
 
 	*val_p = p;
 	return value;
@@ -250,36 +178,19 @@ parse_value (const char **val_p, gboolean keep_quotes, gboolean allow_comma)
 static SoupDate *
 parse_date (const char **val_p)
 {
-	const char *start, *end, *p;
 	char *value;
 	SoupDate *date;
 
-	p = *val_p + 1;
-	start = skip_lws (p);
-	if (*start == '"')
-		value = parse_value (&p, FALSE, FALSE);
-	else {
-		gboolean allow_comma = TRUE;
-
-		for (p = start; !is_value_ender (*p, allow_comma); p++) {
-			if (*p == ' ')
-				allow_comma = FALSE;
-		}
-		end = unskip_lws (p, start);
-		value = g_strndup (start, end - start);
-	}
-
+	value = parse_value (val_p);
 	date = soup_date_new_from_string (value);
 	g_free (value);
-	*val_p = p;
 	return date;
 }
 
 static SoupCookie *
-parse_one_cookie (const char **header_p, SoupURI *origin)
+parse_one_cookie (const char *header, SoupURI *origin)
 {
-	const char *header = *header_p, *p;
-	const char *start, *end;
+	const char *start, *end, *p;
 	gboolean has_value;
 	SoupCookie *cookie;	
 
@@ -303,7 +214,7 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 	}
 
 	/* Parse the VALUE */
-	cookie->value = parse_value (&p, TRUE, TRUE);
+	cookie->value = parse_value (&p);
 
 	/* Parse attributes */
 	while (*p == ';') {
@@ -316,34 +227,40 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 #define MATCH_NAME(name) ((end - start == strlen (name)) && !g_ascii_strncasecmp (start, name, end - start))
 
 		if (MATCH_NAME ("domain") && has_value) {
-			cookie->domain = parse_value (&p, FALSE, FALSE);
+			cookie->domain = parse_value (&p);
+			if (!*cookie->domain) {
+				g_free (cookie->domain);
+				cookie->domain = NULL;
+			}
 		} else if (MATCH_NAME ("expires") && has_value) {
 			cookie->expires = parse_date (&p);
-		} else if (MATCH_NAME ("httponly") && !has_value) {
+		} else if (MATCH_NAME ("httponly")) {
 			cookie->http_only = TRUE;
 		} else if (MATCH_NAME ("max-age") && has_value) {
-			char *max_age = parse_value (&p, FALSE, FALSE);
-			soup_cookie_set_max_age (cookie, strtoul (max_age, NULL, 10));
-			g_free (max_age);
+			char *max_age_str = parse_value (&p), *mae;
+			long max_age = strtol (max_age_str, &mae, 10);
+			if (!*mae) {
+				if (max_age < 0)
+					max_age = 0;
+				soup_cookie_set_max_age (cookie, max_age);
+			}
+			g_free (max_age_str);
 		} else if (MATCH_NAME ("path") && has_value) {
-			cookie->path = parse_value (&p, FALSE, FALSE);
-		} else if (MATCH_NAME ("secure") && !has_value) {
+			cookie->path = parse_value (&p);
+			if (*cookie->path != '/') {
+				g_free (cookie->path);
+				cookie->path = NULL;
+			}
+		} else if (MATCH_NAME ("secure")) {
 			cookie->secure = TRUE;
 		} else {
 			/* Ignore unknown attributes, but we still have
 			 * to skip over the value.
 			 */
 			if (has_value)
-				g_free (parse_value (&p, TRUE, FALSE));
+				g_free (parse_value (&p));
 		}
 	}
-
-	if (*p == ',') {
-		p = skip_lws (p + 1);
-		if (*p)
-			*header_p = p;
-	} else
-		*header_p = NULL;
 
 	if (cookie->domain) {
 		/* Domain must have at least one '.' (not counting an
@@ -390,9 +307,11 @@ parse_one_cookie (const char **header_p, SoupURI *origin)
 			char *slash;
 
 			cookie->path = g_strdup (origin->path);
-			slash = strrchr (cookie->path, '/');
-			if (slash)
-				*slash = '\0';
+			if (strcmp (cookie->path, "/") != 0) {
+				slash = strrchr (cookie->path, '/');
+				if (slash)
+					*slash = '\0';
+			}
 		}
 	}
 
@@ -486,7 +405,7 @@ soup_cookie_new (const char *name, const char *value,
 SoupCookie *
 soup_cookie_parse (const char *cookie, SoupURI *origin)
 {
-	return parse_one_cookie (&cookie, origin);
+	return parse_one_cookie (cookie, origin);
 }
 
 /**
@@ -683,6 +602,9 @@ soup_cookie_set_http_only (SoupCookie *cookie, gboolean http_only)
 static void
 serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 {
+	if (!*cookie->name && !*cookie->value)
+		return;
+
 	if (header->len) {
 		if (set_cookie)
 			g_string_append (header, ", ");
@@ -690,8 +612,10 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 			g_string_append (header, "; ");
 	}
 
-	g_string_append (header, cookie->name);
-	g_string_append (header, "=");
+	if (set_cookie || *cookie->name) {
+		g_string_append (header, cookie->name);
+		g_string_append (header, "=");
+	}
 	g_string_append (header, cookie->value);
 	if (!set_cookie)
 		return;
@@ -807,21 +731,18 @@ soup_cookies_from_response (SoupMessage *msg)
 
 	origin = soup_message_get_uri (msg);
 
-	/* Although parse_one_cookie tries to deal with multiple
-	 * comma-separated cookies, it is impossible to do that 100%
-	 * reliably, so we try to pass it separate Set-Cookie headers
-	 * instead.
+	/* We have to use soup_message_headers_iter rather than
+	 * soup_message_headers_get_list() since Set-Cookie isn't
+	 * properly mergeable/unmergeable.
 	 */
 	soup_message_headers_iter_init (&iter, msg->response_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value)) {
 		if (g_ascii_strcasecmp (name, "Set-Cookie") != 0)
 			continue;
 
-		while (value) {
-			cookie = parse_one_cookie (&value, origin);
-			if (cookie)
-				cookies = g_slist_prepend (cookies, cookie);
-		}
+		cookie = parse_one_cookie (value, origin);
+		if (cookie)
+			cookies = g_slist_prepend (cookies, cookie);
 	}
 	return g_slist_reverse (cookies);
 }
