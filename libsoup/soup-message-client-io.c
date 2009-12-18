@@ -96,6 +96,13 @@ get_request_headers (SoupMessage *req, GString *header,
 		 * just the path.
 		 */
 		uri_string = soup_uri_to_string (uri, !proxy);
+
+		if (proxy && uri->fragment) {
+			/* Strip fragment */
+			char *fragment = strchr (uri_string, '#');
+			if (fragment)
+				*fragment = '\0';
+		}
 	}
 
 	if (priv->http_version == SOUP_HTTP_1_0) {

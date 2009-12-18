@@ -46,7 +46,7 @@ Listen 127.0.0.1:47526
   </Proxy>
 
   # Allow local http connections
-  <Proxy http://127.0.0.1:47524*>
+  <Proxy http://127.0.0.1*>
     Order Allow,Deny
     Allow from all
   </Proxy>

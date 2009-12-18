@@ -143,9 +143,52 @@ run_test (int i, gboolean sync)
 	debug_printf (1, "\n");
 }
 
+static void
+server_callback (SoupServer *server, SoupMessage *msg,
+		 const char *path, GHashTable *query,
+		 SoupClientContext *context, gpointer data)
+{
+	SoupURI *uri = soup_message_get_uri (msg);
+
+	soup_message_set_status (msg, uri->fragment ? SOUP_STATUS_BAD_REQUEST : SOUP_STATUS_OK);
+}
+
+static void
+do_proxy_fragment_test (SoupURI *base_uri)
+{
+	SoupSession *session;
+	SoupURI *proxy_uri, *req_uri;
+	SoupMessage *msg;
+
+	debug_printf (1, "\nTesting request with fragment via proxy\n");
+
+	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 NULL);
+	soup_uri_free (proxy_uri);
+
+	req_uri = soup_uri_new_with_base (base_uri, "/#foo");
+	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
+	soup_uri_free (req_uri);
+	soup_session_send_message (session, msg);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "  unexpected status %d %s!\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+
+	g_object_unref (msg);
+	soup_session_abort (session);
+	g_object_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
+	SoupServer *server;
+	SoupURI *base_uri;
 	int i;
 
 	test_init (argc, argv, NULL);
@@ -156,6 +199,14 @@ main (int argc, char **argv)
 		run_test (i, TRUE);
 	}
 
+	server = soup_test_server_new (TRUE);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	base_uri = soup_uri_new ("http://127.0.0.1/");
+	soup_uri_set_port (base_uri, soup_server_get_port (server));
+
+	do_proxy_fragment_test (base_uri);
+
+	soup_uri_free (base_uri);
 	test_cleanup ();
 	return errors != 0;
 }
