@@ -96,6 +96,8 @@ static char *uri_decoded_copy (const char *str, int length);
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra, gboolean fixup);
 
 gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
+gpointer _SOUP_URI_SCHEME_FTP;
+gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA;
 
 static inline const char *
 soup_uri_get_scheme (const char *scheme, int len)
@@ -122,6 +124,8 @@ soup_scheme_default_port (const char *scheme)
 		return 80;
 	else if (scheme == SOUP_URI_SCHEME_HTTPS)
 		return 443;
+	else if (scheme == SOUP_URI_SCHEME_FTP)
+		return 21;
 	else
 		return 0;
 }
@@ -353,6 +357,13 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		if (!uri->path)
 			uri->path = g_strdup ("/");
 		if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
+			soup_uri_free (uri);
+			return NULL;
+		}
+	}
+
+	if (uri->scheme == SOUP_URI_SCHEME_FTP) {
+		if (!uri->host) {
 			soup_uri_free (uri);
 			return NULL;
 		}
@@ -745,7 +756,8 @@ gboolean
 soup_uri_uses_default_port (SoupURI *uri)
 {
 	g_return_val_if_fail (uri->scheme == SOUP_URI_SCHEME_HTTP ||
-			      uri->scheme == SOUP_URI_SCHEME_HTTPS, FALSE);
+			      uri->scheme == SOUP_URI_SCHEME_HTTPS ||
+			      uri->scheme == SOUP_URI_SCHEME_FTP, FALSE);
 
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
