@@ -1123,13 +1123,6 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 		return;
 	}
 
-	/* URI fragments are also not allowed in Location, but again,
-	 * some sites do this. Strip it to keep soup_message_set_uri()
-	 * from warning about it. (If the application wants to obey
-	 * the fragment anyway it can reparse Location itself.)
-	 */
-	soup_uri_set_fragment (new_uri, NULL);
-
 	soup_message_set_uri (msg, new_uri);
 	soup_uri_free (new_uri);
 

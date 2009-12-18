@@ -100,11 +100,6 @@ static struct {
 	{ { { "POST", "/307", 307 },
 	    { NULL } }, 307 },
 
-	/* Test behavior with Location header containing URI fragment */
-	{ { { "GET", "/bad-with-fragment", 302 },
-	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
-
 	/* Test behavior with recoverably-bad Location header */
 	{ { { "GET", "/bad", 302 },
 	    { "GET", "/bad%20with%20spaces", 200 },
@@ -244,11 +239,6 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_replace (msg->response_headers,
 						      "Location",
 						      "about:blank");
-		} else if (!strcmp (path, "/bad-with-fragment")) {
-			soup_message_set_status (msg, SOUP_STATUS_FOUND);
-			soup_message_headers_replace (msg->response_headers,
-						      "Location",
-						      "/#fragment");
 		} else if (!strcmp (path, "/bad with spaces"))
 			soup_message_set_status (msg, SOUP_STATUS_OK);
 		else

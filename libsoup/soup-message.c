@@ -659,11 +659,7 @@ get_property (GObject *object, guint prop_id,
  * @method: the HTTP method for the created request
  * @uri_string: the destination endpoint (as a string)
  * 
- * Creates a new empty #SoupMessage, which will connect to @uri.
- *
- * @uri should not include a fragment identifier (ie, a "#" followed
- * by an HTML anchor name, etc); fragments are not meaningful at the
- * HTTP level.
+ * Creates a new empty #SoupMessage, which will connect to @uri
  *
  * Return value: the new #SoupMessage (or %NULL if @uri could not
  * be parsed).
@@ -696,9 +692,6 @@ soup_message_new (const char *method, const char *uri_string)
  * @uri: the destination endpoint (as a #SoupURI)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
- *
- * @uri should not include a fragment identifier; fragments are not
- * meaningful at the HTTP level.
  *
  * Return value: the new #SoupMessage
  */
@@ -1417,8 +1410,6 @@ soup_message_is_keepalive (SoupMessage *msg)
  * Sets @msg's URI to @uri. If @msg has already been sent and you want
  * to re-send it with the new URI, you need to call
  * soup_session_requeue_message().
- *
- * @uri should not include a fragment identifier.
  **/
 void
 soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
@@ -1435,14 +1426,6 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
 		priv->addr = NULL;
 	}
 	priv->uri = soup_uri_copy (uri);
-
-	if (priv->uri && priv->uri->fragment) {
-		char *uristr = soup_uri_to_string (priv->uri, FALSE);
-		g_warning ("soup_message_set_uri: stripping fragment identifier from URI '%s'",
-			   uristr);
-		g_free (uristr);
-		soup_uri_set_fragment (priv->uri, NULL);
-	}
 
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_URI);
 }
