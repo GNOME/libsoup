@@ -379,7 +379,7 @@ challenge (SoupAuthDomain *domain, SoupMessage *msg)
 				(unsigned long) msg,
 				(unsigned long) time (0));
 	g_string_append_printf (str, ", qop=\"auth\"");
-	g_string_append_printf (str, ", algorithm=\"MD5\"");
+	g_string_append_printf (str, ", algorithm=MD5");
 
 	return g_string_free (str, FALSE);
 }

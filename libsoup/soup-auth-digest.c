@@ -445,7 +445,7 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 	soup_header_g_string_append_param (out, "uri", url);
 	g_string_append (out, ", ");
 	algorithm = soup_auth_digest_get_algorithm (priv->algorithm);
-	soup_header_g_string_append_param (out, "algorithm", algorithm);
+	g_string_append_printf (out, "algorithm=%s", algorithm);
 	g_free (algorithm);
 	g_string_append (out, ", ");
 	soup_header_g_string_append_param (out, "response", response);
@@ -460,9 +460,8 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 		g_string_append (out, ", ");
 		soup_header_g_string_append_param (out, "cnonce", priv->cnonce);
-		g_string_append_printf (out, ", nc=\"%.8x\"", priv->nc);
-		g_string_append (out, ", ");
-		soup_header_g_string_append_param (out, "qop", qop);
+		g_string_append_printf (out, ", nc=%.8x, qop=%s",
+					priv->nc, qop);
 		g_free (qop);
 	}
 
