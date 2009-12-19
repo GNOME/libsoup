@@ -1230,10 +1230,14 @@ soup_session_connection_failed (SoupSession *session,
 	g_mutex_lock (priv->host_lock);
 	host = g_hash_table_lookup (priv->conns, conn);
 	g_mutex_unlock (priv->host_lock);
-	if (!host)
-		return;
 
-	connection_disconnected (conn, session);
+	if (host)
+		connection_disconnected (conn, session);
+	else {
+		host = g_object_get_data (G_OBJECT (conn), "SoupSessionHost");
+		if (!host)
+			return;
+	}
 
 	/* Cancel any other messages waiting for a connection to it,
 	 * since they're out of luck.
@@ -1408,6 +1412,7 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
 		NULL);
+	g_object_set_data (G_OBJECT (conn), "SoupSessionHost", host);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
 			  session);
