@@ -267,7 +267,7 @@ fi
 AC_ARG_WITH(apache-httpd,
 	    AS_HELP_STRING([--with-apache-httpd], [Path to apache httpd (for tests)]),
 	    APACHE_HTTPD="$withval",
-	    [AC_PATH_PROGS(APACHE_HTTPD, httpd2 httpd, no, ${PATH}:/usr/sbin)])
+	    [AC_PATH_PROGS(APACHE_HTTPD, httpd2 httpd apache2 apache, no, ${PATH}:/usr/sbin)])
 if test "$APACHE_HTTPD" != "no"; then
     AC_MSG_CHECKING([Apache version])
     apache_version=`$APACHE_HTTPD -v 2>/dev/null | sed -ne 's/Server version: Apache\///p'`
