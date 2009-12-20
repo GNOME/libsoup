@@ -44,16 +44,14 @@ static void
 proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
 {
 	GTypeInterface *interface = g_iface;
-	GTypeClass *klass;
 
 	if (interface->g_type != SOUP_TYPE_PROXY_RESOLVER)
 		return;
 
-	klass = g_type_class_peek (interface->g_instance_type);
 	/* If the class hasn't already declared that it implements
 	 * SoupProxyURIResolver, add our own compat implementation.
 	 */
-	if (!g_type_interface_peek (klass, SOUP_TYPE_PROXY_URI_RESOLVER)) {
+	if (!g_type_is_a (interface->g_instance_type, SOUP_TYPE_PROXY_URI_RESOLVER)) {
 		const GInterfaceInfo uri_resolver_interface_info = {
 			(GInterfaceInitFunc) soup_proxy_resolver_uri_resolver_interface_init, NULL, NULL
 		};
