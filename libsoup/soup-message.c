@@ -1022,7 +1022,6 @@ soup_message_add_header_handler (SoupMessage *msg,
 				 GCallback    callback,
 				 gpointer     user_data)
 {
-	SoupMessagePrivate *priv;
 	GClosure *closure;
 	char *header_name;
 
@@ -1030,8 +1029,6 @@ soup_message_add_header_handler (SoupMessage *msg,
 	g_return_val_if_fail (signal != NULL, 0);
 	g_return_val_if_fail (header != NULL, 0);
 	g_return_val_if_fail (callback != NULL, 0);
-
-	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	closure = g_cclosure_new (callback, user_data, NULL);
 
