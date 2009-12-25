@@ -303,7 +303,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	}
 
 	if (remove_dot_segments && uri->path && *uri->path) {
-		char *p = uri->path, *q;
+		char *p, *q;
 
 		/* Remove "./" where "." is a complete segment. */
 		for (p = uri->path + 1; *p; ) {
