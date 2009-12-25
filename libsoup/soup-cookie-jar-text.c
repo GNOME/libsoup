@@ -168,7 +168,7 @@ parse_cookie (char *line, time_t now)
 	SoupCookie *cookie = NULL;
 	gboolean http_only;
 	time_t max_age;
-	char *host, *is_domain, *path, *secure, *expires, *name, *value;
+	char *host, *path, *secure, *expires, *name, *value;
 
 	if (g_str_has_prefix (line, "#HttpOnly_")) {
 		http_only = TRUE;
@@ -189,7 +189,13 @@ parse_cookie (char *line, time_t now)
 		goto out;
 
 	host = result[0];
-	is_domain = result[1];
+
+	/* result[1] is not used because it's redundat; it's a boolean
+	 * value regarding whether the cookie should be used for
+	 * sub-domains of the domain that is set for the cookie. It is
+	 * TRUE if host starts with '.', and FALSE otherwise.
+	 */
+
 	path = result[2];
 	secure = result[3];
 
