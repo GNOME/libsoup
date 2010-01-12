@@ -1,3 +1,47 @@
+Changes in libsoup from 2.29.3 to 2.29.5:
+
+	* Added SoupContentDecoder, providing support for
+          Content-Encoding: gzip for WebKitGTK. [#522772]
+
+	* Added "accept-language" and "accept-language-auto"
+          properties to SoupSession, to support the Accept-Language
+          header. [#597004, Mario Sanchez Prada]
+
+	* Fixed a bug in SoupPasswordManagerGNOME that could cause
+          crashes if you typed the wrong password once and then tried
+          again. [#595554, debugged by Gustavo Noronha Silva]
+
+	* Fixed a crash in SoupAuthDigest if the server claims support
+          for both qop=auth and qop=auth-int. (This was not noticed
+          sooner because no one actually supports qop=auth-int, and
+          the server in question here was probably confused. :)
+
+	* Updated cookie parsing/output to more closely match
+	  draft-ietf-httpstate-cookie-00. [Also fixes #603496 (WebKit
+	  unit test), and #604794 (hang parsing malformed Set-Cookie
+	  header)]
+
+	* Fixed https-via-proxy to not hang if there is an error
+          communicating with the proxy immediately after the TLS
+          negotiation. [#587528]
+
+	* Fixed a bug that broke gobject-introspection's introspection
+          of libsoup. [#603696, Vincent Untz]
+
+	* Handle spurious CR/LFs between responses. [#602863,
+          Alexander V. Butenko]
+
+	* Fixed soup-message-client-io to not erroneously include URI
+          fragments on the Request-Line when sending via a proxy.
+          [Related to WebKit bug #28687]
+
+	* Fixed Digest authentication against certain (buggy?)
+          clients/servers that require you to use quotes in exactly the
+          same places where the spec uses them. [#582219]
+
+	* Fix ugly gtype-related hack to work with the latest unstable
+          glib. [Benjamin Otte]
+
 Changes in libsoup from 2.28.1 to 2.29.3:
 
 	* Fixed a crash in SoupCookieJarSqlite when using cookie
