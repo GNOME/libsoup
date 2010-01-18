@@ -99,6 +99,7 @@ libsoup_2_4_la_LDFLAGS =	\
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
+	-lz				\
 	$(LIBGNUTLS_LIBS_STATIC)	\
 	$(LIBGNUTLS_LIBS)		\
 	$(LIBGCRYPT_LIBS)		\
