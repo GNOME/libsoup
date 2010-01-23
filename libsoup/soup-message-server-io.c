@@ -130,6 +130,8 @@ handle_partial_get (SoupMessage *msg)
 					      &ranges, &nranges))
 		return;
 
+	if (!soup_message_body_get_accumulate (msg->response_body))
+		return;
 	full_response = soup_message_body_flatten (msg->response_body);
 	if (!full_response)
 		return;
