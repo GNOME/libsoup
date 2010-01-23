@@ -119,7 +119,8 @@ handle_partial_get (SoupMessage *msg)
 	    msg->status_code != SOUP_STATUS_OK ||
 	    soup_message_headers_get_encoding (msg->response_headers) !=
 	    SOUP_ENCODING_CONTENT_LENGTH ||
-	    msg->response_body->length == 0)
+	    msg->response_body->length == 0 ||
+	    !soup_message_body_get_accumulate (msg->response_body))
 		return;
 
 	/* Oh, and there has to have been a valid Range header on the
@@ -130,11 +131,11 @@ handle_partial_get (SoupMessage *msg)
 					      &ranges, &nranges))
 		return;
 
-	if (!soup_message_body_get_accumulate (msg->response_body))
-		return;
 	full_response = soup_message_body_flatten (msg->response_body);
-	if (!full_response)
+	if (!full_response) {
+		soup_message_headers_free_ranges (msg->request_headers, ranges);
 		return;
+	}
 
 	soup_message_set_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 	soup_message_body_truncate (msg->response_body);
