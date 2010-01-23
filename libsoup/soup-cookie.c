@@ -924,6 +924,8 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	g_return_val_if_fail (uri->path != NULL, FALSE);
 
 	plen = strlen (cookie->path);
+	if (plen == 0)
+		return TRUE;
 	if (strncmp (cookie->path, uri->path, plen) != 0)
 		return FALSE;
 	if (cookie->path[plen - 1] != '/' &&
