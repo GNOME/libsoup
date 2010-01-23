@@ -361,22 +361,21 @@ soup_form_request_for_data (const char *method, const char *uri_string,
 	if (!strcmp (method, "GET")) {
 		g_free (uri->query);
 		uri->query = form_data;
-		form_data = NULL;
-	}
 
-	msg = soup_message_new_from_uri (method, uri);
+		msg = soup_message_new_from_uri (method, uri);
+	} else if (!strcmp (method, "POST") || !strcmp (method, "PUT")) {
+		msg = soup_message_new_from_uri (method, uri);
 
-	if (!strcmp (method, "POST") || !strcmp (method, "PUT")) {
 		soup_message_set_request (
 			msg, SOUP_FORM_MIME_TYPE_URLENCODED,
 			SOUP_MEMORY_TAKE,
 			form_data, strlen (form_data));
-		form_data = NULL;
-	}
-
-	if (form_data) {
+	} else {
 		g_warning ("invalid method passed to soup_form_request_new");
 		g_free (form_data);
+
+		/* Don't crash */
+		msg = soup_message_new_from_uri (method, uri);
 	}
 
 	return msg;
