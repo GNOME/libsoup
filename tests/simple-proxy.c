@@ -93,7 +93,6 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		return;
 	}
 
-	msg2 = soup_message_new (msg->method, uristr);
         msg2 = soup_message_new (msg->method, uristr);
 	soup_message_headers_foreach (msg->request_headers, copy_header,
 				      msg2->request_headers);
