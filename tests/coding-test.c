@@ -26,7 +26,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
-	const char *accept_encoding;
+	const char *accept_encoding, *junk;
 	GSList *codings;
 	char *file = NULL, *contents;
 	gsize length;
@@ -64,13 +64,20 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_body_append (msg->response_body,
 				  SOUP_MEMORY_TAKE, contents, length);
+
+	junk = soup_message_headers_get_one (msg->request_headers,
+					     "X-Trailing-Junk");
+	if (junk) {
+		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
+					  junk, strlen (junk));
+	}
 }
 
 static void
 do_coding_test (void)
 {
 	SoupSession *session;
-	SoupMessage *msg, *msgz;
+	SoupMessage *msg, *msgz, *msgj;
 	SoupURI *uri;
 	const char *coding;
 
@@ -124,12 +131,46 @@ do_coding_test (void)
 	} else if (memcmp (msg->response_body->data,
 			   msgz->response_body->data,
 			   msg->response_body->length) != 0) {
-		debug_printf (1, "  Message data mismatch\n");
+		debug_printf (1, "  Message data mismatch (plain/compressed)\n");
+		errors++;
+	}
+
+	debug_printf (1, "GET /mbox, Accept-Encoding: gzip, plus trailing junk\n");
+	msgj = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgj->request_headers,
+				     "X-Trailing-Junk", "junk!");
+	soup_session_send_message (session, msgj);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msgj->status_code)) {
+		debug_printf (1, "  Unexpected status %d %s\n",
+			      msgj->status_code, msgj->reason_phrase);
+		errors++;
+	}
+	coding = soup_message_headers_get_one (msgj->response_headers, "Content-Encoding");
+	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
+		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
+			      coding ? coding : "(none)");
+		errors++;
+	}
+	if (!(soup_message_get_flags (msgj) & SOUP_MESSAGE_CONTENT_DECODED)) {
+		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED not set!\n");
+		errors++;
+	}
+
+	if (msg->response_body->length != msgj->response_body->length) {
+		debug_printf (1, "  Message length mismatch: %lu (plain) vs %lu (compressed w/ junk)\n",
+			      (gulong)msg->response_body->length,
+			      (gulong)msgj->response_body->length);
+		errors++;
+	} else if (memcmp (msg->response_body->data,
+			   msgj->response_body->data,
+			   msg->response_body->length) != 0) {
+		debug_printf (1, "  Message data mismatch (plain/compressed w/ junk)\n");
 		errors++;
 	}
 
 	g_object_unref (msg);
 	g_object_unref (msgz);
+	g_object_unref (msgj);
 	soup_uri_free (uri);
 
 	soup_test_session_abort_unref (session);

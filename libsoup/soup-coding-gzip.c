@@ -129,6 +129,12 @@ apply_into (SoupCoding *coding,
 		return SOUP_CODING_STATUS_ERROR;
 
 	case Z_STREAM_END:
+		/* Discard any trailing junk, for compatibility with
+		 * other browsers. FIXME: this really belongs in
+		 * soup-message-io, but it's not possible to do there
+		 * with the current API.
+		 */
+		*input_used = input_length;
 		return SOUP_CODING_STATUS_COMPLETE;
 
 	case Z_OK:
