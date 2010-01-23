@@ -381,7 +381,7 @@ void
 soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 {
 	SoupCookieJarPrivate *priv;
-	GSList *old_cookies, *oc, *prev = NULL;
+	GSList *old_cookies, *oc, *last = NULL;
 	SoupCookie *old_cookie;
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
@@ -414,7 +414,7 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 
 			return;
 		}
-		prev = oc;
+		last = oc;
 	}
 
 	/* The new cookie is... a new cookie */
@@ -423,8 +423,8 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 		return;
 	}
 
-	if (prev)
-		prev = g_slist_append (prev, cookie);
+	if (last)
+		last->next = g_slist_append (NULL, cookie);
 	else {
 		old_cookies = g_slist_append (NULL, cookie);
 		g_hash_table_insert (priv->domains, g_strdup (cookie->domain),
