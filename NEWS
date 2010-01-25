@@ -1,3 +1,16 @@
+Changes in libsoup from 2.29.5 to 2.29.6:
+
+	* Fixed SoupContentDecoder to ignore trailing junk after the
+          encoded message body (as other browsers do), rather than
+          getting stuck in an infinite loop. [#606352]
+
+	* Fixed an invalid read in soup_cookie_applies_to_uri()
+	  [#607024, pointed out by Xan]
+
+	* Fixed linking on OS X [#606959]
+
+	* Removed a harmless warning in SoupServer. [#606645]
+
 Changes in libsoup from 2.29.3 to 2.29.5:
 
 	* Added SoupContentDecoder, providing support for
