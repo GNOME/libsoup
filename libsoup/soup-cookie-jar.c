@@ -15,6 +15,7 @@
 #include "soup-cookie.h"
 #include "soup-cookie-jar.h"
 #include "soup-date.h"
+#include "soup-enum-types.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-session-feature.h"
@@ -57,6 +58,7 @@ enum {
 	PROP_0,
 
 	PROP_READ_ONLY,
+	PROP_ACCEPT_POLICY,
 
 	LAST_PROP
 };
@@ -65,6 +67,7 @@ typedef struct {
 	gboolean constructed, read_only;
 	GHashTable *domains, *serials;
 	guint serial;
+	SoupCookieJarAcceptPolicy accept_policy;
 } SoupCookieJarPrivate;
 #define SOUP_COOKIE_JAR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR, SoupCookieJarPrivate))
 
@@ -82,6 +85,7 @@ soup_cookie_jar_init (SoupCookieJar *jar)
 					       soup_str_case_equal,
 					       g_free, NULL);
 	priv->serials = g_hash_table_new (NULL, NULL);
+	priv->accept_policy = SOUP_COOKIE_JAR_ACCEPT_ALWAYS;
 }
 
 static void
@@ -158,6 +162,20 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 				      "Whether or not the cookie jar is read-only",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
+	 * SOUP_COOKIE_JAR_ACCEPT_POLICY:
+	 *
+	 * Alias for the #SoupCookieJar:accept-policy property.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_ACCEPT_POLICY,
+		g_param_spec_enum (SOUP_COOKIE_JAR_ACCEPT_POLICY,
+				   "Accept-policy",
+				   "The policy the jar should follow to accept or reject cookies",
+				   SOUP_TYPE_COOKIE_JAR_ACCEPT_POLICY,
+				   SOUP_COOKIE_JAR_ACCEPT_ALWAYS,
+				   G_PARAM_READWRITE));
 }
 
 static void
@@ -180,6 +198,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_READ_ONLY:
 		priv->read_only = g_value_get_boolean (value);
 		break;
+	case PROP_ACCEPT_POLICY:
+		priv->accept_policy = g_value_get_enum (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -196,6 +217,9 @@ get_property (GObject *object, guint prop_id,
 	switch (prop_id) {
 	case PROP_READ_ONLY:
 		g_value_set_boolean (value, priv->read_only);
+		break;
+	case PROP_ACCEPT_POLICY:
+		g_value_set_enum (value, priv->accept_policy);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -443,6 +467,12 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  * Adds @cookie to @jar, exactly as though it had appeared in a
  * Set-Cookie header returned from a request to @uri.
  *
+ * Keep in mind that if the #SoupCookieJarAcceptPolicy
+ * %SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY is set you'll need to use
+ * soup_cookie_jar_set_cookie_with_first_party(), otherwise the jar
+ * will have no way of knowing if the cookie is being set by a third
+ * party or not.
+ *
  * Since: 2.24
  **/
 void
@@ -450,6 +480,7 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 			    const char *cookie)
 {
 	SoupCookie *soup_cookie;
+	SoupCookieJarPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (uri != NULL);
@@ -458,6 +489,12 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	if (!SOUP_URI_VALID_FOR_HTTP (uri))
 		return;
 
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
+		return;
+
+	g_return_if_fail (priv->accept_policy != SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY);
+
 	soup_cookie = soup_cookie_parse (cookie, uri);
 	if (soup_cookie) {
 		/* will steal or free soup_cookie */
@@ -465,15 +502,78 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	}
 }
 
+/**
+ * soup_cookie_jar_set_cookie_with_first_party:
+ * @jar: a #SoupCookieJar
+ * @uri: the URI setting the cookie
+ * @first_party: the URI for the main document
+ * @cookie: the stringified cookie to set
+ *
+ * Adds @cookie to @jar, exactly as though it had appeared in a
+ * Set-Cookie header returned from a request to @uri. @first_party
+ * will be used to reject cookies coming from third party resources in
+ * case such a security policy is set in the @jar.
+ *
+ * Since: 2.30
+ **/
+void
+soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
+					     SoupURI *uri,
+					     SoupURI *first_party,
+					     const char *cookie)
+{
+	SoupCookie *soup_cookie;
+	SoupCookieJarPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+	g_return_if_fail (uri != NULL);
+	g_return_if_fail (first_party != NULL);
+	g_return_if_fail (cookie != NULL);
+
+	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+		return;
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
+		return;
+
+	soup_cookie = soup_cookie_parse (cookie, uri);
+	if (soup_cookie) {
+		if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS ||
+		    soup_cookie_domain_matches (soup_cookie, first_party->host)) {
+			/* will steal or free soup_cookie */
+			soup_cookie_jar_add_cookie (jar, soup_cookie);
+		} else {
+			soup_cookie_free (soup_cookie);
+		}
+	}
+}
+
 static void
 process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 {
 	SoupCookieJar *jar = user_data;
+	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 	GSList *new_cookies, *nc;
 
+	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
+		return;
+
 	new_cookies = soup_cookies_from_response (msg);
-	for (nc = new_cookies; nc; nc = nc->next)
-		soup_cookie_jar_add_cookie (jar, nc->data);
+	for (nc = new_cookies; nc; nc = nc->next) {
+		SoupURI *first_party = soup_message_get_first_party (msg);
+		
+		if (first_party == NULL &&
+		    priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY)
+			continue; /* Can't check anything */
+
+		if ((priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
+		     soup_cookie_domain_matches (nc->data, first_party->host)) ||
+		    priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS)
+			soup_cookie_jar_add_cookie (jar, nc->data);
+		else
+			soup_cookie_free (nc->data);
+	}
 	g_slist_free (new_cookies);
 }
 
@@ -584,5 +684,67 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 			soup_cookie_free (c);
 			return;
 		}
+	}
+}
+
+/**
+ * SoupCookieJarAcceptPolicy:
+ * @SOUP_COOKIE_JAR_ACCEPT_ALWAYS: accept all cookies unconditionally.
+ * @SOUP_COOKIE_JAR_ACCEPT_NEVER: reject all cookies unconditionally.
+ * @SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY: accept all cookies set by
+ * the main document loaded in the application using libsoup. An
+ * example of the most common case, web browsers, would be: If
+ * http://www.example.com is the page loaded, accept all cookies set
+ * by example.com, but if a resource from http://www.third-party.com
+ * is loaded from that page reject any cookie that it could try to
+ * set. For libsoup to be able to tell apart first party cookies from
+ * the rest, the application must call soup_message_set_first_party()
+ * on each outgoing #SoupMessage, setting the #SoupURI of the main
+ * document. If no first party is set in a message when this policy is
+ * in effect, cookies will be assumed to be third party by default.
+ *
+**/
+
+/**
+ * soup_cookie_jar_get_accept_policy:
+ * @jar: a #SoupCookieJar
+ * 
+ * Returns: the #SoupCookieJarAcceptPolicy set in the @jar
+ *
+ * Since: 2.30
+ **/
+SoupCookieJarAcceptPolicy
+soup_cookie_jar_get_accept_policy (SoupCookieJar *jar)
+{
+	SoupCookieJarPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), SOUP_COOKIE_JAR_ACCEPT_ALWAYS);
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	return priv->accept_policy;
+}
+
+/**
+ * soup_cookie_jar_set_accept_policy:
+ * @jar: a #SoupCookieJar
+ * @policy: a #SoupCookieJarAcceptPolicy
+ * 
+ * Sets @policy as the cookie acceptance policy for @jar.
+ *
+ * Since: 2.30
+ **/
+void
+soup_cookie_jar_set_accept_policy (SoupCookieJar *jar,
+				   SoupCookieJarAcceptPolicy policy)
+{
+	SoupCookieJarPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+
+	if (priv->accept_policy != policy) {
+		priv->accept_policy = policy;
+		g_object_notify (G_OBJECT (jar), SOUP_COOKIE_JAR_ACCEPT_POLICY);
 	}
 }

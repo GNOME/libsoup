@@ -67,6 +67,7 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_SERVER_SIDE   "server-side"
 #define SOUP_MESSAGE_STATUS_CODE   "status-code"
 #define SOUP_MESSAGE_REASON_PHRASE "reason-phrase"
+#define SOUP_MESSAGE_FIRST_PARTY   "first-party"
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
@@ -100,6 +101,9 @@ void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
 SoupAddress     *soup_message_get_address         (SoupMessage       *msg);
 
+SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
+void             soup_message_set_first_party     (SoupMessage       *msg,
+						   SoupURI           *first_party);
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
 #ifndef LIBSOUP_DISABLE_DEPRECATED

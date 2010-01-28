@@ -39,29 +39,37 @@ typedef struct {
 } SoupCookieJarClass;
 
 #define SOUP_COOKIE_JAR_READ_ONLY "read-only"
+#define SOUP_COOKIE_JAR_ACCEPT_POLICY "accept-policy"
 
-GType          soup_cookie_jar_get_type      (void);
+typedef enum {
+	SOUP_COOKIE_JAR_ACCEPT_ALWAYS,
+	SOUP_COOKIE_JAR_ACCEPT_NEVER,
+	SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY
+} SoupCookieJarAcceptPolicy;
 
-SoupCookieJar *soup_cookie_jar_new           (void);
-
+GType                     soup_cookie_jar_get_type                    (void);
+SoupCookieJar *           soup_cookie_jar_new                         (void);
 #ifndef LIBSOUP_DISABLE_DEPRECATED
-void           soup_cookie_jar_save          (SoupCookieJar *jar);
+void                      soup_cookie_jar_save                        (SoupCookieJar             *jar);
 #endif
-
-char          *soup_cookie_jar_get_cookies   (SoupCookieJar *jar,
-					      SoupURI       *uri,
-					      gboolean       for_http);
-void           soup_cookie_jar_set_cookie    (SoupCookieJar *jar,
-					      SoupURI       *uri,
-					      const char    *cookie);
-
-void           soup_cookie_jar_add_cookie    (SoupCookieJar *jar,
-					      SoupCookie    *cookie);
-void           soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
-					      SoupCookie    *cookie);
-
-GSList        *soup_cookie_jar_all_cookies   (SoupCookieJar *jar);
-
+char          *           soup_cookie_jar_get_cookies                 (SoupCookieJar             *jar,
+								       SoupURI                   *uri,
+								       gboolean                   for_http);
+void                      soup_cookie_jar_set_cookie                  (SoupCookieJar             *jar,
+								       SoupURI                   *uri,
+								       const char                *cookie);
+void                      soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar             *jar,
+								       SoupURI                   *uri,
+								       SoupURI                   *first_party,
+								       const char                *cookie);
+void                      soup_cookie_jar_add_cookie                  (SoupCookieJar             *jar,
+								       SoupCookie                *cookie);
+void                      soup_cookie_jar_delete_cookie               (SoupCookieJar             *jar,
+								       SoupCookie                *cookie);
+GSList        *           soup_cookie_jar_all_cookies                 (SoupCookieJar             *jar);
+void                      soup_cookie_jar_set_accept_policy           (SoupCookieJar             *jar,
+								       SoupCookieJarAcceptPolicy  policy);
+SoupCookieJarAcceptPolicy soup_cookie_jar_get_accept_policy           (SoupCookieJar             *jar);
 
 G_END_DECLS
 

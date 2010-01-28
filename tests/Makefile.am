@@ -17,6 +17,7 @@ noinst_PROGRAMS =	\
 	coding-test	\
 	context-test	\
 	continue-test	\
+	cookies-test    \
 	date		\
 	dns		\
 	forms-test	\
@@ -33,7 +34,7 @@ noinst_PROGRAMS =	\
 	timeout-test	\
 	uri-parsing	\
 	$(CURL_TESTS)	\
-	$(APACHE_TESTS)	\
+	$(APACHE_TESTS) \
 	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)
 
@@ -44,6 +45,7 @@ chunk_test_SOURCES = chunk-test.c $(TEST_SRCS)
 coding_test_SOURCES = coding-test.c $(TEST_SRCS)
 context_test_SOURCES = context-test.c $(TEST_SRCS)
 continue_test_SOURCES = continue-test.c $(TEST_SRCS)
+cookies_test_SOURCES = cookies-test.c $(TEST_SRCS)
 date_SOURCES = date.c $(TEST_SRCS)
 dns_SOURCES = dns.c
 forms_test_SOURCES = forms-test.c $(TEST_SRCS)
@@ -88,6 +90,7 @@ TESTS =			\
 	coding-test	\
 	context-test	\
 	continue-test	\
+	cookies-test	\
 	date		\
 	header-parsing	\
 	misc-test	\
@@ -97,7 +100,7 @@ TESTS =			\
 	streaming-test	\
 	timeout-test	\
 	uri-parsing	\
-	$(APACHE_TESTS)	\
+	$(APACHE_TESTS) \
 	$(CURL_TESTS)	\
 	$(SSL_TESTS)	\
 	$(XMLRPC_TESTS)

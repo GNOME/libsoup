@@ -116,11 +116,30 @@ soup_cookie_copy (SoupCookie *cookie)
 	return copy;
 }
 
-static gboolean
-domain_matches (const char *domain, const char *host)
+/**
+ * soup_cookie_domain_matches:
+ * @cookie: a #SoupCookie
+ * @host: a URI
+ *
+ * Checks if the @cookie's domain and @host match in the sense that
+ * @cookie should be sent when making a request to @host, or that
+ * @cookie should be accepted when receiving a response from @host.
+ * 
+ * Return value: %TRUE if the domains match, %FALSE otherwise
+ *
+ * Since: 2.30
+ **/
+gboolean
+soup_cookie_domain_matches (SoupCookie *cookie, const char *host)
 {
 	char *match;
 	int dlen;
+	const char *domain;
+
+	g_return_val_if_fail (cookie != NULL, FALSE);
+	g_return_val_if_fail (host != NULL, FALSE);
+
+	domain = cookie->domain;
 
 	if (!g_ascii_strcasecmp (domain, host))
 		return TRUE;
@@ -288,7 +307,7 @@ parse_one_cookie (const char *header, SoupURI *origin)
 	if (origin) {
 		/* Sanity-check domain */
 		if (cookie->domain) {
-			if (!domain_matches (cookie->domain, origin->host)) {
+			if (!soup_cookie_domain_matches (cookie, origin->host)) {
 				soup_cookie_free (cookie);
 				return NULL;
 			}

@@ -41,6 +41,8 @@ typedef struct {
 
 	GSList            *disabled_features;
 	GSList            *decoders;
+
+	SoupURI           *first_party;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 

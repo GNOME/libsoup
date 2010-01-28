@@ -76,6 +76,9 @@ void        soup_cookies_free                   (GSList      *cookies);
 
 char       *soup_cookies_to_cookie_header       (GSList      *cookies);
 
+gboolean    soup_cookie_domain_matches          (SoupCookie  *cookie,
+						 const char  *host);
+
 G_END_DECLS
 
 #endif /* SOUP_COOKIE_H */

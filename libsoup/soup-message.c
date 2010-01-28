@@ -119,6 +119,7 @@ enum {
 	PROP_SERVER_SIDE,
 	PROP_STATUS_CODE,
 	PROP_REASON_PHRASE,
+	PROP_FIRST_PARTY,
 
 	LAST_PROP
 };
@@ -158,6 +159,8 @@ finalize (GObject *object)
 
 	if (priv->uri)
 		soup_uri_free (priv->uri);
+	if (priv->first_party)
+		soup_uri_free (priv->first_party);
 	if (priv->addr)
 		g_object_unref (priv->addr);
 
@@ -576,6 +579,21 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "The HTTP response reason phrase",
 				     NULL,
 				     G_PARAM_READWRITE));
+
+	/**
+	 * SOUP_MESSAGE_FIRST_PARTY:
+	 *
+	 * Alias for the #SoupMessage:first-party property. (The
+	 * #SoupURI loaded in the application when the message was
+	 * queued.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_FIRST_PARTY,
+		g_param_spec_boxed (SOUP_MESSAGE_FIRST_PARTY,
+				    "First party",
+				    "The URI loaded in the application when the message was requested.",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
 }
 
 static void
@@ -612,6 +630,9 @@ set_property (GObject *object, guint prop_id,
 		soup_message_set_status_full (msg, msg->status_code,
 					      g_value_get_string (value));
 		break;
+	case PROP_FIRST_PARTY:
+		soup_message_set_first_party (msg, g_value_get_boxed (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -646,6 +667,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_REASON_PHRASE:
 		g_value_set_string (value, msg->reason_phrase);
+		break;
+	case PROP_FIRST_PARTY:
+		g_value_set_boxed (value, priv->first_party);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1660,4 +1684,56 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
 			return TRUE;
 	}
 	return FALSE;
+}
+
+/**
+ * soup_message_get_first_party:
+ * @msg: a #SoupMessage
+ * 
+ * Returns: the @msg's first party #SoupURI
+ * 
+ * Since: 2.30
+ **/
+SoupURI*
+soup_message_get_first_party (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	return priv->first_party;
+}
+
+/**
+ * soup_message_set_first_party:
+ * @msg: a #SoupMessage
+ * @first_party: the #SoupURI for the @msg's first party
+ * 
+ * Sets @first_party as the main document #SoupURI for @msg. For
+ * details of when and how this is used refer to the documentation for
+ * #SoupCookieJarAcceptPolicy.
+ *
+ * Since: 2.30
+ **/
+void
+soup_message_set_first_party (SoupMessage *msg,
+			      SoupURI     *first_party)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (first_party != NULL);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->first_party) {
+		if (soup_uri_equal (priv->first_party, first_party))
+			return;
+
+		soup_uri_free (priv->first_party);
+	}
+
+	priv->first_party = soup_uri_copy (first_party);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FIRST_PARTY);
 }
