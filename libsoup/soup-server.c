@@ -819,6 +819,8 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 	SoupServerHandler *hand;
 	SoupURI *uri;
 
+	g_signal_emit (server, signals[REQUEST_READ], 0, req, client);
+
 	if (req->status_code != 0)
 		return;
 
