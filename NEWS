@@ -1,3 +1,12 @@
+Changes in libsoup from 2.29.6 to 2.29.90:
+
+	* Added soup_cookie_jar_set_accept_policy() and related API
+          for implementing cookie acceptance policies. [#608353, Xan
+          Lopez]
+
+	* Fixed the "request-read" signal in SoupServer to actually be
+          emitted.
+
 Changes in libsoup from 2.29.5 to 2.29.6:
 
 	* Fixed SoupContentDecoder to ignore trailing junk after the
