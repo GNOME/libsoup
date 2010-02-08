@@ -352,8 +352,31 @@ sniffing_content_sniffed (SoupMessage *msg, const char *content_type,
 			  GHashTable *params, gpointer data)
 {
 	char **sniffed_type = (char **)data;
+	GString *full_header;
+	GList *keys;
+	GList *iter;
 
-	*sniffed_type = g_strdup (content_type);
+	if (params == NULL) {
+		*sniffed_type = g_strdup (content_type);
+		return;
+	}
+
+	full_header = g_string_new (content_type);
+	g_string_append (full_header, "; ");
+
+	keys = g_hash_table_get_keys (params);
+	for (iter = keys; iter != NULL; iter = iter->next) {
+		const gchar *value = (const gchar*) g_hash_table_lookup (params, iter->data);
+
+		soup_header_g_string_append_param (full_header,
+						   (const gchar*) iter->data,
+						   value);
+	}
+
+	*sniffed_type = full_header->str;
+
+	g_string_free (full_header, FALSE);
+	g_list_free (keys);
 }
 
 static void
@@ -515,6 +538,9 @@ main (int argc, char **argv)
 	/* The spec tells us to only use the last Content-Type header */
 
 	test_sniffing ("/multiple_headers/home.gif", "image/gif");
+
+	/* Test that we keep the parameters when sniffing */
+	test_sniffing ("/type/text_html; charset=\"UTF-8\"/test.html", "text/html; charset=\"UTF-8\"");
 
 	/* Test that disabling the sniffer works correctly */
 
