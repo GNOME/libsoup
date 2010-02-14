@@ -37,11 +37,6 @@ static struct {
 	  "http://delims/%3C%3E%23%25%22" },
 	{ "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60",
 	  "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60" },
-	{ "http://host/path%", NULL },
-	{ "http://host/path%%", NULL },
-	{ "http://host/path%%%", NULL },
-	{ "http://host/path%/x/", NULL },
-	{ "http://host/path%0x/", NULL },
 
 	/* From RFC 2732 */
 	{ "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html",
@@ -62,10 +57,24 @@ static struct {
 	/* Try to recover certain kinds of invalid URIs */
 	{ "http://host/path with spaces",
 	  "http://host/path%20with%20spaces" },
+	{ "  http://host/path", "http://host/path" },
+	{ "http://host/path  ", "http://host/path" },
+	{ "http://host/pa\nth", "http://host/path" },
+	{ "http:\r\n//host/path", "http://host/path" },
+	{ "http://\thost/path", "http://host/path" },
 
 	/* Bug 594405; 0-length is different from not-present */
 	{ "http://host/path?", "http://host/path?" },
-	{ "http://host/path#", "http://host/path#" }
+	{ "http://host/path#", "http://host/path#" },
+
+	/* Bug 590524; ignore badly-%-encoding */
+	{ "http://host/path%", "http://host/path%" },
+	{ "http://h%ost/path", "http://h%25ost/path" },
+	{ "http://host/path%%", "http://host/path%%" },
+	{ "http://host/path%%%", "http://host/path%%%" },
+	{ "http://host/path%/x/", "http://host/path%/x/" },
+	{ "http://host/path%0x/", "http://host/path%0x/" },
+	{ "http://host/path%ax", "http://host/path%ax" }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
