@@ -198,6 +198,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		uri_string += 2;
 
 		path = uri_string + strcspn (uri_string, "/?#");
+		if (path > end)
+			path = end;
 		at = strchr (uri_string, '@');
 		if (at && at < path) {
 			colon = strchr (uri_string, ':');

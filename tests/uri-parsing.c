@@ -59,6 +59,8 @@ static struct {
 	  "http://host/path%20with%20spaces" },
 	{ "  http://host/path", "http://host/path" },
 	{ "http://host/path  ", "http://host/path" },
+	{ "http://host  ", "http://host/" },
+	{ "http://host:999  ", "http://host:999/" },
 	{ "http://host/pa\nth", "http://host/path" },
 	{ "http:\r\n//host/path", "http://host/path" },
 	{ "http://\thost/path", "http://host/path" },
