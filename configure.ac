@@ -2,15 +2,14 @@ dnl *******************************************
 dnl *** Initialize automake and set version ***
 dnl *******************************************
 
-AC_PREREQ(2.53)
-AC_INIT(libsoup, 2.29.90)
-AC_CONFIG_SRCDIR(libsoup-2.4.pc.in)
+AC_PREREQ(2.63)
+AC_INIT([libsoup],[2.29.90],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
+AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign 1.9])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 
-AM_CONFIG_HEADER(config.h)
 AC_PROG_MAKE_SET
 
 SOUP_API_VERSION=2.4
@@ -56,26 +55,18 @@ AC_SUBST(SOUP_DEBUG_FLAGS)
 # Set the maintainer flags
 if test -d .git; then
 	SOUP_MAINTAINER_FLAGS="-DG_DISABLE_DEPRECATED"
-	AC_SUBST(SOUP_MAINTAINER_FLAGS)
 fi
+AC_SUBST(SOUP_MAINTAINER_FLAGS)
 
 dnl ***************************
 dnl *** Checks for programs ***
 dnl ***************************
 
 AC_PROG_CC
-AM_PROG_CC_STDC
 AC_PROG_INSTALL
 
-# Set STDC_HEADERS
-AC_HEADER_STDC
-
 # Initialize libtool
-AC_LIBTOOL_WIN32_DLL
-AM_PROG_LIBTOOL
-
-# This isn't a program, but it doesn't fit anywhere else...
-AC_FUNC_ALLOCA
+LT_INIT([win32-dll])
 
 dnl ***********************
 dnl *** Checks for glib ***
@@ -99,6 +90,7 @@ AC_MSG_CHECKING([for Win32])
 case "$host" in
   *-*-mingw*)
     os_win32=yes
+    CFLAGS="$CFLAGS -D_REENTRANT"
     ;;
   *)
     os_win32=no
@@ -112,11 +104,6 @@ dnl *** Misc checks ***
 dnl *******************
 AC_CHECK_FUNCS(gmtime_r)
 AC_CHECK_FUNCS(mmap)
-
-dnl *********************************
-dnl *** Networking library checks ***
-dnl *********************************
-
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
 
 dnl **********************************
@@ -239,19 +226,14 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 		SAVE_CFLAGS="$CFLAGS"
 		CFLAGS="$CFLAGS $option"
 		AC_MSG_CHECKING([whether gcc understands $option])
-		AC_TRY_COMPILE([], [],
-			has_option=yes,
-			has_option=no,)
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
+				  [has_option=yes],
+				  [has_option=no])
 		AC_MSG_RESULT($has_option)
 		if test $has_option = no; then
 			CFLAGS="$SAVE_CFLAGS"
 		fi
 	done
-fi
-
-if test "$os_win32" != yes; then
-	# Use reentrant functions (FIXME!)
-	CFLAGS="$CFLAGS -D_REENTRANT"
 fi
 
 dnl ******************************
@@ -379,7 +361,8 @@ dnl *************************
 dnl *** Output Everything ***
 dnl *************************
 
-AC_OUTPUT([
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_FILES([
 	libsoup-2.4.pc
 	libsoup-gnome-2.4.pc
 	Makefile
@@ -390,3 +373,4 @@ AC_OUTPUT([
 	docs/Makefile
 	docs/reference/Makefile
 	])
+AC_OUTPUT

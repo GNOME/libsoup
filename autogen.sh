@@ -5,9 +5,8 @@ srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
 PKG_NAME="libsoup"
-REQUIRED_AUTOMAKE_VERSION=1.9
 
-(test -f $srcdir/configure.in \
+(test -f $srcdir/configure.ac \
   && test -f $srcdir/libsoup.doap \
   && test -d $srcdir/libsoup) || {
     echo -n "**Error**: Directory "\`$srcdir\'" does not look like the"

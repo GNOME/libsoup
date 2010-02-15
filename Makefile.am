@@ -1,5 +1,4 @@
 ## Process this file with automake to produce Makefile.in
-AUTOMAKE_OPTIONS = 1.6
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = libsoup tests docs
