@@ -342,6 +342,17 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 		}
 	}
 
+	if (soup_socket_is_ssl (io->sock)) {
+		gboolean trusted_certificate;
+
+		g_object_get (io->sock,
+			      SOUP_SOCKET_TRUSTED_CERTIFICATE, &trusted_certificate,
+			      NULL);
+
+		if (trusted_certificate)
+			soup_message_set_flags (msg, priv->msg_flags | SOUP_MESSAGE_CERTIFICATE_TRUSTED);
+	}
+
 	return TRUE;
 }
 

@@ -40,14 +40,15 @@ typedef struct {
 	void (*_libsoup_reserved4) (void);
 } SoupSocketClass;
 
-#define SOUP_SOCKET_LOCAL_ADDRESS    "local-address"
-#define SOUP_SOCKET_REMOTE_ADDRESS   "remote-address"
-#define SOUP_SOCKET_FLAG_NONBLOCKING "non-blocking"
-#define SOUP_SOCKET_IS_SERVER        "is-server"
-#define SOUP_SOCKET_SSL_CREDENTIALS  "ssl-creds"
-#define SOUP_SOCKET_SSL_STRICT       "ssl-strict"
-#define SOUP_SOCKET_ASYNC_CONTEXT    "async-context"
-#define SOUP_SOCKET_TIMEOUT          "timeout"
+#define SOUP_SOCKET_LOCAL_ADDRESS       "local-address"
+#define SOUP_SOCKET_REMOTE_ADDRESS      "remote-address"
+#define SOUP_SOCKET_FLAG_NONBLOCKING    "non-blocking"
+#define SOUP_SOCKET_IS_SERVER           "is-server"
+#define SOUP_SOCKET_SSL_CREDENTIALS     "ssl-creds"
+#define SOUP_SOCKET_SSL_STRICT          "ssl-strict"
+#define SOUP_SOCKET_TRUSTED_CERTIFICATE "trusted-certificate"
+#define SOUP_SOCKET_ASYNC_CONTEXT       "async-context"
+#define SOUP_SOCKET_TIMEOUT             "timeout"
 
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,

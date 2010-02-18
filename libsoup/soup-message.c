@@ -1258,6 +1258,7 @@ soup_message_cleanup_response (SoupMessage *req)
 		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
 	}
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
+	priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
@@ -1283,6 +1284,9 @@ soup_message_cleanup_response (SoupMessage *req)
  * indicate that it has removed the Content-Encoding on a message (and
  * so headers such as Content-Length may no longer accurately describe
  * the body).
+ * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if %TRUE after an https response
+ * has been received, indicates that the server's SSL certificate is
+ * trusted according to the session's CA.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.

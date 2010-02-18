@@ -69,6 +69,7 @@ enum {
 	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
+	PROP_TRUSTED_CERTIFICATE,
 
 	LAST_PROP
 };
@@ -83,6 +84,7 @@ typedef struct {
 	guint timed_out:1;
 	gpointer ssl_creds;
 	gboolean ssl_strict;
+	gboolean trusted_certificate;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -368,6 +370,21 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      TRUE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	/**
+	 * SOUP_SOCKET_TRUSTED_CERTIFICATE:
+	 *
+	 * Alias for the #SoupSocket:trusted-certificate
+	 * property. Notice that this property's value is only useful
+	 * if the socket is for an SSL connection, and only reliable
+	 * after some data has been transferred to or from it.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TRUSTED_CERTIFICATE,
+		g_param_spec_boolean (SOUP_SOCKET_TRUSTED_CERTIFICATE,
+				     "Trusted Certificate",
+				     "Whether the server certificate is trusted, if this is an SSL socket",
+				     FALSE,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
 	 * SOUP_SOCKET_ASYNC_CONTEXT:
 	 *
 	 * Alias for the #SoupSocket:async-context property. (The
@@ -509,6 +526,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
 		break;
+	case PROP_TRUSTED_CERTIFICATE:
+		priv->trusted_certificate = g_value_get_boolean (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -547,6 +567,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
+		break;
+	case PROP_TRUSTED_CERTIFICATE:
+		g_value_set_boolean (value, priv->trusted_certificate);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -1011,6 +1034,12 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	if (!ssl_chan)
 		return FALSE;
 
+	/* This is optimistic, we will set this to false if we get a
+	 * cert error from one of the I/O calls
+	 */
+	if (priv->ssl_creds)
+		priv->trusted_certificate = TRUE;
+
 	priv->iochannel = ssl_chan;
 	g_io_channel_unref (real_chan);
 
@@ -1245,6 +1274,7 @@ again:
 		if (g_error_matches (my_err, SOUP_SSL_ERROR,
 				     SOUP_SSL_ERROR_CERTIFICATE) &&
 		    !priv->ssl_strict) {
+			priv->trusted_certificate = FALSE;
 			g_clear_error (&my_err);
 			goto again;
 		}
@@ -1552,6 +1582,7 @@ again:
 		if (g_error_matches (my_err, SOUP_SSL_ERROR,
 				     SOUP_SSL_ERROR_CERTIFICATE) &&
 		    !priv->ssl_strict) {
+			priv->trusted_certificate = FALSE;
 			g_clear_error (&my_err);
 			goto again;
 		}

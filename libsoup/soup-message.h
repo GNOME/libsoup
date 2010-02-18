@@ -105,11 +105,12 @@ SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
 void             soup_message_set_first_party     (SoupMessage       *msg,
 						   SoupURI           *first_party);
 typedef enum {
-	SOUP_MESSAGE_NO_REDIRECT      = (1 << 1),
+	SOUP_MESSAGE_NO_REDIRECT          = (1 << 1),
 #ifndef LIBSOUP_DISABLE_DEPRECATED
-	SOUP_MESSAGE_OVERWRITE_CHUNKS = (1 << 3),
+	SOUP_MESSAGE_OVERWRITE_CHUNKS     = (1 << 3),
 #endif
-	SOUP_MESSAGE_CONTENT_DECODED  = (1 << 4)
+	SOUP_MESSAGE_CONTENT_DECODED      = (1 << 4),
+	SOUP_MESSAGE_CERTIFICATE_TRUSTED  = (1 << 5)
 } SoupMessageFlags;
 
 void           soup_message_set_flags           (SoupMessage        *msg,
