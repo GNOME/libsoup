@@ -71,6 +71,7 @@ typedef struct {
 typedef struct {
 	char *ssl_ca_file;
 	SoupSSLCredentials *ssl_creds;
+	gboolean ssl_strict;
 
 	SoupMessageQueue *queue;
 
@@ -140,6 +141,7 @@ enum {
 	PROP_MAX_CONNS_PER_HOST,
 	PROP_USE_NTLM,
 	PROP_SSL_CA_FILE,
+	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
@@ -191,6 +193,8 @@ soup_session_init (SoupSession *session)
 	 * so hold a ref on the default GResolver.
 	 */
 	priv->resolver = g_resolver_get_default ();
+
+	priv->ssl_strict = TRUE;
 }
 
 static void
@@ -507,6 +511,24 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "File containing SSL CA certificates",
 				     NULL,
 				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_SSL_STRICT:
+	 *
+	 * Alias for the #SoupSession:ignore-ssl-cert-errors
+	 * property. By default, when validating certificates against
+	 * a CA file, Soup will consider invalid certificates as a
+	 * connection error. Setting this property to %TRUE makes soup
+	 * ignore the errors, and make the connection.
+	 *
+	 * Since: 2.30
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_SSL_STRICT,
+		g_param_spec_boolean (SOUP_SESSION_SSL_STRICT,
+				      "Strictly validate SSL certificates",
+				      "Whether certificate errors should be considered a connection error",
+				      TRUE,
+				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_ASYNC_CONTEXT:
 	 *
@@ -843,6 +865,9 @@ set_property (GObject *object, guint prop_id,
 		}
 
 		break;
+	case PROP_SSL_STRICT:
+		priv->ssl_strict = g_value_get_boolean (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -935,6 +960,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CA_FILE:
 		g_value_set_string (value, priv->ssl_ca_file);
+		break;
+	case PROP_SSL_STRICT:
+		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -1408,6 +1436,7 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_TUNNEL_ADDRESS, tunnel_addr,
 		SOUP_CONNECTION_PROXY_URI, item->proxy_uri,
 		SOUP_CONNECTION_SSL_CREDENTIALS, ssl_creds,
+		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,

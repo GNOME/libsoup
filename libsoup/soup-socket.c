@@ -66,6 +66,7 @@ enum {
 	PROP_NON_BLOCKING,
 	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
+	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 
@@ -81,6 +82,7 @@ typedef struct {
 	guint is_server:1;
 	guint timed_out:1;
 	gpointer ssl_creds;
+	gboolean ssl_strict;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -354,6 +356,18 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "SSL credential information, passed from the session to the SSL implementation",
 				      G_PARAM_READWRITE));
 	/**
+	 * SOUP_SOCKET_SSL_STRICT:
+	 *
+	 * Alias for the #SoupSocket:ignore-ssl-cert-errors property.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_SSL_STRICT,
+		g_param_spec_boolean (SOUP_SOCKET_SSL_STRICT,
+				      "Strictly validate SSL certificates",
+				      "Whether certificate errors should be considered a connection error",
+				      TRUE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
 	 * SOUP_SOCKET_ASYNC_CONTEXT:
 	 *
 	 * Alias for the #SoupSocket:async-context property. (The
@@ -492,6 +506,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
+	case PROP_SSL_STRICT:
+		priv->ssl_strict = g_value_get_boolean (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -527,6 +544,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CREDENTIALS:
 		g_value_set_pointer (value, priv->ssl_creds);
+		break;
+	case PROP_SSL_STRICT:
+		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -1218,11 +1238,19 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 		return SOUP_SOCKET_ERROR;
 	}
 
+again:
 	status = g_io_channel_read_chars (priv->iochannel,
 					  buffer, len, nread, &my_err);
 	if (my_err) {
-		if (my_err->domain == SOUP_SSL_ERROR &&
-		    my_err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE)
+		if (g_error_matches (my_err, SOUP_SSL_ERROR,
+				     SOUP_SSL_ERROR_CERTIFICATE) &&
+		    !priv->ssl_strict) {
+			g_clear_error (&my_err);
+			goto again;
+		}
+
+		if (g_error_matches (my_err, SOUP_SSL_ERROR,
+				     SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE))
 			cond = G_IO_OUT;
 		g_propagate_error (error, my_err);
 	}
@@ -1517,11 +1545,19 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 		return SOUP_SOCKET_WOULD_BLOCK;
 	}
 
+again:
 	status = g_io_channel_write_chars (priv->iochannel,
 					   buffer, len, nwrote, &my_err);
 	if (my_err) {
-		if (my_err->domain == SOUP_SSL_ERROR &&
-		    my_err->code == SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ)
+		if (g_error_matches (my_err, SOUP_SSL_ERROR,
+				     SOUP_SSL_ERROR_CERTIFICATE) &&
+		    !priv->ssl_strict) {
+			g_clear_error (&my_err);
+			goto again;
+		}
+
+		if (g_error_matches (my_err, SOUP_SSL_ERROR,
+				     SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ))
 			cond = G_IO_IN;
 		g_propagate_error (error, my_err);
 	}

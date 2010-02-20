@@ -34,6 +34,7 @@ typedef struct {
 	SoupAddress *remote_addr, *tunnel_addr;
 	SoupURI     *proxy_uri;
 	gpointer     ssl_creds;
+	gboolean     ssl_strict;
 
 	GMainContext      *async_context;
 
@@ -61,6 +62,7 @@ enum {
 	PROP_TUNNEL_ADDRESS,
 	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
+	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_IDLE_TIMEOUT,
@@ -175,6 +177,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "Opaque SSL credentials for this connection",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
+		object_class, PROP_SSL_STRICT,
+		g_param_spec_boolean (SOUP_CONNECTION_SSL_STRICT,
+				      "Strictly validate SSL certificates",
+				      "Whether certificate errors should be considered a connection error",
+				      TRUE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
 				      "Async GMainContext",
@@ -246,6 +255,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_CREDS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
+	case PROP_SSL_STRICT:
+		priv->ssl_strict = g_value_get_boolean (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -284,6 +296,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CREDS:
 		g_value_set_pointer (value, priv->ssl_creds);
+		break;
+	case PROP_SSL_STRICT:
+		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -466,6 +481,7 @@ soup_connection_connect_async (SoupConnection *conn,
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 NULL);
@@ -496,6 +512,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 NULL);

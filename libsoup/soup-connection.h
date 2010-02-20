@@ -44,6 +44,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
+#define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
 #define SOUP_CONNECTION_IDLE_TIMEOUT    "idle-timeout"

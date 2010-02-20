@@ -164,6 +164,8 @@ again:
 		return G_IO_STATUS_ERROR;
 	}
 
+	chan->established = TRUE;
+
 	if (chan->type == SOUP_SSL_TYPE_CLIENT && chan->creds->have_ca_file &&
 	    !verify_certificate (chan->session, chan->hostname, err))
 		return G_IO_STATUS_ERROR;
@@ -190,8 +192,6 @@ again:
 		if (result == G_IO_STATUS_AGAIN ||
 		    result == G_IO_STATUS_ERROR)
 			return result;
-
-		chan->established = TRUE;
 	}
 
 	result = gnutls_record_recv (chan->session, buf, count);
@@ -252,8 +252,6 @@ again:
 		if (result == G_IO_STATUS_AGAIN ||
 		    result == G_IO_STATUS_ERROR)
 			return result;
-
-		chan->established = TRUE;
 	}
 
 	result = gnutls_record_send (chan->session, buf, count);

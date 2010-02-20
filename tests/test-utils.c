@@ -231,6 +231,11 @@ soup_test_session_new (GType type, ...)
 	session = (SoupSession *)g_object_new_valist (type, propname, args);
 	va_end (args);
 
+	g_object_set (G_OBJECT (session),
+		      SOUP_SESSION_SSL_CA_FILE, SRCDIR "/test-cert.pem",
+		      SOUP_SESSION_SSL_STRICT, FALSE,
+		      NULL);
+
 	if (http_debug_level && !logger) {
 		SoupLoggerLogLevel level = MIN ((SoupLoggerLogLevel)http_debug_level, SOUP_LOGGER_LOG_BODY);
 
