@@ -157,10 +157,15 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 	len = strcspn (uri_string, "\t\n\r");
 	if (uri_string[len]) {
-		char *clean = g_strdup (uri_string), *bad;
+		char *clean = g_malloc (strlen (uri_string + 1)), *d;
+		const char *s;
 
-		while ((bad = strpbrk (clean, "\t\n\r")))
-			strcpy (bad, bad + 1);
+		for (s = uri_string, d = clean; *s; s++) {
+			if (*s != '\t' && *s != '\n' && *s != '\r')
+				*d++ = *s;
+		}
+		*d = '\0';
+
 		uri = soup_uri_new_with_base (base, clean);
 		g_free (clean);
 		return uri;
