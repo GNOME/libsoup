@@ -1279,6 +1279,10 @@ soup_message_cleanup_response (SoupMessage *req)
  * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Deprecated: equivalent to calling
  * soup_message_body_set_accumulate() on the incoming message body
  * (ie, %response_body for a client-side request), passing %FALSE.
+ * @SOUP_MESSAGE_CONTENT_DECODED: Set by #SoupContentDecoder to
+ * indicate that it has removed the Content-Encoding on a message (and
+ * so headers such as Content-Length may no longer accurately describe
+ * the body).
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
