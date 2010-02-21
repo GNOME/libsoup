@@ -193,21 +193,20 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 
-	if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-	    io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
-	    io->read_meta_buf->len == 0 &&
-	    !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
-	    request_is_idempotent (msg)) {
+	if (error && error->domain == SOUP_SSL_ERROR) {
+		soup_message_set_status_full (msg,
+					      SOUP_STATUS_SSL_FAILED,
+					      error->message);
+	} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+		   io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
+		   io->read_meta_buf->len == 0 &&
+		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
+		   request_is_idempotent (msg)) {
 		/* Connection got closed, but we can safely try again */
 		priv->io_status = SOUP_MESSAGE_IO_STATUS_QUEUED;
-	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
-		if (error && error->domain == SOUP_SSL_ERROR) {
-			soup_message_set_status_full (msg,
-						      SOUP_STATUS_SSL_FAILED,
-						      error->message);
-		} else
-			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
-	}
+	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+
 	if (error)
 		g_error_free (error);
 
