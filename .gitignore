@@ -33,6 +33,7 @@ docs/reference/libsoup-2.4.hierarchy
 docs/reference/libsoup-2.4.interfaces
 docs/reference/libsoup-2.4.prerequisites
 docs/reference/libsoup-2.4.signals
+docs/reference/libsoup-2.4.types
 docs/reference/tmpl
 docs/reference/xml
 gtk-doc.make

@@ -1,3 +1,4 @@
+<INCLUDE>libsoup/soup.h</INCLUDE>
 <SECTION>
 <FILE>soup-message</FILE>
 <TITLE>SoupMessage</TITLE>
@@ -830,6 +831,7 @@ soup_cookie_jar_text_get_type
 </SECTION>
 
 <SECTION>
+<INCLUDE>libsoup/soup-gnome.h</INCLUDE>
 <FILE>soup-cookie-jar-sqlite</FILE>
 <TITLE>SoupCookieJarSqlite</TITLE>
 SoupCookieJarSqlite
@@ -866,6 +868,7 @@ soup_proxy_uri_resolver_get_type
 </SECTION>
 
 <SECTION>
+<INCLUDE>libsoup/soup-gnome.h</INCLUDE>
 <FILE>soup-gnome-features</FILE>
 SOUP_TYPE_GNOME_FEATURES_2_26
 SOUP_TYPE_PROXY_RESOLVER_GNOME
