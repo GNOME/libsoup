@@ -1,3 +1,13 @@
+Changes in libsoup from 2.29.90 to 2.29.91:
+
+	* Added SOUP_SESSION_SSL_STRICT and
+          SOUP_MESSAGE_CERTIFICATE_TRUSTED, to allow callers to
+          determine if an https response comes from a server with a
+          recognized/valid or unrecognized/invalid certificate.
+          [#610374, Gustavo Noronha Silva]
+
+	* Fixed handling of certain badly-formatted URIs [#590524]
+
 Changes in libsoup from 2.29.6 to 2.29.90:
 
 	* Added soup_cookie_jar_set_accept_policy() and related API
