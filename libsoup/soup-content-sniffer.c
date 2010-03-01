@@ -519,12 +519,9 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 static char*
 sniff (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer, GHashTable **params)
 {
-	const char *content_type_with_params;
 	const char *content_type;
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
-	content_type_with_params = soup_message_headers_get_one (msg->response_headers, "Content-Type");
-
 
 	/* These comparisons are done in an ASCII-case-insensitive
 	 * manner because the spec requires it */
@@ -553,10 +550,7 @@ sniff (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer, GHashT
 		return sniff_images (sniffer, msg, buffer, content_type);
 
 	/* If we got text/plain, use text_or_binary */
-	if (g_str_equal (content_type_with_params, "text/plain") ||
-	    g_str_equal (content_type_with_params, "text/plain; charset=ISO-8859-1") ||
-	    g_str_equal (content_type_with_params, "text/plain; charset=iso-8859-1") ||
-	    g_str_equal (content_type_with_params, "text/plain; charset=UTF-8")) {
+	if (g_str_equal (content_type, "text/plain")) {
 		return sniff_text_or_binary (sniffer, msg, buffer);
 	}
 
