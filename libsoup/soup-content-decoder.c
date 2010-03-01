@@ -76,6 +76,8 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 	/* Hardcoded for now */
 	g_hash_table_insert (decoder->priv->codings, "gzip",
 			     GSIZE_TO_POINTER (SOUP_TYPE_CODING_GZIP));
+	g_hash_table_insert (decoder->priv->codings, "x-gzip",
+			     GSIZE_TO_POINTER (SOUP_TYPE_CODING_GZIP));
 }
 
 static void
