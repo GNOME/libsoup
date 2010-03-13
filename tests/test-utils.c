@@ -270,6 +270,7 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 {
 	GMainContext *async_context;
 	const char *ssl_cert_file, *ssl_key_file;
+	SoupAddress *addr;
 
 	if (test_server)
 		test_server_shutdown ();
@@ -282,7 +283,11 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 	} else
 		ssl_cert_file = ssl_key_file = NULL;
 
-	test_server = soup_server_new (SOUP_SERVER_ASYNC_CONTEXT, async_context,
+	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
+	soup_address_resolve_sync (addr, NULL);
+
+	test_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
+				       SOUP_SERVER_ASYNC_CONTEXT, async_context,
 				       SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
 				       SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
 				       NULL);

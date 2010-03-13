@@ -181,6 +181,7 @@ static void
 do_callback_unref_test (void)
 {
 	SoupServer *bad_server;
+	SoupAddress *addr;
 	SoupSession *session;
 	SoupMessage *one, *two;
 	GMainLoop *loop;
@@ -189,7 +190,11 @@ do_callback_unref_test (void)
 	debug_printf (1, "\nCallback unref handling\n");
 
 	/* Get a guaranteed-bad URI */
-	bad_server = soup_server_new (NULL, NULL);
+	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
+	soup_address_resolve_sync (addr, NULL);
+	bad_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
+				      NULL);
+
 	bad_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				   soup_server_get_port (bad_server));
 	g_object_unref (bad_server);

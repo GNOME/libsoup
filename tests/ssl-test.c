@@ -266,7 +266,7 @@ main (int argc, char **argv)
 
 	memset (&sin, 0, sizeof (sin));
 	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = INADDR_ANY;
+	sin.sin_addr.s_addr = ntohl (INADDR_LOOPBACK);
 
 	if (bind (listener, (struct sockaddr *) &sin, sizeof (sin))  == -1) {
 		SOCKET_PRINT_ERROR ("binding listening socket");
