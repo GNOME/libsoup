@@ -49,6 +49,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			file = NULL;
 		}
 	}
+	soup_header_free_list (codings);
 
 	if (!file)
 		file = g_strdup_printf (SRCDIR "/resources%s", path);
@@ -57,9 +58,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 * the error with "Content-Encoding: gzip" but there's
 		 * no body, so, eh.
 		 */
+		g_free (file);
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
+	g_free (file);
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_body_append (msg->response_body,

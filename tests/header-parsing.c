@@ -1026,6 +1026,7 @@ do_bad_header_tests (void)
 			errors++;
 		}
 	}
+	soup_message_headers_free (hdrs);
 }
 
 int

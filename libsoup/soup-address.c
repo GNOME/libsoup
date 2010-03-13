@@ -612,7 +612,7 @@ complete_resolve_async (SoupAddress *addr, guint status)
 		}
 		g_slice_free (SoupAddressResolveAsyncData, res_data);
 	}
-	g_slist_free (l);
+	g_slist_free (lookups);
 
 	g_object_unref (addr);
 }

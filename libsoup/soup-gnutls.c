@@ -112,6 +112,7 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 			session, &cert_list_size);
 
 		if (cert_list == NULL) {
+			gnutls_x509_crt_deinit (cert);
 			g_set_error (err, SOUP_SSL_ERROR,
 				     SOUP_SSL_ERROR_CERTIFICATE,
 				     "No SSL certificate was found.");
@@ -120,6 +121,7 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 
 		if (gnutls_x509_crt_import (cert, &cert_list[0],
 					    GNUTLS_X509_FMT_DER) < 0) {
+			gnutls_x509_crt_deinit (cert);
 			g_set_error (err, SOUP_SSL_ERROR,
 				     SOUP_SSL_ERROR_CERTIFICATE,
 				     "The SSL certificate could not be parsed.");
@@ -127,11 +129,14 @@ verify_certificate (gnutls_session session, const char *hostname, GError **err)
 		}
 
 		if (!gnutls_x509_crt_check_hostname (cert, hostname)) {
+			gnutls_x509_crt_deinit (cert);
 			g_set_error (err, SOUP_SSL_ERROR,
 				     SOUP_SSL_ERROR_CERTIFICATE,
 				     "The SSL certificate does not match the hostname.");
 			return FALSE;
 		}
+
+		gnutls_x509_crt_deinit (cert);
 	}
 
 	return TRUE;

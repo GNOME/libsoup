@@ -58,6 +58,8 @@ static void soup_content_decoder_session_feature_init (SoupSessionFeatureInterfa
 static void request_queued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
 static void request_unqueued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
 
+static void finalize (GObject *object);
+
 G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_content_decoder_session_feature_init))
@@ -83,7 +85,11 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 static void
 soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
 {
-  g_type_class_add_private (decoder_class, sizeof (SoupContentDecoderPrivate));
+	GObjectClass *object_class = G_OBJECT_CLASS (decoder_class);
+
+	g_type_class_add_private (decoder_class, sizeof (SoupContentDecoderPrivate));
+
+	object_class->finalize = finalize;
 }
 
 static void
@@ -92,6 +98,16 @@ soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_
 {
 	feature_interface->request_queued = request_queued;
 	feature_interface->request_unqueued = request_unqueued;
+}
+
+static void
+finalize (GObject *object)
+{
+	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (object);
+
+	g_hash_table_destroy (decoder->priv->codings);
+
+	G_OBJECT_CLASS (soup_content_decoder_parent_class)->finalize (object);
 }
 
 static void

@@ -226,6 +226,8 @@ finalize (GObject *object)
 	g_free (priv->user_agent);
 	g_free (priv->accept_language);
 
+	if (priv->ssl_ca_file)
+		g_free (priv->ssl_ca_file);
 	if (priv->ssl_creds)
 		soup_ssl_free_client_credentials (priv->ssl_creds);
 
@@ -1145,6 +1147,8 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	 */
 	new_uri = soup_uri_new_with_base (soup_message_get_uri (msg), new_loc);
 	if (!new_uri || !new_uri->host) {
+		if (new_uri)
+			soup_uri_free (new_uri);
 		soup_message_set_status_full (msg,
 					      SOUP_STATUS_MALFORMED,
 					      "Invalid Redirect URL");

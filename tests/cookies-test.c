@@ -87,8 +87,10 @@ do_cookies_accept_policy_test (void)
 		    errors++;
 	    }
 
-	    for (p = l; p; p = p->next)
+	    for (p = l; p; p = p->next) {
 		soup_cookie_jar_delete_cookie (jar, p->data);
+		soup_cookie_free (p->data);
+	    }
 
 	    g_slist_free (l);
 	}
