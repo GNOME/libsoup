@@ -1781,9 +1781,17 @@ soup_session_abort (SoupSession *session)
 void
 soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionPrivate *priv;
 	SoupSessionHost *host;
 	SoupAddress *addr;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (uri != NULL);
+
+	if (!uri->host)
+		return;
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	g_mutex_lock (priv->host_lock);
 	host = get_host_for_uri (session, uri);
