@@ -1,3 +1,24 @@
+Changes in libsoup from 2.29.91 to 2.30.0:
+
+	* Fixed a crash in the whitespace-stripping code in
+          soup_uri_new() [#612644, "arnaud.lb"]
+
+	* Update content-sniffing algorithm to match Chrome and the
+          soon-to-be-updated sniffing spec. [#611502, Gustavo Noronha
+          Silva]
+
+	* We now handle "Content-Encoding: x-gzip" as well as "gzip"
+	  (even though "x-gzip" has been deprecated for more than 10
+	  years). [#611476]
+
+	* Fixed leaks found by valgrind
+
+	* Make the "make check" programs only bind to 127.0.0.1, not
+          any public network interfaces. [#609489, Saleem Absulrasool]
+
+	* Add a test to sniffing-test to make sure that Content-Type
+          parameters are preserved correctly. [Gustavo Noronha Silva]
+
 Changes in libsoup from 2.29.90 to 2.29.91:
 
 	* Added SOUP_SESSION_SSL_STRICT and
