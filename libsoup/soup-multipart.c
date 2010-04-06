@@ -385,20 +385,6 @@ soup_multipart_append_form_file (SoupMultipart *multipart,
 					     content_type);
 	}
 
-	/* The HTML spec says we need to set Content-Transfer-Encoding
-	 * if the data is not 7bit. It probably doesn't actually
-	 * matter...
-	 */
-	if (content_type && strncmp (content_type, "text/", 5) != 0) {
-		soup_message_headers_append (headers,
-					     "Content-Transfer-Encoding",
-					     "binary");
-	} else {
-		soup_message_headers_append (headers,
-					     "Content-Transfer-Encoding",
-					     "8bit");
-	}
-
 	g_ptr_array_add (multipart->headers, headers);
 	g_ptr_array_add (multipart->bodies, soup_buffer_copy (body));
 }
