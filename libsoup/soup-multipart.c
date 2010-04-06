@@ -423,15 +423,15 @@ soup_multipart_to_message (SoupMultipart *multipart,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 	GString *str;
-	char *content_type;
+	GHashTable *params;
 	int i;
 
-	content_type = g_strdup_printf ("%s; boundary=\"%s\"",
-					multipart->mime_type,
-					multipart->boundary);
-	soup_message_headers_replace (dest_headers, "Content-Type",
-				      content_type);
-	g_free (content_type);
+	params = g_hash_table_new (g_str_hash, g_str_equal);
+	g_hash_table_insert (params, "boundary", multipart->boundary);
+	soup_message_headers_set_content_type (dest_headers,
+					       multipart->mime_type,
+					       params);
+	g_hash_table_destroy (params);
 
 	for (i = 0; i < multipart->bodies->len; i++) {
 		part_headers = multipart->headers->pdata[i];
