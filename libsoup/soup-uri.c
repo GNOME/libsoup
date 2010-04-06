@@ -559,37 +559,14 @@ soup_uri_free (SoupURI *uri)
 	g_slice_free (SoupURI, uri);
 }
 
-/* From RFC 3986 */
-#define SOUP_URI_UNRESERVED  0
-#define SOUP_URI_PCT_ENCODED 1
-#define SOUP_URI_GEN_DELIMS  2
-#define SOUP_URI_SUB_DELIMS  4
-static const char uri_encoded_char[] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x00 - 0x0f */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  /* 0x10 - 0x1f */
-	1, 4, 1, 2, 4, 1, 4, 4, 4, 4, 4, 4, 4, 0, 0, 2,  /*  !"#$%&'()*+,-./ */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 1, 4, 1, 2,  /* 0123456789:;<=>? */
-	2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* @ABCDEFGHIJKLMNO */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 1, 0,  /* PQRSTUVWXYZ[\]^_ */
-	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* `abcdefghijklmno */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1,  /* pqrstuvwxyz{|}~  */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-};
-
 static void
 append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
 {
 	const unsigned char *s = (const unsigned char *)in;
 
 	while (*s) {
-		if ((uri_encoded_char[*s] & (SOUP_URI_PCT_ENCODED | SOUP_URI_GEN_DELIMS)) ||
+		if (soup_char_is_uri_percent_encoded (*s) ||
+		    soup_char_is_uri_gen_delims (*s) ||
 		    (extra_enc_chars && strchr (extra_enc_chars, *s)))
 			g_string_append_printf (str, "%%%02X", (int)*s++);
 		else
@@ -689,7 +666,7 @@ uri_normalized_copy (const char *part, int length,
 			}
 
 			c = HEXCHAR (s);
-			if (uri_encoded_char[c] == SOUP_URI_UNRESERVED ||
+			if (soup_char_is_uri_unreserved (c) ||
 			    (unescape_extra && strchr (unescape_extra, c))) {
 				*d++ = c;
 				s += 2;

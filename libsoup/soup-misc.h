@@ -35,6 +35,21 @@ gboolean           soup_str_case_equal       (gconstpointer v1,
 
 #define _SOUP_ATOMIC_INTERN_STRING(variable, value) ((const char *)(g_atomic_pointer_get (&(variable)) ? (variable) : (g_atomic_pointer_set (&(variable), (gpointer)g_intern_static_string (value)), (variable))))
 
+/* character classes */
+
+extern const char soup_char_attributes[];
+#define SOUP_CHAR_URI_PERCENT_ENCODED 0x01
+#define SOUP_CHAR_URI_GEN_DELIMS      0x02
+#define SOUP_CHAR_URI_SUB_DELIMS      0x04
+#define SOUP_CHAR_HTTP_SEPARATOR      0x08
+#define SOUP_CHAR_HTTP_CTL            0x10
+
+#define soup_char_is_uri_percent_encoded(ch) (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_PERCENT_ENCODED)
+#define soup_char_is_uri_gen_delims(ch)      (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_GEN_DELIMS)
+#define soup_char_is_uri_sub_delims(ch)      (soup_char_attributes[(guchar)ch] & SOUP_CHAR_URI_SUB_DELIMS)
+#define soup_char_is_uri_unreserved(ch)      (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_URI_PERCENT_ENCODED | SOUP_CHAR_URI_GEN_DELIMS | SOUP_CHAR_URI_SUB_DELIMS)))
+#define soup_char_is_token(ch)               (!(soup_char_attributes[(guchar)ch] & (SOUP_CHAR_HTTP_SEPARATOR | SOUP_CHAR_HTTP_CTL)))
+
 /* SSL stuff */
 
 extern const gboolean soup_ssl_supported;
