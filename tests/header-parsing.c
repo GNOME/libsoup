@@ -882,7 +882,7 @@ do_rfc2231_tests (void)
 #define CONTENT_TYPE_TEST_MIME_TYPE "text/plain"
 #define CONTENT_TYPE_TEST_ATTRIBUTE "charset"
 #define CONTENT_TYPE_TEST_VALUE     "US-ASCII"
-#define CONTENT_TYPE_TEST_HEADER    "text/plain; charset=\"US-ASCII\""
+#define CONTENT_TYPE_TEST_HEADER    "text/plain; charset=US-ASCII"
 
 #define CONTENT_TYPE_BAD_HEADER     "plain text, not text/html"
 
@@ -963,7 +963,7 @@ struct {
 	{ "five", "test with \xC3\xA1\xC3\xA7\xC4\x89\xC3\xA8\xC3\xB1\xC5\xA3\xC5\xA1" }
 };
 
-#define TEST_PARAMS_RESULT "one=\"foo\", two=\"test with spaces\", three=\"test with \\\"quotes\\\" and \\\\s\", four, five*=UTF-8''test%20with%20%C3%A1%C3%A7%C4%89%C3%A8%C3%B1%C5%A3%C5%A1"
+#define TEST_PARAMS_RESULT "one=foo, two=\"test with spaces\", three=\"test with \\\"quotes\\\" and \\\\s\", four, five*=UTF-8''test%20with%20%C3%A1%C3%A7%C4%89%C3%A8%C3%B1%C5%A3%C5%A1"
 
 static void
 do_append_param_tests (void)

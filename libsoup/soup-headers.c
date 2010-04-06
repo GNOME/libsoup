@@ -795,21 +795,42 @@ soup_header_free_param_list (GHashTable *param_list)
 }
 
 static void
-append_param_rfc2231 (GString *string, const char *value)
+append_param_rfc2231 (GString    *string,
+		      const char *name,
+		      const char *value)
 {
 	char *encoded;
 
+	g_string_append (string, name);
 	g_string_append (string, "*=UTF-8''");
 	encoded = soup_uri_encode (value, " *'%()<>@,;:\\\"/[]?=");
 	g_string_append (string, encoded);
 	g_free (encoded);
 }
 
-static void
-append_param_quoted (GString *string, const char *value)
+/**
+ * soup_header_g_string_append_param_quoted:
+ * @string: a #GString being used to construct an HTTP header value
+ * @name: a parameter name
+ * @value: a parameter value
+ *
+ * Appends something like <literal>@name="@value"</literal> to
+ * @string, taking care to escape any quotes or backslashes in @value.
+ *
+ * Since: 2.32
+ **/
+void
+soup_header_g_string_append_param_quoted (GString    *string,
+					  const char *name,
+					  const char *value)
 {
 	int len;
 
+	g_return_if_fail (string != NULL);
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (value != NULL);
+
+	g_string_append (string, name);
 	g_string_append (string, "=\"");
 	while (*value) {
 		while (*value == '\\' || *value == '"') {
@@ -829,9 +850,9 @@ append_param_quoted (GString *string, const char *value)
  * @name: a parameter name
  * @value: a parameter value, or %NULL
  *
- * Appends something like <literal>@name="@value"</literal> to
- * @string, taking care to appropriately escape any quotes or
- * backslashes in @value.
+ * Appends something like <literal>@name=@value</literal> to @string,
+ * taking care to quote @value if needed, and if so, to escape any
+ * quotes or backslashes in @value.
  *
  * Alternatively, if @value is a non-ASCII UTF-8 string, it will be
  * appended using RFC2231 syntax. Although in theory this is supposed
@@ -844,26 +865,38 @@ append_param_quoted (GString *string, const char *value)
  * Since: 2.26
  **/
 void
-soup_header_g_string_append_param (GString *string, const char *name,
+soup_header_g_string_append_param (GString    *string,
+				   const char *name,
 				   const char *value)
 {
 	const char *v;
+	gboolean token = TRUE;
 
 	g_return_if_fail (string != NULL);
 	g_return_if_fail (name != NULL);
 
-	g_string_append (string, name);
-	if (!value)
+	if (!value) {
+		g_string_append (string, name);
 		return;
+	}
 
 	for (v = value; *v; v++) {
 		if (*v & 0x80) {
 			if (g_utf8_validate (value, -1, NULL)) {
-				append_param_rfc2231 (string, value);
+				append_param_rfc2231 (string, name, value);
 				return;
-			} else
+			} else {
+				token = FALSE;
 				break;
-		}
+			}
+		} else if (!soup_char_is_token (*v))
+			token = FALSE;
 	}
-	append_param_quoted (string, value);
+
+	if (token) {
+		g_string_append (string, name);
+		g_string_append_c (string, '=');
+		g_string_append (string, value);
+	} else
+		soup_header_g_string_append_param_quoted (string, name, value);
 }

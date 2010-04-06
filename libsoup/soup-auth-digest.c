@@ -436,30 +436,30 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 
 	out = g_string_new ("Digest ");
 
-	soup_header_g_string_append_param (out, "username", priv->user);
+	soup_header_g_string_append_param_quoted (out, "username", priv->user);
 	g_string_append (out, ", ");
-	soup_header_g_string_append_param (out, "realm", auth->realm);
+	soup_header_g_string_append_param_quoted (out, "realm", auth->realm);
 	g_string_append (out, ", ");
-	soup_header_g_string_append_param (out, "nonce", priv->nonce);
+	soup_header_g_string_append_param_quoted (out, "nonce", priv->nonce);
 	g_string_append (out, ", ");
-	soup_header_g_string_append_param (out, "uri", url);
+	soup_header_g_string_append_param_quoted (out, "uri", url);
 	g_string_append (out, ", ");
 	algorithm = soup_auth_digest_get_algorithm (priv->algorithm);
 	g_string_append_printf (out, "algorithm=%s", algorithm);
 	g_free (algorithm);
 	g_string_append (out, ", ");
-	soup_header_g_string_append_param (out, "response", response);
+	soup_header_g_string_append_param_quoted (out, "response", response);
 
 	if (priv->opaque) {
 		g_string_append (out, ", ");
-		soup_header_g_string_append_param (out, "opaque", priv->opaque);
+		soup_header_g_string_append_param_quoted (out, "opaque", priv->opaque);
 	}
 
 	if (priv->qop) {
 		char *qop = soup_auth_digest_get_qop (priv->qop);
 
 		g_string_append (out, ", ");
-		soup_header_g_string_append_param (out, "cnonce", priv->cnonce);
+		soup_header_g_string_append_param_quoted (out, "cnonce", priv->cnonce);
 		g_string_append_printf (out, ", nc=%.8x, qop=%s",
 					priv->nc, qop);
 		g_free (qop);

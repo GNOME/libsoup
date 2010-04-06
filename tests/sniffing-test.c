@@ -540,7 +540,7 @@ main (int argc, char **argv)
 	test_sniffing ("/multiple_headers/home.gif", "image/gif");
 
 	/* Test that we keep the parameters when sniffing */
-	test_sniffing ("/type/text_html; charset=\"UTF-8\"/test.html", "text/html; charset=\"UTF-8\"");
+	test_sniffing ("/type/text_html; charset=UTF-8/test.html", "text/html; charset=UTF-8");
 
 	/* Test that disabling the sniffer works correctly */
 

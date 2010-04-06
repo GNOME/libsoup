@@ -374,7 +374,7 @@ challenge (SoupAuthDomain *domain, SoupMessage *msg)
 	GString *str;
 
 	str = g_string_new ("Digest ");
-	soup_header_g_string_append_param (str, "realm", soup_auth_domain_get_realm (domain));
+	soup_header_g_string_append_param_quoted (str, "realm", soup_auth_domain_get_realm (domain));
 	g_string_append_printf (str, ", nonce=\"%lu%lu\"", 
 				(unsigned long) msg,
 				(unsigned long) time (0));

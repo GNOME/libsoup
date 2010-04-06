@@ -53,6 +53,9 @@ void        soup_header_free_param_list       (GHashTable       *param_list);
 void        soup_header_g_string_append_param (GString          *string,
 					       const char       *name,
 					       const char       *value);
+void        soup_header_g_string_append_param_quoted (GString    *string,
+						      const char *name,
+						      const char *value);
 
 G_END_DECLS
 
