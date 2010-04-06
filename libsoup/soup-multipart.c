@@ -437,7 +437,8 @@ soup_multipart_to_message (SoupMultipart *multipart,
 		part_headers = multipart->headers->pdata[i];
 		part_body = multipart->bodies->pdata[i];
 
-		str = g_string_new ("\r\n--");
+		str = g_string_new (i == 0 ? NULL : "\r\n");
+		g_string_append (str, "--");
 		g_string_append (str, multipart->boundary);
 		g_string_append (str, "\r\n");
 		soup_message_headers_iter_init (&iter, part_headers);
