@@ -273,7 +273,7 @@ open_db (SoupCookieJar *jar)
 		return TRUE;
 	}
 
-	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF", NULL, NULL, &error)) {
+	if (sqlite3_exec (priv->db, "PRAGMA synchronous = OFF; PRAGMA secure_delete = 1;", NULL, NULL, &error)) {
 		g_warning ("Failed to execute query: %s", error);
 		sqlite3_free (error);
 	}
