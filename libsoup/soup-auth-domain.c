@@ -553,9 +553,11 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (domain);
 	const char *path;
 
-	path = soup_message_get_uri (msg)->path;
-	if (!soup_path_map_lookup (priv->paths, path))
-		return FALSE;
+	if (!priv->proxy) {
+		path = soup_message_get_uri (msg)->path;
+		if (!soup_path_map_lookup (priv->paths, path))
+			return FALSE;
+	}
 
 	if (priv->filter && !priv->filter (domain, msg, priv->filter_data))
 		return FALSE;

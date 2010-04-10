@@ -14,10 +14,7 @@
 #include <unistd.h>
 
 #include <glib.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
-#include <libsoup/soup-session-async.h>
+#include <libsoup/soup.h>
 
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.
@@ -120,6 +117,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_server_pause_message (server, msg);
 }
 
+static gboolean
+auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
+	       const char *username, const char *password, gpointer data)
+{
+	return !strcmp (username, "user") && !strcmp (password, "password");
+}
+
 static void
 quit (int sig)
 {
@@ -133,13 +137,21 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	int opt;
 	int port = SOUP_ADDRESS_ANY_PORT;
+	SoupAuthDomain *auth_domain = NULL;
 
 	g_thread_init (NULL);
 	g_type_init ();
 	signal (SIGINT, quit);
 
-	while ((opt = getopt (argc, argv, "p:s:")) != -1) {
+	while ((opt = getopt (argc, argv, "ap:")) != -1) {
 		switch (opt) {
+		case 'a':
+			auth_domain = soup_auth_domain_basic_new (
+				SOUP_AUTH_DOMAIN_REALM, "simple-proxy",
+				SOUP_AUTH_DOMAIN_PROXY, TRUE,
+				SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+				NULL);
+			break;
 		case 'p':
 			port = atoi (optarg);
 			break;
@@ -158,6 +170,10 @@ main (int argc, char **argv)
 	}
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
+	if (auth_domain) {
+		soup_server_add_auth_domain (server, auth_domain);
+		g_object_unref (auth_domain);
+	}
 
 	printf ("\nStarting proxy on port %d\n",
 		soup_server_get_port (server));
