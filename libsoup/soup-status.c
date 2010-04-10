@@ -77,7 +77,7 @@
  * @SOUP_STATUS_IO_ERROR: A network error occurred, or the other end
  * closed the connection unexpectedly
  * @SOUP_STATUS_MALFORMED: Malformed data (usually a programmer error)
- * @SOUP_STATUS_TRY_AGAIN: Formerly used internally. Now unused.
+ * @SOUP_STATUS_TRY_AGAIN: Used internally
  * @SOUP_STATUS_CONTINUE: 100 Continue (HTTP)
  * @SOUP_STATUS_SWITCHING_PROTOCOLS: 101 Switching Protocols (HTTP)
  * @SOUP_STATUS_PROCESSING: 102 Processing (WebDAV)

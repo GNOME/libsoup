@@ -135,12 +135,14 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 	return session;
 }
 
-static gboolean
+static guint
 tunnel_connect (SoupSession *session, SoupConnection *conn,
 		SoupAddress *tunnel_addr)
 {
 	SoupMessageQueueItem *item;
 	guint status;
+
+	g_object_ref (conn);
 
 	g_signal_emit_by_name (session, "tunneling", conn);
 	item = soup_session_make_connect_message (session, tunnel_addr);
@@ -156,12 +158,11 @@ tunnel_connect (SoupSession *session, SoupConnection *conn,
 			status = SOUP_STATUS_SSL_FAILED;
 	}
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (status))
-		return TRUE;
-	else {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		soup_session_connection_failed (session, conn, status);
-		return FALSE;
-	}
+
+	g_object_unref (conn);
+	return status;
 }
 
 static SoupConnection *
@@ -222,8 +223,11 @@ wait_for_connection (SoupMessageQueueItem *item)
 				soup_connection_disconnect (conn);
 				conn = NULL;
 			} else if ((tunnel_addr = soup_connection_get_tunnel_addr (conn))) {
-				if (!tunnel_connect (session, conn, tunnel_addr))
+				status = tunnel_connect (session, conn, tunnel_addr);
+				if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 					conn = NULL;
+					goto try_again;
+				}
                         }
 		}
 

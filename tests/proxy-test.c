@@ -69,13 +69,29 @@ authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-test_url (const char *url, int proxy, guint expected, gboolean sync)
+set_close_on_connect (SoupSession *session, SoupMessage *msg,
+		      SoupSocket *sock, gpointer user_data)
+{
+	/* This is used to test that we can handle the server closing
+	 * the connection when returning a 407 in response to a
+	 * CONNECT. (Rude!)
+	 */
+	if (msg->method == SOUP_METHOD_CONNECT) {
+		soup_message_headers_append (msg->request_headers,
+					     "Connection", "close");
+	}
+}
+
+static void
+test_url (const char *url, int proxy, guint expected,
+	  gboolean sync, gboolean close)
 {
 	SoupSession *session;
 	SoupURI *proxy_uri;
 	SoupMessage *msg;
 
-	debug_printf (1, "  GET %s via %s\n", url, proxy_names[proxy]);
+	debug_printf (1, "  GET %s via %s%s\n", url, proxy_names[proxy],
+		      close ? " (with Connection: close)" : "");
 	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)
 		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
 
@@ -89,6 +105,10 @@ test_url (const char *url, int proxy, guint expected, gboolean sync)
 	soup_uri_free (proxy_uri);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
+	if (close) {
+		g_signal_connect (session, "request-started",
+				  G_CALLBACK (set_close_on_connect), NULL);
+	}
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
 	if (!msg) {
@@ -124,17 +144,18 @@ run_test (int i, gboolean sync)
 		http_url = g_strconcat (HTTP_SERVER, tests[i].url, NULL);
 		https_url = g_strconcat (HTTPS_SERVER, tests[i].url, NULL);
 	}
-	test_url (http_url, SIMPLE_PROXY, tests[i].final_status, sync);
+	test_url (http_url, SIMPLE_PROXY, tests[i].final_status, sync, FALSE);
 #ifdef HAVE_SSL
-	test_url (https_url, SIMPLE_PROXY, tests[i].final_status, sync);
+	test_url (https_url, SIMPLE_PROXY, tests[i].final_status, sync, FALSE);
 #endif
-	test_url (http_url, AUTH_PROXY, tests[i].final_status, sync);
+	test_url (http_url, AUTH_PROXY, tests[i].final_status, sync, FALSE);
 #ifdef HAVE_SSL
-	test_url (https_url, AUTH_PROXY, tests[i].final_status, sync);
+	test_url (https_url, AUTH_PROXY, tests[i].final_status, sync, FALSE);
+	test_url (https_url, AUTH_PROXY, tests[i].final_status, sync, TRUE);
 #endif
-	test_url (http_url, UNAUTH_PROXY, tests[i].final_status, sync);
+	test_url (http_url, UNAUTH_PROXY, tests[i].final_status, sync, FALSE);
 #ifdef HAVE_SSL
-	test_url (https_url, UNAUTH_PROXY, tests[i].final_status, sync);
+	test_url (https_url, UNAUTH_PROXY, tests[i].final_status, sync, FALSE);
 #endif
 
 	g_free (http_url);

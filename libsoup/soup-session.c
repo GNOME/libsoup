@@ -1271,6 +1271,9 @@ soup_session_connection_failed (SoupSession *session,
 			return;
 	}
 
+	if (status == SOUP_STATUS_TRY_AGAIN)
+		return;
+
 	/* Cancel any other messages waiting for a connection to it,
 	 * since they're out of luck.
 	 */
@@ -1304,6 +1307,31 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 	}
 }
 
+static void
+tunnel_connect_restarted (SoupMessage *msg, gpointer session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+
+	if (msg->status_code != SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED)
+		return;
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	if (!item)
+		return;
+	if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_DISCONNECTED) {
+		/* We got a 407, and the session provided auth and
+		 * restarted the message, but the proxy closed the
+		 * connection, so we need to create a new one. The
+		 * easiest way to do this is to just give up on the
+		 * current msg and conn, and re-run the queue.
+		 */
+		soup_session_cancel_message (session, msg,
+					     SOUP_STATUS_TRY_AGAIN);
+	}
+	soup_message_queue_item_unref (item);
+}
+
 SoupMessageQueueItem *
 soup_session_make_connect_message (SoupSession *session,
 				   SoupAddress *server_addr)
@@ -1330,6 +1358,8 @@ soup_session_make_connect_message (SoupSession *session,
 	 */
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (tunnel_connected), session);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (tunnel_connect_restarted), session);
 	queue_message (session, msg, NULL, NULL);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_object_unref (msg);

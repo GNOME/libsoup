@@ -221,11 +221,6 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 {
 	SoupSessionAsyncTunnelData *data = user_data;
 
-	if (SOUP_MESSAGE_IS_STARTING (msg)) {
-		soup_session_send_queue_item (data->session, data->item, data->conn);
-		return;
-	}
-
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		soup_session_connection_failed (data->session, data->conn,
 						msg->status_code);
@@ -242,11 +237,19 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 			  G_CALLBACK (connection_closed), data->session);
 	soup_connection_set_state (data->conn, SOUP_CONNECTION_IDLE);
 
-	do_idle_run_queue (data->session);
-
 done:
+	do_idle_run_queue (data->session);
 	soup_message_queue_item_unref (data->item);
 	g_slice_free (SoupSessionAsyncTunnelData, data);
+}
+
+static void
+tunnel_connect_restarted (SoupMessage *msg, gpointer user_data)
+{
+	SoupSessionAsyncTunnelData *data = user_data;
+
+	if (SOUP_MESSAGE_IS_STARTING (msg))
+		soup_session_send_queue_item (data->session, data->item, data->conn);
 }
 
 static void
@@ -278,7 +281,7 @@ got_connection (SoupConnection *conn, guint status, gpointer session)
 		g_signal_connect (data->item->msg, "finished",
 				  G_CALLBACK (tunnel_connected), data);
 		g_signal_connect (data->item->msg, "restarted",
-				  G_CALLBACK (tunnel_connected), data);
+				  G_CALLBACK (tunnel_connect_restarted), data);
 		soup_session_send_queue_item (session, data->item, conn);
 		return;
 	}
