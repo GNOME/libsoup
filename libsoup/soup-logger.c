@@ -17,6 +17,7 @@
 #include "soup-message.h"
 #include "soup-session.h"
 #include "soup-session-feature.h"
+#include "soup-socket.h"
 #include "soup-uri.h"
 
 /**
@@ -621,6 +622,8 @@ static void
 request_queued (SoupSessionFeature *logger, SoupSession *session,
 		SoupMessage *msg)
 {
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
 	g_signal_connect (msg, "got-informational",
 			  G_CALLBACK (got_informational),
 			  logger);
@@ -636,6 +639,10 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 	SoupLogger *logger = SOUP_LOGGER (feature);
 	gboolean restarted;
 	guint msg_id;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+	g_return_if_fail (SOUP_IS_SOCKET (socket));
 
 	msg_id = soup_logger_get_id (logger, msg);
 	if (msg_id)
@@ -659,6 +666,8 @@ static void
 request_unqueued (SoupSessionFeature *logger, SoupSession *session,
 		  SoupMessage *msg)
 {
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
 	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
 	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
 }
