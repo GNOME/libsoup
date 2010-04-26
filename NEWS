@@ -1,3 +1,39 @@
+Changes in libsoup from 2.30.0 to 2.30.1:
+
+	* Fix for https through proxies that close the connection when
+          returning a "407 Proxy Authentication Required" response,
+          and add a regression test for that case. [#611663]
+
+	* Fixed multiple forms/multipart-related interoperability
+          problems reported by Egon Andersen:
+
+		* Don't quote the multipart boundary string if it's
+                  not needed, since RFC 2616 recommends that you
+                  don't, and some servers don't handle quotes there
+                  correctly. (Sigh.) [#614176]
+
+		* Don't put an extra blank line before the first
+                  multipart part, since it's unnecessary and some
+                  servers don't handle a multipart preamble correctly.
+                  (Sigh.) [#614183]
+
+		* Don't put Content-Transfer-Encoding headers in the
+                  multipart/form-data parts, even though the HTML 4
+                  spec says you must, since no other browsers do, and
+                  some servers don't handle them correctly. (Sigh.)
+                  [#614198]
+
+	* Changed SoupCookieJarSqlite to actually erase deleted
+          cookies from the database. [#615711, Lukasz Slachciak]
+
+	* Fixed SoupLogger to be more robust against getting passed
+          bad data by the session. [#611663]
+
+	* Fixed SoupAuthDomain to ignore paths when doing proxy auth
+
+	* Fixed a g_warning when hovering over a javascript link in
+          WebKit. [#613442, Xan Lopez]
+
 Changes in libsoup from 2.29.91 to 2.30.0:
 
 	* Fixed a crash in the whitespace-stripping code in
