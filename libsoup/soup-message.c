@@ -764,9 +764,10 @@ soup_message_set_request (SoupMessage    *msg,
 /**
  * soup_message_set_response:
  * @msg: the message
- * @content_type: MIME Content-Type of the body
+ * @content_type: (allow-none): MIME Content-Type of the body
  * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
- * @resp_body: a data buffer containing the body of the message response.
+ * @resp_body: (array length=resp_length) (element-type uint8): a data buffer
+ * containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  * 
  * Convenience function to set the response body of a #SoupMessage. If

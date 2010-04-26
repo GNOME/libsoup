@@ -413,7 +413,7 @@ append_buffer (SoupMessageBody *body, SoupBuffer *buffer)
  * soup_message_body_append:
  * @body: a #SoupMessageBody
  * @use: how to use @data
- * @data: data to append
+ * @data: (array length=length) (element-type uint8): data to append
  * @length: length of @data
  *
  * Appends @length bytes from @data to @body according to @use.

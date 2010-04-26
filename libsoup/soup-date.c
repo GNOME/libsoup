@@ -722,7 +722,7 @@ soup_date_to_time_t (SoupDate *date)
 /**
  * soup_date_to_timeval:
  * @date: a #SoupDate
- * @time: a #GTimeVal structure in which to store the converted time.
+ * @time: (out): a #GTimeVal structure in which to store the converted time.
  *
  * Converts @date to a #GTimeVal.
  *

@@ -158,9 +158,12 @@ soup_headers_clean_for_10 (SoupMessageHeaders *hdrs)
  * @str: the header string (including the trailing blank line)
  * @len: length of @str up to (but not including) the terminating blank line.
  * @req_headers: #SoupMessageHeaders to store the header values in
- * @req_method: if non-%NULL, will be filled in with the request method
- * @req_path: if non-%NULL, will be filled in with the request path
- * @ver: if non-%NULL, will be filled in with the HTTP version
+ * @req_method: (out) (allow-none): if non-%NULL, will be filled in with the
+ * request method
+ * @req_path: (out) (allow-none): if non-%NULL, will be filled in with the
+ * request path
+ * @ver: (out) (allow-none): if non-%NULL, will be filled in with the HTTP
+ * version
  *
  * Parses the headers of an HTTP request in @str and stores the
  * results in @req_method, @req_path, @ver, and @req_headers.
@@ -264,10 +267,12 @@ soup_headers_parse_request (const char          *str,
 /**
  * soup_headers_parse_status_line:
  * @status_line: an HTTP Status-Line
- * @ver: if non-%NULL, will be filled in with the HTTP version
- * @status_code: if non-%NULL, will be filled in with the status code
- * @reason_phrase: if non-%NULL, will be filled in with the reason
- * phrase
+ * @ver: (out) (allow-none): if non-%NULL, will be filled in with the HTTP
+ * version
+ * @status_code: (out) (allow-none): if non-%NULL, will be filled in with
+ * the status code
+ * @reason_phrase: (out) (allow-none): if non-%NULL, will be filled in with
+ * the reason phrase
  *
  * Parses the HTTP Status-Line string in @status_line into @ver,
  * @status_code, and @reason_phrase. @status_line must be terminated by
@@ -339,10 +344,12 @@ soup_headers_parse_status_line (const char       *status_line,
  * @str: the header string (including the trailing blank line)
  * @len: length of @str up to (but not including) the terminating blank line.
  * @headers: #SoupMessageheaders to store the header values in
- * @ver: if non-%NULL, will be filled in with the HTTP version
- * @status_code: if non-%NULL, will be filled in with the status code
- * @reason_phrase: if non-%NULL, will be filled in with the reason
- * phrase
+ * @ver: (out) (allow-none): if non-%NULL, will be filled in with the HTTP
+ * version
+ * @status_code: (out) (allow-none): if non-%NULL, will be filled in with
+ * the status code
+ * @reason_phrase: (out) (allow-none): if non-%NULL, will be filled in with
+ * the reason phrase
  *
  * Parses the headers of an HTTP response in @str and stores the
  * results in @ver, @status_code, @reason_phrase, and @headers.
@@ -504,8 +511,8 @@ sort_by_qval (const void *a, const void *b)
 /**
  * soup_header_parse_quality_list:
  * @header: a header value
- * @unacceptable: on return, will contain a list of unacceptable
- * values
+ * @unacceptable: (out) (allow-none): on return, will contain a list of
+ * unacceptable values
  *
  * Parses a header whose content is a list of items with optional
  * "qvalue"s (eg, Accept, Accept-Charset, Accept-Encoding,

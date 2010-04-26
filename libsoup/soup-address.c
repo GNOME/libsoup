@@ -364,7 +364,7 @@ soup_address_new (const char *name, guint port)
  * Returns a #SoupAddress equivalent to @sa (or %NULL if @sa's
  * address family isn't supported)
  *
- * Return value: the new #SoupAddress
+ * Return value: (allow-none): the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
@@ -403,7 +403,7 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
  * for @family (or %NULL if @family isn't supported), suitable for
  * passing to soup_socket_server_new().
  *
- * Return value: the new #SoupAddress
+ * Return value: (allow-none): the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_any (SoupAddressFamily family, guint port)
@@ -428,7 +428,7 @@ soup_address_new_any (SoupAddressFamily family, guint port)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: the hostname, or %NULL if it is not known.
+ * Return value: (allow-none): the hostname, or %NULL if it is not known.
  **/
 const char *
 soup_address_get_name (SoupAddress *addr)
@@ -451,7 +451,7 @@ soup_address_get_name (SoupAddress *addr)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: the sockaddr, or %NULL
+ * Return value: (allow-none): the sockaddr, or %NULL
  **/
 struct sockaddr *
 soup_address_get_sockaddr (SoupAddress *addr, int *len)
@@ -493,7 +493,7 @@ soup_address_make_inet_address (SoupAddress *addr)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: the physical address, or %NULL
+ * Return value: (allow-none): the physical address, or %NULL
  **/
 const char *
 soup_address_get_physical (SoupAddress *addr)
@@ -672,7 +672,7 @@ idle_complete_resolve (gpointer addr)
  * @addr: a #SoupAddress
  * @async_context: the #GMainContext to call @callback from
  * @cancellable: a #GCancellable object, or %NULL
- * @callback: callback to call with the result
+ * @callback: (scope async): callback to call with the result
  * @user_data: data for @callback
  *
  * Asynchronously resolves the missing half of @addr (its IP address

@@ -1575,10 +1575,10 @@ queue_message (SoupSession *session, SoupMessage *msg,
 /**
  * soup_session_queue_message:
  * @session: a #SoupSession
- * @msg: the message to queue
- * @callback: a #SoupSessionCallback which will be called after the
- * message completes or when an unrecoverable error occurs.
- * @user_data: a pointer passed to @callback.
+ * @msg: (transfer full): the message to queue
+ * @callback: (allow-none) (scope async): a #SoupSessionCallback which will
+ * be called after the message completes or when an unrecoverable error occurs.
+ * @user_data: (allow-none): a pointer passed to @callback.
  * 
  * Queues the message @msg for sending. All messages are processed
  * while the glib main loop runs. If @msg has been processed before,

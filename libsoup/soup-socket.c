@@ -750,7 +750,7 @@ socket_connect_internal (SoupSocket *sock)
  * soup_socket_connect_async:
  * @sock: a client #SoupSocket (which must not already be connected)
  * @cancellable: a #GCancellable, or %NULL
- * @callback: callback to call after connecting
+ * @callback: (scope async): callback to call after connecting
  * @user_data: data to pass to @callback
  *
  * Begins asynchronously connecting to @sock's remote address. The
@@ -1148,7 +1148,7 @@ soup_socket_is_connected (SoupSocket *sock)
  *
  * Returns the #SoupAddress corresponding to the local end of @sock.
  *
- * Return value: the #SoupAddress
+ * Return value: (transfer none): the #SoupAddress
  **/
 SoupAddress *
 soup_socket_get_local_address (SoupSocket *sock)
@@ -1178,7 +1178,7 @@ soup_socket_get_local_address (SoupSocket *sock)
  *
  * Returns the #SoupAddress corresponding to the remote end of @sock.
  *
- * Return value: the #SoupAddress
+ * Return value: (transfer none): the #SoupAddress
  **/
 SoupAddress *
 soup_socket_get_remote_address (SoupSocket *sock)

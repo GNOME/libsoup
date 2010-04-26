@@ -78,8 +78,9 @@ form_decode (char *part)
  * Decodes @form, which is an urlencoded dataset as defined in the
  * HTML 4.01 spec.
  *
- * Return value: a hash table containing the name/value pairs from
- * @encoded_form, which you can free with g_hash_table_destroy().
+ * Return value: (element-type utf8 utf8): a hash table containing the
+ * name/value pairs from @encoded_form, which you can free with
+ * g_hash_table_destroy().
  **/
 GHashTable *
 soup_form_decode (const char *encoded_form)
@@ -269,7 +270,8 @@ soup_form_encode (const char *first_field, ...)
 
 /**
  * soup_form_encode_hash:
- * @form_data_set: a hash table containing name/value pairs (as strings)
+ * @form_data_set: (element-type utf8 utf8): a hash table containing
+ * name/value pairs (as strings)
  *
  * Encodes @form_data_set into a value of type
  * "application/x-www-form-urlencoded", as defined in the HTML 4.01
@@ -414,7 +416,7 @@ soup_form_request_new (const char *method, const char *uri,
  * soup_form_request_new_from_hash:
  * @method: the HTTP method, either "GET" or "POST"
  * @uri: the URI to send the form data to
- * @form_data_set: the data to send to @uri
+ * @form_data_set: (element-type utf8 utf8): the data to send to @uri
  *
  * Creates a new %SoupMessage and sets it up to send @form_data_set to
  * @uri via @method, as with soup_form_request_new().

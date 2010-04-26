@@ -735,8 +735,8 @@ soup_cookie_free (SoupCookie *cookie)
  * #SoupCookie<!-- -->s. Cookies that do not specify "path" or
  * "domain" attributes will have their values defaulted from @msg.
  *
- * Return value: a #GSList of #SoupCookie<!-- -->s, which can be freed
- * with soup_cookies_free().
+ * Return value: (element-type SoupCookie): a #GSList of
+ * #SoupCookie<!-- -->s, which can be freed with soup_cookies_free().
  *
  * Since: 2.24
  **/
@@ -778,8 +778,8 @@ soup_cookies_from_response (SoupMessage *msg)
  * pass a cookie returned from this method directly to
  * soup_cookies_to_response().)
  *
- * Return value: a #GSList of #SoupCookie<!-- -->s, which can be freed
- * with soup_cookies_free().
+ * Return value: (element-type SoupCookie): a #GSList of
+ * #SoupCookie<!-- -->s, which can be freed with soup_cookies_free().
  *
  * Since: 2.24
  **/
@@ -813,7 +813,7 @@ soup_cookies_from_request (SoupMessage *msg)
 
 /**
  * soup_cookies_to_response:
- * @cookies: a #GSList of #SoupCookie
+ * @cookies: (element-type SoupCookie): a #GSList of #SoupCookie
  * @msg: a #SoupMessage
  *
  * Appends a "Set-Cookie" response header to @msg for each cookie in
@@ -840,7 +840,7 @@ soup_cookies_to_response (GSList *cookies, SoupMessage *msg)
 
 /**
  * soup_cookies_to_request:
- * @cookies: a #GSList of #SoupCookie
+ * @cookies: (element-type SoupCookie): a #GSList of #SoupCookie
  * @msg: a #SoupMessage
  *
  * Adds the name and value of each cookie in @cookies to @msg's
@@ -868,8 +868,8 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 }
 
 /**
- * soup_cookies_free:
- * @cookies: a #GSList of #SoupCookie
+ * soup_cookies_free: (skip)
+ * @cookies: (element-type SoupCookie): a #GSList of #SoupCookie
  *
  * Frees @cookies.
  *
@@ -887,7 +887,7 @@ soup_cookies_free (GSList *cookies)
 
 /**
  * soup_cookies_to_cookie_header:
- * @cookies: a #GSList of #SoupCookie
+ * @cookies: (element-type SoupCookie): a #GSList of #SoupCookie
  *
  * Serializes a #GSList of #SoupCookie into a string suitable for
  * setting as the value of the "Cookie" header.

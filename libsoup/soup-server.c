@@ -652,7 +652,7 @@ soup_server_is_https (SoupServer *server)
  * read-only; writing to it or modifiying it may cause @server to
  * malfunction.
  *
- * Return value: the listening socket.
+ * Return value: (transfer none): the listening socket.
  **/
 SoupSocket *
 soup_server_get_listener (SoupServer *server)
@@ -996,7 +996,7 @@ soup_server_quit (SoupServer *server)
  * context, so you will need to ref it yourself if you want it to
  * outlive its server.
  *
- * Return value: @server's #GMainContext, which may be %NULL
+ * Return value: (transfer none): @server's #GMainContext, which may be %NULL
  **/
 GMainContext *
 soup_server_get_async_context (SoupServer *server)
@@ -1053,7 +1053,8 @@ soup_client_context_get_type (void)
  * not get fooled when the allocator reuses the memory address of a
  * previously-destroyed socket to represent a new socket.
  *
- * Return value: the #SoupSocket that @client is associated with.
+ * Return value: (transfer none): the #SoupSocket that @client is
+ * associated with.
  **/
 SoupSocket *
 soup_client_context_get_socket (SoupClientContext *client)
@@ -1070,8 +1071,8 @@ soup_client_context_get_socket (SoupClientContext *client)
  * Retrieves the #SoupAddress associated with the remote end
  * of a connection.
  *
- * Return value: the #SoupAddress associated with the remote end of a
- * connection.
+ * Return value: (transfer none): the #SoupAddress associated with the
+ * remote end of a connection.
  **/
 SoupAddress *
 soup_client_context_get_address (SoupClientContext *client)
@@ -1110,8 +1111,8 @@ soup_client_context_get_host (SoupClientContext *client)
  * authenticated, and if so returns the #SoupAuthDomain that
  * authenticated it.
  *
- * Return value: a #SoupAuthDomain, or %NULL if the request was not
- * authenticated.
+ * Return value: (transfer none) (allow-none): a #SoupAuthDomain, or
+ * %NULL if the request was not authenticated.
  **/
 SoupAuthDomain *
 soup_client_context_get_auth_domain (SoupClientContext *client)
@@ -1145,7 +1146,8 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * @server: the #SoupServer
  * @msg: the message being processed
  * @path: the path component of @msg's Request-URI
- * @query: the parsed query component of @msg's Request-URI
+ * @query: (element-type utf8 utf8) (allow-none): the parsed query
+ *         component of @msg's Request-URI
  * @client: additional contextual information about the client
  * @user_data: the data passed to @soup_server_add_handler
  *
@@ -1200,7 +1202,7 @@ soup_client_context_get_auth_user (SoupClientContext *client)
 /**
  * soup_server_add_handler:
  * @server: a #SoupServer
- * @path: the toplevel path for the handler
+ * @path: (allow-none): the toplevel path for the handler
  * @callback: callback to invoke for requests under @path
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data

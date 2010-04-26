@@ -518,7 +518,7 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
  * of @auth's protection space, unless otherwise discovered not to
  * be.)
  *
- * Return value: the list of paths, which must be freed with
+ * Return value: (element-type utf8): the list of paths, which can be freed with
  * soup_auth_free_protection_space().
  **/
 GSList *
@@ -531,7 +531,7 @@ soup_auth_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 }
 
 /**
- * soup_auth_free_protection_space:
+ * soup_auth_free_protection_space: (skip)
  * @auth: a #SoupAuth
  * @space: the return value from soup_auth_get_protection_space()
  *

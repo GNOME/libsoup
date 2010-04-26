@@ -202,6 +202,62 @@ libsoup_gnome_2_4_la_SOURCES =		\
 
 endif
 
+#
+# Introspection support
+#
+include $(INTROSPECTION_MAKEFILE)
+INTROSPECTION_GIRS =
+INTROSPECTION_SCANNER_ARGS = --add-include-path=.
+INTROSPECTION_COMPILER_ARGS = --includedir=.
+
+if HAVE_INTROSPECTION
+
+# Core library
+gi_soup_files = \
+	$(filter-out soup.h soup-enum-types.% soup-marshal.%,\
+	   $(soup_headers) $(libsoup_2_4_la_SOURCES))
+gi_built_soup_files = soup-enum-types.h
+
+Soup-2.4.gir: libsoup-2.4.la
+Soup_2_4_gir_INCLUDES = Gio-2.0
+Soup_2_4_gir_CFLAGS = $(INCLUDES)
+Soup_2_4_gir_LIBS = libsoup-2.4.la
+Soup_2_4_gir_FILES = \
+	$(addprefix $(srcdir)/, $(gi_soup_files)) \
+        $(foreach f,$(gi_built_soup_files), \
+	   $(if $(shell test -f $(addprefix $(srcdir)/,$(f)) && echo yes), \
+	      $(addprefix $(srcdir)/,$(f)), \
+	      $(f)))
+
+INTROSPECTION_GIRS += Soup-2.4.gir
+
+if BUILD_LIBSOUP_GNOME
+
+# GNOME extensions
+gi_soup_gnome_files = $(filter-out soup-gnome.h,\
+		          $(libsoupgnomeinclude_HEADERS) \
+	                  $(libsoup_gnome_2_4_la_SOURCES))
+SoupGNOME-2.4.gir: libsoup-gnome-2.4.la Soup-2.4.gir
+SoupGNOME_2_4_gir_SCANNERFLAGS = --strip-prefix=soup
+SoupGNOME_2_4_gir_INCLUDES = Soup-2.4
+SoupGNOME_2_4_gir_CFLAGS = $(INCLUDES)
+SoupGNOME_2_4_gir_LIBS = libsoup-gnome-2.4.la
+SoupGNOME_2_4_gir_FILES = $(addprefix $(srcdir)/,$(gi_soup_gnome_files))
+
+INTROSPECTION_GIRS += SoupGNOME-2.4.gir
+
+endif
+
+girdir = $(datadir)/gir-1.0
+dist_gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES += $(dist_gir_DATA) $(typelib_DATA)
+
+endif
+
 EXTRA_DIST=				\
 	soup-marshal.list		\
 	soup-enum-types.h.tmpl		\

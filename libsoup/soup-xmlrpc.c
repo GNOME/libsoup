@@ -545,8 +545,8 @@ parse_value (xmlNode *xmlvalue, GValue *value)
  * soup_xmlrpc_parse_method_call:
  * @method_call: the XML-RPC methodCall string
  * @length: the length of @method_call, or -1 if it is NUL-terminated
- * @method_name: on return, the methodName from @method_call
- * @params: on return, the parameters from @method_call
+ * @method_name: (out): on return, the methodName from @method_call
+ * @params: (out): on return, the parameters from @method_call
  *
  * Parses @method_call to get the name and parameters, and returns the
  * parameter values in a #GValueArray; see also
@@ -612,7 +612,7 @@ fail:
  * soup_xmlrpc_extract_method_call:
  * @method_call: the XML-RPC methodCall string
  * @length: the length of @method_call, or -1 if it is NUL-terminated
- * @method_name: on return, the methodName from @method_call
+ * @method_name: (out): on return, the methodName from @method_call
  * @...: return types and locations for parameters
  *
  * Parses @method_call to get the name and parameters, and puts
@@ -652,7 +652,7 @@ soup_xmlrpc_extract_method_call (const char *method_call, int length,
  * soup_xmlrpc_parse_method_response:
  * @method_response: the XML-RPC methodResponse string
  * @length: the length of @method_response, or -1 if it is NUL-terminated
- * @value: on return, the return value from @method_call
+ * @value: (out): on return, the return value from @method_call
  * @error: error return value
  *
  * Parses @method_response and returns the return value in @value. If
