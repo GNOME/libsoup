@@ -72,7 +72,7 @@ typedef struct {
 
 #define SOUP_AUTH_DOMAIN_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_DOMAIN, SoupAuthDomainPrivate))
 
-G_DEFINE_TYPE (SoupAuthDomain, soup_auth_domain, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE (SoupAuthDomain, soup_auth_domain, G_TYPE_OBJECT)
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);

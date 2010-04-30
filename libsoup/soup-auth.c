@@ -47,7 +47,7 @@ typedef struct {
 } SoupAuthPrivate;
 #define SOUP_AUTH_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH, SoupAuthPrivate))
 
-G_DEFINE_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
 
 enum {
 	SAVE_PASSWORD,
