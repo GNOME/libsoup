@@ -119,7 +119,7 @@ static void auth_manager_authenticate (SoupAuthManager *manager,
 
 #define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
-G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
 
 enum {
 	REQUEST_QUEUED,
