@@ -28,6 +28,8 @@ GType soup_buffer_get_type (void);
 SoupBuffer *soup_buffer_new            (SoupMemoryUse   use,
 					gconstpointer   data,
 					gsize           length);
+SoupBuffer *soup_buffer_new_take       (guchar         *data,
+					gsize           length);
 SoupBuffer *soup_buffer_new_subbuffer  (SoupBuffer     *parent,
 					gsize           offset,
 					gsize           length);
@@ -37,7 +39,9 @@ SoupBuffer *soup_buffer_new_with_owner (gconstpointer   data,
 					gpointer        owner,
 					GDestroyNotify  owner_dnotify);
 gpointer    soup_buffer_get_owner      (SoupBuffer     *buffer);
-
+void        soup_buffer_get_data       (SoupBuffer     *buffer,
+					const guint8  **data,
+					gsize          *length);
 SoupBuffer *soup_buffer_copy           (SoupBuffer     *buffer);
 void        soup_buffer_free           (SoupBuffer     *buffer);
 
@@ -58,6 +62,9 @@ gboolean         soup_message_body_get_accumulate(SoupMessageBody *body);
 void             soup_message_body_append        (SoupMessageBody *body,
 						  SoupMemoryUse    use,
 						  gconstpointer    data,
+						  gsize            length);
+void             soup_message_body_append_take   (SoupMessageBody *body,
+						  guchar          *data,
 						  gsize            length);
 void             soup_message_body_append_buffer (SoupMessageBody *body,
 						  SoupBuffer      *buffer);

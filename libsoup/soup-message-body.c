@@ -56,7 +56,7 @@ enum {
 
 /**
  * SoupBuffer:
- * @data: the data
+ * @data: (type pointer): the data
  * @length: length of @data
  *
  * A data buffer, generally used to represent a chunk of a
@@ -106,6 +106,28 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
 	}
 
 	return (SoupBuffer *)priv;
+}
+
+/**
+ * soup_buffer_new_take:
+ * @data: (array length=length) (transfer full): data
+ * @length: length of @data
+ *
+ * Creates a new #SoupBuffer containing @length bytes from @data.
+ *
+ * This function is exactly equivalent to soup_buffer_new() with
+ * %SOUP_MEMORY_TAKE as first argument; it exists mainly for
+ * convenience and simplifying language bindings.
+ *
+ * Return value: the new #SoupBuffer.
+ *
+ * Since: 2.32
+ * Rename to: soup_buffer_new
+ **/
+SoupBuffer *
+soup_buffer_new_take (guchar *data, gsize length)
+{
+	return soup_buffer_new (SOUP_MEMORY_TAKE, data, length);
 }
 
 /**
@@ -202,6 +224,28 @@ soup_buffer_get_owner (SoupBuffer *buffer)
 
 	g_return_val_if_fail (priv->use == SOUP_MEMORY_OWNED, NULL);
 	return priv->owner;
+}
+
+/**
+ * soup_buffer_get_data:
+ * @buffer: a #SoupBuffer
+ * @data: (out) (array length=length) (transfer none): the pointer
+ * to the buffer data is stored here
+ * @length: (out): the length of the buffer data is stored here
+ *
+ * This function exists for use by language bindings, because it's not
+ * currently possible to get the right effect by annotating the fields
+ * of #SoupBuffer.
+ *
+ * Since: 2.32
+ */
+void
+soup_buffer_get_data (SoupBuffer     *buffer,
+		      const guint8  **data,
+		      gsize          *length)
+{
+	*data = (const guint8 *)buffer->data;
+	*length = buffer->length;
 }
 
 /**
@@ -426,6 +470,28 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
 		append_buffer (body, soup_buffer_new (use, data, length));
 	else if (use == SOUP_MEMORY_TAKE)
 		g_free ((gpointer)data);
+}
+
+/**
+ * soup_message_body_append_take:
+ * @body: a #SoupMessageBody
+ * @data: (array length=length) (transfer full): data to append
+ * @length: length of @data
+ *
+ * Appends @length bytes from @data to @body.
+ *
+ * This function is exactly equivalent to soup_message_body_apppend()
+ * with %SOUP_MEMORY_TAKE as second argument; it exists mainly for
+ * convenience and simplifying language bindings.
+ *
+ * Since: 2.32
+ * Rename to: soup_message_body_append
+ **/
+void
+soup_message_body_append_take (SoupMessageBody *body,
+			       guchar *data, gsize length)
+{
+	soup_message_body_append(body, SOUP_MEMORY_TAKE, data, length);
 }
 
 /**
