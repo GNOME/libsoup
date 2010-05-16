@@ -109,6 +109,12 @@
    ...
    fun:g_resolver_get_default
 }
+{
+   glib/g_main_context_push_thread_default
+   Memcheck:Leak
+   ...
+   fun:g_main_context_push_thread_default
+}
 
 # probably using uninitialized memory as padding or something
 {
@@ -159,7 +165,7 @@
    Memcheck:Leak
    ...
    fun:g_ascii_strdown
-   fun:soup_uri_get_scheme
+   fun:soup_uri_parse_scheme
 }
 {
    libsoup/interned_headers
