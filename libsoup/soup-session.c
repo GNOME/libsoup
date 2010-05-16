@@ -1265,11 +1265,10 @@ soup_session_connection_failed (SoupSession *session,
 
 	if (host)
 		connection_disconnected (conn, session);
-	else {
+	else if (conn)
 		host = g_object_get_data (G_OBJECT (conn), "SoupSessionHost");
-		if (!host)
-			return;
-	}
+	if (!host)
+		return;
 
 	if (status == SOUP_STATUS_TRY_AGAIN)
 		return;
