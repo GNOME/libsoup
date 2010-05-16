@@ -423,7 +423,21 @@ static void
 socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 {
 	SoupConnectionAsyncConnectData *data = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
+	SoupConnectionPrivate *priv;
+
+	if (!data->conn) {
+		if (data->callback) {
+			data->callback (NULL, SOUP_STATUS_CANCELLED,
+					data->callback_data);
+		}
+		g_slice_free (SoupConnectionAsyncConnectData, data);
+		return;
+	}
+
+	g_object_remove_weak_pointer (G_OBJECT (data->conn),
+				      (gpointer *)&data->conn);
+
+	priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto done;
@@ -477,6 +491,7 @@ soup_connection_connect_async (SoupConnection *conn,
 	data->conn = conn;
 	data->callback = callback;
 	data->callback_data = user_data;
+	g_object_add_weak_pointer (G_OBJECT (conn), (gpointer *)&data->conn);
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
@@ -590,6 +605,7 @@ soup_connection_disconnect (SoupConnection *conn)
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
+	soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 	if (!priv->socket)
 		return;
 
@@ -599,11 +615,6 @@ soup_connection_disconnect (SoupConnection *conn)
 	g_object_unref (priv->socket);
 	priv->socket = NULL;
 
-	/* Don't emit "disconnected" if we aren't yet connected */
-	if (priv->state < SOUP_CONNECTION_IDLE)
-		return;
-
-	soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 	/* NB: this might cause conn to be destroyed. */
 	g_signal_emit (conn, signals[DISCONNECTED], 0);
 }

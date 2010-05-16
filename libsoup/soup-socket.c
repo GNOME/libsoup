@@ -95,6 +95,8 @@ typedef struct {
 
 	GMutex *iolock, *addrlock;
 	guint timeout;
+
+	GCancellable *connect_cancel;
 } SoupSocketPrivate;
 #define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
@@ -156,6 +158,8 @@ finalize (GObject *object)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
+	if (priv->connect_cancel)
+		g_object_unref (priv->connect_cancel);
 	if (priv->iochannel)
 		disconnect_internal (priv);
 
@@ -615,6 +619,16 @@ typedef struct {
 	gpointer user_data;
 } SoupSocketAsyncConnectData;
 
+static void
+free_sacd (SoupSocketAsyncConnectData *sacd)
+{
+	if (sacd->cancel_id)
+		g_signal_handler_disconnect (sacd->cancellable, sacd->cancel_id);
+	g_object_unref (sacd->cancellable);
+	g_object_unref (sacd->sock);
+	g_slice_free (SoupSocketAsyncConnectData, sacd);
+}
+
 static gboolean
 idle_connect_result (gpointer user_data)
 {
@@ -622,9 +636,8 @@ idle_connect_result (gpointer user_data)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sacd->sock);
 	guint status;
 
+	priv->connect_cancel = NULL;
 	priv->watch_src = NULL;
-	if (sacd->cancel_id)
-		g_signal_handler_disconnect (sacd->cancellable, sacd->cancel_id);
 
 	if (priv->sockfd == -1) {
 		if (g_cancellable_is_cancelled (sacd->cancellable))
@@ -635,7 +648,7 @@ idle_connect_result (gpointer user_data)
 		status = SOUP_STATUS_OK;
 
 	sacd->callback (sacd->sock, status, sacd->user_data);
-	g_slice_free (SoupSocketAsyncConnectData, sacd);
+	free_sacd (sacd);
 	return FALSE;
 }
 
@@ -684,16 +697,17 @@ static void
 got_address (SoupAddress *addr, guint status, gpointer user_data)
 {
 	SoupSocketAsyncConnectData *sacd = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sacd->sock);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+	priv->connect_cancel = NULL;
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		soup_socket_connect_async (sacd->sock, sacd->cancellable,
+					   sacd->callback, sacd->user_data);
+	} else
 		sacd->callback (sacd->sock, status, sacd->user_data);
-		g_slice_free (SoupSocketAsyncConnectData, sacd);
-		return;
-	}
 
-	soup_socket_connect_async (sacd->sock, sacd->cancellable,
-				   sacd->callback, sacd->user_data);
-	g_slice_free (SoupSocketAsyncConnectData, sacd);
+	free_sacd (sacd);
 }
 
 static void
@@ -774,15 +788,23 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	g_return_if_fail (priv->remote_addr != NULL);
 
 	sacd = g_slice_new0 (SoupSocketAsyncConnectData);
-	sacd->sock = sock;
-	sacd->cancellable = cancellable;
+	sacd->sock = g_object_ref (sock);
+	sacd->cancellable = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 	sacd->callback = callback;
 	sacd->user_data = user_data;
+
+	priv->connect_cancel = sacd->cancellable;
+
+	if (g_cancellable_is_cancelled (priv->connect_cancel)) {
+		priv->watch_src = soup_add_completion (priv->async_context,
+						       idle_connect_result, sacd);
+		return;
+	}
 
 	if (!soup_address_get_sockaddr (priv->remote_addr, NULL)) {
 		soup_address_resolve_async (priv->remote_addr,
 					    priv->async_context,
-					    cancellable,
+					    sacd->cancellable,
 					    got_address, sacd);
 		return;
 	}
@@ -803,12 +825,10 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 						  priv->timeout * 1000,
 						  connect_timeout, sacd);
 		}
-		if (cancellable) {
-			sacd->cancel_id =
-				g_signal_connect (cancellable, "cancelled",
-						  G_CALLBACK (async_cancel),
-						  sacd);
-		}
+		sacd->cancel_id =
+			g_signal_connect (sacd->cancellable, "cancelled",
+					  G_CALLBACK (async_cancel),
+					  sacd);
 	} else {
 		priv->watch_src = soup_add_completion (priv->async_context,
 						       idle_connect_result, sacd);
@@ -848,28 +868,35 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	g_return_val_if_fail (priv->sockfd == -1, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (priv->remote_addr != NULL, SOUP_STATUS_MALFORMED);
 
+	if (cancellable)
+		g_object_ref (cancellable);
+	else
+		cancellable = g_cancellable_new ();
+	priv->connect_cancel = cancellable;
+
 	if (!soup_address_get_sockaddr (priv->remote_addr, NULL)) {
 		status = soup_address_resolve_sync (priv->remote_addr,
 						    cancellable);
-		if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			priv->connect_cancel = NULL;
+			g_object_unref (cancellable);
 			return status;
+		}
 	}
 
-	if (cancellable) {
-		cancel_id = g_signal_connect (cancellable, "cancelled",
-					      G_CALLBACK (sync_cancel), sock);
-	}
+	cancel_id = g_signal_connect (cancellable, "cancelled",
+				      G_CALLBACK (sync_cancel), sock);
 
 	status = socket_connect_internal (sock);
+	priv->connect_cancel = NULL;
 
-	if (cancellable) {
-		if (status != SOUP_STATUS_OK &&
-		    g_cancellable_is_cancelled (cancellable)) {
-			status = SOUP_STATUS_CANCELLED;
-			disconnect_internal (priv);
-		}
-		g_signal_handler_disconnect (cancellable, cancel_id);
+	if (status != SOUP_STATUS_OK &&
+	    g_cancellable_is_cancelled (cancellable)) {
+		status = SOUP_STATUS_CANCELLED;
+		disconnect_internal (priv);
 	}
+	g_signal_handler_disconnect (cancellable, cancel_id);
+	g_object_unref (cancellable);
 
 	return status;
 }
@@ -1080,7 +1107,10 @@ soup_socket_disconnect (SoupSocket *sock)
 	g_return_if_fail (SOUP_IS_SOCKET (sock));
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	if (g_mutex_trylock (priv->iolock)) {
+	if (priv->connect_cancel) {
+		g_cancellable_cancel (priv->connect_cancel);
+		return;
+	} else if (g_mutex_trylock (priv->iolock)) {
 		if (priv->iochannel)
 			disconnect_internal (priv);
 		else

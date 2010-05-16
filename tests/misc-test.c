@@ -194,6 +194,7 @@ do_callback_unref_test (void)
 	soup_address_resolve_sync (addr, NULL);
 	bad_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
 				      NULL);
+	g_object_unref (addr);
 
 	bad_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				   soup_server_get_port (bad_server));
@@ -322,6 +323,9 @@ do_msg_reuse_test (void)
 	g_free (signal_ids);
 }
 
+/* Server handlers for "*" work but are separate from handlers for
+ * all other URIs. #590751
+ */
 static void
 do_star_test (void)
 {
@@ -382,6 +386,19 @@ do_star_test (void)
 	soup_uri_free (star_uri);
 }
 
+/* Handle unexpectedly-early aborts. #596074, #618641 */
+static void
+ea_msg_completed_one (SoupSession *session, SoupMessage *msg, gpointer loop)
+{
+	debug_printf (2, "  Message 1 completed\n");
+	if (msg->status_code != SOUP_STATUS_CANCELLED) {
+		debug_printf (1, "  Unexpected status on Message 1: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_main_loop_quit (loop);
+}
+
 static gboolean
 ea_abort_session (gpointer session)
 {
@@ -416,16 +433,32 @@ do_early_abort_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg;
+	GMainContext *context;
+	GMainLoop *loop;
 
 	debug_printf (1, "\nAbort with pending connection\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", base_uri);
 
+	context = g_main_context_default ();
+	loop = g_main_loop_new (context, TRUE);
+	soup_session_queue_message (session, msg, ea_msg_completed_one, loop);
+	g_main_context_iteration (context, FALSE);
+
+	soup_session_abort (session);
+	while (g_main_context_pending (context))
+		g_main_context_iteration (context, FALSE);
+	g_main_loop_unref (loop);
+	soup_test_session_abort_unref (session);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
 	g_signal_connect (session, "connection-created",
 			  G_CALLBACK (ea_connection_created), NULL);
 	soup_session_send_message (session, msg);
+	debug_printf (2, "  Message 2 completed\n");
 
 	if (msg->status_code != SOUP_STATUS_CANCELLED) {
 		debug_printf (1, "    Unexpected response: %d %s\n",
@@ -433,6 +466,9 @@ do_early_abort_test (void)
 		errors++;
 	}
 	g_object_unref (msg);
+
+	while (g_main_context_pending (context))
+		g_main_context_iteration (context, FALSE);
 
 	soup_test_session_abort_unref (session);
 }

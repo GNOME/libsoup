@@ -253,9 +253,18 @@ tunnel_connect_restarted (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-got_connection (SoupConnection *conn, guint status, gpointer session)
+got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
+	gpointer *session_p = user_data;
+	SoupSession *session = *session_p;
 	SoupAddress *tunnel_addr;
+
+	if (!session) {
+		g_slice_free (gpointer, session_p);
+		return;
+	}
+	g_object_remove_weak_pointer (G_OBJECT (session), session_p);
+	g_slice_free (gpointer, session_p);
 
 	if (status != SOUP_STATUS_OK) {
 		/* There may have been messages waiting for the
@@ -344,8 +353,13 @@ run_queue (SoupSessionAsync *sa)
 			continue;
 
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
+			gpointer *session_p;
+
+			session_p = g_slice_new (gpointer);
+			*session_p = session;
+			g_object_add_weak_pointer (G_OBJECT (session), session_p);
 			soup_connection_connect_async (conn, got_connection,
-						       session);
+						       session_p);
 		} else
 			soup_session_send_queue_item (session, item, conn);
 	}
