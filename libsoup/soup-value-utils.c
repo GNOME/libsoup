@@ -56,7 +56,7 @@ soup_value_hash_value_free (gpointer val)
  * Creates a #GHashTable whose keys are strings and whose values
  * are #GValue.
  *
- * Return value: a new empty #GHashTable
+ * Return value: (element-type utf8 GValue): a new empty #GHashTable
  **/
 GHashTable *
 soup_value_hash_new (void)
@@ -94,7 +94,7 @@ soup_value_hash_insert_valist (GHashTable *hash, const char *first_key,
  * with soup_value_hash_insert(), the keys and values are copied
  * rather than being inserted directly.
  *
- * Return value: a new #GHashTable, initialized with the given values
+ * Return value: (element-type utf8 GValue): a new #GHashTable, initialized with the given values
  **/
 GHashTable *
 soup_value_hash_new_with_vals (const char *first_key, ...)
@@ -111,7 +111,7 @@ soup_value_hash_new_with_vals (const char *first_key, ...)
 
 /**
  * soup_value_hash_insert_value:
- * @hash: a value hash
+ * @hash: (element-type utf8 GValue): a value hash
  * @key: the key
  * @value: a value
  *
@@ -130,7 +130,7 @@ soup_value_hash_insert_value (GHashTable *hash, const char *key, GValue *value)
 
 /**
  * soup_value_hash_insert:
- * @hash: a value hash
+ * @hash: (element-type utf8 GValue): a value hash
  * @key: the key
  * @type: a #GType
  * @...: a value of type @type
@@ -152,7 +152,7 @@ soup_value_hash_insert (GHashTable *hash, const char *key, GType type, ...)
 
 /**
  * soup_value_hash_insert_vals:
- * @hash: a value hash
+ * @hash: (element-type utf8 GValue): a value hash
  * @first_key: the key for the first value
  * @...: the type of @first_key, followed by the value, followed
  * by additional key/type/value triplets, terminated by %NULL
@@ -173,7 +173,7 @@ soup_value_hash_insert_vals (GHashTable *hash, const char *first_key, ...)
 
 /**
  * soup_value_hash_lookup:
- * @hash: a value hash
+ * @hash: (element-type utf8 GValue): a value hash
  * @key: the key to look up
  * @type: a #GType
  * @...: a value of type pointer-to-@type
@@ -203,7 +203,7 @@ soup_value_hash_lookup (GHashTable *hash, const char *key, GType type, ...)
 
 /**
  * soup_value_hash_lookup_vals:
- * @hash: a value hash
+ * @hash: (element-type utf8 GValue): a value hash
  * @first_key: the first key to look up
  * @...: the type of @first_key, a pointer to that type, and
  * then additional key/type/pointer triplets, terminated

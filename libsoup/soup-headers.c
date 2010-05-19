@@ -748,7 +748,7 @@ parse_param_list (const char *header, char delim)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: a #GHashTable of list elements, which can be freed
+ * Return value: (element-type utf8 utf8): a #GHashTable of list elements, which can be freed
  * with soup_header_free_param_list().
  **/
 GHashTable *
@@ -773,8 +773,8 @@ soup_header_parse_param_list (const char *header)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: a #GHashTable of list elements, which can be freed
- * with soup_header_free_param_list().
+ * Return value: (element-type utf8 utf8): a #GHashTable of list
+ * elements, which can be freed with soup_header_free_param_list().
  *
  * Since: 2.24
  **/
@@ -788,7 +788,7 @@ soup_header_parse_semi_param_list (const char *header)
 
 /**
  * soup_header_free_param_list:
- * @param_list: a #GHashTable returned from soup_header_parse_param_list()
+ * @param_list: (element-type utf8 utf8): a #GHashTable returned from soup_header_parse_param_list()
  * or soup_header_parse_semi_param_list()
  *
  * Frees @param_list.

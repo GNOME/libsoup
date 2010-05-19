@@ -420,7 +420,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * SoupMessage::content-sniffed:
 	 * @msg: the message
 	 * @type: the content type that we got from sniffing
-	 * @params: a #GHashTable with the parameters
+	 * @params: (element-type utf8 utf8): a #GHashTable with the parameters
 	 *
 	 * This signal is emitted after %got-headers, and before the
 	 * first %got-chunk. If content sniffing is disabled, or no
