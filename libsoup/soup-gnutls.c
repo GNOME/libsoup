@@ -486,6 +486,11 @@ soup_ssl_wrap_iochannel (GIOChannel *sock, gboolean non_blocking,
 
 	if (type == SOUP_SSL_TYPE_SERVER)
 		gnutls_dh_set_prime_bits (session, DH_BITS);
+	else {
+		// gnutls defaults to requiring at least 768-bit keys,
+		// but there are some lame servers out there...
+		gnutls_dh_set_prime_bits (session, 256);
+	}
 
 	chan = g_slice_new0 (SoupGNUTLSChannel);
 	chan->real_sock = sock;
