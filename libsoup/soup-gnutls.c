@@ -163,9 +163,10 @@ again:
 	}
 
 	if (result < 0) {
-		g_set_error (err, G_IO_CHANNEL_ERROR,
-			     G_IO_CHANNEL_ERROR_FAILED,
-			     "Unable to handshake");
+		g_set_error (err, SOUP_SSL_ERROR,
+			     SOUP_SSL_ERROR_HANDSHAKE_FAILED,
+			     "SSL handshake failed: %s",
+			     gnutls_strerror (result));
 		return G_IO_STATUS_ERROR;
 	}
 
