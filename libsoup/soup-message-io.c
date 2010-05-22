@@ -200,6 +200,7 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 	} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 		   io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
 		   io->read_meta_buf->len == 0 &&
+		   soup_connection_get_ever_used (io->conn) &&
 		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		   request_is_idempotent (msg)) {
 		/* Connection got closed, but we can safely try again */
