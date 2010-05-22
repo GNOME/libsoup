@@ -360,7 +360,6 @@ set_current_request (SoupConnection *conn, SoupMessage *req)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	stop_idle_timer (priv);
-	priv->unused_timeout = 0;
 
 	soup_message_set_io_status (req, SOUP_MESSAGE_IO_STATUS_RUNNING);
 	priv->cur_req = req;
@@ -381,6 +380,8 @@ clear_current_request (SoupConnection *conn)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	g_object_freeze_notify (G_OBJECT (conn));
+
+	priv->unused_timeout = 0;
 
 	if (priv->state == SOUP_CONNECTION_IN_USE) {
 		/* We don't use soup_connection_set_state here since
@@ -680,6 +681,14 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 		clear_current_request (conn);
 
 	g_object_notify (G_OBJECT (conn), "state");
+}
+
+gboolean
+soup_connection_get_ever_used (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->unused_timeout == 0;
 }
 
 /**
