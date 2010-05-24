@@ -45,6 +45,10 @@ libsoup/soup-enum-types.c
 libsoup/soup-enum-types.h
 libsoup/soup-marshal.c
 libsoup/soup-marshal.h
+libsoup/Soup-2.4.gir
+libsoup/Soup-2.4.typelib
+libsoup/SoupGNOME-2.4.gir
+libsoup/SoupGNOME-2.4.typelib
 libtool
 ltmain.sh
 m4/gtk-doc.m4
