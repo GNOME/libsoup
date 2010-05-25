@@ -1,3 +1,75 @@
+Changes in libsoup from 2.30.1 to 2.31.2:
+
+	* gobject-introspection has now been merged in. Use
+          --enable-introspection to build. [#576595, Andreas Rottmann]
+	  Note that the introspected API is not yet stable, and in
+	  particular, there are numerous values annotated as "utf8"
+	  which are actually not guaranteed to be utf8. (Eg, most
+	  header data.)
+
+		* Added some helper functions for bindings:
+                  soup_buffer_new_take(),
+                  soup_message_body_append_take(), and
+                  soup_buffer_get_data(). [#576595, Andreas Rottmann]
+
+		* Also added properties for several SoupMessage public
+                  fields, and getter methods for various boxed types
+                  (SoupCookie, SoupDate, SoupURI).
+
+		* Added some additional hash-table annotations.
+                  [#619086, Gustavo Noronha Silva]
+
+	* Marked SoupSession abstract. [#617216, Lorenzo Gil, the
+          first bug filed by someone trying to use libsoup via
+          introspection!] Likewise for SoupAuth and SoupAuthDomain.
+
+	* Fixed a problem with SoupSessionAsync that would cause
+          messages to get lost if you aborted a previous message while
+          it was still looking up the hostname. Fixed several other
+          problems that were discovered while adding a regression test
+          for that. [#618641, thanks to Claudio Saavedra for a good
+          test case]
+
+	* Fixed another connecting-to-lame-http-server problem, and a
+          getting-stuck-in-a-loop-reconnecting bug that it revealed.
+          [#615535]
+
+Changes in libsoup from 2.30.0 to 2.30.1:
+
+	* Fix for https through proxies that close the connection when
+          returning a "407 Proxy Authentication Required" response,
+          and add a regression test for that case. [#611663]
+
+	* Fixed multiple forms/multipart-related interoperability
+          problems reported by Egon Andersen:
+
+		* Don't quote the multipart boundary string if it's
+                  not needed, since RFC 2616 recommends that you
+                  don't, and some servers don't handle quotes there
+                  correctly. (Sigh.) [#614176]
+
+		* Don't put an extra blank line before the first
+                  multipart part, since it's unnecessary and some
+                  servers don't handle a multipart preamble correctly.
+                  (Sigh.) [#614183]
+
+		* Don't put Content-Transfer-Encoding headers in the
+                  multipart/form-data parts, even though the HTML 4
+                  spec says you must, since no other browsers do, and
+                  some servers don't handle them correctly. (Sigh.)
+                  [#614198]
+
+	* Changed SoupCookieJarSqlite to actually erase deleted
+          cookies from the database. [#615711, Lukasz Slachciak]
+
+	* Fixed SoupLogger to be more robust against getting passed
+          bad data by the session. [#611663]
+
+	* Fixed SoupAuthDomain to ignore paths when doing proxy auth
+
+	* Fixed a g_warning when hovering over a javascript link in
+          WebKit. [#613442, Xan Lopez]
+
 Changes in libsoup from 2.29.91 to 2.30.0:
 
 	* Fixed a crash in the whitespace-stripping code in
