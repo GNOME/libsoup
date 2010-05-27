@@ -377,6 +377,7 @@ soup_form_request_for_data (const char *method, const char *uri_string,
 		/* Don't crash */
 		msg = soup_message_new_from_uri (method, uri);
 	}
+	soup_uri_free (uri);
 
 	return msg;
 }
