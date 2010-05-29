@@ -10,16 +10,8 @@
 #include "soup-auth.h"
 #include "soup-content-sniffer.h"
 
-typedef enum {
-	SOUP_MESSAGE_IO_STATUS_IDLE,
-	SOUP_MESSAGE_IO_STATUS_QUEUED,
-        SOUP_MESSAGE_IO_STATUS_RUNNING,
-	SOUP_MESSAGE_IO_STATUS_FINISHED
-} SoupMessageIOStatus;
-
 typedef struct {
 	gpointer           io_data;
-	SoupMessageIOStatus io_status;
 
 	SoupChunkAllocator chunk_allocator;
 	gpointer           chunk_allocator_data;
@@ -44,8 +36,6 @@ typedef struct {
 	SoupURI           *first_party;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
-
-#define SOUP_MESSAGE_IS_STARTING(msg) (SOUP_MESSAGE_GET_PRIVATE (msg)->io_status == SOUP_MESSAGE_IO_STATUS_QUEUED && !SOUP_STATUS_IS_TRANSPORT_ERROR ((msg)->status_code))
 
 void             soup_message_cleanup_response (SoupMessage      *req);
 
@@ -95,9 +85,6 @@ void           soup_message_set_proxy_auth (SoupMessage *msg,
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 /* I/O */
-void                soup_message_set_io_status  (SoupMessage          *msg,
-						 SoupMessageIOStatus  status);
-SoupMessageIOStatus soup_message_get_io_status  (SoupMessage          *msg);
 void                soup_message_io_stop        (SoupMessage          *msg);
 void                soup_message_io_pause       (SoupMessage          *msg);
 void                soup_message_io_unpause     (SoupMessage          *msg);

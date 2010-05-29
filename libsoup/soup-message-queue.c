@@ -69,7 +69,7 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 		soup_uri_free (item->proxy_uri);
 		item->proxy_uri = NULL;
 	}
-	item->resolved_proxy_addr = FALSE;
+	item->state = SOUP_MESSAGE_STARTING;
 }
 
 /**

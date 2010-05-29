@@ -16,6 +16,24 @@
 
 G_BEGIN_DECLS
 
+typedef enum {
+	SOUP_MESSAGE_STARTING,
+	SOUP_MESSAGE_RESOLVING_PROXY_URI,
+	SOUP_MESSAGE_RESOLVED_PROXY_URI,
+	SOUP_MESSAGE_RESOLVING_PROXY_ADDRESS,
+	SOUP_MESSAGE_RESOLVED_PROXY_ADDRESS,
+	SOUP_MESSAGE_AWAITING_CONNECTION,
+	SOUP_MESSAGE_GOT_CONNECTION,
+	SOUP_MESSAGE_CONNECTING,
+	SOUP_MESSAGE_CONNECTED,
+	SOUP_MESSAGE_TUNNELING,
+	SOUP_MESSAGE_TUNNELED,
+	SOUP_MESSAGE_READY,
+	SOUP_MESSAGE_RUNNING,
+	SOUP_MESSAGE_RESTARTING,
+	SOUP_MESSAGE_FINISHED
+} SoupMessageQueueItemState;
+
 struct _SoupMessageQueueItem {
 	/*< public >*/
 	SoupSession *session;
@@ -31,12 +49,11 @@ struct _SoupMessageQueueItem {
 
 	guint redirection_count;
 
-	guint resolving_proxy_addr : 1;
-	guint resolved_proxy_addr  : 1;
+	SoupMessageQueueItemState state;
 
 	/*< private >*/
 	guint removed              : 1;
-	guint ref_count            : 29;
+	guint ref_count            : 31;
 	SoupMessageQueueItem *prev, *next;
 };
 
@@ -60,6 +77,7 @@ void                  soup_message_queue_item_ref   (SoupMessageQueueItem *item)
 void                  soup_message_queue_item_unref (SoupMessageQueueItem *item);
 
 void                  soup_message_queue_destroy    (SoupMessageQueue     *queue);
+
 
 G_END_DECLS
 

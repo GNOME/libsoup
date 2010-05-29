@@ -371,7 +371,7 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 
 	stop_idle_timer (priv);
 
-	soup_message_set_io_status (item->msg, SOUP_MESSAGE_IO_STATUS_RUNNING);
+	item->state = SOUP_MESSAGE_RUNNING;
 	priv->cur_item = item;
 	g_object_notify (G_OBJECT (conn), "message");
 

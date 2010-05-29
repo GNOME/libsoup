@@ -149,17 +149,20 @@ tunnel_connect (SoupSession *session, SoupConnection *conn,
 	item = soup_session_make_connect_message (session, tunnel_addr);
 	do {
 		soup_session_send_queue_item (session, item, conn, NULL);
-		if (SOUP_MESSAGE_IS_STARTING (item->msg))
-			soup_message_restarted (item->msg) ;
-		else
+		if (item->state == SOUP_MESSAGE_RESTARTING) {
+			item->state = SOUP_MESSAGE_STARTING;
+			soup_message_restarted (item->msg);
+		} else {
+			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
-	} while (SOUP_MESSAGE_IS_STARTING (item->msg) &&
+		}
+	} while (item->state == SOUP_MESSAGE_STARTING &&
 		 soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
 
 	/* If the message was requeued but its connection was closed,
 	 * return TRY_AGAIN to our caller.
 	 */
-	if (SOUP_MESSAGE_IS_STARTING (item->msg))
+	if (item->state == SOUP_MESSAGE_STARTING)
 		status = SOUP_STATUS_TRY_AGAIN;
 	else
 		status = item->msg->status_code;
@@ -190,7 +193,8 @@ wait_for_connection (SoupMessageQueueItem *item)
 	guint status;
 
 	proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
-	if (proxy_resolver && !item->resolved_proxy_addr) {
+	if (proxy_resolver && item->state == SOUP_MESSAGE_STARTING) {
+		item->state = SOUP_MESSAGE_RESOLVING_PROXY_URI;
 		status = soup_proxy_uri_resolver_get_proxy_uri_sync (
 			proxy_resolver, soup_message_get_uri (msg),
 			item->cancellable, &item->proxy_uri);
@@ -199,8 +203,10 @@ wait_for_connection (SoupMessageQueueItem *item)
 				soup_session_cancel_message (session, msg, status);
 			return NULL;
 		}
+		item->state = SOUP_MESSAGE_RESOLVED_PROXY_URI;
 
 		if (item->proxy_uri) {
+			item->state = SOUP_MESSAGE_RESOLVING_PROXY_ADDRESS;
 			item->proxy_addr = soup_address_new (
 				item->proxy_uri->host, item->proxy_uri->port);
 			status = soup_address_resolve_sync (item->proxy_addr,
@@ -212,7 +218,7 @@ wait_for_connection (SoupMessageQueueItem *item)
 			}
 		}
 
-		item->resolved_proxy_addr = TRUE;
+		item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
 	}
 
 	g_mutex_lock (priv->lock);
@@ -223,25 +229,29 @@ wait_for_connection (SoupMessageQueueItem *item)
 	conn = soup_session_get_connection (session, item, &try_pruning);
 	if (conn) {
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
+			item->state = SOUP_MESSAGE_CONNECTING;
 			status = soup_connection_connect_sync (conn, item->cancellable);
 
 			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 				soup_session_connection_failed (session, conn, status);
 				conn = NULL;
-			} else if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
+			} else if (item->state == SOUP_MESSAGE_FINISHED) {
 				/* Message was cancelled while we were
 				 * connecting.
 				 */
 				soup_connection_disconnect (conn);
 				conn = NULL;
 			} else if ((tunnel_addr = soup_connection_get_tunnel_addr (conn))) {
+				item->state = SOUP_MESSAGE_TUNNELING;
 				status = tunnel_connect (session, conn, tunnel_addr);
 				if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 					conn = NULL;
 					if (status == SOUP_STATUS_TRY_AGAIN)
 						goto try_again;
-				}
-                        }
+				} else
+					item->state = SOUP_MESSAGE_READY;
+                        } else
+				item->state = SOUP_MESSAGE_READY;
 		}
 
 		g_mutex_unlock (priv->lock);
@@ -258,7 +268,7 @@ wait_for_connection (SoupMessageQueueItem *item)
 	g_cond_wait (priv->cond, priv->lock);
 
 	/* See if something bad happened */
-	if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED) {
+	if (item->state == SOUP_MESSAGE_FINISHED) {
 		g_mutex_unlock (priv->lock);
 		return NULL;
 	}
@@ -272,19 +282,23 @@ process_queue_item (SoupMessageQueueItem *item)
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (item->session);
 	SoupConnection *conn;
 
+	item->state = SOUP_MESSAGE_STARTING;
 	do {
 		conn = wait_for_connection (item);
 		if (!conn)
 			break;
 
+		item->state = SOUP_MESSAGE_RUNNING;
 		soup_session_send_queue_item (item->session, item, conn, NULL);
-		if (SOUP_MESSAGE_IS_STARTING (item->msg))
+		if (item->state == SOUP_MESSAGE_RESTARTING) {
+			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_restarted (item->msg);
-		else
+		} else {
+			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
+		}
 		g_cond_broadcast (priv->cond);
-	} while (soup_message_get_io_status (item->msg) !=
-		 SOUP_MESSAGE_IO_STATUS_FINISHED);
+	} while (item->state != SOUP_MESSAGE_FINISHED);
 }
 
 static gboolean

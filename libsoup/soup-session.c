@@ -1290,7 +1290,7 @@ soup_session_connection_failed (SoupSession *session,
 	g_object_ref (session);
 	for (item = soup_message_queue_first (priv->queue); item; item = soup_message_queue_next (priv->queue, item)) {
 		msg = item->msg;
-		if (SOUP_MESSAGE_IS_STARTING (msg) &&
+		if (item->state < SOUP_MESSAGE_RUNNING &&
 		    get_host_for_message (session, msg) == host)
 			soup_session_cancel_message (session, msg, status);
 	}
@@ -1472,7 +1472,7 @@ message_finished (SoupMessage *msg, gpointer user_data)
 		item->conn = NULL;
 	}
 
-	if (!SOUP_MESSAGE_IS_STARTING (msg)) {
+	if (item->state == SOUP_MESSAGE_FINISHED) {
 		soup_message_queue_remove (priv->queue, item);
 
 		g_mutex_lock (priv->host_lock);
@@ -1489,7 +1489,8 @@ message_finished (SoupMessage *msg, gpointer user_data)
 						      0, 0, NULL, NULL, session);
 		g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, msg);
 		soup_message_queue_item_unref (item);
-	}
+	} else
+		g_warning ("finished an item with state %d", item->state);
 }
 
 static void
@@ -1506,8 +1507,6 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	host = get_host_for_message (session, item->msg);
 	host->num_messages++;
 	g_mutex_unlock (priv->host_lock);
-
-	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
 
 	g_signal_connect_after (msg, "finished",
 				G_CALLBACK (message_finished), item);
@@ -1562,7 +1561,13 @@ soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 static void
 requeue_message (SoupSession *session, SoupMessage *msg)
 {
-	soup_message_set_io_status (msg, SOUP_MESSAGE_IO_STATUS_QUEUED);
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	g_return_if_fail (item != NULL);
+	item->state = SOUP_MESSAGE_RESTARTING;
+	soup_message_queue_item_unref (item);
 }
 
 /**
@@ -1654,15 +1659,19 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 	SoupMessageQueueItem *item;
 
 	item = soup_message_queue_lookup (priv->queue, msg);
-	if (item) {
-		if (item->cancellable)
-			g_cancellable_cancel (item->cancellable);
-		soup_message_queue_item_unref (item);
-	}
+	g_return_if_fail (item != NULL);
+
+	if (item->cancellable)
+		g_cancellable_cancel (item->cancellable);
 
 	soup_message_io_stop (msg);
 	soup_message_set_status (msg, status_code);
-	soup_message_finished (msg);
+
+	if (item->state != SOUP_MESSAGE_FINISHED) {
+		item->state = SOUP_MESSAGE_FINISHED;
+		soup_message_finished (msg);
+	}
+	soup_message_queue_item_unref (item);
 }
 
 /**
@@ -1695,14 +1704,24 @@ void
 soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
 			     guint status_code)
 {
+	SoupSessionPrivate *priv;
+	SoupMessageQueueItem *item;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	item = soup_message_queue_lookup (priv->queue, msg);
 	/* If the message is already ending, don't do anything */
-	if (soup_message_get_io_status (msg) == SOUP_MESSAGE_IO_STATUS_FINISHED)
+	if (!item)
 		return;
+	if (item->state == SOUP_MESSAGE_FINISHED) {
+		soup_message_queue_item_unref (item);
+		return;
+	}
 
 	SOUP_SESSION_GET_CLASS (session)->cancel_message (session, msg, status_code);
+	soup_message_queue_item_unref (item);
 }
 
 static void

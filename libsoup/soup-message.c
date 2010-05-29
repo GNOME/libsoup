@@ -129,8 +129,6 @@ enum {
 };
 
 static void got_body (SoupMessage *req);
-static void restarted (SoupMessage *req);
-static void finished (SoupMessage *req);
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
@@ -142,7 +140,6 @@ soup_message_init (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	priv->io_status = SOUP_MESSAGE_IO_STATUS_IDLE;
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
 
 	msg->request_body = soup_message_body_new ();
@@ -198,9 +195,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
-	message_class->got_body     = got_body;
-	message_class->restarted    = restarted;
-	message_class->finished     = finished;
+	message_class->got_body = got_body;
 
 	/* virtual method override */
 	object_class->finalize = finalize;
@@ -1014,12 +1009,6 @@ soup_message_content_sniffed (SoupMessage *msg, const char *content_type, GHashT
 	g_signal_emit (msg, signals[CONTENT_SNIFFED], 0, content_type, params);
 }
 
-static void
-restarted (SoupMessage *req)
-{
-	soup_message_io_stop (req);
-}
-
 /**
  * soup_message_restarted:
  * @msg: a #SoupMessage
@@ -1033,15 +1022,6 @@ soup_message_restarted (SoupMessage *msg)
 	g_signal_emit (msg, signals[RESTARTED], 0);
 }
 
-static void
-finished (SoupMessage *req)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-
-	soup_message_io_stop (req);
-	priv->io_status = SOUP_MESSAGE_IO_STATUS_FINISHED;
-}
-
 /**
  * soup_message_finished:
  * @msg: a #SoupMessage
@@ -1052,10 +1032,7 @@ finished (SoupMessage *req)
 void
 soup_message_finished (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_FINISHED)
-		g_signal_emit (msg, signals[FINISHED], 0);
+	g_signal_emit (msg, signals[FINISHED], 0);
 }
 
 static void
@@ -1074,8 +1051,10 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 	const char *header_name = marshal_data;
 	SoupMessageHeaders *hdrs;
 
+#ifdef FIXME
 	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_RUNNING)
 		return;
+#endif
 
 	hdrs = priv->server_side ? msg->request_headers : msg->response_headers;
 	if (soup_message_headers_get_one (hdrs, header_name)) {
@@ -1139,11 +1118,12 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
 			    gpointer invocation_hint, gpointer marshal_data)
 {
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	guint status = GPOINTER_TO_UINT (marshal_data);
 
+#ifdef FIXME
 	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_RUNNING)
 		return;
+#endif
 
 	if (msg->status_code == status) {
 		closure->marshal (closure, return_value, n_param_values,
@@ -1615,23 +1595,6 @@ soup_message_set_status_full (SoupMessage *msg,
 	msg->reason_phrase = g_strdup (reason_phrase);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
-}
-
-void
-soup_message_set_io_status (SoupMessage          *msg,
-			    SoupMessageIOStatus   status)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	priv->io_status = status;
-}
-
-SoupMessageIOStatus
-soup_message_get_io_status (SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	return priv->io_status;
 }
 
 /**
