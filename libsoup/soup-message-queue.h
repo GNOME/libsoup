@@ -9,16 +9,14 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include <libsoup/soup-connection.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-session.h>
+
+#include "soup-connection.h"
+#include "soup-message.h"
+#include "soup-session.h"
 
 G_BEGIN_DECLS
 
-typedef struct SoupMessageQueue SoupMessageQueue; 
-typedef struct SoupMessageQueueItem SoupMessageQueueItem;
-
-struct SoupMessageQueueItem {
+struct _SoupMessageQueueItem {
 	/*< public >*/
 	SoupSession *session;
 	SoupMessageQueue *queue;

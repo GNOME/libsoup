@@ -709,11 +709,13 @@ soup_client_context_unref (SoupClientContext *client)
 }
 
 static void
-request_finished (SoupMessage *msg, SoupClientContext *client)
+request_finished (SoupMessage *msg, gpointer user_data)
 {
+	SoupClientContext *client = user_data;
 	SoupServer *server = client->server;
 	SoupSocket *sock = client->sock;
 
+	soup_message_finished (msg);
 	g_signal_emit (server,
 		       msg->status_code == SOUP_STATUS_IO_ERROR ?
 		       signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
@@ -868,13 +870,13 @@ start_request (SoupServer *server, SoupClientContext *client)
 
 	g_signal_connect (msg, "got_headers", G_CALLBACK (got_headers), client);
 	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), client);
-	g_signal_connect (msg, "finished", G_CALLBACK (request_finished), client);
 
 	g_signal_emit (server, signals[REQUEST_STARTED], 0,
 		       msg, client);
 
 	g_object_ref (client->sock);
-	soup_message_read_request (msg, client->sock);
+	soup_message_read_request (msg, client->sock,
+				   request_finished, client);
 }
 
 static void

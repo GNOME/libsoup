@@ -9,6 +9,7 @@
 #include <gio/gio.h>
 
 #include "soup-types.h"
+#include "soup-message-private.h"
 #include "soup-misc.h"
 
 G_BEGIN_DECLS
@@ -20,10 +21,10 @@ G_BEGIN_DECLS
 #define SOUP_IS_CONNECTION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((obj), SOUP_TYPE_CONNECTION))
 #define SOUP_CONNECTION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_CONNECTION, SoupConnectionClass))
 
-typedef struct {
+struct _SoupConnection {
 	GObject parent;
 
-} SoupConnection;
+};
 
 typedef struct {
 	GObjectClass parent_class;
@@ -75,8 +76,11 @@ void                soup_connection_set_state  (SoupConnection   *conn,
 
 gboolean        soup_connection_get_ever_used  (SoupConnection   *conn);
 
-void            soup_connection_send_request   (SoupConnection   *conn,
-						SoupMessage      *req);
+void            soup_connection_send_request   (SoupConnection          *conn,
+						SoupMessageQueueItem    *item,
+						SoupMessageCompletionFn  completion_cb,
+						gpointer                 user_data);
+
 
 G_END_DECLS
 

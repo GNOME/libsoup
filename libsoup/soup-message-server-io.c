@@ -235,10 +235,14 @@ get_response_headers (SoupMessage *msg, GString *headers,
 }
 
 void
-soup_message_read_request (SoupMessage *req, SoupSocket *sock)
+soup_message_read_request (SoupMessage               *msg,
+			   SoupSocket                *sock,
+			   SoupMessageCompletionFn    completion_cb,
+			   gpointer                   user_data)
 {
-	soup_message_io_server (req, sock,
+	soup_message_io_server (msg, sock,
 				get_response_headers,
 				parse_request_headers,
-				sock);
+				sock,
+				completion_cb, user_data);
 }

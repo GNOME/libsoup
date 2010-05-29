@@ -7,8 +7,7 @@
 #define SOUP_SESSION_PRIVATE_H 1
 
 #include "soup-session.h"
-#include "soup-connection.h"
-#include "soup-message-queue.h"
+#include "soup-message-private.h"
 #include "soup-proxy-uri-resolver.h"
 
 G_BEGIN_DECLS
@@ -29,7 +28,8 @@ void                  soup_session_connection_failed    (SoupSession          *s
 
 void                  soup_session_send_queue_item      (SoupSession          *session,
 							 SoupMessageQueueItem *item,
-							 SoupConnection       *conn);
+							 SoupConnection       *conn,
+							 SoupMessageCompletionFn completion_cb);
 
 G_END_DECLS
 

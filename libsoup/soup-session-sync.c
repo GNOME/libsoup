@@ -16,6 +16,7 @@
 #include "soup-session-private.h"
 #include "soup-address.h"
 #include "soup-message-private.h"
+#include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-password-manager.h"
 #include "soup-proxy-uri-resolver.h"
@@ -146,11 +147,22 @@ tunnel_connect (SoupSession *session, SoupConnection *conn,
 
 	g_signal_emit_by_name (session, "tunneling", conn);
 	item = soup_session_make_connect_message (session, tunnel_addr);
-	do
-		soup_session_send_queue_item (session, item, conn);
-	while (SOUP_MESSAGE_IS_STARTING (item->msg));
+	do {
+		soup_session_send_queue_item (session, item, conn, NULL);
+		if (SOUP_MESSAGE_IS_STARTING (item->msg))
+			soup_message_restarted (item->msg) ;
+		else
+			soup_message_finished (item->msg);
+	} while (SOUP_MESSAGE_IS_STARTING (item->msg) &&
+		 soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED);
 
-	status = item->msg->status_code;
+	/* If the message was requeued but its connection was closed,
+	 * return TRY_AGAIN to our caller.
+	 */
+	if (SOUP_MESSAGE_IS_STARTING (item->msg))
+		status = SOUP_STATUS_TRY_AGAIN;
+	else
+		status = item->msg->status_code;
 	soup_message_queue_item_unref (item);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
@@ -226,7 +238,8 @@ wait_for_connection (SoupMessageQueueItem *item)
 				status = tunnel_connect (session, conn, tunnel_addr);
 				if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 					conn = NULL;
-					goto try_again;
+					if (status == SOUP_STATUS_TRY_AGAIN)
+						goto try_again;
 				}
                         }
 		}
@@ -264,7 +277,11 @@ process_queue_item (SoupMessageQueueItem *item)
 		if (!conn)
 			break;
 
-		soup_session_send_queue_item (item->session, item, conn);
+		soup_session_send_queue_item (item->session, item, conn, NULL);
+		if (SOUP_MESSAGE_IS_STARTING (item->msg))
+			soup_message_restarted (item->msg);
+		else
+			soup_message_finished (item->msg);
 		g_cond_broadcast (priv->cond);
 	} while (soup_message_get_io_status (item->msg) !=
 		 SOUP_MESSAGE_IO_STATUS_FINISHED);

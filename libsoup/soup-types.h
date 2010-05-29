@@ -28,6 +28,11 @@ typedef struct _SoupSessionSync       SoupSessionSync;
 typedef struct _SoupSocket            SoupSocket;
 typedef struct _SoupURI               SoupURI;
 
+/*< private >*/
+typedef struct _SoupConnection        SoupConnection;
+typedef struct _SoupMessageQueue      SoupMessageQueue;
+typedef struct _SoupMessageQueueItem  SoupMessageQueueItem;
+
 G_END_DECLS
 
 #endif

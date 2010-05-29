@@ -1174,7 +1174,8 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 void
 soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
-			      SoupConnection *conn)
+			      SoupConnection *conn,
+			      SoupMessageCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
@@ -1201,7 +1202,7 @@ soup_session_send_queue_item (SoupSession *session,
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       item->msg, soup_connection_get_socket (conn));
-	soup_connection_send_request (conn, item->msg);
+	soup_connection_send_request (conn, item, completion_cb, item);
 }
 
 gboolean
@@ -1296,51 +1297,6 @@ soup_session_connection_failed (SoupSession *session,
 	g_object_unref (session);
 }
 
-static void
-tunnel_connected (SoupMessage *msg, gpointer user_data)
-{
-	SoupSession *session = user_data;
-
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-		SoupMessageQueueItem *item =
-			soup_message_queue_lookup (priv->queue, msg);
-
-		/* Clear the connection's proxy_uri, since it is now
-		 * (effectively) directly connected.
-		 */
-		g_object_set (item->conn,
-			      SOUP_CONNECTION_PROXY_URI, NULL,
-			      NULL);
-		soup_message_queue_item_unref (item);
-	}
-}
-
-static void
-tunnel_connect_restarted (SoupMessage *msg, gpointer session)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupMessageQueueItem *item;
-
-	if (msg->status_code != SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED)
-		return;
-
-	item = soup_message_queue_lookup (priv->queue, msg);
-	if (!item)
-		return;
-	if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_DISCONNECTED) {
-		/* We got a 407, and the session provided auth and
-		 * restarted the message, but the proxy closed the
-		 * connection, so we need to create a new one. The
-		 * easiest way to do this is to just give up on the
-		 * current msg and conn, and re-run the queue.
-		 */
-		soup_session_cancel_message (session, msg,
-					     SOUP_STATUS_TRY_AGAIN);
-	}
-	soup_message_queue_item_unref (item);
-}
-
 SoupMessageQueueItem *
 soup_session_make_connect_message (SoupSession *session,
 				   SoupAddress *server_addr)
@@ -1361,14 +1317,8 @@ soup_session_make_connect_message (SoupSession *session,
 
 	/* Call the base implementation of soup_session_queue_message
 	 * directly, to add msg to the SoupMessageQueue and cause all
-	 * the right signals to be emitted. We can't use
-	 * queue_message's callback arg in this case because that's
-	 * actually implemented by the subclasses.
+	 * the right signals to be emitted.
 	 */
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (tunnel_connected), session);
-	g_signal_connect (msg, "restarted",
-			  G_CALLBACK (tunnel_connect_restarted), session);
 	queue_message (session, msg, NULL, NULL);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_object_unref (msg);

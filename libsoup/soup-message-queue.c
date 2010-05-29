@@ -29,7 +29,7 @@
  * "removed" ones when walking the queue.
  **/
 
-struct SoupMessageQueue {
+struct _SoupMessageQueue {
 	SoupSession *session;
 
 	GMutex *mutex;

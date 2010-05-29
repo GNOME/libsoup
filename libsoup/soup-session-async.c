@@ -16,6 +16,7 @@
 #include "soup-session-private.h"
 #include "soup-address.h"
 #include "soup-message-private.h"
+#include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-password-manager.h"
 #include "soup-proxy-uri-resolver.h"
@@ -211,6 +212,24 @@ connection_closed (SoupConnection *conn, gpointer session)
 }
 
 static void
+tunnel_message_completed (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (SOUP_MESSAGE_IS_STARTING (msg)) {
+		soup_message_restarted (msg);
+		if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED) {
+			soup_session_send_queue_item (item->session, item, item->conn, tunnel_message_completed);
+			return;
+		}
+
+		soup_message_set_status (msg, SOUP_STATUS_TRY_AGAIN);
+	}
+
+	soup_message_finished (msg);
+}
+
+static void
 tunnel_connected (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
@@ -238,15 +257,6 @@ done:
 }
 
 static void
-tunnel_connect_restarted (SoupMessage *msg, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-
-	if (SOUP_MESSAGE_IS_STARTING (msg))
-		soup_session_send_queue_item (item->session, item, item->conn);
-}
-
-static void
 got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupSession *session = user_data;
@@ -271,9 +281,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		g_signal_emit_by_name (session, "tunneling", conn);
 		g_signal_connect (item->msg, "finished",
 				  G_CALLBACK (tunnel_connected), item);
-		g_signal_connect (item->msg, "restarted",
-				  G_CALLBACK (tunnel_connect_restarted), item);
-		soup_session_send_queue_item (session, item, conn);
+		soup_session_send_queue_item (session, item, conn, tunnel_message_completed);
 		return;
 	}
 
@@ -293,6 +301,15 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
 	do_idle_run_queue (session);
 	g_object_unref (session);
+}
+
+static void
+message_completed (SoupMessage *msg, gpointer user_data)
+{
+	if (SOUP_MESSAGE_IS_STARTING (msg))
+		soup_message_restarted (msg);
+	else
+		soup_message_finished (msg);
 }
 
 static void
@@ -340,7 +357,7 @@ run_queue (SoupSessionAsync *sa)
 						       got_connection,
 						       g_object_ref (session));
 		} else
-			soup_session_send_queue_item (session, item, conn);
+			soup_session_send_queue_item (session, item, conn, message_completed);
 	}
 	if (item)
 		soup_message_queue_item_unref (item);

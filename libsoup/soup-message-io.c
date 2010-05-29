@@ -16,6 +16,7 @@
 #include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
+#include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
 #include "soup-ssl.h"
@@ -45,7 +46,7 @@ typedef enum {
 
 typedef struct {
 	SoupSocket           *sock;
-	SoupConnection       *conn;
+	SoupMessageQueueItem *item;
 	SoupMessageIOMode     mode;
 
 	SoupMessageIOState    read_state;
@@ -71,7 +72,9 @@ typedef struct {
 
 	SoupMessageGetHeadersFn   get_headers_cb;
 	SoupMessageParseHeadersFn parse_headers_cb;
-	gpointer                  user_data;
+	gpointer                  header_data;
+	SoupMessageCompletionFn   completion_cb;
+	gpointer                  completion_data;
 } SoupMessageIOData;
 	
 
@@ -100,8 +103,8 @@ soup_message_io_cleanup (SoupMessage *msg)
 
 	if (io->sock)
 		g_object_unref (io->sock);
-	if (io->conn)
-		g_object_unref (io->conn);
+	if (io->item)
+		soup_message_queue_item_unref (io->item);
 
 	g_byte_array_free (io->read_meta_buf, TRUE);
 
@@ -115,17 +118,6 @@ soup_message_io_cleanup (SoupMessage *msg)
 	g_slice_free (SoupMessageIOData, io);
 }
 
-/**
- * soup_message_io_stop:
- * @msg: a #SoupMessage
- *
- * Immediately stops I/O on msg; if the connection would be left in an
- * inconsistent state, it will be closed.
- *
- * Note: this is a low-level function that does not cause any signals
- * to be emitted on @msg; it is up to the caller to make sure that
- * @msg doesn't get "stranded".
- **/
 void
 soup_message_io_stop (SoupMessage *msg)
 {
@@ -155,12 +147,8 @@ soup_message_io_stop (SoupMessage *msg)
 
 	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
 		soup_socket_disconnect (io->sock);
-	else if (io->conn) {
-		SoupConnection *conn = io->conn;
-		io->conn = NULL;
-		soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
-		g_object_unref (conn);
-	}
+	else if (io->item && io->item->conn)
+		soup_connection_set_state (io->item->conn, SOUP_CONNECTION_IDLE);
 }
 
 #define SOUP_MESSAGE_IO_EOL            "\r\n"
@@ -169,12 +157,15 @@ soup_message_io_stop (SoupMessage *msg)
 static void
 soup_message_io_finished (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+	SoupMessageCompletionFn completion_cb = io->completion_cb;
+	gpointer completion_data = io->completion_data;
+
 	g_object_ref (msg);
 	soup_message_io_cleanup (msg);
-	if (SOUP_MESSAGE_IS_STARTING (msg))
-		soup_message_restarted (msg);
-	else
-		soup_message_finished (msg);
+	if (completion_cb)
+		completion_cb (msg, completion_data);
 	g_object_unref (msg);
 }
 
@@ -200,7 +191,7 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 	} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 		   io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
 		   io->read_meta_buf->len == 0 &&
-		   soup_connection_get_ever_used (io->conn) &&
+		   soup_connection_get_ever_used (io->item->conn) &&
 		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		   request_is_idempotent (msg)) {
 		/* Connection got closed, but we can safely try again */
@@ -589,7 +580,7 @@ io_write (SoupSocket *sock, SoupMessage *msg)
 		if (!io->write_buf->len) {
 			io->get_headers_cb (msg, io->write_buf,
 					    &io->write_encoding,
-					    io->user_data);
+					    io->header_data);
 			if (!io->write_buf->len) {
 				soup_message_io_pause (msg);
 				return;
@@ -833,7 +824,7 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 		status = io->parse_headers_cb (msg, (char *)io->read_meta_buf->data,
 					       io->read_meta_buf->len,
 					       &io->read_encoding,
-					       io->user_data);
+					       io->header_data);
 		g_byte_array_set_size (io->read_meta_buf, 0);
 
 		if (status != SOUP_STATUS_OK) {
@@ -1011,7 +1002,9 @@ static SoupMessageIOData *
 new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	     SoupMessageGetHeadersFn get_headers_cb,
 	     SoupMessageParseHeadersFn parse_headers_cb,
-	     gpointer user_data)
+	     gpointer header_data,
+	     SoupMessageCompletionFn completion_cb,
+	     gpointer completion_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
@@ -1021,7 +1014,9 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->mode = mode;
 	io->get_headers_cb   = get_headers_cb;
 	io->parse_headers_cb = parse_headers_cb;
-	io->user_data        = user_data;
+	io->header_data      = header_data;
+	io->completion_cb    = completion_cb;
+	io->completion_data  = completion_data;
 
 	io->read_meta_buf    = g_byte_array_new ();
 	io->write_buf        = g_string_new (NULL);
@@ -1043,36 +1038,43 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 }
 
 void
-soup_message_io_client (SoupMessage *msg, SoupConnection *conn,
+soup_message_io_client (SoupMessageQueueItem *item,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
-			gpointer user_data)
+			gpointer header_data,
+			SoupMessageCompletionFn completion_cb,
+			gpointer completion_data)
 {
 	SoupMessageIOData *io;
-	SoupSocket *sock = soup_connection_get_socket (conn);
+	SoupSocket *sock = soup_connection_get_socket (item->conn);
 
-	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_CLIENT,
-			  get_headers_cb, parse_headers_cb, user_data);
+	io = new_iostate (item->msg, sock, SOUP_MESSAGE_IO_CLIENT,
+			  get_headers_cb, parse_headers_cb, header_data,
+			  completion_cb, completion_data);
 
-	io->conn = g_object_ref (conn);
+	io->item = item;
+	soup_message_queue_item_ref (item);
 
-	io->read_body       = msg->response_body;
-	io->write_body      = msg->request_body;
+	io->read_body       = item->msg->response_body;
+	io->write_body      = item->msg->request_body;
 
 	io->write_state     = SOUP_MESSAGE_IO_STATE_HEADERS;
-	io_write (sock, msg);
+	io_write (sock, item->msg);
 }
 
 void
 soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
-			gpointer user_data)
+			gpointer header_data,
+			SoupMessageCompletionFn completion_cb,
+			gpointer completion_data)
 {
 	SoupMessageIOData *io;
 
 	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_SERVER,
-			  get_headers_cb, parse_headers_cb, user_data);
+			  get_headers_cb, parse_headers_cb, header_data,
+			  completion_cb, completion_data);
 
 	io->read_body       = msg->request_body;
 	io->write_body      = msg->response_body;
