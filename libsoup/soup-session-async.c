@@ -210,61 +210,47 @@ connection_closed (SoupConnection *conn, gpointer session)
 	do_idle_run_queue (session);
 }
 
-typedef struct {
-	SoupSession *session;
-	SoupConnection *conn;
-	SoupMessageQueueItem *item;
-} SoupSessionAsyncTunnelData;
-
 static void
 tunnel_connected (SoupMessage *msg, gpointer user_data)
 {
-	SoupSessionAsyncTunnelData *data = user_data;
+	SoupMessageQueueItem *item = user_data;
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		soup_session_connection_failed (data->session, data->conn,
+		soup_session_connection_failed (item->session, item->conn,
 						msg->status_code);
 		goto done;
 	}
 
-	if (!soup_connection_start_ssl (data->conn)) {
-		soup_session_connection_failed (data->session, data->conn,
+	if (!soup_connection_start_ssl (item->conn)) {
+		soup_session_connection_failed (item->session, item->conn,
 						SOUP_STATUS_SSL_FAILED);
 		goto done;
 	}
 
-	g_signal_connect (data->conn, "disconnected",
-			  G_CALLBACK (connection_closed), data->session);
-	soup_connection_set_state (data->conn, SOUP_CONNECTION_IDLE);
+	g_signal_connect (item->conn, "disconnected",
+			  G_CALLBACK (connection_closed), item->session);
+	soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 
 done:
-	do_idle_run_queue (data->session);
-	soup_message_queue_item_unref (data->item);
-	g_slice_free (SoupSessionAsyncTunnelData, data);
+	do_idle_run_queue (item->session);
+	g_object_unref (item->session);
+	soup_message_queue_item_unref (item);
 }
 
 static void
 tunnel_connect_restarted (SoupMessage *msg, gpointer user_data)
 {
-	SoupSessionAsyncTunnelData *data = user_data;
+	SoupMessageQueueItem *item = user_data;
 
 	if (SOUP_MESSAGE_IS_STARTING (msg))
-		soup_session_send_queue_item (data->session, data->item, data->conn);
+		soup_session_send_queue_item (item->session, item, item->conn);
 }
 
 static void
 got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
-	gpointer *session_p = user_data;
-	SoupSession *session = *session_p;
+	SoupSession *session = user_data;
 	SoupAddress *tunnel_addr;
-
-	if (!session) {
-		g_slice_free (gpointer, session_p);
-		return;
-	}
-	g_object_remove_weak_pointer (G_OBJECT (session), session_p);
-	g_slice_free (gpointer, session_p);
 
 	if (status != SOUP_STATUS_OK) {
 		/* There may have been messages waiting for the
@@ -273,25 +259,21 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		do_idle_run_queue (session);
 
 		soup_session_connection_failed (session, conn, status);
-		/* session may be destroyed at this point */
-
+		g_object_unref (session);
 		return;
 	}
 
 	tunnel_addr = soup_connection_get_tunnel_addr (conn);
 	if (tunnel_addr) {
-		SoupSessionAsyncTunnelData *data;
+		SoupMessageQueueItem *item;
 
-		data = g_slice_new (SoupSessionAsyncTunnelData);
-		data->session = session;
-		data->conn = conn;
-		data->item = soup_session_make_connect_message (session, tunnel_addr);
+		item = soup_session_make_connect_message (session, tunnel_addr);
 		g_signal_emit_by_name (session, "tunneling", conn);
-		g_signal_connect (data->item->msg, "finished",
-				  G_CALLBACK (tunnel_connected), data);
-		g_signal_connect (data->item->msg, "restarted",
-				  G_CALLBACK (tunnel_connect_restarted), data);
-		soup_session_send_queue_item (session, data->item, conn);
+		g_signal_connect (item->msg, "finished",
+				  G_CALLBACK (tunnel_connected), item);
+		g_signal_connect (item->msg, "restarted",
+				  G_CALLBACK (tunnel_connect_restarted), item);
+		soup_session_send_queue_item (session, item, conn);
 		return;
 	}
 
@@ -310,6 +292,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	 */
 	soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
 	do_idle_run_queue (session);
+	g_object_unref (session);
 }
 
 static void
@@ -353,13 +336,8 @@ run_queue (SoupSessionAsync *sa)
 			continue;
 
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
-			gpointer *session_p;
-
-			session_p = g_slice_new (gpointer);
-			*session_p = session;
-			g_object_add_weak_pointer (G_OBJECT (session), session_p);
 			soup_connection_connect_async (conn, got_connection,
-						       session_p);
+						       g_object_ref (session));
 		} else
 			soup_session_send_queue_item (session, item, conn);
 	}

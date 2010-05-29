@@ -1274,7 +1274,7 @@ soup_session_connection_failed (SoupSession *session,
 	g_mutex_unlock (priv->host_lock);
 
 	if (host)
-		connection_disconnected (conn, session);
+		soup_connection_disconnect (conn);
 	else if (conn)
 		host = g_object_get_data (G_OBJECT (conn), "SoupSessionHost");
 	if (!host)

@@ -119,8 +119,14 @@ dispose (GObject *object)
 	/* Make sure clear_current_request doesn't re-establish the timeout */
 	priv->idle_timeout = 0;
 
-	clear_current_request (conn);
-	soup_connection_disconnect (conn);
+	if (priv->cur_req) {
+		g_warning ("Disposing connection with cur_req set");
+		clear_current_request (conn);
+	}
+	if (priv->socket) {
+		g_warning ("Disposing connection while connected");
+		soup_connection_disconnect (conn);
+	}
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
 }
@@ -369,8 +375,6 @@ set_current_request (SoupConnection *conn, SoupMessage *req)
 	    req->method != SOUP_METHOD_CONNECT)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 
-	g_object_add_weak_pointer (G_OBJECT (req), (gpointer)&priv->cur_req);
-
 	g_object_thaw_notify (G_OBJECT (conn));
 }
 
@@ -394,8 +398,6 @@ clear_current_request (SoupConnection *conn)
 	if (priv->cur_req) {
 		SoupMessage *cur_req = priv->cur_req;
 
-		g_object_remove_weak_pointer (G_OBJECT (priv->cur_req),
-					      (gpointer)&priv->cur_req);
 		priv->cur_req = NULL;
 		g_object_notify (G_OBJECT (conn), "message");
 
@@ -426,18 +428,6 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	SoupConnectionAsyncConnectData *data = user_data;
 	SoupConnectionPrivate *priv;
 
-	if (!data->conn) {
-		if (data->callback) {
-			data->callback (NULL, SOUP_STATUS_CANCELLED,
-					data->callback_data);
-		}
-		g_slice_free (SoupConnectionAsyncConnectData, data);
-		return;
-	}
-
-	g_object_remove_weak_pointer (G_OBJECT (data->conn),
-				      (gpointer *)&data->conn);
-
 	priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
@@ -463,6 +453,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 			status = soup_status_proxify (status);
 		data->callback (data->conn, status, data->callback_data);
 	}
+	g_object_unref (data->conn);
 	g_slice_free (SoupConnectionAsyncConnectData, data);
 }
 
@@ -489,10 +480,9 @@ soup_connection_connect_async (SoupConnection *conn,
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
 	data = g_slice_new (SoupConnectionAsyncConnectData);
-	data->conn = conn;
+	data->conn = g_object_ref (conn);
 	data->callback = callback;
 	data->callback_data = user_data;
-	g_object_add_weak_pointer (G_OBJECT (conn), (gpointer *)&data->conn);
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
@@ -500,6 +490,7 @@ soup_connection_connect_async (SoupConnection *conn,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
+				 "clean-dispose", TRUE,
 				 NULL);
 	soup_socket_connect_async (priv->socket, NULL,
 				   socket_connect_result, data);
@@ -531,6 +522,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
+				 "clean-dispose", TRUE,
 				 NULL);
 
 	status = soup_socket_connect_sync (priv->socket, NULL);
@@ -676,7 +668,8 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	old_state = priv->state;
 	priv->state = state;
-	if (state == SOUP_CONNECTION_IDLE &&
+	if ((state == SOUP_CONNECTION_IDLE ||
+	     state == SOUP_CONNECTION_DISCONNECTED) &&
 	    old_state == SOUP_CONNECTION_IN_USE)
 		clear_current_request (conn);
 

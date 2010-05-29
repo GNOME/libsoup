@@ -70,6 +70,7 @@ enum {
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_TRUSTED_CERTIFICATE,
+	PROP_CLEAN_DISPOSE,
 
 	LAST_PROP
 };
@@ -82,9 +83,10 @@ typedef struct {
 	guint non_blocking:1;
 	guint is_server:1;
 	guint timed_out:1;
+	guint ssl_strict:1;
+	guint trusted_certificate:1;
+	guint clean_dispose:1;
 	gpointer ssl_creds;
-	gboolean ssl_strict;
-	gboolean trusted_certificate;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -158,20 +160,32 @@ finalize (GObject *object)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
-	if (priv->connect_cancel)
+	if (priv->connect_cancel) {
+		if (priv->clean_dispose)
+			g_warning ("Disposing socket %p during connect", object);
 		g_object_unref (priv->connect_cancel);
-	if (priv->iochannel)
+	}
+	if (priv->iochannel) {
+		if (priv->clean_dispose)
+			g_warning ("Disposing socket %p while still connected", object);
 		disconnect_internal (priv);
+	}
 
 	if (priv->local_addr)
 		g_object_unref (priv->local_addr);
 	if (priv->remote_addr)
 		g_object_unref (priv->remote_addr);
 
-	if (priv->watch_src)
+	if (priv->watch_src) {
+		if (priv->clean_dispose && !priv->is_server)
+			g_warning ("Disposing socket %p during async op", object);
 		g_source_destroy (priv->watch_src);
-	if (priv->connect_timeout)
+	}
+	if (priv->connect_timeout) {
+		if (priv->clean_dispose)
+			g_warning ("Disposing socket %p during connect (2)", object);
 		g_source_destroy (priv->connect_timeout);
+	}
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 
@@ -414,6 +428,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   "Value in seconds to timeout a blocking I/O",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
+
+	g_object_class_install_property (
+		object_class, PROP_CLEAN_DISPOSE,
+		g_param_spec_boolean ("clean-dispose",
+				      "Clean dispose",
+				      "Warn on unclean dispose",
+				      FALSE,
+				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 
@@ -540,6 +562,9 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TIMEOUT:
 		priv->timeout = g_value_get_uint (value);
+		break;
+	case PROP_CLEAN_DISPOSE:
+		priv->clean_dispose = g_value_get_boolean (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
