@@ -133,8 +133,10 @@ soup_socket_init (SoupSocket *sock)
 static void
 disconnect_internal (SoupSocketPrivate *priv)
 {
-	g_io_channel_unref (priv->iochannel);
-	priv->iochannel = NULL;
+	if (priv->iochannel) {
+		g_io_channel_unref (priv->iochannel);
+		priv->iochannel = NULL;
+	}
 	priv->sockfd = -1;
 
 	if (priv->read_src) {
@@ -671,6 +673,12 @@ idle_connect_result (gpointer user_data)
 			status = SOUP_STATUS_CANT_CONNECT;
 	} else
 		status = SOUP_STATUS_OK;
+
+	/* Have to do this before calling the callback... */
+	if (sacd->cancel_id) {
+		g_signal_handler_disconnect (sacd->cancellable, sacd->cancel_id);
+		sacd->cancel_id = 0;
+	}
 
 	sacd->callback (sacd->sock, status, sacd->user_data);
 	free_sacd (sacd);

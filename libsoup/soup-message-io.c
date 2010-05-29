@@ -1043,19 +1043,18 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 }
 
 void
-soup_message_io_client (SoupMessage *msg, SoupSocket *sock,
-			SoupConnection *conn,
+soup_message_io_client (SoupMessage *msg, SoupConnection *conn,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
 			gpointer user_data)
 {
 	SoupMessageIOData *io;
+	SoupSocket *sock = soup_connection_get_socket (conn);
 
 	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_CLIENT,
 			  get_headers_cb, parse_headers_cb, user_data);
 
-	if (conn)
-		io->conn = g_object_ref (conn);
+	io->conn = g_object_ref (conn);
 
 	io->read_body       = msg->response_body;
 	io->write_body      = msg->request_body;

@@ -386,14 +386,6 @@ clear_current_request (SoupConnection *conn)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv->unused_timeout = 0;
-
-	if (priv->state == SOUP_CONNECTION_IN_USE) {
-		/* We don't use soup_connection_set_state here since
-		 * it may call clear_current_request()...
-		 */
-		priv->state = SOUP_CONNECTION_IDLE;
-		g_object_notify (G_OBJECT (conn), "state");
-	}
 	start_idle_timer (conn);
 	if (priv->cur_req) {
 		SoupMessage *cur_req = priv->cur_req;
@@ -403,8 +395,6 @@ clear_current_request (SoupConnection *conn)
 
 		if (!soup_message_is_keepalive (cur_req))
 			soup_connection_disconnect (conn);
-		else
-			soup_message_io_stop (cur_req);
 	}
 
 	g_object_thaw_notify (G_OBJECT (conn));
@@ -457,16 +447,9 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	g_slice_free (SoupConnectionAsyncConnectData, data);
 }
 
-/**
- * soup_connection_connect_async:
- * @conn: the connection
- * @callback: callback to call when the connection succeeds or fails
- * @user_data: data for @callback
- *
- * Asynchronously connects @conn.
- **/
 void
 soup_connection_connect_async (SoupConnection *conn,
+			       GCancellable *cancellable,
 			       SoupConnectionCallback callback,
 			       gpointer user_data)
 {
@@ -492,20 +475,12 @@ soup_connection_connect_async (SoupConnection *conn,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 "clean-dispose", TRUE,
 				 NULL);
-	soup_socket_connect_async (priv->socket, NULL,
+	soup_socket_connect_async (priv->socket, cancellable,
 				   socket_connect_result, data);
 }
 
-/**
- * soup_connection_connect_sync:
- * @conn: the connection
- *
- * Synchronously connects @conn.
- *
- * Return value: the soup status
- **/
 guint
-soup_connection_connect_sync (SoupConnection *conn)
+soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 {
 	SoupConnectionPrivate *priv;
 	guint status;
@@ -525,7 +500,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 				 "clean-dispose", TRUE,
 				 NULL);
 
-	status = soup_socket_connect_sync (priv->socket, NULL);
+	status = soup_socket_connect_sync (priv->socket, cancellable);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
@@ -534,7 +509,7 @@ soup_connection_connect_sync (SoupConnection *conn)
 			  G_CALLBACK (socket_disconnected), conn);
 
 	if (priv->ssl_creds && !priv->tunnel_addr) {
-		if (!soup_socket_start_ssl (priv->socket, NULL)) {
+		if (!soup_socket_start_ssl (priv->socket, cancellable)) {
 			status = SOUP_STATUS_SSL_FAILED;
 			goto fail;
 		}
@@ -594,22 +569,25 @@ void
 soup_connection_disconnect (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv;
+	SoupConnectionState old_state;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
-	if (!priv->socket)
-		return;
+	old_state = priv->state;
+	if (old_state != SOUP_CONNECTION_DISCONNECTED)
+		soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 
-	g_signal_handlers_disconnect_by_func (priv->socket,
-					      socket_disconnected, conn);
-	soup_socket_disconnect (priv->socket);
-	g_object_unref (priv->socket);
-	priv->socket = NULL;
+	if (priv->socket) {
+		g_signal_handlers_disconnect_by_func (priv->socket,
+						      socket_disconnected, conn);
+		soup_socket_disconnect (priv->socket);
+		g_object_unref (priv->socket);
+		priv->socket = NULL;
+	}
 
-	/* NB: this might cause conn to be destroyed. */
-	g_signal_emit (conn, signals[DISCONNECTED], 0);
+	if (old_state != SOUP_CONNECTION_DISCONNECTED)
+		g_signal_emit (conn, signals[DISCONNECTED], 0);
 }
 
 SoupSocket *
@@ -626,6 +604,14 @@ soup_connection_get_proxy_uri (SoupConnection *conn)
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), NULL);
 
 	return SOUP_CONNECTION_GET_PRIVATE (conn)->proxy_uri;
+}
+
+gboolean
+soup_connection_is_via_proxy (SoupConnection *conn)
+{
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->proxy_uri != NULL;
 }
 
 SoupConnectionState
@@ -704,6 +690,5 @@ soup_connection_send_request (SoupConnection *conn, SoupMessage *req)
 
 	if (req != priv->cur_req)
 		set_current_request (conn, req);
-	soup_message_send_request (req, priv->socket, conn,
-				   priv->proxy_uri != NULL);
+	soup_message_send_request (req, conn);
 }

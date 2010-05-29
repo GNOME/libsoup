@@ -336,7 +336,8 @@ run_queue (SoupSessionAsync *sa)
 			continue;
 
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
-			soup_connection_connect_async (conn, got_connection,
+			soup_connection_connect_async (conn, item->cancellable,
+						       got_connection,
 						       g_object_ref (session));
 		} else
 			soup_session_send_queue_item (session, item, conn);

@@ -6,7 +6,7 @@
 #ifndef SOUP_CONNECTION_H
 #define SOUP_CONNECTION_H 1
 
-#include <time.h>
+#include <gio/gio.h>
 
 #include "soup-types.h"
 #include "soup-misc.h"
@@ -55,9 +55,11 @@ SoupConnection *soup_connection_new            (const char       *propname1,
 						...) G_GNUC_NULL_TERMINATED;
 
 void            soup_connection_connect_async  (SoupConnection   *conn,
+						GCancellable     *cancellable,
 						SoupConnectionCallback callback,
 						gpointer          user_data);
-guint           soup_connection_connect_sync   (SoupConnection   *conn);
+guint           soup_connection_connect_sync   (SoupConnection   *conn,
+						GCancellable     *cancellable);
 SoupAddress    *soup_connection_get_tunnel_addr(SoupConnection   *conn);
 gboolean        soup_connection_start_ssl      (SoupConnection   *conn);
 
@@ -65,6 +67,7 @@ void            soup_connection_disconnect     (SoupConnection   *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
 SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
+gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,

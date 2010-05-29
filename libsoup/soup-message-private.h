@@ -62,14 +62,11 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      gpointer          user_data);
 
 void           soup_message_send_request        (SoupMessage       *req,
-						 SoupSocket        *sock,
-						 SoupConnection    *conn,
-						 gboolean           via_proxy);
+						 SoupConnection    *conn);
 void           soup_message_read_request        (SoupMessage       *req,
 						 SoupSocket        *sock);
 
 void soup_message_io_client  (SoupMessage               *msg,
-			      SoupSocket                *sock,
 			      SoupConnection            *conn,
 			      SoupMessageGetHeadersFn    get_headers_cb,
 			      SoupMessageParseHeadersFn  parse_headers_cb,

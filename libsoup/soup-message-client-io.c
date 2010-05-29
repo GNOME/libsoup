@@ -14,6 +14,7 @@
 
 #include "soup-message-private.h"
 #include "soup-auth.h"
+#include "soup-connection.h"
 #include "soup-headers.h"
 #include "soup-uri.h"
 
@@ -76,7 +77,7 @@ get_request_headers (SoupMessage *req, GString *header,
 		     SoupEncoding *encoding, gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-	gboolean proxy = GPOINTER_TO_UINT (user_data);
+	SoupConnection *conn = user_data;
 	SoupURI *uri = soup_message_get_uri (req);
 	char *uri_host;
 	char *uri_string;
@@ -92,6 +93,8 @@ get_request_headers (SoupMessage *req, GString *header,
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri_host, uri->port);
 	} else {
+		gboolean proxy = soup_connection_is_via_proxy (conn);
+
 		/* Proxy expects full URI to destination. Otherwise
 		 * just the path.
 		 */
@@ -143,12 +146,12 @@ get_request_headers (SoupMessage *req, GString *header,
 }
 
 void
-soup_message_send_request (SoupMessage *req, SoupSocket *sock,
-			   SoupConnection *conn, gboolean is_via_proxy)
+soup_message_send_request (SoupMessage    *msg,
+			   SoupConnection *conn)
 {
-	soup_message_cleanup_response (req);
-	soup_message_io_client (req, sock, conn,
+	soup_message_cleanup_response (msg);
+	soup_message_io_client (msg, conn,
 				get_request_headers,
 				parse_response_headers,
-				GUINT_TO_POINTER (is_via_proxy));
+				conn);
 }

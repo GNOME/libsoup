@@ -211,7 +211,7 @@ wait_for_connection (SoupMessageQueueItem *item)
 	conn = soup_session_get_connection (session, item, &try_pruning);
 	if (conn) {
 		if (soup_connection_get_state (conn) == SOUP_CONNECTION_NEW) {
-			status = soup_connection_connect_sync (conn);
+			status = soup_connection_connect_sync (conn, item->cancellable);
 
 			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 				soup_session_connection_failed (session, conn, status);
