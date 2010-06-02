@@ -55,6 +55,7 @@ struct _SoupMessageQueueItem {
 	guint removed              : 1;
 	guint ref_count            : 31;
 	SoupMessageQueueItem *prev, *next;
+	SoupMessageQueueItem *related;
 };
 
 SoupMessageQueue     *soup_message_queue_new        (SoupSession          *session);

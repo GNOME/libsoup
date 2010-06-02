@@ -1174,18 +1174,9 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 void
 soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
-			      SoupConnection *conn,
 			      SoupMessageCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	if (item->conn) {
-		if (item->conn != conn) {
-			g_object_unref (item->conn);
-			item->conn = g_object_ref (conn);
-		}
-	} else
-		item->conn = g_object_ref (conn);
 
 	if (priv->user_agent) {
 		soup_message_headers_replace (item->msg->request_headers,
@@ -1201,8 +1192,8 @@ soup_session_send_queue_item (SoupSession *session,
 	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
-		       item->msg, soup_connection_get_socket (conn));
-	soup_connection_send_request (conn, item, completion_cb, item);
+		       item->msg, soup_connection_get_socket (item->conn));
+	soup_connection_send_request (item->conn, item, completion_cb, item);
 }
 
 gboolean
@@ -1261,47 +1252,12 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	g_object_unref (conn);
 }
 
-void
-soup_session_connection_failed (SoupSession *session,
-				SoupConnection *conn, guint status)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupSessionHost *host;
-	SoupMessageQueueItem *item;
-	SoupMessage *msg;
-
-	g_mutex_lock (priv->host_lock);
-	host = g_hash_table_lookup (priv->conns, conn);
-	g_mutex_unlock (priv->host_lock);
-
-	if (host)
-		soup_connection_disconnect (conn);
-	else if (conn)
-		host = g_object_get_data (G_OBJECT (conn), "SoupSessionHost");
-	if (!host)
-		return;
-
-	if (status == SOUP_STATUS_TRY_AGAIN)
-		return;
-
-	/* Cancel any other messages waiting for a connection to it,
-	 * since they're out of luck.
-	 */
-	g_object_ref (session);
-	for (item = soup_message_queue_first (priv->queue); item; item = soup_message_queue_next (priv->queue, item)) {
-		msg = item->msg;
-		if (item->state < SOUP_MESSAGE_RUNNING &&
-		    get_host_for_message (session, msg) == host)
-			soup_session_cancel_message (session, msg, status);
-	}
-	g_object_unref (session);
-}
-
 SoupMessageQueueItem *
-soup_session_make_connect_message (SoupSession *session,
-				   SoupAddress *server_addr)
+soup_session_make_connect_message (SoupSession    *session,
+				   SoupConnection *conn)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupAddress *server_addr = soup_connection_get_tunnel_addr (conn);
 	SoupURI *uri;
 	SoupMessage *msg;
 	SoupMessageQueueItem *item;
@@ -1321,46 +1277,15 @@ soup_session_make_connect_message (SoupSession *session,
 	 */
 	queue_message (session, msg, NULL, NULL);
 	item = soup_message_queue_lookup (priv->queue, msg);
+	item->conn = g_object_ref (conn);
 	g_object_unref (msg);
+
+	item->conn = g_object_ref (conn);
+	g_signal_emit (session, signals[TUNNELING], 0, conn);
 	return item;
 }
 
-/**
- * soup_session_get_connection:
- * @session: a #SoupSession
- * @item: a #SoupMessageQueueItem
- * @try_pruning: on return, whether or not to try pruning a connection
- * 
- * Tries to find or create a connection for @item; this is an internal
- * method for #SoupSession subclasses.
- *
- * If there is an idle connection to the relevant host available, then
- * that connection will be returned. The connection will be set to
- * %SOUP_CONNECTION_IN_USE, so the caller must call
- * soup_connection_set_state() to set it to %SOUP_CONNECTION_IDLE if
- * it ends up not using the connection right away.
- *
- * If there is no idle connection available, but it is possible to
- * create a new connection, then one will be created and returned
- * (with state %SOUP_CONNECTION_NEW). The caller MUST then call
- * soup_connection_connect_sync() or soup_connection_connect_async()
- * to connect it. If the connection attempt fails, the caller must
- * call soup_session_connection_failed() to tell the session to free
- * the connection.
- *
- * If no connection is available and a new connection cannot be made,
- * soup_session_get_connection() will return %NULL. If @session has
- * the maximum number of open connections open, but does not have the
- * maximum number of per-host connections open to the relevant host,
- * then *@try_pruning will be set to %TRUE. In this case, the caller
- * can call soup_session_try_prune_connection() to close an idle
- * connection, and then try soup_session_get_connection() again. (If
- * calling soup_session_try_prune_connection() wouldn't help, then
- * *@try_pruning is left untouched; it is NOT set to %FALSE.)
- *
- * Return value: a #SoupConnection, or %NULL
- **/
-SoupConnection *
+gboolean
 soup_session_get_connection (SoupSession *session,
 			     SoupMessageQueueItem *item,
 			     gboolean *try_pruning)
@@ -1374,6 +1299,11 @@ soup_session_get_connection (SoupSession *session,
 	int num_pending = 0;
 	SoupURI *uri;
 
+	if (item->conn) {
+		g_return_val_if_fail (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
+		return TRUE;
+	}
+
 	g_mutex_lock (priv->host_lock);
 
 	host = get_host_for_message (session, item->msg);
@@ -1381,7 +1311,8 @@ soup_session_get_connection (SoupSession *session,
 		if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
 			g_mutex_unlock (priv->host_lock);
-			return conns->data;
+			item->conn = g_object_ref (conns->data);
+			return TRUE;
 		} else if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_CONNECTING)
 			num_pending++;
 	}
@@ -1391,18 +1322,18 @@ soup_session_get_connection (SoupSession *session,
 	 */
 	if (num_pending > host->num_messages / 2) {
 		g_mutex_unlock (priv->host_lock);
-		return NULL;
+		return FALSE;
 	}
 
 	if (host->num_conns >= priv->max_conns_per_host) {
 		g_mutex_unlock (priv->host_lock);
-		return NULL;
+		return FALSE;
 	}
 
 	if (priv->num_conns >= priv->max_conns) {
 		*try_pruning = TRUE;
 		g_mutex_unlock (priv->host_lock);
-		return NULL;
+		return FALSE;
 	}
 
 	if (item->proxy_addr) {
@@ -1434,7 +1365,6 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
 		NULL);
-	g_object_set_data (G_OBJECT (conn), "SoupSessionHost", host);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
 			  session);
@@ -1448,7 +1378,8 @@ soup_session_get_connection (SoupSession *session,
 	host->connections = g_slist_prepend (host->connections, conn);
 
 	g_mutex_unlock (priv->host_lock);
-	return conn;
+	item->conn = g_object_ref (conn);
+	return TRUE;
 }
 
 SoupMessageQueue *

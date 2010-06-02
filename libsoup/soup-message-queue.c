@@ -69,6 +69,12 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 		soup_uri_free (item->proxy_uri);
 		item->proxy_uri = NULL;
 	}
+
+	if (item->conn && !soup_message_is_keepalive (msg)) {
+		g_object_unref (item->conn);
+		item->conn = NULL;
+	}
+
 	item->state = SOUP_MESSAGE_STARTING;
 }
 
