@@ -25,6 +25,8 @@ gboolean              soup_session_cleanup_connections  (SoupSession          *s
 void                  soup_session_send_queue_item      (SoupSession          *session,
 							 SoupMessageQueueItem *item,
 							 SoupMessageCompletionFn completion_cb);
+void                  soup_session_unqueue_item         (SoupSession          *session,
+							 SoupMessageQueueItem *item);
 
 G_END_DECLS
 

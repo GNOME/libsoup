@@ -1390,11 +1390,10 @@ soup_session_get_queue (SoupSession *session)
 	return priv->queue;
 }
 
-static void
-message_finished (SoupMessage *msg, gpointer user_data)
+void
+soup_session_unqueue_item (SoupSession          *session,
+			   SoupMessageQueueItem *item)
 {
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
@@ -1403,25 +1402,26 @@ message_finished (SoupMessage *msg, gpointer user_data)
 		item->conn = NULL;
 	}
 
-	if (item->state == SOUP_MESSAGE_FINISHED) {
-		soup_message_queue_remove (priv->queue, item);
-
-		g_mutex_lock (priv->host_lock);
-		host = get_host_for_message (session, item->msg);
-		host->num_messages--;
-		g_mutex_unlock (priv->host_lock);
-
-		g_signal_handlers_disconnect_by_func (msg, message_finished, item);
-		/* g_signal_handlers_disconnect_by_func doesn't work if you
-		 * have a metamarshal, meaning it doesn't work with
-		 * soup_message_add_header_handler()
-		 */
-		g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
-						      0, 0, NULL, NULL, session);
-		g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, msg);
-		soup_message_queue_item_unref (item);
-	} else
+	if (item->state != SOUP_MESSAGE_FINISHED) {
 		g_warning ("finished an item with state %d", item->state);
+		return;
+	}
+
+	soup_message_queue_remove (priv->queue, item);
+
+	g_mutex_lock (priv->host_lock);
+	host = get_host_for_message (session, item->msg);
+	host->num_messages--;
+	g_mutex_unlock (priv->host_lock);
+
+	/* g_signal_handlers_disconnect_by_func doesn't work if you
+	 * have a metamarshal, meaning it doesn't work with
+	 * soup_message_add_header_handler()
+	 */
+	g_signal_handlers_disconnect_matched (item->msg, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, session);
+	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);
+	soup_message_queue_item_unref (item);
 }
 
 static void
@@ -1438,9 +1438,6 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	host = get_host_for_message (session, item->msg);
 	host->num_messages++;
 	g_mutex_unlock (priv->host_lock);
-
-	g_signal_connect_after (msg, "finished",
-				G_CALLBACK (message_finished), item);
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
@@ -1597,11 +1594,8 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 
 	soup_message_io_stop (msg);
 	soup_message_set_status (msg, status_code);
+	item->state = SOUP_MESSAGE_FINISHING;
 
-	if (item->state != SOUP_MESSAGE_FINISHED) {
-		item->state = SOUP_MESSAGE_FINISHED;
-		soup_message_finished (msg);
-	}
 	soup_message_queue_item_unref (item);
 }
 

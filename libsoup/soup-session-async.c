@@ -37,6 +37,8 @@ static void do_idle_run_queue (SoupSession *session);
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
+static void  cancel_message  (SoupSession *session, SoupMessage *msg,
+			      guint status_code);
 
 static void  auth_required   (SoupSession *session, SoupMessage *msg,
 			      SoupAuth *auth, gboolean retrying);
@@ -76,6 +78,7 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
+	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
 
 	object_class->finalize = finalize;
@@ -127,9 +130,9 @@ item_failed (SoupMessageQueueItem *item, guint status)
 	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		item->state = SOUP_MESSAGE_FINISHED;
-		if (status != SOUP_STATUS_CANCELLED)
-			soup_session_cancel_message (item->session, item->msg, status);
+		item->state = SOUP_MESSAGE_FINISHING;
+		if (!item->msg->status_code)
+			soup_message_set_status (item->msg, status);
 		soup_message_queue_item_unref (item);
 		return TRUE;
 	}
@@ -215,37 +218,28 @@ message_completed (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
-	if (item->state == SOUP_MESSAGE_RESTARTING)
-		soup_message_restarted (msg);
-	else {
-		item->state = SOUP_MESSAGE_FINISHED;
-		soup_message_finished (msg);
-	}
+	if (item->state != SOUP_MESSAGE_RESTARTING)
+		item->state = SOUP_MESSAGE_FINISHING;
+	do_idle_run_queue (item->session);
 }
 
 static void
 tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
+	SoupSession *session = item->session;
 
 	if (item->state == SOUP_MESSAGE_RESTARTING) {
 		soup_message_restarted (msg);
 		if (item->conn) {
-			soup_session_send_queue_item (item->session, item, tunnel_message_completed);
+			soup_session_send_queue_item (session, item, tunnel_message_completed);
 			return;
 		}
 
 		soup_message_set_status (msg, SOUP_STATUS_TRY_AGAIN);
-		item->state = SOUP_MESSAGE_FINISHED;
 	}
-	message_completed (msg, item);
-}
 
-static void
-tunnel_connected (SoupMessage *msg, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
+	item->state = SOUP_MESSAGE_FINISHED;
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		if (item->conn)
@@ -273,13 +267,13 @@ tunnel_connected (SoupMessage *msg, gpointer user_data)
 	item->related->state = SOUP_MESSAGE_READY;
 
 done:
-	if (item->related->msg->status_code) {
-		item->related->state = SOUP_MESSAGE_FINISHED;
-		message_completed (item->related->msg, item->related);
-	}
+	soup_message_finished (msg);
+	if (item->related->msg->status_code)
+		item->related->state = SOUP_MESSAGE_FINISHING;
 
 	do_idle_run_queue (item->session);
 	soup_message_queue_item_unref (item->related);
+	soup_session_unqueue_item (session, item);
 	soup_message_queue_item_unref (item);
 	g_object_unref (session);
 }
@@ -300,15 +294,11 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	}
 
 	if (status != SOUP_STATUS_OK) {
-		soup_connection_disconnect (conn);
 		soup_message_set_status (item->msg, status);
-		message_completed (item->msg, item);
+		item->state = SOUP_MESSAGE_FINISHING;
 
-		/* There may have been messages waiting for the
-		 * connection count to go down, so queue a run_queue.
-		 */
+		soup_connection_disconnect (conn);
 		do_idle_run_queue (session);
-
 		soup_message_queue_item_unref (item);
 		g_object_unref (session);
 		return;
@@ -322,8 +312,6 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 
 		tunnel_item = soup_session_make_connect_message (session, conn);
 		tunnel_item->related = item;
-		g_signal_connect (tunnel_item->msg, "finished",
-				  G_CALLBACK (tunnel_connected), tunnel_item);
 		soup_session_send_queue_item (session, tunnel_item, tunnel_message_completed);
 		return;
 	}
@@ -337,15 +325,83 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 }
 
 static void
+process_queue_item (SoupMessageQueueItem *item,
+		    gboolean             *should_prune)
+{
+	SoupSession *session = item->session;
+	SoupProxyURIResolver *proxy_resolver;
+
+	do {
+		switch (item->state) {
+		case SOUP_MESSAGE_STARTING:
+			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, item->msg);
+			if (!proxy_resolver) {
+				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
+				break;
+			}
+			resolve_proxy_addr (item, proxy_resolver);
+			return;
+
+		case SOUP_MESSAGE_AWAITING_CONNECTION:
+			if (!soup_session_get_connection (session, item, should_prune))
+				return;
+
+			if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
+				item->state = SOUP_MESSAGE_READY;
+				break;
+			}
+
+			item->state = SOUP_MESSAGE_CONNECTING;
+			soup_message_queue_item_ref (item);
+			g_object_ref (session);
+			soup_connection_connect_async (item->conn, item->cancellable,
+						       got_connection, item);
+			return;
+
+		case SOUP_MESSAGE_READY:
+			item->state = SOUP_MESSAGE_RUNNING;
+			soup_session_send_queue_item (session, item, message_completed);
+			break;
+
+		case SOUP_MESSAGE_RESTARTING:
+			item->state = SOUP_MESSAGE_STARTING;
+			soup_message_restarted (item->msg);
+			break;
+
+		case SOUP_MESSAGE_FINISHING:
+			item->state = SOUP_MESSAGE_FINISHED;
+			soup_message_finished (item->msg);
+			if (item->state != SOUP_MESSAGE_FINISHED)
+				break;
+
+			g_object_ref (session);
+			soup_session_unqueue_item (session, item);
+			if (item->callback)
+				item->callback (session, item->msg, item->callback_data);
+			g_object_unref (item->msg);
+			do_idle_run_queue (session);
+			g_object_unref (session);
+			return;
+
+		default:
+			/* Nothing to do with this message in any
+			 * other state.
+			 */
+			return;
+		}
+	} while (item->state != SOUP_MESSAGE_FINISHED);
+}
+
+static void
 run_queue (SoupSessionAsync *sa)
 {
 	SoupSession *session = SOUP_SESSION (sa);
 	SoupMessageQueue *queue = soup_session_get_queue (session);
 	SoupMessageQueueItem *item;
-	SoupProxyURIResolver *proxy_resolver;
 	SoupMessage *msg;
 	gboolean try_pruning = TRUE, should_prune = FALSE;
 
+	g_object_ref (session);
 	soup_session_cleanup_connections (session, FALSE);
 
  try_again:
@@ -355,39 +411,8 @@ run_queue (SoupSessionAsync *sa)
 		msg = item->msg;
 
 		/* CONNECT messages are handled specially */
-		if (msg->method == SOUP_METHOD_CONNECT)
-			continue;
-
-		if (item->state == SOUP_MESSAGE_STARTING) {
-			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
-			if (proxy_resolver) {
-				resolve_proxy_addr (item, proxy_resolver);
-				continue;
-			} else
-				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-		}
-
-		if (item->state == SOUP_MESSAGE_AWAITING_CONNECTION) {
-			if (!soup_session_get_connection (session, item,
-							  &should_prune))
-				continue;
-
-			if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_NEW) {
-				item->state = SOUP_MESSAGE_CONNECTING;
-				soup_message_queue_item_ref (item);
-				g_object_ref (item->session);
-				soup_connection_connect_async (item->conn, item->cancellable,
-							       got_connection,
-							       item);
-				continue;
-			} else
-				item->state = SOUP_MESSAGE_READY;
-		}
-
-		if (item->state == SOUP_MESSAGE_READY) {
-			item->state = SOUP_MESSAGE_RUNNING;
-			soup_session_send_queue_item (session, item, message_completed);
-		}
+		if (msg->method != SOUP_METHOD_CONNECT)
+			process_queue_item (item, &should_prune);
 	}
 	if (item)
 		soup_message_queue_item_unref (item);
@@ -402,35 +427,7 @@ run_queue (SoupSessionAsync *sa)
 			goto try_again;
 		}
 	}
-}
 
-static void
-request_restarted (SoupMessage *req, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-
-	run_queue ((SoupSessionAsync *)item->session);
-}
-
-static void
-final_finished (SoupMessage *req, gpointer user_data)
-{
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
-
-	g_object_ref (session);
-
-	if (item->state == SOUP_MESSAGE_FINISHED) {
-		g_signal_handlers_disconnect_by_func (req, final_finished, item);
-		g_signal_handlers_disconnect_by_func (req, request_restarted, item);
-		if (item->callback)
-			item->callback (session, req, item->callback_data);
-
-		g_object_unref (req);
-		soup_message_queue_item_unref (item);
-	}
-
-	do_idle_run_queue (session);
 	g_object_unref (session);
 }
 
@@ -460,17 +457,7 @@ static void
 queue_message (SoupSession *session, SoupMessage *req,
 	       SoupSessionCallback callback, gpointer user_data)
 {
-	SoupMessageQueueItem *item;
-
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
-
-	item = soup_message_queue_lookup (soup_session_get_queue (session), req);
-	g_return_if_fail (item != NULL);
-
-	g_signal_connect (req, "restarted",
-			  G_CALLBACK (request_restarted), item);
-	g_signal_connect_after (req, "finished",
-				G_CALLBACK (final_finished), item);
 
 	do_idle_run_queue (session);
 }
@@ -482,7 +469,7 @@ send_message (SoupSession *session, SoupMessage *req)
 	GMainContext *async_context =
 		soup_session_get_async_context (session);
 
-	/* Balance out the unref that final_finished will do */
+	/* Balance out the unref that queuing will eventually do */
 	g_object_ref (req);
 
 	queue_message (session, req, NULL, NULL);
@@ -490,13 +477,19 @@ send_message (SoupSession *session, SoupMessage *req)
 	item = soup_message_queue_lookup (soup_session_get_queue (session), req);
 	g_return_val_if_fail (item != NULL, SOUP_STATUS_MALFORMED);
 
-	while (item->state != SOUP_MESSAGE_FINISHED &&
-	       !SOUP_STATUS_IS_TRANSPORT_ERROR (req->status_code))
+	while (item->state != SOUP_MESSAGE_FINISHED)
 		g_main_context_iteration (async_context, TRUE);
 
 	soup_message_queue_item_unref (item);
 
 	return req->status_code;
+}
+
+static void
+cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
+{
+	SOUP_SESSION_CLASS (soup_session_async_parent_class)->cancel_message (session, msg, status_code);
+	do_idle_run_queue (session);
 }
 
 static void
