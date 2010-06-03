@@ -5,6 +5,8 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
+#include "config.h"
+
 #include <glib.h>
 
 #include "soup-status.h"
