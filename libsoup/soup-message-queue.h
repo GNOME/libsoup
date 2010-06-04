@@ -31,6 +31,8 @@ struct SoupMessageQueueItem {
 	SoupURI *proxy_uri;
 	SoupConnection *conn;
 
+	guint redirection_count;
+
 	guint resolving_proxy_addr : 1;
 	guint resolved_proxy_addr  : 1;
 

@@ -18,6 +18,7 @@ typedef struct {
 	const char *method;
 	const char *path;
 	guint status_code;
+	gboolean repeat;
 } TestRequest;
 
 static struct {
@@ -107,7 +108,10 @@ static struct {
 
 	/* Test behavior with irrecoverably-bad Location header */
 	{ { { "GET", "/bad-no-host", 302 },
-	    { NULL } }, SOUP_STATUS_MALFORMED }
+	    { NULL } }, SOUP_STATUS_MALFORMED },
+
+	{ { { "GET", "/bad-recursive", 302, TRUE },
+	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS }
 };
 static const int n_tests = G_N_ELEMENTS (tests);
 
@@ -142,7 +146,7 @@ restarted (SoupMessage *msg, gpointer user_data)
 
 	debug_printf (2, "    %s %s\n", msg->method, uri->path);
 
-	if ((*req)->method)
+	if ((*req)->method && !(*req)->repeat)
 		(*req)++;
 
 	if (!(*req)->method) {
@@ -234,6 +238,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			soup_message_headers_replace (msg->response_headers,
 						      "Location",
 						      "/bad with spaces");
+		} else if (!strcmp (path, "/bad-recursive")) {
+			soup_message_set_status (msg, SOUP_STATUS_FOUND);
+			soup_message_headers_replace (msg->response_headers,
+						      "Location",
+						      "/bad-recursive");
 		} else if (!strcmp (path, "/bad-no-host")) {
 			soup_message_set_status (msg, SOUP_STATUS_FOUND);
 			soup_message_headers_replace (msg->response_headers,
