@@ -78,6 +78,7 @@
  * closed the connection unexpectedly
  * @SOUP_STATUS_MALFORMED: Malformed data (usually a programmer error)
  * @SOUP_STATUS_TRY_AGAIN: Used internally
+ * @SOUP_STATUS_TOO_MANY_REDIRECTS: There were too many redirections
  * @SOUP_STATUS_CONTINUE: 100 Continue (HTTP)
  * @SOUP_STATUS_SWITCHING_PROTOCOLS: 101 Switching Protocols (HTTP)
  * @SOUP_STATUS_PROCESSING: 102 Processing (WebDAV)
@@ -185,6 +186,7 @@ static const struct {
 #endif
 	{ SOUP_STATUS_IO_ERROR,                   "Connection terminated unexpectedly" },
 	{ SOUP_STATUS_MALFORMED,                  "Message Corrupt" },
+	{ SOUP_STATUS_TOO_MANY_REDIRECTS,         "Too many redirects" },
 
 	/* Informational */
 	{ SOUP_STATUS_CONTINUE,                   "Continue" },

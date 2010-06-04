@@ -117,6 +117,8 @@ static void auth_manager_authenticate (SoupAuthManager *manager,
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
 
+#define SOUP_SESSION_MAX_REDIRECTION_COUNT 20
+
 #define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
 G_DEFINE_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
@@ -1093,12 +1095,24 @@ static void
 redirect_handler (SoupMessage *msg, gpointer user_data)
 {
 	SoupSession *session = user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
 	const char *new_loc;
 	SoupURI *new_uri;
 
 	new_loc = soup_message_headers_get_one (msg->response_headers,
 						"Location");
 	g_return_if_fail (new_loc != NULL);
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	g_return_if_fail (item != NULL);
+	if (item->redirection_count >= SOUP_SESSION_MAX_REDIRECTION_COUNT) {
+		soup_session_cancel_message (session, msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
+		soup_message_queue_item_unref (item);
+		return;
+	}
+	item->redirection_count++;
+	soup_message_queue_item_unref (item);
 
 	if (msg->status_code == SOUP_STATUS_SEE_OTHER ||
 	    (msg->status_code == SOUP_STATUS_FOUND &&
