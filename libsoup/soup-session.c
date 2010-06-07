@@ -186,8 +186,10 @@ soup_session_init (SoupSession *session)
 				     NULL);
 	g_signal_connect (auth_manager, "authenticate",
 			  G_CALLBACK (auth_manager_authenticate), session);
-	soup_auth_manager_add_type (auth_manager, SOUP_TYPE_AUTH_BASIC);
-	soup_auth_manager_add_type (auth_manager, SOUP_TYPE_AUTH_DIGEST);
+	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
+					  SOUP_TYPE_AUTH_BASIC);
+	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
+					  SOUP_TYPE_AUTH_DIGEST);
 	soup_session_add_feature (session, SOUP_SESSION_FEATURE (auth_manager));
 	g_object_unref (auth_manager);
 
@@ -1802,12 +1804,19 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 /**
  * soup_session_add_feature_by_type:
  * @session: a #SoupSession
- * @feature_type: the #GType of a class that implements #SoupSessionFeature
+ * @feature_type: a #GType
  *
- * Creates a new feature of type @feature_type and adds it to
- * @session. You can use this instead of soup_session_add_feature() in
- * the case wher you don't need to customize the new feature in any
- * way. You can also add a feature to the session at construct time by
+ * If @feature_type is the type of a class that implements
+ * #SoupSessionFeature, this creates a new feature of that type and
+ * adds it to @session as with soup_session_add_feature(). You can use
+ * this when you don't need to customize the new feature in any way.
+ *
+ * If @feature_type is not a #SoupSessionFeature type, this gives
+ * each existing feature on @session the chance to accept @feature_type
+ * as a "subfeature". This can be used to add new #SoupAuth types,
+ * for instance.
+ *
+ * You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
  *
  * Since: 2.24
@@ -1815,14 +1824,24 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 {
-	SoupSessionFeature *feature;
-
 	g_return_if_fail (SOUP_IS_SESSION (session));
-	g_return_if_fail (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE));
 
-	feature = g_object_new (feature_type, NULL);
-	soup_session_add_feature (session, feature);
-	g_object_unref (feature);
+	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
+		SoupSessionFeature *feature;
+
+		feature = g_object_new (feature_type, NULL);
+		soup_session_add_feature (session, feature);
+		g_object_unref (feature);
+	} else {
+		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+		GSList *f;
+
+		for (f = priv->features; f; f = f->next) {
+			if (soup_session_feature_add_feature (f->data, feature_type))
+				return;
+		}
+		g_warning ("No feature manager for feature of type '%s'", g_type_name (feature_type));
+	}
 }
 
 /**
@@ -1853,7 +1872,7 @@ soup_session_remove_feature (SoupSession *session, SoupSessionFeature *feature)
 /**
  * soup_session_remove_feature_by_type:
  * @session: a #SoupSession
- * @feature_type: the #GType of a class that implements #SoupSessionFeature
+ * @feature_type: a #GType
  *
  * Removes all features of type @feature_type (or any subclass of
  * @feature_type) from @session. You can also remove standard features
@@ -1871,12 +1890,21 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 	g_return_if_fail (SOUP_IS_SESSION (session));
 
 	priv = SOUP_SESSION_GET_PRIVATE (session);
-restart:
-	for (f = priv->features; f; f = f->next) {
-		if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type)) {
-			soup_session_remove_feature (session, f->data);
-			goto restart;
+
+	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
+	restart:
+		for (f = priv->features; f; f = f->next) {
+			if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type)) {
+				soup_session_remove_feature (session, f->data);
+				goto restart;
+			}
 		}
+	} else {
+		for (f = priv->features; f; f = f->next) {
+			if (soup_session_feature_remove_feature (f->data, feature_type))
+				return;
+		}
+		g_warning ("No feature manager for feature of type '%s'", g_type_name (feature_type));
 	}
 }
 

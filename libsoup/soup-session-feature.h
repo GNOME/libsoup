@@ -21,30 +21,44 @@ typedef struct {
 	GTypeInterface parent;
 
 	/* methods */
-	void (*attach)           (SoupSessionFeature *feature,
-				  SoupSession        *session);
-	void (*detach)           (SoupSessionFeature *feature,
-				  SoupSession        *session);
+	void     (*attach)           (SoupSessionFeature *feature,
+				      SoupSession        *session);
+	void     (*detach)           (SoupSessionFeature *feature,
+				      SoupSession        *session);
 
-	void (*request_queued)   (SoupSessionFeature *feature,
-				  SoupSession        *session,
-				  SoupMessage        *msg);
-	void (*request_started)  (SoupSessionFeature *feature,
-				  SoupSession        *session,
-				  SoupMessage        *msg,
-				  SoupSocket         *socket);
-	void (*request_unqueued) (SoupSessionFeature *feature,
-				  SoupSession        *session,
-				  SoupMessage        *msg);
+	void     (*request_queued)   (SoupSessionFeature *feature,
+				      SoupSession        *session,
+				      SoupMessage        *msg);
+	void     (*request_started)  (SoupSessionFeature *feature,
+				      SoupSession        *session,
+				      SoupMessage        *msg,
+				      SoupSocket         *socket);
+	void     (*request_unqueued) (SoupSessionFeature *feature,
+				      SoupSession        *session,
+				      SoupMessage        *msg);
+
+	gboolean (*add_feature)      (SoupSessionFeature *feature,
+				      GType               type);
+	gboolean (*remove_feature)   (SoupSessionFeature *feature,
+				      GType               type);
+	gboolean (*has_feature)      (SoupSessionFeature *feature,
+				      GType               type);
 
 } SoupSessionFeatureInterface;
 
-GType soup_session_feature_get_type (void);
+GType    soup_session_feature_get_type       (void);
 
-void soup_session_feature_attach (SoupSessionFeature *feature,
-				  SoupSession        *session);
-void soup_session_feature_detach (SoupSessionFeature *feature,
-				  SoupSession        *session);
+void     soup_session_feature_attach         (SoupSessionFeature *feature,
+					      SoupSession        *session);
+void     soup_session_feature_detach         (SoupSessionFeature *feature,
+					      SoupSession        *session);
+
+gboolean soup_session_feature_add_feature    (SoupSessionFeature *feature,
+					      GType               type);
+gboolean soup_session_feature_remove_feature (SoupSessionFeature *feature,
+					      GType               type);
+gboolean soup_session_feature_has_feature    (SoupSessionFeature *feature,
+					      GType               type);
 
 G_END_DECLS
 

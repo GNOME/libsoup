@@ -164,3 +164,42 @@ soup_session_feature_detach (SoupSessionFeature *feature,
 {
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->detach (feature, session);
 }
+
+gboolean
+soup_session_feature_add_feature (SoupSessionFeature *feature,
+				  GType               type)
+{
+	SoupSessionFeatureInterface *feature_iface =
+              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+
+	if (feature_iface->add_feature)
+		return feature_iface->add_feature (feature, type);
+	else
+		return FALSE;
+}
+
+gboolean
+soup_session_feature_remove_feature (SoupSessionFeature *feature,
+				     GType               type)
+{
+	SoupSessionFeatureInterface *feature_iface =
+              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+
+	if (feature_iface->remove_feature)
+		return feature_iface->remove_feature (feature, type);
+	else
+		return FALSE;
+}
+
+gboolean
+soup_session_feature_has_feature (SoupSessionFeature *feature,
+				  GType               type)
+{
+	SoupSessionFeatureInterface *feature_iface =
+              SOUP_SESSION_FEATURE_GET_CLASS (feature);
+
+	if (feature_iface->has_feature)
+		return feature_iface->has_feature (feature, type);
+	else
+		return FALSE;
+}
