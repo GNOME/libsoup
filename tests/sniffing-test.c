@@ -445,12 +445,32 @@ test_disabled (const char *path)
 	g_main_loop_unref (loop);
 }
 
+/* Fix up XDG_DATA_DIRS for jhbuild runs so that it still works even
+ * if you didn't install shared-mime-info.
+ */
+static void
+fixup_xdg_dirs (void)
+{
+	const char *xdg_data_dirs = g_getenv ("XDG_DATA_DIRS");
+	char *new_data_dirs;
+
+	if (xdg_data_dirs &&
+	    !g_str_has_prefix (xdg_data_dirs, "/usr/share") &&
+	    !strstr (xdg_data_dirs, ":/usr/share")) {
+		new_data_dirs = g_strdup_printf ("%s:/usr/share", xdg_data_dirs);
+		g_setenv ("XDG_DATA_DIRS", new_data_dirs, TRUE);
+		g_free (new_data_dirs);
+	}
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
 
 	test_init (argc, argv, NULL);
+
+	fixup_xdg_dirs ();
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
