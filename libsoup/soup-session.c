@@ -181,9 +181,7 @@ soup_session_init (SoupSession *session)
 
 	priv->features_cache = g_hash_table_new (NULL, NULL);
 
-	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM,
-				     SOUP_AUTH_MANAGER_NTLM_USE_NTLM, FALSE,
-				     NULL);
+	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM, NULL);
 	g_signal_connect (auth_manager, "authenticate",
 			  G_CALLBACK (auth_manager_authenticate), session);
 	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
@@ -491,6 +489,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 				   "Connection lifetime when idle",
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
+	/**
+	 * SoupSession:use-ntlm:
+	 *
+	 * Whether or not to use NTLM authentication.
+	 *
+	 * Deprecated: use soup_session_add_feature_by_type() with
+	 * #SOUP_TYPE_AUTH_NTLM.
+	 **/
 	/**
 	 * SOUP_SESSION_USE_NTLM:
 	 *
@@ -851,9 +857,10 @@ set_property (GObject *object, guint prop_id,
 	case PROP_USE_NTLM:
 		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
 		if (feature) {
-			g_object_set_property (G_OBJECT (feature),
-					       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
-					       value);
+			if (g_value_get_boolean (value))
+				soup_session_feature_add_feature (feature, SOUP_TYPE_AUTH_NTLM);
+			else
+				soup_session_feature_remove_feature (feature, SOUP_TYPE_AUTH_NTLM);
 		} else
 			g_warning ("Trying to set use-ntlm on session with no auth-manager");
 		break;
@@ -958,11 +965,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_USE_NTLM:
 		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
-		if (feature) {
-			g_object_get_property (G_OBJECT (feature),
-					       SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
-					       value);
-		} else
+		if (feature)
+			g_value_set_boolean (value, soup_session_feature_has_feature (feature, SOUP_TYPE_AUTH_NTLM));
+		else
 			g_value_set_boolean (value, FALSE);
 		break;
 	case PROP_SSL_CA_FILE:

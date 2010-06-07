@@ -32,18 +32,13 @@ static void request_started (SoupSessionFeature *feature, SoupSession *session,
 			     SoupMessage *msg, SoupSocket *socket);
 static void request_unqueued (SoupSessionFeature *feature,
 			      SoupSession *session, SoupMessage *msg);
+static gboolean add_feature (SoupSessionFeature *feature, GType type);
+static gboolean remove_feature (SoupSessionFeature *feature, GType type);
+static gboolean has_feature (SoupSessionFeature *feature, GType type);
 
 G_DEFINE_TYPE_WITH_CODE (SoupAuthManagerNTLM, soup_auth_manager_ntlm, SOUP_TYPE_AUTH_MANAGER,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_auth_manager_ntlm_session_feature_init))
-
-enum {
-	PROP_0,
-
-	PROP_USE_NTLM,
-
-	LAST_PROP
-};
 
 typedef enum {
 	SOUP_NTLM_NEW,
@@ -80,11 +75,6 @@ static char     *soup_ntlm_response        (const char  *nonce,
 					    const char  *password,
 					    const char  *host, 
 					    const char  *domain);
-
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
 
 static void
 soup_auth_manager_ntlm_init (SoupAuthManagerNTLM *ntlm)
@@ -135,16 +125,6 @@ soup_auth_manager_ntlm_class_init (SoupAuthManagerNTLMClass *auth_manager_ntlm_c
 	g_type_class_add_private (auth_manager_ntlm_class, sizeof (SoupAuthManagerNTLMPrivate));
 
 	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
-
-	g_object_class_install_property (
-		object_class, PROP_USE_NTLM,
-		g_param_spec_boolean (SOUP_AUTH_MANAGER_NTLM_USE_NTLM,
-				      "Use NTLM",
-				      "Whether or not to use NTLM authentication",
-				      FALSE,
-				      G_PARAM_READWRITE));
 }
 
 static void
@@ -158,40 +138,9 @@ soup_auth_manager_ntlm_session_feature_init (SoupSessionFeatureInterface *featur
 	feature_interface->request_queued = request_queued;
 	feature_interface->request_started = request_started;
 	feature_interface->request_unqueued = request_unqueued;
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupAuthManagerNTLMPrivate *priv =
-		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_USE_NTLM:
-		priv->use_ntlm = g_value_get_boolean (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupAuthManagerNTLMPrivate *priv =
-		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_USE_NTLM:
-		g_value_set_boolean (value, priv->use_ntlm);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
+	feature_interface->add_feature = add_feature;
+	feature_interface->remove_feature = remove_feature;
+	feature_interface->has_feature = has_feature;
 }
 
 static void
@@ -424,6 +373,45 @@ request_unqueued (SoupSessionFeature *ntlm, SoupSession *session,
 	soup_auth_manager_parent_feature_interface->request_unqueued (ntlm, session, msg);
 }
 
+static gboolean
+add_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupAuthManagerNTLMPrivate *priv =
+		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
+
+	if (type == SOUP_TYPE_AUTH_NTLM) {
+		priv->use_ntlm = TRUE;
+		return TRUE;
+	}
+
+	return soup_auth_manager_parent_feature_interface->add_feature (feature, type);
+}
+
+static gboolean
+remove_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupAuthManagerNTLMPrivate *priv =
+		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
+
+	if (type == SOUP_TYPE_AUTH_NTLM) {
+		priv->use_ntlm = FALSE;
+		return TRUE;
+	}
+
+	return soup_auth_manager_parent_feature_interface->remove_feature (feature, type);
+}
+
+static gboolean
+has_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupAuthManagerNTLMPrivate *priv =
+		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
+
+	if (type == SOUP_TYPE_AUTH_NTLM)
+		return priv->use_ntlm;
+
+	return soup_auth_manager_parent_feature_interface->has_feature (feature, type);
+}
 
 /* NTLM code */
 

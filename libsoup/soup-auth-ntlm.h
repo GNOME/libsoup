@@ -8,7 +8,6 @@
 
 #include "soup-auth.h"
 
-#define SOUP_TYPE_AUTH_NTLM            (soup_auth_ntlm_get_type ())
 #define SOUP_AUTH_NTLM(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_AUTH_NTLM, SoupAuthNTLM))
 #define SOUP_AUTH_NTLM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_NTLM, SoupAuthNTLMClass))
 #define SOUP_IS_AUTH_NTLM(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_AUTH_NTLM))
@@ -24,8 +23,6 @@ typedef struct {
 	SoupAuthClass parent_class;
 
 } SoupAuthNTLMClass;
-
-GType soup_auth_ntlm_get_type (void);
 
 SoupAuth   *soup_auth_ntlm_new          (const char *realm,
 					 const char *host);

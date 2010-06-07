@@ -106,6 +106,8 @@ void        soup_auth_has_saved_password    (SoupAuth      *auth,
 GType soup_auth_basic_get_type  (void);
 #define SOUP_TYPE_AUTH_DIGEST (soup_auth_digest_get_type ())
 GType soup_auth_digest_get_type (void);
+#define SOUP_TYPE_AUTH_NTLM   (soup_auth_ntlm_get_type ())
+GType soup_auth_ntlm_get_type   (void);
 
 G_END_DECLS
 

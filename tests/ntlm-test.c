@@ -338,10 +338,10 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 
 	g_return_if_fail (use_ntlm || !alice);
 
-	session = soup_test_session_new (
-		SOUP_TYPE_SESSION_ASYNC,
-		SOUP_SESSION_USE_NTLM, use_ntlm,
-		NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	if (use_ntlm)
+		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+
 	if (user) {
 		g_signal_connect (session, "authenticate",
 				  G_CALLBACK (authenticate), (char *)user);
