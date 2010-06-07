@@ -8,7 +8,6 @@
 
 #include "soup-auth.h"
 
-#define SOUP_TYPE_AUTH_DIGEST            (soup_auth_digest_get_type ())
 #define SOUP_AUTH_DIGEST(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_AUTH_DIGEST, SoupAuthDigest))
 #define SOUP_AUTH_DIGEST_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_DIGEST, SoupAuthDigestClass))
 #define SOUP_IS_AUTH_DIGEST(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_AUTH_DIGEST))
@@ -24,8 +23,6 @@ typedef struct {
 	SoupAuthClass parent_class;
 
 } SoupAuthDigestClass;
-
-GType soup_auth_digest_get_type (void);
 
 /* Utility routines (also used by SoupAuthDomainDigest) */
 

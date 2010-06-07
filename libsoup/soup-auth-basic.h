@@ -8,7 +8,6 @@
 
 #include "soup-auth.h"
 
-#define SOUP_TYPE_AUTH_BASIC            (soup_auth_basic_get_type ())
 #define SOUP_AUTH_BASIC(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_AUTH_BASIC, SoupAuthBasic))
 #define SOUP_AUTH_BASIC_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicClass))
 #define SOUP_IS_AUTH_BASIC(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), SOUP_TYPE_AUTH_BASIC))
@@ -24,7 +23,5 @@ typedef struct {
 	SoupAuthClass  parent_class;
 
 } SoupAuthBasicClass;
-
-GType soup_auth_basic_get_type (void);
 
 #endif /*SOUP_AUTH_BASIC_H*/

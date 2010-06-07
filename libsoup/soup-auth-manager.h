@@ -32,11 +32,6 @@ typedef struct {
 
 GType soup_auth_manager_get_type (void);
 
-void soup_auth_manager_add_type          (SoupAuthManager *manager,
-					  GType            type);
-void soup_auth_manager_remove_type       (SoupAuthManager *manager,
-					  GType            type);
-
 void soup_auth_manager_emit_authenticate (SoupAuthManager *manager,
 					  SoupMessage     *msg,
 					  SoupAuth        *auth,

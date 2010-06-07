@@ -100,6 +100,13 @@ void        soup_auth_has_saved_password    (SoupAuth      *auth,
 					     const char    *password);
 #endif
 
+/* The actual auth types, which can be added/removed as features */
+
+#define SOUP_TYPE_AUTH_BASIC  (soup_auth_basic_get_type ())
+GType soup_auth_basic_get_type  (void);
+#define SOUP_TYPE_AUTH_DIGEST (soup_auth_digest_get_type ())
+GType soup_auth_digest_get_type (void);
+
 G_END_DECLS
 
 #endif /* SOUP_AUTH_H */

@@ -653,7 +653,8 @@ select_auth_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-select_auth_test_one (SoupURI *uri, const char *password,
+select_auth_test_one (SoupURI *uri,
+		      gboolean disable_digest, const char *password,
 		      const char *first_headers, const char *first_response,
 		      const char *second_headers, const char *second_response,
 		      guint final_status)
@@ -663,6 +664,9 @@ select_auth_test_one (SoupURI *uri, const char *password,
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	if (disable_digest)
+		soup_session_remove_feature_by_type (session, SOUP_TYPE_AUTH_DIGEST);
+
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (select_auth_authenticate), &sad);
 	memset (&sad, 0, sizeof (sad));
@@ -726,7 +730,9 @@ static gboolean
 server_basic_auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
 			    const char *username, const char *password, gpointer data)
 {
-	return FALSE;
+	if (strcmp (username, "user") != 0)
+		return FALSE;
+	return strcmp (password, "good-basic") == 0;
 }
 
 static char *
@@ -776,25 +782,40 @@ do_select_auth_test (void)
 		NULL);
 	soup_server_add_auth_domain (server, digest_auth_domain);
 
-	/* FIXME: when we support disabling auth types in the session,
-	 * test that too.
-	 */
-
 	debug_printf (1, "  Testing with no auth\n");
-	select_auth_test_one (uri, NULL,
+	select_auth_test_one (uri, FALSE, NULL,
 			      "Basic, Digest", "Digest",
 			      NULL, NULL,
 			      SOUP_STATUS_UNAUTHORIZED);
 
 	debug_printf (1, "  Testing with bad password\n");
-	select_auth_test_one (uri, "bad",
+	select_auth_test_one (uri, FALSE, "bad",
 			      "Basic, Digest", "Digest",
 			      "Basic, Digest", "Digest",
 			      SOUP_STATUS_UNAUTHORIZED);
 
 	debug_printf (1, "  Testing with good password\n");
-	select_auth_test_one (uri, "good",
+	select_auth_test_one (uri, FALSE, "good",
 			      "Basic, Digest", "Digest",
+			      NULL, NULL,
+			      SOUP_STATUS_OK);
+
+	/* Test with Digest disabled in the client. */
+	debug_printf (1, "  Testing without Digest with no auth\n");
+	select_auth_test_one (uri, TRUE, NULL,
+			      "Basic, Digest", "Basic",
+			      NULL, NULL,
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing without Digest with bad password\n");
+	select_auth_test_one (uri, TRUE, "bad",
+			      "Basic, Digest", "Basic",
+			      "Basic, Digest", "Basic",
+			      SOUP_STATUS_UNAUTHORIZED);
+
+	debug_printf (1, "  Testing without Digest with good password\n");
+	select_auth_test_one (uri, TRUE, "good-basic",
+			      "Basic, Digest", "Basic",
 			      NULL, NULL,
 			      SOUP_STATUS_OK);
 
@@ -809,19 +830,19 @@ do_select_auth_test (void)
 	soup_server_add_auth_domain (server, basic_auth_domain);
 
 	debug_printf (1, "  Testing flipped with no auth\n");
-	select_auth_test_one (uri, NULL,
+	select_auth_test_one (uri, FALSE, NULL,
 			      "Digest, Basic", "Digest",
 			      NULL, NULL,
 			      SOUP_STATUS_UNAUTHORIZED);
 
 	debug_printf (1, "  Testing flipped with bad password\n");
-	select_auth_test_one (uri, "bad",
+	select_auth_test_one (uri, FALSE, "bad",
 			      "Digest, Basic", "Digest",
 			      "Digest, Basic", "Digest",
 			      SOUP_STATUS_UNAUTHORIZED);
 
 	debug_printf (1, "  Testing flipped with good password\n");
-	select_auth_test_one (uri, "good",
+	select_auth_test_one (uri, FALSE, "good",
 			      "Digest, Basic", "Digest",
 			      NULL, NULL,
 			      SOUP_STATUS_OK);
