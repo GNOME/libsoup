@@ -173,13 +173,24 @@ This is required for GNOME proxy support.
 Pass "--without-gnome" to configure if you want to build libsoup
 without GNOME support.])])
 
+	AC_MSG_CHECKING(libproxy version)
+	libproxy_version=`$PKG_CONFIG --modversion libproxy-1.0`
+	case $libproxy_version in
+	0.2.*)
+		AC_MSG_RESULT([$libproxy_version, using workarounds...])
+		AC_DEFINE(HAVE_LIBPROXY_WITH_NON_THREAD_SAFE_GNOME_MODULE, 1, [Defined if libproxy is old and has a non-thread-safe gnome module])
+		;;
+	*)
+		AC_MSG_RESULT([$libproxy_version, ok])
+		;;
+	esac
+
 	PKG_CHECK_MODULES(GCONF, gconf-2.0, , [AC_MSG_ERROR(dnl
 [Could not find GConf:
 
 $GCONF_PKG_ERRORS
 
-Due to bugs in libproxy as of the GNOME 2.26 freeze date, GConf is
-*also* required for GNOME proxy support.
+This is required for GNOME proxy support.
 
 Pass "--without-gnome" to configure if you want to build libsoup
 without GNOME support.])])
