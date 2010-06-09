@@ -446,7 +446,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	g_signal_connect (priv->socket, "disconnected",
 			  G_CALLBACK (socket_disconnected), data->conn);
 
-	soup_connection_set_state (data->conn, SOUP_CONNECTION_IDLE);
+	soup_connection_set_state (data->conn, SOUP_CONNECTION_IN_USE);
 	priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 	start_idle_timer (data->conn);
 
@@ -529,7 +529,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		soup_connection_set_state (conn, SOUP_CONNECTION_IDLE);
+		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
 	} else {

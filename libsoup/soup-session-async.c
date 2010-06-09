@@ -260,6 +260,7 @@ tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 	g_signal_connect (item->conn, "disconnected",
 			  G_CALLBACK (connection_closed), item->session);
 	soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
+	soup_connection_set_state (item->conn, SOUP_CONNECTION_IN_USE);
 
 	item->related->state = SOUP_MESSAGE_READY;
 
