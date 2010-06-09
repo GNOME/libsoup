@@ -1419,7 +1419,7 @@ soup_session_unqueue_item (SoupSession          *session,
 	 * soup_message_add_header_handler()
 	 */
 	g_signal_handlers_disconnect_matched (item->msg, G_SIGNAL_MATCH_DATA,
-					      0, 0, NULL, NULL, session);
+					      0, 0, NULL, NULL, item);
 	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);
 	soup_message_queue_item_unref (item);
 }
