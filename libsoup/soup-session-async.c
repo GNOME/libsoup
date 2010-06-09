@@ -37,8 +37,6 @@ static void do_idle_run_queue (SoupSession *session);
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
-static void  cancel_message  (SoupSession *session, SoupMessage *msg,
-			      guint status_code);
 
 static void  auth_required   (SoupSession *session, SoupMessage *msg,
 			      SoupAuth *auth, gboolean retrying);
@@ -78,7 +76,6 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
-	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
 
 	object_class->finalize = finalize;
@@ -483,13 +480,6 @@ send_message (SoupSession *session, SoupMessage *req)
 	soup_message_queue_item_unref (item);
 
 	return req->status_code;
-}
-
-static void
-cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
-{
-	SOUP_SESSION_CLASS (soup_session_async_parent_class)->cancel_message (session, msg, status_code);
-	do_idle_run_queue (session);
 }
 
 static void

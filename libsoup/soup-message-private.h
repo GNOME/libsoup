@@ -86,6 +86,7 @@ SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 /* I/O */
 void                soup_message_io_stop        (SoupMessage          *msg);
+void                soup_message_io_finished    (SoupMessage          *msg);
 void                soup_message_io_pause       (SoupMessage          *msg);
 void                soup_message_io_unpause     (SoupMessage          *msg);
 gboolean            soup_message_io_in_progress (SoupMessage          *msg);

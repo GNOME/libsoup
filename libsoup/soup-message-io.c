@@ -154,7 +154,7 @@ soup_message_io_stop (SoupMessage *msg)
 #define SOUP_MESSAGE_IO_EOL            "\r\n"
 #define SOUP_MESSAGE_IO_EOL_LEN        2
 
-static void
+void
 soup_message_io_finished (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
