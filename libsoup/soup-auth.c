@@ -555,8 +555,9 @@ soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
  * (If the session is not configured to save passwords, this will
  * always be %NULL.)
  *
- * Return value: the list of usernames. You must free the list with
- * g_slist_free(), but do not free or modify the contents.
+ * Return value: (transfer container): the list of usernames. You must
+ * free the list with g_slist_free(), but do not free or modify the
+ * contents.
  *
  * Since: 2.28
  **/

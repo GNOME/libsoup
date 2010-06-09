@@ -630,8 +630,8 @@ soup_cookie_set_max_age (SoupCookie *cookie, int max_age)
  *
  * Gets @cookie's expiration time
  *
- * Return value: @cookie's expiration time, which is owned
- * by @cookie and should not be modified or freed.
+ * Return value: (transfer none): @cookie's expiration time, which is
+ * owned by @cookie and should not be modified or freed.
  *
  * Since: 2.32
  **/

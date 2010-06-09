@@ -1001,7 +1001,8 @@ get_property (GObject *object, guint prop_id,
  * context, so you will need to ref it yourself if you want it to
  * outlive its session.
  *
- * Return value: @session's #GMainContext, which may be %NULL
+ * Return value: (transfer none): @session's #GMainContext, which may
+ * be %NULL
  **/
 GMainContext *
 soup_session_get_async_context (SoupSession *session)
@@ -1955,8 +1956,8 @@ restart:
  * you want to see all features, you can pass %G_TYPE_SESSION_FEATURE
  * for @feature_type.)
  *
- * Return value: a list of features. You must free the list, but not
- * its contents
+ * Return value: (transfer container): a list of features. You must
+ * free the list, but not its contents
  *
  * Since: 2.26
  **/
@@ -1985,8 +1986,8 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  * features where there may be more than one feature of a given type,
  * use soup_session_get_features().
  *
- * Return value: a #SoupSessionFeature, or %NULL. The feature is owned
- * by @session.
+ * Return value: (transfer none): a #SoupSessionFeature, or %NULL. The
+ * feature is owned by @session.
  *
  * Since: 2.26
  **/
@@ -2032,8 +2033,8 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * disabled on @msg, and the second is not, then this will return
  * %NULL, not the second feature.
  *
- * Return value: a #SoupSessionFeature, or %NULL. The feature is owned
- * by @session.
+ * Return value: (transfer none): a #SoupSessionFeature, or %NULL. The
+ * feature is owned by @session.
  *
  * Since: 2.28
  **/

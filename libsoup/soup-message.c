@@ -1533,7 +1533,7 @@ soup_message_set_uri (SoupMessage *msg, SoupURI *uri)
  *
  * Gets @msg's URI
  *
- * Return value: the URI @msg is targeted for.
+ * Return value: (transfer none): the URI @msg is targeted for.
  **/
 SoupURI *
 soup_message_get_uri (SoupMessage *msg)
@@ -1551,7 +1551,7 @@ soup_message_get_uri (SoupMessage *msg)
  * URI on a message, this will be unresolved, although the message's
  * session will resolve it before sending the message.
  *
- * Return value: the address @msg's URI points to
+ * Return value: (transfer none): the address @msg's URI points to
  *
  * Since: 2.26
  **/
@@ -1766,7 +1766,7 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
  * soup_message_get_first_party:
  * @msg: a #SoupMessage
  * 
- * Returns: the @msg's first party #SoupURI
+ * Returns: (transfer none): the @msg's first party #SoupURI
  * 
  * Since: 2.30
  **/
