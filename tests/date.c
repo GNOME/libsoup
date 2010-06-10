@@ -13,6 +13,23 @@
 
 static gboolean check_ok (const char *strdate, SoupDate *date);
 
+static SoupDate *
+make_date (const char *strdate)
+{
+	char *dup;
+	SoupDate *date;
+
+	/* We do it this way so that if soup_date_new_from_string()
+	 * reads off the end of the string, it will trigger an error
+	 * when valgrinding, rather than just reading the start of the
+	 * next const string.
+	 */
+	dup = g_strdup (strdate);
+	date = soup_date_new_from_string (dup);
+	g_free (dup);
+	return date;
+}
+
 static const struct {
 	SoupDateFormat format;
 	const char *date;
@@ -31,7 +48,7 @@ check_good (SoupDateFormat format, const char *strdate)
 	SoupDate *date;
 	char *strdate2;
 
-	date = soup_date_new_from_string (strdate);
+	date = make_date (strdate);
 	if (date)
 		strdate2 = soup_date_to_string (date, format);
 	if (!check_ok (strdate, date))
@@ -282,7 +299,7 @@ check_conversion (const struct conversion *conv)
 	char *str;
 
 	debug_printf (2, "%s\n", conv->source);
-	date = soup_date_new_from_string (conv->source);
+	date = make_date (conv->source);
 	if (!date) {
 		debug_printf (1, "  date parsing failed for '%s'.\n", conv->source);
 		errors++;
@@ -359,12 +376,12 @@ main (int argc, char **argv)
 
 	debug_printf (1, "\nOK dates:\n");
 	for (i = 0; i < G_N_ELEMENTS (ok_dates); i++)
-		check_ok (ok_dates[i], soup_date_new_from_string (ok_dates[i]));
+		check_ok (ok_dates[i], make_date (ok_dates[i]));
 	check_ok (TIME_T_STRING, soup_date_new_from_time_t (TIME_T));
 
 	debug_printf (1, "\nBad dates:\n");
 	for (i = 0; i < G_N_ELEMENTS (bad_dates); i++)
-		check_bad (bad_dates[i], soup_date_new_from_string (bad_dates[i]));
+		check_bad (bad_dates[i], make_date (bad_dates[i]));
 
 	debug_printf (1, "\nConversions:\n");
 	for (i = 0; i < G_N_ELEMENTS (conversions); i++)
