@@ -355,7 +355,10 @@ parse_time (SoupDate *date, const char **date_string)
 static inline gboolean
 parse_timezone (SoupDate *date, const char **date_string)
 {
-	if (**date_string == '+' || **date_string == '-') {
+	if (!**date_string) {
+		date->utc = FALSE;
+		date->offset = 0;
+	} else if (**date_string == '+' || **date_string == '-') {
 		gulong val;
 		int sign = (**date_string == '+') ? -1 : 1;
 		val = strtoul (*date_string + 1, (char **)date_string, 10);
@@ -381,9 +384,6 @@ parse_timezone (SoupDate *date, const char **date_string)
 		if ((*date_string)[1] == 'D')
 			date->offset += 60;
 		date->utc = FALSE;
-	} else if (!**date_string) {
-		date->utc = FALSE;
-		date->offset = 0;
 	} else
 		return FALSE;
 	return TRUE;
