@@ -114,6 +114,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (first_party_uri);
 	soup_uri_free (third_party_uri);
+	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
 

@@ -270,6 +270,7 @@ main (int argc, char **argv)
 	do_test2 ();
 
 	g_free (base_uri);
+	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
 	return errors != 0;

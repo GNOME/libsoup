@@ -348,6 +348,7 @@ main (int argc, char **argv)
 	}
 
 	g_main_loop_unref (loop);
+	soup_test_server_quit_unref (server);
 
 	if (run_tests)
 		test_cleanup ();

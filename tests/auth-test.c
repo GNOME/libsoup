@@ -822,6 +822,7 @@ do_select_auth_test (void)
 	g_object_unref (basic_auth_domain);
 	g_object_unref (digest_auth_domain);
 	soup_uri_free (uri);
+	soup_test_server_quit_unref (server);
 }
 
 int

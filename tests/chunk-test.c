@@ -381,6 +381,7 @@ main (int argc, char **argv)
 	soup_uri_free (base_uri);
 
 	g_main_loop_unref (loop);
+	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
 	return errors != 0;

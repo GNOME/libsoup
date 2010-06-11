@@ -569,6 +569,7 @@ main (int argc, char **argv)
 	soup_uri_free (base_uri);
 
 	soup_test_session_abort_unref (session);
+	soup_test_server_quit_unref (server);
 	test_cleanup ();
 	return errors != 0;
 }

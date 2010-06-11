@@ -451,6 +451,7 @@ main (int argc, char **argv)
 
 	run_tests ();
 
+	soup_test_server_quit_unref (server);
 	test_cleanup ();
 	return errors != 0;
 }

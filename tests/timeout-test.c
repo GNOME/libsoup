@@ -98,6 +98,7 @@ main (int argc, char **argv)
 	do_timeout_tests (fast_uri, slow_uri);
 	g_free (fast_uri);
 	g_free (slow_uri);
+	soup_test_server_quit_unref (server);
 
 #ifdef HAVE_SSL
 	debug_printf (1, "https\n");
@@ -110,6 +111,7 @@ main (int argc, char **argv)
 	do_timeout_tests (fast_uri, slow_uri);
 	g_free (fast_uri);
 	g_free (slow_uri);
+	soup_test_server_quit_unref (server);
 #endif
 
 	test_cleanup ();

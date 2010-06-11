@@ -184,6 +184,7 @@ main (int argc, char **argv)
 
 	g_free (full_response);
 	g_free (full_response_md5);
+	soup_test_server_quit_unref (server);
 	test_cleanup ();
 	return errors != 0;
 }

@@ -14,9 +14,6 @@
 #ifdef HAVE_APACHE
 static gboolean apache_running;
 #endif
-static SoupServer *test_server;
-static GThread *server_thread;
-static void test_server_shutdown (void);
 
 static SoupLogger *logger;
 
@@ -57,8 +54,6 @@ quit (int sig)
 	if (apache_running)
 		apache_cleanup ();
 #endif
-	if (test_server)
-		test_server_shutdown ();
 
 	exit (1);
 }
@@ -122,8 +117,6 @@ test_cleanup (void)
 	if (apache_running)
 		apache_cleanup ();
 #endif
-	if (test_server)
-		test_server_shutdown ();
 
 	if (logger)
 		g_object_unref (logger);
@@ -268,12 +261,10 @@ static gpointer run_server_thread (gpointer user_data);
 static SoupServer *
 test_server_new (gboolean in_own_thread, gboolean ssl)
 {
+	SoupServer *server;
 	GMainContext *async_context;
 	const char *ssl_cert_file, *ssl_key_file;
 	SoupAddress *addr;
-
-	if (test_server)
-		test_server_shutdown ();
 
 	async_context = in_own_thread ? g_main_context_new () : NULL;
 
@@ -286,27 +277,30 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
 	soup_address_resolve_sync (addr, NULL);
 
-	test_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
-				       SOUP_SERVER_ASYNC_CONTEXT, async_context,
-				       SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
-				       SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
-				       NULL);
+	server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
+				  SOUP_SERVER_ASYNC_CONTEXT, async_context,
+				  SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
+				  SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
+				  NULL);
 	g_object_unref (addr);
 	if (async_context)
 		g_main_context_unref (async_context);
 
-	if (!test_server) {
+	if (!server) {
 		fprintf (stderr, "Unable to create server\n");
 		exit (1);
 	}
 
 	if (in_own_thread) {
-		server_thread = g_thread_create (run_server_thread, test_server,
-						 TRUE, NULL);
-	} else
-		soup_server_run_async (test_server);
+		GThread *thread;
 
-	return test_server;
+		thread = g_thread_create (run_server_thread, server,
+					  TRUE, NULL);
+		g_object_set_data (G_OBJECT (server), "thread", thread);
+	} else
+		soup_server_run_async (server);
+
+	return server;
 }
 
 SoupServer *
@@ -337,24 +331,27 @@ idle_quit_server (gpointer server)
 	return FALSE;
 }
 
-static void
-test_server_shutdown (void)
+void
+soup_test_server_quit_unref (SoupServer *server)
 {
-	g_object_add_weak_pointer (G_OBJECT (test_server),
-				   (gpointer *)&test_server);
+	GThread *thread;
 
-	if (server_thread) {
-		soup_add_completion (soup_server_get_async_context (test_server),
-				     idle_quit_server, test_server);
-		g_thread_join (server_thread);
+	g_object_add_weak_pointer (G_OBJECT (server),
+				   (gpointer *)&server);
+
+	thread = g_object_get_data (G_OBJECT (server), "thread");
+	if (thread) {
+		soup_add_completion (soup_server_get_async_context (server),
+				     idle_quit_server, server);
+		g_thread_join (thread);
 	} else
-		soup_server_quit (test_server);
-	g_object_unref (test_server);
+		soup_server_quit (server);
+	g_object_unref (server);
 
-	if (test_server) {
+	if (server) {
 		errors++;
 		debug_printf (1, "leaked SoupServer!\n");
-		g_object_remove_weak_pointer (G_OBJECT (test_server),
-					      (gpointer *)&test_server);
+		g_object_remove_weak_pointer (G_OBJECT (server),
+					      (gpointer *)&server);
 	}
 }

@@ -365,6 +365,7 @@ main (int argc, char **argv)
 				    soup_server_get_port (server));
 	do_range_test (session, base_uri, TRUE);
 	g_free (base_uri);
+	soup_test_server_quit_unref (server);
 
 	soup_test_session_abort_unref (session);
 
