@@ -14,6 +14,8 @@
 
 #include "test-utils.h"
 
+char *server2_uri;
+
 typedef struct {
 	const char *method;
 	const char *path;
@@ -110,8 +112,14 @@ static struct {
 	{ { { "GET", "/bad-no-host", 302 },
 	    { NULL } }, SOUP_STATUS_MALFORMED },
 
+	/* Test infinite redirection */
 	{ { { "GET", "/bad-recursive", 302, TRUE },
-	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS }
+	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS },
+
+	/* Test redirection to a different server */
+	{ { { "GET", "/server2", 302 },
+	    { "GET", "/on-server2", 200 },
+	    { NULL } }, 200 },
 };
 static const int n_tests = G_N_ELEMENTS (tests);
 
@@ -253,9 +261,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		else
 			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
-	}
-
-	if (!strcmp (path, "/")) {
+	} else if (!strcmp (path, "/server2")) {
+		soup_message_set_status (msg, SOUP_STATUS_FOUND);
+		soup_message_headers_replace (msg->response_headers,
+					      "Location",
+					      server2_uri);
+		return;
+	} else if (!strcmp (path, "/")) {
 		if (msg->method != SOUP_METHOD_GET &&
 		    msg->method != SOUP_METHOD_HEAD) {
 			soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
@@ -311,6 +323,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 }
 
+static void
+server2_callback (SoupServer *server, SoupMessage *msg,
+		  const char *path, GHashTable *query,
+		  SoupClientContext *context, gpointer data)
+{
+	soup_message_set_status (msg, SOUP_STATUS_OK);
+}
+
 static gboolean run_tests = TRUE;
 
 static GOptionEntry no_test_entry[] = {
@@ -324,7 +344,7 @@ int
 main (int argc, char **argv)
 {
 	GMainLoop *loop;
-	SoupServer *server;
+	SoupServer *server, *server2;
 	guint port;
 	SoupURI *base_uri;
 
@@ -333,7 +353,13 @@ main (int argc, char **argv)
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-	port = 	soup_server_get_port (server);
+	port = soup_server_get_port (server);
+
+	server2 = soup_test_server_new (TRUE);
+	soup_server_add_handler (server2, NULL,
+				 server2_callback, NULL, NULL);
+	server2_uri = g_strdup_printf ("http://127.0.0.1:%d/on-server2",
+				       soup_server_get_port (server2));
 
 	loop = g_main_loop_new (NULL, TRUE);
 
@@ -348,7 +374,9 @@ main (int argc, char **argv)
 	}
 
 	g_main_loop_unref (loop);
+	g_free (server2_uri);
 	soup_test_server_quit_unref (server);
+	soup_test_server_quit_unref (server2);
 
 	if (run_tests)
 		test_cleanup ();
