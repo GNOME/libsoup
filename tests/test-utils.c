@@ -291,6 +291,7 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 				       SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
 				       SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
 				       NULL);
+	g_object_unref (addr);
 	if (async_context)
 		g_main_context_unref (async_context);
 
