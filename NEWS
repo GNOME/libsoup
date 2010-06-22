@@ -1,3 +1,29 @@
+Changes in libsoup from 2.30.1 to 2.30.2:
+
+	* Fixed a problem with SoupSessionAsync that would cause
+          messages to get lost if you aborted a previous message while
+          it was still looking up the hostname. Fixed several other
+          problems that were discovered while adding a regression test
+          for that. [#618641, thanks to Claudio Saavedra for a good
+          test case]
+
+	* SoupSession now only allows a message to be redirected a
+          fixed number of times, and returns an error after that.
+          [#604383, José Millán Soto]
+
+	* Fixed another connecting-to-lame-https-server problem, and a
+          getting-stuck-in-a-loop-reconnecting bug that it revealed.
+          [#615535]
+
+	* Fixed an invalid read when parsing certain Cookie headers
+          [#620288]
+
+	* Fixed a memory leak in soup_form_request_from_data [#619897]
+
+	* Failed SSL connections now include the correct reason_phrase
+          ("SSL handshake failed" rather than "SSL support not
+          available").
+
 Changes in libsoup from 2.30.0 to 2.30.1:
 
 	* Fix for https through proxies that close the connection when
