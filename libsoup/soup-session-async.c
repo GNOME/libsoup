@@ -37,6 +37,8 @@ static void do_idle_run_queue (SoupSession *session);
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
+static void  cancel_message  (SoupSession *session, SoupMessage *msg,
+			      guint status_code);
 
 static void  auth_required   (SoupSession *session, SoupMessage *msg,
 			      SoupAuth *auth, gboolean retrying);
@@ -76,6 +78,7 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	/* virtual method override */
 	session_class->queue_message = queue_message;
 	session_class->send_message = send_message;
+	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
 
 	object_class->finalize = finalize;
@@ -324,7 +327,8 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 
 static void
 process_queue_item (SoupMessageQueueItem *item,
-		    gboolean             *should_prune)
+		    gboolean             *should_prune,
+		    gboolean              loop)
 {
 	SoupSession *session = item->session;
 	SoupProxyURIResolver *proxy_resolver;
@@ -387,7 +391,7 @@ process_queue_item (SoupMessageQueueItem *item,
 			 */
 			return;
 		}
-	} while (item->state != SOUP_MESSAGE_FINISHED);
+	} while (loop && item->state != SOUP_MESSAGE_FINISHED);
 }
 
 static void
@@ -410,7 +414,7 @@ run_queue (SoupSessionAsync *sa)
 
 		/* CONNECT messages are handled specially */
 		if (msg->method != SOUP_METHOD_CONNECT)
-			process_queue_item (item, &should_prune);
+			process_queue_item (item, &should_prune, TRUE);
 	}
 	if (item)
 		soup_message_queue_item_unref (item);
@@ -481,6 +485,31 @@ send_message (SoupSession *session, SoupMessage *req)
 	soup_message_queue_item_unref (item);
 
 	return req->status_code;
+}
+
+static void
+cancel_message (SoupSession *session, SoupMessage *msg,
+		guint status_code)
+{
+	SoupMessageQueue *queue;
+	SoupMessageQueueItem *item;
+	gboolean dummy;
+
+	SOUP_SESSION_CLASS (soup_session_async_parent_class)->
+		cancel_message (session, msg, status_code);
+
+	queue = soup_session_get_queue (session);
+	item = soup_message_queue_lookup (queue, msg);
+	if (!item || item->state != SOUP_MESSAGE_FINISHING)
+		return;
+
+	/* Force it to finish immediately, so that
+	 * soup_session_abort (session); g_object_unref (session);
+	 * will work.
+	 */
+	process_queue_item (item, &dummy, FALSE);
+
+	soup_message_queue_item_unref (item);
 }
 
 static void
