@@ -203,7 +203,7 @@ try_again:
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (!msg->status_code)
-			soup_message_set_status (msg, status);
+			soup_session_set_item_status (session, item, status);
 		item->state = SOUP_MESSAGE_FINISHING;
 		soup_connection_disconnect (item->conn);
 		g_object_unref (item->conn);
@@ -219,7 +219,7 @@ try_again:
 			item->conn = NULL;
 			if (status == SOUP_STATUS_TRY_AGAIN)
 				goto try_again;
-			soup_message_set_status (item->msg, status);
+			soup_session_set_item_status (session, item, status);
 			item->state = SOUP_MESSAGE_FINISHING;
 			return;
 		}
@@ -251,7 +251,7 @@ process_queue_item (SoupMessageQueueItem *item)
 				proxy_resolver, soup_message_get_uri (msg),
 				item->cancellable, &item->proxy_uri);
 			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-				soup_message_set_status (msg, status);
+				soup_session_set_item_status (session, item, status);
 				item->state = SOUP_MESSAGE_FINISHING;
 				break;
 			}
@@ -267,7 +267,7 @@ process_queue_item (SoupMessageQueueItem *item)
 			if (SOUP_STATUS_IS_SUCCESSFUL (status))
 				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
 			else {
-				soup_message_set_status (msg, status);
+				soup_session_set_item_status (session, item, status);
 				item->state = SOUP_MESSAGE_FINISHING;
 			}
 			break;

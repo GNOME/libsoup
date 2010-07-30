@@ -27,6 +27,9 @@ void                  soup_session_send_queue_item      (SoupSession          *s
 							 SoupMessageCompletionFn completion_cb);
 void                  soup_session_unqueue_item         (SoupSession          *session,
 							 SoupMessageQueueItem *item);
+void                  soup_session_set_item_status      (SoupSession          *session,
+							 SoupMessageQueueItem *item,
+							 guint                 status_code);
 
 G_END_DECLS
 

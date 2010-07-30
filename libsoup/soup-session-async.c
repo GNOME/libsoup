@@ -132,7 +132,7 @@ item_failed (SoupMessageQueueItem *item, guint status)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		item->state = SOUP_MESSAGE_FINISHING;
 		if (!item->msg->status_code)
-			soup_message_set_status (item->msg, status);
+			soup_session_set_item_status (item->session, item, status);
 		do_idle_run_queue (item->session);
 		soup_message_queue_item_unref (item);
 		return TRUE;
@@ -296,7 +296,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	}
 
 	if (status != SOUP_STATUS_OK) {
-		soup_message_set_status (item->msg, status);
+		soup_session_set_item_status (session, item, status);
 		item->state = SOUP_MESSAGE_FINISHING;
 
 		soup_connection_disconnect (conn);

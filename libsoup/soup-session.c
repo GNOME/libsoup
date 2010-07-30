@@ -1424,6 +1424,42 @@ soup_session_unqueue_item (SoupSession          *session,
 	soup_message_queue_item_unref (item);
 }
 
+void
+soup_session_set_item_status (SoupSession          *session,
+			      SoupMessageQueueItem *item,
+			      guint                 status_code)
+{
+	SoupURI *uri;
+	char *msg;
+
+	switch (status_code) {
+	case SOUP_STATUS_CANT_RESOLVE:
+	case SOUP_STATUS_CANT_CONNECT:
+		uri = soup_message_get_uri (item->msg);
+		msg = g_strdup_printf ("%s (%s)",
+				       soup_status_get_phrase (status_code),
+				       uri->host);
+		soup_message_set_status_full (item->msg, status_code, msg);
+		g_free (msg);
+		break;
+
+	case SOUP_STATUS_CANT_RESOLVE_PROXY:
+	case SOUP_STATUS_CANT_CONNECT_PROXY:
+		if (item->proxy_uri && item->proxy_uri->host) {
+			msg = g_strdup_printf ("%s (%s)",
+					       soup_status_get_phrase (status_code),
+					       item->proxy_uri->host);
+			soup_message_set_status_full (item->msg, status_code, msg);
+			g_free (msg);
+			break;
+		}
+		/* else fall through */
+
+	default:
+		soup_message_set_status (item->msg, status_code);
+	}
+}
+
 static void
 queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupSessionCallback callback, gpointer user_data)
