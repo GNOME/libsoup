@@ -6,7 +6,7 @@
 #ifndef SOUP_PROXY_RESOLVER_STATIC_H
 #define SOUP_PROXY_RESOLVER_STATIC_H 1
 
-#include "soup-proxy-resolver.h"
+#include "soup-proxy-uri-resolver.h"
 #include "soup-uri.h"
 
 #define SOUP_TYPE_PROXY_RESOLVER_STATIC            (soup_proxy_resolver_static_get_type ())
@@ -30,6 +30,6 @@ GType soup_proxy_resolver_static_get_type (void);
 
 #define SOUP_PROXY_RESOLVER_STATIC_PROXY_URI "proxy-uri"
 
-SoupProxyResolver *soup_proxy_resolver_static_new (SoupURI *proxy_uri);
+SoupProxyURIResolver *soup_proxy_resolver_static_new (SoupURI *proxy_uri);
 
 #endif /* SOUP_PROXY_RESOLVER_STATIC_H */

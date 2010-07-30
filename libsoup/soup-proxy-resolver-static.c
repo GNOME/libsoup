@@ -23,11 +23,11 @@ typedef struct {
 } SoupProxyResolverStaticPrivate;
 #define SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_PROXY_RESOLVER_STATIC, SoupProxyResolverStaticPrivate))
 
-static void soup_proxy_resolver_static_interface_init (SoupProxyResolverInterface *proxy_resolver_interface);
+static void soup_proxy_resolver_static_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);
 
 G_DEFINE_TYPE_EXTENDED (SoupProxyResolverStatic, soup_proxy_resolver_static, G_TYPE_OBJECT, 0,
 			G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE, NULL)
-			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_RESOLVER, soup_proxy_resolver_static_interface_init))
+			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PROXY_URI_RESOLVER, soup_proxy_resolver_static_interface_init))
 
 enum {
 	PROP_0,
@@ -42,16 +42,16 @@ static void set_property (GObject *object, guint prop_id,
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
-static void get_proxy_async (SoupProxyResolver  *proxy_resolver,
-			     SoupMessage        *msg,
-			     GMainContext       *async_context,
-			     GCancellable       *cancellable,
-			     SoupProxyResolverCallback callback,
-			     gpointer            user_data);
-static guint get_proxy_sync (SoupProxyResolver  *proxy_resolver,
-			     SoupMessage        *msg,
-			     GCancellable       *cancellable,
-			     SoupAddress       **addr);
+static void get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
+				 SoupURI               *uri,
+				 GMainContext          *async_context,
+				 GCancellable          *cancellable,
+				 SoupProxyURIResolverCallback callback,
+				 gpointer               user_data);
+static guint get_proxy_uri_sync (SoupProxyURIResolver  *proxy_resolver,
+				 SoupURI               *uri,
+				 GCancellable          *cancellable,
+				 SoupURI              **proxy_uri);
 
 static void
 soup_proxy_resolver_static_init (SoupProxyResolverStatic *resolver_static)
@@ -130,13 +130,13 @@ get_property (GObject *object, guint prop_id,
 }
 
 static void
-soup_proxy_resolver_static_interface_init (SoupProxyResolverInterface *proxy_resolver_interface)
+soup_proxy_resolver_static_interface_init (SoupProxyURIResolverInterface *proxy_uri_resolver_interface)
 {
-	proxy_resolver_interface->get_proxy_async = get_proxy_async;
-	proxy_resolver_interface->get_proxy_sync = get_proxy_sync;
+	proxy_uri_resolver_interface->get_proxy_uri_async = get_proxy_uri_async;
+	proxy_uri_resolver_interface->get_proxy_uri_sync = get_proxy_uri_sync;
 }
 
-SoupProxyResolver *
+SoupProxyURIResolver *
 soup_proxy_resolver_static_new (SoupURI *proxy_uri)
 {
 	return g_object_new (SOUP_TYPE_PROXY_RESOLVER_STATIC,
@@ -145,69 +145,53 @@ soup_proxy_resolver_static_new (SoupURI *proxy_uri)
 }
 
 typedef struct {
-	SoupProxyResolver *proxy_resolver;
-	SoupMessage *msg;
-	SoupAddress *addr;
-	SoupProxyResolverCallback callback;
+	SoupProxyURIResolver *proxy_resolver;
+	SoupProxyURIResolverCallback callback;
 	gpointer user_data;
 } SoupStaticAsyncData;
 
-static void
-resolved_address (SoupAddress *addr, guint status, gpointer data)
+static gboolean
+idle_return_proxy_uri (gpointer data)
 {
 	SoupStaticAsyncData *ssad = data;
+	SoupProxyResolverStaticPrivate *priv =
+		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (ssad->proxy_resolver);
 
-	ssad->callback (ssad->proxy_resolver, ssad->msg,
-			soup_status_proxify (status), addr,
+	ssad->callback (ssad->proxy_resolver,
+			SOUP_STATUS_OK, priv->proxy_uri,
 			ssad->user_data);
 	g_object_unref (ssad->proxy_resolver);
-	g_object_unref (ssad->msg);
-	if (addr)
-		g_object_unref (addr);
 	g_slice_free (SoupStaticAsyncData, ssad);
+
+	return FALSE;
 }
 
 static void
-get_proxy_async (SoupProxyResolver  *proxy_resolver,
-		 SoupMessage        *msg,
-		 GMainContext       *async_context,
-		 GCancellable       *cancellable,
-		 SoupProxyResolverCallback callback,
-		 gpointer            user_data)
+get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
+		     SoupURI               *uri,
+		     GMainContext          *async_context,
+		     GCancellable          *cancellable,
+		     SoupProxyURIResolverCallback callback,
+		     gpointer               user_data)
 {
-	SoupProxyResolverStaticPrivate *priv =
-		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (proxy_resolver);
 	SoupStaticAsyncData *ssad;
 
 	ssad = g_slice_new0 (SoupStaticAsyncData);
 	ssad->proxy_resolver = g_object_ref (proxy_resolver);
-	ssad->msg = g_object_ref (msg);
 	ssad->callback = callback;
 	ssad->user_data = user_data;
-	ssad->addr = soup_address_new (priv->proxy_uri->host,
-				       priv->proxy_uri->port);
-
-	soup_address_resolve_async (ssad->addr, async_context,
-				    cancellable, resolved_address,
-				    ssad);
+	soup_add_completion (async_context, idle_return_proxy_uri, ssad);
 }
 
 static guint
-get_proxy_sync (SoupProxyResolver  *proxy_resolver,
-		SoupMessage        *msg,
-		GCancellable       *cancellable,
-		SoupAddress       **addr)
+get_proxy_uri_sync (SoupProxyURIResolver  *proxy_resolver,
+		    SoupURI               *uri,
+		    GCancellable          *cancellable,
+		    SoupURI              **proxy_uri)
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (proxy_resolver);
-	guint status;
 
-	*addr = soup_address_new (priv->proxy_uri->host,
-				  priv->proxy_uri->port);
-	status = soup_status_proxify (soup_address_resolve_sync (*addr, cancellable));
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_object_unref (*addr);
-		*addr = NULL;
-	}
-	return status;
+	*proxy_uri = soup_uri_copy (priv->proxy_uri);
+	return SOUP_STATUS_OK;
 }
