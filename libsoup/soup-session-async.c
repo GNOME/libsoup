@@ -133,6 +133,7 @@ item_failed (SoupMessageQueueItem *item, guint status)
 		item->state = SOUP_MESSAGE_FINISHING;
 		if (!item->msg->status_code)
 			soup_message_set_status (item->msg, status);
+		do_idle_run_queue (item->session);
 		soup_message_queue_item_unref (item);
 		return TRUE;
 	}
