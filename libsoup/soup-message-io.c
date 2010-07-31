@@ -54,6 +54,7 @@ typedef struct {
 	GByteArray           *read_meta_buf;
 	SoupMessageBody      *read_body;
 	goffset               read_length;
+	gboolean              read_eof_ok;
 
 	gboolean              need_content_sniffed, need_got_chunk;
 	SoupMessageBody      *sniff_data;
@@ -212,8 +213,7 @@ io_disconnected (SoupSocket *sock, SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	/* Closing the connection to signify EOF is sometimes ok */
-	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY &&
-	    io->read_encoding == SOUP_ENCODING_EOF) {
+	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY && io->read_eof_ok) {
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		io_read (sock, msg);
 		return;
@@ -462,8 +462,10 @@ read_body_chunk (SoupMessage *msg)
 			break;
 
 		case SOUP_SOCKET_EOF:
-			if (read_to_eof)
+			if (io->read_eof_ok) {
+				io->read_length = 0;
 				return TRUE;
+			}
 			/* else fall through */
 
 		case SOUP_SOCKET_ERROR:
@@ -842,11 +844,24 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 			break;
 		}
 
+		if (io->read_encoding == SOUP_ENCODING_EOF)
+			io->read_eof_ok = TRUE;
+
 		if (io->read_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
 			SoupMessageHeaders *hdrs =
 				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
 				msg->response_headers : msg->request_headers;
 			io->read_length = soup_message_headers_get_content_length (hdrs);
+
+			if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+			    !soup_message_is_keepalive (msg)) {
+				/* Some servers suck and send
+				 * incorrect Content-Length values, so
+				 * allow EOF termination in this case
+				 * (iff the message is too short) too.
+				 */
+				io->read_eof_ok = TRUE;
+			}
 		}
 
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&

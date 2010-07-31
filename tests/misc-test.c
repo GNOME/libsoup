@@ -29,6 +29,20 @@ auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
 }
 
 static void
+forget_close (SoupMessage *msg, gpointer user_data)
+{
+	soup_message_headers_remove (msg->response_headers, "Connection");
+}
+
+static void
+close_socket (SoupMessage *msg, gpointer user_data)
+{
+	SoupSocket *sock = user_data;
+
+	soup_socket_disconnect (sock);
+}
+
+static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
@@ -58,6 +72,41 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					      * absolute URI!
 					      */
 					     "Location", "/");
+		return;
+	}
+
+	if (g_str_has_prefix (path, "/content-length/")) {
+		gboolean too_long = strcmp (path, "/content-length/long") == 0;
+		gboolean no_close = strcmp (path, "/content-length/noclose") == 0;
+
+		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_message_set_response (msg, "text/plain",
+					   SOUP_MEMORY_STATIC, "foobar", 6);
+		if (too_long)
+			soup_message_headers_set_content_length (msg->response_headers, 9);
+		soup_message_headers_append (msg->response_headers,
+					     "Connection", "close");
+
+		if (too_long) {
+			SoupSocket *sock;
+
+			/* soup-message-io will wait for us to add
+			 * another chunk after the first, to fill out
+			 * the declared Content-Length. Instead, we
+			 * forcibly close the socket at that point.
+			 */
+			sock = soup_client_context_get_socket (context);
+			g_signal_connect (msg, "wrote-chunk",
+					  G_CALLBACK (close_socket), sock);
+		} else if (no_close) {
+			/* Remove the 'Connection: close' after writing
+			 * the headers, so that when we check it after
+			 * writing the body, we'll think we aren't
+			 * supposed to close it.
+			 */
+			g_signal_connect (msg, "wrote-headers",
+					  G_CALLBACK (forget_close), NULL);
+		}
 		return;
 	}
 
@@ -473,6 +522,65 @@ do_early_abort_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_content_length_framing_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *request_uri;
+	goffset declared_length;
+
+	debug_printf (1, "\nInvalid Content-Length framing tests\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	debug_printf (1, "  Content-Length larger than message body length\n");
+	request_uri = soup_uri_new_with_base (base_uri, "/content-length/long");
+	msg = soup_message_new_from_uri ("GET", request_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	} else {
+		declared_length = soup_message_headers_get_content_length (msg->response_headers);
+		debug_printf (2, "    Content-Length: %lu, body: %s\n",
+			      (gulong)declared_length, msg->response_body->data);
+		if (msg->response_body->length >= declared_length) {
+			debug_printf (1, "    Body length %lu >= declared length %lu\n",
+				      (gulong)msg->response_body->length,
+				      (gulong)declared_length);
+			errors++;
+		}
+	}
+	soup_uri_free (request_uri);
+	g_object_unref (msg);
+
+	debug_printf (1, "  Server claims 'Connection: close' but doesn't\n");
+	request_uri = soup_uri_new_with_base (base_uri, "/content-length/noclose");
+	msg = soup_message_new_from_uri ("GET", request_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	} else {
+		declared_length = soup_message_headers_get_content_length (msg->response_headers);
+		debug_printf (2, "    Content-Length: %lu, body: %s\n",
+			      (gulong)declared_length, msg->response_body->data);
+		if (msg->response_body->length != declared_length) {
+			debug_printf (1, "    Body length %lu != declared length %lu\n",
+				      (gulong)msg->response_body->length,
+				      (gulong)declared_length);
+			errors++;
+		}
+	}
+	soup_uri_free (request_uri);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -498,6 +606,7 @@ main (int argc, char **argv)
 	do_msg_reuse_test ();
 	do_star_test ();
 	do_early_abort_test ();
+	do_content_length_framing_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
