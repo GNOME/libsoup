@@ -1,3 +1,38 @@
+Changes in libsoup from 2.31.2 to 2.31.6:
+
+	* Disabled TLS 1.2 in addition to the already-disabled 1.1 and
+          1.0 [see below, in libsoup 2.27.2], thus making libsoup
+          usable with gnutls 2.10. [#622857. This commit, 01a43ad9,
+          can be applied to libsoup 2.30.x as well if you need that
+          release to work with gnutls 2.10.]
+
+	* When using libproxy 0.3 or newer, libsoup no longer leaks
+          proxy-related environment variables into child processes
+          [#603285]
+
+	* Changed the way message/connection binding works in
+          SoupSession so that (among other things), when there are
+          multiple requests queued to a host, and one of them gets a
+          network error, the other requests are still allowed to try
+          to succeed, rather than all failing immediately. [#619633]
+
+	* SoupSession now limits the number of times a message can be
+	  redirected, to avoid infinite loops [#604383, José Millán
+	  Soto]
+
+	* Fixed handling of certain messages where the response
+          headers included "Connection: close" but the server did not
+          actually close the connection at the end. [#611481]
+
+	* Fixed some incorrect g-i annotations [#621021]
+
+	* Fixed an out-of-bounds memory access when processing certain
+          Set-Cookie headers [#620288]
+
+	* Improved msg->reason_phrase on network errors [#623274]
+
+	* Fixed gir file disting [#621727, Yaakov Selkowitz]
+
 Changes in libsoup from 2.30.1 to 2.31.2:
 
 	* gobject-introspection has now been merged in. Use
