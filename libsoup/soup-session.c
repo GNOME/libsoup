@@ -756,13 +756,14 @@ add_quality_value (const gchar *str, int quality)
 {
 	g_return_val_if_fail (str != NULL, NULL);
 
-	if (quality > 0 && quality < 100) {
-		double qvalue = quality / 100.0;
-		return g_strdup_printf ("%s;q=%.2g", str, qvalue);
-	} else {
-		/* Just dup the string in this case */
+	if (quality >= 0 && quality < 100) {
+		/* We don't use %.02g because of "." vs "," locale issues */
+		if (quality % 10)
+			return g_strdup_printf ("%s;q=0.%02d", str, quality);
+		else
+			return g_strdup_printf ("%s;q=0.%d", str, quality / 10);
+	} else
 		return g_strdup (str);
-	}
 }
 
 /* Returns a RFC2616 compliant languages list from system locales */

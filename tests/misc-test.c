@@ -581,6 +581,59 @@ do_content_length_framing_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_one_accept_language_test (const char *language, const char *expected_header)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	const char *val;
+
+	debug_printf (1, "  LANGUAGE=%s\n", language);
+	g_setenv ("LANGUAGE", language, TRUE);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+					 NULL);
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_send_message (session, msg);
+	soup_test_session_abort_unref (session);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "    Message failed? %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	val = soup_message_headers_get_list (msg->request_headers,
+					     "Accept-Language");
+	if (!val) {
+		debug_printf (1, "    No Accept-Language set!\n");
+		errors++;
+	} else if (strcmp (val, expected_header) != 0) {
+		debug_printf (1, "    Wrong Accept-Language: expected '%s', got '%s'\n",
+			      expected_header, val);
+		errors++;
+	}
+
+	g_object_unref (msg);
+}
+
+static void
+do_accept_language_test (void)
+{
+	const char *orig_language;
+
+	debug_printf (1, "\nAutomatic Accept-Language processing\n");
+
+	orig_language = g_getenv ("LANGUAGE");
+	do_one_accept_language_test ("C", "en");
+	do_one_accept_language_test ("fr_FR", "fr-fr, fr;q=0.9");
+	do_one_accept_language_test ("fr_FR:de:en_US", "fr-fr, fr;q=0.9, de;q=0.8, en-us;q=0.7, en;q=0.6");
+
+	if (orig_language)
+		g_setenv ("LANGUAGE", orig_language, TRUE);
+	else
+		g_unsetenv ("LANGUAGE");
+}
+
 int
 main (int argc, char **argv)
 {
@@ -607,6 +660,7 @@ main (int argc, char **argv)
 	do_star_test ();
 	do_early_abort_test ();
 	do_content_length_framing_test ();
+	do_accept_language_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
