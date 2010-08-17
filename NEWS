@@ -1,3 +1,18 @@
+Changes in libsoup from 2.31.2 to 2.31.90:
+
+	* libsoup now tries to connect to each IP address associated
+          with a hostname, if the first one fails. In particular, if a
+          host has both IPv4 and IPv6 addresses, and only one of them
+          is reachable from the current host, libsoup will now try the
+          other one rather than failing. (libc is supposed to sort the
+          IP addresses in the right order, such that, eg, if you don't
+          have IPv6 connectivity, it will put the IPv4 address first.
+          For some reason though, this seems to be broken on some
+          distros.) [#526321].
+
+	* Fixed Accept-Language header generation in locales where ","
+          is used as the decimal point.
+
 Changes in libsoup from 2.31.2 to 2.31.6:
 
 	* Disabled TLS 1.2 in addition to the already-disabled 1.1 and
