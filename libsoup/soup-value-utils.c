@@ -56,7 +56,8 @@ soup_value_hash_value_free (gpointer val)
  * Creates a #GHashTable whose keys are strings and whose values
  * are #GValue.
  *
- * Return value: (element-type utf8 GValue): a new empty #GHashTable
+ * Return value: (element-type utf8 GValue) (transfer full): a new
+ * empty #GHashTable
  **/
 GHashTable *
 soup_value_hash_new (void)
@@ -94,7 +95,8 @@ soup_value_hash_insert_valist (GHashTable *hash, const char *first_key,
  * with soup_value_hash_insert(), the keys and values are copied
  * rather than being inserted directly.
  *
- * Return value: (element-type utf8 GValue): a new #GHashTable, initialized with the given values
+ * Return value: (element-type utf8 GValue) (transfer full): a new
+ * #GHashTable, initialized with the given values
  **/
 GHashTable *
 soup_value_hash_new_with_vals (const char *first_key, ...)

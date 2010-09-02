@@ -78,9 +78,9 @@ form_decode (char *part)
  * Decodes @form, which is an urlencoded dataset as defined in the
  * HTML 4.01 spec.
  *
- * Return value: (element-type utf8 utf8): a hash table containing the
- * name/value pairs from @encoded_form, which you can free with
- * g_hash_table_destroy().
+ * Return value: (element-type utf8 utf8) (transfer full): a hash
+ * table containing the name/value pairs from @encoded_form, which you
+ * can free with g_hash_table_destroy().
  **/
 GHashTable *
 soup_form_decode (const char *encoded_form)
@@ -116,9 +116,9 @@ soup_form_decode (const char *encoded_form)
  * soup_form_decode_multipart:
  * @msg: a #SoupMessage containing a "multipart/form-data" request body
  * @file_control_name: the name of the HTML file upload control, or %NULL
- * @filename: return location for the name of the uploaded file
- * @content_type: return location for the MIME type of the uploaded file
- * @file: return location for the uploaded file data
+ * @filename: (out): return location for the name of the uploaded file
+ * @content_type: (out): return location for the MIME type of the uploaded file
+ * @file: (out): return location for the uploaded file data
  *
  * Decodes the "multipart/form-data" request in @msg; this is a
  * convenience method for the case when you have a single file upload
@@ -140,10 +140,10 @@ soup_form_decode (const char *encoded_form)
  * need to decode it manually, using soup_multipart_new_from_message()
  * and soup_multipart_get_part().
  *
- * Return value: (element-type utf8 utf8): a hash table containing the
- * name/value pairs (other than @file_control_name) from @msg, which
- * you can free with g_hash_table_destroy(). On error, it will return
- * %NULL.
+ * Return value: (element-type utf8 utf8) (transfer full): a hash
+ * table containing the name/value pairs (other than
+ * @file_control_name) from @msg, which you can free with
+ * g_hash_table_destroy(). On error, it will return %NULL.
  *
  * Since: 2.26
  **/
@@ -398,7 +398,7 @@ soup_form_request_for_data (const char *method, const char *uri_string,
  * the form data into @uri's query field, and if @method is "POST", it
  * will encode it into the %SoupMessage's request_body.)
  *
- * Return value: the new %SoupMessage
+ * Return value: (transfer full): the new %SoupMessage
  **/
 SoupMessage *
 soup_form_request_new (const char *method, const char *uri,
@@ -423,7 +423,7 @@ soup_form_request_new (const char *method, const char *uri,
  * Creates a new %SoupMessage and sets it up to send @form_data_set to
  * @uri via @method, as with soup_form_request_new().
  *
- * Return value: the new %SoupMessage
+ * Return value: (transfer full): the new %SoupMessage
  **/
 SoupMessage *
 soup_form_request_new_from_hash (const char *method, const char *uri,
@@ -442,7 +442,7 @@ soup_form_request_new_from_hash (const char *method, const char *uri,
  * Creates a new %SoupMessage and sets it up to send @form_data_set to
  * @uri via @method, as with soup_form_request_new().
  *
- * Return value: the new %SoupMessage
+ * Return value: (transfer full): the new %SoupMessage
  **/
 SoupMessage *
 soup_form_request_new_from_datalist (const char *method, const char *uri,
@@ -470,7 +470,7 @@ soup_form_request_new_from_datalist (const char *method, const char *uri,
  * soup_form_request_new_from_multipart() to serialize the multipart
  * structure and create a #SoupMessage.
  *
- * Return value: the new %SoupMessage
+ * Return value: (transfer full): the new %SoupMessage
  *
  * Since: 2.26
  **/

@@ -618,7 +618,8 @@ request_unqueued (SoupSessionFeature *feature, SoupSession *session,
  * The cookies in the list are a copy of the original, so
  * you have to free them when you are done with them.
  *
- * Return value: a #GSList with all the cookies in the @jar.
+ * Return value: (transfer full): a #GSList with all the cookies in
+ * the @jar.
  *
  * Since: 2.26
  **/

@@ -456,7 +456,7 @@ soup_address_get_name (SoupAddress *addr)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: (allow-none): the sockaddr, or %NULL
+ * Return value: (allow-none) (transfer none): the sockaddr, or %NULL
  **/
 struct sockaddr *
 soup_address_get_sockaddr (SoupAddress *addr, int *len)
@@ -478,7 +478,7 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
  * Creates a new #GSocketAddress corresponding to @addr (which is assumed
  * to only have one socket address associated with it).
  *
- * Return value: a new #GSocketAddress
+ * Return value: (transfer full): a new #GSocketAddress
  */
 GSocketAddress *
 soup_address_get_gsockaddr (SoupAddress *addr)

@@ -57,7 +57,7 @@ soup_str_case_equal (gconstpointer v1,
 }
 
 /**
- * soup_add_io_watch:
+ * soup_add_io_watch: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @chan: the #GIOChannel to watch
@@ -84,7 +84,7 @@ soup_add_io_watch (GMainContext *async_context,
 }
 
 /**
- * soup_add_idle:
+ * soup_add_idle: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @function: the callback to invoke at idle time
@@ -112,7 +112,7 @@ soup_add_idle (GMainContext *async_context,
 }
 
 /**
- * soup_add_completion:
+ * soup_add_completion: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @function: the callback to invoke
@@ -140,7 +140,7 @@ soup_add_completion (GMainContext *async_context,
 }
 
 /**
- * soup_add_timeout:
+ * soup_add_timeout: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
  * watch in, or %NULL for the default context
  * @interval: the timeout interval, in milliseconds

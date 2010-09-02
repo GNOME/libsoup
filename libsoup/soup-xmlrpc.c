@@ -223,8 +223,8 @@ soup_xmlrpc_request_newv (const char *uri, const char *method_name, va_list args
  * and then a value of the appropriate type, finally terminated by
  * %G_TYPE_INVALID.
  *
- * Return value: a #SoupMessage encoding the indicated XML-RPC
- * request.
+ * Return value: (transfer full): a #SoupMessage encoding the
+ * indicated XML-RPC request.
  **/
 SoupMessage *
 soup_xmlrpc_request_new (const char *uri, const char *method_name, ...)

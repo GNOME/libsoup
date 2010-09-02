@@ -848,8 +848,9 @@ soup_cookie_free (SoupCookie *cookie)
  * #SoupCookie<!-- -->s. Cookies that do not specify "path" or
  * "domain" attributes will have their values defaulted from @msg.
  *
- * Return value: (element-type SoupCookie): a #GSList of
- * #SoupCookie<!-- -->s, which can be freed with soup_cookies_free().
+ * Return value: (element-type SoupCookie) (transfer full): a #GSList
+ * of #SoupCookie<!-- -->s, which can be freed with
+ * soup_cookies_free().
  *
  * Since: 2.24
  **/
@@ -891,8 +892,9 @@ soup_cookies_from_response (SoupMessage *msg)
  * pass a cookie returned from this method directly to
  * soup_cookies_to_response().)
  *
- * Return value: (element-type SoupCookie): a #GSList of
- * #SoupCookie<!-- -->s, which can be freed with soup_cookies_free().
+ * Return value: (element-type SoupCookie) (transfer full): a #GSList
+ * of #SoupCookie<!-- -->s, which can be freed with
+ * soup_cookies_free().
  *
  * Since: 2.24
  **/

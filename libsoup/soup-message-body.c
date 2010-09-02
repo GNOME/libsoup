@@ -56,7 +56,7 @@ enum {
 
 /**
  * SoupBuffer:
- * @data: (type pointer): the data
+ * @data: (type gpointer): the data
  * @length: length of @data
  *
  * A data buffer, generally used to represent a chunk of a
@@ -215,7 +215,7 @@ soup_buffer_new_with_owner (gconstpointer  data, gsize length,
  * Gets the "owner" object for a buffer created with
  * soup_buffer_new_with_owner().
  *
- * Return value: the owner pointer
+ * Return value: (transfer none): the owner pointer
  **/
 gpointer
 soup_buffer_get_owner (SoupBuffer *buffer)
@@ -457,7 +457,7 @@ append_buffer (SoupMessageBody *body, SoupBuffer *buffer)
  * soup_message_body_append:
  * @body: a #SoupMessageBody
  * @use: how to use @data
- * @data: (array length=length) (element-type uint8): data to append
+ * @data: (array length=length) (element-type guint8): data to append
  * @length: length of @data
  *
  * Appends @length bytes from @data to @body according to @use.

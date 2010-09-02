@@ -828,7 +828,7 @@ soup_message_set_request (SoupMessage    *msg,
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body
  * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
- * @resp_body: (array length=resp_length) (element-type uint8): a data buffer
+ * @resp_body: (array length=resp_length) (element-type guint8): a data buffer
  * containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  * 
@@ -1216,8 +1216,8 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
  *
  * Gets the #SoupAuth used by @msg for authentication.
  *
- * Return value: the #SoupAuth used by @msg for authentication, or
- * %NULL if @msg is unauthenticated.
+ * Return value: (transfer none): the #SoupAuth used by @msg for
+ * authentication, or %NULL if @msg is unauthenticated.
  **/
 SoupAuth *
 soup_message_get_auth (SoupMessage *msg)

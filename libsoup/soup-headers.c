@@ -479,7 +479,8 @@ parse_list (const char *header, char delim)
  * "#something", where "something" does not itself contain commas,
  * except as part of quoted-strings.
  *
- * Return value: a #GSList of list elements, as allocated strings
+ * Return value: (transfer full): a #GSList of list elements, as
+ * allocated strings
  **/
 GSList *
 soup_header_parse_list (const char *header)
@@ -511,8 +512,8 @@ sort_by_qval (const void *a, const void *b)
 /**
  * soup_header_parse_quality_list:
  * @header: a header value
- * @unacceptable: (out) (allow-none): on return, will contain a list of
- * unacceptable values
+ * @unacceptable: (out) (allow-none) (transfer full): on return, will
+ * contain a list of unacceptable values
  *
  * Parses a header whose content is a list of items with optional
  * "qvalue"s (eg, Accept, Accept-Charset, Accept-Encoding,
@@ -522,8 +523,8 @@ sort_by_qval (const void *a, const void *b)
  * items with qvalue 0. Either way, those items will be removed from
  * the main list.
  *
- * Return value: a #GSList of acceptable values (as allocated
- * strings), highest-qvalue first.
+ * Return value: (transfer full): a #GSList of acceptable values (as
+ * allocated strings), highest-qvalue first.
  **/
 GSList *
 soup_header_parse_quality_list (const char *header, GSList **unacceptable)
@@ -598,7 +599,7 @@ soup_header_parse_quality_list (const char *header, GSList **unacceptable)
 }
 
 /**
- * soup_header_free_list:
+ * soup_header_free_list: (skip)
  * @list: a #GSList returned from soup_header_parse_list() or
  * soup_header_parse_quality_list()
  *
@@ -748,8 +749,9 @@ parse_param_list (const char *header, char delim)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: (element-type utf8 utf8): a #GHashTable of list elements, which can be freed
- * with soup_header_free_param_list().
+ * Return value: (element-type utf8 utf8) (transfer full): a
+ * #GHashTable of list elements, which can be freed with
+ * soup_header_free_param_list().
  **/
 GHashTable *
 soup_header_parse_param_list (const char *header)
@@ -773,8 +775,9 @@ soup_header_parse_param_list (const char *header)
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
- * Return value: (element-type utf8 utf8): a #GHashTable of list
- * elements, which can be freed with soup_header_free_param_list().
+ * Return value: (element-type utf8 utf8) (transfer full): a
+ * #GHashTable of list elements, which can be freed with
+ * soup_header_free_param_list().
  *
  * Since: 2.24
  **/

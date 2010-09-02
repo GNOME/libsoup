@@ -468,7 +468,7 @@ soup_message_headers_iter_next (SoupMessageHeadersIter *iter,
 /**
  * soup_message_headers_foreach:
  * @hdrs: a #SoupMessageHeaders
- * @func: callback function to run for each header
+ * @func: (scope call): callback function to run for each header
  * @user_data: data to pass to @func
  * 
  * Calls @func once for each header value in @hdrs.
