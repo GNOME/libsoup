@@ -215,7 +215,7 @@ if HAVE_INTROSPECTION
 # Core library
 gi_soup_files = \
 	$(filter-out soup.h soup-enum-types.% soup-marshal.%,\
-	   $(soup_headers) $(libsoup_2_4_la_SOURCES))
+	   $(soup_headers) $(filter-out %.h, $(libsoup_2_4_la_SOURCES)))
 gi_built_soup_files = soup-enum-types.h
 
 Soup-2.4.gir: libsoup-2.4.la
@@ -236,7 +236,7 @@ if BUILD_LIBSOUP_GNOME
 # GNOME extensions
 gi_soup_gnome_files = $(filter-out soup-gnome.h,\
 		          $(libsoupgnomeinclude_HEADERS) \
-	                  $(libsoup_gnome_2_4_la_SOURCES))
+	                  $(filter-out %.h, $(libsoup_gnome_2_4_la_SOURCES)))
 SoupGNOME-2.4.gir: libsoup-gnome-2.4.la Soup-2.4.gir
 SoupGNOME_2_4_gir_SCANNERFLAGS = --identifier-prefix=Soup --symbol-prefix=soup
 SoupGNOME_2_4_gir_INCLUDES = Soup-2.4
