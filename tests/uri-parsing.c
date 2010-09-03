@@ -140,7 +140,7 @@ static int num_rel_tests = G_N_ELEMENTS(rel_tests);
 static struct {
 	const char *one, *two;
 } eq_tests[] = {
-	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7bfoo%7d" },
+	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D" },
 	{ "http://example.com", "http://example.com/" },
 	/* From RFC 2616 */
 	{ "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html" },

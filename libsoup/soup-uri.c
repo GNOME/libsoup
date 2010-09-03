@@ -671,9 +671,13 @@ uri_normalized_copy (const char *part, int length,
 				*d++ = c;
 				s += 2;
 			} else {
+				/* We leave it unchanged. We used to uppercase percent-encoded
+				 * triplets but we do not do it any more as RFC3986 Section 6.2.2.1
+				 * says that they only SHOULD be case normalized.
+				 */
 				*d++ = *s++;
-				*d++ = g_ascii_toupper (*s++);
-				*d++ = g_ascii_toupper (*s);
+				*d++ = *s++;
+				*d++ = *s;
 			}
 		} else {
 			if (*s == ' ')
