@@ -220,7 +220,7 @@ GTK_DOC_CHECK([1.10])
 dnl *****************************
 dnl *** gobject-introspection ***
 dnl *****************************
-GOBJECT_INTROSPECTION_CHECK([0.6.7])
+GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
 dnl *************************************
 dnl *** Warnings to show if using GCC ***
