@@ -1,3 +1,16 @@
+Changes in libsoup from 2.31.90 to 2.31.92:
+
+	* Updated for gobject-introspection 0.9.5. Also added some new
+          annotations and removed a bunch of private headers from the
+          scanning process.
+
+	* Percent-encoded characters in URIs are no longer
+          automatically normalized to uppercase, since apparently some
+          servers are stupid. [#628728, Sergio Villar Senin]
+
+	* Fixed a crash when resolving a URI containing both spaces
+          and non-UTF8 8bit characters. [#629449]
+
 Changes in libsoup from 2.31.2 to 2.31.90:
 
 	* libsoup now tries to connect to each IP address associated
