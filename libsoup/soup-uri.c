@@ -290,8 +290,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 			last = strrchr (base->path, '/');
 			if (last) {
-				newpath = g_strdup_printf ("%.*s/%s",
-							   (int)(last - base->path),
+				newpath = g_strdup_printf ("%.*s%s",
+							   (int)(last + 1 - base->path),
 							   base->path,
 							   uri->path);
 			} else
@@ -687,17 +687,19 @@ uri_normalized_copy (const char *part, int length,
 	} while (*s++);
 
 	if (fixup && need_fixup) {
-		char *tmp, *sp;
-		/* This code is lame, but so are people who put
-		 * unencoded spaces in URLs!
-		 */
-		while ((sp = strchr (normalized, ' '))) {
-			tmp = g_strdup_printf ("%.*s%%20%s",
-					       (int)(sp - normalized),
-					       normalized, sp + 1);
-			g_free (normalized);
-			normalized = tmp;
-		};
+		GString *fixed;
+		char *sp, *p;
+
+		fixed = g_string_new (NULL);
+		p = normalized;
+		while ((sp = strchr (p, ' '))) {
+			g_string_append_len (fixed, p, sp - p);
+			g_string_append (fixed, "%20");
+			p = sp + 1;
+		}
+		g_string_append (fixed, p);
+		g_free (normalized);
+		normalized = g_string_free (fixed, FALSE);
 	}
 
 	return normalized;
