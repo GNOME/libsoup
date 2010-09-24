@@ -92,8 +92,8 @@
  **/
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
-static char *uri_decoded_copy (const char *str, int length, gboolean fixup);
-static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra, gboolean fixup);
+static char *uri_decoded_copy (const char *str, int length);
+static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 
 gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 gpointer _SOUP_URI_SCHEME_FTP;
@@ -180,7 +180,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	hash = strchr (uri_string, '#');
 	if (hash) {
 		uri->fragment = uri_normalized_copy (hash + 1, end - hash + 1,
-						     NULL, TRUE);
+						     NULL);
 		end = hash;
 	}
 
@@ -210,16 +210,14 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 			colon = strchr (uri_string, ':');
 			if (colon && colon < at) {
 				uri->password = uri_decoded_copy (colon + 1,
-								  at - colon - 1,
-								  TRUE);
+								  at - colon - 1);
 			} else {
 				uri->password = NULL;
 				colon = at;
 			}
 
 			uri->user = uri_decoded_copy (uri_string,
-						      colon - uri_string,
-						      TRUE);
+						      colon - uri_string);
 			uri_string = at + 1;
 		} else
 			uri->user = uri->password = NULL;
@@ -241,8 +239,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 			hostend = colon ? colon : path;
 		}
 
-		uri->host = uri_decoded_copy (uri_string, hostend - uri_string,
-					      TRUE);
+		uri->host = uri_decoded_copy (uri_string, hostend - uri_string);
 
 		if (colon && colon != path - 1) {
 			char *portend;
@@ -261,13 +258,13 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	if (question) {
 		uri->query = uri_normalized_copy (question + 1,
 						  end - (question + 1),
-						  NULL, TRUE);
+						  NULL);
 		end = question;
 	}
 
 	if (end != uri_string) {
 		uri->path = uri_normalized_copy (uri_string, end - uri_string,
-						 NULL, TRUE);
+						 NULL);
 	}
 
 	/* Apply base URI. This is spelled out in RFC 3986. */
@@ -603,7 +600,7 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
 static char *
-uri_decoded_copy (const char *part, int length, gboolean fixup)
+uri_decoded_copy (const char *part, int length)
 {
 	unsigned char *s, *d;
 	char *decoded = g_strndup (part, length);
@@ -613,10 +610,6 @@ uri_decoded_copy (const char *part, int length, gboolean fixup)
 		if (*s == '%') {
 			if (!g_ascii_isxdigit (s[1]) ||
 			    !g_ascii_isxdigit (s[2])) {
-				if (!fixup) {
-					g_free (decoded);
-					return NULL;
-				}
 				*d++ = *s;
 				continue;
 			}
@@ -635,18 +628,21 @@ uri_decoded_copy (const char *part, int length, gboolean fixup)
  *
  * Fully %<!-- -->-decodes @part.
  *
- * Return value: the decoded URI part, or %NULL if an invalid percent
- * code was encountered.
+ * In the past, this would return %NULL if @part contained invalid
+ * percent-encoding, but now it just ignores the problem (as
+ * soup_uri_new() already did).
+ *
+ * Return value: the decoded URI part.
  */
 char *
 soup_uri_decode (const char *part)
 {
-	return uri_decoded_copy (part, strlen (part), FALSE);
+	return uri_decoded_copy (part, strlen (part));
 }
 
 static char *
 uri_normalized_copy (const char *part, int length,
-		     const char *unescape_extra, gboolean fixup)
+		     const char *unescape_extra)
 {
 	unsigned char *s, *d, c;
 	char *normalized = g_strndup (part, length);
@@ -657,10 +653,6 @@ uri_normalized_copy (const char *part, int length,
 		if (*s == '%') {
 			if (!g_ascii_isxdigit (s[1]) ||
 			    !g_ascii_isxdigit (s[2])) {
-				if (!fixup) {
-					g_free (normalized);
-					return NULL;
-				}
 				*d++ = *s;
 				continue;
 			}
@@ -686,7 +678,7 @@ uri_normalized_copy (const char *part, int length,
 		}
 	} while (*s++);
 
-	if (fixup && need_fixup) {
+	if (need_fixup) {
 		GString *fixed;
 		char *sp, *p;
 
@@ -723,13 +715,16 @@ uri_normalized_copy (const char *part, int length,
  * be changed, because it might mean something different to the
  * server.
  *
- * Return value: the normalized URI part, or %NULL if an invalid percent
- * code was encountered.
+ * In the past, this would return %NULL if @part contained invalid
+ * percent-encoding, but now it just ignores the problem (as
+ * soup_uri_new() already did).
+ *
+ * Return value: the normalized URI part
  */
 char *
 soup_uri_normalize (const char *part, const char *unescape_extra)
 {
-	return uri_normalized_copy (part, strlen (part), unescape_extra, FALSE);
+	return uri_normalized_copy (part, strlen (part), unescape_extra);
 }
 
 
