@@ -32,6 +32,10 @@ typedef struct {
 	 */
 	const char *provided;
 
+	/* Whether to pass user and password in the URL or not.
+	 */
+	gboolean url_auth;
+
 	/* Expected passwords, 1 character each. (As with the provided
 	 * passwords, with the addition that '0' means "no
 	 * Authorization header expected".) Used to verify that soup
@@ -43,116 +47,119 @@ typedef struct {
 	guint final_status;
 } SoupAuthTest;
 
-static SoupAuthTest tests[] = {
+/* Will either point to main_tests or relogin_tests
+ */
+static SoupAuthTest *current_tests;
+
+static SoupAuthTest main_tests[] = {
 	{ "No auth available, should fail",
-	  "Basic/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "Basic/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm2/", "4", FALSE, "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Auth provided this time, so should succeed",
-	  "Basic/realm1/", "1", "01", SOUP_STATUS_OK },
+	  "Basic/realm1/", "1", FALSE, "01", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "Basic/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "Basic/realm1/subdir/", "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/subdir/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Subdir should retry last auth, but will fail this time",
-	  "Basic/realm1/realm2/", "", "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/realm2/", "", FALSE, "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Now should use provided auth",
-	  "Basic/realm1/realm2/", "2", "02", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "2", FALSE, "02", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "Basic/realm1/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Reuse will fail, but 2nd try will succeed because it's a known realm",
-	  "Basic/realm1/realm2/realm1/", "", "21", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/realm1/", "", FALSE, "21", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try. (Known realm with cached password)",
-	  "Basic/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Basic/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "Basic/realm3/", "43", "043", SOUP_STATUS_OK },
+	  "Basic/realm3/", "43", FALSE, "043", SOUP_STATUS_OK },
 
 
 	{ "No auth available, should fail",
-	  "Digest/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Should fail with no auth, fail again with bad password, and give up",
-	  "Digest/realm2/", "4", "04", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm2/", "4", FALSE, "04", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Known realm, auth provided, so should succeed",
-	  "Digest/realm1/", "1", "01", SOUP_STATUS_OK },
+	  "Digest/realm1/", "1", FALSE, "01", SOUP_STATUS_OK },
 
 	{ "Now should automatically reuse previous auth",
-	  "Digest/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Subdir should also automatically reuse auth",
-	  "Digest/realm1/subdir/", "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/subdir/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Password provided, should succeed",
-	  "Digest/realm2/", "2", "02", SOUP_STATUS_OK },
+	  "Digest/realm2/", "2", FALSE, "02", SOUP_STATUS_OK },
 
 	{ "Should already know correct domain and use provided auth on first try",
-	  "Digest/realm1/realm2/", "2", "2", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/", "2", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Reusing last auth. Should succeed on first try",
-	  "Digest/realm1/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Should succeed on first try because of earlier domain directive",
-	  "Digest/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Fail once, then use typoed password, then use right password",
-	  "Digest/realm3/", "43", "043", SOUP_STATUS_OK },
+	  "Digest/realm3/", "43", FALSE, "043", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "Basic/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Basic/realm1/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Basic/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Basic/realm1/realm2/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Basic/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Basic/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Basic/realm3/", "", "3", SOUP_STATUS_OK },
+	  "Basic/realm3/", "", FALSE, "3", SOUP_STATUS_OK },
 
 
 	{ "Make sure we haven't forgotten anything",
-	  "Digest/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Digest/realm1/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Digest/realm1/realm2/realm1/", "", "1", SOUP_STATUS_OK },
+	  "Digest/realm1/realm2/realm1/", "", FALSE, "1", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Digest/realm2/", "", "2", SOUP_STATUS_OK },
+	  "Digest/realm2/", "", FALSE, "2", SOUP_STATUS_OK },
 
 	{ "Make sure we haven't forgotten anything",
-	  "Digest/realm3/", "", "3", SOUP_STATUS_OK },
+	  "Digest/realm3/", "", FALSE, "3", SOUP_STATUS_OK },
 
 	{ "Now the server will reject the formerly-good password",
-	  "Basic/realm1/not/", "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/not/", "1", FALSE, /* should not be used */ "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "Basic/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED },
+	  "Basic/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Likewise, reject the formerly-good Digest password",
-	  "Digest/realm1/not/", "1" /* should not be used */, "1", SOUP_STATUS_UNAUTHORIZED },
+	  "Digest/realm1/not/", "1", FALSE, /* should not be used */ "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "Digest/realm1/", "", "0", SOUP_STATUS_UNAUTHORIZED }
+	  "Digest/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED }
 };
-static int ntests = sizeof (tests) / sizeof (tests[0]);
 
 static const char *auths[] = {
 	"no password", "password 1",
@@ -226,14 +233,14 @@ authenticate (SoupSession *session, SoupMessage *msg,
 	char *username, *password;
 	char num;
 
-	if (!tests[*i].provided[0])
+	if (!current_tests[*i].provided[0])
 		return;
 	if (retrying) {
-		if (!tests[*i].provided[1])
+		if (!current_tests[*i].provided[1])
 			return;
-		num = tests[*i].provided[1];
+		num = current_tests[*i].provided[1];
 	} else
-		num = tests[*i].provided[0];
+		num = current_tests[*i].provided[0];
 
 	username = g_strdup_printf ("user%c", num);
 	password = g_strdup_printf ("realm%c", num);
@@ -825,39 +832,68 @@ do_select_auth_test (void)
 	soup_test_server_quit_unref (server);
 }
 
-int
-main (int argc, char **argv)
+static SoupAuthTest relogin_tests[] = {
+	{ "Auth provided via URL, should succeed",
+	  "Basic/realm12/", "1", TRUE, "01", SOUP_STATUS_OK },
+
+	{ "Now should automatically reuse previous auth",
+	  "Basic/realm12/", "", FALSE, "1", SOUP_STATUS_OK },
+
+	{ "Different auth provided via URL for the same realm, should succeed",
+	  "Basic/realm12/", "2", TRUE, "2", SOUP_STATUS_OK },
+
+	{ "Subdir should also automatically reuse auth",
+	  "Basic/realm12/subdir/", "", FALSE, "2", SOUP_STATUS_OK },
+
+	{ "Should fail with no auth",
+	  "Basic/realm12/", "4", TRUE, "4", SOUP_STATUS_UNAUTHORIZED },
+
+	{ "Make sure we've forgotten it",
+	  "Basic/realm12/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED },
+
+	{ "Should fail with no auth, fail again with bad password, and give up",
+	  "Basic/realm12/", "3", FALSE, "03", SOUP_STATUS_UNAUTHORIZED },
+};
+
+static void
+do_batch_tests (const gchar *base_uri_str, gint ntests)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	const char *base_uri;
-	char *uri, *expected;
-	gboolean authenticated;
+	char *expected;
+	SoupURI *base_uri;
 	int i;
-
-	test_init (argc, argv, NULL);
-	apache_init ();
-
-	base_uri = "http://127.0.0.1:47524/";
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), &i);
 
+	base_uri = soup_uri_new (base_uri_str);
+
 	for (i = 0; i < ntests; i++) {
-		debug_printf (1, "Test %d: %s\n", i + 1, tests[i].explanation);
+		SoupURI *soup_uri = soup_uri_new_with_base (base_uri, current_tests[i].url);
 
-		uri = g_strconcat (base_uri, tests[i].url, NULL);
-		debug_printf (1, "  GET %s\n", uri);
+		debug_printf (1, "Test %d: %s\n", i + 1, current_tests[i].explanation);
 
-		msg = soup_message_new (SOUP_METHOD_GET, uri);
-		g_free (uri);
+		if (current_tests[i].url_auth) {
+			gchar *username = g_strdup_printf ("user%c", current_tests[i].provided[0]);
+			gchar *password = g_strdup_printf ("realm%c", current_tests[i].provided[0]);
+			soup_uri_set_user (soup_uri, username);
+			soup_uri_set_password (soup_uri, password);
+			g_free (username);
+			g_free (password);
+		}
+
+		msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
+		soup_uri_free (soup_uri);
 		if (!msg) {
 			fprintf (stderr, "auth-test: Could not parse URI\n");
 			exit (1);
 		}
 
-		expected = g_strdup (tests[i].expected);
+		debug_printf (1, "  GET %s\n", soup_uri_to_string (soup_message_get_uri (msg), FALSE));
+
+		expected = g_strdup (current_tests[i].expected);
 		soup_message_add_status_code_handler (
 			msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
 			G_CALLBACK (handler), expected);
@@ -878,16 +914,44 @@ main (int argc, char **argv)
 		}
 		g_free (expected);
 
-		if (msg->status_code != tests[i].final_status) {
+		if (msg->status_code != current_tests[i].final_status) {
 			debug_printf (1, "  expected %d\n",
-				      tests[i].final_status);
+				      current_tests[i].final_status);
 		}
 
 		debug_printf (1, "\n");
 
 		g_object_unref (msg);
 	}
+	soup_uri_free (base_uri);
+
 	soup_test_session_abort_unref (session);
+}
+
+int
+main (int argc, char **argv)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	const char *base_uri;
+	char *uri;
+	gboolean authenticated;
+	int i, ntests;
+
+	test_init (argc, argv, NULL);
+	apache_init ();
+
+	base_uri = "http://127.0.0.1:47524/";
+
+	/* Main tests */
+	current_tests = main_tests;
+	ntests = G_N_ELEMENTS (main_tests);
+	do_batch_tests (base_uri, ntests);
+
+	/* Re-login tests */
+	current_tests = relogin_tests;
+	ntests = G_N_ELEMENTS (relogin_tests);
+	do_batch_tests (base_uri, ntests);
 
 	/* And now for some regression tests */
 	loop = g_main_loop_new (NULL, TRUE);
