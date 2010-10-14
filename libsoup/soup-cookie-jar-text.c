@@ -292,11 +292,11 @@ delete_cookie (const char *filename, SoupCookie *cookie)
 		if (*p == '\r' || *p == '\n') {
 			*p = '\0';
 			c = parse_cookie (line, now);
+			line = p + 1;
 			if (!c)
 				continue;
 			if (!soup_cookie_equal (cookie, c))
 				write_cookie (f, c);
-			line = p + 1;
 			soup_cookie_free (c);
 		}
 	}
