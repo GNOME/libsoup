@@ -225,6 +225,7 @@ main (int argc, char **argv)
 	SoupSocket *sock;
 	gsize n, total;
 	SoupSocketIOStatus status;
+	int connect_status;
 	GError *error = NULL;
 
 	g_thread_init (NULL);
@@ -290,10 +291,10 @@ main (int argc, char **argv)
 				SOUP_SOCKET_SSL_CREDENTIALS, creds,
 				NULL);
 	g_object_unref (addr);
-	status = soup_socket_connect_sync (sock, NULL);
-	if (status != SOUP_STATUS_OK) {
+	connect_status = soup_socket_connect_sync (sock, NULL);
+	if (connect_status != SOUP_STATUS_OK) {
 		g_error ("Could not create client socket: %s",
-			 soup_status_get_phrase (status));
+			 soup_status_get_phrase (connect_status));
 	}
 
 	soup_socket_start_ssl (sock, NULL);

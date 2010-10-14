@@ -222,7 +222,7 @@ soup_buffer_get_owner (SoupBuffer *buffer)
 {
 	SoupBufferPrivate *priv = (SoupBufferPrivate *)buffer;
 
-	g_return_val_if_fail (priv->use == SOUP_MEMORY_OWNED, NULL);
+	g_return_val_if_fail ((int)priv->use == (int)SOUP_MEMORY_OWNED, NULL);
 	return priv->owner;
 }
 
