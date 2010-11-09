@@ -117,7 +117,7 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 	const char *header;
 	GSList *encodings, *e;
 	GType coding_type;
-	SoupCoding *coding; 
+	SoupCoding *coding;
 
 	header = soup_message_headers_get_list (msg->response_headers,
 						"Content-Encoding");
@@ -138,7 +138,14 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 		}
 	}
 
-	msgpriv->decoders = NULL;
+	/* msgpriv->decoders should be empty at this point anyway, but
+	 * clean it up if it's not.
+	 */
+	while (msgpriv->decoders) {
+		g_object_unref (msgpriv->decoders->data);
+		msgpriv->decoders = g_slist_delete_link (msgpriv->decoders, msgpriv->decoders);
+	}
+
 	for (e = encodings; e; e = e->next) {
 		coding_type = (GType) GPOINTER_TO_SIZE (g_hash_table_lookup (decoder->priv->codings, e->data));
 		coding = g_object_new (coding_type,
