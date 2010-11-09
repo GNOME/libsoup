@@ -837,7 +837,7 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 		GHashTable *form_data_set;
 
 		if (uri->query)
-			form_data_set = soup_form_decode_urlencoded (uri->query);
+			form_data_set = soup_form_decode (uri->query);
 		else
 			form_data_set = NULL;
 

@@ -100,7 +100,7 @@ soup_form_decode (const char *encoded_form)
 			value = eq + 1;
 		} else
 			value = NULL;
-		if (!form_decode (name) || (value && !form_decode (value))) {
+		if (!value || !form_decode (name) || !form_decode (value)) {
 			g_free (name);
 			continue;
 		}
@@ -226,6 +226,9 @@ append_form_encoded (GString *str, const char *in)
 static void
 encode_pair (GString *str, const char *name, const char *value)
 {
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (value != NULL);
+
 	if (str->len)
 		g_string_append_c (str, '&');
 	append_form_encoded (str, name);

@@ -68,7 +68,7 @@
  * #SoupURI will have a @path of "/".
  *
  * @query and @fragment are optional for all URI types.
- * soup_form_decode_urlencoded() may be useful for parsing @query.
+ * soup_form_decode() may be useful for parsing @query.
  *
  * Note that @path, @query, and @fragment may contain
  * %<!-- -->-encoded characters. soup_uri_new() calls
@@ -980,7 +980,8 @@ soup_uri_set_query (SoupURI *uri, const char *query)
 /**
  * soup_uri_set_query_from_form:
  * @uri: a #SoupURI
- * @form: (element-type utf8 utf8): a #GHashTable containing HTML form information
+ * @form: (element-type utf8 utf8): a #GHashTable containing HTML form
+ * information
  *
  * Sets @uri's query to the result of encoding @form according to the
  * HTML form rules. See soup_form_encode_hash() for more information.
@@ -989,7 +990,7 @@ void
 soup_uri_set_query_from_form (SoupURI *uri, GHashTable *form)
 {
 	g_free (uri->query);
-	uri->query = soup_form_encode_urlencoded (form);
+	uri->query = soup_form_encode_hash (form);
 }
 
 /**
