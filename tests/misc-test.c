@@ -43,6 +43,12 @@ close_socket (SoupMessage *msg, gpointer user_data)
 }
 
 static void
+timeout_socket (SoupSocket *sock, gpointer user_data)
+{
+	soup_socket_disconnect (sock);
+}
+
+static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
@@ -108,6 +114,17 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					  G_CALLBACK (forget_close), NULL);
 		}
 		return;
+	}
+
+	if (!strcmp (path, "/timeout-persistent")) {
+		SoupSocket *sock;
+
+		/* We time out the persistent connection as soon as
+		 * the client starts writing the next request.
+		 */
+		sock = soup_client_context_get_socket (context);
+		g_signal_connect (sock, "readable",
+				  G_CALLBACK (timeout_socket), NULL);
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
@@ -634,6 +651,106 @@ do_accept_language_test (void)
 		g_unsetenv ("LANGUAGE");
 }
 
+static void
+timeout_test_request_started (SoupSession *session, SoupMessage *msg,
+			      SoupSocket *socket, gpointer user_data)
+{
+	SoupSocket **sockets = user_data;
+	int i;
+
+	debug_printf (2, "      msg %p => socket %p\n", msg, socket);
+	for (i = 0; i < 4; i++) {
+		if (!sockets[i]) {
+			/* We ref the socket to make sure that even if
+			 * it gets disconnected, it doesn't get freed,
+			 * since our checks would get messed up if the
+			 * slice allocator reused the same address for
+			 * two consecutive sockets.
+			 */
+			sockets[i] = g_object_ref (socket);
+			return;
+		}
+	}
+
+	debug_printf (1, "      socket queue overflowed!\n");
+	errors++;
+	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+}
+
+static void
+do_timeout_test_for_session (SoupSession *session)
+{
+	SoupMessage *msg;
+	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	SoupURI *timeout_uri;
+	int i;
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (timeout_test_request_started),
+			  &sockets);
+
+	debug_printf (1, "    First message\n");
+	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
+	msg = soup_message_new_from_uri ("GET", timeout_uri);
+	soup_uri_free (timeout_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (sockets[1]) {
+		debug_printf (1, "      Message was retried??\n");
+		errors++;
+		sockets[1] = sockets[2] = sockets[3] = NULL;
+	}
+	g_object_unref (msg);
+
+	debug_printf (1, "    Second message\n");
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (sockets[1] != sockets[0]) {
+		debug_printf (1, "      Message was not retried on existing connection\n");
+		errors++;
+	} else if (!sockets[2]) {
+		debug_printf (1, "      Message was not retried after disconnect\n");
+		errors++;
+	} else if (sockets[2] == sockets[1]) {
+		debug_printf (1, "      Message was retried on closed connection??\n");
+		errors++;
+	} else if (sockets[3]) {
+		debug_printf (1, "      Message was retried again??\n");
+		errors++;
+	}
+	g_object_unref (msg);
+
+	for (i = 0; sockets[i]; i++)
+		g_object_unref (sockets[i]);
+}
+
+static void
+do_persistent_connection_timeout_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nUnexpected timing out of persistent connections\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_timeout_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_timeout_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -661,6 +778,7 @@ main (int argc, char **argv)
 	do_early_abort_test ();
 	do_content_length_framing_test ();
 	do_accept_language_test ();
+	do_persistent_connection_timeout_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

@@ -196,7 +196,7 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		   request_is_idempotent (msg)) {
 		/* Connection got closed, but we can safely try again */
-		io->item->state = SOUP_MESSAGE_STARTING;
+		io->item->state = SOUP_MESSAGE_RESTARTING;
 	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
 		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
 
