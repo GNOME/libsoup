@@ -267,7 +267,7 @@ process_queue_item (SoupMessageQueueItem *item)
 			if (SOUP_STATUS_IS_SUCCESSFUL (status))
 				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
 			else {
-				soup_session_set_item_status (session, item, status);
+				soup_session_set_item_status (session, item, soup_status_proxify (status));
 				item->state = SOUP_MESSAGE_FINISHING;
 			}
 			break;

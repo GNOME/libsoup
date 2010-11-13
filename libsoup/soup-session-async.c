@@ -147,7 +147,7 @@ resolved_proxy_addr (SoupAddress *addr, guint status, gpointer user_data)
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
 
-	if (item_failed (item, status))
+	if (item_failed (item, soup_status_proxify (status)))
 		return;
 
 	item->proxy_addr = g_object_ref (addr);
