@@ -361,9 +361,6 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupURI *uri;
 
-	if (soup_auth_is_authenticated (auth))
-		return TRUE;
-
 	if (proxy) {
 		SoupMessageQueue *queue;
 		SoupMessageQueueItem *item;
@@ -381,12 +378,13 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	} else
 		uri = soup_message_get_uri (msg);
 
-	if (uri->password && !prior_auth_failed) {
-		soup_auth_authenticate (auth, uri->user, uri->password);
-		return TRUE;
-	}
-
-	if (can_interact) {
+	/* If a password is specified explicitly in the URI, use it
+	 * even if the auth had previously already been authenticated.
+	 */
+	if (uri->password) {
+		if (!prior_auth_failed)
+			soup_auth_authenticate (auth, uri->user, uri->password);
+	} else if (!soup_auth_is_authenticated (auth) && can_interact) {
 		soup_auth_manager_emit_authenticate (manager, msg, auth,
 						     prior_auth_failed);
 	}
