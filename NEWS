@@ -1,3 +1,40 @@
+Changes in libsoup from 2.32.0 to 2.32.1:
+
+	* Fixed a regression in 2.32.0 with the use of persistent
+	  connections that caused spurious "Connection terminated
+	  unexpectedly" errors. [#631525, debugged by Sergio Villar]
+
+	* Fixed a regression in 2.32.0 that caused proxy-related
+	  DNS errors to return SOUP_STATUS_CANT_RESOLVE rather than
+	  SOUP_STATUS_CANT_RESOLVE_PROXY.
+
+	* Usernames/passwords specified explicitly in request URIs now
+	  override existing cached auth info. [#631679, Sergio Villar]
+
+	* Changed soup_uri_decode() and soup_uri_normalize() to just
+	  ignore malformed %-encoding rather than returning NULL,
+	  for consistency with soup_uri_new(). [#630540]
+
+	* Fixed soup_form_decode() to ignore invalid parameters,
+	  and soup_form_encode_hash() to just g_return_if_fail()
+	  rather than crashing if there are NULL values in the
+	  hash. [#620220]
+
+	* Added another workaround for stupid servers that close the
+	  connection before returning the full response (in this case,
+	  when using chunked encoding and failing to include the
+	  final 0-length chunk). [#629160]
+
+	* Fixed a bug in SoupCookieJarText that deleted excess cookies
+	  whenever any cookie expired. [#631641, Michał Kazior]
+
+	* Fixed a small leak in SoupContentDecoder if you were using
+	  it incorrectly. [pointed out in email by Christophe
+	  Gillette]
+
+	* Added regression tests for passwords-in-URIs [#631679,
+	  Sergio Villar] and SOUP_SESSION_IDLE_TIMEOUT.
+
 Changes in libsoup from 2.31.92 to 2.32.0:
 
 	* (No changes, just a version bump)
