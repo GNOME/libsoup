@@ -190,7 +190,7 @@ Alias /Basic @srcdir@
 <Location /Basic/realm12>
   AuthType Basic
   AuthName realm12
-  AuthUserFile ./htpasswd
+  AuthUserFile @srcdir@/htpasswd
   Require user user1 user2
 </Location>
 
