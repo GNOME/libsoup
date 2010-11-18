@@ -49,6 +49,53 @@ timeout_socket (SoupSocket *sock, gpointer user_data)
 }
 
 static void
+timeout_request_started (SoupServer *server, SoupMessage *msg,
+			 SoupClientContext *client, gpointer user_data)
+{
+	SoupSocket *sock;
+	GMainContext *context = soup_server_get_async_context (server);
+	guint readable;
+
+	sock = soup_client_context_get_socket (client);
+	readable = g_signal_connect (sock, "readable",
+				    G_CALLBACK (timeout_socket), NULL);
+	while (soup_socket_is_connected (sock))
+		g_main_context_iteration (context, TRUE);
+	g_signal_handler_disconnect (sock, readable);
+	g_signal_handlers_disconnect_by_func (server, timeout_request_started, NULL);
+}
+
+static void
+setup_timeout_persistent (SoupServer *server, SoupSocket *sock)
+{
+	char buf[1];
+	gsize nread;
+
+	/* In order for the test to work correctly, we have to
+	 * close the connection *after* the client side writes
+	 * the request. To ensure that this happens reliably,
+	 * regardless of thread scheduling, we:
+	 *
+	 *   1. Try to read off the socket now, knowing it will
+	 *      fail (since the client is waiting for us to
+	 *      return a response). This will cause it to
+	 *      emit "readable" later.
+	 *   2. Connect to the server's request-started signal.
+	 *   3. Run an inner main loop from that signal handler
+	 *      until the socket emits "readable". (If we don't
+	 *      do this then it's possible the client's next
+	 *      request would be ready before we returned to
+	 *      the main loop, and so the signal would never be
+	 *      emitted.)
+	 *   4. Close the socket.
+	 */
+
+	soup_socket_read (sock, buf, 1, &nread, NULL, NULL);
+	g_signal_connect (server, "request-started",
+			  G_CALLBACK (timeout_request_started), NULL);
+}
+
+static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
@@ -119,12 +166,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/timeout-persistent")) {
 		SoupSocket *sock;
 
-		/* We time out the persistent connection as soon as
-		 * the client starts writing the next request.
-		 */
 		sock = soup_client_context_get_socket (context);
-		g_signal_connect (sock, "readable",
-				  G_CALLBACK (timeout_socket), NULL);
+		setup_timeout_persistent (server, sock);
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
