@@ -20,6 +20,7 @@
 
 SoupServer *server;
 SoupURI *base_uri;
+GMutex *server_mutex;
 
 static gboolean
 auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
@@ -101,6 +102,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *context, gpointer data)
 {
 	SoupURI *uri = soup_message_get_uri (msg);
+
+	/* The way this gets used in the tests, we don't actually
+	 * need to hold it through the whole function, so it's simpler
+	 * to just release it right away.
+	 */
+	g_mutex_lock (server_mutex);
+	g_mutex_unlock (server_mutex);
 
 	soup_message_headers_append (msg->response_headers,
 				     "X-Handled-By", "server_callback");
@@ -794,12 +802,129 @@ do_persistent_connection_timeout_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static GMainLoop *max_conns_loop;
+static int msgs_done;
+#define MAX_CONNS 2
+#define TEST_CONNS (MAX_CONNS * 2)
+
+static gboolean
+idle_start_server (gpointer data)
+{
+	g_mutex_unlock (server_mutex);
+	return FALSE;
+}
+
+static gboolean
+quit_loop (gpointer data)
+{
+	g_main_loop_quit (max_conns_loop);
+	return FALSE;
+}
+
+static void
+max_conns_request_started (SoupSession *session, SoupMessage *msg,
+			   SoupSocket *socket, gpointer user_data)
+{
+	if (++msgs_done == MAX_CONNS)
+		g_timeout_add (100, quit_loop, NULL);
+}
+
+static void
+max_conns_message_complete (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	if (++msgs_done == TEST_CONNS)
+		g_main_loop_quit (max_conns_loop);
+}
+
+static void
+do_max_conns_test_for_session (SoupSession *session)
+{
+	SoupMessage *msgs[TEST_CONNS];
+	int i;
+	guint timeout_id;
+
+	max_conns_loop = g_main_loop_new (NULL, TRUE);
+
+	g_mutex_lock (server_mutex);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (max_conns_request_started), NULL);
+	msgs_done = 0;
+	for (i = 0; i < TEST_CONNS; i++) {
+		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
+		g_object_ref (msgs[i]);
+		soup_session_queue_message (session, msgs[i],
+					    max_conns_message_complete, NULL);
+	}
+
+	g_main_loop_run (max_conns_loop);
+	if (msgs_done != MAX_CONNS) {
+		debug_printf (1, "  Queued %d connections out of max %d?",
+			      msgs_done, MAX_CONNS);
+		errors++;
+	}
+	g_signal_handlers_disconnect_by_func (session, max_conns_request_started, NULL);
+
+	msgs_done = 0;
+	g_idle_add (idle_start_server, NULL);
+	timeout_id = g_timeout_add (1000, quit_loop, NULL);
+	g_main_loop_run (max_conns_loop);
+
+	for (i = 0; i < TEST_CONNS; i++) {
+		if (!SOUP_STATUS_IS_SUCCESSFUL (msgs[i]->status_code)) {
+			debug_printf (1, "    Message %d failed? %d %s\n",
+				      i, msgs[i]->status_code,
+				      msgs[i]->reason_phrase ? msgs[i]->reason_phrase : "-");
+			errors++;
+		}
+	}
+
+	if (msgs_done != TEST_CONNS) {
+		/* Clean up so we don't get a spurious "Leaked
+		 * session" error.
+		 */
+		for (i = 0; i < TEST_CONNS; i++)
+			soup_session_cancel_message (session, msgs[i], SOUP_STATUS_CANCELLED);
+		g_main_loop_run (max_conns_loop);
+		g_source_remove (timeout_id);
+	}
+
+	g_main_loop_unref (max_conns_loop);
+
+	for (i = 0; i < TEST_CONNS; i++)
+		g_object_unref (msgs[i]);
+}
+
+static void
+do_max_conns_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nExceeding max-conns\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
+					 NULL);
+	do_max_conns_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
+					 NULL);
+	do_max_conns_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
 	SoupAuthDomain *auth_domain;
 
 	test_init (argc, argv, NULL);
+
+	server_mutex = g_mutex_new ();
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
@@ -822,6 +947,7 @@ main (int argc, char **argv)
 	do_content_length_framing_test ();
 	do_accept_language_test ();
 	do_persistent_connection_timeout_test ();
+	do_max_conns_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

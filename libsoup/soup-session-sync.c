@@ -298,6 +298,7 @@ process_queue_item (SoupMessageQueueItem *item)
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
 			soup_session_unqueue_item (session, item);
+			g_cond_broadcast (priv->cond);
 			break;
 
 		default:
@@ -373,8 +374,10 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
+	g_mutex_lock (priv->lock);
 	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg, status_code);
 	g_cond_broadcast (priv->cond);
+	g_mutex_unlock (priv->lock);
 }
 
 static void
