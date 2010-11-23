@@ -670,9 +670,13 @@ static void
 async_connected (GObject *client, GAsyncResult *result, gpointer data)
 {
 	SoupSocketAsyncConnectData *sacd = data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sacd->sock);
 	GError *error = NULL;
 	GSocketConnection *conn;
 	guint status;
+
+	if (priv->async_context)
+		g_main_context_pop_thread_default (priv->async_context);
 
 	conn = g_socket_client_connect_finish (G_SOCKET_CLIENT (client),
 					       result, &error);
@@ -734,9 +738,6 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 				       priv->connect_cancel,
 				       async_connected, sacd);
 	g_object_unref (client);
-
-	if (priv->async_context)
-		g_main_context_pop_thread_default (priv->async_context);
 }
 
 /**
