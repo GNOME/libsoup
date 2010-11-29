@@ -1,3 +1,15 @@
+Changes in libsoup from 2.32.1 to 2.32.2:
+
+	* Fixed a regression in 2.32.0 that caused evolution-exchange
+          to get stuck and stop updating. [#634422]
+
+	* Fixed a regression in 2.32.0 with apps using asynchronous
+          sessions from multiple threads (in particular, gupnp)
+          [#635101]
+
+	* Fixed the regression test for #631525 to not cause spurious
+	  "make check" failures on some machines.
+
 Changes in libsoup from 2.32.0 to 2.32.1:
 
 	* Fixed a regression in 2.32.0 with the use of persistent
