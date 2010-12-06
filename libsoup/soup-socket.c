@@ -57,6 +57,8 @@ enum {
 	PROP_TIMEOUT,
 	PROP_TRUSTED_CERTIFICATE,
 	PROP_CLEAN_DISPOSE,
+	PROP_TLS_CERTIFICATE,
+	PROP_TLS_ERRORS,
 
 	LAST_PROP
 };
@@ -67,11 +69,11 @@ typedef struct {
 	GSocket *gsock;
 	GPollableInputStream *istream;
 	GPollableOutputStream *ostream;
+	GTlsCertificateFlags tls_errors;
 
 	guint non_blocking:1;
 	guint is_server:1;
 	guint ssl_strict:1;
-	guint trusted_certificate:1;
 	guint clean_dispose:1;
 	gpointer ssl_creds;
 
@@ -354,9 +356,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * SOUP_SOCKET_TRUSTED_CERTIFICATE:
 	 *
 	 * Alias for the #SoupSocket:trusted-certificate
-	 * property. Notice that this property's value is only useful
-	 * if the socket is for an SSL connection, and only reliable
-	 * after some data has been transferred to or from it.
+	 * property.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TRUSTED_CERTIFICATE,
@@ -364,7 +364,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Trusted Certificate",
 				     "Whether the server certificate is trusted, if this is an SSL socket",
 				     FALSE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READABLE));
 	/**
 	 * SOUP_SOCKET_ASYNC_CONTEXT:
 	 *
@@ -399,6 +399,40 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Warn on unclean dispose",
 				      FALSE,
 				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SOCKET_TLS_CERTIFICATE:
+	 *
+	 * Alias for the #SoupSocket:tls-certificate
+	 * property. Note that this property's value is only useful
+	 * if the socket is for a TLS connection, and only reliable
+	 * after some data has been transferred to or from it.
+	 *
+	 * Since: 2.34
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object (SOUP_SOCKET_TLS_CERTIFICATE,
+				     "TLS certificate",
+				     "The peer's TLS certificate",
+				     G_TYPE_TLS_CERTIFICATE,
+				     G_PARAM_READABLE));
+	/**
+	 * SOUP_SOCKET_TLS_ERRORS:
+	 *
+	 * Alias for the #SoupSocket:tls-errors
+	 * property. Note that this property's value is only useful
+	 * if the socket is for a TLS connection, and only reliable
+	 * after some data has been transferred to or from it.
+	 *
+	 * Since: 2.34
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_ERRORS,
+		g_param_spec_flags (SOUP_SOCKET_TLS_ERRORS,
+				    "TLS errors",
+				    "Errors with the peer's TLS certificate",
+				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
+				    G_PARAM_READABLE));
 }
 
 
@@ -439,9 +473,6 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
-		break;
-	case PROP_TRUSTED_CERTIFICATE:
-		priv->trusted_certificate = g_value_get_boolean (value);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
@@ -488,13 +519,22 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_TRUSTED_CERTIFICATE:
-		g_value_set_boolean (value, priv->trusted_certificate);
+		g_value_set_boolean (value, priv->tls_errors == 0);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->timeout);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		if (G_IS_TLS_CONNECTION (priv->conn))
+			g_value_set_object (value, g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->conn)));
+		else
+			g_value_set_object (value, NULL);
+		break;
+	case PROP_TLS_ERRORS:
+		g_value_set_flags (value, priv->tls_errors);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -809,15 +849,14 @@ soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
+	priv->tls_errors = errors;
 	if (soup_ssl_credentials_verify_certificate (priv->ssl_creds,
-						     cert, errors))
-		return TRUE;
-
-	if (!priv->ssl_strict) {
-		priv->trusted_certificate = FALSE;
+						     cert, errors)) {
+		priv->tls_errors &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
 		return TRUE;
 	}
-	return FALSE;
+
+	return !priv->ssl_strict;
 }
 
 /**
@@ -881,7 +920,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);
 
-		priv->trusted_certificate = TRUE;
+		priv->tls_errors = 0;
 		g_signal_connect (conn, "accept-certificate",
 				  G_CALLBACK (soup_socket_accept_certificate),
 				  sock);

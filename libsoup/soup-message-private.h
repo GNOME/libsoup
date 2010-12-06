@@ -34,6 +34,9 @@ typedef struct {
 	GSList            *decoders;
 
 	SoupURI           *first_party;
+
+	GTlsCertificate      *tls_certificate;
+	GTlsCertificateFlags  tls_errors;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 

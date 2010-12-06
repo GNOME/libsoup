@@ -352,17 +352,6 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 		}
 	}
 
-	if (soup_socket_is_ssl (io->sock)) {
-		gboolean trusted_certificate;
-
-		g_object_get (io->sock,
-			      SOUP_SOCKET_TRUSTED_CERTIFICATE, &trusted_certificate,
-			      NULL);
-
-		if (trusted_certificate)
-			soup_message_set_flags (msg, priv->msg_flags | SOUP_MESSAGE_CERTIFICATE_TRUSTED);
-	}
-
 	return TRUE;
 }
 
@@ -830,6 +819,24 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
 		if (!read_metadata (msg, TRUE))
 			return;
+
+		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+		    soup_socket_is_ssl (io->sock)) {
+			GTlsCertificate *certificate;
+			GTlsCertificateFlags errors;
+
+			g_object_get (io->sock,
+				      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
+				      SOUP_SOCKET_TLS_ERRORS, &errors,
+				      NULL);
+			if (certificate) {
+				g_object_set (msg,
+					      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
+					      SOUP_MESSAGE_TLS_ERRORS, errors,
+					      NULL);
+				g_object_unref (certificate);
+			}
+		}
 
 		/* We need to "rewind" io->read_meta_buf back one line.
 		 * That SHOULD be two characters (CR LF), but if the

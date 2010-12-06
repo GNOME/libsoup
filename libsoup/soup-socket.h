@@ -48,6 +48,8 @@ typedef struct {
 #define SOUP_SOCKET_TRUSTED_CERTIFICATE "trusted-certificate"
 #define SOUP_SOCKET_ASYNC_CONTEXT       "async-context"
 #define SOUP_SOCKET_TIMEOUT             "timeout"
+#define SOUP_SOCKET_TLS_CERTIFICATE     "tls-certificate"
+#define SOUP_SOCKET_TLS_ERRORS          "tls-errors"
 
 typedef void (*SoupSocketCallback)            (SoupSocket         *sock,
 					       guint               status,

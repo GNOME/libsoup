@@ -124,6 +124,8 @@ enum {
 	PROP_REQUEST_HEADERS,
 	PROP_RESPONSE_BODY,
 	PROP_RESPONSE_HEADERS,
+	PROP_TLS_CERTIFICATE,
+	PROP_TLS_ERRORS,
 
 	LAST_PROP
 };
@@ -644,6 +646,32 @@ soup_message_class_init (SoupMessageClass *message_class)
 				     "The HTTP response headers",
 				    SOUP_TYPE_MESSAGE_HEADERS,
 				    G_PARAM_READABLE));
+	/**
+	 * SOUP_MESSAGE_TLS_CERTIFICATE:
+	 *
+	 * Alias for the #SoupMessage:tls-certificate property. (The
+	 * TLS certificate associated with the message, if any.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object (SOUP_MESSAGE_TLS_CERTIFICATE,
+				     "TLS Certificate",
+				     "The TLS certificate associated with the message",
+				     G_TYPE_TLS_CERTIFICATE,
+				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_TLS_ERRORS:
+	 *
+	 * Alias for the #SoupMessage:tls-errors property. (The
+	 * verification errors on #SoupMessage:tls-certificate.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_ERRORS,
+		g_param_spec_flags (SOUP_MESSAGE_TLS_ERRORS,
+				    "TLS Errors",
+				    "The verification errors on the message's TLS certificate",
+				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
+				    G_PARAM_READWRITE));
 }
 
 static void
@@ -682,6 +710,20 @@ set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_FIRST_PARTY:
 		soup_message_set_first_party (msg, g_value_get_boxed (value));
+		break;
+	case PROP_TLS_CERTIFICATE:
+		if (priv->tls_certificate)
+			g_object_unref (priv->tls_certificate);
+		priv->tls_certificate = g_value_dup_object (value);
+		if (priv->tls_certificate && !priv->tls_errors)
+			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		break;
+	case PROP_TLS_ERRORS:
+		priv->tls_errors = g_value_get_flags (value);
+		if (priv->tls_errors)
+			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		else if (priv->tls_certificate)
+			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -732,6 +774,12 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_RESPONSE_HEADERS:
 		g_value_set_boxed (value, msg->response_headers);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, priv->tls_certificate);
+		break;
+	case PROP_TLS_ERRORS:
+		g_value_set_flags (value, priv->tls_errors);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1315,10 +1363,18 @@ soup_message_cleanup_response (SoupMessage *req)
 	}
 	priv->http_version = priv->orig_http_version;
 
+	if (priv->tls_certificate) {
+		g_object_unref (priv->tls_certificate);
+		priv->tls_certificate = NULL;
+	}
+	priv->tls_errors = 0;
+
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_FLAGS);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_TLS_CERTIFICATE);
+	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_TLS_ERRORS);
 }
 
 /**
@@ -1775,4 +1831,36 @@ soup_message_set_first_party (SoupMessage *msg,
 
 	priv->first_party = soup_uri_copy (first_party);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FIRST_PARTY);
+}
+
+/**
+ * soup_message_get_https_status:
+ * @msg: a #SoupMessage
+ * @certificate: (out) (transfer none): @msg's TLS certificate
+ * @errors: (out): the verification status of @certificate
+ *
+ * If @msg is using https, this retrieves the #GTlsCertificate
+ * associated with its connection, and the #GTlsCertificateFlags showing
+ * what problems, if any, have been found with that certificate.
+ *
+ * Return value: %TRUE if @msg uses https, %FALSE if not
+ *
+ * Since: 2.34
+ */
+gboolean
+soup_message_get_https_status (SoupMessage           *msg,
+			       GTlsCertificate      **certificate,
+			       GTlsCertificateFlags  *errors)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), FALSE);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (certificate)
+		*certificate = priv->tls_certificate;
+	if (errors)
+		*errors = priv->tls_errors;
+	return priv->tls_certificate != NULL;
 }
