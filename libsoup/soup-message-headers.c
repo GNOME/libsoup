@@ -1187,7 +1187,7 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
 /**
  * soup_message_headers_get_content_type:
  * @hdrs: a #SoupMessageHeaders
- * @params: return location for the Content-Type parameters (eg,
+ * @params: (out) (allow-none): return location for the Content-Type parameters (eg,
  * "charset"), or %NULL
  *
  * Looks up the "Content-Type" header in @hdrs, parses it, and returns
