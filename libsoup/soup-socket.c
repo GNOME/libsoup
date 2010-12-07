@@ -74,6 +74,7 @@ typedef struct {
 	guint non_blocking:1;
 	guint is_server:1;
 	guint ssl_strict:1;
+	guint ssl_ca_in_creds:1;
 	guint clean_dispose:1;
 	gpointer ssl_creds;
 
@@ -94,6 +95,10 @@ static void set_property (GObject *object, guint prop_id,
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
+static void soup_socket_peer_certificate_changed (GObject *conn,
+						  GParamSpec *pspec,
+						  gpointer user_data);
+
 static void
 soup_socket_init (SoupSocket *sock)
 {
@@ -105,14 +110,18 @@ soup_socket_init (SoupSocket *sock)
 }
 
 static void
-disconnect_internal (SoupSocketPrivate *priv)
+disconnect_internal (SoupSocket *sock)
 {
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
 	if (priv->gsock) {
 		g_socket_close (priv->gsock, NULL);
 		g_object_unref (priv->gsock);
 		priv->gsock = NULL;
 	}
 	if (priv->conn) {
+		if (G_IS_TLS_CONNECTION (priv->conn))
+			g_signal_handlers_disconnect_by_func (priv->conn, soup_socket_peer_certificate_changed, sock);
 		g_object_unref (priv->conn);
 		priv->conn = NULL;
 		priv->istream = NULL;
@@ -142,7 +151,7 @@ finalize (GObject *object)
 	if (priv->conn) {
 		if (priv->clean_dispose)
 			g_warning ("Disposing socket %p while still connected", object);
-		disconnect_internal (priv);
+		disconnect_internal (SOUP_SOCKET (object));
 	}
 
 	if (priv->local_addr)
@@ -838,9 +847,23 @@ soup_socket_listen (SoupSocket *sock)
 
  cant_listen:
 	if (priv->conn)
-		disconnect_internal (priv);
+		disconnect_internal (sock);
 
 	return FALSE;
+}
+
+static void
+soup_socket_peer_certificate_changed (GObject *conn, GParamSpec *pspec,
+				      gpointer sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	priv->tls_errors = g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->conn));
+	if (priv->ssl_ca_in_creds)
+		priv->tls_errors &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
+
+	g_object_notify (sock, "tls-certificate");
+	g_object_notify (sock, "tls-errors");
 }
 
 static gboolean
@@ -849,10 +872,9 @@ soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	priv->tls_errors = errors;
 	if (soup_ssl_credentials_verify_certificate (priv->ssl_creds,
 						     cert, errors)) {
-		priv->tls_errors &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
+		priv->ssl_ca_in_creds = TRUE;
 		return TRUE;
 	}
 
@@ -920,7 +942,6 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);
 
-		priv->tls_errors = 0;
 		g_signal_connect (conn, "accept-certificate",
 				  G_CALLBACK (soup_socket_accept_certificate),
 				  sock);
@@ -940,6 +961,10 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);
 	}
+
+	priv->ssl_ca_in_creds = FALSE;
+	g_signal_connect (priv->conn, "notify::peer-certificate",
+			  G_CALLBACK (soup_socket_peer_certificate_changed), sock);
 
 	priv->istream = G_POLLABLE_INPUT_STREAM (g_io_stream_get_input_stream (priv->conn));
 	priv->ostream = G_POLLABLE_OUTPUT_STREAM (g_io_stream_get_output_stream (priv->conn));
@@ -985,7 +1010,7 @@ soup_socket_disconnect (SoupSocket *sock)
 		return;
 	} else if (g_mutex_trylock (priv->iolock)) {
 		if (priv->conn)
-			disconnect_internal (priv);
+			disconnect_internal (sock);
 		else
 			already_disconnected = TRUE;
 		g_mutex_unlock (priv->iolock);
