@@ -54,20 +54,11 @@ SoupRequester *soup_requester_new             (void);
 
 SoupRequest   *soup_requester_request         (SoupRequester  *requester,
 					       const char     *uri_string,
-					       SoupSession    *session,
 					       GError        **error);
 
 SoupRequest   *soup_requester_request_uri     (SoupRequester  *requester,
 					       SoupURI        *uri,
-					       SoupSession    *session,
 					       GError        **error);
-
-void           soup_requester_add_protocol    (SoupRequester  *requester,
-					       const char     *scheme,
-					       GType           request_type);
-
-void           soup_requester_remove_protocol (SoupRequester  *requester,
-					       const char     *scheme);
 
 GQuark soup_requester_error_quark (void);
 #define SOUP_REQUESTER_ERROR soup_requester_error_quark ()

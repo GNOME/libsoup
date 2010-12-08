@@ -30,33 +30,37 @@
 #include "soup-request-data.h"
 #include "soup-request-file.h"
 #include "soup-request-http.h"
+#include "soup-session-feature.h"
 #include "soup-uri.h"
 
+static SoupSessionFeatureInterface *soup_requester_default_feature_interface;
+static void soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
+
 struct _SoupRequesterPrivate {
+	SoupSession *session;
 	GHashTable *request_types;
 };
 
-G_DEFINE_TYPE (SoupRequester, soup_requester, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_CODE (SoupRequester, soup_requester, G_TYPE_OBJECT,
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
+						soup_requester_session_feature_init))
 
 static void
 soup_requester_init (SoupRequester *requester)
 {
+	SoupSessionFeature *feature;
+
 	requester->priv = G_TYPE_INSTANCE_GET_PRIVATE (requester,
 						       SOUP_TYPE_REQUESTER,
 						       SoupRequesterPrivate);
 
-	requester->priv->request_types =
-		g_hash_table_new_full (soup_str_case_hash,
-				       soup_str_case_equal,
-				       g_free, NULL);
-	g_hash_table_insert (requester->priv->request_types, g_strdup ("file"),
-			     GSIZE_TO_POINTER (SOUP_TYPE_REQUEST_FILE));
-	g_hash_table_insert (requester->priv->request_types, g_strdup ("data"),
-			     GSIZE_TO_POINTER (SOUP_TYPE_REQUEST_DATA));
-	g_hash_table_insert (requester->priv->request_types, g_strdup ("http"),
-			     GSIZE_TO_POINTER (SOUP_TYPE_REQUEST_HTTP));
-	g_hash_table_insert (requester->priv->request_types, g_strdup ("https"),
-			     GSIZE_TO_POINTER (SOUP_TYPE_REQUEST_HTTP));
+	requester->priv->request_types = g_hash_table_new (soup_str_case_hash,
+							   soup_str_case_equal);
+
+	feature = SOUP_SESSION_FEATURE (requester);
+	soup_session_feature_add_feature (feature, SOUP_TYPE_REQUEST_HTTP);
+	soup_session_feature_add_feature (feature, SOUP_TYPE_REQUEST_FILE);
+	soup_session_feature_add_feature (feature, SOUP_TYPE_REQUEST_DATA);
 }
 
 static void
@@ -64,8 +68,7 @@ finalize (GObject *object)
 {
 	SoupRequester *requester = SOUP_REQUESTER (object);
 
-	if (requester->priv->request_types)
-		g_hash_table_destroy (requester->priv->request_types);
+	g_hash_table_destroy (requester->priv->request_types);
 
 	G_OBJECT_CLASS (soup_requester_parent_class)->finalize (object);
 }
@@ -81,6 +84,100 @@ soup_requester_class_init (SoupRequesterClass *requester_class)
 	object_class->finalize = finalize;
 }
 
+static void
+attach (SoupSessionFeature *feature, SoupSession *session)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+
+	requester->priv->session = session;
+
+	soup_requester_default_feature_interface->attach (feature, session);
+}
+
+static void
+detach (SoupSessionFeature *feature, SoupSession *session)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+
+	requester->priv->session = NULL;
+
+	soup_requester_default_feature_interface->detach (feature, session);
+}
+
+static gboolean
+add_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+	SoupRequestClass *request_class;
+	int i;
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	request_class = g_type_class_ref (type);
+	for (i = 0; request_class->schemes[i]; i++) {
+		g_hash_table_insert (requester->priv->request_types,
+				     (char *)request_class->schemes[i],
+				     GSIZE_TO_POINTER (type));
+	}
+	return TRUE;
+}
+
+static gboolean
+remove_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+	SoupRequestClass *request_class;
+	int i, orig_size;
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	request_class = g_type_class_peek (type);
+	if (!request_class)
+		return FALSE;
+
+	orig_size = g_hash_table_size (requester->priv->request_types);
+	for (i = 0; request_class->schemes[i]; i++) {
+		g_hash_table_remove (requester->priv->request_types,
+				     request_class->schemes[i]);
+	}
+
+	return g_hash_table_size (requester->priv->request_types) != orig_size;
+}
+
+static gboolean
+has_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+	GHashTableIter iter;
+	gpointer key, value;
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	g_hash_table_iter_init (&iter, requester->priv->request_types);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		if (value == GSIZE_TO_POINTER (type))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+static void
+soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+				     gpointer interface_data)
+{
+	soup_requester_default_feature_interface =
+		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
+
+	feature_interface->attach = attach;
+	feature_interface->detach = detach;
+	feature_interface->add_feature = add_feature;
+	feature_interface->remove_feature = remove_feature;
+	feature_interface->has_feature = has_feature;
+}
+
 SoupRequester *
 soup_requester_new (void)
 {
@@ -89,7 +186,7 @@ soup_requester_new (void)
 
 SoupRequest *
 soup_requester_request (SoupRequester *requester, const char *uri_string,
-			SoupSession *session, GError **error)
+			GError **error)
 {
 	SoupURI *uri;
 	SoupRequest *req;
@@ -101,14 +198,14 @@ soup_requester_request (SoupRequester *requester, const char *uri_string,
 		return NULL;
 	}
 
-	req = soup_requester_request_uri (requester, uri, session, error);
+	req = soup_requester_request_uri (requester, uri, error);
 	soup_uri_free (uri);
 	return req;
 }
 
 SoupRequest *
 soup_requester_request_uri (SoupRequester *requester, SoupURI *uri,
-			    SoupSession *session, GError **error)
+			    GError **error)
 {
 	GType request_type;
 
@@ -122,60 +219,10 @@ soup_requester_request_uri (SoupRequester *requester, SoupURI *uri,
 		return NULL;
 	}
 
-	if (g_type_is_a (request_type, G_TYPE_INITABLE)) {
-		return g_initable_new (request_type, NULL, error,
-				       "uri", uri,
-				       "session", session,
-				       NULL);
-	} else {
-		return g_object_new (request_type,
-				     "uri", uri,
-				     "session", session,
-				     NULL);
-	}
-}
-
-/* RFC 2396, 3.1 */
-static gboolean
-soup_scheme_is_valid (const char *scheme)
-{
-	if (scheme == NULL ||
-	    !g_ascii_isalpha (*scheme))
-		return FALSE;
-
-	scheme++;
-	while (*scheme) {
-		if (!g_ascii_isalpha (*scheme) &&
-		    !g_ascii_isdigit (*scheme) &&
-		    *scheme != '+' &&
-		    *scheme != '-' &&
-		    *scheme != '.')
-			return FALSE;
-		scheme++;
-	}
-	return TRUE;
-}
-
-void
-soup_requester_add_protocol (SoupRequester *requester,
-			     const char    *scheme,
-			     GType          request_type)
-{
-	g_return_if_fail (SOUP_IS_REQUESTER (requester));
-	g_return_if_fail (soup_scheme_is_valid (scheme));
-
-	g_hash_table_insert (requester->priv->request_types, g_strdup (scheme),
-			     GSIZE_TO_POINTER (request_type));
-}
-
-void
-soup_requester_remove_protocol (SoupRequester *requester,
-				       const char  *scheme)
-{
-	g_return_if_fail (SOUP_IS_REQUESTER (requester));
-	g_return_if_fail (soup_scheme_is_valid (scheme));
-
-	g_hash_table_remove (requester->priv->request_types, scheme);
+	return g_initable_new (request_type, NULL, error,
+			       "uri", uri,
+			       "session", requester->priv->session,
+			       NULL);
 }
 
 GQuark

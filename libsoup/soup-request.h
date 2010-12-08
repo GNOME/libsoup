@@ -50,6 +50,8 @@ struct _SoupRequest {
 struct _SoupRequestClass {
 	GObjectClass parent;
 
+	const char **schemes;
+
 	gboolean       (*check_uri)          (SoupRequest          *req_base,
 					      SoupURI              *uri,
 					      GError              **error);

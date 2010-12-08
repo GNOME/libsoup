@@ -151,6 +151,8 @@ soup_request_data_get_content_type (SoupRequest *request)
 	return data->priv->content_type;
 }
 
+static const char *data_schemes[] = { "data", NULL };
+
 static void
 soup_request_data_class_init (SoupRequestDataClass *request_data_class)
 {
@@ -159,6 +161,8 @@ soup_request_data_class_init (SoupRequestDataClass *request_data_class)
 		SOUP_REQUEST_CLASS (request_data_class);
 
 	g_type_class_add_private (request_data_class, sizeof (SoupRequestDataPrivate));
+
+	request_class->schemes = data_schemes;
 
 	object_class->finalize = soup_request_data_finalize;
 

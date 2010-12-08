@@ -227,6 +227,8 @@ soup_request_file_get_content_type (SoupRequest *request)
 	return file->priv->mime_type;
 }
 
+static const char *file_schemes[] = { "file", NULL };
+
 static void
 soup_request_file_class_init (SoupRequestFileClass *request_file_class)
 {
@@ -235,6 +237,8 @@ soup_request_file_class_init (SoupRequestFileClass *request_file_class)
 		SOUP_REQUEST_CLASS (request_file_class);
 
 	g_type_class_add_private (request_file_class, sizeof (SoupRequestFilePrivate));
+
+	request_class->schemes = file_schemes;
 
 	object_class->finalize = soup_request_file_finalize;
 

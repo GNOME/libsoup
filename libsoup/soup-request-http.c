@@ -312,6 +312,8 @@ soup_request_http_get_content_type (SoupRequest *request)
 	return soup_message_headers_get_content_type (http->priv->msg->response_headers, NULL);
 }
 
+static const char *http_schemes[] = { "http", "https", NULL };
+
 static void
 soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
 {
@@ -320,6 +322,8 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
 		SOUP_REQUEST_CLASS (request_http_class);
 
 	g_type_class_add_private (request_http_class, sizeof (SoupRequestHTTPPrivate));
+
+	request_class->schemes = http_schemes;
 
 	object_class->finalize = soup_request_http_finalize;
 
