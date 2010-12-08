@@ -54,8 +54,9 @@ soup_headers =			\
 	soup-auth-domain.h	\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
-	soup-content-decoder.h  \
-	soup-content-sniffer.h  \
+	soup-cache.h		\
+	soup-content-decoder.h	\
+	soup-content-sniffer.h	\
 	soup-cookie.h		\
 	soup-cookie-jar.h	\
 	soup-cookie-jar-text.h	\
@@ -73,6 +74,11 @@ soup_headers =			\
 	soup-portability.h	\
 	soup-proxy-resolver.h	\
 	soup-proxy-uri-resolver.h \
+	soup-request.h		\
+	soup-request-data.h	\
+	soup-request-file.h	\
+	soup-request-http.h	\
+	soup-requester.h	\
 	soup-server.h		\
 	soup-session.h		\
 	soup-session-async.h	\
@@ -117,6 +123,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-manager.c		\
 	soup-auth-manager-ntlm.h	\
 	soup-auth-manager-ntlm.c	\
+	soup-cache.c			\
+	soup-cache-private.h		\
 	soup-coding.h			\
 	soup-coding.c			\
 	soup-coding-gzip.h		\
@@ -129,8 +137,12 @@ libsoup_2_4_la_SOURCES =		\
 	soup-cookie-jar.c		\
 	soup-cookie-jar-text.c		\
 	soup-date.c			\
+	soup-directory-input-stream.h	\
+	soup-directory-input-stream.c	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-http-input-stream.h	\
+	soup-http-input-stream.c	\
 	soup-logger.c			\
 	soup-message.c			\
 	soup-message-body.c		\
@@ -151,6 +163,11 @@ libsoup_2_4_la_SOURCES =		\
 	soup-proxy-resolver-static.h	\
 	soup-proxy-resolver-static.c	\
 	soup-proxy-uri-resolver.c	\
+	soup-request.c			\
+	soup-request-data.c		\
+	soup-request-file.c		\
+	soup-request-http.c		\
+	soup-requester.c		\
 	soup-server.c			\
 	soup-session.c			\
 	soup-session-async.c		\
