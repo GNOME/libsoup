@@ -129,8 +129,6 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 		if (G_IS_TLS_CONNECTION (priv->conn))
 			g_signal_handlers_disconnect_by_func (priv->conn, soup_socket_peer_certificate_changed, sock);
 		g_clear_object (&priv->conn);
-		g_clear_object (&priv->istream);
-		g_clear_object (&priv->ostream);
 	}
 
 	if (priv->read_src) {
@@ -1323,6 +1321,22 @@ soup_socket_get_remote_address (SoupSocket *sock)
 	g_mutex_unlock (&priv->addrlock);
 
 	return priv->remote_addr;
+}
+
+GInputStream *
+soup_socket_get_input_stream (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->istream;
+}
+
+GOutputStream *
+soup_socket_get_output_stream (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->ostream;
 }
 
 

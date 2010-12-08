@@ -23,11 +23,20 @@ static void
 close_socket (SoupMessage *msg, gpointer user_data)
 {
 	SoupSocket *sock = user_data;
+	int sockfd;
 
-	soup_socket_disconnect (sock);
+	/* Actually calling soup_socket_disconnect() here would cause
+	 * us to leak memory, so just shutdown the socket instead.
+	 */
+	sockfd = soup_socket_get_fd (sock);
+#ifdef G_OS_WIN32
+	shutdown (sockfd, SD_SEND);
+#else
+	shutdown (sockfd, SHUT_WR);
+#endif
 
-	/* But also add the missing data to the message now, so
-	 * SoupServer can clean up after itself properly.
+	/* Then add the missing data to the message now, so SoupServer
+	 * can clean up after itself properly.
 	 */
 	soup_message_body_append (msg->response_body, SOUP_MEMORY_STATIC,
 				  "foo", 3);

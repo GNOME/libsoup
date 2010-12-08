@@ -95,6 +95,10 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-manager.c		\
 	soup-auth-manager-ntlm.h	\
 	soup-auth-manager-ntlm.c	\
+	soup-body-input-stream.h	\
+	soup-body-input-stream.c	\
+	soup-body-output-stream.h	\
+	soup-body-output-stream.c	\
 	soup-cache.c			\
 	soup-cache-private.h		\
 	soup-connection.h		\

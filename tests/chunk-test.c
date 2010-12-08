@@ -21,15 +21,6 @@ typedef struct {
 	gboolean streaming;
 } PutTestData;
 
-static SoupBuffer *
-error_chunk_allocator (SoupMessage *msg, gsize max_len, gpointer user_data)
-{
-	/* This should never be called, because there is no response body. */
-	debug_printf (1, "  error_chunk_allocator called!\n");
-	errors++;
-	return soup_buffer_new (SOUP_MEMORY_TAKE, g_malloc (100), 100);
-}
-
 static void
 write_next_chunk (SoupMessage *msg, gpointer user_data)
 {
@@ -191,7 +182,6 @@ do_request_test (SoupSession *session, SoupURI *base_uri, RequestTestFlags flags
 	msg = soup_message_new_from_uri ("PUT", uri);
 	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
 	soup_message_body_set_accumulate (msg->request_body, FALSE);
-	soup_message_set_chunk_allocator (msg, error_chunk_allocator, NULL, NULL);
 	if (flags & HACKY_STREAMING) {
 		g_signal_connect (msg, "wrote_chunk",
 				  G_CALLBACK (write_next_chunk_streaming_hack), &ptd);

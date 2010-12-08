@@ -1,2 +1,3 @@
+libsoup/soup-body-input-stream.c
 libsoup/soup-request.c
 libsoup/soup-requester.c
