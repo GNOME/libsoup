@@ -96,6 +96,7 @@ soup_directory_input_stream_read_next_file (SoupDirectoryInputStream  *stream,
 		}
 
 		buffer = soup_directory_input_stream_parse_info (stream, info);
+		g_object_unref (info);
 	} while (buffer == NULL);
 
 	return buffer;
