@@ -1252,7 +1252,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 {
 	char *key;
 	SoupCacheEntry *entry;
-	const char *cache_control;
+	const char *cache_control, *pragma;
 	gpointer value;
 	gboolean must_revalidate;
 	int max_age, max_stale, min_fresh;
@@ -1315,6 +1315,12 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	must_revalidate = FALSE;
 	max_age = max_stale = min_fresh = -1;
 
+	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
+	 */
+	pragma = soup_message_headers_get (msg->request_headers, "Pragma");
+	if (pragma && soup_header_contains (pragma, "no-cache"))
+		return SOUP_CACHE_RESPONSE_STALE;
+
 	cache_control = soup_message_headers_get (msg->request_headers, "Cache-Control");
 	if (cache_control) {
 		GHashTable *hash = soup_header_parse_param_list (cache_control);
@@ -1325,11 +1331,16 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 		}
 
 		if (g_hash_table_lookup_extended (hash, "no-cache", NULL, NULL)) {
-			entry->must_revalidate = TRUE;
+			soup_header_free_param_list (hash);
+			return SOUP_CACHE_RESPONSE_STALE;
 		}
 
 		if (g_hash_table_lookup_extended (hash, "max-age", NULL, &value)) {
 			max_age = (int)MIN (g_ascii_strtoll (value, NULL, 10), G_MAXINT32);
+			/* Forcing cache revalidaton
+			 */
+			if (!max_age)
+				entry->must_revalidate = TRUE;
 		}
 
 		/* max-stale can have no value set, we need to use _extended */
@@ -1346,7 +1357,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 		soup_header_free_param_list (hash);
 
-		if (max_age != -1) {
+		if (max_age > 0) {
 			guint current_age = soup_cache_entry_get_current_age (entry);
 
 			/* If we are over max-age and max-stale is not
