@@ -34,8 +34,10 @@ soup_ssl_get_client_credentials (const char *ca_file)
 
 		creds->ca_list = g_tls_certificate_list_new_from_file (ca_file, &error);
 		if (error) {
-			g_warning ("Could not set SSL credentials from '%s': %s",
-				   ca_file, error->message);
+			if (!g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE)) {
+				g_warning ("Could not set SSL credentials from '%s': %s",
+					   ca_file, error->message);
+			}
 			g_error_free (error);
 		}
 		creds->validation_flags = G_TLS_CERTIFICATE_VALIDATE_ALL;
