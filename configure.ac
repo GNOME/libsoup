@@ -230,7 +230,7 @@ save_LIBS="$LIBS"
 CFLAGS="$CFLAGS $GLIB_CFLAGS"
 LIBS="$LIBS $GLIB_LIBS"
 AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
-			       [return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
+			       [g_type_init (); return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
 	      [have_glib_networking=yes],
 	      [have_glib_networking=no],
 	      [have_glib_networking="unknown (cross-compiling)"])
