@@ -90,6 +90,9 @@ test_url (const char *url, int proxy, guint expected,
 	SoupURI *proxy_uri;
 	SoupMessage *msg;
 
+	if (!tls_available && g_str_has_prefix (url, "https:"))
+		return;
+
 	debug_printf (1, "  GET %s via %s%s\n", url, proxy_names[proxy],
 		      close ? " (with Connection: close)" : "");
 	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)

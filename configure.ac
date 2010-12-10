@@ -224,6 +224,23 @@ dnl ******************************
 AC_MSG_NOTICE([checking for programs needed for regression tests])
 MISSING_REGRESSION_TEST_PACKAGES=""
 
+AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
+save_CFLAGS="$CFLAGS"
+save_LIBS="$LIBS"
+CFLAGS="$CFLAGS $GLIB_CFLAGS"
+LIBS="$LIBS $GLIB_LIBS"
+AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
+			       [return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
+	      [have_glib_networking=yes],
+	      [have_glib_networking=no],
+	      [have_glib_networking="unknown (cross-compiling)"])
+CFLAGS="$save_CFLAGS"
+LIBS="$save_LIBS"
+AC_MSG_RESULT($have_glib_networking)
+if test "$have_glib_networking" = "no"; then
+        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES glib-networking"
+fi
+
 AC_ARG_WITH(apache-httpd,
 	    AS_HELP_STRING([--with-apache-httpd], [Path to apache httpd (for tests)]),
 	    APACHE_HTTPD="$withval",
@@ -330,9 +347,6 @@ else
 fi
 AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 
-if test -n "$MISSING_REGRESSION_TEST_PACKAGES"; then
-    AC_MSG_NOTICE([Some regression tests will not be run due to missing packages:$MISSING_REGRESSION_TEST_PACKAGES])
-fi
 AC_SUBST(MISSING_REGRESSION_TEST_PACKAGES)
 AM_CONDITIONAL(MISSING_REGRESSION_TEST_PACKAGES, test -n "$MISSING_REGRESSION_TEST_PACKAGES")
 
@@ -353,3 +367,10 @@ AC_CONFIG_FILES([
 	docs/reference/Makefile
 	])
 AC_OUTPUT
+
+if test -n "$MISSING_REGRESSION_TEST_PACKAGES"; then
+    echo ""
+    echo Some regression tests will not be run due to missing packages:
+    echo $MISSING_REGRESSION_TEST_PACKAGES
+    echo ""
+fi

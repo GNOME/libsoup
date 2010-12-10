@@ -18,7 +18,7 @@ static gboolean apache_running;
 static SoupLogger *logger;
 
 int debug_level, errors;
-gboolean expect_warning;
+gboolean expect_warning, tls_available;
 static int http_debug_level;
 
 static gboolean
@@ -79,6 +79,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	GOptionContext *opts;
 	char *name;
 	GError *error = NULL;
+	GTlsBackend *tls_backend;
 
 	g_thread_init (NULL);
 	g_type_init ();
@@ -108,6 +109,9 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	signal (SIGINT, quit);
 
 	g_log_set_default_handler (test_log_handler, NULL);
+
+	tls_backend = g_tls_backend_get_default ();
+	tls_available = g_tls_backend_supports_tls (tls_backend);
 }
 
 void
