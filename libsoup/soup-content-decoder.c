@@ -13,7 +13,6 @@
 #include <gio/gio.h>
 
 #include "soup-content-decoder.h"
-#include "soup-coding-gzip.h"
 #include "soup-enum-types.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -50,8 +49,10 @@
  **/
 
 struct _SoupContentDecoderPrivate {
-	GHashTable *codings;
+	GHashTable *decoders;
 };
+
+typedef GConverter * (*SoupContentDecoderCreator) (void);
 
 static void soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
@@ -67,6 +68,12 @@ G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT
 /* This is constant for now */
 #define ACCEPT_ENCODING_HEADER "gzip"
 
+static GConverter *
+gzip_decoder_creator (void)
+{
+	return (GConverter *)g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+}
+
 static void
 soup_content_decoder_init (SoupContentDecoder *decoder)
 {
@@ -74,12 +81,12 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 						     SOUP_TYPE_CONTENT_DECODER,
 						     SoupContentDecoderPrivate);
 
-	decoder->priv->codings = g_hash_table_new (g_str_hash, g_str_equal);
+	decoder->priv->decoders = g_hash_table_new (g_str_hash, g_str_equal);
 	/* Hardcoded for now */
-	g_hash_table_insert (decoder->priv->codings, "gzip",
-			     GSIZE_TO_POINTER (SOUP_TYPE_CODING_GZIP));
-	g_hash_table_insert (decoder->priv->codings, "x-gzip",
-			     GSIZE_TO_POINTER (SOUP_TYPE_CODING_GZIP));
+	g_hash_table_insert (decoder->priv->decoders, "gzip",
+			     gzip_decoder_creator);
+	g_hash_table_insert (decoder->priv->decoders, "x-gzip",
+			     gzip_decoder_creator);
 }
 
 static void
@@ -105,7 +112,7 @@ finalize (GObject *object)
 {
 	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (object);
 
-	g_hash_table_destroy (decoder->priv->codings);
+	g_hash_table_destroy (decoder->priv->decoders);
 
 	G_OBJECT_CLASS (soup_content_decoder_parent_class)->finalize (object);
 }
@@ -116,8 +123,8 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 	SoupMessagePrivate *msgpriv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	const char *header;
 	GSList *encodings, *e;
-	GType coding_type;
-	SoupCoding *coding;
+	SoupContentDecoderCreator converter_creator;
+	GConverter *converter;
 
 	header = soup_message_headers_get_list (msg->response_headers,
 						"Content-Encoding");
@@ -132,7 +139,7 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 		return;
 
 	for (e = encodings; e; e = e->next) {
-		if (!g_hash_table_lookup (decoder->priv->codings, e->data)) {
+		if (!g_hash_table_lookup (decoder->priv->decoders, e->data)) {
 			soup_header_free_list (encodings);
 			return;
 		}
@@ -147,17 +154,15 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 	}
 
 	for (e = encodings; e; e = e->next) {
-		coding_type = (GType) GPOINTER_TO_SIZE (g_hash_table_lookup (decoder->priv->codings, e->data));
-		coding = g_object_new (coding_type,
-				       SOUP_CODING_DIRECTION, SOUP_CODING_DECODE,
-				       NULL);
+		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);
+		converter = converter_creator ();
 
 		/* Content-Encoding lists the codings in the order
 		 * they were applied in, so we put decoders in reverse
 		 * order so the last-applied will be the first
 		 * decoded.
 		 */
-		msgpriv->decoders = g_slist_prepend (msgpriv->decoders, coding);
+		msgpriv->decoders = g_slist_prepend (msgpriv->decoders, converter);
 	}
 	soup_header_free_list (encodings);
 

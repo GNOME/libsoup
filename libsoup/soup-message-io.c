@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "soup-coding.h"
 #include "soup-connection.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -358,10 +357,56 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 }
 
 static SoupBuffer *
+content_decode_one (SoupBuffer *buf, GConverter *converter, GError **error)
+{
+	gsize outbuf_length, outbuf_used, outbuf_cur, input_used, input_cur;
+	char *outbuf;
+	GConverterResult result;
+
+	outbuf_length = MAX (buf->length * 2, 1024);
+	outbuf = g_malloc (outbuf_length);
+	outbuf_cur = input_cur = 0;
+
+	do {
+		result = g_converter_convert (
+			converter,
+			buf->data + input_cur, buf->length - input_cur,
+			outbuf + outbuf_cur, outbuf_length - outbuf_cur,
+			0, &input_used, &outbuf_used, error);
+		input_cur += input_used;
+		outbuf_cur += outbuf_used;
+
+		if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_NO_SPACE) ||
+		    (!*error && outbuf_cur == outbuf_length)) {
+			g_clear_error (error);
+			outbuf_length *= 2;
+			outbuf = g_realloc (outbuf, outbuf_length);
+		} else if (*error) {
+			/* GZlibDecompressor can't ever return
+			 * G_IO_ERROR_PARTIAL_INPUT unless we pass it
+			 * input_length = 0, which we don't. Other
+			 * converters might of course, so eventually
+			 * this code needs to be rewritten to deal
+			 * with that.
+			 */
+			g_free (outbuf);
+			return NULL;
+		}
+	} while (input_cur < buf->length && result != G_CONVERTER_FINISHED);
+
+	if (outbuf_cur)
+		return soup_buffer_new (SOUP_MEMORY_TAKE, outbuf, outbuf_cur);
+	else {
+		g_free (outbuf);
+		return NULL;
+	}
+}
+
+static SoupBuffer *
 content_decode (SoupMessage *msg, SoupBuffer *buf)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupCoding *decoder;
+	GConverter *decoder;
 	SoupBuffer *decoded;
 	GError *error = NULL;
 	GSList *d;
@@ -369,10 +414,9 @@ content_decode (SoupMessage *msg, SoupBuffer *buf)
 	for (d = priv->decoders; d; d = d->next) {
 		decoder = d->data;
 
-		decoded = soup_coding_apply (decoder, buf->data, buf->length,
-					     FALSE, &error);
+		decoded = content_decode_one (buf, decoder, &error);
 		if (error) {
-			if (g_error_matches (error, SOUP_CODING_ERROR, SOUP_CODING_ERROR_INTERNAL_ERROR))
+			if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_FAILED))
 				g_warning ("Content-Decoding error: %s\n", error->message);
 			g_error_free (error);
 

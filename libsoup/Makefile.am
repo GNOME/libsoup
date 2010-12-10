@@ -125,10 +125,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-manager-ntlm.c	\
 	soup-cache.c			\
 	soup-cache-private.h		\
-	soup-coding.h			\
-	soup-coding.c			\
-	soup-coding-gzip.h		\
-	soup-coding-gzip.c		\
 	soup-connection.h		\
 	soup-connection.c		\
 	soup-content-decoder.c		\

@@ -26,7 +26,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
-	const char *accept_encoding, *junk;
+	const char *accept_encoding, *junk, *noencode;
 	GSList *codings;
 	char *file = NULL, *contents;
 	gsize length;
@@ -50,6 +50,16 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		}
 	}
 	soup_header_free_list (codings);
+
+	noencode = soup_message_headers_get_one (msg->request_headers,
+						 "X-No-Encode");
+	if (noencode) {
+		/* Force it to send the ungzipped version, even though
+		 * we already added "Content-Encoding: gzip"
+		 */
+		g_free (file);
+		file = NULL;
+	}
 
 	if (!file)
 		file = g_strdup_printf (SRCDIR "/resources%s", path);
@@ -80,12 +90,13 @@ static void
 do_coding_test (void)
 {
 	SoupSession *session;
-	SoupMessage *msg, *msgz, *msgj;
+	SoupMessage *msg, *msgz, *msgj, *msgn;
 	SoupURI *uri;
 	const char *coding;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	uri = soup_uri_new_with_base (base_uri, "/mbox");
+
 
 	debug_printf (1, "GET /mbox, plain\n");
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -105,6 +116,7 @@ do_coding_test (void)
 		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
 		errors++;
 	}
+
 
 	debug_printf (1, "GET /mbox, Accept-Encoding: gzip\n");
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
@@ -137,6 +149,7 @@ do_coding_test (void)
 		debug_printf (1, "  Message data mismatch (plain/compressed)\n");
 		errors++;
 	}
+
 
 	debug_printf (1, "GET /mbox, Accept-Encoding: gzip, plus trailing junk\n");
 	msgj = soup_message_new_from_uri ("GET", uri);
@@ -171,9 +184,51 @@ do_coding_test (void)
 		errors++;
 	}
 
+
+	debug_printf (1, "GET /mbox, Accept-Encoding: gzip, with server error\n");
+	msgn = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgn->request_headers,
+				     "X-No-Encode", "true");
+	soup_session_send_message (session, msgn);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msgn->status_code)) {
+		debug_printf (1, "  Unexpected status %d %s\n",
+			      msgn->status_code, msgn->reason_phrase);
+		errors++;
+	}
+	coding = soup_message_headers_get_one (msgn->response_headers, "Content-Encoding");
+	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
+		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
+			      coding ? coding : "(none)");
+		errors++;
+	}
+	/* Since the content wasn't actually gzip-encoded, decoding it
+	 * should have failed and so the flag won't be set.
+	 */
+	if (soup_message_get_flags (msgn) & SOUP_MESSAGE_CONTENT_DECODED) {
+		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
+		errors++;
+	}
+	/* Failed content-decoding should have left the body untouched
+	 * from what the server sent... which happens to be the
+	 * uncompressed data.
+	 */
+	if (msg->response_body->length != msgn->response_body->length) {
+		debug_printf (1, "  Message length mismatch: %lu (plain) vs %lu (mis-encoded)\n",
+			      (gulong)msg->response_body->length,
+			      (gulong)msgn->response_body->length);
+		errors++;
+	} else if (memcmp (msg->response_body->data,
+			   msgn->response_body->data,
+			   msg->response_body->length) != 0) {
+		debug_printf (1, "  Message data mismatch (plain/misencoded)\n");
+		errors++;
+	}
+
+
 	g_object_unref (msg);
 	g_object_unref (msgz);
 	g_object_unref (msgj);
+	g_object_unref (msgn);
 	soup_uri_free (uri);
 
 	soup_test_session_abort_unref (session);
