@@ -330,7 +330,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+	if (!uri->host)
 		return NULL;
 
 	/* The logic here is a little weird, but the plan is that if
@@ -486,7 +486,7 @@ soup_cookie_jar_set_cookie (SoupCookieJar *jar, SoupURI *uri,
 	g_return_if_fail (uri != NULL);
 	g_return_if_fail (cookie != NULL);
 
-	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+	if (!uri->host)
 		return;
 
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
@@ -530,7 +530,7 @@ soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
 	g_return_if_fail (first_party != NULL);
 	g_return_if_fail (cookie != NULL);
 
-	if (!SOUP_URI_VALID_FOR_HTTP (uri))
+	if (!uri->host)
 		return;
 
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
