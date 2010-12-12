@@ -64,6 +64,9 @@ soup_request_data_check_uri (SoupRequest  *request,
 	return uri->host == NULL;
 }
 
+#define BASE64_INDICATOR     ";base64"
+#define BASE64_INDICATOR_LEN (sizeof (";base64") - 1)
+
 static GInputStream *
 soup_request_data_send (SoupRequest   *request,
 			GCancellable  *cancellable,
@@ -72,22 +75,23 @@ soup_request_data_send (SoupRequest   *request,
 	SoupRequestData *data = SOUP_REQUEST_DATA (request);
 	SoupURI *uri = soup_request_get_uri (request);
 	GInputStream *memstream;
-	const char *comma, *semi, *start, *end;
+	const char *comma, *start, *end;
 	gboolean base64 = FALSE;
 	char *uristr;
 
 	uristr = soup_uri_to_string (uri, FALSE);
-	comma = strchr (uristr, ',');
-	if (comma && comma != uristr) {
+	start = uristr + 5;
+	comma = strchr (start, ',');
+	if (comma && comma != start) {
 		/* Deal with MIME type / params */
-		semi = memchr (uristr, ';', comma - uristr);
-		end = semi ? semi : comma;
-
-		if (semi && !g_ascii_strncasecmp (semi, ";base64", MAX ((size_t) (comma - semi), strlen (";base64"))))
+		if (comma > start + BASE64_INDICATOR_LEN && !g_ascii_strncasecmp (comma - BASE64_INDICATOR_LEN, BASE64_INDICATOR, BASE64_INDICATOR_LEN)) {
+			end = comma - BASE64_INDICATOR_LEN;
 			base64 = TRUE;
+		} else
+			end = comma;
 
-		if (end != uristr) {
-			data->priv->content_type = g_strndup (uristr, end - uristr);
+		if (end != start) {
+			data->priv->content_type = g_strndup (start, end - start);
 			if (!base64)
 				soup_uri_decode (data->priv->content_type);
 		}
@@ -95,7 +99,8 @@ soup_request_data_send (SoupRequest   *request,
 
 	memstream = g_memory_input_stream_new ();
 
-	start = comma ? comma + 1 : uristr;
+	if (comma)
+		start = comma + 1;
 
 	if (*start) {
 		guchar *buf;
