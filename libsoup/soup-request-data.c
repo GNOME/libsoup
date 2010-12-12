@@ -153,7 +153,10 @@ soup_request_data_get_content_type (SoupRequest *request)
 {
 	SoupRequestData *data = SOUP_REQUEST_DATA (request);
 
-	return data->priv->content_type;
+	if (data->priv->content_type)
+		return data->priv->content_type;
+	else
+		return "text/plain;charset=US-ASCII";
 }
 
 static const char *data_schemes[] = { "data", NULL };
