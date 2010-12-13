@@ -92,8 +92,8 @@ void           soup_message_set_response        (SoupMessage       *msg,
 						 gsize              resp_length);
 
 typedef enum {
-	SOUP_HTTP_1_0 = 0,
-	SOUP_HTTP_1_1 = 1
+	SOUP_HTTP_1_0 = 0, /*< nick=http-1-0 >*/
+	SOUP_HTTP_1_1 = 1  /*< nick=http-1-1 >*/
 } SoupHTTPVersion;
 
 void             soup_message_set_http_version    (SoupMessage       *msg,
