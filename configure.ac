@@ -3,7 +3,7 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 AC_PREREQ(2.63)
-AC_INIT([libsoup],[2.33.1],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
+AC_INIT([libsoup],[2.33.4],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -72,9 +72,9 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-AM_PATH_GLIB_2_0(2.27.4,,,gobject gthread gio)
+AM_PATH_GLIB_2_0(2.27.5,,,gobject gthread gio)
 if test "$GLIB_LIBS" = ""; then
-   AC_MSG_ERROR(GLIB 2.27.4 or later is required to build libsoup)
+   AC_MSG_ERROR(GLIB 2.27.5 or later is required to build libsoup)
 fi
 GLIB_CFLAGS="$GLIB_CFLAGS -DG_DISABLE_SINGLE_INCLUDES"
 

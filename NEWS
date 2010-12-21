@@ -1,3 +1,51 @@
+Changes in libsoup from 2.32.2 to 2.33.4:
+
+	* SoupSocket now uses GSocketConnection and GTlsConnection
+	  internally rather than making socket calls directly and
+	  using GIOStream, and TLS is handled via glib's APIs rather
+	  than using gnutls directly.
+
+        * The gzip Content-Encoding handler is now implemented using
+          GZlibDecompressor
+
+	* As a result of the above two changes, libsoup no longer
+	  directly depends on gnutls, libgcrypt, or zlib, though it
+	  still indirectly depends on zlib via glib and libxml2. Also,
+	  although libsoup does not depend on glib-networking as a
+	  build-time dependency, some "make check" tests will be
+	  skipped if it is not installed.
+
+	* The SoupRequest/SoupCache code from WebKit has been
+          imported, but it is not yet recommended for general use, and
+          is not necessarily API stable. [#523100, Sergio Villar, with
+          the SoupRequest parts based on the Summer of Code work by
+          Gabriel Corvalan and the cache parts based on an earlier
+          patch by Xan Lopez]
+
+	* Added SoupMessage:tls-certificate and
+          SoupMessage:tls-errors, which give more information about
+	  the certificate used to authenticate a TLS connection.
+
+	* It is now possible to disable Basic or Digest auth in a
+          session by using soup_session_remove_feature_by_type() with
+          SOUP_TYPE_AUTH_BASIC or SOUP_TYPE_AUTH_DIGEST. Likewise, the
+          right way to enable NTLM support now is to call
+          soup_session_add_feature_by_type() with SOUP_TYPE_AUTH_NTLM;
+          SOUP_SESSION_USE_NTLM is now deprecated.
+
+	* Allow setting cookies on file:// URIs, since other browsers
+          do, and WebKit has a test for it. [#603825]
+
+	* .gir/.typelib files now include C header/library information
+          (needed by vala and some other bindings) [#635395, Evan
+          Nemerson]
+
+	* Added annotations on soup_message_headers_get_content_type()
+          [Lucas Rocha] and SoupHTTPVersion [John Palmieri]
+
+	* Fixed a Set-Cookie processing leak [#636741, Jonathan
+          Jongsma]
+
 Changes in libsoup from 2.32.1 to 2.32.2:
 
 	* Fixed a regression in 2.32.0 that caused evolution-exchange
