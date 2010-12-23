@@ -15,6 +15,7 @@
 #include "soup-body-input-stream.h"
 #include "soup-body-output-stream.h"
 #include "soup-connection.h"
+#include "soup-converter-wrapper.h"
 #include "soup-filter-input-stream.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
@@ -309,117 +310,29 @@ read_headers (SoupMessage *msg, GCancellable *cancellable, GError **error)
 	return TRUE;
 }
 
-static SoupBuffer *
-content_decode_one (SoupBuffer *buf, GConverter *converter, GError **error)
-{
-	gsize outbuf_length, outbuf_used, outbuf_cur, input_used, input_cur;
-	char *outbuf;
-	GConverterResult result;
-	gboolean dummy_zlib_header_used = FALSE;
-
-	outbuf_length = MAX (buf->length * 2, 1024);
-	outbuf = g_malloc (outbuf_length);
-	outbuf_cur = input_cur = 0;
-
-	do {
-		result = g_converter_convert (
-			converter,
-			buf->data + input_cur, buf->length - input_cur,
-			outbuf + outbuf_cur, outbuf_length - outbuf_cur,
-			0, &input_used, &outbuf_used, error);
-		input_cur += input_used;
-		outbuf_cur += outbuf_used;
-
-		if (g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_NO_SPACE) ||
-		    (!*error && outbuf_cur == outbuf_length)) {
-			g_clear_error (error);
-			outbuf_length *= 2;
-			outbuf = g_realloc (outbuf, outbuf_length);
-		} else if (input_cur == 0 &&
-			   !dummy_zlib_header_used &&
-			   G_IS_ZLIB_DECOMPRESSOR (converter) &&
-			   g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA)) {
-
-			GZlibCompressorFormat format;
-			g_object_get (G_OBJECT (converter), "format", &format, NULL);
-
-			if (format == G_ZLIB_COMPRESSOR_FORMAT_ZLIB) {
-				/* Some servers (especially Apache with mod_deflate)
-				 * return RAW compressed data without the zlib headers
-				 * when the client claims to support deflate. For
-				 * those cases use a dummy header (stolen from
-				 * Mozilla's nsHTTPCompressConv.cpp) and try to
-				 * continue uncompressing data.
-				 */
-				static char dummy_zlib_header[2] = { 0x78, 0x9C };
-
-				g_converter_reset (converter);
-				result = g_converter_convert (converter,
-							      dummy_zlib_header, sizeof(dummy_zlib_header),
-							      outbuf + outbuf_cur, outbuf_length - outbuf_cur,
-							      0, &input_used, &outbuf_used, NULL);
-				dummy_zlib_header_used = TRUE;
-				if (result == G_CONVERTER_CONVERTED) {
-					g_clear_error (error);
-					continue;
-				}
-			}
-
-			g_free (outbuf);
-			return NULL;
-
-		} else if (*error) {
-			/* GZlibDecompressor can't ever return
-			 * G_IO_ERROR_PARTIAL_INPUT unless we pass it
-			 * input_length = 0, which we don't. Other
-			 * converters might of course, so eventually
-			 * this code needs to be rewritten to deal
-			 * with that.
-			 */
-			g_free (outbuf);
-			return NULL;
-		}
-	} while (input_cur < buf->length && result != G_CONVERTER_FINISHED);
-
-	if (outbuf_cur)
-		return soup_buffer_new (SOUP_MEMORY_TAKE, outbuf, outbuf_cur);
-	else {
-		g_free (outbuf);
-		return NULL;
-	}
-}
-
-static SoupBuffer *
-content_decode (SoupMessage *msg, SoupBuffer *buf)
+static void
+setup_body_istream (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	GConverter *decoder;
-	SoupBuffer *decoded;
-	GError *error = NULL;
+	SoupMessageIOData *io = priv->io_data;
+	GConverter *decoder, *wrapper;
+	GInputStream *filter;
 	GSList *d;
+
+	io->body_istream = soup_body_input_stream_new (io->istream,
+						       io->read_encoding,
+						       io->read_length);
 
 	for (d = priv->decoders; d; d = d->next) {
 		decoder = d->data;
-
-		decoded = content_decode_one (buf, decoder, &error);
-		if (error) {
-			if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_FAILED))
-				g_warning ("Content-Decoding error: %s\n", error->message);
-			g_error_free (error);
-
-			soup_message_set_flags (msg, priv->msg_flags & ~SOUP_MESSAGE_CONTENT_DECODED);
-			break;
-		}
-		if (buf)
-			soup_buffer_free (buf);
-
-		if (decoded)
-			buf = decoded;
-		else
-			return NULL;
+		wrapper = soup_converter_wrapper_new (decoder, msg);
+		filter = g_object_new (G_TYPE_CONVERTER_INPUT_STREAM,
+				       "base-stream", io->body_istream,
+				       "converter", wrapper,
+				       NULL);
+		g_object_unref (io->body_istream);
+		io->body_istream = filter;
 	}
-
-	return buf;
 }
 
 /*
@@ -742,14 +655,14 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 		} else
 			io->read_length = -1;
 
-		io->body_istream = soup_body_input_stream_new (SOUP_FILTER_INPUT_STREAM (io->istream),
-							       io->read_encoding,
-							       io->read_length);
 		soup_message_got_headers (msg);
 		break;
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
+		if (!io->body_istream)
+			setup_body_istream (msg);
+
 		if (!io_handle_sniffing (msg, FALSE))
 			return FALSE;
 
@@ -774,10 +687,6 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 						cancellable, error);
 		if (nread > 0) {
 			buffer->length = nread;
-			buffer = content_decode (msg, buffer);
-			if (!buffer)
-				break;
-
 			soup_message_body_got_chunk (io->read_body, buffer);
 
 			if (io->need_content_sniffed) {

@@ -184,8 +184,6 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 		msgpriv->decoders = g_slist_prepend (msgpriv->decoders, converter);
 	}
 	soup_header_free_list (encodings);
-
-	soup_message_set_flags (msg, msgpriv->msg_flags | SOUP_MESSAGE_CONTENT_DECODED);
 }
 
 static void
