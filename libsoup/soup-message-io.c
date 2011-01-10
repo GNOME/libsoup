@@ -67,7 +67,7 @@ typedef struct {
 	goffset               write_length;
 	goffset               written;
 
-	guint read_tag, write_tag, err_tag, tls_signal_id;
+	guint read_tag, write_tag, tls_signal_id;
 	GSource *unpause_source;
 
 	SoupMessageGetHeadersFn   get_headers_cb;
@@ -137,10 +137,6 @@ soup_message_io_stop (SoupMessage *msg)
 		g_signal_handler_disconnect (io->sock, io->write_tag);
 		io->write_tag = 0;
 	}
-	if (io->err_tag) {
-		g_signal_handler_disconnect (io->sock, io->err_tag);
-		io->err_tag = 0;
-	}
 
 	if (io->unpause_source) {
 		g_source_destroy (io->unpause_source);
@@ -205,22 +201,6 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 		g_error_free (error);
 
 	soup_message_io_finished (msg);
-}
-
-static void
-io_disconnected (SoupSocket *sock, SoupMessage *msg)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-
-	/* Closing the connection to signify EOF is sometimes ok */
-	if (io->read_state == SOUP_MESSAGE_IO_STATE_BODY && io->read_eof_ok) {
-		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
-		io_read (sock, msg);
-		return;
-	}
-
-	io_error (sock, msg, NULL);
 }
 
 static gboolean
@@ -1112,8 +1092,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 					  G_CALLBACK (io_read), msg);
 	io->write_tag = g_signal_connect (io->sock, "writable",
 					  G_CALLBACK (io_write), msg);
-	io->err_tag   = g_signal_connect (io->sock, "disconnected",
-					  G_CALLBACK (io_disconnected), msg);
 
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
