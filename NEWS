@@ -1,3 +1,9 @@
+Changes in libsoup from 2.33.4 to 2.33.5:
+
+	* Fixed certain cases of soup_session_cancel_message() with
+	  SoupSessionSync that could previously cause warnings or
+	  crashes. [#637741]
+
 Changes in libsoup from 2.32.2 to 2.33.4:
 
 	* SoupSocket now uses GSocketConnection and GTlsConnection
