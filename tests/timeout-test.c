@@ -137,6 +137,15 @@ do_timeout_tests (char *fast_uri, char *slow_uri)
 	soup_test_session_abort_unref (timeout_session);
 }
 
+static gboolean
+timeout_finish_message (gpointer msg)
+{
+	SoupServer *server = g_object_get_data (G_OBJECT (msg), "server");
+
+	soup_server_unpause_message (server, msg);
+	return FALSE;
+}
+
 static void
 server_handler (SoupServer        *server,
 		SoupMessage       *msg, 
@@ -145,15 +154,17 @@ server_handler (SoupServer        *server,
 		SoupClientContext *client,
 		gpointer           user_data)
 {
-	if (!strcmp (path, "/slow")) {
-		/* Sleep 1.1 seconds. */
-		g_usleep (1100000);
-	}
-
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_set_response (msg, "text/plain",
 				   SOUP_MEMORY_STATIC,
 				   "ok\r\n", 4);
+
+	if (!strcmp (path, "/slow")) {
+		soup_server_pause_message (server, msg);
+		g_object_set_data (G_OBJECT (msg), "server", server);
+		soup_add_timeout (soup_server_get_async_context (server),
+				  1100, timeout_finish_message, msg);
+	}
 }
 
 int

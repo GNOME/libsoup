@@ -96,6 +96,15 @@ setup_timeout_persistent (SoupServer *server, SoupSocket *sock)
 			  G_CALLBACK (timeout_request_started), NULL);
 }
 
+static gboolean
+timeout_finish_message (gpointer msg)
+{
+	SoupServer *server = g_object_get_data (G_OBJECT (msg), "server");
+
+	soup_server_unpause_message (server, msg);
+	return FALSE;
+}
+
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -176,6 +185,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 		sock = soup_client_context_get_socket (context);
 		setup_timeout_persistent (server, sock);
+	}
+
+	if (!strcmp (path, "/slow")) {
+		soup_server_pause_message (server, msg);
+		g_object_set_data (G_OBJECT (msg), "server", server);
+		soup_add_timeout (soup_server_get_async_context (server),
+				  1000, timeout_finish_message, msg);
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
@@ -917,6 +933,79 @@ do_max_conns_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static gboolean
+cancel_message_timeout (gpointer msg)
+{
+	SoupSession *session = g_object_get_data (G_OBJECT (msg), "session");
+
+	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+	g_object_unref (msg);
+	g_object_unref (session);
+	return FALSE;
+}
+
+static gpointer
+cancel_message_thread (gpointer msg)
+{
+	SoupSession *session = g_object_get_data (G_OBJECT (msg), "session");
+
+	g_usleep (100000); /* .1s */
+	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+	g_object_unref (msg);
+	g_object_unref (session);
+	return NULL;
+}
+
+static void
+do_cancel_while_reading_test_for_session (SoupSession *session)
+{
+	SoupMessage *msg;
+	GThread *thread = NULL;
+	SoupURI *uri;
+
+	uri = soup_uri_new_with_base (base_uri, "/slow");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	g_object_set_data (G_OBJECT (msg), "session", session);
+	g_object_ref (msg);
+	g_object_ref (session);
+	if (SOUP_IS_SESSION_ASYNC (session))
+		g_timeout_add (100, cancel_message_timeout, msg);
+	else
+		thread = g_thread_create (cancel_message_thread, msg, TRUE, NULL);
+
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != SOUP_STATUS_CANCELLED) {
+		debug_printf (1, "      FAILED: %d %s (expected Cancelled)\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	if (thread)
+		g_thread_join (thread);
+}
+
+static void
+do_cancel_while_reading_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nCancelling message while reading response\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_cancel_while_reading_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_cancel_while_reading_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -948,6 +1037,7 @@ main (int argc, char **argv)
 	do_accept_language_test ();
 	do_persistent_connection_timeout_test ();
 	do_max_conns_test ();
+	do_cancel_while_reading_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

@@ -1633,14 +1633,8 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
 
-	if (item->cancellable)
-		g_cancellable_cancel (item->cancellable);
-
 	soup_message_set_status (msg, status_code);
-	if (soup_message_io_in_progress (msg))
-		soup_message_io_finished (msg);
-	else
-		item->state = SOUP_MESSAGE_FINISHING;
+	g_cancellable_cancel (item->cancellable);
 
 	soup_message_queue_item_unref (item);
 }

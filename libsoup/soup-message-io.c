@@ -47,6 +47,7 @@ typedef struct {
 	SoupSocket           *sock;
 	SoupMessageQueueItem *item;
 	SoupMessageIOMode     mode;
+	GCancellable         *cancellable;
 
 	SoupMessageIOState    read_state;
 	SoupEncoding          read_encoding;
@@ -284,7 +285,7 @@ read_metadata (SoupMessage *msg, gboolean to_blank)
 		status = soup_socket_read_until (io->sock, read_buf,
 						 sizeof (read_buf),
 						 "\n", 1, &nread, &got_lf,
-						 NULL, &error);
+						 io->cancellable, &error);
 		switch (status) {
 		case SOUP_SOCKET_OK:
 			g_byte_array_append (io->read_meta_buf, read_buf, nread);
@@ -461,7 +462,7 @@ read_body_chunk (SoupMessage *msg)
 
 		status = soup_socket_read (io->sock,
 					   (guchar *)buffer->data, len,
-					   &nread, NULL, &error);
+					   &nread, io->cancellable, &error);
 
 		if (status == SOUP_SOCKET_OK && nread) {
 			buffer->length = nread;
@@ -531,7 +532,8 @@ write_data (SoupMessage *msg, const char *data, guint len, gboolean body)
 		status = soup_socket_write (io->sock,
 					    data + io->written,
 					    len - io->written,
-					    &nwrote, NULL, &error);
+					    &nwrote,
+					    io->cancellable, &error);
 		switch (status) {
 		case SOUP_SOCKET_EOF:
 		case SOUP_SOCKET_ERROR:
@@ -1124,6 +1126,7 @@ soup_message_io_client (SoupMessageQueueItem *item,
 
 	io->item = item;
 	soup_message_queue_item_ref (item);
+	io->cancellable = item->cancellable;
 
 	io->read_body       = item->msg->response_body;
 	io->write_body      = item->msg->request_body;

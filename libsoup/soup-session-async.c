@@ -501,14 +501,22 @@ cancel_message (SoupSession *session, SoupMessage *msg,
 
 	queue = soup_session_get_queue (session);
 	item = soup_message_queue_lookup (queue, msg);
-	if (!item || item->state != SOUP_MESSAGE_FINISHING)
+	if (!item)
 		return;
 
 	/* Force it to finish immediately, so that
 	 * soup_session_abort (session); g_object_unref (session);
-	 * will work.
+	 * will work. (The soup_session_cancel_message() docs
+	 * point out that the callback will be invoked from
+	 * within the cancel call.)
 	 */
-	process_queue_item (item, &dummy, FALSE);
+	if (soup_message_io_in_progress (msg))
+		soup_message_io_finished (msg);
+	else if (item->state != SOUP_MESSAGE_FINISHED)
+		item->state = SOUP_MESSAGE_FINISHING;
+
+	if (item->state != SOUP_MESSAGE_FINISHED)
+		process_queue_item (item, &dummy, FALSE);
 
 	soup_message_queue_item_unref (item);
 }
