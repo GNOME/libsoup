@@ -409,7 +409,7 @@ run_queue (SoupSessionAsync *sa)
 
  try_again:
 	for (item = soup_message_queue_first (queue);
-	     item && !should_prune;
+	     item;
 	     item = soup_message_queue_next (queue, item)) {
 		msg = item->msg;
 
@@ -417,8 +417,6 @@ run_queue (SoupSessionAsync *sa)
 		if (msg->method != SOUP_METHOD_CONNECT)
 			process_queue_item (item, &should_prune, TRUE);
 	}
-	if (item)
-		soup_message_queue_item_unref (item);
 
 	if (try_pruning && should_prune) {
 		/* There is at least one message in the queue that
