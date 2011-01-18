@@ -228,6 +228,36 @@ do_md5_tests (const char *uri)
 	g_free (md5);
 }
 
+
+static void
+do_form_decode_test (void)
+{
+	GHashTable *table;
+	const gchar *value;
+	gchar *tmp;
+
+	debug_printf (1, "\nDecode tests\n");
+
+	/*  Test that the code handles multiple values with the same key.  */
+	table = soup_form_decode ("foo=first&foo=second&foo=third");
+
+	/*  Allocate some memory. We do this to test for a bug in
+	 *  soup_form_decode() that resulted in values from the hash
+	 *  table pointing to memory that is already released.
+	 */
+	tmp = g_strdup ("other");
+
+	value = g_hash_table_lookup (table, "foo");
+	if (g_strcmp0 (value, "third") != 0) {
+		debug_printf (1, "  ERROR: expected '%s', got '%s'\n",
+			      "third", value ? value : "(null)");
+		errors++;
+	}
+
+	g_free (tmp);
+	g_hash_table_destroy (table);
+}
+
 static void
 hello_callback (SoupServer *server, SoupMessage *msg,
 		const char *path, GHashTable *query,
@@ -425,6 +455,8 @@ main (int argc, char **argv)
 		uri_str = g_strdup_printf ("http://127.0.0.1:%u/md5", port);
 		do_md5_tests (uri_str);
 		g_free (uri_str);
+
+		do_form_decode_test ();
 	} else {
 		printf ("Listening on port %d\n", port);
 		g_main_loop_run (loop);
