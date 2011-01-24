@@ -66,6 +66,8 @@ typedef struct {
 	guint        num_conns;
 
 	guint        num_messages;
+
+	SoupHTTPVersion http_version;
 } SoupSessionHost;
 
 typedef struct {
@@ -1033,6 +1035,7 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	host = g_slice_new0 (SoupSessionHost);
 	host->uri = soup_uri_copy_host (uri);
 	host->addr = soup_address_new (host->uri->host, host->uri->port);
+	host->http_version = SOUP_HTTP_1_1;
 
 	return host;
 }
@@ -1185,6 +1188,8 @@ soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupHTTPVersion http_version;
+	SoupSessionHost *host;
 
 	if (priv->user_agent) {
 		soup_message_headers_replace (item->msg->request_headers,
@@ -1197,6 +1202,28 @@ soup_session_send_queue_item (SoupSession *session,
 		soup_message_headers_append (item->msg->request_headers,
 					     "Accept-Language",
 					     priv->accept_language);
+	}
+
+	g_mutex_lock (priv->host_lock);
+	host = get_host_for_message (session, item->msg);
+	http_version = host->http_version;
+	g_mutex_unlock (priv->host_lock);
+
+	/* Force keep alive connections for HTTP 1.0. Performance will
+	 * improve when issuing multiple requests to the same host in
+	 * a short period of time, as we wouldn't need to establish
+	 * new connections. Keep alive is implicit for HTTP 1.1.
+	 */
+	if (http_version == SOUP_HTTP_1_0) {
+		const gchar* conn_header;
+
+		conn_header = soup_message_headers_get_list (item->msg->request_headers, "Connection");
+		if (!conn_header ||
+		    (!soup_header_contains (conn_header, "Keep-Alive") &&
+		     !soup_header_contains (conn_header, "close")))
+
+			soup_message_headers_append (item->msg->request_headers,
+						     "Connection", "Keep-Alive");
 	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
@@ -1479,6 +1506,20 @@ soup_session_set_item_status (SoupSession          *session,
 }
 
 static void
+got_headers_cb (SoupMessage *msg, gpointer data)
+{
+	SoupMessageQueueItem *item = data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (item->session);
+	SoupSessionHost *host;
+
+	/* Update the HTTP version to use for messages to this host */
+	g_mutex_lock (priv->host_lock);
+	host = get_host_for_message (item->session, SOUP_MESSAGE (msg));
+	host->http_version = soup_message_get_http_version (msg);
+	g_mutex_unlock (priv->host_lock);
+}
+
+static void
 queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupSessionCallback callback, gpointer user_data)
 {
@@ -1498,6 +1539,9 @@ queue_message (SoupSession *session, SoupMessage *msg,
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), item);
 	}
+
+	/* Used to keep track of the HTTP version used by the host */
+	g_signal_connect (msg, "got-headers", G_CALLBACK (got_headers_cb), item);
 
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 }
