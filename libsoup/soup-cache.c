@@ -1254,7 +1254,6 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	SoupCacheEntry *entry;
 	const char *cache_control, *pragma;
 	gpointer value;
-	gboolean must_revalidate;
 	int max_age, max_stale, min_fresh;
 	GList *lru_item, *item;
 
@@ -1312,7 +1311,6 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	 * directives that would prevent its use.
 	 */
 
-	must_revalidate = FALSE;
 	max_age = max_stale = min_fresh = -1;
 
 	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
@@ -1340,7 +1338,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 			/* Forcing cache revalidaton
 			 */
 			if (!max_age)
-				entry->must_revalidate = TRUE;
+				return SOUP_CACHE_RESPONSE_NEEDS_VALIDATION;
 		}
 
 		/* max-stale can have no value set, we need to use _extended */
