@@ -171,6 +171,7 @@ typedef struct {
 	SoupRequestHTTP *http;
 	GAsyncReadyCallback callback;
 	gpointer user_data;
+	SoupHTTPInputStream *httpstream;
 } SendAsyncHelper;
 
 static void soup_request_http_send_async (SoupRequest          *request,
@@ -182,39 +183,32 @@ static gboolean
 send_async_cb (gpointer data)
 {
 	GSimpleAsyncResult *simple;
-	SoupHTTPInputStream *httpstream;
 	SoupSession *session;
-	SoupCache *cache;
 	SendAsyncHelper *helper = (SendAsyncHelper *)data;
 
 	session = soup_request_get_session (SOUP_REQUEST (helper->http));
-	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
+	simple = g_simple_async_result_new (G_OBJECT (helper->http),
+					    helper->callback, helper->user_data,
+					    soup_request_http_send_async);
 
-	httpstream = (SoupHTTPInputStream *)soup_cache_send_response (cache, SOUP_MESSAGE (helper->http->priv->msg));
+	g_simple_async_result_set_op_res_gpointer (simple, helper->httpstream, g_object_unref);
 
-	if (httpstream) {
-		simple = g_simple_async_result_new (G_OBJECT (helper->http),
-						    helper->callback, helper->user_data,
-						    soup_request_http_send_async);
-		g_simple_async_result_set_op_res_gpointer (simple, httpstream, g_object_unref);
+	/* Update message status */
+	soup_message_set_status (helper->http->priv->msg, SOUP_STATUS_OK);
 
-		/* Update message status */
-		soup_message_set_status (helper->http->priv->msg, SOUP_STATUS_OK);
+	/* Issue signals  */
+	soup_message_got_headers (helper->http->priv->msg);
 
-		/* Issue signals  */
-		soup_message_got_headers (helper->http->priv->msg);
-
-		if (soup_session_get_feature_for_message (session, SOUP_TYPE_CONTENT_SNIFFER, helper->http->priv->msg)) {
-			const char *content_type = soup_message_headers_get_content_type (helper->http->priv->msg->response_headers, NULL);
-			soup_message_content_sniffed (helper->http->priv->msg, content_type, NULL);
-		}
-
-		g_simple_async_result_complete (simple);
-
-		soup_message_finished (helper->http->priv->msg);
-
-		g_object_unref (simple);
+	if (soup_session_get_feature_for_message (session, SOUP_TYPE_CONTENT_SNIFFER, helper->http->priv->msg)) {
+		const char *content_type = soup_message_headers_get_content_type (helper->http->priv->msg->response_headers, NULL);
+		soup_message_content_sniffed (helper->http->priv->msg, content_type, NULL);
 	}
+
+	g_simple_async_result_complete (simple);
+
+	soup_message_finished (helper->http->priv->msg);
+
+	g_object_unref (simple);
 
 	g_object_unref (helper->http);
 	g_slice_free (SendAsyncHelper, helper);
@@ -242,17 +236,28 @@ soup_request_http_send_async (SoupRequest          *request,
 
 		response = soup_cache_has_response (cache, http->priv->msg);
 		if (response == SOUP_CACHE_RESPONSE_FRESH) {
-			/* Do return the stream asynchronously as in
-			   the other cases. It's not enough to use
-			   g_simple_async_result_complete_in_idle as
-			   the signals must be also emitted
-			   asynchronously */
-			SendAsyncHelper *helper = g_slice_new (SendAsyncHelper);
-			helper->http = g_object_ref (http);
-			helper->callback = callback;
-			helper->user_data = user_data;
-			g_timeout_add (0, send_async_cb, helper);
-			return;
+			SoupHTTPInputStream *httpstream;
+
+			httpstream = (SoupHTTPInputStream *)
+				soup_cache_send_response (cache, http->priv->msg);
+
+			/* Cached resource file could have been deleted outside
+			 */
+			if (httpstream) {
+				/* Do return the stream asynchronously as in
+				 * the other cases. It's not enough to use
+				 * g_simple_async_result_complete_in_idle as
+				 * the signals must be also emitted
+				 * asynchronously
+				 */
+				SendAsyncHelper *helper = g_slice_new (SendAsyncHelper);
+				helper->http = g_object_ref (http);
+				helper->callback = callback;
+				helper->user_data = user_data;
+				helper->httpstream = httpstream;
+				g_timeout_add (0, send_async_cb, helper);
+				return;
+			}
 		} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
 			SoupMessage *conditional_msg;
 			ConditionalHelper *helper;
