@@ -91,9 +91,14 @@ soup_request_data_send (SoupRequest   *request,
 			end = comma;
 
 		if (end != start) {
-			data->priv->content_type = g_strndup (start, end - start);
-			if (!base64)
-				soup_uri_decode (data->priv->content_type);
+			char *encoded_content_type = g_strndup (start, end - start);
+
+			if (base64)
+				data->priv->content_type = encoded_content_type;
+			else {
+				data->priv->content_type = soup_uri_decode (encoded_content_type);
+				g_free (encoded_content_type);
+			}
 		}
 	}
 
@@ -119,9 +124,8 @@ soup_request_data_send (SoupRequest   *request,
 				goto fail;
 			}
 		} else {
-			soup_uri_decode (start);
-			data->priv->content_length = strlen (start);
-			buf = g_memdup (start, data->priv->content_length);
+			buf = (guchar *) soup_uri_decode (start);
+			data->priv->content_length = strlen ((const char *) buf);
 		}
 
 		g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (memstream),
