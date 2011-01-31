@@ -1,3 +1,23 @@
+Changes in libsoup from 2.33.5 to 2.33.6:
+
+	* Made SoupSessionAsync do idle-connection cleanup more
+          sanely, resulting in faster load times for pages with lots
+          of subresources. [#639768, Sergio Villar Senin]
+
+	* Fixed soup_form_decode()'s behavior (and by extension,
+          SoupServer query string handling) with datasets that contain
+          multiple values for the same key, and added a test case.
+          [#639783, Sven Neumann]
+
+	* Fixed warnings pointed out by gcc 4.6, including a bug in
+          SoupCache that would cause unnecessary revalidations
+          [#640556].
+
+	* Belated copied a fix from the WebKit copy of soup-cache.c
+          into ours, and fixed a bug in the local copy of
+          soup-request-data.c [#641022, Sergio Villar Senin], in
+          preparation for making WebKit use the libsoup versions.
+
 Changes in libsoup from 2.33.4 to 2.33.5:
 
 	* Fixed certain cases of soup_session_cancel_message() with
