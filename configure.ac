@@ -237,7 +237,7 @@ AC_ARG_ENABLE(tls-check,
 if test "$enable_tls_check" != "no" -a "$have_glib_networking" = "no"; then
 	AC_MSG_ERROR([libsoup requires glib-networking for TLS support.
 
-If you are building a packge, you can pass --disable-tls-check to
+If you are building a package, you can pass --disable-tls-check to
 allow building libsoup anyway (since glib-networking is not actually
 required at compile time), but you should be sure to add a runtime
 dependency on it.])
