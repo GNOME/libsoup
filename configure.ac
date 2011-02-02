@@ -218,12 +218,6 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 	done
 fi
 
-dnl ******************************
-dnl *** Stuff for regression tests
-dnl ******************************
-AC_MSG_NOTICE([checking for programs needed for regression tests])
-MISSING_REGRESSION_TEST_PACKAGES=""
-
 AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
 save_CFLAGS="$CFLAGS"
 save_LIBS="$LIBS"
@@ -237,6 +231,24 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
 CFLAGS="$save_CFLAGS"
 LIBS="$save_LIBS"
 AC_MSG_RESULT($have_glib_networking)
+
+AC_ARG_ENABLE(tls-check,
+	      AS_HELP_STRING([--disable-tls-check], [Don't error out if glib-networking is unavailable]))
+if test "$enable_tls_check" != "no" -a "$have_glib_networking" = "no"; then
+	AC_MSG_ERROR([libsoup requires glib-networking for TLS support.
+
+If you are building a packge, you can pass --disable-tls-check to
+allow building libsoup anyway (since glib-networking is not actually
+required at compile time), but you should be sure to add a runtime
+dependency on it.])
+fi
+
+dnl ******************************
+dnl *** Stuff for regression tests
+dnl ******************************
+AC_MSG_NOTICE([checking for programs needed for regression tests])
+MISSING_REGRESSION_TEST_PACKAGES=""
+
 if test "$have_glib_networking" = "no"; then
         MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES glib-networking"
 fi

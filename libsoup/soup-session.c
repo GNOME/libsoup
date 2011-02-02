@@ -1461,10 +1461,20 @@ soup_session_set_item_status (SoupSession          *session,
 			g_free (msg);
 			break;
 		}
-		/* else fall through */
+		soup_message_set_status (item->msg, status_code);
+		break;
+
+	case SOUP_STATUS_SSL_FAILED:
+		if (!g_tls_backend_supports_tls (g_tls_backend_get_default ())) {
+			soup_message_set_status_full (item->msg, status_code,
+						      "TLS/SSL support not available; install glib-networking");
+		} else
+			soup_message_set_status (item->msg, status_code);
+		break;
 
 	default:
 		soup_message_set_status (item->msg, status_code);
+		break;
 	}
 }
 
