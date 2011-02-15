@@ -76,6 +76,8 @@ get_request_headers (SoupMessage *req, GString *header,
 
 	if (strchr (uri->host, ':'))
 		uri_host = g_strdup_printf ("[%s]", uri->host);
+	else if (g_hostname_is_non_ascii (uri->host))
+		uri_host = g_hostname_to_ascii (uri->host);
 	else
 		uri_host = uri->host;
 
