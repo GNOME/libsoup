@@ -113,7 +113,7 @@ static SoupCacheability
 get_cacheability (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheability cacheability;
-	const char *cache_control;
+	const char *cache_control, *content_type;
 
 	/* 1. The request method must be cacheable */
 	if (msg->method == SOUP_METHOD_GET)
@@ -124,6 +124,10 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 		return SOUP_CACHE_UNCACHEABLE;
 	else
 		return (SOUP_CACHE_UNCACHEABLE | SOUP_CACHE_INVALIDATES);
+
+	content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+	if (content_type && !g_ascii_strcasecmp (content_type, "multipart/x-mixed-replace"))
+		return SOUP_CACHE_UNCACHEABLE;
 
 	cache_control = soup_message_headers_get (msg->response_headers, "Cache-Control");
 	if (cache_control) {
