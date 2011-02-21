@@ -73,6 +73,7 @@ soup_headers =			\
 	soup-password-manager.h	\
 	soup-portability.h	\
 	soup-proxy-resolver.h	\
+	soup-proxy-resolver-default.h	\
 	soup-proxy-uri-resolver.h \
 	soup-request.h		\
 	soup-request-data.h	\
@@ -156,6 +157,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\
 	soup-proxy-resolver.c		\
+	soup-proxy-resolver-default.c	\
 	soup-proxy-resolver-static.h	\
 	soup-proxy-resolver-static.c	\
 	soup-proxy-uri-resolver.c	\
