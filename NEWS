@@ -1,3 +1,22 @@
+Changes in libsoup from 2.33.6 to 2.33.90:
+
+	* Attempted to make libsoup's dependency on glib-networking
+          (for TLS support) more explicit, by requiring that
+          glib-networking be present at compile time unless the
+          builder explicitly passes "--disable-tls-check", and noting
+          that packagers should give libsoup a runtime dependency on
+          glib-networking.
+
+	* Fixed a bug in talking to servers with virtual hosts with
+          Unicode names (IDNs) [#642075]
+
+	* Added a "Connection: Keep-Alive" header when talking to
+          HTTP/1.0 hosts, to improve performance. [#640414, Sergio
+          Villar Senin]
+
+	* Changed SoupCache to not cache multipart/x-mixed-replace
+          content. [#642028, Sergio Villar Senin]
+
 Changes in libsoup from 2.33.5 to 2.33.6:
 
 	* Made SoupSessionAsync do idle-connection cleanup more
