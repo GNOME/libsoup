@@ -294,7 +294,7 @@ parse_month (SoupDate *date, const char **date_string)
 	int i;
 
 	for (i = 0; i < G_N_ELEMENTS (months); i++) {
-		if (!strncmp (*date_string, months[i], 3)) {
+		if (!g_ascii_strncasecmp (*date_string, months[i], 3)) {
 			date->month = i + 1;
 			*date_string += 3;
 			while (**date_string == ' ' || **date_string == '-')

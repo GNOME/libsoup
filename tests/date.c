@@ -69,6 +69,7 @@ static const char *ok_dates[] = {
 	"Sat,  6 Nov 2004 08:09:07 GMT",
 	"Sat, 06 Nov 2004 08:09:07",
 	"06 Nov 2004 08:09:07 GMT",
+	"SAT, 06 NOV 2004 08:09:07 +1000",
 
 	/* rfc850-date, and broken variants */
 	"Saturday, 06-Nov-04 08:09:07 GMT",
