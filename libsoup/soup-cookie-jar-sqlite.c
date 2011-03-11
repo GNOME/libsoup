@@ -193,7 +193,9 @@ callback (void *data, int argc, char **argv, char **colname)
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (data);
 
 	char *name, *value, *host, *path;
-	time_t max_age, now;
+	gulong expire_time;
+	time_t now;
+	int max_age;
 	gboolean http_only = FALSE, secure = FALSE;
 
 	now = time (NULL);
@@ -202,10 +204,11 @@ callback (void *data, int argc, char **argv, char **colname)
 	value = argv[COL_VALUE];
 	host = argv[COL_HOST];
 	path = argv[COL_PATH];
-	max_age = strtoul (argv[COL_EXPIRY], NULL, 10) - now;
+	expire_time = strtoul (argv[COL_EXPIRY], NULL, 10);
 
-	if (max_age <= 0)
+	if (now >= expire_time)
 		return 0;
+	max_age = (expire_time - now <= G_MAXINT ? expire_time - now : G_MAXINT);
 
 	http_only = (g_strcmp0 (argv[COL_HTTP_ONLY], "1") == 0);
 	secure = (g_strcmp0 (argv[COL_SECURE], "1") == 0);

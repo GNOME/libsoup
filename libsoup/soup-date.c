@@ -200,12 +200,24 @@ soup_date_new (int year, int month, int day,
  * current time (or before it, if @offset_seconds is negative). If
  * offset_seconds is 0, returns the current time.
  *
+ * If @offset_seconds would indicate a time not expressible as a
+ * #time_t, the return value will be clamped into range.
+ *
  * Return value: a new #SoupDate
  **/
 SoupDate *
 soup_date_new_from_now (int offset_seconds)
 {
-	return soup_date_new_from_time_t (time (NULL) + offset_seconds);
+	time_t now = time (NULL);
+	time_t then = now + offset_seconds;
+
+	if (sizeof (time_t) == 4) {
+		if (offset_seconds < 0 && then > now)
+			return soup_date_new_from_time_t (-G_MAXINT);
+		else if (offset_seconds > 0 && then < now)
+			return soup_date_new_from_time_t (G_MAXINT);
+	}
+	return soup_date_new_from_time_t (then);
 }
 
 static gboolean
@@ -757,7 +769,7 @@ soup_date_is_past (SoupDate *date)
 	g_return_val_if_fail (date != NULL, TRUE);
 
 	/* optimization */
-	if (date->year < 2008)
+	if (date->year < 2010)
 		return TRUE;
 
 	return soup_date_to_time_t (date) < time (NULL);

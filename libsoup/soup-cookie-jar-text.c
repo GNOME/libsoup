@@ -167,7 +167,8 @@ parse_cookie (char *line, time_t now)
 	char **result;
 	SoupCookie *cookie = NULL;
 	gboolean http_only;
-	time_t max_age;
+	gulong expire_time;
+	int max_age;
 	char *host, *path, *secure, *expires, *name, *value;
 
 	if (g_str_has_prefix (line, "#HttpOnly_")) {
@@ -184,9 +185,10 @@ parse_cookie (char *line, time_t now)
 
 	/* Check this first */
 	expires = result[4];
-	max_age = strtoul (expires, NULL, 10) - now;
-	if (max_age <= 0)
+	expire_time = strtoul (expires, NULL, 10);
+	if (now >= expire_time)
 		goto out;
+	max_age = (expire_time - now <= G_MAXINT ? expire_time - now : G_MAXINT);
 
 	host = result[0];
 
