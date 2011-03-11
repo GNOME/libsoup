@@ -564,7 +564,7 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 		SoupURI *first_party = soup_message_get_first_party (msg);
 		
 		if ((priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY &&
-		     first_party != NULL &&
+		     first_party != NULL && first_party->host &&
 		     soup_cookie_domain_matches (nc->data, first_party->host)) ||
 		    priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS)
 			soup_cookie_jar_add_cookie (jar, nc->data);
