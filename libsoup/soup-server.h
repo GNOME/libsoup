@@ -75,6 +75,7 @@ SoupSocket        *soup_server_get_listener   (SoupServer            *server);
 void               soup_server_run            (SoupServer            *server);
 void               soup_server_run_async      (SoupServer            *server);
 void               soup_server_quit           (SoupServer            *server);
+void               soup_server_disconnect     (SoupServer            *server);
 
 GMainContext      *soup_server_get_async_context (SoupServer         *server);
 

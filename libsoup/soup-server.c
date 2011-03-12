@@ -991,6 +991,38 @@ soup_server_quit (SoupServer *server)
 }
 
 /**
+ * soup_server_disconnect:
+ * @server: a #SoupServer
+ *
+ * Stops processing for @server and closes its socket. This implies
+ * the effects of soup_server_quit(), but additionally closes the
+ * listening socket.  Note that messages currently in progress will
+ * continue to be handled, if the main loop associated with the
+ * server is resumed or kept running.
+ *
+ * After calling this function, @server is no longer functional, so it
+ * has nearly the same effect as destroying @server entirely. The
+ * function is thus useful mainly for language bindings without
+ * explicit control over object lifetime.
+ **/
+void
+soup_server_disconnect (SoupServer *server)
+{
+	SoupServerPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	soup_server_quit (server);
+
+	if (priv->listen_sock) {
+		soup_socket_disconnect (priv->listen_sock);
+		g_object_unref (priv->listen_sock);
+		priv->listen_sock = NULL;
+	}
+}
+
+/**
  * soup_server_get_async_context:
  * @server: a #SoupServer
  *
