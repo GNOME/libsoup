@@ -7,6 +7,7 @@
 #define SOUP_PROXY_RESOLVER_GNOME_H 1
 
 #include "soup-gnome-features.h"
+#include "soup-proxy-resolver-default.h"
 
 /* SOUP_TYPE_PROXY_RESOLVER_GNOME and soup_proxy_resolver_gnome_get_type()
  * are declared in soup-gnome-features.h.
@@ -18,14 +19,7 @@
 #define SOUP_IS_PROXY_RESOLVER_GNOME_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), SOUP_TYPE_PROXY_RESOLVER_GNOME))
 #define SOUP_PROXY_RESOLVER_GNOME_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_PROXY_RESOLVER_GNOME, SoupProxyResolverGNOMEClass))
 
-typedef struct {
-	GObject parent;
-
-} SoupProxyResolverGNOME;
-
-typedef struct {
-	GObjectClass parent_class;
-
-} SoupProxyResolverGNOMEClass;
+typedef SoupProxyResolverDefault SoupProxyResolverGNOME;
+typedef SoupProxyResolverDefaultClass SoupProxyResolverGNOMEClass;
 
 #endif /*SOUP_PROXY_RESOLVER_GNOME_H*/

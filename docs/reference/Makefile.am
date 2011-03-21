@@ -59,8 +59,7 @@ GTKDOC_CFLAGS =				\
 	-I$(top_builddir)		\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
-	$(GNUTLS_CFLAGS)		\
-	$(LIBPROXY_LIBS)
+	$(GNUTLS_CFLAGS)
 
 GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
 

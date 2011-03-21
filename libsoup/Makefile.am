@@ -11,8 +11,6 @@ INCLUDES = 				\
 	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
-	$(GCONF_CFLAGS)			\
-	$(LIBPROXY_CFLAGS)		\
 	$(SQLITE_CFLAGS)		\
 	$(GNOME_KEYRING_CFLAGS)
 
@@ -196,8 +194,6 @@ libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
 	$(GLIB_LIBS)			\
-	$(GCONF_LIBS)			\
-	$(LIBPROXY_LIBS)		\
 	$(SQLITE_LIBS)			\
 	$(GNOME_KEYRING_LIBS)
 
