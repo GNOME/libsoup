@@ -18,6 +18,7 @@ typedef struct {
 	SoupSession *session;
 	SoupBuffer *chunks[3];
 	int next, nwrote, nfreed;
+	gboolean streaming;
 } PutTestData;
 
 static SoupBuffer *
@@ -34,15 +35,15 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 {
 	PutTestData *ptd = user_data;
 
-	debug_printf (2, "  writing chunk\n");
+	debug_printf (2, "  writing chunk %d\n", ptd->next);
 
 	if (ptd->next > 0 && ptd->chunks[ptd->next - 1]) {
-#ifdef FIXME
-		debug_printf (1, "  error: next chunk requested before last one freed!\n");
-		errors++;
-#else
-		debug_printf (0, "  ignoring bug in test case... FIXME!\n");
-#endif
+		if (ptd->streaming) {
+			debug_printf (1, "  error: next chunk requested before last one freed!\n");
+			errors++;
+		} else {
+			debug_printf (0, "  ignoring bug in test case... FIXME!\n");
+		}
 	}
 
 	if (ptd->next < G_N_ELEMENTS (ptd->chunks)) {
@@ -113,24 +114,61 @@ make_put_chunk (SoupBuffer **buffer, const char *text)
 }
 
 static void
-do_request_test (SoupSession *session, SoupURI *base_uri, gboolean streaming)
+restarted_streaming_hack (SoupMessage *msg, gpointer user_data)
 {
+	PutTestData *ptd = user_data;
+
+	/* We're streaming, and we had to restart. So the data need
+	   to be regenerated. That's the *point* of this test; we don't
+	   *want* it to accumulate in the request body */
+	make_put_chunk (&ptd->chunks[0], "one\r\n");
+	make_put_chunk (&ptd->chunks[1], "two\r\n");
+	make_put_chunk (&ptd->chunks[2], "three\r\n");
+	ptd->next = ptd->nwrote = ptd->nfreed = 0;
+
+	debug_printf (2, "  truncating request body on restart\n");
+	soup_message_body_truncate (msg->request_body);
+
+	/* The redirect will turn it into a GET request. Fix that... */
+	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
+	msg->method = SOUP_METHOD_PUT;
+}
+
+static void
+do_request_test (SoupSession *session, SoupURI *base_uri, int test)
+{
+	SoupURI *uri = base_uri;
 	PutTestData ptd;
 	SoupMessage *msg;
 	const char *client_md5, *server_md5;
 	GChecksum *check;
 	int i, length;
+	gboolean streaming = FALSE;
 
-	if (streaming)
-		debug_printf (1, "PUT w/ streaming\n");
-	else
+	switch (test) {
+	case 0:
 		debug_printf (1, "PUT\n");
+		break;
+
+	case 1:
+		debug_printf (1, "PUT w/ streaming\n");
+		streaming = TRUE;
+		break;
+
+	case 2:
+		debug_printf (1, "PUT w/ streaming and restart\n");
+		streaming = TRUE;
+		uri = soup_uri_copy (base_uri);
+		soup_uri_set_path (uri, "/redirect");
+		break;
+	}
 
 	ptd.session = session;
 	make_put_chunk (&ptd.chunks[0], "one\r\n");
 	make_put_chunk (&ptd.chunks[1], "two\r\n");
 	make_put_chunk (&ptd.chunks[2], "three\r\n");
 	ptd.next = ptd.nwrote = ptd.nfreed = 0;
+	ptd.streaming = streaming;
 
 	check = g_checksum_new (G_CHECKSUM_MD5);
 	length = 0;
@@ -141,13 +179,15 @@ do_request_test (SoupSession *session, SoupURI *base_uri, gboolean streaming)
 	}
 	client_md5 = g_checksum_get_string (check);
 
-	msg = soup_message_new_from_uri ("PUT", base_uri);
+	msg = soup_message_new_from_uri ("PUT", uri);
 	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
 	soup_message_body_set_accumulate (msg->request_body, FALSE);
 	soup_message_set_chunk_allocator (msg, error_chunk_allocator, NULL, NULL);
 	if (streaming) {
 		g_signal_connect (msg, "wrote_chunk",
 				  G_CALLBACK (write_next_chunk_streaming_hack), &ptd);
+		g_signal_connect (msg, "restarted",
+				  G_CALLBACK (restarted_streaming_hack), &ptd);
 	} else {
 		g_signal_connect (msg, "wrote_chunk",
 				  G_CALLBACK (write_next_chunk), &ptd);
@@ -184,6 +224,9 @@ do_request_test (SoupSession *session, SoupURI *base_uri, gboolean streaming)
 
 	g_object_unref (msg);
 	g_checksum_free (check);
+
+	if (uri != base_uri)
+		soup_uri_free (uri);
 }
 
 typedef struct {
@@ -346,9 +389,11 @@ do_chunk_tests (SoupURI *base_uri)
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_request_test (session, base_uri, FALSE);
+	do_request_test (session, base_uri, 0);
 	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, TRUE);
+	do_request_test (session, base_uri, 1);
+	debug_printf (2, "\n\n");
+	do_request_test (session, base_uri, 2);
 	debug_printf (2, "\n\n");
 	do_response_test (session, base_uri);
 	debug_printf (2, "\n\n");
@@ -363,6 +408,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 {
 	SoupMessageBody *md5_body;
 	char *md5;
+
+	if (g_str_has_prefix (path, "/redirect")) {
+		soup_message_set_status (msg, SOUP_STATUS_FOUND);
+		soup_message_headers_replace (msg->response_headers,
+					      "Location", "/");
+		return;
+	}
 
 	if (msg->method == SOUP_METHOD_GET) {
 		soup_message_set_response (msg, "text/plain",
