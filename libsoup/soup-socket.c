@@ -1120,7 +1120,7 @@ soup_socket_get_remote_address (SoupSocket *sock)
 		addr = g_socket_get_remote_address (priv->gsock, NULL);
 		sa_len = g_socket_address_get_native_size (addr);
 		g_socket_address_to_native (addr, &sa, sa_len, NULL);
-		priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
+		priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 		g_object_unref (addr);
 	}
 	g_mutex_unlock (priv->addrlock);
