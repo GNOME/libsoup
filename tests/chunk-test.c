@@ -17,7 +17,7 @@
 typedef struct {
 	SoupSession *session;
 	SoupBuffer *chunks[3];
-	int next, nwrote;
+	int next, nwrote, nfreed;
 } PutTestData;
 
 static SoupBuffer *
@@ -53,6 +53,26 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 	} else
 		soup_message_body_complete (msg->request_body);
 	soup_session_unpause_message (ptd->session, msg);
+}
+
+/* This is not a supported part of the API. Don't try this at home */
+static void
+write_next_chunk_streaming_hack (SoupMessage *msg, gpointer user_data)
+{
+	PutTestData *ptd = user_data;
+	SoupBuffer *chunk;
+
+	debug_printf (2, "  freeing chunk at %d\n", ptd->nfreed);
+	chunk = soup_message_body_get_chunk (msg->request_body, ptd->nfreed);
+	if (chunk) {
+		ptd->nfreed += chunk->length;
+		soup_message_body_wrote_chunk (msg->request_body, chunk);
+		soup_buffer_free (chunk);
+	} else {
+		debug_printf (1, "  error: written chunk does not exist!\n");
+		errors++;
+	}
+	write_next_chunk (msg, user_data);
 }
 
 static void
@@ -93,7 +113,7 @@ make_put_chunk (SoupBuffer **buffer, const char *text)
 }
 
 static void
-do_request_test (SoupSession *session, SoupURI *base_uri)
+do_request_test (SoupSession *session, SoupURI *base_uri, gboolean streaming)
 {
 	PutTestData ptd;
 	SoupMessage *msg;
@@ -101,13 +121,16 @@ do_request_test (SoupSession *session, SoupURI *base_uri)
 	GChecksum *check;
 	int i, length;
 
-	debug_printf (1, "PUT\n");
+	if (streaming)
+		debug_printf (1, "PUT w/ streaming\n");
+	else
+		debug_printf (1, "PUT\n");
 
 	ptd.session = session;
 	make_put_chunk (&ptd.chunks[0], "one\r\n");
 	make_put_chunk (&ptd.chunks[1], "two\r\n");
 	make_put_chunk (&ptd.chunks[2], "three\r\n");
-	ptd.next = ptd.nwrote = 0;
+	ptd.next = ptd.nwrote = ptd.nfreed = 0;
 
 	check = g_checksum_new (G_CHECKSUM_MD5);
 	length = 0;
@@ -122,9 +145,14 @@ do_request_test (SoupSession *session, SoupURI *base_uri)
 	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
 	soup_message_body_set_accumulate (msg->request_body, FALSE);
 	soup_message_set_chunk_allocator (msg, error_chunk_allocator, NULL, NULL);
+	if (streaming) {
+		g_signal_connect (msg, "wrote_chunk",
+				  G_CALLBACK (write_next_chunk_streaming_hack), &ptd);
+	} else {
+		g_signal_connect (msg, "wrote_chunk",
+				  G_CALLBACK (write_next_chunk), &ptd);
+	}
 	g_signal_connect (msg, "wrote_headers",
-			  G_CALLBACK (write_next_chunk), &ptd);
-	g_signal_connect (msg, "wrote_chunk",
 			  G_CALLBACK (write_next_chunk), &ptd);
 	g_signal_connect (msg, "wrote_body_data",
 			  G_CALLBACK (wrote_body_data), &ptd);
@@ -318,7 +346,9 @@ do_chunk_tests (SoupURI *base_uri)
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_request_test (session, base_uri);
+	do_request_test (session, base_uri, FALSE);
+	debug_printf (2, "\n\n");
+	do_request_test (session, base_uri, TRUE);
 	debug_printf (2, "\n\n");
 	do_response_test (session, base_uri);
 	debug_printf (2, "\n\n");
