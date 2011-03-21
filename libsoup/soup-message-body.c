@@ -527,6 +527,7 @@ soup_message_body_truncate (SoupMessageBody *body)
 		soup_buffer_free (iter->data);
 	g_slist_free (priv->chunks);
 	priv->chunks = priv->last = NULL;
+	priv->base_offset = 0;
 
 	if (priv->flattened) {
 		soup_buffer_free (priv->flattened);
