@@ -1,3 +1,47 @@
+Changes in libsoup from 2.33.90 to 2.33.92:
+
+	* LIBSOUP NO LONGER DEPENDS ON GCONF OR LIBPROXY.
+	  (see below).
+
+	* Added SoupProxyResolverDefault, which uses uses gio's
+          GProxyResolver to resolve proxies [#642982, Gustavo Noronha
+          Silva]. Despite the "default" in the name, it is not used by
+          default, for compatibility reasons, but it is available in
+          plain libsoup, not libsoup-gnome. (Of course, it depends on
+          having glib-networking installed.)
+
+	* Updated SoupProxyResolverGNOME to be based on
+          SoupProxyResolverDefault, but explicitly requesting the
+          "gnome" GProxyResolver if it is available [#625898], and
+          removed the old code that used GConf and libproxy directly.
+
+	* Added soup_server_disconnect(), to explicitly disconnect a
+          SoupServer, since it is not possible to g_object_unref() it
+          from memory-managed language bindings. [#638576, Andreas
+          Rottmann]
+
+	* SoupDate now parses month names case-insensitively [#644048,
+          Christian Dywan]
+
+	* Avoid a g_return_if_fail() when using
+          SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY with non-http URIs
+          (file:, data:, etc). [#643226]
+
+	* SoupCookieJar now catches overflows when parsing very
+          distant dates [#643462, based on a patch from Mark
+          Starovoytov]
+
+	* Fixed a buggy interaction between request body streaming and
+          restarted requests [David Woodhouse]. Added some new tests
+          to tests/chunk-test.c to make sure that a specific
+          (unsupported!) way of using those methods would not get
+          broken in the future.
+
+	* Fixed soup_socket_get_remote_address(), which had been
+          broken since 2.33.4 (and which in turn caused
+          soup_client_context_get_address/_get_host to be broken).
+          [#645227]
+
 Changes in libsoup from 2.33.6 to 2.33.90:
 
 	* Attempted to make libsoup's dependency on glib-networking
