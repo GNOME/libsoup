@@ -245,10 +245,13 @@ gi_soup_gnome_files = $(filter-out soup-gnome.h,\
 		          $(libsoupgnomeinclude_HEADERS) \
 	                  $(filter-out %.h, $(libsoup_gnome_2_4_la_SOURCES)))
 SoupGNOME-2.4.gir: libsoup-gnome-2.4.la Soup-2.4.gir
-SoupGNOME_2_4_gir_SCANNERFLAGS = --identifier-prefix=Soup --symbol-prefix=soup --c-include "libsoup/soup-gnome.h"
-SoupGNOME_2_4_gir_INCLUDES = Soup-2.4
+SoupGNOME_2_4_gir_SCANNERFLAGS =			\
+	--identifier-prefix=Soup			\
+	--symbol-prefix=soup				\
+	--c-include "libsoup/soup-gnome.h"		\
+	--include-uninstalled=$(builddir)/Soup-2.4.gir
 SoupGNOME_2_4_gir_CFLAGS = $(INCLUDES)
-SoupGNOME_2_4_gir_LIBS = libsoup-gnome-2.4.la
+SoupGNOME_2_4_gir_LIBS = libsoup-gnome-2.4.la libsoup-2.4.la
 SoupGNOME_2_4_gir_FILES = $(addprefix $(srcdir)/,$(gi_soup_gnome_files))
 SoupGNOME_2_4_gir_EXPORT_PACKAGES = libsoup-gnome-2.4
 
