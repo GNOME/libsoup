@@ -881,7 +881,7 @@ do_batch_tests (const gchar *base_uri_str, gint ntests)
 {
 	SoupSession *session;
 	SoupMessage *msg;
-	char *expected;
+	char *expected, *uristr;
 	SoupURI *base_uri;
 	int i;
 
@@ -912,7 +912,9 @@ do_batch_tests (const gchar *base_uri_str, gint ntests)
 			exit (1);
 		}
 
-		debug_printf (1, "  GET %s\n", soup_uri_to_string (soup_message_get_uri (msg), FALSE));
+		uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+		debug_printf (1, "  GET %s\n", uristr);
+		g_free (uristr);
 
 		expected = g_strdup (current_tests[i].expected);
 		soup_message_add_status_code_handler (

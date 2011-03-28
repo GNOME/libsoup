@@ -128,8 +128,7 @@ test_url (const char *url, int proxy, guint expected,
 	}
 
 	g_object_unref (msg);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 static void
@@ -198,8 +197,7 @@ do_proxy_fragment_test (SoupURI *base_uri)
 	}
 
 	g_object_unref (msg);
-	soup_session_abort (session);
-	g_object_unref (session);
+	soup_test_session_abort_unref (session);
 }
 
 int
@@ -226,6 +224,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
+
 	test_cleanup ();
 	return errors != 0;
 }

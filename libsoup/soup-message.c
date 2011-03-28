@@ -179,6 +179,9 @@ finalize (GObject *object)
 		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
 	}
 
+	if (priv->tls_certificate)
+		g_object_unref (priv->tls_certificate);
+
 	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);
 	soup_message_body_free (msg->response_body);

@@ -1,6 +1,22 @@
 # valgrind suppressions file
 
 {
+   ld.so/map
+   Memcheck:Cond
+   fun:index
+   fun:expand_dynamic_string_token
+   fun:_dl_map_object
+}
+{
+   ld.so/relocate
+   Memcheck:Cond
+   fun:_dl_relocate_object
+   fun:dl_main
+   fun:_dl_sysdep_start
+   fun:_dl_start
+}
+
+{
    glib/g_type_init
    Memcheck:Leak
    ...
@@ -79,6 +95,12 @@
    fun:g_quark_from_string
 }
 {
+   glib/g_quark_from_static_string
+   Memcheck:Leak
+   ...
+   fun:g_quark_from_static_string
+}
+{
    glib/get_dispatch
    Memcheck:Leak
    ...
@@ -138,6 +160,43 @@
    ...
    fun:g_get_language_names
 }
+{
+   glib/giomodules
+   Memcheck:Leak
+   ...
+   fun:_g_io_modules_ensure_loaded
+}
+{
+   glib/tlsinit
+   Memcheck:Leak
+   ...
+   fun:get_default_tls_backend
+}
+{
+   glib/tlscrypto
+   Memcheck:Leak
+   ...
+   fun:gcry_pthread_mutex_init
+}
+{
+   glib/tlscache
+   Memcheck:Leak
+   ...
+   fun:g_tls_backend_gnutls_cache_session_data
+}
+{
+   glib/tlspriority
+   Memcheck:Leak
+   ...
+   fun:g_tls_connection_gnutls_init_priorities
+}
+{
+   glib/gfileinfo
+   Memcheck:Leak
+   ...
+   fun:ensure_attribute_hash
+   fun:lookup_attribute
+}
 
 # probably using uninitialized memory as padding or something
 {
@@ -166,23 +225,12 @@
    fun:xmlInitCharEncodingHandlers
 }
 {
-   libsoup/gnutls_1
+   libxml2/xmlNewCharEncodingHandler
    Memcheck:Leak
    ...
-   fun:soup_gnutls_init
+   fun:xmlNewCharEncodingHandler
 }
-{
-   libsoup/gnutls_2
-   Memcheck:Leak
-   ...
-   fun:init_dh_params
-}
-{
-   libsoup/gnutls_mutexes
-   Memcheck:Leak
-   ...
-   fun:gcry_pthread_mutex_init
-}
+
 {
    libsoup/interned_uri_schemes
    Memcheck:Leak

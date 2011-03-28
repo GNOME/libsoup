@@ -79,6 +79,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct SoupClientContext {
 	SoupServer     *server;
 	SoupSocket     *sock;
+	SoupMessage    *msg;
 	SoupAuthDomain *auth_domain;
 	char           *auth_user;
 
@@ -105,7 +106,7 @@ typedef struct {
 	GMainLoop         *loop;
 
 	SoupSocket        *listen_sock;
-	GSList            *client_socks;
+	GSList            *clients;
 
 	gboolean           raw_paths;
 	SoupPathMap       *handlers;
@@ -176,12 +177,19 @@ finalize (GObject *object)
 	if (priv->listen_sock)
 		g_object_unref (priv->listen_sock);
 
-	while (priv->client_socks) {
-		SoupSocket *sock = priv->client_socks->data;
+	while (priv->clients) {
+		SoupClientContext *client = priv->clients->data;
+		SoupSocket *sock = g_object_ref (client->sock);
+
+		priv->clients = g_slist_remove (priv->clients, client);
+
+		if (client->msg) {
+			soup_message_set_status (client->msg, SOUP_STATUS_IO_ERROR);
+			soup_message_io_finished (client->msg);
+		}
 
 		soup_socket_disconnect (sock);
-		priv->client_socks =
-			g_slist_remove (priv->client_socks, sock);
+		g_object_unref (sock);
 	}
 
 	if (priv->default_handler)
@@ -690,6 +698,7 @@ soup_client_context_cleanup (SoupClientContext *client)
 		g_free (client->auth_user);
 		client->auth_user = NULL;
 	}
+	client->msg = NULL;
 }
 
 static SoupClientContext *
@@ -863,6 +872,8 @@ start_request (SoupServer *server, SoupClientContext *client)
 	msg = g_object_new (SOUP_TYPE_MESSAGE,
 			    SOUP_MESSAGE_SERVER_SIDE, TRUE,
 			    NULL);
+	client->msg = msg;
+
 	if (priv->server_header) {
 		soup_message_headers_append (msg->response_headers, "Server",
 					     priv->server_header);
@@ -880,12 +891,12 @@ start_request (SoupServer *server, SoupClientContext *client)
 }
 
 static void
-socket_disconnected (SoupSocket *sock, SoupServer *server)
+socket_disconnected (SoupSocket *sock, SoupClientContext *client)
 {
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (client->server);
 
-	priv->client_socks = g_slist_remove (priv->client_socks, sock);
-	g_signal_handlers_disconnect_by_func (sock, socket_disconnected, server);
+	priv->clients = g_slist_remove (priv->clients, client);
+	g_signal_handlers_disconnect_by_func (sock, socket_disconnected, client);
 	g_object_unref (sock);
 }
 
@@ -897,9 +908,9 @@ new_connection (SoupSocket *listner, SoupSocket *sock, gpointer user_data)
 	SoupClientContext *client;
 
 	client = soup_client_context_new (server, g_object_ref (sock));
-	priv->client_socks = g_slist_prepend (priv->client_socks, sock);
+	priv->clients = g_slist_prepend (priv->clients, client);
 	g_signal_connect (sock, "disconnected",
-			  G_CALLBACK (socket_disconnected), server);
+			  G_CALLBACK (socket_disconnected), client);
 	start_request (server, client);
 }
 

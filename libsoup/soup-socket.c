@@ -843,11 +843,13 @@ soup_socket_listen (SoupSocket *sock)
 	priv->watch_src = soup_socket_create_watch (priv, G_IO_IN,
 						    listen_watch, sock,
 						    NULL);
+	g_object_unref (addr);
 	return TRUE;
 
  cant_listen:
 	if (priv->conn)
 		disconnect_internal (sock);
+	g_object_unref (addr);
 
 	return FALSE;
 }
@@ -1439,6 +1441,7 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 
 	if (g_error_matches (my_err, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_mutex_unlock (priv->iolock);
+		g_clear_error (&my_err);
 
 		priv->write_src =
 			soup_socket_create_watch (priv,

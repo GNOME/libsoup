@@ -1315,7 +1315,6 @@ soup_session_make_connect_message (SoupSession    *session,
 	item->conn = g_object_ref (conn);
 	g_object_unref (msg);
 
-	item->conn = g_object_ref (conn);
 	g_signal_emit (session, signals[TUNNELING], 0, conn);
 	return item;
 }

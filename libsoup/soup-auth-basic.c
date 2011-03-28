@@ -109,6 +109,10 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 	user_pass = g_strdup_printf ("%s:%s", username, password);
 	len = strlen (user_pass);
 
+	if (priv->token) {
+		memset (priv->token, 0, strlen (priv->token));
+		g_free (priv->token);
+	}
 	priv->token = g_base64_encode ((guchar *)user_pass, len);
 
 	memset (user_pass, 0, len);
