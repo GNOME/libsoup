@@ -174,11 +174,17 @@ get_proxy_uri_async (SoupProxyURIResolver  *resolver,
 
 	uri_string = soup_uri_to_string (uri, FALSE);
 
+	if (async_context)
+		g_main_context_push_thread_default (async_context);
+
 	g_proxy_resolver_lookup_async (priv->gproxy_resolver,
 				       uri_string,
 				       cancellable ? g_object_ref (cancellable) : NULL,
 				       resolved_proxy,
 				       async_data);
+
+	if (async_context)
+		g_main_context_pop_thread_default (async_context);
 
 	g_free (uri_string);
 }
