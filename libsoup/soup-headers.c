@@ -844,27 +844,12 @@ append_param_rfc5987 (GString    *string,
 	g_free (encoded);
 }
 
-/**
- * soup_header_g_string_append_param_quoted:
- * @string: a #GString being used to construct an HTTP header value
- * @name: a parameter name
- * @value: a parameter value
- *
- * Appends something like <literal>@name="@value"</literal> to
- * @string, taking care to escape any quotes or backslashes in @value.
- *
- * Since: 2.32
- **/
-void
-soup_header_g_string_append_param_quoted (GString    *string,
-					  const char *name,
-					  const char *value)
+static void
+append_param_quoted (GString    *string,
+		     const char *name,
+		     const char *value)
 {
 	int len;
-
-	g_return_if_fail (string != NULL);
-	g_return_if_fail (name != NULL);
-	g_return_if_fail (value != NULL);
 
 	g_string_append (string, name);
 	g_string_append (string, "=\"");
@@ -878,6 +863,62 @@ soup_header_g_string_append_param_quoted (GString    *string,
 		value += len;
 	}
 	g_string_append_c (string, '"');
+}
+
+static void
+append_param_internal (GString    *string,
+		       const char *name,
+		       const char *value,
+		       gboolean    allow_token)
+{
+	const char *v;
+	gboolean use_token = allow_token;
+
+	for (v = value; *v; v++) {
+		if (*v & 0x80) {
+			if (g_utf8_validate (value, -1, NULL)) {
+				append_param_rfc5987 (string, name, value);
+				return;
+			} else {
+				use_token = FALSE;
+				break;
+			}
+		} else if (!soup_char_is_token (*v))
+			use_token = FALSE;
+	}
+
+	if (use_token) {
+		g_string_append (string, name);
+		g_string_append_c (string, '=');
+		g_string_append (string, value);
+	} else
+		append_param_quoted (string, name, value);
+}
+
+/**
+ * soup_header_g_string_append_param_quoted:
+ * @string: a #GString being used to construct an HTTP header value
+ * @name: a parameter name
+ * @value: a parameter value
+ *
+ * Appends something like <literal>@name="@value"</literal> to
+ * @string, taking care to escape any quotes or backslashes in @value.
+ *
+ * If @value is (non-ASCII) UTF-8, this will instead use RFC 5987
+ * encoding, just like soup_header_g_string_append_param().
+ *
+ * Since: 2.32
+ **/
+void
+soup_header_g_string_append_param_quoted (GString    *string,
+					  const char *name,
+					  const char *value)
+{
+	g_return_if_fail (string != NULL);
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (value != NULL);
+
+	append_param_internal (string, name, value, FALSE);
 }
 
 /**
@@ -905,9 +946,6 @@ soup_header_g_string_append_param (GString    *string,
 				   const char *name,
 				   const char *value)
 {
-	const char *v;
-	gboolean token = TRUE;
-
 	g_return_if_fail (string != NULL);
 	g_return_if_fail (name != NULL);
 
@@ -916,23 +954,5 @@ soup_header_g_string_append_param (GString    *string,
 		return;
 	}
 
-	for (v = value; *v; v++) {
-		if (*v & 0x80) {
-			if (g_utf8_validate (value, -1, NULL)) {
-				append_param_rfc2231 (string, name, value);
-				return;
-			} else {
-				token = FALSE;
-				break;
-			}
-		} else if (!soup_char_is_token (*v))
-			token = FALSE;
-	}
-
-	if (token) {
-		g_string_append (string, name);
-		g_string_append_c (string, '=');
-		g_string_append (string, value);
-	} else
-		soup_header_g_string_append_param_quoted (string, name, value);
+	append_param_internal (string, name, value, TRUE);
 }
