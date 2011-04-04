@@ -1,3 +1,15 @@
+Changes in libsoup from 2.33.92 to 2.34.0:
+
+	* Fixed the GMainContext handling of the new
+          SoupProxyResolverDefault (which among other things fixes
+          gstreamer usage inside epiphany). [#646201, Sebastian Dröge]
+
+	* Tweaked the introspection Makefile rules to fix a problem
+          building on Debian/Ubuntu. [#645505]
+
+	* Belated bumped the shared library versioning to reflect the
+          API additions since 2.32.0
+
 Changes in libsoup from 2.33.90 to 2.33.92:
 
 	* LIBSOUP NO LONGER DEPENDS ON GCONF OR LIBPROXY.
