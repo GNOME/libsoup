@@ -664,15 +664,21 @@ decode_quoted_string (char *quoted_string)
 }
 
 static gboolean
-decode_rfc2231 (char *encoded_string)
+decode_rfc5987 (char *encoded_string)
 {
 	char *q, *decoded;
+	gboolean iso_8859_1 = FALSE;
 
 	q = strchr (encoded_string, '\'');
 	if (!q)
 		return FALSE;
 	if (g_ascii_strncasecmp (encoded_string, "UTF-8",
-				 q - encoded_string) != 0)
+				 q - encoded_string) == 0)
+		;
+	else if (g_ascii_strncasecmp (encoded_string, "iso-8859-1",
+				      q - encoded_string) == 0)
+		iso_8859_1 = TRUE;
+	else
 		return FALSE;
 
 	q = strchr (q + 1, '\'');
@@ -680,7 +686,23 @@ decode_rfc2231 (char *encoded_string)
 		return FALSE;
 
 	decoded = soup_uri_decode (q + 1);
-	/* strlen(decoded) <= strlen(q + 1) < strlen(encoded_string) */
+	if (iso_8859_1) {
+		char *utf8 =  g_convert_with_fallback (decoded, -1, "UTF-8",
+						       "iso-8859-1", "_",
+						       NULL, NULL, NULL);
+		g_free (decoded);
+		if (!utf8)
+			return FALSE;
+		decoded = utf8;
+	}
+
+	/* If encoded_string was UTF-8, then each 3-character %-escape
+	 * will be converted to a single byte, and so decoded is
+	 * shorter than encoded_string. If encoded_string was
+	 * iso-8859-1, then each 3-character %-escape will be
+	 * converted into at most 2 bytes in UTF-8, and so it's still
+	 * shorter.
+	 */
 	strcpy (encoded_string, decoded);
 	g_free (decoded);
 	return TRUE;
@@ -692,6 +714,7 @@ parse_param_list (const char *header, char delim)
 	GHashTable *params;
 	GSList *list, *iter;
 	char *item, *eq, *name_end, *value;
+	gboolean override;
 
 	list = parse_list (header, delim);
 	if (!list)
@@ -703,6 +726,7 @@ parse_param_list (const char *header, char delim)
 
 	for (iter = list; iter; iter = iter->next) {
 		item = iter->data;
+		override = FALSE;
 
 		eq = strchr (item, '=');
 		if (eq) {
@@ -719,16 +743,18 @@ parse_param_list (const char *header, char delim)
 
 			if (name_end[-1] == '*' && name_end > item + 1) {
 				name_end[-1] = '\0';
-				if (!decode_rfc2231 (value)) {
+				if (!decode_rfc5987 (value)) {
 					g_free (item);
 					continue;
 				}
+				override = TRUE;
 			} else if (*value == '"')
 				decode_quoted_string (value);
 		} else
 			value = NULL;
 
-		g_hash_table_insert (params, item, value);
+		if (override || !g_hash_table_lookup (params, item))
+			g_hash_table_replace (params, item, value);
 	}
 
 	g_slist_free (list);
@@ -745,7 +771,7 @@ parse_param_list (const char *header, char delim)
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
- * This also handles RFC2231 encoding (which in HTTP is mostly used
+ * This also handles RFC5987 encoding (which in HTTP is mostly used
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
@@ -771,7 +797,7 @@ soup_header_parse_param_list (const char *header)
  * Tokens that don't have an associated value will still be added to
  * the resulting hash table, but with a %NULL value.
  * 
- * This also handles RFC2231 encoding (which in HTTP is mostly used
+ * This also handles RFC5987 encoding (which in HTTP is mostly used
  * for giving UTF8-encoded filenames in the Content-Disposition
  * header).
  *
@@ -805,7 +831,7 @@ soup_header_free_param_list (GHashTable *param_list)
 }
 
 static void
-append_param_rfc2231 (GString    *string,
+append_param_rfc5987 (GString    *string,
 		      const char *name,
 		      const char *value)
 {
@@ -865,7 +891,7 @@ soup_header_g_string_append_param_quoted (GString    *string,
  * quotes or backslashes in @value.
  *
  * Alternatively, if @value is a non-ASCII UTF-8 string, it will be
- * appended using RFC2231 syntax. Although in theory this is supposed
+ * appended using RFC5987 syntax. Although in theory this is supposed
  * to work anywhere in HTTP that uses this style of parameter, in
  * reality, it can only be used portably with the Content-Disposition
  * "filename" parameter.
