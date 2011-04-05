@@ -4,8 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "libsoup/soup-message.h"
-#include "libsoup/soup-headers.h"
+#include <libsoup/soup.h>
 
 #include "test-utils.h"
 
@@ -822,41 +821,51 @@ do_qvalue_tests (void)
 	}
 }
 
-#define RFC2231_TEST_FILENAME "t\xC3\xA9st.txt"
-#define RFC2231_TEST_HEADER "attachment; filename*=UTF-8''t%C3%A9st.txt"
+#define RFC5987_TEST_FILENAME "t\xC3\xA9st.txt"
+#define RFC5987_TEST_FALLBACK_FILENAME "test.txt"
+
+#define RFC5987_TEST_HEADER_ENCODED  "attachment; filename*=UTF-8''t%C3%A9st.txt"
+
+#define RFC5987_TEST_HEADER_UTF8     "attachment; filename*=UTF-8''t%C3%A9st.txt; filename=\"test.txt\""
+#define RFC5987_TEST_HEADER_ISO      "attachment; filename=\"test.txt\"; filename*=iso-8859-1''t%E9st.txt"
+#define RFC5987_TEST_HEADER_FALLBACK "attachment; filename*=Unknown''t%FF%FF%FFst.txt; filename=\"test.txt\""
 
 static void
-do_rfc2231_tests (void)
+do_content_disposition_tests (void)
 {
 	SoupMessageHeaders *hdrs;
 	GHashTable *params;
 	const char *header, *filename;
 	char *disposition;
+	SoupBuffer *buffer;
+	SoupMultipart *multipart;
+	SoupMessageBody *body;
 
-	debug_printf (1, "rfc2231 tests\n");
+	debug_printf (1, "Content-Disposition tests\n");
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
-	g_hash_table_insert (params, "filename", RFC2231_TEST_FILENAME);
+	g_hash_table_insert (params, "filename", RFC5987_TEST_FILENAME);
 	soup_message_headers_set_content_disposition (hdrs, "attachment", params);
 	g_hash_table_destroy (params);
 
 	header = soup_message_headers_get_one (hdrs, "Content-Disposition");
-	if (!strcmp (header, RFC2231_TEST_HEADER))
+	if (!strcmp (header, RFC5987_TEST_HEADER_ENCODED))
 		debug_printf (1, "  encoded OK\n");
 	else {
 		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC2231_TEST_HEADER, header);
+			      RFC5987_TEST_HEADER_ENCODED, header);
 		errors++;
 	}
 
+	/* UTF-8 decoding */
 	soup_message_headers_clear (hdrs);
 	soup_message_headers_append (hdrs, "Content-Disposition",
-				     RFC2231_TEST_HEADER);
+				     RFC5987_TEST_HEADER_UTF8);
 	if (!soup_message_headers_get_content_disposition (hdrs,
 							   &disposition,
 							   &params)) {
-		debug_printf (1, "  decoding FAILED!\n    could not parse\n");
+		debug_printf (1, "  UTF-8 decoding FAILED!\n    could not parse\n");
 		errors++;
 		return;
 	}
@@ -864,17 +873,91 @@ do_rfc2231_tests (void)
 
 	filename = g_hash_table_lookup (params, "filename");
 	if (!filename) {
-		debug_printf (1, "  decoding FAILED!\n    could not file filename\n");
+		debug_printf (1, "  UTF-8 decoding FAILED!\n    could not find filename\n");
 		errors++;
-	} else if (strcmp (filename, RFC2231_TEST_FILENAME) != 0) {
-		debug_printf (1, "  decoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC2231_TEST_FILENAME, filename);
+	} else if (strcmp (filename, RFC5987_TEST_FILENAME) != 0) {
+		debug_printf (1, "  UTF-8 decoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      RFC5987_TEST_FILENAME, filename);
 		errors++;
 	} else
-		debug_printf (1, "  decoded OK\n");
-
+		debug_printf (1, "  UTF-8 decoded OK\n");
 	g_hash_table_destroy (params);
+
+	/* ISO-8859-1 decoding */
+	soup_message_headers_clear (hdrs);
+	soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC5987_TEST_HEADER_ISO);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    could not parse\n");
+		errors++;
+		return;
+	}
+	g_free (disposition);
+
+	filename = g_hash_table_lookup (params, "filename");
+	if (!filename) {
+		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    could not find filename\n");
+		errors++;
+	} else if (strcmp (filename, RFC5987_TEST_FILENAME) != 0) {
+		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      RFC5987_TEST_FILENAME, filename);
+		errors++;
+	} else
+		debug_printf (1, "  iso-8859-1 decoded OK\n");
+	g_hash_table_destroy (params);
+
+	/* Fallback */
+	soup_message_headers_clear (hdrs);
+	soup_message_headers_append (hdrs, "Content-Disposition",
+				     RFC5987_TEST_HEADER_FALLBACK);
+	if (!soup_message_headers_get_content_disposition (hdrs,
+							   &disposition,
+							   &params)) {
+		debug_printf (1, "  fallback decoding FAILED!\n    could not parse\n");
+		errors++;
+		return;
+	}
+	g_free (disposition);
+
+	filename = g_hash_table_lookup (params, "filename");
+	if (!filename) {
+		debug_printf (1, "  fallback decoding FAILED!\n    could not find filename\n");
+		errors++;
+	} else if (strcmp (filename, RFC5987_TEST_FALLBACK_FILENAME) != 0) {
+		debug_printf (1, "  fallback decoding FAILED!\n    expected: %s\n    got:      %s\n",
+			      RFC5987_TEST_FALLBACK_FILENAME, filename);
+		errors++;
+	} else
+		debug_printf (1, "  fallback decoded OK\n");
+	g_hash_table_destroy (params);
+
 	soup_message_headers_free (hdrs);
+
+	/* Ensure that soup-multipart always quotes filename (bug 641280) */
+	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
+	buffer = soup_buffer_new (SOUP_MEMORY_STATIC, "foo", 3);
+	soup_multipart_append_form_file (multipart, "test", "token",
+					 "text/plain", buffer);
+	soup_buffer_free (buffer);
+
+	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
+	body = soup_message_body_new ();
+	soup_multipart_to_message (multipart, hdrs, body);
+	soup_message_headers_free (hdrs);
+	soup_multipart_free (multipart);
+
+	buffer = soup_message_body_flatten (body);
+	soup_message_body_free (body);
+
+	if (strstr (buffer->data, "filename=\"token\""))
+		debug_printf (1, "  SoupMultipart encoded filename correctly\n");
+	else {
+		debug_printf (1, "  SoupMultipart encoded filename incorrectly!\n");
+		errors++;
+	}
+	soup_buffer_free (buffer);
 
 	debug_printf (1, "\n");
 }
@@ -1037,7 +1120,7 @@ main (int argc, char **argv)
 	do_request_tests ();
 	do_response_tests ();
 	do_qvalue_tests ();
-	do_rfc2231_tests ();
+	do_content_disposition_tests ();
 	do_content_type_tests ();
 	do_append_param_tests ();
 	do_bad_header_tests ();
