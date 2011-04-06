@@ -175,6 +175,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-ssl.c	     		\
 	soup-status.c			\
 	soup-uri.c			\
+	soup-uri-private.h		\
 	soup-value-utils.c		\
 	soup-xmlrpc.c
 

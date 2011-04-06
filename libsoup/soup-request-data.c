@@ -30,6 +30,7 @@
 #include "soup-request-data.h"
 
 #include "soup-requester.h"
+#include "soup-uri-private.h"
 #include <libsoup/soup.h>
 #include <glib/gi18n.h>
 
@@ -90,16 +91,8 @@ soup_request_data_send (SoupRequest   *request,
 		} else
 			end = comma;
 
-		if (end != start) {
-			char *encoded_content_type = g_strndup (start, end - start);
-
-			if (base64)
-				data->priv->content_type = encoded_content_type;
-			else {
-				data->priv->content_type = soup_uri_decode (encoded_content_type);
-				g_free (encoded_content_type);
-			}
-		}
+		if (end != start)
+			data->priv->content_type = uri_decoded_copy (start, end - start);
 	}
 
 	memstream = g_memory_input_stream_new ();
@@ -108,25 +101,12 @@ soup_request_data_send (SoupRequest   *request,
 		start = comma + 1;
 
 	if (*start) {
-		guchar *buf;
+		guchar *buf = (guchar *) soup_uri_decode (start);
 
-		if (base64) {
-			int inlen, state = 0;
-			guint save = 0;
-
-			inlen = strlen (start);
-			buf = g_malloc0 (inlen * 3 / 4 + 3);
-			data->priv->content_length =
-				g_base64_decode_step (start, inlen, buf,
-						      &state, &save);
-			if (state != 0) {
-				g_free (buf);
-				goto fail;
-			}
-		} else {
-			buf = (guchar *) soup_uri_decode (start);
+		if (base64)
+			buf = g_base64_decode_inplace ((gchar*) buf, &data->priv->content_length);
+		else
 			data->priv->content_length = strlen ((const char *) buf);
-		}
 
 		g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (memstream),
 						buf, data->priv->content_length,
@@ -135,13 +115,6 @@ soup_request_data_send (SoupRequest   *request,
 	g_free (uristr);
 
 	return memstream;
-
- fail:
-	g_free (uristr);
-	g_set_error (error, SOUP_REQUESTER_ERROR, SOUP_REQUESTER_ERROR_BAD_URI,
-		     _("Unable to decode URI: %s"), start);
-	g_object_unref (memstream);
-	return NULL;
 }
 
 static goffset

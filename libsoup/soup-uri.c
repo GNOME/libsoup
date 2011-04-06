@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 #include "soup-uri.h"
+#include "soup-uri-private.h"
 #include "soup-form.h"
 #include "soup-misc.h"
 
@@ -92,7 +93,6 @@
  **/
 
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
-static char *uri_decoded_copy (const char *str, int length);
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 
 gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
@@ -599,7 +599,7 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define XDIGIT(c) ((c) <= '9' ? (c) - '0' : ((c) & 0x4F) - 'A' + 10)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
-static char *
+char *
 uri_decoded_copy (const char *part, int length)
 {
 	unsigned char *s, *d;
