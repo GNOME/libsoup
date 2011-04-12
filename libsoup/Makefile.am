@@ -181,6 +181,14 @@ libsoup_2_4_la_SOURCES =		\
 
 if BUILD_LIBSOUP_GNOME
 
+if OS_WIN32
+soup_password_manager_gnome_files =	
+else
+soup_password_manager_gnome_files =	\
+	soup-password-manager-gnome.h	\
+	soup-password-manager-gnome.c
+endif
+
 libsoupgnomeincludedir = $(includedir)/libsoup-gnome-2.4/libsoup
 
 libsoupgnomeinclude_HEADERS =	\
@@ -203,8 +211,7 @@ libsoup_gnome_2_4_la_SOURCES =		\
 	soup-gnome-features.c		\
 	soup-proxy-resolver-gnome.h	\
 	soup-proxy-resolver-gnome.c	\
-	soup-password-manager-gnome.h	\
-	soup-password-manager-gnome.c
+	$(soup_password_manager_gnome_files)
 
 endif
 

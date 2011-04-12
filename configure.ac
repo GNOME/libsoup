@@ -115,7 +115,7 @@ AC_ARG_WITH(gnome,
 	    :, [if test $os_win32 = yes; then with_gnome=no; else with_gnome=yes; fi])
 AC_MSG_RESULT($with_gnome)
 
-if test $with_gnome != no; then
+if test $with_gnome != no -a $os_win32 != yes; then
 	PKG_CHECK_MODULES(GNOME_KEYRING, gnome-keyring-1, :,
 			  AC_MSG_ERROR(
 [Could not find gnome-keyring devel files.
