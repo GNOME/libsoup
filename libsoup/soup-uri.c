@@ -449,7 +449,7 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 		} else
 			append_uri_encoded (str, uri->host, ":/");
 		if (uri->port && uri->port != soup_scheme_default_port (uri->scheme))
-			g_string_append_printf (str, ":%d", uri->port);
+			g_string_append_printf (str, ":%u", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
 			g_string_append_c (str, '/');
 	}
