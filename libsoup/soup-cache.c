@@ -838,15 +838,15 @@ msg_restarted_cb (SoupMessage *msg, SoupCacheEntry *entry)
 }
 
 static void
-append_to_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixture)
+replace_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixture)
 {
-	GFile *file = (GFile *)source;
-	GOutputStream *stream;
 	SoupCacheEntry *entry = fixture->entry;
-
-	stream = (GOutputStream *)g_file_append_to_finish (file, result, &entry->error);
+	GOutputStream *stream = (GOutputStream *) g_file_replace_finish (G_FILE (source),
+									 result, &entry->error);
 
 	if (g_cancellable_is_cancelled (entry->cancellable) || entry->error) {
+		if (stream)
+			g_object_unref (stream);
 		fixture->cache->priv->n_pending--;
 		entry->dirty = FALSE;
 		soup_cache_entry_remove (fixture->cache, entry);
@@ -855,28 +855,28 @@ append_to_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixtu
 		return;
 	}
 
-	entry->stream = g_object_ref (stream);
-	g_object_unref (file);
+	entry->stream = stream;
 
 	/* If we already got all the data we have to initiate the
-	   writing here, since we won't get more 'got-chunk'
-	   signals */
-	if (entry->got_body) {
-		GString *data = entry->data;
+	 * writing here, since we won't get more 'got-chunk'
+	 * signals
+	 */
+	if (!entry->got_body)
+		return;
 
-		/* It could happen that reading the data from server
-		   was completed before this happens. In that case
-		   there is no data */
-		if (data) {
-			entry->writing = TRUE;
-			g_output_stream_write_async (entry->stream,
-						     data->str + entry->pos,
-						     data->len - entry->pos,
-						     G_PRIORITY_LOW,
-						     entry->cancellable,
-						     (GAsyncReadyCallback)write_ready_cb,
-						     fixture);
-		}
+	/* It could happen that reading the data from server
+	 * was completed before this happens. In that case
+	 * there is no data
+	 */
+	if (entry->data) {
+		entry->writing = TRUE;
+		g_output_stream_write_async (entry->stream,
+					     entry->data->str + entry->pos,
+					     entry->data->len - entry->pos,
+					     G_PRIORITY_LOW,
+					     entry->cancellable,
+					     (GAsyncReadyCallback)write_ready_cb,
+					     fixture);
 	}
 }
 
@@ -953,10 +953,11 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 
 		entry->dirty = TRUE;
 		entry->cancellable = g_cancellable_new ();
-		g_file_append_to_async (file, 0,
-					G_PRIORITY_LOW, entry->cancellable,
-					(GAsyncReadyCallback)append_to_ready_cb,
-					fixture);
+		g_file_replace_async (file, NULL, FALSE,
+				      G_FILE_CREATE_PRIVATE | G_FILE_CREATE_REPLACE_DESTINATION,
+				      G_PRIORITY_LOW, entry->cancellable,
+				      (GAsyncReadyCallback) replace_cb, fixture);
+		g_object_unref (file);
 	} else if (cacheable & SOUP_CACHE_INVALIDATES) {
 		char *key;
 		SoupCacheEntry *entry;
