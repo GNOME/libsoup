@@ -49,9 +49,9 @@ typedef struct {
 	void  (*auth_required)   (SoupSession *session, SoupMessage *msg,
 				  SoupAuth *auth, gboolean retrying);
 
+	void  (*flush_queue)     (SoupSession *session);
 
 	/* Padding for future expansion */
-	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
 	void (*_libsoup_reserved4) (void);
 } SoupSessionClass;

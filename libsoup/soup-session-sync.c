@@ -60,6 +60,7 @@ static void  cancel_message (SoupSession *session, SoupMessage *msg,
 			     guint status_code);
 static void  auth_required  (SoupSession *session, SoupMessage *msg,
 			     SoupAuth *auth, gboolean retrying);
+static void  flush_queue    (SoupSession *session);
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
@@ -96,6 +97,8 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 	session_class->send_message = send_message;
 	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
+	session_class->flush_queue = flush_queue;
+
 	object_class->finalize = finalize;
 }
 
@@ -398,4 +401,47 @@ auth_required (SoupSession *session, SoupMessage *msg,
 
 	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
 		auth_required (session, msg, auth, retrying);
+}
+
+static void
+flush_queue (SoupSession *session)
+{
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
+	SoupMessageQueue *queue;
+	SoupMessageQueueItem *item;
+	GHashTable *current;
+	gboolean done = FALSE;
+
+	/* Record the current contents of the queue */
+	current = g_hash_table_new (NULL, NULL);
+	queue = soup_session_get_queue (session);
+	for (item = soup_message_queue_first (queue);
+	     item;
+	     item = soup_message_queue_next (queue, item))
+		g_hash_table_insert (current, item, item);
+
+	/* Cancel everything */
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->flush_queue (session);
+
+	/* Wait until all of the items in @current have been removed
+	 * from the queue. (This is not the same as "wait for the
+	 * queue to be empty", because the app may queue new requests
+	 * in response to the cancellation of the old ones. We don't
+	 * try to cancel those requests as well, since we'd likely
+	 * just end up looping forever.)
+	 */
+	g_mutex_lock (priv->lock);
+	do {
+		done = TRUE;
+		for (item = soup_message_queue_first (queue);
+		     item;
+		     item = soup_message_queue_next (queue, item)) {
+			if (g_hash_table_lookup (current, item))
+				done = FALSE;
+		}
+
+		if (!done)
+			g_cond_wait (priv->cond, priv->lock);
+	} while (!done);
+	g_mutex_unlock (priv->lock);
 }

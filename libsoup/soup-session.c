@@ -111,6 +111,7 @@ static void cancel_message  (SoupSession *session, SoupMessage *msg,
 			     guint status_code);
 static void auth_required   (SoupSession *session, SoupMessage *msg,
 			     SoupAuth *auth, gboolean retrying);
+static void flush_queue     (SoupSession *session);
 
 static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
@@ -257,6 +258,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	session_class->requeue_message = requeue_message;
 	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
+	session_class->flush_queue = flush_queue;
 
 	/* virtual method override */
 	object_class->dispose = dispose;
@@ -1751,6 +1753,20 @@ gather_conns (gpointer key, gpointer host, gpointer data)
 	*conns = g_slist_prepend (*conns, g_object_ref (conn));
 }
 
+static void
+flush_queue (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+
+	for (item = soup_message_queue_first (priv->queue);
+	     item;
+	     item = soup_message_queue_next (priv->queue, item)) {
+		soup_session_cancel_message (session, item->msg,
+					     SOUP_STATUS_CANCELLED);
+	}
+}
+
 /**
  * soup_session_abort:
  * @session: the session
@@ -1761,18 +1777,12 @@ void
 soup_session_abort (SoupSession *session)
 {
 	SoupSessionPrivate *priv;
-	SoupMessageQueueItem *item;
 	GSList *conns, *c;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	for (item = soup_message_queue_first (priv->queue);
-	     item;
-	     item = soup_message_queue_next (priv->queue, item)) {
-		soup_session_cancel_message (session, item->msg,
-					     SOUP_STATUS_CANCELLED);
-	}
+	SOUP_SESSION_GET_CLASS (session)->flush_queue (session);
 
 	/* Close all connections */
 	g_mutex_lock (priv->host_lock);
