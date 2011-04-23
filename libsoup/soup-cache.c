@@ -1035,7 +1035,8 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	   were the file was no longer there (for example files
 	   removed without notifying the cache */
 	file = g_file_new_for_path (entry->filename);
-	stream = (GInputStream *)g_file_read (file, NULL, NULL);
+	stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
+	g_object_unref (file);
 
 	return stream;
 }
