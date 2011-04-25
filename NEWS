@@ -1,3 +1,33 @@
+Changes in libsoup from 2.34.0 to 2.34.1:
+
+	* Two multipart forms/Content-Disposition fixes [Dan]:
+
+		* UTF-8-encoded header encoding/decoding rules updated
+		  to match RFC 5987. In particular, a UTF-8-encoded
+		  filename parameter in Content-Disposition will now
+		  override an ASCII one.
+
+		* When not using UTF-8-encoded filenames in
+                  Content-Disposition, always quote the filename,
+                  since some servers erroneously fail to handle
+		  non-quoted ones. [#641280]
+
+	* Fixed several memory leaks [Dan, Xan]
+
+	* Fixed decoding base64 data: URLs [#646896, Sergio]
+
+	* Simplified the libsoup-gnome build on Windows by dropping
+          the gnome-keyring dependency. [Fridrich Štrba]
+
+	* Fixed a bug in soup_uri_to_string() in which (invalid) port
+          numbers could be output as negative numbers (tripping up a
+          WebKit "sanity checking" test). [#647767, Sergio]
+
+	* Fixed a cache corruption bug in SoupCache. [#648285, Sergio]
+
+	* Fixed a crash in SoupSessionSync when using
+          soup_session_abort().
+
 Changes in libsoup from 2.33.92 to 2.34.0:
 
 	* Fixed the GMainContext handling of the new
