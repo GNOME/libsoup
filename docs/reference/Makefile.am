@@ -61,7 +61,10 @@ GTKDOC_CFLAGS =				\
 	$(XML_CFLAGS)			\
 	$(GNUTLS_CFLAGS)
 
-GTKDOC_LIBS = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
+GTKDOC_LIBS =						\
+	$(top_builddir)/libsoup/libsoup-2.4.la		\
+	$(top_builddir)/libsoup/libsoup-gnome-2.4.la	\
+	$(GLIB_LIBS)
 
 # include common portion ...
 include $(top_srcdir)/gtk-doc.make
