@@ -445,32 +445,12 @@ test_disabled (const char *path)
 	g_main_loop_unref (loop);
 }
 
-/* Fix up XDG_DATA_DIRS for jhbuild runs so that it still works even
- * if you didn't install shared-mime-info.
- */
-static void
-fixup_xdg_dirs (void)
-{
-	const char *xdg_data_dirs = g_getenv ("XDG_DATA_DIRS");
-	char *new_data_dirs;
-
-	if (xdg_data_dirs &&
-	    !g_str_has_prefix (xdg_data_dirs, "/usr/share") &&
-	    !strstr (xdg_data_dirs, ":/usr/share")) {
-		new_data_dirs = g_strdup_printf ("%s:/usr/share", xdg_data_dirs);
-		g_setenv ("XDG_DATA_DIRS", new_data_dirs, TRUE);
-		g_free (new_data_dirs);
-	}
-}
-
 int
 main (int argc, char **argv)
 {
 	SoupServer *server;
 
 	test_init (argc, argv, NULL);
-
-	fixup_xdg_dirs ();
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
@@ -533,11 +513,24 @@ main (int argc, char **argv)
 	 */
 	test_sniffing ("/text_or_binary/test.html", "text/plain");
 
+	/* text/plain with binary content and unknown pattern should be
+	 * application/octet-stream */
+	test_sniffing ("/text_or_binary/text_binary.txt", "application/octet-stream");
+
+	/* text/plain with binary content and scriptable pattern should be
+	 * application/octet-stream to avoid 'privilege escalation' */
+	test_sniffing ("/text_or_binary/html_binary.html", "application/octet-stream");
+
+	/* text/plain with binary content and non scriptable known pattern should
+	 * be the given type */
+	test_sniffing ("/text_or_binary/ps_binary.ps", "application/postscript");
+
 	/* Test the unknown sniffing path */
 
 	test_sniffing ("/unknown/test.html", "text/html");
 	test_sniffing ("/unknown/home.gif", "image/gif");
-	test_sniffing ("/unknown/mbox", "application/mbox");
+	test_sniffing ("/unknown/mbox", "text/plain");
+	test_sniffing ("/unknown/text_binary.txt", "application/octet-stream");
 
 	/* Test the XML sniffing path */
 

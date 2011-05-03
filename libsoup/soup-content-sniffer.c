@@ -10,7 +10,6 @@
 #endif
 
 #include <string.h>
-#include <gio/gio.h>
 
 #include "soup-content-sniffer.h"
 #include "soup-enum-types.h"
@@ -250,27 +249,6 @@ static char byte_looks_binary[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0xF0 - 0xFF */
 };
 
-static char *
-sniff_gio (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer)
-{
-	SoupURI *uri;
-	char *uri_path;
-	char *content_type;
-	char *mime_type;
-	gboolean uncertain;
-
-	uri = soup_message_get_uri (msg);
-	uri_path = soup_uri_to_string (uri, TRUE);
-
-	content_type= g_content_type_guess (uri_path, (const guchar*)buffer->data, buffer->length, &uncertain);
-	mime_type = g_content_type_get_mime_type (content_type);
-
-	g_free (uri_path);
-	g_free (content_type);
-
-	return mime_type;
-}
-
 /* HTML5: 2.7.4 Content-Type sniffing: unknown type */
 static char*
 sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
@@ -278,7 +256,6 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
 {
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
-	char *gio_guess;
 	int i;
 
 	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
@@ -338,29 +315,15 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
 		}
 	}
 
-	/* The spec allows us to use platform sniffing to find out
-	 * about other types that are not covered, but we need to be
-	 * careful to not escalate privileges, if on text or binary.
-	 */
-	gio_guess = sniff_gio (sniffer, msg, buffer);
+	if (for_text_or_binary)
+		return g_strdup ("application/octet-stream");
 
-	if (for_text_or_binary) {
-		for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
-			SoupContentSnifferPattern *type_row = &(types_table[i]);
-
-			if (!g_ascii_strcasecmp (type_row->sniffed_type, gio_guess) &&
-			    type_row->scriptable) {
-				g_free (gio_guess);
-				gio_guess = NULL;
-				break;
-			}
-		}
+	for (i = 0; i < resource_length; i++) {
+		if (byte_looks_binary[resource[i]])
+			return g_strdup ("application/octet-stream");
 	}
 
-	if (gio_guess)
-		return gio_guess;
-
-	return g_strdup ("application/octet-stream");
+	return g_strdup ("text/plain");
 }
 
 /* HTML5: 2.7.3 Content-Type sniffing: text or binary */
