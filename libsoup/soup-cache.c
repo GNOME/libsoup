@@ -1343,8 +1343,10 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 			max_age = (int)MIN (g_ascii_strtoll (value, NULL, 10), G_MAXINT32);
 			/* Forcing cache revalidaton
 			 */
-			if (!max_age)
+			if (!max_age) {
+				soup_header_free_param_list (hash);
 				return SOUP_CACHE_RESPONSE_NEEDS_VALIDATION;
+			}
 		}
 
 		/* max-stale can have no value set, we need to use _extended */
