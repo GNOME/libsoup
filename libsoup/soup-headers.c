@@ -136,23 +136,6 @@ done:
 	return success;
 }
 
-/* RFC 2616 14.10 */
-static void
-soup_headers_clean_for_10 (SoupMessageHeaders *hdrs)
-{
-	const char *connection;
-	GSList *tokens, *t;
-
-	connection = soup_message_headers_get_list (hdrs, "Connection");
-	if (!connection)
-		return;
-
-	tokens = soup_header_parse_list (connection);
-	for (t = tokens; t; t = t->next)
-		soup_message_headers_remove (hdrs, t->data);
-	soup_header_free_list (tokens);
-}
-
 /**
  * soup_headers_parse_request:
  * @str: the header string (including the trailing blank line)
@@ -251,8 +234,9 @@ soup_headers_parse_request (const char          *str,
 	if (soup_message_headers_get_expectations (req_headers) &
 	    SOUP_EXPECTATION_UNRECOGNIZED)
 		return SOUP_STATUS_EXPECTATION_FAILED;
+	/* RFC 2616 14.10 */
 	if (minor_version == 0)
-		soup_headers_clean_for_10 (req_headers);
+		soup_message_headers_clean_connection_headers (req_headers);
 
 	if (req_method)
 		*req_method = g_strndup (method, method_end - method);
@@ -392,8 +376,9 @@ soup_headers_parse_response (const char          *str,
 	if (ver)
 		*ver = version;
 
+	/* RFC 2616 14.10 */
 	if (version == SOUP_HTTP_1_0)
-		soup_headers_clean_for_10 (headers);
+		soup_message_headers_clean_connection_headers (headers);
 
 	return TRUE;
 }

@@ -260,13 +260,17 @@ copy_headers (const char *name, const char *value, SoupMessageHeaders *headers)
 	soup_message_headers_append (headers, name, value);
 }
 
+static char *hop_by_hop_headers[] = {"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade"};
+
 static void
-update_headers (const char *name, const char *value, SoupMessageHeaders *headers)
+copy_end_to_end_headers (SoupMessageHeaders *source, SoupMessageHeaders *destination)
 {
-	if (soup_message_headers_get (headers, name))
-		soup_message_headers_replace (headers, name, value);
-	else
-		soup_message_headers_append (headers, name, value);
+	int i;
+
+	soup_message_headers_foreach (source, (SoupMessageHeadersForeachFunc) copy_headers, destination);
+	for (i = 0; i < G_N_ELEMENTS (hop_by_hop_headers); i++)
+		soup_message_headers_remove (destination, hop_by_hop_headers[i]);
+	soup_message_headers_clean_connection_headers (destination);
 }
 
 static guint
@@ -413,7 +417,6 @@ static SoupCacheEntry *
 soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, time_t response_time)
 {
 	SoupCacheEntry *entry;
-	SoupMessageHeaders *headers;
 	const char *date;
 	char *md5;
 
@@ -433,11 +436,8 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	g_free (md5);
 
 	/* Headers */
-	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
-	soup_message_headers_foreach (msg->response_headers,
-				      (SoupMessageHeadersForeachFunc)copy_headers,
-				      headers);
-	entry->headers = headers;
+	entry->headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	copy_end_to_end_headers (msg->response_headers, entry->headers);
 
 	/* LRU list */
 	entry->hits = 0;
@@ -985,12 +985,7 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 		 */
 		if (entry) {
 			entry->being_validated = FALSE;
-
-			/* We update the headers of the existing cache item,
-			   plus its age */
-			soup_message_headers_foreach (msg->response_headers,
-						      (SoupMessageHeadersForeachFunc)update_headers,
-						      entry->headers);
+			copy_end_to_end_headers (msg->response_headers, entry->headers);
 			soup_cache_entry_set_freshness (entry, msg, cache);
 		}
 	}
@@ -1018,9 +1013,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	entry->being_validated = FALSE;
 
 	/* Headers */
-	soup_message_headers_foreach (entry->headers,
-				      (SoupMessageHeadersForeachFunc)update_headers,
-				      msg->response_headers);
+	copy_end_to_end_headers (entry->headers, msg->response_headers);
 
 	/* Add 'Age' header with the current age */
 	current_age = g_strdup_printf ("%d", soup_cache_entry_get_current_age (entry));
