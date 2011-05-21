@@ -310,7 +310,7 @@ linkend="soup-session-queue-message"><function>soup_session_queue_message</funct
 }
 
 static void
-my_callback (SoupSession, *session, SoupMessage *msg, gpointer user_data)
+my_callback (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	/* Handle the response here */
 }
