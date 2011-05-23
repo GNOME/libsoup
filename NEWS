@@ -1,3 +1,11 @@
+Changes in libsoup from 2.34.1 to 2.34.2:
+
+	* Minor build fix for Debian/Ubuntu [#648948]
+
+	* Two SoupCache-related leak fixes [Xan]
+
+	* Fixed a docs typo
+
 Changes in libsoup from 2.34.0 to 2.34.1:
 
 	* Two multipart forms/Content-Disposition fixes [Dan]:
