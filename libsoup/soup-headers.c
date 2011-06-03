@@ -755,6 +755,8 @@ parse_param_list (const char *header, char delim)
 
 		if (override || !g_hash_table_lookup (params, item))
 			g_hash_table_replace (params, item, value);
+		else
+			g_free (item);
 	}
 
 	g_slist_free (list);
