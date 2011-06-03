@@ -444,4 +444,6 @@ flush_queue (SoupSession *session)
 			g_cond_wait (priv->cond, priv->lock);
 	} while (!done);
 	g_mutex_unlock (priv->lock);
+
+	g_hash_table_destroy (current);
 }

@@ -20,6 +20,8 @@ resolve_callback (SoupAddress *addr, guint status, gpointer data)
 	}
 	printf ("\n");
 
+	g_object_unref (addr);
+
 	nlookups--;
 	if (nlookups == 0)
 		g_main_loop_quit (loop);
