@@ -117,7 +117,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_FIRST,
 			      0, NULL, NULL,
-			      soup_marshal_NONE__STRING_STRING,
+			      _soup_marshal_NONE__STRING_STRING,
 			      G_TYPE_NONE, 2,
 			      G_TYPE_STRING,
 			      G_TYPE_STRING);

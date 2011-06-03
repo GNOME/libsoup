@@ -167,7 +167,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupConnectionClass, disconnected),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      _soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
 	/* properties */

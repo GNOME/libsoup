@@ -247,7 +247,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_started),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_POINTER,
+			      _soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2, 
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -272,7 +272,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_read),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_POINTER,
+			      _soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -292,7 +292,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_finished),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_POINTER,
+			      _soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -321,7 +321,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_aborted),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_POINTER,
+			      _soup_marshal_NONE__OBJECT_POINTER,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);

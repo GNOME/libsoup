@@ -209,7 +209,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, readable),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      _soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -225,7 +225,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, writable),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      _soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -241,7 +241,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, disconnected),
 			      NULL, NULL,
-			      soup_marshal_NONE__NONE,
+			      _soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -261,7 +261,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSocketClass, new_connection),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
+			      _soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_SOCKET);
 	/**

@@ -341,7 +341,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0, /* FIXME? */
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
+			      _soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
 
@@ -361,7 +361,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, request_started),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_OBJECT,
+			      _soup_marshal_NONE__OBJECT_OBJECT,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_SOCKET);
@@ -384,7 +384,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0, /* FIXME? */
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
+			      _soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
 
@@ -417,7 +417,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, authenticate),
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      _soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
 			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_AUTH,
@@ -440,7 +440,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0,
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
+			      _soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      /* SoupConnection is private, so we can't use
 			       * SOUP_TYPE_CONNECTION here.
@@ -464,7 +464,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0,
 			      NULL, NULL,
-			      soup_marshal_NONE__OBJECT,
+			      _soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      /* SoupConnection is private, so we can't use
 			       * SOUP_TYPE_CONNECTION here.
