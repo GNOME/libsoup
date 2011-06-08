@@ -1008,6 +1008,19 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	g_free (key);
 	g_return_val_if_fail (entry, NULL);
 
+	/* TODO: the original idea was to save reads, but current code
+	   assumes that a stream is always returned. Need to reach
+	   some agreement here. Also we have to handle the situation
+	   were the file was no longer there (for example files
+	   removed without notifying the cache */
+	file = g_file_new_for_path (entry->filename);
+	stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
+	g_object_unref (file);
+
+	/* Do not change the original message if there is no resource */
+	if (stream == NULL)
+		return stream;
+
 	/* If we are told to send a response from cache any validation
 	   in course is over by now */
 	entry->being_validated = FALSE;
@@ -1021,15 +1034,6 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 				      "Age",
 				      current_age);
 	g_free (current_age);
-
-	/* TODO: the original idea was to save reads, but current code
-	   assumes that a stream is always returned. Need to reach
-	   some agreement here. Also we have to handle the situation
-	   were the file was no longer there (for example files
-	   removed without notifying the cache */
-	file = g_file_new_for_path (entry->filename);
-	stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
-	g_object_unref (file);
 
 	return stream;
 }

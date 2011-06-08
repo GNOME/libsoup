@@ -133,14 +133,15 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
 		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
 
-		httpstream = (SoupHTTPInputStream *)soup_cache_send_response (cache, msg);
+		httpstream = (SoupHTTPInputStream *)soup_cache_send_response (cache, helper->original);
 		if (httpstream) {
 			g_simple_async_result_set_op_res_gpointer (simple, httpstream, g_object_unref);
 
 			soup_message_got_headers (helper->original);
 
 			if (soup_session_get_feature_for_message (session, SOUP_TYPE_CONTENT_SNIFFER, helper->original)) {
-			 	const char *content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+				const char *content_type =
+					soup_message_headers_get_content_type (helper->original->response_headers, NULL);
 			 	soup_message_content_sniffed (helper->original, content_type, NULL);
 			}
 
