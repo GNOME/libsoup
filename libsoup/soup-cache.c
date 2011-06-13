@@ -70,12 +70,10 @@ typedef struct _SoupCacheEntry {
 	char *filename;
 	guint32 freshness_lifetime;
 	gboolean must_revalidate;
-	GString *data;
-	gsize pos;
 	gsize length;
 	guint32 corrected_initial_age;
 	guint32 response_time;
-	gboolean writing;
+	SoupBuffer *current_writing_buffer;
 	gboolean dirty;
 	gboolean got_body;
 	gboolean being_validated;
@@ -106,6 +104,7 @@ typedef struct {
 	gulong got_chunk_handler;
 	gulong got_body_handler;
 	gulong restarted_handler;
+	GQueue *buffer_queue;
 } SoupCacheWritingFixture;
 
 enum {
@@ -123,6 +122,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupCache, soup_cache, G_TYPE_OBJECT,
 static gboolean soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry);
 static void make_room_for_new_entry (SoupCache *cache, guint length_to_add);
 static gboolean cache_accepts_entries_of_size (SoupCache *cache, guint length_to_add);
+static gboolean write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture);
 
 static SoupCacheability
 get_cacheability (SoupCache *cache, SoupMessage *msg)
@@ -248,14 +248,14 @@ soup_cache_entry_free (SoupCacheEntry *entry, gboolean purge)
 	g_free (entry->key);
 	entry->key = NULL;
 
+	if (entry->current_writing_buffer) {
+		soup_buffer_free (entry->current_writing_buffer);
+		entry->current_writing_buffer = NULL;
+	}
+
 	if (entry->headers) {
 		soup_message_headers_free (entry->headers);
 		entry->headers = NULL;
-	}
-
-	if (entry->data) {
-		g_string_free (entry->data, TRUE);
-		entry->data = NULL;
 	}
 	if (entry->error) {
 		g_error_free (entry->error);
@@ -437,11 +437,9 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 
 	entry = g_slice_new0 (SoupCacheEntry);
 	entry->dirty = FALSE;
-	entry->writing = FALSE;
+	entry->current_writing_buffer = NULL;
 	entry->got_body = FALSE;
 	entry->being_validated = FALSE;
-	entry->data = g_string_new (NULL);
-	entry->pos = 0;
 	entry->error = NULL;
 	entry->status_code = msg->status_code;
 
@@ -502,6 +500,8 @@ soup_cache_writing_fixture_free (SoupCacheWritingFixture *fixture)
 		g_signal_handler_disconnect (fixture->msg, fixture->got_body_handler);
 	if (g_signal_handler_is_connected (fixture->msg, fixture->restarted_handler))
 		g_signal_handler_disconnect (fixture->msg, fixture->restarted_handler);
+	g_queue_foreach (fixture->buffer_queue, (GFunc) soup_buffer_free, NULL);
+	g_queue_free (fixture->buffer_queue);
 	g_object_unref (fixture->msg);
 	g_object_unref (fixture->cache);
 	g_slice_free (SoupCacheWritingFixture, fixture);
@@ -566,16 +566,13 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 	}
 
 	if (entry) {
-		/* Get rid of the GString in memory for the resource now */
-		if (entry->data) {
-			g_string_free (entry->data, TRUE);
-			entry->data = NULL;
-		}
-
 		entry->dirty = FALSE;
-		entry->writing = FALSE;
 		entry->got_body = FALSE;
-		entry->pos = 0;
+
+		if (entry->current_writing_buffer) {
+			soup_buffer_free (entry->current_writing_buffer);
+			entry->current_writing_buffer = NULL;
+		}
 
 		g_object_unref (entry->cancellable);
 		entry->cancellable = NULL;
@@ -616,20 +613,13 @@ write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 		/* FIXME: We should completely stop caching the
 		   resource at this point */
 	} else {
-		entry->pos += write_size;
-
 		/* Are we still writing and is there new data to write
 		   already ? */
-		if (entry->data && entry->pos < entry->data->len) {
-			g_output_stream_write_async (entry->stream,
-						     entry->data->str + entry->pos,
-						     entry->data->len - entry->pos,
-						     G_PRIORITY_LOW,
-						     entry->cancellable,
-						     (GAsyncReadyCallback)write_ready_cb,
-						     fixture);
-		} else {
-			entry->writing = FALSE;
+		if (fixture->buffer_queue->length > 0)
+			write_next_buffer (entry, fixture);
+		else {
+			soup_buffer_free (entry->current_writing_buffer);
+			entry->current_writing_buffer = NULL;
 
 			if (entry->got_body) {
 				/* If we already received 'got-body'
@@ -645,18 +635,37 @@ write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 	}
 }
 
+static gboolean
+write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture)
+{
+	SoupBuffer *buffer = g_queue_pop_head (fixture->buffer_queue);
+
+	if (buffer == NULL)
+		return FALSE;
+
+	/* Free the old buffer */
+	if (entry->current_writing_buffer) {
+		soup_buffer_free (entry->current_writing_buffer);
+		entry->current_writing_buffer = NULL;
+	}
+	entry->current_writing_buffer = buffer;
+
+	g_output_stream_write_async (entry->stream, buffer->data, buffer->length,
+				     G_PRIORITY_LOW, entry->cancellable,
+				     (GAsyncReadyCallback) write_ready_cb,
+				     fixture);
+	return TRUE;
+}
+
 static void
 msg_got_chunk_cb (SoupMessage *msg, SoupBuffer *chunk, SoupCacheWritingFixture *fixture)
 {
 	SoupCacheEntry *entry = fixture->entry;
 
-	g_return_if_fail (chunk->data && chunk->length);
-	g_return_if_fail (entry);
-
 	/* Ignore this if the writing or appending was cancelled */
 	if (!g_cancellable_is_cancelled (entry->cancellable)) {
-		g_string_append_len (entry->data, chunk->data, chunk->length);
-		entry->length = entry->data->len;
+		g_queue_push_tail (fixture->buffer_queue, soup_buffer_copy (chunk));
+		entry->length += chunk->length;
 
 		if (!cache_accepts_entries_of_size (fixture->cache, entry->length)) {
 			/* Quickly cancel the caching of the resource */
@@ -667,17 +676,8 @@ msg_got_chunk_cb (SoupMessage *msg, SoupBuffer *chunk, SoupCacheWritingFixture *
 	/* FIXME: remove the error check when we cancel the caching at
 	   the first write error */
 	/* Only write if the entry stream is ready */
-	if (entry->writing == FALSE && entry->error == NULL && entry->stream) {
-		GString *data = entry->data;
-		entry->writing = TRUE;
-		g_output_stream_write_async (entry->stream,
-					     data->str + entry->pos,
-					     data->len - entry->pos,
-					     G_PRIORITY_LOW,
-					     entry->cancellable,
-					     (GAsyncReadyCallback)write_ready_cb,
-					     fixture);
-	}
+	if (entry->current_writing_buffer == NULL && entry->error == NULL && entry->stream)
+		write_next_buffer (entry, fixture);
 }
 
 static void
@@ -688,29 +688,22 @@ msg_got_body_cb (SoupMessage *msg, SoupCacheWritingFixture *fixture)
 
 	entry->got_body = TRUE;
 
-	if (!entry->stream && entry->pos != entry->length)
+	if (!entry->stream && fixture->buffer_queue->length > 0)
 		/* The stream is not ready to be written but we still
 		   have data to write, we'll write it when the stream
 		   is opened for writing */
 		return;
 
 
-	if (entry->pos != entry->length) {
+	if (fixture->buffer_queue->length > 0) {
 		/* If we still have data to write, write it,
 		   write_ready_cb will close the stream */
-		if (entry->writing == FALSE && entry->error == NULL && entry->stream) {
-			g_output_stream_write_async (entry->stream,
-						     entry->data->str + entry->pos,
-						     entry->data->len - entry->pos,
-						     G_PRIORITY_LOW,
-						     entry->cancellable,
-						     (GAsyncReadyCallback)write_ready_cb,
-						     fixture);
-		}
+		if (entry->current_writing_buffer == NULL && entry->error == NULL && entry->stream)
+			write_next_buffer (entry, fixture);
 		return;
 	}
 
-	if (entry->stream && !entry->writing)
+	if (entry->stream && entry->current_writing_buffer == NULL)
 		g_output_stream_close_async (entry->stream,
 					     G_PRIORITY_LOW,
 					     entry->cancellable,
@@ -884,16 +877,11 @@ replace_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixt
 	 * was completed before this happens. In that case
 	 * there is no data
 	 */
-	if (entry->data) {
-		entry->writing = TRUE;
-		g_output_stream_write_async (entry->stream,
-					     entry->data->str + entry->pos,
-					     entry->data->len - entry->pos,
-					     G_PRIORITY_LOW,
-					     entry->cancellable,
-					     (GAsyncReadyCallback)write_ready_cb,
+	if (!write_next_buffer (entry, fixture))
+		/* Could happen if the resource is empty */
+		g_output_stream_close_async (stream, G_PRIORITY_LOW, entry->cancellable,
+					     (GAsyncReadyCallback) close_ready_cb,
 					     fixture);
-	}
 }
 
 typedef struct {
@@ -953,6 +941,7 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 		fixture->cache = g_object_ref (cache);
 		fixture->entry = entry;
 		fixture->msg = g_object_ref (msg);
+		fixture->buffer_queue = g_queue_new ();
 
 		/* We connect now to these signals and buffer the data
 		   if it comes before the file is ready for writing */
@@ -1577,7 +1566,7 @@ pack_entry (gpointer data,
 	GVariantBuilder *entries_builder = (GVariantBuilder *)user_data;
 
 	/* Do not store non-consolidated entries */
-	if (entry->dirty || entry->writing || !entry->key)
+	if (entry->dirty || entry->current_writing_buffer != NULL || !entry->key)
 		return;
 
 	g_variant_builder_open (entries_builder, G_VARIANT_TYPE (SOUP_CACHE_PHEADERS_FORMAT));
