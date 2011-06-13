@@ -30,6 +30,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h>
 #include <gio/gio.h>
 
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
@@ -1554,29 +1555,32 @@ pack_entry (gpointer data,
 	SoupCacheEntry *entry = (SoupCacheEntry *) data;
 	SoupMessageHeadersIter iter;
 	const gchar *header_key, *header_value;
-	GVariantBuilder *headers_builder;
 	GVariantBuilder *entries_builder = (GVariantBuilder *)user_data;
 
 	/* Do not store non-consolidated entries */
 	if (entry->dirty || entry->writing || !entry->key)
 		return;
 
+	g_variant_builder_open (entries_builder, G_VARIANT_TYPE (SOUP_CACHE_PHEADERS_FORMAT));
+	g_variant_builder_add (entries_builder, "s", entry->key);
+	g_variant_builder_add (entries_builder, "s", entry->filename);
+	g_variant_builder_add (entries_builder, "b", entry->must_revalidate);
+	g_variant_builder_add (entries_builder, "u", entry->freshness_lifetime);
+	g_variant_builder_add (entries_builder, "u", entry->corrected_initial_age);
+	g_variant_builder_add (entries_builder, "u", entry->response_time);
+	g_variant_builder_add (entries_builder, "u", entry->hits);
+	g_variant_builder_add (entries_builder, "u", entry->length);
+
 	/* Pack headers */
-	headers_builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_open (entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_HEADERS_FORMAT));
 	soup_message_headers_iter_init (&iter, entry->headers);
 	while (soup_message_headers_iter_next (&iter, &header_key, &header_value)) {
 		if (g_utf8_validate (header_value, -1, NULL))
-			g_variant_builder_add (headers_builder, SOUP_CACHE_HEADERS_FORMAT,
+			g_variant_builder_add (entries_builder, SOUP_CACHE_HEADERS_FORMAT,
 					       header_key, header_value);
 	}
-
-	/* Entry data */
-	g_variant_builder_add (entries_builder, SOUP_CACHE_PHEADERS_FORMAT,
-			       entry->key, entry->filename, entry->must_revalidate,
-			       entry->freshness_lifetime, entry->corrected_initial_age,
-			       entry->response_time, entry->hits, entry->length, headers_builder);
-
-	g_variant_builder_unref (headers_builder);
+	g_variant_builder_close (entries_builder); /* "a" SOUP_CACHE_HEADERS_FORMAT */
+	g_variant_builder_close (entries_builder); /* SOUP_CACHE_PHEADERS_FORMAT */
 }
 
 void
@@ -1584,20 +1588,19 @@ soup_cache_dump (SoupCache *cache)
 {
 	SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
 	gchar *filename;
-	GVariantBuilder *entries_builder;
+	GVariantBuilder entries_builder;
 	GVariant *cache_variant;
 
 	if (!g_list_length (cache->priv->lru_start))
 		return;
 
 	/* Create the builder and iterate over all entries */
-	entries_builder = g_variant_builder_new (G_VARIANT_TYPE_ARRAY);
-	g_list_foreach (cache->priv->lru_start, pack_entry, entries_builder);
+	g_variant_builder_init (&entries_builder, G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT));
+	g_list_foreach (cache->priv->lru_start, pack_entry, &entries_builder);
 
 	/* Serialize and dump */
-	cache_variant = g_variant_new (SOUP_CACHE_ENTRIES_FORMAT, entries_builder);
-	g_variant_builder_unref (entries_builder);
-
+	cache_variant = g_variant_builder_end (&entries_builder);
+	g_variant_ref_sink (cache_variant);
 	filename = g_build_filename (priv->cache_dir, SOUP_CACHE_FILE, NULL);
 	g_file_set_contents (filename, (const gchar *)g_variant_get_data (cache_variant),
 			     g_variant_get_size (cache_variant), NULL);
@@ -1608,11 +1611,13 @@ soup_cache_dump (SoupCache *cache)
 void
 soup_cache_load (SoupCache *cache)
 {
-	gchar *filename = NULL, *contents = NULL;
+	gboolean must_revalidate;
+	uint freshness_lifetime, hits;
+	time_t corrected_initial_age, response_time;
+	char *key, *filename = NULL, *contents = NULL;
 	GVariant *cache_variant;
-	GVariantIter *entries_iter, *headers_iter;
-	GVariantType *variant_format;
-	gsize length;
+	GVariantIter entries_iter, *headers_iter = NULL;
+	gsize length, items;
 	SoupCacheEntry *entry;
 	SoupCachePrivate *priv = cache->priv;
 
@@ -1624,45 +1629,52 @@ soup_cache_load (SoupCache *cache)
 	}
 	g_free (filename);
 
-	variant_format = g_variant_type_new (SOUP_CACHE_ENTRIES_FORMAT);
-	cache_variant = g_variant_new_from_data (variant_format, (const gchar *)contents, length, FALSE, g_free, contents);
-	g_variant_type_free (variant_format);
+	cache_variant = g_variant_new_from_data (G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT),
+						 (const gchar *) contents, length, FALSE, g_free, contents);
+	items = g_variant_iter_init (&entries_iter, cache_variant);
+	g_debug ("Loading %"G_GSIZE_FORMAT" items from cache", items);
 
-	g_variant_get (cache_variant, SOUP_CACHE_ENTRIES_FORMAT, &entries_iter);
-	entry = g_slice_new0 (SoupCacheEntry);
-
-	while (g_variant_iter_loop (entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
-				    &entry->key, &entry->filename, &entry->must_revalidate,
-				    &entry->freshness_lifetime, &entry->corrected_initial_age,
-				    &entry->response_time, &entry->hits, &entry->length,
+	while (g_variant_iter_loop (&entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
+				    &key, &filename, &must_revalidate,
+				    &freshness_lifetime, &corrected_initial_age,
+				    &response_time, &hits, &length,
                                     &headers_iter)) {
 		const gchar *header_key, *header_value;
+		SoupMessageHeaders *headers;
+		SoupMessageHeadersIter soup_headers_iter;
 
 		/* SoupMessage Headers */
-		entry->headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
-		while (g_variant_iter_loop (headers_iter, SOUP_CACHE_DECODE_HEADERS_FORMAT, &header_key, &header_value))
-			soup_message_headers_append (entry->headers, header_key, header_value);
+		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+		while (g_variant_iter_loop (headers_iter, SOUP_CACHE_HEADERS_FORMAT, &header_key, &header_value))
+			if (*header_key && *header_value)
+				soup_message_headers_append (headers, header_key, header_value);
+
+		/* Check that we have headers */
+		soup_message_headers_iter_init (&soup_headers_iter, headers);
+		if (!soup_message_headers_iter_next (&soup_headers_iter, &header_key, &header_value)) {
+			soup_message_headers_free (headers);
+			continue;
+		}
 
 		/* Insert in cache */
-		if (!soup_cache_entry_insert_by_key (cache, (const gchar *)entry->key, entry, FALSE))
-			soup_cache_entry_free (entry, TRUE);
-
-		/* New entry for the next iteration. This creates an
-		   extra object the last iteration but it's worth it
-		   as we save several if's */
 		entry = g_slice_new0 (SoupCacheEntry);
-	}
-	/* Remove last created entry */
-	g_slice_free (SoupCacheEntry, entry);
+		entry->key = g_strdup (key);
+		entry->filename = g_strdup (filename);
+		entry->must_revalidate = must_revalidate;
+		entry->freshness_lifetime = freshness_lifetime;
+		entry->corrected_initial_age = corrected_initial_age;
+		entry->response_time = response_time;
+		entry->hits = hits;
+		entry->length = length;
+		entry->headers = headers;
 
-	/* Sort LRU (shouldn't be needed). First reverse as elements
-	 * are always prepended when inserting
-	 */
+		if (!soup_cache_entry_insert_by_key (cache, entry->key, entry, FALSE))
+			soup_cache_entry_free (entry, TRUE);
+	}
+
 	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
-	cache->priv->lru_start = g_list_sort (cache->priv->lru_start, lru_compare_func);
 
 	/* frees */
-	g_variant_iter_free (entries_iter);
 	g_variant_unref (cache_variant);
 }
 
