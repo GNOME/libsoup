@@ -55,8 +55,10 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
 /*
  * Version 2: cache is now saved in soup.cache2. Added the version
  * number to the beginning of the file.
+ *
+ * Version 3: added HTTP status code to the cache entries.
  */
-#define SOUP_CACHE_CURRENT_VERSION 2
+#define SOUP_CACHE_CURRENT_VERSION 3
 
 typedef struct _SoupCacheEntry {
 	char *key;
@@ -77,6 +79,7 @@ typedef struct _SoupCacheEntry {
 	GError *error;
 	guint hits;
 	GCancellable *cancellable;
+	guint status_code;
 } SoupCacheEntry;
 
 struct _SoupCachePrivate {
@@ -435,6 +438,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	entry->data = g_string_new (NULL);
 	entry->pos = 0;
 	entry->error = NULL;
+	entry->status_code = msg->status_code;
 
 	/* key & filename */
 	entry->key = soup_message_get_cache_key (msg);
@@ -1032,6 +1036,9 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	   in course is over by now */
 	entry->being_validated = FALSE;
 
+	/* Status */
+	soup_message_set_status (msg, entry->status_code);
+
 	/* Headers */
 	copy_end_to_end_headers (entry->headers, msg->response_headers);
 
@@ -1547,7 +1554,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 #define SOUP_CACHE_FILE "soup.cache2"
 
 #define SOUP_CACHE_HEADERS_FORMAT "{ss}"
-#define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuua" SOUP_CACHE_HEADERS_FORMAT ")"
+#define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuuua" SOUP_CACHE_HEADERS_FORMAT ")"
 #define SOUP_CACHE_ENTRIES_FORMAT "(ua" SOUP_CACHE_PHEADERS_FORMAT ")"
 
 /* Basically the same format than above except that some strings are
@@ -1577,6 +1584,7 @@ pack_entry (gpointer data,
 	g_variant_builder_add (entries_builder, "u", entry->response_time);
 	g_variant_builder_add (entries_builder, "u", entry->hits);
 	g_variant_builder_add (entries_builder, "u", entry->length);
+	g_variant_builder_add (entries_builder, "u", entry->status_code);
 
 	/* Pack headers */
 	g_variant_builder_open (entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_HEADERS_FORMAT));
@@ -1646,7 +1654,7 @@ void
 soup_cache_load (SoupCache *cache)
 {
 	gboolean must_revalidate;
-	uint freshness_lifetime, hits;
+	uint freshness_lifetime, hits, status_code;
 	time_t corrected_initial_age, response_time;
 	char *key, *filename = NULL, *contents = NULL;
 	GVariant *cache_variant;
@@ -1680,7 +1688,7 @@ soup_cache_load (SoupCache *cache)
 	while (g_variant_iter_loop (entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
 				    &key, &filename, &must_revalidate,
 				    &freshness_lifetime, &corrected_initial_age,
-				    &response_time, &hits, &length,
+				    &response_time, &hits, &length, &status_code,
                                     &headers_iter)) {
 		const gchar *header_key, *header_value;
 		SoupMessageHeaders *headers;
@@ -1710,6 +1718,7 @@ soup_cache_load (SoupCache *cache)
 		entry->hits = hits;
 		entry->length = length;
 		entry->headers = headers;
+		entry->status_code = status_code;
 
 		if (!soup_cache_entry_insert_by_key (cache, entry->key, entry, FALSE))
 			soup_cache_entry_free (entry, TRUE);

@@ -194,9 +194,6 @@ send_async_cb (gpointer data)
 
 	g_simple_async_result_set_op_res_gpointer (simple, helper->httpstream, g_object_unref);
 
-	/* Update message status */
-	soup_message_set_status (helper->http->priv->msg, SOUP_STATUS_OK);
-
 	/* Issue signals  */
 	soup_message_got_headers (helper->http->priv->msg);
 
