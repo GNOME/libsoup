@@ -1632,7 +1632,6 @@ soup_cache_load (SoupCache *cache)
 	cache_variant = g_variant_new_from_data (G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT),
 						 (const gchar *) contents, length, FALSE, g_free, contents);
 	items = g_variant_iter_init (&entries_iter, cache_variant);
-	g_debug ("Loading %"G_GSIZE_FORMAT" items from cache", items);
 
 	while (g_variant_iter_loop (&entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
 				    &key, &filename, &must_revalidate,
