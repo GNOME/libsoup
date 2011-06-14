@@ -52,6 +52,12 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
 	                                of the cache that can be
 	                                filled by a single entry */
 
+/*
+ * Version 2: cache is now saved in soup.cache2. Added the version
+ * number to the beginning of the file.
+ */
+#define SOUP_CACHE_CURRENT_VERSION 2
+
 typedef struct _SoupCacheEntry {
 	char *key;
 	char *filename;
@@ -1537,11 +1543,12 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	return msg;
 }
 
-#define SOUP_CACHE_FILE "soup.cache"
+#define OLD_SOUP_CACHE_FILE "soup.cache"
+#define SOUP_CACHE_FILE "soup.cache2"
 
 #define SOUP_CACHE_HEADERS_FORMAT "{ss}"
 #define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuua" SOUP_CACHE_HEADERS_FORMAT ")"
-#define SOUP_CACHE_ENTRIES_FORMAT "a" SOUP_CACHE_PHEADERS_FORMAT
+#define SOUP_CACHE_ENTRIES_FORMAT "(ua" SOUP_CACHE_PHEADERS_FORMAT ")"
 
 /* Basically the same format than above except that some strings are
    prepended with &. This way the GVariant returns a pointer to the
@@ -1596,7 +1603,10 @@ soup_cache_dump (SoupCache *cache)
 
 	/* Create the builder and iterate over all entries */
 	g_variant_builder_init (&entries_builder, G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT));
+	g_variant_builder_add (&entries_builder, "u", SOUP_CACHE_CURRENT_VERSION);
+	g_variant_builder_open (&entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_PHEADERS_FORMAT));
 	g_list_foreach (cache->priv->lru_start, pack_entry, &entries_builder);
+	g_variant_builder_close (&entries_builder);
 
 	/* Serialize and dump */
 	cache_variant = g_variant_builder_end (&entries_builder);
@@ -1608,6 +1618,30 @@ soup_cache_dump (SoupCache *cache)
 	g_variant_unref (cache_variant);
 }
 
+static void
+clear_cache_files (SoupCache *cache)
+{
+	GFileInfo *file_info;
+	GFileEnumerator *file_enumerator;
+	GFile *cache_dir_file = g_file_new_for_path (cache->priv->cache_dir);
+
+	file_enumerator = g_file_enumerate_children (cache_dir_file, G_FILE_ATTRIBUTE_STANDARD_NAME,
+						     G_FILE_QUERY_INFO_NONE, NULL, NULL);
+	if (file_enumerator) {
+		while ((file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL)) != NULL) {
+			const gchar *filename = g_file_info_get_name (file_info);
+
+			if (strcmp (filename, SOUP_CACHE_FILE) != 0) {
+				GFile *cache_file = g_file_get_child (cache_dir_file, filename);
+				g_file_delete (cache_file, NULL, NULL);
+				g_object_unref (cache_file);
+			}
+		}
+		g_object_unref (file_enumerator);
+	}
+	g_object_unref (cache_dir_file);
+}
+
 void
 soup_cache_load (SoupCache *cache)
 {
@@ -1616,24 +1650,34 @@ soup_cache_load (SoupCache *cache)
 	time_t corrected_initial_age, response_time;
 	char *key, *filename = NULL, *contents = NULL;
 	GVariant *cache_variant;
-	GVariantIter entries_iter, *headers_iter = NULL;
+	GVariantIter *entries_iter = NULL, *headers_iter = NULL;
 	gsize length, items;
 	SoupCacheEntry *entry;
 	SoupCachePrivate *priv = cache->priv;
+	guint version;
 
 	filename = g_build_filename (priv->cache_dir, SOUP_CACHE_FILE, NULL);
 	if (!g_file_get_contents (filename, &contents, &length, NULL)) {
 		g_free (filename);
 		g_free (contents);
+		clear_cache_files (cache);
 		return;
 	}
 	g_free (filename);
 
 	cache_variant = g_variant_new_from_data (G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT),
 						 (const gchar *) contents, length, FALSE, g_free, contents);
-	items = g_variant_iter_init (&entries_iter, cache_variant);
+	g_variant_get (cache_variant, SOUP_CACHE_ENTRIES_FORMAT, &version, &entries_iter);
+	if (version != SOUP_CACHE_CURRENT_VERSION) {
+		g_variant_iter_free (entries_iter);
+		g_variant_unref (cache_variant);
+		clear_cache_files (cache);
+		return;
+	}
 
-	while (g_variant_iter_loop (&entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
+	items = g_variant_iter_n_children (entries_iter);
+
+	while (g_variant_iter_loop (entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
 				    &key, &filename, &must_revalidate,
 				    &freshness_lifetime, &corrected_initial_age,
 				    &response_time, &hits, &length,
