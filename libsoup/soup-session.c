@@ -1805,6 +1805,7 @@ soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 
 	soup_address_resolve_async (addr, priv->async_context,
 				    NULL, NULL, NULL);
+	g_object_unref (addr);
 }
 
 /**
