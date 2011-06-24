@@ -57,19 +57,24 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
  * number to the beginning of the file.
  *
  * Version 3: added HTTP status code to the cache entries.
+ *
+ * Version 4: replaced several types.
+ *   - freshness_lifetime,corrected_initial_age,response_time: time_t -> guint32
+ *   - status_code: guint -> guint16
+ *   - hits: guint -> guint32
  */
-#define SOUP_CACHE_CURRENT_VERSION 3
+#define SOUP_CACHE_CURRENT_VERSION 4
 
 typedef struct _SoupCacheEntry {
 	char *key;
 	char *filename;
-	guint freshness_lifetime;
+	guint32 freshness_lifetime;
 	gboolean must_revalidate;
 	GString *data;
 	gsize pos;
 	gsize length;
-	time_t corrected_initial_age;
-	time_t response_time;
+	guint32 corrected_initial_age;
+	guint32 response_time;
 	gboolean writing;
 	gboolean dirty;
 	gboolean got_body;
@@ -77,9 +82,9 @@ typedef struct _SoupCacheEntry {
 	SoupMessageHeaders *headers;
 	GOutputStream *stream;
 	GError *error;
-	guint hits;
+	guint32 hits;
 	GCancellable *cancellable;
-	guint status_code;
+	guint16 status_code;
 } SoupCacheEntry;
 
 struct _SoupCachePrivate {
@@ -345,7 +350,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 			freshness_lifetime = g_ascii_strtoll (max_age, NULL, 10);
 
 		if (freshness_lifetime) {
-			entry->freshness_lifetime = (guint)MIN (freshness_lifetime, G_MAXUINT32);
+			entry->freshness_lifetime = (guint32) MIN (freshness_lifetime, G_MAXUINT32);
 			soup_header_free_param_list (hash);
 			return;
 		}
@@ -373,7 +378,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 			soup_date_free (date_d);
 
 			if (expires_t && date_t) {
-				entry->freshness_lifetime = (guint)MAX (expires_t - date_t, 0);
+				entry->freshness_lifetime = (guint32) MAX (expires_t - date_t, 0);
 				return;
 			}
 		} else {
@@ -1554,8 +1559,8 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 #define SOUP_CACHE_FILE "soup.cache2"
 
 #define SOUP_CACHE_HEADERS_FORMAT "{ss}"
-#define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuuua" SOUP_CACHE_HEADERS_FORMAT ")"
-#define SOUP_CACHE_ENTRIES_FORMAT "(ua" SOUP_CACHE_PHEADERS_FORMAT ")"
+#define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuuqa" SOUP_CACHE_HEADERS_FORMAT ")"
+#define SOUP_CACHE_ENTRIES_FORMAT "(qa" SOUP_CACHE_PHEADERS_FORMAT ")"
 
 /* Basically the same format than above except that some strings are
    prepended with &. This way the GVariant returns a pointer to the
@@ -1584,7 +1589,7 @@ pack_entry (gpointer data,
 	g_variant_builder_add (entries_builder, "u", entry->response_time);
 	g_variant_builder_add (entries_builder, "u", entry->hits);
 	g_variant_builder_add (entries_builder, "u", entry->length);
-	g_variant_builder_add (entries_builder, "u", entry->status_code);
+	g_variant_builder_add (entries_builder, "q", entry->status_code);
 
 	/* Pack headers */
 	g_variant_builder_open (entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_HEADERS_FORMAT));
@@ -1611,7 +1616,7 @@ soup_cache_dump (SoupCache *cache)
 
 	/* Create the builder and iterate over all entries */
 	g_variant_builder_init (&entries_builder, G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT));
-	g_variant_builder_add (&entries_builder, "u", SOUP_CACHE_CURRENT_VERSION);
+	g_variant_builder_add (&entries_builder, "q", SOUP_CACHE_CURRENT_VERSION);
 	g_variant_builder_open (&entries_builder, G_VARIANT_TYPE ("a" SOUP_CACHE_PHEADERS_FORMAT));
 	g_list_foreach (cache->priv->lru_start, pack_entry, &entries_builder);
 	g_variant_builder_close (&entries_builder);
@@ -1654,15 +1659,15 @@ void
 soup_cache_load (SoupCache *cache)
 {
 	gboolean must_revalidate;
-	uint freshness_lifetime, hits, status_code;
-	time_t corrected_initial_age, response_time;
+	guint32 freshness_lifetime, hits;
+	guint32 corrected_initial_age, response_time;
 	char *key, *filename = NULL, *contents = NULL;
 	GVariant *cache_variant;
 	GVariantIter *entries_iter = NULL, *headers_iter = NULL;
 	gsize length, items;
 	SoupCacheEntry *entry;
 	SoupCachePrivate *priv = cache->priv;
-	guint version;
+	guint16 version, status_code;
 
 	filename = g_build_filename (priv->cache_dir, SOUP_CACHE_FILE, NULL);
 	if (!g_file_get_contents (filename, &contents, &length, NULL)) {
