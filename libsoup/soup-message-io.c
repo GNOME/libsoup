@@ -64,7 +64,7 @@ typedef struct {
 	GString              *write_buf;
 	SoupMessageBody      *write_body;
 	SoupBuffer           *write_chunk;
-	gsize                 write_body_offset;
+	goffset               write_body_offset;
 	goffset               write_length;
 	goffset               written;
 
