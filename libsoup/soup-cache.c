@@ -1721,6 +1721,7 @@ soup_cache_load (SoupCache *cache)
 	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
 
 	/* frees */
+	g_variant_iter_free (entries_iter);
 	g_variant_unref (cache_variant);
 }
 
