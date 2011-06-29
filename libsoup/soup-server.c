@@ -779,6 +779,15 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 
 		uri = soup_message_get_uri (req);
 		decoded_path = soup_uri_decode (uri->path);
+
+		if (strstr (decoded_path, "/../") ||
+		    g_str_has_suffix (decoded_path, "/..")) {
+			/* Introducing new ".." segments is not allowed */
+			g_free (decoded_path);
+			soup_message_set_status (req, SOUP_STATUS_BAD_REQUEST);
+			return;
+		}
+
 		soup_uri_set_path (uri, decoded_path);
 		g_free (decoded_path);
 	}
