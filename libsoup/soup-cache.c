@@ -62,12 +62,19 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
  *   - freshness_lifetime,corrected_initial_age,response_time: time_t -> guint32
  *   - status_code: guint -> guint16
  *   - hits: guint -> guint32
+ *
+ * Version 5: key is no longer stored on disk as it can be easily
+ * built from the URI. Apart from that some fields in the
+ * SoupCacheEntry have changed:
+ *   - entry key is now a uint32 instead of a (char *).
+ *   - added uri, used to check for collisions
+ *   - removed filename, it's built from the entry key.
  */
-#define SOUP_CACHE_CURRENT_VERSION 4
+#define SOUP_CACHE_CURRENT_VERSION 5
 
 typedef struct _SoupCacheEntry {
-	char *key;
-	char *filename;
+	guint32 key;
+	char *uri;
 	guint32 freshness_lifetime;
 	gboolean must_revalidate;
 	gsize length;
@@ -123,6 +130,17 @@ static gboolean soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry
 static void make_room_for_new_entry (SoupCache *cache, guint length_to_add);
 static gboolean cache_accepts_entries_of_size (SoupCache *cache, guint length_to_add);
 static gboolean write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture);
+
+static GFile *
+get_file_from_entry (SoupCache *cache, SoupCacheEntry *entry)
+{
+	char *filename = g_strdup_printf ("%s%s%u", cache->priv->cache_dir,
+					  G_DIR_SEPARATOR_S, (guint) entry->key);
+	GFile *file = g_file_new_for_path (filename);
+	g_free (filename);
+
+	return file;
+}
 
 static SoupCacheability
 get_cacheability (SoupCache *cache, SoupMessage *msg)
@@ -234,19 +252,19 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	return cacheability;
 }
 
+/* NOTE: this function deletes the file pointed by the file argument
+ * and also unref's the GFile object representing it.
+ */
 static void
-soup_cache_entry_free (SoupCacheEntry *entry, gboolean purge)
+soup_cache_entry_free (SoupCacheEntry *entry, GFile *file)
 {
-	if (purge) {
-		GFile *file = g_file_new_for_path (entry->filename);
+	if (file) {
 		g_file_delete (file, NULL, NULL);
 		g_object_unref (file);
 	}
 
-	g_free (entry->filename);
-	entry->filename = NULL;
-	g_free (entry->key);
-	entry->key = NULL;
+	g_free (entry->uri);
+	entry->uri = NULL;
 
 	if (entry->current_writing_buffer) {
 		soup_buffer_free (entry->current_writing_buffer);
@@ -305,11 +323,10 @@ soup_cache_entry_is_fresh_enough (SoupCacheEntry *entry, gint min_fresh)
 	return entry->freshness_lifetime > limit;
 }
 
-static char *
-soup_message_get_cache_key (SoupMessage *msg)
+static inline guint32
+get_cache_key_from_uri (const char *uri)
 {
-	SoupURI *uri = soup_message_get_uri (msg);
-	return soup_uri_to_string (uri, FALSE);
+	return (guint32) g_str_hash (uri);
 }
 
 static void
@@ -433,7 +450,6 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 {
 	SoupCacheEntry *entry;
 	const char *date;
-	char *md5;
 
 	entry = g_slice_new0 (SoupCacheEntry);
 	entry->dirty = FALSE;
@@ -442,12 +458,8 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	entry->being_validated = FALSE;
 	entry->error = NULL;
 	entry->status_code = msg->status_code;
-
-	/* key & filename */
-	entry->key = soup_message_get_cache_key (msg);
-	md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, entry->key, -1);
-	entry->filename = g_build_filename (cache->priv->cache_dir, md5, NULL);
-	g_free (md5);
+	entry->response_time = response_time;
+	entry->uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
 
 	/* Headers */
 	entry->headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
@@ -475,7 +487,6 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 		if (age)
 			age_value = g_ascii_strtoll (age, NULL, 10);
 
-		entry->response_time = response_time;
 		apparent_age = MAX (0, entry->response_time - date_value);
 		corrected_received_age = MAX (apparent_age, age_value);
 		response_delay = entry->response_time - request_time;
@@ -533,7 +544,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 	if (g_cancellable_is_cancelled (entry->cancellable)) {
 		entry->dirty = FALSE;
 		soup_cache_entry_remove (cache, entry);
-		soup_cache_entry_free (entry, TRUE);
+		soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 		entry = NULL;
 	} else if ((soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CHUNKED) ||
 		   entry->length != (gsize) content_length) {
@@ -560,7 +571,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 		} else {
 			entry->dirty = FALSE;
 			soup_cache_entry_remove (cache, entry);
-			soup_cache_entry_free (entry, TRUE);
+			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 			entry = NULL;
 		}
 	}
@@ -725,8 +736,7 @@ soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry)
 	g_assert (!entry->dirty);
 	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
 
-	/* Remove from cache */
-	if (!g_hash_table_remove (cache->priv->cache, entry->key))
+	if (!g_hash_table_remove (cache->priv->cache, GUINT_TO_POINTER (entry->key)))
 		return FALSE;
 
 	/* Remove from LRU */
@@ -797,7 +807,7 @@ make_room_for_new_entry (SoupCache *cache, guint length_to_add)
 		 * freed in close_ready_cb
 		 */
 		if (soup_cache_entry_remove (cache, old_entry)) {
-			soup_cache_entry_free (old_entry, TRUE);
+			soup_cache_entry_free (old_entry, get_file_from_entry (cache, old_entry));
 			lru_entry = cache->priv->lru_start;
 		} else
 			lru_entry = g_list_next (lru_entry);
@@ -805,12 +815,15 @@ make_room_for_new_entry (SoupCache *cache, guint length_to_add)
 }
 
 static gboolean
-soup_cache_entry_insert_by_key (SoupCache *cache,
-				const char *key,
-				SoupCacheEntry *entry,
-				gboolean sort)
+soup_cache_entry_insert (SoupCache *cache,
+			 SoupCacheEntry *entry,
+			 gboolean sort)
 {
 	guint length_to_add = 0;
+	SoupCacheEntry *old_entry;
+
+	/* Fill the key */
+	entry->key = get_cache_key_from_uri ((const char *) entry->uri);
 
 	if (soup_message_headers_get_encoding (entry->headers) != SOUP_ENCODING_CHUNKED)
 		length_to_add = soup_message_headers_get_content_length (entry->headers);
@@ -824,7 +837,16 @@ soup_cache_entry_insert_by_key (SoupCache *cache,
 		make_room_for_new_entry (cache, length_to_add);
 	}
 
-	g_hash_table_insert (cache->priv->cache, g_strdup (key), entry);
+	/* Remove any previous entry */
+	if ((old_entry = g_hash_table_lookup (cache->priv->cache, GUINT_TO_POINTER (entry->key))) != NULL) {
+		if (soup_cache_entry_remove (cache, old_entry))
+			soup_cache_entry_free (old_entry, get_file_from_entry (cache, old_entry));
+		else
+			return FALSE;
+	}
+
+	/* Add to hash table */
+	g_hash_table_insert (cache->priv->cache, GUINT_TO_POINTER (entry->key), entry);
 
 	/* Compute new cache size */
 	cache->priv->size += length_to_add;
@@ -838,6 +860,26 @@ soup_cache_entry_insert_by_key (SoupCache *cache,
 	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
 
 	return TRUE;
+}
+
+static SoupCacheEntry*
+soup_cache_entry_lookup (SoupCache *cache,
+			 SoupMessage *msg)
+{
+	SoupCacheEntry *entry;
+	guint32 key;
+	char *uri = NULL;
+
+	uri = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+	key = get_cache_key_from_uri ((const char *) uri);
+
+	entry = g_hash_table_lookup (cache->priv->cache, GUINT_TO_POINTER (key));
+
+	if (entry != NULL && (strcmp (entry->uri, uri) != 0))
+		entry = NULL;
+
+	g_free (uri);
+	return entry;
 }
 
 static void
@@ -859,7 +901,7 @@ replace_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixt
 		fixture->cache->priv->n_pending--;
 		entry->dirty = FALSE;
 		soup_cache_entry_remove (fixture->cache, entry);
-		soup_cache_entry_free (entry, TRUE);
+		soup_cache_entry_free (entry, get_file_from_entry (fixture->cache, entry));
 		soup_cache_writing_fixture_free (fixture);
 		return;
 	}
@@ -897,6 +939,7 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 	SoupCacheability cacheable;
 	RequestHelper *helper;
 	time_t request_time, response_time;
+	SoupCacheEntry *entry;
 
 	response_time = time (NULL);
 
@@ -909,15 +952,11 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 	cacheable = soup_cache_get_cacheability (cache, msg);
 
 	if (cacheable & SOUP_CACHE_CACHEABLE) {
-		SoupCacheEntry *entry;
-		char *key;
 		GFile *file;
 		SoupCacheWritingFixture *fixture;
 
 		/* Check if we are already caching this resource */
-		key = soup_message_get_cache_key (msg);
-		entry = g_hash_table_lookup (cache->priv->cache, key);
-		g_free (key);
+		entry = soup_cache_entry_lookup (cache, msg);
 
 		if (entry && entry->dirty)
 			return;
@@ -925,15 +964,15 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 		/* Create a new entry, deleting any old one if present */
 		if (entry) {
 			soup_cache_entry_remove (cache, entry);
-			soup_cache_entry_free (entry, TRUE);
+			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 		}
 
 		entry = soup_cache_entry_new (cache, msg, request_time, response_time);
 		entry->hits = 1;
 
 		/* Do not continue if it can not be stored */
-		if (!soup_cache_entry_insert_by_key (cache, (const gchar *)entry->key, entry, TRUE)) {
-			soup_cache_entry_free (entry, TRUE);
+		if (!soup_cache_entry_insert (cache, entry, TRUE)) {
+			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 			return;
 		}
 
@@ -953,35 +992,25 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 			g_signal_connect (msg, "restarted", G_CALLBACK (msg_restarted_cb), entry);
 
 		/* Prepare entry */
-		file = g_file_new_for_path (entry->filename);
 		cache->priv->n_pending++;
 
 		entry->dirty = TRUE;
 		entry->cancellable = g_cancellable_new ();
+		file = get_file_from_entry (cache, entry);
 		g_file_replace_async (file, NULL, FALSE,
 				      G_FILE_CREATE_PRIVATE | G_FILE_CREATE_REPLACE_DESTINATION,
 				      G_PRIORITY_LOW, entry->cancellable,
 				      (GAsyncReadyCallback) replace_cb, fixture);
 		g_object_unref (file);
 	} else if (cacheable & SOUP_CACHE_INVALIDATES) {
-		char *key;
-		SoupCacheEntry *entry;
-
-		key = soup_message_get_cache_key (msg);
-		entry = g_hash_table_lookup (cache->priv->cache, key);
-		g_free (key);
+		entry = soup_cache_entry_lookup (cache, msg);
 
 		if (entry) {
 			if (soup_cache_entry_remove (cache, entry))
-				soup_cache_entry_free (entry, TRUE);
+				soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 		}
 	} else if (cacheable & SOUP_CACHE_VALIDATES) {
-		char *key;
-		SoupCacheEntry *entry;
-
-		key = soup_message_get_cache_key (msg);
-		entry = g_hash_table_lookup (cache->priv->cache, key);
-		g_free (key);
+		entry = soup_cache_entry_lookup (cache, msg);
 
 		/* It's possible to get a CACHE_VALIDATES with no
 		 * entry in the hash table. This could happen if for
@@ -999,7 +1028,6 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 GInputStream *
 soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 {
-	char *key;
 	SoupCacheEntry *entry;
 	char *current_age;
 	GInputStream *stream = NULL;
@@ -1008,9 +1036,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
 
-	key = soup_message_get_cache_key (msg);
-	entry = g_hash_table_lookup (cache->priv->cache, key);
-	g_free (key);
+	entry = soup_cache_entry_lookup (cache, msg);
 	g_return_val_if_fail (entry, NULL);
 
 	/* TODO: the original idea was to save reads, but current code
@@ -1018,7 +1044,7 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	   some agreement here. Also we have to handle the situation
 	   were the file was no longer there (for example files
 	   removed without notifying the cache */
-	file = g_file_new_for_path (entry->filename);
+	file = get_file_from_entry (cache, entry);
 	stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
 	g_object_unref (file);
 
@@ -1085,11 +1111,7 @@ soup_cache_init (SoupCache *cache)
 
 	priv = cache->priv = SOUP_CACHE_GET_PRIVATE (cache);
 
-	priv->cache = g_hash_table_new_full (g_str_hash,
-					     g_str_equal,
-					     (GDestroyNotify)g_free,
-					     NULL);
-
+	priv->cache = g_hash_table_new (g_direct_hash, g_direct_equal);
 	/* LRU */
 	priv->lru_start = NULL;
 
@@ -1110,7 +1132,7 @@ remove_cache_item (gpointer data,
 	SoupCacheEntry *entry = (SoupCacheEntry *) data;
 
 	if (soup_cache_entry_remove (cache, entry))
-		soup_cache_entry_free (entry, FALSE);
+		soup_cache_entry_free (entry, NULL);
 }
 
 static void
@@ -1261,16 +1283,13 @@ soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
 SoupCacheResponse
 soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 {
-	char *key;
 	SoupCacheEntry *entry;
 	const char *cache_control, *pragma;
 	gpointer value;
 	int max_age, max_stale, min_fresh;
 	GList *lru_item, *item;
 
-	key = soup_message_get_cache_key (msg);
-	entry = g_hash_table_lookup (cache->priv->cache, key);
-	g_free (key);
+	entry = soup_cache_entry_lookup (cache, msg);
 
 	/* 1. The presented Request-URI and that of stored response
 	 * match
@@ -1474,7 +1493,7 @@ clear_cache_item (gpointer data,
 	SoupCacheEntry *entry = (SoupCacheEntry *) data;
 
 	if (soup_cache_entry_remove (cache, entry))
-		soup_cache_entry_free (entry, TRUE);
+		soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 }
 
 /**
@@ -1487,16 +1506,13 @@ clear_cache_item (gpointer data,
 void
 soup_cache_clear (SoupCache *cache)
 {
-	GHashTable *hash;
 	GList *entries;
 
 	g_return_if_fail (SOUP_IS_CACHE (cache));
-
-	hash = cache->priv->cache;
-	g_return_if_fail (hash);
+	g_return_if_fail (cache->priv->cache);
 
 	// Cannot use g_hash_table_foreach as callbacks must not modify the hash table
-	entries = g_hash_table_get_values (hash);
+	entries = g_hash_table_get_values (cache->priv->cache);
 	g_list_foreach (entries, clear_cache_item, cache);
 	g_list_free (entries);
 }
@@ -1507,7 +1523,6 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	SoupMessage *msg;
 	SoupURI *uri;
 	SoupCacheEntry *entry;
-	char *key;
 	const char *value;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
@@ -1523,10 +1538,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 
 	/* Now add the validator entries in the header from the cached
 	   data */
-	key = soup_message_get_cache_key (original);
-	entry = g_hash_table_lookup (cache->priv->cache, key);
-	g_free (key);
-
+	entry = soup_cache_entry_lookup (cache, original);
 	g_return_val_if_fail (entry, NULL);
 
 	entry->being_validated = TRUE;
@@ -1548,7 +1560,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 #define SOUP_CACHE_FILE "soup.cache2"
 
 #define SOUP_CACHE_HEADERS_FORMAT "{ss}"
-#define SOUP_CACHE_PHEADERS_FORMAT "(ssbuuuuuqa" SOUP_CACHE_HEADERS_FORMAT ")"
+#define SOUP_CACHE_PHEADERS_FORMAT "(sbuuuuuqa" SOUP_CACHE_HEADERS_FORMAT ")"
 #define SOUP_CACHE_ENTRIES_FORMAT "(qa" SOUP_CACHE_PHEADERS_FORMAT ")"
 
 /* Basically the same format than above except that some strings are
@@ -1562,7 +1574,7 @@ pack_entry (gpointer data,
 {
 	SoupCacheEntry *entry = (SoupCacheEntry *) data;
 	SoupMessageHeadersIter iter;
-	const gchar *header_key, *header_value;
+	const char *header_key, *header_value;
 	GVariantBuilder *entries_builder = (GVariantBuilder *)user_data;
 
 	/* Do not store non-consolidated entries */
@@ -1570,8 +1582,7 @@ pack_entry (gpointer data,
 		return;
 
 	g_variant_builder_open (entries_builder, G_VARIANT_TYPE (SOUP_CACHE_PHEADERS_FORMAT));
-	g_variant_builder_add (entries_builder, "s", entry->key);
-	g_variant_builder_add (entries_builder, "s", entry->filename);
+	g_variant_builder_add (entries_builder, "s", entry->uri);
 	g_variant_builder_add (entries_builder, "b", entry->must_revalidate);
 	g_variant_builder_add (entries_builder, "u", entry->freshness_lifetime);
 	g_variant_builder_add (entries_builder, "u", entry->corrected_initial_age);
@@ -1596,7 +1607,7 @@ void
 soup_cache_dump (SoupCache *cache)
 {
 	SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
-	gchar *filename;
+	char *filename;
 	GVariantBuilder entries_builder;
 	GVariant *cache_variant;
 
@@ -1614,7 +1625,7 @@ soup_cache_dump (SoupCache *cache)
 	cache_variant = g_variant_builder_end (&entries_builder);
 	g_variant_ref_sink (cache_variant);
 	filename = g_build_filename (priv->cache_dir, SOUP_CACHE_FILE, NULL);
-	g_file_set_contents (filename, (const gchar *)g_variant_get_data (cache_variant),
+	g_file_set_contents (filename, (const char *) g_variant_get_data (cache_variant),
 			     g_variant_get_size (cache_variant), NULL);
 	g_free (filename);
 	g_variant_unref (cache_variant);
@@ -1631,7 +1642,7 @@ clear_cache_files (SoupCache *cache)
 						     G_FILE_QUERY_INFO_NONE, NULL, NULL);
 	if (file_enumerator) {
 		while ((file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL)) != NULL) {
-			const gchar *filename = g_file_info_get_name (file_info);
+			const char *filename = g_file_info_get_name (file_info);
 
 			if (strcmp (filename, SOUP_CACHE_FILE) != 0) {
 				GFile *cache_file = g_file_get_child (cache_dir_file, filename);
@@ -1650,10 +1661,10 @@ soup_cache_load (SoupCache *cache)
 	gboolean must_revalidate;
 	guint32 freshness_lifetime, hits;
 	guint32 corrected_initial_age, response_time;
-	char *key, *filename = NULL, *contents = NULL;
+	char *url, *filename = NULL, *contents = NULL;
 	GVariant *cache_variant;
 	GVariantIter *entries_iter = NULL, *headers_iter = NULL;
-	gsize length, items;
+	gsize length;
 	SoupCacheEntry *entry;
 	SoupCachePrivate *priv = cache->priv;
 	guint16 version, status_code;
@@ -1668,7 +1679,7 @@ soup_cache_load (SoupCache *cache)
 	g_free (filename);
 
 	cache_variant = g_variant_new_from_data (G_VARIANT_TYPE (SOUP_CACHE_ENTRIES_FORMAT),
-						 (const gchar *) contents, length, FALSE, g_free, contents);
+						 (const char *) contents, length, FALSE, g_free, contents);
 	g_variant_get (cache_variant, SOUP_CACHE_ENTRIES_FORMAT, &version, &entries_iter);
 	if (version != SOUP_CACHE_CURRENT_VERSION) {
 		g_variant_iter_free (entries_iter);
@@ -1677,14 +1688,11 @@ soup_cache_load (SoupCache *cache)
 		return;
 	}
 
-	items = g_variant_iter_n_children (entries_iter);
-
 	while (g_variant_iter_loop (entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
-				    &key, &filename, &must_revalidate,
-				    &freshness_lifetime, &corrected_initial_age,
+				    &url, &must_revalidate, &freshness_lifetime, &corrected_initial_age,
 				    &response_time, &hits, &length, &status_code,
-                                    &headers_iter)) {
-		const gchar *header_key, *header_value;
+				    &headers_iter)) {
+		const char *header_key, *header_value;
 		SoupMessageHeaders *headers;
 		SoupMessageHeadersIter soup_headers_iter;
 
@@ -1703,8 +1711,7 @@ soup_cache_load (SoupCache *cache)
 
 		/* Insert in cache */
 		entry = g_slice_new0 (SoupCacheEntry);
-		entry->key = g_strdup (key);
-		entry->filename = g_strdup (filename);
+		entry->uri = g_strdup (url);
 		entry->must_revalidate = must_revalidate;
 		entry->freshness_lifetime = freshness_lifetime;
 		entry->corrected_initial_age = corrected_initial_age;
@@ -1714,8 +1721,8 @@ soup_cache_load (SoupCache *cache)
 		entry->headers = headers;
 		entry->status_code = status_code;
 
-		if (!soup_cache_entry_insert_by_key (cache, entry->key, entry, FALSE))
-			soup_cache_entry_free (entry, TRUE);
+		if (!soup_cache_entry_insert (cache, entry, FALSE))
+			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
 	}
 
 	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
