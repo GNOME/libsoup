@@ -659,7 +659,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      G_PARAM_READWRITE));
 
 	/**
-	 * SoupSession:add-feature:
+	 * SoupSession:add-feature: (skip)
 	 *
 	 * Add a feature object to the session. (Shortcut for calling
 	 * soup_session_add_feature().)
@@ -667,7 +667,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Since: 2.24
 	 **/
 	/**
-	 * SOUP_SESSION_ADD_FEATURE:
+	 * SOUP_SESSION_ADD_FEATURE: (skip)
 	 *
 	 * Alias for the #SoupSession:add-feature property. (Shortcut
 	 * for calling soup_session_add_feature().
@@ -682,7 +682,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     SOUP_TYPE_SESSION_FEATURE,
 				     G_PARAM_READWRITE));
 	/**
-	 * SoupSession:add-feature-by-type:
+	 * SoupSession:add-feature-by-type: (skip)
 	 *
 	 * Add a feature object of the given type to the session.
 	 * (Shortcut for calling soup_session_add_feature_by_type().)
@@ -690,7 +690,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Since: 2.24
 	 **/
 	/**
-	 * SOUP_SESSION_ADD_FEATURE_BY_TYPE:
+	 * SOUP_SESSION_ADD_FEATURE_BY_TYPE: (skip)
 	 *
 	 * Alias for the #SoupSession:add-feature-by-type property.
 	 * (Shortcut for calling soup_session_add_feature_by_type().
@@ -705,7 +705,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    SOUP_TYPE_SESSION_FEATURE,
 				    G_PARAM_READWRITE));
 	/**
-	 * SoupSession:remove-feature-by-type:
+	 * SoupSession:remove-feature-by-type: (skip)
 	 *
 	 * Remove feature objects from the session. (Shortcut for
 	 * calling soup_session_remove_feature_by_type().)
@@ -713,7 +713,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Since: 2.24
 	 **/
 	/**
-	 * SOUP_SESSION_REMOVE_FEATURE_BY_TYPE:
+	 * SOUP_SESSION_REMOVE_FEATURE_BY_TYPE: (skip)
 	 *
 	 * Alias for the #SoupSession:remove-feature-by-type
 	 * property. (Shortcut for calling
