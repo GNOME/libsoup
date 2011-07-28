@@ -1,6 +1,6 @@
 Changes in libsoup from 2.34.2 to 2.34.3:
 
-	* CVE-2011-2054: Fixed a security hole that caused some
+	* CVE-2011-2524: Fixed a security hole that caused some
 	  SoupServer users to unintentionally allow accessing the
 	  entire local filesystem when they thought they were only
 	  providing access to a single directory. [#653258]
