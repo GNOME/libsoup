@@ -1,3 +1,56 @@
+Changes in libsoup from 2.35.3 to 2.35.4:
+
+	* CVE-2011-2054: Fixed a security hole that caused some
+	  SoupServer users to unintentionally allow accessing the
+	  entire local filesystem when they thought they were only
+	  providing access to a single directory. [#653258]
+
+	* Plugged another SoupCache memory leak [Xan]
+
+	* Simplified SoupCache keys, and handle collisions. [#649963,
+          Sergio]
+
+	* Annotate SoupSession:add-feature, etc, as (skip), so they
+	  don't conflict with the methods of the same name. [#655150,
+	  Jasper St. Pierre]
+
+Changes in libsoup from 2.34.1 to 2.35.3:
+
+	* SoupCache fixes [Sergio]:
+
+		* Don't store hop-by-hop headers [#650094]
+
+		* Fix status code and headers of responses returned
+		  from the cache after being revalidated [#649965]
+
+		* Added versioning support to the cache file format
+                  [#652554] and extended it to keep track of the
+                  status code [#649965]
+
+		* Fixed storage of time values in the cache [#653349]
+
+		* Fixed a use-after-free that could result in bogus
+                  data being written to the cache [#650620]
+
+		* Various leaks [#649309]
+
+	* Work around an Apache bug where it tells browsers to
+          automatically decode .gz files but still keep the .gz in the
+          name. [#613361, Dan]
+
+	* Fixed an overflow when sending a response larger than 2^31
+	  bytes (eg, streaming movies in Rygel). [#638468, Jens Georg]
+
+	* Always send the Keep-Alive header, not just to hosts we
+          already know to be HTTP/1.0 [#648680, Sergio]
+
+	* Fixed various leaks [#652699, Sergio], [#651643, Milan],
+          [etc, Xan]
+
+	* Minor build fix for Debian/Ubuntu [#648948]
+
+	* Fixed a docs typo
+
 Changes in libsoup from 2.34.0 to 2.34.1:
 
 	* Two multipart forms/Content-Disposition fixes [Dan]:
