@@ -440,7 +440,7 @@ send_sync_finished (GInputStream *stream)
 	priv->finished_cb = NULL;
 
 	/* Wake up the main context iteration */
-	g_source_attach (g_idle_source_new (), NULL);
+	soup_add_completion (priv->async_context, NULL, NULL);
 }
 
 /**
@@ -542,39 +542,6 @@ wrapper_callback (GObject *source_object, GAsyncResult *res,
 }
 
 static void
-send_async_thread (GSimpleAsyncResult *res,
-		   GObject *object,
-		   GCancellable *cancellable)
-{
-	GError *error = NULL;
-	gboolean success;
-
-	success = soup_http_input_stream_send_internal (G_INPUT_STREAM (object),
-							cancellable, &error);
-	g_simple_async_result_set_op_res_gboolean (res, success);
-	if (error) {
-		g_simple_async_result_set_from_error (res, error);
-		g_error_free (error);
-	}
-}
-
-static void
-soup_http_input_stream_send_async_in_thread (GInputStream        *stream,
-					     int                  io_priority,
-					     GCancellable        *cancellable,
-					     GAsyncReadyCallback  callback,
-					     gpointer             user_data)
-{
-	GSimpleAsyncResult *res;
-
-	res = g_simple_async_result_new (G_OBJECT (stream), callback, user_data,
-					 soup_http_input_stream_send_async_in_thread);
-	g_simple_async_result_run_in_thread (res, send_async_thread,
-					     io_priority, cancellable);
-	g_object_unref (res);
-}
-
-static void
 send_async_finished (GInputStream *stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
@@ -609,18 +576,10 @@ soup_http_input_stream_send_async_internal (GInputStream        *stream,
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
+	g_return_if_fail (priv->async_context == g_main_context_get_thread_default ());
+
 	g_object_ref (stream);
 	priv->outstanding_callback = callback;
-
-	/* If the session uses the default GMainContext, then we can do
-	 * async I/O directly. But if it has its own main context, it's
-	 * easier to just run it in another thread.
-	 */
-	if (soup_session_get_async_context (priv->session)) {
-		soup_http_input_stream_send_async_in_thread (stream, io_priority, cancellable,
-							     wrapper_callback, user_data);
-		return;
-	}
 
 	priv->got_headers_cb = send_async_finished;
 	priv->finished_cb = send_async_finished;
@@ -736,16 +695,7 @@ soup_http_input_stream_read_async (GInputStream        *stream,
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 	GSimpleAsyncResult *result;
 
-	/* If the session uses the default GMainContext, then we can do
-	 * async I/O directly. But if it has its own main context, we fall
-	 * back to the async-via-sync-in-another-thread implementation.
-	 */
-	if (soup_session_get_async_context (priv->session)) {
-		G_INPUT_STREAM_CLASS (soup_http_input_stream_parent_class)->
-		read_async (stream, buffer, count, io_priority,
-			    cancellable, callback, user_data);
-		return;
-	}
+	g_return_if_fail (priv->async_context == g_main_context_get_thread_default ());
 
 	result = g_simple_async_result_new (G_OBJECT (stream),
 					    callback, user_data,

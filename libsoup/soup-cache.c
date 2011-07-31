@@ -1452,19 +1452,17 @@ force_flush_timeout (gpointer data)
 /**
  * soup_cache_flush:
  * @cache: a #SoupCache
- * @session: the #SoupSession associated with the @cache
  *
  * This function will force all pending writes in the @cache to be
  * committed to disk. For doing so it will iterate the #GMainContext
- * associated with the @session (which can be the default one) as long
- * as needed.
+ * associated with @cache's session as long as needed.
  **/
 void
 soup_cache_flush (SoupCache *cache)
 {
 	GMainContext *async_context;
 	SoupSession *session;
-	guint timeout_id;
+	GSource *timeout;
 	gboolean forced = FALSE;
 
 	g_return_if_fail (SOUP_IS_CACHE (cache));
@@ -1474,13 +1472,13 @@ soup_cache_flush (SoupCache *cache)
 	async_context = soup_session_get_async_context (session);
 
 	/* We give cache 10 secs to finish */
-	timeout_id = g_timeout_add (10000, force_flush_timeout, &forced);
+	timeout = soup_add_timeout (async_context, 10000, force_flush_timeout, &forced);
 
 	while (!forced && cache->priv->n_pending > 0)
 		g_main_context_iteration (async_context, FALSE);
 
 	if (!forced)
-		g_source_remove (timeout_id);
+		g_source_destroy (timeout);
 	else
 		g_warning ("Cache flush finished despite %d pending requests", cache->priv->n_pending);
 }

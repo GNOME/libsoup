@@ -253,7 +253,8 @@ soup_request_http_send_async (SoupRequest          *request,
 				helper->callback = callback;
 				helper->user_data = user_data;
 				helper->httpstream = httpstream;
-				g_timeout_add (0, send_async_cb, helper);
+				soup_add_timeout (soup_session_get_async_context (session),
+						  0, send_async_cb, helper);
 				return;
 			}
 		} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
@@ -281,7 +282,7 @@ soup_request_http_send_async (SoupRequest          *request,
 	httpstream = soup_http_input_stream_new (soup_request_get_session (request),
 							http->priv->msg);
 	soup_http_input_stream_send_async (httpstream, G_PRIORITY_DEFAULT,
-						  cancellable, sent_async, simple);
+					   cancellable, sent_async, simple);
 }
 
 static GInputStream *
