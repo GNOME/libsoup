@@ -146,7 +146,8 @@ soup_message_headers_clear (SoupMessageHeaders *hdrs)
  *
  * Removes all the headers listed in the Connection header.
  *
- **/
+ * Since: 2.36
+ */
 void
 soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs)
 {

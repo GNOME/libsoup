@@ -589,7 +589,17 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Alias for the #SoupMessage:first-party property. (The
 	 * #SoupURI loaded in the application when the message was
 	 * queued.)
+	 *
+	 * Since: 2.30
 	 **/
+	/**
+	 * SoupMessage:first-party:
+	 *
+	 * The #SoupURI loaded in the application when the message was
+	 * queued.
+	 *
+	 * Since: 2.30
+	 */
 	g_object_class_install_property (
 		object_class, PROP_FIRST_PARTY,
 		g_param_spec_boxed (SOUP_MESSAGE_FIRST_PARTY,
@@ -654,7 +664,16 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Alias for the #SoupMessage:tls-certificate property. (The
 	 * TLS certificate associated with the message, if any.)
+	 *
+	 * Since: 2.34
 	 **/
+	/**
+	 * SoupMessage:tls-certificate:
+	 *
+	 * The #GTlsCertificate associated with the message
+	 *
+	 * Since: 2.34
+	 */	 
 	g_object_class_install_property (
 		object_class, PROP_TLS_CERTIFICATE,
 		g_param_spec_object (SOUP_MESSAGE_TLS_CERTIFICATE,
@@ -667,7 +686,16 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 *
 	 * Alias for the #SoupMessage:tls-errors property. (The
 	 * verification errors on #SoupMessage:tls-certificate.)
+	 *
+	 * Since: 2.34
 	 **/
+	/**
+	 * SoupMessage:tls-certificate:
+	 *
+	 * The verification errors on #SoupMessage:tls-certificate
+	 *
+	 * Since: 2.34
+	 */	 
 	g_object_class_install_property (
 		object_class, PROP_TLS_ERRORS,
 		g_param_spec_flags (SOUP_MESSAGE_TLS_ERRORS,
@@ -1792,7 +1820,7 @@ soup_message_disables_feature (SoupMessage *msg, gpointer feature)
  * 
  * Since: 2.30
  **/
-SoupURI*
+SoupURI *
 soup_message_get_first_party (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv;

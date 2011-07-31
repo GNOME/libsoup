@@ -167,7 +167,16 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	 * SOUP_COOKIE_JAR_ACCEPT_POLICY:
 	 *
 	 * Alias for the #SoupCookieJar:accept-policy property.
-	 **/
+	 *
+	 * Since: 2.30
+	 */
+	/**
+	 * SoupCookieJar:accept-policy:
+	 *
+	 * The policy the jar should follow to accept or reject cookies
+	 *
+	 * Since: 2.30
+	 */
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_POLICY,
 		g_param_spec_enum (SOUP_COOKIE_JAR_ACCEPT_POLICY,
@@ -701,7 +710,8 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * document. If no first party is set in a message when this policy is
  * in effect, cookies will be assumed to be third party by default.
  *
-**/
+ * Since: 2.30
+ */
 
 /**
  * soup_cookie_jar_get_accept_policy:

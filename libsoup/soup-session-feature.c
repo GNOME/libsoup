@@ -165,6 +165,20 @@ soup_session_feature_detach (SoupSessionFeature *feature,
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->detach (feature, session);
 }
 
+/**
+ * soup_session_feature_add_feature:
+ * @feature: the "base" feature
+ * @type: the #GType of a "sub-feature"
+ *
+ * Adds a "sub-feature" of type @type to the base feature @feature.
+ * This is used for features that can be extended with multiple
+ * different types. Eg, the authentication manager can be extended
+ * with subtypes of #SoupAuth.
+ *
+ * Return value: %TRUE if @feature accepted @type as a subfeature.
+ *
+ * Since: 2.34
+ */
 gboolean
 soup_session_feature_add_feature (SoupSessionFeature *feature,
 				  GType               type)
@@ -178,6 +192,18 @@ soup_session_feature_add_feature (SoupSessionFeature *feature,
 		return FALSE;
 }
 
+/**
+ * soup_session_feature_remove_feature:
+ * @feature: the "base" feature
+ * @type: the #GType of a "sub-feature"
+ *
+ * Removes the "sub-feature" of type @type from the base feature
+ * @feature. See soup_session_feature_add_feature().
+ *
+ * Return value: %TRUE if @type was removed from @feature
+ *
+ * Since: 2.34
+ */
 gboolean
 soup_session_feature_remove_feature (SoupSessionFeature *feature,
 				     GType               type)
@@ -191,6 +217,18 @@ soup_session_feature_remove_feature (SoupSessionFeature *feature,
 		return FALSE;
 }
 
+/**
+ * soup_session_feature_has_feature:
+ * @feature: the "base" feature
+ * @type: the #GType of a "sub-feature"
+ *
+ * Tests if @feature has a "sub-feature" of type @type. See
+ * soup_session_feature_add_feature().
+ *
+ * Return value: %TRUE if @feature has a subfeature of type @type
+ *
+ * Since: 2.34
+ */
 gboolean
 soup_session_feature_has_feature (SoupSessionFeature *feature,
 				  GType               type)

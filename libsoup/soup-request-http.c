@@ -346,7 +346,9 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
  * Gets a new reference to the #SoupMessage associated to this SoupRequest
  *
  * Returns: a new reference to the #SoupMessage
- **/
+ *
+ * Since: 2.34
+ */
 SoupMessage *
 soup_request_http_get_message (SoupRequestHTTP *http)
 {

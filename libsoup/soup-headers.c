@@ -894,7 +894,7 @@ append_param_internal (GString    *string,
  * If @value is (non-ASCII) UTF-8, this will instead use RFC 5987
  * encoding, just like soup_header_g_string_append_param().
  *
- * Since: 2.32
+ * Since: 2.30
  **/
 void
 soup_header_g_string_append_param_quoted (GString    *string,

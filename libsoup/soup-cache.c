@@ -548,7 +548,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 		entry = NULL;
 	} else if ((soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CHUNKED) ||
 		   entry->length != (gsize) content_length) {
-		/** Two options here:
+		/* Two options here:
 		 *
 		 * 1. "chunked" data, entry was temporarily added to
 		 * cache (as content-length is 0) and now that we have
@@ -560,7 +560,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 		 * transmission (typically compressed) and thus we
 		 * have to substract the content-length value that was
 		 * added to the cache and add the unencoded length
-		 **/
+		 */
 		gint length_to_add = entry->length - content_length;
 
 		/* Make room in cache if needed */
@@ -757,7 +757,7 @@ lru_compare_func (gconstpointer a, gconstpointer b)
 	SoupCacheEntry *entry_a = (SoupCacheEntry *)a;
 	SoupCacheEntry *entry_b = (SoupCacheEntry *)b;
 
-	/** The rationale of this sorting func is
+	/* The rationale of this sorting func is
 	 *
 	 * 1. sort by hits -> LRU algorithm, then
 	 *
@@ -766,7 +766,7 @@ lru_compare_func (gconstpointer a, gconstpointer b)
 	 *
 	 * 3. sort by size, replace first small size resources as they
 	 * are cheaper to download
-	 **/
+	 */
 
 	/* Sort by hits */
 	if (entry_a->hits != entry_b->hits)
@@ -1258,8 +1258,8 @@ soup_cache_class_init (SoupCacheClass *cache_class)
  *
  * Returns: a new #SoupCache
  *
- * Since: 2.28
- **/
+ * Since: 2.34
+ */
 SoupCache *
 soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
 {
@@ -1279,7 +1279,9 @@ soup_cache_new (const char *cache_dir, SoupCacheType cache_type)
  * and the cached reply and the time ellapsed since it was cached.
  *
  * Returns: whether or not the @cache has a valid response for @msg
- **/
+ *
+ * Since: 2.34
+ */
 SoupCacheResponse
 soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 {
@@ -1430,7 +1432,9 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
  * Calculates whether the @msg can be cached or not.
  *
  * Returns: a #SoupCacheability value indicating whether the @msg can be cached or not.
- **/
+ *
+ * Since: 2.34
+ */
 SoupCacheability
 soup_cache_get_cacheability (SoupCache *cache, SoupMessage *msg)
 {
@@ -1456,7 +1460,9 @@ force_flush_timeout (gpointer data)
  * This function will force all pending writes in the @cache to be
  * committed to disk. For doing so it will iterate the #GMainContext
  * associated with @cache's session as long as needed.
- **/
+ *
+ * Since: 2.34
+ */
 void
 soup_cache_flush (SoupCache *cache)
 {
@@ -1500,7 +1506,9 @@ clear_cache_item (gpointer data,
  *
  * Will remove all entries in the @cache plus all the cache files
  * associated with them.
- **/
+ *
+ * Since: 2.34
+ */
 void
 soup_cache_clear (SoupCache *cache)
 {

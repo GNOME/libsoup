@@ -479,6 +479,8 @@ soup_address_get_sockaddr (SoupAddress *addr, int *len)
  * to only have one socket address associated with it).
  *
  * Return value: (transfer full): a new #GSocketAddress
+ *
+ * Since: 2.32
  */
 GSocketAddress *
 soup_address_get_gsockaddr (SoupAddress *addr)

@@ -17,6 +17,15 @@
 #include "soup-session-feature.h"
 #include "soup-uri.h"
 
+/**
+ * SoupProxyResolverDefault:
+ *
+ * A #SoupProxyURIResolver implementation that uses the default gio
+ * #GProxyResolver to resolve proxies.
+ *
+ * Since: 2.34
+ */
+
 static void soup_proxy_resolver_default_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);
 
 G_DEFINE_TYPE_EXTENDED (SoupProxyResolverDefault, soup_proxy_resolver_default, G_TYPE_OBJECT, 0,

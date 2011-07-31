@@ -39,15 +39,15 @@
  * @short_description: Protocol-independent streaming request interface
  *
  * FIXME
- **/
+ */
 
 /**
  * SoupRequest:
  *
  * FIXME
  *
- * Since: 2.30
- **/
+ * Since: 2.34
+ */
 
 static void soup_request_initable_interface_init (GInitableIface *initable_interface);
 

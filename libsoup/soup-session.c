@@ -624,6 +624,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * SOUP_SESSION_ACCEPT_LANGUAGE:
 	 *
 	 * Alias for the #SoupSession:accept-language property, qv.
+	 *
+	 * Since: 2.30
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE,
@@ -649,6 +651,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * SOUP_SESSION_ACCEPT_LANGUAGE_AUTO:
 	 *
 	 * Alias for the #SoupSession:accept-language-auto property, qv.
+	 *
+	 * Since: 2.30
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_ACCEPT_LANGUAGE_AUTO,
