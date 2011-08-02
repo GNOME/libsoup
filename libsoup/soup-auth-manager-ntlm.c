@@ -13,6 +13,10 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef USE_NTLM_AUTH
+#include <stdlib.h>
+#include <errno.h>
+#endif
 #include "soup-auth-manager-ntlm.h"
 #include "soup-auth-ntlm.h"
 #include "soup-message.h"
@@ -42,6 +46,12 @@ G_DEFINE_TYPE_WITH_CODE (SoupAuthManagerNTLM, soup_auth_manager_ntlm, SOUP_TYPE_
 
 typedef enum {
 	SOUP_NTLM_NEW,
+#ifdef USE_NTLM_AUTH
+	SOUP_NTLM_SENT_SSO_REQUEST,
+	SOUP_NTLM_RECEIVED_SSO_CHALLENGE,
+	SOUP_NTLM_SENT_SSO_RESPONSE,
+	SOUP_NTLM_SSO_FAILED,
+#endif
 	SOUP_NTLM_SENT_REQUEST,
 	SOUP_NTLM_RECEIVED_CHALLENGE,
 	SOUP_NTLM_SENT_RESPONSE,
@@ -55,6 +65,11 @@ typedef struct {
 
 	char *nonce, *domain;
 	SoupAuth *auth;
+#ifdef USE_NTLM_AUTH
+	char *challenge_header;
+	int fd_in;
+	int fd_out;
+#endif
 } SoupNTLMConnection;
 
 typedef struct {
@@ -63,6 +78,9 @@ typedef struct {
 	SoupSession *session;
 	GHashTable *connections_by_msg;
 	GHashTable *connections_by_id;
+#ifdef USE_NTLM_AUTH
+	gboolean ntlm_auth_accessible;
+#endif
 } SoupAuthManagerNTLMPrivate;
 #define SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_MANAGER_NTLM, SoupAuthManagerNTLMPrivate))
 
@@ -75,6 +93,9 @@ static char     *soup_ntlm_response        (const char  *nonce,
 					    const char  *password,
 					    const char  *host, 
 					    const char  *domain);
+#ifdef USE_NTLM_AUTH
+static void sso_ntlm_close (SoupNTLMConnection *conn);
+#endif
 
 static void
 soup_auth_manager_ntlm_init (SoupAuthManagerNTLM *ntlm)
@@ -84,6 +105,9 @@ soup_auth_manager_ntlm_init (SoupAuthManagerNTLM *ntlm)
 
 	priv->connections_by_id = g_hash_table_new (NULL, NULL);
 	priv->connections_by_msg = g_hash_table_new (NULL, NULL);
+#ifdef USE_NTLM_AUTH
+	priv->ntlm_auth_accessible = (access (NTLM_AUTH, X_OK) == 0);
+#endif
 }
 
 static void
@@ -94,6 +118,10 @@ free_ntlm_connection (SoupNTLMConnection *conn)
 	g_free (conn->domain);
 	if (conn->auth)
 		g_object_unref (conn->auth);
+#ifdef USE_NTLM_AUTH
+	g_free (conn->challenge_header);
+	sso_ntlm_close (conn);
+#endif
 	g_slice_free (SoupNTLMConnection, conn);
 }
 
@@ -180,6 +208,10 @@ get_connection (SoupAuthManagerNTLMPrivate *priv, SoupSocket *socket)
 	conn = g_slice_new0 (SoupNTLMConnection);
 	conn->socket = socket;
 	conn->state = SOUP_NTLM_NEW;
+#ifdef USE_NTLM_AUTH
+	conn->fd_in = -1;
+	conn->fd_out = -1;
+#endif
 	g_hash_table_insert (priv->connections_by_id, socket, conn);
 
 	g_signal_connect (socket, "disconnected",
@@ -217,6 +249,137 @@ get_connection_for_msg (SoupAuthManagerNTLMPrivate *priv, SoupMessage *msg)
 	return g_hash_table_lookup (priv->connections_by_msg, msg);
 }
 
+#ifdef USE_NTLM_AUTH
+static void
+sso_ntlm_close (SoupNTLMConnection *conn)
+{
+	if (conn->fd_in != -1) {
+		close (conn->fd_in);
+		conn->fd_in = -1;
+	}
+
+	if (conn->fd_out != -1) {
+		close (conn->fd_out);
+		conn->fd_out = -1;
+	}
+}
+
+static gboolean
+sso_ntlm_initiate (SoupNTLMConnection *conn, SoupAuthManagerNTLMPrivate *priv)
+{
+	char *username = NULL, *slash, *domain = NULL;
+	char *argv[9];
+	gboolean ret;
+
+	/* Return if ntlm_auth execution process exist already */
+	if (conn->fd_in != -1 && conn->fd_out != -1)
+		return TRUE;
+	else
+		/* Clean all sso data before re-initiate */
+		sso_ntlm_close (conn);
+
+	if (!priv->ntlm_auth_accessible)
+		goto done;
+
+	username = getenv ("NTLMUSER");
+	if (!username)
+		username = getenv ("USER");
+	if (!username)
+		goto done;
+
+	slash = strpbrk (username, "\\/");
+	if (slash) {
+		domain = g_strdup (username);
+		slash = domain + (slash - username);
+		*slash = '\0';
+		username = slash + 1;
+	}
+
+	argv[0] = NTLM_AUTH;
+	argv[1] = "--helper-protocol";
+	argv[2] = "ntlmssp-client-1";
+	argv[3] = "--use-cached-creds";
+	argv[4] = "--username";
+	argv[5] = username;
+	argv[6] = domain ? "--domain" : NULL;
+	argv[7] = domain;
+	argv[8] = NULL;
+	/* Spawn child process */
+	ret = g_spawn_async_with_pipes (NULL, argv, NULL,
+					G_SPAWN_FILE_AND_ARGV_ZERO,
+					NULL, NULL,
+					NULL, &conn->fd_in, &conn->fd_out,
+					NULL, NULL);
+	if (!ret)
+		goto done;
+	g_free (domain);
+	return TRUE;
+done:
+	g_free (domain);
+	return FALSE;
+}
+
+static char *
+sso_ntlm_response (SoupNTLMConnection *conn, const char *input, SoupNTLMState conn_state)
+{
+	ssize_t size;
+	char buf[1024], *response = NULL;
+	char *tmpbuf = buf;
+	size_t	len_in = strlen (input), len_out = sizeof (buf);
+
+	while (len_in > 0) {
+		int written = write (conn->fd_in, input, len_in);
+		if (written == -1) {
+			/* Interrupted by a signal, retry it */
+			if (errno == EINTR)
+				continue;
+			/* write failed if other errors happen */
+			goto done;
+		}
+		input += written;
+		len_in -= written;
+	}
+	/* Read one line */
+	while (len_out > 0) {
+		size = read (conn->fd_out, tmpbuf, len_out);
+		if (size == -1) {
+			if (errno == EINTR)
+				continue;
+			goto done;
+		} else if (size == 0)
+			goto done;
+		else if (tmpbuf[size - 1] == '\n') {
+			tmpbuf[size - 1] = '\0';
+			goto wrfinish;
+		}
+		tmpbuf += size;
+		len_out -= size;
+	}
+	goto done;
+wrfinish:
+	if (conn_state == SOUP_NTLM_NEW &&
+	    g_ascii_strcasecmp (buf, "PW") == 0) {
+		/* Samba/winbind installed but not configured */
+		response = g_strdup ("PW");
+		goto done;
+	}
+	if (conn_state == SOUP_NTLM_NEW &&
+	    g_ascii_strncasecmp (buf, "YR ", 3) != 0)
+		/* invalid response for type 1 message */
+		goto done;
+	if (conn_state == SOUP_NTLM_RECEIVED_SSO_CHALLENGE &&
+	    g_ascii_strncasecmp (buf, "KK ", 3) != 0 &&
+	    g_ascii_strncasecmp (buf, "AF ", 3) != 0)
+		/* invalid response for type 3 message */
+		goto done;
+
+	response = g_strdup_printf ("NTLM %.*s", (int)(size - 4), buf + 3);
+	goto done;
+done:
+	return response;
+}
+#endif /* USE_NTLM_AUTH */
+
 static void
 ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 {
@@ -250,9 +413,16 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 		goto done;
 	}
 
-	conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
 	conn->auth = soup_auth_ntlm_new (conn->domain,
 					 soup_message_get_uri (msg)->host);
+#ifdef USE_NTLM_AUTH
+	conn->challenge_header = g_strdup (val + 5);
+	if (conn->state == SOUP_NTLM_SENT_SSO_REQUEST) {
+		conn->state = SOUP_NTLM_RECEIVED_SSO_CHALLENGE;
+		goto done;
+	}
+#endif
+	conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
 	soup_auth_manager_emit_authenticate (SOUP_AUTH_MANAGER (ntlm), msg,
 					     conn->auth, FALSE);
 
@@ -276,6 +446,31 @@ ntlm_authorize_post (SoupMessage *msg, gpointer ntlm)
 	if (!conn || !conn->auth)
 		return;
 
+#ifdef USE_NTLM_AUTH
+	if (conn->state == SOUP_NTLM_RECEIVED_SSO_CHALLENGE) {
+		char *input;
+		input = g_strdup_printf ("TT %s\n", conn->challenge_header);
+		/* Re-Initiate ntlm_auth process in case it was closed/killed abnormally */
+		if (sso_ntlm_initiate (conn, priv)) {
+			conn->response_header = sso_ntlm_response (conn,
+								   input,
+								   conn->state);
+			/* Close ntlm_auth as it is no longer needed for current connection */
+			sso_ntlm_close (conn);
+			if (!conn->response_header) {
+				g_free (input);
+				goto ssofailure;
+			}
+			soup_session_requeue_message (priv->session, msg);
+			g_free (input);
+			goto done;
+		}
+ssofailure:
+		conn->state = SOUP_NTLM_SSO_FAILED;
+		soup_session_requeue_message (priv->session, msg);
+		goto done;
+	}
+#endif
 	username = soup_auth_ntlm_get_username (conn->auth);
 	password = soup_auth_ntlm_get_password (conn->auth);
 	if (!username || !password)
@@ -341,9 +536,52 @@ request_started (SoupSessionFeature *ntlm, SoupSession *session,
 
 	switch (conn->state) {
 	case SOUP_NTLM_NEW:
+#ifdef USE_NTLM_AUTH
+		/* Use Samba's 'winbind' daemon to support NTLM single-sign-on,
+		 * by delegating the NTLM challenge/response protocal to a helper
+		 * in ntlm_auth.
+		 * http://devel.squid-cache.org/ntlm/squid_helper_protocol.html
+		 * http://www.samba.org/samba/docs/man/manpages-3/winbindd.8.html
+		 * http://www.samba.org/samba/docs/man/manpages-3/ntlm_auth.1.html
+		 * The preprocessor variable 'USE_NTLM_AUTH' indicates whether
+		 * this feature is enabled. Another one 'NTLM_AUTH' contains absolute
+		 * path of it.
+		 * If NTLM single-sign-on fails, go back to original request handling process.
+		 */
+		if (sso_ntlm_initiate (conn, priv)) {
+			header = sso_ntlm_response (conn, "YR\n", conn->state);
+			if (header) {
+				if (g_ascii_strcasecmp (header, "PW") != 0) {
+					conn->state = SOUP_NTLM_SENT_SSO_REQUEST;
+					break;
+				} else {
+					g_free (header);
+					header = NULL;
+					goto ssofailure;
+				}
+			} else {
+				g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
+				goto ssofailure;
+			}
+		}
+ssofailure:
+#endif
 		header = soup_ntlm_request ();
 		conn->state = SOUP_NTLM_SENT_REQUEST;
 		break;
+#ifdef USE_NTLM_AUTH
+	case SOUP_NTLM_RECEIVED_SSO_CHALLENGE:
+		header = conn->response_header;
+		conn->response_header = NULL;
+		conn->state = SOUP_NTLM_SENT_SSO_RESPONSE;
+		break;
+	case SOUP_NTLM_SSO_FAILED:
+		/* Restart request without SSO */
+		g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
+		header = soup_ntlm_request ();
+		conn->state = SOUP_NTLM_SENT_REQUEST;
+		break;
+#endif
 	case SOUP_NTLM_RECEIVED_CHALLENGE:
 		header = conn->response_header;
 		conn->response_header = NULL;

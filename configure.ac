@@ -326,6 +326,23 @@ AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 AC_SUBST(MISSING_REGRESSION_TEST_PACKAGES)
 AM_CONDITIONAL(MISSING_REGRESSION_TEST_PACKAGES, test -n "$MISSING_REGRESSION_TEST_PACKAGES")
 
+dnl **********************************************************
+dnl *** path of NTLM single-sign-on helper ntlm_auth
+dnl **********************************************************
+AC_ARG_WITH(ntlm-auth,
+	    AC_HELP_STRING([--with-ntlm-auth=PATH],[Where to look for ntlm_auth, path points to ntlm_auth installation (default: /usr/bin/ntlm_auth)]),
+	    ntlm_auth="$withval",
+	    [if test $os_win32 = yes; then ntlm_auth="no"; else ntlm_auth="/usr/bin/ntlm_auth"; fi])
+if test "$ntlm_auth" != "no"; then
+    AC_DEFINE(USE_NTLM_AUTH, 1, [Whether or not use Samba's 'winbind' daemon helper 'ntlm_auth' for NTLM single-sign-on])
+    if test "$ntlm_auth" = "yes"; then
+	dnl --with-ntlm-auth (without path) used, use default path
+	ntlm_auth="/usr/bin/ntlm_auth"
+    fi
+fi
+AC_SUBST(ntlm_auth)
+AC_DEFINE_UNQUOTED(NTLM_AUTH, "$ntlm_auth", [Samba's 'winbind' daemon helper 'ntlm_auth' which can be used for NTLM single-sign-on])
+
 dnl *************************
 dnl *** Output Everything ***
 dnl *************************
