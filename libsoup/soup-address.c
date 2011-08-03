@@ -713,7 +713,7 @@ idle_complete_resolve (gpointer addr)
  * @addr: the #SoupAddress that was resolved
  * @status: %SOUP_STATUS_OK, %SOUP_STATUS_CANT_RESOLVE, or
  * %SOUP_STATUS_CANCELLED
- * @data: the user data that was passed to
+ * @user_data: the user data that was passed to
  * soup_address_resolve_async()
  *
  * The callback function passed to soup_address_resolve_async().
@@ -914,7 +914,7 @@ soup_address_is_resolved (SoupAddress *addr)
 
 /**
  * soup_address_hash_by_name:
- * @addr: a #SoupAddress
+ * @addr: (type Soup.Address): a #SoupAddress
  *
  * A hash function (for #GHashTable) that corresponds to
  * soup_address_equal_by_name(), qv
@@ -934,8 +934,9 @@ soup_address_hash_by_name (gconstpointer addr)
 
 /**
  * soup_address_equal_by_name:
- * @addr1: a #SoupAddress with a resolved name
- * @addr2: another #SoupAddress with a resolved name
+ * @addr1: (type Soup.Address): a #SoupAddress with a resolved name
+ * @addr2: (type Soup.Address): another #SoupAddress with a resolved
+ *   name
  *
  * Tests if @addr1 and @addr2 have the same "name". This method can be
  * used with soup_address_hash_by_name() to create a #GHashTable that
@@ -976,7 +977,7 @@ soup_address_equal_by_name (gconstpointer addr1, gconstpointer addr2)
 
 /**
  * soup_address_hash_by_ip:
- * @addr: a #SoupAddress
+ * @addr: (type Soup.Address): a #SoupAddress
  *
  * A hash function (for #GHashTable) that corresponds to
  * soup_address_equal_by_ip(), qv
@@ -1000,8 +1001,10 @@ soup_address_hash_by_ip (gconstpointer addr)
 
 /**
  * soup_address_equal_by_ip:
- * @addr1: a #SoupAddress with a resolved IP address
- * @addr2: another #SoupAddress with a resolved IP address
+ * @addr1: (type Soup.Address): a #SoupAddress with a resolved IP
+ *   address
+ * @addr2: (type Soup.Address): another #SoupAddress with a resolved
+ *   IP address
  *
  * Tests if @addr1 and @addr2 have the same IP address. This method
  * can be used with soup_address_hash_by_ip() to create a

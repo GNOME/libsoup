@@ -80,6 +80,21 @@ soup_content_sniffer_new ()
 	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER, NULL);
 }
 
+/**
+ * soup_content_sniffer_sniff:
+ * @sniffer: a #SoupContentSniffer
+ * @msg: the message to sniff
+ * @buffer: a buffer containing the start of @msg's response body
+ * @params: (element-type utf8 utf8) (out) (transfer full) (allow-none): return
+ *   location for Content-Type parameters (eg, "charset"), or %NULL
+ *
+ * Sniffs @buffer to determine its Content-Type. The result may also
+ * be influenced by the Content-Type declared in @msg's response
+ * headers.
+ *
+ * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
+ *   but may be "application/octet-stream".
+ */
 char *
 soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
 			    SoupMessage *msg, SoupBuffer *buffer,

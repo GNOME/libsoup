@@ -169,8 +169,8 @@ soup_buffer_new_subbuffer (SoupBuffer *parent, gsize offset, gsize length)
  * @data: data
  * @length: length of @data
  * @owner: pointer to an object that owns @data
- * @owner_dnotify: a function to free/unref @owner when the buffer is
- * freed
+ * @owner_dnotify: (allow-none): a function to free/unref @owner when
+ * the buffer is freed
  *
  * Creates a new #SoupBuffer containing @length bytes from @data. When
  * the #SoupBuffer is freed, it will call @owner_dnotify, passing

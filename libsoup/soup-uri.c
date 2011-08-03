@@ -574,7 +574,8 @@ append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars)
 /**
  * soup_uri_encode:
  * @part: a URI part
- * @escape_extra: additional reserved characters to escape (or %NULL)
+ * @escape_extra: (allow-none): additional reserved characters to
+ * escape (or %NULL)
  *
  * This %<!-- -->-encodes the given URI part and returns the escaped
  * version in allocated memory, which the caller must free when it is
@@ -1077,7 +1078,7 @@ soup_uri_copy_host (SoupURI *uri)
 
 /**
  * soup_uri_host_hash:
- * @key: a #SoupURI
+ * @key: (type Soup.URI): a #SoupURI
  *
  * Hashes @key, considering only the scheme, host, and port.
  *
@@ -1098,8 +1099,8 @@ soup_uri_host_hash (gconstpointer key)
 
 /**
  * soup_uri_host_equal:
- * @v1: a #SoupURI
- * @v2: a #SoupURI
+ * @v1: (type Soup.URI): a #SoupURI
+ * @v2: (type Soup.URI): a #SoupURI
  *
  * Compares @v1 and @v2, considering only the scheme, host, and port.
  *

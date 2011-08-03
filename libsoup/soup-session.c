@@ -1953,8 +1953,8 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  * you want to see all features, you can pass %G_TYPE_SESSION_FEATURE
  * for @feature_type.)
  *
- * Return value: (transfer container): a list of features. You must
- * free the list, but not its contents
+ * Return value: (transfer container) (element-type Soup.SessionFeature):
+ * a list of features. You must free the list, but not its contents
  *
  * Since: 2.26
  **/

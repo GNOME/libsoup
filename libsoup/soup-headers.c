@@ -464,8 +464,8 @@ parse_list (const char *header, char delim)
  * "#something", where "something" does not itself contain commas,
  * except as part of quoted-strings.
  *
- * Return value: (transfer full): a #GSList of list elements, as
- * allocated strings
+ * Return value: (transfer full) (element-type utf8): a #GSList of
+ * list elements, as allocated strings
  **/
 GSList *
 soup_header_parse_list (const char *header)
@@ -497,8 +497,8 @@ sort_by_qval (const void *a, const void *b)
 /**
  * soup_header_parse_quality_list:
  * @header: a header value
- * @unacceptable: (out) (allow-none) (transfer full): on return, will
- * contain a list of unacceptable values
+ * @unacceptable: (out) (allow-none) (transfer full) (element-type utf8): on
+ * return, will contain a list of unacceptable values
  *
  * Parses a header whose content is a list of items with optional
  * "qvalue"s (eg, Accept, Accept-Charset, Accept-Encoding,
@@ -508,8 +508,8 @@ sort_by_qval (const void *a, const void *b)
  * items with qvalue 0. Either way, those items will be removed from
  * the main list.
  *
- * Return value: (transfer full): a #GSList of acceptable values (as
- * allocated strings), highest-qvalue first.
+ * Return value: (transfer full) (element-type utf8): a #GSList of
+ * acceptable values (as allocated strings), highest-qvalue first.
  **/
 GSList *
 soup_header_parse_quality_list (const char *header, GSList **unacceptable)

@@ -867,7 +867,7 @@ sort_ranges (gconstpointer a, gconstpointer b)
  * soup_message_headers_get_ranges:
  * @hdrs: a #SoupMessageHeaders
  * @total_length: the total_length of the response body
- * @ranges: return location for an array of #SoupRange
+ * @ranges: (out): return location for an array of #SoupRange
  * @length: the length of the returned array
  *
  * Parses @hdrs's Range header and returns an array of the requested
@@ -1212,8 +1212,8 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
 /**
  * soup_message_headers_get_content_type:
  * @hdrs: a #SoupMessageHeaders
- * @params: (out) (allow-none): return location for the Content-Type parameters (eg,
- * "charset"), or %NULL
+ * @params: (out) (allow-none) (transfer full): return location for
+ * the Content-Type parameters (eg, "charset"), or %NULL
  *
  * Looks up the "Content-Type" header in @hdrs, parses it, and returns
  * its value in *@content_type and *@params. @params can be %NULL if you
@@ -1241,7 +1241,8 @@ soup_message_headers_get_content_type (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_type:
  * @hdrs: a #SoupMessageHeaders
  * @content_type: the MIME type
- * @params: additional parameters, or %NULL
+ * @params: (allow-none) (element-type utf8 utf8): additional
+ * parameters, or %NULL
  *
  * Sets the "Content-Type" header in @hdrs to @content_type,
  * optionally with additional parameters specified in @params.
@@ -1259,9 +1260,10 @@ soup_message_headers_set_content_type (SoupMessageHeaders  *hdrs,
 /**
  * soup_message_headers_get_content_disposition:
  * @hdrs: a #SoupMessageHeaders
- * @disposition: return location for the disposition-type, or %NULL
- * @params: return location for the Content-Disposition parameters, or
- * %NULL
+ * @disposition: (out) (transfer full): return location for the
+ * disposition-type, or %NULL
+ * @params: (out) (transfer full) (element-type utf8 utf8): return
+ * location for the Content-Disposition parameters, or %NULL
  *
  * Looks up the "Content-Disposition" header in @hdrs, parses it, and
  * returns its value in *@disposition and *@params. @params can be
@@ -1314,7 +1316,8 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
  * soup_message_headers_set_content_disposition:
  * @hdrs: a #SoupMessageHeaders
  * @disposition: the disposition-type
- * @params: additional parameters, or %NULL
+ * @params: (allow-none) (element-type utf8 utf8): additional
+ * parameters, or %NULL
  *
  * Sets the "Content-Disposition" header in @hdrs to @disposition,
  * optionally with additional parameters specified in @params.

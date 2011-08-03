@@ -1227,7 +1227,7 @@ read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
  * @sock: the socket
  * @buffer: buffer to read into
  * @len: size of @buffer in bytes
- * @nread: on return, the number of bytes read into @buffer
+ * @nread: (out): on return, the number of bytes read into @buffer
  * @cancellable: a #GCancellable, or %NULL
  * @error: error pointer
  *
@@ -1278,7 +1278,7 @@ soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len,
  * @len: size of @buffer in bytes
  * @boundary: boundary to read until
  * @boundary_len: length of @boundary in bytes
- * @nread: on return, the number of bytes read into @buffer
+ * @nread: (out): on return, the number of bytes read into @buffer
  * @got_boundary: on return, whether or not the data in @buffer
  * ends with the boundary string
  * @cancellable: a #GCancellable, or %NULL
@@ -1376,7 +1376,7 @@ socket_write_watch (GObject *pollable, gpointer user_data)
  * @sock: the socket
  * @buffer: data to write
  * @len: size of @buffer, in bytes
- * @nwrote: on return, number of bytes written
+ * @nwrote: (out): on return, number of bytes written
  * @cancellable: a #GCancellable, or %NULL
  * @error: error pointer
  *

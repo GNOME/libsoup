@@ -52,7 +52,7 @@ typedef enum {
 
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,
-						  gpointer             data);
+						  gpointer             user_data);
 
 GType soup_address_get_type (void);
 

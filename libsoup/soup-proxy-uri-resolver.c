@@ -75,7 +75,7 @@ soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_re
  * @proxy_uri_resolver: the #SoupProxyURIResolver
  * @uri: the #SoupURI you want a proxy for
  * @cancellable: a #GCancellable, or %NULL
- * @proxy_uri: on return, will contain the proxy URI
+ * @proxy_uri: (out): on return, will contain the proxy URI
  *
  * Synchronously determines a proxy URI to use for @uri. If @uri
  * should be sent via proxy, *@proxy_uri will be set to the URI of the

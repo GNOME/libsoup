@@ -124,7 +124,7 @@ insert_value (xmlNode *parent, GValue *value)
 /**
  * soup_xmlrpc_build_method_call:
  * @method_name: the name of the XML-RPC method
- * @params: arguments to @method
+ * @params: (array length=n_params): arguments to @method
  * @n_params: length of @params
  *
  * This creates an XML-RPC methodCall and returns it as a string.

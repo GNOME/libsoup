@@ -248,8 +248,10 @@ soup_multipart_get_length (SoupMultipart *multipart)
  * soup_multipart_get_part:
  * @multipart: a #SoupMultipart
  * @part: the part number to get (counting from 0)
- * @headers: return location for the MIME part headers
- * @body: return location for the MIME part body
+ * @headers: (out) (transfer none): return location for the MIME part
+ * headers
+ * @body: (out) (transfer none): return location for the MIME part
+ * body
  *
  * Gets the indicated body part from @multipart.
  *
