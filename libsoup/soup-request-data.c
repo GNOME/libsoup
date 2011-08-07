@@ -30,7 +30,7 @@
 #include "soup-request-data.h"
 
 #include "soup-requester.h"
-#include "soup-uri-private.h"
+#include "soup-misc-private.h"
 #include <libsoup/soup.h>
 #include <glib/gi18n.h>
 

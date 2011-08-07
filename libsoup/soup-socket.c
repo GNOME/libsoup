@@ -20,6 +20,7 @@
 #include "soup-socket.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
+#include "soup-misc-private.h"
 #include "soup-ssl.h"
 
 /**
@@ -973,6 +974,62 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	return TRUE;
 }
 	
+guint
+soup_socket_handshake_sync (SoupSocket    *sock,
+			    GCancellable  *cancellable)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	if (g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
+					cancellable, NULL))
+		return SOUP_STATUS_OK;
+	else
+		return SOUP_STATUS_SSL_FAILED;
+}
+
+static void
+handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	SoupSocketAsyncConnectData *data = user_data;
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (data->sock);
+	guint status;
+
+	if (priv->async_context)
+		g_main_context_pop_thread_default (priv->async_context);
+
+	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (priv->conn),
+					       result, NULL))
+		status = SOUP_STATUS_OK;
+	else
+		status = SOUP_STATUS_SSL_FAILED;
+
+	data->callback (data->sock, status, data->user_data);
+	g_object_unref (data->sock);
+	g_slice_free (SoupSocketAsyncConnectData, data);
+}
+
+void
+soup_socket_handshake_async (SoupSocket         *sock,
+			     GCancellable       *cancellable,
+			     SoupSocketCallback  callback,
+			     gpointer            user_data)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	SoupSocketAsyncConnectData *data;
+
+	data = g_slice_new (SoupSocketAsyncConnectData);
+	data->sock = g_object_ref (sock);
+	data->callback = callback;
+	data->user_data = user_data;
+
+	if (priv->async_context)
+		g_main_context_push_thread_default (priv->async_context);
+	g_tls_connection_handshake_async (G_TLS_CONNECTION (priv->conn),
+					  G_PRIORITY_DEFAULT,
+					  cancellable, handshake_async_ready,
+					  data);
+}
+
 /**
  * soup_socket_is_ssl:
  * @sock: a #SoupSocket

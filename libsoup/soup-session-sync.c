@@ -140,8 +140,9 @@ soup_session_sync_new_with_options (const char *optname1, ...)
 }
 
 static guint
-tunnel_connect (SoupSession *session, SoupConnection *conn)
+tunnel_connect (SoupSession *session, SoupMessageQueueItem *related)
 {
+	SoupConnection *conn = related->conn;
 	SoupMessageQueueItem *item;
 	guint status;
 
@@ -166,7 +167,7 @@ tunnel_connect (SoupSession *session, SoupConnection *conn)
 	soup_message_queue_item_unref (item);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (!soup_connection_start_ssl (conn))
+		if (!soup_connection_start_ssl_sync (conn, related->cancellable))
 			status = SOUP_STATUS_SSL_FAILED;
 	}
 
@@ -215,7 +216,7 @@ try_again:
 	}
 
 	if (soup_connection_get_tunnel_addr (item->conn)) {
-		status = tunnel_connect (session, item->conn);
+		status = tunnel_connect (session, item);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			soup_connection_disconnect (item->conn);
 			g_object_unref (item->conn);

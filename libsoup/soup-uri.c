@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 #include "soup-uri.h"
-#include "soup-uri-private.h"
+#include "soup-misc-private.h"
 #include "soup-form.h"
 #include "soup-misc.h"
 

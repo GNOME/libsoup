@@ -150,6 +150,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-message-server-io.c	\
 	soup-method.c     		\
 	soup-misc.c     		\
+	soup-misc-private.h		\
 	soup-multipart.c	     	\
 	soup-password-manager.c		\
 	soup-path-map.h     		\
@@ -175,7 +176,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-ssl.c	     		\
 	soup-status.c			\
 	soup-uri.c			\
-	soup-uri-private.h		\
 	soup-value-utils.c		\
 	soup-xmlrpc.c
 

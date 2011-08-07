@@ -44,6 +44,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
+#define SOUP_CONNECTION_SSL_FALLBACK    "ssl-fallback"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
 #define SOUP_CONNECTION_IDLE_TIMEOUT    "idle-timeout"
@@ -60,7 +61,12 @@ void            soup_connection_connect_async  (SoupConnection   *conn,
 guint           soup_connection_connect_sync   (SoupConnection   *conn,
 						GCancellable     *cancellable);
 SoupAddress    *soup_connection_get_tunnel_addr(SoupConnection   *conn);
-gboolean        soup_connection_start_ssl      (SoupConnection   *conn);
+guint           soup_connection_start_ssl_sync   (SoupConnection   *conn,
+						  GCancellable     *cancellable);
+void            soup_connection_start_ssl_async  (SoupConnection   *conn,
+						  GCancellable     *cancellable,
+						  SoupConnectionCallback callback,
+						  gpointer          user_data);
 
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
@@ -78,7 +84,6 @@ void            soup_connection_send_request   (SoupConnection          *conn,
 						SoupMessageQueueItem    *item,
 						SoupMessageCompletionFn  completion_cb,
 						gpointer                 user_data);
-
 
 G_END_DECLS
 

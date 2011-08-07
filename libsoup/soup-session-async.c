@@ -225,6 +225,43 @@ message_completed (SoupMessage *msg, gpointer user_data)
 }
 
 static void
+tunnel_complete (SoupMessageQueueItem *item)
+{
+	SoupSession *session = item->session;
+
+	soup_message_finished (item->msg);
+	if (item->related->msg->status_code)
+		item->related->state = SOUP_MESSAGE_FINISHING;
+
+	do_idle_run_queue (session);
+	soup_message_queue_item_unref (item->related);
+	soup_session_unqueue_item (session, item);
+	soup_message_queue_item_unref (item);
+	g_object_unref (session);
+}
+
+static void
+ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		g_signal_connect (item->conn, "disconnected",
+				  G_CALLBACK (connection_closed), item->session);
+		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
+		soup_connection_set_state (item->conn, SOUP_CONNECTION_IN_USE);
+
+		item->related->state = SOUP_MESSAGE_READY;
+	} else {
+		if (item->conn)
+			soup_connection_disconnect (item->conn);
+		soup_message_set_status (item->related->msg, SOUP_STATUS_SSL_FAILED);
+	}
+
+	tunnel_complete (item);
+}
+
+static void
 tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
@@ -251,33 +288,13 @@ tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 			item->related->conn = NULL;
 		} else
 			soup_message_set_status (item->related->msg, msg->status_code);
-		goto done;
+
+		tunnel_complete (item);
+		return;
 	}
 
-	if (!soup_connection_start_ssl (item->conn)) {
-		if (item->conn)
-			soup_connection_disconnect (item->conn);
-		soup_message_set_status (item->related->msg, SOUP_STATUS_SSL_FAILED);
-		goto done;
-	}
-
-	g_signal_connect (item->conn, "disconnected",
-			  G_CALLBACK (connection_closed), item->session);
-	soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-	soup_connection_set_state (item->conn, SOUP_CONNECTION_IN_USE);
-
-	item->related->state = SOUP_MESSAGE_READY;
-
-done:
-	soup_message_finished (msg);
-	if (item->related->msg->status_code)
-		item->related->state = SOUP_MESSAGE_FINISHING;
-
-	do_idle_run_queue (item->session);
-	soup_message_queue_item_unref (item->related);
-	soup_session_unqueue_item (session, item);
-	soup_message_queue_item_unref (item);
-	g_object_unref (session);
+	soup_connection_start_ssl_async (item->conn, item->cancellable,
+					 ssl_tunnel_completed, item);
 }
 
 static void
