@@ -45,7 +45,8 @@ struct _SoupMessageQueueItem {
 	SoupURI *proxy_uri;
 	SoupConnection *conn;
 
-	guint redirection_count;
+	guint paused            : 1;
+	guint redirection_count : 31;
 
 	SoupMessageQueueItemState state;
 

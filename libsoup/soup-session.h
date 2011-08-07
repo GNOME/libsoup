@@ -51,8 +51,9 @@ typedef struct {
 
 	void  (*flush_queue)     (SoupSession *session);
 
+	void  (*kick)            (SoupSession *session);
+
 	/* Padding for future expansion */
-	void (*_libsoup_reserved3) (void);
 	void (*_libsoup_reserved4) (void);
 } SoupSessionClass;
 

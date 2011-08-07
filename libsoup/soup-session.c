@@ -1698,10 +1698,20 @@ void
 soup_session_pause_message (SoupSession *session,
 			    SoupMessage *msg)
 {
+	SoupSessionPrivate *priv;
+	SoupMessageQueueItem *item;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	soup_message_io_pause (msg);
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	item = soup_message_queue_lookup (priv->queue, msg);
+	g_return_if_fail (item != NULL);
+
+	item->paused = TRUE;
+	if (item->state == SOUP_MESSAGE_RUNNING)
+		soup_message_io_pause (msg);
+	soup_message_queue_item_unref (item);
 }
 
 /**
@@ -1720,10 +1730,22 @@ void
 soup_session_unpause_message (SoupSession *session,
 			      SoupMessage *msg)
 {
+	SoupSessionPrivate *priv;
+	SoupMessageQueueItem *item;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
-	soup_message_io_unpause (msg);
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	item = soup_message_queue_lookup (priv->queue, msg);
+	g_return_if_fail (item != NULL);
+
+	item->paused = FALSE;
+	if (item->state == SOUP_MESSAGE_RUNNING)
+		soup_message_io_unpause (msg);
+	soup_message_queue_item_unref (item);
+
+	SOUP_SESSION_GET_CLASS (session)->kick (session);
 }
 
 

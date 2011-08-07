@@ -61,6 +61,7 @@ static void  cancel_message (SoupSession *session, SoupMessage *msg,
 static void  auth_required  (SoupSession *session, SoupMessage *msg,
 			     SoupAuth *auth, gboolean retrying);
 static void  flush_queue    (SoupSession *session);
+static void  kick           (SoupSession *session);
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
@@ -98,6 +99,7 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
 	session_class->flush_queue = flush_queue;
+	session_class->kick = kick;
 
 	object_class->finalize = finalize;
 }
@@ -249,6 +251,13 @@ process_queue_item (SoupMessageQueueItem *item)
 
 	item->state = SOUP_MESSAGE_STARTING;
 	do {
+		if (item->paused) {
+			g_mutex_lock (priv->lock);
+			while (item->paused)
+				g_cond_wait (priv->cond, priv->lock);
+			g_mutex_unlock (priv->lock);
+		}
+
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
 			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
@@ -453,4 +462,14 @@ flush_queue (SoupSession *session)
 	g_mutex_unlock (priv->lock);
 
 	g_hash_table_destroy (current);
+}
+
+static void
+kick (SoupSession *session)
+{
+	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
+
+	g_mutex_lock (priv->lock);
+	g_cond_broadcast (priv->cond);
+	g_mutex_unlock (priv->lock);
 }

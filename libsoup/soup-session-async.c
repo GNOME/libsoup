@@ -39,6 +39,7 @@ static void  queue_message   (SoupSession *session, SoupMessage *req,
 static guint send_message    (SoupSession *session, SoupMessage *req);
 static void  cancel_message  (SoupSession *session, SoupMessage *msg,
 			      guint status_code);
+static void  kick            (SoupSession *session);
 
 static void  auth_required   (SoupSession *session, SoupMessage *msg,
 			      SoupAuth *auth, gboolean retrying);
@@ -80,6 +81,7 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	session_class->send_message = send_message;
 	session_class->cancel_message = cancel_message;
 	session_class->auth_required = auth_required;
+	session_class->kick = kick;
 
 	object_class->finalize = finalize;
 }
@@ -359,6 +361,9 @@ process_queue_item (SoupMessageQueueItem *item,
 	SoupProxyURIResolver *proxy_resolver;
 
 	do {
+		if (item->paused)
+			return;
+
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
 			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, item->msg);
@@ -574,4 +579,10 @@ auth_required (SoupSession *session, SoupMessage *msg,
 		SOUP_SESSION_CLASS (soup_session_async_parent_class)->
 			auth_required (session, msg, auth, retrying);
 	}
+}
+
+static void
+kick (SoupSession *session)
+{
+	do_idle_run_queue (session);
 }
