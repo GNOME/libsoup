@@ -204,6 +204,12 @@ try_again:
 	}
 
 	status = soup_connection_connect_sync (item->conn, item->cancellable);
+	if (status == SOUP_STATUS_TRY_AGAIN) {
+		soup_connection_disconnect (item->conn);
+		g_object_unref (item->conn);
+		item->conn = NULL;
+		goto try_again;
+	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (!msg->status_code)

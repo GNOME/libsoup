@@ -37,6 +37,7 @@ typedef struct {
 	SoupURI     *proxy_uri;
 	gpointer     ssl_creds;
 	gboolean     ssl_strict;
+	gboolean     ssl_fallback;
 
 	GMainContext      *async_context;
 
@@ -65,6 +66,7 @@ enum {
 	PROP_PROXY_URI,
 	PROP_SSL_CREDS,
 	PROP_SSL_STRICT,
+	PROP_SSL_FALLBACK,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_IDLE_TIMEOUT,
@@ -192,6 +194,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      TRUE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
+		object_class, PROP_SSL_FALLBACK,
+		g_param_spec_boolean (SOUP_CONNECTION_SSL_FALLBACK,
+				      "SSLv3 fallback",
+				      "Use SSLv3 instead of TLS",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
 				      "Async GMainContext",
@@ -266,6 +275,9 @@ set_property (GObject *object, guint prop_id,
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
 		break;
+	case PROP_SSL_FALLBACK:
+		priv->ssl_fallback = g_value_get_boolean (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -307,6 +319,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
+		break;
+	case PROP_SSL_FALLBACK:
+		g_value_set_boolean (value, priv->ssl_fallback);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
@@ -440,6 +455,9 @@ socket_connect_finished (SoupSocket *socket, guint status, gpointer user_data)
 		soup_connection_set_state (data->conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (data->conn);
+	} else if (status == SOUP_STATUS_TLS_FAILED) {
+		priv->ssl_fallback = TRUE;
+		status = SOUP_STATUS_TRY_AGAIN;
 	}
 
 	if (data->callback) {
@@ -498,6 +516,7 @@ soup_connection_connect_async (SoupConnection *conn,
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
+				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 "clean-dispose", TRUE,
@@ -522,6 +541,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
+				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 "clean-dispose", TRUE,
@@ -532,23 +552,29 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 		
-	g_signal_connect (priv->socket, "disconnected",
-			  G_CALLBACK (socket_disconnected), conn);
-
 	if (priv->ssl_creds && !priv->tunnel_addr) {
 		if (!soup_socket_start_ssl (priv->socket, cancellable))
 			status = SOUP_STATUS_SSL_FAILED;
-		else
+		else {
 			status = soup_socket_handshake_sync (priv->socket, cancellable);
+			if (status == SOUP_STATUS_TLS_FAILED) {
+				priv->ssl_fallback = TRUE;
+				status = SOUP_STATUS_TRY_AGAIN;
+			}
+		}
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		g_signal_connect (priv->socket, "disconnected",
+				  G_CALLBACK (socket_disconnected), conn);
+
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
 	} else {
 	fail:
 		if (priv->socket) {
+			soup_socket_disconnect (priv->socket);
 			g_object_unref (priv->socket);
 			priv->socket = NULL;
 		}
@@ -576,6 +602,7 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 {
 	SoupConnectionPrivate *priv;
 	const char *server_name;
+	guint status;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -587,13 +614,25 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 					  cancellable))
 		return SOUP_STATUS_SSL_FAILED;
 
-	return soup_socket_handshake_sync (priv->socket, cancellable);
+	status = soup_socket_handshake_sync (priv->socket, cancellable);
+	if (status == SOUP_STATUS_TLS_FAILED) {
+		priv->ssl_fallback = TRUE;
+		status = SOUP_STATUS_TRY_AGAIN;
+	}
+
+	return status;
 }
 
 static void
 start_ssl_completed (SoupSocket *socket, guint status, gpointer user_data)
 {
 	SoupConnectionAsyncConnectData *data = user_data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
+
+	if (status == SOUP_STATUS_TLS_FAILED) {
+		priv->ssl_fallback = TRUE;
+		status = SOUP_STATUS_TRY_AGAIN;
+	}
 
 	data->callback (data->conn, status, data->callback_data);
 	g_object_unref (data->conn);
@@ -754,6 +793,12 @@ soup_connection_get_ever_used (SoupConnection *conn)
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 
 	return SOUP_CONNECTION_GET_PRIVATE (conn)->unused_timeout == 0;
+}
+
+gboolean
+soup_connection_get_ssl_fallback (SoupConnection *conn)
+{
+	return SOUP_CONNECTION_GET_PRIVATE (conn)->ssl_fallback;
 }
 
 void

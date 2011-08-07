@@ -59,13 +59,15 @@
  **/
 
 typedef struct {
-	SoupURI *uri;
+	SoupURI     *uri;
 	SoupAddress *addr;
 
 	GSList      *connections;      /* CONTAINS: SoupConnection */
 	guint        num_conns;
 
 	guint        num_messages;
+
+	gboolean     ssl_fallback;
 } SoupSessionHost;
 
 typedef struct {
@@ -1270,6 +1272,9 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 		g_hash_table_remove (priv->conns, conn);
 		host->connections = g_slist_remove (host->connections, conn);
 		host->num_conns--;
+
+		if (soup_connection_get_ssl_fallback (conn))
+			host->ssl_fallback = TRUE;
 	}
 
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
@@ -1390,6 +1395,7 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
+		SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
 		NULL);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),

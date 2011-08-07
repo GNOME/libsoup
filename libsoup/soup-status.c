@@ -75,12 +75,13 @@
  * @SOUP_STATUS_CANT_RESOLVE_PROXY: Unable to resolve proxy host name
  * @SOUP_STATUS_CANT_CONNECT: Unable to connect to remote host
  * @SOUP_STATUS_CANT_CONNECT_PROXY: Unable to connect to proxy
- * @SOUP_STATUS_SSL_FAILED: SSL negotiation failed
+ * @SOUP_STATUS_SSL_FAILED: SSL/TLS negotiation failed
  * @SOUP_STATUS_IO_ERROR: A network error occurred, or the other end
  * closed the connection unexpectedly
  * @SOUP_STATUS_MALFORMED: Malformed data (usually a programmer error)
  * @SOUP_STATUS_TRY_AGAIN: Used internally
  * @SOUP_STATUS_TOO_MANY_REDIRECTS: There were too many redirections
+ * @SOUP_STATUS_TLS_FAILED: Used internally
  * @SOUP_STATUS_CONTINUE: 100 Continue (HTTP)
  * @SOUP_STATUS_SWITCHING_PROTOCOLS: 101 Switching Protocols (HTTP)
  * @SOUP_STATUS_PROCESSING: 102 Processing (WebDAV)

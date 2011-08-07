@@ -85,6 +85,8 @@ void            soup_connection_send_request   (SoupConnection          *conn,
 						SoupMessageCompletionFn  completion_cb,
 						gpointer                 user_data);
 
+gboolean        soup_connection_get_ssl_fallback (SoupConnection   *conn);
+
 G_END_DECLS
 
 #endif /* SOUP_CONNECTION_H */
