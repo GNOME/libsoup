@@ -31,7 +31,7 @@ LoadModule ssl_module           @APACHE_SSL_MODULE_DIR@/mod_ssl.so
 DirectoryIndex index.txt
 TypesConfig /dev/null
 AddType application/x-httpd-php .php
-
+Redirect permanent /redirected /index.txt
 
 # Proxy #1: unauthenticated
 Listen 127.0.0.1:47526

@@ -200,6 +200,45 @@ do_proxy_fragment_test (SoupURI *base_uri)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_proxy_redirect_test (void)
+{
+	SoupSession *session;
+	SoupURI *proxy_uri, *req_uri, *new_uri;
+	SoupMessage *msg;
+
+	debug_printf (1, "\nTesting redirection through proxy\n");
+
+	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 NULL);
+	soup_uri_free (proxy_uri);
+
+	req_uri = soup_uri_new (HTTPS_SERVER);
+	soup_uri_set_path (req_uri, "/redirected");
+	msg = soup_message_new_from_uri (SOUP_METHOD_GET, req_uri);
+	soup_message_headers_append (msg->request_headers,
+				     "Connection", "close");
+	soup_session_send_message (session, msg);
+
+	new_uri = soup_message_get_uri (msg);
+	if (!strcmp (req_uri->path, new_uri->path)) {
+		debug_printf (1, "  message was not redirected!\n");
+		errors++;
+	}
+	soup_uri_free (req_uri);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "  unexpected status %d %s!\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -221,6 +260,7 @@ main (int argc, char **argv)
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
 	do_proxy_fragment_test (base_uri);
+	do_proxy_redirect_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

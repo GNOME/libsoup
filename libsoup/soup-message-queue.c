@@ -79,6 +79,8 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 		item->conn = NULL;
 	}
 
+	soup_message_cleanup_response (msg);
+
 	g_cancellable_reset (item->cancellable);
 
 	item->state = SOUP_MESSAGE_STARTING;
