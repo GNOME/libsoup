@@ -37,13 +37,9 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 
 	debug_printf (2, "  writing chunk %d\n", ptd->next);
 
-	if (ptd->next > 0 && ptd->chunks[ptd->next - 1]) {
-		if (ptd->streaming) {
-			debug_printf (1, "  error: next chunk requested before last one freed!\n");
-			errors++;
-		} else {
-			debug_printf (0, "  ignoring bug in test case... FIXME!\n");
-		}
+	if (ptd->streaming && ptd->next > 0 && ptd->chunks[ptd->next - 1]) {
+		debug_printf (1, "  error: next chunk requested before last one freed!\n");
+		errors++;
 	}
 
 	if (ptd->next < G_N_ELEMENTS (ptd->chunks)) {
@@ -56,7 +52,9 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 	soup_session_unpause_message (ptd->session, msg);
 }
 
-/* This is not a supported part of the API. Don't try this at home */
+/* This is not a supported part of the API. Use SOUP_MESSAGE_CAN_REBUILD
+ * instead.
+ */
 static void
 write_next_chunk_streaming_hack (SoupMessage *msg, gpointer user_data)
 {
@@ -114,28 +112,49 @@ make_put_chunk (SoupBuffer **buffer, const char *text)
 }
 
 static void
-restarted_streaming_hack (SoupMessage *msg, gpointer user_data)
+setup_request_body (PutTestData *ptd)
 {
-	PutTestData *ptd = user_data;
-
-	/* We're streaming, and we had to restart. So the data need
-	   to be regenerated. That's the *point* of this test; we don't
-	   *want* it to accumulate in the request body */
 	make_put_chunk (&ptd->chunks[0], "one\r\n");
 	make_put_chunk (&ptd->chunks[1], "two\r\n");
 	make_put_chunk (&ptd->chunks[2], "three\r\n");
 	ptd->next = ptd->nwrote = ptd->nfreed = 0;
+}
 
-	debug_printf (2, "  truncating request body on restart\n");
-	soup_message_body_truncate (msg->request_body);
+static void
+restarted_streaming (SoupMessage *msg, gpointer user_data)
+{
+	PutTestData *ptd = user_data;
 
-	/* The redirect will turn it into a GET request. Fix that... */
-	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
+	debug_printf (2, "  --restarting--\n");
+
+	/* We're streaming, and we had to restart. So the data need
+	 * to be regenerated.
+	 */
+	setup_request_body (ptd);
+
+	/* The 302 redirect will turn it into a GET request and
+	 * reset the body encoding back to "NONE". Fix that.
+	 */
+	soup_message_headers_set_encoding (msg->request_headers,
+					   SOUP_ENCODING_CHUNKED);
 	msg->method = SOUP_METHOD_PUT;
 }
 
 static void
-do_request_test (SoupSession *session, SoupURI *base_uri, int test)
+restarted_streaming_hack (SoupMessage *msg, gpointer user_data)
+{
+	restarted_streaming (msg, user_data);
+	soup_message_body_truncate (msg->request_body);
+}
+
+typedef enum {
+	HACKY_STREAMING  = (1 << 0),
+	PROPER_STREAMING = (1 << 1),
+	RESTART          = (1 << 2)
+} RequestTestFlags;
+
+static void
+do_request_test (SoupSession *session, SoupURI *base_uri, RequestTestFlags flags)
 {
 	SoupURI *uri = base_uri;
 	PutTestData ptd;
@@ -143,32 +162,22 @@ do_request_test (SoupSession *session, SoupURI *base_uri, int test)
 	const char *client_md5, *server_md5;
 	GChecksum *check;
 	int i, length;
-	gboolean streaming = FALSE;
 
-	switch (test) {
-	case 0:
-		debug_printf (1, "PUT\n");
-		break;
-
-	case 1:
-		debug_printf (1, "PUT w/ streaming\n");
-		streaming = TRUE;
-		break;
-
-	case 2:
-		debug_printf (1, "PUT w/ streaming and restart\n");
-		streaming = TRUE;
+	debug_printf (1, "PUT");
+	if (flags & HACKY_STREAMING)
+		debug_printf (1, " w/ hacky streaming");
+	else if (flags & PROPER_STREAMING)
+		debug_printf (1, " w/ proper streaming");
+	if (flags & RESTART) {
+		debug_printf (1, " and restart");
 		uri = soup_uri_copy (base_uri);
 		soup_uri_set_path (uri, "/redirect");
-		break;
 	}
+	debug_printf (1, "\n");
 
 	ptd.session = session;
-	make_put_chunk (&ptd.chunks[0], "one\r\n");
-	make_put_chunk (&ptd.chunks[1], "two\r\n");
-	make_put_chunk (&ptd.chunks[2], "three\r\n");
-	ptd.next = ptd.nwrote = ptd.nfreed = 0;
-	ptd.streaming = streaming;
+	setup_request_body (&ptd);
+	ptd.streaming = flags & (HACKY_STREAMING | PROPER_STREAMING);
 
 	check = g_checksum_new (G_CHECKSUM_MD5);
 	length = 0;
@@ -183,15 +192,26 @@ do_request_test (SoupSession *session, SoupURI *base_uri, int test)
 	soup_message_headers_set_encoding (msg->request_headers, SOUP_ENCODING_CHUNKED);
 	soup_message_body_set_accumulate (msg->request_body, FALSE);
 	soup_message_set_chunk_allocator (msg, error_chunk_allocator, NULL, NULL);
-	if (streaming) {
+	if (flags & HACKY_STREAMING) {
 		g_signal_connect (msg, "wrote_chunk",
 				  G_CALLBACK (write_next_chunk_streaming_hack), &ptd);
-		g_signal_connect (msg, "restarted",
-				  G_CALLBACK (restarted_streaming_hack), &ptd);
+		if (flags & RESTART) {
+			g_signal_connect (msg, "restarted",
+					  G_CALLBACK (restarted_streaming_hack), &ptd);
+		}
 	} else {
 		g_signal_connect (msg, "wrote_chunk",
 				  G_CALLBACK (write_next_chunk), &ptd);
 	}
+
+	if (flags & PROPER_STREAMING) {
+		soup_message_set_flags (msg, SOUP_MESSAGE_CAN_REBUILD);
+		if (flags & RESTART) {
+			g_signal_connect (msg, "restarted",
+					  G_CALLBACK (restarted_streaming), &ptd);
+		}
+	}
+
 	g_signal_connect (msg, "wrote_headers",
 			  G_CALLBACK (write_next_chunk), &ptd);
 	g_signal_connect (msg, "wrote_body_data",
@@ -391,9 +411,13 @@ do_chunk_tests (SoupURI *base_uri)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_request_test (session, base_uri, 0);
 	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, 1);
+	do_request_test (session, base_uri, PROPER_STREAMING);
 	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, 2);
+	do_request_test (session, base_uri, PROPER_STREAMING | RESTART);
+	debug_printf (2, "\n\n");
+	do_request_test (session, base_uri, HACKY_STREAMING);
+	debug_printf (2, "\n\n");
+	do_request_test (session, base_uri, HACKY_STREAMING | RESTART);
 	debug_printf (2, "\n\n");
 	do_response_test (session, base_uri);
 	debug_printf (2, "\n\n");

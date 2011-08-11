@@ -113,6 +113,7 @@ void             soup_message_set_first_party     (SoupMessage       *msg,
 
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT          = (1 << 1),
+	SOUP_MESSAGE_CAN_REBUILD          = (1 << 2),
 #ifndef LIBSOUP_DISABLE_DEPRECATED
 	SOUP_MESSAGE_OVERWRITE_CHUNKS     = (1 << 3),
 #endif

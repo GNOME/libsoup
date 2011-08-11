@@ -396,13 +396,16 @@ soup_message_body_new (void)
  * discarded after its corresponding #SoupMessage::wrote_chunk signal
  * is emitted.
  *
- * (If you set the flag to %FALSE on the %request_body of a
- * client-side message, it will block the accumulation of chunks into
- * @body's %data field, but it will not cause the chunks to be
+ * If you set the flag to %FALSE on the %request_body of a client-side
+ * message, it will block the accumulation of chunks into @body's
+ * %data field, but it will not normally cause the chunks to be
  * discarded after being written like in the server-side
  * %response_body case, because the request body needs to be kept
  * around in case the request needs to be sent a second time due to
- * redirection or authentication.)
+ * redirection or authentication. However, if you set the
+ * %SOUP_MESSAGE_CAN_REBUILD flag on the message, then the chunks will
+ * be discarded, and you will be responsible for recreating the
+ * request body after the #SoupMessage::restarted signal is emitted.
  *
  * Since: 2.4.1
  **/

@@ -1098,6 +1098,11 @@ soup_message_content_sniffed (SoupMessage *msg, const char *content_type, GHashT
 void
 soup_message_restarted (SoupMessage *msg)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	if (priv->msg_flags & SOUP_MESSAGE_CAN_REBUILD)
+		soup_message_body_truncate (msg->request_body);
+
 	g_signal_emit (msg, signals[RESTARTED], 0);
 }
 
@@ -1411,17 +1416,20 @@ soup_message_cleanup_response (SoupMessage *req)
 /**
  * SoupMessageFlags:
  * @SOUP_MESSAGE_NO_REDIRECT: The session should not follow redirect
- * (3xx) responses received by this message.
+ *   (3xx) responses received by this message.
+ * @SOUP_MESSAGE_CAN_REBUILD: The caller will rebuild the request
+ *   body if the message is restarted; see
+ *   soup_message_body_set_accumulate() for more details.
  * @SOUP_MESSAGE_OVERWRITE_CHUNKS: Deprecated: equivalent to calling
- * soup_message_body_set_accumulate() on the incoming message body
- * (ie, %response_body for a client-side request), passing %FALSE.
+ *   soup_message_body_set_accumulate() on the incoming message body
+ *   (ie, %response_body for a client-side request), passing %FALSE.
  * @SOUP_MESSAGE_CONTENT_DECODED: Set by #SoupContentDecoder to
- * indicate that it has removed the Content-Encoding on a message (and
- * so headers such as Content-Length may no longer accurately describe
- * the body).
+ *   indicate that it has removed the Content-Encoding on a message (and
+ *   so headers such as Content-Length may no longer accurately describe
+ *   the body).
  * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if %TRUE after an https response
- * has been received, indicates that the server's SSL certificate is
- * trusted according to the session's CA.
+ *   has been received, indicates that the server's SSL certificate is
+ *   trusted according to the session's CA.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
