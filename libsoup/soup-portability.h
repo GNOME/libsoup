@@ -11,8 +11,6 @@
 #ifdef G_OS_WIN32
 
 #include <winsock2.h>
-#undef interface
-
 #include <ws2tcpip.h>
 
 #else

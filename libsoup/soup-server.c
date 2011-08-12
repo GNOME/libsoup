@@ -95,7 +95,7 @@ typedef struct {
 } SoupServerHandler;
 
 typedef struct {
-	SoupAddress       *interface;
+	SoupAddress       *iface;
 	guint              port;
 
 	char              *ssl_cert_file, *ssl_key_file;
@@ -164,8 +164,8 @@ finalize (GObject *object)
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	GSList *iter;
 
-	if (priv->interface)
-		g_object_unref (priv->interface);
+	if (priv->iface)
+		g_object_unref (priv->iface);
 
 	g_free (priv->ssl_cert_file);
 	g_free (priv->ssl_key_file);
@@ -462,8 +462,8 @@ constructor (GType                  type,
 		return NULL;
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (!priv->interface) {
-		priv->interface =
+	if (!priv->iface) {
+		priv->iface =
 			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
 					      priv->port);
 	}
@@ -479,7 +479,7 @@ constructor (GType                  type,
 	}
 
 	priv->listen_sock =
-		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->interface,
+		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->iface,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
@@ -491,10 +491,10 @@ constructor (GType                  type,
 	/* Re-resolve the interface address, in particular in case
 	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
 	 */
-	g_object_unref (priv->interface);
-	priv->interface = soup_socket_get_local_address (priv->listen_sock);
-	g_object_ref (priv->interface);
-	priv->port = soup_address_get_port (priv->interface);
+	g_object_unref (priv->iface);
+	priv->iface = soup_socket_get_local_address (priv->listen_sock);
+	g_object_ref (priv->iface);
+	priv->port = soup_address_get_port (priv->iface);
 
 	return server;
 }
@@ -511,11 +511,11 @@ set_property (GObject *object, guint prop_id,
 		priv->port = g_value_get_uint (value);
 		break;
 	case PROP_INTERFACE:
-		if (priv->interface)
-			g_object_unref (priv->interface);
-		priv->interface = g_value_get_object (value);
-		if (priv->interface)
-			g_object_ref (priv->interface);
+		if (priv->iface)
+			g_object_unref (priv->iface);
+		priv->iface = g_value_get_object (value);
+		if (priv->iface)
+			g_object_ref (priv->iface);
 		break;
 	case PROP_SSL_CERT_FILE:
 		priv->ssl_cert_file =
@@ -565,7 +565,7 @@ get_property (GObject *object, guint prop_id,
 		g_value_set_uint (value, priv->port);
 		break;
 	case PROP_INTERFACE:
-		g_value_set_object (value, priv->interface);
+		g_value_set_object (value, priv->iface);
 		break;
 	case PROP_SSL_CERT_FILE:
 		g_value_set_string (value, priv->ssl_cert_file);

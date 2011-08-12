@@ -16,7 +16,7 @@
 #include "soup-session-feature.h"
 #include "soup-uri.h"
 
-static void soup_proxy_resolver_interface_init (GTypeInterface *interface);
+static void soup_proxy_resolver_interface_init (GTypeInterface *iface);
 static void soup_proxy_resolver_uri_resolver_interface_init (SoupProxyURIResolverInterface *uri_resolver_interface);
 
 GType
@@ -43,19 +43,19 @@ soup_proxy_resolver_get_type (void)
 static void
 proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
 {
-	GTypeInterface *interface = g_iface;
+	GTypeInterface *iface = g_iface;
 
-	if (interface->g_type != SOUP_TYPE_PROXY_RESOLVER)
+	if (iface->g_type != SOUP_TYPE_PROXY_RESOLVER)
 		return;
 
 	/* If the class hasn't already declared that it implements
 	 * SoupProxyURIResolver, add our own compat implementation.
 	 */
-	if (!g_type_is_a (interface->g_instance_type, SOUP_TYPE_PROXY_URI_RESOLVER)) {
+	if (!g_type_is_a (iface->g_instance_type, SOUP_TYPE_PROXY_URI_RESOLVER)) {
 		const GInterfaceInfo uri_resolver_interface_info = {
 			(GInterfaceInitFunc) soup_proxy_resolver_uri_resolver_interface_init, NULL, NULL
 		};
-		g_type_add_interface_static (interface->g_instance_type,
+		g_type_add_interface_static (iface->g_instance_type,
 					     SOUP_TYPE_PROXY_URI_RESOLVER,
 					     &uri_resolver_interface_info);
 	}
@@ -63,7 +63,7 @@ proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
 
 
 static void
-soup_proxy_resolver_interface_init (GTypeInterface *interface)
+soup_proxy_resolver_interface_init (GTypeInterface *iface)
 {
 	/* Add an interface_check where we can kludgily add the
 	 * SoupProxyURIResolver interface to all SoupProxyResolvers.
