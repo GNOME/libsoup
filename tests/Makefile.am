@@ -107,7 +107,8 @@ SNIFFING_FILES =		\
 	resources/mbox		\
 	resources/mbox.gz	\
 	resources/rss20.xml	\
-	resources/test.html
+	resources/test.html	\
+	resources/text_binary.txt
 
 EXTRA_DIST =			\
 	htdigest		\
