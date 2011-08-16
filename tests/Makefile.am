@@ -104,10 +104,13 @@ TESTS =			\
 SNIFFING_FILES =		\
 	resources/atom.xml	\
 	resources/home.gif	\
+	resources/html_binary.html \
 	resources/mbox		\
 	resources/mbox.gz	\
+	resources/ps_binary.ps	\
 	resources/rss20.xml	\
-	resources/test.html
+	resources/test.html	\
+	resources/text_binary.txt
 
 EXTRA_DIST =			\
 	htdigest		\
