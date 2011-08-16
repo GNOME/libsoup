@@ -1,3 +1,38 @@
+Changes in libsoup from 2.35.4 to 2.35.5:
+
+	* Support NTLM single sign on via samba's /usr/bin/ntlm_auth.
+          [#650940, Mandy Wu]. This is enabled by default (if NTLM is
+          enabled for the session and the ntlm_auth binary is
+          available), but will fall back to the standard
+          password-based authentication if SSO fails.
+
+	* Default to TLS+extensions for https connections, falling
+          back to SSLv3-without-extensions (the old default) only if
+          the server fails to negotiate TLS. [#581342]
+
+		* As a result of this change, some users are currently
+		  seeing problems with sites that serve multiple https
+		  hosts from a single IP address (eg,
+		  *.launchpad.net). There is no known workaround at
+		  this time.
+
+	* Fixed a longstanding problem with https pages sometimes not
+          loading when using a proxy. [#631368, based on patches from
+          DongJae Kim and Thierry Reding]
+
+	* SoupContentSniffer: don't use gio's sniffing rules, since
+          the spec now recommends that browsers not do any additional
+          sniffing beyond what's in the spec. [#648846, "arno"]
+
+	* Fixed SoupRequestHTTP to work properly with alternate
+          GMainContexts. [#653707]
+
+	* Added some annotations from Vala's vapi files. [#655397,
+          Evan Nemerson]. Also, removed SoupProxyResolver from the
+          gir/typelib, since it had been deprecated since before
+          introspection was available, and it was being scanned wrong
+          anyway.
+
 Changes in libsoup from 2.35.3 to 2.35.4:
 
 	* CVE-2011-2524: Fixed a security hole that caused some
