@@ -32,6 +32,8 @@
 #include "soup-ssl.h"
 #include "soup-uri.h"
 
+#define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
+
 /**
  * SECTION:soup-session
  * @short_description: Soup session state object
@@ -68,6 +70,9 @@ typedef struct {
 	guint        num_messages;
 
 	gboolean     ssl_fallback;
+
+	GSource     *keep_alive_src;
+	SoupSession *session;
 } SoupSessionHost;
 
 typedef struct {
@@ -1041,6 +1046,8 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	host = g_slice_new0 (SoupSessionHost);
 	host->uri = soup_uri_copy_host (uri);
 	host->addr = soup_address_new (host->uri->host, host->uri->port);
+	host->keep_alive_src = NULL;
+	host->session = session;
 
 	return host;
 }
@@ -1082,10 +1089,15 @@ free_host (SoupSessionHost *host)
 		soup_connection_disconnect (conn);
 	}
 
+	if (host->keep_alive_src) {
+		g_source_destroy (host->keep_alive_src);
+		g_source_unref (host->keep_alive_src);
+	}
+
 	soup_uri_free (host->uri);
 	g_object_unref (host->addr);
 	g_slice_free (SoupSessionHost, host);
-}	
+}
 
 static void
 auth_required (SoupSession *session, SoupMessage *msg,
@@ -1258,6 +1270,22 @@ soup_session_cleanup_connections (SoupSession *session,
 	return TRUE;
 }
 
+static gboolean
+free_unused_host (gpointer user_data)
+{
+	SoupSessionHost *host = (SoupSessionHost *) user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (host->session);
+
+	g_mutex_lock (priv->host_lock);
+	/* This will free the host in addition to removing it from the
+	 * hash table
+	 */
+	g_hash_table_remove (priv->hosts, host->uri);
+	g_mutex_unlock (priv->host_lock);
+
+	return FALSE;
+}
+
 static void
 connection_disconnected (SoupConnection *conn, gpointer user_data)
 {
@@ -1272,6 +1300,19 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 		g_hash_table_remove (priv->conns, conn);
 		host->connections = g_slist_remove (host->connections, conn);
 		host->num_conns--;
+
+		/* Free the SoupHost (and its SoupAddress) if there
+		 * has not been any new connection to the host during
+		 * the last HOST_KEEP_ALIVE msecs.
+		 */
+		if (host->num_conns == 0) {
+			g_assert (host->keep_alive_src == NULL);
+			host->keep_alive_src = soup_add_timeout (priv->async_context,
+								 HOST_KEEP_ALIVE,
+								 free_unused_host,
+								 host);
+			host->keep_alive_src = g_source_ref (host->keep_alive_src);
+		}
 
 		if (soup_connection_get_ssl_fallback (conn))
 			host->ssl_fallback = TRUE;
@@ -1408,6 +1449,12 @@ soup_session_get_connection (SoupSession *session,
 	priv->num_conns++;
 	host->num_conns++;
 	host->connections = g_slist_prepend (host->connections, conn);
+
+	if (host->keep_alive_src) {
+		g_source_destroy (host->keep_alive_src);
+		g_source_unref (host->keep_alive_src);
+		host->keep_alive_src = NULL;
+	}
 
 	g_mutex_unlock (priv->host_lock);
 	item->conn = g_object_ref (conn);
