@@ -1,3 +1,18 @@
+Changes in libsoup from 2.35.5 to 2.35.90:
+
+	* Added SOUP_MESSAGE_CAN_REBUILD flag, to use with
+	  soup_message_body_set_accumulate(FALSE) on a request body,
+	  to indicate that the caller will recreate the request body
+	  after it has been discarded if the message needs to be
+	  re-sent. [#656650]
+
+	* Fixed the build on mingw-w64 by not using "interface" as
+	  as variable name. [#656402, Erik van Pienbroek]
+
+	* (The multihosted https server regression mentioned in the
+	  2.35.5 NEWS turned out to be a glib-networking bug, which is
+	  fixed as of 2.29.18.)
+
 Changes in libsoup from 2.35.4 to 2.35.5:
 
 	* Support NTLM single sign on via samba's /usr/bin/ntlm_auth.
