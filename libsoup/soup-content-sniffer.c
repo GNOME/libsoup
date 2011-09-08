@@ -106,6 +106,14 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
 	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->sniff (sniffer, msg, buffer, params);
 }
 
+gsize
+soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
+{
+	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), 0);
+
+	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->get_buffer_size (sniffer);
+}
+
 /* This table is based on the HTML5 spec;
  * See 2.7.4 Content-Type sniffing: unknown type
  */
@@ -548,9 +556,8 @@ static void
 soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniffer)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupContentSnifferClass *content_sniffer_class = SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer);
 
-	priv->bytes_for_sniffing = content_sniffer_class->get_buffer_size (sniffer);
+	priv->bytes_for_sniffing = soup_content_sniffer_get_buffer_size (sniffer);
 }
 
 static void

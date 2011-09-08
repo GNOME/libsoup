@@ -105,6 +105,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection.c		\
 	soup-content-decoder.c		\
 	soup-content-sniffer.c		\
+	soup-content-sniffer-stream.h	\
+	soup-content-sniffer-stream.c	\
 	soup-converter-wrapper.h	\
 	soup-converter-wrapper.c	\
 	soup-cookie.c			\

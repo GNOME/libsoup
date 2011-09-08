@@ -15,6 +15,7 @@
 #include "soup-body-input-stream.h"
 #include "soup-body-output-stream.h"
 #include "soup-connection.h"
+#include "soup-content-sniffer-stream.h"
 #include "soup-converter-wrapper.h"
 #include "soup-filter-input-stream.h"
 #include "soup-message.h"
@@ -64,9 +65,6 @@ typedef struct {
 	SoupMessageBody      *read_body;
 	goffset               read_length;
 
-	gboolean              need_content_sniffed, need_got_chunk;
-	SoupMessageBody      *sniff_data;
-
 	SoupMessageIOState    write_state;
 	SoupEncoding          write_encoding;
 	GString              *write_buf;
@@ -87,14 +85,6 @@ typedef struct {
 	gpointer                  completion_data;
 } SoupMessageIOData;
 	
-
-/* Put these around callback invocation if there is code afterward
- * that depends on the IO having not been cancelled.
- */
-#define dummy_to_make_emacs_happy {
-#define SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK { gboolean cancelled; g_object_ref (msg);
-#define SOUP_MESSAGE_IO_RETURN_IF_CANCELLED_OR_PAUSED cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || io->paused) return; }
-#define SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED(val) cancelled = (priv->io_data != io); g_object_unref (msg); if (cancelled || io->paused) return val; }
 
 #define RESPONSE_BLOCK_SIZE 8192
 
@@ -131,9 +121,6 @@ soup_message_io_cleanup (SoupMessage *msg)
 	g_string_free (io->write_buf, TRUE);
 	if (io->write_chunk)
 		soup_buffer_free (io->write_chunk);
-
-	if (io->sniff_data)
-		soup_message_body_free (io->sniff_data);
 
 	g_slice_free (SoupMessageIOData, io);
 }
@@ -211,55 +198,6 @@ io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
 }
 
 static gboolean
-io_handle_sniffing (SoupMessage *msg, gboolean done_reading)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-	SoupBuffer *sniffed_buffer;
-	char *sniffed_mime_type;
-	GHashTable *params = NULL;
-
-	if (!priv->sniffer)
-		return TRUE;
-
-	if (!io->sniff_data) {
-		io->sniff_data = soup_message_body_new ();
-		io->need_content_sniffed = TRUE;
-	}
-
-	if (io->need_content_sniffed) {
-		if (io->sniff_data->length < priv->bytes_for_sniffing &&
-		    !done_reading)
-			return TRUE;
-
-		io->need_content_sniffed = FALSE;
-		sniffed_buffer = soup_message_body_flatten (io->sniff_data);
-		sniffed_mime_type = soup_content_sniffer_sniff (priv->sniffer, msg, sniffed_buffer, &params);
-
-		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_content_sniffed (msg, sniffed_mime_type, params);
-		g_free (sniffed_mime_type);
-		if (params)
-			g_hash_table_destroy (params);
-		if (sniffed_buffer)
-			soup_buffer_free (sniffed_buffer);
-		SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
-	}
-
-	if (io->need_got_chunk) {
-		io->need_got_chunk = FALSE;
-		sniffed_buffer = soup_message_body_flatten (io->sniff_data);
-
-		SOUP_MESSAGE_IO_PREPARE_FOR_CALLBACK;
-		soup_message_got_chunk (msg, sniffed_buffer);
-		soup_buffer_free (sniffed_buffer);
-		SOUP_MESSAGE_IO_RETURN_VAL_IF_CANCELLED_OR_PAUSED (FALSE);
-	}
-
-	return TRUE;
-}
-
-static gboolean
 read_headers (SoupMessage *msg, GCancellable *cancellable, GError **error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
@@ -330,6 +268,13 @@ setup_body_istream (SoupMessage *msg)
 				       "base-stream", io->body_istream,
 				       "converter", wrapper,
 				       NULL);
+		g_object_unref (io->body_istream);
+		io->body_istream = filter;
+	}
+
+	if (priv->sniffer) {
+		filter = soup_content_sniffer_stream_new (priv->sniffer,
+							  msg, io->body_istream);
 		g_object_unref (io->body_istream);
 		io->body_istream = filter;
 	}
@@ -408,7 +353,7 @@ io_write (SoupMessage *msg, GCancellable *cancellable, GError **error)
 				/* Stop and wait for the body now */
 				io->write_state =
 					SOUP_MESSAGE_IO_STATE_BLOCKING;
-				io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
+				io->read_state = SOUP_MESSAGE_IO_STATE_BODY_START;
 			} else {
 				/* We just wrote a 1xx response
 				 * header, so stay in STATE_HEADERS.
@@ -626,7 +571,7 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io->read_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 		} else {
-			io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
+			io->read_state = SOUP_MESSAGE_IO_STATE_BODY_START;
 
 			/* If the client was waiting for a Continue
 			 * but got something else, then it's done
@@ -659,13 +604,27 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 		break;
 
 
-	case SOUP_MESSAGE_IO_STATE_BODY:
+	case SOUP_MESSAGE_IO_STATE_BODY_START:
 		if (!io->body_istream)
 			setup_body_istream (msg);
 
-		if (!io_handle_sniffing (msg, FALSE))
-			return FALSE;
+		if (priv->sniffer) {
+			SoupContentSnifferStream *sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (io->body_istream);
+			const char *content_type;
+			GHashTable *params;
 
+			if (!soup_content_sniffer_stream_is_ready (sniffer_stream, io->blocking, cancellable, error))
+				return FALSE;
+
+			content_type = soup_content_sniffer_stream_sniff (sniffer_stream, &params);
+			soup_message_content_sniffed (msg, content_type, params);
+		}
+
+		io->read_state = SOUP_MESSAGE_IO_STATE_BODY;
+		break;
+
+
+	case SOUP_MESSAGE_IO_STATE_BODY:
 		if (priv->chunk_allocator) {
 			buffer = priv->chunk_allocator (msg, io->read_length, priv->chunk_allocator_data);
 			if (!buffer) {
@@ -688,16 +647,6 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 		if (nread > 0) {
 			buffer->length = nread;
 			soup_message_body_got_chunk (io->read_body, buffer);
-
-			if (io->need_content_sniffed) {
-				soup_message_body_append_buffer (io->sniff_data, buffer);
-				soup_buffer_free (buffer);
-				io->need_got_chunk = TRUE;
-				if (!io_handle_sniffing (msg, FALSE))
-					return FALSE;
-				break;
-			}
-
 			soup_message_got_chunk (msg, buffer);
 			soup_buffer_free (buffer);
 			break;
@@ -713,9 +662,6 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
-		if (!io_handle_sniffing (msg, TRUE))
-			return FALSE;
-
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		soup_message_got_body (msg);
 		break;
