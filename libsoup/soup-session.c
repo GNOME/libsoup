@@ -29,7 +29,6 @@
 #include "soup-session-feature.h"
 #include "soup-session-private.h"
 #include "soup-socket.h"
-#include "soup-ssl.h"
 #include "soup-uri.h"
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
@@ -76,8 +75,8 @@ typedef struct {
 } SoupSessionHost;
 
 typedef struct {
+	GTlsDatabase *tlsdb;
 	char *ssl_ca_file;
-	SoupSSLCredentials *ssl_creds;
 	gboolean ssl_strict;
 
 	SoupMessageQueue *queue;
@@ -151,6 +150,8 @@ enum {
 	PROP_MAX_CONNS_PER_HOST,
 	PROP_USE_NTLM,
 	PROP_SSL_CA_FILE,
+	PROP_SSL_USE_SYSTEM_CA_FILE,
+	PROP_TLS_DATABASE,
 	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
 	PROP_TIMEOUT,
@@ -236,10 +237,9 @@ finalize (GObject *object)
 	g_free (priv->user_agent);
 	g_free (priv->accept_language);
 
-	if (priv->ssl_ca_file)
-		g_free (priv->ssl_ca_file);
-	if (priv->ssl_creds)
-		soup_ssl_free_client_credentials (priv->ssl_creds);
+	if (priv->tlsdb)
+		g_object_unref (priv->tlsdb);
+	g_free (priv->ssl_ca_file);
 
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
@@ -542,10 +542,21 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      FALSE,
 				      G_PARAM_READWRITE));
 	/**
+	 * #SoupSession:ssl-ca-file:
+	 *
+	 * File containing SSL CA certificates.
+	 *
+	 * Deprecated: use #SoupSession:ssl-use-system-ca-file or
+	 * #SoupSession:tls-database instead
+	 **/
+	/**
 	 * SOUP_SESSION_SSL_CA_FILE:
 	 *
 	 * Alias for the #SoupSession:ssl-ca-file property. (File
-	 * containing SSL CA certificates.)
+	 * containing SSL CA certificates.).
+	 *
+	 * Deprecated: use #SoupSession:ssl-use-system-ca-file or
+	 * #SoupSession:tls-database instead
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CA_FILE,
@@ -553,6 +564,60 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "SSL CA file",
 				     "File containing SSL CA certificates",
 				     NULL,
+				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_USE_SYSTEM_CA_FILE:
+	 *
+	 * Alias for the #SoupSession:ssl-use-system-ca-file property.
+	 * Setting this to %TRUE overrides #SoupSession:ssl-ca-file
+	 * and #SoupSession:tls-database, and uses the default system
+	 * CA database (which, despite the name, may not actually be a
+	 * file).
+	 *
+	 * Since: 2.36
+	 **/
+	/**
+	 * #SoupSession:ssl-use-system-ca-file:
+	 *
+	 * Setting this to %TRUE overrides #SoupSession:ssl-ca-file
+	 * and #SoupSession:tls-database, and uses the default system
+	 * CA database (which, despite the name, may not actually be a
+	 * file).
+	 *
+	 * Since: 2.36
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_SSL_USE_SYSTEM_CA_FILE,
+		g_param_spec_boolean (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE,
+				      "Use system CA file",
+				      "Use the system certificate database",
+				      TRUE,
+				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_SESSION_TLS_DATABASE:
+	 *
+	 * Alias for the #SoupSession:tls-database property. Overrides
+	 * #SoupSession:ssl-ca-file and
+	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
+	 * #GTlsDatabase.
+	 *
+	 * Since: 2.36
+	 **/
+	/**
+	 * #SoupSession:tls-database:
+	 *
+	 * Overrides #SoupSession:ssl-ca-file and
+	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
+	 * #GTlsDatabase.
+	 *
+	 * Since: 2.36
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_DATABASE,
+		g_param_spec_object (SOUP_SESSION_TLS_DATABASE,
+				     "TLS Database",
+				     "TLS database to use",
+				     G_TYPE_TLS_DATABASE,
 				     G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_SSL_STRICT:
@@ -763,18 +828,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    G_PARAM_READWRITE));
 }
 
-static gboolean
-safe_str_equal (const char *a, const char *b)
-{
-	if (!a && !b)
-		return TRUE;
-
-	if ((a && !b) || (b && !a))
-		return FALSE;
-
-	return strcmp (a, b) == 0;
-}
-
 /* Converts a language in POSIX format and to be RFC2616 compliant    */
 /* Based on code from epiphany-webkit (ephy_langs_append_languages()) */
 static gchar *
@@ -859,14 +912,41 @@ accept_languages_from_system (void)
 }
 
 static void
+load_ssl_ca_file (SoupSessionPrivate *priv)
+{
+	GError *error = NULL;
+
+	if (g_path_is_absolute (priv->ssl_ca_file)) {
+		priv->tlsdb = g_tls_file_database_new (priv->ssl_ca_file,
+						       &error);
+	} else {
+		char *path, *cwd;
+
+		cwd = g_get_current_dir ();
+		path = g_build_filename (cwd, priv->ssl_ca_file, NULL);
+		priv->tlsdb = g_tls_file_database_new (path, &error);
+		g_free (path);
+	}
+	if (priv->tlsdb)
+		return;
+
+	if (!g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE)) {
+		g_warning ("Could not set SSL credentials from '%s': %s",
+			   priv->ssl_ca_file, error->message);
+
+		priv->tlsdb = g_tls_file_database_new ("/dev/null", NULL);
+	}
+	g_error_free (error);
+}
+
+static void
 set_property (GObject *object, guint prop_id,
 	      const GValue *value, GParamSpec *pspec)
 {
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupURI *uri;
-	gboolean ca_file_changed = FALSE;
-	const char *new_ca_file, *user_agent;
+	const char *user_agent;
 	SoupSessionFeature *feature;
 
 	switch (prop_id) {
@@ -900,19 +980,34 @@ set_property (GObject *object, guint prop_id,
 			g_warning ("Trying to set use-ntlm on session with no auth-manager");
 		break;
 	case PROP_SSL_CA_FILE:
-		new_ca_file = g_value_get_string (value);
-
-		if (!safe_str_equal (priv->ssl_ca_file, new_ca_file))
-			ca_file_changed = TRUE;
-
-		g_free (priv->ssl_ca_file);
-		priv->ssl_ca_file = g_strdup (new_ca_file);
-
-		if (ca_file_changed && priv->ssl_creds) {
-			soup_ssl_free_client_credentials (priv->ssl_creds);
-			priv->ssl_creds = NULL;
+		if (priv->tlsdb) {
+			g_object_unref (priv->tlsdb);
+			priv->tlsdb = NULL;
 		}
+		g_free (priv->ssl_ca_file);
 
+		priv->ssl_ca_file = g_value_dup_string (value);
+		load_ssl_ca_file (priv);
+		break;
+	case PROP_SSL_USE_SYSTEM_CA_FILE:
+		if (priv->tlsdb) {
+			g_object_unref (priv->tlsdb);
+			priv->tlsdb = NULL;
+		}
+		g_free (priv->ssl_ca_file);
+		priv->ssl_ca_file = NULL;
+
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		break;
+	case PROP_TLS_DATABASE:
+		if (priv->tlsdb) {
+			g_object_unref (priv->tlsdb);
+			priv->tlsdb = NULL;
+		}
+		g_free (priv->ssl_ca_file);
+		priv->ssl_ca_file = NULL;
+
+		priv->tlsdb = g_value_dup_object (value);
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
@@ -981,6 +1076,7 @@ get_property (GObject *object, guint prop_id,
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionFeature *feature;
+	GTlsDatabase *tlsdb;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
@@ -1007,6 +1103,14 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CA_FILE:
 		g_value_set_string (value, priv->ssl_ca_file);
+		break;
+	case PROP_SSL_USE_SYSTEM_CA_FILE:
+		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		g_value_set_boolean (value, priv->tlsdb == tlsdb);
+		g_object_unref (tlsdb);
+		break;
+	case PROP_TLS_DATABASE:
+		g_value_set_object (value, priv->tlsdb);
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
@@ -1388,7 +1492,6 @@ soup_session_get_connection (SoupSession *session,
 	SoupConnection *conn;
 	SoupSessionHost *host;
 	SoupAddress *remote_addr, *tunnel_addr;
-	SoupSSLCredentials *ssl_creds;
 	GSList *conns;
 	int num_pending = 0;
 	SoupURI *uri;
@@ -1439,21 +1542,15 @@ soup_session_get_connection (SoupSession *session,
 	}
 
 	uri = soup_message_get_uri (item->msg);
-	if (uri->scheme == SOUP_URI_SCHEME_HTTPS) {
-		if (!priv->ssl_creds)
-			priv->ssl_creds = soup_ssl_get_client_credentials (priv->ssl_ca_file);
-		ssl_creds = priv->ssl_creds;
-
-		if (item->proxy_addr)
-			tunnel_addr = host->addr;
-	} else
-		ssl_creds = NULL;
+	if (uri->scheme == SOUP_URI_SCHEME_HTTPS && item->proxy_addr)
+		tunnel_addr = host->addr;
 
 	conn = soup_connection_new (
 		SOUP_CONNECTION_REMOTE_ADDRESS, remote_addr,
 		SOUP_CONNECTION_TUNNEL_ADDRESS, tunnel_addr,
 		SOUP_CONNECTION_PROXY_URI, item->proxy_uri,
-		SOUP_CONNECTION_SSL_CREDENTIALS, ssl_creds,
+		SOUP_CONNECTION_SSL, uri->scheme == SOUP_URI_SCHEME_HTTPS,
+		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,

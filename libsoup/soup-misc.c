@@ -16,6 +16,8 @@
  *
  **/
 
+const gboolean soup_ssl_supported = TRUE;
+
 /**
  * soup_str_case_hash:
  * @key: ASCII string to hash

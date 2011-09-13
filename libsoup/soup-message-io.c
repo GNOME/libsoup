@@ -18,7 +18,6 @@
 #include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-socket.h"
-#include "soup-ssl.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_CLIENT,

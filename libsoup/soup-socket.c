@@ -21,7 +21,6 @@
 #include "soup-marshal.h"
 #include "soup-misc.h"
 #include "soup-misc-private.h"
-#include "soup-ssl.h"
 
 /**
  * SECTION:soup-socket
@@ -79,7 +78,6 @@ typedef struct {
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
 	gpointer ssl_creds;
-	gboolean ssl_ca_in_creds;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -346,6 +344,10 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * Alias for the #SoupSocket:ssl-creds property.
 	 * (SSL credential information.)
 	 **/
+	/* For historical reasons, there's only a single property
+	 * here, which is a GTlsDatabase for client sockets, and
+	 * a GTlsCertificate for server sockets. Whee!
+	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDENTIALS,
 		g_param_spec_pointer (SOUP_SOCKET_SSL_CREDENTIALS,
@@ -882,8 +884,6 @@ soup_socket_peer_certificate_changed (GObject *conn, GParamSpec *pspec,
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->tls_errors = g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (priv->conn));
-	if (priv->ssl_ca_in_creds)
-		priv->tls_errors &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
 
 	g_object_notify (sock, "tls-certificate");
 	g_object_notify (sock, "tls-errors");
@@ -893,14 +893,7 @@ static gboolean
 soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 				GTlsCertificateFlags errors, gpointer sock)
 {
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-
-	if (soup_ssl_credentials_verify_certificate (priv->ssl_creds,
-						     cert, errors,
-						     &priv->ssl_ca_in_creds))
-		return TRUE;
-
-	return !priv->ssl_strict;
+	return TRUE;
 }
 
 /**
@@ -940,8 +933,6 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 
 	if (G_IS_TLS_CONNECTION (priv->conn))
 		return TRUE;
-	if (!priv->ssl_creds)
-		return FALSE;
 
 	if (!priv->is_server) {
 		GTlsClientConnection *conn;
@@ -952,7 +943,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 				       NULL, NULL,
 				       "base-io-stream", priv->conn,
 				       "server-identity", identity,
-				       "use-system-certdb", FALSE,
+				       "database", priv->ssl_creds,
 				       "require-close-notify", FALSE,
 				       "use-ssl3", priv->ssl_fallback,
 				       NULL);
@@ -964,16 +955,18 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);
 
-		g_signal_connect (conn, "accept-certificate",
-				  G_CALLBACK (soup_socket_accept_certificate),
-				  sock);
+		if (!priv->ssl_strict) {
+			g_signal_connect (conn, "accept-certificate",
+					  G_CALLBACK (soup_socket_accept_certificate),
+					  sock);
+		}
 	} else {
 		GTlsServerConnection *conn;
 
 		conn = g_initable_new (g_tls_backend_get_server_connection_type (backend),
 				       NULL, NULL,
 				       "base-io-stream", priv->conn,
-				       "certificate", soup_ssl_credentials_get_certificate (priv->ssl_creds),
+				       "certificate", priv->ssl_creds,
 				       "use-system-certdb", FALSE,
 				       "require-close-notify", FALSE,
 				       NULL);
@@ -984,7 +977,6 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		priv->conn = G_IO_STREAM (conn);
 	}
 
-	priv->ssl_ca_in_creds = FALSE;
 	g_signal_connect (priv->conn, "notify::peer-certificate",
 			  G_CALLBACK (soup_socket_peer_certificate_changed), sock);
 
@@ -1270,9 +1262,6 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 							  cancellable);
 		}
 		return SOUP_SOCKET_WOULD_BLOCK;
-	} else if (g_error_matches (my_err, G_TLS_ERROR, G_TLS_ERROR_HANDSHAKE)) {
-		my_err->domain = SOUP_SSL_ERROR;
-		my_err->code = SOUP_SSL_ERROR_CERTIFICATE;
 	}
 
 	g_propagate_error (error, my_err);
@@ -1536,9 +1525,6 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 						  G_IO_OUT,
 						  socket_write_watch, sock, cancellable);
 		return SOUP_SOCKET_WOULD_BLOCK;
-	} else if (g_error_matches (my_err, G_TLS_ERROR, G_TLS_ERROR_HANDSHAKE)) {
-		my_err->domain = SOUP_SSL_ERROR;
-		my_err->code = SOUP_SSL_ERROR_CERTIFICATE;
 	}
 
 	g_mutex_unlock (priv->iolock);

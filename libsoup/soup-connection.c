@@ -26,7 +26,6 @@
 #include "soup-misc.h"
 #include "soup-misc-private.h"
 #include "soup-socket.h"
-#include "soup-ssl.h"
 #include "soup-uri.h"
 #include "soup-enum-types.h"
 
@@ -35,9 +34,8 @@ typedef struct {
 
 	SoupAddress *remote_addr, *tunnel_addr;
 	SoupURI     *proxy_uri;
-	gpointer     ssl_creds;
-	gboolean     ssl_strict;
-	gboolean     ssl_fallback;
+	GTlsDatabase *tlsdb;
+	gboolean     ssl, ssl_strict, ssl_fallback;
 
 	GMainContext      *async_context;
 
@@ -64,6 +62,7 @@ enum {
 	PROP_REMOTE_ADDRESS,
 	PROP_TUNNEL_ADDRESS,
 	PROP_PROXY_URI,
+	PROP_SSL,
 	PROP_SSL_CREDS,
 	PROP_SSL_STRICT,
 	PROP_SSL_FALLBACK,
@@ -181,11 +180,19 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE));
 	g_object_class_install_property (
-		object_class, PROP_SSL_CREDS,
-		g_param_spec_pointer (SOUP_CONNECTION_SSL_CREDENTIALS,
-				      "SSL credentials",
-				      "Opaque SSL credentials for this connection",
+		object_class, PROP_SSL,
+		g_param_spec_boolean (SOUP_CONNECTION_SSL,
+				      "SSL",
+				      "Whether this is an SSL connection",
+				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_SSL_CREDS,
+		g_param_spec_object (SOUP_CONNECTION_SSL_CREDENTIALS,
+				     "SSL credentials",
+				     "SSL credentials for this connection",
+				     G_TYPE_TLS_DATABASE,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SSL_STRICT,
 		g_param_spec_boolean (SOUP_CONNECTION_SSL_STRICT,
@@ -269,8 +276,13 @@ set_property (GObject *object, guint prop_id,
 			soup_uri_free (priv->proxy_uri);
 		priv->proxy_uri = g_value_dup_boxed (value);
 		break;
+	case PROP_SSL:
+		priv->ssl = g_value_get_boolean (value);
+		break;
 	case PROP_SSL_CREDS:
-		priv->ssl_creds = g_value_get_pointer (value);
+		if (priv->tlsdb)
+			g_object_unref (priv->tlsdb);
+		priv->tlsdb = g_value_dup_object (value);
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
@@ -314,8 +326,11 @@ get_property (GObject *object, guint prop_id,
 	case PROP_PROXY_URI:
 		g_value_set_boxed (value, priv->proxy_uri);
 		break;
+	case PROP_SSL:
+		g_value_set_boolean (value, priv->ssl);
+		break;
 	case PROP_SSL_CREDS:
-		g_value_set_pointer (value, priv->ssl_creds);
+		g_value_set_object (value, priv->tlsdb);
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
@@ -478,7 +493,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status) &&
-	    priv->ssl_creds && !priv->tunnel_addr) {
+	    priv->ssl && !priv->tunnel_addr) {
 		if (soup_socket_start_ssl (sock, data->cancellable)) {
 			soup_socket_handshake_async (sock, data->cancellable,
 						     socket_connect_finished, data);
@@ -514,7 +529,7 @@ soup_connection_connect_async (SoupConnection *conn,
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
@@ -539,7 +554,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
@@ -552,7 +567,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 		
-	if (priv->ssl_creds && !priv->tunnel_addr) {
+	if (priv->ssl && !priv->tunnel_addr) {
 		if (!soup_socket_start_ssl (priv->socket, cancellable))
 			status = SOUP_STATUS_SSL_FAILED;
 		else {

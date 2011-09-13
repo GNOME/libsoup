@@ -64,6 +64,8 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_MAX_CONNS_PER_HOST     "max-conns-per-host"
 #define SOUP_SESSION_USE_NTLM               "use-ntlm"
 #define SOUP_SESSION_SSL_CA_FILE            "ssl-ca-file"
+#define SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE "ssl-use-system-ca-file"
+#define SOUP_SESSION_TLS_DATABASE           "tls-database"
 #define SOUP_SESSION_SSL_STRICT             "ssl-strict"
 #define SOUP_SESSION_ASYNC_CONTEXT          "async-context"
 #define SOUP_SESSION_TIMEOUT                "timeout"

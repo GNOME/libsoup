@@ -42,6 +42,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_REMOTE_ADDRESS  "remote-address"
 #define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
 #define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
+#define SOUP_CONNECTION_SSL             "ssl"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
 #define SOUP_CONNECTION_SSL_FALLBACK    "ssl-fallback"

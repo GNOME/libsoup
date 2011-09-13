@@ -24,7 +24,6 @@
 #include "soup-marshal.h"
 #include "soup-path-map.h" 
 #include "soup-socket.h"
-#include "soup-ssl.h"
 
 /**
  * SECTION:soup-server
@@ -99,7 +98,7 @@ typedef struct {
 	guint              port;
 
 	char              *ssl_cert_file, *ssl_key_file;
-	SoupSSLCredentials *ssl_creds;
+	GTlsCertificate   *ssl_cert;
 
 	char              *server_header;
 
@@ -169,8 +168,8 @@ finalize (GObject *object)
 
 	g_free (priv->ssl_cert_file);
 	g_free (priv->ssl_key_file);
-	if (priv->ssl_creds)
-		soup_ssl_free_server_credentials (priv->ssl_creds);
+	if (priv->ssl_cert)
+		g_object_unref (priv->ssl_cert);
 
 	g_free (priv->server_header);
 
@@ -469,10 +468,13 @@ constructor (GType                  type,
 	}
 
 	if (priv->ssl_cert_file && priv->ssl_key_file) {
-		priv->ssl_creds = soup_ssl_get_server_credentials (
-			priv->ssl_cert_file,
-			priv->ssl_key_file);
-		if (!priv->ssl_creds) {
+		GError *error = NULL;
+
+		priv->ssl_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file, priv->ssl_key_file, &error);
+		if (!priv->ssl_cert) {
+			g_warning ("Could not read SSL certificate from '%s': %s",
+				   priv->ssl_cert_file, error->message);
+			g_error_free (error);
 			g_object_unref (server);
 			return NULL;
 		}
@@ -480,7 +482,7 @@ constructor (GType                  type,
 
 	priv->listen_sock =
 		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->iface,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_creds,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_cert,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 NULL);
 	if (!soup_socket_listen (priv->listen_sock)) {

@@ -54,16 +54,7 @@ extern const char soup_char_attributes[];
 
 extern const gboolean soup_ssl_supported;
 
-#define SOUP_SSL_ERROR soup_ssl_error_quark()
-
-GQuark soup_ssl_error_quark (void);
-
-typedef enum {
-	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_READ,
-	SOUP_SSL_ERROR_HANDSHAKE_NEEDS_WRITE,
-	SOUP_SSL_ERROR_CERTIFICATE,
-	SOUP_SSL_ERROR_HANDSHAKE_FAILED
-} SoupSSLError;
+/* Part of a debugging API */
 
 typedef enum {
 	SOUP_CONNECTION_NEW,
