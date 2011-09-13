@@ -1427,7 +1427,7 @@ soup_message_cleanup_response (SoupMessage *req)
  *   indicate that it has removed the Content-Encoding on a message (and
  *   so headers such as Content-Length may no longer accurately describe
  *   the body).
- * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if %TRUE after an https response
+ * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if set after an https response
  *   has been received, indicates that the server's SSL certificate is
  *   trusted according to the session's CA.
  *
