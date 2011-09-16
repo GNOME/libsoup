@@ -489,12 +489,12 @@ soup_http_input_stream_read (GInputStream  *stream,
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
-	if (priv->finished)
-		return 0;
-
 	/* If there is data leftover from a previous read, return it. */
 	if (priv->leftover_bufsize)
 		return read_from_leftover (priv, buffer, count);
+
+	if (priv->finished)
+		return 0;
 
 	/* No leftover data, accept one chunk from the network */
 	soup_http_input_stream_prepare_for_io (stream, cancellable, buffer, count);
@@ -701,16 +701,16 @@ soup_http_input_stream_read_async (GInputStream        *stream,
 					    callback, user_data,
 					    soup_http_input_stream_read_async);
 
-	if (priv->finished) {
-		g_simple_async_result_set_op_res_gssize (result, 0);
+	if (priv->leftover_bufsize) {
+		gsize nread = read_from_leftover (priv, buffer, count);
+		g_simple_async_result_set_op_res_gssize (result, nread);
 		g_simple_async_result_complete_in_idle (result);
 		g_object_unref (result);
 		return;
 	}
 
-	if (priv->leftover_bufsize) {
-		gsize nread = read_from_leftover (priv, buffer, count);
-		g_simple_async_result_set_op_res_gssize (result, nread);
+	if (priv->finished) {
+		g_simple_async_result_set_op_res_gssize (result, 0);
 		g_simple_async_result_complete_in_idle (result);
 		g_object_unref (result);
 		return;
