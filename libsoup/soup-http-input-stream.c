@@ -51,8 +51,7 @@ typedef struct {
 	SoupHTTPInputStreamCallback finished_cb;
 	SoupHTTPInputStreamCallback cancelled_cb;
 
-	guchar *leftover_buffer;
-	gsize leftover_bufsize, leftover_offset;
+	GQueue *leftover_queue;
 
 	guchar *caller_buffer;
 	gsize caller_bufsize, caller_nread;
@@ -120,7 +119,9 @@ soup_http_input_stream_finalize (GObject *object)
 	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_got_chunk), stream);
 	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_finished), stream);
 	g_object_unref (priv->msg);
-	g_free (priv->leftover_buffer);
+
+	g_queue_foreach (priv->leftover_queue, (GFunc) soup_buffer_free, NULL);
+	g_queue_free (priv->leftover_queue);
 
 	if (G_OBJECT_CLASS (soup_http_input_stream_parent_class)->finalize)
 		(*G_OBJECT_CLASS (soup_http_input_stream_parent_class)->finalize)(object);
@@ -157,7 +158,9 @@ soup_http_input_stream_seekable_iface_init (GSeekableIface *seekable_iface)
 static void
 soup_http_input_stream_init (SoupHTTPInputStream *stream)
 {
-	;
+	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
+
+	priv->leftover_queue = g_queue_new ();
 }
 
 static void
@@ -261,12 +264,8 @@ soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk_buffer,
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
 		return;
 
-	/* Sanity check */
-	if (priv->caller_bufsize == 0 || priv->leftover_bufsize != 0)
-		g_warning ("soup_http_input_stream_got_chunk called again before previous chunk was processed");
-
 	/* Copy what we can into priv->caller_buffer */
-	if (priv->caller_bufsize > priv->caller_nread) {
+	if (priv->caller_bufsize > priv->caller_nread && priv->leftover_queue->length == 0) {
 		gsize nread = MIN (chunk_size, priv->caller_bufsize - priv->caller_nread);
 
 		memcpy (priv->caller_buffer + priv->caller_nread, chunk, nread);
@@ -277,20 +276,13 @@ soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk_buffer,
 	}
 
 	if (chunk_size > 0) {
-		/* Copy the rest into priv->leftover_buffer. If
-		 * there's already some data there, realloc and
-		 * append. Otherwise just copy.
-		 */
-		if (priv->leftover_bufsize) {
-			priv->leftover_buffer = g_realloc (priv->leftover_buffer,
-							   priv->leftover_bufsize + chunk_size);
-			memcpy (priv->leftover_buffer + priv->leftover_bufsize,
-				chunk, chunk_size);
-			priv->leftover_bufsize += chunk_size;
+		if (priv->leftover_queue->length > 0) {
+			g_queue_push_tail (priv->leftover_queue, soup_buffer_copy (chunk_buffer));
 		} else {
-			priv->leftover_bufsize = chunk_size;
-			priv->leftover_buffer = g_memdup (chunk, chunk_size);
-			priv->leftover_offset = 0;
+			g_queue_push_head (priv->leftover_queue,
+					   soup_buffer_new_subbuffer (chunk_buffer,
+								      chunk_buffer->length - chunk_size,
+								      chunk_size));
 		}
 	}
 
@@ -385,19 +377,17 @@ read_from_leftover (SoupHTTPInputStreamPrivate *priv,
 		    gpointer buffer, gsize bufsize)
 {
 	gsize nread;
+	SoupBuffer *soup_buffer = (SoupBuffer *) g_queue_peek_head (priv->leftover_queue);
+	gboolean fits_in_buffer = soup_buffer->length <= bufsize;
 
-	if (priv->leftover_bufsize - priv->leftover_offset <= bufsize) {
-		nread = priv->leftover_bufsize - priv->leftover_offset;
-		memcpy (buffer, priv->leftover_buffer + priv->leftover_offset, nread);
+	nread = fits_in_buffer ? soup_buffer->length : bufsize;
+	memcpy (buffer, soup_buffer->data, nread);
 
-		g_free (priv->leftover_buffer);
-		priv->leftover_buffer = NULL;
-		priv->leftover_bufsize = priv->leftover_offset = 0;
-	} else {
-		nread = bufsize;
-		memcpy (buffer, priv->leftover_buffer + priv->leftover_offset, nread);
-		priv->leftover_offset += nread;
-	}
+	g_queue_pop_head (priv->leftover_queue);
+	if (!fits_in_buffer)
+		g_queue_push_head (priv->leftover_queue,
+				   soup_buffer_new_subbuffer (soup_buffer, nread, soup_buffer->length - nread));
+	soup_buffer_free (soup_buffer);
 
 	priv->offset += nread;
 	return nread;
@@ -490,7 +480,7 @@ soup_http_input_stream_read (GInputStream  *stream,
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
 	/* If there is data leftover from a previous read, return it. */
-	if (priv->leftover_bufsize)
+	if (priv->leftover_queue->length)
 		return read_from_leftover (priv, buffer, count);
 
 	if (priv->finished)
@@ -701,7 +691,7 @@ soup_http_input_stream_read_async (GInputStream        *stream,
 					    callback, user_data,
 					    soup_http_input_stream_read_async);
 
-	if (priv->leftover_bufsize) {
+	if (priv->leftover_queue->length) {
 		gsize nread = read_from_leftover (priv, buffer, count);
 		g_simple_async_result_set_op_res_gssize (result, nread);
 		g_simple_async_result_complete_in_idle (result);
