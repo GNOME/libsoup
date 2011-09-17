@@ -98,6 +98,7 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 		g_main_loop_quit (loop);
 		return;
 	}
+	g_object_unref (msg);
 
 	g_input_stream_read_async (stream, buf, sizeof (buf),
 				   G_PRIORITY_DEFAULT, NULL,
@@ -161,11 +162,12 @@ do_test_with_context (const char *uri)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_ASYNC_CONTEXT, async_context,
 					 NULL);
-	g_main_context_unref (async_context);
 
 	do_test_for_thread_and_context (session, uri);
 	soup_test_session_abort_unref (session);
 
+	g_main_context_pop_thread_default (async_context);
+	g_main_context_unref (async_context);
 	return NULL;
 }
 

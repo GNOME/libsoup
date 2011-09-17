@@ -41,6 +41,12 @@ close_socket (SoupMessage *msg, gpointer user_data)
 	SoupSocket *sock = user_data;
 
 	soup_socket_disconnect (sock);
+
+	/* But also add the missing data to the message now, so
+	 * SoupServer can clean up after itself properly.
+	 */
+	soup_message_body_append (msg->response_body, SOUP_MEMORY_STATIC,
+				  "foo", 3);
 }
 
 static void
@@ -1041,6 +1047,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
+	g_mutex_free (server_mutex);
 
 	test_cleanup ();
 	return errors != 0;

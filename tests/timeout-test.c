@@ -135,6 +135,7 @@ do_timeout_tests (char *fast_uri, char *slow_uri)
 					       NULL);
 	do_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
 	soup_test_session_abort_unref (timeout_session);
+	soup_test_session_abort_unref (plain_session);
 }
 
 static gboolean

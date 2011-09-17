@@ -107,6 +107,12 @@
    fun:get_dispatch
 }
 {
+   glib/g_signal_connect
+   Memcheck:Leak
+   ...
+   fun:handler_list_ensure
+}
+{
    glib/g_signal_handlers_destroy
    Memcheck:Leak
    ...
@@ -167,10 +173,29 @@
    fun:_g_io_modules_ensure_loaded
 }
 {
-   glib/tlsinit
+   glib/proxydefault
+   Memcheck:Leak
+   ...
+   fun:get_default_proxy_resolver
+}
+{
+   glib/proxysettings
+   Memcheck:Leak
+   ...
+   fun:update_settings
+   fun:g_proxy_resolver_gnome_lookup
+}
+{
+   glib/tlsdefault
    Memcheck:Leak
    ...
    fun:get_default_tls_backend
+}
+{
+   glib/tlsdb
+   Memcheck:Leak
+   ...
+   fun:g_tls_backend_get_default_database
 }
 {
    glib/tlscrypto
@@ -197,7 +222,101 @@
    fun:ensure_attribute_hash
    fun:lookup_attribute
 }
+{
+  glib/unixsignalthread
+  Memcheck:Leak
+  ...
+  fun:ensure_unix_signal_handler_installed_unlocked
+}
+{
+  glib/gioscheduler
+  Memcheck:Leak
+  ...
+  fun:init_scheduler
+}
+{
+   glib/gtestinit
+   Memcheck:Leak
+   ...
+   fun:g_test_init
+}
+{
+   glib/gtestroot
+   Memcheck:Leak
+   ...
+   fun:g_test_get_root
+}
+{
+   glib/gtestseed
+   Memcheck:Leak
+   ...
+   fun:test_run_seed
+}
+{
+   glib/gtestcase
+   Memcheck:Leak
+   ...
+   fun:g_test_create_case
+}
+{
+   glib/gtestsuite
+   Memcheck:Leak
+   ...
+   fun:g_test_create_suite
+}
+{
+   glib/gtestsuiteadd
+   Memcheck:Leak
+   ...
+   fun:g_test_suite_add
+}
+{
+   glib/gtestsuiteaddsuite
+   Memcheck:Leak
+   ...
+   fun:g_test_suite_add_suite
+}
+{
+   glib/gtestsuiterun
+   Memcheck:Leak
+   ...
+   fun:g_slist_copy
+   fun:g_test_run_suite_internal
+}
+{
+   glib/gthreadpool
+   Memcheck:Leak
+   ...
+   fun:g_thread_pool_start_thread
+}
+{
+   glib/gthreadpool1
+   Memcheck:Leak
+   ...
+   fun:g_thread_pool_wait_for_new_pool
+}
+{
+   glib/gthreadpool2
+   Memcheck:Leak
+   ...
+   fun:g_thread_pool_wait_for_new_task
+}
+{
+   glib/gthreadtls
+   Memcheck:Leak
+   ...
+   fun:_dl_allocate_tls
+   ...
+   fun:g_thread_create_posix_impl
+}
 
+# probably inlines the aggressive memcpy/memcmp
+{
+   gnutls/der
+   Memcheck:Cond
+   ...
+   fun:asn1_der_coding
+}
 # probably using uninitialized memory as padding or something
 {
    gnutls/handshake
@@ -211,6 +330,12 @@
    Memcheck:Leak
    ...
    fun:xmlInitParser
+}
+{
+   libxml2/xmlInitParserCtxt
+   Memcheck:Leak
+   ...
+   fun:xmlInitParserCtxt
 }
 {
    libxml2/xmlInitializeDict
