@@ -77,9 +77,9 @@ typedef struct {
 	guint is_server:1;
 	guint ssl_strict:1;
 	guint ssl_fallback:1;
-	guint ssl_ca_in_creds:1;
 	guint clean_dispose:1;
 	gpointer ssl_creds;
+	gboolean ssl_ca_in_creds;
 
 	GMainContext   *async_context;
 	GSource        *watch_src;
@@ -896,10 +896,9 @@ soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	if (soup_ssl_credentials_verify_certificate (priv->ssl_creds,
-						     cert, errors)) {
-		priv->ssl_ca_in_creds = TRUE;
+						     cert, errors,
+						     &priv->ssl_ca_in_creds))
 		return TRUE;
-	}
 
 	return !priv->ssl_strict;
 }

@@ -19,7 +19,8 @@ SoupSSLCredentials   *soup_ssl_get_client_credentials           (const char     
 void                  soup_ssl_free_client_credentials          (SoupSSLCredentials   *creds);
 gboolean              soup_ssl_credentials_verify_certificate   (SoupSSLCredentials   *creds,
 								 GTlsCertificate      *cert,
-								 GTlsCertificateFlags  errors);
+								 GTlsCertificateFlags  errors,
+								 gboolean             *ca_in_creds);
 
 SoupSSLCredentials   *soup_ssl_get_server_credentials           (const char           *cert_file,
 								 const char           *key_file);

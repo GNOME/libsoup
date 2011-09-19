@@ -49,16 +49,19 @@ soup_ssl_get_client_credentials (const char *ca_file)
 gboolean
 soup_ssl_credentials_verify_certificate (SoupSSLCredentials   *creds,
 					 GTlsCertificate      *cert,
-					 GTlsCertificateFlags  errors)
+					 GTlsCertificateFlags  errors,
+					 gboolean             *ca_in_creds)
 {
 	errors = errors & creds->validation_flags;
 
+	*ca_in_creds = FALSE;
 	if (errors & G_TLS_CERTIFICATE_UNKNOWN_CA) {
 		GList *ca;
 
 		for (ca = creds->ca_list; ca; ca = ca->next) {
 			if ((g_tls_certificate_verify (cert, NULL, ca->data) & G_TLS_CERTIFICATE_UNKNOWN_CA) == 0) {
 				errors &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
+				*ca_in_creds = TRUE;
 				break;
 			}
 		}
