@@ -1,3 +1,16 @@
+Changes in libsoup from 2.35.90 to 2.35.92:
+
+	* Fixed a problem where SoupHTTPRequest response bodies could
+          be truncated. [#659256, Sergio]
+
+	* Fixed a bug in copying TLS information from SoupSocket to
+	  SoupMessage, causing all https connections to be reported as
+	  "untrusted" in epiphany. [Dan]
+
+	* Made SoupSession remove items from its host cache after a
+          while, so that if a host changes IP address, it will
+          eventually try to re-resolve it. [#646959, Sergio]
+
 Changes in libsoup from 2.35.5 to 2.35.90:
 
 	* Added SOUP_MESSAGE_CAN_REBUILD flag, to use with
