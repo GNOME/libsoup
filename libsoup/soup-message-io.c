@@ -68,7 +68,7 @@ typedef struct {
 	goffset               write_length;
 	goffset               written;
 
-	guint read_tag, write_tag, tls_signal_id;
+	guint read_tag, write_tag;
 	GSource *unpause_source;
 
 	SoupMessageGetHeadersFn   get_headers_cb;
@@ -102,8 +102,6 @@ soup_message_io_cleanup (SoupMessage *msg)
 		return;
 	priv->io_data = NULL;
 
-	if (io->tls_signal_id)
-		g_signal_handler_disconnect (io->sock, io->tls_signal_id);
 	if (io->sock)
 		g_object_unref (io->sock);
 	if (io->item)
@@ -1050,25 +1048,6 @@ io_read (SoupSocket *sock, SoupMessage *msg)
 	goto read_more;
 }
 
-static void
-socket_tls_certificate_changed (GObject *sock, GParamSpec *pspec,
-				gpointer msg)
-{
-	GTlsCertificate *certificate;
-	GTlsCertificateFlags errors;
-
-	g_object_get (sock,
-		      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
-		      SOUP_SOCKET_TLS_ERRORS, &errors,
-		      NULL);
-	g_object_set (msg,
-		      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
-		      SOUP_MESSAGE_TLS_ERRORS, errors,
-		      NULL);
-	if (certificate)
-		g_object_unref (certificate);
-}
-
 static SoupMessageIOData *
 new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	     SoupMessageGetHeadersFn get_headers_cb,
@@ -1101,8 +1080,24 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
 	if (soup_socket_is_ssl (io->sock)) {
-		io->tls_signal_id = g_signal_connect (io->sock, "notify::tls-certificate",
-						      G_CALLBACK (socket_tls_certificate_changed), msg);
+		GTlsCertificate *certificate;
+		GTlsCertificateFlags errors;
+
+		g_object_get (sock,
+			      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
+			      SOUP_SOCKET_TLS_ERRORS, &errors,
+			      NULL);
+		g_object_set (msg,
+			      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
+			      SOUP_MESSAGE_TLS_ERRORS, errors,
+			      NULL);
+		if (certificate)
+			g_object_unref (certificate);
+	} else {
+		g_object_set (msg,
+			      SOUP_MESSAGE_TLS_CERTIFICATE, NULL,
+			      SOUP_MESSAGE_TLS_ERRORS, 0,
+			      NULL);
 	}
 
 	if (priv->io_data)
