@@ -230,7 +230,6 @@ soup_test_session_new (GType type, ...)
 
 	g_object_set (G_OBJECT (session),
 		      SOUP_SESSION_SSL_CA_FILE, SRCDIR "/test-cert.pem",
-		      SOUP_SESSION_SSL_STRICT, FALSE,
 		      NULL);
 
 	if (http_debug_level && !logger) {
