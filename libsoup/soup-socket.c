@@ -343,7 +343,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	/**
 	 * SOUP_SOCKET_SSL_CREDENTIALS:
 	 *
-	 * Alias for the #SoupSocket:ssl-credentials property.
+	 * Alias for the #SoupSocket:ssl-creds property.
 	 * (SSL credential information.)
 	 **/
 	g_object_class_install_property (
@@ -815,7 +815,7 @@ listen_watch (GObject *pollable, gpointer data)
  * listening)
  *
  * Makes @sock start listening on its local address. When connections
- * come in, @sock will emit %new_connection.
+ * come in, @sock will emit #SoupSocket::new_connection.
  *
  * Return value: whether or not @sock is now listening.
  **/

@@ -58,7 +58,7 @@ you can specify various additional options:
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-MAX-CONNS--CAPS"><literal>SOUP_SESSION_MAX_CONNS</literal></link></term>
+	<term><link linkend="SOUP-SESSION-MAX-CONNS:CAPS"><literal>SOUP_SESSION_MAX_CONNS</literal></link></term>
 	<listitem><para>
 	    Allows you to set the maximum total number of connections
 	    the session will have open at one time. (Once it reaches
@@ -68,7 +68,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-MAX-CONNS-PER-HOST--CAPS"><literal>SOUP_SESSION_MAX_CONNS_PER_HOST</literal></link></term>
+	<term><link linkend="SOUP-SESSION-MAX-CONNS-PER-HOST:CAPS"><literal>SOUP_SESSION_MAX_CONNS_PER_HOST</literal></link></term>
 	<listitem><para>
 	    Allows you to set the maximum total number of connections
 	    the session will have open <emphasis>to a single
@@ -76,7 +76,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-USE-NTLM--CAPS"><literal>SOUP_SESSION_USE_NTLM</literal></link></term>
+	<term><link linkend="SOUP-SESSION-USE-NTLM:CAPS"><literal>SOUP_SESSION_USE_NTLM</literal></link></term>
 	<listitem><para>
 	    If <literal>TRUE</literal>, then Microsoft NTLM
 	    authentication will be used if available (and will be
@@ -89,7 +89,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-SSL-CA-FILE--CAPS"><literal>SOUP_SESSION_SSL_CA_FILE</literal></link></term>
+	<term><link linkend="SOUP-SESSION-SSL-CA-FILE:CAPS"><literal>SOUP_SESSION_SSL_CA_FILE</literal></link></term>
 	<listitem><para>
 	    Points to a file containing certificates for recognized
 	    SSL Certificate Authorities. If this is set, then HTTPS
@@ -99,7 +99,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-ASYNC-CONTEXT--CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link></term>
+	<term><link linkend="SOUP-SESSION-ASYNC-CONTEXT:CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link></term>
 	<listitem><para>
 	    A <link
 	    linkend="GMainContext"><type>GMainContext</type></link>
@@ -110,7 +110,7 @@ you can specify various additional options:
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-ADD-FEATURE--CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link> and <link linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE--CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link></term>
+	<term><link linkend="SOUP-SESSION-ADD-FEATURE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link> and <link linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link></term>
 	<listitem><para>
 	    These allow you to specify <link
 	    linkend="SoupSessionFeature"><type>SoupSessionFeature</type></link>s
@@ -136,9 +136,9 @@ which take no arguments.
 Additional session functionality is provided as <link
 linkend="SoupSessionFeature"><type>SoupSessionFeature</type></link>s,
 which can be added to a session, via the <link
-linkend="SOUP-SESSION-ADD-FEATURE--CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link>
+linkend="SOUP-SESSION-ADD-FEATURE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link>
 and <link
-linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE--CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link>
+linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link>
 options at session-construction-time, or afterward via the <link
 linkend="soup-session-add-feature"><function>soup_session_add_feature</function></link>
 and <link
@@ -172,7 +172,7 @@ And in <application>libsoup-gnome</application>:
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME--CAPS"><type>SoupProxyResolverGNOME</type></link></term>
+	<term><link linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME:CAPS"><type>SoupProxyResolverGNOME</type></link></term>
 	<listitem><para>
 	    A feature that automatically determines the correct HTTP
 	    proxy to use for requests.
@@ -190,7 +190,7 @@ And in <application>libsoup-gnome</application>:
 <para>
 Use the "add_feature_by_type" property/function to add features that
 don't require any configuration (such as <link
-linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME--CAPS"><type>SoupProxyResolverGNOME</type></link>),
+linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME:CAPS"><type>SoupProxyResolverGNOME</type></link>),
 and the "add_feature" property/function to add features that must be
 constructed first (such as <link
 linkend="SoupLogger"><type>SoupLogger</type></link>). For example, an
@@ -249,9 +249,9 @@ request headers and body of the message:
 <para>
 (Although this is a bad example, because
 <application>libsoup</application> actually has convenience methods
-for dealing with <link linkend="libsoup-24-HTML-Form-Support">HTML
+for dealing with <link linkend="libsoup-2.4-HTML-Form-Support">HTML
 forms</link>, as well as <link
-linkend="libsoup-24-XMLRPC-Support">XML-RPC</link>.)
+linkend="libsoup-2.4-XMLRPC-Support">XML-RPC</link>.)
 </para>
 
 <para>
@@ -260,7 +260,7 @@ linkend="soup-message-set-flags"><function>soup_message_set_flags</function></li
 to change some default behaviors. For example, by default,
 <type>SoupSession</type> automatically handles responses from the
 server that redirect to another URL. If you would like to handle these
-yourself, you can set the <link linkend="SOUP-MESSAGE-NO-REDIRECT--CAPS"><literal>SOUP_MESSAGE_NO_REDIRECT</literal></link>
+yourself, you can set the <link linkend="SOUP-MESSAGE-NO-REDIRECT:CAPS"><literal>SOUP_MESSAGE_NO_REDIRECT</literal></link>
 flag.
 </para>
 
@@ -286,7 +286,7 @@ it will run the main loop itself until the message is complete.)
 
 <para>
 The return value from <function>soup_session_send_message</function>
-is a <link linkend="soup-status">libsoup status code</link>,
+is a <link linkend="libsoup-2.4-soup-status">libsoup status code</link>,
 indicating either a transport error that prevented the message from
 being sent, or the HTTP status that was returned by the server in
 response to the message. (The status is also available as
@@ -344,7 +344,7 @@ linkend="soup-session-queue-message"><function>soup_session_queue_message</funct
 with a <link
 linkend="SoupSessionSync"><type>SoupSessionSync</type></link>, the
 message will be sent in another thread, with the callback eventually
-being invoked in the session's <link linkend="SOUP-SESSION-ASYNC-CONTEXT--CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link>.)
+being invoked in the session's <link linkend="SOUP-SESSION-ASYNC-CONTEXT:CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link>.)
 </para>
 
 </refsect3>
@@ -527,7 +527,7 @@ A few sample programs are available in the
     <listitem><para>
 	<emphasis role="bold"><literal>getbug</literal></emphasis> is a trivial
 	demonstration of the <link
-	linkend="libsoup-XMLRPC-Support">XMLRPC</link> interface.
+	linkend="libsoup-2.4-XMLRPC-Support">XMLRPC</link> interface.
 	(<emphasis
 	role="bold"><literal>xmlrpc-test</literal></emphasis> provides
 	a slightly more complicated example.)

@@ -193,7 +193,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	/**
 	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_CALLBACK:
 	 *
-	 * Alias for the #SoupAuthDomain:auth-callback property.
+	 * Alias for the #SoupAuthDomain:generic-auth-callback property.
 	 * (The #SoupAuthDomainGenericAuthCallback.)
 	 **/
 	g_object_class_install_property (
@@ -205,7 +205,7 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 	/**
 	 * SOUP_AUTH_DOMAIN_GENERIC_AUTH_DATA:
 	 *
-	 * Alias for the #SoupAuthDomain:auth-data property.
+	 * Alias for the #SoupAuthDomain:generic-auth-data property.
 	 * (The data to pass to the #SoupAuthDomainGenericAuthCallback.)
 	 **/
 	g_object_class_install_property (

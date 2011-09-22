@@ -61,10 +61,6 @@ typedef enum {
 #define SOUP_XMLRPC_FAULT soup_xmlrpc_fault_quark()
 GQuark soup_xmlrpc_fault_quark (void);
 
-/* From http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php.
- * These are an extension, not part of the XML-RPC spec; you can't
- * assume servers will use them.
- */
 typedef enum {
 	SOUP_XMLRPC_FAULT_PARSE_ERROR_NOT_WELL_FORMED = -32700,
 	SOUP_XMLRPC_FAULT_PARSE_ERROR_UNSUPPORTED_ENCODING = -32701,

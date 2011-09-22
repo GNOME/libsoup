@@ -404,6 +404,17 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      SOUP_TYPE_AUTH,
 			      G_TYPE_BOOLEAN);
 
+	/**
+	 * SoupSession::connection-created:
+	 * @session: the #SoupSession
+	 * @connection: the connection
+	 *
+	 * Emitted when a new connection is created. This is an
+	 * internal signal intended only to be used for debugging
+	 * purposes, and may go away in the future.
+	 *
+	 * Since: 2.30
+	 */
 	signals[CONNECTION_CREATED] =
 		g_signal_new ("connection-created",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -417,6 +428,17 @@ soup_session_class_init (SoupSessionClass *session_class)
 			       */
 			      G_TYPE_OBJECT);
 
+	/**
+	 * SoupSession::tunneling:
+	 * @session: the #SoupSession
+	 * @connection: the connection
+	 *
+	 * Emitted when an SSL tunnel is being created on a proxy
+	 * connection. This is an internal signal intended only to be
+	 * used for debugging purposes, and may go away in the future.
+	 *
+	 * Since: 2.30
+	 */
 	signals[TUNNELING] =
 		g_signal_new ("tunneling",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -535,11 +557,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_SSL_STRICT:
 	 *
-	 * Alias for the #SoupSession:ignore-ssl-cert-errors
-	 * property. By default, when validating certificates against
-	 * a CA file, Soup will consider invalid certificates as a
-	 * connection error. Setting this property to %TRUE makes soup
-	 * ignore the errors, and make the connection.
+	 * Alias for the #SoupSession:ssl-strict property. By default,
+	 * when validating certificates against a CA file, Soup will
+	 * consider invalid certificates as a connection error.
+	 * Setting this property to %TRUE makes soup ignore the
+	 * errors, and make the connection.
 	 *
 	 * Since: 2.30
 	 **/
@@ -598,7 +620,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * followed by a version string. You may also put comments,
 	 * enclosed in parentheses, between or after the tokens.
 	 *
-	 * If you set a %user_agent property that has trailing
+	 * If you set a #SoupSession:user_agent property that has trailing
 	 * whitespace, #SoupSession will append its own product token
 	 * (eg, "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
@@ -1732,10 +1754,11 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
  * may call this at any time after handing @msg off to @session; if
  * @session has started sending the request but has not yet received
  * the complete response, then it will close the request's connection.
- * Note that with non-idempotent requests (eg, %POST, %PUT, %DELETE)
- * it is possible that you might cancel the request after the server
- * acts on it, but before it returns a response, leaving the remote
- * resource in an unknown state.
+ * Note that with non-idempotent requests (eg,
+ * <literal>POST</literal>, <literal>PUT</literal>,
+ * <literal>DELETE</literal>) it is possible that you might cancel the
+ * request after the server acts on it, but before it returns a
+ * response, leaving the remote resource in an unknown state.
  *
  * If the message is cancelled while its response body is being read,
  * then the response body in @msg will be left partially-filled-in.
@@ -1834,9 +1857,9 @@ soup_session_abort (SoupSession *session)
 * proxy address, etc.) in order to work more quickly once the URI is
 * actually requested.
 *
-* This method acts asynchronously, in @session's %async_context.
-* If you are using #SoupSessionSync and do not have a main loop running,
-* then you can't use this method.
+* This method acts asynchronously, in @session's
+* #SoupSession:async_context. If you are using #SoupSessionSync and do
+* not have a main loop running, then you can't use this method.
 *
 * Since: 2.30
 **/
@@ -2003,7 +2026,7 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
  * @feature_type: the #GType of the class of features to get
  *
  * Generates a list of @session's features of type @feature_type. (If
- * you want to see all features, you can pass %G_TYPE_SESSION_FEATURE
+ * you want to see all features, you can pass %SOUP_TYPE_SESSION_FEATURE
  * for @feature_type.)
  *
  * Return value: (transfer container) (element-type Soup.SessionFeature):

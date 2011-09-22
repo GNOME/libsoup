@@ -38,13 +38,14 @@
  * SECTION:soup-request
  * @short_description: Protocol-independent streaming request interface
  *
- * FIXME
+ * A #SoupRequest is created by #SoupRequester, and represents a
+ * request to retrieve a particular URI.
  */
 
 /**
  * SoupRequest:
  *
- * FIXME
+ * A request to retrieve a particular URI.
  *
  * Since: 2.34
  */
@@ -194,6 +195,20 @@ soup_request_default_send_finish (SoupRequest          *request,
 	return soup_request_send (request, NULL, error);
 }
 
+/**
+ * soup_request_send:
+ * @request: a #SoupRequest
+ * @cancellable: a #GCancellable or %NULL
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously requests the URI pointed to by @request, and returns
+ * a #GInputStream that can be used to read its contents.
+ *
+ * Return value: (transfer full): a #GInputStream that can be used to
+ *   read from the URI pointed to by @request.
+ *
+ * Since: 2.34
+ */
 GInputStream *
 soup_request_send (SoupRequest          *request,
 		   GCancellable         *cancellable,
@@ -203,16 +218,41 @@ soup_request_send (SoupRequest          *request,
 		send (request, cancellable, error);
 }
 
+/**
+ * soup_request_send_async:
+ * @request: a #SoupRequest
+ * @cancellable: a #GCancellable or %NULL
+ * @callback: a #GAsyncReadyCallback
+ * @user_data: user data passed to @callback
+ *
+ * Begins an asynchronously request for the URI pointed to by
+ * @request.
+ *
+ * Since: 2.34
+ */
 void
-soup_request_send_async (SoupRequest          *request,
-			 GCancellable         *cancellable,
-			 GAsyncReadyCallback callback,
-			 gpointer user_data)
+soup_request_send_async (SoupRequest         *request,
+			 GCancellable        *cancellable,
+			 GAsyncReadyCallback  callback,
+			 gpointer             user_data)
 {
 	SOUP_REQUEST_GET_CLASS (request)->
 		send_async (request, cancellable, callback, user_data);
 }
 
+/**
+ * soup_request_send_finish:
+ * @request: a #SoupRequest
+ * @result: the #GAsyncResult
+ * @error: return location for a #GError, or %NULL
+ *
+ * Gets the result of a soup_request_send_async().
+ *
+ * Return value: (transfer full): a #GInputStream that can be used to
+ *   read from the URI pointed to by @request.
+ *
+ * Since: 2.34
+ */
 GInputStream *
 soup_request_send_finish (SoupRequest          *request,
 			  GAsyncResult         *result,
@@ -259,24 +299,66 @@ soup_request_initable_interface_init (GInitableIface *initable_interface)
 	initable_interface->init = soup_request_initable_init;
 }
 
+/**
+ * soup_request_get_uri:
+ * @request: a #SoupRequest
+ *
+ * Gets @request's URI
+ *
+ * Return value: (transfer none): @request's URI
+ *
+ * Since: 2.34
+ */
 SoupURI *
 soup_request_get_uri (SoupRequest *request)
 {
 	return request->priv->uri;
 }
 
+/**
+ * soup_request_get_session:
+ * @request: a #SoupRequest
+ *
+ * Gets @request's #SoupSession
+ *
+ * Return value: (transfer none): @request's #SoupSession
+ *
+ * Since: 2.34
+ */
 SoupSession *
 soup_request_get_session (SoupRequest *request)
 {
 	return request->priv->session;
 }
 
+/**
+ * soup_request_get_content_length:
+ * @request: a #SoupRequest
+ *
+ * Gets the length of the data represented by @request.
+ *
+ * Return value: the length of the data represented by @request,
+ *   or -1 if not known.
+ *
+ * Since: 2.34
+ */
 goffset
 soup_request_get_content_length (SoupRequest *request)
 {
 	return SOUP_REQUEST_GET_CLASS (request)->get_content_length (request);
 }
 
+/**
+ * soup_request_get_content_type:
+ * @request: a #SoupRequest
+ *
+ * Gets the type of the data represented by @request.
+ *
+ * Return value: the type of the data represented by @request,
+ *   or %NULL if not known.
+ *
+ * Since: 2.34
+ */
 const char *
 soup_request_get_content_type (SoupRequest  *request)
 {

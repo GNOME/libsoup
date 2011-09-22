@@ -11,7 +11,6 @@
     <xi:include href="build-howto.xml"/>
     <xi:include href="client-howto.xml"/>
     <xi:include href="server-howto.xml"/>
-    <xi:include href="porting-2.2-2.4.xml"/>
   </chapter>
 
   <chapter>
@@ -38,11 +37,13 @@
   <chapter>
     <title>Additional Features</title>
     <xi:include href="xml/soup-session-feature.xml"/>
+    <xi:include href="xml/soup-content-decoder.xml"/>
     <xi:include href="xml/soup-content-sniffer.xml"/>
     <xi:include href="xml/soup-cookie-jar.xml"/>
     <xi:include href="xml/soup-cookie-jar-text.xml"/>
     <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-proxy-uri-resolver.xml"/>
+    <xi:include href="xml/soup-proxy-resolver-default.xml"/>
   </chapter>
 
   <chapter>
@@ -62,6 +63,16 @@
     <title>Low-level Networking API</title>
     <xi:include href="xml/soup-address.xml"/>
     <xi:include href="xml/soup-socket.xml"/>
+  </chapter>
+
+  <chapter>
+    <title>Experimental streaming API</title>
+    <xi:include href="xml/soup-requester.xml"/>
+    <xi:include href="xml/soup-request.xml"/>
+    <xi:include href="xml/soup-request-http.xml"/>
+    <xi:include href="xml/soup-request-file.xml"/>
+    <xi:include href="xml/soup-request-data.xml"/>
+    <xi:include href="xml/soup-cache.xml"/>
   </chapter>
 
   <index>

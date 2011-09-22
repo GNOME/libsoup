@@ -257,13 +257,13 @@ static const struct {
  *
  * <emphasis>There is no reason for you to ever use this
  * function.</emphasis> If you wanted the textual description for the
- * %status_code of a given #SoupMessage, you should just look at the
- * message's %reason_phrase. However, you should only do that for use
- * in debugging messages; HTTP reason phrases are not localized, and
- * are not generally very descriptive anyway, and so they should never
- * be presented to the user directly. Instead, you should create you
- * own error messages based on the status code, and on what you were
- * trying to do.
+ * #SoupMessage:status_code of a given #SoupMessage, you should just
+ * look at the message's #SoupMessage:reason_phrase. However, you
+ * should only do that for use in debugging messages; HTTP reason
+ * phrases are not localized, and are not generally very descriptive
+ * anyway, and so they should never be presented to the user directly.
+ * Instead, you should create you own error messages based on the
+ * status code, and on what you were trying to do.
  *
  * Return value: the (terse, English) description of @status_code
  **/

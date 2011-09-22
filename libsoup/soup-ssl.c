@@ -143,6 +143,7 @@ soup_ssl_error_quark (void)
  * outside of libsoup.
  * @SOUP_SSL_ERROR_CERTIFICATE: Indicates an error validating an SSL
  * certificate
+ * @SOUP_SSL_ERROR_HANDSHAKE_FAILED: Unused
  *
  * SSL-related I/O errors.
  **/

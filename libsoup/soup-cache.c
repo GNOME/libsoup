@@ -1250,6 +1250,17 @@ soup_cache_class_init (SoupCacheClass *cache_class)
 }
 
 /**
+ * SoupCacheType:
+ * @SOUP_CACHE_SINGLE_USER: a single-user cache
+ * @SOUP_CACHE_SHARED: a shared cache
+ *
+ * The type of cache; this affects what kinds of responses will be
+ * saved.
+ *
+ * Since: 2.34
+ */
+
+/**
  * soup_cache_new:
  * @cache_dir: the directory to store the cached data, or %NULL to use the default one
  * @cache_type: the #SoupCacheType of the cache

@@ -429,7 +429,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * holes.
 	 *
 	 * As with #SoupSession:user_agent, if you set a
-	 * %server_header property that has trailing whitespace,
+	 * #SoupServer:server_header property that has trailing whitespace,
 	 * #SoupServer will append its own product token (eg,
 	 * "<literal>libsoup/2.3.2</literal>") to the end of the
 	 * header for you.
@@ -1206,8 +1206,9 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * @user_data: the data passed to @soup_server_add_handler
  *
  * A callback used to handle requests to a #SoupServer. The callback
- * will be invoked after receiving the request body; @msg's %method,
- * %request_headers, and %request_body fields will be filled in.
+ * will be invoked after receiving the request body; @msg's
+ * #SoupMessage:method, #SoupMessage:request_headers, and
+ * #SoupMessage:request_body fields will be filled in.
  *
  * @path and @query contain the likewise-named components of the
  * Request-URI, subject to certain assumptions. By default,
@@ -1243,7 +1244,7 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  *
  * To send the response body a bit at a time using "chunked" encoding,
  * first call soup_message_headers_set_encoding() to set
- * %SOUP_ENCODING_CHUNKED on the %response_headers. Then call
+ * %SOUP_ENCODING_CHUNKED on the #SoupMessage:response_headers. Then call
  * soup_message_body_append() (or soup_message_body_append_buffer())
  * to append each chunk as it becomes ready, and
  * soup_server_unpause_message() to make sure it's running. (The

@@ -121,8 +121,8 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
  *
  * Return value: the new #SoupBuffer.
  *
- * Since: 2.32
  * Rename to: soup_buffer_new
+ * Since: 2.32
  **/
 SoupBuffer *
 soup_buffer_new_take (guchar *data, gsize length)
@@ -384,25 +384,25 @@ soup_message_body_new (void)
  * @body may be discarded when they are no longer needed.
  *
  * In particular, if you set this flag to %FALSE on an "incoming"
- * message body (that is, the %response_body of a client-side message,
- * or %request_body of a server-side message), this will cause each
- * chunk of the body to be discarded after its corresponding
- * #SoupMessage::got_chunk signal is emitted. (This is equivalent to
- * setting the deprecated %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the
- * message.)
+ * message body (that is, the #SoupMessage:response_body of a
+ * client-side message, or #SoupMessage:request_body of a server-side
+ * message), this will cause each chunk of the body to be discarded
+ * after its corresponding #SoupMessage::got_chunk signal is emitted.
+ * (This is equivalent to setting the deprecated
+ * %SOUP_MESSAGE_OVERWRITE_CHUNKS flag on the message.)
  *
- * If you set this flag to %FALSE on the %response_body of a
- * server-side message, it will cause each chunk of the body to be
+ * If you set this flag to %FALSE on the #SoupMessage:response_body of
+ * a server-side message, it will cause each chunk of the body to be
  * discarded after its corresponding #SoupMessage::wrote_chunk signal
  * is emitted.
  *
- * If you set the flag to %FALSE on the %request_body of a client-side
- * message, it will block the accumulation of chunks into @body's
- * %data field, but it will not normally cause the chunks to be
- * discarded after being written like in the server-side
- * %response_body case, because the request body needs to be kept
- * around in case the request needs to be sent a second time due to
- * redirection or authentication. However, if you set the
+ * If you set the flag to %FALSE on the #SoupMessage:request_body of a
+ * client-side message, it will block the accumulation of chunks into
+ * @body's %data field, but it will not normally cause the chunks to
+ * be discarded after being written like in the server-side
+ * #SoupMessage:response_body case, because the request body needs to
+ * be kept around in case the request needs to be sent a second time
+ * due to redirection or authentication. However, if you set the
  * %SOUP_MESSAGE_CAN_REBUILD flag on the message, then the chunks will
  * be discarded, and you will be responsible for recreating the
  * request body after the #SoupMessage::restarted signal is emitted.
@@ -483,12 +483,12 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
  *
  * Appends @length bytes from @data to @body.
  *
- * This function is exactly equivalent to soup_message_body_apppend()
+ * This function is exactly equivalent to soup_message_body_append()
  * with %SOUP_MEMORY_TAKE as second argument; it exists mainly for
  * convenience and simplifying language bindings.
  *
- * Since: 2.32
  * Rename to: soup_message_body_append
+ * Since: 2.32
  **/
 void
 soup_message_body_append_take (SoupMessageBody *body,

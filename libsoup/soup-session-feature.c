@@ -42,6 +42,9 @@
  * @request_queued: Proxies the session's #SoupSession::request_queued signal
  * @request_started: Proxies the session's #SoupSession::request_started signal
  * @request_unqueued: Proxies the session's #SoupSession::request_unqueued signal
+ * @add_feature: adds a sub-feature to the main feature
+ * @remove_feature: removes a sub-feature from the main feature
+ * @has_feature: tests if the feature includes a sub-feature
  *
  * The interface implemented by #SoupSessionFeature<!-- -->s.
  *

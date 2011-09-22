@@ -19,6 +19,10 @@ soup_message_get_address
 soup_message_set_status
 soup_message_set_status_full
 soup_message_is_keepalive
+soup_message_get_https_status
+<SUBSECTION>
+soup_message_set_first_party
+soup_message_get_first_party
 <SUBSECTION>
 soup_message_add_header_handler
 soup_message_add_status_code_handler
@@ -38,6 +42,13 @@ SOUP_MESSAGE_FLAGS
 SOUP_MESSAGE_STATUS_CODE
 SOUP_MESSAGE_REASON_PHRASE
 SOUP_MESSAGE_SERVER_SIDE
+SOUP_MESSAGE_FIRST_PARTY
+SOUP_MESSAGE_REQUEST_BODY
+SOUP_MESSAGE_REQUEST_HEADERS
+SOUP_MESSAGE_RESPONSE_BODY
+SOUP_MESSAGE_RESPONSE_HEADERS
+SOUP_MESSAGE_TLS_CERTIFICATE
+SOUP_MESSAGE_TLS_ERRORS
 <SUBSECTION Standard>
 SOUP_MESSAGE
 SOUP_IS_MESSAGE
@@ -94,6 +105,7 @@ soup_message_headers_append
 soup_message_headers_replace
 soup_message_headers_remove
 soup_message_headers_clear
+soup_message_headers_clean_connection_headers
 soup_message_headers_get_one
 soup_message_headers_get_list
 soup_message_headers_get
@@ -141,7 +153,9 @@ SoupMemoryUse
 soup_buffer_new
 soup_buffer_new_subbuffer
 soup_buffer_new_with_owner
+soup_buffer_new_take
 soup_buffer_get_owner
+soup_buffer_get_data
 soup_buffer_copy
 soup_buffer_free
 <SUBSECTION>
@@ -154,6 +168,7 @@ soup_message_body_get_accumulate
 <SUBSECTION>
 soup_message_body_append
 soup_message_body_append_buffer
+soup_message_body_append_take
 soup_message_body_truncate
 soup_message_body_complete
 soup_message_body_flatten
@@ -196,6 +211,7 @@ soup_server_get_listener
 soup_server_run
 soup_server_run_async
 soup_server_quit
+soup_server_disconnect
 soup_server_get_async_context
 <SUBSECTION>
 SoupServerCallback
@@ -337,6 +353,7 @@ soup_address_is_resolved
 <SUBSECTION>
 soup_address_get_name
 soup_address_get_sockaddr
+soup_address_get_gsockaddr
 soup_address_get_physical
 soup_address_get_port
 <SUBSECTION>
@@ -359,8 +376,6 @@ SOUP_ADDRESS_CLASS
 SOUP_IS_ADDRESS_CLASS
 SOUP_ADDRESS_GET_CLASS
 SoupAddressClass
-<SUBSECTION Private>
-AF_INET6
 </SECTION>
 
 <SECTION>
@@ -373,6 +388,7 @@ soup_session_queue_message
 soup_session_requeue_message
 soup_session_send_message
 soup_session_cancel_message
+soup_session_prepare_for_uri
 soup_session_abort
 <SUBSECTION>
 soup_session_pause_message
@@ -400,6 +416,9 @@ SOUP_SESSION_USER_AGENT
 SOUP_SESSION_ADD_FEATURE
 SOUP_SESSION_ADD_FEATURE_BY_TYPE
 SOUP_SESSION_REMOVE_FEATURE_BY_TYPE
+SOUP_SESSION_ACCEPT_LANGUAGE
+SOUP_SESSION_ACCEPT_LANGUAGE_AUTO
+SOUP_SESSION_SSL_STRICT
 <SUBSECTION Standard>
 SOUP_IS_SESSION
 SOUP_IS_SESSION_CLASS
@@ -409,6 +428,11 @@ SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
 SoupSessionClass
 soup_session_get_type
+<SUBSECTION Private>
+SoupConnection
+SoupConnectionState
+SoupMessageQueue
+SoupMessageQueueItem
 </SECTION>
 
 <SECTION>
@@ -461,6 +485,9 @@ SOUP_TYPE_SESSION_FEATURE
 <SUBSECTION Private>
 soup_session_feature_attach
 soup_session_feature_detach
+soup_session_feature_add_feature
+soup_session_feature_has_feature
+soup_session_feature_remove_feature
 </SECTION>
 
 <SECTION>
@@ -469,6 +496,10 @@ soup_session_feature_detach
 SoupAuth
 soup_auth_new
 soup_auth_update
+<SUBSECTION>
+SOUP_TYPE_AUTH_BASIC
+SOUP_TYPE_AUTH_DIGEST
+SOUP_TYPE_AUTH_NTLM
 <SUBSECTION>
 soup_auth_is_for_proxy
 soup_auth_get_scheme_name
@@ -497,6 +528,14 @@ SOUP_AUTH_CLASS
 SOUP_IS_AUTH_CLASS
 SOUP_AUTH_GET_CLASS
 SoupAuthClass
+soup_auth_basic_get_type
+soup_auth_digest_get_type
+soup_auth_ntlm_get_type
+<SUBSECTION Private>
+soup_auth_get_saved_password
+soup_auth_get_saved_users
+soup_auth_has_saved_password
+soup_auth_save_password
 </SECTION>
 
 <SECTION>
@@ -536,6 +575,11 @@ SOUP_SOCKET_IS_SERVER
 SOUP_SOCKET_SSL_CREDENTIALS
 SOUP_SOCKET_ASYNC_CONTEXT
 SOUP_SOCKET_TIMEOUT
+SOUP_SOCKET_SSL_FALLBACK
+SOUP_SOCKET_SSL_STRICT
+SOUP_SOCKET_TLS_CERTIFICATE
+SOUP_SOCKET_TLS_ERRORS
+SOUP_SOCKET_TRUSTED_CERTIFICATE
 <SUBSECTION Standard>
 SOUP_SOCKET
 SOUP_IS_SOCKET
@@ -547,6 +591,9 @@ SOUP_SOCKET_GET_CLASS
 SoupSocketClass
 <SUBSECTION Private>
 soup_ssl_error_quark
+soup_socket_get_fd
+soup_socket_handshake_async
+soup_socket_handshake_sync
 </SECTION>
 
 <SECTION>
@@ -558,7 +605,10 @@ soup_uri_new
 soup_uri_to_string
 <SUBSECTION>
 soup_uri_copy
+soup_uri_copy_host
 soup_uri_equal
+soup_uri_host_equal
+soup_uri_host_hash
 soup_uri_free
 <SUBSECTION>
 soup_uri_encode
@@ -567,22 +617,35 @@ soup_uri_normalize
 <SUBSECTION>
 SOUP_URI_SCHEME_HTTP
 SOUP_URI_SCHEME_HTTPS
+SOUP_URI_SCHEME_DATA
+SOUP_URI_SCHEME_FILE
+SOUP_URI_SCHEME_FTP
 soup_uri_uses_default_port
 SOUP_URI_VALID_FOR_HTTP
 <SUBSECTION>
 soup_uri_set_scheme
+soup_uri_get_scheme
 soup_uri_set_user
+soup_uri_get_user
 soup_uri_set_password
+soup_uri_get_password
 soup_uri_set_host
+soup_uri_get_host
 soup_uri_set_port
+soup_uri_get_port
 soup_uri_set_path
+soup_uri_get_path
 soup_uri_set_query
 soup_uri_set_query_from_form
 soup_uri_set_query_from_fields
+soup_uri_get_query
 soup_uri_set_fragment
+soup_uri_get_fragment
 <SUBSECTION Standard>
 SOUP_TYPE_URI
 soup_uri_get_type
+<SUBSECTION Private>
+uri_decoded_copy
 </SECTION>
 
 <SECTION>
@@ -598,6 +661,14 @@ soup_date_to_string
 soup_date_to_time_t
 soup_date_to_timeval
 soup_date_is_past
+soup_date_get_day
+soup_date_get_hour
+soup_date_get_minute
+soup_date_get_month
+soup_date_get_offset
+soup_date_get_second
+soup_date_get_utc
+soup_date_get_year
 soup_date_free
 <SUBSECTION>
 soup_headers_parse_request
@@ -613,6 +684,7 @@ soup_header_parse_param_list
 soup_header_parse_semi_param_list
 soup_header_free_param_list
 soup_header_g_string_append_param
+soup_header_g_string_append_param_quoted
 <SUBSECTION>
 soup_str_case_equal
 soup_str_case_hash
@@ -627,13 +699,20 @@ soup_ssl_supported
 soup_date_copy
 SOUP_TYPE_DATE
 soup_date_get_type
-soup_form_decode_urlencoded
-soup_form_encode_urlencoded
-soup_form_encode_urlencoded_list
+soup_char_is_token
+soup_char_is_uri_gen_delims
+soup_char_is_uri_percent_encoded
+soup_char_is_uri_sub_delims
+soup_char_is_uri_unreserved
+SOUP_CHAR_HTTP_CTL
+SOUP_CHAR_HTTP_SEPARATOR
+SOUP_CHAR_URI_GEN_DELIMS
+SOUP_CHAR_URI_PERCENT_ENCODED
+SOUP_CHAR_URI_SUB_DELIMS
 </SECTION>
 
 <SECTION>
-<FILE>soup-forms</FILE>
+<FILE>soup-form</FILE>
 <TITLE>HTML Form Support</TITLE>
 <SUBSECTION>
 SOUP_FORM_MIME_TYPE_MULTIPART
@@ -648,6 +727,10 @@ soup_form_request_new
 soup_form_request_new_from_datalist
 soup_form_request_new_from_hash
 soup_form_request_new_from_multipart
+<SUBSECTION Private>
+soup_form_decode_urlencoded
+soup_form_encode_urlencoded
+soup_form_encode_urlencoded_list
 </SECTION>
 
 <SECTION>
@@ -666,12 +749,12 @@ soup_xmlrpc_build_fault
 soup_xmlrpc_set_response
 soup_xmlrpc_set_fault
 <SUBSECTION>
-SOUP_XMLRPC_ERROR
-SoupXMLRPCError
 SOUP_XMLRPC_FAULT
 SoupXMLRPCFault
 <SUBSECTION Private>
 soup_xmlrpc_error_quark
+SOUP_XMLRPC_ERROR
+SoupXMLRPCError
 soup_xmlrpc_fault_quark
 </SECTION>
 
@@ -736,23 +819,30 @@ SoupCookie
 soup_cookie_new
 soup_cookie_parse
 soup_cookie_copy
-soup_cookie_equal
 soup_cookie_free
 <SUBSECTION>
 soup_cookie_set_name
+soup_cookie_get_name
 soup_cookie_set_value
+soup_cookie_get_value
 soup_cookie_set_domain
+soup_cookie_get_domain
 soup_cookie_set_path
+soup_cookie_get_path
 soup_cookie_set_max_age
 SOUP_COOKIE_MAX_AGE_ONE_HOUR
 SOUP_COOKIE_MAX_AGE_ONE_DAY
 SOUP_COOKIE_MAX_AGE_ONE_WEEK
 SOUP_COOKIE_MAX_AGE_ONE_YEAR
 soup_cookie_set_expires
+soup_cookie_get_expires
 soup_cookie_set_secure
+soup_cookie_get_secure
 soup_cookie_set_http_only
+soup_cookie_get_http_only
 <SUBSECTION>
 soup_cookie_applies_to_uri
+soup_cookie_domain_matches
 <SUBSECTION>
 soup_cookie_to_cookie_header
 soup_cookie_to_set_cookie_header
@@ -766,6 +856,8 @@ soup_cookies_free
 <SUBSECTION Standard>
 SOUP_TYPE_COOKIE
 soup_cookie_get_type
+<SUBSECTION Private>
+soup_cookie_equal
 </SECTION>
 
 <SECTION>
@@ -773,15 +865,20 @@ soup_cookie_get_type
 <TITLE>SoupCookieJar</TITLE>
 SoupCookieJar
 soup_cookie_jar_new
-soup_cookie_jar_save
 soup_cookie_jar_get_cookies
 soup_cookie_jar_set_cookie
+soup_cookie_jar_set_cookie_with_first_party
 <SUBSECTION>
 soup_cookie_jar_add_cookie
 soup_cookie_jar_delete_cookie
 soup_cookie_jar_all_cookies
 <SUBSECTION>
+SoupCookieJarAcceptPolicy
+soup_cookie_jar_get_accept_policy
+soup_cookie_jar_set_accept_policy
+<SUBSECTION>
 SOUP_COOKIE_JAR_READ_ONLY
+SOUP_COOKIE_JAR_ACCEPT_POLICY
 <SUBSECTION Standard>
 SoupCookieJarClass
 SOUP_COOKIE_JAR
@@ -791,6 +888,7 @@ SOUP_IS_COOKIE_JAR
 SOUP_IS_COOKIE_JAR_CLASS
 SOUP_TYPE_COOKIE_JAR
 soup_cookie_jar_get_type
+soup_cookie_jar_save
 </SECTION>
 
 <SECTION>
@@ -875,6 +973,8 @@ SOUP_TYPE_PROXY_RESOLVER_GNOME
 <SUBSECTION Standard>
 soup_proxy_resolver_gnome_get_type
 soup_gnome_features_2_26_get_type
+SOUP_TYPE_PASSWORD_MANAGER_GNOME
+soup_password_manager_gnome_get_type
 </SECTION>
 
 <SECTION>
@@ -894,3 +994,167 @@ SoupContentSnifferClass
 SoupContentSnifferPrivate
 soup_content_sniffer_get_type
 </SECTION>
+
+<SECTION>
+<FILE>soup-cache</FILE>
+<TITLE>SoupCache</TITLE>
+SoupCache
+SoupCacheType
+soup_cache_new
+soup_cache_flush
+soup_cache_clear
+soup_cache_dump
+soup_cache_load
+soup_cache_get_max_size
+soup_cache_set_max_size
+<SUBSECTION Standard>
+SOUP_TYPE_CACHE
+SOUP_IS_CACHE
+SOUP_IS_CACHE_CLASS
+SOUP_CACHE
+SOUP_CACHE_CLASS
+SOUP_CACHE_GET_CLASS
+SoupCacheClass
+SoupCachePrivate
+<SUBSECTION Private>
+soup_cache_generate_conditional_request
+soup_cache_get_cacheability
+soup_cache_get_type
+soup_cache_has_response
+soup_cache_send_response
+SoupCacheResponse
+SoupCacheability
+</SECTION>
+
+<SECTION>
+<FILE>soup-content-decoder</FILE>
+<TITLE>SoupContentDecoder</TITLE>
+SoupContentDecoder
+<SUBSECTION Standard>
+SOUP_TYPE_CONTENT_DECODER
+SOUP_IS_CONTENT_DECODER
+SOUP_IS_CONTENT_DECODER_CLASS
+SOUP_CONTENT_DECODER
+SOUP_CONTENT_DECODER_CLASS
+SOUP_CONTENT_DECODER_GET_CLASS
+SoupContentDecoderClass
+SoupContentDecoderPrivate
+soup_content_decoder_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-proxy-resolver-default</FILE>
+<TITLE>SoupProxyResolverDefault</TITLE>
+SoupProxyResolverDefault
+<SUBSECTION Standard>
+soup_proxy_resolver_default_get_type
+SoupProxyResolverDefaultClass
+SOUP_TYPE_PROXY_RESOLVER_DEFAULT
+SOUP_PROXY_RESOLVER_DEFAULT
+SOUP_PROXY_RESOLVER_DEFAULT_CLASS
+SOUP_PROXY_RESOLVER_DEFAULT_GET_CLASS
+SOUP_IS_PROXY_RESOLVER_DEFAULT
+SOUP_IS_PROXY_RESOLVER_DEFAULT_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>soup-requester</FILE>
+<TITLE>SoupRequester</TITLE>
+SoupRequester
+soup_requester_new
+soup_requester_request
+soup_requester_request_uri
+<SUBSECTION>
+SoupRequesterError
+SOUP_REQUESTER_ERROR
+<SUBSECTION Standard>
+soup_requester_get_type
+SoupRequesterClass
+SoupRequesterPrivate
+SOUP_TYPE_REQUESTER
+SOUP_REQUESTER
+SOUP_REQUESTER_CLASS
+SOUP_REQUESTER_GET_CLASS
+SOUP_IS_REQUESTER
+SOUP_IS_REQUESTER_CLASS
+<SUBSECTION Private>
+soup_requester_error_quark
+</SECTION>
+
+<SECTION>
+<FILE>soup-request</FILE>
+<TITLE>SoupRequest</TITLE>
+SoupRequest
+soup_request_send
+soup_request_send_async
+soup_request_send_finish
+<SUBSECTION>
+soup_request_get_content_length
+soup_request_get_content_type
+soup_request_get_session
+soup_request_get_uri
+<SUBSECTION>
+SOUP_REQUEST_SESSION
+SOUP_REQUEST_URI
+<SUBSECTION Standard>
+SOUP_IS_REQUEST
+SOUP_IS_REQUEST_CLASS
+SOUP_REQUEST
+SOUP_REQUEST_CLASS
+SOUP_REQUEST_GET_CLASS
+SOUP_TYPE_REQUEST
+SoupRequestClass
+SoupRequestPrivate
+soup_request_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-request-data</FILE>
+<TITLE>SoupRequestData</TITLE>
+SoupRequestData
+<SUBSECTION Standard>
+SOUP_IS_REQUEST_DATA
+SOUP_IS_REQUEST_DATA_CLASS
+SOUP_REQUEST_DATA
+SOUP_REQUEST_DATA_CLASS
+SOUP_REQUEST_DATA_GET_CLASS
+SOUP_TYPE_REQUEST_DATA
+SoupRequestDataClass
+SoupRequestDataPrivate
+soup_request_data_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-request-file</FILE>
+<TITLE>SoupRequestFile</TITLE>
+SoupRequestFile
+soup_request_file_get_file
+<SUBSECTION Standard>
+SOUP_IS_REQUEST_FILE
+SOUP_IS_REQUEST_FILE_CLASS
+SOUP_REQUEST_FILE
+SOUP_REQUEST_FILE_CLASS
+SOUP_REQUEST_FILE_GET_CLASS
+SOUP_TYPE_REQUEST_FILE
+SoupRequestFileClass
+SoupRequestFilePrivate
+soup_request_file_get_type
+</SECTION>
+
+<SECTION>
+<FILE>soup-request-http</FILE>
+<TITLE>SoupRequestHTTP</TITLE>
+SoupRequestHTTP
+soup_request_http_get_message
+<SUBSECTION Standard>
+SOUP_IS_REQUEST_HTTP
+SOUP_IS_REQUEST_HTTP_CLASS
+SOUP_REQUEST_HTTP
+SOUP_REQUEST_HTTP_CLASS
+SOUP_REQUEST_HTTP_GET_CLASS
+SOUP_TYPE_REQUEST_HTTP
+SoupRequestHTTPClass
+SoupRequestHTTPPrivate
+soup_request_http_get_type
+</SECTION>
+

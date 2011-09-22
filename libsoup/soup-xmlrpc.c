@@ -128,12 +128,13 @@ insert_value (xmlNode *parent, GValue *value)
  * @n_params: length of @params
  *
  * This creates an XML-RPC methodCall and returns it as a string.
- * This is the low-level method that soup_xmlrpc_request_new() and
- * soup_xmlrpc_call() are built on.
+ * This is the low-level method that soup_xmlrpc_request_new() is
+ * built on.
  *
  * @params is an array of #GValue representing the parameters to
  * @method. (It is *not* a #GValueArray, although if you have a
- * #GValueArray, you can just pass its %values and %n_values fields.)
+ * #GValueArray, you can just pass its <literal>values</literal>f and
+ * <literal>n_values</literal> fields.)
  *
  * The correspondence between glib types and XML-RPC types is:
  *
@@ -781,6 +782,43 @@ soup_xmlrpc_error_quark (void)
 		error = g_quark_from_static_string ("soup_xmlrpc_error_quark");
 	return error;
 }
+
+/**
+ * SOUP_XMLRPC_FAULT:
+ *
+ * A #GError domain representing an XML-RPC fault code. Used with
+ * #SoupXMLRPCFault (although servers may also return fault codes not
+ * in that enumeration).
+ */
+
+/**
+ * SoupXMLRPCFault:
+ * @SOUP_XMLRPC_FAULT_PARSE_ERROR_NOT_WELL_FORMED: request was not
+ *   well-formed
+ * @SOUP_XMLRPC_FAULT_PARSE_ERROR_UNSUPPORTED_ENCODING: request was in
+ *   an unsupported encoding
+ * @SOUP_XMLRPC_FAULT_PARSE_ERROR_INVALID_CHARACTER_FOR_ENCODING:
+ *   request contained an invalid character
+ * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_XML_RPC: request was not
+ *   valid XML-RPC
+ * @SOUP_XMLRPC_FAULT_SERVER_ERROR_REQUESTED_METHOD_NOT_FOUND: method
+ *   not found
+ * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INVALID_METHOD_PARAMETERS: invalid
+ *   parameters
+ * @SOUP_XMLRPC_FAULT_SERVER_ERROR_INTERNAL_XML_RPC_ERROR: internal
+ *   error
+ * @SOUP_XMLRPC_FAULT_APPLICATION_ERROR: start of reserved range for
+ *   application error codes
+ * @SOUP_XMLRPC_FAULT_SYSTEM_ERROR: start of reserved range for
+ *   system error codes
+ * @SOUP_XMLRPC_FAULT_TRANSPORT_ERROR: start of reserved range for
+ *   transport error codes
+ *
+ * Pre-defined XML-RPC fault codes from <ulink
+ * url="http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php">http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php</ulink>.
+ * These are an extension, not part of the XML-RPC spec; you can't
+ * assume servers will use them.
+ */
 
 GQuark
 soup_xmlrpc_fault_quark (void)

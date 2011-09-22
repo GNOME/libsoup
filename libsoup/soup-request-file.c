@@ -250,6 +250,16 @@ soup_request_file_class_init (SoupRequestFileClass *request_file_class)
 	request_class->get_content_type = soup_request_file_get_content_type;
 }
 
+/**
+ * soup_request_file_get_file:
+ * @file: a #SoupRequestFile
+ *
+ * Gets a #GFile corresponding to @file's URI
+ *
+ * Return value: (transfer full): a #GFile corresponding to @file
+ *
+ * Since: 2.34
+ */
 GFile *
 soup_request_file_get_file (SoupRequestFile *file)
 {

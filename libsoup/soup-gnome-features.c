@@ -14,7 +14,7 @@
 /**
  * SOUP_TYPE_PROXY_RESOLVER_GNOME:
  *
- * This returns the #GType of a #SoupProxyResolver that can be used to
+ * This returns the #GType of a #SoupProxyURIResolver that can be used to
  * resolve HTTP proxies for GNOME applications. You can add this to
  * a session using soup_session_add_feature_by_type() or by using the
  * %SOUP_SESSION_ADD_FEATURE_BY_TYPE construct-time property.

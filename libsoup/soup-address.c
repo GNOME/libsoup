@@ -406,7 +406,7 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
  *
  * Returns a #SoupAddress corresponding to the "any" address
  * for @family (or %NULL if @family isn't supported), suitable for
- * passing to soup_socket_server_new().
+ * using as a listening #SoupSocket.
  *
  * Return value: (allow-none): the new #SoupAddress
  **/
@@ -1013,7 +1013,7 @@ soup_address_hash_by_ip (gconstpointer addr)
  * This would be used to distinguish hosts in situations where
  * different virtual hosts on the same IP address should be considered
  * the same. Eg, if "www.example.com" and "www.example.net" have the
- * same IP address, then a single #SoupConnection can be used to talk
+ * same IP address, then a single connection can be used to talk
  * to either of them.
  *
  * See also soup_address_equal_by_name(), which compares by name

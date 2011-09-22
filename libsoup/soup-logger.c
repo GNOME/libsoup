@@ -35,8 +35,8 @@
  * and then attach it to a session (or multiple sessions) with
  * soup_session_add_feature().
  *
- * By default, the debugging output is sent to %stdout, and looks
- * something like:
+ * By default, the debugging output is sent to
+ * <literal>stdout</literal>, and looks something like:
  *
  * <informalexample><screen>
  * > POST /unauth HTTP/1.1
@@ -310,7 +310,7 @@ soup_logger_set_response_filter (SoupLogger       *logger,
  * @destroy: a #GDestroyNotify to free @printer_data
  *
  * Sets up an alternate log printing routine, if you don't want
- * the log to go to %stdout.
+ * the log to go to <literal>stdout</literal>.
  **/
 void
 soup_logger_set_printer (SoupLogger        *logger,

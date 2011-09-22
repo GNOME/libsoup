@@ -178,12 +178,35 @@ soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interf
 	feature_interface->has_feature = has_feature;
 }
 
+/**
+ * soup_requester_new:
+ *
+ * Creates a new #SoupRequester object, which can be added to
+ * a #SoupSession with soup_session_add_feature().
+ *
+ * Return value: the new #SoupRequester
+ *
+ * Since: 2.34
+ */
 SoupRequester *
 soup_requester_new (void)
 {
 	return g_object_new (SOUP_TYPE_REQUESTER, NULL);
 }
 
+/**
+ * soup_requester_request:
+ * @requester: a #SoupRequester
+ * @uri_string: a URI, in string form
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri_string.
+ *
+ * Return value: (transfer full): a new #SoupRequest, or
+ *   %NULL on error.
+ *
+ * Since: 2.34
+ */
 SoupRequest *
 soup_requester_request (SoupRequester *requester, const char *uri_string,
 			GError **error)
@@ -203,6 +226,19 @@ soup_requester_request (SoupRequester *requester, const char *uri_string,
 	return req;
 }
 
+/**
+ * soup_requester_request_uri:
+ * @requester: a #SoupRequester
+ * @uri: a #SoupURI representing the URI to retrieve
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri.
+ *
+ * Return value: (transfer full): a new #SoupRequest, or
+ *   %NULL on error.
+ *
+ * Since: 2.34
+ */
 SoupRequest *
 soup_requester_request_uri (SoupRequester *requester, SoupURI *uri,
 			    GError **error)
@@ -224,6 +260,25 @@ soup_requester_request_uri (SoupRequester *requester, SoupURI *uri,
 			       "session", requester->priv->session,
 			       NULL);
 }
+
+/**
+ * SOUP_REQUESTER_ERROR:
+ *
+ * A #GError domain for #SoupRequester errors. Used with
+ * #SoupRequesterError.
+ *
+ * Since: 2.34
+ */
+/**
+ * SoupRequesterError:
+ * @SOUP_REQUESTER_ERROR_BAD_URI: the URI could not be parsed
+ * @SOUP_REQUESTER_ERROR_UNSUPPORTED_URI_SCHEME: the URI scheme is not
+ *   supported by this #SoupRequester
+ *
+ * A #SoupRequester error.
+ *
+ * Since: 2.34
+ */
 
 GQuark
 soup_requester_error_quark (void)

@@ -126,7 +126,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 	/**
 	 * SOUP_AUTH_SCHEME_NAME:
 	 *
-	 * An alias for the #SoupAuth:scheme property. (The
+	 * An alias for the #SoupAuth:scheme-name property. (The
 	 * authentication scheme name.)
 	 **/
 	g_object_class_install_property (

@@ -327,7 +327,7 @@ soup_headers_parse_status_line (const char       *status_line,
  * soup_headers_parse_response:
  * @str: the header string (including the trailing blank line)
  * @len: length of @str up to (but not including) the terminating blank line.
- * @headers: #SoupMessageheaders to store the header values in
+ * @headers: #SoupMessageHeaders to store the header values in
  * @ver: (out) (allow-none): if non-%NULL, will be filled in with the HTTP
  * version
  * @status_code: (out) (allow-none): if non-%NULL, will be filled in with

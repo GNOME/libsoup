@@ -1050,11 +1050,11 @@ soup_uri_set_fragment (SoupURI *uri, const char *fragment)
 
 /**
  * soup_uri_copy_host:
- * @uri: a #SoupUri
+ * @uri: a #SoupURI
  *
  * Makes a copy of @uri, considering only the protocol, host, and port
  *
- * Return value: the new #SoupUri
+ * Return value: the new #SoupURI
  *
  * Since: 2.26.3
  **/

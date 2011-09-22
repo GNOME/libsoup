@@ -22,6 +22,12 @@
  **/
 
 /**
+ * SoupMessageHeaders:
+ *
+ * The HTTP message headers associated with a request or response.
+ */
+
+/**
  * SoupMessageHeadersType:
  * @SOUP_MESSAGE_HEADERS_REQUEST: request headers
  * @SOUP_MESSAGE_HEADERS_RESPONSE: response headers
@@ -839,17 +845,17 @@ soup_message_headers_set_expectations (SoupMessageHeaders *hdrs,
  * Represents a byte range as used in the Range header.
  *
  * If @end is non-negative, then @start and @end represent the bounds
- * of of the range, counting from %0. (Eg, the first 500 bytes would be
- * represented as @start = %0 and @end = %499.)
+ * of of the range, counting from 0. (Eg, the first 500 bytes would be
+ * represented as @start = 0 and @end = 499.)
  *
- * If @end is %-1 and @start is non-negative, then this represents a
+ * If @end is -1 and @start is non-negative, then this represents a
  * range starting at @start and ending with the last byte of the
  * requested resource body. (Eg, all but the first 500 bytes would be
- * @start = %500, and @end = %-1.)
+ * @start = 500, and @end = -1.)
  *
- * If @end is %-1 and @start is negative, then it represents a "suffix
+ * If @end is -1 and @start is negative, then it represents a "suffix
  * range", referring to the last -@start bytes of the resource body.
- * (Eg, the last 500 bytes would be @start = %-500 and @end = %-1.)
+ * (Eg, the last 500 bytes would be @start = -500 and @end = -1.)
  *
  * Since: 2.26
  **/

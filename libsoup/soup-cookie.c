@@ -1069,6 +1069,18 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
 	return TRUE;
 }
 
+/**
+ * soup_cookie_equal:
+ * @cookie1: a #SoupCookie
+ * @cookie2: a #SoupCookie
+ *
+ * Tests if @cookie1 and @cookie2 are equal.
+ *
+ * Note that currently, this does not check that the cookie domains
+ * match. This may change in the future.
+ *
+ * Return value: whether the cookies are equal.
+ */
 gboolean
 soup_cookie_equal (SoupCookie *cookie1, SoupCookie *cookie2)
 {

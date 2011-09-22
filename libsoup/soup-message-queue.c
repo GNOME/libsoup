@@ -13,10 +13,7 @@
 #include "soup-message-queue.h"
 #include "soup-uri.h"
 
-/**
- * SECTION:soup-message-queue
- *
- * This is an internal structure used by #SoupSession and its
+/* This is an internal structure used by #SoupSession and its
  * subclasses to keep track of the status of messages currently being
  * processed.
  *
