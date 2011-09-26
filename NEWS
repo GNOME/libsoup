@@ -1,3 +1,7 @@
+Changes in libsoup from 2.35.92 to 2.36.0:
+
+	* Improvements to gtk-doc documentation. [Dan]
+
 Changes in libsoup from 2.35.90 to 2.35.92:
 
 	* Fixed a problem where SoupHTTPRequest response bodies could
