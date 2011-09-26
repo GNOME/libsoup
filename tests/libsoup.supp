@@ -302,6 +302,13 @@
    fun:g_thread_pool_wait_for_new_task
 }
 {
+   glib/unused_thread_queue
+   Memcheck:Leak
+   ...
+   fun:g_async_queue_new
+   fun:g_thread_pool_new
+}
+{
    glib/gthreadtls
    Memcheck:Leak
    ...
@@ -313,7 +320,7 @@
 # probably inlines the aggressive memcpy/memcmp
 {
    gnutls/der
-   Memcheck:Cond
+   Memcheck:Addr4
    ...
    fun:asn1_der_coding
 }
