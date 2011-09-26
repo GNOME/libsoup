@@ -144,8 +144,6 @@ soup_message_io_stop (SoupMessage *msg)
 
 	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
 		soup_socket_disconnect (io->sock);
-	else if (io->item && io->item->conn)
-		soup_connection_set_state (io->item->conn, SOUP_CONNECTION_IDLE);
 }
 
 #define SOUP_MESSAGE_IO_EOL            "\r\n"

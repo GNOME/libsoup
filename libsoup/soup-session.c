@@ -1499,6 +1499,7 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionHost *host;
 
 	if (item->conn) {
+		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		g_object_unref (item->conn);
 		item->conn = NULL;
 	}

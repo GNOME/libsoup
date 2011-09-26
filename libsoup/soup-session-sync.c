@@ -155,7 +155,7 @@ tunnel_connect (SoupSession *session, SoupMessageQueueItem *related)
 		soup_session_send_queue_item (session, item, NULL);
 		status = item->msg->status_code;
 		if (item->state == SOUP_MESSAGE_RESTARTING &&
-		    soup_connection_get_state (conn) != SOUP_CONNECTION_DISCONNECTED) {
+		    soup_message_io_in_progress (item->msg)) {
 			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_restarted (item->msg);
 		} else {
