@@ -528,7 +528,7 @@ soup_message_headers_foreach (SoupMessageHeaders *hdrs,
 }
 
 
-static GStaticMutex header_pool_mutex = G_STATIC_MUTEX_INIT;
+G_LOCK_DEFINE_STATIC (header_pool);
 static GHashTable *header_pool, *header_setters;
 
 static void transfer_encoding_setter (SoupMessageHeaders *, const char *);
@@ -555,7 +555,7 @@ intern_header_name (const char *name, SoupHeaderSetter *setter)
 {
 	const char *interned;
 
-	g_static_mutex_lock (&header_pool_mutex);
+	G_LOCK (header_pool);
 
 	if (!header_pool) {
 		header_pool = g_hash_table_new (soup_str_case_hash, soup_str_case_equal);
@@ -578,7 +578,7 @@ intern_header_name (const char *name, SoupHeaderSetter *setter)
 	if (setter)
 		*setter = g_hash_table_lookup (header_setters, interned);
 
-	g_static_mutex_unlock (&header_pool_mutex);
+	G_UNLOCK (header_pool);
 	return interned;
 }
 
