@@ -56,13 +56,14 @@ typedef void (*SoupServerCallback) (SoupServer        *server,
 				    SoupClientContext *client,
 				    gpointer           user_data);
 
-#define SOUP_SERVER_PORT          "port"
-#define SOUP_SERVER_INTERFACE     "interface"
-#define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
-#define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
-#define SOUP_SERVER_ASYNC_CONTEXT "async-context"
-#define SOUP_SERVER_RAW_PATHS     "raw-paths"
-#define SOUP_SERVER_SERVER_HEADER "server-header"
+#define SOUP_SERVER_PORT            "port"
+#define SOUP_SERVER_INTERFACE       "interface"
+#define SOUP_SERVER_SSL_CERT_FILE   "ssl-cert-file"
+#define SOUP_SERVER_SSL_KEY_FILE    "ssl-key-file"
+#define SOUP_SERVER_TLS_CERTIFICATE "tls-certificate"
+#define SOUP_SERVER_ASYNC_CONTEXT   "async-context"
+#define SOUP_SERVER_RAW_PATHS       "raw-paths"
+#define SOUP_SERVER_SERVER_HEADER   "server-header"
 
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;

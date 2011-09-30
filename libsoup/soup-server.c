@@ -126,6 +126,7 @@ enum {
 	PROP_INTERFACE,
 	PROP_SSL_CERT_FILE,
 	PROP_SSL_KEY_FILE,
+	PROP_TLS_CERTIFICATE,
 	PROP_ASYNC_CONTEXT,
 	PROP_RAW_PATHS,
 	PROP_SERVER_HEADER,
@@ -355,9 +356,18 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SOUP_SERVER_SSL_CERT_FILE:
 	 *
-	 * Alias for the #SoupServer:ssl-cert-file property. (The file
-	 * containing the SSL certificate for the server.)
-	 **/
+	 * Alias for the #SoupServer:ssl-cert-file property, qv.
+	 */
+	/**
+	 * SoupServer:ssl-cert-file:
+	 *
+	 * Path to a file containing a PEM-encoded certificate. If
+	 * this and #SoupServer:ssl-key-file are both set, then the
+	 * server will speak https rather than plain http.
+	 *
+	 * Alternatively, you can use #SoupServer:tls-certificate
+	 * to provide an arbitrary #GTlsCertificate.
+	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_CERT_FILE,
 		g_param_spec_string (SOUP_SERVER_SSL_CERT_FILE,
@@ -368,15 +378,49 @@ soup_server_class_init (SoupServerClass *server_class)
 	/**
 	 * SOUP_SERVER_SSL_KEY_FILE:
 	 *
-	 * Alias for the #SoupServer:ssl-key-file property. (The file
-	 * containing the SSL certificate key for the server.)
-	 **/
+	 * Alias for the #SoupServer:ssl-key-file property, qv.
+	 */
+	/**
+	 * SoupServer:ssl-key-file:
+	 *
+	 * Path to a file containing a PEM-encoded private key. If
+	 * this and #SoupServer:ssl-key-file are both set, then the
+	 * server will speak https rather than plain http. Note that
+	 * you are allowed to set them to the same value, if you have
+	 * a single file containing both the certificate and the key.
+	 *
+	 * Alternatively, you can use #SoupServer:tls-certificate
+	 * to provide an arbitrary #GTlsCertificate.
+	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_KEY_FILE,
 		g_param_spec_string (SOUP_SERVER_SSL_KEY_FILE,
 				     "SSL key file",
 				     "File containing server SSL key",
 				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SERVER_TLS_CERTIFICATE:
+	 *
+	 * Alias for the #SoupServer:tls-certificate property, qv.
+	 */
+	/**
+	 * SoupServer:tls-certificate:
+	 *
+	 * A #GTlsCertificate that has a #GTlsCertificate:private-key
+	 * set. If this is set, then the server will speak https
+	 * rather than plain http.
+	 *
+	 * Alternatively, you can use #SoupServer:ssl-cert-file and
+	 * #SoupServer:ssl-key-file properties, to have #SoupServer
+	 * read in a a certificate from a file.
+	 */
+	g_object_class_install_property (
+		object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object (SOUP_SERVER_TLS_CERTIFICATE,
+				     "TLS certificate",
+				     "GTlsCertificate to use for https",
+				     G_TYPE_TLS_CERTIFICATE,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	/**
 	 * SOUP_SERVER_ASYNC_CONTEXT:
@@ -470,6 +514,8 @@ constructor (GType                  type,
 	if (priv->ssl_cert_file && priv->ssl_key_file) {
 		GError *error = NULL;
 
+		if (priv->ssl_cert)
+			g_object_unref (priv->ssl_cert);
 		priv->ssl_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file, priv->ssl_key_file, &error);
 		if (!priv->ssl_cert) {
 			g_warning ("Could not read SSL certificate from '%s': %s",
@@ -527,6 +573,11 @@ set_property (GObject *object, guint prop_id,
 		priv->ssl_key_file =
 			g_strdup (g_value_get_string (value));
 		break;
+	case PROP_TLS_CERTIFICATE:
+		if (priv->ssl_cert)
+			g_object_unref (priv->ssl_cert);
+		priv->ssl_cert = g_value_dup_object (value);
+		break;
 	case PROP_ASYNC_CONTEXT:
 		priv->async_context = g_value_get_pointer (value);
 		if (priv->async_context)
@@ -574,6 +625,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_KEY_FILE:
 		g_value_set_string (value, priv->ssl_key_file);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, priv->ssl_cert);
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
