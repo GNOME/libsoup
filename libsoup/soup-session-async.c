@@ -47,13 +47,25 @@ static void  auth_required   (SoupSession *session, SoupMessage *msg,
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 typedef struct {
-	GSource *idle_run_queue_source;
+	GHashTable *idle_run_queue_sources;
+
 } SoupSessionAsyncPrivate;
 #define SOUP_SESSION_ASYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncPrivate))
 
 static void
+destroy_unref_source (gpointer source)
+{
+	g_source_destroy (source);
+	g_source_unref (source);
+}
+
+static void
 soup_session_async_init (SoupSessionAsync *sa)
 {
+	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
+
+	priv->idle_run_queue_sources =
+		g_hash_table_new_full (NULL, NULL, NULL, destroy_unref_source);
 }
 
 static void
@@ -61,8 +73,7 @@ finalize (GObject *object)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
 
-	if (priv->idle_run_queue_source)
-		g_source_destroy (priv->idle_run_queue_source);
+	g_hash_table_destroy (priv->idle_run_queue_sources);
 
 	G_OBJECT_CLASS (soup_session_async_parent_class)->finalize (object);
 }
@@ -364,6 +375,9 @@ process_queue_item (SoupMessageQueueItem *item,
 	SoupSession *session = item->session;
 	SoupProxyURIResolver *proxy_resolver;
 
+	if (item->async_context != soup_session_get_async_context (session))
+		return;
+
 	do {
 		if (item->paused)
 			return;
@@ -470,7 +484,8 @@ idle_run_queue (gpointer sa)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
 
-	priv->idle_run_queue_source = NULL;
+	g_hash_table_remove (priv->idle_run_queue_sources,
+			     soup_session_get_async_context (sa));
 	run_queue (sa);
 	return FALSE;
 }
@@ -480,10 +495,13 @@ do_idle_run_queue (SoupSession *session)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (session);
 
-	if (!priv->idle_run_queue_source) {
-		priv->idle_run_queue_source = soup_add_completion (
-			soup_session_get_async_context (session),
-			idle_run_queue, session);
+	if (!g_hash_table_lookup (priv->idle_run_queue_sources,
+				  soup_session_get_async_context (session))) {
+		GMainContext *async_context = soup_session_get_async_context (session);
+		GSource *source = soup_add_completion (async_context, idle_run_queue, session);
+
+		g_hash_table_insert (priv->idle_run_queue_sources,
+				     async_context, g_source_ref (source));
 	}
 }
 

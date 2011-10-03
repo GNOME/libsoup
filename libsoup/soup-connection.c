@@ -37,7 +37,8 @@ typedef struct {
 	GTlsDatabase *tlsdb;
 	gboolean     ssl, ssl_strict, ssl_fallback;
 
-	GMainContext      *async_context;
+	GMainContext *async_context;
+	gboolean      use_thread_context;
 
 	SoupMessageQueueItem *cur_item;
 	SoupConnectionState state;
@@ -67,6 +68,7 @@ enum {
 	PROP_SSL_STRICT,
 	PROP_SSL_FALLBACK,
 	PROP_ASYNC_CONTEXT,
+	PROP_USE_THREAD_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_IDLE_TIMEOUT,
 	PROP_STATE,
@@ -214,6 +216,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      "GMainContext to dispatch this connection's async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
+		object_class, PROP_USE_THREAD_CONTEXT,
+		g_param_spec_boolean (SOUP_CONNECTION_USE_THREAD_CONTEXT,
+				      "Use thread context",
+				      "Use g_main_context_get_thread_default",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
 		g_param_spec_uint (SOUP_CONNECTION_TIMEOUT,
 				   "Timeout value",
@@ -295,6 +304,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_USE_THREAD_CONTEXT:
+		priv->use_thread_context = g_value_get_boolean (value);
+		break;
 	case PROP_TIMEOUT:
 		priv->io_timeout = g_value_get_uint (value);
 		break;
@@ -340,6 +352,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		g_value_set_boolean (value, priv->use_thread_context);
 		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->io_timeout);
@@ -533,6 +548,7 @@ soup_connection_connect_async (SoupConnection *conn,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 SOUP_SOCKET_USE_THREAD_CONTEXT, priv->use_thread_context,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 "clean-dispose", TRUE,
 				 NULL);
@@ -672,6 +688,7 @@ soup_connection_start_ssl_async (SoupConnection   *conn,
 	SoupConnectionPrivate *priv;
 	const char *server_name;
 	SoupConnectionAsyncConnectData *data;
+	GMainContext *async_context;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -681,12 +698,17 @@ soup_connection_start_ssl_async (SoupConnection   *conn,
 	data->callback = callback;
 	data->callback_data = user_data;
 
+	if (priv->use_thread_context)
+		async_context = g_main_context_get_thread_default ();
+	else
+		async_context = priv->async_context;
+
 	server_name = soup_address_get_name (priv->tunnel_addr ?
 					     priv->tunnel_addr :
 					     priv->remote_addr);
 	if (!soup_socket_start_proxy_ssl (priv->socket, server_name,
 					  cancellable)) {
-		soup_add_completion (priv->async_context,
+		soup_add_completion (async_context,
 				     idle_start_ssl_completed, data);
 		return;
 	}

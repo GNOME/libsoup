@@ -68,6 +68,7 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_TLS_DATABASE           "tls-database"
 #define SOUP_SESSION_SSL_STRICT             "ssl-strict"
 #define SOUP_SESSION_ASYNC_CONTEXT          "async-context"
+#define SOUP_SESSION_USE_THREAD_CONTEXT     "use-thread-context"
 #define SOUP_SESSION_TIMEOUT                "timeout"
 #define SOUP_SESSION_USER_AGENT             "user-agent"
 #define SOUP_SESSION_ACCEPT_LANGUAGE        "accept-language"

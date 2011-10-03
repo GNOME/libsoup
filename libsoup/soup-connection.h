@@ -47,6 +47,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
 #define SOUP_CONNECTION_SSL_FALLBACK    "ssl-fallback"
 #define SOUP_CONNECTION_ASYNC_CONTEXT   "async-context"
+#define SOUP_CONNECTION_USE_THREAD_CONTEXT "use-thread-context"
 #define SOUP_CONNECTION_TIMEOUT         "timeout"
 #define SOUP_CONNECTION_IDLE_TIMEOUT    "idle-timeout"
 #define SOUP_CONNECTION_STATE           "state"

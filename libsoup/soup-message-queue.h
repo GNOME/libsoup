@@ -39,6 +39,7 @@ struct _SoupMessageQueueItem {
 	SoupMessage *msg;
 	SoupSessionCallback callback;
 	gpointer callback_data;
+	GMainContext *async_context;
 
 	GCancellable *cancellable;
 	SoupAddress *proxy_addr;

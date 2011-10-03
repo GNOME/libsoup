@@ -99,34 +99,37 @@ static gpointer test1_thread (gpointer user_data);
 
 static GCond *test1_cond;
 static GMutex *test1_mutex;
+static GMainLoop *test1_loop;
 
 static void
-do_test1 (void)
+do_test1 (int n, gboolean use_thread_context)
 {
-	GMainLoop *loop;
-
-	debug_printf (1, "Test 1: blocking the main thread does not block other thread\n");
+	debug_printf (1, "\nTest %d: blocking the main thread does not block other thread\n", n);
+	if (use_thread_context)
+		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
+	else
+		debug_printf (1, "(Using SOUP_SESSION_ASYNC_CONTEXT)\n");
 
 	test1_cond = g_cond_new ();
 	test1_mutex = g_mutex_new ();
 
-	loop = g_main_loop_new (NULL, FALSE);
-	g_idle_add (idle_start_test1_thread, loop);
-	g_main_loop_run (loop);
-	g_main_loop_unref (loop);
+	test1_loop = g_main_loop_new (NULL, FALSE);
+	g_idle_add (idle_start_test1_thread, GINT_TO_POINTER (use_thread_context));
+	g_main_loop_run (test1_loop);
+	g_main_loop_unref (test1_loop);
 
 	g_mutex_free (test1_mutex);
 	g_cond_free (test1_cond);
 }
 
 static gboolean
-idle_start_test1_thread (gpointer loop)
+idle_start_test1_thread (gpointer use_thread_context)
 {
 	GTimeVal time;
 	GThread *thread;
 
 	g_mutex_lock (test1_mutex);
-	thread = g_thread_create (test1_thread, base_uri, TRUE, NULL);
+	thread = g_thread_create (test1_thread, use_thread_context, TRUE, NULL);
 
 	g_get_current_time (&time);
 	time.tv_sec += 5;
@@ -138,7 +141,7 @@ idle_start_test1_thread (gpointer loop)
 	}
 
 	g_mutex_unlock (test1_mutex);
-	g_main_loop_quit (loop);
+	g_main_loop_quit (test1_loop);
 	return FALSE;
 }
 
@@ -149,7 +152,7 @@ test1_finished (SoupSession *session, SoupMessage *msg, gpointer loop)
 }
 
 static gpointer
-test1_thread (gpointer user_data)
+test1_thread (gpointer use_thread_context)
 {
 	SoupSession *session;
 	GMainContext *async_context;
@@ -162,10 +165,16 @@ test1_thread (gpointer user_data)
 	g_mutex_unlock (test1_mutex);
 
 	async_context = g_main_context_new ();
-	session = soup_test_session_new (
-		SOUP_TYPE_SESSION_ASYNC,
-		SOUP_SESSION_ASYNC_CONTEXT, async_context,
-		NULL);
+	if (use_thread_context) {
+		g_main_context_push_thread_default (async_context);
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+						 NULL);
+	} else {
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_ASYNC_CONTEXT, async_context,
+						 NULL);
+	}
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -198,6 +207,9 @@ test1_thread (gpointer user_data)
 	g_free (uri);
 
 	g_cond_signal (test1_cond);
+
+	if (use_thread_context)
+		g_main_context_pop_thread_default (async_context);
 	return NULL;
 }
 
@@ -208,7 +220,7 @@ test1_thread (gpointer user_data)
 static gboolean idle_test2_fail (gpointer user_data);
 
 static void
-do_test2 (void)
+do_test2 (int n, gboolean use_thread_context)
 {
 	guint idle;
 	GMainContext *async_context;
@@ -216,15 +228,25 @@ do_test2 (void)
 	char *uri;
 	SoupMessage *msg;
 
-	debug_printf (1, "Test 2: a session with its own context is independent of the main loop.\n");
+	debug_printf (1, "\nTest %d: a session with its own context is independent of the main loop.\n", n);
+	if (use_thread_context)
+		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
+	else
+		debug_printf (1, "(Using SOUP_SESSION_ASYNC_CONTEXT)\n");
 
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
 
 	async_context = g_main_context_new ();
-	session = soup_test_session_new (
-		SOUP_TYPE_SESSION_ASYNC,
-		SOUP_SESSION_ASYNC_CONTEXT, async_context,
-		NULL);
+	if (use_thread_context) {
+		g_main_context_push_thread_default (async_context);
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+						 NULL);
+	} else {
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_ASYNC_CONTEXT, async_context,
+						 NULL);
+	}
 	g_main_context_unref (async_context);
 
 	uri = g_build_filename (base_uri, "slow", NULL);
@@ -243,6 +265,9 @@ do_test2 (void)
 	g_free (uri);
 
 	g_source_remove (idle);
+
+	if (use_thread_context)
+		g_main_context_pop_thread_default (async_context);
 }
 
 static gboolean
@@ -253,6 +278,110 @@ idle_test2_fail (gpointer user_data)
 	return FALSE;
 }
 
+static void
+multi_request_started (SoupSession *session, SoupMessage *msg,
+		       SoupSocket *socket, gpointer user_data)
+{
+	g_object_set_data (G_OBJECT (msg), "started", GUINT_TO_POINTER (TRUE));
+}
+
+static void
+msg1_got_headers (SoupMessage *msg, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+
+	g_main_loop_quit (loop);
+}
+
+static void
+multi_msg_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+
+	g_object_set_data (G_OBJECT (msg), "finished", GUINT_TO_POINTER (TRUE));
+	g_main_loop_quit (loop);
+}
+
+static void
+do_multicontext_test (int n)
+{
+	SoupSession *session;
+	SoupMessage *msg1, *msg2;
+	GMainContext *context1, *context2;
+	GMainLoop *loop1, *loop2;
+
+	debug_printf (1, "\nTest %d: Using multiple async contexts\n", n);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (multi_request_started), NULL);
+
+	context1 = g_main_context_new ();
+	loop1 = g_main_loop_new (context1, FALSE);
+	context2 = g_main_context_new ();
+	loop2 = g_main_loop_new (context2, FALSE);
+
+	g_main_context_push_thread_default (context1);
+	msg1 = soup_message_new ("GET", base_uri);
+	g_object_ref (msg1);
+	soup_session_queue_message (session, msg1, multi_msg_finished, loop1);
+	g_signal_connect (msg1, "got-headers",
+			  G_CALLBACK (msg1_got_headers), loop1);
+	g_object_set_data (G_OBJECT (msg1), "session", session);
+	g_main_context_pop_thread_default (context1);
+
+	g_main_context_push_thread_default (context2);
+	msg2 = soup_message_new ("GET", base_uri);
+	g_object_ref (msg2);
+	soup_session_queue_message (session, msg2, multi_msg_finished, loop2);
+	g_main_context_pop_thread_default (context2);
+
+	g_main_context_push_thread_default (context1);
+	g_main_loop_run (loop1);
+	g_main_context_pop_thread_default (context1);
+
+	if (!g_object_get_data (G_OBJECT (msg1), "started")) {
+		debug_printf (1, "  msg1 not started??\n");
+		errors++;
+	}
+	if (g_object_get_data (G_OBJECT (msg2), "started")) {
+		debug_printf (1, "  msg2 started while loop1 was running!\n");
+		errors++;
+	}
+
+	g_main_context_push_thread_default (context2);
+	g_main_loop_run (loop2);
+	g_main_context_pop_thread_default (context2);
+
+	if (g_object_get_data (G_OBJECT (msg1), "finished")) {
+		debug_printf (1, "  msg1 finished while loop2 was running!\n");
+		errors++;
+	}
+	if (!g_object_get_data (G_OBJECT (msg2), "finished")) {
+		debug_printf (1, "  msg2 not finished??\n");
+		errors++;
+	}
+
+	g_main_context_push_thread_default (context1);
+	g_main_loop_run (loop1);
+	g_main_context_pop_thread_default (context1);
+
+	if (!g_object_get_data (G_OBJECT (msg1), "finished")) {
+		debug_printf (1, "  msg1 not finished??\n");
+		errors++;
+	}
+
+	g_main_loop_unref (loop1);
+	g_main_loop_unref (loop2);
+	g_main_context_unref (context1);
+	g_main_context_unref (context2);
+	g_object_unref (msg1);
+	g_object_unref (msg2);
+
+	soup_test_session_abort_unref (session);
+}
 
 int
 main (int argc, char **argv)
@@ -266,8 +395,11 @@ main (int argc, char **argv)
 	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				    soup_server_get_port (server));
 
-	do_test1 ();
-	do_test2 ();
+	do_test1 (1, FALSE);
+	do_test1 (2, TRUE);
+	do_test2 (3, FALSE);
+	do_test2 (4, TRUE);
+	do_multicontext_test (5);
 
 	g_free (base_uri);
 	soup_test_server_quit_unref (server);

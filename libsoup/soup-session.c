@@ -101,6 +101,7 @@ typedef struct {
 	GMutex *host_lock;
 
 	GMainContext *async_context;
+	gboolean use_thread_context;
 
 	GResolver *resolver;
 
@@ -156,6 +157,7 @@ enum {
 	PROP_TLS_DATABASE,
 	PROP_SSL_STRICT,
 	PROP_ASYNC_CONTEXT,
+	PROP_USE_THREAD_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_USER_AGENT,
 	PROP_ACCEPT_LANGUAGE,
@@ -653,13 +655,40 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * Alias for the #SoupSession:async-context property. (The
 	 * session's #GMainContext.)
-	 **/
+	 */
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
 		g_param_spec_pointer (SOUP_SESSION_ASYNC_CONTEXT,
 				      "Async GMainContext",
 				      "The GMainContext to dispatch async I/O in",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_SESSION_USE_THREAD_CONTEXT:
+	 *
+	 * Alias for the #SoupSession:use-thread-context property, qv.
+	 *
+	 * Since: 2.38
+	 */
+	/**
+	 * SoupSession:use-thread-context:
+	 *
+	 * If set, asynchronous operations in this session will run in
+	 * whatever the thread-default #GMainContext is at the time
+	 * they are started, rather than always occurring in a context
+	 * fixed at the session's construction time. "Bookkeeping"
+	 * tasks (like expiring idle connections) will happen in the
+	 * context that was thread-default at the time the session was
+	 * created.
+	 *
+	 * Since: 2.38
+	 */
+	g_object_class_install_property (
+		object_class, PROP_USE_THREAD_CONTEXT,
+		g_param_spec_boolean (SOUP_SESSION_USE_THREAD_CONTEXT,
+				      "Use thread-default GMainContext",
+				      "Whether to use thread-default main contexts",
+				      FALSE,
+				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_TIMEOUT:
 	 *
@@ -1109,6 +1138,16 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_USE_THREAD_CONTEXT:
+		priv->use_thread_context = g_value_get_boolean (value);
+		if (priv->use_thread_context) {
+			if (priv->async_context)
+				g_main_context_unref (priv->async_context);
+			priv->async_context = g_main_context_get_thread_default ();
+			if (priv->async_context)
+				g_main_context_ref (priv->async_context);
+		}
+		break;
 	case PROP_TIMEOUT:
 		priv->io_timeout = g_value_get_uint (value);
 		break;
@@ -1216,6 +1255,9 @@ get_property (GObject *object, guint prop_id,
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
 		break;
+	case PROP_USE_THREAD_CONTEXT:
+		g_value_set_boolean (value, priv->use_thread_context);
+		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->io_timeout);
 		break;
@@ -1294,6 +1336,9 @@ uri_is_https (SoupSessionPrivate *priv, SoupURI *uri)
  * context, so you will need to ref it yourself if you want it to
  * outlive its session.
  *
+ * If #SoupSession:use-thread-context is true, this will return the
+ * current thread-default main context.
+ *
  * Return value: (transfer none): @session's #GMainContext, which may
  * be %NULL
  **/
@@ -1305,7 +1350,10 @@ soup_session_get_async_context (SoupSession *session)
 	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	return priv->async_context;
+	if (priv->use_thread_context)
+		return g_main_context_get_thread_default ();
+	else
+		return priv->async_context;
 }
 
 /* Hosts */
@@ -1784,6 +1832,7 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, (priv->tlsdb != NULL) && priv->ssl_strict,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
+		SOUP_CONNECTION_USE_THREAD_CONTEXT, priv->use_thread_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
 		SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
@@ -2234,7 +2283,8 @@ soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 	addr = g_object_ref (host->addr);
 	g_mutex_unlock (priv->host_lock);
 
-	soup_address_resolve_async (addr, priv->async_context,
+	soup_address_resolve_async (addr,
+				    soup_session_get_async_context (session),
 				    NULL, NULL, NULL);
 	g_object_unref (addr);
 }

@@ -55,6 +55,7 @@ enum {
 	PROP_SSL_STRICT,
 	PROP_SSL_FALLBACK,
 	PROP_ASYNC_CONTEXT,
+	PROP_USE_THREAD_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_TRUSTED_CERTIFICATE,
 	PROP_CLEAN_DISPOSE,
@@ -78,6 +79,7 @@ typedef struct {
 	guint ssl_strict:1;
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
+	guint use_thread_context:1;
 	gpointer ssl_creds;
 
 	GMainContext   *async_context;
@@ -406,6 +408,29 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
+	 * SOUP_SOCKET_USE_THREAD_CONTEXT:
+	 *
+	 * Alias for the #SoupSocket:use-thread-context property. (Use
+	 * g_main_context_get_thread_default())
+	 *
+	 * Since: 2.36.1
+	 */
+	/**
+	 * SoupSocket:use-thread-context:
+	 *
+	 * Use g_main_context_get_thread_default().
+	 *
+	 * Since: 2.36.1
+	 */
+	g_object_class_install_property (
+		object_class, PROP_USE_THREAD_CONTEXT,
+		g_param_spec_boolean (SOUP_SOCKET_USE_THREAD_CONTEXT,
+				      "Use thread context",
+				      "Use g_main_context_get_thread_default",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
 	 * SOUP_SOCKET_TIMEOUT:
 	 *
 	 * Alias for the #SoupSocket:timeout property. (The timeout
@@ -509,6 +534,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
+	case PROP_USE_THREAD_CONTEXT:
+		priv->use_thread_context = g_value_get_boolean (value);
+		break;
 	case PROP_TIMEOUT:
 		priv->timeout = g_value_get_uint (value);
 		if (priv->conn)
@@ -556,6 +584,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_ASYNC_CONTEXT:
 		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		g_value_set_boolean (value, priv->use_thread_context);
 		break;
 	case PROP_TIMEOUT:
 		g_value_set_uint (value, priv->timeout);
@@ -648,7 +679,7 @@ async_connected (GObject *client, GAsyncResult *result, gpointer data)
 	GSocketConnection *conn;
 	guint status;
 
-	if (priv->async_context)
+	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
 	conn = g_socket_client_connect_finish (G_SOCKET_CLIENT (client),
@@ -694,7 +725,7 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 
 	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
 
-	if (priv->async_context)
+	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_push_thread_default (priv->async_context);
 
 	client = g_socket_client_new ();
@@ -765,13 +796,20 @@ soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 			  GCancellable *cancellable)
 {
 	GSource *watch;
+	GMainContext *async_context;
 
 	if (cond == G_IO_IN)
 		watch = g_pollable_input_stream_create_source (priv->istream, cancellable);
 	else
 		watch = g_pollable_output_stream_create_source (priv->ostream, cancellable);
 	g_source_set_callback (watch, (GSourceFunc)callback, user_data, NULL);
-	g_source_attach (watch, priv->async_context);
+
+	if (priv->use_thread_context)
+		async_context = g_main_context_get_thread_default ();
+	else
+		async_context = priv->async_context;
+
+	g_source_attach (watch, async_context);
 	g_source_unref (watch);
 
 	return watch;
@@ -793,6 +831,7 @@ listen_watch (GObject *pollable, gpointer data)
 	new_priv->gsock = new_gsock;
 	if (priv->async_context)
 		new_priv->async_context = g_main_context_ref (priv->async_context);
+	new_priv->use_thread_context = priv->use_thread_context;
 	new_priv->non_blocking = priv->non_blocking;
 	new_priv->is_server = TRUE;
 	new_priv->ssl = priv->ssl;
@@ -1018,7 +1057,7 @@ handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data
 	GError *error = NULL;
 	guint status;
 
-	if (priv->async_context)
+	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
 	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (priv->conn),
@@ -1052,7 +1091,7 @@ soup_socket_handshake_async (SoupSocket         *sock,
 	data->callback = callback;
 	data->user_data = user_data;
 
-	if (priv->async_context)
+	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_push_thread_default (priv->async_context);
 	g_tls_connection_handshake_async (G_TLS_CONNECTION (priv->conn),
 					  G_PRIORITY_DEFAULT,
