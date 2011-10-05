@@ -985,6 +985,100 @@ do_select_auth_test (void)
 	soup_test_server_quit_unref (server);
 }
 
+static void
+sneakily_close_connection (SoupMessage *msg, gpointer user_data)
+{
+	/* Sneakily close the connection after the response, by
+	 * tricking soup-message-io into thinking that had been
+	 * the plan all along.
+	 */
+	soup_message_headers_append (msg->response_headers,
+				     "Connection", "close");
+}
+
+static void
+auth_close_request_started (SoupServer *server, SoupMessage *msg,
+			    SoupClientContext *client, gpointer user_data)
+{
+	g_signal_connect (msg, "wrote-headers",
+			  G_CALLBACK (sneakily_close_connection), NULL);
+}
+
+typedef struct {
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupAuth *auth;
+} AuthCloseData;
+
+static gboolean
+auth_close_idle_authenticate (gpointer user_data)
+{
+	AuthCloseData *acd = user_data;
+
+	soup_auth_authenticate (acd->auth, "user", "good-basic");
+	soup_session_unpause_message (acd->session, acd->msg);
+
+	g_object_unref (acd->auth);
+	return FALSE;
+}
+
+static void
+auth_close_authenticate (SoupSession *session, SoupMessage *msg,
+			 SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	AuthCloseData *acd = data;
+
+	soup_session_pause_message (session, msg);
+	acd->auth = g_object_ref (auth);
+	g_idle_add (auth_close_idle_authenticate, acd);
+}
+
+static void
+do_auth_close_test (void)
+{
+	SoupServer *server;
+	SoupAuthDomain *basic_auth_domain;
+	SoupURI *uri;
+	AuthCloseData acd;
+
+	debug_printf (1, "\nTesting auth when server times out connection:\n");
+
+	server = soup_test_server_new (FALSE);
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+
+	uri = soup_uri_new ("http://127.0.0.1/close");
+	soup_uri_set_port (uri, soup_server_get_port (server));
+
+	basic_auth_domain = soup_auth_domain_basic_new (
+		SOUP_AUTH_DOMAIN_REALM, "auth-test",
+		SOUP_AUTH_DOMAIN_ADD_PATH, "/",
+		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, server_basic_auth_callback,
+		NULL);
+	soup_server_add_auth_domain (server, basic_auth_domain);
+
+	g_signal_connect (server, "request-started",
+			  G_CALLBACK (auth_close_request_started), NULL);
+
+	acd.session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	g_signal_connect (acd.session, "authenticate",
+			  G_CALLBACK (auth_close_authenticate), &acd);
+
+	acd.msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (acd.session, acd.msg);
+
+	if (acd.msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "    Final status wrong: expected %u, got %u %s\n",
+			      SOUP_STATUS_OK, acd.msg->status_code,
+			      acd.msg->reason_phrase);
+		errors++;
+	}
+
+	g_object_unref (acd.msg);
+	soup_test_session_abort_unref (acd.session);
+	soup_test_server_quit_unref (server);
+}
+
 static SoupAuthTest relogin_tests[] = {
 	{ "Auth provided via URL, should succeed",
 	  "Basic/realm12/", "1", TRUE, "01", SOUP_STATUS_OK },
@@ -1109,6 +1203,7 @@ main (int argc, char **argv)
 	do_digest_expiration_test (base_uri);
 	do_async_auth_test (base_uri);
 	do_select_auth_test ();
+	do_auth_close_test ();
 
 	test_cleanup ();
 	return errors != 0;
