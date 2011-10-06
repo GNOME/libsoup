@@ -120,6 +120,8 @@ typedef struct {
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
+#define SOUP_IS_PLAIN_SESSION(o) (G_TYPE_FROM_INSTANCE (o) == SOUP_TYPE_SESSION)
+
 static void free_host (SoupSessionHost *host);
 static void connection_state_changed (GObject *object, GParamSpec *param,
 				      gpointer user_data);
@@ -230,6 +232,40 @@ soup_session_init (SoupSession *session)
 	priv->http_aliases = g_new (char *, 2);
 	priv->http_aliases[0] = (char *)g_intern_string ("*");
 	priv->http_aliases[1] = NULL;
+}
+
+static GObject *
+soup_session_constructor (GType                  type,
+			  guint                  n_construct_properties,
+			  GObjectConstructParam *construct_params)
+{
+	GObject *object;
+
+	object = G_OBJECT_CLASS (soup_session_parent_class)->constructor (type, n_construct_properties, construct_params);
+
+	/* If this is a "plain" SoupSession, fix up the default
+	 * properties values, etc.
+	 */
+	if (type == SOUP_TYPE_SESSION) {
+		SoupSession *session = SOUP_SESSION (object);
+		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+		g_clear_object (&priv->tlsdb);
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+
+		g_clear_pointer (&priv->async_context, g_main_context_unref);
+		priv->async_context = g_main_context_ref_thread_default ();
+		priv->use_thread_context = TRUE;
+
+		priv->io_timeout = priv->idle_timeout = 60;
+
+		priv->http_aliases[0] = NULL;
+
+		soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
+		soup_session_add_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
+	}
+
+	return object;
 }
 
 static void
@@ -492,6 +528,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 	SoupURI *uri;
 	const char *user_agent;
 	SoupSessionFeature *feature;
+	GMainContext *async_context;
 
 	switch (prop_id) {
 	case PROP_PROXY_URI:
@@ -520,6 +557,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 		priv->max_conns_per_host = g_value_get_int (value);
 		break;
 	case PROP_USE_NTLM:
+		g_return_if_fail (!SOUP_IS_PLAIN_SESSION (session));
 		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
 		if (feature) {
 			if (g_value_get_boolean (value))
@@ -542,11 +580,16 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 		priv->ssl_strict = g_value_get_boolean (value);
 		break;
 	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
+		async_context = g_value_get_pointer (value);
+		if (async_context && async_context != g_main_context_get_thread_default ())
+			g_return_if_fail (!SOUP_IS_PLAIN_SESSION (session));
+		priv->async_context = async_context;
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
 		break;
 	case PROP_USE_THREAD_CONTEXT:
+		if (!g_value_get_boolean (value))
+			g_return_if_fail (!SOUP_IS_PLAIN_SESSION (session));
 		priv->use_thread_context = g_value_get_boolean (value);
 		if (priv->use_thread_context) {
 			if (priv->async_context)
@@ -2531,6 +2574,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	session_class->kick = soup_session_real_kick_queue;
 
 	/* virtual method override */
+	object_class->constructor = soup_session_constructor;
 	object_class->dispose = soup_session_dispose;
 	object_class->finalize = soup_session_finalize;
 	object_class->set_property = soup_session_set_property;
