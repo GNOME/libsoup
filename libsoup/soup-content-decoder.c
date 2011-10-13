@@ -66,12 +66,18 @@ G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT
 						soup_content_decoder_session_feature_init))
 
 /* This is constant for now */
-#define ACCEPT_ENCODING_HEADER "gzip"
+#define ACCEPT_ENCODING_HEADER "gzip, deflate"
 
 static GConverter *
 gzip_decoder_creator (void)
 {
 	return (GConverter *)g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+}
+
+static GConverter *
+zlib_decoder_creator (void)
+{
+	return (GConverter *)g_zlib_decompressor_new (G_ZLIB_COMPRESSOR_FORMAT_ZLIB);
 }
 
 static void
@@ -87,6 +93,8 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 			     gzip_decoder_creator);
 	g_hash_table_insert (decoder->priv->decoders, "x-gzip",
 			     gzip_decoder_creator);
+	g_hash_table_insert (decoder->priv->decoders, "deflate",
+			     zlib_decoder_creator);
 }
 
 static void

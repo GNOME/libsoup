@@ -338,6 +338,7 @@ content_decode_one (SoupBuffer *buf, GConverter *converter, GError **error)
 	gsize outbuf_length, outbuf_used, outbuf_cur, input_used, input_cur;
 	char *outbuf;
 	GConverterResult result;
+	gboolean dummy_zlib_header_used = FALSE;
 
 	outbuf_length = MAX (buf->length * 2, 1024);
 	outbuf = g_malloc (outbuf_length);
@@ -357,6 +358,39 @@ content_decode_one (SoupBuffer *buf, GConverter *converter, GError **error)
 			g_clear_error (error);
 			outbuf_length *= 2;
 			outbuf = g_realloc (outbuf, outbuf_length);
+		} else if (input_cur == 0 &&
+			   !dummy_zlib_header_used &&
+			   G_IS_ZLIB_DECOMPRESSOR (converter) &&
+			   g_error_matches (*error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA)) {
+
+			GZlibCompressorFormat format;
+			g_object_get (G_OBJECT (converter), "format", &format, NULL);
+
+			if (format == G_ZLIB_COMPRESSOR_FORMAT_ZLIB) {
+				/* Some servers (especially Apache with mod_deflate)
+				 * return RAW compressed data without the zlib headers
+				 * when the client claims to support deflate. For
+				 * those cases use a dummy header (stolen from
+				 * Mozilla's nsHTTPCompressConv.cpp) and try to
+				 * continue uncompressing data.
+				 */
+				static char dummy_zlib_header[2] = { 0x78, 0x9C };
+
+				g_converter_reset (converter);
+				result = g_converter_convert (converter,
+							      dummy_zlib_header, sizeof(dummy_zlib_header),
+							      outbuf + outbuf_cur, outbuf_length - outbuf_cur,
+							      0, &input_used, &outbuf_used, NULL);
+				dummy_zlib_header_used = TRUE;
+				if (result == G_CONVERTER_CONVERTED) {
+					g_clear_error (error);
+					continue;
+				}
+			}
+
+			g_free (outbuf);
+			return NULL;
+
 		} else if (*error) {
 			/* GZlibDecompressor can't ever return
 			 * G_IO_ERROR_PARTIAL_INPUT unless we pass it
