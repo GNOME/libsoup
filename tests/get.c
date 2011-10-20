@@ -105,14 +105,14 @@ main (int argc, char **argv)
 {
 	const char *cafile = NULL, *url;
 	SoupURI *proxy = NULL, *parsed;
-	gboolean synchronous = FALSE;
+	gboolean synchronous = FALSE, ntlm = FALSE;
 	int opt;
 
 	g_type_init ();
 
 	method = SOUP_METHOD_GET;
 
-	while ((opt = getopt (argc, argv, "c:dhp:qs")) != -1) {
+	while ((opt = getopt (argc, argv, "c:dhnp:qs")) != -1) {
 		switch (opt) {
 		case 'c':
 			cafile = optarg;
@@ -125,6 +125,10 @@ main (int argc, char **argv)
 		case 'h':
 			method = SOUP_METHOD_HEAD;
 			debug = TRUE;
+			break;
+
+		case 'n':
+			ntlm = TRUE;
 			break;
 
 		case 'p':
@@ -172,6 +176,7 @@ main (int argc, char **argv)
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
 			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+			SOUP_SESSION_USE_NTLM, ntlm,
 			NULL);
 	} else {
 		session = soup_session_async_new_with_options (
@@ -183,6 +188,7 @@ main (int argc, char **argv)
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
 			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+			SOUP_SESSION_USE_NTLM, ntlm,
 			NULL);
 	}
 

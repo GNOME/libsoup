@@ -12,6 +12,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <glib.h>
 
 #ifdef USE_NTLM_AUTH
 #include <stdlib.h>
@@ -387,6 +388,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (ntlm);
 	SoupNTLMConnection *conn;
 	const char *val;
+	SoupURI *uri;
 
 	conn = get_connection_for_msg (priv, msg);
 	if (!conn)
@@ -423,8 +425,14 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 	}
 #endif
 	conn->state = SOUP_NTLM_RECEIVED_CHALLENGE;
-	soup_auth_manager_emit_authenticate (SOUP_AUTH_MANAGER (ntlm), msg,
-					     conn->auth, FALSE);
+
+	uri = soup_message_get_uri (msg);
+	if (uri->password)
+		soup_auth_authenticate (conn->auth, uri->user, uri->password);
+	else {
+		soup_auth_manager_emit_authenticate (SOUP_AUTH_MANAGER (ntlm),
+						     msg, conn->auth, FALSE);
+	}
 
  done:
 	/* Remove the WWW-Authenticate headers so the session won't try
@@ -725,7 +733,7 @@ typedef struct {
 #define NTLM_CHALLENGE_DOMAIN_STRING_OFFSET 12
 
 #define NTLM_RESPONSE_HEADER "NTLMSSP\x00\x03\x00\x00\x00"
-#define NTLM_RESPONSE_FLAGS 0x8202
+#define NTLM_RESPONSE_FLAGS 0x8201
 
 typedef struct {
         guchar     header[12];
@@ -751,7 +759,7 @@ ntlm_set_string (NTLMString *string, int *offset, int len)
 static char *
 soup_ntlm_request (void)
 {
-	return g_strdup ("NTLM TlRMTVNTUAABAAAABoIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAwAAAA");
+	return g_strdup ("NTLM TlRMTVNTUAABAAAABYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAwAAAA");
 }
 
 static gboolean
@@ -783,7 +791,9 @@ soup_ntlm_parse_challenge (const char *challenge,
 			return FALSE;
 		}
 
-		*default_domain = g_strndup ((char *)chall + domain.offset, domain.length);
+		*default_domain = g_convert ((char *)chall + domain.offset,
+					     domain.length, "UTF-8", "UCS-2LE",
+					     NULL, NULL, NULL);
 	}
 
 	if (nonce) {
@@ -802,8 +812,10 @@ soup_ntlm_response (const char *nonce,
 		    const char *host, 
 		    const char *domain)
 {
-	int hlen, dlen, ulen, offset;
+	int offset;
+	gsize hlen, dlen, ulen;
 	guchar hash[21], lm_resp[24], nt_resp[24];
+	char *user_conv, *host_conv, *domain_conv;
 	NTLMResponse resp;
 	char *out, *p;
 	int state, save;
@@ -819,13 +831,15 @@ soup_ntlm_response (const char *nonce,
 
 	offset = sizeof (resp);
 
-	dlen = strlen (domain);
-	ntlm_set_string (&resp.domain, &offset, dlen);
-	ulen = strlen (user);
-	ntlm_set_string (&resp.user, &offset, ulen);
 	if (!host)
 		host = "UNKNOWN";
-	hlen = strlen (host);
+
+	domain_conv = g_convert (domain, -1, "UCS-2LE", "UTF-8", NULL, &dlen, NULL);
+	user_conv = g_convert (user, -1, "UCS-2LE", "UTF-8", NULL, &ulen, NULL);
+	host_conv = g_convert (host, -1, "UCS-2LE", "UTF-8", NULL, &hlen, NULL);
+
+	ntlm_set_string (&resp.domain, &offset, dlen);
+	ntlm_set_string (&resp.user, &offset, ulen);
 	ntlm_set_string (&resp.host, &offset, hlen);
 	ntlm_set_string (&resp.lm_resp, &offset, sizeof (lm_resp));
 	ntlm_set_string (&resp.nt_resp, &offset, sizeof (nt_resp));
@@ -838,11 +852,11 @@ soup_ntlm_response (const char *nonce,
 
 	p += g_base64_encode_step ((const guchar *) &resp, sizeof (resp), 
 				   FALSE, p, &state, &save);
-	p += g_base64_encode_step ((const guchar *) domain, dlen, 
+	p += g_base64_encode_step ((const guchar *) domain_conv, dlen,
 				   FALSE, p, &state, &save);
-	p += g_base64_encode_step ((const guchar *) user, ulen, 
+	p += g_base64_encode_step ((const guchar *) user_conv, ulen,
 				   FALSE, p, &state, &save);
-	p += g_base64_encode_step ((const guchar *) host, hlen, 
+	p += g_base64_encode_step ((const guchar *) host_conv, hlen,
 				   FALSE, p, &state, &save);
 	p += g_base64_encode_step (lm_resp, sizeof (lm_resp), 
 				   FALSE, p, &state, &save);
@@ -850,6 +864,10 @@ soup_ntlm_response (const char *nonce,
 				   FALSE, p, &state, &save);
 	p += g_base64_encode_close (FALSE, p, &state, &save);
 	*p = '\0';
+
+	g_free (domain_conv);
+	g_free (user_conv);
+	g_free (host_conv);
 
 	return out;
 }
