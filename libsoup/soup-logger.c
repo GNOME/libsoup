@@ -422,10 +422,21 @@ soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 static void
 soup_logger_print_basic_auth (SoupLogger *logger, const char *value)
 {
-	char *decoded, *p;
+	char *decoded, *decoded_utf8, *p;
 	gsize len;
 
 	decoded = (char *)g_base64_decode (value + 6, &len);
+	if (decoded && !g_utf8_validate (decoded, -1, NULL)) {
+		decoded_utf8 = g_convert_with_fallback (decoded, -1,
+							"UTF-8", "ISO-8859-1",
+							NULL, NULL, &len,
+							NULL);
+		if (decoded_utf8) {
+			g_free (decoded);
+			decoded = decoded_utf8;
+		}
+	}
+
 	if (!decoded)
 		decoded = g_strdup (value);
 	p = strchr (decoded, ':');

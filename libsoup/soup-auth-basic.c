@@ -103,10 +103,17 @@ static void
 authenticate (SoupAuth *auth, const char *username, const char *password)
 {
 	SoupAuthBasicPrivate *priv = SOUP_AUTH_BASIC_GET_PRIVATE (auth);
-	char *user_pass;
+	char *user_pass, *user_pass_latin1;
 	int len;
 
 	user_pass = g_strdup_printf ("%s:%s", username, password);
+	user_pass_latin1 = g_convert (user_pass, -1, "ISO-8859-1", "UTF-8",
+				      NULL, NULL, NULL);
+	if (user_pass_latin1) {
+		memset (user_pass, 0, strlen (user_pass));
+		g_free (user_pass);
+		user_pass = user_pass_latin1;
+	}
 	len = strlen (user_pass);
 
 	if (priv->token) {
