@@ -74,6 +74,7 @@ typedef struct {
 
 	guint non_blocking:1;
 	guint is_server:1;
+	guint ssl:1;
 	guint ssl_strict:1;
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
@@ -794,6 +795,7 @@ listen_watch (GObject *pollable, gpointer data)
 		new_priv->async_context = g_main_context_ref (priv->async_context);
 	new_priv->non_blocking = priv->non_blocking;
 	new_priv->is_server = TRUE;
+	new_priv->ssl = priv->ssl;
 	if (priv->ssl_creds)
 		new_priv->ssl_creds = priv->ssl_creds;
 	finish_socket_setup (new_priv);
@@ -934,6 +936,8 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	if (G_IS_TLS_CONNECTION (priv->conn))
 		return TRUE;
 
+	priv->ssl = TRUE;
+
 	if (!priv->is_server) {
 		GTlsClientConnection *conn;
 		GSocketConnectable *identity;
@@ -992,6 +996,7 @@ soup_socket_handshake_sync (SoupSocket    *sock,
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GError *error = NULL;
 
+	priv->ssl = TRUE;
 	if (g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
 					cancellable, &error))
 		return SOUP_STATUS_OK;
@@ -1040,6 +1045,8 @@ soup_socket_handshake_async (SoupSocket         *sock,
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	SoupSocketAsyncConnectData *data;
 
+	priv->ssl = TRUE;
+
 	data = g_slice_new (SoupSocketAsyncConnectData);
 	data->sock = g_object_ref (sock);
 	data->callback = callback;
@@ -1057,9 +1064,7 @@ soup_socket_handshake_async (SoupSocket         *sock,
  * soup_socket_is_ssl:
  * @sock: a #SoupSocket
  *
- * Tests if @sock is set up to do SSL. Note that this simply means
- * that the %SOUP_SOCKET_SSL_CREDENTIALS property has been set; it
- * does not mean that soup_socket_start_ssl() has been called.
+ * Tests if @sock is doing (or has attempted to do) SSL.
  *
  * Return value: %TRUE if @sock has SSL credentials set
  **/
@@ -1068,7 +1073,7 @@ soup_socket_is_ssl (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	return priv->ssl_creds != NULL;
+	return priv->ssl;
 }
 
 /**

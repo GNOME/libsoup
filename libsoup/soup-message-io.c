@@ -1076,27 +1076,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 
-	if (soup_socket_is_ssl (io->sock)) {
-		GTlsCertificate *certificate;
-		GTlsCertificateFlags errors;
-
-		g_object_get (sock,
-			      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
-			      SOUP_SOCKET_TLS_ERRORS, &errors,
-			      NULL);
-		g_object_set (msg,
-			      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
-			      SOUP_MESSAGE_TLS_ERRORS, errors,
-			      NULL);
-		if (certificate)
-			g_object_unref (certificate);
-	} else {
-		g_object_set (msg,
-			      SOUP_MESSAGE_TLS_CERTIFICATE, NULL,
-			      SOUP_MESSAGE_TLS_ERRORS, 0,
-			      NULL);
-	}
-
 	if (priv->io_data)
 		soup_message_io_cleanup (msg);
 	priv->io_data = io;

@@ -10,11 +10,13 @@
 
 #include "soup-address.h"
 #include "soup-auth.h"
+#include "soup-connection.h"
 #include "soup-enum-types.h"
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-misc.h"
+#include "soup-socket.h"
 #include "soup-uri.h"
 
 /**
@@ -1877,6 +1879,33 @@ soup_message_set_first_party (SoupMessage *msg,
 
 	priv->first_party = soup_uri_copy (first_party);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FIRST_PARTY);
+}
+
+void
+soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
+{
+	SoupSocket *sock = soup_connection_get_socket (conn);
+
+	if (sock && soup_socket_is_ssl (sock)) {
+		GTlsCertificate *certificate;
+		GTlsCertificateFlags errors;
+
+		g_object_get (sock,
+			      SOUP_SOCKET_TLS_CERTIFICATE, &certificate,
+			      SOUP_SOCKET_TLS_ERRORS, &errors,
+			      NULL);
+		g_object_set (msg,
+			      SOUP_MESSAGE_TLS_CERTIFICATE, certificate,
+			      SOUP_MESSAGE_TLS_ERRORS, errors,
+			      NULL);
+		if (certificate)
+			g_object_unref (certificate);
+	} else {
+		g_object_set (msg,
+			      SOUP_MESSAGE_TLS_CERTIFICATE, NULL,
+			      SOUP_MESSAGE_TLS_ERRORS, 0,
+			      NULL);
+	}
 }
 
 /**

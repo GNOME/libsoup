@@ -61,6 +61,13 @@ get_url (const char *url)
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
 			printf ("%s: %s\r\n", hname, value);
 		printf ("\n");
+	} else if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
+		GTlsCertificateFlags flags;
+
+		if (soup_message_get_https_status (msg, NULL, &flags))
+			printf ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
+		else
+			printf ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
 	} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
 		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 

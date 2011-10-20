@@ -314,6 +314,8 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		return;
 	}
 
+	soup_message_set_https_status (item->msg, conn);
+
 	if (status != SOUP_STATUS_OK) {
 		soup_connection_disconnect (conn);
 

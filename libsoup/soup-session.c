@@ -1510,6 +1510,7 @@ soup_session_get_connection (SoupSession *session,
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
 			g_mutex_unlock (priv->host_lock);
 			item->conn = g_object_ref (conns->data);
+			soup_message_set_https_status (item->msg, item->conn);
 			return TRUE;
 		} else if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_CONNECTING)
 			num_pending++;
