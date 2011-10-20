@@ -234,6 +234,8 @@ tunnel_complete (SoupMessageQueueItem *item)
 	soup_message_finished (item->msg);
 	if (item->related->msg->status_code)
 		item->related->state = SOUP_MESSAGE_FINISHING;
+	else
+		soup_message_set_https_status (item->related->msg, item->conn);
 
 	do_idle_run_queue (session);
 	soup_message_queue_item_unref (item->related);

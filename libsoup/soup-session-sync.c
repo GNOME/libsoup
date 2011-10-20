@@ -171,7 +171,7 @@ tunnel_connect (SoupSession *session, SoupMessageQueueItem *related)
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (!soup_connection_start_ssl_sync (conn, related->cancellable))
 			status = SOUP_STATUS_SSL_FAILED;
-		soup_message_set_https_status (item->msg, conn);
+		soup_message_set_https_status (related->msg, conn);
 	}
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
@@ -213,6 +213,8 @@ try_again:
 		item->conn = NULL;
 		goto try_again;
 	}
+
+	soup_message_set_https_status (msg, item->conn);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		if (!msg->status_code)

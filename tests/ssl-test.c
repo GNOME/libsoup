@@ -91,6 +91,12 @@ do_one_strict_test (SoupSession *session, char *uri,
 			      msg->status_code, msg->reason_phrase,
 			      expected_status,
 			      soup_status_get_phrase (expected_status));
+		if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
+			GTlsCertificateFlags flags = 0;
+
+			soup_message_get_https_status (msg, NULL, &flags);
+			debug_printf (1, "              tls error flags: 0x%x\n", flags);
+		}
 		errors++;
 	}
 	g_object_unref (msg);

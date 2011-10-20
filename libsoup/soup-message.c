@@ -1403,12 +1403,6 @@ soup_message_cleanup_response (SoupMessage *req)
 	}
 	priv->http_version = priv->orig_http_version;
 
-	if (priv->tls_certificate) {
-		g_object_unref (priv->tls_certificate);
-		priv->tls_certificate = NULL;
-	}
-	priv->tls_errors = 0;
-
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
@@ -1884,8 +1878,9 @@ soup_message_set_first_party (SoupMessage *msg,
 void
 soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
 {
-	SoupSocket *sock = soup_connection_get_socket (conn);
+	SoupSocket *sock;
 
+	sock = conn ? soup_connection_get_socket (conn) : NULL;
 	if (sock && soup_socket_is_ssl (sock)) {
 		GTlsCertificate *certificate;
 		GTlsCertificateFlags errors;
