@@ -987,7 +987,8 @@ set_property (GObject *object, guint prop_id,
 		g_free (priv->ssl_ca_file);
 
 		priv->ssl_ca_file = g_value_dup_string (value);
-		load_ssl_ca_file (priv);
+		if (priv->ssl_ca_file)
+			load_ssl_ca_file (priv);
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		if (priv->tlsdb) {
@@ -1551,7 +1552,7 @@ soup_session_get_connection (SoupSession *session,
 		SOUP_CONNECTION_PROXY_URI, item->proxy_uri,
 		SOUP_CONNECTION_SSL, uri->scheme == SOUP_URI_SCHEME_HTTPS,
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
-		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict,
+		SOUP_CONNECTION_SSL_STRICT, (priv->tlsdb != NULL) && priv->ssl_strict,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
