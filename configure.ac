@@ -153,35 +153,6 @@ dnl *** gobject-introspection ***
 dnl *****************************
 GOBJECT_INTROSPECTION_CHECK([0.9.5])
 
-dnl *************************************
-dnl *** Warnings to show if using GCC ***
-dnl *************************************
-
-AC_ARG_ENABLE(more-warnings,
-	      AS_HELP_STRING([--disable-more-warnings], [Inhibit compiler warnings]),
-	      set_more_warnings=no)
-
-if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
-	CFLAGS="$CFLAGS \
-		-Wall -Wstrict-prototypes -Wmissing-declarations \
-		-Wmissing-prototypes -Wnested-externs -Wpointer-arith \
-		-Wdeclaration-after-statement -Wformat=2 -Winit-self \
-		-Waggregate-return -Wmissing-format-attribute"
-
-	for option in -Wmissing-include-dirs -Wundef; do
-		SAVE_CFLAGS="$CFLAGS"
-		CFLAGS="$CFLAGS $option"
-		AC_MSG_CHECKING([whether gcc understands $option])
-		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
-				  [has_option=yes],
-				  [has_option=no])
-		AC_MSG_RESULT($has_option)
-		if test $has_option = no; then
-			CFLAGS="$SAVE_CFLAGS"
-		fi
-	done
-fi
-
 AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
 save_CFLAGS="$CFLAGS"
 save_LIBS="$LIBS"
@@ -342,6 +313,24 @@ if test "$ntlm_auth" != "no"; then
 fi
 AC_SUBST(ntlm_auth)
 AC_DEFINE_UNQUOTED(NTLM_AUTH, "$ntlm_auth", [Samba's 'winbind' daemon helper 'ntlm_auth' which can be used for NTLM single-sign-on])
+
+dnl ****************************************************
+dnl *** Warnings to show if using GCC                ***
+dnl *** (do this last so -Werror won't mess up tests ***
+dnl ****************************************************
+
+AC_ARG_ENABLE(more-warnings,
+	      AS_HELP_STRING([--disable-more-warnings], [Inhibit compiler warnings]),
+	      set_more_warnings=no)
+
+if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
+	CFLAGS="$CFLAGS \
+		-Wall -Wstrict-prototypes -Werror=missing-prototypes \
+		-Werror=implicit-function-declaration \
+		-Werror=pointer-arith -Werror=init-self -Werror=format=2 \
+		-Werror=missing-include-dirs -Werror=aggregate-return \
+		-Werror=declaration-after-statement"
+fi
 
 dnl *************************
 dnl *** Output Everything ***
