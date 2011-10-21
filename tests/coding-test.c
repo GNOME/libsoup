@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2007 Red Hat, Inc.
+ * Copyright (C) 2011 Igalia, S.L.
  */
 
 #include <ctype.h>
@@ -43,17 +44,40 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	else
 		codings = NULL;
 
-	if (codings && g_slist_find_custom (codings, "gzip", (GCompareFunc)g_ascii_strcasecmp)) {
-		file = g_strdup_printf (SRCDIR "/resources%s.gz", path);
-		if (g_file_test (file, G_FILE_TEST_EXISTS)) {
-			soup_message_headers_append (msg->response_headers,
-						     "Content-Encoding",
-						     "gzip");
-		} else {
-			g_free (file);
-			file = NULL;
+	if (codings) {
+		gboolean claim_deflate, claim_gzip;
+		const char *file_path = NULL, *encoding = NULL;
+
+		claim_deflate = g_slist_find_custom (codings, "deflate", (GCompareFunc)g_ascii_strcasecmp) != NULL;
+		claim_gzip = g_slist_find_custom (codings, "gzip", (GCompareFunc)g_ascii_strcasecmp) != NULL;
+
+		if (claim_gzip && (!claim_deflate ||
+				   (!soup_header_contains (options, "prefer-deflate-zlib") &&
+				    !soup_header_contains (options, "prefer-deflate-raw")))) {
+			file_path = SRCDIR "/resources%s.gz";
+			encoding = "gzip";
+		} else if (claim_deflate) {
+			if (soup_header_contains (options, "prefer-deflate-raw")) {
+				file_path = SRCDIR "/resources%s.raw";
+				encoding = "deflate";
+			} else {
+				file_path = SRCDIR "/resources%s.zlib";
+				encoding = "deflate";
+			}
+		}
+		if (file_path && encoding) {
+			file = g_strdup_printf (file_path, path);
+			if (g_file_test (file, G_FILE_TEST_EXISTS)) {
+				soup_message_headers_append (msg->response_headers,
+							     "Content-Encoding",
+							     encoding);
+			} else {
+				g_free (file);
+				file = NULL;
+			}
 		}
 	}
+
 	soup_header_free_list (codings);
 
 	if (!file)
@@ -70,9 +94,15 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	g_free (file);
 
 	if (soup_header_contains (options, "force-encode")) {
+		const gchar *encoding = "gzip";
+
+		if (soup_header_contains (options, "prefer-deflate-zlib") ||
+		    soup_header_contains (options, "prefer-deflate-raw"))
+			encoding = "deflate";
+
 		soup_message_headers_replace (msg->response_headers,
 					      "Content-Encoding",
-					      "gzip");
+					      encoding);
 	}
 
 	/* Content-Type matches the "real" format, not the sent format */
@@ -96,20 +126,21 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 }
 
+typedef enum {
+	NO_CHECK,
+	EXPECT_DECODED,
+	EXPECT_NOT_DECODED
+} MessageContentStatus;
+
 static void
-do_coding_test (void)
+do_single_coding_test (SoupSession *session,
+		       SoupMessage *msg,
+		       const char *expected_encoding,
+		       const char *expected_content_type,
+		       MessageContentStatus status)
 {
-	SoupSession *session;
-	SoupMessage *msg, *msgz, *msgj, *msge;
-	SoupURI *uri;
 	const char *coding, *type;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	uri = soup_uri_new_with_base (base_uri, "/mbox");
-
-
-	debug_printf (1, "GET /mbox, plain\n");
-	msg = soup_message_new_from_uri ("GET", uri);
 	soup_session_send_message (session, msg);
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 		debug_printf (1, "  Unexpected status %d %s\n",
@@ -117,223 +148,153 @@ do_coding_test (void)
 		errors++;
 	}
 	coding = soup_message_headers_get_one (msg->response_headers, "Content-Encoding");
-	if (coding) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
-			      coding);
-		errors++;
+	if (expected_encoding) {
+		if (!coding || g_ascii_strcasecmp (coding, expected_encoding) != 0) {
+			debug_printf (1, "  Unexpected Content-Encoding: %s\n",
+				      coding ? coding : "(none)");
+			errors++;
+		}
+	} else {
+		if (coding) {
+			debug_printf (1, "  Unexpected Content-Encoding: %s\n",
+				      coding);
+			errors++;
+		}
 	}
-	if (soup_message_get_flags (msg) & SOUP_MESSAGE_CONTENT_DECODED) {
-		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
-		errors++;
+	if (status != NO_CHECK) {
+		if (status == EXPECT_DECODED) {
+			if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_CONTENT_DECODED)) {
+				debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED not set!\n");
+				errors++;
+			}
+		} else {
+			if (soup_message_get_flags (msg) & SOUP_MESSAGE_CONTENT_DECODED) {
+				debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
+				errors++;
+			}
+		}
 	}
 	type = soup_message_headers_get_one (msg->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "text/plain") != 0) {
+	if (!type || g_ascii_strcasecmp (type, expected_content_type) != 0) {
 		debug_printf (1, "  Unexpected Content-Type: %s\n",
 			      type ? type : "(none)");
 		errors++;
 	}
+}
 
+static void
+check_msg_bodies (SoupMessage *msg1,
+		  SoupMessage *msg2,
+		  const char *msg1_type,
+		  const char *msg2_type)
+{
+	if (msg1->response_body->length != msg2->response_body->length) {
+		debug_printf (1, "  Message length mismatch: %lu (%s) vs %lu (%s)\n",
+			      (gulong)msg1->response_body->length,
+			      msg1_type,
+			      (gulong)msg2->response_body->length,
+			      msg2_type);
+		errors++;
+	} else if (memcmp (msg1->response_body->data,
+			   msg2->response_body->data,
+			   msg1->response_body->length) != 0) {
+		debug_printf (1, "  Message data mismatch (%s/%s)\n",
+			      msg1_type, msg2_type);
+		errors++;
+	}
+}
+
+static void
+do_coding_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg, *msgz, *msgj, *msge, *msgzl, *msgzlj, *msgzle, *msgzlr, *msgzlre;
+	SoupURI *uri;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	uri = soup_uri_new_with_base (base_uri, "/mbox");
+
+	/* Plain text data, no claim */
+	debug_printf (1, "GET /mbox, plain\n");
+	msg = soup_message_new_from_uri ("GET", uri);
+	do_single_coding_test (session, msg, NULL, "text/plain", EXPECT_NOT_DECODED);
+
+	/* Plain text data, claim gzip */
 	debug_printf (1, "GET /mbox, Accept-Encoding: gzip\n");
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
 	msgz = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msgz);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msgz->status_code)) {
-		debug_printf (1, "  Unexpected status %d %s\n",
-			      msgz->status_code, msgz->reason_phrase);
-		errors++;
-	}
-	coding = soup_message_headers_get_one (msgz->response_headers, "Content-Encoding");
-	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
-			      coding ? coding : "(none)");
-		errors++;
-	}
-	if (!(soup_message_get_flags (msgz) & SOUP_MESSAGE_CONTENT_DECODED)) {
-		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED not set!\n");
-		errors++;
-	}
-	type = soup_message_headers_get_one (msgz->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "text/plain") != 0) {
-		debug_printf (1, "  Unexpected Content-Type: %s\n",
-			      type ? type : "(none)");
-		errors++;
-	}
+	do_single_coding_test (session, msgz, "gzip", "text/plain", EXPECT_DECODED);
+	check_msg_bodies (msg, msgz, "plain", "compressed");
 
-	if (msg->response_body->length != msgz->response_body->length) {
-		debug_printf (1, "  Message length mismatch: %lu (plain) vs %lu (compressed)\n",
-			      (gulong)msg->response_body->length,
-			      (gulong)msgz->response_body->length);
-		errors++;
-	} else if (memcmp (msg->response_body->data,
-			   msgz->response_body->data,
-			   msg->response_body->length) != 0) {
-		debug_printf (1, "  Message data mismatch (plain/compressed)\n");
-		errors++;
-	}
-
-
+	/* Plain text data, claim gzip w/ junk */
 	debug_printf (1, "GET /mbox, Accept-Encoding: gzip, plus trailing junk\n");
 	msgj = soup_message_new_from_uri ("GET", uri);
 	soup_message_headers_append (msgj->request_headers,
 				     "X-Test-Options", "trailing-junk");
-	soup_session_send_message (session, msgj);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msgj->status_code)) {
-		debug_printf (1, "  Unexpected status %d %s\n",
-			      msgj->status_code, msgj->reason_phrase);
-		errors++;
-	}
-	coding = soup_message_headers_get_one (msgj->response_headers, "Content-Encoding");
-	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
-			      coding ? coding : "(none)");
-		errors++;
-	}
-	if (!(soup_message_get_flags (msgj) & SOUP_MESSAGE_CONTENT_DECODED)) {
-		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED not set!\n");
-		errors++;
-	}
-	type = soup_message_headers_get_one (msgj->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "text/plain") != 0) {
-		debug_printf (1, "  Unexpected Content-Type: %s\n",
-			      type ? type : "(none)");
-		errors++;
-	}
+	do_single_coding_test (session, msgj, "gzip", "text/plain", EXPECT_DECODED);
+	check_msg_bodies (msg, msgj, "plain", "compressed w/ junk");
 
-	if (msg->response_body->length != msgj->response_body->length) {
-		debug_printf (1, "  Message length mismatch: %lu (plain) vs %lu (compressed w/ junk)\n",
-			      (gulong)msg->response_body->length,
-			      (gulong)msgj->response_body->length);
-		errors++;
-	} else if (memcmp (msg->response_body->data,
-			   msgj->response_body->data,
-			   msg->response_body->length) != 0) {
-		debug_printf (1, "  Message data mismatch (plain/compressed w/ junk)\n");
-		errors++;
-	}
-
-
+	/* Plain text data, claim gzip with server error */
 	debug_printf (1, "GET /mbox, Accept-Encoding: gzip, with server error\n");
 	msge = soup_message_new_from_uri ("GET", uri);
 	soup_message_headers_append (msge->request_headers,
 				     "X-Test-Options", "force-encode");
-	soup_session_send_message (session, msge);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msge->status_code)) {
-		debug_printf (1, "  Unexpected status %d %s\n",
-			      msge->status_code, msge->reason_phrase);
-		errors++;
-	}
-	coding = soup_message_headers_get_one (msge->response_headers, "Content-Encoding");
-	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
-			      coding ? coding : "(none)");
-		errors++;
-	}
-	/* Since the content wasn't actually gzip-encoded, decoding it
-	 * should have failed and so the flag won't be set.
-	 */
-	if (soup_message_get_flags (msge) & SOUP_MESSAGE_CONTENT_DECODED) {
-		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
-		errors++;
-	}
-	type = soup_message_headers_get_one (msge->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "text/plain") != 0) {
-		debug_printf (1, "  Unexpected Content-Type: %s\n",
-			      type ? type : "(none)");
-		errors++;
-	}
+	do_single_coding_test (session, msge, "gzip", "text/plain", EXPECT_NOT_DECODED);
 
 	/* Failed content-decoding should have left the body untouched
 	 * from what the server sent... which happens to be the
 	 * uncompressed data.
 	 */
-	if (msg->response_body->length != msge->response_body->length) {
-		debug_printf (1, "  Message length mismatch: %lu (plain) vs %lu (mis-encoded)\n",
-			      (gulong)msg->response_body->length,
-			      (gulong)msge->response_body->length);
-		errors++;
-	} else if (memcmp (msg->response_body->data,
-			   msge->response_body->data,
-			   msg->response_body->length) != 0) {
-		debug_printf (1, "  Message data mismatch (plain/misencoded)\n");
-		errors++;
-	}
+	check_msg_bodies (msg, msge, "plain", "mis-encoded");
 
+	/* Plain text data, claim deflate */
+	debug_printf (1, "GET /mbox, Accept-Encoding: deflate\n");
+	msgzl = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgzl->request_headers,
+				     "X-Test-Options", "prefer-deflate-zlib");
+	do_single_coding_test (session, msgzl, "deflate", "text/plain", EXPECT_DECODED);
+	check_msg_bodies (msg, msgzl, "plain", "compressed");
+
+	/* Plain text data, claim deflate w/ junk */
+	debug_printf (1, "GET /mbox, Accept-Encoding: deflate, plus trailing junk\n");
+	msgzlj = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgzlj->request_headers,
+				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
+	do_single_coding_test (session, msgzlj, "deflate", "text/plain", EXPECT_DECODED);
+	check_msg_bodies (msg, msgzlj, "plain", "compressed w/ junk");
+
+	/* Plain text data, claim deflate with server error */
+	debug_printf (1, "GET /mbox, Accept-Encoding: deflate, with server error\n");
+	msgzle = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgzle->request_headers,
+				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
+	do_single_coding_test (session, msgzle, "deflate", "text/plain", EXPECT_NOT_DECODED);
+	check_msg_bodies (msg, msgzle, "plain", "mis-encoded");
+
+	/* Plain text data, claim deflate (no zlib headers)*/
+	debug_printf (1, "GET /mbox, Accept-Encoding: deflate (raw data)\n");
+	msgzlr = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgzlr->request_headers,
+				     "X-Test-Options", "prefer-deflate-raw");
+	do_single_coding_test (session, msgzlr, "deflate", "text/plain", EXPECT_DECODED);
+	check_msg_bodies (msg, msgzlr, "plain", "compressed");
+
+	/* Plain text data, claim deflate with server error */
+	debug_printf (1, "GET /mbox, Accept-Encoding: deflate (raw data), with server error\n");
+	msgzlre = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msgzlre->request_headers,
+				     "X-Test-Options", "force-encode, prefer-deflate-raw");
+	do_single_coding_test (session, msgzlre, "deflate", "text/plain", EXPECT_NOT_DECODED);
+	check_msg_bodies (msg, msgzlre, "plain", "mis-encoded");
 
 	g_object_unref (msg);
+	g_object_unref (msgzlre);
+	g_object_unref (msgzlr);
+	g_object_unref (msgzlj);
+	g_object_unref (msgzle);
+	g_object_unref (msgzl);
 	g_object_unref (msgz);
 	g_object_unref (msgj);
-	g_object_unref (msge);
-	soup_uri_free (uri);
-
-
-	uri = soup_uri_new_with_base (base_uri, "/mbox.gz");
-
-	debug_printf (1, "GET /mbox.gz, Accept-Encoding: gzip\n");
-	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
-	msgz = soup_message_new_from_uri ("GET", uri);
-	soup_session_send_message (session, msgz);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msgz->status_code)) {
-		debug_printf (1, "  Unexpected status %d %s\n",
-			      msgz->status_code, msgz->reason_phrase);
-		errors++;
-	}
-	coding = soup_message_headers_get_one (msgz->response_headers, "Content-Encoding");
-	if (coding) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n", coding);
-		errors++;
-	}
-	type = soup_message_headers_get_one (msgz->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "application/gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Type: %s\n",
-			      type ? type : "(none)");
-		errors++;
-	}
-
-
-	debug_printf (1, "GET /mbox.gz, Accept-Encoding: gzip, with server error\n");
-	msge = soup_message_new_from_uri ("GET", uri);
-	soup_message_headers_append (msge->request_headers,
-				     "X-Test-Options", "force-encode");
-	soup_session_send_message (session, msge);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msge->status_code)) {
-		debug_printf (1, "  Unexpected status %d %s\n",
-			      msge->status_code, msge->reason_phrase);
-		errors++;
-	}
-	coding = soup_message_headers_get_one (msge->response_headers, "Content-Encoding");
-	if (!coding || g_ascii_strcasecmp (coding, "gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Encoding: %s\n",
-			      coding ? coding : "(none)");
-		errors++;
-	}
-	/* SoupContentDecoder should have recognized the bug and thus
-	 * not decoded it
-	 */
-	if (soup_message_get_flags (msge) & SOUP_MESSAGE_CONTENT_DECODED) {
-		debug_printf (1, "  SOUP_MESSAGE_CONTENT_DECODED set!\n");
-		errors++;
-	}
-	type = soup_message_headers_get_one (msge->response_headers, "Content-Type");
-	if (!type || g_ascii_strcasecmp (type, "application/gzip") != 0) {
-		debug_printf (1, "  Unexpected Content-Type: %s\n",
-			      type ? type : "(none)");
-		errors++;
-	}
-
-	if (msgz->response_body->length != msge->response_body->length) {
-		debug_printf (1, "  Message length mismatch: %lu (.gz) vs %lu (mis-encoded)\n",
-			      (gulong)msgz->response_body->length,
-			      (gulong)msge->response_body->length);
-		errors++;
-	} else if (memcmp (msgz->response_body->data,
-			   msge->response_body->data,
-			   msgz->response_body->length) != 0) {
-		debug_printf (1, "  Message data mismatch (gz/misencoded)\n");
-		errors++;
-	}
-
-
-	g_object_unref (msgz);
 	g_object_unref (msge);
 	soup_uri_free (uri);
 
