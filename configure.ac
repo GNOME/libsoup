@@ -53,9 +53,9 @@ fi
 AC_SUBST(SOUP_DEBUG_FLAGS)
 
 # Set the maintainer flags
-if test -d .git; then
-	SOUP_MAINTAINER_FLAGS="-DG_DISABLE_DEPRECATED"
-fi
+#if test -d .git; then
+#	SOUP_MAINTAINER_FLAGS="-DG_DISABLE_DEPRECATED"
+#fi
 AC_SUBST(SOUP_MAINTAINER_FLAGS)
 
 dnl ***************************
