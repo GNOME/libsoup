@@ -54,23 +54,23 @@ struct SoupHTTPInputStreamClass {
 
 GType soup_http_input_stream_get_type (void) G_GNUC_CONST;
 
-SoupHTTPInputStream *soup_http_input_stream_new         (SoupSession          *session,
-							 SoupMessage          *msg);
+GInputStream *soup_http_input_stream_new         (SoupSession          *session,
+						  SoupMessage          *msg);
 
-gboolean             soup_http_input_stream_send        (SoupHTTPInputStream  *httpstream,
-							 GCancellable         *cancellable,
-							 GError              **error);
+gboolean      soup_http_input_stream_send        (SoupHTTPInputStream  *httpstream,
+						  GCancellable         *cancellable,
+						  GError              **error);
 
-void                 soup_http_input_stream_send_async  (SoupHTTPInputStream  *httpstream,
-							 int                   io_priority,
-							 GCancellable         *cancellable,
-							 GAsyncReadyCallback   callback,
-							 gpointer              user_data);
-gboolean             soup_http_input_stream_send_finish (SoupHTTPInputStream  *httpstream,
-							 GAsyncResult         *result,
-							 GError              **error);
+void          soup_http_input_stream_send_async  (SoupHTTPInputStream  *httpstream,
+						  int                   io_priority,
+						  GCancellable         *cancellable,
+						  GAsyncReadyCallback   callback,
+						  gpointer              user_data);
+gboolean      soup_http_input_stream_send_finish (SoupHTTPInputStream  *httpstream,
+						  GAsyncResult         *result,
+						  GError              **error);
 
-SoupMessage         *soup_http_input_stream_get_message (SoupHTTPInputStream  *httpstream);
+SoupMessage  *soup_http_input_stream_get_message (SoupHTTPInputStream  *httpstream);
 
 G_END_DECLS
 

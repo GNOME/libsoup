@@ -201,7 +201,7 @@ soup_http_input_stream_queue_message (SoupHTTPInputStream *stream)
  *
  * Returns: a new #GInputStream.
  **/
-SoupHTTPInputStream *
+GInputStream *
 soup_http_input_stream_new (SoupSession *session, SoupMessage *msg)
 {
 	SoupHTTPInputStream *stream;
@@ -224,7 +224,7 @@ soup_http_input_stream_new (SoupSession *session, SoupMessage *msg)
 			  G_CALLBACK (soup_http_input_stream_finished), stream);
 
 	soup_http_input_stream_queue_message (stream);
-	return stream;
+	return (GInputStream *)stream;
 }
 
 static void

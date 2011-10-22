@@ -80,15 +80,16 @@ soup_request_http_send (SoupRequest          *request,
 			GCancellable         *cancellable,
 			GError              **error)
 {
-	SoupHTTPInputStream *httpstream;
+	GInputStream *httpstream;
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 
 	httpstream = soup_http_input_stream_new (soup_request_get_session (request), http->priv->msg);
-	if (!soup_http_input_stream_send (httpstream, cancellable, error)) {
+	if (!soup_http_input_stream_send (SOUP_HTTP_INPUT_STREAM (httpstream),
+					  cancellable, error)) {
 		g_object_unref (httpstream);
 		return NULL;
 	}
-	return (GInputStream *)httpstream;
+	return httpstream;
 }
 
 
@@ -124,7 +125,7 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 {
 	ConditionalHelper *helper = (ConditionalHelper *)user_data;
 	GSimpleAsyncResult *simple;
-	SoupHTTPInputStream *httpstream;
+	GInputStream *stream;
 
 	simple = g_simple_async_result_new (G_OBJECT (helper->req),
 					    helper->callback, helper->user_data,
@@ -133,9 +134,9 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
 		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
 
-		httpstream = (SoupHTTPInputStream *)soup_cache_send_response (cache, helper->original);
-		if (httpstream) {
-			g_simple_async_result_set_op_res_gpointer (simple, httpstream, g_object_unref);
+		stream = soup_cache_send_response (cache, helper->original);
+		if (stream) {
+			g_simple_async_result_set_op_res_gpointer (simple, stream, g_object_unref);
 
 			soup_message_got_headers (helper->original);
 
@@ -152,14 +153,14 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 			g_object_unref (simple);
 		} else {
 			/* Ask again for the resource, somehow the cache cannot locate it */
-			httpstream = soup_http_input_stream_new (session, helper->original);
-			soup_http_input_stream_send_async (httpstream, G_PRIORITY_DEFAULT,
+			stream = soup_http_input_stream_new (session, helper->original);
+			soup_http_input_stream_send_async (SOUP_HTTP_INPUT_STREAM (stream), G_PRIORITY_DEFAULT,
 							   helper->cancellable, sent_async, simple);
 		}
 	} else {
 		/* It is in the cache but it was modified remotely */
-		httpstream = soup_http_input_stream_new (session, helper->original);
-		soup_http_input_stream_send_async (httpstream, G_PRIORITY_DEFAULT,
+		stream = soup_http_input_stream_new (session, helper->original);
+		soup_http_input_stream_send_async (SOUP_HTTP_INPUT_STREAM (stream), G_PRIORITY_DEFAULT,
 						   helper->cancellable, sent_async, simple);
 	}
 
@@ -172,7 +173,7 @@ typedef struct {
 	SoupRequestHTTP *http;
 	GAsyncReadyCallback callback;
 	gpointer user_data;
-	SoupHTTPInputStream *httpstream;
+	GInputStream *stream;
 } SendAsyncHelper;
 
 static void soup_request_http_send_async (SoupRequest          *request,
@@ -192,7 +193,7 @@ send_async_cb (gpointer data)
 					    helper->callback, helper->user_data,
 					    soup_request_http_send_async);
 
-	g_simple_async_result_set_op_res_gpointer (simple, helper->httpstream, g_object_unref);
+	g_simple_async_result_set_op_res_gpointer (simple, helper->stream, g_object_unref);
 
 	/* Issue signals  */
 	soup_message_got_headers (helper->http->priv->msg);
@@ -221,7 +222,7 @@ soup_request_http_send_async (SoupRequest          *request,
 			      gpointer              user_data)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
-	SoupHTTPInputStream *httpstream;
+	GInputStream *stream;
 	GSimpleAsyncResult *simple;
 	SoupSession *session;
 	SoupCache *cache;
@@ -234,14 +235,11 @@ soup_request_http_send_async (SoupRequest          *request,
 
 		response = soup_cache_has_response (cache, http->priv->msg);
 		if (response == SOUP_CACHE_RESPONSE_FRESH) {
-			SoupHTTPInputStream *httpstream;
-
-			httpstream = (SoupHTTPInputStream *)
-				soup_cache_send_response (cache, http->priv->msg);
+			stream = soup_cache_send_response (cache, http->priv->msg);
 
 			/* Cached resource file could have been deleted outside
 			 */
-			if (httpstream) {
+			if (stream) {
 				/* Do return the stream asynchronously as in
 				 * the other cases. It's not enough to use
 				 * g_simple_async_result_complete_in_idle as
@@ -252,7 +250,7 @@ soup_request_http_send_async (SoupRequest          *request,
 				helper->http = g_object_ref (http);
 				helper->callback = callback;
 				helper->user_data = user_data;
-				helper->httpstream = httpstream;
+				helper->stream = stream;
 				soup_add_timeout (soup_session_get_async_context (session),
 						  0, send_async_cb, helper);
 				return;
@@ -279,9 +277,10 @@ soup_request_http_send_async (SoupRequest          *request,
 	simple = g_simple_async_result_new (G_OBJECT (http),
 					    callback, user_data,
 					    soup_request_http_send_async);
-	httpstream = soup_http_input_stream_new (soup_request_get_session (request),
-							http->priv->msg);
-	soup_http_input_stream_send_async (httpstream, G_PRIORITY_DEFAULT,
+	stream = soup_http_input_stream_new (soup_request_get_session (request),
+					     http->priv->msg);
+	soup_http_input_stream_send_async (SOUP_HTTP_INPUT_STREAM (stream),
+					   G_PRIORITY_DEFAULT,
 					   cancellable, sent_async, simple);
 }
 
