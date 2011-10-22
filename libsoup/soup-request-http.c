@@ -32,7 +32,6 @@
 #include "soup-request-http.h"
 #include "soup-cache.h"
 #include "soup-cache-private.h"
-#include "soup-content-sniffer.h"
 #include "soup-http-input-stream.h"
 #include "soup-message.h"
 #include "soup-session.h"
@@ -42,6 +41,7 @@ G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
 struct _SoupRequestHTTPPrivate {
 	SoupMessage *msg;
+	char *content_type;
 };
 
 static void
@@ -89,6 +89,7 @@ soup_request_http_send (SoupRequest          *request,
 		g_object_unref (httpstream);
 		return NULL;
 	}
+	http->priv->content_type = g_strdup (soup_http_input_stream_get_content_type (SOUP_HTTP_INPUT_STREAM (httpstream)));
 	return httpstream;
 }
 
@@ -126,6 +127,7 @@ http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user
 	GError *error = NULL;
 
 	if (soup_http_input_stream_send_finish (httpstream, result, &error)) {
+		sadata->http->priv->content_type = g_strdup (soup_http_input_stream_get_content_type (httpstream));
 		g_simple_async_result_set_op_res_gpointer (sadata->simple, httpstream, g_object_unref);
 	} else {
 		g_simple_async_result_take_error (sadata->simple, error);
@@ -151,11 +153,10 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 
 			soup_message_got_headers (sadata->original);
 
-			if (soup_session_get_feature_for_message (session, SOUP_TYPE_CONTENT_SNIFFER, sadata->original)) {
-				const char *content_type =
-					soup_message_headers_get_content_type (sadata->original->response_headers, NULL);
-				soup_message_content_sniffed (sadata->original, content_type, NULL);
-			}
+			/* FIXME: this is wrong; the cache won't have
+			 * the sniffed type.
+			 */
+			sadata->http->priv->content_type = g_strdup (soup_message_headers_get_content_type (sadata->original->response_headers, NULL));
 
 			g_simple_async_result_complete (sadata->simple);
 
@@ -177,9 +178,6 @@ static gboolean
 idle_return_from_cache_cb (gpointer data)
 {
 	SendAsyncData *sadata = data;
-	SoupSession *session;
-
-	session = soup_request_get_session (SOUP_REQUEST (sadata->http));
 
 	g_simple_async_result_set_op_res_gpointer (sadata->simple,
 						   g_object_ref (sadata->stream), g_object_unref);
@@ -187,10 +185,7 @@ idle_return_from_cache_cb (gpointer data)
 	/* Issue signals  */
 	soup_message_got_headers (sadata->http->priv->msg);
 
-	if (soup_session_get_feature_for_message (session, SOUP_TYPE_CONTENT_SNIFFER, sadata->http->priv->msg)) {
-		const char *content_type = soup_message_headers_get_content_type (sadata->http->priv->msg->response_headers, NULL);
-		soup_message_content_sniffed (sadata->http->priv->msg, content_type, NULL);
-	}
+	sadata->http->priv->content_type = g_strdup (soup_message_headers_get_content_type (sadata->http->priv->msg->response_headers, NULL));
 
 	g_simple_async_result_complete (sadata->simple);
 
@@ -288,7 +283,7 @@ soup_request_http_get_content_type (SoupRequest *request)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 
-	return soup_message_headers_get_content_type (http->priv->msg->response_headers, NULL);
+	return http->priv->content_type;
 }
 
 static const char *http_schemes[] = { "http", "https", NULL };

@@ -72,6 +72,8 @@ gboolean      soup_http_input_stream_send_finish (SoupHTTPInputStream  *httpstre
 
 SoupMessage  *soup_http_input_stream_get_message (SoupHTTPInputStream  *httpstream);
 
+const char   *soup_http_input_stream_get_content_type (SoupHTTPInputStream  *httpstream);
+
 G_END_DECLS
 
 #endif /* __SOUP_HTTP_INPUT_STREAM_H__ */
