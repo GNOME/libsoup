@@ -103,8 +103,7 @@ sent_async (GObject *source, GAsyncResult *result, gpointer user_data)
 	if (soup_http_input_stream_send_finish (httpstream, result, &error)) {
 		g_simple_async_result_set_op_res_gpointer (simple, httpstream, g_object_unref);
 	} else {
-		g_simple_async_result_set_from_error (simple, error);
-		g_error_free (error);
+		g_simple_async_result_take_error (simple, error);
 		g_object_unref (httpstream);
 	}
 	g_simple_async_result_complete (simple);

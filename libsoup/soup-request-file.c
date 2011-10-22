@@ -171,12 +171,10 @@ soup_request_file_send_async_thread (GSimpleAsyncResult *res,
 
 	stream = soup_request_file_send (request, cancellable, &error);
 
-	if (stream == NULL) {
-		g_simple_async_result_set_from_error (res, error);
-		g_error_free (error);
-	} else {
+	if (stream == NULL)
+		g_simple_async_result_take_error (res, error);
+	else
 		g_simple_async_result_set_op_res_gpointer (res, stream, g_object_unref);
-	}
 }
 
 static void

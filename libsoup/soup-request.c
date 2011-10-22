@@ -149,7 +149,7 @@ soup_request_initable_init (GInitable     *initable,
 	ok = SOUP_REQUEST_GET_CLASS (initable)->
 		check_uri (request, request->priv->uri, error);
 
-	if (!ok && error) {
+	if (!ok && error && !*error) {
 		char *uri_string = soup_uri_to_string (request->priv->uri, FALSE);
 		g_set_error (error, SOUP_REQUESTER_ERROR, SOUP_REQUESTER_ERROR_BAD_URI,
 			     _("Invalid '%s' URI: %s"),
@@ -352,7 +352,9 @@ soup_request_get_content_length (SoupRequest *request)
  * soup_request_get_content_type:
  * @request: a #SoupRequest
  *
- * Gets the type of the data represented by @request.
+ * Gets the type of the data represented by @request. As in the
+ * HTTP Content-Type header, this may include parameters after
+ * the MIME type.
  *
  * Return value: the type of the data represented by @request,
  *   or %NULL if not known.

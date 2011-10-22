@@ -223,7 +223,7 @@ soup_http_input_stream_got_headers (SoupMessage *msg, gpointer stream)
 
 static void
 soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk_buffer,
-					 gpointer stream)
+				  gpointer stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 	const gchar *chunk = chunk_buffer->data;
@@ -392,10 +392,6 @@ static void
 send_sync_finished (GInputStream *stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
-	GError *error = NULL;
-
-	if (!g_cancellable_set_error_if_cancelled (priv->cancellable, &error))
-		set_error_if_http_failed (priv->msg, &error);
 
 	priv->got_headers_cb = NULL;
 	priv->finished_cb = NULL;
@@ -497,7 +493,7 @@ wrapper_callback (GObject *source_object, GAsyncResult *res,
 
 	g_input_stream_clear_pending (stream);
 	if (priv->outstanding_callback)
-		(*priv->outstanding_callback)(source_object, res, user_data);
+		(*priv->outstanding_callback) (source_object, res, user_data);
 	priv->outstanding_callback = NULL;
 	g_object_unref (stream);
 }
@@ -520,10 +516,8 @@ send_async_finished (GInputStream *stream)
 	priv->result = NULL;
 
 	g_simple_async_result_set_op_res_gboolean (result, error == NULL);
-	if (error) {
-		g_simple_async_result_set_from_error (result, error);
-		g_error_free (error);
-	}
+	if (error)
+		g_simple_async_result_take_error (result, error);
 	g_simple_async_result_complete (result);
 	g_object_unref (result);
 }
@@ -577,11 +571,10 @@ soup_http_input_stream_send_async (SoupHTTPInputStream *httpstream,
 	g_return_if_fail (SOUP_IS_HTTP_INPUT_STREAM (httpstream));
 
 	if (!g_input_stream_set_pending (istream, &error)) {
-		g_simple_async_report_gerror_in_idle (G_OBJECT (httpstream),
-						      callback,
-						      user_data,
-						      error);
-		g_error_free (error);
+		g_simple_async_report_take_gerror_in_idle (G_OBJECT (httpstream),
+							   callback,
+							   user_data,
+							   error);
 		return;
 	}
 	soup_http_input_stream_send_async_internal (istream, io_priority, cancellable,
@@ -629,10 +622,9 @@ read_async_done (GInputStream *stream)
 	priv->result = NULL;
 
 	if (g_cancellable_set_error_if_cancelled (priv->cancellable, &error) ||
-	    set_error_if_http_failed (priv->msg, &error)) {
-		g_simple_async_result_set_from_error (result, error);
-		g_error_free (error);
-	} else
+	    set_error_if_http_failed (priv->msg, &error))
+		g_simple_async_result_take_error (result, error);
+	else
 		g_simple_async_result_set_op_res_gssize (result, priv->caller_nread);
 
 	priv->got_chunk_cb = NULL;
@@ -715,10 +707,8 @@ soup_http_input_stream_close_async (GInputStream        *stream,
 					    soup_http_input_stream_close_async);
 	success = soup_http_input_stream_close (stream, cancellable, &error);
 	g_simple_async_result_set_op_res_gboolean (result, success);
-	if (error) {
-		g_simple_async_result_set_from_error (result, error);
-		g_error_free (error);
-	}
+	if (error)
+		g_simple_async_result_take_error (result, error);
 
 	g_simple_async_result_complete_in_idle (result);
 	g_object_unref (result);
