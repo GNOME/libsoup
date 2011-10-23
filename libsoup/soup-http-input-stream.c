@@ -86,6 +86,7 @@ static gboolean soup_http_input_stream_close_finish (GInputStream         *strea
 
 static void soup_http_input_stream_got_headers (SoupMessage *msg, gpointer stream);
 static void soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer stream);
+static void soup_http_input_stream_restarted (SoupMessage *msg, gpointer stream);
 static void soup_http_input_stream_finished (SoupMessage *msg, gpointer stream);
 
 static void
@@ -98,6 +99,7 @@ soup_http_input_stream_finalize (GObject *object)
 
 	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_got_headers), stream);
 	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_got_chunk), stream);
+	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_restarted), stream);
 	g_signal_handlers_disconnect_by_func (priv->msg, G_CALLBACK (soup_http_input_stream_finished), stream);
 	g_object_unref (priv->msg);
 
@@ -191,6 +193,8 @@ soup_http_input_stream_new (SoupSession *session, SoupMessage *msg)
 			  G_CALLBACK (soup_http_input_stream_got_headers), stream);
 	g_signal_connect (msg, "got_chunk",
 			  G_CALLBACK (soup_http_input_stream_got_chunk), stream);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (soup_http_input_stream_restarted), stream);
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (soup_http_input_stream_finished), stream);
 
@@ -203,12 +207,13 @@ soup_http_input_stream_got_headers (SoupMessage *msg, gpointer stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
-	/* If the status is unsuccessful, we just ignore the signal and let
-	 * libsoup keep going (eventually either it will requeue the request
-	 * (after handling authentication/redirection), or else the
-	 * "finished" handler will run).
+	/* If the message is expected to be restarted then we read the
+	 * whole message first and hope it does get restarted, but
+	 * if it doesn't, then we stream the body belatedly.
 	 */
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
+	    msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED ||
+	    soup_session_would_redirect (priv->session, msg))
 		return;
 
 	priv->got_headers = TRUE;
@@ -228,12 +233,6 @@ soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk_buffer,
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 	const gchar *chunk = chunk_buffer->data;
 	gsize chunk_size = chunk_buffer->length;
-
-	/* We only pay attention to the chunk if it's part of a successful
-	 * response.
-	 */
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
-		return;
 
 	/* Copy what we can into priv->caller_buffer */
 	if (priv->caller_bufsize > priv->caller_nread && priv->leftover_queue->length == 0) {
@@ -257,9 +256,23 @@ soup_http_input_stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk_buffer,
 		}
 	}
 
-	soup_session_pause_message (priv->session, msg);
-	if (priv->got_chunk_cb)
-		priv->got_chunk_cb (stream);
+	if (priv->got_headers) {
+		soup_session_pause_message (priv->session, msg);
+		if (priv->got_chunk_cb)
+			priv->got_chunk_cb (stream);
+	}
+}
+
+static void
+soup_http_input_stream_restarted (SoupMessage *msg, gpointer stream)
+{
+	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
+	GList *q;
+
+	/* Throw away any pending read data */
+	for (q = priv->leftover_queue->head; q; q = q->next)
+		soup_buffer_free (q->data);
+	g_queue_clear (priv->leftover_queue);
 }
 
 static void
@@ -267,6 +280,7 @@ soup_http_input_stream_finished (SoupMessage *msg, gpointer stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
+	priv->got_headers = TRUE;
 	priv->finished = TRUE;
 
 	if (priv->finished_cb)
@@ -335,7 +349,7 @@ soup_http_input_stream_done_io (GInputStream *stream)
 static gboolean
 set_error_if_http_failed (SoupMessage *msg, GError **error)
 {
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
 		g_set_error_literal (error, SOUP_HTTP_ERROR,
 				     msg->status_code, msg->reason_phrase);
 		return TRUE;
