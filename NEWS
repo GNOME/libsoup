@@ -1,3 +1,32 @@
+Changes in libsoup from 2.36.0 to 2.37.1:
+
+	* Fixed a problem with connections being assigned to multiple
+          requests at once after a redirection [#651146, Sergio]. Made
+          soup_session_pause/unpause_message() work in any state, not
+          just while the HTTP I/O is occurring, and used this to add a
+          test case for that bug. [Dan]
+
+	* Ported SoupSession to use GTlsDatabase internally, and added
+          two new properties, SoupSession:use-system-ca-file (to
+          specify that the session should use the default system
+          tlsdb) and SoupSession:tlsdb (to specify a specific tlsdb to
+          use). [Dan]
+
+	* Likewise, added SoupServer:tls-certificate, for specifying a
+          certificate/key for an https server to use.
+
+	* Made SoupHTTPInputStream use memory more efficiently.
+          [#659255, Sergio]
+
+	* Fixed soup_message_get_https_status() to return information
+          more reliably (with latest glib-networking).
+
+	* Bumped the glib requirement to 2.30.0; although libsoup does
+          not use any new glib 2.30 APIs, there are several important
+          bugfixes in glib between 2.28 and 2.30 that libsoup needs.
+	  Currently libsoup builds against either glib 2.30.x or glib
+	  2.31.x.
+
 Changes in libsoup from 2.35.92 to 2.36.0:
 
 	* Improvements to gtk-doc documentation. [Dan]
