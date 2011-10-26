@@ -81,7 +81,6 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	GError *error = NULL;
 	GTlsBackend *tls_backend;
 
-	g_thread_init (NULL);
 	g_type_init ();
 
 	name = strrchr (argv[0], '/');

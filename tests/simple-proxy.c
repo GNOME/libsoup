@@ -139,7 +139,6 @@ main (int argc, char **argv)
 	int port = SOUP_ADDRESS_ANY_PORT;
 	SoupAuthDomain *auth_domain = NULL;
 
-	g_thread_init (NULL);
 	g_type_init ();
 	signal (SIGINT, quit);
 
