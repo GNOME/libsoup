@@ -29,8 +29,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INIT_STRING "<html><head><title>OMG!</title></head><body><table>"
-#define EXIT_STRING "</table></html>"
+#define INIT_STRING "<html>\n<body>\n<table><th align=\"left\">Name</th><th>Size</th><th>Date Modified</th>\n"
+#define ROW_FORMAT  "<td><a href=\"%s\">%s</a></td><td align=\"right\">%s</td><td align=\"right\" margin=8>%s</td>\n"
+#define EXIT_STRING "</table>\n</html>\n"
 
 G_DEFINE_TYPE (SoupDirectoryInputStream, soup_directory_input_stream, G_TYPE_INPUT_STREAM)
 
@@ -40,31 +41,41 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 {
 	SoupBuffer *buffer;
 	GString *string;
-	const char *s;
-	char *escaped, *path, *xml_string;
+	const char *file_name;
+	char *escaped, *path, *xml_string, *size, *time;
+	GTimeVal modified;
+	GDateTime *modification_time;
 
 	if (!g_file_info_get_name (info))
 		return NULL;
 
-	s = g_file_info_get_display_name (info);
-	if (!s) {
-		s = g_file_info_get_name (info);
+	file_name = g_file_info_get_display_name (info);
+	if (!file_name) {
+		file_name = g_file_info_get_name (info);
 		/* FIXME: convert somehow? */
-		if (!g_utf8_validate (s, -1, NULL))
+		if (!g_utf8_validate (file_name, -1, NULL))
 			return NULL;
 	}
 	string = g_string_new ("<tr>");
 
-	xml_string = g_markup_escape_text (s, -1);
-	escaped = g_uri_escape_string (g_file_info_get_name (info), NULL, FALSE);
-	path = g_strconcat (stream->uri, "/", escaped, NULL);
+	xml_string = g_markup_escape_text (file_name, -1);
+	escaped = g_uri_escape_string (file_name, NULL, FALSE);
+	path = g_strconcat (stream->uri, G_DIR_SEPARATOR_S, escaped, NULL);
+	size = g_format_size_for_display (g_file_info_get_size (info));
+	g_file_info_get_modification_time (info, &modified);
+	modification_time = g_date_time_new_from_timeval_local (&modified);
+	time = g_date_time_format (modification_time, "%X %x");
+	g_date_time_unref (modification_time);
+
+	g_string_append_printf (string, ROW_FORMAT, path, xml_string, size, time);
+	g_string_append (string, "</tr>\n");
+	buffer = soup_buffer_new (SOUP_MEMORY_TAKE, string->str, string->len);
+
+	g_free (time);
 	g_free (escaped);
-	g_string_append_printf (string, "<td><a href=\"%s\">%s</a></td>", path, xml_string);
+	g_free (size);
 	g_free (path);
 	g_free (xml_string);
-	g_string_append (string, "</tr>");
-
-	buffer = soup_buffer_new (SOUP_MEMORY_TAKE, string->str, string->len);
 	g_string_free (string, FALSE);
 
 	return buffer;
