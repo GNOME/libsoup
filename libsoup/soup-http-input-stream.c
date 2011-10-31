@@ -478,9 +478,10 @@ soup_http_input_stream_close (GInputStream  *stream,
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
-	soup_session_unpause_message (priv->session, priv->msg);
-	if (!priv->finished)
+	if (!priv->finished) {
+		soup_session_unpause_message (priv->session, priv->msg);
 		soup_session_cancel_message (priv->session, priv->msg, SOUP_STATUS_CANCELLED);
+	}
 
 	return TRUE;
 }
