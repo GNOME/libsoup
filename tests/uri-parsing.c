@@ -76,7 +76,10 @@ static struct {
 	{ "http://host/path%%%", "http://host/path%%%" },
 	{ "http://host/path%/x/", "http://host/path%/x/" },
 	{ "http://host/path%0x/", "http://host/path%0x/" },
-	{ "http://host/path%ax", "http://host/path%ax" }
+	{ "http://host/path%ax", "http://host/path%ax" },
+
+	/* Bug 662806; %-encode non-ASCII characters */
+	{ "http://host/p\xc3\xa4th/", "http://host/p%C3%A4th/" }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

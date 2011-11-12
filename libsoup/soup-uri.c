@@ -673,7 +673,7 @@ uri_normalized_copy (const char *part, int length,
 				*d++ = *s;
 			}
 		} else {
-			if (*s == ' ')
+			if (!g_ascii_isgraph (*s))
 				need_fixup = TRUE;
 			*d++ = *s;
 		}
@@ -681,16 +681,16 @@ uri_normalized_copy (const char *part, int length,
 
 	if (need_fixup) {
 		GString *fixed;
-		char *sp, *p;
 
 		fixed = g_string_new (NULL);
-		p = normalized;
-		while ((sp = strchr (p, ' '))) {
-			g_string_append_len (fixed, p, sp - p);
-			g_string_append (fixed, "%20");
-			p = sp + 1;
+		s = (guchar *)normalized;
+		while (*s) {
+			if (g_ascii_isgraph (*s))
+				g_string_append_c (fixed, *s);
+			else
+				g_string_append_printf (fixed, "%%%02X", (int)*s);
+			s++;
 		}
-		g_string_append (fixed, p);
 		g_free (normalized);
 		normalized = g_string_free (fixed, FALSE);
 	}
