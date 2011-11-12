@@ -373,14 +373,15 @@ do_multicontext_test (int n)
 		errors++;
 	}
 
-	g_main_loop_unref (loop1);
-	g_main_loop_unref (loop2);
-	g_main_context_unref (context1);
-	g_main_context_unref (context2);
 	g_object_unref (msg1);
 	g_object_unref (msg2);
 
 	soup_test_session_abort_unref (session);
+
+	g_main_loop_unref (loop1);
+	g_main_loop_unref (loop2);
+	g_main_context_unref (context1);
+	g_main_context_unref (context2);
 }
 
 int
