@@ -407,6 +407,15 @@ stop_idle_timer (SoupConnectionPrivate *priv)
 }
 
 static void
+current_item_restarted (SoupMessage *msg, gpointer user_data)
+{
+	SoupConnection *conn = user_data;
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	priv->unused_timeout = 0;
+}
+
+static void
 set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -420,6 +429,9 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 	item->state = SOUP_MESSAGE_RUNNING;
 	priv->cur_item = item;
 	g_object_notify (G_OBJECT (conn), "message");
+
+	g_signal_connect (item->msg, "restarted",
+			  G_CALLBACK (current_item_restarted), conn);
 
 	if (priv->state == SOUP_CONNECTION_IDLE ||
 	    item->msg->method != SOUP_METHOD_CONNECT)
@@ -444,6 +456,8 @@ clear_current_item (SoupConnection *conn)
 		item = priv->cur_item;
 		priv->cur_item = NULL;
 		g_object_notify (G_OBJECT (conn), "message");
+
+		g_signal_handlers_disconnect_by_func (item->msg, G_CALLBACK (current_item_restarted), conn);
 
 		if (item->msg->method == SOUP_METHOD_CONNECT &&
 		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
