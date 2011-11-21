@@ -104,12 +104,14 @@ TESTS =			\
 	$(CURL_TESTS)	\
 	$(XMLRPC_TESTS)
 
-SNIFFING_FILES =		\
+RESOURCES =			\
 	resources/atom.xml	\
 	resources/home.gif	\
 	resources/html_binary.html \
 	resources/mbox		\
 	resources/mbox.gz	\
+	resources/mbox.raw	\
+	resources/mbox.zlib	\
 	resources/ps_binary.ps	\
 	resources/rss20.xml	\
 	resources/test.html	\
@@ -124,7 +126,7 @@ EXTRA_DIST =			\
 	test-cert.pem		\
 	test-key.pem		\
 	xmlrpc-server.php	\
-	$(SNIFFING_FILES)
+	$(RESOURCES)
 
 if MISSING_REGRESSION_TEST_PACKAGES
 check-local: check-TESTS
