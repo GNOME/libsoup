@@ -1,3 +1,55 @@
+Changes in libsoup from 2.37.1 to 2.37.2:
+
+	* Fixed up the output of SoupDirectoryInputStream, thus
+          improving the display of local directories in WebKit-based
+          browsers. [#662266, Sergio]
+
+	* Fixed a bug introduced in 2.37.1 that caused some cancelled
+          SoupMessages to be leaked. [#662847, Sergio]
+
+	* Added new SoupSession properties "http-aliases" and
+          "https-aliases" that allow you to configure more explicitly
+	  what URL protocols are treated as aliases for http (eg,
+          "dav:", "webcal:", etc), and which should be recognized as
+	  meaning something else, (eg, "ftp:") [Dan]
+
+	* Added soup_session_would_redirect() and
+          soup_session_redirect_message(), to help users that want to
+          handle some or all redirects themselves. Added
+          soup_message_set_redirect() to make it easier to return
+          redirection responses from a SoupServer. [Dan]
+
+	* Added the SoupSession "use-thread-context" property, which
+	  tells it to use GMainContexts in a gio-compliant way (and in
+	  particular, allows having different messages running in
+	  different GMainContexts on the same SoupSession, though only
+	  to a limited extent since SoupSessionAsync is still not
+	  thread-safe). In particular, this was added in order to
+	  address WebKit bug 68238. [Dan]
+
+	* Made SoupURI %-encode non-ASCII characters when parsing
+          URIs, in particular to fix a problem with certain servers
+          sending syntactically invalid redirects that they would then
+          only interpret correctly if you fixed the syntax for them.
+          (@$!@#! Although the new code is probably more correct than
+          the old code anyway, so...) [#662806, Dan]
+
+	* Fixed a connection-handling bug that could cause problems
+          with servers that requested authentication and then timed
+          out the connection while the application was waiting for the
+          user to enter a password. [#660057, Dan]
+
+	* Made NTLM and Basic authentication handle some non-ASCII
+          usernames and passwords. (NTLM should handle most. It's
+          impossible to fix Basic in the general case.) [#576838,
+          Joachim Breitner, "sponsored by ITOMIG GmbH and the City of
+          Böblingen"]
+
+	* Added support for "deflate" Content-Encoding, so that we can
+	  work with broken servers that insisted on using it even
+	  though we explicitly indicated in the request headers that
+	  we didn't support it. (@$#!#) [#661682, Sergio]
+
 Changes in libsoup from 2.36.0 to 2.37.1:
 
 	* Fixed a problem with connections being assigned to multiple
