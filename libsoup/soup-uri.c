@@ -742,10 +742,6 @@ soup_uri_normalize (const char *part, const char *unescape_extra)
 gboolean
 soup_uri_uses_default_port (SoupURI *uri)
 {
-	g_return_val_if_fail (uri->scheme == SOUP_URI_SCHEME_HTTP ||
-			      uri->scheme == SOUP_URI_SCHEME_HTTPS ||
-			      uri->scheme == SOUP_URI_SCHEME_FTP, FALSE);
-
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
 

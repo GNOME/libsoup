@@ -73,6 +73,8 @@ typedef struct {
 	GSource     *keep_alive_src;
 	SoupSession *session;
 } SoupSessionHost;
+static guint soup_host_uri_hash (gconstpointer key);
+gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
 
 typedef struct {
 	GTlsDatabase *tlsdb;
@@ -88,7 +90,7 @@ typedef struct {
 	GSList *features;
 	GHashTable *features_cache;
 
-	GHashTable *hosts; /* char* -> SoupSessionHost */
+	GHashTable *http_hosts, *https_hosts; /* char* -> SoupSessionHost */
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 	guint max_conns, max_conns_per_host;
@@ -186,9 +188,12 @@ soup_session_init (SoupSession *session)
 	priv->queue = soup_message_queue_new (session);
 
 	g_mutex_init (&priv->host_lock);
-	priv->hosts = g_hash_table_new_full (soup_uri_host_hash,
-					     soup_uri_host_equal,
-					     NULL, (GDestroyNotify)free_host);
+	priv->http_hosts = g_hash_table_new_full (soup_host_uri_hash,
+						  soup_host_uri_equal,
+						  NULL, (GDestroyNotify)free_host);
+	priv->https_hosts = g_hash_table_new_full (soup_host_uri_hash,
+						   soup_host_uri_equal,
+						   NULL, (GDestroyNotify)free_host);
 	priv->conns = g_hash_table_new (NULL, NULL);
 
 	priv->max_conns = SOUP_SESSION_MAX_CONNS_DEFAULT;
@@ -241,7 +246,8 @@ finalize (GObject *object)
 	soup_message_queue_destroy (priv->queue);
 
 	g_mutex_clear (&priv->host_lock);
-	g_hash_table_destroy (priv->hosts);
+	g_hash_table_destroy (priv->http_hosts);
+	g_hash_table_destroy (priv->https_hosts);
 	g_hash_table_destroy (priv->conns);
 
 	g_free (priv->user_agent);
@@ -1048,12 +1054,18 @@ load_ssl_ca_file (SoupSessionPrivate *priv)
 static void
 set_aliases (char ***variable, char **value)
 {
-	int len = g_strv_length (value), i;
+	int len, i;
 
 	if (*variable)
 		g_free (*variable);
 
-	*variable = g_new (char *, len);
+	if (!value) {
+		*variable = NULL;
+		return;
+	}
+
+	len = g_strv_length (value);
+	*variable = g_new (char *, len + 1);
 	for (i = 0; i < len; i++)
 		(*variable)[i] = (char *)g_intern_string (value[i]);
 	(*variable)[i] = NULL;
@@ -1358,6 +1370,32 @@ soup_session_get_async_context (SoupSession *session)
 
 /* Hosts */
 
+static guint
+soup_host_uri_hash (gconstpointer key)
+{
+	const SoupURI *uri = key;
+
+	g_return_val_if_fail (uri != NULL && uri->host != NULL, 0);
+
+	return uri->port + soup_str_case_hash (uri->host);
+}
+
+gboolean
+soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
+{
+	const SoupURI *one = v1;
+	const SoupURI *two = v2;
+
+	g_return_val_if_fail (one != NULL && two != NULL, one == two);
+	g_return_val_if_fail (one->host != NULL && two->host != NULL, one->host == two->host);
+
+	if (one->port != two->port)
+		return FALSE;
+
+	return g_ascii_strcasecmp (one->host, two->host) == 0;
+}
+
+
 static SoupSessionHost *
 soup_session_host_new (SoupSession *session, SoupURI *uri)
 {
@@ -1365,6 +1403,16 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 
 	host = g_slice_new0 (SoupSessionHost);
 	host->uri = soup_uri_copy_host (uri);
+	if (host->uri->scheme != SOUP_URI_SCHEME_HTTP &&
+	    host->uri->scheme != SOUP_URI_SCHEME_HTTPS) {
+		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+		if (uri_is_https (priv, host->uri))
+			host->uri->scheme = SOUP_URI_SCHEME_HTTPS;
+		else
+			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
+	}
+
 	host->addr = soup_address_new (host->uri->host, host->uri->port);
 	host->keep_alive_src = NULL;
 	host->session = session;
@@ -1379,12 +1427,19 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
-	host = g_hash_table_lookup (priv->hosts, uri);
+	if (uri_is_https (priv, uri))
+		host = g_hash_table_lookup (priv->https_hosts, uri);
+	else
+		host = g_hash_table_lookup (priv->http_hosts, uri);
 	if (host)
 		return host;
 
 	host = soup_session_host_new (session, uri);
-	g_hash_table_insert (priv->hosts, host->uri, host);
+
+	if (uri_is_https (priv, uri))
+		g_hash_table_insert (priv->https_hosts, host->uri, host);
+	else
+		g_hash_table_insert (priv->http_hosts, host->uri, host);
 
 	return host;
 }
@@ -1684,7 +1739,10 @@ free_unused_host (gpointer user_data)
 	/* This will free the host in addition to removing it from the
 	 * hash table
 	 */
-	g_hash_table_remove (priv->hosts, host->uri);
+	if (host->uri->scheme == SOUP_URI_SCHEME_HTTPS)
+		g_hash_table_remove (priv->https_hosts, host->uri);
+	else
+		g_hash_table_remove (priv->http_hosts, host->uri);
 	g_mutex_unlock (&priv->host_lock);
 
 	return FALSE;

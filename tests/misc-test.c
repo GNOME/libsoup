@@ -18,8 +18,8 @@
 
 #include "test-utils.h"
 
-SoupServer *server;
-SoupURI *base_uri;
+SoupServer *server, *ssl_server;
+SoupURI *base_uri, *ssl_base_uri;
 GMutex server_mutex;
 
 static gboolean
@@ -117,6 +117,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *context, gpointer data)
 {
 	SoupURI *uri = soup_message_get_uri (msg);
+	const char *server_protocol = data;
 
 	/* The way this gets used in the tests, we don't actually
 	 * need to hold it through the whole function, so it's simpler
@@ -142,6 +143,34 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (!strcmp (path, "/redirect")) {
 		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
+		return;
+	}
+
+	if (!strcmp (path, "/alias-redirect")) {
+		SoupURI *redirect_uri;
+		char *redirect_string;
+		const char *redirect_protocol;
+
+		redirect_protocol = soup_message_headers_get_one (msg->request_headers, "X-Redirect-Protocol");
+
+		redirect_uri = soup_uri_copy (uri);
+		soup_uri_set_scheme (redirect_uri, "foo");
+		if (!g_strcmp0 (redirect_protocol, "https"))
+			soup_uri_set_port (redirect_uri, ssl_base_uri->port);
+		else
+			soup_uri_set_port (redirect_uri, base_uri->port);
+		soup_uri_set_path (redirect_uri, "/alias-redirected");
+		redirect_string = soup_uri_to_string (redirect_uri, FALSE);
+
+		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, redirect_string);
+		g_free (redirect_string);
+		soup_uri_free (redirect_uri);
+		return;
+	} else if (!strcmp (path, "/alias-redirected")) {
+		soup_message_set_status (msg, SOUP_STATUS_OK);
+		soup_message_headers_append (msg->response_headers,
+					     "X-Redirected-Protocol",
+					     server_protocol);
 		return;
 	}
 
@@ -1011,6 +1040,69 @@ do_cancel_while_reading_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_aliases_test_for_session (SoupSession *session,
+			     const char *redirect_protocol)
+{
+	SoupMessage *msg;
+	SoupURI *uri;
+	const char *redirected_protocol;
+
+	uri = soup_uri_new_with_base (base_uri, "/alias-redirect");
+	msg = soup_message_new_from_uri ("GET", uri);
+	if (redirect_protocol)
+		soup_message_headers_append (msg->request_headers, "X-Redirect-Protocol", redirect_protocol);
+	soup_uri_free (uri);
+	soup_session_send_message (session, msg);
+
+	redirected_protocol = soup_message_headers_get_one (msg->response_headers, "X-Redirected-Protocol");
+
+	if (g_strcmp0 (redirect_protocol, redirected_protocol)) {
+		debug_printf (1, "    redirect went to %s, should have gone to %s!\n",
+			      redirected_protocol ? redirected_protocol : "(none)",
+			      redirect_protocol ? redirect_protocol : "(none)");
+		errors++;
+	} else if (redirect_protocol && !SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "    msg failed? (%d %s)\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	} else if (!redirect_protocol && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "    msg succeeded? (%d %s)\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+
+	g_object_unref (msg);
+}
+
+static void
+do_aliases_test (void)
+{
+	SoupSession *session;
+	char *aliases[] = { "foo", NULL };
+
+	debug_printf (1, "\nhttp-aliases / https-aliases\n");
+
+	debug_printf (1, "  Default behavior\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_aliases_test_for_session (session, "http");
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  foo-means-https\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_HTTPS_ALIASES, aliases,
+					 NULL);
+	do_aliases_test_for_session (session, "https");
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  foo-means-nothing\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_HTTP_ALIASES, NULL,
+					 NULL);
+	do_aliases_test_for_session (session, NULL);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1019,7 +1111,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	server = soup_test_server_new (TRUE);
-	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
 	base_uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
@@ -1031,6 +1123,11 @@ main (int argc, char **argv)
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
 
+	ssl_server = soup_test_server_new_ssl (TRUE);
+	soup_server_add_handler (ssl_server, NULL, server_callback, "https", NULL);
+	ssl_base_uri = soup_uri_new ("https://127.0.0.1/");
+	soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
+
 	do_host_test ();
 	do_callback_unref_test ();
 	do_msg_reuse_test ();
@@ -1041,9 +1138,12 @@ main (int argc, char **argv)
 	do_persistent_connection_timeout_test ();
 	do_max_conns_test ();
 	do_cancel_while_reading_test ();
+	do_aliases_test ();
 
 	soup_uri_free (base_uri);
+	soup_uri_free (ssl_base_uri);
 	soup_test_server_quit_unref (server);
+	soup_test_server_quit_unref (ssl_server);
 
 	test_cleanup ();
 	return errors != 0;
