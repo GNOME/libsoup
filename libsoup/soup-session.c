@@ -1494,7 +1494,11 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
 	}
 
-	host->addr = soup_address_new (host->uri->host, host->uri->port);
+	host->addr = g_object_new (SOUP_TYPE_ADDRESS,
+				   SOUP_ADDRESS_NAME, host->uri->host,
+				   SOUP_ADDRESS_PORT, host->uri->port,
+				   SOUP_ADDRESS_PROTOCOL, host->uri->scheme,
+				   NULL);
 	host->keep_alive_src = NULL;
 	host->session = session;
 
@@ -1885,19 +1889,13 @@ soup_session_make_connect_message (SoupSession    *session,
 				   SoupConnection *conn)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupAddress *server_addr = soup_connection_get_tunnel_addr (conn);
 	SoupURI *uri;
 	SoupMessage *msg;
 	SoupMessageQueueItem *item;
 
-	uri = soup_uri_new (NULL);
-	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTPS);
-	soup_uri_set_host (uri, soup_address_get_name (server_addr));
-	soup_uri_set_port (uri, soup_address_get_port (server_addr));
-	soup_uri_set_path (uri, "");
+	uri = soup_connection_get_remote_uri (conn);
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
-	soup_uri_free (uri);
 
 	/* Call the base implementation of soup_session_queue_message
 	 * directly, to add msg to the SoupMessageQueue and cause all
@@ -1921,10 +1919,8 @@ soup_session_get_connection (SoupSession *session,
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *conn;
 	SoupSessionHost *host;
-	SoupAddress *remote_addr, *tunnel_addr;
 	GSList *conns;
 	int num_pending = 0;
-	SoupURI *uri;
 	gboolean need_new_connection;
 
 	if (item->conn) {
@@ -1971,23 +1967,11 @@ soup_session_get_connection (SoupSession *session,
 		return FALSE;
 	}
 
-	if (item->proxy_addr) {
-		remote_addr = item->proxy_addr;
-		tunnel_addr = NULL;
-	} else {
-		remote_addr = host->addr;
-		tunnel_addr = NULL;
-	}
-
-	uri = soup_message_get_uri (item->msg);
-	if (uri_is_https (priv, uri) && item->proxy_addr)
-		tunnel_addr = host->addr;
-
-	conn = soup_connection_new (
-		SOUP_CONNECTION_REMOTE_ADDRESS, remote_addr,
-		SOUP_CONNECTION_TUNNEL_ADDRESS, tunnel_addr,
-		SOUP_CONNECTION_PROXY_URI, item->proxy_uri,
-		SOUP_CONNECTION_SSL, uri_is_https (priv, uri),
+	conn = g_object_new (
+		SOUP_TYPE_CONNECTION,
+		SOUP_CONNECTION_REMOTE_URI, host->uri,
+		SOUP_CONNECTION_PROXY_RESOLVER, soup_session_get_feature (session, SOUP_TYPE_PROXY_URI_RESOLVER),
+		SOUP_CONNECTION_SSL, uri_is_https (priv, soup_message_get_uri (item->msg)),
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, (priv->tlsdb != NULL) && priv->ssl_strict,
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,

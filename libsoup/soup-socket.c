@@ -23,6 +23,7 @@
 #include "soup-marshal.h"
 #include "soup-misc.h"
 #include "soup-misc-private.h"
+#include "soup-uri.h"
 
 /**
  * SECTION:soup-socket
@@ -64,6 +65,7 @@ enum {
 	PROP_CLEAN_DISPOSE,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
+	PROP_USE_PROXY,
 
 	LAST_PROP
 };
@@ -83,6 +85,7 @@ typedef struct {
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
 	guint use_thread_context:1;
+	guint use_proxy:1;
 	gpointer ssl_creds;
 
 	GMainContext   *async_context;
@@ -501,6 +504,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				    "Errors with the peer's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
 				    G_PARAM_READABLE));
+
+	g_object_class_install_property (
+		object_class, PROP_USE_PROXY,
+		g_param_spec_boolean (SOUP_SOCKET_USE_PROXY,
+				      "Use proxy",
+				      "Use #GProxyResolver",
+				      FALSE,
+				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 
@@ -560,6 +571,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->conn)
 			g_socket_set_timeout (priv->gsock, priv->timeout);
 		break;
+	case PROP_USE_PROXY:
+		priv->use_proxy = g_value_get_boolean (value);
+		break;
 	case PROP_CLEAN_DISPOSE:
 		priv->clean_dispose = g_value_get_boolean (value);
 		break;
@@ -617,6 +631,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TLS_ERRORS:
 		g_value_set_flags (value, priv->tls_errors);
+		break;
+	case PROP_USE_PROXY:
+		g_value_set_boolean (value, priv->use_proxy);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -768,6 +785,10 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	client = g_socket_client_new ();
 	g_signal_connect (client, "event",
 			  G_CALLBACK (proxy_socket_client_event), sock);
+	if (priv->use_proxy)
+		g_socket_client_add_application_proxy (client, "http");
+	else
+		g_socket_client_set_enable_proxy (client, FALSE);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
 	g_socket_client_connect_async (client,
@@ -813,6 +834,10 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	client = g_socket_client_new ();
 	g_signal_connect (client, "event",
 			  G_CALLBACK (proxy_socket_client_event), sock);
+	if (priv->use_proxy)
+		g_socket_client_add_application_proxy (client, "http");
+	else
+		g_socket_client_set_enable_proxy (client, FALSE);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
 	conn = g_socket_client_connect (client,
@@ -1328,6 +1353,25 @@ soup_socket_get_remote_address (SoupSocket *sock)
 	return priv->remote_addr;
 }
 
+SoupURI *
+soup_socket_get_http_proxy_uri (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	GSocketAddress *addr;
+	GProxyAddress *paddr;
+
+	if (!priv->gsock)
+		return NULL;
+	addr = g_socket_get_remote_address (priv->gsock, NULL);
+	if (!addr || !G_IS_PROXY_ADDRESS (addr))
+		return NULL;
+
+	paddr = G_PROXY_ADDRESS (addr);
+	if (strcmp (g_proxy_address_get_protocol (paddr), "http") != 0)
+		return NULL;
+
+	return soup_uri_new (g_proxy_address_get_uri (paddr));
+}
 
 static gboolean
 socket_read_watch (GObject *pollable, gpointer user_data)

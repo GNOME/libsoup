@@ -19,7 +19,6 @@
 #include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-password-manager.h"
-#include "soup-proxy-uri-resolver.h"
 #include "soup-uri.h"
 
 /**
@@ -224,7 +223,7 @@ try_again:
 		return;
 	}
 
-	if (soup_connection_get_tunnel_addr (item->conn)) {
+	if (soup_connection_is_tunnelled (item->conn)) {
 		status = tunnel_connect (session, item);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			soup_connection_disconnect (item->conn);
@@ -258,9 +257,6 @@ process_queue_item (SoupMessageQueueItem *item)
 {
 	SoupSession *session = item->session;
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
-	SoupMessage *msg = item->msg;
-	SoupProxyURIResolver *proxy_resolver;
-	guint status;
 
 	soup_message_queue_item_ref (item);
 
@@ -274,35 +270,7 @@ process_queue_item (SoupMessageQueueItem *item)
 
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
-			proxy_resolver = (SoupProxyURIResolver *)soup_session_get_feature_for_message (session, SOUP_TYPE_PROXY_URI_RESOLVER, msg);
-			if (!proxy_resolver) {
-				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-				break;
-			}
-
-			status = soup_proxy_uri_resolver_get_proxy_uri_sync (
-				proxy_resolver, soup_message_get_uri (msg),
-				item->cancellable, &item->proxy_uri);
-			if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-				soup_session_set_item_status (session, item, status);
-				item->state = SOUP_MESSAGE_FINISHING;
-				break;
-			}
-			if (!item->proxy_uri) {
-				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-				break;
-			}
-
-			item->proxy_addr = soup_address_new (
-				item->proxy_uri->host, item->proxy_uri->port);
-			status = soup_address_resolve_sync (item->proxy_addr,
-							    item->cancellable);
-			if (SOUP_STATUS_IS_SUCCESSFUL (status))
-				item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-			else {
-				soup_session_set_item_status (session, item, soup_status_proxify (status));
-				item->state = SOUP_MESSAGE_FINISHING;
-			}
+			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
 			break;
 
 		case SOUP_MESSAGE_AWAITING_CONNECTION:

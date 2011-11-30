@@ -22,4 +22,8 @@ GSocket   *soup_socket_get_gsocket    (SoupSocket *sock);
 GIOStream *soup_socket_get_connection (SoupSocket *sock);
 GIOStream *soup_socket_get_iostream   (SoupSocket *sock);
 
+#define SOUP_SOCKET_CLEAN_DISPOSE "clean-dispose"
+#define SOUP_SOCKET_USE_PROXY     "use-proxy"
+SoupURI *soup_socket_get_http_proxy_uri (SoupSocket *sock);
+
 #endif /* SOUP_URI_PRIVATE_H */

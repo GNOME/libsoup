@@ -39,9 +39,8 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);
 
-#define SOUP_CONNECTION_REMOTE_ADDRESS  "remote-address"
-#define SOUP_CONNECTION_TUNNEL_ADDRESS  "tunnel-address"
-#define SOUP_CONNECTION_PROXY_URI       "proxy-uri"
+#define SOUP_CONNECTION_REMOTE_URI      "remote-uri"
+#define SOUP_CONNECTION_PROXY_RESOLVER  "proxy-resolver"
 #define SOUP_CONNECTION_SSL             "ssl"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
@@ -53,16 +52,12 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_STATE           "state"
 #define SOUP_CONNECTION_MESSAGE         "message"
 
-SoupConnection *soup_connection_new            (const char       *propname1,
-						...) G_GNUC_NULL_TERMINATED;
-
 void            soup_connection_connect_async  (SoupConnection   *conn,
 						GCancellable     *cancellable,
 						SoupConnectionCallback callback,
 						gpointer          user_data);
 guint           soup_connection_connect_sync   (SoupConnection   *conn,
 						GCancellable     *cancellable);
-SoupAddress    *soup_connection_get_tunnel_addr(SoupConnection   *conn);
 guint           soup_connection_start_ssl_sync   (SoupConnection   *conn,
 						  GCancellable     *cancellable);
 void            soup_connection_start_ssl_async  (SoupConnection   *conn,
@@ -73,8 +68,10 @@ void            soup_connection_start_ssl_async  (SoupConnection   *conn,
 void            soup_connection_disconnect     (SoupConnection   *conn);
 
 SoupSocket     *soup_connection_get_socket     (SoupConnection   *conn);
+SoupURI        *soup_connection_get_remote_uri (SoupConnection   *conn);
 SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
+gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,

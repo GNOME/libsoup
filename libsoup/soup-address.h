@@ -38,6 +38,7 @@ typedef struct {
 #define SOUP_ADDRESS_NAME     "name"
 #define SOUP_ADDRESS_FAMILY   "family"
 #define SOUP_ADDRESS_PORT     "port"
+#define SOUP_ADDRESS_PROTOCOL "protocol"
 #define SOUP_ADDRESS_PHYSICAL "physical"
 #define SOUP_ADDRESS_SOCKADDR "sockaddr"
 

@@ -72,8 +72,7 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-dnl FIXME: should actually be 2.33.0, but glib hasn't bumped yet
-GLIB_REQUIRED=2.32.2
+GLIB_REQUIRED=2.33.1
 AM_PATH_GLIB_2_0($GLIB_REQUIRED,,,gobject gio)
 if test "$GLIB_LIBS" = ""; then
    AC_MSG_ERROR(GLIB $GLIB_REQUIRED or later is required to build libsoup)

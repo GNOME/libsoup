@@ -38,6 +38,7 @@ enum {
 	PROP_NAME,
 	PROP_FAMILY,
 	PROP_PORT,
+	PROP_PROTOCOL,
 	PROP_PHYSICAL,
 	PROP_SOCKADDR,
 
@@ -50,6 +51,7 @@ typedef struct {
 
 	char *name, *physical;
 	guint port;
+	const char *protocol;
 
 	GMutex lock;
 	GSList *async_lookups;
@@ -106,6 +108,7 @@ static void get_property (GObject *object, guint prop_id,
 
 static void soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface);
 static GSocketAddressEnumerator *soup_address_connectable_enumerate (GSocketConnectable *connectable);
+static GSocketAddressEnumerator *soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable);
 
 G_DEFINE_TYPE_WITH_CODE (SoupAddress, soup_address, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_SOCKET_CONNECTABLE,
@@ -192,6 +195,19 @@ soup_address_class_init (SoupAddressClass *address_class)
 				  -1, 65535, -1,
 				  G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	/**
+	 * SOUP_ADDRESS_PROTOCOL:
+	 *
+	 * Alias for the #SoupAddress:protocol property. (The URI scheme
+	 * used with this address.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_PROTOCOL,
+		g_param_spec_string (SOUP_ADDRESS_PROTOCOL,
+				     "Protocol",
+				     "URI scheme for this address",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
 	 * SOUP_ADDRESS_PHYSICAL:
 	 *
 	 * An alias for the #SoupAddress:physical property. (The
@@ -221,7 +237,8 @@ soup_address_class_init (SoupAddressClass *address_class)
 static void
 soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface)
 {
-  connectable_iface->enumerate  = soup_address_connectable_enumerate;
+  connectable_iface->enumerate       = soup_address_connectable_enumerate;
+  connectable_iface->proxy_enumerate = soup_address_connectable_proxy_enumerate;
 }
 
 static GObject *
@@ -289,6 +306,10 @@ set_property (GObject *object, guint prop_id,
 			SOUP_ADDRESS_SET_PORT (priv, htons (port));
 		break;
 
+	case PROP_PROTOCOL:
+		priv->protocol = g_intern_string (g_value_get_string (value));
+		break;
+
 	case PROP_SOCKADDR:
 		sa = g_value_get_pointer (value);
 		if (!sa)
@@ -327,6 +348,9 @@ get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_PHYSICAL:
 		g_value_set_string (value, soup_address_get_physical (SOUP_ADDRESS (object)));
+		break;
+	case PROP_PROTOCOL:
+		g_value_set_string (value, priv->protocol);
 		break;
 	case PROP_SOCKADDR:
 		g_value_set_pointer (value, priv->sockaddr);
@@ -1196,4 +1220,28 @@ soup_address_connectable_enumerate (GSocketConnectable *connectable)
 	addr_enum->orig_offset = priv->offset;
 
 	return (GSocketAddressEnumerator *)addr_enum;
+}
+
+static GSocketAddressEnumerator *
+soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable)
+{
+	SoupAddress *addr = SOUP_ADDRESS (connectable);
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	GSocketAddressEnumerator *proxy_enum;
+	char *uri;
+
+	/* We cheerily assume "http" here because you shouldn't be
+	 * using SoupAddress any more if you're not doing HTTP anyway.
+	 */
+	uri = g_strdup_printf ("%s://%s:%u",
+			       priv->protocol ? priv->protocol : "http",
+			       priv->name ? priv->name : soup_address_get_physical (addr),
+			       priv->port);
+	proxy_enum = g_object_new (G_TYPE_PROXY_ADDRESS_ENUMERATOR,
+				   "connectable", connectable,
+				   "uri", uri,
+				   NULL);
+	g_free (uri);
+
+	return proxy_enum;
 }
