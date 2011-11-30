@@ -820,6 +820,7 @@ do_persistent_connection_timeout_test (void)
 
 static GMainLoop *max_conns_loop;
 static int msgs_done;
+static guint quit_loop_timeout;
 #define MAX_CONNS 2
 #define TEST_CONNS (MAX_CONNS * 2)
 
@@ -833,6 +834,7 @@ idle_start_server (gpointer data)
 static gboolean
 quit_loop (gpointer data)
 {
+	quit_loop_timeout = 0;
 	g_main_loop_quit (max_conns_loop);
 	return FALSE;
 }
@@ -841,8 +843,11 @@ static void
 max_conns_request_started (SoupSession *session, SoupMessage *msg,
 			   SoupSocket *socket, gpointer user_data)
 {
-	if (++msgs_done == MAX_CONNS)
-		g_timeout_add (100, quit_loop, NULL);
+	if (++msgs_done == MAX_CONNS) {
+		if (quit_loop_timeout)
+			g_source_remove (quit_loop_timeout);
+		quit_loop_timeout = g_timeout_add (100, quit_loop, NULL);
+	}
 }
 
 static void
@@ -857,7 +862,6 @@ do_max_conns_test_for_session (SoupSession *session)
 {
 	SoupMessage *msgs[TEST_CONNS];
 	int i;
-	guint timeout_id;
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
 
@@ -883,7 +887,7 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	msgs_done = 0;
 	g_idle_add (idle_start_server, NULL);
-	timeout_id = g_timeout_add (1000, quit_loop, NULL);
+	quit_loop_timeout = g_timeout_add (1000, quit_loop, NULL);
 	g_main_loop_run (max_conns_loop);
 
 	for (i = 0; i < TEST_CONNS; i++) {
@@ -902,10 +906,11 @@ do_max_conns_test_for_session (SoupSession *session)
 		for (i = 0; i < TEST_CONNS; i++)
 			soup_session_cancel_message (session, msgs[i], SOUP_STATUS_CANCELLED);
 		g_main_loop_run (max_conns_loop);
-		g_source_remove (timeout_id);
 	}
 
 	g_main_loop_unref (max_conns_loop);
+	if (quit_loop_timeout)
+		g_source_remove (quit_loop_timeout);
 
 	for (i = 0; i < TEST_CONNS; i++)
 		g_object_unref (msgs[i]);
