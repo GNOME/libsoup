@@ -35,6 +35,10 @@ do_properties_test_for_session (SoupSession *session, char *uri)
 		debug_printf (1, "    Response not https\n");
 		errors++;
 	}
+	if (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED) {
+		debug_printf (1, "    CERTIFICATE_TRUSTED set?\n");
+		errors++;
+	}
 
 	g_object_unref (msg);
 }
@@ -98,7 +102,18 @@ do_one_strict_test (SoupSession *session, char *uri,
 			debug_printf (1, "              tls error flags: 0x%x\n", flags);
 		}
 		errors++;
+	} else if (with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED)) {
+			debug_printf (1, "    CERTIFICATE_TRUSTED not set?\n");
+			errors++;
+		}
+	} else {
+		if (with_ca_list && soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED) {
+			debug_printf (1, "    CERTIFICATE_TRUSTED set?\n");
+			errors++;
+		}
 	}
+
 	g_object_unref (msg);
 }
 

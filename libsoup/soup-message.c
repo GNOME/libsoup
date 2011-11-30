@@ -750,7 +750,9 @@ set_property (GObject *object, guint prop_id,
 		if (priv->tls_certificate)
 			g_object_unref (priv->tls_certificate);
 		priv->tls_certificate = g_value_dup_object (value);
-		if (priv->tls_certificate && !priv->tls_errors)
+		if (priv->tls_errors)
+			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		else if (priv->tls_certificate)
 			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 		break;
 	case PROP_TLS_ERRORS:
@@ -1394,7 +1396,6 @@ soup_message_cleanup_response (SoupMessage *req)
 		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
 	}
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
-	priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 
 	req->status_code = SOUP_STATUS_NONE;
 	if (req->reason_phrase) {
