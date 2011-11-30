@@ -51,7 +51,7 @@ typedef struct {
 	char *name, *physical;
 	guint port;
 
-	GMutex *lock;
+	GMutex lock;
 	GSList *async_lookups;
 } SoupAddressPrivate;
 #define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
@@ -116,7 +116,7 @@ soup_address_init (SoupAddress *addr)
 {
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	priv->lock = g_mutex_new ();
+	g_mutex_init (&priv->lock);
 }
 
 static void
@@ -132,7 +132,7 @@ finalize (GObject *object)
 	if (priv->physical)
 		g_free (priv->physical);
 
-	g_mutex_free (priv->lock);
+	g_mutex_clear (&priv->lock);
 
 	G_OBJECT_CLASS (soup_address_parent_class)->finalize (object);
 }
@@ -819,14 +819,14 @@ resolve_sync_internal (SoupAddress *addr, GCancellable *cancellable, GError **er
 	 * priv->sockaddr and priv->name, unlock it around the
 	 * blocking op, and then re-lock it to modify @addr.
 	 */
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 	if (!priv->sockaddr) {
 		GList *addrs;
 
-		g_mutex_unlock (priv->lock);
+		g_mutex_unlock (&priv->lock);
 		addrs = g_resolver_lookup_by_name (resolver, priv->name,
 						   cancellable, &my_err);
-		g_mutex_lock (priv->lock);
+		g_mutex_lock (&priv->lock);
 
 		status = update_addrs (addr, addrs, my_err);
 		g_resolver_free_addresses (addrs);
@@ -834,18 +834,18 @@ resolve_sync_internal (SoupAddress *addr, GCancellable *cancellable, GError **er
 		GInetAddress *gia;
 		char *name;
 
-		g_mutex_unlock (priv->lock);
+		g_mutex_unlock (&priv->lock);
 		gia = soup_address_make_inet_address (addr);
 		name = g_resolver_lookup_by_address (resolver, gia,
 						     cancellable, &my_err);
 		g_object_unref (gia);
-		g_mutex_lock (priv->lock);
+		g_mutex_lock (&priv->lock);
 
 		status = update_name (addr, name, my_err);
 		g_free (name);
 	} else
 		status = SOUP_STATUS_OK;
-	g_mutex_unlock (priv->lock);
+	g_mutex_unlock (&priv->lock);
 
 	if (my_err)
 		g_propagate_error (error, my_err);
@@ -905,9 +905,9 @@ soup_address_is_resolved (SoupAddress *addr)
 	g_return_val_if_fail (SOUP_IS_ADDRESS (addr), FALSE);
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 	resolved = priv->sockaddr && priv->name;
-	g_mutex_unlock (priv->lock);
+	g_mutex_unlock (&priv->lock);
 
 	return resolved;
 }

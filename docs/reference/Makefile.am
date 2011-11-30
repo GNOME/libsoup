@@ -16,7 +16,7 @@ DOC_SOURCE_DIR=../../libsoup
 SCAN_OPTIONS=--deprecated-guards=LIBSOUP_DISABLE_DEPRECATED --rebuild-types
 
 # Extra options to supply to gtkdoc-scangobj.
-SCANGOBJ_OPTIONS=--type-init-func 'g_type_init(); g_thread_init(NULL)'
+SCANGOBJ_OPTIONS=
 
 # Extra options to supply to gtkdoc-mkdb.
 MKDB_OPTIONS=--sgml-mode --output-format=xml

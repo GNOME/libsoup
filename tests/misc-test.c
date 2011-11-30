@@ -20,7 +20,7 @@
 
 SoupServer *server;
 SoupURI *base_uri;
-GMutex *server_mutex;
+GMutex server_mutex;
 
 static gboolean
 auth_callback (SoupAuthDomain *auth_domain, SoupMessage *msg,
@@ -122,8 +122,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	 * need to hold it through the whole function, so it's simpler
 	 * to just release it right away.
 	 */
-	g_mutex_lock (server_mutex);
-	g_mutex_unlock (server_mutex);
+	g_mutex_lock (&server_mutex);
+	g_mutex_unlock (&server_mutex);
 
 	soup_message_headers_append (msg->response_headers,
 				     "X-Handled-By", "server_callback");
@@ -826,7 +826,7 @@ static int msgs_done;
 static gboolean
 idle_start_server (gpointer data)
 {
-	g_mutex_unlock (server_mutex);
+	g_mutex_unlock (&server_mutex);
 	return FALSE;
 }
 
@@ -861,7 +861,7 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
 
-	g_mutex_lock (server_mutex);
+	g_mutex_lock (&server_mutex);
 
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (max_conns_request_started), NULL);
@@ -973,7 +973,7 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 	if (SOUP_IS_SESSION_ASYNC (session))
 		g_timeout_add (100, cancel_message_timeout, msg);
 	else
-		thread = g_thread_create (cancel_message_thread, msg, TRUE, NULL);
+		thread = g_thread_new ("cancel_message_thread", cancel_message_thread, msg);
 
 	soup_session_send_message (session, msg);
 
@@ -1013,8 +1013,6 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server_mutex = g_mutex_new ();
-
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_uri_new ("http://127.0.0.1/");
@@ -1041,7 +1039,6 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
-	g_mutex_free (server_mutex);
 
 	test_cleanup ();
 	return errors != 0;

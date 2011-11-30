@@ -61,7 +61,7 @@ soup_directory_input_stream_parse_info (SoupDirectoryInputStream *stream,
 	xml_string = g_markup_escape_text (file_name, -1);
 	escaped = g_uri_escape_string (file_name, NULL, FALSE);
 	path = g_strconcat (stream->uri, G_DIR_SEPARATOR_S, escaped, NULL);
-	size = g_format_size_for_display (g_file_info_get_size (info));
+	size = g_format_size (g_file_info_get_size (info));
 	g_file_info_get_modification_time (info, &modified);
 	modification_time = g_date_time_new_from_timeval_local (&modified);
 	time = g_date_time_format (modification_time, "%X %x");

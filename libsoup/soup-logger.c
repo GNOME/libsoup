@@ -98,7 +98,7 @@ typedef struct {
 	/* We use a mutex so that if requests are being run in
 	 * multiple threads, we don't mix up the output.
 	 */
-	GMutex             *lock;
+	GMutex             lock;
 
 	GQuark              tag;
 	GHashTable         *ids;
@@ -125,7 +125,7 @@ soup_logger_init (SoupLogger *logger)
 {
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 
-	priv->lock = g_mutex_new ();
+	g_mutex_init (&priv->lock);
 	priv->tag = g_quark_from_static_string (g_strdup_printf ("SoupLogger-%p", logger));
 	priv->ids = g_hash_table_new (NULL, NULL);
 }
@@ -144,7 +144,7 @@ finalize (GObject *object)
 	if (priv->printer_dnotify)
 		priv->printer_dnotify (priv->printer_data);
 
-	g_mutex_free (priv->lock);
+	g_mutex_clear (&priv->lock);
 
 	G_OBJECT_CLASS (soup_logger_parent_class)->finalize (object);
 }
@@ -587,7 +587,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 	SoupLogger *logger = user_data;
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
@@ -612,7 +612,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 		soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 	}
 
-	g_mutex_unlock (priv->lock);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -621,12 +621,12 @@ got_body (SoupMessage *msg, gpointer user_data)
 	SoupLogger *logger = user_data;
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
 
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 
-	g_mutex_unlock (priv->lock);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void

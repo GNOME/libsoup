@@ -97,8 +97,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 static gboolean idle_start_test1_thread (gpointer loop);
 static gpointer test1_thread (gpointer user_data);
 
-static GCond *test1_cond;
-static GMutex *test1_mutex;
+static GCond test1_cond;
+static GMutex test1_mutex;
 static GMainLoop *test1_loop;
 
 static void
@@ -110,37 +110,31 @@ do_test1 (int n, gboolean use_thread_context)
 	else
 		debug_printf (1, "(Using SOUP_SESSION_ASYNC_CONTEXT)\n");
 
-	test1_cond = g_cond_new ();
-	test1_mutex = g_mutex_new ();
-
 	test1_loop = g_main_loop_new (NULL, FALSE);
 	g_idle_add (idle_start_test1_thread, GINT_TO_POINTER (use_thread_context));
 	g_main_loop_run (test1_loop);
 	g_main_loop_unref (test1_loop);
-
-	g_mutex_free (test1_mutex);
-	g_cond_free (test1_cond);
 }
 
 static gboolean
 idle_start_test1_thread (gpointer use_thread_context)
 {
-	GTimeVal time;
+	guint64 time;
 	GThread *thread;
 
-	g_mutex_lock (test1_mutex);
-	thread = g_thread_create (test1_thread, use_thread_context, TRUE, NULL);
+	g_mutex_lock (&test1_mutex);
+	thread = g_thread_new ("test1_thread", test1_thread, use_thread_context);
 
-	g_get_current_time (&time);
-	time.tv_sec += 5;
-	if (g_cond_timed_wait (test1_cond, test1_mutex, &time))
+	time = g_get_monotonic_time () + 5000000;
+	if (g_cond_wait_until (&test1_cond, &test1_mutex, time))
 		g_thread_join (thread);
 	else {
 		debug_printf (1, "  timeout!\n");
+		g_thread_unref (thread);
 		errors++;
 	}
 
-	g_mutex_unlock (test1_mutex);
+	g_mutex_unlock (&test1_mutex);
 	g_main_loop_quit (test1_loop);
 	return FALSE;
 }
@@ -161,8 +155,8 @@ test1_thread (gpointer use_thread_context)
 	GMainLoop *loop;
 
 	/* Wait for main thread to be waiting on test1_cond */
-	g_mutex_lock (test1_mutex);
-	g_mutex_unlock (test1_mutex);
+	g_mutex_lock (&test1_mutex);
+	g_mutex_unlock (&test1_mutex);
 
 	async_context = g_main_context_new ();
 	if (use_thread_context) {
@@ -206,7 +200,7 @@ test1_thread (gpointer use_thread_context)
 	soup_test_session_abort_unref (session);
 	g_free (uri);
 
-	g_cond_signal (test1_cond);
+	g_cond_signal (&test1_cond);
 
 	if (use_thread_context)
 		g_main_context_pop_thread_default (async_context);

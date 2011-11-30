@@ -185,8 +185,9 @@ do_thread_test (const char *uri)
 
 	debug_printf (1, "Streaming in another thread\n");
 
-	thread = g_thread_create ((GThreadFunc)do_test_with_context,
-				  (gpointer)uri, TRUE, NULL);
+	thread = g_thread_new ("do_test_with_context",
+			       (GThreadFunc)do_test_with_context,
+			       (gpointer)uri);
 	g_thread_join (thread);
 }
 

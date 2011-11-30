@@ -48,8 +48,8 @@
  **/
 
 typedef struct {
-	GMutex *lock;
-	GCond *cond;
+	GMutex lock;
+	GCond cond;
 } SoupSessionSyncPrivate;
 #define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
@@ -70,8 +70,8 @@ soup_session_sync_init (SoupSessionSync *ss)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (ss);
 
-	priv->lock = g_mutex_new ();
-	priv->cond = g_cond_new ();
+	g_mutex_init (&priv->lock);
+	g_cond_init (&priv->cond);
 }
 
 static void
@@ -79,8 +79,8 @@ finalize (GObject *object)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (object);
 
-	g_mutex_free (priv->lock);
-	g_cond_free (priv->cond);
+	g_mutex_clear (&priv->lock);
+	g_cond_clear (&priv->cond);
 
 	G_OBJECT_CLASS (soup_session_sync_parent_class)->finalize (object);
 }
@@ -255,10 +255,10 @@ process_queue_item (SoupMessageQueueItem *item)
 	item->state = SOUP_MESSAGE_STARTING;
 	do {
 		if (item->paused) {
-			g_mutex_lock (priv->lock);
+			g_mutex_lock (&priv->lock);
 			while (item->paused)
-				g_cond_wait (priv->cond, priv->lock);
-			g_mutex_unlock (priv->lock);
+				g_cond_wait (&priv->cond, &priv->lock);
+			g_mutex_unlock (&priv->lock);
 		}
 
 		switch (item->state) {
@@ -295,13 +295,13 @@ process_queue_item (SoupMessageQueueItem *item)
 			break;
 
 		case SOUP_MESSAGE_AWAITING_CONNECTION:
-			g_mutex_lock (priv->lock);
+			g_mutex_lock (&priv->lock);
 			do {
 				get_connection (item);
 				if (item->state == SOUP_MESSAGE_AWAITING_CONNECTION)
-					g_cond_wait (priv->cond, priv->lock);
+					g_cond_wait (&priv->cond, &priv->lock);
 			} while (item->state == SOUP_MESSAGE_AWAITING_CONNECTION);
-			g_mutex_unlock (priv->lock);
+			g_mutex_unlock (&priv->lock);
 			break;
 
 		case SOUP_MESSAGE_READY:
@@ -320,7 +320,7 @@ process_queue_item (SoupMessageQueueItem *item)
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
 			soup_session_unqueue_item (session, item);
-			g_cond_broadcast (priv->cond);
+			g_cond_broadcast (&priv->cond);
 			break;
 
 		default:
@@ -366,6 +366,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	       SoupSessionCallback callback, gpointer user_data)
 {
 	SoupMessageQueueItem *item;
+	GThread *thread;
 
 	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
 		queue_message (g_object_ref (session), msg, callback, user_data);
@@ -373,7 +374,9 @@ queue_message (SoupSession *session, SoupMessage *msg,
 	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
 	g_return_if_fail (item != NULL);
 
-	g_thread_create (queue_message_thread, item, FALSE, NULL);
+	thread = g_thread_new ("SoupSessionSync:queue_message",
+			       queue_message_thread, item);
+	g_thread_unref (thread);
 }
 
 static guint
@@ -398,10 +401,10 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->cancel_message (session, msg, status_code);
-	g_cond_broadcast (priv->cond);
-	g_mutex_unlock (priv->lock);
+	g_cond_broadcast (&priv->cond);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -449,7 +452,7 @@ flush_queue (SoupSession *session)
 	 * try to cancel those requests as well, since we'd likely
 	 * just end up looping forever.)
 	 */
-	g_mutex_lock (priv->lock);
+	g_mutex_lock (&priv->lock);
 	do {
 		done = TRUE;
 		for (item = soup_message_queue_first (queue);
@@ -460,9 +463,9 @@ flush_queue (SoupSession *session)
 		}
 
 		if (!done)
-			g_cond_wait (priv->cond, priv->lock);
+			g_cond_wait (&priv->cond, &priv->lock);
 	} while (!done);
-	g_mutex_unlock (priv->lock);
+	g_mutex_unlock (&priv->lock);
 
 	g_hash_table_destroy (current);
 }
@@ -472,7 +475,7 @@ kick (SoupSession *session)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
-	g_mutex_lock (priv->lock);
-	g_cond_broadcast (priv->cond);
-	g_mutex_unlock (priv->lock);
+	g_mutex_lock (&priv->lock);
+	g_cond_broadcast (&priv->cond);
+	g_mutex_unlock (&priv->lock);
 }

@@ -72,9 +72,9 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-AM_PATH_GLIB_2_0(2.30.0,,,gobject gio)
+AM_PATH_GLIB_2_0(2.31.0,,,gobject gio)
 if test "$GLIB_LIBS" = ""; then
-   AC_MSG_ERROR(GLIB 2.30.0 or later is required to build libsoup)
+   AC_MSG_ERROR(GLIB 2.31.0 or later is required to build libsoup)
 fi
 GLIB_CFLAGS="$GLIB_CFLAGS -DG_DISABLE_SINGLE_INCLUDES"
 
