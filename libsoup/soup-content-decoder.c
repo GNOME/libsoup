@@ -140,7 +140,8 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 		return;
 
 	/* Workaround for an apache bug (bgo 613361) */
-	if (!g_ascii_strcasecmp (header, "gzip")) {
+	if (!g_ascii_strcasecmp (header, "gzip") ||
+	    !g_ascii_strcasecmp (header, "x-gzip")) {
 		const char *content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
 
 		if (content_type &&
