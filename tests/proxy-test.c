@@ -132,7 +132,6 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	SoupSession *session;
 	SoupURI *proxy_uri;
 	SoupMessage *msg;
-	SoupRequester *requester;
 	SoupRequest *request;
 	GInputStream *stream;
 	GError *error = NULL;
@@ -140,7 +139,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	if (!tls_available && g_str_has_prefix (url, "https:"))
 		return;
 
-	debug_printf (1, "  GET (requester API) %s via %s%s\n", url, proxy_names[proxy],
+	debug_printf (1, "  GET (request API) %s via %s%s\n", url, proxy_names[proxy],
 		      close ? " (with Connection: close)" : "");
 	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)
 		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
@@ -150,7 +149,6 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	 */
 	proxy_uri = soup_uri_new (proxies[proxy]);
 	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_PROXY_URI, proxy_uri,
 					 NULL);
@@ -163,8 +161,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 				  G_CALLBACK (set_close_on_connect), NULL);
 	}
 
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	request = soup_requester_request (requester, url, NULL);
+	request = soup_session_request (session, url, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
 	stream = soup_test_request_send (request, NULL, &error);

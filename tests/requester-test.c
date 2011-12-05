@@ -252,11 +252,17 @@ do_async_test (SoupSession *session, SoupURI *uri,
 	SoupMessage *msg;
 	RequestData data;
 
-	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
+	if (SOUP_IS_SESSION_ASYNC (session))
+		requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
+	else
+		requester = NULL;
 
 	data.body = g_string_new (NULL);
 	data.cancel = cancel;
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (requester)
+		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
 	if (cancel) {
@@ -326,9 +332,11 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 	SoupRequester *requester;
 	SoupURI *uri;
 
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
+	if (SOUP_IS_SESSION_ASYNC (session)) {
+		requester = soup_requester_new ();
+		soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
+		g_object_unref (requester);
+	}
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
 	debug_printf (1, "  basic test\n");
@@ -572,14 +580,19 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 		      plain_session ? "SoupSession" : "SoupSessionSync");
 
 	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_SYNC, NULL);
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
+	if (!plain_session) {
+		requester = soup_requester_new ();
+		soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
+		g_object_unref (requester);
+	}
 
 	uri = soup_uri_new (uri_string);
 
 	debug_printf (1, "  basic test\n");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (plain_session)
+		request = soup_session_request_uri (session, uri, NULL);
+	else
+		request = soup_requester_request_uri (requester, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 TRUE, FALSE);
@@ -587,7 +600,10 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 
 	debug_printf (1, "  chunked test\n");
 	soup_uri_set_path (uri, "/chunked");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (plain_session)
+		request = soup_session_request_uri (session, uri, NULL);
+	else
+		request = soup_requester_request_uri (requester, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 TRUE, FALSE);
@@ -595,7 +611,10 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 
 	debug_printf (1, "  auth test\n");
 	soup_uri_set_path (uri, "/auth");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (plain_session)
+		request = soup_session_request_uri (session, uri, NULL);
+	else
+		request = soup_requester_request_uri (requester, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_UNAUTHORIZED, auth_response,
 			 TRUE, FALSE);
@@ -603,7 +622,10 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 
 	debug_printf (1, "  non-persistent test\n");
 	soup_uri_set_path (uri, "/non-persistent");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (plain_session)
+		request = soup_session_request_uri (session, uri, NULL);
+	else
+		request = soup_requester_request_uri (requester, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 FALSE, FALSE);
@@ -611,7 +633,10 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 
 	debug_printf (1, "  cancel test\n");
 	soup_uri_set_path (uri, "/");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	if (plain_session)
+		request = soup_session_request_uri (session, uri, NULL);
+	else
+		request = soup_requester_request_uri (requester, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_FORBIDDEN, NULL,
 			 TRUE, TRUE);

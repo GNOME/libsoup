@@ -22,8 +22,6 @@
 #ifndef SOUP_REQUEST_DATA_H
 #define SOUP_REQUEST_DATA_H 1
 
-#ifdef LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-request.h"
 
 G_BEGIN_DECLS
@@ -51,7 +49,5 @@ SOUP_AVAILABLE_IN_2_34
 GType soup_request_data_get_type (void);
 
 G_END_DECLS
-
-#endif /* LIBSOUP_USE_UNSTABLE_REQUEST_API */
 
 #endif /* SOUP_REQUEST_DATA_H */

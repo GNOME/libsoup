@@ -386,11 +386,17 @@ SoupAddressClass
 <TITLE>SoupSession</TITLE>
 SoupSession
 <SUBSECTION>
+soup_session_request
+soup_session_request_uri
+SoupRequestError
+SOUP_REQUEST_ERROR
+<SUBSECTION>
 SoupSessionCallback
 soup_session_queue_message
 soup_session_requeue_message
 soup_session_send_message
 soup_session_cancel_message
+<SUBSECTION>
 soup_session_prefetch_dns
 soup_session_prepare_for_uri
 soup_session_abort
@@ -410,6 +416,7 @@ soup_session_remove_feature_by_type
 soup_session_get_features
 soup_session_get_feature
 soup_session_get_feature_for_message
+soup_session_has_feature
 <SUBSECTION>
 SOUP_SESSION_PROXY_URI
 SOUP_SESSION_MAX_CONNS
@@ -440,6 +447,8 @@ SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
 SoupSessionClass
 soup_session_get_type
+soup_request_error_get_type
+soup_request_error_quark
 <SUBSECTION Private>
 SoupConnection
 SoupConnectionState
@@ -1087,30 +1096,6 @@ SOUP_PROXY_RESOLVER_DEFAULT_CLASS
 SOUP_PROXY_RESOLVER_DEFAULT_GET_CLASS
 SOUP_IS_PROXY_RESOLVER_DEFAULT
 SOUP_IS_PROXY_RESOLVER_DEFAULT_CLASS
-</SECTION>
-
-<SECTION>
-<FILE>soup-requester</FILE>
-<TITLE>SoupRequester</TITLE>
-SoupRequester
-soup_requester_new
-soup_requester_request
-soup_requester_request_uri
-<SUBSECTION>
-SoupRequesterError
-SOUP_REQUESTER_ERROR
-<SUBSECTION Standard>
-soup_requester_get_type
-SoupRequesterClass
-SoupRequesterPrivate
-SOUP_TYPE_REQUESTER
-SOUP_REQUESTER
-SOUP_REQUESTER_CLASS
-SOUP_REQUESTER_GET_CLASS
-SOUP_IS_REQUESTER
-SOUP_IS_REQUESTER_CLASS
-<SUBSECTION Private>
-soup_requester_error_quark
 </SECTION>
 
 <SECTION>

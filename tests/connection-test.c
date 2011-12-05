@@ -299,7 +299,6 @@ do_timeout_test_for_session (SoupSession *session)
 static void
 do_timeout_req_test_for_session (SoupSession *session)
 {
-	SoupRequester *requester;
 	SoupRequest *req;
 	SoupMessage *msg;
 	GInputStream *stream;
@@ -308,17 +307,13 @@ do_timeout_req_test_for_session (SoupSession *session)
 	GError *error = NULL;
 	int i;
 
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
-
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (request_started_socket_collector),
 			  &sockets);
 
 	debug_printf (1, "    First request\n");
 	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
-	req = soup_requester_request_uri (requester, timeout_uri, NULL);
+	req = soup_session_request_uri (session, timeout_uri, NULL);
 	soup_uri_free (timeout_uri);
 
 	stream = soup_test_request_send (req, NULL, &error);
@@ -346,7 +341,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 	g_object_unref (req);
 
 	debug_printf (1, "    Second request\n");
-	req = soup_requester_request_uri (requester, base_uri, NULL);
+	req = soup_session_request_uri (session, base_uri, NULL);
 
 	stream = soup_test_request_send (req, NULL, &error);
 	if (!stream) {

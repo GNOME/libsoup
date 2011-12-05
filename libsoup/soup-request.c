@@ -27,8 +27,6 @@
 
 #include <glib/gi18n-lib.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-request.h"
 #include "soup.h"
 #include "soup-requester.h"
@@ -37,8 +35,8 @@
  * SECTION:soup-request
  * @short_description: Protocol-independent streaming request interface
  *
- * A #SoupRequest is created by #SoupRequester, and represents a
- * request to retrieve a particular URI.
+ * A #SoupRequest is created by #SoupSession, and represents a request
+ * to retrieve a particular URI.
  */
 
 /**
@@ -46,7 +44,7 @@
  *
  * A request to retrieve a particular URI.
  *
- * Since: 2.34
+ * Since: 2.42
  */
 
 static void soup_request_initable_interface_init (GInitableIface *initable_interface);
@@ -138,7 +136,7 @@ soup_request_initable_init (GInitable     *initable,
 	gboolean ok;
 
 	if (!request->priv->uri) {
-		g_set_error (error, SOUP_REQUESTER_ERROR, SOUP_REQUESTER_ERROR_BAD_URI,
+		g_set_error (error, SOUP_REQUEST_ERROR, SOUP_REQUEST_ERROR_BAD_URI,
 			     _("No URI provided"));
 		return FALSE;
 	}
@@ -148,7 +146,7 @@ soup_request_initable_init (GInitable     *initable,
 
 	if (!ok && error && !*error) {
 		char *uri_string = soup_uri_to_string (request->priv->uri, FALSE);
-		g_set_error (error, SOUP_REQUESTER_ERROR, SOUP_REQUESTER_ERROR_BAD_URI,
+		g_set_error (error, SOUP_REQUEST_ERROR, SOUP_REQUEST_ERROR_BAD_URI,
 			     _("Invalid '%s' URI: %s"),
 			     request->priv->uri->scheme,
 			     uri_string);
@@ -204,10 +202,13 @@ soup_request_default_send_finish (SoupRequest          *request,
  * Synchronously requests the URI pointed to by @request, and returns
  * a #GInputStream that can be used to read its contents.
  *
+ * Note that you cannot use this method with #SoupRequests attached to
+ * a #SoupSessionAsync.
+ *
  * Return value: (transfer full): a #GInputStream that can be used to
  *   read from the URI pointed to by @request.
  *
- * Since: 2.34
+ * Since: 2.42
  */
 GInputStream *
 soup_request_send (SoupRequest          *request,
@@ -228,7 +229,10 @@ soup_request_send (SoupRequest          *request,
  * Begins an asynchronously request for the URI pointed to by
  * @request.
  *
- * Since: 2.34
+ * Note that you cannot use this method with #SoupRequests attached to
+ * a #SoupSessionSync.
+ *
+ * Since: 2.42
  */
 void
 soup_request_send_async (SoupRequest         *request,
@@ -251,7 +255,7 @@ soup_request_send_async (SoupRequest         *request,
  * Return value: (transfer full): a #GInputStream that can be used to
  *   read from the URI pointed to by @request.
  *
- * Since: 2.34
+ * Since: 2.42
  */
 GInputStream *
 soup_request_send_finish (SoupRequest          *request,
@@ -307,7 +311,7 @@ soup_request_initable_interface_init (GInitableIface *initable_interface)
  *
  * Return value: (transfer none): @request's URI
  *
- * Since: 2.34
+ * Since: 2.42
  */
 SoupURI *
 soup_request_get_uri (SoupRequest *request)
@@ -323,7 +327,7 @@ soup_request_get_uri (SoupRequest *request)
  *
  * Return value: (transfer none): @request's #SoupSession
  *
- * Since: 2.34
+ * Since: 2.42
  */
 SoupSession *
 soup_request_get_session (SoupRequest *request)
@@ -335,12 +339,14 @@ soup_request_get_session (SoupRequest *request)
  * soup_request_get_content_length:
  * @request: a #SoupRequest
  *
- * Gets the length of the data represented by @request.
+ * Gets the length of the data represented by @request. For most
+ * request types, this will not be known until after you call
+ * soup_request_send() or soup_request_send_finish().
  *
  * Return value: the length of the data represented by @request,
  *   or -1 if not known.
  *
- * Since: 2.34
+ * Since: 2.42
  */
 goffset
 soup_request_get_content_length (SoupRequest *request)
@@ -352,14 +358,17 @@ soup_request_get_content_length (SoupRequest *request)
  * soup_request_get_content_type:
  * @request: a #SoupRequest
  *
- * Gets the type of the data represented by @request. As in the
- * HTTP Content-Type header, this may include parameters after
- * the MIME type.
+ * Gets the type of the data represented by @request. For most request
+ * types, this will not be known until after you call
+ * soup_request_send() or soup_request_send_finish().
+ *
+ * As in the HTTP Content-Type header, this may include parameters
+ * after the MIME type.
  *
  * Return value: the type of the data represented by @request,
  *   or %NULL if not known.
  *
- * Since: 2.34
+ * Since: 2.42
  */
 const char *
 soup_request_get_content_type (SoupRequest  *request)

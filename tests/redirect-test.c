@@ -208,7 +208,6 @@ do_message_api_test (SoupSession *session, SoupURI *base_uri, int n)
 static void
 do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 {
-	SoupRequester *requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
 	SoupURI *uri;
 	SoupRequest *req;
 	SoupMessage *msg;
@@ -226,7 +225,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		final_status = tests[n].final_status;
 
 	uri = soup_uri_new_with_base (base_uri, tests[n].requests[0].path);
-	req = soup_requester_request_uri (requester, uri, &error);
+	req = soup_session_request_uri (session, uri, &error);
 	soup_uri_free (uri);
 	if (!req) {
 		debug_printf (1, "    could not create request: %s\n",
@@ -315,7 +314,6 @@ do_redirect_tests (SoupURI *base_uri)
 	int n;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	debug_printf (1, "Async session, SoupMessage\n");
@@ -326,9 +324,7 @@ do_redirect_tests (SoupURI *base_uri)
 		do_request_api_test (session, base_uri, n);
 	soup_test_session_abort_unref (session);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
-					 NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	debug_printf (1, "\nSync session, SoupMessage\n");
 	for (n = 0; n < n_tests; n++)
 		do_message_api_test (session, base_uri, n);

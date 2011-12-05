@@ -22,8 +22,6 @@
 #ifndef SOUP_REQUEST_HTTP_H
 #define SOUP_REQUEST_HTTP_H 1
 
-#ifdef LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-request.h"
 
 G_BEGIN_DECLS
@@ -54,7 +52,5 @@ SOUP_AVAILABLE_IN_2_34
 SoupMessage *soup_request_http_get_message (SoupRequestHTTP *http);
 
 G_END_DECLS
-
-#endif /* LIBSOUP_USE_UNSTABLE_REQUEST_API */
 
 #endif /* SOUP_REQUEST_HTTP_H */

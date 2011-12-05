@@ -31,8 +31,6 @@
 
 #include <string.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-cache.h"
 #include "soup-cache-private.h"
 #include "soup.h"

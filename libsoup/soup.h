@@ -15,6 +15,7 @@ extern "C" {
 #include <libsoup/soup-auth-domain.h>
 #include <libsoup/soup-auth-domain-basic.h>
 #include <libsoup/soup-auth-domain-digest.h>
+#include <libsoup/soup-cache.h>
 #include <libsoup/soup-content-decoder.h>
 #include <libsoup/soup-content-sniffer.h>
 #include <libsoup/soup-cookie.h>
@@ -34,6 +35,10 @@ extern "C" {
 #include <libsoup/soup-proxy-resolver.h>
 #include <libsoup/soup-proxy-resolver-default.h>
 #include <libsoup/soup-proxy-uri-resolver.h>
+#include <libsoup/soup-request.h>
+#include <libsoup/soup-request-data.h>
+#include <libsoup/soup-request-file.h>
+#include <libsoup/soup-request-http.h>
 #include <libsoup/soup-server.h>
 #include <libsoup/soup-session-async.h>
 #include <libsoup/soup-session-feature.h>

@@ -78,6 +78,7 @@ static gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
 
 typedef struct {
 	SoupSession *session;
+	gboolean disposed;
 
 	GTlsDatabase *tlsdb;
 	char *ssl_ca_file;
@@ -116,7 +117,7 @@ typedef struct {
 
 	char **http_aliases, **https_aliases;
 
-	gboolean disposed;
+	GHashTable *request_types;
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
@@ -232,6 +233,12 @@ soup_session_init (SoupSession *session)
 	priv->http_aliases = g_new (char *, 2);
 	priv->http_aliases[0] = (char *)g_intern_string ("*");
 	priv->http_aliases[1] = NULL;
+
+	priv->request_types = g_hash_table_new (soup_str_case_hash,
+						soup_str_case_equal);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_HTTP);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_FILE);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUEST_DATA);
 }
 
 static GObject *
@@ -321,6 +328,8 @@ soup_session_finalize (GObject *object)
 
 	g_free (priv->http_aliases);
 	g_free (priv->https_aliases);
+
+	g_hash_table_destroy (priv->request_types);
 
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
 }
@@ -2359,10 +2368,10 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * adds it to @session as with soup_session_add_feature(). You can use
  * this when you don't need to customize the new feature in any way.
  *
- * If @feature_type is not a #SoupSessionFeature type, this gives
- * each existing feature on @session the chance to accept @feature_type
- * as a "subfeature". This can be used to add new #SoupAuth types,
- * for instance.
+ * If @feature_type is not a #SoupSessionFeature type, this gives each
+ * existing feature on @session the chance to accept @feature_type as
+ * a "subfeature". This can be used to add new #SoupAuth or
+ * #SoupRequest types, for instance.
  *
  * You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
@@ -2372,7 +2381,11 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 void
 soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 {
+	SoupSessionPrivate *priv;
+
 	g_return_if_fail (SOUP_IS_SESSION (session));
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
 
 	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
 		SoupSessionFeature *feature;
@@ -2380,8 +2393,17 @@ soup_session_add_feature_by_type (SoupSession *session, GType feature_type)
 		feature = g_object_new (feature_type, NULL);
 		soup_session_add_feature (session, feature);
 		g_object_unref (feature);
+	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
+		SoupRequestClass *request_class;
+		int i;
+
+		request_class = g_type_class_ref (feature_type);
+		for (i = 0; request_class->schemes[i]; i++) {
+			g_hash_table_insert (priv->request_types,
+					     (char *)request_class->schemes[i],
+					     GSIZE_TO_POINTER (feature_type));
+		}
 	} else {
-		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 		GSList *f;
 
 		for (f = priv->features; f; f = f->next) {
@@ -2447,6 +2469,17 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 				goto restart;
 			}
 		}
+	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
+		SoupRequestClass *request_class;
+		int i;
+
+		request_class = g_type_class_peek (feature_type);
+		if (!request_class)
+			return;
+		for (i = 0; request_class->schemes[i]; i++) {
+			g_hash_table_remove (priv->request_types,
+					     request_class->schemes[i]);
+		}
 	} else {
 		for (f = priv->features; f; f = f->next) {
 			if (soup_session_feature_remove_feature (f->data, feature_type))
@@ -2454,6 +2487,49 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 		}
 		g_warning ("No feature manager for feature of type '%s'", g_type_name (feature_type));
 	}
+}
+
+/**
+ * soup_session_has_feature:
+ * @session: a #SoupSession
+ * @feature_type: the #GType of the class of features to check for
+ *
+ * Tests if @session has at a feature of type @feature_type (which can
+ * be the type of either a #SoupSessionFeature, or else a subtype of
+ * some class managed by another feature, such as #SoupAuth or
+ * #SoupRequest).
+ *
+ * Return value: %TRUE or %FALSE
+ *
+ * Since: 2.42
+ **/
+gboolean
+soup_session_has_feature (SoupSession *session,
+			  GType        feature_type)
+{
+	SoupSessionPrivate *priv;
+	GSList *f;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), FALSE);
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	if (g_type_is_a (feature_type, SOUP_TYPE_SESSION_FEATURE)) {
+		for (f = priv->features; f; f = f->next) {
+			if (G_TYPE_CHECK_INSTANCE_TYPE (f->data, feature_type))
+				return TRUE;
+		}
+	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
+		return g_hash_table_lookup (priv->request_types,
+					    GSIZE_TO_POINTER (feature_type)) != NULL;
+	} else {
+		for (f = priv->features; f; f = f->next) {
+			if (soup_session_feature_has_feature (f->data, feature_type))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 /**
@@ -3654,4 +3730,103 @@ soup_session_send_request (SoupSession   *session,
 
 	soup_message_queue_item_unref (item);
 	return stream;
+}
+
+/**
+ * soup_session_request:
+ * @session: a #SoupSession
+ * @uri_string: a URI, in string form
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri_string.
+ *
+ * Return value: (transfer full): a new #SoupRequest, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
+SoupRequest *
+soup_session_request (SoupSession *session, const char *uri_string,
+		      GError **error)
+{
+	SoupURI *uri;
+	SoupRequest *req;
+
+	uri = soup_uri_new (uri_string);
+	if (!uri) {
+		g_set_error (error, SOUP_REQUEST_ERROR,
+			     SOUP_REQUEST_ERROR_BAD_URI,
+			     _("Could not parse URI '%s'"), uri_string);
+		return NULL;
+	}
+
+	req = soup_session_request_uri (session, uri, error);
+	soup_uri_free (uri);
+	return req;
+}
+
+/**
+ * soup_session_request_uri:
+ * @session: a #SoupSession
+ * @uri: a #SoupURI representing the URI to retrieve
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri.
+ *
+ * Return value: (transfer full): a new #SoupRequest, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
+SoupRequest *
+soup_session_request_uri (SoupSession *session, SoupURI *uri,
+			  GError **error)
+{
+	SoupSessionPrivate *priv;
+	GType request_type;
+
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	request_type = (GType)GPOINTER_TO_SIZE (g_hash_table_lookup (priv->request_types, uri->scheme));
+	if (!request_type) {
+		g_set_error (error, SOUP_REQUEST_ERROR,
+			     SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME,
+			     _("Unsupported URI scheme '%s'"), uri->scheme);
+		return NULL;
+	}
+
+	return g_initable_new (request_type, NULL, error,
+			       "uri", uri,
+			       "session", session,
+			       NULL);
+}
+
+/**
+ * SOUP_REQUEST_ERROR:
+ *
+ * A #GError domain for #SoupRequest-related errors. Used with
+ * #SoupRequestError.
+ *
+ * Since: 2.42
+ */
+/**
+ * SoupRequestError:
+ * @SOUP_REQUEST_ERROR_BAD_URI: the URI could not be parsed
+ * @SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME: the URI scheme is not
+ *   supported by this #SoupSession
+ *
+ * A #SoupRequest error.
+ *
+ * Since: 2.42
+ */
+
+GQuark
+soup_request_error_quark (void)
+{
+	static GQuark error;
+	if (!error)
+		error = g_quark_from_static_string ("soup_request_error_quark");
+	return error;
 }

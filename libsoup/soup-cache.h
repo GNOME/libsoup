@@ -23,8 +23,6 @@
 #ifndef SOUP_CACHE_H
 #define SOUP_CACHE_H 1
 
-#ifdef LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include <libsoup/soup-types.h>
 #include <gio/gio.h>
 
@@ -99,8 +97,6 @@ SOUP_AVAILABLE_IN_2_34
 guint      soup_cache_get_max_size (SoupCache     *cache);
 
 G_END_DECLS
-
-#endif /* LIBSOUP_USE_UNSTABLE_REQUEST_API */
 
 #endif /* SOUP_CACHE_H */
 

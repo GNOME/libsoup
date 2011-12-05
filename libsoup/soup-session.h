@@ -134,6 +134,9 @@ void                soup_session_remove_feature         (SoupSession        *ses
 SOUP_AVAILABLE_IN_2_24
 void                soup_session_remove_feature_by_type (SoupSession        *session,
 							 GType               feature_type);
+SOUP_AVAILABLE_IN_2_42
+gboolean            soup_session_has_feature            (SoupSession        *session,
+							 GType               feature_type);
 SOUP_AVAILABLE_IN_2_26
 GSList             *soup_session_get_features           (SoupSession        *session,
 							 GType               feature_type);
@@ -144,6 +147,24 @@ SOUP_AVAILABLE_IN_2_28
 SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *session,
 							 GType               feature_type,
 							 SoupMessage        *msg);
+
+SOUP_AVAILABLE_IN_2_42
+SoupRequest *soup_session_request     (SoupSession  *session,
+				       const char   *uri_string,
+				       GError      **error);
+SOUP_AVAILABLE_IN_2_42
+SoupRequest *soup_session_request_uri (SoupSession  *session,
+				       SoupURI      *uri,
+				       GError      **error);
+
+SOUP_AVAILABLE_IN_2_42
+GQuark soup_request_error_quark (void);
+#define SOUP_REQUEST_ERROR soup_request_error_quark ()
+
+typedef enum {
+	SOUP_REQUEST_ERROR_BAD_URI,
+	SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME
+} SoupRequestError;
 
 G_END_DECLS
 

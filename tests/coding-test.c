@@ -397,7 +397,6 @@ static void
 do_coding_req_test (void)
 {
 	SoupSession *session;
-	SoupRequester *requester;
 	SoupRequest *req;
 	SoupMessage *msg;
 	SoupURI *uri;
@@ -407,21 +406,19 @@ do_coding_req_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
 	uri = soup_uri_new_with_base (base_uri, "/mbox");
 
 	/* Plain text data, no claim */
 	debug_printf (1, "  GET /mbox, plain\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	plain = do_single_coding_req_test (req, NULL, "text/plain", EXPECT_NOT_DECODED);
 	g_object_unref (req);
 
 	/* Plain text data, claim gzip */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: gzip\n");
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	cmp = do_single_coding_req_test (req, "gzip", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed");
 	g_byte_array_free (cmp, TRUE);
@@ -429,7 +426,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim gzip w/ junk */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: gzip, plus trailing junk\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "trailing-junk");
@@ -441,7 +438,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim gzip with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: gzip, with server error\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode");
@@ -458,7 +455,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim deflate */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib");
@@ -470,7 +467,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim deflate w/ junk */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate, plus trailing junk\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
@@ -482,7 +479,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim deflate with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate, with server error\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
@@ -494,7 +491,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim deflate (no zlib headers)*/
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate (raw data)\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-raw");
@@ -506,7 +503,7 @@ do_coding_req_test (void)
 
 	/* Plain text data, claim deflate with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate (raw data), with server error\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
@@ -528,7 +525,6 @@ do_coding_empty_test (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
-	SoupRequester *requester;
 	SoupRequest *req;
 	GByteArray *body;
 
@@ -537,9 +533,7 @@ do_coding_empty_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
 	uri = soup_uri_new_with_base (base_uri, "/mbox");
 
 	debug_printf (1, "  SoupMessage\n");
@@ -551,7 +545,7 @@ do_coding_empty_test (void)
 	g_object_unref (msg);
 
 	debug_printf (1, "  SoupRequest\n");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "empty");

@@ -25,10 +25,6 @@
 #include <config.h>
 #endif
 
-#include <glib/gi18n-lib.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-request-file.h"
 #include "soup.h"
 #include "soup-directory-input-stream.h"
@@ -281,7 +277,7 @@ soup_request_file_class_init (SoupRequestFileClass *request_file_class)
  *
  * Return value: (transfer full): a #GFile corresponding to @file
  *
- * Since: 2.34
+ * Since: 2.40
  */
 GFile *
 soup_request_file_get_file (SoupRequestFile *file)

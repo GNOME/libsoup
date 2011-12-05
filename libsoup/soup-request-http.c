@@ -27,8 +27,6 @@
 
 #include <glib/gi18n-lib.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-
 #include "soup-request-http.h"
 #include "soup.h"
 #include "soup-cache-private.h"
@@ -91,9 +89,11 @@ soup_request_http_send (SoupRequest          *request,
 			GError              **error)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+	SoupSession *session = soup_request_get_session (request);
 
-	return soup_session_send_request (soup_request_get_session (request),
-					  http->priv->msg,
+	g_return_val_if_fail (!SOUP_IS_SESSION_ASYNC (session), NULL);
+
+	return soup_session_send_request (session, http->priv->msg,
 					  cancellable, error);
 }
 
@@ -187,17 +187,18 @@ soup_request_http_send_async (SoupRequest          *request,
 			      gpointer              user_data)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+	SoupSession *session = soup_request_get_session (request);
 	GTask *task;
 	SendAsyncData *sadata;
 	GInputStream *stream;
-	SoupSession *session;
 	SoupCache *cache;
+
+	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
 
 	task = g_task_new (request, cancellable, callback, user_data);
 	sadata = g_slice_new0 (SendAsyncData);
 	g_task_set_task_data (task, sadata, (GDestroyNotify)free_send_async_data);
 
-	session = soup_request_get_session (request);
 	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
 
 	if (cache) {
@@ -320,7 +321,7 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
  *
  * Returns: (transfer full): a new reference to the #SoupMessage
  *
- * Since: 2.34
+ * Since: 2.40
  */
 SoupMessage *
 soup_request_http_get_message (SoupRequestHTTP *http)

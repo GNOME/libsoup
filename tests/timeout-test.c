@@ -112,7 +112,7 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 }
 
 static void
-do_request_to_session (SoupRequester *requester, const char *uri,
+do_request_to_session (SoupSession *session, const char *uri,
 		       const char *comment, gboolean expect_timeout)
 {
 	SoupRequest *req;
@@ -122,7 +122,7 @@ do_request_to_session (SoupRequester *requester, const char *uri,
 	gboolean finished = FALSE;
 
 	debug_printf (1, "    req %s\n", comment);
-	req = soup_requester_request (requester, uri, NULL);
+	req = soup_session_request (session, uri, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 
 	g_signal_connect (msg, "finished",
@@ -179,46 +179,30 @@ do_req_tests_for_session (SoupSession *timeout_session,
 			  SoupSession *plain_session,
 			  char *fast_uri, char *slow_uri)
 {
-	SoupRequester *timeout_requester, *idle_requester, *plain_requester;
 	SoupSocket *ret, *idle_first, *idle_second;
 	SoupSocket *plain_first, *plain_second;
 
 	debug_printf (1, "\n");
 
 	if (idle_session) {
-		idle_requester = soup_requester_new ();
-		soup_session_add_feature (idle_session,
-					  SOUP_SESSION_FEATURE (idle_requester));
-		g_object_unref (idle_requester);
-
 		g_signal_connect (idle_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
-		do_request_to_session (idle_requester, fast_uri, "fast to idle", FALSE);
+		do_request_to_session (idle_session, fast_uri, "fast to idle", FALSE);
 		idle_first = ret;
 	}
 
 	if (plain_session) {
-		plain_requester = soup_requester_new ();
-		soup_session_add_feature (plain_session,
-					  SOUP_SESSION_FEATURE (plain_requester));
-		g_object_unref (plain_requester);
-
 		g_signal_connect (plain_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
-		do_request_to_session (plain_requester, fast_uri, "fast to plain", FALSE);
+		do_request_to_session (plain_session, fast_uri, "fast to plain", FALSE);
 		plain_first = ret;
 	}
 
-	timeout_requester = soup_requester_new ();
-	soup_session_add_feature (timeout_session,
-				  SOUP_SESSION_FEATURE (timeout_requester));
-	g_object_unref (timeout_requester);
-
-	do_request_to_session (timeout_requester, fast_uri, "fast to timeout", FALSE);
-	do_request_to_session (timeout_requester, slow_uri, "slow to timeout", TRUE);
+	do_request_to_session (timeout_session, fast_uri, "fast to timeout", FALSE);
+	do_request_to_session (timeout_session, slow_uri, "slow to timeout", TRUE);
 
 	if (idle_session) {
-		do_request_to_session (idle_requester, fast_uri, "fast to idle", FALSE);
+		do_request_to_session (idle_session, fast_uri, "fast to idle", FALSE);
 		idle_second = ret;
 		g_signal_handlers_disconnect_by_func (idle_session,
 						      (gpointer)request_started_cb,
@@ -231,7 +215,7 @@ do_req_tests_for_session (SoupSession *timeout_session,
 	}
 
 	if (plain_session) {
-		do_request_to_session (plain_requester, fast_uri, "fast to plain", FALSE);
+		do_request_to_session (plain_session, fast_uri, "fast to plain", FALSE);
 		plain_second = ret;
 		g_signal_handlers_disconnect_by_func (plain_session,
 						      (gpointer)request_started_cb,

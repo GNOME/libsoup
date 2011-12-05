@@ -24,7 +24,6 @@
 #ifdef LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include <libsoup/soup-types.h>
-#include <libsoup/soup-request.h>
 
 G_BEGIN_DECLS
 
@@ -49,22 +48,27 @@ typedef struct {
 } SoupRequesterClass;
 
 SOUP_AVAILABLE_IN_2_34
+SOUP_DEPRECATED_IN_2_42
 GType          soup_requester_get_type        (void);
 
 SOUP_AVAILABLE_IN_2_34
+SOUP_DEPRECATED_IN_2_42
 SoupRequester *soup_requester_new             (void);
 
 SOUP_AVAILABLE_IN_2_34
+SOUP_DEPRECATED_IN_2_42_FOR(soup_session_request)
 SoupRequest   *soup_requester_request         (SoupRequester  *requester,
 					       const char     *uri_string,
 					       GError        **error);
 
 SOUP_AVAILABLE_IN_2_34
+SOUP_DEPRECATED_IN_2_42_FOR(soup_session_request_uri)
 SoupRequest   *soup_requester_request_uri     (SoupRequester  *requester,
 					       SoupURI        *uri,
 					       GError        **error);
 
 SOUP_AVAILABLE_IN_2_34
+SOUP_DEPRECATED_IN_2_42_FOR(SOUP_REQUEST_ERROR)
 GQuark soup_requester_error_quark (void);
 #define SOUP_REQUESTER_ERROR soup_requester_error_quark ()
 

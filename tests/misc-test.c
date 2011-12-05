@@ -318,7 +318,6 @@ do_callback_unref_req_test (void)
 	SoupServer *bad_server;
 	SoupAddress *addr;
 	SoupSession *session;
-	SoupRequester *requester;
 	SoupRequest *one, *two;
 	GMainLoop *loop;
 	char *bad_uri;
@@ -337,18 +336,15 @@ do_callback_unref_req_test (void)
 	g_object_unref (bad_server);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
 
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-
 	loop = g_main_loop_new (NULL, TRUE);
 
-	one = soup_requester_request (requester, bad_uri, NULL);
+	one = soup_session_request (session, bad_uri, NULL);
 	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-	two = soup_requester_request (requester, bad_uri, NULL);
+	two = soup_session_request (session, bad_uri, NULL);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
 	g_free (bad_uri);
 
@@ -708,7 +704,6 @@ static void
 do_early_abort_req_test (void)
 {
 	SoupSession *session;
-	SoupRequester *requester;
 	SoupRequest *req;
 	GMainContext *context;
 	GMainLoop *loop;
@@ -717,11 +712,9 @@ do_early_abort_req_test (void)
 	debug_printf (1, "\nAbort with pending connection (request api)\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	req = soup_requester_request_uri (requester, base_uri, NULL);
+	req = soup_session_request_uri (session, base_uri, NULL);
 
 	context = g_main_context_default ();
 	loop = g_main_loop_new (context, TRUE);
@@ -735,11 +728,9 @@ do_early_abort_req_test (void)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	req = soup_requester_request_uri (requester, base_uri, NULL);
+	req = soup_session_request_uri (session, base_uri, NULL);
 
 	g_signal_connect (session, "connection-created",
 			  G_CALLBACK (ea_connection_created), NULL);
@@ -753,11 +744,9 @@ do_early_abort_req_test (void)
 	soup_test_session_abort_unref (session);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	req = soup_requester_request_uri (requester, base_uri, NULL);
+	req = soup_session_request_uri (session, base_uri, NULL);
 
 	cancellable = g_cancellable_new ();
 	g_signal_connect (session, "request-started",
@@ -933,7 +922,7 @@ cancel_request_thread (gpointer cancellable)
 }
 
 static void
-do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
+do_cancel_while_reading_req_test_for_session (SoupSession *session)
 {
 	SoupRequest *req;
 	SoupURI *uri;
@@ -941,7 +930,7 @@ do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
 	GError *error = NULL;
 
 	uri = soup_uri_new_with_base (base_uri, "/slow");
-	req = soup_requester_request_uri (requester, uri, NULL);
+	req = soup_session_request_uri (session, uri, NULL);
 	soup_uri_free (uri);
 
 	cancellable = g_cancellable_new ();
@@ -975,25 +964,20 @@ static void
 do_cancel_while_reading_req_test (void)
 {
 	SoupSession *session;
-	SoupRequester *requester;
 
 	debug_printf (1, "\nCancelling message while reading response (request api)\n");
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	do_cancel_while_reading_req_test_for_session (requester);
+	do_cancel_while_reading_req_test_for_session (session);
 	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "  Sync session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
-					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
 					 NULL);
-	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
-	do_cancel_while_reading_req_test_for_session (requester);
+	do_cancel_while_reading_req_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 

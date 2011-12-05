@@ -316,6 +316,8 @@ soup_requester_get_type
 soup_requester_new
 soup_requester_request
 soup_requester_request_uri
+soup_request_error_get_type
+soup_request_error_quark
 soup_request_file_get_file
 soup_request_file_get_type
 soup_request_get_content_length
@@ -362,6 +364,7 @@ soup_session_get_feature
 soup_session_get_feature_for_message
 soup_session_get_features
 soup_session_get_type
+soup_session_has_feature
 soup_session_pause_message
 soup_session_prefetch_dns
 soup_session_prepare_for_uri
@@ -369,6 +372,8 @@ soup_session_queue_message
 soup_session_redirect_message
 soup_session_remove_feature
 soup_session_remove_feature_by_type
+soup_session_request
+soup_session_request_uri
 soup_session_requeue_message
 soup_session_send_message
 soup_session_sync_get_type

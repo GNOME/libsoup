@@ -25,9 +25,7 @@
 #include <config.h>
 #endif
 
-#include <glib/gi18n-lib.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
+#include <string.h>
 
 #include "soup-request-data.h"
 #include "soup.h"
