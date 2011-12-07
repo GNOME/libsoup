@@ -790,6 +790,14 @@ soup_socket_get_fd (SoupSocket *sock)
 	return g_socket_get_fd (SOUP_SOCKET_GET_PRIVATE (sock)->gsock);
 }
 
+GSocket *
+soup_socket_get_gsocket (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->gsock;
+}
+
 static GSource *
 soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 			  GPollableSourceFunc callback, gpointer user_data,

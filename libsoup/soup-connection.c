@@ -796,17 +796,10 @@ soup_connection_get_state (SoupConnection *conn)
 			      SOUP_CONNECTION_DISCONNECTED);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-#ifdef G_OS_UNIX
-	if (priv->state == SOUP_CONNECTION_IDLE) {
-		GPollFD pfd;
+	if (priv->state == SOUP_CONNECTION_IDLE &&
+	    g_socket_condition_check (soup_socket_get_gsocket (priv->socket), G_IO_IN))
+		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
 
-		pfd.fd = soup_socket_get_fd (priv->socket);
-		pfd.events = G_IO_IN;
-		pfd.revents = 0;
-		if (g_poll (&pfd, 1, 0) == 1)
-			soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
-	}
-#endif
 	if (priv->state == SOUP_CONNECTION_IDLE &&
 	    priv->unused_timeout && priv->unused_timeout < time (NULL))
 		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);

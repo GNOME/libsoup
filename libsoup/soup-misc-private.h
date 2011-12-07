@@ -18,4 +18,7 @@ void  soup_socket_handshake_async (SoupSocket         *sock,
 				   SoupSocketCallback  callback,
 				   gpointer            user_data);
 
+GSocket *soup_socket_get_gsocket  (SoupSocket         *sock);
+
+
 #endif /* SOUP_URI_PRIVATE_H */
