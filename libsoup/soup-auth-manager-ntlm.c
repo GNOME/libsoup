@@ -449,6 +449,7 @@ ntlm_authorize_post (SoupMessage *msg, gpointer ntlm)
 	SoupNTLMConnection *conn;
 	const char *username = NULL, *password = NULL;
 	char *slash, *domain = NULL;
+	SoupMessageFlags flags;
 
 	conn = get_connection_for_msg (priv, msg);
 	if (!conn || !conn->auth)
@@ -496,6 +497,9 @@ ssofailure:
 	conn->response_header = soup_ntlm_response (conn->nonce,
 						    username, password,
 						    NULL, domain);
+
+	flags = soup_message_get_flags (msg);
+	soup_message_set_flags (msg, flags & ~SOUP_MESSAGE_NEW_CONNECTION);
 	soup_session_requeue_message (priv->session, msg);
 
 done:

@@ -118,7 +118,8 @@ typedef enum {
 	SOUP_MESSAGE_OVERWRITE_CHUNKS     = (1 << 3),
 #endif
 	SOUP_MESSAGE_CONTENT_DECODED      = (1 << 4),
-	SOUP_MESSAGE_CERTIFICATE_TRUSTED  = (1 << 5)
+	SOUP_MESSAGE_CERTIFICATE_TRUSTED  = (1 << 5),
+	SOUP_MESSAGE_NEW_CONNECTION       = (1 << 6)
 } SoupMessageFlags;
 
 void             soup_message_set_flags           (SoupMessage           *msg,

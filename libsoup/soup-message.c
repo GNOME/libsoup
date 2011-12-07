@@ -1430,6 +1430,10 @@ soup_message_cleanup_response (SoupMessage *req)
  * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if set after an https response
  *   has been received, indicates that the server's SSL certificate is
  *   trusted according to the session's CA.
+ * @SOUP_MESSAGE_NEW_CONNECTION: The message should be sent on a
+ *   newly-created connection, not reusing an existing persistent
+ *   connection. Note that messages with non-idempotent
+ *   #SoupMessage:method<!-- -->s behave this way by default.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.

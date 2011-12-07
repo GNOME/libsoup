@@ -1509,10 +1509,21 @@ auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 		session, msg, auth, retrying);
 }
 
+/* At some point it might be possible to mark additional methods
+ * safe or idempotent...
+ */
 #define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
 				     method == SOUP_METHOD_HEAD || \
 				     method == SOUP_METHOD_OPTIONS || \
 				     method == SOUP_METHOD_PROPFIND)
+
+#define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
+					   method == SOUP_METHOD_HEAD || \
+					   method == SOUP_METHOD_OPTIONS || \
+					   method == SOUP_METHOD_PROPFIND || \
+					   method == SOUP_METHOD_PUT || \
+					   method == SOUP_METHOD_DELETE)
+
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
 	((msg)->status_code == SOUP_STATUS_SEE_OTHER || \
@@ -1850,17 +1861,22 @@ soup_session_get_connection (SoupSession *session,
 	GSList *conns;
 	int num_pending = 0;
 	SoupURI *uri;
+	gboolean need_new_connection;
 
 	if (item->conn) {
 		g_return_val_if_fail (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
 		return TRUE;
 	}
 
+	need_new_connection =
+		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
+		!SOUP_METHOD_IS_IDEMPOTENT (item->msg->method);
+
 	g_mutex_lock (&priv->host_lock);
 
 	host = get_host_for_message (session, item->msg);
 	for (conns = host->connections; conns; conns = conns->next) {
-		if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
+		if (!need_new_connection && soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
 			g_mutex_unlock (&priv->host_lock);
 			item->conn = g_object_ref (conns->data);
@@ -1879,6 +1895,8 @@ soup_session_get_connection (SoupSession *session,
 	}
 
 	if (host->num_conns >= priv->max_conns_per_host) {
+		if (need_new_connection)
+			*try_pruning = TRUE;
 		g_mutex_unlock (&priv->host_lock);
 		return FALSE;
 	}

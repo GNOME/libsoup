@@ -136,7 +136,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		return;
 	}
 
-	if (msg->method != SOUP_METHOD_GET) {
+	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}
@@ -748,8 +748,8 @@ do_accept_language_test (void)
 }
 
 static void
-timeout_test_request_started (SoupSession *session, SoupMessage *msg,
-			      SoupSocket *socket, gpointer user_data)
+request_started_socket_collector (SoupSession *session, SoupMessage *msg,
+				  SoupSocket *socket, gpointer user_data)
 {
 	SoupSocket **sockets = user_data;
 	int i;
@@ -782,7 +782,7 @@ do_timeout_test_for_session (SoupSession *session)
 	int i;
 
 	g_signal_connect (session, "request-started",
-			  G_CALLBACK (timeout_test_request_started),
+			  G_CALLBACK (request_started_socket_collector),
 			  &sockets);
 
 	debug_printf (1, "    First message\n");
@@ -1103,6 +1103,72 @@ do_aliases_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_non_persistent_test_for_session (SoupSession *session)
+{
+	SoupMessage *msg;
+	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	int i;
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (request_started_socket_collector),
+			  &sockets);
+
+	debug_printf (2, "    GET\n");
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (sockets[1]) {
+		debug_printf (1, "      Message was retried??\n");
+		errors++;
+		sockets[1] = sockets[2] = sockets[3] = NULL;
+	}
+	g_object_unref (msg);
+
+	debug_printf (2, "    POST\n");
+	msg = soup_message_new_from_uri ("POST", base_uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (sockets[1] == sockets[0]) {
+		debug_printf (1, "      Message was sent on existing connection!\n");
+		errors++;
+	}
+	if (sockets[2]) {
+		debug_printf (1, "      Too many connections used...\n");
+		errors++;
+	}
+	g_object_unref (msg);
+
+	for (i = 0; sockets[i]; i++)
+		g_object_unref (sockets[i]);
+}
+
+static void
+do_non_persistent_connection_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nNon-idempotent methods are always sent on new connections\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_non_persistent_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_non_persistent_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1139,6 +1205,7 @@ main (int argc, char **argv)
 	do_max_conns_test ();
 	do_cancel_while_reading_test ();
 	do_aliases_test ();
+	do_non_persistent_connection_test ();
 
 	soup_uri_free (base_uri);
 	soup_uri_free (ssl_base_uri);
