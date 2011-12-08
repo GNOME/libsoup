@@ -51,6 +51,7 @@ typedef struct {
 G_DEFINE_TYPE (SoupConnection, soup_connection, G_TYPE_OBJECT)
 
 enum {
+	EVENT,
 	DISCONNECTED,
 	LAST_SIGNAL
 };
@@ -150,6 +151,16 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 	object_class->get_property = get_property;
 
 	/* signals */
+	signals[EVENT] =
+		g_signal_new ("event",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0,
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_SOCKET_CLIENT_EVENT,
+			      G_TYPE_IO_STREAM);
 	signals[DISCONNECTED] =
 		g_signal_new ("disconnected",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -433,8 +444,11 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 	g_signal_connect (item->msg, "restarted",
 			  G_CALLBACK (current_item_restarted), conn);
 
-	if (priv->state == SOUP_CONNECTION_IDLE ||
-	    item->msg->method != SOUP_METHOD_CONNECT)
+	if (item->msg->method == SOUP_METHOD_CONNECT) {
+		g_signal_emit (conn, signals[EVENT], 0,
+			       G_SOCKET_CLIENT_PROXY_NEGOTIATING,
+			       soup_socket_get_iostream (priv->socket));
+	} else if (priv->state == SOUP_CONNECTION_IDLE)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 
 	g_object_thaw_notify (G_OBJECT (conn));
@@ -461,6 +475,10 @@ clear_current_item (SoupConnection *conn)
 
 		if (item->msg->method == SOUP_METHOD_CONNECT &&
 		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
+			g_signal_emit (conn, signals[EVENT], 0,
+				       G_SOCKET_CLIENT_PROXY_NEGOTIATED,
+				       soup_socket_get_iostream (priv->socket));
+
 			/* We're now effectively no longer proxying */
 			soup_uri_free (priv->proxy_uri);
 			priv->proxy_uri = NULL;
@@ -474,6 +492,33 @@ clear_current_item (SoupConnection *conn)
 }
 
 static void
+soup_connection_event (SoupConnection      *conn,
+		       GSocketClientEvent   event,
+		       GIOStream           *connection)
+{
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	if (!connection && priv->socket)
+		connection = soup_socket_get_iostream (priv->socket);
+
+	g_signal_emit (conn, signals[EVENT], 0,
+		       event, connection);
+}
+
+static void
+proxy_socket_event (SoupSocket          *socket,
+		    GSocketClientEvent   event,
+		    GIOStream           *connection,
+		    gpointer             user_data)
+{
+	SoupConnection *conn = user_data;
+
+	/* We handle COMPLETE ourselves */
+	if (event != G_SOCKET_CLIENT_COMPLETE)
+		soup_connection_event (conn, event, connection);
+}
+
+static void
 socket_disconnected (SoupSocket *sock, gpointer conn)
 {
 	soup_connection_disconnect (conn);
@@ -484,6 +529,8 @@ typedef struct {
 	SoupConnectionCallback callback;
 	gpointer callback_data;
 	GCancellable *cancellable;
+	guint event_id;
+	gboolean tls_handshake;
 } SoupConnectionAsyncConnectData;
 
 static void
@@ -492,9 +539,22 @@ socket_connect_finished (SoupSocket *socket, guint status, gpointer user_data)
 	SoupConnectionAsyncConnectData *data = user_data;
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
+	g_signal_handler_disconnect (socket, data->event_id);
+
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_connect (priv->socket, "disconnected",
 				  G_CALLBACK (socket_disconnected), data->conn);
+
+		if (data->tls_handshake) {
+			soup_connection_event (data->conn,
+					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
+					       NULL);
+		}
+		if (!priv->ssl || !priv->tunnel_addr) {
+			soup_connection_event (data->conn,
+					       G_SOCKET_CLIENT_COMPLETE,
+					       NULL);
+		}
 
 		soup_connection_set_state (data->conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
@@ -519,11 +579,13 @@ static void
 socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 {
 	SoupConnectionAsyncConnectData *data = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status) &&
-	    priv->ssl && !priv->tunnel_addr) {
+	    data->tls_handshake) {
 		if (soup_socket_start_ssl (sock, data->cancellable)) {
+			soup_connection_event (data->conn,
+					       G_SOCKET_CLIENT_TLS_HANDSHAKING,
+					       NULL);
 			soup_socket_handshake_async (sock, data->cancellable,
 						     socket_connect_finished, data);
 			return;
@@ -555,6 +617,7 @@ soup_connection_connect_async (SoupConnection *conn,
 	data->callback = callback;
 	data->callback_data = user_data;
 	data->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
+	data->tls_handshake = (priv->ssl && !priv->tunnel_addr);
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, priv->remote_addr,
@@ -566,6 +629,9 @@ soup_connection_connect_async (SoupConnection *conn,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 "clean-dispose", TRUE,
 				 NULL);
+	data->event_id = g_signal_connect (priv->socket, "event",
+					   G_CALLBACK (proxy_socket_event),
+					   conn);
 	soup_socket_connect_async (priv->socket, cancellable,
 				   socket_connect_result, data);
 }
@@ -574,7 +640,7 @@ guint
 soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 {
 	SoupConnectionPrivate *priv;
-	guint status;
+	guint status, event_id;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -592,6 +658,8 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 				 "clean-dispose", TRUE,
 				 NULL);
 
+	event_id = g_signal_connect (priv->socket, "event",
+				     G_CALLBACK (proxy_socket_event), conn);
 	status = soup_socket_connect_sync (priv->socket, cancellable);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
@@ -601,8 +669,15 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		if (!soup_socket_start_ssl (priv->socket, cancellable))
 			status = SOUP_STATUS_SSL_FAILED;
 		else {
+			soup_connection_event (conn,
+					       G_SOCKET_CLIENT_TLS_HANDSHAKING,
+					       NULL);
 			status = soup_socket_handshake_sync (priv->socket, cancellable);
-			if (status == SOUP_STATUS_TLS_FAILED) {
+			if (status == SOUP_STATUS_OK) {
+				soup_connection_event (conn,
+						       G_SOCKET_CLIENT_TLS_HANDSHAKED,
+						       NULL);
+			} else if (status == SOUP_STATUS_TLS_FAILED) {
 				priv->ssl_fallback = TRUE;
 				status = SOUP_STATUS_TRY_AGAIN;
 			}
@@ -613,6 +688,11 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		g_signal_connect (priv->socket, "disconnected",
 				  G_CALLBACK (socket_disconnected), conn);
 
+		if (!priv->ssl || !priv->tunnel_addr) {
+			soup_connection_event (conn,
+					       G_SOCKET_CLIENT_COMPLETE,
+					       NULL);
+		}
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
@@ -624,6 +704,9 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 			priv->socket = NULL;
 		}
 	}
+
+	if (priv->socket)
+		g_signal_handler_disconnect (priv->socket, event_id);
 
 	if (priv->proxy_uri != NULL)
 		status = soup_status_proxify (status);
@@ -659,8 +742,11 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 					  cancellable))
 		return SOUP_STATUS_SSL_FAILED;
 
+	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	status = soup_socket_handshake_sync (priv->socket, cancellable);
-	if (status == SOUP_STATUS_TLS_FAILED) {
+	if (status == SOUP_STATUS_OK)
+		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
+	else if (status == SOUP_STATUS_TLS_FAILED) {
 		priv->ssl_fallback = TRUE;
 		status = SOUP_STATUS_TRY_AGAIN;
 	}
@@ -674,7 +760,9 @@ start_ssl_completed (SoupSocket *socket, guint status, gpointer user_data)
 	SoupConnectionAsyncConnectData *data = user_data;
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
-	if (status == SOUP_STATUS_TLS_FAILED) {
+	if (status == SOUP_STATUS_OK)
+		soup_connection_event (data->conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
+	else if (status == SOUP_STATUS_TLS_FAILED) {
 		priv->ssl_fallback = TRUE;
 		status = SOUP_STATUS_TRY_AGAIN;
 	}
@@ -727,6 +815,7 @@ soup_connection_start_ssl_async (SoupConnection   *conn,
 		return;
 	}
 
+	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	soup_socket_handshake_async (priv->socket, cancellable,
 				     start_ssl_completed, data);
 }

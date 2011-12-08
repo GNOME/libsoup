@@ -107,6 +107,8 @@ enum {
 	RESTARTED,
 	FINISHED,
 
+	NETWORK_EVENT,
+
 	LAST_SIGNAL
 };
 
@@ -492,6 +494,38 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      NULL, NULL,
 			      soup_marshal_NONE__NONE,
 			      G_TYPE_NONE, 0);
+
+	/**
+	 * SoupMessage::network-event:
+	 * @msg: the message
+	 * @event: the network event
+	 * @connection: the current state of the network connection
+
+	 * Emitted to indicate that some network-related event
+	 * related to @msg has occurred. This essentially proxies the
+	 * #GSocketClient::event signal, but only for events that
+	 * occur while @msg "owns" the connection; if @msg is sent on
+	 * an existing persistent connection, then this signal will
+	 * not be emitted. (If you want to force the message to be
+	 * sent on a new connection, set the
+	 * %SOUP_MESSAGE_NEW_CONNECTION flag on it.)
+	 *
+	 * See #GSocketClient::event for more information on what
+	 * the different values of @event correspond to, and what
+	 * @connection will be in each case.
+	 *
+	 * Since: 2.38
+	 **/
+	signals[NETWORK_EVENT] =
+		g_signal_new ("network_event",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      0,
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_SOCKET_CLIENT_EVENT,
+			      G_TYPE_IO_STREAM);
 
 	/* properties */
 	/**
@@ -1123,6 +1157,15 @@ void
 soup_message_finished (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[FINISHED], 0);
+}
+
+void
+soup_message_network_event (SoupMessage         *msg,
+			    GSocketClientEvent   event,
+			    GIOStream           *connection)
+{
+	g_signal_emit (msg, signals[NETWORK_EVENT], 0,
+		       event, connection);
 }
 
 static void

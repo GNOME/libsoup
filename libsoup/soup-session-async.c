@@ -299,8 +299,7 @@ tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 			soup_connection_disconnect (item->conn);
 		if (msg->status_code == SOUP_STATUS_TRY_AGAIN) {
 			item->related->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-			g_object_unref (item->related->conn);
-			item->related->conn = NULL;
+			soup_message_queue_item_set_connection (item->related, NULL);
 		} else
 			soup_message_set_status (item->related->msg, msg->status_code);
 
@@ -333,8 +332,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		soup_connection_disconnect (conn);
 
 		if (status == SOUP_STATUS_TRY_AGAIN) {
-			g_object_unref (item->conn);
-			item->conn = NULL;
+			soup_message_queue_item_set_connection (item, NULL);
 			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
 		} else {
 			soup_session_set_item_status (session, item, status);

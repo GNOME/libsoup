@@ -72,8 +72,7 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 	     SOUP_STATUS_IS_REDIRECTION (msg->status_code))) {
 		if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		g_object_unref (item->conn);
-		item->conn = NULL;
+		soup_message_queue_item_set_connection (item, NULL);
 	}
 
 	soup_message_cleanup_response (msg);
@@ -185,9 +184,37 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 		g_object_unref (item->proxy_addr);
 	if (item->proxy_uri)
 		soup_uri_free (item->proxy_uri);
-	if (item->conn)
-		g_object_unref (item->conn);
+	soup_message_queue_item_set_connection (item, NULL);
 	g_slice_free (SoupMessageQueueItem, item);
+}
+
+static void
+proxy_connection_event (SoupConnection      *conn,
+			GSocketClientEvent   event,
+			GIOStream           *connection,
+			gpointer             user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	soup_message_network_event (item->msg, event, connection);
+}
+
+void
+soup_message_queue_item_set_connection (SoupMessageQueueItem *item,
+					SoupConnection       *conn)
+{
+	if (item->conn) {
+		g_signal_handlers_disconnect_by_func (item->conn, proxy_connection_event, item);
+		g_object_unref (item->conn);
+	}
+
+	item->conn = conn;
+
+	if (item->conn) {
+		g_object_ref (item->conn);
+		g_signal_connect (item->conn, "event",
+				  G_CALLBACK (proxy_connection_event), item);
+	}
 }
 
 /**

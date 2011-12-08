@@ -74,11 +74,12 @@ SoupMessageQueueItem *soup_message_queue_next       (SoupMessageQueue     *queue
 void                  soup_message_queue_remove     (SoupMessageQueue     *queue,
 						     SoupMessageQueueItem *item);
 
-void                  soup_message_queue_item_ref   (SoupMessageQueueItem *item);
-void                  soup_message_queue_item_unref (SoupMessageQueueItem *item);
-
 void                  soup_message_queue_destroy    (SoupMessageQueue     *queue);
 
+void soup_message_queue_item_ref            (SoupMessageQueueItem *item);
+void soup_message_queue_item_unref          (SoupMessageQueueItem *item);
+void soup_message_queue_item_set_connection (SoupMessageQueueItem *item,
+					     SoupConnection       *conn);
 
 G_END_DECLS
 

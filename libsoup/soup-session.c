@@ -1842,7 +1842,7 @@ soup_session_make_connect_message (SoupSession    *session,
 	 */
 	queue_message (session, msg, NULL, NULL);
 	item = soup_message_queue_lookup (priv->queue, msg);
-	item->conn = g_object_ref (conn);
+	soup_message_queue_item_set_connection (item, conn);
 	g_object_unref (msg);
 
 	g_signal_emit (session, signals[TUNNELING], 0, conn);
@@ -1879,7 +1879,7 @@ soup_session_get_connection (SoupSession *session,
 		if (!need_new_connection && soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
 			g_mutex_unlock (&priv->host_lock);
-			item->conn = g_object_ref (conns->data);
+			soup_message_queue_item_set_connection (item, conns->data);
 			soup_message_set_https_status (item->msg, item->conn);
 			return TRUE;
 		} else if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_CONNECTING)
@@ -1951,7 +1951,7 @@ soup_session_get_connection (SoupSession *session,
 	}
 
 	g_mutex_unlock (&priv->host_lock);
-	item->conn = g_object_ref (conn);
+	soup_message_queue_item_set_connection (item, conn);
 	return TRUE;
 }
 
@@ -1972,8 +1972,7 @@ soup_session_unqueue_item (SoupSession          *session,
 
 	if (item->conn) {
 		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		g_object_unref (item->conn);
-		item->conn = NULL;
+		soup_message_queue_item_set_connection (item, NULL);
 	}
 
 	if (item->state != SOUP_MESSAGE_FINISHED) {

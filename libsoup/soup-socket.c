@@ -39,6 +39,7 @@ enum {
 	WRITABLE,
 	DISCONNECTED,
 	NEW_CONNECTION,
+	EVENT,
 	LAST_SIGNAL
 };
 
@@ -263,6 +264,28 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      soup_marshal_NONE__OBJECT,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_SOCKET);
+	/**
+	 * SoupSocket::event:
+	 * @sock: the socket
+	 * @event: the event that occurred
+	 * @connection: the current connection state
+	 *
+	 * Emitted when a network-related event occurs. See
+	 * #GSocketClient::event for more details.
+	 *
+	 * Since: 2.38
+	 **/
+	signals[EVENT] =
+		g_signal_new ("event",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 2,
+			      G_TYPE_SOCKET_CLIENT_EVENT,
+			      G_TYPE_IO_STREAM);
+
 
 	/* properties */
 	/**
@@ -630,6 +653,19 @@ soup_socket_new (const char *optname1, ...)
 	return sock;
 }
 
+static void
+proxy_socket_client_event (GSocketClient       *client,
+			   GSocketClientEvent   event,
+			   GSocketConnectable  *connectable,
+			   GIOStream           *connection,
+			   gpointer             user_data)
+{
+	SoupSocket *sock = user_data;
+
+	g_signal_emit (sock, signals[EVENT], 0,
+		       event, connection);
+}
+
 static guint
 socket_connected (SoupSocket *sock, GSocketConnection *conn, GError *error)
 {
@@ -729,6 +765,8 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 		g_main_context_push_thread_default (priv->async_context);
 
 	client = g_socket_client_new ();
+	g_signal_connect (client, "event",
+			  G_CALLBACK (proxy_socket_client_event), sock);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
 	g_socket_client_connect_async (client,
@@ -772,6 +810,8 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	priv->connect_cancel = cancellable;
 
 	client = g_socket_client_new ();
+	g_signal_connect (client, "event",
+			  G_CALLBACK (proxy_socket_client_event), sock);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
 	conn = g_socket_client_connect (client,
@@ -796,6 +836,14 @@ soup_socket_get_gsocket (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 
 	return SOUP_SOCKET_GET_PRIVATE (sock)->gsock;
+}
+
+GIOStream *
+soup_socket_get_iostream (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->conn;
 }
 
 static GSource *
