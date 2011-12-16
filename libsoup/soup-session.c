@@ -587,13 +587,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_USE_SYSTEM_CA_FILE:
 	 *
-	 * Alias for the #SoupSession:ssl-use-system-ca-file property.
-	 * Setting this to %TRUE overrides #SoupSession:ssl-ca-file
-	 * and #SoupSession:tls-database, and uses the default system
-	 * CA database (which, despite the name, may not actually be a
-	 * file).
+	 * Alias for the #SoupSession:ssl-use-system-ca-file property,
+	 * qv.
 	 *
-	 * Since: 2.36
+	 * Since: 2.38
 	 **/
 	/**
 	 * #SoupSession:ssl-use-system-ca-file:
@@ -603,7 +600,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * CA database (which, despite the name, may not actually be a
 	 * file).
 	 *
-	 * Since: 2.36
+	 * See #SoupSession:ssl-strict for more information on how
+	 * https certificate validation is handled.
+	 *
+	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_USE_SYSTEM_CA_FILE,
@@ -615,12 +615,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_TLS_DATABASE:
 	 *
-	 * Alias for the #SoupSession:tls-database property. Overrides
-	 * #SoupSession:ssl-ca-file and
-	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
-	 * #GTlsDatabase.
+	 * Alias for the #SoupSession:tls-database property, qv.
 	 *
-	 * Since: 2.36
+	 * Since: 2.38
 	 **/
 	/**
 	 * #SoupSession:tls-database:
@@ -629,7 +626,10 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
 	 * #GTlsDatabase.
 	 *
-	 * Since: 2.36
+	 * See #SoupSession:ssl-strict for more information on how
+	 * https certificate validation is handled.
+	 *
+	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TLS_DATABASE,
@@ -641,14 +641,33 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_SSL_STRICT:
 	 *
-	 * Alias for the #SoupSession:ssl-strict property. By default,
-	 * when validating certificates against a CA file, Soup will
-	 * consider invalid certificates as a connection error.
-	 * Setting this property to %TRUE makes soup ignore the
-	 * errors, and make the connection.
+	 * Alias for the #SoupSession:ssl-strict property, qv.
 	 *
 	 * Since: 2.30
 	 **/
+	/**
+	 * SoupSession:ssl-strict:
+	 *
+	 * Normally, if #SoupSession:ssl-ca-file (or
+	 * #SoupSession:tlsdb or #SoupSession:ssl-use-system-ca-file)
+	 * is set, then libsoup will reject any certificate that is
+	 * invalid (ie, expired) or that is not signed by one of the
+	 * given CA certificates, and the #SoupMessage will fail with
+	 * the status %SOUP_STATUS_SSL_FAILED.
+	 *
+	 * If you set #SoupSession:ssl-strict to %FALSE, then all
+	 * certificates will be accepted, and you will need to call
+	 * soup_message_get_https_status() to distinguish valid from
+	 * invalid certificates. (This can be used, eg, if you want to
+	 * accept invalid certificates after giving some sort of
+	 * warning.)
+	 *
+	 * If the session has no CA file or TLS database, then all
+	 * certificates are always accepted, and this property has no
+	 * effect.
+	 *
+	 * Since: 2.30
+	 */
 	g_object_class_install_property (
 		object_class, PROP_SSL_STRICT,
 		g_param_spec_boolean (SOUP_SESSION_SSL_STRICT,
