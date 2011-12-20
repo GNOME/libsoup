@@ -1,3 +1,28 @@
+Changes in libsoup from 2.37.2 to 2.37.3:
+
+	* Now requires glib 2.31
+
+	* Simplified SoupHTTPInputStream and SoupRequestHTTP, allowing
+          related simplifications in WebKit's ResourceHandleSoup. This
+          is an ABI-incompatible change, but SoupHTTPInputStream is an
+          unstable API. [#663451, Dan]
+
+	* Fixed a bug that caused the SOUP_MESSAGE_CERTIFICATE_TRUSTED
+          flag to always be cleared, causing epiphany to claim all
+          https pages were untrusted. [#665182, Dan]
+
+	* Fixed some bugs in the handling of SoupSession:http-aliases
+          and SoupSession:https-aliases.
+
+	* Fixed handling of ACLOCAL_FLAGS [#641470, Craig Keogh]
+
+	* Fixed SoupContentDecoder's "ignore Content-Encoding: gzip
+          because the server didn't actually mean it" hack to handle
+          x-gzip too.
+
+	* Clarified the documentation on SoupSession:ssl-strict
+          [#666280]
+
 Changes in libsoup from 2.37.1 to 2.37.2:
 
 	* Fixed up the output of SoupDirectoryInputStream, thus
