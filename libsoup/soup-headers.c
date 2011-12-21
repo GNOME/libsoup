@@ -17,8 +17,8 @@
 /**
  * soup_headers_parse:
  * @str: the header string (including the Request-Line or Status-Line,
- * and the trailing blank line)
- * @len: length of @str up to (but not including) the terminating blank line.
+ *   but not the trailing blank line)
+ * @len: length of @str
  * @dest: #SoupMessageHeaders to store the header values in
  *
  * Parses the headers of an HTTP request or response in @str and
@@ -37,15 +37,14 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 {
 	const char *headers_start;
 	char *headers_copy, *name, *name_end, *value, *value_end;
-	char *eol, *sol;
+	char *eol, *sol, *p;
 	gboolean success = FALSE;
 
 	g_return_val_if_fail (str != NULL, FALSE);
 	g_return_val_if_fail (dest != NULL, FALSE);
 
-	/* Technically, the grammar does allow NUL bytes in the
-	 * headers, but this is probably a bug, and if it's not, we
-	 * can't deal with them anyway.
+	/* RFC 2616 does allow NUL bytes in the headers, but httpbis
+	 * is changing that, and we can't deal with them anyway.
 	 */
 	if (memchr (str, '\0', len))
 		return FALSE;
@@ -70,11 +69,16 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 	while (*(value_end + 1)) {
 		name = value_end + 1;
 		name_end = strchr (name, ':');
-		if (!name_end || name + strcspn (name, " \t\r\n") < name_end) {
-			/* Bad header; just ignore this line. Note
-			 * that if it has continuation lines, we'll
-			 * end up ignoring them too since they'll
-			 * start with spaces.
+
+		/* Reject if there is no ':', or the header name is
+		 * empty, or it contains whitespace.
+		 */
+		if (!name_end ||
+		    name_end == name ||
+		    name + strcspn (name, " \t\r\n") < name_end) {
+			/* Ignore this line. Note that if it has
+			 * continuation lines, we'll end up ignoring
+			 * them too since they'll start with spaces.
 			 */
 			value_end = strchr (name, '\n');
 			if (!value_end)
@@ -127,6 +131,10 @@ soup_headers_parse (const char *str, int len, SoupMessageHeaders *dest)
 			eol--;
 		*eol = '\0';
 
+		/* convert (illegal) '\r's to spaces */
+		for (p = strchr (value, '\r'); p; p = strchr (p, '\r'))
+			*p = ' ';
+
 		soup_message_headers_append (dest, name, value);
         }
 	success = TRUE;
@@ -138,8 +146,8 @@ done:
 
 /**
  * soup_headers_parse_request:
- * @str: the header string (including the trailing blank line)
- * @len: length of @str up to (but not including) the terminating blank line.
+ * @str: the headers (up to, but not including, the trailing blank line)
+ * @len: length of @str
  * @req_headers: #SoupMessageHeaders to store the header values in
  * @req_method: (out) (allow-none): if non-%NULL, will be filled in with the
  * request method
@@ -169,7 +177,7 @@ soup_headers_parse_request (const char          *str,
 	unsigned long major_version, minor_version;
 	char *p;
 
-	g_return_val_if_fail (str && *str, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (str != NULL, SOUP_STATUS_MALFORMED);
 
 	/* RFC 2616 4.1 "servers SHOULD ignore any empty line(s)
 	 * received where a Request-Line is expected."
@@ -325,8 +333,8 @@ soup_headers_parse_status_line (const char       *status_line,
 
 /**
  * soup_headers_parse_response:
- * @str: the header string (including the trailing blank line)
- * @len: length of @str up to (but not including) the terminating blank line.
+ * @str: the headers (up to, but not including, the trailing blank line)
+ * @len: length of @str
  * @headers: #SoupMessageHeaders to store the header values in
  * @ver: (out) (allow-none): if non-%NULL, will be filled in with the HTTP
  * version
@@ -352,7 +360,7 @@ soup_headers_parse_response (const char          *str,
 {
 	SoupHTTPVersion version;
 
-	g_return_val_if_fail (str && *str, FALSE);
+	g_return_val_if_fail (str != NULL, FALSE);
 
 	/* Workaround for broken servers that send extra line breaks
 	 * after a response, which we then see prepended to the next

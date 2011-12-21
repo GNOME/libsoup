@@ -19,7 +19,7 @@ static struct RequestTest {
 	guint status;
 	const char *method, *path;
 	SoupHTTPVersion version;
-	Header headers[4];
+	Header headers[10];
 } reqtests[] = {
 	/**********************/
 	/*** VALID REQUESTS ***/
@@ -206,7 +206,7 @@ static struct RequestTest {
 	/* RFC 2616 section 19.3 says we SHOULD accept these */
 
 	{ "LF instead of CRLF after header",
-	  "GET / HTTP/1.1\nHost: example.com\nConnection: close\n", -1,
+	  "GET / HTTP/1.1\r\nHost: example.com\nConnection: close\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
@@ -220,6 +220,18 @@ static struct RequestTest {
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
+	    { NULL }
+	  }
+	},
+
+	{ "Mixed CRLF/LF",
+	  "GET / HTTP/1.1\r\na: b\r\nc: d\ne: f\r\ng: h\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    { "c", "d" },
+	    { "e", "f" },
+	    { "g", "h" },
 	    { NULL }
 	  }
 	},
@@ -242,13 +254,88 @@ static struct RequestTest {
 	  }
 	},
 
-	/* qv bug 579318, do_bad_header_tests() below */
+	/* If the request/status line is parseable, then we
+	 * just ignore any invalid-looking headers after that.
+	 * (qv bug 579318).
+	 */
+
 	{ "Req w/ mangled header",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nFoo one\r\nBar: two\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
 	  { { "Host", "example.com" },
 	    { "Bar", "two" },
+	    { NULL }
+	  }
+	},
+
+	{ "First header line is continuation",
+	  "GET / HTTP/1.1\r\n b\r\nHost: example.com\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "Host", "example.com" },
+	    { "c", "d" },
+	    { NULL }
+	  }
+	},
+
+	{ "Zero-length header name",
+	  "GET / HTTP/1.1\r\na: b\r\n: example.com\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    { "c", "d" },
+	    { NULL }
+	  }
+	},
+
+	{ "CR in header name",
+	  "GET / HTTP/1.1\r\na: b\r\na\rb: cd\r\nx\r: y\r\n\rz: w\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    { "c", "d" },
+	    { NULL }
+	  }
+	},
+
+	{ "CR in header value",
+	  "GET / HTTP/1.1\r\na: b\r\nHost: example\rcom\r\np: \rq\r\ns: t\r\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    { "Host", "example com" },	/* CR in the middle turns to space */
+	    { "p", "q" },		/* CR at beginning is ignored */
+	    { "s", "t" },		/* CR at end is ignored */
+	    { "c", "d" },
+	    { NULL }
+	  }
+	},
+
+	{ "Tab in header name",
+	  "GET / HTTP/1.1\r\na: b\r\na\tb: cd\r\nx\t: y\r\np: q\r\n\tz: w\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    /* Tab anywhere in the header name causes it to be
+	     * ignored... except at beginning of line where it's a
+	     * continuation line
+	     */
+	    { "p", "q z: w" },
+	    { "c", "d" },
+	    { NULL }
+	  }
+	},
+
+	{ "Tab in header value",
+	  "GET / HTTP/1.1\r\na: b\r\nab: c\td\r\nx: \ty\r\nz: w\t\r\nc: d\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "/", SOUP_HTTP_1_1,
+	  { { "a", "b" },
+	    { "ab", "c\td" },	/* internal tab preserved */
+	    { "x", "y" },	/* leading tab ignored */
+	    { "z", "w" },	/* trailing tab ignored */
+	    { "c", "d" },
 	    { NULL }
 	  }
 	},
@@ -299,6 +386,13 @@ static struct RequestTest {
 	  { { NULL } }
 	},
 
+	{ "NUL at beginning of Method",
+	  "\x00 / HTTP/1.1\r\nHost: example.com\r\n", 35,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
 	{ "NUL in Path",
 	  "GET /\x00 HTTP/1.1\r\nHost: example.com\r\n", 38,
 	  SOUP_STATUS_BAD_REQUEST,
@@ -306,7 +400,14 @@ static struct RequestTest {
 	  { { NULL } }
 	},
 
-	{ "NUL in Header",
+	{ "NUL in header name",
+	  "GET / HTTP/1.1\r\n\x00: silly\r\n", 37,
+	  SOUP_STATUS_BAD_REQUEST,
+	  NULL, NULL, -1,
+	  { { NULL } }
+	},
+
+	{ "NUL in header value",
 	  "GET / HTTP/1.1\r\nHost: example\x00com\r\n", 37,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
@@ -535,13 +636,25 @@ static struct ResponseTest {
 	  { { NULL } }
 	},
 
+	{ "NUL at start",
+	  "\x00HTTP/1.1 200 OK\r\nFoo: bar\r\n", 28,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
 	{ "NUL in Reason Phrase",
 	  "HTTP/1.1 200 O\x00K\r\nFoo: bar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "NUL in Header",
+	{ "NUL in header name",
+	  "HTTP/1.1 200 OK\r\nF\x00oo: bar\r\n", 28,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "NUL in header value",
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00ar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
