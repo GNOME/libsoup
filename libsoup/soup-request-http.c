@@ -72,6 +72,8 @@ soup_request_http_finalize (GObject *object)
 	if (http->priv->msg)
 		g_object_unref (http->priv->msg);
 
+	g_free (http->priv->content_type);
+
 	G_OBJECT_CLASS (soup_request_http_parent_class)->finalize (object);
 }
 
