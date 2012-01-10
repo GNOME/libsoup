@@ -736,7 +736,7 @@ soup_uri_normalize (const char *part, const char *unescape_extra)
  * @uri: a #SoupURI
  *
  * Tests if @uri uses the default port for its scheme. (Eg, 80 for
- * http.) (This only works for http and https; libsoup does not know
+ * http.) (This only works for http, https and ftp; libsoup does not know
  * the default ports of other protocols.)
  *
  * Return value: %TRUE or %FALSE
