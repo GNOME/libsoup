@@ -405,7 +405,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
  * call at least soup_uri_set_scheme() and soup_uri_set_path(), since
  * those fields are required.)
  *
- * Return value: a #SoupURI, or %NULL.
+ * Return value: a #SoupURI, or %NULL if the given string was found to be
+ *  invalid.
  **/
 SoupURI *
 soup_uri_new (const char *uri_string)
@@ -418,7 +419,7 @@ soup_uri_new (const char *uri_string)
 	uri = soup_uri_new_with_base (NULL, uri_string);
 	if (!uri)
 		return NULL;
-	if (!uri->scheme) {
+	if (!SOUP_URI_IS_VALID (uri)) {
 		soup_uri_free (uri);
 		return NULL;
 	}
