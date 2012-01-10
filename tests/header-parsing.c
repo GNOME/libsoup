@@ -177,6 +177,30 @@ static struct RequestTest {
 	  }
 	},
 
+	{ "GET with full URI",
+	  "GET http://example.com HTTP/1.1\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "http://example.com", SOUP_HTTP_1_1,
+	  { { NULL } }
+	},
+
+	{ "GET with full URI in upper-case",
+	  "GET HTTP://example.com HTTP/1.1\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "HTTP://example.com", SOUP_HTTP_1_1,
+	  { { NULL } }
+	},
+
+	/* It's better for this to be passed through: this means a SoupServer
+	 * could implement ftp-over-http proxying, for instance
+	 */
+	{ "GET with full URI of unrecognised scheme",
+	  "GET AbOuT: HTTP/1.1\r\n", -1,
+	  SOUP_STATUS_OK,
+	  "GET", "AbOuT:", SOUP_HTTP_1_1,
+	  { { NULL } }
+	},
+
 	/****************************/
 	/*** RECOVERABLE REQUESTS ***/
 	/****************************/
