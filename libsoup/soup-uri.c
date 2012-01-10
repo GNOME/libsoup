@@ -195,8 +195,10 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		uri_string = p + 1;
 	}
 
-	if (uri_string == end && !base && !uri->fragment)
+	if (uri_string == end && !base && !uri->fragment) {
+		uri->path = g_strdup ("");
 		return uri;
+        }
 
 	/* Check for authority */
 	if (strncmp (uri_string, "//", 2) == 0) {
