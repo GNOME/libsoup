@@ -94,8 +94,16 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		uri = NULL;
 
 	g_free (req_path);
-	if (!uri)
+
+	if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
+		/* certainly not "a valid host on the server" (RFC2616 5.2.3)
+		 * SOUP_URI_VALID_FOR_HTTP also guards against uri == NULL
+		 */
+		if (uri)
+			soup_uri_free (uri);
 		return SOUP_STATUS_BAD_REQUEST;
+	}
+
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
 
