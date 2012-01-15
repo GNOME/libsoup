@@ -72,12 +72,13 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-GLIB_REQUIRED=2.31.7
+dnl FIXME: should actually be 2.33.0, but glib hasn't bumped yet
+GLIB_REQUIRED=2.32.2
 AM_PATH_GLIB_2_0($GLIB_REQUIRED,,,gobject gio)
 if test "$GLIB_LIBS" = ""; then
    AC_MSG_ERROR(GLIB $GLIB_REQUIRED or later is required to build libsoup)
 fi
-GLIB_CFLAGS="$GLIB_CFLAGS -DG_DISABLE_SINGLE_INCLUDES"
+GLIB_CFLAGS="$GLIB_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_34"
 
 GLIB_MAKEFILE='$(top_srcdir)/Makefile.glib'
 AC_SUBST(GLIB_MAKEFILE)

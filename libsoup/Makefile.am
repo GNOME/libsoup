@@ -109,6 +109,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-directory-input-stream.c	\
 	soup-enum-types.h		\
 	soup-enum-types.c		\
+	soup-filter-input-stream.c	\
+	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
 	soup-http-input-stream.h	\

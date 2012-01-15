@@ -16,8 +16,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "soup-address.h"
 #include "soup-socket.h"
+#include "soup-address.h"
+#include "soup-filter-input-stream.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
 #include "soup-misc-private.h"
@@ -70,8 +71,8 @@ typedef struct {
 	SoupAddress *local_addr, *remote_addr;
 	GIOStream *conn;
 	GSocket *gsock;
-	GPollableInputStream *istream;
-	GPollableOutputStream *ostream;
+	GInputStream *istream;
+	GOutputStream *ostream;
 	GTlsCertificateFlags tls_errors;
 
 	guint non_blocking:1;
@@ -86,7 +87,6 @@ typedef struct {
 	GMainContext   *async_context;
 	GSource        *watch_src;
 	GSource        *read_src, *write_src;
-	GByteArray     *read_buf;
 
 	GMutex iolock, addrlock;
 	guint timeout;
@@ -128,10 +128,9 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 	if (priv->conn) {
 		if (G_IS_TLS_CONNECTION (priv->conn))
 			g_signal_handlers_disconnect_by_func (priv->conn, soup_socket_peer_certificate_changed, sock);
-		g_object_unref (priv->conn);
-		priv->conn = NULL;
-		priv->istream = NULL;
-		priv->ostream = NULL;
+		g_clear_object (&priv->conn);
+		g_clear_object (&priv->istream);
+		g_clear_object (&priv->ostream);
 	}
 
 	if (priv->read_src) {
@@ -160,6 +159,9 @@ finalize (GObject *object)
 		disconnect_internal (SOUP_SOCKET (object), TRUE);
 	}
 
+	g_clear_object (&priv->istream);
+	g_clear_object (&priv->ostream);
+
 	if (priv->local_addr)
 		g_object_unref (priv->local_addr);
 	if (priv->remote_addr)
@@ -172,9 +174,6 @@ finalize (GObject *object)
 	}
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
-
-	if (priv->read_buf)
-		g_byte_array_free (priv->read_buf, TRUE);
 
 	g_mutex_clear (&priv->addrlock);
 	g_mutex_clear (&priv->iolock);
@@ -521,9 +520,9 @@ finish_socket_setup (SoupSocketPrivate *priv)
 	if (!priv->conn)
 		priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
 	if (!priv->istream)
-		priv->istream = G_POLLABLE_INPUT_STREAM (g_io_stream_get_input_stream (priv->conn));
+		priv->istream = soup_filter_input_stream_new (g_io_stream_get_input_stream (priv->conn));
 	if (!priv->ostream)
-		priv->ostream = G_POLLABLE_OUTPUT_STREAM (g_io_stream_get_output_stream (priv->conn));
+		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->conn));
 
 	g_socket_set_timeout (priv->gsock, priv->timeout);
 }
@@ -862,9 +861,9 @@ soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 	GMainContext *async_context;
 
 	if (cond == G_IO_IN)
-		watch = g_pollable_input_stream_create_source (priv->istream, cancellable);
+		watch = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->istream), cancellable);
 	else
-		watch = g_pollable_output_stream_create_source (priv->ostream, cancellable);
+		watch = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (priv->ostream), cancellable);
 	g_source_set_callback (watch, (GSourceFunc)callback, user_data, NULL);
 
 	if (priv->use_thread_context)
@@ -1089,8 +1088,13 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	g_signal_connect (priv->conn, "notify::peer-certificate",
 			  G_CALLBACK (soup_socket_peer_certificate_changed), sock);
 
-	priv->istream = G_POLLABLE_INPUT_STREAM (g_io_stream_get_input_stream (priv->conn));
-	priv->ostream = G_POLLABLE_OUTPUT_STREAM (g_io_stream_get_output_stream (priv->conn));
+	if (priv->istream)
+		g_object_unref (priv->istream);
+	if (priv->ostream)
+		g_object_unref (priv->ostream);
+
+	priv->istream = soup_filter_input_stream_new (g_io_stream_get_input_stream (priv->conn));
+	priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->conn));
 	return TRUE;
 }
 	
@@ -1334,34 +1338,18 @@ socket_read_watch (GObject *pollable, gpointer user_data)
 }
 
 static SoupSocketIOStatus
-read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
-		   gsize *nread, GCancellable *cancellable, GError **error)
+translate_read_status (SoupSocket *sock, GCancellable *cancellable,
+		       gssize my_nread, gsize *nread,
+		       GError *my_err, GError **error)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	GError *my_err = NULL;
-	gssize my_nread;
-
-	*nread = 0;
-
-	if (!priv->conn)
-		return SOUP_SOCKET_EOF;
-
-	if (!priv->non_blocking) {
-		my_nread = g_input_stream_read (G_INPUT_STREAM (priv->istream),
-						buffer, len,
-						cancellable, &my_err);
-	} else {
-		my_nread = g_pollable_input_stream_read_nonblocking (
-			priv->istream, buffer, len,
-			cancellable, &my_err);
-	}
 
 	if (my_nread > 0) {
-		g_clear_error (&my_err);
+		g_assert_no_error (my_err);
 		*nread = my_nread;
 		return SOUP_SOCKET_OK;
 	} else if (my_nread == 0) {
-		g_clear_error (&my_err);
+		g_assert_no_error (my_err);
 		*nread = my_nread;
 		return SOUP_SOCKET_EOF;
 	} else if (g_error_matches (my_err, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -1377,27 +1365,6 @@ read_from_network (SoupSocket *sock, gpointer buffer, gsize len,
 
 	g_propagate_error (error, my_err);
 	return SOUP_SOCKET_ERROR;
-}
-
-static SoupSocketIOStatus
-read_from_buf (SoupSocket *sock, gpointer buffer, gsize len, gsize *nread)
-{
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	GByteArray *read_buf = priv->read_buf;
-
-	*nread = MIN (read_buf->len, len);
-	memcpy (buffer, read_buf->data, *nread);
-
-	if (*nread == read_buf->len) {
-		g_byte_array_free (read_buf, TRUE);
-		priv->read_buf = NULL;
-	} else {
-		memmove (read_buf->data, read_buf->data + *nread, 
-			 read_buf->len - *nread);
-		g_byte_array_set_size (read_buf, read_buf->len - *nread);
-	}
-
-	return SOUP_SOCKET_OK;
 }
 
 /**
@@ -1443,6 +1410,8 @@ soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len,
 {
 	SoupSocketPrivate *priv;
 	SoupSocketIOStatus status;
+	gssize my_nread;
+	GError *my_err = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 	g_return_val_if_fail (nread != NULL, SOUP_SOCKET_ERROR);
@@ -1450,10 +1419,24 @@ soup_socket_read (SoupSocket *sock, gpointer buffer, gsize len,
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	g_mutex_lock (&priv->iolock);
-	if (priv->read_buf)
-		status = read_from_buf (sock, buffer, len, nread);
-	else
-		status = read_from_network (sock, buffer, len, nread, cancellable, error);
+
+	if (!priv->istream) {
+		status = SOUP_SOCKET_EOF;
+		goto out;
+	}
+
+	if (!priv->non_blocking) {
+		my_nread = g_input_stream_read (priv->istream, buffer, len,
+						cancellable, &my_err);
+	} else {
+		my_nread = g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (priv->istream),
+								     buffer, len,
+								     cancellable, &my_err);
+	}
+	status = translate_read_status (sock, cancellable,
+					my_nread, nread, my_err, error);
+
+out:
 	g_mutex_unlock (&priv->iolock);
 
 	return status;
@@ -1495,9 +1478,8 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 {
 	SoupSocketPrivate *priv;
 	SoupSocketIOStatus status;
-	GByteArray *read_buf;
-	guint match_len, prev_len;
-	guint8 *p, *end;
+	gssize my_nread;
+	GError *my_err = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_SOCKET_ERROR);
 	g_return_val_if_fail (nread != NULL, SOUP_SOCKET_ERROR);
@@ -1509,40 +1491,17 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 
 	*got_boundary = FALSE;
 
-	if (!priv->read_buf)
-		priv->read_buf = g_byte_array_new ();
-	read_buf = priv->read_buf;
-
-	if (read_buf->len < boundary_len) {
-		prev_len = read_buf->len;
-		g_byte_array_set_size (read_buf, len);
-		status = read_from_network (sock,
-					    read_buf->data + prev_len,
-					    len - prev_len, nread, cancellable, error);
-		read_buf->len = prev_len + *nread;
-
-		if (status != SOUP_SOCKET_OK) {
-			g_mutex_unlock (&priv->iolock);
-			return status;
-		}
+	if (!priv->istream)
+		status = SOUP_SOCKET_EOF;
+	else {
+		my_nread = soup_filter_input_stream_read_until (
+			SOUP_FILTER_INPUT_STREAM (priv->istream),
+			buffer, len, boundary, boundary_len,
+			!priv->non_blocking,
+			got_boundary, cancellable, &my_err);
+		status = translate_read_status (sock, cancellable,
+						my_nread, nread, my_err, error);
 	}
-
-	/* Scan for the boundary */
-	end = read_buf->data + read_buf->len;
-	for (p = read_buf->data; p <= end - boundary_len; p++) {
-		if (!memcmp (p, boundary, boundary_len)) {
-			p += boundary_len;
-			*got_boundary = TRUE;
-			break;
-		}
-	}
-
-	/* Return everything up to 'p' (which is either just after the
-	 * boundary, or @boundary_len - 1 bytes before the end of the
-	 * buffer).
-	 */
-	match_len = p - read_buf->data;
-	status = read_from_buf (sock, buffer, MIN (len, match_len), nread);
 
 	g_mutex_unlock (&priv->iolock);
 	return status;
@@ -1611,13 +1570,13 @@ soup_socket_write (SoupSocket *sock, gconstpointer buffer,
 	}
 
 	if (!priv->non_blocking) {
-		my_nwrote = g_output_stream_write (G_OUTPUT_STREAM (priv->ostream),
+		my_nwrote = g_output_stream_write (priv->ostream,
 						   buffer, len,
 						   cancellable, &my_err);
 	} else {
 		my_nwrote = g_pollable_output_stream_write_nonblocking (
-			priv->ostream, buffer, len,
-			cancellable, &my_err);
+			G_POLLABLE_OUTPUT_STREAM (priv->ostream),
+			buffer, len, cancellable, &my_err);
 	}
 
 	if (my_nwrote > 0) {
