@@ -1169,6 +1169,33 @@ do_non_persistent_connection_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_dot_dot_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+
+	debug_printf (1, "\n'..' smuggling test\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	uri = soup_uri_new_with_base (base_uri, "/..%2ftest");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != SOUP_STATUS_BAD_REQUEST) {
+		debug_printf (1, "      FAILED: %d %s (expected Bad Request)\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1206,6 +1233,7 @@ main (int argc, char **argv)
 	do_cancel_while_reading_test ();
 	do_aliases_test ();
 	do_non_persistent_connection_test ();
+	do_dot_dot_test ();
 
 	soup_uri_free (base_uri);
 	soup_uri_free (ssl_base_uri);
