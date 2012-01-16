@@ -1,3 +1,27 @@
+Changes in libsoup from 2.37.3 to 2.37.4:
+
+	* SoupMessage now has a "network-event" signal that can be
+          monitored for information about DNS, proxy lookup, TCP
+          connections, and TLS handshakes. [Dan]
+
+	* The HTTP header parsing code now avoids hitting
+          g_return_if_fails() (and returns an error instead) in a few
+          cases of seriously-invalid headers. [#666316, Simon
+          McVittie, Dan]
+
+	* POSTs and other non-idempotent requests are now always sent
+          on newly-created connections. You can also force this
+          behavior on other messages by setting the
+          SOUP_MESSAGE_NEW_CONNECTION flag. [#578990, Dan]
+
+	* Server-closed idle connections are now detected ahead of
+          time on Windows, preventing occasional spurious "Connection
+          terminated unexpectedly" errors. (This had been fixed on
+          UNIX since 2.28, but the earlier fix didn't work with
+          WinSock.) [#578990, Dan]
+
+	* Plugged a leak in SoupRequestHTTP. [#667099, Xan]
+
 Changes in libsoup from 2.37.2 to 2.37.3:
 
 	* Now requires glib 2.31
