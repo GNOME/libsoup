@@ -1221,15 +1221,23 @@ soup_message_io_unpause (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
-	gboolean non_blocking;
+	gboolean non_blocking, use_thread_context;
 	GMainContext *async_context;
 
 	g_return_if_fail (io != NULL);
 
 	g_object_get (io->sock,
 		      SOUP_SOCKET_FLAG_NONBLOCKING, &non_blocking,
-		      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
+		      SOUP_SOCKET_USE_THREAD_CONTEXT, &use_thread_context,
 		      NULL);
+	if (use_thread_context)
+		async_context = g_main_context_ref_thread_default ();
+	else {
+		g_object_get (io->sock,
+			      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
+			      NULL);
+	}
+
 	if (non_blocking) {
 		if (!io->unpause_source) {
 			io->unpause_source = soup_add_completion (
