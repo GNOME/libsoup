@@ -591,6 +591,12 @@ ea_connection_created (SoupSession *session, GObject *conn, gpointer user_data)
 }
 
 static void
+ea_request_started (SoupSession *session, SoupMessage *msg, SoupSocket *socket, gpointer user_data)
+{
+	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+}
+
+static void
 do_early_abort_test (void)
 {
 	SoupSession *session;
@@ -621,6 +627,26 @@ do_early_abort_test (void)
 			  G_CALLBACK (ea_connection_created), NULL);
 	soup_session_send_message (session, msg);
 	debug_printf (2, "  Message 2 completed\n");
+
+	if (msg->status_code != SOUP_STATUS_CANCELLED) {
+		debug_printf (1, "    Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	while (g_main_context_pending (context))
+		g_main_context_iteration (context, FALSE);
+
+	soup_test_session_abort_unref (session);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", base_uri);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (ea_request_started), NULL);
+	soup_session_send_message (session, msg);
+	debug_printf (2, "  Message 3 completed\n");
 
 	if (msg->status_code != SOUP_STATUS_CANCELLED) {
 		debug_printf (1, "    Unexpected response: %d %s\n",

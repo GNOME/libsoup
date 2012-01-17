@@ -156,8 +156,8 @@ tunnel_connect (SoupSession *session, SoupMessageQueueItem *related)
 		status = item->msg->status_code;
 		if (item->state == SOUP_MESSAGE_RESTARTING &&
 		    soup_message_io_in_progress (item->msg)) {
-			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_restarted (item->msg);
+			item->state = SOUP_MESSAGE_RUNNING;
 		} else {
 			if (item->state == SOUP_MESSAGE_RESTARTING)
 				status = SOUP_STATUS_TRY_AGAIN;

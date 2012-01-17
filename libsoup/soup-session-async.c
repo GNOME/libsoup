@@ -285,6 +285,7 @@ tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 	if (item->state == SOUP_MESSAGE_RESTARTING) {
 		soup_message_restarted (msg);
 		if (item->conn) {
+			item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, item, tunnel_message_completed);
 			return;
 		}

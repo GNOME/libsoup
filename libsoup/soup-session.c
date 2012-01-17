@@ -1723,7 +1723,8 @@ soup_session_send_queue_item (SoupSession *session,
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       item->msg, soup_connection_get_socket (item->conn));
-	soup_connection_send_request (item->conn, item, completion_cb, item);
+	if (item->state == SOUP_MESSAGE_RUNNING)
+		soup_connection_send_request (item->conn, item, completion_cb, item);
 }
 
 gboolean
@@ -1844,6 +1845,7 @@ soup_session_make_connect_message (SoupSession    *session,
 	item = soup_message_queue_lookup (priv->queue, msg);
 	soup_message_queue_item_set_connection (item, conn);
 	g_object_unref (msg);
+	item->state = SOUP_MESSAGE_RUNNING;
 
 	g_signal_emit (session, signals[TUNNELING], 0, conn);
 	return item;
