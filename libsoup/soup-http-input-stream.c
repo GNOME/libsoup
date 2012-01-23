@@ -43,7 +43,7 @@ typedef struct {
 	goffset offset;
 
 	GCancellable *cancellable;
-	GSource *cancel_watch;
+	guint cancel_id;
 	SoupHTTPInputStreamCallback got_headers_cb;
 	SoupHTTPInputStreamCallback got_chunk_cb;
 	SoupHTTPInputStreamCallback finished_cb;
@@ -323,39 +323,34 @@ soup_http_input_stream_finished (SoupMessage *msg, gpointer stream)
 		priv->finished_cb (stream);
 }
 
-static gboolean
-soup_http_input_stream_cancelled (GIOChannel *chan, GIOCondition condition,
-					 gpointer stream)
+static void
+soup_http_input_stream_cancelled (GCancellable *cancellable,
+				  gpointer      user_data)
 {
+	SoupHTTPInputStream *stream = user_data;
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
-	priv->cancel_watch = NULL;
+	g_signal_handler_disconnect (cancellable, priv->cancel_id);
+	priv->cancel_id = 0;
 
 	soup_session_pause_message (priv->session, priv->msg);
 	if (priv->cancelled_cb)
-		priv->cancelled_cb (stream);
-
-	return FALSE;
+		priv->cancelled_cb (G_INPUT_STREAM (stream));
 }
 
 static void
 soup_http_input_stream_prepare_for_io (GInputStream *stream,
 				       GCancellable *cancellable,
 				       guchar       *buffer,
-				       gsize count)
+				       gsize         count)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
-	int cancel_fd;
 
 	priv->cancellable = cancellable;
-	cancel_fd = g_cancellable_get_fd (cancellable);
-	if (cancel_fd != -1) {
-		GIOChannel *chan = g_io_channel_unix_new (cancel_fd);
-		priv->cancel_watch = soup_add_io_watch (priv->async_context, chan,
-							G_IO_IN | G_IO_ERR | G_IO_HUP,
-							soup_http_input_stream_cancelled,
-							stream);
-		g_io_channel_unref (chan);
+	if (cancellable) {
+		priv->cancel_id = g_signal_connect (cancellable, "cancelled",
+						    G_CALLBACK (soup_http_input_stream_cancelled),
+						    stream);
 	}
 
 	priv->caller_buffer = buffer;
@@ -371,10 +366,9 @@ soup_http_input_stream_done_io (GInputStream *stream)
 {
 	SoupHTTPInputStreamPrivate *priv = SOUP_HTTP_INPUT_STREAM_GET_PRIVATE (stream);
 
-	if (priv->cancel_watch) {
-		g_source_destroy (priv->cancel_watch);
-		priv->cancel_watch = NULL;
-		g_cancellable_release_fd (priv->cancellable);
+	if (priv->cancel_id) {
+		g_signal_handler_disconnect (priv->cancellable, priv->cancel_id);
+		priv->cancel_id = 0;
 	}
 	priv->cancellable = NULL;
 
