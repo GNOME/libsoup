@@ -94,6 +94,25 @@ void                soup_message_io_pause       (SoupMessage          *msg);
 void                soup_message_io_unpause     (SoupMessage          *msg);
 gboolean            soup_message_io_in_progress (SoupMessage          *msg);
 
+gboolean soup_message_io_run_until_write  (SoupMessage   *msg,
+					   GCancellable  *cancellable,
+					   GError       **error);
+gboolean soup_message_io_run_until_read   (SoupMessage   *msg,
+					   GCancellable  *cancellable,
+					   GError       **error);
+gboolean soup_message_io_run_until_finish (SoupMessage   *msg,
+					   GCancellable  *cancellable,
+					   GError       **error);
+
+typedef gboolean (*SoupMessageSourceFunc) (SoupMessage *, gpointer);
+GSource *soup_message_io_get_source       (SoupMessage           *msg,
+					   GCancellable          *cancellable,
+					   SoupMessageSourceFunc  callback,
+					   gpointer               user_data);
+
+GInputStream *soup_message_io_get_response_istream (SoupMessage  *msg,
+						    GError      **error);
+
 gboolean soup_message_disables_feature (SoupMessage *msg,
 					gpointer     feature);
 

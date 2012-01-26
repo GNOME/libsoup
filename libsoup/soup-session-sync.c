@@ -240,6 +240,19 @@ try_again:
 	item->state = SOUP_MESSAGE_READY;
 }
 
+static void process_queue_item (SoupMessageQueueItem *item);
+
+static void
+new_api_message_completed (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (item->state != SOUP_MESSAGE_RESTARTING) {
+		item->state = SOUP_MESSAGE_FINISHING;
+		process_queue_item (item);
+	}
+}
+
 static void
 process_queue_item (SoupMessageQueueItem *item)
 {
@@ -249,7 +262,8 @@ process_queue_item (SoupMessageQueueItem *item)
 	SoupProxyURIResolver *proxy_resolver;
 	guint status;
 
-	item->state = SOUP_MESSAGE_STARTING;
+	soup_message_queue_item_ref (item);
+
 	do {
 		if (item->paused) {
 			g_mutex_lock (&priv->lock);
@@ -303,9 +317,20 @@ process_queue_item (SoupMessageQueueItem *item)
 
 		case SOUP_MESSAGE_READY:
 			item->state = SOUP_MESSAGE_RUNNING;
+
+			if (item->new_api) {
+				soup_session_send_queue_item (item->session, item, new_api_message_completed);
+				goto out;
+			}
+
 			soup_session_send_queue_item (item->session, item, NULL);
 			if (item->state != SOUP_MESSAGE_RESTARTING)
 				item->state = SOUP_MESSAGE_FINISHING;
+			break;
+
+		case SOUP_MESSAGE_RUNNING:
+			g_warn_if_fail (item->new_api);
+			item->state = SOUP_MESSAGE_FINISHING;
 			break;
 
 		case SOUP_MESSAGE_RESTARTING:
@@ -326,6 +351,9 @@ process_queue_item (SoupMessageQueueItem *item)
 			break;
 		}
 	} while (item->state != SOUP_MESSAGE_FINISHED);
+
+ out:
+	soup_message_queue_item_unref (item);
 }
 
 static gboolean
@@ -475,4 +503,91 @@ kick (SoupSession *session)
 	g_mutex_lock (&priv->lock);
 	g_cond_broadcast (&priv->cond);
 	g_mutex_unlock (&priv->lock);
+}
+
+
+GInputStream *
+soup_session_send_request (SoupSession   *session,
+			   SoupMessage   *msg,
+			   GCancellable  *cancellable,
+			   GError       **error)
+{
+	SoupMessageQueueItem *item;
+	GInputStream *stream = NULL;
+	GOutputStream *ostream;
+	GMemoryOutputStream *mostream;
+	gssize size;
+
+	g_return_val_if_fail (SOUP_IS_SESSION_SYNC (session), NULL);
+
+	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
+	g_return_val_if_fail (item != NULL, NULL);
+
+	item->new_api = TRUE;
+
+	while (!stream) {
+		/* Get a connection, etc */
+		process_queue_item (item);
+		if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+			break;
+
+		/* Send request, read headers */
+		if (!soup_message_io_run_until_read (msg, cancellable, error))
+			break;
+
+		stream = soup_message_io_get_response_istream (msg, error);
+		if (!stream)
+			break;
+
+		/* Break if the message doesn't look likely-to-be-requeued */
+		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
+		    msg->status_code != SOUP_STATUS_PROXY_UNAUTHORIZED &&
+		    !soup_session_would_redirect (session, msg))
+			break;
+
+		/* Gather the current message body... */
+		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+		if (g_output_stream_splice (ostream, stream,
+					    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+					    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+					    cancellable, error) == -1) {
+			g_object_unref (stream);
+			g_object_unref (ostream);
+			stream = NULL;
+			break;
+		}
+		g_object_unref (stream);
+		stream = NULL;
+
+		/* If the message was requeued, loop */
+		if (item->state == SOUP_MESSAGE_RESTARTING) {
+			g_object_unref (ostream);
+			continue;
+		}
+
+		/* Not requeued, so return the original body */
+		mostream = G_MEMORY_OUTPUT_STREAM (ostream);
+		size = g_memory_output_stream_get_data_size (mostream);
+		stream = g_memory_input_stream_new ();
+		if (size) {
+			g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (stream),
+							g_memory_output_stream_steal_data (mostream),
+							size, g_free);
+		}
+		g_object_unref (ostream);
+	}
+
+	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+		if (stream) {
+			g_object_unref (stream);
+			stream = NULL;
+		}
+		g_set_error_literal (error, SOUP_HTTP_ERROR, msg->status_code,
+				     msg->reason_phrase);
+	}
+
+	soup_message_queue_item_unref (item);
+	return stream;
 }

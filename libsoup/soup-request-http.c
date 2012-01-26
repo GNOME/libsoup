@@ -32,9 +32,9 @@
 #include "soup-request-http.h"
 #include "soup-cache.h"
 #include "soup-cache-private.h"
-#include "soup-http-input-stream.h"
 #include "soup-message.h"
 #include "soup-session.h"
+#include "soup-session-private.h"
 #include "soup-uri.h"
 
 G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
@@ -43,6 +43,11 @@ struct _SoupRequestHTTPPrivate {
 	SoupMessage *msg;
 	char *content_type;
 };
+
+static void content_sniffed (SoupMessage *msg,
+			     const char  *content_type,
+			     GHashTable  *params,
+			     gpointer     user_data);
 
 static void
 soup_request_http_init (SoupRequestHTTP *http)
@@ -61,6 +66,8 @@ soup_request_http_check_uri (SoupRequest  *request,
 		return FALSE;
 
 	http->priv->msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+	g_signal_connect (http->priv->msg, "content-sniffed",
+			  G_CALLBACK (content_sniffed), http);
 	return TRUE;
 }
 
@@ -69,8 +76,12 @@ soup_request_http_finalize (GObject *object)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (object);
 
-	if (http->priv->msg)
+	if (http->priv->msg) {
+		g_signal_handlers_disconnect_by_func (http->priv->msg,
+						      G_CALLBACK (content_sniffed),
+						      http);
 		g_object_unref (http->priv->msg);
+	}
 
 	g_free (http->priv->content_type);
 
@@ -82,17 +93,11 @@ soup_request_http_send (SoupRequest          *request,
 			GCancellable         *cancellable,
 			GError              **error)
 {
-	GInputStream *httpstream;
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 
-	httpstream = soup_http_input_stream_new (soup_request_get_session (request), http->priv->msg);
-	if (!soup_http_input_stream_send (SOUP_HTTP_INPUT_STREAM (httpstream),
-					  cancellable, error)) {
-		g_object_unref (httpstream);
-		return NULL;
-	}
-	http->priv->content_type = g_strdup (soup_http_input_stream_get_content_type (SOUP_HTTP_INPUT_STREAM (httpstream)));
-	return httpstream;
+	return soup_session_send_request (soup_request_get_session (request),
+					  http->priv->msg,
+					  cancellable, error);
 }
 
 
@@ -124,16 +129,15 @@ free_send_async_data (SendAsyncData *sadata)
 static void
 http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	SoupHTTPInputStream *httpstream = SOUP_HTTP_INPUT_STREAM (source);
 	SendAsyncData *sadata = user_data;
 	GError *error = NULL;
+	GInputStream *stream;
 
-	if (soup_http_input_stream_send_finish (httpstream, result, &error)) {
-		sadata->http->priv->content_type = g_strdup (soup_http_input_stream_get_content_type (httpstream));
-		g_simple_async_result_set_op_res_gpointer (sadata->simple, httpstream, g_object_unref);
+	stream = soup_session_send_request_finish (SOUP_SESSION (source), result, &error);
+	if (stream) {
+		g_simple_async_result_set_op_res_gpointer (sadata->simple, stream, g_object_unref);
 	} else {
 		g_simple_async_result_take_error (sadata->simple, error);
-		g_object_unref (httpstream);
 	}
 	g_simple_async_result_complete (sadata->simple);
 	free_send_async_data (sadata);
@@ -171,9 +175,8 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	/* The resource was modified, or else it mysteriously disappeared
 	 * from our cache. Either way we need to reload it now.
 	 */
-	stream = soup_http_input_stream_new (session, sadata->original);
-	soup_http_input_stream_send_async (SOUP_HTTP_INPUT_STREAM (stream), G_PRIORITY_DEFAULT,
-					   sadata->cancellable, http_input_stream_ready_cb, sadata);
+	soup_session_send_request_async (session, msg, sadata->cancellable,
+					 http_input_stream_ready_cb, sadata);
 }
 
 static gboolean
@@ -253,10 +256,8 @@ soup_request_http_send_async (SoupRequest          *request,
 		}
 	}
 
-	stream = soup_http_input_stream_new (session, http->priv->msg);
-	soup_http_input_stream_send_async (SOUP_HTTP_INPUT_STREAM (stream),
-					   G_PRIORITY_DEFAULT, cancellable,
-					   http_input_stream_ready_cb, sadata);
+	soup_session_send_request_async (session, http->priv->msg, cancellable,
+					 http_input_stream_ready_cb, sadata);
 }
 
 static GInputStream *
@@ -280,6 +281,30 @@ soup_request_http_get_content_length (SoupRequest *request)
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 
 	return soup_message_headers_get_content_length (http->priv->msg->response_headers);
+}
+
+static void
+content_sniffed (SoupMessage *msg,
+		 const char  *content_type,
+		 GHashTable  *params,
+		 gpointer     user_data)
+{
+	SoupRequestHTTP *http = user_data;
+	GString *sniffed_type;
+
+	sniffed_type = g_string_new (content_type);
+	if (params) {
+		GHashTableIter iter;
+		gpointer key, value;
+
+		g_hash_table_iter_init (&iter, params);
+		while (g_hash_table_iter_next (&iter, &key, &value)) {
+			g_string_append (sniffed_type, "; ");
+			soup_header_g_string_append_param (sniffed_type, key, value);
+		}
+	}
+	g_free (http->priv->content_type);
+	http->priv->content_type = g_string_free (sniffed_type, FALSE);
 }
 
 static const char *

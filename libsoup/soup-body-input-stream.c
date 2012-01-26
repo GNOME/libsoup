@@ -18,6 +18,7 @@
 #include "soup-body-input-stream.h"
 #include "soup-enum-types.h"
 #include "soup-filter-input-stream.h"
+#include "soup-marshal.h"
 #include "soup-message-headers.h"
 
 typedef enum {
@@ -36,6 +37,13 @@ struct _SoupBodyInputStreamPrivate {
 	SoupBodyInputStreamState chunked_state;
 	gboolean      eof;
 };
+
+enum {
+	CLOSED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 enum {
 	PROP_0,
@@ -270,6 +278,16 @@ soup_body_input_stream_read_fn (GInputStream  *stream,
 }
 
 static gboolean
+soup_body_input_stream_close_fn (GInputStream  *stream,
+				 GCancellable  *cancellable,
+				 GError       **error)
+{
+	g_signal_emit (stream, signals[CLOSED], 0);
+
+	return G_INPUT_STREAM_CLASS (soup_body_input_stream_parent_class)->close_fn (stream, cancellable, error);
+}
+
+static gboolean
 soup_body_input_stream_is_readable (GPollableInputStream *stream)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (stream);
@@ -321,6 +339,16 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 	object_class->get_property = get_property;
 
 	input_stream_class->read_fn = soup_body_input_stream_read_fn;
+	input_stream_class->close_fn = soup_body_input_stream_close_fn;
+
+	signals[CLOSED] =
+		g_signal_new ("closed",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      _soup_marshal_NONE__NONE,
+			      G_TYPE_NONE, 0);
 
 	g_object_class_install_property (
 		object_class, PROP_ENCODING,

@@ -45,8 +45,10 @@ struct _SoupMessageQueueItem {
 	SoupAddress *proxy_addr;
 	SoupURI *proxy_uri;
 	SoupConnection *conn;
+	GSimpleAsyncResult *result;
 
 	guint paused            : 1;
+	guint new_api           : 1;
 	guint redirection_count : 31;
 
 	SoupMessageQueueItemState state;

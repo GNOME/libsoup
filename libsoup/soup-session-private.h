@@ -31,6 +31,20 @@ void                  soup_session_set_item_status      (SoupSession          *s
 							 SoupMessageQueueItem *item,
 							 guint                 status_code);
 
+GInputStream         *soup_session_send_request         (SoupSession          *session,
+							 SoupMessage          *msg,
+							 GCancellable         *cancellable,
+							 GError              **error);
+
+void                  soup_session_send_request_async   (SoupSession          *session,
+							 SoupMessage          *msg,
+							 GCancellable         *cancellable,
+							 GAsyncReadyCallback   callback,
+							 gpointer              user_data);
+GInputStream         *soup_session_send_request_finish  (SoupSession          *session,
+							 GAsyncResult         *result,
+							 GError              **error);
+
 G_END_DECLS
 
 #endif /* SOUP_SESSION_PRIVATE_H */

@@ -1739,10 +1739,7 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 
 		if (new_uri)
 			soup_uri_free (new_uri);
-		if (invalid) {
-			/* Really we should just leave the status as-is,
-			 * but that would be an API break.
-			 */
+		if (invalid && !item->new_api) {
 			soup_message_set_status_full (msg,
 						      SOUP_STATUS_MALFORMED,
 						      "Invalid Redirect URL");
@@ -2247,6 +2244,7 @@ soup_session_pause_message (SoupSession *session,
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
+	g_return_if_fail (!item->new_api);
 
 	item->paused = TRUE;
 	if (item->state == SOUP_MESSAGE_RUNNING)
@@ -2279,6 +2277,7 @@ soup_session_unpause_message (SoupSession *session,
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
+	g_return_if_fail (!item->new_api);
 
 	item->paused = FALSE;
 	if (item->state == SOUP_MESSAGE_RUNNING)

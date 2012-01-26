@@ -184,6 +184,8 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 		g_object_unref (item->proxy_addr);
 	if (item->proxy_uri)
 		soup_uri_free (item->proxy_uri);
+	if (item->result)
+		g_object_unref (item->result);
 	soup_message_queue_item_set_connection (item, NULL);
 	g_slice_free (SoupMessageQueueItem, item);
 }

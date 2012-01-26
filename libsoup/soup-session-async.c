@@ -34,6 +34,10 @@
 static void run_queue (SoupSessionAsync *sa);
 static void do_idle_run_queue (SoupSession *session);
 
+static void send_request_running   (SoupSession *session, SoupMessageQueueItem *item);
+static void send_request_restarted (SoupSession *session, SoupMessageQueueItem *item);
+static void send_request_finished  (SoupSession *session, SoupMessageQueueItem *item);
+
 static void  queue_message   (SoupSession *session, SoupMessage *req,
 			      SoupSessionCallback callback, gpointer user_data);
 static guint send_message    (SoupSession *session, SoupMessage *req);
@@ -225,9 +229,10 @@ message_completed (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
+	do_idle_run_queue (item->session);
+
 	if (item->state != SOUP_MESSAGE_RESTARTING)
 		item->state = SOUP_MESSAGE_FINISHING;
-	do_idle_run_queue (item->session);
 }
 
 static void
@@ -403,11 +408,15 @@ process_queue_item (SoupMessageQueueItem *item,
 		case SOUP_MESSAGE_READY:
 			item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, item, message_completed);
+			if (item->new_api)
+				send_request_running (session, item);
 			break;
 
 		case SOUP_MESSAGE_RESTARTING:
 			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_restarted (item->msg);
+			if (item->new_api)
+				send_request_restarted (session, item);
 			break;
 
 		case SOUP_MESSAGE_FINISHING:
@@ -420,6 +429,8 @@ process_queue_item (SoupMessageQueueItem *item,
 			soup_session_unqueue_item (session, item);
 			if (item->callback)
 				item->callback (session, item->msg, item->callback_data);
+			else if (item->new_api)
+				send_request_finished (session, item);
 			g_object_unref (item->msg);
 			do_idle_run_queue (session);
 			g_object_unref (session);
@@ -610,4 +621,230 @@ static void
 kick (SoupSession *session)
 {
 	do_idle_run_queue (session);
+}
+
+
+static void
+send_request_return_result (SoupMessageQueueItem *item,
+			    gpointer stream, GError *error)
+{
+	GSimpleAsyncResult *simple;
+
+	simple = item->result;
+	item->result = NULL;
+
+	if (error)
+		g_simple_async_result_take_error (simple, error);
+	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
+		if (stream)
+			g_object_unref (stream);
+		g_simple_async_result_set_error (simple,
+						 SOUP_HTTP_ERROR,
+						 item->msg->status_code,
+						 "%s",
+						 item->msg->reason_phrase);
+	} else
+		g_simple_async_result_set_op_res_gpointer (simple, stream, g_object_unref);
+
+	g_simple_async_result_complete (simple);
+	g_object_unref (simple);
+}
+
+static void
+send_request_restarted (SoupSession *session, SoupMessageQueueItem *item)
+{
+	/* We won't be needing this, then. */
+	g_object_set_data (G_OBJECT (item->msg), "SoupSessionAsync:ostream", NULL);
+}
+
+static void
+send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
+{
+	GMemoryOutputStream *mostream;
+	GInputStream *istream = NULL;
+
+	if (!item->result) {
+		/* Something else already took care of it. */
+		return;
+	}
+
+	mostream = g_object_get_data (G_OBJECT (item->msg), "SoupSessionAsync:ostream");
+	if (mostream && !SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
+		gpointer data;
+		gssize size;
+
+		/* We thought it would be requeued, but it wasn't, so
+		 * return the original body.
+		 */
+		size = g_memory_output_stream_get_data_size (mostream);
+		data = size ? g_memory_output_stream_steal_data (mostream) : g_strdup ("");
+		istream = g_memory_input_stream_new_from_data (data, size, g_free);
+	}
+
+	send_request_return_result (item, istream, NULL);
+}
+
+static void
+send_async_spliced (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	GInputStream *istream = g_object_get_data (source, "istream");
+
+	GError *error = NULL;
+
+	/* If the message was cancelled, it will be completed via other means */
+	if (g_cancellable_is_cancelled (item->cancellable) ||
+	    !item->result) {
+		soup_message_queue_item_unref (item);
+		return;
+	}
+
+	if (g_output_stream_splice_finish (G_OUTPUT_STREAM (source),
+					   result, &error) == -1) {
+		send_request_return_result (item, NULL, error);
+		return;
+	}
+
+	/* Otherwise either restarted or finished will eventually be called.
+	 * It should be safe to call the sync close() method here since
+	 * the message body has already been written.
+	 */
+	g_input_stream_close (istream, NULL, NULL);
+	do_idle_run_queue (item->session);
+	soup_message_queue_item_unref (item);
+}
+
+static void
+send_async_maybe_complete (SoupMessageQueueItem *item,
+			   GInputStream         *stream)
+{
+	if (item->msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
+	    item->msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED ||
+	    soup_session_would_redirect (item->session, item->msg)) {
+		GOutputStream *ostream;
+
+		/* Message may be requeued, so gather the current message body... */
+		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+		g_object_set_data_full (G_OBJECT (item->msg), "SoupSessionAsync:ostream",
+					ostream, g_object_unref);
+
+		g_object_set_data_full (G_OBJECT (ostream), "istream",
+					stream, g_object_unref);
+
+		/* Give the splice op its own ref on item */
+		soup_message_queue_item_ref (item);
+		g_output_stream_splice_async (ostream, stream,
+					      /* We can't use CLOSE_SOURCE because it
+					       * might get closed in the wrong thread.
+					       */
+					      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+					      G_PRIORITY_DEFAULT,
+					      item->cancellable,
+					      send_async_spliced, item);
+		return;
+	}
+
+	send_request_return_result (item, stream, NULL);
+}
+
+static void try_run_until_read (SoupMessageQueueItem *item);
+
+static gboolean
+read_ready_cb (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	GError *error = NULL;
+
+	if (g_cancellable_set_error_if_cancelled (item->cancellable, &error)) {
+		send_request_return_result (item, NULL, error);
+		return FALSE;
+	}
+
+	try_run_until_read (item);
+	return FALSE;
+}
+
+static void
+try_run_until_read (SoupMessageQueueItem *item)
+{
+	GError *error = NULL;
+	GInputStream *stream = NULL;
+	GSource *source;
+
+	if (soup_message_io_run_until_read (item->msg, item->cancellable, &error))
+		stream = soup_message_io_get_response_istream (item->msg, &error);
+	if (stream) {
+		send_async_maybe_complete (item, stream);
+		return;
+	}
+
+	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		send_request_return_result (item, NULL, error);
+		return;
+	}
+
+	g_clear_error (&error);
+	source = soup_message_io_get_source (item->msg, item->cancellable,
+					     read_ready_cb, item);
+	g_source_attach (source, soup_session_get_async_context (item->session));
+	g_source_unref (source);
+}
+
+static void
+send_request_running (SoupSession *session, SoupMessageQueueItem *item)
+{
+	try_run_until_read (item);
+}
+
+void
+soup_session_send_request_async (SoupSession         *session,
+				 SoupMessage         *msg,
+				 GCancellable        *cancellable,
+				 GAsyncReadyCallback  callback,
+				 gpointer             user_data)
+{
+	SoupMessageQueueItem *item;
+	gboolean use_thread_context;
+
+	g_return_if_fail (SOUP_IS_SESSION_ASYNC (session));
+
+	g_object_get (G_OBJECT (session),
+		      SOUP_SESSION_USE_THREAD_CONTEXT, &use_thread_context,
+		      NULL);
+	g_return_if_fail (use_thread_context);
+
+	/* Balance out the unref that queuing will eventually do */
+	g_object_ref (msg);
+
+	queue_message (session, msg, NULL, NULL);
+
+	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
+	g_return_if_fail (item != NULL);
+
+	item->new_api = TRUE;
+	item->result = g_simple_async_result_new (G_OBJECT (session),
+						  callback, user_data,
+						  soup_session_send_request_async);
+	g_simple_async_result_set_op_res_gpointer (item->result, item, (GDestroyNotify) soup_message_queue_item_unref);
+
+	if (cancellable) {
+		g_object_unref (item->cancellable);
+		item->cancellable = g_object_ref (cancellable);
+	}
+}
+
+GInputStream *
+soup_session_send_request_finish (SoupSession   *session,
+				  GAsyncResult  *result,
+				  GError       **error)
+{
+	GSimpleAsyncResult *simple;
+
+	g_return_val_if_fail (SOUP_IS_SESSION_ASYNC (session), NULL);
+	g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (session), soup_session_send_request_async), NULL);
+
+	simple = G_SIMPLE_ASYNC_RESULT (result);
+	if (g_simple_async_result_propagate_error (simple, error))
+		return NULL;
+	return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
 }

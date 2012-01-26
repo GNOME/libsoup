@@ -101,6 +101,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-body-output-stream.c	\
 	soup-cache.c			\
 	soup-cache-private.h		\
+	soup-client-input-stream.h	\
+	soup-client-input-stream.c	\
 	soup-connection.h		\
 	soup-connection.c		\
 	soup-content-decoder.c		\
@@ -121,8 +123,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
-	soup-http-input-stream.h	\
-	soup-http-input-stream.c	\
 	soup-logger.c			\
 	soup-marshal.h			\
 	soup-marshal.c			\
