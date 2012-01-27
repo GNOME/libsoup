@@ -403,6 +403,60 @@ do_temporary_test (SoupSession *session, SoupURI *base_uri)
 	g_object_unref (msg);
 }
 
+#define LARGE_CHUNK_SIZE 1000000
+
+typedef struct {
+	SoupBuffer *buf;
+	gsize offset;
+} LargeChunkData;
+
+static void
+large_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+{
+	LargeChunkData *lcd = user_data;
+
+	if (memcmp (chunk->data, lcd->buf->data + lcd->offset, chunk->length) != 0) {
+		debug_printf (1, "  chunk data mismatch at %ld\n", (long)lcd->offset);
+		errors++;
+	} else
+		debug_printf (2, "  chunk data match at %ld\n", (long)lcd->offset);
+	lcd->offset += chunk->length;
+}
+
+static void
+do_large_chunk_test (SoupSession *session, SoupURI *base_uri)
+{
+	SoupMessage *msg;
+	char *buf_data;
+	int i;
+	LargeChunkData lcd;
+
+	debug_printf (1, "PUT w/ large chunk\n");
+
+	msg = soup_message_new_from_uri ("PUT", base_uri);
+
+	buf_data = g_malloc0 (LARGE_CHUNK_SIZE);
+	for (i = 0; i < LARGE_CHUNK_SIZE; i++)
+		buf_data[i] = i & 0xFF;
+	lcd.buf = soup_buffer_new (SOUP_MEMORY_TAKE, buf_data, LARGE_CHUNK_SIZE);
+	lcd.offset = 0;
+	soup_message_body_append_buffer (msg->request_body, lcd.buf);
+	soup_message_body_set_accumulate (msg->request_body, FALSE);
+
+	g_signal_connect (msg, "wrote_body_data",
+			  G_CALLBACK (large_wrote_body_data), &lcd);
+	soup_session_send_message (session, msg);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "  message failed: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+
+	soup_buffer_free (lcd.buf);
+	g_object_unref (msg);
+}
+
 static void
 do_chunk_tests (SoupURI *base_uri)
 {
@@ -422,6 +476,8 @@ do_chunk_tests (SoupURI *base_uri)
 	do_response_test (session, base_uri);
 	debug_printf (2, "\n\n");
 	do_temporary_test (session, base_uri);
+	debug_printf (2, "\n\n");
+	do_large_chunk_test (session, base_uri);
 	soup_test_session_abort_unref (session);
 }
 
