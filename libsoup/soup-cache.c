@@ -164,7 +164,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 		return SOUP_CACHE_UNCACHEABLE;
 
 	cache_control = soup_message_headers_get (msg->response_headers, "Cache-Control");
-	if (cache_control) {
+	if (cache_control && *cache_control) {
 		GHashTable *hash;
 		SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
 
