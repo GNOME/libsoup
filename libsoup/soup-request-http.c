@@ -243,11 +243,13 @@ soup_request_http_send_async (SoupRequest          *request,
 
 			conditional_msg = soup_cache_generate_conditional_request (cache, http->priv->msg);
 
-			sadata->original = g_object_ref (http->priv->msg);
-			soup_session_queue_message (session, conditional_msg,
-						    conditional_get_ready_cb,
-						    sadata);
-			return;
+			if (conditional_msg) {
+				sadata->original = g_object_ref (http->priv->msg);
+				soup_session_queue_message (session, conditional_msg,
+							    conditional_get_ready_cb,
+							    sadata);
+				return;
+			}
 		}
 	}
 

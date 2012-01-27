@@ -968,7 +968,7 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 		/* Check if we are already caching this resource */
 		entry = soup_cache_entry_lookup (cache, msg);
 
-		if (entry && entry->dirty)
+		if (entry && (entry->dirty || entry->being_validated))
 			return;
 
 		/* Create a new entry, deleting any old one if present */
@@ -1550,12 +1550,24 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	SoupMessage *msg;
 	SoupURI *uri;
 	SoupCacheEntry *entry;
-	const char *value;
+	const char *last_modified, *etag;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (original), NULL);
 
-	/* First copy the data we need from the original message */
+	/* Add the validator entries in the header from the cached data */
+	entry = soup_cache_entry_lookup (cache, original);
+	g_return_val_if_fail (entry, NULL);
+
+	last_modified = soup_message_headers_get_one (entry->headers, "Last-Modified");
+	etag = soup_message_headers_get_one (entry->headers, "ETag");
+
+	if (!last_modified && !etag)
+		return NULL;
+
+	entry->being_validated = TRUE;
+
+	/* Copy the data we need from the original message */
 	uri = soup_message_get_uri (original);
 	msg = soup_message_new_from_uri (original->method, uri);
 
@@ -1563,23 +1575,15 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 				      (SoupMessageHeadersForeachFunc)copy_headers,
 				      msg->request_headers);
 
-	/* Now add the validator entries in the header from the cached
-	   data */
-	entry = soup_cache_entry_lookup (cache, original);
-	g_return_val_if_fail (entry, NULL);
-
-	entry->being_validated = TRUE;
-
-	value = soup_message_headers_get (entry->headers, "Last-Modified");
-	if (value)
+	if (last_modified)
 		soup_message_headers_append (msg->request_headers,
 					     "If-Modified-Since",
-					     value);
-	value = soup_message_headers_get (entry->headers, "ETag");
-	if (value)
+					     last_modified);
+	if (etag)
 		soup_message_headers_append (msg->request_headers,
 					     "If-None-Match",
-					     value);
+					     etag);
+
 	return msg;
 }
 
