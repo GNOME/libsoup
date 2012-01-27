@@ -147,6 +147,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheability cacheability;
 	const char *cache_control, *content_type;
+	gboolean has_max_age = FALSE;
 
 	/* 1. The request method must be cacheable */
 	if (msg->method == SOUP_METHOD_GET)
@@ -185,6 +186,9 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 			return SOUP_CACHE_UNCACHEABLE;
 		}
 
+		if (g_hash_table_lookup_extended (hash, "max-age", NULL, NULL))
+			has_max_age = TRUE;
+
 		/* This does not appear in section 2.1, but I think it makes
 		 * sense to check it too?
 		 */
@@ -195,6 +199,12 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 
 		soup_header_free_param_list (hash);
 	}
+
+	/* Section 13.9 */
+	if ((soup_message_get_uri (msg))->query &&
+	    !soup_message_headers_get_one (msg->response_headers, "Expires") &&
+	    !has_max_age)
+		return SOUP_CACHE_UNCACHEABLE;
 
 	switch (msg->status_code) {
 	case SOUP_STATUS_PARTIAL_CONTENT:
