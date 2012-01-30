@@ -36,14 +36,26 @@ get_index (void)
 	response = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
 }
 
+#define REDIRECT_HTML_BODY "<html><body>Try again</body></html>\r\n"
+
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
+	if (strcmp (path, "/") != 0) {
+		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
+		/* Make the response HTML so if we sniff that instead of the
+		 * real body, we'll notice.
+		 */
+		soup_message_set_response (msg, "text/html",
+					   SOUP_MEMORY_STATIC,
+					   REDIRECT_HTML_BODY,
+					   strlen (REDIRECT_HTML_BODY));
+		return;
+	}
+
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_set_response (msg, "text/plain",
-				   SOUP_MEMORY_STATIC, NULL, 0);
 	soup_message_body_append_buffer (msg->response_body, response);
 }
 
@@ -81,10 +93,11 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 	GInputStream *stream;
 	GError *error = NULL;
 	SoupMessage *msg;
+	const char *content_type;
 
 	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
 	if (!stream) {
-		debug_printf (1, "  send_async failed: %s", error->message);
+		debug_printf (1, "  send_async failed: %s\n", error->message);
 		errors++;
 		g_main_loop_quit (loop);
 		return;
@@ -92,13 +105,20 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (source));
 	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  GET failed: %d %s", msg->status_code,
+		debug_printf (1, "  GET failed: %d %s\n", msg->status_code,
 			      msg->reason_phrase);
 		errors++;
 		g_main_loop_quit (loop);
 		return;
 	}
 	g_object_unref (msg);
+
+	content_type = soup_request_get_content_type (SOUP_REQUEST (source));
+	if (g_strcmp0 (content_type, "text/plain") != 0) {
+		debug_printf (1, "  failed to sniff Content-Type: got %s\n",
+			      content_type ? content_type : "(NULL)");
+		errors++;
+	}
 
 	g_input_stream_read_async (stream, buf, sizeof (buf),
 				   G_PRIORITY_DEFAULT, NULL,
@@ -115,6 +135,7 @@ do_test_for_thread_and_context (SoupSession *session, const char *uri)
 	requester = soup_requester_new ();
 	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
 	g_object_unref (requester);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
 	body = g_string_new (NULL);
 
@@ -201,7 +222,7 @@ main (int argc, char **argv)
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	uri = g_strdup_printf ("http://127.0.0.1:%u/", soup_server_get_port (server));
+	uri = g_strdup_printf ("http://127.0.0.1:%u/foo", soup_server_get_port (server));
 
 	do_simple_test (uri);
 	do_thread_test (uri);
