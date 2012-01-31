@@ -18,7 +18,10 @@ SoupServer *server;
 GMainLoop *loop;
 char buf[1024];
 
-SoupBuffer *response;
+SoupBuffer *response, *auth_response;
+
+#define REDIRECT_HTML_BODY "<html><body>Try again</body></html>\r\n"
+#define AUTH_HTML_BODY "<html><body>Unauthorized</body></html>\r\n"
 
 static void
 get_index (void)
@@ -34,16 +37,31 @@ get_index (void)
 	}
 
 	response = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
-}
 
-#define REDIRECT_HTML_BODY "<html><body>Try again</body></html>\r\n"
+	auth_response = soup_buffer_new (SOUP_MEMORY_STATIC,
+					 AUTH_HTML_BODY,
+					 strlen (AUTH_HTML_BODY));
+}
 
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
-	if (strcmp (path, "/") != 0) {
+	gboolean chunked = FALSE;
+	int i;
+
+	if (strcmp (path, "/auth") == 0) {
+		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
+		soup_message_set_response (msg, "text/html",
+					   SOUP_MEMORY_STATIC,
+					   AUTH_HTML_BODY,
+					   strlen (AUTH_HTML_BODY));
+		soup_message_headers_append (msg->response_headers,
+					     "WWW-Authenticate",
+					     "Basic: realm=\"requester-test\"");
+		return;
+	} else if (strcmp (path, "/foo") == 0) {
 		soup_message_set_redirect (msg, SOUP_STATUS_FOUND, "/");
 		/* Make the response HTML so if we sniff that instead of the
 		 * real body, we'll notice.
@@ -53,10 +71,26 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					   REDIRECT_HTML_BODY,
 					   strlen (REDIRECT_HTML_BODY));
 		return;
-	}
+	} else if (strcmp (path, "/chunked") == 0)
+		chunked = TRUE;
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
-	soup_message_body_append_buffer (msg->response_body, response);
+
+	if (chunked) {
+		soup_message_headers_set_encoding (msg->response_headers,
+						   SOUP_ENCODING_CHUNKED);
+
+		for (i = 0; i < response->length; i += 8192) {
+			SoupBuffer *tmp;
+
+			tmp = soup_buffer_new_subbuffer (response, i,
+							 MIN (8192, response->length - i));
+			soup_message_body_append_buffer (msg->response_body, tmp);
+			soup_buffer_free (tmp);
+		}
+		soup_message_body_complete (msg->response_body);
+	} else
+		  soup_message_body_append_buffer (msg->response_body, response);
 }
 
 static void
@@ -69,7 +103,7 @@ test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	nread = g_input_stream_read_finish (stream, res, &error);
 	if (nread == -1) {
-		debug_printf (1, "  read_async failed: %s", error->message);
+		debug_printf (1, "    read_async failed: %s", error->message);
 		errors++;
 		g_object_unref (stream);
 		g_main_loop_quit (loop);
@@ -87,7 +121,7 @@ test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 }
 
 static void
-test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
+auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	GString *body = user_data;
 	GInputStream *stream;
@@ -97,15 +131,15 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
 	if (!stream) {
-		debug_printf (1, "  send_async failed: %s\n", error->message);
+		debug_printf (1, "    send_async failed: %s\n", error->message);
 		errors++;
 		g_main_loop_quit (loop);
 		return;
 	}
 
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (source));
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  GET failed: %d %s\n", msg->status_code,
+	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
 			      msg->reason_phrase);
 		errors++;
 		g_main_loop_quit (loop);
@@ -114,8 +148,8 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 	g_object_unref (msg);
 
 	content_type = soup_request_get_content_type (SOUP_REQUEST (source));
-	if (g_strcmp0 (content_type, "text/plain") != 0) {
-		debug_printf (1, "  failed to sniff Content-Type: got %s\n",
+	if (g_strcmp0 (content_type, "text/html") != 0) {
+		debug_printf (1, "    failed to sniff Content-Type: got %s\n",
 			      content_type ? content_type : "(NULL)");
 		errors++;
 	}
@@ -126,37 +160,103 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 }
 
 static void
-do_test_for_thread_and_context (SoupSession *session, const char *uri)
+test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	GString *body = user_data;
+	GInputStream *stream;
+	GError *error = NULL;
+	SoupMessage *msg;
+	const char *content_type;
+
+	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
+	if (!stream) {
+		debug_printf (1, "    send_async failed: %s\n", error->message);
+		errors++;
+		g_main_loop_quit (loop);
+		return;
+	}
+
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (source));
+	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
+			      msg->reason_phrase);
+		errors++;
+		g_main_loop_quit (loop);
+		return;
+	}
+	g_object_unref (msg);
+
+	content_type = soup_request_get_content_type (SOUP_REQUEST (source));
+	if (g_strcmp0 (content_type, "text/plain") != 0) {
+		debug_printf (1, "    failed to sniff Content-Type: got %s\n",
+			      content_type ? content_type : "(NULL)");
+		errors++;
+	}
+
+	g_input_stream_read_async (stream, buf, sizeof (buf),
+				   G_PRIORITY_DEFAULT, NULL,
+				   test_read_ready, body);
+}
+
+static void
+do_one_test (SoupSession *session, SoupURI *uri,
+	     GAsyncReadyCallback callback, SoupBuffer *expected_response)
 {
 	SoupRequester *requester;
 	SoupRequest *request;
 	GString *body;
 
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
-	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
 
 	body = g_string_new (NULL);
-
-	request = soup_requester_request (requester, uri, NULL);
-	soup_request_send_async (request, NULL, test_sent, body);
+	request = soup_requester_request_uri (requester, uri, NULL);
+	soup_request_send_async (request, NULL, callback, body);
 	g_object_unref (request);
 
 	loop = g_main_loop_new (soup_session_get_async_context (session), TRUE);
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 
-	if (body->len != response->length) {
-		debug_printf (1, "  body length mismatch: expected %d, got %d\n",
-			      (int)response->length, (int)body->len);
+	if (body->len != expected_response->length) {
+		debug_printf (1, "    body length mismatch: expected %d, got %d\n",
+			      (int)expected_response->length, (int)body->len);
 		errors++;
-	} else if (memcmp (body->str, response->data, response->length) != 0) {
-		debug_printf (1, "  body data mismatch\n");
+	} else if (memcmp (body->str, expected_response->data,
+			   expected_response->length) != 0) {
+		debug_printf (1, "    body data mismatch\n");
 		errors++;
 	}
 
 	g_string_free (body, TRUE);
+}
+
+static void
+do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
+{
+	SoupRequester *requester;
+	SoupURI *uri;
+
+	requester = soup_requester_new ();
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
+	g_object_unref (requester);
+	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+	debug_printf (1, "  basic test\n");
+	uri = soup_uri_new (base_uri);
+	do_one_test (session, uri, test_sent, response);
+	soup_uri_free (uri);
+
+	debug_printf (1, "  chunked test\n");
+	uri = soup_uri_new (base_uri);
+	soup_uri_set_path (uri, "/chunked");
+	do_one_test (session, uri, test_sent, response);
+	soup_uri_free (uri);
+
+	debug_printf (1, "  auth test\n");
+	uri = soup_uri_new (base_uri);
+	soup_uri_set_path (uri, "/auth");
+	do_one_test (session, uri, auth_test_sent, auth_response);
+	soup_uri_free (uri);
 }
 
 static void
@@ -222,6 +322,7 @@ main (int argc, char **argv)
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+
 	uri = g_strdup_printf ("http://127.0.0.1:%u/foo", soup_server_get_port (server));
 
 	do_simple_test (uri);
