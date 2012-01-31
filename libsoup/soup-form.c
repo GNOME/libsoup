@@ -168,7 +168,8 @@ soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 		*filename = NULL;
 	if (content_type)
 		*content_type = NULL;
-	*file = NULL;
+	if (file)
+		*file = NULL;
 
 	form_data_set = g_hash_table_new_full (g_str_hash, g_str_equal,
 					       g_free, g_free);
