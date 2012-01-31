@@ -127,6 +127,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 			g_free (index_path);
 			return;
 		}
+		g_free (index_path);
 
 		listing = get_directory_listing (path);
 		soup_message_set_response (msg, "text/html",
