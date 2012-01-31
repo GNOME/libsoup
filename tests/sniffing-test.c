@@ -23,7 +23,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	GError *error = NULL;
 	char *query_key;
 	char *contents;
-	gsize length, offset;
+	gsize length = 0, offset;
 	gboolean empty_response = FALSE;
 
 	if (msg->method != SOUP_METHOD_GET) {
