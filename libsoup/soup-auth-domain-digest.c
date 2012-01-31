@@ -431,7 +431,7 @@ check_password (SoupAuthDomain *domain,
 
 	header = soup_message_headers_get_one (msg->request_headers,
 					       "Authorization");
-	if (strncmp (header, "Digest ", 7) != 0)
+	if (!header || (strncmp (header, "Digest ", 7) != 0))
 		return FALSE;
 
 	params = soup_header_parse_param_list (header + 7);

@@ -268,7 +268,7 @@ parse_basic (SoupMessage *msg, const char *header,
 	char *decoded, *colon;
 	gsize len, plen;
 
-	if (strncmp (header, "Basic ", 6) != 0)
+	if (!header || (strncmp (header, "Basic ", 6) != 0))
 		return FALSE;
 
 	decoded = (char *)g_base64_decode (header + 6, &len);
