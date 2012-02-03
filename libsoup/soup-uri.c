@@ -378,7 +378,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 /**
  * soup_uri_new:
- * @uri_string: a URI
+ * @uri_string: (allow-none): a URI
  *
  * Parses an absolute URI.
  *
