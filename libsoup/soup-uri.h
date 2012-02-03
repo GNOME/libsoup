@@ -97,6 +97,7 @@ guint       soup_uri_host_hash             (gconstpointer key);
 gboolean    soup_uri_host_equal            (gconstpointer v1,
 					    gconstpointer v2);
 
+#define   SOUP_URI_IS_VALID(uri)       ((uri) && (uri)->scheme && (uri)->path)
 #define   SOUP_URI_VALID_FOR_HTTP(uri) ((uri) && ((uri)->scheme == SOUP_URI_SCHEME_HTTP || (uri)->scheme == SOUP_URI_SCHEME_HTTPS) && (uri)->host && (uri)->path)
 
 G_END_DECLS
