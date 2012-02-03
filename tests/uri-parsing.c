@@ -125,6 +125,9 @@ static struct {
 	/* Bug 662806; %-encode non-ASCII characters */
 	{ "http://host/p\xc3\xa4th/", "http://host/p%C3%A4th/",
 	  { "http", NULL, NULL, "host", 80, "/p%C3%A4th/", NULL, NULL } },
+
+	{ "HTTP:////////////////", "http:////////////////",
+	  { "http", NULL, NULL, "", 80, "//////////////", NULL, NULL } },
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
