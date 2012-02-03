@@ -1067,9 +1067,7 @@ soup_uri_copy_host (SoupURI *uri)
 	dup->scheme = uri->scheme;
 	dup->host   = g_strdup (uri->host);
 	dup->port   = uri->port;
-	if (dup->scheme == SOUP_URI_SCHEME_HTTP ||
-	    dup->scheme == SOUP_URI_SCHEME_HTTPS)
-		dup->path = g_strdup ("");
+	dup->path = g_strdup ("");
 
 	return dup;
 }
