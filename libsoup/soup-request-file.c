@@ -93,12 +93,9 @@ soup_request_file_ensure_file (SoupRequestFile  *file,
 
 	uri = soup_request_get_uri (SOUP_REQUEST (file));
 	if (uri->scheme == SOUP_URI_SCHEME_FILE) {
-		gchar *decoded_uri = soup_uri_decode (uri->path);
-
-		if (decoded_uri) {
-			file->priv->gfile = g_file_new_for_path (decoded_uri);
-			g_free (decoded_uri);
-		}
+		gchar *file_uri = soup_uri_to_string (uri, FALSE);
+		file->priv->gfile = g_file_new_for_uri (file_uri);
+		g_free (file_uri);
 
 		return TRUE;
 	}
