@@ -111,6 +111,7 @@ uri_from_address (SoupAddress *addr)
 	soup_uri_set_scheme (proxy_uri, SOUP_URI_SCHEME_HTTP);
 	soup_uri_set_host (proxy_uri, soup_address_get_name (addr));
 	soup_uri_set_port (proxy_uri, soup_address_get_port (addr));
+	soup_uri_set_path (proxy_uri, "");
 	return proxy_uri;
 }
 
