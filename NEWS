@@ -1,3 +1,21 @@
+Changes in libsoup from 2.37.4 to 2.37.5:
+
+	* Fixed a bug in SoupSession:use-thread-context [Dan]
+
+	* Fixed the case of cancelling a message from
+          SoupSession::request-started [#668098, Raphael Kubo da
+          Costa]
+
+	* Fixed a crash in epiphany when loading a page with more than
+	  1000 or so images. [#668508, Dan]
+
+	* Fixed a bunch of cases involving invalid URLs found while
+          testing SoupServer against an HTTP protocol fuzzer. Also
+          fixed up some documentation/annotations and added some new
+          test cases. [#667637, Simon McVittie]
+
+	* Fixed SoupRequestFile to work on Windows. [Paweł Forysiuk]
+
 Changes in libsoup from 2.37.3 to 2.37.4:
 
 	* SoupMessage now has a "network-event" signal that can be
