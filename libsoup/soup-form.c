@@ -159,6 +159,8 @@ soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 	char *disposition, *name;
 	int i;
 
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
 	multipart = soup_multipart_new_from_message (msg->request_headers,
 						     msg->request_body);
 	if (!multipart)
