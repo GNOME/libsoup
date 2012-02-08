@@ -116,9 +116,9 @@ soup_form_decode (const char *encoded_form)
  * soup_form_decode_multipart:
  * @msg: a #SoupMessage containing a "multipart/form-data" request body
  * @file_control_name: the name of the HTML file upload control, or %NULL
- * @filename: (out): return location for the name of the uploaded file
- * @content_type: (out): return location for the MIME type of the uploaded file
- * @file: (out): return location for the uploaded file data
+ * @filename: (out) (allow-none): return location for the name of the uploaded file, or %NULL
+ * @content_type: (out) (allow-none): return location for the MIME type of the uploaded file, or %NULL
+ * @file: (out) (allow-none): return location for the uploaded file data, or %NULL
  *
  * Decodes the "multipart/form-data" request in @msg; this is a
  * convenience method for the case when you have a single file upload
@@ -130,7 +130,7 @@ soup_form_decode (const char *encoded_form)
  * control data will be returned (as strings, as with
  * soup_form_decode()) in the returned #GHashTable.
  *
- * You may pass %NULL for @filename and/or @content_type if you do not
+ * You may pass %NULL for @filename, @content_type and/or @file if you do not
  * care about those fields. soup_form_decode_multipart() may also
  * return %NULL in those fields if the client did not provide that
  * information. You must free the returned filename and content-type
