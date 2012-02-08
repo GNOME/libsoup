@@ -151,7 +151,7 @@ _glib_marshal_sources = $(filter-out %.h,$(filter-out $(GLIB_GENERATED),$($(_gli
 # foo_marshal_sources wasn't set. Note that single-$ variables are
 # expanded when the macro is called, and double-$ variables are
 # expanded when the rule is invoked.
-define _glib_make_genmarshal_rules =
+define _glib_make_genmarshal_rules
 $(if $(_glib_marshal_sources),,$(error Need to define $(_glib_marshal_sources_var) for $(1).[ch]))
 
 $(1).list.stamp: $(_glib_marshal_sources)
@@ -197,7 +197,7 @@ _glib_enum_types_sources_var = $(_glib_enum_types_prefix)_sources
 _glib_enum_types_sources = $(filter-out $(GLIB_GENERATED),$($(_glib_enum_types_sources_var)))
 _glib_enum_types_h_sources = $(filter %.h,$(_glib_enum_types_sources))
 
-define _glib_make_mkenums_rules =
+define _glib_make_mkenums_rules
 $(if $(_glib_enum_types_sources),,$(error Need to define $(_glib_enum_types_sources_var) for $(1).[ch]))
 
 $(1).h.stamp: $(_glib_enum_types_h_sources)
