@@ -115,7 +115,7 @@ soup_form_decode (const char *encoded_form)
 /**
  * soup_form_decode_multipart:
  * @msg: a #SoupMessage containing a "multipart/form-data" request body
- * @file_control_name: the name of the HTML file upload control, or %NULL
+ * @file_control_name: (allow-none): the name of the HTML file upload control, or %NULL
  * @filename: (out) (allow-none): return location for the name of the uploaded file, or %NULL
  * @content_type: (out) (allow-none): return location for the MIME type of the uploaded file, or %NULL
  * @file: (out) (allow-none): return location for the uploaded file data, or %NULL
@@ -186,7 +186,7 @@ soup_form_decode_multipart (SoupMessage *msg, const char *file_control_name,
 			continue;
 		}
 
-		if (!strcmp (name, file_control_name)) {
+		if (file_control_name && !strcmp (name, file_control_name)) {
 			if (filename)
 				*filename = g_strdup (g_hash_table_lookup (params, "filename"));
 			if (content_type)
