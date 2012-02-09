@@ -355,6 +355,106 @@ do_uri (SoupURI *base_uri, const char *base_str,
 	return TRUE;
 }
 
+static void
+do_soup_uri_null_tests (void)
+{
+	SoupURI *uri, *uri2;
+	char *uri_string;
+
+	debug_printf (1, "\nsoup_uri_new (NULL)\n");
+	uri = soup_uri_new (NULL);
+	if (SOUP_URI_IS_VALID (uri) || SOUP_URI_VALID_FOR_HTTP (uri)) {
+		debug_printf (1, "  ERROR: soup_uri_new(NULL) returns valid URI?\n");
+		errors++;
+	}
+
+	/* This implicitly also verifies that none of these methods g_warn */
+	if (soup_uri_get_scheme (uri) ||
+	    soup_uri_get_user (uri) ||
+	    soup_uri_get_password (uri) ||
+	    soup_uri_get_host (uri) ||
+	    soup_uri_get_port (uri) ||
+	    soup_uri_get_path (uri) ||
+	    soup_uri_get_query (uri) ||
+	    soup_uri_get_fragment (uri)) {
+		debug_printf (1, "  ERROR: soup_uri_new(NULL) returns non-empty URI?\n");
+		errors++;
+	}
+
+	expect_warning = TRUE;
+	uri2 = soup_uri_new_with_base (uri, "/path");
+	if (uri2 || expect_warning) {
+		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't fail on NULL URI?\n");
+		errors++;
+		expect_warning = FALSE;
+	}
+
+	expect_warning = TRUE;
+	uri_string = soup_uri_to_string (uri, FALSE);
+	if (expect_warning) {
+		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on NULL URI?\n");
+		errors++;
+		expect_warning = FALSE;
+	} else if (*uri_string) {
+		debug_printf (1, "  ERROR: soup_uri_to_string on NULL URI returned '%s'\n",
+			      uri_string);
+		errors++;
+	}
+	g_free (uri_string);
+
+	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTP);
+	if (SOUP_URI_IS_VALID (uri) || SOUP_URI_VALID_FOR_HTTP (uri)) {
+		debug_printf (1, "  ERROR: setting scheme on NULL URI makes it valid?\n");
+		errors++;
+	}
+
+	soup_uri_set_host (uri, "localhost");
+	if (SOUP_URI_IS_VALID (uri)) {
+		debug_printf (1, "  ERROR: setting scheme+host on NULL URI makes it valid?\n");
+		errors++;
+	}
+	if (SOUP_URI_VALID_FOR_HTTP (uri)) {
+		debug_printf (1, "  ERROR: setting scheme+host on NULL URI makes it valid for http?\n");
+		errors++;
+	}
+
+	expect_warning = TRUE;
+	uri2 = soup_uri_new_with_base (uri, "/path");
+	if (expect_warning) {
+		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't warn on NULL+scheme URI?\n");
+		errors++;
+		expect_warning = FALSE;
+	} else if (!uri2) {
+		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't fix path on NULL+scheme URI\n");
+		errors++;
+	} else
+		soup_uri_free (uri2);
+
+	expect_warning = TRUE;
+	soup_uri_set_path (uri, NULL);
+	if (expect_warning) {
+		debug_printf (1, "  ERROR: setting path to NULL doesn't warn\n");
+		errors++;
+		expect_warning = FALSE;
+	}
+	if (!uri->path || *uri->path) {
+		debug_printf (1, "  ERROR: setting path to NULL != \"\"\n");
+		errors++;
+		soup_uri_set_path (uri, "");
+	}
+
+	if (!SOUP_URI_IS_VALID (uri)) {
+		debug_printf (1, "  ERROR: setting scheme+path on NULL URI doesn't make it valid?\n");
+		errors++;
+	}
+	if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
+		debug_printf (1, "  ERROR: setting scheme+host+path on NULL URI doesn't make it valid for http?\n");
+		errors++;
+	}
+
+	soup_uri_free (uri);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -410,6 +510,8 @@ main (int argc, char **argv)
 		soup_uri_free (uri1);
 		soup_uri_free (uri2);
 	}
+
+	do_soup_uri_null_tests ();
 
 	test_cleanup ();
 	return errors != 0;
