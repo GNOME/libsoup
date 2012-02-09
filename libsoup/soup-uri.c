@@ -204,7 +204,7 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 	/* Find scheme: initial [a-z+.-]* substring until ":" */
 	p = uri_string;
-	while (p < end && (g_ascii_isalnum (*p) ||
+	while (p < end && (g_ascii_isalpha (*p) ||
 			   *p == '.' || *p == '+' || *p == '-'))
 		p++;
 
@@ -448,10 +448,6 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	char *return_result;
 
 	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
-
-	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
-	 * tests/uri-parsing AFTERWARD.
-	 */
 
 	str = g_string_sized_new (20);
 
