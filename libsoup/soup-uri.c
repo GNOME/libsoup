@@ -157,14 +157,24 @@ soup_scheme_default_port (const char *scheme)
 SoupURI *
 soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 {
-	SoupURI *uri;
+	SoupURI *uri, fixed_base;
 	const char *end, *hash, *colon, *at, *path, *question;
 	const char *p, *hostend;
 	gboolean remove_dot_segments = TRUE;
 	int len;
 
-	g_return_val_if_fail (base == NULL || SOUP_URI_IS_VALID (base), NULL);
 	g_return_val_if_fail (uri_string != NULL, NULL);
+
+	/* Allow a %NULL path in @base, for compatibility */
+	if (base && base->scheme && !base->path) {
+		g_warn_if_fail (SOUP_URI_IS_VALID (base));
+
+		memcpy (&fixed_base, base, sizeof (SoupURI));
+		fixed_base.path = "";
+		base = &fixed_base;
+	}
+
+	g_return_val_if_fail (base == NULL || SOUP_URI_IS_VALID (base), NULL);
 
 	/* First some cleanup steps (which are supposed to all be no-ops,
 	 * but...). Skip initial whitespace, strip out internal tabs and
@@ -447,7 +457,8 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	GString *str;
 	char *return_result;
 
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
 	/* IF YOU CHANGE ANYTHING IN THIS FUNCTION, RUN
 	 * tests/uri-parsing AFTERWARD.
@@ -506,7 +517,8 @@ soup_uri_copy (SoupURI *uri)
 {
 	SoupURI *dup;
 
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
 	dup = g_slice_new0 (SoupURI);
 	dup->scheme   = uri->scheme;
@@ -543,8 +555,10 @@ parts_equal (const char *one, const char *two, gboolean insensitive)
 gboolean 
 soup_uri_equal (SoupURI *uri1, SoupURI *uri2)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri1), FALSE);
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri2), FALSE);
+	g_return_val_if_fail (uri1 != NULL, FALSE);
+	g_return_val_if_fail (uri2 != NULL, FALSE);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri1));
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri2));
 
 	if (uri1->scheme != uri2->scheme                         ||
 	    uri1->port   != uri2->port                           ||
@@ -775,7 +789,7 @@ gboolean
 soup_uri_uses_default_port (SoupURI *uri)
 {
 	g_return_val_if_fail (uri != NULL, FALSE);
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), FALSE);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
 	return uri->port == soup_scheme_default_port (uri->scheme);
 }
@@ -807,7 +821,7 @@ soup_uri_uses_default_port (SoupURI *uri)
 const char *
 soup_uri_get_scheme (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->scheme;
 }
@@ -843,7 +857,7 @@ soup_uri_set_scheme (SoupURI *uri, const char *scheme)
 const char *
 soup_uri_get_user (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->user;
 }
@@ -877,7 +891,7 @@ soup_uri_set_user (SoupURI *uri, const char *user)
 const char *
 soup_uri_get_password (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->password;
 }
@@ -911,7 +925,7 @@ soup_uri_set_password (SoupURI *uri, const char *password)
 const char *
 soup_uri_get_host (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->host;
 }
@@ -951,7 +965,7 @@ soup_uri_set_host (SoupURI *uri, const char *host)
 guint
 soup_uri_get_port (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), 0);
+	g_return_val_if_fail (uri != NULL, 0);
 
 	return uri->port;
 }
@@ -985,7 +999,7 @@ soup_uri_set_port (SoupURI *uri, guint port)
 const char *
 soup_uri_get_path (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->path;
 }
@@ -1001,7 +1015,12 @@ void
 soup_uri_set_path (SoupURI *uri, const char *path)
 {
 	g_return_if_fail (uri != NULL);
-	g_return_if_fail (path != NULL);
+
+	/* We allow a NULL path for compatibility, but warn about it. */
+	if (!path) {
+		g_warn_if_fail (path != NULL);
+		path = "";
+	}
 
 	g_free (uri->path);
 	uri->path = g_strdup (path);
@@ -1020,7 +1039,7 @@ soup_uri_set_path (SoupURI *uri, const char *path)
 const char *
 soup_uri_get_query (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->query;
 }
@@ -1098,7 +1117,7 @@ soup_uri_set_query_from_fields (SoupURI    *uri,
 const char *
 soup_uri_get_fragment (SoupURI *uri)
 {
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
 	return uri->fragment;
 }
@@ -1134,13 +1153,14 @@ soup_uri_copy_host (SoupURI *uri)
 {
 	SoupURI *dup;
 
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
 	dup = soup_uri_new (NULL);
 	dup->scheme = uri->scheme;
 	dup->host   = g_strdup (uri->host);
 	dup->port   = uri->port;
-	dup->path = g_strdup ("");
+	dup->path   = g_strdup ("");
 
 	return dup;
 }
@@ -1160,8 +1180,8 @@ soup_uri_host_hash (gconstpointer key)
 {
 	const SoupURI *uri = key;
 
-	g_return_val_if_fail (SOUP_URI_IS_VALID (uri), 0);
-	g_return_val_if_fail (uri->host != NULL, 0);
+	g_return_val_if_fail (uri != NULL && uri->host != NULL, 0);
+	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
 	return GPOINTER_TO_UINT (uri->scheme) + uri->port +
 		soup_str_case_hash (uri->host);
@@ -1186,9 +1206,9 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	const SoupURI *two = v2;
 
 	g_return_val_if_fail (one != NULL && two != NULL, one == two);
-	g_return_val_if_fail (SOUP_URI_IS_VALID (one), FALSE);
-	g_return_val_if_fail (SOUP_URI_IS_VALID (two), FALSE);
 	g_return_val_if_fail (one->host != NULL && two->host != NULL, one->host == two->host);
+	g_warn_if_fail (SOUP_URI_IS_VALID (one));
+	g_warn_if_fail (SOUP_URI_IS_VALID (two));
 
 	if (one->scheme != two->scheme)
 		return FALSE;
