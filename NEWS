@@ -1,3 +1,11 @@
+Changes in libsoup from 2.37.5 to 2.37.5.1:
+
+	* Replace some of the newly-added SoupURI g_return_if_fail()s
+	  with g_warn_if_fail()s. Although it had always been
+	  documented that SoupURIs must have a non-NULL path, most
+	  functions treated NULL the same as "", and various apps (eg,
+	  rhythmbox, midori) were accidentally relying on this.
+
 Changes in libsoup from 2.37.4 to 2.37.5:
 
 	* Fixed a bug in SoupSession:use-thread-context [Dan]
