@@ -41,6 +41,13 @@
    fun:g_thread_init_glib
 }
 {
+   glib/g_thread_self
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc0
+   fun:g_thread_self
+}
+{
    glib/g_type_register_static
    Memcheck:Leak
    ...
@@ -173,6 +180,12 @@
    fun:_g_io_modules_ensure_loaded
 }
 {
+   glib/giomodules2
+   Memcheck:Leak
+   ...
+   fun:_g_io_module_get_default
+}
+{
    glib/proxydefault
    Memcheck:Leak
    ...
@@ -196,12 +209,6 @@
    Memcheck:Leak
    ...
    fun:g_tls_backend_get_default_database
-}
-{
-   glib/tlscrypto
-   Memcheck:Leak
-   ...
-   fun:gcry_pthread_mutex_init
 }
 {
    glib/tlscache
@@ -316,6 +323,31 @@
    ...
    fun:g_thread_create_posix_impl
 }
+{
+   glib/filenamecharsets
+   Memcheck:Leak
+   ...
+   fun:g_get_filename_charsets
+}
+{
+   glib/charset
+   Memcheck:Leak
+   ...
+   fun:g_get_charset
+}
+{
+   glib/gtlssessioncache
+   Memcheck:Leak
+   ...
+   fun:g_tls_backend_gnutls_store_session
+}
+{
+   glib/cached_poll_array
+   Memcheck:Leak
+   ...
+   fun:g_malloc_n
+   fun:g_main_context_iterate
+}
 
 # probably inlines the aggressive memcpy/memcmp
 {
@@ -330,6 +362,19 @@
    Memcheck:Cond
    ...
    fun:gnutls_handshake
+}
+{
+   gnutls/init
+   Memcheck:Leak
+   ...
+   fun:gnutls_global_init
+}
+# known leak in gnutls 2.12, fixed in 3.0
+{
+   gnutls/server_key_leak
+   Memcheck:Leak
+   ...
+   fun:call_get_cert_callback
 }
 
 {
@@ -375,4 +420,28 @@
    Memcheck:Leak
    ...
    fun:intern_header_name
+}
+
+
+# fixme?
+{
+   glib/gmuteximpl
+   Memcheck:Leak
+   ...
+   fun:g_mutex_impl_new
+   fun:g_mutex_get_impl
+}
+{
+   glib/gcondimpl
+   Memcheck:Leak
+   ...
+   fun:g_cond_impl_new
+   fun:g_cond_get_impl
+}
+{
+   glib/gprivateimpl
+   Memcheck:Leak
+   ...
+   fun:g_private_impl_new
+   fun:g_private_get_impl
 }

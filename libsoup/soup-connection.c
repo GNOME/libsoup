@@ -108,7 +108,8 @@ finalize (GObject *object)
 		g_object_unref (priv->tunnel_addr);
 	if (priv->proxy_uri)
 		soup_uri_free (priv->proxy_uri);
-
+	if (priv->tlsdb)
+		g_object_unref (priv->tlsdb);
 	if (priv->async_context)
 		g_main_context_unref (priv->async_context);
 

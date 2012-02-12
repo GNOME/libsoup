@@ -1056,6 +1056,7 @@ do_auth_close_test (void)
 		SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, server_basic_auth_callback,
 		NULL);
 	soup_server_add_auth_domain (server, basic_auth_domain);
+	g_object_unref (basic_auth_domain);
 
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (auth_close_request_started), NULL);
@@ -1065,6 +1066,7 @@ do_auth_close_test (void)
 			  G_CALLBACK (auth_close_authenticate), &acd);
 
 	acd.msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
 	soup_session_send_message (acd.session, acd.msg);
 
 	if (acd.msg->status_code != SOUP_STATUS_OK) {

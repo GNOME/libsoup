@@ -1633,9 +1633,12 @@ soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 		return FALSE;
 
 	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
-	if (!item)
+	if (!item) {
+		soup_uri_free (new_uri);
 		return FALSE;
+	}
 	if (item->redirection_count >= SOUP_SESSION_MAX_REDIRECTION_COUNT) {
+		soup_uri_free (new_uri);
 		soup_session_cancel_message (session, msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
 		soup_message_queue_item_unref (item);
 		return FALSE;
