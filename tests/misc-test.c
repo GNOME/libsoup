@@ -1272,6 +1272,38 @@ do_ipv6_test (void)
 	soup_test_server_quit_unref (ipv6_server);
 }
 
+static void
+do_idle_on_dispose_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	GMainContext *async_context;
+
+	debug_printf (1, "\nTesting SoupSessionAsync dispose behavior\n");
+
+	async_context = g_main_context_new ();
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_ASYNC_CONTEXT, async_context,
+					 NULL);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_send_message (session, msg);
+	g_object_unref (msg);
+
+	while (g_main_context_iteration (async_context, FALSE))
+		;
+
+	g_object_run_dispose (G_OBJECT (session));
+
+	if (g_main_context_iteration (async_context, FALSE)) {
+		debug_printf (1, "  idle was queued!\n");
+		errors++;
+	}
+
+	g_object_unref (session);
+	g_main_context_unref (async_context);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1311,6 +1343,7 @@ main (int argc, char **argv)
 	do_non_persistent_connection_test ();
 	do_dot_dot_test ();
 	do_ipv6_test ();
+	do_idle_on_dispose_test ();
 
 	soup_uri_free (base_uri);
 	soup_uri_free (ssl_base_uri);

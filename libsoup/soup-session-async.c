@@ -69,13 +69,16 @@ soup_session_async_init (SoupSessionAsync *sa)
 }
 
 static void
-finalize (GObject *object)
+dispose (GObject *object)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
 
-	g_hash_table_destroy (priv->idle_run_queue_sources);
+	if (priv->idle_run_queue_sources) {
+		g_hash_table_destroy (priv->idle_run_queue_sources);
+		priv->idle_run_queue_sources = NULL;
+	}
 
-	G_OBJECT_CLASS (soup_session_async_parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_session_async_parent_class)->dispose (object);
 }
 
 static void
@@ -94,7 +97,7 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	session_class->auth_required = auth_required;
 	session_class->kick = kick;
 
-	object_class->finalize = finalize;
+	object_class->dispose = dispose;
 }
 
 
@@ -483,6 +486,9 @@ idle_run_queue (gpointer sa)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
 
+	if (!priv->idle_run_queue_sources)
+		return FALSE;
+
 	g_hash_table_remove (priv->idle_run_queue_sources,
 			     soup_session_get_async_context (sa));
 	run_queue (sa);
@@ -493,6 +499,9 @@ static void
 do_idle_run_queue (SoupSession *session)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (session);
+
+	if (!priv->idle_run_queue_sources)
+		return;
 
 	if (!g_hash_table_lookup (priv->idle_run_queue_sources,
 				  soup_session_get_async_context (session))) {
