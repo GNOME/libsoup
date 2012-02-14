@@ -82,14 +82,14 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	} else if (priv->http_version == SOUP_HTTP_1_0) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);
-		const char *host = soup_address_get_physical (addr);
 
-		url = g_strdup_printf ("%s://%s:%d%s",
-				       soup_socket_is_ssl (sock) ? "https" : "http",
-				       host, soup_address_get_port (addr),
-				       req_path);
-		uri = soup_uri_new (url);
-		g_free (url);
+		uri = soup_uri_new (NULL);
+		soup_uri_set_scheme (uri, soup_socket_is_ssl (sock) ?
+				     SOUP_URI_SCHEME_HTTPS :
+				     SOUP_URI_SCHEME_HTTP);
+		soup_uri_set_host (uri, soup_address_get_physical (addr));
+		soup_uri_set_port (uri, soup_address_get_port (addr));
+		soup_uri_set_path (uri, req_path);
 	} else
 		uri = NULL;
 
