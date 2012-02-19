@@ -19,6 +19,9 @@ static GMainLoop *loop;
 static void
 print_value (GValue *value)
 {
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 	if (G_VALUE_HOLDS_STRING (value))
 		printf ("%s", g_value_get_string (value));
 	else if (G_VALUE_HOLDS_INT (value))
@@ -37,6 +40,9 @@ print_value (GValue *value)
 		printf (" ]");
 	} else
 		printf ("(%s)", g_type_name (G_VALUE_TYPE (value)));
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 }
 
 static void

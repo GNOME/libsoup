@@ -102,7 +102,13 @@ insert_value (xmlNode *parent, GValue *value)
 		g_hash_table_foreach (hash, insert_member, &struct_node);
 		if (!struct_node)
 			return FALSE;
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 	} else if (type == G_TYPE_VALUE_ARRAY) {
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 		GValueArray *va = g_value_get_boxed (value);
 		xmlNode *node;
 		int i;
@@ -201,7 +207,13 @@ soup_xmlrpc_request_newv (const char *uri, const char *method_name, va_list args
 
 	body = soup_xmlrpc_build_method_call (method_name, params->values,
 					      params->n_values);
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 	g_value_array_free (params);
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 	if (!body)
 		return NULL;
 
@@ -520,6 +532,9 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 		if (!data || strcmp ((const char *)data->name, "data") != 0)
 			return FALSE;
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 		array = g_value_array_new (1);
 		for (xval = find_real_node (data->children);
 		     xval;
@@ -536,6 +551,9 @@ parse_value (xmlNode *xmlvalue, GValue *value)
 		}
 		g_value_init (value, G_TYPE_VALUE_ARRAY);
 		g_value_take_boxed (value, array);
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 	} else
 		return FALSE;
 
@@ -584,6 +602,9 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 	if (!node || strcmp ((const char *)node->name, "params") != 0)
 		goto fail;
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 	*params = g_value_array_new (1);
 	param = find_real_node (node->children);
 	while (param && !strcmp ((const char *)param->name, "param")) {
@@ -598,6 +619,9 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 
 		param = find_real_node (param->next);
 	}
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 
 	success = TRUE;
 	*method_name = g_strdup ((char *)xmlMethodName);
@@ -645,7 +669,13 @@ soup_xmlrpc_extract_method_call (const char *method_call, int length,
 	success = soup_value_array_to_args (params, args);
 	va_end (args);
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 	g_value_array_free (params);
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 	return success;
 }
 

@@ -12,6 +12,10 @@
 
 #include "test-utils.h"
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
+
 static SoupSession *session;
 static const char *default_uri = "http://127.0.0.1:47524/xmlrpc-server.php";
 static const char *uri = NULL;

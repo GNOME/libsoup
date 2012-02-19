@@ -13,6 +13,10 @@
 
 #include "test-utils.h"
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
+
 GMainLoop *loop;
 
 static void

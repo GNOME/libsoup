@@ -249,6 +249,10 @@ soup_value_hash_lookup_vals (GHashTable *hash, const char *first_key, ...)
 }
 
 
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
+
 /**
  * soup_value_array_from_args:
  * @args: arguments to create a #GValueArray from
@@ -455,6 +459,9 @@ soup_value_array_get_nth (GValueArray *array, guint index_, GType type, ...)
 	return TRUE;
 }
 
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 
 static GByteArray *
 soup_byte_array_copy (GByteArray *ba)
