@@ -1,3 +1,44 @@
+Changes in libsoup from 2.37.5 to 2.37.90:
+
+	* libsoup is now beta-testing Makefile.glib from bug 654395.
+          If 2.37.90 fails to build in some strange way that 2.37.5
+          did not, this is probably why.
+
+	* Replaced some of the SoupURI g_return_if_fail()s that were
+	  added in 2.37.5 with g_warn_if_fail()s. Although it had
+	  always been documented that SoupURIs must have a non-NULL
+	  path, most SoupURI functions treated NULL the same as "",
+	  and various apps (eg, rhythmbox, midori) were accidentally
+	  relying on this. [Dan]
+
+	* Added various return-if-fails and other sanity checks to
+          various functions. [#669479, Robert Swain, Mark Nauwelaerts,
+          Simon McVittie]
+
+	* Updated docs/annotation of soup_form_decode_multipart() to
+          note that all of the out parameters are (allow-none). Fixed
+          the file_control_name parameter to actually allow NULL like
+          the docs already claimed. [#669479, Simon McVittie]
+
+	* Fixed a minor URI parsing bug. (It was allowing URI schemes
+          to contain numbers.) [Dan]
+
+	* Fixed a few memory leaks introduced in the 2.37 cycle. [Dan]
+
+	* Fixed SoupServer to be able to correctly respond to HTTP/1.0
+          requests over IPv6 (which previously would always have
+          returned "400 Bad Request"). [#666399, Dan]
+
+	* Changed SoupSessionAsync to make it possible to finalize it
+          from the "wrong" thread. [#667364, Dan].
+
+	* Fixed SoupCache to not cache resources whose URIs have query
+          components (unless they have explicit cache headers); to not
+          generate broken conditional requests for resources that
+          cannot be conditionally validated; and to not spew warnings
+          when receiving invalid Cache-Control headers. [#668865,
+          Sergio].
+
 Changes in libsoup from 2.37.4 to 2.37.5:
 
 	* Fixed a bug in SoupSession:use-thread-context [Dan]
