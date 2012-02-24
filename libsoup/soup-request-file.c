@@ -73,8 +73,7 @@ soup_request_file_check_uri (SoupRequest  *request,
 		return FALSE;
 
 	/* but it must be "file:///..." or "file://localhost/..." */
-	if (uri->scheme == SOUP_URI_SCHEME_FILE &&
-	    *uri->host &&
+	if (*uri->host &&
 	    g_ascii_strcasecmp (uri->host, "localhost") != 0)
 		return FALSE;
 
@@ -86,23 +85,30 @@ soup_request_file_ensure_file (SoupRequestFile  *file,
 			       GCancellable     *cancellable,
 			       GError          **error)
 {
-	SoupURI *uri;
+	SoupURI *uri, *copied_uri = NULL;
+	char *uri_str;
 
 	if (file->priv->gfile)
 		return TRUE;
 
 	uri = soup_request_get_uri (SOUP_REQUEST (file));
-	if (uri->scheme == SOUP_URI_SCHEME_FILE) {
-		gchar *file_uri = soup_uri_to_string (uri, FALSE);
-		file->priv->gfile = g_file_new_for_uri (file_uri);
-		g_free (file_uri);
 
-		return TRUE;
+	/* gio mishandles URIs with query components:
+	 * https://bugzilla.gnome.org/show_bug.cgi?id=670755
+	 */
+	if (uri->query) {
+		uri = copied_uri = soup_uri_copy (uri);
+		soup_uri_set_query (copied_uri, NULL);
 	}
 
-	g_set_error (error, SOUP_REQUESTER_ERROR, SOUP_REQUESTER_ERROR_UNSUPPORTED_URI_SCHEME,
-		     _("Unsupported URI scheme '%s'"), uri->scheme);
-	return FALSE;
+	uri_str = soup_uri_to_string (uri, FALSE);
+	file->priv->gfile = g_file_new_for_uri (uri_str);
+
+	g_free (uri_str);
+	if (copied_uri)
+		soup_uri_free (copied_uri);
+
+	return TRUE;
 }
 
 static GInputStream *
