@@ -388,6 +388,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (ntlm);
 	SoupNTLMConnection *conn;
 	const char *val;
+	char *challenge = NULL;
 	SoupURI *uri;
 
 	conn = get_connection_for_msg (priv, msg);
@@ -396,9 +397,10 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 
 	val = soup_message_headers_get_list (msg->response_headers,
 					     "WWW-Authenticate");
-	if (val)
-		val = strstr (val, "NTLM ");
 	if (!val)
+		return;
+	challenge = soup_auth_manager_extract_challenge (val, "NTLM");
+	if (!challenge)
 		return;
 
 	if (conn->state > SOUP_NTLM_SENT_REQUEST) {
@@ -410,7 +412,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 		goto done;
 	}
 
-	if (!soup_ntlm_parse_challenge (val, &conn->nonce, &conn->domain)) {
+	if (!soup_ntlm_parse_challenge (challenge, &conn->nonce, &conn->domain)) {
 		conn->state = SOUP_NTLM_FAILED;
 		goto done;
 	}
@@ -418,7 +420,7 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 	conn->auth = soup_auth_ntlm_new (conn->domain,
 					 soup_message_get_uri (msg)->host);
 #ifdef USE_NTLM_AUTH
-	conn->challenge_header = g_strdup (val + 5);
+	conn->challenge_header = g_strdup (challenge + 5);
 	if (conn->state == SOUP_NTLM_SENT_SSO_REQUEST) {
 		conn->state = SOUP_NTLM_RECEIVED_SSO_CHALLENGE;
 		goto done;
@@ -435,6 +437,8 @@ ntlm_authorize_pre (SoupMessage *msg, gpointer ntlm)
 	}
 
  done:
+	g_free (challenge);
+
 	/* Remove the WWW-Authenticate headers so the session won't try
 	 * to do Basic auth too.
 	 */

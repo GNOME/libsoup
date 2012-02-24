@@ -32,10 +32,13 @@ typedef struct {
 
 GType soup_auth_manager_get_type (void);
 
-void soup_auth_manager_emit_authenticate (SoupAuthManager *manager,
-					  SoupMessage     *msg,
-					  SoupAuth        *auth,
-					  gboolean         retrying);
+void  soup_auth_manager_emit_authenticate (SoupAuthManager *manager,
+					   SoupMessage     *msg,
+					   SoupAuth        *auth,
+					   gboolean         retrying);
+
+char *soup_auth_manager_extract_challenge (const char      *challenges,
+					   const char      *scheme);
 
 G_END_DECLS
 

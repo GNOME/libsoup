@@ -241,37 +241,84 @@ auth_header_for_message (SoupMessage *msg)
 	}
 }
 
-static char *
-extract_challenge (const char *challenges, const char *scheme)
+static GSList *
+next_challenge_start (GSList *items)
 {
-	GSList *items, *i;
-	int schemelen = strlen (scheme);
-	char *item, *space, *equals;
-	GString *challenge;
-
-	/* The relevant grammar:
+	/* The relevant grammar (from httpbis):
 	 *
 	 * WWW-Authenticate   = 1#challenge
 	 * Proxy-Authenticate = 1#challenge
-	 * challenge          = auth-scheme 1#auth-param
+	 * challenge          = auth-scheme [ 1*SP ( b64token / #auth-param ) ]
 	 * auth-scheme        = token
-	 * auth-param         = token "=" ( token | quoted-string )
+	 * auth-param         = token BWS "=" BWS ( token / quoted-string )
+	 * b64token           = 1*( ALPHA / DIGIT /
+	 *                          "-" / "." / "_" / "~" / "+" / "/" ) *"="
 	 *
 	 * The fact that quoted-strings can contain commas, equals
 	 * signs, and auth scheme names makes it tricky to "cheat" on
-	 * the parsing. We just use soup_header_parse_list(), and then
-	 * reassemble the pieces after we find the one we want.
+	 * the parsing. So soup_auth_manager_extract_challenge() will
+	 * have used soup_header_parse_list() to split the header into
+	 * items. Given the grammar above, the possible items are:
+	 *
+	 *   auth-scheme
+	 *   auth-scheme 1*SP b64token
+	 *   auth-scheme 1*SP auth-param
+	 *   auth-param
+	 *
+	 * where the first three represent the start of a new challenge and
+	 * the last one does not.
 	 */
+
+	for (; items; items = items->next) {
+		const char *item = items->data;
+		const char *sp = strpbrk (item, "\t\r\n ");
+		const char *eq = strchr (item, '=');
+
+		if (!eq) {
+			/* No "=", so it can't be an auth-param */
+			return items;
+		}
+		if (!sp || sp > eq) {
+			/* No space, or first space appears after the "=",
+			 * so it must be an auth-param.
+			 */
+			continue;
+		}
+		while (g_ascii_isspace (*++sp))
+			;
+		if (sp == eq) {
+			/* First "=" appears immediately after the first
+			 * space, so this must be an auth-param with
+			 * space around the "=".
+			 */
+			continue;
+		}
+
+		/* "auth-scheme auth-param" or "auth-scheme b64token" */
+		return items;
+	}
+
+	return NULL;
+}
+
+char *
+soup_auth_manager_extract_challenge (const char *challenges, const char *scheme)
+{
+	GSList *items, *i, *next;
+	int schemelen = strlen (scheme);
+	char *item;
+	GString *challenge;
 
 	items = soup_header_parse_list (challenges);
 
-	/* First item will start with the scheme name, followed by a
-	 * space and then the first auth-param.
+	/* First item will start with the scheme name, followed by
+	 * either nothing, or else a space and then the first
+	 * auth-param.
 	 */
-	for (i = items; i; i = i->next) {
+	for (i = items; i; i = next_challenge_start (i->next)) {
 		item = i->data;
 		if (!g_ascii_strncasecmp (item, scheme, schemelen) &&
-		    g_ascii_isspace (item[schemelen]))
+		    (!item[schemelen] || g_ascii_isspace (item[schemelen])))
 			break;
 	}
 	if (!i) {
@@ -279,17 +326,10 @@ extract_challenge (const char *challenges, const char *scheme)
 		return NULL;
 	}
 
-	/* The challenge extends from this item until the end, or until
-	 * the next item that has a space before an equals sign.
-	 */
+	next = next_challenge_start (i->next);
 	challenge = g_string_new (item);
-	for (i = i->next; i; i = i->next) {
+	for (i = i->next; i != next; i = i->next) {
 		item = i->data;
-		space = strpbrk (item, " \t");
-		equals = strchr (item, '=');
-		if (!equals || (space && equals > space))
-			break;
-
 		g_string_append (challenge, ", ");
 		g_string_append (challenge, item);
 	}
@@ -313,7 +353,7 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 
 	for (i = priv->auth_types->len - 1; i >= 0; i--) {
 		auth_class = priv->auth_types->pdata[i];
-		challenge = extract_challenge (header, auth_class->scheme_name);
+		challenge = soup_auth_manager_extract_challenge (header, auth_class->scheme_name);
 		if (challenge)
 			break;
 	}
@@ -336,7 +376,7 @@ check_auth (SoupMessage *msg, SoupAuth *auth)
 	if (!header)
 		return FALSE;
 
-	challenge = extract_challenge (header, soup_auth_get_scheme_name (auth));
+	challenge = soup_auth_manager_extract_challenge (header, soup_auth_get_scheme_name (auth));
 	if (!challenge)
 		return FALSE;
 

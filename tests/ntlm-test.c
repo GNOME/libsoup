@@ -58,29 +58,25 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	SoupSocket *socket;
 	const char *auth;
 	NTLMServerState state, required_user = 0;
-	gboolean auth_required = FALSE, not_found = FALSE;
-	gboolean basic_allowed = FALSE, ntlm_allowed = FALSE;
+	gboolean auth_required, not_found = FALSE;
+	gboolean basic_allowed = TRUE, ntlm_allowed = TRUE;
 
 	if (msg->method != SOUP_METHOD_GET) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 		return;
 	}
 
-	if (!strncmp (path, "/alice", 6)) {
-		auth_required = TRUE;
-		ntlm_allowed = TRUE;
+	if (!strncmp (path, "/alice", 6))
 		required_user = NTLM_AUTHENTICATED_ALICE;
-	} else if (!strncmp (path, "/bob", 4)) {
-		auth_required = TRUE;
-		ntlm_allowed = TRUE;
+	else if (!strncmp (path, "/bob", 4))
 		required_user = NTLM_AUTHENTICATED_BOB;
-	} else if (!strncmp (path, "/either", 7)) {
-		auth_required = TRUE;
-		ntlm_allowed = basic_allowed = TRUE;
-	} else if (!strncmp (path, "/basic", 6)) {
-		auth_required = TRUE;
-		basic_allowed = TRUE;
-	}
+	else if (!strncmp (path, "/either", 7))
+		;
+	else if (!strncmp (path, "/basic", 6))
+		ntlm_allowed = FALSE;
+	else if (!strncmp (path, "/noauth", 7))
+		basic_allowed = ntlm_allowed = FALSE;
+	auth_required = ntlm_allowed || basic_allowed;
 
 	if (strstr (path, "/404"))
 		not_found = TRUE;
@@ -95,7 +91,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			if (!strncmp (auth + 5, NTLM_REQUEST_START,
 				      strlen (NTLM_REQUEST_START))) {
 				state = NTLM_RECEIVED_REQUEST;
-				/* If they start, they must finish */
+				/* If they start, they must finish, even if
+				 * it was unnecessary.
+				 */
 				auth_required = ntlm_allowed = TRUE;
 				basic_allowed = FALSE;
 			} else if (state == NTLM_SENT_CHALLENGE &&
@@ -104,12 +102,15 @@ server_callback (SoupServer *server, SoupMessage *msg,
 				state = NTLM_RESPONSE_USER (auth + 5);
 			} else
 				state = NTLM_UNAUTHENTICATED;
-		} else if (!strncmp (auth, "Basic ", 6) && basic_allowed) {
+		} else if (basic_allowed && !strncmp (auth, "Basic ", 6)) {
 			gsize len;
 			char *decoded = (char *)g_base64_decode (auth + 6, &len);
 
-			if (!strncmp (decoded, "alice:password", len) ||
-			    !strncmp (decoded, "bob:password", len))
+			if (!strncmp (decoded, "alice:password", len) &&
+			    required_user != NTLM_AUTHENTICATED_BOB)
+				auth_required = FALSE;
+			else if (!strncmp (decoded, "bob:password", len) &&
+				 required_user != NTLM_AUTHENTICATED_ALICE)
 				auth_required = FALSE;
 			g_free (decoded);
 		}
@@ -122,13 +123,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (auth_required) {
 		soup_message_set_status (msg, SOUP_STATUS_UNAUTHORIZED);
 
-		if (basic_allowed) {
+		if (basic_allowed && state != NTLM_RECEIVED_REQUEST) {
 			soup_message_headers_append (msg->response_headers,
 						     "WWW-Authenticate",
 						     "Basic realm=\"ntlm-test\"");
 		}
 
-		if (state == NTLM_RECEIVED_REQUEST) {
+		if (ntlm_allowed && state == NTLM_RECEIVED_REQUEST) {
 			soup_message_headers_append (msg->response_headers,
 						     "WWW-Authenticate",
 						     "NTLM " NTLM_CHALLENGE);
@@ -158,7 +159,8 @@ static void
 authenticate (SoupSession *session, SoupMessage *msg,
 	      SoupAuth *auth, gboolean retrying, gpointer user)
 {
-	soup_auth_authenticate (auth, user, "password");
+	if (!retrying)
+		soup_auth_authenticate (auth, user, "password");
 }
 
 typedef struct {
@@ -180,11 +182,9 @@ prompt_check (SoupMessage *msg, gpointer user_data)
 						"WWW-Authenticate");
 	if (header && strstr (header, "Basic "))
 		state->got_basic_prompt = TRUE;
-	if (!state->sent_ntlm_request) {
-		if (header && strstr (header, "NTLM") &&
-		    !strstr (header, NTLM_CHALLENGE))
-			state->got_ntlm_prompt = TRUE;
-	}
+	if (header && strstr (header, "NTLM") &&
+	    !strstr (header, NTLM_CHALLENGE))
+		state->got_ntlm_prompt = TRUE;
 }
 
 static void
@@ -333,10 +333,11 @@ static void
 do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 {
 	SoupSession *session;
-	gboolean alice = use_ntlm && !strcmp (user, "alice");
-	gboolean bob = use_ntlm && !strcmp (user, "bob");
-
-	g_return_if_fail (use_ntlm || !alice);
+	gboolean alice = !g_strcmp0 (user, "alice");
+	gboolean bob = !g_strcmp0 (user, "bob");
+	gboolean alice_via_ntlm = use_ntlm && alice;
+	gboolean bob_via_ntlm = use_ntlm && bob;
+	gboolean alice_via_basic = !use_ntlm && alice;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	if (use_ntlm)
@@ -347,40 +348,87 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 				  G_CALLBACK (authenticate), (char *)user);
 	}
 
+	/* 1. Server doesn't request auth, so both get_ntlm_prompt and
+	 * get_basic_prompt are both FALSE, and likewise do_basic. But
+	 * if we're using NTLM we'll try that even without the server
+	 * asking.
+	 */
 	do_message (session, base_uri, "/noauth",
 		    FALSE, use_ntlm,
 		    FALSE, FALSE,
 		    SOUP_STATUS_OK);
+
+	/* 2. Server requires auth as Alice, so it will request that
+	 * if we didn't already authenticate the connection to her in
+	 * the previous step. If we authenticated as Bob in the
+	 * previous step, then we'll just immediately get a 401 here.
+	 * So in no case will we see the client try to do_ntlm.
+	 */
 	do_message (session, base_uri, "/alice",
-		    !use_ntlm || bob, FALSE,
-		    FALSE, FALSE,
+		    !alice_via_ntlm, FALSE,
+		    !alice_via_ntlm, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 3. Server still requires auth as Alice, but this URI
+	 * doesn't exist, so Alice should get a 404, but others still
+	 * get 401. Alice-via-NTLM is still authenticated, and so
+	 * won't get prompts, and Alice-via-Basic knows at this point
+	 * to send auth without it being requested, so also won't get
+	 * prompts. But Bob/nobody will.
+	 */
 	do_message (session, base_uri, "/alice/404",
-		    !use_ntlm, bob,
-		    FALSE, FALSE,
+		    !alice, bob_via_ntlm,
+		    !alice, alice_via_basic,
 		    alice ? SOUP_STATUS_NOT_FOUND :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 4. Should be exactly the same as #3, except the status code */
 	do_message (session, base_uri, "/alice",
-		    !use_ntlm, bob,
-		    FALSE, FALSE,
+		    !alice, bob_via_ntlm,
+		    !alice, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 5. This path requires auth as Bob; Alice-via-NTLM will get
+	 * an immediate 401 and not try to reauthenticate.
+	 * Alice-via-Basic will get a 401 and then try to do Basic
+	 * (and fail). Bob-via-NTLM will try to do NTLM right away and
+	 * succeed.
+	 */
 	do_message (session, base_uri, "/bob",
-		    !use_ntlm || alice, bob,
-		    FALSE, FALSE,
+		    !bob_via_ntlm, bob_via_ntlm,
+		    !bob_via_ntlm, alice_via_basic,
 		    bob ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 6. Back to /alice. Somewhat the inverse of #5; Bob-via-NTLM
+	 * will get an immediate 401 and not try again, Alice-via-NTLM
+	 * will try to do NTLM right away and succeed. Alice-via-Basic
+	 * still knows about this path, so will try Basic right away
+	 * and succeed.
+	 */
 	do_message (session, base_uri, "/alice",
-		    !use_ntlm || bob, alice,
-		    FALSE, FALSE,
+		    !alice_via_ntlm, alice_via_ntlm,
+		    !alice_via_ntlm, alice_via_basic,
 		    alice ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 7. Server accepts Basic auth from either user, but not NTLM.
+	 * Since Bob-via-NTLM is unauthenticated at this point, he'll try
+	 * NTLM before realizing that the server doesn't support it.
+	 */
 	do_message (session, base_uri, "/basic",
-		    FALSE, bob,
+		    FALSE, bob_via_ntlm,
 		    TRUE, user != NULL,
 		    user != NULL ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
+
+	/* 8. Server accepts Basic or NTLM from either user.
+	 * Alice-via-NTLM is still authenticated at this point from #6,
+	 * and Bob-via-NTLM is authenticated from #7, so neither
+	 * of them will do anything.
+	 */
 	do_message (session, base_uri, "/either",
 		    !use_ntlm, FALSE,
 		    !use_ntlm, !use_ntlm && user != NULL,
