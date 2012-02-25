@@ -408,6 +408,19 @@ do_soup_uri_null_tests (void)
 		errors++;
 	}
 
+	expect_warning = TRUE;
+	uri_string = soup_uri_to_string (uri, FALSE);
+	if (expect_warning) {
+		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on scheme-only URI?\n");
+		errors++;
+		expect_warning = FALSE;
+	} else if (strcmp (uri_string, "http:") != 0) {
+		debug_printf (1, "  ERROR: soup_uri_to_string returned '%s' instead of 'http:'\n",
+			      uri_string);
+		errors++;
+	}
+	g_free (uri_string);
+
 	soup_uri_set_host (uri, "localhost");
 	if (SOUP_URI_IS_VALID (uri)) {
 		debug_printf (1, "  ERROR: setting scheme+host on NULL URI makes it valid?\n");
@@ -419,6 +432,19 @@ do_soup_uri_null_tests (void)
 	}
 
 	expect_warning = TRUE;
+	uri_string = soup_uri_to_string (uri, FALSE);
+	if (expect_warning) {
+		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on scheme+host URI?\n");
+		errors++;
+		expect_warning = FALSE;
+	} else if (strcmp (uri_string, "http://localhost/") != 0) {
+		debug_printf (1, "  ERROR: soup_uri_to_string with NULL path returned '%s' instead of 'http://localhost/'\n",
+			      uri_string);
+		errors++;
+	}
+	g_free (uri_string);
+
+	expect_warning = TRUE;
 	uri2 = soup_uri_new_with_base (uri, "/path");
 	if (expect_warning) {
 		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't warn on NULL+scheme URI?\n");
@@ -427,8 +453,21 @@ do_soup_uri_null_tests (void)
 	} else if (!uri2) {
 		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't fix path on NULL+scheme URI\n");
 		errors++;
-	} else
+	}
+
+	if (uri2) {
+		uri_string = soup_uri_to_string (uri2, FALSE);
+		if (!uri_string) {
+			debug_printf (1, "  ERROR: soup_uri_to_string failed on uri2?\n");
+			errors++;
+		} else if (strcmp (uri_string, "http://localhost/path") != 0) {
+			debug_printf (1, "  ERROR: soup_uri_to_string returned '%s' instead of 'http://localhost/path'\n",
+				      uri_string);
+			errors++;
+		}
+		g_free (uri_string);
 		soup_uri_free (uri2);
+	}
 
 	expect_warning = TRUE;
 	soup_uri_set_path (uri, NULL);
@@ -442,6 +481,17 @@ do_soup_uri_null_tests (void)
 		errors++;
 		soup_uri_set_path (uri, "");
 	}
+
+	uri_string = soup_uri_to_string (uri, FALSE);
+	if (!uri_string) {
+		debug_printf (1, "  ERROR: soup_uri_to_string failed on complete URI?\n");
+		errors++;
+	} else if (strcmp (uri_string, "http://localhost/") != 0) {
+		debug_printf (1, "  ERROR: soup_uri_to_string with empty path returned '%s' instead of 'http://localhost/'\n",
+			      uri_string);
+		errors++;
+	}
+	g_free (uri_string);
 
 	if (!SOUP_URI_IS_VALID (uri)) {
 		debug_printf (1, "  ERROR: setting scheme+path on NULL URI doesn't make it valid?\n");

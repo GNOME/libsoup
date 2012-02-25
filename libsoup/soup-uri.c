@@ -480,10 +480,16 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 			g_string_append_printf (str, ":%u", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
 			g_string_append_c (str, '/');
+		else if ((!uri->path || !*uri->path) &&
+			 (uri->scheme == SOUP_URI_SCHEME_HTTP ||
+			  uri->scheme == SOUP_URI_SCHEME_HTTPS))
+			g_string_append_c (str, '/');
 	}
 
 	if (uri->path && *uri->path)
 		g_string_append (str, uri->path);
+	else if (just_path_and_query)
+		g_string_append_c (str, '/');
 
 	if (uri->query) {
 		g_string_append_c (str, '?');
