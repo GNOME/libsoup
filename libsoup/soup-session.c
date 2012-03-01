@@ -1976,7 +1976,8 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionHost *host;
 
 	if (item->conn) {
-		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
+		if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
+			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_message_queue_item_set_connection (item, NULL);
 	}
 
