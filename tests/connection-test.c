@@ -430,8 +430,80 @@ do_max_conns_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+GMainLoop *loop;
+
+static void
+np_request_started (SoupSession *session, SoupMessage *msg,
+		    SoupSocket *socket, gpointer user_data)
+{
+	SoupSocket **save_socket = user_data;
+
+	*save_socket = g_object_ref (socket);
+}
+
+static void
+np_request_unqueued (SoupSession *session, SoupMessage *msg,
+		     gpointer user_data)
+{
+	SoupSocket *socket = *(SoupSocket **)user_data;
+
+	if (soup_socket_is_connected (socket)) {
+		debug_printf (1, "    socket is still connected\n");
+		errors++;
+	}
+
+	g_main_loop_quit (loop);
+}
+
 static void
 do_non_persistent_test_for_session (SoupSession *session)
+{
+	SoupMessage *msg;
+	SoupSocket *socket = NULL;
+
+	loop = g_main_loop_new (NULL, FALSE);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (np_request_started),
+			  &socket);
+	g_signal_connect (session, "request-unqueued",
+			  G_CALLBACK (np_request_unqueued),
+			  &socket);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_message_headers_append (msg->request_headers, "Connection", "close");
+	g_object_ref (msg);
+	soup_session_queue_message (session, msg, NULL, NULL);
+	g_main_loop_run (loop);
+
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+}
+
+static void
+do_non_persistent_connection_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nNon-persistent connections are closed immediately\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_non_persistent_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_non_persistent_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_non_idempotent_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
@@ -479,7 +551,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 }
 
 static void
-do_non_persistent_connection_test (void)
+do_non_idempotent_connection_test (void)
 {
 	SoupSession *session;
 
@@ -487,12 +559,12 @@ do_non_persistent_connection_test (void)
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_non_persistent_test_for_session (session);
+	do_non_idempotent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "  Sync session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	do_non_persistent_test_for_session (session);
+	do_non_idempotent_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 
@@ -510,6 +582,7 @@ main (int argc, char **argv)
 	do_persistent_connection_timeout_test ();
 	do_max_conns_test ();
 	do_non_persistent_connection_test ();
+	do_non_idempotent_connection_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
