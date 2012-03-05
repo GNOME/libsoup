@@ -1,3 +1,29 @@
+Changes in libsoup from 2.37.90 to 2.37.91:
+
+	* Fixed an out-of-bounds memory read that could occur when
+	  parsing malformed requests/responses.
+
+	* Fixed a build-related bug in Makefile.glib that affected
+          locales such as Estonian where "Z" is not the last (ASCII)
+          letter of the alphabet. [#654395, Priit Laes]
+
+	* Fixed the handling of file: URIs with query components,
+          which got broken in 2.37.90.
+
+	* Fixed SoupAuthManagerNTLM to not fall back to allowing Basic
+          auth when NTLM failed.
+
+	* Further tweaked the warnings/fallback in SoupURI, so that
+	  soup_uri_to_string() on an http URI with a NULL path would
+	  translate that to "/" like it used to. [#670431]
+
+	* Fixed a warning when cancelling the load of a page with many
+          subresources. [#667245]
+
+	* Use G_GNUC_BEGIN/END_IGNORE_DEPRECATIONS if GLib is new
+          enough, to avoid getting warned about the use of
+          GValueArray.
+
 Changes in libsoup from 2.37.5 to 2.37.90:
 
 	* libsoup is now beta-testing Makefile.glib from bug 654395.
