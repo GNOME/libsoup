@@ -55,8 +55,10 @@ SoupLogger *soup_logger_new         (SoupLoggerLogLevel  level,
 				     int                 max_body_size);
 #ifndef LIBSOUP_DISABLE_DEPRECATED
 /* Use soup_session_add/remove_feature */
+G_DEPRECATED_FOR(soup_session_add_feature)
 void        soup_logger_attach      (SoupLogger         *logger,
 				     SoupSession        *session);
+G_DEPRECATED_FOR(soup_session_remove_feature)
 void        soup_logger_detach      (SoupLogger         *logger,
 				     SoupSession        *session);
 #endif
