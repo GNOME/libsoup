@@ -7,6 +7,7 @@
 #define SOUP_SESSION_H 1
 
 #include <libsoup/soup-types.h>
+#include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
 
 G_BEGIN_DECLS
@@ -104,6 +105,12 @@ void            soup_session_abort            (SoupSession           *session);
 
 void            soup_session_prepare_for_uri  (SoupSession           *session,
 					       SoupURI               *uri);
+
+void            soup_session_prefetch_dns     (SoupSession           *session,
+					       const char            *hostname,
+					       GCancellable          *cancellable,
+					       SoupAddressCallback    callback,
+					       gpointer               user_data);
 
 gboolean        soup_session_would_redirect   (SoupSession           *session,
 					       SoupMessage           *msg);

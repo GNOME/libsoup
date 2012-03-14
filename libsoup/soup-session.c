@@ -13,7 +13,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
@@ -2347,6 +2346,28 @@ soup_session_abort (SoupSession *session)
 	g_slist_free (conns);
 }
 
+static void
+prefetch_uri(SoupSession *session, SoupURI *uri,
+	     GCancellable *cancellable,
+	     SoupAddressCallback callback, gpointer user_data)
+{
+	SoupSessionPrivate *priv;
+	SoupSessionHost *host;
+	SoupAddress *addr;
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	g_mutex_lock (&priv->host_lock);
+	host = get_host_for_uri (session, uri);
+	addr = g_object_ref (host->addr);
+	g_mutex_unlock (&priv->host_lock);
+
+	soup_address_resolve_async (addr,
+				    soup_session_get_async_context (session),
+				    cancellable, callback, user_data);
+	g_object_unref (addr);
+}
+
 /**
 * soup_session_prepare_for_uri:
 * @session: a #SoupSession
@@ -2362,31 +2383,63 @@ soup_session_abort (SoupSession *session)
 * not have a main loop running, then you can't use this method.
 *
 * Since: 2.30
+*
+* Deprecated: 2.38: use soup_session_prefetch_dns() instead
 **/
 void
 soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 {
-	SoupSessionPrivate *priv;
-	SoupSessionHost *host;
-	SoupAddress *addr;
-
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (uri != NULL);
 
 	if (!uri->host)
 		return;
 
-	priv = SOUP_SESSION_GET_PRIVATE (session);
+	prefetch_uri (session, uri, NULL, NULL, NULL);
+}
 
-	g_mutex_lock (&priv->host_lock);
-	host = get_host_for_uri (session, uri);
-	addr = g_object_ref (host->addr);
-	g_mutex_unlock (&priv->host_lock);
+/**
+* soup_session_prefetch_dns:
+* @session: a #SoupSession
+* @hostname: a hostname to be resolved
+* @cancellable: (allow-none): a #GCancellable object, or %NULL
+* @callback: (scope async) (allow-none): callback to call with the
+* result, or %NULL
+* @user_data: data for @callback
+*
+* Tells @session that an URI from the given @hostname may be requested
+* shortly, and so the session can try to prepare by resolving the
+* domain name in advance, in order to work more quickly once the URI
+* is actually requested.
+*
+* If @cancellable is non-%NULL, it can be used to cancel the
+* resolution. @callback will still be invoked in this case, with a
+* status of %SOUP_STATUS_CANCELLED.
+*
+* This method acts asynchronously, in @session's
+* #SoupSession:async_context. If you are using #SoupSessionSync and do
+* not have a main loop running, then you can't use this method.
+*
+* Since: 2.38
+**/
+void
+soup_session_prefetch_dns (SoupSession *session, const char *hostname,
+			   GCancellable *cancellable,
+			   SoupAddressCallback callback, gpointer user_data)
+{
+	SoupURI *uri;
 
-	soup_address_resolve_async (addr,
-				    soup_session_get_async_context (session),
-				    NULL, NULL, NULL);
-	g_object_unref (addr);
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (hostname != NULL);
+
+	/* FIXME: Prefetching should work for both HTTP and HTTPS */
+	uri = soup_uri_new (NULL);
+	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTP);
+	soup_uri_set_host (uri, hostname);
+	soup_uri_set_path (uri, "");
+
+	prefetch_uri (session, uri, cancellable, callback, user_data);
+	soup_uri_free (uri);
 }
 
 /**

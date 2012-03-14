@@ -389,6 +389,7 @@ soup_session_queue_message
 soup_session_requeue_message
 soup_session_send_message
 soup_session_cancel_message
+soup_session_prefetch_dns
 soup_session_prepare_for_uri
 soup_session_abort
 <SUBSECTION>
