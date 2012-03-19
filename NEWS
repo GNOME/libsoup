@@ -1,3 +1,11 @@
+Changes in libsoup from 2.37.91 to 2.37.92:
+
+	* Added soup_session_prefetch_dns() and deprecated
+          soup_session_prepare_for_uri(). The new method takes a
+          completion callback, allowing you to know how many DNS
+          resolutions are currently outstanding, so you don't spam the
+          resolver. [Sergio, WebKit bug #41630]
+
 Changes in libsoup from 2.37.90 to 2.37.91:
 
 	* Fixed an out-of-bounds memory read that could occur when
