@@ -560,7 +560,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      FALSE,
 				      G_PARAM_READWRITE));
 	/**
-	 * #SoupSession:ssl-ca-file:
+	 * SoupSession:ssl-ca-file:
 	 *
 	 * File containing SSL CA certificates.
 	 *
@@ -592,7 +592,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Since: 2.38
 	 **/
 	/**
-	 * #SoupSession:ssl-use-system-ca-file:
+	 * SoupSession:ssl-use-system-ca-file:
 	 *
 	 * Setting this to %TRUE overrides #SoupSession:ssl-ca-file
 	 * and #SoupSession:tls-database, and uses the default system
@@ -619,7 +619,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Since: 2.38
 	 **/
 	/**
-	 * #SoupSession:tls-database:
+	 * SoupSession:tls-database:
 	 *
 	 * Overrides #SoupSession:ssl-ca-file and
 	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
