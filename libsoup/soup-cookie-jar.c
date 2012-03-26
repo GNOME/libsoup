@@ -42,6 +42,7 @@ static void request_started (SoupSessionFeature *feature, SoupSession *session,
 			     SoupMessage *msg, SoupSocket *socket);
 static void request_unqueued (SoupSessionFeature *feature, SoupSession *session,
 			      SoupMessage *msg);
+static gboolean is_persistent (SoupCookieJar *jar);
 
 G_DEFINE_TYPE_WITH_CODE (SoupCookieJar, soup_cookie_jar, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
@@ -123,6 +124,8 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	object_class->finalize = finalize;
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
+
+	jar_class->is_persistent = is_persistent;
 
 	/**
 	 * SoupCookieJar::changed
@@ -264,6 +267,12 @@ void
 soup_cookie_jar_save (SoupCookieJar *jar)
 {
 	/* Does nothing, obsolete */
+}
+
+static gboolean
+is_persistent (SoupCookieJar *jar)
+{
+	return FALSE;
 }
 
 static void
@@ -765,4 +774,22 @@ soup_cookie_jar_set_accept_policy (SoupCookieJar *jar,
 		priv->accept_policy = policy;
 		g_object_notify (G_OBJECT (jar), SOUP_COOKIE_JAR_ACCEPT_POLICY);
 	}
+}
+
+/**
+ * soup_cookie_jar_is_persistent:
+ * @jar: a #SoupCookieJar
+ *
+ * Gets whether @jar stores cookies persistenly.
+ *
+ * Returns: %TRUE if @jar storage is persistent or %FALSE otherwise.
+ *
+ * Since: 2.40
+ **/
+gboolean
+soup_cookie_jar_is_persistent (SoupCookieJar *jar)
+{
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), FALSE);
+
+	return SOUP_COOKIE_JAR_GET_CLASS (jar)->is_persistent (jar);
 }

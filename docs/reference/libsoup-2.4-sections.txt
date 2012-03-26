@@ -888,6 +888,8 @@ SoupCookieJarAcceptPolicy
 soup_cookie_jar_get_accept_policy
 soup_cookie_jar_set_accept_policy
 <SUBSECTION>
+soup_cookie_jar_is_persistent
+<SUBSECTION>
 SOUP_COOKIE_JAR_READ_ONLY
 SOUP_COOKIE_JAR_ACCEPT_POLICY
 <SUBSECTION Standard>

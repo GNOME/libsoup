@@ -49,6 +49,7 @@ static void load (SoupCookieJar *jar);
 static void changed (SoupCookieJar *jar,
 		     SoupCookie    *old_cookie,
 		     SoupCookie    *new_cookie);
+static gboolean is_persistent (SoupCookieJar *jar);
 
 static void set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec);
@@ -83,7 +84,8 @@ soup_cookie_jar_sqlite_class_init (SoupCookieJarSqliteClass *sqlite_class)
 
 	g_type_class_add_private (sqlite_class, sizeof (SoupCookieJarSqlitePrivate));
 
-	cookie_jar_class->changed = changed;
+	cookie_jar_class->is_persistent = is_persistent;
+	cookie_jar_class->changed       = changed;
 
 	object_class->finalize     = finalize;
 	object_class->set_property = set_property;
@@ -335,4 +337,10 @@ changed (SoupCookieJar *jar,
 		exec_query_with_try_create_table (priv->db, query, NULL, NULL);
 		sqlite3_free (query);
 	}
+}
+
+static gboolean
+is_persistent (SoupCookieJar *jar)
+{
+	return TRUE;
 }

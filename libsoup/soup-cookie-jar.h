@@ -25,7 +25,8 @@ struct _SoupCookieJar {
 typedef struct {
 	GObjectClass parent_class;
 
-	void (*save)    (SoupCookieJar *jar);
+	void     (*save)          (SoupCookieJar *jar);
+	gboolean (*is_persistent) (SoupCookieJar *jar);
 
 	/* signals */
 	void (*changed) (SoupCookieJar *jar,
@@ -35,7 +36,6 @@ typedef struct {
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
 } SoupCookieJarClass;
 
 #define SOUP_COOKIE_JAR_READ_ONLY "read-only"
@@ -70,6 +70,7 @@ GSList        *           soup_cookie_jar_all_cookies                 (SoupCooki
 void                      soup_cookie_jar_set_accept_policy           (SoupCookieJar             *jar,
 								       SoupCookieJarAcceptPolicy  policy);
 SoupCookieJarAcceptPolicy soup_cookie_jar_get_accept_policy           (SoupCookieJar             *jar);
+gboolean                  soup_cookie_jar_is_persistent               (SoupCookieJar             *jar);
 
 G_END_DECLS
 
