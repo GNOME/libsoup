@@ -1,3 +1,7 @@
+Changes in libsoup from 2.37.92 to 2.38.0:
+
+	* Minor documentation fixes
+
 Changes in libsoup from 2.37.91 to 2.37.92:
 
 	* Added soup_session_prefetch_dns() and deprecated
