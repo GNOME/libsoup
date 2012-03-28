@@ -842,11 +842,16 @@ soup_connection_disconnect (SoupConnection *conn)
 		soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 
 	if (priv->socket) {
-		g_signal_handlers_disconnect_by_func (priv->socket,
-						      socket_disconnected, conn);
-		soup_socket_disconnect (priv->socket);
-		g_object_unref (priv->socket);
+		/* Set the socket to NULL at the beginning to avoid reentrancy
+		 * issues. soup_socket_disconnect() could trigger a reentrant
+		 * call unref'ing and disconnecting the socket twice.
+		 */
+		SoupSocket *socket = priv->socket;
 		priv->socket = NULL;
+		g_signal_handlers_disconnect_by_func (socket,
+						      socket_disconnected, conn);
+		soup_socket_disconnect (socket);
+		g_object_unref (socket);
 	}
 
 	if (old_state != SOUP_CONNECTION_DISCONNECTED)
