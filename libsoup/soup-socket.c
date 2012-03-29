@@ -1280,6 +1280,9 @@ soup_socket_is_connected (SoupSocket *sock)
  *
  * Returns the #SoupAddress corresponding to the local end of @sock.
  *
+ * Calling this method on an unconnected socket is considered to be
+ * an error, and produces undefined results.
+ *
  * Return value: (transfer none): the #SoupAddress
  **/
 SoupAddress *
@@ -1295,13 +1298,25 @@ soup_socket_get_local_address (SoupSocket *sock)
 		GSocketAddress *addr;
 		struct sockaddr_storage sa;
 		gssize sa_len;
+		GError *error = NULL;
 
-		addr = g_socket_get_local_address (priv->gsock, NULL);
+		if (priv->gsock == NULL) {
+			g_warning ("%s: socket not connected", G_STRLOC);
+			goto unlock;
+		}
+
+		addr = g_socket_get_local_address (priv->gsock, &error);
+		if (addr == NULL) {
+			g_warning ("%s: %s", G_STRLOC, error->message);
+			g_error_free (error);
+			goto unlock;
+		}
 		sa_len = g_socket_address_get_native_size (addr);
 		g_socket_address_to_native (addr, &sa, sa_len, NULL);
 		priv->local_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 		g_object_unref (addr);
 	}
+unlock:
 	g_mutex_unlock (&priv->addrlock);
 
 	return priv->local_addr;
@@ -1312,6 +1327,9 @@ soup_socket_get_local_address (SoupSocket *sock)
  * @sock: a #SoupSocket
  *
  * Returns the #SoupAddress corresponding to the remote end of @sock.
+ *
+ * Calling this method on an unconnected socket is considered to be
+ * an error, and produces undefined results.
  *
  * Return value: (transfer none): the #SoupAddress
  **/
@@ -1328,13 +1346,25 @@ soup_socket_get_remote_address (SoupSocket *sock)
 		GSocketAddress *addr;
 		struct sockaddr_storage sa;
 		gssize sa_len;
+		GError *error = NULL;
 
-		addr = g_socket_get_remote_address (priv->gsock, NULL);
+		if (priv->gsock == NULL) {
+			g_warning ("%s: socket not connected", G_STRLOC);
+			goto unlock;
+		}
+
+		addr = g_socket_get_remote_address (priv->gsock, &error);
+		if (addr == NULL) {
+			g_warning ("%s: %s", G_STRLOC, error->message);
+			g_error_free (error);
+			goto unlock;
+		}
 		sa_len = g_socket_address_get_native_size (addr);
 		g_socket_address_to_native (addr, &sa, sa_len, NULL);
 		priv->remote_addr = soup_address_new_from_sockaddr ((struct sockaddr *)&sa, sa_len);
 		g_object_unref (addr);
 	}
+unlock:
 	g_mutex_unlock (&priv->addrlock);
 
 	return priv->remote_addr;
