@@ -30,6 +30,7 @@ noinst_PROGRAMS =	\
 	simple-httpd	\
 	simple-proxy	\
 	sniffing-test   \
+	socket-test	\
 	ssl-test	\
 	streaming-test	\
 	timeout-test	\
@@ -67,6 +68,7 @@ server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 sniffing_test_SOURCES = sniffing-test.c  $(TEST_SRCS)
+socket_test_SOURCES = socket-test.c  $(TEST_SRCS)
 ssl_test_SOURCES = ssl-test.c  $(TEST_SRCS)
 streaming_test_SOURCES = streaming-test.c $(TEST_SRCS)
 timeout_test_SOURCES = timeout-test.c $(TEST_SRCS)
@@ -99,6 +101,7 @@ TESTS =			\
 	redirect-test	\
 	requester-test	\
 	sniffing-test	\
+	socket-test	\
 	ssl-test	\
 	streaming-test	\
 	timeout-test	\
