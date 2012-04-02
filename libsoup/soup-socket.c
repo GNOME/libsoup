@@ -115,12 +115,13 @@ soup_socket_init (SoupSocket *sock)
 }
 
 static void
-disconnect_internal (SoupSocket *sock)
+disconnect_internal (SoupSocket *sock, gboolean close)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	if (priv->gsock) {
-		g_socket_close (priv->gsock, NULL);
+		if (close)
+			g_socket_close (priv->gsock, NULL);
 		g_object_unref (priv->gsock);
 		priv->gsock = NULL;
 	}
@@ -156,7 +157,7 @@ finalize (GObject *object)
 	if (priv->conn) {
 		if (priv->clean_dispose)
 			g_warning ("Disposing socket %p while still connected", object);
-		disconnect_internal (SOUP_SOCKET (object));
+		disconnect_internal (SOUP_SOCKET (object), TRUE);
 	}
 
 	if (priv->local_addr)
@@ -671,8 +672,14 @@ socket_connected (SoupSocket *sock, GSocketConnection *conn, GError *error)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	g_object_unref (priv->connect_cancel);
-	priv->connect_cancel = NULL;
+	if (priv->connect_cancel) {
+		GCancellable *cancellable = priv->connect_cancel;
+
+		g_object_unref (priv->connect_cancel);
+		priv->connect_cancel = NULL;
+		if (g_cancellable_is_cancelled (cancellable))
+			return SOUP_STATUS_CANCELLED;
+	}
 
 	if (error) {
 		if (error->domain == G_RESOLVER_ERROR) {
@@ -968,7 +975,7 @@ soup_socket_listen (SoupSocket *sock)
 
  cant_listen:
 	if (priv->conn)
-		disconnect_internal (sock);
+		disconnect_internal (sock, TRUE);
 	g_object_unref (addr);
 
 	return FALSE;
@@ -1030,6 +1037,9 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 
 	if (G_IS_TLS_CONNECTION (priv->conn))
 		return TRUE;
+
+	if (g_cancellable_is_cancelled (cancellable))
+		return FALSE;
 
 	priv->ssl = TRUE;
 
@@ -1116,7 +1126,7 @@ handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
-	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (priv->conn),
+	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (source),
 					       result, &error))
 		status = SOUP_STATUS_OK;
 	else if (!priv->ssl_fallback &&
@@ -1188,11 +1198,12 @@ soup_socket_disconnect (SoupSocket *sock)
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	if (priv->connect_cancel) {
+		disconnect_internal (sock, FALSE);
 		g_cancellable_cancel (priv->connect_cancel);
 		return;
 	} else if (g_mutex_trylock (&priv->iolock)) {
 		if (priv->conn)
-			disconnect_internal (sock);
+			disconnect_internal (sock, TRUE);
 		else
 			already_disconnected = TRUE;
 		g_mutex_unlock (&priv->iolock);
