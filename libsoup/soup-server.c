@@ -142,6 +142,9 @@ static void set_property (GObject *object, guint prop_id,
 static void get_property (GObject *object, guint prop_id,
 			  GValue *value, GParamSpec *pspec);
 
+static SoupClientContext *soup_client_context_ref (SoupClientContext *client);
+static void soup_client_context_unref (SoupClientContext *client);
+
 static void
 free_handler (SoupServerHandler *hand)
 {
@@ -183,6 +186,13 @@ finalize (GObject *object)
 
 		priv->clients = g_slist_remove (priv->clients, client);
 
+		/* keep a ref on the client context so it doesn't get destroyed
+		 * when we finish the message; the SoupSocket::disconnect
+		 * handler will refer to client->server later when the socket is
+		 * disconnected.
+		 */
+		soup_client_context_ref (client);
+
 		if (client->msg) {
 			soup_message_set_status (client->msg, SOUP_STATUS_IO_ERROR);
 			soup_message_io_finished (client->msg);
@@ -190,6 +200,8 @@ finalize (GObject *object)
 
 		soup_socket_disconnect (sock);
 		g_object_unref (sock);
+
+		soup_client_context_unref (client);
 	}
 
 	if (priv->default_handler)
