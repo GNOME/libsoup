@@ -34,6 +34,7 @@ noinst_PROGRAMS =	\
 	ssl-test	\
 	streaming-test	\
 	timeout-test	\
+	tld-test	\
 	uri-parsing	\
 	$(CURL_TESTS)	\
 	$(APACHE_TESTS) \
@@ -71,6 +72,7 @@ sniffing_test_SOURCES = sniffing-test.c  $(TEST_SRCS)
 ssl_test_SOURCES = ssl-test.c  $(TEST_SRCS)
 streaming_test_SOURCES = streaming-test.c $(TEST_SRCS)
 timeout_test_SOURCES = timeout-test.c $(TEST_SRCS)
+tld_test_SOURCES = tld-test.c $(TEST_SRCS)
 uri_parsing_SOURCES = uri-parsing.c $(TEST_SRCS)
 xmlrpc_test_SOURCES = xmlrpc-test.c $(TEST_SRCS)
 xmlrpc_server_test_SOURCES = xmlrpc-server-test.c $(TEST_SRCS)
@@ -102,6 +104,7 @@ TESTS =			\
 	ssl-test	\
 	streaming-test	\
 	timeout-test	\
+	tld-test	\
 	uri-parsing	\
 	$(APACHE_TESTS) \
 	$(CURL_TESTS)	\

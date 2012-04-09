@@ -39,6 +39,7 @@ extern "C" {
 #include <libsoup/soup-session-sync.h>
 #include <libsoup/soup-socket.h>
 #include <libsoup/soup-status.h>
+#include <libsoup/soup-tld.h>
 #include <libsoup/soup-uri.h>
 #include <libsoup/soup-value-utils.h>
 #include <libsoup/soup-xmlrpc.h>

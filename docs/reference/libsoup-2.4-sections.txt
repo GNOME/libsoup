@@ -1174,3 +1174,15 @@ SoupRequestHTTPPrivate
 soup_request_http_get_type
 </SECTION>
 
+<SECTION>
+<FILE>soup-tld</FILE>
+<TITLE>Top Level Domain utils</TITLE>
+<SUBSECTION>
+soup_tld_get_base_domain
+soup_tld_domain_is_public_suffix
+<SUBSECTION>
+SOUP_TLD_ERROR
+SoupTLDError
+<SUBSECTION Private>
+soup_tld_error_quark
+</SECTION>

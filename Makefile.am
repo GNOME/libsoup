@@ -3,12 +3,13 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
 SUBDIRS = libsoup po tests docs
 
-EXTRA_DIST =			\
-	libsoup-2.4.pc.in	\
-	libsoup-gnome-2.4.pc.in	\
-	gtk-doc.make		\
-	libsoup-zip.in		\
-	m4/introspection.m4	\
+EXTRA_DIST =				\
+	data/effective_tld_names.dat	\
+	libsoup-2.4.pc.in		\
+	libsoup-gnome-2.4.pc.in		\
+	gtk-doc.make			\
+	libsoup-zip.in			\
+	m4/introspection.m4		\
 	Makefile.glib
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection

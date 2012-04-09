@@ -24,14 +24,15 @@
     <xi:include href="xml/soup-message-headers.xml"/>
     <xi:include href="xml/soup-message-body.xml"/>
     <xi:include href="xml/soup-method.xml"/>
+    <xi:include href="xml/soup-misc.xml"/>
     <xi:include href="xml/soup-multipart.xml"/>
     <xi:include href="xml/soup-server.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-session-async.xml"/>
     <xi:include href="xml/soup-session-sync.xml"/>
     <xi:include href="xml/soup-status.xml"/>
+    <xi:include href="xml/soup-tld.xml"/>
     <xi:include href="xml/soup-uri.xml"/>
-    <xi:include href="xml/soup-misc.xml"/>
   </chapter>
 
   <chapter>

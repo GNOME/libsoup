@@ -59,6 +59,7 @@ soup_headers =			\
 	soup-session-sync.h	\
 	soup-socket.h		\
 	soup-status.h		\
+	soup-tld.h		\
 	soup-types.h		\
 	soup-uri.h		\
 	soup-value-utils.h	\
@@ -80,6 +81,7 @@ libsoup_2_4_la_LIBADD =			\
 	$(LIBWS2_32)
 
 libsoup_2_4_la_SOURCES =		\
+	tld_data.inc			\
 	soup-address.c			\
 	soup-auth.c			\
 	soup-auth-basic.h		\
@@ -162,9 +164,24 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session-sync.c		\
 	soup-socket.c			\
 	soup-status.c			\
+	soup-tld.c			\
+	soup-tld-private.h		\
 	soup-uri.c			\
 	soup-value-utils.c		\
 	soup-xmlrpc.c
+
+# TLD rules
+noinst_PROGRAMS = 	\
+	tld-parser
+
+tld_parser_SOURCES = tld-parser.c
+tld_parser_CFLAGS = $(GLIB_CFLAGS)
+tld_parser_LDADD = $(GLIB_LIBS)
+
+TLD_DATA_FILE=$(top_srcdir)/data/effective_tld_names.dat
+
+tld_data.inc: tld-parser $(TLD_DATA_FILE)
+	$(builddir)/tld-parser $(TLD_DATA_FILE) $(srcdir)/tld_data.inc
 
 if BUILD_LIBSOUP_GNOME
 
@@ -204,7 +221,9 @@ endif
 
 GLIB_GENERATED = soup-marshal.c soup-marshal.h
 GLIB_GENERATED += soup-enum-types.c soup-enum-types.h
-BUILT_SOURCES = $(GLIB_GENERATED)
+BUILT_SOURCES = \
+	$(GLIB_GENERATED)   \
+	tld_data.inc
 
 soup_marshal_sources = $(libsoup_2_4_la_SOURCES) $(libsoup_gnome_2_4_la_SOURCES)
 soup_enum_types_sources = $(libsoupinclude_HEADERS) $(libsoupgnomeinclude_HEADERS)
@@ -268,6 +287,6 @@ gir_DATA = $(INTROSPECTION_GIRS)
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-CLEANFILES = $(gir_DATA) $(typelib_DATA)
+CLEANFILES = $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
