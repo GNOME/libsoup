@@ -76,38 +76,61 @@ soup_request_file_check_uri (SoupRequest  *request,
 	if (*uri->host &&
 	    g_ascii_strcasecmp (uri->host, "localhost") != 0)
 		return FALSE;
-
 	return TRUE;
 }
+
+#ifdef G_OS_WIN32
+static void
+windowsify_file_uri_path (char *path)
+{
+	char *p, *slash;
+
+	/* Copied from g_filename_from_uri(), which we can't use
+	 * directly because it rejects invalid URIs that we need to
+	 * keep.
+	 */
+
+	/* Turn slashes into backslashes, because that's the canonical spelling */
+	p = path;
+	while ((slash = strchr (p, '/')) != NULL) {
+		*slash = '\\';
+		p = slash + 1;
+	}
+
+	/* Windows URIs with a drive letter can be like
+	 * "file://host/c:/foo" or "file://host/c|/foo" (some Netscape
+	 * versions). In those cases, start the filename from the
+	 * drive letter.
+	 */
+	if (g_ascii_isalpha (path[1])) {
+		if (path[2] == '|')
+			path[2] = ':';
+		if (path[2] == ':')
+			memmove (path, path + 1, strlen (path));
+	}
+}
+#endif
 
 static gboolean
 soup_request_file_ensure_file (SoupRequestFile  *file,
 			       GCancellable     *cancellable,
 			       GError          **error)
 {
-	SoupURI *uri, *copied_uri = NULL;
-	char *uri_str;
+	SoupURI *uri;
+	char *decoded_path;
 
 	if (file->priv->gfile)
 		return TRUE;
 
 	uri = soup_request_get_uri (SOUP_REQUEST (file));
+	decoded_path = soup_uri_decode (uri->path);
 
-	/* gio mishandles URIs with query components:
-	 * https://bugzilla.gnome.org/show_bug.cgi?id=670755
-	 */
-	if (uri->query) {
-		uri = copied_uri = soup_uri_copy (uri);
-		soup_uri_set_query (copied_uri, NULL);
-	}
+#ifdef G_OS_WIN32
+	windowsify_file_uri_path (decoded_path);
+#endif
 
-	uri_str = soup_uri_to_string (uri, FALSE);
-	file->priv->gfile = g_file_new_for_uri (uri_str);
-
-	g_free (uri_str);
-	if (copied_uri)
-		soup_uri_free (copied_uri);
-
+	file->priv->gfile = g_file_new_for_path (decoded_path);
+	g_free (decoded_path);
 	return TRUE;
 }
 
