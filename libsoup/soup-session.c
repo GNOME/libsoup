@@ -594,10 +594,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:ssl-use-system-ca-file:
 	 *
-	 * Setting this to %TRUE overrides #SoupSession:ssl-ca-file
-	 * and #SoupSession:tls-database, and uses the default system
-	 * CA database (which, despite the name, may not actually be a
-	 * file).
+	 * Setting this to %TRUE is equivalent to setting
+	 * #SoupSession:tls-database to the default system CA database.
+	 * (and likewise, setting #SoupSession:tls-database to the
+	 * default database by hand will cause this property to
+	 * become %TRUE).
+	 *
+	 * Setting this to %FALSE (when it was previously %TRUE) will
+	 * clear the #SoupSession:tls-database field.
 	 *
 	 * See #SoupSession:ssl-strict for more information on how
 	 * https certificate validation is handled.
@@ -609,7 +613,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_boolean (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE,
 				      "Use system CA file",
 				      "Use the system certificate database",
-				      TRUE,
+				      FALSE,
 				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_TLS_DATABASE:
@@ -621,9 +625,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:tls-database:
 	 *
-	 * Overrides #SoupSession:ssl-ca-file and
-	 * #SoupSession:ssl-use-system-ca-file, and uses the provided
-	 * #GTlsDatabase.
+	 * Sets the #GTlsDatabase to use for validating SSL/TLS
+	 * certificates.
+	 *
+	 * Note that setting the #SoupSession:ssl-ca-file or
+	 * #SoupSession:ssl-use-system-ca-file property will cause
+	 * this property to be set to a #GTlsDatabase corresponding to
+	 * the indicated file or system default.
 	 *
 	 * See #SoupSession:ssl-strict for more information on how
 	 * https certificate validation is handled.
@@ -647,12 +655,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:ssl-strict:
 	 *
-	 * Normally, if #SoupSession:ssl-ca-file (or
-	 * #SoupSession:tlsdb or #SoupSession:ssl-use-system-ca-file)
-	 * is set, then libsoup will reject any certificate that is
-	 * invalid (ie, expired) or that is not signed by one of the
-	 * given CA certificates, and the #SoupMessage will fail with
-	 * the status %SOUP_STATUS_SSL_FAILED.
+	 * Normally, if #SoupSession:tlsdb is set (including if it was
+	 * set via #SoupSession:ssl-use-system-ca-file or
+	 * #SoupSession:ssl-ca-file), then libsoup will reject any
+	 * certificate that is invalid (ie, expired) or that is not
+	 * signed by one of the given CA certificates, and the
+	 * #SoupMessage will fail with the status
+	 * %SOUP_STATUS_SSL_FAILED.
 	 *
 	 * If you set #SoupSession:ssl-strict to %FALSE, then all
 	 * certificates will be accepted, and you will need to call
@@ -1039,31 +1048,94 @@ accept_languages_from_system (void)
 }
 
 static void
-load_ssl_ca_file (SoupSessionPrivate *priv)
+set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 {
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	GTlsDatabase *system_default;
+
+	if (tlsdb == priv->tlsdb)
+		return;
+
+	g_object_freeze_notify (G_OBJECT (session));
+
+	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+	if (priv->tlsdb == system_default || tlsdb == system_default) {
+		g_object_notify (G_OBJECT (session), "ssl-use-system-ca-file");
+	}
+	g_object_unref (system_default);
+
+	if (priv->ssl_ca_file) {
+		g_free (priv->ssl_ca_file);
+		priv->ssl_ca_file = NULL;
+		g_object_notify (G_OBJECT (session), "ssl-ca-file");
+	}
+
+	if (priv->tlsdb)
+		g_object_unref (priv->tlsdb);
+	priv->tlsdb = tlsdb;
+	if (priv->tlsdb)
+		g_object_ref (priv->tlsdb);
+
+	g_object_notify (G_OBJECT (session), "tls-database");
+	g_object_thaw_notify (G_OBJECT (session));
+}
+
+static void
+set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	GTlsDatabase *system_default;
+
+	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+
+	if (use_system_ca_file)
+		set_tlsdb (session, system_default);
+	else if (priv->tlsdb == system_default)
+		set_tlsdb (session, NULL);
+
+	g_object_unref (system_default);
+}
+
+static void
+set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	GTlsDatabase *tlsdb;
 	GError *error = NULL;
 
-	if (g_path_is_absolute (priv->ssl_ca_file)) {
-		priv->tlsdb = g_tls_file_database_new (priv->ssl_ca_file,
-						       &error);
-	} else {
+	if (!g_strcmp0 (priv->ssl_ca_file, ssl_ca_file))
+		return;
+
+	g_object_freeze_notify (G_OBJECT (session));
+
+	if (g_path_is_absolute (ssl_ca_file))
+		tlsdb = g_tls_file_database_new (ssl_ca_file, &error);
+	else {
 		char *path, *cwd;
 
 		cwd = g_get_current_dir ();
-		path = g_build_filename (cwd, priv->ssl_ca_file, NULL);
-		priv->tlsdb = g_tls_file_database_new (path, &error);
+		path = g_build_filename (cwd, ssl_ca_file, NULL);
+		tlsdb = g_tls_file_database_new (path, &error);
 		g_free (path);
 	}
-	if (priv->tlsdb)
-		return;
 
-	if (!g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE)) {
-		g_warning ("Could not set SSL credentials from '%s': %s",
-			   priv->ssl_ca_file, error->message);
+	if (error) {
+		if (!g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_UNAVAILABLE)) {
+			g_warning ("Could not set SSL credentials from '%s': %s",
+				   ssl_ca_file, error->message);
 
-		priv->tlsdb = g_tls_file_database_new ("/dev/null", NULL);
+			tlsdb = g_tls_file_database_new ("/dev/null", NULL);
+		}
+		g_error_free (error);
 	}
-	g_error_free (error);
+
+	set_tlsdb (session, tlsdb);
+	g_object_unref (tlsdb);
+
+	priv->ssl_ca_file = g_strdup (ssl_ca_file);
+	g_object_notify (G_OBJECT (session), "ssl-ca-file");
+
+	g_object_thaw_notify (G_OBJECT (session));
 }
 
 /* priv->http_aliases and priv->https_aliases are stored as arrays of
@@ -1130,35 +1202,13 @@ set_property (GObject *object, guint prop_id,
 			g_warning ("Trying to set use-ntlm on session with no auth-manager");
 		break;
 	case PROP_SSL_CA_FILE:
-		if (priv->tlsdb) {
-			g_object_unref (priv->tlsdb);
-			priv->tlsdb = NULL;
-		}
-		g_free (priv->ssl_ca_file);
-
-		priv->ssl_ca_file = g_value_dup_string (value);
-		if (priv->ssl_ca_file)
-			load_ssl_ca_file (priv);
+		set_ssl_ca_file (session, g_value_get_string (value));
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
-		if (priv->tlsdb) {
-			g_object_unref (priv->tlsdb);
-			priv->tlsdb = NULL;
-		}
-		g_free (priv->ssl_ca_file);
-		priv->ssl_ca_file = NULL;
-
-		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		set_use_system_ca_file (session, g_value_get_boolean (value));
 		break;
 	case PROP_TLS_DATABASE:
-		if (priv->tlsdb) {
-			g_object_unref (priv->tlsdb);
-			priv->tlsdb = NULL;
-		}
-		g_free (priv->ssl_ca_file);
-		priv->ssl_ca_file = NULL;
-
-		priv->tlsdb = g_value_dup_object (value);
+		set_tlsdb (session, g_value_get_object (value));
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
