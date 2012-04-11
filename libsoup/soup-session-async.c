@@ -47,25 +47,18 @@ static void  auth_required   (SoupSession *session, SoupMessage *msg,
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 typedef struct {
-	GHashTable *idle_run_queue_sources;
+	SoupSessionAsync *sa;
+	gboolean disposed;
 
 } SoupSessionAsyncPrivate;
 #define SOUP_SESSION_ASYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_ASYNC, SoupSessionAsyncPrivate))
-
-static void
-destroy_unref_source (gpointer source)
-{
-	g_source_destroy (source);
-	g_source_unref (source);
-}
 
 static void
 soup_session_async_init (SoupSessionAsync *sa)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
 
-	priv->idle_run_queue_sources =
-		g_hash_table_new_full (NULL, NULL, NULL, destroy_unref_source);
+	priv->sa = sa;
 }
 
 static void
@@ -73,10 +66,7 @@ dispose (GObject *object)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
 
-	if (priv->idle_run_queue_sources) {
-		g_hash_table_destroy (priv->idle_run_queue_sources);
-		priv->idle_run_queue_sources = NULL;
-	}
+	priv->disposed = TRUE;
 
 	G_OBJECT_CLASS (soup_session_async_parent_class)->dispose (object);
 }
@@ -482,16 +472,17 @@ run_queue (SoupSessionAsync *sa)
 }
 
 static gboolean
-idle_run_queue (gpointer sa)
+idle_run_queue (gpointer user_data)
 {
-	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (sa);
+	SoupSessionAsyncPrivate *priv = user_data;
 
-	if (!priv->idle_run_queue_sources)
+	if (priv->disposed)
 		return FALSE;
 
-	g_hash_table_remove (priv->idle_run_queue_sources,
-			     soup_session_get_async_context (sa));
-	run_queue (sa);
+	/* Ensure that the source is destroyed before running the queue */
+	g_source_destroy (g_main_current_source ());
+
+	run_queue (priv->sa);
 	return FALSE;
 }
 
@@ -499,18 +490,22 @@ static void
 do_idle_run_queue (SoupSession *session)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (session);
+	GMainContext *async_context = soup_session_get_async_context (session);
+	GSource *source;
 
-	if (!priv->idle_run_queue_sources)
+	if (priv->disposed)
 		return;
 
-	if (!g_hash_table_lookup (priv->idle_run_queue_sources,
-				  soup_session_get_async_context (session))) {
-		GMainContext *async_context = soup_session_get_async_context (session);
-		GSource *source = soup_add_completion (async_context, idle_run_queue, session);
+	/* We use priv rather than session as the source data, because
+	 * other parts of libsoup (or the calling app) may have sources
+	 * using the session as the source data.
+	 */
 
-		g_hash_table_insert (priv->idle_run_queue_sources,
-				     async_context, g_source_ref (source));
-	}
+	source = g_main_context_find_source_by_user_data (async_context, priv);
+	if (source)
+		return;
+
+	source = soup_add_completion (async_context, idle_run_queue, priv);
 }
 
 static void
