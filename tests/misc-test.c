@@ -827,6 +827,30 @@ do_idle_on_dispose_test (void)
 	g_main_context_unref (async_context);
 }
 
+static void
+do_pause_abort_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	gpointer ptr;
+
+	debug_printf (1, "\nTesting paused messages don't get leaked on abort\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	soup_session_queue_message (session, msg, NULL, NULL);
+	soup_session_pause_message (session, msg);
+
+	g_object_add_weak_pointer (G_OBJECT (msg), &ptr);
+	soup_test_session_abort_unref (session);
+
+	if (ptr) {
+		debug_printf (1, "  msg was leaked\n");
+		errors++;
+	}
+}
+
 int
 main (int argc, char **argv)
 {
@@ -863,6 +887,7 @@ main (int argc, char **argv)
 	do_dot_dot_test ();
 	do_ipv6_test ();
 	do_idle_on_dispose_test ();
+	do_pause_abort_test ();
 
 	soup_uri_free (base_uri);
 	soup_uri_free (ssl_base_uri);

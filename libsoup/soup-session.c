@@ -2285,6 +2285,7 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
 
+	item->paused = FALSE;
 	soup_message_set_status (msg, status_code);
 	g_cancellable_cancel (item->cancellable);
 
