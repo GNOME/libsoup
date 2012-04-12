@@ -10,7 +10,11 @@
 #include <string.h>
 
 #include <glib.h>
+
+#define LIBSOUP_USE_UNSTABLE_REQUEST_API
 #include <libsoup/soup.h>
+#include <libsoup/soup-requester.h>
+#include <libsoup/soup-request-http.h>
 
 #include "test-utils.h"
 
@@ -26,6 +30,7 @@ typedef struct {
 static struct {
 	TestRequest requests[3];
 	guint final_status;
+	guint request_api_final_status;
 } tests[] = {
 	/* A redirecty response to a GET or HEAD should cause a redirect */
 
@@ -110,7 +115,7 @@ static struct {
 
 	/* Test behavior with irrecoverably-bad Location header */
 	{ { { "GET", "/bad-no-host", 302 },
-	    { NULL } }, SOUP_STATUS_MALFORMED },
+	    { NULL } }, SOUP_STATUS_MALFORMED, 302 },
 
 	/* Test infinite redirection */
 	{ { { "GET", "/bad-recursive", 302, TRUE },
@@ -126,7 +131,7 @@ static const int n_tests = G_N_ELEMENTS (tests);
 static void
 got_headers (SoupMessage *msg, gpointer user_data)
 {
-	TestRequest **req = user_data;
+	TestRequest **treq = user_data;
 	const char *location;
 
 	debug_printf (2, "    -> %d %s\n", msg->status_code,
@@ -136,12 +141,12 @@ got_headers (SoupMessage *msg, gpointer user_data)
 	if (location)
 		debug_printf (2, "       Location: %s\n", location);
 
-	if (!(*req)->method)
+	if (!(*treq)->method)
 		return;
 
-	if (msg->status_code != (*req)->status_code) {
+	if (msg->status_code != (*treq)->status_code) {
 		debug_printf (1, "    - Expected %d !\n",
-			      (*req)->status_code);
+			      (*treq)->status_code);
 		errors++;
 	}
 }
@@ -149,36 +154,36 @@ got_headers (SoupMessage *msg, gpointer user_data)
 static void
 restarted (SoupMessage *msg, gpointer user_data)
 {
-	TestRequest **req = user_data;
+	TestRequest **treq = user_data;
 	SoupURI *uri = soup_message_get_uri (msg);
 
 	debug_printf (2, "    %s %s\n", msg->method, uri->path);
 
-	if ((*req)->method && !(*req)->repeat)
-		(*req)++;
+	if ((*treq)->method && !(*treq)->repeat)
+		(*treq)++;
 
-	if (!(*req)->method) {
+	if (!(*treq)->method) {
 		debug_printf (1, "    - Expected to be done!\n");
 		errors++;
 		return;
 	}
 
-	if (strcmp (msg->method, (*req)->method) != 0) {
-		debug_printf (1, "    - Expected %s !\n", (*req)->method);
+	if (strcmp (msg->method, (*treq)->method) != 0) {
+		debug_printf (1, "    - Expected %s !\n", (*treq)->method);
 		errors++;
 	}
-	if (strcmp (uri->path, (*req)->path) != 0) {
-		debug_printf (1, "    - Expected %s !\n", (*req)->path);
+	if (strcmp (uri->path, (*treq)->path) != 0) {
+		debug_printf (1, "    - Expected %s !\n", (*treq)->path);
 		errors++;
 	}
 }
 
 static void
-do_test (SoupSession *session, SoupURI *base_uri, int n)
+do_message_api_test (SoupSession *session, SoupURI *base_uri, int n)
 {
 	SoupURI *uri;
 	SoupMessage *msg;
-	TestRequest *req;
+	TestRequest *treq;
 
 	debug_printf (1, "%2d. %s %s\n", n + 1,
 		      tests[n].requests[0].method,
@@ -195,11 +200,11 @@ do_test (SoupSession *session, SoupURI *base_uri, int n)
 					  strlen ("post body"));
 	}
 
-	req = &tests[n].requests[0];
+	treq = &tests[n].requests[0];
 	g_signal_connect (msg, "got_headers",
-			  G_CALLBACK (got_headers), &req);
+			  G_CALLBACK (got_headers), &treq);
 	g_signal_connect (msg, "restarted",
-			  G_CALLBACK (restarted), &req);
+			  G_CALLBACK (restarted), &treq);
 
 	soup_session_send_message (session, msg);
 
@@ -214,21 +219,159 @@ do_test (SoupSession *session, SoupURI *base_uri, int n)
 }
 
 static void
+async_callback (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	GAsyncResult **result_p = user_data;
+
+	*result_p = g_object_ref (result);
+}
+
+static void
+do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
+{
+	SoupRequester *requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
+	SoupURI *uri;
+	SoupRequest *req;
+	SoupMessage *msg;
+	TestRequest *treq;
+	GInputStream *stream;
+	GAsyncResult *result;
+	GError *error = NULL;
+	guint final_status;
+
+	debug_printf (1, "%2d. %s %s\n", n + 1,
+		      tests[n].requests[0].method,
+		      tests[n].requests[0].path);
+
+	final_status = tests[n].request_api_final_status;
+	if (!final_status)
+		final_status = tests[n].final_status;
+
+	uri = soup_uri_new_with_base (base_uri, tests[n].requests[0].path);
+	req = soup_requester_request_uri (requester, uri, &error);
+	soup_uri_free (uri);
+	if (!req) {
+		debug_printf (1, "    could not create request: %s\n",
+			      error->message);
+		g_error_free (error);
+		errors++;
+		debug_printf (2, "\n");
+		return;
+	}
+
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	g_object_set (G_OBJECT (msg),
+		      SOUP_MESSAGE_METHOD, tests[n].requests[0].method,
+		      NULL);
+
+	if (msg->method == SOUP_METHOD_POST) {
+		soup_message_set_request (msg, "text/plain",
+					  SOUP_MEMORY_STATIC,
+					  "post body",
+					  strlen ("post body"));
+	}
+
+	treq = &tests[n].requests[0];
+	g_signal_connect (msg, "got_headers",
+			  G_CALLBACK (got_headers), &treq);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (restarted), &treq);
+
+	if (SOUP_IS_SESSION_SYNC (session)) {
+		stream = soup_request_send (req, NULL, &error);
+	} else {
+		result = NULL;
+		soup_request_send_async (req, NULL, async_callback, &result);
+		while (!result)
+			g_main_context_iteration (NULL, TRUE);
+		stream = soup_request_send_finish (req, result, &error);
+		g_object_unref (result);
+	}
+
+	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
+		if (stream) {
+			debug_printf (1, "    expected failure (%s) but succeeded",
+				      soup_status_get_phrase (final_status));
+			errors++;
+			g_object_unref (stream);
+		}
+		if (error->domain != SOUP_HTTP_ERROR ||
+		    error->code != final_status) {
+			debug_printf (1, "    expected '%s' but got '%s'",
+				      soup_status_get_phrase (final_status),
+				      error->message);
+			errors++;
+		}
+
+		g_error_free (error);
+		g_object_unref (req);
+		debug_printf (2, "\n");
+		return;
+	} else if (!stream) {
+		debug_printf (1, "    could not send request: %s\n",
+			      error->message);
+		g_error_free (error);
+		g_object_unref (req);
+		errors++;
+		debug_printf (2, "\n");
+		return;
+	}
+
+	if (SOUP_IS_SESSION_SYNC (session)) {
+		g_input_stream_close (stream, NULL, &error);
+	} else {
+		result = NULL;
+		g_input_stream_close_async (stream, G_PRIORITY_DEFAULT,
+					    NULL, async_callback, &result);
+		while (!result)
+			g_main_context_iteration (NULL, TRUE);
+		g_input_stream_close_finish (stream, result, &error);
+		g_object_unref (result);
+	}
+	if (error) {
+		debug_printf (1, "    could not close stream: %s\n",
+			      error->message);
+		g_error_free (error);
+		errors++;
+	}
+
+	if (msg->status_code != final_status) {
+		debug_printf (1, "    - Expected final status of %d, got %d !\n",
+			      final_status, msg->status_code);
+		errors++;
+	}
+
+	g_object_unref (req);
+	debug_printf (2, "\n");
+}
+
+static void
 do_redirect_tests (SoupURI *base_uri)
 {
 	SoupSession *session;
 	int n;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	debug_printf (1, "Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	debug_printf (1, "Async session, SoupMessage\n");
 	for (n = 0; n < n_tests; n++)
-		do_test (session, base_uri, n);
+		do_message_api_test (session, base_uri, n);
+	debug_printf (1, "\nAsync session, SoupRequest\n");
+	for (n = 0; n < n_tests; n++)
+		do_request_api_test (session, base_uri, n);
 	soup_test_session_abort_unref (session);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	debug_printf (1, "\nSync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
+					 NULL);
+	debug_printf (1, "\nSync session, SoupMessage\n");
 	for (n = 0; n < n_tests; n++)
-		do_test (session, base_uri, n);
+		do_message_api_test (session, base_uri, n);
+	debug_printf (1, "\nSync session, SoupRequest\n");
+	for (n = 0; n < n_tests; n++)
+		do_request_api_test (session, base_uri, n);
 	soup_test_session_abort_unref (session);
 }
 
