@@ -13,6 +13,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <glib/gi18n-lib.h>
+
 #include "soup-auth.h"
 #include "soup-auth-basic.h"
 #include "soup-auth-digest.h"
@@ -57,6 +59,15 @@
  * synchronous I/O in a separate thread from the UI, use
  * #SoupSessionSync.
  **/
+
+static void
+soup_init (void)
+{
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
+}
 
 typedef struct {
 	SoupURI     *uri;
@@ -132,7 +143,9 @@ static void auth_manager_authenticate (SoupAuthManager *manager,
 
 #define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
-G_DEFINE_ABSTRACT_TYPE (SoupSession, soup_session, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE_WITH_CODE (SoupSession, soup_session, G_TYPE_OBJECT,
+				  soup_init ();
+				  )
 
 enum {
 	REQUEST_QUEUED,

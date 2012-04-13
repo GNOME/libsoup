@@ -8,6 +8,7 @@ endif
 
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
+	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(SOUP_MAINTAINER_FLAGS)	\

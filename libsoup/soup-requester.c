@@ -22,7 +22,7 @@
 
 #include "config.h"
 
-#include <glib/gi18n.h>
+#include <glib/gi18n-lib.h>
 
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 

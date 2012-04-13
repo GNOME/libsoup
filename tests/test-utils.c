@@ -5,6 +5,7 @@
 #include "test-utils.h"
 #include "libsoup/soup.h"
 
+#include <locale.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +82,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	GError *error = NULL;
 	GTlsBackend *tls_backend;
 
+	setlocale (LC_ALL, "");
 	g_type_init ();
 
 	name = strrchr (argv[0], '/');

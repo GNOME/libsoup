@@ -103,6 +103,15 @@ esac
 AC_MSG_RESULT([$os_win32])
 AM_CONDITIONAL(OS_WIN32, [test $os_win32 = yes])
 
+dnl ************************
+dnl *** gettext/intltool ***
+dnl ************************
+IT_PROG_INTLTOOL([0.35.0])
+GETTEXT_PACKAGE=libsoup
+AC_SUBST([GETTEXT_PACKAGE])
+AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],["$GETTEXT_PACKAGE"],[The gettext domain name])
+AM_GLIB_GNU_GETTEXT
+
 dnl *******************
 dnl *** Misc checks ***
 dnl *******************
@@ -347,6 +356,8 @@ AC_CONFIG_FILES([
 	Makefile
 	libsoup-zip
 	libsoup/Makefile
+	po/Makefile.in
+	po/Makefile
 	tests/Makefile
 	tests/httpd.conf
 	docs/Makefile
