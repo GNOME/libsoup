@@ -1,3 +1,28 @@
+Changes in libsoup from 2.38.0 to 2.38.1:
+
+	* Fixed a situation where soup_connection_disconnect() could
+	  end up calling g_object_unref(NULL) when an idle connection
+	  was closed. [Sergio, #672178]
+
+	* Fixed two warnings when cancelling an in-progress
+          soup_socket_connect_async(). [pointed out on the mailing
+	  list by Sven Neumann]
+
+	* Fixed a crash when disposing a SoupServer with open
+          connections. [#673468, Jonny Lamb]
+
+	* Fixed the SoupSession:ssl-use-system-ca-file property to get
+	  turned off (rather than on) when you set it to FALSE... Also
+	  fixed up the property notifications around the various
+	  certificate-verification properties (ssl-ca-file,
+	  ssl-use-system-ca-file, and tls-database).
+
+	* Fixed SoupSession to not leak paused SoupMessages that
+	  were still in progress when it was unreffed. [#673905]
+
+	* Updated the win32 file: URI code again, to fix regressions
+	  in the WebKit tests. [WebKit bug #82484]
+
 Changes in libsoup from 2.37.92 to 2.38.0:
 
 	* Minor documentation fixes
