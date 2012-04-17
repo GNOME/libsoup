@@ -55,6 +55,7 @@ m4/libtool.m4
 m4/lt*.m4
 missing
 mkinstalldirs
+po/*.gmo
 po/libsoup.pot
 po/Makefile.in.in
 po/POTFILES
