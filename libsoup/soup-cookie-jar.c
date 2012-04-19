@@ -19,6 +19,7 @@
 #include "soup-marshal.h"
 #include "soup-message.h"
 #include "soup-session-feature.h"
+#include "soup-tld.h"
 #include "soup-uri.h"
 
 /**
@@ -478,6 +479,13 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (cookie != NULL);
+
+	/* Never accept cookies for public domains. */
+	if (!g_hostname_is_ip_address (cookie->domain) &&
+	    soup_tld_domain_is_public_suffix (cookie->domain)) {
+		soup_cookie_free (cookie);
+		return;
+	}
 
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 	old_cookies = g_hash_table_lookup (priv->domains, cookie->domain);
