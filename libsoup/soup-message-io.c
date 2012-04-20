@@ -26,7 +26,6 @@
 #include "soup-message-queue.h"
 #include "soup-misc.h"
 #include "soup-misc-private.h"
-#include "soup-socket.h"
 
 typedef enum {
 	SOUP_MESSAGE_IO_CLIENT,
@@ -59,7 +58,7 @@ typedef struct {
 	SoupMessageIOMode     mode;
 	GCancellable         *cancellable;
 
-	SoupSocket             *sock;
+	GIOStream              *iostream;
 	SoupFilterInputStream  *istream;
 	GInputStream           *body_istream;
 	GOutputStream          *ostream;
@@ -109,12 +108,8 @@ soup_message_io_cleanup (SoupMessage *msg)
 		return;
 	priv->io_data = NULL;
 
-	if (io->sock)
-		g_object_unref (io->sock);
-	if (io->istream)
-		g_object_remove_weak_pointer (G_OBJECT (io->istream), (gpointer *)&io->istream);
-	if (io->ostream)
-		g_object_remove_weak_pointer (G_OBJECT (io->ostream), (gpointer *)&io->ostream);
+	if (io->iostream)
+		g_object_unref (io->iostream);
 	if (io->body_istream)
 		g_object_unref (io->body_istream);
 	if (io->body_ostream)
@@ -155,7 +150,7 @@ soup_message_io_stop (SoupMessage *msg)
 	}
 
 	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
-		soup_socket_disconnect (io->sock);
+		g_io_stream_close (io->iostream, NULL, NULL);
 }
 
 void
@@ -181,7 +176,7 @@ request_is_idempotent (SoupMessage *msg)
 }
 
 static void
-io_error (SoupSocket *sock, SoupMessage *msg, GError *error)
+io_error (SoupMessage *msg, GError *error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
@@ -865,7 +860,7 @@ io_run (SoupMessage *msg, gpointer user_data)
 		io->io_source = soup_message_io_get_source (msg, NULL, io_run, msg);
 		g_source_attach (io->io_source, io->async_context);
 	} else if (error) {
-		io_error (io->sock, msg, error);
+		io_error (msg, error);
 	}
 
 	g_object_unref (msg);
@@ -946,7 +941,8 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 
 
 static SoupMessageIOData *
-new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
+new_iostate (SoupMessage *msg, GIOStream *iostream,
+	     GMainContext *async_context, SoupMessageIOMode mode,
 	     SoupMessageGetHeadersFn get_headers_cb,
 	     SoupMessageParseHeadersFn parse_headers_cb,
 	     gpointer header_data,
@@ -955,7 +951,6 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io;
-	gboolean non_blocking, use_thread_context;
 
 	io = g_slice_new0 (SoupMessageIOData);
 	io->mode = mode;
@@ -965,29 +960,15 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 	io->completion_cb    = completion_cb;
 	io->completion_data  = completion_data;
 
-	io->sock = g_object_ref (sock);
-	io->istream = SOUP_FILTER_INPUT_STREAM (soup_socket_get_input_stream (sock));
-	if (io->istream)
-		g_object_add_weak_pointer (G_OBJECT (io->istream), (gpointer *)&io->istream);
-	io->ostream = soup_socket_get_output_stream (sock);
-	if (io->ostream)
-		g_object_add_weak_pointer (G_OBJECT (io->ostream), (gpointer *)&io->ostream);
+	io->iostream = g_object_ref (iostream);
+	io->istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (iostream));
+	io->ostream = g_io_stream_get_output_stream (iostream);
 
-	g_object_get (io->sock,
-		      SOUP_SOCKET_FLAG_NONBLOCKING, &non_blocking,
-		      SOUP_SOCKET_USE_THREAD_CONTEXT, &use_thread_context,
-		      NULL);
-	io->blocking = !non_blocking;
-
-	if (use_thread_context) {
-		io->async_context = g_main_context_get_thread_default ();
-		if (io->async_context)
-			g_main_context_ref (io->async_context);
-	} else {
-		g_object_get (io->sock,
-			      SOUP_SOCKET_ASYNC_CONTEXT, &io->async_context,
-			      NULL);
-	}
+	if (async_context) {
+		io->async_context = g_main_context_ref (async_context);
+		io->blocking = FALSE;
+	} else
+		io->blocking = TRUE;
 
 	io->read_header_buf = g_byte_array_new ();
 	io->write_buf       = g_string_new (NULL);
@@ -1003,6 +984,8 @@ new_iostate (SoupMessage *msg, SoupSocket *sock, SoupMessageIOMode mode,
 
 void
 soup_message_io_client (SoupMessageQueueItem *item,
+			GIOStream *iostream,
+			GMainContext *async_context,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
 			gpointer header_data,
@@ -1010,9 +993,9 @@ soup_message_io_client (SoupMessageQueueItem *item,
 			gpointer completion_data)
 {
 	SoupMessageIOData *io;
-	SoupSocket *sock = soup_connection_get_socket (item->conn);
 
-	io = new_iostate (item->msg, sock, SOUP_MESSAGE_IO_CLIENT,
+	io = new_iostate (item->msg, iostream, async_context,
+			  SOUP_MESSAGE_IO_CLIENT,
 			  get_headers_cb, parse_headers_cb, header_data,
 			  completion_cb, completion_data);
 
@@ -1029,7 +1012,8 @@ soup_message_io_client (SoupMessageQueueItem *item,
 }
 
 void
-soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
+soup_message_io_server (SoupMessage *msg,
+			GIOStream *iostream, GMainContext *async_context,
 			SoupMessageGetHeadersFn get_headers_cb,
 			SoupMessageParseHeadersFn parse_headers_cb,
 			gpointer header_data,
@@ -1038,7 +1022,8 @@ soup_message_io_server (SoupMessage *msg, SoupSocket *sock,
 {
 	SoupMessageIOData *io;
 
-	io = new_iostate (msg, sock, SOUP_MESSAGE_IO_SERVER,
+	io = new_iostate (msg, iostream, async_context,
+			  SOUP_MESSAGE_IO_SERVER,
 			  get_headers_cb, parse_headers_cb, header_data,
 			  completion_cb, completion_data);
 

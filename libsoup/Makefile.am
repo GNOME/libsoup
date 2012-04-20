@@ -123,6 +123,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-io-stream.h		\
+	soup-io-stream.c		\
 	soup-logger.c			\
 	soup-marshal.h			\
 	soup-marshal.c			\

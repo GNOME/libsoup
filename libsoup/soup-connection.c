@@ -448,7 +448,7 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 	if (item->msg->method == SOUP_METHOD_CONNECT) {
 		g_signal_emit (conn, signals[EVENT], 0,
 			       G_SOCKET_CLIENT_PROXY_NEGOTIATING,
-			       soup_socket_get_iostream (priv->socket));
+			       soup_socket_get_connection (priv->socket));
 	} else if (priv->state == SOUP_CONNECTION_IDLE)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 
@@ -478,7 +478,7 @@ clear_current_item (SoupConnection *conn)
 		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
 			g_signal_emit (conn, signals[EVENT], 0,
 				       G_SOCKET_CLIENT_PROXY_NEGOTIATED,
-				       soup_socket_get_iostream (priv->socket));
+				       soup_socket_get_connection (priv->socket));
 
 			/* We're now effectively no longer proxying */
 			soup_uri_free (priv->proxy_uri);
@@ -500,7 +500,7 @@ soup_connection_event (SoupConnection      *conn,
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	if (!connection && priv->socket)
-		connection = soup_socket_get_iostream (priv->socket);
+		connection = soup_socket_get_connection (priv->socket);
 
 	g_signal_emit (conn, signals[EVENT], 0,
 		       event, connection);

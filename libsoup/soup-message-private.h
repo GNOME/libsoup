@@ -65,13 +65,16 @@ void soup_message_read_request (SoupMessage               *req,
 				gpointer                   user_data);
 
 void soup_message_io_client    (SoupMessageQueueItem      *item,
+				GIOStream                 *iostream,
+				GMainContext              *async_context,
 				SoupMessageGetHeadersFn    get_headers_cb,
 				SoupMessageParseHeadersFn  parse_headers_cb,
 				gpointer                   headers_data,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
 void soup_message_io_server    (SoupMessage               *msg,
-				SoupSocket                *sock,
+				GIOStream                 *iostream,
+				GMainContext              *async_context,
 				SoupMessageGetHeadersFn    get_headers_cb,
 				SoupMessageParseHeadersFn  parse_headers_cb,
 				gpointer                   headers_data,

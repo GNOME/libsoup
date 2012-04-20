@@ -19,6 +19,7 @@
 #include "soup-socket.h"
 #include "soup-address.h"
 #include "soup-filter-input-stream.h"
+#include "soup-io-stream.h"
 #include "soup-marshal.h"
 #include "soup-misc.h"
 #include "soup-misc-private.h"
@@ -69,7 +70,7 @@ enum {
 
 typedef struct {
 	SoupAddress *local_addr, *remote_addr;
-	GIOStream *conn;
+	GIOStream *conn, *iostream;
 	GSocket *gsock;
 	GInputStream *istream;
 	GOutputStream *ostream;
@@ -119,17 +120,9 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	if (priv->gsock) {
-		if (close)
-			g_socket_close (priv->gsock, NULL);
-		g_object_unref (priv->gsock);
-		priv->gsock = NULL;
-	}
-	if (priv->conn) {
-		if (G_IS_TLS_CONNECTION (priv->conn))
-			g_signal_handlers_disconnect_by_func (priv->conn, soup_socket_peer_certificate_changed, sock);
-		g_clear_object (&priv->conn);
-	}
+	g_clear_object (&priv->gsock);
+	if (priv->conn && close)
+		g_io_stream_close (priv->conn, NULL, NULL);
 
 	if (priv->read_src) {
 		g_source_destroy (priv->read_src);
@@ -151,12 +144,14 @@ finalize (GObject *object)
 			g_warning ("Disposing socket %p during connect", object);
 		g_object_unref (priv->connect_cancel);
 	}
-	if (priv->conn) {
+	if (priv->gsock) {
 		if (priv->clean_dispose)
 			g_warning ("Disposing socket %p while still connected", object);
 		disconnect_internal (SOUP_SOCKET (object), TRUE);
 	}
 
+	g_clear_object (&priv->conn);
+	g_clear_object (&priv->iostream);
 	g_clear_object (&priv->istream);
 	g_clear_object (&priv->ostream);
 
@@ -517,10 +512,12 @@ finish_socket_setup (SoupSocketPrivate *priv)
 
 	if (!priv->conn)
 		priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
+	if (!priv->iostream)
+		priv->iostream = soup_io_stream_new (priv->conn, FALSE);
 	if (!priv->istream)
-		priv->istream = soup_filter_input_stream_new (g_io_stream_get_input_stream (priv->conn));
+		priv->istream = g_object_ref (g_io_stream_get_input_stream (priv->iostream));
 	if (!priv->ostream)
-		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->conn));
+		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
 
 	g_socket_set_timeout (priv->gsock, priv->timeout);
 }
@@ -843,11 +840,19 @@ soup_socket_get_gsocket (SoupSocket *sock)
 }
 
 GIOStream *
-soup_socket_get_iostream (SoupSocket *sock)
+soup_socket_get_connection (SoupSocket *sock)
 {
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 
 	return SOUP_SOCKET_GET_PRIVATE (sock)->conn;
+}
+
+GIOStream *
+soup_socket_get_iostream (SoupSocket *sock)
+{
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+
+	return SOUP_SOCKET_GET_PRIVATE (sock)->iostream;
 }
 
 static GSource *
@@ -1086,13 +1091,13 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	g_signal_connect (priv->conn, "notify::peer-certificate",
 			  G_CALLBACK (soup_socket_peer_certificate_changed), sock);
 
-	if (priv->istream)
-		g_object_unref (priv->istream);
-	if (priv->ostream)
-		g_object_unref (priv->ostream);
+	g_clear_object (&priv->istream);
+	g_clear_object (&priv->ostream);
+	g_clear_object (&priv->iostream);
+	priv->iostream = soup_io_stream_new (priv->conn, FALSE);
+	priv->istream = g_object_ref (g_io_stream_get_input_stream (priv->iostream));
+	priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
 
-	priv->istream = soup_filter_input_stream_new (g_io_stream_get_input_stream (priv->conn));
-	priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->conn));
 	return TRUE;
 }
 	
@@ -1204,7 +1209,7 @@ soup_socket_disconnect (SoupSocket *sock)
 		g_cancellable_cancel (priv->connect_cancel);
 		return;
 	} else if (g_mutex_trylock (&priv->iolock)) {
-		if (priv->conn)
+		if (priv->gsock)
 			disconnect_internal (sock, TRUE);
 		else
 			already_disconnected = TRUE;
@@ -1254,7 +1259,7 @@ soup_socket_is_connected (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	return priv->conn != NULL;
+	return priv->conn && !g_io_stream_is_closed (priv->conn);
 }
 
 /**
@@ -1321,22 +1326,6 @@ soup_socket_get_remote_address (SoupSocket *sock)
 	g_mutex_unlock (&priv->addrlock);
 
 	return priv->remote_addr;
-}
-
-GInputStream *
-soup_socket_get_input_stream (SoupSocket *sock)
-{
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
-
-	return SOUP_SOCKET_GET_PRIVATE (sock)->istream;
-}
-
-GOutputStream *
-soup_socket_get_output_stream (SoupSocket *sock)
-{
-	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
-
-	return SOUP_SOCKET_GET_PRIVATE (sock)->ostream;
 }
 
 

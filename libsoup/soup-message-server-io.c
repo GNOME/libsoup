@@ -16,6 +16,7 @@
 #include "soup-address.h"
 #include "soup-auth.h"
 #include "soup-headers.h"
+#include "soup-misc-private.h"
 #include "soup-multipart.h"
 #include "soup-server.h"
 #include "soup-socket.h"
@@ -248,9 +249,22 @@ soup_message_read_request (SoupMessage               *msg,
 			   SoupMessageCompletionFn    completion_cb,
 			   gpointer                   user_data)
 {
-	soup_message_io_server (msg, sock,
+	GMainContext *async_context;
+	GIOStream *iostream;
+
+	g_object_get (sock,
+		      SOUP_SOCKET_ASYNC_CONTEXT, &async_context,
+		      NULL);
+	if (!async_context)
+		async_context = g_main_context_ref (g_main_context_default ());
+
+	iostream = soup_socket_get_iostream (sock);
+
+	soup_message_io_server (msg, iostream, async_context,
 				get_response_headers,
 				parse_request_headers,
 				sock,
 				completion_cb, user_data);
+	if (async_context)
+		g_main_context_unref (async_context);
 }

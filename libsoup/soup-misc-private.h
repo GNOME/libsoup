@@ -18,9 +18,8 @@ void  soup_socket_handshake_async (SoupSocket         *sock,
 				   SoupSocketCallback  callback,
 				   gpointer            user_data);
 
-GSocket       *soup_socket_get_gsocket       (SoupSocket *sock);
-GIOStream     *soup_socket_get_iostream      (SoupSocket *sock);
-GInputStream  *soup_socket_get_input_stream  (SoupSocket *sock);
-GOutputStream *soup_socket_get_output_stream (SoupSocket *sock);
+GSocket   *soup_socket_get_gsocket    (SoupSocket *sock);
+GIOStream *soup_socket_get_connection (SoupSocket *sock);
+GIOStream *soup_socket_get_iostream   (SoupSocket *sock);
 
 #endif /* SOUP_URI_PRIVATE_H */
