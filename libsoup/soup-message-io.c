@@ -25,6 +25,7 @@
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-misc.h"
+#include "soup-misc-private.h"
 #include "soup-socket.h"
 
 typedef enum {
