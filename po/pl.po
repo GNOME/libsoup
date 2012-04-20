@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-04-17 17:11+0200\n"
-"PO-Revision-Date: 2012-04-17 17:12+0200\n"
+"POT-Creation-Date: 2012-04-20 21:27+0200\n"
+"PO-Revision-Date: 2012-04-20 21:28+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -20,6 +20,21 @@ msgstr ""
 "|| n%100>=20) ? 1 : 2);\n"
 "X-Poedit-Language: Polish\n"
 "X-Poedit-Country: Poland\n"
+
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:232
+msgid "Connection terminated unexpectedly"
+msgstr "Połączenie zostało nieoczekiwanie zakończone"
+
+#: ../libsoup/soup-converter-wrapper.c:185
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Bufor wyjściowy jest za mały"
+
+#: ../libsoup/soup-message-io.c:818
+msgid "Operation was cancelled"
+msgstr "Anulowano działanie"
 
 #: ../libsoup/soup-request.c:145
 #, c-format
