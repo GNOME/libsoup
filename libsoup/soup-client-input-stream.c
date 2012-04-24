@@ -80,6 +80,17 @@ get_property (GObject *object, guint prop_id,
 	}
 }
 
+/* Temporary HACK to keep SoupCache working. See soup_client_input_stream_read_fn()
+ * and soup_client_input_stream_read_nonblocking().
+ */
+static void
+soup_client_input_stream_emit_got_chunk (SoupClientInputStream *stream, void *data, gssize nread)
+{
+	SoupBuffer *buffer = soup_buffer_new (SOUP_MEMORY_TEMPORARY, data, nread);
+	soup_message_got_chunk (stream->priv->msg, buffer);
+	soup_buffer_free (buffer);
+}
+
 static gssize
 soup_client_input_stream_read_fn (GInputStream  *stream,
 				  void          *buffer,
@@ -94,6 +105,12 @@ soup_client_input_stream_read_fn (GInputStream  *stream,
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[EOF], 0);
+
+	/* Temporary HACK to keep SoupCache working */
+	if (nread > 0) {
+		soup_client_input_stream_emit_got_chunk (SOUP_CLIENT_INPUT_STREAM (stream),
+							 buffer, nread);
+	}
 
 	return nread;
 }
@@ -111,6 +128,12 @@ soup_client_input_stream_read_nonblocking (GPollableInputStream  *stream,
 
 	if (nread == 0)
 		g_signal_emit (stream, signals[EOF], 0);
+
+	/* Temporary HACK to keep SoupCache working */
+	if (nread > 0) {
+		soup_client_input_stream_emit_got_chunk (SOUP_CLIENT_INPUT_STREAM (stream),
+							 buffer, nread);
+	}
 
 	return nread;
 }
