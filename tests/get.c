@@ -16,11 +16,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifdef HAVE_GNOME
-#include <libsoup/soup-gnome.h>
-#else
 #include <libsoup/soup.h>
-#endif
 
 static SoupSession *session;
 static GMainLoop *loop;
@@ -169,9 +165,6 @@ main (int argc, char **argv)
 	if (synchronous) {
 		session = soup_session_sync_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
-#ifdef HAVE_GNOME
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
-#endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
@@ -181,9 +174,6 @@ main (int argc, char **argv)
 	} else {
 		session = soup_session_async_new_with_options (
 			SOUP_SESSION_SSL_CA_FILE, cafile,
-#ifdef HAVE_GNOME
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_GNOME_FEATURES_2_26,
-#endif
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 			SOUP_SESSION_USER_AGENT, "get ",
@@ -192,15 +182,12 @@ main (int argc, char **argv)
 			NULL);
 	}
 
-	/* Need to do this after creating the session, since adding
-	 * SOUP_TYPE_GNOME_FEATURE_2_26 will add a proxy resolver, thereby
-	 * bashing over the manually-set proxy.
-	 */
 	if (proxy) {
 		g_object_set (G_OBJECT (session), 
 			      SOUP_SESSION_PROXY_URI, proxy,
 			      NULL);
-	}
+	} else
+		soup_session_add_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
 
 	if (!synchronous)
 		loop = g_main_loop_new (NULL, TRUE);
