@@ -1,0 +1,52 @@
+# Indonesian translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Andika Triwidada <andika@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-04-25 06:57+0000\n"
+"PO-Revision-Date: 2012-04-27 18:35+0700\n"
+"Last-Translator: Andika Triwidada <andika@gmail.com>\n"
+"Language-Team: Indonesian <gnome@i15n.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:232
+msgid "Connection terminated unexpectedly"
+msgstr "Sambungan terputus secara tak diharapkan"
+
+#: ../libsoup/soup-converter-wrapper.c:185
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Penyangga keluaran terlalu kecil"
+
+#: ../libsoup/soup-message-io.c:818
+msgid "Operation was cancelled"
+msgstr "Operasi dibatalkan"
+
+#: ../libsoup/soup-request.c:145
+#, c-format
+msgid "No URI provided"
+msgstr "URI tak diberikan"
+
+#: ../libsoup/soup-request.c:155
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "URI '%s' tak valid: %s"
+
+#: ../libsoup/soup-requester.c:220
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Tak bisa mengurai URI '%s'"
+
+#: ../libsoup/soup-requester.c:254
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Skema URI '%s' tak didukung"
+
