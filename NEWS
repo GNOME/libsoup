@@ -1,3 +1,30 @@
+Changes in libsoup from 2.38.1 to 2.39.1:
+
+	* Major rewrite of the I/O code to use gio streams more
+          directly. In particular, when using SoupRequestHTTP now, the
+          input stream that is returned is actually pulling data from
+          the socket, rather than just repeatedly pausing and
+          unpausing the underlying SoupMessage and waiting for data to
+          be pushed into it. This also means that SoupRequestHTTP now
+          works with SoupSessionSync as well. [#591739, Dan]
+
+	  (The SoupRequest API is still protected by unstable-API
+	  #ifdefs, but will be made public later in this cycle.)
+
+	* Libsoup now finally supports SOCKS proxies again. [#553269,
+          Dan]
+
+	* Certain error messages returned from the streaming API
+          (SoupRequest, etc) are now localized; more strings will be
+          localized later on.
+
+	* New translations: Galician, Hebrew, Indonesian, Norwegian
+          bokmål, Polish, Russian, Slovenian, Spanish.
+
+	* Added a SoupCookieJar:is-persistent property, to distinguish
+          memory-only jars from SoupCookieJarText and
+          SoupCookieJarSqlite. [#672838, Carlos Garcia Campos]
+
 Changes in libsoup from 2.38.0 to 2.38.1:
 
 	* Fixed a situation where soup_connection_disconnect() could
