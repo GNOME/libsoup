@@ -1,0 +1,59 @@
+# Romanian translations for the libsoup package
+# Traducerea în limba română pentru pachetul libsoup.
+# Copyright (C) 2012 THE libsoup'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Mișu Moldovan <dumol@xfce.org>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
+"p&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-05-01 13:45+0000\n"
+"PO-Revision-Date: 2012-05-02 13:55+0300\n"
+"Last-Translator: Mișu Moldovan <dumol@gnome.org>\n"
+"Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
+"Language: ro\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2);;\n"
+"X-Generator: Virtaal 0.7.0\n"
+"X-Project-Style: gnome\n"
+
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:227
+msgid "Connection terminated unexpectedly"
+msgstr "Conexiunea s-a terminat neașteptat"
+
+#: ../libsoup/soup-converter-wrapper.c:185
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Memoria tampon pentru output e insuficientă"
+
+#: ../libsoup/soup-message-io.c:813
+msgid "Operation was cancelled"
+msgstr "Operațiunea a fost anulată"
+
+#: ../libsoup/soup-request.c:145
+#, c-format
+msgid "No URI provided"
+msgstr "Nu s-a precizat un URI"
+
+#: ../libsoup/soup-request.c:155
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "URI nevalid „%s”: %s"
+
+#: ../libsoup/soup-requester.c:220
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Nu s-a putut prelucra URI-ul „%s”"
+
+#: ../libsoup/soup-requester.c:254
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Nu există suport pentru schema URI „%s”"
+
