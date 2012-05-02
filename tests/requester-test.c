@@ -97,6 +97,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_body_append_buffer (msg->response_body, response);
 }
 
+typedef struct {
+	GString *body;
+	gboolean cancel;
+} RequestData;
+
 static void
 stream_closed (GObject *source, GAsyncResult *res, gpointer user_data)
 {
@@ -116,7 +121,8 @@ static void
 test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	GInputStream *stream = G_INPUT_STREAM (source);
-	GString *body = user_data;
+	RequestData *data = user_data;
+	GString *body = data->body;
 	GError *error = NULL;
 	gsize nread;
 
@@ -139,13 +145,13 @@ test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	g_string_append_len (body, buf, nread);
 	g_input_stream_read_async (stream, buf, sizeof (buf),
 				   G_PRIORITY_DEFAULT, NULL,
-				   test_read_ready, body);
+				   test_read_ready, data);
 }
 
 static void
 auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 {
-	GString *body = user_data;
+	RequestData *data = user_data;
 	GInputStream *stream;
 	GError *error = NULL;
 	SoupMessage *msg;
@@ -178,35 +184,40 @@ auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	g_input_stream_read_async (stream, buf, sizeof (buf),
 				   G_PRIORITY_DEFAULT, NULL,
-				   test_read_ready, body);
+				   test_read_ready, data);
 }
 
 static void
 test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 {
-	GString *body = user_data;
+	RequestData *data = user_data;
 	GInputStream *stream;
 	GError *error = NULL;
-	SoupMessage *msg;
 	const char *content_type;
 
 	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
-	if (!stream) {
-		debug_printf (1, "    send_async failed: %s\n", error->message);
-		errors++;
+	if (data->cancel) {
+		if (stream) {
+			debug_printf (1, "    send_async succeeded??\n");
+			errors++;
+			g_input_stream_close (stream, NULL, NULL);
+			g_object_unref (stream);
+		} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			debug_printf (1, "    send_async failed with wrong error: %s\n", error->message);
+			errors++;
+			g_clear_error (&error);
+		}
 		g_main_loop_quit (loop);
 		return;
+	} else {
+		if (!stream) {
+			debug_printf (1, "    send_async failed: %s\n", error->message);
+			errors++;
+			g_main_loop_quit (loop);
+			g_clear_error (&error);
+			return;
+		}
 	}
-
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (source));
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
-			      msg->reason_phrase);
-		errors++;
-		g_main_loop_quit (loop);
-		return;
-	}
-	g_object_unref (msg);
 
 	content_type = soup_request_get_content_type (SOUP_REQUEST (source));
 	if (g_strcmp0 (content_type, "text/plain") != 0) {
@@ -217,7 +228,13 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	g_input_stream_read_async (stream, buf, sizeof (buf),
 				   G_PRIORITY_DEFAULT, NULL,
-				   test_read_ready, body);
+				   test_read_ready, data);
+}
+
+static void
+cancel_message (SoupMessage *msg, gpointer session)
+{
+	soup_session_cancel_message (session, msg, SOUP_STATUS_FORBIDDEN);
 }
 
 static void
@@ -230,26 +247,35 @@ request_started (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-do_one_test (SoupSession *session, SoupURI *uri,
-	     GAsyncReadyCallback callback, SoupBuffer *expected_response,
-	     gboolean persistent)
+do_async_test (SoupSession *session, SoupURI *uri,
+	       GAsyncReadyCallback callback, guint expected_status,
+	       SoupBuffer *expected_response,
+	       gboolean persistent, gboolean cancel)
 {
 	SoupRequester *requester;
 	SoupRequest *request;
-	GString *body;
 	guint started_id;
 	SoupSocket *socket = NULL;
+	SoupMessage *msg;
+	RequestData data;
 
 	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
 
-	body = g_string_new (NULL);
+	data.body = g_string_new (NULL);
+	data.cancel = cancel;
 	request = soup_requester_request_uri (requester, uri, NULL);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+
+	if (cancel) {
+		g_signal_connect (msg, "got-headers",
+				  G_CALLBACK (cancel_message), session);
+	}
 
 	started_id = g_signal_connect (session, "request-started",
 				       G_CALLBACK (request_started),
 				       &socket);
 
-	soup_request_send_async (request, NULL, callback, body);
+	soup_request_send_async (request, NULL, callback, &data);
 	g_object_unref (request);
 
 	loop = g_main_loop_new (soup_session_get_async_context (session), TRUE);
@@ -258,11 +284,27 @@ do_one_test (SoupSession *session, SoupURI *uri,
 
 	g_signal_handler_disconnect (session, started_id);
 
-	if (body->len != expected_response->length) {
-		debug_printf (1, "    body length mismatch: expected %d, got %d\n",
-			      (int)expected_response->length, (int)body->len);
+	if (msg->status_code != expected_status) {
+		debug_printf (1, "    GET failed: %d %s (expected %d)\n",
+			      msg->status_code, msg->reason_phrase,
+			      expected_status);
+		g_object_unref (msg);
 		errors++;
-	} else if (memcmp (body->str, expected_response->data,
+		return;
+	}
+	g_object_unref (msg);
+
+	if (!expected_response) {
+		if (data.body->len) {
+			debug_printf (1, "    body length mismatch: expected 0, got %d\n",
+				      (int)data.body->len);
+			errors++;
+		}
+	} else if (data.body->len != expected_response->length) {
+		debug_printf (1, "    body length mismatch: expected %d, got %d\n",
+			      (int)expected_response->length, (int)data.body->len);
+		errors++;
+	} else if (memcmp (data.body->str, expected_response->data,
 			   expected_response->length) != 0) {
 		debug_printf (1, "    body data mismatch\n");
 		errors++;
@@ -281,7 +323,7 @@ do_one_test (SoupSession *session, SoupURI *uri,
 	}
 	g_object_unref (socket);
 
-	g_string_free (body, TRUE);
+	g_string_free (data.body, TRUE);
 }
 
 static void
@@ -297,25 +339,41 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 
 	debug_printf (1, "  basic test\n");
 	uri = soup_uri_new (base_uri);
-	do_one_test (session, uri, test_sent, response, TRUE);
+	do_async_test (session, uri, test_sent,
+		       SOUP_STATUS_OK, response,
+		       TRUE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "  chunked test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/chunked");
-	do_one_test (session, uri, test_sent, response, TRUE);
+	do_async_test (session, uri, test_sent,
+		       SOUP_STATUS_OK, response,
+		       TRUE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "  auth test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/auth");
-	do_one_test (session, uri, auth_test_sent, auth_response, TRUE);
+	do_async_test (session, uri, auth_test_sent,
+		       SOUP_STATUS_UNAUTHORIZED, auth_response,
+		       TRUE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "  non-persistent test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/non-persistent");
-	do_one_test (session, uri, test_sent, response, FALSE);
+	do_async_test (session, uri, test_sent,
+		       SOUP_STATUS_OK, response,
+		       FALSE, FALSE);
+	soup_uri_free (uri);
+
+	debug_printf (1, "  cancellation test\n");
+	uri = soup_uri_new (base_uri);
+	soup_uri_set_path (uri, "/");
+	do_async_test (session, uri, test_sent,
+		       SOUP_STATUS_FORBIDDEN, NULL,
+		       FALSE, TRUE);
 	soup_uri_free (uri);
 }
 
@@ -378,7 +436,7 @@ do_thread_test (const char *uri)
 static void
 do_sync_request (SoupSession *session, SoupRequest *request,
 		 guint expected_status, SoupBuffer *expected_response,
-		 gboolean persistent)
+		 gboolean persistent, gboolean cancel)
 {
 	GInputStream *in;
 	SoupMessage *msg;
@@ -389,24 +447,45 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 	guint started_id;
 	SoupSocket *socket = NULL;
 
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+	if (cancel) {
+		g_signal_connect (msg, "got-headers",
+				  G_CALLBACK (cancel_message), session);
+	}
+
 	started_id = g_signal_connect (session, "request-started",
 				       G_CALLBACK (request_started),
 				       &socket);
 
 	in = soup_request_send (request, NULL, &error);
 	g_signal_handler_disconnect (session, started_id);
-	if (!in) {
+	if (cancel) {
+		if (in) {
+			debug_printf (1, "    send succeeded??\n");
+			errors++;
+			g_input_stream_close (in, NULL, NULL);
+			g_object_unref (in);
+		} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			debug_printf (1, "    send failed with wrong error: %s\n", error->message);
+			errors++;
+			g_clear_error (&error);
+		}
+		g_object_unref (msg);
+		return;
+	} else if (!in) {
 		debug_printf (1, "    soup_request_send failed: %s\n",
 			      error->message);
+		g_object_unref (msg);
 		g_clear_error (&error);
 		errors++;
 		return;
 	}
 
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	if (msg->status_code != expected_status) {
-		debug_printf (1, "    GET failed: %d %s", msg->status_code,
+		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
 			      msg->reason_phrase);
+		g_object_unref (msg);
+		g_object_unref (in);
 		errors++;
 		return;
 	}
@@ -434,7 +513,13 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 	}
 	g_object_unref (in);
 
-	if (body->len != expected_response->length) {
+	if (!expected_response) {
+		if (body->len) {
+			debug_printf (1, "    body length mismatch: expected 0, got %d\n",
+				      (int)body->len);
+			errors++;
+		}
+	} else if (body->len != expected_response->length) {
 		debug_printf (1, "    body length mismatch: expected %d, got %d\n",
 			      (int)expected_response->length, (int)body->len);
 		errors++;
@@ -478,26 +563,41 @@ do_sync_test (const char *uri_string)
 
 	debug_printf (1, "  basic test\n");
 	request = soup_requester_request_uri (requester, uri, NULL);
-	do_sync_request (session, request, SOUP_STATUS_OK, response, TRUE);
+	do_sync_request (session, request,
+			 SOUP_STATUS_OK, response,
+			 TRUE, FALSE);
 	g_object_unref (request);
 
 	debug_printf (1, "  chunked test\n");
 	soup_uri_set_path (uri, "/chunked");
 	request = soup_requester_request_uri (requester, uri, NULL);
-	do_sync_request (session, request, SOUP_STATUS_OK, response, TRUE);
+	do_sync_request (session, request,
+			 SOUP_STATUS_OK, response,
+			 TRUE, FALSE);
 	g_object_unref (request);
 
 	debug_printf (1, "  auth test\n");
 	soup_uri_set_path (uri, "/auth");
 	request = soup_requester_request_uri (requester, uri, NULL);
-	do_sync_request (session, request, SOUP_STATUS_UNAUTHORIZED,
-			 auth_response, TRUE);
+	do_sync_request (session, request,
+			 SOUP_STATUS_UNAUTHORIZED, auth_response,
+			 TRUE, FALSE);
 	g_object_unref (request);
 
 	debug_printf (1, "  non-persistent test\n");
 	soup_uri_set_path (uri, "/non-persistent");
 	request = soup_requester_request_uri (requester, uri, NULL);
-	do_sync_request (session, request, SOUP_STATUS_OK, response, FALSE);
+	do_sync_request (session, request,
+			 SOUP_STATUS_OK, response,
+			 FALSE, FALSE);
+	g_object_unref (request);
+
+	debug_printf (1, "  cancel test\n");
+	soup_uri_set_path (uri, "/");
+	request = soup_requester_request_uri (requester, uri, NULL);
+	do_sync_request (session, request,
+			 SOUP_STATUS_FORBIDDEN, NULL,
+			 TRUE, TRUE);
 	g_object_unref (request);
 
 	soup_test_session_abort_unref (session);
