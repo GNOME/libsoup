@@ -569,6 +569,7 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 {
 	GMemoryOutputStream *mostream;
 	GInputStream *istream = NULL;
+	GError *error = NULL;
 
 	if (!item->result) {
 		/* Something else already took care of it. */
@@ -576,7 +577,7 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 	}
 
 	mostream = g_object_get_data (G_OBJECT (item->msg), "SoupSessionAsync:ostream");
-	if (mostream && !SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
+	if (mostream) {
 		gpointer data;
 		gssize size;
 
@@ -586,9 +587,16 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 		size = g_memory_output_stream_get_data_size (mostream);
 		data = size ? g_memory_output_stream_steal_data (mostream) : g_strdup ("");
 		istream = g_memory_input_stream_new_from_data (data, size, g_free);
+	} else {
+		/* The message finished before becoming readable. This
+		 * will happen, eg, if it's cancelled from got-headers.
+		 * Do nothing; the op will complete via read_ready_cb()
+		 * after we return;
+		 */
+		return;
 	}
 
-	send_request_return_result (item, istream, NULL);
+	send_request_return_result (item, istream, error);
 }
 
 static void
@@ -660,12 +668,6 @@ static gboolean
 read_ready_cb (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
-	GError *error = NULL;
-
-	if (g_cancellable_set_error_if_cancelled (item->cancellable, &error)) {
-		send_request_return_result (item, NULL, error);
-		return FALSE;
-	}
 
 	try_run_until_read (item);
 	return FALSE;

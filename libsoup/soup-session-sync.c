@@ -485,6 +485,7 @@ soup_session_send_request (SoupSession   *session,
 	GOutputStream *ostream;
 	GMemoryOutputStream *mostream;
 	gssize size;
+	GError *my_error = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SESSION_SYNC (session), NULL);
 
@@ -494,6 +495,10 @@ soup_session_send_request (SoupSession   *session,
 	g_return_val_if_fail (item != NULL, NULL);
 
 	item->new_api = TRUE;
+	if (cancellable) {
+		g_object_unref (item->cancellable);
+		item->cancellable = g_object_ref (cancellable);
+	}
 
 	while (!stream) {
 		/* Get a connection, etc */
@@ -502,10 +507,10 @@ soup_session_send_request (SoupSession   *session,
 			break;
 
 		/* Send request, read headers */
-		if (!soup_message_io_run_until_read (msg, cancellable, error))
+		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error))
 			break;
 
-		stream = soup_message_io_get_response_istream (msg, error);
+		stream = soup_message_io_get_response_istream (msg, &my_error);
 		if (!stream)
 			break;
 
@@ -520,7 +525,7 @@ soup_session_send_request (SoupSession   *session,
 		if (g_output_stream_splice (ostream, stream,
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
 					    G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-					    cancellable, error) == -1) {
+					    item->cancellable, &my_error) == -1) {
 			g_object_unref (stream);
 			g_object_unref (ostream);
 			stream = NULL;
@@ -547,13 +552,25 @@ soup_session_send_request (SoupSession   *session,
 		g_object_unref (ostream);
 	}
 
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+	if (my_error)
+		g_propagate_error (error, my_error);
+	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
 		if (stream) {
 			g_object_unref (stream);
 			stream = NULL;
 		}
 		g_set_error_literal (error, SOUP_HTTP_ERROR, msg->status_code,
 				     msg->reason_phrase);
+	}
+
+	if (!stream) {
+		if (soup_message_io_in_progress (msg))
+			soup_message_io_finished (msg);
+		else if (item->state != SOUP_MESSAGE_FINISHED)
+			item->state = SOUP_MESSAGE_FINISHING;
+
+		if (item->state != SOUP_MESSAGE_FINISHED)
+			process_queue_item (item);
 	}
 
 	soup_message_queue_item_unref (item);

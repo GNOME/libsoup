@@ -804,6 +804,7 @@ io_run_until (SoupMessage *msg,
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	gboolean progress = TRUE, done;
+	GError *my_error = NULL;
 
 	if (g_cancellable_set_error_if_cancelled (cancellable, error))
 		return FALSE;
@@ -820,15 +821,28 @@ io_run_until (SoupMessage *msg,
 	       (io->read_state < read_state || io->write_state < write_state)) {
 
 		if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->read_state))
-			progress = io_read (msg, cancellable, error);
+			progress = io_read (msg, cancellable, &my_error);
 		else if (SOUP_MESSAGE_IO_STATE_ACTIVE (io->write_state))
-			progress = io_write (msg, cancellable, error);
+			progress = io_write (msg, cancellable, &my_error);
 		else
 			progress = FALSE;
 	}
 
-	done = (priv->io_data == io &&
-		io->read_state >= read_state &&
+	if (my_error) {
+		g_propagate_error (error, my_error);
+		g_object_unref (msg);
+		return FALSE;
+	} else if (g_cancellable_set_error_if_cancelled (cancellable, error)) {
+		return FALSE;
+	} else if (priv->io_data != io) {
+		g_set_error_literal (error, G_IO_ERROR,
+				     G_IO_ERROR_CANCELLED,
+				     _("Operation was cancelled"));
+		g_object_unref (msg);
+		return FALSE;
+	}
+
+	done = (io->read_state >= read_state &&
 		io->write_state >= write_state);
 
 	g_object_unref (msg);
@@ -859,7 +873,7 @@ io_run (SoupMessage *msg, gpointer user_data)
 		g_clear_error (&error);
 		io->io_source = soup_message_io_get_source (msg, NULL, io_run, msg);
 		g_source_attach (io->io_source, io->async_context);
-	} else if (error) {
+	} else if (error && priv->io_data == io) {
 		io_error (msg, error);
 	}
 
