@@ -51,6 +51,7 @@ typedef enum {
 	SOUP_NTLM_SENT_SSO_REQUEST,
 	SOUP_NTLM_RECEIVED_SSO_CHALLENGE,
 	SOUP_NTLM_SENT_SSO_RESPONSE,
+	SOUP_NTLM_SSO_UNAVAILABLE,
 	SOUP_NTLM_SSO_FAILED,
 #endif
 	SOUP_NTLM_SENT_REQUEST,
@@ -307,7 +308,8 @@ sso_ntlm_initiate (SoupNTLMConnection *conn, SoupAuthManagerNTLMPrivate *priv)
 	argv[8] = NULL;
 	/* Spawn child process */
 	ret = g_spawn_async_with_pipes (NULL, argv, NULL,
-					G_SPAWN_FILE_AND_ARGV_ZERO,
+					G_SPAWN_FILE_AND_ARGV_ZERO |
+					G_SPAWN_STDERR_TO_DEV_NULL,
 					NULL, NULL,
 					NULL, &conn->fd_in, &conn->fd_out,
 					NULL, NULL);
@@ -358,8 +360,7 @@ sso_ntlm_response (SoupNTLMConnection *conn, const char *input, SoupNTLMState co
 	}
 	goto done;
 wrfinish:
-	if (conn_state == SOUP_NTLM_NEW &&
-	    g_ascii_strcasecmp (buf, "PW") == 0) {
+	if (g_ascii_strcasecmp (buf, "PW") == 0) {
 		/* Samba/winbind installed but not configured */
 		response = g_strdup ("PW");
 		goto done;
@@ -461,25 +462,31 @@ ntlm_authorize_post (SoupMessage *msg, gpointer ntlm)
 
 #ifdef USE_NTLM_AUTH
 	if (conn->state == SOUP_NTLM_RECEIVED_SSO_CHALLENGE) {
-		char *input;
+		char *input, *header;
 		input = g_strdup_printf ("TT %s\n", conn->challenge_header);
 		/* Re-Initiate ntlm_auth process in case it was closed/killed abnormally */
 		if (sso_ntlm_initiate (conn, priv)) {
-			conn->response_header = sso_ntlm_response (conn,
-								   input,
-								   conn->state);
+			header = sso_ntlm_response (conn, input, conn->state);
+			g_free (input);
 			/* Close ntlm_auth as it is no longer needed for current connection */
 			sso_ntlm_close (conn);
-			if (!conn->response_header) {
-				g_free (input);
+			if (!header) {
+				conn->state = SOUP_NTLM_SSO_FAILED;
+				g_free (header);
 				goto ssofailure;
 			}
+			if (!g_ascii_strcasecmp (header, "PW")) {
+				conn->state = SOUP_NTLM_SSO_UNAVAILABLE;
+				g_free (header);
+				goto ssofailure;
+			}
+
+			conn->response_header = header;
 			soup_session_requeue_message (priv->session, msg);
-			g_free (input);
 			goto done;
 		}
-ssofailure:
 		conn->state = SOUP_NTLM_SSO_FAILED;
+ssofailure:
 		soup_session_requeue_message (priv->session, msg);
 		goto done;
 	}
@@ -573,14 +580,15 @@ request_started (SoupSessionFeature *ntlm, SoupSession *session,
 				} else {
 					g_free (header);
 					header = NULL;
-					goto ssofailure;
+					goto ssounavailable;
 				}
 			} else {
 				g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
-				goto ssofailure;
+				goto ssounavailable;
 			}
 		}
-ssofailure:
+	case SOUP_NTLM_SSO_UNAVAILABLE:
+	ssounavailable:
 #endif
 		header = soup_ntlm_request ();
 		conn->state = SOUP_NTLM_SENT_REQUEST;
