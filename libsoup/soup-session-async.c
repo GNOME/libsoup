@@ -562,6 +562,7 @@ send_request_restarted (SoupSession *session, SoupMessageQueueItem *item)
 {
 	/* We won't be needing this, then. */
 	g_object_set_data (G_OBJECT (item->msg), "SoupSessionAsync:ostream", NULL);
+	item->io_started = FALSE;
 }
 
 static void
@@ -587,7 +588,7 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 		size = g_memory_output_stream_get_data_size (mostream);
 		data = size ? g_memory_output_stream_steal_data (mostream) : g_strdup ("");
 		istream = g_memory_input_stream_new_from_data (data, size, g_free);
-	} else {
+	} else if (item->io_started) {
 		/* The message finished before becoming readable. This
 		 * will happen, eg, if it's cancelled from got-headers.
 		 * Do nothing; the op will complete via read_ready_cb()
@@ -702,6 +703,7 @@ try_run_until_read (SoupMessageQueueItem *item)
 static void
 send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 {
+	item->io_started = TRUE;
 	try_run_until_read (item);
 }
 

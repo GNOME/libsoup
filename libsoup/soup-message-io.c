@@ -149,8 +149,12 @@ soup_message_io_stop (SoupMessage *msg)
 		io->unpause_source = NULL;
 	}
 
-	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING)
-		g_io_stream_close (io->iostream, NULL, NULL);
+	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING) {
+		if (io->item && io->item->conn)
+			soup_connection_disconnect (io->item->conn);
+		else
+			g_io_stream_close (io->iostream, NULL, NULL);
+	}
 }
 
 void
