@@ -690,20 +690,32 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 typedef struct {
 	GSource source;
 	SoupMessage *msg;
+	gboolean paused;
 } SoupMessageSource;
+
+static gboolean
+message_source_check (GSource *source)
+{
+	SoupMessageSource *message_source = (SoupMessageSource *)source;
+
+	if (message_source->paused) {
+		SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (message_source->msg);
+		SoupMessageIOData *io = priv->io_data;
+
+		if (!io || io->paused)
+			return FALSE;
+		else
+			return TRUE;
+	} else
+		return FALSE;
+}
 
 static gboolean
 message_source_prepare (GSource *source,
 			gint    *timeout)
 {
 	*timeout = -1;
-	return FALSE;
-}
-
-static gboolean
-message_source_check (GSource *source)
-{
-	return FALSE;
+	return message_source_check (source);
 }
 
 static gboolean
@@ -767,7 +779,11 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 	GSource *base_source, *source;
 	SoupMessageSource *message_source;
 
-	if (io && SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state)) {
+	if (!io) {
+		base_source = g_timeout_source_new (0);
+	} else if (io->paused) {
+		base_source = NULL;
+	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state)) {
 		GPollableInputStream *istream;
 
 		if (io->body_istream)
@@ -775,7 +791,7 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 		else
 			istream = G_POLLABLE_INPUT_STREAM (io->istream);
 		base_source = g_pollable_input_stream_create_source (istream, cancellable);
-	} else if (io && SOUP_MESSAGE_IO_STATE_POLLABLE (io->write_state)) {
+	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->write_state)) {
 		GPollableOutputStream *ostream;
 
 		if (io->body_ostream)
@@ -786,15 +802,18 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 	} else
 		base_source = g_timeout_source_new (0);
 
-	g_source_set_dummy_callback (base_source);
 	source = g_source_new (&message_source_funcs,
 			       sizeof (SoupMessageSource));
 	g_source_set_name (source, "SoupMessageSource");
 	message_source = (SoupMessageSource *)source;
 	message_source->msg = g_object_ref (msg);
+	message_source->paused = io && io->paused;
 
-	g_source_add_child_source (source, base_source);
-	g_source_unref (base_source);
+	if (base_source) {
+		g_source_set_dummy_callback (base_source);
+		g_source_add_child_source (source, base_source);
+		g_source_unref (base_source);
+	}
 	g_source_set_callback (source, (GSourceFunc) callback, user_data, NULL);
 	return source;
 }
@@ -847,6 +866,14 @@ io_run_until (SoupMessage *msg,
 
 	done = (io->read_state >= read_state &&
 		io->write_state >= write_state);
+
+	if (io->paused && !done) {
+		g_set_error_literal (error, G_IO_ERROR,
+				     G_IO_ERROR_WOULD_BLOCK,
+				     _("Operation would block"));
+		g_object_unref (msg);
+		return FALSE;
+	}
 
 	g_object_unref (msg);
 	return done;
@@ -1059,6 +1086,9 @@ soup_message_io_pause (SoupMessage *msg)
 
 	g_return_if_fail (io != NULL);
 
+	if (io->item && io->item->new_api)
+		g_return_if_fail (io->read_state < SOUP_MESSAGE_IO_STATE_BODY);
+
 	if (io->io_source) {
 		g_source_destroy (io->io_source);
 		g_source_unref (io->io_source);
@@ -1097,6 +1127,12 @@ soup_message_io_unpause (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_if_fail (io != NULL);
+
+	if (io->item && io->item->new_api) {
+		g_return_if_fail (io->read_state < SOUP_MESSAGE_IO_STATE_BODY);
+		io->paused = FALSE;
+		return;
+	}
 
 	if (!io->blocking) {
 		if (!io->unpause_source) {
