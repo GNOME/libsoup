@@ -711,52 +711,51 @@ message_source_dispatch (GSource     *source,
 			 GSourceFunc  callback,
 			 gpointer     user_data)
 {
-  SoupMessageSourceFunc func = (SoupMessageSourceFunc)callback;
-  SoupMessageSource *message_source = (SoupMessageSource *)source;
+	SoupMessageSourceFunc func = (SoupMessageSourceFunc)callback;
+	SoupMessageSource *message_source = (SoupMessageSource *)source;
 
-  return (*func) (message_source->msg, user_data);
+	return (*func) (message_source->msg, user_data);
 }
 
 static void
 message_source_finalize (GSource *source)
 {
-  SoupMessageSource *message_source = (SoupMessageSource *)source;
+	SoupMessageSource *message_source = (SoupMessageSource *)source;
 
-  g_object_unref (message_source->msg);
+	g_object_unref (message_source->msg);
 }
 
 static gboolean
 message_source_closure_callback (SoupMessage *msg,
 				 gpointer     data)
 {
-  GClosure *closure = data;
+	GClosure *closure = data;
+	GValue param = G_VALUE_INIT;
+	GValue result_value = G_VALUE_INIT;
+	gboolean result;
 
-  GValue param = G_VALUE_INIT;
-  GValue result_value = G_VALUE_INIT;
-  gboolean result;
+	g_value_init (&result_value, G_TYPE_BOOLEAN);
 
-  g_value_init (&result_value, G_TYPE_BOOLEAN);
+	g_value_init (&param, SOUP_TYPE_MESSAGE);
+	g_value_set_object (&param, msg);
 
-  g_value_init (&param, SOUP_TYPE_MESSAGE);
-  g_value_set_object (&param, msg);
+	g_closure_invoke (closure, &result_value, 1, &param, NULL);
 
-  g_closure_invoke (closure, &result_value, 1, &param, NULL);
+	result = g_value_get_boolean (&result_value);
+	g_value_unset (&result_value);
+	g_value_unset (&param);
 
-  result = g_value_get_boolean (&result_value);
-  g_value_unset (&result_value);
-  g_value_unset (&param);
-
-  return result;
+	return result;
 }
 
 static GSourceFuncs message_source_funcs =
 {
-  message_source_prepare,
-  message_source_check,
-  message_source_dispatch,
-  message_source_finalize,
-  (GSourceFunc)message_source_closure_callback,
-  (GSourceDummyMarshal)g_cclosure_marshal_generic,
+	message_source_prepare,
+	message_source_check,
+	message_source_dispatch,
+	message_source_finalize,
+	(GSourceFunc)message_source_closure_callback,
+	(GSourceDummyMarshal)g_cclosure_marshal_generic,
 };
 
 GSource *
