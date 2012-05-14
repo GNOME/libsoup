@@ -855,6 +855,7 @@ io_run_until (SoupMessage *msg,
 		g_object_unref (msg);
 		return FALSE;
 	} else if (g_cancellable_set_error_if_cancelled (cancellable, error)) {
+		g_object_unref (msg);
 		return FALSE;
 	} else if (priv->io_data != io) {
 		g_set_error_literal (error, G_IO_ERROR,
