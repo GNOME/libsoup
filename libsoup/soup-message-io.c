@@ -886,6 +886,7 @@ io_run (SoupMessage *msg, gpointer user_data)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
 	GError *error = NULL;
+	GCancellable *cancellable;
 
 	if (io->io_source) {
 		g_source_destroy (io->io_source);
@@ -894,11 +895,12 @@ io_run (SoupMessage *msg, gpointer user_data)
 	}
 
 	g_object_ref (msg);
+	cancellable = io->cancellable ? g_object_ref (io->cancellable) : NULL;
 
 	if (io_run_until (msg,
 			  SOUP_MESSAGE_IO_STATE_DONE,
 			  SOUP_MESSAGE_IO_STATE_DONE,
-			  io->cancellable, &error)) {
+			  cancellable, &error)) {
 		soup_message_io_finished (msg);
 	} else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_clear_error (&error);
@@ -909,6 +911,8 @@ io_run (SoupMessage *msg, gpointer user_data)
 	}
 
 	g_object_unref (msg);
+	g_clear_object (&cancellable);
+
 	return FALSE;
 }
 

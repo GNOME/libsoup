@@ -857,11 +857,20 @@ cancel_message_thread (gpointer msg)
 }
 
 static void
+set_done (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	gboolean *done = user_data;
+
+	*done = TRUE;
+}
+
+static void
 do_cancel_while_reading_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	GThread *thread = NULL;
 	SoupURI *uri;
+	gboolean done = FALSE;
 
 	uri = soup_uri_new_with_base (base_uri, "/slow");
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -875,7 +884,14 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 	else
 		thread = g_thread_new ("cancel_message_thread", cancel_message_thread, msg);
 
-	soup_session_send_message (session, msg);
+	/* We intentionally don't use soup_session_send_message() here,
+	 * because it holds an extra ref on the SoupMessageQueueItem
+	 * relative to soup_session_queue_message().
+	 */
+	g_object_ref (msg);
+	soup_session_queue_message (session, msg, set_done, &done);
+	while (!done)
+		g_main_context_iteration (NULL, TRUE);
 
 	if (msg->status_code != SOUP_STATUS_CANCELLED) {
 		debug_printf (1, "      FAILED: %d %s (expected Cancelled)\n",
