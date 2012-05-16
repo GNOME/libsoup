@@ -595,6 +595,11 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 		 * after we return;
 		 */
 		return;
+	} else {
+		/* The message finished before even being started;
+		 * probably a tunnel connect failure.
+		 */
+		istream = g_memory_input_stream_new ();
 	}
 
 	send_request_return_result (item, istream, error);

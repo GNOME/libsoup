@@ -503,7 +503,7 @@ soup_session_send_request (SoupSession   *session,
 	while (!stream) {
 		/* Get a connection, etc */
 		process_queue_item (item);
-		if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+		if (item->state != SOUP_MESSAGE_RUNNING)
 			break;
 
 		/* Send request, read headers */
@@ -561,7 +561,8 @@ soup_session_send_request (SoupSession   *session,
 		}
 		g_set_error_literal (error, SOUP_HTTP_ERROR, msg->status_code,
 				     msg->reason_phrase);
-	}
+	} else if (!stream)
+		stream = g_memory_input_stream_new ();
 
 	if (!stream) {
 		if (soup_message_io_in_progress (msg))
