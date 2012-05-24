@@ -15,10 +15,12 @@
 #include "soup-message.h"
 
 /* SoupConverterWrapper is a GConverter that wraps another GConverter.
- * Mostly it is transparent, but it implements two special fallbacks
+ * Mostly it is transparent, but it implements three special fallbacks
  * for Content-Encoding handling: (1) "deflate" can mean either raw
  * deflate or zlib-encoded default, (2) the server may mistakenly
- * claim that a response is encoded when actually it isn't.
+ * claim that a response is encoded when actually it isn't, (3) the
+ * response may contain trailing junk after the end of the encoded
+ * portion that we want to ignore.
  *
  * If the wrapped conversion succeeds, then the wrapper will set the
  * %SOUP_MESSAGE_CONTENT_DECODED flag on its message.
@@ -42,6 +44,7 @@ struct _SoupConverterWrapperPrivate
 	SoupMessage *msg;
 	gboolean try_deflate_fallback;
 	gboolean started;
+	gboolean discarding;
 };
 
 static void
@@ -180,25 +183,42 @@ soup_converter_wrapper_fallback_convert (GConverter *converter,
 					 gsize      *bytes_written,
 					 GError    **error)
 {
+	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (converter)->priv;
+
 	if (outbuf_size == 0) {
 		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NO_SPACE,
 			     _("Output buffer is too small"));
 		return G_CONVERTER_ERROR;
 	}
 
-	if (outbuf_size >= inbuf_size) {
+	if (priv->discarding) {
+		*bytes_read = inbuf_size;
+		*bytes_written = 0;
+	} else if (outbuf_size >= inbuf_size) {
 		memcpy (outbuf, inbuf, inbuf_size);
 		*bytes_read = *bytes_written = inbuf_size;
-		if (flags & G_CONVERTER_INPUT_AT_END)
-			return G_CONVERTER_FINISHED;
-		else if (flags & G_CONVERTER_FLUSH)
-			return G_CONVERTER_FLUSHED;
-		else
-			return G_CONVERTER_CONVERTED;
 	} else {
 		memcpy (outbuf, inbuf, outbuf_size);
 		*bytes_read = *bytes_written = outbuf_size;
+	}
+
+	if (*bytes_read < inbuf_size)
 		return G_CONVERTER_CONVERTED;
+
+	if (flags & G_CONVERTER_INPUT_AT_END)
+		return G_CONVERTER_FINISHED;
+	else if (flags & G_CONVERTER_FLUSH)
+		return G_CONVERTER_FLUSHED;
+	else if (inbuf_size)
+		return G_CONVERTER_CONVERTED;
+	else {
+		/* Force it to either read more input or
+		 * try again with G_CONVERTER_INPUT_AT_END.
+		 */
+		g_set_error_literal (error, G_IO_ERROR,
+				     G_IO_ERROR_PARTIAL_INPUT,
+				     "");
+		return G_CONVERTER_ERROR;
 	}
 }
 
@@ -229,6 +249,25 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 			soup_message_set_flags (priv->msg, flags | SOUP_MESSAGE_CONTENT_DECODED);
 			priv->started = TRUE;
 		}
+
+		if (result == G_CONVERTER_FINISHED &&
+		    !(flags & G_CONVERTER_INPUT_AT_END)) {
+			/* We need to keep reading (and discarding)
+			 * input to the end of the message body.
+			 */
+			g_clear_object (&priv->base_converter);
+			priv->discarding = TRUE;
+
+			if (*bytes_written)
+				return G_CONVERTER_CONVERTED;
+			else {
+				g_set_error_literal (error, G_IO_ERROR,
+						     G_IO_ERROR_PARTIAL_INPUT,
+						     "");
+				return G_CONVERTER_ERROR;
+			}
+		}
+
 		return result;
 	}
 
