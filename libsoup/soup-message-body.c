@@ -308,6 +308,24 @@ soup_buffer_free (SoupBuffer *buffer)
 	}
 }
 
+/**
+ * soup_buffer_get_as_bytes:
+ * @buffer: a #SoupBuffer
+ *
+ * Returns: (transfer full): a new #GBytes which has the same content
+ * as the #SoupBuffer.
+ *
+ * Since: 2.40
+ */
+GBytes *
+soup_buffer_get_as_bytes (SoupBuffer *buffer)
+{
+	SoupBuffer *copy;
+
+	copy = soup_buffer_copy (buffer);
+	return g_bytes_new_with_free_func (copy->data, copy->length, soup_buffer_free, copy);
+}
+
 GType
 soup_buffer_get_type (void)
 {

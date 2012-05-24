@@ -44,6 +44,7 @@ void        soup_buffer_get_data       (SoupBuffer     *buffer,
 					gsize          *length);
 SoupBuffer *soup_buffer_copy           (SoupBuffer     *buffer);
 void        soup_buffer_free           (SoupBuffer     *buffer);
+GBytes     *soup_buffer_get_as_bytes   (SoupBuffer *buffer);
 
 typedef struct {
 	const char *data;

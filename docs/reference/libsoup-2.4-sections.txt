@@ -159,6 +159,7 @@ soup_buffer_get_owner
 soup_buffer_get_data
 soup_buffer_copy
 soup_buffer_free
+soup_buffer_get_as_bytes
 <SUBSECTION>
 SoupMessageBody
 soup_message_body_new
