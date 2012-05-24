@@ -128,7 +128,7 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 	jar_class->is_persistent = is_persistent;
 
 	/**
-	 * SoupCookieJar::changed
+	 * SoupCookieJar::changed:
 	 * @jar: the #SoupCookieJar
 	 * @old_cookie: the old #SoupCookie value
 	 * @new_cookie: the new #SoupCookie value

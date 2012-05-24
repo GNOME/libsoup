@@ -32,7 +32,7 @@ typedef struct {
 
 	gboolean     (*update)               (SoupAuth      *auth,
 					      SoupMessage   *msg,
-					      GHashTable    *auth_params);
+					      GHashTable    *auth_header);
 
 	GSList *     (*get_protection_space) (SoupAuth      *auth,
 					      SoupURI       *source_uri);

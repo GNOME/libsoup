@@ -500,7 +500,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * @msg: the message
 	 * @event: the network event
 	 * @connection: the current state of the network connection
-
+	 *
 	 * Emitted to indicate that some network-related event
 	 * related to @msg has occurred. This essentially proxies the
 	 * #GSocketClient::event signal, but only for events that
@@ -728,7 +728,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * Since: 2.34
 	 **/
 	/**
-	 * SoupMessage:tls-certificate:
+	 * SoupMessage:tls-errors:
 	 *
 	 * The verification errors on #SoupMessage:tls-certificate
 	 *
@@ -1113,7 +1113,7 @@ soup_message_got_body (SoupMessage *msg)
 /**
  * soup_message_content_sniffed:
  * @msg: a #SoupMessage
- * @type: a string with the sniffed content type
+ * @content_type: a string with the sniffed content type
  * @params: a #GHashTable with the parameters
  *
  * Emits the %content_sniffed signal, indicating that the IO layer

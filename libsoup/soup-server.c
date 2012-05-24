@@ -236,7 +236,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	/* signals */
 
 	/**
-	 * SoupServer::request-started
+	 * SoupServer::request-started:
 	 * @server: the server
 	 * @message: the new message
 	 * @client: the client context
@@ -265,7 +265,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
-	 * SoupServer::request-read
+	 * SoupServer::request-read:
 	 * @server: the server
 	 * @message: the message
 	 * @client: the client context
@@ -290,7 +290,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
-	 * SoupServer::request-finished
+	 * SoupServer::request-finished:
 	 * @server: the server
 	 * @message: the message
 	 * @client: the client context
@@ -310,7 +310,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      SOUP_TYPE_CLIENT_CONTEXT);
 
 	/**
-	 * SoupServer::request-aborted
+	 * SoupServer::request-aborted:
 	 * @server: the server
 	 * @message: the message
 	 * @client: the client context
