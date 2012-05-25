@@ -1198,7 +1198,7 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 }
 
 /**
- * soup_message_add_header_handler:
+ * soup_message_add_header_handler: (skip)
  * @msg: a #SoupMessage
  * @signal: signal to connect the handler to.
  * @header: HTTP response header to match against
@@ -1266,7 +1266,7 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
 }
 
 /**
- * soup_message_add_status_code_handler:
+ * soup_message_add_status_code_handler: (skip)
  * @msg: a #SoupMessage
  * @signal: signal to connect the handler to.
  * @status_code: status code to match against

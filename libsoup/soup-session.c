@@ -2449,7 +2449,7 @@ soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 * @hostname: a hostname to be resolved
 * @cancellable: (allow-none): a #GCancellable object, or %NULL
 * @callback: (scope async) (allow-none): callback to call with the
-* result, or %NULL
+*     result, or %NULL
 * @user_data: data for @callback
 *
 * Tells @session that an URI from the given @hostname may be requested
