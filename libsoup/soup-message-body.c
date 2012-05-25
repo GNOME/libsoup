@@ -323,7 +323,9 @@ soup_buffer_get_as_bytes (SoupBuffer *buffer)
 	SoupBuffer *copy;
 
 	copy = soup_buffer_copy (buffer);
-	return g_bytes_new_with_free_func (copy->data, copy->length, soup_buffer_free, copy);
+	return g_bytes_new_with_free_func (copy->data, copy->length,
+					   (GDestroyNotify)soup_buffer_free,
+					   copy);
 }
 
 GType
