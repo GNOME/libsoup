@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-04-22 11:35+0300\n"
-"PO-Revision-Date: 2012-04-22 11:39+0200\n"
+"POT-Creation-Date: 2012-05-26 07:37+0300\n"
+"PO-Revision-Date: 2012-05-26 07:37+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -23,18 +23,23 @@ msgstr ""
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
 #: ../libsoup/soup-body-input-stream.c:203
-#: ../libsoup/soup-message-io.c:232
+#: ../libsoup/soup-message-io.c:231
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:190
 #, c-format
 msgid "Output buffer is too small"
 msgstr "אוגר הפלט קטן מדי"
 
-#: ../libsoup/soup-message-io.c:818
+#: ../libsoup/soup-message-io.c:836
+#: ../libsoup/soup-message-io.c:863
 msgid "Operation was cancelled"
 msgstr "הפעולה בוטלה"
+
+#: ../libsoup/soup-message-io.c:874
+msgid "Operation would block"
+msgstr "הפעולה תיחסם"
 
 #: ../libsoup/soup-request.c:145
 #, c-format
