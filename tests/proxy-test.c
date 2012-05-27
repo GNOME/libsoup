@@ -363,7 +363,6 @@ main (int argc, char **argv)
 		run_test (i, FALSE);
 		run_test (i, TRUE);
 	}
-	return 0;
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
