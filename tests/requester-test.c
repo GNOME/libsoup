@@ -372,21 +372,22 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 }
 
 static void
-do_simple_test (const char *uri)
+do_simple_test (const char *uri, gboolean plain_session)
 {
 	SoupSession *session;
 
-	debug_printf (1, "Simple streaming test\n");
+	debug_printf (1, "Simple streaming test with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionAsync");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_test_for_thread_and_context (session, uri);
 	soup_test_session_abort_unref (session);
 }
 
-static gpointer
-do_test_with_context (const char *uri)
+static void
+do_test_with_context_and_type (const char *uri, gboolean plain_session)
 {
 	GMainContext *async_context;
 	SoupSession *session;
@@ -394,7 +395,7 @@ do_test_with_context (const char *uri)
 	async_context = g_main_context_new ();
 	g_main_context_push_thread_default (async_context);
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_ASYNC_CONTEXT, async_context,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
@@ -404,25 +405,43 @@ do_test_with_context (const char *uri)
 
 	g_main_context_pop_thread_default (async_context);
 	g_main_context_unref (async_context);
+}
+
+static gpointer
+do_test_with_context (gpointer uri)
+{
+	do_test_with_context_and_type (uri, FALSE);
+	return NULL;
+}
+
+static gpointer
+do_plain_test_with_context (gpointer uri)
+{
+	do_test_with_context_and_type (uri, TRUE);
 	return NULL;
 }
 
 static void
-do_context_test (const char *uri)
+do_context_test (const char *uri, gboolean plain_session)
 {
-	debug_printf (1, "Streaming with a non-default-context\n");
-	do_test_with_context (uri);
+	debug_printf (1, "Streaming with a non-default-context with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionAsync");
+	if (plain_session)
+		do_plain_test_with_context ((gpointer)uri);
+	else
+		do_test_with_context ((gpointer)uri);
 }
 
 static void
-do_thread_test (const char *uri)
+do_thread_test (const char *uri, gboolean plain_session)
 {
 	GThread *thread;
 
-	debug_printf (1, "Streaming in another thread\n");
+	debug_printf (1, "Streaming in another thread with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionAsync");
 
 	thread = g_thread_new ("do_test_with_context",
-			       (GThreadFunc)do_test_with_context,
+			       plain_session ? do_plain_test_with_context : do_test_with_context,
 			       (gpointer)uri);
 	g_thread_join (thread);
 }
@@ -542,16 +561,17 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 }
 
 static void
-do_sync_test (const char *uri_string)
+do_sync_test (const char *uri_string, gboolean plain_session)
 {
 	SoupSession *session;
 	SoupRequester *requester;
 	SoupRequest *request;
 	SoupURI *uri;
 
-	debug_printf (1, "Sync streaming\n");
+	debug_printf (1, "Sync streaming with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionSync");
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_SYNC, NULL);
 	requester = soup_requester_new ();
 	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
 	g_object_unref (requester);
@@ -614,10 +634,15 @@ main (int argc, char **argv)
 
 	uri = g_strdup_printf ("http://127.0.0.1:%u/foo", soup_server_get_port (server));
 
-	do_simple_test (uri);
-	do_thread_test (uri);
-	do_context_test (uri);
-	do_sync_test (uri);
+	do_simple_test (uri, FALSE);
+	do_thread_test (uri, FALSE);
+	do_context_test (uri, FALSE);
+	do_sync_test (uri, FALSE);
+
+	do_simple_test (uri, TRUE);
+	do_thread_test (uri, TRUE);
+	do_context_test (uri, TRUE);
+	do_sync_test (uri, TRUE);
 
 	g_free (uri);
 	soup_buffer_free (response);

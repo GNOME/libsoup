@@ -46,7 +46,8 @@ struct _SoupMessageQueueItem {
 	guint paused            : 1;
 	guint new_api           : 1;
 	guint io_started        : 1;
-	guint redirection_count : 29;
+	guint async             : 1;
+	guint redirection_count : 28;
 
 	SoupMessageQueueItemState state;
 
