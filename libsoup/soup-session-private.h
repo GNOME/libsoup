@@ -15,6 +15,10 @@ G_BEGIN_DECLS
 /* "protected" methods for subclasses */
 SoupMessageQueue     *soup_session_get_queue            (SoupSession          *session);
 
+SoupMessageQueueItem *soup_session_append_queue_item    (SoupSession          *session,
+							 SoupMessage          *msg,
+							 SoupSessionCallback   callback,
+							 gpointer              user_data);
 SoupMessageQueueItem *soup_session_make_connect_message (SoupSession          *session,
 							 SoupConnection       *conn);
 gboolean              soup_session_get_connection       (SoupSession          *session,

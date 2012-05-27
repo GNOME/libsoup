@@ -117,10 +117,6 @@ static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
 				       gboolean retrying, gpointer user_data);
 
-static void soup_session_real_queue_message (SoupSession *session, SoupMessage *msg,
-					     SoupSessionCallback callback,
-					     gpointer user_data);
-
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
 
@@ -1014,6 +1010,33 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	soup_session_redirect_message (session, msg);
 }
 
+SoupMessageQueueItem *
+soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
+				SoupSessionCallback callback, gpointer user_data)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+	SoupSessionHost *host;
+
+	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
+
+	g_mutex_lock (&priv->host_lock);
+	host = get_host_for_message (session, item->msg);
+	host->num_messages++;
+	g_mutex_unlock (&priv->host_lock);
+
+	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
+		soup_message_add_header_handler (
+			msg, "got_body", "Location",
+			G_CALLBACK (redirect_handler), item);
+	}
+
+	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
+
+	soup_message_queue_item_ref (item);
+	return item;
+}
+
 void
 soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageQueueItem *item,
@@ -1148,7 +1171,6 @@ SoupMessageQueueItem *
 soup_session_make_connect_message (SoupSession    *session,
 				   SoupConnection *conn)
 {
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupURI *uri;
 	SoupMessage *msg;
 	SoupMessageQueueItem *item;
@@ -1157,12 +1179,7 @@ soup_session_make_connect_message (SoupSession    *session,
 	msg = soup_message_new_from_uri (SOUP_METHOD_CONNECT, uri);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
-	/* Call the base implementation of soup_session_queue_message
-	 * directly, to add msg to the SoupMessageQueue and cause all
-	 * the right signals to be emitted.
-	 */
-	soup_session_real_queue_message (session, msg, NULL, NULL);
-	item = soup_message_queue_lookup (priv->queue, msg);
+	item = soup_session_append_queue_item (session, msg, NULL, NULL);
 	soup_message_queue_item_set_connection (item, conn);
 	g_object_unref (msg);
 	item->state = SOUP_MESSAGE_RUNNING;
@@ -1350,30 +1367,6 @@ soup_session_set_item_status (SoupSession          *session,
 		soup_message_set_status (item->msg, status_code);
 		break;
 	}
-}
-
-static void
-soup_session_real_queue_message (SoupSession *session, SoupMessage *msg,
-				 SoupSessionCallback callback, gpointer user_data)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupMessageQueueItem *item;
-	SoupSessionHost *host;
-
-	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
-
-	g_mutex_lock (&priv->host_lock);
-	host = get_host_for_message (session, item->msg);
-	host->num_messages++;
-	g_mutex_unlock (&priv->host_lock);
-
-	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
-		soup_message_add_header_handler (
-			msg, "got_body", "Location",
-			G_CALLBACK (redirect_handler), item);
-	}
-
-	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 }
 
 /**
@@ -1985,7 +1978,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	g_type_class_add_private (session_class, sizeof (SoupSessionPrivate));
 
 	/* virtual method definition */
-	session_class->queue_message = soup_session_real_queue_message;
 	session_class->requeue_message = soup_session_real_requeue_message;
 	session_class->cancel_message = soup_session_real_cancel_message;
 	session_class->auth_required = soup_session_real_auth_required;

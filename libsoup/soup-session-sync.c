@@ -328,12 +328,8 @@ soup_session_sync_queue_message (SoupSession *session, SoupMessage *msg,
 	SoupMessageQueueItem *item;
 	GThread *thread;
 
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
-		queue_message (g_object_ref (session), msg, callback, user_data);
-
-	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
-	g_return_if_fail (item != NULL);
-
+	g_object_ref (session);
+	item = soup_session_append_queue_item (session, msg, callback, user_data);
 	thread = g_thread_new ("SoupSessionSync:queue_message",
 			       queue_message_thread, item);
 	g_thread_unref (thread);
@@ -345,11 +341,7 @@ soup_session_sync_send_message (SoupSession *session, SoupMessage *msg)
 	SoupMessageQueueItem *item;
 	guint status;
 
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
-
-	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
-	g_return_val_if_fail (item != NULL, SOUP_STATUS_MALFORMED);
-
+	item = soup_session_append_queue_item (session, msg, NULL, NULL);
 	process_queue_item (item);
 	status = msg->status_code;
 	soup_message_queue_item_unref (item);
@@ -475,10 +467,7 @@ soup_session_send_request (SoupSession   *session,
 
 	g_return_val_if_fail (SOUP_IS_SESSION_SYNC (session), NULL);
 
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->queue_message (session, msg, NULL, NULL);
-
-	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
-	g_return_val_if_fail (item != NULL, NULL);
+	item = soup_session_append_queue_item (session, msg, NULL, NULL);
 
 	item->new_api = TRUE;
 	if (cancellable) {

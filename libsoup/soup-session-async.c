@@ -397,7 +397,10 @@ static void
 soup_session_async_queue_message (SoupSession *session, SoupMessage *req,
 				  SoupSessionCallback callback, gpointer user_data)
 {
-	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
+	SoupMessageQueueItem *item;
+
+	item = soup_session_append_queue_item (session, req, callback, user_data);
+	soup_message_queue_item_unref (item);
 
 	do_idle_run_queue (session);
 }
