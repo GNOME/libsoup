@@ -1405,6 +1405,10 @@ soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 
 	SOUP_SESSION_GET_CLASS (session)->queue_message (session, msg,
 							 callback, user_data);
+	/* The SoupMessageQueueItem will hold a ref on @msg until it is
+	 * finished, so we can drop the ref adopted from the caller now.
+	 */
+	g_object_unref (msg);
 }
 
 static void

@@ -305,7 +305,6 @@ process_queue_item (SoupMessageQueueItem *item,
 				item->callback (session, item->msg, item->callback_data);
 			else if (item->new_api)
 				send_request_finished (session, item);
-			g_object_unref (item->msg);
 			do_idle_run_queue (session);
 			g_object_unref (session);
 			return;
@@ -411,9 +410,6 @@ soup_session_async_send_message (SoupSession *session, SoupMessage *req)
 	SoupMessageQueueItem *item;
 	GMainContext *async_context =
 		soup_session_get_async_context (session);
-
-	/* Balance out the unref that queuing will eventually do */
-	g_object_ref (req);
 
 	soup_session_async_queue_message (session, req, NULL, NULL);
 
@@ -705,9 +701,6 @@ soup_session_send_request_async (SoupSession         *session,
 		      SOUP_SESSION_USE_THREAD_CONTEXT, &use_thread_context,
 		      NULL);
 	g_return_if_fail (use_thread_context);
-
-	/* Balance out the unref that queuing will eventually do */
-	g_object_ref (msg);
 
 	soup_session_async_queue_message (session, msg, NULL, NULL);
 

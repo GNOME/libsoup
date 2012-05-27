@@ -298,7 +298,6 @@ queue_message_callback (gpointer data)
 
 	item->callback (item->session, item->msg, item->callback_data);
 	g_object_unref (item->session);
-	g_object_unref (item->msg);
 	soup_message_queue_item_unref (item);
 	return FALSE;
 }
@@ -314,7 +313,6 @@ queue_message_thread (gpointer data)
 				     queue_message_callback, item);
 	} else {
 		g_object_unref (item->session);
-		g_object_unref (item->msg);
 		soup_message_queue_item_unref (item);
 	}
 
