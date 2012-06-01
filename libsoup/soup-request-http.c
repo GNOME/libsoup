@@ -172,10 +172,12 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 		}
 	}
 
-	/* The resource was modified, or else it mysteriously disappeared
-	 * from our cache. Either way we need to reload it now.
+	/* The resource was modified or the server returned a 200
+	 * OK. Either way we reload it. This is far from optimal as
+	 * we're donwloading the resource twice, but we will change it
+	 * once the cache is integrated in the streams stack.
 	 */
-	soup_session_send_request_async (session, msg, sadata->cancellable,
+	soup_session_send_request_async (session, sadata->original, sadata->cancellable,
 					 http_input_stream_ready_cb, sadata);
 }
 
