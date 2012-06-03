@@ -2392,9 +2392,9 @@ soup_session_abort (SoupSession *session)
 }
 
 static void
-prefetch_uri(SoupSession *session, SoupURI *uri,
-	     GCancellable *cancellable,
-	     SoupAddressCallback callback, gpointer user_data)
+prefetch_uri (SoupSession *session, SoupURI *uri,
+	      GCancellable *cancellable,
+	      SoupAddressCallback callback, gpointer user_data)
 {
 	SoupSessionPrivate *priv;
 	SoupSessionHost *host;
