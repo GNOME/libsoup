@@ -239,12 +239,6 @@ encode_pair (GString *str, const char *name, const char *value)
 	append_form_encoded (str, value);
 }
 
-static void
-hash_encode_foreach (gpointer name, gpointer value, gpointer str)
-{
-	encode_pair (str, name, value);
-}
-
 /**
  * soup_form_encode:
  * @first_field: name of the first form field
@@ -295,8 +289,12 @@ char *
 soup_form_encode_hash (GHashTable *form_data_set)
 {
 	GString *str = g_string_new (NULL);
+	GHashTableIter iter;
+	gpointer name, value;
 
-	g_hash_table_foreach (form_data_set, hash_encode_foreach, str);
+	g_hash_table_iter_init (&iter, form_data_set);
+	while (g_hash_table_iter_next (&iter, &name, &value))
+		encode_pair (str, name, value);
 	return g_string_free (str, FALSE);
 }
 

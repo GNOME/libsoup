@@ -2338,15 +2338,6 @@ soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-gather_conns (gpointer key, gpointer host, gpointer data)
-{
-	SoupConnection *conn = key;
-	GSList **conns = data;
-
-	*conns = g_slist_prepend (*conns, g_object_ref (conn));
-}
-
-static void
 flush_queue (SoupSession *session)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
@@ -2371,6 +2362,8 @@ soup_session_abort (SoupSession *session)
 {
 	SoupSessionPrivate *priv;
 	GSList *conns, *c;
+	GHashTableIter iter;
+	gpointer conn, host;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));
 	priv = SOUP_SESSION_GET_PRIVATE (session);
@@ -2380,9 +2373,11 @@ soup_session_abort (SoupSession *session)
 	/* Close all connections */
 	g_mutex_lock (&priv->host_lock);
 	conns = NULL;
-	g_hash_table_foreach (priv->conns, gather_conns, &conns);
-
+	g_hash_table_iter_init (&iter, priv->conns);
+	while (g_hash_table_iter_next (&iter, &conn, &host))
+		conns = g_slist_prepend (conns, g_object_ref (conn));
 	g_mutex_unlock (&priv->host_lock);
+
 	for (c = conns; c; c = c->next) {
 		soup_connection_disconnect (c->data);
 		g_object_unref (c->data);

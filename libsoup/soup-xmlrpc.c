@@ -31,24 +31,6 @@ static xmlNode *find_real_node (xmlNode *node);
 
 static gboolean insert_value (xmlNode *parent, GValue *value);
 
-static void
-insert_member (gpointer name, gpointer value, gpointer data)
-{
-	xmlNode *member, **struct_node = data;
-
-	if (!*struct_node)
-		return;
-
-	member = xmlNewChild (*struct_node, NULL,
-			      (const xmlChar *)"member", NULL);
-	xmlNewTextChild (member, NULL,
-			 (const xmlChar *)"name", (const xmlChar *)name);
-	if (!insert_value (member, value)) {
-		xmlFreeNode (*struct_node);
-		*struct_node = NULL;
-	}
-}
-
 static gboolean
 insert_value (xmlNode *parent, GValue *value)
 {
@@ -95,11 +77,28 @@ insert_value (xmlNode *parent, GValue *value)
 		g_free (encoded);
 	} else if (type == G_TYPE_HASH_TABLE) {
 		GHashTable *hash = g_value_get_boxed (value);
-		xmlNode *struct_node;
+		GHashTableIter iter;
+		gpointer mname, mvalue;
+		xmlNode *struct_node, *member;
 
 		struct_node = xmlNewChild (xvalue, NULL,
 					   (const xmlChar *)"struct", NULL);
-		g_hash_table_foreach (hash, insert_member, &struct_node);
+
+		g_hash_table_iter_init (&iter, hash);
+
+		while (g_hash_table_iter_next (&iter, &mname, &mvalue)) {
+			member = xmlNewChild (struct_node, NULL,
+					      (const xmlChar *)"member", NULL);
+			xmlNewTextChild (member, NULL,
+					 (const xmlChar *)"name",
+					 (const xmlChar *)mname);
+			if (!insert_value (member, mvalue)) {
+				xmlFreeNode (struct_node);
+				struct_node = NULL;
+				break;
+			}
+		}
+
 		if (!struct_node)
 			return FALSE;
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS

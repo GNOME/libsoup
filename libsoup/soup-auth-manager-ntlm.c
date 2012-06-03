@@ -74,6 +74,8 @@ typedef struct {
 #endif
 } SoupNTLMConnection;
 
+static void free_ntlm_connection (SoupNTLMConnection *conn);
+
 typedef struct {
 	gboolean use_ntlm;
 
@@ -105,7 +107,8 @@ soup_auth_manager_ntlm_init (SoupAuthManagerNTLM *ntlm)
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (ntlm);
 
-	priv->connections_by_id = g_hash_table_new (NULL, NULL);
+	priv->connections_by_id = g_hash_table_new_full (NULL, NULL, NULL,
+							 (GDestroyNotify)free_ntlm_connection);
 	priv->connections_by_msg = g_hash_table_new (NULL, NULL);
 #ifdef USE_NTLM_AUTH
 	priv->ntlm_auth_accessible = (access (NTLM_AUTH, X_OK) == 0);
@@ -128,19 +131,11 @@ free_ntlm_connection (SoupNTLMConnection *conn)
 }
 
 static void
-free_ntlm_connection_foreach (gpointer key, gpointer value, gpointer user_data)
-{
-	free_ntlm_connection (value);
-}
-
-static void
 finalize (GObject *object)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (object);
 
-	g_hash_table_foreach (priv->connections_by_id,
-			      free_ntlm_connection_foreach, NULL);
 	g_hash_table_destroy (priv->connections_by_id);
 	g_hash_table_destroy (priv->connections_by_msg);
 
@@ -189,11 +184,7 @@ static void
 delete_conn (SoupSocket *socket, gpointer user_data)
 {
 	SoupAuthManagerNTLMPrivate *priv = user_data;
-	SoupNTLMConnection *conn;
 
-	conn = g_hash_table_lookup (priv->connections_by_id, socket);
-	if (conn)
-		free_ntlm_connection (conn);
 	g_hash_table_remove (priv->connections_by_id, socket);
 	g_signal_handlers_disconnect_by_func (socket, delete_conn, priv);
 }

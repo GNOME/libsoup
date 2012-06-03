@@ -63,30 +63,18 @@ typedef struct {
 	GHashTable  *auths;            /* scheme:realm -> SoupAuth */
 } SoupAuthHost;
 
+static void soup_auth_host_free (SoupAuthHost *host);
+
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 
 	priv->auth_types = g_ptr_array_new ();
-	priv->auth_hosts = g_hash_table_new (soup_uri_host_hash,
-					     soup_uri_host_equal);
-}
-
-static gboolean
-foreach_free_host (gpointer key, gpointer value, gpointer data)
-{
-	SoupAuthHost *host = value;
-
-	if (host->auth_realms)
-		soup_path_map_free (host->auth_realms);
-	if (host->auths)
-		g_hash_table_destroy (host->auths);
-
-	soup_uri_free (host->uri);
-	g_slice_free (SoupAuthHost, host);
-
-	return TRUE;
+	priv->auth_hosts = g_hash_table_new_full (soup_uri_host_hash,
+						  soup_uri_host_equal,
+						  NULL,
+						  (GDestroyNotify)soup_auth_host_free);
 }
 
 static void
@@ -99,7 +87,6 @@ finalize (GObject *object)
 		g_type_class_unref (priv->auth_types->pdata[i]);
 	g_ptr_array_free (priv->auth_types, TRUE);
 
-	g_hash_table_foreach_remove (priv->auth_hosts, foreach_free_host, NULL);
 	g_hash_table_destroy (priv->auth_hosts);
 
 	if (priv->proxy_auth)
@@ -400,6 +387,18 @@ get_auth_host_for_message (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 	g_hash_table_insert (priv->auth_hosts, host->uri, host);
 
 	return host;
+}
+
+static void
+soup_auth_host_free (SoupAuthHost *host)
+{
+	if (host->auth_realms)
+		soup_path_map_free (host->auth_realms);
+	if (host->auths)
+		g_hash_table_destroy (host->auths);
+
+	soup_uri_free (host->uri);
+	g_slice_free (SoupAuthHost, host);
 }
 
 static SoupAuth *
