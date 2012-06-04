@@ -1,3 +1,51 @@
+Changes in libsoup from 2.39.1 to 2.39.2:
+
+	* Fixed several bugs that resulted from the I/O code rewrite
+          in 2.39.1, and added more test cases to exercise the new
+          code paths:
+
+		* Problems with cancelling messages from the
+                  got-headers signal [#674747, Dan]
+
+		* Persistent connections were not always being closed
+                  properly after a message was cancelled mid-response.
+                  [Dan]
+
+		* Cancelling a SoupRequest before it started I/O
+                  didn't work. [Dan]
+
+		* Asynchronous HTTP authentication via the SoupRequest
+		  API [#675306, Dan]
+
+		* Memory leak [#676038, Ray Strode]
+
+		* Refcounting bug that manifested as a crash in rygel
+                  [#676038, Ray Strode]
+
+		* Handling failed CONNECT requests via SoupRequest
+                  [#675865, Sergio]
+
+		* Messages with trailing junk following a compressed
+		  message body [#676477, Dan]
+
+	* Fixed three cache-related bugs that affect some sites
+          (notably Twitter) [Sergio]
+
+	* Fixed a bug in the /usr/bin/ntlm_auth integration when you
+	  don't already have credentials cached, and avoid printing
+	  warning messages when ntlm_auth is present but not usable.
+	  [Dan]
+
+	* Fixed some g-ir-scanner warnings, and included
+	  SoupRequester/SoupRequest in the introspected API [#676742,
+	  Jasper St. Pierre]
+
+	* Added soup_buffer_get_as_bytes() [#676776, Jasper]
+
+	* New/updated translations:
+	  Belarusian, Chinese (simplified), French, Galician, Greek,
+	  Hebrew, Polish, Punjabi, Romanian, Slovenian, Spanish
+
 Changes in libsoup from 2.38.1 to 2.39.1:
 
 	* Major rewrite of the I/O code to use gio streams more
