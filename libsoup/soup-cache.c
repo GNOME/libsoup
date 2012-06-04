@@ -419,14 +419,14 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 
 	/* Otherwise an heuristic may be used */
 
-	/* Heuristics MUST NOT be used with these status codes
-	   (section 2.3.1.1) */
-	if (msg->status_code != SOUP_STATUS_OK &&
-	    msg->status_code != SOUP_STATUS_NON_AUTHORITATIVE &&
-	    msg->status_code != SOUP_STATUS_PARTIAL_CONTENT &&
-	    msg->status_code != SOUP_STATUS_MULTIPLE_CHOICES &&
-	    msg->status_code != SOUP_STATUS_MOVED_PERMANENTLY &&
-	    msg->status_code != SOUP_STATUS_GONE)
+	/* Heuristics MUST NOT be used with stored responses with
+	   these status codes (section 2.3.1.1) */
+	if (entry->status_code != SOUP_STATUS_OK &&
+	    entry->status_code != SOUP_STATUS_NON_AUTHORITATIVE &&
+	    entry->status_code != SOUP_STATUS_PARTIAL_CONTENT &&
+	    entry->status_code != SOUP_STATUS_MULTIPLE_CHOICES &&
+	    entry->status_code != SOUP_STATUS_MOVED_PERMANENTLY &&
+	    entry->status_code != SOUP_STATUS_GONE)
 		goto expire;
 
 	/* TODO: attach warning 113 if response's current_age is more
