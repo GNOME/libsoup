@@ -49,8 +49,8 @@ check_good (SoupDateFormat format, const char *strdate)
 	char *strdate2;
 
 	date = make_date (strdate);
-	if (date)
-		strdate2 = soup_date_to_string (date, format);
+	g_assert (date);
+	strdate2 = soup_date_to_string (date, format);
 	if (!check_ok (strdate, date))
 		return;
 
