@@ -260,8 +260,10 @@ process_queue_item (SoupMessageQueueItem *item,
 		case SOUP_MESSAGE_FINISHING:
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
-			if (item->state != SOUP_MESSAGE_FINISHED)
+			if (item->state != SOUP_MESSAGE_FINISHED) {
+				g_return_if_fail (!item->new_api);
 				break;
+			}
 
 			soup_message_queue_item_ref (item);
 			soup_session_unqueue_item (session, item);
