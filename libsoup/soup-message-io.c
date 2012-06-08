@@ -145,10 +145,8 @@ soup_message_io_stop (SoupMessage *msg)
 		io->unpause_source = NULL;
 	}
 
-	if (io->read_state < SOUP_MESSAGE_IO_STATE_FINISHING) {
-		if (io->item && io->item->conn)
-			soup_connection_disconnect (io->item->conn);
-		else
+	if (io->mode == SOUP_MESSAGE_IO_SERVER) {
+		if (io->write_state < SOUP_MESSAGE_IO_STATE_FINISHING)
 			g_io_stream_close (io->iostream, NULL, NULL);
 	}
 }
@@ -630,6 +628,8 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
+		if (io->item && io->item->conn)
+			soup_connection_set_reusable (io->item->conn);
 		soup_message_got_body (msg);
 		break;
 

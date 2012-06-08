@@ -32,6 +32,7 @@ typedef struct {
 	time_t       unused_timeout;
 	guint        io_timeout, idle_timeout;
 	GSource     *idle_timeout_src;
+	gboolean     reusable;
 } SoupConnectionPrivate;
 #define SOUP_CONNECTION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_CONNECTION, SoupConnectionPrivate))
 
@@ -388,6 +389,7 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 	item->state = SOUP_MESSAGE_RUNNING;
 	priv->cur_item = item;
 	g_object_notify (G_OBJECT (conn), "message");
+	priv->reusable = FALSE;
 
 	g_signal_connect (item->msg, "restarted",
 			  G_CALLBACK (current_item_restarted), conn);
@@ -432,7 +434,7 @@ clear_current_item (SoupConnection *conn)
 			priv->proxy_uri = NULL;
 		}
 
-		if (!soup_message_is_keepalive (item->msg))
+		if (!soup_message_is_keepalive (item->msg) || !priv->reusable)
 			soup_connection_disconnect (conn);
 	}
 
@@ -952,6 +954,12 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 
 	g_object_notify (G_OBJECT (conn), "state");
 	g_object_thaw_notify (G_OBJECT (conn));
+}
+
+void
+soup_connection_set_reusable (SoupConnection *conn)
+{
+	SOUP_CONNECTION_GET_PRIVATE (conn)->reusable = TRUE;
 }
 
 gboolean
