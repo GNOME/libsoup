@@ -320,41 +320,15 @@ compare_cookies (gconstpointer a, gconstpointer b, gpointer jar)
 	return aserial - bserial;
 }
 
-/**
- * soup_cookie_jar_get_cookies:
- * @jar: a #SoupCookieJar
- * @uri: a #SoupURI
- * @for_http: whether or not the return value is being passed directly
- * to an HTTP operation
- *
- * Retrieves (in Cookie-header form) the list of cookies that would
- * be sent with a request to @uri.
- *
- * If @for_http is %TRUE, the return value will include cookies marked
- * "HttpOnly" (that is, cookies that the server wishes to keep hidden
- * from client-side scripting operations such as the JavaScript
- * document.cookies property). Since #SoupCookieJar sets the Cookie
- * header itself when making the actual HTTP request, you should
- * almost certainly be setting @for_http to %FALSE if you are calling
- * this.
- *
- * Return value: the cookies, in string form, or %NULL if there are no
- * cookies for @uri.
- *
- * Since: 2.24
- **/
-char *
-soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
-			     gboolean for_http)
+static GSList *
+get_cookies (SoupCookieJar *jar, SoupURI *uri, gboolean for_http, gboolean copy_cookies)
 {
 	SoupCookieJarPrivate *priv;
 	GSList *cookies, *domain_cookies;
-	char *domain, *cur, *next_domain, *result;
+	char *domain, *cur, *next_domain;
 	GSList *new_head, *cookies_to_remove = NULL, *p;
 
-	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
-	g_return_val_if_fail (uri != NULL, NULL);
 
 	if (!uri->host)
 		return NULL;
@@ -382,7 +356,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 						     new_head);
 			} else if (soup_cookie_applies_to_uri (cookie, uri) &&
 				   (for_http || !cookie->http_only))
-				cookies = g_slist_append (cookies, cookie);
+				cookies = g_slist_append (cookies, copy_cookies ? soup_cookie_copy (cookie) : cookie);
 
 			domain_cookies = next;
 		}
@@ -400,9 +374,45 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 	}
 	g_slist_free (cookies_to_remove);
 
+	return g_slist_sort_with_data (cookies, compare_cookies, jar);
+}
+
+/**
+ * soup_cookie_jar_get_cookies:
+ * @jar: a #SoupCookieJar
+ * @uri: a #SoupURI
+ * @for_http: whether or not the return value is being passed directly
+ * to an HTTP operation
+ *
+ * Retrieves (in Cookie-header form) the list of cookies that would
+ * be sent with a request to @uri.
+ *
+ * If @for_http is %TRUE, the return value will include cookies marked
+ * "HttpOnly" (that is, cookies that the server wishes to keep hidden
+ * from client-side scripting operations such as the JavaScript
+ * document.cookies property). Since #SoupCookieJar sets the Cookie
+ * header itself when making the actual HTTP request, you should
+ * almost certainly be setting @for_http to %FALSE if you are calling
+ * this.
+ *
+ * Return value: the cookies, in string form, or %NULL if there are no
+ * cookies for @uri.
+ *
+ * Since: 2.24
+ **/
+char *
+soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
+			     gboolean for_http)
+{
+	GSList *cookies;
+
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	cookies = get_cookies (jar, uri, for_http, FALSE);
+
 	if (cookies) {
-		cookies = g_slist_sort_with_data (cookies, compare_cookies, jar);
-		result = soup_cookies_to_cookie_header (cookies);
+		char *result = soup_cookies_to_cookie_header (cookies);
 		g_slist_free (cookies);
 
 		if (!*result) {
@@ -412,6 +422,38 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 		return result;
 	} else
 		return NULL;
+}
+
+/**
+ * soup_cookie_jar_get_cookie_list:
+ * @jar: a #SoupCookieJar
+ * @uri: a #SoupURI
+ * @for_http: whether or not the return value is being passed directly
+ * to an HTTP operation
+ *
+ * Retrieves the list of cookies that would be sent with a request to @uri
+ * as a #GSList of #SoupCookie objects.
+ *
+ * If @for_http is %TRUE, the return value will include cookies marked
+ * "HttpOnly" (that is, cookies that the server wishes to keep hidden
+ * from client-side scripting operations such as the JavaScript
+ * document.cookies property). Since #SoupCookieJar sets the Cookie
+ * header itself when making the actual HTTP request, you should
+ * almost certainly be setting @for_http to %FALSE if you are calling
+ * this.
+ *
+ * Return value: (transfer full) (element-type Soup.Cookie): a #GSList
+ * with the cookies in the @jar that would be sent with a request to @uri.
+ *
+ * Since: 2.40
+ **/
+GSList *
+soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_http)
+{
+	g_return_val_if_fail (SOUP_IS_COOKIE_JAR (jar), NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	return get_cookies (jar, uri, for_http, TRUE);
 }
 
 /**

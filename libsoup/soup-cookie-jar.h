@@ -55,6 +55,9 @@ void                      soup_cookie_jar_save                        (SoupCooki
 char          *           soup_cookie_jar_get_cookies                 (SoupCookieJar             *jar,
 								       SoupURI                   *uri,
 								       gboolean                   for_http);
+GSList        *           soup_cookie_jar_get_cookie_list             (SoupCookieJar             *jar,
+								       SoupURI                   *uri,
+								       gboolean                   for_http);
 void                      soup_cookie_jar_set_cookie                  (SoupCookieJar             *jar,
 								       SoupURI                   *uri,
 								       const char                *cookie);

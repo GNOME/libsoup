@@ -878,6 +878,7 @@ soup_cookie_equal
 SoupCookieJar
 soup_cookie_jar_new
 soup_cookie_jar_get_cookies
+soup_cookie_jar_get_cookie_list
 soup_cookie_jar_set_cookie
 soup_cookie_jar_set_cookie_with_first_party
 <SUBSECTION>
