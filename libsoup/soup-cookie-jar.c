@@ -527,6 +527,47 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
 }
 
 /**
+ * soup_cookie_jar_add_cookie_with_first_party:
+ * @jar: a #SoupCookieJar
+ * @first_party: the URI for the main document
+ * @cookie: a #SoupCookie
+ *
+ * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
+ * an existing cookie or adding a valid new cookie ('valid' means
+ * that the cookie's expire date is not in the past).
+ *
+ * @first_party will be used to reject cookies coming from third party
+ * resources in case such a security policy is set in the @jar.
+ *
+ * @cookie will be 'stolen' by the jar, so don't free it afterwards.
+ *
+ * Since: 2.40
+ **/
+void
+soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar *jar, SoupURI *first_party, SoupCookie *cookie)
+{
+	SoupCookieJarPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
+	g_return_if_fail (first_party != NULL);
+	g_return_if_fail (cookie != NULL);
+
+	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
+	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER) {
+		soup_cookie_free (cookie);
+		return;
+	}
+
+	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS ||
+	    soup_cookie_domain_matches (cookie, first_party->host)) {
+		/* will steal or free soup_cookie */
+		soup_cookie_jar_add_cookie (jar, cookie);
+	} else {
+		soup_cookie_free (cookie);
+	}
+}
+
+/**
  * soup_cookie_jar_set_cookie:
  * @jar: a #SoupCookieJar
  * @uri: the URI setting the cookie
@@ -591,7 +632,6 @@ soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
 					     const char *cookie)
 {
 	SoupCookie *soup_cookie;
-	SoupCookieJarPrivate *priv;
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (uri != NULL);
@@ -601,20 +641,9 @@ soup_cookie_jar_set_cookie_with_first_party (SoupCookieJar *jar,
 	if (!uri->host)
 		return;
 
-	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
-	if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_NEVER)
-		return;
-
 	soup_cookie = soup_cookie_parse (cookie, uri);
-	if (soup_cookie) {
-		if (priv->accept_policy == SOUP_COOKIE_JAR_ACCEPT_ALWAYS ||
-		    soup_cookie_domain_matches (soup_cookie, first_party->host)) {
-			/* will steal or free soup_cookie */
-			soup_cookie_jar_add_cookie (jar, soup_cookie);
-		} else {
-			soup_cookie_free (soup_cookie);
-		}
-	}
+	if (soup_cookie)
+		soup_cookie_jar_add_cookie_with_first_party (jar, first_party, soup_cookie);
 }
 
 static void

@@ -883,6 +883,7 @@ soup_cookie_jar_set_cookie
 soup_cookie_jar_set_cookie_with_first_party
 <SUBSECTION>
 soup_cookie_jar_add_cookie
+soup_cookie_jar_add_cookie_with_first_party
 soup_cookie_jar_delete_cookie
 soup_cookie_jar_all_cookies
 <SUBSECTION>

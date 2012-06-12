@@ -67,6 +67,9 @@ void                      soup_cookie_jar_set_cookie_with_first_party (SoupCooki
 								       const char                *cookie);
 void                      soup_cookie_jar_add_cookie                  (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);
+void                      soup_cookie_jar_add_cookie_with_first_party (SoupCookieJar             *jar,
+								       SoupURI                   *first_party,
+								       SoupCookie                *cookie);
 void                      soup_cookie_jar_delete_cookie               (SoupCookieJar             *jar,
 								       SoupCookie                *cookie);
 GSList        *           soup_cookie_jar_all_cookies                 (SoupCookieJar             *jar);
