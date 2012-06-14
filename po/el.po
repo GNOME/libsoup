@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-04-23 08:45+0000\n"
-"PO-Revision-Date: 2012-04-24 16:34+0200\n"
+"POT-Creation-Date: 2012-05-08 16:55+0000\n"
+"PO-Revision-Date: 2012-06-14 03:47+0200\n"
 "Last-Translator: Tom Tryfonidis <tomtryf@gmail.com>\n"
 "Language-Team: Greek <team@lists.gnome.gr>\n"
 "MIME-Version: 1.0\n"
@@ -19,7 +19,7 @@ msgstr ""
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
 #: ../libsoup/soup-body-input-stream.c:203
-#: ../libsoup/soup-message-io.c:232
+#: ../libsoup/soup-message-io.c:231
 msgid "Connection terminated unexpectedly"
 msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
 
@@ -28,9 +28,14 @@ msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
 msgid "Output buffer is too small"
 msgstr "Το buffer εξόδου είναι πολύ μικρό"
 
-#: ../libsoup/soup-message-io.c:818
+#: ../libsoup/soup-message-io.c:836
+#: ../libsoup/soup-message-io.c:862
 msgid "Operation was cancelled"
 msgstr "Η λειτουργία ακυρώθηκε"
+
+#: ../libsoup/soup-message-io.c:873
+msgid "Operation would block"
+msgstr "Η λειτουργία θα μπλοκαριστεί"
 
 #: ../libsoup/soup-request.c:145
 #, c-format
