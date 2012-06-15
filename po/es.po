@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-05-08 16:55+0000\n"
-"PO-Revision-Date: 2012-05-09 12:46+0200\n"
+"POT-Creation-Date: 2012-06-14 18:14+0000\n"
+"PO-Revision-Date: 2012-06-15 12:10+0200\n"
 "Last-Translator: Daniel Mustieles <daniel.mustieles@gmail.com>\n"
 "Language-Team: Español <gnome-es-list@gnome.org>\n"
 "MIME-Version: 1.0\n"
@@ -24,16 +24,16 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "La conexión terminó inesperadamente"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:190
 #, c-format
 msgid "Output buffer is too small"
 msgstr "El búfer de salida es demasiado pequeño"
 
-#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:862
+#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:863
 msgid "Operation was cancelled"
 msgstr "Se canceló la operación"
 
-#: ../libsoup/soup-message-io.c:873
+#: ../libsoup/soup-message-io.c:874
 msgid "Operation would block"
 msgstr "La operación se bloqueará"
 
@@ -56,3 +56,15 @@ msgstr "No se pudo analizar el URI «%s»"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Esquema %s de URI no soportado"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "El nombre del equipo es una dirección IP"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "El nombre del equipo no es válido"
+
+#: ../libsoup/soup-tld.c:181 ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "No hay suficientes dominios"
