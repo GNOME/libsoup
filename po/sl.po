@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-05-18 02:03+0000\n"
-"PO-Revision-Date: 2012-05-23 19:56+0100\n"
+"POT-Creation-Date: 2012-06-15 10:11+0000\n"
+"PO-Revision-Date: 2012-06-16 08:39+0100\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
@@ -28,7 +28,7 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:190
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Odvodni medpomnilnik je premajhen."
@@ -61,4 +61,17 @@ msgstr "Ni mogoče razčleniti naslova URI '%s'"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepodprta shema URI '%s'"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "Ime gostitelja je naslov IP"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "Neveljavno ime gostitelja"
+
+#: ../libsoup/soup-tld.c:181
+#: ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "Ni dovolj domen"
 
