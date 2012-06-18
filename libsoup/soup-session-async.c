@@ -473,10 +473,10 @@ static void
 send_request_return_result (SoupMessageQueueItem *item,
 			    gpointer stream, GError *error)
 {
-	GSimpleAsyncResult *simple;
+	GTask *task;
 
-	simple = item->result;
-	item->result = NULL;
+	task = item->task;
+	item->task = NULL;
 
 	if (item->io_source) {
 		g_source_destroy (item->io_source);
@@ -484,20 +484,17 @@ send_request_return_result (SoupMessageQueueItem *item,
 	}
 
 	if (error)
-		g_simple_async_result_take_error (simple, error);
+		g_task_return_error (task, error);
 	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
 		if (stream)
 			g_object_unref (stream);
-		g_simple_async_result_set_error (simple,
-						 SOUP_HTTP_ERROR,
-						 item->msg->status_code,
-						 "%s",
-						 item->msg->reason_phrase);
+		g_task_return_new_error (task, SOUP_HTTP_ERROR,
+					 item->msg->status_code,
+					 "%s",
+					 item->msg->reason_phrase);
 	} else
-		g_simple_async_result_set_op_res_gpointer (simple, stream, g_object_unref);
-
-	g_simple_async_result_complete (simple);
-	g_object_unref (simple);
+		g_task_return_pointer (task, stream, g_object_unref);
+	g_object_unref (task);
 }
 
 static void
@@ -515,12 +512,12 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 	GInputStream *istream = NULL;
 	GError *error = NULL;
 
-	if (!item->result) {
+	if (!item->task) {
 		/* Something else already took care of it. */
 		return;
 	}
 
-	mostream = g_object_get_data (G_OBJECT (item->result), "SoupSessionAsync:ostream");
+	mostream = g_object_get_data (G_OBJECT (item->task), "SoupSessionAsync:ostream");
 	if (mostream) {
 		gpointer data;
 		gssize size;
@@ -563,7 +560,7 @@ send_async_spliced (GObject *source, GAsyncResult *result, gpointer user_data)
 
 	/* If the message was cancelled, it will be completed via other means */
 	if (g_cancellable_is_cancelled (item->cancellable) ||
-	    !item->result) {
+	    !item->task) {
 		soup_message_queue_item_unref (item);
 		return;
 	}
@@ -591,7 +588,7 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 
 		/* Message may be requeued, so gather the current message body... */
 		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-		g_object_set_data_full (G_OBJECT (item->result), "SoupSessionAsync:ostream",
+		g_object_set_data_full (G_OBJECT (item->task), "SoupSessionAsync:ostream",
 					ostream, g_object_unref);
 
 		g_object_set_data (G_OBJECT (ostream), "istream", stream);
@@ -693,10 +690,8 @@ soup_session_send_request_async (SoupSession         *session,
 	g_return_if_fail (item != NULL);
 
 	item->new_api = TRUE;
-	item->result = g_simple_async_result_new (G_OBJECT (session),
-						  callback, user_data,
-						  soup_session_send_request_async);
-	g_simple_async_result_set_op_res_gpointer (item->result, item, (GDestroyNotify) soup_message_queue_item_unref);
+	item->task = g_task_new (session, cancellable, callback, user_data);
+	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
 
 	if (cancellable) {
 		g_object_unref (item->cancellable);
@@ -709,15 +704,10 @@ soup_session_send_request_finish (SoupSession   *session,
 				  GAsyncResult  *result,
 				  GError       **error)
 {
-	GSimpleAsyncResult *simple;
-
 	g_return_val_if_fail (SOUP_IS_SESSION_ASYNC (session), NULL);
-	g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (session), soup_session_send_request_async), NULL);
+	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
 
-	simple = G_SIMPLE_ASYNC_RESULT (result);
-	if (g_simple_async_result_propagate_error (simple, error))
-		return NULL;
-	return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static void

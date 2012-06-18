@@ -173,13 +173,18 @@ soup_request_default_send_async (SoupRequest          *request,
 				 GAsyncReadyCallback   callback,
 				 gpointer              user_data)
 {
-	GSimpleAsyncResult *simple;
+	GTask *task;
+	GInputStream *stream;
+	GError *error = NULL;
 
-	simple = g_simple_async_result_new (G_OBJECT (request),
-					    callback, user_data,
-					    soup_request_default_send_async);
-	g_simple_async_result_complete_in_idle (simple);
-	g_object_unref (simple);
+	task = g_task_new (request, cancellable, callback, user_data);
+
+	stream = soup_request_send (request, cancellable, &error);
+	if (stream)
+		g_task_return_pointer (task, stream, g_object_unref);
+	else
+		g_task_return_error (task, error);
+	g_object_unref (task);
 }
 
 static GInputStream *
@@ -187,9 +192,7 @@ soup_request_default_send_finish (SoupRequest          *request,
 				  GAsyncResult         *result,
 				  GError              **error)
 {
-	g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (request), soup_request_default_send_async), NULL);
-
-	return soup_request_send (request, NULL, error);
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 /**

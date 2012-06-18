@@ -192,36 +192,33 @@ soup_request_file_send (SoupRequest          *request,
 }
 
 static void
-soup_request_file_send_async_thread (GSimpleAsyncResult *res,
-				     GObject            *object,
-				     GCancellable       *cancellable)
+soup_request_file_send_async_thread (GTask        *task,
+				     gpointer      source_object,
+				     gpointer      task_data,
+				     GCancellable *cancellable)
 {
+	SoupRequest *request = source_object;
 	GInputStream *stream;
-	SoupRequest *request;
 	GError *error = NULL;
 
-	request = SOUP_REQUEST (object);
-
 	stream = soup_request_file_send (request, cancellable, &error);
-
 	if (stream == NULL)
-		g_simple_async_result_take_error (res, error);
+		g_task_return_error (task, error);
 	else
-		g_simple_async_result_set_op_res_gpointer (res, stream, g_object_unref);
+		g_task_return_pointer (task, stream, g_object_unref);
 }
 
 static void
 soup_request_file_send_async (SoupRequest          *request,
 			      GCancellable         *cancellable,
-			      GAsyncReadyCallback callback,
-			      gpointer user_data)
+			      GAsyncReadyCallback   callback,
+			      gpointer              user_data)
 {
-	GSimpleAsyncResult *res;
+	GTask *task;
 
-	res = g_simple_async_result_new (G_OBJECT (request), callback, user_data, soup_request_file_send_async);
-
-	g_simple_async_result_run_in_thread (res, soup_request_file_send_async_thread, G_PRIORITY_DEFAULT, cancellable);
-	g_object_unref (res);
+	task = g_task_new (request, cancellable, callback, user_data);
+	g_task_run_in_thread (task, soup_request_file_send_async_thread);
+	g_object_unref (task);
 }
 
 static GInputStream *
@@ -229,14 +226,9 @@ soup_request_file_send_finish (SoupRequest          *request,
 			       GAsyncResult         *result,
 			       GError              **error)
 {
-	GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+	g_return_val_if_fail (g_task_is_valid (result, request), NULL);
 
-	g_warn_if_fail (g_simple_async_result_get_source_tag (simple) == soup_request_file_send_async);
-
-	if (g_simple_async_result_propagate_error (simple, error))
-		return NULL;
-
-	return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static goffset

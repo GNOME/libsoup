@@ -99,10 +99,6 @@ soup_request_http_send (SoupRequest          *request,
 
 
 typedef struct {
-	SoupRequestHTTP *http;
-	GCancellable *cancellable;
-	GSimpleAsyncResult *simple;
-
 	SoupMessage *original;
 	GInputStream *stream;
 } SendAsyncData;
@@ -110,10 +106,6 @@ typedef struct {
 static void
 free_send_async_data (SendAsyncData *sadata)
 {
-       g_object_unref (sadata->http);
-       g_object_unref (sadata->simple);
-
-       g_clear_object (&sadata->cancellable);
        g_clear_object (&sadata->stream);
        g_clear_object (&sadata->original);
 
@@ -123,25 +115,24 @@ free_send_async_data (SendAsyncData *sadata)
 static void
 http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	SendAsyncData *sadata = user_data;
+	GTask *task = user_data;
 	GError *error = NULL;
 	GInputStream *stream;
 
 	stream = soup_session_send_request_finish (SOUP_SESSION (source), result, &error);
-	if (stream) {
-		g_simple_async_result_set_op_res_gpointer (sadata->simple, stream, g_object_unref);
-	} else {
-		g_simple_async_result_take_error (sadata->simple, error);
-	}
-	g_simple_async_result_complete (sadata->simple);
-	free_send_async_data (sadata);
+	if (stream)
+		g_task_return_pointer (task, stream, g_object_unref);
+	else
+		g_task_return_error (task, error);
+	g_object_unref (task);
 }
-
 
 static void
 conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-	SendAsyncData *sadata = user_data;
+	GTask *task = user_data;
+	SoupRequestHTTP *http = g_task_get_source_object (task);
+	SendAsyncData *sadata = g_task_get_task_data (task);
 	GInputStream *stream;
 
 	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
@@ -149,16 +140,13 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 
 		stream = soup_cache_send_response (cache, sadata->original);
 		if (stream) {
-			g_simple_async_result_set_op_res_gpointer (sadata->simple, stream, g_object_unref);
-
 			soup_message_got_headers (sadata->original);
-
-			sadata->http->priv->content_type = g_strdup (soup_message_headers_get_content_type (msg->response_headers, NULL));
-
-			g_simple_async_result_complete (sadata->simple);
-
 			soup_message_finished (sadata->original);
-			free_send_async_data (sadata);
+
+			http->priv->content_type = g_strdup (soup_message_headers_get_content_type (msg->response_headers, NULL));
+
+			g_task_return_pointer (task, stream, g_object_unref);
+			g_object_unref (task);
 			return;
 		}
 	}
@@ -168,28 +156,27 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	 * we're donwloading the resource twice, but we will change it
 	 * once the cache is integrated in the streams stack.
 	 */
-	soup_session_send_request_async (session, sadata->original, sadata->cancellable,
-					 http_input_stream_ready_cb, sadata);
+	soup_session_send_request_async (session, sadata->original,
+					 g_task_get_cancellable (task),
+					 http_input_stream_ready_cb, task);
 }
 
 static gboolean
 idle_return_from_cache_cb (gpointer data)
 {
-	SendAsyncData *sadata = data;
-
-	g_simple_async_result_set_op_res_gpointer (sadata->simple,
-						   g_object_ref (sadata->stream), g_object_unref);
+	GTask *task = data;
+	SoupRequestHTTP *http = g_task_get_source_object (task);
+	SendAsyncData *sadata = g_task_get_task_data (task);
 
 	/* Issue signals  */
-	soup_message_got_headers (sadata->http->priv->msg);
+	soup_message_got_headers (http->priv->msg);
+	soup_message_finished (http->priv->msg);
 
-	sadata->http->priv->content_type = g_strdup (soup_message_headers_get_content_type (sadata->http->priv->msg->response_headers, NULL));
+	http->priv->content_type = g_strdup (soup_message_headers_get_content_type (http->priv->msg->response_headers, NULL));
 
-	g_simple_async_result_complete (sadata->simple);
+	g_task_return_pointer (task, g_object_ref (sadata->stream), g_object_unref);
+	g_object_unref (task);
 
-	soup_message_finished (sadata->http->priv->msg);
-
-	free_send_async_data (sadata);
 	return FALSE;
 }
 
@@ -200,16 +187,15 @@ soup_request_http_send_async (SoupRequest          *request,
 			      gpointer              user_data)
 {
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
+	GTask *task;
 	SendAsyncData *sadata;
 	GInputStream *stream;
 	SoupSession *session;
 	SoupCache *cache;
 
+	task = g_task_new (request, cancellable, callback, user_data);
 	sadata = g_slice_new0 (SendAsyncData);
-	sadata->http = g_object_ref (http);
-	sadata->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
-	sadata->simple = g_simple_async_result_new (G_OBJECT (request), callback, user_data,
-						    soup_request_http_send_async);
+	g_task_set_task_data (task, sadata, (GDestroyNotify)free_send_async_data);
 
 	session = soup_request_get_session (request);
 	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
@@ -224,14 +210,14 @@ soup_request_http_send_async (SoupRequest          *request,
 			/* Cached resource file could have been deleted outside */
 			if (stream) {
 				/* Do return the stream asynchronously as in
-				 * the other cases. It's not enough to use
-				 * g_simple_async_result_complete_in_idle as
+				 * the other cases. It's not enough to let
+				 * GTask do the asynchrony for us, because
 				 * the signals must be also emitted
 				 * asynchronously
 				 */
 				sadata->stream = stream;
 				soup_add_completion (soup_session_get_async_context (session),
-						     idle_return_from_cache_cb, sadata);
+						     idle_return_from_cache_cb, task);
 				return;
 			}
 		} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
@@ -243,14 +229,14 @@ soup_request_http_send_async (SoupRequest          *request,
 				sadata->original = g_object_ref (http->priv->msg);
 				soup_session_queue_message (session, conditional_msg,
 							    conditional_get_ready_cb,
-							    sadata);
+							    task);
 				return;
 			}
 		}
 	}
 
 	soup_session_send_request_async (session, http->priv->msg, cancellable,
-					 http_input_stream_ready_cb, sadata);
+					 http_input_stream_ready_cb, task);
 }
 
 static GInputStream *
@@ -258,14 +244,9 @@ soup_request_http_send_finish (SoupRequest   *request,
 			       GAsyncResult  *result,
 			       GError       **error)
 {
-	GSimpleAsyncResult *simple;
+	g_return_val_if_fail (g_task_is_valid (result, request), NULL);
 
-	g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (request), soup_request_http_send_async), NULL);
-
-	simple = G_SIMPLE_ASYNC_RESULT (result);
-	if (g_simple_async_result_propagate_error (simple, error))
-		return NULL;
-	return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static goffset

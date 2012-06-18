@@ -483,9 +483,10 @@ soup_multipart_input_stream_next_part (SoupMultipartInputStream  *multipart,
 }
 
 static void
-soup_multipart_input_stream_next_part_thread (GSimpleAsyncResult *simple,
-					      GObject            *object,
-					      GCancellable       *cancellable)
+soup_multipart_input_stream_next_part_thread (GTask        *task,
+					      gpointer      object,
+					      gpointer      task_data,
+					      GCancellable *cancellable)
 {
 	SoupMultipartInputStream *multipart = SOUP_MULTIPART_INPUT_STREAM (object);
 	GError *error = NULL;
@@ -495,11 +496,10 @@ soup_multipart_input_stream_next_part_thread (GSimpleAsyncResult *simple,
 
 	g_input_stream_clear_pending (G_INPUT_STREAM (multipart));
 
-	if (g_simple_async_result_propagate_error (simple, &error))
-		return;
-
-	if (new_stream)
-		g_simple_async_result_set_op_res_gpointer (simple, new_stream, g_object_unref);
+	if (error)
+		g_task_return_error (task, error);
+	else
+		g_task_return_pointer (task, new_stream, g_object_unref);
 }
 
 /**
@@ -520,31 +520,28 @@ soup_multipart_input_stream_next_part_thread (GSimpleAsyncResult *simple,
  */
 void
 soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart,
-					     int                      io_priority,
+					     int                       io_priority,
 					     GCancellable	      *cancellable,
 					     GAsyncReadyCallback       callback,
 					     gpointer		       data)
 {
 	GInputStream *stream = G_INPUT_STREAM (multipart);
-	GSimpleAsyncResult *simple;
+	GTask *task;
 	GError *error = NULL;
 
 	g_return_if_fail (SOUP_IS_MULTIPART_INPUT_STREAM (multipart));
 
-	simple = g_simple_async_result_new (G_OBJECT (multipart),
-					    callback, data,
-					    soup_multipart_input_stream_next_part_async);
+	task = g_task_new (multipart, cancellable, callback, data);
+	g_task_set_priority (task, io_priority);
 
 	if (!g_input_stream_set_pending (stream, &error)) {
-		g_simple_async_result_take_error (simple, error);
-		g_simple_async_result_complete_in_idle (simple);
-		g_object_unref (simple);
+		g_task_return_error (task, error);
+		g_object_unref (task);
 		return;
 	}
 
-	g_simple_async_result_run_in_thread (simple, soup_multipart_input_stream_next_part_thread,
-					     io_priority, cancellable);
-	g_object_unref (simple);
+	g_task_run_in_thread (task, soup_multipart_input_stream_next_part_thread);
+	g_object_unref (task);
 }
 
 /**
@@ -565,22 +562,9 @@ soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipar
 					      GAsyncResult		*result,
 					      GError		       **error)
 {
-	GSimpleAsyncResult *simple;
-	GInputStream *new_stream;
+	g_return_val_if_fail (g_task_is_valid (result, multipart), FALSE);
 
-	g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (multipart),
-							      soup_multipart_input_stream_next_part_async), FALSE);
-
-	simple = G_SIMPLE_ASYNC_RESULT (result);
-
-	if (g_simple_async_result_propagate_error (simple, error))
-		return NULL;
-
-	new_stream = g_simple_async_result_get_op_res_gpointer (simple);
-	if (new_stream)
-		return g_object_ref (new_stream);
-
-	return NULL;
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 /**

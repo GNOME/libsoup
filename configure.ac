@@ -83,12 +83,12 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-GLIB_REQUIRED=2.33.1
+GLIB_REQUIRED=2.35.0
 AM_PATH_GLIB_2_0($GLIB_REQUIRED,,,gobject gio)
 if test "$GLIB_LIBS" = ""; then
    AC_MSG_ERROR(GLIB $GLIB_REQUIRED or later is required to build libsoup)
 fi
-GLIB_CFLAGS="$GLIB_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_34"
+GLIB_CFLAGS="$GLIB_CFLAGS -DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_36"
 
 GLIB_MAKEFILE='$(top_srcdir)/Makefile.glib'
 AC_SUBST(GLIB_MAKEFILE)

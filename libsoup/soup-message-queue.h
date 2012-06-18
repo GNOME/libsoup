@@ -40,7 +40,7 @@ struct _SoupMessageQueueItem {
 	SoupAddress *proxy_addr;
 	SoupURI *proxy_uri;
 	SoupConnection *conn;
-	GSimpleAsyncResult *result;
+	GTask *task;
 	GSource *io_source;
 
 	guint paused            : 1;

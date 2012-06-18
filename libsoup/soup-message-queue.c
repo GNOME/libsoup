@@ -185,8 +185,8 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 		g_object_unref (item->proxy_addr);
 	if (item->proxy_uri)
 		soup_uri_free (item->proxy_uri);
-	if (item->result)
-		g_object_unref (item->result);
+	if (item->task)
+		g_object_unref (item->task);
 	if (item->io_source) {
 		g_source_destroy (item->io_source);
 		g_source_unref (item->io_source);

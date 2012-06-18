@@ -1111,15 +1111,19 @@ soup_address_address_enumerator_next (GSocketAddressEnumerator  *enumerator,
 static void
 got_addresses (SoupAddress *addr, guint status, gpointer user_data)
 {
-	GSimpleAsyncResult *simple = user_data;
+	GTask *task = user_data;
 	GError *error;
 
 	error = g_object_get_data (G_OBJECT (addr), "async-resolved-error");
 	if (error)
-		g_simple_async_result_set_from_error (simple, error);
+		g_task_return_error (task, error);
+	else {
+		GSocketAddress *addr;
 
-	g_simple_async_result_complete (simple);
-	g_object_unref (simple);
+		addr = next_address (g_task_get_source_object (task));
+		g_task_return_pointer (task, addr, g_object_unref);
+	}
+	g_object_unref (task);
 }
 
 static void
@@ -1131,18 +1135,15 @@ soup_address_address_enumerator_next_async (GSocketAddressEnumerator  *enumerato
 	SoupAddressAddressEnumerator *addr_enum =
 		SOUP_ADDRESS_ADDRESS_ENUMERATOR (enumerator);
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr_enum->addr);
-	GSimpleAsyncResult *simple;
+	GTask *task;
 
-	simple = g_simple_async_result_new (G_OBJECT (enumerator),
-					    callback, user_data,
-					    soup_address_address_enumerator_next_async);
-
+	task = g_task_new (enumerator, cancellable, callback, user_data);
 	if (!priv->sockaddr) {
 		soup_address_resolve_async (addr_enum->addr, NULL, cancellable,
-					    got_addresses, simple);
+					    got_addresses, task);
 	} else {
-		g_simple_async_result_complete_in_idle (simple);
-		g_object_unref (simple);
+		g_task_return_pointer (task, next_address (addr_enum), g_object_unref);
+		g_object_unref (task);
 	}
 }
 
@@ -1151,14 +1152,7 @@ soup_address_address_enumerator_next_finish (GSocketAddressEnumerator  *enumerat
 					     GAsyncResult              *result,
 					     GError                   **error)
 {
-	SoupAddressAddressEnumerator *addr_enum =
-		SOUP_ADDRESS_ADDRESS_ENUMERATOR (enumerator);
-	GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
-
-	if (g_simple_async_result_propagate_error (simple, error))
-		return NULL;
-	else 
-		return next_address (addr_enum);
+	return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static void
