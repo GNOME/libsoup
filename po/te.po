@@ -1,5 +1,5 @@
 # Telugu translation for libsoup.
-# Copyright (C) 2012 libsoup's Swecha Telugu localisation Team <localization@swecha.net>
+# Copyright (C) 2012 libsoup's to Swecha Telugu localisation Team <localization@swecha.net>
 # This file is distributed under the same license as the libsoup package.
 # Sasi Bhushan  Boddepalli <sasi@swecha.net>, 2012.
 #
