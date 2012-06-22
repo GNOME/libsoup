@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-05-08 16:55+0000\n"
-"PO-Revision-Date: 2012-06-14 03:47+0200\n"
+"POT-Creation-Date: 2012-06-14 18:14+0000\n"
+"PO-Revision-Date: 2012-06-22 13:16+0200\n"
 "Last-Translator: Tom Tryfonidis <tomtryf@gmail.com>\n"
 "Language-Team: Greek <team@lists.gnome.gr>\n"
 "MIME-Version: 1.0\n"
@@ -23,17 +23,17 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:190
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Το buffer εξόδου είναι πολύ μικρό"
 
 #: ../libsoup/soup-message-io.c:836
-#: ../libsoup/soup-message-io.c:862
+#: ../libsoup/soup-message-io.c:863
 msgid "Operation was cancelled"
 msgstr "Η λειτουργία ακυρώθηκε"
 
-#: ../libsoup/soup-message-io.c:873
+#: ../libsoup/soup-message-io.c:874
 msgid "Operation would block"
 msgstr "Η λειτουργία θα μπλοκαριστεί"
 
@@ -56,4 +56,17 @@ msgstr "Αδυναμία ανάλυσης URI '%s'"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Μη υποστηριζόμενο URI σχήμα '%s'"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "Το όνομα συστήματος είναι μια διεύθυνση IP"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "Μη έγκυρο όνομα συστήματος"
+
+#: ../libsoup/soup-tld.c:181
+#: ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "Δεν υπάρχουν αρκετοί τομείς"
 
