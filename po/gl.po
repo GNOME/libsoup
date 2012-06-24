@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-05-09 13:22+0200\n"
-"PO-Revision-Date: 2012-05-09 13:22+0200\n"
+"POT-Creation-Date: 2012-06-24 23:26+0200\n"
+"PO-Revision-Date: 2012-06-24 23:26+0200\n"
 "Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
 "Language-Team: Galician <gnome-l10n-gl@gnome.org>\n"
 "Language: gl\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"X-Generator: Gtranslator 2.91.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
@@ -24,16 +25,16 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "A conexión rematou de forma non esperada"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:190
 #, c-format
 msgid "Output buffer is too small"
 msgstr "O búfer de saída é demasiado pequeno"
 
-#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:862
+#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:863
 msgid "Operation was cancelled"
 msgstr "A operación foi cancelada"
 
-#: ../libsoup/soup-message-io.c:873
+#: ../libsoup/soup-message-io.c:874
 msgid "Operation would block"
 msgstr "A operación bloquearase"
 
@@ -56,3 +57,15 @@ msgstr "Non é posíbel analizar o URI «%s»"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Esquema de URI «%s» non admitido"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "O nome do computador é un enderezo IP"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "O nome do computador non é válido"
+
+#: ../libsoup/soup-tld.c:181 ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "Non hai dominios dabondo"
