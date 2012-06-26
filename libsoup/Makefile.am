@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_DIST =
+
 include $(GLIB_MAKEFILE)
 
 if OS_WIN32
@@ -81,7 +83,6 @@ libsoup_2_4_la_LIBADD =			\
 	$(LIBWS2_32)
 
 libsoup_2_4_la_SOURCES =		\
-	tld_data.inc			\
 	soup-address.c			\
 	soup-auth.c			\
 	soup-auth-basic.h		\
@@ -171,17 +172,12 @@ libsoup_2_4_la_SOURCES =		\
 	soup-xmlrpc.c
 
 # TLD rules
-noinst_PROGRAMS = 	\
-	tld-parser
-
-tld_parser_SOURCES = tld-parser.c
-tld_parser_CFLAGS = $(GLIB_CFLAGS)
-tld_parser_LDADD = $(GLIB_LIBS)
+EXTRA_DIST += tld-parser.py
 
 TLD_DATA_FILE=$(top_srcdir)/data/effective_tld_names.dat
 
-tld_data.inc: tld-parser $(TLD_DATA_FILE)
-	$(builddir)/tld-parser $(TLD_DATA_FILE) tld_data.inc
+tld_data.inc: tld-parser.py $(TLD_DATA_FILE)
+	$(srcdir)/tld-parser.py $(TLD_DATA_FILE) tld_data.inc
 
 if BUILD_LIBSOUP_GNOME
 
