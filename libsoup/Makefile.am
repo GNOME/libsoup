@@ -181,7 +181,7 @@ tld_parser_LDADD = $(GLIB_LIBS)
 TLD_DATA_FILE=$(top_srcdir)/data/effective_tld_names.dat
 
 tld_data.inc: tld-parser $(TLD_DATA_FILE)
-	$(builddir)/tld-parser $(TLD_DATA_FILE) $(srcdir)/tld_data.inc
+	$(builddir)/tld-parser $(TLD_DATA_FILE) tld_data.inc
 
 if BUILD_LIBSOUP_GNOME
 
