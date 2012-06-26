@@ -1,3 +1,22 @@
+Changes in libsoup from 2.39.2 to 2.39.3:
+
+	* Added new functions for comparing domains against the
+          "public suffix" list (http://publicsuffix.org/), and in
+          particular fixed SoupCookieJar to not allow setting cookies
+          in "public" domains (eg, ".co.uk"). [#673802, Sergio]
+
+	* Added two new SoupCookieJar APIs
+          (soup_cookie_jar_get_cookies() and
+          soup_cookie_jar_set_cookie_with_first_party()) as part of
+	  fixing the handling of HttpOnly cookies in WebKitGTK.
+	  [#677922, Christophe Dumez]
+
+	* Fixed g-i annotation of
+          soup_message_headers_get_content_type(). [#677002, Dan]
+
+	* Updated translations:
+	  Galician, Greek, Slovenian, Spanish, Telugu
+
 Changes in libsoup from 2.39.1 to 2.39.2:
 
 	* Fixed several bugs that resulted from the I/O code rewrite
