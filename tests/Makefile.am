@@ -22,7 +22,6 @@ noinst_PROGRAMS =	\
 	dns		\
 	forms-test	\
 	get		\
-	getbug		\
 	header-parsing  \
 	misc-test	\
 	ntlm-test	\
@@ -56,7 +55,6 @@ get_SOURCES = get.c
 if BUILD_LIBSOUP_GNOME
 get_LDADD = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
 endif
-getbug_SOURCES = getbug.c
 header_parsing_SOURCES = header-parsing.c $(TEST_SRCS)
 misc_test_SOURCES = misc-test.c $(TEST_SRCS)
 ntlm_test_SOURCES = ntlm-test.c $(TEST_SRCS)
