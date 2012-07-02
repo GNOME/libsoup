@@ -96,11 +96,11 @@ typedef struct {
 	guint max_conns, max_conns_per_host;
 	guint io_timeout, idle_timeout;
 
-	/* Must hold the host_lock before potentially creating a
+	/* Must hold the conn_lock before potentially creating a
 	 * new SoupSessionHost, or adding/removing a connection.
 	 * Must not emit signals or destroy objects while holding it.
 	 */
-	GMutex host_lock;
+	GMutex conn_lock;
 
 	GMainContext *async_context;
 	gboolean use_thread_context;
@@ -175,7 +175,7 @@ soup_session_init (SoupSession *session)
 
 	priv->queue = soup_message_queue_new (session);
 
-	g_mutex_init (&priv->host_lock);
+	g_mutex_init (&priv->conn_lock);
 	priv->http_hosts = g_hash_table_new_full (soup_host_uri_hash,
 						  soup_host_uri_equal,
 						  NULL, (GDestroyNotify)free_host);
@@ -233,7 +233,7 @@ soup_session_finalize (GObject *object)
 
 	soup_message_queue_destroy (priv->queue);
 
-	g_mutex_clear (&priv->host_lock);
+	g_mutex_clear (&priv->conn_lock);
 	g_hash_table_destroy (priv->http_hosts);
 	g_hash_table_destroy (priv->https_hosts);
 	g_hash_table_destroy (priv->conns);
@@ -781,7 +781,7 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	return host;
 }
 
-/* Requires host_lock to be locked */
+/* Requires conn_lock to be locked */
 static SoupSessionHost *
 get_host_for_uri (SoupSession *session, SoupURI *uri)
 {
@@ -805,7 +805,7 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 	return host;
 }
 
-/* Note: get_host_for_message doesn't lock the host_lock. The caller
+/* Note: get_host_for_message doesn't lock the conn_lock. The caller
  * must do it itself if there's a chance the host doesn't already
  * exist.
  */
@@ -1020,10 +1020,10 @@ soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 
 	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
 	host->num_messages++;
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT)) {
 		soup_message_add_header_handler (
@@ -1086,7 +1086,7 @@ soup_session_cleanup_connections (SoupSession *session,
 	gpointer conn, host;
 	SoupConnectionState state;
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &host)) {
 		state = soup_connection_get_state (conn);
@@ -1094,7 +1094,7 @@ soup_session_cleanup_connections (SoupSession *session,
 		    (prune_idle && state == SOUP_CONNECTION_IDLE))
 			conns = g_slist_prepend (conns, g_object_ref (conn));
 	}
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	if (!conns)
 		return FALSE;
@@ -1115,7 +1115,7 @@ free_unused_host (gpointer user_data)
 	SoupSessionHost *host = (SoupSessionHost *) user_data;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (host->session);
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	/* This will free the host in addition to removing it from the
 	 * hash table
 	 */
@@ -1123,7 +1123,7 @@ free_unused_host (gpointer user_data)
 		g_hash_table_remove (priv->https_hosts, host->uri);
 	else
 		g_hash_table_remove (priv->http_hosts, host->uri);
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	return FALSE;
 }
@@ -1135,7 +1135,7 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 
 	host = g_hash_table_lookup (priv->conns, conn);
 	if (host) {
@@ -1163,7 +1163,7 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
 	priv->num_conns--;
 
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 	g_object_unref (conn);
 }
 
@@ -1209,13 +1209,13 @@ soup_session_get_connection (SoupSession *session,
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
 		!SOUP_METHOD_IS_IDEMPOTENT (item->msg->method);
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 
 	host = get_host_for_message (session, item->msg);
 	for (conns = host->connections; conns; conns = conns->next) {
 		if (!need_new_connection && soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
-			g_mutex_unlock (&priv->host_lock);
+			g_mutex_unlock (&priv->conn_lock);
 			soup_message_queue_item_set_connection (item, conns->data);
 			soup_message_set_https_status (item->msg, item->conn);
 			return TRUE;
@@ -1227,20 +1227,20 @@ soup_session_get_connection (SoupSession *session,
 	 * is somewhat arbitrary...
 	 */
 	if (num_pending > host->num_messages / 2) {
-		g_mutex_unlock (&priv->host_lock);
+		g_mutex_unlock (&priv->conn_lock);
 		return FALSE;
 	}
 
 	if (host->num_conns >= priv->max_conns_per_host) {
 		if (need_new_connection)
 			*try_pruning = TRUE;
-		g_mutex_unlock (&priv->host_lock);
+		g_mutex_unlock (&priv->conn_lock);
 		return FALSE;
 	}
 
 	if (priv->num_conns >= priv->max_conns) {
 		*try_pruning = TRUE;
-		g_mutex_unlock (&priv->host_lock);
+		g_mutex_unlock (&priv->conn_lock);
 		return FALSE;
 	}
 
@@ -1275,7 +1275,7 @@ soup_session_get_connection (SoupSession *session,
 		host->keep_alive_src = NULL;
 	}
 
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 	soup_message_queue_item_set_connection (item, conn);
 	return TRUE;
 }
@@ -1308,10 +1308,10 @@ soup_session_unqueue_item (SoupSession          *session,
 
 	soup_message_queue_remove (priv->queue, item);
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
 	host->num_messages--;
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	/* g_signal_handlers_disconnect_by_func doesn't work if you
 	 * have a metamarshal, meaning it doesn't work with
@@ -1628,12 +1628,12 @@ soup_session_abort (SoupSession *session)
 	SOUP_SESSION_GET_CLASS (session)->flush_queue (session);
 
 	/* Close all connections */
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	conns = NULL;
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &host))
 		conns = g_slist_prepend (conns, g_object_ref (conn));
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	for (c = conns; c; c = c->next) {
 		soup_connection_disconnect (c->data);
@@ -1654,10 +1654,10 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 
-	g_mutex_lock (&priv->host_lock);
+	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_uri (session, uri);
 	addr = g_object_ref (host->addr);
-	g_mutex_unlock (&priv->host_lock);
+	g_mutex_unlock (&priv->conn_lock);
 
 	soup_address_resolve_async (addr,
 				    soup_session_get_async_context (session),
