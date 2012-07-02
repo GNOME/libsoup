@@ -70,7 +70,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 
-	priv->auth_types = g_ptr_array_new ();
+	priv->auth_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 	priv->auth_hosts = g_hash_table_new_full (soup_uri_host_hash,
 						  soup_uri_host_equal,
 						  NULL,
@@ -81,10 +81,7 @@ static void
 finalize (GObject *object)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (object);
-	int i;
 
-	for (i = 0; i < priv->auth_types->len; i++)
-		g_type_class_unref (priv->auth_types->pdata[i]);
 	g_ptr_array_free (priv->auth_types, TRUE);
 
 	g_hash_table_destroy (priv->auth_hosts);
@@ -172,7 +169,6 @@ remove_feature (SoupSessionFeature *feature, GType type)
 	for (i = 0; i < priv->auth_types->len; i++) {
 		if (priv->auth_types->pdata[i] == (gpointer)auth_class) {
 			g_ptr_array_remove_index (priv->auth_types, i);
-			g_type_class_unref (auth_class);
 			return TRUE;
 		}
 	}

@@ -48,8 +48,8 @@ soup_multipart_new_internal (char *mime_type, char *boundary)
 	multipart = g_slice_new (SoupMultipart);
 	multipart->mime_type = mime_type;
 	multipart->boundary = boundary;
-	multipart->headers = g_ptr_array_new ();
-	multipart->bodies = g_ptr_array_new ();
+	multipart->headers = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_message_headers_free);
+	multipart->bodies = g_ptr_array_new_with_free_func ((GDestroyNotify)soup_buffer_free);
 
 	return multipart;
 }
@@ -464,15 +464,9 @@ soup_multipart_to_message (SoupMultipart *multipart,
 void
 soup_multipart_free (SoupMultipart *multipart)
 {
-	int i;
-
 	g_free (multipart->mime_type);
 	g_free (multipart->boundary);
-	for (i = 0; i < multipart->headers->len; i++)
-		soup_message_headers_free (multipart->headers->pdata[i]);
 	g_ptr_array_free (multipart->headers, TRUE);
-	for (i = 0; i < multipart->bodies->len; i++)
-		soup_buffer_free (multipart->bodies->pdata[i]);
 	g_ptr_array_free (multipart->bodies, TRUE);
 
 	g_slice_free (SoupMultipart, multipart);

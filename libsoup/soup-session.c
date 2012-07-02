@@ -1017,7 +1017,7 @@ accept_languages_from_system (void)
 {
 	const char * const * lang_names;
 	GPtrArray *langs = NULL;
-	char *lang, **langs_array, *langs_str;
+	char *lang, *langs_str;
 	int delta;
 	int i;
 
@@ -1025,7 +1025,7 @@ accept_languages_from_system (void)
 	g_return_val_if_fail (lang_names != NULL, NULL);
 
 	/* Build the array of languages */
-	langs = g_ptr_array_new ();
+	langs = g_ptr_array_new_with_free_func (g_free);
 	for (i = 0; lang_names[i] != NULL; i++) {
 		lang = posix_lang_to_rfc2616 (lang_names[i]);
 		if (lang)
@@ -1051,11 +1051,8 @@ accept_languages_from_system (void)
 		g_ptr_array_add (langs, g_strdup ("en"));
 
 	g_ptr_array_add (langs, NULL);
-	langs_array = (char **)langs->pdata;
-	langs_str = g_strjoinv (", ", langs_array);
-
-	g_strfreev (langs_array);
-	g_ptr_array_free (langs, FALSE);
+	langs_str = g_strjoinv (", ", (char **)langs->pdata);
+	g_ptr_array_free (langs, TRUE);
 
 	return langs_str;
 }
