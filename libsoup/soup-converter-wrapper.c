@@ -52,8 +52,7 @@ soup_converter_wrapper_finalize (GObject *object)
 {
 	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (object)->priv;
 
-	if (priv->base_converter)
-		g_object_unref (priv->base_converter);
+	g_clear_object (&priv->base_converter);
 
 	G_OBJECT_CLASS (soup_converter_wrapper_parent_class)->finalize (object);
 }

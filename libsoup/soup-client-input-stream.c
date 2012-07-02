@@ -162,8 +162,7 @@ typedef struct {
 static void
 close_async_data_free (CloseAsyncData *cad)
 {
-	if (cad->cancellable)
-		g_object_unref (cad->cancellable);
+	g_clear_object (&cad->cancellable);
 	g_object_unref (cad->result);
 	g_slice_free (CloseAsyncData, cad);
 }

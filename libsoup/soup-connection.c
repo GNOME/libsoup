@@ -103,17 +103,11 @@ finalize (GObject *object)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
-	if (priv->remote_uri)
-		soup_uri_free (priv->remote_uri);
-	if (priv->proxy_uri)
-		soup_uri_free (priv->proxy_uri);
-	if (priv->tlsdb)
-		g_object_unref (priv->tlsdb);
-	if (priv->proxy_resolver)
-		g_object_unref (priv->proxy_resolver);
-
-	if (priv->async_context)
-		g_main_context_unref (priv->async_context);
+	g_clear_pointer (&priv->remote_uri, soup_uri_free);
+	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
+	g_clear_object (&priv->tlsdb);
+	g_clear_object (&priv->proxy_resolver);
+	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }

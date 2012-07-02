@@ -64,8 +64,7 @@ finalize (GObject *object)
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (object);
 
-	if (priv->proxy_uri)
-		soup_uri_free (priv->proxy_uri);
+	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 
 	G_OBJECT_CLASS (soup_proxy_resolver_static_parent_class)->finalize (object);
 }

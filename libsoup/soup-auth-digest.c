@@ -60,14 +60,10 @@ finalize (GObject *object)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (object);
 
-	if (priv->user)
-		g_free (priv->user);
-	if (priv->nonce)
-		g_free (priv->nonce);
-	if (priv->domain)
-		g_free (priv->domain);
-	if (priv->cnonce)
-		g_free (priv->cnonce);
+	g_free (priv->user);
+	g_free (priv->nonce);
+	g_free (priv->domain);
+	g_free (priv->cnonce);
 
 	memset (priv->hex_urp, 0, sizeof (priv->hex_urp));
 	memset (priv->hex_a1, 0, sizeof (priv->hex_a1));

@@ -165,24 +165,18 @@ finalize (GObject *object)
 	if (priv->chunk_allocator_dnotify)
 		priv->chunk_allocator_dnotify (priv->chunk_allocator_data);
 
-	if (priv->uri)
-		soup_uri_free (priv->uri);
-	if (priv->first_party)
-		soup_uri_free (priv->first_party);
-	if (priv->addr)
-		g_object_unref (priv->addr);
+	g_clear_pointer (&priv->uri, soup_uri_free);
+	g_clear_pointer (&priv->first_party, soup_uri_free);
+	g_clear_object (&priv->addr);
 
-	if (priv->auth)
-		g_object_unref (priv->auth);
-	if (priv->proxy_auth)
-		g_object_unref (priv->proxy_auth);
+	g_clear_object (&priv->auth);
+	g_clear_object (&priv->proxy_auth);
 
 	g_slist_free (priv->disabled_features);
 
 	g_slist_free_full (priv->decoders, g_object_unref);
 
-	if (priv->tls_certificate)
-		g_object_unref (priv->tls_certificate);
+	g_clear_object (&priv->tls_certificate);
 
 	soup_message_body_free (msg->request_body);
 	soup_message_headers_free (msg->request_headers);

@@ -103,8 +103,7 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 	if (--hdrs->ref_count == 0) {
 		soup_message_headers_clear (hdrs);
 		g_array_free (hdrs->array, TRUE);
-		if (hdrs->concat)
-			g_hash_table_destroy (hdrs->concat);
+		g_clear_pointer (&hdrs->concat, g_hash_table_destroy);
 		g_slice_free (SoupMessageHeaders, hdrs);
 	}
 }

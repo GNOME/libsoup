@@ -274,25 +274,10 @@ soup_cache_entry_free (SoupCacheEntry *entry, GFile *file)
 	}
 
 	g_free (entry->uri);
-	entry->uri = NULL;
-
-	if (entry->current_writing_buffer) {
-		soup_buffer_free (entry->current_writing_buffer);
-		entry->current_writing_buffer = NULL;
-	}
-
-	if (entry->headers) {
-		soup_message_headers_free (entry->headers);
-		entry->headers = NULL;
-	}
-	if (entry->error) {
-		g_error_free (entry->error);
-		entry->error = NULL;
-	}
-	if (entry->cancellable) {
-		g_object_unref (entry->cancellable);
-		entry->cancellable = NULL;
-	}
+	g_clear_pointer (&entry->current_writing_buffer, soup_buffer_free);
+	g_clear_pointer (&entry->headers, soup_message_headers_free);
+	g_clear_error (&entry->error);
+	g_clear_object (&entry->cancellable);
 
 	g_slice_free (SoupCacheEntry, entry);
 }
@@ -1162,7 +1147,6 @@ soup_cache_finalize (GObject *object)
 	g_free (priv->cache_dir);
 
 	g_list_free (priv->lru_start);
-	priv->lru_start = NULL;
 
 	G_OBJECT_CLASS (soup_cache_parent_class)->finalize (object);
 }

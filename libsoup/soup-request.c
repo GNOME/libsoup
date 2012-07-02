@@ -78,10 +78,8 @@ soup_request_finalize (GObject *object)
 {
 	SoupRequest *request = SOUP_REQUEST (object);
 
-	if (request->priv->uri)
-		soup_uri_free (request->priv->uri);
-	if (request->priv->session)
-		g_object_unref (request->priv->session);
+	g_clear_pointer (&request->priv->uri, soup_uri_free);
+	g_clear_object (&request->priv->session);
 
 	G_OBJECT_CLASS (soup_request_parent_class)->finalize (object);
 }

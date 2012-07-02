@@ -86,8 +86,7 @@ finalize (GObject *object)
 
 	g_hash_table_destroy (priv->auth_hosts);
 
-	if (priv->proxy_auth)
-		g_object_unref (priv->proxy_auth);
+	g_clear_object (&priv->proxy_auth);
 
 	G_OBJECT_CLASS (soup_auth_manager_parent_class)->finalize (object);
 }
@@ -388,10 +387,8 @@ get_auth_host_for_message (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 static void
 soup_auth_host_free (SoupAuthHost *host)
 {
-	if (host->auth_realms)
-		soup_path_map_free (host->auth_realms);
-	if (host->auths)
-		g_hash_table_destroy (host->auths);
+	g_clear_pointer (&host->auth_realms, soup_path_map_free);
+	g_clear_pointer (&host->auths, g_hash_table_destroy);
 
 	soup_uri_free (host->uri);
 	g_slice_free (SoupAuthHost, host);

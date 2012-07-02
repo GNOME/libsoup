@@ -166,18 +166,15 @@ finalize (GObject *object)
 	SoupServer *server = SOUP_SERVER (object);
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (priv->iface)
-		g_object_unref (priv->iface);
+	g_clear_object (&priv->iface);
 
 	g_free (priv->ssl_cert_file);
 	g_free (priv->ssl_key_file);
-	if (priv->ssl_cert)
-		g_object_unref (priv->ssl_cert);
+	g_clear_object (&priv->ssl_cert);
 
 	g_free (priv->server_header);
 
-	if (priv->listen_sock)
-		g_object_unref (priv->listen_sock);
+	g_clear_object (&priv->listen_sock);
 
 	while (priv->clients) {
 		SoupClientContext *client = priv->clients->data;
@@ -203,16 +200,13 @@ finalize (GObject *object)
 		soup_client_context_unref (client);
 	}
 
-	if (priv->default_handler)
-		free_handler (priv->default_handler);
+	g_clear_pointer (&priv->default_handler, free_handler);
 	soup_path_map_free (priv->handlers);
 
 	g_slist_free_full (priv->auth_domains, g_object_unref);
 
-	if (priv->loop)
-		g_main_loop_unref (priv->loop);
-	if (priv->async_context)
-		g_main_context_unref (priv->async_context);
+	g_clear_pointer (&priv->loop, g_main_loop_unref);
+	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
 }

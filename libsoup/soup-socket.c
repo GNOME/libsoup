@@ -158,18 +158,15 @@ finalize (GObject *object)
 	g_clear_object (&priv->istream);
 	g_clear_object (&priv->ostream);
 
-	if (priv->local_addr)
-		g_object_unref (priv->local_addr);
-	if (priv->remote_addr)
-		g_object_unref (priv->remote_addr);
+	g_clear_object (&priv->local_addr);
+	g_clear_object (&priv->remote_addr);
 
 	if (priv->watch_src) {
 		if (priv->clean_dispose && !priv->is_server)
 			g_warning ("Disposing socket %p during async op", object);
 		g_source_destroy (priv->watch_src);
 	}
-	if (priv->async_context)
-		g_main_context_unref (priv->async_context);
+	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	g_mutex_clear (&priv->addrlock);
 	g_mutex_clear (&priv->iolock);

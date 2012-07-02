@@ -83,8 +83,7 @@ soup_proxy_resolver_default_finalize (GObject *object)
 {
 	SoupProxyResolverDefaultPrivate *priv = SOUP_PROXY_RESOLVER_DEFAULT_GET_PRIVATE (object);
 
-	if (priv->gproxy_resolver)
-		g_object_unref (priv->gproxy_resolver);
+	g_clear_object (&priv->gproxy_resolver);
 
 	G_OBJECT_CLASS (soup_proxy_resolver_default_parent_class)->finalize (object);
 }

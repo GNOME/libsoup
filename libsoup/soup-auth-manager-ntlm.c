@@ -121,8 +121,7 @@ free_ntlm_connection (SoupNTLMConnection *conn)
 	g_free (conn->response_header);
 	g_free (conn->nonce);
 	g_free (conn->domain);
-	if (conn->auth)
-		g_object_unref (conn->auth);
+	g_clear_object (&conn->auth);
 #ifdef USE_NTLM_AUTH
 	g_free (conn->challenge_header);
 	sso_ntlm_close (conn);

@@ -265,12 +265,10 @@ finalize (GObject *object)
 	g_free (priv->user_agent);
 	g_free (priv->accept_language);
 
-	if (priv->tlsdb)
-		g_object_unref (priv->tlsdb);
+	g_clear_object (&priv->tlsdb);
 	g_free (priv->ssl_ca_file);
 
-	if (priv->async_context)
-		g_main_context_unref (priv->async_context);
+	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	g_hash_table_destroy (priv->features_cache);
 

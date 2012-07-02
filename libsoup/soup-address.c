@@ -128,12 +128,9 @@ finalize (GObject *object)
 	SoupAddress *addr = SOUP_ADDRESS (object);
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 
-	if (priv->sockaddr)
-		g_free (priv->sockaddr);
-	if (priv->name)
-		g_free (priv->name);
-	if (priv->physical)
-		g_free (priv->physical);
+	g_free (priv->sockaddr);
+	g_free (priv->name);
+	g_free (priv->physical);
 
 	g_mutex_clear (&priv->lock);
 

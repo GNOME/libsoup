@@ -56,8 +56,7 @@ soup_request_file_finalize (GObject *object)
 {
 	SoupRequestFile *file = SOUP_REQUEST_FILE (object);
 
-	if (file->priv->gfile)
-		g_object_unref (file->priv->gfile);
+	g_clear_object (&file->priv->gfile);
 	g_free (file->priv->mime_type);
 
 	G_OBJECT_CLASS (soup_request_file_parent_class)->finalize (object);

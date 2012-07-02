@@ -47,18 +47,12 @@ soup_content_sniffer_stream_finalize (GObject *object)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (object);
 
-	if (sniffer->priv->sniffer)
-		g_object_unref (sniffer->priv->sniffer);
-	if (sniffer->priv->msg)
-		g_object_unref (sniffer->priv->msg);
-	if (sniffer->priv->buffer)
-		g_free (sniffer->priv->buffer);
-	if (sniffer->priv->error)
-		g_error_free (sniffer->priv->error);
-	if (sniffer->priv->sniffed_type)
-		g_free (sniffer->priv->sniffed_type);
-	if (sniffer->priv->sniffed_params)
-		g_hash_table_unref (sniffer->priv->sniffed_params);
+	g_clear_object (&sniffer->priv->sniffer);
+	g_clear_object (&sniffer->priv->msg);
+	g_free (sniffer->priv->buffer);
+	g_clear_error (&sniffer->priv->error);
+	g_free (sniffer->priv->sniffed_type);
+	g_clear_pointer (&sniffer->priv->sniffed_params, g_hash_table_unref);
 
 	G_OBJECT_CLASS (soup_content_sniffer_stream_parent_class)->finalize (object);
 }
