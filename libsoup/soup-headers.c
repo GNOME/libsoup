@@ -601,11 +601,7 @@ soup_header_parse_quality_list (const char *header, GSList **unacceptable)
 void
 soup_header_free_list (GSList *list)
 {
-	GSList *l;
-
-	for (l = list; l; l = l->next)
-		g_free (l->data);
-	g_slist_free (list);
+	g_slist_free_full (list, g_free);
 }
 
 /**

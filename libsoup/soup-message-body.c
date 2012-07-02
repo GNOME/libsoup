@@ -544,11 +544,8 @@ void
 soup_message_body_truncate (SoupMessageBody *body)
 {
 	SoupMessageBodyPrivate *priv = (SoupMessageBodyPrivate *)body;
-	GSList *iter;
 
-	for (iter = priv->chunks; iter; iter = iter->next)
-		soup_buffer_free (iter->data);
-	g_slist_free (priv->chunks);
+	g_slist_free_full (priv->chunks, (GDestroyNotify)soup_buffer_free);
 	priv->chunks = priv->last = NULL;
 	priv->base_offset = 0;
 

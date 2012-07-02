@@ -179,10 +179,7 @@ finalize (GObject *object)
 
 	g_slist_free (priv->disabled_features);
 
-	while (priv->decoders) {
-		g_object_unref (priv->decoders->data);
-		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
-	}
+	g_slist_free_full (priv->decoders, g_object_unref);
 
 	if (priv->tls_certificate)
 		g_object_unref (priv->tls_certificate);
@@ -1434,10 +1431,7 @@ soup_message_cleanup_response (SoupMessage *req)
 						   SOUP_ENCODING_CONTENT_LENGTH);
 	}
 
-	while (priv->decoders) {
-		g_object_unref (priv->decoders->data);
-		priv->decoders = g_slist_delete_link (priv->decoders, priv->decoders);
-	}
+	g_slist_free_full (priv->decoders, g_object_unref);
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
 	req->status_code = SOUP_STATUS_NONE;

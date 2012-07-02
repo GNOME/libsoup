@@ -167,10 +167,7 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 	/* msgpriv->decoders should be empty at this point anyway, but
 	 * clean it up if it's not.
 	 */
-	while (msgpriv->decoders) {
-		g_object_unref (msgpriv->decoders->data);
-		msgpriv->decoders = g_slist_delete_link (msgpriv->decoders, msgpriv->decoders);
-	}
+	g_slist_free_full (msgpriv->decoders, g_object_unref);
 
 	for (e = encodings; e; e = e->next) {
 		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);

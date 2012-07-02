@@ -165,7 +165,6 @@ finalize (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
-	GSList *iter;
 
 	if (priv->iface)
 		g_object_unref (priv->iface);
@@ -208,9 +207,7 @@ finalize (GObject *object)
 		free_handler (priv->default_handler);
 	soup_path_map_free (priv->handlers);
 
-	for (iter = priv->auth_domains; iter; iter = iter->next)
-		g_object_unref (iter->data);
-	g_slist_free (priv->auth_domains);
+	g_slist_free_full (priv->auth_domains, g_object_unref);
 
 	if (priv->loop)
 		g_main_loop_unref (priv->loop);

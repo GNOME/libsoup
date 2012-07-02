@@ -540,11 +540,7 @@ soup_auth_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 void
 soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 {
-	GSList *s;
-
-	for (s = space; s; s = s->next)
-		g_free (s->data);
-	g_slist_free (space);
+	g_slist_free_full (space, g_free);
 }
 
 /**

@@ -1542,12 +1542,8 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 static void
 free_host (SoupSessionHost *host)
 {
-	while (host->connections) {
-		SoupConnection *conn = host->connections->data;
-
-		host->connections = g_slist_remove (host->connections, conn);
-		soup_connection_disconnect (conn);
-	}
+	g_slist_free_full (host->connections,
+			   (GDestroyNotify) soup_connection_disconnect);
 
 	if (host->keep_alive_src) {
 		g_source_destroy (host->keep_alive_src);

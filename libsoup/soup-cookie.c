@@ -1001,11 +1001,7 @@ soup_cookies_to_request (GSList *cookies, SoupMessage *msg)
 void
 soup_cookies_free (GSList *cookies)
 {
-	GSList *c;
-
-	for (c = cookies; c; c = c->next)
-		soup_cookie_free (c->data);
-	g_slist_free (cookies);
+	g_slist_free_full (cookies, (GDestroyNotify)soup_cookie_free);
 }
 
 /**
