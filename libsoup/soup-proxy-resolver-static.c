@@ -37,29 +37,13 @@ enum {
 	LAST_PROP
 };
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
-static void get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
-				 SoupURI               *uri,
-				 GMainContext          *async_context,
-				 GCancellable          *cancellable,
-				 SoupProxyURIResolverCallback callback,
-				 gpointer               user_data);
-static guint get_proxy_uri_sync (SoupProxyURIResolver  *proxy_resolver,
-				 SoupURI               *uri,
-				 GCancellable          *cancellable,
-				 SoupURI              **proxy_uri);
-
 static void
 soup_proxy_resolver_static_init (SoupProxyResolverStatic *resolver_static)
 {
 }
 
 static void
-finalize (GObject *object)
+soup_proxy_resolver_static_finalize (GObject *object)
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (object);
@@ -70,28 +54,8 @@ finalize (GObject *object)
 }
 
 static void
-soup_proxy_resolver_static_class_init (SoupProxyResolverStaticClass *static_class)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS (static_class);
-
-	g_type_class_add_private (static_class, sizeof (SoupProxyResolverStaticPrivate));
-
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
-	object_class->finalize = finalize;
-
-	g_object_class_install_property (
-		object_class, PROP_PROXY_URI,
-		g_param_spec_boxed (SOUP_PROXY_RESOLVER_STATIC_PROXY_URI,
-				    "Proxy URI",
-				    "The HTTP Proxy to use",
-				    SOUP_TYPE_URI,
-				    G_PARAM_READWRITE));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_proxy_resolver_static_set_property (GObject *object, guint prop_id,
+					 const GValue *value, GParamSpec *pspec)
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (object);
@@ -112,8 +76,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_proxy_resolver_static_get_property (GObject *object, guint prop_id,
+					 GValue *value, GParamSpec *pspec)
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (object);
@@ -126,21 +90,6 @@ get_property (GObject *object, guint prop_id,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
-}
-
-static void
-soup_proxy_resolver_static_interface_init (SoupProxyURIResolverInterface *proxy_uri_resolver_interface)
-{
-	proxy_uri_resolver_interface->get_proxy_uri_async = get_proxy_uri_async;
-	proxy_uri_resolver_interface->get_proxy_uri_sync = get_proxy_uri_sync;
-}
-
-SoupProxyURIResolver *
-soup_proxy_resolver_static_new (SoupURI *proxy_uri)
-{
-	return g_object_new (SOUP_TYPE_PROXY_RESOLVER_STATIC,
-			     SOUP_PROXY_RESOLVER_STATIC_PROXY_URI, proxy_uri,
-			     NULL);
 }
 
 typedef struct {
@@ -166,12 +115,12 @@ idle_return_proxy_uri (gpointer data)
 }
 
 static void
-get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
-		     SoupURI               *uri,
-		     GMainContext          *async_context,
-		     GCancellable          *cancellable,
-		     SoupProxyURIResolverCallback callback,
-		     gpointer               user_data)
+soup_proxy_resolver_static_get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
+						SoupURI               *uri,
+						GMainContext          *async_context,
+						GCancellable          *cancellable,
+						SoupProxyURIResolverCallback callback,
+						gpointer               user_data)
 {
 	SoupStaticAsyncData *ssad;
 
@@ -183,14 +132,51 @@ get_proxy_uri_async (SoupProxyURIResolver  *proxy_resolver,
 }
 
 static guint
-get_proxy_uri_sync (SoupProxyURIResolver  *proxy_resolver,
-		    SoupURI               *uri,
-		    GCancellable          *cancellable,
-		    SoupURI              **proxy_uri)
+soup_proxy_resolver_static_get_proxy_uri_sync (SoupProxyURIResolver  *proxy_resolver,
+					       SoupURI               *uri,
+					       GCancellable          *cancellable,
+					       SoupURI              **proxy_uri)
 {
 	SoupProxyResolverStaticPrivate *priv =
 		SOUP_PROXY_RESOLVER_STATIC_GET_PRIVATE (proxy_resolver);
 
 	*proxy_uri = soup_uri_copy (priv->proxy_uri);
 	return SOUP_STATUS_OK;
+}
+
+static void
+soup_proxy_resolver_static_class_init (SoupProxyResolverStaticClass *static_class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (static_class);
+
+	g_type_class_add_private (static_class, sizeof (SoupProxyResolverStaticPrivate));
+
+	object_class->set_property = soup_proxy_resolver_static_set_property;
+	object_class->get_property = soup_proxy_resolver_static_get_property;
+	object_class->finalize = soup_proxy_resolver_static_finalize;
+
+	g_object_class_install_property (
+		object_class, PROP_PROXY_URI,
+		g_param_spec_boxed (SOUP_PROXY_RESOLVER_STATIC_PROXY_URI,
+				    "Proxy URI",
+				    "The HTTP Proxy to use",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+}
+
+static void
+soup_proxy_resolver_static_interface_init (SoupProxyURIResolverInterface *proxy_uri_resolver_interface)
+{
+	proxy_uri_resolver_interface->get_proxy_uri_async =
+		soup_proxy_resolver_static_get_proxy_uri_async;
+	proxy_uri_resolver_interface->get_proxy_uri_sync =
+		soup_proxy_resolver_static_get_proxy_uri_sync;
+}
+
+SoupProxyURIResolver *
+soup_proxy_resolver_static_new (SoupURI *proxy_uri)
+{
+	return g_object_new (SOUP_TYPE_PROXY_RESOLVER_STATIC,
+			     SOUP_PROXY_RESOLVER_STATIC_PROXY_URI, proxy_uri,
+			     NULL);
 }

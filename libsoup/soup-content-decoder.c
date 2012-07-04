@@ -56,11 +56,6 @@ typedef GConverter * (*SoupContentDecoderCreator) (void);
 
 static void soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
-static void request_queued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
-static void request_unqueued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
-
-static void finalize (GObject *object);
-
 G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_content_decoder_session_feature_init))
@@ -98,31 +93,23 @@ soup_content_decoder_init (SoupContentDecoder *decoder)
 }
 
 static void
-soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS (decoder_class);
-
-	g_type_class_add_private (decoder_class, sizeof (SoupContentDecoderPrivate));
-
-	object_class->finalize = finalize;
-}
-
-static void
-soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-					   gpointer interface_data)
-{
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_unqueued = request_unqueued;
-}
-
-static void
-finalize (GObject *object)
+soup_content_decoder_finalize (GObject *object)
 {
 	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (object);
 
 	g_hash_table_destroy (decoder->priv->decoders);
 
 	G_OBJECT_CLASS (soup_content_decoder_parent_class)->finalize (object);
+}
+
+static void
+soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (decoder_class);
+
+	g_type_class_add_private (decoder_class, sizeof (SoupContentDecoderPrivate));
+
+	object_class->finalize = soup_content_decoder_finalize;
 }
 
 static void
@@ -184,8 +171,9 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 }
 
 static void
-request_queued (SoupSessionFeature *feature, SoupSession *session,
-		SoupMessage *msg)
+soup_content_decoder_request_queued (SoupSessionFeature *feature,
+				     SoupSession *session,
+				     SoupMessage *msg)
 {
 	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (feature);
 
@@ -202,8 +190,17 @@ request_queued (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_unqueued (SoupSessionFeature *feature, SoupSession *session,
-		  SoupMessage *msg)
+soup_content_decoder_request_unqueued (SoupSessionFeature *feature,
+				       SoupSession *session,
+				       SoupMessage *msg)
 {
 	g_signal_handlers_disconnect_by_func (msg, soup_content_decoder_got_headers_cb, feature);
+}
+
+static void
+soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+					   gpointer interface_data)
+{
+	feature_interface->request_queued = soup_content_decoder_request_queued;
+	feature_interface->request_unqueued = soup_content_decoder_request_unqueued;
 }

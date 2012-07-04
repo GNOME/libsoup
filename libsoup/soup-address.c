@@ -98,17 +98,7 @@ typedef struct {
 	memcpy (SOUP_ADDRESS_GET_DATA (priv), data, length)
 
 
-static GObject *constructor (GType                  type,
-			     guint                  n_construct_properties,
-			     GObjectConstructParam *construct_properties);
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface);
-static GSocketAddressEnumerator *soup_address_connectable_enumerate (GSocketConnectable *connectable);
-static GSocketAddressEnumerator *soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable);
 
 G_DEFINE_TYPE_WITH_CODE (SoupAddress, soup_address, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_SOCKET_CONNECTABLE,
@@ -123,7 +113,7 @@ soup_address_init (SoupAddress *addr)
 }
 
 static void
-finalize (GObject *object)
+soup_address_finalize (GObject *object)
 {
 	SoupAddress *addr = SOUP_ADDRESS (object);
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
@@ -137,6 +127,126 @@ finalize (GObject *object)
 	G_OBJECT_CLASS (soup_address_parent_class)->finalize (object);
 }
 
+static GObject *
+soup_address_constructor (GType                  type,
+			  guint                  n_construct_properties,
+			  GObjectConstructParam *construct_properties)
+{
+	GObject *addr;
+	SoupAddressPrivate *priv;
+
+	addr = G_OBJECT_CLASS (soup_address_parent_class)->constructor (
+		type, n_construct_properties, construct_properties);
+	if (!addr)
+		return NULL;
+	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+
+	if (!priv->name && !priv->sockaddr) {
+		g_object_unref (addr);
+		return NULL;
+	}
+
+	return addr;
+}
+
+static void
+soup_address_set_property (GObject *object, guint prop_id,
+			   const GValue *value, GParamSpec *pspec)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+	SoupAddressFamily family;
+	struct sockaddr *sa;
+	int len, port;
+
+	/* This is a mess because the properties are mostly orthogonal,
+	 * but g_object_constructor wants to set a default value for each
+	 * of them.
+	 */
+
+	switch (prop_id) {
+	case PROP_NAME:
+		priv->name = g_value_dup_string (value);
+		break;
+
+	case PROP_FAMILY:
+		family = g_value_get_enum (value);
+		if (family == SOUP_ADDRESS_FAMILY_INVALID)
+			return;
+		g_return_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family));
+		g_return_if_fail (priv->sockaddr == NULL);
+
+		priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
+		SOUP_ADDRESS_SET_FAMILY (priv, family);
+		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
+		priv->n_addrs = 1;
+		break;
+
+	case PROP_PORT:
+		port = g_value_get_int (value);
+		if (port == -1)
+			return;
+		g_return_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port));
+
+		priv->port = port;
+		if (priv->sockaddr)
+			SOUP_ADDRESS_SET_PORT (priv, htons (port));
+		break;
+
+	case PROP_PROTOCOL:
+		priv->protocol = g_intern_string (g_value_get_string (value));
+		break;
+
+	case PROP_SOCKADDR:
+		sa = g_value_get_pointer (value);
+		if (!sa)
+			return;
+		g_return_if_fail (priv->sockaddr == NULL);
+
+		len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family);
+		priv->sockaddr = g_memdup (sa, len);
+		priv->n_addrs = 1;
+		priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_address_get_property (GObject *object, guint prop_id,
+			   GValue *value, GParamSpec *pspec)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_NAME:
+		g_value_set_string (value, priv->name);
+		break;
+	case PROP_FAMILY:
+		if (priv->sockaddr)
+			g_value_set_enum (value, SOUP_ADDRESS_GET_FAMILY (priv));
+		else
+			g_value_set_enum (value, 0);
+		break;
+	case PROP_PORT:
+		g_value_set_int (value, priv->port);
+		break;
+	case PROP_PHYSICAL:
+		g_value_set_string (value, soup_address_get_physical (SOUP_ADDRESS (object)));
+		break;
+	case PROP_PROTOCOL:
+		g_value_set_string (value, priv->protocol);
+		break;
+	case PROP_SOCKADDR:
+		g_value_set_pointer (value, priv->sockaddr);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
 static void
 soup_address_class_init (SoupAddressClass *address_class)
 {
@@ -145,10 +255,10 @@ soup_address_class_init (SoupAddressClass *address_class)
 	g_type_class_add_private (address_class, sizeof (SoupAddressPrivate));
 
 	/* virtual method override */
-	object_class->constructor = constructor;
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->constructor  = soup_address_constructor;
+	object_class->finalize     = soup_address_finalize;
+	object_class->set_property = soup_address_set_property;
+	object_class->get_property = soup_address_get_property;
 
 	/* properties */
 	/**
@@ -229,133 +339,6 @@ soup_address_class_init (SoupAddressClass *address_class)
 				      "sockaddr",
 				      "struct sockaddr for this address",
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-}
-
-static void
-soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface)
-{
-  connectable_iface->enumerate       = soup_address_connectable_enumerate;
-  connectable_iface->proxy_enumerate = soup_address_connectable_proxy_enumerate;
-}
-
-static GObject *
-constructor (GType                  type,
-	     guint                  n_construct_properties,
-	     GObjectConstructParam *construct_properties)
-{
-	GObject *addr;
-	SoupAddressPrivate *priv;
-
-	addr = G_OBJECT_CLASS (soup_address_parent_class)->constructor (
-		type, n_construct_properties, construct_properties);
-	if (!addr)
-		return NULL;
-	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
-
-	if (!priv->name && !priv->sockaddr) {
-		g_object_unref (addr);
-		return NULL;
-	}
-
-	return addr;
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
-	SoupAddressFamily family;
-	struct sockaddr *sa;
-	int len, port;
-
-	/* This is a mess because the properties are mostly orthogonal,
-	 * but g_object_constructor wants to set a default value for each
-	 * of them.
-	 */
-
-	switch (prop_id) {
-	case PROP_NAME:
-		priv->name = g_value_dup_string (value);
-		break;
-
-	case PROP_FAMILY:
-		family = g_value_get_enum (value);
-		if (family == SOUP_ADDRESS_FAMILY_INVALID)
-			return;
-		g_return_if_fail (SOUP_ADDRESS_FAMILY_IS_VALID (family));
-		g_return_if_fail (priv->sockaddr == NULL);
-
-		priv->sockaddr = g_malloc0 (SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (family));
-		SOUP_ADDRESS_SET_FAMILY (priv, family);
-		SOUP_ADDRESS_SET_PORT (priv, htons (priv->port));
-		priv->n_addrs = 1;
-		break;
-
-	case PROP_PORT:
-		port = g_value_get_int (value);
-		if (port == -1)
-			return;
-		g_return_if_fail (SOUP_ADDRESS_PORT_IS_VALID (port));
-
-		priv->port = port;
-		if (priv->sockaddr)
-			SOUP_ADDRESS_SET_PORT (priv, htons (port));
-		break;
-
-	case PROP_PROTOCOL:
-		priv->protocol = g_intern_string (g_value_get_string (value));
-		break;
-
-	case PROP_SOCKADDR:
-		sa = g_value_get_pointer (value);
-		if (!sa)
-			return;
-		g_return_if_fail (priv->sockaddr == NULL);
-
-		len = SOUP_ADDRESS_FAMILY_SOCKADDR_SIZE (sa->sa_family);
-		priv->sockaddr = g_memdup (sa, len);
-		priv->n_addrs = 1;
-		priv->port = ntohs (SOUP_ADDRESS_GET_PORT (priv));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_NAME:
-		g_value_set_string (value, priv->name);
-		break;
-	case PROP_FAMILY:
-		if (priv->sockaddr)
-			g_value_set_enum (value, SOUP_ADDRESS_GET_FAMILY (priv));
-		else
-			g_value_set_enum (value, 0);
-		break;
-	case PROP_PORT:
-		g_value_set_int (value, priv->port);
-		break;
-	case PROP_PHYSICAL:
-		g_value_set_string (value, soup_address_get_physical (SOUP_ADDRESS (object)));
-		break;
-	case PROP_PROTOCOL:
-		g_value_set_string (value, priv->protocol);
-		break;
-	case PROP_SOCKADDR:
-		g_value_set_pointer (value, priv->sockaddr);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 /**
@@ -1241,4 +1224,11 @@ soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable)
 	g_free (uri);
 
 	return proxy_enum;
+}
+
+static void
+soup_address_connectable_iface_init (GSocketConnectableIface *connectable_iface)
+{
+  connectable_iface->enumerate       = soup_address_connectable_enumerate;
+  connectable_iface->proxy_enumerate = soup_address_connectable_proxy_enumerate;
 }

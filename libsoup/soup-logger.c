@@ -83,13 +83,6 @@
 
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
-static void request_queued  (SoupSessionFeature *feature, SoupSession *session,
-			     SoupMessage *msg);
-static void request_started  (SoupSessionFeature *feature, SoupSession *session,
-			      SoupMessage *msg, SoupSocket *socket);
-static void request_unqueued  (SoupSessionFeature *feature,
-			       SoupSession *session, SoupMessage *msg);
-
 G_DEFINE_TYPE_WITH_CODE (SoupLogger, soup_logger, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_logger_session_feature_init))
@@ -131,7 +124,7 @@ soup_logger_init (SoupLogger *logger)
 }
 
 static void
-finalize (GObject *object)
+soup_logger_finalize (GObject *object)
 {
 	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (object);
 
@@ -156,16 +149,7 @@ soup_logger_class_init (SoupLoggerClass *logger_class)
 
 	g_type_class_add_private (logger_class, sizeof (SoupLoggerPrivate));
 
-	object_class->finalize = finalize;
-}
-
-static void
-soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-				  gpointer interface_data)
-{
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_started = request_started;
-	feature_interface->request_unqueued = request_unqueued;
+	object_class->finalize = soup_logger_finalize;
 }
 
 /**
@@ -630,8 +614,9 @@ got_body (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_queued (SoupSessionFeature *logger, SoupSession *session,
-		SoupMessage *msg)
+soup_logger_request_queued (SoupSessionFeature *logger,
+			    SoupSession *session,
+			    SoupMessage *msg)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
@@ -644,8 +629,10 @@ request_queued (SoupSessionFeature *logger, SoupSession *session,
 }
 
 static void
-request_started (SoupSessionFeature *feature, SoupSession *session,
-		 SoupMessage *msg, SoupSocket *socket)
+soup_logger_request_started (SoupSessionFeature *feature,
+			     SoupSession *session,
+			     SoupMessage *msg,
+			     SoupSocket *socket)
 {
 	SoupLogger *logger = SOUP_LOGGER (feature);
 	gboolean restarted;
@@ -674,11 +661,21 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_unqueued (SoupSessionFeature *logger, SoupSession *session,
-		  SoupMessage *msg)
+soup_logger_request_unqueued (SoupSessionFeature *logger,
+			      SoupSession *session,
+			      SoupMessage *msg)
 {
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
 	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
+}
+
+static void
+soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+				  gpointer interface_data)
+{
+	feature_interface->request_queued = soup_logger_request_queued;
+	feature_interface->request_started = soup_logger_request_started;
+	feature_interface->request_unqueued = soup_logger_request_unqueued;
 }

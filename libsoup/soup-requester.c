@@ -64,7 +64,7 @@ soup_requester_init (SoupRequester *requester)
 }
 
 static void
-finalize (GObject *object)
+soup_requester_finalize (GObject *object)
 {
 	SoupRequester *requester = SOUP_REQUESTER (object);
 
@@ -81,7 +81,7 @@ soup_requester_class_init (SoupRequesterClass *requester_class)
 	g_type_class_add_private (requester_class, sizeof (SoupRequesterPrivate));
 
 	/* virtual method override */
-	object_class->finalize = finalize;
+	object_class->finalize = soup_requester_finalize;
 }
 
 static void

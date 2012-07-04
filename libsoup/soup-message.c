@@ -135,13 +135,6 @@ enum {
 	LAST_PROP
 };
 
-static void got_body (SoupMessage *req);
-
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void
 soup_message_init (SoupMessage *msg)
 {
@@ -156,7 +149,7 @@ soup_message_init (SoupMessage *msg)
 }
 
 static void
-finalize (GObject *object)
+soup_message_finalize (GObject *object)
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
@@ -189,6 +182,136 @@ finalize (GObject *object)
 }
 
 static void
+soup_message_set_property (GObject *object, guint prop_id,
+			   const GValue *value, GParamSpec *pspec)
+{
+	SoupMessage *msg = SOUP_MESSAGE (object);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		msg->method = g_intern_string (g_value_get_string (value));
+		break;
+	case PROP_URI:
+		soup_message_set_uri (msg, g_value_get_boxed (value));
+		break;
+	case PROP_HTTP_VERSION:
+		soup_message_set_http_version (msg, g_value_get_enum (value));
+		break;
+	case PROP_FLAGS:
+		soup_message_set_flags (msg, g_value_get_flags (value));
+		break;
+	case PROP_SERVER_SIDE:
+		priv->server_side = g_value_get_boolean (value);
+		if (priv->server_side) {
+			soup_message_headers_set_encoding (msg->response_headers,
+							   SOUP_ENCODING_CONTENT_LENGTH);
+		}
+		break;
+	case PROP_STATUS_CODE:
+		soup_message_set_status (msg, g_value_get_uint (value));
+		break;
+	case PROP_REASON_PHRASE:
+		soup_message_set_status_full (msg, msg->status_code,
+					      g_value_get_string (value));
+		break;
+	case PROP_FIRST_PARTY:
+		soup_message_set_first_party (msg, g_value_get_boxed (value));
+		break;
+	case PROP_TLS_CERTIFICATE:
+		if (priv->tls_certificate)
+			g_object_unref (priv->tls_certificate);
+		priv->tls_certificate = g_value_dup_object (value);
+		if (priv->tls_errors)
+			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		else if (priv->tls_certificate)
+			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		break;
+	case PROP_TLS_ERRORS:
+		priv->tls_errors = g_value_get_flags (value);
+		if (priv->tls_errors)
+			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		else if (priv->tls_certificate)
+			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_message_get_property (GObject *object, guint prop_id,
+			   GValue *value, GParamSpec *pspec)
+{
+	SoupMessage *msg = SOUP_MESSAGE (object);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		g_value_set_string (value, msg->method);
+		break;
+	case PROP_URI:
+		g_value_set_boxed (value, priv->uri);
+		break;
+	case PROP_HTTP_VERSION:
+		g_value_set_enum (value, priv->http_version);
+		break;
+	case PROP_FLAGS:
+		g_value_set_flags (value, priv->msg_flags);
+		break;
+	case PROP_SERVER_SIDE:
+		g_value_set_boolean (value, priv->server_side);
+		break;
+	case PROP_STATUS_CODE:
+		g_value_set_uint (value, msg->status_code);
+		break;
+	case PROP_REASON_PHRASE:
+		g_value_set_string (value, msg->reason_phrase);
+		break;
+	case PROP_FIRST_PARTY:
+		g_value_set_boxed (value, priv->first_party);
+		break;
+	case PROP_REQUEST_BODY:
+		g_value_set_boxed (value, msg->request_body);
+		break;
+	case PROP_REQUEST_HEADERS:
+		g_value_set_boxed (value, msg->request_headers);
+		break;
+	case PROP_RESPONSE_BODY:
+		g_value_set_boxed (value, msg->response_body);
+		break;
+	case PROP_RESPONSE_HEADERS:
+		g_value_set_boxed (value, msg->response_headers);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, priv->tls_certificate);
+		break;
+	case PROP_TLS_ERRORS:
+		g_value_set_flags (value, priv->tls_errors);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_message_real_got_body (SoupMessage *req)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessageBody *body;
+
+	body = priv->server_side ? req->request_body : req->response_body;
+	if (soup_message_body_get_accumulate (body)) {
+		SoupBuffer *buffer;
+
+		buffer = soup_message_body_flatten (body);
+		soup_buffer_free (buffer);
+	}
+}
+
+static void
 soup_message_class_init (SoupMessageClass *message_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (message_class);
@@ -196,12 +319,12 @@ soup_message_class_init (SoupMessageClass *message_class)
 	g_type_class_add_private (message_class, sizeof (SoupMessagePrivate));
 
 	/* virtual method definition */
-	message_class->got_body = got_body;
+	message_class->got_body = soup_message_real_got_body;
 
 	/* virtual method override */
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->finalize = soup_message_finalize;
+	object_class->set_property = soup_message_set_property;
+	object_class->get_property = soup_message_get_property;
 
 	/* signals */
 
@@ -734,121 +857,6 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    G_PARAM_READWRITE));
 }
 
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	switch (prop_id) {
-	case PROP_METHOD:
-		msg->method = g_intern_string (g_value_get_string (value));
-		break;
-	case PROP_URI:
-		soup_message_set_uri (msg, g_value_get_boxed (value));
-		break;
-	case PROP_HTTP_VERSION:
-		soup_message_set_http_version (msg, g_value_get_enum (value));
-		break;
-	case PROP_FLAGS:
-		soup_message_set_flags (msg, g_value_get_flags (value));
-		break;
-	case PROP_SERVER_SIDE:
-		priv->server_side = g_value_get_boolean (value);
-		if (priv->server_side) {
-			soup_message_headers_set_encoding (msg->response_headers,
-							   SOUP_ENCODING_CONTENT_LENGTH);
-		}
-		break;
-	case PROP_STATUS_CODE:
-		soup_message_set_status (msg, g_value_get_uint (value));
-		break;
-	case PROP_REASON_PHRASE:
-		soup_message_set_status_full (msg, msg->status_code,
-					      g_value_get_string (value));
-		break;
-	case PROP_FIRST_PARTY:
-		soup_message_set_first_party (msg, g_value_get_boxed (value));
-		break;
-	case PROP_TLS_CERTIFICATE:
-		if (priv->tls_certificate)
-			g_object_unref (priv->tls_certificate);
-		priv->tls_certificate = g_value_dup_object (value);
-		if (priv->tls_errors)
-			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		else if (priv->tls_certificate)
-			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		break;
-	case PROP_TLS_ERRORS:
-		priv->tls_errors = g_value_get_flags (value);
-		if (priv->tls_errors)
-			priv->msg_flags &= ~SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		else if (priv->tls_certificate)
-			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupMessage *msg = SOUP_MESSAGE (object);
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-
-	switch (prop_id) {
-	case PROP_METHOD:
-		g_value_set_string (value, msg->method);
-		break;
-	case PROP_URI:
-		g_value_set_boxed (value, priv->uri);
-		break;
-	case PROP_HTTP_VERSION:
-		g_value_set_enum (value, priv->http_version);
-		break;
-	case PROP_FLAGS:
-		g_value_set_flags (value, priv->msg_flags);
-		break;
-	case PROP_SERVER_SIDE:
-		g_value_set_boolean (value, priv->server_side);
-		break;
-	case PROP_STATUS_CODE:
-		g_value_set_uint (value, msg->status_code);
-		break;
-	case PROP_REASON_PHRASE:
-		g_value_set_string (value, msg->reason_phrase);
-		break;
-	case PROP_FIRST_PARTY:
-		g_value_set_boxed (value, priv->first_party);
-		break;
-	case PROP_REQUEST_BODY:
-		g_value_set_boxed (value, msg->request_body);
-		break;
-	case PROP_REQUEST_HEADERS:
-		g_value_set_boxed (value, msg->request_headers);
-		break;
-	case PROP_RESPONSE_BODY:
-		g_value_set_boxed (value, msg->response_body);
-		break;
-	case PROP_RESPONSE_HEADERS:
-		g_value_set_boxed (value, msg->response_headers);
-		break;
-	case PROP_TLS_CERTIFICATE:
-		g_value_set_object (value, priv->tls_certificate);
-		break;
-	case PROP_TLS_ERRORS:
-		g_value_set_flags (value, priv->tls_errors);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
 
 /**
  * soup_message_new:
@@ -1071,21 +1079,6 @@ void
 soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
 	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
-}
-
-static void
-got_body (SoupMessage *req)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
-	SoupMessageBody *body;
-
-	body = priv->server_side ? req->request_body : req->response_body;
-	if (soup_message_body_get_accumulate (body)) {
-		SoupBuffer *buffer;
-
-		buffer = soup_message_body_flatten (body);
-		soup_buffer_free (buffer);
-	}
 }
 
 /**

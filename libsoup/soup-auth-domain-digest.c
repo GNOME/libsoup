@@ -47,28 +47,13 @@ typedef struct {
 
 G_DEFINE_TYPE (SoupAuthDomainDigest, soup_auth_domain_digest, SOUP_TYPE_AUTH_DOMAIN)
 
-static char    *accepts        (SoupAuthDomain *domain,
-				SoupMessage    *msg,
-				const char     *header);
-static char    *challenge      (SoupAuthDomain *domain,
-				SoupMessage    *msg);
-static gboolean check_password (SoupAuthDomain *domain,
-				SoupMessage    *msg,
-				const char     *username,
-				const char     *password);
-
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void
 soup_auth_domain_digest_init (SoupAuthDomainDigest *digest)
 {
 }
 
 static void
-finalize (GObject *object)
+soup_auth_domain_digest_finalize (GObject *object)
 {
 	SoupAuthDomainDigestPrivate *priv =
 		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
@@ -80,51 +65,8 @@ finalize (GObject *object)
 }
 
 static void
-soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
-{
-	SoupAuthDomainClass *auth_domain_class =
-		SOUP_AUTH_DOMAIN_CLASS (digest_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (digest_class);
-
-	g_type_class_add_private (digest_class, sizeof (SoupAuthDomainDigestPrivate));
-
-	auth_domain_class->accepts        = accepts;
-	auth_domain_class->challenge      = challenge;
-	auth_domain_class->check_password = check_password;
-
-	object_class->finalize     = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
-
-	/**
-	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK:
-	 *
-	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
-	 * (The #SoupAuthDomainDigestAuthCallback.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_AUTH_CALLBACK,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
-				      "Authentication callback",
-				      "Password-finding callback",
-				      G_PARAM_READWRITE));
-	/**
-	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA:
-	 *
-	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
-	 * (The #SoupAuthDomainDigestAuthCallback.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_AUTH_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,
-				      "Authentication callback data",
-				      "Data to pass to authentication callback",
-				      G_PARAM_READWRITE));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_auth_domain_digest_set_property (GObject *object, guint prop_id,
+				      const GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainDigestPrivate *priv =
 		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
@@ -147,8 +89,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_auth_domain_digest_get_property (GObject *object, guint prop_id,
+				      GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainDigestPrivate *priv =
 		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (object);
@@ -325,7 +267,8 @@ check_hex_urp (SoupAuthDomain *domain, SoupMessage *msg,
 }
 
 static char *
-accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
+soup_auth_domain_digest_accepts (SoupAuthDomain *domain, SoupMessage *msg,
+				 const char *header)
 {
 	SoupAuthDomainDigestPrivate *priv =
 		SOUP_AUTH_DOMAIN_DIGEST_GET_PRIVATE (domain);
@@ -369,7 +312,7 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 }
 
 static char *
-challenge (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_digest_challenge (SoupAuthDomain *domain, SoupMessage *msg)
 {
 	GString *str;
 
@@ -418,10 +361,10 @@ soup_auth_domain_digest_encode_password (const char *username,
 }
 
 static gboolean
-check_password (SoupAuthDomain *domain,
-		SoupMessage    *msg,
-		const char     *username,
-		const char     *password)
+soup_auth_domain_digest_check_password (SoupAuthDomain *domain,
+					SoupMessage    *msg,
+					const char     *username,
+					const char     *password)
 {
 	const char *header;
 	GHashTable *params;
@@ -450,4 +393,47 @@ check_password (SoupAuthDomain *domain,
 	accept = check_hex_urp (domain, msg, params, username, hex_urp);
 	soup_header_free_param_list (params);
 	return accept;
+}
+
+static void
+soup_auth_domain_digest_class_init (SoupAuthDomainDigestClass *digest_class)
+{
+	SoupAuthDomainClass *auth_domain_class =
+		SOUP_AUTH_DOMAIN_CLASS (digest_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (digest_class);
+
+	g_type_class_add_private (digest_class, sizeof (SoupAuthDomainDigestPrivate));
+
+	auth_domain_class->accepts        = soup_auth_domain_digest_accepts;
+	auth_domain_class->challenge      = soup_auth_domain_digest_challenge;
+	auth_domain_class->check_password = soup_auth_domain_digest_check_password;
+
+	object_class->finalize     = soup_auth_domain_digest_finalize;
+	object_class->set_property = soup_auth_domain_digest_set_property;
+	object_class->get_property = soup_auth_domain_digest_get_property;
+
+	/**
+	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK:
+	 *
+	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
+	 * (The #SoupAuthDomainDigestAuthCallback.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_AUTH_CALLBACK,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_CALLBACK,
+				      "Authentication callback",
+				      "Password-finding callback",
+				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA:
+	 *
+	 * Alias for the #SoupAuthDomainDigest:auth-callback property.
+	 * (The #SoupAuthDomainDigestAuthCallback.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_AUTH_DATA,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_DIGEST_AUTH_DATA,
+				      "Authentication callback data",
+				      "Data to pass to authentication callback",
+				      G_PARAM_READWRITE));
 }

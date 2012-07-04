@@ -26,17 +26,6 @@
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 static SoupSessionFeatureInterface *soup_session_feature_default_interface;
 
-static void attach (SoupSessionFeature *feature, SoupSession *session);
-static void request_queued  (SoupSessionFeature *feature, SoupSession *session,
-			     SoupMessage *msg);
-static void request_started  (SoupSessionFeature *feature, SoupSession *session,
-			      SoupMessage *msg, SoupSocket *socket);
-static void request_unqueued  (SoupSessionFeature *feature,
-			       SoupSession *session, SoupMessage *msg);
-static gboolean add_feature (SoupSessionFeature *feature, GType type);
-static gboolean remove_feature (SoupSessionFeature *feature, GType type);
-static gboolean has_feature (SoupSessionFeature *feature, GType type);
-
 enum {
 	AUTHENTICATE,
 	LAST_SIGNAL
@@ -78,7 +67,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 }
 
 static void
-finalize (GObject *object)
+soup_auth_manager_finalize (GObject *object)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (object);
 
@@ -98,7 +87,7 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 
 	g_type_class_add_private (auth_manager_class, sizeof (SoupAuthManagerPrivate));
 
-	object_class->finalize = finalize;
+	object_class->finalize = soup_auth_manager_finalize;
 
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
@@ -114,22 +103,6 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 
 }
 
-static void
-soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-					gpointer interface_data)
-{
-	soup_session_feature_default_interface =
-		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
-
-	feature_interface->attach = attach;
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_started = request_started;
-	feature_interface->request_unqueued = request_unqueued;
-	feature_interface->add_feature = add_feature;
-	feature_interface->remove_feature = remove_feature;
-	feature_interface->has_feature = has_feature;
-}
-
 static int
 auth_type_compare_func (gconstpointer a, gconstpointer b)
 {
@@ -140,7 +113,7 @@ auth_type_compare_func (gconstpointer a, gconstpointer b)
 }
 
 static gboolean
-add_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
 	SoupAuthClass *auth_class;
@@ -155,7 +128,7 @@ add_feature (SoupSessionFeature *feature, GType type)
 }
 
 static gboolean
-remove_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
 	SoupAuthClass *auth_class;
@@ -176,7 +149,7 @@ remove_feature (SoupSessionFeature *feature, GType type)
 }
 
 static gboolean
-has_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
 	SoupAuthClass *auth_class;
@@ -201,7 +174,7 @@ soup_auth_manager_emit_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 }
 
 static void
-attach (SoupSessionFeature *manager, SoupSession *session)
+soup_auth_manager_attach (SoupSessionFeature *manager, SoupSession *session)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 
@@ -567,8 +540,9 @@ requeue_if_proxy_authenticated (SoupMessage *msg, gpointer manager)
 }
 
 static void
-request_queued (SoupSessionFeature *manager, SoupSession *session,
-		SoupMessage *msg)
+soup_auth_manager_request_queued (SoupSessionFeature *manager,
+				  SoupSession *session,
+				  SoupMessage *msg)
 {
 	soup_message_add_status_code_handler (
 		msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
@@ -586,8 +560,10 @@ request_queued (SoupSessionFeature *manager, SoupSession *session,
 }
 
 static void
-request_started (SoupSessionFeature *feature, SoupSession *session,
-		 SoupMessage *msg, SoupSocket *socket)
+soup_auth_manager_request_started (SoupSessionFeature *feature,
+				   SoupSession *session,
+				   SoupMessage *msg,
+				   SoupSocket *socket)
 {
 	SoupAuthManager *manager = SOUP_AUTH_MANAGER (feature);
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
@@ -605,9 +581,26 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_unqueued (SoupSessionFeature *manager, SoupSession *session,
-		  SoupMessage *msg)
+soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
+				    SoupSession *session,
+				    SoupMessage *msg)
 {
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, manager);
+}
+
+static void
+soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+					gpointer interface_data)
+{
+	soup_session_feature_default_interface =
+		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
+
+	feature_interface->attach = soup_auth_manager_attach;
+	feature_interface->request_queued = soup_auth_manager_request_queued;
+	feature_interface->request_started = soup_auth_manager_request_started;
+	feature_interface->request_unqueued = soup_auth_manager_request_unqueued;
+	feature_interface->add_feature = soup_auth_manager_add_feature;
+	feature_interface->remove_feature = soup_auth_manager_remove_feature;
+	feature_interface->has_feature = soup_auth_manager_has_feature;
 }

@@ -32,13 +32,7 @@
  * Since: 2.27.3
  **/
 
-static char *sniff (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer, GHashTable **params);
-static gsize get_buffer_size (SoupContentSniffer *sniffer);
-
 static void soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
-
-static void request_queued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
-static void request_unqueued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg);
 
 G_DEFINE_TYPE_WITH_CODE (SoupContentSniffer, soup_content_sniffer, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
@@ -47,71 +41,6 @@ G_DEFINE_TYPE_WITH_CODE (SoupContentSniffer, soup_content_sniffer, G_TYPE_OBJECT
 static void
 soup_content_sniffer_init (SoupContentSniffer *content_sniffer)
 {
-}
-
-static void
-soup_content_sniffer_class_init (SoupContentSnifferClass *content_sniffer_class)
-{
-	content_sniffer_class->sniff = sniff;
-	content_sniffer_class->get_buffer_size = get_buffer_size;
-}
-
-static void
-soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-					   gpointer interface_data)
-{
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_unqueued = request_unqueued;
-}
-
-/**
- * soup_content_sniffer_new:
- *
- * Creates a new #SoupContentSniffer.
- *
- * Returns: a new #SoupContentSniffer
- *
- * Since: 2.27.3
- **/
-SoupContentSniffer *
-soup_content_sniffer_new ()
-{
-	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER, NULL);
-}
-
-/**
- * soup_content_sniffer_sniff:
- * @sniffer: a #SoupContentSniffer
- * @msg: the message to sniff
- * @buffer: a buffer containing the start of @msg's response body
- * @params: (element-type utf8 utf8) (out) (transfer full) (allow-none): return
- *   location for Content-Type parameters (eg, "charset"), or %NULL
- *
- * Sniffs @buffer to determine its Content-Type. The result may also
- * be influenced by the Content-Type declared in @msg's response
- * headers.
- *
- * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
- *   but may be "application/octet-stream".
- */
-char *
-soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
-			    SoupMessage *msg, SoupBuffer *buffer,
-			    GHashTable **params)
-{
-	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), NULL);
-	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
-	g_return_val_if_fail (buffer != NULL, NULL);
-
-	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->sniff (sniffer, msg, buffer, params);
-}
-
-gsize
-soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
-{
-	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), 0);
-
-	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->get_buffer_size (sniffer);
 }
 
 /* This table is based on the HTML5 spec;
@@ -502,8 +431,9 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *b
 	return g_strdup ("text/html");
 }
 
-static char*
-sniff (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer, GHashTable **params)
+static char *
+soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
+				 SoupBuffer *buffer, GHashTable **params)
 {
 	const char *content_type;
 
@@ -547,7 +477,7 @@ sniff (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer, GHashT
 }
 
 static gsize
-get_buffer_size (SoupContentSniffer *sniffer)
+soup_content_sniffer_real_get_buffer_size (SoupContentSniffer *sniffer)
 {
 	return 512;
 }
@@ -561,8 +491,9 @@ soup_content_sniffer_got_headers_cb (SoupMessage *msg, SoupContentSniffer *sniff
 }
 
 static void
-request_queued (SoupSessionFeature *feature, SoupSession *session,
-		SoupMessage *msg)
+soup_content_sniffer_request_queued (SoupSessionFeature *feature,
+				     SoupSession *session,
+				     SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
@@ -573,8 +504,9 @@ request_queued (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_unqueued (SoupSessionFeature *feature, SoupSession *session,
-		  SoupMessage *msg)
+soup_content_sniffer_request_unqueued (SoupSessionFeature *feature,
+				       SoupSession *session,
+				       SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
@@ -582,4 +514,69 @@ request_unqueued (SoupSessionFeature *feature, SoupSession *session,
 	priv->sniffer = NULL;
 
 	g_signal_handlers_disconnect_by_func (msg, soup_content_sniffer_got_headers_cb, feature);
+}
+
+static void
+soup_content_sniffer_class_init (SoupContentSnifferClass *content_sniffer_class)
+{
+	content_sniffer_class->sniff = soup_content_sniffer_real_sniff;
+	content_sniffer_class->get_buffer_size = soup_content_sniffer_real_get_buffer_size;
+}
+
+static void
+soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+					   gpointer interface_data)
+{
+	feature_interface->request_queued = soup_content_sniffer_request_queued;
+	feature_interface->request_unqueued = soup_content_sniffer_request_unqueued;
+}
+
+/**
+ * soup_content_sniffer_new:
+ *
+ * Creates a new #SoupContentSniffer.
+ *
+ * Returns: a new #SoupContentSniffer
+ *
+ * Since: 2.27.3
+ **/
+SoupContentSniffer *
+soup_content_sniffer_new ()
+{
+	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER, NULL);
+}
+
+/**
+ * soup_content_sniffer_sniff:
+ * @sniffer: a #SoupContentSniffer
+ * @msg: the message to sniff
+ * @buffer: a buffer containing the start of @msg's response body
+ * @params: (element-type utf8 utf8) (out) (transfer full) (allow-none): return
+ *   location for Content-Type parameters (eg, "charset"), or %NULL
+ *
+ * Sniffs @buffer to determine its Content-Type. The result may also
+ * be influenced by the Content-Type declared in @msg's response
+ * headers.
+ *
+ * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
+ *   but may be "application/octet-stream".
+ */
+char *
+soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
+			    SoupMessage *msg, SoupBuffer *buffer,
+			    GHashTable **params)
+{
+	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), NULL);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+	g_return_val_if_fail (buffer != NULL, NULL);
+
+	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->sniff (sniffer, msg, buffer, params);
+}
+
+gsize
+soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
+{
+	g_return_val_if_fail (SOUP_IS_CONTENT_SNIFFER (sniffer), 0);
+
+	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->get_buffer_size (sniffer);
 }

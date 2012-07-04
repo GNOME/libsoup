@@ -68,7 +68,7 @@ soup_body_input_stream_init (SoupBodyInputStream *bistream)
 }
 
 static void
-constructed (GObject *object)
+soup_body_input_stream_constructed (GObject *object)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
 
@@ -81,8 +81,8 @@ constructed (GObject *object)
 }
 
 static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_body_input_stream_set_property (GObject *object, guint prop_id,
+				     const GValue *value, GParamSpec *pspec)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
 
@@ -102,8 +102,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_body_input_stream_get_property (GObject *object, guint prop_id,
+				     GValue *value, GParamSpec *pspec)
 {
 	SoupBodyInputStream *bistream = SOUP_BODY_INPUT_STREAM (object);
 
@@ -334,9 +334,9 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 
 	g_type_class_add_private (stream_class, sizeof (SoupBodyInputStreamPrivate));
 
-	object_class->constructed = constructed;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->constructed = soup_body_input_stream_constructed;
+	object_class->set_property = soup_body_input_stream_set_property;
+	object_class->get_property = soup_body_input_stream_get_property;
 
 	input_stream_class->read_fn = soup_body_input_stream_read_fn;
 	input_stream_class->close_fn = soup_body_input_stream_close_fn;

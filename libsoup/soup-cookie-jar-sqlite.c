@@ -46,15 +46,6 @@ typedef struct {
 G_DEFINE_TYPE (SoupCookieJarSqlite, soup_cookie_jar_sqlite, SOUP_TYPE_COOKIE_JAR)
 
 static void load (SoupCookieJar *jar);
-static void changed (SoupCookieJar *jar,
-		     SoupCookie    *old_cookie,
-		     SoupCookie    *new_cookie);
-static gboolean is_persistent (SoupCookieJar *jar);
-
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
 
 static void
 soup_cookie_jar_sqlite_init (SoupCookieJarSqlite *sqlite)
@@ -62,7 +53,7 @@ soup_cookie_jar_sqlite_init (SoupCookieJarSqlite *sqlite)
 }
 
 static void
-finalize (GObject *object)
+soup_cookie_jar_sqlite_finalize (GObject *object)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (object);
@@ -76,39 +67,8 @@ finalize (GObject *object)
 }
 
 static void
-soup_cookie_jar_sqlite_class_init (SoupCookieJarSqliteClass *sqlite_class)
-{
-	SoupCookieJarClass *cookie_jar_class =
-		SOUP_COOKIE_JAR_CLASS (sqlite_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (sqlite_class);
-
-	g_type_class_add_private (sqlite_class, sizeof (SoupCookieJarSqlitePrivate));
-
-	cookie_jar_class->is_persistent = is_persistent;
-	cookie_jar_class->changed       = changed;
-
-	object_class->finalize     = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
-
-	/**
-	 * SOUP_COOKIE_JAR_SQLITE_FILENAME:
-	 *
-	 * Alias for the #SoupCookieJarSqlite:filename property. (The
-	 * cookie-storage filename.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_FILENAME,
-		g_param_spec_string (SOUP_COOKIE_JAR_SQLITE_FILENAME,
-				     "Filename",
-				     "Cookie-storage filename",
-				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_cookie_jar_sqlite_set_property (GObject *object, guint prop_id,
+				     const GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (object);
@@ -125,8 +85,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_cookie_jar_sqlite_get_property (GObject *object, guint prop_id,
+				     GValue *value, GParamSpec *pspec)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (object);
@@ -301,9 +261,9 @@ load (SoupCookieJar *jar)
 }
 
 static void
-changed (SoupCookieJar *jar,
-	 SoupCookie    *old_cookie,
-	 SoupCookie    *new_cookie)
+soup_cookie_jar_sqlite_changed (SoupCookieJar *jar,
+				SoupCookie    *old_cookie,
+				SoupCookie    *new_cookie)
 {
 	SoupCookieJarSqlitePrivate *priv =
 		SOUP_COOKIE_JAR_SQLITE_GET_PRIVATE (jar);
@@ -340,7 +300,38 @@ changed (SoupCookieJar *jar,
 }
 
 static gboolean
-is_persistent (SoupCookieJar *jar)
+soup_cookie_jar_sqlite_is_persistent (SoupCookieJar *jar)
 {
 	return TRUE;
+}
+
+static void
+soup_cookie_jar_sqlite_class_init (SoupCookieJarSqliteClass *sqlite_class)
+{
+	SoupCookieJarClass *cookie_jar_class =
+		SOUP_COOKIE_JAR_CLASS (sqlite_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (sqlite_class);
+
+	g_type_class_add_private (sqlite_class, sizeof (SoupCookieJarSqlitePrivate));
+
+	cookie_jar_class->is_persistent = soup_cookie_jar_sqlite_is_persistent;
+	cookie_jar_class->changed       = soup_cookie_jar_sqlite_changed;
+
+	object_class->finalize     = soup_cookie_jar_sqlite_finalize;
+	object_class->set_property = soup_cookie_jar_sqlite_set_property;
+	object_class->get_property = soup_cookie_jar_sqlite_get_property;
+
+	/**
+	 * SOUP_COOKIE_JAR_SQLITE_FILENAME:
+	 *
+	 * Alias for the #SoupCookieJarSqlite:filename property. (The
+	 * cookie-storage filename.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_FILENAME,
+		g_param_spec_string (SOUP_COOKIE_JAR_SQLITE_FILENAME,
+				     "Filename",
+				     "Cookie-storage filename",
+				     NULL,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }

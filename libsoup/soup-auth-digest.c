@@ -21,12 +21,6 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static gboolean update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params);
-static GSList *get_protection_space (SoupAuth *auth, SoupURI *source_uri);
-static void authenticate (SoupAuth *auth, const char *username, const char *password);
-static gboolean is_authenticated (SoupAuth *auth);
-static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
-
 typedef struct {
 	char                    *user;
 	char                     hex_urp[33];
@@ -56,7 +50,7 @@ soup_auth_digest_init (SoupAuthDigest *digest)
 }
 
 static void
-finalize (GObject *object)
+soup_auth_digest_finalize (GObject *object)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (object);
 
@@ -69,26 +63,6 @@ finalize (GObject *object)
 	memset (priv->hex_a1, 0, sizeof (priv->hex_a1));
 
 	G_OBJECT_CLASS (soup_auth_digest_parent_class)->finalize (object);
-}
-
-static void
-soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
-{
-	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_digest_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (auth_digest_class);
-
-	g_type_class_add_private (auth_digest_class, sizeof (SoupAuthDigestPrivate));
-
-	auth_class->scheme_name = "Digest";
-	auth_class->strength = 5;
-
-	auth_class->get_protection_space = get_protection_space;
-	auth_class->update = update;
-	auth_class->authenticate = authenticate;
-	auth_class->is_authenticated = is_authenticated;
-	auth_class->get_authorization = get_authorization;
-
-	object_class->finalize = finalize;
 }
 
 SoupAuthDigestAlgorithm
@@ -151,7 +125,8 @@ soup_auth_digest_get_qop (SoupAuthDigestQop qop)
 }
 
 static gboolean
-update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
+soup_auth_digest_update (SoupAuth *auth, SoupMessage *msg,
+			 GHashTable *auth_params)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	const char *stale, *qop;
@@ -198,7 +173,7 @@ update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
 }
 
 static GSList *
-get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_digest_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	GSList *space = NULL;
@@ -303,7 +278,8 @@ recompute_hex_a1 (SoupAuthDigestPrivate *priv)
 }
 
 static void
-authenticate (SoupAuth *auth, const char *username, const char *password)
+soup_auth_digest_authenticate (SoupAuth *auth, const char *username,
+			       const char *password)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	char *bgen;
@@ -328,7 +304,7 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 }
 
 static gboolean
-is_authenticated (SoupAuth *auth)
+soup_auth_digest_is_authenticated (SoupAuth *auth)
 {
 	return SOUP_AUTH_DIGEST_GET_PRIVATE (auth)->cnonce != NULL;
 }
@@ -413,7 +389,7 @@ authentication_info_cb (SoupMessage *msg, gpointer data)
 }
 
 static char *
-get_authorization (SoupAuth *auth, SoupMessage *msg)
+soup_auth_digest_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
 	SoupAuthDigestPrivate *priv = SOUP_AUTH_DIGEST_GET_PRIVATE (auth);
 	char response[33], *token;
@@ -475,4 +451,24 @@ get_authorization (SoupAuth *auth, SoupMessage *msg)
 					 G_CALLBACK (authentication_info_cb),
 					 auth);
 	return token;
+}
+
+static void
+soup_auth_digest_class_init (SoupAuthDigestClass *auth_digest_class)
+{
+	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_digest_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (auth_digest_class);
+
+	g_type_class_add_private (auth_digest_class, sizeof (SoupAuthDigestPrivate));
+
+	auth_class->scheme_name = "Digest";
+	auth_class->strength = 5;
+
+	auth_class->get_protection_space = soup_auth_digest_get_protection_space;
+	auth_class->update = soup_auth_digest_update;
+	auth_class->authenticate = soup_auth_digest_authenticate;
+	auth_class->is_authenticated = soup_auth_digest_is_authenticated;
+	auth_class->get_authorization = soup_auth_digest_get_authorization;
+
+	object_class->finalize = soup_auth_digest_finalize;
 }

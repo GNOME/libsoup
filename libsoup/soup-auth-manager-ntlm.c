@@ -30,17 +30,6 @@
 static void soup_auth_manager_ntlm_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 static SoupSessionFeatureInterface *soup_auth_manager_parent_feature_interface;
 
-static void attach (SoupSessionFeature *feature, SoupSession *session);
-static void request_queued (SoupSessionFeature *feature, SoupSession *session,
-			    SoupMessage *msg);
-static void request_started (SoupSessionFeature *feature, SoupSession *session,
-			     SoupMessage *msg, SoupSocket *socket);
-static void request_unqueued (SoupSessionFeature *feature,
-			      SoupSession *session, SoupMessage *msg);
-static gboolean add_feature (SoupSessionFeature *feature, GType type);
-static gboolean remove_feature (SoupSessionFeature *feature, GType type);
-static gboolean has_feature (SoupSessionFeature *feature, GType type);
-
 G_DEFINE_TYPE_WITH_CODE (SoupAuthManagerNTLM, soup_auth_manager_ntlm, SOUP_TYPE_AUTH_MANAGER,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_auth_manager_ntlm_session_feature_init))
@@ -130,7 +119,7 @@ free_ntlm_connection (SoupNTLMConnection *conn)
 }
 
 static void
-finalize (GObject *object)
+soup_auth_manager_ntlm_finalize (GObject *object)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (object);
@@ -148,27 +137,11 @@ soup_auth_manager_ntlm_class_init (SoupAuthManagerNTLMClass *auth_manager_ntlm_c
 
 	g_type_class_add_private (auth_manager_ntlm_class, sizeof (SoupAuthManagerNTLMPrivate));
 
-	object_class->finalize = finalize;
+	object_class->finalize = soup_auth_manager_ntlm_finalize;
 }
 
 static void
-soup_auth_manager_ntlm_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-					     gpointer interface_data)
-{
-	soup_auth_manager_parent_feature_interface =
-		g_type_interface_peek_parent (feature_interface);
-
-	feature_interface->attach = attach;
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_started = request_started;
-	feature_interface->request_unqueued = request_unqueued;
-	feature_interface->add_feature = add_feature;
-	feature_interface->remove_feature = remove_feature;
-	feature_interface->has_feature = has_feature;
-}
-
-static void
-attach (SoupSessionFeature *manager, SoupSession *session)
+soup_auth_manager_ntlm_attach (SoupSessionFeature *manager, SoupSession *session)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (manager);
@@ -515,7 +488,9 @@ done:
 }
 
 static void
-request_queued (SoupSessionFeature *ntlm, SoupSession *session, SoupMessage *msg)
+soup_auth_manager_ntlm_request_queued (SoupSessionFeature *ntlm,
+				       SoupSession *session,
+				       SoupMessage *msg)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (ntlm);
@@ -533,8 +508,10 @@ request_queued (SoupSessionFeature *ntlm, SoupSession *session, SoupMessage *msg
 }
 
 static void
-request_started (SoupSessionFeature *ntlm, SoupSession *session,
-		 SoupMessage *msg, SoupSocket *socket)
+soup_auth_manager_ntlm_request_started (SoupSessionFeature *ntlm,
+					SoupSession *session,
+					SoupMessage *msg,
+					SoupSocket *socket)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (ntlm);
@@ -616,8 +593,9 @@ super:
 }
 
 static void
-request_unqueued (SoupSessionFeature *ntlm, SoupSession *session,
-		  SoupMessage *msg)
+soup_auth_manager_ntlm_request_unqueued (SoupSessionFeature *ntlm,
+					 SoupSession *session,
+					 SoupMessage *msg)
 {
 	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_pre, ntlm);
 	g_signal_handlers_disconnect_by_func (msg, ntlm_authorize_post, ntlm);
@@ -626,7 +604,7 @@ request_unqueued (SoupSessionFeature *ntlm, SoupSession *session,
 }
 
 static gboolean
-add_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_ntlm_add_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
@@ -640,7 +618,7 @@ add_feature (SoupSessionFeature *feature, GType type)
 }
 
 static gboolean
-remove_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_ntlm_remove_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
@@ -654,7 +632,7 @@ remove_feature (SoupSessionFeature *feature, GType type)
 }
 
 static gboolean
-has_feature (SoupSessionFeature *feature, GType type)
+soup_auth_manager_ntlm_has_feature (SoupSessionFeature *feature, GType type)
 {
 	SoupAuthManagerNTLMPrivate *priv =
 		SOUP_AUTH_MANAGER_NTLM_GET_PRIVATE (feature);
@@ -663,6 +641,22 @@ has_feature (SoupSessionFeature *feature, GType type)
 		return priv->use_ntlm;
 
 	return soup_auth_manager_parent_feature_interface->has_feature (feature, type);
+}
+
+static void
+soup_auth_manager_ntlm_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+					     gpointer interface_data)
+{
+	soup_auth_manager_parent_feature_interface =
+		g_type_interface_peek_parent (feature_interface);
+
+	feature_interface->attach = soup_auth_manager_ntlm_attach;
+	feature_interface->request_queued = soup_auth_manager_ntlm_request_queued;
+	feature_interface->request_started = soup_auth_manager_ntlm_request_started;
+	feature_interface->request_unqueued = soup_auth_manager_ntlm_request_unqueued;
+	feature_interface->add_feature = soup_auth_manager_ntlm_add_feature;
+	feature_interface->remove_feature = soup_auth_manager_ntlm_remove_feature;
+	feature_interface->has_feature = soup_auth_manager_ntlm_has_feature;
 }
 
 /* NTLM code */

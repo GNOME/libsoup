@@ -43,28 +43,13 @@ typedef struct {
 
 G_DEFINE_TYPE (SoupAuthDomainBasic, soup_auth_domain_basic, SOUP_TYPE_AUTH_DOMAIN)
 
-static char    *accepts        (SoupAuthDomain *domain,
-				SoupMessage    *msg,
-				const char     *header);
-static char    *challenge      (SoupAuthDomain *domain,
-				SoupMessage    *msg);
-static gboolean check_password (SoupAuthDomain *domain,
-				SoupMessage    *msg,
-				const char     *username,
-				const char     *password);
-
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void
 soup_auth_domain_basic_init (SoupAuthDomainBasic *basic)
 {
 }
 
 static void
-finalize (GObject *object)
+soup_auth_domain_basic_finalize (GObject *object)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
@@ -76,51 +61,8 @@ finalize (GObject *object)
 }
 
 static void
-soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
-{
-	SoupAuthDomainClass *auth_domain_class =
-		SOUP_AUTH_DOMAIN_CLASS (basic_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
-
-	g_type_class_add_private (basic_class, sizeof (SoupAuthDomainBasicPrivate));
-
-	auth_domain_class->accepts        = accepts;
-	auth_domain_class->challenge      = challenge;
-	auth_domain_class->check_password = check_password;
-
-	object_class->finalize     = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
-
-	/**
-	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK:
-	 *
-	 * Alias for the #SoupAuthDomainBasic:auth-callback property.
-	 * (The #SoupAuthDomainBasicAuthCallback.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_AUTH_CALLBACK,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
-				      "Authentication callback",
-				      "Password-checking callback",
-				      G_PARAM_READWRITE));
-	/**
-	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA:
-	 *
-	 * Alias for the #SoupAuthDomainBasic:auth-data property.
-	 * (The data to pass to the #SoupAuthDomainBasicAuthCallback.)
-	 **/
-	g_object_class_install_property (
-		object_class, PROP_AUTH_DATA,
-		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
-				      "Authentication callback data",
-				      "Data to pass to authentication callback",
-				      G_PARAM_READWRITE));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_auth_domain_basic_set_property (GObject *object, guint prop_id,
+				     const GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
@@ -143,8 +85,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_auth_domain_basic_get_property (GObject *object, guint prop_id,
+				     GValue *value, GParamSpec *pspec)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (object);
@@ -290,7 +232,8 @@ parse_basic (SoupMessage *msg, const char *header,
 }
 
 static char *
-accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
+soup_auth_domain_basic_accepts (SoupAuthDomain *domain, SoupMessage *msg,
+				const char *header)
 {
 	SoupAuthDomainBasicPrivate *priv =
 		SOUP_AUTH_DOMAIN_BASIC_GET_PRIVATE (domain);
@@ -319,7 +262,7 @@ accepts (SoupAuthDomain *domain, SoupMessage *msg, const char *header)
 }
 
 static char *
-challenge (SoupAuthDomain *domain, SoupMessage *msg)
+soup_auth_domain_basic_challenge (SoupAuthDomain *domain, SoupMessage *msg)
 {
 	GString *challenge;
 
@@ -329,10 +272,10 @@ challenge (SoupAuthDomain *domain, SoupMessage *msg)
 }
 
 static gboolean
-check_password (SoupAuthDomain *domain,
-		SoupMessage    *msg,
-		const char     *username,
-		const char     *password)
+soup_auth_domain_basic_check_password (SoupAuthDomain *domain,
+				       SoupMessage    *msg,
+				       const char     *username,
+				       const char     *password)
 {
 	const char *header;
 	char *msg_username, *msg_password;
@@ -349,4 +292,47 @@ check_password (SoupAuthDomain *domain,
 	pw_free (msg_password);
 
 	return ok;
+}
+
+static void
+soup_auth_domain_basic_class_init (SoupAuthDomainBasicClass *basic_class)
+{
+	SoupAuthDomainClass *auth_domain_class =
+		SOUP_AUTH_DOMAIN_CLASS (basic_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (basic_class);
+
+	g_type_class_add_private (basic_class, sizeof (SoupAuthDomainBasicPrivate));
+
+	auth_domain_class->accepts        = soup_auth_domain_basic_accepts;
+	auth_domain_class->challenge      = soup_auth_domain_basic_challenge;
+	auth_domain_class->check_password = soup_auth_domain_basic_check_password;
+
+	object_class->finalize     = soup_auth_domain_basic_finalize;
+	object_class->set_property = soup_auth_domain_basic_set_property;
+	object_class->get_property = soup_auth_domain_basic_get_property;
+
+	/**
+	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK:
+	 *
+	 * Alias for the #SoupAuthDomainBasic:auth-callback property.
+	 * (The #SoupAuthDomainBasicAuthCallback.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_AUTH_CALLBACK,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK,
+				      "Authentication callback",
+				      "Password-checking callback",
+				      G_PARAM_READWRITE));
+	/**
+	 * SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA:
+	 *
+	 * Alias for the #SoupAuthDomainBasic:auth-data property.
+	 * (The data to pass to the #SoupAuthDomainBasicAuthCallback.)
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_AUTH_DATA,
+		g_param_spec_pointer (SOUP_AUTH_DOMAIN_BASIC_AUTH_DATA,
+				      "Authentication callback data",
+				      "Data to pass to authentication callback",
+				      G_PARAM_READWRITE));
 }

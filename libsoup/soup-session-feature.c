@@ -53,17 +53,7 @@
 
 static void soup_session_feature_default_init (SoupSessionFeatureInterface *interface);
 
-static void attach (SoupSessionFeature *feature, SoupSession *session);
-static void detach (SoupSessionFeature *feature, SoupSession *session);
-
 G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
-
-static void
-soup_session_feature_default_init (SoupSessionFeatureInterface *interface)
-{
-	interface->attach = attach;
-	interface->detach = detach;
-}
 
 static void
 weak_notify_unref (gpointer feature, GObject *ex_object)
@@ -103,7 +93,7 @@ request_unqueued (SoupSession *session, SoupMessage *msg, gpointer feature)
 }
 
 static void
-attach (SoupSessionFeature *feature, SoupSession *session)
+soup_session_feature_real_attach (SoupSessionFeature *feature, SoupSession *session)
 {
 	g_object_weak_ref (G_OBJECT (session),
 			   weak_notify_unref, g_object_ref (feature));
@@ -132,7 +122,7 @@ soup_session_feature_attach (SoupSessionFeature *feature,
 }
 
 static void
-detach (SoupSessionFeature *feature, SoupSession *session)
+soup_session_feature_real_detach (SoupSessionFeature *feature, SoupSession *session)
 {
 	g_object_weak_unref (G_OBJECT (session), weak_notify_unref, feature);
 
@@ -148,6 +138,13 @@ soup_session_feature_detach (SoupSessionFeature *feature,
 			     SoupSession        *session)
 {
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->detach (feature, session);
+}
+
+static void
+soup_session_feature_default_init (SoupSessionFeatureInterface *interface)
+{
+	interface->attach = soup_session_feature_real_attach;
+	interface->detach = soup_session_feature_real_detach;
 }
 
 /**

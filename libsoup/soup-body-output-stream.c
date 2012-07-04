@@ -60,7 +60,7 @@ soup_body_output_stream_init (SoupBodyOutputStream *stream)
 }
 
 static void
-constructed (GObject *object)
+soup_body_output_stream_constructed (GObject *object)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
 
@@ -68,8 +68,8 @@ constructed (GObject *object)
 }
 
 static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
+soup_body_output_stream_set_property (GObject *object, guint prop_id,
+				      const GValue *value, GParamSpec *pspec)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
 
@@ -89,8 +89,8 @@ set_property (GObject *object, guint prop_id,
 }
 
 static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
+soup_body_output_stream_get_property (GObject *object, guint prop_id,
+				      GValue *value, GParamSpec *pspec)
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
 
@@ -276,9 +276,9 @@ soup_body_output_stream_class_init (SoupBodyOutputStreamClass *stream_class)
 
 	g_type_class_add_private (stream_class, sizeof (SoupBodyOutputStreamPrivate));
 
-	object_class->constructed = constructed;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->constructed = soup_body_output_stream_constructed;
+	object_class->set_property = soup_body_output_stream_set_property;
+	object_class->get_property = soup_body_output_stream_get_property;
 
 	output_stream_class->write_fn = soup_body_output_stream_write_fn;
 	output_stream_class->close_fn = soup_body_output_stream_close_fn;

@@ -37,16 +37,6 @@ static void send_request_running   (SoupSession *session, SoupMessageQueueItem *
 static void send_request_restarted (SoupSession *session, SoupMessageQueueItem *item);
 static void send_request_finished  (SoupSession *session, SoupMessageQueueItem *item);
 
-static void  queue_message   (SoupSession *session, SoupMessage *req,
-			      SoupSessionCallback callback, gpointer user_data);
-static guint send_message    (SoupSession *session, SoupMessage *req);
-static void  cancel_message  (SoupSession *session, SoupMessage *msg,
-			      guint status_code);
-static void  kick            (SoupSession *session);
-
-static void  auth_required   (SoupSession *session, SoupMessage *msg,
-			      SoupAuth *auth, gboolean retrying);
-
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 typedef struct {
@@ -65,32 +55,13 @@ soup_session_async_init (SoupSessionAsync *sa)
 }
 
 static void
-dispose (GObject *object)
+soup_session_async_dispose (GObject *object)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
 
 	priv->disposed = TRUE;
 
 	G_OBJECT_CLASS (soup_session_async_parent_class)->dispose (object);
-}
-
-static void
-soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
-{
-	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (session_class);
-
-	g_type_class_add_private (soup_session_async_class,
-				  sizeof (SoupSessionAsyncPrivate));
-
-	/* virtual method override */
-	session_class->queue_message = queue_message;
-	session_class->send_message = send_message;
-	session_class->cancel_message = cancel_message;
-	session_class->auth_required = auth_required;
-	session_class->kick = kick;
-
-	object_class->dispose = dispose;
 }
 
 
@@ -427,8 +398,8 @@ do_idle_run_queue (SoupSession *session)
 }
 
 static void
-queue_message (SoupSession *session, SoupMessage *req,
-	       SoupSessionCallback callback, gpointer user_data)
+soup_session_async_queue_message (SoupSession *session, SoupMessage *req,
+				  SoupSessionCallback callback, gpointer user_data)
 {
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->queue_message (session, req, callback, user_data);
 
@@ -436,7 +407,7 @@ queue_message (SoupSession *session, SoupMessage *req,
 }
 
 static guint
-send_message (SoupSession *session, SoupMessage *req)
+soup_session_async_send_message (SoupSession *session, SoupMessage *req)
 {
 	SoupMessageQueueItem *item;
 	GMainContext *async_context =
@@ -445,7 +416,7 @@ send_message (SoupSession *session, SoupMessage *req)
 	/* Balance out the unref that queuing will eventually do */
 	g_object_ref (req);
 
-	queue_message (session, req, NULL, NULL);
+	soup_session_async_queue_message (session, req, NULL, NULL);
 
 	item = soup_message_queue_lookup (soup_session_get_queue (session), req);
 	g_return_val_if_fail (item != NULL, SOUP_STATUS_MALFORMED);
@@ -459,8 +430,8 @@ send_message (SoupSession *session, SoupMessage *req)
 }
 
 static void
-cancel_message (SoupSession *session, SoupMessage *msg,
-		guint status_code)
+soup_session_async_cancel_message (SoupSession *session, SoupMessage *msg,
+				   guint status_code)
 {
 	SoupMessageQueue *queue;
 	SoupMessageQueueItem *item;
@@ -502,8 +473,8 @@ got_passwords (SoupPasswordManager *password_manager, SoupMessage *msg,
 }
 
 static void
-auth_required (SoupSession *session, SoupMessage *msg,
-	       SoupAuth *auth, gboolean retrying)
+soup_session_async_auth_required (SoupSession *session, SoupMessage *msg,
+				  SoupAuth *auth, gboolean retrying)
 {
 	SoupSessionFeature *password_manager;
 
@@ -525,7 +496,7 @@ auth_required (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-kick (SoupSession *session)
+soup_session_async_kick (SoupSession *session)
 {
 	do_idle_run_queue (session);
 }
@@ -732,7 +703,7 @@ soup_session_send_request_async (SoupSession         *session,
 	/* Balance out the unref that queuing will eventually do */
 	g_object_ref (msg);
 
-	queue_message (session, msg, NULL, NULL);
+	soup_session_async_queue_message (session, msg, NULL, NULL);
 
 	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
 	g_return_if_fail (item != NULL);
@@ -763,4 +734,23 @@ soup_session_send_request_finish (SoupSession   *session,
 	if (g_simple_async_result_propagate_error (simple, error))
 		return NULL;
 	return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+}
+
+static void
+soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
+{
+	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (session_class);
+
+	g_type_class_add_private (soup_session_async_class,
+				  sizeof (SoupSessionAsyncPrivate));
+
+	/* virtual method override */
+	session_class->queue_message = soup_session_async_queue_message;
+	session_class->send_message = soup_session_async_send_message;
+	session_class->cancel_message = soup_session_async_cancel_message;
+	session_class->auth_required = soup_session_async_auth_required;
+	session_class->kick = soup_session_async_kick;
+
+	object_class->dispose = soup_session_async_dispose;
 }

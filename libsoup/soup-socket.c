@@ -99,11 +99,6 @@ typedef struct {
 } SoupSocketPrivate;
 #define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void soup_socket_peer_certificate_changed (GObject *conn,
 						  GParamSpec *pspec,
 						  gpointer user_data);
@@ -138,7 +133,7 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 }
 
 static void
-finalize (GObject *object)
+soup_socket_finalize (GObject *object)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
@@ -174,6 +169,133 @@ finalize (GObject *object)
 	G_OBJECT_CLASS (soup_socket_parent_class)->finalize (object);
 }
 
+
+static void
+finish_socket_setup (SoupSocketPrivate *priv)
+{
+	if (!priv->gsock)
+		return;
+
+	if (!priv->conn)
+		priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
+	if (!priv->iostream)
+		priv->iostream = soup_io_stream_new (priv->conn, FALSE);
+	if (!priv->istream)
+		priv->istream = g_object_ref (g_io_stream_get_input_stream (priv->iostream));
+	if (!priv->ostream)
+		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
+
+	g_socket_set_timeout (priv->gsock, priv->timeout);
+}
+
+static void
+soup_socket_set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		priv->local_addr = (SoupAddress *)g_value_dup_object (value);
+		break;
+	case PROP_REMOTE_ADDRESS:
+		priv->remote_addr = (SoupAddress *)g_value_dup_object (value);
+		break;
+	case PROP_NON_BLOCKING:
+		priv->non_blocking = g_value_get_boolean (value);
+		break;
+	case PROP_SSL_CREDENTIALS:
+		priv->ssl_creds = g_value_get_pointer (value);
+		break;
+	case PROP_SSL_STRICT:
+		priv->ssl_strict = g_value_get_boolean (value);
+		break;
+	case PROP_SSL_FALLBACK:
+		priv->ssl_fallback = g_value_get_boolean (value);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		priv->async_context = g_value_get_pointer (value);
+		if (priv->async_context)
+			g_main_context_ref (priv->async_context);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		priv->use_thread_context = g_value_get_boolean (value);
+		break;
+	case PROP_TIMEOUT:
+		priv->timeout = g_value_get_uint (value);
+		if (priv->conn)
+			g_socket_set_timeout (priv->gsock, priv->timeout);
+		break;
+	case PROP_USE_PROXY:
+		priv->use_proxy = g_value_get_boolean (value);
+		break;
+	case PROP_CLEAN_DISPOSE:
+		priv->clean_dispose = g_value_get_boolean (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_socket_get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		g_value_set_object (value, soup_socket_get_local_address (SOUP_SOCKET (object)));
+		break;
+	case PROP_REMOTE_ADDRESS:
+		g_value_set_object (value, soup_socket_get_remote_address (SOUP_SOCKET (object)));
+		break;
+	case PROP_NON_BLOCKING:
+		g_value_set_boolean (value, priv->non_blocking);
+		break;
+	case PROP_IS_SERVER:
+		g_value_set_boolean (value, priv->is_server);
+		break;
+	case PROP_SSL_CREDENTIALS:
+		g_value_set_pointer (value, priv->ssl_creds);
+		break;
+	case PROP_SSL_STRICT:
+		g_value_set_boolean (value, priv->ssl_strict);
+		break;
+	case PROP_SSL_FALLBACK:
+		g_value_set_boolean (value, priv->ssl_fallback);
+		break;
+	case PROP_TRUSTED_CERTIFICATE:
+		g_value_set_boolean (value, priv->tls_errors == 0);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		g_value_set_boolean (value, priv->use_thread_context);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, priv->timeout);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		if (G_IS_TLS_CONNECTION (priv->conn))
+			g_value_set_object (value, g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->conn)));
+		else
+			g_value_set_object (value, NULL);
+		break;
+	case PROP_TLS_ERRORS:
+		g_value_set_flags (value, priv->tls_errors);
+		break;
+	case PROP_USE_PROXY:
+		g_value_set_boolean (value, priv->use_proxy);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
 static void
 soup_socket_class_init (SoupSocketClass *socket_class)
 {
@@ -182,9 +304,9 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	g_type_class_add_private (socket_class, sizeof (SoupSocketPrivate));
 
 	/* virtual method override */
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->finalize = soup_socket_finalize;
+	object_class->set_property = soup_socket_set_property;
+	object_class->get_property = soup_socket_get_property;
 
 	/* signals */
 
@@ -509,133 +631,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Use #GProxyResolver",
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-}
-
-
-static void
-finish_socket_setup (SoupSocketPrivate *priv)
-{
-	if (!priv->gsock)
-		return;
-
-	if (!priv->conn)
-		priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
-	if (!priv->iostream)
-		priv->iostream = soup_io_stream_new (priv->conn, FALSE);
-	if (!priv->istream)
-		priv->istream = g_object_ref (g_io_stream_get_input_stream (priv->iostream));
-	if (!priv->ostream)
-		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
-
-	g_socket_set_timeout (priv->gsock, priv->timeout);
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_LOCAL_ADDRESS:
-		priv->local_addr = (SoupAddress *)g_value_dup_object (value);
-		break;
-	case PROP_REMOTE_ADDRESS:
-		priv->remote_addr = (SoupAddress *)g_value_dup_object (value);
-		break;
-	case PROP_NON_BLOCKING:
-		priv->non_blocking = g_value_get_boolean (value);
-		break;
-	case PROP_SSL_CREDENTIALS:
-		priv->ssl_creds = g_value_get_pointer (value);
-		break;
-	case PROP_SSL_STRICT:
-		priv->ssl_strict = g_value_get_boolean (value);
-		break;
-	case PROP_SSL_FALLBACK:
-		priv->ssl_fallback = g_value_get_boolean (value);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		priv->use_thread_context = g_value_get_boolean (value);
-		break;
-	case PROP_TIMEOUT:
-		priv->timeout = g_value_get_uint (value);
-		if (priv->conn)
-			g_socket_set_timeout (priv->gsock, priv->timeout);
-		break;
-	case PROP_USE_PROXY:
-		priv->use_proxy = g_value_get_boolean (value);
-		break;
-	case PROP_CLEAN_DISPOSE:
-		priv->clean_dispose = g_value_get_boolean (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_LOCAL_ADDRESS:
-		g_value_set_object (value, soup_socket_get_local_address (SOUP_SOCKET (object)));
-		break;
-	case PROP_REMOTE_ADDRESS:
-		g_value_set_object (value, soup_socket_get_remote_address (SOUP_SOCKET (object)));
-		break;
-	case PROP_NON_BLOCKING:
-		g_value_set_boolean (value, priv->non_blocking);
-		break;
-	case PROP_IS_SERVER:
-		g_value_set_boolean (value, priv->is_server);
-		break;
-	case PROP_SSL_CREDENTIALS:
-		g_value_set_pointer (value, priv->ssl_creds);
-		break;
-	case PROP_SSL_STRICT:
-		g_value_set_boolean (value, priv->ssl_strict);
-		break;
-	case PROP_SSL_FALLBACK:
-		g_value_set_boolean (value, priv->ssl_fallback);
-		break;
-	case PROP_TRUSTED_CERTIFICATE:
-		g_value_set_boolean (value, priv->tls_errors == 0);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		g_value_set_boolean (value, priv->use_thread_context);
-		break;
-	case PROP_TIMEOUT:
-		g_value_set_uint (value, priv->timeout);
-		break;
-	case PROP_TLS_CERTIFICATE:
-		if (G_IS_TLS_CONNECTION (priv->conn))
-			g_value_set_object (value, g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (priv->conn)));
-		else
-			g_value_set_object (value, NULL);
-		break;
-	case PROP_TLS_ERRORS:
-		g_value_set_flags (value, priv->tls_errors);
-		break;
-	case PROP_USE_PROXY:
-		g_value_set_boolean (value, priv->use_proxy);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 

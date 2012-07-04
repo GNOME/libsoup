@@ -17,12 +17,6 @@
 #include "soup-misc.h"
 #include "soup-uri.h"
 
-static gboolean update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params);
-static GSList *get_protection_space (SoupAuth *auth, SoupURI *source_uri);
-static void authenticate (SoupAuth *auth, const char *username, const char *password);
-static gboolean is_authenticated (SoupAuth *auth);
-static char *get_authorization (SoupAuth *auth, SoupMessage *msg);
-
 typedef struct {
 	char *username, *password;
 } SoupAuthNTLMPrivate;
@@ -36,7 +30,7 @@ soup_auth_ntlm_init (SoupAuthNTLM *ntlm)
 }
 
 static void
-finalize (GObject *object)
+soup_auth_ntlm_finalize (GObject *object)
 {
 	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (object);
 
@@ -47,26 +41,6 @@ finalize (GObject *object)
 	}
 
 	G_OBJECT_CLASS (soup_auth_ntlm_parent_class)->finalize (object);
-}
-
-static void
-soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
-{
-	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_ntlm_class);
-	GObjectClass *object_class = G_OBJECT_CLASS (auth_ntlm_class);
-
-	g_type_class_add_private (auth_ntlm_class, sizeof (SoupAuthNTLMPrivate));
-
-	auth_class->scheme_name = "NTLM";
-	auth_class->strength = 3;
-
-	auth_class->update = update;
-	auth_class->get_protection_space = get_protection_space;
-	auth_class->authenticate = authenticate;
-	auth_class->is_authenticated = is_authenticated;
-	auth_class->get_authorization = get_authorization;
-
-	object_class->finalize = finalize;
 }
 
 SoupAuth *
@@ -82,19 +56,21 @@ soup_auth_ntlm_new (const char *realm, const char *host)
 }
 
 static gboolean
-update (SoupAuth *auth, SoupMessage *msg, GHashTable *auth_params)
+soup_auth_ntlm_update (SoupAuth *auth, SoupMessage *msg,
+		       GHashTable *auth_params)
 {
 	g_return_val_if_reached (FALSE);
 }
 
 static GSList *
-get_protection_space (SoupAuth *auth, SoupURI *source_uri)
+soup_auth_ntlm_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 {
 	g_return_val_if_reached (NULL);
 }
 
 static void
-authenticate (SoupAuth *auth, const char *username, const char *password)
+soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
+			     const char *password)
 {
 	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
 
@@ -106,15 +82,35 @@ authenticate (SoupAuth *auth, const char *username, const char *password)
 }
 
 static gboolean
-is_authenticated (SoupAuth *auth)
+soup_auth_ntlm_is_authenticated (SoupAuth *auth)
 {
 	return SOUP_AUTH_NTLM_GET_PRIVATE (auth)->password != NULL;
 }
 
 static char *
-get_authorization (SoupAuth *auth, SoupMessage *msg)
+soup_auth_ntlm_get_authorization (SoupAuth *auth, SoupMessage *msg)
 {
 	g_return_val_if_reached (NULL);
+}
+
+static void
+soup_auth_ntlm_class_init (SoupAuthNTLMClass *auth_ntlm_class)
+{
+	SoupAuthClass *auth_class = SOUP_AUTH_CLASS (auth_ntlm_class);
+	GObjectClass *object_class = G_OBJECT_CLASS (auth_ntlm_class);
+
+	g_type_class_add_private (auth_ntlm_class, sizeof (SoupAuthNTLMPrivate));
+
+	auth_class->scheme_name = "NTLM";
+	auth_class->strength = 3;
+
+	auth_class->update = soup_auth_ntlm_update;
+	auth_class->get_protection_space = soup_auth_ntlm_get_protection_space;
+	auth_class->authenticate = soup_auth_ntlm_authenticate;
+	auth_class->is_authenticated = soup_auth_ntlm_is_authenticated;
+	auth_class->get_authorization = soup_auth_ntlm_get_authorization;
+
+	object_class->finalize = soup_auth_ntlm_finalize;
 }
 
 const char *

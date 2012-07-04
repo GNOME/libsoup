@@ -134,14 +134,6 @@ enum {
 	LAST_PROP
 };
 
-static GObject *constructor (GType                  type,
-			     guint                  n_construct_properties,
-			     GObjectConstructParam *construct_properties);
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static SoupClientContext *soup_client_context_ref (SoupClientContext *client);
 static void soup_client_context_unref (SoupClientContext *client);
 
@@ -161,7 +153,7 @@ soup_server_init (SoupServer *server)
 }
 
 static void
-finalize (GObject *object)
+soup_server_finalize (GObject *object)
 {
 	SoupServer *server = SOUP_SERVER (object);
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
@@ -211,6 +203,159 @@ finalize (GObject *object)
 	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
 }
 
+static GObject *
+soup_server_constructor (GType                  type,
+			 guint                  n_construct_properties,
+			 GObjectConstructParam *construct_properties)
+{
+	GObject *server;
+	SoupServerPrivate *priv;
+
+	server = G_OBJECT_CLASS (soup_server_parent_class)->constructor (
+		type, n_construct_properties, construct_properties);
+	if (!server)
+		return NULL;
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	if (!priv->iface) {
+		priv->iface =
+			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
+					      priv->port);
+	}
+
+	if (priv->ssl_cert_file && priv->ssl_key_file) {
+		GError *error = NULL;
+
+		if (priv->ssl_cert)
+			g_object_unref (priv->ssl_cert);
+		priv->ssl_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file, priv->ssl_key_file, &error);
+		if (!priv->ssl_cert) {
+			g_warning ("Could not read SSL certificate from '%s': %s",
+				   priv->ssl_cert_file, error->message);
+			g_error_free (error);
+			g_object_unref (server);
+			return NULL;
+		}
+	}
+
+	priv->listen_sock =
+		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->iface,
+				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_cert,
+				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
+				 NULL);
+	if (!soup_socket_listen (priv->listen_sock)) {
+		g_object_unref (server);
+		return NULL;
+	}
+
+	/* Re-resolve the interface address, in particular in case
+	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
+	 */
+	g_object_unref (priv->iface);
+	priv->iface = soup_socket_get_local_address (priv->listen_sock);
+	g_object_ref (priv->iface);
+	priv->port = soup_address_get_port (priv->iface);
+
+	return server;
+}
+
+static void
+soup_server_set_property (GObject *object, guint prop_id,
+			  const GValue *value, GParamSpec *pspec)
+{
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
+	const char *header;
+
+	switch (prop_id) {
+	case PROP_PORT:
+		priv->port = g_value_get_uint (value);
+		break;
+	case PROP_INTERFACE:
+		if (priv->iface)
+			g_object_unref (priv->iface);
+		priv->iface = g_value_get_object (value);
+		if (priv->iface)
+			g_object_ref (priv->iface);
+		break;
+	case PROP_SSL_CERT_FILE:
+		priv->ssl_cert_file =
+			g_strdup (g_value_get_string (value));
+		break;
+	case PROP_SSL_KEY_FILE:
+		priv->ssl_key_file =
+			g_strdup (g_value_get_string (value));
+		break;
+	case PROP_TLS_CERTIFICATE:
+		if (priv->ssl_cert)
+			g_object_unref (priv->ssl_cert);
+		priv->ssl_cert = g_value_dup_object (value);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		priv->async_context = g_value_get_pointer (value);
+		if (priv->async_context)
+			g_main_context_ref (priv->async_context);
+		break;
+	case PROP_RAW_PATHS:
+		priv->raw_paths = g_value_get_boolean (value);
+		break;
+	case PROP_SERVER_HEADER:
+		g_free (priv->server_header);
+		header = g_value_get_string (value);
+		if (!header)
+			priv->server_header = NULL;
+		else if (!*header) {
+			priv->server_header =
+				g_strdup (SOUP_SERVER_SERVER_HEADER_BASE);
+		} else if (g_str_has_suffix (header, " ")) {
+			priv->server_header =
+				g_strdup_printf ("%s%s", header,
+						 SOUP_SERVER_SERVER_HEADER_BASE);
+		} else
+			priv->server_header = g_strdup (header);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_server_get_property (GObject *object, guint prop_id,
+			  GValue *value, GParamSpec *pspec)
+{
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_PORT:
+		g_value_set_uint (value, priv->port);
+		break;
+	case PROP_INTERFACE:
+		g_value_set_object (value, priv->iface);
+		break;
+	case PROP_SSL_CERT_FILE:
+		g_value_set_string (value, priv->ssl_cert_file);
+		break;
+	case PROP_SSL_KEY_FILE:
+		g_value_set_string (value, priv->ssl_key_file);
+		break;
+	case PROP_TLS_CERTIFICATE:
+		g_value_set_object (value, priv->ssl_cert);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_RAW_PATHS:
+		g_value_set_boolean (value, priv->raw_paths);
+		break;
+	case PROP_SERVER_HEADER:
+		g_value_set_string (value, priv->server_header);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
 static void
 soup_server_class_init (SoupServerClass *server_class)
 {
@@ -219,10 +364,10 @@ soup_server_class_init (SoupServerClass *server_class)
 	g_type_class_add_private (server_class, sizeof (SoupServerPrivate));
 
 	/* virtual method override */
-	object_class->constructor = constructor;
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->constructor = soup_server_constructor;
+	object_class->finalize = soup_server_finalize;
+	object_class->set_property = soup_server_set_property;
+	object_class->get_property = soup_server_get_property;
 
 	/* signals */
 
@@ -492,159 +637,6 @@ soup_server_class_init (SoupServerClass *server_class)
 				     "Server header",
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-}
-
-static GObject *
-constructor (GType                  type,
-	     guint                  n_construct_properties,
-	     GObjectConstructParam *construct_properties)
-{
-	GObject *server;
-	SoupServerPrivate *priv;
-
-	server = G_OBJECT_CLASS (soup_server_parent_class)->constructor (
-		type, n_construct_properties, construct_properties);
-	if (!server)
-		return NULL;
-	priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	if (!priv->iface) {
-		priv->iface =
-			soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4,
-					      priv->port);
-	}
-
-	if (priv->ssl_cert_file && priv->ssl_key_file) {
-		GError *error = NULL;
-
-		if (priv->ssl_cert)
-			g_object_unref (priv->ssl_cert);
-		priv->ssl_cert = g_tls_certificate_new_from_files (priv->ssl_cert_file, priv->ssl_key_file, &error);
-		if (!priv->ssl_cert) {
-			g_warning ("Could not read SSL certificate from '%s': %s",
-				   priv->ssl_cert_file, error->message);
-			g_error_free (error);
-			g_object_unref (server);
-			return NULL;
-		}
-	}
-
-	priv->listen_sock =
-		soup_socket_new (SOUP_SOCKET_LOCAL_ADDRESS, priv->iface,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->ssl_cert,
-				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
-				 NULL);
-	if (!soup_socket_listen (priv->listen_sock)) {
-		g_object_unref (server);
-		return NULL;
-	}
-
-	/* Re-resolve the interface address, in particular in case
-	 * the passed-in address had SOUP_ADDRESS_ANY_PORT.
-	 */
-	g_object_unref (priv->iface);
-	priv->iface = soup_socket_get_local_address (priv->listen_sock);
-	g_object_ref (priv->iface);
-	priv->port = soup_address_get_port (priv->iface);
-
-	return server;
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
-	const char *header;
-
-	switch (prop_id) {
-	case PROP_PORT:
-		priv->port = g_value_get_uint (value);
-		break;
-	case PROP_INTERFACE:
-		if (priv->iface)
-			g_object_unref (priv->iface);
-		priv->iface = g_value_get_object (value);
-		if (priv->iface)
-			g_object_ref (priv->iface);
-		break;
-	case PROP_SSL_CERT_FILE:
-		priv->ssl_cert_file =
-			g_strdup (g_value_get_string (value));
-		break;
-	case PROP_SSL_KEY_FILE:
-		priv->ssl_key_file =
-			g_strdup (g_value_get_string (value));
-		break;
-	case PROP_TLS_CERTIFICATE:
-		if (priv->ssl_cert)
-			g_object_unref (priv->ssl_cert);
-		priv->ssl_cert = g_value_dup_object (value);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
-		break;
-	case PROP_RAW_PATHS:
-		priv->raw_paths = g_value_get_boolean (value);
-		break;
-	case PROP_SERVER_HEADER:
-		g_free (priv->server_header);
-		header = g_value_get_string (value);
-		if (!header)
-			priv->server_header = NULL;
-		else if (!*header) {
-			priv->server_header =
-				g_strdup (SOUP_SERVER_SERVER_HEADER_BASE);
-		} else if (g_str_has_suffix (header, " ")) {
-			priv->server_header =
-				g_strdup_printf ("%s%s", header,
-						 SOUP_SERVER_SERVER_HEADER_BASE);
-		} else
-			priv->server_header = g_strdup (header);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_PORT:
-		g_value_set_uint (value, priv->port);
-		break;
-	case PROP_INTERFACE:
-		g_value_set_object (value, priv->iface);
-		break;
-	case PROP_SSL_CERT_FILE:
-		g_value_set_string (value, priv->ssl_cert_file);
-		break;
-	case PROP_SSL_KEY_FILE:
-		g_value_set_string (value, priv->ssl_key_file);
-		break;
-	case PROP_TLS_CERTIFICATE:
-		g_value_set_object (value, priv->ssl_cert);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
-		break;
-	case PROP_RAW_PATHS:
-		g_value_set_boolean (value, priv->raw_paths);
-		break;
-	case PROP_SERVER_HEADER:
-		g_value_set_string (value, priv->server_header);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 /**

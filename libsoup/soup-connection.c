@@ -80,11 +80,6 @@ enum {
 	LAST_PROP
 };
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void stop_idle_timer (SoupConnectionPrivate *priv);
 static void clear_current_item (SoupConnection *conn);
 
@@ -99,7 +94,7 @@ soup_connection_init (SoupConnection *conn)
 }
 
 static void
-finalize (GObject *object)
+soup_connection_finalize (GObject *object)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
@@ -113,7 +108,7 @@ finalize (GObject *object)
 }
 
 static void
-dispose (GObject *object)
+soup_connection_dispose (GObject *object)
 {
 	SoupConnection *conn = SOUP_CONNECTION (object);
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -135,6 +130,110 @@ dispose (GObject *object)
 }
 
 static void
+soup_connection_set_property (GObject *object, guint prop_id,
+			      const GValue *value, GParamSpec *pspec)
+{
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
+	SoupProxyURIResolver *proxy_resolver;
+
+	switch (prop_id) {
+	case PROP_REMOTE_URI:
+		priv->remote_uri = g_value_dup_boxed (value);
+		break;
+	case PROP_PROXY_RESOLVER:
+		proxy_resolver = g_value_get_object (value);
+		if (proxy_resolver && SOUP_IS_PROXY_RESOLVER_DEFAULT (proxy_resolver))
+			priv->use_gproxyresolver = TRUE;
+		else if (proxy_resolver)
+			priv->proxy_resolver = g_object_ref (proxy_resolver);
+		break;
+	case PROP_SSL:
+		priv->ssl = g_value_get_boolean (value);
+		break;
+	case PROP_SSL_CREDS:
+		if (priv->tlsdb)
+			g_object_unref (priv->tlsdb);
+		priv->tlsdb = g_value_dup_object (value);
+		break;
+	case PROP_SSL_STRICT:
+		priv->ssl_strict = g_value_get_boolean (value);
+		break;
+	case PROP_SSL_FALLBACK:
+		priv->ssl_fallback = g_value_get_boolean (value);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		priv->async_context = g_value_get_pointer (value);
+		if (priv->async_context)
+			g_main_context_ref (priv->async_context);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		priv->use_thread_context = g_value_get_boolean (value);
+		break;
+	case PROP_TIMEOUT:
+		priv->io_timeout = g_value_get_uint (value);
+		break;
+	case PROP_IDLE_TIMEOUT:
+		priv->idle_timeout = g_value_get_uint (value);
+		break;
+	case PROP_STATE:
+		soup_connection_set_state (SOUP_CONNECTION (object), g_value_get_uint (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_connection_get_property (GObject *object, guint prop_id,
+			      GValue *value, GParamSpec *pspec)
+{
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_REMOTE_URI:
+		g_value_set_boxed (value, priv->remote_uri);
+		break;
+	case PROP_SSL:
+		g_value_set_boolean (value, priv->ssl);
+		break;
+	case PROP_SSL_CREDS:
+		g_value_set_object (value, priv->tlsdb);
+		break;
+	case PROP_SSL_STRICT:
+		g_value_set_boolean (value, priv->ssl_strict);
+		break;
+	case PROP_SSL_FALLBACK:
+		g_value_set_boolean (value, priv->ssl_fallback);
+		break;
+	case PROP_ASYNC_CONTEXT:
+		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
+		break;
+	case PROP_USE_THREAD_CONTEXT:
+		g_value_set_boolean (value, priv->use_thread_context);
+		break;
+	case PROP_TIMEOUT:
+		g_value_set_uint (value, priv->io_timeout);
+		break;
+	case PROP_IDLE_TIMEOUT:
+		g_value_set_uint (value, priv->idle_timeout);
+		break;
+	case PROP_STATE:
+		g_value_set_enum (value, priv->state);
+		break;
+	case PROP_MESSAGE:
+		if (priv->cur_item)
+			g_value_set_object (value, priv->cur_item->msg);
+		else
+			g_value_set_object (value, NULL);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
 soup_connection_class_init (SoupConnectionClass *connection_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (connection_class);
@@ -142,10 +241,10 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 	g_type_class_add_private (connection_class, sizeof (SoupConnectionPrivate));
 
 	/* virtual method override */
-	object_class->dispose = dispose;
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->dispose = soup_connection_dispose;
+	object_class->finalize = soup_connection_finalize;
+	object_class->set_property = soup_connection_set_property;
+	object_class->get_property = soup_connection_get_property;
 
 	/* signals */
 	signals[EVENT] =
@@ -251,110 +350,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				     "Message being processed",
 				     SOUP_TYPE_MESSAGE,
 				     G_PARAM_READABLE));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
-	SoupProxyURIResolver *proxy_resolver;
-
-	switch (prop_id) {
-	case PROP_REMOTE_URI:
-		priv->remote_uri = g_value_dup_boxed (value);
-		break;
-	case PROP_PROXY_RESOLVER:
-		proxy_resolver = g_value_get_object (value);
-		if (proxy_resolver && SOUP_IS_PROXY_RESOLVER_DEFAULT (proxy_resolver))
-			priv->use_gproxyresolver = TRUE;
-		else if (proxy_resolver)
-			priv->proxy_resolver = g_object_ref (proxy_resolver);
-		break;
-	case PROP_SSL:
-		priv->ssl = g_value_get_boolean (value);
-		break;
-	case PROP_SSL_CREDS:
-		if (priv->tlsdb)
-			g_object_unref (priv->tlsdb);
-		priv->tlsdb = g_value_dup_object (value);
-		break;
-	case PROP_SSL_STRICT:
-		priv->ssl_strict = g_value_get_boolean (value);
-		break;
-	case PROP_SSL_FALLBACK:
-		priv->ssl_fallback = g_value_get_boolean (value);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		priv->use_thread_context = g_value_get_boolean (value);
-		break;
-	case PROP_TIMEOUT:
-		priv->io_timeout = g_value_get_uint (value);
-		break;
-	case PROP_IDLE_TIMEOUT:
-		priv->idle_timeout = g_value_get_uint (value);
-		break;
-	case PROP_STATE:
-		soup_connection_set_state (SOUP_CONNECTION (object), g_value_get_uint (value));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_REMOTE_URI:
-		g_value_set_boxed (value, priv->remote_uri);
-		break;
-	case PROP_SSL:
-		g_value_set_boolean (value, priv->ssl);
-		break;
-	case PROP_SSL_CREDS:
-		g_value_set_object (value, priv->tlsdb);
-		break;
-	case PROP_SSL_STRICT:
-		g_value_set_boolean (value, priv->ssl_strict);
-		break;
-	case PROP_SSL_FALLBACK:
-		g_value_set_boolean (value, priv->ssl_fallback);
-		break;
-	case PROP_ASYNC_CONTEXT:
-		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		g_value_set_boolean (value, priv->use_thread_context);
-		break;
-	case PROP_TIMEOUT:
-		g_value_set_uint (value, priv->io_timeout);
-		break;
-	case PROP_IDLE_TIMEOUT:
-		g_value_set_uint (value, priv->idle_timeout);
-		break;
-	case PROP_STATE:
-		g_value_set_enum (value, priv->state);
-		break;
-	case PROP_MESSAGE:
-		if (priv->cur_item)
-			g_value_set_object (value, priv->cur_item->msg);
-		else
-			g_value_set_object (value, NULL);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 static gboolean

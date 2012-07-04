@@ -68,13 +68,13 @@ enum {
 	LAST_PROP
 };
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
+static void
+soup_auth_init (SoupAuth *auth)
+{
+}
 
 static void
-finalize (GObject *object)
+soup_auth_finalize (GObject *object)
 {
 	SoupAuth *auth = SOUP_AUTH (object);
 	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (auth);
@@ -88,15 +88,68 @@ finalize (GObject *object)
 }
 
 static void
+soup_auth_set_property (GObject *object, guint prop_id,
+			const GValue *value, GParamSpec *pspec)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_REALM:
+		auth->realm = g_value_dup_string (value);
+		break;
+	case PROP_HOST:
+		priv->host = g_value_dup_string (value);
+		break;
+	case PROP_IS_FOR_PROXY:
+		priv->proxy = g_value_get_boolean (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_auth_get_property (GObject *object, guint prop_id,
+			GValue *value, GParamSpec *pspec)
+{
+	SoupAuth *auth = SOUP_AUTH (object);
+	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_SCHEME_NAME:
+		g_value_set_string (value, soup_auth_get_scheme_name (auth));
+		break;
+	case PROP_REALM:
+		g_value_set_string (value, soup_auth_get_realm (auth));
+		break;
+	case PROP_HOST:
+		g_value_set_string (value, soup_auth_get_host (auth));
+		break;
+	case PROP_IS_FOR_PROXY:
+		g_value_set_boolean (value, priv->proxy);
+		break;
+	case PROP_IS_AUTHENTICATED:
+		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+
+static void
 soup_auth_class_init (SoupAuthClass *auth_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_class);
 
 	g_type_class_add_private (auth_class, sizeof (SoupAuthPrivate));
 
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->finalize     = soup_auth_finalize;
+	object_class->set_property = soup_auth_set_property;
+	object_class->get_property = soup_auth_get_property;
 
 	/**
 	 * SoupAuth::save-password:
@@ -188,63 +241,6 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      "Whether or not the auth is authenticated",
 				      FALSE,
 				      G_PARAM_READABLE));
-}
-
-static void
-soup_auth_init (SoupAuth *auth)
-{
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_REALM:
-		auth->realm = g_value_dup_string (value);
-		break;
-	case PROP_HOST:
-		priv->host = g_value_dup_string (value);
-		break;
-	case PROP_IS_FOR_PROXY:
-		priv->proxy = g_value_get_boolean (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupAuth *auth = SOUP_AUTH (object);
-	SoupAuthPrivate *priv = SOUP_AUTH_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_SCHEME_NAME:
-		g_value_set_string (value, soup_auth_get_scheme_name (auth));
-		break;
-	case PROP_REALM:
-		g_value_set_string (value, soup_auth_get_realm (auth));
-		break;
-	case PROP_HOST:
-		g_value_set_string (value, soup_auth_get_host (auth));
-		break;
-	case PROP_IS_FOR_PROXY:
-		g_value_set_boolean (value, priv->proxy);
-		break;
-	case PROP_IS_AUTHENTICATED:
-		g_value_set_boolean (value, soup_auth_is_authenticated (auth));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 /**

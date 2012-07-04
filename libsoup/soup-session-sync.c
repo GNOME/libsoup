@@ -52,16 +52,6 @@ typedef struct {
 } SoupSessionSyncPrivate;
 #define SOUP_SESSION_SYNC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION_SYNC, SoupSessionSyncPrivate))
 
-static void  queue_message  (SoupSession *session, SoupMessage *msg,
-			     SoupSessionCallback callback, gpointer user_data);
-static guint send_message   (SoupSession *session, SoupMessage *msg);
-static void  cancel_message (SoupSession *session, SoupMessage *msg,
-			     guint status_code);
-static void  auth_required  (SoupSession *session, SoupMessage *msg,
-			     SoupAuth *auth, gboolean retrying);
-static void  flush_queue    (SoupSession *session);
-static void  kick           (SoupSession *session);
-
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
 
 static void
@@ -74,7 +64,7 @@ soup_session_sync_init (SoupSessionSync *ss)
 }
 
 static void
-finalize (GObject *object)
+soup_session_sync_finalize (GObject *object)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (object);
 
@@ -82,25 +72,6 @@ finalize (GObject *object)
 	g_cond_clear (&priv->cond);
 
 	G_OBJECT_CLASS (soup_session_sync_parent_class)->finalize (object);
-}
-
-static void
-soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
-{
-	GObjectClass *object_class = G_OBJECT_CLASS (session_sync_class);
-	SoupSessionClass *session_class = SOUP_SESSION_CLASS (session_sync_class);
-
-	g_type_class_add_private (session_sync_class, sizeof (SoupSessionSyncPrivate));
-
-	/* virtual method override */
-	session_class->queue_message = queue_message;
-	session_class->send_message = send_message;
-	session_class->cancel_message = cancel_message;
-	session_class->auth_required = auth_required;
-	session_class->flush_queue = flush_queue;
-	session_class->kick = kick;
-
-	object_class->finalize = finalize;
 }
 
 
@@ -355,8 +326,8 @@ queue_message_thread (gpointer data)
 }
 
 static void
-queue_message (SoupSession *session, SoupMessage *msg,
-	       SoupSessionCallback callback, gpointer user_data)
+soup_session_sync_queue_message (SoupSession *session, SoupMessage *msg,
+				 SoupSessionCallback callback, gpointer user_data)
 {
 	SoupMessageQueueItem *item;
 	GThread *thread;
@@ -373,7 +344,7 @@ queue_message (SoupSession *session, SoupMessage *msg,
 }
 
 static guint
-send_message (SoupSession *session, SoupMessage *msg)
+soup_session_sync_send_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupMessageQueueItem *item;
 	guint status;
@@ -390,7 +361,7 @@ send_message (SoupSession *session, SoupMessage *msg)
 }
 
 static void
-cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
+soup_session_sync_cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
@@ -401,8 +372,8 @@ cancel_message (SoupSession *session, SoupMessage *msg, guint status_code)
 }
 
 static void
-auth_required (SoupSession *session, SoupMessage *msg,
-	       SoupAuth *auth, gboolean retrying)
+soup_session_sync_auth_required (SoupSession *session, SoupMessage *msg,
+				 SoupAuth *auth, gboolean retrying)
 {
 	SoupSessionFeature *password_manager;
 
@@ -419,7 +390,7 @@ auth_required (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-flush_queue (SoupSession *session)
+soup_session_sync_flush_queue (SoupSession *session)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 	SoupMessageQueue *queue;
@@ -464,13 +435,32 @@ flush_queue (SoupSession *session)
 }
 
 static void
-kick (SoupSession *session)
+soup_session_sync_kick (SoupSession *session)
 {
 	SoupSessionSyncPrivate *priv = SOUP_SESSION_SYNC_GET_PRIVATE (session);
 
 	g_mutex_lock (&priv->lock);
 	g_cond_broadcast (&priv->cond);
 	g_mutex_unlock (&priv->lock);
+}
+
+static void
+soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (session_sync_class);
+	SoupSessionClass *session_class = SOUP_SESSION_CLASS (session_sync_class);
+
+	g_type_class_add_private (session_sync_class, sizeof (SoupSessionSyncPrivate));
+
+	/* virtual method override */
+	session_class->queue_message = soup_session_sync_queue_message;
+	session_class->send_message = soup_session_sync_send_message;
+	session_class->cancel_message = soup_session_sync_cancel_message;
+	session_class->auth_required = soup_session_sync_auth_required;
+	session_class->flush_queue = soup_session_sync_flush_queue;
+	session_class->kick = soup_session_sync_kick;
+
+	object_class->finalize = soup_session_sync_finalize;
 }
 
 

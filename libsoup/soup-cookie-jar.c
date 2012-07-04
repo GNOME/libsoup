@@ -37,13 +37,6 @@
  **/
 
 static void soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
-static void request_queued (SoupSessionFeature *feature, SoupSession *session,
-			    SoupMessage *msg);
-static void request_started (SoupSessionFeature *feature, SoupSession *session,
-			     SoupMessage *msg, SoupSocket *socket);
-static void request_unqueued (SoupSessionFeature *feature, SoupSession *session,
-			      SoupMessage *msg);
-static gboolean is_persistent (SoupCookieJar *jar);
 
 G_DEFINE_TYPE_WITH_CODE (SoupCookieJar, soup_cookie_jar, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
@@ -73,11 +66,6 @@ typedef struct {
 } SoupCookieJarPrivate;
 #define SOUP_COOKIE_JAR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_COOKIE_JAR, SoupCookieJarPrivate))
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void
 soup_cookie_jar_init (SoupCookieJar *jar)
 {
@@ -91,7 +79,7 @@ soup_cookie_jar_init (SoupCookieJar *jar)
 }
 
 static void
-constructed (GObject *object)
+soup_cookie_jar_constructed (GObject *object)
 {
 	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (object);
 
@@ -99,7 +87,7 @@ constructed (GObject *object)
 }
 
 static void
-finalize (GObject *object)
+soup_cookie_jar_finalize (GObject *object)
 {
 	SoupCookieJarPrivate *priv = SOUP_COOKIE_JAR_GET_PRIVATE (object);
 	GHashTableIter iter;
@@ -115,18 +103,64 @@ finalize (GObject *object)
 }
 
 static void
+soup_cookie_jar_set_property (GObject *object, guint prop_id,
+			      const GValue *value, GParamSpec *pspec)
+{
+	SoupCookieJarPrivate *priv =
+		SOUP_COOKIE_JAR_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_READ_ONLY:
+		priv->read_only = g_value_get_boolean (value);
+		break;
+	case PROP_ACCEPT_POLICY:
+		priv->accept_policy = g_value_get_enum (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_cookie_jar_get_property (GObject *object, guint prop_id,
+			      GValue *value, GParamSpec *pspec)
+{
+	SoupCookieJarPrivate *priv =
+		SOUP_COOKIE_JAR_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_READ_ONLY:
+		g_value_set_boolean (value, priv->read_only);
+		break;
+	case PROP_ACCEPT_POLICY:
+		g_value_set_enum (value, priv->accept_policy);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static gboolean
+soup_cookie_jar_real_is_persistent (SoupCookieJar *jar)
+{
+	return FALSE;
+}
+
+static void
 soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (jar_class);
 
 	g_type_class_add_private (jar_class, sizeof (SoupCookieJarPrivate));
 
-	object_class->constructed = constructed;
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->constructed = soup_cookie_jar_constructed;
+	object_class->finalize = soup_cookie_jar_finalize;
+	object_class->set_property = soup_cookie_jar_set_property;
+	object_class->get_property = soup_cookie_jar_get_property;
 
-	jar_class->is_persistent = is_persistent;
+	jar_class->is_persistent = soup_cookie_jar_real_is_persistent;
 
 	/**
 	 * SoupCookieJar::changed:
@@ -191,55 +225,6 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 				   G_PARAM_READWRITE));
 }
 
-static void
-soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_interface,
-				      gpointer interface_data)
-{
-	feature_interface->request_queued = request_queued;
-	feature_interface->request_started = request_started;
-	feature_interface->request_unqueued = request_unqueued;
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupCookieJarPrivate *priv =
-		SOUP_COOKIE_JAR_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_READ_ONLY:
-		priv->read_only = g_value_get_boolean (value);
-		break;
-	case PROP_ACCEPT_POLICY:
-		priv->accept_policy = g_value_get_enum (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupCookieJarPrivate *priv =
-		SOUP_COOKIE_JAR_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_READ_ONLY:
-		g_value_set_boolean (value, priv->read_only);
-		break;
-	case PROP_ACCEPT_POLICY:
-		g_value_set_enum (value, priv->accept_policy);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
 /**
  * soup_cookie_jar_new:
  *
@@ -268,12 +253,6 @@ void
 soup_cookie_jar_save (SoupCookieJar *jar)
 {
 	/* Does nothing, obsolete */
-}
-
-static gboolean
-is_persistent (SoupCookieJar *jar)
-{
-	return FALSE;
 }
 
 static void
@@ -680,8 +659,9 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_queued (SoupSessionFeature *feature, SoupSession *session,
-		SoupMessage *msg)
+soup_cookie_jar_request_queued (SoupSessionFeature *feature,
+				SoupSession *session,
+				SoupMessage *msg)
 {
 	soup_message_add_header_handler (msg, "got-headers",
 					 "Set-Cookie",
@@ -690,8 +670,10 @@ request_queued (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_started (SoupSessionFeature *feature, SoupSession *session,
-		 SoupMessage *msg, SoupSocket *socket)
+soup_cookie_jar_request_started (SoupSessionFeature *feature,
+				 SoupSession *session,
+				 SoupMessage *msg,
+				 SoupSocket *socket)
 {
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (feature);
 	char *cookies;
@@ -706,10 +688,20 @@ request_started (SoupSessionFeature *feature, SoupSession *session,
 }
 
 static void
-request_unqueued (SoupSessionFeature *feature, SoupSession *session,
-		  SoupMessage *msg)
+soup_cookie_jar_request_unqueued (SoupSessionFeature *feature,
+				  SoupSession *session,
+				  SoupMessage *msg)
 {
 	g_signal_handlers_disconnect_by_func (msg, process_set_cookie_header, feature);
+}
+
+static void
+soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_interface,
+				      gpointer interface_data)
+{
+	feature_interface->request_queued = soup_cookie_jar_request_queued;
+	feature_interface->request_started = soup_cookie_jar_request_started;
+	feature_interface->request_unqueued = soup_cookie_jar_request_unqueued;
 }
 
 /**

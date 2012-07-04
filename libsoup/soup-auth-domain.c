@@ -74,11 +74,6 @@ typedef struct {
 
 G_DEFINE_ABSTRACT_TYPE (SoupAuthDomain, soup_auth_domain, G_TYPE_OBJECT)
 
-static void set_property (GObject *object, guint prop_id,
-			  const GValue *value, GParamSpec *pspec);
-static void get_property (GObject *object, guint prop_id,
-			  GValue *value, GParamSpec *pspec);
-
 static void
 soup_auth_domain_init (SoupAuthDomain *domain)
 {
@@ -88,7 +83,7 @@ soup_auth_domain_init (SoupAuthDomain *domain)
 }
 
 static void
-finalize (GObject *object)
+soup_auth_domain_finalize (GObject *object)
 {
 	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
 
@@ -104,15 +99,95 @@ finalize (GObject *object)
 }
 
 static void
+soup_auth_domain_set_property (GObject *object, guint prop_id,
+			       const GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomain *auth_domain = SOUP_AUTH_DOMAIN (object);
+	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_REALM:
+		g_free (priv->realm);
+		priv->realm = g_value_dup_string (value);
+		break;
+	case PROP_PROXY:
+		priv->proxy = g_value_get_boolean (value);
+		break;
+	case PROP_ADD_PATH:
+		soup_auth_domain_add_path (auth_domain,
+					   g_value_get_string (value));
+		break;
+	case PROP_REMOVE_PATH:
+		soup_auth_domain_remove_path (auth_domain,
+					      g_value_get_string (value));
+		break;
+	case PROP_FILTER:
+		priv->filter = g_value_get_pointer (value);
+		break;
+	case PROP_FILTER_DATA:
+		if (priv->filter_dnotify) {
+			priv->filter_dnotify (priv->filter_data);
+			priv->filter_dnotify = NULL;
+		}
+		priv->filter_data = g_value_get_pointer (value);
+		break;
+	case PROP_GENERIC_AUTH_CALLBACK:
+		priv->auth_callback = g_value_get_pointer (value);
+		break;
+	case PROP_GENERIC_AUTH_DATA:
+		if (priv->auth_dnotify) {
+			priv->auth_dnotify (priv->auth_data);
+			priv->auth_dnotify = NULL;
+		}
+		priv->auth_data = g_value_get_pointer (value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_auth_domain_get_property (GObject *object, guint prop_id,
+			       GValue *value, GParamSpec *pspec)
+{
+	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
+
+	switch (prop_id) {
+	case PROP_REALM:
+		g_value_set_string (value, priv->realm);
+		break;
+	case PROP_PROXY:
+		g_value_set_boolean (value, priv->proxy);
+		break;
+	case PROP_FILTER:
+		g_value_set_pointer (value, priv->filter);
+		break;
+	case PROP_FILTER_DATA:
+		g_value_set_pointer (value, priv->filter_data);
+		break;
+	case PROP_GENERIC_AUTH_CALLBACK:
+		g_value_set_pointer (value, priv->auth_callback);
+		break;
+	case PROP_GENERIC_AUTH_DATA:
+		g_value_set_pointer (value, priv->auth_data);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
 soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (auth_domain_class);
 
 	g_type_class_add_private (auth_domain_class, sizeof (SoupAuthDomainPrivate));
 
-	object_class->finalize = finalize;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
+	object_class->finalize = soup_auth_domain_finalize;
+	object_class->set_property = soup_auth_domain_set_property;
+	object_class->get_property = soup_auth_domain_get_property;
 
 	/**
 	 * SOUP_AUTH_DOMAIN_REALM:
@@ -214,86 +289,6 @@ soup_auth_domain_class_init (SoupAuthDomainClass *auth_domain_class)
 				      "Authentication callback data",
 				      "Data to pass to auth callback",
 				      G_PARAM_READWRITE));
-}
-
-static void
-set_property (GObject *object, guint prop_id,
-	      const GValue *value, GParamSpec *pspec)
-{
-	SoupAuthDomain *auth_domain = SOUP_AUTH_DOMAIN (object);
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_REALM:
-		g_free (priv->realm);
-		priv->realm = g_value_dup_string (value);
-		break;
-	case PROP_PROXY:
-		priv->proxy = g_value_get_boolean (value);
-		break;
-	case PROP_ADD_PATH:
-		soup_auth_domain_add_path (auth_domain,
-					   g_value_get_string (value));
-		break;
-	case PROP_REMOVE_PATH:
-		soup_auth_domain_remove_path (auth_domain,
-					      g_value_get_string (value));
-		break;
-	case PROP_FILTER:
-		priv->filter = g_value_get_pointer (value);
-		break;
-	case PROP_FILTER_DATA:
-		if (priv->filter_dnotify) {
-			priv->filter_dnotify (priv->filter_data);
-			priv->filter_dnotify = NULL;
-		}
-		priv->filter_data = g_value_get_pointer (value);
-		break;
-	case PROP_GENERIC_AUTH_CALLBACK:
-		priv->auth_callback = g_value_get_pointer (value);
-		break;
-	case PROP_GENERIC_AUTH_DATA:
-		if (priv->auth_dnotify) {
-			priv->auth_dnotify (priv->auth_data);
-			priv->auth_dnotify = NULL;
-		}
-		priv->auth_data = g_value_get_pointer (value);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id,
-	      GValue *value, GParamSpec *pspec)
-{
-	SoupAuthDomainPrivate *priv = SOUP_AUTH_DOMAIN_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_REALM:
-		g_value_set_string (value, priv->realm);
-		break;
-	case PROP_PROXY:
-		g_value_set_boolean (value, priv->proxy);
-		break;
-	case PROP_FILTER:
-		g_value_set_pointer (value, priv->filter);
-		break;
-	case PROP_FILTER_DATA:
-		g_value_set_pointer (value, priv->filter_data);
-		break;
-	case PROP_GENERIC_AUTH_CALLBACK:
-		g_value_set_pointer (value, priv->auth_callback);
-		break;
-	case PROP_GENERIC_AUTH_DATA:
-		g_value_set_pointer (value, priv->auth_data);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	}
 }
 
 /**

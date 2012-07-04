@@ -40,7 +40,7 @@ soup_filter_input_stream_init (SoupFilterInputStream *stream)
 }
 
 static void
-finalize (GObject *object)
+soup_filter_input_stream_finalize (GObject *object)
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (object);
 
@@ -144,7 +144,7 @@ soup_filter_input_stream_class_init (SoupFilterInputStreamClass *stream_class)
 
 	g_type_class_add_private (stream_class, sizeof (SoupFilterInputStreamPrivate));
 
-	object_class->finalize = finalize;
+	object_class->finalize = soup_filter_input_stream_finalize;
 
 	input_stream_class->read_fn = soup_filter_input_stream_read_fn;
 }

@@ -24,34 +24,9 @@ G_DEFINE_TYPE_EXTENDED (SoupPasswordManagerGNOME, soup_password_manager_gnome, G
 			G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE, NULL)
 			G_IMPLEMENT_INTERFACE (SOUP_TYPE_PASSWORD_MANAGER, soup_password_manager_gnome_interface_init))
 
-static void get_passwords_async (SoupPasswordManager  *password_manager,
-				 SoupMessage          *msg,
-				 SoupAuth             *auth,
-				 gboolean              retrying,
-				 GMainContext         *async_context,
-				 GCancellable         *cancellable,
-				 SoupPasswordManagerCallback callback,
-				 gpointer              user_data);
-static void get_passwords_sync  (SoupPasswordManager  *password_manager,
-				 SoupMessage          *msg,
-				 SoupAuth             *auth,
-				 GCancellable         *cancellable);
-
 static void
 soup_password_manager_gnome_init (SoupPasswordManagerGNOME *manager_gnome)
 {
-}
-
-static void
-soup_password_manager_gnome_class_init (SoupPasswordManagerGNOMEClass *gnome_class)
-{
-}
-
-static void
-soup_password_manager_gnome_interface_init (SoupPasswordManagerInterface *password_manager_interface)
-{
-	password_manager_interface->get_passwords_async = get_passwords_async;
-	password_manager_interface->get_passwords_sync = get_passwords_sync;
 }
 
 
@@ -168,14 +143,14 @@ free_auth_data (gpointer data)
 }
 
 static void
-get_passwords_async (SoupPasswordManager  *password_manager,
-		     SoupMessage          *msg,
-		     SoupAuth             *auth,
-		     gboolean              retrying,
-		     GMainContext         *async_context,
-		     GCancellable         *cancellable,
-		     SoupPasswordManagerCallback callback,
-		     gpointer              user_data)
+soup_password_manager_gnome_get_passwords_async (SoupPasswordManager  *password_manager,
+						 SoupMessage          *msg,
+						 SoupAuth             *auth,
+						 gboolean              retrying,
+						 GMainContext         *async_context,
+						 GCancellable         *cancellable,
+						 SoupPasswordManagerCallback callback,
+						 gpointer              user_data)
 {
 	SoupPasswordManagerGNOMEAuthData *auth_data;
 	SoupURI *uri = soup_message_get_uri (msg);
@@ -209,10 +184,10 @@ get_passwords_async (SoupPasswordManager  *password_manager,
 }
 
 static void
-get_passwords_sync (SoupPasswordManager  *password_manager,
-		    SoupMessage          *msg,
-		    SoupAuth             *auth,
-		    GCancellable         *cancellable)
+soup_password_manager_gnome_get_passwords_sync (SoupPasswordManager  *password_manager,
+						SoupMessage          *msg,
+						SoupAuth             *auth,
+						GCancellable         *cancellable)
 {
 	SoupURI *uri = soup_message_get_uri (msg);
 	GList *results = NULL;
@@ -230,4 +205,18 @@ get_passwords_sync (SoupPasswordManager  *password_manager,
 		&results);
 
 	update_auth_for_passwords (auth, msg, results, FALSE);
+}
+
+static void
+soup_password_manager_gnome_class_init (SoupPasswordManagerGNOMEClass *gnome_class)
+{
+}
+
+static void
+soup_password_manager_gnome_interface_init (SoupPasswordManagerInterface *password_manager_interface)
+{
+	password_manager_interface->get_passwords_async =
+		soup_password_manager_gnome_get_passwords_async;
+	password_manager_interface->get_passwords_sync =
+		soup_password_manager_gnome_get_passwords_sync;
 }
