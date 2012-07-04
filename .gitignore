@@ -47,6 +47,7 @@ libsoup/Soup-2.4.gir
 libsoup/Soup-2.4.typelib
 libsoup/SoupGNOME-2.4.gir
 libsoup/SoupGNOME-2.4.typelib
+libsoup/tld_data.inc
 libtool
 ltmain.sh
 m4/gtk-doc.m4
