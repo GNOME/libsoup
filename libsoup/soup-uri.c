@@ -1220,18 +1220,4 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	return g_ascii_strcasecmp (one->host, two->host) == 0;
 }
 
-
-GType
-soup_uri_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupURI"),
-			(GBoxedCopyFunc) soup_uri_copy,
-			(GBoxedFreeFunc) soup_uri_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupURI, soup_uri, soup_uri_copy, soup_uri_free)

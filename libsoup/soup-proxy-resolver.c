@@ -16,29 +16,12 @@
 #include "soup-session-feature.h"
 #include "soup-uri.h"
 
-static void soup_proxy_resolver_interface_init (GTypeInterface *iface);
+static void soup_proxy_resolver_default_init (SoupProxyResolverInterface *iface);
 static void soup_proxy_resolver_uri_resolver_interface_init (SoupProxyURIResolverInterface *uri_resolver_interface);
 
-GType
-soup_proxy_resolver_get_type (void)
-{
-  static volatile gsize g_define_type_id__volatile = 0;
-  if (g_once_init_enter (&g_define_type_id__volatile))
-    {
-      GType g_define_type_id =
-        g_type_register_static_simple (G_TYPE_INTERFACE,
-                                       g_intern_static_string ("SoupProxyResolver"),
-                                       sizeof (SoupProxyResolverInterface),
-                                       (GClassInitFunc)soup_proxy_resolver_interface_init,
-                                       0,
-                                       (GInstanceInitFunc)NULL,
-                                       (GTypeFlags) 0);
-      g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
-      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
-      g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
-    }
-  return g_define_type_id__volatile;
-}
+G_DEFINE_INTERFACE_WITH_CODE (SoupProxyResolver, soup_proxy_resolver, G_TYPE_OBJECT,
+			      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
+			      )
 
 static void
 proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
@@ -63,7 +46,7 @@ proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
 
 
 static void
-soup_proxy_resolver_interface_init (GTypeInterface *iface)
+soup_proxy_resolver_default_init (SoupProxyResolverInterface *iface)
 {
 	/* Add an interface_check where we can kludgily add the
 	 * SoupProxyURIResolver interface to all SoupProxyResolvers.

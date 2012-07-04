@@ -488,17 +488,4 @@ soup_multipart_copy (SoupMultipart *multipart)
 	return copy;
 }
 
-GType
-soup_multipart_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupMultipart"),
-			(GBoxedCopyFunc) soup_multipart_copy,
-			(GBoxedFreeFunc) soup_multipart_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupMultipart, soup_multipart, soup_multipart_copy, soup_multipart_free)

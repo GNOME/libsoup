@@ -482,20 +482,8 @@ soup_byte_array_free (GByteArray *ba)
 /**
  * SOUP_TYPE_BYTE_ARRAY:
  *
- * glib does not define a #GType for #GByteArray, so libsoup
+ * glib did not used to define a #GType for #GByteArray, so libsoup
  * defines this one itself.
  **/
-GType
-soup_byte_array_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupByteArray"),
-			(GBoxedCopyFunc) soup_byte_array_copy,
-			(GBoxedFreeFunc) soup_byte_array_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+typedef GByteArray SoupByteArray;
+G_DEFINE_BOXED_TYPE (SoupByteArray, soup_byte_array, soup_byte_array_copy, soup_byte_array_free)

@@ -108,20 +108,7 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 	}
 }
 
-GType
-soup_message_headers_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupMessageHeaders"),
-			(GBoxedCopyFunc) soup_message_headers_copy,
-			(GBoxedFreeFunc) soup_message_headers_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_copy, soup_message_headers_free)
 
 /**
  * soup_message_headers_clear:

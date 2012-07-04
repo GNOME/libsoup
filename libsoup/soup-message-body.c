@@ -328,20 +328,7 @@ soup_buffer_get_as_bytes (SoupBuffer *buffer)
 					   copy);
 }
 
-GType
-soup_buffer_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupBuffer"),
-			(GBoxedCopyFunc) soup_buffer_copy,
-			(GBoxedFreeFunc) soup_buffer_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupBuffer, soup_buffer, soup_buffer_copy, soup_buffer_free)
 
 
 /**
@@ -753,17 +740,4 @@ soup_message_body_free (SoupMessageBody *body)
 	}
 }
 
-GType
-soup_message_body_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupMessageBody"),
-			(GBoxedCopyFunc) soup_message_body_copy,
-			(GBoxedFreeFunc) soup_message_body_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupMessageBody, soup_message_body, soup_message_body_copy, soup_message_body_free)

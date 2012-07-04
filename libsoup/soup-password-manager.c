@@ -14,25 +14,13 @@
 #include "soup-password-manager.h"
 #include "soup-session-feature.h"
 
-GType
-soup_password_manager_get_type (void)
+G_DEFINE_INTERFACE_WITH_CODE (SoupPasswordManager, soup_password_manager, G_TYPE_OBJECT,
+			      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
+			      )
+
+static void
+soup_password_manager_default_init (SoupPasswordManagerInterface *iface)
 {
-  static volatile gsize g_define_type_id__volatile = 0;
-  if (g_once_init_enter (&g_define_type_id__volatile))
-    {
-      GType g_define_type_id =
-        g_type_register_static_simple (G_TYPE_INTERFACE,
-                                       g_intern_static_string ("SoupPasswordManager"),
-                                       sizeof (SoupPasswordManagerInterface),
-                                       (GClassInitFunc)NULL,
-                                       0,
-                                       (GInstanceInitFunc)NULL,
-                                       (GTypeFlags) 0);
-      g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
-      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
-      g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
-    }
-  return g_define_type_id__volatile;
 }
 
 /**

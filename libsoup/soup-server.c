@@ -1137,20 +1137,7 @@ soup_server_get_async_context (SoupServer *server)
  * also be of use in some situations (eg, tracking when multiple
  * requests are made on the same connection).
  **/
-GType
-soup_client_context_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupClientContext"),
-			(GBoxedCopyFunc) soup_client_context_ref,
-			(GBoxedFreeFunc) soup_client_context_unref);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupClientContext, soup_client_context, soup_client_context_ref, soup_client_context_unref)
 
 /**
  * soup_client_context_get_socket:

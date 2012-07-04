@@ -74,20 +74,7 @@
  * Since: 2.24
  **/
 
-GType
-soup_cookie_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupCookie"),
-			(GBoxedCopyFunc) soup_cookie_copy,
-			(GBoxedFreeFunc) soup_cookie_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupCookie, soup_cookie, soup_cookie_copy, soup_cookie_free)
 
 /**
  * soup_cookie_copy:

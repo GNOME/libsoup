@@ -88,20 +88,7 @@ days_in_month (int month, int year)
 		return nonleap_days_in_month[month];
 }
 
-GType
-soup_date_get_type (void)
-{
-	static volatile gsize type_volatile = 0;
-
-	if (g_once_init_enter (&type_volatile)) {
-		GType type = g_boxed_type_register_static (
-			g_intern_static_string ("SoupDate"),
-			(GBoxedCopyFunc) soup_date_copy,
-			(GBoxedFreeFunc) soup_date_free);
-		g_once_init_leave (&type_volatile, type);
-	}
-	return type_volatile;
-}
+G_DEFINE_BOXED_TYPE (SoupDate, soup_date, soup_date_copy, soup_date_free)
 
 static void
 soup_date_fixup (SoupDate *date)

@@ -51,33 +51,15 @@
  * Since: 2.24
  **/
 
-static void soup_session_feature_interface_init (SoupSessionFeatureInterface *interface);
+static void soup_session_feature_default_init (SoupSessionFeatureInterface *interface);
 
 static void attach (SoupSessionFeature *feature, SoupSession *session);
 static void detach (SoupSessionFeature *feature, SoupSession *session);
 
-GType
-soup_session_feature_get_type (void)
-{
-  static volatile gsize g_define_type_id__volatile = 0;
-  if (g_once_init_enter (&g_define_type_id__volatile))
-    {
-      GType g_define_type_id =
-        g_type_register_static_simple (G_TYPE_INTERFACE,
-                                       g_intern_static_string ("SoupSessionFeature"),
-                                       sizeof (SoupSessionFeatureInterface),
-                                       (GClassInitFunc)soup_session_feature_interface_init,
-                                       0,
-                                       (GInstanceInitFunc)NULL,
-                                       (GTypeFlags) 0);
-      g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
-      g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
-    }
-  return g_define_type_id__volatile;
-}
+G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
 
 static void
-soup_session_feature_interface_init (SoupSessionFeatureInterface *interface)
+soup_session_feature_default_init (SoupSessionFeatureInterface *interface)
 {
 	interface->attach = attach;
 	interface->detach = detach;
