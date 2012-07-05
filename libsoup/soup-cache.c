@@ -163,7 +163,7 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
 	if (content_type && !g_ascii_strcasecmp (content_type, "multipart/x-mixed-replace"))
 		return SOUP_CACHE_UNCACHEABLE;
 
-	cache_control = soup_message_headers_get (msg->response_headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list (msg->response_headers, "Cache-Control");
 	if (cache_control && *cache_control) {
 		GHashTable *hash;
 		SoupCachePrivate *priv = SOUP_CACHE_GET_PRIVATE (cache);
@@ -345,7 +345,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	const char *cache_control;
 	const char *expires, *date, *last_modified;
 
-	cache_control = soup_message_headers_get (entry->headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list (entry->headers, "Cache-Control");
 	if (cache_control) {
 		const char *max_age, *s_maxage;
 		gint64 freshness_lifetime = 0;
@@ -388,8 +388,8 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	/* If the 'Expires' response header is present, use its value
 	 * minus the value of the 'Date' response header
 	 */
-	expires = soup_message_headers_get (entry->headers, "Expires");
-	date = soup_message_headers_get (entry->headers, "Date");
+	expires = soup_message_headers_get_one (entry->headers, "Expires");
+	date = soup_message_headers_get_one (entry->headers, "Date");
 	if (expires && date) {
 		SoupDate *expires_d, *date_d;
 		time_t expires_t, date_t;
@@ -433,7 +433,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	   than 24h (section 2.3.1.1) when using heuristics */
 
 	/* Last-Modified based heuristic */
-	last_modified = soup_message_headers_get (entry->headers, "Last-Modified");
+	last_modified = soup_message_headers_get_one (entry->headers, "Last-Modified");
 	if (last_modified) {
 		SoupDate *soup_date;
 		time_t now, last_modified_t;
@@ -482,7 +482,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	soup_cache_entry_set_freshness (entry, msg, cache);
 
 	/* Section 2.3.2, Calculating Age */
-	date = soup_message_headers_get (entry->headers, "Date");
+	date = soup_message_headers_get_one (entry->headers, "Date");
 
 	if (date) {
 		SoupDate *soup_date;
@@ -493,7 +493,7 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 		date_value = soup_date_to_time_t (soup_date);
 		soup_date_free (soup_date);
 
-		age = soup_message_headers_get (entry->headers, "Age");
+		age = soup_message_headers_get_one (entry->headers, "Age");
 		if (age)
 			age_value = g_ascii_strtoll (age, NULL, 10);
 
@@ -1356,8 +1356,8 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* 4. The request is a conditional request issued by the client.
 	 */
-	if (soup_message_headers_get (msg->request_headers, "If-Modified-Since") ||
-	    soup_message_headers_get (msg->request_headers, "If-None-Match"))
+	if (soup_message_headers_get_one (msg->request_headers, "If-Modified-Since") ||
+	    soup_message_headers_get_list (msg->request_headers, "If-None-Match"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	/* 5. The presented request and stored response are free from
@@ -1368,11 +1368,11 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
 	 */
-	pragma = soup_message_headers_get (msg->request_headers, "Pragma");
+	pragma = soup_message_headers_get_list (msg->request_headers, "Pragma");
 	if (pragma && soup_header_contains (pragma, "no-cache"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
-	cache_control = soup_message_headers_get (msg->request_headers, "Cache-Control");
+	cache_control = soup_message_headers_get_list (msg->request_headers, "Cache-Control");
 	if (cache_control) {
 		GHashTable *hash = soup_header_parse_param_list (cache_control);
 
