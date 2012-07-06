@@ -1,10 +1,4 @@
-#include <config.h>
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <libsoup/soup.h>
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
 

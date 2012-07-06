@@ -7,12 +7,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <ctype.h>
 
 #include "soup-headers.h"
-#include "soup-misc.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /**
  * soup_headers_parse:

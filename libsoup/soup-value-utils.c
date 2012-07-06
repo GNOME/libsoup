@@ -5,9 +5,13 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#include "soup-value-utils.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <string.h>
+
+#include "soup-value-utils.h"
 
 /**
  * SECTION:soup-value-utils

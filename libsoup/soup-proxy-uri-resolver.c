@@ -10,7 +10,7 @@
 #endif
 
 #include "soup-proxy-uri-resolver.h"
-#include "soup-session-feature.h"
+#include "soup.h"
 
 G_DEFINE_INTERFACE (SoupProxyURIResolver, soup_proxy_uri_resolver, G_TYPE_OBJECT)
 

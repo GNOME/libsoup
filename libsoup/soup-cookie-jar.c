@@ -9,18 +9,11 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <string.h>
 
-#include "soup-cookie.h"
 #include "soup-cookie-jar.h"
-#include "soup-date.h"
-#include "soup-enum-types.h"
+#include "soup.h"
 #include "soup-marshal.h"
-#include "soup-message.h"
-#include "soup-session-feature.h"
-#include "soup-tld.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-cookie-jar

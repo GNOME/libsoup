@@ -9,18 +9,13 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <string.h>
 
+#include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
-#include "soup-auth.h"
-#include "soup-connection.h"
-#include "soup-headers.h"
 #include "soup-message-queue.h"
 #include "soup-misc-private.h"
-#include "soup-session-async.h"
-#include "soup-uri.h"
 
 static guint
 parse_response_headers (SoupMessage *req,

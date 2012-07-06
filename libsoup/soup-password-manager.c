@@ -12,7 +12,7 @@
 #define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
 
 #include "soup-password-manager.h"
-#include "soup-session-feature.h"
+#include "soup.h"
 
 G_DEFINE_INTERFACE_WITH_CODE (SoupPasswordManager, soup_password_manager, G_TYPE_OBJECT,
 			      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);

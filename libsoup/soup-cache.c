@@ -29,20 +29,13 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
 #include <string.h>
-#include <gio/gio.h>
 
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include "soup-cache.h"
 #include "soup-cache-private.h"
-#include "soup-date.h"
-#include "soup-enum-types.h"
-#include "soup-headers.h"
-#include "soup-session.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 static SoupSessionFeatureInterface *soup_cache_default_feature_interface;
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);

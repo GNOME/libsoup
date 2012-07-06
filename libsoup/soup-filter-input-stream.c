@@ -9,11 +9,10 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
 #include <string.h>
-#include <gio/gio.h>
 
 #include "soup-filter-input-stream.h"
+#include "soup.h"
 
 /* This is essentially a subset of GDataInputStream, except that we
  * can do the equivalent of "fill_nonblocking()" on it. (We could use

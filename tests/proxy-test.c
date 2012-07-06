@@ -1,18 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup.h>
-#include <libsoup/soup-requester.h>
-#include <libsoup/soup-request-http.h>
 #include "test-utils.h"
 
 typedef struct {
@@ -121,7 +108,7 @@ test_url (const char *url, int proxy, guint expected,
 
 	msg = soup_message_new (SOUP_METHOD_GET, url);
 	if (!msg) {
-		fprintf (stderr, "proxy-test: Could not parse URI\n");
+		g_printerr ("proxy-test: Could not parse URI\n");
 		exit (1);
 	}
 

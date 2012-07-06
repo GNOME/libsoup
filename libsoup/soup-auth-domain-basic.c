@@ -12,9 +12,8 @@
 #include <string.h>
 
 #include "soup-auth-domain-basic.h"
-#include "soup-headers.h"
+#include "soup.h"
 #include "soup-marshal.h"
-#include "soup-message.h"
 
 /**
  * SECTION:soup-auth-domain-basic

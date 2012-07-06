@@ -10,11 +10,7 @@
 #endif
 
 #include "soup-proxy-resolver.h"
-#include "soup-proxy-uri-resolver.h"
-#include "soup-address.h"
-#include "soup-message.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 static void soup_proxy_resolver_default_init (SoupProxyResolverInterface *iface);
 static void soup_proxy_resolver_uri_resolver_interface_init (SoupProxyURIResolverInterface *uri_resolver_interface);

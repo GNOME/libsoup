@@ -3,19 +3,6 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <glib.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup.h>
-#include <libsoup/soup-requester.h>
-#include <libsoup/soup-request-http.h>
-
 #include "test-utils.h"
 
 char *server2_uri;
@@ -624,7 +611,7 @@ main (int argc, char **argv)
 		do_connection_test (base_uri);
 		soup_uri_free (base_uri);
 	} else {
-		printf ("Listening on port %d\n", port);
+		g_print ("Listening on port %d\n", port);
 		g_main_loop_run (loop);
 	}
 

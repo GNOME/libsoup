@@ -9,28 +9,17 @@
 #include <config.h>
 #endif
 
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include <glib/gi18n-lib.h>
 
-#include "soup-auth.h"
-#include "soup-auth-basic.h"
-#include "soup-auth-digest.h"
+#include "soup-session.h"
+#include "soup.h"
 #include "soup-auth-manager-ntlm.h"
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc.h"
 #include "soup-proxy-resolver-static.h"
-#include "soup-proxy-uri-resolver.h"
-#include "soup-session.h"
-#include "soup-session-feature.h"
 #include "soup-session-private.h"
-#include "soup-socket.h"
-#include "soup-uri.h"
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
 

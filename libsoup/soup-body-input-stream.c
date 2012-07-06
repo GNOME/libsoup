@@ -10,16 +10,13 @@
 #endif
 
 #include <stdlib.h>
-#include <string.h>
-#include <gio/gio.h>
 
 #include <glib/gi18n-lib.h>
 
 #include "soup-body-input-stream.h"
-#include "soup-enum-types.h"
+#include "soup.h"
 #include "soup-filter-input-stream.h"
 #include "soup-marshal.h"
-#include "soup-message-headers.h"
 
 typedef enum {
 	SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE,

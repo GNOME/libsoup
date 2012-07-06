@@ -13,11 +13,9 @@
 #include <stdlib.h>
 
 #include "soup-auth-domain-digest.h"
+#include "soup.h"
 #include "soup-auth-digest.h"
-#include "soup-headers.h"
 #include "soup-marshal.h"
-#include "soup-message.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-auth-domain-digest

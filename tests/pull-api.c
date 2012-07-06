@@ -1,15 +1,4 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "libsoup/soup.h"
-#include "libsoup/soup-session.h"
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
 
@@ -33,8 +22,8 @@ get_correct_response (const char *uri)
 	msg = soup_message_new (SOUP_METHOD_GET, uri);
 	soup_session_send_message (session, msg);
 	if (msg->status_code != SOUP_STATUS_OK) {
-		fprintf (stderr, "Could not fetch %s: %d %s\n", uri,
-			 msg->status_code, msg->reason_phrase);
+		g_printerr ("Could not fetch %s: %d %s\n", uri,
+			    msg->status_code, msg->reason_phrase);
 		exit (1);
 	}
 

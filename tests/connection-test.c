@@ -3,10 +3,6 @@
  * Copyright 2007-2012 Red Hat, Inc.
  */
 
-#include <string.h>
-
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 SoupServer *server;

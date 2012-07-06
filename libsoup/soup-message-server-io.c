@@ -9,17 +9,11 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <string.h>
 
+#include "soup.h"
 #include "soup-message-private.h"
-#include "soup-address.h"
-#include "soup-auth.h"
-#include "soup-headers.h"
 #include "soup-misc-private.h"
-#include "soup-multipart.h"
-#include "soup-server.h"
-#include "soup-socket.h"
 
 static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,

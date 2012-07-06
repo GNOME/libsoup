@@ -9,9 +9,8 @@
 #include <config.h>
 #endif
 
-#include <gio/gio.h>
-
 #include "soup-io-stream.h"
+#include "soup.h"
 #include "soup-filter-input-stream.h"
 
 struct _SoupIOStreamPrivate {

@@ -1,14 +1,4 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "libsoup/soup.h"
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
 
@@ -24,8 +14,8 @@ get_full_response (void)
 	GError *error = NULL;
 
 	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		fprintf (stderr, "Could not read index.txt: %s\n",
-			 error->message);
+		g_printerr ("Could not read index.txt: %s\n",
+			    error->message);
 		exit (1);
 	}
 

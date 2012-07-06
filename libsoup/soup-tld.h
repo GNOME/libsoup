@@ -6,6 +6,8 @@
 #ifndef __SOUP_TLD_H__
 #define __SOUP_TLD_H__
 
+#include <libsoup/soup-types.h>
+
 G_BEGIN_DECLS
 
 const char *soup_tld_get_base_domain         (const char *hostname,

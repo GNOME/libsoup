@@ -3,15 +3,6 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <glib.h>
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 #define RESPONSE_CHUNK_SIZE 1024
@@ -28,8 +19,8 @@ get_full_response (void)
 				  &full_response,
 				  &full_response_length,
 				  &error)) {
-		fprintf (stderr, "Could not read index file %s: %s\n",
-			 SRCDIR "/index.txt", error->message);
+		g_printerr ("Could not read index file %s: %s\n",
+			    SRCDIR "/index.txt", error->message);
 		g_error_free (error);
 		exit (1);
 	}

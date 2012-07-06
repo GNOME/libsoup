@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "soup-proxy-resolver-gnome.h"
+#include "soup.h"
 
 G_DEFINE_TYPE (SoupProxyResolverGNOME, soup_proxy_resolver_gnome, SOUP_TYPE_PROXY_RESOLVER_DEFAULT)
 

@@ -2,7 +2,16 @@
 #include "config.h"
 #endif
 
-#include "libsoup/soup-types.h"
+#include <string.h>
+#include <stdlib.h>
+
+#define LIBSOUP_USE_UNSTABLE_REQUEST_API
+
+#include "libsoup/soup.h"
+#include "libsoup/soup-requester.h"
+#include "libsoup/soup-request-data.h"
+#include "libsoup/soup-request-file.h"
+#include "libsoup/soup-request-http.h"
 
 void test_init    (int argc, char **argv, GOptionEntry *entries);
 void test_cleanup (void);

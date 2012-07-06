@@ -3,20 +3,8 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
+#include "test-utils.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <libsoup/soup.h>
 
 static SoupSession *session;
 static GMainLoop *loop;
@@ -42,30 +30,30 @@ get_url (const char *url)
 		const char *hname, *value;
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 
-		printf ("%s %s HTTP/1.%d\n", method, path,
-			soup_message_get_http_version (msg));
+		g_print ("%s %s HTTP/1.%d\n", method, path,
+			 soup_message_get_http_version (msg));
 		soup_message_headers_iter_init (&iter, msg->request_headers);
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
-			printf ("%s: %s\r\n", hname, value);
-		printf ("\n");
+			g_print ("%s: %s\r\n", hname, value);
+		g_print ("\n");
 
-		printf ("HTTP/1.%d %d %s\n",
-			soup_message_get_http_version (msg),
-			msg->status_code, msg->reason_phrase);
+		g_print ("HTTP/1.%d %d %s\n",
+			 soup_message_get_http_version (msg),
+			 msg->status_code, msg->reason_phrase);
 
 		soup_message_headers_iter_init (&iter, msg->response_headers);
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
-			printf ("%s: %s\r\n", hname, value);
-		printf ("\n");
+			g_print ("%s: %s\r\n", hname, value);
+		g_print ("\n");
 	} else if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
 		GTlsCertificateFlags flags;
 
 		if (soup_message_get_https_status (msg, NULL, &flags))
-			printf ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
+			g_print ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
 		else
-			printf ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
+			g_print ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
 	} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		printf ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
+		g_print ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
 
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		header = soup_message_headers_get_one (msg->response_headers,
@@ -75,7 +63,7 @@ get_url (const char *url)
 			char *uri_string;
 
 			if (!debug && !quiet)
-				printf ("  -> %s\n", header);
+				g_print ("  -> %s\n", header);
 
 			uri = soup_uri_new_with_base (soup_message_get_uri (msg), header);
 			uri_string = soup_uri_to_string (uri, FALSE);
@@ -92,7 +80,7 @@ get_url (const char *url)
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: get [-c CAfile] [-p proxy URL] [-h] [-d] URL\n");
+	g_printerr ("Usage: get [-c CAfile] [-p proxy URL] [-h] [-d] URL\n");
 	exit (1);
 }
 
@@ -130,8 +118,8 @@ main (int argc, char **argv)
 		case 'p':
 			proxy = soup_uri_new (optarg);
 			if (!proxy) {
-				fprintf (stderr, "Could not parse %s as URI\n",
-					 optarg);
+				g_printerr ("Could not parse %s as URI\n",
+					    optarg);
 				exit (1);
 			}
 			break;
@@ -157,7 +145,7 @@ main (int argc, char **argv)
 	url = argv[0];
 	parsed = soup_uri_new (url);
 	if (!parsed) {
-		fprintf (stderr, "Could not parse '%s' as a URL\n", url);
+		g_printerr ("Could not parse '%s' as a URL\n", url);
 		exit (1);
 	}
 	soup_uri_free (parsed);

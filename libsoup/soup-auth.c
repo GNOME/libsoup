@@ -14,8 +14,6 @@
 #include <string.h>
 
 #include "soup-auth.h"
-#include "soup-auth-basic.h"
-#include "soup-auth-digest.h"
 #include "soup-headers.h"
 #include "soup-marshal.h"
 #include "soup-uri.h"

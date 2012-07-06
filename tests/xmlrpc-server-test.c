@@ -3,14 +3,6 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <sys/wait.h>
-
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
@@ -254,7 +246,7 @@ xmlrpc_test_print (GIOChannel *io, GIOCondition cond, gpointer data)
 	if (status == G_IO_STATUS_NORMAL) {
 		/* Don't print the exit status, just the debug stuff */
 		if (strncmp (line, "xmlrpc-test:", strlen ("xmlrpc-test:")) != 0)
-			printf ("%s", line);
+			g_print ("%s", line);
 		g_free (line);
 		return TRUE;
 	} else if (status == G_IO_STATUS_AGAIN)
@@ -290,7 +282,7 @@ do_xmlrpc_tests (SoupURI *uri)
 	g_free (argv[3]);
 
 	if (!ok) {
-		printf ("Could not run xmlrpc-test: %s\n", error->message);
+		g_print ("Could not run xmlrpc-test: %s\n", error->message);
 		errors++;
 		return;
 	}
@@ -331,7 +323,7 @@ main (int argc, char **argv)
 		do_xmlrpc_tests (uri);
 		soup_uri_free (uri);
 	} else
-		printf ("Listening on port %d\n", soup_server_get_port (server));
+		g_print ("Listening on port %d\n", soup_server_get_port (server));
 
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);

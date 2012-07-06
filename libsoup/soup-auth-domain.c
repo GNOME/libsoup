@@ -12,9 +12,8 @@
 #include <string.h>
 
 #include "soup-auth-domain.h"
-#include "soup-message.h"
+#include "soup.h"
 #include "soup-path-map.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-auth-domain

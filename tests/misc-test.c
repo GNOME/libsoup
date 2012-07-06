@@ -3,12 +3,6 @@
  * Copyright 2007-2012 Red Hat, Inc.
  */
 
-#include <string.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup.h>
-#include <libsoup/soup-requester.h>
-
 #include "test-utils.h"
 
 SoupServer *server, *ssl_server;

@@ -14,8 +14,7 @@
 #include <string.h>
 
 #include "soup-cookie-jar-text.h"
-#include "soup-cookie.h"
-#include "soup-date.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-cookie-jar-text

@@ -12,10 +12,7 @@
 #include <string.h>
 
 #include "soup-auth-basic.h"
-#include "soup-headers.h"
-#include "soup-message.h"
-#include "soup-misc.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 typedef struct {
 	char *token;

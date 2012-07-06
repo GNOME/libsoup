@@ -10,6 +10,7 @@
 #endif
 
 #include "soup-session-feature.h"
+#include "soup.h"
 #include "soup-message-private.h"
 
 /**

@@ -11,14 +11,12 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+
 #include <sqlite3.h>
 
 #include "soup-cookie-jar-sqlite.h"
-#include "soup-cookie.h"
-#include "soup-date.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-cookie-jar-sqlite

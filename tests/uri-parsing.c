@@ -1,12 +1,4 @@
-#include <config.h>
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "libsoup/soup-uri.h"
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
 
@@ -524,14 +516,14 @@ main (int argc, char **argv)
 	debug_printf (1, "\nRelative URI parsing\n");
 	base_uri = soup_uri_new (base);
 	if (!base_uri) {
-		fprintf (stderr, "Could not parse %s!\n", base);
+		g_printerr ("Could not parse %s!\n", base);
 		exit (1);
 	}
 
 	uri_string = soup_uri_to_string (base_uri, FALSE);
 	if (strcmp (uri_string, base) != 0) {
-		fprintf (stderr, "URI <%s> unparses to <%s>\n",
-			 base, uri_string);
+		g_printerr ("URI <%s> unparses to <%s>\n",
+			    base, uri_string);
 		errors++;
 	}
 	g_free (uri_string);

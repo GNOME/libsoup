@@ -1,16 +1,11 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
-#include "libsoup/soup.h"
+
+#include <glib/gprintf.h>
 
 #include <locale.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #ifdef HAVE_APACHE
 static gboolean apache_running;
@@ -98,10 +93,10 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 		g_option_context_add_main_entries (opts, entries, NULL);
 
 	if (!g_option_context_parse (opts, &argc, &argv, &error)) {
-		fprintf (stderr, "Could not parse arguments: %s\n",
-			 error->message);
-		fprintf (stderr, "%s",
-			 g_option_context_get_help (opts, TRUE, NULL));
+		g_printerr ("Could not parse arguments: %s\n",
+			    error->message);
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
 		exit (1);
 	}
 	g_option_context_free (opts);
@@ -130,11 +125,11 @@ test_cleanup (void)
 
 	debug_printf (1, "\n");
 	if (errors) {
-		printf ("%s: %d error(s).%s\n",
-			g_get_prgname (), errors,
-			debug_level == 0 ? " Run with '-d' for details" : "");
+		g_print ("%s: %d error(s).%s\n",
+			 g_get_prgname (), errors,
+			 debug_level == 0 ? " Run with '-d' for details" : "");
 	} else
-		printf ("%s: OK\n", g_get_prgname ());
+		g_print ("%s: OK\n", g_get_prgname ());
 }
 
 void
@@ -146,7 +141,7 @@ debug_printf (int level, const char *format, ...)
 		return;
 
 	va_start (args, format);
-	vprintf (format, args);
+	g_vprintf (format, args);
 	va_end (args);
 }
 
@@ -187,7 +182,7 @@ void
 apache_init (void)
 {
 	if (!apache_cmd ("start")) {
-		fprintf (stderr, "Could not start apache\n");
+		g_printerr ("Could not start apache\n");
 		exit (1);
 	}
 	apache_running = TRUE;
@@ -291,7 +286,7 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 		g_main_context_unref (async_context);
 
 	if (!server) {
-		fprintf (stderr, "Unable to create server\n");
+		g_printerr ("Unable to create server\n");
 		exit (1);
 	}
 

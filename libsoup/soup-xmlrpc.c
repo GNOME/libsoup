@@ -10,16 +10,11 @@
 #endif
 
 #include <string.h>
-#include <time.h>
 
 #include <libxml/tree.h>
 
 #include "soup-xmlrpc.h"
-#include "soup-value-utils.h"
-#include "soup-date.h"
-#include "soup-message.h"
-#include "soup-misc.h"
-#include "soup-session.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-xmlrpc

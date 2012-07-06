@@ -3,22 +3,6 @@
  * Copyright (C) 2007, 2008 Red Hat, Inc.
  */
 
-#include "config.h"
-
-#include <ctype.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <glib.h>
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 static struct {
@@ -441,7 +425,7 @@ main (int argc, char **argv)
 				 hello_callback, NULL, NULL);
 	soup_server_add_handler (server, "/md5",
 				 md5_callback, NULL, NULL);
-	port = 	soup_server_get_port (server);
+	port = soup_server_get_port (server);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
@@ -456,7 +440,7 @@ main (int argc, char **argv)
 
 		do_form_decode_test ();
 	} else {
-		printf ("Listening on port %d\n", port);
+		g_print ("Listening on port %d\n", port);
 		g_main_loop_run (loop);
 	}
 

@@ -27,11 +27,10 @@
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include "soup-requester.h"
+#include "soup.h"
 #include "soup-request-data.h"
 #include "soup-request-file.h"
 #include "soup-request-http.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
 
 static SoupSessionFeatureInterface *soup_requester_default_feature_interface;
 static void soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);

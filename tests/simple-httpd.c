@@ -3,24 +3,17 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "config.h"
+#include "test-utils.h"
 
-#include <ctype.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <signal.h>
+#include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
 #endif
-
-#include <libsoup/soup.h>
 
 #ifdef HAVE_MMAP
 struct mapping {
@@ -224,13 +217,13 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
-	printf ("%s %s HTTP/1.%d\n", msg->method, path,
-		soup_message_get_http_version (msg));
+	g_print ("%s %s HTTP/1.%d\n", msg->method, path,
+		 soup_message_get_http_version (msg));
 	soup_message_headers_iter_init (&iter, msg->request_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))
-		printf ("%s: %s\n", name, value);
+		g_print ("%s: %s\n", name, value);
 	if (msg->request_body->length)
-		printf ("%s\n", msg->request_body->data);
+		g_print ("%s\n", msg->request_body->data);
 
 	file_path = g_strdup_printf (".%s", path);
 
@@ -242,7 +235,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
 
 	g_free (file_path);
-	printf ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
+	g_print ("  -> %d %s\n\n", msg->status_code, msg->reason_phrase);
 }
 
 static void
@@ -280,8 +273,8 @@ main (int argc, char **argv)
 			ssl_port = atoi (optarg);
 			break;
 		default:
-			fprintf (stderr, "Usage: %s [-p port] [-c ssl-cert-file -k ssl-key-file [-s ssl-port]]\n",
-				 argv[0]);
+			g_printerr ("Usage: %s [-p port] [-c ssl-cert-file -k ssl-key-file [-s ssl-port]]\n",
+				    argv[0]);
 			exit (1);
 		}
 	}
@@ -290,13 +283,13 @@ main (int argc, char **argv)
 				  SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
 				  NULL);
 	if (!server) {
-		fprintf (stderr, "Unable to bind to server port %d\n", port);
+		g_printerr ("Unable to bind to server port %d\n", port);
 		exit (1);
 	}
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-	printf ("\nStarting Server on port %d\n",
-		soup_server_get_port (server));
+	g_print ("\nStarting Server on port %d\n",
+		 soup_server_get_port (server));
 	soup_server_run_async (server);
 
 	if (ssl_cert_file && ssl_key_file) {
@@ -307,17 +300,17 @@ main (int argc, char **argv)
 			NULL);
 
 		if (!ssl_server) {
-			fprintf (stderr, "Unable to bind to SSL server port %d\n", ssl_port);
+			g_printerr ("Unable to bind to SSL server port %d\n", ssl_port);
 			exit (1);
 		}
 		soup_server_add_handler (ssl_server, NULL,
 					 server_callback, NULL, NULL);
-		printf ("Starting SSL Server on port %d\n", 
-			soup_server_get_port (ssl_server));
+		g_print ("Starting SSL Server on port %d\n", 
+			 soup_server_get_port (ssl_server));
 		soup_server_run_async (ssl_server);
 	}
 
-	printf ("\nWaiting for requests...\n");
+	g_print ("\nWaiting for requests...\n");
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);

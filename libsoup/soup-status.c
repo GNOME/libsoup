@@ -5,11 +5,12 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "config.h"
-
-#include <glib.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include "soup-status.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-status

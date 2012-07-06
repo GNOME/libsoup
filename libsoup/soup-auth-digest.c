@@ -9,17 +9,11 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "soup-auth-digest.h"
-#include "soup-headers.h"
-#include "soup-message.h"
+#include "soup.h"
 #include "soup-message-private.h"
-#include "soup-misc.h"
-#include "soup-uri.h"
 
 typedef struct {
 	char                    *user;
@@ -340,7 +334,7 @@ soup_auth_digest_compute_response (const char        *method,
 	if (qop) {
 		char tmp[9];
 
-		snprintf (tmp, 9, "%.8x", nc);
+		g_snprintf (tmp, 9, "%.8x", nc);
 		g_checksum_update (checksum, (guchar *)tmp, strlen (tmp));
 		g_checksum_update (checksum, (guchar *)":", 1);
 		g_checksum_update (checksum, (guchar *)cnonce, strlen (cnonce));

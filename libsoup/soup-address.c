@@ -9,19 +9,11 @@
 #include <config.h>
 #endif
 
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-
-#include <gio/gio.h>
 
 #include "soup-address.h"
-#include "soup-enum-types.h"
+#include "soup.h"
 #include "soup-marshal.h"
-#include "soup-misc.h"
 
 /**
  * SECTION:soup-address

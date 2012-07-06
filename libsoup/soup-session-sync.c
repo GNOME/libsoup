@@ -11,15 +11,11 @@
 
 #define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
 
-#include "soup-address.h"
 #include "soup-session-sync.h"
+#include "soup.h"
 #include "soup-session-private.h"
-#include "soup-address.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc.h"
-#include "soup-password-manager.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-session-sync

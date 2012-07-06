@@ -9,21 +9,13 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "soup-server.h"
-#include "soup-address.h"
-#include "soup-auth-domain.h"
-#include "soup-date.h"
-#include "soup-form.h"
-#include "soup-headers.h"
+#include "soup.h"
 #include "soup-message-private.h"
 #include "soup-marshal.h"
 #include "soup-path-map.h" 
-#include "soup-socket.h"
 
 /**
  * SECTION:soup-server

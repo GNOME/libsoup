@@ -3,10 +3,6 @@
  * Copyright (C) 2012 Igalia S.L.
  */
 
-#include <glib.h>
-#include <libsoup/soup.h>
-#include <string.h>
-
 #include "test-utils.h"
 
 /* From http://publicsuffix.org/list/test.txt */

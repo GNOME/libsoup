@@ -5,8 +5,9 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#include "soup-path-map.h"
 #include <string.h>
+
+#include "soup-path-map.h"
 
 /* This could be replaced with something more clever, like a Patricia
  * trie, but it's probably not worth it since the total number of

@@ -4,23 +4,6 @@
  * Copyright (C) 2011 Igalia, S.L.
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <glib.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup.h>
-#include <libsoup/soup-requester.h>
-#include <libsoup/soup-request-http.h>
-
 #include "test-utils.h"
 
 SoupServer *server;

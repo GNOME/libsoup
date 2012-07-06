@@ -3,12 +3,6 @@
  * Copyright (C) 2005 Novell, Inc.
  */
 
-#include <stdio.h>
-#include <string.h>
-
-#include <libsoup/soup-date.h>
-#include <glib.h>
-
 #include "test-utils.h"
 
 static gboolean check_ok (const char *strdate, SoupDate *date);

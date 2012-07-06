@@ -9,27 +9,11 @@
 #include <config.h>
 #endif
 
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <glib.h>
-
-#include <fcntl.h>
-#include <sys/types.h>
-
-#include "soup-address.h"
 #include "soup-connection.h"
+#include "soup.h"
 #include "soup-marshal.h"
-#include "soup-message.h"
-#include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc.h"
 #include "soup-misc-private.h"
-#include "soup-proxy-uri-resolver.h"
-#include "soup-proxy-resolver-default.h"
-#include "soup-socket.h"
-#include "soup-uri.h"
-#include "soup-enum-types.h"
 
 typedef struct {
 	SoupSocket  *socket;

@@ -11,7 +11,7 @@
 #endif
 
 #include "soup-message-queue.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /* This is an internal structure used by #SoupSession and its
  * subclasses to keep track of the status of messages currently being

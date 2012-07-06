@@ -12,9 +12,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
 
 #include "soup-date.h"
+#include "soup.h"
 
 /**
  * SoupDate:

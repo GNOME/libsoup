@@ -23,11 +23,10 @@
 #include <config.h>
 #endif
 
-#include "soup-directory-input-stream.h"
-
-#include <libsoup/soup.h>
-#include <stdio.h>
 #include <string.h>
+
+#include "soup-directory-input-stream.h"
+#include "soup.h"
 
 #define INIT_STRING "<html>\n<body>\n<table><th align=\"left\">Name</th><th>Size</th><th>Date Modified</th>\n"
 #define ROW_FORMAT  "<td><a href=\"%s\">%s</a></td><td align=\"right\">%s</td><td align=\"right\" margin=8>%s</td>\n"

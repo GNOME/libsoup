@@ -3,13 +3,6 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
@@ -109,7 +102,7 @@ test_sum (void)
 
 	ints = g_value_array_new (10);
 	for (i = sum = 0; i < 10; i++) {
-		val = rand () % 100;
+		val = g_random_int_range (0, 100);
 		debug_printf (2, "%s%d", i == 0 ? "[" : ", ", val);
 		soup_value_array_append (ints, G_TYPE_INT, val);
 		sum += val;
@@ -144,7 +137,7 @@ test_countBools (void)
 
 	bools = g_value_array_new (10);
 	for (i = trues = falses = 0; i < 10; i++) {
-		val = rand () > (RAND_MAX / 2);
+		val = g_random_boolean ();
 		debug_printf (2, "%s%c", i == 0 ? "[" : ", ", val ? 'T' : 'F');
 		soup_value_array_append (bools, G_TYPE_BOOLEAN, val);
 		if (val)
@@ -194,7 +187,7 @@ test_md5sum (void)
 	data = g_byte_array_new ();
 	g_byte_array_set_size (data, 256);
 	for (i = 0; i < data->len; i++)
-		data->data[i] = (char)(rand ());
+		data->data[i] = (char)(g_random_int_range (0, 256));
 
 	checksum = g_checksum_new (G_CHECKSUM_MD5);
 	g_checksum_update (checksum, data->data, data->len);
@@ -232,12 +225,12 @@ test_dateChange (void)
 
 	debug_printf (1, "dateChange (date, struct of ints -> time): ");
 
-	date = soup_date_new (1970 + (rand () % 50),
-			      1 + rand () % 12,
-			      1 + rand () % 28,
-			      rand () % 24,
-			      rand () % 60,
-			      rand () % 60);
+	date = soup_date_new (1970 + (g_random_int_range (0, 50)),
+			      1 + g_random_int_range (0, 12),
+			      1 + g_random_int_range (0, 28),
+			      g_random_int_range (0, 24),
+			      g_random_int_range (0, 60),
+			      g_random_int_range (0, 60));
 	if (debug_level >= 2) {
 		timestamp = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
 		debug_printf (2, "date: %s, {", timestamp);
@@ -246,38 +239,40 @@ test_dateChange (void)
 
 	structval = soup_value_hash_new ();
 
-	if (rand () % 3) {
-		date->year = 1970 + (rand () % 50);
+#define MAYBE (g_random_int_range (0, 3) != 0)
+
+	if (MAYBE) {
+		date->year = 1970 + (g_random_int_range (0, 50));
 		debug_printf (2, "tm_year: %d, ", date->year - 1900);
 		soup_value_hash_insert (structval, "tm_year",
 					G_TYPE_INT, date->year - 1900);
 	}
-	if (rand () % 3) {
-		date->month = 1 + rand () % 12;
+	if (MAYBE) {
+		date->month = 1 + g_random_int_range (0, 12);
 		debug_printf (2, "tm_mon: %d, ", date->month - 1);
 		soup_value_hash_insert (structval, "tm_mon",
 					G_TYPE_INT, date->month - 1);
 	}
-	if (rand () % 3) {
-		date->day = 1 + rand () % 28;
+	if (MAYBE) {
+		date->day = 1 + g_random_int_range (0, 28);
 		debug_printf (2, "tm_mday: %d, ", date->day);
 		soup_value_hash_insert (structval, "tm_mday",
 					G_TYPE_INT, date->day);
 	}
-	if (rand () % 3) {
-		date->hour = rand () % 24;
+	if (MAYBE) {
+		date->hour = g_random_int_range (0, 24);
 		debug_printf (2, "tm_hour: %d, ", date->hour);
 		soup_value_hash_insert (structval, "tm_hour",
 					G_TYPE_INT, date->hour);
 	}
-	if (rand () % 3) {
-		date->minute = rand () % 60;
+	if (MAYBE) {
+		date->minute = g_random_int_range (0, 60);
 		debug_printf (2, "tm_min: %d, ", date->minute);
 		soup_value_hash_insert (structval, "tm_min",
 					G_TYPE_INT, date->minute);
 	}
-	if (rand () % 3) {
-		date->second = rand () % 60;
+	if (MAYBE) {
+		date->second = g_random_int_range (0, 60);
 		debug_printf (2, "tm_sec: %d, ", date->second);
 		soup_value_hash_insert (structval, "tm_sec",
 					G_TYPE_INT, date->second);
@@ -468,8 +463,6 @@ main (int argc, char **argv)
 		apache_init ();
 		uri = default_uri;
 	}
-
-	srand (time (NULL));
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 

@@ -9,14 +9,12 @@
 #include <config.h>
 #endif
 
+#include <gnome-keyring.h>
+
 #define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
 
 #include "soup-password-manager-gnome.h"
-#include "soup-auth.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
-
-#include <gnome-keyring.h>
+#include "soup.h"
 
 static void soup_password_manager_gnome_interface_init (SoupPasswordManagerInterface *password_manager_interface);
 

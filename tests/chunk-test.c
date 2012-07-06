@@ -3,15 +3,6 @@
  * Copyright (C) 2008 Red Hat, Inc.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <glib.h>
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 typedef struct {

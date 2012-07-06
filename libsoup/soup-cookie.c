@@ -13,11 +13,7 @@
 #include <string.h>
 
 #include "soup-cookie.h"
-#include "soup-date.h"
-#include "soup-headers.h"
-#include "soup-message.h"
-#include "soup-message-headers.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-cookie

@@ -12,7 +12,7 @@
 #include <glib/gi18n-lib.h>
 
 #include "soup-converter-wrapper.h"
-#include "soup-message.h"
+#include "soup.h"
 
 /* SoupConverterWrapper is a GConverter that wraps another GConverter.
  * Mostly it is transparent, but it implements three special fallbacks

@@ -30,9 +30,8 @@
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include "soup-request.h"
+#include "soup.h"
 #include "soup-requester.h"
-#include "soup-session.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-request

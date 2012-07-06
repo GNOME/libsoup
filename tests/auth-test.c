@@ -1,16 +1,4 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "libsoup/soup.h"
-#include "libsoup/soup-auth.h"
-#include "libsoup/soup-session.h"
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
 #include "test-utils.h"
 
@@ -1136,7 +1124,7 @@ do_batch_tests (const gchar *base_uri_str, gint ntests)
 		msg = soup_message_new_from_uri (SOUP_METHOD_GET, soup_uri);
 		soup_uri_free (soup_uri);
 		if (!msg) {
-			fprintf (stderr, "auth-test: Could not parse URI\n");
+			g_printerr ("auth-test: Could not parse URI\n");
 			exit (1);
 		}
 

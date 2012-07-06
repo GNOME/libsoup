@@ -12,8 +12,7 @@
 #include <string.h>
 
 #include "soup-form.h"
-#include "soup-message.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-form

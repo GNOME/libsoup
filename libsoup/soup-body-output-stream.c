@@ -9,14 +9,10 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <gio/gio.h>
 
 #include "soup-body-output-stream.h"
-#include "soup-enum-types.h"
-#include "soup-message-headers.h"
+#include "soup.h"
 
 typedef enum {
 	SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE,
@@ -162,8 +158,8 @@ again:
 
 	switch (bostream->priv->chunked_state) {
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE:
-		snprintf (buf, sizeof (bostream->priv->buf),
-			  "%lx\r\n", (gulong)count);
+		g_snprintf (buf, sizeof (bostream->priv->buf),
+			    "%lx\r\n", (gulong)count);
 		len = strlen (buf);
 
 		if (count > 0)

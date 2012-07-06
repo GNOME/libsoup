@@ -9,13 +9,8 @@
 #include <config.h>
 #endif
 
-#include <string.h>
-
 #include "soup-proxy-resolver-static.h"
-#include "soup-address.h"
-#include "soup-message.h"
-#include "soup-misc.h"
-#include "soup-session-feature.h"
+#include "soup.h"
 
 typedef struct {
 	SoupURI *proxy_uri;

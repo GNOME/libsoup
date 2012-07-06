@@ -9,13 +9,8 @@
 #include <config.h>
 #endif
 
-#include <string.h>
-#include <stdlib.h>
-
 #include "soup-proxy-resolver-default.h"
-#include "soup-proxy-uri-resolver.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /**
  * SoupProxyResolverDefault:

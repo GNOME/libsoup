@@ -14,11 +14,7 @@
 #include <string.h>
 
 #include "soup-logger.h"
-#include "soup-message.h"
-#include "soup-session.h"
-#include "soup-session-feature.h"
-#include "soup-socket.h"
-#include "soup-uri.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-logger

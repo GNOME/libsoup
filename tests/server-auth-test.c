@@ -3,26 +3,6 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "config.h"
-
-#include <ctype.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <glib.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-auth-domain-basic.h>
-#include <libsoup/soup-auth-domain-digest.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
-
 #include "test-utils.h"
 
 static struct {
@@ -370,7 +350,7 @@ main (int argc, char **argv)
 		do_auth_tests (uri);
 		soup_uri_free (uri);
 	} else {
-		printf ("Listening on port %d\n", soup_server_get_port (server));
+		g_print ("Listening on port %d\n", soup_server_get_port (server));
 		g_main_loop_run (loop);
 	}
 

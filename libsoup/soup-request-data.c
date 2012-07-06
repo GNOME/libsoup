@@ -25,14 +25,13 @@
 #include <config.h>
 #endif
 
+#include <glib/gi18n-lib.h>
+
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 
 #include "soup-request-data.h"
-
-#include "soup-requester.h"
+#include "soup.h"
 #include "soup-misc-private.h"
-#include <libsoup/soup.h>
-#include <glib/gi18n.h>
 
 G_DEFINE_TYPE (SoupRequestData, soup_request_data, SOUP_TYPE_REQUEST)
 

@@ -3,15 +3,6 @@
  * Copyright (C) 2007 Novell, Inc.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <libsoup/soup.h>
-#include <libsoup/soup-auth-domain-basic.h>
-#include <libsoup/soup-server.h>
-
 #include "test-utils.h"
 
 #define SHORT_BODY "This is a test.\r\n"

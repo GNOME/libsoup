@@ -3,15 +3,6 @@
  * Copyright (C) 2011 Red Hat, Inc.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup.h>
-#include <libsoup/soup-requester.h>
-#include <libsoup/soup-request-http.h>
-
 #include "test-utils.h"
 
 SoupServer *server;
@@ -31,8 +22,8 @@ get_index (void)
 	GError *error = NULL;
 
 	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		fprintf (stderr, "Could not read index.txt: %s\n",
-			 error->message);
+		g_printerr ("Could not read index.txt: %s\n",
+			    error->message);
 		exit (1);
 	}
 

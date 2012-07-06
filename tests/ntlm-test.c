@@ -9,23 +9,6 @@
  * set in the right messages.
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <glib.h>
-#include <libsoup/soup-address.h>
-#include <libsoup/soup-auth.h>
-#include <libsoup/soup-message.h>
-#include <libsoup/soup-server.h>
-#include <libsoup/soup-session-async.h>
-
 #include "test-utils.h"
 
 typedef enum {

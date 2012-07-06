@@ -3,12 +3,6 @@
  * Copyright (C) 2009 Gustavo Noronha Silva <gns@gnome.org>.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 SoupSession *session;

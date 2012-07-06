@@ -11,21 +11,14 @@
 #endif
 
 #include <ctype.h>
-#include <string.h>
-#include <glib.h>
-
-#ifdef USE_NTLM_AUTH
-#include <stdlib.h>
 #include <errno.h>
-#endif
+#include <stdlib.h>
+#include <string.h>
+
 #include "soup-auth-manager-ntlm.h"
+#include "soup.h"
 #include "soup-auth-ntlm.h"
-#include "soup-message.h"
 #include "soup-message-private.h"
-#include "soup-misc.h"
-#include "soup-session.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
 
 static void soup_auth_manager_ntlm_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 static SoupSessionFeatureInterface *soup_auth_manager_parent_feature_interface;

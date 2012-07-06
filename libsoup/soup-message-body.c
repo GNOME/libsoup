@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "soup-message-body.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-message-body

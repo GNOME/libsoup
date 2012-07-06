@@ -9,21 +9,14 @@
 #include <config.h>
 #endif
 
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "soup-socket.h"
-#include "soup-address.h"
+#include "soup.h"
 #include "soup-filter-input-stream.h"
 #include "soup-io-stream.h"
 #include "soup-marshal.h"
-#include "soup-misc.h"
 #include "soup-misc-private.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-socket

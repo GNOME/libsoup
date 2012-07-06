@@ -3,18 +3,7 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include <ctype.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <glib.h>
-#include <libsoup/soup.h>
+#include "test-utils.h"
 
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.
@@ -32,9 +21,9 @@ copy_header (const char *name, const char *value, gpointer dest_headers)
 static void
 send_headers (SoupMessage *from, SoupMessage *to)
 {
-	printf ("[%p] HTTP/1.%d %d %s\n", to,
-		soup_message_get_http_version (from),
-		from->status_code, from->reason_phrase);
+	g_print ("[%p] HTTP/1.%d %d %s\n", to,
+		 soup_message_get_http_version (from),
+		 from->status_code, from->reason_phrase);
 
 	soup_message_set_status_full (to, from->status_code,
 				      from->reason_phrase);
@@ -47,8 +36,8 @@ send_headers (SoupMessage *from, SoupMessage *to)
 static void
 send_chunk (SoupMessage *from, SoupBuffer *chunk, SoupMessage *to)
 {
-	printf ("[%p]   writing chunk of %lu bytes\n", to,
-		(unsigned long)chunk->length);
+	g_print ("[%p]   writing chunk of %lu bytes\n", to,
+		 (unsigned long)chunk->length);
 
 	soup_message_body_append_buffer (to->response_body, chunk);
 	soup_server_unpause_message (server, to);
@@ -65,7 +54,7 @@ finish_msg (SoupSession *session, SoupMessage *msg2, gpointer data)
 {
 	SoupMessage *msg = data;
 
-	printf ("[%p]   done\n\n", msg);
+	g_print ("[%p]   done\n\n", msg);
 	g_signal_handlers_disconnect_by_func (msg, client_msg_failed, msg2);
 
 	soup_message_body_complete (msg->response_body);
@@ -82,8 +71,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	char *uristr;
 
 	uristr = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
-	printf ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
-		soup_message_get_http_version (msg));
+	g_print ("[%p] %s %s HTTP/1.%d\n", msg, msg->method, uristr,
+		 soup_message_get_http_version (msg));
 
 	if (msg->method == SOUP_METHOD_CONNECT) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -155,8 +144,8 @@ main (int argc, char **argv)
 			port = atoi (optarg);
 			break;
 		default:
-			fprintf (stderr, "Usage: %s [-p port] [-n]\n",
-				 argv[0]);
+			g_printerr ("Usage: %s [-p port] [-n]\n",
+				    argv[0]);
 			exit (1);
 		}
 	}
@@ -164,7 +153,7 @@ main (int argc, char **argv)
 	server = soup_server_new (SOUP_SERVER_PORT, port,
 				  NULL);
 	if (!server) {
-		fprintf (stderr, "Unable to bind to server port %d\n", port);
+		g_printerr ("Unable to bind to server port %d\n", port);
 		exit (1);
 	}
 	soup_server_add_handler (server, NULL,
@@ -174,13 +163,13 @@ main (int argc, char **argv)
 		g_object_unref (auth_domain);
 	}
 
-	printf ("\nStarting proxy on port %d\n",
-		soup_server_get_port (server));
+	g_print ("\nStarting proxy on port %d\n",
+		 soup_server_get_port (server));
 	soup_server_run_async (server);
 
 	session = soup_session_async_new ();
 
-	printf ("\nWaiting for requests...\n");
+	g_print ("\nWaiting for requests...\n");
 
 	loop = g_main_loop_new (NULL, TRUE);
 	g_main_loop_run (loop);

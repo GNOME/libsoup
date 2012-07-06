@@ -9,11 +9,9 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib/gi18n-lib.h>
 
+#include "soup.h"
 #include "soup-body-input-stream.h"
 #include "soup-body-output-stream.h"
 #include "soup-client-input-stream.h"
@@ -21,10 +19,8 @@
 #include "soup-content-sniffer-stream.h"
 #include "soup-converter-wrapper.h"
 #include "soup-filter-input-stream.h"
-#include "soup-message.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
-#include "soup-misc.h"
 #include "soup-misc-private.h"
 
 typedef enum {

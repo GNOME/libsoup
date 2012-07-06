@@ -9,11 +9,9 @@
 #include <config.h>
 #endif
 
-#include <gio/gio.h>
-
 #include "soup-client-input-stream.h"
+#include "soup.h"
 #include "soup-marshal.h"
-#include "soup-message.h"
 #include "soup-message-private.h"
 
 struct _SoupClientInputStreamPrivate {

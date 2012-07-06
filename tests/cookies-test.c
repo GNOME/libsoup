@@ -3,11 +3,6 @@
  * Copyright (C) 2010 Igalia S.L.
  */
 
-#include <string.h>
-
-#include <glib.h>
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 SoupServer *server;

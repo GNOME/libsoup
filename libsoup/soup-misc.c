@@ -5,7 +5,6 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#include <ctype.h>
 #include <string.h>
 
 #include "soup-misc.h"

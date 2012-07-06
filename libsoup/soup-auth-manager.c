@@ -12,16 +12,12 @@
 #include <string.h>
 
 #include "soup-auth-manager.h"
-#include "soup-address.h"
-#include "soup-headers.h"
+#include "soup.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-path-map.h"
-#include "soup-session.h"
-#include "soup-session-feature.h"
 #include "soup-session-private.h"
-#include "soup-uri.h"
 
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 static SoupSessionFeatureInterface *soup_session_feature_default_interface;

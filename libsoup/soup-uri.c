@@ -5,14 +5,12 @@
  * Copyright 1999-2003 Ximian, Inc.
  */
 
-#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "soup-uri.h"
+#include "soup.h"
 #include "soup-misc-private.h"
-#include "soup-form.h"
-#include "soup-misc.h"
 
 /**
  * SECTION:soup-uri

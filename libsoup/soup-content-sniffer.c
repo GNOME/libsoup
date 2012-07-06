@@ -12,11 +12,8 @@
 #include <string.h>
 
 #include "soup-content-sniffer.h"
-#include "soup-enum-types.h"
-#include "soup-message.h"
+#include "soup.h"
 #include "soup-message-private.h"
-#include "soup-session-feature.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-content-sniffer

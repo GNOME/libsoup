@@ -10,11 +10,9 @@
 #endif
 
 #include <string.h>
-#include <gio/gio.h>
 
 #include "soup-content-sniffer-stream.h"
-#include "soup-content-sniffer.h"
-#include "soup-message.h"
+#include "soup.h"
 
 static void soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
 

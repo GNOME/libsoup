@@ -5,19 +5,14 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-#include <stdlib.h>
-#include <string.h>
+//#include <stdlib.h>
+//#include <string.h>
 
-#include "soup-address.h"
-#include "soup-auth.h"
-#include "soup-connection.h"
-#include "soup-enum-types.h"
-#include "soup-marshal.h"
 #include "soup-message.h"
+#include "soup.h"
+#include "soup-connection.h"
+#include "soup-marshal.h"
 #include "soup-message-private.h"
-#include "soup-misc.h"
-#include "soup-socket.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-message

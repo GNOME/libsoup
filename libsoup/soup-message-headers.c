@@ -5,12 +5,10 @@
  * Copyright (C) 2007, 2008 Red Hat, Inc.
  */
 
-#include <stdio.h>
 #include <string.h>
 
 #include "soup-message-headers.h"
-#include "soup-headers.h"
-#include "soup-misc.h"
+#include "soup.h"
 
 /**
  * SECTION:soup-message-headers
@@ -753,8 +751,8 @@ soup_message_headers_set_content_length (SoupMessageHeaders *hdrs,
 {
 	char length[128];
 
-	snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
-		  content_length);
+	g_snprintf (length, sizeof (length), "%" G_GUINT64_FORMAT,
+		    content_length);
 	soup_message_headers_remove (hdrs, "Transfer-Encoding");
 	soup_message_headers_replace (hdrs, "Content-Length", length);
 }

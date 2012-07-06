@@ -1,9 +1,6 @@
-#include <config.h>
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "libsoup/soup-address.h"
+#include "test-utils.h"
 
 static GMainLoop *loop;
 static int nlookups = 0;
@@ -12,13 +9,13 @@ static void
 resolve_callback (SoupAddress *addr, guint status, gpointer data)
 {
 	if (status == SOUP_STATUS_OK) {
-		printf ("Name:    %s\n", soup_address_get_name (addr));
-		printf ("Address: %s\n", soup_address_get_physical (addr));
+		g_print ("Name:    %s\n", soup_address_get_name (addr));
+		g_print ("Address: %s\n", soup_address_get_physical (addr));
 	} else {
-		printf ("Name:    %s\n", soup_address_get_name (addr));
-		printf ("Error:   %s\n", soup_status_get_phrase (status));
+		g_print ("Name:    %s\n", soup_address_get_name (addr));
+		g_print ("Error:   %s\n", soup_status_get_phrase (status));
 	}
-	printf ("\n");
+	g_print ("\n");
 
 	g_object_unref (addr);
 
@@ -30,7 +27,7 @@ resolve_callback (SoupAddress *addr, guint status, gpointer data)
 static void
 usage (void)
 {
-	fprintf (stderr, "Usage: dns hostname ...\n");
+	g_printerr ("Usage: dns hostname ...\n");
 	exit (1);
 }
 
@@ -48,7 +45,7 @@ main (int argc, char **argv)
 	for (i = 1; i < argc; i++) {
 		addr = soup_address_new (argv[i], 0);
 		if (!addr) {
-			fprintf (stderr, "Could not parse address %s\n", argv[1]);
+			g_printerr ("Could not parse address %s\n", argv[1]);
 			exit (1);
 		}
 

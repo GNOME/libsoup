@@ -9,11 +9,12 @@
 #include <config.h>
 #endif
 
-#include <gio/gio.h>
-#include <glib/gi18n-lib.h>
 #include <string.h>
 
+#include <glib/gi18n-lib.h>
+
 #include "soup-tld.h"
+#include "soup.h"
 #include "soup-tld-private.h"
 
 static void soup_tld_ensure_rules_hash_table (void);
