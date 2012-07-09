@@ -304,22 +304,6 @@ do_coding_test (void)
 }
 
 static void
-req_sent (GObject *req, GAsyncResult *result, gpointer user_data)
-{
-	GInputStream **stream = user_data;
-	GError *error = NULL;
-
-	*stream = soup_request_send_finish (SOUP_REQUEST (req),
-					    result, &error);
-	if (error) {
-		debug_printf (1, "    Error sending request: %s\n",
-			      error->message);
-		g_error_free (error);
-		errors++;
-	}
-}
-
-static void
 read_finished (GObject *stream, GAsyncResult *result, gpointer user_data)
 {
 	gssize *nread = user_data;
@@ -348,14 +332,19 @@ do_single_coding_req_test (SoupRequest *req,
 	gssize nread;
 	GError *error = NULL;
 
+	data = g_byte_array_new ();
+
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 
-	stream = NULL;
-	soup_request_send_async (req, NULL, req_sent, &stream);
-	while (!stream)
-		g_main_context_iteration (NULL, TRUE);
+	stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+	if (error) {
+		debug_printf (1, "    Error sending request: %s\n",
+			      error->message);
+		g_error_free (error);
+		errors++;
+		return data;
+	}
 
-	data = g_byte_array_new ();
 	do {
 		nread = -2;
 		g_input_stream_read_async (stream, buf, sizeof (buf),
@@ -368,7 +357,7 @@ do_single_coding_req_test (SoupRequest *req,
 			g_byte_array_append (data, buf, nread);
 	} while (nread > 0);
 
-	g_input_stream_close (stream, NULL, &error);
+	soup_test_stream_close_async_as_sync (stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    error closing stream: %s\n",
 			      error->message);

@@ -31,3 +31,10 @@ void         soup_test_session_abort_unref (SoupSession *session);
 SoupServer  *soup_test_server_new        (gboolean in_own_thread);
 SoupServer  *soup_test_server_new_ssl    (gboolean in_own_thread);
 void         soup_test_server_quit_unref (SoupServer *server);
+
+GInputStream *soup_test_request_send_async_as_sync (SoupRequest   *req,
+						    GCancellable  *cancellable,
+						    GError       **error);
+gboolean      soup_test_stream_close_async_as_sync (GInputStream  *stream,
+						    GCancellable  *cancellable,
+						    GError       **error);

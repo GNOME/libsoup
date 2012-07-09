@@ -124,27 +124,6 @@ test_url (const char *url, int proxy, guint expected,
 	soup_test_session_abort_unref (session);
 }
 
-static GMainLoop *loop;
-
-static void
-request_completed (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	SoupRequest *req = SOUP_REQUEST (source);
-	GInputStream **stream_p = user_data;
-	GError *error = NULL;
-
-	debug_printf (2, "  Request completed\n");
-	*stream_p = soup_request_send_finish (req, result, &error);
-	if (!*stream_p) {
-		debug_printf (1, "  Unexpected error on Request: %s\n",
-			      error->message);
-		errors++;
-		g_error_free (error);
-	}
-
-	g_main_loop_quit (loop);
-}
-
 static void
 test_url_new_api (const char *url, int proxy, guint expected,
 		  gboolean sync, gboolean close)
@@ -155,6 +134,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	SoupRequester *requester;
 	SoupRequest *request;
 	GInputStream *stream;
+	GError *error = NULL;
 
 	if (!tls_available && g_str_has_prefix (url, "https:"))
 		return;
@@ -186,25 +166,30 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	request = soup_requester_request (requester, url, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
-	if (sync) {
-		GError *error = NULL;
-
+	if (sync)
 		stream = soup_request_send (request, NULL, &error);
-		if (!stream) {
-			debug_printf (1, "  Unexpected error on Request: %s\n",
-				      error->message);
-			errors++;
-			g_error_free (error);
-		}
-	} else {
-		loop = g_main_loop_new (NULL, TRUE);
-		soup_request_send_async (request, NULL, request_completed, &stream);
-		g_main_loop_run (loop);
-		g_main_loop_unref (loop);
+	else
+		stream = soup_test_request_send_async_as_sync (request, NULL, &error);
+
+	if (!stream) {
+		debug_printf (1, "  Unexpected error on Request: %s\n",
+			      error->message);
+		errors++;
+		g_clear_error (&error);
 	}
 
-	if (stream)
-		g_input_stream_close (stream, NULL, NULL);
+	if (stream) {
+		if (sync)
+			g_input_stream_close (stream, NULL, NULL);
+		else
+			soup_test_stream_close_async_as_sync (stream, NULL, NULL);
+		if (error) {
+			debug_printf (1, "  Unexpected error on close: %s\n",
+				      error->message);
+			errors++;
+			g_clear_error (&error);
+		}
+	}
 
 	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
 	if (msg->status_code != expected) {

@@ -206,14 +206,6 @@ do_message_api_test (SoupSession *session, SoupURI *base_uri, int n)
 }
 
 static void
-async_callback (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	GAsyncResult **result_p = user_data;
-
-	*result_p = g_object_ref (result);
-}
-
-static void
 do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 {
 	SoupRequester *requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
@@ -222,7 +214,6 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	SoupMessage *msg;
 	TestRequest *treq;
 	GInputStream *stream;
-	GAsyncResult *result;
 	GError *error = NULL;
 	guint final_status;
 
@@ -264,16 +255,10 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	if (SOUP_IS_SESSION_SYNC (session)) {
+	if (SOUP_IS_SESSION_SYNC (session))
 		stream = soup_request_send (req, NULL, &error);
-	} else {
-		result = NULL;
-		soup_request_send_async (req, NULL, async_callback, &result);
-		while (!result)
-			g_main_context_iteration (NULL, TRUE);
-		stream = soup_request_send_finish (req, result, &error);
-		g_object_unref (result);
-	}
+	else
+		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
 
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
 		if (stream) {
@@ -304,17 +289,10 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		return;
 	}
 
-	if (SOUP_IS_SESSION_SYNC (session)) {
+	if (SOUP_IS_SESSION_SYNC (session))
 		g_input_stream_close (stream, NULL, &error);
-	} else {
-		result = NULL;
-		g_input_stream_close_async (stream, G_PRIORITY_DEFAULT,
-					    NULL, async_callback, &result);
-		while (!result)
-			g_main_context_iteration (NULL, TRUE);
-		g_input_stream_close_finish (stream, result, &error);
-		g_object_unref (result);
-	}
+	else
+		soup_test_stream_close_async_as_sync (stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    could not close stream: %s\n",
 			      error->message);

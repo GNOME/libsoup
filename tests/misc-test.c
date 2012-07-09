@@ -932,29 +932,12 @@ cancel_request_thread (gpointer cancellable)
 }
 
 static void
-cancel_request_finished (GObject *source, GAsyncResult *result, gpointer loop)
-{
-	GError *error = NULL;
-
-	if (soup_request_send_finish (SOUP_REQUEST (source), result, &error)) {
-		debug_printf (1, "  Request succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-		debug_printf (1, "  Unexpected error: %s\n",
-			      error->message);
-		errors++;
-	}
-	g_clear_error (&error);
-
-	g_main_loop_quit (loop);
-}
-
-static void
 do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
 {
 	SoupRequest *req;
 	SoupURI *uri;
 	GCancellable *cancellable;
+	GError *error = NULL;
 
 	uri = soup_uri_new_with_base (base_uri, "/slow");
 	req = soup_requester_request_uri (requester, uri, NULL);
@@ -963,30 +946,25 @@ do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
 	cancellable = g_cancellable_new ();
 
 	if (SOUP_IS_SESSION_ASYNC (soup_request_get_session (req))) {
-		GMainLoop *loop;
-
-		loop = g_main_loop_new (NULL, FALSE);
 		g_timeout_add (100, cancel_request_timeout, cancellable);
-		soup_request_send_async (req, cancellable,
-					 cancel_request_finished, loop);
-		g_main_loop_run (loop);
-		g_main_loop_unref (loop);
+		soup_test_request_send_async_as_sync (req, cancellable, &error);
 	} else {
 		GThread *thread;
-		GError *error = NULL;
 
 		thread = g_thread_new ("cancel_request_thread", cancel_request_thread, cancellable);
 		soup_request_send (req, cancellable, &error);
-		if (!error) {
-			debug_printf (1, "  Request succeeded?\n");
-			errors++;
-		} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-			debug_printf (1, "  Unexpected error: %s\n",
-				      error->message);
-			errors++;
-		}
 		g_thread_unref (thread);
 	}
+
+	if (!error) {
+		debug_printf (1, "  Request succeeded?\n");
+		errors++;
+	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+		debug_printf (1, "  Unexpected error: %s\n",
+			      error->message);
+		errors++;
+	}
+	g_clear_error (&error);
 
 	g_object_unref (req);
 	g_object_unref (cancellable);
