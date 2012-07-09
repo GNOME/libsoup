@@ -26,4 +26,19 @@ GIOStream *soup_socket_get_iostream   (SoupSocket *sock);
 #define SOUP_SOCKET_USE_PROXY     "use-proxy"
 SoupURI *soup_socket_get_http_proxy_uri (SoupSocket *sock);
 
+/* At some point it might be possible to mark additional methods
+ * safe or idempotent...
+ */
+#define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
+				     method == SOUP_METHOD_HEAD || \
+				     method == SOUP_METHOD_OPTIONS || \
+				     method == SOUP_METHOD_PROPFIND)
+
+#define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
+					   method == SOUP_METHOD_HEAD || \
+					   method == SOUP_METHOD_OPTIONS || \
+					   method == SOUP_METHOD_PROPFIND || \
+					   method == SOUP_METHOD_PUT || \
+					   method == SOUP_METHOD_DELETE)
+
 #endif /* SOUP_URI_PRIVATE_H */

@@ -493,8 +493,15 @@ soup_session_send_request (SoupSession   *session,
 			break;
 
 		/* Send request, read headers */
-		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error))
-			break;
+		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error)) {
+			if (g_error_matches (my_error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
+				item->state = SOUP_MESSAGE_RESTARTING;
+				soup_message_io_finished (item->msg);
+				g_clear_error (&my_error);
+				continue;
+			} else
+				break;
+		}
 
 		stream = soup_message_io_get_response_istream (msg, &my_error);
 		if (!stream)

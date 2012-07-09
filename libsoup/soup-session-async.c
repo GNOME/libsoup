@@ -660,6 +660,13 @@ try_run_until_read (SoupMessageQueueItem *item)
 		return;
 	}
 
+	if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
+		item->state = SOUP_MESSAGE_RESTARTING;
+		soup_message_io_finished (item->msg);
+		g_error_free (error);
+		return;
+	}
+
 	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		send_request_return_result (item, NULL, error);
 		return;

@@ -17,6 +17,7 @@
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
+#include "soup-misc-private.h"
 #include "soup-message-queue.h"
 #include "soup-proxy-resolver-static.h"
 #include "soup-session-private.h"
@@ -849,22 +850,6 @@ auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 	SOUP_SESSION_GET_CLASS (session)->auth_required (
 		session, msg, auth, retrying);
 }
-
-/* At some point it might be possible to mark additional methods
- * safe or idempotent...
- */
-#define SOUP_METHOD_IS_SAFE(method) (method == SOUP_METHOD_GET || \
-				     method == SOUP_METHOD_HEAD || \
-				     method == SOUP_METHOD_OPTIONS || \
-				     method == SOUP_METHOD_PROPFIND)
-
-#define SOUP_METHOD_IS_IDEMPOTENT(method) (method == SOUP_METHOD_GET || \
-					   method == SOUP_METHOD_HEAD || \
-					   method == SOUP_METHOD_OPTIONS || \
-					   method == SOUP_METHOD_PROPFIND || \
-					   method == SOUP_METHOD_PUT || \
-					   method == SOUP_METHOD_DELETE)
-
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
 	((msg)->status_code == SOUP_STATUS_SEE_OTHER || \

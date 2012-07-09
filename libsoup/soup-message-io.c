@@ -169,40 +169,6 @@ soup_message_io_finished (SoupMessage *msg)
 }
 
 static gboolean
-request_is_idempotent (SoupMessage *msg)
-{
-	/* FIXME */
-	return (msg->method == SOUP_METHOD_GET);
-}
-
-static void
-io_error (SoupMessage *msg, GError *error)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-
-	if (error && error->domain == G_TLS_ERROR) {
-		soup_message_set_status_full (msg,
-					      SOUP_STATUS_SSL_FAILED,
-					      error->message);
-	} else if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-		   io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
-		   io->read_header_buf->len == 0 &&
-		   soup_connection_get_ever_used (io->item->conn) &&
-		   !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
-		   request_is_idempotent (msg)) {
-		/* Connection got closed, but we can safely try again */
-		io->item->state = SOUP_MESSAGE_RESTARTING;
-	} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
-
-	if (error)
-		g_error_free (error);
-
-	soup_message_io_finished (msg);
-}
-
-static gboolean
 read_headers (SoupMessage *msg, GCancellable *cancellable, GError **error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
@@ -815,6 +781,25 @@ soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
 }
 
 static gboolean
+request_is_restartable (SoupMessage *msg, GError *error)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+
+	if (!io)
+		return FALSE;
+
+	return (io->mode == SOUP_MESSAGE_IO_CLIENT &&
+		io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
+		io->read_header_buf->len == 0 &&
+		soup_connection_get_ever_used (io->item->conn) &&
+		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
+		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
+		error->domain != G_TLS_ERROR &&
+		SOUP_METHOD_IS_IDEMPOTENT (msg->method));
+}
+
+static gboolean
 io_run_until (SoupMessage *msg,
 	      SoupMessageIOState read_state, SoupMessageIOState write_state,
 	      GCancellable *cancellable, GError **error)
@@ -847,6 +832,15 @@ io_run_until (SoupMessage *msg,
 	}
 
 	if (my_error) {
+		if (request_is_restartable (msg, my_error)) {
+			/* Connection got closed, but we can safely try again */
+			g_error_free (my_error);
+			g_set_error_literal (error, SOUP_HTTP_ERROR,
+					     SOUP_STATUS_TRY_AGAIN, "");
+			g_object_unref (msg);
+			return FALSE;
+		}
+
 		g_propagate_error (error, my_error);
 		g_object_unref (msg);
 		return FALSE;
@@ -903,7 +897,17 @@ io_run (SoupMessage *msg, gpointer user_data)
 		io->io_source = soup_message_io_get_source (msg, NULL, io_run, msg);
 		g_source_attach (io->io_source, io->async_context);
 	} else if (error && priv->io_data == io) {
-		io_error (msg, error);
+		if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
+			io->item->state = SOUP_MESSAGE_RESTARTING;
+		else if (error->domain == G_TLS_ERROR) {
+			soup_message_set_status_full (msg,
+						      SOUP_STATUS_SSL_FAILED,
+						      error->message);
+		} else if (!SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+			soup_message_set_status (msg, SOUP_STATUS_IO_ERROR);
+
+		g_error_free (error);
+		soup_message_io_finished (msg);
 	}
 
 	g_object_unref (msg);

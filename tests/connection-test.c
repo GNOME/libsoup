@@ -238,7 +238,6 @@ request_started_socket_collector (SoupSession *session, SoupMessage *msg,
 
 	debug_printf (1, "      socket queue overflowed!\n");
 	errors++;
-	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
 }
 
 static void
@@ -298,20 +297,137 @@ do_timeout_test_for_session (SoupSession *session)
 }
 
 static void
+do_timeout_req_test_for_session (SoupSession *session)
+{
+	SoupRequester *requester;
+	SoupRequest *req;
+	SoupMessage *msg;
+	GInputStream *stream;
+	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
+	SoupURI *timeout_uri;
+	GError *error = NULL;
+	int i;
+
+	requester = soup_requester_new ();
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
+	g_object_unref (requester);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (request_started_socket_collector),
+			  &sockets);
+
+	debug_printf (1, "    First request\n");
+	timeout_uri = soup_uri_new_with_base (base_uri, "/timeout-persistent");
+	req = soup_requester_request_uri (requester, timeout_uri, NULL);
+	soup_uri_free (timeout_uri);
+
+	if (SOUP_IS_SESSION_SYNC (session))
+		stream = soup_request_send (req, NULL, &error);
+	else
+		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+
+	if (!stream) {
+		debug_printf (1, "      Unexpected error on send: %s\n",
+			      error->message);
+		errors++;
+		g_clear_error (&error);
+	} else {
+		if (SOUP_IS_SESSION_SYNC (session))
+			g_input_stream_close (stream, NULL, &error);
+		else
+			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+		if (error) {
+			debug_printf (1, "  Unexpected error on close: %s\n",
+				      error->message);
+			errors++;
+			g_clear_error (&error);
+		}
+	}
+
+	if (sockets[1]) {
+		debug_printf (1, "      Message was retried??\n");
+		errors++;
+		sockets[1] = sockets[2] = sockets[3] = NULL;
+	}
+	g_object_unref (req);
+
+	debug_printf (1, "    Second request\n");
+	req = soup_requester_request_uri (requester, base_uri, NULL);
+
+	if (SOUP_IS_SESSION_SYNC (session))
+		stream = soup_request_send (req, NULL, &error);
+	else
+		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+
+	if (!stream) {
+		debug_printf (1, "      Unexpected error on send: %s\n",
+			      error->message);
+		errors++;
+		g_clear_error (&error);
+	} else {
+		if (SOUP_IS_SESSION_SYNC (session))
+			g_input_stream_close (stream, NULL, &error);
+		else
+			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+		if (error) {
+			debug_printf (1, "  Unexpected error on close: %s\n",
+				      error->message);
+			errors++;
+			g_clear_error (&error);
+		}
+	}
+
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	if (sockets[1] != sockets[0]) {
+		debug_printf (1, "      Message was not retried on existing connection\n");
+		errors++;
+	} else if (!sockets[2]) {
+		debug_printf (1, "      Message was not retried after disconnect\n");
+		errors++;
+	} else if (sockets[2] == sockets[1]) {
+		debug_printf (1, "      Message was retried on closed connection??\n");
+		errors++;
+	} else if (sockets[3]) {
+		debug_printf (1, "      Message was retried again??\n");
+		errors++;
+	}
+	g_object_unref (msg);
+	g_object_unref (req);
+
+	for (i = 0; sockets[i]; i++)
+		g_object_unref (sockets[i]);
+}
+
+static void
 do_persistent_connection_timeout_test (void)
 {
 	SoupSession *session;
 
 	debug_printf (1, "\nUnexpected timing out of persistent connections\n");
 
-	debug_printf (1, "  Async session\n");
+	debug_printf (1, "  Async session, message API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_timeout_test_for_session (session);
 	soup_test_session_abort_unref (session);
 
-	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_timeout_req_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session, message API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	do_timeout_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_timeout_req_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 
