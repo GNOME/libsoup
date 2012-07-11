@@ -18,29 +18,29 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
-    if (g_str_equal(path, "/index.html"))
-	soup_message_headers_replace (msg->response_headers,
-				      "Set-Cookie",
-				      "foo=bar");
-    else if (g_str_equal (path, "/foo.jpg"))
-	soup_message_headers_replace (msg->response_headers,
-				      "Set-Cookie",
-				      "baz=qux");
-    else
-	g_return_if_reached ();
+	if (g_str_equal (path, "/index.html")) {
+		soup_message_headers_replace (msg->response_headers,
+					      "Set-Cookie",
+					      "foo=bar");
+	} else if (g_str_equal (path, "/foo.jpg")) {
+		soup_message_headers_replace (msg->response_headers,
+					      "Set-Cookie",
+					      "baz=qux");
+	} else
+		g_return_if_reached ();
 
-    soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
 typedef struct {
-    SoupCookieJarAcceptPolicy policy;
-    int n_cookies;
+	SoupCookieJarAcceptPolicy policy;
+	int n_cookies;
 } CookiesForPolicy;
 
 static const CookiesForPolicy validResults[] = {
-    { SOUP_COOKIE_JAR_ACCEPT_ALWAYS, 2 },
-    { SOUP_COOKIE_JAR_ACCEPT_NEVER, 0 },
-    { SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY, 1 }
+	{ SOUP_COOKIE_JAR_ACCEPT_ALWAYS, 2 },
+	{ SOUP_COOKIE_JAR_ACCEPT_NEVER, 0 },
+	{ SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY, 1 }
 };
 
 static void
@@ -58,41 +58,41 @@ do_cookies_accept_policy_test (void)
 	jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
 
 	for (i = 0; i < G_N_ELEMENTS (validResults); i++) {
-	    soup_cookie_jar_set_accept_policy (jar, validResults[i].policy);
+		soup_cookie_jar_set_accept_policy (jar, validResults[i].policy);
 
-	    uri = soup_uri_new_with_base (first_party_uri, "/index.html");
-	    msg = soup_message_new_from_uri ("GET", uri);
-	    soup_message_set_first_party (msg, first_party_uri);
-	    soup_session_send_message (session, msg);
-	    soup_uri_free (uri);
-	    g_object_unref (msg);
+		uri = soup_uri_new_with_base (first_party_uri, "/index.html");
+		msg = soup_message_new_from_uri ("GET", uri);
+		soup_message_set_first_party (msg, first_party_uri);
+		soup_session_send_message (session, msg);
+		soup_uri_free (uri);
+		g_object_unref (msg);
 
-	    /* We can't use to servers due to limitations in
-	     * test_server, so let's swap first and third party here
-	     * to simulate a cookie coming from a third party.
-	     */
-	    uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
-	    msg = soup_message_new_from_uri ("GET", uri);
-	    soup_message_set_first_party (msg, third_party_uri);
-	    soup_session_send_message (session, msg);
-	    soup_uri_free (uri);
-	    g_object_unref (msg);
+		/* We can't use two servers due to limitations in
+		 * test_server, so let's swap first and third party here
+		 * to simulate a cookie coming from a third party.
+		 */
+		uri = soup_uri_new_with_base (first_party_uri, "/foo.jpg");
+		msg = soup_message_new_from_uri ("GET", uri);
+		soup_message_set_first_party (msg, third_party_uri);
+		soup_session_send_message (session, msg);
+		soup_uri_free (uri);
+		g_object_unref (msg);
 
-	    l = soup_cookie_jar_all_cookies (jar);
-	    if (g_slist_length (l) < validResults[i].n_cookies) {
-		    debug_printf (1, " accepted less cookies than it should have\n");
-		    errors++;
-	    } else if (g_slist_length (l) > validResults[i].n_cookies) {
-		    debug_printf (1, " accepted more cookies than it should have\n");
-		    errors++;
-	    }
+		l = soup_cookie_jar_all_cookies (jar);
+		if (g_slist_length (l) < validResults[i].n_cookies) {
+			debug_printf (1, " accepted less cookies than it should have\n");
+			errors++;
+		} else if (g_slist_length (l) > validResults[i].n_cookies) {
+			debug_printf (1, " accepted more cookies than it should have\n");
+			errors++;
+		}
 
-	    for (p = l; p; p = p->next) {
-		soup_cookie_jar_delete_cookie (jar, p->data);
-		soup_cookie_free (p->data);
-	    }
+		for (p = l; p; p = p->next) {
+			soup_cookie_jar_delete_cookie (jar, p->data);
+			soup_cookie_free (p->data);
+		}
 
-	    g_slist_free (l);
+		g_slist_free (l);
 	}
 
 	soup_test_session_abort_unref (session);
