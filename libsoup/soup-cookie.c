@@ -176,7 +176,7 @@ unskip_lws (const char *s, const char *start)
 #define is_value_ender(ch) ((ch) < ' ' || (ch) == ';')
 
 static char *
-parse_value (const char **val_p)
+parse_value (const char **val_p, gboolean copy)
 {
 	const char *start, *end, *p;
 	char *value;
@@ -188,7 +188,11 @@ parse_value (const char **val_p)
 	for (p = start; !is_value_ender (*p); p++)
 		;
 	end = unskip_lws (p, start);
-	value = g_strndup (start, end - start);
+
+	if (copy)
+		value = g_strndup (start, end - start);
+	else
+		value = NULL;
 
 	*val_p = p;
 	return value;
@@ -200,7 +204,7 @@ parse_date (const char **val_p)
 	char *value;
 	SoupDate *date;
 
-	value = parse_value (val_p);
+	value = parse_value (val_p, TRUE);
 	date = soup_date_new_from_string (value);
 	g_free (value);
 	return date;
@@ -233,7 +237,7 @@ parse_one_cookie (const char *header, SoupURI *origin)
 	}
 
 	/* Parse the VALUE */
-	cookie->value = parse_value (&p);
+	cookie->value = parse_value (&p, TRUE);
 
 	/* Parse attributes */
 	while (*p == ';') {
@@ -246,7 +250,7 @@ parse_one_cookie (const char *header, SoupURI *origin)
 #define MATCH_NAME(name) ((end - start == strlen (name)) && !g_ascii_strncasecmp (start, name, end - start))
 
 		if (MATCH_NAME ("domain") && has_value) {
-			cookie->domain = parse_value (&p);
+			cookie->domain = parse_value (&p, TRUE);
 			if (!*cookie->domain) {
 				g_free (cookie->domain);
 				cookie->domain = NULL;
@@ -255,8 +259,10 @@ parse_one_cookie (const char *header, SoupURI *origin)
 			cookie->expires = parse_date (&p);
 		} else if (MATCH_NAME ("httponly")) {
 			cookie->http_only = TRUE;
+			if (has_value)
+				parse_value (&p, FALSE);
 		} else if (MATCH_NAME ("max-age") && has_value) {
-			char *max_age_str = parse_value (&p), *mae;
+			char *max_age_str = parse_value (&p, TRUE), *mae;
 			long max_age = strtol (max_age_str, &mae, 10);
 			if (!*mae) {
 				if (max_age < 0)
@@ -265,19 +271,21 @@ parse_one_cookie (const char *header, SoupURI *origin)
 			}
 			g_free (max_age_str);
 		} else if (MATCH_NAME ("path") && has_value) {
-			cookie->path = parse_value (&p);
+			cookie->path = parse_value (&p, TRUE);
 			if (*cookie->path != '/') {
 				g_free (cookie->path);
 				cookie->path = NULL;
 			}
 		} else if (MATCH_NAME ("secure")) {
 			cookie->secure = TRUE;
+			if (has_value)
+				parse_value (&p, FALSE);
 		} else {
 			/* Ignore unknown attributes, but we still have
 			 * to skip over the value.
 			 */
 			if (has_value)
-				g_free (parse_value (&p));
+				parse_value (&p, FALSE);
 		}
 	}
 
@@ -772,7 +780,7 @@ serialize_cookie (SoupCookie *cookie, GString *header, gboolean set_cookie)
 	}
 	if (cookie->secure)
 		g_string_append (header, "; secure");
-	if (cookie->secure)
+	if (cookie->http_only)
 		g_string_append (header, "; HttpOnly");
 }
 
