@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-05-26 07:37+0300\n"
-"PO-Revision-Date: 2012-05-26 07:37+0200\n"
+"POT-Creation-Date: 2012-07-12 18:58+0300\n"
+"PO-Revision-Date: 2012-07-12 18:58+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -60,4 +60,17 @@ msgstr "לא ניתן לנתח את הכתובת '%s'"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "שם המארח הוא כתובת IP"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "שם מארח שגוי"
+
+#: ../libsoup/soup-tld.c:181
+#: ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "אין מספיק שמות מתחם"
 
