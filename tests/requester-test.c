@@ -109,7 +109,7 @@ stream_closed (GObject *source, GAsyncResult *res, gpointer user_data)
 	GError *error = NULL;
 
 	if (!g_input_stream_close_finish (stream, res, &error)) {
-		debug_printf (1, "    close failed: %s", error->message);
+		debug_printf (1, "    close failed: %s\n", error->message);
 		g_error_free (error);
 		errors++;
 	}
@@ -128,7 +128,7 @@ test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	nread = g_input_stream_read_finish (stream, res, &error);
 	if (nread == -1) {
-		debug_printf (1, "    read_async failed: %s", error->message);
+		debug_printf (1, "    read_async failed: %s\n", error->message);
 		g_error_free (error);
 		errors++;
 		g_input_stream_close (stream, NULL, NULL);
