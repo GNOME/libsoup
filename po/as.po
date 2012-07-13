@@ -1,0 +1,72 @@
+# Assamese translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+#
+# Nilamdyuti Goswami <ngoswami@redhat.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-07-12 15:59+0000\n"
+"PO-Revision-Date: 2012-07-13 20:11+0530\n"
+"Last-Translator: Nilamdyuti Goswami <ngoswami@redhat.com>\n"
+"Language-Team: as_IN <kde-i18n-doc@kde.org>\n"
+"Language: as\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.0\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: ../libsoup/soup-body-input-stream.c:139
+#: ../libsoup/soup-body-input-stream.c:170
+#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:231
+msgid "Connection terminated unexpectedly"
+msgstr "সংযোগ অপ্ৰত্যাশিতভাৱে অন্ত হল"
+
+#: ../libsoup/soup-converter-wrapper.c:190
+#, c-format
+msgid "Output buffer is too small"
+msgstr "আউটপুট বাফাৰ অতি সৰু"
+
+#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:863
+msgid "Operation was cancelled"
+msgstr "কাৰ্য্য বাতিল কৰা হৈছিল"
+
+#: ../libsoup/soup-message-io.c:874
+msgid "Operation would block"
+msgstr "কাৰ্য্য প্ৰতিৰোধ কৰিব"
+
+#: ../libsoup/soup-request.c:145
+#, c-format
+msgid "No URI provided"
+msgstr "কোনো URl প্ৰদান কৰা হোৱা নাই"
+
+#: ../libsoup/soup-request.c:155
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "অবৈধ '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:220
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI '%s' বিশ্লেষণ কৰিব পৰা নগল"
+
+#: ../libsoup/soup-requester.c:254
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "অসমৰ্থিত URl আঁচনি '%s'"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "হস্টনাম এটা IP ঠিকনা"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "অবৈধ হস্টনাম"
+
+#: ../libsoup/soup-tld.c:181 ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "পৰ্যাপ্ত ডমেইন নাই"
+
