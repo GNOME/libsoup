@@ -143,11 +143,8 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
 
-	if (!soup_message_io_run_until_finish (cistream->priv->msg,
-					       cancellable, error))
-		return FALSE;
-
-	return G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->close_fn (stream, cancellable, error);
+	return soup_message_io_run_until_finish (cistream->priv->msg,
+						 cancellable, error);
 }
 
 typedef struct {
@@ -165,45 +162,26 @@ close_async_data_free (CloseAsyncData *cad)
 	g_slice_free (CloseAsyncData, cad);
 }
 
-static void
-base_stream_closed (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	CloseAsyncData *cad = user_data;
-	GError *error = NULL;
-
-	if (G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
-	    close_finish (G_INPUT_STREAM (cad->cistream), result, &error))
-		g_simple_async_result_set_op_res_gboolean (cad->result, TRUE);
-	else
-		g_simple_async_result_take_error (cad->result, error);
-
-	g_simple_async_result_complete_in_idle (cad->result);
-	close_async_data_free (cad);
-}
-
 static gboolean
 close_async_ready (SoupMessage *msg, gpointer user_data)
 {
 	CloseAsyncData *cad = user_data;
 	GError *error = NULL;
 
-	if (soup_message_io_run_until_finish (cad->cistream->priv->msg,
-					      cad->cancellable, &error)) {
-		G_INPUT_STREAM_CLASS (soup_client_input_stream_parent_class)->
-			close_async (G_INPUT_STREAM (cad->cistream),
-				     cad->priority,
-				     cad->cancellable,
-				     base_stream_closed,
-				     cad);
-		return FALSE;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
-		g_simple_async_result_take_error (cad->result, error);
-		g_simple_async_result_complete_in_idle (cad->result);
-		close_async_data_free (cad);
-		return FALSE;
+	if (!soup_message_io_run_until_finish (cad->cistream->priv->msg,
+					       cad->cancellable, &error) &&
+	    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		g_error_free (error);
+		return TRUE;
 	}
 
-	return TRUE;
+	if (error)
+		g_simple_async_result_take_error (cad->result, error);
+	else
+		g_simple_async_result_set_op_res_gboolean (cad->result, TRUE);
+	g_simple_async_result_complete_in_idle (cad->result);
+	close_async_data_free (cad);
+	return FALSE;
 }
 
 static void
