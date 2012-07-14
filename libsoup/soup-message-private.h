@@ -52,7 +52,8 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      char             *headers,
 					      guint             header_len,
 					      SoupEncoding     *encoding,
-					      gpointer          user_data);
+					      gpointer          user_data,
+					      GError          **error);
 typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
 					      gpointer          user_data);
 

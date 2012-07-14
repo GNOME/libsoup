@@ -11,13 +11,15 @@
 
 #include <string.h>
 
+#include <glib/gi18n-lib.h>
+
 #include "soup.h"
 #include "soup-message-private.h"
 #include "soup-misc-private.h"
 
 static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
-		       SoupEncoding *encoding, gpointer sock)
+		       SoupEncoding *encoding, gpointer sock, GError **error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	char *req_method, *req_path, *url;
@@ -31,8 +33,14 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 					     &req_method,
 					     &req_path,
 					     &version);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		if (status == SOUP_STATUS_MALFORMED) {
+			g_set_error_literal (error, SOUP_REQUEST_ERROR,
+					     SOUP_REQUEST_ERROR_PARSING,
+					     _("Could not parse HTTP request"));
+		}
 		return status;
+	}
 
 	g_object_set (G_OBJECT (msg),
 		      SOUP_MESSAGE_METHOD, req_method,

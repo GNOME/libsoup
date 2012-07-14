@@ -503,7 +503,7 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 		status = io->parse_headers_cb (msg, (char *)io->read_header_buf->data,
 					       io->read_header_buf->len,
 					       &io->read_encoding,
-					       io->header_data);
+					       io->header_data, error);
 		g_byte_array_set_size (io->read_header_buf, 0);
 
 		if (status != SOUP_STATUS_OK) {

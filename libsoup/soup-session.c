@@ -3816,6 +3816,10 @@ soup_session_request_uri (SoupSession *session, SoupURI *uri,
  * @SOUP_REQUEST_ERROR_BAD_URI: the URI could not be parsed
  * @SOUP_REQUEST_ERROR_UNSUPPORTED_URI_SCHEME: the URI scheme is not
  *   supported by this #SoupSession
+ * @SOUP_REQUEST_ERROR_PARSING: the server's response could not
+ *   be parsed
+ * @SOUP_REQUEST_ERROR_ENCODING: the server's response was in an
+ *   unsupported format
  *
  * A #SoupRequest error.
  *

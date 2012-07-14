@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+#include <glib/gi18n-lib.h>
+
 #include "soup.h"
 #include "soup-connection.h"
 #include "soup-message-private.h"
@@ -21,7 +23,8 @@ static guint
 parse_response_headers (SoupMessage *req,
 			char *headers, guint headers_len,
 			SoupEncoding *encoding,
-			gpointer user_data)
+			gpointer user_data,
+			GError **error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
 	SoupHTTPVersion version;
@@ -32,8 +35,12 @@ parse_response_headers (SoupMessage *req,
 					  req->response_headers,
 					  &version,
 					  &req->status_code,
-					  &req->reason_phrase))
+					  &req->reason_phrase)) {
+		g_set_error_literal (error, SOUP_REQUEST_ERROR,
+				     SOUP_REQUEST_ERROR_PARSING,
+				     _("Could not parse HTTP response"));
 		return SOUP_STATUS_MALFORMED;
+	}
 
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
@@ -53,8 +60,12 @@ parse_response_headers (SoupMessage *req,
 	else
 		*encoding = soup_message_headers_get_encoding (req->response_headers);
 
-	if (*encoding == SOUP_ENCODING_UNRECOGNIZED)
+	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
+		g_set_error_literal (error, SOUP_REQUEST_ERROR,
+				     SOUP_REQUEST_ERROR_ENCODING,
+				     _("Unrecognized HTTP response encoding"));
 		return SOUP_STATUS_MALFORMED;
+	}
 
 	return SOUP_STATUS_OK;
 }
