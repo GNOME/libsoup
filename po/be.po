@@ -3,15 +3,16 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-06-08 17:37+0300\n"
-"PO-Revision-Date: 2012-06-08 17:37+0300\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-06-14 18:14+0000\n"
+"PO-Revision-Date: 2012-07-15 14:23+0300\n"
 "Last-Translator: Ihar Hrachyshka <ihar.hrachyshka@gmail.com>\n"
 "Language-Team: Belarusian <i18n-bel-gnome@googlegroups.com>\n"
-"Language: be\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: be\n"
 
 #: ../libsoup/soup-body-input-stream.c:139
 #: ../libsoup/soup-body-input-stream.c:170
@@ -51,3 +52,15 @@ msgstr "Не ўдалося разабраць URI-адрас \"%s\""
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-схема \"%s\" не падтрымліваецца"
+
+#: ../libsoup/soup-tld.c:145
+msgid "Hostname is an IP address"
+msgstr "Назва хоста з'яўляецца IP-адрасам"
+
+#: ../libsoup/soup-tld.c:166
+msgid "Invalid hostname"
+msgstr "Хібная назва хоста"
+
+#: ../libsoup/soup-tld.c:181 ../libsoup/soup-tld.c:219
+msgid "Not enough domains"
+msgstr "Не хапае даменаў"
