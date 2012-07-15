@@ -131,8 +131,8 @@ test_url_new_api (const char *url, int proxy, guint expected,
 {
 	SoupSession *session;
 	SoupURI *proxy_uri;
-	SoupMessage *msg;
 	SoupRequest *request;
+	SoupRequestHTTP *http;
 	GInputStream *stream;
 	GError *error = NULL;
 
@@ -162,7 +162,6 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	}
 
 	request = soup_session_request (session, url, NULL);
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
 	stream = soup_test_request_send (request, NULL, &error);
 	if (!stream) {
@@ -183,13 +182,13 @@ test_url_new_api (const char *url, int proxy, guint expected,
 		g_object_unref (stream);
 	}
 
-	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
-	if (msg->status_code != expected) {
+	http = SOUP_REQUEST_HTTP (request);
+	debug_printf (1, "  %d %s\n", http->status_code, http->reason_phrase);
+	if (http->status_code != expected) {
 		debug_printf (1, "  EXPECTED %d!\n", expected);
 		errors++;
 	}
 
-	g_object_unref (msg);
 	g_object_unref (request);
 
 	soup_test_session_abort_unref (session);

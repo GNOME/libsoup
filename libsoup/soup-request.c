@@ -30,6 +30,7 @@
 #include "soup-request.h"
 #include "soup.h"
 #include "soup-requester.h"
+#include "soup-request-http.h"
 
 /**
  * SECTION:soup-request

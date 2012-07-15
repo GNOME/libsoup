@@ -1162,6 +1162,14 @@ soup_request_file_get_type
 <FILE>soup-request-http</FILE>
 <TITLE>SoupRequestHTTP</TITLE>
 SoupRequestHTTP
+soup_request_http_set_method
+soup_request_http_set_request_version
+soup_request_http_set_flags
+soup_request_http_get_flags
+soup_request_http_set_first_party
+soup_request_http_get_first_party
+soup_request_http_get_https_status
+<SUBSECTION>
 soup_request_http_get_message
 <SUBSECTION Standard>
 SOUP_IS_REQUEST_HTTP

@@ -34,9 +34,30 @@
 
 G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
+enum {
+	PROP_0,
+
+	PROP_METHOD,
+	PROP_REQUEST_URI,
+	PROP_REQUEST_VERSION,
+	PROP_REQUEST_HEADERS,
+	PROP_STATUS_CODE,
+	PROP_REASON_PHRASE,
+	PROP_RESPONSE_VERSION,
+	PROP_RESPONSE_HEADERS,
+
+	PROP_FLAGS,
+	PROP_FIRST_PARTY,
+	PROP_TLS_CERTIFICATE,
+	PROP_TLS_ERRORS,
+
+	LAST_PROP
+};
+
 struct _SoupRequestHTTPPrivate {
 	SoupMessage *msg;
 	char *content_type;
+	gboolean sent;
 };
 
 static void content_sniffed (SoupMessage *msg,
@@ -48,6 +69,125 @@ static void
 soup_request_http_init (SoupRequestHTTP *http)
 {
 	http->priv = G_TYPE_INSTANCE_GET_PRIVATE (http, SOUP_TYPE_REQUEST_HTTP, SoupRequestHTTPPrivate);
+}
+
+static void
+soup_request_http_set_property (GObject *object, guint prop_id,
+				const GValue *value, GParamSpec *pspec)
+{
+	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (object);
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		soup_request_http_set_method (http, g_value_get_string (value));
+		break;
+	case PROP_REQUEST_VERSION:
+		soup_request_http_set_request_version (http, g_value_get_enum (value));
+		break;
+	case PROP_FLAGS:
+		soup_request_http_set_flags (http, g_value_get_flags (value));
+		break;
+	case PROP_FIRST_PARTY:
+		soup_request_http_set_first_party (http, g_value_get_boxed (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+soup_request_http_get_property (GObject *object, guint prop_id,
+				GValue *value, GParamSpec *pspec)
+{
+	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (object);
+	GTlsCertificate *cert;
+	GTlsCertificateFlags errors;
+
+	switch (prop_id) {
+	case PROP_METHOD:
+		g_value_set_string (value, http->method);
+		break;
+	case PROP_REQUEST_URI:
+		g_value_set_boxed (value, http->request_uri);
+		break;
+	case PROP_REQUEST_VERSION:
+		g_value_set_enum (value, http->request_version);
+		break;
+	case PROP_REQUEST_HEADERS:
+		g_value_set_boxed (value, http->request_headers);
+		break;
+	case PROP_STATUS_CODE:
+		g_value_set_uint (value, http->status_code);
+		break;
+	case PROP_REASON_PHRASE:
+		g_value_set_string (value, http->reason_phrase);
+		break;
+	case PROP_RESPONSE_VERSION:
+		g_value_set_enum (value, http->response_version);
+		break;
+	case PROP_RESPONSE_HEADERS:
+		g_value_set_boxed (value, http->request_headers);
+		break;
+	case PROP_FLAGS:
+		g_value_set_flags (value, soup_message_get_flags (http->priv->msg));
+		break;
+	case PROP_FIRST_PARTY:
+		g_value_set_boxed (value, soup_message_get_first_party (http->priv->msg));
+		break;
+	case PROP_TLS_CERTIFICATE:
+		g_object_get (G_OBJECT (http->priv->msg),
+			      "tls-certificate", &cert,
+			      NULL);
+		g_value_set_object (value, cert);
+		break;
+	case PROP_TLS_ERRORS:
+		g_object_get (G_OBJECT (http->priv->msg),
+			      "tls-errors", &errors,
+			      NULL);
+		g_value_set_flags (value, errors);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+message_property_changed (GObject    *object,
+			  GParamSpec *pspec,
+			  gpointer    user_data)
+{
+	SoupRequestHTTP *http = user_data;
+
+	if (!strcmp (pspec->name, "method")) {
+		http->method = http->priv->msg->method;
+		g_object_notify (G_OBJECT (http), "method");
+	} else if (!strcmp (pspec->name, "uri")) {
+		http->request_uri = soup_message_get_uri (http->priv->msg);
+		g_object_notify (G_OBJECT (http), "request-uri");
+	} else if (!strcmp (pspec->name, "status-code")) {
+		http->status_code = http->priv->msg->status_code;
+		g_object_notify (G_OBJECT (http), "status-code");
+	} else if (!strcmp (pspec->name, "reason-phrase")) {
+		http->reason_phrase = http->priv->msg->reason_phrase;
+		g_object_notify (G_OBJECT (http), "reason-phrase");
+	} else if (!strcmp (pspec->name, "http-version")) {
+		if (!http->priv->sent) {
+			http->request_version = soup_message_get_http_version (http->priv->msg);
+			g_object_notify (G_OBJECT (http), "request-version");
+		} else {
+			http->response_version = soup_message_get_http_version (http->priv->msg);
+			g_object_notify (G_OBJECT (http), "response-version");
+		}
+	} else if (!strcmp (pspec->name, "flags"))
+		g_object_notify (G_OBJECT (http), "flags");
+	else if (!strcmp (pspec->name, "first-party"))
+		g_object_notify (G_OBJECT (http), "first-party");
+	else if (!strcmp (pspec->name, "tls-certificate"))
+		g_object_notify (G_OBJECT (http), "tls-certificate");
+	else if (!strcmp (pspec->name, "tls-errors"))
+		g_object_notify (G_OBJECT (http), "tls-errors");
 }
 
 static gboolean
@@ -63,6 +203,17 @@ soup_request_http_check_uri (SoupRequest  *request,
 	http->priv->msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
 	g_signal_connect (http->priv->msg, "content-sniffed",
 			  G_CALLBACK (content_sniffed), http);
+
+	g_signal_connect (http->priv->msg, "notify",
+			  G_CALLBACK (message_property_changed), http);
+
+	http->method = http->priv->msg->method;
+	http->request_uri = soup_message_get_uri (http->priv->msg);
+	http->request_version = SOUP_HTTP_1_1;
+	http->request_headers = http->priv->msg->request_headers;
+	http->response_version = SOUP_HTTP_1_1;
+	http->response_headers = http->priv->msg->response_headers;
+
 	return TRUE;
 }
 
@@ -74,6 +225,9 @@ soup_request_http_finalize (GObject *object)
 	if (http->priv->msg) {
 		g_signal_handlers_disconnect_by_func (http->priv->msg,
 						      G_CALLBACK (content_sniffed),
+						      http);
+		g_signal_handlers_disconnect_by_func (http->priv->msg,
+						      G_CALLBACK (message_property_changed),
 						      http);
 		g_object_unref (http->priv->msg);
 	}
@@ -93,6 +247,7 @@ soup_request_http_send (SoupRequest          *request,
 
 	g_return_val_if_fail (!SOUP_IS_SESSION_ASYNC (session), NULL);
 
+	http->priv->sent = TRUE;
 	return soup_session_send_request (session, http->priv->msg,
 					  cancellable, error);
 }
@@ -194,6 +349,8 @@ soup_request_http_send_async (SoupRequest          *request,
 	SoupCache *cache;
 
 	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
+
+	http->priv->sent = TRUE;
 
 	task = g_task_new (request, cancellable, callback, user_data);
 	sadata = g_slice_new0 (SendAsyncData);
@@ -303,6 +460,8 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
 
 	request_class->schemes = http_schemes;
 
+	object_class->set_property = soup_request_http_set_property;
+	object_class->get_property = soup_request_http_get_property;
 	object_class->finalize = soup_request_http_finalize;
 
 	request_class->check_uri = soup_request_http_check_uri;
@@ -311,6 +470,199 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
 	request_class->send_finish = soup_request_http_send_finish;
 	request_class->get_content_length = soup_request_http_get_content_length;
 	request_class->get_content_type = soup_request_http_get_content_type;
+
+	/**
+	 * SoupRequestHTTP:method:
+	 *
+	 * The request's HTTP method; "GET" by default. Note that in
+	 * C you can simply read the <literal>method</literal> field
+	 * of the #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_METHOD,
+		g_param_spec_string ("method",
+				     "Method",
+				     "The HTTP method",
+				     SOUP_METHOD_GET,
+				     G_PARAM_READWRITE));
+	/**
+	 * SoupRequestHTTP:request-uri:
+	 *
+	 * The request's #SoupURI. Note that in C you can simply read
+	 * the <literal>request_uri</literal> field of the
+	 * #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_URI,
+		g_param_spec_boxed ("request-uri",
+				    "URI",
+				    "The Request-URI",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+	/**
+	 * SoupRequestHTTP:request-version:
+	 *
+	 * The #SoupHTTPVersion used when sending the request;
+	 * %SOUP_HTTP_1_1 by default. Note that in C you can simply
+	 * read the <literal>request_version</literal> field of the
+	 * #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_VERSION,
+		g_param_spec_enum ("request-version",
+				   "Request HTTP Version",
+				   "The SoupHTTPVersion used when sending the request",
+				   SOUP_TYPE_HTTP_VERSION,
+				   SOUP_HTTP_1_1,
+				   G_PARAM_READWRITE));
+	/**
+	 * SoupRequestHTTP:request-headers:
+	 *
+	 * The request's HTTP request headers. Note that in C you can
+	 * simply read the <literal>request_headers</literal> field of
+	 * the #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_HEADERS,
+		g_param_spec_boxed ("request-headers",
+				    "Request Headers",
+				    "The HTTP request headers",
+				    SOUP_TYPE_MESSAGE_HEADERS,
+				    G_PARAM_READABLE));
+
+	/**
+	 * SoupRequestHTTP:status-code:
+	 *
+	 * The request's HTTP response status code. Note that in C you
+	 * can simply read the <literal>status_code</literal> field of
+	 * the #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_STATUS_CODE,
+		g_param_spec_uint ("status-code",
+				   "Status code",
+				   "The HTTP response status code",
+				   0, 599, 0,
+				   G_PARAM_READABLE));
+	/**
+	 * SoupRequestHTTP:reason-phrase:
+	 *
+	 * The request's HTTP response reason phrase. Note that in C
+	 * you can simply read the <literal>reason_phrase</literal>
+	 * field of the #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_REASON_PHRASE,
+		g_param_spec_string ("reason-phrase",
+				     "Reason phrase",
+				     "The HTTP response reason phrase",
+				     NULL,
+				     G_PARAM_READABLE));
+	/**
+	 * SoupRequestHTTP:response-version:
+	 *
+	 * The #SoupHTTPVersion that the server replied with. Note
+	 * that in C you can simply read the
+	 * <literal>response_version</literal> field of the
+	 * #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_RESPONSE_VERSION,
+		g_param_spec_enum ("response-version",
+				   "Response HTTP Version",
+				   "The SoupHTTPVersion that the server replied with",
+				   SOUP_TYPE_HTTP_VERSION,
+				   SOUP_HTTP_1_1,
+				   G_PARAM_READABLE));
+	/**
+	 * SoupRequestHTTP:response-headers:
+	 *
+	 * The request's HTTP response headers. Note that in C you can
+	 * simply read the <literal>response_headers</literal> field
+	 * of the #SoupRequestHTTP.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_RESPONSE_HEADERS,
+		g_param_spec_boxed ("response-headers",
+				    "Response Headers",
+				    "The HTTP response headers",
+				    SOUP_TYPE_MESSAGE_HEADERS,
+				    G_PARAM_READABLE));
+
+	/**
+	 * SoupRequestHTTP:flags:
+	 *
+	 * The request's #SoupMessageFlags.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_FLAGS,
+		g_param_spec_flags ("flags",
+				    "Flags",
+				    "Various request options",
+				    SOUP_TYPE_MESSAGE_FLAGS,
+				    0,
+				    G_PARAM_READWRITE));
+	/**
+	 * SoupRequestHTTP:first-party:
+	 *
+	 * The #SoupURI loaded in the application when the request was
+	 * queued.
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_FIRST_PARTY,
+		g_param_spec_boxed ("first-party",
+				    "First party",
+				    "The URI loaded in the application when the request was queued.",
+				    SOUP_TYPE_URI,
+				    G_PARAM_READWRITE));
+	/**
+	 * SoupRequestHTTP:tls-certificate:
+	 *
+	 * The #GTlsCertificate associated with the request
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_TLS_CERTIFICATE,
+		g_param_spec_object ("tls-certificate",
+				     "TLS Certificate",
+				     "The TLS certificate associated with the request",
+				     G_TYPE_TLS_CERTIFICATE,
+				     G_PARAM_READABLE));
+	/**
+	 * SoupRequestHTTP:tls-errors:
+	 *
+	 * The verification errors on #SoupRequestHTTP:tls-certificate
+	 *
+	 * Since: 2.42
+	 */
+	g_object_class_install_property (
+		object_class, PROP_TLS_ERRORS,
+		g_param_spec_flags ("tls-errors",
+				    "TLS Errors",
+				    "The verification errors on the request's TLS certificate",
+				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
+				    G_PARAM_READABLE));
 }
 
 /**
@@ -321,7 +673,7 @@ soup_request_http_class_init (SoupRequestHTTPClass *request_http_class)
  *
  * Returns: (transfer full): a new reference to the #SoupMessage
  *
- * Since: 2.40
+ * Since: 2.42
  */
 SoupMessage *
 soup_request_http_get_message (SoupRequestHTTP *http)
@@ -329,4 +681,128 @@ soup_request_http_get_message (SoupRequestHTTP *http)
 	g_return_val_if_fail (SOUP_IS_REQUEST_HTTP (http), NULL);
 
 	return g_object_ref (http->priv->msg);
+}
+
+void
+soup_request_http_set_method (SoupRequestHTTP *http,
+			      const char      *method)
+{
+	g_object_set (G_OBJECT (http->priv->msg),
+		      "method", method,
+		      NULL);
+}
+
+/**
+ * soup_request_http_set_request_version:
+ * @http: a #SoupRequestHTTP
+ * @version: the version of HTTP to use
+ *
+ * Sets @http to use the version of HTTP specified by @version in its
+ * request.
+ *
+ * Since: 2.42
+ */
+void
+soup_request_http_set_request_version (SoupRequestHTTP *http,
+				       SoupHTTPVersion  version)
+{
+	g_return_if_fail (!http->priv->sent);
+
+	g_object_set (G_OBJECT (http->priv->msg),
+		      "http-version", version,
+		      NULL);
+}
+
+/**
+ * soup_request_http_get_first_party:
+ * @http: a #SoupRequestHTTP
+ *
+ * Gets @http's first-party #SoupURI; see the documentation
+ * for #SoupCookieJarAcceptPolicy for more details.
+ *
+ * Returns: (transfer none): @http's first-party URI
+ *
+ * Since: 2.42
+ */
+SoupURI *
+soup_request_http_get_first_party (SoupRequestHTTP *http)
+{
+	return soup_message_get_first_party (http->priv->msg);
+}
+
+/**
+ * soup_request_http_set_first_party:
+ * @http: a #SoupRequestHTTP
+ * @first_party: the #SoupURI for the request's first party
+ *
+ * Sets @first_party as the main document #SoupURI for @http. For
+ * details of when and how this is used refer to the documentation for
+ * #SoupCookieJarAcceptPolicy.
+ *
+ * Since: 2.42
+ */
+void
+soup_request_http_set_first_party (SoupRequestHTTP *http,
+				   SoupURI         *first_party)
+{
+	soup_message_set_first_party (http->priv->msg,
+				      first_party);
+}
+
+/**
+ * soup_request_http_get_flags:
+ * @http: a #SoupRequestHTTP
+ *
+ * Gets @http's message flags.
+ *
+ * Returns: @http's message flags
+ *
+ * Since: 2.42
+ */
+SoupMessageFlags
+soup_request_http_get_flags (SoupRequestHTTP *http)
+{
+	return soup_message_get_flags (http->priv->msg);
+}
+
+/**
+ * soup_request_http_set_flags:
+ * @http: a #SoupRequestHTTP
+ * @flags: a set of #SoupMessageFlags values
+ *
+ * Sets the specified flags on @msg. Note that some #SoupMessageFlags
+ * (such as %SOUP_MESSAGE_CAN_REBUILD and
+ * %SOUP_MESSAGE_OVERWRITE_CHUNKS) have no effect in the #SoupRequest
+ * API.
+ *
+ * Since: 2.42
+ */
+void
+soup_request_http_set_flags (SoupRequestHTTP  *http,
+			     SoupMessageFlags  flags)
+{
+	soup_message_set_flags (http->priv->msg, flags);
+}
+
+/**
+ * soup_request_http_get_https_status:
+ * @http: a #SoupRequestHTTP
+ * @certificate: (out) (transfer none): @http's TLS certificate
+ * @errors: (out): the verification status of @certificate
+ *
+ * If @http is using https, this retrieves the #GTlsCertificate
+ * associated with its connection, and the #GTlsCertificateFlags showing
+ * what problems, if any, have been found with that certificate.
+ *
+ * Return value: %TRUE if @http uses https, %FALSE if not
+ *
+ * Since: 2.42
+ */
+gboolean
+soup_request_http_get_https_status (SoupRequestHTTP       *http,
+				    GTlsCertificate      **certificate,
+				    GTlsCertificateFlags  *errors)
+{
+	return soup_message_get_https_status (http->priv->msg,
+					      certificate, errors);
 }

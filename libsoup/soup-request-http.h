@@ -23,6 +23,8 @@
 #define SOUP_REQUEST_HTTP_H 1
 
 #include "soup-request.h"
+#include "soup-message.h"
+#include "soup-message-headers.h"
 
 G_BEGIN_DECLS
 
@@ -38,7 +40,20 @@ typedef struct _SoupRequestHTTPPrivate SoupRequestHTTPPrivate;
 typedef struct {
 	SoupRequest parent;
 
+	/*< public >*/
+	const char         *method;
+	SoupURI            *request_uri;
+	SoupHTTPVersion     request_version;
+	SoupMessageHeaders *request_headers;
+
+	guint               status_code;
+	char               *reason_phrase;
+	SoupHTTPVersion     response_version;
+	SoupMessageHeaders *response_headers;
+
+	/*< private >*/
 	SoupRequestHTTPPrivate *priv;
+
 } SoupRequestHTTP;
 
 typedef struct {
@@ -49,7 +64,31 @@ SOUP_AVAILABLE_IN_2_34
 GType soup_request_http_get_type (void);
 
 SOUP_AVAILABLE_IN_2_34
-SoupMessage *soup_request_http_get_message (SoupRequestHTTP *http);
+SoupMessage      *soup_request_http_get_message         (SoupRequestHTTP      *http);
+
+SOUP_AVAILABLE_IN_2_42
+void              soup_request_http_set_method          (SoupRequestHTTP      *http,
+							 const char           *method);
+SOUP_AVAILABLE_IN_2_42
+void              soup_request_http_set_request_version (SoupRequestHTTP      *http,
+							 SoupHTTPVersion       version);
+
+SOUP_AVAILABLE_IN_2_42
+SoupURI          *soup_request_http_get_first_party     (SoupRequestHTTP      *http);
+SOUP_AVAILABLE_IN_2_42
+void              soup_request_http_set_first_party     (SoupRequestHTTP      *http,
+							 SoupURI              *first_party);
+
+SOUP_AVAILABLE_IN_2_42
+SoupMessageFlags  soup_request_http_get_flags           (SoupRequestHTTP      *http);
+SOUP_AVAILABLE_IN_2_42
+void              soup_request_http_set_flags           (SoupRequestHTTP      *http,
+							 SoupMessageFlags      flags);
+
+SOUP_AVAILABLE_IN_2_42
+gboolean          soup_request_http_get_https_status    (SoupRequestHTTP       *http,
+							 GTlsCertificate      **certificate,
+							 GTlsCertificateFlags  *errors);
 
 G_END_DECLS
 

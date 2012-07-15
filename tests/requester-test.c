@@ -142,10 +142,10 @@ test_read_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 {
+	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (source);
 	RequestData *data = user_data;
 	GInputStream *stream;
 	GError *error = NULL;
-	SoupMessage *msg;
 	const char *content_type;
 
 	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
@@ -157,15 +157,14 @@ auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 		return;
 	}
 
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (source));
-	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
-		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
-			      msg->reason_phrase);
+
+	if (http->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (1, "    GET failed: %d %s\n", http->status_code,
+			      http->reason_phrase);
 		errors++;
 		g_main_loop_quit (loop);
 		return;
 	}
-	g_object_unref (msg);
 
 	content_type = soup_request_get_content_type (SOUP_REQUEST (source));
 	if (g_strcmp0 (content_type, "text/html") != 0) {
@@ -263,11 +262,12 @@ do_async_test (SoupSession *session, SoupURI *uri,
 		request = soup_requester_request_uri (requester, uri, NULL);
 	else
 		request = soup_session_request_uri (session, uri, NULL);
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
 	if (cancel) {
+		msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 		g_signal_connect (msg, "got-headers",
 				  G_CALLBACK (cancel_message), session);
+		g_object_unref (msg);
 	}
 
 	started_id = g_signal_connect (session, "request-started",
@@ -275,7 +275,6 @@ do_async_test (SoupSession *session, SoupURI *uri,
 				       &socket);
 
 	soup_request_send_async (request, NULL, callback, &data);
-	g_object_unref (request);
 
 	loop = g_main_loop_new (soup_session_get_async_context (session), TRUE);
 	g_main_loop_run (loop);
@@ -283,16 +282,16 @@ do_async_test (SoupSession *session, SoupURI *uri,
 
 	g_signal_handler_disconnect (session, started_id);
 
-	if (msg->status_code != expected_status) {
+	if (SOUP_REQUEST_HTTP (request)->status_code != expected_status) {
 		debug_printf (1, "    GET failed: %d %s (expected %d)\n",
 			      msg->status_code, msg->reason_phrase,
 			      expected_status);
-		g_object_unref (msg);
 		g_object_unref (socket);
+		g_object_unref (request);
 		errors++;
 		return;
 	}
-	g_object_unref (msg);
+	g_object_unref (request);
 
 	if (!expected_response) {
 		if (data.body->len) {
@@ -468,10 +467,11 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 	guint started_id;
 	SoupSocket *socket = NULL;
 
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	if (cancel) {
+		msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 		g_signal_connect (msg, "got-headers",
 				  G_CALLBACK (cancel_message), session);
+		g_object_unref (msg);
 	}
 
 	started_id = g_signal_connect (session, "request-started",
@@ -491,29 +491,25 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 			errors++;
 		}
 		g_clear_error (&error);
-		g_object_unref (msg);
 		g_object_unref (socket);
 		return;
 	} else if (!in) {
 		debug_printf (1, "    soup_request_send failed: %s\n",
 			      error->message);
-		g_object_unref (msg);
 		g_clear_error (&error);
 		g_object_unref (socket);
 		errors++;
 		return;
 	}
 
-	if (msg->status_code != expected_status) {
+	if (SOUP_REQUEST_HTTP (request)->status_code != expected_status) {
 		debug_printf (1, "    GET failed: %d %s\n", msg->status_code,
 			      msg->reason_phrase);
-		g_object_unref (msg);
 		g_object_unref (in);
 		g_object_unref (socket);
 		errors++;
 		return;
 	}
-	g_object_unref (msg);
 
 	body = g_string_new (NULL);
 	do {
