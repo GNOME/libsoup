@@ -694,11 +694,11 @@ uri_normalized_copy (const char *part, int length,
 	gboolean need_fixup = FALSE;
 
 	s = d = (unsigned char *)normalized;
-	do {
+	while (*s) {
 		if (*s == '%') {
 			if (!g_ascii_isxdigit (s[1]) ||
 			    !g_ascii_isxdigit (s[2])) {
-				*d++ = *s;
+				*d++ = *s++;
 				continue;
 			}
 
@@ -706,7 +706,7 @@ uri_normalized_copy (const char *part, int length,
 			if (soup_char_is_uri_unreserved (c) ||
 			    (unescape_extra && strchr (unescape_extra, c))) {
 				*d++ = c;
-				s += 2;
+				s += 3;
 			} else {
 				/* We leave it unchanged. We used to uppercase percent-encoded
 				 * triplets but we do not do it any more as RFC3986 Section 6.2.2.1
@@ -714,14 +714,15 @@ uri_normalized_copy (const char *part, int length,
 				 */
 				*d++ = *s++;
 				*d++ = *s++;
-				*d++ = *s;
+				*d++ = *s++;
 			}
 		} else {
 			if (!g_ascii_isgraph (*s))
 				need_fixup = TRUE;
-			*d++ = *s;
+			*d++ = *s++;
 		}
-	} while (*s++);
+	}
+	*d = '\0';
 
 	if (need_fixup) {
 		GString *fixed;
