@@ -101,6 +101,7 @@ typedef struct {
 	SoupCache *cache;
 	SoupCacheEntry *entry;
 	SoupMessage *msg;
+	gulong content_sniffed_handler;
 	gulong got_chunk_handler;
 	gulong got_body_handler;
 	gulong restarted_handler;
@@ -493,6 +494,8 @@ soup_cache_writing_fixture_free (SoupCacheWritingFixture *fixture)
 	/* Free fixture. And disconnect signals, we don't want to
 	   listen to more SoupMessage events as we're finished with
 	   this resource */
+	if (g_signal_handler_is_connected (fixture->msg, fixture->content_sniffed_handler))
+		g_signal_handler_disconnect (fixture->msg, fixture->content_sniffed_handler);
 	if (g_signal_handler_is_connected (fixture->msg, fixture->got_chunk_handler))
 		g_signal_handler_disconnect (fixture->msg, fixture->got_chunk_handler);
 	if (g_signal_handler_is_connected (fixture->msg, fixture->got_body_handler))
@@ -504,6 +507,12 @@ soup_cache_writing_fixture_free (SoupCacheWritingFixture *fixture)
 	g_object_unref (fixture->msg);
 	g_object_unref (fixture->cache);
 	g_slice_free (SoupCacheWritingFixture, fixture);
+}
+
+static void
+msg_content_sniffed_cb (SoupMessage *msg, gchar *content_type, GHashTable *params, SoupCacheWritingFixture *fixture)
+{
+	soup_message_headers_set_content_type (fixture->entry->headers, content_type, params);
 }
 
 static void
@@ -972,6 +981,8 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 
 		/* We connect now to these signals and buffer the data
 		   if it comes before the file is ready for writing */
+		fixture->content_sniffed_handler =
+			g_signal_connect (msg, "content-sniffed", G_CALLBACK (msg_content_sniffed_cb), fixture);
 		fixture->got_chunk_handler =
 			g_signal_connect (msg, "got-chunk", G_CALLBACK (msg_got_chunk_cb), fixture);
 		fixture->got_body_handler =

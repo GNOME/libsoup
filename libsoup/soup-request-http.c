@@ -156,9 +156,6 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 
 			soup_message_got_headers (sadata->original);
 
-			/* FIXME: this is wrong; the cache won't have
-			 * the sniffed type.
-			 */
 			sadata->http->priv->content_type = g_strdup (soup_message_headers_get_content_type (msg->response_headers, NULL));
 
 			g_simple_async_result_complete (sadata->simple);
