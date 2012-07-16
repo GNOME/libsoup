@@ -105,10 +105,7 @@ soup_tld_domain_is_public_suffix (const char *domain)
 	if (*domain == '.' && !(++domain))
 		g_return_val_if_reached (FALSE);
 
-	/* By asking for one additional domain we instruct the search
-	 * not to exactly match any registered public domain.
-	 */
-	base_domain = soup_tld_get_base_domain_internal (domain, 1, &error);
+	base_domain = soup_tld_get_base_domain_internal (domain, 0, &error);
 	if (base_domain)
 		return FALSE;
 
@@ -193,10 +190,14 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 			}
 		}
 
-		/* We hit the top domain, use it if it's listed as valid. */
+		/* If we hit the top and haven't matched yet, then it
+		 * has no public suffix.
+		 */
 		if (!next_dot) {
-			tld = cur_domain;
-			break;
+			g_set_error_literal (error, SOUP_TLD_ERROR,
+					     SOUP_TLD_ERROR_NO_BASE_DOMAIN,
+					     _("Hostname has no base domain"));
+			return NULL;
 		}
 
 		prev_domain = cur_domain;

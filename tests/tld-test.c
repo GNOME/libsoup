@@ -21,16 +21,16 @@ static struct {
   { ".example", NULL },
   { ".example.com", NULL },
   { ".example.example", NULL },
-  /* Unlisted TLD. Not checked because we do not want to force every URL to have a public suffix.*/
-  /* { "example", NULL }, */
-  /* { "example.example", NULL }, */
-  /* { "b.example.example", NULL }, */
-  /* { "a.b.example.example", NULL }, */
+  /* Unlisted TLD.*/
+  { "example", NULL },
+  { "example.example", NULL },
+  { "b.example.example", NULL },
+  { "a.b.example.example", NULL },
   /* Listed, but non-Internet, TLD. */
-  /*{ "local", NULL }, */
-  /*{ "example.local", NULL }, */
-  /*{ "b.example.local", NULL }, */
-  /*{ "a.b.example.local", NULL }, */
+  { "local", NULL },
+  { "example.local", NULL },
+  { "b.example.local", NULL },
+  { "a.b.example.local", NULL },
   /* TLD with only 1 rule. */
   { "biz", NULL },
   { "domain.biz", "domain.biz" },
@@ -102,13 +102,15 @@ main (int argc, char **argv)
                gboolean is_public = soup_tld_domain_is_public_suffix (tld_tests[i].hostname);
                const char *base_domain = soup_tld_get_base_domain (tld_tests[i].hostname, NULL);
 
+	       debug_printf (1, "Testing %s: ", tld_tests[i].hostname);
                if (tld_tests[i].result) {
                        /* Public domains have NULL expected results. */
                        if (is_public || g_strcmp0 (tld_tests[i].result, base_domain)) {
                                debug_printf (1, "ERROR: %s got %s (%s expected)\n",
                                              tld_tests[i].hostname, base_domain, tld_tests[i].result);
                                ++errors;
-                       }
+                       } else
+			       debug_printf (1, "OK\n");
                } else {
                        /* If there is no expected result then either the domain is public or
                         * the hostname invalid (for example starts with a leading dot).
@@ -117,7 +119,8 @@ main (int argc, char **argv)
                                debug_printf (1, "ERROR: public domain %s got %s (none expected)\n",
                                              tld_tests[i].hostname, base_domain);
                                ++errors;
-                       }
+                       } else
+			       debug_printf (1, "OK\n");
 	       }
 	}
 
