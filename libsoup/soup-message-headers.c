@@ -724,8 +724,13 @@ soup_message_headers_set_encoding (SoupMessageHeaders *hdrs,
 goffset
 soup_message_headers_get_content_length (SoupMessageHeaders *hdrs)
 {
-	return (hdrs->encoding == SOUP_ENCODING_CONTENT_LENGTH) ?
-		hdrs->content_length : 0;
+	SoupEncoding encoding;
+
+	encoding = soup_message_headers_get_encoding (hdrs);
+	if (encoding == SOUP_ENCODING_CONTENT_LENGTH)
+		return hdrs->content_length;
+	else
+		return 0;
 }
 
 /**
