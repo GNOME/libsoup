@@ -1,3 +1,46 @@
+Changes in libsoup from 2.39.3 to 2.39.4:
+
+	* Fixed the SoupRequest codepaths to properly retry in the
+          case where the server closes a persistent connection when we
+          try to use it. [Dan, might be the fix for #679527, but this
+          is not yet confirmed]
+
+	* Fixed the content-type and content-length of requests
+          retrieved from SoupCache. [#680029, Carlos Garcia Campos]
+
+	* Fixed the handling of cookies in non-suffixed and private
+          domains ("localhost", "foo.local", etc) [#679230, Sergio and
+          Dan]
+
+	* Fixed cookie parsing to allow attribute values on "secure"
+          and "HttpOnly". (Neither is supposed to have a value, but it
+          happens in the real world.) [#678753, Dan, based on a patch
+          from "Basavaraj"]
+
+	* Fixed soup_uri_normalize() to not always run the "fixup"
+          codepath. [#680018, pointed out by Yann Soubeyrand]
+
+	* Fixed a (rare) crash when closing the stream returned from
+          SoupRequestHTTP. [Dan]
+
+	* Use G_DEPRECATED on deprecated functions, and then fix up
+          the warnings this caused due to libsoup using its own
+          deprecated functions. [#671770, Javier Jardón]
+
+	* Fixed up "make dist" by, among other things, rewriting
+          tld-parser in python. [#678909, Colin Walters]
+
+	* Removed the "getbug" example program in tests/, which didn't
+          work any more anyway. [Dan]
+
+	* Various internal code cleanups. [Dan] Fixed one crash
+          resulting from this [#680055, Alban Browaeys]; hopefully
+          there won't be any more.
+
+	* New/Updated translations:
+	  Assamese, Belarusian, Bulgarian, Chinese (traditional), Hebrew,
+	  Indonesian, Lithuanian, Norwegian bokmål, Vietnamese
+
 Changes in libsoup from 2.39.2 to 2.39.3:
 
 	* Added new functions for comparing domains against the
