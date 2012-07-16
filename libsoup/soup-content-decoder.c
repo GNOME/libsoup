@@ -149,6 +149,7 @@ soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decod
 	 * clean it up if it's not.
 	 */
 	g_slist_free_full (msgpriv->decoders, g_object_unref);
+	msgpriv->decoders = NULL;
 
 	for (e = encodings; e; e = e->next) {
 		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);

@@ -1414,6 +1414,7 @@ soup_message_cleanup_response (SoupMessage *req)
 	}
 
 	g_slist_free_full (priv->decoders, g_object_unref);
+	priv->decoders = NULL;
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
 	req->status_code = SOUP_STATUS_NONE;
