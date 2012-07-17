@@ -270,6 +270,15 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 		return result;
 	}
 
+	if (g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT) &&
+	    !priv->started && inbuf_size == 0 &&
+	    (flags & G_CONVERTER_INPUT_AT_END)) {
+		/* Server claimed compression but there was no message body. */
+		g_error_free (my_error);
+		*bytes_written = 0;
+		return G_CONVERTER_FINISHED;
+	}
+
 	if (!g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA) ||
 	    priv->started) {
 		g_propagate_error (error, my_error);

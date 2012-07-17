@@ -106,8 +106,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_headers_set_encoding (msg->response_headers, SOUP_ENCODING_CHUNKED);
 
-	soup_message_body_append (msg->response_body,
-				  SOUP_MEMORY_TAKE, contents, length);
+	if (!soup_header_contains (options, "empty")) {
+		soup_message_body_append (msg->response_body,
+					  SOUP_MEMORY_TAKE, contents, length);
+	}
 
 	if (soup_header_contains (options, "trailing-junk")) {
 		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
@@ -511,6 +513,48 @@ do_coding_req_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_coding_empty_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+	SoupRequester *requester;
+	SoupRequest *req;
+	GByteArray *body;
+
+	debug_printf (1, "\nEmpty allegedly-encoded body test\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_REQUESTER,
+					 NULL);
+	requester = (SoupRequester *)soup_session_get_feature (session, SOUP_TYPE_REQUESTER);
+	uri = soup_uri_new_with_base (base_uri, "/mbox");
+
+	debug_printf (1, "  SoupMessage\n");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_message_headers_append (msg->request_headers,
+				     "X-Test-Options", "empty");
+	soup_session_send_message (session, msg);
+	check_response (msg, "gzip", "text/plain", EXPECT_NOT_DECODED);
+	g_object_unref (msg);
+
+	debug_printf (1, "  SoupRequest\n");
+	req = soup_requester_request_uri (requester, uri, NULL);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	soup_message_headers_append (msg->request_headers,
+				     "X-Test-Options", "empty");
+	g_object_unref (msg);
+	body = do_single_coding_req_test (req, "gzip", "text/plain", EXPECT_NOT_DECODED);
+	g_byte_array_free (body, TRUE);
+	g_object_unref (req);
+
+	soup_test_session_abort_unref (session);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -523,6 +567,7 @@ main (int argc, char **argv)
 
 	do_coding_test ();
 	do_coding_req_test ();
+	do_coding_empty_test ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
