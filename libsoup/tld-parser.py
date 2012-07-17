@@ -4,7 +4,7 @@
 # Copyright (C) 2012 Red Hat, Inc.
 # Based on tld-parser.c Copyright (C) 2012 Igalia S.L.
 
-import os,sys
+import sys
 
 SOUP_TLD_RULE_NORMAL = 0
 SOUP_TLD_RULE_MATCH_ALL = 1 << 0
@@ -32,9 +32,9 @@ for rule in tlds_file:
         domain = domain[1:]
 
     if not first:
-	inc_file.write(',\n')
+        inc_file.write(',\n')
     else:
-	first = False
+        first = False
     inc_file.write('{ "%s", %d }' % (domain.strip(), flags))
 
 inc_file.write('\n')
