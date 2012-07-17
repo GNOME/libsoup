@@ -1,3 +1,15 @@
+Changes in libsoup from 2.39.4 to 2.39.4.1:
+
+	* Fixed indentation problems in tld-parser.py so it will work
+          under python 3. [#680089, "marduk"]
+
+	* Actually fixed cookies in non-suffixed/private domains,
+          which still didn't work after the last fix. [#679230,
+          Carlos]
+
+	* Updated translations:
+	  Spanish
+
 Changes in libsoup from 2.39.3 to 2.39.4:
 
 	* Fixed the SoupRequest codepaths to properly retry in the

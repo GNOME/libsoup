@@ -3,7 +3,7 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 AC_PREREQ(2.63)
-AC_INIT([libsoup],[2.39.4],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
+AC_INIT([libsoup],[2.39.4.1],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
