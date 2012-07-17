@@ -693,6 +693,9 @@ uri_normalized_copy (const char *part, int length,
 	char *normalized = g_strndup (part, length);
 	gboolean need_fixup = FALSE;
 
+	if (!unescape_extra)
+		unescape_extra = "";
+
 	s = d = (unsigned char *)normalized;
 	while (*s) {
 		if (*s == '%') {
@@ -704,7 +707,7 @@ uri_normalized_copy (const char *part, int length,
 
 			c = HEXCHAR (s);
 			if (soup_char_is_uri_unreserved (c) ||
-			    (unescape_extra && strchr (unescape_extra, c))) {
+			    strchr (unescape_extra, c)) {
 				*d++ = c;
 				s += 3;
 			} else {
@@ -717,7 +720,8 @@ uri_normalized_copy (const char *part, int length,
 				*d++ = *s++;
 			}
 		} else {
-			if (!g_ascii_isgraph (*s))
+			if (!g_ascii_isgraph (*s) &&
+			    !strchr (unescape_extra, *s))
 				need_fixup = TRUE;
 			*d++ = *s++;
 		}
@@ -730,7 +734,8 @@ uri_normalized_copy (const char *part, int length,
 		fixed = g_string_new (NULL);
 		s = (guchar *)normalized;
 		while (*s) {
-			if (g_ascii_isgraph (*s))
+			if (g_ascii_isgraph (*s) ||
+			    strchr (unescape_extra, *s))
 				g_string_append_c (fixed, *s);
 			else
 				g_string_append_printf (fixed, "%%%02X", (int)*s);

@@ -497,6 +497,53 @@ do_soup_uri_null_tests (void)
 	soup_uri_free (uri);
 }
 
+static struct {
+	const char *uri_string, *unescape_extra, *result;
+} normalization_tests[] = {
+	{ "fo%6fbar",         NULL, "foobar" },
+	{ "foo%2fbar",        NULL, "foo%2fbar" },
+	{ "foo%2Fbar",        NULL, "foo%2Fbar" },
+	{ "foo%2fbar",        "/",  "foo/bar" },
+	{ "foo bar",          NULL, "foo%20bar" },
+	{ "foo bar",          " ",  "foo bar" },
+	{ "fo\xc3\xb6" "bar", NULL, "fo%C3%B6bar" },
+	{ "fo\xc3\xb6 bar",   " ",  "fo%C3%B6 bar" }
+};
+static int num_normalization_tests = G_N_ELEMENTS (normalization_tests);
+
+static void
+do_normalization_tests (void)
+{
+	char *normalized;
+	int i;
+
+	debug_printf (1, "\nsoup_uri_normalize\n");
+
+	for (i = 0; i < num_normalization_tests; i++) {
+		if (normalization_tests[i].unescape_extra) {
+			debug_printf (1, "<%s> unescaping <%s> => <%s>: ",
+				      normalization_tests[i].uri_string,
+				      normalization_tests[i].unescape_extra,
+				      normalization_tests[i].result);
+		} else {
+			debug_printf (1, "<%s> => <%s>: ",
+				      normalization_tests[i].uri_string,
+				      normalization_tests[i].result);
+		}
+
+		normalized = soup_uri_normalize (normalization_tests[i].uri_string,
+						 normalization_tests[i].unescape_extra);
+
+		if (!strcmp (normalized, normalization_tests[i].result))
+			debug_printf (1, "OK\n");
+		else {
+			debug_printf (1, "NO, got <%s>\n", normalized);
+			errors++;
+		}
+		g_free (normalized);
+	}
+}
+
 int
 main (int argc, char **argv)
 {
@@ -554,6 +601,7 @@ main (int argc, char **argv)
 	}
 
 	do_soup_uri_null_tests ();
+	do_normalization_tests ();
 
 	test_cleanup ();
 	return errors != 0;
