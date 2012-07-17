@@ -211,8 +211,10 @@ again:
 		if (nread <= 0)
 			return nread;
 
-		if (strncmp (buffer, "\r\n", nread) || strncmp (buffer, "\n", nread))
+		if (strncmp (buffer, "\r\n", nread) || strncmp (buffer, "\n", nread)) {
 			bistream->priv->chunked_state = SOUP_BODY_INPUT_STREAM_STATE_DONE;
+			bistream->priv->eof = TRUE;
+		}
 		break;
 
 	case SOUP_BODY_INPUT_STREAM_STATE_DONE:
