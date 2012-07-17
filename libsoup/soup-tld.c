@@ -109,6 +109,11 @@ soup_tld_domain_is_public_suffix (const char *domain)
 	if (base_domain)
 		return FALSE;
 
+	if (g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_NO_BASE_DOMAIN)) {
+		g_error_free (error);
+		return FALSE;
+	}
+
 	if (g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_IS_IP_ADDRESS) ||
 	    g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_INVALID_HOSTNAME)) {
 		g_error_free (error);
