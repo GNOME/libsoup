@@ -938,8 +938,13 @@ start_request (SoupServer *server, SoupClientContext *client)
 		       msg, client);
 
 	g_object_ref (client->sock);
+
+	if (priv->async_context)
+		g_main_context_push_thread_default (priv->async_context);
 	soup_message_read_request (msg, client->sock,
 				   request_finished, client);
+	if (priv->async_context)
+		g_main_context_pop_thread_default (priv->async_context);
 }
 
 static void
