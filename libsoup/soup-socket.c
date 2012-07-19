@@ -1225,8 +1225,10 @@ soup_socket_disconnect (SoupSocket *sock)
 	 */
 	g_object_ref (sock);
 
-	/* Give all readers a chance to notice the connection close */
-	g_signal_emit (sock, signals[READABLE], 0);
+	if (priv->non_blocking) {
+		/* Give all readers a chance to notice the connection close */
+		g_signal_emit (sock, signals[READABLE], 0);
+	}
 
 	/* FIXME: can't disconnect until all data is read */
 
