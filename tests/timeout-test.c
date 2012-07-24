@@ -3,30 +3,11 @@
 #include "test-utils.h"
 
 static void
-do_message_to_session (SoupSession *session, const char *uri,
-		       const char *comment, guint expected_status)
+message_finished (SoupMessage *msg, gpointer user_data)
 {
-	SoupMessage *msg;
+	gboolean *finished = user_data;
 
-	debug_printf (1, "    %s\n", comment);
-	msg = soup_message_new ("GET", uri);
-	soup_session_send_message (session, msg);
-
-	if (msg->status_code != expected_status) {
-		debug_printf (1, "      FAILED: %d %s (expected %d %s)\n",
-			      msg->status_code, msg->reason_phrase,
-			      expected_status,
-			      soup_status_get_phrase (expected_status));
-		errors++;
-	}
-
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&
-	    !soup_message_is_keepalive (msg)) {
-		debug_printf (1, "      ERROR: message is not keepalive!");
-		errors++;
-	}
-
-	g_object_unref (msg);
+	*finished = TRUE;
 }
 
 static void
@@ -39,10 +20,49 @@ request_started_cb (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-do_tests_for_session (SoupSession *timeout_session,
-		      SoupSession *idle_session,
-		      SoupSession *plain_session,
-		      char *fast_uri, char *slow_uri)
+do_message_to_session (SoupSession *session, const char *uri,
+		       const char *comment, guint expected_status)
+{
+	SoupMessage *msg;
+	gboolean finished = FALSE;
+
+	debug_printf (1, "    msg %s\n", comment);
+	msg = soup_message_new ("GET", uri);
+
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (message_finished), &finished);
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code != expected_status) {
+		debug_printf (1, "      FAILED: %d %s (expected %d %s)\n",
+			      msg->status_code, msg->reason_phrase,
+			      expected_status,
+			      soup_status_get_phrase (expected_status));
+		errors++;
+	}
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&
+	    !soup_message_is_keepalive (msg)) {
+		debug_printf (1, "      ERROR: message is not keepalive!\n");
+		errors++;
+	}
+
+	if (!finished) {
+		debug_printf (1, "      ERROR: 'finished' was not emitted\n");
+		errors++;
+	}
+
+	g_signal_handlers_disconnect_by_func (msg,
+					      G_CALLBACK (message_finished),
+					      &finished);
+	g_object_unref (msg);
+}
+
+static void
+do_msg_tests_for_session (SoupSession *timeout_session,
+			  SoupSession *idle_session,
+			  SoupSession *plain_session,
+			  char *fast_uri, char *slow_uri)
 {
 	SoupSocket *ret, *idle_first, *idle_second;
 	SoupSocket *plain_first, *plain_second;
@@ -92,16 +112,156 @@ do_tests_for_session (SoupSession *timeout_session,
 }
 
 static void
+do_request_to_session (SoupRequester *requester, const char *uri,
+		       const char *comment, gboolean expect_timeout)
+{
+	SoupRequest *req;
+	SoupMessage *msg;
+	GInputStream *stream;
+	GError *error = NULL;
+	gboolean finished = FALSE;
+
+	debug_printf (1, "    req %s\n", comment);
+	req = soup_requester_request (requester, uri, NULL);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (message_finished), &finished);
+	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+		stream = soup_request_send (req, NULL, &error);
+	else
+		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+
+	if (expect_timeout && !error) {
+		debug_printf (1, "      FAILED: request did not time out\n");
+		errors++;
+	} else if (expect_timeout && !g_error_matches (error, G_IO_ERROR,
+						       G_IO_ERROR_TIMED_OUT)) {
+		debug_printf (1, "      FAILED: wrong error: %s\n",
+			      error->message);
+		errors++;
+	} else if (!expect_timeout && error) {
+		debug_printf (1, "      FAILED: expected success but got error: %s\n",
+			      error->message);
+		errors++;
+	}
+	g_clear_error (&error);
+
+	if (stream) {
+		if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+			g_input_stream_close (stream, NULL, &error);
+		else
+			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+
+		if (error) {
+			debug_printf (1, "      ERROR closing string: %s",
+				      error->message);
+			errors++;
+		}
+	}
+
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&
+	    !soup_message_is_keepalive (msg)) {
+		debug_printf (1, "      ERROR: message is not keepalive!\n");
+		errors++;
+	}
+
+	if (!finished) {
+		debug_printf (1, "      ERROR: 'finished' was not emitted\n");
+		errors++;
+	}
+
+	g_signal_handlers_disconnect_by_func (msg,
+					      G_CALLBACK (message_finished),
+					      &finished);
+	g_object_unref (msg);
+	g_object_unref (req);
+}
+
+static void
+do_req_tests_for_session (SoupSession *timeout_session,
+			  SoupSession *idle_session,
+			  SoupSession *plain_session,
+			  char *fast_uri, char *slow_uri)
+{
+	SoupRequester *timeout_requester, *idle_requester, *plain_requester;
+	SoupSocket *ret, *idle_first, *idle_second;
+	SoupSocket *plain_first, *plain_second;
+
+	debug_printf (1, "\n");
+
+	if (idle_session) {
+		idle_requester = soup_requester_new ();
+		soup_session_add_feature (idle_session,
+					  SOUP_SESSION_FEATURE (idle_requester));
+		g_object_unref (idle_requester);
+
+		g_signal_connect (idle_session, "request-started",
+				  G_CALLBACK (request_started_cb), &ret);
+		do_request_to_session (idle_requester, fast_uri, "fast to idle", FALSE);
+		idle_first = ret;
+	}
+
+	if (plain_session) {
+		plain_requester = soup_requester_new ();
+		soup_session_add_feature (plain_session,
+					  SOUP_SESSION_FEATURE (plain_requester));
+		g_object_unref (plain_requester);
+
+		g_signal_connect (plain_session, "request-started",
+				  G_CALLBACK (request_started_cb), &ret);
+		do_request_to_session (plain_requester, fast_uri, "fast to plain", FALSE);
+		plain_first = ret;
+	}
+
+	timeout_requester = soup_requester_new ();
+	soup_session_add_feature (timeout_session,
+				  SOUP_SESSION_FEATURE (timeout_requester));
+	g_object_unref (timeout_requester);
+
+	do_request_to_session (timeout_requester, fast_uri, "fast to timeout", FALSE);
+	do_request_to_session (timeout_requester, slow_uri, "slow to timeout", TRUE);
+
+	if (idle_session) {
+		do_request_to_session (idle_requester, fast_uri, "fast to idle", FALSE);
+		idle_second = ret;
+		g_signal_handlers_disconnect_by_func (idle_session,
+						      (gpointer)request_started_cb,
+						      &ret);
+
+		if (idle_first == idle_second) {
+			debug_printf (1, "      ERROR: idle_session did not close first connection\n");
+			errors++;
+		}
+	}
+
+	if (plain_session) {
+		do_request_to_session (plain_requester, fast_uri, "fast to plain", FALSE);
+		plain_second = ret;
+		g_signal_handlers_disconnect_by_func (plain_session,
+						      (gpointer)request_started_cb,
+						      &ret);
+
+		if (plain_first != plain_second) {
+			debug_printf (1, "      ERROR: plain_session closed connection\n");
+			errors++;
+		}
+	}
+}
+
+static void
 do_timeout_tests (char *fast_uri, char *slow_uri)
 {
 	SoupSession *timeout_session, *idle_session, *plain_session;
 
 	debug_printf (1, "  async\n");
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_TIMEOUT, 1,
-					 NULL);
+						 SOUP_SESSION_TIMEOUT, 1,
+						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+						 NULL);
 	idle_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					      SOUP_SESSION_IDLE_TIMEOUT, 1,
+					      SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					      NULL);
 	/* The "plain" session also has an idle timeout, but it's longer
 	 * than the test takes, so for our purposes it should behave like
@@ -109,21 +269,26 @@ do_timeout_tests (char *fast_uri, char *slow_uri)
 	 */
 	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					       SOUP_SESSION_IDLE_TIMEOUT, 2,
+					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
-	do_tests_for_session (timeout_session, idle_session, plain_session,
-			      fast_uri, slow_uri);
+
+	do_msg_tests_for_session (timeout_session, idle_session, plain_session,
+				  fast_uri, slow_uri);
+	do_req_tests_for_session (timeout_session, idle_session, plain_session,
+				  fast_uri, slow_uri);
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (idle_session);
 	soup_test_session_abort_unref (plain_session);
 
-	debug_printf (1, "  sync\n");
+	debug_printf (1, "\n  sync\n");
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 						 SOUP_SESSION_TIMEOUT, 1,
 						 NULL);
 	/* SOUP_SESSION_TIMEOUT doesn't work with sync sessions */
 	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					       NULL);
-	do_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
+	do_msg_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
+	do_req_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (plain_session);
 }

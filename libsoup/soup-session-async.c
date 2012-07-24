@@ -667,6 +667,14 @@ try_run_until_read (SoupMessageQueueItem *item)
 	}
 
 	if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		if (item->state != SOUP_MESSAGE_FINISHED) {
+			gboolean dummy;
+
+			if (soup_message_io_in_progress (item->msg))
+				soup_message_io_finished (item->msg);
+			item->state = SOUP_MESSAGE_FINISHING;
+			process_queue_item (item, &dummy, FALSE);
+		}
 		send_request_return_result (item, NULL, error);
 		return;
 	}
