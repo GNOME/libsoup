@@ -15,12 +15,14 @@
 #include "soup.h"
 
 /* SoupConverterWrapper is a GConverter that wraps another GConverter.
- * Mostly it is transparent, but it implements three special fallbacks
+ * Mostly it is transparent, but it implements four special fallbacks
  * for Content-Encoding handling: (1) "deflate" can mean either raw
- * deflate or zlib-encoded default, (2) the server may mistakenly
+ * deflate or zlib-encoded deflate, (2) the server may mistakenly
  * claim that a response is encoded when actually it isn't, (3) the
  * response may contain trailing junk after the end of the encoded
- * portion that we want to ignore.
+ * portion that we want to ignore, (4) the response may be truncated
+ * at an arbitrary point rather than containing a complete compressed
+ * representation.
  *
  * If the wrapped conversion succeeds, then the wrapper will set the
  * %SOUP_MESSAGE_CONTENT_DECODED flag on its message.
@@ -271,8 +273,7 @@ soup_converter_wrapper_real_convert (GConverter *converter,
 	}
 
 	if (g_error_matches (my_error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT) &&
-	    !priv->started && inbuf_size == 0 &&
-	    (flags & G_CONVERTER_INPUT_AT_END)) {
+	    inbuf_size == 0 && (flags & G_CONVERTER_INPUT_AT_END)) {
 		/* Server claimed compression but there was no message body. */
 		g_error_free (my_error);
 		*bytes_written = 0;
