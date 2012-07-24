@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-12 18:58+0300\n"
-"PO-Revision-Date: 2012-07-12 18:58+0200\n"
+"POT-Creation-Date: 2012-07-24 23:14+0300\n"
+"PO-Revision-Date: 2012-07-24 23:15+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -20,57 +20,61 @@ msgstr ""
 "X-Poedit-Country: ISRAEL\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../libsoup/soup-body-input-stream.c:139
-#: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203
-#: ../libsoup/soup-message-io.c:231
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200
+#: ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-converter-wrapper.c:190
+#: ../libsoup/soup-converter-wrapper.c:191
 #, c-format
 msgid "Output buffer is too small"
 msgstr "אוגר הפלט קטן מדי"
 
-#: ../libsoup/soup-message-io.c:836
-#: ../libsoup/soup-message-io.c:863
+#: ../libsoup/soup-message-io.c:817
+#: ../libsoup/soup-message-io.c:853
 msgid "Operation was cancelled"
 msgstr "הפעולה בוטלה"
 
-#: ../libsoup/soup-message-io.c:874
+#: ../libsoup/soup-message-io.c:864
 msgid "Operation would block"
 msgstr "הפעולה תיחסם"
 
-#: ../libsoup/soup-request.c:145
+#: ../libsoup/soup-request.c:142
 #, c-format
 msgid "No URI provided"
 msgstr "לא סופקה כתובת"
 
-#: ../libsoup/soup-request.c:155
+#: ../libsoup/soup-request.c:152
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "כתובת '%s' שגויה: %s"
 
-#: ../libsoup/soup-requester.c:220
+#: ../libsoup/soup-requester.c:219
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "לא ניתן לנתח את הכתובת '%s'"
 
-#: ../libsoup/soup-requester.c:254
+#: ../libsoup/soup-requester.c:253
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
 
-#: ../libsoup/soup-tld.c:145
+#: ../libsoup/soup-tld.c:148
 msgid "Hostname is an IP address"
 msgstr "שם המארח הוא כתובת IP"
 
-#: ../libsoup/soup-tld.c:166
+#: ../libsoup/soup-tld.c:169
 msgid "Invalid hostname"
 msgstr "שם מארח שגוי"
 
-#: ../libsoup/soup-tld.c:181
-#: ../libsoup/soup-tld.c:219
+#: ../libsoup/soup-tld.c:184
+#: ../libsoup/soup-tld.c:226
 msgid "Not enough domains"
 msgstr "אין מספיק שמות מתחם"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "לשם המארח אין שם מתחם בסיסי"
 
