@@ -389,6 +389,8 @@ SoupSession
 <SUBSECTION>
 soup_session_request
 soup_session_request_uri
+soup_session_request_http
+soup_session_request_http_uri
 SoupRequestError
 SOUP_REQUEST_ERROR
 <SUBSECTION>

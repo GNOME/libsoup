@@ -37,7 +37,7 @@ G_BEGIN_DECLS
 
 typedef struct _SoupRequestHTTPPrivate SoupRequestHTTPPrivate;
 
-typedef struct {
+struct _SoupRequestHTTP {
 	SoupRequest parent;
 
 	/*< public >*/
@@ -54,7 +54,7 @@ typedef struct {
 	/*< private >*/
 	SoupRequestHTTPPrivate *priv;
 
-} SoupRequestHTTP;
+};
 
 typedef struct {
 	SoupRequestClass parent;

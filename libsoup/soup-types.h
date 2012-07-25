@@ -21,6 +21,7 @@ typedef struct _SoupCookieJar         SoupCookieJar;
 typedef struct _SoupDate              SoupDate;
 typedef struct _SoupMessage           SoupMessage;
 typedef struct _SoupRequest           SoupRequest;
+typedef struct _SoupRequestHTTP       SoupRequestHTTP;
 typedef struct _SoupServer            SoupServer;
 typedef struct _SoupSession           SoupSession;
 typedef struct _SoupSessionAsync      SoupSessionAsync;

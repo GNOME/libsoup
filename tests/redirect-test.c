@@ -209,7 +209,7 @@ static void
 do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 {
 	SoupURI *uri;
-	SoupRequest *req;
+	SoupRequestHTTP *reqh;
 	SoupMessage *msg;
 	TestRequest *treq;
 	GInputStream *stream;
@@ -225,9 +225,11 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		final_status = tests[n].final_status;
 
 	uri = soup_uri_new_with_base (base_uri, tests[n].requests[0].path);
-	req = soup_session_request_uri (session, uri, &error);
+	reqh = soup_session_request_http_uri (session,
+					      tests[n].requests[0].method,
+					      uri, &error);
 	soup_uri_free (uri);
-	if (!req) {
+	if (!reqh) {
 		debug_printf (1, "    could not create request: %s\n",
 			      error->message);
 		g_error_free (error);
@@ -236,11 +238,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		return;
 	}
 
-	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
-	g_object_set (G_OBJECT (msg),
-		      SOUP_MESSAGE_METHOD, tests[n].requests[0].method,
-		      NULL);
-
+	msg = soup_request_http_get_message (reqh);
 	if (msg->method == SOUP_METHOD_POST) {
 		soup_message_set_request (msg, "text/plain",
 					  SOUP_MEMORY_STATIC,
@@ -254,7 +252,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, &error);
 
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
 		if (stream) {
@@ -272,22 +270,20 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		}
 
 		g_error_free (error);
-		g_object_unref (msg);
-		g_object_unref (req);
+		g_object_unref (reqh);
 		debug_printf (2, "\n");
 		return;
 	} else if (!stream) {
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);
 		g_error_free (error);
-		g_object_unref (msg);
-		g_object_unref (req);
+		g_object_unref (reqh);
 		errors++;
 		debug_printf (2, "\n");
 		return;
 	}
 
-	soup_test_request_close_stream (req, stream, NULL, &error);
+	soup_test_request_close_stream (SOUP_REQUEST (reqh), stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    could not close stream: %s\n",
 			      error->message);
@@ -303,7 +299,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	}
 
 	g_object_unref (msg);
-	g_object_unref (req);
+	g_object_unref (reqh);
 	debug_printf (2, "\n");
 }
 

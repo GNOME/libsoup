@@ -3803,6 +3803,94 @@ soup_session_request_uri (SoupSession *session, SoupURI *uri,
 			       NULL);
 }
 
+static SoupRequestHTTP *
+initialize_http_request (SoupRequest  *req,
+			 const char   *method,
+			 GError      **error)
+{
+	SoupRequestHTTP *http;
+	SoupMessage *msg;
+
+	if (!SOUP_IS_REQUEST_HTTP (req)) {
+		g_object_unref (req);
+		g_set_error (error, SOUP_REQUEST_ERROR,
+			     SOUP_REQUEST_ERROR_BAD_URI,
+			     _("Not an HTTP URI"));
+		return NULL;
+	}
+
+	http = SOUP_REQUEST_HTTP (req);
+	msg = soup_request_http_get_message (http);
+	g_object_set (G_OBJECT (msg),
+		      SOUP_MESSAGE_METHOD, method,
+		      NULL);
+	g_object_unref (msg);
+
+	return http;
+}
+
+/**
+ * soup_session_request_http:
+ * @session: a #SoupSession
+ * @method: an HTTP method
+ * @uri_string: a URI, in string form
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri_string, which must be an
+ * "http" or "https" URI (or another protocol listed in @session's
+ * #SoupSession:http-aliases or #SoupSession:https-aliases).
+ *
+ * Return value: (transfer full): a new #SoupRequestHTTP, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
+SoupRequestHTTP *
+soup_session_request_http (SoupSession  *session,
+			   const char   *method,
+			   const char   *uri_string,
+			   GError      **error)
+{
+	SoupRequest *req;
+
+	req = soup_session_request (session, uri_string, error);
+	if (!req)
+		return NULL;
+
+	return initialize_http_request (req, method, error);
+}
+
+/**
+ * soup_session_request_http_uri:
+ * @session: a #SoupSession
+ * @method: an HTTP method
+ * @uri: a #SoupURI representing the URI to retrieve
+ * @error: return location for a #GError, or %NULL
+ *
+ * Creates a #SoupRequest for retrieving @uri, which must be an
+ * "http" or "https" URI (or another protocol listed in @session's
+ * #SoupSession:http-aliases or #SoupSession:https-aliases).
+ *
+ * Return value: (transfer full): a new #SoupRequestHTTP, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
+SoupRequestHTTP *
+soup_session_request_http_uri (SoupSession  *session,
+			       const char   *method,
+			       SoupURI      *uri,
+			       GError      **error)
+{
+	SoupRequest *req;
+
+	req = soup_session_request_uri (session, uri, error);
+	if (!req)
+		return NULL;
+
+	return initialize_http_request (req, method, error);
+}
+
 /**
  * SOUP_REQUEST_ERROR:
  *

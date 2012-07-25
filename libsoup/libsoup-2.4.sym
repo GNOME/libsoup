@@ -382,6 +382,8 @@ soup_session_redirect_message
 soup_session_remove_feature
 soup_session_remove_feature_by_type
 soup_session_request
+soup_session_request_http
+soup_session_request_http_uri
 soup_session_request_uri
 soup_session_requeue_message
 soup_session_send_message

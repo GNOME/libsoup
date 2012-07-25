@@ -149,13 +149,23 @@ SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *ses
 							 SoupMessage        *msg);
 
 SOUP_AVAILABLE_IN_2_42
-SoupRequest *soup_session_request     (SoupSession  *session,
-				       const char   *uri_string,
-				       GError      **error);
+SoupRequest     *soup_session_request          (SoupSession  *session,
+						const char   *uri_string,
+						GError      **error);
 SOUP_AVAILABLE_IN_2_42
-SoupRequest *soup_session_request_uri (SoupSession  *session,
-				       SoupURI      *uri,
-				       GError      **error);
+SoupRequest     *soup_session_request_uri      (SoupSession  *session,
+						SoupURI      *uri,
+						GError      **error);
+SOUP_AVAILABLE_IN_2_42
+SoupRequestHTTP *soup_session_request_http     (SoupSession  *session,
+						const char   *method,
+						const char   *uri_string,
+						GError      **error);
+SOUP_AVAILABLE_IN_2_42
+SoupRequestHTTP *soup_session_request_http_uri (SoupSession  *session,
+						const char   *method,
+						SoupURI      *uri,
+						GError      **error);
 
 SOUP_AVAILABLE_IN_2_42
 GQuark soup_request_error_quark (void);
