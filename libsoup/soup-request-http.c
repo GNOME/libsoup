@@ -30,6 +30,7 @@
 #include "soup-request-http.h"
 #include "soup.h"
 #include "soup-cache-private.h"
+#include "soup-message-private.h"
 #include "soup-session-private.h"
 
 G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
@@ -201,6 +202,8 @@ soup_request_http_check_uri (SoupRequest  *request,
 		return FALSE;
 
 	http->priv->msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+	soup_message_set_soup_request (http->priv->msg, request);
+
 	g_signal_connect (http->priv->msg, "content-sniffed",
 			  G_CALLBACK (content_sniffed), http);
 

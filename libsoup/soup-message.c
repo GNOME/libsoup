@@ -1995,3 +1995,35 @@ soup_message_set_redirect (SoupMessage *msg, guint status_code,
 	g_free (location_str);
 	soup_uri_free (location);
 }
+
+void
+soup_message_set_soup_request (SoupMessage *msg,
+			       SoupRequest *req)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+
+	priv->request = req;
+}
+
+/**
+ * soup_message_get_soup_request:
+ * @msg: a #SoupMessage
+ *
+ * If @msg is associated with a #SoupRequest, this returns that
+ * request. Otherwise it returns %NULL.
+ *
+ * Return value: @msg's associated #SoupRequest
+ *
+ * Since: 2.40
+ */
+SoupRequest *
+soup_message_get_soup_request (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), NULL);
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	return priv->request;
+}
+

@@ -38,6 +38,8 @@ typedef struct {
 
 	GTlsCertificate      *tls_certificate;
 	GTlsCertificateFlags  tls_errors;
+
+	SoupRequest       *request;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
@@ -132,5 +134,8 @@ GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
 					       SoupMessage *msg,
 					       SoupSession *session,
 					       SoupProcessingStage start_at_stage);
+
+void soup_message_set_soup_request (SoupMessage *msg,
+				    SoupRequest *req);
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */
