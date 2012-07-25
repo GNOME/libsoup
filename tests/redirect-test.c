@@ -255,10 +255,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	if (SOUP_IS_SESSION_SYNC (session))
-		stream = soup_request_send (req, NULL, &error);
-	else
-		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, &error);
 
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
 		if (stream) {
@@ -289,10 +286,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		return;
 	}
 
-	if (SOUP_IS_SESSION_SYNC (session))
-		g_input_stream_close (stream, NULL, &error);
-	else
-		soup_test_stream_close_async_as_sync (stream, NULL, &error);
+	soup_test_request_close_stream (req, stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    could not close stream: %s\n",
 			      error->message);

@@ -321,21 +321,14 @@ do_timeout_req_test_for_session (SoupSession *session)
 	req = soup_requester_request_uri (requester, timeout_uri, NULL);
 	soup_uri_free (timeout_uri);
 
-	if (SOUP_IS_SESSION_SYNC (session))
-		stream = soup_request_send (req, NULL, &error);
-	else
-		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
-
+	stream = soup_test_request_send (req, NULL, &error);
 	if (!stream) {
 		debug_printf (1, "      Unexpected error on send: %s\n",
 			      error->message);
 		errors++;
 		g_clear_error (&error);
 	} else {
-		if (SOUP_IS_SESSION_SYNC (session))
-			g_input_stream_close (stream, NULL, &error);
-		else
-			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+		soup_test_request_close_stream (req, stream, NULL, &error);
 		if (error) {
 			debug_printf (1, "  Unexpected error on close: %s\n",
 				      error->message);
@@ -354,21 +347,14 @@ do_timeout_req_test_for_session (SoupSession *session)
 	debug_printf (1, "    Second request\n");
 	req = soup_requester_request_uri (requester, base_uri, NULL);
 
-	if (SOUP_IS_SESSION_SYNC (session))
-		stream = soup_request_send (req, NULL, &error);
-	else
-		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
-
+	stream = soup_test_request_send (req, NULL, &error);
 	if (!stream) {
 		debug_printf (1, "      Unexpected error on send: %s\n",
 			      error->message);
 		errors++;
 		g_clear_error (&error);
 	} else {
-		if (SOUP_IS_SESSION_SYNC (session))
-			g_input_stream_close (stream, NULL, &error);
-		else
-			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+		soup_test_request_close_stream (req, stream, NULL, &error);
 		if (error) {
 			debug_printf (1, "  Unexpected error on close: %s\n",
 				      error->message);

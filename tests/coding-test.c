@@ -338,7 +338,7 @@ do_single_coding_req_test (SoupRequest *req,
 
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 
-	stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, &error);
 	if (error) {
 		debug_printf (1, "    Error sending request: %s\n",
 			      error->message);
@@ -359,7 +359,7 @@ do_single_coding_req_test (SoupRequest *req,
 			g_byte_array_append (data, buf, nread);
 	} while (nread > 0);
 
-	soup_test_stream_close_async_as_sync (stream, NULL, &error);
+	soup_test_request_close_stream (req, stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    error closing stream: %s\n",
 			      error->message);

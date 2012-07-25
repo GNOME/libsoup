@@ -355,8 +355,8 @@ soup_test_server_quit_unref (SoupServer *server)
 }
 
 typedef struct {
-  GMainLoop *loop;
-  GAsyncResult *result;
+	GMainLoop *loop;
+	GAsyncResult *result;
 } AsyncAsSyncData;
 
 static void
@@ -364,51 +364,58 @@ async_as_sync_callback (GObject      *object,
 			GAsyncResult *result,
 			gpointer      user_data)
 {
-  AsyncAsSyncData *data = user_data;
+	AsyncAsSyncData *data = user_data;
 
-  data->result = g_object_ref (result);
-  g_main_loop_quit (data->loop);
+	data->result = g_object_ref (result);
+	g_main_loop_quit (data->loop);
 }
 
 GInputStream *
-soup_test_request_send_async_as_sync (SoupRequest   *req,
-				      GCancellable  *cancellable,
-				      GError       **error)
+soup_test_request_send (SoupRequest   *req,
+			GCancellable  *cancellable,
+			GError       **error)
 {
-  AsyncAsSyncData data;
-  GInputStream *stream;
+	AsyncAsSyncData data;
+	GInputStream *stream;
 
-  data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
+	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+		return soup_request_send (req, cancellable, error);
 
-  soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
-  g_main_loop_run (data.loop);
+	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 
-  stream = soup_request_send_finish (req, data.result, error);
+	soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
+	g_main_loop_run (data.loop);
 
-  g_main_loop_unref (data.loop);
-  g_object_unref (data.result);
+	stream = soup_request_send_finish (req, data.result, error);
 
-  return stream;
+	g_main_loop_unref (data.loop);
+	g_object_unref (data.result);
+
+	return stream;
 }
 
 gboolean
-soup_test_stream_close_async_as_sync (GInputStream  *stream,
-				      GCancellable  *cancellable,
-				      GError       **error)
+soup_test_request_close_stream (SoupRequest   *req,
+				GInputStream  *stream,
+				GCancellable  *cancellable,
+				GError       **error)
 {
-  AsyncAsSyncData data;
-  gboolean ok;
+	AsyncAsSyncData data;
+	gboolean ok;
 
-  data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
+	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+		return g_input_stream_close (stream, cancellable, error);
 
-  g_input_stream_close_async (stream, G_PRIORITY_DEFAULT, cancellable,
-			      async_as_sync_callback, &data);
-  g_main_loop_run (data.loop);
+	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
 
-  ok = g_input_stream_close_finish (stream, data.result, error);
+	g_input_stream_close_async (stream, G_PRIORITY_DEFAULT, cancellable,
+				    async_as_sync_callback, &data);
+	g_main_loop_run (data.loop);
 
-  g_main_loop_unref (data.loop);
-  g_object_unref (data.result);
+	ok = g_input_stream_close_finish (stream, data.result, error);
 
-  return ok;
+	g_main_loop_unref (data.loop);
+	g_object_unref (data.result);
+
+	return ok;
 }

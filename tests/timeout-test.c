@@ -127,10 +127,7 @@ do_request_to_session (SoupRequester *requester, const char *uri,
 
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (message_finished), &finished);
-	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
-		stream = soup_request_send (req, NULL, &error);
-	else
-		stream = soup_test_request_send_async_as_sync (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, &error);
 
 	if (expect_timeout && !error) {
 		debug_printf (1, "      FAILED: request did not time out\n");
@@ -148,10 +145,7 @@ do_request_to_session (SoupRequester *requester, const char *uri,
 	g_clear_error (&error);
 
 	if (stream) {
-		if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
-			g_input_stream_close (stream, NULL, &error);
-		else
-			soup_test_stream_close_async_as_sync (stream, NULL, &error);
+		soup_test_request_close_stream (req, stream, NULL, &error);
 
 		if (error) {
 			debug_printf (1, "      ERROR closing string: %s",

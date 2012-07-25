@@ -166,11 +166,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	request = soup_requester_request (requester, url, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
-	if (sync)
-		stream = soup_request_send (request, NULL, &error);
-	else
-		stream = soup_test_request_send_async_as_sync (request, NULL, &error);
-
+	stream = soup_test_request_send (request, NULL, &error);
 	if (!stream) {
 		debug_printf (1, "  Unexpected error on Request: %s\n",
 			      error->message);
@@ -179,10 +175,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	}
 
 	if (stream) {
-		if (sync)
-			g_input_stream_close (stream, NULL, NULL);
-		else
-			soup_test_stream_close_async_as_sync (stream, NULL, NULL);
+		soup_test_request_close_stream (request, stream, NULL, NULL);
 		if (error) {
 			debug_printf (1, "  Unexpected error on close: %s\n",
 				      error->message);

@@ -947,12 +947,12 @@ do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
 
 	if (SOUP_IS_SESSION_ASYNC (soup_request_get_session (req))) {
 		g_timeout_add (100, cancel_request_timeout, cancellable);
-		soup_test_request_send_async_as_sync (req, cancellable, &error);
+		soup_test_request_send (req, cancellable, &error);
 	} else {
 		GThread *thread;
 
 		thread = g_thread_new ("cancel_request_thread", cancel_request_thread, cancellable);
-		soup_request_send (req, cancellable, &error);
+		soup_test_request_send (req, cancellable, &error);
 		g_thread_unref (thread);
 	}
 
