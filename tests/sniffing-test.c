@@ -233,13 +233,6 @@ got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer data)
 }
 
 static void
-finished (SoupSession *session, SoupMessage *msg, gpointer data)
-{
-	GMainLoop *loop = (GMainLoop*)data;
-	g_main_loop_quit (loop);
-}
-
-static void
 do_signals_test (gboolean should_content_sniff,
 		 gboolean should_pause,
 		 gboolean should_accumulate,
@@ -248,7 +241,6 @@ do_signals_test (gboolean should_content_sniff,
 {
 	SoupURI *uri = soup_uri_new_with_base (base_uri, "/mbox");
 	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
-	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
 	char *contents;
 	gsize length;
 	GError *error = NULL;
@@ -283,10 +275,7 @@ do_signals_test (gboolean should_content_sniff,
 			  "signal::content_sniffed", content_sniffed, GINT_TO_POINTER (should_pause),
 			  NULL);
 
-	g_object_ref (msg);
-	soup_session_queue_message (session, msg, finished, loop);
-
-	g_main_loop_run (loop);
+	soup_session_send_message (session, msg);
 
 	if (!should_content_sniff &&
 	    g_object_get_data (G_OBJECT (msg), "content-sniffed")) {
@@ -338,7 +327,6 @@ do_signals_test (gboolean should_content_sniff,
 
 	soup_uri_free (uri);
 	g_object_unref (msg);
-	g_main_loop_unref (loop);
 }
 
 static void
@@ -347,91 +335,124 @@ sniffing_content_sniffed (SoupMessage *msg, const char *content_type,
 {
 	char **sniffed_type = (char **)data;
 	GString *full_header;
-	GList *keys;
-	GList *iter;
+	GHashTableIter iter;
+	gpointer key, value;
 
 	full_header = g_string_new (content_type);
 
-	keys = g_hash_table_get_keys (params);
-	for (iter = keys; iter != NULL; iter = iter->next) {
-		const gchar *value = (const gchar*) g_hash_table_lookup (params, iter->data);
-
-		g_string_append (full_header, "; ");
+	g_hash_table_iter_init (&iter, params);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		if (full_header->len)
+			g_string_append (full_header, "; ");
 		soup_header_g_string_append_param (full_header,
-						   (const gchar*) iter->data,
-						   value);
+						   (const char *) key,
+						   (const char *) value);
 	}
 
-	*sniffed_type = full_header->str;
-
-	g_string_free (full_header, FALSE);
-	g_list_free (keys);
+	*sniffed_type = g_string_free (full_header, FALSE);
 }
 
 static void
 test_sniffing (const char *path, const char *expected_type)
 {
-	SoupURI *uri = soup_uri_new_with_base (base_uri, path);
-	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
-	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+	SoupURI *uri;
+	SoupMessage *msg;
+	SoupRequest *req;
+	GInputStream *stream;
 	char *sniffed_type = NULL;
+	GError *error = NULL;
 
 	debug_printf (1, "test_sniffing(\"%s\", \"%s\")\n", path, expected_type);
+
+	uri = soup_uri_new_with_base (base_uri, path);
+	msg = soup_message_new_from_uri ("GET", uri);
 
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	g_object_ref (msg);
-
-	soup_session_queue_message (session, msg, finished, loop);
-
-	g_main_loop_run (loop);
-
+	soup_session_send_message (session, msg);
 	if (!sniffed_type) {
 		debug_printf (1, "  message was not sniffed!\n");
 		errors++;
 	} else if (strcmp (sniffed_type, expected_type) != 0) {
-		debug_printf (1, "  sniffing failed! expected %s, got %s\n",
+		debug_printf (1, "  message sniffing failed! expected %s, got %s\n",
 			      expected_type, sniffed_type);
 		errors++;
 	}
 	g_free (sniffed_type);
+	g_object_unref (msg);
+
+	req = soup_session_request_uri (session, uri, NULL);
+	stream = soup_test_request_send (req, NULL, &error);
+	if (stream)
+		soup_test_request_close_stream (req, stream, NULL, &error);
+	if (error) {
+		debug_printf (1, "  request failed: %s\n", error->message);
+		g_clear_error (&error);
+	} else {
+		const char *req_sniffed_type;
+
+		req_sniffed_type = soup_request_get_content_type (req);
+		if (strcmp (req_sniffed_type, expected_type) != 0) {
+			debug_printf (1, "  request sniffing failed! expected %s, got %s\n",
+				      expected_type, req_sniffed_type);
+			errors++;
+		}
+	}
+	g_object_unref (req);
 
 	soup_uri_free (uri);
-	g_object_unref (msg);
-	g_main_loop_unref (loop);
 }
 
 static void
 test_disabled (const char *path)
 {
-	SoupURI *uri = soup_uri_new_with_base (base_uri, path);
-	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
-	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+	SoupURI *uri;
+	SoupMessage *msg;
+	SoupRequest *req;
+	GInputStream *stream;
 	char *sniffed_type = NULL;
-
-	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
+	GError *error = NULL;
 
 	debug_printf (1, "test_disabled(\"%s\")\n", path);
+
+	uri = soup_uri_new_with_base (base_uri, path);
+
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
 
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
-	g_object_ref (msg);
-
-	soup_session_queue_message (session, msg, finished, loop);
-
-	g_main_loop_run (loop);
+	soup_session_send_message (session, msg);
 
 	if (sniffed_type) {
 		debug_printf (1, "  message was sniffed!\n");
 		errors++;
 		g_free (sniffed_type);
 	}
+	g_object_unref (msg);
+
+	req = soup_session_request_uri (session, uri, NULL);
+	soup_request_disable_feature (req, SOUP_TYPE_CONTENT_SNIFFER);
+	stream = soup_test_request_send (req, NULL, &error);
+	if (stream)
+		soup_test_request_close_stream (req, stream, NULL, &error);
+	if (error) {
+		debug_printf (1, "  request failed: %s\n", error->message);
+		g_clear_error (&error);
+	} else {
+		const char *sniffed_content_type;
+
+		sniffed_content_type = soup_request_get_content_type (req);
+		if (sniffed_content_type != NULL) {
+			debug_printf (1, "  request was sniffed!\n");
+			errors++;
+		}
+	}
+	g_object_unref (req);
 
 	soup_uri_free (uri);
-	g_object_unref (msg);
-	g_main_loop_unref (loop);
 }
 
 int
@@ -446,7 +467,9 @@ main (int argc, char **argv)
 	base_uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
 
 	/* No sniffer, no content_sniffed should be emitted */
 	do_signals_test (FALSE, FALSE, FALSE, FALSE, FALSE);
@@ -552,6 +575,7 @@ main (int argc, char **argv)
 
 	soup_test_session_abort_unref (session);
 	soup_test_server_quit_unref (server);
+
 	test_cleanup ();
 	return errors != 0;
 }

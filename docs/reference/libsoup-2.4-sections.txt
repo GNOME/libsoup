@@ -1112,6 +1112,8 @@ soup_request_get_content_type
 soup_request_get_session
 soup_request_get_uri
 <SUBSECTION>
+soup_request_disable_feature
+<SUBSECTION>
 SOUP_REQUEST_SESSION
 SOUP_REQUEST_URI
 <SUBSECTION Standard>

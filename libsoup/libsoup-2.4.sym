@@ -317,6 +317,7 @@ soup_requester_get_type
 soup_requester_new
 soup_requester_request
 soup_requester_request_uri
+soup_request_disable_feature
 soup_request_error_get_type
 soup_request_error_quark
 soup_request_file_get_file
