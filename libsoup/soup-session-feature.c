@@ -52,7 +52,7 @@
  * Since: 2.24
  **/
 
-static void soup_session_feature_default_init (SoupSessionFeatureInterface *interface);
+static void soup_session_feature_default_init (SoupSessionFeatureInterface *iface);
 
 G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
 
@@ -142,10 +142,10 @@ soup_session_feature_detach (SoupSessionFeature *feature,
 }
 
 static void
-soup_session_feature_default_init (SoupSessionFeatureInterface *interface)
+soup_session_feature_default_init (SoupSessionFeatureInterface *iface)
 {
-	interface->attach = soup_session_feature_real_attach;
-	interface->detach = soup_session_feature_real_detach;
+	iface->attach = soup_session_feature_real_attach;
+	iface->detach = soup_session_feature_real_detach;
 }
 
 /**

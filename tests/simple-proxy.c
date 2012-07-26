@@ -5,6 +5,10 @@
 
 #include "test-utils.h"
 
+#ifdef G_OS_WIN32
+#include <getopt.h>
+#endif
+
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.
  */

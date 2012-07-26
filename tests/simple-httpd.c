@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#ifdef G_OS_WIN32
+#include <getopt.h>
+#endif
+
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
 #endif

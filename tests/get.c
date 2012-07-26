@@ -6,6 +6,10 @@
 #include "test-utils.h"
 #include <stdio.h>
 
+#ifdef G_OS_WIN32
+#include <getopt.h>
+#endif
+
 static SoupSession *session;
 static GMainLoop *loop;
 static gboolean debug = FALSE, quiet = FALSE;
