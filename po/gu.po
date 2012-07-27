@@ -1,0 +1,76 @@
+# Gujarati translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+#
+# , 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-07-26 18:48+0000\n"
+"PO-Revision-Date: 2012-07-27 14:35+0530\n"
+"Last-Translator: \n"
+"Language-Team: gu_IN <kde-i18n-doc@kde.org>\n"
+"Language: gu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.0\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "જોડાણ અનિચ્છનીય રીતે તૂટી ગયુ"
+
+#: ../libsoup/soup-converter-wrapper.c:191
+#, c-format
+msgid "Output buffer is too small"
+msgstr "આઉટપુટ બફર ઘણુ નાનું છે"
+
+#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
+msgid "Operation was cancelled"
+msgstr "ક્રિયા રદ થયેલ હતી"
+
+#: ../libsoup/soup-message-io.c:864
+msgid "Operation would block"
+msgstr "ક્રિયા રોકી રખાશે"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "URI પૂરુ પાડેલ નથી"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "અમાન્ય '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI '%s' ને પદચ્છેદન કરી શક્યા નહિં"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "બિનઆધારભૂત URI યોજના '%s'"
+
+#: ../libsoup/soup-tld.c:148
+msgid "Hostname is an IP address"
+msgstr "યજમાનનામ એ IP સરનામું છે"
+
+#: ../libsoup/soup-tld.c:169
+msgid "Invalid hostname"
+msgstr "અમાન્ય યજમાનનામ"
+
+#: ../libsoup/soup-tld.c:184 ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "પૂરતુ ડોમેઇન નથી"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "યજમાન પાસે મૂળ ડોમેઇન નથી"
+
