@@ -115,6 +115,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-connection.h		\
 	soup-connection.c		\
 	soup-content-decoder.c		\
+	soup-content-processor.h	\
+	soup-content-processor.c	\
 	soup-content-sniffer.c		\
 	soup-content-sniffer-stream.h	\
 	soup-content-sniffer-stream.c	\
