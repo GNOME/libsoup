@@ -1,0 +1,74 @@
+# Esperanto translation for libsoup.
+# Copyright (C) 2012 Free Software Foundation, Inc.
+# This file is distributed under the same license as the libsoup package.
+# Kristjan SCHMIDT <kristjan.schmidt@googlemail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-07-31 00:03+0000\n"
+"PO-Revision-Date: 2012-08-01 19:57+0200\n"
+"Last-Translator: Kristjan SCHMIDT <kristjan.schmidt@googlemail.com>\n"
+"Language-Team: Esperanto <gnome-l10n-eo@lists.launchpad.net>\n"
+"Language: eo\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "La konekto estas neatendite fermita."
+
+#: ../libsoup/soup-converter-wrapper.c:191
+#, c-format
+msgid "Output buffer is too small"
+msgstr "La elig-bufro estas tro malgranda"
+
+#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
+msgid "Operation was cancelled"
+msgstr "La operacio estas ĉesigita"
+
+#: ../libsoup/soup-message-io.c:864
+msgid "Operation would block"
+msgstr "La operacio estus haltigota."
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "Neniu URI estas diponigita"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Nevalida '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Ne eblis analizi na URI '%s'"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Nesuptenata URI-skemo '%s'"
+
+#: ../libsoup/soup-tld.c:148
+msgid "Hostname is an IP address"
+msgstr "La komputilnomo estas IP-adreso"
+
+#: ../libsoup/soup-tld.c:169
+msgid "Invalid hostname"
+msgstr "Nevalida komputilnomo"
+
+#: ../libsoup/soup-tld.c:184 ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Ne sufiĉe da retregionoj"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "La komputilnomo ne havas ĉefan retregionon"
