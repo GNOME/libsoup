@@ -59,6 +59,10 @@ soup_tld_ensure_rules_hash_table (void)
  * plus the second level domain, for example for myhost.mydomain.com
  * it will return mydomain.com.
  *
+ * Note that %NULL will be returned for private URLs (those not ending
+ * with any well known TLD) because choosing a base domain for them
+ * would be totally arbitrary.
+ *
  * This method only works for valid UTF-8 hostnames in their canonical
  * representation form, so you should use g_hostname_to_unicode() to
  * get the canonical representation if that is not the case.
@@ -106,7 +110,7 @@ soup_tld_domain_is_public_suffix (const char *domain)
 		g_return_val_if_reached (FALSE);
 
 	base_domain = soup_tld_get_base_domain_internal (domain, 0, &error);
-	if (base_domain)
+	if (g_strcmp0 (domain, base_domain))
 		return FALSE;
 
 	if (g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_NO_BASE_DOMAIN)) {
@@ -178,15 +182,9 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 				/* If we match a *. rule and there were no previous exceptions
 				 * nor previous domains then treat it as an exact match.
 				 */
-				if (!prev_domain) {
-					g_set_error_literal (error, SOUP_TLD_ERROR,
-							     SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS,
-							     _("Not enough domains"));
-					return NULL;
-				}
-				tld = prev_domain;
+				tld = prev_domain ? prev_domain : cur_domain;
 				break;
-			} else if (*flags == SOUP_TLD_RULE_NORMAL || !next_dot) {
+			} else if (*flags == SOUP_TLD_RULE_NORMAL) {
 				tld = cur_domain;
 				break;
 			} else if (*flags & SOUP_TLD_RULE_EXCEPTION) {
