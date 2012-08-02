@@ -176,7 +176,7 @@ tunnel_message_completed (SoupMessage *tunnel_msg, gpointer user_data)
 		if (item->conn)
 			soup_connection_disconnect (item->conn);
 		if (tunnel_msg->status_code == SOUP_STATUS_TRY_AGAIN) {
-			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
+			item->state = SOUP_MESSAGE_STARTING;
 			soup_message_queue_item_set_connection (item, NULL);
 		} else
 			soup_message_set_status (item->msg, tunnel_msg->status_code);
@@ -209,7 +209,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 
 		if (status == SOUP_STATUS_TRY_AGAIN) {
 			soup_message_queue_item_set_connection (item, NULL);
-			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
+			item->state = SOUP_MESSAGE_STARTING;
 		} else {
 			soup_session_set_item_status (session, item, status);
 			item->state = SOUP_MESSAGE_FINISHING;
@@ -252,10 +252,6 @@ process_queue_item (SoupMessageQueueItem *item,
 
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
-			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-			break;
-
-		case SOUP_MESSAGE_AWAITING_CONNECTION:
 			if (!soup_session_get_connection (session, item, should_prune))
 				return;
 

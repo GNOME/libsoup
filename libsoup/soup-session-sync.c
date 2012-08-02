@@ -237,16 +237,12 @@ process_queue_item (SoupMessageQueueItem *item)
 
 		switch (item->state) {
 		case SOUP_MESSAGE_STARTING:
-			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-			break;
-
-		case SOUP_MESSAGE_AWAITING_CONNECTION:
 			g_mutex_lock (&priv->lock);
 			do {
 				get_connection (item);
-				if (item->state == SOUP_MESSAGE_AWAITING_CONNECTION)
+				if (item->state == SOUP_MESSAGE_STARTING)
 					g_cond_wait (&priv->cond, &priv->lock);
-			} while (item->state == SOUP_MESSAGE_AWAITING_CONNECTION);
+			} while (item->state == SOUP_MESSAGE_STARTING);
 			g_mutex_unlock (&priv->lock);
 			break;
 
