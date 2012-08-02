@@ -126,26 +126,28 @@ message_completed (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-tunnel_complete (SoupMessageQueueItem *item)
+tunnel_complete (SoupMessageQueueItem *tunnel_item)
 {
-	SoupSession *session = item->session;
+	SoupSession *session = tunnel_item->session;
+	SoupMessageQueueItem *item = tunnel_item->related;
 
-	soup_message_finished (item->msg);
-	if (item->related->msg->status_code)
-		item->related->state = SOUP_MESSAGE_FINISHING;
+	soup_message_finished (tunnel_item->msg);
+	if (item->msg->status_code)
+		item->state = SOUP_MESSAGE_FINISHING;
 	else
-		soup_message_set_https_status (item->related->msg, item->conn);
+		soup_message_set_https_status (item->msg, item->conn);
 
 	do_idle_run_queue (session);
-	soup_message_queue_item_unref (item->related);
-	soup_session_unqueue_item (session, item);
 	soup_message_queue_item_unref (item);
+	soup_session_unqueue_item (session, tunnel_item);
+	soup_message_queue_item_unref (tunnel_item);
 }
 
 static void
 ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 {
-	SoupMessageQueueItem *item = user_data;
+	SoupMessageQueueItem *tunnel_item = user_data;
+	SoupMessageQueueItem *item = tunnel_item->related;
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_connect (item->conn, "disconnected",
@@ -153,50 +155,52 @@ ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_connection_set_state (item->conn, SOUP_CONNECTION_IN_USE);
 
-		item->related->state = SOUP_MESSAGE_READY;
+		item->state = SOUP_MESSAGE_READY;
 	} else {
 		if (item->conn)
 			soup_connection_disconnect (item->conn);
-		soup_message_set_status (item->related->msg, SOUP_STATUS_SSL_FAILED);
+		soup_message_set_status (item->msg, SOUP_STATUS_SSL_FAILED);
 	}
 
-	tunnel_complete (item);
+	tunnel_complete (tunnel_item);
 }
 
 static void
-tunnel_message_completed (SoupMessage *msg, gpointer user_data)
+tunnel_message_completed (SoupMessage *tunnel_msg, gpointer user_data)
 {
-	SoupMessageQueueItem *item = user_data;
-	SoupSession *session = item->session;
+	SoupMessageQueueItem *tunnel_item = user_data;
+	SoupSession *session = tunnel_item->session;
+	SoupMessageQueueItem *item = tunnel_item->related;
 
-	if (item->state == SOUP_MESSAGE_RESTARTING) {
-		soup_message_restarted (msg);
-		if (item->conn) {
-			item->state = SOUP_MESSAGE_RUNNING;
-			soup_session_send_queue_item (session, item, tunnel_message_completed);
+	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
+		soup_message_restarted (tunnel_msg);
+		if (tunnel_item->conn) {
+			tunnel_item->state = SOUP_MESSAGE_RUNNING;
+			soup_session_send_queue_item (session, tunnel_item,
+						      tunnel_message_completed);
 			return;
 		}
 
-		soup_message_set_status (msg, SOUP_STATUS_TRY_AGAIN);
+		soup_message_set_status (tunnel_msg, SOUP_STATUS_TRY_AGAIN);
 	}
 
-	item->state = SOUP_MESSAGE_FINISHED;
+	tunnel_item->state = SOUP_MESSAGE_FINISHED;
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+	if (!SOUP_STATUS_IS_SUCCESSFUL (tunnel_msg->status_code)) {
 		if (item->conn)
 			soup_connection_disconnect (item->conn);
-		if (msg->status_code == SOUP_STATUS_TRY_AGAIN) {
-			item->related->state = SOUP_MESSAGE_AWAITING_CONNECTION;
-			soup_message_queue_item_set_connection (item->related, NULL);
+		if (tunnel_msg->status_code == SOUP_STATUS_TRY_AGAIN) {
+			item->state = SOUP_MESSAGE_AWAITING_CONNECTION;
+			soup_message_queue_item_set_connection (item, NULL);
 		} else
-			soup_message_set_status (item->related->msg, msg->status_code);
+			soup_message_set_status (item->msg, tunnel_msg->status_code);
 
-		tunnel_complete (item);
+		tunnel_complete (tunnel_item);
 		return;
 	}
 
 	soup_connection_start_ssl_async (item->conn, item->cancellable,
-					 ssl_tunnel_completed, item);
+					 ssl_tunnel_completed, tunnel_item);
 }
 
 static void
