@@ -670,10 +670,11 @@ socket_connected (SoupSocket *sock, GSocketConnection *conn, GError *error)
 
 	if (priv->connect_cancel) {
 		GCancellable *cancellable = priv->connect_cancel;
+		gboolean cancelled = g_cancellable_is_cancelled (cancellable);
 
 		g_object_unref (priv->connect_cancel);
 		priv->connect_cancel = NULL;
-		if (g_cancellable_is_cancelled (cancellable))
+		if (cancelled)
 			return SOUP_STATUS_CANCELLED;
 	}
 
