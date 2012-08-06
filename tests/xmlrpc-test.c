@@ -27,26 +27,13 @@ static const char *const value_type[] = {
 };
 
 static gboolean
-do_xmlrpc (const char *method, GValue *retval, ...)
+send_xmlrpc (const char *body, GValue *retval)
 {
 	SoupMessage *msg;
-	va_list args;
-	GValueArray *params;
 	GError *err = NULL;
-	char *body;
-
-	va_start (args, retval);
-	params = soup_value_array_from_args (args);
-	va_end (args);
-
-	body = soup_xmlrpc_build_method_call (method, params->values,
-					      params->n_values);
-	g_value_array_free (params);
-	if (!body)
-		return FALSE;
 
 	msg = soup_message_new ("POST", uri);
-	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_TAKE,
+	soup_message_set_request (msg, "text/xml", SOUP_MEMORY_COPY,
 				  body, strlen (body));
 	soup_session_send_message (session, msg);
 
@@ -71,6 +58,30 @@ do_xmlrpc (const char *method, GValue *retval, ...)
 	g_object_unref (msg);
 
 	return TRUE;
+}
+
+static gboolean
+do_xmlrpc (const char *method, GValue *retval, ...)
+{
+	va_list args;
+	GValueArray *params;
+	char *body;
+	gboolean ret;
+
+	va_start (args, retval);
+	params = soup_value_array_from_args (args);
+	va_end (args);
+
+	body = soup_xmlrpc_build_method_call (method, params->values,
+					      params->n_values);
+	g_value_array_free (params);
+	if (!body)
+		return FALSE;
+
+	ret = send_xmlrpc (body, retval);
+	g_free (body);
+
+	return ret;
 }
 
 static gboolean
@@ -386,6 +397,55 @@ test_echo (void)
 }
 
 static gboolean
+test_ping (gboolean include_params)
+{
+	GValueArray *params;
+	GValue retval;
+	char *request;
+	char *out;
+	gboolean ret;
+
+	debug_printf (1, "ping (void (%s) -> string): ",
+		      include_params ? "empty <params>" : "no <params>");
+
+	params = soup_value_array_new ();
+	request = soup_xmlrpc_build_method_call ("ping", params->values,
+						 params->n_values);
+	g_value_array_free (params);
+	if (!request)
+		return FALSE;
+
+	if (!include_params) {
+		char *params, *end;
+
+		params = strstr (request, "<params/>");
+		if (!params) {
+			debug_printf (1, "ERROR: XML did not contain <params/>!");
+			return FALSE;
+		}
+		end = params + strlen ("<params/>");
+		memmove (params, end, strlen (end) + 1);
+	}
+
+	ret = send_xmlrpc (request, &retval);
+	g_free (request);
+
+	if (!ret || !check_xmlrpc (&retval, G_TYPE_STRING, &out))
+		return FALSE;
+
+	if (!strcmp (out, "pong")) {
+		debug_printf (1, "OK!\n");
+		ret = TRUE;
+	} else {
+		debug_printf (1, "WRONG! Bad response '%s'", out);
+		ret = FALSE;
+	}
+
+	g_free (out);
+	return ret;
+}
+
+static gboolean
 do_bad_xmlrpc (const char *body)
 {
 	SoupMessage *msg;
@@ -475,6 +535,10 @@ main (int argc, char **argv)
 	if (!test_dateChange ())
 		errors++;
 	if (!test_echo ())
+		errors++;
+	if (!test_ping (TRUE))
+		errors++;
+	if (!test_ping (FALSE))
 		errors++;
 	if (!test_fault_malformed ())
 		errors++;

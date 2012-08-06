@@ -180,7 +180,17 @@ do_echo (SoupMessage *msg, GValueArray *params)
 
 	soup_xmlrpc_set_response (msg, G_TYPE_VALUE_ARRAY, out);
 	g_value_array_free (out);
+}
 
+static void
+do_ping (SoupMessage *msg, GValueArray *params)
+{
+	if (params->n_values) {
+		args_error (msg, params, 0);
+		return;
+	}
+
+	soup_xmlrpc_set_response (msg, G_TYPE_STRING, "pong");
 }
 
 static void
@@ -216,6 +226,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		do_dateChange (msg, params);
 	else if (!strcmp (method_name, "echo"))
 		do_echo (msg, params);
+	else if (!strcmp (method_name, "ping"))
+		do_ping (msg, params);
 	else {
 		soup_xmlrpc_set_fault (msg, SOUP_XMLRPC_FAULT_SERVER_ERROR_REQUESTED_METHOD_NOT_FOUND,
 				       "Unknown method %s", method_name);

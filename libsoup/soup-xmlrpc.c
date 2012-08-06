@@ -593,29 +593,32 @@ soup_xmlrpc_parse_method_call (const char *method_call, int length,
 	xmlMethodName = xmlNodeGetContent (node);
 
 	node = find_real_node (node->next);
-	if (!node || strcmp ((const char *)node->name, "params") != 0)
-		goto fail;
+	if (node) {
+		if (strcmp ((const char *)node->name, "params") != 0)
+			goto fail;
 
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #endif
-	*params = g_value_array_new (1);
-	param = find_real_node (node->children);
-	while (param && !strcmp ((const char *)param->name, "param")) {
-		xval = find_real_node (param->children);
-		if (!xval || strcmp ((const char *)xval->name, "value") != 0 ||
-		    !parse_value (xval, &value)) {
-			g_value_array_free (*params);
-			goto fail;
-		}
-		g_value_array_append (*params, &value);
-		g_value_unset (&value);
+		*params = soup_value_array_new ();
+		param = find_real_node (node->children);
+		while (param && !strcmp ((const char *)param->name, "param")) {
+			xval = find_real_node (param->children);
+			if (!xval || strcmp ((const char *)xval->name, "value") != 0 ||
+			    !parse_value (xval, &value)) {
+				g_value_array_free (*params);
+				goto fail;
+			}
+			g_value_array_append (*params, &value);
+			g_value_unset (&value);
 
-		param = find_real_node (param->next);
-	}
+			param = find_real_node (param->next);
+		}
 #ifdef G_GNUC_END_IGNORE_DEPRECATIONS
 G_GNUC_END_IGNORE_DEPRECATIONS
 #endif
+	} else
+		*params = soup_value_array_new ();
 
 	success = TRUE;
 	*method_name = g_strdup ((char *)xmlMethodName);

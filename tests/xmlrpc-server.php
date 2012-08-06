@@ -2,13 +2,13 @@
 
 function paramfault ()
 {
-	# xmlrpc-epi-php translates this into a real <fault>
+	# xmlrpc-php translates this into a real <fault>
 	$fault["faultCode"] = -32602;
 	$fault["faultString"] = "bad parameter";
 	return $fault;
 }
 
-# We only check the params in sum(), because that's the one that
+# We only check the params in sum(), because that is the one that
 # xmlrpc-test tests will fail if given bad args
 
 function sum ($method_name, $params, $app_data)
@@ -69,8 +69,16 @@ function echo_ ($method_name, $params, $app_data)
 	return $params[0];
 }
 
-# Work around xmlrpc-epi-php lossage; otherwise the datetime values
-# we return will sometimes get a DST adjustment we don't want.
+function ping ($method_name, $params, $app_data)
+{
+	if (count ($params) == 0)
+		return "pong";
+	else
+		return paramfault ();
+}
+
+# Work around xmlrpc-php lossage; otherwise the datetime values
+# we return will sometimes get a DST adjustment we do not want.
 putenv ("TZ=");
 
 $xmlrpc_server = xmlrpc_server_create ();
@@ -79,6 +87,7 @@ xmlrpc_server_register_method($xmlrpc_server, "countBools", "countBools");
 xmlrpc_server_register_method($xmlrpc_server, "md5sum", "md5sum");
 xmlrpc_server_register_method($xmlrpc_server, "dateChange", "dateChange");
 xmlrpc_server_register_method($xmlrpc_server, "echo", "echo_");
+xmlrpc_server_register_method($xmlrpc_server, "ping", "ping");
 
 $response = xmlrpc_server_call_method ($xmlrpc_server,
 				       implode("\r\n", file('php://input')),
