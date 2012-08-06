@@ -59,13 +59,13 @@ static struct {
   { "test.ac.jp", "test.ac.jp" },
   { "www.test.ac.jp", "test.ac.jp" },
   { "kyoto.jp", NULL },
-  { "c.kyoto.jp", NULL },
-  { "b.c.kyoto.jp", "b.c.kyoto.jp" },
-  { "a.b.c.kyoto.jp", "b.c.kyoto.jp" },
-  { "pref.kyoto.jp", "pref.kyoto.jp" },	/* Exception rule. */
-  { "www.pref.kyoto.jp", "pref.kyoto.jp" },	/* Exception rule. */
-  { "city.kyoto.jp", "city.kyoto.jp" },	/* Exception rule. */
-  { "www.city.kyoto.jp", "city.kyoto.jp" },	/* Exception rule. */
+  { "minami.kyoto.jp", NULL },
+  { "b.minami.kyoto.jp", "b.minami.kyoto.jp" },
+  { "a.b.minami.kyoto.jp", "b.minami.kyoto.jp" },
+  { "pref.kyoto.jp", "pref.kyoto.jp" },
+  { "www.pref.kyoto.jp", "pref.kyoto.jp" },
+  { "city.kyoto.jp", "city.kyoto.jp" },
+  { "www.city.kyoto.jp", "city.kyoto.jp" },
   /* TLD with a wildcard rule and exceptions. */
   { "om", NULL },
   { "test.om", NULL },
