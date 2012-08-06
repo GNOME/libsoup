@@ -1,3 +1,35 @@
+Changes in libsoup from 2.39.4.1 to 2.39.5:
+
+	* Fixed several bugs in the soup-message-io updates that could
+          cause hangs or I/O errors. [#679527 and other bugs not filed
+          in bugzilla]
+
+	* Fixed SoupServer:async-context to work properly again
+
+	* Further fixes to soup_uri_normalize() when using the
+          "unescape_extra" parameter. [#680018]
+
+	* Fixed soup_xmlrpc_parse_method_call() to handle the case
+          where there is no <params> element (which is legal).
+          [#671661]
+
+	* Fixed the deprecation warning on soup_message_headers_get()
+          [#680143]
+
+	* Added warnings to some erroneous SoupSocket usages rather
+          than returning bogus data. [#673083, Simon McVittie]
+
+	* Fixed build under Windows/MinGW
+
+	* SoupSocket no longer emits the "readable" signal when a
+          socket is disconnected if that socket is non-blocking.
+
+	* Updated public suffix list to the current version.
+
+	* New/Updated translations:
+	  Assamese, Chinese (simplified), Esperanto, Galician, Greek, Gujarati,
+	  Hebrew, Norwegian bokmål, Russian, Serbian, Slovenian
+
 Changes in libsoup from 2.39.4 to 2.39.4.1:
 
 	* Fixed indentation problems in tld-parser.py so it will work
