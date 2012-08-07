@@ -39,9 +39,9 @@ typedef struct {
 
 GType soup_body_input_stream_get_type (void);
 
-GInputStream *soup_body_input_stream_new (SoupFilterInputStream *base_stream,
-					  SoupEncoding           encoding,
-					  goffset                content_length);
+GInputStream *soup_body_input_stream_new (GInputStream *base_stream,
+					  SoupEncoding  encoding,
+					  goffset       content_length);
 
 G_END_DECLS
 

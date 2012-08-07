@@ -231,7 +231,7 @@ setup_body_istream (SoupMessage *msg)
 	GSList *d;
 
 	io->body_istream =
-		soup_body_input_stream_new (io->istream,
+		soup_body_input_stream_new (G_INPUT_STREAM (io->istream),
 					    io->read_encoding,
 					    io->read_length);
 

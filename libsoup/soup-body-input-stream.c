@@ -33,6 +33,8 @@ struct _SoupBodyInputStreamPrivate {
 	goffset       read_length;
 	SoupBodyInputStreamState chunked_state;
 	gboolean      eof;
+
+	goffset       pos;
 };
 
 enum {
@@ -50,10 +52,13 @@ enum {
 };
 
 static void soup_body_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
+static void soup_body_input_stream_seekable_init (GSeekableIface *seekable_interface);
 
 G_DEFINE_TYPE_WITH_CODE (SoupBodyInputStream, soup_body_input_stream, G_TYPE_FILTER_INPUT_STREAM,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM,
-						soup_body_input_stream_pollable_init))
+						soup_body_input_stream_pollable_init)
+			 G_IMPLEMENT_INTERFACE (G_TYPE_SEEKABLE,
+						soup_body_input_stream_seekable_init))
 
 static void
 soup_body_input_stream_init (SoupBodyInputStream *bistream)
@@ -258,11 +263,33 @@ read_internal (GInputStream  *stream,
 							 blocking, cancellable, error);
 		if (bistream->priv->read_length != -1 && nread > 0)
 			bistream->priv->read_length -= nread;
+
+		if (bistream->priv->encoding == SOUP_ENCODING_CONTENT_LENGTH)
+			bistream->priv->pos += nread;
 		return nread;
 
 	default:
 		g_return_val_if_reached (-1);
 	}
+}
+
+static gssize
+soup_body_input_stream_skip (GInputStream *stream,
+			     gsize         count,
+			     GCancellable *cancellable,
+			     GError      **error)
+{
+	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM(stream)->priv;
+	gssize skipped;
+
+	skipped = g_input_stream_skip (G_FILTER_INPUT_STREAM (stream)->base_stream,
+				       MIN (count, priv->read_length),
+				       cancellable, error);
+
+	if (skipped != -1)
+		priv->pos += skipped;
+
+	return skipped;
 }
 
 static gssize
@@ -293,6 +320,15 @@ soup_body_input_stream_is_readable (GPollableInputStream *stream)
 
 	return bistream->priv->eof ||
 		g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (bistream->priv->base_stream));
+}
+
+static gboolean
+soup_body_input_stream_can_poll (GPollableInputStream *pollable)
+{
+	GInputStream *base_stream = SOUP_BODY_INPUT_STREAM (pollable)->priv->base_stream;
+
+	return G_IS_POLLABLE_INPUT_STREAM (base_stream) &&
+		g_pollable_input_stream_can_poll (G_POLLABLE_INPUT_STREAM (base_stream));
 }
 
 static gssize
@@ -337,6 +373,7 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 	object_class->set_property = soup_body_input_stream_set_property;
 	object_class->get_property = soup_body_input_stream_get_property;
 
+	input_stream_class->skip = soup_body_input_stream_skip;
 	input_stream_class->read_fn = soup_body_input_stream_read_fn;
 	input_stream_class->close_fn = soup_body_input_stream_close_fn;
 
@@ -370,16 +407,107 @@ static void
 soup_body_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface,
 				 gpointer interface_data)
 {
+	pollable_interface->can_poll = soup_body_input_stream_can_poll;
 	pollable_interface->is_readable = soup_body_input_stream_is_readable;
 	pollable_interface->read_nonblocking = soup_body_input_stream_read_nonblocking;
 	pollable_interface->create_source = soup_body_input_stream_create_source;
 }
 
-GInputStream *
-soup_body_input_stream_new (SoupFilterInputStream *base_stream,
-			    SoupEncoding           encoding,
-			    goffset                content_length)
+static goffset
+soup_body_input_stream_tell (GSeekable *seekable)
 {
+	return SOUP_BODY_INPUT_STREAM (seekable)->priv->pos;
+}
+
+static gboolean
+soup_body_input_stream_can_seek (GSeekable *seekable)
+{
+	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM (seekable)->priv;
+
+	return priv->encoding == SOUP_ENCODING_CONTENT_LENGTH
+		&& G_IS_SEEKABLE (priv->base_stream)
+		&& g_seekable_can_seek (G_SEEKABLE (priv->base_stream));
+}
+
+static gboolean
+soup_body_input_stream_seek (GSeekable     *seekable,
+			     goffset        offset,
+			     GSeekType      type,
+			     GCancellable  *cancellable,
+			     GError       **error)
+{
+	SoupBodyInputStreamPrivate *priv = SOUP_BODY_INPUT_STREAM (seekable)->priv;
+	goffset position, end_position;
+
+	end_position = priv->pos + priv->read_length;
+	switch (type) {
+	case G_SEEK_CUR:
+		position = priv->pos + offset;
+		break;
+	case G_SEEK_SET:
+		position = offset;
+		break;
+	case G_SEEK_END:
+		position = end_position + offset;
+		break;
+	default:
+		g_return_val_if_reached (FALSE);
+	}
+
+	if (position < 0 || position >= end_position) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_INVALID_ARGUMENT,
+				     _("Invalid seek request"));
+		return FALSE;
+	}
+
+	if (!g_seekable_seek (G_SEEKABLE (priv->base_stream), position - priv->pos,
+			      G_SEEK_CUR, cancellable, error))
+		return FALSE;
+
+	priv->pos = position;
+
+	return TRUE;
+}
+
+static gboolean
+soup_body_input_stream_can_truncate (GSeekable *seekable)
+{
+	return FALSE;
+}
+
+static gboolean
+soup_body_input_stream_truncate_fn (GSeekable     *seekable,
+				    goffset        offset,
+				    GCancellable  *cancellable,
+				    GError       **error)
+{
+	g_set_error_literal (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_SUPPORTED,
+			     _("Cannot truncate SoupBodyInputStream"));
+	return FALSE;
+}
+
+static void
+soup_body_input_stream_seekable_init (GSeekableIface *seekable_interface)
+{
+	seekable_interface->tell         = soup_body_input_stream_tell;
+	seekable_interface->can_seek     = soup_body_input_stream_can_seek;
+	seekable_interface->seek         = soup_body_input_stream_seek;
+	seekable_interface->can_truncate = soup_body_input_stream_can_truncate;
+	seekable_interface->truncate_fn  = soup_body_input_stream_truncate_fn;
+}
+
+GInputStream *
+soup_body_input_stream_new (GInputStream *base_stream,
+			    SoupEncoding  encoding,
+			    goffset       content_length)
+{
+	if (encoding == SOUP_ENCODING_CHUNKED)
+		g_return_val_if_fail (SOUP_IS_FILTER_INPUT_STREAM (base_stream), NULL);
+
 	return g_object_new (SOUP_TYPE_BODY_INPUT_STREAM,
 			     "base-stream", base_stream,
 			     "close-base-stream", FALSE,
