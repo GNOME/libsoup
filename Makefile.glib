@@ -155,7 +155,7 @@ define _glib_make_genmarshal_rules
 $(if $(_glib_marshal_sources),,$(error Need to define $(_glib_marshal_sources_var) for $(1).[ch]))
 
 $(1).list.stamp: $(_glib_marshal_sources)
-	$$(_GLIB_V_GEN) LC_ALL=C sed -ne 's/.*_$(_glib_marshal_prefix)_\([_A-Z]*\).*/\1/p' $$^ | sort -u | sed -e 's/__/:/' -e 's/_/,/g' > $(1).list.tmp && \
+	$$(_GLIB_V_GEN) LC_ALL=C sed -ne 's/.*_$(_glib_marshal_prefix)_\([_A-Z0-9]*\).*/\1/p' $$^ | sort -u | sed -e 's/__/:/' -e 's/_/,/g' > $(1).list.tmp && \
 	(cmp -s $(1).list.tmp $(1).list || cp $(1).list.tmp $(1).list) && \
 	rm -f $(1).list.tmp && \
 	echo timestamp > $$@
