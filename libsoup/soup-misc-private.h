@@ -4,8 +4,8 @@
  * Copyright 2011 Red Hat, Inc.
  */
 
-#ifndef SOUP_URI_PRIVATE_H
-#define SOUP_URI_PRIVATE_H 1
+#ifndef SOUP_MISC_PRIVATE_H
+#define SOUP_MISC_PRIVATE_H 1
 
 #include "soup-socket.h"
 
@@ -41,4 +41,4 @@ SoupURI *soup_socket_get_http_proxy_uri (SoupSocket *sock);
 					   method == SOUP_METHOD_PUT || \
 					   method == SOUP_METHOD_DELETE)
 
-#endif /* SOUP_URI_PRIVATE_H */
+#endif /* SOUP_MISC_PRIVATE_H */
