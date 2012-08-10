@@ -15,7 +15,7 @@ static SoupProxyTest tests[] = {
 	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED },
 	{ "GET -> 403", "http://no-such-hostname.xx/", SOUP_STATUS_FORBIDDEN },
 };
-static int ntests = sizeof (tests) / sizeof (tests[0]);
+static const int ntests = sizeof (tests) / sizeof (tests[0]);
 
 #define HTTP_SERVER    "http://127.0.0.1:47524"
 #define HTTPS_SERVER   "https://127.0.0.1:47525"
@@ -97,6 +97,7 @@ test_url (const char *url, int proxy, guint expected,
 	proxy_uri = soup_uri_new (proxies[proxy]);
 	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	soup_uri_free (proxy_uri);
 	g_signal_connect (session, "authenticate",
@@ -235,6 +236,62 @@ run_test (int i, gboolean sync)
 	debug_printf (1, "\n");
 }
 
+static gpointer
+async_proxy_test_thread (gpointer num)
+{
+	GMainContext *context = g_main_context_new ();
+
+	g_main_context_push_thread_default (context);
+	run_test (GPOINTER_TO_INT (num), FALSE);
+	g_main_context_pop_thread_default (context);
+
+	return NULL;
+}
+
+static gpointer
+sync_proxy_test_thread (gpointer num)
+{
+	run_test (GPOINTER_TO_INT (num), TRUE);
+	return NULL;
+}
+
+static void
+do_proxy_tests (void)
+{
+	int i;
+
+	debug_printf (1, "Basic proxy tests\n");
+
+	if (parallelize) {
+		GThread *threads[ntests];
+
+		/* Doing the sync and async tests separately is faster
+		 * than doing them both at the same time (hitting
+		 * apache's connection limit maybe?)
+		 */
+		for (i = 0; i < ntests; i++) {
+			threads[i] = g_thread_new ("async_proxy_test",
+						   async_proxy_test_thread,
+						   GINT_TO_POINTER (i));
+		}
+		for (i = 0; i < ntests; i++)
+			g_thread_join (threads[i]);
+
+		for (i = 0; i < ntests; i++) {
+			threads[i] = g_thread_new ("sync_proxy_test",
+						   sync_proxy_test_thread,
+						   GINT_TO_POINTER (i));
+		}
+		for (i = 0; i < ntests; i++)
+			g_thread_join (threads[i]);
+	} else {
+		for (i = 0; i < ntests; i++) {
+			run_test (i, FALSE);
+			run_test (i, TRUE);
+		}
+	}
+}
+
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -319,21 +376,16 @@ main (int argc, char **argv)
 {
 	SoupServer *server;
 	SoupURI *base_uri;
-	int i;
 
 	test_init (argc, argv, NULL);
 	apache_init ();
-
-	for (i = 0; i < ntests; i++) {
-		run_test (i, FALSE);
-		run_test (i, TRUE);
-	}
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 	base_uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
+	do_proxy_tests ();
 	do_proxy_fragment_test (base_uri);
 	do_proxy_redirect_test ();
 

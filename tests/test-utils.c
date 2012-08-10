@@ -14,6 +14,7 @@ static gboolean apache_running;
 static SoupLogger *logger;
 
 int debug_level, errors;
+gboolean parallelize = TRUE;
 gboolean expect_warning, tls_available;
 static int http_debug_level;
 
@@ -37,6 +38,9 @@ static GOptionEntry debug_entry[] = {
 	{ "debug", 'd', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_debug_level,
 	  "Enable (or increase) test-specific debugging", NULL },
+	{ "parallel", 'p', G_OPTION_FLAG_REVERSE,
+	  G_OPTION_ARG_NONE, &parallelize,
+	  "Toggle parallelization (default is on, unless -d or -h)", NULL },
 	{ "http-debug", 'h', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_http_debug_level,
 	  "Enable (or increase) HTTP-level debugging", NULL },
@@ -100,6 +104,9 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 		exit (1);
 	}
 	g_option_context_free (opts);
+
+	if (debug_level > 0 || http_debug_level > 0)
+		parallelize = !parallelize;
 
 	/* Exit cleanly on ^C in case we're valgrinding. */
 	signal (SIGINT, quit);
