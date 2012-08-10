@@ -150,7 +150,6 @@ soup_message_send_request (SoupMessageQueueItem      *item,
 		async_context = NULL;
 	iostream = soup_socket_get_iostream (soup_connection_get_socket (item->conn));
 
-	soup_message_cleanup_response (item->msg);
 	soup_message_io_client (item, iostream, async_context,
 				get_request_headers,
 				parse_response_headers,

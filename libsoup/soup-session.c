@@ -1018,6 +1018,8 @@ soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 	SoupMessageQueueItem *item;
 	SoupSessionHost *host;
 
+	soup_message_cleanup_response (msg);
+
 	item = soup_message_queue_append (priv->queue, msg, callback, user_data);
 
 	g_mutex_lock (&priv->conn_lock);
