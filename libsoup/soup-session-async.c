@@ -117,37 +117,24 @@ message_completed (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-tunnel_complete (SoupMessageQueueItem *tunnel_item)
-{
-	SoupSession *session = tunnel_item->session;
-	SoupMessageQueueItem *item = tunnel_item->related;
-
-	soup_message_finished (tunnel_item->msg);
-	if (item->msg->status_code)
-		item->state = SOUP_MESSAGE_FINISHING;
-	else
-		soup_message_set_https_status (item->msg, item->conn);
-
-	do_idle_run_queue (session);
-	soup_message_queue_item_unref (item);
-	soup_message_queue_item_unref (tunnel_item);
-}
-
-static void
 ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupMessageQueueItem *tunnel_item = user_data;
 	SoupMessageQueueItem *item = tunnel_item->related;
+	SoupSession *session = item->session;
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (status))
-		item->state = SOUP_MESSAGE_READY;
-	else {
-		if (item->conn)
-			soup_connection_disconnect (item->conn);
-		soup_message_set_status (item->msg, SOUP_STATUS_SSL_FAILED);
+	soup_message_finished (tunnel_item->msg);
+	soup_message_queue_item_unref (tunnel_item);
+
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		soup_connection_disconnect (item->conn);
+		soup_message_queue_item_set_connection (item, NULL);
+		soup_message_set_status (item->msg, status);
 	}
 
-	tunnel_complete (tunnel_item);
+	item->state = SOUP_MESSAGE_READY;
+	do_idle_run_queue (session);
+	soup_message_queue_item_unref (item);
 }
 
 static void
@@ -172,21 +159,13 @@ tunnel_message_completed (SoupMessage *tunnel_msg, gpointer user_data)
 	tunnel_item->state = SOUP_MESSAGE_FINISHED;
 	soup_session_unqueue_item (session, tunnel_item);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (tunnel_msg->status_code)) {
-		if (item->conn)
-			soup_connection_disconnect (item->conn);
-		if (tunnel_msg->status_code == SOUP_STATUS_TRY_AGAIN) {
-			item->state = SOUP_MESSAGE_STARTING;
-			soup_message_queue_item_set_connection (item, NULL);
-		} else
-			soup_message_set_status (item->msg, tunnel_msg->status_code);
-
-		tunnel_complete (tunnel_item);
-		return;
+	if (SOUP_STATUS_IS_SUCCESSFUL (tunnel_msg->status_code)) {
+		soup_connection_start_ssl_async (item->conn, item->cancellable,
+						 ssl_tunnel_completed, tunnel_item);
+	} else {
+		ssl_tunnel_completed (item->conn, tunnel_msg->status_code,
+				      tunnel_item);
 	}
-
-	soup_connection_start_ssl_async (item->conn, item->cancellable,
-					 ssl_tunnel_completed, tunnel_item);
 }
 
 static void
@@ -197,41 +176,14 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 
 	if (item->state != SOUP_MESSAGE_CONNECTING) {
 		soup_connection_disconnect (conn);
-		do_idle_run_queue (session);
-		soup_message_queue_item_unref (item);
-		return;
-	}
+	} else if (status != SOUP_STATUS_OK) {
+		soup_session_set_item_status (session, item, status);
+		soup_connection_disconnect (item->conn);
+		soup_message_queue_item_set_connection (item, NULL);
+		item->state = SOUP_MESSAGE_READY;
+	} else
+		item->state = SOUP_MESSAGE_CONNECTED;
 
-	soup_message_set_https_status (item->msg, conn);
-
-	if (status != SOUP_STATUS_OK) {
-		soup_connection_disconnect (conn);
-
-		if (status == SOUP_STATUS_TRY_AGAIN) {
-			soup_message_queue_item_set_connection (item, NULL);
-			item->state = SOUP_MESSAGE_STARTING;
-		} else {
-			soup_session_set_item_status (session, item, status);
-			item->state = SOUP_MESSAGE_FINISHING;
-		}
-
-		do_idle_run_queue (session);
-		soup_message_queue_item_unref (item);
-		return;
-	}
-
-	if (soup_connection_is_tunnelled (conn)) {
-		SoupMessageQueueItem *tunnel_item;
-
-		item->state = SOUP_MESSAGE_TUNNELING;
-
-		tunnel_item = soup_session_make_connect_message (session, conn);
-		tunnel_item->related = item;
-		soup_session_send_queue_item (session, tunnel_item, tunnel_message_completed);
-		return;
-	}
-
-	item->state = SOUP_MESSAGE_READY;
 	run_queue ((SoupSessionAsync *)session);
 	soup_message_queue_item_unref (item);
 }
@@ -266,7 +218,34 @@ process_queue_item (SoupMessageQueueItem *item,
 						       got_connection, item);
 			return;
 
+		case SOUP_MESSAGE_CONNECTED:
+			if (soup_connection_is_tunnelled (item->conn)) {
+				SoupMessageQueueItem *tunnel_item;
+
+				soup_message_queue_item_ref (item);
+
+				item->state = SOUP_MESSAGE_TUNNELING;
+
+				tunnel_item = soup_session_make_connect_message (session, item->conn);
+				tunnel_item->related = item;
+				soup_session_send_queue_item (session, tunnel_item, tunnel_message_completed);
+				return;
+			}
+
+			item->state = SOUP_MESSAGE_READY;
+			break;
+
 		case SOUP_MESSAGE_READY:
+			soup_message_set_https_status (item->msg, item->conn);
+			if (item->msg->status_code) {
+				if (item->msg->status_code == SOUP_STATUS_TRY_AGAIN) {
+					soup_message_cleanup_response (item->msg);
+					item->state = SOUP_MESSAGE_STARTING;
+				} else
+					item->state = SOUP_MESSAGE_FINISHING;
+				break;
+			}
+
 			item->state = SOUP_MESSAGE_RUNNING;
 			soup_session_send_queue_item (session, item, message_completed);
 			if (item->new_api)
