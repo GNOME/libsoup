@@ -110,8 +110,10 @@ soup_tld_domain_is_public_suffix (const char *domain)
 		g_return_val_if_reached (FALSE);
 
 	base_domain = soup_tld_get_base_domain_internal (domain, 0, &error);
-	if (g_strcmp0 (domain, base_domain))
+	if (g_strcmp0 (domain, base_domain)) {
+		g_clear_error (&error);
 		return FALSE;
+	}
 
 	if (g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_NO_BASE_DOMAIN)) {
 		g_error_free (error);

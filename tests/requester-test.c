@@ -151,6 +151,7 @@ auth_test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 	stream = soup_request_send_finish (SOUP_REQUEST (source), res, &error);
 	if (!stream) {
 		debug_printf (1, "    send_async failed: %s\n", error->message);
+		g_clear_error (&error);
 		errors++;
 		g_main_loop_quit (loop);
 		return;
@@ -196,8 +197,8 @@ test_sent (GObject *source, GAsyncResult *res, gpointer user_data)
 		} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
 			debug_printf (1, "    send_async failed with wrong error: %s\n", error->message);
 			errors++;
-			g_clear_error (&error);
 		}
+		g_clear_error (&error);
 		g_main_loop_quit (loop);
 		return;
 	} else {
@@ -234,6 +235,7 @@ request_started (SoupSession *session, SoupMessage *msg,
 {
 	SoupSocket **save_socket = user_data;
 
+	g_clear_object (save_socket);
 	*save_socket = g_object_ref (socket);
 }
 
@@ -280,6 +282,7 @@ do_async_test (SoupSession *session, SoupURI *uri,
 			      msg->status_code, msg->reason_phrase,
 			      expected_status);
 		g_object_unref (msg);
+		g_object_unref (socket);
 		errors++;
 		return;
 	}
@@ -459,15 +462,17 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 		} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
 			debug_printf (1, "    send failed with wrong error: %s\n", error->message);
 			errors++;
-			g_clear_error (&error);
 		}
+		g_clear_error (&error);
 		g_object_unref (msg);
+		g_object_unref (socket);
 		return;
 	} else if (!in) {
 		debug_printf (1, "    soup_request_send failed: %s\n",
 			      error->message);
 		g_object_unref (msg);
 		g_clear_error (&error);
+		g_object_unref (socket);
 		errors++;
 		return;
 	}
@@ -477,6 +482,7 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 			      msg->reason_phrase);
 		g_object_unref (msg);
 		g_object_unref (in);
+		g_object_unref (socket);
 		errors++;
 		return;
 	}

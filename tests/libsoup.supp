@@ -321,7 +321,7 @@
    ...
    fun:_dl_allocate_tls
    ...
-   fun:g_thread_create_posix_impl
+   fun:g_system_thread_new
 }
 {
    glib/filenamecharsets
@@ -342,11 +342,64 @@
    fun:g_tls_backend_gnutls_store_session
 }
 {
+   glib/gtlssessioncache_client
+   Memcheck:Leak
+   ...
+   fun:gnutls_session_get_data2
+   fun:g_tls_client_connection_gnutls_finish_handshake
+}
+{
+   glib/gtlssessioncache_client2
+   Memcheck:Leak
+   ...
+   fun:g_bytes_new_with_free_func
+   fun:g_tls_client_connection_gnutls_finish_handshake
+}
+{
+   glib/gtlssessioncache_client3
+   Memcheck:Leak
+   ...
+   fun:g_bytes_new_take
+   fun:g_tls_client_connection_gnutls_constructed
+}
+{
+   glib/gtlssessioncache_client4
+   Memcheck:Leak
+   ...
+   fun:g_strdup_printf
+   fun:g_tls_client_connection_gnutls_constructed
+}
+{
+   glib/gtlssessioncache_server
+   Memcheck:Leak
+   ...
+   fun:g_tls_server_connection_gnutls_db_store
+}
+{
    glib/cached_poll_array
    Memcheck:Leak
    ...
    fun:g_malloc_n
    fun:g_main_context_iterate
+}
+{
+   glib/rand
+   Memcheck:Leak
+   ...
+   fun:g_rand_new
+   fun:g_random_int_range
+}
+{
+   glib/g_cancellable_push_current
+   Memcheck:Leak
+   ...
+   fun:g_cancellable_push_current
+}
+{
+   glib/slice_thread_local
+   Memcheck:Leak
+   ...
+   fun:thread_memory_from_self
 }
 
 # probably inlines the aggressive memcpy/memcmp
@@ -420,6 +473,12 @@
    Memcheck:Leak
    ...
    fun:intern_header_name
+}
+{
+   libsoup/tlds
+   Memcheck:Leak
+   ...
+   fun:soup_tld_ensure_rules_hash_table
 }
 
 

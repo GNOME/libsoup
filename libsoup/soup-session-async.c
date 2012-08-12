@@ -543,7 +543,7 @@ send_request_finished (SoupSession *session, SoupMessageQueueItem *item)
 		return;
 	}
 
-	mostream = g_object_get_data (G_OBJECT (item->msg), "SoupSessionAsync:ostream");
+	mostream = g_object_get_data (G_OBJECT (item->result), "SoupSessionAsync:ostream");
 	if (mostream) {
 		gpointer data;
 		gssize size;
@@ -576,8 +576,13 @@ send_async_spliced (GObject *source, GAsyncResult *result, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	GInputStream *istream = g_object_get_data (source, "istream");
-
 	GError *error = NULL;
+
+	/* It should be safe to call the sync close() method here since
+	 * the message body has already been written.
+	 */
+	g_input_stream_close (istream, NULL, NULL);
+	g_object_unref (istream);
 
 	/* If the message was cancelled, it will be completed via other means */
 	if (g_cancellable_is_cancelled (item->cancellable) ||
@@ -589,14 +594,11 @@ send_async_spliced (GObject *source, GAsyncResult *result, gpointer user_data)
 	if (g_output_stream_splice_finish (G_OUTPUT_STREAM (source),
 					   result, &error) == -1) {
 		send_request_return_result (item, NULL, error);
+		soup_message_queue_item_unref (item);
 		return;
 	}
 
-	/* Otherwise either restarted or finished will eventually be called.
-	 * It should be safe to call the sync close() method here since
-	 * the message body has already been written.
-	 */
-	g_input_stream_close (istream, NULL, NULL);
+	/* Otherwise either restarted or finished will eventually be called. */
 	do_idle_run_queue (item->session);
 	soup_message_queue_item_unref (item);
 }
@@ -612,11 +614,10 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 
 		/* Message may be requeued, so gather the current message body... */
 		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-		g_object_set_data_full (G_OBJECT (item->msg), "SoupSessionAsync:ostream",
+		g_object_set_data_full (G_OBJECT (item->result), "SoupSessionAsync:ostream",
 					ostream, g_object_unref);
 
-		g_object_set_data_full (G_OBJECT (ostream), "istream",
-					stream, g_object_unref);
+		g_object_set_data (G_OBJECT (ostream), "istream", stream);
 
 		/* Give the splice op its own ref on item */
 		soup_message_queue_item_ref (item);

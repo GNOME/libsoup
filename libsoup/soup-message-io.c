@@ -243,6 +243,7 @@ setup_body_istream (SoupMessage *msg)
 				       "converter", wrapper,
 				       NULL);
 		g_object_unref (io->body_istream);
+		g_object_unref (wrapper);
 		io->body_istream = filter;
 	}
 
@@ -908,7 +909,8 @@ io_run (SoupMessage *msg, gpointer user_data)
 
 		g_error_free (error);
 		soup_message_io_finished (msg);
-	}
+	} else if (error)
+		g_error_free (error);
 
 	g_object_unref (msg);
 	g_clear_object (&cancellable);
@@ -946,8 +948,10 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 	if (!io_run_until (msg,
 			   SOUP_MESSAGE_IO_STATE_DONE,
 			   SOUP_MESSAGE_IO_STATE_DONE,
-			   cancellable, error))
+			   cancellable, error)) {
+		g_object_unref (msg);
 		return FALSE;
+	}
 
 	soup_message_io_finished (msg);
 	g_object_unref (msg);

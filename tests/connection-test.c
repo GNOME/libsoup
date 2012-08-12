@@ -335,6 +335,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 			errors++;
 			g_clear_error (&error);
 		}
+		g_object_unref (stream);
 	}
 
 	if (sockets[1]) {
@@ -361,6 +362,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 			errors++;
 			g_clear_error (&error);
 		}
+		g_object_unref (stream);
 	}
 
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
@@ -582,6 +584,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 	g_object_ref (msg);
 	soup_session_queue_message (session, msg, NULL, NULL);
 	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
 
 	if (msg->status_code != SOUP_STATUS_OK) {
 		debug_printf (1, "      Unexpected response: %d %s\n",
@@ -589,6 +592,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 		errors++;
 	}
 	g_object_unref (msg);
+	g_object_unref (socket);
 }
 
 static void

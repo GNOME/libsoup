@@ -103,6 +103,8 @@ soup_io_stream_finalize (GObject *object)
 	SoupIOStream *siostream = SOUP_IO_STREAM (object);
 
 	g_clear_object (&siostream->priv->base_iostream);
+	g_clear_object (&siostream->priv->istream);
+	g_clear_object (&siostream->priv->ostream);
 
 	G_OBJECT_CLASS (soup_io_stream_parent_class)->finalize (object);
 }

@@ -152,6 +152,7 @@ do_request_to_session (SoupRequester *requester, const char *uri,
 				      error->message);
 			errors++;
 		}
+		g_object_unref (stream);
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&

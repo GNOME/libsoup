@@ -47,6 +47,16 @@ soup_client_input_stream_init (SoupClientInputStream *stream)
 }
 
 static void
+soup_client_input_stream_finalize (GObject *object)
+{
+	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (object);
+
+	g_clear_object (&cistream->priv->msg);
+
+	G_OBJECT_CLASS (soup_client_input_stream_parent_class)->finalize (object);
+}
+
+static void
 soup_client_input_stream_set_property (GObject *object, guint prop_id,
 				       const GValue *value, GParamSpec *pspec)
 {
@@ -231,6 +241,7 @@ soup_client_input_stream_class_init (SoupClientInputStreamClass *stream_class)
 
 	g_type_class_add_private (stream_class, sizeof (SoupClientInputStreamPrivate));
 
+	object_class->finalize = soup_client_input_stream_finalize;
 	object_class->set_property = soup_client_input_stream_set_property;
 	object_class->get_property = soup_client_input_stream_get_property;
 

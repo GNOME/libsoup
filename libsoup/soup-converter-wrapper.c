@@ -50,11 +50,20 @@ struct _SoupConverterWrapperPrivate
 };
 
 static void
+soup_converter_wrapper_init (SoupConverterWrapper *converter)
+{
+	converter->priv = G_TYPE_INSTANCE_GET_PRIVATE (converter,
+						       SOUP_TYPE_CONVERTER_WRAPPER,
+						       SoupConverterWrapperPrivate);
+}
+
+static void
 soup_converter_wrapper_finalize (GObject *object)
 {
 	SoupConverterWrapperPrivate *priv = SOUP_CONVERTER_WRAPPER (object)->priv;
 
 	g_clear_object (&priv->base_converter);
+	g_clear_object (&priv->msg);
 
 	G_OBJECT_CLASS (soup_converter_wrapper_parent_class)->finalize (object);
 }
@@ -113,14 +122,6 @@ soup_converter_wrapper_get_property (GObject    *object,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
-}
-
-static void
-soup_converter_wrapper_init (SoupConverterWrapper *converter)
-{
-	converter->priv = G_TYPE_INSTANCE_GET_PRIVATE (converter,
-						       SOUP_TYPE_CONVERTER_WRAPPER,
-						       SoupConverterWrapperPrivate);
 }
 
 static void

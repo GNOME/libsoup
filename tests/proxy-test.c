@@ -183,6 +183,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 			errors++;
 			g_clear_error (&error);
 		}
+		g_object_unref (stream);
 	}
 
 	debug_printf (1, "  %d %s\n", msg->status_code, msg->reason_phrase);
@@ -244,6 +245,7 @@ async_proxy_test_thread (gpointer num)
 	g_main_context_push_thread_default (context);
 	run_test (GPOINTER_TO_INT (num), FALSE);
 	g_main_context_pop_thread_default (context);
+	g_main_context_unref (context);
 
 	return NULL;
 }

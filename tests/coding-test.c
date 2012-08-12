@@ -109,7 +109,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!soup_header_contains (options, "empty")) {
 		soup_message_body_append (msg->response_body,
 					  SOUP_MEMORY_TAKE, contents, length);
-	}
+	} else
+		g_free (contents);
 
 	if (soup_header_contains (options, "trailing-junk")) {
 		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
@@ -366,6 +367,7 @@ do_single_coding_req_test (SoupRequest *req,
 		g_error_free (error);
 		errors++;
 	}
+	g_object_unref (stream);
 
 	check_response (msg, expected_encoding, expected_content_type, status);
 	g_object_unref (msg);
@@ -434,6 +436,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "gzip", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed w/ junk");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim gzip with server error */
@@ -450,6 +453,7 @@ do_coding_req_test (void)
 	 */
 	check_req_bodies (plain, cmp, "plain", "mis-encoded");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim deflate */
@@ -461,6 +465,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim deflate w/ junk */
@@ -472,6 +477,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed w/ junk");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim deflate with server error */
@@ -483,6 +489,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "deflate", "text/plain", EXPECT_NOT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "mis-encoded");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim deflate (no zlib headers)*/
@@ -494,6 +501,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	/* Plain text data, claim deflate with server error */
@@ -505,6 +513,7 @@ do_coding_req_test (void)
 	cmp = do_single_coding_req_test (req, "deflate", "text/plain", EXPECT_NOT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "mis-encoded");
 	g_byte_array_free (cmp, TRUE);
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	g_byte_array_free (plain, TRUE);
@@ -551,6 +560,7 @@ do_coding_empty_test (void)
 	g_byte_array_free (body, TRUE);
 	g_object_unref (req);
 
+	soup_uri_free (uri);
 	soup_test_session_abort_unref (session);
 }
 

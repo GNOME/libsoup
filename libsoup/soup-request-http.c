@@ -113,12 +113,9 @@ free_send_async_data (SendAsyncData *sadata)
        g_object_unref (sadata->http);
        g_object_unref (sadata->simple);
 
-       if (sadata->cancellable)
-               g_object_unref (sadata->cancellable);
-       if (sadata->stream)
-               g_object_unref (sadata->stream);
-       if (sadata->original)
-               g_object_unref (sadata->original);
+       g_clear_object (&sadata->cancellable);
+       g_clear_object (&sadata->stream);
+       g_clear_object (&sadata->original);
 
        g_slice_free (SendAsyncData, sadata);
 }

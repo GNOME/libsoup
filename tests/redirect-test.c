@@ -273,6 +273,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		}
 
 		g_error_free (error);
+		g_object_unref (msg);
 		g_object_unref (req);
 		debug_printf (2, "\n");
 		return;
@@ -280,6 +281,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);
 		g_error_free (error);
+		g_object_unref (msg);
 		g_object_unref (req);
 		errors++;
 		debug_printf (2, "\n");
@@ -293,6 +295,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		g_error_free (error);
 		errors++;
 	}
+	g_object_unref (stream);
 
 	if (msg->status_code != final_status) {
 		debug_printf (1, "    - Expected final status of %d, got %d !\n",
@@ -300,6 +303,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		errors++;
 	}
 
+	g_object_unref (msg);
 	g_object_unref (req);
 	debug_printf (2, "\n");
 }
