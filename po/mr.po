@@ -1,0 +1,76 @@
+# Marathi translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+#
+# Sandeep Shedmake <sshedmak@redhat.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-08-12 00:04+0000\n"
+"PO-Revision-Date: 2012-08-12 17:16+0530\n"
+"Last-Translator: Sandeep Shedmake <sshedmak@redhat.com>\n"
+"Language-Team: Marathi <mr@li.org>\n"
+"Language: mr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Lokalize 1.4\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "जोडणी अनपेक्षितपणे बंद झाली"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "आउटपुट बफर खूपच लहान आहे"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "कार्य रद्द केले"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "कार्य बंधिस्त करू शकते"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "URI पुरवले नाही"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "अवैध '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI '%s' वाचणे अशक्य"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "असमर्थीत URI सुत्रयोजना '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "यजमाननाव IP पत्ता आहे"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "अवैध यजमाननाव"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "यजमाननावात बेस डोमैन नाही"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "अतिरिक्त डोमैन्स् आढळले नाही"
+
