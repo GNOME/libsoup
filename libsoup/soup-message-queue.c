@@ -101,7 +101,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	SoupMessageQueueItem *item;
 
 	item = g_slice_new0 (SoupMessageQueueItem);
-	item->session = queue->session;
+	item->session = g_object_ref (queue->session);
 	item->async_context = soup_session_get_async_context (item->session);
 	item->queue = queue;
 	item->msg = g_object_ref (msg);
@@ -178,6 +178,7 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	/* And free it */
 	g_signal_handlers_disconnect_by_func (item->msg,
 					      queue_message_restarted, item);
+	g_object_unref (item->session);
 	g_object_unref (item->msg);
 	g_object_unref (item->cancellable);
 	if (item->proxy_addr)

@@ -297,7 +297,6 @@ queue_message_callback (gpointer data)
 	SoupMessageQueueItem *item = data;
 
 	item->callback (item->session, item->msg, item->callback_data);
-	g_object_unref (item->session);
 	soup_message_queue_item_unref (item);
 	return FALSE;
 }
@@ -311,10 +310,8 @@ queue_message_thread (gpointer data)
 	if (item->callback) {
 		soup_add_completion (soup_session_get_async_context (item->session),
 				     queue_message_callback, item);
-	} else {
-		g_object_unref (item->session);
+	} else
 		soup_message_queue_item_unref (item);
-	}
 
 	return NULL;
 }
@@ -326,7 +323,6 @@ soup_session_sync_queue_message (SoupSession *session, SoupMessage *msg,
 	SoupMessageQueueItem *item;
 	GThread *thread;
 
-	g_object_ref (session);
 	item = soup_session_append_queue_item (session, msg, callback, user_data);
 	thread = g_thread_new ("SoupSessionSync:queue_message",
 			       queue_message_thread, item);

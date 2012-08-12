@@ -140,7 +140,6 @@ tunnel_complete (SoupMessageQueueItem *item)
 	soup_message_queue_item_unref (item->related);
 	soup_session_unqueue_item (session, item);
 	soup_message_queue_item_unref (item);
-	g_object_unref (session);
 }
 
 static void
@@ -210,7 +209,6 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 		soup_connection_disconnect (conn);
 		do_idle_run_queue (session);
 		soup_message_queue_item_unref (item);
-		g_object_unref (session);
 		return;
 	}
 
@@ -229,7 +227,6 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 
 		do_idle_run_queue (session);
 		soup_message_queue_item_unref (item);
-		g_object_unref (session);
 		return;
 	}
 
@@ -249,7 +246,6 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 			  G_CALLBACK (connection_closed), session);
 	run_queue ((SoupSessionAsync *)session);
 	soup_message_queue_item_unref (item);
-	g_object_unref (session);
 }
 
 static void
@@ -282,7 +278,6 @@ process_queue_item (SoupMessageQueueItem *item,
 
 			item->state = SOUP_MESSAGE_CONNECTING;
 			soup_message_queue_item_ref (item);
-			g_object_ref (session);
 			soup_connection_connect_async (item->conn, item->cancellable,
 						       got_connection, item);
 			return;
@@ -307,14 +302,14 @@ process_queue_item (SoupMessageQueueItem *item,
 			if (item->state != SOUP_MESSAGE_FINISHED)
 				break;
 
-			g_object_ref (session);
+			soup_message_queue_item_ref (item);
 			soup_session_unqueue_item (session, item);
 			if (item->callback)
 				item->callback (session, item->msg, item->callback_data);
 			else if (item->new_api)
 				send_request_finished (session, item);
 			do_idle_run_queue (session);
-			g_object_unref (session);
+			soup_message_queue_item_unref (item);
 			return;
 
 		default:
