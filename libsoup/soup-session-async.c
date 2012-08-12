@@ -16,6 +16,7 @@
 #include "soup-session-private.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
+#include "soup-misc-private.h"
 
 /**
  * SECTION:soup-session-async
@@ -37,6 +38,7 @@ G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
 
 typedef struct {
 	SoupSessionAsync *sa;
+	GSList *sources;
 	gboolean disposed;
 
 } SoupSessionAsyncPrivate;
@@ -54,8 +56,14 @@ static void
 soup_session_async_dispose (GObject *object)
 {
 	SoupSessionAsyncPrivate *priv = SOUP_SESSION_ASYNC_GET_PRIVATE (object);
+	GSList *iter;
 
 	priv->disposed = TRUE;
+	for (iter = priv->sources; iter; iter = iter->next) {
+		g_source_destroy (iter->data);
+		g_source_unref (iter->data);
+	}
+	g_clear_pointer (&priv->sources, g_slist_free);
 
 	G_OBJECT_CLASS (soup_session_async_parent_class)->dispose (object);
 }
@@ -359,12 +367,17 @@ static gboolean
 idle_run_queue (gpointer user_data)
 {
 	SoupSessionAsyncPrivate *priv = user_data;
+	GSource *source;
 
 	if (priv->disposed)
 		return FALSE;
 
+	source = g_main_current_source ();
+	priv->sources = g_slist_remove (priv->sources, source);
+
 	/* Ensure that the source is destroyed before running the queue */
-	g_source_destroy (g_main_current_source ());
+	g_source_destroy (source);
+	g_source_unref (source);
 
 	run_queue (priv->sa);
 	return FALSE;
@@ -389,7 +402,8 @@ do_idle_run_queue (SoupSession *session)
 	if (source)
 		return;
 
-	source = soup_add_completion (async_context, idle_run_queue, priv);
+	source = soup_add_completion_reffed (async_context, idle_run_queue, priv);
+	priv->sources = g_slist_prepend (priv->sources, source);
 }
 
 static void

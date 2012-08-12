@@ -41,4 +41,8 @@ SoupURI *soup_socket_get_http_proxy_uri (SoupSocket *sock);
 					   method == SOUP_METHOD_PUT || \
 					   method == SOUP_METHOD_DELETE)
 
+GSource *soup_add_completion_reffed (GMainContext *async_context,
+				     GSourceFunc   function,
+				     gpointer      data);
+
 #endif /* SOUP_MISC_PRIVATE_H */

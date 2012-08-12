@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "soup-misc.h"
+#include "soup-misc-private.h"
 
 /**
  * SECTION:soup-misc
@@ -112,6 +113,19 @@ soup_add_idle (GMainContext *async_context,
 	return source;
 }
 
+GSource *
+soup_add_completion_reffed (GMainContext *async_context,
+			    GSourceFunc   function,
+			    gpointer      data)
+{
+	GSource *source = g_idle_source_new ();
+
+	g_source_set_priority (source, G_PRIORITY_DEFAULT);
+	g_source_set_callback (source, function, data, NULL);
+	g_source_attach (source, async_context);
+	return source;
+}
+
 /**
  * soup_add_completion: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
@@ -132,10 +146,9 @@ GSource *
 soup_add_completion (GMainContext *async_context,
 	             GSourceFunc function, gpointer data)
 {
-	GSource *source = g_idle_source_new ();
-	g_source_set_priority (source, G_PRIORITY_DEFAULT);
-	g_source_set_callback (source, function, data, NULL);
-	g_source_attach (source, async_context);
+	GSource *source;
+
+	source = soup_add_completion_reffed (async_context, function, data);
 	g_source_unref (source);
 	return source;
 }
