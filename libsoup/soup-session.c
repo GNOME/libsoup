@@ -1207,7 +1207,8 @@ soup_session_get_connection (SoupSession *session,
 
 	need_new_connection =
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
-		!SOUP_METHOD_IS_IDEMPOTENT (item->msg->method);
+		(!(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IDEMPOTENT) &&
+		 !SOUP_METHOD_IS_IDEMPOTENT (item->msg->method));
 
 	g_mutex_lock (&priv->conn_lock);
 

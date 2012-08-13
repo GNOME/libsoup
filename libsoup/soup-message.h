@@ -119,7 +119,8 @@ typedef enum {
 #endif
 	SOUP_MESSAGE_CONTENT_DECODED      = (1 << 4),
 	SOUP_MESSAGE_CERTIFICATE_TRUSTED  = (1 << 5),
-	SOUP_MESSAGE_NEW_CONNECTION       = (1 << 6)
+	SOUP_MESSAGE_NEW_CONNECTION       = (1 << 6),
+	SOUP_MESSAGE_IDEMPOTENT           = (1 << 7)
 } SoupMessageFlags;
 
 void             soup_message_set_flags           (SoupMessage           *msg,

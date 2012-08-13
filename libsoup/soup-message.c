@@ -1453,7 +1453,12 @@ soup_message_cleanup_response (SoupMessage *req)
  * @SOUP_MESSAGE_NEW_CONNECTION: The message should be sent on a
  *   newly-created connection, not reusing an existing persistent
  *   connection. Note that messages with non-idempotent
- *   #SoupMessage:method<!-- -->s behave this way by default.
+ *   #SoupMessage:method<!-- -->s behave this way by default,
+ *   unless #SOUP_MESSAGE_IDEMPOTENT is set.
+ * @SOUP_MESSAGE_IDEMPOTENT: The message is considered idempotent,
+ *   regardless its #SoupMessage:method, and allows reuse of existing
+ *   idle connections, instead of always requiring a new one, unless
+ *   #SOUP_MESSAGE_NEW_CONNECTION is set.
  *
  * Various flags that can be set on a #SoupMessage to alter its
  * behavior.
