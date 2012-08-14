@@ -1,0 +1,75 @@
+# Bengali (India) translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+#
+# Sayak Sarkar <sayak.bugsmith@gmail.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-08-12 00:04+0000\n"
+"PO-Revision-Date: 2012-08-02 19:33+0530\n"
+"Last-Translator: Sayak Sarkar <sayak.bugsmith@gmail.com>\n"
+"Language-Team: Bengali (India) <anubad@lists.ankur.org.in>\n"
+"Language: bn\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Lokalize 1.4\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "সংযোগ অপ্রত্যাশিতভাবে পর্যবসিত"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "আউটপুট বাফার অত্যন্ত ছোট"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "অপারেশন বাতিল হয়েছে"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "অপারেশন ব্লক করবে"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "কোন URI দেওয়া হয়নি"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "অবৈধ '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI '%s' পার্স করা যায়নি"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "অসমর্থিত URI স্কিম '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "হোস্টনেমটি একটি IP অ্যাড্রেস"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "অবৈধ হোস্টনেম"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "হোস্টনেমটির কোনো বেস ডোমেইন নেই"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "ডোমেইনগুলি পর্যাপ্ত নয়"
