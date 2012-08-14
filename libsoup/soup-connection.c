@@ -337,6 +337,20 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				     G_PARAM_READABLE));
 }
 
+static void
+soup_connection_event (SoupConnection      *conn,
+		       GSocketClientEvent   event,
+		       GIOStream           *connection)
+{
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	if (!connection && priv->socket)
+		connection = soup_socket_get_connection (priv->socket);
+
+	g_signal_emit (conn, signals[EVENT], 0,
+		       event, connection);
+}
+
 static gboolean
 idle_timeout (gpointer conn)
 {
@@ -394,11 +408,9 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 	g_signal_connect (item->msg, "restarted",
 			  G_CALLBACK (current_item_restarted), conn);
 
-	if (item->msg->method == SOUP_METHOD_CONNECT) {
-		g_signal_emit (conn, signals[EVENT], 0,
-			       G_SOCKET_CLIENT_PROXY_NEGOTIATING,
-			       soup_socket_get_connection (priv->socket));
-	} else if (priv->state == SOUP_CONNECTION_IDLE)
+	if (item->msg->method == SOUP_METHOD_CONNECT)
+		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
+	else if (priv->state == SOUP_CONNECTION_IDLE)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 
 	g_object_thaw_notify (G_OBJECT (conn));
@@ -425,9 +437,7 @@ clear_current_item (SoupConnection *conn)
 
 		if (item->msg->method == SOUP_METHOD_CONNECT &&
 		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
-			g_signal_emit (conn, signals[EVENT], 0,
-				       G_SOCKET_CLIENT_PROXY_NEGOTIATED,
-				       soup_socket_get_connection (priv->socket));
+			soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
 
 			/* We're now effectively no longer proxying */
 			soup_uri_free (priv->proxy_uri);
@@ -443,20 +453,6 @@ clear_current_item (SoupConnection *conn)
 	}
 
 	g_object_thaw_notify (G_OBJECT (conn));
-}
-
-static void
-soup_connection_event (SoupConnection      *conn,
-		       GSocketClientEvent   event,
-		       GIOStream           *connection)
-{
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	if (!connection && priv->socket)
-		connection = soup_socket_get_connection (priv->socket);
-
-	g_signal_emit (conn, signals[EVENT], 0,
-		       event, connection);
 }
 
 static void
@@ -774,9 +770,10 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 
 	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	status = soup_socket_handshake_sync (priv->socket, cancellable);
-	if (status == SOUP_STATUS_OK)
+	if (status == SOUP_STATUS_OK) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
-	else if (status == SOUP_STATUS_TLS_FAILED) {
+		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
+	} else if (status == SOUP_STATUS_TLS_FAILED) {
 		priv->ssl_fallback = TRUE;
 		status = SOUP_STATUS_TRY_AGAIN;
 	}
@@ -790,9 +787,10 @@ start_ssl_completed (SoupSocket *socket, guint status, gpointer user_data)
 	SoupConnectionAsyncConnectData *data = user_data;
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
 
-	if (status == SOUP_STATUS_OK)
+	if (status == SOUP_STATUS_OK) {
 		soup_connection_event (data->conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
-	else if (status == SOUP_STATUS_TLS_FAILED) {
+		soup_connection_event (data->conn, G_SOCKET_CLIENT_COMPLETE, NULL);
+	} else if (status == SOUP_STATUS_TLS_FAILED) {
 		priv->ssl_fallback = TRUE;
 		status = SOUP_STATUS_TRY_AGAIN;
 	}

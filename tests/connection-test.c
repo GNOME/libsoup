@@ -804,6 +804,121 @@ do_connection_state_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+
+static const char *event_names[] = {
+	"RESOLVING", "RESOLVED", "CONNECTING", "CONNECTED",
+	"PROXY_NEGOTIATING", "PROXY_NEGOTIATED",
+	"TLS_HANDSHAKING", "TLS_HANDSHAKED", "COMPLETE"
+};
+
+static const char event_abbrevs[] = {
+	'r', 'R', 'c', 'C', 'p', 'P', 't', 'T', 'x', '\0'
+};
+
+static const char *
+event_name_from_abbrev (char abbrev)
+{
+	int evt;
+
+	for (evt = 0; event_abbrevs[evt]; evt++) {
+		if (event_abbrevs[evt] == abbrev)
+			return event_names[evt];
+	}
+	return "???";
+}
+
+static void
+network_event (SoupMessage *msg, GSocketClientEvent event,
+	       GIOStream *connection, gpointer user_data)
+{
+	const char **events = user_data;
+
+	if (!**events) {
+		debug_printf (1, "      Unexpected event: %s\n",
+			      event_names[event]);
+		errors++;
+	} else {
+		if (**events == event_abbrevs[event])
+			debug_printf (2, "      %s\n", event_names[event]);
+		else {
+			debug_printf (1, "      Unexpected event: %s (expected %s)\n",
+				      event_names[event],
+				      event_name_from_abbrev (**events));
+			errors++;
+		}
+		*events = *events + 1;
+	}
+}
+
+static void
+do_one_connection_event_test (SoupSession *session, const char *uri,
+			      const char *events)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("GET", uri);
+	g_signal_connect (msg, "network-event",
+			  G_CALLBACK (network_event),
+			  &events);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	} else {
+		while (*events) {
+			debug_printf (1, "      Expected %s\n",
+				      event_name_from_abbrev (*events));
+			events++;
+			errors++;
+		}
+	}
+	g_object_unref (msg);
+	soup_session_abort (session);
+}
+
+static void
+do_connection_event_test_for_session (SoupSession *session)
+{
+	SoupURI *proxy_uri;
+
+	debug_printf (1, "    http\n");
+	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
+
+	debug_printf (1, "    https\n");
+	do_one_connection_event_test (session, HTTPS_SERVER, "rRcCtTx");
+
+	proxy_uri = soup_uri_new (HTTP_PROXY);
+	g_object_set (G_OBJECT (session),
+		      SOUP_SESSION_PROXY_URI, proxy_uri,
+		      NULL);
+	soup_uri_free (proxy_uri);
+
+	debug_printf (1, "    http with proxy\n");
+	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
+
+	debug_printf (1, "    https with proxy\n");
+	do_one_connection_event_test (session, HTTPS_SERVER, "rRcCpPtTx");
+}
+
+static void
+do_connection_event_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nConnection events\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_connection_event_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_connection_event_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 #endif
 
 int
@@ -826,6 +941,7 @@ main (int argc, char **argv)
 	do_non_idempotent_connection_test ();
 #ifdef HAVE_APACHE
 	do_connection_state_test ();
+	do_connection_event_test ();
 #endif
 
 	soup_uri_free (base_uri);
