@@ -5,6 +5,8 @@
 
 #include "test-utils.h"
 
+#include "libsoup/soup-connection.h"
+
 SoupServer *server;
 SoupURI *base_uri;
 GMutex server_mutex;
@@ -679,10 +681,138 @@ do_non_idempotent_connection_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+#ifdef HAVE_APACHE
+
+#define HTTP_SERVER  "http://127.0.0.1:47524"
+#define HTTPS_SERVER "https://127.0.0.1:47525"
+#define HTTP_PROXY   "http://127.0.0.1:47526"
+
+static SoupConnectionState state_transitions[] = {
+	/* NEW -> */        SOUP_CONNECTION_CONNECTING,
+	/* CONNECTING -> */ SOUP_CONNECTION_IN_USE,
+	/* IDLE -> */       SOUP_CONNECTION_DISCONNECTED,
+	/* IN_USE -> */     SOUP_CONNECTION_IDLE,
+
+	/* REMOTE_DISCONNECTED */ -1,
+	/* DISCONNECTED */        -1,
+};
+
+static const char *state_names[] = {
+	"NEW", "CONNECTING", "IDLE", "IN_USE",
+	"REMOTE_DISCONNECTED", "DISCONNECTED"
+};
+
+static void
+connection_state_changed (GObject *object, GParamSpec *param,
+			  gpointer user_data)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupConnectionState *state = user_data;
+	SoupConnectionState new_state;
+
+	new_state = soup_connection_get_state (conn);
+	if (state_transitions[*state] != new_state) {
+		debug_printf (1, "      Unexpected transition: %s -> %s\n",
+			      state_names[*state], state_names[new_state]);
+		errors++;
+	} else {
+		debug_printf (2, "      %s -> %s\n",
+			      state_names[*state], state_names[new_state]);
+	}
+
+	*state = new_state;
+}
+
+static void
+connection_created (SoupSession *session, SoupConnection *conn,
+		    gpointer user_data)
+{
+	SoupConnectionState *state = user_data;
+
+	*state = soup_connection_get_state (conn);
+	if (*state != SOUP_CONNECTION_NEW) {
+		debug_printf (1, "      Unexpected initial state: %d\n",
+			      *state);
+		errors++;
+	}
+
+	g_signal_connect (conn, "notify::state",
+			  G_CALLBACK (connection_state_changed),
+			  state);
+}
+
+static void
+do_one_connection_state_test (SoupSession *session, const char *uri)
+{
+	SoupMessage *msg;
+
+	msg = soup_message_new ("GET", uri);
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+	soup_session_abort (session);
+}
+
+static void
+do_connection_state_test_for_session (SoupSession *session)
+{
+	SoupConnectionState state;
+	SoupURI *proxy_uri;
+
+	g_signal_connect (session, "connection-created",
+			  G_CALLBACK (connection_created),
+			  &state);
+
+	debug_printf (1, "    http\n");
+	do_one_connection_state_test (session, HTTP_SERVER);
+
+	debug_printf (1, "    https\n");
+	do_one_connection_state_test (session, HTTPS_SERVER);
+
+	proxy_uri = soup_uri_new (HTTP_PROXY);
+	g_object_set (G_OBJECT (session),
+		      SOUP_SESSION_PROXY_URI, proxy_uri,
+		      NULL);
+	soup_uri_free (proxy_uri);
+
+	debug_printf (1, "    http with proxy\n");
+	do_one_connection_state_test (session, HTTP_SERVER);
+
+	debug_printf (1, "    https with proxy\n");
+	do_one_connection_state_test (session, HTTPS_SERVER);
+}
+
+static void
+do_connection_state_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nConnection states\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	do_connection_state_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	do_connection_state_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
+#endif
+
 int
 main (int argc, char **argv)
 {
 	test_init (argc, argv, NULL);
+#ifdef HAVE_APACHE
+	apache_init ();
+#endif
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
@@ -694,6 +824,9 @@ main (int argc, char **argv)
 	do_max_conns_test ();
 	do_non_persistent_connection_test ();
 	do_non_idempotent_connection_test ();
+#ifdef HAVE_APACHE
+	do_connection_state_test ();
+#endif
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

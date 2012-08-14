@@ -139,7 +139,6 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item)
 
 	do_idle_run_queue (session);
 	soup_message_queue_item_unref (item);
-	soup_session_unqueue_item (session, tunnel_item);
 	soup_message_queue_item_unref (tunnel_item);
 }
 
@@ -152,9 +151,6 @@ ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		g_signal_connect (item->conn, "disconnected",
 				  G_CALLBACK (connection_closed), item->session);
-		soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		soup_connection_set_state (item->conn, SOUP_CONNECTION_IN_USE);
-
 		item->state = SOUP_MESSAGE_READY;
 	} else {
 		if (item->conn)
@@ -185,6 +181,7 @@ tunnel_message_completed (SoupMessage *tunnel_msg, gpointer user_data)
 	}
 
 	tunnel_item->state = SOUP_MESSAGE_FINISHED;
+	soup_session_unqueue_item (session, tunnel_item);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (tunnel_msg->status_code)) {
 		if (item->conn)

@@ -432,6 +432,10 @@ clear_current_item (SoupConnection *conn)
 			/* We're now effectively no longer proxying */
 			soup_uri_free (priv->proxy_uri);
 			priv->proxy_uri = NULL;
+
+			/* Nor are we actually IDLE... */
+			if (priv->state == SOUP_CONNECTION_IDLE)
+				priv->state = SOUP_CONNECTION_IN_USE;
 		}
 
 		if (!soup_message_is_keepalive (item->msg) || !priv->reusable)
@@ -936,7 +940,6 @@ void
 soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 {
 	SoupConnectionPrivate *priv;
-	SoupConnectionState old_state;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
@@ -945,14 +948,13 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-	old_state = priv->state;
 	priv->state = state;
-	if ((state == SOUP_CONNECTION_IDLE ||
-	     state == SOUP_CONNECTION_DISCONNECTED) &&
-	    old_state == SOUP_CONNECTION_IN_USE)
+	if (state == SOUP_CONNECTION_IDLE ||
+	    state == SOUP_CONNECTION_DISCONNECTED)
 		clear_current_item (conn);
 
-	g_object_notify (G_OBJECT (conn), "state");
+	if (priv->state == state)
+		g_object_notify (G_OBJECT (conn), "state");
 	g_object_thaw_notify (G_OBJECT (conn));
 }
 
