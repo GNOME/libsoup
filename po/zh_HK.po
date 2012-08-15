@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-16 08:47+0800\n"
-"PO-Revision-Date: 2012-07-16 08:48+0800\n"
+"POT-Creation-Date: 2012-08-15 15:13+0800\n"
+"PO-Revision-Date: 2012-08-15 15:13+0800\n"
 "Last-Translator: Chao-Hsiung Liao <j_h_liau@yahoo.com.tw>\n"
 "Language-Team: Chinese (Hong Kong) <community@linuxhall.org>\n"
 "Language: zh_TW\n"
@@ -18,20 +18,20 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:136
 #: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:193
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "連線無預警的關閉了"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "輸出緩衝區太小"
 
-#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "操作已被取消"
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "操作會阻擋"
 
@@ -55,14 +55,18 @@ msgstr "無法解析 URI「%s」"
 msgid "Unsupported URI scheme '%s'"
 msgstr "不支援的 URI scheme「%s」"
 
-#: ../libsoup/soup-tld.c:146
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "主機名稱是 IP 位址"
 
-#: ../libsoup/soup-tld.c:167
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "主機名稱無效"
 
-#: ../libsoup/soup-tld.c:182 ../libsoup/soup-tld.c:220
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "主機名稱沒有基礎網域"
+
+#: ../libsoup/soup-tld.c:226
 msgid "Not enough domains"
 msgstr "沒有足夠的網域"
