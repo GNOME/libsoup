@@ -106,15 +106,6 @@ soup_session_async_new_with_options (const char *optname1, ...)
 }
 
 static void
-connection_closed (SoupConnection *conn, gpointer session)
-{
-	/* Run the queue in case anyone was waiting for a connection
-	 * to be closed.
-	 */
-	do_idle_run_queue (session);
-}
-
-static void
 message_completed (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
@@ -148,11 +139,9 @@ ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 	SoupMessageQueueItem *tunnel_item = user_data;
 	SoupMessageQueueItem *item = tunnel_item->related;
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_signal_connect (item->conn, "disconnected",
-				  G_CALLBACK (connection_closed), item->session);
+	if (SOUP_STATUS_IS_SUCCESSFUL (status))
 		item->state = SOUP_MESSAGE_READY;
-	} else {
+	else {
 		if (item->conn)
 			soup_connection_disconnect (item->conn);
 		soup_message_set_status (item->msg, SOUP_STATUS_SSL_FAILED);
@@ -243,8 +232,6 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	}
 
 	item->state = SOUP_MESSAGE_READY;
-	g_signal_connect (conn, "disconnected",
-			  G_CALLBACK (connection_closed), session);
 	run_queue ((SoupSessionAsync *)session);
 	soup_message_queue_item_unref (item);
 }
@@ -309,7 +296,7 @@ process_queue_item (SoupMessageQueueItem *item,
 				item->callback (session, item->msg, item->callback_data);
 			else if (item->new_api)
 				send_request_finished (session, item);
-			do_idle_run_queue (session);
+
 			soup_message_queue_item_unref (item);
 			return;
 

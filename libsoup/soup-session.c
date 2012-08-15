@@ -1167,6 +1167,18 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 
 	g_mutex_unlock (&priv->conn_lock);
 	g_object_unref (conn);
+
+	SOUP_SESSION_GET_CLASS (session)->kick (session);
+}
+
+static void
+connection_state_changed (GObject *object, GParamSpec *param, gpointer user_data)
+{
+	SoupSession *session = user_data;
+	SoupConnection *conn = SOUP_CONNECTION (object);
+
+	if (soup_connection_get_state (conn) == SOUP_CONNECTION_IDLE)
+		SOUP_SESSION_GET_CLASS (session)->kick (session);
 }
 
 SoupMessageQueueItem *
@@ -1262,6 +1274,9 @@ soup_session_get_connection (SoupSession *session,
 		NULL);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
+			  session);
+	g_signal_connect (conn, "notify::state",
+			  G_CALLBACK (connection_state_changed),
 			  session);
 
 	g_signal_emit (session, signals[CONNECTION_CREATED], 0, conn);
