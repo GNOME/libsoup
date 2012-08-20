@@ -2224,7 +2224,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:idle-timeout:
 	 *
-	 * Connection lifetime when idle
+	 * Connection lifetime (in seconds) when idle. Any connection
+	 * left idle longer than this will be closed.
+	 *
+	 * Although you can change this property at any time, it will
+	 * only affect newly-created connections, not currently-open
+	 * ones. You can call soup_session_abort() after setting this
+	 * if you want to ensure that all future connections will have
+	 * this timeout value.
 	 *
 	 * Since: 2.4.1
 	 **/
@@ -2428,10 +2435,23 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      FALSE,
 				      G_PARAM_READWRITE));
 	/**
+	 * SoupSession:timeout:
+	 *
+	 * The timeout (in seconds) for socket I/O operations
+	 * (including connecting to a server, and waiting for a reply
+	 * to an HTTP request).
+	 *
+	 * Although you can change this property at any time, it will
+	 * only affect newly-created connections, not currently-open
+	 * ones. You can call soup_session_abort() after setting this
+	 * if you want to ensure that all future connections will have
+	 * this timeout value.
+	 */
+	/**
 	 * SOUP_SESSION_TIMEOUT:
 	 *
 	 * Alias for the #SoupSession:timeout property. (The timeout
-	 * in seconds for blocking socket I/O operations.)
+	 * in seconds for socket I/O operations.)
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
