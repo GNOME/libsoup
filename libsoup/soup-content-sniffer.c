@@ -185,8 +185,8 @@ static char byte_looks_binary[] = {
 
 /* HTML5: 2.7.4 Content-Type sniffing: unknown type */
 static char*
-sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
-	       SoupBuffer *buffer, gboolean for_text_or_binary)
+sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
+	       gboolean for_text_or_binary)
 {
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
@@ -262,8 +262,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupMessage *msg,
 
 /* HTML5: 2.7.3 Content-Type sniffing: text or binary */
 static char*
-sniff_text_or_binary (SoupContentSniffer *sniffer, SoupMessage *msg,
-		      SoupBuffer *buffer)
+sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
@@ -289,12 +288,12 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupMessage *msg,
 	if (!looks_binary)
 		return g_strdup ("text/plain");
 
-	return sniff_unknown (sniffer, msg, buffer, TRUE);
+	return sniff_unknown (sniffer, buffer, TRUE);
 }
 
 static char*
-sniff_images (SoupContentSniffer *sniffer, SoupMessage *msg,
-	      SoupBuffer *buffer, const char *content_type)
+sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer,
+	      const char *content_type)
 {
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
@@ -320,7 +319,7 @@ sniff_images (SoupContentSniffer *sniffer, SoupMessage *msg,
 }
 
 static char*
-sniff_feed_or_html (SoupContentSniffer *sniffer, SoupMessage *msg, SoupBuffer *buffer)
+sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
@@ -442,7 +441,7 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	    !g_ascii_strcasecmp (content_type, "unknown/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "application/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "*/*"))
-		return sniff_unknown (sniffer, msg, buffer, FALSE);
+		return sniff_unknown (sniffer, buffer, FALSE);
 
 	if (g_str_has_suffix (content_type, "+xml") ||
 	    !g_ascii_strcasecmp (content_type, "text/xml") ||
@@ -460,15 +459,15 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	 * this code, keep this in mind.
 	 */
 	if (!g_ascii_strncasecmp (content_type, "image/", 6))
-		return sniff_images (sniffer, msg, buffer, content_type);
+		return sniff_images (sniffer, buffer, content_type);
 
 	/* If we got text/plain, use text_or_binary */
 	if (g_str_equal (content_type, "text/plain")) {
-		return sniff_text_or_binary (sniffer, msg, buffer);
+		return sniff_text_or_binary (sniffer, buffer);
 	}
 
 	if (!g_ascii_strcasecmp (content_type, "text/html"))
-		return sniff_feed_or_html (sniffer, msg, buffer);
+		return sniff_feed_or_html (sniffer, buffer);
 
 	return g_strdup (content_type);
 }
