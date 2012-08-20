@@ -65,6 +65,19 @@ static void soup_cache_session_feature_init (SoupSessionFeatureInterface *featur
  */
 #define SOUP_CACHE_CURRENT_VERSION 5
 
+#define OLD_SOUP_CACHE_FILE "soup.cache"
+#define SOUP_CACHE_FILE "soup.cache2"
+
+#define SOUP_CACHE_HEADERS_FORMAT "{ss}"
+#define SOUP_CACHE_PHEADERS_FORMAT "(sbuuuuuqa" SOUP_CACHE_HEADERS_FORMAT ")"
+#define SOUP_CACHE_ENTRIES_FORMAT "(qa" SOUP_CACHE_PHEADERS_FORMAT ")"
+
+/* Basically the same format than above except that some strings are
+   prepended with &. This way the GVariant returns a pointer to the
+   data instead of duplicating the string */
+#define SOUP_CACHE_DECODE_HEADERS_FORMAT "{&s&s}"
+
+
 typedef struct _SoupCacheEntry {
 	guint32 key;
 	char *uri;
@@ -1479,12 +1492,35 @@ clear_cache_item (gpointer data,
 	soup_cache_entry_remove ((SoupCache *) user_data, (SoupCacheEntry *) data, TRUE);
 }
 
+static void
+clear_cache_files (SoupCache *cache)
+{
+	GFileInfo *file_info;
+	GFileEnumerator *file_enumerator;
+	GFile *cache_dir_file = g_file_new_for_path (cache->priv->cache_dir);
+
+	file_enumerator = g_file_enumerate_children (cache_dir_file, G_FILE_ATTRIBUTE_STANDARD_NAME,
+						     G_FILE_QUERY_INFO_NONE, NULL, NULL);
+	if (file_enumerator) {
+		while ((file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL)) != NULL) {
+			const char *filename = g_file_info_get_name (file_info);
+
+			if (strcmp (filename, SOUP_CACHE_FILE) != 0) {
+				GFile *cache_file = g_file_get_child (cache_dir_file, filename);
+				g_file_delete (cache_file, NULL, NULL);
+				g_object_unref (cache_file);
+			}
+		}
+		g_object_unref (file_enumerator);
+	}
+	g_object_unref (cache_dir_file);
+}
+
 /**
  * soup_cache_clear:
  * @cache: a #SoupCache
  *
- * Will remove all entries in the @cache plus all the cache files
- * associated with them.
+ * Will remove all entries in the @cache plus all the cache files.
  *
  * Since: 2.34
  */
@@ -1500,6 +1536,9 @@ soup_cache_clear (SoupCache *cache)
 	entries = g_hash_table_get_values (cache->priv->cache);
 	g_list_foreach (entries, clear_cache_item, cache);
 	g_list_free (entries);
+
+	/* Remove also any file not associated with a cache entry. */
+	clear_cache_files (cache);
 }
 
 SoupMessage *
@@ -1544,18 +1583,6 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 
 	return msg;
 }
-
-#define OLD_SOUP_CACHE_FILE "soup.cache"
-#define SOUP_CACHE_FILE "soup.cache2"
-
-#define SOUP_CACHE_HEADERS_FORMAT "{ss}"
-#define SOUP_CACHE_PHEADERS_FORMAT "(sbuuuuuqa" SOUP_CACHE_HEADERS_FORMAT ")"
-#define SOUP_CACHE_ENTRIES_FORMAT "(qa" SOUP_CACHE_PHEADERS_FORMAT ")"
-
-/* Basically the same format than above except that some strings are
-   prepended with &. This way the GVariant returns a pointer to the
-   data instead of duplicating the string */
-#define SOUP_CACHE_DECODE_HEADERS_FORMAT "{&s&s}"
 
 static void
 pack_entry (gpointer data,
@@ -1618,30 +1645,6 @@ soup_cache_dump (SoupCache *cache)
 			     g_variant_get_size (cache_variant), NULL);
 	g_free (filename);
 	g_variant_unref (cache_variant);
-}
-
-static void
-clear_cache_files (SoupCache *cache)
-{
-	GFileInfo *file_info;
-	GFileEnumerator *file_enumerator;
-	GFile *cache_dir_file = g_file_new_for_path (cache->priv->cache_dir);
-
-	file_enumerator = g_file_enumerate_children (cache_dir_file, G_FILE_ATTRIBUTE_STANDARD_NAME,
-						     G_FILE_QUERY_INFO_NONE, NULL, NULL);
-	if (file_enumerator) {
-		while ((file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL)) != NULL) {
-			const char *filename = g_file_info_get_name (file_info);
-
-			if (strcmp (filename, SOUP_CACHE_FILE) != 0) {
-				GFile *cache_file = g_file_get_child (cache_dir_file, filename);
-				g_file_delete (cache_file, NULL, NULL);
-				g_object_unref (cache_file);
-			}
-		}
-		g_object_unref (file_enumerator);
-	}
-	g_object_unref (cache_dir_file);
 }
 
 void
