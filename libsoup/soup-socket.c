@@ -1565,7 +1565,7 @@ soup_socket_read_until (SoupSocket *sock, gpointer buffer, gsize len,
 			SOUP_FILTER_INPUT_STREAM (priv->istream),
 			buffer, len, boundary, boundary_len,
 			!priv->non_blocking,
-			got_boundary, cancellable, &my_err);
+			TRUE, got_boundary, cancellable, &my_err);
 		status = translate_read_status (sock, cancellable,
 						my_nread, nread, my_err, error);
 	}

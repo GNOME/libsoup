@@ -177,7 +177,7 @@ soup_filter_input_stream_read_line (SoupFilterInputStream  *fstream,
 {
 	return soup_filter_input_stream_read_until (fstream, buffer, length,
 						    "\n", 1, blocking,
-						    got_line,
+						    TRUE, got_line,
 						    cancellable, error);
 }
 
@@ -188,6 +188,7 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 				     const void             *boundary,
 				     gsize                   boundary_length,
 				     gboolean                blocking,
+				     gboolean                include_boundary,
 				     gboolean               *got_boundary,
 				     GCancellable           *cancellable,
 				     GError                **error)
@@ -197,7 +198,7 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	gboolean eof = FALSE;
 
 	g_return_val_if_fail (SOUP_IS_FILTER_INPUT_STREAM (fstream), -1);
-	g_return_val_if_fail (boundary_length < length, -1);
+	g_return_val_if_fail (!include_boundary || (boundary_length < length), -1);
 
 	*got_boundary = FALSE;
 
@@ -237,8 +238,10 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	if (!eof)
 		end -= boundary_length;
 	for (p = buf; p <= end; p++) {
-		if (!memcmp (p, boundary, boundary_length)) {
-			p += boundary_length;
+		if (*p == *(guint8*)boundary &&
+		    !memcmp (p, boundary, boundary_length)) {
+			if (include_boundary)
+				p += boundary_length;
 			*got_boundary = TRUE;
 			break;
 		}
@@ -247,9 +250,10 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 	if (!*got_boundary && fstream->priv->buf->len < length && !eof)
 		goto fill_buffer;
 
-	/* Return everything up to 'p' (which is either just after the
-	 * boundary, @boundary_len - 1 bytes before the end of the
-	 * buffer, or end-of-file).
+	/* Return everything up to 'p' (which is either just after the boundary if
+	 * include_boundary is TRUE, just before the boundary if include_boundary is
+	 * FALSE, @boundary_len - 1 bytes before the end of the buffer, or end-of-
+	 * file).
 	 */
 	return read_from_buf (fstream, buffer, p - buf);
 }

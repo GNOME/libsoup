@@ -47,6 +47,7 @@ gssize        soup_filter_input_stream_read_until (SoupFilterInputStream  *fstre
 						   const void             *boundary,
 						   gsize                   boundary_len,
 						   gboolean                blocking,
+						   gboolean                include_boundary,
 						   gboolean               *got_boundary,
 						   GCancellable           *cancellable,
 						   GError                **error);
