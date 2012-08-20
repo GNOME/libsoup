@@ -233,6 +233,16 @@ soup_content_sniffer_stream_skip (GInputStream  *stream,
 }
 
 static gboolean
+soup_content_sniffer_stream_can_poll (GPollableInputStream *pollable)
+{
+	GInputStream *base_stream = G_FILTER_INPUT_STREAM (pollable)->base_stream;
+
+	return G_IS_POLLABLE_INPUT_STREAM (base_stream) &&
+		g_pollable_input_stream_can_poll (G_POLLABLE_INPUT_STREAM (base_stream));
+}
+
+
+static gboolean
 soup_content_sniffer_stream_is_readable (GPollableInputStream *stream)
 {
 	SoupContentSnifferStream *sniffer = SOUP_CONTENT_SNIFFER_STREAM (stream);
@@ -320,6 +330,7 @@ static void
 soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollable_interface,
 					   gpointer                       interface_data)
 {
+	pollable_interface->can_poll = soup_content_sniffer_stream_can_poll;
 	pollable_interface->is_readable = soup_content_sniffer_stream_is_readable;
 	pollable_interface->read_nonblocking = soup_content_sniffer_stream_read_nonblocking;
 	pollable_interface->create_source = soup_content_sniffer_stream_create_source;
