@@ -927,6 +927,21 @@ soup_multipart_get_type
 </SECTION>
 
 <SECTION>
+<FILE>soup-multipart-input-stream</FILE>
+<TITLE>SoupMultipartInputStream</TITLE>
+SoupMultipartInputStream
+soup_multipart_input_stream_new
+<SUBSECTION>
+soup_multipart_input_stream_get_headers
+soup_multipart_input_stream_next_part
+soup_multipart_input_stream_next_part_async
+soup_multipart_input_stream_next_part_finish
+<SUBSECTION Standard>
+SOUP_TYPE_MULTIPART_INPUT_STREAM
+soup_multipart_input_stream_get_type
+</SECTION>
+
+<SECTION>
 <FILE>soup-cookie-jar-text</FILE>
 <TITLE>SoupCookieJarText</TITLE>
 SoupCookieJarText

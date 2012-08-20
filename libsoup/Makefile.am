@@ -44,6 +44,7 @@ soup_headers =			\
 	soup-method.h		\
 	soup-misc.h     	\
 	soup-multipart.h     	\
+	soup-multipart-input-stream.h \
 	soup-password-manager.h	\
 	soup-portability.h	\
 	soup-proxy-resolver.h	\
@@ -144,6 +145,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-misc.c     		\
 	soup-misc-private.h		\
 	soup-multipart.c	     	\
+	soup-multipart-input-stream.c	\
 	soup-password-manager.c		\
 	soup-path-map.h     		\
 	soup-path-map.c     		\

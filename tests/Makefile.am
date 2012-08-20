@@ -24,6 +24,7 @@ noinst_PROGRAMS =	\
 	get		\
 	header-parsing  \
 	misc-test	\
+	multipart-test	\
 	ntlm-test	\
 	redirect-test	\
 	requester-test	\
@@ -57,6 +58,7 @@ if BUILD_LIBSOUP_GNOME
 get_LDADD = $(top_builddir)/libsoup/libsoup-gnome-2.4.la
 endif
 header_parsing_SOURCES = header-parsing.c $(TEST_SRCS)
+multipart_test_SOURCES = multipart-test.c $(TEST_SRCS)
 misc_test_SOURCES = misc-test.c $(TEST_SRCS)
 ntlm_test_SOURCES = ntlm-test.c $(TEST_SRCS)
 proxy_test_SOURCES = proxy-test.c $(TEST_SRCS)
@@ -97,6 +99,7 @@ TESTS =			\
 	date		\
 	header-parsing	\
 	misc-test	\
+	multipart-test	\
 	ntlm-test	\
 	redirect-test	\
 	requester-test	\

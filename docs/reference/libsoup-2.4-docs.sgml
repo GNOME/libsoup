@@ -74,6 +74,7 @@
     <xi:include href="xml/soup-request-file.xml"/>
     <xi:include href="xml/soup-request-data.xml"/>
     <xi:include href="xml/soup-cache.xml"/>
+    <xi:include href="xml/soup-multipart-input-stream.xml"/>
   </chapter>
 
   <index>
