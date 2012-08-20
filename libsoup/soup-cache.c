@@ -120,7 +120,7 @@ G_DEFINE_TYPE_WITH_CODE (SoupCache, soup_cache, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_cache_session_feature_init))
 
-static gboolean soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry);
+static gboolean soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge);
 static void make_room_for_new_entry (SoupCache *cache, guint length_to_add);
 static gboolean cache_accepts_entries_of_size (SoupCache *cache, guint length_to_add);
 static gboolean write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture);
@@ -260,13 +260,8 @@ get_cacheability (SoupCache *cache, SoupMessage *msg)
  * and also unref's the GFile object representing it.
  */
 static void
-soup_cache_entry_free (SoupCacheEntry *entry, GFile *file)
+soup_cache_entry_free (SoupCacheEntry *entry)
 {
-	if (file) {
-		g_file_delete (file, NULL, NULL);
-		g_object_unref (file);
-	}
-
 	g_free (entry->uri);
 	g_clear_pointer (&entry->current_writing_buffer, soup_buffer_free);
 	g_clear_pointer (&entry->headers, soup_message_headers_free);
@@ -540,8 +535,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 	   too much for the cache */
 	if (g_cancellable_is_cancelled (entry->cancellable)) {
 		entry->dirty = FALSE;
-		soup_cache_entry_remove (cache, entry);
-		soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
+		soup_cache_entry_remove (cache, entry, TRUE);
 		entry = NULL;
 	} else if ((soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CHUNKED) ||
 		   entry->length != (gsize) content_length) {
@@ -567,8 +561,7 @@ close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *
 			cache->priv->size += length_to_add;
 		} else {
 			entry->dirty = FALSE;
-			soup_cache_entry_remove (cache, entry);
-			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
+			soup_cache_entry_remove (cache, entry, TRUE);
 			entry = NULL;
 		}
 	}
@@ -720,7 +713,7 @@ msg_got_body_cb (SoupMessage *msg, SoupCacheWritingFixture *fixture)
 }
 
 static gboolean
-soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry)
+soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge)
 {
 	GList *lru_item;
 
@@ -744,6 +737,14 @@ soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry)
 	cache->priv->size -= entry->length;
 
 	g_assert (g_list_length (cache->priv->lru_start) == g_hash_table_size (cache->priv->cache));
+
+	/* Free resources */
+	if (purge) {
+		GFile *file = get_file_from_entry (cache, entry);
+		g_file_delete (file, NULL, NULL);
+		g_object_unref (file);
+	}
+	soup_cache_entry_free (entry);
 
 	return TRUE;
 }
@@ -803,10 +804,9 @@ make_room_for_new_entry (SoupCache *cache, guint length_to_add)
 		/* Discard entries. Once cancelled resources will be
 		 * freed in close_ready_cb
 		 */
-		if (soup_cache_entry_remove (cache, old_entry)) {
-			soup_cache_entry_free (old_entry, get_file_from_entry (cache, old_entry));
+		if (soup_cache_entry_remove (cache, old_entry, TRUE))
 			lru_entry = cache->priv->lru_start;
-		} else
+		else
 			lru_entry = g_list_next (lru_entry);
 	}
 }
@@ -836,9 +836,7 @@ soup_cache_entry_insert (SoupCache *cache,
 
 	/* Remove any previous entry */
 	if ((old_entry = g_hash_table_lookup (cache->priv->cache, GUINT_TO_POINTER (entry->key))) != NULL) {
-		if (soup_cache_entry_remove (cache, old_entry))
-			soup_cache_entry_free (old_entry, get_file_from_entry (cache, old_entry));
-		else
+		if (!soup_cache_entry_remove (cache, old_entry, TRUE))
 			return FALSE;
 	}
 
@@ -897,8 +895,7 @@ replace_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixt
 			g_object_unref (stream);
 		fixture->cache->priv->n_pending--;
 		entry->dirty = FALSE;
-		soup_cache_entry_remove (fixture->cache, entry);
-		soup_cache_entry_free (entry, get_file_from_entry (fixture->cache, entry));
+		soup_cache_entry_remove (fixture->cache, entry, TRUE);
 		soup_cache_writing_fixture_free (fixture);
 		return;
 	}
@@ -959,17 +956,15 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 			return;
 
 		/* Create a new entry, deleting any old one if present */
-		if (entry) {
-			soup_cache_entry_remove (cache, entry);
-			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
-		}
+		if (entry)
+			soup_cache_entry_remove (cache, entry, TRUE);
 
 		entry = soup_cache_entry_new (cache, msg, request_time, response_time);
 		entry->hits = 1;
 
 		/* Do not continue if it can not be stored */
 		if (!soup_cache_entry_insert (cache, entry, TRUE)) {
-			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
+			soup_cache_entry_free (entry);
 			return;
 		}
 
@@ -1004,10 +999,8 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 	} else if (cacheable & SOUP_CACHE_INVALIDATES) {
 		entry = soup_cache_entry_lookup (cache, msg);
 
-		if (entry) {
-			if (soup_cache_entry_remove (cache, entry))
-				soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
-		}
+		if (entry)
+			soup_cache_entry_remove (cache, entry, TRUE);
 	} else if (cacheable & SOUP_CACHE_VALIDATES) {
 		entry = soup_cache_entry_lookup (cache, msg);
 
@@ -1127,11 +1120,7 @@ static void
 remove_cache_item (gpointer data,
 		   gpointer user_data)
 {
-	SoupCache *cache = (SoupCache *) user_data;
-	SoupCacheEntry *entry = (SoupCacheEntry *) data;
-
-	if (soup_cache_entry_remove (cache, entry))
-		soup_cache_entry_free (entry, NULL);
+	soup_cache_entry_remove ((SoupCache *) user_data, (SoupCacheEntry *) data, FALSE);
 }
 
 static void
@@ -1502,11 +1491,7 @@ static void
 clear_cache_item (gpointer data,
 		  gpointer user_data)
 {
-	SoupCache *cache = (SoupCache *) user_data;
-	SoupCacheEntry *entry = (SoupCacheEntry *) data;
-
-	if (soup_cache_entry_remove (cache, entry))
-		soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
+	soup_cache_entry_remove ((SoupCache *) user_data, (SoupCacheEntry *) data, TRUE);
 }
 
 /**
@@ -1741,7 +1726,7 @@ soup_cache_load (SoupCache *cache)
 		entry->status_code = status_code;
 
 		if (!soup_cache_entry_insert (cache, entry, FALSE))
-			soup_cache_entry_free (entry, get_file_from_entry (cache, entry));
+			soup_cache_entry_free (entry);
 	}
 
 	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
