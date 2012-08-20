@@ -1,3 +1,35 @@
+Changes in libsoup from 2.39.5 to 2.39.90:
+
+	* Added SoupMultipartInputStream, for handling multipart
+          responses (particularly multipart/x-mixed-replace).
+          [#656684, Gustavo]
+
+	* Fixed a potential crash in SoupSessionAsync after the
+          session is finalized.
+
+	* Fixed a regression in soup_tls_is_public_suffix() [#681085,
+          Sergio]
+
+	* Added a SOUP_MESSAGE_IDEMPOTENT flag, so that apps can
+          bypass the "POSTs must be sent on new connections" check,
+          which was causing evolution-ews to have to create a new
+          connection for every request. [#681493, Milan Crha]
+
+	* Changed SoupSession so that pending SoupMessages now hold a
+          ref on the session. It is possible that this will break code
+          that was depending on the old, dumb, behavior (where
+          unreffing the session with messages pending would cause
+          those messages to be cancelled), in which case this will be
+          reverted before 2.40.
+
+	* Fixed memory leaks found by valgrind.
+
+	* Cleaned up some code in SoupCache. [#681509, Sergio]
+
+	* New/updated translations:
+	  Bengali (India), Chinese (Traditional), German, Marathi,
+	  Turkish, Ukranian
+
 Changes in libsoup from 2.39.4.1 to 2.39.5:
 
 	* Fixed several bugs in the soup-message-io updates that could
