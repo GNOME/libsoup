@@ -1613,7 +1613,8 @@ soup_session_real_flush_queue (SoupSession *session)
  * soup_session_abort:
  * @session: the session
  *
- * Cancels all pending requests in @session.
+ * Cancels all pending requests in @session and closes all idle
+ * persistent connections.
  **/
 void
 soup_session_abort (SoupSession *session)
