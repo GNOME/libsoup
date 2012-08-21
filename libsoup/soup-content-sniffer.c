@@ -13,6 +13,8 @@
 
 #include "soup-content-sniffer.h"
 #include "soup.h"
+#include "soup-content-processor.h"
+#include "soup-content-sniffer-stream.h"
 #include "soup-message-private.h"
 
 /**
@@ -31,9 +33,40 @@
 
 static void soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
+static SoupContentProcessorInterface *soup_content_sniffer_default_content_processor_interface;
+static void soup_content_sniffer_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
+
+
 G_DEFINE_TYPE_WITH_CODE (SoupContentSniffer, soup_content_sniffer, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_content_sniffer_session_feature_init))
+						soup_content_sniffer_session_feature_init)
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+						soup_content_sniffer_content_processor_init))
+
+
+static GInputStream *
+soup_content_sniffer_content_processor_wrap_input (SoupContentProcessor *processor,
+						   GInputStream *base_stream,
+						   SoupMessage *msg,
+						   GError **error)
+{
+	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER_STREAM,
+			     "base-stream", base_stream,
+			     "message", msg,
+			     "sniffer", SOUP_CONTENT_SNIFFER (processor),
+			     NULL);
+}
+
+static void
+soup_content_sniffer_content_processor_init (SoupContentProcessorInterface *processor_interface,
+                                            gpointer interface_data)
+{
+	soup_content_sniffer_default_content_processor_interface =
+		g_type_default_interface_peek (SOUP_TYPE_CONTENT_PROCESSOR);
+
+	processor_interface->processing_stage = SOUP_STAGE_BODY_DATA;
+	processor_interface->wrap_input = soup_content_sniffer_content_processor_wrap_input;
+}
 
 static void
 soup_content_sniffer_init (SoupContentSniffer *content_sniffer)

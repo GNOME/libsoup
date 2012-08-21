@@ -162,8 +162,6 @@ soup_message_finalize (GObject *object)
 
 	g_slist_free (priv->disabled_features);
 
-	g_slist_free_full (priv->decoders, g_object_unref);
-
 	g_clear_object (&priv->tls_certificate);
 
 	soup_message_body_free (msg->request_body);
@@ -1413,8 +1411,6 @@ soup_message_cleanup_response (SoupMessage *req)
 						   SOUP_ENCODING_CONTENT_LENGTH);
 	}
 
-	g_slist_free_full (priv->decoders, g_object_unref);
-	priv->decoders = NULL;
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
 	req->status_code = SOUP_STATUS_NONE;

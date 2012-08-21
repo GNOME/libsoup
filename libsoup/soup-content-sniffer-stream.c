@@ -336,18 +336,6 @@ soup_content_sniffer_stream_pollable_init (GPollableInputStreamInterface *pollab
 	pollable_interface->create_source = soup_content_sniffer_stream_create_source;
 }
 
-GInputStream *
-soup_content_sniffer_stream_new (SoupContentSniffer *sniffer,
-				 SoupMessage        *msg,
-				 GInputStream       *base_stream)
-{
-	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER_STREAM,
-			     "base-stream", base_stream,
-			     "message", msg,
-			     "sniffer", sniffer,
-			     NULL);
-}
-
 gboolean
 soup_content_sniffer_stream_is_ready (SoupContentSnifferStream  *sniffer,
 				      gboolean                   blocking,

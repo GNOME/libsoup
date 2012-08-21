@@ -8,7 +8,9 @@
 
 #include "soup-message.h"
 #include "soup-auth.h"
+#include "soup-content-processor.h"
 #include "soup-content-sniffer.h"
+#include "soup-session.h"
 
 typedef struct {
 	gpointer           io_data;
@@ -31,7 +33,6 @@ typedef struct {
 	SoupAuth          *auth, *proxy_auth;
 
 	GSList            *disabled_features;
-	GSList            *decoders;
 
 	SoupURI           *first_party;
 
@@ -125,5 +126,10 @@ void soup_message_set_https_status (SoupMessage    *msg,
 void soup_message_network_event (SoupMessage         *msg,
 				 GSocketClientEvent   event,
 				 GIOStream           *connection);
+
+GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
+					       SoupMessage *msg,
+					       SoupSession *session,
+					       SoupProcessingStage start_at_stage);
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */

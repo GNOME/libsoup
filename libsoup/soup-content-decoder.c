@@ -10,6 +10,7 @@
 #endif
 
 #include "soup-content-decoder.h"
+#include "soup-converter-wrapper.h"
 #include "soup.h"
 #include "soup-message-private.h"
 
@@ -50,9 +51,114 @@ typedef GConverter * (*SoupContentDecoderCreator) (void);
 
 static void soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 
+static SoupContentProcessorInterface *soup_content_decoder_default_content_processor_interface;
+static void soup_content_decoder_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
+
+
 G_DEFINE_TYPE_WITH_CODE (SoupContentDecoder, soup_content_decoder, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_content_decoder_session_feature_init))
+						soup_content_decoder_session_feature_init)
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+						soup_content_decoder_content_processor_init))
+
+static GSList *
+soup_content_decoder_get_decoders_for_msg (SoupContentDecoder *decoder, SoupMessage *msg)
+{
+	const char *header;
+	GSList *encodings, *e, *decoders = NULL;
+	SoupContentDecoderCreator converter_creator;
+	GConverter *converter;
+
+	header = soup_message_headers_get_list (msg->response_headers,
+						"Content-Encoding");
+	if (!header)
+		return NULL;
+
+	/* Workaround for an apache bug (bgo 613361) */
+	if (!g_ascii_strcasecmp (header, "gzip") ||
+	    !g_ascii_strcasecmp (header, "x-gzip")) {
+		const char *content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
+
+		if (content_type &&
+		    (!g_ascii_strcasecmp (content_type, "application/gzip") ||
+		     !g_ascii_strcasecmp (content_type, "application/x-gzip")))
+			return NULL;
+	}
+
+	/* OK, really, no one is ever going to use more than one
+	 * encoding, but we'll be robust.
+	 */
+	encodings = soup_header_parse_list (header);
+	if (!encodings)
+		return NULL;
+
+	for (e = encodings; e; e = e->next) {
+		if (!g_hash_table_lookup (decoder->priv->decoders, e->data)) {
+			soup_header_free_list (encodings);
+			return NULL;
+		}
+	}
+
+	for (e = encodings; e; e = e->next) {
+		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);
+		converter = converter_creator ();
+
+		/* Content-Encoding lists the codings in the order
+		 * they were applied in, so we put decoders in reverse
+		 * order so the last-applied will be the first
+		 * decoded.
+		 */
+		decoders = g_slist_prepend (decoders, converter);
+	}
+	soup_header_free_list (encodings);
+
+	return decoders;
+}
+
+static GInputStream*
+soup_content_decoder_content_processor_wrap_input (SoupContentProcessor *processor,
+						   GInputStream *base_stream,
+						   SoupMessage *msg,
+						   GError **error)
+{
+	GSList *decoders, *d;
+	GInputStream *istream;
+
+	decoders = soup_content_decoder_get_decoders_for_msg (SOUP_CONTENT_DECODER (processor), msg);
+	if (!decoders)
+		return NULL;
+
+	istream = g_object_ref (base_stream);
+	for (d = decoders; d; d = d->next) {
+		GConverter *decoder, *wrapper;
+		GInputStream *filter;
+
+		decoder = d->data;
+		wrapper = soup_converter_wrapper_new (decoder, msg);
+		filter = g_object_new (G_TYPE_CONVERTER_INPUT_STREAM,
+				       "base-stream", istream,
+				       "converter", wrapper,
+				       NULL);
+		g_object_unref (istream);
+		g_object_unref (wrapper);
+		istream = filter;
+	}
+
+	g_slist_free_full (decoders, g_object_unref);
+
+	return istream;
+}
+
+static void
+soup_content_decoder_content_processor_init (SoupContentProcessorInterface *processor_interface,
+					     gpointer interface_data)
+{
+	soup_content_decoder_default_content_processor_interface =
+		g_type_default_interface_peek (SOUP_TYPE_CONTENT_PROCESSOR);
+
+	processor_interface->processing_stage = SOUP_STAGE_CONTENT_ENCODING;
+	processor_interface->wrap_input = soup_content_decoder_content_processor_wrap_input;
+}
 
 /* This is constant for now */
 #define ACCEPT_ENCODING_HEADER "gzip, deflate"
@@ -107,89 +213,16 @@ soup_content_decoder_class_init (SoupContentDecoderClass *decoder_class)
 }
 
 static void
-soup_content_decoder_got_headers_cb (SoupMessage *msg, SoupContentDecoder *decoder)
-{
-	SoupMessagePrivate *msgpriv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	const char *header;
-	GSList *encodings, *e;
-	SoupContentDecoderCreator converter_creator;
-	GConverter *converter;
-
-	header = soup_message_headers_get_list (msg->response_headers,
-						"Content-Encoding");
-	if (!header)
-		return;
-
-	/* Workaround for an apache bug (bgo 613361) */
-	if (!g_ascii_strcasecmp (header, "gzip") ||
-	    !g_ascii_strcasecmp (header, "x-gzip")) {
-		const char *content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
-
-		if (content_type &&
-		    (!g_ascii_strcasecmp (content_type, "application/gzip") ||
-		     !g_ascii_strcasecmp (content_type, "application/x-gzip")))
-			return;
-	}
-
-	/* OK, really, no one is ever going to use more than one
-	 * encoding, but we'll be robust.
-	 */
-	encodings = soup_header_parse_list (header);
-	if (!encodings)
-		return;
-
-	for (e = encodings; e; e = e->next) {
-		if (!g_hash_table_lookup (decoder->priv->decoders, e->data)) {
-			soup_header_free_list (encodings);
-			return;
-		}
-	}
-
-	/* msgpriv->decoders should be empty at this point anyway, but
-	 * clean it up if it's not.
-	 */
-	g_slist_free_full (msgpriv->decoders, g_object_unref);
-	msgpriv->decoders = NULL;
-
-	for (e = encodings; e; e = e->next) {
-		converter_creator = g_hash_table_lookup (decoder->priv->decoders, e->data);
-		converter = converter_creator ();
-
-		/* Content-Encoding lists the codings in the order
-		 * they were applied in, so we put decoders in reverse
-		 * order so the last-applied will be the first
-		 * decoded.
-		 */
-		msgpriv->decoders = g_slist_prepend (msgpriv->decoders, converter);
-	}
-	soup_header_free_list (encodings);
-}
-
-static void
 soup_content_decoder_request_queued (SoupSessionFeature *feature,
 				     SoupSession *session,
 				     SoupMessage *msg)
 {
-	SoupContentDecoder *decoder = SOUP_CONTENT_DECODER (feature);
-
 	if (!soup_message_headers_get_one (msg->request_headers,
 					   "Accept-Encoding")) {
 		soup_message_headers_append (msg->request_headers,
 					     "Accept-Encoding",
 					     ACCEPT_ENCODING_HEADER);
 	}
-
-	g_signal_connect (msg, "got-headers",
-			  G_CALLBACK (soup_content_decoder_got_headers_cb),
-			  decoder);
-}
-
-static void
-soup_content_decoder_request_unqueued (SoupSessionFeature *feature,
-				       SoupSession *session,
-				       SoupMessage *msg)
-{
-	g_signal_handlers_disconnect_by_func (msg, soup_content_decoder_got_headers_cb, feature);
 }
 
 static void
@@ -197,5 +230,4 @@ soup_content_decoder_session_feature_init (SoupSessionFeatureInterface *feature_
 					   gpointer interface_data)
 {
 	feature_interface->request_queued = soup_content_decoder_request_queued;
-	feature_interface->request_unqueued = soup_content_decoder_request_unqueued;
 }

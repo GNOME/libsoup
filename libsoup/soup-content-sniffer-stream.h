@@ -36,10 +36,6 @@ struct _SoupContentSnifferStreamClass {
 
 GType soup_content_sniffer_stream_get_type (void) G_GNUC_CONST;
 
-GInputStream *soup_content_sniffer_stream_new      (SoupContentSniffer        *sniffer,
-						    SoupMessage               *msg,
-						    GInputStream              *base_stream);
-
 gboolean      soup_content_sniffer_stream_is_ready (SoupContentSnifferStream  *sniffer,
 						    gboolean                   blocking,
 						    GCancellable              *cancellable,

@@ -16,8 +16,8 @@
 #include "soup-body-output-stream.h"
 #include "soup-client-input-stream.h"
 #include "soup-connection.h"
+#include "soup-content-processor.h"
 #include "soup-content-sniffer-stream.h"
-#include "soup-converter-wrapper.h"
 #include "soup-filter-input-stream.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
@@ -221,38 +221,53 @@ read_headers (SoupMessage *msg, GCancellable *cancellable, GError **error)
 	return TRUE;
 }
 
-static void
-setup_body_istream (SoupMessage *msg)
+static gint
+processing_stage_cmp (gconstpointer a,
+		    gconstpointer b)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-	GConverter *decoder, *wrapper;
-	GInputStream *filter;
-	GSList *d;
+	SoupProcessingStage stage_a = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR (a));
+	SoupProcessingStage stage_b = soup_content_processor_get_processing_stage (SOUP_CONTENT_PROCESSOR (b));
 
-	io->body_istream =
-		soup_body_input_stream_new (G_INPUT_STREAM (io->istream),
-					    io->read_encoding,
-					    io->read_length);
+	if (stage_a > stage_b)
+		return 1;
+	if (stage_a == stage_b)
+		return 0;
+	return -1;
+}
 
-	for (d = priv->decoders; d; d = d->next) {
-		decoder = d->data;
-		wrapper = soup_converter_wrapper_new (decoder, msg);
-		filter = g_object_new (G_TYPE_CONVERTER_INPUT_STREAM,
-				       "base-stream", io->body_istream,
-				       "converter", wrapper,
-				       NULL);
-		g_object_unref (io->body_istream);
-		g_object_unref (wrapper);
-		io->body_istream = filter;
+GInputStream *
+soup_message_setup_body_istream (GInputStream *body_stream,
+				 SoupMessage *msg,
+				 SoupSession *session,
+				 SoupProcessingStage start_at_stage)
+{
+	GInputStream *istream;
+	GSList *p, *processors;
+
+	istream = g_object_ref (body_stream);
+
+	processors = soup_session_get_features (session, SOUP_TYPE_CONTENT_PROCESSOR);
+	processors = g_slist_sort (processors, processing_stage_cmp);
+
+	for (p = processors; p; p = p->next) {
+		GInputStream *wrapper;
+		SoupContentProcessor *processor;
+
+		processor = SOUP_CONTENT_PROCESSOR (p->data);
+		if (soup_message_disables_feature (msg, p->data) ||
+		    soup_content_processor_get_processing_stage (processor) < start_at_stage)
+			continue;
+
+		wrapper = soup_content_processor_wrap_input (processor, istream, msg, NULL);
+		if (wrapper) {
+			g_object_unref (istream);
+			istream = wrapper;
+		}
 	}
 
-	if (priv->sniffer) {
-		filter = soup_content_sniffer_stream_new (priv->sniffer,
-							  msg, io->body_istream);
-		g_object_unref (io->body_istream);
-		io->body_istream = filter;
-	}
+	g_slist_free (processors);
+
+	return istream;
 }
 
 /*
@@ -570,8 +585,23 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY_START:
-		if (!io->body_istream)
-			setup_body_istream (msg);
+		if (!io->body_istream) {
+			GInputStream *body_istream = soup_body_input_stream_new (G_INPUT_STREAM (io->istream),
+										 io->read_encoding,
+										 io->read_length);
+
+			/* TODO: server-side messages do not have a io->item. This means
+			 * that we cannot use content processors for them right now.
+			 */
+			if (io->mode == SOUP_MESSAGE_IO_CLIENT) {
+				io->body_istream = soup_message_setup_body_istream (body_istream, msg,
+										    io->item->session,
+										    SOUP_STAGE_MESSAGE_BODY);
+				g_object_unref (body_istream);
+			} else {
+				io->body_istream = body_istream;
+			}
+		}
 
 		if (priv->sniffer) {
 			SoupContentSnifferStream *sniffer_stream = SOUP_CONTENT_SNIFFER_STREAM (io->body_istream);
