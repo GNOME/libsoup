@@ -8,53 +8,69 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-05-16 03:05+0000\n"
-"PO-Revision-Date: 2012-05-18 07:27+0530\n"
+"POT-Creation-Date: 2012-07-16 22:04+0000\n"
+"PO-Revision-Date: 2012-08-22 08:57+0530\n"
 "Last-Translator: A S Alam <aalam@users.sf.net>\n"
 "Language-Team: Punjabi/Panjabi <punjabi-users@lists.sf.net>\n"
+"Language: pa\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: pa\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Lokalize 1.4\n"
 
-#: ../libsoup/soup-body-input-stream.c:139
-#: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:231
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "ਕੁਨੈਕਸ਼ਨ ਅਚਾਨਕ ਬੰਦ ਹੋ ਗਿਆ"
 
-#: ../libsoup/soup-converter-wrapper.c:185
+#: ../libsoup/soup-converter-wrapper.c:189
 #, c-format
 msgid "Output buffer is too small"
 msgstr "ਆਉਟਪੁੱਟ ਬਫ਼ਰ ਬਹੁਤ ਛੋਟਾ ਹੈ"
 
-#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:863
+#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
 msgid "Operation was cancelled"
 msgstr "ਕਾਰਵਾਈ ਰੱਦ ਕੀਤੀ ਗਈ"
 
-#: ../libsoup/soup-message-io.c:874
+#: ../libsoup/soup-message-io.c:864
 msgid "Operation would block"
 msgstr "ਕਾਰਵਾਈ ਉੱਤੇ ਪਾਬੰਦੀ ਹੋਵੇਗੀ"
 
-#: ../libsoup/soup-request.c:145
+#: ../libsoup/soup-request.c:142
 #, c-format
 msgid "No URI provided"
 msgstr "ਕੋਈ URI ਨਹੀਂ ਦਿੱਤਾ"
 
-#: ../libsoup/soup-request.c:155
+#: ../libsoup/soup-request.c:152
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "ਗਲਤ '%s' URI: %s"
 
-#: ../libsoup/soup-requester.c:220
+#: ../libsoup/soup-requester.c:219
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
-#: ../libsoup/soup-requester.c:254
+#: ../libsoup/soup-requester.c:253
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "ਗ਼ੈਰ-ਸਹਾਇਕ URI ਸਕੀਮ '%s'"
+
+#: ../libsoup/soup-tld.c:143
+msgid "Hostname is an IP address"
+msgstr "ਹੋਸਟ ਨਾਂ IP ਐਡਰੈਸ ਹੈ"
+
+#: ../libsoup/soup-tld.c:164
+msgid "Invalid hostname"
+msgstr "ਗਲਤ ਹੋਸਟ-ਨਾਂ"
+
+#: ../libsoup/soup-tld.c:179 ../libsoup/soup-tld.c:221
+msgid "Not enough domains"
+msgstr "ਲੋੜੀਦੀਆਂ ਡੋਮੇਨ ਨਹੀਂ ਹੈ"
+
+#: ../libsoup/soup-tld.c:199
+msgid "Hostname has no base domain"
+msgstr "ਹੋਸਟ-ਨਾਂ ਲਈ ਬੇਸ ਡੋਮੇਮ ਨਹੀਂ ਹੈ"
 
