@@ -72,18 +72,6 @@ const char *soup_auth_get_host              (SoupAuth      *auth);
 const char *soup_auth_get_realm             (SoupAuth      *auth);
 char       *soup_auth_get_info              (SoupAuth      *auth);
 
-#ifdef LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
-SOUP_AVAILABLE_IN_2_28
-GSList     *soup_auth_get_saved_users       (SoupAuth      *auth);
-SOUP_AVAILABLE_IN_2_28
-const char *soup_auth_get_saved_password    (SoupAuth      *auth,
-					     const char    *user);
-SOUP_AVAILABLE_IN_2_28
-void        soup_auth_save_password         (SoupAuth      *auth,
-					     const char    *username,
-					     const char    *password);
-#endif
-
 void        soup_auth_authenticate          (SoupAuth      *auth,
 					     const char    *username,
 					     const char    *password);
@@ -97,12 +85,6 @@ GSList     *soup_auth_get_protection_space  (SoupAuth      *auth,
 void        soup_auth_free_protection_space (SoupAuth      *auth,
 					     GSList        *space);
 
-#ifdef LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
-void        soup_auth_has_saved_password    (SoupAuth      *auth,
-					     const char    *username,
-					     const char    *password);
-#endif
-
 /* The actual auth types, which can be added/removed as features */
 
 #define SOUP_TYPE_AUTH_BASIC  (soup_auth_basic_get_type ())
@@ -111,6 +93,25 @@ GType soup_auth_basic_get_type  (void);
 GType soup_auth_digest_get_type (void);
 #define SOUP_TYPE_AUTH_NTLM   (soup_auth_ntlm_get_type ())
 GType soup_auth_ntlm_get_type   (void);
+
+/* Deprecated SoupPasswordManager-related APIs: all are now no-ops */
+SOUP_AVAILABLE_IN_2_28
+SOUP_DEPRECATED_IN_2_28
+GSList     *soup_auth_get_saved_users    (SoupAuth   *auth);
+SOUP_AVAILABLE_IN_2_28
+SOUP_DEPRECATED_IN_2_28
+const char *soup_auth_get_saved_password (SoupAuth   *auth,
+					  const char *user);
+SOUP_AVAILABLE_IN_2_28
+SOUP_DEPRECATED_IN_2_28
+void        soup_auth_save_password      (SoupAuth   *auth,
+					  const char *username,
+					  const char *password);
+SOUP_AVAILABLE_IN_2_28
+SOUP_DEPRECATED_IN_2_28
+void        soup_auth_has_saved_password (SoupAuth   *auth,
+					  const char *username,
+					  const char *password);
 
 G_END_DECLS
 

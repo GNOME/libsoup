@@ -923,19 +923,11 @@ free_host (SoupSessionHost *host)
 }
 
 static void
-soup_session_real_auth_required (SoupSession *session, SoupMessage *msg,
-	       SoupAuth *auth, gboolean retrying)
-{
-	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
-}
-
-static void
 auth_manager_authenticate (SoupAuthManager *manager, SoupMessage *msg,
 			   SoupAuth *auth, gboolean retrying,
 			   gpointer session)
 {
-	SOUP_SESSION_GET_CLASS (session)->auth_required (
-		session, msg, auth, retrying);
+	g_signal_emit (session, signals[AUTHENTICATE], 0, msg, auth, retrying);
 }
 
 #define SOUP_SESSION_WOULD_REDIRECT_AS_GET(session, msg) \
@@ -2645,7 +2637,6 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/* virtual method definition */
 	session_class->requeue_message = soup_session_real_requeue_message;
 	session_class->cancel_message = soup_session_real_cancel_message;
-	session_class->auth_required = soup_session_real_auth_required;
 	session_class->flush_queue = soup_session_real_flush_queue;
 	session_class->kick = soup_session_real_kick_queue;
 

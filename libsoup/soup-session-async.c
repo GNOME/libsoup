@@ -9,8 +9,6 @@
 #include <config.h>
 #endif
 
-#define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
-
 #include "soup-session-async.h"
 #include "soup.h"
 #include "soup-session-private.h"
@@ -134,39 +132,6 @@ soup_session_async_cancel_message (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-got_passwords (SoupPasswordManager *password_manager, SoupMessage *msg,
-	       SoupAuth *auth, gboolean retrying, gpointer session)
-{
-	soup_session_unpause_message (session, msg);
-	SOUP_SESSION_CLASS (soup_session_async_parent_class)->
-		auth_required (session, msg, auth, retrying);
-	g_object_unref (auth);
-}
-
-static void
-soup_session_async_auth_required (SoupSession *session, SoupMessage *msg,
-				  SoupAuth *auth, gboolean retrying)
-{
-	SoupSessionFeature *password_manager;
-
-	password_manager = soup_session_get_feature_for_message (
-		session, SOUP_TYPE_PASSWORD_MANAGER, msg);
-	if (password_manager) {
-		soup_session_pause_message (session, msg);
-		g_object_ref (auth);
-		soup_password_manager_get_passwords_async (
-			SOUP_PASSWORD_MANAGER (password_manager),
-			msg, auth, retrying,
-			soup_session_get_async_context (session),
-			NULL, /* FIXME cancellable */
-			got_passwords, session);
-	} else {
-		SOUP_SESSION_CLASS (soup_session_async_parent_class)->
-			auth_required (session, msg, auth, retrying);
-	}
-}
-
-static void
 soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 {
 	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
@@ -175,5 +140,4 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	session_class->queue_message = soup_session_async_queue_message;
 	session_class->send_message = soup_session_async_send_message;
 	session_class->cancel_message = soup_session_async_cancel_message;
-	session_class->auth_required = soup_session_async_auth_required;
 }

@@ -194,14 +194,6 @@ tld_data.inc: tld-parser.py $(TLD_DATA_FILE)
 
 if BUILD_LIBSOUP_GNOME
 
-if OS_WIN32
-soup_password_manager_gnome_files =	
-else
-soup_password_manager_gnome_files =	\
-	soup-password-manager-gnome.h	\
-	soup-password-manager-gnome.c
-endif
-
 libsoupgnomeincludedir = $(includedir)/libsoup-gnome-2.4/libsoup
 
 libsoupgnomeinclude_HEADERS =	\
@@ -221,15 +213,15 @@ EXTRA_DIST += libsoup-gnome-2.4.sym
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
 	$(GLIB_LIBS)			\
-	$(SQLITE_LIBS)			\
-	$(GNOME_KEYRING_LIBS)
+	$(SQLITE_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
 	soup-cookie-jar-sqlite.c	\
 	soup-gnome-features.c		\
 	soup-proxy-resolver-gnome.h	\
 	soup-proxy-resolver-gnome.c	\
-	$(soup_password_manager_gnome_files)
+	soup-password-manager-gnome.h	\
+	soup-password-manager-gnome.c
 
 endif
 

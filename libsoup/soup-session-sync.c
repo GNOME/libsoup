@@ -9,8 +9,6 @@
 #include <config.h>
 #endif
 
-#define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
-
 #include "soup-session-sync.h"
 #include "soup.h"
 #include "soup-session-private.h"
@@ -139,24 +137,6 @@ soup_session_sync_send_message (SoupSession *session, SoupMessage *msg)
 }
 
 static void
-soup_session_sync_auth_required (SoupSession *session, SoupMessage *msg,
-				 SoupAuth *auth, gboolean retrying)
-{
-	SoupSessionFeature *password_manager;
-
-	password_manager = soup_session_get_feature_for_message (
-		session, SOUP_TYPE_PASSWORD_MANAGER, msg);
-	if (password_manager) {
-		soup_password_manager_get_passwords_sync (
-			SOUP_PASSWORD_MANAGER (password_manager),
-			msg, auth, NULL); /* FIXME cancellable */
-	}
-
-	SOUP_SESSION_CLASS (soup_session_sync_parent_class)->
-		auth_required (session, msg, auth, retrying);
-}
-
-static void
 soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 {
 	SoupSessionClass *session_class = SOUP_SESSION_CLASS (session_sync_class);
@@ -164,5 +144,4 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 	/* virtual method override */
 	session_class->queue_message = soup_session_sync_queue_message;
 	session_class->send_message = soup_session_sync_send_message;
-	session_class->auth_required = soup_session_sync_auth_required;
 }

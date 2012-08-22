@@ -9,8 +9,6 @@
 #include <config.h>
 #endif
 
-#define LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
-
 #include <string.h>
 
 #include "soup-auth.h"
@@ -40,19 +38,10 @@
 typedef struct {
 	gboolean proxy;
 	char *host;
-
-	GHashTable *saved_passwords;
 } SoupAuthPrivate;
 #define SOUP_AUTH_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH, SoupAuthPrivate))
 
 G_DEFINE_ABSTRACT_TYPE (SoupAuth, soup_auth, G_TYPE_OBJECT)
-
-enum {
-	SAVE_PASSWORD,
-	LAST_SIGNAL
-};
-
-static guint signals[LAST_SIGNAL] = { 0 };
 
 enum {
 	PROP_0,
@@ -79,8 +68,6 @@ soup_auth_finalize (GObject *object)
 
 	g_free (auth->realm);
 	g_free (priv->host);
-	if (priv->saved_passwords)
-		g_hash_table_destroy (priv->saved_passwords);
 
 	G_OBJECT_CLASS (soup_auth_parent_class)->finalize (object);
 }
@@ -148,30 +135,6 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 	object_class->finalize     = soup_auth_finalize;
 	object_class->set_property = soup_auth_set_property;
 	object_class->get_property = soup_auth_get_property;
-
-	/**
-	 * SoupAuth::save-password:
-	 * @auth: the auth
-	 * @username: the username to save
-	 * @password: the password to save
-	 *
-	 * Emitted to request that the @username/@password pair be
-	 * saved. If the session supports password-saving, it will
-	 * connect to this signal before emitting
-	 * #SoupSession::authenticate, so that it record the password
-	 * if requested by the caller.
-	 *
-	 * Since: 2.28
-	 **/
-	signals[SAVE_PASSWORD] =
-		g_signal_new ("save-password",
-			      G_OBJECT_CLASS_TYPE (object_class),
-			      G_SIGNAL_RUN_FIRST,
-			      0, NULL, NULL,
-			      _soup_marshal_NONE__STRING_STRING,
-			      G_TYPE_NONE, 2,
-			      G_TYPE_STRING,
-			      G_TYPE_STRING);
 
 	/* properties */
 	/**
@@ -356,9 +319,6 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
  *
  * Call this on an auth to authenticate it; normally this will cause
  * the auth's message to be requeued with the new authentication info.
- *
- * This does not cause the password to be saved to persistent storage;
- * see soup_auth_save_password() for that.
  **/
 void
 soup_auth_authenticate (SoupAuth *auth, const char *username, const char *password)
@@ -537,136 +497,26 @@ soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 	g_slist_free_full (space, g_free);
 }
 
-/**
- * soup_auth_get_saved_users:
- * @auth: a #SoupAuth
- *
- * Gets a list of usernames for which a saved password is available.
- * (If the session is not configured to save passwords, this will
- * always be %NULL.)
- *
- * Return value: (transfer container): the list of usernames. You must
- * free the list with g_slist_free(), but do not free or modify the
- * contents.
- *
- * Since: 2.28
- **/
 GSList *
 soup_auth_get_saved_users (SoupAuth *auth)
 {
-	SoupAuthPrivate *priv;
-	GSList *users;
-
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
-
-	priv = SOUP_AUTH_GET_PRIVATE (auth);
-	users = NULL;
-
-	if (priv->saved_passwords) {
-		GHashTableIter iter;
-		gpointer key, value;
-
-		g_hash_table_iter_init (&iter, priv->saved_passwords);
-		while (g_hash_table_iter_next (&iter, &key, &value))
-			users = g_slist_prepend (users, key);
-	}
-	return users;
+	return NULL;
 }
 
-/**
- * soup_auth_get_saved_password:
- * @auth: a #SoupAuth
- * @user: a username from the list returned from
- * soup_auth_get_saved_users().
- *
- * Given a username for which @auth has a saved password, this returns
- * that password. If @auth doesn't have a passwords saved for @user, it
- * returns %NULL.
- *
- * Return value: the saved password, or %NULL.
- *
- * Since: 2.28
- **/
 const char *
 soup_auth_get_saved_password (SoupAuth *auth, const char *user)
 {
-	SoupAuthPrivate *priv;
-
-	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
-	g_return_val_if_fail (user != NULL, NULL);
-
-	priv = SOUP_AUTH_GET_PRIVATE (auth);
-	if (!priv->saved_passwords)
-		return NULL;
-	return g_hash_table_lookup (priv->saved_passwords, user);
+	return NULL;
 }
 
-static void
-free_password (gpointer password)
-{
-	memset (password, 0, strlen (password));
-	g_free (password);
-}
-
-static inline void
-init_saved_passwords (SoupAuthPrivate *priv)
-{
-	priv->saved_passwords = g_hash_table_new_full (
-		g_str_hash, g_str_equal, g_free, free_password);
-}
-
-/**
- * soup_auth_has_saved_password:
- * @auth: a #SoupAuth
- * @username: a username
- * @password: a password
- *
- * Updates @auth to be aware of an already-saved username/password
- * combination. This method <emphasis>does not</emphasis> cause the
- * given @username and @password to be saved; use
- * soup_auth_save_password() for that. (soup_auth_has_saved_password()
- * is an internal method, which is used by the code that actually
- * saves and restores the passwords.)
- *
- * Since: 2.28
- **/
 void
 soup_auth_has_saved_password (SoupAuth *auth, const char *username,
 			      const char *password)
 {
-	SoupAuthPrivate *priv;
-
-	g_return_if_fail (SOUP_IS_AUTH (auth));
-	g_return_if_fail (username != NULL);
-	g_return_if_fail (password != NULL);
-
-	priv = SOUP_AUTH_GET_PRIVATE (auth);
-
-	if (!priv->saved_passwords)
-		init_saved_passwords (priv);
-	g_hash_table_insert (priv->saved_passwords,
-			     g_strdup (username), g_strdup (password));
 }
 
-/**
- * soup_auth_save_password:
- * @auth: a #SoupAuth
- * @username: the username provided by the user or client
- * @password: the password provided by the user or client
- *
- * Requests that the username/password pair be saved to whatever form
- * of persistent password storage the session supports.
- *
- * Since: 2.28
- **/
 void
 soup_auth_save_password (SoupAuth *auth, const char *username,
 			 const char *password)
 {
-	g_return_if_fail (SOUP_IS_AUTH (auth));
-	g_return_if_fail (username != NULL);
-	g_return_if_fail (password != NULL);
-
-	g_signal_emit (auth, signals[SAVE_PASSWORD], 0,
-		       username, password);
 }
