@@ -408,7 +408,7 @@ soup_cookie_jar_get_cookies (SoupCookieJar *jar, SoupURI *uri,
 /**
  * soup_cookie_jar_add_cookie:
  * @jar: a #SoupCookieJar
- * @cookie: a #SoupCookie
+ * @cookie: (transfer full): a #SoupCookie
  *
  * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
