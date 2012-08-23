@@ -432,7 +432,7 @@ soup_cookie_jar_get_cookie_list (SoupCookieJar *jar, SoupURI *uri, gboolean for_
 /**
  * soup_cookie_jar_add_cookie:
  * @jar: a #SoupCookieJar
- * @cookie: a #SoupCookie
+ * @cookie: (transfer full): a #SoupCookie
  *
  * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
@@ -510,7 +510,7 @@ soup_cookie_jar_add_cookie (SoupCookieJar *jar, SoupCookie *cookie)
  * soup_cookie_jar_add_cookie_with_first_party:
  * @jar: a #SoupCookieJar
  * @first_party: the URI for the main document
- * @cookie: a #SoupCookie
+ * @cookie: (transfer full): a #SoupCookie
  *
  * Adds @cookie to @jar, emitting the 'changed' signal if we are modifying
  * an existing cookie or adding a valid new cookie ('valid' means
