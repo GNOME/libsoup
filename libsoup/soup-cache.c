@@ -32,11 +32,18 @@
 #include <string.h>
 
 #include "soup-cache.h"
+#include "soup-body-input-stream.h"
+#include "soup-cache-input-stream.h"
 #include "soup-cache-private.h"
+#include "soup-content-processor.h"
+#include "soup-message-private.h"
 #include "soup.h"
 
 static SoupSessionFeatureInterface *soup_cache_default_feature_interface;
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
+
+static SoupContentProcessorInterface *soup_cache_default_content_processor_interface;
+static void soup_cache_content_processor_init (SoupContentProcessorInterface *interface, gpointer interface_data);
 
 #define DEFAULT_MAX_SIZE 50 * 1024 * 1024
 #define MAX_ENTRY_DATA_PERCENTAGE 10 /* Percentage of the total size
@@ -104,21 +111,6 @@ struct _SoupCachePrivate {
 	GList *lru_start;
 };
 
-typedef struct {
-	SoupCache *cache;
-	SoupCacheEntry *entry;
-	SoupMessage *msg;
-	gulong content_sniffed_handler;
-	gulong got_chunk_handler;
-	gulong got_body_handler;
-	gulong restarted_handler;
-	GQueue *buffer_queue;
-	gboolean got_body;
-	SoupBuffer *current_writing_buffer;
-	GError *error;
-	GOutputStream *ostream;
-} SoupCacheWritingFixture;
-
 enum {
 	PROP_0,
 	PROP_CACHE_DIR,
@@ -129,12 +121,13 @@ enum {
 
 G_DEFINE_TYPE_WITH_CODE (SoupCache, soup_cache, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
-						soup_cache_session_feature_init))
+						soup_cache_session_feature_init)
+			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_CONTENT_PROCESSOR,
+						soup_cache_content_processor_init))
 
 static gboolean soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge);
 static void make_room_for_new_entry (SoupCache *cache, guint length_to_add);
 static gboolean cache_accepts_entries_of_size (SoupCache *cache, guint length_to_add);
-static gboolean write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture);
 
 static GFile *
 get_file_from_entry (SoupCache *cache, SoupCacheEntry *entry)
@@ -489,232 +482,11 @@ soup_cache_entry_new (SoupCache *cache, SoupMessage *msg, time_t request_time, t
 	return entry;
 }
 
-static void
-soup_cache_writing_fixture_free (SoupCacheWritingFixture *fixture)
-{
-	/* Free fixture. And disconnect signals, we don't want to
-	   listen to more SoupMessage events as we're finished with
-	   this resource */
-	if (g_signal_handler_is_connected (fixture->msg, fixture->content_sniffed_handler))
-		g_signal_handler_disconnect (fixture->msg, fixture->content_sniffed_handler);
-	if (g_signal_handler_is_connected (fixture->msg, fixture->got_chunk_handler))
-		g_signal_handler_disconnect (fixture->msg, fixture->got_chunk_handler);
-	if (g_signal_handler_is_connected (fixture->msg, fixture->got_body_handler))
-		g_signal_handler_disconnect (fixture->msg, fixture->got_body_handler);
-	if (g_signal_handler_is_connected (fixture->msg, fixture->restarted_handler))
-		g_signal_handler_disconnect (fixture->msg, fixture->restarted_handler);
-	g_clear_pointer (&fixture->current_writing_buffer, soup_buffer_free);
-	g_clear_object (&fixture->ostream);
-	g_clear_error (&fixture->error);
-	g_queue_foreach (fixture->buffer_queue, (GFunc) soup_buffer_free, NULL);
-	g_queue_free (fixture->buffer_queue);
-	g_object_unref (fixture->msg);
-	g_object_unref (fixture->cache);
-	g_slice_free (SoupCacheWritingFixture, fixture);
-}
-
-static void
-msg_content_sniffed_cb (SoupMessage *msg, gchar *content_type, GHashTable *params, SoupCacheWritingFixture *fixture)
-{
-	soup_message_headers_set_content_type (fixture->entry->headers, content_type, params);
-}
-
-static void
-close_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixture)
-{
-	SoupCacheEntry *entry = fixture->entry;
-	SoupCache *cache = fixture->cache;
-	GOutputStream *stream = G_OUTPUT_STREAM (source);
-	goffset content_length;
-
-	g_warn_if_fail (fixture->error == NULL);
-
-	/* FIXME: what do we do on error ? */
-
-	if (stream) {
-		g_output_stream_close_finish (stream, result, NULL);
-		g_object_unref (stream);
-	}
-	fixture->ostream = NULL;
-
-	content_length = soup_message_headers_get_content_length (entry->headers);
-
-	/* If the process was cancelled, then delete the entry from
-	   the cache. Do it also if the size of a chunked resource is
-	   too much for the cache */
-	if (g_cancellable_is_cancelled (entry->cancellable)) {
-		entry->dirty = FALSE;
-		soup_cache_entry_remove (cache, entry, TRUE);
-		entry = NULL;
-	} else if ((soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CHUNKED) ||
-		   entry->length != (gsize) content_length) {
-		/* Two options here:
-		 *
-		 * 1. "chunked" data, entry was temporarily added to
-		 * cache (as content-length is 0) and now that we have
-		 * the actual size we have to evaluate if we want it
-		 * in the cache or not
-		 *
-		 * 2. Content-Length has a different value than actual
-		 * length, means that the content was encoded for
-		 * transmission (typically compressed) and thus we
-		 * have to substract the content-length value that was
-		 * added to the cache and add the unencoded length
-		 */
-		gint length_to_add = entry->length - content_length;
-
-		/* Make room in cache if needed */
-		if (cache_accepts_entries_of_size (cache, length_to_add)) {
-			make_room_for_new_entry (cache, length_to_add);
-
-			cache->priv->size += length_to_add;
-		} else {
-			entry->dirty = FALSE;
-			soup_cache_entry_remove (cache, entry, TRUE);
-			entry = NULL;
-		}
-	}
-
-	if (entry) {
-		entry->dirty = FALSE;
-		fixture->got_body = FALSE;
-
-		g_clear_pointer (&fixture->current_writing_buffer, soup_buffer_free);
-		g_clear_object (&entry->cancellable);
-	}
-
-	cache->priv->n_pending--;
-
-	/* Frees */
-	soup_cache_writing_fixture_free (fixture);
-}
-
-static void
-write_ready_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixture)
-{
-	GOutputStream *stream = G_OUTPUT_STREAM (source);
-	gssize write_size;
-	SoupCacheEntry *entry = fixture->entry;
-
-	if (g_cancellable_is_cancelled (entry->cancellable)) {
-		g_output_stream_close_async (stream,
-					     G_PRIORITY_LOW,
-					     entry->cancellable,
-					     (GAsyncReadyCallback)close_ready_cb,
-					     fixture);
-		return;
-	}
-
-	write_size = g_output_stream_write_finish (stream, result, &fixture->error);
-	if (write_size <= 0 || fixture->error) {
-		g_output_stream_close_async (stream,
-					     G_PRIORITY_LOW,
-					     entry->cancellable,
-					     (GAsyncReadyCallback)close_ready_cb,
-					     fixture);
-		/* FIXME: We should completely stop caching the
-		   resource at this point */
-	} else {
-		/* Are we still writing and is there new data to write
-		   already ? */
-		if (fixture->buffer_queue->length > 0)
-			write_next_buffer (entry, fixture);
-		else {
-			g_clear_pointer (&fixture->current_writing_buffer, soup_buffer_free);
-
-			if (fixture->got_body) {
-				/* If we already received 'got-body'
-				   and we have written all the data,
-				   we can close the stream */
-				g_output_stream_close_async (fixture->ostream,
-							     G_PRIORITY_LOW,
-							     entry->cancellable,
-							     (GAsyncReadyCallback)close_ready_cb,
-							     fixture);
-			}
-		}
-	}
-}
-
-static gboolean
-write_next_buffer (SoupCacheEntry *entry, SoupCacheWritingFixture *fixture)
-{
-	SoupBuffer *buffer = g_queue_pop_head (fixture->buffer_queue);
-
-	if (buffer == NULL)
-		return FALSE;
-
-	/* Free the old buffer */
-	g_clear_pointer (&fixture->current_writing_buffer, soup_buffer_free);
-	fixture->current_writing_buffer = buffer;
-
-	g_output_stream_write_async (fixture->ostream, buffer->data, buffer->length,
-				     G_PRIORITY_LOW, entry->cancellable,
-				     (GAsyncReadyCallback) write_ready_cb,
-				     fixture);
-	return TRUE;
-}
-
-static void
-msg_got_chunk_cb (SoupMessage *msg, SoupBuffer *chunk, SoupCacheWritingFixture *fixture)
-{
-	SoupCacheEntry *entry = fixture->entry;
-
-	/* Ignore this if the writing or appending was cancelled */
-	if (!g_cancellable_is_cancelled (entry->cancellable)) {
-		g_queue_push_tail (fixture->buffer_queue, soup_buffer_copy (chunk));
-		entry->length += chunk->length;
-
-		if (!cache_accepts_entries_of_size (fixture->cache, entry->length)) {
-			/* Quickly cancel the caching of the resource */
-			g_cancellable_cancel (entry->cancellable);
-		}
-	}
-
-	/* FIXME: remove the error check when we cancel the caching at
-	   the first write error */
-	/* Only write if the entry stream is ready */
-	if (fixture->current_writing_buffer == NULL && fixture->error == NULL && fixture->ostream)
-		write_next_buffer (entry, fixture);
-}
-
-static void
-msg_got_body_cb (SoupMessage *msg, SoupCacheWritingFixture *fixture)
-{
-	SoupCacheEntry *entry = fixture->entry;
-	g_return_if_fail (entry);
-
-	fixture->got_body = TRUE;
-
-	if (!fixture->ostream && fixture->buffer_queue->length > 0)
-		/* The stream is not ready to be written but we still
-		   have data to write, we'll write it when the stream
-		   is opened for writing */
-		return;
-
-
-	if (fixture->buffer_queue->length > 0) {
-		/* If we still have data to write, write it,
-		   write_ready_cb will close the stream */
-		if (fixture->current_writing_buffer == NULL && fixture->error == NULL && fixture->ostream)
-			write_next_buffer (entry, fixture);
-		return;
-	}
-
-	if (fixture->ostream && fixture->current_writing_buffer == NULL)
-		g_output_stream_close_async (fixture->ostream,
-					     G_PRIORITY_LOW,
-					     entry->cancellable,
-					     (GAsyncReadyCallback)close_ready_cb,
-					     fixture);
-}
-
 static gboolean
 soup_cache_entry_remove (SoupCache *cache, SoupCacheEntry *entry, gboolean purge)
 {
 	GList *lru_item;
 
-	/* if (entry->dirty && !g_cancellable_is_cancelled (entry->cancellable)) { */
 	if (entry->dirty) {
 		g_cancellable_cancel (entry->cancellable);
 		return FALSE;
@@ -819,7 +591,7 @@ soup_cache_entry_insert (SoupCache *cache,
 	/* Fill the key */
 	entry->key = get_cache_key_from_uri ((const char *) entry->uri);
 
-	if (soup_message_headers_get_encoding (entry->headers) != SOUP_ENCODING_CHUNKED)
+	if (soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CONTENT_LENGTH)
 		length_to_add = soup_message_headers_get_content_length (entry->headers);
 
 	/* Check if we are going to store the resource depending on its size */
@@ -874,151 +646,12 @@ soup_cache_entry_lookup (SoupCache *cache,
 	return entry;
 }
 
-static void
-msg_restarted_cb (SoupMessage *msg, SoupCacheEntry *entry)
-{
-	/* FIXME: What should we do here exactly? */
-}
-
-static void
-replace_cb (GObject *source, GAsyncResult *result, SoupCacheWritingFixture *fixture)
-{
-	SoupCacheEntry *entry = fixture->entry;
-	GOutputStream *ostream = (GOutputStream *) g_file_replace_finish (G_FILE (source),
-									  result, &fixture->error);
-
-	if (g_cancellable_is_cancelled (entry->cancellable) || fixture->error) {
-		g_clear_object (&ostream);
-		fixture->cache->priv->n_pending--;
-		entry->dirty = FALSE;
-		soup_cache_entry_remove (fixture->cache, entry, TRUE);
-		soup_cache_writing_fixture_free (fixture);
-		return;
-	}
-
-	fixture->ostream = ostream;
-
-	/* If we already got all the data we have to initiate the
-	 * writing here, since we won't get more 'got-chunk'
-	 * signals
-	 */
-	if (!fixture->got_body)
-		return;
-
-	/* It could happen that reading the data from server
-	 * was completed before this happens. In that case
-	 * there is no data
-	 */
-	if (!write_next_buffer (entry, fixture))
-		/* Could happen if the resource is empty */
-		g_output_stream_close_async (ostream, G_PRIORITY_LOW, entry->cancellable,
-					     (GAsyncReadyCallback) close_ready_cb,
-					     fixture);
-}
-
-typedef struct {
-	time_t request_time;
-	SoupSessionFeature *feature;
-	gulong got_headers_handler;
-} RequestHelper;
-
-static void
-msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
-{
-	SoupCache *cache;
-	SoupCacheability cacheable;
-	RequestHelper *helper;
-	time_t request_time, response_time;
-	SoupCacheEntry *entry;
-
-	response_time = time (NULL);
-
-	helper = (RequestHelper *)user_data;
-	cache = SOUP_CACHE (helper->feature);
-	request_time = helper->request_time;
-	g_signal_handlers_disconnect_by_func (msg, msg_got_headers_cb, user_data);
-	g_slice_free (RequestHelper, helper);
-
-	cacheable = soup_cache_get_cacheability (cache, msg);
-
-	if (cacheable & SOUP_CACHE_CACHEABLE) {
-		GFile *file;
-		SoupCacheWritingFixture *fixture;
-
-		/* Check if we are already caching this resource */
-		entry = soup_cache_entry_lookup (cache, msg);
-
-		if (entry && (entry->dirty || entry->being_validated))
-			return;
-
-		/* Create a new entry, deleting any old one if present */
-		if (entry)
-			soup_cache_entry_remove (cache, entry, TRUE);
-
-		entry = soup_cache_entry_new (cache, msg, request_time, response_time);
-		entry->hits = 1;
-
-		/* Do not continue if it can not be stored */
-		if (!soup_cache_entry_insert (cache, entry, TRUE)) {
-			soup_cache_entry_free (entry);
-			return;
-		}
-
-		fixture = g_slice_new0 (SoupCacheWritingFixture);
-		fixture->cache = g_object_ref (cache);
-		fixture->entry = entry;
-		fixture->msg = g_object_ref (msg);
-		fixture->buffer_queue = g_queue_new ();
-
-		/* We connect now to these signals and buffer the data
-		   if it comes before the file is ready for writing */
-		fixture->content_sniffed_handler =
-			g_signal_connect (msg, "content-sniffed", G_CALLBACK (msg_content_sniffed_cb), fixture);
-		fixture->got_chunk_handler =
-			g_signal_connect (msg, "got-chunk", G_CALLBACK (msg_got_chunk_cb), fixture);
-		fixture->got_body_handler =
-			g_signal_connect (msg, "got-body", G_CALLBACK (msg_got_body_cb), fixture);
-		fixture->restarted_handler =
-			g_signal_connect (msg, "restarted", G_CALLBACK (msg_restarted_cb), entry);
-
-		/* Prepare entry */
-		cache->priv->n_pending++;
-
-		entry->dirty = TRUE;
-		entry->cancellable = g_cancellable_new ();
-		file = get_file_from_entry (cache, entry);
-		g_file_replace_async (file, NULL, FALSE,
-				      G_FILE_CREATE_PRIVATE | G_FILE_CREATE_REPLACE_DESTINATION,
-				      G_PRIORITY_LOW, entry->cancellable,
-				      (GAsyncReadyCallback) replace_cb, fixture);
-		g_object_unref (file);
-	} else if (cacheable & SOUP_CACHE_INVALIDATES) {
-		entry = soup_cache_entry_lookup (cache, msg);
-
-		if (entry)
-			soup_cache_entry_remove (cache, entry, TRUE);
-	} else if (cacheable & SOUP_CACHE_VALIDATES) {
-		entry = soup_cache_entry_lookup (cache, msg);
-
-		/* It's possible to get a CACHE_VALIDATES with no
-		 * entry in the hash table. This could happen if for
-		 * example the soup client is the one creating the
-		 * conditional request.
-		 */
-		if (entry) {
-			entry->being_validated = FALSE;
-			copy_end_to_end_headers (msg->response_headers, entry->headers);
-			soup_cache_entry_set_freshness (entry, msg, cache);
-		}
-	}
-}
-
 GInputStream *
 soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheEntry *entry;
 	char *current_age;
-	GInputStream *stream = NULL;
+	GInputStream *file_stream, *body_stream, *cache_stream;
 	GFile *file;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
@@ -1027,18 +660,19 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	entry = soup_cache_entry_lookup (cache, msg);
 	g_return_val_if_fail (entry, NULL);
 
-	/* TODO: the original idea was to save reads, but current code
-	   assumes that a stream is always returned. Need to reach
-	   some agreement here. Also we have to handle the situation
-	   were the file was no longer there (for example files
-	   removed without notifying the cache */
 	file = get_file_from_entry (cache, entry);
-	stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
+	file_stream = G_INPUT_STREAM (g_file_read (file, NULL, NULL));
 	g_object_unref (file);
 
 	/* Do not change the original message if there is no resource */
-	if (stream == NULL)
-		return stream;
+	if (!file_stream)
+		return NULL;
+
+	body_stream = soup_body_input_stream_new (file_stream, SOUP_ENCODING_CONTENT_LENGTH, entry->length);
+	g_object_unref (file_stream);
+
+	if (!body_stream)
+		return NULL;
 
 	/* If we are told to send a response from cache any validation
 	   in course is over by now */
@@ -1057,19 +691,29 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 				      current_age);
 	g_free (current_age);
 
-	return stream;
+	/* Create the cache stream. */
+	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
+	cache_stream = soup_message_setup_body_istream (body_stream, msg,
+							cache->priv->session,
+							SOUP_STAGE_ENTITY_BODY);
+	g_object_unref (body_stream);
+
+	return cache_stream;
+}
+
+static void
+msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
+{
+	g_object_set_data (G_OBJECT (msg), "response-time", GINT_TO_POINTER (time (NULL)));
+	g_signal_handlers_disconnect_by_func (msg, msg_got_headers_cb, user_data);
 }
 
 static void
 request_started (SoupSessionFeature *feature, SoupSession *session,
 		 SoupMessage *msg, SoupSocket *socket)
 {
-	RequestHelper *helper = g_slice_new0 (RequestHelper);
-	helper->request_time = time (NULL);
-	helper->feature = feature;
-	helper->got_headers_handler = g_signal_connect (msg, "got-headers",
-							G_CALLBACK (msg_got_headers_cb),
-							helper);
+	g_object_set_data (G_OBJECT (msg), "request-time", GINT_TO_POINTER (time (NULL)));
+	g_signal_connect (msg, "got-headers", G_CALLBACK (msg_got_headers_cb), NULL);
 }
 
 static void
@@ -1090,6 +734,145 @@ soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 
 	feature_interface->attach = attach;
 	feature_interface->request_started = request_started;
+}
+
+typedef struct {
+	SoupCache *cache;
+	SoupCacheEntry *entry;
+} StreamHelper;
+
+static void
+istream_cache_cb (GObject *source,
+		  GAsyncResult *res,
+		  gpointer user_data)
+{
+	SoupCacheInputStream *istream = SOUP_CACHE_INPUT_STREAM (source);
+	StreamHelper *helper = (StreamHelper *) user_data;
+	SoupCache *cache = helper->cache;
+	SoupCacheEntry *entry = helper->entry;
+	GError *error = NULL;
+
+	entry->dirty = FALSE;
+	g_clear_object (&entry->cancellable);
+	--cache->priv->n_pending;
+
+	entry->length = soup_cache_input_stream_cache_finish (istream, res, &error);
+
+	if (error) {
+		/* Update cache size */
+		if (soup_message_headers_get_encoding (entry->headers) == SOUP_ENCODING_CONTENT_LENGTH)
+			cache->priv->size -= soup_message_headers_get_content_length (entry->headers);
+
+		soup_cache_entry_remove (cache, entry, TRUE);
+		helper->entry = entry = NULL;
+		goto cleanup;
+	}
+
+	if (soup_message_headers_get_encoding (entry->headers) != SOUP_ENCODING_CONTENT_LENGTH) {
+
+		if (cache_accepts_entries_of_size (cache, entry->length)) {
+			make_room_for_new_entry (cache, entry->length);
+			cache->priv->size += entry->length;
+		} else {
+			soup_cache_entry_remove (cache, entry, TRUE);
+			helper->entry = entry = NULL;
+		}
+	}
+
+ cleanup:
+	g_object_unref (helper->cache);
+	g_slice_free (StreamHelper, helper);
+}
+
+
+static GInputStream*
+soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
+					 GInputStream *base_stream,
+					 SoupMessage *msg,
+					 GError **error)
+{
+	SoupCache *cache = (SoupCache*) processor;
+	SoupCacheEntry *entry;
+	SoupCacheability cacheability;
+	GInputStream *istream;
+	GFile *file;
+	StreamHelper *helper;
+	time_t request_time, response_time;
+
+	/* First of all, check if we should cache the resource. */
+	cacheability = soup_cache_get_cacheability (cache, msg);
+	entry = soup_cache_entry_lookup (cache, msg);
+
+	if (cacheability & SOUP_CACHE_INVALIDATES) {
+		if (entry)
+			soup_cache_entry_remove (cache, entry, TRUE);
+		return NULL;
+	}
+
+	if (cacheability & SOUP_CACHE_VALIDATES) {
+		/* It's possible to get a CACHE_VALIDATES with no
+		 * entry in the hash table. This could happen if for
+		 * example the soup client is the one creating the
+		 * conditional request.
+		 */
+		if (entry) {
+			entry->being_validated = FALSE;
+			copy_end_to_end_headers (msg->response_headers, entry->headers);
+			soup_cache_entry_set_freshness (entry, msg, cache);
+		}
+		return NULL;
+	}
+
+	if (!(cacheability & SOUP_CACHE_CACHEABLE))
+		return NULL;
+
+	/* Check if we are already caching this resource */
+	if (entry && (entry->dirty || entry->being_validated))
+		return NULL;
+
+	/* Create a new entry, deleting any old one if present */
+	if (entry)
+		soup_cache_entry_remove (cache, entry, TRUE);
+
+	request_time = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "request-time"));
+	response_time = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (msg), "request-time"));
+	entry = soup_cache_entry_new (cache, msg, request_time, response_time);
+	entry->hits = 1;
+	entry->dirty = TRUE;
+
+	/* Do not continue if it can not be stored */
+	if (!soup_cache_entry_insert (cache, entry, TRUE)) {
+		soup_cache_entry_free (entry);
+		return NULL;
+	}
+
+	++cache->priv->n_pending;
+
+	istream = soup_cache_input_stream_new (base_stream);
+
+	file = get_file_from_entry (cache, entry);
+	entry->cancellable = g_cancellable_new ();
+
+	helper = g_slice_new (StreamHelper);
+	helper->cache = g_object_ref (cache);
+	helper->entry = entry;
+
+	soup_cache_input_stream_cache (SOUP_CACHE_INPUT_STREAM (istream), file, entry->cancellable,
+				       (GAsyncReadyCallback) istream_cache_cb, helper);
+	g_object_unref (file);
+
+	return istream;
+}
+
+static void
+soup_cache_content_processor_init (SoupContentProcessorInterface *processor_interface,
+				   gpointer interface_data)
+{
+	soup_cache_default_content_processor_interface =
+		g_type_default_interface_peek (SOUP_TYPE_CONTENT_PROCESSOR);
+
+	processor_interface->processing_stage = SOUP_STAGE_ENTITY_BODY;
+	processor_interface->wrap_input = soup_cache_content_processor_wrap_input;
 }
 
 static void
@@ -1565,6 +1348,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	/* Copy the data we need from the original message */
 	uri = soup_message_get_uri (original);
 	msg = soup_message_new_from_uri (original->method, uri);
+	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
 
 	soup_message_headers_foreach (original->request_headers,
 				      (SoupMessageHeadersForeachFunc)copy_headers,
