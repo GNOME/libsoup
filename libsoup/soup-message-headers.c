@@ -1303,7 +1303,7 @@ soup_message_headers_get_content_disposition (SoupMessageHeaders  *hdrs,
 		char *filename = strrchr (orig_value, '/');
 
 		if (filename)
-			g_hash_table_insert (*params, orig_key, filename + 1);
+			g_hash_table_insert (*params, g_strdup (orig_key), filename + 1);
 	}
 	return TRUE;
 }
