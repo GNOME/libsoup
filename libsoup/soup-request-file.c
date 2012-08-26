@@ -128,7 +128,15 @@ soup_request_file_ensure_file (SoupRequestFile  *file,
 	windowsify_file_uri_path (decoded_path);
 #endif
 
-	file->priv->gfile = g_file_new_for_path (decoded_path);
+	if (uri->scheme == SOUP_URI_SCHEME_RESOURCE) {
+		char *uri_str;
+
+		uri_str = g_strdup_printf ("resource://%s", decoded_path);
+		file->priv->gfile = g_file_new_for_uri (uri_str);
+		g_free (uri_str);
+	} else
+		file->priv->gfile = g_file_new_for_path (decoded_path);
+
 	g_free (decoded_path);
 	return TRUE;
 }
@@ -250,7 +258,7 @@ soup_request_file_get_content_type (SoupRequest *request)
 	return file->priv->mime_type;
 }
 
-static const char *file_schemes[] = { "file", NULL };
+static const char *file_schemes[] = { "file", "resource", NULL };
 
 static void
 soup_request_file_class_init (SoupRequestFileClass *request_file_class)

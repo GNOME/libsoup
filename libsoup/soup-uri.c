@@ -110,7 +110,7 @@ static char *uri_normalized_copy (const char *str, int length, const char *unesc
 
 gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 gpointer _SOUP_URI_SCHEME_FTP;
-gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA;
+gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA, _SOUP_URI_SCHEME_RESOURCE;
 
 static inline const char *
 soup_uri_parse_scheme (const char *scheme, int len)
@@ -119,6 +119,8 @@ soup_uri_parse_scheme (const char *scheme, int len)
 		return SOUP_URI_SCHEME_HTTP;
 	} else if (len == 5 && !g_ascii_strncasecmp (scheme, "https", len)) {
 		return SOUP_URI_SCHEME_HTTPS;
+	} else if (len == 8 && !g_ascii_strncasecmp (scheme, "resource", len)) {
+		return SOUP_URI_SCHEME_RESOURCE;
 	} else {
 		char *lower_scheme;
 
@@ -812,6 +814,15 @@ soup_uri_uses_default_port (SoupURI *uri)
  *
  * "https" as an interned string. This can be compared directly
  * against the value of a #SoupURI's <structfield>scheme</structfield>
+ **/
+
+/**
+ * SOUP_URI_SCHEME_RESOURCE:
+ *
+ * "resource" as an interned string. This can be compared directly
+ * against the value of a #SoupURI's <structfield>scheme</structfield>
+ *
+ * Since: 2.42
  **/
 
 /**

@@ -28,6 +28,7 @@ noinst_PROGRAMS =	\
 	ntlm-test	\
 	redirect-test	\
 	requester-test	\
+	resource-test	\
 	simple-httpd	\
 	simple-proxy	\
 	sniffing-test   \
@@ -40,6 +41,8 @@ noinst_PROGRAMS =	\
 	$(CURL_TESTS)	\
 	$(APACHE_TESTS) \
 	$(XMLRPC_TESTS)
+
+noinst_DATA = soup-tests.gresource
 
 TEST_SRCS = test-utils.c test-utils.h
 
@@ -66,6 +69,7 @@ pull_api_SOURCES = pull-api.c $(TEST_SRCS)
 range_test_SOURCES = range-test.c $(TEST_SRCS)
 redirect_test_SOURCES = redirect-test.c $(TEST_SRCS)
 requester_test_SOURCES = requester-test.c $(TEST_SRCS)
+resource_test_SOURCES = resource-test.c $(TEST_SRCS)
 server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
@@ -89,6 +93,9 @@ if HAVE_XMLRPC_EPI_PHP
 XMLRPC_TESTS = xmlrpc-test xmlrpc-server-test
 endif
 
+soup-tests.gresource: soup-tests.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
+	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir)  $<
+
 TESTS =			\
 	chunk-test	\
 	coding-test	\
@@ -103,6 +110,7 @@ TESTS =			\
 	ntlm-test	\
 	redirect-test	\
 	requester-test	\
+	resource-test	\
 	sniffing-test	\
 	socket-test	\
 	ssl-test	\
@@ -127,16 +135,19 @@ RESOURCES =			\
 	resources/test.html	\
 	resources/text_binary.txt
 
-EXTRA_DIST =			\
-	htdigest		\
-	htpasswd		\
-	httpd.conf.in		\
-	index.txt		\
-	libsoup.supp		\
-	test-cert.pem		\
-	test-key.pem		\
-	xmlrpc-server.php	\
+EXTRA_DIST =			 \
+	htdigest		 \
+	htpasswd		 \
+	httpd.conf.in		 \
+	index.txt		 \
+	libsoup.supp		 \
+	soup-tests.gresource.xml \
+	test-cert.pem		 \
+	test-key.pem		 \
+	xmlrpc-server.php	 \
 	$(RESOURCES)
+
+DISTCLEANFILES = soup-tests.gresource
 
 if MISSING_REGRESSION_TEST_PACKAGES
 check-local: check-TESTS
