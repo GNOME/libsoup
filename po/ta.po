@@ -1,0 +1,76 @@
+# Tamil translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+#
+# Dr.T.Vasudevan <agnihot3@gmail.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-01 15:56+0000\n"
+"PO-Revision-Date: 2012-09-02 15:25+0530\n"
+"Last-Translator: Dr.T.Vasudevan <agnihot3@gmail.com>\n"
+"Language-Team: Tamil <ta@li.org>\n"
+"Language: ta\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.1\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "இணைப்பு எதிர்பாராமல் துண்டிக்கப்பட்டது"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "வெளியீட்டு இடைநினைவு மிகச்சிறியது"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "செயல்பாடு ரத்து செய்யப்பட்டது"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "செயல்பாடு தடை செய்யும்"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "யூஆர்ஐ ஏதும் தரப்படவில்லை"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "செல்லுபடியாகாத '%s' URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "'%s' யூஆர்ஐ ஐ அலகிட முடியவில்லை"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "ஆதரவு இல்லாத யூஆர்ஐ திட்டம்  '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "புரவலன் பெயர் ஒரு ஐபி முகவரி"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "செல்லுபடியாகாத கணிணிப்பெயர்"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "புரவலன் பெயருக்கு ஒரு செயற்களம் இல்லை"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "போதிய செயற்களம் இல்லை"
+
