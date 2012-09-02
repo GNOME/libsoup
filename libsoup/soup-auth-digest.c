@@ -10,13 +10,14 @@
 #endif
 
 #include <string.h>
-#ifdef G_OS_WIN32
-#include <process.h>
-#endif
 
 #include "soup-auth-digest.h"
 #include "soup.h"
 #include "soup-message-private.h"
+
+#ifdef G_OS_WIN32
+#include <process.h>
+#endif
 
 typedef struct {
 	char                    *user;
