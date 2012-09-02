@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-07-14 11:19+0000\n"
-"PO-Revision-Date: 2012-07-14 18:48+0300\n"
+"POT-Creation-Date: 2012-07-16 22:04+0000\n"
+"PO-Revision-Date: 2012-09-02 15:29+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lithuanian <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -20,7 +20,7 @@ msgstr ""
 #: ../libsoup/soup-body-input-stream.c:136
 #: ../libsoup/soup-body-input-stream.c:167
 #: ../libsoup/soup-body-input-stream.c:200
-#: ../libsoup/soup-message-io.c:193
+#: ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
@@ -58,16 +58,20 @@ msgstr "Nepavyko perskaityti URI „%s“"
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: ../libsoup/soup-tld.c:146
+#: ../libsoup/soup-tld.c:143
 msgid "Hostname is an IP address"
 msgstr "Serverio vardas arba IP adresas"
 
-#: ../libsoup/soup-tld.c:167
+#: ../libsoup/soup-tld.c:164
 msgid "Invalid hostname"
 msgstr "Netinkamas serverio vardas"
 
-#: ../libsoup/soup-tld.c:182
-#: ../libsoup/soup-tld.c:220
+#: ../libsoup/soup-tld.c:179
+#: ../libsoup/soup-tld.c:221
 msgid "Not enough domains"
 msgstr "Nepakanka domenų"
+
+#: ../libsoup/soup-tld.c:199
+msgid "Hostname has no base domain"
+msgstr "Serverio vardas neturi bazinio domeno"
 
