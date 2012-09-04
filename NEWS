@@ -1,3 +1,22 @@
+Changes in libsoup from 2.39.90 to 2.39.91:
+
+	* Added missing (transfer full) annotation to
+          soup_cookie_jar_add_cookie() and
+          soup_cookie_jar_add_cookie_with_first_party(), fixing
+          crashes in bindings. [#682554, Daniel Drake]
+
+	* Fixed a crash [#682569, Alexander Larsson] and a win32 build
+          problem [#683200, Kalev Lember] introduced by the memory
+          leak fixes in 2.39.90
+
+	* Fixed the SoupMessage:network-event signal, which had been
+          skipping the G_SOCKET_CLIENT_COMPLETE state in tunneled
+          https connections. And added a test for this. [Dan]
+
+	* New/updated translations:
+	  French, Japanese, Korean, Latvian, Lithuanian, Polish,
+	  Punjabi, Swedish, Tamil
+
 Changes in libsoup from 2.39.5 to 2.39.90:
 
 	* Added SoupMultipartInputStream, for handling multipart
