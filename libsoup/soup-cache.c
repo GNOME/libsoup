@@ -331,7 +331,7 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 	const char *expires, *date, *last_modified;
 
 	cache_control = soup_message_headers_get_list (entry->headers, "Cache-Control");
-	if (cache_control) {
+	if (cache_control && *cache_control) {
 		const char *max_age, *s_maxage;
 		gint64 freshness_lifetime = 0;
 		GHashTable *hash;
@@ -1348,7 +1348,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	cache_control = soup_message_headers_get_list (msg->request_headers, "Cache-Control");
-	if (cache_control) {
+	if (cache_control && *cache_control) {
 		GHashTable *hash = soup_header_parse_param_list (cache_control);
 
 		if (g_hash_table_lookup_extended (hash, "no-store", NULL, NULL)) {
