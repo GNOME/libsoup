@@ -1,0 +1,73 @@
+# Persian translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Arash Mousavi <mousavi.arash@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-07 16:15+0000\n"
+"PO-Revision-Date: 2012-09-08 00:58+0330\n"
+"Last-Translator: Arash Mousavi <mousavi.arash@gmail.com>\n"
+"Language-Team: Persian\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../libsoup/soup-body-input-stream.c:136
+#: ../libsoup/soup-body-input-stream.c:167
+#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "اتصال به شکل غیرمنتظره‌ای بسته شد"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "میانگیر خروجی خیلی کوتاه است"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "عملیات لغو شده بود"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "عملیات می‌توانست بسته شود"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "هیچ URIای داده نشده است"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "«%s» نامعتبر URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "نمی‌توان URI را تجزیه کرد «%s»"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "شِما URI پشتیبانی نشده «%s»"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "نام میزبان یک آدرس آی‌پی است"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "نام‌میزبان نامعتبر"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "نام‌میزبان دامنه‌ی پایه ندارد"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "دامنه‌های کافی موجود نیست"
