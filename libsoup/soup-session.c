@@ -112,6 +112,9 @@ typedef struct {
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
 static void free_host (SoupSessionHost *host);
+static void connection_state_changed (GObject *object, GParamSpec *param,
+				      gpointer user_data);
+static void connection_disconnected (SoupConnection *conn, gpointer user_data);
 
 static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
@@ -1163,6 +1166,7 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	}
 
 	g_signal_handlers_disconnect_by_func (conn, connection_disconnected, session);
+	g_signal_handlers_disconnect_by_func (conn, connection_state_changed, session);
 	priv->num_conns--;
 
 	g_mutex_unlock (&priv->conn_lock);
