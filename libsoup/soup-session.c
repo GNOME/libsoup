@@ -1124,6 +1124,15 @@ free_unused_host (gpointer user_data)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (host->session);
 
 	g_mutex_lock (&priv->conn_lock);
+
+	/* In a multithreaded session, a connection might have been
+	 * added while we were waiting for conn_lock.
+	 */
+	if (host->connections) {
+		g_mutex_unlock (&priv->conn_lock);
+		return FALSE;
+	}
+
 	/* This will free the host in addition to removing it from the
 	 * hash table
 	 */
