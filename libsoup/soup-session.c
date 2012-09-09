@@ -108,6 +108,8 @@ typedef struct {
 	GResolver *resolver;
 
 	char **http_aliases, **https_aliases;
+
+	gboolean disposed;
 } SoupSessionPrivate;
 #define SOUP_SESSION_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SESSION, SoupSessionPrivate))
 
@@ -220,7 +222,9 @@ soup_session_dispose (GObject *object)
 	SoupSession *session = SOUP_SESSION (object);
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
+	priv->disposed = TRUE;
 	soup_session_abort (session);
+	g_warn_if_fail (g_hash_table_size (priv->conns) == 0);
 
 	while (priv->features)
 		soup_session_remove_feature (session, priv->features->data);
@@ -821,8 +825,7 @@ get_host_for_message (SoupSession *session, SoupMessage *msg)
 static void
 free_host (SoupSessionHost *host)
 {
-	g_slist_free_full (host->connections,
-			   (GDestroyNotify) soup_connection_disconnect);
+	g_warn_if_fail (host->connections == NULL);
 
 	if (host->keep_alive_src) {
 		g_source_destroy (host->keep_alive_src);
@@ -1217,6 +1220,9 @@ soup_session_get_connection (SoupSession *session,
 	GSList *conns;
 	int num_pending = 0;
 	gboolean need_new_connection;
+
+	if (priv->disposed)
+		return FALSE;
 
 	if (item->conn) {
 		g_return_val_if_fail (soup_connection_get_state (item->conn) != SOUP_CONNECTION_DISCONNECTED, FALSE);
