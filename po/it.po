@@ -1,15 +1,15 @@
 # Italian translations for libsoup package
 # Copyright (C) 2012 the Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Milo Casagrande <milo@casagrande.name>, 2012.
+# Milo Casagrande <milo@ubuntu.com>, 2012.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-06 23:05+0200\n"
-"PO-Revision-Date: 2012-09-06 23:05+0200\n"
-"Last-Translator: Milo Casagrande <milo@casagrande.name>\n"
+"POT-Creation-Date: 2012-09-10 21:08+0200\n"
+"PO-Revision-Date: 2012-09-10 21:09+0200\n"
+"Last-Translator: Milo Casagrande <milo@ubuntu.com>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
@@ -17,11 +17,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Connessione terminata inaspettatamente"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Richiesta di posizionamento non valida"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Impossibile troncare SoupBodyInputStream"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
