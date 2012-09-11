@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-07-18 21:44+0000\n"
-"PO-Revision-Date: 2012-07-19 09:57+0100\n"
+"POT-Creation-Date: 2012-09-10 15:07+0000\n"
+"PO-Revision-Date: 2012-09-10 21:37+0100\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
@@ -21,24 +21,32 @@ msgstr ""
 "X-Poedit-Country: SLOVENIA\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205
 #: ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Neveljavna zahteva iskanja"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Ni mogoče porezati SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Odvodni medpomnilnik je premajhen."
 
-#: ../libsoup/soup-message-io.c:817
-#: ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818
+#: ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "Opravilo je preklicano."
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "Opravilo bi zaustavilo delovanje"
 
@@ -62,20 +70,19 @@ msgstr "Ni mogoče razčleniti naslova URI '%s'"
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepodprta shema URI '%s'"
 
-#: ../libsoup/soup-tld.c:148
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "Ime gostitelja je naslov IP"
 
-#: ../libsoup/soup-tld.c:169
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "Neveljavno ime gostitelja"
-
-#: ../libsoup/soup-tld.c:184
-#: ../libsoup/soup-tld.c:226
-msgid "Not enough domains"
-msgstr "Ni dovolj domen"
 
 #: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
 msgstr "Ime gostitelja je brez osnovne domene"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Ni dovolj domen"
 
