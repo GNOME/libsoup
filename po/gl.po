@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2012-09-12 02:04+0200\n"
-"PO-Revision-Date: 2012-09-12 02:04+0200\n"
+"PO-Revision-Date: 2012-09-12 02:05+0200\n"
 "Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
 "Language-Team: gnome-l10n-gl@gnome.org\n"
 "Language: gl\n"
@@ -29,7 +29,7 @@ msgstr "Petición de busca non válida"
 
 #: ../libsoup/soup-body-input-stream.c:489
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr ""
+msgstr "Non é posíbel truncar SoupbodyInputStream"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
