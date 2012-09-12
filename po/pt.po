@@ -6,10 +6,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 3.6\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-08 02:40+0000\n"
-"PO-Revision-Date: 2012-09-09 02:10+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-09-12 23:36+0100\n"
+"PO-Revision-Date: 2012-09-12 23:37+0100\n"
 "Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
 "Language-Team: Portuguese <gnome_pt@yahoogroups.com>\n"
 "Language: pt\n"
@@ -17,11 +16,19 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Ligação terminou inesperadamente"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Pedido de procura inválido"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Incapaz de truncar SoupBodyInputStream"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
