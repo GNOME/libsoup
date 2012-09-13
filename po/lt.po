@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-07-16 22:04+0000\n"
-"PO-Revision-Date: 2012-09-02 15:29+0300\n"
+"POT-Creation-Date: 2012-09-10 15:07+0000\n"
+"PO-Revision-Date: 2012-09-13 22:40+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lithuanian <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -17,24 +17,32 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205
 #: ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Netinkama paieškos užklausa"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Negalima trumpinti SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Išvesties buferis yra per mažas"
 
-#: ../libsoup/soup-message-io.c:817
-#: ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818
+#: ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "Veiksmas buvo nutrauktas"
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "Veiksmas blokuosis"
 
@@ -58,20 +66,19 @@ msgstr "Nepavyko perskaityti URI „%s“"
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: ../libsoup/soup-tld.c:143
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "Serverio vardas arba IP adresas"
 
-#: ../libsoup/soup-tld.c:164
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "Netinkamas serverio vardas"
 
-#: ../libsoup/soup-tld.c:179
-#: ../libsoup/soup-tld.c:221
-msgid "Not enough domains"
-msgstr "Nepakanka domenų"
-
-#: ../libsoup/soup-tld.c:199
+#: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
 msgstr "Serverio vardas neturi bazinio domeno"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Nepakanka domenų"
 
