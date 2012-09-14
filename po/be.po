@@ -5,8 +5,8 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-07-16 22:04+0000\n"
-"PO-Revision-Date: 2012-09-07 19:11+0300\n"
+"POT-Creation-Date: 2012-09-10 15:07+0000\n"
+"PO-Revision-Date: 2012-09-14 13:29+0300\n"
 "Last-Translator: Ihar Hrachyshka <ihar.hrachyshka@gmail.com>\n"
 "Language-Team: Belarusian <i18n-bel-gnome@googlegroups.com>\n"
 "Language: be\n"
@@ -14,22 +14,30 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Злучэнне нечакана перарвана"
 
-#: ../libsoup/soup-converter-wrapper.c:189
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Хібны запыт пракручвання змесціва"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Немагчыма абрэзаць SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Выхадны буфер надта малы"
 
-#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "Аперацыя была скасавана"
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "Аперацыя заблакіруе працэс"
 
@@ -53,18 +61,18 @@ msgstr "Не ўдалося разабраць URI-адрас \"%s\""
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-схема \"%s\" не падтрымліваецца"
 
-#: ../libsoup/soup-tld.c:143
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "Назва хоста з'яўляецца IP-адрасам"
 
-#: ../libsoup/soup-tld.c:164
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "Хібная назва хоста"
 
-#: ../libsoup/soup-tld.c:179 ../libsoup/soup-tld.c:221
-msgid "Not enough domains"
-msgstr "Не хапае даменаў"
-
-#: ../libsoup/soup-tld.c:199
+#: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
 msgstr "Назва хоста не мае базавага дамена"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Не хапае даменаў"
