@@ -6,10 +6,11 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-07 22:38-0400\n"
-"PO-Revision-Date: 2012-09-07 21:55-0300\n"
-"Last-Translator: Enrico Nicoletto <liverig@gmail.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-12 12:36+0000\n"
+"PO-Revision-Date: 2012-09-12 09:48-0300\n"
+"Last-Translator: Rafael Ferreira <rafael.f.f1@gmail.com>\n"
 "Language-Team: Brazilian Portuguese <gnome-pt_br-list@gnome.org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -17,11 +18,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "A conexão terminou inesperadamente"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Requisição de busca inválida"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Não foi possível truncar SoupBodyInputStream"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
