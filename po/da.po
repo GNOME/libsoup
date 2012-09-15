@@ -1,0 +1,81 @@
+# Danish translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Ask Hjorth Larsen <asklarsen@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-09-15 23:42+0200\n"
+"PO-Revision-Date: 2012-09-15 18:15+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "Forbindelsen blev uventet afbrudt"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Ugyldig søgeforespørgsel"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Kan ikke afkorte SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Outputbuffer er for lille"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "Operationen blev annulleret"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "Operationen ville blokere"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "Ingen URI givet"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Ugyldig \"%s\"-URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Kunne ikke fortolke URI \"%s\""
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Uunderstøttet URI-skema \"%s\""
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "Værtsnavn er en IP-adresse"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "Ugyldigt værtsnavn"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "Værtsnavnet har intet basisdomæne"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Ikke nok domæner"
