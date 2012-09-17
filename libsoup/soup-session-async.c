@@ -478,6 +478,11 @@ send_request_return_result (SoupMessageQueueItem *item,
 	simple = item->result;
 	item->result = NULL;
 
+	if (item->io_source) {
+		g_source_destroy (item->io_source);
+		g_clear_pointer (&item->io_source, g_source_unref);
+	}
+
 	if (error)
 		g_simple_async_result_take_error (simple, error);
 	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
@@ -614,6 +619,7 @@ read_ready_cb (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
+	g_clear_pointer (&item->io_source, g_source_unref);
 	try_run_until_read (item);
 	return FALSE;
 }
@@ -623,7 +629,6 @@ try_run_until_read (SoupMessageQueueItem *item)
 {
 	GError *error = NULL;
 	GInputStream *stream = NULL;
-	GSource *source;
 
 	if (soup_message_io_run_until_read (item->msg, item->cancellable, &error))
 		stream = soup_message_io_get_response_istream (item->msg, &error);
@@ -653,10 +658,9 @@ try_run_until_read (SoupMessageQueueItem *item)
 	}
 
 	g_clear_error (&error);
-	source = soup_message_io_get_source (item->msg, item->cancellable,
-					     read_ready_cb, item);
-	g_source_attach (source, soup_session_get_async_context (item->session));
-	g_source_unref (source);
+	item->io_source = soup_message_io_get_source (item->msg, item->cancellable,
+						      read_ready_cb, item);
+	g_source_attach (item->io_source, soup_session_get_async_context (item->session));
 }
 
 static void

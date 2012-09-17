@@ -187,6 +187,10 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 		soup_uri_free (item->proxy_uri);
 	if (item->result)
 		g_object_unref (item->result);
+	if (item->io_source) {
+		g_source_destroy (item->io_source);
+		g_source_unref (item->io_source);
+	}
 	soup_message_queue_item_set_connection (item, NULL);
 	g_slice_free (SoupMessageQueueItem, item);
 }

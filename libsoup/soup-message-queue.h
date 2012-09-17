@@ -41,6 +41,7 @@ struct _SoupMessageQueueItem {
 	SoupURI *proxy_uri;
 	SoupConnection *conn;
 	GSimpleAsyncResult *result;
+	GSource *io_source;
 
 	guint paused            : 1;
 	guint new_api           : 1;
