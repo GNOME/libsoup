@@ -1,3 +1,19 @@
+Changes in libsoup from 2.39.91 to 2.39.92:
+
+	* Fixed some g_warnings (and a possible crash) with the
+	  soup_request_send_async(). [#683404, Dan]
+
+	* Fixed a hang with SoupSessionSync [#682923, Dan]
+
+	* Handle empty "Cache-Control" headers. [Sergio]
+
+	* New/updated translations:
+	  Assamese, Belarusian, Brazilian Portuguese, British English,
+	  Chinese (Traditional), Czech, Danish, French, Galician,
+	  Greek, Gujarati, Hungarian, Indonesian, Italian, Lithuanian,
+	  Marathi, Persian, Polish, Portuguese, Russian, Serbian,
+	  Slovenian, Spanish
+
 Changes in libsoup from 2.39.90 to 2.39.91:
 
 	* Added missing (transfer full) annotation to
