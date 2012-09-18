@@ -1,0 +1,83 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Ani Peter <apeter@redhat.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
+"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-15 21:43+0000\n"
+"PO-Revision-Date: 2012-09-18 23:00+0000\n"
+"Last-Translator: Ani Peter <apeter@redhat.com>\n"
+"Language-Team: Malayalam <discuss@lists.smc.org.in>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.0\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "കണക്ഷന്‍ അപ്രതീക്ഷതമായി അവസാനിയ്ക്കുന്നു"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "തെറ്റായ തെരച്ചില്‍ ആവശ്യം"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream ട്രക്കേറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "ഔട്ട്പുട്ട് ബഫര്‍ വളരെ ചെറുതാണു്"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "പ്രക്രിയ റദ്ദാക്കിയിരിയ്ക്കുന്നു"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "പ്രക്രിയ തടസ്സപ്പെടുത്തുന്നു"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "യുആര്‍ഐ ലഭ്യമാക്കിയിട്ടില്ല"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "തെറ്റായ '%s' യുആര്‍ഐ: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "യുആര്‍ഐ '%s' പാഴ്സ് ചെയ്യുവാനായില്ല"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "പിന്തുണയില്ലാത്ത യുആര്‍ഐ സ്കീം '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "ഹോസ്റ്റ്നാമം ഒരു ഐപി വിലാസമാകുന്നു"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "തെറ്റായ ഹോസ്റ്റ്നാമം"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "ഹോസ്റ്റ്നാമത്തിനു് ബെയിസ് ഡൊമെയില്‍ ലഭ്യമല്ല"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "ആവശ്യമായ ഡൊമെയിനുകള്‍ ലഭ്യമല്ല"
+
