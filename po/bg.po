@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-05 12:37+0300\n"
-"PO-Revision-Date: 2012-07-05 12:37+0300\n"
+"POT-Creation-Date: 2012-09-19 21:08+0300\n"
+"PO-Revision-Date: 2012-09-19 21:08+0300\n"
 "Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "Language: \n"
@@ -17,53 +17,65 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../libsoup/soup-body-input-stream.c:139
-#: ../libsoup/soup-body-input-stream.c:170
-#: ../libsoup/soup-body-input-stream.c:203 ../libsoup/soup-message-io.c:231
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Връзката прекъсна неочаквано"
 
-#: ../libsoup/soup-converter-wrapper.c:190
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Неправилна заявка за търсене"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Потокът SoupBodyInputStream не може да бъде прекъснат"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Прекалено малък изходен буфер"
 
-#: ../libsoup/soup-message-io.c:836 ../libsoup/soup-message-io.c:863
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "Операцията е отменена"
 
-#: ../libsoup/soup-message-io.c:874
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "Операцията ще блокира"
 
-#: ../libsoup/soup-request.c:145
+#: ../libsoup/soup-request.c:142
 #, c-format
 msgid "No URI provided"
 msgstr "Не е даден адрес"
 
-#: ../libsoup/soup-request.c:155
+#: ../libsoup/soup-request.c:152
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Неправилен адрес на „%s“: %s"
 
-#: ../libsoup/soup-requester.c:220
+#: ../libsoup/soup-requester.c:219
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Адресът „%s“ е неправилен"
 
-#: ../libsoup/soup-requester.c:254
+#: ../libsoup/soup-requester.c:253
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Схемата на адреса не се поддържа „%s“"
 
-#: ../libsoup/soup-tld.c:145
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "Името на машината е адрес по IP"
 
-#: ../libsoup/soup-tld.c:166
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "Неправилно име на машина"
 
-#: ../libsoup/soup-tld.c:181 ../libsoup/soup-tld.c:219
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "Името на машината не съдържа домейн"
+
+#: ../libsoup/soup-tld.c:226
 msgid "Not enough domains"
 msgstr "Няма достатъчно домейни"
