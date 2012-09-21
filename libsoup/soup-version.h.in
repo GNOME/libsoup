@@ -1,0 +1,41 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * soup-version.h: Version information
+ *
+ * Copyright (C) 2012 Igalia S.L.
+ */
+
+#ifndef SOUP_VERSION_H
+#define SOUP_VERSION_H
+
+#include <glib.h>
+
+G_BEGIN_DECLS
+
+#define SOUP_MAJOR_VERSION (@SOUP_MAJOR_VERSION@)
+#define SOUP_MINOR_VERSION (@SOUP_MINOR_VERSION@)
+#define SOUP_MICRO_VERSION (@SOUP_MICRO_VERSION@)
+
+#define SOUP_CHECK_VERSION(major, minor, micro) \
+    (SOUP_MAJOR_VERSION > (major) || \
+    (SOUP_MAJOR_VERSION == (major) && SOUP_MINOR_VERSION > (minor)) || \
+    (SOUP_MAJOR_VERSION == (major) && SOUP_MINOR_VERSION == (minor) && \
+     SOUP_MICRO_VERSION >= (micro)))
+
+guint
+soup_get_major_version (void);
+
+guint
+soup_get_minor_version (void);
+
+guint
+soup_get_micro_version (void);
+
+gboolean
+soup_check_version     (guint major,
+                        guint minor,
+                        guint micro);
+
+G_END_DECLS
+
+#endif /* SOUP_VERSION_H */

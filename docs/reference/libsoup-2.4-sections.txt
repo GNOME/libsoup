@@ -1202,3 +1202,18 @@ SoupTLDError
 <SUBSECTION Private>
 soup_tld_error_quark
 </SECTION>
+
+<SECTION>
+<FILE>soup-version</FILE>
+<TITLE>Version Information</TITLE>
+soup_get_major_version
+soup_get_minor_version
+soup_get_micro_version
+soup_check_version
+
+<SUBSECTION>
+SOUP_MAJOR_VERSION
+SOUP_MINOR_VERSION
+SOUP_MICRO_VERSION
+SOUP_CHECK_VERSION
+</SECTION>

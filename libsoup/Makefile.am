@@ -72,6 +72,9 @@ libsoupinclude_HEADERS =	\
 	$(soup_headers)		\
 	soup-enum-types.h
 
+nodist_libsoupinclude_HEADERS =	\
+	soup-version.h
+
 lib_LTLIBRARIES = libsoup-2.4.la
 
 libsoup_2_4_la_LDFLAGS =	\
@@ -171,6 +174,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-tld-private.h		\
 	soup-uri.c			\
 	soup-value-utils.c		\
+	soup-version.c		\
 	soup-xmlrpc.c
 
 # TLD rules

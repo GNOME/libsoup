@@ -2,8 +2,12 @@ dnl *******************************************
 dnl *** Initialize automake and set version ***
 dnl *******************************************
 
+m4_define([soup_major_version], [2])
+m4_define([soup_minor_version], [41])
+m4_define([soup_micro_version], [0])
+
 AC_PREREQ(2.63)
-AC_INIT([libsoup],[2.41.0],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
+AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -11,6 +15,13 @@ AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz -Wno-portability])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 
 AC_PROG_MAKE_SET
+
+SOUP_MAJOR_VERSION=soup_major_version
+SOUP_MINOR_VERSION=soup_minor_version
+SOUP_MICRO_VERSION=soup_micro_version
+AC_SUBST(SOUP_MAJOR_VERSION)
+AC_SUBST(SOUP_MINOR_VERSION)
+AC_SUBST(SOUP_MICRO_VERSION)
 
 SOUP_API_VERSION=2.4
 AC_SUBST(SOUP_API_VERSION)
@@ -365,6 +376,7 @@ AC_CONFIG_FILES([
 	tests/httpd.conf
 	docs/Makefile
 	docs/reference/Makefile
+	libsoup/soup-version.h
 	])
 AC_OUTPUT
 

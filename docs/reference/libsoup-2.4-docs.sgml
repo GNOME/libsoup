@@ -33,6 +33,7 @@
     <xi:include href="xml/soup-status.xml"/>
     <xi:include href="xml/soup-tld.xml"/>
     <xi:include href="xml/soup-uri.xml"/>
+    <xi:include href="xml/soup-version.xml"/>
   </chapter>
 
   <chapter>
