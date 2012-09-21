@@ -1,0 +1,81 @@
+# Thai translation for libsoup.
+# Copyright (C) 2012 Free Software Foundation, Inc.
+# This file is distributed under the same license as the libsoup package.
+# knight2000 <knight2000@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-21 07:06+0000\n"
+"PO-Revision-Date: 2012-09-21 18:49+0700\n"
+"Last-Translator: Akom Chotiphantawanon <knight2000@gmail.com>\n"
+"Language-Team: Thai <thai-l10n@googlegroups.com>\n"
+"Language: th\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "การเชื่อมต่อยุติกะทันหัน"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "การร้องขอการเลื่อนตำแหน่งไม่ถูกต้อง"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "ไม่สามารถตัดท้าย SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "บัฟเฟอร์ข้อมูลออกเล็กเกินไป"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "การทำงานถูกยกเลิก"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "การทำงานถูกบล็อค"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "ไม่ได้ระบุ URI"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "URI '%s' ไม่ถูกต้อง: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "ไม่สามารถแจง URI '%s'"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "ไม่รองรับ URI แบบ '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "ชื่อโฮสต์เป็นหมายเลขไอพี"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "ชื่อโฮสต์ผิดรูปแบบ"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "ชื่อโฮสต์ไม่มีโดเมนฐาน"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "มีโดเมนน้อยเกินไป"
