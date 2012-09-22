@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-07-24 23:14+0300\n"
-"PO-Revision-Date: 2012-07-24 23:15+0200\n"
+"POT-Creation-Date: 2012-09-22 15:16+0300\n"
+"PO-Revision-Date: 2012-09-22 15:17+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -20,24 +20,32 @@ msgstr ""
 "X-Poedit-Country: ISRAEL\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205
 #: ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-converter-wrapper.c:191
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "בקשת חיפוש שגויה"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "לא ניתן לקצץ את SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "אוגר הפלט קטן מדי"
 
-#: ../libsoup/soup-message-io.c:817
-#: ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818
+#: ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "הפעולה בוטלה"
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "הפעולה תיחסם"
 
@@ -61,20 +69,19 @@ msgstr "לא ניתן לנתח את הכתובת '%s'"
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
 
-#: ../libsoup/soup-tld.c:148
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "שם המארח הוא כתובת IP"
 
-#: ../libsoup/soup-tld.c:169
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "שם מארח שגוי"
-
-#: ../libsoup/soup-tld.c:184
-#: ../libsoup/soup-tld.c:226
-msgid "Not enough domains"
-msgstr "אין מספיק שמות מתחם"
 
 #: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
 msgstr "לשם המארח אין שם מתחם בסיסי"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "אין מספיק שמות מתחם"
 
