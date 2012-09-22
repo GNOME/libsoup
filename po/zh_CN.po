@@ -4,38 +4,48 @@
 # hmasterwang <hmasterwang@gmail.com>, 2012.
 # Alpha Cheng <hmasterwang@gmail.com>, 2012.
 # Cheng Lu <chenglu1990@gmail.com>, 2012.
+# YunQiang Su <wzssyqa@gmail.com>, 2012.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-07-25 14:24+0000\n"
-"PO-Revision-Date: 2012-07-26 13:31+0800\n"
-"Last-Translator: Cheng Lu <chenglu1990@gmail.com>\n"
+"POT-Creation-Date: 2012-09-10 15:07+0000\n"
+"PO-Revision-Date: 2012-09-23 05:00+0800\n"
+"Last-Translator: YunQiang Su <wzssyqa@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Transfer-Encoding: 8bits\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Gtranslator 2.91.5\n"
 
-#: ../libsoup/soup-body-input-stream.c:136
-#: ../libsoup/soup-body-input-stream.c:167
-#: ../libsoup/soup-body-input-stream.c:200 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "连接异常终止"
 
-#: ../libsoup/soup-converter-wrapper.c:191
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "无效的 seek 请求"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "不能截断(truncate) SoupBodyInputStream"
+
+#: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "输出缓冲区太小"
 
-#: ../libsoup/soup-message-io.c:817 ../libsoup/soup-message-io.c:853
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
 msgid "Operation was cancelled"
 msgstr "操作被取消"
 
-#: ../libsoup/soup-message-io.c:864
+#: ../libsoup/soup-message-io.c:865
 msgid "Operation would block"
 msgstr "操作将阻塞"
 
@@ -59,18 +69,18 @@ msgstr "无法解析 URI：“%s”"
 msgid "Unsupported URI scheme '%s'"
 msgstr "不支持的 URI 方案：“%s”"
 
-#: ../libsoup/soup-tld.c:148
+#: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
 msgstr "主机名是一个 IP 地址"
 
-#: ../libsoup/soup-tld.c:169
+#: ../libsoup/soup-tld.c:175
 msgid "Invalid hostname"
 msgstr "主机名无效"
-
-#: ../libsoup/soup-tld.c:184 ../libsoup/soup-tld.c:226
-msgid "Not enough domains"
-msgstr "没有足够的域"
 
 #: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
 msgstr "主机名没有基域"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "没有足够的域"
