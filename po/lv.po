@@ -1,25 +1,25 @@
 # Latvian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
+#
 # Tranzistors <rudolfs.mazurs@gmail.com>, 2012.
 # Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>, 2012.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
 "POT-Creation-Date: 2012-08-22 03:28+0000\n"
-"PO-Revision-Date: 2012-08-24 13:13+0300\n"
+"PO-Revision-Date: 2012-09-23 15:59+0300\n"
 "Last-Translator: Rūdolfs Mazurs <rudolfs.mazurs@gmail.com>\n"
-"Language-Team: Latviešu <lata-l10n@googlegroups.com>\n"
+"Language-Team: Latvian <lata-l10n@googlegroups.com>\n"
 "Language: lv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : "
 "2);\n"
-"X-Generator: Gtranslator 2.91.5\n"
+"X-Generator: Lokalize 1.4\n"
 
 #: ../libsoup/soup-body-input-stream.c:136
 #: ../libsoup/soup-body-input-stream.c:167
@@ -43,7 +43,7 @@ msgstr "Darbība bloķētu"
 #: ../libsoup/soup-request.c:142
 #, c-format
 msgid "No URI provided"
-msgstr "Nav sniegts URL"
+msgstr "Nav sniegts URI"
 
 #: ../libsoup/soup-request.c:152
 #, c-format
@@ -75,3 +75,4 @@ msgstr "Datora nosaukumam nav bāzes domēna"
 #: ../libsoup/soup-tld.c:226
 msgid "Not enough domains"
 msgstr "Nepietiekami daudz domēnu"
+
