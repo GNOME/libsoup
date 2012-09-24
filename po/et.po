@@ -1,0 +1,66 @@
+# Estonian translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Mattias Põldaru <mahfiaz@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-09-22 21:01+0000\n"
+"PO-Revision-Date: 2012-09-23 15:11+0300\n"
+"Last-Translator: Mattias Põldaru <mahfiaz@gmail.com>\n"
+"Language-Team: Estonian <gnome-et-list@gnome.org>\n"
+"Language: et\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Connection terminated unexpectedly"
+msgstr "Ühendus katkes ootamatult"
+
+msgid "Invalid seek request"
+msgstr "Sobimatu kerimise päring"
+
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream-i pole võimalik lühendada"
+
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Väljundpuhver on liiga väike"
+
+msgid "Operation was cancelled"
+msgstr "Operatsioon katkestati"
+
+msgid "Operation would block"
+msgstr "Operatsioon blokeeruks"
+
+#, c-format
+msgid "No URI provided"
+msgstr "URI-d ei antud"
+
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Sobimatu '%s' URI: %s"
+
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI-d '%s' polnud võimalik parsida"
+
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "URI skeem pole toetatud '%s'"
+
+msgid "Hostname is an IP address"
+msgstr "Hostinimi on IP-aadress"
+
+msgid "Invalid hostname"
+msgstr "Sobimatu hostinimi"
+
+msgid "Hostname has no base domain"
+msgstr "Hostinimel puudub baasdomeen"
+
+msgid "Not enough domains"
+msgstr "Pole piisavalt domeene"
