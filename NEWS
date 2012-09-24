@@ -1,3 +1,10 @@
+Changes in libsoup from 2.39.92 to 2.40.0
+
+	* New/updated translations:
+	  Bengali (India), Bulgarian, Chinese (Simplified), Estonian,
+	  German, Hebrew, Hindi, Hungarian, Latvian, Malayalam,
+	  Punjabi, Tamil, Telugu, Thai, Ukranian
+
 Changes in libsoup from 2.39.91 to 2.39.92:
 
 	* Fixed some g_warnings (and a possible crash) with the
