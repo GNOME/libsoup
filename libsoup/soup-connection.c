@@ -422,12 +422,6 @@ proxy_socket_event (SoupSocket          *socket,
 		soup_connection_event (conn, event, connection);
 }
 
-static void
-socket_disconnected (SoupSocket *sock, gpointer conn)
-{
-	soup_connection_disconnect (conn);
-}
-
 typedef struct {
 	SoupConnection *conn;
 	SoupConnectionCallback callback;
@@ -445,9 +439,6 @@ socket_connect_finished (SoupSocket *socket, guint status, gpointer user_data)
 	g_signal_handler_disconnect (socket, data->event_id);
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_signal_connect (priv->socket, "disconnected",
-				  G_CALLBACK (socket_disconnected), data->conn);
-
 		if (priv->ssl && !priv->proxy_uri) {
 			soup_connection_event (data->conn,
 					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
@@ -668,9 +659,6 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	}
 
 	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		g_signal_connect (priv->socket, "disconnected",
-				  G_CALLBACK (socket_disconnected), conn);
-
 		if (!priv->ssl || !priv->proxy_uri) {
 			soup_connection_event (conn,
 					       G_SOCKET_CLIENT_COMPLETE,
@@ -820,14 +808,9 @@ soup_connection_disconnect (SoupConnection *conn)
 		soup_connection_set_state (conn, SOUP_CONNECTION_DISCONNECTED);
 
 	if (priv->socket) {
-		/* Set the socket to NULL at the beginning to avoid reentrancy
-		 * issues. soup_socket_disconnect() could trigger a reentrant
-		 * call unref'ing and disconnecting the socket twice.
-		 */
 		SoupSocket *socket = priv->socket;
+
 		priv->socket = NULL;
-		g_signal_handlers_disconnect_by_func (socket,
-						      socket_disconnected, conn);
 		soup_socket_disconnect (socket);
 		g_object_unref (socket);
 	}
