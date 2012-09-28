@@ -659,8 +659,6 @@ io_read (SoupMessage *msg, GCancellable *cancellable, GError **error)
 
 	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
 		io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
-		if (io->item && io->item->conn)
-			soup_connection_set_reusable (io->item->conn);
 		soup_message_got_body (msg);
 		break;
 

@@ -76,7 +76,6 @@ gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,
 						SoupConnectionState state);
-void                soup_connection_set_reusable (SoupConnection *conn);
 
 gboolean        soup_connection_get_ever_used  (SoupConnection   *conn);
 
