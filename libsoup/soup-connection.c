@@ -380,18 +380,35 @@ current_msg_got_body (SoupMessage *msg, gpointer user_data)
 }
 
 static void
+clear_current_msg (SoupConnection *conn)
+{
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	SoupMessage *msg;
+
+	msg = priv->current_msg;
+	priv->current_msg = NULL;
+
+	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (current_msg_got_body), conn);
+	g_object_unref (msg);
+}
+
+static void
 set_current_msg (SoupConnection *conn, SoupMessage *msg)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	g_return_if_fail (priv->current_msg == NULL);
 	g_return_if_fail (priv->state == SOUP_CONNECTION_IN_USE);
 
 	g_object_freeze_notify (G_OBJECT (conn));
 
+	if (priv->current_msg) {
+		g_return_if_fail (priv->current_msg->method == SOUP_METHOD_CONNECT);
+		clear_current_msg (conn);
+	}
+
 	stop_idle_timer (priv);
 
-	priv->current_msg = msg;
+	priv->current_msg = g_object_ref (msg);
 	priv->reusable = FALSE;
 
 	g_signal_connect (msg, "got-body",
@@ -869,7 +886,6 @@ void
 soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 {
 	SoupConnectionPrivate *priv;
-	SoupConnectionState old_state;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
@@ -878,36 +894,20 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-	old_state = priv->state;
-
-	if (old_state == SOUP_CONNECTION_IN_USE)
-		priv->unused_timeout = 0;
 
 	if (priv->current_msg) {
-		SoupMessage *msg;
-
 		g_warn_if_fail (state == SOUP_CONNECTION_IDLE ||
 				state == SOUP_CONNECTION_DISCONNECTED);
-
-		msg = priv->current_msg;
-		priv->current_msg = NULL;
-
-		g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (current_msg_got_body), conn);
-
-		if (msg->method == SOUP_METHOD_CONNECT &&
-		    SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-			if (state == SOUP_CONNECTION_IDLE)
-				state = SOUP_CONNECTION_IN_USE;
-		}
-
-		if (!priv->reusable)
-			soup_connection_disconnect (conn);
+		clear_current_msg (conn);
 	}
 
-	if (priv->state == old_state && priv->state != state) {
+	if (state == SOUP_CONNECTION_IDLE && !priv->reusable) {
+		/* This will recursively call set_state() */
+		soup_connection_disconnect (conn);
+	} else {
 		priv->state = state;
 
-		if (state == SOUP_CONNECTION_IDLE)
+		if (priv->state == SOUP_CONNECTION_IDLE)
 			start_idle_timer (conn);
 
 		g_object_notify (G_OBJECT (conn), "state");
@@ -941,7 +941,8 @@ soup_connection_send_request (SoupConnection          *conn,
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (item != NULL);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-	g_return_if_fail (priv->state != SOUP_CONNECTION_NEW && priv->state != SOUP_CONNECTION_DISCONNECTED);
+	g_return_if_fail (priv->state != SOUP_CONNECTION_NEW &&
+			  priv->state != SOUP_CONNECTION_DISCONNECTED);
 
 	if (item->msg != priv->current_msg)
 		set_current_msg (conn, item->msg);
