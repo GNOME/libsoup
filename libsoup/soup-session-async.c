@@ -128,7 +128,7 @@ ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (item->conn);
-		soup_message_queue_item_set_connection (item, NULL);
+		soup_session_set_item_connection (session, item, NULL);
 		soup_message_set_status (item->msg, status);
 	}
 
@@ -179,7 +179,7 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 	} else if (status != SOUP_STATUS_OK) {
 		soup_session_set_item_status (session, item, status);
 		soup_connection_disconnect (item->conn);
-		soup_message_queue_item_set_connection (item, NULL);
+		soup_session_set_item_connection (session, item, NULL);
 		item->state = SOUP_MESSAGE_READY;
 	} else
 		item->state = SOUP_MESSAGE_CONNECTED;

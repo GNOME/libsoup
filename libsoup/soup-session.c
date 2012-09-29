@@ -1020,6 +1020,22 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 	soup_session_redirect_message (session, msg);
 }
 
+static void
+message_restarted (SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	if (item->conn &&
+	    (!soup_message_is_keepalive (msg) ||
+	     SOUP_STATUS_IS_REDIRECTION (msg->status_code))) {
+		if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE)
+			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
+		soup_session_set_item_connection (item->session, item, NULL);
+	}
+
+	soup_message_cleanup_response (msg);
+}
+
 SoupMessageQueueItem *
 soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 				SoupSessionCallback callback, gpointer user_data)
@@ -1042,6 +1058,8 @@ soup_session_append_queue_item (SoupSession *session, SoupMessage *msg,
 			msg, "got_body", "Location",
 			G_CALLBACK (redirect_handler), item);
 	}
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (message_restarted), item);
 
 	g_signal_emit (session, signals[REQUEST_QUEUED], 0, msg);
 
@@ -1214,7 +1232,7 @@ soup_session_make_connect_message (SoupSession    *session,
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	item = soup_session_append_queue_item (session, msg, NULL, NULL);
-	soup_message_queue_item_set_connection (item, conn);
+	soup_session_set_item_connection (session, item, conn);
 	g_object_unref (msg);
 	item->state = SOUP_MESSAGE_RUNNING;
 
@@ -1254,7 +1272,7 @@ soup_session_get_connection (SoupSession *session,
 		if (!need_new_connection && soup_connection_get_state (conns->data) == SOUP_CONNECTION_IDLE) {
 			soup_connection_set_state (conns->data, SOUP_CONNECTION_IN_USE);
 			g_mutex_unlock (&priv->conn_lock);
-			soup_message_queue_item_set_connection (item, conns->data);
+			soup_session_set_item_connection (session, item, conns->data);
 			soup_message_set_https_status (item->msg, item->conn);
 			return TRUE;
 		} else if (soup_connection_get_state (conns->data) == SOUP_CONNECTION_CONNECTING)
@@ -1317,7 +1335,7 @@ soup_session_get_connection (SoupSession *session,
 	}
 
 	g_mutex_unlock (&priv->conn_lock);
-	soup_message_queue_item_set_connection (item, conn);
+	soup_session_set_item_connection (session, item, conn);
 	return TRUE;
 }
 
@@ -1341,7 +1359,7 @@ soup_session_unqueue_item (SoupSession          *session,
 		    (item->msg->method != SOUP_METHOD_CONNECT ||
 		     !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)))
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
-		soup_message_queue_item_set_connection (item, NULL);
+		soup_session_set_item_connection (session, item, NULL);
 	}
 
 	if (item->state != SOUP_MESSAGE_FINISHED) {
@@ -1364,6 +1382,36 @@ soup_session_unqueue_item (SoupSession          *session,
 					      0, 0, NULL, NULL, item);
 	g_signal_emit (session, signals[REQUEST_UNQUEUED], 0, item->msg);
 	soup_message_queue_item_unref (item);
+}
+
+static void
+proxy_connection_event (SoupConnection      *conn,
+			GSocketClientEvent   event,
+			GIOStream           *connection,
+			gpointer             user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+
+	soup_message_network_event (item->msg, event, connection);
+}
+
+void
+soup_session_set_item_connection (SoupSession          *session,
+				  SoupMessageQueueItem *item,
+				  SoupConnection       *conn)
+{
+	if (item->conn) {
+		g_signal_handlers_disconnect_by_func (item->conn, proxy_connection_event, item);
+		g_object_unref (item->conn);
+	}
+
+	item->conn = conn;
+
+	if (item->conn) {
+		g_object_ref (item->conn);
+		g_signal_connect (item->conn, "event",
+				  G_CALLBACK (proxy_connection_event), item);
+	}
 }
 
 void

@@ -175,7 +175,7 @@ try_again:
 	status = soup_connection_connect_sync (item->conn, item->cancellable);
 	if (status == SOUP_STATUS_TRY_AGAIN) {
 		soup_connection_disconnect (item->conn);
-		soup_message_queue_item_set_connection (item, NULL);
+		soup_session_set_item_connection (session, item, NULL);
 		goto try_again;
 	}
 
@@ -186,7 +186,7 @@ try_again:
 			soup_session_set_item_status (session, item, status);
 		item->state = SOUP_MESSAGE_FINISHING;
 		soup_connection_disconnect (item->conn);
-		soup_message_queue_item_set_connection (item, NULL);
+		soup_session_set_item_connection (session, item, NULL);
 		return;
 	}
 
@@ -194,7 +194,7 @@ try_again:
 		status = tunnel_connect (session, item);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 			soup_connection_disconnect (item->conn);
-			soup_message_queue_item_set_connection (item, NULL);
+			soup_session_set_item_connection (session, item, NULL);
 			if (status == SOUP_STATUS_TRY_AGAIN)
 				goto try_again;
 			soup_session_set_item_status (session, item, status);
