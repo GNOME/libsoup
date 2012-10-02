@@ -66,7 +66,6 @@ enum {
 };
 
 static void stop_idle_timer (SoupConnectionPrivate *priv);
-static void clear_current_item (SoupConnection *conn);
 
 /* Number of seconds after which we close a connection that hasn't yet
  * been used.
@@ -99,13 +98,7 @@ soup_connection_dispose (GObject *object)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	stop_idle_timer (priv);
-	/* Make sure clear_current_item doesn't re-establish the timeout */
-	priv->idle_timeout = 0;
 
-	if (priv->cur_item) {
-		g_warning ("Disposing connection with cur_item set");
-		clear_current_item (conn);
-	}
 	if (priv->socket) {
 		g_warning ("Disposing connection while connected");
 		soup_connection_disconnect (conn);
@@ -412,45 +405,6 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
 	else if (priv->state == SOUP_CONNECTION_IDLE)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
-
-	g_object_thaw_notify (G_OBJECT (conn));
-}
-
-static void
-clear_current_item (SoupConnection *conn)
-{
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	g_object_freeze_notify (G_OBJECT (conn));
-
-	priv->unused_timeout = 0;
-	start_idle_timer (conn);
-
-	if (priv->cur_item) {
-		SoupMessageQueueItem *item;
-
-		item = priv->cur_item;
-		priv->cur_item = NULL;
-		g_object_notify (G_OBJECT (conn), "message");
-
-		g_signal_handlers_disconnect_by_func (item->msg, G_CALLBACK (current_item_restarted), conn);
-
-		if (item->msg->method == SOUP_METHOD_CONNECT &&
-		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
-			soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
-
-			/* We're now effectively no longer proxying */
-			soup_uri_free (priv->proxy_uri);
-			priv->proxy_uri = NULL;
-
-			/* Nor are we actually IDLE... */
-			if (priv->state == SOUP_CONNECTION_IDLE)
-				priv->state = SOUP_CONNECTION_IN_USE;
-		}
-
-		if (!soup_message_is_keepalive (item->msg) || !priv->reusable)
-			soup_connection_disconnect (conn);
-	}
 
 	g_object_thaw_notify (G_OBJECT (conn));
 }
@@ -938,6 +892,7 @@ void
 soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 {
 	SoupConnectionPrivate *priv;
+	SoupConnectionState old_state;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (state >= SOUP_CONNECTION_NEW &&
@@ -946,13 +901,49 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-	priv->state = state;
-	if (state == SOUP_CONNECTION_IDLE ||
-	    state == SOUP_CONNECTION_DISCONNECTED)
-		clear_current_item (conn);
+	old_state = priv->state;
 
-	if (priv->state == state)
+	if (old_state == SOUP_CONNECTION_IN_USE)
+		priv->unused_timeout = 0;
+
+	if (priv->cur_item) {
+		SoupMessageQueueItem *item;
+
+		g_warn_if_fail (state == SOUP_CONNECTION_IDLE ||
+				state == SOUP_CONNECTION_DISCONNECTED);
+
+		item = priv->cur_item;
+		priv->cur_item = NULL;
+		g_object_notify (G_OBJECT (conn), "message");
+
+		g_signal_handlers_disconnect_by_func (item->msg, G_CALLBACK (current_item_restarted), conn);
+
+		if (item->msg->method == SOUP_METHOD_CONNECT &&
+		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
+			soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
+
+			/* We're now effectively no longer proxying */
+			soup_uri_free (priv->proxy_uri);
+			priv->proxy_uri = NULL;
+
+			/* Nor are we actually IDLE... */
+			if (state == SOUP_CONNECTION_IDLE)
+				state = SOUP_CONNECTION_IN_USE;
+		}
+
+		if (!soup_message_is_keepalive (item->msg) || !priv->reusable)
+			soup_connection_disconnect (conn);
+	}
+
+	if (priv->state == old_state && priv->state != state) {
+		priv->state = state;
+
+		if (state == SOUP_CONNECTION_IDLE)
+			start_idle_timer (conn);
+
 		g_object_notify (G_OBJECT (conn), "state");
+	}
+
 	g_object_thaw_notify (G_OBJECT (conn));
 }
 
