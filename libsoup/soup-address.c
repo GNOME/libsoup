@@ -1200,20 +1200,25 @@ soup_address_connectable_proxy_enumerate (GSocketConnectable *connectable)
 	SoupAddress *addr = SOUP_ADDRESS (connectable);
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	GSocketAddressEnumerator *proxy_enum;
-	char *uri;
+	SoupURI *uri;
+	char *uri_string;
 
 	/* We cheerily assume "http" here because you shouldn't be
 	 * using SoupAddress any more if you're not doing HTTP anyway.
 	 */
-	uri = g_strdup_printf ("%s://%s:%u",
-			       priv->protocol ? priv->protocol : "http",
-			       priv->name ? priv->name : soup_address_get_physical (addr),
-			       priv->port);
+	uri = soup_uri_new (NULL);
+	soup_uri_set_scheme (uri, priv->protocol ? priv->protocol : "http");
+	soup_uri_set_host (uri, priv->name ? priv->name : soup_address_get_physical (addr));
+	soup_uri_set_port (uri, priv->port);
+	soup_uri_set_path (uri, "");
+	uri_string = soup_uri_to_string (uri, FALSE);
+
 	proxy_enum = g_object_new (G_TYPE_PROXY_ADDRESS_ENUMERATOR,
 				   "connectable", connectable,
-				   "uri", uri,
+				   "uri", uri_string,
 				   NULL);
-	g_free (uri);
+	g_free (uri_string);
+	soup_uri_free (uri);
 
 	return proxy_enum;
 }
