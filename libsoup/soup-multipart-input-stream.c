@@ -378,8 +378,10 @@ soup_multipart_input_stream_read_headers (SoupMultipartInputStream  *multipart,
 			got_boundary = TRUE;
 
 			/* Now check for possible multipart termination. */
-			buf = &read_buf[nread - 2];
-			if (nread >= 2 && !memcmp (buf, "--", 2)) {
+			buf = &read_buf[nread - 4];
+			if ((nread >= 4 && !memcmp (buf, "--\r\n", 4)) ||
+			    (nread >= 3 && !memcmp (buf + 1, "--\n", 3)) ||
+			    (nread >= 3 && !memcmp (buf + 2, "--", 2))) {
 				g_byte_array_set_size (priv->meta_buf, 0);
 				return FALSE;
 			}
