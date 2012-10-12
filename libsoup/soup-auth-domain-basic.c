@@ -13,7 +13,6 @@
 
 #include "soup-auth-domain-basic.h"
 #include "soup.h"
-#include "soup-marshal.h"
 
 /**
  * SECTION:soup-auth-domain-basic

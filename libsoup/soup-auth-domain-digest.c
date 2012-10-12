@@ -15,7 +15,6 @@
 #include "soup-auth-domain-digest.h"
 #include "soup.h"
 #include "soup-auth-digest.h"
-#include "soup-marshal.h"
 
 /**
  * SECTION:soup-auth-domain-digest

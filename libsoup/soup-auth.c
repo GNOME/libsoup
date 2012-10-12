@@ -14,7 +14,6 @@
 #include "soup-auth.h"
 #include "soup.h"
 #include "soup-connection-auth.h"
-#include "soup-marshal.h"
 
 /**
  * SECTION:soup-auth

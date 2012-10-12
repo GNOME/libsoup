@@ -17,7 +17,6 @@
 #include "soup.h"
 #include "soup-filter-input-stream.h"
 #include "soup-io-stream.h"
-#include "soup-marshal.h"
 #include "soup-misc-private.h"
 
 /**
@@ -321,7 +320,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, readable),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -337,7 +336,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, writable),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -353,7 +352,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (SoupSocketClass, disconnected),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -373,7 +372,7 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSocketClass, new_connection),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_SOCKET);
 	/**

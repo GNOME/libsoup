@@ -16,7 +16,6 @@
 #include "soup-auth-manager.h"
 #include "soup-cache-private.h"
 #include "soup-connection.h"
-#include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-misc-private.h"
 #include "soup-message-queue.h"
@@ -2840,7 +2839,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0, /* FIXME? */
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
 
@@ -2860,7 +2859,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, request_started),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_SOCKET);
@@ -2883,7 +2882,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0, /* FIXME? */
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_MESSAGE);
 
@@ -2916,7 +2915,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupSessionClass, authenticate),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      NULL,
 			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_AUTH,
@@ -2939,7 +2938,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0,
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      /* SoupConnection is private, so we can't use
 			       * SOUP_TYPE_CONNECTION here.
@@ -2963,7 +2962,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0,
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      /* SoupConnection is private, so we can't use
 			       * SOUP_TYPE_CONNECTION here.

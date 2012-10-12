@@ -11,7 +11,6 @@
 
 #include "soup-connection.h"
 #include "soup.h"
-#include "soup-marshal.h"
 #include "soup-message-queue.h"
 #include "soup-misc-private.h"
 
@@ -249,7 +248,7 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupConnectionClass, disconnected),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/* properties */

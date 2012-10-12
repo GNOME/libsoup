@@ -16,7 +16,6 @@
 #include "soup-body-input-stream.h"
 #include "soup.h"
 #include "soup-filter-input-stream.h"
-#include "soup-marshal.h"
 
 typedef enum {
 	SOUP_BODY_INPUT_STREAM_STATE_CHUNK_SIZE,
@@ -385,7 +384,7 @@ soup_body_input_stream_class_init (SoupBodyInputStreamClass *stream_class)
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	g_object_class_install_property (

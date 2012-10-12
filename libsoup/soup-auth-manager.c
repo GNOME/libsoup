@@ -14,7 +14,6 @@
 #include "soup-auth-manager.h"
 #include "soup.h"
 #include "soup-connection-auth.h"
-#include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-path-map.h"
@@ -146,7 +145,7 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupAuthManagerClass, authenticate),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_OBJECT_BOOLEAN,
+			      NULL,
 			      G_TYPE_NONE, 3,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_AUTH,

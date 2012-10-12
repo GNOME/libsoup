@@ -45,7 +45,6 @@ libsoup-zip
 libsoup-2.4.pc
 libsoup-gnome-2.4.pc
 libsoup/soup-enum-types.*
-libsoup/soup-marshal.*
 libsoup/Soup-2.4.gir
 libsoup/Soup-2.4.typelib
 libsoup/SoupGNOME-2.4.gir

@@ -11,7 +11,6 @@
 
 #include "soup-client-input-stream.h"
 #include "soup.h"
-#include "soup-marshal.h"
 #include "soup-message-private.h"
 
 struct _SoupClientInputStreamPrivate {
@@ -226,7 +225,7 @@ soup_client_input_stream_class_init (SoupClientInputStreamClass *stream_class)
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	g_object_class_install_property (

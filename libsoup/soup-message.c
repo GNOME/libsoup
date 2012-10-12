@@ -8,7 +8,6 @@
 #include "soup-message.h"
 #include "soup.h"
 #include "soup-connection.h"
-#include "soup-marshal.h"
 #include "soup-message-private.h"
 
 /**
@@ -351,7 +350,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_informational),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -369,7 +368,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_headers),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -391,7 +390,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_chunk),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -414,7 +413,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0, /* FIXME after next ABI break */
 			      NULL, NULL,
-			      _soup_marshal_NONE__BOXED,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      SOUP_TYPE_BUFFER);
 
@@ -435,7 +434,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, wrote_body),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -458,7 +457,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_informational),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -490,7 +489,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_headers),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -513,7 +512,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_chunk),
 			      NULL, NULL,
-			      _soup_marshal_NONE__BOXED,
+			      NULL,
 			      G_TYPE_NONE, 1,
 			      /* Use %G_SIGNAL_TYPE_STATIC_SCOPE so that
 			       * the %SOUP_MEMORY_TEMPORARY buffers used
@@ -542,7 +541,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, got_body),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -579,7 +578,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      0,
 			      NULL, NULL,
-			      _soup_marshal_NONE__STRING_BOXED,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      G_TYPE_STRING,
 			      G_TYPE_HASH_TABLE);
@@ -599,7 +598,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, restarted),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**
@@ -616,7 +615,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupMessageClass, finished),
 			      NULL, NULL,
-			      _soup_marshal_NONE__NONE,
+			      NULL,
 			      G_TYPE_NONE, 0);
 
 	/**

@@ -13,7 +13,6 @@
 
 #include "soup-cookie-jar.h"
 #include "soup.h"
-#include "soup-marshal.h"
 
 /**
  * SECTION:soup-cookie-jar
@@ -175,7 +174,7 @@ soup_cookie_jar_class_init (SoupCookieJarClass *jar_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupCookieJarClass, changed),
 			      NULL, NULL,
-			      _soup_marshal_NONE__BOXED_BOXED,
+			      NULL,
 			      G_TYPE_NONE, 2, 
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE,
 			      SOUP_TYPE_COOKIE | G_SIGNAL_TYPE_STATIC_SCOPE);

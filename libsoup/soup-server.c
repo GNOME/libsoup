@@ -14,7 +14,6 @@
 #include "soup-server.h"
 #include "soup.h"
 #include "soup-message-private.h"
-#include "soup-marshal.h"
 #include "soup-path-map.h" 
 
 /**
@@ -387,7 +386,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_started),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_POINTER,
+			      NULL,
 			      G_TYPE_NONE, 2, 
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -412,7 +411,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_read),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_POINTER,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -432,7 +431,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_finished),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_POINTER,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
@@ -461,7 +460,7 @@ soup_server_class_init (SoupServerClass *server_class)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupServerClass, request_aborted),
 			      NULL, NULL,
-			      _soup_marshal_NONE__OBJECT_POINTER,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      SOUP_TYPE_MESSAGE,
 			      SOUP_TYPE_CLIENT_CONTEXT);
