@@ -459,7 +459,7 @@ ssofailure:
 		*slash = '\0';
 		username = slash + 1;
 	} else
-		domain = conn->domain;
+		domain = g_strdup ("");
 
 	conn->response_header = soup_ntlm_response (conn->nonce,
 						    username, password,
@@ -470,8 +470,7 @@ ssofailure:
 	soup_session_requeue_message (priv->session, msg);
 
 done:
-	if (domain != conn->domain)
-		g_free (domain);
+	g_free (domain);
 	g_free (conn->domain);
 	conn->domain = NULL;
 	g_free (conn->nonce);
