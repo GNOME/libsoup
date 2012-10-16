@@ -1,4 +1,14 @@
-Changes in libsoup from 2.39.92 to 2.40.0
+Changes in libsoup from 2.40.0 to 2.40.1:
+
+	* Improved the parsing of multipart/x-mixed-replace responses.
+          [#685752, Gustavo]
+
+	* Fixed handling of IPv6 address literals. [#684990, Dan]
+
+	* New/updated translations:
+	  Catalan, Catalan (Valencian), Norwegian bokmål
+
+Changes in libsoup from 2.39.92 to 2.40.0:
 
 	* New/updated translations:
 	  Bengali (India), Bulgarian, Chinese (Simplified), Estonian,
