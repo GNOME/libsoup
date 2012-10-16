@@ -1,0 +1,82 @@
+# Uzbek (Cyrillic) translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Bahodir Mansurov <6ahodir@gmail.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup gnome-3-6\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-10-16 12:52+0000\n"
+"PO-Revision-Date: 2012-10-16 14:46-0500\n"
+"Last-Translator: Bahodir Mansurov <6ahodir@gmail.com>\n"
+"Language-Team: Uzbek (Cyrillic) <uz@cyrillic@li.org>\n"
+"Language: uz@cyrillic\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "Алоқа кутилмаганда узилди"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Нотўғри излаш сўрови"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStreamни тўхтатиб бўлмади"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Чиқув буфери жуда кичик"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "Амал инкор этилди"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "Амал тўсиб қўяди"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "URI кўрсатилмаган"
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Нотўғри URI '%s': '%s'"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "URI '%s' таҳлил қилиб бўлмади"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Қўллаб қувватланмаган '%s' URI чизмаси"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "Компьютер номи IP адресдан иборат"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "Нотўғри компьютер номи"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "Компьютер номида домен қисми йўқ"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Домен исмлари етарли емас"
