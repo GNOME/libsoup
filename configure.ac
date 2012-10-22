@@ -211,6 +211,11 @@ if test "$APACHE_HTTPD" != "no"; then
     case $apache_version in
     2.2.*)
 	AC_MSG_RESULT([$apache_version (ok)])
+ 	apache_version=2.2
+	;;
+    2.4.*)
+	AC_MSG_RESULT([$apache_version (ok)])
+ 	apache_version=2.4
 	;;
     *)
 	AC_MSG_RESULT([$apache_version (ignoring)])
@@ -227,7 +232,7 @@ if test "$APACHE_HTTPD" != "no"; then
 		AS_HELP_STRING([--with-apache-module-dir], [Apache modules dirs (for tests)]),
 		apache_module_dirs="$withval",
 		[apache_prefix=`dirname \`dirname $APACHE_HTTPD\``
-		mpm=`$APACHE_HTTPD -V | sed -ne 's/^Server MPM: */-/p' | tr 'A-Z' 'a-z'`
+		mpm=`$APACHE_HTTPD -V -C "ServerName localhost" | sed -ne 's/^Server MPM: */-/p' | tr 'A-Z' 'a-z'`
 		# This only works with bash, but should fail harmlessly in sh
 		apache_module_dirs=`echo $apache_prefix/lib{64,}/{apache,apache2,http,http2,httpd}{$mpm,}{/modules,}`])
     for dir in $apache_module_dirs; do
@@ -256,6 +261,11 @@ fi
 
 if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MODULE_DIR"; then
     AC_DEFINE(HAVE_APACHE, 1, [Whether or not apache can be used for tests])
+    if test $apache_version = 2.2; then
+        AC_DEFINE(HAVE_APACHE_2_2, 1, [Apache is 2.2.x])
+    else
+        AC_DEFINE(HAVE_APACHE_2_4, 1, [Apache is 2.4.x])
+    fi
     have_apache=1
     if test -z "$APACHE_PHP_MODULE_DIR"; then
         MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_php5"
@@ -268,7 +278,9 @@ else
         MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_ssl"
     fi
 fi
-AM_CONDITIONAL(HAVE_APACHE, test $have_apache = 1)
+AM_CONDITIONAL(HAVE_APACHE, test "$have_apache" = 1)
+AM_CONDITIONAL(HAVE_APACHE_2_2, test "$apache_version" = 2.2)
+AM_CONDITIONAL(HAVE_APACHE_2_4, test "$apache_version" = 2.4)
 
 if test "$have_apache" = 1; then
     AC_CHECK_PROGS(PHP, php php5)
@@ -285,19 +297,19 @@ if test "$have_apache" = 1; then
     AC_MSG_RESULT($have_php)
 
     if test "$have_php" = yes; then
-	AC_MSG_CHECKING([for xmlrpc-epi-php])
+	AC_MSG_CHECKING([for xmlrpc-php])
 	if $PHP --rf xmlrpc_server_create | grep -q "does not exist"; then
-	    have_xmlrpc_epi_php=no
+	    have_xmlrpc_php=no
 	    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php-xmlrpc"
 	else
-	    have_xmlrpc_epi_php=yes
+	    have_xmlrpc_php=yes
 	fi
-	AC_MSG_RESULT($have_xmlrpc_epi_php)
+	AC_MSG_RESULT($have_xmlrpc_php)
     fi
 fi
 
 AC_SUBST(IF_HAVE_PHP)
-AM_CONDITIONAL(HAVE_XMLRPC_EPI_PHP, test "$have_xmlrpc_epi_php" = yes)
+AM_CONDITIONAL(HAVE_XMLRPC_PHP, test "$have_xmlrpc_php" = yes)
 
 AC_PATH_PROG(CURL, curl, no)
 if test "$CURL" != no; then
@@ -359,7 +371,6 @@ AC_CONFIG_FILES([
 	po/Makefile.in
 	po/Makefile
 	tests/Makefile
-	tests/httpd.conf
 	docs/Makefile
 	docs/reference/Makefile
 	])

@@ -85,8 +85,27 @@ endif
 if HAVE_CURL
 CURL_TESTS = forms-test server-auth-test
 endif
-if HAVE_XMLRPC_EPI_PHP
+if HAVE_XMLRPC_PHP
 XMLRPC_TESTS = xmlrpc-test xmlrpc-server-test
+endif
+
+if HAVE_APACHE
+if HAVE_APACHE_2_2
+httpd_conf_in = httpd.conf.22.in
+else
+httpd_conf_in = httpd.conf.24.in
+endif
+httpd.conf: $(httpd_conf_in)
+	$(AM_V_GEN) sed -e 's,[@]srcdir@,$(srcdir),' \
+	    -e 's,[@]builddir@,$(builddir),' \
+	    -e 's,[@]APACHE_MODULE_DIR@,$(APACHE_MODULE_DIR),' \
+	    -e 's,[@]APACHE_PHP_MODULE_DIR@,$(APACHE_PHP_MODULE_DIR),' \
+	    -e 's,[@]APACHE_PHP_MODULE@,$(APACHE_PHP_MODULE),' \
+	    -e 's,[@]IF_HAVE_PHP@,$(IF_HAVE_PHP),' \
+	    -e 's,[@]APACHE_SSL_MODULE_DIR@,$(APACHE_SSL_MODULE_DIR),' \
+	    $< > $@ || rm -f $@
+
+BUILT_SOURCES = httpd.conf
 endif
 
 TESTS =			\
@@ -130,13 +149,16 @@ RESOURCES =			\
 EXTRA_DIST =			\
 	htdigest		\
 	htpasswd		\
-	httpd.conf.in		\
+	httpd.conf.22.in	\
+	httpd.conf.24.in	\
 	index.txt		\
 	libsoup.supp		\
 	test-cert.pem		\
 	test-key.pem		\
 	xmlrpc-server.php	\
 	$(RESOURCES)
+
+DISTCLEANFILES = httpd.conf
 
 if MISSING_REGRESSION_TEST_PACKAGES
 check-local: check-TESTS
