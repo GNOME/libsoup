@@ -132,7 +132,6 @@ main (int argc, char **argv)
 	int port = SOUP_ADDRESS_ANY_PORT;
 	SoupAuthDomain *auth_domain = NULL;
 
-	g_type_init ();
 	signal (SIGINT, quit);
 
 	while ((opt = getopt (argc, argv, "ap:")) != -1) {

@@ -96,8 +96,6 @@ main (int argc, char **argv)
 	gboolean synchronous = FALSE, ntlm = FALSE;
 	int opt;
 
-	g_type_init ();
-
 	method = SOUP_METHOD_GET;
 
 	while ((opt = getopt (argc, argv, "c:dhnp:qs")) != -1) {
