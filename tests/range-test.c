@@ -229,7 +229,8 @@ request_triple_range (SoupSession *session, const char *uri,
 }
 
 static void
-do_range_test (SoupSession *session, const char *uri, gboolean expect_coalesce)
+do_range_test (SoupSession *session, const char *uri,
+	       gboolean expect_coalesce, gboolean expect_partial_coalesce)
 {
 	int twelfths = full_response->length / 12;
 
@@ -309,7 +310,7 @@ do_range_test (SoupSession *session, const char *uri, gboolean expect_coalesce)
 			      9 * twelfths, 10 * twelfths + 5,
 			      4 * twelfths, 5 * twelfths,
 			      10 * twelfths - 5, 11 * twelfths,
-			      expect_coalesce ? 2 : 3);
+			      expect_partial_coalesce ? 2 : 3);
 
 	if (memcmp (full_response->data, test_response, full_response->length) != 0) {
 		debug_printf (1, "\nfull_response and test_response don't match\n");
@@ -346,14 +347,18 @@ main (int argc, char **argv)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "1. Testing against apache\n");
-	do_range_test (session, "http://127.0.0.1:47524/", FALSE);
+#if HAVE_APACHE_2_2
+	do_range_test (session, "http://127.0.0.1:47524/", FALSE, FALSE);
+#else
+	do_range_test (session, "http://127.0.0.1:47524/", TRUE, FALSE);
+#endif
 
 	debug_printf (1, "\n2. Testing against SoupServer\n");
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				    soup_server_get_port (server));
-	do_range_test (session, base_uri, TRUE);
+	do_range_test (session, base_uri, TRUE, TRUE);
 	g_free (base_uri);
 	soup_test_server_quit_unref (server);
 
