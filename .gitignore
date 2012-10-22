@@ -73,4 +73,5 @@ tests/httpd.conf
 tests/pull-api
 tests/simple-httpd
 tests/simple-proxy
+tests/soup-tests.gresource
 tests/uri-parsing
