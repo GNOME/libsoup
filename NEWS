@@ -1,3 +1,34 @@
+Changes in libsoup from 2.40.1 to 2.41.1:
+
+	* Changed the behavior of NTLM authentication to be more like
+          what other apps apparently do. Now if the user does not
+          specify a domain in the username (eg, "MYDOMAIN\username"),
+          then we will not specify a domain in the NTLM response
+          (rather than assuming that the user is in the server's
+          default domain). People who get broken by this change should
+          be able to fix it by including an explicit domain in their
+          username, but the theory is that no one should get broken by
+          this... If this change does turn out to hurt more than it
+          helps then it may be reverted later. [#624613, Dan, based on
+          a suggestion from David Woodhouse]
+
+	* Fixed a crash caused by a race condition in SoupSessionSync.
+          [#684238, Dan]
+
+	* SoupRequest now supports resource:// URIs, for reading from
+          gresource. [#682721, Carlos]
+
+	* Added new compile-time and runtime APIs for checking the
+          libsoup version. [#684514, Martin Robinson]
+
+	* Updated to take advantage of (and require) glib 2.35;
+          removed all g_type_init() calls and ported to GTask. [Dan]
+
+	* Added support for Apache 2.4 to the unit tests. [Dan]
+
+	* New translations:
+	  Uzbek (Cyrillic)
+
 Changes in libsoup from 2.40.0 to 2.40.1:
 
 	* Improved the parsing of multipart/x-mixed-replace responses.
