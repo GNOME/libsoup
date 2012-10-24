@@ -1355,9 +1355,8 @@ soup_session_unqueue_item (SoupSession          *session,
 	SoupSessionHost *host;
 
 	if (item->conn) {
-		if ((soup_connection_get_state (item->conn) == SOUP_CONNECTION_IN_USE) &&
-		    (item->msg->method != SOUP_METHOD_CONNECT ||
-		     !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)))
+		if (item->msg->method != SOUP_METHOD_CONNECT ||
+		    !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code))
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_session_set_item_connection (session, item, NULL);
 	}

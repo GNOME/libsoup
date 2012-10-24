@@ -140,9 +140,6 @@ tunnel_connect (SoupSession *session, SoupMessageQueueItem *related)
 		soup_message_set_https_status (related->msg, conn);
 	}
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
-		soup_connection_disconnect (conn);
-
 	g_object_unref (conn);
 	return status;
 }
@@ -167,33 +164,32 @@ try_again:
 		try_pruning = FALSE;
 	}
 
-	if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
+	if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_IDLE) {
 		item->state = SOUP_MESSAGE_READY;
 		return;
 	}
 
-	status = soup_connection_connect_sync (item->conn, item->cancellable);
-	if (status == SOUP_STATUS_TRY_AGAIN) {
-		soup_connection_disconnect (item->conn);
-		soup_session_set_item_connection (session, item, NULL);
-		goto try_again;
-	}
+	if (soup_connection_get_state (item->conn) == SOUP_CONNECTION_NEW) {
+		status = soup_connection_connect_sync (item->conn, item->cancellable);
+		if (status == SOUP_STATUS_TRY_AGAIN) {
+			soup_session_set_item_connection (session, item, NULL);
+			goto try_again;
+		}
 
-	soup_message_set_https_status (msg, item->conn);
+		soup_message_set_https_status (msg, item->conn);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (!msg->status_code)
-			soup_session_set_item_status (session, item, status);
-		item->state = SOUP_MESSAGE_FINISHING;
-		soup_connection_disconnect (item->conn);
-		soup_session_set_item_connection (session, item, NULL);
-		return;
+		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+			if (!msg->status_code)
+				soup_session_set_item_status (session, item, status);
+			item->state = SOUP_MESSAGE_FINISHING;
+			soup_session_set_item_connection (session, item, NULL);
+			return;
+		}
 	}
 
 	if (soup_connection_is_tunnelled (item->conn)) {
 		status = tunnel_connect (session, item);
 		if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-			soup_connection_disconnect (item->conn);
 			soup_session_set_item_connection (session, item, NULL);
 			if (status == SOUP_STATUS_TRY_AGAIN)
 				goto try_again;
