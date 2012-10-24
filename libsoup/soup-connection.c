@@ -27,7 +27,7 @@ typedef struct {
 	GMainContext *async_context;
 	gboolean      use_thread_context;
 
-	SoupMessageQueueItem *cur_item;
+	SoupMessage *current_msg;
 	SoupConnectionState state;
 	time_t       unused_timeout;
 	guint        io_timeout, idle_timeout;
@@ -360,7 +360,7 @@ stop_idle_timer (SoupConnectionPrivate *priv)
 }
 
 static void
-current_item_restarted (SoupMessage *msg, gpointer user_data)
+current_msg_restarted (SoupMessage *msg, gpointer user_data)
 {
 	SoupConnection *conn = user_data;
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -369,24 +369,23 @@ current_item_restarted (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
+set_current_msg (SoupConnection *conn, SoupMessage *msg)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	g_return_if_fail (priv->cur_item == NULL);
+	g_return_if_fail (priv->current_msg == NULL);
 
 	g_object_freeze_notify (G_OBJECT (conn));
 
 	stop_idle_timer (priv);
 
-	item->state = SOUP_MESSAGE_RUNNING;
-	priv->cur_item = item;
+	priv->current_msg = msg;
 	priv->reusable = FALSE;
 
-	g_signal_connect (item->msg, "restarted",
-			  G_CALLBACK (current_item_restarted), conn);
+	g_signal_connect (msg, "restarted",
+			  G_CALLBACK (current_msg_restarted), conn);
 
-	if (item->msg->method == SOUP_METHOD_CONNECT)
+	if (msg->method == SOUP_METHOD_CONNECT)
 		soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATING, NULL);
 	else if (priv->state == SOUP_CONNECTION_IDLE)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
@@ -874,19 +873,19 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 	if (old_state == SOUP_CONNECTION_IN_USE)
 		priv->unused_timeout = 0;
 
-	if (priv->cur_item) {
-		SoupMessageQueueItem *item;
+	if (priv->current_msg) {
+		SoupMessage *msg;
 
 		g_warn_if_fail (state == SOUP_CONNECTION_IDLE ||
 				state == SOUP_CONNECTION_DISCONNECTED);
 
-		item = priv->cur_item;
-		priv->cur_item = NULL;
+		msg = priv->current_msg;
+		priv->current_msg = NULL;
 
-		g_signal_handlers_disconnect_by_func (item->msg, G_CALLBACK (current_item_restarted), conn);
+		g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (current_msg_restarted), conn);
 
-		if (item->msg->method == SOUP_METHOD_CONNECT &&
-		    SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code)) {
+		if (msg->method == SOUP_METHOD_CONNECT &&
+		    SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
 			soup_connection_event (conn, G_SOCKET_CLIENT_PROXY_NEGOTIATED, NULL);
 
 			/* We're now effectively no longer proxying */
@@ -898,7 +897,7 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 				state = SOUP_CONNECTION_IN_USE;
 		}
 
-		if (!soup_message_is_keepalive (item->msg) || !priv->reusable)
+		if (!soup_message_is_keepalive (msg) || !priv->reusable)
 			soup_connection_disconnect (conn);
 	}
 
@@ -947,7 +946,7 @@ soup_connection_send_request (SoupConnection          *conn,
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	g_return_if_fail (priv->state != SOUP_CONNECTION_NEW && priv->state != SOUP_CONNECTION_DISCONNECTED);
 
-	if (item != priv->cur_item)
-		set_current_item (conn, item);
+	if (item->msg != priv->current_msg)
+		set_current_msg (conn, item->msg);
 	soup_message_send_request (item, completion_cb, user_data);
 }
