@@ -60,7 +60,6 @@ enum {
 	PROP_TIMEOUT,
 	PROP_IDLE_TIMEOUT,
 	PROP_STATE,
-	PROP_MESSAGE,
 
 	LAST_PROP
 };
@@ -199,12 +198,6 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	case PROP_STATE:
 		g_value_set_enum (value, priv->state);
 		break;
-	case PROP_MESSAGE:
-		if (priv->cur_item)
-			g_value_set_object (value, priv->cur_item->msg);
-		else
-			g_value_set_object (value, NULL);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -321,13 +314,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				   "Current state of connection",
 				   SOUP_TYPE_CONNECTION_STATE, SOUP_CONNECTION_NEW,
 				   G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class, PROP_MESSAGE,
-		g_param_spec_object (SOUP_CONNECTION_MESSAGE,
-				     "Message",
-				     "Message being processed",
-				     SOUP_TYPE_MESSAGE,
-				     G_PARAM_READABLE));
 }
 
 static void
@@ -395,7 +381,6 @@ set_current_item (SoupConnection *conn, SoupMessageQueueItem *item)
 
 	item->state = SOUP_MESSAGE_RUNNING;
 	priv->cur_item = item;
-	g_object_notify (G_OBJECT (conn), "message");
 	priv->reusable = FALSE;
 
 	g_signal_connect (item->msg, "restarted",
@@ -897,7 +882,6 @@ soup_connection_set_state (SoupConnection *conn, SoupConnectionState state)
 
 		item = priv->cur_item;
 		priv->cur_item = NULL;
-		g_object_notify (G_OBJECT (conn), "message");
 
 		g_signal_handlers_disconnect_by_func (item->msg, G_CALLBACK (current_item_restarted), conn);
 
