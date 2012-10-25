@@ -96,9 +96,11 @@ typedef struct {
 	guint max_conns, max_conns_per_host;
 	guint io_timeout, idle_timeout;
 
-	/* Must hold the conn_lock before potentially creating a
-	 * new SoupSessionHost, or adding/removing a connection.
-	 * Must not emit signals or destroy objects while holding it.
+	/* Must hold the conn_lock before potentially creating a new
+	 * SoupSessionHost, adding/removing a connection,
+	 * disconnecting a connection, or moving a connection from
+	 * IDLE to IN_USE. Must not emit signals or destroy objects
+	 * while holding it.
 	 */
 	GMutex conn_lock;
 
@@ -117,6 +119,8 @@ static void free_host (SoupSessionHost *host);
 static void connection_state_changed (GObject *object, GParamSpec *param,
 				      gpointer user_data);
 static void connection_disconnected (SoupConnection *conn, gpointer user_data);
+static void drop_connection (SoupSession *session, SoupSessionHost *host,
+			     SoupConnection *conn);
 
 static void auth_manager_authenticate (SoupAuthManager *manager,
 				       SoupMessage *msg, SoupAuth *auth,
@@ -1121,8 +1125,11 @@ soup_session_cleanup_connections (SoupSession *session,
 	while (g_hash_table_iter_next (&iter, &conn, &host)) {
 		state = soup_connection_get_state (conn);
 		if (state == SOUP_CONNECTION_REMOTE_DISCONNECTED ||
-		    (prune_idle && state == SOUP_CONNECTION_IDLE))
+		    (prune_idle && state == SOUP_CONNECTION_IDLE)) {
 			conns = g_slist_prepend (conns, g_object_ref (conn));
+			g_hash_table_iter_remove (&iter);
+			drop_connection (session, host, conn);
+		}
 	}
 	g_mutex_unlock (&priv->conn_lock);
 
@@ -1168,17 +1175,15 @@ free_unused_host (gpointer user_data)
 }
 
 static void
-connection_disconnected (SoupConnection *conn, gpointer user_data)
+drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *conn)
 {
-	SoupSession *session = user_data;
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	SoupSessionHost *host;
 
-	g_mutex_lock (&priv->conn_lock);
+	/* Note: caller must hold conn_lock, and must remove @conn
+	 * from priv->conns itself.
+	 */
 
-	host = g_hash_table_lookup (priv->conns, conn);
 	if (host) {
-		g_hash_table_remove (priv->conns, conn);
 		host->connections = g_slist_remove (host->connections, conn);
 		host->num_conns--;
 
@@ -1203,8 +1208,24 @@ connection_disconnected (SoupConnection *conn, gpointer user_data)
 	g_signal_handlers_disconnect_by_func (conn, connection_state_changed, session);
 	priv->num_conns--;
 
-	g_mutex_unlock (&priv->conn_lock);
 	g_object_unref (conn);
+}
+
+static void
+connection_disconnected (SoupConnection *conn, gpointer user_data)
+{
+	SoupSession *session = user_data;
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupSessionHost *host;
+
+	g_mutex_lock (&priv->conn_lock);
+
+	host = g_hash_table_lookup (priv->conns, conn);
+	if (host)
+		g_hash_table_remove (priv->conns, conn);
+	drop_connection (session, host, conn);
+
+	g_mutex_unlock (&priv->conn_lock);
 
 	SOUP_SESSION_GET_CLASS (session)->kick (session);
 }
@@ -1722,8 +1743,11 @@ soup_session_abort (SoupSession *session)
 	g_mutex_lock (&priv->conn_lock);
 	conns = NULL;
 	g_hash_table_iter_init (&iter, priv->conns);
-	while (g_hash_table_iter_next (&iter, &conn, &host))
+	while (g_hash_table_iter_next (&iter, &conn, &host)) {
 		conns = g_slist_prepend (conns, g_object_ref (conn));
+		g_hash_table_iter_remove (&iter);
+		drop_connection (session, host, conn);
+	}
 	g_mutex_unlock (&priv->conn_lock);
 
 	for (c = conns; c; c = c->next) {
