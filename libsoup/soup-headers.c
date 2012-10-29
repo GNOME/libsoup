@@ -702,14 +702,11 @@ parse_param_list (const char *header, char delim)
 	char *item, *eq, *name_end, *value;
 	gboolean override;
 
-	list = parse_list (header, delim);
-	if (!list)
-		return NULL;
-
 	params = g_hash_table_new_full (soup_str_case_hash, 
 					soup_str_case_equal,
 					g_free, NULL);
 
+	list = parse_list (header, delim);
 	for (iter = list; iter; iter = iter->next) {
 		item = iter->data;
 		override = FALSE;

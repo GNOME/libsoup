@@ -350,18 +350,13 @@ sniffing_content_sniffed (SoupMessage *msg, const char *content_type,
 	GList *keys;
 	GList *iter;
 
-	if (params == NULL) {
-		*sniffed_type = g_strdup (content_type);
-		return;
-	}
-
 	full_header = g_string_new (content_type);
-	g_string_append (full_header, "; ");
 
 	keys = g_hash_table_get_keys (params);
 	for (iter = keys; iter != NULL; iter = iter->next) {
 		const gchar *value = (const gchar*) g_hash_table_lookup (params, iter->data);
 
+		g_string_append (full_header, "; ");
 		soup_header_g_string_append_param (full_header,
 						   (const gchar*) iter->data,
 						   value);
