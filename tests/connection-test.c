@@ -541,8 +541,6 @@ do_max_conns_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-GMainLoop *loop;
-
 static void
 np_request_started (SoupSession *session, SoupMessage *msg,
 		    SoupSocket *socket, gpointer user_data)
@@ -562,6 +560,13 @@ np_request_unqueued (SoupSession *session, SoupMessage *msg,
 		debug_printf (1, "    socket is still connected\n");
 		errors++;
 	}
+}
+
+static void
+np_request_finished (SoupSession *session, SoupMessage *msg,
+		     gpointer user_data)
+{
+	GMainLoop *loop = user_data;
 
 	g_main_loop_quit (loop);
 }
@@ -571,6 +576,7 @@ do_non_persistent_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	SoupSocket *socket = NULL;
+	GMainLoop *loop;
 
 	loop = g_main_loop_new (NULL, FALSE);
 
@@ -584,7 +590,8 @@ do_non_persistent_test_for_session (SoupSession *session)
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_headers_append (msg->request_headers, "Connection", "close");
 	g_object_ref (msg);
-	soup_session_queue_message (session, msg, NULL, NULL);
+	soup_session_queue_message (session, msg,
+				    np_request_finished, loop);
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 

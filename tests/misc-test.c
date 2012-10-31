@@ -928,6 +928,7 @@ cancel_request_thread (gpointer cancellable)
 {
 	g_usleep (100000); /* .1s */
 	g_cancellable_cancel (cancellable);
+	g_object_unref (cancellable);
 	return NULL;
 }
 
@@ -951,7 +952,7 @@ do_cancel_while_reading_req_test_for_session (SoupRequester *requester)
 	} else {
 		GThread *thread;
 
-		thread = g_thread_new ("cancel_request_thread", cancel_request_thread, cancellable);
+		thread = g_thread_new ("cancel_request_thread", cancel_request_thread, g_object_ref (cancellable));
 		soup_test_request_send (req, cancellable, &error);
 		g_thread_unref (thread);
 	}
