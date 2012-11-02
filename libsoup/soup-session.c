@@ -74,7 +74,7 @@ typedef struct {
 	SoupSession *session;
 } SoupSessionHost;
 static guint soup_host_uri_hash (gconstpointer key);
-gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
+static gboolean soup_host_uri_equal (gconstpointer v1, gconstpointer v2);
 
 typedef struct {
 	GTlsDatabase *tlsdb;
@@ -734,6 +734,10 @@ soup_session_get_async_context (SoupSession *session)
 
 /* Hosts */
 
+/* Note that we can't use soup_uri_host_hash() and soup_uri_host_equal()
+ * because we want to ignore the protocol; http://example.com and
+ * webcal://example.com are the same host.
+ */
 static guint
 soup_host_uri_hash (gconstpointer key)
 {
@@ -744,7 +748,7 @@ soup_host_uri_hash (gconstpointer key)
 	return uri->port + soup_str_case_hash (uri->host);
 }
 
-gboolean
+static gboolean
 soup_host_uri_equal (gconstpointer v1, gconstpointer v2)
 {
 	const SoupURI *one = v1;
