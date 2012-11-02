@@ -174,7 +174,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-tld-private.h		\
 	soup-uri.c			\
 	soup-value-utils.c		\
-	soup-version.c		\
+	soup-version.c			\
 	soup-xmlrpc.c
 
 # TLD rules
