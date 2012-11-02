@@ -8,12 +8,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define LIBSOUP_USE_UNSTABLE_REQUEST_API
-#include <libsoup/soup-multipart-input-stream.h>
-#include <libsoup/soup-request-http.h>
-#include <libsoup/soup-requester.h>
-#include <libsoup/soup.h>
-
 #include "test-utils.h"
 
 #define READ_BUFFER_SIZE 8192
