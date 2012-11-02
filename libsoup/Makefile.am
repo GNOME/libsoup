@@ -78,7 +78,9 @@ nodist_libsoupinclude_HEADERS =	\
 lib_LTLIBRARIES = libsoup-2.4.la
 
 libsoup_2_4_la_LDFLAGS =	\
-	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) -no-undefined
+	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
+	-no-undefined \
+	-export-symbols $(srcdir)/libsoup-2.4.sym
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
@@ -204,7 +206,10 @@ libsoupgnomeinclude_HEADERS =	\
 
 lib_LTLIBRARIES += libsoup-gnome-2.4.la
 
-libsoup_gnome_2_4_la_LDFLAGS = $(libsoup_2_4_la_LDFLAGS)
+libsoup_gnome_2_4_la_LDFLAGS =	\
+	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
+	-no-undefined \
+	-export-symbols $(srcdir)/libsoup-gnome-2.4.sym
 
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
