@@ -5,8 +5,6 @@
 
 #include "test-utils.h"
 
-#include "libsoup/soup-connection.h"
-
 SoupServer *server;
 SoupURI *base_uri;
 GMutex server_mutex;
@@ -713,11 +711,10 @@ static void
 connection_state_changed (GObject *object, GParamSpec *param,
 			  gpointer user_data)
 {
-	SoupConnection *conn = SOUP_CONNECTION (object);
 	SoupConnectionState *state = user_data;
 	SoupConnectionState new_state;
 
-	new_state = soup_connection_get_state (conn);
+	g_object_get (object, "state", &new_state, NULL);
 	if (state_transitions[*state] != new_state) {
 		debug_printf (1, "      Unexpected transition: %s -> %s\n",
 			      state_names[*state], state_names[new_state]);
@@ -731,12 +728,12 @@ connection_state_changed (GObject *object, GParamSpec *param,
 }
 
 static void
-connection_created (SoupSession *session, SoupConnection *conn,
+connection_created (SoupSession *session, GObject *conn,
 		    gpointer user_data)
 {
 	SoupConnectionState *state = user_data;
 
-	*state = soup_connection_get_state (conn);
+	g_object_get (conn, "state", state, NULL);
 	if (*state != SOUP_CONNECTION_NEW) {
 		debug_printf (1, "      Unexpected initial state: %d\n",
 			      *state);
