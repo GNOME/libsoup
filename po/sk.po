@@ -1,0 +1,89 @@
+# Slovak translation for libsoup.
+# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# Pavol Klačanský <pavol@klacansky.com>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-11-02 19:31+0000\n"
+"PO-Revision-Date: 2012-11-03 14:46+0000\n"
+"Last-Translator: Dušan Kazik <prescott66@gmail.com>\n"
+"Language-Team: Slovak <gnome-sk-list@gnome.org>\n"
+"Language: sk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 1 : (n>=2 && n<=4) ? 2 : 0;\n"
+"X-Generator: Poedit 1.5.4\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "Pripojenie bolo neočakávane ukončené"
+
+# PM:seek je aj posunutie zvlášť ked ide o vstupný stream
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "Neplatná požiadavka na posunutie"
+
+# struct
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream sa nedá skrátiť"
+
+# PM: buffer by som preložil ako schránka
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Výstupná vyrovnávacia pamäť je príliš malá"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+msgid "Operation was cancelled"
+msgstr "Operácia bola zrušená"
+
+# PK: tu neviem ako to povedat, malo by ist o to, ze proste ta operacia neni async
+#: ../libsoup/soup-message-io.c:893
+msgid "Operation would block"
+msgstr "Operácia by blokovala spracovanie"
+
+# error
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "Nebol poskytnutý identifikáror URI"
+
+# first %s - scheme (http, ftp, ...)
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Neplatná schéma „%s“ identifikátora URI: %s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Nepodarilo sa analyzovať identifikátor URI „%s“"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Nepodporovaná schéma „%s“ pre identifikátor URI"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "Názov hostiteľa je adresa IP"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "Neplatný názov hostiteľa"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "Názov hostiteľa neobsahuje základnú doménu"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "Nedostatočný počet domén"
