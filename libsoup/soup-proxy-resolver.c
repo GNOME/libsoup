@@ -20,39 +20,8 @@ G_DEFINE_INTERFACE_WITH_CODE (SoupProxyResolver, soup_proxy_resolver, G_TYPE_OBJ
 			      )
 
 static void
-proxy_resolver_interface_check (gpointer func_data, gpointer g_iface)
-{
-	GTypeInterface *iface = g_iface;
-
-	if (iface->g_type != SOUP_TYPE_PROXY_RESOLVER)
-		return;
-
-	/* If the class hasn't already declared that it implements
-	 * SoupProxyURIResolver, add our own compat implementation.
-	 */
-	if (!g_type_is_a (iface->g_instance_type, SOUP_TYPE_PROXY_URI_RESOLVER)) {
-		const GInterfaceInfo uri_resolver_interface_info = {
-			(GInterfaceInitFunc) soup_proxy_resolver_uri_resolver_interface_init, NULL, NULL
-		};
-		g_type_add_interface_static (iface->g_instance_type,
-					     SOUP_TYPE_PROXY_URI_RESOLVER,
-					     &uri_resolver_interface_info);
-	}
-}
-
-
-static void
 soup_proxy_resolver_default_init (SoupProxyResolverInterface *iface)
 {
-	/* Add an interface_check where we can kludgily add the
-	 * SoupProxyURIResolver interface to all SoupProxyResolvers.
-	 * (SoupProxyResolver can't just implement
-	 * SoupProxyURIResolver itself because interface types can't
-	 * implement other interfaces.) This is an ugly hack, but it
-	 * only gets used if someone actually creates a
-	 * SoupProxyResolver...
-	 */
-	g_type_add_interface_check (NULL, proxy_resolver_interface_check);
 }
 
 void
