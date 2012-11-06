@@ -263,6 +263,7 @@ soup_message_headers_set_expectations
 soup_message_headers_set_range
 soup_message_headers_set_ranges
 soup_message_headers_type_get_type
+soup_message_io_cleanup
 soup_message_is_keepalive
 soup_message_new
 soup_message_new_from_uri
