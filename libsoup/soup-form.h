@@ -15,6 +15,7 @@ G_BEGIN_DECLS
 #define SOUP_FORM_MIME_TYPE_MULTIPART  "multipart/form-data"
 
 GHashTable  *soup_form_decode           (const char   *encoded_form);
+SOUP_AVAILABLE_IN_2_26
 GHashTable  *soup_form_decode_multipart (SoupMessage  *msg,
 					 const char   *file_control_name,
 					 char        **filename,
@@ -45,6 +46,7 @@ SoupMessage *soup_form_request_new_from_hash      (const char     *method,
 SoupMessage *soup_form_request_new_from_datalist  (const char     *method,
 						   const char     *uri,
 						   GData         **form_data_set);
+SOUP_AVAILABLE_IN_2_26
 SoupMessage *soup_form_request_new_from_multipart (const char     *uri,
 						   SoupMultipart  *multipart);
 

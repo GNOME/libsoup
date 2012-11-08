@@ -71,26 +71,34 @@ struct _SoupRequestClass {
 	const char *   (*get_content_type)   (SoupRequest          *request);
 };
 
+SOUP_AVAILABLE_IN_2_34
 GType soup_request_get_type (void);
 
 #define SOUP_REQUEST_URI     "uri"
 #define SOUP_REQUEST_SESSION "session"
 
+SOUP_AVAILABLE_IN_2_34
 GInputStream *soup_request_send               (SoupRequest          *request,
 					       GCancellable         *cancellable,
 					       GError              **error);
+SOUP_AVAILABLE_IN_2_34
 void          soup_request_send_async         (SoupRequest          *request,
 					       GCancellable         *cancellable,
 					       GAsyncReadyCallback   callback,
 					       gpointer              user_data);
+SOUP_AVAILABLE_IN_2_34
 GInputStream *soup_request_send_finish        (SoupRequest          *request,
 					       GAsyncResult         *result,
 					       GError              **error);
 
+SOUP_AVAILABLE_IN_2_34
 SoupURI      *soup_request_get_uri            (SoupRequest          *request);
+SOUP_AVAILABLE_IN_2_34
 SoupSession  *soup_request_get_session        (SoupRequest          *request);
 
+SOUP_AVAILABLE_IN_2_34
 goffset       soup_request_get_content_length (SoupRequest          *request);
+SOUP_AVAILABLE_IN_2_34
 const char   *soup_request_get_content_type   (SoupRequest          *request);
 
 G_END_DECLS

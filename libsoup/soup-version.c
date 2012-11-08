@@ -144,3 +144,143 @@ soup_check_version (guint major,
 {
     return SOUP_CHECK_VERSION (major, minor, micro);
 }
+
+/**
+ * SOUP_VERSION_MIN_REQUIRED:
+ *
+ * A macro that should be defined by the user prior to including
+ * libsoup.h. The definition should be one of the predefined libsoup
+ * version macros: %SOUP_VERSION_2_24, %SOUP_VERSION_2_26, ...
+ *
+ * This macro defines the earliest version of libsoup that the package
+ * is required to be able to compile against.
+ *
+ * If the compiler is configured to warn about the use of deprecated
+ * functions, then using functions that were deprecated in version
+ * %SOUP_VERSION_MIN_REQUIRED or earlier will cause warnings (but
+ * using functions deprecated in later releases will not).
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_MAX_ALLOWED:
+ *
+ * A macro that should be defined by the user prior to including
+ * libsoup.h. The definition should be one of the predefined libsoup
+ * version macros: %SOUP_VERSION_2_24, %SOUP_VERSION_2_26, ...
+ *
+ * This macro defines the latest version of the libsoup API that the
+ * package is allowed to make use of.
+ *
+ * If the compiler is configured to warn about the use of deprecated
+ * functions, then using functions added after version
+ * %SOUP_VERSION_MAX_ALLOWED will cause warnings.
+ *
+ * Unless you are using SOUP_CHECK_VERSION() or the like to compile
+ * different code depending on the libsoup version, then this should be
+ * set to the same value as %SOUP_VERSION_MIN_REQUIRED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_24:
+ *
+ * A macro that evaluates to the 2.24 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_26:
+ *
+ * A macro that evaluates to the 2.26 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_28:
+ *
+ * A macro that evaluates to the 2.28 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_30:
+ *
+ * A macro that evaluates to the 2.30 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_32:
+ *
+ * A macro that evaluates to the 2.32 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_34:
+ *
+ * A macro that evaluates to the 2.34 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_36:
+ *
+ * A macro that evaluates to the 2.36 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_38:
+ *
+ * A macro that evaluates to the 2.38 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_40:
+ *
+ * A macro that evaluates to the 2.40 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+
+/**
+ * SOUP_VERSION_2_42:
+ *
+ * A macro that evaluates to the 2.42 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.42
+ */
+

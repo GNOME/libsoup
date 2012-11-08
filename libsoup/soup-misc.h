@@ -6,7 +6,7 @@
 #ifndef SOUP_MISC_H
 #define SOUP_MISC_H 1
 
-#include <glib-object.h>
+#include <libsoup/soup-types.h>
 
 G_BEGIN_DECLS
 
@@ -19,6 +19,7 @@ GSource           *soup_add_io_watch         (GMainContext *async_context,
 GSource           *soup_add_idle             (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);
+SOUP_AVAILABLE_IN_2_24
 GSource           *soup_add_completion	     (GMainContext *async_context,
 					      GSourceFunc   function,
 					      gpointer      data);

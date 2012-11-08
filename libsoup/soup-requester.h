@@ -48,18 +48,23 @@ typedef struct {
 	GObjectClass parent_class;
 } SoupRequesterClass;
 
+SOUP_AVAILABLE_IN_2_34
 GType          soup_requester_get_type        (void);
 
+SOUP_AVAILABLE_IN_2_34
 SoupRequester *soup_requester_new             (void);
 
+SOUP_AVAILABLE_IN_2_34
 SoupRequest   *soup_requester_request         (SoupRequester  *requester,
 					       const char     *uri_string,
 					       GError        **error);
 
+SOUP_AVAILABLE_IN_2_34
 SoupRequest   *soup_requester_request_uri     (SoupRequester  *requester,
 					       SoupURI        *uri,
 					       GError        **error);
 
+SOUP_AVAILABLE_IN_2_34
 GQuark soup_requester_error_quark (void);
 #define SOUP_REQUESTER_ERROR soup_requester_error_quark ()
 

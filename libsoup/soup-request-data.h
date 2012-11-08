@@ -47,6 +47,7 @@ typedef struct {
 	SoupRequestClass parent;
 } SoupRequestDataClass;
 
+SOUP_AVAILABLE_IN_2_34
 GType soup_request_data_get_type (void);
 
 G_END_DECLS

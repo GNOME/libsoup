@@ -43,14 +43,17 @@ typedef struct {
 	void (*_libsoup_reserved4) (void);
 } SoupProxyURIResolverInterface;
 
+SOUP_AVAILABLE_IN_2_28
 GType soup_proxy_uri_resolver_get_type (void);
 
+SOUP_AVAILABLE_IN_2_28
 void  soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_resolver,
 						   SoupURI               *uri,
 						   GMainContext          *async_context,
 						   GCancellable          *cancellable,
 						   SoupProxyURIResolverCallback callback,
 						   gpointer                user_data);
+SOUP_AVAILABLE_IN_2_28
 guint soup_proxy_uri_resolver_get_proxy_uri_sync  (SoupProxyURIResolver  *proxy_uri_resolver,
 						   SoupURI               *uri,
 						   GCancellable          *cancellable,

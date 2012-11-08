@@ -415,7 +415,7 @@ soup_message_body_new (void)
  * be discarded, and you will be responsible for recreating the
  * request body after the #SoupMessage::restarted signal is emitted.
  *
- * Since: 2.4.1
+ * Since: 2.24
  **/
 void
 soup_message_body_set_accumulate (SoupMessageBody *body,
@@ -435,7 +435,7 @@ soup_message_body_set_accumulate (SoupMessageBody *body,
  *
  * Return value: the accumulate flag for @body.
  *
- * Since: 2.4.1
+ * Since: 2.24
  **/
 gboolean
 soup_message_body_get_accumulate (SoupMessageBody *body)
@@ -664,7 +664,7 @@ soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)
  * This is a low-level method which you should not normally need to
  * use.
  *
- * Since: 2.4.1
+ * Since: 2.24
  **/
 void
 soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
@@ -691,7 +691,7 @@ soup_message_body_got_chunk (SoupMessageBody *body, SoupBuffer *chunk)
  * there are further restrictions on its proper use which are not
  * documented here.
  *
- * Since: 2.4.1
+ * Since: 2.24
  **/
 void
 soup_message_body_wrote_chunk (SoupMessageBody *body, SoupBuffer *chunk)

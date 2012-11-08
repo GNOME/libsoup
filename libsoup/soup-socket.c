@@ -544,14 +544,14 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	 * Alias for the #SoupSocket:use-thread-context property. (Use
 	 * g_main_context_get_thread_default())
 	 *
-	 * Since: 2.36.1
+	 * Since: 2.38
 	 */
 	/**
 	 * SoupSocket:use-thread-context:
 	 *
 	 * Use g_main_context_get_thread_default().
 	 *
-	 * Since: 2.36.1
+	 * Since: 2.38
 	 */
 	g_object_class_install_property (
 		object_class, PROP_USE_THREAD_CONTEXT,

@@ -33,25 +33,31 @@ struct _SoupMultipartInputStreamClass {
 	GFilterInputStreamClass parent_class;
 };
 
+SOUP_AVAILABLE_IN_2_40
 GType                     soup_multipart_input_stream_get_type         (void) G_GNUC_CONST;
 
+SOUP_AVAILABLE_IN_2_40
 SoupMultipartInputStream *soup_multipart_input_stream_new              (SoupMessage               *msg,
 							                GInputStream              *base_stream);
 
+SOUP_AVAILABLE_IN_2_40
 GInputStream             *soup_multipart_input_stream_next_part        (SoupMultipartInputStream  *multipart,
 									GCancellable	          *cancellable,
 									GError                   **error);
 
+SOUP_AVAILABLE_IN_2_40
 void                      soup_multipart_input_stream_next_part_async  (SoupMultipartInputStream  *multipart,
 									int                        io_priority,
 								        GCancellable              *cancellable,
 								        GAsyncReadyCallback        callback,
 								        gpointer                   data);
 
+SOUP_AVAILABLE_IN_2_40
 GInputStream             *soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream  *multipart,
 									GAsyncResult              *res,
 									GError                   **error);
 
+SOUP_AVAILABLE_IN_2_40
 SoupMessageHeaders       *soup_multipart_input_stream_get_headers      (SoupMultipartInputStream  *multipart);
 
 

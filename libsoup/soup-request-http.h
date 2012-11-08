@@ -47,8 +47,10 @@ typedef struct {
 	SoupRequestClass parent;
 } SoupRequestHTTPClass;
 
+SOUP_AVAILABLE_IN_2_34
 GType soup_request_http_get_type (void);
 
+SOUP_AVAILABLE_IN_2_34
 SoupMessage *soup_request_http_get_message (SoupRequestHTTP *http);
 
 G_END_DECLS

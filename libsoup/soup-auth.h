@@ -73,9 +73,12 @@ const char *soup_auth_get_realm             (SoupAuth      *auth);
 char       *soup_auth_get_info              (SoupAuth      *auth);
 
 #ifdef LIBSOUP_I_HAVE_READ_BUG_594377_AND_KNOW_SOUP_PASSWORD_MANAGER_MIGHT_GO_AWAY
+SOUP_AVAILABLE_IN_2_28
 GSList     *soup_auth_get_saved_users       (SoupAuth      *auth);
+SOUP_AVAILABLE_IN_2_28
 const char *soup_auth_get_saved_password    (SoupAuth      *auth,
 					     const char    *user);
+SOUP_AVAILABLE_IN_2_28
 void        soup_auth_save_password         (SoupAuth      *auth,
 					     const char    *username,
 					     const char    *password);

@@ -43,14 +43,18 @@ typedef struct {
 	void (*_libsoup_reserved5) (void);
 } SoupContentSnifferClass;
 
+SOUP_AVAILABLE_IN_2_28
 GType               soup_content_sniffer_get_type        (void);
 
+SOUP_AVAILABLE_IN_2_28
 SoupContentSniffer *soup_content_sniffer_new             (void);
 
+SOUP_AVAILABLE_IN_2_28
 char               *soup_content_sniffer_sniff           (SoupContentSniffer  *sniffer,
 							  SoupMessage         *msg,
 							  SoupBuffer          *buffer,
 							  GHashTable         **params);
+SOUP_AVAILABLE_IN_2_28
 gsize               soup_content_sniffer_get_buffer_size (SoupContentSniffer  *sniffer);
 
 G_END_DECLS

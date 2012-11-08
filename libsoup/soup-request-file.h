@@ -47,8 +47,10 @@ typedef struct {
 	SoupRequestClass parent;
 } SoupRequestFileClass;
 
+SOUP_AVAILABLE_IN_2_34
 GType  soup_request_file_get_type (void);
 
+SOUP_AVAILABLE_IN_2_34
 GFile *soup_request_file_get_file (SoupRequestFile *file);
 
 G_END_DECLS

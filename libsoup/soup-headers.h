@@ -13,6 +13,7 @@ G_BEGIN_DECLS
 
 /* HTTP Header Parsing */
 
+SOUP_AVAILABLE_IN_2_26
 gboolean    soup_headers_parse              (const char          *str,
 					     int                  len,
 					     SoupMessageHeaders  *dest);
@@ -47,12 +48,15 @@ gboolean    soup_header_contains            (const char       *header,
 					     const char       *token);
 
 GHashTable *soup_header_parse_param_list      (const char       *header);
+SOUP_AVAILABLE_IN_2_24
 GHashTable *soup_header_parse_semi_param_list (const char       *header);
 void        soup_header_free_param_list       (GHashTable       *param_list);
 
+SOUP_AVAILABLE_IN_2_26
 void        soup_header_g_string_append_param (GString          *string,
 					       const char       *name,
 					       const char       *value);
+SOUP_AVAILABLE_IN_2_30
 void        soup_header_g_string_append_param_quoted (GString    *string,
 						      const char *name,
 						      const char *value);

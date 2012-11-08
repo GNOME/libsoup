@@ -10,14 +10,17 @@
 
 G_BEGIN_DECLS
 
+SOUP_AVAILABLE_IN_2_40
 const char *soup_tld_get_base_domain         (const char *hostname,
 					      GError    **error);
 
+SOUP_AVAILABLE_IN_2_40
 gboolean    soup_tld_domain_is_public_suffix (const char *domain);
 
 /* Errors */
-#define SOUP_TLD_ERROR soup_tld_error_quark()
+SOUP_AVAILABLE_IN_2_40
 GQuark soup_tld_error_quark (void);
+#define SOUP_TLD_ERROR soup_tld_error_quark()
 
 typedef enum {
 	SOUP_TLD_ERROR_INVALID_HOSTNAME,

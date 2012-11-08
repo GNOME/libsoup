@@ -34,8 +34,10 @@ typedef struct {
 
 #define SOUP_COOKIE_JAR_SQLITE_FILENAME  "filename"
 
+SOUP_AVAILABLE_IN_2_26
 GType soup_cookie_jar_sqlite_get_type (void);
 
+SOUP_AVAILABLE_IN_2_26
 SoupCookieJar *soup_cookie_jar_sqlite_new (const char *filename,
 					   gboolean    read_only);
 

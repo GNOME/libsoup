@@ -300,7 +300,7 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
  *
  * Return value: the header's value or %NULL if not found.
  *
- * Since: 2.26.1
+ * Since: 2.28
  **/
 const char *
 soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
@@ -338,7 +338,7 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
  * 
  * Return value: the header's value or %NULL if not found.
  *
- * Since: 2.26.1
+ * Since: 2.28
  **/
 const char *
 soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)

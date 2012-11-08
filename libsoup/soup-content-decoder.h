@@ -37,7 +37,8 @@ typedef struct {
 	void (*_libsoup_reserved5) (void);
 } SoupContentDecoderClass;
 
-GType               soup_content_decoder_get_type (void);
+SOUP_AVAILABLE_IN_2_30
+GType soup_content_decoder_get_type (void);
 
 G_END_DECLS
 

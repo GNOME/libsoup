@@ -897,6 +897,8 @@ soup_date_get_offset (SoupDate *date)
  * @date: a #SoupDate
  *
  * Copies @date.
+ *
+ * Since: 2.24
  **/
 SoupDate *
 soup_date_copy (SoupDate *date)
@@ -915,6 +917,8 @@ soup_date_copy (SoupDate *date)
  * @date: a #SoupDate
  *
  * Frees @date.
+ *
+ * Since: 2.24
  **/
 void
 soup_date_free (SoupDate *date)

@@ -8,6 +8,7 @@
 
 #include <gio/gio.h>
 
+#include <libsoup/soup-version.h>
 #include <libsoup/soup-status.h>
 
 G_BEGIN_DECLS

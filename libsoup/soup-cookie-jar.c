@@ -241,6 +241,10 @@ soup_cookie_jar_new (void)
  * This function exists for backward compatibility, but does not do
  * anything any more; cookie jars are saved automatically when they
  * are changed.
+ *
+ * Since: 2.24
+ *
+ * Deprecated: This is a no-op.
  */
 void
 soup_cookie_jar_save (SoupCookieJar *jar)

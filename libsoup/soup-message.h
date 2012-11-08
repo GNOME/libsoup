@@ -105,9 +105,12 @@ gboolean         soup_message_is_keepalive        (SoupMessage       *msg);
 SoupURI         *soup_message_get_uri             (SoupMessage       *msg);
 void             soup_message_set_uri             (SoupMessage       *msg,
 						   SoupURI           *uri);
+SOUP_AVAILABLE_IN_2_26
 SoupAddress     *soup_message_get_address         (SoupMessage       *msg);
 
+SOUP_AVAILABLE_IN_2_30
 SoupURI         *soup_message_get_first_party     (SoupMessage       *msg);
+SOUP_AVAILABLE_IN_2_30
 void             soup_message_set_first_party     (SoupMessage       *msg,
 						   SoupURI           *first_party);
 
@@ -128,6 +131,7 @@ void             soup_message_set_flags           (SoupMessage           *msg,
 
 SoupMessageFlags soup_message_get_flags           (SoupMessage           *msg);
 
+SOUP_AVAILABLE_IN_2_34
 gboolean         soup_message_get_https_status    (SoupMessage           *msg,
 						   GTlsCertificate      **certificate,
 						   GTlsCertificateFlags  *errors);
@@ -157,6 +161,7 @@ void           soup_message_set_status_full     (SoupMessage       *msg,
 						 guint              status_code, 
 						 const char        *reason_phrase);
 
+SOUP_AVAILABLE_IN_2_38
 void           soup_message_set_redirect        (SoupMessage       *msg,
 						 guint              status_code,
 						 const char        *redirect_uri);
@@ -171,6 +176,7 @@ void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 						 gpointer           user_data,
 						 GDestroyNotify     destroy_notify);
 
+SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
 						 GType              feature_type);
 

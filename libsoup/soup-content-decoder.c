@@ -40,7 +40,7 @@
  * will be decoded (and the %SOUP_MESSAGE_CONTENT_DECODED flag will
  * not be set).
  *
- * Since: 2.28.2
+ * Since: 2.30
  **/
 
 struct _SoupContentDecoderPrivate {

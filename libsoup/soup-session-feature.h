@@ -46,17 +46,23 @@ typedef struct {
 
 } SoupSessionFeatureInterface;
 
+SOUP_AVAILABLE_IN_2_24
 GType    soup_session_feature_get_type       (void);
 
+SOUP_AVAILABLE_IN_2_24
 void     soup_session_feature_attach         (SoupSessionFeature *feature,
 					      SoupSession        *session);
+SOUP_AVAILABLE_IN_2_24
 void     soup_session_feature_detach         (SoupSessionFeature *feature,
 					      SoupSession        *session);
 
+SOUP_AVAILABLE_IN_2_34
 gboolean soup_session_feature_add_feature    (SoupSessionFeature *feature,
 					      GType               type);
+SOUP_AVAILABLE_IN_2_34
 gboolean soup_session_feature_remove_feature (SoupSessionFeature *feature,
 					      GType               type);
+SOUP_AVAILABLE_IN_2_34
 gboolean soup_session_feature_has_feature    (SoupSessionFeature *feature,
 					      GType               type);
 

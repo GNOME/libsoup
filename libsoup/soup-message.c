@@ -389,7 +389,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * every successful write() call, not only after finishing a
 	 * complete "chunk".
 	 *
-	 * Since: 2.4.1
+	 * Since: 2.24
 	 **/
 	signals[WROTE_BODY_DATA] =
 		g_signal_new ("wrote_body_data",
@@ -554,7 +554,7 @@ soup_message_class_init (SoupMessageClass *message_class)
 	 * that sniffing could be done is delivered on the first
 	 * emission of #SoupMessage::got-chunk.
 	 *
-	 * Since: 2.27.3
+	 * Since: 2.28
 	 **/
 	signals[CONTENT_SNIFFED] =
 		g_signal_new ("content_sniffed",

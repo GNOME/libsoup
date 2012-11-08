@@ -103,32 +103,44 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
 
+SOUP_AVAILABLE_IN_2_30
+SOUP_DEPRECATED_IN_2_38_FOR (soup_session_prefetch_dns)
 void            soup_session_prepare_for_uri  (SoupSession           *session,
 					       SoupURI               *uri);
 
+SOUP_AVAILABLE_IN_2_38
 void            soup_session_prefetch_dns     (SoupSession           *session,
 					       const char            *hostname,
 					       GCancellable          *cancellable,
 					       SoupAddressCallback    callback,
 					       gpointer               user_data);
 
+SOUP_AVAILABLE_IN_2_38
 gboolean        soup_session_would_redirect   (SoupSession           *session,
 					       SoupMessage           *msg);
+SOUP_AVAILABLE_IN_2_38
 gboolean        soup_session_redirect_message (SoupSession           *session,
 					       SoupMessage           *msg);
 
+SOUP_AVAILABLE_IN_2_24
 void                soup_session_add_feature            (SoupSession        *session,
 							 SoupSessionFeature *feature);
+SOUP_AVAILABLE_IN_2_24
 void                soup_session_add_feature_by_type    (SoupSession        *session,
 							 GType               feature_type);
+SOUP_AVAILABLE_IN_2_24
 void                soup_session_remove_feature         (SoupSession        *session,
 							 SoupSessionFeature *feature);
+SOUP_AVAILABLE_IN_2_24
 void                soup_session_remove_feature_by_type (SoupSession        *session,
 							 GType               feature_type);
+SOUP_AVAILABLE_IN_2_26
 GSList             *soup_session_get_features           (SoupSession        *session,
 							 GType               feature_type);
+SOUP_AVAILABLE_IN_2_26
 SoupSessionFeature *soup_session_get_feature            (SoupSession        *session,
 							 GType               feature_type);
+SOUP_AVAILABLE_IN_2_28
 SoupSessionFeature *soup_session_get_feature_for_message(SoupSession        *session,
 							 GType               feature_type,
 							 SoupMessage        *msg);

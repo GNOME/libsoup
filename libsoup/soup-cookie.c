@@ -1065,6 +1065,8 @@ soup_cookie_applies_to_uri (SoupCookie *cookie, SoupURI *uri)
  * match. This may change in the future.
  *
  * Return value: whether the cookies are equal.
+ *
+ * Since: 2.24
  */
 gboolean
 soup_cookie_equal (SoupCookie *cookie1, SoupCookie *cookie2)

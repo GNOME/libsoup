@@ -28,7 +28,7 @@
  * content sniffing to a session with soup_session_add_feature() or
  * soup_session_add_feature_by_type().
  *
- * Since: 2.27.3
+ * Since: 2.28
  **/
 
 static void soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
@@ -567,7 +567,7 @@ soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_
  *
  * Returns: a new #SoupContentSniffer
  *
- * Since: 2.27.3
+ * Since: 2.28
  **/
 SoupContentSniffer *
 soup_content_sniffer_new ()
@@ -589,6 +589,8 @@ soup_content_sniffer_new ()
  *
  * Return value: the sniffed Content-Type of @buffer; this will never be %NULL,
  *   but may be "application/octet-stream".
+ *
+ * Since: 2.28
  */
 char *
 soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
@@ -602,6 +604,17 @@ soup_content_sniffer_sniff (SoupContentSniffer *sniffer,
 	return SOUP_CONTENT_SNIFFER_GET_CLASS (sniffer)->sniff (sniffer, msg, buffer, params);
 }
 
+/**
+ * soup_content_sniffer_get_buffer_size:
+ * @sniffer: a #SoupContentSniffer
+ *
+ * Gets the number of bytes @sniffer needs in order to properly sniff
+ * a buffer.
+ *
+ * Return value: the number of bytes to sniff
+ *
+ * Since: 2.28
+ */
 gsize
 soup_content_sniffer_get_buffer_size (SoupContentSniffer *sniffer)
 {

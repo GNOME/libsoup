@@ -8,7 +8,7 @@
 #ifndef SOUP_STATUS_H
 #define SOUP_STATUS_H 1
 
-#include <glib.h>
+#include <libsoup/soup-types.h>
 
 G_BEGIN_DECLS
 
@@ -94,6 +94,7 @@ typedef enum {
 } SoupKnownStatusCode;
 
 const char *soup_status_get_phrase (guint status_code);
+SOUP_AVAILABLE_IN_2_26
 guint       soup_status_proxify    (guint status_code);
 
 #define SOUP_HTTP_ERROR soup_http_error_quark()

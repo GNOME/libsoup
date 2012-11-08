@@ -28,6 +28,7 @@ GType soup_buffer_get_type (void);
 SoupBuffer *soup_buffer_new            (SoupMemoryUse   use,
 					gconstpointer   data,
 					gsize           length);
+SOUP_AVAILABLE_IN_2_32
 SoupBuffer *soup_buffer_new_take       (guchar         *data,
 					gsize           length);
 SoupBuffer *soup_buffer_new_subbuffer  (SoupBuffer     *parent,
@@ -39,12 +40,15 @@ SoupBuffer *soup_buffer_new_with_owner (gconstpointer   data,
 					gpointer        owner,
 					GDestroyNotify  owner_dnotify);
 gpointer    soup_buffer_get_owner      (SoupBuffer     *buffer);
+SOUP_AVAILABLE_IN_2_32
 void        soup_buffer_get_data       (SoupBuffer     *buffer,
 					const guint8  **data,
 					gsize          *length);
+SOUP_AVAILABLE_IN_2_40
+GBytes     *soup_buffer_get_as_bytes   (SoupBuffer *buffer);
+
 SoupBuffer *soup_buffer_copy           (SoupBuffer     *buffer);
 void        soup_buffer_free           (SoupBuffer     *buffer);
-GBytes     *soup_buffer_get_as_bytes   (SoupBuffer *buffer);
 
 typedef struct {
 	const char *data;
@@ -56,14 +60,17 @@ GType soup_message_body_get_type (void);
 
 SoupMessageBody *soup_message_body_new           (void);
 
+SOUP_AVAILABLE_IN_2_24
 void             soup_message_body_set_accumulate(SoupMessageBody *body,
 						  gboolean         accumulate);
+SOUP_AVAILABLE_IN_2_24
 gboolean         soup_message_body_get_accumulate(SoupMessageBody *body);
 
 void             soup_message_body_append        (SoupMessageBody *body,
 						  SoupMemoryUse    use,
 						  gconstpointer    data,
 						  gsize            length);
+SOUP_AVAILABLE_IN_2_32
 void             soup_message_body_append_take   (SoupMessageBody *body,
 						  guchar          *data,
 						  gsize            length);
@@ -77,8 +84,10 @@ SoupBuffer      *soup_message_body_flatten       (SoupMessageBody *body);
 SoupBuffer      *soup_message_body_get_chunk     (SoupMessageBody *body,
 						  goffset          offset);
 
+SOUP_AVAILABLE_IN_2_24
 void             soup_message_body_got_chunk     (SoupMessageBody *body,
 						  SoupBuffer      *chunk);
+SOUP_AVAILABLE_IN_2_24
 void             soup_message_body_wrote_chunk   (SoupMessageBody *body,
 						  SoupBuffer      *chunk);
 

@@ -39,14 +39,17 @@ typedef struct {
 
 } SoupProxyResolverInterface;
 
+SOUP_DEPRECATED_IN_2_28_FOR(SoupProxyURIResolver)
 GType soup_proxy_resolver_get_type (void);
 
+SOUP_DEPRECATED_IN_2_28
 void  soup_proxy_resolver_get_proxy_async (SoupProxyResolver  *proxy_resolver,
 					   SoupMessage        *msg,
 					   GMainContext       *async_context,
 					   GCancellable       *cancellable,
 					   SoupProxyResolverCallback callback,
 					   gpointer            user_data);
+SOUP_DEPRECATED_IN_2_28
 guint soup_proxy_resolver_get_proxy_sync  (SoupProxyResolver  *proxy_resolver,
 					   SoupMessage        *msg,
 					   GCancellable       *cancellable,

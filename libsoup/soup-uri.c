@@ -1163,7 +1163,7 @@ soup_uri_set_fragment (SoupURI *uri, const char *fragment)
  *
  * Return value: the new #SoupURI
  *
- * Since: 2.26.3
+ * Since: 2.28
  **/
 SoupURI *
 soup_uri_copy_host (SoupURI *uri)
@@ -1190,7 +1190,7 @@ soup_uri_copy_host (SoupURI *uri)
  *
  * Return value: a hash
  *
- * Since: 2.26.3
+ * Since: 2.28
  **/
 guint
 soup_uri_host_hash (gconstpointer key)
@@ -1214,7 +1214,7 @@ soup_uri_host_hash (gconstpointer key)
  * Return value: whether or not the URIs are equal in scheme, host,
  * and port.
  *
- * Since: 2.26.3
+ * Since: 2.28
  **/
 gboolean
 soup_uri_host_equal (gconstpointer v1, gconstpointer v2)

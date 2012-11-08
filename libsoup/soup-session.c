@@ -476,7 +476,13 @@ soup_session_set_property (GObject *object, guint prop_id,
 		uri = g_value_get_boxed (value);
 
 		if (uri) {
+#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+#endif
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
+#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
+G_GNUC_END_IGNORE_DEPRECATIONS
+#endif
 			feature = SOUP_SESSION_FEATURE (soup_proxy_resolver_static_new (uri));
 			soup_session_add_feature (session, feature);
 			g_object_unref (feature);
@@ -1781,23 +1787,23 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
 }
 
 /**
-* soup_session_prepare_for_uri:
-* @session: a #SoupSession
-* @uri: a #SoupURI which may be required
-*
-* Tells @session that @uri may be requested shortly, and so the
-* session can try to prepare (resolving the domain name, obtaining
-* proxy address, etc.) in order to work more quickly once the URI is
-* actually requested.
-*
-* This method acts asynchronously, in @session's
-* #SoupSession:async_context. If you are using #SoupSessionSync and do
-* not have a main loop running, then you can't use this method.
-*
-* Since: 2.30
-*
-* Deprecated: 2.38: use soup_session_prefetch_dns() instead
-**/
+ * soup_session_prepare_for_uri:
+ * @session: a #SoupSession
+ * @uri: a #SoupURI which may be required
+ *
+ * Tells @session that @uri may be requested shortly, and so the
+ * session can try to prepare (resolving the domain name, obtaining
+ * proxy address, etc.) in order to work more quickly once the URI is
+ * actually requested.
+ *
+ * This method acts asynchronously, in @session's
+ * #SoupSession:async_context. If you are using #SoupSessionSync and do
+ * not have a main loop running, then you can't use this method.
+ *
+ * Since: 2.30
+ *
+ * Deprecated: 2.38: use soup_session_prefetch_dns() instead
+ **/
 void
 soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 {
@@ -2151,7 +2157,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupMessage::finished (and all of the other #SoupMessage
 	 * signals) may be invoked multiple times for a given message.
 	 *
-	 * Since: 2.4.1
+	 * Since: 2.24
 	 **/
 	signals[REQUEST_QUEUED] =
 		g_signal_new ("request-queued",
@@ -2194,7 +2200,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * #SoupSession::request_queued for a detailed description of the
 	 * message lifecycle within a session.
 	 *
-	 * Since: 2.4.1
+	 * Since: 2.24
 	 **/
 	signals[REQUEST_UNQUEUED] =
 		g_signal_new ("request-unqueued",
@@ -2347,7 +2353,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
 	 *
-	 * Since: 2.4.1
+	 * Since: 2.24
 	 **/
 	/**
 	 * SOUP_SESSION_IDLE_TIMEOUT:
@@ -2355,7 +2361,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Alias for the #SoupSession:idle-timeout property. (The idle
 	 * connection lifetime.)
 	 *
-	 * Since: 2.4.1
+	 * Since: 2.24
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IDLE_TIMEOUT,
@@ -2384,7 +2390,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      "Use NTLM",
 				      "Whether or not to use NTLM authentication",
 				      FALSE,
-				      G_PARAM_READWRITE));
+				      G_PARAM_READWRITE | G_PARAM_DEPRECATED));
 	/**
 	 * SoupSession:ssl-ca-file:
 	 *
@@ -2408,7 +2414,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "SSL CA file",
 				     "File containing SSL CA certificates",
 				     NULL,
-				     G_PARAM_READWRITE));
+				     G_PARAM_READWRITE | G_PARAM_DEPRECATED));
 	/**
 	 * SOUP_SESSION_USE_SYSTEM_CA_FILE:
 	 *

@@ -77,17 +77,25 @@ typedef struct {
 	void (*_libsoup_reserved3)(void);
 } SoupCacheClass;
 
+SOUP_AVAILABLE_IN_2_34
 GType      soup_cache_get_type     (void);
+SOUP_AVAILABLE_IN_2_34
 SoupCache *soup_cache_new          (const char    *cache_dir,
 				    SoupCacheType  cache_type);
+SOUP_AVAILABLE_IN_2_34
 void       soup_cache_flush        (SoupCache     *cache);
+SOUP_AVAILABLE_IN_2_34
 void       soup_cache_clear        (SoupCache     *cache);
 
+SOUP_AVAILABLE_IN_2_34
 void       soup_cache_dump         (SoupCache     *cache);
+SOUP_AVAILABLE_IN_2_34
 void       soup_cache_load         (SoupCache     *cache);
 
+SOUP_AVAILABLE_IN_2_34
 void       soup_cache_set_max_size (SoupCache     *cache,
 				    guint          max_size);
+SOUP_AVAILABLE_IN_2_34
 guint      soup_cache_get_max_size (SoupCache     *cache);
 
 G_END_DECLS
