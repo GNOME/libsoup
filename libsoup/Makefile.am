@@ -12,6 +12,7 @@ INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
+	-I$(top_builddir)		\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
@@ -81,6 +82,8 @@ libsoup_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
 	-no-undefined \
 	-export-symbols $(srcdir)/libsoup-2.4.sym
+
+EXTRA_DIST += libsoup-2.4.sym
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
@@ -212,6 +215,8 @@ libsoup_gnome_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
 	-no-undefined \
 	-export-symbols $(srcdir)/libsoup-gnome-2.4.sym
+
+EXTRA_DIST += libsoup-gnome-2.4.sym
 
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
