@@ -1,3 +1,22 @@
+Changes in libsoup from 2.40.0 to 2.40.2:
+
+	* Fixed a crash caused by a race condition in SoupSessionSync.
+	  [#684238, Dan]
+
+	* Fixed a problem that would cause g_warning()s in epiphany
+          when browsing sites that (incorrectly) returned empty
+          Cache-Control headers. [#683433, Dan]
+
+	* Belatedly added soup-multipart-input-stream.h to soup.h.
+          [Dan]
+
+	* Added support for Apache 2.4 to the unit tests. Also fixed a
+          few race conditions that could cause "make check" to fail on
+          slow or heavily-loaded machines. [Dan]
+
+	* New translations:
+	  Slovak, Uyghur, Uzbek (Cyrillic)
+
 Changes in libsoup from 2.40.0 to 2.40.1:
 
 	* Improved the parsing of multipart/x-mixed-replace responses.
