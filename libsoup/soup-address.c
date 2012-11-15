@@ -1116,7 +1116,7 @@ got_addresses (SoupAddress *addr, guint status, gpointer user_data)
 
 	error = g_object_get_data (G_OBJECT (addr), "async-resolved-error");
 	if (error)
-		g_task_return_error (task, error);
+		g_task_return_error (task, g_error_copy (error));
 	else {
 		GSocketAddress *addr;
 
