@@ -1088,6 +1088,34 @@ do_dot_dot_test (void)
 }
 
 static void
+ipv6_server_callback (SoupServer *server, SoupMessage *msg,
+		      const char *path, GHashTable *query,
+		      SoupClientContext *context, gpointer data)
+{
+	const char *host;
+	char expected_host[128];
+
+	host = soup_message_headers_get_one (msg->request_headers, "Host");
+	if (!host) {
+		debug_printf (1, "    request has no Host header!\n");
+		errors++;
+		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+		return;
+	}
+
+	g_snprintf (expected_host, sizeof (expected_host),
+		    "[::1]:%d", soup_server_get_port (server));
+
+	if (strcmp (host, expected_host) == 0)
+		soup_message_set_status (msg, SOUP_STATUS_OK);
+	else {
+		debug_printf (1, "    request has incorrect Host header '%s'\n", host);
+		errors++;
+		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
+	}
+}
+
+static void
 do_ipv6_test (void)
 {
 	SoupServer *ipv6_server;
@@ -1103,7 +1131,7 @@ do_ipv6_test (void)
 	ipv6_server = soup_server_new (SOUP_SERVER_INTERFACE, ipv6_addr,
 				       NULL);
 	g_object_unref (ipv6_addr);
-	soup_server_add_handler (ipv6_server, NULL, server_callback, NULL, NULL);
+	soup_server_add_handler (ipv6_server, NULL, ipv6_server_callback, NULL, NULL);
 	soup_server_run_async (ipv6_server);
 
 	ipv6_uri = soup_uri_new ("http://[::1]/");
