@@ -1,3 +1,62 @@
+Changes in libsoup from 2.41.1 to 2.41.2:
+
+	* libsoup-2.4.so and libsoup-gnome-2.4.so now only export the
+          symbols that are part of the public API. (Plus, temporarily,
+          one additional symbol, soup_message_io_cleanup, which is
+          used by gvfs and possibly a few other modules, even though
+          it shouldn't be. If you copied soup-input-stream.c from
+          gvfs, you should port your code to use SoupRequest instead.)
+          [Dan, #595176]
+
+	* Added SOUP_VERSION_MIN_REQUIRED / SOUP_VERSION_MAX_ALLOWED
+          macros like the corresponding glib ones, to allow libsoup
+          users to request per-version deprecation/availability
+          warnings. [Dan]
+
+	* Fixed a crash caused by a race condition in SoupSessionSync,
+	  and reorganized some code to avoid other possible similar
+	  race conditions. [#684238, Dan]
+
+	* Fixed a crash when a DNS resolution failed, caused by a bug
+          in the GTask porting in 2.41.1. [#688330, Milan Crha]
+
+	* Fixed a problem that would cause g_warning()s in epiphany
+          when browsing sites that (incorrectly) returned empty
+          Cache-Control headers. [#683433, Dan]
+
+	* We now add a Host header to HTTP/1.0 requests as well as
+          HTTP/1.1 ones. [Dan]
+
+	* Fixed a bug in the printing of IPv6 address literals in the
+          Host header in SoupLogger. (They were being sent across the
+          wire correctly, they were just printed wrong by SoupLogger.)
+          [Dan]
+
+	* Belatedly added soup-multipart-input-stream.h to soup.h.
+          [Dan]
+
+	* Removed an evil hack in the long-deprecated
+          SoupProxyResolver code (not to be confused with
+          SoupProxyURIResolver), to avoid warnings with glib master.
+          If you had previously implemented a custom
+          SoupProxyResolver, then it will probably (silently) stop
+          working, but you should have ported it to
+          SoupProxyURIResolver years ago anyway... [Dan, #687659]
+
+	* Fixed a few race conditions in the test programs that could
+          cause "make check" to fail on slow or heavily-loaded
+          machines. [Dan]
+
+	* Further cleaned up and reorganized the internal HTTP I/O
+	  codepaths, in preparation for an improved SoupCache.
+	  [#682112, Sergio] (This change should not actually be
+	  externally noticeable. But if SoupContentDecoder or
+	  SoupContentSniffer turns out to be broken in this release,
+	  this would be why).
+
+	* New/updated translations:
+	  Slovak, Uyghur
+
 Changes in libsoup from 2.40.1 to 2.41.1:
 
 	* Changed the behavior of NTLM authentication to be more like
