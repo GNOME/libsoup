@@ -104,6 +104,7 @@ static gssize
 soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 				   const void            *buffer,
 				   gsize                  count,
+				   gboolean               blocking,
 				   GCancellable          *cancellable,
 				   GError               **error)
 {
@@ -122,9 +123,9 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 	} else
 		my_count = count;
 
-	nwrote = g_output_stream_write (bostream->priv->base_stream,
-					buffer, my_count,
-					cancellable, error);
+	nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+					  buffer, my_count,
+					  blocking, cancellable, error);
 
 	if (nwrote > 0 && bostream->priv->write_length)
 		bostream->priv->written += nwrote;
@@ -139,6 +140,7 @@ static gssize
 soup_body_output_stream_write_chunked (SoupBodyOutputStream  *bostream,
 				       const void            *buffer,
 				       gsize                  count,
+				       gboolean               blocking,
 				       GCancellable          *cancellable,
 				       GError               **error)
 {
@@ -148,8 +150,9 @@ soup_body_output_stream_write_chunked (SoupBodyOutputStream  *bostream,
 again:
 	len = strlen (buf);
 	if (len) {
-		nwrote = g_output_stream_write (bostream->priv->base_stream,
-						buf, len, cancellable, error);
+		nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+						  buf, len, blocking,
+						  cancellable, error);
 		if (nwrote < 0)
 			return nwrote;
 		memmove (buf, buf + nwrote, len + 1 - nwrote);
@@ -169,8 +172,9 @@ again:
 		break;
 
 	case SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK:
-		nwrote = g_output_stream_write (bostream->priv->base_stream,
-						buffer, count, cancellable, error);
+		nwrote = g_pollable_stream_write (bostream->priv->base_stream,
+						  buffer, count, blocking,
+						  cancellable, error);
 		if (nwrote < (gssize)count)
 			return nwrote;
 
@@ -212,11 +216,11 @@ soup_body_output_stream_write_fn (GOutputStream  *stream,
 	switch (bostream->priv->encoding) {
 	case SOUP_ENCODING_CHUNKED:
 		return soup_body_output_stream_write_chunked (bostream, buffer, count,
-							      cancellable, error);
+							      TRUE, cancellable, error);
 
 	default:
 		return soup_body_output_stream_write_raw (bostream, buffer, count,
-							  cancellable, error);
+							  TRUE, cancellable, error);
 	}
 }
 
@@ -228,7 +232,7 @@ soup_body_output_stream_close_fn (GOutputStream  *stream,
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
 
 	if (bostream->priv->encoding == SOUP_ENCODING_CHUNKED) {
-		if (soup_body_output_stream_write_chunked (bostream, NULL, 0, cancellable, error) == -1)
+		if (soup_body_output_stream_write_chunked (bostream, NULL, 0, TRUE, cancellable, error) == -1)
 			return FALSE;
 	}
 
@@ -242,6 +246,28 @@ soup_body_output_stream_is_writable (GPollableOutputStream *stream)
 
 	return bostream->priv->eof ||
 		g_pollable_output_stream_is_writable (G_POLLABLE_OUTPUT_STREAM (bostream->priv->base_stream));
+}
+
+static gssize
+soup_body_output_stream_write_nonblocking (GPollableOutputStream  *stream,
+					   const void             *buffer,
+					   gsize                   count,
+					   GError                **error)
+{
+	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
+
+	if (bostream->priv->eof)
+		return count;
+
+	switch (bostream->priv->encoding) {
+	case SOUP_ENCODING_CHUNKED:
+		return soup_body_output_stream_write_chunked (bostream, buffer, count,
+							      FALSE, NULL, error);
+
+	default:
+		return soup_body_output_stream_write_raw (bostream, buffer, count,
+							  FALSE, NULL, error);
+	}
 }
 
 static GSource *
@@ -301,6 +327,7 @@ soup_body_output_stream_pollable_init (GPollableOutputStreamInterface *pollable_
 				       gpointer interface_data)
 {
 	pollable_interface->is_writable = soup_body_output_stream_is_writable;
+	pollable_interface->write_nonblocking = soup_body_output_stream_write_nonblocking;
 	pollable_interface->create_source = soup_body_output_stream_create_source;
 }
 
