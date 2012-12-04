@@ -106,7 +106,7 @@ soup_tld_domain_is_public_suffix (const char *domain)
 	g_return_val_if_fail (domain, FALSE);
 
 	/* Skip the leading '.' if present */
-	if (*domain == '.' && !(++domain))
+	if (*domain == '.' && !*(++domain))
 		g_return_val_if_reached (FALSE);
 
 	base_domain = soup_tld_get_base_domain_internal (domain, 0, &error);
