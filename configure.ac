@@ -127,7 +127,6 @@ dnl *******************
 dnl *** Misc checks ***
 dnl *******************
 AC_CHECK_FUNCS(gmtime_r)
-AC_CHECK_FUNCS(mmap)
 AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
 
 dnl *********************

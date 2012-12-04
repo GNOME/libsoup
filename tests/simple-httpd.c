@@ -15,25 +15,6 @@
 #include <getopt.h>
 #endif
 
-#ifdef HAVE_MMAP
-#include <sys/mman.h>
-#endif
-
-#ifdef HAVE_MMAP
-struct mapping {
-	void   *start;
-	size_t  length;
-};
-
-static void
-free_mapping (gpointer data)
-{
-	struct mapping *mapping = data;
-	munmap (mapping->start, mapping->length);
-	g_slice_free (struct mapping, mapping);
-}
-#endif
-
 static int
 compare_strings (gconstpointer a, gconstpointer b)
 {
@@ -91,7 +72,6 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 {
 	char *slash;
 	struct stat st;
-	int fd;
 
 	if (stat (path, &st) == -1) {
 		if (errno == EPERM)
@@ -134,40 +114,27 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		return;
 	}
 
-	fd = open (path, O_RDONLY);
-	if (fd == -1) {
-		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-		return;
-	}
-
 	if (msg->method == SOUP_METHOD_GET) {
-#ifdef HAVE_MMAP
-		struct mapping *mapping = g_slice_new (struct mapping);
+		GMappedFile *mapping;
 		SoupBuffer *buffer;
 
-		mapping->start = mmap (NULL, st.st_size, PROT_READ,
-				       MAP_PRIVATE, fd, 0);
-		mapping->length = st.st_size;
-		buffer = soup_buffer_new_with_owner (mapping->start,
-						     mapping->length,
-						     mapping, free_mapping);
+		mapping = g_mapped_file_new (path, FALSE, NULL);
+		if (!mapping) {
+			soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+			return;
+		}
+
+		buffer = soup_buffer_new_with_owner (g_mapped_file_get_contents (mapping),
+						     g_mapped_file_get_length (mapping),
+						     mapping, (GDestroyNotify)g_mapped_file_unref);
 		soup_message_body_append_buffer (msg->response_body, buffer);
 		soup_buffer_free (buffer);
-#else
-		char *buf;
-
-		buf = g_malloc (st.st_size);
-		read (fd, buf, st.st_size);
-		close (fd);
-		soup_message_body_append (msg->response_body, SOUP_MEMORY_TAKE,
-					  buf, st.st_size);
-#endif
 	} else /* msg->method == SOUP_METHOD_HEAD */ {
 		char *length;
 
 		/* We could just use the same code for both GET and
-		 * HEAD. But we'll optimize and avoid the extra
-		 * malloc.
+		 * HEAD (soup-message-server-io.c will fix things up).
+		 * But we'll optimize and avoid the extra I/O.
 		 */
 		length = g_strdup_printf ("%lu", (gulong)st.st_size);
 		soup_message_headers_append (msg->response_headers,
