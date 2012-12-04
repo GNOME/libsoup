@@ -732,7 +732,7 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 			break;
 		}
 		value = soup_message_headers_get_list (hdrs, headers[i].name);
-		if (strcmp (value, headers[i].value) != 0) {
+		if (!value || strcmp (value, headers[i].value) != 0) {
 			ok = FALSE;
 			break;
 		}
@@ -981,11 +981,12 @@ do_content_disposition_tests (void)
 	g_hash_table_destroy (params);
 
 	header = soup_message_headers_get_one (hdrs, "Content-Disposition");
-	if (!strcmp (header, RFC5987_TEST_HEADER_ENCODED))
+	if (!g_strcmp0 (header, RFC5987_TEST_HEADER_ENCODED))
 		debug_printf (1, "  encoded OK\n");
 	else {
 		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC5987_TEST_HEADER_ENCODED, header);
+			      RFC5987_TEST_HEADER_ENCODED,
+			      header ? header : "(none)");
 		errors++;
 	}
 
@@ -1117,11 +1118,12 @@ do_content_type_tests (void)
 	g_hash_table_destroy (params);
 
 	header = soup_message_headers_get_one (hdrs, "Content-Type");
-	if (!strcmp (header, CONTENT_TYPE_TEST_HEADER))
+	if (!g_strcmp0 (header, CONTENT_TYPE_TEST_HEADER))
 		debug_printf (1, "  encoded OK\n");
 	else {
 		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      CONTENT_TYPE_TEST_HEADER, header);
+			      CONTENT_TYPE_TEST_HEADER,
+			      header ? header : "(none)");
 		errors++;
 	}
 

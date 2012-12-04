@@ -106,10 +106,10 @@ do_message (const char *path, gboolean long_body,
 	while ((expected_event = va_arg (ap, const char *))) {
 
 		if (!events) {
-			actual_event = g_strdup ("");
 			debug_printf (1, "  Expected '%s', got end of list\n",
 				      expected_event);
 			errors++;
+			continue;
 		} else {
 			actual_event = events->data;
 			if (strcmp (expected_event, actual_event) != 0) {
