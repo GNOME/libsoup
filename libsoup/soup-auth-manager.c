@@ -411,9 +411,10 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 	/* If a password is specified explicitly in the URI, use it
 	 * even if the auth had previously already been authenticated.
 	 */
-	if (uri->password) {
-		if (!prior_auth_failed)
-			soup_auth_authenticate (auth, uri->user, uri->password);
+	if (uri->password && uri->user) {
+		soup_auth_authenticate (auth, uri->user, uri->password);
+		soup_uri_set_password (uri, NULL);
+		soup_uri_set_user (uri, NULL);
 	} else if (!soup_auth_is_authenticated (auth) && can_interact) {
 		soup_auth_manager_emit_authenticate (manager, msg, auth,
 						     prior_auth_failed);

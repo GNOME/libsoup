@@ -146,7 +146,10 @@ static SoupAuthTest main_tests[] = {
 	  "Digest/realm1/not/", "1", FALSE, /* should not be used */ "1", SOUP_STATUS_UNAUTHORIZED },
 
 	{ "Make sure we've forgotten it",
-	  "Digest/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED }
+	  "Digest/realm1/", "", FALSE, "0", SOUP_STATUS_UNAUTHORIZED },
+
+	{ "Fail with URI-embedded password, then use right password in the authenticate signal",
+	  "Basic/realm3/", "43", TRUE, "43", SOUP_STATUS_OK }
 };
 
 static const char *auths[] = {
