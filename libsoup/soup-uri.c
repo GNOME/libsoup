@@ -434,6 +434,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 	    uri->scheme == SOUP_URI_SCHEME_HTTPS) {
 		if (!uri->path)
 			uri->path = g_strdup ("/");
+		if (uri->user && !uri->password)
+			uri->password = g_strdup ("");
 		if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
 			soup_uri_free (uri);
 			return NULL;
