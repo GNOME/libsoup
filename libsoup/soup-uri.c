@@ -709,7 +709,7 @@ uri_normalized_copy (const char *part, int length,
 
 			c = HEXCHAR (s);
 			if (soup_char_is_uri_unreserved (c) ||
-			    strchr (unescape_extra, c)) {
+			    (c && strchr (unescape_extra, c))) {
 				*d++ = c;
 				s += 3;
 			} else {

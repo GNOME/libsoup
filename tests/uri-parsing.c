@@ -125,6 +125,9 @@ static struct {
 	  { "http", "", NULL, "host", 80, "/", NULL, NULL } },
 	{ "http://:@host", "http://@host/",
 	  { "http", "", "", "host", 80, "/", NULL, NULL } },
+
+	{ "http://host/keep%00nuls", "http://host/keep%00nuls",
+	  { "http", NULL, NULL, "host", 80, "/keep%00nuls", NULL, NULL } },
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 
