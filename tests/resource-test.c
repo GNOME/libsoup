@@ -185,8 +185,8 @@ do_sync_request (SoupRequest *request)
 }
 
 static void
-do_request_file_test (SoupRequester *requester,
-		      gboolean	     async)
+do_request_file_test (SoupSession *session,
+		      gboolean	   async)
 {
 	SoupRequest *request;
 	GFile *index;
@@ -200,7 +200,7 @@ do_request_file_test (SoupRequester *requester,
 	uri = soup_uri_new (uri_string);
 	g_free (uri_string);
 
-	request = soup_requester_request_uri (requester, uri, NULL);
+	request = soup_session_request_uri (session, uri, NULL);
 	if (async)
 		do_async_request (request);
 	else
@@ -211,8 +211,8 @@ do_request_file_test (SoupRequester *requester,
 }
 
 static void
-do_request_data_test (SoupRequester *requester,
-		      gboolean	     async)
+do_request_data_test (SoupSession *session,
+		      gboolean	   async)
 {
 	SoupRequest *request;
 	gchar *base64;
@@ -226,7 +226,7 @@ do_request_data_test (SoupRequester *requester,
 	uri = soup_uri_new (uri_string);
 	g_free (uri_string);
 
-	request = soup_requester_request_uri (requester, uri, NULL);
+	request = soup_session_request_uri (session, uri, NULL);
 	if (async)
 		do_async_request (request);
 	else
@@ -237,14 +237,14 @@ do_request_data_test (SoupRequester *requester,
 }
 
 static void
-do_request_gresource_test (SoupRequester *requester,
-			   gboolean	  async)
+do_request_gresource_test (SoupSession *session,
+			   gboolean     async)
 {
 	SoupRequest *request;
 	SoupURI *uri;
 
 	uri = soup_uri_new ("resource:///org/gnome/libsoup/tests/index.txt");
-	request = soup_requester_request_uri (requester, uri, NULL);
+	request = soup_session_request_uri (session, uri, NULL);
 	if (async)
 		do_async_request (request);
 	else
@@ -258,7 +258,6 @@ int
 main (int argc, char **argv)
 {
 	SoupSession *session;
-	SoupRequester *requester;
 
 	test_init (argc, argv, NULL);
 
@@ -267,13 +266,10 @@ main (int argc, char **argv)
 
 	/* Sync tests */
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
 
-	do_request_file_test (requester, FALSE);
-	do_request_data_test (requester, FALSE);
-	do_request_gresource_test (requester, FALSE);
+	do_request_file_test (session, FALSE);
+	do_request_data_test (session, FALSE);
+	do_request_gresource_test (session, FALSE);
 
 	soup_test_session_abort_unref (session);
 
@@ -281,13 +277,10 @@ main (int argc, char **argv)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	requester = soup_requester_new ();
-	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-	g_object_unref (requester);
 
-	do_request_file_test (requester, TRUE);
-	do_request_data_test (requester, TRUE);
-	do_request_gresource_test (requester, TRUE);
+	do_request_file_test (session, TRUE);
+	do_request_data_test (session, TRUE);
+	do_request_gresource_test (session, TRUE);
 
 	soup_test_session_abort_unref (session);
 

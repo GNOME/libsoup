@@ -20,7 +20,7 @@ typedef enum {
 } MultipartMode;
 
 char *buffer;
-SoupRequester *requester;
+SoupSession *session;
 char *base_uri_string;
 SoupURI *base_uri;
 SoupMultipartInputStream *multipart;
@@ -494,7 +494,7 @@ static void
 test_multipart (int headers_expected, int sniffed_expected, MultipartMode multipart_mode)
 {
 	GError* error = NULL;
-	SoupRequest* request = soup_requester_request (requester, base_uri_string, &error);
+	SoupRequest* request = soup_session_request (session, base_uri_string, &error);
 
 	SoupMessage *msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
@@ -571,7 +571,6 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	SoupSession *session;
 
 	test_init (argc, argv, NULL);
 
@@ -591,10 +590,7 @@ main (int argc, char **argv)
 					 "max-conns", 20,
 					 "max-conns-per-host", 20,
 					 NULL);
-	soup_session_add_feature_by_type (session, SOUP_TYPE_REQUESTER);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
-
-	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
 
 	test_multipart (1, 1, NO_MULTIPART);
 	test_multipart (1, 1, SYNC_MULTIPART);

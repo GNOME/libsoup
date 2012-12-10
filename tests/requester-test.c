@@ -3,6 +3,9 @@
  * Copyright (C) 2011 Red Hat, Inc.
  */
 
+/* Kill SoupRequester-related deprecation warnings */
+#define SOUP_VERSION_MIN_REQUIRED SOUP_VERSION_2_40
+
 #include "test-utils.h"
 
 SoupServer *server;
