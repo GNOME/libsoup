@@ -1,0 +1,83 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Shankar Prasad <svenkate@redhat.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2012-12-03 11:35+0000\n"
+"PO-Revision-Date: 2012-12-10 15:49+0530\n"
+"Last-Translator: Shankar Prasad <svenkate@redhat.com>\n"
+"Language-Team: Kannada <kde-i18n-doc@kde.org>\n"
+"Language: kn\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Lokalize 1.5\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "ಸಂಪರ್ಕವು ಅನಿರೀಕ್ಷಿತವಾಗಿ ಕೊನೆಗೊಂಡಿದೆ"
+
+#: ../libsoup/soup-body-input-stream.c:461
+msgid "Invalid seek request"
+msgstr "ಅಮಾನ್ಯವಾದ ಕೋರಿಕೆಯ ಮನವಿ"
+
+#: ../libsoup/soup-body-input-stream.c:489
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "SoupBodyInputStream ಅನ್ನು ತುಂಡರಿಸಲಾಗಿಲ್ಲ"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "ಔಟ್‌ಪುಟ್ ಬಫರ್ ಬಹಳ ಚಿಕ್ಕದಾಗಿದೆ"
+
+#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+msgid "Operation was cancelled"
+msgstr "ಕಾರ್ಯಾಚರಣೆಯನ್ನು ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ"
+
+#: ../libsoup/soup-message-io.c:865
+msgid "Operation would block"
+msgstr "ಕಾರ್ಯಾಚರಣೆ ತಡೆಯಲ್ಪಡಬಹುದು"
+
+#: ../libsoup/soup-request.c:142
+#, c-format
+msgid "No URI provided"
+msgstr "ಯಾವುದೆ URI ಅನ್ನು ಒದಗಿಸಲಾಗಿಲ್ಲ."
+
+#: ../libsoup/soup-request.c:152
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "ಅಮಾನ್ಯವಾದ '%s' URI:'%s"
+
+#: ../libsoup/soup-requester.c:219
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "'%s' URL ಅನ್ನು ಪಾರ್ಸ್ ಮಾಡಲಾಗಿಲ್ಲ"
+
+#: ../libsoup/soup-requester.c:253
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "ಬೆಂಬಲವಿಲ್ಲದ ಯುಆರ್ಐ ಮಾದರಿ '%s'"
+
+#: ../libsoup/soup-tld.c:154
+msgid "Hostname is an IP address"
+msgstr "ಆತಿಥೇಯವು ಒಂದು IP ವಿಳಾಸವಾಗಿದೆ"
+
+#: ../libsoup/soup-tld.c:175
+msgid "Invalid hostname"
+msgstr "ಅಮಾನ್ಯವಾದ ಅತಿಥೇಯದ ಹೆಸರು"
+
+#: ../libsoup/soup-tld.c:204
+msgid "Hostname has no base domain"
+msgstr "ಆತಿಥೇಯದ ಹೆಸರಿನಲ್ಲಿ ಯಾವುದೆ ಮೂಲ ಡೊಮೈನ್ ಇಲ್ಲ"
+
+#: ../libsoup/soup-tld.c:226
+msgid "Not enough domains"
+msgstr "ಬೇಕಾದಷ್ಟು ಡೊಮೈನ್‌ಗಳಿಲ್ಲ"
+
