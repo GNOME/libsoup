@@ -1793,9 +1793,11 @@ soup_session_process_queue_item (SoupSession          *session,
 				break;
 			}
 
+			soup_message_queue_item_ref (item);
 			soup_session_unqueue_item (session, item);
 			if (item->async && item->callback)
 				item->callback (session, item->msg, item->callback_data);
+			soup_message_queue_item_unref (item);
 			return;
 
 		default:
