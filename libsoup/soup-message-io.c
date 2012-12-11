@@ -1106,6 +1106,7 @@ soup_message_io_pause (SoupMessage *msg)
 
 	if (io->unpause_source) {
 		g_source_destroy (io->unpause_source);
+		g_source_unref (io->unpause_source);
 		io->unpause_source = NULL;
 	}
 
@@ -1119,6 +1120,8 @@ io_unpause_internal (gpointer msg)
 	SoupMessageIOData *io = priv->io_data;
 
 	g_return_val_if_fail (io != NULL, FALSE);
+
+	g_source_unref (io->unpause_source);
 	io->unpause_source = NULL;
 	io->paused = FALSE;
 
@@ -1145,7 +1148,7 @@ soup_message_io_unpause (SoupMessage *msg)
 
 	if (!io->blocking) {
 		if (!io->unpause_source) {
-			io->unpause_source = soup_add_completion (
+			io->unpause_source = soup_add_completion_reffed (
 				io->async_context, io_unpause_internal, msg);
 		}
 	} else
