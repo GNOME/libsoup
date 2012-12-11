@@ -107,8 +107,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-domain-digest.c	\
 	soup-auth-manager.h		\
 	soup-auth-manager.c		\
-	soup-auth-manager-ntlm.h	\
-	soup-auth-manager-ntlm.c	\
 	soup-body-input-stream.h	\
 	soup-body-input-stream.c	\
 	soup-body-output-stream.h	\

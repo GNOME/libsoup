@@ -19,6 +19,10 @@ typedef enum {
 	NTLM_AUTHENTICATED_BOB
 } NTLMServerState;
 
+static const char *state_name[] = {
+	"unauth", "recv", "sent", "alice", "bob"
+};
+
 #define NTLM_REQUEST_START "TlRMTVNTUAABAAAA"
 #define NTLM_RESPONSE_START "TlRMTVNTUAADAAAA"
 
@@ -134,16 +138,22 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		}
 	}
 
+	debug_printf (2, " (S:%s)", state_name[state]);
 	g_hash_table_insert (connections, socket, GINT_TO_POINTER (state));
 	g_object_weak_ref (G_OBJECT (socket), clear_state, connections);
 }
+
+static gboolean authenticated_ntlm = FALSE;
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
 	      SoupAuth *auth, gboolean retrying, gpointer user)
 {
-	if (!retrying)
+	if (!retrying) {
 		soup_auth_authenticate (auth, user, "password");
+		if (g_str_equal (soup_auth_get_scheme_name (auth), "NTLM"))
+			authenticated_ntlm = TRUE;
+	}
 }
 
 typedef struct {
@@ -313,7 +323,8 @@ do_message (SoupSession *session, SoupURI *base_uri, const char *path,
 }
 
 static void
-do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
+do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
+	       const char *user, gboolean use_builtin_ntlm)
 {
 	SoupSession *session;
 	gboolean alice = !g_strcmp0 (user, "alice");
@@ -329,6 +340,8 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 	if (user) {
 		g_signal_connect (session, "authenticate",
 				  G_CALLBACK (authenticate), (char *)user);
+		if (use_ntlm && !use_builtin_ntlm)
+			g_setenv ("NTLMUSER", user, TRUE);
 	}
 
 	/* 1. Server doesn't request auth, so both get_ntlm_prompt and
@@ -336,10 +349,18 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 	 * if we're using NTLM we'll try that even without the server
 	 * asking.
 	 */
+	authenticated_ntlm = FALSE;
 	do_message (session, base_uri, "/noauth",
 		    FALSE, use_ntlm,
 		    FALSE, FALSE,
 		    SOUP_STATUS_OK);
+
+	if (authenticated_ntlm != (use_ntlm && use_builtin_ntlm)) {
+		debug_printf (1, "  ERROR: %s built-in NTLM support, but authenticate signal %s emitted\n",
+			      use_builtin_ntlm ? "Using" : "Not using",
+			      authenticated_ntlm ? "was" : "wasn't");
+		errors++;
+	}
 
 	/* 2. Server requires auth as Alice, so it will request that
 	 * if we didn't already authenticate the connection to her in
@@ -422,16 +443,16 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm, const char *user)
 }
 
 static void
-do_ntlm_tests (SoupURI *base_uri)
+do_ntlm_tests (SoupURI *base_uri, gboolean use_builtin_ntlm)
 {
 	debug_printf (1, "Round 1: Non-NTLM Connection, no auth\n");
-	do_ntlm_round (base_uri, FALSE, NULL);
+	do_ntlm_round (base_uri, FALSE, NULL, use_builtin_ntlm);
 	debug_printf (1, "Round 2: NTLM Connection, user=alice\n");
-	do_ntlm_round (base_uri, TRUE, "alice");
+	do_ntlm_round (base_uri, TRUE, "alice", use_builtin_ntlm);
 	debug_printf (1, "Round 3: NTLM Connection, user=bob\n");
-	do_ntlm_round (base_uri, TRUE, "bob");
+	do_ntlm_round (base_uri, TRUE, "bob", use_builtin_ntlm);
 	debug_printf (1, "Round 4: Non-NTLM Connection, user=alice\n");
-	do_ntlm_round (base_uri, FALSE, "alice");
+	do_ntlm_round (base_uri, FALSE, "alice", use_builtin_ntlm);
 }
 
 int
@@ -453,7 +474,30 @@ main (int argc, char **argv)
 
 	uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (uri, soup_server_get_port (server));
-	do_ntlm_tests (uri);
+
+	/* Built-in NTLM auth support. (We set SOUP_NTLM_AUTH_DEBUG to
+	 * an empty string to ensure that the built-in support is
+	 * being used, even if /usr/bin/ntlm_auth is available.)
+	 */
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
+	debug_printf (1, "Built-in NTLM support\n");
+	do_ntlm_tests (uri, TRUE);
+
+	/* Samba winbind /usr/bin/ntlm_auth helper support (via a
+	 * helper program that emulate's its interface).
+	 */
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG", BUILDDIR "/ntlm-test-helper", TRUE);
+	debug_printf (1, "\nExternal helper support\n");
+	do_ntlm_tests (uri, FALSE);
+
+	/* Support for when ntlm_auth is installed, but the user has
+	 * no cached credentials (and thus we have to fall back to
+	 * libsoup's built-in NTLM support).
+	 */
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
+	debug_printf (1, "\nExternal -> fallback support\n");
+	do_ntlm_tests (uri, TRUE);
+
 	soup_uri_free (uri);
 
 	g_main_loop_unref (loop);

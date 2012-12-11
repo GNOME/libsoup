@@ -70,6 +70,7 @@ tests/get
 tests/getbug
 tests/header-parsing
 tests/httpd.conf
+tests/ntlm-test-helper
 tests/pull-api
 tests/simple-httpd
 tests/simple-proxy

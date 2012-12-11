@@ -107,9 +107,13 @@ soup_auth_get_property (GObject *object, guint prop_id,
 		g_value_set_string (value, soup_auth_get_scheme_name (auth));
 		break;
 	case PROP_REALM:
+		if (auth->realm)
+			g_free (auth->realm);
 		g_value_set_string (value, soup_auth_get_realm (auth));
 		break;
 	case PROP_HOST:
+		if (priv->host)
+			g_free (priv->host);
 		g_value_set_string (value, soup_auth_get_host (auth));
 		break;
 	case PROP_IS_FOR_PROXY:
@@ -162,7 +166,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Realm",
 				     "Authentication realm",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE));
 	/**
 	 * SOUP_AUTH_HOST:
 	 *
@@ -175,7 +179,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				     "Host",
 				     "Authentication host",
 				     NULL,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				     G_PARAM_READWRITE));
 	/**
 	 * SOUP_AUTH_IS_FOR_PROXY:
 	 *
@@ -188,7 +192,7 @@ soup_auth_class_init (SoupAuthClass *auth_class)
 				      "For Proxy",
 				      "Whether or not the auth is for a proxy server",
 				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_AUTH_IS_AUTHENTICATED:
 	 *
@@ -242,19 +246,12 @@ soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)
 	}
 
 	params = soup_header_parse_param_list (auth_header + strlen (scheme));
-	if (!params) {
-		g_object_unref (auth);
-		return NULL;
-	}
+	if (!params)
+		params = g_hash_table_new (NULL, NULL);
 
 	realm = g_hash_table_lookup (params, "realm");
-	if (!realm) {
-		soup_header_free_param_list (params);
-		g_object_unref (auth);
-		return NULL;
-	}
-
-	auth->realm = g_strdup (realm);
+	if (realm)
+		auth->realm = g_strdup (realm);
 
 	if (!SOUP_AUTH_GET_CLASS (auth)->update (auth, msg, params)) {
 		g_object_unref (auth);
@@ -295,10 +292,10 @@ soup_auth_update (SoupAuth *auth, SoupMessage *msg, const char *auth_header)
 
 	params = soup_header_parse_param_list (auth_header + strlen (scheme));
 	if (!params)
-		return FALSE;
+		params = g_hash_table_new (NULL, NULL);
 
 	realm = g_hash_table_lookup (params, "realm");
-	if (!realm || strcmp (realm, auth->realm) != 0) {
+	if (realm && auth->realm && strcmp (realm, auth->realm) != 0) {
 		soup_header_free_param_list (params);
 		return FALSE;
 	}

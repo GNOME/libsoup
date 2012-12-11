@@ -13,7 +13,7 @@
 
 #include "soup-session.h"
 #include "soup.h"
-#include "soup-auth-manager-ntlm.h"
+#include "soup-auth-manager.h"
 #include "soup-cache-private.h"
 #include "soup-connection.h"
 #include "soup-marshal.h"
@@ -219,7 +219,7 @@ soup_session_init (SoupSession *session)
 
 	priv->features_cache = g_hash_table_new (NULL, NULL);
 
-	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER_NTLM, NULL);
+	auth_manager = g_object_new (SOUP_TYPE_AUTH_MANAGER, NULL);
 	g_signal_connect (auth_manager, "authenticate",
 			  G_CALLBACK (auth_manager_authenticate), session);
 	soup_session_feature_add_feature (SOUP_SESSION_FEATURE (auth_manager),
@@ -573,7 +573,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 		break;
 	case PROP_USE_NTLM:
 		g_return_if_fail (!SOUP_IS_PLAIN_SESSION (session));
-		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
+		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
 		if (feature) {
 			if (g_value_get_boolean (value))
 				soup_session_feature_add_feature (feature, SOUP_TYPE_AUTH_NTLM);
@@ -698,7 +698,7 @@ soup_session_get_property (GObject *object, guint prop_id,
 		g_value_set_int (value, priv->max_conns_per_host);
 		break;
 	case PROP_USE_NTLM:
-		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER_NTLM);
+		feature = soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
 		if (feature)
 			g_value_set_boolean (value, soup_session_feature_has_feature (feature, SOUP_TYPE_AUTH_NTLM));
 		else

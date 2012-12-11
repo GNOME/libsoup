@@ -1,6 +1,7 @@
 INCLUDES =		\
 	-I$(top_srcdir)	\
 	-DSRCDIR=\""$(abs_srcdir)"\" \
+	-DBUILDDIR=\""$(builddir)"\" \
 	$(SOUP_MAINTAINER_FLAGS) \
 	$(XML_CFLAGS)	\
 	$(GLIB_CFLAGS)
@@ -25,6 +26,7 @@ noinst_PROGRAMS =	\
 	header-parsing  \
 	misc-test	\
 	multipart-test	\
+	ntlm-test-helper \
 	ntlm-test	\
 	redirect-test	\
 	requester-test	\

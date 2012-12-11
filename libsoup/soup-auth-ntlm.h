@@ -24,9 +24,4 @@ typedef struct {
 
 } SoupAuthNTLMClass;
 
-SoupAuth   *soup_auth_ntlm_new          (const char *realm,
-					 const char *host);
-const char *soup_auth_ntlm_get_username (SoupAuth   *auth);
-const char *soup_auth_ntlm_get_password (SoupAuth   *auth);
-
 #endif /* SOUP_AUTH_NTLM_H */
