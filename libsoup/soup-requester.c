@@ -74,6 +74,41 @@ soup_requester_detach (SoupSessionFeature *feature, SoupSession *session)
 	soup_requester_default_feature_interface->detach (feature, session);
 }
 
+static gboolean
+soup_requester_add_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	soup_session_add_feature_by_type (requester->priv->session, type);
+	return TRUE;
+}
+
+static gboolean
+soup_requester_remove_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	soup_session_remove_feature_by_type (requester->priv->session, type);
+	return TRUE;
+}
+
+static gboolean
+soup_requester_has_feature (SoupSessionFeature *feature, GType type)
+{
+	SoupRequester *requester = SOUP_REQUESTER (feature);
+
+	if (!g_type_is_a (type, SOUP_TYPE_REQUEST))
+		return FALSE;
+
+	return soup_session_has_feature (requester->priv->session, type);
+}
+
 static void
 soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 				     gpointer interface_data)
@@ -83,6 +118,9 @@ soup_requester_session_feature_init (SoupSessionFeatureInterface *feature_interf
 
 	feature_interface->attach = soup_requester_attach;
 	feature_interface->detach = soup_requester_detach;
+	feature_interface->add_feature = soup_requester_add_feature;
+	feature_interface->remove_feature = soup_requester_remove_feature;
+	feature_interface->has_feature = soup_requester_has_feature;
 }
 
 SoupRequester *
