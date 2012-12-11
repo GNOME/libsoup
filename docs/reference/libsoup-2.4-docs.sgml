@@ -63,11 +63,6 @@
   </chapter>
 
   <chapter>
-    <title>GNOME integration</title>
-    <xi:include href="xml/soup-gnome-features.xml"/>
-  </chapter>
-
-  <chapter>
     <title>Low-level Networking API</title>
     <xi:include href="xml/soup-address.xml"/>
     <xi:include href="xml/soup-socket.xml"/>

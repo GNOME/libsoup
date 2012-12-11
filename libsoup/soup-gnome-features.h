@@ -11,10 +11,12 @@
 G_BEGIN_DECLS
 
 SOUP_AVAILABLE_IN_2_26
+SOUP_DEPRECATED_IN_2_42_FOR(SOUP_TYPE_PROXY_RESOLVER_DEFAULT)
 GType soup_proxy_resolver_gnome_get_type (void);
 #define SOUP_TYPE_PROXY_RESOLVER_GNOME (soup_proxy_resolver_gnome_get_type ())
 
 SOUP_AVAILABLE_IN_2_26
+SOUP_DEPRECATED_IN_2_42
 GType soup_gnome_features_2_26_get_type (void);
 #define SOUP_TYPE_GNOME_FEATURES_2_26 (soup_gnome_features_2_26_get_type ())
 

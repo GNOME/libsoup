@@ -1009,18 +1009,6 @@ soup_proxy_uri_resolver_get_type
 </SECTION>
 
 <SECTION>
-<INCLUDE>libsoup/soup-gnome.h</INCLUDE>
-<FILE>soup-gnome-features</FILE>
-SOUP_TYPE_GNOME_FEATURES_2_26
-SOUP_TYPE_PROXY_RESOLVER_GNOME
-<SUBSECTION Standard>
-soup_proxy_resolver_gnome_get_type
-soup_gnome_features_2_26_get_type
-SOUP_TYPE_PASSWORD_MANAGER_GNOME
-soup_password_manager_gnome_get_type
-</SECTION>
-
-<SECTION>
 <FILE>soup-content-sniffer</FILE>
 <TITLE>SoupContentSniffer</TITLE>
 SoupContentSniffer
