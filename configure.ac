@@ -97,6 +97,10 @@ PKG_CHECK_MODULES(XML, libxml-2.0)
 AC_SUBST(XML_CFLAGS)
 AC_SUBST(XML_LIBS)
 
+PKG_CHECK_MODULES(SQLITE, sqlite3)
+AC_SUBST(SQLITE_CFLAGS)
+AC_SUBST(SQLITE_LIBS)
+
 dnl ***********************
 dnl *** Check for Win32 ***
 dnl ***********************
@@ -142,18 +146,8 @@ AM_CONDITIONAL(BUILD_LIBSOUP_GNOME, test $with_gnome != no)
 
 if test $with_gnome != no; then
 	AC_DEFINE(HAVE_GNOME, 1, [Defined if GNOME support is enabled])
-
-	PKG_CHECK_MODULES(SQLITE, sqlite3, :, [AC_MSG_ERROR(dnl
-[Could not find sqlite3 devel files:
-
-$SQLITE_PKG_ERRORS
-
-Pass "--without-gnome" to configure if you want to build libsoup
-without GNOME support.])])
 fi
 AC_SUBST(HAVE_GNOME)
-AC_SUBST(SQLITE_CFLAGS)
-AC_SUBST(SQLITE_LIBS)
 
 
 dnl ***************

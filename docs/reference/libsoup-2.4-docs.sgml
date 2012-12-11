@@ -49,6 +49,7 @@
     <xi:include href="xml/soup-content-sniffer.xml"/>
     <xi:include href="xml/soup-cookie-jar.xml"/>
     <xi:include href="xml/soup-cookie-jar-text.xml"/>
+    <xi:include href="xml/soup-cookie-jar-db.xml"/>
     <xi:include href="xml/soup-logger.xml"/>
     <xi:include href="xml/soup-proxy-uri-resolver.xml"/>
     <xi:include href="xml/soup-proxy-resolver-default.xml"/>
@@ -64,7 +65,6 @@
   <chapter>
     <title>GNOME integration</title>
     <xi:include href="xml/soup-gnome-features.xml"/>
-    <xi:include href="xml/soup-cookie-jar-sqlite.xml"/>
   </chapter>
 
   <chapter>

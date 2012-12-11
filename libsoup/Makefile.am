@@ -34,6 +34,7 @@ soup_headers =			\
 	soup-content-sniffer.h	\
 	soup-cookie.h		\
 	soup-cookie-jar.h	\
+	soup-cookie-jar-db.h	\
 	soup-cookie-jar-text.h	\
 	soup-date.h		\
 	soup-form.h		\
@@ -88,6 +89,7 @@ EXTRA_DIST += libsoup-2.4.sym
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
+	$(SQLITE_LIBS)			\
 	-lz				\
 	$(LIBWS2_32)
 
@@ -127,6 +129,7 @@ libsoup_2_4_la_SOURCES =		\
 	soup-converter-wrapper.c	\
 	soup-cookie.c			\
 	soup-cookie-jar.c		\
+	soup-cookie-jar-db.c		\
 	soup-cookie-jar-text.c		\
 	soup-date.c			\
 	soup-directory-input-stream.h	\
@@ -212,8 +215,7 @@ EXTRA_DIST += libsoup-gnome-2.4.sym
 
 libsoup_gnome_2_4_la_LIBADD =		\
 	libsoup-2.4.la			\
-	$(GLIB_LIBS)			\
-	$(SQLITE_LIBS)
+	$(GLIB_LIBS)
 
 libsoup_gnome_2_4_la_SOURCES =		\
 	soup-cookie-jar-sqlite.c	\

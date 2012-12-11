@@ -6,7 +6,7 @@
 #ifndef SOUP_COOKIE_JAR_SQLITE_H
 #define SOUP_COOKIE_JAR_SQLITE_H 1
 
-#include <libsoup/soup-cookie-jar.h>
+#include <libsoup/soup-cookie-jar-db.h>
 
 G_BEGIN_DECLS
 
@@ -18,26 +18,23 @@ G_BEGIN_DECLS
 #define SOUP_COOKIE_JAR_SQLITE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), SOUP_TYPE_COOKIE_JAR_SQLITE, SoupCookieJarSqliteClass))
 
 typedef struct {
-	SoupCookieJar parent;
+	SoupCookieJarDB parent;
 
 } SoupCookieJarSqlite;
 
 typedef struct {
-	SoupCookieJarClass parent_class;
+	SoupCookieJarDBClass parent_class;
 
-	/* Padding for future expansion */
-	void (*_libsoup_reserved1) (void);
-	void (*_libsoup_reserved2) (void);
-	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
 } SoupCookieJarSqliteClass;
 
 #define SOUP_COOKIE_JAR_SQLITE_FILENAME  "filename"
 
 SOUP_AVAILABLE_IN_2_26
+SOUP_DEPRECATED_IN_2_42_FOR(soup_cookie_jar_db_get_type)
 GType soup_cookie_jar_sqlite_get_type (void);
 
 SOUP_AVAILABLE_IN_2_26
+SOUP_DEPRECATED_IN_2_42_FOR(soup_cookie_jar_db_new)
 SoupCookieJar *soup_cookie_jar_sqlite_new (const char *filename,
 					   gboolean    read_only);
 

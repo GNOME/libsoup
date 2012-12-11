@@ -973,22 +973,21 @@ soup_cookie_jar_text_get_type
 </SECTION>
 
 <SECTION>
-<INCLUDE>libsoup/soup-gnome.h</INCLUDE>
-<FILE>soup-cookie-jar-sqlite</FILE>
-<TITLE>SoupCookieJarSqlite</TITLE>
-SoupCookieJarSqlite
-soup_cookie_jar_sqlite_new
+<FILE>soup-cookie-jar-db</FILE>
+<TITLE>SoupCookieJarDB</TITLE>
+SoupCookieJarDB
+soup_cookie_jar_db_new
 <SUBSECTION>
-SOUP_COOKIE_JAR_SQLITE_FILENAME
+SOUP_COOKIE_JAR_DB_FILENAME
 <SUBSECTION Standard>
-SoupCookieJarSqliteClass
-SOUP_COOKIE_JAR_SQLITE
-SOUP_COOKIE_JAR_SQLITE_CLASS
-SOUP_COOKIE_JAR_SQLITE_GET_CLASS
-SOUP_TYPE_COOKIE_JAR_SQLITE
-SOUP_IS_COOKIE_JAR_SQLITE
-SOUP_IS_COOKIE_JAR_SQLITE_CLASS
-soup_cookie_jar_sqlite_get_type
+SoupCookieJarDBClass
+SOUP_COOKIE_JAR_DB
+SOUP_COOKIE_JAR_DB_CLASS
+SOUP_COOKIE_JAR_DB_GET_CLASS
+SOUP_TYPE_COOKIE_JAR_DB
+SOUP_IS_COOKIE_JAR_DB
+SOUP_IS_COOKIE_JAR_DB_CLASS
+soup_cookie_jar_db_get_type
 </SECTION>
 
 <SECTION>
