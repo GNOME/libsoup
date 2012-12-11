@@ -384,8 +384,10 @@ test_sniffing (const char *path, const char *expected_type)
 
 	req = soup_session_request_uri (session, uri, NULL);
 	stream = soup_test_request_send (req, NULL, &error);
-	if (stream)
+	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
+		g_object_unref (stream);
+	}
 	if (error) {
 		debug_printf (1, "  request failed: %s\n", error->message);
 		g_clear_error (&error);
@@ -436,8 +438,10 @@ test_disabled (const char *path)
 	req = soup_session_request_uri (session, uri, NULL);
 	soup_request_disable_feature (req, SOUP_TYPE_CONTENT_SNIFFER);
 	stream = soup_test_request_send (req, NULL, &error);
-	if (stream)
+	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
+		g_object_unref (stream);
+	}
 	if (error) {
 		debug_printf (1, "  request failed: %s\n", error->message);
 		g_clear_error (&error);

@@ -270,6 +270,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		}
 
 		g_error_free (error);
+		g_object_unref (msg);
 		g_object_unref (reqh);
 		debug_printf (2, "\n");
 		return;
@@ -277,6 +278,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);
 		g_error_free (error);
+		g_object_unref (msg);
 		g_object_unref (reqh);
 		errors++;
 		debug_printf (2, "\n");

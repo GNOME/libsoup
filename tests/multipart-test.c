@@ -130,16 +130,19 @@ read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 	GInputStream *stream = G_INPUT_STREAM (source);
 	GError *error = NULL;
 	gssize bytes_read = g_input_stream_read_finish (stream, asyncResult, &error);
+
 	if (error) {
 		debug_printf (1, "  failed read: %s\n", error->message);
 		errors++;
 
+		g_object_unref (stream);
 		g_main_loop_quit (loop);
 		return;
 	}
 
 	if (!bytes_read) {
 		g_input_stream_close (stream, NULL, &error);
+		g_object_unref (stream);
 
 		if (error) {
 			debug_printf (1, "  failed close: %s\n", error->message);
@@ -246,6 +249,7 @@ multipart_read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 
 		g_input_stream_close_async (in, G_PRIORITY_DEFAULT, NULL,
 					    multipart_close_part_cb, NULL);
+		g_object_unref (in);
 
 		g_main_loop_quit (loop);
 		return;
@@ -259,6 +263,7 @@ multipart_read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 
 		g_input_stream_close_async (in, G_PRIORITY_DEFAULT, NULL,
 					    multipart_close_part_cb, NULL);
+		g_object_unref (in);
 
 		soup_multipart_input_stream_next_part_async (multipart, G_PRIORITY_DEFAULT, NULL,
 							     multipart_next_part_cb, data);
@@ -362,8 +367,10 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 
 	if (error) {
 		debug_printf (1, "  failed next part: %s\n", error->message);
+		g_clear_error (&error);
 		errors++;
 
+		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
 	}
@@ -374,6 +381,7 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 			errors++;
 		}
 
+		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
 	}
@@ -400,6 +408,8 @@ multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	in = soup_request_send_finish (request, res, &error);
 	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
+	g_object_unref (message);
+	g_object_unref (in);
 
 	if (error) {
 		debug_printf (1, "  failed send: %s\n", error->message);
@@ -430,6 +440,8 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	in = soup_request_send_finish (request, res, &error);
 	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
+	g_object_unref (message);
+	g_object_unref (in);
 
 	if (error) {
 		debug_printf (1, "  failed send: %s\n", error->message);
@@ -460,12 +472,14 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 			debug_printf (1, "  failed sync read: %s\n", error->message);
 			errors++;
 			g_clear_error (&error);
+			g_object_unref (in);
 			break;
 		}
 
 		check_read (bytes_read, passes);
 
 		passes++;
+		g_object_unref (in);
 	}
 
 	if (passes != 4) {
@@ -474,7 +488,7 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	}
 
 	g_main_loop_quit (loop);
-
+	g_object_unref (multipart);
 }
 
 static const char*
@@ -518,8 +532,6 @@ test_multipart (int headers_expected, int sniffed_expected, MultipartMode multip
 
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (content_sniffed), &sniffed_count);
-
-	g_object_ref (msg);
 
 	if (multipart_mode == ASYNC_MULTIPART)
 		soup_request_send_async (request, NULL, multipart_handling_cb, loop);
@@ -599,6 +611,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 	g_free (base_uri_string);
+	g_free (buffer);
 
 	soup_test_session_abort_unref (session);
 	soup_test_server_quit_unref (server);

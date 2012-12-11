@@ -401,6 +401,19 @@
    ...
    fun:thread_memory_from_self
 }
+{
+   glib/gobjectinit
+   Memcheck:Leak
+   ...
+   fun:gobject_init_ctor
+}
+{
+   glib/gtask threadpool
+   Memcheck:Leak
+   ...
+   fun:g_thread_pool_new
+   fun:g_task_thread_pool_init
+}
 
 # probably inlines the aggressive memcpy/memcmp
 {
