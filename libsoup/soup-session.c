@@ -1162,6 +1162,7 @@ soup_session_set_item_connection (SoupSession          *session,
 	}
 
 	item->conn = conn;
+	soup_message_set_connection (item->msg, conn);
 
 	if (item->conn) {
 		g_object_ref (item->conn);

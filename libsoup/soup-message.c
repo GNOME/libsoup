@@ -1260,6 +1260,19 @@ soup_message_get_proxy_auth (SoupMessage *msg)
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->proxy_auth;
 }
 
+SoupConnection *
+soup_message_get_connection (SoupMessage *msg)
+{
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->connection;
+}
+
+void
+soup_message_set_connection (SoupMessage    *msg,
+			     SoupConnection *conn)
+{
+	SOUP_MESSAGE_GET_PRIVATE (msg)->connection = conn;
+}
+
 /**
  * soup_message_cleanup_response:
  * @msg: a #SoupMessage

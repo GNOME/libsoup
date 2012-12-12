@@ -119,6 +119,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-client-input-stream.c	\
 	soup-connection.h		\
 	soup-connection.c		\
+	soup-connection-auth.h		\
+	soup-connection-auth.c		\
 	soup-content-decoder.c		\
 	soup-content-processor.h	\
 	soup-content-processor.c	\

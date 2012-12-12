@@ -536,6 +536,7 @@ soup_auth_get_info
 <SUBSECTION>
 soup_auth_authenticate
 soup_auth_is_authenticated
+soup_auth_is_ready
 <SUBSECTION>
 soup_auth_get_authorization
 soup_auth_get_protection_space

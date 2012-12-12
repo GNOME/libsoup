@@ -459,6 +459,33 @@ soup_auth_get_authorization (SoupAuth *auth, SoupMessage *msg)
 }
 
 /**
+ * soup_auth_is_ready:
+ * @auth: a #SoupAuth
+ * @msg: a #SoupMessage
+ *
+ * Tests if @auth is ready to make a request for @msg with. For most
+ * auths, this is equivalent to soup_auth_is_authenticated(), but for
+ * some auth types (eg, NTLM), the auth may be sendable (eg, as an
+ * authentication request) even before it is authenticated.
+ *
+ * Return value: %TRUE if @auth is ready to make a request with.
+ *
+ * Since: 2.42
+ **/
+gboolean
+soup_auth_is_ready (SoupAuth    *auth,
+		    SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_AUTH (auth), TRUE);
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), TRUE);
+
+	if (SOUP_AUTH_GET_CLASS (auth)->is_ready)
+		return SOUP_AUTH_GET_CLASS (auth)->is_ready (auth, msg);
+	else
+		return SOUP_AUTH_GET_CLASS (auth)->is_authenticated (auth);
+}
+
+/**
  * soup_auth_get_protection_space:
  * @auth: a #SoupAuth
  * @source_uri: the URI of the request that @auth was generated in

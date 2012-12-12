@@ -31,6 +31,7 @@ typedef struct {
 	SoupAddress       *addr;
 
 	SoupAuth          *auth, *proxy_auth;
+	SoupConnection    *connection;
 
 	GSList            *disabled_features;
 
@@ -137,5 +138,9 @@ GInputStream *soup_message_setup_body_istream (GInputStream *body_stream,
 
 void soup_message_set_soup_request (SoupMessage *msg,
 				    SoupRequest *req);
+
+SoupConnection *soup_message_get_connection (SoupMessage    *msg);
+void            soup_message_set_connection (SoupMessage    *msg,
+					     SoupConnection *conn);
 
 #endif /* SOUP_MESSAGE_PRIVATE_H */

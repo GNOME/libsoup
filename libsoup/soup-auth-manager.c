@@ -13,6 +13,7 @@
 
 #include "soup-auth-manager.h"
 #include "soup.h"
+#include "soup-connection-auth.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
@@ -36,13 +37,10 @@ G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
 typedef struct {
 	SoupSession *session;
 	GPtrArray *auth_types;
-	gboolean has_ntlm;
+	gboolean auto_ntlm;
 
 	SoupAuth *proxy_auth;
 	GHashTable *auth_hosts;
-
-	GHashTable *connauths;
-	GHashTable *sockets_by_msg;
 } SoupAuthManagerPrivate;
 #define SOUP_AUTH_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate))
 
@@ -53,6 +51,8 @@ typedef struct {
 } SoupAuthHost;
 
 static void soup_auth_host_free (SoupAuthHost *host);
+static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
+				      SoupURI *uri, SoupAuth *auth);
 
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
@@ -64,10 +64,6 @@ soup_auth_manager_init (SoupAuthManager *manager)
 						  soup_uri_host_equal,
 						  NULL,
 						  (GDestroyNotify)soup_auth_host_free);
-
-	priv->connauths = g_hash_table_new_full (NULL, NULL,
-						 NULL, g_object_unref);
-	priv->sockets_by_msg = g_hash_table_new (NULL, NULL);
 }
 
 static void
@@ -80,9 +76,6 @@ soup_auth_manager_finalize (GObject *object)
 	g_hash_table_destroy (priv->auth_hosts);
 
 	g_clear_object (&priv->proxy_auth);
-
-	g_hash_table_destroy (priv->connauths);
-	g_hash_table_destroy (priv->sockets_by_msg);
 
 	G_OBJECT_CLASS (soup_auth_manager_parent_class)->finalize (object);
 }
@@ -133,7 +126,7 @@ soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 	g_ptr_array_sort (priv->auth_types, auth_type_compare_func);
 
 	if (type == SOUP_TYPE_AUTH_NTLM)
-		priv->has_ntlm = TRUE;
+		priv->auto_ntlm = TRUE;
 
 	return TRUE;
 }
@@ -153,7 +146,7 @@ soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 	for (i = 0; i < priv->auth_types->len; i++) {
 		if (priv->auth_types->pdata[i] == (gpointer)auth_class) {
 			if (type == SOUP_TYPE_AUTH_NTLM)
-				priv->has_ntlm = FALSE;
+				priv->auto_ntlm = FALSE;
 
 			g_ptr_array_remove_index (priv->auth_types, i);
 			return TRUE;
@@ -349,10 +342,9 @@ check_auth (SoupMessage *msg, SoupAuth *auth)
 }
 
 static SoupAuthHost *
-get_auth_host_for_message (SoupAuthManagerPrivate *priv, SoupMessage *msg)
+get_auth_host_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri)
 {
 	SoupAuthHost *host;
-	SoupURI *uri = soup_message_get_uri (msg);
 
 	host = g_hash_table_lookup (priv->auth_hosts, uri);
 	if (host)
@@ -375,14 +367,30 @@ soup_auth_host_free (SoupAuthHost *host)
 	g_slice_free (SoupAuthHost, host);
 }
 
+static gboolean
+make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
+{
+	SoupAuth *auth;
+
+	if (!priv->auto_ntlm)
+		return FALSE;
+
+	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
+			     SOUP_AUTH_HOST, host->uri->host,
+			     NULL);
+	record_auth_for_uri (priv, host->uri, auth);
+	g_object_unref (auth);
+	return TRUE;
+}
+
 static SoupAuth *
 lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 {
 	SoupAuthHost *host;
 	const char *path, *realm;
 
-	host = get_auth_host_for_message (priv, msg);
-	if (!host->auth_realms)
+	host = get_auth_host_for_uri (priv, soup_message_get_uri (msg));
+	if (!host->auth_realms && !make_auto_ntlm_auth (priv, host))
 		return NULL;
 
 	path = soup_message_get_uri (msg)->path;
@@ -395,7 +403,7 @@ lookup_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 		return NULL;
 }
 
-static gboolean
+static void
 authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy, gboolean can_interact)
@@ -416,7 +424,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 			uri = NULL;
 
 		if (!uri)
-			return FALSE;
+			return;
 	} else
 		uri = soup_message_get_uri (msg);
 
@@ -431,110 +439,19 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		g_signal_emit (manager, signals[AUTHENTICATE], 0,
 			       msg, auth, prior_auth_failed);
 	}
-
-	return soup_auth_is_authenticated (auth);
-}
-
-static void
-delete_connauth (SoupSocket *socket, gpointer user_data)
-{
-	SoupAuthManagerPrivate *priv = user_data;
-
-	g_hash_table_remove (priv->connauths, socket);
-	g_signal_handlers_disconnect_by_func (socket, delete_connauth, priv);
 }
 
 static SoupAuth *
-get_connauth (SoupAuthManagerPrivate *priv, SoupSocket *socket)
+record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
+		     SoupAuth *auth)
 {
-	SoupAuth *auth;
-
-	if (!priv->has_ntlm)
-		return NULL;
-
-	auth = g_hash_table_lookup (priv->connauths, socket);
-	if (!auth) {
-		auth = g_object_new (SOUP_TYPE_AUTH_NTLM, NULL);
-		g_hash_table_insert (priv->connauths, socket, auth);
-		g_signal_connect (socket, "disconnected",
-				  G_CALLBACK (delete_connauth), priv);
-	}
-
-	return auth;
-}
-
-static void
-unset_socket (SoupMessage *msg, gpointer user_data)
-{
-	SoupAuthManagerPrivate *priv = user_data;
-
-	g_hash_table_remove (priv->sockets_by_msg, msg);
-	g_signal_handlers_disconnect_by_func (msg, unset_socket, priv);
-}
-
-static void
-set_socket_for_msg (SoupAuthManagerPrivate *priv,
-		    SoupMessage *msg, SoupSocket *sock)
-{
-	if (!g_hash_table_lookup (priv->sockets_by_msg, msg)) {
-		g_signal_connect (msg, "finished",
-				  G_CALLBACK (unset_socket), priv);
-		g_signal_connect (msg, "restarted",
-				  G_CALLBACK (unset_socket), priv);
-	}
-	g_hash_table_insert (priv->sockets_by_msg, msg, sock);
-}
-
-static SoupAuth *
-get_connauth_for_msg (SoupAuthManagerPrivate *priv, SoupMessage *msg)
-{
-	SoupSocket *sock;
-
-	sock = g_hash_table_lookup (priv->sockets_by_msg, msg);
-	if (sock)
-		return g_hash_table_lookup (priv->connauths, sock);
-	else
-		return NULL;
-}
-
-static void
-auth_got_headers (SoupMessage *msg, gpointer manager)
-{
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupAuthHost *host;
-	SoupAuth *auth, *prior_auth, *old_auth;
+	SoupAuth *old_auth;
 	const char *path;
 	char *auth_info, *old_auth_info;
 	GSList *pspace, *p;
-	gboolean prior_auth_failed = FALSE;
 
-	auth = get_connauth_for_msg (priv, msg);
-	if (auth) {
-		const char *header;
-
-		header = auth_header_for_message (msg);
-		if (header && soup_auth_update (auth, msg, header)) {
-			if (!soup_auth_is_authenticated (auth)) {
-				g_signal_emit (manager, signals[AUTHENTICATE], 0,
-					       msg, auth, FALSE);
-			}
-			return;
-		}
-	}
-
-	host = get_auth_host_for_message (priv, msg);
-
-	/* See if we used auth last time */
-	prior_auth = soup_message_get_auth (msg);
-	if (prior_auth && check_auth (msg, prior_auth)) {
-		auth = prior_auth;
-		if (!soup_auth_is_authenticated (auth))
-			prior_auth_failed = TRUE;
-	} else {
-		auth = create_auth (priv, msg);
-		if (!auth)
-			return;
-	}
+	host = get_auth_host_for_uri (priv, uri);
 	auth_info = soup_auth_get_info (auth);
 
 	if (!host->auth_realms) {
@@ -544,7 +461,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	}
 
 	/* Record where this auth realm is used. */
-	pspace = soup_auth_get_protection_space (auth, soup_message_get_uri (msg));
+	pspace = soup_auth_get_protection_space (auth, uri);
 	for (p = pspace; p; p = p->next) {
 		path = p->data;
 		old_auth_info = soup_path_map_lookup (host->auth_realms, path);
@@ -566,16 +483,39 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	old_auth = g_hash_table_lookup (host->auths, auth_info);
 	if (old_auth) {
 		g_free (auth_info);
-		if (auth != old_auth && auth != prior_auth) {
-			g_object_unref (auth);
-			auth = old_auth;
-		}
+		return old_auth;
 	} else {
-		g_hash_table_insert (host->auths, auth_info, auth);
+		g_hash_table_insert (host->auths, auth_info,
+				     g_object_ref (auth));
+		return auth;
+	}
+}
+
+static void
+auth_got_headers (SoupMessage *msg, gpointer manager)
+{
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuth *auth, *prior_auth, *new_auth;
+	gboolean prior_auth_failed = FALSE;
+
+	/* See if we used auth last time */
+	prior_auth = soup_message_get_auth (msg);
+	if (prior_auth && check_auth (msg, prior_auth)) {
+		auth = g_object_ref (prior_auth);
+		if (!soup_auth_is_ready (auth, msg))
+			prior_auth_failed = TRUE;
+	} else {
+		auth = create_auth (priv, msg);
+		if (!auth)
+			return;
 	}
 
+	new_auth = record_auth_for_uri (priv, soup_message_get_uri (msg),
+					auth);
+	g_object_unref (auth);
+
 	/* If we need to authenticate, try to do it. */
-	authenticate_auth (manager, auth, msg,
+	authenticate_auth (manager, new_auth, msg,
 			   prior_auth_failed, FALSE, TRUE);
 }
 
@@ -585,16 +525,17 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupAuth *auth;
 
-	auth = get_connauth_for_msg (priv, msg);
-	if (auth && soup_auth_is_authenticated (auth)) {
-		SoupMessageFlags flags;
+	auth = lookup_auth (priv, msg);
+	if (auth && soup_auth_is_ready (auth, msg)) {
+		if (SOUP_IS_CONNECTION_AUTH (auth)) {
+			SoupMessageFlags flags;
 
-		flags = soup_message_get_flags (msg);
-		soup_message_set_flags (msg, flags & ~SOUP_MESSAGE_NEW_CONNECTION);
-	} else
-		auth = lookup_auth (priv, msg);
-	if (auth && soup_auth_is_authenticated (auth))
+			flags = soup_message_get_flags (msg);
+			soup_message_set_flags (msg, flags & ~SOUP_MESSAGE_NEW_CONNECTION);
+		}
+
 		soup_session_requeue_message (priv->session, msg);
+	}
 }
 
 static void
@@ -607,7 +548,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 	/* See if we used auth last time */
 	prior_auth = soup_message_get_proxy_auth (msg);
 	if (prior_auth && check_auth (msg, prior_auth)) {
-		if (!soup_auth_is_authenticated (prior_auth))
+		if (!soup_auth_is_ready (prior_auth, msg))
 			prior_auth_failed = TRUE;
 	}
 
@@ -628,7 +569,7 @@ proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupAuth *auth = priv->proxy_auth;
 
-	if (auth && soup_auth_is_authenticated (auth))
+	if (auth && soup_auth_is_ready (auth, msg))
 		soup_session_requeue_message (priv->session, msg);
 }
 
@@ -662,18 +603,20 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
 	SoupAuth *auth;
 
-	set_socket_for_msg (priv, msg, socket);
 	auth = lookup_auth (priv, msg);
 	if (auth) {
-		if (!authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE))
+		authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE);
+		if (!soup_auth_is_ready (auth, msg))
 			auth = NULL;
-	} else
-		auth = get_connauth (priv, socket);
+	}
 	soup_message_set_auth (msg, auth);
 
 	auth = priv->proxy_auth;
-	if (!auth || !authenticate_auth (manager, auth, msg, FALSE, TRUE, FALSE))
-		auth = NULL;
+	if (auth) {
+		authenticate_auth (manager, auth, msg, FALSE, TRUE, FALSE);
+		if (!soup_auth_is_ready (auth, msg))
+			auth = NULL;
+	}
 	soup_message_set_proxy_auth (msg, auth);
 }
 
