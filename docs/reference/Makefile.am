@@ -33,7 +33,7 @@ IGNORE_HFILES= soup.h soup-marshal.h soup-enum-types.h \
 	soup-message-private.h soup-session-private.h \
 	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
 	soup-connection.h soup-auth-manager.h soup-auth-manager-ntlm.h \
-	soup-message-queue.h soup-path-map.h \
+	soup-message-queue.h soup-path-map.h soup-gnome-features.h \
 	soup-proxy-resolver.h soup-proxy-resolver-gnome.h \
 	soup-proxy-resolver-static.h soup-directory-input-stream.h \
 	soup-http-input-stream.h soup-password-manager.h \
@@ -67,7 +67,6 @@ GTKDOC_CFLAGS =				\
 
 GTKDOC_LIBS =						\
 	$(top_builddir)/libsoup/libsoup-2.4.la		\
-	$(top_builddir)/libsoup/libsoup-gnome-2.4.la	\
 	$(GLIB_LIBS)
 
 # include common portion ...
