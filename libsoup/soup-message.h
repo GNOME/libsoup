@@ -171,6 +171,7 @@ typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
 						 gsize              max_len,
 						 gpointer           user_data);
 
+SOUP_DEPRECATED_IN_2_42_FOR(SoupRequest)
 void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 						 SoupChunkAllocator allocator,
 						 gpointer           user_data,

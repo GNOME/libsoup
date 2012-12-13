@@ -1597,6 +1597,9 @@ soup_message_set_status_full (SoupMessage *msg,
  * becomes possible to allocate a new buffer.
  *
  * Return value: the new buffer (or %NULL)
+ *
+ * Deprecated: Use #SoupRequest if you want to read into your
+ * own buffers.
  **/
 
 /**
@@ -1608,8 +1611,9 @@ soup_message_set_status_full (SoupMessage *msg,
  * destroyed
  *
  * Sets an alternate chunk-allocation function to use when reading
- * @msg's body. Every time data is available to read, libsoup will
- * call @allocator, which should return a #SoupBuffer. (See
+ * @msg's body when using the traditional (ie, non-#SoupRequest-based)
+ * API. Every time data is available to read, libsoup will call
+ * @allocator, which should return a #SoupBuffer. (See
  * #SoupChunkAllocator for additional details.) Libsoup will then read
  * data from the network into that buffer, and update the buffer's
  * <literal>length</literal> to indicate how much data it read.
@@ -1633,6 +1637,10 @@ soup_message_set_status_full (SoupMessage *msg,
  * you'll need to ref the #SoupBuffer (or its owner, in the
  * soup_buffer_new_with_owner() case) to ensure that the data remains
  * valid.
+ *
+ * Deprecated: #SoupRequest provides a much simpler API that lets you
+ * read the response directly into your own buffers without needing to
+ * mess with callbacks, pausing/unpausing, etc.
  **/
 void
 soup_message_set_chunk_allocator (SoupMessage *msg,

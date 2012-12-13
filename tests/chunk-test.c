@@ -284,7 +284,9 @@ do_response_test (SoupSession *session, SoupURI *base_uri)
 
 	msg = soup_message_new_from_uri ("GET", base_uri);
 	soup_message_body_set_accumulate (msg->response_body, FALSE);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	soup_message_set_chunk_allocator (msg, chunk_allocator, &gtd, NULL);
+	G_GNUC_END_IGNORE_DEPRECATIONS;
 	g_signal_connect (msg, "got_chunk",
 			  G_CALLBACK (got_chunk), &gtd);
 	soup_session_send_message (session, msg);
