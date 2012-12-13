@@ -968,150 +968,66 @@ soup_message_set_response (SoupMessage    *msg,
 	}
 }
 
-/**
- * soup_message_wrote_informational:
- * @msg: a #SoupMessage
- *
- * Emits the %wrote_informational signal, indicating that the IO layer
- * finished writing an informational (1xx) response for @msg.
- **/
 void
 soup_message_wrote_informational (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_INFORMATIONAL], 0);
 }
 
-/**
- * soup_message_wrote_headers:
- * @msg: a #SoupMessage
- *
- * Emits the %wrote_headers signal, indicating that the IO layer
- * finished writing the (non-informational) headers for @msg.
- **/
 void
 soup_message_wrote_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_HEADERS], 0);
 }
 
-/**
- * soup_message_wrote_chunk:
- * @msg: a #SoupMessage
- *
- * Emits the %wrote_chunk signal, indicating that the IO layer
- * finished writing a chunk of @msg's body.
- **/
 void
 soup_message_wrote_chunk (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_CHUNK], 0);
 }
 
-/**
- * soup_message_wrote_body_data:
- * @msg: a #SoupMessage
- * @chunk: the data written
- *
- * Emits the %wrote_body_data signal, indicating that the IO layer
- * finished writing a portion of @msg's body.
- **/
 void
 soup_message_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk)
 {
 	g_signal_emit (msg, signals[WROTE_BODY_DATA], 0, chunk);
 }
 
-/**
- * soup_message_wrote_body:
- * @msg: a #SoupMessage
- *
- * Emits the %wrote_body signal, indicating that the IO layer finished
- * writing the body for @msg.
- **/
 void
 soup_message_wrote_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[WROTE_BODY], 0);
 }
 
-/**
- * soup_message_got_informational:
- * @msg: a #SoupMessage
- *
- * Emits the #SoupMessage::got_informational signal, indicating that
- * the IO layer read a complete informational (1xx) response for @msg.
- **/
 void
 soup_message_got_informational (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_INFORMATIONAL], 0);
 }
 
-/**
- * soup_message_got_headers:
- * @msg: a #SoupMessage
- *
- * Emits the #SoupMessage::got_headers signal, indicating that the IO
- * layer finished reading the (non-informational) headers for @msg.
- **/
 void
 soup_message_got_headers (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_HEADERS], 0);
 }
 
-/**
- * soup_message_got_chunk:
- * @msg: a #SoupMessage
- * @chunk: the newly-read chunk
- *
- * Emits the #SoupMessage::got_chunk signal, indicating that the IO
- * layer finished reading a chunk of @msg's body.
- **/
 void
 soup_message_got_chunk (SoupMessage *msg, SoupBuffer *chunk)
 {
 	g_signal_emit (msg, signals[GOT_CHUNK], 0, chunk);
 }
 
-/**
- * soup_message_got_body:
- * @msg: a #SoupMessage
- *
- * Emits the #SoupMessage::got_body signal, indicating that the IO
- * layer finished reading the body for @msg.
- **/
 void
 soup_message_got_body (SoupMessage *msg)
 {
 	g_signal_emit (msg, signals[GOT_BODY], 0);
 }
 
-/**
- * soup_message_content_sniffed:
- * @msg: a #SoupMessage
- * @content_type: a string with the sniffed content type
- * @params: a #GHashTable with the parameters
- *
- * Emits the %content_sniffed signal, indicating that the IO layer
- * finished sniffing the content type for @msg. If content sniffing
- * will not be performed, due to the sniffer deciding to trust the
- * Content-Type sent by the server, this signal is emitted immediately
- * after #SoupMessage::got_headers, with %NULL as @content_type.
- **/
 void
 soup_message_content_sniffed (SoupMessage *msg, const char *content_type, GHashTable *params)
 {
 	g_signal_emit (msg, signals[CONTENT_SNIFFED], 0, content_type, params);
 }
 
-/**
- * soup_message_restarted:
- * @msg: a #SoupMessage
- *
- * Emits the %restarted signal, indicating that @msg should be
- * requeued.
- **/
 void
 soup_message_restarted (SoupMessage *msg)
 {
@@ -1123,13 +1039,6 @@ soup_message_restarted (SoupMessage *msg)
 	g_signal_emit (msg, signals[RESTARTED], 0);
 }
 
-/**
- * soup_message_finished:
- * @msg: a #SoupMessage
- *
- * Emits the %finished signal, indicating that @msg has been completely
- * processed.
- **/
 void
 soup_message_finished (SoupMessage *msg)
 {
@@ -1283,15 +1192,6 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 }
 
 
-/**
- * soup_message_set_auth:
- * @msg: a #SoupMessage
- * @auth: a #SoupAuth, or %NULL
- *
- * Sets @msg to authenticate to its destination using @auth, which
- * must have already been fully authenticated. If @auth is %NULL, @msg
- * will not authenticate to its destination.
- **/
 void
 soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 {
@@ -1320,15 +1220,6 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 	g_free (token);
 }
 
-/**
- * soup_message_get_auth:
- * @msg: a #SoupMessage
- *
- * Gets the #SoupAuth used by @msg for authentication.
- *
- * Return value: (transfer none): the #SoupAuth used by @msg for
- * authentication, or %NULL if @msg is unauthenticated.
- **/
 SoupAuth *
 soup_message_get_auth (SoupMessage *msg)
 {
@@ -1337,15 +1228,6 @@ soup_message_get_auth (SoupMessage *msg)
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->auth;
 }
 
-/**
- * soup_message_set_proxy_auth:
- * @msg: a #SoupMessage
- * @auth: a #SoupAuth, or %NULL
- *
- * Sets @msg to authenticate to its proxy using @auth, which must have
- * already been fully authenticated. If @auth is %NULL, @msg will not
- * authenticate to its proxy.
- **/
 void
 soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 {
@@ -1374,15 +1256,6 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 	g_free (token);
 }
 
-/**
- * soup_message_get_proxy_auth:
- * @msg: a #SoupMessage
- *
- * Gets the #SoupAuth used by @msg for authentication to its proxy..
- *
- * Return value: the #SoupAuth used by @msg for authentication to its
- * proxy, or %NULL if @msg isn't authenticated to its proxy.
- **/
 SoupAuth *
 soup_message_get_proxy_auth (SoupMessage *msg)
 {
