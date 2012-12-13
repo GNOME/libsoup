@@ -43,7 +43,7 @@ typedef struct {
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
-void             soup_message_cleanup_response (SoupMessage      *req);
+void             soup_message_cleanup_response (SoupMessage      *msg);
 
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
@@ -63,7 +63,7 @@ typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
 void soup_message_send_request (SoupMessageQueueItem      *item,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
-void soup_message_read_request (SoupMessage               *req,
+void soup_message_read_request (SoupMessage               *msg,
 				SoupSocket                *sock,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);

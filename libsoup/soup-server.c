@@ -805,7 +805,7 @@ soup_server_get_handler (SoupServer *server, const char *path)
 }
 
 static void
-got_headers (SoupMessage *req, SoupClientContext *client)
+got_headers (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
@@ -820,14 +820,14 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	if (!priv->raw_paths) {
 		char *decoded_path;
 
-		uri = soup_message_get_uri (req);
+		uri = soup_message_get_uri (msg);
 		decoded_path = soup_uri_decode (uri->path);
 
 		if (strstr (decoded_path, "/../") ||
 		    g_str_has_suffix (decoded_path, "/..")) {
 			/* Introducing new ".." segments is not allowed */
 			g_free (decoded_path);
-			soup_message_set_status (req, SOUP_STATUS_BAD_REQUEST);
+			soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
 			return;
 		}
 
@@ -838,7 +838,7 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	/* Add required response headers */
 	date = soup_date_new_from_now (0);
 	date_string = soup_date_to_string (date, SOUP_DATE_HTTP);
-	soup_message_headers_replace (req->response_headers, "Date",
+	soup_message_headers_replace (msg->response_headers, "Date",
 				      date_string);
 	g_free (date_string);
 	soup_date_free (date);
@@ -851,8 +851,8 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	for (iter = priv->auth_domains; iter; iter = iter->next) {
 		domain = iter->data;
 
-		if (soup_auth_domain_covers (domain, req)) {
-			auth_user = soup_auth_domain_accepts (domain, req);
+		if (soup_auth_domain_covers (domain, msg)) {
+			auth_user = soup_auth_domain_accepts (domain, msg);
 			if (auth_user) {
 				client->auth_domain = g_object_ref (domain);
 				client->auth_user = auth_user;
@@ -870,27 +870,27 @@ got_headers (SoupMessage *req, SoupClientContext *client)
 	for (iter = priv->auth_domains; iter; iter = iter->next) {
 		domain = iter->data;
 
-		if (soup_auth_domain_covers (domain, req))
-			soup_auth_domain_challenge (domain, req);
+		if (soup_auth_domain_covers (domain, msg))
+			soup_auth_domain_challenge (domain, msg);
 	}
 }
 
 static void
-call_handler (SoupMessage *req, SoupClientContext *client)
+call_handler (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
 	SoupServerHandler *hand;
 	SoupURI *uri;
 
-	g_signal_emit (server, signals[REQUEST_READ], 0, req, client);
+	g_signal_emit (server, signals[REQUEST_READ], 0, msg, client);
 
-	if (req->status_code != 0)
+	if (msg->status_code != 0)
 		return;
 
-	uri = soup_message_get_uri (req);
+	uri = soup_message_get_uri (msg);
 	hand = soup_server_get_handler (server, uri->path);
 	if (!hand) {
-		soup_message_set_status (req, SOUP_STATUS_NOT_FOUND);
+		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
 
@@ -903,7 +903,7 @@ call_handler (SoupMessage *req, SoupClientContext *client)
 			form_data_set = NULL;
 
 		/* Call method handler */
-		(*hand->callback) (server, req,
+		(*hand->callback) (server, msg,
 				   uri->path, form_data_set,
 				   client, hand->user_data);
 

@@ -302,12 +302,12 @@ soup_message_get_property (GObject *object, guint prop_id,
 }
 
 static void
-soup_message_real_got_body (SoupMessage *req)
+soup_message_real_got_body (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageBody *body;
 
-	body = priv->server_side ? req->request_body : req->response_body;
+	body = priv->server_side ? msg->request_body : msg->response_body;
 	if (soup_message_body_get_accumulate (body)) {
 		SoupBuffer *buffer;
 
@@ -1262,39 +1262,39 @@ soup_message_get_proxy_auth (SoupMessage *msg)
 
 /**
  * soup_message_cleanup_response:
- * @req: a #SoupMessage
+ * @msg: a #SoupMessage
  *
- * Cleans up all response data on @req, so that the request can be sent
+ * Cleans up all response data on @msg, so that the request can be sent
  * again and receive a new response. (Eg, as a result of a redirect or
  * authorization request.)
  **/
 void
-soup_message_cleanup_response (SoupMessage *req)
+soup_message_cleanup_response (SoupMessage *msg)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	soup_message_body_truncate (req->response_body);
-	soup_message_headers_clear (req->response_headers);
+	soup_message_body_truncate (msg->response_body);
+	soup_message_headers_clear (msg->response_headers);
 	if (priv->server_side) {
-		soup_message_headers_set_encoding (req->response_headers,
+		soup_message_headers_set_encoding (msg->response_headers,
 						   SOUP_ENCODING_CONTENT_LENGTH);
 	}
 
 	priv->msg_flags &= ~SOUP_MESSAGE_CONTENT_DECODED;
 
-	req->status_code = SOUP_STATUS_NONE;
-	if (req->reason_phrase) {
-		g_free (req->reason_phrase);
-		req->reason_phrase = NULL;
+	msg->status_code = SOUP_STATUS_NONE;
+	if (msg->reason_phrase) {
+		g_free (msg->reason_phrase);
+		msg->reason_phrase = NULL;
 	}
 	priv->http_version = priv->orig_http_version;
 
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_FLAGS);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_TLS_CERTIFICATE);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_TLS_ERRORS);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_FLAGS);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_TLS_CERTIFICATE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_TLS_ERRORS);
 }
 
 /**

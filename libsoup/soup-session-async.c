@@ -69,25 +69,25 @@ soup_session_async_new_with_options (const char *optname1, ...)
 }
 
 static void
-soup_session_async_queue_message (SoupSession *session, SoupMessage *req,
+soup_session_async_queue_message (SoupSession *session, SoupMessage *msg,
 				  SoupSessionCallback callback, gpointer user_data)
 {
 	SoupMessageQueueItem *item;
 
-	item = soup_session_append_queue_item (session, req, TRUE, FALSE,
+	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
 					       callback, user_data);
 	soup_session_kick_queue (session);
 	soup_message_queue_item_unref (item);
 }
 
 static guint
-soup_session_async_send_message (SoupSession *session, SoupMessage *req)
+soup_session_async_send_message (SoupSession *session, SoupMessage *msg)
 {
 	SoupMessageQueueItem *item;
 	GMainContext *async_context =
 		soup_session_get_async_context (session);
 
-	item = soup_session_append_queue_item (session, req, TRUE, FALSE,
+	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
 					       NULL, NULL);
 	soup_session_kick_queue (session);
 
@@ -96,7 +96,7 @@ soup_session_async_send_message (SoupSession *session, SoupMessage *req)
 
 	soup_message_queue_item_unref (item);
 
-	return req->status_code;
+	return msg->status_code;
 }
 
 static void

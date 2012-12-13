@@ -20,45 +20,45 @@
 #include "soup-misc-private.h"
 
 static guint
-parse_response_headers (SoupMessage *req,
+parse_response_headers (SoupMessage *msg,
 			char *headers, guint headers_len,
 			SoupEncoding *encoding,
 			gpointer user_data,
 			GError **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupHTTPVersion version;
 
-	g_free(req->reason_phrase);
-	req->reason_phrase = NULL;
+	g_free(msg->reason_phrase);
+	msg->reason_phrase = NULL;
 	if (!soup_headers_parse_response (headers, headers_len,
-					  req->response_headers,
+					  msg->response_headers,
 					  &version,
-					  &req->status_code,
-					  &req->reason_phrase)) {
+					  &msg->status_code,
+					  &msg->reason_phrase)) {
 		g_set_error_literal (error, SOUP_REQUEST_ERROR,
 				     SOUP_REQUEST_ERROR_PARSING,
 				     _("Could not parse HTTP response"));
 		return SOUP_STATUS_MALFORMED;
 	}
 
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_STATUS_CODE);
-	g_object_notify (G_OBJECT (req), SOUP_MESSAGE_REASON_PHRASE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
+	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
 
 	if (version < priv->http_version) {
 		priv->http_version = version;
-		g_object_notify (G_OBJECT (req), SOUP_MESSAGE_HTTP_VERSION);
+		g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
 	}
 
-	if ((req->method == SOUP_METHOD_HEAD ||
-	     req->status_code  == SOUP_STATUS_NO_CONTENT ||
-	     req->status_code  == SOUP_STATUS_NOT_MODIFIED ||
-	     SOUP_STATUS_IS_INFORMATIONAL (req->status_code)) ||
-	    (req->method == SOUP_METHOD_CONNECT &&
-	     SOUP_STATUS_IS_SUCCESSFUL (req->status_code)))
+	if ((msg->method == SOUP_METHOD_HEAD ||
+	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
+	     msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
+	     SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) ||
+	    (msg->method == SOUP_METHOD_CONNECT &&
+	     SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)))
 		*encoding = SOUP_ENCODING_NONE;
 	else
-		*encoding = soup_message_headers_get_encoding (req->response_headers);
+		*encoding = soup_message_headers_get_encoding (msg->response_headers);
 
 	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
 		g_set_error_literal (error, SOUP_REQUEST_ERROR,
@@ -71,12 +71,12 @@ parse_response_headers (SoupMessage *req,
 }
 
 static void
-get_request_headers (SoupMessage *req, GString *header,
+get_request_headers (SoupMessage *msg, GString *header,
 		     SoupEncoding *encoding, gpointer user_data)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (req);
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageQueueItem *item = user_data;
-	SoupURI *uri = soup_message_get_uri (req);
+	SoupURI *uri = soup_message_get_uri (msg);
 	char *uri_host;
 	char *uri_string;
 	SoupMessageHeadersIter iter;
@@ -89,7 +89,7 @@ get_request_headers (SoupMessage *req, GString *header,
 	else
 		uri_host = uri->host;
 
-	if (req->method == SOUP_METHOD_CONNECT) {
+	if (msg->method == SOUP_METHOD_CONNECT) {
 		/* CONNECT URI is hostname:port for tunnel destination */
 		uri_string = g_strdup_printf ("%s:%d", uri_host, uri->port);
 	} else {
@@ -109,10 +109,10 @@ get_request_headers (SoupMessage *req, GString *header,
 	}
 
 	g_string_append_printf (header, "%s %s HTTP/1.%d\r\n",
-				req->method, uri_string,
+				msg->method, uri_string,
 				(priv->http_version == SOUP_HTTP_1_0) ? 0 : 1);
 
-	if (!soup_message_headers_get_one (req->request_headers, "Host")) {
+	if (!soup_message_headers_get_one (msg->request_headers, "Host")) {
 		if (soup_uri_uses_default_port (uri)) {
 			g_string_append_printf (header, "Host: %s\r\n",
 						uri_host);
@@ -125,18 +125,18 @@ get_request_headers (SoupMessage *req, GString *header,
 	if (uri_host != uri->host)
 		g_free (uri_host);
 
-	*encoding = soup_message_headers_get_encoding (req->request_headers);
+	*encoding = soup_message_headers_get_encoding (msg->request_headers);
 	if ((*encoding == SOUP_ENCODING_CONTENT_LENGTH ||
 	     *encoding == SOUP_ENCODING_NONE) &&
-	    (req->request_body->length > 0 ||
-	     soup_message_headers_get_one (req->request_headers, "Content-Type")) &&
-	    !soup_message_headers_get_content_length (req->request_headers)) {
+	    (msg->request_body->length > 0 ||
+	     soup_message_headers_get_one (msg->request_headers, "Content-Type")) &&
+	    !soup_message_headers_get_content_length (msg->request_headers)) {
 		*encoding = SOUP_ENCODING_CONTENT_LENGTH;
-		soup_message_headers_set_content_length (req->request_headers,
-							 req->request_body->length);
+		soup_message_headers_set_content_length (msg->request_headers,
+							 msg->request_body->length);
 	}
 
-	soup_message_headers_iter_init (&iter, req->request_headers);
+	soup_message_headers_iter_init (&iter, msg->request_headers);
 	while (soup_message_headers_iter_next (&iter, &name, &value))
 		g_string_append_printf (header, "%s: %s\r\n", name, value);
 	g_string_append (header, "\r\n");
