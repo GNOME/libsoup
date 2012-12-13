@@ -22,9 +22,16 @@
  * A #SoupMessage represents an HTTP message that is being sent or
  * received.
  *
- * For client-side usage, you would create a #SoupMessage with
+ * For client-side usage, if you are using the traditional
+ * #SoupSession APIs (soup_session_queue_message() and
+ * soup_session_send_message()), you would create a #SoupMessage with
  * soup_message_new() or soup_message_new_from_uri(), set up its
- * fields appropriate, and send it via a #SoupSession.
+ * fields appropriately, and send it. If you are using the newer
+ * #SoupRequest API, you would create a request with
+ * soup_session_request_http() or soup_session_request_http_uri(), and
+ * the returned #SoupRequestHTTP will already have an associated
+ * #SoupMessage that you can retrieve via
+ * soup_request_http_get_message().
  *
  * For server-side usage, #SoupServer will create #SoupMessage<!--
  * -->s automatically for incoming requests, which your application
@@ -62,17 +69,22 @@
  *
  * As described in the #SoupMessageBody documentation, the
  * @request_body and @response_body <literal>data</literal> fields
- * will not necessarily be filled in at all times. When they are
- * filled in, they will be terminated with a '\0' byte (which is not
- * included in the <literal>length</literal>), so you can use them as
- * ordinary C strings (assuming that you know that the body doesn't
- * have any other '\0' bytes).
+ * will not necessarily be filled in at all times. When the body
+ * fields are filled in, they will be terminated with a '\0' byte
+ * (which is not included in the <literal>length</literal>), so you
+ * can use them as ordinary C strings (assuming that you know that the
+ * body doesn't have any other '\0' bytes).
  *
- * For a client-side #SoupMessage, @request_body's %data is usually
- * filled in right before libsoup writes the request to the network,
- * but you should not count on this; use soup_message_body_flatten()
- * if you want to ensure that %data is filled in. @response_body's
- * %data will be filled in before #SoupMessage::finished is emitted.
+ * For a client-side #SoupMessage, @request_body's
+ * <literal>data</literal> is usually filled in right before libsoup
+ * writes the request to the network, but you should not count on
+ * this; use soup_message_body_flatten() if you want to ensure that
+ * <literal>data</literal> is filled in. If you are not using
+ * #SoupRequest to read the response, then @response_body's
+ * <literal>data</literal> will be filled in before
+ * #SoupMessage::finished is emitted. (If you are using #SoupRequest,
+ * then the message body is not accumulated by default, so
+ * @response_body's <literal>data</literal> will always be %NULL.)
  *
  * For a server-side #SoupMessage, @request_body's %data will be
  * filled in before #SoupMessage::got_body is emitted.
@@ -1303,11 +1315,11 @@ soup_message_cleanup_response (SoupMessage *req)
  * @SOUP_MESSAGE_CERTIFICATE_TRUSTED: if set after an https response
  *   has been received, indicates that the server's SSL certificate is
  *   trusted according to the session's CA.
- * @SOUP_MESSAGE_NEW_CONNECTION: The message should be sent on a
- *   newly-created connection, not reusing an existing persistent
- *   connection. Note that messages with non-idempotent
- *   #SoupMessage:method<!-- -->s behave this way by default,
- *   unless #SOUP_MESSAGE_IDEMPOTENT is set.
+ * @SOUP_MESSAGE_NEW_CONNECTION: Requests that the message should be
+ *   sent on a newly-created connection, not reusing an existing
+ *   persistent connection. Note that messages with non-idempotent
+ *   #SoupMessage:method<!-- -->s behave this way by default, unless
+ *   #SOUP_MESSAGE_IDEMPOTENT is set.
  * @SOUP_MESSAGE_IDEMPOTENT: The message is considered idempotent,
  *   regardless its #SoupMessage:method, and allows reuse of existing
  *   idle connections, instead of always requiring a new one, unless
@@ -1879,7 +1891,7 @@ soup_message_set_soup_request (SoupMessage *msg,
  *
  * Return value: @msg's associated #SoupRequest
  *
- * Since: 2.40
+ * Since: 2.42
  */
 SoupRequest *
 soup_message_get_soup_request (SoupMessage *msg)
