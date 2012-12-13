@@ -1070,11 +1070,6 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
 	const char *header_name = marshal_data;
 	SoupMessageHeaders *hdrs;
 
-#ifdef FIXME
-	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_RUNNING)
-		return;
-#endif
-
 	hdrs = priv->server_side ? msg->request_headers : msg->response_headers;
 	if (soup_message_headers_get_one (hdrs, header_name)) {
 		closure->marshal (closure, return_value, n_param_values,
@@ -1092,16 +1087,11 @@ header_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @user_data: data to pass to @handler_cb
  *
  * Adds a signal handler to @msg for @signal, as with
- * g_signal_connect(), but with two differences: the @callback will
- * only be run if @msg has a header named @header, and it will only be
- * run if no earlier handler cancelled or requeued the message.
- *
- * If @signal is one of the "got" signals (eg, "got_headers"), or
- * "finished" or "restarted", then @header is matched against the
- * incoming message headers (that is, the #request_headers for a
- * client #SoupMessage, or the #response_headers for a server
- * #SoupMessage). If @signal is one of the "wrote" signals, then
- * @header is matched against the outgoing message headers.
+ * g_signal_connect(), but the @callback will only be run if @msg's
+ * incoming messages headers (that is, the
+ * <literal>request_headers</literal> for a client #SoupMessage, or
+ * the <literal>response_headers</literal> for a server #SoupMessage)
+ * contain a header named @header.
  *
  * Return value: the handler ID from g_signal_connect()
  **/
@@ -1139,11 +1129,6 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
 	SoupMessage *msg = g_value_get_object (&param_values[0]);
 	guint status = GPOINTER_TO_UINT (marshal_data);
 
-#ifdef FIXME
-	if (priv->io_status != SOUP_MESSAGE_IO_STATUS_RUNNING)
-		return;
-#endif
-
 	if (msg->status_code == status) {
 		closure->marshal (closure, return_value, n_param_values,
 				  param_values, invocation_hint,
@@ -1160,9 +1145,8 @@ status_handler_metamarshal (GClosure *closure, GValue *return_value,
  * @user_data: data to pass to @handler_cb
  *
  * Adds a signal handler to @msg for @signal, as with
- * g_signal_connect() but with two differences: the @callback will
- * only be run if @msg has the status @status_code, and it will only
- * be run if no earlier handler cancelled or requeued the message.
+ * g_signal_connect(), but the @callback will only be run if @msg has
+ * the status @status_code.
  *
  * @signal must be a signal that will be emitted after @msg's status
  * is set. For a client #SoupMessage, this means it can't be a "wrote"
