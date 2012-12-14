@@ -600,7 +600,7 @@ guint
 soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 {
 	SoupConnectionPrivate *priv;
-	guint status, event_id;
+	guint status, event_id = 0;
 	SoupURI *connect_uri;
 	SoupAddress *remote_addr;
 
@@ -688,7 +688,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		}
 	}
 
-	if (priv->socket)
+	if (priv->socket && event_id)
 		g_signal_handler_disconnect (priv->socket, event_id);
 
 	if (priv->proxy_uri != NULL)
