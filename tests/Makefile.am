@@ -29,6 +29,7 @@ noinst_PROGRAMS =	\
 	redirect-test	\
 	requester-test	\
 	resource-test	\
+	session-test	\
 	simple-httpd	\
 	simple-proxy	\
 	sniffing-test   \
@@ -72,6 +73,7 @@ redirect_test_SOURCES = redirect-test.c $(TEST_SRCS)
 requester_test_SOURCES = requester-test.c $(TEST_SRCS)
 resource_test_SOURCES = resource-test.c $(TEST_SRCS)
 server_auth_test_SOURCES = server-auth-test.c $(TEST_SRCS)
+session_test_SOURCES = session-test.c $(TEST_SRCS)
 simple_httpd_SOURCES = simple-httpd.c
 simple_proxy_SOURCES = simple-proxy.c
 sniffing_test_SOURCES = sniffing-test.c  $(TEST_SRCS)
@@ -132,6 +134,7 @@ TESTS =			\
 	redirect-test	\
 	requester-test	\
 	resource-test	\
+	session-test	\
 	sniffing-test	\
 	socket-test	\
 	ssl-test	\
