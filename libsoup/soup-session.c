@@ -32,7 +32,8 @@
  * #SoupSession is the object that controls client-side HTTP. A
  * #SoupSession encapsulates all of the state that libsoup is keeping
  * on behalf of your program; cached HTTP connections, authentication
- * information, etc.
+ * information, etc. It also keeps track of various global options
+ * and features that you are using.
  *
  * Most applications will only need a single #SoupSession; the primary
  * reason you might need multiple sessions is if you need to have
@@ -43,12 +44,16 @@
  * one session for the first user, and a second session for the other
  * user.)
  *
- * #SoupSession itself is an abstract class, with two subclasses. If
- * you are using the glib main loop, you will generally want to use
- * #SoupSessionAsync, which uses non-blocking I/O and callbacks. On
- * the other hand, if your application is threaded and you want to do
- * synchronous I/O in a separate thread from the UI, use
- * #SoupSessionSync.
+ * In the past, #SoupSession was an abstract class, and users needed
+ * to choose between #SoupSessionAsync (which always uses
+ * #GMainLoop<!-- -->-based I/O), or #SoupSessionSync (which always uses
+ * blocking I/O and can be used from multiple threads simultaneously).
+ * This is no longer necessary; you can (and should) use a plain
+ * #SoupSession, which supports both synchronous and asynchronous use.
+ * (When using a plain #SoupSession, soup_session_queue_message()
+ * behaves like it traditionally did on a #SoupSessionAsync, and
+ * soup_session_send_message() behaves like it traditionally did on a
+ * #SoupSessionSync.)
  **/
 
 static void
@@ -746,6 +751,47 @@ soup_session_get_property (GObject *object, guint prop_id,
 	}
 }
 
+/**
+ * soup_session_new:
+ *
+ * Creates a #SoupSession with the default options.
+ *
+ * Return value: the new session.
+ *
+ * Since: 2.42
+ */
+SoupSession *
+soup_session_new (void)
+{
+	return g_object_new (SOUP_TYPE_SESSION, NULL);
+}
+
+/**
+ * soup_session_new_with_options:
+ * @optname1: name of first property to set
+ * @...: value of @optname1, followed by additional property/value pairs
+ *
+ * Creates a #SoupSession with the specified options.
+ *
+ * Return value: the new session.
+ *
+ * Since: 2.42
+ */
+SoupSession *
+soup_session_new_with_options (const char *optname1,
+			       ...)
+{
+	SoupSession *session;
+	va_list ap;
+
+	va_start (ap, optname1);
+	session = (SoupSession *)g_object_new_valist (SOUP_TYPE_SESSION,
+						      optname1, ap);
+	va_end (ap);
+
+	return session;
+}
+
 static gboolean
 uri_is_http (SoupSessionPrivate *priv, SoupURI *uri)
 {
@@ -793,12 +839,12 @@ uri_is_https (SoupSessionPrivate *priv, SoupURI *uri)
  * soup_session_get_async_context:
  * @session: a #SoupSession
  *
- * Gets @session's async_context. This does not add a ref to the
- * context, so you will need to ref it yourself if you want it to
- * outlive its session.
+ * Gets @session's #SoupSession:async-context. This does not add a ref
+ * to the context, so you will need to ref it yourself if you want it
+ * to outlive its session.
  *
- * If #SoupSession:use-thread-context is true, this will return the
- * current thread-default main context.
+ * For a modern #SoupSession, this will always just return the
+ * thread-default #GMainContext, and so is not especially useful.
  *
  * Return value: (transfer none): @session's #GMainContext, which may
  * be %NULL
@@ -1623,7 +1669,7 @@ get_connection_for_host (SoupSession *session,
 		SOUP_CONNECTION_PROXY_RESOLVER, soup_session_get_feature (session, SOUP_TYPE_PROXY_URI_RESOLVER),
 		SOUP_CONNECTION_SSL, uri_is_https (priv, soup_message_get_uri (item->msg)),
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
-		SOUP_CONNECTION_SSL_STRICT, (priv->tlsdb != NULL) && priv->ssl_strict,
+		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (priv->tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_USE_THREAD_CONTEXT, priv->use_thread_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
@@ -1887,6 +1933,18 @@ idle_run_queue (gpointer user_data)
  * qv.
  **/
 
+static void
+soup_session_real_queue_message (SoupSession *session, SoupMessage *msg,
+				 SoupSessionCallback callback, gpointer user_data)
+{
+	SoupMessageQueueItem *item;
+
+	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
+					       callback, user_data);
+	soup_session_kick_queue (session);
+	soup_message_queue_item_unref (item);
+}
+
 /**
  * soup_session_queue_message:
  * @session: a #SoupSession
@@ -1895,20 +1953,27 @@ idle_run_queue (gpointer user_data)
  * be called after the message completes or when an unrecoverable error occurs.
  * @user_data: (allow-none): a pointer passed to @callback.
  * 
- * Queues the message @msg for sending. All messages are processed
- * while the glib main loop runs. If @msg has been processed before,
- * any resources related to the time it was last sent are freed.
+ * Queues the message @msg for asynchronously sending the request and
+ * receiving a response in the current thread-default #GMainContext.
+ * If @msg has been processed before, any resources related to the
+ * time it was last sent are freed.
  *
  * Upon message completion, the callback specified in @callback will
- * be invoked (in the thread associated with @session's async
- * context). If after returning from this callback the message has not
+ * be invoked. If after returning from this callback the message has not
  * been requeued, @msg will be unreffed.
+ *
+ * (The behavior above applies to a plain #SoupSession; if you are
+ * using #SoupSessionAsync or #SoupSessionSync, then the #GMainContext
+ * that is used depends on the settings of #SoupSession:async-context
+ * and #SoupSession:use-thread-context, and for #SoupSessionSync, the
+ * message will actually be sent and processed in another thread, with
+ * only the final callback occurring in the indicated #GMainContext.)
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *msg,
 			    SoupSessionCallback callback, gpointer user_data)
 {
-	g_return_if_fail (SOUP_IS_SESSION_ASYNC (session) || SOUP_IS_SESSION_SYNC (session));
+	g_return_if_fail (SOUP_IS_SESSION (session));
 	g_return_if_fail (SOUP_IS_MESSAGE (msg));
 
 	SOUP_SESSION_GET_CLASS (session)->queue_message (session, msg,
@@ -1948,6 +2013,20 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
 	SOUP_SESSION_GET_CLASS (session)->requeue_message (session, msg);
 }
 
+static guint
+soup_session_real_send_message (SoupSession *session, SoupMessage *msg)
+{
+	SoupMessageQueueItem *item;
+	guint status;
+
+	item = soup_session_append_queue_item (session, msg, FALSE, FALSE,
+					       NULL, NULL);
+	soup_session_process_queue_item (session, item, NULL, TRUE);
+	status = msg->status_code;
+	soup_message_queue_item_unref (item);
+	return status;
+}
+
 /**
  * soup_session_send_message:
  * @session: a #SoupSession
@@ -1957,14 +2036,20 @@ soup_session_requeue_message (SoupSession *session, SoupMessage *msg)
  * transfer is finished successfully or there is an unrecoverable
  * error.
  *
- * @msg is not freed upon return.
+ * Unlike with soup_session_queue_message(), @msg is not freed upon
+ * return.
+ *
+ * (Note that if you call this method on a #SoupSessionAsync, it will
+ * still use asynchronous I/O internally, running the glib main loop
+ * to process the message, which may also cause other events to be
+ * processed.)
  *
  * Return value: the HTTP status code of the response
  */
 guint
 soup_session_send_message (SoupSession *session, SoupMessage *msg)
 {
-	g_return_val_if_fail (SOUP_IS_SESSION_ASYNC (session) || SOUP_IS_SESSION_SYNC (session), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (SOUP_IS_SESSION (session), SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_STATUS_MALFORMED);
 
 	return SOUP_SESSION_GET_CLASS (session)->send_message (session, msg);
@@ -2105,7 +2190,7 @@ soup_session_real_cancel_message (SoupSession *session, SoupMessage *msg, guint 
  * may call this at any time after handing @msg off to @session; if
  * @session has started sending the request but has not yet received
  * the complete response, then it will close the request's connection.
- * Note that with non-idempotent requests (eg,
+ * Note that with requests that have side effects (eg,
  * <literal>POST</literal>, <literal>PUT</literal>,
  * <literal>DELETE</literal>) it is possible that you might cancel the
  * request after the server acts on it, but before it returns a
@@ -2116,9 +2201,12 @@ soup_session_real_cancel_message (SoupSession *session, SoupMessage *msg, guint 
  * The response headers, on the other hand, will always be either
  * empty or complete.
  *
- * For messages queued with soup_session_queue_message() (and
- * cancelled from the same thread), the callback will be invoked
- * before soup_session_cancel_message() returns.
+ * Beware that with the deprecated #SoupSessionAsync, messages queued
+ * with soup_session_queue_message() will have their callbacks invoked
+ * before soup_session_cancel_message() returns. The plain
+ * #SoupSession does not have this behavior; cancelling an
+ * asynchronous message will merely queue its callback to be run after
+ * returning to the main loop.
  **/
 void
 soup_session_cancel_message (SoupSession *session, SoupMessage *msg,
@@ -2203,6 +2291,12 @@ soup_session_real_flush_queue (SoupSession *session)
  *
  * Cancels all pending requests in @session and closes all idle
  * persistent connections.
+ *
+ * The message cancellation has the same semantics as with
+ * soup_session_cancel_message(); asynchronous requests on a
+ * #SoupSessionAsync will have their callback called before
+ * soup_session_abort() returns. Requests on a plain #SoupSession will
+ * not.
  **/
 void
 soup_session_abort (SoupSession *session)
@@ -2268,10 +2362,6 @@ prefetch_uri (SoupSession *session, SoupURI *uri,
  * proxy address, etc.) in order to work more quickly once the URI is
  * actually requested.
  *
- * This method acts asynchronously, in @session's
- * #SoupSession:async_context. If you are using #SoupSessionSync and do
- * not have a main loop running, then you can't use this method.
- *
  * Since: 2.30
  *
  * Deprecated: 2.38: use soup_session_prefetch_dns() instead
@@ -2306,10 +2396,6 @@ soup_session_prepare_for_uri (SoupSession *session, SoupURI *uri)
 * resolution. @callback will still be invoked in this case, with a
 * status of %SOUP_STATUS_CANCELLED.
 *
-* This method acts asynchronously, in @session's
-* #SoupSession:async_context. If you are using #SoupSessionSync and do
-* not have a main loop running, then you can't use this method.
-*
 * Since: 2.38
 **/
 void
@@ -2340,6 +2426,10 @@ soup_session_prefetch_dns (SoupSession *session, const char *hostname,
  * Adds @feature's functionality to @session. You can also add a
  * feature to the session at construct time by using the
  * %SOUP_SESSION_ADD_FEATURE property.
+ *
+ * Note that a #SoupProxyResolverDefault and a #SoupContentDecoder are
+ * added to the session by default (unless you are using one of the
+ * deprecated session subclasses).
  *
  * Since: 2.24
  **/
@@ -2374,6 +2464,10 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  *
  * You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
+ *
+ * Note that a #SoupProxyResolverDefault and a #SoupContentDecoder are
+ * added to the session by default (unless you are using one of the
+ * deprecated session subclasses).
  *
  * Since: 2.24
  **/
@@ -2642,6 +2736,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	g_type_class_add_private (session_class, sizeof (SoupSessionPrivate));
 
 	/* virtual method definition */
+	session_class->queue_message = soup_session_real_queue_message;
+	session_class->send_message = soup_session_real_send_message;
 	session_class->requeue_message = soup_session_real_requeue_message;
 	session_class->cancel_message = soup_session_real_cancel_message;
 	session_class->flush_queue = soup_session_real_flush_queue;
@@ -2838,10 +2934,22 @@ soup_session_class_init (SoupSessionClass *session_class)
 
 	/* properties */
 	/**
+	 * SoupSession:proxy-uri:
+	 *
+	 * An http proxy to use for all http and https requests in
+	 * this session. Setting this will remove any
+	 * #SoupProxyURIResolver features that have been added to the
+	 * session.
+	 *
+	 * Note that #SoupProxyResolverDefault will handle looking up
+	 * the user's proxy settings for you; you should only use
+	 * #SoupSession:proxy-uri if you need to override the user's
+	 * normal proxy settings.
+	 */
+	/**
 	 * SOUP_SESSION_PROXY_URI:
 	 *
-	 * Alias for the #SoupSession:proxy-uri property. (The HTTP
-	 * proxy to use for this session.)
+	 * Alias for the #SoupSession:proxy-uri property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_PROXY_URI,
@@ -2853,8 +2961,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_MAX_CONNS:
 	 *
-	 * Alias for the #SoupSession:max-conns property. (The maximum
-	 * number of connections that the session can open at once.)
+	 * Alias for the #SoupSession:max-conns property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS,
@@ -2868,9 +2975,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_MAX_CONNS_PER_HOST:
 	 *
-	 * Alias for the #SoupSession:max-conns-per-host property.
-	 * (The maximum number of connections that the session can
-	 * open at once to a given host.)
+	 * Alias for the #SoupSession:max-conns-per-host property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_MAX_CONNS_PER_HOST,
@@ -2893,13 +2998,17 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
 	 *
+	 * Note that the default value of 60 seconds only applies to
+	 * plain #SoupSessions. If you are using #SoupSessionAsync or
+	 * #SoupSessionSync, the default value is 0 (meaning idle
+	 * connections will never time out).
+	 *
 	 * Since: 2.24
 	 **/
 	/**
 	 * SOUP_SESSION_IDLE_TIMEOUT:
 	 *
-	 * Alias for the #SoupSession:idle-timeout property. (The idle
-	 * connection lifetime.)
+	 * Alias for the #SoupSession:idle-timeout property, qv.
 	 *
 	 * Since: 2.24
 	 **/
@@ -2908,7 +3017,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_uint (SOUP_SESSION_IDLE_TIMEOUT,
 				   "Idle Timeout",
 				   "Connection lifetime when idle",
-				   0, G_MAXUINT, 0,
+				   0, G_MAXUINT, 60,
 				   G_PARAM_READWRITE));
 	/**
 	 * SoupSession:use-ntlm:
@@ -2921,8 +3030,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_USE_NTLM:
 	 *
-	 * Alias for the #SoupSession:use-ntlm property. (Whether or
-	 * not to use NTLM authentication.)
+	 * Alias for the #SoupSession:use-ntlm property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_USE_NTLM,
@@ -2936,17 +3044,19 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * File containing SSL CA certificates.
 	 *
-	 * Deprecated: use #SoupSession:ssl-use-system-ca-file or
-	 * #SoupSession:tls-database instead
+	 * If the specified file does not exist or cannot be read,
+	 * then libsoup will print a warning, and then behave as
+	 * though it had read in a empty CA file, meaning that all SSL
+	 * certificates will be considered invalid.
+	 *
+	 * Deprecated: use #SoupSession:ssl-use-system-ca-file, or
+	 * else #SoupSession:tls-database with a #GTlsFileDatabase
+	 * (which allows you to do explicit error handling).
 	 **/
 	/**
 	 * SOUP_SESSION_SSL_CA_FILE:
 	 *
-	 * Alias for the #SoupSession:ssl-ca-file property. (File
-	 * containing SSL CA certificates.).
-	 *
-	 * Deprecated: use #SoupSession:ssl-use-system-ca-file or
-	 * #SoupSession:tls-database instead
+	 * Alias for the #SoupSession:ssl-ca-file property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_SSL_CA_FILE,
@@ -2978,6 +3088,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * See #SoupSession:ssl-strict for more information on how
 	 * https certificate validation is handled.
 	 *
+	 * Note that the default value of %TRUE only applies to plain
+	 * #SoupSessions. If you are using #SoupSessionAsync or
+	 * #SoupSessionSync, the default value is %FALSE, for backward
+	 * compatibility.
+	 *
 	 * Since: 2.38
 	 **/
 	g_object_class_install_property (
@@ -2985,7 +3100,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_boolean (SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE,
 				      "Use system CA file",
 				      "Use the system certificate database",
-				      FALSE,
+				      TRUE,
 				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_TLS_DATABASE:
@@ -3007,6 +3122,12 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * See #SoupSession:ssl-strict for more information on how
 	 * https certificate validation is handled.
+	 *
+	 * If you are using a plain #SoupSession then
+	 * #SoupSession:ssl-use-system-ca-file will be %TRUE by
+	 * default, and so this property will be a copy of the system
+	 * CA database. If you are using #SoupSessionAsync or
+	 * #SoupSessionSync, this property will be %NULL by default.
 	 *
 	 * Since: 2.38
 	 **/
@@ -3042,9 +3163,13 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * accept invalid certificates after giving some sort of
 	 * warning.)
 	 *
-	 * If the session has no CA file or TLS database, then all
-	 * certificates are always accepted, and this property has no
-	 * effect.
+	 * For a plain #SoupSession, if the session has no CA file or
+	 * TLS database, and this property is %TRUE, then all
+	 * certificates will be rejected. However, beware that the
+	 * deprecated #SoupSession subclasses (#SoupSessionAsync and
+	 * #SoupSessionSync) have the opposite behavior: if there is
+	 * no CA file or TLS database, then all certificates are always
+	 * accepted, and this property has no effect.
 	 *
 	 * Since: 2.30
 	 */
@@ -3056,10 +3181,26 @@ soup_session_class_init (SoupSessionClass *session_class)
 				      TRUE,
 				      G_PARAM_READWRITE));
 	/**
+	 * SoupSession:async-context:
+	 *
+	 * The #GMainContext that miscellaneous session-related
+	 * asynchronous callbacks are invoked on. (Eg, setting
+	 * #SoupSession:idle-timeout will add a timeout source on this
+	 * context.)
+	 *
+	 * For a plain #SoupSession, this property is always set to
+	 * the #GMainContext that is the thread-default at the time
+	 * the session was created, and cannot be overridden. For the
+	 * deprecated #SoupSession subclasses, the default value is
+	 * %NULL, meaning to use the global default #GMainContext.
+	 *
+	 * If #SoupSession:use-thread-context is %FALSE, this context
+	 * will also be used for asynchronous HTTP I/O.
+	 */
+	/**
 	 * SOUP_SESSION_ASYNC_CONTEXT:
 	 *
-	 * Alias for the #SoupSession:async-context property. (The
-	 * session's #GMainContext.)
+	 * Alias for the #SoupSession:async-context property, qv.
 	 */
 	g_object_class_install_property (
 		object_class, PROP_ASYNC_CONTEXT,
@@ -3077,13 +3218,11 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:use-thread-context:
 	 *
-	 * If set, asynchronous operations in this session will run in
+	 * If %TRUE (which it always is on a plain #SoupSession),
+	 * asynchronous HTTP requests in this session will run in
 	 * whatever the thread-default #GMainContext is at the time
-	 * they are started, rather than always occurring in a context
-	 * fixed at the session's construction time. "Bookkeeping"
-	 * tasks (like expiring idle connections) will happen in the
-	 * context that was thread-default at the time the session was
-	 * created.
+	 * they are started, rather than always occurring in
+	 * #SoupSession:async-context.
 	 *
 	 * Since: 2.38
 	 */
@@ -3106,12 +3245,20 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * ones. You can call soup_session_abort() after setting this
 	 * if you want to ensure that all future connections will have
 	 * this timeout value.
+	 *
+	 * Note that the default value of 60 seconds only applies to
+	 * plain #SoupSessions. If you are using #SoupSessionAsync or
+	 * #SoupSessionSync, the default value is 0 (meaning socket I/O
+	 * will not time out).
+	 *
+	 * Not to be confused with #SoupSession:idle-timeout (which is
+	 * the length of time that idle persistent connections will be
+	 * kept open).
 	 */
 	/**
 	 * SOUP_SESSION_TIMEOUT:
 	 *
-	 * Alias for the #SoupSession:timeout property. (The timeout
-	 * in seconds for socket I/O operations.)
+	 * Alias for the #SoupSession:timeout property, qv.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_TIMEOUT,
@@ -3225,8 +3372,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_ADD_FEATURE: (skip)
 	 *
-	 * Alias for the #SoupSession:add-feature property. (Shortcut
-	 * for calling soup_session_add_feature().
+	 * Alias for the #SoupSession:add-feature property, qv.
 	 *
 	 * Since: 2.24
 	 **/
@@ -3248,8 +3394,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_ADD_FEATURE_BY_TYPE: (skip)
 	 *
-	 * Alias for the #SoupSession:add-feature-by-type property.
-	 * (Shortcut for calling soup_session_add_feature_by_type().
+	 * Alias for the #SoupSession:add-feature-by-type property, qv.
 	 *
 	 * Since: 2.24
 	 **/
@@ -3271,9 +3416,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_REMOVE_FEATURE_BY_TYPE: (skip)
 	 *
-	 * Alias for the #SoupSession:remove-feature-by-type
-	 * property. (Shortcut for calling
-	 * soup_session_remove_feature_by_type().
+	 * Alias for the #SoupSession:remove-feature-by-type property,
+	 * qv.
 	 *
 	 * Since: 2.24
 	 **/
@@ -3292,14 +3436,14 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * <literal>"dav"</literal>, than a URI of
 	 * <literal>dav://example.com/path</literal> would be treated
 	 * identically to <literal>http://example.com/path</literal>.
-	 * If the value is %NULL, then only "http" is recognized as
-	 * meaning "http".
 	 *
-	 * For backward-compatibility reasons, the default value for
-	 * this property is an array containing the single element
-	 * <literal>"*"</literal>, a special value which means that
-	 * any scheme except "https" is considered to be an alias for
-	 * "http".
+	 * In a plain #SoupSession, the default value is %NULL,
+	 * meaning that only "http" is recognized as meaning "http".
+	 * In #SoupSessionAsync and #SoupSessionSync, for backward
+	 * compatibility, the default value is an array containing the
+	 * single element <literal>"*"</literal>, a special value
+	 * which means that any scheme except "https" is considered to
+	 * be an alias for "http".
 	 *
 	 * See also #SoupSession:https-aliases.
 	 *
@@ -3308,8 +3452,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_HTTP_ALIASES:
 	 *
-	 * Alias for the #SoupSession:http-aliases property. (URI
-	 * schemes that will be considered aliases for "http".)
+	 * Alias for the #SoupSession:http-aliases property, qv.
 	 *
 	 * Since: 2.38
 	 */
@@ -3335,8 +3478,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SOUP_SESSION_HTTPS_ALIASES:
 	 *
-	 * Alias for the #SoupSession:https-aliases property. (URI
-	 * schemes that will be considered aliases for "https".)
+	 * Alias for the #SoupSession:https-aliases property, qv.
 	 *
 	 * Since: 2.38
 	 **/

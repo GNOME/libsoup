@@ -368,6 +368,8 @@ soup_session_get_feature_for_message
 soup_session_get_features
 soup_session_get_type
 soup_session_has_feature
+soup_session_new
+soup_session_new_with_options
 soup_session_pause_message
 soup_session_prefetch_dns
 soup_session_prepare_for_uri

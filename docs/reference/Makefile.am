@@ -52,7 +52,8 @@ HTML_IMAGES =
 content_files =				\
 	build-howto.xml			\
 	client-howto.xml		\
-	server-howto.xml
+	server-howto.xml		\
+	session-porting.xml
 
 # Other files to distribute.
 extra_files =

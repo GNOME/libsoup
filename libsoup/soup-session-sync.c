@@ -17,27 +17,16 @@
 
 /**
  * SECTION:soup-session-sync
- * @short_description: Soup session for blocking I/O in multithreaded
- * programs.
+ * @short_description: (Deprecated) SoupSession for blocking I/O in
+ *   multithreaded programs.
  *
  * #SoupSessionSync is an implementation of #SoupSession that uses
  * synchronous I/O, intended for use in multi-threaded programs.
  *
- * You can use #SoupSessionSync from multiple threads concurrently.
- * Eg, you can send a #SoupMessage in one thread, and then while
- * waiting for the response, send another #SoupMessage from another
- * thread. You can also send a message from one thread and then call
- * soup_session_cancel_message() on it from any other thread (although
- * you need to be careful to avoid race conditions, where the message
- * finishes and is then unreffed by the sending thread just before you
- * cancel it).
- *
- * However, the majority of other types and methods in libsoup are not
- * MT-safe. In particular, you <emphasis>cannot</emphasis> modify or
- * examine a #SoupMessage while it is being transmitted by
- * #SoupSessionSync in another thread. Once a message has been handed
- * off to #SoupSessionSync, it can only be manipulated from its signal
- * handler callbacks, until I/O is complete.
+ * As of libsoup 2.42, this is deprecated in favor of the plain
+ * #SoupSession class (which uses both asynchronous and synchronous
+ * I/O, depending on the API used). See the <link
+ * linkend="libsoup-session-porting">porting guide</link>.
  **/
 
 G_DEFINE_TYPE (SoupSessionSync, soup_session_sync, SOUP_TYPE_SESSION)
@@ -53,6 +42,10 @@ soup_session_sync_init (SoupSessionSync *ss)
  * Creates an synchronous #SoupSession with the default options.
  *
  * Return value: the new session.
+ *
+ * Deprecated: #SoupSessionSync is deprecated; use a plain
+ * #SoupSession, created with soup_session_new(). See the <link
+ * linkend="libsoup-session-porting">porting guide</link>.
  **/
 SoupSession *
 soup_session_sync_new (void)
@@ -68,6 +61,10 @@ soup_session_sync_new (void)
  * Creates an synchronous #SoupSession with the specified options.
  *
  * Return value: the new session.
+ *
+ * Deprecated: #SoupSessionSync is deprecated; use a plain
+ * #SoupSession, created with soup_session_new_with_options(). See the
+ * <link linkend="libsoup-session-porting">porting guide</link>.
  **/
 SoupSession *
 soup_session_sync_new_with_options (const char *optname1, ...)
@@ -122,20 +119,6 @@ soup_session_sync_queue_message (SoupSession *session, SoupMessage *msg,
 	g_thread_unref (thread);
 }
 
-static guint
-soup_session_sync_send_message (SoupSession *session, SoupMessage *msg)
-{
-	SoupMessageQueueItem *item;
-	guint status;
-
-	item = soup_session_append_queue_item (session, msg, FALSE, FALSE,
-					       NULL, NULL);
-	soup_session_process_queue_item (session, item, NULL, TRUE);
-	status = msg->status_code;
-	soup_message_queue_item_unref (item);
-	return status;
-}
-
 static void
 soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 {
@@ -143,5 +126,4 @@ soup_session_sync_class_init (SoupSessionSyncClass *session_sync_class)
 
 	/* virtual method override */
 	session_class->queue_message = soup_session_sync_queue_message;
-	session_class->send_message = soup_session_sync_send_message;
 }

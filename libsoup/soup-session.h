@@ -81,7 +81,12 @@ GType soup_session_get_type (void);
 #define SOUP_SESSION_HTTP_ALIASES       "http-aliases"
 #define SOUP_SESSION_HTTPS_ALIASES      "https-aliases"
 
-GMainContext   *soup_session_get_async_context(SoupSession           *session);
+SOUP_AVAILABLE_IN_2_42
+SoupSession    *soup_session_new              (void);
+
+SOUP_AVAILABLE_IN_2_42
+SoupSession    *soup_session_new_with_options (const char *optname1,
+					       ...) G_GNUC_NULL_TERMINATED;
 
 void            soup_session_queue_message    (SoupSession           *session,
 					       SoupMessage           *msg,
@@ -102,6 +107,8 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       SoupMessage           *msg,
 					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
+
+GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
 #ifndef LIBSOUP_DISABLE_DEPRECATED
 /* SOUP_AVAILABLE_IN_2_30 -- this trips up gtkdoc-scan */

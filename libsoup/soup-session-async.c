@@ -18,11 +18,16 @@
 
 /**
  * SECTION:soup-session-async
- * @short_description: Soup session for asynchronous (main-loop-based) I/O.
+ * @short_description: (Deprecated) SoupSession for asynchronous
+ *   (main-loop-based) I/O.
  *
  * #SoupSessionAsync is an implementation of #SoupSession that uses
- * non-blocking I/O via the glib main loop. It is intended for use in
- * single-threaded programs.
+ * non-blocking I/O via the glib main loop for all I/O.
+ *
+ * As of libsoup 2.42, this is deprecated in favor of the plain
+ * #SoupSession class (which uses both asynchronous and synchronous
+ * I/O, depending on the API used). See the <link
+ * linkend="libsoup-session-porting">porting guide</link>.
  **/
 
 G_DEFINE_TYPE (SoupSessionAsync, soup_session_async, SOUP_TYPE_SESSION)
@@ -38,6 +43,10 @@ soup_session_async_init (SoupSessionAsync *sa)
  * Creates an asynchronous #SoupSession with the default options.
  *
  * Return value: the new session.
+ *
+ * Deprecated: #SoupSessionAsync is deprecated; use a plain
+ * #SoupSession, created with soup_session_new(). See the <link
+ * linkend="libsoup-session-porting">porting guide</link>.
  **/
 SoupSession *
 soup_session_async_new (void)
@@ -53,6 +62,10 @@ soup_session_async_new (void)
  * Creates an asynchronous #SoupSession with the specified options.
  *
  * Return value: the new session.
+ *
+ * Deprecated: #SoupSessionAsync is deprecated; use a plain
+ * #SoupSession, created with soup_session_new_with_options(). See the
+ * <link linkend="libsoup-session-porting">porting guide</link>.
  **/
 SoupSession *
 soup_session_async_new_with_options (const char *optname1, ...)
@@ -66,18 +79,6 @@ soup_session_async_new_with_options (const char *optname1, ...)
 	va_end (ap);
 
 	return session;
-}
-
-static void
-soup_session_async_queue_message (SoupSession *session, SoupMessage *msg,
-				  SoupSessionCallback callback, gpointer user_data)
-{
-	SoupMessageQueueItem *item;
-
-	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
-					       callback, user_data);
-	soup_session_kick_queue (session);
-	soup_message_queue_item_unref (item);
 }
 
 static guint
@@ -137,7 +138,6 @@ soup_session_async_class_init (SoupSessionAsyncClass *soup_session_async_class)
 	SoupSessionClass *session_class = SOUP_SESSION_CLASS (soup_session_async_class);
 
 	/* virtual method override */
-	session_class->queue_message = soup_session_async_queue_message;
 	session_class->send_message = soup_session_async_send_message;
 	session_class->cancel_message = soup_session_async_cancel_message;
 }

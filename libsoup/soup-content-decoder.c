@@ -18,15 +18,18 @@
  * SECTION:soup-content-decoder
  * @short_description: Content-Encoding handler
  *
- * #SoupContentDecoder handles the "Accept-Encoding" header on
- * outgoing messages, and the "Content-Encoding" header on incoming
- * ones. If you add it to a session with soup_session_add_feature() or
- * soup_session_add_feature_by_type(), the session will automatically
- * use Content-Encoding as appropriate.
+ * #SoupContentDecoder handles adding the "Accept-Encoding" header on
+ * outgoing messages, and processing the "Content-Encoding" header on
+ * incoming ones. Currently it supports the "gzip" and "deflate"
+ * content codings.
  *
- * (Note that currently there is no way to (automatically) use
- * Content-Encoding when sending a request body, or to pick specific
- * encoding types to support.)
+ * If you are using a plain #SoupSession (ie, not #SoupSessionAsync or
+ * #SoupSessionSync), then a #SoupContentDecoder will automatically be
+ * added to the session by default. (You can use
+ * %SOUP_SESSION_REMOVE_FEATURE_BY_TYPE at construct time if you don't
+ * want this.) If you are using one of the deprecated #SoupSession
+ * subclasses, you can add a #SoupContentDecoder to your session with
+ * soup_session_add_feature() or soup_session_add_feature_by_type().
  *
  * If #SoupContentDecoder successfully decodes the Content-Encoding,
  * it will set the %SOUP_MESSAGE_CONTENT_DECODED flag on the message,
@@ -39,6 +42,10 @@
  * #SoupContentDecoder doesn't recognize, then none of the encodings
  * will be decoded (and the %SOUP_MESSAGE_CONTENT_DECODED flag will
  * not be set).
+ *
+ * (Note that currently there is no way to (automatically) use
+ * Content-Encoding when sending a request body, or to pick specific
+ * encoding types to support.)
  *
  * Since: 2.30
  **/

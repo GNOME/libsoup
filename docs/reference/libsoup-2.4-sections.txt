@@ -388,6 +388,9 @@ SoupAddressClass
 <TITLE>SoupSession</TITLE>
 SoupSession
 <SUBSECTION>
+soup_session_new
+soup_session_new_with_options
+<SUBSECTION>
 soup_session_request
 soup_session_request_uri
 soup_session_request_http
