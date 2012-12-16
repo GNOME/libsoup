@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-10 17:20+0200\n"
-"PO-Revision-Date: 2012-09-10 17:23+0200\n"
+"POT-Creation-Date: 2012-12-16 03:27+0100\n"
+"PO-Revision-Date: 2012-12-16 03:28+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -42,33 +42,50 @@ msgstr "Nie można skrócić SoupBodyInputStream"
 msgid "Output buffer is too small"
 msgstr "Bufor wyjściowy jest za mały"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "Nie można przetworzyć odpowiedzi HTTP"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Nierozpoznane kodowanie odpowiedzi HTTP"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "Anulowano działanie"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "Działanie spowodowałoby zablokowanie"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "Nie można przetworzyć żądania HTTP"
+
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Nie podano adresu URI"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Nieprawidłowy adres URI \"%s\": %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:3752
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Nie można przetworzyć adresu URI \"%s\""
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:3789
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nieobsługiwany schemat adresu URI \"%s\""
+
+#: ../libsoup/soup-session.c:3811
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Nie jest adresem URI protokołu HTTP"
 
 #: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
