@@ -1291,6 +1291,7 @@ clear_cache_files (SoupCache *cache)
 				g_file_delete (cache_file, NULL, NULL);
 				g_object_unref (cache_file);
 			}
+			g_object_unref (file_info);
 		}
 		g_object_unref (file_enumerator);
 	}
