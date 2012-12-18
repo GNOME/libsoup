@@ -1,3 +1,98 @@
+Changes in libsoup from 2.41.2 to 2.41.3 (codename: "I Left My
+Deprecated APIs in A Coruña"):
+
+	* BUILD DEPENDENCY CHANGES: libsoup-gnome no longer depends on
+          libgnome-keyring, and the sqlite3 dependency has been moved
+          from libsoup-gnome to libsoup proper. (See below).
+
+
+	* SoupRequest is now stable API. SoupRequester, however, is
+          deprecated. Instead you can now call soup_session_request()
+          or soup_session_request_uri() to create a SoupRequest.
+
+	  Some documentation has been updated to reflect this, but
+	  much more still needs to be (in particular the "Client-side
+	  Tutorial").
+
+	* SoupRequestHTTP now has a number of fields and methods that
+          mirror the SoupMessage data, so you don't have to use
+          soup_request_http_get_message() in many cases. On the flip
+          side, there is also now soup_message_get_request(). And you
+          can create a SoupRequestHTTP directly (and override its
+          request method) by using soup_session_request_http() or
+          soup_session_request_http_uri()).
+
+	* soup_message_set_chunk_allocator() is now deprecated; apps
+          that want to do streaming reads should just use SoupRequest,
+          which is vastly more sane.
+
+
+	* SoupPasswordManager is now deprecated, and
+          SoupPasswordManagerGNOME is now a no-op (and libsoup-gnome
+          no longer links against libgnome-keyring). [#594377, #679866]
+
+	* SoupCookieJarSqlite is now deprecated in favor of
+          SoupCookieJarDB, which is exactly the same thing except that
+          it's in libsoup itself rather than being in libsoup-gnome
+          (something that many people have requested). This means that
+          libsoup now requires sqlite3... if this offends you horribly
+          then you have a few months to speak up...
+
+	* SoupProxyResolverGNOME is now deprecated; there hasn't been
+          any real reason to use it since SoupProxyResolverDefault was
+          added.
+
+	* As a result of the last three items, libsoup-gnome now
+          consists entirely of deprecated APIs, and there is no reason
+          you should use it any more (though packagers need to keep
+          building it, for backward compatibility).
+
+
+	* SoupSession is no longer an abstract class, and you can
+          create a plain SoupSession, which behaves in a more
+          traditionally-gio-like way (allowing a mix of sync and async
+          methods, etc). This "plain" SoupSession also has more sane
+          default values of certain properties, and has certain
+          SoupSessionFeatures built in.
+
+	  This will eventually replace SoupSessionAsync and
+	  SoupSessionSync completely, but most of the documentation
+	  hasn't yet been updated at this point...
+
+	  This change involved merging the majority of the
+	  SoupSessionAsync and SoupSessionSync code into SoupSession,
+	  getting rid of lots of redundancy in the process. There may
+	  be some bug fallout from this (probably on the
+	  SoupSessionSync side, since WebKit's tests tend to shake out
+	  all SoupSessionAsync bugs). However, this should help to
+	  avoid SoupSessionSync-only bugs in the future, since much
+	  more of the code is now shared.
+
+
+	* Usernames and passwords passed into SoupSession a URI will
+          now be cleared after they're used, so that if they are
+          wrong, the authenticate signal will be emitted on the next
+          round. [#689673, Martin Robinson]
+
+	* SoupURI now leaves "%00" in URIs as-is, rather than decoding
+          it to "\0", which was not intended and is never useful.
+
+	* Fixed a bug in SoupBodyOutputStream that could cause libsoup
+          to sometimes use blocking I/O rather than non-blocking when
+          writing chunked message bodies. [#688974, Milan Plzik]
+
+	* Fixed a bug in SoupFilterInputStream that could cause some
+          non-blocking reads to suck up CPU while waiting for the
+          network. (This was noticed with multipart/x-mixed-replace
+          processing; it's not clear if it affected anything else.)
+          [Gustavo]
+
+	* tests: misc small fixes
+
+
+	* New/updated translations:
+	  Assamese, Galician, Japanese, Odia, Polish, Spanish
+
 Changes in libsoup from 2.41.1 to 2.41.2:
 
 	* libsoup-2.4.so and libsoup-gnome-2.4.so now only export the
