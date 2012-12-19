@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-10 16:22+0000\n"
-"PO-Revision-Date: 2012-12-12 13:50+0530\n"
+"POT-Creation-Date: 2012-12-18 15:49+0000\n"
+"PO-Revision-Date: 2012-12-19 12:56+0530\n"
 "Last-Translator: Nilamdyuti Goswami <ngoswami@redhat.com>\n"
 "Language-Team: Assamese <kde-i18n-doc@kde.org>\n"
 "Language: as\n"
@@ -33,13 +33,16 @@ msgstr "অবৈধ সন্ধান অনুৰোধ"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream চুটি কৰিব নোৱাৰি"
 
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "নেটৱাৰ্ক স্ট্ৰিম অপ্ৰত্যাশিতভাৱে বন্ধ হল"
+
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "আউটপুট বাফাৰ অতি সৰু"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "HTTP প্ৰতিক্ৰিয়া বিশ্লেষণ কৰিব পৰা নগল"
 
@@ -56,7 +59,6 @@ msgid "Operation would block"
 msgstr "কাৰ্য্য প্ৰতিৰোধ কৰিব"
 
 #: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
 msgstr "HTTP অনুৰোধ বিশ্লেষণ কৰিব পৰা নগল"
 
@@ -70,17 +72,17 @@ msgstr "কোনো URl প্ৰদান কৰা হোৱা নাই"
 msgid "Invalid '%s' URI: %s"
 msgstr "অবৈধ '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:3759
+#: ../libsoup/soup-session.c:3752
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' বিশ্লেষণ কৰিব পৰা নগল"
 
-#: ../libsoup/soup-session.c:3796
+#: ../libsoup/soup-session.c:3789
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "অসমৰ্থিত URl আঁচনি '%s'"
 
-#: ../libsoup/soup-session.c:3818
+#: ../libsoup/soup-session.c:3811
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "এটা HTTP URI নহয়"
