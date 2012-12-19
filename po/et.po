@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-22 21:01+0000\n"
-"PO-Revision-Date: 2012-09-23 15:11+0300\n"
+"POT-Creation-Date: 2012-12-19 09:41+0000\n"
+"PO-Revision-Date: 2012-12-19 17:55+0300\n"
 "Last-Translator: Mattias Põldaru <mahfiaz@gmail.com>\n"
 "Language-Team: Estonian <gnome-et-list@gnome.org>\n"
 "Language: et\n"
@@ -27,15 +27,27 @@ msgstr "Sobimatu kerimise päring"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream-i pole võimalik lühendada"
 
+msgid "Network stream unexpectedly closed"
+msgstr "Võrguvoog sulgus ootamatult"
+
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Väljundpuhver on liiga väike"
+
+msgid "Could not parse HTTP response"
+msgstr "HTTP vastust polnud võimalik parsida"
+
+msgid "Unrecognized HTTP response encoding"
+msgstr "Tundmatu HTTP vastuse kodeering"
 
 msgid "Operation was cancelled"
 msgstr "Operatsioon katkestati"
 
 msgid "Operation would block"
 msgstr "Operatsioon blokeeruks"
+
+msgid "Could not parse HTTP request"
+msgstr "HTTP päringut polnud võimalik parsida"
 
 #, c-format
 msgid "No URI provided"
@@ -52,6 +64,10 @@ msgstr "URI-d '%s' polnud võimalik parsida"
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI skeem pole toetatud '%s'"
+
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Pole HTTP URI"
 
 msgid "Hostname is an IP address"
 msgstr "Hostinimi on IP-aadress"
