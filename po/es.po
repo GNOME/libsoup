@@ -9,15 +9,15 @@ msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-10 16:22+0000\n"
-"PO-Revision-Date: 2012-12-16 20:34+0100\n"
+"POT-Creation-Date: 2012-12-18 15:49+0000\n"
+"PO-Revision-Date: 2012-12-20 11:07+0100\n"
 "Last-Translator: Daniel Mustieles <daniel.mustieles@gmail.com>\n"
-"Language-Team: Español; Castellano <gnome-es-list@gnome.org>\n"
+"Language-Team: Español <gnome-es-list@gnome.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
 "X-Generator: Gtranslator 2.91.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:141
@@ -34,13 +34,16 @@ msgstr "Petición de búsqueda no válida"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No se puede truncar SoupBodyInputStream"
 
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "El flujo de red se cerró inesperadamente"
+
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "El búfer de salida es demasiado pequeño"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "No se pudo analizar la respuesta HTTP"
 
@@ -57,7 +60,6 @@ msgid "Operation would block"
 msgstr "La operación se bloqueará"
 
 #: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
 msgstr "No se pudo analizar la solicitud HTTP"
 
@@ -71,17 +73,17 @@ msgstr "No se ha proporcionado un URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI «%s» no válida: %s"
 
-#: ../libsoup/soup-session.c:3759
+#: ../libsoup/soup-session.c:3752
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "No se pudo analizar el URI «%s»"
 
-#: ../libsoup/soup-session.c:3796
+#: ../libsoup/soup-session.c:3789
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Esquema %s de URI no soportado"
 
-#: ../libsoup/soup-session.c:3818
+#: ../libsoup/soup-session.c:3811
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No es un URI HTTP"
