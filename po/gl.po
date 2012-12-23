@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-12-15 00:15+0100\n"
-"PO-Revision-Date: 2012-12-15 00:16+0200\n"
+"POT-Creation-Date: 2012-12-23 04:03+0100\n"
+"PO-Revision-Date: 2012-12-23 04:04+0200\n"
 "Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
 "Language-Team: gnome-l10n-gl@gnome.org\n"
 "Language: gl\n"
@@ -30,6 +30,10 @@ msgstr "Petición de busca non válida"
 #: ../libsoup/soup-body-input-stream.c:489
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Non é posíbel truncar SoupbodyInputStream"
+
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "Fluxo de rede pechado de forma non esperada"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
