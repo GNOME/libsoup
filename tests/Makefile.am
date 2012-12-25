@@ -12,6 +12,7 @@ LIBS =			\
 	$(GLIB_LIBS)
 
 noinst_PROGRAMS =	\
+	cache-test	\
 	chunk-test	\
 	coding-test	\
 	connection-test	\
@@ -47,6 +48,7 @@ noinst_DATA = soup-tests.gresource
 TEST_SRCS = test-utils.c test-utils.h
 
 auth_test_SOURCES = auth-test.c $(TEST_SRCS)
+cache_test_SOURCES = cache-test.c $(TEST_SRCS)
 chunk_test_SOURCES = chunk-test.c $(TEST_SRCS)
 coding_test_SOURCES = coding-test.c $(TEST_SRCS)
 connection_test_SOURCES = connection-test.c $(TEST_SRCS)
@@ -116,6 +118,7 @@ soup-tests.gresource: soup-tests.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir)  $<
 
 TESTS =			\
+	cache-test	\
 	chunk-test	\
 	coding-test	\
 	connection-test	\
