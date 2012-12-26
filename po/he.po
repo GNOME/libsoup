@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-22 15:16+0300\n"
-"PO-Revision-Date: 2012-09-22 15:17+0200\n"
+"POT-Creation-Date: 2012-12-27 00:49+0200\n"
+"PO-Revision-Date: 2012-12-27 00:50+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -35,39 +35,60 @@ msgstr "בקשת חיפוש שגויה"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "לא ניתן לקצץ את SoupBodyInputStream"
 
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "תזרים הרשת נסגר בפתאומיות"
+
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "אוגר הפלט קטן מדי"
 
-#: ../libsoup/soup-message-io.c:818
-#: ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "לא ניתן לנתח את תגובת ה־HTTP"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "קידוד תגובת ה־HTTP אינו מוכר"
+
+#: ../libsoup/soup-message-io.c:846
+#: ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "הפעולה בוטלה"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "הפעולה תיחסם"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "לא ניתן לנתח את תגובת ה־HTTP"
+
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "לא סופקה כתובת"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "כתובת '%s' שגויה: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:3875
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "לא ניתן לנתח את הכתובת '%s'"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:3912
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
+
+#: ../libsoup/soup-session.c:3934
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "כתובת שאינה HTTP"
 
 #: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
