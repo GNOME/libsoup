@@ -29,7 +29,6 @@
 
 #include "soup-request-http.h"
 #include "soup.h"
-#include "soup-cache-private.h"
 #include "soup-message-private.h"
 #include "soup-session-private.h"
 
@@ -256,20 +255,6 @@ soup_request_http_send (SoupRequest          *request,
 }
 
 
-typedef struct {
-	SoupMessage *original;
-	GInputStream *stream;
-} SendAsyncData;
-
-static void
-free_send_async_data (SendAsyncData *sadata)
-{
-       g_clear_object (&sadata->stream);
-       g_clear_object (&sadata->original);
-
-       g_slice_free (SendAsyncData, sadata);
-}
-
 static void
 http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
@@ -286,59 +271,6 @@ http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user
 }
 
 static void
-conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
-{
-	GTask *task = user_data;
-	SoupRequestHTTP *http = g_task_get_source_object (task);
-	SendAsyncData *sadata = g_task_get_task_data (task);
-	GInputStream *stream;
-
-	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
-		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
-
-		stream = soup_cache_send_response (cache, sadata->original);
-		if (stream) {
-			soup_message_got_headers (sadata->original);
-			soup_message_finished (sadata->original);
-
-			http->priv->content_type = g_strdup (soup_message_headers_get_content_type (msg->response_headers, NULL));
-
-			g_task_return_pointer (task, stream, g_object_unref);
-			g_object_unref (task);
-			return;
-		}
-	}
-
-	/* The resource was modified or the server returned a 200
-	 * OK. Either way we reload it. This is far from optimal as
-	 * we're donwloading the resource twice, but we will change it
-	 * once the cache is integrated in the streams stack.
-	 */
-	soup_session_send_request_async (session, sadata->original,
-					 g_task_get_cancellable (task),
-					 http_input_stream_ready_cb, task);
-}
-
-static gboolean
-idle_return_from_cache_cb (gpointer data)
-{
-	GTask *task = data;
-	SoupRequestHTTP *http = g_task_get_source_object (task);
-	SendAsyncData *sadata = g_task_get_task_data (task);
-
-	/* Issue signals  */
-	soup_message_got_headers (http->priv->msg);
-	soup_message_finished (http->priv->msg);
-
-	http->priv->content_type = g_strdup (soup_message_headers_get_content_type (http->priv->msg->response_headers, NULL));
-
-	g_task_return_pointer (task, g_object_ref (sadata->stream), g_object_unref);
-	g_object_unref (task);
-
-	return FALSE;
-}
-
-static void
 soup_request_http_send_async (SoupRequest          *request,
 			      GCancellable         *cancellable,
 			      GAsyncReadyCallback   callback,
@@ -347,55 +279,12 @@ soup_request_http_send_async (SoupRequest          *request,
 	SoupRequestHTTP *http = SOUP_REQUEST_HTTP (request);
 	SoupSession *session = soup_request_get_session (request);
 	GTask *task;
-	SendAsyncData *sadata;
-	GInputStream *stream;
-	SoupCache *cache;
 
 	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
 
 	http->priv->sent = TRUE;
 
 	task = g_task_new (request, cancellable, callback, user_data);
-	sadata = g_slice_new0 (SendAsyncData);
-	g_task_set_task_data (task, sadata, (GDestroyNotify)free_send_async_data);
-
-	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
-
-	if (cache) {
-		SoupCacheResponse response;
-
-		response = soup_cache_has_response (cache, http->priv->msg);
-		if (response == SOUP_CACHE_RESPONSE_FRESH) {
-			stream = soup_cache_send_response (cache, http->priv->msg);
-
-			/* Cached resource file could have been deleted outside */
-			if (stream) {
-				/* Do return the stream asynchronously as in
-				 * the other cases. It's not enough to let
-				 * GTask do the asynchrony for us, because
-				 * the signals must be also emitted
-				 * asynchronously
-				 */
-				sadata->stream = stream;
-				soup_add_completion (soup_session_get_async_context (session),
-						     idle_return_from_cache_cb, task);
-				return;
-			}
-		} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
-			SoupMessage *conditional_msg;
-
-			conditional_msg = soup_cache_generate_conditional_request (cache, http->priv->msg);
-
-			if (conditional_msg) {
-				sadata->original = g_object_ref (http->priv->msg);
-				soup_session_queue_message (session, conditional_msg,
-							    conditional_get_ready_cb,
-							    task);
-				return;
-			}
-		}
-	}
-
 	soup_session_send_request_async (session, http->priv->msg, cancellable,
 					 http_input_stream_ready_cb, task);
 }

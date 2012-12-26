@@ -14,6 +14,7 @@
 #include "soup-session.h"
 #include "soup.h"
 #include "soup-auth-manager-ntlm.h"
+#include "soup-cache-private.h"
 #include "soup-connection.h"
 #include "soup-marshal.h"
 #include "soup-message-private.h"
@@ -1779,6 +1780,10 @@ soup_session_process_queue_item (SoupSession          *session,
 			g_warn_if_fail (item->new_api);
 			item->state = SOUP_MESSAGE_FINISHING;
 			break;
+
+		case SOUP_MESSAGE_CACHED:
+			/* Will be handled elsewhere */
+			return;
 
 		case SOUP_MESSAGE_RESTARTING:
 			item->state = SOUP_MESSAGE_STARTING;
@@ -3551,6 +3556,121 @@ async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 	try_run_until_read (item);
 }
 
+static void
+async_return_from_cache (SoupMessageQueueItem *item,
+			 GInputStream         *stream)
+{
+	const char *content_type;
+	GHashTable *params;
+
+	soup_message_got_headers (item->msg);
+
+	content_type = soup_message_headers_get_content_type (item->msg->response_headers, &params);
+	soup_message_content_sniffed (item->msg, content_type, params);
+	g_hash_table_unref (params);
+
+	item->state = SOUP_MESSAGE_FINISHING;
+	async_send_request_return_result (item, g_object_ref (stream), NULL);
+}
+
+static void
+conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	SoupMessageQueueItem *item = user_data;
+	GInputStream *stream;
+
+	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
+		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
+
+		stream = soup_cache_send_response (cache, item->msg);
+		if (stream) {
+			async_return_from_cache (item, stream);
+			g_object_unref (stream);
+			return;
+		}
+	}
+
+	/* The resource was modified or the server returned a 200
+	 * OK. Either way we reload it. FIXME.
+	 */
+	item->state = SOUP_MESSAGE_STARTING;
+	soup_session_kick_queue (session);
+}
+
+typedef struct {
+	SoupMessageQueueItem *item;
+	GInputStream *stream;
+} SendAsyncCacheData;
+
+static void
+free_send_async_cache_data (SendAsyncCacheData *sacd)
+{
+	soup_message_queue_item_unref (sacd->item);
+	g_object_unref (sacd->stream);
+	g_slice_free (SendAsyncCacheData, sacd);
+}
+
+static gboolean
+idle_return_from_cache_cb (gpointer data)
+{
+	GTask *task = data;
+	SendAsyncCacheData *sacd = g_task_get_task_data (task);
+
+	async_return_from_cache (sacd->item, sacd->stream);
+	return FALSE;
+}
+
+static gboolean
+async_respond_from_cache (SoupSession          *session,
+			  SoupMessageQueueItem *item)
+{
+	SoupCache *cache;
+	SoupCacheResponse response;
+
+	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
+	if (!cache)
+		return FALSE;
+
+	response = soup_cache_has_response (cache, item->msg);
+	if (response == SOUP_CACHE_RESPONSE_FRESH) {
+		GInputStream *stream;
+		SendAsyncCacheData *sacd;
+		GSource *source;
+
+		stream = soup_cache_send_response (cache, item->msg);
+		if (!stream) {
+			/* Cached file was deleted? */
+			return FALSE;
+		}
+
+		sacd = g_slice_new (SendAsyncCacheData);
+		sacd->item = item;
+		soup_message_queue_item_ref (item);
+		sacd->stream = stream;
+
+		g_task_set_task_data (item->task, sacd,
+				      (GDestroyNotify) free_send_async_cache_data);
+
+		source = g_timeout_source_new (0);
+		g_task_attach_source (item->task, source,
+				      (GSourceFunc) idle_return_from_cache_cb);
+		g_source_unref (source);
+		return TRUE;
+	} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
+		SoupMessage *conditional_msg;
+
+		conditional_msg = soup_cache_generate_conditional_request (cache, item->msg);
+		if (!conditional_msg)
+			return FALSE;
+
+		soup_session_queue_message (session, conditional_msg,
+					    conditional_get_ready_cb,
+					    item);
+		return TRUE;
+	} else
+		return FALSE;
+}
+
 void
 soup_session_send_request_async (SoupSession         *session,
 				 SoupMessage         *msg,
@@ -3585,7 +3705,10 @@ soup_session_send_request_async (SoupSession         *session,
 		item->cancellable = g_object_ref (cancellable);
 	}
 
-	soup_session_kick_queue (session);
+	if (async_respond_from_cache (session, item))
+		item->state = SOUP_MESSAGE_CACHED;
+	else
+		soup_session_kick_queue (session);
 }
 
 GInputStream *
