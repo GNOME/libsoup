@@ -39,6 +39,13 @@
 #include "soup-message-private.h"
 #include "soup.h"
 
+/**
+ * SECTION:soup-cache
+ * @short_description: Caching support
+ *
+ * #SoupCache implements a file-based cache for HTTP resources.
+ */
+
 static SoupSessionFeatureInterface *soup_cache_default_feature_interface;
 static void soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 

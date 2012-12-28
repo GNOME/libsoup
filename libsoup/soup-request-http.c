@@ -32,6 +32,18 @@
 #include "soup-message-private.h"
 #include "soup-session-private.h"
 
+/**
+ * SECTION:soup-request-http
+ * @short_description: SoupRequest support for "http" and "https" URIs
+ *
+ * #SoupRequestHTTP implements #SoupRequest for "http" and "https"
+ * URIs.
+ *
+ * To do more complicated HTTP operations using the #SoupRequest APIs,
+ * call soup_request_http_get_message() to get the request's
+ * #SoupMessage.
+ */
+
 G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
 /**

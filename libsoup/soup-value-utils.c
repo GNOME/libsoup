@@ -15,7 +15,7 @@
 
 /**
  * SECTION:soup-value-utils
- * @short_description: #GValue utilities
+ * @short_description: GValue utilities
  *
  * These methods are useful for manipulating #GValue<!-- -->s, and in
  * particular, arrays and hash tables of #GValue<!-- -->s, in a

@@ -103,7 +103,7 @@ void            soup_session_cancel_message   (SoupSession           *session,
 					       guint                  status_code);
 void            soup_session_abort            (SoupSession           *session);
 
-SOUP_AVAILABLE_IN_2_30
+/* SOUP_AVAILABLE_IN_2_30 -- this trips up gtkdoc-scan */
 SOUP_DEPRECATED_IN_2_38_FOR (soup_session_prefetch_dns)
 void            soup_session_prepare_for_uri  (SoupSession           *session,
 					       SoupURI               *uri);

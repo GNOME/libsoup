@@ -35,41 +35,52 @@ that first appeared in version 2.4") and is essentially just part of
 the package name.
 </para>
 
+</refsect2>
+
+<refsect2>
+<title>API Availability and Deprecation Warnings</title>
+
 <para>
-If you are using any of the GNOME-specific features of
-<application>libsoup</application> (such as automatic proxy
-configuration), you must require
-"<literal>libsoup-gnome-2.4</literal>" instead:
+If you want to restrict your program to a particular
+<application>libsoup</application> version or range of versions, you
+can define <link
+linkend="SOUP-VERSION-MIN-REQUIRED:CAPS"><literal>SOUP_VERSION_MIN_REQUIRED</literal></link>
+and/or <link
+linkend="SOUP-VERSION-MAX-ALLOWED:CAPS"><literal>SOUP_VERSION_MAX_ALLOWED</literal></link>.
+Eg:
 </para>
 
 <informalexample><programlisting>
-PKG_CHECK_MODULES(LIBSOUP, [libsoup-gnome-2.4 >= 2.26])
-AC_SUBST(LIBSOUP_CFLAGS)
-AC_SUBST(LIBSOUP_LIBS)
+LIBSOUP_CFLAGS="$LIBSOUP_CFLAGS -DSOUP_VERSION_MIN_REQUIRED=SOUP_VERSION_2_36"
+LIBSOUP_CFLAGS="$LIBSOUP_CFLAGS -DSOUP_VERSION_MAX_ALLOWED=SOUP_VERSION_2_40"
 </programlisting></informalexample>
 
 <para>
-You can also make <application>libsoup-gnome</application> an optional
-dependency:
+The <literal>SOUP_VERSION_MIN_REQUIRED</literal> declaration states
+that the code is not expected to compile on versions of
+<application>libsoup</application> older than the indicated version
+(here, 2.36), and so the compiler should print warnings if the code
+uses functions that were deprecated as of that release.
 </para>
 
-<informalexample><programlisting>
-PKG_CHECK_MODULES(LIBSOUP_GNOME,
-		  [libsoup-gnome-2.4 >= 2.26],
-		  [LIBSOUP_CFLAGS="$LIBSOUP_GNOME_CFLAGS"
-		   LIBSOUP_LIBS="$LIBSOUP_GNOME_LIBS"
-		   AC_DEFINE(HAVE_LIBSOUP_GNOME, 1, [Have libsoup-gnome])],
-		  [PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= 2.26])])
-AC_SUBST(LIBSOUP_CFLAGS)
-AC_SUBST(LIBSOUP_LIBS)
-</programlisting></informalexample>
+<para>
+The <literal>SOUP_VERSION_MAX_ALLOWED</literal> declaration states
+that the code <emphasis>is</emphasis> expected to compile on versions
+of <application>libsoup</application> up to the indicated version
+(here, 2.40), and so, when compiling the program against a newer
+version than that, the compiler should print warnings if the code uses
+functions that did not yet exist in the max-allowed release.
+</para>
 
 <para>
-This will allow the application to be built with either plain
-<application>libsoup</application> or with
-<application>libsoup-gnome</application>, and it will define the C
-preprocessor symbol <literal>HAVE_LIBSOUP_GNOME</literal> if
-<application>libsoup-gnome</application> features are available.
+You can use <link
+linkend="SOUP-CHECK-VERSION:CAPS"><literal>SOUP_CHECK_VERSION</literal></link>
+to check the version of libsoup at compile time, to compile different
+code for different <application>libsoup</application> versions. (If
+you are setting <literal>SOUP_VERSION_MIN_REQUIRED</literal> and
+<literal>SOUP_VERSION_MAX_ALLOWED</literal> to different versions, as
+in the example above, then you almost certainly need to be doing
+this.)
 </para>
 
 </refsect2>
@@ -86,18 +97,8 @@ Code using <application>libsoup</application> should do:
 </programlisting></informalexample>
 
 <para>
-or, for <application>libsoup-gnome</application>:
-</para>
-
-<informalexample><programlisting>
-#include &lt;libsoup/soup-gnome.h&gt;
-</programlisting></informalexample>
-
-<para>
-Including individual headers besides the two main header files is not
-recommended. You may include both <literal>soup.h</literal> and
-<literal>soup-gnome.h</literal> (though this is not required; the
-latter automatically includes the former).
+Including individual headers rather than <literal>soup.h</literal> is not
+recommended.
 </para>
 
 </refsect2>

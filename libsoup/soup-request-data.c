@@ -31,6 +31,13 @@
 #include "soup.h"
 #include "soup-misc-private.h"
 
+/**
+ * SECTION:soup-request-data
+ * @short_description: SoupRequest support for "data" URIs
+ *
+ * #SoupRequestData implements #SoupRequest for "data" URIs.
+ */
+
 G_DEFINE_TYPE (SoupRequestData, soup_request_data, SOUP_TYPE_REQUEST)
 
 struct _SoupRequestDataPrivate {

@@ -13,10 +13,11 @@
 #include "soup.h"
 
 /**
- * SoupProxyResolverDefault:
+ * SECTION:soup-proxy-resolver-default
+ * @short_description: System proxy configuration integration
  *
- * A #SoupProxyURIResolver implementation that uses the default gio
- * #GProxyResolver to resolve proxies.
+ * #SoupProxyResolverDefault is a #SoupProxyURIResolver implementation
+ * that uses the default gio GProxyResolver to resolve proxies.
  *
  * Since: 2.34
  */

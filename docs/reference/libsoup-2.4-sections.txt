@@ -451,7 +451,6 @@ SOUP_SESSION_GET_CLASS
 SOUP_TYPE_SESSION
 SoupSessionClass
 soup_session_get_type
-soup_request_error_get_type
 soup_request_error_quark
 <SUBSECTION Private>
 SoupConnection

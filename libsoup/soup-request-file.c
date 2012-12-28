@@ -30,6 +30,14 @@
 #include "soup-directory-input-stream.h"
 #include "soup-requester.h"
 
+/**
+ * SECTION:soup-request-file
+ * @short_description: SoupRequest support for "file" and "resource" URIs
+ *
+ * #SoupRequestFile implements #SoupRequest for "file" and "resource"
+ * URIs.
+ */
+
 G_DEFINE_TYPE (SoupRequestFile, soup_request_file, SOUP_TYPE_REQUEST)
 
 struct _SoupRequestFilePrivate {

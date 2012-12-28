@@ -12,6 +12,18 @@
 #include "soup-proxy-uri-resolver.h"
 #include "soup.h"
 
+/**
+ * SECTION:soup-proxy-uri-resolver
+ * @short_description: Interface for locating HTTP proxies
+ *
+ * #SoupProxyURIResolver is an interface for finding appropriate HTTP
+ * proxies to use.
+ *
+ * You are not likely to have to implement this interface on your own;
+ * instead, you should usually just be able to use
+ * #SoupProxyResolverDefault.
+ */
+
 G_DEFINE_INTERFACE (SoupProxyURIResolver, soup_proxy_uri_resolver, G_TYPE_OBJECT)
 
 static void
