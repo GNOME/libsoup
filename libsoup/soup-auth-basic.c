@@ -19,6 +19,17 @@ typedef struct {
 } SoupAuthBasicPrivate;
 #define SOUP_AUTH_BASIC_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_BASIC, SoupAuthBasicPrivate))
 
+/**
+ * SOUP_TYPE_AUTH_BASIC:
+ *
+ * A #GType corresponding to HTTP "Basic" authentication.
+ * #SoupSessions support this by default; if you want to disable
+ * support for it, call soup_session_remove_feature_by_type(),
+ * passing %SOUP_TYPE_AUTH_BASIC.
+ *
+ * Since: 2.34
+ */
+
 G_DEFINE_TYPE (SoupAuthBasic, soup_auth_basic, SOUP_TYPE_AUTH)
 
 static void

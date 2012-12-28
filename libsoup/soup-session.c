@@ -2956,7 +2956,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     NULL,
 				     G_PARAM_READWRITE | G_PARAM_DEPRECATED));
 	/**
-	 * SOUP_SESSION_USE_SYSTEM_CA_FILE:
+	 * SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE:
 	 *
 	 * Alias for the #SoupSession:ssl-use-system-ca-file property,
 	 * qv.
@@ -3027,8 +3027,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	/**
 	 * SoupSession:ssl-strict:
 	 *
-	 * Normally, if #SoupSession:tlsdb is set (including if it was
-	 * set via #SoupSession:ssl-use-system-ca-file or
+	 * Normally, if #SoupSession:tls-database is set (including if
+	 * it was set via #SoupSession:ssl-use-system-ca-file or
 	 * #SoupSession:ssl-ca-file), then libsoup will reject any
 	 * certificate that is invalid (ie, expired) or that is not
 	 * signed by one of the given CA certificates, and the
@@ -4010,7 +4010,7 @@ soup_session_request_http_uri (SoupSession  *session,
 /**
  * SOUP_REQUEST_ERROR:
  *
- * A #GError domain for #SoupRequest-related errors. Used with
+ * A #GError domain for #SoupRequest<!-- -->-related errors. Used with
  * #SoupRequestError.
  *
  * Since: 2.42

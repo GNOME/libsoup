@@ -1623,12 +1623,13 @@ soup_message_set_status_full (SoupMessage *msg,
  * destroyed
  *
  * Sets an alternate chunk-allocation function to use when reading
- * @msg's body when using the traditional (ie, non-#SoupRequest-based)
- * API. Every time data is available to read, libsoup will call
- * @allocator, which should return a #SoupBuffer. (See
- * #SoupChunkAllocator for additional details.) Libsoup will then read
- * data from the network into that buffer, and update the buffer's
- * <literal>length</literal> to indicate how much data it read.
+ * @msg's body when using the traditional (ie,
+ * non-#SoupRequest<!-- -->-based) API. Every time data is available
+ * to read, libsoup will call @allocator, which should return a
+ * #SoupBuffer. (See #SoupChunkAllocator for additional details.)
+ * Libsoup will then read data from the network into that buffer, and
+ * update the buffer's <literal>length</literal> to indicate how much
+ * data it read.
  *
  * Generally, a custom chunk allocator would be used in conjunction
  * with soup_message_body_set_accumulate() %FALSE and

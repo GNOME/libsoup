@@ -188,7 +188,7 @@ soup_date_new (int year, int month, int day,
  * offset_seconds is 0, returns the current time.
  *
  * If @offset_seconds would indicate a time not expressible as a
- * #time_t, the return value will be clamped into range.
+ * <type>time_t</type>, the return value will be clamped into range.
  *
  * Return value: a new #SoupDate
  **/
@@ -525,7 +525,7 @@ soup_date_new_from_string (const char *date_string)
 
 /**
  * soup_date_new_from_time_t:
- * @when: a #time_t
+ * @when: a <type>time_t</type>
  *
  * Creates a #SoupDate corresponding to @when
  *
@@ -680,13 +680,13 @@ soup_date_to_string (SoupDate *date, SoupDateFormat format)
  * soup_date_to_time_t:
  * @date: a #SoupDate
  *
- * Converts @date to a %time_t.
+ * Converts @date to a <type>time_t</type>.
  *
- * If @date is not representable as a %time_t, it will be clamped into
- * range. (In particular, some HTTP cookies have expiration dates
- * after "Y2.038k" (2038-01-19T03:14:07Z).)
+ * If @date is not representable as a <type>time_t</type>, it will be
+ * clamped into range. (In particular, some HTTP cookies have
+ * expiration dates after "Y2.038k" (2038-01-19T03:14:07Z).)
  *
- * Return value: @date as a %time_t
+ * Return value: @date as a <type>time_t</type>
  **/
 time_t
 soup_date_to_time_t (SoupDate *date)

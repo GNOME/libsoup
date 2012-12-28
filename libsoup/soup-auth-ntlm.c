@@ -19,6 +19,17 @@ typedef struct {
 } SoupAuthNTLMPrivate;
 #define SOUP_AUTH_NTLM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_NTLM, SoupAuthNTLMPrivate))
 
+/**
+ * SOUP_TYPE_AUTH_NTLM:
+ *
+ * A #GType corresponding to HTTP-based NTLM authentication.
+ * #SoupSessions do not support this type by default; if you want to
+ * enable support for it, call soup_session_add_feature_by_type(),
+ * passing %SOUP_TYPE_AUTH_NTLM.
+ *
+ * Since: 2.34
+ */
+
 G_DEFINE_TYPE (SoupAuthNTLM, soup_auth_ntlm, SOUP_TYPE_AUTH)
 
 static void

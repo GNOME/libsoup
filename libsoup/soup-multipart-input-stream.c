@@ -508,13 +508,11 @@ soup_multipart_input_stream_next_part_thread (GTask        *task,
  * @io_priority: the I/O priority for the request.
  * @cancellable: a #GCancellable.
  * @callback: callback to call when request is satisfied.
+ * @data: data for @callback
  *
  * Obtains a #GInputStream for the next request. See
  * soup_multipart_input_stream_next_part() for details on the
  * workflow.
- *
- * Return value: a new #GInputStream, or %NULL if there are no more
- * parts
  *
  * Since: 2.40
  */

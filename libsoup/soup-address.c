@@ -22,6 +22,10 @@
  * #SoupAddress represents the address of a TCP connection endpoint:
  * both the IP address and the port. (It is somewhat like an
  * object-oriented version of struct sockaddr.)
+ *
+ * Although #SoupAddress is still used in some libsoup API's, it
+ * should not be used in new code; use GLib's #GNetworkAddress or
+ * #GSocketAddress instead.
  **/
 
 enum {

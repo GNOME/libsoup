@@ -795,6 +795,9 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
  * document. If no first party is set in a message when this policy is
  * in effect, cookies will be assumed to be third party by default.
  *
+ * The policy for accepting or rejecting cookies returned in
+ * responses.
+ *
  * Since: 2.30
  */
 

@@ -17,6 +17,15 @@
 #include "soup.h"
 #include "soup-tld-private.h"
 
+/**
+ * SECTION:soup-tld
+ * @short_description: Top-Level Domain Utilities
+ *
+ * These functions can be used to parse hostnames to attempt to determine
+ * what part of the name belongs to the domain owner, and what part is
+ * simply a "public suffix" such as ".com".
+ */
+
 static void soup_tld_ensure_rules_hash_table (void);
 static const char *soup_tld_get_base_domain_internal (const char *hostname,
 						      guint       additional_domains,
@@ -27,8 +36,7 @@ static SoupTLDEntry tld_entries[] = {
 #include "tld_data.inc"
 };
 
-/**
- * Stores the entries data in a hash table to ease and speed up
+/* Stores the entries data in a hash table to ease and speed up
  * searches.
  */
 static void
@@ -49,7 +57,6 @@ soup_tld_ensure_rules_hash_table (void)
 
 /**
  * soup_tld_get_base_domain:
- * @tld: a #SoupTLD
  * @hostname: a UTF-8 hostname in its canonical representation form
  * @error: return location for a #GError, or %NULL to ignore
  *   errors. See #SoupTLDError for the available error codes
@@ -83,7 +90,6 @@ soup_tld_get_base_domain (const char *hostname, GError **error)
 
 /**
  * soup_tld_domain_is_public_suffix:
- * @tld: a #SoupTLD
  * @domain: a UTF-8 domain in its canonical representation form
  *
  * Looks whether the @domain passed as argument is a public domain
@@ -130,6 +136,31 @@ soup_tld_domain_is_public_suffix (const char *domain)
 
 	return TRUE;
 }
+
+/**
+ * SOUP_TLD_ERROR:
+ *
+ * The #GError domain for soup-tld-related errors.
+ *
+ * Since: 2.40
+ */
+/**
+ * SoupTLDError:
+ * @SOUP_TLD_ERROR_INVALID_HOSTNAME: A hostname was syntactically
+ *   invalid.
+ * @SOUP_TLD_ERROR_IS_IP_ADDRESS: The passed-in "hostname" was
+ *   actually an IP address (and thus has no base domain or
+ *   public suffix).
+ * @SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS: The passed-in hostname
+ *   did not have enough components. Eg, calling
+ *   soup_tld_get_base_domain() on <literal>"co.uk"</literal>.
+ * @SOUP_TLD_ERROR_NO_BASE_DOMAIN: The passed-in hostname has
+ *   no recognized public suffix.
+ *
+ * Error codes for %SOUP_TLD_ERROR.
+ *
+ * Since: 2.40
+ */
 
 GQuark
 soup_tld_error_quark (void)

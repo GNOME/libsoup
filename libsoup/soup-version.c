@@ -52,6 +52,8 @@
  * @minor: minor version (e.g. 42 for version 2.42.0)
  * @micro: micro version (e.g. 0 for version 2.42.0)
  *
+ * Macro to test the version of libsoup being compiled against.
+ *
  * Returns: %TRUE if the version of the libsoup header files
  * is the same as or newer than the passed-in version.
  *

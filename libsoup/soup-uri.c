@@ -105,6 +105,57 @@
  * Since: 2.24
  **/
 
+/**
+ * SOUP_URI_SCHEME_HTTP:
+ *
+ * "http" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ */
+/**
+ * SOUP_URI_SCHEME_HTTPS:
+ *
+ * "https" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ */
+/**
+ * SOUP_URI_SCHEME_FTP:
+ *
+ * "ftp" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ *
+ * Since: 2.30
+ */
+/**
+ * SOUP_URI_SCHEME_FILE:
+ *
+ * "file" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ *
+ * Since: 2.30
+ */
+/**
+ * SOUP_URI_SCHEME_DATA:
+ *
+ * "data" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ *
+ * Since: 2.30
+ */
+/**
+ * SOUP_URI_SCHEME_RESOURCE:
+ *
+ * "data" as an interned string; you can compare this directly to a
+ * #SoupURI's <literal>scheme</literal> field using
+ * <literal>==</literal>.
+ *
+ * Since: 2.42
+ */
+
 static void append_uri_encoded (GString *str, const char *in, const char *extra_enc_chars);
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 

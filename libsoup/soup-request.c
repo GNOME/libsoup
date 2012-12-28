@@ -282,6 +282,20 @@ soup_request_class_init (SoupRequestClass *request_class)
 	object_class->set_property = soup_request_set_property;
 	object_class->get_property = soup_request_get_property;
 
+	/**
+	 * SOUP_REQUEST_URI:
+	 *
+	 * Alias for the #SoupRequest:uri property, qv.
+	 *
+	 * Since: 2.42
+	 */
+	/**
+	 * SoupRequest:uri:
+	 *
+	 * The request URI.
+	 *
+	 * Since: 2.42
+	 */
 	g_object_class_install_property (
 		 object_class, PROP_URI,
 		 g_param_spec_boxed (SOUP_REQUEST_URI,
@@ -289,6 +303,20 @@ soup_request_class_init (SoupRequestClass *request_class)
 				     "The request URI",
 				     SOUP_TYPE_URI,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/**
+	 * SOUP_REQUEST_SESSION:
+	 *
+	 * Alias for the #SoupRequest:session property, qv.
+	 *
+	 * Since: 2.42
+	 */
+	/**
+	 * SoupRequest:session:
+	 *
+	 * The request's #SoupSession.
+	 *
+	 * Since: 2.42
+	 */
 	g_object_class_install_property (
 		 object_class, PROP_SESSION,
 		 g_param_spec_object (SOUP_REQUEST_SESSION,

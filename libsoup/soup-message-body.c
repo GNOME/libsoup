@@ -313,6 +313,10 @@ soup_buffer_free (SoupBuffer *buffer)
  * soup_buffer_get_as_bytes:
  * @buffer: a #SoupBuffer
  *
+ * Creates a #GBytes pointing to the same memory as @buffer. The
+ * #GBytes will hold a reference on @buffer to ensure that it is not
+ * freed while the #GBytes is still valid.
+ *
  * Returns: (transfer full): a new #GBytes which has the same content
  * as the #SoupBuffer.
  *

@@ -13,7 +13,7 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 DOC_SOURCE_DIR=../../libsoup
 
 # Extra options to supply to gtkdoc-scan.
-SCAN_OPTIONS=--deprecated-guards=LIBSOUP_DISABLE_DEPRECATED --rebuild-types
+SCAN_OPTIONS=--rebuild-types
 
 # Extra options to supply to gtkdoc-scangobj.
 SCANGOBJ_OPTIONS=
@@ -41,7 +41,9 @@ IGNORE_HFILES= soup.h soup-marshal.h soup-enum-types.h \
 	soup-body-input-stream.h soup-body-output-stream.h \
 	soup-client-input-stream.h soup-content-processor.h \
 	soup-content-sniffer-stream.h soup-io-stream.h \
-	soup-filter-input-stream.h
+	soup-cache-input-stream.h soup-filter-input-stream.h \
+	soup-cookie-jar-sqlite.h soup-requester.h soup-tld-private.h \
+	soup-misc-private.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES = 

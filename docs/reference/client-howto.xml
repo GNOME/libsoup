@@ -164,22 +164,15 @@ functions. Some of the features available in
 	    track of cookies between sessions.
 	</para></listitem>
     </varlistentry>
-</variablelist>
-
-<para>
-And in <application>libsoup-gnome</application>:
-</para>
-
-<variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME:CAPS"><type>SoupProxyResolverGNOME</type></link></term>
+	<term><link linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link></term>
 	<listitem><para>
 	    A feature that automatically determines the correct HTTP
 	    proxy to use for requests.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SoupCookieJarSqlite"><type>SoupCookieJarSqlite</type></link></term>
+	<term><link linkend="SoupCookieJarDB"><type>SoupCookieJarDB</type></link></term>
 	<listitem><para>
 	    Support for HTTP cookies stored in an
 	    <application>SQLite</application> database.
@@ -190,7 +183,7 @@ And in <application>libsoup-gnome</application>:
 <para>
 Use the "add_feature_by_type" property/function to add features that
 don't require any configuration (such as <link
-linkend="SOUP-TYPE-PROXY-RESOLVER-GNOME:CAPS"><type>SoupProxyResolverGNOME</type></link>),
+linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link>),
 and the "add_feature" property/function to add features that must be
 constructed first (such as <link
 linkend="SoupLogger"><type>SoupLogger</type></link>). For example, an
@@ -200,7 +193,7 @@ application might do something like the following:
 <informalexample><programlisting>
 	session = soup_session_async_new_with_options (
 #ifdef HAVE_LIBSOUP_GNOME
-		SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PROXY_RESOLVER_GNOME,
+		SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PROXY_RESOLVER_DEFAULT,
 #endif
 		NULL);
 	if (debug_level) {

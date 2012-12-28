@@ -836,6 +836,17 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	return socket_connected (sock, conn, error);
 }
 
+/**
+ * soup_socket_get_fd:
+ * @sock: a #SoupSocket
+ *
+ * Gets @sock's underlying file descriptor.
+ *
+ * Note that fiddling with the file descriptor may break the
+ * #SoupSocket.
+ *
+ * Return value: @sock's file descriptor.
+ */
 int
 soup_socket_get_fd (SoupSocket *sock)
 {

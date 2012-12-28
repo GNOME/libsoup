@@ -34,6 +34,25 @@
 
 G_DEFINE_TYPE (SoupRequestHTTP, soup_request_http, SOUP_TYPE_REQUEST)
 
+/**
+ * SoupRequestHTTP:
+ * @method: the HTTP method
+ * @request_uri: the request URI
+ * @request_version: the HTTP version of the request
+ * @request_headers: the request headers
+ * @status_code: the HTTP status code
+ * @reason_phrase: the status phrase associated with @status_code
+ * @response_version: the HTTP version of the response
+ * @response_headers: the response headers
+ *
+ * Represents an HTTP message being sent or received via the
+ * #SoupRequest API. The fields on this object reflect the values on
+ * the request's underlying #SoupMessage; see the #SoupMessage
+ * documentation for more information.
+ *
+ * Since: 2.42
+ */
+
 enum {
 	PROP_0,
 
@@ -575,6 +594,15 @@ soup_request_http_get_message (SoupRequestHTTP *http)
 	return g_object_ref (http->priv->msg);
 }
 
+/**
+ * soup_request_http_set_method:
+ * @http: a #SoupRequestHTTP
+ * @method: the HTTP method
+ *
+ * Sets @http to use @method as its request method.
+ *
+ * Since: 2.42
+ */
 void
 soup_request_http_set_method (SoupRequestHTTP *http,
 			      const char      *method)

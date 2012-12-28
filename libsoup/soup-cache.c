@@ -1238,6 +1238,9 @@ force_flush_timeout (gpointer data)
  * committed to disk. For doing so it will iterate the #GMainContext
  * associated with @cache's session as long as needed.
  *
+ * Contrast with soup_cache_dump(), which writes out the cache index
+ * file.
+ *
  * Since: 2.34
  */
 void
@@ -1402,6 +1405,19 @@ pack_entry (gpointer data,
 	g_variant_builder_close (entries_builder); /* SOUP_CACHE_PHEADERS_FORMAT */
 }
 
+/**
+ * soup_cache_dump:
+ * @cache: a #SoupCache
+ *
+ * Synchronously writes the cache index out to disk. Contrast with
+ * soup_cache_flush(), which writes pending cache
+ * <emphasis>entries</emphasis> to disk.
+ *
+ * You must call this before exiting if you want your cache data to
+ * persist between sessions.
+ *
+ * Since: 2.34.
+ */
 void
 soup_cache_dump (SoupCache *cache)
 {
@@ -1430,6 +1446,14 @@ soup_cache_dump (SoupCache *cache)
 	g_variant_unref (cache_variant);
 }
 
+/**
+ * soup_cache_load:
+ * @cache: a #SoupCache
+ *
+ * Loads the contents of @cache's index into memory.
+ *
+ * Since: 2.34
+ */
 void
 soup_cache_load (SoupCache *cache)
 {
@@ -1507,6 +1531,15 @@ soup_cache_load (SoupCache *cache)
 	g_variant_unref (cache_variant);
 }
 
+/**
+ * soup_cache_set_max_size:
+ * @cache: a #SoupCache
+ * @max_size: the maximum size of the cache, in bytes
+ *
+ * Sets the maximum size of the cache.
+ *
+ * Since: 2.34
+ */
 void
 soup_cache_set_max_size (SoupCache *cache,
 			 guint      max_size)
@@ -1515,6 +1548,16 @@ soup_cache_set_max_size (SoupCache *cache,
 	cache->priv->max_entry_data_size = cache->priv->max_size / MAX_ENTRY_DATA_PERCENTAGE;
 }
 
+/**
+ * soup_cache_get_max_size:
+ * @cache: a #SoupCache
+ *
+ * Gets the maximum size of the cache.
+ *
+ * Return value: the maximum size of the cache, in bytes.
+ *
+ * Since: 2.34
+ */
 guint
 soup_cache_get_max_size (SoupCache *cache)
 {

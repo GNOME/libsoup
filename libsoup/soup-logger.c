@@ -52,7 +52,7 @@
  * </screen></informalexample>
  *
  * The <literal>Soup-Debug-Timestamp</literal> line gives the time (as
- * a #time_t) when the request was sent, or the response fully
+ * a <type>time_t</type>) when the request was sent, or the response fully
  * received.
  *
  * The <literal>Soup-Debug</literal> line gives further debugging

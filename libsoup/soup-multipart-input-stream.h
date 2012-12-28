@@ -54,7 +54,7 @@ void                      soup_multipart_input_stream_next_part_async  (SoupMult
 
 SOUP_AVAILABLE_IN_2_40
 GInputStream             *soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream  *multipart,
-									GAsyncResult              *res,
+									GAsyncResult              *result,
 									GError                   **error);
 
 SOUP_AVAILABLE_IN_2_40
