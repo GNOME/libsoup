@@ -13,7 +13,7 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 DOC_SOURCE_DIR=../../libsoup
 
 # Extra options to supply to gtkdoc-scan.
-SCAN_OPTIONS=--rebuild-types --ignore-decorators='SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*'
+SCAN_OPTIONS=--deprecated-guards=LIBSOUP_DISABLE_DEPRECATED --rebuild-types --ignore-decorators='SOUP_DEPRECATED\w*\s*\([^)]*\)|SOUP_DEPRECATED\w*|SOUP_AVAILABLE\w*'
 
 # Extra options to supply to gtkdoc-scangobj.
 SCANGOBJ_OPTIONS=

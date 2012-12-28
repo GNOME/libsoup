@@ -167,6 +167,7 @@ void           soup_message_set_redirect        (SoupMessage       *msg,
 						 const char        *redirect_uri);
 
 /* I/O */
+#ifndef LIBSOUP_DISABLE_DEPRECATED
 typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
 						 gsize              max_len,
 						 gpointer           user_data);
@@ -176,6 +177,7 @@ void           soup_message_set_chunk_allocator (SoupMessage       *msg,
 						 SoupChunkAllocator allocator,
 						 gpointer           user_data,
 						 GDestroyNotify     destroy_notify);
+#endif
 
 SOUP_AVAILABLE_IN_2_28
 void           soup_message_disable_feature     (SoupMessage       *msg,
