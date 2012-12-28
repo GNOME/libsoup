@@ -1162,6 +1162,62 @@ do_disappearing_auth_test (void)
 	soup_test_server_quit_unref (server);
 }
 
+static void
+preauth_authenticate (SoupSession *session, SoupMessage *msg,
+		      SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	gboolean *authenticated = data;
+
+	g_assert_false (*authenticated);
+
+	*authenticated = TRUE;
+	soup_auth_authenticate (auth, "user1", "realm1");
+}
+
+static void
+do_preauth_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupAuth *auth;
+	char *uri;
+	gboolean authenticated;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (preauth_authenticate),
+			  &authenticated);
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+
+	/* Test with right password */
+	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	auth = soup_auth_new (SOUP_TYPE_AUTH_BASIC, msg, "Basic realm=\"realm1\"");
+	soup_auth_authenticate (auth, "user1", "realm1");
+	soup_message_set_auth (msg, auth);
+	g_object_unref (auth);
+
+	authenticated = FALSE;
+	soup_session_send_message (session, msg);
+	g_assert_false (authenticated);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (msg);
+
+	/* Test with wrong password */
+	msg = soup_message_new (SOUP_METHOD_GET, uri);
+	auth = soup_auth_new (SOUP_TYPE_AUTH_BASIC, msg, "Basic realm=\"realm1\"");
+	soup_auth_authenticate (auth, "user1", "wrong");
+	soup_message_set_auth (msg, auth);
+	g_object_unref (auth);
+
+	authenticated = FALSE;
+	soup_session_send_message (session, msg);
+	g_assert_true (authenticated);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (msg);
+
+	g_free (uri);
+}
+
 static SoupAuthTest relogin_tests[] = {
 	{ "Auth provided via URL, should succeed",
 	  "Basic/realm12/", "1", TRUE, "01", SOUP_STATUS_OK },
@@ -1278,6 +1334,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/auth/auth-close", do_auth_close_test);
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);
 	g_test_add_func ("/auth/disappearing-auth", do_disappearing_auth_test);
+	g_test_add_func ("/auth/preauth", do_preauth_test);
 
 	ret = g_test_run ();
 

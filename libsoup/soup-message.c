@@ -139,6 +139,8 @@ enum {
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
 	PROP_PRIORITY,
+	PROP_AUTH,
+	PROP_PROXY_AUTH,
 
 	LAST_PROP
 };
@@ -244,6 +246,12 @@ soup_message_set_property (GObject *object, guint prop_id,
 	case PROP_PRIORITY:
 		priv->priority = g_value_get_enum (value);
 		break;
+	case PROP_AUTH:
+		soup_message_set_auth (msg, g_value_get_object (value));
+		break;
+	case PROP_PROXY_AUTH:
+		soup_message_set_proxy_auth (msg, g_value_get_object (value));
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -313,6 +321,12 @@ soup_message_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_PRIORITY:
 		g_value_set_enum (value, priv->priority);
+		break;
+	case PROP_AUTH:
+		g_value_set_object (value, priv->auth);
+		break;
+	case PROP_PROXY_AUTH:
+		g_value_set_object (value, priv->proxy_auth);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -939,6 +953,57 @@ soup_message_class_init (SoupMessageClass *message_class)
 				   SOUP_TYPE_MESSAGE_PRIORITY,
 				   SOUP_MESSAGE_PRIORITY_NORMAL,
 				   G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_AUTH:
+	 *
+	 * Alias for the #SoupMessage:auth property, qv.
+	 *
+	 * Since: 2.46
+	 **/
+	/**
+	 * SoupMessage:auth:
+	 *
+	 * The #SoupAuth used with this request.
+	 *
+	 * Note that the #SoupSession will overwrite this before
+	 * sending the message if it believes that a different
+	 * #SoupAuth is the correct one to be using.
+	 *
+	 * Since: 2.46
+	 */
+	g_object_class_install_property (
+		object_class, PROP_AUTH,
+		g_param_spec_object (SOUP_MESSAGE_AUTH,
+				     "Auth",
+				     "The SoupAuth used with this request",
+				     SOUP_TYPE_AUTH,
+				     G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_PROXY_AUTH:
+	 *
+	 * Alias for the #SoupMessage:proxy-auth property, qv.
+	 *
+	 * Since: 2.46
+	 **/
+	/**
+	 * SoupMessage:proxy-auth:
+	 *
+	 * The #SoupAuth used with this request for proxy
+	 * authentication.
+	 *
+	 * Note that the #SoupSession will overwrite this before
+	 * sending the message if it believes that a different
+	 * #SoupAuth is the correct one to be using.
+	 *
+	 * Since: 2.46
+	 */
+	g_object_class_install_property (
+		object_class, PROP_PROXY_AUTH,
+		g_param_spec_object (SOUP_MESSAGE_PROXY_AUTH,
+				     "Proxy auth",
+				     "The SoupAuth used with this request for proxy authentication",
+				     SOUP_TYPE_AUTH,
+				     G_PARAM_READWRITE));
 }
 
 
@@ -1272,6 +1337,23 @@ soup_message_add_status_code_handler (SoupMessage *msg,
 }
 
 
+/**
+ * soup_message_set_auth:
+ * @msg: a #SoupMessage
+ * @auth: a #SoupAuth, or %NULL
+ *
+ * Sets @msg to authenticate to its destination using @auth, which
+ * must have already been fully authenticated. If @auth is %NULL, @msg
+ * will not authenticate to its destination.
+ *
+ * Note that the #SoupSession will overwrite this before sending the
+ * message if it believes that a different #SoupAuth is the correct
+ * one to be using. This method is primarily useful if you want to
+ * force the use of Basic auth on a request before having seen a
+ * 401 Unauthorized response.
+ *
+ * Since: 2.46
+ **/
 void
 soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 {
@@ -1283,24 +1365,43 @@ soup_message_set_auth (SoupMessage *msg, SoupAuth *auth)
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
-	if (priv->auth) {
-		g_object_unref (priv->auth);
-		soup_message_headers_remove (msg->request_headers,
-					     "Authorization");
+	if (auth != priv->auth) {
+		if (priv->auth)
+			g_object_unref (priv->auth);
+		priv->auth = auth;
+		if (priv->auth)
+			g_object_ref (priv->auth);
 	}
-	priv->auth = auth;
-	if (!priv->auth)
-		return;
 
-	g_object_ref (priv->auth);
-	token = soup_auth_get_authorization (auth, msg);
-	if (token) {
+	if (priv->auth) {
+		token = soup_auth_get_authorization (auth, msg);
 		soup_message_headers_replace (msg->request_headers,
 					      "Authorization", token);
 		g_free (token);
+	} else {
+		soup_message_headers_remove (msg->request_headers,
+					     "Authorization");
 	}
 }
 
+/**
+ * soup_message_get_auth:
+ * @msg: a #SoupMessage
+ *
+ * Gets the #SoupAuth used by @msg for authentication.
+ *
+ * Note that libsoup updates #SoupMessage:auth only immediately before
+ * sending a message; if you call soup_message_get_auth() from a
+ * #SoupSession:authenticate handler, it will return the #SoupAuth
+ * that previously failed (or %NULL if the previous attempt was
+ * unauthenticated), not the #SoupAuth that is currently being
+ * authenticated.
+ *
+ * Return value: (transfer none): the #SoupAuth used by @msg for
+ * authentication, or %NULL if @msg is unauthenticated.
+ *
+ * Since: 2.46
+ **/
 SoupAuth *
 soup_message_get_auth (SoupMessage *msg)
 {
@@ -1309,6 +1410,24 @@ soup_message_get_auth (SoupMessage *msg)
 	return SOUP_MESSAGE_GET_PRIVATE (msg)->auth;
 }
 
+/**
+ * soup_message_set_proxy_auth:
+ * @msg: a #SoupMessage
+ * @auth: a #SoupAuth, or %NULL
+ *
+ * Sets @msg to authenticate to its proxy using @auth, which must have
+ * already been fully authenticated. If @auth is %NULL, @msg will not
+ * authenticate to its proxy.
+ *
+ * As with soup_message_set_auth(), note that the #SoupSession will
+ * overwrite this before sending the message if it believes that a
+ * different #SoupAuth is the correct one to be using. This method is
+ * primarily useful if you want to force the use of Basic auth on a
+ * request before having seen a 407 Proxy Authentication Required
+ * response.
+ *
+ * Since: 2.46
+ **/
 void
 soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 {
@@ -1320,22 +1439,36 @@ soup_message_set_proxy_auth (SoupMessage *msg, SoupAuth *auth)
 
 	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
+	if (auth != priv->proxy_auth) {
+		if (priv->proxy_auth)
+			g_object_unref (priv->proxy_auth);
+		priv->proxy_auth = auth;
+		if (priv->proxy_auth)
+			g_object_ref (priv->proxy_auth);
+	}
+
 	if (priv->proxy_auth) {
-		g_object_unref (priv->proxy_auth);
+		token = soup_auth_get_authorization (auth, msg);
+		soup_message_headers_replace (msg->request_headers,
+					      "Proxy-Authorization", token);
+		g_free (token);
+	} else {
 		soup_message_headers_remove (msg->request_headers,
 					     "Proxy-Authorization");
 	}
-	priv->proxy_auth = auth;
-	if (!priv->proxy_auth)
-		return;
-
-	g_object_ref (priv->proxy_auth);
-	token = soup_auth_get_authorization (auth, msg);
-	soup_message_headers_replace (msg->request_headers,
-				      "Proxy-Authorization", token);
-	g_free (token);
 }
 
+/**
+ * soup_message_get_proxy_auth:
+ * @msg: a #SoupMessage
+ *
+ * Gets the #SoupAuth used by @msg for authentication to its proxy..
+ *
+ * Return value: the #SoupAuth used by @msg for authentication to its
+ * proxy, or %NULL if @msg isn't authenticated to its proxy.
+ *
+ * Since: 2.46
+ **/
 SoupAuth *
 soup_message_get_proxy_auth (SoupMessage *msg)
 {

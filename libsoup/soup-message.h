@@ -77,6 +77,8 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_TLS_CERTIFICATE    "tls-certificate"
 #define SOUP_MESSAGE_TLS_ERRORS         "tls-errors"
 #define SOUP_MESSAGE_PRIORITY           "priority"
+#define SOUP_MESSAGE_AUTH               "auth"
+#define SOUP_MESSAGE_PROXY_AUTH         "proxy-auth"
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
@@ -205,6 +207,20 @@ void                soup_message_set_priority   (SoupMessage        *msg,
 
 SOUP_AVAILABLE_IN_2_44
 SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
+
+
+/* Auth handling */
+SOUP_AVAILABLE_IN_2_46
+void           soup_message_set_auth       (SoupMessage *msg,
+					    SoupAuth    *auth);
+SOUP_AVAILABLE_IN_2_46
+SoupAuth      *soup_message_get_auth       (SoupMessage *msg);
+SOUP_AVAILABLE_IN_2_46
+void           soup_message_set_proxy_auth (SoupMessage *msg,
+					    SoupAuth    *auth);
+SOUP_AVAILABLE_IN_2_46
+SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
+
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);

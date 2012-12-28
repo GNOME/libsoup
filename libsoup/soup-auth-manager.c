@@ -14,7 +14,6 @@
 #include "soup-auth-manager.h"
 #include "soup.h"
 #include "soup-connection-auth.h"
-#include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-path-map.h"
 #include "soup-session-private.h"

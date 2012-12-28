@@ -89,14 +89,6 @@ void soup_message_io_server    (SoupMessage               *msg,
 				gpointer                   user_data);
 void soup_message_io_cleanup   (SoupMessage               *msg);
 
-/* Auth handling */
-void           soup_message_set_auth       (SoupMessage *msg,
-					    SoupAuth    *auth);
-SoupAuth      *soup_message_get_auth       (SoupMessage *msg);
-void           soup_message_set_proxy_auth (SoupMessage *msg,
-					    SoupAuth    *auth);
-SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
-
 /* I/O */
 void                soup_message_io_stop        (SoupMessage          *msg);
 void                soup_message_io_finished    (SoupMessage          *msg);
