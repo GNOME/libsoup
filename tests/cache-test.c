@@ -122,6 +122,7 @@ do_request (SoupSession *session,
 	    ...)
 {
 	SoupRequestHTTP *req;
+	SoupMessage *msg;
 	GInputStream *stream;
 	SoupURI *uri;
 	va_list ap;
@@ -135,13 +136,15 @@ do_request (SoupSession *session,
 	uri = soup_uri_new_with_base (base_uri, path);
 	req = soup_session_request_http_uri (session, method, uri, NULL);
 	soup_uri_free (uri);
+	msg = soup_request_http_get_message (req);
 
 	va_start (ap, path);
 	while ((header = va_arg (ap, const char *))) {
 		value = va_arg (ap, const char *);
-		soup_message_headers_append (req->request_headers,
+		soup_message_headers_append (msg->request_headers,
 					     header, value);
 	}
+	g_object_unref (msg);
 
 	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, &error);
 	if (!stream) {

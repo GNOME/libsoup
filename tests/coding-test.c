@@ -397,6 +397,7 @@ do_coding_req_test (void)
 {
 	SoupSession *session;
 	SoupRequestHTTP *reqh;
+	SoupMessage *msg;
 	SoupURI *uri;
 	GByteArray *plain, *cmp;
 
@@ -425,8 +426,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim gzip w/ junk */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: gzip, plus trailing junk\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "trailing-junk");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "gzip", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed w/ junk");
 	g_byte_array_free (cmp, TRUE);
@@ -435,8 +438,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim gzip with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: gzip, with server error\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "gzip", "text/plain", EXPECT_NOT_DECODED);
 
 	/* Failed content-decoding should have left the body untouched
@@ -450,8 +455,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim deflate */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed");
 	g_byte_array_free (cmp, TRUE);
@@ -460,8 +467,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim deflate w/ junk */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate, plus trailing junk\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed w/ junk");
 	g_byte_array_free (cmp, TRUE);
@@ -470,8 +479,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim deflate with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate, with server error\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "deflate", "text/plain", EXPECT_NOT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "mis-encoded");
 	g_byte_array_free (cmp, TRUE);
@@ -480,8 +491,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim deflate (no zlib headers)*/
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate (raw data)\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-raw");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "deflate", "text/plain", EXPECT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "compressed");
 	g_byte_array_free (cmp, TRUE);
@@ -490,8 +503,10 @@ do_coding_req_test (void)
 	/* Plain text data, claim deflate with server error */
 	debug_printf (1, "  GET /mbox, Accept-Encoding: deflate (raw data), with server error\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
+	g_object_unref (msg);
 	cmp = do_single_coding_req_test (reqh, "deflate", "text/plain", EXPECT_NOT_DECODED);
 	check_req_bodies (plain, cmp, "plain", "mis-encoded");
 	g_byte_array_free (cmp, TRUE);
@@ -530,8 +545,10 @@ do_coding_empty_test (void)
 
 	debug_printf (1, "  SoupRequest\n");
 	reqh = soup_session_request_http_uri (session, "GET", uri, NULL);
-	soup_message_headers_append (reqh->request_headers,
+	msg = soup_request_http_get_message (reqh);
+	soup_message_headers_append (msg->request_headers,
 				     "X-Test-Options", "empty");
+	g_object_unref (msg);
 	body = do_single_coding_req_test (reqh, "gzip", "text/plain", EXPECT_NOT_DECODED);
 	g_byte_array_free (body, TRUE);
 	g_object_unref (reqh);

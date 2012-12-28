@@ -300,7 +300,7 @@ static void
 do_timeout_req_test_for_session (SoupSession *session)
 {
 	SoupRequest *req;
-	SoupRequestHTTP *http;
+	SoupMessage *msg;
 	GInputStream *stream;
 	SoupSocket *sockets[4] = { NULL, NULL, NULL, NULL };
 	SoupURI *timeout_uri;
@@ -360,10 +360,10 @@ do_timeout_req_test_for_session (SoupSession *session)
 		g_object_unref (stream);
 	}
 
-	http = SOUP_REQUEST_HTTP (req);
-	if (http->status_code != SOUP_STATUS_OK) {
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	if (msg->status_code != SOUP_STATUS_OK) {
 		debug_printf (1, "      Unexpected response: %d %s\n",
-			      http->status_code, http->reason_phrase);
+			      msg->status_code, msg->reason_phrase);
 		errors++;
 	}
 	if (sockets[1] != sockets[0]) {
@@ -379,6 +379,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 		debug_printf (1, "      Message was retried again??\n");
 		errors++;
 	}
+	g_object_unref (msg);
 	g_object_unref (req);
 
 	for (i = 0; sockets[i]; i++)

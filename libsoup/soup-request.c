@@ -30,7 +30,6 @@
 #include "soup-request.h"
 #include "soup.h"
 #include "soup-requester.h"
-#include "soup-request-http.h"
 
 /**
  * SECTION:soup-request
@@ -403,33 +402,4 @@ const char *
 soup_request_get_content_type (SoupRequest  *request)
 {
 	return SOUP_REQUEST_GET_CLASS (request)->get_content_type (request);
-}
-
-/**
- * soup_request_disable_feature:
- * @request: a #SoupRequest
- * @feature_type: the #GType of a #SoupSessionFeature
- *
- * This disables the actions of #SoupSessionFeature<!-- -->s with the
- * given @feature_type (or a subclass of that type) on @request, so
- * that @request is processed as though the feature(s) hadn't been
- * added to the session. Eg, passing #SOUP_TYPE_PROXY_URI_RESOLVER for
- * @feature_type will disable proxy handling and cause @request to be
- * sent directly to the indicated origin server, regardless of system
- * proxy configuration.
- *
- * Since: 2.42
- */
-void
-soup_request_disable_feature (SoupRequest *request,
-			      GType        feature_type)
-{
-	SoupMessage *msg;
-
-	/* For now, features only affect SoupMessages, so... */
-	if (SOUP_IS_REQUEST_HTTP (request)) {
-		msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
-		soup_message_disable_feature (msg, feature_type);
-		g_object_unref (msg);
-	}
 }

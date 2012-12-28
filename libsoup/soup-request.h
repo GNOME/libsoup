@@ -98,10 +98,6 @@ goffset       soup_request_get_content_length (SoupRequest          *request);
 SOUP_AVAILABLE_IN_2_34
 const char   *soup_request_get_content_type   (SoupRequest          *request);
 
-SOUP_AVAILABLE_IN_2_42
-void          soup_request_disable_feature    (SoupRequest          *request,
-					       GType                 feature_type);
-
 G_END_DECLS
 
 #endif /* SOUP_REQUEST_H */

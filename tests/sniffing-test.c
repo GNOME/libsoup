@@ -436,7 +436,9 @@ test_disabled (const char *path)
 	g_object_unref (msg);
 
 	req = soup_session_request_uri (session, uri, NULL);
-	soup_request_disable_feature (req, SOUP_TYPE_CONTENT_SNIFFER);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
+	g_object_unref (msg);
 	stream = soup_test_request_send (req, NULL, &error);
 	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
