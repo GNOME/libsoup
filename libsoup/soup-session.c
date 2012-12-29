@@ -1972,6 +1972,11 @@ soup_session_real_queue_message (SoupSession *session, SoupMessage *msg,
  * and #SoupSession:use-thread-context, and for #SoupSessionSync, the
  * message will actually be sent and processed in another thread, with
  * only the final callback occurring in the indicated #GMainContext.)
+ *
+ * Contrast this method with soup_session_send_async(), which also
+ * asynchronously sends a message, but returns before reading the
+ * response body, and allows you to read the response via a
+ * #GInputStream.
  */
 void
 soup_session_queue_message (SoupSession *session, SoupMessage *msg,
@@ -2047,6 +2052,11 @@ soup_session_real_send_message (SoupSession *session, SoupMessage *msg)
  * still use asynchronous I/O internally, running the glib main loop
  * to process the message, which may also cause other events to be
  * processed.)
+ *
+ * Contrast this method with soup_session_send(), which also
+ * synchronously sends a message, but returns before reading the
+ * response body, and allows you to read the response via a
+ * #GInputStream.
  *
  * Return value: the HTTP status code of the response
  */
@@ -3831,12 +3841,39 @@ async_respond_from_cache (SoupSession          *session,
 		return FALSE;
 }
 
+/**
+ * soup_session_send_async:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @cancellable: a #GCancellable
+ * @callback: the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously sends @msg and waits for the beginning of a
+ * response. When @callback is called, then either @msg has been sent,
+ * and its response headers received, or else an error has occurred.
+ * Call soup_session_send_finish() to get a #GInputStream for reading
+ * the response body.
+ *
+ * See soup_session_send() for more details on the general semantics.
+ *
+ * Contrast this method with soup_session_queue_message(), which also
+ * asynchronously sends a #SoupMessage, but doesn't invoke its
+ * callback until the response has been completely read.
+ *
+ * (Note that this method cannot be called on the deprecated
+ * #SoupSessionSync subclass, and can only be called on
+ * #SoupSessionAsync if you have set the
+ * #SoupSession:use-thread-context property.)
+ *
+ * Since: 2.42
+ */
 void
-soup_session_send_request_async (SoupSession         *session,
-				 SoupMessage         *msg,
-				 GCancellable        *cancellable,
-				 GAsyncReadyCallback  callback,
-				 gpointer             user_data)
+soup_session_send_async (SoupSession         *session,
+			 SoupMessage         *msg,
+			 GCancellable        *cancellable,
+			 GAsyncReadyCallback  callback,
+			 gpointer             user_data)
 {
 	SoupMessageQueueItem *item;
 	gboolean use_thread_context;
@@ -3871,10 +3908,25 @@ soup_session_send_request_async (SoupSession         *session,
 		soup_session_kick_queue (session);
 }
 
+/**
+ * soup_session_send_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult passed to your callback
+ * @error: return location for a #GError, or %NULL
+ *
+ * Gets the response to a soup_session_send_async() call and (if
+ * successful), returns a #GInputStream that can be used to read the
+ * response body.
+ *
+ * Return value: a #GInputStream for reading the response body, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
 GInputStream *
-soup_session_send_request_finish (SoupSession   *session,
-				  GAsyncResult  *result,
-				  GError       **error)
+soup_session_send_finish (SoupSession   *session,
+			  GAsyncResult  *result,
+			  GError       **error)
 {
 	GTask *task;
 
@@ -3898,11 +3950,49 @@ soup_session_send_request_finish (SoupSession   *session,
 	return g_task_propagate_pointer (task, error);
 }
 
+/**
+ * soup_session_send:
+ * @session: a #SoupSession
+ * @msg: a #SoupMessage
+ * @cancellable: a #GCancellable
+ * @error: return location for a #GError, or %NULL
+ *
+ * Synchronously sends @msg and waits for the beginning of a response.
+ * On success, a #GInputStream will be returned which you can use to
+ * read the response body. ("Success" here means only that an HTTP
+ * response was received and understood; it does not necessarily mean
+ * that a 2xx class status code was received.)
+ *
+ * If non-%NULL, @cancellable can be used to cancel the request;
+ * soup_session_send() will return a %G_IO_ERROR_CANCELLED error. Note
+ * that with requests that have side effects (eg,
+ * <literal>POST</literal>, <literal>PUT</literal>,
+ * <literal>DELETE</literal>) it is possible that you might cancel the
+ * request after the server acts on it, but before it returns a
+ * response, leaving the remote resource in an unknown state.
+ *
+ * If @msg is requeued due to a redirect or authentication, the
+ * initial (3xx/401/407) response body will be suppressed, and
+ * soup_session_send() will only return once a final response has been
+ * received.
+ *
+ * Contrast this method with soup_session_send_message(), which also
+ * synchronously sends a #SoupMessage, but doesn't return until the
+ * response has been completely read.
+ *
+ * (Note that this method cannot be called on the deprecated
+ * #SoupSessionAsync subclass.)
+ *
+ * Return value: a #GInputStream for reading the response body, or
+ *   %NULL on error.
+ *
+ * Since: 2.42
+ */
 GInputStream *
-soup_session_send_request (SoupSession   *session,
-			   SoupMessage   *msg,
-			   GCancellable  *cancellable,
-			   GError       **error)
+soup_session_send (SoupSession   *session,
+		   SoupMessage   *msg,
+		   GCancellable  *cancellable,
+		   GError       **error)
 {
 	SoupMessageQueueItem *item;
 	GInputStream *stream = NULL;

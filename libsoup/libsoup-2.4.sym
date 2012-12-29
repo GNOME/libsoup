@@ -385,6 +385,9 @@ soup_session_request_http
 soup_session_request_http_uri
 soup_session_request_uri
 soup_session_requeue_message
+soup_session_send
+soup_session_send_async
+soup_session_send_finish
 soup_session_send_message
 soup_session_sync_get_type
 soup_session_sync_new

@@ -107,8 +107,8 @@ soup_request_http_send (SoupRequest          *request,
 
 	g_return_val_if_fail (!SOUP_IS_SESSION_ASYNC (session), NULL);
 
-	return soup_session_send_request (session, http->priv->msg,
-					  cancellable, error);
+	return soup_session_send (session, http->priv->msg,
+				  cancellable, error);
 }
 
 
@@ -119,7 +119,7 @@ http_input_stream_ready_cb (GObject *source, GAsyncResult *result, gpointer user
 	GError *error = NULL;
 	GInputStream *stream;
 
-	stream = soup_session_send_request_finish (SOUP_SESSION (source), result, &error);
+	stream = soup_session_send_finish (SOUP_SESSION (source), result, &error);
 	if (stream)
 		g_task_return_pointer (task, stream, g_object_unref);
 	else
@@ -140,8 +140,8 @@ soup_request_http_send_async (SoupRequest          *request,
 	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
 
 	task = g_task_new (request, cancellable, callback, user_data);
-	soup_session_send_request_async (session, http->priv->msg, cancellable,
-					 http_input_stream_ready_cb, task);
+	soup_session_send_async (session, http->priv->msg, cancellable,
+				 http_input_stream_ready_cb, task);
 }
 
 static GInputStream *

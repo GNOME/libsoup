@@ -110,6 +110,22 @@ void            soup_session_abort            (SoupSession           *session);
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
+SOUP_AVAILABLE_IN_2_42
+void            soup_session_send_async       (SoupSession           *session,
+					       SoupMessage           *msg,
+					       GCancellable          *cancellable,
+					       GAsyncReadyCallback    callback,
+					       gpointer               user_data);
+SOUP_AVAILABLE_IN_2_42
+GInputStream   *soup_session_send_finish      (SoupSession           *session,
+					       GAsyncResult          *result,
+					       GError               **error);
+SOUP_AVAILABLE_IN_2_42
+GInputStream   *soup_session_send             (SoupSession           *session,
+					       SoupMessage           *msg,
+					       GCancellable          *cancellable,
+					       GError               **error);
+
 #ifndef SOUP_DISABLE_DEPRECATED
 /* SOUP_AVAILABLE_IN_2_30 -- this trips up gtkdoc-scan */
 SOUP_DEPRECATED_IN_2_38_FOR (soup_session_prefetch_dns)
