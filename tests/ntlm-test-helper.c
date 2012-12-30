@@ -39,7 +39,7 @@ main (int argc, char **argv)
 	SoupAuth *auth;
 
 	/* Don't recurse */
-	g_unsetenv ("SOUP_NTLM_AUTH_DEBUG");
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
 
 	setlocale (LC_ALL, "");
 
