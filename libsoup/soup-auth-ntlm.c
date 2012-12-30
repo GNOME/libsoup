@@ -35,13 +35,7 @@ static char       *soup_ntlm_response          (const char  *nonce,
 
 typedef enum {
 	SOUP_NTLM_NEW,
-#ifdef USE_NTLM_AUTH
-	SOUP_NTLM_SENT_SSO_REQUEST,
-	SOUP_NTLM_RECEIVED_SSO_CHALLENGE,
-	SOUP_NTLM_SENT_SSO_RESPONSE,
-	SOUP_NTLM_SSO_UNAVAILABLE,
 	SOUP_NTLM_SSO_FAILED,
-#endif
 	SOUP_NTLM_SENT_REQUEST,
 	SOUP_NTLM_RECEIVED_CHALLENGE,
 	SOUP_NTLM_SENT_RESPONSE,
@@ -63,6 +57,7 @@ typedef struct {
 	 * http://www.samba.org/samba/docs/man/manpages-3/winbindd.8.html
 	 * http://www.samba.org/samba/docs/man/manpages-3/ntlm_auth.1.html
 	 */
+	gboolean sso_available;
 	int fd_in;
 	int fd_out;
 #endif
@@ -98,6 +93,7 @@ soup_auth_ntlm_init (SoupAuthNTLM *ntlm)
 	priv->state = SOUP_NTLM_NEW;
 
 #ifdef USE_NTLM_AUTH
+	priv->sso_available = TRUE;
 	priv->fd_in = -1;
 	priv->fd_out = -1;
 
@@ -158,8 +154,13 @@ sso_ntlm_initiate (SoupAuthNTLMPrivate *priv)
 	char *argv[9];
 	gboolean ret;
 
-	if (!ntlm_auth_available && !ntlm_auth_debug)
+	if (!priv->sso_available)
 		return FALSE;
+
+	if (!ntlm_auth_available && !ntlm_auth_debug) {
+		priv->sso_available = FALSE;
+		return FALSE;
+	}
 
 	/* Return if ntlm_auth execution process exist already */
 	if (priv->fd_in != -1 && priv->fd_out != -1)
@@ -171,8 +172,10 @@ sso_ntlm_initiate (SoupAuthNTLMPrivate *priv)
 
 	if (ntlm_auth_debug) {
 		argv[0] = (char *) g_getenv ("SOUP_NTLM_AUTH_DEBUG");
-		if (!*argv[0])
+		if (!*argv[0]) {
+			priv->sso_available = FALSE;
 			return FALSE;
+		}
 	} else
 		argv[0] = NTLM_AUTH;
 	argv[1] = "--helper-protocol";
@@ -189,6 +192,8 @@ sso_ntlm_initiate (SoupAuthNTLMPrivate *priv)
 					NULL, NULL,
 					NULL, &priv->fd_in, &priv->fd_out,
 					NULL, NULL);
+	if (!ret)
+		priv->sso_available = FALSE;
 	return ret;
 }
 
@@ -239,7 +244,7 @@ wrfinish:
 		/* invalid response for type 1 message */
 		return NULL;
 	}
-	if (conn_state == SOUP_NTLM_RECEIVED_SSO_CHALLENGE &&
+	if (conn_state == SOUP_NTLM_RECEIVED_CHALLENGE &&
 	    g_ascii_strncasecmp (buf, "KK ", 3) != 0 &&
 	    g_ascii_strncasecmp (buf, "AF ", 3) != 0) {
 		/* invalid response for type 3 message */
@@ -288,7 +293,7 @@ soup_auth_ntlm_update (SoupAuth *auth, SoupMessage *msg,
 	}
 
 #ifdef USE_NTLM_AUTH
-	if (priv->state == SOUP_NTLM_SENT_SSO_REQUEST) {
+	if (priv->sso_available && priv->state == SOUP_NTLM_SENT_REQUEST) {
 		char *input, *response;
 
 		/* Re-Initiate ntlm_auth process in case it was closed/killed abnormally */
@@ -307,13 +312,10 @@ soup_auth_ntlm_update (SoupAuth *auth, SoupMessage *msg,
 			priv->state = SOUP_NTLM_SSO_FAILED;
 			success = FALSE;
 		} else if (!g_ascii_strcasecmp (response, "PW")) {
-			priv->state = SOUP_NTLM_SSO_UNAVAILABLE;
+			priv->sso_available = FALSE;
 			g_free (response);
-			success = FALSE;
-		} else {
-			priv->state = SOUP_NTLM_RECEIVED_SSO_CHALLENGE;
+		} else
 			priv->response_header = response;
-		}
 	}
  out:
 #endif
@@ -393,42 +395,38 @@ soup_auth_ntlm_get_authorization (SoupAuth *auth, SoupMessage *msg)
 			header = sso_ntlm_response (priv, "YR\n", priv->state);
 			if (header) {
 				if (g_ascii_strcasecmp (header, "PW") != 0) {
-					priv->state = SOUP_NTLM_SENT_SSO_REQUEST;
+					priv->state = SOUP_NTLM_SENT_REQUEST;
 					break;
 				} else {
 					g_free (header);
 					header = NULL;
+					priv->sso_available = FALSE;
 				}
 			} else {
-				g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
+				g_warning ("NTLM single-sign-on using %s failed", NTLM_AUTH);
 			}
 		}
 		/* If NTLM single-sign-on fails, go back to original
 		 * request handling process.
 		 */
-	case SOUP_NTLM_SSO_UNAVAILABLE:
 #endif
 		header = soup_ntlm_request ();
 		priv->state = SOUP_NTLM_SENT_REQUEST;
 		break;
-#ifdef USE_NTLM_AUTH
-	case SOUP_NTLM_RECEIVED_SSO_CHALLENGE:
-		header = priv->response_header;
-		priv->response_header = NULL;
-		priv->state = SOUP_NTLM_SENT_SSO_RESPONSE;
-		break;
-	case SOUP_NTLM_SSO_FAILED:
-		/* Restart request without SSO */
-		g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
-		header = soup_ntlm_request ();
-		priv->state = SOUP_NTLM_SENT_REQUEST;
-		break;
-#endif
 	case SOUP_NTLM_RECEIVED_CHALLENGE:
 		header = priv->response_header;
 		priv->response_header = NULL;
 		priv->state = SOUP_NTLM_SENT_RESPONSE;
 		break;
+#ifdef USE_NTLM_AUTH
+	case SOUP_NTLM_SSO_FAILED:
+		/* Restart request without SSO */
+		g_warning ("NTLM single-sign-on by using %s failed", NTLM_AUTH);
+		priv->sso_available = FALSE;
+		header = soup_ntlm_request ();
+		priv->state = SOUP_NTLM_SENT_REQUEST;
+		break;
+#endif
 	default:
 		break;
 	}
