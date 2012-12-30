@@ -306,7 +306,7 @@ soup_auth_ntlm_update (SoupAuth *auth, SoupMessage *msg,
 		if (!response) {
 			priv->state = SOUP_NTLM_SSO_FAILED;
 			success = FALSE;
-		} else if (!g_ascii_strcasecmp (header, "PW")) {
+		} else if (!g_ascii_strcasecmp (response, "PW")) {
 			priv->state = SOUP_NTLM_SSO_UNAVAILABLE;
 			g_free (response);
 			success = FALSE;
