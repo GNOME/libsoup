@@ -21,7 +21,7 @@
  * SECTION:soup-auth-domain-digest
  * @short_description: Server-side "Digest" authentication
  *
- * #SoupAuthDomainBasic handles the server side of HTTP "Digest"
+ * #SoupAuthDomainDigest handles the server side of HTTP "Digest"
  * authentication.
  **/
 
