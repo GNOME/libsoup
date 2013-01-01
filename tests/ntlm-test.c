@@ -333,15 +333,23 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	gboolean bob_via_ntlm = use_ntlm && bob;
 	gboolean alice_via_basic = !use_ntlm && alice;
 
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	if (use_ntlm)
-		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 
 	if (user) {
 		g_signal_connect (session, "authenticate",
 				  G_CALLBACK (authenticate), (char *)user);
 		if (use_ntlm && !use_builtin_ntlm)
 			g_setenv ("NTLMUSER", user, TRUE);
+	}
+	if (use_ntlm) {
+		SoupAuthManager *auth_manager;
+		SoupAuth *ntlm;
+
+		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+		auth_manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+		ntlm = g_object_new (SOUP_TYPE_AUTH_NTLM, NULL);
+		soup_auth_manager_use_auth (auth_manager, base_uri, ntlm);
+		g_object_unref (ntlm);
 	}
 
 	/* 1. Server doesn't request auth, so both get_ntlm_prompt and
@@ -464,7 +472,7 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (TRUE);
 	connections = g_hash_table_new (NULL, NULL);
 	soup_server_add_handler (server, NULL,
 				 server_callback, connections, NULL);

@@ -171,7 +171,11 @@ soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 	g_ptr_array_add (priv->auth_types, auth_class);
 	g_ptr_array_sort (priv->auth_types, auth_type_compare_func);
 
-	if (type == SOUP_TYPE_AUTH_NTLM)
+	/* Plain SoupSession does not get the backward-compat
+	 * auto-NTLM behavior; SoupSession subclasses do.
+	 */
+	if (type == SOUP_TYPE_AUTH_NTLM &&
+	    G_TYPE_FROM_INSTANCE (priv->session) != SOUP_TYPE_SESSION)
 		priv->auto_ntlm = TRUE;
 
 	return TRUE;
@@ -673,6 +677,34 @@ soup_auth_manager_request_unqueued (SoupSessionFeature *manager,
 {
 	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
 					      0, 0, NULL, NULL, manager);
+}
+
+/**
+ * soup_auth_manager_use_auth:
+ * @manager: a #SoupAuthManager
+ * @uri: the #SoupURI under which @auth is to be used
+ * @auth: the #SoupAuth to use
+ *
+ * Records that @auth is to be used under @uri, as though a
+ * WWW-Authenticate header had been received at that URI. This can be
+ * used to "preload" @manager's auth cache, to avoid an extra HTTP
+ * round trip in the case where you know ahead of time that a 401
+ * response will be returned.
+ *
+ * This is only useful for authentication types where the initial
+ * Authorization header does not depend on any additional information
+ * from the server. (Eg, Basic or NTLM, but not Digest.)
+ *
+ * Since: 2.42
+ */
+void
+soup_auth_manager_use_auth (SoupAuthManager *manager,
+			    SoupURI         *uri,
+			    SoupAuth        *auth)
+{
+	SoupAuthManagerPrivate *priv = manager->priv;
+
+	record_auth_for_uri (priv, uri, auth);
 }
 
 static void

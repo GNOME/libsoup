@@ -105,6 +105,51 @@ linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link> and
 
 </refsect2>
 
+<refsect2 id="behavior">
+<title>Differences in feature behavior</title>
+
+<para>
+If you are using NTLM authentication, the new <type>SoupSession</type>
+behaves slightly differently from the old session types.
+</para>
+
+<para>
+First, the deprecated <link
+linkend="SOUP-SESSION-USE-NTLM:CAPS"><literal>SOUP_SESSION_USE_NTLM</literal></link>
+property is no longer supported. If you want to add support for NTLM
+to a session, call <link
+linkend="soup-session-add-feature-by-type"><function>soup_session_add_feature_by_type()</function></link>,
+passing <link
+linkend="SOUP-TYPE-AUTH-NTLM:CAPS"><literal>SOUP_TYPE_AUTH_NTLM</literal></link>.
+</para>
+
+<para>
+Second, with the old session types, enabling NTLM would cause all
+(otherwise-unauthenticated) requests to be sent with an NTLM request
+in the <literal>Authorization</literal> header. That is, libsoup would
+assume that all servers supported NTLM, and would attempt to begin
+negotiating NTLM authentication before the server ever returned a 401
+response. With the plain <type>SoupSession</type>, this no longer
+happens. If you want the old behavior, you need to call <link
+linkend="soup-auth-manager-use-auth"><function>soup_auth_manager_use_auth()</function></link>
+for each host to "preload" the NTLM authentication:
+</para>
+
+<informalexample><programlisting>
+	SoupAuthManager *auth_manager;
+	SoupAuth *auth;
+	SoupURI *uri;
+
+	auth_manager = SOUP_AUTH_MANAGER (soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER));
+	auth = g_object_new (SOUP_TYPE_AUTH_NTLM, NULL);
+	uri = soup_uri_new ("http://ntlm-using-host.example.com/");
+	soup_auth_manager_use_auth (auth_manager, uri, auth);
+	g_object_unref (auth);
+	soup_uri_free (auth);
+</programlisting></informalexample>
+
+</refsect2>
+
 <refsect2 id="apis">
 <title>Differences in SoupMessage-sending APIs</title>
 

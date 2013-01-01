@@ -12,9 +12,9 @@
 #include <string.h>
 
 #include "soup-auth.h"
-#include "soup-headers.h"
+#include "soup.h"
+#include "soup-connection-auth.h"
 #include "soup-marshal.h"
-#include "soup-uri.h"
 
 /**
  * SECTION:soup-auth
@@ -417,9 +417,13 @@ soup_auth_get_info (SoupAuth *auth)
 {
 	g_return_val_if_fail (SOUP_IS_AUTH (auth), NULL);
 
-	return g_strdup_printf ("%s:%s",
-				SOUP_AUTH_GET_CLASS (auth)->scheme_name,
-				auth->realm);
+	if (SOUP_IS_CONNECTION_AUTH (auth))
+		return g_strdup (SOUP_AUTH_GET_CLASS (auth)->scheme_name);
+	else {
+		return g_strdup_printf ("%s:%s",
+					SOUP_AUTH_GET_CLASS (auth)->scheme_name,
+					auth->realm);
+	}
 }
 
 /**

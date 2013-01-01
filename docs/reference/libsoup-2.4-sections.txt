@@ -571,6 +571,7 @@ soup_auth_save_password
 <TITLE>SoupAuthManager</TITLE>
 SoupAuthManager
 SOUP_TYPE_AUTH_MANAGER
+soup_auth_manager_use_auth
 <SUBSECTION Standard>
 SoupAuthManagerPrivate
 SoupAuthManagerClass
