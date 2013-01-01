@@ -70,6 +70,7 @@ struct SoupAuthManagerPrivate {
 	GPtrArray *auth_types;
 	gboolean auto_ntlm;
 
+	GMutex lock;
 	SoupAuth *proxy_auth;
 	GHashTable *auth_hosts;
 };
@@ -96,6 +97,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 						  soup_uri_host_equal,
 						  NULL,
 						  (GDestroyNotify)soup_auth_host_free);
+	g_mutex_init (&priv->lock);
 }
 
 static void
@@ -108,6 +110,8 @@ soup_auth_manager_finalize (GObject *object)
 	g_hash_table_destroy (priv->auth_hosts);
 
 	g_clear_object (&priv->proxy_auth);
+
+	g_mutex_clear (&priv->lock);
 
 	G_OBJECT_CLASS (soup_auth_manager_parent_class)->finalize (object);
 }
@@ -548,6 +552,8 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	SoupAuth *auth, *prior_auth, *new_auth;
 	gboolean prior_auth_failed = FALSE;
 
+	g_mutex_lock (&priv->lock);
+
 	/* See if we used auth last time */
 	prior_auth = soup_message_get_auth (msg);
 	if (prior_auth && check_auth (msg, prior_auth)) {
@@ -556,8 +562,10 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 			prior_auth_failed = TRUE;
 	} else {
 		auth = create_auth (priv, msg);
-		if (!auth)
+		if (!auth) {
+			g_mutex_unlock (&priv->lock);
 			return;
+		}
 	}
 
 	new_auth = record_auth_for_uri (priv, soup_message_get_uri (msg),
@@ -567,6 +575,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, new_auth, msg,
 			   prior_auth_failed, FALSE, TRUE);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -575,6 +584,7 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *auth;
 
+	g_mutex_lock (&priv->lock);
 	auth = lookup_auth (priv, msg);
 	if (auth && soup_auth_is_ready (auth, msg)) {
 		if (SOUP_IS_CONNECTION_AUTH (auth)) {
@@ -586,6 +596,7 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 
 		soup_session_requeue_message (priv->session, msg);
 	}
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -594,6 +605,8 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *prior_auth;
 	gboolean prior_auth_failed = FALSE;
+
+	g_mutex_lock (&priv->lock);
 
 	/* See if we used auth last time */
 	prior_auth = soup_message_get_proxy_auth (msg);
@@ -604,23 +617,30 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 
 	if (!priv->proxy_auth) {
 		priv->proxy_auth = create_auth (priv, msg);
-		if (!priv->proxy_auth)
+		if (!priv->proxy_auth) {
+			g_mutex_unlock (&priv->lock);
 			return;
+		}
 	}
 
 	/* If we need to authenticate, try to do it. */
 	authenticate_auth (manager, priv->proxy_auth, msg,
 			   prior_auth_failed, TRUE, TRUE);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
 proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 {
 	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
-	SoupAuth *auth = priv->proxy_auth;
+	SoupAuth *auth;
+
+	g_mutex_lock (&priv->lock);
+	auth = priv->proxy_auth;
 
 	if (auth && soup_auth_is_ready (auth, msg))
 		soup_session_requeue_message (priv->session, msg);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -653,6 +673,8 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 	SoupAuthManagerPrivate *priv = manager->priv;
 	SoupAuth *auth;
 
+	g_mutex_lock (&priv->lock);
+
 	auth = lookup_auth (priv, msg);
 	if (auth) {
 		authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE);
@@ -668,6 +690,8 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 			auth = NULL;
 	}
 	soup_message_set_proxy_auth (msg, auth);
+
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
@@ -704,7 +728,9 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
 {
 	SoupAuthManagerPrivate *priv = manager->priv;
 
+	g_mutex_lock (&priv->lock);
 	record_auth_for_uri (priv, uri, auth);
+	g_mutex_unlock (&priv->lock);
 }
 
 static void
