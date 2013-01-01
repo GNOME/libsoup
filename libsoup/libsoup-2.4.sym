@@ -54,6 +54,7 @@ soup_auth_has_saved_password
 soup_auth_is_authenticated
 soup_auth_is_for_proxy
 soup_auth_is_ready
+soup_auth_manager_get_type
 soup_auth_new
 soup_auth_ntlm_get_type
 soup_auth_save_password

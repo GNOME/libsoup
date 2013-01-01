@@ -46,6 +46,7 @@
   <chapter>
     <title>Additional Features</title>
     <xi:include href="xml/soup-session-feature.xml"/>
+    <xi:include href="xml/soup-auth-manager.xml"/>
     <xi:include href="xml/soup-content-decoder.xml"/>
     <xi:include href="xml/soup-content-sniffer.xml"/>
     <xi:include href="xml/soup-cookie-jar.xml"/>

@@ -567,6 +567,22 @@ soup_auth_save_password
 </SECTION>
 
 <SECTION>
+<FILE>soup-auth-manager</FILE>
+<TITLE>SoupAuthManager</TITLE>
+SoupAuthManager
+SOUP_TYPE_AUTH_MANAGER
+<SUBSECTION Standard>
+SoupAuthManagerPrivate
+SoupAuthManagerClass
+SOUP_AUTH_MANAGER
+SOUP_IS_AUTH_MANAGER
+SOUP_AUTH_MANAGER_CLASS
+SOUP_IS_AUTH_MANAGER_CLASS
+SOUP_AUTH_MANAGER_GET_CLASS
+soup_auth_manager_get_type
+</SECTION>
+
+<SECTION>
 <FILE>soup-socket</FILE>
 <TITLE>SoupSocket</TITLE>
 SoupSocket

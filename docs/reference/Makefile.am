@@ -32,7 +32,7 @@ CFILE_GLOB=
 IGNORE_HFILES= soup.h soup-marshal.h soup-enum-types.h \
 	soup-message-private.h soup-session-private.h \
 	soup-auth-basic.h soup-auth-digest.h soup-auth-ntlm.h \
-	soup-connection.h soup-auth-manager.h soup-connection-auth.h \
+	soup-connection.h soup-connection-auth.h \
 	soup-message-queue.h soup-path-map.h soup-gnome-features.h \
 	soup-proxy-resolver.h soup-proxy-resolver-gnome.h \
 	soup-proxy-resolver-static.h soup-directory-input-stream.h \

@@ -29,6 +29,7 @@ soup_headers =			\
 	soup-auth-domain.h	\
 	soup-auth-domain-basic.h  \
 	soup-auth-domain-digest.h \
+	soup-auth-manager.h	\
 	soup-cache.h		\
 	soup-content-decoder.h	\
 	soup-content-sniffer.h	\
@@ -105,7 +106,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-auth-domain.c		\
 	soup-auth-domain-basic.c	\
 	soup-auth-domain-digest.c	\
-	soup-auth-manager.h		\
 	soup-auth-manager.c		\
 	soup-body-input-stream.h	\
 	soup-body-input-stream.c	\

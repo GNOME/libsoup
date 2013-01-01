@@ -20,6 +20,37 @@
 #include "soup-path-map.h"
 #include "soup-session-private.h"
 
+/**
+ * SECTION:soup-auth-manager
+ * @short_description: HTTP client-side authentication handler
+ * @see_also: #SoupSession, #SoupAuth
+ *
+ * #SoupAuthManager is the #SoupSessionFeature that handles HTTP
+ * authentication for a #SoupSession.
+ *
+ * A #SoupAuthManager is added to the session by default, and normally
+ * you don't need to worry about it at all. However, if you want to
+ * disable HTTP authentication, you can remove the feature from the
+ * session with soup_session_remove_feature_by_type(), or disable it on
+ * individual requests with soup_message_disable_feature().
+ *
+ * Since: 2.42
+ **/
+
+/**
+ * SOUP_TYPE_AUTH_MANAGER:
+ *
+ * The #GType of #SoupAuthManager; you can use this with
+ * soup_session_remove_feature_by_type() or
+ * soup_message_disable_feature().
+ *
+ * (Although this type has only been publicly visible since libsoup
+ * 2.42, it has always existed in the background, and you can use
+ * <literal><code>g_type_from_name ("SoupAuthManager")</code></literal>
+ * to get its #GType in earlier releases.)
+ *
+ * Since: 2.42
+ */
 static void soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
 static SoupSessionFeatureInterface *soup_session_feature_default_interface;
 
@@ -34,15 +65,14 @@ G_DEFINE_TYPE_WITH_CODE (SoupAuthManager, soup_auth_manager, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (SOUP_TYPE_SESSION_FEATURE,
 						soup_auth_manager_session_feature_init))
 
-typedef struct {
+struct SoupAuthManagerPrivate {
 	SoupSession *session;
 	GPtrArray *auth_types;
 	gboolean auto_ntlm;
 
 	SoupAuth *proxy_auth;
 	GHashTable *auth_hosts;
-} SoupAuthManagerPrivate;
-#define SOUP_AUTH_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate))
+};
 
 typedef struct {
 	SoupURI     *uri;
@@ -57,7 +87,9 @@ static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv;
+
+	priv = manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, SOUP_TYPE_AUTH_MANAGER, SoupAuthManagerPrivate);
 
 	priv->auth_types = g_ptr_array_new_with_free_func ((GDestroyNotify)g_type_class_unref);
 	priv->auth_hosts = g_hash_table_new_full (soup_uri_host_hash,
@@ -69,7 +101,7 @@ soup_auth_manager_init (SoupAuthManager *manager)
 static void
 soup_auth_manager_finalize (GObject *object)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (object);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (object)->priv;
 
 	g_ptr_array_free (priv->auth_types, TRUE);
 
@@ -89,6 +121,20 @@ soup_auth_manager_class_init (SoupAuthManagerClass *auth_manager_class)
 
 	object_class->finalize = soup_auth_manager_finalize;
 
+	/**
+	 * SoupAuthManager::authenticate:
+	 * @manager: the #SoupAuthManager
+	 * @msg: the #SoupMessage being sent
+	 * @auth: the #SoupAuth to authenticate
+	 * @retrying: %TRUE if this is the second (or later) attempt
+	 *
+	 * Emitted when the manager requires the application to
+	 * provide authentication credentials.
+	 *
+	 * #SoupSession connects to this signal and emits its own
+	 * #SoupSession::authenticate signal when it is emitted, so
+	 * you shouldn't need to use this signal directly.
+	 */
 	signals[AUTHENTICATE] =
 		g_signal_new ("authenticate",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -115,7 +161,7 @@ auth_type_compare_func (gconstpointer a, gconstpointer b)
 static gboolean
 soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 	SoupAuthClass *auth_class;
 
 	if (!g_type_is_a (type, SOUP_TYPE_AUTH))
@@ -134,7 +180,7 @@ soup_auth_manager_add_feature (SoupSessionFeature *feature, GType type)
 static gboolean
 soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 	SoupAuthClass *auth_class;
 	int i;
 
@@ -159,7 +205,7 @@ soup_auth_manager_remove_feature (SoupSessionFeature *feature, GType type)
 static gboolean
 soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (feature);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 	SoupAuthClass *auth_class;
 	int i;
 
@@ -175,14 +221,14 @@ soup_auth_manager_has_feature (SoupSessionFeature *feature, GType type)
 }
 
 static void
-soup_auth_manager_attach (SoupSessionFeature *manager, SoupSession *session)
+soup_auth_manager_attach (SoupSessionFeature *feature, SoupSession *session)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (feature)->priv;
 
 	/* FIXME: should support multiple sessions */
 	priv->session = session;
 
-	soup_session_feature_default_interface->attach (manager, session);
+	soup_session_feature_default_interface->attach (feature, session);
 }
 
 static inline const char *
@@ -408,7 +454,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy, gboolean can_interact)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = manager->priv;
 	SoupURI *uri;
 
 	if (proxy) {
@@ -494,7 +540,7 @@ record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
 static void
 auth_got_headers (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *auth, *prior_auth, *new_auth;
 	gboolean prior_auth_failed = FALSE;
 
@@ -522,7 +568,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 static void
 auth_got_body (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *auth;
 
 	auth = lookup_auth (priv, msg);
@@ -541,7 +587,7 @@ auth_got_body (SoupMessage *msg, gpointer manager)
 static void
 proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *prior_auth;
 	gboolean prior_auth_failed = FALSE;
 
@@ -566,7 +612,7 @@ proxy_auth_got_headers (SoupMessage *msg, gpointer manager)
 static void
 proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 {
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *auth = priv->proxy_auth;
 
 	if (auth && soup_auth_is_ready (auth, msg))
@@ -600,7 +646,7 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 				   SoupSocket *socket)
 {
 	SoupAuthManager *manager = SOUP_AUTH_MANAGER (feature);
-	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER_GET_PRIVATE (manager);
+	SoupAuthManagerPrivate *priv = manager->priv;
 	SoupAuth *auth;
 
 	auth = lookup_auth (priv, msg);
