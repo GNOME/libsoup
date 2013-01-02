@@ -458,7 +458,6 @@ do_ntlm_tests (SoupURI *base_uri, gboolean use_builtin_ntlm)
 int
 main (int argc, char **argv)
 {
-	GMainLoop *loop;
 	SoupServer *server;
 	GHashTable *connections;
 	SoupURI *uri;
@@ -469,8 +468,6 @@ main (int argc, char **argv)
 	connections = g_hash_table_new (NULL, NULL);
 	soup_server_add_handler (server, NULL,
 				 server_callback, connections, NULL);
-
-	loop = g_main_loop_new (NULL, TRUE);
 
 	uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (uri, soup_server_get_port (server));
@@ -499,8 +496,6 @@ main (int argc, char **argv)
 	do_ntlm_tests (uri, TRUE);
 
 	soup_uri_free (uri);
-
-	g_main_loop_unref (loop);
 
 	soup_test_server_quit_unref (server);
 	test_cleanup ();
