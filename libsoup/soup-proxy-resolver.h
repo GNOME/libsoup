@@ -10,7 +10,7 @@
 
 G_BEGIN_DECLS
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 
 #define SOUP_TYPE_PROXY_RESOLVER            (soup_proxy_resolver_get_type ())
 #define SOUP_PROXY_RESOLVER(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), SOUP_TYPE_PROXY_RESOLVER, SoupProxyResolver))

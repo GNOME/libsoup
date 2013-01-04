@@ -54,7 +54,7 @@ GType       soup_logger_get_type    (void);
 SoupLogger *soup_logger_new         (SoupLoggerLogLevel  level,
 				     int                 max_body_size);
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 SOUP_DEPRECATED_IN_2_24_FOR(soup_session_add_feature)
 void        soup_logger_attach      (SoupLogger         *logger,
 				     SoupSession        *session);

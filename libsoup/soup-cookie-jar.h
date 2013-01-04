@@ -88,7 +88,7 @@ SoupCookieJarAcceptPolicy soup_cookie_jar_get_accept_policy           (SoupCooki
 SOUP_AVAILABLE_IN_2_40
 gboolean                  soup_cookie_jar_is_persistent               (SoupCookieJar             *jar);
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 SOUP_AVAILABLE_IN_2_24
 SOUP_DEPRECATED_IN_2_26
 void                      soup_cookie_jar_save                        (SoupCookieJar             *jar);

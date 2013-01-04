@@ -110,7 +110,7 @@ void            soup_session_abort            (SoupSession           *session);
 
 GMainContext   *soup_session_get_async_context(SoupSession           *session);
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 /* SOUP_AVAILABLE_IN_2_30 -- this trips up gtkdoc-scan */
 SOUP_DEPRECATED_IN_2_38_FOR (soup_session_prefetch_dns)
 void            soup_session_prepare_for_uri  (SoupSession           *session,

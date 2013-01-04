@@ -117,7 +117,7 @@ void             soup_message_set_first_party     (SoupMessage       *msg,
 typedef enum {
 	SOUP_MESSAGE_NO_REDIRECT          = (1 << 1),
 	SOUP_MESSAGE_CAN_REBUILD          = (1 << 2),
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 	SOUP_MESSAGE_OVERWRITE_CHUNKS     = (1 << 3),
 #endif
 	SOUP_MESSAGE_CONTENT_DECODED      = (1 << 4),
@@ -167,7 +167,7 @@ void           soup_message_set_redirect        (SoupMessage       *msg,
 						 const char        *redirect_uri);
 
 /* I/O */
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 typedef SoupBuffer * (*SoupChunkAllocator)      (SoupMessage       *msg,
 						 gsize              max_len,
 						 gpointer           user_data);

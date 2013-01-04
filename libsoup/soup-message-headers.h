@@ -36,7 +36,7 @@ void                soup_message_headers_clear    (SoupMessageHeaders *hdrs);
 SOUP_AVAILABLE_IN_2_36
 void                soup_message_headers_clean_connection_headers (SoupMessageHeaders *hdrs);
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 SOUP_DEPRECATED_IN_2_28_FOR ("soup_message_headers_get_one or soup_message_headers_get_list")
 const char         *soup_message_headers_get      (SoupMessageHeaders *hdrs,
 						   const char         *name);

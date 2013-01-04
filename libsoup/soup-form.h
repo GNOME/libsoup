@@ -29,7 +29,7 @@ char        *soup_form_encode_datalist  (GData       **form_data_set);
 char        *soup_form_encode_valist    (const char   *first_field,
 					 va_list       args);
 
-#ifndef LIBSOUP_DISABLE_DEPRECATED
+#ifndef SOUP_DISABLE_DEPRECATED
 /* Compatibility with libsoup 2.3.0 */
 #define soup_form_decode_urlencoded      soup_form_decode
 #define soup_form_encode_urlencoded      soup_form_encode_hash
