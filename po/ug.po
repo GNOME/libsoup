@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-11-04 20:02+0000\n"
+"POT-Creation-Date: 2012-12-03 11:33+0000\n"
 "PO-Revision-Date: 2011-11-09 16:10+0900\n"
 "Last-Translator: Gheyret Kenji <gheyret@gmail.com>\n"
 "Language-Team: Uyghur Computer Science Association <UKIJ@yahoogroups.com>\n"
@@ -20,7 +20,7 @@ msgstr ""
 #: ../libsoup/soup-body-input-stream.c:172
 #: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
-msgstr ""
+msgstr "باغلىنىش تۇيۇقسىز توختاپ قالدى"
 
 #: ../libsoup/soup-body-input-stream.c:461
 msgid "Invalid seek request"
@@ -61,7 +61,7 @@ msgstr "URI «%s» نى تەھلىل قىلالمىدى"
 #: ../libsoup/soup-requester.c:253
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr ""
+msgstr "قوللىمايدىغان URI لايىھە ‹%s›"
 
 #: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
@@ -73,8 +73,8 @@ msgstr "باش ماشىنا ئاتى ئىناۋەتسىز"
 
 #: ../libsoup/soup-tld.c:204
 msgid "Hostname has no base domain"
-msgstr ""
+msgstr "كومپيۇتېر ئاتىدا ئاساسىي دائىرە يوق"
 
 #: ../libsoup/soup-tld.c:226
 msgid "Not enough domains"
-msgstr ""
+msgstr "يېتەرلىك  دائىرە يوق"
