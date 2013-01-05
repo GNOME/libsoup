@@ -3493,6 +3493,19 @@ soup_session_class_init (SoupSessionClass *session_class)
 }
 
 
+static gboolean
+expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
+{
+	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
+	    msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED)
+		return !soup_message_disables_feature (msg, SOUP_TYPE_AUTH_MANAGER);
+
+	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT))
+		return soup_session_would_redirect (session, msg);
+
+	return FALSE;
+}
+
 /* send_request_async */
 
 static void
@@ -3615,12 +3628,10 @@ static void
 send_async_maybe_complete (SoupMessageQueueItem *item,
 			   GInputStream         *stream)
 {
-	if (item->msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
-	    item->msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED ||
-	    soup_session_would_redirect (item->session, item->msg)) {
+	if (expected_to_be_requeued (item->session, item->msg)) {
 		GOutputStream *ostream;
 
-		/* Message may be requeued, so gather the current message body... */
+		/* Gather the current message body... */
 		ostream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
 		g_object_set_data_full (G_OBJECT (item->task), "SoupSession:ostream",
 					ostream, g_object_unref);
@@ -3927,10 +3938,7 @@ soup_session_send_request (SoupSession   *session,
 		if (!stream)
 			break;
 
-		/* Break if the message doesn't look likely-to-be-requeued */
-		if (msg->status_code != SOUP_STATUS_UNAUTHORIZED &&
-		    msg->status_code != SOUP_STATUS_PROXY_UNAUTHORIZED &&
-		    !soup_session_would_redirect (session, msg))
+		if (!expected_to_be_requeued (session, msg))
 			break;
 
 		/* Gather the current message body... */
