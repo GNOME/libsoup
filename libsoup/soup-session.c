@@ -3497,8 +3497,11 @@ static gboolean
 expected_to_be_requeued (SoupSession *session, SoupMessage *msg)
 {
 	if (msg->status_code == SOUP_STATUS_UNAUTHORIZED ||
-	    msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED)
-		return !soup_message_disables_feature (msg, SOUP_TYPE_AUTH_MANAGER);
+	    msg->status_code == SOUP_STATUS_PROXY_UNAUTHORIZED) {
+		SoupSessionFeature *feature =
+			soup_session_get_feature (session, SOUP_TYPE_AUTH_MANAGER);
+		return !feature || !soup_message_disables_feature (msg, feature);
+	}
 
 	if (!(soup_message_get_flags (msg) & SOUP_MESSAGE_NO_REDIRECT))
 		return soup_session_would_redirect (session, msg);
