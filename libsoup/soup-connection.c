@@ -474,8 +474,6 @@ socket_connect_finished (SoupSocket *socket, guint status, gpointer user_data)
 			status = soup_status_proxify (status);
 		data->callback (data->conn, status, data->callback_data);
 	}
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status) && status != SOUP_STATUS_TRY_AGAIN)
-		soup_connection_disconnect (data->conn);
 	g_object_unref (data->conn);
 	if (data->cancellable)
 		g_object_unref (data->cancellable);
@@ -641,6 +639,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
 				 NULL);
 	g_object_unref (remote_addr);
+
 	event_id = g_signal_connect (priv->socket, "event",
 				     G_CALLBACK (proxy_socket_event), conn);
 	status = soup_socket_connect_sync (priv->socket, cancellable);
@@ -679,17 +678,9 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
-	} else if (status != SOUP_STATUS_TRY_AGAIN) {
-	fail:
-		if (priv->socket) {
-			soup_socket_disconnect (priv->socket);
-			g_object_unref (priv->socket);
-			priv->socket = NULL;
-		}
-
-		soup_connection_disconnect (conn);
 	}
 
+ fail:
 	if (priv->socket && event_id)
 		g_signal_handler_disconnect (priv->socket, event_id);
 
@@ -721,10 +712,8 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 
 	if (!soup_socket_start_proxy_ssl (priv->socket,
 					  priv->remote_uri->host,
-					  cancellable)) {
-		soup_connection_disconnect (conn);
+					  cancellable))
 		return SOUP_STATUS_SSL_FAILED;
-	}
 
 	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	status = soup_socket_handshake_sync (priv->socket, cancellable);
@@ -735,9 +724,6 @@ soup_connection_start_ssl_sync (SoupConnection *conn,
 		priv->ssl_fallback = TRUE;
 		status = SOUP_STATUS_TRY_AGAIN;
 	}
-
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status) && status != SOUP_STATUS_TRY_AGAIN)
-		soup_connection_disconnect (conn);
 
 	return status;
 }
@@ -757,8 +743,6 @@ start_ssl_completed (SoupSocket *socket, guint status, gpointer user_data)
 	}
 
 	data->callback (data->conn, status, data->callback_data);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status) && status != SOUP_STATUS_TRY_AGAIN)
-		soup_connection_disconnect (data->conn);
 	g_object_unref (data->conn);
 	g_slice_free (SoupConnectionAsyncConnectData, data);
 }
