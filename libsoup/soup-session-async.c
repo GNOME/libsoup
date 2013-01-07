@@ -126,6 +126,8 @@ ssl_tunnel_completed (SoupConnection *conn, guint status, gpointer user_data)
 	soup_message_finished (tunnel_item->msg);
 	soup_message_queue_item_unref (tunnel_item);
 
+	soup_message_set_https_status (item->msg, item->conn);
+
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (item->conn);
 		soup_message_queue_item_set_connection (item, NULL);
@@ -173,6 +175,8 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
+
+	soup_message_set_https_status (item->msg, item->conn);
 
 	if (item->state != SOUP_MESSAGE_CONNECTING) {
 		soup_connection_disconnect (conn);
@@ -236,7 +240,6 @@ process_queue_item (SoupMessageQueueItem *item,
 			break;
 
 		case SOUP_MESSAGE_READY:
-			soup_message_set_https_status (item->msg, item->conn);
 			if (item->msg->status_code) {
 				if (item->msg->status_code == SOUP_STATUS_TRY_AGAIN) {
 					soup_message_cleanup_response (item->msg);
