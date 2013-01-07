@@ -109,6 +109,10 @@ do_one_strict_test (SoupSession *session, char *uri,
 			errors++;
 		}
 	}
+	if (!soup_message_get_https_status (msg, NULL, NULL)) {
+		debug_printf (1, "      get_https_status returns FALSE?\n");
+		errors++;
+	}
 
 	g_object_unref (msg);
 }

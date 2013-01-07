@@ -1509,8 +1509,7 @@ tunnel_complete (SoupConnection *conn, guint status, gpointer user_data)
 
 	if (item->msg->status_code)
 		item->state = SOUP_MESSAGE_FINISHING;
-	else
-		soup_message_set_https_status (item->msg, item->conn);
+	soup_message_set_https_status (item->msg, item->conn);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (conn);
@@ -1596,6 +1595,8 @@ got_connection (SoupConnection *conn, guint status, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
+
+	soup_message_set_https_status (item->msg, item->conn);
 
 	if (status != SOUP_STATUS_OK) {
 		soup_connection_disconnect (conn);
@@ -1751,10 +1752,10 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	}
 
 	soup_session_set_item_connection (session, item, conn);
-	soup_message_set_https_status (item->msg, item->conn);
 
 	if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
 		item->state = SOUP_MESSAGE_READY;
+		soup_message_set_https_status (item->msg, item->conn);
 		return TRUE;
 	}
 
@@ -1801,7 +1802,6 @@ soup_session_process_queue_item (SoupSession          *session,
 			break;
 
 		case SOUP_MESSAGE_READY:
-			soup_message_set_https_status (item->msg, item->conn);
 			if (item->msg->status_code) {
 				if (item->msg->status_code == SOUP_STATUS_TRY_AGAIN) {
 					soup_message_cleanup_response (item->msg);

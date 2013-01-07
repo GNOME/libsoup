@@ -1826,11 +1826,13 @@ soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
  * @certificate: (out) (transfer none): @msg's TLS certificate
  * @errors: (out): the verification status of @certificate
  *
- * If @msg is using https, this retrieves the #GTlsCertificate
- * associated with its connection, and the #GTlsCertificateFlags showing
- * what problems, if any, have been found with that certificate.
+ * If @msg is using https (or attempted to use https but got
+ * %SOUP_STATUS_SSL_FAILED), this retrieves the #GTlsCertificate
+ * associated with its connection, and the #GTlsCertificateFlags
+ * showing what problems, if any, have been found with that
+ * certificate.
  *
- * Return value: %TRUE if @msg uses https, %FALSE if not
+ * Return value: %TRUE if @msg used/attempted https, %FALSE if not
  *
  * Since: 2.34
  */
