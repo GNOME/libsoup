@@ -679,15 +679,9 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
 		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 		start_idle_timer (conn);
-	} else {
-	fail:
-		if (priv->socket) {
-			soup_socket_disconnect (priv->socket);
-			g_object_unref (priv->socket);
-			priv->socket = NULL;
-		}
 	}
 
+ fail:
 	if (priv->socket && event_id)
 		g_signal_handler_disconnect (priv->socket, event_id);
 
