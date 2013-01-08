@@ -125,7 +125,6 @@ IT_PROG_INTLTOOL([0.35.0])
 GETTEXT_PACKAGE=libsoup
 AC_SUBST([GETTEXT_PACKAGE])
 AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],["$GETTEXT_PACKAGE"],[The gettext domain name])
-AM_GLIB_GNU_GETTEXT
 
 dnl *******************
 dnl *** Misc checks ***
