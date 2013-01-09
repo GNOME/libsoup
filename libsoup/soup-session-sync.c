@@ -273,6 +273,7 @@ process_queue_item (SoupMessageQueueItem *item)
 			item->state = SOUP_MESSAGE_FINISHED;
 			soup_message_finished (item->msg);
 			soup_session_unqueue_item (session, item);
+			g_cond_broadcast (&priv->cond);
 			break;
 
 		default:
