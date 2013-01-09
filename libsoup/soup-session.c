@@ -1422,6 +1422,7 @@ soup_session_unqueue_item (SoupSession          *session,
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
 	host->num_messages--;
+	g_cond_broadcast (&priv->conn_cond);
 	g_mutex_unlock (&priv->conn_lock);
 
 	/* g_signal_handlers_disconnect_by_func doesn't work if you
