@@ -1,14 +1,14 @@
 # Bulgarian translation of libsoup po-file.
-# Copyright (C) 2012 Free Software Foundation, Inc.
+# Copyright (C) 2012, 2013 Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Alexander Shopov <ash@kambanaria.org>, 2012.
+# Alexander Shopov <ash@kambanaria.org>, 2012, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-19 21:08+0300\n"
-"PO-Revision-Date: 2012-09-19 21:08+0300\n"
+"POT-Creation-Date: 2013-01-12 06:56+0200\n"
+"PO-Revision-Date: 2013-01-12 06:56+0200\n"
 "Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian <dict@fsa-bg.org>\n"
 "Language: \n"
@@ -31,51 +31,72 @@ msgstr "Неправилна заявка за търсене"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Потокът SoupBodyInputStream не може да бъде прекъснат"
 
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "Потокът от мрежата неочаквано прекъсна"
+
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Прекалено малък изходен буфер"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "Отговорът от HTTP не може да бъде анализиран"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Непознато кодиране на отговора от HTTP"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "Операцията е отменена"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "Операцията ще блокира"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "Заявката към HTTP не може да бъде анализирана"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "Не е даден адрес"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Неправилен адрес на „%s“: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4032
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Адресът „%s“ е неправилен"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4069
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Схемата на адреса не се поддържа „%s“"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4091
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Не е адрес URI за HTTP"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Името на машината е адрес по IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Неправилно име на машина"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Името на машината не съдържа домейн"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Няма достатъчно домейни"
