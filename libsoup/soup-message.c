@@ -5,9 +5,6 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
-//#include <stdlib.h>
-//#include <string.h>
-
 #include "soup-message.h"
 #include "soup.h"
 #include "soup-connection.h"
