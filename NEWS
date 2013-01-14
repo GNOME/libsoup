@@ -1,3 +1,63 @@
+Changes in libsoup from 2.41.3 to 2.41.4:
+
+	* Lots of docs fixes, including catching up with some (but not
+          all!) of the API additions and deprecations, and a new
+          chapter with hints on porting from
+          SoupSessionAsync/SoupSessionSync to the new-and-improved
+          plain SoupSession.
+
+	* The plain SoupSession type now supports
+          soup_session_queue_message() (with SoupSessionAsync
+          semantics) and soup_session_send_message() (with
+          SoupSessionSync semantics), and there are now
+          soup_session_new() and soup_session_new_with_options().
+
+	* The mirroring of the SoupMessage API onto SoupRequestHTTP,
+          added in 2.41.3, has been reverted. However, new APIs
+          soup_session_send() and soup_session_send_async() have been
+          added that let you use the GInputStream-based API with
+          SoupMessages rather than SoupRequest, so if you're doing
+          HTTP-specific stuff, you can just use that instead.
+
+	* soup_message_get_https_status() now returns the certificate
+          and flags for unsuccessful https connections as well as
+          successful ones. [#690176]
+
+	* Fixed a deadlock when calling soup_session_abort() on a
+          SoupSessionSync in some cases. [#691399] 
+
+	* Internal SoupCache rewrites/improvements [#682112, Sergio]
+
+	* Plugged a memory leak in SoupCache [#690382, Sudarsana
+          Nagineni] and one in SoupAuthDigest [#690142]
+
+	* LIBSOUP_DISABLE_DEPRECATED has been renamed to
+          SOUP_DISABLE_DEPRECATED, but that's just to keep gtk-doc
+          happy, and you shouldn't use it. You should use
+          SOUP_VERSION_MIN_REQUIRED instead.
+
+	* Fixed the samba-windbind-based NTLM support, which appears
+          to have been broken before.
+
+	* SoupAuthManager is now a public class (so you can remove it
+          as a feature from a session, or disable it for a particular
+          message). It also has a new method
+          soup_auto_manager_use_auth(), which can be used to "preload"
+          authentication for a host so that libsoup will use
+          authentication on the very first request.
+
+	* SoupURI now treats "http://user@example.com" as having a
+          password of "" rather than NULL, since a NULL password would
+          not be valid for any known HTTP auth type.
+
+	* build: libsoup now uses autoreconf instead of
+          gnome-autogen.sh, and no longer uses AM_GLIB_GNU_GETTEXT
+          [Javier Jardon].
+
+	* Updated translations:
+	  Assamese, Bulgarian, Estonian, Friulian, Galician, Hebrew,
+	  Polish, Slovenian, Spanish
+
 Changes in libsoup from 2.41.2 to 2.41.3 (codename: "I Left My
 Deprecated APIs in A Coruña"):
 
