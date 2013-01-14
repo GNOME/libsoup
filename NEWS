@@ -1,3 +1,26 @@
+Changes in libsoup from 2.40.2 to 2.40.3:
+
+	* soup_message_get_https_status() now returns the certificate
+          and flags for unsuccessful https connections as well as
+          successful ones. [#690176]
+
+	* Fixed a deadlock when calling soup_session_abort() on a
+          SoupSessionSync in some cases. [#691399] 
+
+	* Fixed a bug in SoupFilterInputStream that could cause some
+	  non-blocking reads to suck up CPU while waiting for the
+	  network. (This was noticed with multipart/x-mixed-replace
+	  processing; it's not clear if it affected anything else.)
+	  [Gustavo]
+
+	* SoupURI now leaves "%00" in URIs as-is, rather than decoding
+	  it to "\0", which was not intended and is never useful.
+
+	* A few minor docs fixes.
+
+	* Updated translations:
+ 	  Friulian, Kannada, Odia, Uyghur
+
 Changes in libsoup from 2.40.0 to 2.40.2:
 
 	* Fixed a crash caused by a race condition in SoupSessionSync.
