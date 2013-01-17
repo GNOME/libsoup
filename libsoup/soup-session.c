@@ -503,7 +503,8 @@ set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
 	}
 
 	set_tlsdb (session, tlsdb);
-	g_object_unref (tlsdb);
+	if (tlsdb)
+		g_object_unref (tlsdb);
 
 	priv->ssl_ca_file = g_strdup (ssl_ca_file);
 	g_object_notify (G_OBJECT (session), "ssl-ca-file");
