@@ -1,14 +1,14 @@
 # Serbian translation of libsoup.
 # Courtesy of Prevod.org team (http://prevod.org/) -- 2012.
 # This file is distributed under the same license as the libsoup package.
-# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2011, 2012.
+# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2011, 2012, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
 "p&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-10 15:07+0000\n"
-"PO-Revision-Date: 2012-09-14 05:49+0200\n"
+"POT-Creation-Date: 2012-12-18 15:49+0000\n"
+"PO-Revision-Date: 2013-01-17 09:46+0200\n"
 "Last-Translator: Мирослав Николић <miroslavnikolic@rocketmail.com>\n"
 "Language-Team: Serbian <gnom@prevod.org>\n"
 "Language: sr\n"
@@ -33,38 +33,61 @@ msgstr "Неисправан захтев претраге"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Не могу да скратим улазни ток тела Супе"
 
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "Мрежни ток је изненадно затворен"
+
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Међумеморија излаза је премала"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP response"
+msgstr "Не могу да обрадим ХТТП одговор"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Непознато кодирање ХТТП одговора"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "Радња је отказана"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "Поступак би блокирао"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP request"
+msgstr "Не могу да обрадим ХТТП захтев"
+
+#: ../libsoup/soup-request.c:141
 #, c-format
 msgid "No URI provided"
 msgstr "Није наведена адреса"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:151
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Неисправна „%s“ адреса: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:3752
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Не могу да обрадим адресу „%s“"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:3789
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Неподржана „%s“ шема адресе"
+
+#: ../libsoup/soup-session.c:3811
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Није ХТТП путања"
 
 #: ../libsoup/soup-tld.c:154
 msgid "Hostname is an IP address"
