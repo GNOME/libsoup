@@ -286,7 +286,9 @@ soup_body_input_stream_skip (GInputStream *stream,
 				       MIN (count, priv->read_length),
 				       cancellable, error);
 
-	if (skipped != -1)
+	if (skipped == 0)
+		priv->eof = TRUE;
+	else if (skipped > 0)
 		priv->pos += skipped;
 
 	return skipped;
