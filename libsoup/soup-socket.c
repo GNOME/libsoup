@@ -651,11 +651,11 @@ soup_socket_new (const char *optname1, ...)
 }
 
 static void
-proxy_socket_client_event (GSocketClient       *client,
-			   GSocketClientEvent   event,
-			   GSocketConnectable  *connectable,
-			   GIOStream           *connection,
-			   gpointer             user_data)
+re_emit_socket_client_event (GSocketClient       *client,
+			     GSocketClientEvent   event,
+			     GSocketConnectable  *connectable,
+			     GIOStream           *connection,
+			     gpointer             user_data)
 {
 	SoupSocket *sock = user_data;
 
@@ -704,7 +704,7 @@ new_socket_client (SoupSocket *sock)
 	GSocketClient *client = g_socket_client_new ();
 
 	g_signal_connect (client, "event",
-			  G_CALLBACK (proxy_socket_client_event), sock);
+			  G_CALLBACK (re_emit_socket_client_event), sock);
 	if (priv->use_proxy)
 		g_socket_client_add_application_proxy (client, "http");
 	else

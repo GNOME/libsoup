@@ -1152,10 +1152,10 @@ redirect_handler (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-proxy_connection_event (SoupConnection      *conn,
-			GSocketClientEvent   event,
-			GIOStream           *connection,
-			gpointer             user_data)
+re_emit_connection_event (SoupConnection      *conn,
+			  GSocketClientEvent   event,
+			  GIOStream           *connection,
+			  gpointer             user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
@@ -1168,7 +1168,7 @@ soup_session_set_item_connection (SoupSession          *session,
 				  SoupConnection       *conn)
 {
 	if (item->conn) {
-		g_signal_handlers_disconnect_by_func (item->conn, proxy_connection_event, item);
+		g_signal_handlers_disconnect_by_func (item->conn, re_emit_connection_event, item);
 		g_object_unref (item->conn);
 	}
 
@@ -1178,7 +1178,7 @@ soup_session_set_item_connection (SoupSession          *session,
 	if (item->conn) {
 		g_object_ref (item->conn);
 		g_signal_connect (item->conn, "event",
-				  G_CALLBACK (proxy_connection_event), item);
+				  G_CALLBACK (re_emit_connection_event), item);
 	}
 }
 

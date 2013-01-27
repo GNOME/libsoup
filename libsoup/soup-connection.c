@@ -437,10 +437,10 @@ set_current_msg (SoupConnection *conn, SoupMessage *msg)
 }
 
 static void
-proxy_socket_event (SoupSocket          *socket,
-		    GSocketClientEvent   event,
-		    GIOStream           *connection,
-		    gpointer             user_data)
+re_emit_socket_event (SoupSocket          *socket,
+		      GSocketClientEvent   event,
+		      GIOStream           *connection,
+		      gpointer             user_data)
 {
 	SoupConnection *conn = user_data;
 
@@ -548,7 +548,7 @@ connect_async_to_uri (SoupConnectionAsyncConnectData *data, SoupURI *uri)
 	g_object_unref (remote_addr);
 
 	data->event_id = g_signal_connect (priv->socket, "event",
-					   G_CALLBACK (proxy_socket_event),
+					   G_CALLBACK (re_emit_socket_event),
 					   data->conn);
 
 	soup_socket_connect_async (priv->socket, data->cancellable,
@@ -659,7 +659,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	g_object_unref (remote_addr);
 
 	event_id = g_signal_connect (priv->socket, "event",
-				     G_CALLBACK (proxy_socket_event), conn);
+				     G_CALLBACK (re_emit_socket_event), conn);
 	status = soup_socket_connect_sync (priv->socket, cancellable);
 
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
