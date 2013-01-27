@@ -1451,45 +1451,40 @@ soup_session_set_item_status (SoupSession          *session,
 			      SoupMessageQueueItem *item,
 			      guint                 status_code)
 {
-	SoupURI *uri;
-	char *msg;
+	SoupURI *uri = NULL;
 
 	switch (status_code) {
 	case SOUP_STATUS_CANT_RESOLVE:
 	case SOUP_STATUS_CANT_CONNECT:
 		uri = soup_message_get_uri (item->msg);
-		msg = g_strdup_printf ("%s (%s)",
-				       soup_status_get_phrase (status_code),
-				       uri->host);
-		soup_message_set_status_full (item->msg, status_code, msg);
-		g_free (msg);
 		break;
 
 	case SOUP_STATUS_CANT_RESOLVE_PROXY:
 	case SOUP_STATUS_CANT_CONNECT_PROXY:
-		if (item->proxy_uri && item->proxy_uri->host) {
-			msg = g_strdup_printf ("%s (%s)",
-					       soup_status_get_phrase (status_code),
-					       item->proxy_uri->host);
-			soup_message_set_status_full (item->msg, status_code, msg);
-			g_free (msg);
-			break;
-		}
-		soup_message_set_status (item->msg, status_code);
+		if (item->conn)
+			uri = soup_connection_get_proxy_uri (item->conn);
 		break;
 
 	case SOUP_STATUS_SSL_FAILED:
 		if (!g_tls_backend_supports_tls (g_tls_backend_get_default ())) {
 			soup_message_set_status_full (item->msg, status_code,
 						      "TLS/SSL support not available; install glib-networking");
-		} else
-			soup_message_set_status (item->msg, status_code);
+			return;
+		}
 		break;
 
 	default:
-		soup_message_set_status (item->msg, status_code);
 		break;
 	}
+
+	if (uri && uri->host) {
+		char *msg = g_strdup_printf ("%s (%s)",
+					     soup_status_get_phrase (status_code),
+					     uri->host);
+		soup_message_set_status_full (item->msg, status_code, msg);
+		g_free (msg);
+	} else
+		soup_message_set_status (item->msg, status_code);
 }
 
 

@@ -38,8 +38,6 @@ struct _SoupMessageQueueItem {
 	GMainContext *async_context;
 
 	GCancellable *cancellable;
-	SoupAddress *proxy_addr;
-	SoupURI *proxy_uri;
 	SoupConnection *conn;
 	GTask *task;
 	GSource *io_source;

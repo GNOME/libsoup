@@ -58,15 +58,6 @@ queue_message_restarted (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
-	if (item->proxy_addr) {
-		g_object_unref (item->proxy_addr);
-		item->proxy_addr = NULL;
-	}
-	if (item->proxy_uri) {
-		soup_uri_free (item->proxy_uri);
-		item->proxy_uri = NULL;
-	}
-
 	g_cancellable_reset (item->cancellable);
 }
 
@@ -171,8 +162,6 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_object_unref (item->session);
 	g_object_unref (item->msg);
 	g_object_unref (item->cancellable);
-	g_clear_object (&item->proxy_addr);
-	g_clear_pointer (&item->proxy_uri, soup_uri_free);
 	g_clear_object (&item->task);
 	if (item->io_source) {
 		g_source_destroy (item->io_source);
