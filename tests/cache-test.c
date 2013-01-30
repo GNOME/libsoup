@@ -113,6 +113,7 @@ static char *do_request (SoupSession *session,
 
 static gboolean last_request_hit_network;
 static gboolean last_request_validated;
+static guint cancelled_requests;
 
 static char *
 do_request (SoupSession *session,
@@ -181,6 +182,41 @@ do_request (SoupSession *session,
 }
 
 static void
+do_request_with_cancel (SoupSession          *session,
+			SoupURI              *base_uri,
+			const char           *method,
+			const char           *path,
+			SoupTestRequestFlags  flags)
+{
+	SoupRequestHTTP *req;
+	GInputStream *stream;
+	SoupURI *uri;
+	GError *error = NULL;
+	GCancellable *cancellable;
+
+	last_request_validated = last_request_hit_network = FALSE;
+	cancelled_requests = 0;
+
+	uri = soup_uri_new_with_base (base_uri, path);
+	req = soup_session_request_http_uri (session, method, uri, NULL);
+	soup_uri_free (uri);
+	cancellable = flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE ? g_cancellable_new () : NULL;
+	stream = soup_test_request_send (SOUP_REQUEST (req), cancellable, flags, &error);
+	if (stream) {
+		debug_printf (1, "    could not cancel the request\n");
+		g_object_unref (stream);
+		g_object_unref (req);
+		return;
+	}
+
+	g_clear_object (&cancellable);
+	g_clear_object (&stream);
+	g_clear_object (&req);
+
+	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
+}
+
+static void
 request_started (SoupSession *session, SoupMessage *msg,
 		 SoupSocket *socket)
 {
@@ -192,6 +228,14 @@ request_started (SoupSession *session, SoupMessage *msg,
 			      soup_message_get_uri (msg)->path);
 		last_request_validated = TRUE;
 	}
+}
+
+static void
+request_unqueued (SoupSession *session, SoupMessage *msg,
+		  gpointer data)
+{
+	if (msg->status_code == SOUP_STATUS_CANCELLED)
+		cancelled_requests++;
 }
 
 static void
@@ -421,6 +465,86 @@ do_basics_test (SoupURI *base_uri)
 	g_free (body5);
 }
 
+static void
+do_cancel_test (SoupURI *base_uri)
+{
+	SoupSession *session;
+	SoupCache *cache;
+	char *cache_dir;
+	char *body1, *body2;
+
+	debug_printf (1, "Cache cancel tests\n");
+
+	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+	debug_printf (2, "  Caching to %s\n", cache_dir);
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+	g_signal_connect (session, "request-unqueued",
+			  G_CALLBACK (request_unqueued), NULL);
+
+	debug_printf (2, "  Initial requests\n");
+	body1 = do_request (session, base_uri, "GET", "/1",
+			    "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			    NULL);
+	body2 = do_request (session, base_uri, "GET", "/2",
+			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			    "Test-Set-Cache-Control", "must-revalidate",
+			    NULL);
+
+	/* Check that messages are correctly processed on cancellations. */
+	debug_printf (1, "  Cancel fresh resource with soup_session_message_cancel()\n");
+	do_request_with_cancel (session, base_uri, "GET", "/1", SOUP_TEST_REQUEST_CANCEL_MESSAGE);
+	if (cancelled_requests != 1) {
+		debug_printf (1, "    invalid number of cancelled requests: %d (1 expected)\n",
+			      cancelled_requests);
+		errors++;
+	}
+
+	debug_printf (1, "  Cancel fresh resource with g_cancellable_cancel()\n");
+	do_request_with_cancel (session, base_uri, "GET", "/1", SOUP_TEST_REQUEST_CANCEL_CANCELLABLE);
+	if (cancelled_requests != 1) {
+		debug_printf (1, "    invalid number of cancelled requests: %d (1 expected)\n",
+			      cancelled_requests);
+		errors++;
+	}
+
+	soup_test_session_abort_unref (session);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+	g_signal_connect (session, "request-unqueued",
+			  G_CALLBACK (request_unqueued), NULL);
+
+	/* Check that messages are correctly processed on cancellations. */
+	debug_printf (1, "  Cancel a revalidating resource with soup_session_message_cancel()\n");
+	do_request_with_cancel (session, base_uri, "GET", "/2", SOUP_TEST_REQUEST_CANCEL_MESSAGE);
+	if (cancelled_requests != 2) {
+		debug_printf (1, "    invalid number of cancelled requests: %d (2 expected)\n",
+			      cancelled_requests);
+		errors++;
+	}
+
+	debug_printf (1, "  Cancel a revalidating resource with g_cancellable_cancel()\n");
+	do_request_with_cancel (session, base_uri, "GET", "/2", SOUP_TEST_REQUEST_CANCEL_CANCELLABLE);
+	if (cancelled_requests != 2) {
+		debug_printf (1, "    invalid number of cancelled requests: %d (2 expected)\n",
+			      cancelled_requests);
+		errors++;
+	}
+
+	soup_test_session_abort_unref (session);
+
+	g_object_unref (cache);
+	g_free (cache_dir);
+	g_free (body1);
+	g_free (body2);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -435,6 +559,7 @@ main (int argc, char **argv)
 	soup_uri_set_port (base_uri, soup_server_get_port (server));
 
 	do_basics_test (base_uri);
+	do_cancel_test (base_uri);
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
