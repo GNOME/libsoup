@@ -36,6 +36,8 @@ SoupCacheability   soup_cache_get_cacheability             (SoupCache   *cache,
 							    SoupMessage *msg);
 SoupMessage       *soup_cache_generate_conditional_request (SoupCache   *cache,
 							    SoupMessage *original);
+void               soup_cache_cancel_conditional_request   (SoupCache   *cache,
+							    SoupMessage *msg);
 
 G_END_DECLS
 

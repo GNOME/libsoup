@@ -1377,6 +1377,19 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	return msg;
 }
 
+void
+soup_cache_cancel_conditional_request (SoupCache   *cache,
+				       SoupMessage *msg)
+{
+	SoupCacheEntry *entry;
+
+	entry = soup_cache_entry_lookup (cache, msg);
+	if (entry)
+		entry->being_validated = FALSE;
+
+	soup_session_cancel_message (cache->priv->session, msg, SOUP_STATUS_CANCELLED);
+}
+
 static void
 pack_entry (gpointer data,
 	    gpointer user_data)

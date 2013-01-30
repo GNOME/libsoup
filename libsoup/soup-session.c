@@ -3781,11 +3781,48 @@ async_return_from_cache (SoupMessageQueueItem *item,
 	async_send_request_return_result (item, g_object_ref (stream), NULL);
 }
 
+typedef struct {
+	SoupCache *cache;
+	SoupMessage *conditional_msg;
+} AsyncCacheCancelData;
+
+
+static void
+free_async_cache_cancel_data (AsyncCacheCancelData *data)
+{
+	g_object_unref (data->conditional_msg);
+	g_object_unref (data->cache);
+	g_slice_free (AsyncCacheCancelData, data);
+}
+
+static void
+cancel_cache_response (SoupMessageQueueItem *item)
+{
+	item->paused = FALSE;
+	item->state = SOUP_MESSAGE_FINISHING;
+	soup_message_set_status (item->msg, SOUP_STATUS_CANCELLED);
+	soup_session_kick_queue (item->session);
+}
+
+static void
+conditional_request_cancelled_cb (GCancellable *cancellable, AsyncCacheCancelData *data)
+{
+	soup_cache_cancel_conditional_request (data->cache, data->conditional_msg);
+}
+
 static void
 conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 	GInputStream *stream;
+
+	if (g_cancellable_is_cancelled (item->cancellable)) {
+		cancel_cache_response (item);
+		return;
+	} else {
+		gulong handler_id = GPOINTER_TO_SIZE (g_object_get_data (G_OBJECT (msg), "SoupSession:handler-id"));
+		g_cancellable_disconnect (item->cancellable, handler_id);
+	}
 
 	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
 		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
@@ -3805,28 +3842,31 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 	soup_session_kick_queue (session);
 }
 
-typedef struct {
-	SoupMessageQueueItem *item;
-	GInputStream *stream;
-} SendAsyncCacheData;
-
-static void
-free_send_async_cache_data (SendAsyncCacheData *sacd)
-{
-	soup_message_queue_item_unref (sacd->item);
-	g_object_unref (sacd->stream);
-	g_slice_free (SendAsyncCacheData, sacd);
-}
-
 static gboolean
 idle_return_from_cache_cb (gpointer data)
 {
 	GTask *task = data;
-	SendAsyncCacheData *sacd = g_task_get_task_data (task);
+	SoupMessageQueueItem *item = g_task_get_task_data (task);
+	GInputStream *istream;
 
-	async_return_from_cache (sacd->item, sacd->stream);
+	if (item->state == SOUP_MESSAGE_FINISHED) {
+		/* The original request was cancelled using
+		 * soup_session_cancel_message () so it has been
+		 * already handled by the cancellation code path.
+		 */
+		return FALSE;
+	} else if (g_cancellable_is_cancelled (item->cancellable)) {
+		/* Cancel original msg after g_cancellable_cancel(). */
+		cancel_cache_response (item);
+		return FALSE;
+	}
+
+	istream = g_object_steal_data (G_OBJECT (task), "SoupSession:istream");
+	async_return_from_cache (item, istream);
+
 	return FALSE;
 }
+
 
 static gboolean
 async_respond_from_cache (SoupSession          *session,
@@ -3842,7 +3882,6 @@ async_respond_from_cache (SoupSession          *session,
 	response = soup_cache_has_response (cache, item->msg);
 	if (response == SOUP_CACHE_RESPONSE_FRESH) {
 		GInputStream *stream;
-		SendAsyncCacheData *sacd;
 		GSource *source;
 
 		stream = soup_cache_send_response (cache, item->msg);
@@ -3850,14 +3889,8 @@ async_respond_from_cache (SoupSession          *session,
 			/* Cached file was deleted? */
 			return FALSE;
 		}
-
-		sacd = g_slice_new (SendAsyncCacheData);
-		sacd->item = item;
-		soup_message_queue_item_ref (item);
-		sacd->stream = stream;
-
-		g_task_set_task_data (item->task, sacd,
-				      (GDestroyNotify) free_send_async_cache_data);
+		g_object_set_data_full (G_OBJECT (item->task), "SoupSession:istream",
+					stream, g_object_unref);
 
 		source = g_timeout_source_new (0);
 		g_task_attach_source (item->task, source,
@@ -3866,14 +3899,27 @@ async_respond_from_cache (SoupSession          *session,
 		return TRUE;
 	} else if (response == SOUP_CACHE_RESPONSE_NEEDS_VALIDATION) {
 		SoupMessage *conditional_msg;
+		AsyncCacheCancelData *data;
+		gulong handler_id;
 
 		conditional_msg = soup_cache_generate_conditional_request (cache, item->msg);
 		if (!conditional_msg)
 			return FALSE;
 
+		/* Detect any quick cancellation before the cache is able to return data. */
+		data = g_slice_new0 (AsyncCacheCancelData);
+		data->cache = g_object_ref (cache);
+		data->conditional_msg = g_object_ref (conditional_msg);
+		handler_id = g_cancellable_connect (item->cancellable, G_CALLBACK (conditional_request_cancelled_cb),
+						    data, (GDestroyNotify) free_async_cache_cancel_data);
+
+		g_object_set_data (G_OBJECT (conditional_msg), "SoupSession:handler-id",
+				   GSIZE_TO_POINTER (handler_id));
 		soup_session_queue_message (session, conditional_msg,
 					    conditional_get_ready_cb,
 					    item);
+
+
 		return TRUE;
 	} else
 		return FALSE;
