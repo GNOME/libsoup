@@ -3894,14 +3894,22 @@ soup_session_send_async (SoupSession         *session,
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (async_send_request_finished), item);
 
-	item->new_api = TRUE;
-	item->task = g_task_new (session, cancellable, callback, user_data);
-	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
-
 	if (cancellable) {
 		g_object_unref (item->cancellable);
 		item->cancellable = g_object_ref (cancellable);
 	}
+
+	item->new_api = TRUE;
+	item->task = g_task_new (session, item->cancellable, callback, user_data);
+	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
+
+	/* Do not check for cancellations as we do not want to
+	 * overwrite custom error messages set during cancellations
+	 * (for example SOUP_HTTP_ERROR is set for cancelled messages
+	 * in async_send_request_return_result() (status_code==1
+	 * means CANCEL and is considered a TRANSPORT_ERROR)).
+	 */
+	g_task_set_check_cancellable (item->task, FALSE);
 
 	if (async_respond_from_cache (session, item))
 		item->state = SOUP_MESSAGE_CACHED;
