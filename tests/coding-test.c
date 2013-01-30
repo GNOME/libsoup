@@ -337,7 +337,7 @@ do_single_coding_req_test (SoupRequestHTTP *reqh,
 
 	data = g_byte_array_new ();
 
-	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, &error);
+	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, 0, &error);
 	if (error) {
 		debug_printf (1, "    Error sending request: %s\n",
 			      error->message);

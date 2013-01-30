@@ -164,7 +164,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	request = soup_session_request (session, url, NULL);
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
-	stream = soup_test_request_send (request, NULL, &error);
+	stream = soup_test_request_send (request, NULL, 0, &error);
 	if (!stream) {
 		debug_printf (1, "  Unexpected error on Request: %s\n",
 			      error->message);

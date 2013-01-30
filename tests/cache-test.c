@@ -146,7 +146,7 @@ do_request (SoupSession *session,
 	}
 	g_object_unref (msg);
 
-	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, &error);
+	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, 0, &error);
 	if (!stream) {
 		debug_printf (1, "    could not send request: %s\n",
 			      error->message);

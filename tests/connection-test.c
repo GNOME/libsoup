@@ -316,7 +316,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 	req = soup_session_request_uri (session, timeout_uri, NULL);
 	soup_uri_free (timeout_uri);
 
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, 0, &error);
 	if (!stream) {
 		debug_printf (1, "      Unexpected error on send: %s\n",
 			      error->message);
@@ -343,7 +343,7 @@ do_timeout_req_test_for_session (SoupSession *session)
 	debug_printf (1, "    Second request\n");
 	req = soup_session_request_uri (session, base_uri, NULL);
 
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, 0, &error);
 	if (!stream) {
 		debug_printf (1, "      Unexpected error on send: %s\n",
 			      error->message);

@@ -371,24 +371,98 @@ async_as_sync_callback (GObject      *object,
 			gpointer      user_data)
 {
 	AsyncAsSyncData *data = user_data;
+	GMainContext *context;
 
 	data->result = g_object_ref (result);
+	context = g_main_loop_get_context (data->loop);
+	while (g_main_context_pending (context))
+		g_main_context_iteration (context, FALSE);
 	g_main_loop_quit (data->loop);
+}
+
+typedef struct {
+	SoupRequest  *req;
+	GCancellable *cancellable;
+	SoupTestRequestFlags flags;
+} CancelData;
+
+static CancelData *
+create_cancel_data (SoupRequest          *req,
+		    GCancellable         *cancellable,
+		    SoupTestRequestFlags  flags)
+{
+	CancelData *cancel_data;
+
+	if (!flags)
+		return NULL;
+
+	cancel_data = g_slice_new0 (CancelData);
+	cancel_data->flags = flags;
+	if (flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE && SOUP_IS_REQUEST_HTTP (req))
+		cancel_data->req = g_object_ref (req);
+	else if (flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE)
+		cancel_data->cancellable = g_object_ref (cancellable);
+	return cancel_data;
+}
+
+static void inline
+cancel_message_or_cancellable (CancelData *cancel_data)
+{
+	if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
+		SoupRequest *req = cancel_data->req;
+		soup_session_cancel_message (soup_request_get_session (req),
+					     soup_request_http_get_message (SOUP_REQUEST_HTTP (req)),
+					     SOUP_STATUS_CANCELLED);
+		g_object_unref (req);
+	} else if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_CANCELLABLE) {
+		g_cancellable_cancel (cancel_data->cancellable);
+		g_object_unref (cancel_data->cancellable);
+	}
+	g_slice_free (CancelData, cancel_data);
+}
+
+static gboolean
+cancel_request_timeout (gpointer data)
+{
+	cancel_message_or_cancellable ((CancelData *) data);
+	return FALSE;
+}
+
+static gpointer
+cancel_request_thread (gpointer data)
+{
+	g_usleep (100000); /* .1s */
+	cancel_message_or_cancellable ((CancelData *) data);
+	return NULL;
 }
 
 GInputStream *
 soup_test_request_send (SoupRequest   *req,
 			GCancellable  *cancellable,
+			guint          flags,
 			GError       **error)
 {
 	AsyncAsSyncData data;
 	GInputStream *stream;
+	CancelData *cancel_data = create_cancel_data (req, cancellable, flags);
 
-	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
-		return soup_request_send (req, cancellable, error);
+	if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req))) {
+		GThread *thread;
+
+		if (cancel_data)
+			thread = g_thread_new ("cancel_request_thread", cancel_request_thread,
+					       cancel_data);
+		stream = soup_request_send (req, cancellable, error);
+		if (cancel_data)
+			g_thread_unref (thread);
+		return stream;
+	}
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-
+	if (cancel_data) {
+		guint interval = flags & SOUP_TEST_REQUEST_CANCEL_SOON ? 100 : 0;
+		g_timeout_add_full (G_PRIORITY_HIGH, interval, cancel_request_timeout, cancel_data, NULL);
+	}
 	soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 

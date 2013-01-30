@@ -252,7 +252,7 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (restarted), &treq);
 
-	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, &error);
+	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, 0, &error);
 
 	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
 		if (stream) {

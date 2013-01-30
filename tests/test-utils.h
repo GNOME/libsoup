@@ -23,6 +23,13 @@ void apache_init    (void);
 void apache_cleanup (void);
 #endif
 
+typedef enum {
+  SOUP_TEST_REQUEST_NONE = 0,
+  SOUP_TEST_REQUEST_CANCEL_MESSAGE = (1 << 0),
+  SOUP_TEST_REQUEST_CANCEL_CANCELLABLE = (1 << 1),
+  SOUP_TEST_REQUEST_CANCEL_SOON = (1 << 2)
+} SoupTestRequestFlags;
+
 SoupSession *soup_test_session_new         (GType type, ...);
 void         soup_test_session_abort_unref (SoupSession *session);
 
@@ -30,8 +37,9 @@ SoupServer  *soup_test_server_new        (gboolean in_own_thread);
 SoupServer  *soup_test_server_new_ssl    (gboolean in_own_thread);
 void         soup_test_server_quit_unref (SoupServer *server);
 
-GInputStream *soup_test_request_send         (SoupRequest   *req,
-					      GCancellable  *cancellable,
+GInputStream *soup_test_request_send         (SoupRequest  *req,
+					      GCancellable *cancellable,
+					      guint         flags,
 					      GError       **error);
 gboolean      soup_test_request_close_stream (SoupRequest   *req,
 					      GInputStream  *stream,

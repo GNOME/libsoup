@@ -127,7 +127,7 @@ do_request_to_session (SoupSession *session, const char *uri,
 
 	g_signal_connect (msg, "finished",
 			  G_CALLBACK (message_finished), &finished);
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, 0, &error);
 
 	if (expect_timeout && !error) {
 		debug_printf (1, "      FAILED: request did not time out\n");

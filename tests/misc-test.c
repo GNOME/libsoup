@@ -905,24 +905,9 @@ do_cancel_while_reading_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-static gboolean
-cancel_request_timeout (gpointer cancellable)
-{
-	g_cancellable_cancel (cancellable);
-	return FALSE;
-}
-
-static gpointer
-cancel_request_thread (gpointer cancellable)
-{
-	g_usleep (100000); /* .1s */
-	g_cancellable_cancel (cancellable);
-	g_object_unref (cancellable);
-	return NULL;
-}
-
 static void
-do_cancel_while_reading_req_test_for_session (SoupSession *session)
+do_cancel_while_reading_req_test_for_session (SoupSession *session,
+					      guint flags)
 {
 	SoupRequest *req;
 	SoupURI *uri;
@@ -934,18 +919,7 @@ do_cancel_while_reading_req_test_for_session (SoupSession *session)
 	soup_uri_free (uri);
 
 	cancellable = g_cancellable_new ();
-
-	if (SOUP_IS_SESSION_ASYNC (soup_request_get_session (req))) {
-		g_timeout_add (100, cancel_request_timeout, cancellable);
-		soup_test_request_send (req, cancellable, &error);
-	} else {
-		GThread *thread;
-
-		thread = g_thread_new ("cancel_request_thread", cancel_request_thread, g_object_ref (cancellable));
-		soup_test_request_send (req, cancellable, &error);
-		g_thread_unref (thread);
-	}
-
+	soup_test_request_send (req, cancellable, flags, &error);
 	if (!error) {
 		debug_printf (1, "  Request succeeded?\n");
 		errors++;
@@ -964,20 +938,38 @@ static void
 do_cancel_while_reading_req_test (void)
 {
 	SoupSession *session;
+	guint flags;
 
-	debug_printf (1, "\nCancelling message while reading response (request api)\n");
+	debug_printf (1, "\nCancelling (immediately) message while reading response (request api)\n");
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE;
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-	do_cancel_while_reading_req_test_for_session (session);
+	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
 
 	debug_printf (1, "  Sync session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 NULL);
-	do_cancel_while_reading_req_test_for_session (session);
+	do_cancel_while_reading_req_test_for_session (session, flags);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "\nCancelling (after 100ms) message while reading response (request api)\n");
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_cancel_while_reading_req_test_for_session (session, flags);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 NULL);
+	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
 }
 

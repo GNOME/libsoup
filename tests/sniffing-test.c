@@ -383,7 +383,7 @@ test_sniffing (const char *path, const char *expected_type)
 	g_object_unref (msg);
 
 	req = soup_session_request_uri (session, uri, NULL);
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, 0, &error);
 	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
 		g_object_unref (stream);
@@ -439,7 +439,7 @@ test_disabled (const char *path)
 	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
 	soup_message_disable_feature (msg, SOUP_TYPE_CONTENT_SNIFFER);
 	g_object_unref (msg);
-	stream = soup_test_request_send (req, NULL, &error);
+	stream = soup_test_request_send (req, NULL, 0, &error);
 	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
 		g_object_unref (stream);
