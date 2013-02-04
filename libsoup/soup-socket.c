@@ -697,6 +697,24 @@ socket_connected (SoupSocket *sock, GSocketConnection *conn, GError *error)
 	return SOUP_STATUS_OK;
 }
 
+static GSocketClient *
+new_socket_client (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	GSocketClient *client = g_socket_client_new ();
+
+	g_signal_connect (client, "event",
+			  G_CALLBACK (proxy_socket_client_event), sock);
+	if (priv->use_proxy)
+		g_socket_client_add_application_proxy (client, "http");
+	else
+		g_socket_client_set_enable_proxy (client, FALSE);
+	if (priv->timeout)
+		g_socket_client_set_timeout (client, priv->timeout);
+
+	return client;
+}
+
 /**
  * SoupSocketCallback:
  * @sock: the #SoupSocket
@@ -770,15 +788,7 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_push_thread_default (priv->async_context);
 
-	client = g_socket_client_new ();
-	g_signal_connect (client, "event",
-			  G_CALLBACK (proxy_socket_client_event), sock);
-	if (priv->use_proxy)
-		g_socket_client_add_application_proxy (client, "http");
-	else
-		g_socket_client_set_enable_proxy (client, FALSE);
-	if (priv->timeout)
-		g_socket_client_set_timeout (client, priv->timeout);
+	client = new_socket_client (sock);
 	g_socket_client_connect_async (client,
 				       G_SOCKET_CONNECTABLE (priv->remote_addr),
 				       priv->connect_cancel,
@@ -819,15 +829,7 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 		cancellable = g_cancellable_new ();
 	priv->connect_cancel = cancellable;
 
-	client = g_socket_client_new ();
-	g_signal_connect (client, "event",
-			  G_CALLBACK (proxy_socket_client_event), sock);
-	if (priv->use_proxy)
-		g_socket_client_add_application_proxy (client, "http");
-	else
-		g_socket_client_set_enable_proxy (client, FALSE);
-	if (priv->timeout)
-		g_socket_client_set_timeout (client, priv->timeout);
+	client = new_socket_client (sock);
 	conn = g_socket_client_connect (client,
 					G_SOCKET_CONNECTABLE (priv->remote_addr),
 					priv->connect_cancel, &error);
