@@ -1,3 +1,20 @@
+Changes in libsoup from 2.41.4 to 2.41.5:
+
+	* Reverted the change to SoupURI's password handling from
+          2.41.4, since it turns out to have broken some things.
+          [#692149, Dan]
+
+	* Avoid a g_return_if_fail() when loading
+          SoupSession:ssl-ca-file fails. [#691930, Guillaume
+          Desmottes]
+
+	* Fixed a bug in SoupBodyInputStream that caused redirects in
+          WebKitGTK to hang. [#692026, Sergio]
+
+	* Updated translations:
+	  Belarusian, Chinese (traditional), German, Italian,
+	  Norwegian bokmål, Serbian, Uyghur
+
 Changes in libsoup from 2.41.3 to 2.41.4:
 
 	* Lots of docs fixes, including catching up with some (but not
