@@ -712,6 +712,9 @@ new_socket_client (SoupSocket *sock)
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);
 
+	if (priv->local_addr)
+		g_socket_client_set_local_address (client, soup_address_get_gsockaddr (priv->local_addr));
+
 	return client;
 }
 
