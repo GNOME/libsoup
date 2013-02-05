@@ -39,6 +39,7 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 						guint             status,
 						gpointer          data);
 
+#define SOUP_CONNECTION_LOCAL_ADDRESS   "local-address"
 #define SOUP_CONNECTION_REMOTE_URI      "remote-uri"
 #define SOUP_CONNECTION_PROXY_RESOLVER  "proxy-resolver"
 #define SOUP_CONNECTION_SSL             "ssl"

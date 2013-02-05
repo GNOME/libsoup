@@ -18,6 +18,7 @@
 typedef struct {
 	SoupSocket  *socket;
 
+	SoupAddress *local_addr;
 	SoupURI *remote_uri, *proxy_uri;
 	SoupProxyURIResolver *proxy_resolver;
 	gboolean use_gproxyresolver;
@@ -49,6 +50,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
+	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_URI,
 	PROP_PROXY_RESOLVER,
 	PROP_SSL,
@@ -85,6 +87,7 @@ soup_connection_finalize (GObject *object)
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 	g_clear_object (&priv->tlsdb);
 	g_clear_object (&priv->proxy_resolver);
+	g_clear_object (&priv->local_addr);
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
@@ -114,6 +117,9 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	SoupProxyURIResolver *proxy_resolver;
 
 	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		priv->local_addr = g_value_dup_object (value);
+		break;
 	case PROP_REMOTE_URI:
 		priv->remote_uri = g_value_dup_boxed (value);
 		break;
@@ -168,6 +174,9 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
 	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		g_value_set_object (value, priv->local_addr);
+		break;
 	case PROP_REMOTE_URI:
 		g_value_set_boxed (value, priv->remote_uri);
 		break;
@@ -238,6 +247,13 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 			      G_TYPE_NONE, 0);
 
 	/* properties */
+	g_object_class_install_property (
+		object_class, PROP_LOCAL_ADDRESS,
+		g_param_spec_object (SOUP_CONNECTION_LOCAL_ADDRESS,
+				     "Local address",
+				     "Address of local end of socket",
+				     SOUP_TYPE_ADDRESS,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_REMOTE_URI,
 		g_param_spec_boxed (SOUP_CONNECTION_REMOTE_URI,
@@ -527,6 +543,7 @@ connect_async_to_uri (SoupConnectionAsyncConnectData *data, SoupURI *uri)
 				 SOUP_SOCKET_USE_PROXY, priv->use_gproxyresolver,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
+				 SOUP_SOCKET_LOCAL_ADDRESS, priv->local_addr,
 				 NULL);
 	g_object_unref (remote_addr);
 
@@ -637,6 +654,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
+				 SOUP_SOCKET_LOCAL_ADDRESS, priv->local_addr,
 				 NULL);
 	g_object_unref (remote_addr);
 
