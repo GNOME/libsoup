@@ -105,6 +105,8 @@ typedef struct {
 	guint max_conns, max_conns_per_host;
 	guint io_timeout, idle_timeout;
 
+	SoupAddress *local_addr;
+
 	/* Must hold the conn_lock before potentially creating a new
 	 * SoupSessionHost, adding/removing a connection,
 	 * disconnecting a connection, or moving a connection from
@@ -190,6 +192,7 @@ enum {
 	PROP_REMOVE_FEATURE_BY_TYPE,
 	PROP_HTTP_ALIASES,
 	PROP_HTTPS_ALIASES,
+	PROP_LOCAL_ADDRESS,
 
 	LAST_PROP
 };
@@ -327,6 +330,7 @@ soup_session_finalize (GObject *object)
 	g_free (priv->ssl_ca_file);
 
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
+	g_clear_object (&priv->local_addr);
 
 	g_hash_table_destroy (priv->features_cache);
 
@@ -547,6 +551,9 @@ soup_session_set_property (GObject *object, guint prop_id,
 	GMainContext *async_context;
 
 	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		priv->local_addr = g_value_dup_object (value);
+		break;
 	case PROP_PROXY_URI:
 		uri = g_value_get_boxed (value);
 
@@ -683,6 +690,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 	GTlsDatabase *tlsdb;
 
 	switch (prop_id) {
+	case PROP_LOCAL_ADDRESS:
+		g_value_set_object (value, priv->local_addr);
+		break;
 	case PROP_PROXY_URI:
 		feature = soup_session_get_feature (session, SOUP_TYPE_PROXY_RESOLVER_STATIC);
 		if (feature) {
@@ -1681,6 +1691,7 @@ get_connection_for_host (SoupSession *session,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
 		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
 		SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
+		SOUP_CONNECTION_LOCAL_ADDRESS, priv->local_addr,
 		NULL);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
@@ -3504,6 +3515,32 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "URI schemes that are considered aliases for 'https'",
 				    G_TYPE_STRV,
 				    G_PARAM_READWRITE));
+
+	/**
+	 * SOUP_SESSION_LOCAL_ADDRESS:
+	 *
+	 * Alias for the #SoupSession:local-address property, qv.
+	 *
+	 * Since: 2.42
+	 **/
+	/**
+	 * SoupSession:local-address:
+	 *
+	 * Sets the #SoupAddress to use for the client side of
+	 * the connection.
+	 *
+	 * Use this property if you want for instance to bind the
+	 * local socket to a specific IP address.
+	 *
+	 * Since: 2.42
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_LOCAL_ADDRESS,
+		g_param_spec_object (SOUP_SESSION_LOCAL_ADDRESS,
+				     "Local address",
+				     "Address of local end of socket",
+				     SOUP_TYPE_ADDRESS,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 
