@@ -3429,7 +3429,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_gtype (SOUP_SESSION_ADD_FEATURE_BY_TYPE,
 				    "Add Feature By Type",
 				    "Add a feature object of the given type to the session",
-				    SOUP_TYPE_SESSION_FEATURE,
+				    G_TYPE_OBJECT,
 				    G_PARAM_READWRITE));
 	/**
 	 * SoupSession:remove-feature-by-type: (skip)
@@ -3452,7 +3452,7 @@ soup_session_class_init (SoupSessionClass *session_class)
 		g_param_spec_gtype (SOUP_SESSION_REMOVE_FEATURE_BY_TYPE,
 				    "Remove Feature By Type",
 				    "Remove features of the given type from the session",
-				    SOUP_TYPE_SESSION_FEATURE,
+				    G_TYPE_OBJECT,
 				    G_PARAM_READWRITE));
 	/**
 	 * SoupSession:http-aliases:
