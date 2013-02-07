@@ -284,7 +284,7 @@ if test "$have_apache" = 1; then
 	IF_HAVE_PHP=""
     else
 	have_php=no
-	IF_HAVE_PHP="#"
+	IF_HAVE_PHP="\#"
 	MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php5"
     fi
     AC_MSG_RESULT($have_php)
