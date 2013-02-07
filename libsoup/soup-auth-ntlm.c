@@ -48,10 +48,17 @@ typedef struct {
 	char *response_header;
 } SoupNTLMConnectionState;
 
+typedef enum {
+	SOUP_NTLM_PASSWORD_NONE,
+	SOUP_NTLM_PASSWORD_PROVIDED,
+	SOUP_NTLM_PASSWORD_ACCEPTED,
+	SOUP_NTLM_PASSWORD_REJECTED
+} SoupNTLMPasswordState;
+
 typedef struct {
 	char *username, *domain;
 	guchar nt_hash[21], lm_hash[21];
-	gboolean authenticated;
+	SoupNTLMPasswordState password_state;
 
 #ifdef USE_NTLM_AUTH
 	/* Use Samba's 'winbind' daemon to support NTLM single-sign-on,
@@ -282,23 +289,37 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	SoupNTLMConnectionState *conn = state;
 	gboolean success = TRUE;
 
+	/* Note that we only return FALSE if some sort of parsing error
+	 * occurs. Otherwise, the SoupAuth is still reusable (though it may
+	 * no longer be _ready or _authenticated).
+	 */
+
+	if (!g_str_has_prefix (auth_header, "NTLM"))
+		return FALSE;
+
 	if (conn->state > SOUP_NTLM_SENT_REQUEST) {
-		/* We already authenticated, but then got another 401.
-		 * That means "permission denied", so don't try to
-		 * authenticate again.
-		 */
 		conn->state = SOUP_NTLM_FAILED;
 
-		/* FIXME: we should only do this if the password never worked */
-		priv->authenticated = FALSE;
+		if (priv->password_state == SOUP_NTLM_PASSWORD_ACCEPTED) {
+			/* We know our password is correct, so a 401
+			 * means "permission denied". Since the conn
+			 * state is now FAILED, the auth is no longer
+			 * is_ready() for this message, so this will
+			 * cause a "retrying" authenticate signal.
+			 */
+			return TRUE;
+		}
 
-		return FALSE;
+		/* Otherwise, we just have a bad password. */
+		priv->password_state = SOUP_NTLM_PASSWORD_REJECTED;
+		return TRUE;
 	}
 
-	if (!g_str_has_prefix (auth_header, "NTLM "))
-		return FALSE;
+	if (conn->state == SOUP_NTLM_NEW && !auth_header[4])
+		return TRUE;
 
-	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce, &priv->domain)) {
+	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce,
+					priv->domain ? NULL : &priv->domain)) {
 		conn->state = SOUP_NTLM_FAILED;
 		return FALSE;
 	}
@@ -327,7 +348,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			g_free (response);
 		} else {
 			conn->response_header = response;
-			priv->authenticated = TRUE;
+			if (priv->password_state != SOUP_NTLM_PASSWORD_ACCEPTED)
+				priv->password_state = SOUP_NTLM_PASSWORD_PROVIDED;
 		}
 	}
  out:
@@ -385,7 +407,7 @@ soup_auth_ntlm_authenticate (SoupAuth *auth, const char *username,
 	soup_ntlm_nt_hash (password, priv->nt_hash);
 	soup_ntlm_lanmanager_hash (password, priv->lm_hash);
 
-	priv->authenticated = TRUE;
+	priv->password_state = SOUP_NTLM_PASSWORD_PROVIDED;
 }
 
 static gboolean
@@ -393,7 +415,8 @@ soup_auth_ntlm_is_authenticated (SoupAuth *auth)
 {
 	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
 
-	return priv->authenticated;
+	return (priv->password_state != SOUP_NTLM_PASSWORD_NONE &&
+		priv->password_state != SOUP_NTLM_PASSWORD_REJECTED);
 }
 
 static gboolean
@@ -401,9 +424,30 @@ soup_auth_ntlm_is_connection_ready (SoupConnectionAuth *auth,
 				    SoupMessage        *msg,
 				    gpointer            state)
 {
+	SoupAuthNTLMPrivate *priv = SOUP_AUTH_NTLM_GET_PRIVATE (auth);
 	SoupNTLMConnectionState *conn = state;
 
+	if (priv->password_state == SOUP_NTLM_PASSWORD_REJECTED)
+		return FALSE;
+
+	if (priv->password_state == SOUP_NTLM_PASSWORD_PROVIDED)
+		return TRUE;
+
 	return conn->state != SOUP_NTLM_FAILED && conn->state != SOUP_NTLM_SSO_FAILED;
+}
+
+static void
+got_final_auth_result (SoupMessage *msg, gpointer data)
+{
+	SoupAuth *auth = data;
+
+	g_signal_handlers_disconnect_by_func (msg, G_CALLBACK (got_final_auth_result), auth);
+
+	if (auth != soup_message_get_auth (msg))
+		return;
+
+	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED)
+		SOUP_AUTH_NTLM_GET_PRIVATE (auth)->password_state = SOUP_NTLM_PASSWORD_ACCEPTED;
 }
 
 static char *
@@ -454,6 +498,13 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 		}
 		g_clear_pointer (&conn->nonce, g_free);
 		conn->state = SOUP_NTLM_SENT_RESPONSE;
+
+		if (priv->password_state != SOUP_NTLM_PASSWORD_ACCEPTED) {
+			/* We need to know if this worked */
+			g_signal_connect (msg, "got-headers",
+					  G_CALLBACK (got_final_auth_result),
+					  auth);
+		}
 		break;
 #ifdef USE_NTLM_AUTH
 	case SOUP_NTLM_SSO_FAILED:

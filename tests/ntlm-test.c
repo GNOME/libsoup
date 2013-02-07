@@ -463,6 +463,89 @@ do_ntlm_tests (SoupURI *base_uri, gboolean use_builtin_ntlm)
 	do_ntlm_round (base_uri, FALSE, "alice", use_builtin_ntlm);
 }
 
+static void
+retry_test_authenticate (SoupSession *session, SoupMessage *msg,
+			 SoupAuth *auth, gboolean retrying,
+			 gpointer user_data)
+{
+	gboolean *retried = user_data;
+
+	if (!retrying) {
+		/* server_callback doesn't actually verify the password,
+		 * only the username. So we pass an incorrect username
+		 * rather than an incorrect password.
+		 */
+		soup_auth_authenticate (auth, "wrong", "password");
+	} else if (!*retried) {
+		soup_auth_authenticate (auth, "alice", "password");
+		*retried = TRUE;
+	}
+}
+
+static void
+do_retrying_test (SoupURI *base_uri)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+	gboolean retried = FALSE;
+
+	debug_printf (1, "  /alice\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_AUTH_NTLM,
+					 NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (retry_test_authenticate), &retried);
+
+	uri = soup_uri_new_with_base (base_uri, "/alice");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+
+	if (!retried) {
+		debug_printf (1, "    Didn't retry!\n");
+		errors++;
+	}
+	if (msg->status_code != SOUP_STATUS_OK) {
+		debug_printf (1, "    Unexpected final status %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  /bob\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
+					 SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_AUTH_NTLM,
+					 NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (retry_test_authenticate), &retried);
+	retried = FALSE;
+
+	uri = soup_uri_new_with_base (base_uri, "/bob");
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_uri_free (uri);
+
+	soup_session_send_message (session, msg);
+
+	if (!retried) {
+		debug_printf (1, "    Didn't retry!\n");
+		errors++;
+	}
+	if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (1, "    Unexpected final status %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -502,6 +585,11 @@ main (int argc, char **argv)
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
 	debug_printf (1, "\nExternal -> fallback support\n");
 	do_ntlm_tests (uri, TRUE);
+
+	/* Other tests */
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
+	debug_printf (1, "\nRetrying on failed password\n");
+	do_retrying_test (uri);
 
 	soup_uri_free (uri);
 
