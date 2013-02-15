@@ -469,6 +469,16 @@ soup_test_request_send (SoupRequest   *req,
 
 	stream = soup_request_send_finish (req, data.result, error);
 
+	if (cancel_data && (flags &  SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH)) {
+		GMainContext *context;
+
+		cancel_message_or_cancellable (cancel_data);
+
+		context = g_main_loop_get_context (data.loop);
+		while (g_main_context_pending (context))
+			g_main_context_iteration (context, FALSE);
+	}
+
 	g_main_loop_unref (data.loop);
 	g_object_unref (data.result);
 

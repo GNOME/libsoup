@@ -550,6 +550,66 @@ do_cancel_test (SoupURI *base_uri)
 	g_free (body2);
 }
 
+static void
+do_refcounting_test (SoupURI *base_uri)
+{
+	SoupSession *session;
+	SoupCache *cache;
+	char *cache_dir;
+	SoupRequestHTTP *req;
+	GInputStream *stream, *base_stream;
+	SoupURI *uri;
+	GError *error = NULL;
+	guint flags;
+
+	debug_printf (1, "Cache refcounting tests\n");
+
+	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+	debug_printf (2, "  Caching to %s\n", cache_dir);
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+
+	last_request_validated = last_request_hit_network = FALSE;
+	cancelled_requests = 0;
+
+	uri = soup_uri_new_with_base (base_uri, "/1");
+	req = soup_session_request_http_uri (session, "GET", uri, NULL);
+	soup_uri_free (uri);
+
+	flags = SOUP_TEST_REQUEST_CANCEL_AFTER_SEND_FINISH | SOUP_TEST_REQUEST_CANCEL_MESSAGE;
+	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, flags, &error);
+	if (!stream) {
+		debug_printf (1, "    could not send request: %s\n",
+			      error->message);
+		g_error_free (error);
+		g_object_unref (req);
+		return;
+	}
+
+	base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (stream));
+	g_object_add_weak_pointer (G_OBJECT (base_stream), (gpointer *)&base_stream);
+
+	g_clear_object (&req);
+	g_object_unref (stream);
+
+	debug_printf (1, " Checking that the base stream is properly unref'ed\n");
+	if (base_stream) {
+		errors++;
+		debug_printf (1, "leaked GInputStream!\n");
+		g_object_remove_weak_pointer (G_OBJECT (base_stream), (gpointer *)&base_stream);
+	}
+
+	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
+
+	soup_test_session_abort_unref (session);
+
+	g_object_unref (cache);
+	g_free (cache_dir);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -565,6 +625,7 @@ main (int argc, char **argv)
 
 	do_basics_test (base_uri);
 	do_cancel_test (base_uri);
+	do_refcounting_test (base_uri);
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
