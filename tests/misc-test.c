@@ -941,7 +941,7 @@ do_cancel_while_reading_req_test (void)
 	guint flags;
 
 	debug_printf (1, "\nCancelling (immediately) message while reading response (request api)\n");
-	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE;
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,

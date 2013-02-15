@@ -472,6 +472,7 @@ do_cancel_test (SoupURI *base_uri)
 	SoupCache *cache;
 	char *cache_dir;
 	char *body1, *body2;
+	guint flags;
 
 	debug_printf (1, "Cache cancel tests\n");
 
@@ -496,7 +497,8 @@ do_cancel_test (SoupURI *base_uri)
 
 	/* Check that messages are correctly processed on cancellations. */
 	debug_printf (1, "  Cancel fresh resource with soup_session_message_cancel()\n");
-	do_request_with_cancel (session, base_uri, "GET", "/1", SOUP_TEST_REQUEST_CANCEL_MESSAGE);
+	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
+	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
 	if (cancelled_requests != 1) {
 		debug_printf (1, "    invalid number of cancelled requests: %d (1 expected)\n",
 			      cancelled_requests);
@@ -504,7 +506,8 @@ do_cancel_test (SoupURI *base_uri)
 	}
 
 	debug_printf (1, "  Cancel fresh resource with g_cancellable_cancel()\n");
-	do_request_with_cancel (session, base_uri, "GET", "/1", SOUP_TEST_REQUEST_CANCEL_CANCELLABLE);
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
+	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
 	if (cancelled_requests != 1) {
 		debug_printf (1, "    invalid number of cancelled requests: %d (1 expected)\n",
 			      cancelled_requests);
@@ -522,7 +525,8 @@ do_cancel_test (SoupURI *base_uri)
 
 	/* Check that messages are correctly processed on cancellations. */
 	debug_printf (1, "  Cancel a revalidating resource with soup_session_message_cancel()\n");
-	do_request_with_cancel (session, base_uri, "GET", "/2", SOUP_TEST_REQUEST_CANCEL_MESSAGE);
+	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
+	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
 	if (cancelled_requests != 2) {
 		debug_printf (1, "    invalid number of cancelled requests: %d (2 expected)\n",
 			      cancelled_requests);
@@ -530,7 +534,8 @@ do_cancel_test (SoupURI *base_uri)
 	}
 
 	debug_printf (1, "  Cancel a revalidating resource with g_cancellable_cancel()\n");
-	do_request_with_cancel (session, base_uri, "GET", "/2", SOUP_TEST_REQUEST_CANCEL_CANCELLABLE);
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
+	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
 	if (cancelled_requests != 2) {
 		debug_printf (1, "    invalid number of cancelled requests: %d (2 expected)\n",
 			      cancelled_requests);

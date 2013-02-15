@@ -27,7 +27,8 @@ typedef enum {
   SOUP_TEST_REQUEST_NONE = 0,
   SOUP_TEST_REQUEST_CANCEL_MESSAGE = (1 << 0),
   SOUP_TEST_REQUEST_CANCEL_CANCELLABLE = (1 << 1),
-  SOUP_TEST_REQUEST_CANCEL_SOON = (1 << 2)
+  SOUP_TEST_REQUEST_CANCEL_SOON = (1 << 2),
+  SOUP_TEST_REQUEST_CANCEL_IMMEDIATE = (1 << 3)
 } SoupTestRequestFlags;
 
 SoupSession *soup_test_session_new         (GType type, ...);

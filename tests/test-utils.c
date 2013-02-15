@@ -459,7 +459,8 @@ soup_test_request_send (SoupRequest   *req,
 	}
 
 	data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
-	if (cancel_data) {
+	if (cancel_data &&
+	    (flags & SOUP_TEST_REQUEST_CANCEL_SOON || flags & SOUP_TEST_REQUEST_CANCEL_IMMEDIATE)) {
 		guint interval = flags & SOUP_TEST_REQUEST_CANCEL_SOON ? 100 : 0;
 		g_timeout_add_full (G_PRIORITY_HIGH, interval, cancel_request_timeout, cancel_data, NULL);
 	}
