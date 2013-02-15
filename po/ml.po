@@ -1,22 +1,23 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-#
 # Ani Peter <apeter@redhat.com>, 2012.
+# Anish A <aneesh.nl@gmail.com>, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
-"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-15 21:43+0000\n"
-"PO-Revision-Date: 2012-09-18 23:00+0000\n"
-"Last-Translator: Ani Peter <apeter@redhat.com>\n"
-"Language-Team: Malayalam <discuss@lists.smc.org.in>\n"
-"Language: \n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2013-02-12 09:33+0000\n"
+"PO-Revision-Date: 2013-02-15 11:47+0530\n"
+"Last-Translator: Anish A <aneesh.nl@gmail.com>\n"
+"Language-Team: Swatantra Malayalam Computing\n"
+"Language: ml\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.0\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.7.1\n"
+"X-Project-Style: gnome\n"
 
 #: ../libsoup/soup-body-input-stream.c:141
 #: ../libsoup/soup-body-input-stream.c:172
@@ -24,60 +25,80 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "കണക്ഷന്‍ അപ്രതീക്ഷതമായി അവസാനിയ്ക്കുന്നു"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "തെറ്റായ തെരച്ചില്‍ ആവശ്യം"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ട്രക്കേറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
+
+#: ../libsoup/soup-cache-input-stream.c:77
+msgid "Network stream unexpectedly closed"
+msgstr "ശൃംഖല സ്ട്രീം വിചാരിക്കാതെ അടച്ചു"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "ഔട്ട്പുട്ട് ബഫര്‍ വളരെ ചെറുതാണു്"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "HTTP മറുപടി പാഴ്സ് ചെയ്യുവാന്‍ സാധ്യമായില്ല"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "HTTP മറുപടിയുടെ രൂപം തിരിച്ചറിയാനായില്ല"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "പ്രക്രിയ റദ്ദാക്കിയിരിയ്ക്കുന്നു"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "പ്രക്രിയ തടസ്സപ്പെടുത്തുന്നു"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "HTTP മറുപടി പാഴ്സ് ചെയ്യുവാനായില്ല"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "യുആര്‍ഐ ലഭ്യമാക്കിയിട്ടില്ല"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "തെറ്റായ '%s' യുആര്‍ഐ: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4214
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "യുആര്‍ഐ '%s' പാഴ്സ് ചെയ്യുവാനായില്ല"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4251
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "പിന്തുണയില്ലാത്ത യുആര്‍ഐ സ്കീം '%s'"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4273
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "HTTP URI അല്ല"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "ഹോസ്റ്റ്നാമം ഒരു ഐപി വിലാസമാകുന്നു"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "തെറ്റായ ഹോസ്റ്റ്നാമം"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "ഹോസ്റ്റ്നാമത്തിനു് ബെയിസ് ഡൊമെയില്‍ ലഭ്യമല്ല"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "ആവശ്യമായ ഡൊമെയിനുകള്‍ ലഭ്യമല്ല"
-
