@@ -24,6 +24,9 @@ typedef struct _SoupCacheInputStreamPrivate SoupCacheInputStreamPrivate;
 struct _SoupCacheInputStreamClass
 {
 	SoupFilterInputStreamClass parent_class;
+
+	/* signals */
+	void     (*caching_finished) (SoupCacheInputStream *istream, gsize bytes_written, GError *error);
 };
 
 struct _SoupCacheInputStream
@@ -35,17 +38,8 @@ struct _SoupCacheInputStream
 
 GType soup_cache_input_stream_get_type (void) G_GNUC_CONST;
 
-GInputStream *soup_cache_input_stream_new               (GInputStream *base_stream);
-
-void          soup_cache_input_stream_cache             (SoupCacheInputStream  *istream,
-							 GFile                 *file,
-							 GCancellable          *cancellable,
-							 GAsyncReadyCallback    callback,
-							 gpointer               user_data);
-
-gsize         soup_cache_input_stream_cache_finish      (SoupCacheInputStream  *istream,
-							 GAsyncResult          *result,
-							 GError               **error);
+GInputStream *soup_cache_input_stream_new (GInputStream *base_stream,
+					   GFile        *file);
 
 G_END_DECLS
 

@@ -749,21 +749,20 @@ typedef struct {
 } StreamHelper;
 
 static void
-istream_cache_cb (GObject *source,
-		  GAsyncResult *res,
-		  gpointer user_data)
+istream_caching_finished (SoupCacheInputStream *istream,
+			  gsize                 bytes_written,
+			  GError               *error,
+			  gpointer              user_data)
 {
-	SoupCacheInputStream *istream = SOUP_CACHE_INPUT_STREAM (source);
 	StreamHelper *helper = (StreamHelper *) user_data;
 	SoupCache *cache = helper->cache;
 	SoupCacheEntry *entry = helper->entry;
-	GError *error = NULL;
 
-	entry->dirty = FALSE;
-	g_clear_object (&entry->cancellable);
 	--cache->priv->n_pending;
 
-	entry->length = soup_cache_input_stream_cache_finish (istream, res, &error);
+	entry->dirty = FALSE;
+	entry->length = bytes_written;
+	g_clear_object (&entry->cancellable);
 
 	if (error) {
 		/* Update cache size */
@@ -790,7 +789,6 @@ istream_cache_cb (GObject *source,
 	g_object_unref (helper->cache);
 	g_slice_free (StreamHelper, helper);
 }
-
 
 static GInputStream*
 soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
@@ -853,20 +851,18 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 		return NULL;
 	}
 
-	++cache->priv->n_pending;
-
-	istream = soup_cache_input_stream_new (base_stream);
-
-	file = get_file_from_entry (cache, entry);
 	entry->cancellable = g_cancellable_new ();
+	++cache->priv->n_pending;
 
 	helper = g_slice_new (StreamHelper);
 	helper->cache = g_object_ref (cache);
 	helper->entry = entry;
 
-	soup_cache_input_stream_cache (SOUP_CACHE_INPUT_STREAM (istream), file, entry->cancellable,
-				       (GAsyncReadyCallback) istream_cache_cb, helper);
+	file = get_file_from_entry (cache, entry);
+	istream = soup_cache_input_stream_new (base_stream, file);
 	g_object_unref (file);
+
+	g_signal_connect (istream, "caching-finished", G_CALLBACK (istream_caching_finished), helper);
 
 	return istream;
 }
