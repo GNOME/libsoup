@@ -20,8 +20,8 @@ typedef struct {
 
 	SoupAddress *local_addr;
 	SoupURI *remote_uri, *proxy_uri;
-	SoupProxyURIResolver *proxy_resolver;
-	gboolean use_gproxyresolver;
+	SoupProxyURIResolver *soup_proxy_resolver;
+	GProxyResolver *g_proxy_resolver;
 	GTlsDatabase *tlsdb;
 	gboolean ssl, ssl_strict, ssl_fallback;
 
@@ -52,7 +52,8 @@ enum {
 
 	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_URI,
-	PROP_PROXY_RESOLVER,
+	PROP_SOUP_PROXY_RESOLVER,
+	PROP_G_PROXY_RESOLVER,
 	PROP_SSL,
 	PROP_SSL_CREDS,
 	PROP_SSL_STRICT,
@@ -86,7 +87,8 @@ soup_connection_finalize (GObject *object)
 	g_clear_pointer (&priv->remote_uri, soup_uri_free);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 	g_clear_object (&priv->tlsdb);
-	g_clear_object (&priv->proxy_resolver);
+	g_clear_object (&priv->soup_proxy_resolver);
+	g_clear_object (&priv->g_proxy_resolver);
 	g_clear_object (&priv->local_addr);
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
 
@@ -123,12 +125,15 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	case PROP_REMOTE_URI:
 		priv->remote_uri = g_value_dup_boxed (value);
 		break;
-	case PROP_PROXY_RESOLVER:
+	case PROP_SOUP_PROXY_RESOLVER:
 		proxy_resolver = g_value_get_object (value);
 		if (proxy_resolver && SOUP_IS_PROXY_RESOLVER_DEFAULT (proxy_resolver))
-			priv->use_gproxyresolver = TRUE;
+			priv->g_proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
 		else if (proxy_resolver)
-			priv->proxy_resolver = g_object_ref (proxy_resolver);
+			priv->soup_proxy_resolver = g_object_ref (proxy_resolver);
+		break;
+	case PROP_G_PROXY_RESOLVER:
+		priv->g_proxy_resolver = g_value_dup_object (value);
 		break;
 	case PROP_SSL:
 		priv->ssl = g_value_get_boolean (value);
@@ -262,11 +267,18 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
-		object_class, PROP_PROXY_RESOLVER,
-		g_param_spec_object (SOUP_CONNECTION_PROXY_RESOLVER,
+		object_class, PROP_SOUP_PROXY_RESOLVER,
+		g_param_spec_object (SOUP_CONNECTION_SOUP_PROXY_RESOLVER,
 				     "Proxy resolver",
-				     "SoupProxyURIResolver to use",
+				     "SoupProxyResolver to use",
 				     SOUP_TYPE_PROXY_URI_RESOLVER,
+				     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		object_class, PROP_G_PROXY_RESOLVER,
+		g_param_spec_object (SOUP_CONNECTION_G_PROXY_RESOLVER,
+				     "Proxy resolver",
+				     "GProxyResolver to use",
+				     G_TYPE_PROXY_RESOLVER,
 				     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SSL,
@@ -507,7 +519,7 @@ socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
 		return;
 	}
 
-	if (priv->use_gproxyresolver)
+	if (priv->g_proxy_resolver)
 		priv->proxy_uri = soup_socket_get_http_proxy_uri (priv->socket);
 
 	if (priv->ssl && !priv->proxy_uri) {
@@ -540,7 +552,7 @@ connect_async_to_uri (SoupConnectionAsyncConnectData *data, SoupURI *uri)
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
 				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
 				 SOUP_SOCKET_USE_THREAD_CONTEXT, priv->use_thread_context,
-				 SOUP_SOCKET_USE_PROXY, priv->use_gproxyresolver,
+				 SOUP_SOCKET_PROXY_RESOLVER, priv->g_proxy_resolver,
 				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
 				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
 				 SOUP_SOCKET_LOCAL_ADDRESS, priv->local_addr,
@@ -597,7 +609,7 @@ soup_connection_connect_async (SoupConnection *conn,
 	data->callback_data = user_data;
 	data->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
 
-	if (!priv->proxy_resolver) {
+	if (!priv->soup_proxy_resolver) {
 		connect_async_to_uri (data, priv->remote_uri);
 		return;
 	}
@@ -607,7 +619,7 @@ soup_connection_connect_async (SoupConnection *conn,
 	else
 		async_context = priv->async_context;
 
-	soup_proxy_uri_resolver_get_proxy_uri_async (priv->proxy_resolver,
+	soup_proxy_uri_resolver_get_proxy_uri_async (priv->soup_proxy_resolver,
 						     priv->remote_uri,
 						     async_context,
 						     cancellable,
@@ -629,8 +641,8 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
-	if (priv->proxy_resolver) {
-		status = soup_proxy_uri_resolver_get_proxy_uri_sync (priv->proxy_resolver,
+	if (priv->soup_proxy_resolver) {
+		status = soup_proxy_uri_resolver_get_proxy_uri_sync (priv->soup_proxy_resolver,
 								     priv->remote_uri,
 								     cancellable,
 								     &priv->proxy_uri);
@@ -647,7 +659,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	remote_addr = soup_address_new (connect_uri->host, connect_uri->port);
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
-				 SOUP_SOCKET_USE_PROXY, priv->use_gproxyresolver,
+				 SOUP_SOCKET_PROXY_RESOLVER, priv->g_proxy_resolver,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
 				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
@@ -665,7 +677,7 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		goto fail;
 
-	if (priv->use_gproxyresolver)
+	if (priv->g_proxy_resolver)
 		priv->proxy_uri = soup_socket_get_http_proxy_uri (priv->socket);
 
 	if (priv->ssl && !priv->proxy_uri) {

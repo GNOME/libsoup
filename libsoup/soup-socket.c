@@ -58,7 +58,7 @@ enum {
 	PROP_CLEAN_DISPOSE,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
-	PROP_USE_PROXY,
+	PROP_PROXY_RESOLVER,
 
 	LAST_PROP
 };
@@ -70,6 +70,7 @@ typedef struct {
 	GInputStream *istream;
 	GOutputStream *ostream;
 	GTlsCertificateFlags tls_errors;
+	GProxyResolver *proxy_resolver;
 
 	guint non_blocking:1;
 	guint is_server:1;
@@ -78,7 +79,6 @@ typedef struct {
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
 	guint use_thread_context:1;
-	guint use_proxy:1;
 	gpointer ssl_creds;
 
 	GMainContext   *async_context;
@@ -148,6 +148,8 @@ soup_socket_finalize (GObject *object)
 
 	g_clear_object (&priv->local_addr);
 	g_clear_object (&priv->remote_addr);
+
+	g_clear_object (&priv->proxy_resolver);
 
 	if (priv->watch_src) {
 		if (priv->clean_dispose && !priv->is_server)
@@ -219,8 +221,8 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		if (priv->conn)
 			g_socket_set_timeout (priv->gsock, priv->timeout);
 		break;
-	case PROP_USE_PROXY:
-		priv->use_proxy = g_value_get_boolean (value);
+	case PROP_PROXY_RESOLVER:
+		priv->proxy_resolver = g_value_dup_object (value);
 		break;
 	case PROP_CLEAN_DISPOSE:
 		priv->clean_dispose = g_value_get_boolean (value);
@@ -280,8 +282,8 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_ERRORS:
 		g_value_set_flags (value, priv->tls_errors);
 		break;
-	case PROP_USE_PROXY:
-		g_value_set_boolean (value, priv->use_proxy);
+	case PROP_PROXY_RESOLVER:
+		g_value_set_object (value, priv->proxy_resolver);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -618,12 +620,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				    G_PARAM_READABLE));
 
 	g_object_class_install_property (
-		object_class, PROP_USE_PROXY,
-		g_param_spec_boolean (SOUP_SOCKET_USE_PROXY,
-				      "Use proxy",
-				      "Use #GProxyResolver",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		object_class, PROP_PROXY_RESOLVER,
+		g_param_spec_object (SOUP_SOCKET_PROXY_RESOLVER,
+				     "Proxy resolver",
+				     "GProxyResolver to use",
+				     G_TYPE_PROXY_RESOLVER,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 
@@ -705,9 +707,10 @@ new_socket_client (SoupSocket *sock)
 
 	g_signal_connect (client, "event",
 			  G_CALLBACK (re_emit_socket_client_event), sock);
-	if (priv->use_proxy)
+	if (priv->proxy_resolver) {
+		g_socket_client_set_proxy_resolver (client, priv->proxy_resolver);
 		g_socket_client_add_application_proxy (client, "http");
-	else
+	} else
 		g_socket_client_set_enable_proxy (client, FALSE);
 	if (priv->timeout)
 		g_socket_client_set_timeout (client, priv->timeout);

@@ -122,6 +122,7 @@ typedef struct {
 	GSList *run_queue_sources;
 
 	GResolver *resolver;
+	GProxyResolver *g_proxy_resolver;
 
 	char **http_aliases, **https_aliases;
 
@@ -173,6 +174,7 @@ enum {
 	PROP_0,
 
 	PROP_PROXY_URI,
+	PROP_PROXY_RESOLVER,
 	PROP_MAX_CONNS,
 	PROP_MAX_CONNS_PER_HOST,
 	PROP_USE_NTLM,
@@ -335,6 +337,7 @@ soup_session_finalize (GObject *object)
 	g_hash_table_destroy (priv->features_cache);
 
 	g_object_unref (priv->resolver);
+	g_clear_object (&priv->g_proxy_resolver);
 
 	g_free (priv->http_aliases);
 	g_free (priv->https_aliases);
@@ -556,22 +559,25 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_PROXY_URI:
 		uri = g_value_get_boxed (value);
-
 		if (uri) {
-#ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-#endif
+			G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
-#ifdef G_GNUC_END_IGNORE_DEPRECATIONS
-G_GNUC_END_IGNORE_DEPRECATIONS
-#endif
+			G_GNUC_END_IGNORE_DEPRECATIONS;
 			feature = SOUP_SESSION_FEATURE (soup_proxy_resolver_static_new (uri));
 			soup_session_add_feature (session, feature);
 			g_object_unref (feature);
 		} else
 			soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_STATIC);
-
+		g_clear_object (&priv->g_proxy_resolver);
 		soup_session_abort (session);
+		break;
+	case PROP_PROXY_RESOLVER:
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+		soup_session_remove_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER);
+		G_GNUC_END_IGNORE_DEPRECATIONS;
+		if (priv->g_proxy_resolver)
+			g_object_unref (priv->g_proxy_resolver);
+		priv->g_proxy_resolver = g_value_dup_object (value);
 		break;
 	case PROP_MAX_CONNS:
 		priv->max_conns = g_value_get_int (value);
@@ -701,6 +707,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 					       value);
 		} else
 			g_value_set_boxed (value, NULL);
+		break;
+	case PROP_PROXY_RESOLVER:
+		g_value_set_object (value, priv->g_proxy_resolver);
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);
@@ -1662,7 +1671,8 @@ get_connection_for_host (SoupSession *session,
 	conn = g_object_new (
 		SOUP_TYPE_CONNECTION,
 		SOUP_CONNECTION_REMOTE_URI, host->uri,
-		SOUP_CONNECTION_PROXY_RESOLVER, soup_session_get_feature (session, SOUP_TYPE_PROXY_URI_RESOLVER),
+		SOUP_CONNECTION_SOUP_PROXY_RESOLVER, soup_session_get_feature (session, SOUP_TYPE_PROXY_URI_RESOLVER),
+		SOUP_CONNECTION_G_PROXY_RESOLVER, priv->g_proxy_resolver,
 		SOUP_CONNECTION_SSL, uri_is_https (priv, soup_message_get_uri (item->msg)),
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (priv->tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
@@ -2458,6 +2468,10 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
 	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
 
 	priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	if (SOUP_IS_PROXY_URI_RESOLVER (feature))
+		g_clear_object (&priv->g_proxy_resolver);
+
 	priv->features = g_slist_prepend (priv->features, g_object_ref (feature));
 	g_hash_table_remove_all (priv->features_cache);
 	soup_session_feature_attach (feature, session);
@@ -2955,7 +2969,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * An http proxy to use for all http and https requests in
 	 * this session. Setting this will remove any
 	 * #SoupProxyURIResolver features that have been added to the
-	 * session.
+	 * session. Setting this property will also cancel all
+	 * currently pending messages.
 	 *
 	 * Note that #SoupProxyResolverDefault will handle looking up
 	 * the user's proxy settings for you; you should only use
@@ -2974,6 +2989,35 @@ soup_session_class_init (SoupSessionClass *session_class)
 				    "The HTTP Proxy to use for this session",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE));
+	/**
+	 * SoupSession:proxy-resolver:
+	 *
+	 * A #GProxyResolver to use with this session. Setting this
+	 * will clear the #SoupSession:proxy-uri property, and remove
+	 * any #SoupProxyURIResolver features that have been added to
+	 * the session.
+	 *
+	 * You only need to set this if you want to manually control
+	 * proxy resolution (and need to do something more complicated than
+	 * #SoupSession:proxy-uri allows). If you just want to use the
+	 * system proxy settings, #SoupProxyResolverDefault will do that
+	 * for you, and that is automatically part of the session if you
+	 * are using a plain #SoupSession.
+	 *
+	 * Since: 2.42
+	 */
+	/**
+	 * SOUP_SESSION_PROXY_RESOLVER:
+	 *
+	 * Alias for the #SoupSession:proxy-resolver property, qv.
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_PROXY_RESOLVER,
+		g_param_spec_object (SOUP_SESSION_PROXY_RESOLVER,
+				     "Proxy Resolver",
+				     "The GProxyResolver to use for this session",
+				     G_TYPE_PROXY_RESOLVER,
+				     G_PARAM_READWRITE));
 	/**
 	 * SOUP_SESSION_MAX_CONNS:
 	 *
