@@ -1020,24 +1020,6 @@ soup_cookie_jar_db_get_type
 </SECTION>
 
 <SECTION>
-<FILE>soup-proxy-uri-resolver</FILE>
-<TITLE>SoupProxyURIResolver</TITLE>
-SoupProxyURIResolver
-SoupProxyURIResolverCallback
-soup_proxy_uri_resolver_get_proxy_uri_async
-soup_proxy_uri_resolver_get_proxy_uri_sync
-<SUBSECTION Standard>
-SoupProxyURIResolverInterface
-SOUP_IS_PROXY_URI_RESOLVER
-SOUP_IS_PROXY_URI_RESOLVER_CLASS
-SOUP_PROXY_URI_RESOLVER
-SOUP_PROXY_URI_RESOLVER_CLASS
-SOUP_PROXY_URI_RESOLVER_GET_CLASS
-SOUP_TYPE_PROXY_URI_RESOLVER
-soup_proxy_uri_resolver_get_type
-</SECTION>
-
-<SECTION>
 <FILE>soup-content-sniffer</FILE>
 <TITLE>SoupContentSniffer</TITLE>
 SoupContentSniffer

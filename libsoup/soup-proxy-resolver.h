@@ -39,7 +39,7 @@ typedef struct {
 
 } SoupProxyResolverInterface;
 
-SOUP_DEPRECATED_IN_2_28_FOR(SoupProxyURIResolver)
+SOUP_DEPRECATED_IN_2_28
 GType soup_proxy_resolver_get_type (void);
 
 SOUP_DEPRECATED_IN_2_28

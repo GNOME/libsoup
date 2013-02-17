@@ -9,6 +9,9 @@
 #include <config.h>
 #endif
 
+#undef SOUP_VERSION_MIN_REQUIRED
+#define SOUP_VERSION_MIN_REQUIRED SOUP_VERSION_2_42
+
 #include "soup-proxy-uri-resolver.h"
 #include "soup.h"
 
@@ -19,12 +22,18 @@
  * #SoupProxyURIResolver is an interface for finding appropriate HTTP
  * proxies to use.
  *
- * You are not likely to have to implement this interface on your own;
- * instead, you should usually just be able to use
- * #SoupProxyResolverDefault.
+ * Deprecated: #SoupSession now has a #SoupSession:proxy-resolver
+ * property that takes a #GProxyResolver (which is semantically
+ * identical to #SoupProxyURIResolver).
+ *
+ * Even in older releases of libsoup, you are not likely to have to
+ * implement this interface on your own; instead, you should usually
+ * just be able to use #SoupProxyResolverDefault.
  */
 
-G_DEFINE_INTERFACE (SoupProxyURIResolver, soup_proxy_uri_resolver, G_TYPE_OBJECT)
+G_DEFINE_INTERFACE_WITH_CODE (SoupProxyURIResolver, soup_proxy_uri_resolver, G_TYPE_OBJECT,
+			      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
+			      )
 
 static void
 soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
@@ -54,6 +63,9 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
  * @callback.
  *
  * Since: 2.26.3
+ *
+ * Deprecated: #SoupProxyURIResolver is deprecated in favor of
+ * #GProxyResolver
  **/
 void
 soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_resolver,
@@ -84,6 +96,9 @@ soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_re
  * error.
  *
  * Since: 2.26.3
+ *
+ * Deprecated: #SoupProxyURIResolver is deprecated in favor of
+ * #GProxyResolver
  **/
 guint
 soup_proxy_uri_resolver_get_proxy_uri_sync (SoupProxyURIResolver  *proxy_uri_resolver,

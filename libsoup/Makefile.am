@@ -161,8 +161,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-path-map.c     		\
 	soup-proxy-resolver.c		\
 	soup-proxy-resolver-default.c	\
-	soup-proxy-resolver-static.h	\
-	soup-proxy-resolver-static.c	\
+	soup-proxy-resolver-wrapper.h	\
+	soup-proxy-resolver-wrapper.c	\
 	soup-proxy-uri-resolver.c	\
 	soup-request.c			\
 	soup-request-data.c		\

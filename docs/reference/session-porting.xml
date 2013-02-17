@@ -92,13 +92,26 @@ linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link> and
   </listitem>
   <listitem>
     <para>
+      The new
+      <link linkend="SoupSession--proxy-resolver"><type>"proxy-resolver"</type></link>
+      property is now initialized to the default
+      <link linkend="GProxyResolver"><type>GProxyResolver</type></link>,
+      meaning that it will automatically use the user's system proxy
+      configuration. This replaces the use of the
+      <link linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link>,
+      session feature in earlier releases. You can set this property to
+      <literal>NULL</literal> if you don't want to use proxies, and the
+      <link linkend="SoupSession--proxy-uri"><type>"proxy-uri"</type></link>
+      property still works if you want to use a single proxy for all requests.
+    </para>
+  </listitem>
+  <listitem>
+    <para>
       Every session gets a
-      <link linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link>
-      and a
       <link linkend="SoupContentDecoder"><type>SoupContentDecoder</type></link>
       attached to it by default, meaning that it will automatically
-      use the user's system proxy configuration, and will handle (and
-      request) "gzip"- and "deflate"-encoded response bodies.
+      handle (and request) "gzip"- and "deflate"-encoded response
+      bodies.
     </para>
   </listitem>
 </itemizedlist>
