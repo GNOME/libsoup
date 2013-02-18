@@ -1,3 +1,33 @@
+Changes in libsoup from 2.41.5 to 2.41.90:
+
+	* Added SoupSession:local-address property, which allows you
+          to force connections to bind to a particular local address
+          (eg, to control the interface that is used). [#693215, Jonh
+          Wendell]
+
+	* Fixed SoupCache to properly handle messages that get
+          cancelled, and added tests for this. [#692310, Sergio]
+
+	* Fixed a reference leak in SoupCache that resulted in
+          epiphany hanging for several seconds on exit and then
+          eventually printing "Cache flush finished despite X pending
+          requests". And added more tests. [#682527, Sergio]
+
+	* Fixed SoupAuthNTLM so that SoupSession:authenticate gets
+          emitted with retrying=TRUE if the first attempt fails (ie,
+          make it work the same way as SoupAuthBasic and
+          SoupAuthDigest). [#693222, Dan]
+
+	* Fixed the SoupSession:add-feature-by-type property to accept
+	  non-SoupSessionFeature features as well (eg, auth types)
+	  [Dan]
+
+	* Fixed a build bug that would break all the apache-based
+          tests if you didn't have PHP installed. [#693311, Dan]
+
+	* Updated translations:
+	  Malayalam, Polish, Serbian, Slovak
+
 Changes in libsoup from 2.41.4 to 2.41.5:
 
 	* Reverted the change to SoupURI's password handling from
