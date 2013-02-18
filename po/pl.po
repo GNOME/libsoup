@@ -4,14 +4,14 @@
 # pomóc w jego rozwijaniu i pielęgnowaniu, napisz do nas:
 # gnomepl@aviary.pl
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Piotr Drąg <piotrdrag@gmail.com>, 2012.
-# Aviary.pl <gnomepl@aviary.pl>, 2012.
+# Piotr Drąg <piotrdrag@gmail.com>, 2012-2013.
+# Aviary.pl <gnomepl@aviary.pl>, 2012-2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-12-23 04:28+0100\n"
-"PO-Revision-Date: 2012-12-23 04:29+0100\n"
+"POT-Creation-Date: 2013-02-18 16:13+0100\n"
+"PO-Revision-Date: 2013-02-18 16:14+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -29,17 +29,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Połączenie zostało nieoczekiwanie zakończone"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "Nieprawidłowe żądanie przewinięcia"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Nie można skrócić SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Strumień sieciowy został nieoczekiwanie zamknięty"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Całkowite umieszczenie zasobu w pamięci podręcznej się nie powiodło"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -66,43 +70,43 @@ msgstr "Działanie spowodowałoby zablokowanie"
 msgid "Could not parse HTTP request"
 msgstr "Nie można przetworzyć żądania HTTP"
 
-#: ../libsoup/soup-request.c:141
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "Nie podano adresu URI"
 
-#: ../libsoup/soup-request.c:151
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Nieprawidłowy adres URI \"%s\": %s"
 
-#: ../libsoup/soup-session.c:3752
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Nie można przetworzyć adresu URI \"%s\""
 
-#: ../libsoup/soup-session.c:3789
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nieobsługiwany schemat adresu URI \"%s\""
 
-#: ../libsoup/soup-session.c:3811
+#: ../libsoup/soup-session.c:4268
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie jest adresem URI protokołu HTTP"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Nazwa komputera jest adresem IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Nieprawidłowa nazwa komputera"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Nazwa komputera nie posiada podstawowej domeny"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Brak wystarczającej liczby domen"
