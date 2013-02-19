@@ -11,7 +11,7 @@ AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[ht
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz -Wno-portability])
+AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz -Wno-portability serial-tests])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 
 AC_PROG_MAKE_SET
