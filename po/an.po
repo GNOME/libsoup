@@ -1,0 +1,108 @@
+# Aragonese translation for libsoup.
+# Copyright (C) 2013 libsoup's COPYRIGHT HOLDER
+# This file is distributed under the same license as the libsoup package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2013-02-19 15:37+0000\n"
+"PO-Revision-Date: 2013-02-19 23:17+0100\n"
+"Last-Translator: Daniel Martinez <entaltoaragon@gmail.com>\n"
+"Language-Team: Aragonese <softaragones@googlegroups.com>\n"
+"Language: an\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../libsoup/soup-body-input-stream.c:141
+#: ../libsoup/soup-body-input-stream.c:172
+#: ../libsoup/soup-body-input-stream.c:205
+#: ../libsoup/soup-message-io.c:191
+msgid "Connection terminated unexpectedly"
+msgstr "A connexión remató inasperadament"
+
+#: ../libsoup/soup-body-input-stream.c:463
+msgid "Invalid seek request"
+msgstr "Petición de búsqueda no válida"
+
+#: ../libsoup/soup-body-input-stream.c:491
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "No se puede truncar SoupBodyInputStream"
+
+#: ../libsoup/soup-cache-input-stream.c:74
+msgid "Network stream unexpectedly closed"
+msgstr "O fluxo de ret se zarró inasperadament"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Falló en cachear completament o recurso"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "O búfer de salida ye masiau chicot"
+
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "No se podió analisar a respuesta HTTP"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Codificación d'a respuesta HTTP no reconoixida"
+
+#: ../libsoup/soup-message-io.c:846
+#: ../libsoup/soup-message-io.c:882
+msgid "Operation was cancelled"
+msgstr "Se canceló a operación"
+
+#: ../libsoup/soup-message-io.c:893
+msgid "Operation would block"
+msgstr "A operación se blocará"
+
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "No se podió analisar a solicitut HTTP"
+
+#: ../libsoup/soup-request.c:140
+#, c-format
+msgid "No URI provided"
+msgstr "No s'ha proporcionau un URI"
+
+#: ../libsoup/soup-request.c:150
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "URI '%s' no válida: %s"
+
+#: ../libsoup/soup-session.c:4211
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "No se podió analisar l'URI «%s»"
+
+#: ../libsoup/soup-session.c:4248
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Esquema %s d'URI no suportau"
+
+#: ../libsoup/soup-session.c:4270
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "No ye un URI HTTP"
+
+#: ../libsoup/soup-tld.c:185
+msgid "Hostname is an IP address"
+msgstr "O nombre de l'equipo ye una adreza IP"
+
+#: ../libsoup/soup-tld.c:206
+msgid "Invalid hostname"
+msgstr "O nombre de l'equipo no ye válido"
+
+#: ../libsoup/soup-tld.c:235
+msgid "Hostname has no base domain"
+msgstr "O nombre de l'equipo no tiene un dominio base"
+
+#: ../libsoup/soup-tld.c:257
+msgid "Not enough domains"
+msgstr "No i hai suficients dominios"
+
