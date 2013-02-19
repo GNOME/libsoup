@@ -3764,13 +3764,15 @@ async_return_from_cache (SoupMessageQueueItem *item,
 			 GInputStream         *stream)
 {
 	const char *content_type;
-	GHashTable *params;
+	GHashTable *params = NULL;
 
 	soup_message_got_headers (item->msg);
 
 	content_type = soup_message_headers_get_content_type (item->msg->response_headers, &params);
-	soup_message_content_sniffed (item->msg, content_type, params);
-	g_hash_table_unref (params);
+	if (content_type) {
+		soup_message_content_sniffed (item->msg, content_type, params);
+		g_hash_table_unref (params);
+	}
 
 	item->state = SOUP_MESSAGE_FINISHING;
 	async_send_request_return_result (item, g_object_ref (stream), NULL);
