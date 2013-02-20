@@ -187,6 +187,9 @@ apache_cmd (const char *cmd)
 void
 apache_init (void)
 {
+	if (g_getenv ("SOUP_TESTS_IN_MAKE_CHECK"))
+		return;
+
 	if (!apache_cmd ("start")) {
 		g_printerr ("Could not start apache\n");
 		exit (1);

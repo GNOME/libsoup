@@ -63,6 +63,9 @@ po/Makefile.in.in
 po/POTFILES
 po/stamp-it
 stamp-h1
+test-driver
+tests/*.log
+tests/*.trs
 tests/*-test
 tests/date
 tests/dns

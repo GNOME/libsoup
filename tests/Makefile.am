@@ -11,7 +11,7 @@ LIBS =			\
 	$(LIBGNUTLS_LIBS) \
 	$(GLIB_LIBS)
 
-tests =			\
+TESTS =			\
 	cache-test	\
 	chunk-test	\
 	coding-test	\
@@ -37,17 +37,17 @@ tests =			\
 	uri-parsing
 
 if HAVE_APACHE
-tests += auth-test proxy-test pull-api range-test
+TESTS += auth-test proxy-test pull-api range-test
 endif
 if HAVE_CURL
-tests += forms-test server-auth-test
+TESTS += forms-test server-auth-test
 endif
 if HAVE_XMLRPC_PHP
-tests += xmlrpc-test xmlrpc-server-test
+TESTS += xmlrpc-test xmlrpc-server-test
 endif
 
 noinst_PROGRAMS =		\
-	$(tests)		\
+	$(TESTS)		\
 	dns			\
 	get			\
 	ntlm-test-helper	\
@@ -86,8 +86,6 @@ endif
 soup-tests.gresource: soup-tests.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir)  $<
 
-TESTS = $(sort $(tests))
-
 RESOURCES =			\
 	resources/atom.xml	\
 	resources/home.gif	\
@@ -116,14 +114,29 @@ EXTRA_DIST =			 \
 
 DISTCLEANFILES = soup-tests.gresource httpd.conf
 
-check-local: check-TESTS kill-httpd
+TESTS_ENVIRONMENT = \
+	SOUP_TESTS_IN_MAKE_CHECK=1
+
+check: start-httpd
+
+check-local: check-TESTS
+	@$(MAKE) kill-httpd
 if MISSING_REGRESSION_TEST_PACKAGES
 	@echo ""
 	@echo "NOTE: some tests were not run due to missing packages:" $(MISSING_REGRESSION_TEST_PACKAGES)
 	@echo ""
 endif
 
+.PHONY: start-httpd kill-httpd
+
+start-httpd:
+if HAVE_APACHE
+	@$(APACHE_HTTPD) -d `pwd` -f httpd.conf -k start;
+endif
+
 kill-httpd:
+if HAVE_APACHE
 	@if [ -f httpd.pid ]; then \
 		$(APACHE_HTTPD) -d `pwd` -f httpd.conf -k stop; \
 	fi
+endif
