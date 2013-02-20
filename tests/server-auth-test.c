@@ -5,6 +5,8 @@
 
 #include "test-utils.h"
 
+#ifdef HAVE_CURL
+
 static struct {
 	gboolean client_sent_basic, client_sent_digest;
 	gboolean server_requested_basic, server_requested_digest;
@@ -361,3 +363,13 @@ main (int argc, char **argv)
 		test_cleanup ();
 	return errors != 0;
 }
+
+#else /* HAVE_CURL */
+
+int
+main (int argc, char **argv)
+{
+	return 77; /* SKIP */
+}
+
+#endif

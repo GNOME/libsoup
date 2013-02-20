@@ -11,40 +11,38 @@ LIBS =			\
 	$(LIBGNUTLS_LIBS) \
 	$(GLIB_LIBS)
 
-TESTS =			\
-	cache-test	\
-	chunk-test	\
-	coding-test	\
-	connection-test	\
-	context-test	\
-	continue-test	\
-	cookies-test	\
-	date		\
-	header-parsing	\
-	misc-test	\
-	multipart-test	\
-	ntlm-test	\
-	redirect-test	\
-	requester-test	\
-	resource-test	\
-	session-test	\
-	sniffing-test	\
-	socket-test	\
-	ssl-test	\
-	streaming-test	\
-	timeout-test	\
-	tld-test	\
-	uri-parsing
-
-if HAVE_APACHE
-TESTS += auth-test proxy-test pull-api range-test
-endif
-if HAVE_CURL
-TESTS += forms-test server-auth-test
-endif
-if HAVE_XMLRPC_PHP
-TESTS += xmlrpc-test xmlrpc-server-test
-endif
+TESTS =				\
+	auth-test		\
+	cache-test		\
+	chunk-test		\
+	coding-test		\
+	connection-test		\
+	context-test		\
+	continue-test		\
+	cookies-test		\
+	date			\
+	forms-test		\
+	header-parsing		\
+	misc-test		\
+	multipart-test		\
+	ntlm-test		\
+	proxy-test		\
+	pull-api		\
+	range-test		\
+	redirect-test		\
+	requester-test		\
+	resource-test		\
+	session-test		\
+	server-auth-test	\
+	sniffing-test		\
+	socket-test		\
+	ssl-test		\
+	streaming-test		\
+	timeout-test		\
+	tld-test		\
+	uri-parsing		\
+	xmlrpc-server-test	\
+	xmlrpc-test
 
 noinst_PROGRAMS =		\
 	$(TESTS)		\

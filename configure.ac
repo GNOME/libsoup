@@ -288,21 +288,20 @@ if test "$have_apache" = 1; then
 	MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php5"
     fi
     AC_MSG_RESULT($have_php)
+    AC_SUBST(IF_HAVE_PHP)
 
     if test "$have_php" = yes; then
-	AC_MSG_CHECKING([for xmlrpc-php])
+	AC_MSG_CHECKING([for php-xmlrpc])
 	if $PHP --rf xmlrpc_server_create | grep -q "does not exist"; then
-	    have_xmlrpc_php=no
+	    have_php_xmlrpc=no
 	    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php-xmlrpc"
 	else
-	    have_xmlrpc_php=yes
+	    have_php_xmlrpc=yes
+	    AC_DEFINE(HAVE_PHP_XMLRPC, 1, [Have php-xmlrpc])
 	fi
-	AC_MSG_RESULT($have_xmlrpc_php)
+	AC_MSG_RESULT($have_php_xmlrpc)
     fi
 fi
-
-AC_SUBST(IF_HAVE_PHP)
-AM_CONDITIONAL(HAVE_XMLRPC_PHP, test "$have_xmlrpc_php" = yes)
 
 AC_PATH_PROG(CURL, curl, no)
 if test "$CURL" != no; then
@@ -310,7 +309,6 @@ if test "$CURL" != no; then
 else
     MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES curl"
 fi
-AM_CONDITIONAL(HAVE_CURL, test "$CURL" != no)
 
 GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
 AC_SUBST(GLIB_COMPILE_RESOURCES)

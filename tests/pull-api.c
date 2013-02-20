@@ -2,6 +2,8 @@
 
 #include "test-utils.h"
 
+#ifdef HAVE_APACHE
+
 static SoupBuffer *correct_response;
 
 static void
@@ -527,3 +529,13 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return errors != 0;
 }
+
+#else /* HAVE_APACHE */
+
+int
+main (int argc, char **argv)
+{
+	return 77; /* SKIP */
+}
+
+#endif

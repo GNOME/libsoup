@@ -2,6 +2,8 @@
 
 #include "test-utils.h"
 
+#ifdef HAVE_APACHE
+
 typedef struct {
 	const char *explanation;
 	const char *url;
@@ -394,3 +396,13 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return errors != 0;
 }
+
+#else /* HAVE_APACHE */
+
+int
+main (int argc, char **argv)
+{
+	return 77; /* SKIP */
+}
+
+#endif
