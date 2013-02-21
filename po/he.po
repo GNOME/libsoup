@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-12-27 00:49+0200\n"
-"PO-Revision-Date: 2012-12-27 00:50+0200\n"
+"POT-Creation-Date: 2013-02-21 19:54+0200\n"
+"PO-Revision-Date: 2013-02-21 19:55+0200\n"
 "Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <sh.yaron@gmail.com>\n"
 "Language: \n"
@@ -27,17 +27,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "בקשת חיפוש שגויה"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "לא ניתן לקצץ את SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "תזרים הרשת נסגר בפתאומיות"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "שמירת המשאב במלואו במטמון נכשלה"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -65,44 +69,44 @@ msgstr "הפעולה תיחסם"
 msgid "Could not parse HTTP request"
 msgstr "לא ניתן לנתח את תגובת ה־HTTP"
 
-#: ../libsoup/soup-request.c:141
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "לא סופקה כתובת"
 
-#: ../libsoup/soup-request.c:151
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "כתובת '%s' שגויה: %s"
 
-#: ../libsoup/soup-session.c:3875
+#: ../libsoup/soup-session.c:4211
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "לא ניתן לנתח את הכתובת '%s'"
 
-#: ../libsoup/soup-session.c:3912
+#: ../libsoup/soup-session.c:4248
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
 
-#: ../libsoup/soup-session.c:3934
+#: ../libsoup/soup-session.c:4270
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "כתובת שאינה HTTP"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "שם המארח הוא כתובת IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "שם מארח שגוי"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "לשם המארח אין שם מתחם בסיסי"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "אין מספיק שמות מתחם"
 
