@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-01-14 22:43+0000\n"
-"PO-Revision-Date: 2011-11-09 16:10+0900\n"
+"POT-Creation-Date: 2013-02-18 10:20+0000\n"
+"PO-Revision-Date: 2013-02-22 21:51+0900\n"
 "Last-Translator: Gheyret Kenji <gheyret@gmail.com>\n"
 "Language-Team: Uyghur Computer Science Association <UKIJ@yahoogroups.com>\n"
 "Language: \n"
@@ -22,17 +22,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "باغلىنىش تۇيۇقسىز توختاپ قالدى"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "ئىناۋەتسىز ئىزدەش ئىلتىماسى"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "ئېقىم SoupBodyInputStream نى قىسقارتقىلى بولمىدى"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "تور ئېقىمى تۇيۇقسىز يېپىلدى"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "مەنبەنى تولۇق غەملىۋېلىش مەغلۇپ بولدى"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -40,7 +44,6 @@ msgid "Output buffer is too small"
 msgstr "چىقىرىش يىغلەكى بەك كىچىك"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "HTTP  ئىنكاسىنى يېشەلمىدى"
 
@@ -57,7 +60,6 @@ msgid "Operation would block"
 msgstr "مەشغۇلات توسۇلىدۇ"
 
 #: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
 msgstr "HTTP  ئىلتىماسىنى يېشەلمىدى"
 
@@ -71,17 +73,17 @@ msgstr "URI تەمىنلەنمىدى"
 msgid "Invalid '%s' URI: %s"
 msgstr "ئىناۋەتسىز  ‹%s› URI: %s"
 
-#: ../libsoup/soup-session.c:4122
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI «%s» نى تەھلىل قىلالمىدى"
 
-#: ../libsoup/soup-session.c:4159
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "قوللىمايدىغان URI لايىھە ‹%s›"
 
-#: ../libsoup/soup-session.c:4181
+#: ../libsoup/soup-session.c:4268
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "بۇ HTTP URI ئەمەس"
