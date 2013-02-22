@@ -4,21 +4,15 @@ EXTRA_DIST =
 
 include $(GLIB_MAKEFILE)
 
-if OS_WIN32
-LIBWS2_32 = -lws2_32
-endif
-
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
 	-I$(top_builddir)		\
 	$(SOUP_DEBUG_FLAGS)		\
-	$(SOUP_MAINTAINER_FLAGS)	\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
-	$(SQLITE_CFLAGS)		\
-	$(GNOME_KEYRING_CFLAGS)
+	$(SQLITE_CFLAGS)
 
 libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
@@ -90,9 +84,7 @@ EXTRA_DIST += libsoup-2.4.sym
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
 	$(XML_LIBS)			\
-	$(SQLITE_LIBS)			\
-	-lz				\
-	$(LIBWS2_32)
+	$(SQLITE_LIBS)
 
 libsoup_2_4_la_SOURCES =		\
 	soup-address.c			\

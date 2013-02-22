@@ -2,13 +2,10 @@ INCLUDES =		\
 	-I$(top_srcdir)	\
 	-DSRCDIR=\""$(abs_srcdir)"\" \
 	-DBUILDDIR=\""$(builddir)"\" \
-	$(SOUP_MAINTAINER_FLAGS) \
-	$(XML_CFLAGS)	\
 	$(GLIB_CFLAGS)
 
 LIBS =			\
 	$(top_builddir)/libsoup/libsoup-2.4.la \
-	$(LIBGNUTLS_LIBS) \
 	$(GLIB_LIBS)
 
 TESTS =				\

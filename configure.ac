@@ -63,12 +63,6 @@ fi
 
 AC_SUBST(SOUP_DEBUG_FLAGS)
 
-# Set the maintainer flags
-#if test -d .git; then
-#	SOUP_MAINTAINER_FLAGS="-DG_DISABLE_DEPRECATED"
-#fi
-AC_SUBST(SOUP_MAINTAINER_FLAGS)
-
 dnl ***************************
 dnl *** Checks for programs ***
 dnl ***************************
@@ -130,7 +124,6 @@ dnl *******************
 dnl *** Misc checks ***
 dnl *******************
 AC_CHECK_FUNCS(gmtime_r)
-AC_CHECK_FUNC(socket, , AC_CHECK_LIB(socket, socket))
 
 dnl *********************
 dnl *** GNOME support ***
@@ -165,7 +158,7 @@ save_LIBS="$LIBS"
 CFLAGS="$CFLAGS $GLIB_CFLAGS"
 LIBS="$LIBS $GLIB_LIBS"
 AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
-			       [g_type_init (); return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
+			       [return !g_tls_backend_supports_tls (g_tls_backend_get_default ());])],
 	      [have_glib_networking=yes],
 	      [have_glib_networking=no],
 	      [have_glib_networking="unknown (cross-compiling)"])
@@ -310,11 +303,14 @@ else
     MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES curl"
 fi
 
-GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
-AC_SUBST(GLIB_COMPILE_RESOURCES)
-
 AC_SUBST(MISSING_REGRESSION_TEST_PACKAGES)
 AM_CONDITIONAL(MISSING_REGRESSION_TEST_PACKAGES, test -n "$MISSING_REGRESSION_TEST_PACKAGES")
+
+dnl *********************
+dnl *** resource compiler
+dnl *********************
+GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
+AC_SUBST(GLIB_COMPILE_RESOURCES)
 
 dnl **********************************************************
 dnl *** path of NTLM single-sign-on helper ntlm_auth
