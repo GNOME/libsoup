@@ -361,6 +361,7 @@ AC_CONFIG_FILES([
 	po/Makefile.in
 	po/Makefile
 	tests/Makefile
+	examples/Makefile
 	docs/Makefile
 	docs/reference/Makefile
 	libsoup/soup-version.h

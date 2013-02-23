@@ -42,12 +42,8 @@ TESTS =				\
 	xmlrpc-test
 
 noinst_PROGRAMS =		\
-	$(TESTS)		\
-	dns			\
-	get			\
 	ntlm-test-helper	\
-	simple-httpd		\
-	simple-proxy
+	$(TESTS)
 
 noinst_DATA = soup-tests.gresource
 

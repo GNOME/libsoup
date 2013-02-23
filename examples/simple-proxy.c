@@ -3,11 +3,14 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "test-utils.h"
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef G_OS_WIN32
 #include <getopt.h>
 #endif
+
+#include <libsoup/soup.h>
 
 /* WARNING: this is really really really not especially compliant with
  * RFC 2616. But it does work for basic stuff.

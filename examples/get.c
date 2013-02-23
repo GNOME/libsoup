@@ -3,12 +3,14 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "test-utils.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef G_OS_WIN32
 #include <getopt.h>
 #endif
+
+#include <libsoup/soup.h>
 
 static SoupSession *session;
 static GMainLoop *loop;

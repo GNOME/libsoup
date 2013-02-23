@@ -3,17 +3,19 @@
  * Copyright (C) 2001-2003, Ximian, Inc.
  */
 
-#include "test-utils.h"
-
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 #ifdef G_OS_WIN32
 #include <getopt.h>
 #endif
+
+#include <libsoup/soup.h>
 
 static int
 compare_strings (gconstpointer a, gconstpointer b)

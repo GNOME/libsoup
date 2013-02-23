@@ -36,6 +36,9 @@ docs/reference/libsoup-2.4.signals
 docs/reference/libsoup-2.4.types
 docs/reference/tmpl
 docs/reference/xml
+examples/get
+examples/simple-httpd
+examples/simple-proxy
 gtk-doc.make
 install-sh
 libsoup-zip
@@ -68,14 +71,10 @@ tests/*.log
 tests/*.trs
 tests/*-test
 tests/date
-tests/dns
-tests/get
 tests/getbug
 tests/header-parsing
 tests/httpd.conf
 tests/ntlm-test-helper
 tests/pull-api
-tests/simple-httpd
-tests/simple-proxy
 tests/soup-tests.gresource
 tests/uri-parsing
