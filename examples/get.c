@@ -6,16 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef G_OS_WIN32
-#include <getopt.h>
-#endif
-
 #include <libsoup/soup.h>
 
 static SoupSession *session;
 static GMainLoop *loop;
-static gboolean debug = FALSE, quiet = FALSE;
-static const char *method;
+static gboolean debug, head, quiet;
 
 static void
 get_url (const char *url)
@@ -24,19 +19,19 @@ get_url (const char *url)
 	SoupMessage *msg;
 	const char *header;
 
-	msg = soup_message_new (method, url);
+	msg = soup_message_new (head ? "HEAD" : "GET", url);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
 
 	soup_session_send_message (session, msg);
 
 	name = soup_message_get_uri (msg)->path;
 
-	if (debug) {
+	if (debug || head) {
 		SoupMessageHeadersIter iter;
 		const char *hname, *value;
 		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
 
-		g_print ("%s %s HTTP/1.%d\n", method, path,
+		g_print ("%s %s HTTP/1.%d\n", msg->method, path,
 			 soup_message_get_http_version (msg));
 		soup_message_headers_iter_init (&iter, msg->request_headers);
 		while (soup_message_headers_iter_next (&iter, &hname, &value))
@@ -83,70 +78,60 @@ get_url (const char *url)
 	}
 }
 
-static void
-usage (void)
-{
-	g_printerr ("Usage: get [-c CAfile] [-p proxy URL] [-h] [-d] URL\n");
-	exit (1);
-}
+static const char *ca_file, *proxy;
+static gboolean synchronous, ntlm;
+
+static GOptionEntry entries[] = {
+	{ "ca-file", 'c', 0,
+	  G_OPTION_ARG_STRING, &ca_file,
+	  "Use FILE as the TLS CA file", "FILE" },
+	{ "debug", 'd', 0,
+	  G_OPTION_ARG_NONE, &debug,
+	  "Show HTTP headers", NULL },
+	{ "head", 'h', 0,
+	  G_OPTION_ARG_NONE, &head,
+	  "Do HEAD rather than GET", NULL },
+	{ "ntlm", 'n', 0,
+	  G_OPTION_ARG_NONE, &ntlm,
+	  "Use NTLM authentication", NULL },
+	{ "proxy", 'p', 0,
+	  G_OPTION_ARG_STRING, &proxy,
+	  "Use URL as an HTTP proxy", "URL" },
+	{ "quiet", 'q', 0,
+	  G_OPTION_ARG_NONE, &quiet,
+	  "Don't show HTTP status code", NULL },
+	{ "sync", 's', 0,
+	  G_OPTION_ARG_NONE, &synchronous,
+	  "Use SoupSessionSync rather than SoupSessionAsync", NULL },
+	{ NULL }
+};
 
 int
 main (int argc, char **argv)
 {
-	const char *cafile = NULL, *url;
-	SoupURI *proxy = NULL, *parsed;
-	gboolean synchronous = FALSE, ntlm = FALSE;
-	int opt;
+	GOptionContext *opts;
+	const char *url;
+	SoupURI *proxy_uri, *parsed;
+	GError *error = NULL;
 
-	method = SOUP_METHOD_GET;
-
-	while ((opt = getopt (argc, argv, "c:dhnp:qs")) != -1) {
-		switch (opt) {
-		case 'c':
-			cafile = optarg;
-			break;
-
-		case 'd':
-			debug = TRUE;
-			break;
-
-		case 'h':
-			method = SOUP_METHOD_HEAD;
-			debug = TRUE;
-			break;
-
-		case 'n':
-			ntlm = TRUE;
-			break;
-
-		case 'p':
-			proxy = soup_uri_new (optarg);
-			if (!proxy) {
-				g_printerr ("Could not parse %s as URI\n",
-					    optarg);
-				exit (1);
-			}
-			break;
-
-		case 'q':
-			quiet = TRUE;
-			break;
-
-		case 's':
-			synchronous = TRUE;
-			break;
-
-		case '?':
-			usage ();
-			break;
-		}
+	opts = g_option_context_new (NULL);
+	g_option_context_add_main_entries (opts, entries, NULL);
+	if (!g_option_context_parse (opts, &argc, &argv, &error)) {
+		g_printerr ("Could not parse arguments: %s\n",
+			    error->message);
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
 	}
-	argc -= optind;
-	argv += optind;
 
-	if (argc != 1)
-		usage ();
-	url = argv[0];
+	if (argc != 2) {
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
+	}
+	g_option_context_free (opts);
+
+	url = argv[1];
 	parsed = soup_uri_new (url);
 	if (!parsed) {
 		g_printerr ("Could not parse '%s' as a URL\n", url);
@@ -154,30 +139,27 @@ main (int argc, char **argv)
 	}
 	soup_uri_free (parsed);
 
-	if (synchronous) {
-		session = soup_session_sync_new_with_options (
-			SOUP_SESSION_SSL_CA_FILE, cafile,
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
-			SOUP_SESSION_USER_AGENT, "get ",
-			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
-			SOUP_SESSION_USE_NTLM, ntlm,
-			NULL);
-	} else {
-		session = soup_session_async_new_with_options (
-			SOUP_SESSION_SSL_CA_FILE, cafile,
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
-			SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
-			SOUP_SESSION_USER_AGENT, "get ",
-			SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
-			SOUP_SESSION_USE_NTLM, ntlm,
-			NULL);
-	}
+	session = g_object_new (synchronous ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+				SOUP_SESSION_SSL_CA_FILE, ca_file,
+				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
+				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
+				SOUP_SESSION_USER_AGENT, "get ",
+				SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+				SOUP_SESSION_USE_NTLM, ntlm,
+				NULL);
 
 	if (proxy) {
+		proxy_uri = soup_uri_new (proxy);
+		if (!proxy_uri) {
+			g_printerr ("Could not parse '%s' as URI\n",
+				    proxy);
+			exit (1);
+		}
+
 		g_object_set (G_OBJECT (session), 
-			      SOUP_SESSION_PROXY_URI, proxy,
+			      SOUP_SESSION_PROXY_URI, proxy_uri,
 			      NULL);
+		soup_uri_free (proxy_uri);
 	} else
 		soup_session_add_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
 

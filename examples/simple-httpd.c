@@ -5,15 +5,10 @@
 
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-
-#ifdef G_OS_WIN32
-#include <getopt.h>
-#endif
 
 #include <libsoup/soup.h>
 
@@ -218,38 +213,50 @@ quit (int sig)
 	exit (0);
 }
 
+static int port, ssl_port;
+static const char *ssl_cert_file, *ssl_key_file;
+
+static GOptionEntry entries[] = {
+	{ "cert-file", 'c', 0,
+	  G_OPTION_ARG_STRING, &ssl_cert_file,
+	  "Use FILE as the TLS certificate file", "FILE" },
+	{ "key-file", 'k', 0,
+	  G_OPTION_ARG_STRING, &ssl_key_file,
+	  "Use FILE as the TLS private key file", "FILE" },
+	{ "port", 'p', 0,
+	  G_OPTION_ARG_INT, &port,
+	  "Port to listen on", NULL },
+	{ "ssl-port", 's', 0,
+	  G_OPTION_ARG_INT, &port,
+	  "Port to listen on for TLS traffic", NULL },
+	{ NULL }
+};
+
 int
 main (int argc, char **argv)
 {
+	GOptionContext *opts;
 	GMainLoop *loop;
 	SoupServer *server, *ssl_server;
-	int opt;
-	int port = SOUP_ADDRESS_ANY_PORT;
-	int ssl_port = SOUP_ADDRESS_ANY_PORT;
-	const char *ssl_cert_file = NULL, *ssl_key_file = NULL;
+	GError *error = NULL;
+
+	opts = g_option_context_new (NULL);
+	g_option_context_add_main_entries (opts, entries, NULL);
+	if (!g_option_context_parse (opts, &argc, &argv, &error)) {
+		g_printerr ("Could not parse arguments: %s\n",
+			    error->message);
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
+	}
+	if (argc != 1) {
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
+	}
+	g_option_context_free (opts);
 
 	signal (SIGINT, quit);
-
-	while ((opt = getopt (argc, argv, "p:k:c:s:")) != -1) {
-		switch (opt) {
-		case 'p':
-			port = atoi (optarg);
-			break;
-		case 'k':
-			ssl_key_file = optarg;
-			break;
-		case 'c':
-			ssl_cert_file = optarg;
-			break;
-		case 's':
-			ssl_port = atoi (optarg);
-			break;
-		default:
-			g_printerr ("Usage: %s [-p port] [-c ssl-cert-file -k ssl-key-file [-s ssl-port]]\n",
-				    argv[0]);
-			exit (1);
-		}
-	}
 
 	server = soup_server_new (SOUP_SERVER_PORT, port,
 				  SOUP_SERVER_SERVER_HEADER, "simple-httpd ",

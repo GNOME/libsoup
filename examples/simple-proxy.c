@@ -6,10 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef G_OS_WIN32
-#include <getopt.h>
-#endif
-
 #include <libsoup/soup.h>
 
 /* WARNING: this is really really really not especially compliant with
@@ -127,34 +123,44 @@ quit (int sig)
 	exit (0);
 }
 
+static int port;
+static gboolean require_auth;
+
+static GOptionEntry entries[] = {
+	{ "auth-domain", 'a', 0,
+	  G_OPTION_ARG_NONE, &require_auth,
+	  "Require authentication", NULL },
+	{ "port", 'p', 0,
+	  G_OPTION_ARG_INT, &port,
+	  "Port to listen on", NULL },
+	{ NULL }
+};
+
 int
 main (int argc, char **argv)
 {
+	GOptionContext *opts;
 	GMainLoop *loop;
-	int opt;
-	int port = SOUP_ADDRESS_ANY_PORT;
-	SoupAuthDomain *auth_domain = NULL;
+	GError *error = NULL;
+
+	opts = g_option_context_new (NULL);
+	g_option_context_add_main_entries (opts, entries, NULL);
+	if (!g_option_context_parse (opts, &argc, &argv, &error)) {
+		g_printerr ("Could not parse arguments: %s\n",
+			    error->message);
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
+	}
+
+	if (argc != 2) {
+		g_printerr ("%s",
+			    g_option_context_get_help (opts, TRUE, NULL));
+		exit (1);
+	}
+	g_option_context_free (opts);
 
 	signal (SIGINT, quit);
-
-	while ((opt = getopt (argc, argv, "ap:")) != -1) {
-		switch (opt) {
-		case 'a':
-			auth_domain = soup_auth_domain_basic_new (
-				SOUP_AUTH_DOMAIN_REALM, "simple-proxy",
-				SOUP_AUTH_DOMAIN_PROXY, TRUE,
-				SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
-				NULL);
-			break;
-		case 'p':
-			port = atoi (optarg);
-			break;
-		default:
-			g_printerr ("Usage: %s [-p port] [-n]\n",
-				    argv[0]);
-			exit (1);
-		}
-	}
 
 	server = soup_server_new (SOUP_SERVER_PORT, port,
 				  NULL);
@@ -164,7 +170,14 @@ main (int argc, char **argv)
 	}
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-	if (auth_domain) {
+	if (require_auth) {
+		SoupAuthDomain *auth_domain;
+
+		auth_domain = soup_auth_domain_basic_new (
+			SOUP_AUTH_DOMAIN_REALM, "simple-proxy",
+			SOUP_AUTH_DOMAIN_PROXY, TRUE,
+			SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, auth_callback,
+			NULL);
 		soup_server_add_auth_domain (server, auth_domain);
 		g_object_unref (auth_domain);
 	}
