@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libsoup 3.7.x\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-01-21 12:31+0100\n"
-"PO-Revision-Date: 2013-01-21 12:32+0100\n"
+"POT-Creation-Date: 2013-02-25 17:06+0100\n"
+"PO-Revision-Date: 2013-02-25 17:07+0100\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian bokmål <i18n-nb@lister.ping.uio.no>\n"
 "Language: \n"
@@ -30,9 +30,13 @@ msgstr "Ugyldig søkeforespørsel"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Kan ikke avkorte SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Nettverksstrømmen ble lukket på uventet vis"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Klarte ikke å mellomlagre ressursen fullt ut"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -69,17 +73,17 @@ msgstr "Ingen URI ble oppgitt"
 msgid "Invalid '%s' URI: %s"
 msgstr "Ugyldig «%s» URI: %s"
 
-#: ../libsoup/soup-session.c:4123
+#: ../libsoup/soup-session.c:4211
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Kunne ikke tolke URI «%s»"
 
-#: ../libsoup/soup-session.c:4160
+#: ../libsoup/soup-session.c:4248
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-skjema «%s» er ikke støttet"
 
-#: ../libsoup/soup-session.c:4182
+#: ../libsoup/soup-session.c:4270
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ikke en HTTP URI"
