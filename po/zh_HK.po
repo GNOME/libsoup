@@ -6,10 +6,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-18 15:49+0000\n"
-"PO-Revision-Date: 2013-02-04 20:34+0800\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-03-01 22:41+0800\n"
+"PO-Revision-Date: 2013-03-01 22:41+0800\n"
 "Last-Translator: Chao-Hsiung Liao <j_h_liau@yahoo.com.tw>\n"
 "Language-Team: Chinese (Hong Kong) <community@linuxhall.org>\n"
 "Language: zh_TW\n"
@@ -24,17 +23,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "連線無預警的關閉了"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "無效的搜尋要求"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "不能截短 SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "網絡串流無預警的關閉了"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "無法完整快取資源"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -42,7 +45,6 @@ msgid "Output buffer is too small"
 msgstr "輸出緩衝區太小"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "無法解析 HTTP 回應"
 
@@ -59,47 +61,46 @@ msgid "Operation would block"
 msgstr "操作會阻擋"
 
 #: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
 msgstr "無法解析 HTTP 要求"
 
-#: ../libsoup/soup-request.c:141
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "未提供 URI"
 
-#: ../libsoup/soup-request.c:151
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "無效的「%s」URI：%s"
 
-#: ../libsoup/soup-session.c:3752
+#: ../libsoup/soup-session.c:4211
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "無法解析 URI「%s」"
 
-#: ../libsoup/soup-session.c:3789
+#: ../libsoup/soup-session.c:4248
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "不支援的 URI scheme「%s」"
 
-#: ../libsoup/soup-session.c:3811
+#: ../libsoup/soup-session.c:4270
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "並非 HTTP URI"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "主機名稱是 IP 位址"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "主機名稱無效"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "主機名稱沒有基礎網域"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "沒有足夠的網域"
