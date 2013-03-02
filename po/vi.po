@@ -1,7 +1,7 @@
 # Vietnamese translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Nguyễn Thái Ngọc Duy <pclouds@gmail.com>, 2012.
+# Nguyễn Thái Ngọc Duy <pclouds@gmail.com>, 2012-2013.
 #
 msgid ""
 msgstr ""
@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
 "POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-02 20:42+0700\n"
+"PO-Revision-Date: 2013-03-02 20:44+0700\n"
 "Last-Translator: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>\n"
 "Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
 "Language: vi\n"
@@ -26,19 +26,19 @@ msgstr "Kết nối ngắt bất ngờ"
 
 #: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
-msgstr ""
+msgstr "Yêu cầu di chuyển (seek) không hợp lệ"
 
 #: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr ""
+msgstr "Không thể cắt SoupBodyInputStream"
 
 #: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
-msgstr ""
+msgstr "Luồng mạng đóng bất ngờ"
 
 #: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
-msgstr ""
+msgstr "Lỗi lưu tạm (cache) toàn bộ tài nguyên"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -46,14 +46,12 @@ msgid "Output buffer is too small"
 msgstr "Vùng đệm xuất quá nhỏ"
 
 #: ../libsoup/soup-message-client-io.c:41
-#, fuzzy
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
-msgstr "Không thể phân tích URI '%s'"
+msgstr "Không thể phân tích phản hồi HTTP"
 
 #: ../libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
-msgstr ""
+msgstr "Không nhận ra bảng mã phản hồi HTTP"
 
 #: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
@@ -64,10 +62,8 @@ msgid "Operation would block"
 msgstr "Thao tác có thể treo"
 
 #: ../libsoup/soup-message-server-io.c:40
-#, fuzzy
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
-msgstr "Không thể phân tích URI '%s'"
+msgstr "Không thể phân tích phản hồi HTTP"
 
 #: ../libsoup/soup-request.c:140
 #, c-format
@@ -92,7 +88,7 @@ msgstr "Không hỗ trợ kiểu URI '%s'"
 #: ../libsoup/soup-session.c:4268
 #, c-format
 msgid "Not an HTTP URI"
-msgstr ""
+msgstr "Không phải HTTP URI"
 
 #: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
@@ -104,7 +100,7 @@ msgstr "Tên máy không hợp lệ"
 
 #: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
-msgstr ""
+msgstr "Tên máy không có miền cơ bản"
 
 #: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
