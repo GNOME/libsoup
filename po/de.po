@@ -2,7 +2,7 @@
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Tobias Endrigkeit <tobiasendrigkeit@googlemail.com>, 2012.
-# Mario Blättermann <mario.blaettermann@gmail.com>, 2012.
+# Mario Blättermann <mario.blaettermann@gmail.com>, 2012, 2013.
 # Andre Jonas <nipsky@googlemail.com>, 2013.
 #
 msgid ""
@@ -10,9 +10,9 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-01-21 15:55+0000\n"
-"PO-Revision-Date: 2013-01-23 12:26+0100\n"
-"Last-Translator: Andre Jonas <nipsky@googlemail.com>\n"
+"POT-Creation-Date: 2013-02-18 10:20+0000\n"
+"PO-Revision-Date: 2013-03-03 21:07+0100\n"
+"Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
 "Language-Team: Deutsch <German <gnome-de@gnome.org>>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -35,9 +35,13 @@ msgstr "Ungültige Suchanfrage"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream konnte nicht abgeschnitten werden"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Netzwerk-Stream wurde unerwartet geschlossen"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Das vollständige Zwischenspeichern der Ressource ist fehlgeschlagen"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -74,17 +78,17 @@ msgstr "Keine Adresse wurde bereitgestellt"
 msgid "Invalid '%s' URI: %s"
 msgstr "Ungültige »%s« Adresse: %s"
 
-#: ../libsoup/soup-session.c:4123
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Die Adresse »%s« konnte nicht verarbeitet werden"
 
-#: ../libsoup/soup-session.c:4160
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nicht unterstütztes Adressenschema »%s«"
 
-#: ../libsoup/soup-session.c:4182
+#: ../libsoup/soup-session.c:4268
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Keine HTTP-Adresse"
