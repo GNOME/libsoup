@@ -286,6 +286,12 @@ copy_headers (const char *name, const char *value, SoupMessageHeaders *headers)
 	soup_message_headers_append (headers, name, value);
 }
 
+static void
+remove_headers (const char *name, const char *value, SoupMessageHeaders *headers)
+{
+	soup_message_headers_remove (headers, name);
+}
+
 static char *hop_by_hop_headers[] = {"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade"};
 
 static void
@@ -327,6 +333,12 @@ soup_cache_entry_set_freshness (SoupCacheEntry *entry, SoupMessage *msg, SoupCac
 {
 	const char *cache_control;
 	const char *expires, *date, *last_modified;
+
+	/* Reset these values. We have to do this to ensure that
+	 * revalidations overwrite previous values for the headers.
+	 */
+	entry->must_revalidate = FALSE;
+	entry->freshness_lifetime = 0;
 
 	cache_control = soup_message_headers_get_list (entry->headers, "Cache-Control");
 	if (cache_control && *cache_control) {
@@ -820,11 +832,8 @@ soup_cache_content_processor_wrap_input (SoupContentProcessor *processor,
 		 * example the soup client is the one creating the
 		 * conditional request.
 		 */
-		if (entry) {
-			entry->being_validated = FALSE;
-			copy_end_to_end_headers (msg->response_headers, entry->headers);
-			soup_cache_entry_set_freshness (entry, msg, cache);
-		}
+		if (entry)
+			soup_cache_update_from_conditional_request (cache, msg);
 		return NULL;
 	}
 
@@ -1384,6 +1393,26 @@ soup_cache_cancel_conditional_request (SoupCache   *cache,
 		entry->being_validated = FALSE;
 
 	soup_session_cancel_message (cache->priv->session, msg, SOUP_STATUS_CANCELLED);
+}
+
+void
+soup_cache_update_from_conditional_request (SoupCache   *cache,
+					    SoupMessage *msg)
+{
+	SoupCacheEntry *entry = soup_cache_entry_lookup (cache, msg);
+	if (!entry)
+		return;
+
+	entry->being_validated = FALSE;
+
+	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
+		soup_message_headers_foreach (msg->response_headers,
+					      (SoupMessageHeadersForeachFunc) remove_headers,
+					      entry->headers);
+		copy_end_to_end_headers (msg->response_headers, entry->headers);
+
+		soup_cache_entry_set_freshness (entry, msg, cache);
+	}
 }
 
 static void

@@ -28,16 +28,18 @@
 
 G_BEGIN_DECLS
 
-SoupCacheResponse  soup_cache_has_response                 (SoupCache   *cache,
-							    SoupMessage *msg);
-GInputStream      *soup_cache_send_response                (SoupCache   *cache,
-							    SoupMessage *msg);
-SoupCacheability   soup_cache_get_cacheability             (SoupCache   *cache,
-							    SoupMessage *msg);
-SoupMessage       *soup_cache_generate_conditional_request (SoupCache   *cache,
-							    SoupMessage *original);
-void               soup_cache_cancel_conditional_request   (SoupCache   *cache,
-							    SoupMessage *msg);
+SoupCacheResponse  soup_cache_has_response                    (SoupCache   *cache,
+							       SoupMessage *msg);
+GInputStream      *soup_cache_send_response                   (SoupCache   *cache,
+							       SoupMessage *msg);
+SoupCacheability   soup_cache_get_cacheability                (SoupCache   *cache,
+							       SoupMessage *msg);
+SoupMessage       *soup_cache_generate_conditional_request    (SoupCache   *cache,
+							       SoupMessage *original);
+void               soup_cache_cancel_conditional_request      (SoupCache   *cache,
+							       SoupMessage *msg);
+void               soup_cache_update_from_conditional_request (SoupCache   *cache,
+							       SoupMessage *msg);
 
 G_END_DECLS
 

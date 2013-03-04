@@ -77,6 +77,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			status = SOUP_STATUS_NOT_MODIFIED;
 	}
 
+	header = soup_message_headers_get_one (msg->request_headers,
+					       "Test-Set-My-Header");
+	if (header) {
+		soup_message_headers_append (msg->response_headers,
+					     "My-Header",
+					     header);
+	}
+
 	if (status == SOUP_STATUS_OK) {
 		GChecksum *sum;
 		const char *body;
@@ -105,21 +113,32 @@ is_network_stream (GInputStream *stream)
 	return !G_IS_FILE_INPUT_STREAM (stream);
 }
 
-static char *do_request (SoupSession *session,
-			 SoupURI     *base_uri,
-			 const char  *method,
-			 const char  *path,
+static char *do_request (SoupSession        *session,
+			 SoupURI            *base_uri,
+			 const char         *method,
+			 const char         *path,
+			 SoupMessageHeaders *response_headers,
 			 ...) G_GNUC_NULL_TERMINATED;
 
 static gboolean last_request_hit_network;
 static gboolean last_request_validated;
 static guint cancelled_requests;
 
+static void
+copy_headers (const char         *name,
+	      const char         *value,
+	      gpointer            user_data)
+{
+	SoupMessageHeaders *headers = (SoupMessageHeaders *) user_data;
+	soup_message_headers_append (headers, name, value);
+}
+
 static char *
-do_request (SoupSession *session,
-	    SoupURI     *base_uri,
-	    const char  *method,
-	    const char  *path,
+do_request (SoupSession        *session,
+	    SoupURI            *base_uri,
+	    const char         *method,
+	    const char         *path,
+	    SoupMessageHeaders *response_headers,
 	    ...)
 {
 	SoupRequestHTTP *req;
@@ -139,13 +158,12 @@ do_request (SoupSession *session,
 	soup_uri_free (uri);
 	msg = soup_request_http_get_message (req);
 
-	va_start (ap, path);
+	va_start (ap, response_headers);
 	while ((header = va_arg (ap, const char *))) {
 		value = va_arg (ap, const char *);
 		soup_message_headers_append (msg->request_headers,
 					     header, value);
 	}
-	g_object_unref (msg);
 
 	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, 0, &error);
 	if (!stream) {
@@ -153,8 +171,14 @@ do_request (SoupSession *session,
 			      error->message);
 		g_error_free (error);
 		g_object_unref (req);
+		g_object_unref (msg);
 		return NULL;
 	}
+
+	if (response_headers)
+		soup_message_headers_foreach (msg->response_headers, copy_headers, response_headers);
+
+	g_object_unref (msg);
 
 	last_request_hit_network = is_network_stream (stream);
 
@@ -259,28 +283,28 @@ do_basics_test (SoupURI *base_uri)
 			  G_CALLBACK (request_started), NULL);
 
 	debug_printf (2, "  Initial requests\n");
-	body1 = do_request (session, base_uri, "GET", "/1",
+	body1 = do_request (session, base_uri, "GET", "/1", NULL,
 			    "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
 			    NULL);
-	body2 = do_request (session, base_uri, "GET", "/2",
+	body2 = do_request (session, base_uri, "GET", "/2", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
 			    NULL);
-	body3 = do_request (session, base_uri, "GET", "/3",
+	body3 = do_request (session, base_uri, "GET", "/3", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
 			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
-	body4 = do_request (session, base_uri, "GET", "/4",
+	body4 = do_request (session, base_uri, "GET", "/4", NULL,
 			    "Test-Set-ETag", "\"abcdefg\"",
 			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
-	body5 = do_request (session, base_uri, "GET", "/5",
+	body5 = do_request (session, base_uri, "GET", "/5", NULL,
 			    "Test-Set-Cache-Control", "no-cache",
 			    NULL);
 
 
 	/* Resource with future Expires should have been cached */
 	debug_printf (1, "  Fresh cached resource\n");
-	cmp = do_request (session, base_uri, "GET", "/1",
+	cmp = do_request (session, base_uri, "GET", "/1", NULL,
 			  NULL);
 	if (last_request_hit_network) {
 		debug_printf (1, "    Request for /1 not filled from cache!\n");
@@ -296,7 +320,7 @@ do_basics_test (SoupURI *base_uri)
 
 	/* Resource with long-ago Last-Modified should have been cached */
 	debug_printf (1, "  Heuristically-fresh cached resource\n");
-	cmp = do_request (session, base_uri, "GET", "/2",
+	cmp = do_request (session, base_uri, "GET", "/2", NULL,
 			  NULL);
 	if (last_request_hit_network) {
 		debug_printf (1, "    Request for /2 not filled from cache!\n");
@@ -312,7 +336,7 @@ do_basics_test (SoupURI *base_uri)
 
 	/* Adding a query string should bypass the cache but not invalidate it */
 	debug_printf (1, "  Fresh cached resource with a query\n");
-	cmp = do_request (session, base_uri, "GET", "/1?attr=value",
+	cmp = do_request (session, base_uri, "GET", "/1?attr=value", NULL,
 			  NULL);
 	if (!last_request_hit_network) {
 		debug_printf (1, "    Request for /1?attr=value filled from cache!\n");
@@ -320,7 +344,7 @@ do_basics_test (SoupURI *base_uri)
 	}
 	g_free (cmp);
 	debug_printf (2, "  Second request\n");
-	cmp = do_request (session, base_uri, "GET", "/1",
+	cmp = do_request (session, base_uri, "GET", "/1", NULL,
 			  NULL);
 	if (last_request_hit_network) {
 		debug_printf (1, "    Second request for /1 not filled from cache!\n");
@@ -336,7 +360,7 @@ do_basics_test (SoupURI *base_uri)
 
 	/* Last-Modified + must-revalidate causes a conditional request */
 	debug_printf (1, "  Unchanged must-revalidate resource w/ Last-Modified\n");
-	cmp = do_request (session, base_uri, "GET", "/3",
+	cmp = do_request (session, base_uri, "GET", "/3", NULL,
 			  "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
 			  "Test-Set-Cache-Control", "must-revalidate",
 			  NULL);
@@ -358,7 +382,7 @@ do_basics_test (SoupURI *base_uri)
 
 	/* Validation failure should update cache */
 	debug_printf (1, "  Changed must-revalidate resource w/ Last-Modified\n");
-	cmp = do_request (session, base_uri, "GET", "/3",
+	cmp = do_request (session, base_uri, "GET", "/3", NULL,
 			  "Test-Set-Last-Modified", "Sat, 02 Jan 2010 00:00:00 GMT",
 			  "Test-Set-Cache-Control", "must-revalidate",
 			  NULL);
@@ -376,9 +400,8 @@ do_basics_test (SoupURI *base_uri)
 	}
 	g_free (cmp);
 
-#if 0 /* This doesn't work... is the test wrong or is SoupCache? */
 	debug_printf (2, "  Second request\n");
-	cmp = do_request (session, base_uri, "GET", "/3",
+	cmp = do_request (session, base_uri, "GET", "/3", NULL,
 			  "Test-Set-Last-Modified", "Sat, 02 Jan 2010 00:00:00 GMT",
 			  "Test-Set-Cache-Control", "must-revalidate",
 			  NULL);
@@ -395,12 +418,10 @@ do_basics_test (SoupURI *base_uri)
 		errors++;
 	}
 	g_free (cmp);
-#endif
-
 
 	/* ETag + must-revalidate causes a conditional request */
 	debug_printf (1, "  Unchanged must-revalidate resource w/ ETag\n");
-	cmp = do_request (session, base_uri, "GET", "/4",
+	cmp = do_request (session, base_uri, "GET", "/4", NULL,
 			  "Test-Set-ETag", "\"abcdefg\"",
 			  NULL);
 	if (!last_request_validated) {
@@ -421,7 +442,7 @@ do_basics_test (SoupURI *base_uri)
 
 	/* Cache-Control: no-cache prevents caching */
 	debug_printf (1, "  Uncacheable resource\n");
-	cmp = do_request (session, base_uri, "GET", "/5",
+	cmp = do_request (session, base_uri, "GET", "/5", NULL,
 			  "Test-Set-Cache-Control", "no-cache",
 			  NULL);
 	if (!last_request_hit_network) {
@@ -438,14 +459,14 @@ do_basics_test (SoupURI *base_uri)
 
 	/* PUT to a URI invalidates the cache entry */
 	debug_printf (1, "  Invalidating and re-requesting a cached resource\n");
-	cmp = do_request (session, base_uri, "PUT", "/1",
+	cmp = do_request (session, base_uri, "PUT", "/1", NULL,
 			  NULL);
 	if (!last_request_hit_network) {
 		debug_printf (1, "    PUT filled from cache!\n");
 		errors++;
 	}
 	g_free (cmp);
-	cmp = do_request (session, base_uri, "GET", "/1",
+	cmp = do_request (session, base_uri, "GET", "/1", NULL,
 			  NULL);
 	if (!last_request_hit_network) {
 		debug_printf (1, "    PUT failed to invalidate cache entry!\n");
@@ -487,10 +508,10 @@ do_cancel_test (SoupURI *base_uri)
 			  G_CALLBACK (request_unqueued), NULL);
 
 	debug_printf (2, "  Initial requests\n");
-	body1 = do_request (session, base_uri, "GET", "/1",
+	body1 = do_request (session, base_uri, "GET", "/1", NULL,
 			    "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
 			    NULL);
-	body2 = do_request (session, base_uri, "GET", "/2",
+	body2 = do_request (session, base_uri, "GET", "/2", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
 			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
@@ -610,6 +631,83 @@ do_refcounting_test (SoupURI *base_uri)
 	g_free (cache_dir);
 }
 
+static void
+do_headers_test (SoupURI *base_uri)
+{
+	SoupSession *session;
+	SoupMessageHeaders *headers;
+	SoupCache *cache;
+	char *cache_dir;
+	char *body1, *cmp;
+	const char *header_value;
+
+	debug_printf (1, "Cache basics\n");
+
+	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+	debug_printf (2, "  Caching to %s\n", cache_dir);
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+
+	g_signal_connect (session, "request-started",
+			  G_CALLBACK (request_started), NULL);
+
+	debug_printf (2, "  Initial requests\n");
+	body1 = do_request (session, base_uri, "GET", "/1", NULL,
+			    "Test-Set-Last-Modified", "Fri, 01 Jan 2100 00:00:00 GMT",
+			    "Test-Set-My-Header", "My header value",
+			    NULL);
+
+	/* My-Header new value should be updated in cache */
+	debug_printf (2, "  Fresh cached resource which updates My-Header\n");
+	cmp = do_request (session, base_uri, "GET", "/1", NULL,
+			  "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			  "Test-Set-My-Header", "My header NEW value",
+			  NULL);
+	if (!last_request_validated) {
+		debug_printf (1, "    Request for /1 not validated!\n");
+		errors++;
+	}
+	if (last_request_hit_network) {
+		debug_printf (1, "    Request for /1 not filled from cache!\n");
+		errors++;
+	}
+	g_free (cmp);
+
+	/* Check that cache returns the updated header */
+	debug_printf (2, "  Fresh cached resource with new value for My-Header\n");
+	headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
+	cmp = do_request (session, base_uri, "GET", "/1", headers,
+			  "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			  NULL);
+	if (last_request_hit_network) {
+		debug_printf (1, "    Request for /1 not filled from cache!\n");
+		errors++;
+	}
+	g_free (cmp);
+
+	header_value = soup_message_headers_get_list (headers, "My-Header");
+	if (!header_value) {
+		debug_printf (1, "    Header \"My-Header\" not present!\n");
+		errors++;
+	}
+	if (strcmp (header_value, "My header NEW value") != 0) {
+		debug_printf (1, "    \"My-Header = %s\" and should be \"%s\"\n",
+			      header_value,
+			      "My header NEW value");
+		errors++;
+	}
+	soup_message_headers_free (headers);
+
+	soup_test_session_abort_unref (session);
+	g_object_unref (cache);
+
+	g_free (cache_dir);
+	g_free (body1);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -626,6 +724,7 @@ main (int argc, char **argv)
 	do_basics_test (base_uri);
 	do_cancel_test (base_uri);
 	do_refcounting_test (base_uri);
+	do_headers_test (base_uri);
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);

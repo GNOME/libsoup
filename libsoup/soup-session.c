@@ -3812,6 +3812,7 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 {
 	SoupMessageQueueItem *item = user_data;
 	GInputStream *stream;
+	SoupCache *cache;
 
 	if (g_cancellable_is_cancelled (item->cancellable)) {
 		cancel_cache_response (item);
@@ -3821,9 +3822,10 @@ conditional_get_ready_cb (SoupSession *session, SoupMessage *msg, gpointer user_
 		g_cancellable_disconnect (item->cancellable, handler_id);
 	}
 
-	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
-		SoupCache *cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
+	cache = (SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE);
+	soup_cache_update_from_conditional_request (cache, msg);
 
+	if (msg->status_code == SOUP_STATUS_NOT_MODIFIED) {
 		stream = soup_cache_send_response (cache, item->msg);
 		if (stream) {
 			async_return_from_cache (item, stream);
