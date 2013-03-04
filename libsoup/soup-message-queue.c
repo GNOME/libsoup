@@ -82,6 +82,8 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	item = g_slice_new0 (SoupMessageQueueItem);
 	item->session = g_object_ref (queue->session);
 	item->async_context = soup_session_get_async_context (item->session);
+	if (item->async_context)
+		g_main_context_ref (item->async_context);
 	item->queue = queue;
 	item->msg = g_object_ref (msg);
 	item->callback = callback;
@@ -163,6 +165,7 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_object_unref (item->msg);
 	g_object_unref (item->cancellable);
 	g_clear_object (&item->task);
+	g_clear_pointer (&item->async_context, g_main_context_unref);
 	if (item->io_source) {
 		g_source_destroy (item->io_source);
 		g_source_unref (item->io_source);
