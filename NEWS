@@ -1,3 +1,25 @@
+Changes in libsoup from 2.41.90 to 2.41.91:
+
+	* Fixed a crash that showed up with XMLRPC requests in
+          WebKitGTK. [#694920, Sergio]
+
+	* Fixed SoupCache to update the cached headers when it
+          receives a 304 Not Modified response, and added a test for
+          this. [#695121, Sergio]
+
+	* libsoup now builds under automake 1.13 (and "make check"
+          works under the parallel test harness which is the default
+          in 1.13) [#694135]
+
+	* The tests/ directory now contains only actual test programs
+          that are run by "make check", and the programs that are
+          intended more as example code are under examples/.
+
+	* New/updated translations:
+	  Aragonese, Chinese (traditional), Czech, Galician, Hebrew,
+	  Lithuanian, Norwegian bokmål, Punjabi, Spanish, Uyghur,
+	  Vietnamese
+
 Changes in libsoup from 2.41.5 to 2.41.90:
 
 	* Added SoupSession:local-address property, which allows you
