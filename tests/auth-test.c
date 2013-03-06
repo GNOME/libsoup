@@ -1074,6 +1074,56 @@ do_auth_close_test (void)
 	soup_test_server_quit_unref (server);
 }
 
+static gboolean
+infinite_cancel (gpointer session)
+{
+	soup_session_abort (session);
+	return FALSE;
+}
+
+static void
+infinite_authenticate (SoupSession *session, SoupMessage *msg,
+		       SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	soup_auth_authenticate (auth, "user", "bad");
+}
+
+static void
+do_infinite_auth_test (const char *base_uri)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	char *uri;
+	int timeout;
+
+	debug_printf (1, "\nTesting broken infinite-loop auth:\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (infinite_authenticate), NULL);
+
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+	msg = soup_message_new ("GET", uri);
+	g_free (uri);
+
+	timeout = g_timeout_add (500, infinite_cancel, session);
+	expect_warning = TRUE;
+	soup_session_send_message (session, msg);
+
+	if (msg->status_code == SOUP_STATUS_CANCELLED) {
+		debug_printf (1, "    FAILED: Got stuck in loop");
+		errors++;
+	} else if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (1, "    Final status wrong: expected 401, got %u\n",
+			      msg->status_code);
+		errors++;
+	}
+
+	g_source_remove (timeout);
+	soup_test_session_abort_unref (session);
+	g_object_unref (msg);
+}
+
 static SoupAuthTest relogin_tests[] = {
 	{ "Auth provided via URL, should succeed",
 	  "Basic/realm12/", "1", TRUE, "01", SOUP_STATUS_OK },
@@ -1199,6 +1249,7 @@ main (int argc, char **argv)
 	do_async_auth_test (base_uri);
 	do_select_auth_test ();
 	do_auth_close_test ();
+	do_infinite_auth_test (base_uri);
 
 	test_cleanup ();
 	return errors != 0;

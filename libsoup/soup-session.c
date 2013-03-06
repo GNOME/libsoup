@@ -149,7 +149,7 @@ static void async_send_request_running (SoupSession *session, SoupMessageQueueIt
 #define SOUP_SESSION_MAX_CONNS_DEFAULT 10
 #define SOUP_SESSION_MAX_CONNS_PER_HOST_DEFAULT 2
 
-#define SOUP_SESSION_MAX_REDIRECTION_COUNT 20
+#define SOUP_SESSION_MAX_RESEND_COUNT 20
 
 #define SOUP_SESSION_USER_AGENT_BASE "libsoup/" PACKAGE_VERSION
 
@@ -1088,26 +1088,11 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 gboolean
 soup_session_redirect_message (SoupSession *session, SoupMessage *msg)
 {
-	SoupMessageQueueItem *item;
 	SoupURI *new_uri;
 
 	new_uri = redirection_uri (msg);
 	if (!new_uri)
 		return FALSE;
-
-	item = soup_message_queue_lookup (soup_session_get_queue (session), msg);
-	if (!item) {
-		soup_uri_free (new_uri);
-		return FALSE;
-	}
-	if (item->redirection_count >= SOUP_SESSION_MAX_REDIRECTION_COUNT) {
-		soup_uri_free (new_uri);
-		soup_session_cancel_message (session, msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
-		soup_message_queue_item_unref (item);
-		return FALSE;
-	}
-	item->redirection_count++;
-	soup_message_queue_item_unref (item);
 
 	if (SOUP_SESSION_WOULD_REDIRECT_AS_GET (session, msg)) {
 		if (msg->method != SOUP_METHOD_HEAD) {
@@ -2008,7 +1993,17 @@ soup_session_real_requeue_message (SoupSession *session, SoupMessage *msg)
 
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
-	item->state = SOUP_MESSAGE_RESTARTING;
+
+	if (item->resend_count >= SOUP_SESSION_MAX_RESEND_COUNT) {
+		if (SOUP_STATUS_IS_REDIRECTION (msg->status_code))
+			soup_message_set_status (msg, SOUP_STATUS_TOO_MANY_REDIRECTS);
+		else
+			g_warning ("SoupMessage %p stuck in infinite loop?", msg);
+	} else {
+		item->resend_count++;
+		item->state = SOUP_MESSAGE_RESTARTING;
+	}
+
 	soup_message_queue_item_unref (item);
 }
 
