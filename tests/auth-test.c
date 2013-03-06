@@ -817,7 +817,7 @@ select_auth_test_one (SoupURI *uri,
 	} else if (!second_headers && sad.round[1].headers) {
 		debug_printf (1, "    Didn't expect a second round!\n");
 		errors++;
-	} else if (second_headers) {
+	} else if (second_headers && second_response) {
 		if (strcmp (sad.round[1].headers, second_headers) != 0) {
 			debug_printf (1, "    Second round header order wrong: expected %s, got %s\n",
 				      second_headers, sad.round[1].headers);
@@ -1124,6 +1124,81 @@ do_infinite_auth_test (const char *base_uri)
 	g_object_unref (msg);
 }
 
+static void
+disappear_request_read (SoupServer *server, SoupMessage *msg,
+			SoupClientContext *context, gpointer user_data)
+{
+	/* Remove the WWW-Authenticate header if this was a failed attempt */
+	if (soup_message_headers_get_one (msg->request_headers, "Authorization") &&
+	    msg->status_code == SOUP_STATUS_UNAUTHORIZED)
+		soup_message_headers_remove (msg->response_headers, "WWW-Authenticate");
+}
+
+static void
+disappear_authenticate (SoupSession *session, SoupMessage *msg,
+			SoupAuth *auth, gboolean retrying, gpointer data)
+{
+	int *counter = data;
+
+	(*counter)++;
+	if (!retrying)
+		soup_auth_authenticate (auth, "user", "bad");
+}
+
+static void
+do_disappearing_auth_test (void)
+{
+	SoupServer *server;
+	SoupAuthDomain *auth_domain;
+	SoupURI *uri;
+	SoupMessage *msg;
+	SoupSession *session;
+	int counter;
+
+	debug_printf (1, "\nTesting auth when server does not repeat challenge on failure:\n");
+
+	server = soup_test_server_new (FALSE);
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+
+	uri = soup_uri_new ("http://127.0.0.1/");
+	soup_uri_set_port (uri, soup_server_get_port (server));
+
+	auth_domain = soup_auth_domain_basic_new (
+						  SOUP_AUTH_DOMAIN_REALM, "auth-test",
+						  SOUP_AUTH_DOMAIN_ADD_PATH, "/",
+						  SOUP_AUTH_DOMAIN_BASIC_AUTH_CALLBACK, server_basic_auth_callback,
+						  NULL);
+	soup_server_add_auth_domain (server, auth_domain);
+	g_signal_connect (server, "request-read",
+			  G_CALLBACK (disappear_request_read), NULL);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	counter = 0;
+	g_signal_connect (session, "authenticate",
+			  G_CALLBACK (disappear_authenticate), &counter);
+
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (session, msg);
+
+	if (counter > 2) {
+		debug_printf (1, "    FAILED: Got stuck in loop");
+		errors++;
+	} else if (msg->status_code != SOUP_STATUS_UNAUTHORIZED) {
+		debug_printf (1, "    Final status wrong: expected 401, got %u\n",
+			      msg->status_code);
+		errors++;
+	}
+
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+
+	g_object_unref (auth_domain);
+	soup_uri_free (uri);
+	soup_test_server_quit_unref (server);
+}
+
 static SoupAuthTest relogin_tests[] = {
 	{ "Auth provided via URL, should succeed",
 	  "Basic/realm12/", "1", TRUE, "01", SOUP_STATUS_OK },
@@ -1250,6 +1325,7 @@ main (int argc, char **argv)
 	do_select_auth_test ();
 	do_auth_close_test ();
 	do_infinite_auth_test (base_uri);
+	do_disappearing_auth_test ();
 
 	test_cleanup ();
 	return errors != 0;

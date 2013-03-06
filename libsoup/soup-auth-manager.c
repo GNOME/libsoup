@@ -83,7 +83,8 @@ typedef struct {
 
 static void soup_auth_host_free (SoupAuthHost *host);
 static SoupAuth *record_auth_for_uri (SoupAuthManagerPrivate *priv,
-				      SoupURI *uri, SoupAuth *auth);
+				      SoupURI *uri, SoupAuth *auth,
+				      gboolean prior_auth_failed);
 
 static void
 soup_auth_manager_init (SoupAuthManager *manager)
@@ -378,19 +379,22 @@ create_auth (SoupAuthManagerPrivate *priv, SoupMessage *msg)
 static gboolean
 check_auth (SoupMessage *msg, SoupAuth *auth)
 {
-	const char *header;
-	char *challenge;
-	gboolean ok;
+	const char *header, *scheme;
+	char *challenge = NULL;
+	gboolean ok = TRUE;
+
+	scheme = soup_auth_get_scheme_name (auth);
 
 	header = auth_header_for_message (msg);
-	if (!header)
-		return FALSE;
+	if (header)
+		challenge = soup_auth_manager_extract_challenge (header, scheme);
+	if (!challenge) {
+		ok = FALSE;
+		challenge = g_strdup (scheme);
+	}
 
-	challenge = soup_auth_manager_extract_challenge (header, soup_auth_get_scheme_name (auth));
-	if (!challenge)
-		return FALSE;
-
-	ok = soup_auth_update (auth, msg, challenge);
+	if (!soup_auth_update (auth, msg, challenge))
+		ok = FALSE;
 	g_free (challenge);
 	return ok;
 }
@@ -432,7 +436,7 @@ make_auto_ntlm_auth (SoupAuthManagerPrivate *priv, SoupAuthHost *host)
 	auth = g_object_new (SOUP_TYPE_AUTH_NTLM,
 			     SOUP_AUTH_HOST, host->uri->host,
 			     NULL);
-	record_auth_for_uri (priv, host->uri, auth);
+	record_auth_for_uri (priv, host->uri, auth, FALSE);
 	g_object_unref (auth);
 	return TRUE;
 }
@@ -497,7 +501,7 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 
 static SoupAuth *
 record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
-		     SoupAuth *auth)
+		     SoupAuth *auth, gboolean prior_auth_failed)
 {
 	SoupAuthHost *host;
 	SoupAuth *old_auth;
@@ -531,11 +535,11 @@ record_auth_for_uri (SoupAuthManagerPrivate *priv, SoupURI *uri,
 	soup_auth_free_protection_space (auth, pspace);
 
 	/* Now, make sure the auth is recorded. (If there's a
-	 * pre-existing auth, we keep that rather than the new one,
+	 * pre-existing good auth, we keep that rather than the new one,
 	 * since the old one might already be authenticated.)
 	 */
 	old_auth = g_hash_table_lookup (host->auths, auth_info);
-	if (old_auth) {
+	if (old_auth && (old_auth != auth || !prior_auth_failed)) {
 		g_free (auth_info);
 		return old_auth;
 	} else {
@@ -569,7 +573,7 @@ auth_got_headers (SoupMessage *msg, gpointer manager)
 	}
 
 	new_auth = record_auth_for_uri (priv, soup_message_get_uri (msg),
-					auth);
+					auth, prior_auth_failed);
 	g_object_unref (auth);
 
 	/* If we need to authenticate, try to do it. */
@@ -729,7 +733,7 @@ soup_auth_manager_use_auth (SoupAuthManager *manager,
 	SoupAuthManagerPrivate *priv = manager->priv;
 
 	g_mutex_lock (&priv->lock);
-	record_auth_for_uri (priv, uri, auth);
+	record_auth_for_uri (priv, uri, auth, FALSE);
 	g_mutex_unlock (&priv->lock);
 }
 
