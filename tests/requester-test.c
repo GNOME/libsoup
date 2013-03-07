@@ -649,6 +649,90 @@ do_sync_test (const char *uri_string, gboolean plain_session)
 	soup_uri_free (uri);
 }
 
+
+static void
+do_null_char_request (SoupSession *session, const char *encoded_data,
+		       const char *expected_data, int expected_len)
+{
+	GError *error = NULL;
+	GInputStream *stream;
+	SoupRequest *request;
+	SoupURI *uri;
+	char *uri_string, buf[256];
+	gsize nread;
+
+	uri_string = g_strdup_printf ("data:text/html,%s", encoded_data);
+	uri = soup_uri_new (uri_string);
+	g_free (uri_string);
+
+	request = soup_session_request_uri (session, uri, NULL);
+	stream = soup_test_request_send (request, NULL, 0, &error);
+
+	if (error) {
+		debug_printf (1, "  could not send request: %s\n", error->message);
+		g_error_free (error);
+		g_object_unref (request);
+		soup_uri_free (uri);
+		return;
+	}
+
+	g_input_stream_read_all (stream, buf, sizeof (buf), &nread, NULL, &error);
+	if (error) {
+		debug_printf (1, "	could not read response: %s\n", error->message);
+		errors++;
+		g_clear_error (&error);
+	}
+
+	soup_test_request_close_stream (request, stream, NULL, &error);
+	if (error) {
+		debug_printf (1, "	could not close stream: %s\n", error->message);
+		errors++;
+		g_clear_error (&error);
+	}
+
+	if (nread != expected_len) {
+		debug_printf (1, "	response length mismatch: expected %d, got %lu\n", expected_len, nread);
+		errors++;
+	} else if (memcmp (buf, expected_data, nread) != 0) {
+		debug_printf (1, "	response data mismatch\n");
+		errors++;
+	}
+
+	g_object_unref (stream);
+	g_object_unref (request);
+	soup_uri_free (uri);
+}
+
+static void
+do_null_char_test (gboolean plain_session)
+{
+	SoupSession *session;
+	int i;
+	static struct {
+		const char *encoded_data;
+		const char *expected_data;
+		int expected_len;
+	} test_cases[] = {
+		{ "%3Cscript%3Ea%3D'%00'%3C%2Fscript%3E", "<script>a='\0'</script>", 22 },
+		{ "%00%3Cscript%3Ea%3D42%3C%2Fscript%3E", "\0<script>a=42</script>", 22 },
+		{ "%3Cscript%3E%00%3Cbr%2F%3E%3C%2Fscript%3E%00", "<script>\0<br/></script>\0", 24 },
+	};
+	static int num_test_cases = G_N_ELEMENTS(test_cases);
+
+	debug_printf (1, "Streaming data URLs containing null chars with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionSync");
+
+	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+
+	for (i = 0; i < num_test_cases; i++)
+		do_null_char_request (session, test_cases[i].encoded_data,
+				      test_cases[i].expected_data, test_cases[i].expected_len);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -666,11 +750,13 @@ main (int argc, char **argv)
 	do_thread_test (uri, FALSE);
 	do_context_test (uri, FALSE);
 	do_sync_test (uri, FALSE);
+	do_null_char_test (FALSE);
 
 	do_simple_test (uri, TRUE);
 	do_thread_test (uri, TRUE);
 	do_context_test (uri, TRUE);
 	do_sync_test (uri, TRUE);
+	do_null_char_test (TRUE);
 
 	g_free (uri);
 	soup_buffer_free (response);

@@ -9,7 +9,7 @@
 
 #include "soup-socket.h"
 
-char *uri_decoded_copy (const char *str, int length);
+char *uri_decoded_copy (const char *str, int length, int *decoded_length);
 
 guint soup_socket_handshake_sync  (SoupSocket         *sock,
 				   GCancellable       *cancellable);
