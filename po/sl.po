@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-20 10:15+0000\n"
-"PO-Revision-Date: 2012-12-22 15:17+0100\n"
+"POT-Creation-Date: 2013-03-07 15:08+0000\n"
+"PO-Revision-Date: 2013-03-07 17:00+0100\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian <gnome-si@googlegroups.com>\n"
 "Language: sl\n"
@@ -28,17 +28,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Povezava je nepričakovano končana"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "Neveljavna zahteva iskanja"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Ni mogoče porezati SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Omrežni pretok se je nepričakovano zaprl"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Ustvarjanje predpomnilnika vira je spodletelo"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -65,43 +69,43 @@ msgstr "Opravilo bi zaustavilo delovanje"
 msgid "Could not parse HTTP request"
 msgstr "Zahteve HTTP ni mogoče razčleniti"
 
-#: ../libsoup/soup-request.c:141
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "Ni podanega naslova URI"
 
-#: ../libsoup/soup-request.c:151
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Neveljaven naslov URI '%s': %s"
 
-#: ../libsoup/soup-session.c:3752
+#: ../libsoup/soup-session.c:4252
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Ni mogoče razčleniti naslova URI '%s'"
 
-#: ../libsoup/soup-session.c:3789
+#: ../libsoup/soup-session.c:4289
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepodprta shema URI '%s'"
 
-#: ../libsoup/soup-session.c:3811
+#: ../libsoup/soup-session.c:4311
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Naslov ni v obliki HTTP URI"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Ime gostitelja je naslov IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Neveljavno ime gostitelja"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Ime gostitelja je brez osnovne domene"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Ni dovolj domen"
