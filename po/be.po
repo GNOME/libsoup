@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-18 15:49+0000\n"
+"POT-Creation-Date: 2013-02-18 10:20+0000\n"
 "PO-Revision-Date: 2012-09-14 13:29+0300\n"
 "Last-Translator: Ihar Hrachyshka <ihar.hrachyshka@gmail.com>\n"
 "Language-Team: Belarusian <i18n-bel-gnome@googlegroups.com>\n"
@@ -20,17 +20,21 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Злучэнне нечакана перарвана"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "Хібны запыт пракручвання змесціва"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Немагчыма абрэзаць SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Сеткавы струмень нечакана закрыўся"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Не ўдалося цалкам змясціць рэсурс у кэш-памяці"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -57,43 +61,43 @@ msgstr "Аперацыя заблакіруе працэс"
 msgid "Could not parse HTTP request"
 msgstr "Не ўдалося разабраць HTTP-запыт"
 
-#: ../libsoup/soup-request.c:141
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "URI-адрас не пададзены"
 
-#: ../libsoup/soup-request.c:151
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Хібны URI-адрас \"%s\": %s"
 
-#: ../libsoup/soup-session.c:3752
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Не ўдалося разабраць URI-адрас \"%s\""
 
-#: ../libsoup/soup-session.c:3789
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "URI-схема \"%s\" не падтрымліваецца"
 
-#: ../libsoup/soup-session.c:3811
+#: ../libsoup/soup-session.c:4268
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Гэта не HTTP URI-адрас"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Назва хоста з'яўляецца IP-адрасам"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Хібная назва хоста"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Назва хоста не мае базавага дамена"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Не хапае даменаў"
