@@ -1,15 +1,15 @@
 # Italian translations for libsoup package
 # Copyright (C) 2012, 2013 the Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Milo Casagrande <milo@ubuntu.com>, 2012, 2013.
+# Milo Casagrande <milo@casagrande.name>, 2012, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-01-24 21:45+0100\n"
-"PO-Revision-Date: 2013-01-24 21:47+0100\n"
-"Last-Translator: Milo Casagrande <milo@ubuntu.com>\n"
+"POT-Creation-Date: 2013-03-11 16:59+0100\n"
+"PO-Revision-Date: 2013-03-11 17:00+0100\n"
+"Last-Translator: Milo Casagrande <milo@casagrande.name>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
@@ -31,9 +31,13 @@ msgstr "Richiesta di posizionamento non valida"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Impossibile troncare SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Flusso di rete chiuso inaspettatamente"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Salvataggio in memoria della risorsa non riuscito"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -70,17 +74,17 @@ msgstr "Nessun URI fornito"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI «%s» non valido: %s"
 
-#: ../libsoup/soup-session.c:4123
+#: ../libsoup/soup-session.c:4252
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Impossibile analizzare l'URI «%s»"
 
-#: ../libsoup/soup-session.c:4160
+#: ../libsoup/soup-session.c:4289
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Schema URI «%s» non supportato"
 
-#: ../libsoup/soup-session.c:4182
+#: ../libsoup/soup-session.c:4311
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Non è uno URI HTTP"
