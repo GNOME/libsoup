@@ -8,6 +8,8 @@
 
 #include <libsoup/soup-types.h>
 
+G_BEGIN_DECLS
+
 typedef struct SoupMessageHeaders SoupMessageHeaders;
 GType soup_message_headers_get_type (void);
 #define SOUP_TYPE_MESSAGE_HEADERS (soup_message_headers_get_type ())
@@ -145,5 +147,7 @@ SOUP_AVAILABLE_IN_2_26
 void     soup_message_headers_set_content_disposition (SoupMessageHeaders  *hdrs,
 						       const char          *disposition,
 						       GHashTable          *params);
+
+G_END_DECLS
 
 #endif /* SOUP_MESSAGE_HEADERS_H */
