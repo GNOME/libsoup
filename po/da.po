@@ -1,15 +1,16 @@
 # Danish translation for libsoup.
-# Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2013 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Ask Hjorth Larsen <asklarsen@gmail.com>, 2012.
+# Joe Hansen (joedalton2@yahoo.dk), 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-15 23:42+0200\n"
-"PO-Revision-Date: 2012-09-15 18:15+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2013-03-12 23:14+0100\n"
+"PO-Revision-Date: 2013-03-12 18:15+0200\n"
+"Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
 "MIME-Version: 1.0\n"
@@ -23,59 +24,85 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "Forbindelsen blev uventet afbrudt"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "Ugyldig søgeforespørgsel"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Kan ikke afkorte SoupBodyInputStream"
+
+# evt. Netværksstrømmen
+#: ../libsoup/soup-cache-input-stream.c:74
+msgid "Network stream unexpectedly closed"
+msgstr "Netværksudsendelsen blev uventet lukket ned"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "Kunne ikke lave fuldt mellemlager for ressourcen"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Outputbuffer er for lille"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "Kunne ikke fortolke HTTP-svar"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Ej genkendt HTTP-svarkodning"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "Operationen blev annulleret"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "Operationen ville blokere"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "Kunne ikke fortolke HTTP-forespørgsel"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "Ingen URI givet"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "Ugyldig \"%s\"-URI: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4252
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Kunne ikke fortolke URI \"%s\""
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4289
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Uunderstøttet URI-skema \"%s\""
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4311
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Ikke en HTTP URI"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Værtsnavn er en IP-adresse"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Ugyldigt værtsnavn"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Værtsnavnet har intet basisdomæne"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Ikke nok domæner"
