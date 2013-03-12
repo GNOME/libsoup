@@ -1,13 +1,13 @@
 # Catalan translation for libsoup.
 # Copyright (C) 2012 Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Gil Forcada <gilforcada@guifi.net>, 2012.
+# Gil Forcada <gilforcada@guifi.net>, 2012, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-26 01:23+0200\n"
+"POT-Creation-Date: 2013-03-12 23:07+0100\n"
 "PO-Revision-Date: 2012-09-23 17:22+0200\n"
 "Last-Translator: Gil Forcada <gilforcada@guifi.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
@@ -24,59 +24,84 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "S'ha finalitzat la connexió inesperadament"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "La petició de cerca no és vàlida"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No es pot truncar el SoupBodyInputStream"
+
+#: ../libsoup/soup-cache-input-stream.c:74
+msgid "Network stream unexpectedly closed"
+msgstr "S'ha tancat inesperadament el flux de xarxa"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "No s'ha pogut carregar completament el recurs a la memòria cau"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "La memòria intermèdia d'eixida és massa petita"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
-msgid "Operation was cancelled"
-msgstr "S'ha canceŀlat l'operació"
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "No s'ha pogut analitzar la resposta HTTP"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "No es reconeix la codificació de la resposta HTTP"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+msgid "Operation was cancelled"
+msgstr "S'ha cancel·lat l'operació"
+
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "L'operació bloquejaria"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "No s'ha pogut analitzar la petició HTTP"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "No s'ha proporcionat cap URI"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "L'URI «%s» no és vàlid: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4252
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "No s'ha pogut analitzar l'URI «%s»"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4289
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "No es sap gestionar l'esquema d'URI «%s»"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4311
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "No és un URI HTTP"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "El nom d'ordinador és una adreça IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "El nom d'ordinador no és vàlid"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "El nom d'ordinador no té cap domini base"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "No hi ha prou dominis"
