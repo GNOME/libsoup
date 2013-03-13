@@ -1,15 +1,15 @@
 # Estonian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Mattias Põldaru <mahfiaz@gmail.com>, 2012.
+# Mattias Põldaru <mahfiaz@gmail.com>, 2012, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-12-19 09:41+0000\n"
-"PO-Revision-Date: 2012-12-19 17:55+0300\n"
+"POT-Creation-Date: 2013-03-12 16:51+0000\n"
+"PO-Revision-Date: 2013-03-12 22:43+0300\n"
 "Last-Translator: Mattias Põldaru <mahfiaz@gmail.com>\n"
 "Language-Team: Estonian <gnome-et-list@gnome.org>\n"
 "Language: et\n"
@@ -29,6 +29,9 @@ msgstr "SoupBodyInputStream-i pole võimalik lühendada"
 
 msgid "Network stream unexpectedly closed"
 msgstr "Võrguvoog sulgus ootamatult"
+
+msgid "Failed to completely cache the resource"
+msgstr "Ressursi täielik puhverdamine nurjus"
 
 #, c-format
 msgid "Output buffer is too small"
