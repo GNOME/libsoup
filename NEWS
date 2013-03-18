@@ -1,3 +1,32 @@
+Changes in libsoup from 2.41.91 to 2.41.92:
+
+	* Fixed a bug that caused libsoup to retry an incorrect
+          password repeatedly, forever, in a certain case that
+          affected Google calendars in evolution in particuar.
+          [Red Hat bug #916224, Dan]
+
+	* Also added code to make such infinite retry loops impossible
+          in the future. [Dan]
+
+	* Fixed SoupRequestData's handling of URIs with "%00" in them.
+          [#695246, Žan Doberšek]
+
+	* Added the SoupSession:proxy-resolver property, to override
+          the GProxyResolver used by a session. (This means there are
+          now three different ways of controlling proxy resolution in
+          SoupSession... this will be cleaned up a bit after 2.42.)
+          [#680273, Dan]
+
+	* Added missing G_BEGIN_DECLS/G_END_DECLS to
+          soup-message-headers.h, so that its functions can be called
+          from C++. [Carlos Garcia Campos]
+
+	* Updated translations:
+	  Assamese, Belarusian, Brazilian Portuguese, Catalan
+	  (Valencian), Catalan, Danish, Estonian, French, Greek,
+	  Gujarati, Hungarian, Italian, Latvian, Portuguese, Russian,
+	  Slovenian, Thai
+
 Changes in libsoup from 2.41.90 to 2.41.91:
 
 	* Fixed a crash that showed up with XMLRPC requests in
