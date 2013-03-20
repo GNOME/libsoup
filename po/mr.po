@@ -2,14 +2,14 @@
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 #
-# Sandeep Shedmake <sshedmak@redhat.com>, 2012.
+# Sandeep Shedmake <sshedmak@redhat.com>, 2012, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-10 15:07+0000\n"
-"PO-Revision-Date: 2012-09-12 18:04+0530\n"
+"POT-Creation-Date: 2013-02-18 10:20+0000\n"
+"PO-Revision-Date: 2013-03-20 06:56+0530\n"
 "Last-Translator: Sandeep Shedmake <sshedmak@redhat.com>\n"
 "Language-Team: Marathi <maajhe-sanganak@freelists.org>\n"
 "Language: mr\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Lokalize 1.4\n"
+"X-Generator: Lokalize 1.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:141
 #: ../libsoup/soup-body-input-stream.c:172
@@ -25,60 +25,87 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "जोडणी अनपेक्षितपणे बंद झाली"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "अवैध सीक विनंती"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ट्रंकेट करणे अशक्य"
+
+#: ../libsoup/soup-cache-input-stream.c:74
+msgid "Network stream unexpectedly closed"
+msgstr "नेटवर्क स्ट्रिम अनपेक्षितरित्या बंद झाले"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "रिसोअर्स संपूर्णपणे कॅशे करण्यास अपयशी"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "आउटपुट बफर खूपच लहान आहे"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP response"
+msgstr "HTTP प्रतिसाद वाचणे अशक्य"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "अपरिचीत HTTP प्रतिसाद एंकोडिंग"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "कार्य रद्द केले"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "कार्य बंधिस्त करू शकते"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP request"
+msgstr "HTTP विनंती वाचणे अशक्य"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "URI पुरवले नाही"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "अवैध '%s' URI: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' वाचणे अशक्य"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "असमर्थीत URI सुत्रयोजना '%s'"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4268
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "HTTP URI नाही"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "यजमाननाव IP पत्ता आहे"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "अवैध यजमाननाव"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "यजमाननावात बेस डोमैन नाही"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "अतिरिक्त डोमैन्स् आढळले नाही"
 
