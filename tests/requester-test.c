@@ -691,7 +691,8 @@ do_null_char_request (SoupSession *session, const char *encoded_data,
 	}
 
 	if (nread != expected_len) {
-		debug_printf (1, "	response length mismatch: expected %d, got %lu\n", expected_len, nread);
+		debug_printf (1, "	response length mismatch: expected %d, got %lu\n",
+		              expected_len, (gulong)nread);
 		errors++;
 	} else if (memcmp (buf, expected_data, nread) != 0) {
 		debug_printf (1, "	response data mismatch\n");
