@@ -4,6 +4,10 @@ EXTRA_DIST =
 
 include $(GLIB_MAKEFILE)
 
+if OS_WIN32
+LIBWS2_32 = -lws2_32
+endif
+
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-DLOCALEDIR=\"$(localedir)\"	\
@@ -83,6 +87,7 @@ EXTRA_DIST += libsoup-2.4.sym
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
+	$(LIBWS2_32)			\
 	$(XML_LIBS)			\
 	$(SQLITE_LIBS)
 
