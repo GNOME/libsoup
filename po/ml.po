@@ -1,22 +1,22 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Ani Peter <apeter@redhat.com>, 2012.
+# Ani Peter <apeter@redhat.com>, 2012, 2013.
 # Anish A <aneesh.nl@gmail.com>, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-12 09:33+0000\n"
-"PO-Revision-Date: 2013-02-15 11:47+0530\n"
-"Last-Translator: Anish A <aneesh.nl@gmail.com>\n"
-"Language-Team: Swatantra Malayalam Computing\n"
+"POT-Creation-Date: 2013-03-24 12:31+0000\n"
+"PO-Revision-Date: 2013-03-25 11:40+0530\n"
+"Last-Translator: Ani Peter <peter.ani@gmail.com>\n"
+"Language-Team: American English <kde-i18n-doc@kde.org>\n"
 "Language: ml\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Virtaal 0.7.1\n"
+"X-Generator: Lokalize 1.5\n"
 "X-Project-Style: gnome\n"
 
 #: ../libsoup/soup-body-input-stream.c:141
@@ -33,9 +33,13 @@ msgstr "തെറ്റായ തെരച്ചില്‍ ആവശ്യം"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ട്രക്കേറ്റ് ചെയ്യുവാന്‍ സാധ്യമല്ല"
 
-#: ../libsoup/soup-cache-input-stream.c:77
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "ശൃംഖല സ്ട്രീം വിചാരിക്കാതെ അടച്ചു"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "ശ്രോതസ്സ് കാഷ് ചെയ്യുന്നതു് പൂര്‍ണ്ണമായി പരാജയപ്പെട്ടു"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -72,17 +76,17 @@ msgstr "യുആര്‍ഐ ലഭ്യമാക്കിയിട്ടി�
 msgid "Invalid '%s' URI: %s"
 msgstr "തെറ്റായ '%s' യുആര്‍ഐ: %s"
 
-#: ../libsoup/soup-session.c:4214
+#: ../libsoup/soup-session.c:4252
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "യുആര്‍ഐ '%s' പാഴ്സ് ചെയ്യുവാനായില്ല"
 
-#: ../libsoup/soup-session.c:4251
+#: ../libsoup/soup-session.c:4289
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "പിന്തുണയില്ലാത്ത യുആര്‍ഐ സ്കീം '%s'"
 
-#: ../libsoup/soup-session.c:4273
+#: ../libsoup/soup-session.c:4311
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI അല്ല"
@@ -102,3 +106,4 @@ msgstr "ഹോസ്റ്റ്നാമത്തിനു് ബെയിസ�
 #: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "ആവശ്യമായ ഡൊമെയിനുകള്‍ ലഭ്യമല്ല"
+
