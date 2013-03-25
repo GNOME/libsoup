@@ -3,8 +3,8 @@ dnl *** Initialize automake and set version ***
 dnl *******************************************
 
 m4_define([soup_major_version], [2])
-m4_define([soup_minor_version], [41])
-m4_define([soup_micro_version], [92])
+m4_define([soup_minor_version], [42])
+m4_define([soup_micro_version], [0])
 
 AC_PREREQ(2.63)
 AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
@@ -27,10 +27,10 @@ SOUP_API_VERSION=2.4
 AC_SUBST(SOUP_API_VERSION)
 
 # Increment on interface addition. Reset on removal.
-SOUP_AGE=5
+SOUP_AGE=6
 
 # Increment on interface add, remove, or change.
-SOUP_CURRENT=6
+SOUP_CURRENT=7
 
 # Increment on source change. Reset when CURRENT changes.
 SOUP_REVISION=0
