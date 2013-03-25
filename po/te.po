@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Sasi Bhushan  Boddepalli <sasi@swecha.net>, 2012.
-# Krishnababu Krothapalli <kkrothap@redhat.com>, 2012.
+# Krishnababu Krothapalli <kkrothap@redhat.com>, 2012, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-10 15:07+0000\n"
-"PO-Revision-Date: 2012-09-21 21:25+0530\n"
+"POT-Creation-Date: 2013-02-18 10:20+0000\n"
+"PO-Revision-Date: 2013-03-25 14:39+0530\n"
 "Last-Translator: Krishnababu Krothapalli <kkrothap@redhat.com>\n"
 "Language-Team: Telugu <Fedora-trans-te@redhat.com>\n"
 "Language: te\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Lokalize 1.4\n"
+"X-Generator: Lokalize 1.5\n"
 
 #: ../libsoup/soup-body-input-stream.c:141
 #: ../libsoup/soup-body-input-stream.c:172
@@ -26,60 +26,87 @@ msgstr ""
 msgid "Connection terminated unexpectedly"
 msgstr "కనెక్షను అనుకోకుండా అంతమైంది"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:463
 msgid "Invalid seek request"
 msgstr "చెల్లని సీక్ అభ్యర్ధన"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:491
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ట్రంకేట్ చేయలేదు"
+
+#: ../libsoup/soup-cache-input-stream.c:74
+msgid "Network stream unexpectedly closed"
+msgstr "నెట్వర్కు స్ట్రీమ్ అనుకోకుండా మూయబడింది"
+
+#: ../libsoup/soup-cache-input-stream.c:291
+msgid "Failed to completely cache the resource"
+msgstr "వనరును సంపూర్ణంగా క్యాచీ చేయుటకు విఫలమైంది"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "అవుట్పుట్ బఫర్ మరీ చిన్నది"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP response"
+msgstr "HTTP స్పందనను పార్శ్ చేయలేక పోయింది"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "గుర్తించని HTTP స్పందన యెన్కోడింగ్"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "ఆపరేషన్ రద్దు చేయబడింది"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "ఆపరేషన్ బ్లాక్ చేస్తుంది"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+#| msgid "Could not parse URI '%s'"
+msgid "Could not parse HTTP request"
+msgstr "HTTP అభ్యర్ధనను పార్స్ చేయలేదు"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "URl అందించబడలేదు"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "చెల్లని '%s' URI: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4209
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' అన్వయించడం సాధ్యం కాదు"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4246
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "మద్దతు లేని URI స్కీమ్ '%s'"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4268
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "HTTP URI కాదు"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "హోస్ట్ పేరు ఒక IP చిరునామా"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "చెల్లని హోస్ట్ పేరు"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "అతిధేయిపేరు అధార డొమైన్ కలిగిలేదు"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "సరిపోనన్ని డొమైన్ లు"
 
