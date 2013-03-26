@@ -3899,7 +3899,7 @@ idle_return_from_cache_cb (gpointer data)
 		return FALSE;
 	}
 
-	istream = g_object_steal_data (G_OBJECT (task), "SoupSession:istream");
+	istream = g_object_get_data (G_OBJECT (task), "SoupSession:istream");
 	async_return_from_cache (item, istream);
 
 	return FALSE;
