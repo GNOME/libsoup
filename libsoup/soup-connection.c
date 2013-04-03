@@ -133,7 +133,8 @@ soup_connection_set_property (GObject *object, guint prop_id,
 			priv->soup_proxy_resolver = g_object_ref (proxy_resolver);
 		break;
 	case PROP_G_PROXY_RESOLVER:
-		priv->g_proxy_resolver = g_value_dup_object (value);
+		if (g_value_get_object (value))
+			priv->g_proxy_resolver = g_value_dup_object (value);
 		break;
 	case PROP_SSL:
 		priv->ssl = g_value_get_boolean (value);
