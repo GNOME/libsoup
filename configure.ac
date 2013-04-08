@@ -77,7 +77,7 @@ dnl ***********************
 dnl *** Checks for glib ***
 dnl ***********************
 
-GLIB_REQUIRED=2.35.0
+GLIB_REQUIRED=2.36.0
 AM_PATH_GLIB_2_0($GLIB_REQUIRED,,,gobject gio)
 if test "$GLIB_LIBS" = ""; then
    AC_MSG_ERROR(GLIB $GLIB_REQUIRED or later is required to build libsoup)
