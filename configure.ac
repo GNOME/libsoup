@@ -319,6 +319,8 @@ if test "$ntlm_auth" != "no"; then
 	dnl --with-ntlm-auth (without path) used, use default path
 	ntlm_auth="/usr/bin/ntlm_auth"
     fi
+else
+    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES ntlm_auth"
 fi
 AC_SUBST(ntlm_auth)
 AC_DEFINE_UNQUOTED(NTLM_AUTH, "$ntlm_auth", [Samba's 'winbind' daemon helper 'ntlm_auth' which can be used for NTLM single-sign-on])

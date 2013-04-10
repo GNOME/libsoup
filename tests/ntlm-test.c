@@ -571,8 +571,9 @@ main (int argc, char **argv)
 	debug_printf (1, "Built-in NTLM support\n");
 	do_ntlm_tests (uri, TRUE);
 
+#ifdef USE_NTLM_AUTH
 	/* Samba winbind /usr/bin/ntlm_auth helper support (via a
-	 * helper program that emulate's its interface).
+	 * helper program that emulates its interface).
 	 */
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG", BUILDDIR "/ntlm-test-helper", TRUE);
 	debug_printf (1, "\nExternal helper support\n");
@@ -585,6 +586,7 @@ main (int argc, char **argv)
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
 	debug_printf (1, "\nExternal -> fallback support\n");
 	do_ntlm_tests (uri, TRUE);
+#endif
 
 	/* Other tests */
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
