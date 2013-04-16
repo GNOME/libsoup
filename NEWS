@@ -1,3 +1,19 @@
+Changes in libsoup from 2.42.0 to 2.42.1:
+
+	* Fixed SoupProxyResolverDefault, which got broken in 2.42.92.
+          [#697028, Dan]
+
+	* Fixed a gigantic memory leak when using SoupCache. [#696594,
+          Xan]
+
+	* Fixed a build problem on Windows. [#696354, Kalev Lember]
+
+	* Fixed ntlm-test to pass whether or not Samba ntlm_auth
+          support was compiled in. [#697510, Dan]
+
+	* New/updated translations:
+	  Basque, Turkish
+
 Changes in libsoup from 2.41.92 to 2.42.0:
 
 	* Fixed a compiler warning on 32bit in a test program. [Kalev
