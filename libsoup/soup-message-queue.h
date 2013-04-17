@@ -52,7 +52,8 @@ struct _SoupMessageQueueItem {
 
 	/*< private >*/
 	guint removed              : 1;
-	guint ref_count            : 31;
+	guint priority             : 3;
+	guint ref_count            : 28;
 	SoupMessageQueueItem *prev, *next;
 	SoupMessageQueueItem *related;
 };

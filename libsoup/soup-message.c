@@ -135,6 +135,7 @@ enum {
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
+	PROP_PRIORITY,
 
 	LAST_PROP
 };
@@ -145,6 +146,7 @@ soup_message_init (SoupMessage *msg)
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 
 	priv->http_version = priv->orig_http_version = SOUP_HTTP_1_1;
+	priv->priority = SOUP_MESSAGE_PRIORITY_NORMAL;
 
 	msg->request_body = soup_message_body_new ();
 	msg->request_headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
@@ -236,6 +238,9 @@ soup_message_set_property (GObject *object, guint prop_id,
 		else if (priv->tls_certificate)
 			priv->msg_flags |= SOUP_MESSAGE_CERTIFICATE_TRUSTED;
 		break;
+	case PROP_PRIORITY:
+		priv->priority = g_value_get_enum (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -291,6 +296,9 @@ soup_message_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_TLS_ERRORS:
 		g_value_set_flags (value, priv->tls_errors);
+		break;
+	case PROP_PRIORITY:
+		g_value_set_enum (value, priv->priority);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -857,6 +865,22 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "The verification errors on the message's TLS certificate",
 				    G_TYPE_TLS_CERTIFICATE_FLAGS, 0,
 				    G_PARAM_READWRITE));
+	/**
+	 * SOUP_MESSAGE_PRIORITY:
+	 *
+	 * Sets the priority of the #SoupMessage. See
+	 * soup_message_set_priority() for further details.
+	 *
+	 * Since: 2.44
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_PRIORITY,
+		g_param_spec_enum (SOUP_MESSAGE_PRIORITY,
+				   "Priority",
+				   "The priority of the message",
+				   SOUP_TYPE_MESSAGE_PRIORITY,
+				   SOUP_MESSAGE_PRIORITY_NORMAL,
+				   G_PARAM_READWRITE));
 }
 
 
@@ -1917,3 +1941,70 @@ soup_message_get_soup_request (SoupMessage *msg)
 	return priv->request;
 }
 
+/**
+ * SoupMessagePriority:
+ * @SOUP_MESSAGE_PRIORITY_VERY_LOW: The lowest priority, the messages
+ *   with this priority will be the last ones to be attended.
+ * @SOUP_MESSAGE_PRIORITY_LOW: Use this for low priority messages, a
+ *   #SoupMessage with the default priority will be processed first.
+ * @SOUP_MESSAGE_PRIORITY_NORMAL: The default priotity, this is the
+ *   priority assigned to the #SoupMessage by default.
+ * @SOUP_MESSAGE_PRIORITY_HIGH: High priority, a #SoupMessage with
+ *   this priority will be processed before the ones with the default
+ *   priority.
+ * @SOUP_MESSAGE_PRIORITY_VERY_HIGH: The highest priority, use this
+ *   for very urgent #SoupMessage as they will be the first ones to be
+ *   attended.
+ *
+ * Priorities that can be set on a #SoupMessage to instruct the
+ * message queue to process it before any other message with lower
+ * priority.
+ **/
+
+/**
+ * soup_message_set_priority:
+ * @msg: a #SoupMessage
+ * @priority: the #SoupMessagePriority
+ *
+ * Sets the priority of a message. Note that this won't have any
+ * effect unless used before the message is added to the session's
+ * message processing queue.
+ *
+ * The message will be placed just before any other previously added
+ * message with lower priority (messages with the same priority are
+ * processed on a FIFO basis).
+ *
+ * Setting priorities does not currently work with #SoupSessionSync
+ * (or with synchronous messages on a plain #SoupSession) because in
+ * the synchronous/blocking case, priority ends up being determined
+ * semi-randomly by thread scheduling.
+ *
+ * Since: 2.44
+ */
+void
+soup_message_set_priority (SoupMessage        *msg,
+			   SoupMessagePriority priority)
+{
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	g_object_set (msg, SOUP_MESSAGE_PRIORITY, priority, NULL);
+}
+
+/**
+ * soup_message_get_priority:
+ * @msg: a #SoupMessage
+ *
+ * Retrieves the #SoupMessagePriority. If not set this value defaults
+ * to #SOUP_MESSAGE_PRIORITY_NORMAL.
+ *
+ * Return value: the priority of the message.
+ *
+ * Since: 2.44
+ */
+SoupMessagePriority
+soup_message_get_priority (SoupMessage *msg)
+{
+	g_return_val_if_fail (SOUP_IS_MESSAGE (msg), SOUP_MESSAGE_PRIORITY_NORMAL);
+
+	return SOUP_MESSAGE_GET_PRIVATE (msg)->priority;
+}

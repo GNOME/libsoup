@@ -41,6 +41,8 @@ typedef struct {
 	GTlsCertificateFlags  tls_errors;
 
 	SoupRequest       *request;
+
+	SoupMessagePriority priority;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 

@@ -89,6 +89,7 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 	item->callback = callback;
 	item->callback_data = user_data;
 	item->cancellable = g_cancellable_new ();
+	item->priority = soup_message_get_priority (msg);
 
 	g_signal_connect (msg, "restarted",
 			  G_CALLBACK (queue_message_restarted), item);
@@ -101,9 +102,27 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 
 	g_mutex_lock (&queue->mutex);
 	if (queue->head) {
-		queue->tail->next = item;
-		item->prev = queue->tail;
-		queue->tail = item;
+		SoupMessageQueueItem *it = queue->head;
+
+		while (it && it->priority >= item->priority)
+			it = it->next;
+
+		if (!it) {
+			if (queue->tail) {
+				queue->tail->next = item;
+				item->prev = queue->tail;
+			} else
+				queue->head = item;
+			queue->tail = item;
+		} else {
+			if (it != queue->head)
+				it->prev->next = item;
+			else
+				queue->head = item;
+			item->prev = it->prev;
+			it->prev = item;
+			item->next = it;
+		}
 	} else
 		queue->head = queue->tail = item;
 

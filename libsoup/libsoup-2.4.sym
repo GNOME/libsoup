@@ -231,6 +231,7 @@ soup_message_get_first_party
 soup_message_get_flags
 soup_message_get_https_status
 soup_message_get_http_version
+soup_message_get_priority
 soup_message_get_soup_request
 soup_message_get_type
 soup_message_get_uri
@@ -273,11 +274,13 @@ soup_message_io_cleanup
 soup_message_is_keepalive
 soup_message_new
 soup_message_new_from_uri
+soup_message_priority_get_type
 soup_message_restarted
 soup_message_set_chunk_allocator
 soup_message_set_first_party
 soup_message_set_flags
 soup_message_set_http_version
+soup_message_set_priority
 soup_message_set_redirect
 soup_message_set_request
 soup_message_set_response

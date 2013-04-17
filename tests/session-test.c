@@ -5,6 +5,7 @@
 static gboolean server_processed_message;
 static gboolean timeout;
 static GMainLoop *loop;
+static SoupMessagePriority expected_priorities[3];
 
 static gboolean
 timeout_cb (gpointer user_data)
@@ -207,6 +208,61 @@ do_sync_tests (char *uri, char *timeout_uri)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+priority_test_finished_cb (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	guint *finished_count = user_data;
+	SoupMessagePriority priority = soup_message_get_priority (msg);
+
+	if (priority != expected_priorities[*finished_count]) {
+		debug_printf (1, "    message %d should have priority %d (%d found)\n",
+			      *finished_count, expected_priorities[*finished_count], priority);
+		errors++;
+	} else
+		debug_printf (1, "  received message %d with priority %d\n",
+			      *finished_count, priority);
+
+	(*finished_count)++;
+}
+
+static void
+do_priority_tests (char *uri)
+{
+	SoupSession *session;
+	int i, finished_count = 0;
+	SoupMessagePriority priorities[] =
+		{ SOUP_MESSAGE_PRIORITY_LOW,
+		  SOUP_MESSAGE_PRIORITY_HIGH,
+		  SOUP_MESSAGE_PRIORITY_NORMAL };
+
+	debug_printf (1, "\nSoupSessionAsync\n");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	g_object_set (session, "max-conns", 1, NULL);
+
+	expected_priorities[0] = SOUP_MESSAGE_PRIORITY_HIGH;
+	expected_priorities[1] = SOUP_MESSAGE_PRIORITY_NORMAL;
+	expected_priorities[2] = SOUP_MESSAGE_PRIORITY_LOW;
+
+	for (i = 0; i < 3; i++) {
+		char *msg_uri;
+		SoupMessage *msg;
+
+		msg_uri = g_strdup_printf ("%s/%d", uri, i);
+		msg = soup_message_new ("GET", uri);
+		g_free (msg_uri);
+
+		soup_message_set_priority (msg, priorities[i]);
+		soup_session_queue_message (session, msg, priority_test_finished_cb, &finished_count);
+	}
+
+	debug_printf (2, "    waiting for finished\n");
+	while (finished_count != 3)
+		g_main_context_iteration (NULL, TRUE);
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -224,6 +280,7 @@ main (int argc, char **argv)
 	do_plain_tests (uri, timeout_uri);
 	do_async_tests (uri, timeout_uri);
 	do_sync_tests (uri, timeout_uri);
+	do_priority_tests (uri);
 
 	g_free (uri);
 	g_free (timeout_uri);

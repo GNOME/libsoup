@@ -74,6 +74,7 @@ GType soup_message_get_type (void);
 #define SOUP_MESSAGE_RESPONSE_HEADERS "response-headers"
 #define SOUP_MESSAGE_TLS_CERTIFICATE  "tls-certificate"
 #define SOUP_MESSAGE_TLS_ERRORS       "tls-errors"
+#define SOUP_MESSAGE_PRIORITY         "priority"
 
 SoupMessage   *soup_message_new                 (const char        *method,
 						 const char        *uri_string);
@@ -185,6 +186,23 @@ void           soup_message_disable_feature     (SoupMessage       *msg,
 
 SOUP_AVAILABLE_IN_2_42
 SoupRequest   *soup_message_get_soup_request    (SoupMessage       *msg);
+
+
+typedef enum {
+	SOUP_MESSAGE_PRIORITY_VERY_LOW = 0,
+	SOUP_MESSAGE_PRIORITY_LOW,
+	SOUP_MESSAGE_PRIORITY_NORMAL,
+	SOUP_MESSAGE_PRIORITY_HIGH,
+	SOUP_MESSAGE_PRIORITY_VERY_HIGH
+} SoupMessagePriority;
+
+SOUP_AVAILABLE_IN_2_44
+void                soup_message_set_priority   (SoupMessage        *msg,
+						 SoupMessagePriority priority);
+
+
+SOUP_AVAILABLE_IN_2_44
+SoupMessagePriority soup_message_get_priority   (SoupMessage        *msg);
 
 void soup_message_wrote_informational (SoupMessage *msg);
 void soup_message_wrote_headers       (SoupMessage *msg);
