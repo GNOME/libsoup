@@ -340,6 +340,9 @@ do_proxy_redirect_test (void)
 	SoupURI *proxy_uri, *req_uri, *new_uri;
 	SoupMessage *msg;
 
+	if (!tls_available)
+		return;
+
 	debug_printf (1, "\nTesting redirection through proxy\n");
 
 	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
