@@ -771,8 +771,11 @@ do_connection_state_test_for_session (SoupSession *session)
 	debug_printf (1, "    http\n");
 	do_one_connection_state_test (session, HTTP_SERVER);
 
-	debug_printf (1, "    https\n");
-	do_one_connection_state_test (session, HTTPS_SERVER);
+	if (tls_available) {
+		debug_printf (1, "    https\n");
+		do_one_connection_state_test (session, HTTPS_SERVER);
+	} else
+		debug_printf (1, "    https -- SKIPPING\n");
 
 	proxy_uri = soup_uri_new (HTTP_PROXY);
 	g_object_set (G_OBJECT (session),
@@ -783,8 +786,11 @@ do_connection_state_test_for_session (SoupSession *session)
 	debug_printf (1, "    http with proxy\n");
 	do_one_connection_state_test (session, HTTP_SERVER);
 
-	debug_printf (1, "    https with proxy\n");
-	do_one_connection_state_test (session, HTTPS_SERVER);
+	if (tls_available) {
+		debug_printf (1, "    https with proxy\n");
+		do_one_connection_state_test (session, HTTPS_SERVER);
+	} else
+		debug_printf (1, "    https with proxy -- SKIPPING\n");
 }
 
 static void
@@ -886,8 +892,11 @@ do_connection_event_test_for_session (SoupSession *session)
 	debug_printf (1, "    http\n");
 	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
 
-	debug_printf (1, "    https\n");
-	do_one_connection_event_test (session, HTTPS_SERVER, "rRcCtTx");
+	if (tls_available) {
+		debug_printf (1, "    https\n");
+		do_one_connection_event_test (session, HTTPS_SERVER, "rRcCtTx");
+	} else
+		debug_printf (1, "    https -- SKIPPING\n");
 
 	proxy_uri = soup_uri_new (HTTP_PROXY);
 	g_object_set (G_OBJECT (session),
@@ -898,8 +907,11 @@ do_connection_event_test_for_session (SoupSession *session)
 	debug_printf (1, "    http with proxy\n");
 	do_one_connection_event_test (session, HTTP_SERVER, "rRcCx");
 
-	debug_printf (1, "    https with proxy\n");
-	do_one_connection_event_test (session, HTTPS_SERVER, "rRcCpPtTx");
+	if (tls_available) {
+		debug_printf (1, "    https with proxy\n");
+		do_one_connection_event_test (session, HTTPS_SERVER, "rRcCpPtTx");
+	} else
+		debug_printf (1, "    https with proxy -- SKIPPING\n");
 }
 
 static void

@@ -1021,12 +1021,15 @@ do_aliases_test (void)
 	do_aliases_test_for_session (session, "http");
 	soup_test_session_abort_unref (session);
 
-	debug_printf (1, "  foo-means-https\n");
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_HTTPS_ALIASES, aliases,
-					 NULL);
-	do_aliases_test_for_session (session, "https");
-	soup_test_session_abort_unref (session);
+	if (tls_available) {
+		debug_printf (1, "  foo-means-https\n");
+		session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+						 SOUP_SESSION_HTTPS_ALIASES, aliases,
+						 NULL);
+		do_aliases_test_for_session (session, "https");
+		soup_test_session_abort_unref (session);
+	} else
+		debug_printf (1, "  foo-means-https -- SKIPPING\n");
 
 	debug_printf (1, "  foo-means-nothing\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
@@ -1217,10 +1220,12 @@ main (int argc, char **argv)
 	soup_server_add_auth_domain (server, auth_domain);
 	g_object_unref (auth_domain);
 
-	ssl_server = soup_test_server_new_ssl (TRUE);
-	soup_server_add_handler (ssl_server, NULL, server_callback, "https", NULL);
-	ssl_base_uri = soup_uri_new ("https://127.0.0.1/");
-	soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
+	if (tls_available) {
+		ssl_server = soup_test_server_new_ssl (TRUE);
+		soup_server_add_handler (ssl_server, NULL, server_callback, "https", NULL);
+		ssl_base_uri = soup_uri_new ("https://127.0.0.1/");
+		soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
+	}
 
 	do_host_test ();
 	do_callback_unref_test ();
@@ -1239,9 +1244,12 @@ main (int argc, char **argv)
 	do_pause_abort_test ();
 
 	soup_uri_free (base_uri);
-	soup_uri_free (ssl_base_uri);
 	soup_test_server_quit_unref (server);
-	soup_test_server_quit_unref (ssl_server);
+
+	if (tls_available) {
+		soup_uri_free (ssl_base_uri);
+		soup_test_server_quit_unref (ssl_server);
+	}
 
 	test_cleanup ();
 	return errors != 0;
