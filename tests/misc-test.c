@@ -1110,6 +1110,11 @@ do_ipv6_test (void)
 	ipv6_server = soup_server_new (SOUP_SERVER_INTERFACE, ipv6_addr,
 				       NULL);
 	g_object_unref (ipv6_addr);
+	if (!ipv6_server) {
+		debug_printf (1, "  skipping due to lack of IPv6 support\n");
+		return;
+	}
+
 	soup_server_add_handler (ipv6_server, NULL, ipv6_server_callback, NULL, NULL);
 	soup_server_run_async (ipv6_server);
 
