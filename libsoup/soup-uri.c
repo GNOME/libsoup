@@ -489,21 +489,9 @@ soup_uri_new (const char *uri_string)
 }
 
 
-/**
- * soup_uri_to_string:
- * @uri: a #SoupURI
- * @just_path_and_query: if %TRUE, output just the path and query portions
- *
- * Returns a string representing @uri.
- *
- * If @just_path_and_query is %TRUE, this concatenates the path and query
- * together. That is, it constructs the string that would be needed in
- * the Request-Line of an HTTP request for @uri.
- *
- * Return value: a string representing @uri, which the caller must free.
- **/
 char *
-soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
+soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
+			     gboolean force_port)
 {
 	GString *str;
 	char *return_result;
@@ -511,7 +499,7 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	g_return_val_if_fail (uri != NULL, NULL);
 	g_warn_if_fail (SOUP_URI_IS_VALID (uri));
 
-	str = g_string_sized_new (20);
+	str = g_string_sized_new (40);
 
 	if (uri->scheme && !just_path_and_query)
 		g_string_append_printf (str, "%s:", uri->scheme);
@@ -527,7 +515,7 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 			g_string_append_c (str, ']');
 		} else
 			append_uri_encoded (str, uri->host, ":/");
-		if (uri->port && uri->port != soup_scheme_default_port (uri->scheme))
+		if (uri->port && (force_port || uri->port != soup_scheme_default_port (uri->scheme)))
 			g_string_append_printf (str, ":%u", uri->port);
 		if (!uri->path && (uri->query || uri->fragment))
 			g_string_append_c (str, '/');
@@ -555,6 +543,25 @@ soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 	g_string_free (str, FALSE);
 
 	return return_result;
+}
+
+/**
+ * soup_uri_to_string:
+ * @uri: a #SoupURI
+ * @just_path_and_query: if %TRUE, output just the path and query portions
+ *
+ * Returns a string representing @uri.
+ *
+ * If @just_path_and_query is %TRUE, this concatenates the path and query
+ * together. That is, it constructs the string that would be needed in
+ * the Request-Line of an HTTP request for @uri.
+ *
+ * Return value: a string representing @uri, which the caller must free.
+ **/
+char *
+soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
+{
+	return soup_uri_to_string_internal (uri, just_path_and_query, FALSE);
 }
 
 /**

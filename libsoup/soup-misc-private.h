@@ -10,6 +10,8 @@
 #include "soup-socket.h"
 
 char *uri_decoded_copy (const char *str, int length, int *decoded_length);
+char *soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
+				   gboolean force_port);
 
 guint soup_socket_handshake_sync  (SoupSocket         *sock,
 				   GCancellable       *cancellable);
