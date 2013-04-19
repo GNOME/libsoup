@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+#include <gio/gnetworking.h>
+
 #include "soup-address.h"
 #include "soup.h"
 #include "soup-marshal.h"

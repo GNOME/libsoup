@@ -8,7 +8,6 @@
 
 #include <sys/types.h>
 
-#include <libsoup/soup-portability.h>
 #include <libsoup/soup-types.h>
 
 G_BEGIN_DECLS
@@ -50,6 +49,8 @@ typedef enum {
 } SoupAddressFamily;
 
 #define SOUP_ADDRESS_ANY_PORT 0
+
+struct sockaddr;
 
 typedef void   (*SoupAddressCallback)            (SoupAddress         *addr,
 						  guint                status,

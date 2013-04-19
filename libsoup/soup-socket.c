@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+#include <gio/gnetworking.h>
+
 #include "soup-socket.h"
 #include "soup.h"
 #include "soup-filter-input-stream.h"
