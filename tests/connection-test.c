@@ -5,6 +5,8 @@
 
 #include "test-utils.h"
 
+#include <gio/gnetworking.h>
+
 SoupServer *server;
 SoupURI *base_uri;
 GMutex server_mutex;

@@ -2,6 +2,7 @@ INCLUDES =		\
 	-I$(top_srcdir)	\
 	-DSRCDIR=\""$(abs_srcdir)"\" \
 	-DBUILDDIR=\""$(builddir)"\" \
+	-DSOUP_COMPILATION \
 	$(GLIB_CFLAGS)
 
 LIBS =			\

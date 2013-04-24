@@ -11,6 +11,7 @@ endif
 INCLUDES = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-DLOCALEDIR=\"$(localedir)\"	\
+	-DSOUP_COMPILATION		\
 	-I$(top_srcdir)			\
 	-I$(top_builddir)		\
 	$(SOUP_DEBUG_FLAGS)		\

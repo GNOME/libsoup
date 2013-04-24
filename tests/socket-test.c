@@ -4,11 +4,9 @@
  * Copyright 2012 Nokia Corporation
  */
 
-#include <libsoup/soup.h>
-
-#include <string.h>
-
 #include "test-utils.h"
+
+#include <gio/gnetworking.h>
 
 static void
 do_unconnected_socket_test (void)
