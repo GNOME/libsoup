@@ -1,3 +1,13 @@
+Changes in libsoup from 2.42.1 to 2.42.2:
+
+	* Fixed SoupSession:proxy-resolver [#698163, Dan]
+
+	* Further win32 build fixes [#692134, Dan]
+
+	* Fixed several test programs to still work if glib-networking
+          isn't installed [Dan], and fixed another to still work if
+          the kernel has no IPv6 support. [#698220, Dan]
+
 Changes in libsoup from 2.42.0 to 2.42.1:
 
 	* Fixed SoupProxyResolverDefault, which got broken in 2.42.92.
