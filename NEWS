@@ -1,3 +1,22 @@
+Changes in libsoup from 2.42.1 to 2.43.1:
+
+	* Including <libsoup/soup.h> no longer pulls in the system
+	  networking headers. This may cause some packages to no
+	  longer compile, if they were accidentally depending on this.
+	  Adding "#include <gio/gnetworking.h>" will fix them on both
+	  unix and Windows. (This was done as part of fixing the build
+	  on Windows.) [#692134, Dan]
+
+	* Fixed SoupSession:proxy-resolver [#698163, Dan]
+
+	* Added soup_message_set_priority(), to mark messages as being
+          high, low, or normal priority, and update the message queue
+          to prioritize them accordingly. [#696277, Sergio]
+
+	* Fixed several test programs to still work if glib-networking
+          isn't installed [Dan], and fixed another to still work if
+          the kernel has no IPv6 support. [#698220, Dan]
+
 Changes in libsoup from 2.42.0 to 2.42.1:
 
 	* Fixed SoupProxyResolverDefault, which got broken in 2.42.92.
