@@ -25,6 +25,8 @@
 #include <config.h>
 #endif
 
+#include <string.h>
+
 #include "soup-request-file.h"
 #include "soup.h"
 #include "soup-directory-input-stream.h"
