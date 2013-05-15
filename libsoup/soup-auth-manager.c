@@ -679,13 +679,15 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 
 	g_mutex_lock (&priv->lock);
 
-	auth = lookup_auth (priv, msg);
-	if (auth) {
-		authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE);
-		if (!soup_auth_is_ready (auth, msg))
-			auth = NULL;
+	if (msg->method != SOUP_METHOD_CONNECT) {
+		auth = lookup_auth (priv, msg);
+		if (auth) {
+			authenticate_auth (manager, auth, msg, FALSE, FALSE, FALSE);
+			if (!soup_auth_is_ready (auth, msg))
+				auth = NULL;
+		}
+		soup_message_set_auth (msg, auth);
 	}
-	soup_message_set_auth (msg, auth);
 
 	auth = priv->proxy_auth;
 	if (auth) {
