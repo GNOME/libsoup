@@ -22,6 +22,7 @@ TESTS =				\
 	header-parsing		\
 	misc-test		\
 	multipart-test		\
+	no-ssl-test		\
 	ntlm-test		\
 	proxy-test		\
 	pull-api		\

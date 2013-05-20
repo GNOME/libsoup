@@ -439,10 +439,12 @@ set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 	g_object_freeze_notify (G_OBJECT (session));
 
 	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-	if (priv->tlsdb == system_default || tlsdb == system_default) {
-		g_object_notify (G_OBJECT (session), "ssl-use-system-ca-file");
+	if (system_default) {
+		if (priv->tlsdb == system_default || tlsdb == system_default) {
+			g_object_notify (G_OBJECT (session), "ssl-use-system-ca-file");
+		}
+		g_object_unref (system_default);
 	}
-	g_object_unref (system_default);
 
 	if (priv->ssl_ca_file) {
 		g_free (priv->ssl_ca_file);
@@ -473,7 +475,7 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 	else if (priv->tlsdb == system_default)
 		set_tlsdb (session, NULL);
 
-	g_object_unref (system_default);
+	g_clear_object (&system_default);
 }
 
 static void
@@ -510,11 +512,15 @@ set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
 	}
 
 	set_tlsdb (session, tlsdb);
-	if (tlsdb)
+	if (tlsdb) {
 		g_object_unref (tlsdb);
 
-	priv->ssl_ca_file = g_strdup (ssl_ca_file);
-	g_object_notify (G_OBJECT (session), "ssl-ca-file");
+		priv->ssl_ca_file = g_strdup (ssl_ca_file);
+		g_object_notify (G_OBJECT (session), "ssl-ca-file");
+	} else if (priv->ssl_ca_file) {
+		g_clear_pointer (&priv->ssl_ca_file, g_free);
+		g_object_notify (G_OBJECT (session), "ssl-ca-file");
+	}
 
 	g_object_thaw_notify (G_OBJECT (session));
 }
@@ -730,7 +736,7 @@ soup_session_get_property (GObject *object, guint prop_id,
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
 		g_value_set_boolean (value, priv->tlsdb == tlsdb);
-		g_object_unref (tlsdb);
+		g_clear_object (&tlsdb);
 		break;
 	case PROP_TLS_DATABASE:
 		g_value_set_object (value, priv->tlsdb);
