@@ -113,12 +113,12 @@ got_headers (SoupMessage *msg, int *headers_count)
 	}
 
 	if (!g_str_equal (name, "Content-Type")) {
-		debug_printf (1, "  expected `Content-Type' got %s\n", name);
+		debug_printf (1, "  expected 'Content-Type' got %s\n", name);
 		errors++;
 	}
 
 	if (!g_str_equal (value, "multipart/x-mixed-replace; boundary=cut-here")) {
-		debug_printf (1, "  expected `multipart/x-mixed-replace; boundary=cut-here' got %s\n", value);
+		debug_printf (1, "  expected 'multipart/x-mixed-replace; boundary=cut-here' got %s\n", value);
 		errors++;
 	}
 }
@@ -293,12 +293,12 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		check_is_next (is_next);
 
 		if (!g_str_equal (name, "Content-Type")) {
-			debug_printf (1, "  [0] expected `Content-Type' got %s\n", name);
+			debug_printf (1, "  [0] expected 'Content-Type' got %s\n", name);
 			errors++;
 		}
 
 		if (!g_str_equal (value, "text/html")) {
-			debug_printf (1, "  [0] expected `text/html' got %s\n", value);
+			debug_printf (1, "  [0] expected 'text/html' got %s\n", value);
 			errors++;
 		}
 
@@ -306,12 +306,12 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		check_is_next (is_next);
 
 		if (!g_str_equal (name, "Content-Length")) {
-			debug_printf (1, "  [0] expected `Content-Length' got %s\n", name);
+			debug_printf (1, "  [0] expected 'Content-Length' got %s\n", name);
 			errors++;
 		}
 
 		if (!g_str_equal (value, "30")) {
-			debug_printf (1, "  [0] expected `30' got %s\n", value);
+			debug_printf (1, "  [0] expected '30' got %s\n", value);
 			errors++;
 		}
 
@@ -321,12 +321,12 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		check_is_next (is_next);
 
 		if (!g_str_equal (name, "Content-Length")) {
-			debug_printf (1, "  [1] expected `Content-Length' got %s\n", name);
+			debug_printf (1, "  [1] expected 'Content-Length' got %s\n", name);
 			errors++;
 		}
 
 		if (!g_str_equal (value, "10")) {
-			debug_printf (1, "  [1] expected `10' got %s\n", value);
+			debug_printf (1, "  [1] expected '10' got %s\n", value);
 			errors++;
 		}
 
@@ -337,12 +337,12 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		check_is_next (is_next);
 
 		if (!g_str_equal (name, "Content-Type")) {
-			debug_printf (1, "  [%d] expected `Content-Type' got %s\n", passes, name);
+			debug_printf (1, "  [%d] expected 'Content-Type' got %s\n", passes, name);
 			errors++;
 		}
 
 		if (!g_str_equal (value, "text/css")) {
-			debug_printf (1, "  [%d] expected `text/html' got %s\n", passes, value);
+			debug_printf (1, "  [%d] expected 'text/html' got %s\n", passes, value);
 			errors++;
 		}
 
