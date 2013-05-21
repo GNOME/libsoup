@@ -1404,8 +1404,11 @@ soup_socket_get_http_proxy_uri (SoupSocket *sock)
 	if (!priv->gsock)
 		return NULL;
 	addr = g_socket_get_remote_address (priv->gsock, NULL);
-	if (!addr || !G_IS_PROXY_ADDRESS (addr))
+	if (!addr || !G_IS_PROXY_ADDRESS (addr)) {
+		if (addr)
+			g_object_unref (addr);
 		return NULL;
+	}
 
 	paddr = G_PROXY_ADDRESS (addr);
 	if (strcmp (g_proxy_address_get_protocol (paddr), "http") != 0)
