@@ -372,7 +372,7 @@ soup_auth_ntlm_get_protection_space (SoupAuth *auth, SoupURI *source_uri)
 
 	space = g_strdup (source_uri->path);
 
-	/* Strip query and filename component */
+	/* Strip filename component */
 	p = strrchr (space, '/');
 	if (p && p != space && p[1])
 		*p = '\0';
