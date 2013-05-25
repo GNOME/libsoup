@@ -9,6 +9,7 @@
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <glib/gi18n-lib.h>
@@ -16,6 +17,28 @@
 #include "soup.h"
 #include "soup-message-private.h"
 #include "soup-misc-private.h"
+
+static SoupURI *
+parse_connect_authority (const char *req_path)
+{
+	SoupURI *uri;
+	char *fake_uri;
+
+	fake_uri = g_strdup_printf ("https://%s", req_path);
+	uri = soup_uri_new (fake_uri);
+	g_free (fake_uri);
+
+	if (uri->user || uri->password ||
+	    uri->query || uri->fragment ||
+	    !uri->host ||
+	    (uri->port == 0) ||
+	    (strcmp (uri->path, "/") != 0)) {
+		soup_uri_free (uri);
+		return NULL;
+	}
+
+	return uri;
+}
 
 static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
@@ -73,8 +96,11 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 		if (uri)
 			soup_uri_set_path (uri, "*");
 		g_free (url);
+	} else if (msg->method == SOUP_METHOD_CONNECT) {
+		/* Authority */
+		uri = parse_connect_authority (req_path);
 	} else if (*req_path != '/') {
-		/* Must be an absolute URI */
+		/* Absolute URI */
 		uri = soup_uri_new (req_path);
 	} else if (req_host) {
 		url = g_strdup_printf ("%s://%s%s",

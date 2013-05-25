@@ -98,12 +98,26 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *context, gpointer data)
 {
+	SoupSocket *sock = soup_client_context_get_socket (context);
+
 	/* The way this gets used in the tests, we don't actually
 	 * need to hold it through the whole function, so it's simpler
 	 * to just release it right away.
 	 */
 	g_mutex_lock (&server_mutex);
 	g_mutex_unlock (&server_mutex);
+
+	if (msg->method == SOUP_METHOD_CONNECT) {
+		int sockfd;
+
+		/* Close-during-CONNECT test; see close_socket() above */
+		sockfd = soup_socket_get_fd (sock);
+#ifdef G_OS_WIN32
+		shutdown (sockfd, SD_SEND);
+#else
+		shutdown (sockfd, SHUT_WR);
+#endif
+	}
 
 	if (msg->method != SOUP_METHOD_GET && msg->method != SOUP_METHOD_POST) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -123,14 +137,11 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Connection", "close");
 
 		if (too_long) {
-			SoupSocket *sock;
-
 			/* soup-message-io will wait for us to add
 			 * another chunk after the first, to fill out
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
-			sock = soup_client_context_get_socket (context);
 			g_signal_connect (msg, "wrote-chunk",
 					  G_CALLBACK (close_socket), sock);
 		} else if (no_close) {
@@ -145,12 +156,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		return;
 	}
 
-	if (!strcmp (path, "/timeout-persistent")) {
-		SoupSocket *sock;
-
-		sock = soup_client_context_get_socket (context);
+	if (!strcmp (path, "/timeout-persistent"))
 		setup_timeout_persistent (server, sock);
-	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_set_response (msg, "text/plain",
@@ -683,6 +690,75 @@ do_non_idempotent_connection_test (void)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+do_tunnel_close_test_for_session (SoupSession *session)
+{
+	SoupMessage *msg;
+	SoupRequest *req;
+	GInputStream *stream;
+	GError *error = NULL;
+
+	debug_printf (1, "    SoupMessage\n");
+	msg = soup_message_new ("GET", "https://example.com/");
+	soup_session_send_message (session, msg);
+	if (msg->status_code != SOUP_STATUS_SSL_FAILED) {
+		debug_printf (1, "      Unexpected response: %d %s\n",
+			      msg->status_code, msg->reason_phrase);
+		errors++;
+	}
+	g_object_unref (msg);
+
+	if (SOUP_IS_SESSION_SYNC (session))
+		return;
+
+	debug_printf (1, "    SoupRequest\n");
+	req = soup_session_request (session, "https://example.com/", NULL);
+	stream = soup_test_request_send (req, NULL, 0, &error);
+	if (stream) {
+		msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (req));
+		debug_printf (1, "      Request unexpectedly succeeded (%d %s)!\n",
+			      msg->status_code, msg->reason_phrase);
+		g_object_unref (msg);
+		errors++;
+		soup_test_request_close_stream (req, stream, NULL, NULL);
+		g_object_unref (stream);
+	} else {
+		debug_printf (1, "  EXPECTED error: %s\n", error->message);
+		g_clear_error (&error);
+	}
+	g_object_unref (req);
+}
+
+static void
+do_tunnel_close_test (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nTest when proxy closes connection during CONNECT\n");
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_PROXY_URI, base_uri,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_tunnel_close_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 SOUP_SESSION_PROXY_URI, base_uri,
+					 NULL);
+	do_tunnel_close_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Plain session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION,
+					 SOUP_SESSION_PROXY_URI, base_uri,
+					 NULL);
+	do_tunnel_close_test_for_session (session);
+	soup_test_session_abort_unref (session);
+}
+
 #ifdef HAVE_APACHE
 
 #define HTTP_SERVER  "http://127.0.0.1:47524"
@@ -952,6 +1028,7 @@ main (int argc, char **argv)
 	do_max_conns_test ();
 	do_non_persistent_connection_test ();
 	do_non_idempotent_connection_test ();
+	do_tunnel_close_test ();
 #ifdef HAVE_APACHE
 	do_connection_state_test ();
 	do_connection_event_test ();
