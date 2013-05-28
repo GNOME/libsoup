@@ -1,3 +1,20 @@
+Changes in libsoup from 2.43.1 to 2.43.2:
+
+	* Fixed an authentication error when using NTLM when
+          connecting to an https site over a proxy; the code was
+          getting confused and thinking that the 200 OK response to
+          the CONNECT meant that NTLM auth had succeeded. [#698728,
+          Dan]
+
+	* Fixed a memory leak in SoupSocket. [#700472, Richard
+          Röjfors]
+
+	* Fixed a missing include error on some platforms [#700003,
+          Erik van Pienbroek]
+
+	* Fixed warnings when running against the "dummy" TLS backend.
+	  [#700518, Dan]
+
 Changes in libsoup from 2.42.1 to 2.43.1:
 
 	* Including <libsoup/soup.h> no longer pulls in the system
