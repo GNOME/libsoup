@@ -2148,8 +2148,11 @@ soup_session_real_kick_queue (SoupSession *session)
 			have_sync_items = TRUE;
 	}
 
-	if (have_sync_items)
+	if (have_sync_items) {
+		g_mutex_lock (&priv->conn_lock);
 		g_cond_broadcast (&priv->conn_cond);
+		g_mutex_unlock (&priv->conn_lock);
+	}
 }
 
 void
