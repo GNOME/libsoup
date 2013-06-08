@@ -16,6 +16,7 @@ static SoupProxyTest tests[] = {
 	{ "GET -> 401 -> 200", "/Basic/realm1/", SOUP_STATUS_OK },
 	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED },
 	{ "GET -> 403", "http://no-such-hostname.xx/", SOUP_STATUS_FORBIDDEN },
+	{ "GET -> 200 (unproxied)", "http://localhost:47524/", SOUP_STATUS_OK },
 };
 static const int ntests = sizeof (tests) / sizeof (tests[0]);
 
@@ -37,6 +38,8 @@ static const char *proxy_names[] = {
 	"authenticated proxy",
 	"unauthenticatable-to proxy"
 };
+static GProxyResolver *proxy_resolvers[3];
+static const char *ignore_hosts[] = { "localhost", NULL };
 
 static void
 authenticate (SoupSession *session, SoupMessage *msg,
@@ -82,26 +85,25 @@ test_url (const char *url, int proxy, guint expected,
 	  gboolean sync, gboolean close)
 {
 	SoupSession *session;
-	SoupURI *proxy_uri;
 	SoupMessage *msg;
+	gboolean noproxy = !!strstr (url, "localhost");
 
 	if (!tls_available && g_str_has_prefix (url, "https:"))
 		return;
 
 	debug_printf (1, "  GET %s via %s%s\n", url, proxy_names[proxy],
 		      close ? " (with Connection: close)" : "");
-	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)
+	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN && !noproxy)
 		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
 
 	/* We create a new session for each request to ensure that
 	 * connections/auth aren't cached between tests.
 	 */
-	proxy_uri = soup_uri_new (proxies[proxy]);
 	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_SSL_STRICT, FALSE,
 					 NULL);
-	soup_uri_free (proxy_uri);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	if (close) {
@@ -132,29 +134,28 @@ test_url_new_api (const char *url, int proxy, guint expected,
 		  gboolean sync, gboolean close)
 {
 	SoupSession *session;
-	SoupURI *proxy_uri;
 	SoupMessage *msg;
 	SoupRequest *request;
 	GInputStream *stream;
 	GError *error = NULL;
+	gboolean noproxy = !!strstr (url, "localhost");
 
 	if (!tls_available && g_str_has_prefix (url, "https:"))
 		return;
 
 	debug_printf (1, "  GET (request API) %s via %s%s\n", url, proxy_names[proxy],
 		      close ? " (with Connection: close)" : "");
-	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN)
+	if (proxy == UNAUTH_PROXY && expected != SOUP_STATUS_FORBIDDEN && !noproxy)
 		expected = SOUP_STATUS_PROXY_UNAUTHORIZED;
 
 	/* We create a new session for each request to ensure that
 	 * connections/auth aren't cached between tests.
 	 */
-	proxy_uri = soup_uri_new (proxies[proxy]);
 	session = soup_test_session_new (sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 SOUP_SESSION_PROXY_URI, proxy_uri,
+					 SOUP_SESSION_PROXY_RESOLVER, proxy_resolvers[proxy],
+					 SOUP_SESSION_SSL_STRICT, FALSE,
 					 NULL);
-	soup_uri_free (proxy_uri);
 
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
@@ -206,8 +207,18 @@ run_test (int i, gboolean sync)
 		      sync ? "sync" : "async");
 
 	if (!strncmp (tests[i].url, "http", 4)) {
+		SoupURI *uri;
+		guint port;
+
 		http_url = g_strdup (tests[i].url);
-		https_url = g_strdup_printf ("https%s", tests[i].url + 4);
+
+		uri = soup_uri_new (tests[i].url);
+		port = uri->port;
+		soup_uri_set_scheme (uri, "https");
+		if (port)
+			soup_uri_set_port (uri, port + 1);
+		https_url = soup_uri_to_string (uri, FALSE);
+		soup_uri_free (uri);
 	} else {
 		http_url = g_strconcat (HTTP_SERVER, tests[i].url, NULL);
 		https_url = g_strconcat (HTTPS_SERVER, tests[i].url, NULL);
@@ -380,9 +391,15 @@ main (int argc, char **argv)
 {
 	SoupServer *server;
 	SoupURI *base_uri;
+	int i;
 
 	test_init (argc, argv, NULL);
 	apache_init ();
+
+	for (i = 0; i < 3; i++) {
+		proxy_resolvers[i] =
+			g_simple_proxy_resolver_new (proxies[i], (char **) ignore_hosts);
+	}
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);

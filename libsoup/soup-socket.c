@@ -1400,6 +1400,7 @@ soup_socket_get_http_proxy_uri (SoupSocket *sock)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GSocketAddress *addr;
 	GProxyAddress *paddr;
+	SoupURI *uri;
 
 	if (!priv->gsock)
 		return NULL;
@@ -1414,7 +1415,9 @@ soup_socket_get_http_proxy_uri (SoupSocket *sock)
 	if (strcmp (g_proxy_address_get_protocol (paddr), "http") != 0)
 		return NULL;
 
-	return soup_uri_new (g_proxy_address_get_uri (paddr));
+	uri = soup_uri_new (g_proxy_address_get_uri (paddr));
+	g_object_unref (addr);
+	return uri;
 }
 
 static gboolean
