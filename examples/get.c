@@ -15,6 +15,12 @@ static gboolean debug, head, quiet;
 static const gchar *output_file_path = NULL;
 
 static void
+finished (SoupSession *session, SoupMessage *msg, gpointer loop)
+{
+	g_main_loop_quit (loop);
+}
+
+static void
 get_url (const char *url)
 {
 	const char *name;
@@ -24,6 +30,12 @@ get_url (const char *url)
 
 	msg = soup_message_new (head ? "HEAD" : "GET", url);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
+
+	if (loop) {
+		g_object_ref (msg);
+		soup_session_queue_message (session, msg, finished, loop);
+		g_main_loop_run (loop);
+	}
 
 	soup_session_send_message (session, msg);
 
@@ -142,14 +154,15 @@ main (int argc, char **argv)
 	}
 	soup_uri_free (parsed);
 
-	session = g_object_new (synchronous ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+	session = g_object_new (SOUP_TYPE_SESSION,
 				SOUP_SESSION_SSL_CA_FILE, ca_file,
 				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
 				SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_COOKIE_JAR,
 				SOUP_SESSION_USER_AGENT, "get ",
 				SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
-				SOUP_SESSION_USE_NTLM, ntlm,
 				NULL);
+	if (ntlm)
+		soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
 
 	if (debug) {
 		logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
@@ -169,8 +182,7 @@ main (int argc, char **argv)
 			      SOUP_SESSION_PROXY_URI, proxy_uri,
 			      NULL);
 		soup_uri_free (proxy_uri);
-	} else
-		soup_session_add_feature_by_type (session, SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
+	}
 
 	if (!synchronous)
 		loop = g_main_loop_new (NULL, TRUE);
