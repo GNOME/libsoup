@@ -9,7 +9,6 @@
 
 #include <glib/gi18n-lib.h>
 #include "soup-cache-input-stream.h"
-#include "soup-marshal.h"
 #include "soup-message-body.h"
 
 static void soup_cache_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
@@ -328,7 +327,7 @@ soup_cache_input_stream_class_init (SoupCacheInputStreamClass *klass)
 			      G_SIGNAL_RUN_FIRST,
 			      G_STRUCT_OFFSET (SoupCacheInputStreamClass, caching_finished),
 			      NULL, NULL,
-			      _soup_marshal_NONE__INT_BOXED,
+			      NULL,
 			      G_TYPE_NONE, 2,
 			      G_TYPE_INT, G_TYPE_ERROR);
 }
