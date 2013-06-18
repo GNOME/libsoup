@@ -5,13 +5,14 @@
 # Based on tld-parser.c Copyright (C) 2012 Igalia S.L.
 
 import sys
+import codecs
 
 SOUP_TLD_RULE_NORMAL = 0
 SOUP_TLD_RULE_MATCH_ALL = 1 << 0
 SOUP_TLD_RULE_EXCEPTION = 1 << 1
 
-tlds_file = open(sys.argv[1])
-inc_file = open(sys.argv[2], 'w')
+tlds_file = codecs.open(sys.argv[1], encoding='utf-8')
+inc_file = codecs.open(sys.argv[2], 'w', encoding='utf-8')
 
 first = True
 for rule in tlds_file:
