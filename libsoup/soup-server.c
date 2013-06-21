@@ -907,7 +907,7 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 				   client, hand->user_data);
 
 		if (form_data_set)
-			g_hash_table_destroy (form_data_set);
+			g_hash_table_unref (form_data_set);
 	}
 }
 
