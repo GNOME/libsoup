@@ -10,7 +10,7 @@ EXTRA_DIST =				\
 	gtk-doc.make			\
 	libsoup-zip.in			\
 	m4/introspection.m4		\
-	Makefile.glib
+	glib-build.mk
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc --enable-introspection
 

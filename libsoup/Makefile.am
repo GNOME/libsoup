@@ -1,8 +1,4 @@
-## Process this file with automake to produce Makefile.in
-
-EXTRA_DIST =
-
-include $(GLIB_MAKEFILE)
+include $(top_srcdir)/glib-build.mk
 
 if OS_WIN32
 LIBWS2_32 = -lws2_32
@@ -20,7 +16,7 @@ AM_CPPFLAGS = 				\
 
 libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
-soup_headers =			\
+libsoupinclude_HEADERS =	\
 	soup.h			\
 	soup-address.h		\
 	soup-auth.h		\
@@ -69,11 +65,8 @@ soup_headers =			\
 	soup-value-utils.h	\
 	soup-xmlrpc.h
 
-libsoupinclude_HEADERS =	\
-	$(soup_headers)		\
-	soup-enum-types.h
-
 nodist_libsoupinclude_HEADERS =	\
+	soup-enum-types.h	\
 	soup-version.h
 
 lib_LTLIBRARIES = libsoup-2.4.la
@@ -83,7 +76,7 @@ libsoup_2_4_la_LDFLAGS =	\
 	-no-undefined \
 	-export-symbols $(srcdir)/libsoup-2.4.sym
 
-EXTRA_DIST += libsoup-2.4.sym
+EXTRA_DIST = libsoup-2.4.sym
 
 libsoup_2_4_la_LIBADD =			\
 	$(GLIB_LIBS)			\
@@ -133,8 +126,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-date.c			\
 	soup-directory-input-stream.h	\
 	soup-directory-input-stream.c	\
-	soup-enum-types.h		\
-	soup-enum-types.c		\
 	soup-filter-input-stream.c	\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
@@ -184,6 +175,10 @@ libsoup_2_4_la_SOURCES =		\
 	soup-version.c			\
 	soup-xmlrpc.c
 
+nodist_libsoup_2_4_la_SOURCES =		\
+	soup-enum-types.c		\
+	soup-enum-types.h
+
 # TLD rules
 EXTRA_DIST += tld-parser.py
 
@@ -224,9 +219,7 @@ libsoup_gnome_2_4_la_SOURCES =		\
 
 endif
 
-GLIB_GENERATED = soup-enum-types.c soup-enum-types.h
 BUILT_SOURCES = \
-	$(GLIB_GENERATED)   \
 	tld_data.inc
 
 soup_enum_types_sources = $(libsoupinclude_HEADERS) $(libsoupgnomeinclude_HEADERS)

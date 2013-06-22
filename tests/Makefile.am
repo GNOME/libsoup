@@ -1,3 +1,5 @@
+include $(top_srcdir)/glib-build.mk
+
 AM_CPPFLAGS =		\
 	-I$(top_srcdir)	\
 	-DSRCDIR=\""$(abs_srcdir)"\" \
@@ -47,6 +49,7 @@ noinst_PROGRAMS =		\
 	$(TESTS)
 
 noinst_DATA = soup-tests.gresource
+soup_tests_gresource_sources = soup-tests.gresource.xml
 
 noinst_LTLIBRARIES = libtest.la
 
@@ -75,9 +78,6 @@ httpd.conf: $(httpd_conf_in)
 BUILT_SOURCES = httpd.conf
 endif
 
-soup-tests.gresource: soup-tests.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
-	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir)  $<
-
 RESOURCES =			\
 	resources/atom.xml	\
 	resources/home.gif	\
@@ -96,7 +96,6 @@ EXTRA_DIST =			 \
 	htpasswd		 \
 	httpd.conf.22.in	 \
 	httpd.conf.24.in	 \
-	index.txt		 \
 	libsoup.supp		 \
 	soup-tests.gresource.xml \
 	test-cert.pem		 \
