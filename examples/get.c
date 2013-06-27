@@ -12,6 +12,7 @@
 static SoupSession *session;
 static GMainLoop *loop;
 static gboolean debug, head, quiet;
+static const gchar *output_file_path = NULL;
 
 static void
 get_url (const char *url)
@@ -19,6 +20,7 @@ get_url (const char *url)
 	const char *name;
 	SoupMessage *msg;
 	const char *header;
+	FILE *output_file = NULL;
 
 	msg = soup_message_new (head ? "HEAD" : "GET", url);
 	soup_message_set_flags (msg, SOUP_MESSAGE_NO_REDIRECT);
@@ -55,9 +57,23 @@ get_url (const char *url)
 			g_free (uri_string);
 			soup_uri_free (uri);
 		}
-	} else if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		fwrite (msg->response_body->data, 1,
-			msg->response_body->length, stdout);
+	} else if (!head && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
+		if (output_file_path) {
+			output_file = fopen (output_file_path, "w");
+			if (!output_file)
+				g_printerr ("Error trying to create file %s.\n", output_file_path);
+		} else if (!quiet)
+			output_file = stdout;
+
+		if (output_file) {
+			fwrite (msg->response_body->data,
+				1,
+				msg->response_body->length,
+				output_file);
+
+			if (output_file_path)
+				fclose (output_file);
+		}
 	}
 }
 
@@ -77,6 +93,9 @@ static GOptionEntry entries[] = {
 	{ "ntlm", 'n', 0,
 	  G_OPTION_ARG_NONE, &ntlm,
 	  "Use NTLM authentication", NULL },
+	{ "output", 'o', 0,
+	  G_OPTION_ARG_STRING, &output_file_path,
+	  "Write the received data to FILE instead of stdout", "FILE" },
 	{ "proxy", 'p', 0,
 	  G_OPTION_ARG_STRING, &proxy,
 	  "Use URL as an HTTP proxy", "URL" },
@@ -146,7 +165,7 @@ main (int argc, char **argv)
 			exit (1);
 		}
 
-		g_object_set (G_OBJECT (session), 
+		g_object_set (G_OBJECT (session),
 			      SOUP_SESSION_PROXY_URI, proxy_uri,
 			      NULL);
 		soup_uri_free (proxy_uri);
