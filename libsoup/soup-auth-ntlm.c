@@ -298,8 +298,6 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 		return FALSE;
 
 	if (conn->state > SOUP_NTLM_SENT_REQUEST) {
-		conn->state = SOUP_NTLM_FAILED;
-
 		if (priv->password_state == SOUP_NTLM_PASSWORD_ACCEPTED) {
 			/* We know our password is correct, so a 401
 			 * means "permission denied". Since the conn
@@ -307,11 +305,17 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			 * is_ready() for this message, so this will
 			 * cause a "retrying" authenticate signal.
 			 */
+			conn->state = SOUP_NTLM_FAILED;
 			return TRUE;
 		}
 
-		/* Otherwise, we just have a bad password. */
-		priv->password_state = SOUP_NTLM_PASSWORD_REJECTED;
+		if (priv->sso_available) {
+			conn->state = SOUP_NTLM_SSO_FAILED;
+			priv->password_state = SOUP_NTLM_PASSWORD_NONE;
+		} else {
+			conn->state = SOUP_NTLM_FAILED;
+			priv->password_state = SOUP_NTLM_PASSWORD_REJECTED;
+		}
 		return TRUE;
 	}
 
@@ -433,7 +437,7 @@ soup_auth_ntlm_is_connection_ready (SoupConnectionAuth *auth,
 	if (priv->password_state == SOUP_NTLM_PASSWORD_PROVIDED)
 		return TRUE;
 
-	return conn->state != SOUP_NTLM_FAILED && conn->state != SOUP_NTLM_SSO_FAILED;
+	return conn->state != SOUP_NTLM_FAILED;
 }
 
 static void
