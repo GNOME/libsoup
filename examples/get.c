@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2001-2003, Ximian, Inc.
+ * Copyright (C) 2013 Igalia, S.L.
  */
 
 #include <stdio.h>
@@ -26,35 +27,17 @@ get_url (const char *url)
 
 	name = soup_message_get_uri (msg)->path;
 
-	if (debug || head) {
-		SoupMessageHeadersIter iter;
-		const char *hname, *value;
-		char *path = soup_uri_to_string (soup_message_get_uri (msg), TRUE);
+	if (!debug) {
+		if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
+			GTlsCertificateFlags flags;
 
-		g_print ("%s %s HTTP/1.%d\n", msg->method, path,
-			 soup_message_get_http_version (msg));
-		soup_message_headers_iter_init (&iter, msg->request_headers);
-		while (soup_message_headers_iter_next (&iter, &hname, &value))
-			g_print ("%s: %s\r\n", hname, value);
-		g_print ("\n");
-
-		g_print ("HTTP/1.%d %d %s\n",
-			 soup_message_get_http_version (msg),
-			 msg->status_code, msg->reason_phrase);
-
-		soup_message_headers_iter_init (&iter, msg->response_headers);
-		while (soup_message_headers_iter_next (&iter, &hname, &value))
-			g_print ("%s: %s\r\n", hname, value);
-		g_print ("\n");
-	} else if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
-		GTlsCertificateFlags flags;
-
-		if (soup_message_get_https_status (msg, NULL, &flags))
-			g_print ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
-		else
-			g_print ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
-	} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		g_print ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
+			if (soup_message_get_https_status (msg, NULL, &flags))
+				g_print ("%s: %d %s (0x%x)\n", name, msg->status_code, msg->reason_phrase, flags);
+			else
+				g_print ("%s: %d %s (no handshake status)\n", name, msg->status_code, msg->reason_phrase);
+		} else if (!quiet || SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
+			g_print ("%s: %d %s\n", name, msg->status_code, msg->reason_phrase);
+	}
 
 	if (SOUP_STATUS_IS_REDIRECTION (msg->status_code)) {
 		header = soup_message_headers_get_one (msg->response_headers,
@@ -113,6 +96,7 @@ main (int argc, char **argv)
 	const char *url;
 	SoupURI *proxy_uri, *parsed;
 	GError *error = NULL;
+	SoupLogger *logger = NULL;
 
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, entries, NULL);
@@ -147,6 +131,12 @@ main (int argc, char **argv)
 				SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
 				SOUP_SESSION_USE_NTLM, ntlm,
 				NULL);
+
+	if (debug) {
+		logger = soup_logger_new (SOUP_LOGGER_LOG_BODY, -1);
+		soup_session_add_feature (session, SOUP_SESSION_FEATURE (logger));
+		g_object_unref (logger);
+	}
 
 	if (proxy) {
 		proxy_uri = soup_uri_new (proxy);
