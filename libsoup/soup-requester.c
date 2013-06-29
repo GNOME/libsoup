@@ -144,6 +144,11 @@ translate_error (GError *error)
 		g_warn_if_reached ();
 }
 
+/**
+ * soup_requester_request:
+ *
+ * Return value: (transfer full):
+ */
 SoupRequest *
 soup_requester_request (SoupRequester *requester, const char *uri_string,
 			GError **error)
@@ -161,6 +166,11 @@ soup_requester_request (SoupRequester *requester, const char *uri_string,
 	return NULL;
 }
 
+/**
+ * soup_requester_request_uri:
+ *
+ * Return value: (transfer full):
+ */
 SoupRequest *
 soup_requester_request_uri (SoupRequester *requester, SoupURI *uri,
 			    GError **error)

@@ -26,11 +26,11 @@ typedef struct {
 	GObjectClass parent_class;
 
 	/* signals */
-	void (*readable)       (SoupSocket *);
-	void (*writable)       (SoupSocket *);
-	void (*disconnected)   (SoupSocket *);
+	void (*readable)       (SoupSocket *sock);
+	void (*writable)       (SoupSocket *sock);
+	void (*disconnected)   (SoupSocket *sock);
 
-	void (*new_connection) (SoupSocket *, SoupSocket *);
+	void (*new_connection) (SoupSocket *listener, SoupSocket *new_sock);
 
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);

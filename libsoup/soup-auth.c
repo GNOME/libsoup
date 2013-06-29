@@ -524,6 +524,11 @@ soup_auth_free_protection_space (SoupAuth *auth, GSList *space)
 	g_slist_free_full (space, g_free);
 }
 
+/**
+ * soup_auth_get_saved_users:
+ *
+ * Return value: (transfer full) (element-type utf8):
+ */
 GSList *
 soup_auth_get_saved_users (SoupAuth *auth)
 {

@@ -4056,8 +4056,8 @@ soup_session_send_async (SoupSession         *session,
  * successful), returns a #GInputStream that can be used to read the
  * response body.
  *
- * Return value: a #GInputStream for reading the response body, or
- *   %NULL on error.
+ * Return value: (transfer full): a #GInputStream for reading the
+ *   response body, or %NULL on error.
  *
  * Since: 2.42
  */
@@ -4121,8 +4121,8 @@ soup_session_send_finish (SoupSession   *session,
  * (Note that this method cannot be called on the deprecated
  * #SoupSessionAsync subclass.)
  *
- * Return value: a #GInputStream for reading the response body, or
- *   %NULL on error.
+ * Return value: (transfer full): a #GInputStream for reading the
+ *   response body, or %NULL on error.
  *
  * Since: 2.42
  */

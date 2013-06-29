@@ -864,29 +864,6 @@ soup_uri_uses_default_port (SoupURI *uri)
 }
 
 /**
- * SOUP_URI_SCHEME_HTTP:
- *
- * "http" as an interned string. This can be compared directly against
- * the value of a #SoupURI's <structfield>scheme</structfield>
- **/
-
-/**
- * SOUP_URI_SCHEME_HTTPS:
- *
- * "https" as an interned string. This can be compared directly
- * against the value of a #SoupURI's <structfield>scheme</structfield>
- **/
-
-/**
- * SOUP_URI_SCHEME_RESOURCE:
- *
- * "resource" as an interned string. This can be compared directly
- * against the value of a #SoupURI's <structfield>scheme</structfield>
- *
- * Since: 2.42
- **/
-
-/**
  * soup_uri_get_scheme:
  * @uri: a #SoupURI
  *

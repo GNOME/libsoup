@@ -1925,7 +1925,7 @@ soup_message_set_soup_request (SoupMessage *msg,
  * If @msg is associated with a #SoupRequest, this returns that
  * request. Otherwise it returns %NULL.
  *
- * Return value: @msg's associated #SoupRequest
+ * Return value: (transfer none): @msg's associated #SoupRequest
  *
  * Since: 2.42
  */

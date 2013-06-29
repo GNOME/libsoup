@@ -21,6 +21,10 @@ soup_password_manager_default_init (SoupPasswordManagerInterface *iface)
 {
 }
 
+/**
+ * soup_password_manager_get_passwords_async:
+ * @callback: (scope async)
+ */
 void
 soup_password_manager_get_passwords_async (SoupPasswordManager  *password_manager,
 					   SoupMessage          *msg,

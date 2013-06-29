@@ -17,8 +17,8 @@
 
 typedef struct _SoupPasswordManager SoupPasswordManager;
 
-typedef void (*SoupPasswordManagerCallback) (SoupPasswordManager *,
-					     SoupMessage *, SoupAuth *,
+typedef void (*SoupPasswordManagerCallback) (SoupPasswordManager *password_manager,
+					     SoupMessage *msg, SoupAuth *auth,
 					     gboolean retrying,
 					     gpointer user_data);
 
@@ -26,12 +26,16 @@ typedef struct {
 	GTypeInterface base;
 
 	/* virtual methods */
-	void (*get_passwords_async) (SoupPasswordManager *, SoupMessage *,
-				     SoupAuth *, gboolean,
-				     GMainContext *, GCancellable *,
-				     SoupPasswordManagerCallback, gpointer);
-	void (*get_passwords_sync)  (SoupPasswordManager *, SoupMessage *,
-				     SoupAuth *, GCancellable *);
+	void (*get_passwords_async) (SoupPasswordManager *password_manager,
+				     SoupMessage *msg, SoupAuth *auth,
+				     gboolean retrying,
+				     GMainContext *async_context,
+				     GCancellable *cancellable,
+				     SoupPasswordManagerCallback callback,
+				     gpointer user_data);
+	void (*get_passwords_sync)  (SoupPasswordManager *password_manager,
+				     SoupMessage *msg, SoupAuth *auth,
+				     GCancellable *cancellable);
 
 } SoupPasswordManagerInterface;
 
