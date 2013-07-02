@@ -1721,6 +1721,8 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	gboolean my_should_cleanup = FALSE;
 	gboolean need_new_connection;
 
+	soup_session_cleanup_connections (session, FALSE);
+
 	need_new_connection =
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
 		(!(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IDEMPOTENT) &&
