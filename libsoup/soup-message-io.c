@@ -1149,8 +1149,7 @@ io_unpause_internal (gpointer msg)
 
 	g_return_val_if_fail (io != NULL, FALSE);
 
-	g_source_unref (io->unpause_source);
-	io->unpause_source = NULL;
+	g_clear_pointer (&io->unpause_source, g_source_unref);
 	io->paused = FALSE;
 
 	if (io->io_source)
