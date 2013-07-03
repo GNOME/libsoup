@@ -666,38 +666,36 @@ re_emit_socket_client_event (GSocketClient       *client,
 		       event, connection);
 }
 
-static guint
-socket_connected (SoupSocket *sock, GSocketConnection *conn, GError *error)
+static gboolean
+socket_connect_finish (SoupSocket *sock, GSocketConnection *conn)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	if (priv->connect_cancel) {
-		GCancellable *cancellable = priv->connect_cancel;
-		gboolean cancelled = g_cancellable_is_cancelled (cancellable);
+	g_clear_object (&priv->connect_cancel);
 
-		g_object_unref (priv->connect_cancel);
-		priv->connect_cancel = NULL;
-		if (cancelled) {
-			g_clear_error (&error);
-			return SOUP_STATUS_CANCELLED;
-		}
-	}
+	if (conn) {
+		priv->conn = (GIOStream *)conn;
+		priv->gsock = g_object_ref (g_socket_connection_get_socket (conn));
+		finish_socket_setup (priv);
+		return TRUE;
+	} else
+		return FALSE;
+}
 
-	if (error) {
-		if (error->domain == G_RESOLVER_ERROR) {
-			g_error_free (error);
-			return SOUP_STATUS_CANT_RESOLVE;
-		} else {
-			g_error_free (error);
-			return SOUP_STATUS_CANT_CONNECT;
-		}
-	}
+static guint
+socket_legacy_error (SoupSocket *sock, GError *error)
+{
+	guint status;
 
-	priv->conn = (GIOStream *)conn;
-	priv->gsock = g_object_ref (g_socket_connection_get_socket (conn));
-	finish_socket_setup (priv);
+	if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+		status = SOUP_STATUS_CANCELLED;
+	else if (error->domain == G_RESOLVER_ERROR)
+		status = SOUP_STATUS_CANT_RESOLVE;
+	else
+		status = SOUP_STATUS_CANT_CONNECT;
 
-	return SOUP_STATUS_OK;
+	g_error_free (error);
+	return status;
 }
 
 static GSocketClient *
@@ -722,6 +720,57 @@ new_socket_client (SoupSocket *sock)
 	return client;
 }
 
+static void
+async_connected (GObject *client, GAsyncResult *result, gpointer data)
+{
+	GTask *task = data;
+	SoupSocket *sock = g_task_get_source_object (task);
+	GSocketConnection *conn;
+	GError *error = NULL;
+
+	conn = g_socket_client_connect_finish (G_SOCKET_CLIENT (client),
+					       result, &error);
+	if (socket_connect_finish (sock, conn))
+		g_task_return_boolean (task, TRUE);
+	else
+		g_task_return_error (task, error);
+}
+
+gboolean
+soup_socket_connect_finish_internal (SoupSocket    *sock,
+				     GAsyncResult  *result,
+				     GError       **error)
+{
+	return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+void
+soup_socket_connect_async_internal (SoupSocket          *sock,
+				    GCancellable        *cancellable,
+				    GAsyncReadyCallback  callback,
+				    gpointer             user_data)
+{
+	SoupSocketPrivate *priv;
+	GSocketClient *client;
+	GTask *task;
+
+	g_return_if_fail (SOUP_IS_SOCKET (sock));
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_if_fail (!priv->is_server);
+	g_return_if_fail (priv->gsock == NULL);
+	g_return_if_fail (priv->remote_addr != NULL);
+
+	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
+	task = g_task_new (sock, priv->connect_cancel, callback, user_data);
+
+	client = new_socket_client (sock);
+	g_socket_client_connect_async (client,
+				       G_SOCKET_CONNECTABLE (priv->remote_addr),
+				       priv->connect_cancel,
+				       async_connected, task);
+	g_object_unref (client);
+}
+
 /**
  * SoupSocketCallback:
  * @sock: the #SoupSocket
@@ -738,22 +787,25 @@ typedef struct {
 } SoupSocketAsyncConnectData;
 
 static void
-async_connected (GObject *client, GAsyncResult *result, gpointer data)
+legacy_connect_async_cb (GObject       *object,
+			 GAsyncResult  *result,
+			 gpointer       user_data)
 {
-	SoupSocketAsyncConnectData *sacd = data;
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sacd->sock);
+	SoupSocket *sock = SOUP_SOCKET (object);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	SoupSocketAsyncConnectData *sacd = user_data;
 	GError *error = NULL;
-	GSocketConnection *conn;
 	guint status;
 
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
-	conn = g_socket_client_connect_finish (G_SOCKET_CLIENT (client),
-					       result, &error);
-	status = socket_connected (sacd->sock, conn, error);
+	if (soup_socket_connect_finish_internal (sock, result, &error))
+		status = SOUP_STATUS_OK;
+	else
+		status = socket_legacy_error (sock, error);
 
-	sacd->callback (sacd->sock, status, sacd->user_data);
+	sacd->callback (sock, status, sacd->user_data);
 	g_object_unref (sacd->sock);
 	g_slice_free (SoupSocketAsyncConnectData, sacd);
 }
@@ -779,10 +831,11 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 {
 	SoupSocketPrivate *priv;
 	SoupSocketAsyncConnectData *sacd;
-	GSocketClient *client;
 
 	g_return_if_fail (SOUP_IS_SOCKET (sock));
 	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_if_fail (!priv->is_server);
+	g_return_if_fail (priv->gsock == NULL);
 	g_return_if_fail (priv->remote_addr != NULL);
 
 	sacd = g_slice_new0 (SoupSocketAsyncConnectData);
@@ -790,17 +843,38 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	sacd->callback = callback;
 	sacd->user_data = user_data;
 
-	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
-
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_push_thread_default (priv->async_context);
 
+	soup_socket_connect_async_internal (sock, cancellable,
+					    legacy_connect_async_cb,
+					    sacd);
+}
+
+gboolean
+soup_socket_connect_sync_internal (SoupSocket    *sock,
+				   GCancellable  *cancellable,
+				   GError       **error)
+{
+	SoupSocketPrivate *priv;
+	GSocketClient *client;
+	GSocketConnection *conn;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_STATUS_MALFORMED);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+	g_return_val_if_fail (!priv->is_server, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->gsock == NULL, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->remote_addr != NULL, SOUP_STATUS_MALFORMED);
+
+	priv->connect_cancel = cancellable ? g_object_ref (cancellable) : g_cancellable_new ();
+
 	client = new_socket_client (sock);
-	g_socket_client_connect_async (client,
-				       G_SOCKET_CONNECTABLE (priv->remote_addr),
-				       priv->connect_cancel,
-				       async_connected, sacd);
+	conn = g_socket_client_connect (client,
+					G_SOCKET_CONNECTABLE (priv->remote_addr),
+					priv->connect_cancel, error);
 	g_object_unref (client);
+
+	return socket_connect_finish (sock, conn);
 }
 
 /**
@@ -820,8 +894,6 @@ guint
 soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 {
 	SoupSocketPrivate *priv;
-	GSocketClient *client;
-	GSocketConnection *conn;
 	GError *error = NULL;
 
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), SOUP_STATUS_MALFORMED);
@@ -830,19 +902,10 @@ soup_socket_connect_sync (SoupSocket *sock, GCancellable *cancellable)
 	g_return_val_if_fail (priv->gsock == NULL, SOUP_STATUS_MALFORMED);
 	g_return_val_if_fail (priv->remote_addr != NULL, SOUP_STATUS_MALFORMED);
 
-	if (cancellable)
-		g_object_ref (cancellable);
+	if (soup_socket_connect_sync_internal (sock, cancellable, &error))
+		return SOUP_STATUS_OK;
 	else
-		cancellable = g_cancellable_new ();
-	priv->connect_cancel = cancellable;
-
-	client = new_socket_client (sock);
-	conn = g_socket_client_connect (client,
-					G_SOCKET_CONNECTABLE (priv->remote_addr),
-					priv->connect_cancel, &error);
-	g_object_unref (client);
-
-	return socket_connected (sock, conn, error);
+		return socket_legacy_error (sock, error);
 }
 
 /**

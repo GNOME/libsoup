@@ -442,125 +442,95 @@ re_emit_socket_event (SoupSocket          *socket,
 		soup_connection_event (conn, event, connection);
 }
 
-typedef struct {
-	SoupConnection *conn;
-	SoupConnectionCallback callback;
-	gpointer callback_data;
-	GCancellable *cancellable;
-	guint event_id;
-} SoupConnectionAsyncConnectData;
-
 static void
-socket_connect_finished (SoupConnectionAsyncConnectData *data, guint status)
+socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 {
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
-
-	if (priv->socket)
-		g_signal_handler_disconnect (priv->socket, data->event_id);
-
-	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (priv->ssl && !priv->proxy_uri) {
-			soup_connection_event (data->conn,
-					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
-					       NULL);
-		}
-		if (!priv->ssl || !priv->proxy_uri) {
-			soup_connection_event (data->conn,
-					       G_SOCKET_CLIENT_COMPLETE,
-					       NULL);
-		}
-
-		soup_connection_set_state (data->conn, SOUP_CONNECTION_IN_USE);
-		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
-		start_idle_timer (data->conn);
-	}
-
-	if (data->callback) {
-		if (priv->proxy_uri != NULL)
-			status = soup_status_proxify (status);
-		data->callback (data->conn, status, data->callback_data);
-	}
-	g_object_unref (data->conn);
-	if (data->cancellable)
-		g_object_unref (data->cancellable);
-	g_slice_free (SoupConnectionAsyncConnectData, data);
-}
-
-
-static void
-socket_handshake_complete (GObject *object, GAsyncResult *result, gpointer user_data)
-{
-	SoupConnectionAsyncConnectData *data = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
-	GError *error = NULL;
-	guint status;
+	SoupConnection *conn = g_task_get_source_object (task);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
-	if (soup_socket_handshake_finish (priv->socket, result, &error))
-		status = SOUP_STATUS_OK;
-	else if (!priv->ssl_fallback &&
-		 g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-		priv->ssl_fallback = TRUE;
-		status = SOUP_STATUS_TRY_AGAIN;
-	} else
-		status = SOUP_STATUS_SSL_FAILED;
-	g_clear_error (&error);
+	g_signal_handlers_disconnect_by_func (sock, G_CALLBACK (re_emit_socket_event), conn);
 
-	socket_connect_finished (data, status);
+	if (!error) {
+		if (priv->ssl && !priv->proxy_uri) {
+			soup_connection_event (conn,
+					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
+					       NULL);
+		}
+		if (!priv->ssl || !priv->proxy_uri) {
+			soup_connection_event (conn,
+					       G_SOCKET_CLIENT_COMPLETE,
+					       NULL);
+		}
+
+		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
+		start_idle_timer (conn);
+
+		g_task_return_boolean (task, TRUE);
+	} else
+		g_task_return_error (task, error);
+	g_object_unref (task);
 }
 
 static void
-socket_connect_result (SoupSocket *sock, guint status, gpointer user_data)
+socket_handshake_complete (GObject *object, GAsyncResult *result, gpointer user_data)
 {
-	SoupConnectionAsyncConnectData *data = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
+	SoupSocket *sock = SOUP_SOCKET (object);
+	GTask *task = user_data;
+	GError *error = NULL;
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		socket_connect_finished (data, status);
+	soup_socket_handshake_finish (sock, result, &error);
+	socket_connect_finished (task, sock, error);
+}
+
+static void
+socket_connect_complete (GObject *object, GAsyncResult *result, gpointer user_data)
+{
+	SoupSocket *sock = SOUP_SOCKET (object);
+	GTask *task = user_data;
+	SoupConnection *conn = g_task_get_source_object (task);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+	GError *error = NULL;
+
+	if (!soup_socket_connect_finish_internal (sock, result, &error)) {
+		socket_connect_finished (task, sock, error);
 		return;
 	}
 
-	priv->proxy_uri = soup_socket_get_http_proxy_uri (priv->socket);
+	priv->proxy_uri = soup_socket_get_http_proxy_uri (sock);
 
 	if (priv->ssl && !priv->proxy_uri) {
-		soup_connection_event (data->conn,
+		soup_connection_event (conn,
 				       G_SOCKET_CLIENT_TLS_HANDSHAKING,
 				       NULL);
 
-		if (priv->async_context && !priv->use_thread_context)
-			g_main_context_push_thread_default (priv->async_context);
 		soup_socket_handshake_async (sock, priv->remote_uri->host,
-					     data->cancellable,
-					     socket_handshake_complete, data);
+					     g_task_get_cancellable (task),
+					     socket_handshake_complete, task);
 		return;
 	}
 
-	socket_connect_finished (data, status);
+	socket_connect_finished (task, sock, NULL);
 }
 
 void
-soup_connection_connect_async (SoupConnection *conn,
-			       GCancellable *cancellable,
-			       SoupConnectionCallback callback,
-			       gpointer user_data)
+soup_connection_connect_async (SoupConnection      *conn,
+			       GCancellable        *cancellable,
+			       GAsyncReadyCallback  callback,
+			       gpointer             user_data)
 {
-	SoupConnectionAsyncConnectData *data;
 	SoupConnectionPrivate *priv;
 	SoupAddress *remote_addr;
+	GTask *task;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	g_return_if_fail (priv->socket == NULL);
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
-
-	data = g_slice_new (SoupConnectionAsyncConnectData);
-	data->conn = g_object_ref (conn);
-	data->callback = callback;
-	data->callback_data = user_data;
-	data->cancellable = cancellable ? g_object_ref (cancellable) : NULL;
 
 	remote_addr = soup_address_new (priv->remote_uri->host,
 					priv->remote_uri->port);
@@ -578,24 +548,38 @@ soup_connection_connect_async (SoupConnection *conn,
 				 NULL);
 	g_object_unref (remote_addr);
 
-	data->event_id = g_signal_connect (priv->socket, "event",
-					   G_CALLBACK (re_emit_socket_event),
-					   data->conn);
+	g_signal_connect (priv->socket, "event",
+			  G_CALLBACK (re_emit_socket_event), conn);
 
-	soup_socket_connect_async (priv->socket, data->cancellable,
-				   socket_connect_result, data);
+	if (priv->async_context && !priv->use_thread_context)
+		g_main_context_push_thread_default (priv->async_context);
+	task = g_task_new (conn, cancellable, callback, user_data);
+
+	soup_socket_connect_async_internal (priv->socket, cancellable,
+					    socket_connect_complete, task);
 }
 
-guint
-soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
+gboolean
+soup_connection_connect_finish (SoupConnection  *conn,
+				GAsyncResult    *result,
+				GError         **error)
+{
+	return g_task_propagate_boolean (G_TASK (result), error);
+}
+
+gboolean
+soup_connection_connect_sync (SoupConnection  *conn,
+			      GCancellable    *cancellable,
+			      GError         **error)
 {
 	SoupConnectionPrivate *priv;
-	guint status, event_id = 0;
+	guint event_id = 0;
 	SoupAddress *remote_addr;
+	gboolean success = TRUE;
 
-	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-	g_return_val_if_fail (priv->socket == NULL, SOUP_STATUS_MALFORMED);
+	g_return_val_if_fail (priv->socket == NULL, FALSE);
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
@@ -615,53 +599,42 @@ soup_connection_connect_sync (SoupConnection *conn, GCancellable *cancellable)
 
 	event_id = g_signal_connect (priv->socket, "event",
 				     G_CALLBACK (re_emit_socket_event), conn);
-	status = soup_socket_connect_sync (priv->socket, cancellable);
-
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
-		goto fail;
+	if (!soup_socket_connect_sync_internal (priv->socket, cancellable, error)) {
+		success = FALSE;
+		goto done;
+	}
 
 	priv->proxy_uri = soup_socket_get_http_proxy_uri (priv->socket);
 
 	if (priv->ssl && !priv->proxy_uri) {
-		GError *error = NULL;
-
 		soup_connection_event (conn,
 				       G_SOCKET_CLIENT_TLS_HANDSHAKING,
 				       NULL);
-		if (soup_socket_handshake_sync (priv->socket,
-						priv->remote_uri->host,
-						cancellable, &error)) {
-			soup_connection_event (conn,
-					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
-					       NULL);
-			status = SOUP_STATUS_OK;
-		} else if (!priv->ssl_fallback &&
-			   g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-			priv->ssl_fallback = TRUE;
-			status = SOUP_STATUS_TRY_AGAIN;
-		} else
-			status = SOUP_STATUS_SSL_FAILED;
-		g_clear_error (&error);
-	}
-
-	if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (!priv->ssl || !priv->proxy_uri) {
-			soup_connection_event (conn,
-					       G_SOCKET_CLIENT_COMPLETE,
-					       NULL);
+		if (!soup_socket_handshake_sync (priv->socket,
+						 priv->remote_uri->host,
+						 cancellable, error)) {
+			success = FALSE;
+			goto done;
 		}
-		soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
-		priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
-		start_idle_timer (conn);
+		soup_connection_event (conn,
+				       G_SOCKET_CLIENT_TLS_HANDSHAKED,
+				       NULL);
 	}
 
- fail:
+	if (!priv->ssl || !priv->proxy_uri) {
+		soup_connection_event (conn,
+				       G_SOCKET_CLIENT_COMPLETE,
+				       NULL);
+	}
+	soup_connection_set_state (conn, SOUP_CONNECTION_IN_USE);
+	priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
+	start_idle_timer (conn);
+
+ done:
 	if (priv->socket && event_id)
 		g_signal_handler_disconnect (priv->socket, event_id);
 
-	if (priv->proxy_uri != NULL)
-		status = soup_status_proxify (status);
-	return status;
+	return success;
 }
 
 gboolean
@@ -675,83 +648,74 @@ soup_connection_is_tunnelled (SoupConnection *conn)
 	return priv->ssl && priv->proxy_uri != NULL;
 }
 
-guint
-soup_connection_start_ssl_sync (SoupConnection *conn,
-				GCancellable   *cancellable)
+gboolean
+soup_connection_start_ssl_sync (SoupConnection  *conn,
+				GCancellable    *cancellable,
+				GError         **error)
 {
 	SoupConnectionPrivate *priv;
-	guint status;
-	GError *error = NULL;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	if (soup_socket_handshake_sync (priv->socket, priv->remote_uri->host,
-					cancellable, &error)) {
+					cancellable, error)) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
 		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
-		status = SOUP_STATUS_OK;
-	} else if (!priv->ssl_fallback &&
-		   g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-		priv->ssl_fallback = TRUE;
-		status = SOUP_STATUS_TRY_AGAIN;
-	}
-
-	return status;
+		return TRUE;
+	} else
+		return FALSE;
 }
 
 static void
 start_ssl_completed (GObject *object, GAsyncResult *result, gpointer user_data)
 {
-	SoupConnectionAsyncConnectData *data = user_data;
-	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (data->conn);
-	guint status;
+	GTask *task = user_data;
+	SoupConnection *conn = g_task_get_source_object (task);
+	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	GError *error = NULL;
 
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_pop_thread_default (priv->async_context);
 
 	if (soup_socket_handshake_finish (priv->socket, result, &error)) {
-		soup_connection_event (data->conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
-		soup_connection_event (data->conn, G_SOCKET_CLIENT_COMPLETE, NULL);
-		status = SOUP_STATUS_OK;
-	} else if (!priv->ssl_fallback &&
-		 g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-		priv->ssl_fallback = TRUE;
-		status = SOUP_STATUS_TRY_AGAIN;
+		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
+		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
+		g_task_return_boolean (task, TRUE);
 	} else
-		status = SOUP_STATUS_SSL_FAILED;
-	g_clear_error (&error);
-
-	data->callback (data->conn, status, data->callback_data);
-	g_object_unref (data->conn);
-	g_slice_free (SoupConnectionAsyncConnectData, data);
+		g_task_return_error (task, error);
+	g_object_unref (task);
 }
 
 void
-soup_connection_start_ssl_async (SoupConnection   *conn,
-				 GCancellable     *cancellable,
-				 SoupConnectionCallback callback,
-				 gpointer          user_data)
+soup_connection_start_ssl_async (SoupConnection      *conn,
+				 GCancellable        *cancellable,
+				 GAsyncReadyCallback  callback,
+				 gpointer             user_data)
 {
 	SoupConnectionPrivate *priv;
-	SoupConnectionAsyncConnectData *data;
+	GTask *task;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	data = g_slice_new (SoupConnectionAsyncConnectData);
-	data->conn = g_object_ref (conn);
-	data->callback = callback;
-	data->callback_data = user_data;
 
 	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 
 	if (priv->async_context && !priv->use_thread_context)
 		g_main_context_push_thread_default (priv->async_context);
+	task = g_task_new (conn, cancellable, callback, user_data);
+
 	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,
-				     cancellable, start_ssl_completed, data);
+				     cancellable, start_ssl_completed, task);
+}
+
+gboolean
+soup_connection_start_ssl_finish (SoupConnection  *conn,
+				  GAsyncResult    *result,
+				  GError         **error)
+{
+	return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**

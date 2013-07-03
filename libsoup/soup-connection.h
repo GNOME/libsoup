@@ -35,10 +35,6 @@ typedef struct {
 GType soup_connection_get_type (void);
 
 
-typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
-						guint             status,
-						gpointer          data);
-
 #define SOUP_CONNECTION_LOCAL_ADDRESS   "local-address"
 #define SOUP_CONNECTION_REMOTE_URI      "remote-uri"
 #define SOUP_CONNECTION_PROXY_RESOLVER  "proxy-resolver"
@@ -53,18 +49,26 @@ typedef void  (*SoupConnectionCallback)        (SoupConnection   *conn,
 #define SOUP_CONNECTION_STATE           "state"
 #define SOUP_CONNECTION_MESSAGE         "message"
 
-void            soup_connection_connect_async  (SoupConnection   *conn,
-						GCancellable     *cancellable,
-						SoupConnectionCallback callback,
-						gpointer          user_data);
-guint           soup_connection_connect_sync   (SoupConnection   *conn,
-						GCancellable     *cancellable);
-guint           soup_connection_start_ssl_sync   (SoupConnection   *conn,
-						  GCancellable     *cancellable);
-void            soup_connection_start_ssl_async  (SoupConnection   *conn,
-						  GCancellable     *cancellable,
-						  SoupConnectionCallback callback,
-						  gpointer          user_data);
+void            soup_connection_connect_async    (SoupConnection       *conn,
+						  GCancellable         *cancellable,
+						  GAsyncReadyCallback   callback,
+						  gpointer              user_data);
+gboolean        soup_connection_connect_finish   (SoupConnection       *conn,
+						  GAsyncResult         *result,
+						  GError              **error);
+gboolean        soup_connection_connect_sync     (SoupConnection       *conn,
+						  GCancellable         *cancellable,
+						  GError              **error);
+gboolean        soup_connection_start_ssl_sync   (SoupConnection       *conn,
+						  GCancellable         *cancellable,
+						  GError              **error);
+void            soup_connection_start_ssl_async  (SoupConnection       *conn,
+						  GCancellable         *cancellable,
+						  GAsyncReadyCallback   callback,
+						  gpointer              user_data);
+gboolean        soup_connection_start_ssl_finish (SoupConnection       *conn,
+						  GAsyncResult         *result,
+						  GError              **error);
 
 void            soup_connection_disconnect     (SoupConnection   *conn);
 

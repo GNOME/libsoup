@@ -16,6 +16,17 @@ char *soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 gboolean soup_uri_is_http (SoupURI *uri, char **aliases);
 gboolean soup_uri_is_https (SoupURI *uri, char **aliases);
 
+gboolean soup_socket_connect_sync_internal   (SoupSocket          *sock,
+					      GCancellable        *cancellable,
+					      GError             **error);
+void     soup_socket_connect_async_internal  (SoupSocket          *sock,
+					      GCancellable        *cancellable,
+					      GAsyncReadyCallback  callback,
+					      gpointer             user_data);
+gboolean soup_socket_connect_finish_internal (SoupSocket          *sock,
+					      GAsyncResult        *result,
+					      GError             **error);
+
 gboolean soup_socket_handshake_sync   (SoupSocket           *sock,
 				       const char           *host,
 				       GCancellable         *cancellable,

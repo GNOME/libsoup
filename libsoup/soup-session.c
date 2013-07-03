@@ -1508,10 +1508,59 @@ message_completed (SoupMessage *msg, gpointer user_data)
 	}
 }
 
-static void
-tunnel_complete (SoupConnection *conn, guint status, gpointer user_data)
+static guint
+status_from_connect_error (SoupMessageQueueItem *item, GError *error)
 {
-	SoupMessageQueueItem *tunnel_item = user_data;
+	guint status;
+
+	if (!error)
+		return SOUP_STATUS_OK;
+
+	if (g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
+		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (item->session);
+		SoupSessionHost *host;
+
+		g_mutex_lock (&priv->conn_lock);
+		host = get_host_for_message (item->session, item->msg);
+		if (!host->ssl_fallback) {
+			host->ssl_fallback = TRUE;
+			status = SOUP_STATUS_TRY_AGAIN;
+		} else
+			status = SOUP_STATUS_SSL_FAILED;
+		g_mutex_unlock (&priv->conn_lock);
+	} else if (error->domain == G_TLS_ERROR)
+		status = SOUP_STATUS_SSL_FAILED;
+	else if (error->domain == G_RESOLVER_ERROR)
+		status = SOUP_STATUS_CANT_RESOLVE;
+	else if (error->domain == G_IO_ERROR) {
+		if (error->code == G_IO_ERROR_CANCELLED)
+			status = SOUP_STATUS_CANCELLED;
+		else if (error->code == G_IO_ERROR_HOST_UNREACHABLE ||
+			 error->code == G_IO_ERROR_NETWORK_UNREACHABLE ||
+			 error->code == G_IO_ERROR_CONNECTION_REFUSED)
+			status = SOUP_STATUS_CANT_CONNECT;
+		else if (error->code == G_IO_ERROR_PROXY_FAILED ||
+			 error->code == G_IO_ERROR_PROXY_AUTH_FAILED ||
+			 error->code == G_IO_ERROR_PROXY_NEED_AUTH ||
+			 error->code == G_IO_ERROR_PROXY_NOT_ALLOWED)
+			status = SOUP_STATUS_CANT_CONNECT_PROXY;
+		else
+			status = SOUP_STATUS_IO_ERROR;
+	} else
+		status = SOUP_STATUS_IO_ERROR;
+
+	g_error_free (error);
+
+	if (item->conn && soup_connection_is_via_proxy (item->conn))
+		return soup_status_proxify (status);
+	else
+		return status;
+}
+
+static void
+tunnel_complete (SoupMessageQueueItem *tunnel_item,
+		 guint status, GError *error)
+{
 	SoupMessageQueueItem *item = tunnel_item->related;
 	SoupSession *session = tunnel_item->session;
 
@@ -1522,8 +1571,10 @@ tunnel_complete (SoupConnection *conn, guint status, gpointer user_data)
 		item->state = SOUP_MESSAGE_FINISHING;
 	soup_message_set_https_status (item->msg, item->conn);
 
+	if (!status)
+		status = status_from_connect_error (item, error);
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		soup_connection_disconnect (conn);
+		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
 		soup_session_set_item_status (session, item, status);
 	}
@@ -1532,6 +1583,19 @@ tunnel_complete (SoupConnection *conn, guint status, gpointer user_data)
 	if (item->async)
 		soup_session_kick_queue (session);
 	soup_message_queue_item_unref (item);
+}
+
+static void
+tunnel_handshake_complete (GObject      *object,
+			   GAsyncResult *result,
+			   gpointer      user_data)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupMessageQueueItem *tunnel_item = user_data;
+	GError *error = NULL;
+
+	soup_connection_start_ssl_finish (conn, result, &error);
+	tunnel_complete (tunnel_item, 0, error);
 }
 
 static void
@@ -1559,16 +1623,19 @@ tunnel_message_completed (SoupMessage *msg, gpointer user_data)
 
 	status = tunnel_item->msg->status_code;
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		tunnel_complete (item->conn, status, tunnel_item);
+		tunnel_complete (tunnel_item, status, NULL);
 		return;
 	}
 
 	if (tunnel_item->async) {
 		soup_connection_start_ssl_async (item->conn, item->cancellable,
-						 tunnel_complete, tunnel_item);
+						 tunnel_handshake_complete,
+						 tunnel_item);
 	} else {
-		status = soup_connection_start_ssl_sync (item->conn, item->cancellable);
-		tunnel_complete (item->conn, status, tunnel_item);
+		GError *error = NULL;
+
+		soup_connection_start_ssl_sync (item->conn, item->cancellable, &error);
+		tunnel_complete (tunnel_item, 0, error);
 	}
 }
 
@@ -1602,32 +1669,46 @@ tunnel_connect (SoupMessageQueueItem *item)
 }
 
 static void
-got_connection (SoupConnection *conn, guint status, gpointer user_data)
+connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *error)
 {
-	SoupMessageQueueItem *item = user_data;
 	SoupSession *session = item->session;
+	guint status;
 
 	soup_message_set_https_status (item->msg, item->conn);
 
-	if (status != SOUP_STATUS_OK) {
-		soup_connection_disconnect (conn);
-		if (item->state == SOUP_MESSAGE_CONNECTING) {
-			soup_session_set_item_status (session, item, status);
-			soup_session_set_item_connection (session, item, NULL);
-			item->state = SOUP_MESSAGE_READY;
-		}
-	} else
+	if (!error) {
 		item->state = SOUP_MESSAGE_CONNECTED;
-
-	if (item->async) {
-		if (item->state == SOUP_MESSAGE_CONNECTED ||
-		    item->state == SOUP_MESSAGE_READY)
-			async_run_queue (item->session);
-		else
-			soup_session_kick_queue (item->session);
-
-		soup_message_queue_item_unref (item);
+		return;
 	}
+
+	status = status_from_connect_error (item, error);
+	soup_connection_disconnect (conn);
+	if (item->state == SOUP_MESSAGE_CONNECTING) {
+		soup_session_set_item_status (session, item, status);
+		soup_session_set_item_connection (session, item, NULL);
+		item->state = SOUP_MESSAGE_READY;
+	}
+}
+
+static void
+connect_async_complete (GObject      *object,
+			GAsyncResult *result,
+			gpointer      user_data)
+{
+	SoupConnection *conn = SOUP_CONNECTION (object);
+	SoupMessageQueueItem *item = user_data;
+	GError *error = NULL;
+
+	soup_connection_connect_finish (conn, result, &error);
+	connect_complete (item, conn, error);
+
+	if (item->state == SOUP_MESSAGE_CONNECTED ||
+	    item->state == SOUP_MESSAGE_READY)
+		async_run_queue (item->session);
+	else
+		soup_session_kick_queue (item->session);
+
+	soup_message_queue_item_unref (item);
 }
 
 /* requires conn_lock */
@@ -1783,13 +1864,13 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	if (item->async) {
 		soup_message_queue_item_ref (item);
 		soup_connection_connect_async (item->conn, item->cancellable,
-					       got_connection, item);
+					       connect_async_complete, item);
 		return FALSE;
 	} else {
-		guint status;
+		GError *error = NULL;
 
-		status = soup_connection_connect_sync (item->conn, item->cancellable);
-		got_connection (item->conn, status, item);
+		soup_connection_connect_sync (item->conn, item->cancellable, &error);
+		connect_complete (item, conn, error);
 
 		return TRUE;
 	}
