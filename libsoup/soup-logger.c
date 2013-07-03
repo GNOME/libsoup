@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2001-2004 Novell, Inc.
  * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2013 Igalia, S.L.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -68,13 +69,21 @@
  * the first byte of the request gets written to the network (from the
  * #SoupSession::request_started signal), which means that if you have
  * not made the complete request body available at that point, it will
- * not be logged. The response is logged just after the last byte of
- * the response body is read from the network (from the
- * #SoupMessage::got_body or #SoupMessage::got_informational signal),
- * which means that the #SoupMessage::got_headers signal, and anything
- * triggered off it (such as #SoupSession::authenticate) will be
- * emitted <emphasis>before</emphasis> the response headers are
- * actually logged.
+ * not be logged.
+ *
+ * The response is logged just after the last byte of the response
+ * body is read from the network (from the #SoupMessage::got_body or
+ * #SoupMessage::got_informational signal), which means that the
+ * #SoupMessage::got_headers signal, and anything triggered off it
+ * (such as #SoupSession::authenticate) will be emitted
+ * <emphasis>before</emphasis> the response headers are actually
+ * logged.
+ *
+ * If the response doesn't happen to trigger the
+ * #SoupMessage::got_body nor #SoupMessage::got_informational signals
+ * due to, for example, a cancellation before receiving the last byte
+ * of the response body, the response will still be logged on the
+ * event of the #SoupMessage::finished signal.
  **/
 
 static void soup_logger_session_feature_init (SoupSessionFeatureInterface *feature_interface, gpointer interface_data);
@@ -574,6 +583,20 @@ print_response (SoupLogger *logger, SoupMessage *msg)
 }
 
 static void
+finished (SoupMessage *msg, gpointer user_data)
+{
+	SoupLogger *logger = user_data;
+	SoupLoggerPrivate *priv = SOUP_LOGGER_GET_PRIVATE (logger);
+
+	g_mutex_lock (&priv->lock);
+
+	print_response (logger, msg);
+	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
+
+	g_mutex_unlock (&priv->lock);
+}
+
+static void
 got_informational (SoupMessage *msg, gpointer user_data)
 {
 	SoupLogger *logger = user_data;
@@ -581,6 +604,7 @@ got_informational (SoupMessage *msg, gpointer user_data)
 
 	g_mutex_lock (&priv->lock);
 
+	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 
@@ -615,6 +639,7 @@ got_body (SoupMessage *msg, gpointer user_data)
 
 	g_mutex_lock (&priv->lock);
 
+	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 	print_response (logger, msg);
 	soup_logger_print (logger, SOUP_LOGGER_LOG_MINIMAL, ' ', "");
 
@@ -633,6 +658,9 @@ soup_logger_request_queued (SoupSessionFeature *logger,
 			  logger);
 	g_signal_connect (msg, "got-body",
 			  G_CALLBACK (got_body),
+			  logger);
+	g_signal_connect (msg, "finished",
+			  G_CALLBACK (finished),
 			  logger);
 }
 
@@ -677,6 +705,7 @@ soup_logger_request_unqueued (SoupSessionFeature *logger,
 
 	g_signal_handlers_disconnect_by_func (msg, got_informational, logger);
 	g_signal_handlers_disconnect_by_func (msg, got_body, logger);
+	g_signal_handlers_disconnect_by_func (msg, finished, logger);
 }
 
 static void
