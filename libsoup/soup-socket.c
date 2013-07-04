@@ -1035,37 +1035,11 @@ soup_socket_accept_certificate (GTlsConnection *conn, GTlsCertificate *cert,
 	return TRUE;
 }
 
-/**
- * soup_socket_start_ssl:
- * @sock: the socket
- * @cancellable: a #GCancellable
- *
- * Starts using SSL on @socket.
- *
- * Return value: success or failure
- **/
-gboolean
-soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
-{
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-
-	return soup_socket_start_proxy_ssl (sock, soup_address_get_name (priv->remote_addr), cancellable);
-}
-	
-/**
- * soup_socket_start_proxy_ssl:
- * @sock: the socket
- * @ssl_host: hostname of the SSL server
- * @cancellable: a #GCancellable
- *
- * Starts using SSL on @socket, expecting to find a host named
- * @ssl_host.
- *
- * Return value: success or failure
- **/
-gboolean
-soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
-			     GCancellable *cancellable)
+static gboolean
+soup_socket_setup_ssl (SoupSocket    *sock,
+		       const char    *ssl_host,
+		       GCancellable  *cancellable,
+		       GError       **error)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	GTlsBackend *backend = g_tls_backend_get_default ();
@@ -1073,7 +1047,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 	if (G_IS_TLS_CONNECTION (priv->conn))
 		return TRUE;
 
-	if (g_cancellable_is_cancelled (cancellable))
+	if (g_cancellable_set_error_if_cancelled (cancellable, error))
 		return FALSE;
 
 	priv->ssl = TRUE;
@@ -1084,7 +1058,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 
 		identity = g_network_address_new (ssl_host, 0);
 		conn = g_initable_new (g_tls_backend_get_client_connection_type (backend),
-				       NULL, NULL,
+				       cancellable, error,
 				       "base-io-stream", priv->conn,
 				       "server-identity", identity,
 				       "database", priv->ssl_creds,
@@ -1108,7 +1082,7 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 		GTlsServerConnection *conn;
 
 		conn = g_initable_new (g_tls_backend_get_server_connection_type (backend),
-				       NULL, NULL,
+				       cancellable, error,
 				       "base-io-stream", priv->conn,
 				       "certificate", priv->ssl_creds,
 				       "use-system-certdb", FALSE,
@@ -1133,76 +1107,101 @@ soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
 
 	return TRUE;
 }
-	
-guint
-soup_socket_handshake_sync (SoupSocket    *sock,
-			    GCancellable  *cancellable)
+
+/**
+ * soup_socket_start_ssl:
+ * @sock: the socket
+ * @cancellable: a #GCancellable
+ *
+ * Starts using SSL on @socket.
+ *
+ * Return value: success or failure
+ **/
+gboolean
+soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	GError *error = NULL;
 
-	priv->ssl = TRUE;
-	if (g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
-					cancellable, &error))
-		return SOUP_STATUS_OK;
-	else if (!priv->ssl_fallback &&
-		 g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS)) {
-		g_error_free (error);
-		return SOUP_STATUS_TLS_FAILED;
-	} else {
-		g_error_free (error);
-		return SOUP_STATUS_SSL_FAILED;
-	}
+	return soup_socket_setup_ssl (sock, soup_address_get_name (priv->remote_addr),
+				      cancellable, NULL);
+}
+	
+/**
+ * soup_socket_start_proxy_ssl:
+ * @sock: the socket
+ * @ssl_host: hostname of the SSL server
+ * @cancellable: a #GCancellable
+ *
+ * Starts using SSL on @socket, expecting to find a host named
+ * @ssl_host.
+ *
+ * Return value: success or failure
+ **/
+gboolean
+soup_socket_start_proxy_ssl (SoupSocket *sock, const char *ssl_host,
+			     GCancellable *cancellable)
+{
+	return soup_socket_setup_ssl (sock, ssl_host, cancellable, NULL);
+}
+
+gboolean
+soup_socket_handshake_sync (SoupSocket    *sock,
+			    const char    *ssl_host,
+			    GCancellable  *cancellable,
+			    GError       **error)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, error))
+		return FALSE;
+
+	return g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
+					   cancellable, error);
 }
 
 static void
 handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data)
 {
-	SoupSocketAsyncConnectData *data = user_data;
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (data->sock);
+	GTask *task = user_data;
 	GError *error = NULL;
-	guint status;
-
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_pop_thread_default (priv->async_context);
 
 	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (source),
 					       result, &error))
-		status = SOUP_STATUS_OK;
-	else if (!priv->ssl_fallback &&
-		 g_error_matches (error, G_TLS_ERROR, G_TLS_ERROR_NOT_TLS))
-		status = SOUP_STATUS_TLS_FAILED;
+		g_task_return_boolean (task, TRUE);
 	else
-		status = SOUP_STATUS_SSL_FAILED;
-	g_clear_error (&error);
-
-	data->callback (data->sock, status, data->user_data);
-	g_object_unref (data->sock);
-	g_slice_free (SoupSocketAsyncConnectData, data);
+		g_task_return_error (task, error);
 }
 
 void
-soup_socket_handshake_async (SoupSocket         *sock,
-			     GCancellable       *cancellable,
-			     SoupSocketCallback  callback,
-			     gpointer            user_data)
+soup_socket_handshake_async (SoupSocket          *sock,
+			     const char          *ssl_host,
+			     GCancellable        *cancellable,
+			     GAsyncReadyCallback  callback,
+			     gpointer             user_data)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
-	SoupSocketAsyncConnectData *data;
+	GTask *task;
+	GError *error = NULL;
 
-	priv->ssl = TRUE;
+	task = g_task_new (sock, cancellable, callback, user_data);
 
-	data = g_slice_new (SoupSocketAsyncConnectData);
-	data->sock = g_object_ref (sock);
-	data->callback = callback;
-	data->user_data = user_data;
+	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, &error)) {
+		g_task_return_error (task, error);
+		return;
+	}
 
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_push_thread_default (priv->async_context);
 	g_tls_connection_handshake_async (G_TLS_CONNECTION (priv->conn),
 					  G_PRIORITY_DEFAULT,
 					  cancellable, handshake_async_ready,
-					  data);
+					  task);
+}
+
+gboolean
+soup_socket_handshake_finish (SoupSocket    *sock,
+			      GAsyncResult  *result,
+			      GError       **error)
+{
+	return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
