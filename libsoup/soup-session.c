@@ -2109,6 +2109,9 @@ soup_session_send_message (SoupSession *session, SoupMessage *msg)
  *
  * Pauses HTTP I/O on @msg. Call soup_session_unpause_message() to
  * resume I/O.
+ *
+ * This may only be called for asynchronous messages (those sent on a
+ * #SoupSessionAsync or using soup_session_queue_message()).
  **/
 void
 soup_session_pause_message (SoupSession *session,
@@ -2123,6 +2126,7 @@ soup_session_pause_message (SoupSession *session,
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
+	g_return_if_fail (item->async);
 
 	item->paused = TRUE;
 	if (item->state == SOUP_MESSAGE_RUNNING)
@@ -2186,6 +2190,9 @@ soup_session_kick_queue (SoupSession *session)
  * If @msg is being sent via blocking I/O, this will resume reading or
  * writing immediately. If @msg is using non-blocking I/O, then
  * reading or writing won't resume until you return to the main loop.
+ *
+ * This may only be called for asynchronous messages (those sent on a
+ * #SoupSessionAsync or using soup_session_queue_message()).
  **/
 void
 soup_session_unpause_message (SoupSession *session,
@@ -2200,6 +2207,7 @@ soup_session_unpause_message (SoupSession *session,
 	priv = SOUP_SESSION_GET_PRIVATE (session);
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
+	g_return_if_fail (item->async);
 
 	item->paused = FALSE;
 	if (item->state == SOUP_MESSAGE_RUNNING)
