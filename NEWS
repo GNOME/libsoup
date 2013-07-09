@@ -1,3 +1,26 @@
+Changes in libsoup from 2.43.2 to 2.43.4:
+
+	* Fixed a bug that could cause synchronous sessions to get
+          stuck in a state where no new messages would ever get
+          processed. [#703463, Philip Withnall]
+
+	* Fixed another memory leak in SoupSocket (found while
+	  added a test case for #700472)
+
+	* Switched to using g_cclosure_marshal_generic() rather than
+          using glib-genmarshal. [#686042, Olivier Blin]
+
+	* Changed SoupServer to call unref() on the query hash table
+          after calling the handler, rather than destroy(), so that
+          the handler can keep a copy of the query data if it wants.
+          [#702793, Bernhard Schuster]
+
+	* Fixed a few introspection annotations
+
+	* Updated examples/get to use SoupLogger and to allow
+          redirecting the output to a file [#703231, #703229, Andres
+          Gomez]
+
 Changes in libsoup from 2.43.1 to 2.43.2:
 
 	* Fixed an authentication error when using NTLM when
