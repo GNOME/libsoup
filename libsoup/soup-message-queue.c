@@ -183,6 +183,7 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
 	g_object_unref (item->session);
 	g_object_unref (item->msg);
 	g_object_unref (item->cancellable);
+	g_clear_error (&item->error);
 	g_clear_object (&item->task);
 	g_clear_pointer (&item->async_context, g_main_context_unref);
 	if (item->io_source) {

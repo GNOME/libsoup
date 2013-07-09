@@ -242,7 +242,7 @@ cur_one_completed (GObject *source, GAsyncResult *result, gpointer session)
 	if (soup_request_send_finish (one, result, &error)) {
 		debug_printf (1, "  Request 1 succeeded?\n");
 		errors++;
-	} else if (!g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANT_CONNECT)) {
+	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED)) {
 		debug_printf (1, "  Unexpected error on Request 1: %s\n",
 			      error->message);
 		errors++;
@@ -269,7 +269,7 @@ cur_two_completed (GObject *source, GAsyncResult *result, gpointer loop)
 	if (soup_request_send_finish (two, result, &error)) {
 		debug_printf (1, "  Request 2 succeeded?\n");
 		errors++;
-	} else if (!g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANT_CONNECT)) {
+	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED)) {
 		debug_printf (1, "  Unexpected error on Request 2: %s\n",
 			      error->message);
 		errors++;

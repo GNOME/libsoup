@@ -38,6 +38,8 @@ struct _SoupMessageQueueItem {
 	GMainContext *async_context;
 
 	GCancellable *cancellable;
+	GError *error;
+
 	SoupConnection *conn;
 	GTask *task;
 	GSource *io_source;

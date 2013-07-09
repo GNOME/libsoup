@@ -1453,7 +1453,8 @@ soup_session_unqueue_item (SoupSession          *session,
 static void
 soup_session_set_item_status (SoupSession          *session,
 			      SoupMessageQueueItem *item,
-			      guint                 status_code)
+			      guint                 status_code,
+			      GError               *error)
 {
 	SoupURI *uri = NULL;
 
@@ -1481,7 +1482,9 @@ soup_session_set_item_status (SoupSession          *session,
 		break;
 	}
 
-	if (uri && uri->host) {
+	if (error)
+		soup_message_set_status_full (item->msg, status_code, error->message);
+	else if (uri && uri->host) {
 		char *msg = g_strdup_printf ("%s (%s)",
 					     soup_status_get_phrase (status_code),
 					     uri->host);
@@ -1549,8 +1552,6 @@ status_from_connect_error (SoupMessageQueueItem *item, GError *error)
 	} else
 		status = SOUP_STATUS_IO_ERROR;
 
-	g_error_free (error);
-
 	if (item->conn && soup_connection_is_via_proxy (item->conn))
 		return soup_status_proxify (status);
 	else
@@ -1571,12 +1572,14 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 		item->state = SOUP_MESSAGE_FINISHING;
 	soup_message_set_https_status (item->msg, item->conn);
 
+	item->error = error;
 	if (!status)
 		status = status_from_connect_error (item, error);
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
 		soup_connection_disconnect (item->conn);
 		soup_session_set_item_connection (session, item, NULL);
-		soup_session_set_item_status (session, item, status);
+		if (!item->new_api || item->msg->status_code == 0)
+			soup_session_set_item_status (session, item, status, error);
 	}
 
 	item->state = SOUP_MESSAGE_READY;
@@ -1681,10 +1684,12 @@ connect_complete (SoupMessageQueueItem *item, SoupConnection *conn, GError *erro
 		return;
 	}
 
+	item->error = error;
 	status = status_from_connect_error (item, error);
 	soup_connection_disconnect (conn);
 	if (item->state == SOUP_MESSAGE_CONNECTING) {
-		soup_session_set_item_status (session, item, status);
+		if (!item->new_api || item->msg->status_code == 0)
+			soup_session_set_item_status (session, item, status, error);
 		soup_session_set_item_connection (session, item, NULL);
 		item->state = SOUP_MESSAGE_READY;
 	}
@@ -3747,7 +3752,11 @@ async_send_request_return_result (SoupMessageQueueItem *item,
 
 	if (error)
 		g_task_return_error (task, error);
-	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
+	else if (item->error) {
+		if (stream)
+			g_object_unref (stream);
+		g_task_return_error (task, g_error_copy (item->error));
+	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (item->msg->status_code)) {
 		if (stream)
 			g_object_unref (stream);
 		g_task_return_new_error (task, SOUP_HTTP_ERROR,
@@ -4331,11 +4340,12 @@ soup_session_send (SoupSession   *session,
 
 	if (my_error)
 		g_propagate_error (error, my_error);
-	else if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
-		if (stream) {
-			g_object_unref (stream);
-			stream = NULL;
-		}
+	else if (item->error) {
+		g_clear_object (&stream);
+		if (error)
+			*error = g_error_copy (item->error);
+	} else if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code)) {
+		g_clear_object (&stream);
 		g_set_error_literal (error, SOUP_HTTP_ERROR, msg->status_code,
 				     msg->reason_phrase);
 	} else if (!stream)
