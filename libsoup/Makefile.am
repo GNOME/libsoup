@@ -8,7 +8,7 @@ if OS_WIN32
 LIBWS2_32 = -lws2_32
 endif
 
-INCLUDES = 				\
+AM_CPPFLAGS = 				\
 	-DG_LOG_DOMAIN=\"libsoup\" 	\
 	-DLOCALEDIR=\"$(localedir)\"	\
 	-I$(top_srcdir)			\
@@ -250,7 +250,7 @@ gi_built_soup_files = soup-enum-types.h
 
 Soup-2.4.gir: libsoup-2.4.la
 Soup_2_4_gir_INCLUDES = Gio-2.0
-Soup_2_4_gir_CFLAGS = $(INCLUDES) -DLIBSOUP_USE_UNSTABLE_REQUEST_API
+Soup_2_4_gir_CFLAGS = $(AM_CPPFLAGS) -DLIBSOUP_USE_UNSTABLE_REQUEST_API
 Soup_2_4_gir_LIBS = libsoup-2.4.la
 Soup_2_4_gir_EXPORT_PACKAGES = libsoup-2.4
 Soup_2_4_gir_SCANNERFLAGS = --c-include "libsoup/soup.h"
@@ -275,7 +275,7 @@ SoupGNOME_2_4_gir_SCANNERFLAGS =			\
 	--symbol-prefix=soup				\
 	--c-include "libsoup/soup-gnome.h"		\
 	--include-uninstalled=$(builddir)/Soup-2.4.gir
-SoupGNOME_2_4_gir_CFLAGS = $(INCLUDES)
+SoupGNOME_2_4_gir_CFLAGS = $(AM_CPPFLAGS)
 SoupGNOME_2_4_gir_LIBS = libsoup-gnome-2.4.la libsoup-2.4.la
 SoupGNOME_2_4_gir_FILES = $(addprefix $(srcdir)/,$(gi_soup_gnome_files))
 SoupGNOME_2_4_gir_EXPORT_PACKAGES = libsoup-gnome-2.4
