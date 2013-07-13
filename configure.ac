@@ -10,6 +10,7 @@ AC_PREREQ(2.63)
 AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
 AC_CONFIG_SRCDIR([libsoup-2.4.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz -Wno-portability])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
