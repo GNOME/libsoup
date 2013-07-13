@@ -128,6 +128,22 @@ static struct {
 
 	{ "http://host/keep%00nuls", "http://host/keep%00nuls",
 	  { "http", NULL, NULL, "host", 80, "/keep%00nuls", NULL, NULL } },
+
+	/* Bug 703776; scheme parsing */
+	{ "foo0://host/path", "foo0://host/path",
+	  { "foo0", NULL, NULL, "host", 0, "/path", NULL, NULL } },
+	{ "f0.o://host/path", "f0.o://host/path",
+	  { "f0.o", NULL, NULL, "host", 0, "/path", NULL, NULL } },
+	{ "http++://host/path", "http++://host/path",
+	  { "http++", NULL, NULL, "host", 0, "/path", NULL, NULL } },
+	{ "http-ish://host/path", "http-ish://host/path",
+	  { "http-ish", NULL, NULL, "host", 0, "/path", NULL, NULL } },
+	{ "99http://host/path", NULL,
+	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
+	{ ".http://host/path", NULL,
+	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
+	{ "+http://host/path", NULL,
+	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

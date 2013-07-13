@@ -263,10 +263,13 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		end = hash;
 	}
 
-	/* Find scheme: initial [a-z+.-]* substring until ":" */
+	/* Find scheme */
 	p = uri_string;
 	while (p < end && (g_ascii_isalpha (*p) ||
-			   *p == '.' || *p == '+' || *p == '-'))
+			   (p > uri_string && (g_ascii_isdigit (*p) ||
+					       *p == '.' ||
+					       *p == '+' ||
+					       *p == '-'))))
 		p++;
 
 	if (p > uri_string && *p == ':') {
