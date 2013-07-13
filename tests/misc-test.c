@@ -971,6 +971,22 @@ do_cancel_while_reading_req_test (void)
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "\nCancelling (preemptively) message while reading response (request api)\n");
+	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
+
+	debug_printf (1, "  Async session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_cancel_while_reading_req_test_for_session (session, flags);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  Sync session\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 NULL);
+	do_cancel_while_reading_req_test_for_session (session, flags);
+	soup_test_session_abort_unref (session);
 }
 
 static void

@@ -468,6 +468,8 @@ soup_test_request_send (SoupRequest   *req,
 		guint interval = flags & SOUP_TEST_REQUEST_CANCEL_SOON ? 100 : 0;
 		g_timeout_add_full (G_PRIORITY_HIGH, interval, cancel_request_timeout, cancel_data, NULL);
 	}
+	if (cancel_data && (flags & SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE))
+		g_cancellable_cancel (cancellable);
 	soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 
