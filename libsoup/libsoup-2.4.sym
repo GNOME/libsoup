@@ -416,6 +416,7 @@ soup_socket_start_ssl
 soup_socket_write
 soup_ssl_supported
 soup_status_get_phrase
+soup_status_get_type
 soup_status_proxify
 soup_str_case_equal
 soup_str_case_hash

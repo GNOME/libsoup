@@ -52,7 +52,7 @@
  *
  * Represents an HTTP message being sent or received.
  *
- * @status_code will normally be a #SoupKnownStatusCode, eg,
+ * @status_code will normally be a #SoupStatus value, eg,
  * %SOUP_STATUS_OK, though of course it might actually be an unknown
  * status code. @reason_phrase is the actual text returned from the
  * server, which may or may not correspond to the "standard"

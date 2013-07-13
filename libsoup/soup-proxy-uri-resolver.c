@@ -34,7 +34,7 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
 /**
  * SoupProxyURIResolverCallback:
  * @resolver: the #SoupProxyURIResolver
- * @status: a #SoupKnownStatusCode
+ * @status: a #SoupStatus
  * @proxy_uri: the resolved proxy URI, or %NULL
  * @user_data: data passed to soup_proxy_uri_resolver_get_proxy_uri_async()
  *
