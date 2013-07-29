@@ -1,3 +1,32 @@
+Changes in libsoup from 2.43.4 to 2.43.5:
+
+	* SoupProxyURIResolver is now deprecated in favor of the
+          SoupSession:proxy-resolver property (which takes a
+          GProxyResolver). [#680273, Dan]
+
+	* The SoupKnownStatusCode enum is now called SoupStatus. The
+          old name continues to exist as an alias, but is deprecated.
+          (This change has no visible effect in C; it is primarily to
+          help language bindings, so that, eg, SOUP_STATUS_NOT_FOUND
+          maps to "Soup.Status.NOT_FOUND" rather than
+          "Soup.KnownStatusCode.NOT_FOUND".) [#684409, Dan]
+
+	* Fixed the parsing of URI schemes in SoupURI (in particular,
+          to allow scheme names with digits in them). [#703776, Dan]
+
+	* Fixed SoupLogger to print a message's response headers even
+          if the message gets cancelled before the complete response
+          body is received. [#703200, Andres Gomez]
+
+	* Fixed a build problem in non-UTF-8 locales [#702534, Ross
+          Lagerwall]
+
+	* SoupSession now warns if you use
+          soup_session_pause_message() or
+          soup_session_unpause_message() on a synchronous message
+          (which has never worked, though that fact wasn't
+          documented). [#703461, Philip Withnall]
+
 Changes in libsoup from 2.43.2 to 2.43.4:
 
 	* Fixed a bug that could cause synchronous sessions to get
