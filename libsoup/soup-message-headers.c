@@ -9,6 +9,7 @@
 
 #include "soup-message-headers.h"
 #include "soup.h"
+#include "soup-misc-private.h"
 
 /**
  * SECTION:soup-message-headers
@@ -858,56 +859,40 @@ sort_ranges (gconstpointer a, gconstpointer b)
 	return ra->start - rb->start;
 }
 
-/**
- * soup_message_headers_get_ranges:
- * @hdrs: a #SoupMessageHeaders
- * @total_length: the total_length of the response body
- * @ranges: (out): return location for an array of #SoupRange
- * @length: the length of the returned array
- *
- * Parses @hdrs's Range header and returns an array of the requested
- * byte ranges. The returned array must be freed with
- * soup_message_headers_free_ranges().
- *
- * If @total_length is non-0, its value will be used to adjust the
- * returned ranges to have explicit start and end values, and the
- * returned ranges will be sorted and non-overlapping. If
- * @total_length is 0, then some ranges may have an end value of -1,
- * as described under #SoupRange, and some of the ranges may be
- * redundant.
- *
- * Return value: %TRUE if @hdrs contained a "Range" header containing
- * byte ranges which could be parsed, %FALSE otherwise (in which case
- * @range and @length will not be set).
- *
- * Since: 2.26
- **/
-gboolean
-soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
-				 goffset              total_length,
-				 SoupRange          **ranges,
-				 int                 *length)
+/* like soup_message_headers_get_ranges(), except it returns:
+ *   SOUP_STATUS_OK if there is no Range or it should be ignored.
+ *   SOUP_STATUS_PARTIAL_CONTENT if there is at least one satisfiable range.
+ *   SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE if @check_satisfiable
+ *     is %TRUE and the request is not satisfiable given @total_length.
+ */
+guint
+soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
+					  goffset              total_length,
+					  gboolean             check_satisfiable,
+					  SoupRange          **ranges,
+					  int                 *length)
 {
 	const char *range = soup_message_headers_get_one (hdrs, "Range");
 	GSList *range_list, *r;
 	GArray *array;
 	char *spec, *end;
 	int i;
+	guint status = SOUP_STATUS_OK;
 
 	if (!range || strncmp (range, "bytes", 5) != 0)
-		return FALSE;
+		return status;
 
 	range += 5;
 	while (g_ascii_isspace (*range))
 		range++;
 	if (*range++ != '=')
-		return FALSE;
+		return status;
 	while (g_ascii_isspace (*range))
 		range++;
 
 	range_list = soup_header_parse_list (range);
 	if (!range_list)
-		return FALSE;
+		return status;
 
 	array = g_array_new (FALSE, FALSE, sizeof (SoupRange));
 	for (r = range_list; r; r = r->next) {
@@ -921,21 +906,33 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 			cur.start = g_ascii_strtoull (spec, &end, 10);
 			if (*end == '-')
 				end++;
-			if (*end)
+			if (*end) {
 				cur.end = g_ascii_strtoull (end, &end, 10);
-			else
+				if (cur.end < cur.start) {
+					status = SOUP_STATUS_OK;
+					break;
+				}
+			} else
 				cur.end = total_length - 1;
 		}
 		if (*end) {
-			g_array_free (array, TRUE);
-			soup_header_free_list (range_list);
-			return FALSE;
+			status = SOUP_STATUS_OK;
+			break;
+		} else if (check_satisfiable && cur.start >= total_length) {
+			if (status == SOUP_STATUS_OK)
+				status = SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE;
+			continue;
 		}
 
 		g_array_append_val (array, cur);
+		status = SOUP_STATUS_PARTIAL_CONTENT;
 	}
-
 	soup_header_free_list (range_list);
+
+	if (status != SOUP_STATUS_PARTIAL_CONTENT) {
+		g_array_free (array, TRUE);
+		return status;
+	}
 
 	if (total_length) {
 		g_array_sort (array, sort_ranges);
@@ -954,7 +951,46 @@ soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
 	*length = array->len;
 
 	g_array_free (array, FALSE);
-	return TRUE;
+	return SOUP_STATUS_PARTIAL_CONTENT;
+}
+
+/**
+ * soup_message_headers_get_ranges:
+ * @hdrs: a #SoupMessageHeaders
+ * @total_length: the total_length of the response body
+ * @ranges: (out): return location for an array of #SoupRange
+ * @length: the length of the returned array
+ *
+ * Parses @hdrs's Range header and returns an array of the requested
+ * byte ranges. The returned array must be freed with
+ * soup_message_headers_free_ranges().
+ *
+ * If @total_length is non-0, its value will be used to adjust the
+ * returned ranges to have explicit start and end values, and the
+ * returned ranges will be sorted and non-overlapping. If
+ * @total_length is 0, then some ranges may have an end value of -1,
+ * as described under #SoupRange, and some of the ranges may be
+ * redundant.
+ *
+ * Beware that even if given a @total_length, this function does not
+ * check that the ranges are satisfiable.
+ *
+ * Return value: %TRUE if @hdrs contained a syntactically-valid
+ * "Range" header, %FALSE otherwise (in which case @range and @length
+ * will not be set).
+ *
+ * Since: 2.26
+ **/
+gboolean
+soup_message_headers_get_ranges (SoupMessageHeaders  *hdrs,
+				 goffset              total_length,
+				 SoupRange          **ranges,
+				 int                 *length)
+{
+	guint status;
+
+	status = soup_message_headers_get_ranges_internal (hdrs, total_length, FALSE, ranges, length);
+	return status == SOUP_STATUS_PARTIAL_CONTENT;
 }
 
 /**

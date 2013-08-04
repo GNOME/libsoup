@@ -8,6 +8,7 @@
 #define SOUP_MISC_PRIVATE_H 1
 
 #include "soup-socket.h"
+#include "soup-message-headers.h"
 
 char *uri_decoded_copy (const char *str, int length, int *decoded_length);
 char *soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
@@ -46,5 +47,11 @@ SoupURI *soup_socket_get_http_proxy_uri (SoupSocket *sock);
 GSource *soup_add_completion_reffed (GMainContext *async_context,
 				     GSourceFunc   function,
 				     gpointer      data);
+
+guint soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
+						goffset              total_length,
+						gboolean             check_satisfiable,
+						SoupRange          **ranges,
+						int                 *length);
 
 #endif /* SOUP_MISC_PRIVATE_H */

@@ -78,7 +78,7 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 
 static void
 do_single_range (SoupSession *session, SoupMessage *msg,
-		 int start, int end)
+		 int start, int end, gboolean succeed)
 {
 	const char *content_type;
 
@@ -87,11 +87,31 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 
 	soup_session_send_message (session, msg);
 
-	if (msg->status_code != SOUP_STATUS_PARTIAL_CONTENT) {
-		debug_printf (1, "    Unexpected status %d %s\n",
-			      msg->status_code, msg->reason_phrase);
+	if (succeed) {
+		if (msg->status_code != SOUP_STATUS_PARTIAL_CONTENT) {
+			debug_printf (1, "    Unexpected status %d %s\n",
+				      msg->status_code, msg->reason_phrase);
+			g_object_unref (msg);
+			errors++;
+			return;
+		}
+	} else {
+		if (msg->status_code == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
+			debug_printf (1, "    Got expected %d %s\n",
+				      msg->status_code, msg->reason_phrase);
+		} else {
+			const char *content_range;
+
+			debug_printf (1, "    Unexpected status %d %s\n",
+				      msg->status_code, msg->reason_phrase);
+			content_range = soup_message_headers_get_one (msg->response_headers,
+								      "Content-Range");
+			if (content_range)
+				debug_printf (1, "    Content-Range: %s\n", content_range);
+			errors++;
+		}
+
 		g_object_unref (msg);
-		errors++;
 		return;
 	}
 
@@ -111,13 +131,13 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 
 static void
 request_single_range (SoupSession *session, const char *uri,
-		      int start, int end)
+		      int start, int end, gboolean succeed)
 {
 	SoupMessage *msg;
 
 	msg = soup_message_new ("GET", uri);
 	soup_message_headers_set_range (msg->request_headers, start, end);
-	do_single_range (session, msg, start, end);
+	do_single_range (session, msg, start, end, succeed);
 }
 
 static void
@@ -198,7 +218,8 @@ request_double_range (SoupSession *session, const char *uri,
 	if (expected_return_ranges == 1) {
 		do_single_range (session, msg,
 				 MIN (first_start, second_start),
-				 MAX (first_end, second_end));
+				 MAX (first_end, second_end),
+				 TRUE);
 	} else
 		do_multi_range (session, msg, expected_return_ranges);
 }
@@ -225,9 +246,31 @@ request_triple_range (SoupSession *session, const char *uri,
 	if (expected_return_ranges == 1) {
 		do_single_range (session, msg,
 				 MIN (first_start, MIN (second_start, third_start)),
-				 MAX (first_end, MAX (second_end, third_end)));
+				 MAX (first_end, MAX (second_end, third_end)),
+				 TRUE);
 	} else
 		do_multi_range (session, msg, expected_return_ranges);
+}
+
+static void
+request_semi_invalid_range (SoupSession *session, const char *uri,
+			    int first_good_start, int first_good_end,
+			    int bad_start, int bad_end,
+			    int second_good_start, int second_good_end)
+{
+	SoupMessage *msg;
+	SoupRange ranges[3];
+
+	msg = soup_message_new ("GET", uri);
+	ranges[0].start = first_good_start;
+	ranges[0].end = first_good_end;
+	ranges[1].start = bad_start;
+	ranges[1].end = bad_end;
+	ranges[2].start = second_good_start;
+	ranges[2].end = second_good_end;
+	soup_message_headers_set_ranges (msg->request_headers, ranges, 3);
+
+	do_multi_range (session, msg, 2);
 }
 
 static void
@@ -258,7 +301,8 @@ do_range_test (SoupSession *session, const char *uri,
 	/* A: 0, simple request */
 	debug_printf (1, "Requesting %d-%d\n", 0 * twelfths, 1 * twelfths);
 	request_single_range (session, uri,
-			      0 * twelfths, 1 * twelfths);
+			      0 * twelfths, 1 * twelfths,
+			      TRUE);
 
 	/* B: 11, end-relative request. These two are mostly redundant
 	 * in terms of data coverage, but they may still catch
@@ -266,10 +310,12 @@ do_range_test (SoupSession *session, const char *uri,
 	 */
 	debug_printf (1, "Requesting %d-\n", 11 * twelfths);
 	request_single_range (session, uri,
-			      11 * twelfths, -1);
+			      11 * twelfths, -1,
+			      TRUE);
 	debug_printf (1, "Requesting -%d\n", 1 * twelfths);
 	request_single_range (session, uri,
-			      -1 * twelfths, -1);
+			      -1 * twelfths, -1,
+			      TRUE);
 
 	/* C: 2 and 5 */
 	debug_printf (1, "Requesting %d-%d,%d-%d\n",
@@ -318,6 +364,21 @@ do_range_test (SoupSession *session, const char *uri,
 		debug_printf (1, "\nfull_response and test_response don't match\n");
 		errors++;
 	}
+
+	debug_printf (1, "Requesting (invalid) %d-%d\n",
+		      (int) full_response->length + 1,
+		      (int) full_response->length + 100);
+	request_single_range (session, uri,
+			      full_response->length + 1, full_response->length + 100,
+			      FALSE);
+
+	debug_printf (1, "Requesting (semi-invalid) 1-10,%d-%d,20-30\n",
+		      (int) full_response->length + 1,
+		      (int) full_response->length + 100);
+	request_semi_invalid_range (session, uri,
+				    1, 10,
+				    full_response->length + 1, full_response->length + 100,
+				    20, 30); 
 }
 
 static void

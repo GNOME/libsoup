@@ -119,6 +119,7 @@ handle_partial_get (SoupMessage *msg)
 	SoupRange *ranges;
 	int nranges;
 	SoupBuffer *full_response;
+	guint status;
 
 	/* Make sure the message is set up right for us to return a
 	 * partial response; it has to be a GET, the status must be
@@ -137,9 +138,15 @@ handle_partial_get (SoupMessage *msg)
 	/* Oh, and there has to have been a valid Range header on the
 	 * request, of course.
 	 */
-	if (!soup_message_headers_get_ranges (msg->request_headers,
-					      msg->response_body->length,
-					      &ranges, &nranges))
+	status = soup_message_headers_get_ranges_internal (msg->request_headers,
+							   msg->response_body->length,
+							   TRUE,
+							   &ranges, &nranges);
+	if (status == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
+		soup_message_set_status (msg, status);
+		soup_message_body_truncate (msg->response_body);
+		return;
+	} else if (status != SOUP_STATUS_PARTIAL_CONTENT)
 		return;
 
 	full_response = soup_message_body_flatten (msg->response_body);
