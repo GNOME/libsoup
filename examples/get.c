@@ -35,9 +35,8 @@ get_url (const char *url)
 		g_object_ref (msg);
 		soup_session_queue_message (session, msg, finished, loop);
 		g_main_loop_run (loop);
-	}
-
-	soup_session_send_message (session, msg);
+	} else
+		soup_session_send_message (session, msg);
 
 	name = soup_message_get_uri (msg)->path;
 
