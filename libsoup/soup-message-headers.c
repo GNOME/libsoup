@@ -975,6 +975,22 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * Beware that even if given a @total_length, this function does not
  * check that the ranges are satisfiable.
  *
+ * <note><para>
+ * #SoupServer has built-in handling for range requests. If your
+ * server handler returns a %SOUP_STATUS_OK response containing the
+ * complete response body (rather than pausing the message and
+ * returning some of the response body later), and there is a Range
+ * header in the request, then libsoup will automatically convert the
+ * response to a %SOUP_STATUS_PARTIAL_CONTENT response containing only
+ * the range(s) requested by the client.
+ *
+ * The only time you need to process the Range header yourself is if
+ * either you need to stream the response body rather than returning
+ * it all at once, or you do not already have the complete response
+ * body available, and only want to generate the parts that were
+ * actually requested by the client.
+ * </para></note>
+ *
  * Return value: %TRUE if @hdrs contained a syntactically-valid
  * "Range" header, %FALSE otherwise (in which case @range and @length
  * will not be set).
@@ -1139,6 +1155,12 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  * Sets @hdrs's Content-Range header according to the given values.
  * (Note that @total_length is the total length of the entire resource
  * that this is a range of, not simply @end - @start + 1.)
+ *
+ * <note><para>
+ * #SoupServer has built-in handling for range requests, and you do
+ * not normally need to call this function youself. See
+ * soup_message_headers_get_range() for more details.
+ * </para></note>
  *
  * Since: 2.26
  **/
