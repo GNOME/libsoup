@@ -144,6 +144,14 @@ static struct {
 	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
 	{ "+http://host/path", NULL,
 	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
+
+	/* IPv6 scope ID parsing (both correct and incorrect) */
+	{ "http://[fe80::dead:beef%em1]/", "http://[fe80::dead:beef%25em1]/",
+	  { "http", NULL, NULL, "fe80::dead:beef%em1", 80, "/", NULL, NULL } },
+	{ "http://[fe80::dead:beef%25em1]/", "http://[fe80::dead:beef%25em1]/",
+	  { "http", NULL, NULL, "fe80::dead:beef%em1", 80, "/", NULL, NULL } },
+	{ "http://[fe80::dead:beef%10]/", "http://[fe80::dead:beef%2510]/",
+	  { "http", NULL, NULL, "fe80::dead:beef%10", 80, "/", NULL, NULL } }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
 

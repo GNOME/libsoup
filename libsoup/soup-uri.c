@@ -308,6 +308,8 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 		/* Find host and port. */
 		if (*uri_string == '[') {
+			const char *pct;
+
 			uri_string++;
 			hostend = strchr (uri_string, ']');
 			if (!hostend || hostend > path) {
@@ -318,12 +320,17 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 				colon = hostend + 1;
 			else
 				colon = NULL;
+
+			pct = memchr (uri_string, '%', hostend - uri_string);
+			if (!pct || (pct[1] == '2' && pct[2] == '5'))
+				uri->host = uri_decoded_copy (uri_string, hostend - uri_string, NULL);
+			else
+				uri->host = g_strndup (uri_string, hostend - uri_string);
 		} else {
 			colon = memchr (uri_string, ':', path - uri_string);
 			hostend = colon ? colon : path;
+			uri->host = uri_decoded_copy (uri_string, hostend - uri_string, NULL);
 		}
-
-		uri->host = uri_decoded_copy (uri_string, hostend - uri_string, NULL);
 
 		if (colon && colon != path - 1) {
 			char *portend;
@@ -513,8 +520,16 @@ soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 			g_string_append_c (str, '@');
 		}
 		if (strchr (uri->host, ':')) {
+			const char *pct;
+
 			g_string_append_c (str, '[');
-			g_string_append (str, uri->host);
+			pct = strchr (uri->host, '%');
+			if (pct) {
+				g_string_append_printf (str, "%.*s%%25%s",
+							(int) (pct - uri->host),
+							uri->host, pct + 1);
+			} else
+				g_string_append (str, uri->host);
 			g_string_append_c (str, ']');
 		} else
 			append_uri_encoded (str, uri->host, ":/");
