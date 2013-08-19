@@ -52,7 +52,6 @@ typedef struct {
 	const char *protocol;
 
 	GMutex lock;
-	GSList *async_lookups;
 } SoupAddressPrivate;
 #define SOUP_ADDRESS_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_ADDRESS, SoupAddressPrivate))
 
@@ -674,55 +673,47 @@ update_name (SoupAddress *addr, const char *name, GError *error)
 }
 
 typedef struct {
+	SoupAddress         *addr;
 	SoupAddressCallback  callback;
 	gpointer             callback_data;
 } SoupAddressResolveAsyncData;
 
 static void
-complete_resolve_async (SoupAddress *addr, guint status)
+complete_resolve_async (SoupAddressResolveAsyncData *res_data, guint status)
 {
-	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
-	SoupAddressResolveAsyncData *res_data;
-	GSList *lookups, *l;
 	GSource *current_source;
 	GMainContext *current_context;
 
-	lookups = priv->async_lookups;
-	priv->async_lookups = NULL;
+	if (res_data->callback) {
+		/* Awful hack; to make soup_socket_connect_async()
+		 * with an non-default async_context work correctly,
+		 * we need to ensure that the non-default context
+		 * (which we're now running in) is the thread-default
+		 * when the callbacks are run...
+		 */
+		current_source = g_main_current_source ();
+		if (current_source && !g_source_is_destroyed (current_source))
+			current_context = g_source_get_context (current_source);
+		else
+			current_context = NULL;
+		g_main_context_push_thread_default (current_context);
 
-	/* Awful hack; to make soup_socket_connect_async() with an
-	 * non-default async_context work correctly, we need to ensure
-	 * that the non-default context (which we're now running in)
-	 * is the thread-default when the callbacks are run...
-	 */
-	current_source = g_main_current_source ();
-	if (current_source && !g_source_is_destroyed (current_source))
-		current_context = g_source_get_context (current_source);
-	else
-		current_context = NULL;
-	g_main_context_push_thread_default (current_context);
+		res_data->callback (res_data->addr, status,
+				    res_data->callback_data);
 
-	for (l = lookups; l; l = l->next) {
-		res_data = l->data;
-
-		if (res_data->callback) {
-			res_data->callback (addr, status,
-					    res_data->callback_data);
-		}
-		g_slice_free (SoupAddressResolveAsyncData, res_data);
+		g_main_context_pop_thread_default (current_context);
 	}
-	g_slist_free (lookups);
 
-	g_main_context_pop_thread_default (current_context);
-
-	g_object_unref (addr);
+	g_object_unref (res_data->addr);
+	g_slice_free (SoupAddressResolveAsyncData, res_data);
 }
 
 static void
 lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 {
 	GResolver *resolver = G_RESOLVER (source);
-	SoupAddress *addr = user_data;
+	SoupAddressResolveAsyncData *res_data = user_data;
+	SoupAddress *addr = res_data->addr;
 	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
 	GError *error = NULL;
 	guint status;
@@ -748,7 +739,7 @@ lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 	g_object_ref (addr);
 	g_object_set_data (G_OBJECT (addr), "async-resolved-error", error);
 
-	complete_resolve_async (addr, status);
+	complete_resolve_async (res_data, status);
 
 	g_object_set_data (G_OBJECT (addr), "async-resolved-error", NULL);
 	g_object_unref (addr);
@@ -757,9 +748,9 @@ lookup_resolved (GObject *source, GAsyncResult *result, gpointer user_data)
 }
 
 static gboolean
-idle_complete_resolve (gpointer addr)
+idle_complete_resolve (gpointer res_data)
 {
-	complete_resolve_async (addr, SOUP_STATUS_OK);
+	complete_resolve_async (res_data, SOUP_STATUS_OK);
 	return FALSE;
 }
 
@@ -805,7 +796,6 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	SoupAddressPrivate *priv;
 	SoupAddressResolveAsyncData *res_data;
 	GResolver *resolver;
-	gboolean already_started;
 
 	g_return_if_fail (SOUP_IS_ADDRESS (addr));
 	priv = SOUP_ADDRESS_GET_PRIVATE (addr);
@@ -821,43 +811,37 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 		return;
 
 	res_data = g_slice_new0 (SoupAddressResolveAsyncData);
+	res_data->addr = g_object_ref (addr);
 	res_data->callback = callback;
 	res_data->callback_data = user_data;
 
-	already_started = priv->async_lookups != NULL;
-	priv->async_lookups = g_slist_prepend (priv->async_lookups, res_data);
-
-	if (already_started)
-		return;
-
-	g_object_ref (addr);
-
-	if (priv->name && priv->sockaddr) {
-		soup_add_completion (async_context, idle_complete_resolve, addr);
-		return;
-	}
-
-	resolver = g_resolver_get_default ();
 	if (async_context)
 		g_main_context_push_thread_default (async_context);
 
-	if (priv->name) {
-		g_resolver_lookup_by_name_async (resolver, priv->name,
-						 cancellable,
-						 lookup_resolved, addr);
-	} else {
-		GInetAddress *gia;
+	if (priv->name && priv->sockaddr)
+		soup_add_completion (async_context, idle_complete_resolve, res_data);
+	else {
+		resolver = g_resolver_get_default ();
 
-		gia = soup_address_make_inet_address (addr);
-		g_resolver_lookup_by_address_async (resolver, gia,
-						    cancellable,
-						    lookup_resolved, addr);
-		g_object_unref (gia);
+		if (priv->name) {
+			g_resolver_lookup_by_name_async (resolver, priv->name,
+							 cancellable,
+							 lookup_resolved, res_data);
+		} else {
+			GInetAddress *gia;
+
+			gia = soup_address_make_inet_address (addr);
+			g_resolver_lookup_by_address_async (resolver, gia,
+							    cancellable,
+							    lookup_resolved, res_data);
+			g_object_unref (gia);
+		}
+
+		g_object_unref (resolver);
 	}
 
 	if (async_context)
 		g_main_context_pop_thread_default (async_context);
-	g_object_unref (resolver);
 }
 
 static guint
@@ -1205,8 +1189,9 @@ soup_address_address_enumerator_next_async (GSocketAddressEnumerator  *enumerato
 
 	task = g_task_new (enumerator, cancellable, callback, user_data);
 	if (!priv->sockaddr) {
-		soup_address_resolve_async (addr_enum->addr, NULL, cancellable,
-					    got_addresses, task);
+		soup_address_resolve_async (addr_enum->addr,
+					    g_main_context_get_thread_default (),
+					    cancellable, got_addresses, task);
 	} else {
 		g_task_return_pointer (task, next_address (addr_enum), g_object_unref);
 		g_object_unref (task);
