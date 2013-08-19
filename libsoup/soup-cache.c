@@ -38,6 +38,7 @@
 #include "soup-content-processor.h"
 #include "soup-message-private.h"
 #include "soup.h"
+#include "soup-message-private.h"
 
 /**
  * SECTION:soup-cache
@@ -1345,6 +1346,8 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	SoupURI *uri;
 	SoupCacheEntry *entry;
 	const char *last_modified, *etag;
+	SoupMessagePrivate *origpriv;
+	GSList *f;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
 	g_return_val_if_fail (SOUP_IS_MESSAGE (original), NULL);
@@ -1369,6 +1372,10 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	soup_message_headers_foreach (original->request_headers,
 				      (SoupMessageHeadersForeachFunc)copy_headers,
 				      msg->request_headers);
+
+	origpriv = SOUP_MESSAGE_GET_PRIVATE (original);
+	for (f = origpriv->disabled_features; f; f = f->next)
+		soup_message_disable_feature (msg, (GType) GPOINTER_TO_SIZE (f->data));
 
 	if (last_modified)
 		soup_message_headers_append (msg->request_headers,
