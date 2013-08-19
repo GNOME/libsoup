@@ -561,6 +561,59 @@ soup_address_get_port (SoupAddress *addr)
 }
 
 
+/* Tries to resolve priv->name as an IP address, possibly including an
+ * IPv6 scope id.
+ */
+static void
+maybe_resolve_ip (SoupAddress *addr)
+{
+	SoupAddressPrivate *priv = SOUP_ADDRESS_GET_PRIVATE (addr);
+	const char *pct, *ip;
+	char *tmp = NULL;
+	GSocketConnectable *gaddr;
+	GSocketAddressEnumerator *sa_enum;
+	GSocketAddress *saddr;
+
+	if (priv->sockaddr || !priv->name)
+		return;
+
+	pct = strchr (priv->name, '%');
+	if (pct)
+		ip = tmp = g_strndup (priv->name, pct - priv->name);
+	else
+		ip = priv->name;
+
+	if (!g_hostname_is_ip_address (ip)) {
+		g_free (tmp);
+		return;
+	}
+	g_free (tmp);
+
+	gaddr = g_network_address_new (priv->name, priv->port);
+	if (!gaddr)
+		return;
+
+	sa_enum = g_socket_connectable_enumerate (gaddr);
+	saddr = g_socket_address_enumerator_next (sa_enum, NULL, NULL);
+	if (saddr) {
+		priv->n_addrs = 1;
+		priv->sockaddr = g_new (struct sockaddr_storage, 1);
+		if (!g_socket_address_to_native (saddr, priv->sockaddr,
+						 sizeof (struct sockaddr_storage),
+						 NULL)) {
+			/* can't happen: We know the address format is supported
+			 * and the buffer is large enough
+			 */
+			g_warn_if_reached ();
+		}
+		g_object_unref (saddr);
+	}
+
+	g_object_unref (sa_enum);
+	g_object_unref (gaddr);
+}
+
+
 static guint
 update_addrs (SoupAddress *addr, GList *addrs, GError *error)
 {
@@ -762,6 +815,8 @@ soup_address_resolve_async (SoupAddress *addr, GMainContext *async_context,
 	 * not intended to be thread-safe.
 	 */
 
+	if (priv->name && !priv->sockaddr)
+		maybe_resolve_ip (addr);
 	if (priv->name && priv->sockaddr && !callback)
 		return;
 
@@ -822,6 +877,10 @@ resolve_sync_internal (SoupAddress *addr, GCancellable *cancellable, GError **er
 	 * blocking op, and then re-lock it to modify @addr.
 	 */
 	g_mutex_lock (&priv->lock);
+
+	if (priv->name && !priv->sockaddr)
+		maybe_resolve_ip (addr);
+
 	if (!priv->sockaddr) {
 		GList *addrs;
 
@@ -847,6 +906,7 @@ resolve_sync_internal (SoupAddress *addr, GCancellable *cancellable, GError **er
 		g_free (name);
 	} else
 		status = SOUP_STATUS_OK;
+
 	g_mutex_unlock (&priv->lock);
 
 	if (my_err)
