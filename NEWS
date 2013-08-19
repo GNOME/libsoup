@@ -1,3 +1,14 @@
+Changes in libsoup from 2.43.5 to 2.43.90:
+
+	* Fixed the handling of unsatisfiable range requests in
+          SoupServer [pointed out on mailing list, Dan]. Also, added
+          more documentation clarifying that you don't need to handle
+          range requests yourself in many cases.
+
+	* Fixed the handling of IPv6 address literals with scope IDs.
+          (Requires the latest glib as well for the complete fix.)
+          [#669724, Dan]
+
 Changes in libsoup from 2.43.4 to 2.43.5:
 
 	* SoupProxyURIResolver is now deprecated in favor of the
