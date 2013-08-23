@@ -571,6 +571,19 @@ do_cancel_test (SoupURI *base_uri)
 	g_free (body2);
 }
 
+static gboolean
+unref_stream (gpointer stream)
+{
+	g_object_unref (stream);
+	return FALSE;
+}
+
+static void
+base_stream_unreffed (gpointer loop, GObject *ex_base_stream)
+{
+	g_main_loop_quit (loop);
+}
+
 static void
 do_refcounting_test (SoupURI *base_uri)
 {
@@ -582,6 +595,7 @@ do_refcounting_test (SoupURI *base_uri)
 	SoupURI *uri;
 	GError *error = NULL;
 	guint flags;
+	GMainLoop *loop;
 
 	debug_printf (1, "Cache refcounting tests\n");
 
@@ -609,19 +623,16 @@ do_refcounting_test (SoupURI *base_uri)
 		g_object_unref (req);
 		return;
 	}
+	g_object_unref (req);
 
 	base_stream = g_filter_input_stream_get_base_stream (G_FILTER_INPUT_STREAM (stream));
-	g_object_add_weak_pointer (G_OBJECT (base_stream), (gpointer *)&base_stream);
-
-	g_clear_object (&req);
-	g_object_unref (stream);
 
 	debug_printf (1, " Checking that the base stream is properly unref'ed\n");
-	if (base_stream) {
-		errors++;
-		debug_printf (1, "leaked GInputStream!\n");
-		g_object_remove_weak_pointer (G_OBJECT (base_stream), (gpointer *)&base_stream);
-	}
+	loop = g_main_loop_new (NULL, FALSE);
+	g_object_weak_ref (G_OBJECT (base_stream), base_stream_unreffed, loop);
+	g_idle_add (unref_stream, stream);
+	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
 
 	soup_cache_flush ((SoupCache *)soup_session_get_feature (session, SOUP_TYPE_CACHE));
 
