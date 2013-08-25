@@ -131,8 +131,10 @@ enum {
 	PROP_REASON_PHRASE,
 	PROP_FIRST_PARTY,
 	PROP_REQUEST_BODY,
+	PROP_REQUEST_BODY_DATA,
 	PROP_REQUEST_HEADERS,
 	PROP_RESPONSE_BODY,
+	PROP_RESPONSE_BODY_DATA,
 	PROP_RESPONSE_HEADERS,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
@@ -254,6 +256,7 @@ soup_message_get_property (GObject *object, guint prop_id,
 {
 	SoupMessage *msg = SOUP_MESSAGE (object);
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupBuffer *buf;
 
 	switch (prop_id) {
 	case PROP_METHOD:
@@ -283,11 +286,21 @@ soup_message_get_property (GObject *object, guint prop_id,
 	case PROP_REQUEST_BODY:
 		g_value_set_boxed (value, msg->request_body);
 		break;
+	case PROP_REQUEST_BODY_DATA:
+		buf = soup_message_body_flatten (msg->request_body);
+		g_value_take_boxed (value, soup_buffer_get_as_bytes (buf));
+		soup_buffer_free (buf);
+		break;
 	case PROP_REQUEST_HEADERS:
 		g_value_set_boxed (value, msg->request_headers);
 		break;
 	case PROP_RESPONSE_BODY:
 		g_value_set_boxed (value, msg->response_body);
+		break;
+	case PROP_RESPONSE_BODY_DATA:
+		buf = soup_message_body_flatten (msg->response_body);
+		g_value_take_boxed (value, soup_buffer_get_as_bytes (buf));
+		soup_buffer_free (buf);
 		break;
 	case PROP_RESPONSE_HEADERS:
 		g_value_set_boxed (value, msg->response_headers);
@@ -784,6 +797,28 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    SOUP_TYPE_MESSAGE_BODY,
 				    G_PARAM_READABLE));
 	/**
+	 * SOUP_MESSAGE_REQUEST_BODY_DATA:
+	 *
+	 * Alias for the #SoupMessage:request-body-data property. (The
+	 * message's HTTP request body, as a #GBytes.)
+	 *
+	 * Since: 2.46
+	 **/
+	/**
+	 * SoupMessage:request-body-data:
+	 *
+	 * The message's HTTP request body, as a #GBytes.
+	 *
+	 * Since: 2.46
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_REQUEST_BODY_DATA,
+		g_param_spec_boxed (SOUP_MESSAGE_REQUEST_BODY_DATA,
+				    "Request Body Data",
+				    "The HTTP request body",
+				    G_TYPE_BYTES,
+				    G_PARAM_READABLE));
+	/**
 	 * SOUP_MESSAGE_REQUEST_HEADERS:
 	 *
 	 * Alias for the #SoupMessage:request-headers property. (The
@@ -808,6 +843,28 @@ soup_message_class_init (SoupMessageClass *message_class)
 				    "Response Body",
 				    "The HTTP response content",
 				    SOUP_TYPE_MESSAGE_BODY,
+				    G_PARAM_READABLE));
+	/**
+	 * SOUP_MESSAGE_RESPONSE_BODY_DATA:
+	 *
+	 * Alias for the #SoupMessage:response-body-data property. (The
+	 * message's HTTP response body, as a #GBytes.)
+	 *
+	 * Since: 2.46
+	 **/
+	/**
+	 * SoupMessage:response-body-data:
+	 *
+	 * The message's HTTP response body, as a #GBytes.
+	 *
+	 * Since: 2.46
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_RESPONSE_BODY_DATA,
+		g_param_spec_boxed (SOUP_MESSAGE_RESPONSE_BODY_DATA,
+				    "Response Body Data",
+				    "The HTTP response body",
+				    G_TYPE_BYTES,
 				    G_PARAM_READABLE));
 	/**
 	 * SOUP_MESSAGE_RESPONSE_HEADERS:
