@@ -23,6 +23,7 @@
 struct _SoupFilterInputStreamPrivate {
 	GByteArray *buf;
 	gboolean need_more;
+	gboolean in_read_until;
 };
 
 static void soup_filter_input_stream_pollable_init (GPollableInputStreamInterface *pollable_interface, gpointer interface_data);
@@ -79,8 +80,10 @@ soup_filter_input_stream_read_fn (GInputStream  *stream,
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
 
-	fstream->priv->need_more = FALSE;
-	if (fstream->priv->buf) {
+	if (!fstream->priv->in_read_until)
+		fstream->priv->need_more = FALSE;
+
+	if (fstream->priv->buf && !fstream->priv->in_read_until) {
 		return read_from_buf (fstream, buffer, count);
 	} else {
 		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
@@ -108,8 +111,10 @@ soup_filter_input_stream_read_nonblocking (GPollableInputStream  *stream,
 {
 	SoupFilterInputStream *fstream = SOUP_FILTER_INPUT_STREAM (stream);
 
-	fstream->priv->need_more = FALSE;
-	if (fstream->priv->buf) {
+	if (!fstream->priv->in_read_until)
+		fstream->priv->need_more = FALSE;
+
+	if (fstream->priv->buf && !fstream->priv->in_read_until) {
 		return read_from_buf (fstream, buffer, count);
 	} else {
 		return g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
@@ -217,10 +222,12 @@ soup_filter_input_stream_read_until (SoupFilterInputStream  *fstream,
 		g_byte_array_set_size (fstream->priv->buf, length);
 		buf = fstream->priv->buf->data;
 
-		nread = g_pollable_stream_read (G_FILTER_INPUT_STREAM (fstream)->base_stream,
+		fstream->priv->in_read_until = TRUE;
+		nread = g_pollable_stream_read (G_INPUT_STREAM (fstream),
 						buf + prev_len, length - prev_len,
 						blocking,
 						cancellable, &my_error);
+		fstream->priv->in_read_until = FALSE;
 		if (nread <= 0) {
 			if (prev_len)
 				fstream->priv->buf->len = prev_len;
