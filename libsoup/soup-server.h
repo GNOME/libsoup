@@ -64,6 +64,8 @@ typedef void (*SoupServerCallback) (SoupServer        *server,
 #define SOUP_SERVER_ASYNC_CONTEXT   "async-context"
 #define SOUP_SERVER_RAW_PATHS       "raw-paths"
 #define SOUP_SERVER_SERVER_HEADER   "server-header"
+#define SOUP_SERVER_HTTP_ALIASES    "http-aliases"
+#define SOUP_SERVER_HTTPS_ALIASES   "https-aliases"
 
 SoupServer        *soup_server_new            (const char            *optname1,
 					       ...) G_GNUC_NULL_TERMINATED;

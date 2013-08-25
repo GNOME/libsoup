@@ -831,49 +831,6 @@ soup_session_new_with_options (const char *optname1,
 	return session;
 }
 
-static gboolean
-uri_is_http (SoupSessionPrivate *priv, SoupURI *uri)
-{
-	int i;
-
-	if (uri->scheme == SOUP_URI_SCHEME_HTTP)
-		return TRUE;
-	else if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
-		return FALSE;
-	else if (!priv->http_aliases)
-		return FALSE;
-
-	for (i = 0; priv->http_aliases[i]; i++) {
-		if (uri->scheme == priv->http_aliases[i])
-			return TRUE;
-	}
-
-	if (!priv->http_aliases[1] && !strcmp (priv->http_aliases[0], "*"))
-		return TRUE;
-	else
-		return FALSE;
-}
-
-static gboolean
-uri_is_https (SoupSessionPrivate *priv, SoupURI *uri)
-{
-	int i;
-
-	if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
-		return TRUE;
-	else if (uri->scheme == SOUP_URI_SCHEME_HTTP)
-		return FALSE;
-	else if (!priv->https_aliases)
-		return FALSE;
-
-	for (i = 0; priv->https_aliases[i]; i++) {
-		if (uri->scheme == priv->https_aliases[i])
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
 /**
  * soup_session_get_async_context:
  * @session: a #SoupSession
@@ -945,7 +902,7 @@ soup_session_host_new (SoupSession *session, SoupURI *uri)
 	    host->uri->scheme != SOUP_URI_SCHEME_HTTPS) {
 		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-		if (uri_is_https (priv, host->uri))
+		if (soup_uri_is_https (host->uri, priv->https_aliases))
 			host->uri->scheme = SOUP_URI_SCHEME_HTTPS;
 		else
 			host->uri->scheme = SOUP_URI_SCHEME_HTTP;
@@ -969,7 +926,7 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
 
-	if (uri_is_https (priv, uri))
+	if (soup_uri_is_https (uri, priv->https_aliases))
 		host = g_hash_table_lookup (priv->https_hosts, uri);
 	else
 		host = g_hash_table_lookup (priv->http_hosts, uri);
@@ -978,7 +935,7 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 
 	host = soup_session_host_new (session, uri);
 
-	if (uri_is_https (priv, uri))
+	if (soup_uri_is_https (uri, priv->https_aliases))
 		g_hash_table_insert (priv->https_hosts, host->uri, host);
 	else
 		g_hash_table_insert (priv->http_hosts, host->uri, host);
@@ -1080,7 +1037,8 @@ soup_session_would_redirect (SoupSession *session, SoupMessage *msg)
 	if (!new_uri)
 		return FALSE;
 	if (!new_uri->host || !*new_uri->host ||
-	    (!uri_is_http (priv, new_uri) && !uri_is_https (priv, new_uri))) {
+	    (!soup_uri_is_http (new_uri, priv->http_aliases) &&
+	     !soup_uri_is_https (new_uri, priv->https_aliases))) {
 		soup_uri_free (new_uri);
 		return FALSE;
 	}
@@ -1691,7 +1649,7 @@ get_connection_for_host (SoupSession *session,
 		SOUP_TYPE_CONNECTION,
 		SOUP_CONNECTION_REMOTE_URI, host->uri,
 		SOUP_CONNECTION_PROXY_RESOLVER, priv->proxy_resolver,
-		SOUP_CONNECTION_SSL, uri_is_https (priv, soup_message_get_uri (item->msg)),
+		SOUP_CONNECTION_SSL, soup_uri_is_https (soup_message_get_uri (item->msg), priv->https_aliases),
 		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (priv->tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,

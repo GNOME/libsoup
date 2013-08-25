@@ -1291,4 +1291,47 @@ soup_uri_host_equal (gconstpointer v1, gconstpointer v2)
 	return g_ascii_strcasecmp (one->host, two->host) == 0;
 }
 
+gboolean
+soup_uri_is_http (SoupURI *uri, char **aliases)
+{
+	int i;
+
+	if (uri->scheme == SOUP_URI_SCHEME_HTTP)
+		return TRUE;
+	else if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
+		return FALSE;
+	else if (!aliases)
+		return FALSE;
+
+	for (i = 0; aliases[i]; i++) {
+		if (uri->scheme == aliases[i])
+			return TRUE;
+	}
+
+	if (!aliases[1] && !strcmp (aliases[0], "*"))
+		return TRUE;
+	else
+		return FALSE;
+}
+
+gboolean
+soup_uri_is_https (SoupURI *uri, char **aliases)
+{
+	int i;
+
+	if (uri->scheme == SOUP_URI_SCHEME_HTTPS)
+		return TRUE;
+	else if (uri->scheme == SOUP_URI_SCHEME_HTTP)
+		return FALSE;
+	else if (!aliases)
+		return FALSE;
+
+	for (i = 0; aliases[i]; i++) {
+		if (uri->scheme == aliases[i])
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 G_DEFINE_BOXED_TYPE (SoupURI, soup_uri, soup_uri_copy, soup_uri_free)
