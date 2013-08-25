@@ -12,6 +12,7 @@ TESTS =				\
 	auth-test		\
 	cache-test		\
 	chunk-test		\
+	chunk-io-test		\
 	coding-test		\
 	connection-test		\
 	context-test		\
