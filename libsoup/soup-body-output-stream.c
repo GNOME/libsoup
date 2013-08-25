@@ -231,7 +231,8 @@ soup_body_output_stream_close_fn (GOutputStream  *stream,
 {
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (stream);
 
-	if (bostream->priv->encoding == SOUP_ENCODING_CHUNKED) {
+	if (bostream->priv->encoding == SOUP_ENCODING_CHUNKED &&
+	    bostream->priv->chunked_state == SOUP_BODY_OUTPUT_STREAM_STATE_CHUNK_SIZE) {
 		if (soup_body_output_stream_write_chunked (bostream, NULL, 0, TRUE, cancellable, error) == -1)
 			return FALSE;
 	}
