@@ -358,6 +358,10 @@ cookie_new_internal (const char *name, const char *value,
  * soup_cookie_set_secure() and soup_cookie_set_http_only() if you
  * need to set those attributes on the returned cookie.)
  *
+ * If @domain starts with ".", that indicates a domain (which matches
+ * the string after the ".", or any hostname that has @domain as a
+ * suffix). Otherwise, it is a hostname and must match exactly.
+ *
  * @max_age is used to set the "expires" attribute on the cookie; pass
  * -1 to not include the attribute (indicating that the cookie expires
  * with the current session), 0 for an already-expired cookie, or a
