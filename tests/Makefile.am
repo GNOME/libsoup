@@ -33,6 +33,7 @@ TESTS =				\
 	resource-test		\
 	session-test		\
 	server-auth-test	\
+	server-test		\
 	sniffing-test		\
 	socket-test		\
 	ssl-test		\
