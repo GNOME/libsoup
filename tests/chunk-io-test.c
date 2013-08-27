@@ -617,7 +617,7 @@ do_io_tests (void)
 	g_object_unref (oslow);
 
 	total = 0;
-	while (total < nwrote) {
+	while (total < raw_length) {
 		nwrote = g_output_stream_write (out, raw_contents + total,
 						raw_length - total, NULL, NULL);
 		if (nwrote == -1)
