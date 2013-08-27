@@ -139,8 +139,6 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
-	soup-io-stream.h		\
-	soup-io-stream.c		\
 	soup-logger.c			\
 	soup-message.c			\
 	soup-message-body.c		\
@@ -176,6 +174,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session-private.h		\
 	soup-session-sync.c		\
 	soup-socket.c			\
+	soup-socket-io-stream.h		\
+	soup-socket-io-stream.c		\
 	soup-socket-private.h		\
 	soup-socket-properties.c	\
 	soup-status.c			\
