@@ -26,7 +26,8 @@ do_message_to_session (SoupSession *session, const char *uri,
 	SoupMessage *msg;
 	gboolean finished = FALSE;
 
-	debug_printf (1, "    msg %s\n", comment);
+	if (comment)
+		debug_printf (1, "    msg %s\n", comment);
 	msg = soup_message_new ("GET", uri);
 
 	g_signal_connect (msg, "finished",
@@ -71,14 +72,14 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 		g_signal_connect (idle_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
 		do_message_to_session (idle_session, fast_uri, "fast to idle", SOUP_STATUS_OK);
-		idle_first = ret;
+		idle_first = g_object_ref (ret);
 	}
 
 	if (plain_session) {
 		g_signal_connect (plain_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
 		do_message_to_session (plain_session, fast_uri, "fast to plain", SOUP_STATUS_OK);
-		plain_first = ret;
+		plain_first = g_object_ref (ret);
 	}
 
 	do_message_to_session (timeout_session, fast_uri, "fast to timeout", SOUP_STATUS_OK);
@@ -95,6 +96,7 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 			debug_printf (1, "      ERROR: idle_session did not close first connection\n");
 			errors++;
 		}
+		g_object_unref (idle_first);
 	}
 
 	if (plain_session) {
@@ -108,6 +110,7 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 			debug_printf (1, "      ERROR: plain_session closed connection\n");
 			errors++;
 		}
+		g_object_unref (plain_first);
 	}
 }
 
@@ -148,7 +151,7 @@ do_request_to_session (SoupSession *session, const char *uri,
 		soup_test_request_close_stream (req, stream, NULL, &error);
 
 		if (error) {
-			debug_printf (1, "      ERROR closing string: %s",
+			debug_printf (1, "      ERROR closing stream: %s\n",
 				      error->message);
 			errors++;
 		}
@@ -188,14 +191,14 @@ do_req_tests_for_session (SoupSession *timeout_session,
 		g_signal_connect (idle_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
 		do_request_to_session (idle_session, fast_uri, "fast to idle", FALSE);
-		idle_first = ret;
+		idle_first = g_object_ref (ret);
 	}
 
 	if (plain_session) {
 		g_signal_connect (plain_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);
 		do_request_to_session (plain_session, fast_uri, "fast to plain", FALSE);
-		plain_first = ret;
+		plain_first = g_object_ref (ret);
 	}
 
 	do_request_to_session (timeout_session, fast_uri, "fast to timeout", FALSE);
@@ -212,6 +215,7 @@ do_req_tests_for_session (SoupSession *timeout_session,
 			debug_printf (1, "      ERROR: idle_session did not close first connection\n");
 			errors++;
 		}
+		g_object_unref (idle_first);
 	}
 
 	if (plain_session) {
@@ -225,21 +229,22 @@ do_req_tests_for_session (SoupSession *timeout_session,
 			debug_printf (1, "      ERROR: plain_session closed connection\n");
 			errors++;
 		}
+		g_object_unref (plain_first);
 	}
 }
 
 static void
-do_timeout_tests (char *fast_uri, char *slow_uri)
+do_timeout_tests (char *fast_uri, char *slow_uri, gboolean extra_slow)
 {
 	SoupSession *timeout_session, *idle_session, *plain_session;
 
 	debug_printf (1, "  async\n");
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-						 SOUP_SESSION_TIMEOUT, 1,
+						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 						 NULL);
 	idle_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					      SOUP_SESSION_IDLE_TIMEOUT, 1,
+					      SOUP_SESSION_IDLE_TIMEOUT, extra_slow ? 2 : 1,
 					      SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					      NULL);
 	/* The "plain" session also has an idle timeout, but it's longer
@@ -247,7 +252,7 @@ do_timeout_tests (char *fast_uri, char *slow_uri)
 	 * it has no timeout.
 	 */
 	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
-					       SOUP_SESSION_IDLE_TIMEOUT, 2,
+					       SOUP_SESSION_IDLE_TIMEOUT, 20,
 					       SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					       NULL);
 
@@ -261,7 +266,7 @@ do_timeout_tests (char *fast_uri, char *slow_uri)
 
 	debug_printf (1, "\n  sync\n");
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
-						 SOUP_SESSION_TIMEOUT, 1,
+						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 NULL);
 	/* SOUP_SESSION_TIMEOUT doesn't work with sync sessions */
 	plain_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
@@ -298,7 +303,7 @@ server_handler (SoupServer        *server,
 		soup_server_pause_message (server, msg);
 		g_object_set_data (G_OBJECT (msg), "server", server);
 		soup_add_timeout (soup_server_get_async_context (server),
-				  1100, timeout_finish_message, msg);
+				  4000, timeout_finish_message, msg);
 	}
 }
 
@@ -317,12 +322,16 @@ main (int argc, char **argv)
 				    soup_server_get_port (server));
 	slow_uri = g_strdup_printf ("http://127.0.0.1:%u/slow",
 				    soup_server_get_port (server));
-	do_timeout_tests (fast_uri, slow_uri);
+	do_timeout_tests (fast_uri, slow_uri, FALSE);
 	g_free (fast_uri);
 	g_free (slow_uri);
 	soup_test_server_quit_unref (server);
 
 	if (tls_available) {
+		SoupSession *test_session;
+		gboolean extra_slow;
+		gint64 start, end;
+
 		debug_printf (1, "\nhttps\n");
 		server = soup_test_server_new_ssl (TRUE);
 		soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
@@ -330,7 +339,23 @@ main (int argc, char **argv)
 					    soup_server_get_port (server));
 		slow_uri = g_strdup_printf ("https://127.0.0.1:%u/slow",
 					    soup_server_get_port (server));
-		do_timeout_tests (fast_uri, slow_uri);
+
+		/* The 1-second timeouts are too fast for some machines... */
+		test_session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+		start = g_get_monotonic_time ();
+		do_message_to_session (test_session, fast_uri, NULL, SOUP_STATUS_OK);
+		end = g_get_monotonic_time ();
+		soup_test_session_abort_unref (test_session);
+		debug_printf (2, "  (https request took %0.3fs)\n", (end - start) / 1000000.0);
+		if (end - start > 750000) {
+			debug_printf (1, "  (using extra-slow mode)\n\n");
+			extra_slow = TRUE;
+		} else {
+			debug_printf (2, "\n");
+			extra_slow = FALSE;
+		}
+
+		do_timeout_tests (fast_uri, slow_uri, extra_slow);
 		g_free (fast_uri);
 		g_free (slow_uri);
 		soup_test_server_quit_unref (server);
