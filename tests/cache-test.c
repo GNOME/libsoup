@@ -164,6 +164,7 @@ do_request (SoupSession        *session,
 		soup_message_headers_append (msg->request_headers,
 					     header, value);
 	}
+	va_end (ap);
 
 	stream = soup_test_request_send (SOUP_REQUEST (req), NULL, 0, &error);
 	if (!stream) {
@@ -703,8 +704,7 @@ do_headers_test (SoupURI *base_uri)
 	if (!header_value) {
 		debug_printf (1, "    Header \"My-Header\" not present!\n");
 		errors++;
-	}
-	if (strcmp (header_value, "My header NEW value") != 0) {
+	} else if (strcmp (header_value, "My header NEW value") != 0) {
 		debug_printf (1, "    \"My-Header = %s\" and should be \"%s\"\n",
 			      header_value,
 			      "My header NEW value");
