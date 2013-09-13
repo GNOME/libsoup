@@ -971,5 +971,8 @@ soup_connection_send_request (SoupConnection          *conn,
 
 	if (item->msg != priv->current_msg)
 		set_current_msg (conn, item->msg);
+	else
+		priv->reusable = FALSE;
+
 	soup_message_send_request (item, completion_cb, user_data);
 }
