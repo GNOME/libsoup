@@ -1,3 +1,33 @@
+Changes in libsoup from 2.43.90 to 2.43.92:
+
+	* Fixed a bug in the connection-pool code, which would in
+          certain cases accidentally keep using a connection after a
+          message was cancelled while in progress, causing the next
+          request on that connection to get the response to the
+          previous request, etc. [#708006, David Woodhouse]
+
+	* Fixed some problems when falling back from samba
+          single-sign-on-based NTLM to ordinary ask-for-a-password
+          NTLM. [#703186, David Woodhouse]
+
+	* When sending a conditional GET request, SoupCache now
+          preserves the original message's list of disabled features,
+          ensure that it gets back the same kind of response the
+          original message would have. [#706338, Andre Moreira
+          Magalhaes]
+
+	* Fixed a warning when the remote host closes the connection
+          while we are writing something using chunked encoding.
+          [#703297, Dan]
+
+	* Added SoupServer:http-aliases and :https-aliases properties,
+          to specify URI schemes that should be treated as though they
+          were http (just like SoupSession:http-aliases and
+          :https-aliases, but on the server side). [#703694, Dan]
+
+	* Fixed race conditions in cache-test and timeout-test that
+          could case spurious failures. [#698305, #660581, Dan]
+
 Changes in libsoup from 2.43.5 to 2.43.90:
 
 	* Fixed the handling of unsatisfiable range requests in
