@@ -3,82 +3,107 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Andika Triwidada <andika@gmail.com>, 2012.
-# Dirgita <dirgitadevina@yahoo.co.id>, 2012.
+# Dirgita <dirgitadevina@yahoo.co.id>, 2012, 2013.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-10 15:07+0000\n"
-"PO-Revision-Date: 2012-09-11 23:45+0700\n"
-"Last-Translator: Andika Triwidada <andika@gmail.com>\n"
+"POT-Creation-Date: 2013-09-16 22:19+0000\n"
+"PO-Revision-Date: 2013-09-18 20:55+0700\n"
+"Last-Translator: Dirgita <dirgitadevina@yahoo.co.id>\n"
 "Language-Team: Indonesian <gnome@i15n.org>\n"
 "Language: id\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.2\n"
+"X-Generator: Lokalize 1.5\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:191
 msgid "Connection terminated unexpectedly"
 msgstr "Sambungan terputus secara tak diharapkan"
 
-#: ../libsoup/soup-body-input-stream.c:461
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Permintaan seek yang tak valid"
 
-#: ../libsoup/soup-body-input-stream.c:489
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Tak bisa memenggal SoupBodyInputStream"
+
+#: ../libsoup/soup-cache-input-stream.c:73
+msgid "Network stream unexpectedly closed"
+msgstr "Lalu lintas jaringan putus tak terduga"
+
+#: ../libsoup/soup-cache-input-stream.c:290
+msgid "Failed to completely cache the resource"
+msgstr "Gagal melengkapi tembolok sumber"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
 msgid "Output buffer is too small"
 msgstr "Penyangga keluaran terlalu kecil"
 
-#: ../libsoup/soup-message-io.c:818 ../libsoup/soup-message-io.c:854
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "Tak dapat mengurai tanggapan HTTP"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Enkode tanggapan HTTP tak dikenal"
+
+#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
 msgid "Operation was cancelled"
 msgstr "Operasi dibatalkan"
 
-#: ../libsoup/soup-message-io.c:865
+#: ../libsoup/soup-message-io.c:893
 msgid "Operation would block"
 msgstr "Operasi akan memblokir"
 
-#: ../libsoup/soup-request.c:142
+#: ../libsoup/soup-message-server-io.c:40
+msgid "Could not parse HTTP request"
+msgstr "Tak dapat mengurai permintaan HTTP"
+
+#: ../libsoup/soup-request.c:140
 #, c-format
 msgid "No URI provided"
 msgstr "URI tak diberikan"
 
-#: ../libsoup/soup-request.c:152
+#: ../libsoup/soup-request.c:150
 #, c-format
 msgid "Invalid '%s' URI: %s"
 msgstr "URI '%s' tak valid: %s"
 
-#: ../libsoup/soup-requester.c:219
+#: ../libsoup/soup-session.c:4259
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Tak bisa mengurai URI '%s'"
 
-#: ../libsoup/soup-requester.c:253
+#: ../libsoup/soup-session.c:4296
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Skema URI '%s' tak didukung"
 
-#: ../libsoup/soup-tld.c:154
+#: ../libsoup/soup-session.c:4318
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Bukan URI HTTP"
+
+#: ../libsoup/soup-tld.c:185
 msgid "Hostname is an IP address"
 msgstr "Nama host adalah suatu alamat IP"
 
-#: ../libsoup/soup-tld.c:175
+#: ../libsoup/soup-tld.c:206
 msgid "Invalid hostname"
 msgstr "Nama host tak valid"
 
-#: ../libsoup/soup-tld.c:204
+#: ../libsoup/soup-tld.c:235
 msgid "Hostname has no base domain"
 msgstr "Nama host tidak memiliki domain dasar"
 
-#: ../libsoup/soup-tld.c:226
+#: ../libsoup/soup-tld.c:257
 msgid "Not enough domains"
 msgstr "Tak cukup domain"
