@@ -218,7 +218,8 @@ append_form_encoded (GString *str, const char *in)
 		if (*s == ' ') {
 			g_string_append_c (str, '+');
 			s++;
-		} else if (!g_ascii_isalnum (*s))
+		} else if (!g_ascii_isalnum (*s) && (*s != '-') && (*s != '_')
+			   && (*s != '.'))
 			g_string_append_printf (str, "%%%02X", (int)*s++);
 		else
 			g_string_append_c (str, *s++);
