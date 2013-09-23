@@ -1,3 +1,8 @@
+Changes in libsoup from 2.43.92 to 2.44.0:
+
+	* New/updated translations:
+	  Dutch, Indonesian
+
 Changes in libsoup from 2.43.90 to 2.43.92:
 
 	* Fixed a bug in the connection-pool code, which would in
