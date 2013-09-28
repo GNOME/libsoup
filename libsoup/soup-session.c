@@ -3767,7 +3767,7 @@ try_run_until_read (SoupMessageQueueItem *item)
 	GError *error = NULL;
 	GInputStream *stream = NULL;
 
-	if (soup_message_io_run_until_read (item->msg, item->cancellable, &error))
+	if (soup_message_io_run_until_read (item->msg, FALSE, item->cancellable, &error))
 		stream = soup_message_io_get_response_istream (item->msg, &error);
 	if (stream) {
 		send_async_maybe_complete (item, stream);
@@ -4157,7 +4157,7 @@ soup_session_send (SoupSession   *session,
 			break;
 
 		/* Send request, read headers */
-		if (!soup_message_io_run_until_read (msg, item->cancellable, &my_error)) {
+		if (!soup_message_io_run_until_read (msg, TRUE, item->cancellable, &my_error)) {
 			if (g_error_matches (my_error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN)) {
 				item->state = SOUP_MESSAGE_RESTARTING;
 				soup_message_io_finished (item->msg);

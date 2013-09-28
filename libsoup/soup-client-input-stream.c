@@ -129,7 +129,7 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
 
-	return soup_message_io_run_until_finish (cistream->priv->msg,
+	return soup_message_io_run_until_finish (cistream->priv->msg, TRUE,
 						 cancellable, error);
 }
 
@@ -150,7 +150,7 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 	SoupClientInputStream *cistream = g_task_get_source_object (task);
 	GError *error = NULL;
 
-	if (!soup_message_io_run_until_finish (cistream->priv->msg,
+	if (!soup_message_io_run_until_finish (cistream->priv->msg, FALSE,
 					       g_task_get_cancellable (task),
 					       &error) &&
 	    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {

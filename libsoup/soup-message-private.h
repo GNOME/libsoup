@@ -105,12 +105,15 @@ void                soup_message_io_unpause     (SoupMessage          *msg);
 gboolean            soup_message_io_in_progress (SoupMessage          *msg);
 
 gboolean soup_message_io_run_until_write  (SoupMessage   *msg,
+					   gboolean       blocking,
 					   GCancellable  *cancellable,
 					   GError       **error);
 gboolean soup_message_io_run_until_read   (SoupMessage   *msg,
+					   gboolean       blocking,
 					   GCancellable  *cancellable,
 					   GError       **error);
 gboolean soup_message_io_run_until_finish (SoupMessage   *msg,
+					   gboolean       blocking,
 					   GCancellable  *cancellable,
 					   GError       **error);
 
