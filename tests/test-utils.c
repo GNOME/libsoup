@@ -82,6 +82,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	GTlsBackend *tls_backend;
 
 	setlocale (LC_ALL, "");
+	g_setenv ("GSETTINGS_BACKEND", "memory", TRUE);
 
 	name = strrchr (argv[0], '/');
 	if (!name++)
