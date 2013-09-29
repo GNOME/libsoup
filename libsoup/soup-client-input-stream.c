@@ -188,11 +188,13 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 	task = g_task_new (stream, cancellable, callback, user_data);
 	g_task_set_priority (task, priority);
 
-	source = soup_message_io_get_source (cistream->priv->msg,
-					     cancellable, NULL, NULL);
-					     
-	g_task_attach_source (task, source, (GSourceFunc) close_async_ready);
-	g_source_unref (source);
+	if (close_async_ready (cistream->priv->msg, task) == G_SOURCE_CONTINUE) {
+		source = soup_message_io_get_source (cistream->priv->msg,
+						     cancellable, NULL, NULL);
+
+		g_task_attach_source (task, source, (GSourceFunc) close_async_ready);
+		g_source_unref (source);
+	}
 }
 
 static gboolean

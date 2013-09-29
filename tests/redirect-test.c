@@ -285,6 +285,14 @@ do_request_api_test (SoupSession *session, SoupURI *base_uri, int n)
 		return;
 	}
 
+	soup_test_request_read_all (SOUP_REQUEST (reqh), stream, NULL, &error);
+	if (error) {
+		debug_printf (1, "    could not read from stream: %s\n",
+			      error->message);
+		g_error_free (error);
+		errors++;
+	}
+
 	soup_test_request_close_stream (SOUP_REQUEST (reqh), stream, NULL, &error);
 	if (error) {
 		debug_printf (1, "    could not close stream: %s\n",

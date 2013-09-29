@@ -489,6 +489,39 @@ soup_test_request_send (SoupRequest   *req,
 }
 
 gboolean
+soup_test_request_read_all (SoupRequest   *req,
+			    GInputStream  *stream,
+			    GCancellable  *cancellable,
+			    GError       **error)
+{
+	char buf[8192];
+	AsyncAsSyncData data;
+	gsize nread;
+
+	if (!SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+		data.loop = g_main_loop_new (g_main_context_get_thread_default (), FALSE);
+
+	do {
+		if (SOUP_IS_SESSION_SYNC (soup_request_get_session (req))) {
+			nread = g_input_stream_read (stream, buf, sizeof (buf),
+						     cancellable, error);
+		} else {
+			g_input_stream_read_async (stream, buf, sizeof (buf),
+						   G_PRIORITY_DEFAULT, cancellable,
+						   async_as_sync_callback, &data);
+			g_main_loop_run (data.loop);
+			nread = g_input_stream_read_finish (stream, data.result, error);
+			g_object_unref (data.result);
+		}
+	} while (nread > 0);
+
+	if (!SOUP_IS_SESSION_SYNC (soup_request_get_session (req)))
+		g_main_loop_unref (data.loop);
+
+	return nread == 0;
+}
+
+gboolean
 soup_test_request_close_stream (SoupRequest   *req,
 				GInputStream  *stream,
 				GCancellable  *cancellable,

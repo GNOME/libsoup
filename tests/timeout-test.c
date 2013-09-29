@@ -145,6 +145,15 @@ do_request_to_session (SoupSession *session, const char *uri,
 	g_clear_error (&error);
 
 	if (stream) {
+		soup_test_request_read_all (req, stream, NULL, &error);
+		if (error) {
+			debug_printf (1, "      ERROR reading stream: %s\n",
+				      error->message);
+			errors++;
+		}
+	}
+
+	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
 
 		if (error) {

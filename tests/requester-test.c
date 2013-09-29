@@ -37,6 +37,23 @@ get_index (void)
 					 strlen (AUTH_HTML_BODY));
 }
 
+static gboolean
+slow_finish_message (gpointer msg)
+{
+	SoupServer *server = g_object_get_data (G_OBJECT (msg), "server");
+
+	soup_server_unpause_message (server, msg);
+	return FALSE;
+}
+
+static void
+slow_pause_message (SoupMessage *msg, gpointer server)
+{
+	soup_server_pause_message (server, msg);
+	soup_add_timeout (soup_server_get_async_context (server),
+			  1000, slow_finish_message, msg);
+}
+
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -70,6 +87,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	} else if (strcmp (path, "/non-persistent") == 0) {
 		soup_message_headers_append (msg->response_headers,
 					     "Connection", "close");
+	} else if (!strcmp (path, "/slow")) {
+		g_object_set_data (G_OBJECT (msg), "server", server);
+		g_signal_connect (msg, "wrote-headers",
+				  G_CALLBACK (slow_pause_message), server);
 	}
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
@@ -670,6 +691,7 @@ do_null_char_request (SoupSession *session, const char *encoded_data,
 
 	if (error) {
 		debug_printf (1, "  could not send request: %s\n", error->message);
+		errors++;
 		g_error_free (error);
 		g_object_unref (request);
 		soup_uri_free (uri);
@@ -720,8 +742,8 @@ do_null_char_test (gboolean plain_session)
 	};
 	static int num_test_cases = G_N_ELEMENTS(test_cases);
 
-	debug_printf (1, "Streaming data URLs containing null chars with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionSync");
+	debug_printf (1, "\nStreaming data URLs containing null chars with %s\n",
+		      plain_session ? "SoupSession" : "SoupSessionAsync");
 
 	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -732,6 +754,72 @@ do_null_char_test (gboolean plain_session)
 				      test_cases[i].expected_data, test_cases[i].expected_len);
 
 	soup_test_session_abort_unref (session);
+}
+
+static void
+do_close_test_for_session (SoupSession *session,
+			   SoupURI     *uri)
+{
+	GError *error = NULL;
+	GInputStream *stream;
+	SoupRequest *request;
+	guint64 start, end;
+
+	request = soup_session_request_uri (session, uri, NULL);
+	stream = soup_test_request_send (request, NULL, 0, &error);
+
+	if (error) {
+		debug_printf (1, "  could not send request: %s\n", error->message);
+		errors++;
+		g_error_free (error);
+		g_object_unref (request);
+		return;
+	}
+
+	start = g_get_monotonic_time ();
+	soup_test_request_close_stream (request, stream, NULL, &error);
+	if (error) {
+		debug_printf (1, "    could not close stream: %s\n", error->message);
+		errors++;
+		g_clear_error (&error);
+	}
+	end = g_get_monotonic_time ();
+
+	if (end - start > 500000) {
+		debug_printf (1, "    close() waited for response to complete!\n");
+		errors++;
+	}
+
+	g_object_unref (stream);
+	g_object_unref (request);
+}
+
+static void
+do_close_tests (const char *uri)
+{
+	SoupSession *session;
+	SoupURI *slow_uri;
+
+	debug_printf (1, "\nClosing stream before end should cancel\n");
+
+	slow_uri = soup_uri_new (uri);
+	soup_uri_set_path (slow_uri, "/slow");
+
+	debug_printf (1, "  async\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_close_test_for_session (session, slow_uri);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  sync\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_close_test_for_session (session, slow_uri);
+	soup_test_session_abort_unref (session);
+
+	soup_uri_free (slow_uri);
 }
 
 int
@@ -758,6 +846,8 @@ main (int argc, char **argv)
 	do_context_test (uri, TRUE);
 	do_sync_test (uri, TRUE);
 	do_null_char_test (TRUE);
+
+	do_close_tests (uri);
 
 	g_free (uri);
 	soup_buffer_free (response);

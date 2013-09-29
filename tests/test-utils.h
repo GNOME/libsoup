@@ -43,6 +43,10 @@ GInputStream *soup_test_request_send         (SoupRequest  *req,
 					      GCancellable *cancellable,
 					      guint         flags,
 					      GError       **error);
+gboolean      soup_test_request_read_all     (SoupRequest   *req,
+					      GInputStream  *stream,
+					      GCancellable  *cancellable,
+					      GError       **error);
 gboolean      soup_test_request_close_stream (SoupRequest   *req,
 					      GInputStream  *stream,
 					      GCancellable  *cancellable,
