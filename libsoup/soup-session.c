@@ -88,6 +88,7 @@ typedef struct {
 	GTlsDatabase *tlsdb;
 	char *ssl_ca_file;
 	gboolean ssl_strict;
+	gboolean tlsdb_use_default;
 
 	SoupMessageQueue *queue;
 
@@ -122,6 +123,7 @@ typedef struct {
 
 	GResolver *resolver;
 	GProxyResolver *proxy_resolver;
+	gboolean proxy_use_default;
 	SoupURI *proxy_uri;
 
 	char **http_aliases, **https_aliases;
@@ -268,9 +270,6 @@ soup_session_constructor (GType                  type,
 		SoupSession *session = SOUP_SESSION (object);
 		SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 
-		g_clear_object (&priv->tlsdb);
-		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-
 		g_clear_pointer (&priv->async_context, g_main_context_unref);
 		priv->async_context = g_main_context_ref_thread_default ();
 		priv->use_thread_context = TRUE;
@@ -279,7 +278,12 @@ soup_session_constructor (GType                  type,
 
 		priv->http_aliases[0] = NULL;
 
-		priv->proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
+		/* If the user overrides the proxy or tlsdb during construction,
+		 * we don't want to needlessly resolve the extension point. So
+		 * we just set flags saying to do it later.
+		 */
+		priv->proxy_use_default = TRUE;
+		priv->tlsdb_use_default = TRUE;
 
 		soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_DECODER);
 	}
@@ -435,6 +439,7 @@ set_tlsdb (SoupSession *session, GTlsDatabase *tlsdb)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	GTlsDatabase *system_default;
 
+	priv->tlsdb_use_default = FALSE;
 	if (tlsdb == priv->tlsdb)
 		return;
 
@@ -470,6 +475,8 @@ set_use_system_ca_file (SoupSession *session, gboolean use_system_ca_file)
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	GTlsDatabase *system_default;
 
+	priv->tlsdb_use_default = FALSE;
+
 	system_default = g_tls_backend_get_default_database (g_tls_backend_get_default ());
 
 	if (use_system_ca_file)
@@ -487,6 +494,7 @@ set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
 	GTlsDatabase *tlsdb;
 	GError *error = NULL;
 
+	priv->tlsdb_use_default = FALSE;
 	if (!g_strcmp0 (priv->ssl_ca_file, ssl_ca_file))
 		return;
 
@@ -562,6 +570,7 @@ set_proxy_resolver (SoupSession *session, SoupURI *uri,
 	G_GNUC_END_IGNORE_DEPRECATIONS;
 	g_clear_object (&priv->proxy_resolver);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
+	priv->proxy_use_default = FALSE;
 
 	if (uri) {
 		char *uri_string;
@@ -711,6 +720,30 @@ soup_session_set_property (GObject *object, guint prop_id,
 	}
 }
 
+static GProxyResolver *
+get_proxy_resolver (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	if (priv->proxy_use_default) {
+		priv->proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
+		priv->proxy_use_default = FALSE;
+	}
+	return priv->proxy_resolver;
+}
+
+static GTlsDatabase *
+get_tls_database (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+
+	if (priv->tlsdb_use_default) {
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		priv->tlsdb_use_default = FALSE;
+	}
+	return priv->tlsdb;
+}
+
 static void
 soup_session_get_property (GObject *object, guint prop_id,
 			   GValue *value, GParamSpec *pspec)
@@ -728,7 +761,7 @@ soup_session_get_property (GObject *object, guint prop_id,
 		g_value_set_boxed (value, priv->proxy_uri);
 		break;
 	case PROP_PROXY_RESOLVER:
-		g_value_set_object (value, priv->proxy_resolver);
+		g_value_set_object (value, get_proxy_resolver (session));
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);
@@ -748,11 +781,11 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		g_value_set_boolean (value, priv->tlsdb == tlsdb);
+		g_value_set_boolean (value, get_tls_database (session) == tlsdb);
 		g_clear_object (&tlsdb);
 		break;
 	case PROP_TLS_DATABASE:
-		g_value_set_object (value, priv->tlsdb);
+		g_value_set_object (value, get_tls_database (session));
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
@@ -1609,6 +1642,8 @@ get_connection_for_host (SoupSession *session,
 	SoupConnection *conn;
 	GSList *conns;
 	int num_pending = 0;
+	GProxyResolver *proxy_resolver;
+	GTlsDatabase *tlsdb;
 
 	if (priv->disposed)
 		return FALSE;
@@ -1645,13 +1680,16 @@ get_connection_for_host (SoupSession *session,
 		return NULL;
 	}
 
+	proxy_resolver = get_proxy_resolver (session);
+	tlsdb = get_tls_database (session);
+
 	conn = g_object_new (
 		SOUP_TYPE_CONNECTION,
 		SOUP_CONNECTION_REMOTE_URI, host->uri,
-		SOUP_CONNECTION_PROXY_RESOLVER, priv->proxy_resolver,
+		SOUP_CONNECTION_PROXY_RESOLVER, proxy_resolver,
 		SOUP_CONNECTION_SSL, soup_uri_is_https (soup_message_get_uri (item->msg), priv->https_aliases),
-		SOUP_CONNECTION_SSL_CREDENTIALS, priv->tlsdb,
-		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (priv->tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
+		SOUP_CONNECTION_SSL_CREDENTIALS, tlsdb,
+		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
 		SOUP_CONNECTION_USE_THREAD_CONTEXT, priv->use_thread_context,
 		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
@@ -2593,6 +2631,10 @@ soup_session_remove_feature_by_type (SoupSession *session, GType feature_type)
 				goto restart;
 			}
 		}
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+		if (g_type_is_a (feature_type, SOUP_TYPE_PROXY_URI_RESOLVER))
+			priv->proxy_use_default = FALSE;
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	} else if (g_type_is_a (feature_type, SOUP_TYPE_REQUEST)) {
 		SoupRequestClass *request_class;
 		int i;
