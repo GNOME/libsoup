@@ -982,7 +982,17 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 				  GCancellable  *cancellable,
 				  GError       **error)
 {
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+
 	g_object_ref (msg);
+
+	if (io) {
+		g_return_if_fail (io->mode == SOUP_MESSAGE_IO_CLIENT);
+
+		if (io->read_state < SOUP_MESSAGE_IO_STATE_BODY_DONE)
+			io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+	}
 
 	if (!io_run_until (msg, blocking,
 			   SOUP_MESSAGE_IO_STATE_DONE,
