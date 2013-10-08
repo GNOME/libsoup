@@ -788,7 +788,8 @@ soup_server_get_port (SoupServer *server)
  *
  * In order for a server to run https, you must set the
  * %SOUP_SERVER_SSL_CERT_FILE and %SOUP_SERVER_SSL_KEY_FILE properties
- * to provide it with an SSL certificate to use.
+ * or %SOUP_SERVER_TLS_CERTIFICATE property to provide it with an SSL
+ * certificate to use.
  *
  * Return value: %TRUE if @server is serving https.
  **/
@@ -800,7 +801,7 @@ soup_server_is_https (SoupServer *server)
 	g_return_val_if_fail (SOUP_IS_SERVER (server), 0);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	return (priv->ssl_cert_file && priv->ssl_key_file);
+	return priv->ssl_cert != NULL;
 }
 
 /**
