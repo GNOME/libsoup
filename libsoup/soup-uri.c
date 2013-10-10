@@ -293,15 +293,15 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 		if (at && at < path) {
 			colon = strchr (uri_string, ':');
 			if (colon && colon < at) {
-				uri->password = uri_decoded_copy (colon + 1,
-								  at - colon - 1, NULL);
+				uri->password = soup_uri_decoded_copy (colon + 1,
+								       at - colon - 1, NULL);
 			} else {
 				uri->password = NULL;
 				colon = at;
 			}
 
-			uri->user = uri_decoded_copy (uri_string,
-						      colon - uri_string, NULL);
+			uri->user = soup_uri_decoded_copy (uri_string,
+							   colon - uri_string, NULL);
 			uri_string = at + 1;
 		} else
 			uri->user = uri->password = NULL;
@@ -322,14 +322,16 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 				colon = NULL;
 
 			pct = memchr (uri_string, '%', hostend - uri_string);
-			if (!pct || (pct[1] == '2' && pct[2] == '5'))
-				uri->host = uri_decoded_copy (uri_string, hostend - uri_string, NULL);
-			else
+			if (!pct || (pct[1] == '2' && pct[2] == '5')) {
+				uri->host = soup_uri_decoded_copy (uri_string,
+								   hostend - uri_string, NULL);
+			} else
 				uri->host = g_strndup (uri_string, hostend - uri_string);
 		} else {
 			colon = memchr (uri_string, ':', path - uri_string);
 			hostend = colon ? colon : path;
-			uri->host = uri_decoded_copy (uri_string, hostend - uri_string, NULL);
+			uri->host = soup_uri_decoded_copy (uri_string,
+							   hostend - uri_string, NULL);
 		}
 
 		if (colon && colon != path - 1) {
@@ -719,13 +721,14 @@ soup_uri_encode (const char *part, const char *escape_extra)
 #define HEXCHAR(s) ((XDIGIT (s[1]) << 4) + XDIGIT (s[2]))
 
 char *
-uri_decoded_copy (const char *part, int length, int *decoded_length)
+soup_uri_decoded_copy (const char *part, int length, int *decoded_length)
 {
 	unsigned char *s, *d;
-	char *decoded = g_strndup (part, length);
+	char *decoded;
 
 	g_return_val_if_fail (part != NULL, NULL);
 
+	decoded = g_strndup (part, length);
 	s = d = (unsigned char *)decoded;
 	do {
 		if (*s == '%') {
@@ -763,7 +766,7 @@ soup_uri_decode (const char *part)
 {
 	g_return_val_if_fail (part != NULL, NULL);
 
-	return uri_decoded_copy (part, strlen (part), NULL);
+	return soup_uri_decoded_copy (part, strlen (part), NULL);
 }
 
 static char *

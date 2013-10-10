@@ -10,7 +10,7 @@
 #include "soup-socket.h"
 #include "soup-message-headers.h"
 
-char *uri_decoded_copy (const char *str, int length, int *decoded_length);
+char *soup_uri_decoded_copy (const char *str, int length, int *decoded_length);
 char *soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 				   gboolean force_port);
 gboolean soup_uri_is_http (SoupURI *uri, char **aliases);

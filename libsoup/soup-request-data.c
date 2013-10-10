@@ -96,7 +96,7 @@ soup_request_data_send (SoupRequest   *request,
 			end = comma;
 
 		if (end != start)
-			data->priv->content_type = uri_decoded_copy (start, end - start, NULL);
+			data->priv->content_type = soup_uri_decoded_copy (start, end - start, NULL);
 	}
 
 	memstream = g_memory_input_stream_new ();
@@ -106,7 +106,8 @@ soup_request_data_send (SoupRequest   *request,
 
 	if (*start) {
 		int decoded_length = 0;
-		guchar *buf = (guchar *) uri_decoded_copy (start, strlen (start), &decoded_length);
+		guchar *buf = (guchar *) soup_uri_decoded_copy (start, strlen (start),
+								&decoded_length);
 
 		if (base64)
 			buf = g_base64_decode_inplace ((gchar*) buf, &data->priv->content_length);
