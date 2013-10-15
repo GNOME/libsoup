@@ -1,3 +1,45 @@
+Changes in libsoup from 2.44.0 to 2.44.1:
+
+	* If you called g_input_stream_close() on SoupMessage or
+          SoupRequests's GInputStream before you finished reading it,
+          it would block until the rest of the response had been read
+          (which in the case of, eg, an infinite audio stream, meant
+          that it would block forever). This was an unintended change
+          from 2.42 and is now fixed. [#695652, Dan]
+
+	* soup_session_queue_message() on a plain SoupSession (not
+          SoupSessionAsync) was operating synchronously rather than
+          asynchronously as it should have. [#707711, Dan]
+
+	* soup-form methods now use the HTML5 x-www-form-urlencoded
+          rules rather than the HTML4 ones. (In particular, they leave
+	  "-", "_", and "." unencoded.) [#708621, Alban Browaeys]
+
+	* The test programs now explicitly request the "memory"
+          GSettings backend, meaning they won't print a warning if
+          they get it accidentally, and they won't accidentally use
+          the dconf proxy settings if the dconf backend is available.
+          [Dan]
+
+	* Fix SoupSession so that if you override the proxy
+          configuration at construct time, it doesn't try to resolve
+          the default GProxyResolver. (This is important in particular
+          for programs that expect to run outside a user session,
+          which would otherwise spew errors from the dconf GSettings
+          backend about not being able to connect to dconf.) Likewise
+          with TLS settings and the TLS backend. [#708696, Dan]
+
+	* Fix the SoupServer:tls-certificate property;
+          soup_server_is_https() had not been updated to recognize it,
+          and so would return FALSE, which in turn meant that the
+          server would return 400 Bad Request in response to https
+          requests. [#709647, Fabiano Fidêncio]
+
+	* Fixed a sporadic failure in tests/connection-test. [Dan]
+
+	* Updated translations:
+	  Tajik
+
 Changes in libsoup from 2.43.92 to 2.44.0:
 
 	* New/updated translations:
