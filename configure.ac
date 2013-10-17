@@ -340,6 +340,7 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
 		-Wall -Wstrict-prototypes -Werror=missing-prototypes \
 		-Werror=implicit-function-declaration \
 		-Werror=pointer-arith -Werror=init-self -Werror=format=2 \
+		-Wno-format-zero-length \
 		-Werror=missing-include-dirs -Werror=aggregate-return \
 		-Werror=declaration-after-statement"
 fi
