@@ -309,13 +309,17 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 			return TRUE;
 		}
 
+#ifdef USE_NTLM_AUTH
 		if (priv->sso_available) {
 			conn->state = SOUP_NTLM_SSO_FAILED;
 			priv->password_state = SOUP_NTLM_PASSWORD_NONE;
 		} else {
+#endif
 			conn->state = SOUP_NTLM_FAILED;
 			priv->password_state = SOUP_NTLM_PASSWORD_REJECTED;
+#ifdef USE_NTLM_AUTH
 		}
+#endif
 		return TRUE;
 	}
 
