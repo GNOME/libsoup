@@ -374,6 +374,9 @@ soup_logger_detach (SoupLogger  *logger,
 	soup_session_remove_feature (session, SOUP_SESSION_FEATURE (logger));
 }
 
+static void soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
+			       char direction, const char *format, ...) G_GNUC_PRINTF (4, 5);
+
 static void
 soup_logger_print (SoupLogger *logger, SoupLoggerLogLevel level,
 		   char direction, const char *format, ...)
@@ -434,7 +437,7 @@ soup_logger_print_basic_auth (SoupLogger *logger, const char *value)
 			*p = '*';
 	}
 	soup_logger_print (logger, SOUP_LOGGER_LOG_HEADERS, '>',
-			   "Authorization: Basic [%.*s]", len, decoded);
+			   "Authorization: Basic [%.*s]", (int)len, decoded);
 	g_free (decoded);
 }
 
