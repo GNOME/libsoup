@@ -991,7 +991,7 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 		g_return_if_fail (io->mode == SOUP_MESSAGE_IO_CLIENT);
 
 		if (io->read_state < SOUP_MESSAGE_IO_STATE_BODY_DONE)
-			io->read_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 	}
 
 	if (!io_run_until (msg, blocking,
