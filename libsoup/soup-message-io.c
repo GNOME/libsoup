@@ -988,7 +988,7 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 	g_object_ref (msg);
 
 	if (io) {
-		g_return_if_fail (io->mode == SOUP_MESSAGE_IO_CLIENT);
+		g_return_val_if_fail (io->mode == SOUP_MESSAGE_IO_CLIENT, FALSE);
 
 		if (io->read_state < SOUP_MESSAGE_IO_STATE_BODY_DONE)
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
