@@ -1551,6 +1551,10 @@ soup_server_remove_auth_domain (SoupServer *server, SoupAuthDomain *auth_domain)
  * Pauses I/O on @msg. This can be used when you need to return from
  * the server handler without having the full response ready yet. Use
  * soup_server_unpause_message() to resume I/O.
+ *
+ * This must only be called on #SoupMessages which were created by the
+ * #SoupServer and are currently doing I/O, such as those passed into a
+ * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
  **/
 void
 soup_server_pause_message (SoupServer *server,
@@ -1572,6 +1576,10 @@ soup_server_pause_message (SoupServer *server,
  * chunked response.
  *
  * I/O won't actually resume until you return to the main loop.
+ *
+ * This must only be called on #SoupMessages which were created by the
+ * #SoupServer and are currently doing I/O, such as those passed into a
+ * #SoupServerCallback or emitted in a #SoupServer::request-read signal.
  **/
 void
 soup_server_unpause_message (SoupServer *server,
