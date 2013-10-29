@@ -734,6 +734,7 @@ async_connected (GObject *client, GAsyncResult *result, gpointer data)
 		g_task_return_boolean (task, TRUE);
 	else
 		g_task_return_error (task, error);
+	g_object_unref (task);
 }
 
 gboolean
@@ -1233,6 +1234,7 @@ handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data
 		g_task_return_boolean (task, TRUE);
 	else
 		g_task_return_error (task, error);
+	g_object_unref (task);
 }
 
 void
@@ -1250,6 +1252,7 @@ soup_socket_handshake_async (SoupSocket          *sock,
 
 	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, &error)) {
 		g_task_return_error (task, error);
+		g_object_unref (task);
 		return;
 	}
 
