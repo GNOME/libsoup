@@ -509,6 +509,7 @@ set_ssl_ca_file (SoupSession *session, const char *ssl_ca_file)
 		path = g_build_filename (cwd, ssl_ca_file, NULL);
 		tlsdb = g_tls_file_database_new (path, &error);
 		g_free (path);
+		g_free (cwd);
 	}
 
 	if (error) {
