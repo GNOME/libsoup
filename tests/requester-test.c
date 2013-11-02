@@ -363,14 +363,14 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 	}
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
-	debug_printf (1, "  basic test\n");
+	debug_printf (1, "    basic test\n");
 	uri = soup_uri_new (base_uri);
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_OK, response,
 		       TRUE, FALSE);
 	soup_uri_free (uri);
 
-	debug_printf (1, "  chunked test\n");
+	debug_printf (1, "    chunked test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/chunked");
 	do_async_test (session, uri, test_sent,
@@ -378,7 +378,7 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 		       TRUE, FALSE);
 	soup_uri_free (uri);
 
-	debug_printf (1, "  auth test\n");
+	debug_printf (1, "    auth test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/auth");
 	do_async_test (session, uri, auth_test_sent,
@@ -386,7 +386,7 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 		       TRUE, FALSE);
 	soup_uri_free (uri);
 
-	debug_printf (1, "  non-persistent test\n");
+	debug_printf (1, "    non-persistent test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/non-persistent");
 	do_async_test (session, uri, test_sent,
@@ -394,7 +394,7 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 		       FALSE, FALSE);
 	soup_uri_free (uri);
 
-	debug_printf (1, "  cancellation test\n");
+	debug_printf (1, "    cancellation test\n");
 	uri = soup_uri_new (base_uri);
 	soup_uri_set_path (uri, "/");
 	do_async_test (session, uri, test_sent,
@@ -404,14 +404,19 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 }
 
 static void
-do_simple_test (const char *uri, gboolean plain_session)
+do_simple_tests (const char *uri)
 {
 	SoupSession *session;
 
-	debug_printf (1, "Simple streaming test with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionAsync");
+	debug_printf (1, "Simple streaming test\n");
 
-	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
+	debug_printf (1, "  SoupSession\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	do_test_for_thread_and_context (session, uri);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  SoupSessionAsync\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_test_for_thread_and_context (session, uri);
@@ -442,6 +447,7 @@ do_test_with_context_and_type (const char *uri, gboolean plain_session)
 static gpointer
 do_test_with_context (gpointer uri)
 {
+	debug_printf (1, "  SoupSessionAsync\n");
 	do_test_with_context_and_type (uri, FALSE);
 	return NULL;
 }
@@ -449,31 +455,34 @@ do_test_with_context (gpointer uri)
 static gpointer
 do_plain_test_with_context (gpointer uri)
 {
+	debug_printf (1, "  SoupSession\n");
 	do_test_with_context_and_type (uri, TRUE);
 	return NULL;
 }
 
 static void
-do_context_test (const char *uri, gboolean plain_session)
+do_context_tests (const char *uri)
 {
-	debug_printf (1, "Streaming with a non-default-context with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionAsync");
-	if (plain_session)
-		do_plain_test_with_context ((gpointer)uri);
-	else
-		do_test_with_context ((gpointer)uri);
+	debug_printf (1, "\nStreaming with a non-default-context\n");
+
+	do_plain_test_with_context ((gpointer)uri);
+	do_test_with_context ((gpointer)uri);
 }
 
 static void
-do_thread_test (const char *uri, gboolean plain_session)
+do_thread_tests (const char *uri)
 {
 	GThread *thread;
 
-	debug_printf (1, "Streaming in another thread with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionAsync");
+	debug_printf (1, "\nStreaming in another thread\n");
 
 	thread = g_thread_new ("do_test_with_context",
-			       plain_session ? do_plain_test_with_context : do_test_with_context,
+			       do_plain_test_with_context,
+			       (gpointer)uri);
+	g_thread_join (thread);
+
+	thread = g_thread_new ("do_test_with_context",
+			       do_test_with_context,
 			       (gpointer)uri);
 	g_thread_join (thread);
 }
@@ -593,87 +602,98 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 }
 
 static void
-do_sync_test (const char *uri_string, gboolean plain_session)
+do_sync_tests_for_session (SoupSession *session, const char *uri_string)
 {
-	SoupSession *session;
 	SoupRequester *requester;
 	SoupRequest *request;
 	SoupURI *uri;
 
-	debug_printf (1, "Sync streaming with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionSync");
-
-	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_SYNC, NULL);
-	if (!plain_session) {
-		requester = soup_requester_new ();
-		soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
-		g_object_unref (requester);
-	}
+	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
 
 	uri = soup_uri_new (uri_string);
 
-	debug_printf (1, "  basic test\n");
-	if (plain_session)
-		request = soup_session_request_uri (session, uri, NULL);
-	else
+	debug_printf (1, "    basic test\n");
+	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 TRUE, FALSE);
 	g_object_unref (request);
 
-	debug_printf (1, "  chunked test\n");
+	debug_printf (1, "    chunked test\n");
 	soup_uri_set_path (uri, "/chunked");
-	if (plain_session)
-		request = soup_session_request_uri (session, uri, NULL);
-	else
+	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 TRUE, FALSE);
 	g_object_unref (request);
 
-	debug_printf (1, "  auth test\n");
+	debug_printf (1, "    auth test\n");
 	soup_uri_set_path (uri, "/auth");
-	if (plain_session)
-		request = soup_session_request_uri (session, uri, NULL);
-	else
+	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_UNAUTHORIZED, auth_response,
 			 TRUE, FALSE);
 	g_object_unref (request);
 
-	debug_printf (1, "  non-persistent test\n");
+	debug_printf (1, "    non-persistent test\n");
 	soup_uri_set_path (uri, "/non-persistent");
-	if (plain_session)
-		request = soup_session_request_uri (session, uri, NULL);
-	else
+	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_OK, response,
 			 FALSE, FALSE);
 	g_object_unref (request);
 
-	debug_printf (1, "  cancel test\n");
+	debug_printf (1, "    cancel test\n");
 	soup_uri_set_path (uri, "/");
-	if (plain_session)
-		request = soup_session_request_uri (session, uri, NULL);
-	else
+	if (requester)
 		request = soup_requester_request_uri (requester, uri, NULL);
+	else
+		request = soup_session_request_uri (session, uri, NULL);
 	do_sync_request (session, request,
 			 SOUP_STATUS_FORBIDDEN, NULL,
 			 TRUE, TRUE);
 	g_object_unref (request);
 
-	soup_test_session_abort_unref (session);
 	soup_uri_free (uri);
 }
 
+static void
+do_sync_tests (const char *uri_string)
+{
+	SoupSession *session;
+	SoupRequester *requester;
+
+	debug_printf (1, "\nSync streaming\n");
+
+	debug_printf (1, "  SoupSession\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	do_sync_tests_for_session (session, uri_string);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  SoupSessionSync\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+	requester = soup_requester_new ();
+	soup_session_add_feature (session, SOUP_SESSION_FEATURE (requester));
+	g_object_unref (requester);
+	do_sync_tests_for_session (session, uri_string);
+	soup_test_session_abort_unref (session);
+}
 
 static void
 do_null_char_request (SoupSession *session, const char *encoded_data,
-		       const char *expected_data, int expected_len)
+		      const char *expected_data, int expected_len)
 {
 	GError *error = NULL;
 	GInputStream *stream;
@@ -690,7 +710,7 @@ do_null_char_request (SoupSession *session, const char *encoded_data,
 	stream = soup_test_request_send (request, NULL, 0, &error);
 
 	if (error) {
-		debug_printf (1, "  could not send request: %s\n", error->message);
+		debug_printf (1, "    could not send request: %s\n", error->message);
 		errors++;
 		g_error_free (error);
 		g_object_unref (request);
@@ -700,24 +720,24 @@ do_null_char_request (SoupSession *session, const char *encoded_data,
 
 	g_input_stream_read_all (stream, buf, sizeof (buf), &nread, NULL, &error);
 	if (error) {
-		debug_printf (1, "	could not read response: %s\n", error->message);
+		debug_printf (1, "    could not read response: %s\n", error->message);
 		errors++;
 		g_clear_error (&error);
 	}
 
 	soup_test_request_close_stream (request, stream, NULL, &error);
 	if (error) {
-		debug_printf (1, "	could not close stream: %s\n", error->message);
+		debug_printf (1, "    could not close stream: %s\n", error->message);
 		errors++;
 		g_clear_error (&error);
 	}
 
 	if (nread != expected_len) {
-		debug_printf (1, "	response length mismatch: expected %d, got %lu\n",
+		debug_printf (1, "    response length mismatch: expected %d, got %lu\n",
 		              expected_len, (gulong)nread);
 		errors++;
 	} else if (memcmp (buf, expected_data, nread) != 0) {
-		debug_printf (1, "	response data mismatch\n");
+		debug_printf (1, "    response data mismatch\n");
 		errors++;
 	}
 
@@ -727,10 +747,8 @@ do_null_char_request (SoupSession *session, const char *encoded_data,
 }
 
 static void
-do_null_char_test (gboolean plain_session)
+do_null_char_test_for_session (SoupSession *session)
 {
-	SoupSession *session;
-	int i;
 	static struct {
 		const char *encoded_data;
 		const char *expected_data;
@@ -741,18 +759,31 @@ do_null_char_test (gboolean plain_session)
 		{ "%3Cscript%3E%00%3Cbr%2F%3E%3C%2Fscript%3E%00", "<script>\0<br/></script>\0", 24 },
 	};
 	static int num_test_cases = G_N_ELEMENTS(test_cases);
+	int i;
 
-	debug_printf (1, "\nStreaming data URLs containing null chars with %s\n",
-		      plain_session ? "SoupSession" : "SoupSessionAsync");
-
-	session = soup_test_session_new (plain_session ? SOUP_TYPE_SESSION : SOUP_TYPE_SESSION_ASYNC,
-					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-					 NULL);
-
-	for (i = 0; i < num_test_cases; i++)
+	for (i = 0; i < num_test_cases; i++) {
 		do_null_char_request (session, test_cases[i].encoded_data,
 				      test_cases[i].expected_data, test_cases[i].expected_len);
+	}
+}
 
+static void
+do_null_char_tests (void)
+{
+	SoupSession *session;
+
+	debug_printf (1, "\nStreaming data URLs containing null chars\n");
+
+	debug_printf (1, "  SoupSession\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	do_null_char_test_for_session (session);
+	soup_test_session_abort_unref (session);
+
+	debug_printf (1, "  SoupSessionAsync\n");
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 NULL);
+	do_null_char_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 
@@ -769,7 +800,7 @@ do_close_test_for_session (SoupSession *session,
 	stream = soup_test_request_send (request, NULL, 0, &error);
 
 	if (error) {
-		debug_printf (1, "  could not send request: %s\n", error->message);
+		debug_printf (1, "    could not send request: %s\n", error->message);
 		errors++;
 		g_error_free (error);
 		g_object_unref (request);
@@ -805,14 +836,14 @@ do_close_tests (const char *uri)
 	slow_uri = soup_uri_new (uri);
 	soup_uri_set_path (slow_uri, "/slow");
 
-	debug_printf (1, "  async\n");
+	debug_printf (1, "  SoupSessionAsync\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
 	do_close_test_for_session (session, slow_uri);
 	soup_test_session_abort_unref (session);
 
-	debug_printf (1, "  sync\n");
+	debug_printf (1, "  SoupSessionSync\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
@@ -835,18 +866,11 @@ main (int argc, char **argv)
 
 	uri = g_strdup_printf ("http://127.0.0.1:%u/foo", soup_server_get_port (server));
 
-	do_simple_test (uri, FALSE);
-	do_thread_test (uri, FALSE);
-	do_context_test (uri, FALSE);
-	do_sync_test (uri, FALSE);
-	do_null_char_test (FALSE);
-
-	do_simple_test (uri, TRUE);
-	do_thread_test (uri, TRUE);
-	do_context_test (uri, TRUE);
-	do_sync_test (uri, TRUE);
-	do_null_char_test (TRUE);
-
+	do_simple_tests (uri);
+	do_thread_tests (uri);
+	do_context_tests (uri);
+	do_sync_tests (uri);
+	do_null_char_tests ();
 	do_close_tests (uri);
 
 	g_free (uri);
