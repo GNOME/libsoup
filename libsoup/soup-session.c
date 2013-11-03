@@ -3868,10 +3868,10 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 
 		/* Give the splice op its own ref on item */
 		soup_message_queue_item_ref (item);
+		/* We don't use CLOSE_SOURCE because we need to control when the
+		 * side effects of closing the SoupClientInputStream happen.
+		 */
 		g_output_stream_splice_async (ostream, stream,
-					      /* We can't use CLOSE_SOURCE because it
-					       * might get closed in the wrong thread.
-					       */
 					      G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
 					      G_PRIORITY_DEFAULT,
 					      item->cancellable,
