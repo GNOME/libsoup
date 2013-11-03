@@ -495,6 +495,8 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	msgs_done = 0;
 	g_idle_add (idle_start_server, NULL);
+	if (quit_loop_timeout)
+		g_source_remove (quit_loop_timeout);
 	quit_loop_timeout = g_timeout_add (1000, quit_loop, NULL);
 	g_main_loop_run (max_conns_loop);
 
@@ -517,8 +519,10 @@ do_max_conns_test_for_session (SoupSession *session)
 	}
 
 	g_main_loop_unref (max_conns_loop);
-	if (quit_loop_timeout)
+	if (quit_loop_timeout) {
 		g_source_remove (quit_loop_timeout);
+		quit_loop_timeout = 0;
+	}
 
 	for (i = 0; i < TEST_CONNS; i++)
 		g_object_unref (msgs[i]);
