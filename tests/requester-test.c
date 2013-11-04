@@ -788,6 +788,15 @@ do_null_char_tests (void)
 }
 
 static void
+close_test_msg_finished (SoupMessage *msg,
+			 gpointer     user_data)
+{
+	gboolean *finished = user_data;
+
+	*finished = TRUE;
+}
+
+static void
 do_close_test_for_session (SoupSession *session,
 			   SoupURI     *uri)
 {
@@ -795,12 +804,17 @@ do_close_test_for_session (SoupSession *session,
 	GInputStream *stream;
 	SoupRequest *request;
 	guint64 start, end;
+	GCancellable *cancellable;
+	SoupMessage *msg;
+	gboolean finished = FALSE;
+
+	debug_printf (1, "    normal close\n");
 
 	request = soup_session_request_uri (session, uri, NULL);
 	stream = soup_test_request_send (request, NULL, 0, &error);
 
 	if (error) {
-		debug_printf (1, "    could not send request: %s\n", error->message);
+		debug_printf (1, "      could not send request: %s\n", error->message);
 		errors++;
 		g_error_free (error);
 		g_object_unref (request);
@@ -810,14 +824,48 @@ do_close_test_for_session (SoupSession *session,
 	start = g_get_monotonic_time ();
 	soup_test_request_close_stream (request, stream, NULL, &error);
 	if (error) {
-		debug_printf (1, "    could not close stream: %s\n", error->message);
+		debug_printf (1, "      could not close stream: %s\n", error->message);
 		errors++;
 		g_clear_error (&error);
 	}
 	end = g_get_monotonic_time ();
 
 	if (end - start > 500000) {
-		debug_printf (1, "    close() waited for response to complete!\n");
+		debug_printf (1, "      close() waited for response to complete!\n");
+		errors++;
+	}
+
+	g_object_unref (stream);
+	g_object_unref (request);
+
+
+	debug_printf (1, "    error close\n");
+
+	request = soup_session_request_uri (session, uri, NULL);
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
+	g_signal_connect (msg, "finished", G_CALLBACK (close_test_msg_finished), &finished);
+	g_object_unref (msg);
+
+	stream = soup_test_request_send (request, NULL, 0, &error);
+	if (error) {
+		debug_printf (1, "      could not send request: %s\n", error->message);
+		errors++;
+		g_error_free (error);
+		g_object_unref (request);
+		return;
+	}
+
+	cancellable = g_cancellable_new ();
+	g_cancellable_cancel (cancellable);
+	soup_test_request_close_stream (request, stream, cancellable, &error);
+	if (error && !g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+		debug_printf (1, "      did not get expected error: %s\n", error->message);
+		errors++;
+		g_clear_error (&error);
+	}
+
+	if (!finished) {
+		debug_printf (1, "      message did not finish!\n");
 		errors++;
 	}
 

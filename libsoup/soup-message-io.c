@@ -155,8 +155,14 @@ soup_message_io_finished (SoupMessage *msg)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
-	SoupMessageCompletionFn completion_cb = io->completion_cb;
-	gpointer completion_data = io->completion_data;
+	SoupMessageCompletionFn completion_cb;
+	gpointer completion_data;
+
+	if (!io)
+		return;
+
+	completion_cb = io->completion_cb;
+	completion_data = io->completion_data;
 
 	g_object_ref (msg);
 	soup_message_io_cleanup (msg);
@@ -984,6 +990,7 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
+	gboolean success;
 
 	g_object_ref (msg);
 
@@ -994,17 +1001,13 @@ soup_message_io_run_until_finish (SoupMessage   *msg,
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 	}
 
-	if (!io_run_until (msg, blocking,
-			   SOUP_MESSAGE_IO_STATE_DONE,
-			   SOUP_MESSAGE_IO_STATE_DONE,
-			   cancellable, error)) {
-		g_object_unref (msg);
-		return FALSE;
-	}
+	success = io_run_until (msg, blocking,
+				SOUP_MESSAGE_IO_STATE_DONE,
+				SOUP_MESSAGE_IO_STATE_DONE,
+				cancellable, error);
 
-	soup_message_io_finished (msg);
 	g_object_unref (msg);
-	return TRUE;
+	return success;
 }
 
 static void

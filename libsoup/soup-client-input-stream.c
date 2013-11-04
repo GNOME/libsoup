@@ -128,9 +128,12 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
 				   GError       **error)
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
+	gboolean success;
 
-	return soup_message_io_run_until_finish (cistream->priv->msg, TRUE,
-						 cancellable, error);
+	success = soup_message_io_run_until_finish (cistream->priv->msg, TRUE,
+						    NULL, error);
+	soup_message_io_finished (cistream->priv->msg);
+	return success;
 }
 
 static gboolean
@@ -157,6 +160,8 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 		g_error_free (error);
 		return TRUE;
 	}
+
+	soup_message_io_finished (cistream->priv->msg);
 
 	if (error) {
 		g_task_return_error (task, error);
