@@ -108,6 +108,9 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	if (debug_level > 0 || http_debug_level > 0)
 		parallelize = !parallelize;
 
+	if (g_getenv ("SOUP_TESTS_IN_MAKE_CHECK"))
+		debug_level = G_MAXINT;
+
 	/* Exit cleanly on ^C in case we're valgrinding. */
 	signal (SIGINT, quit);
 
