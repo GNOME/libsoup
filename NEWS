@@ -1,3 +1,24 @@
+Changes in libsoup from 2.44.1 to 2.44.2:
+
+	* Fixed a hang with internet radio streams in Rhythmbox (and
+          some other places). [#710494, Dan]
+
+	* Fixed a connection leak when cancelling the close of
+	  a message GInputStream. [#711260, Dan]
+
+	* Plugged a few memory leaks [#711085, Christophe Fergeau]
+
+	* Fix build with --without-ntlm [#710267, Dan]
+
+	* Fixed a few warnings [Dan, Fabiano Fidêncio]
+
+	* Fixed connection-test to pass with current glib [#711361,
+	  Colin Walters]
+
+	* Tests are now more verbose by default under "make check",
+          since current automake just redirects all the output to a
+          log file anyway. [Dan]
+
 Changes in libsoup from 2.44.0 to 2.44.1:
 
 	* If you called g_input_stream_close() on SoupMessage or
