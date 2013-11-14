@@ -1,3 +1,34 @@
+Changes in libsoup from 2.42.1 to 2.42.3:
+
+	* Fixed an authentication error when using NTLM when
+	  connecting to an https site over a proxy; the code was
+	  getting confused and thinking that the 200 OK response to
+	  the CONNECT meant that NTLM auth had succeeded. [#698728,
+	  Dan]
+
+	* Fixed a bug that could cause synchronous sessions to get
+	  stuck in a state where no new messages would ever get
+	  processed. [#703463, Philip Withnall]
+
+	* Fixed a bug in the connection-pool code, which would in
+	  certain cases accidentally keep using a connection after a
+	  message was cancelled while in progress, causing the next
+	  request on that connection to get the response to the
+	  previous request, etc. [#708006, David Woodhouse]
+
+	* Fixed some problems when falling back from samba
+	  single-sign-on-based NTLM to ordinary ask-for-a-password
+	  NTLM. [#703186, David Woodhouse]
+
+	* If you called g_input_stream_close() on a SoupRequests's
+	  GInputStream before you finished reading it, it would block
+	  until the rest of the response had been read (which in the
+	  case of, eg, an infinite audio stream, meant that it would
+	  block forever). [#695652, Dan]
+
+	* Updated translations:
+	  Indonesian
+
 Changes in libsoup from 2.42.1 to 2.42.2:
 
 	* Fixed SoupSession:proxy-resolver [#698163, Dan]
