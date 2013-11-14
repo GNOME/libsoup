@@ -1,4 +1,7 @@
-Changes in libsoup from 2.42.1 to 2.42.3:
+Changes in libsoup from 2.42.2 to 2.42.3.1:
+
+	* [2.42.3.1 fixes a build error in 2.42.3 when building with
+          --without-ntlm]
 
 	* Fixed an authentication error when using NTLM when
 	  connecting to an https site over a proxy; the code was
