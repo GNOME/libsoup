@@ -5,6 +5,8 @@
  * Copyright (C) 2000-2003, Ximian, Inc.
  */
 
+#include <string.h>
+
 #include "soup-message.h"
 #include "soup.h"
 #include "soup-connection.h"
@@ -936,9 +938,10 @@ soup_message_new_from_uri (const char *method, SoupURI *uri)
 /**
  * soup_message_set_request:
  * @msg: the message
- * @content_type: MIME Content-Type of the body
+ * @content_type: (allow-none): MIME Content-Type of the body
  * @req_use: a #SoupMemoryUse describing how to handle @req_body
- * @req_body: a data buffer containing the body of the message request.
+ * @req_body: (allow-none) (array length=req_length) (element-type guint8):
+ *   a data buffer containing the body of the message request.
  * @req_length: the byte length of @req_body.
  * 
  * Convenience function to set the request body of a #SoupMessage. If
@@ -955,6 +958,8 @@ soup_message_set_request (SoupMessage    *msg,
 	g_return_if_fail (content_type != NULL || req_length == 0);
 
 	if (content_type) {
+		g_warn_if_fail (strchr (content_type, '/') != NULL);
+
 		soup_message_headers_replace (msg->request_headers,
 					      "Content-Type", content_type);
 		soup_message_body_append (msg->request_body, req_use,
@@ -971,8 +976,8 @@ soup_message_set_request (SoupMessage    *msg,
  * @msg: the message
  * @content_type: (allow-none): MIME Content-Type of the body
  * @resp_use: a #SoupMemoryUse describing how to handle @resp_body
- * @resp_body: (array length=resp_length) (element-type guint8): a data buffer
- * containing the body of the message response.
+ * @resp_body: (allow-none) (array length=resp_length) (element-type guint8):
+ *   a data buffer containing the body of the message response.
  * @resp_length: the byte length of @resp_body.
  * 
  * Convenience function to set the response body of a #SoupMessage. If
@@ -989,6 +994,8 @@ soup_message_set_response (SoupMessage    *msg,
 	g_return_if_fail (content_type != NULL || resp_length == 0);
 
 	if (content_type) {
+		g_warn_if_fail (strchr (content_type, '/') != NULL);
+
 		soup_message_headers_replace (msg->response_headers,
 					      "Content-Type", content_type);
 		soup_message_body_append (msg->response_body, resp_use,
