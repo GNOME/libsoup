@@ -368,14 +368,19 @@ do_property_tests (void)
 				 default_proxy_resolver, NULL);
 	g_object_unref (session);
 
-	tlsdb = g_tls_file_database_new (SRCDIR "/test-cert.pem", NULL);
-	session = g_object_new (SOUP_TYPE_SESSION,
-				SOUP_SESSION_TLS_DATABASE, tlsdb,
-				NULL);
-	test_session_properties ("Session with non-NULL :tls-database", session,
-				 default_proxy_resolver, tlsdb);
-	g_object_unref (tlsdb);
-	g_object_unref (session);
+	/* g_tls_file_database_new() will fail with the dummy backend,
+	 * so we can only do this test if we have a real TLS backend.
+	 */
+	if (tls_available) {
+		tlsdb = g_tls_file_database_new (SRCDIR "/test-cert.pem", NULL);
+		session = g_object_new (SOUP_TYPE_SESSION,
+					SOUP_SESSION_TLS_DATABASE, tlsdb,
+					NULL);
+		test_session_properties ("Session with non-NULL :tls-database", session,
+					 default_proxy_resolver, tlsdb);
+		g_object_unref (tlsdb);
+		g_object_unref (session);
+	}
 
 	session = g_object_new (SOUP_TYPE_SESSION,
 				SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, FALSE,
