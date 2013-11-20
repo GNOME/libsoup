@@ -92,13 +92,8 @@ do_session_property_tests (void)
 		"ssl-use-system-ca-file", TRUE,
 		NULL);
   g_object_get (G_OBJECT (session),
-		"ssl-use-system-ca-file", &use_system,
 		"ssl-ca-file", &ca_file,
 		NULL);
-  if (use_system) {
-    debug_printf (1, "  setting ssl-use-system-ca-file did not fail\n");
-    errors++;
-  }
   if (ca_file) {
     debug_printf (1, "  setting ssl-use-system-ca-file set ssl-ca-file\n");
     errors++;
