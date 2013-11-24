@@ -524,6 +524,9 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/sniffing/type/unknown-binary",
 			      "unknown/text_binary.txt => application/octet-stream",
 			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-leading-space",
+			      "unknown/leading_space.html => text/html",
+			      do_sniffing_test);
 
 	/* Test the XML sniffing path */
 	g_test_add_data_func ("/sniffing/type/xml",
