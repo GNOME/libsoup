@@ -163,26 +163,6 @@ gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 gpointer _SOUP_URI_SCHEME_FTP;
 gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA, _SOUP_URI_SCHEME_RESOURCE;
 
-static inline const char *
-soup_uri_parse_scheme (const char *scheme, int len)
-{
-	if (len == 4 && !g_ascii_strncasecmp (scheme, "http", len)) {
-		return SOUP_URI_SCHEME_HTTP;
-	} else if (len == 5 && !g_ascii_strncasecmp (scheme, "https", len)) {
-		return SOUP_URI_SCHEME_HTTPS;
-	} else if (len == 8 && !g_ascii_strncasecmp (scheme, "resource", len)) {
-		return SOUP_URI_SCHEME_RESOURCE;
-	} else {
-		char *lower_scheme;
-
-		lower_scheme = g_ascii_strdown (scheme, len);
-		scheme = g_intern_static_string (lower_scheme);
-		if (scheme != (const char *)lower_scheme)
-			g_free (lower_scheme);
-		return scheme;
-	}
-}
-
 static inline guint
 soup_scheme_default_port (const char *scheme)
 {
@@ -194,6 +174,38 @@ soup_scheme_default_port (const char *scheme)
 		return 21;
 	else
 		return 0;
+}
+
+static GUri *
+soup_uri_to_g_uri (SoupURI *uri, gboolean override_port, guint port)
+{
+	if (!uri)
+		return NULL;
+
+	return g_uri_build_with_user (G_URI_ENCODED | G_URI_HAS_PASSWORD,
+				      uri->scheme,
+				      uri->user, uri->password, NULL,
+				      uri->host,
+				      override_port ? port : uri->port,
+				      uri->path, uri->query, uri->fragment);
+}
+
+static SoupURI *
+soup_uri_from_g_uri (GUri *guri)
+{
+	SoupURI *uri;
+
+	uri = g_slice_new0 (SoupURI);
+	uri->scheme   = g_intern_string (g_uri_get_scheme (guri));
+	uri->user     = g_strdup (g_uri_get_user (guri));
+	uri->password = g_strdup (g_uri_get_password (guri));
+	uri->host     = g_strdup (g_uri_get_host (guri));
+	uri->port     = g_uri_get_port (guri);
+	uri->path     = g_strdup (g_uri_get_path (guri));
+	uri->query    = g_strdup (g_uri_get_query (guri));
+	uri->fragment = g_strdup (g_uri_get_fragment (guri));
+
+	return uri;
 }
 
 /**
@@ -209,12 +221,7 @@ SoupURI *
 soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 {
 	SoupURI *uri, fixed_base;
-	const char *end, *hash, *colon, *at, *path, *question;
-	const char *p, *hostend;
-	gboolean remove_dot_segments = TRUE;
-	int len;
-
-	g_return_val_if_fail (uri_string != NULL, NULL);
+	GUri *base_guri, *guri;
 
 	/* Allow a %NULL path in @base, for compatibility */
 	if (base && base->scheme && !base->path) {
@@ -227,225 +234,24 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 	g_return_val_if_fail (base == NULL || SOUP_URI_IS_VALID (base), NULL);
 
-	/* First some cleanup steps (which are supposed to all be no-ops,
-	 * but...). Skip initial whitespace, strip out internal tabs and
-	 * line breaks, and ignore trailing whitespace.
-	 */
-	while (g_ascii_isspace (*uri_string))
-		uri_string++;
+	base_guri = soup_uri_to_g_uri (base, FALSE, 0);
+	guri = g_uri_parse_relative (base_guri, uri_string, G_URI_ENCODED | G_URI_HAS_PASSWORD, NULL);
+	if (base_guri)
+		g_uri_unref (base_guri);
 
-	len = strcspn (uri_string, "\t\n\r");
-	if (uri_string[len]) {
-		char *clean = g_malloc (strlen (uri_string) + 1), *d;
-		const char *s;
+	if (!guri)
+		return NULL;
 
-		for (s = uri_string, d = clean; *s; s++) {
-			if (*s != '\t' && *s != '\n' && *s != '\r')
-				*d++ = *s;
-		}
-		*d = '\0';
+	uri = soup_uri_from_g_uri (guri);
+	g_uri_unref (guri);
 
-		uri = soup_uri_new_with_base (base, clean);
-		g_free (clean);
-		return uri;
-	}
-	end = uri_string + len;
-	while (end > uri_string && g_ascii_isspace (end[-1]))
-		end--;
-
-	uri = g_slice_new0 (SoupURI);
-
-	/* Find fragment. */
-	hash = strchr (uri_string, '#');
-	if (hash) {
-		uri->fragment = uri_normalized_copy (hash + 1, end - hash + 1,
-						     NULL);
-		end = hash;
-	}
-
-	/* Find scheme */
-	p = uri_string;
-	while (p < end && (g_ascii_isalpha (*p) ||
-			   (p > uri_string && (g_ascii_isdigit (*p) ||
-					       *p == '.' ||
-					       *p == '+' ||
-					       *p == '-'))))
-		p++;
-
-	if (p > uri_string && *p == ':') {
-		uri->scheme = soup_uri_parse_scheme (uri_string, p - uri_string);
-		uri_string = p + 1;
-	}
-
-	if (uri_string == end && !base && !uri->fragment) {
-		uri->path = g_strdup ("");
-		return uri;
-        }
-
-	/* Check for authority */
-	if (strncmp (uri_string, "//", 2) == 0) {
-		uri_string += 2;
-
-		path = uri_string + strcspn (uri_string, "/?#");
-		if (path > end)
-			path = end;
-		at = strchr (uri_string, '@');
-		if (at && at < path) {
-			colon = strchr (uri_string, ':');
-			if (colon && colon < at) {
-				uri->password = soup_uri_decoded_copy (colon + 1,
-								       at - colon - 1, NULL);
-			} else {
-				uri->password = NULL;
-				colon = at;
-			}
-
-			uri->user = soup_uri_decoded_copy (uri_string,
-							   colon - uri_string, NULL);
-			uri_string = at + 1;
-		} else
-			uri->user = uri->password = NULL;
-
-		/* Find host and port. */
-		if (*uri_string == '[') {
-			const char *pct;
-
-			uri_string++;
-			hostend = strchr (uri_string, ']');
-			if (!hostend || hostend > path) {
-				soup_uri_free (uri);
-				return NULL;
-			}
-			if (*(hostend + 1) == ':')
-				colon = hostend + 1;
-			else
-				colon = NULL;
-
-			pct = memchr (uri_string, '%', hostend - uri_string);
-			if (!pct || (pct[1] == '2' && pct[2] == '5')) {
-				uri->host = soup_uri_decoded_copy (uri_string,
-								   hostend - uri_string, NULL);
-			} else
-				uri->host = g_strndup (uri_string, hostend - uri_string);
-		} else {
-			colon = memchr (uri_string, ':', path - uri_string);
-			hostend = colon ? colon : path;
-			uri->host = soup_uri_decoded_copy (uri_string,
-							   hostend - uri_string, NULL);
-		}
-
-		if (colon && colon != path - 1) {
-			char *portend;
-			uri->port = strtoul (colon + 1, &portend, 10);
-			if (portend != (char *)path) {
-				soup_uri_free (uri);
-				return NULL;
-			}
-		}
-
-		uri_string = path;
-	}
-
-	/* Find query */
-	question = memchr (uri_string, '?', end - uri_string);
-	if (question) {
-		uri->query = uri_normalized_copy (question + 1,
-						  end - (question + 1),
-						  NULL);
-		end = question;
-	}
-
-	if (end != uri_string) {
-		uri->path = uri_normalized_copy (uri_string, end - uri_string,
-						 NULL);
-	}
-
-	/* Apply base URI. This is spelled out in RFC 3986. */
-	if (base && !uri->scheme && uri->host)
-		uri->scheme = base->scheme;
-	else if (base && !uri->scheme) {
-		uri->scheme = base->scheme;
-		uri->user = g_strdup (base->user);
-		uri->password = g_strdup (base->password);
-		uri->host = g_strdup (base->host);
-		uri->port = base->port;
-
-		if (!uri->path) {
-			uri->path = g_strdup (base->path);
-			if (!uri->query)
-				uri->query = g_strdup (base->query);
-			remove_dot_segments = FALSE;
-		} else if (*uri->path != '/') {
-			char *newpath, *last;
-
-			last = strrchr (base->path, '/');
-			if (last) {
-				newpath = g_strdup_printf ("%.*s%s",
-							   (int)(last + 1 - base->path),
-							   base->path,
-							   uri->path);
-			} else
-				newpath = g_strdup_printf ("/%s", uri->path);
-
-			g_free (uri->path);
-			uri->path = newpath;
-		}
-	}
-
-	if (remove_dot_segments && uri->path && *uri->path) {
-		char *p, *q;
-
-		/* Remove "./" where "." is a complete segment. */
-		for (p = uri->path + 1; *p; ) {
-			if (*(p - 1) == '/' &&
-			    *p == '.' && *(p + 1) == '/')
-				memmove (p, p + 2, strlen (p + 2) + 1);
-			else
-				p++;
-		}
-		/* Remove "." at end. */
-		if (p > uri->path + 2 &&
-		    *(p - 1) == '.' && *(p - 2) == '/')
-			*(p - 1) = '\0';
-
-		/* Remove "<segment>/../" where <segment> != ".." */
-		for (p = uri->path + 1; *p; ) {
-			if (!strncmp (p, "../", 3)) {
-				p += 3;
-				continue;
-			}
-			q = strchr (p + 1, '/');
-			if (!q)
-				break;
-			if (strncmp (q, "/../", 4) != 0) {
-				p = q + 1;
-				continue;
-			}
-			memmove (p, q + 4, strlen (q + 4) + 1);
-			p = uri->path + 1;
-		}
-		/* Remove "<segment>/.." at end where <segment> != ".." */
-		q = strrchr (uri->path, '/');
-		if (q && !strcmp (q, "/..")) {
-			p = q - 1;
-			while (p > uri->path && *p != '/')
-				p--;
-			if (strncmp (p, "/../", 4) != 0)
-				*(p + 1) = 0;
-		}
-
-		/* Remove extraneous initial "/.."s */
-		while (!strncmp (uri->path, "/../", 4))
-			memmove (uri->path, uri->path + 3, strlen (uri->path) - 2);
-		if (!strcmp (uri->path, "/.."))
-			uri->path[1] = '\0';
-	}
-
-	/* HTTP-specific stuff */
+	/* HTTP-specific fixes */
 	if (uri->scheme == SOUP_URI_SCHEME_HTTP ||
 	    uri->scheme == SOUP_URI_SCHEME_HTTPS) {
-		if (!uri->path)
+		if (!*uri->path) {
+			g_free (uri->path);
 			uri->path = g_strdup ("/");
+		}
 		if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
 			soup_uri_free (uri);
 			return NULL;
@@ -461,8 +267,6 @@ soup_uri_new_with_base (SoupURI *base, const char *uri_string)
 
 	if (!uri->port)
 		uri->port = soup_scheme_default_port (uri->scheme);
-	if (!uri->path)
-		uri->path = g_strdup ("");
 
 	return uri;
 }
@@ -581,7 +385,28 @@ soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
 char *
 soup_uri_to_string (SoupURI *uri, gboolean just_path_and_query)
 {
-	return soup_uri_to_string_internal (uri, just_path_and_query, FALSE);
+	GUri *guri;
+	char *ret;
+
+	g_return_val_if_fail (uri != NULL, NULL);
+
+	if (!SOUP_URI_IS_VALID (uri)) {
+		g_warn_if_fail (SOUP_URI_IS_VALID (uri));
+		return g_strdup ("");
+	}
+
+	if (just_path_and_query) {
+		guri = g_uri_build (G_URI_ENCODED,
+				    NULL, NULL, NULL, 0,
+				    uri->path, uri->query, NULL);
+	} else
+		guri = soup_uri_to_g_uri (uri, soup_uri_uses_default_port (uri), 0);
+	g_return_val_if_fail (guri != NULL, NULL);
+
+	ret = g_uri_to_string_partial (guri, G_URI_HIDE_PASSWORD);
+	g_uri_unref (guri);
+
+	return ret;
 }
 
 /**
@@ -916,7 +741,7 @@ soup_uri_set_scheme (SoupURI *uri, const char *scheme)
 	g_return_if_fail (uri != NULL);
 	g_return_if_fail (scheme != NULL);
 
-	uri->scheme = soup_uri_parse_scheme (scheme, strlen (scheme));
+	uri->scheme = g_intern_string (scheme);
 	uri->port = soup_scheme_default_port (uri->scheme);
 }
 
