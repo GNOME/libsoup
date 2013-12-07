@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-11-04 21:49+0000\n"
+"POT-Creation-Date: 2013-11-11 22:47+0000\n"
 "PO-Revision-Date: 2013-09-07 14:07+0700\n"
 "Last-Translator: 甘露(Gan Lu) <rhythm.gan@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -79,17 +79,17 @@ msgstr "未提供 URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "无效的“%s”URI：%s"
 
-#: ../libsoup/soup-session.c:4393
+#: ../libsoup/soup-session.c:4302
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "无法解析 URI：“%s”"
 
-#: ../libsoup/soup-session.c:4430
+#: ../libsoup/soup-session.c:4339
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "不支持的 URI 方案：“%s”"
 
-#: ../libsoup/soup-session.c:4452
+#: ../libsoup/soup-session.c:4361
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "不是一个 HTTP URI"
