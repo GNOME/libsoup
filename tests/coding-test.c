@@ -33,7 +33,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (codings) {
 		gboolean claim_deflate, claim_gzip;
-		const char *file_path = NULL, *encoding = NULL;
+		const char *extension = NULL, *encoding = NULL;
 
 		claim_deflate = g_slist_find_custom (codings, "deflate", (GCompareFunc)g_ascii_strcasecmp) != NULL;
 		claim_gzip = g_slist_find_custom (codings, "gzip", (GCompareFunc)g_ascii_strcasecmp) != NULL;
@@ -41,19 +41,19 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		if (claim_gzip && (!claim_deflate ||
 				   (!soup_header_contains (options, "prefer-deflate-zlib") &&
 				    !soup_header_contains (options, "prefer-deflate-raw")))) {
-			file_path = SRCDIR "/resources%s.gz";
+			extension = "gz";
 			encoding = "gzip";
 		} else if (claim_deflate) {
 			if (soup_header_contains (options, "prefer-deflate-raw")) {
-				file_path = SRCDIR "/resources%s.raw";
+				extension = "raw";
 				encoding = "deflate";
 			} else {
-				file_path = SRCDIR "/resources%s.zlib";
+				extension = "zlib";
 				encoding = "deflate";
 			}
 		}
-		if (file_path && encoding) {
-			file = g_strdup_printf (file_path, path);
+		if (extension && encoding) {
+			file = g_strdup_printf (SRCDIR "/resources%s.%s", path, extension);
 			if (g_file_test (file, G_FILE_TEST_EXISTS)) {
 				soup_message_headers_append (msg->response_headers,
 							     "Content-Encoding",

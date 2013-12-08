@@ -290,6 +290,11 @@ soup_xmlrpc_build_method_response (GValue *value)
 }
 
 static char *
+soup_xmlrpc_build_faultv (int         fault_code,
+                          const char *fault_format,
+                          va_list     args) G_GNUC_PRINTF (2, 0);
+
+static char *
 soup_xmlrpc_build_faultv (int fault_code, const char *fault_format, va_list args)
 {
 	xmlDoc *doc;
