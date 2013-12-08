@@ -3,6 +3,10 @@
  * soup-content-sniffer.c
  *
  * Copyright (C) 2009 Gustavo Noronha Silva.
+ *
+ * This code implements the following specification:
+ *
+ *  http://mimesniff.spec.whatwg.org/ as of 11 June 2013
  */
 
 #ifdef HAVE_CONFIG_H
