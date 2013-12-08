@@ -477,6 +477,7 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 				 SoupBuffer *buffer, GHashTable **params)
 {
 	const char *content_type;
+	const char *x_content_type_options;
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
 
@@ -489,7 +490,10 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	    !g_ascii_strcasecmp (content_type, "*/*"))
 		return sniff_unknown (sniffer, buffer, FALSE);
 
-	/* TODO: 2. no-sniff flag handling. */
+	/* 2. If nosniff is specified in X-Content-Type-Options use the supplied MIME type. */
+	x_content_type_options = soup_message_headers_get_one (msg->response_headers, "X-Content-Type-Options");
+	if (!g_strcmp0 (x_content_type_options, "nosniff"))
+		return g_strdup (content_type);
 
 	/* 3. check-for-apache-bug */
 	if ((content_type != NULL) &&
