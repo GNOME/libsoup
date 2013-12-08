@@ -702,6 +702,7 @@ soup_connection_send_request (SoupConnection          *conn,
 			      gpointer                 user_data)
 {
 	SoupConnectionPrivate *priv;
+	GMainContext *async_context;
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	g_return_if_fail (item != NULL);
@@ -714,5 +715,12 @@ soup_connection_send_request (SoupConnection          *conn,
 	else
 		priv->reusable = FALSE;
 
-	soup_message_send_request (item, completion_cb, user_data);
+	if (!SOUP_IS_SESSION_SYNC (item->session)) {
+		async_context = soup_session_get_async_context (item->session);
+		if (!async_context)
+			async_context = g_main_context_default ();
+	} else
+		async_context = NULL;
+
+	soup_message_io_client (item, async_context, completion_cb, user_data);
 }

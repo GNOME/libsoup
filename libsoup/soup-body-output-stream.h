@@ -38,9 +38,11 @@ typedef struct {
 
 GType soup_body_output_stream_get_type (void);
 
-GOutputStream *soup_body_output_stream_new (GOutputStream *base_stream,
-					    SoupEncoding   encoding,
-					    goffset        content_length);
+GOutputStream *soup_body_output_stream_new     (GOutputStream        *base_stream,
+						SoupEncoding          encoding,
+						goffset               content_length);
+
+gboolean       soup_body_output_stream_get_eof (SoupBodyOutputStream *bostream);
 
 G_END_DECLS
 

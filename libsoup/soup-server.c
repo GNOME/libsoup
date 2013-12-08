@@ -1287,6 +1287,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 {
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupMessage *msg;
+	GMainContext *async_context;
 
 	soup_client_context_cleanup (client);
 
@@ -1309,9 +1310,15 @@ start_request (SoupServer *server, SoupClientContext *client)
 
 	g_object_ref (client->sock);
 
-	soup_message_read_request (msg, client->sock,
-				   priv->legacy_iface == NULL,
-				   request_finished, client);
+	if (priv->legacy_iface == NULL)
+		async_context = g_main_context_ref_thread_default ();
+	else if (priv->async_context)
+		async_context = priv->async_context;
+	else
+		async_context = g_main_context_default ();
+
+	soup_message_io_server (msg, client->sock, async_context,
+				request_finished, client);
 }
 
 static void

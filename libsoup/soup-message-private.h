@@ -10,6 +10,7 @@
 #include "soup-auth.h"
 #include "soup-content-processor.h"
 #include "soup-content-sniffer.h"
+#include "soup-http-channel.h"
 #include "soup-session.h"
 
 typedef struct {
@@ -49,44 +50,17 @@ typedef struct {
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
 
-typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
-					      GString          *headers,
-					      SoupEncoding     *encoding,
-					      gpointer          user_data);
-typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
-					      char             *headers,
-					      guint             header_len,
-					      SoupEncoding     *encoding,
-					      gpointer          user_data,
-					      GError          **error);
-typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
-					      gboolean          io_complete,
-					      gpointer          user_data);
-
-
-void soup_message_send_request (SoupMessageQueueItem      *item,
-				SoupMessageCompletionFn    completion_cb,
-				gpointer                   user_data);
-void soup_message_read_request (SoupMessage               *msg,
-				SoupSocket                *sock,
-				gboolean                   use_thread_context,
-				SoupMessageCompletionFn    completion_cb,
-				gpointer                   user_data);
+typedef void     (*SoupMessageCompletionFn)   (SoupMessage          *msg,
+					       gboolean              io_complete,
+					       gpointer              user_data);
 
 void soup_message_io_client    (SoupMessageQueueItem      *item,
-				GIOStream                 *iostream,
 				GMainContext              *async_context,
-				SoupMessageGetHeadersFn    get_headers_cb,
-				SoupMessageParseHeadersFn  parse_headers_cb,
-				gpointer                   headers_data,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
 void soup_message_io_server    (SoupMessage               *msg,
-				GIOStream                 *iostream,
+				SoupSocket                *sock,
 				GMainContext              *async_context,
-				SoupMessageGetHeadersFn    get_headers_cb,
-				SoupMessageParseHeadersFn  parse_headers_cb,
-				gpointer                   headers_data,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
 void soup_message_io_cleanup   (SoupMessage               *msg);

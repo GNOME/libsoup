@@ -19,6 +19,7 @@
 #include "soup-content-processor.h"
 #include "soup-content-sniffer-stream.h"
 #include "soup-filter-input-stream.h"
+#include "soup-http1-channel.h"
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-misc-private.h"
@@ -54,18 +55,14 @@ typedef struct {
 	SoupMessageIOMode     mode;
 	GCancellable         *cancellable;
 
-	GIOStream              *iostream;
-	SoupFilterInputStream  *istream;
-	GInputStream           *body_istream;
-	GOutputStream          *ostream;
-	GOutputStream          *body_ostream;
-	GMainContext           *async_context;
+	SoupHTTPChannel      *channel;
+	GInputStream         *body_istream;
+	GOutputStream        *body_ostream;
+	GMainContext         *async_context;
 
 	SoupMessageIOState    read_state;
 	SoupEncoding          read_encoding;
-	GByteArray           *read_header_buf;
 	SoupMessageBody      *read_body;
-	goffset               read_length;
 
 	SoupMessageIOState    write_state;
 	SoupEncoding          write_encoding;
@@ -73,7 +70,6 @@ typedef struct {
 	SoupMessageBody      *write_body;
 	SoupBuffer           *write_chunk;
 	goffset               write_body_offset;
-	goffset               write_length;
 	goffset               written;
 
 	GSource *io_source;
@@ -83,9 +79,6 @@ typedef struct {
 	GCancellable *async_close_wait;
 	GError       *async_close_error;
 
-	SoupMessageGetHeadersFn   get_headers_cb;
-	SoupMessageParseHeadersFn parse_headers_cb;
-	gpointer                  header_data;
 	SoupMessageCompletionFn   completion_cb;
 	gpointer                  completion_data;
 } SoupMessageIOData;
@@ -107,22 +100,14 @@ soup_message_io_cleanup (SoupMessage *msg)
 		return;
 	priv->io_data = NULL;
 
-	if (io->iostream)
-		g_object_unref (io->iostream);
-	if (io->body_istream)
-		g_object_unref (io->body_istream);
-	if (io->body_ostream)
-		g_object_unref (io->body_ostream);
-	if (io->async_context)
-		g_main_context_unref (io->async_context);
-	if (io->item)
-		soup_message_queue_item_unref (io->item);
-
-	g_byte_array_free (io->read_header_buf, TRUE);
+	g_clear_object (&io->channel);
+	g_clear_object (&io->body_istream);
+	g_clear_object (&io->body_ostream);
+	g_clear_pointer (&io->async_context, g_main_context_unref);
+	g_clear_pointer (&io->item, soup_message_queue_item_unref);
 
 	g_string_free (io->write_buf, TRUE);
-	if (io->write_chunk)
-		soup_buffer_free (io->write_chunk);
+	g_clear_pointer (&io->write_chunk, soup_buffer_free);
 
 	g_slice_free (SoupMessageIOData, io);
 }
@@ -172,62 +157,6 @@ soup_message_io_finished (SoupMessage *msg)
 	if (completion_cb)
 		completion_cb (msg, complete, completion_data);
 	g_object_unref (msg);
-}
-
-static gboolean
-read_headers (SoupMessage *msg, gboolean blocking,
-	      GCancellable *cancellable, GError **error)
-{
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	SoupMessageIOData *io = priv->io_data;
-	gssize nread, old_len;
-	gboolean got_lf;
-
-	while (1) {
-		old_len = io->read_header_buf->len;
-		g_byte_array_set_size (io->read_header_buf, old_len + RESPONSE_BLOCK_SIZE);
-		nread = soup_filter_input_stream_read_line (io->istream,
-							    io->read_header_buf->data + old_len,
-							    RESPONSE_BLOCK_SIZE,
-							    blocking,
-							    &got_lf,
-							    cancellable, error);
-		io->read_header_buf->len = old_len + MAX (nread, 0);
-		if (nread == 0) {
-			soup_message_set_status (msg, SOUP_STATUS_MALFORMED);
-			g_set_error_literal (error, G_IO_ERROR,
-					     G_IO_ERROR_PARTIAL_INPUT,
-					     _("Connection terminated unexpectedly"));
-		}
-		if (nread <= 0)
-			return FALSE;
-
-		if (got_lf) {
-			if (nread == 1 && old_len >= 2 &&
-			    !strncmp ((char *)io->read_header_buf->data +
-				      io->read_header_buf->len - 2,
-				      "\n\n", 2))
-				break;
-			else if (nread == 2 && old_len >= 3 &&
-				 !strncmp ((char *)io->read_header_buf->data +
-					   io->read_header_buf->len - 3,
-					   "\n\r\n", 3))
-				break;
-		}
-	}
-
-	/* We need to "rewind" io->read_header_buf back one line.
-	 * That SHOULD be two characters (CR LF), but if the
-	 * web server was stupid, it might only be one.
-	 */
-	if (io->read_header_buf->len < 3 ||
-	    io->read_header_buf->data[io->read_header_buf->len - 2] == '\n')
-		io->read_header_buf->len--;
-	else
-		io->read_header_buf->len -= 2;
-	io->read_header_buf->data[io->read_header_buf->len] = '\0';
-
-	return TRUE;
 }
 
 static gint
@@ -360,25 +289,11 @@ io_write (SoupMessage *msg, gboolean blocking,
 
 	switch (io->write_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
-		if (!io->write_buf->len) {
-			io->get_headers_cb (msg, io->write_buf,
-					    &io->write_encoding,
-					    io->header_data);
-		}
-
-		while (io->written < io->write_buf->len) {
-			nwrote = g_pollable_stream_write (io->ostream,
-							  io->write_buf->str + io->written,
-							  io->write_buf->len - io->written,
-							  blocking,
-							  cancellable, error);
-			if (nwrote == -1)
-				return FALSE;
-			io->written += nwrote;
-		}
+		if (!soup_http_channel_write_headers (io->channel, blocking,
+						      cancellable, error))
+			return FALSE;
 
 		io->written = 0;
-		g_string_truncate (io->write_buf, 0);
 
 		if (io->mode == SOUP_MESSAGE_IO_SERVER &&
 		    SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) {
@@ -400,13 +315,6 @@ io_write (SoupMessage *msg, gboolean blocking,
 			soup_message_wrote_informational (msg);
 			soup_message_cleanup_response (msg);
 			break;
-		}
-
-		if (io->write_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
-			SoupMessageHeaders *hdrs =
-				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
-				msg->request_headers : msg->response_headers;
-			io->write_length = soup_message_headers_get_content_length (hdrs);
 		}
 
 		if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
@@ -431,17 +339,13 @@ io_write (SoupMessage *msg, gboolean blocking,
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY_START:
-		io->body_ostream = soup_body_output_stream_new (io->ostream,
-								io->write_encoding,
-								io->write_length);
+		io->body_ostream = soup_http_channel_get_body_output_stream (io->channel);
 		io->write_state = SOUP_MESSAGE_IO_STATE_BODY;
 		break;
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
-		if (!io->write_length &&
-		    io->write_encoding != SOUP_ENCODING_EOF &&
-		    io->write_encoding != SOUP_ENCODING_CHUNKED) {
+		if (soup_body_output_stream_get_eof (SOUP_BODY_OUTPUT_STREAM (io->body_ostream))) {
 			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
 			break;
 		}
@@ -470,9 +374,6 @@ io_write (SoupMessage *msg, gboolean blocking,
 		chunk = soup_buffer_new_subbuffer (io->write_chunk,
 						   io->written, nwrote);
 		io->written += nwrote;
-		if (io->write_length)
-			io->write_length -= nwrote;
-
 		if (io->written == io->write_chunk->length)
 			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DATA;
 
@@ -556,20 +457,19 @@ io_read (SoupMessage *msg, gboolean blocking,
 	guchar *stack_buf = NULL;
 	gssize nread;
 	SoupBuffer *buffer;
-	guint status;
+	GError *local = NULL;
 
 	switch (io->read_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
-		if (!read_headers (msg, blocking, cancellable, error))
-			return FALSE;
+		soup_http_channel_read_headers (io->channel, blocking,
+						cancellable, &local);
 
-		status = io->parse_headers_cb (msg, (char *)io->read_header_buf->data,
-					       io->read_header_buf->len,
-					       &io->read_encoding,
-					       io->header_data, error);
-		g_byte_array_set_size (io->read_header_buf, 0);
+		if (local) {
+			if (local->domain != SOUP_HTTP_ERROR) {
+				g_propagate_error (error, local);
+				return FALSE;
+			}
 
-		if (status != SOUP_STATUS_OK) {
 			/* Either we couldn't parse the headers, or they
 			 * indicated something that would mean we wouldn't
 			 * be able to parse the body. (Eg, unknown
@@ -577,7 +477,8 @@ io_read (SoupMessage *msg, gboolean blocking,
 			 * reading, and make sure the connection gets
 			 * closed when we're done.
 			 */
-			soup_message_set_status (msg, status);
+			soup_message_set_status (msg, local->code);
+			g_clear_error (&local);
 			soup_message_headers_append (msg->request_headers,
 						     "Connection", "close");
 			io->read_state = SOUP_MESSAGE_IO_STATE_FINISHING;
@@ -625,33 +526,13 @@ io_read (SoupMessage *msg, gboolean blocking,
 				io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		}
 
-		if (io->read_encoding == SOUP_ENCODING_CONTENT_LENGTH) {
-			SoupMessageHeaders *hdrs =
-				(io->mode == SOUP_MESSAGE_IO_CLIENT) ?
-				msg->response_headers : msg->request_headers;
-			io->read_length = soup_message_headers_get_content_length (hdrs);
-
-			if (io->mode == SOUP_MESSAGE_IO_CLIENT &&
-			    !soup_message_is_keepalive (msg)) {
-				/* Some servers suck and send
-				 * incorrect Content-Length values, so
-				 * allow EOF termination in this case
-				 * (iff the message is too short) too.
-				 */
-				io->read_encoding = SOUP_ENCODING_EOF;
-			}
-		} else
-			io->read_length = -1;
-
 		soup_message_got_headers (msg);
 		break;
 
 
 	case SOUP_MESSAGE_IO_STATE_BODY_START:
 		if (!io->body_istream) {
-			GInputStream *body_istream = soup_body_input_stream_new (G_INPUT_STREAM (io->istream),
-										 io->read_encoding,
-										 io->read_length);
+			GInputStream *body_istream = soup_http_channel_get_body_input_stream (io->channel);
 
 			/* TODO: server-side messages do not have a io->item. This means
 			 * that we cannot use content processors for them right now.
@@ -685,7 +566,7 @@ io_read (SoupMessage *msg, gboolean blocking,
 
 	case SOUP_MESSAGE_IO_STATE_BODY:
 		if (priv->chunk_allocator) {
-			buffer = priv->chunk_allocator (msg, io->read_length, priv->chunk_allocator_data);
+			buffer = priv->chunk_allocator (msg, 0 /* FIXME? */, priv->chunk_allocator_data);
 			if (!buffer) {
 				g_return_val_if_fail (!io->item || !io->item->new_api, FALSE);
 				soup_message_io_pause (msg);
@@ -839,29 +720,17 @@ soup_message_io_get_oneshot_source (SoupMessage *msg, GCancellable *cancellable,
 	GSource *base_source, *source;
 	SoupMessageSource *message_source;
 
-	if (!io) {
+	if (!io)
 		base_source = g_timeout_source_new (0);
-	} else if (io->paused) {
+	else if (io->paused)
 		base_source = NULL;
-	} else if (io->async_close_wait) {
+	else if (io->async_close_wait)
 		base_source = g_cancellable_source_new (io->async_close_wait);
-	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state)) {
-		GPollableInputStream *istream;
-
-		if (io->body_istream)
-			istream = G_POLLABLE_INPUT_STREAM (io->body_istream);
-		else
-			istream = G_POLLABLE_INPUT_STREAM (io->istream);
-		base_source = g_pollable_input_stream_create_source (istream, cancellable);
-	} else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->write_state)) {
-		GPollableOutputStream *ostream;
-
-		if (io->body_ostream)
-			ostream = G_POLLABLE_OUTPUT_STREAM (io->body_ostream);
-		else
-			ostream = G_POLLABLE_OUTPUT_STREAM (io->ostream);
-		base_source = g_pollable_output_stream_create_source (ostream, cancellable);
-	} else
+	else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->read_state))
+		base_source = soup_http_channel_create_oneshot_source (io->channel, G_IO_IN, cancellable);
+	else if (SOUP_MESSAGE_IO_STATE_POLLABLE (io->write_state))
+		base_source = soup_http_channel_create_oneshot_source (io->channel, G_IO_OUT, cancellable);
+	else
 		base_source = g_timeout_source_new (0);
 
 	source = g_source_new (&message_source_funcs,
@@ -891,7 +760,7 @@ request_is_restartable (SoupMessage *msg, GError *error)
 
 	return (io->mode == SOUP_MESSAGE_IO_CLIENT &&
 		io->read_state <= SOUP_MESSAGE_IO_STATE_HEADERS &&
-		io->read_header_buf->len == 0 &&
+		//FIXME io->read_header_buf->len == 0 &&
 		soup_connection_get_ever_used (io->item->conn) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) &&
 		!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK) &&
@@ -1106,11 +975,9 @@ soup_message_io_get_response_istream (SoupMessage  *msg,
 
 
 static SoupMessageIOData *
-new_iostate (SoupMessage *msg, GIOStream *iostream,
-	     GMainContext *async_context, SoupMessageIOMode mode,
-	     SoupMessageGetHeadersFn get_headers_cb,
-	     SoupMessageParseHeadersFn parse_headers_cb,
-	     gpointer header_data,
+new_iostate (SoupMessage *msg,
+	     GMainContext *async_context,
+	     SoupMessageIOMode mode,
 	     SoupMessageCompletionFn completion_cb,
 	     gpointer completion_data)
 {
@@ -1119,21 +986,13 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 
 	io = g_slice_new0 (SoupMessageIOData);
 	io->mode = mode;
-	io->get_headers_cb   = get_headers_cb;
-	io->parse_headers_cb = parse_headers_cb;
-	io->header_data      = header_data;
 	io->completion_cb    = completion_cb;
 	io->completion_data  = completion_data;
-
-	io->iostream = g_object_ref (iostream);
-	io->istream = SOUP_FILTER_INPUT_STREAM (g_io_stream_get_input_stream (iostream));
-	io->ostream = g_io_stream_get_output_stream (iostream);
 
 	if (async_context)
 		io->async_context = g_main_context_ref (async_context);
 
-	io->read_header_buf = g_byte_array_new ();
-	io->write_buf       = g_string_new (NULL);
+	io->write_buf = g_string_new (NULL);
 
 	io->read_state  = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
 	io->write_state = SOUP_MESSAGE_IO_STATE_NOT_STARTED;
@@ -1146,22 +1005,19 @@ new_iostate (SoupMessage *msg, GIOStream *iostream,
 
 void
 soup_message_io_client (SoupMessageQueueItem *item,
-			GIOStream *iostream,
 			GMainContext *async_context,
-			SoupMessageGetHeadersFn get_headers_cb,
-			SoupMessageParseHeadersFn parse_headers_cb,
-			gpointer header_data,
 			SoupMessageCompletionFn completion_cb,
 			gpointer completion_data)
 {
 	SoupMessageIOData *io;
 
-	io = new_iostate (item->msg, iostream, async_context,
+	io = new_iostate (item->msg, async_context,
 			  SOUP_MESSAGE_IO_CLIENT,
-			  get_headers_cb, parse_headers_cb, header_data,
 			  completion_cb, completion_data);
 
+	io->channel = soup_http1_channel_new_client (item->msg);
 	io->item = item;
+
 	soup_message_queue_item_ref (item);
 	io->cancellable = item->cancellable;
 
@@ -1180,19 +1036,18 @@ soup_message_io_client (SoupMessageQueueItem *item,
 
 void
 soup_message_io_server (SoupMessage *msg,
-			GIOStream *iostream, GMainContext *async_context,
-			SoupMessageGetHeadersFn get_headers_cb,
-			SoupMessageParseHeadersFn parse_headers_cb,
-			gpointer header_data,
+			SoupSocket *sock,
+			GMainContext *async_context,
 			SoupMessageCompletionFn completion_cb,
 			gpointer completion_data)
 {
 	SoupMessageIOData *io;
 
-	io = new_iostate (msg, iostream, async_context,
+	io = new_iostate (msg, async_context,
 			  SOUP_MESSAGE_IO_SERVER,
-			  get_headers_cb, parse_headers_cb, header_data,
 			  completion_cb, completion_data);
+
+	io->channel = soup_http1_channel_new_server (msg, sock);
 
 	io->read_body       = msg->request_body;
 	io->write_body      = msg->response_body;

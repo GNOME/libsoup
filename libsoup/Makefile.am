@@ -139,16 +139,18 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-http-channel.c		\
+	soup-http-channel.h		\
+	soup-http1-channel.c		\
+	soup-http1-channel.h		\
 	soup-logger.c			\
 	soup-message.c			\
 	soup-message-body.c		\
-	soup-message-client-io.c	\
 	soup-message-headers.c		\
 	soup-message-io.c		\
 	soup-message-private.h		\
 	soup-message-queue.h		\
 	soup-message-queue.c		\
-	soup-message-server-io.c	\
 	soup-method.c     		\
 	soup-misc.c     		\
 	soup-misc-private.h		\
