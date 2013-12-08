@@ -153,40 +153,23 @@ handle_partial_get (SoupMessage *msg)
 }
 
 static void
-get_response_headers (SoupMessage *msg, GString *headers,
-		      SoupEncoding *encoding, gpointer user_data)
+get_response_headers (SoupMessage          *msg,
+		      SoupHTTPOutputStream *http,
+		      gpointer              user_data)
 {
-	SoupEncoding claimed_encoding;
-	SoupMessageHeadersIter iter;
-	const char *name, *value;
-
 	handle_partial_get (msg);
 
-	g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
-				soup_message_get_http_version (msg) == SOUP_HTTP_1_0 ? '0' : '1',
-				msg->status_code, msg->reason_phrase);
-
-	claimed_encoding = soup_message_headers_get_encoding (msg->response_headers);
-	if ((msg->method == SOUP_METHOD_HEAD ||
-	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
-	     msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
-	     SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) ||
-	    (msg->method == SOUP_METHOD_CONNECT &&
-	     SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)))
-		*encoding = SOUP_ENCODING_NONE;
-	else
-		*encoding = claimed_encoding;
-
-	if (claimed_encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+	if (soup_message_headers_get_encoding (msg->response_headers) == SOUP_ENCODING_CONTENT_LENGTH &&
 	    !soup_message_headers_get_content_length (msg->response_headers)) {
 		soup_message_headers_set_content_length (msg->response_headers,
 							 msg->response_body->length);
 	}
 
-	soup_message_headers_iter_init (&iter, msg->response_headers);
-	while (soup_message_headers_iter_next (&iter, &name, &value))
-		g_string_append_printf (headers, "%s: %s\r\n", name, value);
-	g_string_append (headers, "\r\n");
+	soup_http_output_stream_build_response_headers (http, msg->method,
+							soup_message_get_http_version (msg),
+							msg->status_code,
+							msg->reason_phrase,
+							msg->response_headers);
 }
 
 void

@@ -61,6 +61,11 @@ soup_body_output_stream_constructed (GObject *object)
 	SoupBodyOutputStream *bostream = SOUP_BODY_OUTPUT_STREAM (object);
 
 	bostream->priv->base_stream = g_filter_output_stream_get_base_stream (G_FILTER_OUTPUT_STREAM (bostream));
+
+	if (bostream->priv->encoding == SOUP_ENCODING_NONE ||
+	    (bostream->priv->encoding == SOUP_ENCODING_CONTENT_LENGTH &&
+	     bostream->priv->write_length == 0))
+		bostream->priv->eof = TRUE;
 }
 
 static void
@@ -116,10 +121,8 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 	 */
 	if (bostream->priv->write_length) {
 		my_count = MIN (count, bostream->priv->write_length - bostream->priv->written);
-		if (my_count == 0) {
-			bostream->priv->eof = TRUE;
+		if (my_count == 0)
 			return count;
-		}
 	} else
 		my_count = count;
 
@@ -127,8 +130,11 @@ soup_body_output_stream_write_raw (SoupBodyOutputStream  *bostream,
 					  buffer, my_count,
 					  blocking, cancellable, error);
 
-	if (nwrote > 0 && bostream->priv->write_length)
+	if (nwrote > 0 && bostream->priv->write_length) {
 		bostream->priv->written += nwrote;
+		if (bostream->priv->written == bostream->priv->write_length)
+			bostream->priv->eof = TRUE;
+	}
 
 	if (nwrote == my_count && my_count != count)
 		nwrote = count;
@@ -343,4 +349,10 @@ soup_body_output_stream_new (GOutputStream *base_stream,
 			     "encoding", encoding,
 			     "content-length", content_length,
 			     NULL);
+}
+
+gboolean
+soup_body_output_stream_get_eof (SoupBodyOutputStream *bostream)
+{
+	return bostream->priv->eof;
 }

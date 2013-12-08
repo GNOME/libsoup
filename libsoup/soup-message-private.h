@@ -11,6 +11,7 @@
 #include "soup-content-processor.h"
 #include "soup-content-sniffer.h"
 #include "soup-http-input-stream.h"
+#include "soup-http-output-stream.h"
 #include "soup-session.h"
 
 typedef struct {
@@ -51,8 +52,7 @@ void             soup_message_cleanup_response (SoupMessage      *msg);
 
 
 typedef void     (*SoupMessageGetHeadersFn)   (SoupMessage          *msg,
-					       GString              *headers,
-					       SoupEncoding         *encoding,
+					       SoupHTTPOutputStream  *http,
 					       gpointer              user_data);
 typedef guint    (*SoupMessageParseHeadersFn) (SoupMessage          *msg,
 					       SoupHTTPInputStream  *http,

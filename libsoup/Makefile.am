@@ -137,12 +137,18 @@ libsoup_2_4_la_SOURCES =		\
 	soup-enum-types.c		\
 	soup-filter-input-stream.c	\
 	soup-filter-input-stream.h	\
+	soup-filter-output-stream.c	\
+	soup-filter-output-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
 	soup-http-input-stream.c	\
 	soup-http-input-stream.h	\
 	soup-http1-input-stream.c	\
 	soup-http1-input-stream.h	\
+	soup-http-output-stream.c	\
+	soup-http-output-stream.h	\
+	soup-http1-output-stream.c	\
+	soup-http1-output-stream.h	\
 	soup-logger.c			\
 	soup-message.c			\
 	soup-message-body.c		\
