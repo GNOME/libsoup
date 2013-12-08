@@ -2,7 +2,7 @@
 /*
  * soup-content-sniffer.c
  *
- * Copyright (C) 2009 Gustavo Noronha Silva.
+ * Copyright (C) 2009, 2013 Gustavo Noronha Silva.
  *
  * This code implements the following specification:
  *
@@ -297,7 +297,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	return g_strdup ("text/plain");
 }
 
-/* HTML5: 2.7.3 Content-Type sniffing: text or binary */
+/* MIMESNIFF: 7.2 Sniffing a mislabeled binary resource */
 static char*
 sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
@@ -306,15 +306,20 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	gboolean looks_binary = FALSE;
 	int i;
 
-	/* Detecting UTF-16BE, UTF-16LE, or UTF-8 BOMs means it's text/plain */
-	if (resource_length >= 4) {
+	/* 2. Detecting UTF-16BE, UTF-16LE BOMs means it's text/plain */
+	if (resource_length >= 2) {
 		if ((resource[0] == 0xFE && resource[1] == 0xFF) ||
-		    (resource[0] == 0xFF && resource[1] == 0xFE) ||
-		    (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF))
+		    (resource[0] == 0xFF && resource[1] == 0xFE))
 			return g_strdup ("text/plain");
 	}
 
-	/* Look to see if any of the first n bytes looks binary */
+	/* 3. UTF-8 BOM. */
+	if (resource_length >= 3) {
+		if (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF)
+			return g_strdup ("text/plain");
+	}
+
+	/* 4. Look to see if any of the first n bytes looks binary */
 	for (i = 0; i < resource_length; i++) {
 		if (byte_looks_binary[resource[i]]) {
 			looks_binary = TRUE;
@@ -325,6 +330,9 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (!looks_binary)
 		return g_strdup ("text/plain");
 
+	/* 5. Execute 7.1 Identifying a resource with an unknown MIME type.
+	 * TODO: sniff-scriptable needs to be unset.
+	 */
 	return sniff_unknown (sniffer, buffer, TRUE);
 }
 
@@ -472,13 +480,24 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
 
-	/* These comparisons are done in an ASCII-case-insensitive
-	 * manner because the spec requires it */
+	/* MIMESNIFF: 7 Determining the sniffed MIME type of a resource. */
+
+	/* 1. Unknown/undefined supplied type respecting sniff-scritable. */
 	if ((content_type == NULL) ||
 	    !g_ascii_strcasecmp (content_type, "unknown/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "application/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "*/*"))
 		return sniff_unknown (sniffer, buffer, FALSE);
+
+	/* TODO: 2. no-sniff flag handling. */
+
+	/* 3. check-for-apache-bug */
+	if ((content_type != NULL) &&
+	    (g_str_equal (content_type, "text/plain") ||
+	     g_str_equal (content_type, "text/plain; charset=ISO-8859-1") ||
+	     g_str_equal (content_type, "text/plain; charset=iso-8859-1") ||
+	     g_str_equal (content_type, "text/plain; charset=UTF-8")))
+		return sniff_text_or_binary (sniffer, buffer);
 
 	if (g_str_has_suffix (content_type, "+xml") ||
 	    !g_ascii_strcasecmp (content_type, "text/xml") ||

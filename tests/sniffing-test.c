@@ -49,7 +49,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Content-Type", "text/plain");
 	}
 
-	if (g_str_has_prefix (path, "/text_or_binary/")) {
+	if (g_str_has_prefix (path, "/text_or_binary/") || g_str_has_prefix (path, "/apache_bug/")) {
 		char *base_name = g_path_get_basename (path);
 
 		response = soup_test_load_resource (base_name, &error);
@@ -442,6 +442,15 @@ main (int argc, char **argv)
 			      GINT_TO_POINTER (TRUE),
 			      do_signals_tests);
 
+	/* Test the apache bug sniffing path */
+	g_test_add_data_func ("/sniffing/apache-bug/binary",
+			      "/apache_bug/text_binary.txt => application/octet-stream",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/apache-bug/text",
+			      "/apache_bug/text.txt => text/plain",
+			      do_sniffing_test);
+
+	/* GIF is a 'safe' type */
 	g_test_add_data_func ("/sniffing/type/gif",
 			      "text_or_binary/home.gif => image/gif",
 			      do_sniffing_test);
