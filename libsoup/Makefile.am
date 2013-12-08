@@ -139,6 +139,10 @@ libsoup_2_4_la_SOURCES =		\
 	soup-filter-input-stream.h	\
 	soup-form.c			\
 	soup-headers.c			\
+	soup-http-input-stream.c	\
+	soup-http-input-stream.h	\
+	soup-http1-input-stream.c	\
+	soup-http1-input-stream.h	\
 	soup-logger.c			\
 	soup-message.c			\
 	soup-message-body.c		\

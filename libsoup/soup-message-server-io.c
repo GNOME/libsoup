@@ -19,91 +19,30 @@
 #include "soup-socket-private.h"
 
 static guint
-parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
-		       SoupEncoding *encoding, gpointer sock, GError **error)
+parse_request_headers (SoupMessage          *msg,
+		       SoupHTTPInputStream  *http,
+		       gpointer              sock,
+		       GError              **error)
 {
-	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
-	char *req_method, *req_path, *url;
+	char *req_method;
 	SoupHTTPVersion version;
-	const char *req_host;
 	guint status;
 	SoupURI *uri;
 
-	status = soup_headers_parse_request (headers, headers_len,
-					     msg->request_headers,
-					     &req_method,
-					     &req_path,
-					     &version);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
-		if (status == SOUP_STATUS_MALFORMED) {
-			g_set_error_literal (error, SOUP_REQUEST_ERROR,
-					     SOUP_REQUEST_ERROR_PARSING,
-					     _("Could not parse HTTP request"));
-		}
+	status = soup_http_input_stream_parse_request_headers (http, sock,
+							       &req_method,
+							       &uri,
+							       &version,
+							       msg->request_headers,
+							       error);
+	if (!SOUP_STATUS_IS_SUCCESSFUL (status))
 		return status;
-	}
 
 	g_object_set (G_OBJECT (msg),
 		      SOUP_MESSAGE_METHOD, req_method,
 		      SOUP_MESSAGE_HTTP_VERSION, version,
 		      NULL);
 	g_free (req_method);
-
-	/* Handle request body encoding */
-	*encoding = soup_message_headers_get_encoding (msg->request_headers);
-	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
-		if (soup_message_headers_get_list (msg->request_headers, "Transfer-Encoding"))
-			return SOUP_STATUS_NOT_IMPLEMENTED;
-		else
-			return SOUP_STATUS_BAD_REQUEST;
-	}
-
-	/* Generate correct context for request */
-	req_host = soup_message_headers_get_one (msg->request_headers, "Host");
-	if (req_host && strchr (req_host, '/')) {
-		g_free (req_path);
-		return SOUP_STATUS_BAD_REQUEST;
-	}
-
-	if (!strcmp (req_path, "*") && req_host) {
-		/* Eg, "OPTIONS * HTTP/1.1" */
-		url = g_strdup_printf ("%s://%s",
-				       soup_socket_is_ssl (sock) ? "https" : "http",
-				       req_host);
-		uri = soup_uri_new (url);
-		if (uri)
-			soup_uri_set_path (uri, "*");
-		g_free (url);
-	} else if (*req_path != '/') {
-		/* Must be an absolute URI */
-		uri = soup_uri_new (req_path);
-	} else if (req_host) {
-		url = g_strdup_printf ("%s://%s%s",
-				       soup_socket_is_ssl (sock) ? "https" : "http",
-				       req_host, req_path);
-		uri = soup_uri_new (url);
-		g_free (url);
-	} else if (priv->http_version == SOUP_HTTP_1_0) {
-		/* No Host header, no AbsoluteUri */
-		SoupAddress *addr = soup_socket_get_local_address (sock);
-
-		uri = soup_uri_new (NULL);
-		soup_uri_set_scheme (uri, soup_socket_is_ssl (sock) ?
-				     SOUP_URI_SCHEME_HTTPS :
-				     SOUP_URI_SCHEME_HTTP);
-		soup_uri_set_host (uri, soup_address_get_physical (addr));
-		soup_uri_set_port (uri, soup_address_get_port (addr));
-		soup_uri_set_path (uri, req_path);
-	} else
-		uri = NULL;
-
-	g_free (req_path);
-
-	if (!uri || !uri->host) {
-		if (uri)
-			soup_uri_free (uri);
-		return SOUP_STATUS_BAD_REQUEST;
-	}
 
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);

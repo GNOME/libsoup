@@ -21,26 +21,23 @@
 
 static guint
 parse_response_headers (SoupMessage *msg,
-			char *headers, guint headers_len,
-			SoupEncoding *encoding,
+			SoupHTTPInputStream *http,
 			gpointer user_data,
 			GError **error)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupHTTPVersion version;
 
-	g_free(msg->reason_phrase);
+	g_free (msg->reason_phrase);
 	msg->reason_phrase = NULL;
-	if (!soup_headers_parse_response (headers, headers_len,
-					  msg->response_headers,
-					  &version,
-					  &msg->status_code,
-					  &msg->reason_phrase)) {
-		g_set_error_literal (error, SOUP_REQUEST_ERROR,
-				     SOUP_REQUEST_ERROR_PARSING,
-				     _("Could not parse HTTP response"));
+	if (!soup_http_input_stream_parse_response_headers (http,
+							    msg->method,
+							    &version,
+							    &msg->status_code,
+							    &msg->reason_phrase,
+							    msg->response_headers,
+							    error))
 		return SOUP_STATUS_MALFORMED;
-	}
 
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_STATUS_CODE);
 	g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_REASON_PHRASE);
@@ -48,23 +45,6 @@ parse_response_headers (SoupMessage *msg,
 	if (version < priv->http_version) {
 		priv->http_version = version;
 		g_object_notify (G_OBJECT (msg), SOUP_MESSAGE_HTTP_VERSION);
-	}
-
-	if ((msg->method == SOUP_METHOD_HEAD ||
-	     msg->status_code  == SOUP_STATUS_NO_CONTENT ||
-	     msg->status_code  == SOUP_STATUS_NOT_MODIFIED ||
-	     SOUP_STATUS_IS_INFORMATIONAL (msg->status_code)) ||
-	    (msg->method == SOUP_METHOD_CONNECT &&
-	     SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)))
-		*encoding = SOUP_ENCODING_NONE;
-	else
-		*encoding = soup_message_headers_get_encoding (msg->response_headers);
-
-	if (*encoding == SOUP_ENCODING_UNRECOGNIZED) {
-		g_set_error_literal (error, SOUP_REQUEST_ERROR,
-				     SOUP_REQUEST_ERROR_ENCODING,
-				     _("Unrecognized HTTP response encoding"));
-		return SOUP_STATUS_MALFORMED;
 	}
 
 	return SOUP_STATUS_OK;

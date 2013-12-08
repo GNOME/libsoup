@@ -1,6 +1,7 @@
 libsoup/soup-body-input-stream.c
 libsoup/soup-cache-input-stream.c
 libsoup/soup-converter-wrapper.c
+libsoup/soup-http1-input-stream.c
 libsoup/soup-message-client-io.c
 libsoup/soup-message-io.c
 libsoup/soup-message-server-io.c
