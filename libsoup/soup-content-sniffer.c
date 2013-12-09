@@ -635,6 +635,7 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	     g_str_equal (content_type, "text/plain; charset=UTF-8")))
 		return sniff_text_or_binary (sniffer, buffer);
 
+	/* 4. XML types sent by the server are always used. */
 	if (g_str_has_suffix (content_type, "+xml") ||
 	    !g_ascii_strcasecmp (content_type, "text/xml") ||
 	    !g_ascii_strcasecmp (content_type, "application/xml"))
