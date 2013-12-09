@@ -12,6 +12,8 @@
 
 G_BEGIN_DECLS
 
+#define SOUP_SESSION_SOCKET_PROPERTIES "socket-properties"
+
 /* "protected" methods for subclasses */
 SoupMessageQueueItem *soup_session_lookup_queue_item    (SoupSession          *session,
 							 SoupMessage          *msg);

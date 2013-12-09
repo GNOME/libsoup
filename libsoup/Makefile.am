@@ -181,6 +181,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session.c			\
 	soup-session-async.c		\
 	soup-session-feature.c		\
+	soup-session-host.c		\
+	soup-session-host.h		\
 	soup-session-private.h		\
 	soup-session-sync.c		\
 	soup-socket.c			\
