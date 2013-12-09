@@ -56,10 +56,9 @@ enum {
 	PROP_USE_THREAD_CONTEXT,
 	PROP_TIMEOUT,
 	PROP_TRUSTED_CERTIFICATE,
-	PROP_CLEAN_DISPOSE,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
-	PROP_PROXY_RESOLVER,
+	PROP_SOCKET_PROPERTIES,
 
 	LAST_PROP
 };
@@ -151,6 +150,7 @@ soup_socket_finalize (GObject *object)
 	g_clear_object (&priv->remote_addr);
 
 	g_clear_object (&priv->proxy_resolver);
+	g_clear_object (&priv->ssl_creds);
 
 	if (priv->watch_src) {
 		if (priv->clean_dispose && !priv->is_server)
@@ -190,6 +190,7 @@ soup_socket_set_property (GObject *object, guint prop_id,
 			  const GValue *value, GParamSpec *pspec)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
+	SoupSocketProperties *props;
 
 	switch (prop_id) {
 	case PROP_LOCAL_ADDRESS:
@@ -203,6 +204,8 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
+		if (priv->ssl_creds)
+			g_object_ref (priv->ssl_creds);
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
@@ -223,11 +226,32 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		if (priv->conn)
 			g_socket_set_timeout (priv->gsock, priv->timeout);
 		break;
-	case PROP_PROXY_RESOLVER:
-		priv->proxy_resolver = g_value_dup_object (value);
-		break;
-	case PROP_CLEAN_DISPOSE:
-		priv->clean_dispose = g_value_get_boolean (value);
+	case PROP_SOCKET_PROPERTIES:
+		props = g_value_get_boxed (value);
+		if (props) {
+			g_clear_pointer (&priv->async_context, g_main_context_unref);
+			if (props->async_context)
+				priv->async_context = g_main_context_ref (props->async_context);
+			priv->use_thread_context = props->use_thread_context;
+
+			g_clear_object (&priv->proxy_resolver);
+			if (props->proxy_resolver)
+				priv->proxy_resolver = g_object_ref (props->proxy_resolver);
+			g_clear_object (&priv->local_addr);
+			if (props->local_addr)
+				priv->local_addr = g_object_ref (props->local_addr);
+
+			g_clear_object (&priv->ssl_creds);
+			if (props->tlsdb)
+				priv->ssl_creds = g_object_ref (props->tlsdb);
+			priv->ssl_strict = props->ssl_strict;
+
+			priv->timeout = props->io_timeout;
+			if (priv->conn)
+				g_socket_set_timeout (priv->gsock, priv->timeout);
+
+			priv->clean_dispose = TRUE;
+		}
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -284,8 +308,6 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_ERRORS:
 		g_value_set_flags (value, priv->tls_errors);
 		break;
-	case PROP_PROXY_RESOLVER:
-		g_value_set_object (value, priv->proxy_resolver);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -579,13 +601,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE));
 
-	g_object_class_install_property (
-		object_class, PROP_CLEAN_DISPOSE,
-		g_param_spec_boolean ("clean-dispose",
-				      "Clean dispose",
-				      "Warn on unclean dispose",
-				      FALSE,
-				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 	/**
 	 * SOUP_SOCKET_TLS_CERTIFICATE:
 	 *
@@ -622,12 +637,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				    G_PARAM_READABLE));
 
 	g_object_class_install_property (
-		object_class, PROP_PROXY_RESOLVER,
-		g_param_spec_object (SOUP_SOCKET_PROXY_RESOLVER,
-				     "Proxy resolver",
-				     "GProxyResolver to use",
-				     G_TYPE_PROXY_RESOLVER,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		 object_class, PROP_SOCKET_PROPERTIES,
+		 g_param_spec_boxed (SOUP_SOCKET_SOCKET_PROPERTIES,
+				     "Socket properties",
+				     "Socket properties",
+				     SOUP_TYPE_SOCKET_PROPERTIES,
+				     G_PARAM_WRITABLE));
 }
 
 
@@ -1004,7 +1019,7 @@ listen_watch (GObject *pollable, gpointer data)
 	new_priv->is_server = TRUE;
 	new_priv->ssl = priv->ssl;
 	if (priv->ssl_creds)
-		new_priv->ssl_creds = priv->ssl_creds;
+		new_priv->ssl_creds = g_object_ref (priv->ssl_creds);
 	finish_socket_setup (new_priv);
 
 	if (new_priv->ssl_creds) {

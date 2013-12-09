@@ -21,6 +21,7 @@
 #include "soup-message-queue.h"
 #include "soup-proxy-resolver-wrapper.h"
 #include "soup-session-private.h"
+#include "soup-socket-private.h"
 
 #define HOST_KEEP_ALIVE 5 * 60 * 1000 /* 5 min in msecs */
 
@@ -90,6 +91,16 @@ typedef struct {
 	gboolean ssl_strict;
 	gboolean tlsdb_use_default;
 
+	guint io_timeout, idle_timeout;
+	SoupAddress *local_addr;
+
+	GResolver *resolver;
+	GProxyResolver *proxy_resolver;
+	gboolean proxy_use_default;
+	SoupURI *proxy_uri;
+
+	SoupSocketProperties *socket_props;
+
 	SoupMessageQueue *queue;
 
 	char *user_agent;
@@ -103,9 +114,6 @@ typedef struct {
 	GHashTable *conns; /* SoupConnection -> SoupSessionHost */
 	guint num_conns;
 	guint max_conns, max_conns_per_host;
-	guint io_timeout, idle_timeout;
-
-	SoupAddress *local_addr;
 
 	/* Must hold the conn_lock before potentially creating a new
 	 * SoupSessionHost, adding/removing a connection,
@@ -120,11 +128,6 @@ typedef struct {
 	GMainContext *async_context;
 	gboolean use_thread_context;
 	GSList *run_queue_sources;
-
-	GResolver *resolver;
-	GProxyResolver *proxy_resolver;
-	gboolean proxy_use_default;
-	SoupURI *proxy_uri;
 
 	char **http_aliases, **https_aliases;
 
@@ -350,7 +353,40 @@ soup_session_finalize (GObject *object)
 
 	g_hash_table_destroy (priv->request_types);
 
+	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
+
 	G_OBJECT_CLASS (soup_session_parent_class)->finalize (object);
+}
+
+static void
+ensure_socket_props (SoupSession *session)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	gboolean ssl_strict;
+
+	if (priv->socket_props)
+		return;
+
+	if (priv->proxy_use_default) {
+		priv->proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
+		priv->proxy_use_default = FALSE;
+	}
+	if (priv->tlsdb_use_default) {
+		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
+		priv->tlsdb_use_default = FALSE;
+	}
+
+	ssl_strict = priv->ssl_strict && (priv->tlsdb != NULL ||
+					  SOUP_IS_PLAIN_SESSION (priv->session));
+
+	priv->socket_props = soup_socket_properties_new (priv->async_context,
+							 priv->use_thread_context,
+							 priv->proxy_resolver,
+							 priv->local_addr,
+							 priv->tlsdb,
+							 ssl_strict,
+							 priv->io_timeout,
+							 priv->idle_timeout);
 }
 
 /* Converts a language in POSIX format and to be RFC2616 compliant    */
@@ -600,19 +636,23 @@ soup_session_set_property (GObject *object, guint prop_id,
 	const char *user_agent;
 	SoupSessionFeature *feature;
 	GMainContext *async_context;
+	gboolean socket_props_changed = FALSE;
 
 	switch (prop_id) {
 	case PROP_LOCAL_ADDRESS:
 		priv->local_addr = g_value_dup_object (value);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_PROXY_URI:
 		set_proxy_resolver (session, g_value_get_boxed (value),
 				    NULL, NULL);
 		soup_session_abort (session);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_PROXY_RESOLVER:
 		set_proxy_resolver (session, NULL, NULL,
 				    g_value_get_object (value));
+		socket_props_changed = TRUE;
 		break;
 	case PROP_MAX_CONNS:
 		priv->max_conns = g_value_get_int (value);
@@ -633,15 +673,19 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_CA_FILE:
 		set_ssl_ca_file (session, g_value_get_string (value));
+		socket_props_changed = TRUE;
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		set_use_system_ca_file (session, g_value_get_boolean (value));
+		socket_props_changed = TRUE;
 		break;
 	case PROP_TLS_DATABASE:
 		set_tlsdb (session, g_value_get_object (value));
+		socket_props_changed = TRUE;
 		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_ASYNC_CONTEXT:
 		async_context = g_value_get_pointer (value);
@@ -650,6 +694,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 		priv->async_context = async_context;
 		if (priv->async_context)
 			g_main_context_ref (priv->async_context);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_USE_THREAD_CONTEXT:
 		if (!g_value_get_boolean (value))
@@ -662,9 +707,11 @@ soup_session_set_property (GObject *object, guint prop_id,
 			if (priv->async_context)
 				g_main_context_ref (priv->async_context);
 		}
+		socket_props_changed = TRUE;
 		break;
 	case PROP_TIMEOUT:
 		priv->io_timeout = g_value_get_uint (value);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_USER_AGENT:
 		g_free (priv->user_agent);
@@ -699,6 +746,7 @@ soup_session_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_IDLE_TIMEOUT:
 		priv->idle_timeout = g_value_get_uint (value);
+		socket_props_changed = TRUE;
 		break;
 	case PROP_ADD_FEATURE:
 		soup_session_add_feature (session, g_value_get_object (value));
@@ -719,30 +767,12 @@ soup_session_set_property (GObject *object, guint prop_id,
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
 	}
-}
 
-static GProxyResolver *
-get_proxy_resolver (SoupSession *session)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	if (priv->proxy_use_default) {
-		priv->proxy_resolver = g_object_ref (g_proxy_resolver_get_default ());
-		priv->proxy_use_default = FALSE;
+	if (priv->socket_props && socket_props_changed) {
+		soup_socket_properties_unref (priv->socket_props);
+		priv->socket_props = NULL;
+		ensure_socket_props (session);
 	}
-	return priv->proxy_resolver;
-}
-
-static GTlsDatabase *
-get_tls_database (SoupSession *session)
-{
-	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-
-	if (priv->tlsdb_use_default) {
-		priv->tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		priv->tlsdb_use_default = FALSE;
-	}
-	return priv->tlsdb;
 }
 
 static void
@@ -762,7 +792,8 @@ soup_session_get_property (GObject *object, guint prop_id,
 		g_value_set_boxed (value, priv->proxy_uri);
 		break;
 	case PROP_PROXY_RESOLVER:
-		g_value_set_object (value, get_proxy_resolver (session));
+		ensure_socket_props (session);
+		g_value_set_object (value, priv->proxy_resolver);
 		break;
 	case PROP_MAX_CONNS:
 		g_value_set_int (value, priv->max_conns);
@@ -782,11 +813,13 @@ soup_session_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_SSL_USE_SYSTEM_CA_FILE:
 		tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());
-		g_value_set_boolean (value, get_tls_database (session) == tlsdb);
+		ensure_socket_props (session);
+		g_value_set_boolean (value, priv->tlsdb == tlsdb);
 		g_clear_object (&tlsdb);
 		break;
 	case PROP_TLS_DATABASE:
-		g_value_set_object (value, get_tls_database (session));
+		ensure_socket_props (session);
+		g_value_set_object (value, priv->tlsdb);
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
@@ -1739,8 +1772,6 @@ get_connection_for_host (SoupSession *session,
 	SoupConnection *conn;
 	GSList *conns;
 	int num_pending = 0;
-	GProxyResolver *proxy_resolver;
-	GTlsDatabase *tlsdb;
 
 	if (priv->disposed)
 		return FALSE;
@@ -1777,22 +1808,13 @@ get_connection_for_host (SoupSession *session,
 		return NULL;
 	}
 
-	proxy_resolver = get_proxy_resolver (session);
-	tlsdb = get_tls_database (session);
+	ensure_socket_props (session);
+	conn = g_object_new (SOUP_TYPE_CONNECTION,
+			     SOUP_CONNECTION_REMOTE_URI, host->uri,
+			     SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
+			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
+			     NULL);
 
-	conn = g_object_new (
-		SOUP_TYPE_CONNECTION,
-		SOUP_CONNECTION_REMOTE_URI, host->uri,
-		SOUP_CONNECTION_PROXY_RESOLVER, proxy_resolver,
-		SOUP_CONNECTION_SSL_CREDENTIALS, tlsdb,
-		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
-		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
-		SOUP_CONNECTION_USE_THREAD_CONTEXT, priv->use_thread_context,
-		SOUP_CONNECTION_TIMEOUT, priv->io_timeout,
-		SOUP_CONNECTION_IDLE_TIMEOUT, priv->idle_timeout,
-		SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
-		SOUP_CONNECTION_LOCAL_ADDRESS, priv->local_addr,
-		NULL);
 	g_signal_connect (conn, "disconnected",
 			  G_CALLBACK (connection_disconnected),
 			  session);
