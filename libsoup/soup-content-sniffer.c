@@ -491,10 +491,26 @@ sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	return g_strdup (content_type);
 }
 
+static gboolean
+skip_insignificant_space (const char *resource, int *pos, int resource_length)
+{
+	while ((resource[*pos] == '\x09') ||
+	       (resource[*pos] == '\x20') ||
+	       (resource[*pos] == '\x0A') ||
+	       (resource[*pos] == '\x0D')) {
+		*pos = *pos + 1;
+
+		if (*pos > resource_length)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 static char*
 sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
-	const guchar *resource = (const guchar *)buffer->data;
+	const char *resource = (const char *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int pos = 0;
 
@@ -509,19 +525,10 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (pos > resource_length)
 		goto text_html;
 
-	/* Skip insignificant white space */
-	while ((resource[pos] == '\x09') ||
-	       (resource[pos] == '\x20') ||
-	       (resource[pos] == '\x0A') ||
-	       (resource[pos] == '\x0D')) {
-		pos++;
+	if (skip_insignificant_space (resource, &pos, resource_length))
+		goto text_html;
 
-		if (pos > resource_length)
-			goto text_html;
-	}
-
-	/* != < */
-	if (resource[pos] != '\x3C')
+	if (resource[pos] != '<')
 		return g_strdup ("text/html");
 
 	pos++;
@@ -529,23 +536,21 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if ((pos + 2) > resource_length)
 		goto text_html;
 
-	/* Skipping comments */
-	if ((resource[pos] == '\x2D') ||
-	    (resource[pos+1] == '\x2D') ||
-	    (resource[pos+2] == '\x3E')) {
+	/* Skip comments. */
+	if (g_str_has_prefix (resource + pos, "!--")) {
 		pos = pos + 3;
 
 		if ((pos + 2) > resource_length)
 			goto text_html;
 
-		while ((resource[pos] != '\x2D') &&
-		       (resource[pos+1] != '\x2D') &&
-		       (resource[pos+2] != '\x3E')) {
+		while (!g_str_has_prefix (resource + pos, "-->")) {
 			pos++;
 
 			if ((pos + 2) > resource_length)
 				goto text_html;
 		}
+
+		pos = pos + 3;
 
 		goto look_for_tag;
 	}
@@ -553,48 +558,83 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (pos > resource_length)
 		goto text_html;
 
-	/* == ! */
-	if (resource[pos] == '\x21') {
+	if (resource[pos] == '!') {
 		do {
 			pos++;
 
 			if (pos > resource_length)
 				goto text_html;
-		} while (resource[pos] != '\x3E');
+		} while (resource[pos] != '>');
 
 		pos++;
 
 		goto look_for_tag;
-	} else if (resource[pos] == '\x3F') { /* ? */
+	} else if (resource[pos] == '?') {
 		do {
 			pos++;
 
 			if ((pos + 1) > resource_length)
 				goto text_html;
-		} while ((resource[pos] != '\x3F') &&
-			 (resource[pos+1] != '\x3E'));
+		} while (!g_str_has_prefix (resource + pos, "?>"));
 
 		pos = pos + 2;
 
 		goto look_for_tag;
 	}
 
-	if ((pos + 2) > resource_length)
-		goto text_html;
-
-	if ((resource[pos] == '\x72') &&
-	    (resource[pos+1] == '\x73') &&
-	    (resource[pos+2] == '\x73'))
-		return g_strdup ("application/rss+xml");
-
 	if ((pos + 3) > resource_length)
 		goto text_html;
 
-	if ((resource[pos] == '\x66') &&
-	    (resource[pos+1] == '\x65') &&
-	    (resource[pos+2] == '\x65') &&
-	    (resource[pos+3] == '\x64'))
+	if (g_str_has_prefix (resource + pos, "rss"))
+		return g_strdup ("application/rss+xml");
+
+	if ((pos + 4) > resource_length)
+		goto text_html;
+
+	if (g_str_has_prefix (resource + pos, "feed"))
 		return g_strdup ("application/atom+xml");
+
+	if ((pos + 7) > resource_length)
+		goto text_html;
+
+	if (g_str_has_prefix (resource + pos, "rdf:RDF")) {
+		pos = pos + 7;
+
+		if (skip_insignificant_space (resource, &pos, resource_length))
+			goto text_html;
+
+		if ((pos + 32) > resource_length)
+			goto text_html;
+
+		if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\"")) {
+			pos = pos + 32;
+
+			if (skip_insignificant_space (resource, &pos, resource_length))
+				goto text_html;
+
+			if ((pos + 55) > resource_length)
+				goto text_html;
+
+			if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\""))
+				return g_strdup ("application/rss+xml");
+		}
+
+		if ((pos + 55) > resource_length)
+			goto text_html;
+
+		if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"")) {
+			pos = pos + 55;
+
+			if (skip_insignificant_space (resource, &pos, resource_length))
+				goto text_html;
+
+			if ((pos + 32) > resource_length)
+				goto text_html;
+
+			if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\""))
+				return g_strdup ("application/rss+xml");
+		}
+	}
 
  text_html:
 	return g_strdup ("text/html");
@@ -641,6 +681,10 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	    !g_ascii_strcasecmp (content_type, "application/xml"))
 		return g_strdup (content_type);
 
+	/* 5. Distinguish feed from HTML. */
+	if (!g_ascii_strcasecmp (content_type, "text/html"))
+		return sniff_feed_or_html (sniffer, buffer);
+
 	/* 2.7.5 Content-Type sniffing: image
 	 * The spec says:
 	 *
@@ -658,9 +702,6 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	if (g_str_equal (content_type, "text/plain")) {
 		return sniff_text_or_binary (sniffer, buffer);
 	}
-
-	if (!g_ascii_strcasecmp (content_type, "text/html"))
-		return sniff_feed_or_html (sniffer, buffer);
 
 	return g_strdup (content_type);
 }

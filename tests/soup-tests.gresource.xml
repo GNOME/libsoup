@@ -3,6 +3,7 @@
   <gresource prefix="/org/gnome/libsoup/tests">
     <file>index.txt</file>
     <file>resources/atom.xml</file>
+    <file>resources/feed.rdf</file>
     <file>resources/home.gif</file>
     <file>resources/html_binary.html</file>
     <file>resources/leading_space.html</file>

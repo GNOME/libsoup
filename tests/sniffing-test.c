@@ -539,11 +539,6 @@ main (int argc, char **argv)
 			      "type/application_xml/home.gif => application/xml",
 			      do_sniffing_test);
 
-	/* Test the image sniffing path */
-	g_test_add_data_func ("/sniffing/type/image",
-			      "type/image_png/home.gif => image/gif",
-			      do_sniffing_test);
-
 	/* Test the feed or html path */
 	g_test_add_data_func ("/sniffing/type/html/html",
 			      "type/text_html/test.html => text/html",
@@ -553,6 +548,14 @@ main (int argc, char **argv)
 			      do_sniffing_test);
 	g_test_add_data_func ("/sniffing/type/html/atom",
 			      "type/text_html/atom.xml => application/atom+xml",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/html/rdf",
+			      "type/text_html/feed.rdf => application/rss+xml",
+			      do_sniffing_test);
+
+	/* Test the image sniffing path */
+	g_test_add_data_func ("/sniffing/type/image",
+			      "type/image_png/home.gif => image/gif",
 			      do_sniffing_test);
 
 	/* The spec tells us to only use the last Content-Type header */
