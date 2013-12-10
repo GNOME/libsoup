@@ -13,7 +13,8 @@
 G_BEGIN_DECLS
 
 /* "protected" methods for subclasses */
-SoupMessageQueue     *soup_session_get_queue            (SoupSession          *session);
+SoupMessageQueueItem *soup_session_lookup_queue_item    (SoupSession          *session,
+							 SoupMessage          *msg);
 
 SoupMessageQueueItem *soup_session_append_queue_item    (SoupSession          *session,
 							 SoupMessage          *msg,

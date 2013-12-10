@@ -104,14 +104,12 @@ static void
 soup_session_async_cancel_message (SoupSession *session, SoupMessage *msg,
 				   guint status_code)
 {
-	SoupMessageQueue *queue;
 	SoupMessageQueueItem *item;
 
 	SOUP_SESSION_CLASS (soup_session_async_parent_class)->
 		cancel_message (session, msg, status_code);
 
-	queue = soup_session_get_queue (session);
-	item = soup_message_queue_lookup (queue, msg);
+	item = soup_session_lookup_queue_item (session, msg);
 	if (!item)
 		return;
 
