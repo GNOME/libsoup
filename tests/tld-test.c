@@ -7,176 +7,183 @@
 
 /* From http://publicsuffix.org/list/test.txt */
 static struct {
-  const char *hostname;
-  const char *result;
+	const char *hostname;
+	const char *result;
+	SoupTLDError error;
 } tld_tests[] = {
-  /* NULL input. Not checked here because the API requires a valid hostname. */
-  /* { NULL, NULL }, */
-  /* Mixed case. Not checked because the API requires a valid hostname. */
-  /* { "COM", NULL }, */
-  /* { "example.COM", "example.com" }, */
-  /* { "WwW.example.COM", "example.com" }, */
-  /* Leading dot. */
-  { ".com", NULL },
-  { ".example", NULL },
-  { ".example.com", NULL },
-  { ".example.example", NULL },
-  /* TLD with only 1 rule. */
-  { "biz", NULL },
-  { "domain.biz", "domain.biz" },
-  { "b.domain.biz", "domain.biz" },
-  { "a.b.domain.biz", "domain.biz" },
-  /* TLD with some 2-level rules. */
-  { "com", NULL },
-  { "example.com", "example.com" },
-  { "b.example.com", "example.com" },
-  { "a.b.example.com", "example.com" },
-  { "uk.com", NULL },
-  { "example.uk.com", "example.uk.com" },
-  { "b.example.uk.com", "example.uk.com" },
-  { "a.b.example.uk.com", "example.uk.com" },
-  { "test.ac", "test.ac" },
-  /* TLD with only 1 (wildcard) rule. */
-  { "cy", NULL },
-  { "c.cy", NULL },
-  { "b.c.cy", "b.c.cy" },
-  { "a.b.c.cy", "b.c.cy" },
-  /* More complex TLD. */
-  { "jp", NULL },
-  { "test.jp", "test.jp" },
-  { "www.test.jp", "test.jp" },
-  { "ac.jp", NULL },
-  { "test.ac.jp", "test.ac.jp" },
-  { "www.test.ac.jp", "test.ac.jp" },
-  { "kyoto.jp", NULL },
-  { "minami.kyoto.jp", NULL },
-  { "b.minami.kyoto.jp", "b.minami.kyoto.jp" },
-  { "a.b.minami.kyoto.jp", "b.minami.kyoto.jp" },
-  { "pref.kyoto.jp", "pref.kyoto.jp" },
-  { "www.pref.kyoto.jp", "pref.kyoto.jp" },
-  { "city.kyoto.jp", "city.kyoto.jp" },
-  { "www.city.kyoto.jp", "city.kyoto.jp" },
-  /* TLD with a wildcard rule and exceptions. */
-  { "ck", NULL },
-  { "test.ck", NULL },
-  { "b.test.ck", "b.test.ck" },
-  { "a.b.test.ck", "b.test.ck" },
-  { "www.ck", "www.ck" },
-  { "www.www.ck", "www.ck" },
-  /* US K12. */
-  { "us", NULL },
-  { "test.us", "test.us" },
-  { "www.test.us", "test.us" },
-  { "ak.us", NULL },
-  { "test.ak.us", "test.ak.us" },
-  { "www.test.ak.us", "test.ak.us" },
-  { "k12.ak.us", NULL },
-  { "test.k12.ak.us", "test.k12.ak.us" },
-  { "www.test.k12.ak.us", "test.k12.ak.us" },
-  /* IDN labels. */
-  { "食狮.com.cn", "食狮.com.cn" },
-  { "食狮.公司.cn", "食狮.公司.cn" },
-  { "www.食狮.公司.cn", "食狮.公司.cn" },
-  { "shishi.公司.cn", "shishi.公司.cn" },
-  { "公司.cn", NULL },
-  { "食狮.中国", "食狮.中国" },
-  { "www.食狮.中国", "食狮.中国" },
-  { "shishi.中国", "shishi.中国" },
-  { "中国", NULL },
-  /* Same as above, but punycoded. */
-  { "xn--85x722f.com.cn", "xn--85x722f.com.cn" },
-  { "xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn" },
-  { "www.xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn" },
-  { "shishi.xn--55qx5d.cn", "shishi.xn--55qx5d.cn" },
-  { "xn--55qx5d.cn", NULL },
-  { "xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s" },
-  { "www.xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s" },
-  { "shishi.xn--fiqs8s", "shishi.xn--fiqs8s" },
-  { "xn--fiqs8s", NULL },
-  /* End of publicsuffix.org tests */
+	/* NULL input. Not checked here because the API requires a valid hostname. */
+	/* { NULL, NULL, -1 }, */
+	/* Mixed case. Not checked because the API requires a valid hostname. */
+	/* { "COM", NULL, -1 }, */
+	/* { "example.COM", "example.com", -1 }, */
+	/* { "WwW.example.COM", "example.com", -1 }, */
+	/* Leading dot. */
+	{ ".com", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	{ ".example", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	{ ".example.com", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	{ ".example.example", NULL, SOUP_TLD_ERROR_INVALID_HOSTNAME },
+	/* TLD with only 1 rule. */
+	{ "biz", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "domain.biz", "domain.biz", -1 },
+	{ "b.domain.biz", "domain.biz", -1 },
+	{ "a.b.domain.biz", "domain.biz", -1 },
+	/* TLD with some 2-level rules. */
+	{ "com", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "example.com", "example.com", -1 },
+	{ "b.example.com", "example.com", -1 },
+	{ "a.b.example.com", "example.com", -1 },
+	{ "uk.com", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "example.uk.com", "example.uk.com", -1 },
+	{ "b.example.uk.com", "example.uk.com", -1 },
+	{ "a.b.example.uk.com", "example.uk.com", -1 },
+	{ "test.ac", "test.ac", -1 },
+	/* TLD with only 1 (wildcard) rule. */
+	{ "cy", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "c.cy", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "b.c.cy", "b.c.cy", -1 },
+	{ "a.b.c.cy", "b.c.cy", -1 },
+	/* More complex TLD. */
+	{ "jp", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.jp", "test.jp", -1 },
+	{ "www.test.jp", "test.jp", -1 },
+	{ "ac.jp", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.ac.jp", "test.ac.jp", -1 },
+	{ "www.test.ac.jp", "test.ac.jp", -1 },
+	{ "kyoto.jp", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "minami.kyoto.jp", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "b.minami.kyoto.jp", "b.minami.kyoto.jp", -1 },
+	{ "a.b.minami.kyoto.jp", "b.minami.kyoto.jp", -1 },
+	{ "pref.kyoto.jp", "pref.kyoto.jp", -1 },
+	{ "www.pref.kyoto.jp", "pref.kyoto.jp", -1 },
+	{ "city.kyoto.jp", "city.kyoto.jp", -1 },
+	{ "www.city.kyoto.jp", "city.kyoto.jp", -1 },
+	/* TLD with a wildcard rule and exceptions. */
+	{ "ck", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.ck", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "b.test.ck", "b.test.ck", -1 },
+	{ "a.b.test.ck", "b.test.ck", -1 },
+	{ "www.ck", "www.ck", -1 },
+	{ "www.www.ck", "www.ck", -1 },
+	/* US K12. */
+	{ "us", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.us", "test.us", -1 },
+	{ "www.test.us", "test.us", -1 },
+	{ "ak.us", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.ak.us", "test.ak.us", -1 },
+	{ "www.test.ak.us", "test.ak.us", -1 },
+	{ "k12.ak.us", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.k12.ak.us", "test.k12.ak.us", -1 },
+	{ "www.test.k12.ak.us", "test.k12.ak.us", -1 },
+	/* IDN labels. */
+	{ "食狮.com.cn", "食狮.com.cn", -1 },
+	{ "食狮.公司.cn", "食狮.公司.cn", -1 },
+	{ "www.食狮.公司.cn", "食狮.公司.cn", -1 },
+	{ "shishi.公司.cn", "shishi.公司.cn", -1 },
+	{ "公司.cn", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "食狮.中国", "食狮.中国", -1 },
+	{ "www.食狮.中国", "食狮.中国", -1 },
+	{ "shishi.中国", "shishi.中国", -1 },
+	{ "中国", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	/* Same as above, but punycoded. */
+	{ "xn--85x722f.com.cn", "xn--85x722f.com.cn", -1 },
+	{ "xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn", -1 },
+	{ "www.xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn", -1 },
+	{ "shishi.xn--55qx5d.cn", "shishi.xn--55qx5d.cn", -1 },
+	{ "xn--55qx5d.cn", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s", -1 },
+	{ "www.xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s", -1 },
+	{ "shishi.xn--fiqs8s", "shishi.xn--fiqs8s", -1 },
+	{ "xn--fiqs8s", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	/* End of publicsuffix.org tests */
 
-  /* Let's just double-check this one... */
-  { "co.uk", NULL },
-  { "test.co.uk", "test.co.uk" },
-  { "www.test.co.uk", "test.co.uk" },
+	/* Let's just double-check this one... */
+	{ "co.uk", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.co.uk", "test.co.uk", -1 },
+	{ "www.test.co.uk", "test.co.uk", -1 },
 
-  /* Two levels of non-ASCII */
-  { "våler.østfold.no", NULL },
-  { "test.våler.østfold.no", "test.våler.østfold.no" },
-  { "www.test.våler.østfold.no", "test.våler.østfold.no" },
-  { "xn--vler-qoa.xn--stfold-9xa.no", NULL },
-  { "test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no" },
-  { "www.test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no" },
+	/* Two levels of non-ASCII */
+	{ "våler.østfold.no", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.våler.østfold.no", "test.våler.østfold.no", -1 },
+	{ "www.test.våler.østfold.no", "test.våler.østfold.no", -1 },
+	{ "xn--vler-qoa.xn--stfold-9xa.no", NULL, SOUP_TLD_ERROR_NOT_ENOUGH_DOMAINS },
+	{ "test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no", -1 },
+	{ "www.test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no", -1 },
 },
+
 /* Non Internet TLDs have NULL as expected result
  */
 non_inet_tld_tests[] = {
-  /* Unlisted TLD.*/
-  { "example", NULL },
-  { "example.example", NULL },
-  { "b.example.example", NULL },
-  { "a.b.example.example", NULL },
-  /* Listed, but non-Internet, TLD. */
-  { "local", NULL },
-  { "example.local", NULL },
-  { "b.example.local", NULL },
-  { "a.b.example.local", NULL }
+	/* Unlisted TLD.*/
+	{ "example", NULL },
+	{ "example.example", NULL },
+	{ "b.example.example", NULL },
+	{ "a.b.example.example", NULL },
+	/* Listed, but non-Internet, TLD. */
+	{ "local", NULL },
+	{ "example.local", NULL },
+	{ "b.example.local", NULL },
+	{ "a.b.example.local", NULL }
 };
+
+static void
+do_inet_tests (void)
+{
+	int i;
+
+	for (i = 0; i < G_N_ELEMENTS (tld_tests); i++) {
+		GError *error = NULL;
+		gboolean is_public;
+		const char *base_domain;
+
+		debug_printf (1, "Testing %s\n", tld_tests[i].hostname);
+
+		is_public = soup_tld_domain_is_public_suffix (tld_tests[i].hostname);
+		base_domain = soup_tld_get_base_domain (tld_tests[i].hostname, &error);
+
+		if (base_domain) {
+			g_assert_no_error (error);
+			g_assert_false (is_public);
+			g_assert_cmpstr (base_domain, ==, tld_tests[i].result);
+		} else {
+			g_assert_null (tld_tests[i].result);
+			g_assert_error (error, SOUP_TLD_ERROR, tld_tests[i].error);
+			g_clear_error (&error);
+		}
+	}
+}
+
+static void
+do_non_inet_tests (void)
+{
+	int i;
+
+	for (i = 0; i < G_N_ELEMENTS (non_inet_tld_tests); i++) {
+		gboolean is_public;
+		const char *base_domain;
+
+		debug_printf (1, "Testing %s\n", non_inet_tld_tests[i].hostname);
+
+		is_public = soup_tld_domain_is_public_suffix (non_inet_tld_tests[i].hostname);
+		base_domain = soup_tld_get_base_domain (non_inet_tld_tests[i].hostname, NULL);
+
+		g_assert_false (is_public);
+		g_assert_null (base_domain);
+	}
+}
 
 int
 main (int argc, char **argv)
 {
-	int i;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
-	errors = 0;
-	for (i = 0; i < G_N_ELEMENTS (tld_tests); ++i) {
-		GError *error = NULL;
-		gboolean is_public = soup_tld_domain_is_public_suffix (tld_tests[i].hostname);
-		const char *base_domain = soup_tld_get_base_domain (tld_tests[i].hostname, &error);
+	g_test_add_func ("/tld/inet", do_inet_tests);
+	g_test_add_func ("/tld/non-inet", do_non_inet_tests);
 
-		debug_printf (1, "Testing %s: ", tld_tests[i].hostname);
-
-		if (is_public && tld_tests[i].result) {
-			debug_printf (1, "ERROR: domain is public but base_domain is not NULL (%s)\n",
-				      base_domain);
-			++errors;
-		} else if (g_strcmp0 (tld_tests[i].result, base_domain)) {
-			debug_printf (1, "ERROR: %s expected as base domain but got %s\n",
-				      tld_tests[i].result, base_domain);
-			++errors;
-
-		} else if (!tld_tests[i].result && !is_public &&
-			   !g_error_matches (error, SOUP_TLD_ERROR, SOUP_TLD_ERROR_INVALID_HOSTNAME)) {
-			debug_printf (1, "ERROR: not public domain with NULL expected result\n");
-			++errors;
-		} else
-			debug_printf (1, "OK\n");
-
-		g_clear_error(&error);
-	}
-
-	debug_printf (1, "\n");
-
-	for (i = 0; i < G_N_ELEMENTS (non_inet_tld_tests); ++i) {
-		gboolean is_public = soup_tld_domain_is_public_suffix (non_inet_tld_tests[i].hostname);
-		const char *base_domain = soup_tld_get_base_domain (non_inet_tld_tests[i].hostname, NULL);
-
-		debug_printf (1, "Testing %s: ", non_inet_tld_tests[i].hostname);
-
-		if (is_public) {
-			debug_printf (1, "ERROR: domain incorrectly clasified as public\n");
-			++errors;
-		} else if (base_domain) {
-			debug_printf (1, "ERROR: non NULL base domain (%s) for local url\n",
-				      base_domain);
-			++errors;
-		} else
-			debug_printf (1, "OK\n");
-	}
+	ret = g_test_run ();
 
 	test_cleanup ();
 
-	return errors != 0;
+	return ret;
 }

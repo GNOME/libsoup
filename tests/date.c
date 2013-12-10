@@ -5,7 +5,7 @@
 
 #include "test-utils.h"
 
-static gboolean check_ok (const char *strdate, SoupDate *date);
+static void check_ok (gconstpointer data);
 
 static SoupDate *
 make_date (const char *strdate)
@@ -24,10 +24,12 @@ make_date (const char *strdate)
 	return date;
 }
 
-static const struct {
+typedef struct {
 	SoupDateFormat format;
 	const char *date;
-} good_dates[] = {
+} GoodDate;
+
+static const GoodDate good_dates[] = {
 	{ SOUP_DATE_HTTP,            "Sat, 06 Nov 2004 08:09:07 GMT" },
 	{ SOUP_DATE_COOKIE,          "Sat, 06-Nov-2004 08:09:07 GMT" },
 	{ SOUP_DATE_RFC2822,         "Sat, 6 Nov 2004 08:09:07 -0430" },
@@ -37,22 +39,21 @@ static const struct {
 };
 
 static void
-check_good (SoupDateFormat format, const char *strdate)
+check_good (gconstpointer data)
 {
+	GoodDate *good = (GoodDate *)data;
 	SoupDate *date;
 	char *strdate2;
 
-	date = make_date (strdate);
-	g_assert (date);
-	strdate2 = soup_date_to_string (date, format);
-	if (!check_ok (strdate, date))
-		return;
+	check_ok (good->date);
 
-	if (strcmp (strdate, strdate2) != 0) {
-		debug_printf (1, "  restringification failed: '%s' -> '%s'\n",
-			      strdate, strdate2);
-		errors++;
-	}
+	date = make_date (good->date);
+	strdate2 = soup_date_to_string (date, good->format);
+	soup_date_free (date);
+
+	soup_test_assert (strcmp (good->date, strdate2) == 0,
+			  "restringification failed: '%s' -> '%s'\n",
+			  good->date, strdate2);
 	g_free (strdate2);
 }
 
@@ -114,30 +115,42 @@ static const char *ok_dates[] = {
 	"Sat, 06 Nov 2004 08:09:7 GMT"
 };
 
+static void
+check_ok (gconstpointer data)
+{
+	const char *strdate = data;
+	SoupDate *date;
+
+	date = make_date (strdate);
+	if (!date) {
+		g_assert_true (date != NULL);
+		return;
+	}
+
+	g_assert_cmpint (date->year,   ==, 2004);
+	g_assert_cmpint (date->month,  ==, 11);
+	g_assert_cmpint (date->day,    ==, 6);
+	g_assert_cmpint (date->hour,   ==, 8);
+	g_assert_cmpint (date->minute, ==, 9);
+	g_assert_cmpint (date->second, ==, 7);
+}
+
 #define TIME_T 1099728547L
 #define TIME_T_STRING "1099728547"
 
-static gboolean
-check_ok (const char *strdate, SoupDate *date)
+static void
+check_ok_time_t (void)
 {
-	debug_printf (2, "%s\n", strdate);
+	SoupDate *date;
 
-	if (date &&
-	    date->year == 2004 && date->month == 11 && date->day == 6 &&
-	    date->hour == 8 && date->minute == 9 && date->second == 7) {
-		soup_date_free (date);
-		return TRUE;
-	}
+	date = soup_date_new_from_time_t (TIME_T);
 
-	debug_printf (1, "  date parsing failed for '%s'.\n", strdate);
-	if (date) {
-		debug_printf (1, "    got: %d %d %d - %d %d %d\n\n",
-			      date->year, date->month, date->day,
-			      date->hour, date->minute, date->second);
-		soup_date_free (date);
-	}
-	errors++;
-	return FALSE;
+	g_assert_cmpint (date->year,   ==, 2004);
+	g_assert_cmpint (date->month,  ==, 11);
+	g_assert_cmpint (date->day,    ==, 6);
+	g_assert_cmpint (date->hour,   ==, 8);
+	g_assert_cmpint (date->minute, ==, 9);
+	g_assert_cmpint (date->second, ==, 7);
 }
 
 static const char *bad_dates[] = {
@@ -177,25 +190,26 @@ static const char *bad_dates[] = {
 };
 
 static void
-check_bad (const char *strdate, SoupDate *date)
+check_bad (gconstpointer data)
 {
-	debug_printf (2, "%s\n", strdate);
+	const char *strdate = data;
+	SoupDate *date;
 
-	if (!date)
-		return;
-	errors++;
-
-	debug_printf (1, "  date parsing succeeded for '%s'!\n", strdate);
-	debug_printf (1, "    got: %d %d %d - %d %d %d\n\n",
-		      date->year, date->month, date->day,
-		      date->hour, date->minute, date->second);
-	soup_date_free (date);
+	date = make_date (strdate);
+	soup_test_assert (date == NULL,
+			  "date parsing succeeded for '%s': %d %d %d - %d %d %d",
+			  strdate,
+			  date->year, date->month, date->day,
+			  date->hour, date->minute, date->second);
+	g_clear_pointer (&date, soup_date_free);
 }
 
-static const struct conversion {
+typedef struct {
 	const char *source;
 	const char *http, *cookie, *rfc2822, *compact, *full, *xmlrpc;
-} conversions[] = {
+} DateConversion;
+
+static const DateConversion conversions[] = {
 	/* SOUP_DATE_HTTP */
 	{ "Sat, 06 Nov 2004 08:09:07 GMT",
 
@@ -288,71 +302,40 @@ static const struct conversion {
 };
 
 static void
-check_conversion (const struct conversion *conv)
+check_conversion (gconstpointer data)
 {
+	const DateConversion *conv = data;
 	SoupDate *date;
 	char *str;
 
-	debug_printf (2, "%s\n", conv->source);
 	date = make_date (conv->source);
 	if (!date) {
-		debug_printf (1, "  date parsing failed for '%s'.\n", conv->source);
-		errors++;
+		soup_test_assert (FALSE, "date parsing failed for '%s'.", conv->source);
 		return;
 	}
 
 	str = soup_date_to_string (date, SOUP_DATE_HTTP);
-	if (!str || strcmp (str, conv->http) != 0) {
-		debug_printf (1, "  conversion of '%s' to HTTP failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->http, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->http);
 	g_free (str);
 
 	str = soup_date_to_string (date, SOUP_DATE_COOKIE);
-	if (!str || strcmp (str, conv->cookie) != 0) {
-		debug_printf (1, "  conversion of '%s' to COOKIE failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->cookie, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->cookie);
 	g_free (str);
 
 	str = soup_date_to_string (date, SOUP_DATE_RFC2822);
-	if (!str || strcmp (str, conv->rfc2822) != 0) {
-		debug_printf (1, "  conversion of '%s' to RFC2822 failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->rfc2822, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->rfc2822);
 	g_free (str);
 
 	str = soup_date_to_string (date, SOUP_DATE_ISO8601_COMPACT);
-	if (!str || strcmp (str, conv->compact) != 0) {
-		debug_printf (1, "  conversion of '%s' to COMPACT failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->compact, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->compact);
 	g_free (str);
 
 	str = soup_date_to_string (date, SOUP_DATE_ISO8601_FULL);
-	if (!str || strcmp (str, conv->full) != 0) {
-		debug_printf (1, "  conversion of '%s' to FULL failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->full, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->full);
 	g_free (str);
 
 	str = soup_date_to_string (date, SOUP_DATE_ISO8601_XMLRPC);
-	if (!str || strcmp (str, conv->xmlrpc) != 0) {
-		debug_printf (1, "  conversion of '%s' to XMLRPC failed:\n"
-			      "    wanted: %s\n    got:    %s\n",
-			      conv->source, conv->xmlrpc, str ? str : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (str, ==, conv->xmlrpc);
 	g_free (str);
 
 	soup_date_free (date);
@@ -361,27 +344,38 @@ check_conversion (const struct conversion *conv)
 int
 main (int argc, char **argv)
 {
-	int i;
+	int i, ret;
+	char *path;
 
 	test_init (argc, argv, NULL);
 
-	debug_printf (1, "Good dates:\n");
-	for (i = 0; i < G_N_ELEMENTS (good_dates); i++)
-		check_good (good_dates[i].format, good_dates[i].date);
+	for (i = 0; i < G_N_ELEMENTS (good_dates); i++) {
+		path = g_strdup_printf ("/date/good/%s", good_dates[i].date);
+		g_test_add_data_func (path, &good_dates[i], check_good);
+		g_free (path);
+	}
 
-	debug_printf (1, "\nOK dates:\n");
-	for (i = 0; i < G_N_ELEMENTS (ok_dates); i++)
-		check_ok (ok_dates[i], make_date (ok_dates[i]));
-	check_ok (TIME_T_STRING, soup_date_new_from_time_t (TIME_T));
+	for (i = 0; i < G_N_ELEMENTS (ok_dates); i++) {
+		path = g_strdup_printf ("/date/ok/%s", ok_dates[i]);
+		g_test_add_data_func (path, ok_dates[i], check_ok);
+		g_free (path);
+	}
+	g_test_add_func ("/date/ok/" TIME_T_STRING, check_ok_time_t);
 
-	debug_printf (1, "\nBad dates:\n");
-	for (i = 0; i < G_N_ELEMENTS (bad_dates); i++)
-		check_bad (bad_dates[i], make_date (bad_dates[i]));
+	for (i = 0; i < G_N_ELEMENTS (bad_dates); i++) {
+		path = g_strdup_printf ("/date/bad/%s", bad_dates[i]);
+		g_test_add_data_func (path, bad_dates[i], check_bad);
+		g_free (path);
+	}
 
-	debug_printf (1, "\nConversions:\n");
-	for (i = 0; i < G_N_ELEMENTS (conversions); i++)
-		check_conversion (&conversions[i] );
+	for (i = 0; i < G_N_ELEMENTS (conversions); i++) {
+		path = g_strdup_printf ("/date/conversions/%s", conversions[i].source);
+		g_test_add_data_func (path, &conversions[i], check_conversion);
+		g_free (path);
+	}
+
+	ret = g_test_run ();
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

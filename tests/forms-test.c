@@ -43,6 +43,7 @@ do_hello_test (int n, gboolean extra, const char *uri)
 	GPtrArray *args;
 	char *title_arg = NULL, *name_arg = NULL;
 	char *str_stdout = NULL;
+	GError *error = NULL;
 
 	debug_printf (1, "%2d. '%s' '%s'%s: ", n * 2 + (extra ? 2 : 1),
 		      tests[n].title ? tests[n].title : "(null)",
@@ -74,20 +75,12 @@ do_hello_test (int n, gboolean extra, const char *uri)
 	if (g_spawn_sync (NULL, (char **)args->pdata, NULL,
 			  G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
 			  NULL, NULL,
-			  &str_stdout, NULL, NULL, NULL)) {
-		if (str_stdout && !strcmp (str_stdout, tests[n].result))
-			debug_printf (1, "OK!\n");
-		else {
-			debug_printf (1, "WRONG!\n");
-			debug_printf (1, "  expected '%s', got '%s'\n",
-				      tests[n].result,
-				      str_stdout ? str_stdout : "(error)");
-			errors++;
-		}
+			  &str_stdout, NULL, NULL, &error)) {
+		g_assert_cmpstr (str_stdout, ==, tests[n].result);
 		g_free (str_stdout);
 	} else {
-		debug_printf (1, "ERROR!\n");
-		errors++;
+		g_assert_no_error (error);
+		g_error_free (error);
 	}
 	g_ptr_array_free (args, TRUE);
 	g_free (title_arg);
@@ -95,7 +88,7 @@ do_hello_test (int n, gboolean extra, const char *uri)
 }
 
 static void
-do_hello_tests (const char *uri)
+do_hello_tests (gconstpointer uri)
 {
 	int n;
 
@@ -111,6 +104,7 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 {
 	GPtrArray *args;
 	char *file_arg, *str_stdout;
+	GError *error = NULL;
 
 	debug_printf (1, "  via curl: ");
 
@@ -131,18 +125,11 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 			  G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
 			  NULL, NULL,
 			  &str_stdout, NULL, NULL, NULL)) {
-		if (str_stdout && !strcmp (str_stdout, md5))
-			debug_printf (1, "OK!\n");
-		else {
-			debug_printf (1, "WRONG!\n");
-			debug_printf (1, "  expected '%s', got '%s'\n",
-				      md5, str_stdout ? str_stdout : "(error)");
-			errors++;
-		}
+		g_assert_cmpstr (str_stdout, ==, md5);
 		g_free (str_stdout);
 	} else {
-		debug_printf (1, "ERROR!\n");
-		errors++;
+		g_assert_no_error (error);
+		g_error_free (error);
 	}
 	g_ptr_array_free (args, TRUE);
 	g_free (file_arg);
@@ -178,23 +165,15 @@ do_md5_test_libsoup (const char *uri, const char *contents,
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "ERROR: Unexpected status %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	} else if (strcmp (msg->response_body->data, md5) != 0) {
-		debug_printf (1, "ERROR: Incorrect response: expected '%s' got '%s'\n",
-			      md5, msg->response_body->data);
-		errors++;
-	} else
-		debug_printf (1, "OK!\n");
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_assert_cmpstr (msg->response_body->data, ==, md5);
 
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 }
 
 static void
-do_md5_tests (const char *uri)
+do_md5_tests (gconstpointer uri)
 {
 	char *contents, *md5;
 	gsize length;
@@ -203,9 +182,8 @@ do_md5_tests (const char *uri)
 	debug_printf (1, "\nMD5 tests (POST, multipart/form-data)\n");
 
 	if (!g_file_get_contents (MD5_TEST_FILE, &contents, &length, &error)) {
-		debug_printf (1, "  ERROR: Could not read " MD5_TEST_FILE ": %s\n", error->message);
+		g_assert_no_error (error);
 		g_error_free (error);
-		errors++;
 		return;
 	}
 
@@ -238,11 +216,7 @@ do_form_decode_test (void)
 	tmp = g_strdup ("other");
 
 	value = g_hash_table_lookup (table, "foo");
-	if (g_strcmp0 (value, "third") != 0) {
-		debug_printf (1, "  ERROR: expected '%s', got '%s'\n",
-			      "third", value ? value : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (value, ==, "third");
 
 	g_free (tmp);
 	g_hash_table_destroy (table);
@@ -423,6 +397,7 @@ main (int argc, char **argv)
 	SoupServer *server;
 	guint port;
 	char *uri_str;
+	int ret = 0;
 
 	test_init (argc, argv, no_test_entry);
 
@@ -437,14 +412,14 @@ main (int argc, char **argv)
 
 	if (run_tests) {
 		uri_str = g_strdup_printf ("http://127.0.0.1:%u/hello", port);
-		do_hello_tests (uri_str);
-		g_free (uri_str);
+		g_test_add_data_func_full ("/forms/hello", uri_str, do_hello_tests, g_free);
 
 		uri_str = g_strdup_printf ("http://127.0.0.1:%u/md5", port);
-		do_md5_tests (uri_str);
-		g_free (uri_str);
+		g_test_add_data_func_full ("/forms/md5", uri_str, do_md5_tests, g_free);
 
-		do_form_decode_test ();
+		g_test_add_func ("/forms/decode", do_form_decode_test);
+
+		ret = g_test_run ();
 	} else {
 		g_print ("Listening on port %d\n", port);
 		g_main_loop_run (loop);
@@ -455,7 +430,7 @@ main (int argc, char **argv)
 	soup_test_server_quit_unref (server);
 	if (run_tests)
 		test_cleanup ();
-	return errors != 0;
+	return ret;
 }
 
 #else /* HAVE_CURL */

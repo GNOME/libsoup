@@ -58,7 +58,7 @@ cancel_message_cb (SoupMessage *msg, gpointer session)
 
 static void
 do_test_for_session (SoupSession *session,
-		     const char *uri, const char *timeout_uri,
+		     const char *uri,
 		     gboolean queue_is_async,
 		     gboolean send_is_blocking,
 		     gboolean cancel_is_immediate)
@@ -66,10 +66,13 @@ do_test_for_session (SoupSession *session,
 	SoupMessage *msg;
 	gboolean finished, local_timeout;
 	guint timeout_id;
+	char *timeout_uri;
 
 	debug_printf (1, "  queue_message\n");
 	debug_printf (2, "    requesting timeout\n");
+	timeout_uri = g_strdup_printf ("%s/request-timeout", uri);
 	msg = soup_message_new ("GET", timeout_uri);
+	g_free (timeout_uri);
 	soup_session_send_message (session, msg);
 	g_object_unref (msg);
 
@@ -81,27 +84,15 @@ do_test_for_session (SoupSession *session,
 	debug_printf (2, "    got timeout\n");
 
 	if (queue_is_async) {
-		if (server_processed_message) {
-			debug_printf (1, "    message processed without running main loop!\n");
-			errors++;
-		}
+		g_assert_false (server_processed_message);
 		debug_printf (2, "    waiting for finished\n");
 		while (!finished)
 			g_main_context_iteration (NULL, TRUE);
-		if (!server_processed_message) {
-			debug_printf (1, "    message finished without server seeing it???\n");
-			errors++;
-		}
+		g_assert_true (server_processed_message);
 	} else {
-		if (!server_processed_message) {
-			debug_printf (1, "    server failed to immediately receive message!\n");
-			errors++;
-		}
+		g_assert_true (server_processed_message);
+		g_assert_false (finished);
 		debug_printf (2, "    waiting for finished\n");
-		if (finished) {
-			debug_printf (1, "    message finished without main loop running???\n");
-			errors++;
-		}
 		while (!finished)
 			g_main_context_iteration (NULL, TRUE);
 	}
@@ -112,21 +103,14 @@ do_test_for_session (SoupSession *session,
 	timeout_id = g_idle_add_full (G_PRIORITY_HIGH, timeout_cb, &local_timeout, NULL);
 	soup_session_send_message (session, msg);
 
-	if (!server_processed_message) {
-		debug_printf (1, "    message finished without server seeing it???\n");
-		errors++;
-	}
+	g_assert_true (server_processed_message);
 
 	if (send_is_blocking) {
-		if (local_timeout) {
-			debug_printf (1, "    send_message ran main loop!\n");
-			errors++;
-		}
+		soup_test_assert (!local_timeout,
+				  "send_message ran main loop");
 	} else {
-		if (!local_timeout) {
-			debug_printf (1, "    send_message didn't run main loop!\n");
-			errors++;
-		}
+		soup_test_assert (local_timeout,
+				  "send_message didn't run main loop");
 	}
 
 	if (!local_timeout)
@@ -146,65 +130,48 @@ do_test_for_session (SoupSession *session,
 	loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (loop);
 
-	if (cancel_is_immediate) {
-		if (!finished) {
-			debug_printf (1, "    cancel did not finish message!\n");
-			errors++;
-			debug_printf (2, "    waiting for finished\n");
-			while (!finished)
-				g_main_context_iteration (NULL, TRUE);
-		}
-	} else {
-		if (finished) {
-			debug_printf (1, "    cancel finished message!\n");
-			errors++;
-		} else {
-			while (!finished)
-				g_main_context_iteration (NULL, TRUE);
-		}
+	if (cancel_is_immediate)
+		g_assert_true (finished);
+	else
+		g_assert_false (finished);
+
+	if (!finished) {
+		debug_printf (2, "    waiting for finished\n");
+		while (!finished)
+			g_main_context_iteration (NULL, TRUE);
 	}
 
-	if (msg->status_code != SOUP_STATUS_CANCELLED) {
-		debug_printf (1, "    message finished with status %d %s!\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
 }
 
 static void
-do_plain_tests (char *uri, char *timeout_uri)
+do_plain_tests (gconstpointer uri)
 {
 	SoupSession *session;
-
-	debug_printf (1, "SoupSession\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
-	do_test_for_session (session, uri, timeout_uri, TRUE, TRUE, FALSE);
+	do_test_for_session (session, uri, TRUE, TRUE, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
 static void
-do_async_tests (char *uri, char *timeout_uri)
+do_async_tests (gconstpointer uri)
 {
 	SoupSession *session;
-
-	debug_printf (1, "\nSoupSessionAsync\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_test_for_session (session, uri, timeout_uri, TRUE, FALSE, TRUE);
+	do_test_for_session (session, uri, TRUE, FALSE, TRUE);
 	soup_test_session_abort_unref (session);
 }
 
 static void
-do_sync_tests (char *uri, char *timeout_uri)
+do_sync_tests (gconstpointer uri)
 {
 	SoupSession *session;
 
-	debug_printf (1, "\nSoupSessionSync\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	do_test_for_session (session, uri, timeout_uri, FALSE, TRUE, FALSE);
+	do_test_for_session (session, uri, FALSE, TRUE, FALSE);
 	soup_test_session_abort_unref (session);
 }
 
@@ -214,20 +181,20 @@ priority_test_finished_cb (SoupSession *session, SoupMessage *msg, gpointer user
 	guint *finished_count = user_data;
 	SoupMessagePriority priority = soup_message_get_priority (msg);
 
-	if (priority != expected_priorities[*finished_count]) {
-		debug_printf (1, "    message %d should have priority %d (%d found)\n",
-			      *finished_count, expected_priorities[*finished_count], priority);
-		errors++;
-	} else
-		debug_printf (1, "  received message %d with priority %d\n",
-			      *finished_count, priority);
+	debug_printf (1, "  received message %d with priority %d\n",
+		      *finished_count, priority);
+
+	soup_test_assert (priority == expected_priorities[*finished_count],
+			  "message %d should have priority %d (%d found)",
+			  *finished_count, expected_priorities[*finished_count], priority);
 
 	(*finished_count)++;
 }
 
 static void
-do_priority_tests (char *uri)
+do_priority_tests (gconstpointer data)
 {
+	const char *uri = data;
 	SoupSession *session;
 	int i, finished_count = 0;
 	SoupMessagePriority priorities[] =
@@ -276,16 +243,14 @@ test_session_properties (const char *name,
 		      SOUP_SESSION_PROXY_RESOLVER, &proxy_resolver,
 		      SOUP_SESSION_TLS_DATABASE, &tlsdb,
 		      NULL);
-	if (proxy_resolver != expected_proxy_resolver) {
-		debug_printf (1, "  %s has %s proxy resolver!\n",
-			      name, proxy_resolver ? (expected_proxy_resolver ? "wrong" : "a") : "no");
-		errors++;
-	}
-	if (tlsdb != expected_tls_database) {
-		debug_printf (1, "  %s has %s TLS database!\n",
-			      name, tlsdb ? (expected_tls_database ? "wrong" : "a") : "no");
-		errors++;
-	}
+
+	soup_test_assert (proxy_resolver == expected_proxy_resolver,
+			  "%s has %s proxy resolver",
+			  name, proxy_resolver ? (expected_proxy_resolver ? "wrong" : "a") : "no");
+	soup_test_assert (tlsdb == expected_tls_database,
+			  "%s has %s TLS database",
+			  name, tlsdb ? (expected_tls_database ? "wrong" : "a") : "no");
+
 	g_clear_object (&proxy_resolver);
 	g_clear_object (&tlsdb);
 }
@@ -343,11 +308,7 @@ do_property_tests (void)
 		      NULL);
 	test_session_properties ("Session with non-NULL :proxy-uri", session,
 				 proxy_resolver, default_tlsdb);
-	if (!G_IS_SIMPLE_PROXY_RESOLVER (proxy_resolver)) {
-		debug_printf (1, "  proxy resolver had wrong type (%s)\n",
-			      G_OBJECT_TYPE_NAME (proxy_resolver));
-		errors++;
-	}
+	g_assert_cmpstr (G_OBJECT_TYPE_NAME (proxy_resolver), ==, "GSimpleProxyResolver");
 	g_object_unref (proxy_resolver);
 	g_object_unref (session);
 	soup_uri_free (uri);
@@ -402,6 +363,7 @@ main (int argc, char **argv)
 {
 	SoupServer *server;
 	char *uri, *timeout_uri;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -411,16 +373,18 @@ main (int argc, char **argv)
 			       soup_server_get_port (server));
 	timeout_uri = g_strdup_printf ("%s/request-timeout", uri);
 
-	do_plain_tests (uri, timeout_uri);
-	do_async_tests (uri, timeout_uri);
-	do_sync_tests (uri, timeout_uri);
-	do_priority_tests (uri);
-	do_property_tests ();
+	g_test_add_data_func ("/session/SoupSession", uri, do_plain_tests);
+	g_test_add_data_func ("/session/SoupSessionAsync", uri, do_async_tests);
+	g_test_add_data_func ("/session/SoupSessionSync", uri, do_sync_tests);
+	g_test_add_data_func ("/session/priority", uri, do_priority_tests);
+	g_test_add_func ("/session/property", do_property_tests);
+
+	ret = g_test_run ();
 
 	g_free (uri);
 	g_free (timeout_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

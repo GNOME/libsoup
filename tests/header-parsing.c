@@ -717,18 +717,11 @@ static struct QValueTest {
 static const int num_qvaluetests = G_N_ELEMENTS (qvaluetests);
 
 static void
-print_header (const char *name, const char *value, gpointer data)
-{
-	debug_printf (1, "              '%s': '%s'\n", name, value);
-}
-
-static gboolean
 check_headers (Header *headers, SoupMessageHeaders *hdrs)
 {
 	GSList *header_names, *h;
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
-	gboolean ok = TRUE;
 	int i;
 
 	header_names = NULL;
@@ -740,34 +733,26 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 	}
 
 	for (i = 0, h = header_names; headers[i].name && h; i++, h = h->next) {
-		if (g_ascii_strcasecmp (h->data, headers[i].name) != 0) {
-			ok = FALSE;
-			break;
-		}
+		g_assert (g_ascii_strcasecmp (h->data, headers[i].name) == 0);
+
 		value = soup_message_headers_get_list (hdrs, headers[i].name);
-		if (g_strcmp0 (value, headers[i].value) != 0) {
-			ok = FALSE;
-			break;
-		}
+		g_assert_cmpstr (value, ==, headers[i].value);
 	}
 	/* If we have remaining fields to check, they should return NULL */
 	for (; headers[i].name; i++) {
 		value = soup_message_headers_get_list (hdrs, headers[i].name);
-		if (value) {
-			ok = FALSE;
-			break;
-		}
+		g_assert_null (value);
 	}
-	if (headers[i].name || h)
-		ok = FALSE;
+	g_assert_null (headers[i].name);
+	g_assert_null (h);
+
 	g_slist_free (header_names);
-	return ok;
 }
 
 static void
 do_request_tests (void)
 {
-	int i, len, h;
+	int i, len;
 	char *method, *path;
 	SoupHTTPVersion version;
 	SoupMessageHeaders *headers;
@@ -775,8 +760,6 @@ do_request_tests (void)
 
 	debug_printf (1, "Request tests\n");
 	for (i = 0; i < num_reqtests; i++) {
-		gboolean ok = TRUE;
-
 		debug_printf (1, "%2d. %s (%s): ", i + 1, reqtests[i].description,
 			      soup_status_get_phrase (reqtests[i].status));
 
@@ -790,48 +773,13 @@ do_request_tests (void)
 		status = soup_headers_parse_request (reqtests[i].request, len,
 						     headers, &method, &path,
 						     &version);
+		g_assert_cmpint (status, ==, reqtests[i].status);
 		if (SOUP_STATUS_IS_SUCCESSFUL (status)) {
-			if ((reqtests[i].method && strcmp (reqtests[i].method, method) != 0) || !reqtests[i].method)
-				ok = FALSE;
-			if ((reqtests[i].path && strcmp (reqtests[i].path, path) != 0) || !reqtests[i].path)
-				ok = FALSE;
-			if (reqtests[i].version != version)
-				ok = FALSE;
+			g_assert_cmpstr (method, ==, reqtests[i].method);
+			g_assert_cmpstr (path, ==, reqtests[i].path);
+			g_assert_cmpint (version, ==, reqtests[i].version);
 
-			if (!check_headers (reqtests[i].headers, headers))
-				ok = FALSE;
-		} else {
-			if (status != reqtests[i].status)
-				ok = FALSE;
-		}
-
-		if (ok)
-			debug_printf (1, "OK!\n");
-		else {
-			debug_printf (1, "BAD!\n");
-			errors++;
-			if (reqtests[i].method) {
-				debug_printf (1, "    expected: '%s' '%s' 'HTTP/1.%d'\n",
-					      reqtests[i].method,
-					      reqtests[i].path,
-					      reqtests[i].version);
-				for (h = 0; reqtests[i].headers[h].name; h++) {
-					debug_printf (1, "              '%s': '%s'\n",
-						      reqtests[i].headers[h].name,
-						      reqtests[i].headers[h].value);
-				}
-			} else {
-				debug_printf (1, "    expected: %s\n",
-					      soup_status_get_phrase (reqtests[i].status));
-			}
-			if (method) {
-				debug_printf (1, "         got: '%s' '%s' 'HTTP/1.%d'\n",
-					      method, path, version);
-				soup_message_headers_foreach (headers, print_header, NULL);
-			} else {
-				debug_printf (1, "         got: %s\n",
-					      soup_status_get_phrase (status));
-			}
+			check_headers (reqtests[i].headers, headers);
 		}
 
 		g_free (method);
@@ -844,7 +792,7 @@ do_request_tests (void)
 static void
 do_response_tests (void)
 {
-	int i, len, h;
+	int i, len;
 	guint status_code;
 	char *reason_phrase;
 	SoupHTTPVersion version;
@@ -852,8 +800,6 @@ do_response_tests (void)
 
 	debug_printf (1, "Response tests\n");
 	for (i = 0; i < num_resptests; i++) {
-		gboolean ok = TRUE;
-
 		debug_printf (1, "%2d. %s (%s): ", i + 1, resptests[i].description,
 			      resptests[i].reason_phrase ? "should parse" : "should NOT parse");
 
@@ -867,44 +813,13 @@ do_response_tests (void)
 		if (soup_headers_parse_response (resptests[i].response, len,
 						 headers, &version,
 						 &status_code, &reason_phrase)) {
-			if (resptests[i].version != version)
-				ok = FALSE;
-			if (resptests[i].status_code != status_code)
-				ok = FALSE;
-			if ((resptests[i].reason_phrase && strcmp (resptests[i].reason_phrase, reason_phrase) != 0) || !resptests[i].reason_phrase)
-				ok = FALSE;
+			g_assert_cmpint (version, ==, resptests[i].version);
+			g_assert_cmpint (status_code, ==, resptests[i].status_code);
+			g_assert_cmpstr (reason_phrase, ==, resptests[i].reason_phrase);
 
-			if (!check_headers (resptests[i].headers, headers))
-				ok = FALSE;
-		} else {
-			if (resptests[i].reason_phrase)
-				ok = FALSE;
-		}
-
-		if (ok)
-			debug_printf (1, "OK!\n");
-		else {
-			debug_printf (1, "BAD!\n");
-			errors++;
-			if (resptests[i].reason_phrase) {
-				debug_printf (1, "    expected: 'HTTP/1.%d' '%03d' '%s'\n",
-					      resptests[i].version,
-					      resptests[i].status_code,
-					      resptests[i].reason_phrase);
-				for (h = 0; resptests[i].headers[h].name; h++) {
-					debug_printf (1, "              '%s': '%s'\n",
-						      resptests[i].headers[h].name,
-						      resptests[i].headers[h].value);
-				}
-			} else
-				debug_printf (1, "    expected: parse error\n");
-			if (reason_phrase) {
-				debug_printf (1, "         got: 'HTTP/1.%d' '%03d' '%s'\n",
-					      version, status_code, reason_phrase);
-				soup_message_headers_foreach (headers, print_header, NULL);
-			} else
-				debug_printf (1, "         got: parse error\n");
-		}
+			check_headers (resptests[i].headers, headers);
+		} else
+			g_assert_null (resptests[i].reason_phrase);
 
 		g_free (reason_phrase);
 		soup_message_headers_free (headers);
@@ -917,7 +832,6 @@ do_qvalue_tests (void)
 {
 	int i, j;
 	GSList *acceptable, *unacceptable, *iter;
-	gboolean wrong;
 
 	debug_printf (1, "qvalue tests\n");
 	for (i = 0; i < num_qvaluetests; i++) {
@@ -928,46 +842,26 @@ do_qvalue_tests (void)
 							     &unacceptable);
 
 		debug_printf (1, "    acceptable: ");
-		wrong = FALSE;
 		if (acceptable) {
 			for (iter = acceptable, j = 0; iter; iter = iter->next, j++) {
 				debug_printf (1, "%s ", (char *)iter->data);
-				if (!qvaluetests[i].acceptable[j] ||
-				    strcmp (iter->data, qvaluetests[i].acceptable[j]) != 0)
-					wrong = TRUE;
+				g_assert_cmpstr (iter->data, ==, qvaluetests[i].acceptable[j]);
 			}
 			debug_printf (1, "\n");
 			soup_header_free_list (acceptable);
 		} else
 			debug_printf (1, "(none)\n");
-		if (wrong) {
-			debug_printf (1, "    WRONG! expected: ");
-			for (j = 0; qvaluetests[i].acceptable[j]; j++)
-				debug_printf (1, "%s ", qvaluetests[i].acceptable[j]);
-			debug_printf (1, "\n");
-			errors++;
-		}
 
 		debug_printf (1, "  unacceptable: ");
-		wrong = FALSE;
 		if (unacceptable) {
 			for (iter = unacceptable, j = 0; iter; iter = iter->next, j++) {
 				debug_printf (1, "%s ", (char *)iter->data);
-				if (!qvaluetests[i].unacceptable[j] ||
-				    strcmp (iter->data, qvaluetests[i].unacceptable[j]) != 0)
-					wrong = TRUE;
+				g_assert_cmpstr (iter->data, ==, qvaluetests[i].unacceptable[j]);
 			}
 			debug_printf (1, "\n");
 			soup_header_free_list (unacceptable);
 		} else
 			debug_printf (1, "(none)\n");
-		if (wrong) {
-			debug_printf (1, "    WRONG! expected: ");
-			for (j = 0; qvaluetests[i].unacceptable[j]; j++)
-				debug_printf (1, "%s ", qvaluetests[i].unacceptable[j]);
-			debug_printf (1, "\n");
-			errors++;
-		}
 
 		debug_printf (1, "\n");
 	}
@@ -1002,14 +896,7 @@ do_content_disposition_tests (void)
 	g_hash_table_destroy (params);
 
 	header = soup_message_headers_get_one (hdrs, "Content-Disposition");
-	if (!g_strcmp0 (header, RFC5987_TEST_HEADER_ENCODED))
-		debug_printf (1, "  encoded OK\n");
-	else {
-		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC5987_TEST_HEADER_ENCODED,
-			      header ? header : "(none)");
-		errors++;
-	}
+	g_assert_cmpstr (header, ==, RFC5987_TEST_HEADER_ENCODED);
 
 	/* UTF-8 decoding */
 	soup_message_headers_clear (hdrs);
@@ -1018,22 +905,13 @@ do_content_disposition_tests (void)
 	if (!soup_message_headers_get_content_disposition (hdrs,
 							   &disposition,
 							   &params)) {
-		debug_printf (1, "  UTF-8 decoding FAILED!\n    could not parse\n");
-		errors++;
+		soup_test_assert (FALSE, "UTF-8 decoding FAILED");
 		return;
 	}
 	g_free (disposition);
 
 	filename = g_hash_table_lookup (params, "filename");
-	if (!filename) {
-		debug_printf (1, "  UTF-8 decoding FAILED!\n    could not find filename\n");
-		errors++;
-	} else if (strcmp (filename, RFC5987_TEST_FILENAME) != 0) {
-		debug_printf (1, "  UTF-8 decoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC5987_TEST_FILENAME, filename);
-		errors++;
-	} else
-		debug_printf (1, "  UTF-8 decoded OK\n");
+	g_assert_cmpstr (filename, ==, RFC5987_TEST_FILENAME);
 	g_hash_table_destroy (params);
 
 	/* ISO-8859-1 decoding */
@@ -1043,22 +921,13 @@ do_content_disposition_tests (void)
 	if (!soup_message_headers_get_content_disposition (hdrs,
 							   &disposition,
 							   &params)) {
-		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    could not parse\n");
-		errors++;
+		soup_test_assert (FALSE, "iso-8859-1 decoding FAILED");
 		return;
 	}
 	g_free (disposition);
 
 	filename = g_hash_table_lookup (params, "filename");
-	if (!filename) {
-		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    could not find filename\n");
-		errors++;
-	} else if (strcmp (filename, RFC5987_TEST_FILENAME) != 0) {
-		debug_printf (1, "  iso-8859-1 decoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC5987_TEST_FILENAME, filename);
-		errors++;
-	} else
-		debug_printf (1, "  iso-8859-1 decoded OK\n");
+	g_assert_cmpstr (filename, ==, RFC5987_TEST_FILENAME);
 	g_hash_table_destroy (params);
 
 	/* Fallback */
@@ -1068,22 +937,13 @@ do_content_disposition_tests (void)
 	if (!soup_message_headers_get_content_disposition (hdrs,
 							   &disposition,
 							   &params)) {
-		debug_printf (1, "  fallback decoding FAILED!\n    could not parse\n");
-		errors++;
+		soup_test_assert (FALSE, "fallback decoding FAILED");
 		return;
 	}
 	g_free (disposition);
 
 	filename = g_hash_table_lookup (params, "filename");
-	if (!filename) {
-		debug_printf (1, "  fallback decoding FAILED!\n    could not find filename\n");
-		errors++;
-	} else if (strcmp (filename, RFC5987_TEST_FALLBACK_FILENAME) != 0) {
-		debug_printf (1, "  fallback decoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      RFC5987_TEST_FALLBACK_FILENAME, filename);
-		errors++;
-	} else
-		debug_printf (1, "  fallback decoded OK\n");
+	g_assert_cmpstr (filename, ==, RFC5987_TEST_FALLBACK_FILENAME);
 	g_hash_table_destroy (params);
 
 	soup_message_headers_free (hdrs);
@@ -1104,12 +964,8 @@ do_content_disposition_tests (void)
 	buffer = soup_message_body_flatten (body);
 	soup_message_body_free (body);
 
-	if (strstr (buffer->data, "filename=\"token\""))
-		debug_printf (1, "  SoupMultipart encoded filename correctly\n");
-	else {
-		debug_printf (1, "  SoupMultipart encoded filename incorrectly!\n");
-		errors++;
-	}
+	g_assert_true (strstr (buffer->data, "filename=\"token\""));
+
 	soup_buffer_free (buffer);
 
 	debug_printf (1, "\n");
@@ -1139,14 +995,7 @@ do_content_type_tests (void)
 	g_hash_table_destroy (params);
 
 	header = soup_message_headers_get_one (hdrs, "Content-Type");
-	if (!g_strcmp0 (header, CONTENT_TYPE_TEST_HEADER))
-		debug_printf (1, "  encoded OK\n");
-	else {
-		debug_printf (1, "  encoding FAILED!\n    expected: %s\n    got:      %s\n",
-			      CONTENT_TYPE_TEST_HEADER,
-			      header ? header : "(none)");
-		errors++;
-	}
+	g_assert_cmpstr (header, ==, CONTENT_TYPE_TEST_HEADER);
 
 	soup_message_headers_clear (hdrs);
 	soup_message_headers_append (hdrs, "Content-Type",
@@ -1156,22 +1005,8 @@ do_content_type_tests (void)
 				     CONTENT_TYPE_TEST_MIME_TYPE);
 
 	mime_type = soup_message_headers_get_content_type (hdrs, &params);
-	if (!mime_type) {
-		debug_printf (1, "  decoding FAILED!\n    could not parse\n");
-		errors++;
-	}
-
-	if (mime_type && strcmp (mime_type, CONTENT_TYPE_TEST_MIME_TYPE) != 0) {
-		debug_printf (1, "  decoding FAILED!\n    bad returned MIME type: %s\n",
-			      mime_type);
-		errors++;
-	} else if (params && g_hash_table_size (params) != 0) {
-		debug_printf (1, "  decoding FAILED!\n    params contained %d params (should be 0)\n",
-			      g_hash_table_size (params));
-		errors++;
-	} else
-		debug_printf (1, "  decoded OK\n");
-
+	g_assert_cmpstr (mime_type, ==, CONTENT_TYPE_TEST_MIME_TYPE);
+	g_assert_cmpint (g_hash_table_size (params), ==, 0);
 	if (params)
 		g_hash_table_destroy (params);
 
@@ -1179,11 +1014,7 @@ do_content_type_tests (void)
 	soup_message_headers_append (hdrs, "Content-Type",
 				     CONTENT_TYPE_BAD_HEADER);
 	mime_type = soup_message_headers_get_content_type (hdrs, &params);
-	if (mime_type) {
-		debug_printf (1, "  Bad content rejection FAILED!\n");
-		errors++;
-	} else
-		debug_printf (1, "  Bad content rejection OK\n");
+	g_assert_null (mime_type);
 
 	soup_message_headers_free (hdrs);
 
@@ -1218,12 +1049,7 @@ do_append_param_tests (void)
 						   test_params[i].name,
 						   test_params[i].value);
 	}
-	if (strcmp (params->str, TEST_PARAMS_RESULT) != 0) {
-		debug_printf (1, "  FAILED!\n    expected: %s\n    got: %s\n",
-			      TEST_PARAMS_RESULT, params->str);
-		errors++;
-	} else
-		debug_printf (1, "  OK\n");
+	g_assert_cmpstr (params->str, ==, TEST_PARAMS_RESULT);
 	g_string_free (params, TRUE);
 
 	debug_printf (1, "\n");
@@ -1254,14 +1080,12 @@ do_bad_header_tests (void)
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	for (i = 0; i < G_N_ELEMENTS (bad_headers); i++) {
 		debug_printf (1, "  %s\n", bad_headers[i].description);
-		expect_warning = TRUE;
+
+		g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
+				       "*soup_message_headers_append*assertion*failed*");
 		soup_message_headers_append (hdrs, bad_headers[i].name,
 					     bad_headers[i].value);
-		if (expect_warning) {
-			expect_warning = FALSE;
-			debug_printf (1, "    FAILED: soup_message_headers_append() did not reject it\n");
-			errors++;
-		}
+		g_test_assert_expected_messages ();
 	}
 	soup_message_headers_free (hdrs);
 }
@@ -1269,16 +1093,20 @@ do_bad_header_tests (void)
 int
 main (int argc, char **argv)
 {
+	int ret;
+
 	test_init (argc, argv, NULL);
 
-	do_request_tests ();
-	do_response_tests ();
-	do_qvalue_tests ();
-	do_content_disposition_tests ();
-	do_content_type_tests ();
-	do_append_param_tests ();
-	do_bad_header_tests ();
+	g_test_add_func ("/header-parsing/request", do_request_tests);
+	g_test_add_func ("/header-parsing/response", do_response_tests);
+	g_test_add_func ("/header-parsing/qvalue", do_qvalue_tests);
+	g_test_add_func ("/header-parsing/content-disposition", do_content_disposition_tests);
+	g_test_add_func ("/header-parsing/content-type", do_content_type_tests);
+	g_test_add_func ("/header-parsing/append-param", do_append_param_tests);
+	g_test_add_func ("/header-parsing/bad", do_bad_header_tests);
+
+	ret = g_test_run ();
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

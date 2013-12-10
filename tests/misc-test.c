@@ -112,26 +112,12 @@ do_host_test (void)
 
 	soup_test_session_abort_unref (session);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (one->status_code)) {
-		debug_printf (1, "  Message 1 failed: %d %s\n",
-			      one->status_code, one->reason_phrase);
-		errors++;
-	} else if (strcmp (one->response_body->data, "index") != 0) {
-		debug_printf (1, "  Unexpected response to message 1: '%s'\n",
-			      one->response_body->data);
-		errors++;
-	}
+	soup_test_assert_message_status (one, SOUP_STATUS_OK);
+	g_assert_cmpstr (one->response_body->data, ==, "index");
 	g_object_unref (one);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (two->status_code)) {
-		debug_printf (1, "  Message 2 failed: %d %s\n",
-			      two->status_code, two->reason_phrase);
-		errors++;
-	} else if (strcmp (two->response_body->data, "foo-index") != 0) {
-		debug_printf (1, "  Unexpected response to message 2: '%s'\n",
-			      two->response_body->data);
-		errors++;
-	}
+	soup_test_assert_message_status (two, SOUP_STATUS_OK);
+	g_assert_cmpstr (two->response_body->data, ==, "foo-index");
 	g_object_unref (two);
 }
 
@@ -143,11 +129,7 @@ static void
 cu_one_completed (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
 	debug_printf (2, "  Message 1 completed\n");
-	if (msg->status_code != SOUP_STATUS_CANT_CONNECT) {
-		debug_printf (1, "  Unexpected status on Message 1: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANT_CONNECT);
 	g_object_unref (session);
 }
 
@@ -162,11 +144,7 @@ static void
 cu_two_completed (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
 	debug_printf (2, "  Message 2 completed\n");
-	if (msg->status_code != SOUP_STATUS_CANT_CONNECT) {
-		debug_printf (1, "  Unexpected status on Message 2: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANT_CONNECT);
 	g_idle_add (cu_idle_quit, loop); 
 }
 
@@ -210,22 +188,19 @@ do_callback_unref_test (void)
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 
+	g_assert_null (session);
 	if (session) {
 		g_object_remove_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-		debug_printf (1, "  Session not destroyed?\n");
-		errors++;
 		g_object_unref (session);
 	}
+	g_assert_null (one);
 	if (one) {
 		g_object_remove_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-		debug_printf (1, "  Message 1 not destroyed?\n");
-		errors++;
 		g_object_unref (one);
 	}
+	g_assert_null (two);
 	if (two) {
 		g_object_remove_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-		debug_printf (1, "  Message 2 not destroyed?\n");
-		errors++;
 		g_object_unref (two);
 	}
 
@@ -239,14 +214,8 @@ cur_one_completed (GObject *source, GAsyncResult *result, gpointer session)
 	GError *error = NULL;
 
 	debug_printf (2, "  Request 1 completed\n");
-	if (soup_request_send_finish (one, result, &error)) {
-		debug_printf (1, "  Request 1 succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED)) {
-		debug_printf (1, "  Unexpected error on Request 1: %s\n",
-			      error->message);
-		errors++;
-	}
+	soup_request_send_finish (one, result, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
 	g_clear_error (&error);
 
 	g_object_unref (session);
@@ -266,14 +235,8 @@ cur_two_completed (GObject *source, GAsyncResult *result, gpointer loop)
 	GError *error = NULL;
 
 	debug_printf (2, "  Request 2 completed\n");
-	if (soup_request_send_finish (two, result, &error)) {
-		debug_printf (1, "  Request 2 succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED)) {
-		debug_printf (1, "  Unexpected error on Request 2: %s\n",
-			      error->message);
-		errors++;
-	}
+	soup_request_send_finish (two, result, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED);
 	g_clear_error (&error);
 
 	g_idle_add (cur_idle_quit, loop); 
@@ -323,22 +286,19 @@ do_callback_unref_req_test (void)
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
 
+	g_assert_null (session);
 	if (session) {
 		g_object_remove_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-		debug_printf (1, "  Session not destroyed?\n");
-		errors++;
 		g_object_unref (session);
 	}
+	g_assert_null (one);
 	if (one) {
 		g_object_remove_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-		debug_printf (1, "  Request 1 not destroyed?\n");
-		errors++;
 		g_object_unref (one);
 	}
+	g_assert_null (two);
 	if (two) {
 		g_object_remove_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-		debug_printf (1, "  Request 2 not destroyed?\n");
-		errors++;
 		g_object_unref (two);
 	}
 
@@ -353,14 +313,14 @@ static void
 ensure_no_signal_handlers (SoupMessage *msg, guint *signal_ids, guint n_signal_ids)
 {
 	int i;
+	guint id;
 
 	for (i = 0; i < n_signal_ids; i++) {
-		if (g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, signal_ids[i],
-					   0, NULL, NULL, NULL)) {
-			debug_printf (1, "    Message has handler for '%s'\n",
-				      g_signal_name (signal_ids[i]));
-			errors++;
-		}
+		id = g_signal_handler_find (msg, G_SIGNAL_MATCH_ID, signal_ids[i],
+					    0, NULL, NULL, NULL);
+		soup_test_assert (id == 0,
+				  "message has handler for '%s'",
+				  g_signal_name (signal_ids[i]));
 	}
 }
 
@@ -401,10 +361,7 @@ do_msg_reuse_test (void)
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
 	soup_session_send_message (session, msg);
-	if (!soup_uri_equal (soup_message_get_uri (msg), base_uri)) {
-		debug_printf (1, "    Message did not get redirected!\n");
-		errors++;
-	}
+	g_assert_true (soup_uri_equal (soup_message_get_uri (msg), base_uri));
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	debug_printf (1, "  Auth message\n");
@@ -412,10 +369,7 @@ do_msg_reuse_test (void)
 	soup_message_set_uri (msg, uri);
 	soup_uri_free (uri);
 	soup_session_send_message (session, msg);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    Message did not get authenticated!\n");
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	ensure_no_signal_handlers (msg, signal_ids, n_signal_ids);
 
 	/* One last try to make sure the auth stuff got cleaned up */
@@ -434,11 +388,7 @@ static void
 ea_msg_completed_one (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
 	debug_printf (2, "  Message 1 completed\n");
-	if (msg->status_code != SOUP_STATUS_CANCELLED) {
-		debug_printf (1, "  Unexpected status on Message 1: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_main_loop_quit (loop);
 }
 
@@ -509,11 +459,7 @@ do_early_abort_test (void)
 	soup_session_send_message (session, msg);
 	debug_printf (2, "  Message 2 completed\n");
 
-	if (msg->status_code != SOUP_STATUS_CANCELLED) {
-		debug_printf (1, "    Unexpected response: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
 
 	while (g_main_context_pending (context))
@@ -529,11 +475,7 @@ do_early_abort_test (void)
 	soup_session_send_message (session, msg);
 	debug_printf (2, "  Message 3 completed\n");
 
-	if (msg->status_code != SOUP_STATUS_CANCELLED) {
-		debug_printf (1, "    Unexpected response: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
 
 	while (g_main_context_pending (context))
@@ -548,14 +490,8 @@ ear_one_completed (GObject *source, GAsyncResult *result, gpointer user_data)
 	GError *error = NULL;
 
 	debug_printf (2, "  Request 1 completed\n");
-	if (soup_request_send_finish (SOUP_REQUEST (source), result, &error)) {
-		debug_printf (1, "  Request 1 succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANCELLED)) {
-		debug_printf (1, "  Unexpected error on Request 1: %s\n",
-			      error->message);
-		errors++;
-	}
+	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
+	g_assert_error (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANCELLED);
 	g_clear_error (&error);
 }
 
@@ -565,14 +501,8 @@ ear_two_completed (GObject *source, GAsyncResult *result, gpointer loop)
 	GError *error = NULL;
 
 	debug_printf (2, "  Request 2 completed\n");
-	if (soup_request_send_finish (SOUP_REQUEST (source), result, &error)) {
-		debug_printf (1, "  Request 2 succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANCELLED)) {
-		debug_printf (1, "  Unexpected error on Request 2: %s\n",
-			      error->message);
-		errors++;
-	}
+	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
+	g_assert_error (error, SOUP_HTTP_ERROR, SOUP_STATUS_CANCELLED);
 	g_clear_error (&error);
 
 	g_main_loop_quit (loop);
@@ -584,14 +514,8 @@ ear_three_completed (GObject *source, GAsyncResult *result, gpointer loop)
 	GError *error = NULL;
 
 	debug_printf (2, "  Request 3 completed\n");
-	if (soup_request_send_finish (SOUP_REQUEST (source), result, &error)) {
-		debug_printf (1, "  Request 3 succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-		debug_printf (1, "  Unexpected error on Request 3: %s\n",
-			      error->message);
-		errors++;
-	}
+	soup_request_send_finish (SOUP_REQUEST (source), result, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
 
 	g_main_loop_quit (loop);
@@ -683,21 +607,10 @@ do_one_accept_language_test (const char *language, const char *expected_header)
 	soup_session_send_message (session, msg);
 	soup_test_session_abort_unref (session);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    Message failed? %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	val = soup_message_headers_get_list (msg->request_headers,
 					     "Accept-Language");
-	if (!val) {
-		debug_printf (1, "    No Accept-Language set!\n");
-		errors++;
-	} else if (strcmp (val, expected_header) != 0) {
-		debug_printf (1, "    Wrong Accept-Language: expected '%s', got '%s'\n",
-			      expected_header, val);
-		errors++;
-	}
+	g_assert_cmpstr (val, ==, expected_header);
 
 	g_object_unref (msg);
 }
@@ -780,11 +693,7 @@ do_cancel_while_reading_test_for_session (SoupSession *session)
 	while (!done)
 		g_main_context_iteration (NULL, TRUE);
 
-	if (msg->status_code != SOUP_STATUS_CANCELLED) {
-		debug_printf (1, "      FAILED: %d %s (expected Cancelled)\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
 
 	if (thread)
@@ -824,14 +733,7 @@ do_cancel_while_reading_req_test_for_session (SoupSession *session,
 
 	cancellable = g_cancellable_new ();
 	soup_test_request_send (req, cancellable, flags, &error);
-	if (!error) {
-		debug_printf (1, "  Request succeeded?\n");
-		errors++;
-	} else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
-		debug_printf (1, "  Unexpected error: %s\n",
-			      error->message);
-		errors++;
-	}
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
 
 	g_object_unref (req);
@@ -910,20 +812,11 @@ do_aliases_test_for_session (SoupSession *session,
 
 	redirected_protocol = soup_message_headers_get_one (msg->response_headers, "X-Redirected-Protocol");
 
-	if (g_strcmp0 (redirect_protocol, redirected_protocol)) {
-		debug_printf (1, "    redirect went to %s, should have gone to %s!\n",
-			      redirected_protocol ? redirected_protocol : "(none)",
-			      redirect_protocol ? redirect_protocol : "(none)");
-		errors++;
-	} else if (redirect_protocol && !SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    msg failed? (%d %s)\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	} else if (!redirect_protocol && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    msg succeeded? (%d %s)\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	g_assert_cmpstr (redirect_protocol, ==, redirected_protocol);
+	if (redirect_protocol)
+		soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	else
+		soup_test_assert_message_status (msg, SOUP_STATUS_FOUND);
 
 	g_object_unref (msg);
 }
@@ -982,10 +875,8 @@ do_idle_on_dispose_test (void)
 
 	g_object_run_dispose (G_OBJECT (session));
 
-	if (g_main_context_iteration (async_context, FALSE)) {
-		debug_printf (1, "  idle was queued!\n");
-		errors++;
-	}
+	if (g_main_context_iteration (async_context, FALSE))
+		soup_test_assert (FALSE, "idle was queued");
 
 	g_object_unref (session);
 	g_main_context_unref (async_context);
@@ -1009,16 +900,14 @@ do_pause_abort_test (void)
 	g_object_add_weak_pointer (G_OBJECT (msg), &ptr);
 	soup_test_session_abort_unref (session);
 
-	if (ptr) {
-		debug_printf (1, "  msg was leaked\n");
-		errors++;
-	}
+	g_assert_null (ptr);
 }
 
 int
 main (int argc, char **argv)
 {
 	SoupAuthDomain *auth_domain;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -1042,18 +931,20 @@ main (int argc, char **argv)
 		soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
 	}
 
-	do_host_test ();
-	do_callback_unref_test ();
-	do_callback_unref_req_test ();
-	do_msg_reuse_test ();
-	do_early_abort_test ();
-	do_early_abort_req_test ();
-	do_accept_language_test ();
-	do_cancel_while_reading_test ();
-	do_cancel_while_reading_req_test ();
-	do_aliases_test ();
-	do_idle_on_dispose_test ();
-	do_pause_abort_test ();
+	g_test_add_func ("/misc/host", do_host_test);
+	g_test_add_func ("/misc/callback-unref/msg", do_callback_unref_test);
+	g_test_add_func ("/misc/callback-unref/req", do_callback_unref_req_test);
+	g_test_add_func ("/misc/msg-reuse", do_msg_reuse_test);
+	g_test_add_func ("/misc/early-abort/msg", do_early_abort_test);
+	g_test_add_func ("/misc/early-abort/req", do_early_abort_req_test);
+	g_test_add_func ("/misc/accept-language", do_accept_language_test);
+	g_test_add_func ("/misc/cancel-while-reading/msg", do_cancel_while_reading_test);
+	g_test_add_func ("/misc/cancel-while-reading/req", do_cancel_while_reading_req_test);
+	g_test_add_func ("/misc/aliases", do_aliases_test);
+	g_test_add_func ("/misc/idle-on-dispose", do_idle_on_dispose_test);
+	g_test_add_func ("/misc/pause-abort", do_pause_abort_test);
+
+	ret = g_test_run ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
@@ -1063,6 +954,5 @@ main (int argc, char **argv)
 		soup_test_server_quit_unref (ssl_server);
 	}
 
-	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

@@ -266,39 +266,7 @@ static struct {
 };
 static int num_eq_tests = G_N_ELEMENTS(eq_tests);
 
-#define test_cmpstr(a, b) _test_cmpstr (#a, #b, a, b)
-
-static gboolean
-_test_cmpstr (const char *got_desc,
-	      const char *exp_desc,
-	      const char *got,
-	      const char *expected)
-{
-	if (got == expected)
-		return TRUE;
-
-	if (got == NULL) {
-		debug_printf (1, "ERR\n  %s = NULL, expected %s = \"%s\"\n",
-			      got_desc, exp_desc, expected);
-		return FALSE;
-	}
-
-	if (expected == NULL) {
-		debug_printf (1, "ERR\n  %s = \"%s\", expected %s = NULL\n",
-			      got_desc, got, exp_desc);
-		return FALSE;
-	}
-
-	if (strcmp (got, expected) != 0) {
-		debug_printf (1, "ERR\n  %s = \"%s\", expected %s = \"%s\"\n",
-			      got_desc, got, exp_desc, expected);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-static gboolean
+static void
 do_uri (SoupURI *base_uri, const char *base_str,
 	const char *in_uri, const char *out_uri,
 	const SoupURI *bits)
@@ -307,76 +275,89 @@ do_uri (SoupURI *base_uri, const char *base_str,
 	char *uri_string;
 
 	if (base_uri) {
-		debug_printf (1, "<%s> + <%s> = <%s>? ", base_str, in_uri,
+		debug_printf (1, "<%s> + <%s> = <%s>\n", base_str, in_uri,
 			      out_uri ? out_uri : "ERR");
 		uri = soup_uri_new_with_base (base_uri, in_uri);
 	} else {
-		debug_printf (1, "<%s> => <%s>? ", in_uri,
+		debug_printf (1, "<%s> => <%s>\n", in_uri,
 			      out_uri ? out_uri : "ERR");
 		uri = soup_uri_new (in_uri);
 	}
 
 	if (!uri) {
-		if (out_uri) {
-			debug_printf (1, "ERR\n  Could not parse %s\n", in_uri);
-			return FALSE;
-		} else {
-			debug_printf (1, "OK\n");
-			return TRUE;
-		}
+		g_assert_null (out_uri);
+		return;
 	}
 
 	if (bits != NULL) {
-		gboolean failed = FALSE;
-
-		if (!test_cmpstr (uri->scheme, bits->scheme))
-			failed = TRUE;
-
-		if (!test_cmpstr (uri->user, bits->user))
-			failed = TRUE;
-
-		if (!test_cmpstr (uri->password, bits->password))
-			failed = TRUE;
-
-		if (!test_cmpstr (uri->host, bits->host))
-			failed = TRUE;
-
-		if (uri->port != bits->port) {
-			debug_printf (1, "ERR\n  port was %u, expected %u\n",
-				      uri->port, bits->port);
-			failed = TRUE;
-		}
-
-		if (!test_cmpstr (uri->path, bits->path))
-			failed = TRUE;
-
-		if (!test_cmpstr (uri->query, bits->query))
-			failed = TRUE;
-
-		if (!test_cmpstr (uri->fragment, bits->fragment))
-			failed = TRUE;
-
-		if (failed)
-			return FALSE;
+		g_assert_cmpstr (uri->scheme, ==, bits->scheme);
+		g_assert_cmpstr (uri->user, ==, bits->user);
+		g_assert_cmpstr (uri->password, ==, bits->password);
+		g_assert_cmpstr (uri->host, ==, bits->host);
+		g_assert_cmpuint (uri->port, ==, bits->port);
+		g_assert_cmpstr (uri->path, ==, bits->path);
+		g_assert_cmpstr (uri->query, ==, bits->query);
+		g_assert_cmpstr (uri->fragment, ==, bits->fragment);
 	}
 
 	uri_string = soup_uri_to_string (uri, FALSE);
 	soup_uri_free (uri);
 
-	if (!out_uri) {
-		debug_printf (1, "ERR\n  Got %s\n", uri_string);
-		return FALSE;
+	g_assert_cmpstr (uri_string, ==, out_uri);
+	g_free (uri_string);
+}
+
+static void
+do_absolute_uri_tests (void)
+{
+	int i;
+
+	for (i = 0; i < num_abs_tests; i++) {
+		do_uri (NULL, NULL, abs_tests[i].uri_string,
+			abs_tests[i].result, &abs_tests[i].bits);
+	}
+}
+
+static void
+do_relative_uri_tests (void)
+{
+	SoupURI *base_uri;
+	char *uri_string;
+	int i;
+
+	base_uri = soup_uri_new (base);
+	if (!base_uri) {
+		g_printerr ("Could not parse %s!\n", base);
+		exit (1);
 	}
 
-	if (strcmp (uri_string, out_uri) != 0) {
-		debug_printf (1, "NO\n  Unparses to <%s>\n", uri_string);
-		g_free (uri_string);
-		return FALSE;
-	}
+	uri_string = soup_uri_to_string (base_uri, FALSE);
+	g_assert_cmpstr (uri_string, ==, base);
 	g_free (uri_string);
 
-	debug_printf (1, "OK\n");
-	return TRUE;
+	for (i = 0; i < num_rel_tests; i++) {
+		do_uri (base_uri, base, rel_tests[i].uri_string,
+			rel_tests[i].result, &rel_tests[i].bits);
+	}
+	soup_uri_free (base_uri);
+}
+
+static void
+do_equality_tests (void)
+{
+	SoupURI *uri1, *uri2;
+	int i;
+
+	for (i = 0; i < num_eq_tests; i++) {
+		uri1 = soup_uri_new (eq_tests[i].one);
+		uri2 = soup_uri_new (eq_tests[i].two);
+
+		debug_printf (1, "<%s> == <%s>\n", eq_tests[i].one, eq_tests[i].two);
+		g_assert_true (soup_uri_equal (uri1, uri2));
+
+		soup_uri_free (uri1);
+		soup_uri_free (uri2);
+	}
 }
 
 static void
@@ -385,146 +366,80 @@ do_soup_uri_null_tests (void)
 	SoupURI *uri, *uri2;
 	char *uri_string;
 
-	debug_printf (1, "\nsoup_uri_new (NULL)\n");
 	uri = soup_uri_new (NULL);
-	if (SOUP_URI_IS_VALID (uri) || SOUP_URI_VALID_FOR_HTTP (uri)) {
-		debug_printf (1, "  ERROR: soup_uri_new(NULL) returns valid URI?\n");
-		errors++;
-	}
+	g_assert_false (SOUP_URI_IS_VALID (uri));
+	g_assert_false (SOUP_URI_VALID_FOR_HTTP (uri));
 
 	/* This implicitly also verifies that none of these methods g_warn */
-	if (soup_uri_get_scheme (uri) ||
-	    soup_uri_get_user (uri) ||
-	    soup_uri_get_password (uri) ||
-	    soup_uri_get_host (uri) ||
-	    soup_uri_get_port (uri) ||
-	    soup_uri_get_path (uri) ||
-	    soup_uri_get_query (uri) ||
-	    soup_uri_get_fragment (uri)) {
-		debug_printf (1, "  ERROR: soup_uri_new(NULL) returns non-empty URI?\n");
-		errors++;
-	}
+	g_assert_null (soup_uri_get_scheme (uri));
+	g_assert_null (soup_uri_get_user (uri));
+	g_assert_null (soup_uri_get_password (uri));
+	g_assert_null (soup_uri_get_host (uri));
+	g_assert_cmpint (soup_uri_get_port (uri), ==, 0);
+	g_assert_null (soup_uri_get_path (uri));
+	g_assert_null (soup_uri_get_query (uri));
+	g_assert_null (soup_uri_get_fragment (uri));
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_CRITICAL,
+			       "*base == NULL*");
 	uri2 = soup_uri_new_with_base (uri, "/path");
-	if (uri2 || expect_warning) {
-		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't fail on NULL URI?\n");
-		errors++;
-		expect_warning = FALSE;
-	}
+	g_test_assert_expected_messages ();
+	g_assert_null (uri2);
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       "*SOUP_URI_IS_VALID*");
 	uri_string = soup_uri_to_string (uri, FALSE);
-	if (expect_warning) {
-		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on NULL URI?\n");
-		errors++;
-		expect_warning = FALSE;
-	} else if (*uri_string) {
-		debug_printf (1, "  ERROR: soup_uri_to_string on NULL URI returned '%s'\n",
-			      uri_string);
-		errors++;
-	}
+	g_test_assert_expected_messages ();
+	g_assert_cmpstr (uri_string, ==, "");
 	g_free (uri_string);
 
 	soup_uri_set_scheme (uri, SOUP_URI_SCHEME_HTTP);
-	if (SOUP_URI_IS_VALID (uri) || SOUP_URI_VALID_FOR_HTTP (uri)) {
-		debug_printf (1, "  ERROR: setting scheme on NULL URI makes it valid?\n");
-		errors++;
-	}
+	g_assert_false (SOUP_URI_IS_VALID (uri));
+	g_assert_false (SOUP_URI_VALID_FOR_HTTP (uri));
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       "*SOUP_URI_IS_VALID*");
 	uri_string = soup_uri_to_string (uri, FALSE);
-	if (expect_warning) {
-		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on scheme-only URI?\n");
-		errors++;
-		expect_warning = FALSE;
-	} else if (strcmp (uri_string, "http:") != 0) {
-		debug_printf (1, "  ERROR: soup_uri_to_string returned '%s' instead of 'http:'\n",
-			      uri_string);
-		errors++;
-	}
+	g_test_assert_expected_messages ();
+	g_assert_cmpstr (uri_string, ==, "http:");
 	g_free (uri_string);
 
 	soup_uri_set_host (uri, "localhost");
-	if (SOUP_URI_IS_VALID (uri)) {
-		debug_printf (1, "  ERROR: setting scheme+host on NULL URI makes it valid?\n");
-		errors++;
-	}
-	if (SOUP_URI_VALID_FOR_HTTP (uri)) {
-		debug_printf (1, "  ERROR: setting scheme+host on NULL URI makes it valid for http?\n");
-		errors++;
-	}
+	g_assert_false (SOUP_URI_IS_VALID (uri));
+	g_assert_false (SOUP_URI_VALID_FOR_HTTP (uri));
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       "*SOUP_URI_IS_VALID*");
 	uri_string = soup_uri_to_string (uri, FALSE);
-	if (expect_warning) {
-		debug_printf (1, "  ERROR: soup_uri_to_string didn't fail on scheme+host URI?\n");
-		errors++;
-		expect_warning = FALSE;
-	} else if (strcmp (uri_string, "http://localhost/") != 0) {
-		debug_printf (1, "  ERROR: soup_uri_to_string with NULL path returned '%s' instead of 'http://localhost/'\n",
-			      uri_string);
-		errors++;
-	}
+	g_test_assert_expected_messages ();
+	g_assert_cmpstr (uri_string, ==, "http://localhost/");
 	g_free (uri_string);
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       "*SOUP_URI_IS_VALID*");
 	uri2 = soup_uri_new_with_base (uri, "/path");
-	if (expect_warning) {
-		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't warn on NULL+scheme URI?\n");
-		errors++;
-		expect_warning = FALSE;
-	} else if (!uri2) {
-		debug_printf (1, "  ERROR: soup_uri_new_with_base didn't fix path on NULL+scheme URI\n");
-		errors++;
-	}
+	g_test_assert_expected_messages ();
+	g_assert_true (uri2 != NULL);
 
 	if (uri2) {
 		uri_string = soup_uri_to_string (uri2, FALSE);
-		if (!uri_string) {
-			debug_printf (1, "  ERROR: soup_uri_to_string failed on uri2?\n");
-			errors++;
-		} else if (strcmp (uri_string, "http://localhost/path") != 0) {
-			debug_printf (1, "  ERROR: soup_uri_to_string returned '%s' instead of 'http://localhost/path'\n",
-				      uri_string);
-			errors++;
-		}
+		g_assert_cmpstr (uri_string, ==, "http://localhost/path");
 		g_free (uri_string);
 		soup_uri_free (uri2);
 	}
 
-	expect_warning = TRUE;
+	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       "*path != NULL*");
 	soup_uri_set_path (uri, NULL);
-	if (expect_warning) {
-		debug_printf (1, "  ERROR: setting path to NULL doesn't warn\n");
-		errors++;
-		expect_warning = FALSE;
-	}
-	if (!uri->path || *uri->path) {
-		debug_printf (1, "  ERROR: setting path to NULL != \"\"\n");
-		errors++;
-		soup_uri_set_path (uri, "");
-	}
+	g_test_assert_expected_messages ();
+	g_assert_cmpstr (uri->path, ==, "");
 
 	uri_string = soup_uri_to_string (uri, FALSE);
-	if (!uri_string) {
-		debug_printf (1, "  ERROR: soup_uri_to_string failed on complete URI?\n");
-		errors++;
-	} else if (strcmp (uri_string, "http://localhost/") != 0) {
-		debug_printf (1, "  ERROR: soup_uri_to_string with empty path returned '%s' instead of 'http://localhost/'\n",
-			      uri_string);
-		errors++;
-	}
+	g_assert_cmpstr (uri_string, ==, "http://localhost/");
 	g_free (uri_string);
 
-	if (!SOUP_URI_IS_VALID (uri)) {
-		debug_printf (1, "  ERROR: setting scheme+path on NULL URI doesn't make it valid?\n");
-		errors++;
-	}
-	if (!SOUP_URI_VALID_FOR_HTTP (uri)) {
-		debug_printf (1, "  ERROR: setting scheme+host+path on NULL URI doesn't make it valid for http?\n");
-		errors++;
-	}
+	g_assert_true (SOUP_URI_IS_VALID (uri));
+	g_assert_true (SOUP_URI_VALID_FOR_HTTP (uri));
 
 	soup_uri_free (uri);
 }
@@ -549,29 +464,21 @@ do_normalization_tests (void)
 	char *normalized;
 	int i;
 
-	debug_printf (1, "\nsoup_uri_normalize\n");
-
 	for (i = 0; i < num_normalization_tests; i++) {
 		if (normalization_tests[i].unescape_extra) {
-			debug_printf (1, "<%s> unescaping <%s> => <%s>: ",
+			debug_printf (1, "<%s> unescaping <%s> => <%s>\n",
 				      normalization_tests[i].uri_string,
 				      normalization_tests[i].unescape_extra,
 				      normalization_tests[i].result);
 		} else {
-			debug_printf (1, "<%s> => <%s>: ",
+			debug_printf (1, "<%s> => <%s>\n",
 				      normalization_tests[i].uri_string,
 				      normalization_tests[i].result);
 		}
 
 		normalized = soup_uri_normalize (normalization_tests[i].uri_string,
 						 normalization_tests[i].unescape_extra);
-
-		if (!strcmp (normalized, normalization_tests[i].result))
-			debug_printf (1, "OK\n");
-		else {
-			debug_printf (1, "NO, got <%s>\n", normalized);
-			errors++;
-		}
+		g_assert_cmpstr (normalized, ==, normalization_tests[i].result);
 		g_free (normalized);
 	}
 }
@@ -579,62 +486,18 @@ do_normalization_tests (void)
 int
 main (int argc, char **argv)
 {
-	SoupURI *base_uri, *uri1, *uri2;
-	char *uri_string;
-	int i;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
-	debug_printf (1, "Absolute URI parsing\n");
-	for (i = 0; i < num_abs_tests; i++) {
-		if (!do_uri (NULL, NULL, abs_tests[i].uri_string,
-			     abs_tests[i].result, &abs_tests[i].bits))
-			errors++;
-	}
+	g_test_add_func ("/uri/absolute", do_absolute_uri_tests);
+	g_test_add_func ("/uri/relative", do_relative_uri_tests);
+	g_test_add_func ("/uri/equality", do_equality_tests);
+	g_test_add_func ("/uri/null", do_soup_uri_null_tests);
+	g_test_add_func ("/uri/normalization", do_normalization_tests);
 
-	debug_printf (1, "\nRelative URI parsing\n");
-	base_uri = soup_uri_new (base);
-	if (!base_uri) {
-		g_printerr ("Could not parse %s!\n", base);
-		exit (1);
-	}
-
-	uri_string = soup_uri_to_string (base_uri, FALSE);
-	if (strcmp (uri_string, base) != 0) {
-		g_printerr ("URI <%s> unparses to <%s>\n",
-			    base, uri_string);
-		errors++;
-	}
-	g_free (uri_string);
-
-	for (i = 0; i < num_rel_tests; i++) {
-		if (!do_uri (base_uri, base, rel_tests[i].uri_string,
-			     rel_tests[i].result, &rel_tests[i].bits))
-			errors++;
-	}
-	soup_uri_free (base_uri);
-
-	debug_printf (1, "\nURI equality testing\n");
-	for (i = 0; i < num_eq_tests; i++) {
-		uri1 = soup_uri_new (eq_tests[i].one);
-		uri2 = soup_uri_new (eq_tests[i].two);
-		debug_printf (1, "<%s> == <%s>? ", eq_tests[i].one, eq_tests[i].two);
-		if (soup_uri_equal (uri1, uri2))
-			debug_printf (1, "OK\n");
-		else {
-			debug_printf (1, "NO\n");
-			debug_printf (1, "%s : %s : %s\n%s : %s : %s\n",
-				      uri1->scheme, uri1->host, uri1->path,
-				      uri2->scheme, uri2->host, uri2->path);
-			errors++;
-		}
-		soup_uri_free (uri1);
-		soup_uri_free (uri2);
-	}
-
-	do_soup_uri_null_tests ();
-	do_normalization_tests ();
+	ret = g_test_run ();
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

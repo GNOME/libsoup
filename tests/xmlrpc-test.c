@@ -39,21 +39,16 @@ send_xmlrpc (const char *body, GValue *retval)
 				  body, strlen (body));
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "ERROR: %d %s\n", msg->status_code,
-			      msg->reason_phrase);
-		g_object_unref (msg);
-		return FALSE;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	if (!soup_xmlrpc_parse_method_response (msg->response_body->data,
 						msg->response_body->length,
 						retval, &err)) {
 		if (err) {
-			debug_printf (1, "FAULT: %d %s\n", err->code, err->message);
+			soup_test_assert (FALSE, "FAULT: %d %s\n", err->code, err->message);
 			g_error_free (err);
 		} else
-			debug_printf (1, "ERROR: could not parse response\n");
+			soup_test_assert (FALSE, "ERROR: could not parse response\n");
 		g_object_unref (msg);
 		return FALSE;
 	}
@@ -92,8 +87,7 @@ check_xmlrpc (GValue *value, GType type, ...)
 	va_list args;
 
 	if (!G_VALUE_HOLDS (value, type)) {
-		debug_printf (1, "ERROR: could not parse response\n");
-		g_value_unset (value);
+		g_assert_true (G_VALUE_HOLDS (value, type));
 		return FALSE;
 	}
 
@@ -103,7 +97,7 @@ check_xmlrpc (GValue *value, GType type, ...)
 	return TRUE;
 }
 
-static gboolean
+static void
 test_sum (void)
 {
 	GValueArray *ints;
@@ -129,14 +123,13 @@ test_sum (void)
 	g_value_array_free (ints);
 
 	if (!ok)
-		return FALSE;
+		return;
 
-	debug_printf (2, "%d: ", result);
-	debug_printf (1, "%s\n", result == sum ? "OK!" : "WRONG!");
-	return result == sum;
+	debug_printf (2, "%d\n", result);
+	g_assert_cmpint (result, ==, sum);
 }
 
-static gboolean
+static void
 test_countBools (void)
 {
 	GValueArray *bools;
@@ -166,25 +159,19 @@ test_countBools (void)
 	      check_xmlrpc (&retval, G_TYPE_HASH_TABLE, &result));
 	g_value_array_free (bools);
 	if (!ok)
-		return FALSE;
+		return;
 
-	if (!soup_value_hash_lookup (result, "true", G_TYPE_INT, &ret_trues)) {
-		debug_printf (1, "NO 'true' value in response\n");
-		return FALSE;
-	}
-	if (!soup_value_hash_lookup (result, "false", G_TYPE_INT, &ret_falses)) {
-		debug_printf (1, "NO 'false' value in response\n");
-		return FALSE;
-	}
+	g_assert_true (soup_value_hash_lookup (result, "true", G_TYPE_INT, &ret_trues));
+	g_assert_true (soup_value_hash_lookup (result, "false", G_TYPE_INT, &ret_falses));
+
 	g_hash_table_destroy (result);
 
-	debug_printf (2, "{ true: %d, false: %d } ", ret_trues, ret_falses);
-	ok = (trues == ret_trues) && (falses == ret_falses);
-	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
-	return ok;
+	debug_printf (2, "{ true: %d, false: %d }\n", ret_trues, ret_falses);
+	g_assert_cmpint (trues, ==, ret_trues);
+	g_assert_cmpint (falses, ==, ret_falses);
 }
 
-static gboolean
+static void
 test_md5sum (void)
 {
 	GByteArray *data, *result;
@@ -195,7 +182,7 @@ test_md5sum (void)
 	GValue retval;
 	gboolean ok;
 
-	debug_printf (1, "md5sum (base64 -> base64): ");
+	debug_printf (1, "md5sum (base64 -> base64)\n");
 
 	data = g_byte_array_new ();
 	g_byte_array_set_size (data, 256);
@@ -213,21 +200,14 @@ test_md5sum (void)
 	      check_xmlrpc (&retval, SOUP_TYPE_BYTE_ARRAY, &result));
 	g_byte_array_free (data, TRUE);
 	if (!ok)
-		return FALSE;
+		return;
 
-	if (result->len != digest_len) {
-		debug_printf (1, "result has WRONG length (%d)\n", result->len);
-		g_byte_array_free (result, TRUE);
-		return FALSE;
-	}
-
-	ok = (memcmp (digest, result->data, digest_len) == 0);
-	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
+	soup_assert_cmpmem (result->data, result->len,
+			    digest, digest_len);
 	g_byte_array_free (result, TRUE);
-	return ok;
 }
 
-static gboolean
+static void
 test_dateChange (void)
 {
 	GHashTable *structval;
@@ -236,7 +216,7 @@ test_dateChange (void)
 	GValue retval;
 	gboolean ok;
 
-	debug_printf (1, "dateChange (date, struct of ints -> time): ");
+	debug_printf (1, "dateChange (date, struct of ints -> time)\n");
 
 	date = soup_date_new (1970 + (g_random_int_range (0, 50)),
 			      1 + g_random_int_range (0, 12),
@@ -301,26 +281,24 @@ test_dateChange (void)
 	g_hash_table_destroy (structval);
 	if (!ok) {
 		soup_date_free (date);
-		return FALSE;
+		return;
 	}
 
 	if (debug_level >= 2) {
 		timestamp = soup_date_to_string (result, SOUP_DATE_ISO8601_XMLRPC);
-		debug_printf (2, "%s: ", timestamp);
+		debug_printf (2, "%s\n", timestamp);
 		g_free (timestamp);
 	}
 
-	ok = ((date->year   == result->year) &&
-	      (date->month  == result->month) &&
-	      (date->day    == result->day) &&
-	      (date->hour   == result->hour) &&
-	      (date->minute == result->minute) &&
-	      (date->second == result->second));
+	g_assert_cmpint (date->year,   ==, result->year);
+	g_assert_cmpint (date->month,  ==, result->month);
+	g_assert_cmpint (date->day,    ==, result->day);
+	g_assert_cmpint (date->hour,   ==, result->hour);
+	g_assert_cmpint (date->minute, ==, result->minute);
+	g_assert_cmpint (date->second, ==, result->second);
+
 	soup_date_free (date);
 	soup_date_free (result);
-
-	debug_printf (1, "%s\n", ok ? "OK!" : "WRONG!");
-	return ok;
 }
 
 static const char *const echo_strings[] = {
@@ -338,15 +316,14 @@ static const char *const echo_strings_broken[] = {
 	"amp; so is lt;thisgt;"
 };
 
-static gboolean
+static void
 test_echo (void)
 {
 	GValueArray *originals, *echoes;
 	GValue retval;
 	int i;
-	gboolean php_bug = FALSE;
 
-	debug_printf (1, "echo (array of string -> array of string): ");
+	debug_printf (1, "echo (array of string -> array of string):\n");
 
 	originals = g_value_array_new (N_ECHO_STRINGS);
 	for (i = 0; i < N_ECHO_STRINGS; i++) {
@@ -360,7 +337,7 @@ test_echo (void)
 			 G_TYPE_INVALID) &&
 	      check_xmlrpc (&retval, G_TYPE_VALUE_ARRAY, &echoes))) {
 		g_value_array_free (originals);
-		return FALSE;
+		return;
 	}
 	g_value_array_free (originals);
 
@@ -369,37 +346,29 @@ test_echo (void)
 			debug_printf (2, "%s\"%s\"", i == 0 ? "[" : ", ",
 				      g_value_get_string (&echoes->values[i]));
 		}
-		debug_printf (2, "] -> ");
+		debug_printf (2, "]\n");
 	}
 
-	if (echoes->n_values != N_ECHO_STRINGS) {
-		debug_printf (1, " WRONG! Wrong number of return strings");
-		g_value_array_free (echoes);
-		return FALSE;
-	}
+	g_assert_cmpint (echoes->n_values, ==, N_ECHO_STRINGS);
 
 	for (i = 0; i < echoes->n_values; i++) {
-		if (strcmp (echo_strings[i], g_value_get_string (&echoes->values[i])) != 0) {
-			if (!server_test && strcmp (echo_strings_broken[i], g_value_get_string (&echoes->values[i])) == 0)
-				php_bug = TRUE;
-			else {
-				debug_printf (1, " WRONG! Mismatch at %d\n", i + 1);
-				g_value_array_free (echoes);
-				return FALSE;
-			}
+		if (!server_test && strcmp (echo_strings_broken[i], g_value_get_string (&echoes->values[i])) == 0) {
+			/* We want to call g_test_skip(), but as of glib 2.38
+			 * that marks the test as failed rather than succeeded.
+			 */
+			// FIXME g_test_skip ("PHP bug");
+			g_value_array_free (echoes);
+			return;
 		}
+
+		g_assert_cmpstr (echo_strings[i], ==, g_value_get_string (&echoes->values[i]));
 	}
 
-	if (php_bug)
-		debug_printf (1, "WRONG, but it's php's fault\n");
-	else
-		debug_printf (1, "OK!\n");
 	g_value_array_free (echoes);
-	return TRUE;
 }
 
-static gboolean
-test_ping (gboolean include_params)
+static void
+test_ping (gconstpointer include_params)
 {
 	GValueArray *params;
 	GValue retval;
@@ -407,7 +376,7 @@ test_ping (gboolean include_params)
 	char *out;
 	gboolean ret;
 
-	debug_printf (1, "ping (void (%s) -> string): ",
+	debug_printf (1, "ping (void (%s) -> string)\n",
 		      include_params ? "empty <params>" : "no <params>");
 
 	params = soup_value_array_new ();
@@ -415,15 +384,15 @@ test_ping (gboolean include_params)
 						 params->n_values);
 	g_value_array_free (params);
 	if (!request)
-		return FALSE;
+		return;
 
 	if (!include_params) {
 		char *params, *end;
 
 		params = strstr (request, "<params/>");
 		if (!params) {
-			debug_printf (1, "ERROR: XML did not contain <params/>!");
-			return FALSE;
+			soup_test_assert (FALSE, "ERROR: XML did not contain <params/>!");
+			return;
 		}
 		end = params + strlen ("<params/>");
 		memmove (params, end, strlen (end) + 1);
@@ -433,21 +402,14 @@ test_ping (gboolean include_params)
 	g_free (request);
 
 	if (!ret || !check_xmlrpc (&retval, G_TYPE_STRING, &out))
-		return FALSE;
+		return;
 
-	if (!strcmp (out, "pong")) {
-		debug_printf (1, "OK!\n");
-		ret = TRUE;
-	} else {
-		debug_printf (1, "WRONG! Bad response '%s'", out);
-		ret = FALSE;
-	}
+	g_assert_cmpstr (out, ==, "pong");
 
 	g_free (out);
-	return ret;
 }
 
-static gboolean
+static void
 do_bad_xmlrpc (const char *body)
 {
 	SoupMessage *msg;
@@ -459,12 +421,7 @@ do_bad_xmlrpc (const char *body)
 				  body, strlen (body));
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "ERROR: %d %s\n", msg->status_code,
-			      msg->reason_phrase);
-		g_object_unref (msg);
-		return FALSE;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
 	if (!soup_xmlrpc_parse_method_response (msg->response_body->data,
 						msg->response_body->length,
@@ -474,44 +431,43 @@ do_bad_xmlrpc (const char *body)
 				      err->code, err->message);
 			g_error_free (err);
 			g_object_unref (msg);
-			return TRUE;
+			return;
 		} else
-			debug_printf (1, "ERROR: could not parse response\n");
+			soup_test_assert (FALSE, "ERROR: could not parse response\n");
 	} else
-		debug_printf (1, "Unexpectedly got successful response!\n");
+		soup_test_assert (FALSE, "Unexpectedly got successful response!\n");
 
 	g_object_unref (msg);
-	return FALSE;
 }
 
-static gboolean
+static void
 test_fault_malformed (void)
 {
 	debug_printf (1, "malformed request: ");
 
-	return do_bad_xmlrpc ("<methodCall/>");
+	do_bad_xmlrpc ("<methodCall/>");
 }
 
-static gboolean
+static void
 test_fault_method (void)
 {
 	debug_printf (1, "request to non-existent method: ");
 
-	return do_bad_xmlrpc ("<methodCall><methodName>no_such_method</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
+	do_bad_xmlrpc ("<methodCall><methodName>no_such_method</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
 }
 
-static gboolean
+static void
 test_fault_args (void)
 {
 	debug_printf (1, "request with invalid args: ");
 
-	return do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
+	do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
 }
 
 static GOptionEntry xmlrpc_entries[] = {
-        { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri,
+        { "uri", 'U', 0, G_OPTION_ARG_STRING, &uri,
           "Alternate URI for server", NULL },
-        { "server-test", 's', 0, G_OPTION_ARG_NONE, &server_test,
+        { "server-test", 'S', 0, G_OPTION_ARG_NONE, &server_test,
           "If this is being run from xmlrpc-server-test", NULL },
         { NULL }
 };
@@ -519,6 +475,8 @@ static GOptionEntry xmlrpc_entries[] = {
 int
 main (int argc, char **argv)
 {
+	int ret;
+
 	test_init (argc, argv, xmlrpc_entries);
 
 	if (!uri) {
@@ -528,31 +486,23 @@ main (int argc, char **argv)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
-	if (!test_sum ())
-		errors++;
-	if (!test_countBools ())
-		errors++;
-	if (!test_md5sum ())
-		errors++;
-	if (!test_dateChange ())
-		errors++;
-	if (!test_echo ())
-		errors++;
-	if (!test_ping (TRUE))
-		errors++;
-	if (!test_ping (FALSE))
-		errors++;
-	if (!test_fault_malformed ())
-		errors++;
-	if (!test_fault_method ())
-		errors++;
-	if (!test_fault_args ())
-		errors++;
+	g_test_add_func ("/xmlrpc/sum", test_sum);
+	g_test_add_func ("/xmlrpc/countBools", test_countBools);
+	g_test_add_func ("/xmlrpc/md5sum", test_md5sum);
+	g_test_add_func ("/xmlrpc/dateChange", test_dateChange);
+	g_test_add_func ("/xmlrpc/echo", test_echo);
+	g_test_add_data_func ("/xmlrpc/ping/empty-params", GINT_TO_POINTER (TRUE), test_ping);
+	g_test_add_data_func ("/xmlrpc/ping/no-params", GINT_TO_POINTER (FALSE), test_ping);
+	g_test_add_func ("/xmlrpc/fault_malformed", test_fault_malformed);
+	g_test_add_func ("/xmlrpc/fault_method", test_fault_method);
+	g_test_add_func ("/xmlrpc/fault_args", test_fault_args);
+
+	ret = g_test_run ();
 
 	soup_test_session_abort_unref (session);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }
 
 #else /* HAVE_PHP_XMLRPC */

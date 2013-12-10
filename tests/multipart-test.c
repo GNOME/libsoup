@@ -87,10 +87,8 @@ content_sniffed (SoupMessage *msg, char *content_type, GHashTable *params, int *
 static void
 check_is_next (gboolean is_next)
 {
-	if (!is_next) {
-		debug_printf (1, "  expected a header, but there are no more headers\n");
-		errors++;
-	}
+	soup_test_assert (is_next,
+			  "expected a header, but there are no more headers");
 }
 
 static void
@@ -112,15 +110,8 @@ got_headers (SoupMessage *msg, int *headers_count)
 		check_is_next (is_next);
 	}
 
-	if (!g_str_equal (name, "Content-Type")) {
-		debug_printf (1, "  expected 'Content-Type' got %s\n", name);
-		errors++;
-	}
-
-	if (!g_str_equal (value, "multipart/x-mixed-replace; boundary=cut-here")) {
-		debug_printf (1, "  expected 'multipart/x-mixed-replace; boundary=cut-here' got %s\n", value);
-		errors++;
-	}
+	g_assert_cmpstr (name, ==, "Content-Type");
+	g_assert_cmpstr (value, ==, "multipart/x-mixed-replace; boundary=cut-here");
 }
 
 static void
@@ -129,12 +120,11 @@ read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 	GMainLoop *loop = (GMainLoop*)data;
 	GInputStream *stream = G_INPUT_STREAM (source);
 	GError *error = NULL;
-	gssize bytes_read = g_input_stream_read_finish (stream, asyncResult, &error);
+	gssize bytes_read;
 
+	bytes_read = g_input_stream_read_finish (stream, asyncResult, &error);
+	g_assert_no_error (error);
 	if (error) {
-		debug_printf (1, "  failed read: %s\n", error->message);
-		errors++;
-
 		g_object_unref (stream);
 		g_main_loop_quit (loop);
 		return;
@@ -142,13 +132,8 @@ read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 
 	if (!bytes_read) {
 		g_input_stream_close (stream, NULL, &error);
+		g_assert_no_error (error);
 		g_object_unref (stream);
-
-		if (error) {
-			debug_printf (1, "  failed close: %s\n", error->message);
-			errors++;
-		}
-
 		g_main_loop_quit (loop);
 		return;
 	}
@@ -167,11 +152,8 @@ no_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	GInputStream* in;
 
 	in = soup_request_send_finish (request, res, &error);
-
+	g_assert_no_error (error);
 	if (error) {
-		debug_printf (1, "  failed send: %s\n", error->message);
-		errors++;
-
 		g_main_loop_quit (loop);
 		return;
 	}
@@ -188,10 +170,7 @@ multipart_close_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 	GError *error = NULL;
 
 	g_input_stream_close_finish (in, res, &error);
-	if (error) {
-		debug_printf (1, "  error closing stream: %s\n", error->message);
-		errors++;
-	}
+	g_assert_no_error (error);
 }
 
 static void multipart_next_part_cb (GObject *source,
@@ -203,32 +182,20 @@ check_read (gsize nread, unsigned passes)
 {
 	switch (passes) {
 	case 0:
-		if (nread != 30) {
-			debug_printf (1, "  expected to read 30 bytes, got: %d\n", (int)nread);
-			errors++;
-		}
+		g_assert_cmpint (nread, ==, 30);
 		break;
 	case 1:
-		if (nread != 10) {
-			debug_printf (1, "  expected to read 10 bytes, got: %d\n", (int)nread);
-			errors++;
-		}
+		g_assert_cmpint (nread, ==, 10);
 		break;
 	case 2:
-		if (nread != 24) {
-			debug_printf (1, "  expected to read 24 bytes, got: %d\n", (int)nread);
-			errors++;
-		}
+		g_assert_cmpint (nread, ==, 24);
 		break;
 	case 3:
-		if (nread != 34) {
-			debug_printf (1, "  expected to read 34 bytes, got: %d\n", (int)nread);
-			errors++;
-		}
+		g_assert_cmpint (nread, ==, 34);
 		break;
 	default:
-		debug_printf (1, "  unexpected read of size: %d\n", (int)nread);
-		errors++;
+		soup_test_assert (FALSE, "unexpected read of size: %d", (int)nread);
+		break;
 	}
 }
 
@@ -242,11 +209,8 @@ multipart_read_cb (GObject *source, GAsyncResult *asyncResult, gpointer data)
 	gssize bytes_read;
 
 	bytes_read = g_input_stream_read_finish (in, asyncResult, &error);
-
+	g_assert_no_error (error);
 	if (error) {
-		debug_printf (1, "  failed read: %s\n", error->message);
-		errors++;
-
 		g_input_stream_close_async (in, G_PRIORITY_DEFAULT, NULL,
 					    multipart_close_part_cb, NULL);
 		g_object_unref (in);
@@ -292,43 +256,22 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		is_next = soup_message_headers_iter_next (&iter, &name, &value);
 		check_is_next (is_next);
 
-		if (!g_str_equal (name, "Content-Type")) {
-			debug_printf (1, "  [0] expected 'Content-Type' got %s\n", name);
-			errors++;
-		}
-
-		if (!g_str_equal (value, "text/html")) {
-			debug_printf (1, "  [0] expected 'text/html' got %s\n", value);
-			errors++;
-		}
+		g_assert_cmpstr (name, ==, "Content-Type");
+		g_assert_cmpstr (value, ==, "text/html");
 
 		is_next = soup_message_headers_iter_next (&iter, &name, &value);
 		check_is_next (is_next);
 
-		if (!g_str_equal (name, "Content-Length")) {
-			debug_printf (1, "  [0] expected 'Content-Length' got %s\n", name);
-			errors++;
-		}
-
-		if (!g_str_equal (value, "30")) {
-			debug_printf (1, "  [0] expected '30' got %s\n", value);
-			errors++;
-		}
+		g_assert_cmpstr (name, ==, "Content-Length");
+		g_assert_cmpstr (value, ==, "30");
 
 		break;
 	case 1:
 		is_next = soup_message_headers_iter_next (&iter, &name, &value);
 		check_is_next (is_next);
 
-		if (!g_str_equal (name, "Content-Length")) {
-			debug_printf (1, "  [1] expected 'Content-Length' got %s\n", name);
-			errors++;
-		}
-
-		if (!g_str_equal (value, "10")) {
-			debug_printf (1, "  [1] expected '10' got %s\n", value);
-			errors++;
-		}
+		g_assert_cmpstr (name, ==, "Content-Length");
+		g_assert_cmpstr (value, ==, "10");
 
 		break;
 	case 2:
@@ -336,19 +279,12 @@ check_headers (SoupMultipartInputStream* multipart, unsigned passes)
 		is_next = soup_message_headers_iter_next (&iter, &name, &value);
 		check_is_next (is_next);
 
-		if (!g_str_equal (name, "Content-Type")) {
-			debug_printf (1, "  [%d] expected 'Content-Type' got %s\n", passes, name);
-			errors++;
-		}
-
-		if (!g_str_equal (value, "text/css")) {
-			debug_printf (1, "  [%d] expected 'text/html' got %s\n", passes, value);
-			errors++;
-		}
+		g_assert_cmpstr (name, ==, "Content-Type");
+		g_assert_cmpstr (value, ==, "text/css");
 
 		break;
 	default:
-		debug_printf (1, "  unexpected part received\n");
+		soup_test_assert (FALSE, "unexpected part received");
 		break;
 	}
 }
@@ -364,23 +300,16 @@ multipart_next_part_cb (GObject *source, GAsyncResult *res, gpointer data)
 	g_assert (SOUP_MULTIPART_INPUT_STREAM (source) == multipart);
 
 	in = soup_multipart_input_stream_next_part_finish (multipart, res, &error);
-
+	g_assert_no_error (error);
 	if (error) {
-		debug_printf (1, "  failed next part: %s\n", error->message);
 		g_clear_error (&error);
-		errors++;
-
 		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
 	}
 
 	if (!in) {
-		if (passes != 4) {
-			debug_printf (1, "  expected 4 parts, got %u\n", passes);
-			errors++;
-		}
-
+		g_assert_cmpint (passes, ==, 4);
 		g_object_unref (multipart);
 		g_main_loop_quit (loop);
 		return;
@@ -406,18 +335,16 @@ multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	SoupMessage *message;
 
 	in = soup_request_send_finish (request, res, &error);
+	g_assert_no_error (error);
+	if (error) {
+		g_main_loop_quit (loop);
+		return;
+	}
+
 	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
 	g_object_unref (message);
 	g_object_unref (in);
-
-	if (error) {
-		debug_printf (1, "  failed send: %s\n", error->message);
-		errors++;
-
-		g_main_loop_quit (loop);
-		return;
-	}
 
 	if (g_object_get_data (source, "multipart-small-reads"))
 		g_object_set_data (G_OBJECT (multipart), "multipart-small-reads", GINT_TO_POINTER(1));
@@ -438,25 +365,21 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	gsize bytes_read;
 
 	in = soup_request_send_finish (request, res, &error);
+	g_assert_no_error (error);
+	if (error) {
+		g_main_loop_quit (loop);
+		return;
+	}
+
 	message = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 	multipart = soup_multipart_input_stream_new (message, in);
 	g_object_unref (message);
 	g_object_unref (in);
 
-	if (error) {
-		debug_printf (1, "  failed send: %s\n", error->message);
-		errors++;
-
-		g_main_loop_quit (loop);
-		return;
-	}
-
 	while (TRUE) {
 		in = soup_multipart_input_stream_next_part (multipart, NULL, &error);
-
+		g_assert_no_error (error);
 		if (error) {
-			debug_printf (1, "  failed sync next part: %s\n", error->message);
-			errors++;
 			g_clear_error (&error);
 			break;
 		}
@@ -467,10 +390,8 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 		check_headers (multipart, passes);
 
 		g_input_stream_read_all (in, (void*)buffer, sizeof (buffer), &bytes_read, NULL, &error);
-
+		g_assert_no_error (error);
 		if (error) {
-			debug_printf (1, "  failed sync read: %s\n", error->message);
-			errors++;
 			g_clear_error (&error);
 			g_object_unref (in);
 			break;
@@ -482,10 +403,7 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 		g_object_unref (in);
 	}
 
-	if (passes != 4) {
-		debug_printf (1, "  expected 4 parts, got %u\n", passes);
-		errors++;
-	}
+	g_assert_cmpint (passes, ==, 4);
 
 	g_main_loop_quit (loop);
 	g_object_unref (multipart);
@@ -505,20 +423,28 @@ multipart_mode_to_string (MultipartMode mode)
 }
 
 static void
-test_multipart (int headers_expected, int sniffed_expected, MultipartMode multipart_mode)
+test_multipart (gconstpointer data)
 {
-	GError* error = NULL;
-	SoupRequest* request = soup_session_request (session, base_uri_string, &error);
-
-	SoupMessage *msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
-	GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+	int headers_expected = 1, sniffed_expected = 1;
+	MultipartMode multipart_mode = GPOINTER_TO_INT (data);
+	SoupRequest* request;
+	SoupMessage *msg;
+	GMainLoop *loop;
 	int headers_count = 0;
 	int sniffed_count = 0;
 	GHashTable *params;
 	const char *content_type;
 	gboolean message_is_multipart = FALSE;
+	GError* error = NULL;
 
 	debug_printf (1, "test_multipart(%s)\n", multipart_mode_to_string (multipart_mode));
+
+	request = soup_session_request (session, base_uri_string, &error);
+	g_assert_no_error (error);
+	if (error)
+		return;
+
+	msg = soup_request_http_get_message (SOUP_REQUEST_HTTP (request));
 
 	/* This is used to track the number of parts. */
 	passes = 0;
@@ -532,6 +458,8 @@ test_multipart (int headers_expected, int sniffed_expected, MultipartMode multip
 
 	g_signal_connect (msg, "content-sniffed",
 			  G_CALLBACK (content_sniffed), &sniffed_count);
+
+	loop = g_main_loop_new (NULL, TRUE);
 
 	if (multipart_mode == ASYNC_MULTIPART)
 		soup_request_send_async (request, NULL, multipart_handling_cb, loop);
@@ -554,25 +482,9 @@ test_multipart (int headers_expected, int sniffed_expected, MultipartMode multip
 	}
 	g_clear_pointer (&params, g_hash_table_unref);
 
-	if (!message_is_multipart) {
-		debug_printf (1,
-			      "	 Header does not indicate a multipart message!\n");
-		errors++;
-	}
-
-	if (headers_count != headers_expected) {
-		debug_printf (1,
-			      "	 expected got_header %d times, got %d!\n",
-			      headers_expected, headers_count);
-		errors++;
-	}
-
-	if (sniffed_count != sniffed_expected) {
-		debug_printf (1,
-			      "	 expected content_sniffed %d times, got %d!\n",
-			      sniffed_expected, sniffed_count);
-		errors++;
-	}
+	g_assert_true (message_is_multipart);
+	g_assert_cmpint (headers_count, ==, headers_expected);
+	g_assert_cmpint (sniffed_count, ==, sniffed_expected);
 
 	g_object_unref (msg);
 	g_object_unref (request);
@@ -583,6 +495,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -604,10 +517,12 @@ main (int argc, char **argv)
 					 NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
-	test_multipart (1, 1, NO_MULTIPART);
-	test_multipart (1, 1, SYNC_MULTIPART);
-	test_multipart (1, 1, ASYNC_MULTIPART);
-	test_multipart (1, 1, ASYNC_MULTIPART_SMALL_READS);
+	g_test_add_data_func ("/multipart/no", GINT_TO_POINTER (NO_MULTIPART), test_multipart);
+	g_test_add_data_func ("/multipart/sync", GINT_TO_POINTER (SYNC_MULTIPART), test_multipart);
+	g_test_add_data_func ("/multipart/async", GINT_TO_POINTER (ASYNC_MULTIPART), test_multipart);
+	g_test_add_data_func ("/multipart/async-small-reads", GINT_TO_POINTER (ASYNC_MULTIPART_SMALL_READS), test_multipart);
+
+	ret = g_test_run ();
 
 	soup_uri_free (base_uri);
 	g_free (base_uri_string);
@@ -615,6 +530,7 @@ main (int argc, char **argv)
 
 	soup_test_session_abort_unref (session);
 	soup_test_server_quit_unref (server);
+
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

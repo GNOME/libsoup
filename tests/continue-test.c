@@ -106,17 +106,13 @@ do_message (const char *path, gboolean long_body,
 	while ((expected_event = va_arg (ap, const char *))) {
 
 		if (!events) {
-			debug_printf (1, "  Expected '%s', got end of list\n",
-				      expected_event);
-			errors++;
+			soup_test_assert (events != NULL,
+					  "Expected '%s', got end of list",
+					  expected_event);
 			continue;
 		} else {
 			actual_event = events->data;
-			if (strcmp (expected_event, actual_event) != 0) {
-				debug_printf (1, "  Expected '%s', got '%s'\n",
-					      expected_event, actual_event);
-				errors++;
-			}
+			g_assert_cmpstr (expected_event, ==, actual_event);
 			events = g_slist_delete_link (events, events);
 		}
 
@@ -134,10 +130,10 @@ do_message (const char *path, gboolean long_body,
 
 		if (expected_status != -1 && actual_status != -1 &&
 		    expected_status != actual_status) {
-			debug_printf (1, "  Expected status '%s', got '%s'\n",
-				      soup_status_get_phrase (expected_status),
-				      soup_status_get_phrase (actual_status));
-			errors++;
+			soup_test_assert (expected_status == actual_status,
+					  "Expected status '%s', got '%s'",
+					  soup_status_get_phrase (expected_status),
+					  soup_status_get_phrase (actual_status));
 		}
 
 		g_free (actual_event);
@@ -145,8 +141,8 @@ do_message (const char *path, gboolean long_body,
 	va_end (ap);
 	while (events) {
 		actual_event = events->data;
-		debug_printf (1, "  Expected to be done, got '%s'\n", actual_event);
-		errors++;
+		soup_test_assert (events == NULL,
+				  "Expected to be done, got '%s'", actual_event);
 		events = g_slist_delete_link (events, events);
 
 		if (!strcmp (actual_event, "server-wrote_headers") ||
@@ -434,15 +430,19 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
 	server = setup_server ();
 	port = soup_server_get_port (server);
 
-	run_tests ();
+	g_test_add_func ("/continue", run_tests);
+
+	ret = g_test_run ();
 
 	soup_test_server_quit_unref (server);
 	test_cleanup ();
-	return errors != 0;
+
+	return ret;
 }

@@ -5,6 +5,9 @@
 
 #include "test-utils.h"
 
+static SoupSession *session;
+static SoupURI *base_uri;
+
 typedef struct {
 	SoupSession *session;
 	SoupBuffer *chunks[3];
@@ -19,9 +22,9 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 
 	debug_printf (2, "  writing chunk %d\n", ptd->next);
 
-	if (ptd->streaming && ptd->next > 0 && ptd->chunks[ptd->next - 1]) {
-		debug_printf (1, "  error: next chunk requested before last one freed!\n");
-		errors++;
+	if (ptd->streaming && ptd->next > 0) {
+		soup_test_assert (ptd->chunks[ptd->next - 1] == NULL,
+				  "next chunk requested before last one freed");
 	}
 
 	if (ptd->next < G_N_ELEMENTS (ptd->chunks)) {
@@ -50,8 +53,8 @@ write_next_chunk_streaming_hack (SoupMessage *msg, gpointer user_data)
 		soup_message_body_wrote_chunk (msg->request_body, chunk);
 		soup_buffer_free (chunk);
 	} else {
-		debug_printf (1, "  error: written chunk does not exist!\n");
-		errors++;
+		soup_test_assert (chunk,
+				  "written chunk does not exist");
 	}
 	write_next_chunk (msg, user_data);
 }
@@ -77,8 +80,8 @@ clear_buffer_ptr (gpointer data)
 		g_free ((char *)(*buffer_ptr)->data);
 		*buffer_ptr = NULL;
 	} else {
-		debug_printf (2, "  chunk is already clear!\n");
-		errors++;
+		soup_test_assert (*buffer_ptr,
+				  "chunk is already clear");
 	}
 }
 
@@ -136,8 +139,9 @@ typedef enum {
 } RequestTestFlags;
 
 static void
-do_request_test (SoupSession *session, SoupURI *base_uri, RequestTestFlags flags)
+do_request_test (gconstpointer data)
 {
+	RequestTestFlags flags = GPOINTER_TO_UINT (data);
 	SoupURI *uri = base_uri;
 	PutTestData ptd;
 	SoupMessage *msg;
@@ -199,29 +203,14 @@ do_request_test (SoupSession *session, SoupURI *base_uri, RequestTestFlags flags
 			  G_CALLBACK (wrote_body_data), &ptd);
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  message failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
-
-	if (msg->request_body->data) {
-		debug_printf (1, "  msg->request_body set!\n");
-		errors++;
-	}
-	if (msg->request_body->length != length || length != ptd.nwrote) {
-		debug_printf (1, "  sent length mismatch: %d vs %d vs %d\n",
-			      (int)msg->request_body->length, length, ptd.nwrote);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
+	g_assert_null (msg->request_body->data);
+	g_assert_cmpint (msg->request_body->length, ==, length);
+	g_assert_cmpint (length, ==, ptd.nwrote);
 
 	server_md5 = soup_message_headers_get_one (msg->response_headers,
 						   "Content-MD5");
-	if (!server_md5 || strcmp (client_md5, server_md5) != 0) {
-		debug_printf (1, "  client/server data mismatch: %s vs %s\n",
-			      client_md5, server_md5 ? server_md5 : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (client_md5, ==, server_md5);
 
 	g_object_unref (msg);
 	g_checksum_free (check);
@@ -243,10 +232,8 @@ chunk_allocator (SoupMessage *msg, gsize max_len, gpointer user_data)
 
 	debug_printf (2, "  allocating chunk\n");
 
-	if (gtd->current_chunk) {
-		debug_printf (1, "  error: next chunk allocated before last one freed!\n");
-		errors++;
-	}
+	soup_test_assert (gtd->current_chunk == NULL,
+			  "error: next chunk allocated before last one freed");
 	gtd->current_chunk = soup_buffer_new_with_owner (g_malloc (6), 6,
 							 &gtd->current_chunk,
 							 clear_buffer_ptr);
@@ -270,7 +257,7 @@ got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 }
 
 static void
-do_response_test (SoupSession *session, SoupURI *base_uri)
+do_response_test (void)
 {
 	GetTestData gtd;
 	SoupMessage *msg;
@@ -291,30 +278,14 @@ do_response_test (SoupSession *session, SoupURI *base_uri)
 			  G_CALLBACK (got_chunk), &gtd);
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  message failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
-
-	if (msg->response_body->data) {
-		debug_printf (1, "  msg->response_body set!\n");
-		errors++;
-	}
-	if (soup_message_headers_get_content_length (msg->response_headers) != gtd.length) {
-		debug_printf (1, "  received length mismatch: %d vs %d\n",
-			      (int)soup_message_headers_get_content_length (msg->response_headers), gtd.length);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_assert_null (msg->response_body->data);
+	g_assert_cmpint (soup_message_headers_get_content_length (msg->response_headers), ==, gtd.length);
 
 	client_md5 = g_checksum_get_string (gtd.check);
 	server_md5 = soup_message_headers_get_one (msg->response_headers,
 						   "Content-MD5");
-	if (!server_md5 || strcmp (client_md5, server_md5) != 0) {
-		debug_printf (1, "  client/server data mismatch: %s vs %s\n",
-			      client_md5, server_md5 ? server_md5 : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (client_md5, ==, server_md5);
 
 	g_object_unref (msg);
 	g_checksum_free (gtd.check);
@@ -336,18 +307,18 @@ temp_test_wrote_chunk (SoupMessage *msg, gpointer session)
 	 * the I/O to stall since soup-message-io will think it's
 	 * done, but it hasn't written Content-Length bytes yet.
 	 */
-	if (!chunk) {
-		debug_printf (1, "  Lost second chunk!\n");
-		errors++;
-		soup_session_abort (session);
-	} else
+	if (chunk)
 		soup_buffer_free (chunk);
+	else {
+		soup_test_assert (chunk, "Lost second chunk");
+		soup_session_abort (session);
+	}
 
 	g_signal_handlers_disconnect_by_func (msg, temp_test_wrote_chunk, session);
 }
 
 static void
-do_temporary_test (SoupSession *session, SoupURI *base_uri)
+do_temporary_test (void)
 {
 	SoupMessage *msg;
 	char *client_md5;
@@ -368,19 +339,11 @@ do_temporary_test (SoupSession *session, SoupURI *base_uri)
 			  G_CALLBACK (temp_test_wrote_chunk), session);
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  message failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
 
 	server_md5 = soup_message_headers_get_one (msg->response_headers,
 						   "Content-MD5");
-	if (!server_md5 || strcmp (client_md5, server_md5) != 0) {
-		debug_printf (1, "  client/server data mismatch: %s vs %s\n",
-			      client_md5, server_md5 ? server_md5 : "(null)");
-		errors++;
-	}
+	g_assert_cmpstr (client_md5, ==, server_md5);
 
 	g_free (client_md5);
 	g_object_unref (msg);
@@ -398,16 +361,14 @@ large_wrote_body_data (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
 	LargeChunkData *lcd = user_data;
 
-	if (memcmp (chunk->data, lcd->buf->data + lcd->offset, chunk->length) != 0) {
-		debug_printf (1, "  chunk data mismatch at %ld\n", (long)lcd->offset);
-		errors++;
-	} else
-		debug_printf (2, "  chunk data match at %ld\n", (long)lcd->offset);
+	soup_assert_cmpmem (chunk->data, chunk->length,
+			    lcd->buf->data + lcd->offset,
+			    chunk->length);
 	lcd->offset += chunk->length;
 }
 
 static void
-do_large_chunk_test (SoupSession *session, SoupURI *base_uri)
+do_large_chunk_test (void)
 {
 	SoupMessage *msg;
 	char *buf_data;
@@ -430,38 +391,10 @@ do_large_chunk_test (SoupSession *session, SoupURI *base_uri)
 			  G_CALLBACK (large_wrote_body_data), &lcd);
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  message failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_CREATED);
 
 	soup_buffer_free (lcd.buf);
 	g_object_unref (msg);
-}
-
-static void
-do_chunk_tests (SoupURI *base_uri)
-{
-	SoupSession *session;
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	do_request_test (session, base_uri, 0);
-	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, PROPER_STREAMING);
-	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, PROPER_STREAMING | RESTART);
-	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, HACKY_STREAMING);
-	debug_printf (2, "\n\n");
-	do_request_test (session, base_uri, HACKY_STREAMING | RESTART);
-	debug_printf (2, "\n\n");
-	do_response_test (session, base_uri);
-	debug_printf (2, "\n\n");
-	do_temporary_test (session, base_uri);
-	debug_printf (2, "\n\n");
-	do_large_chunk_test (session, base_uri);
-	soup_test_session_abort_unref (session);
 }
 
 static void
@@ -507,7 +440,7 @@ main (int argc, char **argv)
 	GMainLoop *loop;
 	SoupServer *server;
 	guint port;
-	SoupURI *base_uri;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -520,12 +453,27 @@ main (int argc, char **argv)
 
 	base_uri = soup_uri_new ("http://127.0.0.1");
 	soup_uri_set_port (base_uri, port);
-	do_chunk_tests (base_uri);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+	g_test_add_data_func ("/chunks/request/unstreamed", GINT_TO_POINTER (0), do_request_test);
+	g_test_add_data_func ("/chunks/request/proper-streaming", GINT_TO_POINTER (PROPER_STREAMING), do_request_test);
+	g_test_add_data_func ("/chunks/request/proper-streaming/restart", GINT_TO_POINTER (PROPER_STREAMING | RESTART), do_request_test);
+	g_test_add_data_func ("/chunks/request/hacky-streaming", GINT_TO_POINTER (HACKY_STREAMING), do_request_test);
+	g_test_add_data_func ("/chunks/request/hacky-streaming/restart", GINT_TO_POINTER (HACKY_STREAMING | RESTART), do_request_test);
+	g_test_add_func ("/chunks/response", do_response_test);
+	g_test_add_func ("/chunks/temporary", do_temporary_test);
+	g_test_add_func ("/chunks/large", do_large_chunk_test);
+
+	ret = g_test_run ();
+
+	soup_test_session_abort_unref (session);
+
 	soup_uri_free (base_uri);
 
 	g_main_loop_unref (loop);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

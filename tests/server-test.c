@@ -17,8 +17,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 				     "X-Handled-By", "server_callback");
 
 	if (!strcmp (path, "*")) {
-		debug_printf (1, "    default server_callback got request for '*'!\n");
-		errors++;
+		soup_test_assert (FALSE, "default server_callback got request for '*'");
 		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 		return;
 	}
@@ -42,8 +41,7 @@ server_star_callback (SoupServer *server, SoupMessage *msg,
 				     "X-Handled-By", "star_callback");
 
 	if (strcmp (path, "*") != 0) {
-		debug_printf (1, "    server_star_callback got request for '%s'!\n", path);
-		errors++;
+		soup_test_assert (FALSE, "server_star_callback got request for '%s'", path);
 		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 		return;
 	}
@@ -77,19 +75,10 @@ do_star_test (void)
 	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
 	soup_session_send_message (session, msg);
 
-	if (msg->status_code != SOUP_STATUS_NOT_FOUND) {
-		debug_printf (1, "    Unexpected response: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
 	handled_by = soup_message_headers_get_one (msg->response_headers,
 						   "X-Handled-By");
-	if (handled_by) {
-		/* Should have been rejected by SoupServer directly */
-		debug_printf (1, "    Message reached handler '%s'\n",
-			      handled_by);
-		errors++;
-	}
+	g_assert_cmpstr (handled_by, ==, NULL);
 	g_object_unref (msg);
 
 	soup_server_add_handler (server, "*", server_star_callback, NULL, NULL);
@@ -98,21 +87,10 @@ do_star_test (void)
 	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
 	soup_session_send_message (session, msg);
 
-	if (msg->status_code != SOUP_STATUS_OK) {
-		debug_printf (1, "    Unexpected response: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	handled_by = soup_message_headers_get_one (msg->response_headers,
 						   "X-Handled-By");
-	if (!handled_by) {
-		debug_printf (1, "    Message did not reach handler!\n");
-		errors++;
-	} else if (strcmp (handled_by, "star_callback") != 0) {
-		debug_printf (1, "    Message reached incorrect handler '%s'\n",
-			      handled_by);
-		errors++;
-	}
+	g_assert_cmpstr (handled_by, ==, "star_callback");
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -150,10 +128,8 @@ do_one_server_aliases_test (SoupURI    *uri,
 	g_object_unref (addr);
 	g_object_unref (client);
 	if (!conn) {
-		debug_printf (1, "    error connecting to server: %s\n",
-			      error->message);
+		g_assert_no_error (error);
 		g_error_free (error);
-		errors++;
 		return;
 	}
 
@@ -168,10 +144,8 @@ do_one_server_aliases_test (SoupURI    *uri,
 	g_string_append (req, "Connection: close\r\n\r\n");
 
 	if (!g_output_stream_write_all (out, req->str, req->len, NULL, NULL, &error)) {
-		debug_printf (1, "    error sending request: %s\n",
-			      error->message);
+		g_assert_no_error (error);
 		g_error_free (error);
-		errors++;
 		g_object_unref (conn);
 		g_string_free (req, TRUE);
 		return;
@@ -179,20 +153,16 @@ do_one_server_aliases_test (SoupURI    *uri,
 	g_string_free (req, TRUE);
 
 	if (!g_input_stream_read_all (in, buf, sizeof (buf), NULL, NULL, &error)) {
-		debug_printf (1, "    error reading response: %s\n",
-			      error->message);
+		g_assert_no_error (error);
 		g_error_free (error);
-		errors++;
 		g_object_unref (conn);
 		return;
 	}
 
-	if ((succeed && !g_str_has_prefix (buf, "HTTP/1.1 200 ")) ||
-	    (!succeed && !g_str_has_prefix (buf, "HTTP/1.1 400 "))) {
-		debug_printf (1, "    unexpected response: %.*s\n",
-			      (int) strcspn (buf, "\r\n"), buf);
-		errors++;
-	}
+	if (succeed)
+		g_assert_true (g_str_has_prefix (buf, "HTTP/1.1 200 "));
+	else
+		g_assert_true (g_str_has_prefix (buf, "HTTP/1.1 400 "));
 
 	g_io_stream_close (G_IO_STREAM (conn), NULL, NULL);
 	g_object_unref (conn);
@@ -238,12 +208,7 @@ do_dot_dot_test (void)
 	soup_uri_free (uri);
 
 	soup_session_send_message (session, msg);
-
-	if (msg->status_code != SOUP_STATUS_BAD_REQUEST) {
-		debug_printf (1, "      FAILED: %d %s (expected Bad Request)\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_BAD_REQUEST);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -257,24 +222,16 @@ ipv6_server_callback (SoupServer *server, SoupMessage *msg,
 	const char *host;
 	char expected_host[128];
 
-	host = soup_message_headers_get_one (msg->request_headers, "Host");
-	if (!host) {
-		debug_printf (1, "    request has no Host header!\n");
-		errors++;
-		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
-		return;
-	}
-
 	g_snprintf (expected_host, sizeof (expected_host),
 		    "[::1]:%d", soup_server_get_port (server));
 
-	if (strcmp (host, expected_host) == 0)
-		soup_message_set_status (msg, SOUP_STATUS_OK);
-	else {
-		debug_printf (1, "    request has incorrect Host header '%s'\n", host);
-		errors++;
+	host = soup_message_headers_get_one (msg->request_headers, "Host");
+	g_assert_cmpstr (host, ==, expected_host);
+
+	if (g_test_failed ())
 		soup_message_set_status (msg, SOUP_STATUS_BAD_REQUEST);
-	}
+	else
+		soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
 static void
@@ -309,22 +266,14 @@ do_ipv6_test (void)
 	debug_printf (1, "  HTTP/1.1\n");
 	msg = soup_message_new_from_uri ("GET", ipv6_uri);
 	soup_session_send_message (session, msg);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    request failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	debug_printf (1, "  HTTP/1.0\n");
 	msg = soup_message_new_from_uri ("GET", ipv6_uri);
 	soup_message_set_http_version (msg, SOUP_HTTP_1_0);
 	soup_session_send_message (session, msg);
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "    request failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	soup_uri_free (ipv6_uri);
@@ -337,6 +286,7 @@ main (int argc, char **argv)
 {
 	char *http_aliases[] = { "dav", NULL };
 	char *https_aliases[] = { "davs", NULL };
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -359,10 +309,12 @@ main (int argc, char **argv)
 			      NULL);
 	}
 
-	do_star_test ();
-	do_server_aliases_test ();
-	do_dot_dot_test ();
-	do_ipv6_test ();
+	g_test_add_func ("/server/OPTIONS *", do_star_test);
+	g_test_add_func ("/server/aliases", do_server_aliases_test);
+	g_test_add_func ("/server/..-in-path", do_dot_dot_test);
+	g_test_add_func ("/server/ipv6", do_ipv6_test);
+
+	ret = g_test_run ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
@@ -373,5 +325,5 @@ main (int argc, char **argv)
 	}
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

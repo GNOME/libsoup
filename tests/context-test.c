@@ -84,9 +84,11 @@ static GMutex test1_mutex;
 static GMainLoop *test1_loop;
 
 static void
-do_test1 (int n, gboolean use_thread_context)
+do_test1 (gconstpointer data)
 {
-	debug_printf (1, "\nTest %d: blocking the main thread does not block other thread\n", n);
+	gboolean use_thread_context = GPOINTER_TO_INT (data);
+
+	debug_printf (1, "\nBlocking the main thread does not block other thread\n");
 	if (use_thread_context)
 		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
 	else
@@ -111,9 +113,8 @@ idle_start_test1_thread (gpointer use_thread_context)
 	if (g_cond_wait_until (&test1_cond, &test1_mutex, time))
 		g_thread_join (thread);
 	else {
-		debug_printf (1, "  timeout!\n");
+		soup_test_assert (FALSE, "timeout");
 		g_thread_unref (thread);
-		errors++;
 	}
 
 	g_mutex_unlock (&test1_mutex);
@@ -158,11 +159,7 @@ test1_thread (gpointer use_thread_context)
 	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
-	if (msg->status_code != SOUP_STATUS_OK) {
-		debug_printf (1, "    unexpected status: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	debug_printf (1, "  queue_message\n");
@@ -172,11 +169,7 @@ test1_thread (gpointer use_thread_context)
 	soup_session_queue_message (session, msg, test1_finished, loop);
 	g_main_loop_run (loop);
 	g_main_loop_unref (loop);
-	if (msg->status_code != SOUP_STATUS_OK) {
-		debug_printf (1, "    unexpected status: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -196,15 +189,16 @@ test1_thread (gpointer use_thread_context)
 static gboolean idle_test2_fail (gpointer user_data);
 
 static void
-do_test2 (int n, gboolean use_thread_context)
+do_test2 (gconstpointer data)
 {
+	gboolean use_thread_context = GPOINTER_TO_INT (data);
 	guint idle;
 	GMainContext *async_context;
 	SoupSession *session;
 	char *uri;
 	SoupMessage *msg;
 
-	debug_printf (1, "\nTest %d: a session with its own context is independent of the main loop.\n", n);
+	debug_printf (1, "\nA session with its own context is independent of the main loop.\n");
 	if (use_thread_context)
 		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
 	else
@@ -230,11 +224,7 @@ do_test2 (int n, gboolean use_thread_context)
 	debug_printf (1, "  send_message\n");
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
-	if (msg->status_code != SOUP_STATUS_OK) {
-		debug_printf (1, "    unexpected status: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	soup_test_session_abort_unref (session);
@@ -249,8 +239,7 @@ do_test2 (int n, gboolean use_thread_context)
 static gboolean
 idle_test2_fail (gpointer user_data)
 {
-	debug_printf (1, "  idle ran!\n");
-	errors++;
+	soup_test_assert (FALSE, "idle ran");
 	return FALSE;
 }
 
@@ -279,14 +268,14 @@ multi_msg_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
 }
 
 static void
-do_multicontext_test (int n)
+do_multicontext_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg1, *msg2;
 	GMainContext *context1, *context2;
 	GMainLoop *loop1, *loop2;
 
-	debug_printf (1, "\nTest %d: Using multiple async contexts\n", n);
+	debug_printf (1, "\nUsing multiple async contexts\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -318,36 +307,26 @@ do_multicontext_test (int n)
 	g_main_loop_run (loop1);
 	g_main_context_pop_thread_default (context1);
 
-	if (!g_object_get_data (G_OBJECT (msg1), "started")) {
-		debug_printf (1, "  msg1 not started??\n");
-		errors++;
-	}
-	if (g_object_get_data (G_OBJECT (msg2), "started")) {
-		debug_printf (1, "  msg2 started while loop1 was running!\n");
-		errors++;
-	}
+	if (!g_object_get_data (G_OBJECT (msg1), "started"))
+		soup_test_assert (FALSE, "msg1 not started");
+	if (g_object_get_data (G_OBJECT (msg2), "started"))
+		soup_test_assert (FALSE, "msg2 started while loop1 was running");
 
 	g_main_context_push_thread_default (context2);
 	g_main_loop_run (loop2);
 	g_main_context_pop_thread_default (context2);
 
-	if (g_object_get_data (G_OBJECT (msg1), "finished")) {
-		debug_printf (1, "  msg1 finished while loop2 was running!\n");
-		errors++;
-	}
-	if (!g_object_get_data (G_OBJECT (msg2), "finished")) {
-		debug_printf (1, "  msg2 not finished??\n");
-		errors++;
-	}
+	if (g_object_get_data (G_OBJECT (msg1), "finished"))
+		soup_test_assert (FALSE, "msg1 finished while loop2 was running");
+	if (!g_object_get_data (G_OBJECT (msg2), "finished"))
+		soup_test_assert (FALSE, "msg2 not finished");
 
 	g_main_context_push_thread_default (context1);
 	g_main_loop_run (loop1);
 	g_main_context_pop_thread_default (context1);
 
-	if (!g_object_get_data (G_OBJECT (msg1), "finished")) {
-		debug_printf (1, "  msg1 not finished??\n");
-		errors++;
-	}
+	if (!g_object_get_data (G_OBJECT (msg1), "finished"))
+		soup_test_assert (FALSE, "msg1 not finished");
 
 	g_object_unref (msg1);
 	g_object_unref (msg2);
@@ -364,6 +343,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -372,15 +352,17 @@ main (int argc, char **argv)
 	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
 				    soup_server_get_port (server));
 
-	do_test1 (1, FALSE);
-	do_test1 (2, TRUE);
-	do_test2 (3, FALSE);
-	do_test2 (4, TRUE);
-	do_multicontext_test (5);
+	g_test_add_data_func ("/context/blocking/explicit", GINT_TO_POINTER (FALSE), do_test1);
+	g_test_add_data_func ("/context/blocking/thread-default", GINT_TO_POINTER (TRUE), do_test1);
+	g_test_add_data_func ("/context/nested/explicit", GINT_TO_POINTER (FALSE), do_test2);
+	g_test_add_data_func ("/context/nested/thread-default", GINT_TO_POINTER (TRUE), do_test2);
+	g_test_add_func ("/context/multiple", do_multicontext_test);
+
+	ret = g_test_run ();
 
 	g_free (base_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

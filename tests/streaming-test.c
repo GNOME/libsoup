@@ -106,44 +106,47 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 
 	soup_session_send_message (session, msg);
 
-	if (!SOUP_STATUS_IS_SUCCESSFUL (msg->status_code)) {
-		debug_printf (1, "  message failed: %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		errors++;
-	}
-
-	if (msg->response_body->length != full_response_length) {
-		debug_printf (1, "  received length mismatch: expected %d, got %d\n",
-			      (int)full_response_length, (int)msg->request_body->length);
-		errors++;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_assert_cmpint (msg->response_body->length, ==, full_response_length);
 
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
 					   (guchar *)msg->response_body->data,
 					   msg->response_body->length);
-	if (strcmp (md5, full_response_md5) != 0) {
-		debug_printf (1, "  data mismatch: expected %s, got %s\n",
-			      full_response_md5, md5);
-		errors++;
-	}
+	g_assert_cmpstr (md5, ==, full_response_md5);
 	g_free (md5);
 
 	g_object_unref (msg);
 }
 
 static void
-do_tests (SoupURI *base_uri)
+do_chunked_test (gconstpointer data)
 {
+	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	debug_printf (1, "Chunked encoding\n");
 	do_request (session, base_uri, "chunked");
-	debug_printf (1, "\n");
-	debug_printf (1, "Content-Length encoding\n");
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_content_length_test (gconstpointer data)
+{
+	SoupURI *base_uri = (SoupURI *)data;
+	SoupSession *session;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_request (session, base_uri, "content-length");
-	debug_printf (1, "\n");
-	debug_printf (1, "EOF encoding\n");
+	soup_test_session_abort_unref (session);
+}
+
+static void
+do_eof_test (gconstpointer data)
+{
+	SoupURI *base_uri = (SoupURI *)data;
+	SoupSession *session;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_request (session, base_uri, "eof");
 	soup_test_session_abort_unref (session);
 }
@@ -155,8 +158,10 @@ main (int argc, char **argv)
 	SoupServer *server;
 	guint port;
 	SoupURI *base_uri;
+	int ret;
 
 	test_init (argc, argv, NULL);
+
 	get_full_response ();
 
 	server = soup_test_server_new (FALSE);
@@ -168,14 +173,20 @@ main (int argc, char **argv)
 
 	base_uri = soup_uri_new ("http://127.0.0.1");
 	soup_uri_set_port (base_uri, port);
-	do_tests (base_uri);
-	soup_uri_free (base_uri);
 
+	g_test_add_data_func ("/streaming/chunked", base_uri, do_chunked_test);
+	g_test_add_data_func ("/streaming/content-length", base_uri, do_content_length_test);
+	g_test_add_data_func ("/streaming/eof", base_uri, do_eof_test);
+
+	ret = g_test_run ();
+
+	soup_uri_free (base_uri);
 	g_main_loop_unref (loop);
 
 	g_free (full_response);
 	g_free (full_response_md5);
 	soup_test_server_quit_unref (server);
 	test_cleanup ();
-	return errors != 0;
+
+	return ret;
 }

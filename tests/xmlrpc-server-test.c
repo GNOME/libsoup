@@ -242,7 +242,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 static void
 xmlrpc_test_exited (GPid pid, int status, gpointer data)
 {
-	errors = WIFEXITED (status) ? WEXITSTATUS (status) : 1;
+	g_assert_true (WIFEXITED (status) && WEXITSTATUS (status) == 0);
 	g_main_loop_quit (loop);
 }
 
@@ -270,9 +270,10 @@ xmlrpc_test_print (GIOChannel *io, GIOCondition cond, gpointer data)
 }
 
 static void
-do_xmlrpc_tests (SoupURI *uri)
+do_xmlrpc_tests (gconstpointer data)
 {
-	char *argv[8];
+	SoupURI *uri = (SoupURI *)data;
+	char *argv[10];
 	int arg, out;
 	gboolean ok;
 	GPid pid;
@@ -280,13 +281,14 @@ do_xmlrpc_tests (SoupURI *uri)
 	GIOChannel *child_out;
 
 	argv[0] = "./xmlrpc-test";
-	argv[1] = "-s";
-	argv[2] = "-u";
+	argv[1] = "-S";
+	argv[2] = "-U";
 	argv[3] = soup_uri_to_string (uri, FALSE);
+	argv[4] = "-q";
 
 	for (arg = 0; arg < debug_level && arg < 3; arg++)
-		argv[arg + 4] = "-d";
-	argv[arg + 4] = NULL;
+		argv[arg + 5] = "-d";
+	argv[arg + 5] = NULL;
 
 	ok = g_spawn_async_with_pipes (NULL, argv, NULL,
 				       G_SPAWN_DO_NOT_REAP_CHILD,
@@ -295,17 +297,18 @@ do_xmlrpc_tests (SoupURI *uri)
 				       &error);
 	g_free (argv[3]);
 
-	if (!ok) {
-		g_print ("Could not run xmlrpc-test: %s\n", error->message);
-		errors++;
+	g_assert_no_error (error);
+	if (!ok)
 		return;
-	}
 
 	g_child_watch_add (pid, xmlrpc_test_exited, NULL);
 	child_out = g_io_channel_unix_new (out);
 	g_io_add_watch (child_out, G_IO_IN | G_IO_ERR | G_IO_HUP,
 			xmlrpc_test_print, NULL);
 	g_io_channel_unref (child_out);
+
+	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
 }
 
 gboolean run_tests = TRUE;
@@ -322,6 +325,7 @@ main (int argc, char **argv)
 {
 	SoupServer *server;
 	SoupURI *uri;
+	int ret;
 
 	test_init (argc, argv, no_test_entry);
 
@@ -334,18 +338,25 @@ main (int argc, char **argv)
 	if (run_tests) {
 		uri = soup_uri_new ("http://127.0.0.1/xmlrpc-server.php");
 		soup_uri_set_port (uri, soup_server_get_port (server));
-		do_xmlrpc_tests (uri);
+
+		g_test_add_data_func ("/xmlrpc/server", uri, do_xmlrpc_tests);
+
+		ret = g_test_run ();
+
 		soup_uri_free (uri);
-	} else
+	} else {
 		g_print ("Listening on port %d\n", soup_server_get_port (server));
 
-	g_main_loop_run (loop);
-	g_main_loop_unref (loop);
+		g_main_loop_run (loop);
+		g_main_loop_unref (loop);
+
+		ret = 0;
+	}
 
 	soup_test_server_quit_unref (server);
 	if (run_tests)
 		test_cleanup ();
-	return errors != 0;
+	return ret;
 }
 
 #else /* HAVE_PHP_XMLRPC */

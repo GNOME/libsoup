@@ -2,6 +2,8 @@
 
 #include "test-utils.h"
 
+static gboolean slow_https;
+
 static void
 message_finished (SoupMessage *msg, gpointer user_data)
 {
@@ -34,24 +36,10 @@ do_message_to_session (SoupSession *session, const char *uri,
 			  G_CALLBACK (message_finished), &finished);
 	soup_session_send_message (session, msg);
 
-	if (msg->status_code != expected_status) {
-		debug_printf (1, "      FAILED: %d %s (expected %d %s)\n",
-			      msg->status_code, msg->reason_phrase,
-			      expected_status,
-			      soup_status_get_phrase (expected_status));
-		errors++;
-	}
-
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&
-	    !soup_message_is_keepalive (msg)) {
-		debug_printf (1, "      ERROR: message is not keepalive!\n");
-		errors++;
-	}
-
-	if (!finished) {
-		debug_printf (1, "      ERROR: 'finished' was not emitted\n");
-		errors++;
-	}
+	soup_test_assert_message_status (msg, expected_status);
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+		g_assert_true (soup_message_is_keepalive (msg));
+	g_assert_true (finished);
 
 	g_signal_handlers_disconnect_by_func (msg,
 					      G_CALLBACK (message_finished),
@@ -63,7 +51,8 @@ static void
 do_msg_tests_for_session (SoupSession *timeout_session,
 			  SoupSession *idle_session,
 			  SoupSession *plain_session,
-			  char *fast_uri, char *slow_uri)
+			  const char *fast_uri,
+			  const char *slow_uri)
 {
 	SoupSocket *ret, *idle_first, *idle_second;
 	SoupSocket *plain_first, *plain_second;
@@ -92,10 +81,8 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 						      (gpointer)request_started_cb,
 						      &ret);
 
-		if (idle_first == idle_second) {
-			debug_printf (1, "      ERROR: idle_session did not close first connection\n");
-			errors++;
-		}
+		soup_test_assert (idle_first != idle_second,
+				  "idle_session did not close first connection");
 		g_object_unref (idle_first);
 	}
 
@@ -106,10 +93,8 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 						      (gpointer)request_started_cb,
 						      &ret);
 
-		if (plain_first != plain_second) {
-			debug_printf (1, "      ERROR: plain_session closed connection\n");
-			errors++;
-		}
+		soup_test_assert (plain_first == plain_second,
+				  "plain_session closed connection");
 		g_object_unref (plain_first);
 	}
 }
@@ -132,51 +117,26 @@ do_request_to_session (SoupSession *session, const char *uri,
 			  G_CALLBACK (message_finished), &finished);
 	stream = soup_test_request_send (req, NULL, 0, &error);
 
-	if (expect_timeout && !error) {
-		debug_printf (1, "      FAILED: request did not time out\n");
-		errors++;
-	} else if (expect_timeout && !g_error_matches (error, G_IO_ERROR,
-						       G_IO_ERROR_TIMED_OUT)) {
-		debug_printf (1, "      FAILED: wrong error: %s\n",
-			      error->message);
-		errors++;
-	} else if (!expect_timeout && error) {
-		debug_printf (1, "      FAILED: expected success but got error: %s\n",
-			      error->message);
-		errors++;
-	}
+	if (expect_timeout)
+		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT);
+	else
+		g_assert_no_error (error);
 	g_clear_error (&error);
 
 	if (stream) {
 		soup_test_request_read_all (req, stream, NULL, &error);
-		if (error) {
-			debug_printf (1, "      ERROR reading stream: %s\n",
-				      error->message);
-			errors++;
-		}
+		g_assert_no_error (error);
 	}
 
 	if (stream) {
 		soup_test_request_close_stream (req, stream, NULL, &error);
-
-		if (error) {
-			debug_printf (1, "      ERROR closing stream: %s\n",
-				      error->message);
-			errors++;
-		}
+		g_assert_no_error (error);
 		g_object_unref (stream);
 	}
 
-	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code) &&
-	    !soup_message_is_keepalive (msg)) {
-		debug_printf (1, "      ERROR: message is not keepalive!\n");
-		errors++;
-	}
-
-	if (!finished) {
-		debug_printf (1, "      ERROR: 'finished' was not emitted\n");
-		errors++;
-	}
+	if (SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+		g_assert_true (soup_message_is_keepalive (msg));
+	g_assert_true (finished);
 
 	g_signal_handlers_disconnect_by_func (msg,
 					      G_CALLBACK (message_finished),
@@ -189,7 +149,8 @@ static void
 do_req_tests_for_session (SoupSession *timeout_session,
 			  SoupSession *idle_session,
 			  SoupSession *plain_session,
-			  char *fast_uri, char *slow_uri)
+			  const char *fast_uri,
+			  const char *slow_uri)
 {
 	SoupSocket *ret, *idle_first, *idle_second;
 	SoupSocket *plain_first, *plain_second;
@@ -220,10 +181,8 @@ do_req_tests_for_session (SoupSession *timeout_session,
 						      (gpointer)request_started_cb,
 						      &ret);
 
-		if (idle_first == idle_second) {
-			debug_printf (1, "      ERROR: idle_session did not close first connection\n");
-			errors++;
-		}
+		soup_test_assert (idle_first != idle_second,
+				  "idle_session did not close first connection");
 		g_object_unref (idle_first);
 	}
 
@@ -234,20 +193,30 @@ do_req_tests_for_session (SoupSession *timeout_session,
 						      (gpointer)request_started_cb,
 						      &ret);
 
-		if (plain_first != plain_second) {
-			debug_printf (1, "      ERROR: plain_session closed connection\n");
-			errors++;
-		}
+		soup_test_assert (plain_first == plain_second,
+				  "plain_session closed connection");
 		g_object_unref (plain_first);
 	}
 }
 
 static void
-do_timeout_tests (char *fast_uri, char *slow_uri, gboolean extra_slow)
+do_async_timeout_tests (gconstpointer data)
 {
 	SoupSession *timeout_session, *idle_session, *plain_session;
+	const char *fast_uri = data;
+	const char *slow_uri = g_build_path ("/", fast_uri, "slow", NULL);
+	gboolean extra_slow;
 
-	debug_printf (1, "  async\n");
+	if (g_str_has_prefix (fast_uri, "https")) {
+		if (!tls_available) {
+			g_test_skip ("TLS not available");
+			return;
+		}
+
+		extra_slow = slow_https;
+	} else
+		extra_slow = FALSE;
+
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -272,8 +241,26 @@ do_timeout_tests (char *fast_uri, char *slow_uri, gboolean extra_slow)
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (idle_session);
 	soup_test_session_abort_unref (plain_session);
+}
 
-	debug_printf (1, "\n  sync\n");
+static void
+do_sync_timeout_tests (gconstpointer data)
+{
+	SoupSession *timeout_session, *plain_session;
+	const char *fast_uri = data;
+	const char *slow_uri = g_build_path ("/", fast_uri, "slow", NULL);
+	gboolean extra_slow;
+
+	if (g_str_has_prefix (fast_uri, "https")) {
+		if (!tls_available) {
+			g_test_skip ("TLS not available");
+			return;
+		}
+
+		extra_slow = slow_https;
+	} else
+		extra_slow = FALSE;
+
 	timeout_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 						 SOUP_SESSION_TIMEOUT, extra_slow ? 3 : 1,
 						 NULL);
@@ -319,57 +306,55 @@ server_handler (SoupServer        *server,
 int
 main (int argc, char **argv)
 {
-	SoupServer *server;
-	char *fast_uri, *slow_uri;
+	SoupServer *server, *https_server = NULL;
+	char *uri, *https_uri = NULL;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
-	debug_printf (1, "http\n");
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-	fast_uri = g_strdup_printf ("http://127.0.0.1:%u/",
-				    soup_server_get_port (server));
-	slow_uri = g_strdup_printf ("http://127.0.0.1:%u/slow",
-				    soup_server_get_port (server));
-	do_timeout_tests (fast_uri, slow_uri, FALSE);
-	g_free (fast_uri);
-	g_free (slow_uri);
-	soup_test_server_quit_unref (server);
+	uri = g_strdup_printf ("http://127.0.0.1:%u/",
+			       soup_server_get_port (server));
 
 	if (tls_available) {
 		SoupSession *test_session;
-		gboolean extra_slow;
 		gint64 start, end;
 
-		debug_printf (1, "\nhttps\n");
-		server = soup_test_server_new_ssl (TRUE);
-		soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-		fast_uri = g_strdup_printf ("https://127.0.0.1:%u/",
-					    soup_server_get_port (server));
-		slow_uri = g_strdup_printf ("https://127.0.0.1:%u/slow",
-					    soup_server_get_port (server));
+		https_server = soup_test_server_new_ssl (TRUE);
+		soup_server_add_handler (https_server, NULL, server_handler, NULL, NULL);
+		https_uri = g_strdup_printf ("https://127.0.0.1:%u/",
+					     soup_server_get_port (https_server));
 
 		/* The 1-second timeouts are too fast for some machines... */
 		test_session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 		start = g_get_monotonic_time ();
-		do_message_to_session (test_session, fast_uri, NULL, SOUP_STATUS_OK);
+		do_message_to_session (test_session, uri, NULL, SOUP_STATUS_OK);
 		end = g_get_monotonic_time ();
 		soup_test_session_abort_unref (test_session);
 		debug_printf (2, "  (https request took %0.3fs)\n", (end - start) / 1000000.0);
 		if (end - start > 750000) {
 			debug_printf (1, "  (using extra-slow mode)\n\n");
-			extra_slow = TRUE;
+			slow_https = TRUE;
 		} else {
 			debug_printf (2, "\n");
-			extra_slow = FALSE;
+			slow_https = FALSE;
 		}
-
-		do_timeout_tests (fast_uri, slow_uri, extra_slow);
-		g_free (fast_uri);
-		g_free (slow_uri);
-		soup_test_server_quit_unref (server);
 	}
 
+	g_test_add_data_func ("/timeout/http/async", uri, do_async_timeout_tests);
+	g_test_add_data_func ("/timeout/http/sync", uri, do_sync_timeout_tests);
+	g_test_add_data_func ("/timeout/https/async", https_uri, do_async_timeout_tests);
+	g_test_add_data_func ("/timeout/https/sync", https_uri, do_sync_timeout_tests);
+
+	ret = g_test_run ();
+
+	g_free (uri);
+	g_free (https_uri);
+	soup_test_server_quit_unref (server);
+	if (https_server)
+		soup_test_server_quit_unref (https_server);
+
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

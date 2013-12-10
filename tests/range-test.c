@@ -35,41 +35,39 @@ check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 		      soup_message_headers_get_one (headers, "Content-Range"));
 
 	if (!soup_message_headers_get_content_range (headers, &start, &end, &total_length)) {
-		debug_printf (1, "    Could not find/parse Content-Range\n");
-		errors++;
+		soup_test_assert (FALSE, "Could not find/parse Content-Range");
 		return;
 	}
 
 	if (total_length != full_response->length && total_length != -1) {
-		debug_printf (1, "    Unexpected total length %" G_GINT64_FORMAT " in response\n",
-			      total_length);
-		errors++;
+		soup_test_assert (FALSE,
+				  "Unexpected total length %" G_GINT64_FORMAT " in response\n",
+				  total_length);
 		return;
 	}
 
 	if (check_start_end) {
 		if ((expected_start >= 0 && start != expected_start) ||
 		    (expected_start < 0 && start != full_response->length + expected_start)) {
-			debug_printf (1, "    Unexpected range start %" G_GINT64_FORMAT " in response\n",
-				      start);
-			errors++;
+			soup_test_assert (FALSE,
+					  "Unexpected range start %" G_GINT64_FORMAT " in response\n",
+					  start);
 			return;
 		}
 
 		if ((expected_end >= 0 && end != expected_end) ||
 		    (expected_end < 0 && end != full_response->length - 1)) {
-			debug_printf (1, "    Unexpected range end %" G_GINT64_FORMAT " in response\n",
-				      end);
-			errors++;
+			soup_test_assert (FALSE,
+					  "Unexpected range end %" G_GINT64_FORMAT " in response\n",
+					  end);
 			return;
 		}
 	}
 
 	if (end - start + 1 != body_len) {
-		debug_printf (1, "    Range length (%d) does not match body length (%d)\n",
-			      (int)(end - start) + 1,
-			      (int)body_len);
-		errors++;
+		soup_test_assert (FALSE, "Range length (%d) does not match body length (%d)\n",
+				  (int)(end - start) + 1,
+				  (int)body_len);
 		return;
 	}
 
@@ -87,42 +85,26 @@ do_single_range (SoupSession *session, SoupMessage *msg,
 
 	soup_session_send_message (session, msg);
 
-	if (succeed) {
-		if (msg->status_code != SOUP_STATUS_PARTIAL_CONTENT) {
-			debug_printf (1, "    Unexpected status %d %s\n",
-				      msg->status_code, msg->reason_phrase);
-			g_object_unref (msg);
-			errors++;
-			return;
-		}
-	} else {
-		if (msg->status_code == SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
-			debug_printf (1, "    Got expected %d %s\n",
-				      msg->status_code, msg->reason_phrase);
-		} else {
+	if (!succeed) {
+		soup_test_assert_message_status (msg, SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE);
+		if (msg->status_code != SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE) {
 			const char *content_range;
 
-			debug_printf (1, "    Unexpected status %d %s\n",
-				      msg->status_code, msg->reason_phrase);
 			content_range = soup_message_headers_get_one (msg->response_headers,
 								      "Content-Range");
 			if (content_range)
 				debug_printf (1, "    Content-Range: %s\n", content_range);
-			errors++;
 		}
 
 		g_object_unref (msg);
 		return;
 	}
 
+	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
+
 	content_type = soup_message_headers_get_content_type (
 		msg->response_headers, NULL);
-	if (content_type && !strcmp (content_type, "multipart/byteranges")) {
-		debug_printf (1, "    Response body should not have been multipart/byteranges\n");
-		g_object_unref (msg);
-		errors++;
-		return;
-	}
+	g_assert_cmpstr (content_type, !=, "multipart/byteranges");
 
 	check_part (msg->response_headers, msg->response_body->data,
 		    msg->response_body->length, TRUE, start, end);
@@ -153,38 +135,21 @@ do_multi_range (SoupSession *session, SoupMessage *msg,
 
 	soup_session_send_message (session, msg);
 
-	if (msg->status_code != SOUP_STATUS_PARTIAL_CONTENT) {
-		debug_printf (1, "    Unexpected status %d %s\n",
-			      msg->status_code, msg->reason_phrase);
-		g_object_unref (msg);
-		errors++;
-		return;
-	}
+	soup_test_assert_message_status (msg, SOUP_STATUS_PARTIAL_CONTENT);
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, NULL);
-	if (!content_type || strcmp (content_type, "multipart/byteranges") != 0) {
-		debug_printf (1, "    Response Content-Type (%s) was not multipart/byteranges\n",
-			      content_type);
-		g_object_unref (msg);
-		errors++;
-		return;
-	}
+	g_assert_cmpstr (content_type, ==, "multipart/byteranges");
 
 	multipart = soup_multipart_new_from_message (msg->response_headers,
 						     msg->response_body);
 	if (!multipart) {
-		debug_printf (1, "    Could not parse multipart\n");
+		soup_test_assert (FALSE, "Could not parse multipart");
 		g_object_unref (msg);
-		errors++;
 		return;
 	}
 
 	length = soup_multipart_get_length (multipart);
-	if (length != expected_return_ranges) {
-		debug_printf (1, "    Expected %d ranges, got %d\n",
-			      expected_return_ranges, length);
-		errors++;
-	}
+	g_assert_cmpint (length, ==, expected_return_ranges);
 
 	for (i = 0; i < length; i++) {
 		SoupMessageHeaders *headers;
@@ -360,10 +325,8 @@ do_range_test (SoupSession *session, const char *uri,
 			      10 * twelfths - 5, 11 * twelfths,
 			      expect_partial_coalesce ? 2 : 3);
 
-	if (memcmp (full_response->data, test_response, full_response->length) != 0) {
-		debug_printf (1, "\nfull_response and test_response don't match\n");
-		errors++;
-	}
+	soup_assert_cmpmem (full_response->data, full_response->length,
+			    test_response, full_response->length);
 
 	debug_printf (1, "Requesting (invalid) %d-%d\n",
 		      (int) full_response->length + 1,
@@ -382,6 +345,22 @@ do_range_test (SoupSession *session, const char *uri,
 }
 
 static void
+do_apache_range_test (void)
+{
+	SoupSession *session;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+
+#if HAVE_APACHE_2_2
+	do_range_test (session, "http://127.0.0.1:47524/", FALSE, FALSE);
+#else
+	do_range_test (session, "http://127.0.0.1:47524/", TRUE, FALSE);
+#endif
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
 server_handler (SoupServer        *server,
 		SoupMessage       *msg, 
 		const char        *path,
@@ -394,29 +373,15 @@ server_handler (SoupServer        *server,
 					 full_response);
 }
 
-int
-main (int argc, char **argv)
+static void
+do_libsoup_range_test (void)
 {
 	SoupSession *session;
 	SoupServer *server;
 	char *base_uri;
 
-	test_init (argc, argv, NULL);
-	apache_init ();
-
-	get_full_response ();
-	test_response = g_malloc0 (full_response->length);
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
-	debug_printf (1, "1. Testing against apache\n");
-#if HAVE_APACHE_2_2
-	do_range_test (session, "http://127.0.0.1:47524/", FALSE, FALSE);
-#else
-	do_range_test (session, "http://127.0.0.1:47524/", TRUE, FALSE);
-#endif
-
-	debug_printf (1, "\n2. Testing against SoupServer\n");
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
 	base_uri = g_strdup_printf ("http://127.0.0.1:%u/",
@@ -426,12 +391,29 @@ main (int argc, char **argv)
 	soup_test_server_quit_unref (server);
 
 	soup_test_session_abort_unref (session);
+}
+
+int
+main (int argc, char **argv)
+{
+	int ret;
+
+	test_init (argc, argv, NULL);
+	apache_init ();
+
+	get_full_response ();
+	test_response = g_malloc0 (full_response->length);
+
+	g_test_add_func ("/ranges/apache", do_apache_range_test);
+	g_test_add_func ("/ranges/libsoup", do_libsoup_range_test);
+
+	ret = g_test_run ();
 
 	soup_buffer_free (full_response);
 	g_free (test_response);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }
 
 #else /* HAVE_APACHE */

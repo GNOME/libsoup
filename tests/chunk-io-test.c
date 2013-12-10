@@ -350,6 +350,7 @@ do_io_tests (void)
 {
 	GInputStream *imem, *islow, *in;
 	GOutputStream *omem, *oslow, *out;
+	GMemoryOutputStream *mem;
 	char *raw_contents, *buf;
 	gsize raw_length;
 	GString *chunkified;
@@ -387,35 +388,20 @@ do_io_tests (void)
 	while (TRUE) {
 		nread = g_input_stream_read (in, buf + total, raw_length - total,
 					     NULL, &error);
-		if (nread == -1) {
-			debug_printf (1, "  Error reading stream: %s\n", error->message);
-			g_clear_error (&error);
-			errors++;
-			break;
-		} else if (nread == 0)
-			break;
-		else
+		g_assert_no_error (error);
+		g_clear_error (&error);
+		if (nread > 0)
 			total += nread;
+		else
+			break;
 	}
 
 	g_input_stream_close (in, NULL, &error);
-	if (error) {
-		debug_printf (1, "  Error closing input stream: %s\n", error->message);
-		g_clear_error (&error);
-		errors++;
-	}
+	g_assert_no_error (error);
+	g_clear_error (&error);
 	g_object_unref (in);
 
-	if (total == raw_length) {
-		if (memcmp (buf, raw_contents, raw_length) != 0) {
-			debug_printf (1, "  mismatch when reading\n");
-			errors++;
-		}
-	} else {
-		debug_printf (1, "  incorrect read length: %d vs %d\n",
-			      (int) total, (int) raw_length);
-		errors++;
-	}
+	soup_assert_cmpmem (buf, total, raw_contents, raw_length);
 	g_free (buf);
 
 	debug_printf (1, "  async read\n");
@@ -452,9 +438,8 @@ do_io_tests (void)
 			g_source_unref (source);
 			continue;
 		} else if (nread == -1) {
-			debug_printf (1, "  Error reading stream: %s\n", error->message);
+			g_assert_no_error (error);
 			g_clear_error (&error);
-			errors++;
 			break;
 		} else if (nread == 0)
 			break;
@@ -463,23 +448,11 @@ do_io_tests (void)
 	}
 
 	g_input_stream_close (in, NULL, &error);
-	if (error) {
-		debug_printf (1, "  Error closing input stream: %s\n", error->message);
-		g_clear_error (&error);
-		errors++;
-	}
+	g_assert_no_error (error);
+	g_clear_error (&error);
 	g_object_unref (in);
 
-	if (total == raw_length) {
-		if (memcmp (buf, raw_contents, raw_length) != 0) {
-			debug_printf (1, "  mismatch when reading\n");
-			errors++;
-		}
-	} else {
-		debug_printf (1, "  incorrect read length: %d vs %d\n",
-			      (int) total, (int) raw_length);
-		errors++;
-	}
+	soup_assert_cmpmem (buf, total, raw_contents, raw_length);
 	g_free (buf);
 
 	debug_printf (1, "  sync write\n");
@@ -506,32 +479,25 @@ do_io_tests (void)
 		}
 		nwrote = g_output_stream_write (out, raw_contents + total,
 						chunk_length - chunk_total, NULL, &error);
-		if (nwrote == -1) {
-			debug_printf (1, "  Error writing stream: %s\n", error->message);
-			g_clear_error (&error);
-			errors++;
-			break;
-		} else {
+		g_assert_no_error (error);
+		g_clear_error (&error);
+		if (nwrote > 0) {
 			total += nwrote;
 			chunk_total += nwrote;
-		}
+		} else
+			break;
 	}
 
 	g_output_stream_close (out, NULL, &error);
-	if (error) {
-		debug_printf (1, "  Error closing output stream: %s\n", error->message);
-		g_clear_error (&error);
-		errors++;
-	}
-	g_object_unref (out);
+	g_assert_no_error (error);
+	g_clear_error (&error);
 
-	if (total == raw_length) {
-		if (memcmp (buf, chunkified->str, chunkified->len) != 0) {
-			debug_printf (1, "  mismatch when writing\n");
-			g_print ("%.*s\n", (int)chunkified->len, buf);
-			errors++;
-		}
-	}
+	mem = G_MEMORY_OUTPUT_STREAM (omem);
+	soup_assert_cmpmem (g_memory_output_stream_get_data (mem),
+			    g_memory_output_stream_get_data_size (mem),
+			    chunkified->str, chunkified->len);
+
+	g_object_unref (out);
 	g_free (buf);
 
 	debug_printf (1, "  async write\n");
@@ -573,9 +539,8 @@ do_io_tests (void)
 			g_source_unref (source);
 			continue;
 		} else if (nwrote == -1) {
-			debug_printf (1, "  Error writing stream: %s\n", error->message);
+			g_assert_no_error (error);
 			g_clear_error (&error);
-			errors++;
 			break;
 		} else {
 			total += nwrote;
@@ -584,19 +549,15 @@ do_io_tests (void)
 	}
 
 	g_output_stream_close (out, NULL, &error);
-	if (error) {
-		debug_printf (1, "  Error closing output stream: %s\n", error->message);
-		g_clear_error (&error);
-		errors++;
-	}
-	g_object_unref (out);
+	g_assert_no_error (error);
+	g_clear_error (&error);
 
-	if (total == raw_length) {
-		if (memcmp (buf, chunkified->str, chunkified->len) != 0) {
-			debug_printf (1, "  mismatch when writing\n");
-			errors++;
-		}
-	}
+	mem = G_MEMORY_OUTPUT_STREAM (omem);
+	soup_assert_cmpmem (g_memory_output_stream_get_data (mem),
+			    g_memory_output_stream_get_data_size (mem),
+			    chunkified->str, chunkified->len);
+
+	g_object_unref (out);
 	g_free (buf);
 
 	debug_printf (1, "  failed write\n");
@@ -626,10 +587,7 @@ do_io_tests (void)
 			total += nwrote;
 	}
 
-	if (total == raw_length) {
-		debug_printf (1, "  breaking stream didn't break?\n");
-		errors++;
-	}
+	g_assert_cmpint (total, !=, raw_length);
 
 	g_output_stream_close (out, NULL, NULL);
 	g_object_unref (out);
@@ -643,12 +601,16 @@ do_io_tests (void)
 int
 main (int argc, char **argv)
 {
+	int ret;
+
 	test_init (argc, argv, NULL);
 
 	force_io_streams_init ();
 
-	do_io_tests ();
+	g_test_add_func ("/chunk-io", do_io_tests);
+
+	ret = g_test_run ();
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }

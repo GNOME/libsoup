@@ -13,8 +13,7 @@ static gboolean apache_running;
 
 static SoupLogger *logger;
 
-int debug_level, errors;
-gboolean parallelize = TRUE;
+int debug_level;
 gboolean expect_warning, tls_available;
 static int http_debug_level;
 
@@ -38,9 +37,6 @@ static GOptionEntry debug_entry[] = {
 	{ "debug", 'd', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_debug_level,
 	  "Enable (or increase) test-specific debugging", NULL },
-	{ "parallel", 'p', G_OPTION_FLAG_REVERSE,
-	  G_OPTION_ARG_NONE, &parallelize,
-	  "Toggle parallelization (default is on, unless -d or -h)", NULL },
 	{ "http-debug", 'h', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_http_debug_level,
 	  "Enable (or increase) HTTP-level debugging", NULL },
@@ -56,21 +52,6 @@ quit (int sig)
 #endif
 
 	exit (1);
-}
-
-static void
-test_log_handler (const char *log_domain, GLogLevelFlags log_level,
-		  const char *message, gpointer user_data)
-{
-	if (log_level & (G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL)) {
-		if (expect_warning) {
-			expect_warning = FALSE;
-			debug_printf (2, "Got expected warning: %s\n", message);
-			return;
-		} else
-			errors++;
-	}
-	g_log_default_handler (log_domain, log_level, message, user_data);
 }
 
 void
@@ -92,6 +73,9 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 		name += 3;
 	g_set_prgname (name);
 
+	g_test_init (&argc, &argv, NULL);
+	g_test_set_nonfatal_assertions ();
+
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, debug_entry, NULL);
 	if (entries)
@@ -106,16 +90,11 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	}
 	g_option_context_free (opts);
 
-	if (debug_level > 0 || http_debug_level > 0)
-		parallelize = !parallelize;
-
 	if (g_getenv ("SOUP_TESTS_IN_MAKE_CHECK"))
 		debug_level = G_MAXINT;
 
 	/* Exit cleanly on ^C in case we're valgrinding. */
 	signal (SIGINT, quit);
-
-	g_log_set_default_handler (test_log_handler, NULL);
 
 	tls_backend = g_tls_backend_get_default ();
 	tls_available = g_tls_backend_supports_tls (tls_backend);
@@ -135,12 +114,6 @@ test_cleanup (void)
 	g_main_context_unref (g_main_context_default ());
 
 	debug_printf (1, "\n");
-	if (errors) {
-		g_print ("%s: %d error(s).%s\n",
-			 g_get_prgname (), errors,
-			 debug_level == 0 ? " Run with '-d' for details" : "");
-	} else
-		g_print ("%s: OK\n", g_get_prgname ());
 }
 
 void
@@ -257,16 +230,10 @@ soup_test_session_new (GType type, ...)
 void
 soup_test_session_abort_unref (SoupSession *session)
 {
-	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-
 	soup_session_abort (session);
-	g_object_unref (session);
 
-	if (session) {
-		errors++;
-		debug_printf (1, "leaked SoupSession!\n");
-		g_object_remove_weak_pointer (G_OBJECT (session), (gpointer *)&session);
-	}
+	g_assert_cmpint (G_OBJECT (session)->ref_count, ==, 1);
+	g_object_unref (session);
 }
 
 static gpointer run_server_thread (gpointer user_data);
@@ -348,9 +315,6 @@ soup_test_server_quit_unref (SoupServer *server)
 {
 	GThread *thread;
 
-	g_object_add_weak_pointer (G_OBJECT (server),
-				   (gpointer *)&server);
-
 	thread = g_object_get_data (G_OBJECT (server), "thread");
 	if (thread) {
 		soup_add_completion (soup_server_get_async_context (server),
@@ -358,14 +322,9 @@ soup_test_server_quit_unref (SoupServer *server)
 		g_thread_join (thread);
 	} else
 		soup_server_quit (server);
-	g_object_unref (server);
 
-	if (server) {
-		errors++;
-		debug_printf (1, "leaked SoupServer!\n");
-		g_object_remove_weak_pointer (G_OBJECT (server),
-					      (gpointer *)&server);
-	}
+	g_assert_cmpint (G_OBJECT (server)->ref_count, ==, 1);
+	g_object_unref (server);
 }
 
 typedef struct {
@@ -554,3 +513,23 @@ soup_test_request_close_stream (SoupRequest   *req,
 
 	return ok;
 }
+
+#ifndef G_HAVE_ISO_VARARGS
+void
+soup_test_assert (gboolean expr, const char *fmt, ...)
+{
+	char *message;
+	va_list args;
+
+	if (G_UNLIKELY (!expr)) {
+		va_start (args, fmt);
+		message = g_strdup_vprintf (fmt, args);
+		va_end (args);
+
+		g_assertion_message (G_LOG_DOMAIN,
+				     "???", 0, "???"
+				     message);
+		g_free (message);
+	}
+}
+#endif

@@ -90,46 +90,18 @@ do_test (int n, SoupURI *base_uri, const char *path,
 	g_ptr_array_free (args, TRUE);
 	g_free (uri_str);
 
-	if (server_requests_basic != test_data.server_requested_basic) {
-		errors++;
-		if (test_data.server_requested_basic)
-			debug_printf (1, "  Server sent WWW-Authenticate: Basic, but shouldn't have!\n");
-		else
-			debug_printf (1, "  Server didn't send WWW-Authenticate: Basic, but should have!\n");
-	}
-	if (server_requests_digest != test_data.server_requested_digest) {
-		errors++;
-		if (test_data.server_requested_digest)
-			debug_printf (1, "  Server sent WWW-Authenticate: Digest, but shouldn't have!\n");
-		else
-			debug_printf (1, "  Server didn't send WWW-Authenticate: Digest, but should have!\n");
-	}
-	if (client_sends_basic != test_data.client_sent_basic) {
-		errors++;
-		if (test_data.client_sent_basic)
-			debug_printf (1, "  Client sent Authorization: Basic, but shouldn't have!\n");
-		else
-			debug_printf (1, "  Client didn't send Authorization: Basic, but should have!\n");
-	}
-	if (client_sends_digest != test_data.client_sent_digest) {
-		errors++;
-		if (test_data.client_sent_digest)
-			debug_printf (1, "  Client sent Authorization: Digest, but shouldn't have!\n");
-		else
-			debug_printf (1, "  Client didn't send Authorization: Digest, but should have!\n");
-	}
-	if (success && !test_data.succeeded) {
-		errors++;
-		debug_printf (1, "  Should have succeeded, but didn't!\n");
-	} else if (!success && test_data.succeeded) {
-		errors++;
-		debug_printf (1, "  Should not have succeeded, but did!\n");
-	}
+	g_assert_cmpint (server_requests_basic, ==, test_data.server_requested_basic);
+	g_assert_cmpint (server_requests_digest, ==, test_data.server_requested_digest);
+	g_assert_cmpint (client_sends_basic, ==, test_data.client_sent_basic);
+	g_assert_cmpint (client_sends_digest, ==, test_data.client_sent_digest);
+
+	g_assert_cmpint (success, ==, test_data.succeeded);
 }
 
 static void
-do_auth_tests (SoupURI *base_uri)
+do_auth_tests (gconstpointer data)
 {
+	SoupURI *base_uri = (SoupURI *)data;
 	int i, n = 1;
 	gboolean use_basic, use_digest, good_user, good_password;
 	gboolean preemptive_basic, good_auth;
@@ -317,6 +289,7 @@ main (int argc, char **argv)
 	SoupServer *server;
 	SoupURI *uri;
 	SoupAuthDomain *auth_domain;
+	int ret;
 
 	test_init (argc, argv, no_test_entry);
 
@@ -351,11 +324,17 @@ main (int argc, char **argv)
 	if (run_tests) {
 		uri = soup_uri_new ("http://127.0.0.1");
 		soup_uri_set_port (uri, soup_server_get_port (server));
-		do_auth_tests (uri);
+
+		/* FIXME: split this up! */
+		g_test_add_data_func ("/server-auth", uri, do_auth_tests);
+
+		ret = g_test_run ();
+
 		soup_uri_free (uri);
 	} else {
 		g_print ("Listening on port %d\n", soup_server_get_port (server));
 		g_main_loop_run (loop);
+		ret = 0;
 	}
 
 	g_main_loop_unref (loop);
@@ -363,7 +342,7 @@ main (int argc, char **argv)
 
 	if (run_tests)
 		test_cleanup ();
-	return errors != 0;
+	return ret;
 }
 
 #else /* HAVE_CURL */

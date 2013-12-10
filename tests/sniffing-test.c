@@ -47,12 +47,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			g_file_get_contents (SRCDIR "/resources/mbox",
 					     &contents, &length,
 					     &error);
-		}
-
-		if (error) {
-			g_error ("%s", error->message);
-			g_error_free (error);
-			exit (1);
+			g_assert_no_error (error);
 		}
 
 		soup_message_headers_append (msg->response_headers,
@@ -66,15 +61,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_file_get_contents (file_name,
 				     &contents, &length,
 				     &error);
+		g_assert_no_error (error);
 
 		g_free (base_name);
 		g_free (file_name);
-
-		if (error) {
-			g_error ("%s", error->message);
-			g_error_free (error);
-			exit (1);
-		}
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "text/plain");
@@ -87,15 +77,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_file_get_contents (file_name,
 				     &contents, &length,
 				     &error);
+		g_assert_no_error (error);
 
 		g_free (base_name);
 		g_free (file_name);
-
-		if (error) {
-			g_error ("%s", error->message);
-			g_error_free (error);
-			exit (1);
-		}
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "UNKNOWN/unknown");
@@ -111,15 +96,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_file_get_contents (file_name,
 				     &contents, &length,
 				     &error);
+		g_assert_no_error (error);
 
 		g_free (base_name);
 		g_free (file_name);
-
-		if (error) {
-			g_error ("%s", error->message);
-			g_error_free (error);
-			exit (1);
-		}
 
 		/* Hack to allow passing type in the URI */
 		ptr = g_strrstr (components[2], "_");
@@ -137,15 +117,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		g_file_get_contents (file_name,
 				     &contents, &length,
 				     &error);
+		g_assert_no_error (error);
 
 		g_free (base_name);
 		g_free (file_name);
-
-		if (error) {
-			g_error ("%s", error->message);
-			g_error_free (error);
-			exit (1);
-		}
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "text/xml");
@@ -181,10 +156,8 @@ content_sniffed (SoupMessage *msg, char *content_type, GHashTable *params, gpoin
 
 	debug_printf (2, "  content-sniffed -> %s\n", content_type);
 
-	if (g_object_get_data (G_OBJECT (msg), "got-chunk")) {
-		debug_printf (1, "  got-chunk got emitted before content-sniffed\n");
-		errors++;
-	}
+	soup_test_assert (g_object_get_data (G_OBJECT (msg), "got-chunk") == NULL,
+			  "got-chunk got emitted before content-sniffed");
 
 	g_object_set_data (G_OBJECT (msg), "content-sniffed", GINT_TO_POINTER (TRUE));
 
@@ -202,10 +175,8 @@ got_headers (SoupMessage *msg, gpointer data)
 
 	debug_printf (2, "  got-headers\n");
 
-	if (g_object_get_data (G_OBJECT (msg), "content-sniffed")) {
-		debug_printf (1, "  content-sniffed got emitted before got-headers\n");
-		errors++;
-	}
+	soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") == NULL,
+			  "content-sniffed got emitted before got-headers");
 
 	g_object_set_data (G_OBJECT (msg), "got-headers", GINT_TO_POINTER (TRUE));
 
@@ -277,14 +248,12 @@ do_signals_test (gboolean should_content_sniff,
 
 	soup_session_send_message (session, msg);
 
-	if (!should_content_sniff &&
-	    g_object_get_data (G_OBJECT (msg), "content-sniffed")) {
-		debug_printf (1, "  content-sniffed got emitted without a sniffer\n");
-		errors++;
-	} else if (should_content_sniff &&
-		   !g_object_get_data (G_OBJECT (msg), "content-sniffed")) {
-		debug_printf (1, "  content-sniffed did not get emitted\n");
-		errors++;
+	if (should_content_sniff) {
+		soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") != NULL,
+				  "content-sniffed did not get emitted");
+	} else {
+		soup_test_assert (g_object_get_data (G_OBJECT (msg), "content-sniffed") == NULL,
+				  "content-sniffed got emitted without a sniffer");
 	}
 
 	if (empty_response) {
@@ -294,12 +263,7 @@ do_signals_test (gboolean should_content_sniff,
 		g_file_get_contents (SRCDIR "/resources/mbox",
 				     &contents, &length,
 				     &error);
-	}
-
-	if (error) {
-		g_error ("%s", error->message);
-		g_error_free (error);
-		exit (1);
+		g_assert_no_error (error);
 	}
 
 	if (!should_accumulate && chunk_data)
@@ -307,15 +271,8 @@ do_signals_test (gboolean should_content_sniff,
 	else if (msg->response_body)
 		body = soup_message_body_flatten (msg->response_body);
 
-	if (body && body->length != length) {
-		debug_printf (1, "  lengths do not match\n");
-		errors++;
-	}
-
-	if (body && memcmp (body->data, contents, length)) {
-		debug_printf (1, "  downloaded data does not match\n");
-		errors++;
-	}
+	if (body)
+		soup_assert_cmpmem (body->data, body->length, contents, length);
 
 	g_free (contents);
 	if (body)
@@ -327,6 +284,41 @@ do_signals_test (gboolean should_content_sniff,
 
 	soup_uri_free (uri);
 	g_object_unref (msg);
+}
+
+static void
+do_signals_tests (gconstpointer data)
+{
+	gboolean should_content_sniff = GPOINTER_TO_INT (data);
+
+	if (!should_content_sniff)
+		soup_session_remove_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
+
+	do_signals_test (should_content_sniff,
+			 FALSE, FALSE, FALSE, FALSE);
+	do_signals_test (should_content_sniff,
+			 FALSE, FALSE, TRUE, FALSE);
+	do_signals_test (should_content_sniff,
+			 FALSE, TRUE, FALSE, FALSE);
+	do_signals_test (should_content_sniff,
+			 FALSE, TRUE, TRUE, FALSE);
+
+	do_signals_test (should_content_sniff,
+			 TRUE, TRUE, FALSE, FALSE);
+	do_signals_test (should_content_sniff,
+			 TRUE, TRUE, TRUE, FALSE);
+	do_signals_test (should_content_sniff,
+			 TRUE, FALSE, FALSE, FALSE);
+	do_signals_test (should_content_sniff,
+			 TRUE, FALSE, TRUE, FALSE);
+
+	do_signals_test (should_content_sniff,
+			 TRUE, TRUE, FALSE, TRUE);
+	do_signals_test (should_content_sniff,
+			 TRUE, TRUE, TRUE, TRUE);
+
+	if (!should_content_sniff)
+		soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 }
 
 static void
@@ -360,9 +352,8 @@ test_sniffing (const char *path, const char *expected_type)
 	SoupRequest *req;
 	GInputStream *stream;
 	char *sniffed_type = NULL;
+	const char *req_sniffed_type;
 	GError *error = NULL;
-
-	debug_printf (1, "test_sniffing(\"%s\", \"%s\")\n", path, expected_type);
 
 	uri = soup_uri_new_with_base (base_uri, path);
 	msg = soup_message_new_from_uri ("GET", uri);
@@ -371,14 +362,7 @@ test_sniffing (const char *path, const char *expected_type)
 			  G_CALLBACK (sniffing_content_sniffed), &sniffed_type);
 
 	soup_session_send_message (session, msg);
-	if (!sniffed_type) {
-		debug_printf (1, "  message was not sniffed!\n");
-		errors++;
-	} else if (strcmp (sniffed_type, expected_type) != 0) {
-		debug_printf (1, "  message sniffing failed! expected %s, got %s\n",
-			      expected_type, sniffed_type);
-		errors++;
-	}
+	g_assert_cmpstr (sniffed_type, ==, expected_type);
 	g_free (sniffed_type);
 	g_object_unref (msg);
 
@@ -388,32 +372,39 @@ test_sniffing (const char *path, const char *expected_type)
 		soup_test_request_close_stream (req, stream, NULL, &error);
 		g_object_unref (stream);
 	}
-	if (error) {
-		debug_printf (1, "  request failed: %s\n", error->message);
-		g_clear_error (&error);
-	} else {
-		const char *req_sniffed_type;
+	g_assert_no_error (error);
+	g_clear_error (&error);
 
-		req_sniffed_type = soup_request_get_content_type (req);
-		if (strcmp (req_sniffed_type, expected_type) != 0) {
-			debug_printf (1, "  request sniffing failed! expected %s, got %s\n",
-				      expected_type, req_sniffed_type);
-			errors++;
-		}
-	}
+	req_sniffed_type = soup_request_get_content_type (req);
+	g_assert_cmpstr (req_sniffed_type, ==, expected_type);
 	g_object_unref (req);
 
 	soup_uri_free (uri);
 }
 
 static void
-test_disabled (const char *path)
+do_sniffing_test (gconstpointer data)
 {
+	const char *path_and_result = data;
+	char **parts;
+
+	parts = g_strsplit (path_and_result, " => ", -1);
+	g_assert (parts && parts[0] && parts[1] && !parts[2]);
+
+	test_sniffing (parts[0], parts[1]);
+	g_strfreev (parts);
+}
+
+static void
+test_disabled (gconstpointer data)
+{
+	const char *path = data;
 	SoupURI *uri;
 	SoupMessage *msg;
 	SoupRequest *req;
 	GInputStream *stream;
 	char *sniffed_type = NULL;
+	const char *sniffed_content_type;
 	GError *error = NULL;
 
 	debug_printf (1, "test_disabled(\"%s\")\n", path);
@@ -428,11 +419,7 @@ test_disabled (const char *path)
 
 	soup_session_send_message (session, msg);
 
-	if (sniffed_type) {
-		debug_printf (1, "  message was sniffed!\n");
-		errors++;
-		g_free (sniffed_type);
-	}
+	g_assert_null (sniffed_type);
 	g_object_unref (msg);
 
 	req = soup_session_request_uri (session, uri, NULL);
@@ -444,18 +431,11 @@ test_disabled (const char *path)
 		soup_test_request_close_stream (req, stream, NULL, &error);
 		g_object_unref (stream);
 	}
-	if (error) {
-		debug_printf (1, "  request failed: %s\n", error->message);
-		g_clear_error (&error);
-	} else {
-		const char *sniffed_content_type;
+	g_assert_no_error (error);
 
-		sniffed_content_type = soup_request_get_content_type (req);
-		if (sniffed_content_type != NULL) {
-			debug_printf (1, "  request was sniffed!\n");
-			errors++;
-		}
-	}
+	sniffed_content_type = soup_request_get_content_type (req);
+	g_assert_cmpstr (sniffed_content_type, ==, NULL);
+
 	g_object_unref (req);
 
 	soup_uri_free (uri);
@@ -465,6 +445,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	int ret;
 
 	test_init (argc, argv, NULL);
 
@@ -476,106 +457,113 @@ main (int argc, char **argv)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
-
-	/* No sniffer, no content_sniffed should be emitted */
-	do_signals_test (FALSE, FALSE, FALSE, FALSE, FALSE);
-	do_signals_test (FALSE, FALSE, FALSE, TRUE, FALSE);
-	do_signals_test (FALSE, FALSE, TRUE, FALSE, FALSE);
-	do_signals_test (FALSE, FALSE, TRUE, TRUE, FALSE);
-
-	do_signals_test (FALSE, TRUE, TRUE, FALSE, FALSE);
-	do_signals_test (FALSE, TRUE, TRUE, TRUE, FALSE);
-	do_signals_test (FALSE, TRUE, FALSE, FALSE, FALSE);
-	do_signals_test (FALSE, TRUE, FALSE, TRUE, FALSE);
-
-	/* Tests that the signals are correctly emitted for empty
-	 * responses; see
-	 * http://bugzilla.gnome.org/show_bug.cgi?id=587907 */
-
-	do_signals_test (FALSE, TRUE, TRUE, FALSE, TRUE);
-	do_signals_test (FALSE, TRUE, TRUE, TRUE, TRUE);
-
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
-	/* Now, with a sniffer, content_sniffed must be emitted after
-	 * got-headers, and before got-chunk.
-	 */
-	do_signals_test (TRUE, FALSE, FALSE, FALSE, FALSE);
-	do_signals_test (TRUE, FALSE, FALSE, TRUE, FALSE);
-	do_signals_test (TRUE, FALSE, TRUE, FALSE, FALSE);
-	do_signals_test (TRUE, FALSE, TRUE, TRUE, FALSE);
+	g_test_add_data_func ("/sniffing/signals/no-sniffer",
+			      GINT_TO_POINTER (FALSE),
+			      do_signals_tests);
+	g_test_add_data_func ("/sniffing/signals/with-sniffer",
+			      GINT_TO_POINTER (TRUE),
+			      do_signals_tests);
 
-	do_signals_test (TRUE, TRUE, TRUE, FALSE, FALSE);
-	do_signals_test (TRUE, TRUE, TRUE, TRUE, FALSE);
-	do_signals_test (TRUE, TRUE, FALSE, FALSE, FALSE);
-	do_signals_test (TRUE, TRUE, FALSE, TRUE, FALSE);
-
-	/* Empty response tests */
-	do_signals_test (TRUE, TRUE, TRUE, FALSE, TRUE);
-	do_signals_test (TRUE, TRUE, TRUE, TRUE, TRUE);
-
-	/* Test the text_or_binary sniffing path */
-
-	/* GIF is a 'safe' type */
-	test_sniffing ("/text_or_binary/home.gif", "image/gif");
+	g_test_add_data_func ("/sniffing/type/gif",
+			      "text_or_binary/home.gif => image/gif",
+			      do_sniffing_test);
 
 	/* With our current code, no sniffing is done using GIO, so
 	 * the mbox will be identified as text/plain; should we change
 	 * this?
 	 */
-	test_sniffing ("/text_or_binary/mbox", "text/plain");
+	g_test_add_data_func ("/sniffing/type/mbox",
+			      "text_or_binary/mbox => text/plain",
+			      do_sniffing_test);
 
 	/* HTML is considered unsafe for this algorithm, since it is
 	 * scriptable, so going from text/plain to text/html is
 	 * considered 'privilege escalation'
 	 */
-	test_sniffing ("/text_or_binary/test.html", "text/plain");
+	g_test_add_data_func ("/sniffing/type/html-in-text-context",
+			      "text_or_binary/test.html => text/plain",
+			      do_sniffing_test);
 
 	/* text/plain with binary content and unknown pattern should be
-	 * application/octet-stream */
-	test_sniffing ("/text_or_binary/text_binary.txt", "application/octet-stream");
+	 * application/octet-stream
+	 */
+	g_test_add_data_func ("/sniffing/type/text-binary",
+			      "text_or_binary/text_binary.txt => application/octet-stream",
+			      do_sniffing_test);
 
-	/* text/plain with binary content and scriptable pattern should be
-	 * application/octet-stream to avoid 'privilege escalation' */
-	test_sniffing ("/text_or_binary/html_binary.html", "application/octet-stream");
+	/* text/html with binary content and scriptable pattern should be
+	 * application/octet-stream to avoid 'privilege escalation'
+	 */
+	g_test_add_data_func ("/sniffing/type/html-binary",
+			      "text_or_binary/html_binary.html => application/octet-stream",
+			      do_sniffing_test);
 
 	/* text/plain with binary content and non scriptable known pattern should
-	 * be the given type */
-	test_sniffing ("/text_or_binary/ps_binary.ps", "application/postscript");
+	 * be the given type
+	 */
+	g_test_add_data_func ("/sniffing/type/ps",
+			      "text_or_binary/ps_binary.ps => application/postscript",
+			      do_sniffing_test);
 
 	/* Test the unknown sniffing path */
-
-	test_sniffing ("/unknown/test.html", "text/html");
-	test_sniffing ("/unknown/home.gif", "image/gif");
-	test_sniffing ("/unknown/mbox", "text/plain");
-	test_sniffing ("/unknown/text_binary.txt", "application/octet-stream");
+	g_test_add_data_func ("/sniffing/type/unknown-html",
+			      "unknown/test.html => text/html",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-gif",
+			      "unknown/home.gif => image/gif",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-mbox",
+			      "unknown/mbox => text/plain",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-binary",
+			      "unknown/text_binary.txt => application/octet-stream",
+			      do_sniffing_test);
 
 	/* Test the XML sniffing path */
-
-	test_sniffing ("/type/text_xml/home.gif", "text/xml");
-	test_sniffing ("/type/anice_type+xml/home.gif", "anice/type+xml");
-	test_sniffing ("/type/application_xml/home.gif", "application/xml");
+	g_test_add_data_func ("/sniffing/type/xml",
+			      "type/text_xml/home.gif => text/xml",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/xml+xml",
+			      "type/anice_type+xml/home.gif => anice/type+xml",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/application-xml",
+			      "type/application_xml/home.gif => application/xml",
+			      do_sniffing_test);
 
 	/* Test the image sniffing path */
-
-	test_sniffing ("/type/image_png/home.gif", "image/gif");
+	g_test_add_data_func ("/sniffing/type/image",
+			      "type/image_png/home.gif => image/gif",
+			      do_sniffing_test);
 
 	/* Test the feed or html path */
-
-	test_sniffing ("/type/text_html/test.html", "text/html");
-	test_sniffing ("/type/text_html/rss20.xml", "application/rss+xml");
-	test_sniffing ("/type/text_html/atom.xml", "application/atom+xml");
+	g_test_add_data_func ("/sniffing/type/html/html",
+			      "type/text_html/test.html => text/html",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/html/rss",
+			      "type/text_html/rss20.xml => application/rss+xml",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/html/atom",
+			      "type/text_html/atom.xml => application/atom+xml",
+			      do_sniffing_test);
 
 	/* The spec tells us to only use the last Content-Type header */
-
-	test_sniffing ("/multiple_headers/home.gif", "image/gif");
+	g_test_add_data_func ("/sniffing/multiple-headers",
+			      "multiple_headers/home.gif => image/gif",
+			      do_sniffing_test);
 
 	/* Test that we keep the parameters when sniffing */
-	test_sniffing ("/type/text_html; charset=UTF-8/test.html", "text/html; charset=UTF-8");
+	g_test_add_data_func ("/sniffing/parameters",
+			      "type/text_html; charset=UTF-8/test.html => text/html; charset=UTF-8",
+			      do_sniffing_test);
 
 	/* Test that disabling the sniffer works correctly */
+	g_test_add_data_func ("/sniffing/disabled",
+			      "/text_or_binary/home.gif",
+			      test_disabled);
 
-	test_disabled ("/text_or_binary/home.gif");
+	ret = g_test_run ();
 
 	soup_uri_free (base_uri);
 
@@ -583,5 +571,5 @@ main (int argc, char **argv)
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();
-	return errors != 0;
+	return ret;
 }
