@@ -77,6 +77,105 @@ soup_content_sniffer_init (SoupContentSniffer *content_sniffer)
 {
 }
 
+typedef struct {
+	const guchar *mask;
+	const guchar *pattern;
+	guint         pattern_length;
+	const char   *sniffed_type;
+} SoupContentSnifferMediaPattern;
+
+static char*
+sniff_media (SoupContentSniffer *sniffer,
+	     SoupBuffer *buffer,
+	     SoupContentSnifferMediaPattern table[],
+	     int table_length)
+{
+	const guchar *resource = (const guchar *)buffer->data;
+	int resource_length = MIN (512, buffer->length);
+	int i;
+
+	for (i = 0; i < table_length; i++) {
+		SoupContentSnifferMediaPattern *type_row = &(table[i]);
+		int j;
+
+		if (resource_length < type_row->pattern_length)
+			continue;
+
+		for (j = 0; j < type_row->pattern_length; j++) {
+			if ((type_row->mask[j] & resource[j]) != type_row->pattern[j])
+				break;
+		}
+
+		/* This means our comparison above matched completely */
+		if (j == type_row->pattern_length)
+			return g_strdup (type_row->sniffed_type);
+	}
+
+	return NULL;
+}
+
+/* This table is based on the MIMESNIFF spec;
+ * See 6.1 Matching an image type pattern
+ */
+static SoupContentSnifferMediaPattern image_types_table[] = {
+
+	/* Windows icon signature. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x00\x00\x01\x00",
+	  4,
+	  "image/x-icon" },
+
+	/* Windows cursor signature. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x00\x00\x02\x00",
+	  4,
+	  "image/x-icon" },
+
+	/* BMP. */
+	{ (const guchar *)"\xFF\xFF",
+	  (const guchar *)"BM",
+	  2,
+	  "image/bmp" },
+
+	/* GIFs. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"GIF87a",
+	  6,
+	  "image/gif" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"GIF89a",
+	  6,
+	  "image/gif" },
+
+	/* WEBP. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00WEBPVP",
+	  14,
+	  "image/webp" },
+
+	/* PNG. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x89PNG\x0D\x0A\x1A\x0A",
+	  8,
+	  "image/png" },
+
+	/* JPEG. */
+	{ (const guchar *)"\xFF\xFF\xFF",
+	  (const guchar *)"\xFF\xD8\xFF",
+	  3,
+	  "image/jpeg" },
+};
+
+static char*
+sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	return sniff_media (sniffer,
+			    buffer,
+			    image_types_table,
+			    G_N_ELEMENTS (image_types_table));
+}
+
 /* This table is based on the MIMESNIFF spec;
  * See 7.1 Identifying a resource with an unknown MIME type
  */
@@ -262,66 +361,6 @@ static SoupContentSnifferPattern types_table[] = {
 	  4,
 	  "text/plain",
 	  FALSE },
-
-	/* Images. */
-
-	{ FALSE, FALSE, /* Windows icon signature. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x00\x00\x01\x00",
-	  4,
-	  "image/x-icon",
-	  FALSE },
-
-	{ FALSE, FALSE, /* Windows cursor signature. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x00\x00\x02\x00",
-	  4,
-	  "image/x-icon",
-	  FALSE },
-
-	{ FALSE, FALSE, /* BMP. */
-	  (const guchar *)"\xFF\xFF",
-	  (const guchar *)"BM",
-	  2,
-	  "image/bmp",
-	  FALSE },
-
-    { FALSE, FALSE, /* GIF. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"GIF87a",
-	  6,
-	  "image/gif",
-	  FALSE },
-
-	{ FALSE, FALSE, /* GIF. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"GIF89a",
-	  6,
-	  "image/gif",
-	  FALSE },
-
-	{ FALSE, FALSE, /* WEBP. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"RIFF\x00\x00\x00\x00WEBPVP",
-	  14,
-	  "image/webp",
-	  FALSE },
-
-	{ FALSE, FALSE, /* PNG. */
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x89PNG\x0D\x0A\x1A\x0A",
-	  8,
-	  "image/png",
-	  FALSE },
-
-	{ FALSE, FALSE, /* JPEG. */
-	  (const guchar *)"\xFF\xFF\xFF",
-	  (const guchar *)"\xFF\xD8\xFF",
-	  3,
-	  "image/jpeg",
-	  FALSE },
-
-	/* TODO: audio/video, archive type. */
 };
 
 /* Whether a given byte looks like it might be part of binary content.
@@ -352,6 +391,7 @@ static char*
 sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	       gboolean sniff_scriptable)
 {
+	char *sniffed_type = NULL;
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int i;
@@ -417,6 +457,12 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 		}
 	}
 
+	sniffed_type = sniff_images (sniffer, buffer);
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
+
+
 	for (i = 0; i < resource_length; i++) {
 		if (byte_looks_binary[resource[i]])
 			return g_strdup ("application/octet-stream");
@@ -462,33 +508,6 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	 * TODO: sniff-scriptable needs to be unset.
 	 */
 	return sniff_unknown (sniffer, buffer, TRUE);
-}
-
-static char*
-sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer,
-	      const char *content_type)
-{
-	const guchar *resource = (const guchar *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
-	int i;
-
-	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
-		SoupContentSnifferPattern *type_row = &(types_table[i]);
-
-		if (resource_length < type_row->pattern_length)
-			continue;
-
-		if (!g_str_has_prefix (type_row->sniffed_type, "image/"))
-			continue;
-
-		/* All of the image types use all-\xFF for the mask,
-		 * so we can just memcmp.
-		 */
-		if (memcmp (type_row->pattern, resource, type_row->pattern_length) == 0)
-			return g_strdup (type_row->sniffed_type);
-	}
-
-	return g_strdup (content_type);
 }
 
 static gboolean
@@ -646,6 +665,7 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 {
 	const char *content_type;
 	const char *x_content_type_options;
+	char *sniffed_type = NULL;
 	gboolean no_sniff = FALSE;
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
@@ -685,18 +705,14 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 	if (!g_ascii_strcasecmp (content_type, "text/html"))
 		return sniff_feed_or_html (sniffer, buffer);
 
-	/* 2.7.5 Content-Type sniffing: image
-	 * The spec says:
-	 *
-	 *   If the resource's official type is "image/svg+xml", then
-	 *   the sniffed type of the resource is its official type (an
-	 *   XML type)
-	 *
-	 * The XML case is handled by the if above; if you refactor
-	 * this code, keep this in mind.
+	/* 6. Image types.
 	 */
-	if (!g_ascii_strncasecmp (content_type, "image/", 6))
-		return sniff_images (sniffer, buffer, content_type);
+	if (!g_ascii_strncasecmp (content_type, "image/", 6)) {
+		sniffed_type = sniff_images (sniffer, buffer);
+		if (sniffed_type != NULL)
+			return sniffed_type;
+		return g_strdup (content_type);
+	}
 
 	/* If we got text/plain, use text_or_binary */
 	if (g_str_equal (content_type, "text/plain")) {

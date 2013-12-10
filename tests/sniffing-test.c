@@ -554,8 +554,17 @@ main (int argc, char **argv)
 			      do_sniffing_test);
 
 	/* Test the image sniffing path */
-	g_test_add_data_func ("/sniffing/type/image",
+	g_test_add_data_func ("/sniffing/type/image/gif",
 			      "type/image_png/home.gif => image/gif",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/png",
+			      "type/image_gif/home.png => image/png",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/jpeg",
+			      "type/image_png/home.jpg => image/jpeg",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/webp",
+			      "type/image_png/tux.webp => image/webp",
 			      do_sniffing_test);
 
 	/* The spec tells us to only use the last Content-Type header */

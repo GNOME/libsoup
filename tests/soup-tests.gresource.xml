@@ -5,6 +5,8 @@
     <file>resources/atom.xml</file>
     <file>resources/feed.rdf</file>
     <file>resources/home.gif</file>
+    <file>resources/home.jpg</file>
+    <file>resources/home.png</file>
     <file>resources/html_binary.html</file>
     <file>resources/leading_space.html</file>
     <file>resources/mbox</file>
@@ -16,5 +18,6 @@
     <file>resources/test.html</file>
     <file>resources/text.txt</file>
     <file>resources/text_binary.txt</file>
+    <file>resources/tux.webp</file>
   </gresource>
 </gresources>
