@@ -17,7 +17,6 @@
 #include "soup-message-private.h"
 #include "soup-message-queue.h"
 #include "soup-path-map.h"
-#include "soup-session-private.h"
 
 /**
  * SECTION:soup-auth-manager
@@ -465,21 +464,16 @@ authenticate_auth (SoupAuthManager *manager, SoupAuth *auth,
 		   SoupMessage *msg, gboolean prior_auth_failed,
 		   gboolean proxy, gboolean can_interact)
 {
-	SoupAuthManagerPrivate *priv = manager->priv;
 	SoupURI *uri;
 
 	if (proxy) {
-		SoupMessageQueue *queue;
-		SoupMessageQueueItem *item;
+		SoupConnection *conn;
 
-		queue = soup_session_get_queue (priv->session);
-		item = soup_message_queue_lookup (queue, msg);
-		if (item) {
-			uri = soup_connection_get_proxy_uri (item->conn);
-			soup_message_queue_item_unref (item);
-		} else
-			uri = NULL;
+		conn = soup_message_get_connection (msg);
+		if (!conn)
+			return;
 
+		uri = soup_connection_get_proxy_uri (conn);
 		if (!uri)
 			return;
 	} else
