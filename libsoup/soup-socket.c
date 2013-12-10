@@ -182,6 +182,7 @@ finish_socket_setup (SoupSocketPrivate *priv)
 		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
 
 	g_socket_set_timeout (priv->gsock, priv->timeout);
+	g_socket_set_option (priv->gsock, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
 }
 
 static void
