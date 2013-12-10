@@ -15,7 +15,12 @@
     <file>resources/mbox.zlib</file>
     <file>resources/ps_binary.ps</file>
     <file>resources/rss20.xml</file>
+    <file>resources/test.aiff</file>
     <file>resources/test.html</file>
+    <file>resources/test.mp4</file>
+    <file>resources/test.ogg</file>
+    <file>resources/test.wav</file>
+    <file>resources/test.webm</file>
     <file>resources/text.txt</file>
     <file>resources/text_binary.txt</file>
     <file>resources/tux.webp</file>

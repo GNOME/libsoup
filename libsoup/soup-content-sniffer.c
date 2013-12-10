@@ -177,6 +177,103 @@ sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 }
 
 /* This table is based on the MIMESNIFF spec;
+ * See 6.2 Matching an audio or video type pattern
+ */
+static SoupContentSnifferMediaPattern audio_video_types_table[] = {
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x1A\x45\xDF\xA3",
+	  4,
+	  "video/webm" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)".snd",
+	  4,
+	  "audio/basic" },
+
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"FORM\0\0\0\0AIFF",
+	  12,
+	  "audio/aiff" },
+
+	{ (const guchar *)"\xFF\xFF\xFF",
+	  (const guchar *)"ID3",
+	  3,
+	  "audio/mpeg" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"OggS\0",
+	  5,
+	  "application/ogg" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"MThd\x00\x00\x00\x06",
+	  8,
+	  "audio/midi" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00AVI ",
+	  12,
+	  "video/avi" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00WAVE",
+	  12,
+	  "audio/wave" },
+};
+
+static gboolean
+sniff_mp4 (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	const char *resource = (const char *)buffer->data;
+	int resource_length = MIN (512, buffer->length);
+	guint32 box_size = *((guint32*)resource);
+	int i;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	box_size = ((box_size >> 24) |
+		    ((box_size << 8) & 0x00FF0000) |
+		    ((box_size >> 8) & 0x0000FF00) |
+		    (box_size << 24));
+#endif
+
+	if (resource_length < 12 || resource_length < box_size || box_size % 4 != 0)
+		return FALSE;
+
+	if (!g_str_has_prefix (resource + 4, "ftyp"))
+		return FALSE;
+
+	if (!g_str_has_prefix (resource + 8, "mp4"))
+		return FALSE;
+
+	for (i = 16; i < box_size && i < resource_length; i = i + 4) {
+		if (g_str_has_prefix (resource + i, "mp4"))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static char*
+sniff_audio_video (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	char *sniffed_type;
+
+	sniffed_type = sniff_media (sniffer,
+				    buffer,
+				    audio_video_types_table,
+				    G_N_ELEMENTS (audio_video_types_table));
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
+
+	if (sniff_mp4 (sniffer, buffer))
+		return g_strdup ("video/mp4");
+
+	return NULL;
+}
+
+/* This table is based on the MIMESNIFF spec;
  * See 7.1 Identifying a resource with an unknown MIME type
  */
 typedef struct {
@@ -462,6 +559,10 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	if (sniffed_type != NULL)
 		return sniffed_type;
 
+	sniffed_type = sniff_audio_video (sniffer, buffer);
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
 
 	for (i = 0; i < resource_length; i++) {
 		if (byte_looks_binary[resource[i]])
@@ -713,6 +814,16 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 			return sniffed_type;
 		return g_strdup (content_type);
 	}
+
+	/* 7. Audio and video types. */
+	if (!g_ascii_strncasecmp (content_type, "audio/", 6) ||
+	    !g_ascii_strncasecmp (content_type, "video/", 6) ||
+	    !g_ascii_strcasecmp (content_type, "application/ogg")) {
+	        sniffed_type = sniff_audio_video (sniffer, buffer);
+	        if (sniffed_type != NULL)
+		        return sniffed_type;
+		return g_strdup (content_type);
+        }
 
 	/* If we got text/plain, use text_or_binary */
 	if (g_str_equal (content_type, "text/plain")) {

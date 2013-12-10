@@ -567,6 +567,25 @@ main (int argc, char **argv)
 			      "type/image_png/tux.webp => image/webp",
 			      do_sniffing_test);
 
+	/* Test audio and video sniffing path */
+	g_test_add_data_func ("/sniffing/type/audio/wav",
+			      "type/audio_mpeg/test.wav => audio/wave",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/audio/aiff",
+			      "type/audio_mpeg/test.aiff => audio/aiff",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/audio/ogg",
+			      "type/audio_mpeg/test.ogg => application/ogg",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/video/webm",
+			      "type/video_theora/test.webm => video/webm",
+			      do_sniffing_test);
+
+	/* Test the MP4 sniffing path */
+	g_test_add_data_func ("/sniffing/type/video/mp4",
+			      "unknown/test.mp4 => video/mp4",
+			      do_sniffing_test);
+
 	/* The spec tells us to only use the last Content-Type header */
 	g_test_add_data_func ("/sniffing/multiple-headers",
 			      "multiple_headers/home.gif => image/gif",
