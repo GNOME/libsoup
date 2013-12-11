@@ -3,14 +3,24 @@
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <refentry id="libsoup-client-howto">
 <refmeta>
-<refentrytitle>Soup Client Basics</refentrytitle>
+<refentrytitle>libsoup Client Basics</refentrytitle>
 <manvolnum>3</manvolnum>
 <refmiscinfo>LIBSOUP Library</refmiscinfo>
 </refmeta>
 
 <refnamediv>
-<refname>Soup Client Basics</refname><refpurpose>Client-side tutorial</refpurpose>
+<refname>libsoup Client Basics</refname><refpurpose>Client-side tutorial</refpurpose>
 </refnamediv>
+
+<refsect2>
+<para>
+This section explains how to use <application>libsoup</application> as
+an HTTP client using several new APIs introduced in version 2.42. If
+you want to be compatible with older versions of
+<application>libsoup</application>, consult the documentation for that
+version.
+</para>
+</refsect2>
 
 <refsect2>
 <title>Creating a <type>SoupSession</type></title>
@@ -24,35 +34,8 @@ authentication information, etc.
 </para>
 
 <para>
-There are two subclasses of <link
-linkend="SoupSession"><type>SoupSession</type></link> that you can use, with
-slightly different behavior:
-</para>
-
-<itemizedlist>
-    <listitem><para>
-	<link linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link>,
-	which uses callbacks and the glib main loop to provide
-	asynchronous I/O.
-    </para></listitem>
-
-    <listitem><para>
-	<link linkend="SoupSessionSync"><type>SoupSessionSync</type></link>,
-	which uses blocking I/O rather than callbacks, making it more
-	suitable for threaded applications.
-    </para></listitem>
-</itemizedlist>
-
-<para>
-If you want to do a mix of mainloop-based and blocking I/O, you will
-need to create two different session objects.
-</para>
-
-<para>
-When you create the session (with <link
-linkend="soup-session-async-new-with-options"><function>soup_session_async_new_with_options</function></link>
-or <link
-linkend="soup-session-sync-new-with-options"><function>soup_session_sync_new_with_options</function></link>),
+When you create the session with <link
+linkend="soup-session-new-with-options"><function>soup_session_new_with_options</function></link>,
 you can specify various additional options:
 </para>
 
@@ -64,7 +47,7 @@ you can specify various additional options:
 	    the session will have open at one time. (Once it reaches
 	    this limit, it will either close idle connections, or
 	    wait for existing connections to free up before starting
-	    new requests.)
+	    new requests.) The default value is 10.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
@@ -72,42 +55,59 @@ you can specify various additional options:
 	<listitem><para>
 	    Allows you to set the maximum total number of connections
 	    the session will have open <emphasis>to a single
-	    host</emphasis> at one time.
+	    host</emphasis> at one time. The default value is 2.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-USE-NTLM:CAPS"><literal>SOUP_SESSION_USE_NTLM</literal></link></term>
+	<term><link linkend="SOUP-SESSION-USER-AGENT:CAPS"><literal>SOUP_SESSION_USER_AGENT</literal></link></term>
 	<listitem><para>
-	    If <literal>TRUE</literal>, then Microsoft NTLM
-	    authentication will be used if available (and will be
-	    preferred to HTTP Basic or Digest authentication).
-	    If <literal>FALSE</literal>, NTLM authentication won't be
-	    used, even if it's the only authentication type available.
-	    (NTLM works differently from the standard HTTP
-	    authentication types, so it needs to be handled
-	    specially.)
+	    Allows you to set a User-Agent string that will be sent
+	    on all outgoing requests.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-SSL-CA-FILE:CAPS"><literal>SOUP_SESSION_SSL_CA_FILE</literal></link></term>
+	<term><link linkend="SOUP-SESSION-ACCEPT-LANGUAGE:CAPS"><literal>SOUP_SESSION_ACCEPT_LANGUAGE</literal></link>
+	and <link linkend="SOUP-SESSION-ACCEPT-LANGUAGE-AUTO:CAPS"><literal>SOUP_SESSION_ACCEPT_LANGUAGE_AUTO</literal></link></term>
 	<listitem><para>
-	    Points to a file containing certificates for recognized
-	    SSL Certificate Authorities. If this is set, then HTTPS
-	    connections will be checked against these authorities, and
-	    rejected if they can't be verified. (Otherwise all SSL
-	    certificates will be accepted automatically.)
+	    Allow you to set an Accept-Language header on all outgoing
+	    requests. <literal>SOUP_SESSION_ACCEPT_LANGUAGE</literal>
+	    takes a list of language tags to use, while
+	    <literal>SOUP_SESSION_ACCEPT_LANGUAGE_AUTO</literal>
+	    automatically generates the list from the user's locale
+	    settings.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SOUP-SESSION-ASYNC-CONTEXT:CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link></term>
+	<term><link linkend="SOUP-SESSION-HTTP-ALIASES:CAPS"><literal>SOUP_SESSION_HTTP_ALIASES</literal></link>
+	and <link linkend="SOUP-SESSION-HTTPS-ALIASES:CAPS"><literal>SOUP_SESSION_HTTPS_ALIASES</literal></link></term>
 	<listitem><para>
-	    A <link
-	    linkend="GMainContext"><type>GMainContext</type></link>
-	    which the session will use for asynchronous operations.
-	    This can be set if you want to use a
-	    <type>SoupSessionAsync</type> in a thread other than the
-	    main thread.
+	    Allow you to tell the session to recognize additional URI
+	    schemes as aliases for "<literal>http</literal>" or
+	    <literal>https</literal>. You can set this if you are
+	    using URIs with schemes like "<literal>dav</literal>" or
+	    "<literal>webcal</literal>" (and in particular, you need
+	    to set this if the server you are talking to might return
+	    redirects with such a scheme).
 	</para></listitem>
+    </varlistentry>
+    <varlistentry>
+	<term><link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link> and <link linkend="SOUP-SESSION-PROXY-URI:CAPS"><literal>SOUP_SESSION_PROXY_URI</literal></link></term>
+	<listitem>
+	    <para>
+		<link linkend="SOUP-SESSION-PROXY-RESOLVER:CAPS"><literal>SOUP_SESSION_PROXY_RESOLVER</literal></link>
+		specifies a <link
+		linkend="GProxyResolver"><type>GProxyResolver</type></link>
+		to use to determine the HTTP proxies to use. By default,
+		this is set to the resolver returned by <link
+		linkend="g-proxy-resolver-get-default"><function>g_proxy_resolver_get_default</function></link>,
+		so you do not need to set it yourself.
+	    </para>
+	    <para>
+		Alternatively, if you want all requests to go through a
+		single proxy, you can set <link
+		linkend="SOUP-SESSION-PROXY-URI:CAPS"><literal>SOUP_SESSION_PROXY_URI</literal></link>.
+	    </para>
+	</listitem>
     </varlistentry>
     <varlistentry>
 	<term><link linkend="SOUP-SESSION-ADD-FEATURE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE</literal></link> and <link linkend="SOUP-SESSION-ADD-FEATURE-BY-TYPE:CAPS"><literal>SOUP_SESSION_ADD_FEATURE_BY_TYPE</literal></link></term>
@@ -121,10 +121,15 @@ you can specify various additional options:
 </variablelist>
 
 <para>
+Other properties are also available; see the <link
+linked="SoupSession"><type>SoupSession</type></link> documentation for
+more details.
+</para>
+
+<para>
 If you don't need to specify any options, you can just use <link
-linkend="soup-session-async-new"><function>soup_session_async_new</function></link> or
-<link linkend="soup-session-sync-new"><function>soup_session_sync_new</function></link>,
-which take no arguments.
+linkend="soup-session-new"><function>soup_session_new</function></link>,
+which takes no arguments.
 </para>
 
 </refsect2>
@@ -143,8 +148,19 @@ options at session-construction-time, or afterward via the <link
 linkend="soup-session-add-feature"><function>soup_session_add_feature</function></link>
 and <link
 linkend="soup-session-add-feature-by-type"><function>soup_session_add_feature_by_type</function></link>
-functions. Some of the features available in
-<application>libsoup</application> are:
+functions.
+</para>
+
+<para>
+A <link
+linkend="SoupContentDecoder"><type>SoupContentDecoder</type></link> is
+added for you automatically. This advertises to servers that the
+client supports compression, and automatically decompresses compressed
+responses.
+</para>
+
+<para>
+Some other available features that you can add include:
 </para>
 
 <variablelist>
@@ -156,26 +172,27 @@ functions. Some of the features available in
 	</para></listitem>
     </varlistentry>
     <varlistentry>
-	<term><link linkend="SoupCookieJar"><type>SoupCookieJar</type></link> and <link linkend="SoupCookieJarText"><type>SoupCookieJarText</type></link></term>
+	<term>
+	    <link linkend="SoupCookieJar"><type>SoupCookieJar</type></link>,
+	    <link linkend="SoupCookieJarText"><type>SoupCookieJarText</type></link>,
+	    and <link linkend="SoupCookieJarDB"><type>SoupCookieJarDB</type></link>
+	</term>
 	<listitem><para>
 	    Support for HTTP cookies. <type>SoupCookieJar</type>
 	    provides non-persistent cookie storage, while
 	    <type>SoupCookieJarText</type> uses a text file to keep
-	    track of cookies between sessions.
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link></term>
-	<listitem><para>
-	    A feature that automatically determines the correct HTTP
-	    proxy to use for requests.
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SoupCookieJarDB"><type>SoupCookieJarDB</type></link></term>
-	<listitem><para>
-	    Support for HTTP cookies stored in an
+	    track of cookies between sessions, and
+	    <type>SoupCookieJarDB</type> uses a
 	    <application>SQLite</application> database.
+	</para></listitem>
+    </varlistentry>
+    <varlistentry>
+	<term><link linkend="SoupContentSniffer"><type>SoupContentSniffer</type></link></term>
+	<listitem><para>
+	    Uses the HTML5 sniffing rules to attempt to
+	    determine the Content-Type of a response when the
+	    server does not identify the Content-Type, or appears to
+	    have provided an incorrect one. 
 	</para></listitem>
     </varlistentry>
 </variablelist>
@@ -183,7 +200,7 @@ functions. Some of the features available in
 <para>
 Use the "add_feature_by_type" property/function to add features that
 don't require any configuration (such as <link
-linkend="SoupProxyResolverDefault"><type>SoupProxyResolverDefault</type></link>),
+linkend="SoupContentSniffer"><type>SoupContentSniffer</type></link>),
 and the "add_feature" property/function to add features that must be
 constructed first (such as <link
 linkend="SoupLogger"><type>SoupLogger</type></link>). For example, an
@@ -191,11 +208,10 @@ application might do something like the following:
 </para>
 
 <informalexample><programlisting>
-	session = soup_session_async_new_with_options (
-#ifdef HAVE_LIBSOUP_GNOME
-		SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PROXY_RESOLVER_DEFAULT,
-#endif
+	session = soup_session_new_with_options (
+		SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
 		NULL);
+
 	if (debug_level) {
 		SoupLogger *logger;
 
@@ -211,7 +227,7 @@ application might do something like the following:
 <title>Creating and Sending SoupMessages</title>
 
 <para>
-Once you have a session, you do HTTP traffic using <link
+Once you have a session, you send HTTP requests using <link
 linkend="SoupMessage"><type>SoupMessage</type></link>. In the simplest
 case, you only need to create the message and it's ready to send:
 </para>
@@ -235,7 +251,7 @@ request headers and body of the message:
 
 	msg = soup_message_new ("POST", "http://example.com/form.cgi");
 	soup_message_set_request (msg, "application/x-www-form-urlencoded",
-				  SOUP_MEMORY_COPY, formdata, strlen (formdata));
+	                          SOUP_MEMORY_COPY, formdata, strlen (formdata));
 	soup_message_headers_append (msg->request_headers, "Referer", referring_url);
 </programlisting></informalexample>
 
@@ -262,7 +278,42 @@ flag.
 
 <para>
 To send a message and wait for the response, use <link
-linkend="soup-session-send-message"><function>soup_session_send_message</function></link>:
+linkend="soup-session-send"><function>soup_session_send</function></link>:
+</para>
+
+<informalexample><programlisting>
+	GInputStream *stream;
+	GError *error = NULL;
+
+	stream = soup_session_send (session, msg, cancellable, &amp;error);
+</programlisting></informalexample>
+
+<para>
+At the point when <function>soup_session_send</function> returns, the
+request will have been sent, and the response headers read back in;
+you can examine the message's <structfield>status_code</structfield>,
+<structfield>reason_phrase</structfield>, and
+<structfield>response_headers</structfield> fields to see the response
+metadata. To get the response body, read from the returned <link
+linkend="GInputStream"><type>GInputStream</type></link>, and close it
+when you are done.
+</para>
+
+<para>
+Note that <function>soup_session_send</function> only returns an error
+if a transport-level problem occurs (eg, it could not connect to the
+host, or the request was cancelled). Use the message's
+<structfield>status_code</structfield> field to determine whether the
+request was successful or not at the HTTP level (ie, "<literal>200
+OK</literal>" vs "<literal>401 Bad Request</literal>").
+</para>
+
+<para>
+If you would prefer to have <application>libsoup</application> gather
+the response body for you and then return it all at once, you can use
+the older
+<link linkend="soup-session-send-message"><function>soup_session_send_message</function></link>
+API:
 </para>
 
 <informalexample><programlisting>
@@ -272,18 +323,11 @@ linkend="soup-session-send-message"><function>soup_session_send_message</functio
 </programlisting></informalexample>
 
 <para>
-(If you use <function>soup_session_send_message</function> with a
-<link linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link>,
-it will run the main loop itself until the message is complete.)
-</para>
-
-<para>
-The return value from <function>soup_session_send_message</function>
-is a <link linkend="libsoup-2.4-soup-status">libsoup status code</link>,
-indicating either a transport error that prevented the message from
-being sent, or the HTTP status that was returned by the server in
-response to the message. (The status is also available as
-<literal>msg->status_code</literal>.)
+In this case, the response body will be available in the message's
+<structfield>response_body</structfield> field, and transport-level
+errors will be indicated in the <structfield>status_code</structfield>
+field via special pseudo-HTTP-status codes like <link
+linkend="SOUP-STATUS-CANT-CONNECT:CAPS"><literal>SOUP_STATUS_CANT_CONNECT</literal></link>.
 </para>
 
 </refsect3>
@@ -293,10 +337,45 @@ response to the message. (The status is also available as
 
 <para>
 To send a message asynchronously, use <link
-linkend="soup-session-queue-message"><function>soup_session_queue_message</function></link>:
+linkend="soup-session-send-async"><function>soup_session_send_async</function></link>:
 </para>
 
 <informalexample><programlisting>
+{
+	...
+	soup_session_send_async (session, msg, cancellable, my_callback, my_callback_data);
+	...
+}
+
+static void
+my_callback (GObject *object, GAsyncResult *result, gpointer user_data)
+{
+	GInputStream *stream;
+	GError *error = NULL;
+
+	stream = soup_session_send_finish (SOUP_SESSION (object), result, &amp;error);
+	...
+}
+</programlisting></informalexample>
+
+<para>
+The message will be added to the session's queue, and eventually (when
+control is returned back to the main loop), it will be sent and the
+response be will be read. When the message has been sent, and its
+headers received, the callback will be invoked, in the standard
+<link linkend="GAsyncReadyCallback"><type>GAsyncReadyCallback</type></link>
+style.
+</para>
+
+<para>
+As with synchronous sending, there is also an alternate API, <link
+linkend="soup-session-queue-message"><function>soup_session_queue_message</function></link>,
+in which your callback is not invoked until the response has been
+completely read:
+</para>
+
+<informalexample><programlisting>
+{
 	...
 	soup_session_queue_message (session, msg, my_callback, my_callback_data);
 	...
@@ -305,39 +384,16 @@ linkend="soup-session-queue-message"><function>soup_session_queue_message</funct
 static void
 my_callback (SoupSession *session, SoupMessage *msg, gpointer user_data)
 {
-	/* Handle the response here */
+	/* msg->response_body contains the response */
 }
 </programlisting></informalexample>
 
 <para>
-The message will be added to the session's queue, and eventually (when
-control is returned back to the main loop), it will be sent and the
-response be will be read. When the message is complete,
-<literal>callback</literal> will be invoked, along with the data you
-passed to <function>soup_session_queue_message</function>.
-</para>
-
-<para>
 <link
 linkend="soup-session-queue-message"><function>soup_session_queue_message</function></link>
-steals a reference to the message object, and unrefs it after the last
-callback is invoked on it. So in the usual case, messages sent
-asynchronously will be automatically freed for you without you needing
-to do anything. (Of course, this wouldn't work when using the synchronous
-API, since you will usually need continue working with the message
-after calling <link
-linkend="soup-session-send-message"><function>soup_session_send_message</function></link>,
-so in that case, you must unref it explicitly when you are done with
-it.)
-</para>
-
-<para>
-(If you use <link
-linkend="soup-session-queue-message"><function>soup_session_queue_message</function></link>
-with a <link
-linkend="SoupSessionSync"><type>SoupSessionSync</type></link>, the
-message will be sent in another thread, with the callback eventually
-being invoked in the session's <link linkend="SOUP-SESSION-ASYNC-CONTEXT:CAPS"><literal>SOUP_SESSION_ASYNC_CONTEXT</literal></link>.)
+is slightly unusual in that it steals a reference to the message
+object, and unrefs it after the last callback is invoked on it. So
+when using this API, you should not unref the message yourself.
 </para>
 
 </refsect3>
@@ -348,19 +404,17 @@ being invoked in the session's <link linkend="SOUP-SESSION-ASYNC-CONTEXT:CAPS"><
 <title>Processing the Response</title>
 
 <para>
-Once you have received the response from the server, synchronously or
-asynchronously, you can look at the response fields in the
-<literal>SoupMessage</literal> to decide what to do next. The
-<structfield>status_code</structfield> and
+Once you have received the initial response from the server,
+synchronously or asynchronously, streaming or not, you can look at the
+response fields in the <literal>SoupMessage</literal> to decide what
+to do next. The <structfield>status_code</structfield> and
 <structfield>reason_phrase</structfield> fields contain the numeric
 status and textual status response from the server.
 <structfield>response_headers</structfield> contains the response
 headers, which you can investigate using <link
-linkend="soup-message-headers-get"><function>soup_message_headers_get</function></link> and
-<link
-    linkend="soup-message-headers-foreach"><function>soup_message_headers_foreach</function></link>.
-The response body (if any) is in the
-<structfield>response_body</structfield> field.
+linkend="soup-message-headers-get"><function>soup_message_headers_get</function></link>
+and <link
+linkend="soup-message-headers-foreach"><function>soup_message_headers_foreach</function></link>.
 </para>
 
 <para>
@@ -378,41 +432,6 @@ linkend="soup-header-contains"><function>soup_header_contains</function></link>
 token). These handle the various syntactical oddities of parsing HTTP
 headers much better than functions like
 <function>g_strsplit</function> or <function>strstr</function>.
-</para>
-
-</refsect2>
-
-<refsect2>
-<title>Intermediate/Automatic Processing</title>
-
-<para>
-You can also connect to various <type>SoupMessage</type> signals to do
-processing at intermediate stages of HTTP I/O. Eg, the <link
-linkend="SoupMessage-got-chunk"><literal>got-chunk</literal></link>
-signal is emitted as each piece of the response body is read (allowing
-you to provide progress information when receiving a large response,
-for example). <type>SoupMessage</type> also provides two convenience
-methods, <link
-linkend="soup-message-add-header-handler"><function>soup_message_add_header_handler</function></link>,
-and <link
-linkend="soup-message-add-status-code-handler"><function>soup_message_add_status_code_handler</function></link>,
-which allow you to set up a signal handler that will only be invoked
-for messages with certain response headers or status codes.
-<type>SoupSession</type> uses this internally to handle authentication
-and redirection.
-</para>
-
-<para>
-When using the synchronous API, the callbacks and signal handlers will
-be invoked during the call to <link
-linkend="soup-session-send-message"><function>soup_session_send_message</function></link>.
-</para>
-
-<para>
-To automatically set up handlers on all messages sent via a session,
-you can connect to the session's <link
-linkend="SoupSession-request-started"><literal>request_started</literal></link>
-signal, and add handlers to each message from there.
 </para>
 
 </refsect2>
@@ -467,38 +486,39 @@ linkend="soup-session-unpause-message"><function>soup_session_unpause_message</f
 to resume the paused message.
 </para>
 
+<para>
+By default, NTLM authentication is not enabled. To add NTLM support to
+a session, call:
+</para>
+
+<informalexample><programlisting>
+	soup_session_add_feature_by_type (session, SOUP_TYPE_AUTH_NTLM);
+</programlisting></informalexample>
+
+<para>
+(You can also disable Basic or Digest authentication by calling <link
+linkend="soup-session-remove-feature-by-type"><function>soup_session_remove_feature_by_type</function></link>
+on <link linkend="SOUP-TYPE-AUTH-BASIC:CAPS"><literal>SOUP_TYPE_AUTH_BASIC</literal></link>
+or <link linkend="SOUP-TYPE-AUTH-DIGEST:CAPS"><literal>SOUP_TYPE_AUTH_DIGEST</literal></link>.)
+</para>
+
 </refsect2>
 
 <refsect2>
 <title>Multi-threaded usage</title>
 
 <para>
-The only explicitly thread-safe operations in
-<application>libsoup</application> are <link
-linkend="SoupSessionSync"><type>SoupSessionSync</type></link>'s
-implementations of the <link
-linkend="SoupSession"><type>SoupSession</type></link> methods. So
-after creating a <type>SoupSessionSync</type>, you can call <link
-linkend="soup-session-send-message"><function>soup_session_send_message</function></link>
-and <link
-linkend="soup-session-cancel-message"><function>soup_session_cancel_message</function></link>
-on it from any thread. But, eg, while the session is processing a
-message, you should not call any <link
-linkend="SoupMessage"><type>SoupMessage</type></link> methods on it
-from any thread other than the one in which it is being sent. (That
-is, you should not call any <type>SoupMessage</type> methods on it
-except from a message or session callback or signal handler.)
+A <link linkend="SoupSession"><type>SoupSession</type></link> can be
+used from multiple threads. However, if you are using the async APIs,
+then each thread you use the session from must have its own
+thread-default <link linkend="GMainContext"><type>GMainContext</type></link>.
 </para>
 
 <para>
-All other objects (including <link
-linkend="SoupSessionAsync"><type>SoupSessionAsync</type></link>)
-should only be used from a single thread, with objects that are also
-only be used from that thread. (And in particular, if you set a
-non-default <link
-linkend="GMainContext"><type>GMainContext</type></link> on a session,
-socket, etc, then you can only use that object from the thread in
-which that <type>GMainContext</type> is running.)
+<link linkend="SoupMessage"><type>SoupMessage</type></link> is
+<emphasis>not</emphasis> thread-safe, so once you send a message on
+the session, you must not interact with it from any thread other than
+the one where it was sent.
 </para>
 
 </refsect2>
@@ -508,28 +528,14 @@ which that <type>GMainContext</type> is running.)
 
 <para>
 A few sample programs are available in the
-<application>libsoup</application> sources:
+<application>libsoup</application> sources, in the
+<literal>examples</literal> directory:
 </para>
 
 <itemizedlist>
     <listitem><para>
 	<emphasis role="bold"><literal>get</literal></emphasis> is a simple command-line
 	HTTP GET utility using the asynchronous API.
-    </para></listitem>
-
-    <listitem><para>
-	<emphasis role="bold"><literal>getbug</literal></emphasis> is a trivial
-	demonstration of the <link
-	linkend="libsoup-2.4-XMLRPC-Support">XMLRPC</link> interface.
-	(<emphasis
-	role="bold"><literal>xmlrpc-test</literal></emphasis> provides
-	a slightly more complicated example.)
-    </para></listitem>
-
-    <listitem><para>
-	<emphasis role="bold"><literal>auth-test</literal></emphasis> shows how to use
-	authentication handlers and status-code handlers, although in
-	a fairly unusual way.
     </para></listitem>
 
     <listitem><para>
@@ -544,11 +550,7 @@ A few sample programs are available in the
 </itemizedlist>
 
 <para>
-More complicated examples are available in GNOME CVS. The <ulink
-url="http://live.gnome.org/LibSoup"><application>libsoup</application>
-pages</ulink> on the GNOME wiki include a <ulink
-url="http://live.gnome.org/LibSoup/Users">list of applications using
-<application>libsoup</application></ulink>.
+More complicated examples are available in GNOME git.
 </para>
 
 </refsect2>

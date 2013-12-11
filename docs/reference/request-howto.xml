@@ -1,0 +1,184 @@
+<?xml version="1.0"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<refentry id="libsoup-request-howto">
+<refmeta>
+<refentrytitle>libsoup Client SoupRequest API</refentrytitle>
+<manvolnum>3</manvolnum>
+<refmiscinfo>LIBSOUP Library</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+<refname>libsoup Client SoupRequest API</refname><refpurpose>Using
+libsoup with a mix of <literal>http</literal> and non-<literal>http</literal> URIs.</refpurpose>
+</refnamediv>
+
+<refsect2>
+<title><type>SoupRequest</type></title>
+
+<para>
+<link linkend="SoupRequest"><type>SoupRequest</type></link> is an
+abstract type representing a request for a particular URI. The
+<type>SoupRequest</type> API is an alternative to the <link
+linkend="SoupMessage"><type>SoupMessage</type></link>-based <link
+linkend="SoupSession"><type>SoupSession</type></link> APIs which may be
+useful to programs that want to deal with multiple kinds of URIs.
+</para>
+
+<para>
+<type>SoupRequest</type> officially became part of the
+<application>libsoup</application> API in 2.42 with the addition of
+<link
+linkend="soup-session-request"><function>soup_session_request</function></link>
+and the related functions. However, parts of it are also available as
+far back as <application>libsoup</application> 2.34 via the
+(now-deprecated) <type>SoupRequester</type> session feature, if you
+define <literal>LIBSOUP_USE_UNSTABLE_REQUEST_API</literal> before
+including the <application>libsoup</application> headers.
+</para>
+
+<para>
+Additionally, before <application>libsoup</application> 2.42, the
+<type>SoupRequest</type> API was the only way to stream an HTTP
+response body via <link
+linkend="GInputStream"><type>GInputStream</type></link>. As of 2.42,
+there are streaming APIs based on <type>SoupMessage</type> (<link
+linkend="soup-session-send"><function>soup_session_send</function></link>
+and <link
+linkend="soup-session-send-async"><function>soup_session_send_async</function></link>),
+so applications that are using <type>SoupRequest</type> with only
+<literal>http</literal> and <literal>https</literal> URIs can be
+ported to those APIs now.
+</para>
+
+</refsect2>
+
+<refsect2>
+<title>Creating a SoupRequest</title>
+
+<para>
+There are four <type>SoupSession</type> methods for creating
+<type>SoupRequest</type>s:
+</para>
+
+<itemizedlist>
+    <listitem>
+	<para>
+	    <link linkend="soup-session-request"><function>soup_session_request</function></link>
+	    takes an arbitrary URI as a string, and returns a <link
+	    linkend="SoupRequest"><type>SoupRequest</type></link>.
+	</para>
+    </listitem>
+    <listitem>
+	<para>
+	    <link linkend="soup-session-request-uri"><function>soup_session_request_uri</function></link>
+	    takes an arbitrary URI as a <link linkend="SoupURI"><type>SoupURI</type></link>,
+	    and returns a <link linkend="SoupRequest"><type>SoupRequest</type></link>.
+	</para>
+    </listitem>
+    <listitem>
+	<para>
+	    <link linkend="soup-session-request-http"><function>soup_session_request_http</function></link>
+	    takes an HTTP method and an <literal>http</literal> or <literal>https</literal> URI as a string, and returns a <link
+	    linkend="SoupRequestHTTP"><type>SoupRequestHTTP</type></link>.
+	</para>
+    </listitem>
+    <listitem>
+	<para>
+	    <link linkend="soup-session-request-http-uri"><function>soup_session_request_http_uri</function></link>
+	    takes an HTTP method and an <literal>http</literal> or <literal>https</literal> URI as a <link linkend="SoupURI"><type>SoupURI</type></link>,
+	    and returns a <link linkend="SoupRequestHTTP"><type>SoupRequestHTTP</type></link>.
+	</para>
+    </listitem>
+</itemizedlist>
+
+</refsect2>
+
+<refsect2>
+<title>Sending a SoupRequest</title>
+
+<para>
+Once you have created a <type>SoupRequest</type>, you can send it with
+either <link
+linkend="soup-request-send"><function>soup_request_send</function></link>
+or <link
+linkend="soup-request-send-async"><function>soup_request_send_async</function></link>.
+This will provide you with a <link
+linkend="GInputStream"><type>GInputStream</type></link> which you can
+read to get the response body.
+</para>
+
+<para>
+After sending, you can use <link
+linkend="soup-request-get-content-length"><function>soup_request_get_content_length</function></link>
+and <link
+linkend="soup-request-get-content-type"><function>soup_request_get_content_type</function></link>
+to get information about the response body.
+</para>
+
+<para>
+As with the streaming <type>SoupMessage</type>-based APIs,
+<function>soup_request_send</function> and
+<function>soup_request_send_async</function> only return errors if a
+transport-level problem occurs (eg, it could not connect to the host,
+or the request was cancelled). In the case of an HTTP request, use the
+message's <structfield>status_code</structfield> field to determine
+whether the request was successful or not at the HTTP level (ie, "<literal>200
+OK</literal>" vs "<literal>401 Bad Request</literal>"). (You can call <link
+linkend="soup-request-http-get-message"><function>soup_request_http_get_message</function></link>
+to get the request's corresponding <link
+linkend="SoupMessage"><type>SoupMessage</type></link>, to look at the
+status code or other HTTP metadata.)
+</para>
+
+</refsect2>
+
+<refsect2>
+<title>Supported URI types, and adding your own</title>
+
+<para>
+Different URI types are implemented by different subclasses of
+<type>SoupRequest</type>. <application>libsoup</application> currently
+implements three <type>SoupRequest</type> classes:
+</para>
+
+<variablelist>
+    <varlistentry>
+	<term><link linkend="SoupRequestHTTP"><type>SoupRequestHTTP</type></link></term>
+	<listitem><para>
+	    Handles <literal>http</literal> and
+	    <literal>https</literal> URI.
+	</para></listitem>
+    </varlistentry>
+    <varlistentry>
+	<term><link linkend="SoupRequestData"><type>SoupRequestData</type></link></term>
+	<listitem><para>
+	    Handles <literal>data</literal> URIs containing inline data.
+	</para></listitem>
+    </varlistentry>
+    <varlistentry>
+	<term><link linkend="SoupRequestFile"><type>SoupRequestFile</type></link></term>
+	<listitem><para>
+	    Handles <literal>file</literal> and
+	    <link linkend="GResource"><literal>resource</literal></link> URIs.
+	    If you request a URI corresponding to a directory, this
+	    will generate an HTML listing of the directory.
+	</para></listitem>
+    </varlistentry>
+</variablelist>
+
+<para>
+You can add additional URI types by implementing your own
+<type>SoupRequest</type> subclass; set the
+<type>SoupRequestClass</type>'s <structfield>schemes</structfield>
+field to point to a <literal>NULL</literal>-terminated array of scheme
+names, implement the various <type>SoupRequest</type> methods, and
+then register the type with your <type>SoupSession</type> by calling
+<link linkend="soup-session-add-feature-by-type"><function>soup_session_add_feature_by_type</function></link>
+and passing the <link linkend="GType"><type>GType</type></link> of
+your request class.
+</para>
+
+</refsect2>
+
+</refentry>
