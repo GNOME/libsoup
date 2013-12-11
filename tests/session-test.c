@@ -333,7 +333,13 @@ do_property_tests (void)
 	 * so we can only do this test if we have a real TLS backend.
 	 */
 	if (tls_available) {
-		tlsdb = g_tls_file_database_new (SRCDIR "/test-cert.pem", NULL);
+		GError *error = NULL;
+
+		tlsdb = g_tls_file_database_new (g_test_get_filename (G_TEST_DIST,
+								      "test-cert.pem",
+								      NULL), &error);
+		g_assert_no_error (error);
+
 		session = g_object_new (SOUP_TYPE_SESSION,
 					SOUP_SESSION_TLS_DATABASE, tlsdb,
 					NULL);

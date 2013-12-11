@@ -465,7 +465,9 @@ do_winbind_ntlm_test (gconstpointer data)
 	/* Samba winbind /usr/bin/ntlm_auth helper support (via a
 	 * helper program that emulates its interface).
 	 */
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG", BUILDDIR "/ntlm-test-helper", TRUE);
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG",
+		  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
+		  TRUE);
 	g_unsetenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS");
 	do_ntlm_tests (uri, FALSE);
 }
@@ -479,7 +481,9 @@ do_fallback_ntlm_test (gconstpointer data)
 	 * no cached credentials (and thus we have to fall back to
 	 * libsoup's built-in NTLM support).
 	 */
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG", BUILDDIR "/ntlm-test-helper", TRUE);
+	g_setenv ("SOUP_NTLM_AUTH_DEBUG",
+		  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
+		  TRUE);
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
 	do_ntlm_tests (uri, TRUE);
 }

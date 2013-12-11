@@ -1,14 +1,14 @@
+include $(top_srcdir)/glib-tap.mk
+
 AM_CPPFLAGS =		\
 	-I$(top_srcdir)	\
-	-DSRCDIR=\""$(abs_srcdir)"\" \
-	-DBUILDDIR=\""$(builddir)"\" \
 	$(GLIB_CFLAGS)
 
 LIBS =			\
 	$(top_builddir)/libsoup/libsoup-2.4.la \
 	$(GLIB_LIBS)
 
-TESTS =				\
+test_programs =			\
 	auth-test		\
 	cache-test		\
 	chunk-test		\
@@ -44,13 +44,18 @@ TESTS =				\
 	xmlrpc-server-test	\
 	xmlrpc-test
 
-noinst_PROGRAMS =		\
+test_extra_programs =		\
 	ntlm-test-helper	\
 	$(TESTS)
 
-noinst_DATA = soup-tests.gresource
+test_data =			\
+	index.txt		\
+	soup-tests.gresource	\
+	test-cert.pem		\
+	test-key.pem		\
+	xmlrpc-server.php
 
-noinst_LTLIBRARIES = libtest.la
+noinst_LTLIBRARIES += libtest.la
 
 libtest_la_SOURCES =	\
 	test-utils.c	\
@@ -74,7 +79,11 @@ httpd.conf: $(httpd_conf_in)
 	    -e 's,[@]APACHE_SSL_MODULE_DIR@,$(APACHE_SSL_MODULE_DIR),' \
 	    $< > $@ || rm -f $@
 
-BUILT_SOURCES = httpd.conf
+BUILT_SOURCES += httpd.conf
+test_data +=			\
+	htdigest		\
+	htpasswd		\
+	httpd.conf
 endif
 
 RESOURCES = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
@@ -82,7 +91,7 @@ RESOURCES = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-d
 soup-tests.gresource: soup-tests.gresource.xml $(RESOURCES)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) $<
 
-EXTRA_DIST =			 \
+EXTRA_DIST +=			 \
 	htdigest		 \
 	htpasswd		 \
 	httpd.conf.22.in	 \
@@ -95,10 +104,9 @@ EXTRA_DIST =			 \
 	xmlrpc-server.php	 \
 	$(RESOURCES)
 
-DISTCLEANFILES = soup-tests.gresource httpd.conf
+DISTCLEANFILES += soup-tests.gresource httpd.conf
 
-TESTS_ENVIRONMENT = \
-	SOUP_TESTS_IN_MAKE_CHECK=1
+TESTS_ENVIRONMENT += SOUP_TESTS_IN_MAKE_CHECK=1
 
 check: start-httpd
 
@@ -113,13 +121,21 @@ endif
 .PHONY: start-httpd kill-httpd
 
 start-httpd:
-if HAVE_APACHE
-	@$(APACHE_HTTPD) -d `pwd` -f httpd.conf -k start;
+if HAVE_APACHE_2_2
+	@$(APACHE_HTTPD) -d $(abs_srcdir) -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k start;
+endif
+if HAVE_APACHE_2_4
+	@$(APACHE_HTTPD) -d $(abs_srcdir) -c "DefaultRuntimeDir `pwd`" -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k start;
 endif
 
 kill-httpd:
-if HAVE_APACHE
+if HAVE_APACHE_2_2
 	@if [ -f httpd.pid ]; then \
-		$(APACHE_HTTPD) -d `pwd` -f httpd.conf -k stop; \
+		$(APACHE_HTTPD) -d $(abs_srcdir) -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k stop; \
+	fi
+endif
+if HAVE_APACHE_2_4
+	@if [ -f httpd.pid ]; then \
+		$(APACHE_HTTPD) -d $(abs_srcdir) -c "DefaultRuntimeDir `pwd`" -c "PidFile `pwd`/httpd.pid" -f `pwd`/httpd.conf -k stop; \
 	fi
 endif

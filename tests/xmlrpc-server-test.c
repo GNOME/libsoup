@@ -280,7 +280,7 @@ do_xmlrpc_tests (gconstpointer data)
 	GError *error = NULL;
 	GIOChannel *child_out;
 
-	argv[0] = "./xmlrpc-test";
+	argv[0] = (char *) g_test_get_filename (G_TEST_BUILT, "xmlrpc-test", NULL);
 	argv[1] = "-S";
 	argv[2] = "-U";
 	argv[3] = soup_uri_to_string (uri, FALSE);

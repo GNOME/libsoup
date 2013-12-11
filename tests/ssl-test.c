@@ -65,7 +65,10 @@ do_one_strict_test (SoupSession *session, const char *uri,
 
 	g_object_set (G_OBJECT (session),
 		      SOUP_SESSION_SSL_STRICT, strict,
-		      SOUP_SESSION_SSL_CA_FILE, with_ca_list ? SRCDIR "/test-cert.pem" : "/dev/null",
+		      SOUP_SESSION_SSL_CA_FILE,
+		      (with_ca_list ?
+		       g_test_get_filename (G_TEST_DIST, "/test-cert.pem", NULL) :
+		       "/dev/null"),
 		      NULL);
 	/* Close existing connections with old params */
 	soup_session_abort (session);
@@ -184,7 +187,7 @@ do_session_property_tests (void)
 
 	use_system_changed = tlsdb_changed = ca_file_changed = FALSE;
 	g_object_set (G_OBJECT (session),
-		      "ssl-ca-file", SRCDIR "/test-cert.pem",
+		      "ssl-ca-file", g_test_get_filename (G_TEST_DIST, "/test-cert.pem", NULL),
 		      NULL);
 	g_object_get (G_OBJECT (session),
 		      "ssl-use-system-ca-file", &use_system,

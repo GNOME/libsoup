@@ -60,6 +60,7 @@ stamp-h1
 tests/*.log
 tests/*.trs
 tests/*-test
+tests/*.test
 tests/date
 tests/header-parsing
 tests/httpd.conf

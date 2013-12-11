@@ -91,9 +91,6 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	}
 	g_option_context_free (opts);
 
-	if (g_getenv ("SOUP_TESTS_IN_MAKE_CHECK"))
-		debug_level = G_MAXINT;
-
 	/* Exit cleanly on ^C in case we're valgrinding. */
 	signal (SIGINT, quit);
 
@@ -137,30 +134,52 @@ debug_printf (int level, const char *format, ...)
 static gboolean
 apache_cmd (const char *cmd)
 {
-	const char *argv[8];
-	char *cwd, *conf;
+	GPtrArray *argv;
+	char *server_root, *cwd, *pid_file;
+#ifdef HAVE_APACHE_2_4
+	char *default_runtime_dir;
+#endif
 	int status;
 	gboolean ok;
 
+	server_root = g_test_build_filename (G_TEST_BUILT, "", NULL);
+
 	cwd = g_get_current_dir ();
-	conf = g_build_filename (cwd, "httpd.conf", NULL);
+#ifdef HAVE_APACHE_2_4
+	default_runtime_dir = g_strdup_printf ("DefaultRuntimeDir %s", cwd);
+#endif
+	pid_file = g_strdup_printf ("PidFile %s/httpd.pid", cwd);
 
-	argv[0] = APACHE_HTTPD;
-	argv[1] = "-d";
-	argv[2] = cwd;
-	argv[3] = "-f";
-	argv[4] = conf;
-	argv[5] = "-k";
-	argv[6] = cmd;
-	argv[7] = NULL;
+	argv = g_ptr_array_new ();
+	g_ptr_array_add (argv, APACHE_HTTPD);
+	g_ptr_array_add (argv, "-d");
+	g_ptr_array_add (argv, server_root);
+	g_ptr_array_add (argv, "-f");
+	g_ptr_array_add (argv, "httpd.conf");
 
-	ok = g_spawn_sync (cwd, (char **)argv, NULL, 0, NULL, NULL,
+#ifdef HAVE_APACHE_2_4
+	g_ptr_array_add (argv, "-c");
+	g_ptr_array_add (argv, default_runtime_dir);
+#endif
+	g_ptr_array_add (argv, "-c");
+	g_ptr_array_add (argv, pid_file);
+
+	g_ptr_array_add (argv, "-k");
+	g_ptr_array_add (argv, (char *)cmd);
+	g_ptr_array_add (argv, NULL);
+
+	ok = g_spawn_sync (cwd, (char **)argv->pdata, NULL, 0, NULL, NULL,
 			   NULL, NULL, &status, NULL);
 	if (ok)
 		ok = (status == 0);
 
+	g_free (server_root);
 	g_free (cwd);
-	g_free (conf);
+	g_free (pid_file);
+#ifdef HAVE_APACHE_2_4
+	g_free (default_runtime_dir);
+#endif
+	g_ptr_array_free (argv, TRUE);
 
 	return ok;
 }
@@ -208,15 +227,18 @@ soup_test_session_new (GType type, ...)
 	va_list args;
 	const char *propname;
 	SoupSession *session;
+	char *cafile;
 
 	va_start (args, type);
 	propname = va_arg (args, const char *);
 	session = (SoupSession *)g_object_new_valist (type, propname, args);
 	va_end (args);
 
+	cafile = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
 	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_SSL_CA_FILE, SRCDIR "/test-cert.pem",
+		      SOUP_SESSION_SSL_CA_FILE, cafile,
 		      NULL);
+	g_free (cafile);
 
 	if (http_debug_level && !logger) {
 		SoupLoggerLogLevel level = MIN ((SoupLoggerLogLevel)http_debug_level, SOUP_LOGGER_LOG_BODY);
@@ -246,14 +268,14 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 {
 	SoupServer *server;
 	GMainContext *async_context;
-	const char *ssl_cert_file, *ssl_key_file;
+	char *ssl_cert_file, *ssl_key_file;
 	SoupAddress *addr;
 
 	async_context = in_own_thread ? g_main_context_new () : NULL;
 
 	if (ssl) {
-		ssl_cert_file = SRCDIR "/test-cert.pem";
-		ssl_key_file = SRCDIR "/test-key.pem";
+		ssl_cert_file = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
+		ssl_key_file = g_test_build_filename (G_TEST_DIST, "test-key.pem", NULL);
 	} else
 		ssl_cert_file = ssl_key_file = NULL;
 
@@ -268,6 +290,8 @@ test_server_new (gboolean in_own_thread, gboolean ssl)
 	g_object_unref (addr);
 	if (async_context)
 		g_main_context_unref (async_context);
+	g_free (ssl_cert_file);
+	g_free (ssl_key_file);
 
 	if (!server) {
 		g_printerr ("Unable to create server\n");
@@ -522,17 +546,21 @@ soup_test_register_resources (void)
 {
 	static gboolean registered = FALSE;
 	GResource *resource;
+	char *path;
 	GError *error = NULL;
 
 	if (registered)
 		return;
 
-	resource = g_resource_load ("soup-tests.gresource", &error);
+	path = g_test_build_filename (G_TEST_BUILT, "soup-tests.gresource", NULL);
+	resource = g_resource_load (path, &error);
 	if (!resource) {
 		g_printerr ("Could not load resource soup-tests.gresource: %s\n",
 			    error->message);
 		exit (1);
 	}
+	g_free (path);
+
 	g_resources_register (resource);
 	g_resource_unref (resource);
 
@@ -565,15 +593,17 @@ SoupBuffer *
 soup_test_get_index (void)
 {
 	if (!index_buffer) {
-		char *contents;
+		char *path, *contents;
 		gsize length;
 		GError *error = NULL;
 
-		if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
+		path = g_test_build_filename (G_TEST_DIST, "index.txt", NULL);
+		if (!g_file_get_contents (path, &contents, &length, &error)) {
 			g_printerr ("Could not read index.txt: %s\n",
 				    error->message);
 			exit (1);
 		}
+		g_free (path);
 
 		index_buffer = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
 	}

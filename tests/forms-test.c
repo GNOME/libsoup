@@ -135,7 +135,7 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 	g_free (file_arg);
 }
 
-#define MD5_TEST_FILE SRCDIR "/index.txt"
+#define MD5_TEST_FILE (g_test_get_filename (G_TEST_DIST, "index.txt", NULL))
 #define MD5_TEST_FILE_BASENAME "index.txt"
 #define MD5_TEST_FILE_MIME_TYPE "text/plain"
 

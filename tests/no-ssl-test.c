@@ -76,7 +76,8 @@ do_session_property_tests (void)
 	soup_test_assert (ca_file == NULL, "setting ssl-use-system-ca-file set ssl-ca-file");
 
 	g_object_set (G_OBJECT (session),
-		      "ssl-ca-file", SRCDIR "/test-cert.pem",
+		      "ssl-ca-file",
+		      g_test_get_filename (G_TEST_DIST, "test-cert.pem", NULL),
 		      NULL);
 	g_object_get (G_OBJECT (session),
 		      "ssl-use-system-ca-file", &use_system,

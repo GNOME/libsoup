@@ -155,7 +155,7 @@ do_request_file_test (gconstpointer type)
 	GFile *index;
 	char *uri_string;
 
-	index = g_file_new_for_path (SRCDIR "/index.txt");
+	index = g_file_new_for_path (g_test_get_filename (G_TEST_DIST, "index.txt", NULL));
 	uri_string = g_file_get_uri (index);
 	g_object_unref (index);
 
