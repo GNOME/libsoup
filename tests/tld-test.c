@@ -57,12 +57,12 @@ static struct {
   { "city.kyoto.jp", "city.kyoto.jp" },
   { "www.city.kyoto.jp", "city.kyoto.jp" },
   /* TLD with a wildcard rule and exceptions. */
-  { "om", NULL },
-  { "test.om", NULL },
-  { "b.test.om", "b.test.om" },
-  { "a.b.test.om", "b.test.om" },
-  { "songfest.om", "songfest.om" },
-  { "www.songfest.om", "songfest.om" },
+  { "ck", NULL },
+  { "test.ck", NULL },
+  { "b.test.ck", "b.test.ck" },
+  { "a.b.test.ck", "b.test.ck" },
+  { "www.ck", "www.ck" },
+  { "www.www.ck", "www.ck" },
   /* US K12. */
   { "us", NULL },
   { "test.us", "test.us" },
@@ -73,11 +73,18 @@ static struct {
   { "k12.ak.us", NULL },
   { "test.k12.ak.us", "test.k12.ak.us" },
   { "www.test.k12.ak.us", "test.k12.ak.us" },
+  /* IDN labels. */
+  { "食狮.com.cn", "食狮.com.cn" },
+  { "食狮.公司.cn", "食狮.公司.cn" },
+  { "www.食狮.公司.cn", "食狮.公司.cn" },
+  { "shishi.公司.cn", "shishi.公司.cn" },
+  { "公司.cn", NULL },
+  { "食狮.中国", "食狮.中国" },
+  { "www.食狮.中国", "食狮.中国" },
+  { "shishi.中国", "shishi.中国" },
+  { "中国", NULL },
   /* This is not in http://publicsuffix.org/list/test.txt but we want to check it anyway. */
   { "co.uk", NULL },
-  /* The original list does not include non-ASCII tests. Let's add a couple. */
-  { "公司.cn", NULL },
-  { "a.b.åfjord.no", "b.åfjord.no" }
 },
 /* Non Internet TLDs have NULL as expected result
  */
