@@ -12,6 +12,7 @@ static gboolean apache_running;
 #endif
 
 static SoupLogger *logger;
+static SoupBuffer *index_buffer;
 
 int debug_level;
 gboolean expect_warning, tls_available;
@@ -110,6 +111,8 @@ test_cleanup (void)
 
 	if (logger)
 		g_object_unref (logger);
+	if (index_buffer)
+		soup_buffer_free (index_buffer);
 
 	g_main_context_unref (g_main_context_default ());
 
@@ -512,6 +515,70 @@ soup_test_request_close_stream (SoupRequest   *req,
 	g_object_unref (data.result);
 
 	return ok;
+}
+
+void
+soup_test_register_resources (void)
+{
+	static gboolean registered = FALSE;
+	GResource *resource;
+	GError *error = NULL;
+
+	if (registered)
+		return;
+
+	resource = g_resource_load ("soup-tests.gresource", &error);
+	if (!resource) {
+		g_printerr ("Could not load resource soup-tests.gresource: %s\n",
+			    error->message);
+		exit (1);
+	}
+	g_resources_register (resource);
+	g_resource_unref (resource);
+
+	registered = TRUE;
+}
+
+SoupBuffer *
+soup_test_load_resource (const char  *name,
+			 GError     **error)
+{
+	GBytes *bytes;
+	char *path;
+
+	soup_test_register_resources ();
+
+	path = g_build_path ("/", "/org/gnome/libsoup/tests/resources", name, NULL);
+	bytes = g_resources_lookup_data (path, G_RESOURCE_LOOKUP_FLAGS_NONE, error);
+	g_free (path);
+
+	if (!bytes)
+		return NULL;
+
+	return soup_buffer_new_with_owner (g_bytes_get_data (bytes, NULL),
+					   g_bytes_get_size (bytes),
+					   bytes,
+					   (GDestroyNotify) g_bytes_unref);
+}
+
+SoupBuffer *
+soup_test_get_index (void)
+{
+	if (!index_buffer) {
+		char *contents;
+		gsize length;
+		GError *error = NULL;
+
+		if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
+			g_printerr ("Could not read index.txt: %s\n",
+				    error->message);
+			exit (1);
+		}
+
+		index_buffer = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
+	}
+
+	return index_buffer;
 }
 
 #ifndef G_HAVE_ISO_VARARGS

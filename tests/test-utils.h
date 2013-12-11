@@ -54,6 +54,12 @@ gboolean      soup_test_request_close_stream (SoupRequest   *req,
 					      GCancellable  *cancellable,
 					      GError       **error);
 
+void        soup_test_register_resources (void);
+SoupBuffer *soup_test_load_resource      (const char  *name,
+					  GError     **error);
+
+SoupBuffer *soup_test_get_index          (void);
+
 #ifdef G_HAVE_ISO_VARARGS
 #define soup_test_assert(expr, ...)				\
 G_STMT_START {								\

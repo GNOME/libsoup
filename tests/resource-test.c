@@ -7,38 +7,6 @@
 
 SoupBuffer *index_buffer;
 
-static void
-get_index (void)
-{
-	char *contents;
-	gsize length;
-	GError *error = NULL;
-
-	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		g_printerr ("Could not read index.txt: %s\n",
-			    error->message);
-		exit (1);
-	}
-
-	index_buffer = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
-}
-
-static void
-register_gresource (void)
-{
-	GResource *resource;
-	GError *error = NULL;
-
-	resource = g_resource_load ("soup-tests.gresource", &error);
-	if (!resource) {
-		g_printerr ("Could not load resource soup-tests.gresource: %s\n",
-			    error->message);
-		exit (1);
-	}
-	g_resources_register (resource);
-	g_resource_unref (resource);
-}
-
 typedef struct {
 	GString *body;
 	char buffer[1024];
@@ -222,8 +190,8 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	get_index ();
-	register_gresource ();
+	index_buffer = soup_test_get_index ();
+	soup_test_register_resources ();
 
 	g_test_add_data_func ("/resource/sync/file",
 			      GSIZE_TO_POINTER (SOUP_TYPE_SESSION_SYNC),

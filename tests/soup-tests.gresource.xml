@@ -2,5 +2,16 @@
 <gresources>
   <gresource prefix="/org/gnome/libsoup/tests">
     <file>index.txt</file>
+    <file>resources/atom.xml</file>
+    <file>resources/home.gif</file>
+    <file>resources/html_binary.html</file>
+    <file>resources/mbox</file>
+    <file>resources/mbox.gz</file>
+    <file>resources/mbox.raw</file>
+    <file>resources/mbox.zlib</file>
+    <file>resources/ps_binary.ps</file>
+    <file>resources/rss20.xml</file>
+    <file>resources/test.html</file>
+    <file>resources/text_binary.txt</file>
   </gresource>
 </gresources>

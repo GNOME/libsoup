@@ -16,8 +16,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 {
 	GError *error = NULL;
 	char *query_key;
-	char *contents;
-	gsize length = 0, offset;
+	SoupBuffer *response = NULL;
+	gsize offset;
 	gboolean empty_response = FALSE;
 
 	if (msg->method != SOUP_METHOD_GET) {
@@ -40,13 +40,8 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 
 	if (!strcmp (path, "/mbox")) {
-		if (empty_response) {
-			contents = g_strdup ("");
-			length = 0;
-		} else {
-			g_file_get_contents (SRCDIR "/resources/mbox",
-					     &contents, &length,
-					     &error);
+		if (!empty_response) {
+			response = soup_test_load_resource ("mbox", &error);
 			g_assert_no_error (error);
 		}
 
@@ -56,15 +51,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/text_or_binary/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
-		g_file_get_contents (file_name,
-				     &contents, &length,
-				     &error);
+		response = soup_test_load_resource (base_name, &error);
 		g_assert_no_error (error);
-
 		g_free (base_name);
-		g_free (file_name);
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "text/plain");
@@ -72,15 +62,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/unknown/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
-		g_file_get_contents (file_name,
-				     &contents, &length,
-				     &error);
+		response = soup_test_load_resource (base_name, &error);
 		g_assert_no_error (error);
-
 		g_free (base_name);
-		g_free (file_name);
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "UNKNOWN/unknown");
@@ -91,15 +76,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		char *ptr;
 
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
-		g_file_get_contents (file_name,
-				     &contents, &length,
-				     &error);
+		response = soup_test_load_resource (base_name, &error);
 		g_assert_no_error (error);
-
 		g_free (base_name);
-		g_free (file_name);
 
 		/* Hack to allow passing type in the URI */
 		ptr = g_strrstr (components[2], "_");
@@ -112,15 +92,10 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (g_str_has_prefix (path, "/multiple_headers/")) {
 		char *base_name = g_path_get_basename (path);
-		char *file_name = g_strdup_printf (SRCDIR "/resources/%s", base_name);
 
-		g_file_get_contents (file_name,
-				     &contents, &length,
-				     &error);
+		response = soup_test_load_resource (base_name, &error);
 		g_assert_no_error (error);
-
 		g_free (base_name);
-		g_free (file_name);
 
 		soup_message_headers_append (msg->response_headers,
 					     "Content-Type", "text/xml");
@@ -128,15 +103,18 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Content-Type", "text/plain");
 	}
 
-	for (offset = 0; offset < length; offset += 500) {
-		soup_message_body_append (msg->response_body,
-					  SOUP_MEMORY_COPY,
-					  contents + offset,
-					  MIN(500, length - offset));
-	}
-	soup_message_body_complete (msg->response_body);
+	if (response) {
+		for (offset = 0; offset < response->length; offset += 500) {
+			soup_message_body_append (msg->response_body,
+						  SOUP_MEMORY_COPY,
+						  response->data + offset,
+						  MIN (500, response->length - offset));
+		}
 
-	g_free (contents);
+		soup_buffer_free (response);
+	}
+
+	soup_message_body_complete (msg->response_body);
 }
 
 static gboolean
@@ -212,8 +190,7 @@ do_signals_test (gboolean should_content_sniff,
 {
 	SoupURI *uri = soup_uri_new_with_base (base_uri, "/mbox");
 	SoupMessage *msg = soup_message_new_from_uri ("GET", uri);
-	char *contents;
-	gsize length;
+	SoupBuffer *expected;
 	GError *error = NULL;
 	SoupBuffer *body = NULL;
 
@@ -256,13 +233,10 @@ do_signals_test (gboolean should_content_sniff,
 				  "content-sniffed got emitted without a sniffer");
 	}
 
-	if (empty_response) {
-		contents = g_strdup ("");
-		length = 0;
-	} else {
-		g_file_get_contents (SRCDIR "/resources/mbox",
-				     &contents, &length,
-				     &error);
+	if (empty_response)
+		expected = soup_buffer_new (SOUP_MEMORY_STATIC, "", 0);
+	else {
+		expected = soup_test_load_resource ("mbox", &error);
 		g_assert_no_error (error);
 	}
 
@@ -271,10 +245,12 @@ do_signals_test (gboolean should_content_sniff,
 	else if (msg->response_body)
 		body = soup_message_body_flatten (msg->response_body);
 
-	if (body)
-		soup_assert_cmpmem (body->data, body->length, contents, length);
+	if (body) {
+		soup_assert_cmpmem (body->data, body->length,
+				    expected->data, expected->length);
+	}
 
-	g_free (contents);
+	soup_buffer_free (expected);
 	if (body)
 		soup_buffer_free (body);
 	if (chunk_data) {

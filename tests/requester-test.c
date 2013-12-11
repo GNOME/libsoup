@@ -17,26 +17,6 @@ SoupBuffer *response, *auth_response;
 #define REDIRECT_HTML_BODY "<html><body>Try again</body></html>\r\n"
 #define AUTH_HTML_BODY "<html><body>Unauthorized</body></html>\r\n"
 
-static void
-get_index (void)
-{
-	char *contents;
-	gsize length;
-	GError *error = NULL;
-
-	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		g_printerr ("Could not read index.txt: %s\n",
-			    error->message);
-		exit (1);
-	}
-
-	response = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
-
-	auth_response = soup_buffer_new (SOUP_MEMORY_STATIC,
-					 AUTH_HTML_BODY,
-					 strlen (AUTH_HTML_BODY));
-}
-
 static gboolean
 slow_finish_message (gpointer msg)
 {
@@ -808,7 +788,11 @@ main (int argc, char **argv)
 	int ret;
 
 	test_init (argc, argv, NULL);
-	get_index ();
+
+	response = soup_test_get_index ();
+	auth_response = soup_buffer_new (SOUP_MEMORY_STATIC,
+					 AUTH_HTML_BODY,
+					 strlen (AUTH_HTML_BODY));
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
@@ -831,7 +815,6 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	g_free (uri);
-	soup_buffer_free (response);
 	soup_buffer_free (auth_response);
 	soup_test_server_quit_unref (server);
 

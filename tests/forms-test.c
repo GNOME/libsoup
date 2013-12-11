@@ -135,9 +135,9 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 	g_free (file_arg);
 }
 
-#define MD5_TEST_FILE SRCDIR "/resources/home.gif"
-#define MD5_TEST_FILE_BASENAME "home.gif"
-#define MD5_TEST_FILE_MIME_TYPE "image/gif"
+#define MD5_TEST_FILE SRCDIR "/index.txt"
+#define MD5_TEST_FILE_BASENAME "index.txt"
+#define MD5_TEST_FILE_MIME_TYPE "text/plain"
 
 static void
 do_md5_test_libsoup (const char *uri, const char *contents,

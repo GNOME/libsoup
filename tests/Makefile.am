@@ -77,21 +77,10 @@ httpd.conf: $(httpd_conf_in)
 BUILT_SOURCES = httpd.conf
 endif
 
-soup-tests.gresource: soup-tests.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
-	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir)  $<
+RESOURCES = $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/soup-tests.gresource.xml)
 
-RESOURCES =			\
-	resources/atom.xml	\
-	resources/home.gif	\
-	resources/html_binary.html \
-	resources/mbox		\
-	resources/mbox.gz	\
-	resources/mbox.raw	\
-	resources/mbox.zlib	\
-	resources/ps_binary.ps	\
-	resources/rss20.xml	\
-	resources/test.html	\
-	resources/text_binary.txt
+soup-tests.gresource: soup-tests.gresource.xml $(RESOURCES)
+	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) $<
 
 EXTRA_DIST =			 \
 	htdigest		 \

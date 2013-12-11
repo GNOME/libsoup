@@ -7,28 +7,8 @@
 
 #define RESPONSE_CHUNK_SIZE 1024
 
-char *full_response, *full_response_md5;
-gsize full_response_length;
-
-static void
-get_full_response (void)
-{
-	GError *error = NULL;
-
-	if (!g_file_get_contents (SRCDIR "/index.txt",
-				  &full_response,
-				  &full_response_length,
-				  &error)) {
-		g_printerr ("Could not read index file %s: %s\n",
-			    SRCDIR "/index.txt", error->message);
-		g_error_free (error);
-		exit (1);
-	}
-
-	full_response_md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-							 (guchar *)full_response,
-							 full_response_length);
-}
+SoupBuffer *full_response;
+char *full_response_md5;
 
 static void
 write_next_chunk (SoupMessage *msg, gpointer user_data)
@@ -36,12 +16,12 @@ write_next_chunk (SoupMessage *msg, gpointer user_data)
 	gsize *offset = user_data;
 	gsize chunk_length;
 
-	chunk_length = MIN (RESPONSE_CHUNK_SIZE, full_response_length - *offset);
+	chunk_length = MIN (RESPONSE_CHUNK_SIZE, full_response->length - *offset);
 	if (chunk_length > 0) {
 		debug_printf (2, "  writing chunk\n");
 		soup_message_body_append (msg->response_body,
 					  SOUP_MEMORY_STATIC,
-					  full_response + *offset,
+					  full_response->data + *offset,
 					  chunk_length);
 		*offset += chunk_length;
 	} else {
@@ -74,7 +54,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		soup_message_headers_set_encoding (msg->response_headers,
 						   SOUP_ENCODING_CONTENT_LENGTH);
 		soup_message_headers_set_content_length (msg->response_headers,
-							 full_response_length);
+							 full_response->length);
 	} else if (!strcmp (path, "/eof")) {
 		soup_message_headers_set_encoding (msg->response_headers,
 						   SOUP_ENCODING_EOF);
@@ -107,7 +87,7 @@ do_request (SoupSession *session, SoupURI *base_uri, char *path)
 	soup_session_send_message (session, msg);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
-	g_assert_cmpint (msg->response_body->length, ==, full_response_length);
+	g_assert_cmpint (msg->response_body->length, ==, full_response->length);
 
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
 					   (guchar *)msg->response_body->data,
@@ -162,7 +142,10 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	get_full_response ();
+	full_response = soup_test_get_index ();
+	full_response_md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
+							 (guchar *)full_response->data,
+							 full_response->length);
 
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,
@@ -183,7 +166,6 @@ main (int argc, char **argv)
 	soup_uri_free (base_uri);
 	g_main_loop_unref (loop);
 
-	g_free (full_response);
 	g_free (full_response_md5);
 	soup_test_server_quit_unref (server);
 	test_cleanup ();

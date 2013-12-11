@@ -9,23 +9,6 @@ int total_length;
 char *test_response;
 
 static void
-get_full_response (void)
-{
-	char *contents;
-	gsize length;
-	GError *error = NULL;
-
-	if (!g_file_get_contents (SRCDIR "/index.txt", &contents, &length, &error)) {
-		g_printerr ("Could not read index.txt: %s\n",
-			    error->message);
-		exit (1);
-	}
-
-	full_response = soup_buffer_new (SOUP_MEMORY_TAKE, contents, length);
-	debug_printf (1, "Total response length is %d\n\n", (int)length);
-}
-
-static void
 check_part (SoupMessageHeaders *headers, const char *body, gsize body_len,
 	    gboolean check_start_end, int expected_start, int expected_end)
 {
@@ -401,7 +384,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 	apache_init ();
 
-	get_full_response ();
+	full_response = soup_test_get_index ();
 	test_response = g_malloc0 (full_response->length);
 
 	g_test_add_func ("/ranges/apache", do_apache_range_test);
@@ -409,7 +392,6 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	soup_buffer_free (full_response);
 	g_free (test_response);
 
 	test_cleanup ();

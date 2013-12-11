@@ -351,8 +351,8 @@ do_io_tests (void)
 	GInputStream *imem, *islow, *in;
 	GOutputStream *omem, *oslow, *out;
 	GMemoryOutputStream *mem;
-	char *raw_contents, *buf;
-	gsize raw_length;
+	SoupBuffer *raw_contents;
+	char *buf;
 	GString *chunkified;
 	GError *error = NULL;
 	gssize nread, nwrote, total;
@@ -360,13 +360,8 @@ do_io_tests (void)
 
 	debug_printf (1, "\nI/O tests\n");
 
-	if (!g_file_get_contents (SRCDIR "/index.txt", &raw_contents, &raw_length, &error)) {
-		g_printerr ("Could not read index.txt: %s\n",
-			    error->message);
-		exit (1);
-	}
-
-	chunkified = chunkify (raw_contents, raw_length);
+	raw_contents = soup_test_get_index ();
+	chunkified = chunkify (raw_contents->data, raw_contents->length);
 
 	debug_printf (1, "  sync read\n");
 
@@ -383,10 +378,11 @@ do_io_tests (void)
 	g_object_unref (imem);
 	g_object_unref (islow);
 
-	buf = g_malloc (raw_length);
+	buf = g_malloc (raw_contents->length);
 	total = 0;
 	while (TRUE) {
-		nread = g_input_stream_read (in, buf + total, raw_length - total,
+		nread = g_input_stream_read (in, buf + total,
+					     raw_contents->length - total,
 					     NULL, &error);
 		g_assert_no_error (error);
 		g_clear_error (&error);
@@ -401,7 +397,7 @@ do_io_tests (void)
 	g_clear_error (&error);
 	g_object_unref (in);
 
-	soup_assert_cmpmem (buf, total, raw_contents, raw_length);
+	soup_assert_cmpmem (buf, total, raw_contents->data, raw_contents->length);
 	g_free (buf);
 
 	debug_printf (1, "  async read\n");
@@ -419,11 +415,12 @@ do_io_tests (void)
 	g_object_unref (imem);
 	g_object_unref (islow);
 
-	buf = g_malloc (raw_length);
+	buf = g_malloc (raw_contents->length);
 	total = 0;
 	while (TRUE) {
 		nread = g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM (in),
-								  buf + total, raw_length - total,
+								  buf + total,
+								  raw_contents->length - total,
 								  NULL, &error);
 		if (nread == -1 && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 			GSource *source;
@@ -452,7 +449,7 @@ do_io_tests (void)
 	g_clear_error (&error);
 	g_object_unref (in);
 
-	soup_assert_cmpmem (buf, total, raw_contents, raw_length);
+	soup_assert_cmpmem (buf, total, raw_contents->data, raw_contents->length);
 	g_free (buf);
 
 	debug_printf (1, "  sync write\n");
@@ -472,12 +469,12 @@ do_io_tests (void)
 	g_object_unref (oslow);
 
 	total = chunk_length = chunk_total = 0;
-	while (total < raw_length) {
+	while (total < raw_contents->length) {
 		if (chunk_total == chunk_length) {
-			chunk_length = MIN (CHUNK_SIZE, raw_length - total);
+			chunk_length = MIN (CHUNK_SIZE, raw_contents->length - total);
 			chunk_total = 0;
 		}
-		nwrote = g_output_stream_write (out, raw_contents + total,
+		nwrote = g_output_stream_write (out, raw_contents->data + total,
 						chunk_length - chunk_total, NULL, &error);
 		g_assert_no_error (error);
 		g_clear_error (&error);
@@ -517,13 +514,13 @@ do_io_tests (void)
 	g_object_unref (oslow);
 
 	total = chunk_length = chunk_total = 0;
-	while (total < raw_length) {
+	while (total < raw_contents->length) {
 		if (chunk_total == chunk_length) {
-			chunk_length = MIN (CHUNK_SIZE, raw_length - total);
+			chunk_length = MIN (CHUNK_SIZE, raw_contents->length - total);
 			chunk_total = 0;
 		}
 		nwrote = g_pollable_output_stream_write_nonblocking (G_POLLABLE_OUTPUT_STREAM (out),
-								     raw_contents + total,
+								     raw_contents->data + total,
 								     chunk_length - chunk_total,
 								     NULL, &error);
 		if (nwrote == -1 && g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
@@ -578,16 +575,16 @@ do_io_tests (void)
 	g_object_unref (oslow);
 
 	total = 0;
-	while (total < raw_length) {
-		nwrote = g_output_stream_write (out, raw_contents + total,
-						raw_length - total, NULL, NULL);
+	while (total < raw_contents->length) {
+		nwrote = g_output_stream_write (out, raw_contents->data + total,
+						raw_contents->length - total, NULL, NULL);
 		if (nwrote == -1)
 			break;
 		else
 			total += nwrote;
 	}
 
-	g_assert_cmpint (total, !=, raw_length);
+	g_assert_cmpint (total, !=, raw_contents->length);
 
 	g_output_stream_close (out, NULL, NULL);
 	g_object_unref (out);
@@ -595,7 +592,6 @@ do_io_tests (void)
 	g_free (buf);
 
 	g_string_free (chunkified, TRUE);
-	g_free (raw_contents);
 }
 
 int

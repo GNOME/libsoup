@@ -16,8 +16,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 {
 	const char *accept_encoding, *options;
 	GSList *codings;
-	char *file = NULL, *contents;
-	gsize length;
+	SoupBuffer *response = NULL;
 
 	options = soup_message_headers_get_one (msg->request_headers,
 						"X-Test-Options");
@@ -53,32 +52,32 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			}
 		}
 		if (extension && encoding) {
-			file = g_strdup_printf (SRCDIR "/resources%s.%s", path, extension);
-			if (g_file_test (file, G_FILE_TEST_EXISTS)) {
+			char *resource;
+
+			resource = g_strdup_printf ("%s.%s", path, extension);
+			response = soup_test_load_resource (resource, NULL);
+
+			if (response) {
 				soup_message_headers_append (msg->response_headers,
 							     "Content-Encoding",
 							     encoding);
-			} else {
-				g_free (file);
-				file = NULL;
 			}
+			g_free (resource);
 		}
 	}
 
 	soup_header_free_list (codings);
 
-	if (!file)
-		file = g_strdup_printf (SRCDIR "/resources%s", path);
-	if (!g_file_get_contents (file, &contents, &length, NULL)) {
+	if (!response)
+		response = soup_test_load_resource (path, NULL);
+	if (!response) {
 		/* If path.gz exists but can't be read, we'll send back
 		 * the error with "Content-Encoding: gzip" but there's
 		 * no body, so, eh.
 		 */
-		g_free (file);
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
-	g_free (file);
 
 	if (soup_header_contains (options, "force-encode")) {
 		const gchar *encoding = "gzip";
@@ -106,11 +105,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_headers_set_encoding (msg->response_headers, SOUP_ENCODING_CHUNKED);
 
-	if (!soup_header_contains (options, "empty")) {
-		soup_message_body_append (msg->response_body,
-					  SOUP_MEMORY_TAKE, contents, length);
-	} else
-		g_free (contents);
+	if (!soup_header_contains (options, "empty"))
+		soup_message_body_append_buffer (msg->response_body, response);
+	soup_buffer_free (response);
 
 	if (soup_header_contains (options, "trailing-junk")) {
 		soup_message_body_append (msg->response_body, SOUP_MEMORY_COPY,
