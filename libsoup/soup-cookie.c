@@ -18,17 +18,10 @@
 /**
  * SECTION:soup-cookie
  * @short_description: HTTP Cookies
- * @see_also: #SoupMessage
+ * @see_also: #SoupMessage, #SoupCookieJar
  *
- * #SoupCookie implements HTTP cookies, primarily as described by
- * <ulink
- * url="http://wp.netscape.com/newsref/std/cookie_spec.html">the
- * original Netscape cookie specification</ulink>, but with slight
- * modifications based on <ulink
- * url="http://www.ietf.org/rfc/rfc2109.txt">RFC 2109</ulink>, <ulink
- * url="http://msdn2.microsoft.com/en-us/library/ms533046.aspx">Microsoft's
- * HttpOnly extension attribute</ulink>, and observed real-world usage
- * (and, in particular, based on what Firefox does).
+ * #SoupCookie implements HTTP cookies, as described by <ulink
+ * url="http://tools.ietf.org/html/rfc6265.txt">RFC 6265</ulink>.
  *
  * To have a #SoupSession handle cookies for your appliction
  * automatically, use a #SoupCookieJar.
@@ -58,10 +51,9 @@
  * is a hostname and must match exactly.
  *
  * @expires will be non-%NULL if the cookie uses either the original
- * "expires" attribute, or the "max-age" attribute specified in RFC
- * 2109. If @expires is %NULL, it indicates that neither "expires" nor
- * "max-age" was specified, and the cookie expires at the end of the
- * session.
+ * "expires" attribute, or the newer "max-age" attribute. If @expires
+ * is %NULL, it indicates that neither "expires" nor "max-age" was
+ * specified, and the cookie expires at the end of the session.
  * 
  * If @http_only is set, the cookie should not be exposed to untrusted
  * code (eg, javascript), so as to minimize the danger posed by

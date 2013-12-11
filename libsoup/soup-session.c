@@ -3099,9 +3099,9 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * A proxy to use for all http and https requests in this
 	 * session. Setting this will clear the
 	 * #SoupSession:proxy-resolver property, and remove any
-	 * #SoupProxyURIResolver features that have been added to the
-	 * session. Setting this property will also cancel all
-	 * currently pending messages.
+	 * <type>SoupProxyURIResolver</type> features that have been
+	 * added to the session. Setting this property will also
+	 * cancel all currently pending messages.
 	 *
 	 * Note that #SoupSession will normally handle looking up the
 	 * user's proxy settings for you; you should only use
@@ -3131,8 +3131,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 *
 	 * A #GProxyResolver to use with this session. Setting this
 	 * will clear the #SoupSession:proxy-uri property, and remove
-	 * any #SoupProxyURIResolver features that have been added to
-	 * the session.
+	 * any <type>SoupProxyURIResolver</type> features that have
+	 * been added to the session.
 	 *
 	 * By default, in a plain #SoupSession, this is set to the
 	 * default #GProxyResolver, but you can set it to %NULL if you

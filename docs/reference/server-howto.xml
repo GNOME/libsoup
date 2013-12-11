@@ -100,7 +100,7 @@ to set a callback to handle certain URI paths.
 
 <informalexample><programlisting>
 	soup_server_add_handler (server, "/foo", server_callback,
-				 data, destroy_notify);
+	                         data, destroy_notify);
 </programlisting></informalexample>
 
 <para>
@@ -131,11 +131,11 @@ A handler callback looks something like this:
 <informalexample><programlisting>
 static void
 server_callback (SoupServer        *server,
-		 SoupMessage       *msg, 
-		 const char        *path,
-		 GHashTable        *query,
-		 SoupClientContext *client,
-		 gpointer           user_data)
+                 SoupMessage       *msg, 
+                 const char        *path,
+                 GHashTable        *query,
+                 SoupClientContext *client,
+                 gpointer           user_data)
 {
 	...
 }
@@ -192,11 +192,11 @@ data available at once.
 <informalexample><programlisting>
 static void
 server_callback (SoupServer        *server,
-		 SoupMessage       *msg, 
-		 const char        *path,
-		 GHashTable        *query,
-		 SoupClientContext *client,
-		 gpointer           user_data)
+                 SoupMessage       *msg, 
+                 const char        *path,
+                 GHashTable        *query,
+                 SoupClientContext *client,
+                 gpointer           user_data)
 {
 	MyServerData *server_data = user_data;
 	const char *mime_type;
@@ -219,7 +219,7 @@ server_callback (SoupServer        *server,
 
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_set_response (msg, mime_type, SOUP_MEMORY_COPY,
-				   body->data, body->len);
+	                           body->data, body->len);
 }
 </programlisting></informalexample>
 
@@ -264,7 +264,7 @@ is emitted indicating that the previous one was written successfully.)
 
 <para>
 The <emphasis role="bold"><literal>simple-proxy</literal></emphasis>
-example in the <literal>tests/</literal> directory gives an example of
+example in the <literal>examples/</literal> directory gives an example of
 using <literal>chunked</literal> encoding.
 </para>
 
@@ -308,8 +308,8 @@ passed to the <literal>server_callback</literal>:
 <informalexample><programlisting>
 static gboolean
 auth_callback (SoupAuthDomain *domain, SoupMessage *msg,
-	       const char *username, const char *password,
-	       gpointer user_data)
+               const char *username, const char *password,
+               gpointer user_data)
 {
 	MyServerData *server_data = user_data;
 	MyUserData *user;
@@ -360,8 +360,8 @@ domains.
 <para>
 If you want to require authentication for some requests under a
 certain path, but not all of them (eg, you want to authenticate
-<literal>PUT</literal>s, but not <literal>GET</literal>s), use a 
-<link
+<literal>PUT</literal> requests, but not <literal>GET</literal>
+requests), use a <link
 linkend="SoupAuthDomainFilter"><type>SoupAuthDomainFilter</type></link>.
 </para>
 

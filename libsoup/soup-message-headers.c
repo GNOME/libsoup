@@ -1159,7 +1159,7 @@ soup_message_headers_get_content_range (SoupMessageHeaders  *hdrs,
  * <note><para>
  * #SoupServer has built-in handling for range requests, and you do
  * not normally need to call this function youself. See
- * soup_message_headers_get_range() for more details.
+ * soup_message_headers_get_ranges() for more details.
  * </para></note>
  *
  * Since: 2.26

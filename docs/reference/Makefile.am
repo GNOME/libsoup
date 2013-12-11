@@ -44,7 +44,8 @@ IGNORE_HFILES= soup.h soup-enum-types.h \
 	soup-cache-input-stream.h soup-filter-input-stream.h \
 	soup-cookie-jar-sqlite.h soup-requester.h soup-tld-private.h \
 	soup-misc-private.h soup-proxy-uri-resolver.h \
-	soup-proxy-resolver-wrapper.h
+	soup-proxy-resolver-wrapper.h soup-proxy-uri-resolver.h \
+	soup-cache-private.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES = 

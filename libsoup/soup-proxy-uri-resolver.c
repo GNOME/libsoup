@@ -15,7 +15,7 @@
 #include "soup-proxy-uri-resolver.h"
 #include "soup.h"
 
-/**
+/*
  * SECTION:soup-proxy-uri-resolver
  * @short_description: Interface for locating HTTP proxies
  *
@@ -40,7 +40,7 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
 {
 }
 
-/**
+/*
  * SoupProxyURIResolverCallback:
  * @resolver: the #SoupProxyURIResolver
  * @status: a #SoupStatus
@@ -48,9 +48,9 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
  * @user_data: data passed to soup_proxy_uri_resolver_get_proxy_uri_async()
  *
  * Callback for soup_proxy_uri_resolver_get_proxy_uri_async()
- **/
+ */
 
-/**
+/*
  * soup_proxy_uri_resolver_get_proxy_uri_async:
  * @proxy_uri_resolver: the #SoupProxyURIResolver
  * @uri: the #SoupURI you want a proxy for
@@ -66,7 +66,7 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
  *
  * Deprecated: #SoupProxyURIResolver is deprecated in favor of
  * #GProxyResolver
- **/
+ */
 void
 soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_resolver,
 					     SoupURI               *uri,
@@ -81,7 +81,7 @@ soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_re
 				     callback, user_data);
 }
 
-/**
+/*
  * soup_proxy_uri_resolver_get_proxy_uri_sync:
  * @proxy_uri_resolver: the #SoupProxyURIResolver
  * @uri: the #SoupURI you want a proxy for
@@ -99,7 +99,7 @@ soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_re
  *
  * Deprecated: #SoupProxyURIResolver is deprecated in favor of
  * #GProxyResolver
- **/
+ */
 guint
 soup_proxy_uri_resolver_get_proxy_uri_sync (SoupProxyURIResolver  *proxy_uri_resolver,
 					    SoupURI               *uri,

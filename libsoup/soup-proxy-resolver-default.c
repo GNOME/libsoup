@@ -19,16 +19,19 @@
  * SECTION:soup-proxy-resolver-default
  * @short_description: System proxy configuration integration
  *
- * #SoupProxyResolverDefault is a #SoupProxyURIResolver implementation
- * that uses the default gio GProxyResolver to resolve proxies.
+ * #SoupProxyResolverDefault is a <type>SoupProxyURIResolver</type>
+ * implementation that uses the default gio #GProxyResolver to resolve
+ * proxies.
  *
- * Deprecated: In libsoup 2.44 and later, you can set the
+ * In libsoup 2.44 and later, you can set the session's
  * #SoupSession:proxy-resolver property to the resolver returned by
  * g_proxy_resolver_get_default() to get the same effect. Note that
  * for "plain" #SoupSessions (ie, not #SoupSessionAsync or
  * #SoupSessionSync), this is done for you automatically.
  *
  * Since: 2.34
+ *
+ * Deprecated: Use #SoupSession:proxy-resolver
  */
 
 static void soup_proxy_resolver_default_interface_init (SoupProxyURIResolverInterface *proxy_resolver_interface);

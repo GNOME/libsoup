@@ -19,7 +19,7 @@
 
 /**
  * SECTION:soup-content-sniffer
- * @short_description: Content sniffing for #SoupSession
+ * @short_description: Content sniffing for SoupSession
  *
  * A #SoupContentSniffer tries to detect the actual content type of
  * the files that are being downloaded by looking at some of the data

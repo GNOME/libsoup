@@ -1780,10 +1780,8 @@ soup_message_set_chunk_allocator (SoupMessage *msg,
  * This disables the actions of #SoupSessionFeature<!-- -->s with the
  * given @feature_type (or a subclass of that type) on @msg, so that
  * @msg is processed as though the feature(s) hadn't been added to the
- * session. Eg, passing #SOUP_TYPE_PROXY_URI_RESOLVER for @feature_type
- * will disable proxy handling and cause @msg to be sent directly to
- * the indicated origin server, regardless of system proxy
- * configuration.
+ * session. Eg, passing #SOUP_TYPE_CONTENT_SNIFFER for @feature_type
+ * will disable Content-Type sniffing on the message.
  *
  * You must call this before queueing @msg on a session; calling it on
  * a message that has already been queued is undefined. In particular,

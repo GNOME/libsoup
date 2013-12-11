@@ -16,6 +16,7 @@ config.log
 config.status
 configure
 docs/reference/*.stamp
+docs/reference/*.bak
 docs/reference/html
 docs/reference/libsoup-2.4-decl-list.txt
 docs/reference/libsoup-2.4-decl.txt
