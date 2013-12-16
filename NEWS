@@ -1,3 +1,60 @@
+Changes in libsoup from 2.44.1 to 2.45.3:
+
+	* The documentation has finally been updated to reflect the
+          new APIs added in 2.42.
+
+	* Added GBytes-valued :request-body-data and
+          :response-body-data properties to SoupMessage, which should
+          help some bindings.
+
+	* We now set TCP_NODELAY on sockets, improving throughput a
+          bit. In particular, this avoids an unnecessary extra round
+          trip in the TLS handshake.
+
+	* The SoupSession APIs that return GErrors now return the
+          actual underlying gio errors in the event of connection
+          failures and the like.
+
+	* Updated the copy of the Public Suffix list used by soup-tld.
+
+	* Fixed a hang with internet radio streams in Rhythmbox (and
+          some other places). [#710494, Dan]
+
+	* Fixed a connection leak when cancelling the close of
+	  a message GInputStream. [#711260, Dan]
+
+	* Updated the soup_server_pause_message() /
+          soup_server_unpause_message() documentation to clarify when
+          you can and can't call them. [#710602, Philip Withnall]
+
+	* soup_message_set_request() and soup_message_set_response()
+          now g_warn_if_fail() if you pass an invalid Content-Type.
+          (And they also have better introspection annotations.)
+          [#686766, Dan]
+
+	* Plugged a few memory leaks [#711085, Christophe Fergeau]
+
+	* Fixed connection-test to pass with current glib [#711361,
+	  Colin Walters]
+
+	* session-test now passes when run against the dummy TLS
+          backend (ie, if you don't have glib-networking installed),
+          as long as you have the latest glib.
+
+	* Fixed build with -Werror=format-nonliteral [#720082, Ryan
+          Lortie]
+
+	* Fix build with --without-ntlm [#710267, Dan]
+
+	* Fixed a few warnings [Dan, Fabiano Fidêncio]
+
+	* Tests are now more verbose by default under "make check",
+          since current automake just redirects all the output to a
+          log file anyway.
+
+	* Updated translations:
+	  Chinese
+
 Changes in libsoup from 2.44.0 to 2.44.1:
 
 	* If you called g_input_stream_close() on SoupMessage or
