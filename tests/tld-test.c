@@ -83,8 +83,30 @@ static struct {
   { "www.食狮.中国", "食狮.中国" },
   { "shishi.中国", "shishi.中国" },
   { "中国", NULL },
-  /* This is not in http://publicsuffix.org/list/test.txt but we want to check it anyway. */
+  /* Same as above, but punycoded. */
+  { "xn--85x722f.com.cn", "xn--85x722f.com.cn" },
+  { "xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn" },
+  { "www.xn--85x722f.xn--55qx5d.cn", "xn--85x722f.xn--55qx5d.cn" },
+  { "shishi.xn--55qx5d.cn", "shishi.xn--55qx5d.cn" },
+  { "xn--55qx5d.cn", NULL },
+  { "xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s" },
+  { "www.xn--85x722f.xn--fiqs8s", "xn--85x722f.xn--fiqs8s" },
+  { "shishi.xn--fiqs8s", "shishi.xn--fiqs8s" },
+  { "xn--fiqs8s", NULL },
+  /* End of publicsuffix.org tests */
+
+  /* Let's just double-check this one... */
   { "co.uk", NULL },
+  { "test.co.uk", "test.co.uk" },
+  { "www.test.co.uk", "test.co.uk" },
+
+  /* Two levels of non-ASCII */
+  { "våler.østfold.no", NULL },
+  { "test.våler.østfold.no", "test.våler.østfold.no" },
+  { "www.test.våler.østfold.no", "test.våler.østfold.no" },
+  { "xn--vler-qoa.xn--stfold-9xa.no", NULL },
+  { "test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no" },
+  { "www.test.xn--vler-qoa.xn--stfold-9xa.no", "test.xn--vler-qoa.xn--stfold-9xa.no" },
 },
 /* Non Internet TLDs have NULL as expected result
  */
@@ -134,6 +156,8 @@ main (int argc, char **argv)
 
 		g_clear_error(&error);
 	}
+
+	debug_printf (1, "\n");
 
 	for (i = 0; i < G_N_ELEMENTS (non_inet_tld_tests); ++i) {
 		gboolean is_public = soup_tld_domain_is_public_suffix (non_inet_tld_tests[i].hostname);

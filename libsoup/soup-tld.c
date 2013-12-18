@@ -57,7 +57,7 @@ soup_tld_ensure_rules_hash_table (void)
 
 /**
  * soup_tld_get_base_domain:
- * @hostname: a UTF-8 hostname in its canonical representation form
+ * @hostname: a hostname
  * @error: return location for a #GError, or %NULL to ignore
  *   errors. See #SoupTLDError for the available error codes
  *
@@ -70,9 +70,10 @@ soup_tld_ensure_rules_hash_table (void)
  * with any well known TLD) because choosing a base domain for them
  * would be totally arbitrary.
  *
- * This method only works for valid UTF-8 hostnames in their canonical
- * representation form, so you should use g_hostname_to_unicode() to
- * get the canonical representation if that is not the case.
+ * Prior to libsoup 2.46, this function required that @hostname be in
+ * UTF-8 if it was an IDN. From 2.46 on, the name can be in either
+ * UTF-8 or ASCII format (and the return value will be in the same
+ * format).
  *
  * Returns: a pointer to the start of the base domain in @hostname. If
  * an error occurs, %NULL will be returned and @error set.
@@ -83,21 +84,21 @@ const char *
 soup_tld_get_base_domain (const char *hostname, GError **error)
 {
 	g_return_val_if_fail (hostname, NULL);
-	g_return_val_if_fail (!g_hostname_is_ascii_encoded (hostname), FALSE);
 
 	return soup_tld_get_base_domain_internal (hostname, 1, error);
 }
 
 /**
  * soup_tld_domain_is_public_suffix:
- * @domain: a UTF-8 domain in its canonical representation form
+ * @domain: a domain name
  *
  * Looks whether the @domain passed as argument is a public domain
  * suffix (.org, .com, .co.uk, etc) or not.
  *
- * This method only works for valid UTF-8 domains in their canonical
- * representation form, so you should use g_hostname_to_unicode() to
- * get the canonical representation if that is not the case.
+ * Prior to libsoup 2.46, this function required that @domain be in
+ * UTF-8 if it was an IDN. From 2.46 on, the name can be in either
+ * UTF-8 or ASCII format (and the return value will be in the same
+ * format).
  *
  * Returns: %TRUE if it is a public domain, %FALSE otherwise.
  *
@@ -174,8 +175,10 @@ soup_tld_error_quark (void)
 static const char *
 soup_tld_get_base_domain_internal (const char *hostname, guint additional_domains, GError **error)
 {
-	char *prev_domain, *cur_domain, *tld, *next_dot;
+	char *prev_domain, *cur_domain, *next_dot;
 	gint add_domains;
+	const char *orig_hostname = NULL, *tld;
+	char *utf8_hostname = NULL;
 
 	soup_tld_ensure_rules_hash_table ();
 
@@ -184,6 +187,17 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 				     SOUP_TLD_ERROR_IS_IP_ADDRESS,
 				     _("Hostname is an IP address"));
 		return NULL;
+	}
+
+	if (g_hostname_is_ascii_encoded (hostname)) {
+		orig_hostname = hostname;
+		hostname = utf8_hostname = g_hostname_to_unicode (hostname);
+		if (!hostname) {
+			g_set_error_literal (error, SOUP_TLD_ERROR,
+					     SOUP_TLD_ERROR_INVALID_HOSTNAME,
+					     _("Invalid hostname"));
+			return NULL;
+		}
 	}
 
 	cur_domain = (char *) hostname;
@@ -204,6 +218,7 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 			g_set_error_literal (error, SOUP_TLD_ERROR,
 					     SOUP_TLD_ERROR_INVALID_HOSTNAME,
 					     _("Invalid hostname"));
+			g_free (utf8_hostname);
 			return NULL;
 		}
 
@@ -233,11 +248,43 @@ soup_tld_get_base_domain_internal (const char *hostname, guint additional_domain
 			g_set_error_literal (error, SOUP_TLD_ERROR,
 					     SOUP_TLD_ERROR_NO_BASE_DOMAIN,
 					     _("Hostname has no base domain"));
+			g_free (utf8_hostname);
 			return NULL;
 		}
 
 		prev_domain = cur_domain;
 		cur_domain = next_dot + 1;
+	}
+
+	if (orig_hostname) {
+		int dots;
+		const char *p;
+
+		/* Count the number of dots that appear after tld in
+		 * utf8_hostname, and then find the corresponding spot
+		 * in orig_hostname;
+		 */
+		for (p = tld, dots = 0; *p; p++) {
+			if (*p == '.')
+				dots++;
+		}
+
+		for (p = orig_hostname + strlen (orig_hostname); p > orig_hostname; p--) {
+			if (*(p - 1) == '.') {
+				if (dots)
+					dots--;
+				else
+					break;
+			}
+		}
+		/* It's not possible for utf8_hostname to have had
+		 * more dots than orig_hostname.
+		 */
+		g_assert (dots == 0);
+
+		tld = p;
+		g_free (utf8_hostname);
+		hostname = orig_hostname;
 	}
 
 	/* Include the additional number of domains requested. */
