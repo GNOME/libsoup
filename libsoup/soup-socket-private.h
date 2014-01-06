@@ -9,6 +9,7 @@
 #include "soup-socket.h"
 
 #define SOUP_SOCKET_SOCKET_PROPERTIES "socket-properties"
+#define SOUP_SOCKET_CLOSE_ON_DISPOSE  "close-on-dispose"
 
 gboolean   soup_socket_connect_sync_internal   (SoupSocket           *sock,
 						GCancellable         *cancellable,
