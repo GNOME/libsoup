@@ -10,6 +10,7 @@
 
 #define SOUP_SOCKET_CLEAN_DISPOSE    "clean-dispose"
 #define SOUP_SOCKET_PROXY_RESOLVER   "proxy-resolver"
+#define SOUP_SOCKET_CLOSE_ON_DISPOSE "close-on-dispose"
 
 gboolean   soup_socket_connect_sync_internal   (SoupSocket           *sock,
 						GCancellable         *cancellable,
