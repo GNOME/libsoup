@@ -98,11 +98,6 @@ soup_connection_dispose (GObject *object)
 
 	stop_idle_timer (priv);
 
-	if (priv->socket) {
-		g_warning ("Disposing connection while connected");
-		soup_connection_disconnect (conn);
-	}
-
 	G_OBJECT_CLASS (soup_connection_parent_class)->dispose (object);
 }
 
