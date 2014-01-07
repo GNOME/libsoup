@@ -153,7 +153,7 @@ main (int argc, char **argv)
 		exit (1);
 	}
 
-	if (argc != 2) {
+	if (argc != 1) {
 		g_printerr ("%s",
 			    g_option_context_get_help (opts, TRUE, NULL));
 		exit (1);
