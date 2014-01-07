@@ -83,6 +83,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 
 	setlocale (LC_ALL, "");
 	g_setenv ("GSETTINGS_BACKEND", "memory", TRUE);
+	g_setenv ("GIO_USE_PROXY_RESOLVER", "dummy", TRUE);
 
 	name = strrchr (argv[0], '/');
 	if (!name++)

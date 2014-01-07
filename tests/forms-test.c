@@ -51,6 +51,8 @@ do_hello_test (int n, gboolean extra, const char *uri)
 
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
+	g_ptr_array_add (args, "--noproxy");
+	g_ptr_array_add (args, "*");
 	g_ptr_array_add (args, "-G");
 	if (tests[n].title) {
 		title_arg = soup_form_encode ("title", tests[n].title, NULL);
@@ -114,6 +116,8 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
+	g_ptr_array_add (args, "--noproxy");
+	g_ptr_array_add (args, "*");
 	g_ptr_array_add (args, "-L");
 	g_ptr_array_add (args, "-F");
 	file_arg = g_strdup_printf ("file=@%s", file);

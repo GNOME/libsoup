@@ -48,6 +48,8 @@ do_test (int n, SoupURI *base_uri, const char *path,
 
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
+	g_ptr_array_add (args, "--noproxy");
+	g_ptr_array_add (args, "*");
 	g_ptr_array_add (args, "-f");
 	g_ptr_array_add (args, "-s");
 	if (offer_basic || offer_digest) {
