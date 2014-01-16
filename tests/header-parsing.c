@@ -455,7 +455,7 @@ static struct ResponseTest {
 	SoupHTTPVersion version;
 	guint status_code;
 	const char *reason_phrase;
-	Header headers[4];
+	Header headers[10];
 } resptests[] = {
 	/***********************/
 	/*** VALID RESPONSES ***/
@@ -517,6 +517,19 @@ static struct ResponseTest {
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
 	    { "Connection", "Bar" },
+	    { NULL }
+	  }
+	},
+
+	/* Tests from Cockpit */
+
+	{ "Response w/ 3 headers, check case-insensitivity",
+	  "HTTP/1.0 200 ok\r\nHeader1: value3\r\nHeader2:  field\r\nHead3:  Another \r\n", -1,
+	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
+	  { { "header1", "value3" },
+	    { "Header2", "field" },
+	    { "hEAD3", "Another" },
+	    { "Something else", NULL },
 	    { NULL }
 	  }
 	},
@@ -732,7 +745,15 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 			break;
 		}
 		value = soup_message_headers_get_list (hdrs, headers[i].name);
-		if (!value || strcmp (value, headers[i].value) != 0) {
+		if (g_strcmp0 (value, headers[i].value) != 0) {
+			ok = FALSE;
+			break;
+		}
+	}
+	/* If we have remaining fields to check, they should return NULL */
+	for (; headers[i].name; i++) {
+		value = soup_message_headers_get_list (hdrs, headers[i].name);
+		if (value) {
 			ok = FALSE;
 			break;
 		}
