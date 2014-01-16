@@ -727,7 +727,7 @@ check_headers (Header *headers, SoupMessageHeaders *hdrs)
 	}
 
 	for (i = 0, h = header_names; headers[i].name && h; i++, h = h->next) {
-		if (strcmp (h->data, headers[i].name) != 0) {
+		if (g_ascii_strcasecmp (h->data, headers[i].name) != 0) {
 			ok = FALSE;
 			break;
 		}
