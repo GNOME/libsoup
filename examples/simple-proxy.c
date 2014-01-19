@@ -15,6 +15,217 @@
 static SoupSession *session;
 static SoupServer *server;
 
+typedef struct {
+	GIOStream *iostream;
+	GInputStream *istream;
+	GOutputStream *ostream;
+
+	gssize nread, nwrote;
+	guchar *buffer;
+} TunnelEnd;
+
+typedef struct {
+	SoupServer *self;
+	SoupMessage *msg;
+	SoupClientContext *context;
+	GCancellable *cancellable;
+
+	TunnelEnd client, server;
+} Tunnel;
+
+#define BUFSIZE 8192
+
+static void tunnel_read_cb (GObject      *object,
+			    GAsyncResult *result,
+			    gpointer      user_data);
+
+static void
+tunnel_close (Tunnel *tunnel)
+{
+	if (tunnel->cancellable) {
+		g_cancellable_cancel (tunnel->cancellable);
+		g_object_unref (tunnel->cancellable);
+	}
+
+	if (tunnel->client.iostream) {
+		g_io_stream_close (tunnel->client.iostream, NULL, NULL);
+		g_object_unref (tunnel->client.iostream);
+	}
+	if (tunnel->server.iostream) {
+		g_io_stream_close (tunnel->server.iostream, NULL, NULL);
+		g_object_unref (tunnel->server.iostream);
+	}
+
+	g_free (tunnel->client.buffer);
+	g_free (tunnel->server.buffer);
+
+	g_object_unref (tunnel->self);
+	g_object_unref (tunnel->msg);
+
+	g_free (tunnel);
+}
+
+static void
+tunnel_wrote_cb (GObject      *object,
+		 GAsyncResult *result,
+		 gpointer      user_data)
+{
+	Tunnel *tunnel = user_data;
+	TunnelEnd *write_end, *read_end;
+	GError *error = NULL;
+	gssize nwrote;
+
+	nwrote = g_output_stream_write_finish (G_OUTPUT_STREAM (object), result, &error);
+	if (nwrote <= 0) {
+		if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			g_error_free (error);
+			return;
+		} else if (error) {
+			g_print ("Tunnel write failed: %s\n", error->message);
+			g_error_free (error);
+		}
+		tunnel_close (tunnel);
+		return;
+	}
+
+	if (object == (GObject *)tunnel->client.ostream) {
+		write_end = &tunnel->client;
+		read_end = &tunnel->server;
+	} else {
+		write_end = &tunnel->server;
+		read_end = &tunnel->client;
+	}
+
+	write_end->nwrote += nwrote;
+	if (write_end->nwrote < read_end->nread) {
+		g_output_stream_write_async (write_end->ostream,
+					     read_end->buffer + write_end->nwrote,
+					     read_end->nread - write_end->nwrote,
+					     G_PRIORITY_DEFAULT, tunnel->cancellable,
+					     tunnel_wrote_cb, tunnel);
+	} else {
+		g_input_stream_read_async (read_end->istream,
+					   read_end->buffer, BUFSIZE,
+					   G_PRIORITY_DEFAULT, tunnel->cancellable,
+					   tunnel_read_cb, tunnel);
+	}
+}
+
+static void
+tunnel_read_cb (GObject      *object,
+		GAsyncResult *result,
+		gpointer      user_data)
+{
+	Tunnel *tunnel = user_data;
+	TunnelEnd *read_end, *write_end;
+	GError *error = NULL;
+	gssize nread;
+
+	nread = g_input_stream_read_finish (G_INPUT_STREAM (object), result, &error);
+	if (nread <= 0) {
+		if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			g_error_free (error);
+			return;
+		} else if (error) {
+			g_print ("Tunnel read failed: %s\n", error->message);
+			g_error_free (error);
+		}
+		tunnel_close (tunnel);
+		return;
+	}
+
+	if (object == (GObject *)tunnel->client.istream) {
+		read_end = &tunnel->client;
+		write_end = &tunnel->server;
+	} else {
+		read_end = &tunnel->server;
+		write_end = &tunnel->client;
+	}
+
+	read_end->nread = nread;
+	write_end->nwrote = 0;
+	g_output_stream_write_async (write_end->ostream,
+				     read_end->buffer, read_end->nread,
+				     G_PRIORITY_DEFAULT, tunnel->cancellable,
+				     tunnel_wrote_cb, tunnel);
+}
+
+static void
+start_tunnel (SoupMessage *msg, gpointer user_data)
+{
+	Tunnel *tunnel = user_data;
+
+	tunnel->client.iostream = soup_client_context_steal_connection (tunnel->context);
+	tunnel->client.istream = g_io_stream_get_input_stream (tunnel->client.iostream);
+	tunnel->client.ostream = g_io_stream_get_output_stream (tunnel->client.iostream);
+
+	tunnel->client.buffer = g_malloc (BUFSIZE);
+	tunnel->server.buffer = g_malloc (BUFSIZE);
+
+	tunnel->cancellable = g_cancellable_new ();
+
+	g_input_stream_read_async (tunnel->client.istream,
+				   tunnel->client.buffer, BUFSIZE,
+				   G_PRIORITY_DEFAULT, tunnel->cancellable,
+				   tunnel_read_cb, tunnel);
+	g_input_stream_read_async (tunnel->server.istream,
+				   tunnel->server.buffer, BUFSIZE,
+				   G_PRIORITY_DEFAULT, tunnel->cancellable,
+				   tunnel_read_cb, tunnel);
+}
+
+
+static void
+tunnel_connected_cb (GObject      *object,
+		     GAsyncResult *result,
+		     gpointer      user_data)
+{
+	Tunnel *tunnel = user_data;
+	GError *error = NULL;
+
+	tunnel->server.iostream = (GIOStream *)
+		g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (object), result, &error);
+	if (!tunnel->server.iostream) {
+		soup_message_set_status (tunnel->msg, SOUP_STATUS_BAD_GATEWAY);
+		soup_message_set_response (tunnel->msg, "text/plain",
+					   SOUP_MEMORY_COPY,
+					   error->message, strlen (error->message));
+		g_error_free (error);
+		soup_server_unpause_message (tunnel->self, tunnel->msg);
+		tunnel_close (tunnel);
+		return;
+	}
+
+	tunnel->server.istream = g_io_stream_get_input_stream (tunnel->server.iostream);
+	tunnel->server.ostream = g_io_stream_get_output_stream (tunnel->server.iostream);
+
+	soup_message_set_status (tunnel->msg, SOUP_STATUS_OK);
+	soup_server_unpause_message (tunnel->self, tunnel->msg);
+	g_signal_connect (tunnel->msg, "finished",
+			  G_CALLBACK (start_tunnel), tunnel);
+}
+
+static void
+try_tunnel (SoupServer *server, SoupMessage *msg, SoupClientContext *context)
+{
+	Tunnel *tunnel;
+	SoupURI *dest_uri;
+	GSocketClient *sclient;
+
+	soup_server_pause_message (server, msg);
+
+	tunnel = g_new0 (Tunnel, 1);
+	tunnel->self = g_object_ref (server);
+	tunnel->msg = g_object_ref (msg);
+	tunnel->context = context;
+
+	dest_uri = soup_message_get_uri (msg);
+	sclient = g_socket_client_new ();
+	g_socket_client_connect_to_host_async (sclient, dest_uri->host, dest_uri->port,
+					       NULL, tunnel_connected_cb, tunnel);
+	g_object_unref (sclient);
+}
+
 static void
 copy_header (const char *name, const char *value, gpointer dest_headers)
 {
@@ -78,7 +289,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 soup_message_get_http_version (msg));
 
 	if (msg->method == SOUP_METHOD_CONNECT) {
-		soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+		try_tunnel (server, msg, context);
 		return;
 	}
 

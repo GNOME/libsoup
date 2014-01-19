@@ -158,6 +158,8 @@ const char     *soup_client_context_get_host           (SoupClientContext *clien
 SoupAuthDomain *soup_client_context_get_auth_domain    (SoupClientContext *client);
 const char     *soup_client_context_get_auth_user      (SoupClientContext *client);
 
+SOUP_AVAILABLE_IN_2_50
+GIOStream      *soup_client_context_steal_connection   (SoupClientContext *client);
 
 /* Legacy API */
 
