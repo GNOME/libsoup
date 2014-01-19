@@ -576,6 +576,9 @@ soup_uri_to_string_internal (SoupURI *uri, gboolean just_path_and_query,
  * together. That is, it constructs the string that would be needed in
  * the Request-Line of an HTTP request for @uri.
  *
+ * Note that the output will never contain a password, even if @uri
+ * does.
+ *
  * Return value: a string representing @uri, which the caller must free.
  **/
 char *
