@@ -241,6 +241,7 @@ soup_client_context_get_host
 soup_client_context_get_auth_domain
 soup_client_context_get_auth_user
 soup_client_context_get_gsocket
+soup_client_context_steal_connection
 <SUBSECTION>
 soup_server_add_auth_domain
 soup_server_remove_auth_domain

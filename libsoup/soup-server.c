@@ -1166,6 +1166,13 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
 	SoupSocket *sock = client->sock;
 	gboolean failed;
 
+	if (completion == SOUP_MESSAGE_IO_STOLEN) {
+		soup_client_context_unref (client);
+		g_object_unref (msg);
+		g_object_unref (sock);
+		return;
+	}
+
 	soup_message_finished (msg);
 
 	failed = (completion == SOUP_MESSAGE_IO_INTERRUPTED ||
@@ -2305,6 +2312,52 @@ soup_client_context_get_auth_user (SoupClientContext *client)
 
 	return client->auth_user;
 }
+
+/**
+ * soup_client_context_steal_connection:
+ * @client: a #SoupClientContext
+ *
+ * "Steals" the HTTP connection associated with @client from its
+ * #SoupServer. This happens immediately, regardless of the current
+ * state of the connection; if the response to the current
+ * #SoupMessage has not yet finished being sent, then it will be
+ * discarded; you can steal the connection from a
+ * #SoupMessage:wrote-informational or #SoupMessage:wrote-body signal
+ * handler if you need to wait for part or all of the response to be
+ * sent.
+ *
+ * Note that when calling this function from C, @client will most
+ * likely be freed as a side effect.
+ *
+ * Return value: (transfer full): the #GIOStream formerly associated
+ *   with @client (or %NULL if @client was no longer associated with a
+ *   connection). No guarantees are made about what kind of #GIOStream
+ *   is returned.
+ *
+ * Since: 2.50
+ **/
+GIOStream *
+soup_client_context_steal_connection (SoupClientContext *client)
+{
+	GIOStream *stream;
+
+	g_return_val_if_fail (client != NULL, NULL);
+
+	soup_client_context_ref (client);
+
+	stream = soup_message_io_steal (client->msg);
+	if (stream) {
+		g_object_set (G_OBJECT (client->sock),
+			      SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
+			      NULL);
+	}
+
+	socket_disconnected (client->sock, client);
+	soup_client_context_unref (client);
+
+	return stream;
+}
+
 
 /**
  * SoupServerCallback:
