@@ -60,6 +60,7 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      gpointer          user_data,
 					      GError          **error);
 typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
+					      gboolean          io_complete,
 					      gpointer          user_data);
 
 

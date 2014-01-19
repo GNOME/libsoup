@@ -143,11 +143,6 @@ soup_message_io_stop (SoupMessage *msg)
 		g_source_unref (io->unpause_source);
 		io->unpause_source = NULL;
 	}
-
-	if (io->mode == SOUP_MESSAGE_IO_SERVER) {
-		if (io->write_state < SOUP_MESSAGE_IO_STATE_FINISHING)
-			g_io_stream_close (io->iostream, NULL, NULL);
-	}
 }
 
 void
@@ -157,6 +152,7 @@ soup_message_io_finished (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 	SoupMessageCompletionFn completion_cb;
 	gpointer completion_data;
+	gboolean complete;
 
 	if (!io)
 		return;
@@ -164,10 +160,13 @@ soup_message_io_finished (SoupMessage *msg)
 	completion_cb = io->completion_cb;
 	completion_data = io->completion_data;
 
+	complete = (io->read_state >= SOUP_MESSAGE_IO_STATE_FINISHING &&
+		    io->write_state >= SOUP_MESSAGE_IO_STATE_FINISHING);
+
 	g_object_ref (msg);
 	soup_message_io_cleanup (msg);
 	if (completion_cb)
-		completion_cb (msg, completion_data);
+		completion_cb (msg, complete, completion_data);
 	g_object_unref (msg);
 }
 
