@@ -37,9 +37,12 @@ GType       soup_uri_get_type              (void);
 #define SOUP_URI_SCHEME_FILE     _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_FILE, "file")
 #define SOUP_URI_SCHEME_DATA     _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_DATA, "data")
 #define SOUP_URI_SCHEME_RESOURCE _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_RESOURCE, "resource")
+#define SOUP_URI_SCHEME_WS       _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_WS, "ws")
+#define SOUP_URI_SCHEME_WSS      _SOUP_ATOMIC_INTERN_STRING (_SOUP_URI_SCHEME_WSS, "wss")
 extern gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
 extern gpointer _SOUP_URI_SCHEME_FTP;
 extern gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA, _SOUP_URI_SCHEME_RESOURCE;
+extern gpointer _SOUP_URI_SCHEME_WS, _SOUP_URI_SCHEME_WSS;
 
 SoupURI	   *soup_uri_new_with_base         (SoupURI    *base,
 					    const char *uri_string);
