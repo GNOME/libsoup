@@ -160,6 +160,7 @@ static void append_uri_encoded (GString *str, const char *in, const char *extra_
 static char *uri_normalized_copy (const char *str, int length, const char *unescape_extra);
 
 gpointer _SOUP_URI_SCHEME_HTTP, _SOUP_URI_SCHEME_HTTPS;
+gpointer _SOUP_URI_SCHEME_WS, _SOUP_URI_SCHEME_WSS;
 gpointer _SOUP_URI_SCHEME_FTP;
 gpointer _SOUP_URI_SCHEME_FILE, _SOUP_URI_SCHEME_DATA, _SOUP_URI_SCHEME_RESOURCE;
 
@@ -172,6 +173,10 @@ soup_uri_parse_scheme (const char *scheme, int len)
 		return SOUP_URI_SCHEME_HTTPS;
 	} else if (len == 8 && !g_ascii_strncasecmp (scheme, "resource", len)) {
 		return SOUP_URI_SCHEME_RESOURCE;
+	} else if (len == 2 && !g_ascii_strncasecmp (scheme, "ws", len)) {
+		return SOUP_URI_SCHEME_WS;
+	} else if (len == 3 && !g_ascii_strncasecmp (scheme, "wss", len)) {
+		return SOUP_URI_SCHEME_WSS;
 	} else {
 		char *lower_scheme;
 
@@ -186,9 +191,9 @@ soup_uri_parse_scheme (const char *scheme, int len)
 static inline guint
 soup_scheme_default_port (const char *scheme)
 {
-	if (scheme == SOUP_URI_SCHEME_HTTP)
+	if (scheme == SOUP_URI_SCHEME_HTTP || scheme == SOUP_URI_SCHEME_WS)
 		return 80;
-	else if (scheme == SOUP_URI_SCHEME_HTTPS)
+	else if (scheme == SOUP_URI_SCHEME_HTTPS || scheme == SOUP_URI_SCHEME_WSS)
 		return 443;
 	else if (scheme == SOUP_URI_SCHEME_FTP)
 		return 21;
