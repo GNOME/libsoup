@@ -532,8 +532,14 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
-	remote_addr = soup_address_new (priv->remote_uri->host,
-					priv->remote_uri->port);
+	/* Set the protocol to ensure correct proxy resolution. */
+	remote_addr =
+		g_object_new (SOUP_TYPE_ADDRESS,
+			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
+			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
+			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+			      NULL);
+
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
 				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
@@ -583,7 +589,14 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	soup_connection_set_state (conn, SOUP_CONNECTION_CONNECTING);
 
-	remote_addr = soup_address_new (priv->remote_uri->host, priv->remote_uri->port);
+	/* Set the protocol to ensure correct proxy resolution. */
+	remote_addr =
+		g_object_new (SOUP_TYPE_ADDRESS,
+			      SOUP_ADDRESS_NAME, priv->remote_uri->host,
+			      SOUP_ADDRESS_PORT, priv->remote_uri->port,
+			      SOUP_ADDRESS_PROTOCOL, priv->remote_uri->scheme,
+			      NULL);
+
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
 				 SOUP_SOCKET_PROXY_RESOLVER, priv->proxy_resolver,
