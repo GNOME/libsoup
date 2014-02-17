@@ -3,15 +3,26 @@
   <gresource prefix="/org/gnome/libsoup/tests">
     <file>index.txt</file>
     <file>resources/atom.xml</file>
+    <file>resources/feed.rdf</file>
     <file>resources/home.gif</file>
+    <file>resources/home.jpg</file>
+    <file>resources/home.png</file>
     <file>resources/html_binary.html</file>
+    <file>resources/leading_space.html</file>
     <file>resources/mbox</file>
     <file>resources/mbox.gz</file>
     <file>resources/mbox.raw</file>
     <file>resources/mbox.zlib</file>
     <file>resources/ps_binary.ps</file>
     <file>resources/rss20.xml</file>
+    <file>resources/test.aiff</file>
     <file>resources/test.html</file>
+    <file>resources/test.mp4</file>
+    <file>resources/test.ogg</file>
+    <file>resources/test.wav</file>
+    <file>resources/test.webm</file>
+    <file>resources/text.txt</file>
     <file>resources/text_binary.txt</file>
+    <file>resources/tux.webp</file>
   </gresource>
 </gresources>

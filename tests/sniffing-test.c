@@ -49,7 +49,21 @@ server_callback (SoupServer *server, SoupMessage *msg,
 					     "Content-Type", "text/plain");
 	}
 
-	if (g_str_has_prefix (path, "/text_or_binary/")) {
+	if (g_str_has_prefix (path, "/nosniff/")) {
+		char *base_name = g_path_get_basename (path);
+
+		response = soup_test_load_resource (base_name, &error);
+		g_assert_no_error (error);
+		g_free (base_name);
+
+		soup_message_headers_append (msg->response_headers,
+					     "X-Content-Type-Options", "nosniff");
+
+		soup_message_headers_append (msg->response_headers,
+					     "Content-Type", "no/sniffing-allowed");
+	}
+
+	if (g_str_has_prefix (path, "/text_or_binary/") || g_str_has_prefix (path, "/apache_bug/")) {
 		char *base_name = g_path_get_basename (path);
 
 		response = soup_test_load_resource (base_name, &error);
@@ -442,6 +456,20 @@ main (int argc, char **argv)
 			      GINT_TO_POINTER (TRUE),
 			      do_signals_tests);
 
+	/* Test the apache bug sniffing path */
+	g_test_add_data_func ("/sniffing/apache-bug/binary",
+			      "/apache_bug/text_binary.txt => application/octet-stream",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/apache-bug/text",
+			      "/apache_bug/text.txt => text/plain",
+			      do_sniffing_test);
+
+	/* X-Content-Type-Options: nosniff */
+	g_test_add_data_func ("/sniffing/nosniff",
+			      "nosniff/home.gif => no/sniffing-allowed",
+			      do_sniffing_test);
+
+	/* GIF is a 'safe' type */
 	g_test_add_data_func ("/sniffing/type/gif",
 			      "text_or_binary/home.gif => image/gif",
 			      do_sniffing_test);
@@ -496,6 +524,9 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/sniffing/type/unknown-binary",
 			      "unknown/text_binary.txt => application/octet-stream",
 			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/unknown-leading-space",
+			      "unknown/leading_space.html => text/html",
+			      do_sniffing_test);
 
 	/* Test the XML sniffing path */
 	g_test_add_data_func ("/sniffing/type/xml",
@@ -508,11 +539,6 @@ main (int argc, char **argv)
 			      "type/application_xml/home.gif => application/xml",
 			      do_sniffing_test);
 
-	/* Test the image sniffing path */
-	g_test_add_data_func ("/sniffing/type/image",
-			      "type/image_png/home.gif => image/gif",
-			      do_sniffing_test);
-
 	/* Test the feed or html path */
 	g_test_add_data_func ("/sniffing/type/html/html",
 			      "type/text_html/test.html => text/html",
@@ -522,6 +548,42 @@ main (int argc, char **argv)
 			      do_sniffing_test);
 	g_test_add_data_func ("/sniffing/type/html/atom",
 			      "type/text_html/atom.xml => application/atom+xml",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/html/rdf",
+			      "type/text_html/feed.rdf => application/rss+xml",
+			      do_sniffing_test);
+
+	/* Test the image sniffing path */
+	g_test_add_data_func ("/sniffing/type/image/gif",
+			      "type/image_png/home.gif => image/gif",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/png",
+			      "type/image_gif/home.png => image/png",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/jpeg",
+			      "type/image_png/home.jpg => image/jpeg",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/image/webp",
+			      "type/image_png/tux.webp => image/webp",
+			      do_sniffing_test);
+
+	/* Test audio and video sniffing path */
+	g_test_add_data_func ("/sniffing/type/audio/wav",
+			      "type/audio_mpeg/test.wav => audio/wave",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/audio/aiff",
+			      "type/audio_mpeg/test.aiff => audio/aiff",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/audio/ogg",
+			      "type/audio_mpeg/test.ogg => application/ogg",
+			      do_sniffing_test);
+	g_test_add_data_func ("/sniffing/type/video/webm",
+			      "type/video_theora/test.webm => video/webm",
+			      do_sniffing_test);
+
+	/* Test the MP4 sniffing path */
+	g_test_add_data_func ("/sniffing/type/video/mp4",
+			      "unknown/test.mp4 => video/mp4",
 			      do_sniffing_test);
 
 	/* The spec tells us to only use the last Content-Type header */

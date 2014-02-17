@@ -2,7 +2,11 @@
 /*
  * soup-content-sniffer.c
  *
- * Copyright (C) 2009 Gustavo Noronha Silva.
+ * Copyright (C) 2009, 2013 Gustavo Noronha Silva.
+ *
+ * This code implements the following specification:
+ *
+ *  http://mimesniff.spec.whatwg.org/ as of 11 June 2013
  */
 
 #ifdef HAVE_CONFIG_H
@@ -73,12 +77,212 @@ soup_content_sniffer_init (SoupContentSniffer *content_sniffer)
 {
 }
 
-/* This table is based on the HTML5 spec;
- * See 2.7.4 Content-Type sniffing: unknown type
+typedef struct {
+	const guchar *mask;
+	const guchar *pattern;
+	guint         pattern_length;
+	const char   *sniffed_type;
+} SoupContentSnifferMediaPattern;
+
+static char*
+sniff_media (SoupContentSniffer *sniffer,
+	     SoupBuffer *buffer,
+	     SoupContentSnifferMediaPattern table[],
+	     int table_length)
+{
+	const guchar *resource = (const guchar *)buffer->data;
+	int resource_length = MIN (512, buffer->length);
+	int i;
+
+	for (i = 0; i < table_length; i++) {
+		SoupContentSnifferMediaPattern *type_row = &(table[i]);
+		int j;
+
+		if (resource_length < type_row->pattern_length)
+			continue;
+
+		for (j = 0; j < type_row->pattern_length; j++) {
+			if ((type_row->mask[j] & resource[j]) != type_row->pattern[j])
+				break;
+		}
+
+		/* This means our comparison above matched completely */
+		if (j == type_row->pattern_length)
+			return g_strdup (type_row->sniffed_type);
+	}
+
+	return NULL;
+}
+
+/* This table is based on the MIMESNIFF spec;
+ * See 6.1 Matching an image type pattern
+ */
+static SoupContentSnifferMediaPattern image_types_table[] = {
+
+	/* Windows icon signature. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x00\x00\x01\x00",
+	  4,
+	  "image/x-icon" },
+
+	/* Windows cursor signature. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x00\x00\x02\x00",
+	  4,
+	  "image/x-icon" },
+
+	/* BMP. */
+	{ (const guchar *)"\xFF\xFF",
+	  (const guchar *)"BM",
+	  2,
+	  "image/bmp" },
+
+	/* GIFs. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"GIF87a",
+	  6,
+	  "image/gif" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"GIF89a",
+	  6,
+	  "image/gif" },
+
+	/* WEBP. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00WEBPVP",
+	  14,
+	  "image/webp" },
+
+	/* PNG. */
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x89PNG\x0D\x0A\x1A\x0A",
+	  8,
+	  "image/png" },
+
+	/* JPEG. */
+	{ (const guchar *)"\xFF\xFF\xFF",
+	  (const guchar *)"\xFF\xD8\xFF",
+	  3,
+	  "image/jpeg" },
+};
+
+static char*
+sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	return sniff_media (sniffer,
+			    buffer,
+			    image_types_table,
+			    G_N_ELEMENTS (image_types_table));
+}
+
+/* This table is based on the MIMESNIFF spec;
+ * See 6.2 Matching an audio or video type pattern
+ */
+static SoupContentSnifferMediaPattern audio_video_types_table[] = {
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)"\x1A\x45\xDF\xA3",
+	  4,
+	  "video/webm" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF",
+	  (const guchar *)".snd",
+	  4,
+	  "audio/basic" },
+
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"FORM\0\0\0\0AIFF",
+	  12,
+	  "audio/aiff" },
+
+	{ (const guchar *)"\xFF\xFF\xFF",
+	  (const guchar *)"ID3",
+	  3,
+	  "audio/mpeg" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"OggS\0",
+	  5,
+	  "application/ogg" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)"MThd\x00\x00\x00\x06",
+	  8,
+	  "audio/midi" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00AVI ",
+	  12,
+	  "video/avi" },
+
+	{ (const guchar *)"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)"RIFF\x00\x00\x00\x00WAVE",
+	  12,
+	  "audio/wave" },
+};
+
+static gboolean
+sniff_mp4 (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	const char *resource = (const char *)buffer->data;
+	int resource_length = MIN (512, buffer->length);
+	guint32 box_size = *((guint32*)resource);
+	int i;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	box_size = ((box_size >> 24) |
+		    ((box_size << 8) & 0x00FF0000) |
+		    ((box_size >> 8) & 0x0000FF00) |
+		    (box_size << 24));
+#endif
+
+	if (resource_length < 12 || resource_length < box_size || box_size % 4 != 0)
+		return FALSE;
+
+	if (!g_str_has_prefix (resource + 4, "ftyp"))
+		return FALSE;
+
+	if (!g_str_has_prefix (resource + 8, "mp4"))
+		return FALSE;
+
+	for (i = 16; i < box_size && i < resource_length; i = i + 4) {
+		if (g_str_has_prefix (resource + i, "mp4"))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static char*
+sniff_audio_video (SoupContentSniffer *sniffer, SoupBuffer *buffer)
+{
+	char *sniffed_type;
+
+	sniffed_type = sniff_media (sniffer,
+				    buffer,
+				    audio_video_types_table,
+				    G_N_ELEMENTS (audio_video_types_table));
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
+
+	if (sniff_mp4 (sniffer, buffer))
+		return g_strdup ("video/mp4");
+
+	return NULL;
+}
+
+/* This table is based on the MIMESNIFF spec;
+ * See 7.1 Identifying a resource with an unknown MIME type
  */
 typedef struct {
 	/* @has_ws is TRUE if @pattern contains "generic" whitespace */
 	gboolean      has_ws;
+	/* @has_tag_termination is TRUE if we should check for a tag-terminating
+	 * byte (0x20 " " or 0x3E ">") after the pattern match.
+	 */
+	gboolean      has_tag_termination;
 	const guchar *mask;
 	const guchar *pattern;
 	guint         pattern_length;
@@ -86,111 +290,174 @@ typedef struct {
 	gboolean      scriptable;
 } SoupContentSnifferPattern;
 
+
+/* When has_ws is TRUE, spaces in the pattern will indicate where insignificant space
+ * is allowed. Those spaces are marked with \x00 on the mask.
+ */
 static SoupContentSnifferPattern types_table[] = {
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
-	  (const guchar *)"\x3C\x21\x44\x4F\x43\x54\x59\x50\x45\x20\x48\x54\x4D\x4C",
+	/* Scriptable types. */
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <!DOCTYPE HTML",
 	  14,
 	  "text/html",
 	  TRUE },
 
-	{ TRUE,
-	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF",
-	  (const guchar *)" \x3C\x48\x54\x4D\x4C",
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <HTML",
 	  5,
 	  "text/html",
 	  TRUE },
 
-	{ TRUE,
-	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF",
-	  (const guchar *)" \x3C\x48\x45\x41\x44",
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <HEAD",
 	  5,
 	  "text/html",
 	  TRUE },
 
-	{ TRUE,
-	  (const guchar *)"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-	  (const guchar *)" \x3C\x53\x43\x52\x49\x50\x54",
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <SCRIPT",
 	  7,
 	  "text/html",
 	  TRUE },
 
-	{ FALSE,
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <IFRAME",
+	  7,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xFF",
+	  (const guchar *)" <H1",
+	  3,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF",
+	  (const guchar *)" <DIV",
+	  4,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <FONT",
+	  5,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <TABLE",
+	  6,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF",
+	  (const guchar *)" <A",
+	  2,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <STYLE",
+	  6,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <TITLE",
+	  6,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF",
+	  (const guchar *)" <B",
+	  2,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF\xDF\xDF",
+	  (const guchar *)" <BODY",
+	  5,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF\xDF",
+	  (const guchar *)" <BR",
+	  3,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xDF",
+	  (const guchar *)" <P",
+	  2,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, TRUE,
+	  (const guchar *)"\x00\xFF\xFF\xFF\xFF",
+	  (const guchar *)" <!--",
+	  4,
+	  "text/html",
+	  TRUE },
+
+	{ TRUE, FALSE,
+	  (const guchar *)"\x00\xFF\xFF\xFF\xFF\xFF",
+	  (const guchar *)" <?xml",
+	  5,
+	  "text/html",
+	  TRUE },
+
+	{ FALSE, FALSE,
 	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x25\x50\x44\x46\x2D",
+	  (const guchar *)"%PDF-",
 	  5,
 	  "application/pdf",
 	  TRUE },
 
-	{ FALSE,
+	/* Non-scriptable types. */
+	{ FALSE, FALSE,
 	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x25\x21\x50\x53\x2D\x41\x64\x6F\x62\x65\x2D",
+	  (const guchar *)"%!PS-Adobe-",
 	  11,
 	  "application/postscript",
 	  FALSE },
 
-	{ FALSE,
+	{ FALSE, FALSE, /* UTF-16BE BOM */
 	  (const guchar *)"\xFF\xFF\x00\x00",
 	  (const guchar *)"\xFE\xFF\x00\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
 
-	{ FALSE,
+	{ FALSE, FALSE, /* UTF-16LE BOM */
 	  (const guchar *)"\xFF\xFF\x00\x00",
-	  (const guchar *)"\xFF\xFF\x00\x00",
+	  (const guchar *)"\xFF\xFE\x00\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
 
-	{ FALSE,
+	{ FALSE, FALSE, /* UTF-8 BOM */
 	  (const guchar *)"\xFF\xFF\xFF\x00",
 	  (const guchar *)"\xEF\xBB\xBF\x00",
 	  4,
 	  "text/plain",
 	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x47\x49\x46\x38\x37\x61",
-	  6,
-	  "image/gif",
-	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x47\x49\x46\x38\x39\x61",
-	  6,
-	  "image/gif",
-	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
-	  8,
-	  "image/png",
-	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xFF",
-	  (const guchar *)"\xFF\xD8\xFF",
-	  3,
-	  "image/jpeg",
-	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF",
-	  (const guchar *)"\x42\x4D",
-	  2,
-	  "image/bmp",
-	  FALSE },
-
-	{ FALSE,
-	  (const guchar *)"\xFF\xFF\xFF\xFF",
-	  (const guchar *)"\x00\x00\x01\x00",
-	  4,
-	  "image/vnd.microsoft.icon",
-	  FALSE }
 };
 
 /* Whether a given byte looks like it might be part of binary content.
@@ -219,8 +486,9 @@ static char byte_looks_binary[] = {
 /* HTML5: 2.7.4 Content-Type sniffing: unknown type */
 static char*
 sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
-	       gboolean for_text_or_binary)
+	       gboolean sniff_scriptable)
 {
+	char *sniffed_type = NULL;
 	const guchar *resource = (const guchar *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int i;
@@ -228,9 +496,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
 		SoupContentSnifferPattern *type_row = &(types_table[i]);
 
-		/* The scriptable types should be skiped for the text
-		 * or binary path, but considered for other paths */
-		if (for_text_or_binary && type_row->scriptable)
+		if (!sniff_scriptable && type_row->scriptable)
 			continue;
 
 		if (type_row->has_ws) {
@@ -263,8 +529,14 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 			if (skip_row)
 				continue;
 
-			if (index_pattern > type_row->pattern_length)
+			if (index_pattern > type_row->pattern_length) {
+				if (type_row->has_tag_termination &&
+				    resource[index_stream] != '\x20' &&
+				    resource[index_stream] != '\x3E')
+					continue;
+
 				return g_strdup (type_row->sniffed_type);
+			}
 		} else {
 			int j;
 
@@ -282,8 +554,15 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 		}
 	}
 
-	if (for_text_or_binary)
-		return g_strdup ("application/octet-stream");
+	sniffed_type = sniff_images (sniffer, buffer);
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
+
+	sniffed_type = sniff_audio_video (sniffer, buffer);
+
+	if (sniffed_type != NULL)
+		return sniffed_type;
 
 	for (i = 0; i < resource_length; i++) {
 		if (byte_looks_binary[resource[i]])
@@ -293,7 +572,7 @@ sniff_unknown (SoupContentSniffer *sniffer, SoupBuffer *buffer,
 	return g_strdup ("text/plain");
 }
 
-/* HTML5: 2.7.3 Content-Type sniffing: text or binary */
+/* MIMESNIFF: 7.2 Sniffing a mislabeled binary resource */
 static char*
 sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
@@ -302,15 +581,20 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	gboolean looks_binary = FALSE;
 	int i;
 
-	/* Detecting UTF-16BE, UTF-16LE, or UTF-8 BOMs means it's text/plain */
-	if (resource_length >= 4) {
+	/* 2. Detecting UTF-16BE, UTF-16LE BOMs means it's text/plain */
+	if (resource_length >= 2) {
 		if ((resource[0] == 0xFE && resource[1] == 0xFF) ||
-		    (resource[0] == 0xFF && resource[1] == 0xFE) ||
-		    (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF))
+		    (resource[0] == 0xFF && resource[1] == 0xFE))
 			return g_strdup ("text/plain");
 	}
 
-	/* Look to see if any of the first n bytes looks binary */
+	/* 3. UTF-8 BOM. */
+	if (resource_length >= 3) {
+		if (resource[0] == 0xEF && resource[1] == 0xBB && resource[2] == 0xBF)
+			return g_strdup ("text/plain");
+	}
+
+	/* 4. Look to see if any of the first n bytes looks binary */
 	for (i = 0; i < resource_length; i++) {
 		if (byte_looks_binary[resource[i]]) {
 			looks_binary = TRUE;
@@ -321,40 +605,32 @@ sniff_text_or_binary (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (!looks_binary)
 		return g_strdup ("text/plain");
 
+	/* 5. Execute 7.1 Identifying a resource with an unknown MIME type.
+	 * TODO: sniff-scriptable needs to be unset.
+	 */
 	return sniff_unknown (sniffer, buffer, TRUE);
 }
 
-static char*
-sniff_images (SoupContentSniffer *sniffer, SoupBuffer *buffer,
-	      const char *content_type)
+static gboolean
+skip_insignificant_space (const char *resource, int *pos, int resource_length)
 {
-	const guchar *resource = (const guchar *)buffer->data;
-	int resource_length = MIN (512, buffer->length);
-	int i;
+	while ((resource[*pos] == '\x09') ||
+	       (resource[*pos] == '\x20') ||
+	       (resource[*pos] == '\x0A') ||
+	       (resource[*pos] == '\x0D')) {
+		*pos = *pos + 1;
 
-	for (i = 0; i < G_N_ELEMENTS (types_table); i++) {
-		SoupContentSnifferPattern *type_row = &(types_table[i]);
-
-		if (resource_length < type_row->pattern_length)
-			continue;
-
-		if (!g_str_has_prefix (type_row->sniffed_type, "image/"))
-			continue;
-
-		/* All of the image types use all-\xFF for the mask,
-		 * so we can just memcmp.
-		 */
-		if (memcmp (type_row->pattern, resource, type_row->pattern_length) == 0)
-			return g_strdup (type_row->sniffed_type);
+		if (*pos > resource_length)
+			return TRUE;
 	}
 
-	return g_strdup (content_type);
+	return FALSE;
 }
 
 static char*
 sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 {
-	const guchar *resource = (const guchar *)buffer->data;
+	const char *resource = (const char *)buffer->data;
 	int resource_length = MIN (512, buffer->length);
 	int pos = 0;
 
@@ -369,19 +645,10 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (pos > resource_length)
 		goto text_html;
 
-	/* Skip insignificant white space */
-	while ((resource[pos] == '\x09') ||
-	       (resource[pos] == '\x20') ||
-	       (resource[pos] == '\x0A') ||
-	       (resource[pos] == '\x0D')) {
-		pos++;
+	if (skip_insignificant_space (resource, &pos, resource_length))
+		goto text_html;
 
-		if (pos > resource_length)
-			goto text_html;
-	}
-
-	/* != < */
-	if (resource[pos] != '\x3C')
+	if (resource[pos] != '<')
 		return g_strdup ("text/html");
 
 	pos++;
@@ -389,23 +656,21 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if ((pos + 2) > resource_length)
 		goto text_html;
 
-	/* Skipping comments */
-	if ((resource[pos] == '\x2D') ||
-	    (resource[pos+1] == '\x2D') ||
-	    (resource[pos+2] == '\x3E')) {
+	/* Skip comments. */
+	if (g_str_has_prefix (resource + pos, "!--")) {
 		pos = pos + 3;
 
 		if ((pos + 2) > resource_length)
 			goto text_html;
 
-		while ((resource[pos] != '\x2D') &&
-		       (resource[pos+1] != '\x2D') &&
-		       (resource[pos+2] != '\x3E')) {
+		while (!g_str_has_prefix (resource + pos, "-->")) {
 			pos++;
 
 			if ((pos + 2) > resource_length)
 				goto text_html;
 		}
+
+		pos = pos + 3;
 
 		goto look_for_tag;
 	}
@@ -413,48 +678,83 @@ sniff_feed_or_html (SoupContentSniffer *sniffer, SoupBuffer *buffer)
 	if (pos > resource_length)
 		goto text_html;
 
-	/* == ! */
-	if (resource[pos] == '\x21') {
+	if (resource[pos] == '!') {
 		do {
 			pos++;
 
 			if (pos > resource_length)
 				goto text_html;
-		} while (resource[pos] != '\x3E');
+		} while (resource[pos] != '>');
 
 		pos++;
 
 		goto look_for_tag;
-	} else if (resource[pos] == '\x3F') { /* ? */
+	} else if (resource[pos] == '?') {
 		do {
 			pos++;
 
 			if ((pos + 1) > resource_length)
 				goto text_html;
-		} while ((resource[pos] != '\x3F') &&
-			 (resource[pos+1] != '\x3E'));
+		} while (!g_str_has_prefix (resource + pos, "?>"));
 
 		pos = pos + 2;
 
 		goto look_for_tag;
 	}
 
-	if ((pos + 2) > resource_length)
-		goto text_html;
-
-	if ((resource[pos] == '\x72') &&
-	    (resource[pos+1] == '\x73') &&
-	    (resource[pos+2] == '\x73'))
-		return g_strdup ("application/rss+xml");
-
 	if ((pos + 3) > resource_length)
 		goto text_html;
 
-	if ((resource[pos] == '\x66') &&
-	    (resource[pos+1] == '\x65') &&
-	    (resource[pos+2] == '\x65') &&
-	    (resource[pos+3] == '\x64'))
+	if (g_str_has_prefix (resource + pos, "rss"))
+		return g_strdup ("application/rss+xml");
+
+	if ((pos + 4) > resource_length)
+		goto text_html;
+
+	if (g_str_has_prefix (resource + pos, "feed"))
 		return g_strdup ("application/atom+xml");
+
+	if ((pos + 7) > resource_length)
+		goto text_html;
+
+	if (g_str_has_prefix (resource + pos, "rdf:RDF")) {
+		pos = pos + 7;
+
+		if (skip_insignificant_space (resource, &pos, resource_length))
+			goto text_html;
+
+		if ((pos + 32) > resource_length)
+			goto text_html;
+
+		if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\"")) {
+			pos = pos + 32;
+
+			if (skip_insignificant_space (resource, &pos, resource_length))
+				goto text_html;
+
+			if ((pos + 55) > resource_length)
+				goto text_html;
+
+			if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\""))
+				return g_strdup ("application/rss+xml");
+		}
+
+		if ((pos + 55) > resource_length)
+			goto text_html;
+
+		if (g_str_has_prefix (resource + pos, "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"")) {
+			pos = pos + 55;
+
+			if (skip_insignificant_space (resource, &pos, resource_length))
+				goto text_html;
+
+			if ((pos + 32) > resource_length)
+				goto text_html;
+
+			if (g_str_has_prefix (resource + pos, "xmlns=\"http://purl.org/rss/1.0/\""))
+				return g_strdup ("application/rss+xml");
+		}
+	}
 
  text_html:
 	return g_strdup ("text/html");
@@ -465,42 +765,70 @@ soup_content_sniffer_real_sniff (SoupContentSniffer *sniffer, SoupMessage *msg,
 				 SoupBuffer *buffer, GHashTable **params)
 {
 	const char *content_type;
+	const char *x_content_type_options;
+	char *sniffed_type = NULL;
+	gboolean no_sniff = FALSE;
 
 	content_type = soup_message_headers_get_content_type (msg->response_headers, params);
 
-	/* These comparisons are done in an ASCII-case-insensitive
-	 * manner because the spec requires it */
+	/* MIMESNIFF: 7 Determining the sniffed MIME type of a resource. */
+
+	x_content_type_options = soup_message_headers_get_one (msg->response_headers, "X-Content-Type-Options");
+	if (!g_strcmp0 (x_content_type_options, "nosniff"))
+		no_sniff = TRUE;
+
+	/* 1. Unknown/undefined supplied type with sniff-scritable = !nosniff. */
 	if ((content_type == NULL) ||
 	    !g_ascii_strcasecmp (content_type, "unknown/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "application/unknown") ||
 	    !g_ascii_strcasecmp (content_type, "*/*"))
-		return sniff_unknown (sniffer, buffer, FALSE);
+		return sniff_unknown (sniffer, buffer, !no_sniff);
 
+	/* 2. If nosniff is specified in X-Content-Type-Options use the supplied MIME type. */
+	if (no_sniff)
+		return g_strdup (content_type);
+
+	/* 3. check-for-apache-bug */
+	if ((content_type != NULL) &&
+	    (g_str_equal (content_type, "text/plain") ||
+	     g_str_equal (content_type, "text/plain; charset=ISO-8859-1") ||
+	     g_str_equal (content_type, "text/plain; charset=iso-8859-1") ||
+	     g_str_equal (content_type, "text/plain; charset=UTF-8")))
+		return sniff_text_or_binary (sniffer, buffer);
+
+	/* 4. XML types sent by the server are always used. */
 	if (g_str_has_suffix (content_type, "+xml") ||
 	    !g_ascii_strcasecmp (content_type, "text/xml") ||
 	    !g_ascii_strcasecmp (content_type, "application/xml"))
 		return g_strdup (content_type);
 
-	/* 2.7.5 Content-Type sniffing: image
-	 * The spec says:
-	 *
-	 *   If the resource's official type is "image/svg+xml", then
-	 *   the sniffed type of the resource is its official type (an
-	 *   XML type)
-	 *
-	 * The XML case is handled by the if above; if you refactor
-	 * this code, keep this in mind.
+	/* 5. Distinguish feed from HTML. */
+	if (!g_ascii_strcasecmp (content_type, "text/html"))
+		return sniff_feed_or_html (sniffer, buffer);
+
+	/* 6. Image types.
 	 */
-	if (!g_ascii_strncasecmp (content_type, "image/", 6))
-		return sniff_images (sniffer, buffer, content_type);
+	if (!g_ascii_strncasecmp (content_type, "image/", 6)) {
+		sniffed_type = sniff_images (sniffer, buffer);
+		if (sniffed_type != NULL)
+			return sniffed_type;
+		return g_strdup (content_type);
+	}
+
+	/* 7. Audio and video types. */
+	if (!g_ascii_strncasecmp (content_type, "audio/", 6) ||
+	    !g_ascii_strncasecmp (content_type, "video/", 6) ||
+	    !g_ascii_strcasecmp (content_type, "application/ogg")) {
+	        sniffed_type = sniff_audio_video (sniffer, buffer);
+	        if (sniffed_type != NULL)
+		        return sniffed_type;
+		return g_strdup (content_type);
+        }
 
 	/* If we got text/plain, use text_or_binary */
 	if (g_str_equal (content_type, "text/plain")) {
 		return sniff_text_or_binary (sniffer, buffer);
 	}
-
-	if (!g_ascii_strcasecmp (content_type, "text/html"))
-		return sniff_feed_or_html (sniffer, buffer);
 
 	return g_strdup (content_type);
 }
