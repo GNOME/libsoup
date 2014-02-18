@@ -17,11 +17,29 @@ void test_cleanup (void);
 
 extern int debug_level;
 extern gboolean tls_available;
+extern gboolean apache_available;
 void debug_printf (int level, const char *format, ...) G_GNUC_PRINTF (2, 3);
+
+#define SOUP_TEST_SKIP_IF_NO_TLS				\
+	G_STMT_START {						\
+		if (!tls_available) {				\
+			g_test_skip ("TLS is not available");	\
+			return;					\
+		}						\
+	} G_STMT_END
 
 #ifdef HAVE_APACHE
 void apache_init    (void);
 void apache_cleanup (void);
+#define SOUP_TEST_SKIP_IF_NO_APACHE
+#else
+#define apache_init()
+#define apache_cleanup()
+#define SOUP_TEST_SKIP_IF_NO_APACHE				\
+	G_STMT_START {						\
+		g_test_skip ("apache is not available");	\
+		return;						\
+	} G_STMT_END
 #endif
 
 typedef enum {

@@ -5,8 +5,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_PHP_XMLRPC
-
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #endif
@@ -358,13 +356,3 @@ main (int argc, char **argv)
 		test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_PHP_XMLRPC */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

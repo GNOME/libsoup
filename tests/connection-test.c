@@ -621,8 +621,6 @@ do_non_idempotent_connection_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-#ifdef HAVE_APACHE
-
 #define HTTP_SERVER  "http://127.0.0.1:47524"
 #define HTTPS_SERVER "https://127.0.0.1:47525"
 #define HTTP_PROXY   "http://127.0.0.1:47526"
@@ -723,6 +721,8 @@ static void
 do_connection_state_test (void)
 {
 	SoupSession *session;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	debug_printf (1, "\nConnection states\n");
 
@@ -832,6 +832,8 @@ do_connection_event_test (void)
 {
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "\nConnection events\n");
 
 	debug_printf (1, "  Async session\n");
@@ -845,17 +847,13 @@ do_connection_event_test (void)
 	soup_test_session_abort_unref (session);
 }
 
-#endif
-
 int
 main (int argc, char **argv)
 {
 	int ret;
 
 	test_init (argc, argv, NULL);
-#ifdef HAVE_APACHE
 	apache_init ();
-#endif
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
@@ -867,10 +865,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/connection/max-conns", do_max_conns_test);
 	g_test_add_func ("/connection/non-persistent", do_non_persistent_connection_test);
 	g_test_add_func ("/connection/non-idempotent", do_non_idempotent_connection_test);
-#ifdef HAVE_APACHE
 	g_test_add_func ("/connection/state", do_connection_state_test);
 	g_test_add_func ("/connection/event", do_connection_event_test);
-#endif
 
 	ret = g_test_run ();
 

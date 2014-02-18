@@ -5,8 +5,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_CURL
-
 static struct {
 	const char *title, *name;
 	const char *result;
@@ -91,6 +89,11 @@ static void
 do_hello_tests (gconstpointer uri)
 {
 	int n;
+
+#ifndef HAVE_CURL
+	g_test_skip ("/usr/bin/curl is not available");
+	return;
+#endif
 
 	debug_printf (1, "Hello tests (GET, application/x-www-form-urlencoded)\n");
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
@@ -179,6 +182,11 @@ do_md5_tests (gconstpointer uri)
 	gsize length;
 	GError *error = NULL;
 
+#ifndef HAVE_CURL
+	g_test_skip ("/usr/bin/curl is not available");
+	return;
+#endif
+
 	debug_printf (1, "\nMD5 tests (POST, multipart/form-data)\n");
 
 	if (!g_file_get_contents (MD5_TEST_FILE, &contents, &length, &error)) {
@@ -203,6 +211,11 @@ do_form_decode_test (void)
 	GHashTable *table;
 	const gchar *value;
 	gchar *tmp;
+
+#ifndef HAVE_CURL
+	g_test_skip ("/usr/bin/curl is not available");
+	return;
+#endif
 
 	debug_printf (1, "\nDecode tests\n");
 
@@ -432,13 +445,3 @@ main (int argc, char **argv)
 		test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_CURL */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

@@ -5,8 +5,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_CURL
-
 static struct {
 	gboolean client_sent_basic, client_sent_digest;
 	gboolean server_requested_basic, server_requested_digest;
@@ -105,6 +103,11 @@ do_auth_tests (gconstpointer data)
 	int i, n = 1;
 	gboolean use_basic, use_digest, good_user, good_password;
 	gboolean preemptive_basic, good_auth;
+
+#ifndef HAVE_CURL
+	g_test_skip ("/usr/bin/curl is not available");
+	return;
+#endif
 
 	for (i = 0; i < 16; i++) {
 		use_basic     = (i & 1) == 1;
@@ -344,13 +347,3 @@ main (int argc, char **argv)
 		test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_CURL */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

@@ -5,8 +5,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_PHP_XMLRPC
-
 #ifdef G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #endif
@@ -15,6 +13,18 @@ static SoupSession *session;
 static const char *default_uri = "http://127.0.0.1:47524/xmlrpc-server.php";
 static const char *uri = NULL;
 static gboolean server_test = FALSE;
+
+#ifdef HAVE_PHP_XMLRPC
+#define SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER
+#else
+#define SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER				\
+	G_STMT_START {							\
+		if (!server_test) {					\
+			g_test_skip ("php-xmlrpc is not available");	\
+			return;						\
+		}							\
+	} G_STMT_END
+#endif
 
 static const char *const value_type[] = {
 	"BAD",
@@ -105,6 +115,8 @@ test_sum (void)
 	GValue retval;
 	gboolean ok;
 
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "sum (array of int -> int): ");
 
 	ints = g_value_array_new (10);
@@ -138,6 +150,8 @@ test_countBools (void)
 	int ret_trues, ret_falses;
 	gboolean val, ok;
 	GHashTable *result;
+
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
 	debug_printf (1, "countBools (array of boolean -> struct of ints): ");
 
@@ -182,6 +196,8 @@ test_md5sum (void)
 	GValue retval;
 	gboolean ok;
 
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "md5sum (base64 -> base64)\n");
 
 	data = g_byte_array_new ();
@@ -215,6 +231,8 @@ test_dateChange (void)
 	char *timestamp;
 	GValue retval;
 	gboolean ok;
+
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
 	debug_printf (1, "dateChange (date, struct of ints -> time)\n");
 
@@ -323,6 +341,8 @@ test_echo (void)
 	GValue retval;
 	int i;
 
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "echo (array of string -> array of string):\n");
 
 	originals = g_value_array_new (N_ECHO_STRINGS);
@@ -375,6 +395,8 @@ test_ping (gconstpointer include_params)
 	char *request;
 	char *out;
 	gboolean ret;
+
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
 	debug_printf (1, "ping (void (%s) -> string)\n",
 		      include_params ? "empty <params>" : "no <params>");
@@ -443,6 +465,8 @@ do_bad_xmlrpc (const char *body)
 static void
 test_fault_malformed (void)
 {
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "malformed request: ");
 
 	do_bad_xmlrpc ("<methodCall/>");
@@ -451,6 +475,8 @@ test_fault_malformed (void)
 static void
 test_fault_method (void)
 {
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "request to non-existent method: ");
 
 	do_bad_xmlrpc ("<methodCall><methodName>no_such_method</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
@@ -459,6 +485,8 @@ test_fault_method (void)
 static void
 test_fault_args (void)
 {
+	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
+
 	debug_printf (1, "request with invalid args: ");
 
 	do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
@@ -493,9 +521,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/xmlrpc/echo", test_echo);
 	g_test_add_data_func ("/xmlrpc/ping/empty-params", GINT_TO_POINTER (TRUE), test_ping);
 	g_test_add_data_func ("/xmlrpc/ping/no-params", GINT_TO_POINTER (FALSE), test_ping);
-	g_test_add_func ("/xmlrpc/fault_malformed", test_fault_malformed);
-	g_test_add_func ("/xmlrpc/fault_method", test_fault_method);
-	g_test_add_func ("/xmlrpc/fault_args", test_fault_args);
+	g_test_add_func ("/xmlrpc/fault/malformed", test_fault_malformed);
+	g_test_add_func ("/xmlrpc/fault/method", test_fault_method);
+	g_test_add_func ("/xmlrpc/fault/args", test_fault_args);
 
 	ret = g_test_run ();
 
@@ -504,13 +532,3 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_PHP_XMLRPC */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

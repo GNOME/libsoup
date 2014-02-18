@@ -184,11 +184,6 @@ dnl ******************************
 dnl *** Stuff for regression tests
 dnl ******************************
 AC_MSG_NOTICE([checking for programs needed for regression tests])
-MISSING_REGRESSION_TEST_PACKAGES=""
-
-if test "$have_glib_networking" = "no"; then
-        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES glib-networking"
-fi
 
 AC_ARG_WITH(apache-httpd,
 	    AS_HELP_STRING([--with-apache-httpd], [Path to apache httpd (for tests)]),
@@ -256,16 +251,8 @@ if test "$APACHE_HTTPD" != "no" -a -n "$APACHE_MODULE_DIR" -a -n "$APACHE_SSL_MO
         AC_DEFINE(HAVE_APACHE_2_4, 1, [Apache is 2.4.x])
     fi
     have_apache=1
-    if test -z "$APACHE_PHP_MODULE_DIR"; then
-        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_php5"
-    fi
 else
     have_apache=0
-    if test "$APACHE_HTTPD" = "no" -o -z "$APACHE_MODULE_DIR"; then
-        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES apache"
-    else
-        MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES mod_ssl"
-    fi
 fi
 AM_CONDITIONAL(HAVE_APACHE, test "$have_apache" = 1)
 AM_CONDITIONAL(HAVE_APACHE_2_2, test "$apache_version" = 2.2)
@@ -281,7 +268,6 @@ if test "$have_apache" = 1; then
     else
 	have_php=no
 	IF_HAVE_PHP="\#"
-	MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php5"
     fi
     AC_MSG_RESULT($have_php)
     AC_SUBST(IF_HAVE_PHP)
@@ -290,7 +276,6 @@ if test "$have_apache" = 1; then
 	AC_MSG_CHECKING([for php-xmlrpc])
 	if $PHP --rf xmlrpc_server_create | grep -q "does not exist"; then
 	    have_php_xmlrpc=no
-	    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES php-xmlrpc"
 	else
 	    have_php_xmlrpc=yes
 	    AC_DEFINE(HAVE_PHP_XMLRPC, 1, [Have php-xmlrpc])
@@ -302,12 +287,7 @@ fi
 AC_PATH_PROG(CURL, curl, no)
 if test "$CURL" != no; then
     AC_DEFINE(HAVE_CURL, 1, [Whether or not curl can be used for tests])
-else
-    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES curl"
 fi
-
-AC_SUBST(MISSING_REGRESSION_TEST_PACKAGES)
-AM_CONDITIONAL(MISSING_REGRESSION_TEST_PACKAGES, test -n "$MISSING_REGRESSION_TEST_PACKAGES")
 
 dnl **********************************************************
 dnl *** path of NTLM single-sign-on helper ntlm_auth
@@ -322,8 +302,6 @@ if test "$ntlm_auth" != "no"; then
 	dnl --with-ntlm-auth (without path) used, use default path
 	ntlm_auth="/usr/bin/ntlm_auth"
     fi
-else
-    MISSING_REGRESSION_TEST_PACKAGES="$MISSING_REGRESSION_TEST_PACKAGES ntlm_auth"
 fi
 AC_SUBST(ntlm_auth)
 AC_DEFINE_UNQUOTED(NTLM_AUTH, "$ntlm_auth", [Samba's 'winbind' daemon helper 'ntlm_auth' which can be used for NTLM single-sign-on])
@@ -367,10 +345,3 @@ AC_CONFIG_FILES([
 	libsoup/soup-version.h
 	])
 AC_OUTPUT
-
-if test -n "$MISSING_REGRESSION_TEST_PACKAGES"; then
-    echo ""
-    echo Some regression tests will not be run due to missing packages:
-    echo $MISSING_REGRESSION_TEST_PACKAGES
-    echo ""
-fi

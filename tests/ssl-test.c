@@ -28,6 +28,8 @@ do_async_properties_tests (gconstpointer uri)
 {
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_TLS;
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_object_set (G_OBJECT (session),
 		      SOUP_SESSION_SSL_CA_FILE, "/dev/null",
@@ -41,6 +43,8 @@ static void
 do_sync_properties_tests (gconstpointer uri)
 {
 	SoupSession *session;
+
+	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	g_object_set (G_OBJECT (session),
@@ -101,6 +105,8 @@ do_strict_tests (gconstpointer uri)
 {
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_TLS;
+
 	debug_printf (1, "\nstrict/nonstrict\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -142,6 +148,8 @@ do_session_property_tests (void)
 	GTlsDatabase *tlsdb;
 	char *ca_file;
 	SoupSession *session;
+
+	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	debug_printf (1, "session properties\n");
 
@@ -251,15 +259,12 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	if (!tls_available) {
-		test_cleanup ();
-		return 77; /* SKIP */
+	if (tls_available) {
+		server = soup_test_server_new_ssl (TRUE);
+		soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
+		uri = g_strdup_printf ("https://127.0.0.1:%u/",
+				       soup_server_get_port (server));
 	}
-
-	server = soup_test_server_new_ssl (TRUE);
-	soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-	uri = g_strdup_printf ("https://127.0.0.1:%u/",
-			       soup_server_get_port (server));
 
 	g_test_add_func ("/ssl/session-properties", do_session_property_tests);
 	g_test_add_data_func ("/ssl/message-properties/async", uri, do_async_properties_tests);
@@ -270,8 +275,10 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	g_free (uri);
-	soup_test_server_quit_unref (server);
+	if (tls_available) {
+		g_free (uri);
+		soup_test_server_quit_unref (server);
+	}
 
 	test_cleanup ();
 	return ret;

@@ -112,11 +112,6 @@ check: start-httpd
 
 check-local: check-TESTS
 	@$(MAKE) kill-httpd
-if MISSING_REGRESSION_TEST_PACKAGES
-	@echo ""
-	@echo "NOTE: some tests were not run due to missing packages:" $(MISSING_REGRESSION_TEST_PACKAGES)
-	@echo ""
-endif
 
 .PHONY: start-httpd kill-httpd
 

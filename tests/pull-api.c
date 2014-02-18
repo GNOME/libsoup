@@ -2,8 +2,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_APACHE
-
 static SoupBuffer *correct_response;
 
 static void
@@ -14,6 +12,7 @@ authenticate (SoupSession *session, SoupMessage *msg,
 		soup_auth_authenticate (auth, "user2", "realm2");
 }
 
+#if HAVE_APACHE
 static void
 get_correct_response (const char *uri)
 {
@@ -34,6 +33,7 @@ get_correct_response (const char *uri)
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
 }
+#endif
 
 /* Pull API version 1: fully-async. More like a "poke" API. Rather
  * than having SoupMessage emit "got_chunk" signals whenever it wants,
@@ -234,6 +234,8 @@ do_fast_async_test (gconstpointer data)
 	const char *base_uri = data;
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
@@ -251,6 +253,8 @@ do_slow_async_test (gconstpointer data)
 {
 	const char *base_uri = data;
 	SoupSession *session;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
@@ -485,6 +489,8 @@ do_sync_async_test (gconstpointer data)
 	const char *base_uri = data;
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
@@ -508,7 +514,9 @@ main (int argc, char **argv)
 	apache_init ();
 
 	base_uri = "http://127.0.0.1:47524/";
+#if HAVE_APACHE
 	get_correct_response (base_uri);
+#endif
 
 	g_test_add_data_func ("/pull-api/async/fast", base_uri, do_fast_async_test);
 	g_test_add_data_func ("/pull-api/async/slow", base_uri, do_slow_async_test);
@@ -516,18 +524,10 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
+#if HAVE_APACHE
 	soup_buffer_free (correct_response);
+#endif
 
 	test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_APACHE */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

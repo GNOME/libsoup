@@ -456,11 +456,15 @@ do_builtin_ntlm_test (gconstpointer data)
 	do_ntlm_tests (uri, TRUE);
 }
 
-#ifdef USE_NTLM_AUTH
 static void
 do_winbind_ntlm_test (gconstpointer data)
 {
 	SoupURI *uri = (SoupURI *)data;
+
+#ifndef USE_NTLM_AUTH
+	g_test_skip ("/usr/bin/ntlm_auth is not available");
+	return;
+#endif
 
 	/* Samba winbind /usr/bin/ntlm_auth helper support (via a
 	 * helper program that emulates its interface).
@@ -477,6 +481,11 @@ do_fallback_ntlm_test (gconstpointer data)
 {
 	SoupURI *uri = (SoupURI *)data;
 
+#ifndef USE_NTLM_AUTH
+	g_test_skip ("/usr/bin/ntlm_auth is not available");
+	return;
+#endif
+
 	/* Support for when ntlm_auth is installed, but the user has
 	 * no cached credentials (and thus we have to fall back to
 	 * libsoup's built-in NTLM support).
@@ -487,7 +496,6 @@ do_fallback_ntlm_test (gconstpointer data)
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
 	do_ntlm_tests (uri, TRUE);
 }
-#endif
 
 static void
 retry_test_authenticate (SoupSession *session, SoupMessage *msg,
@@ -582,10 +590,8 @@ main (int argc, char **argv)
 	soup_uri_set_port (uri, soup_server_get_port (server));
 
 	g_test_add_data_func ("/ntlm/builtin", uri, do_builtin_ntlm_test);
-#ifdef USE_NTLM_AUTH
 	g_test_add_data_func ("/ntlm/winbind", uri, do_winbind_ntlm_test);
 	g_test_add_data_func ("/ntlm/fallback", uri, do_fallback_ntlm_test);
-#endif
 	g_test_add_data_func ("/ntlm/retry", uri, do_retrying_test);
 
 	ret = g_test_run ();

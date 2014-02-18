@@ -2,8 +2,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_APACHE
-
 typedef struct {
 	const char *explanation;
 	const char *url;
@@ -231,6 +229,8 @@ do_async_proxy_test (gconstpointer data)
 {
 	SoupProxyTest *test = (SoupProxyTest *)data;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	do_proxy_test (test, FALSE);
 }
 
@@ -238,6 +238,8 @@ static void
 do_sync_proxy_test (gconstpointer data)
 {
 	SoupProxyTest *test = (SoupProxyTest *)data;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	do_proxy_test (test, TRUE);
 }
@@ -259,6 +261,8 @@ do_proxy_fragment_test (gconstpointer data)
 	SoupSession *session;
 	SoupURI *proxy_uri, *req_uri;
 	SoupMessage *msg;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	debug_printf (1, "\nTesting request with fragment via proxy\n");
 
@@ -286,8 +290,8 @@ do_proxy_redirect_test (void)
 	SoupURI *proxy_uri, *req_uri, *new_uri;
 	SoupMessage *msg;
 
-	if (!tls_available)
-		return;
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	debug_printf (1, "\nTesting redirection through proxy\n");
 
@@ -358,13 +362,3 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_APACHE */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

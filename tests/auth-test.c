@@ -2,8 +2,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_APACHE
-
 static const char *base_uri;
 static GMainLoop *loop;
 
@@ -294,6 +292,8 @@ do_pipelined_auth_test (void)
 	char *uri;
 	int i;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "Testing pipelined auth (bug 271540):\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
@@ -445,6 +445,8 @@ do_digest_expiration_test (void)
 	SoupSession *session;
 	char *uri;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "\nTesting digest nonce expiration:\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -548,6 +550,8 @@ do_async_auth_test (void)
 	SoupAuth *auth = NULL;
 	int remaining;
 	gboolean been_there;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	debug_printf (1, "\nTesting async auth:\n");
 
@@ -820,6 +824,8 @@ do_select_auth_test (void)
 	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
 	SoupURI *uri;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "\nTesting selection among multiple auths:\n");
 
 	/* It doesn't seem to be possible to configure Apache to serve
@@ -976,6 +982,8 @@ do_auth_close_test (void)
 	SoupURI *uri;
 	AuthCloseData acd;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "\nTesting auth when server times out connection:\n");
 
 	server = soup_test_server_new (FALSE);
@@ -1033,6 +1041,8 @@ do_infinite_auth_test (void)
 	char *uri;
 	int timeout;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	debug_printf (1, "\nTesting broken infinite-loop auth:\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -1088,6 +1098,8 @@ do_disappearing_auth_test (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	debug_printf (1, "\nTesting auth when server does not repeat challenge on failure:\n");
 
@@ -1163,6 +1175,8 @@ do_batch_tests (gconstpointer data)
 	SoupURI *base;
 	guint signal;
 	int i;
+
+	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	base = soup_uri_new (base_uri);
@@ -1246,13 +1260,3 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_APACHE */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

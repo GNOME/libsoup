@@ -2,8 +2,6 @@
 
 #include "test-utils.h"
 
-#ifdef HAVE_APACHE
-
 SoupBuffer *full_response;
 int total_length;
 char *test_response;
@@ -332,6 +330,8 @@ do_apache_range_test (void)
 {
 	SoupSession *session;
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 #if HAVE_APACHE_2_2
@@ -397,13 +397,3 @@ main (int argc, char **argv)
 	test_cleanup ();
 	return ret;
 }
-
-#else /* HAVE_APACHE */
-
-int
-main (int argc, char **argv)
-{
-	return 77; /* SKIP */
-}
-
-#endif

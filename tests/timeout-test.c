@@ -208,10 +208,7 @@ do_async_timeout_tests (gconstpointer data)
 	gboolean extra_slow;
 
 	if (g_str_has_prefix (fast_uri, "https")) {
-		if (!tls_available) {
-			g_test_skip ("TLS not available");
-			return;
-		}
+		SOUP_TEST_SKIP_IF_NO_TLS;
 
 		extra_slow = slow_https;
 	} else
@@ -252,10 +249,7 @@ do_sync_timeout_tests (gconstpointer data)
 	gboolean extra_slow;
 
 	if (g_str_has_prefix (fast_uri, "https")) {
-		if (!tls_available) {
-			g_test_skip ("TLS not available");
-			return;
-		}
+		SOUP_TEST_SKIP_IF_NO_TLS;
 
 		extra_slow = slow_https;
 	} else
@@ -340,7 +334,8 @@ main (int argc, char **argv)
 			debug_printf (2, "\n");
 			slow_https = FALSE;
 		}
-	}
+	} else
+		https_uri = g_strdup ("https://fail.");
 
 	g_test_add_data_func ("/timeout/http/async", uri, do_async_timeout_tests);
 	g_test_add_data_func ("/timeout/http/sync", uri, do_sync_timeout_tests);
