@@ -577,7 +577,7 @@ set_proxy_resolver (SoupSession *session, SoupURI *uri,
 		char *uri_string;
 
 		priv->proxy_uri = soup_uri_copy (uri);
-		uri_string = soup_uri_to_string (uri, FALSE);
+		uri_string = soup_uri_to_string_internal (uri, FALSE, TRUE);
 		priv->proxy_resolver = g_simple_proxy_resolver_new (uri_string, NULL);
 		g_free (uri_string);
 	} else if (soup_resolver) {
