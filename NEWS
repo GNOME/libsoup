@@ -1,3 +1,34 @@
+Changes in libsoup from 2.45.3 to 2.45.90:
+
+	* Fixed a problem where libsoup would use the "http" proxy
+          settings for "https" requests [#724316, Matt Barnes]
+
+	* Updated SoupContentSniffer to match the current version of
+          the MIME sniffing specification [#648849 / #715126, Gustavo
+          Noronha Silva]
+
+	* Updated the soup-tld APIs to accept ASCII-encoded hostnames
+          in addition to UTF-8 ones.
+
+	* Ported the test programs to the gtestutils framework, added
+          support for installed tests, and made the tests use the TAP
+          driver.
+
+	  Some tests still need to be split up into more pieces, and
+	  the debug output is now somewhat less useful in some cases.
+
+	* Fixed the test programs to not depend on local proxy
+          settings.
+
+	* Added some more checks to header-tests [#722341, Lionel
+          Landwerlin]
+
+	* Fixed the "simple-proxy" example program, which had been
+          broken for a while.
+
+	* Updated translations:
+	  Korean
+
 Changes in libsoup from 2.44.1 to 2.45.3:
 
 	* The documentation has finally been updated to reflect the
