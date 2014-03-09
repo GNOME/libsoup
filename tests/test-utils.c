@@ -38,7 +38,7 @@ static GOptionEntry debug_entry[] = {
 	{ "debug", 'd', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_debug_level,
 	  "Enable (or increase) test-specific debugging", NULL },
-	{ "http-debug", 'h', G_OPTION_FLAG_NO_ARG,
+	{ "http-debug", 'H', G_OPTION_FLAG_NO_ARG,
 	  G_OPTION_ARG_CALLBACK, increment_http_debug_level,
 	  "Enable (or increase) HTTP-level debugging", NULL },
 	{ NULL }
