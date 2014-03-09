@@ -153,7 +153,7 @@ do_message (const char *path, gboolean long_body,
 }
 
 static void
-run_tests (void)
+do_test_unauth_short_noexpect_nopass (void)
 {
 	do_message ("unauth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
@@ -167,6 +167,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_unauth_long_noexpect_nopass (void)
+{
 	do_message ("unauth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
@@ -179,6 +184,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_unauth_short_expect_nopass (void)
+{
 	do_message ("unauth", FALSE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -193,6 +203,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_unauth_long_expect_nopass (void)
+{
 	do_message ("unauth", TRUE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -203,7 +218,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
 
+static void
+do_test_auth_short_noexpect_nopass (void)
+{
 	do_message ("auth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
@@ -216,6 +235,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_long_noexpect_nopass (void)
+{
 	do_message ("auth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
@@ -228,6 +252,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_short_expect_nopass (void)
+{
 	do_message ("auth", FALSE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -238,6 +267,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_long_expect_nopass (void)
+{
 	do_message ("auth", TRUE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -248,7 +282,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
 
+static void
+do_test_auth_short_noexpect_pass (void)
+{
 	do_message ("auth", FALSE, FALSE, TRUE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
@@ -270,6 +308,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_long_noexpect_pass (void)
+{
 	do_message ("auth", TRUE, FALSE, TRUE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
@@ -291,6 +334,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_short_expect_pass (void)
+{
 	do_message ("auth", FALSE, TRUE, TRUE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -312,6 +360,11 @@ run_tests (void)
 		    "client-got_body",
 		    "client-finished",
 		    NULL);
+}
+
+static void
+do_test_auth_long_expect_pass (void)
+{
 	do_message ("auth", TRUE, TRUE, TRUE,
 		    "client-wrote_headers",
 		    "server-got_headers",
@@ -437,7 +490,18 @@ main (int argc, char **argv)
 	server = setup_server ();
 	port = soup_server_get_port (server);
 
-	g_test_add_func ("/continue", run_tests);
+	g_test_add_func ("/continue/unauth_short_noexpect_nopass", do_test_unauth_short_noexpect_nopass);
+	g_test_add_func ("/continue/unauth_long_noexpect_nopass", do_test_unauth_long_noexpect_nopass);
+	g_test_add_func ("/continue/unauth_short_expect_nopass", do_test_unauth_short_expect_nopass);
+	g_test_add_func ("/continue/unauth_long_expect_nopass", do_test_unauth_long_expect_nopass);
+	g_test_add_func ("/continue/auth_short_noexpect_nopass", do_test_auth_short_noexpect_nopass);
+	g_test_add_func ("/continue/auth_long_noexpect_nopass", do_test_auth_long_noexpect_nopass);
+	g_test_add_func ("/continue/auth_short_expect_nopass", do_test_auth_short_expect_nopass);
+	g_test_add_func ("/continue/auth_long_expect_nopass", do_test_auth_long_expect_nopass);
+	g_test_add_func ("/continue/auth_short_noexpect_pass", do_test_auth_short_noexpect_pass);
+	g_test_add_func ("/continue/auth_long_noexpect_pass", do_test_auth_long_noexpect_pass);
+	g_test_add_func ("/continue/auth_short_expect_pass", do_test_auth_short_expect_pass);
+	g_test_add_func ("/continue/auth_long_expect_pass", do_test_auth_long_expect_pass);
 
 	ret = g_test_run ();
 

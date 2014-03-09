@@ -5,6 +5,8 @@
 
 #include "test-utils.h"
 
+static SoupURI *base_uri;
+
 static struct {
 	gboolean client_sent_basic, client_sent_digest;
 	gboolean server_requested_basic, server_requested_digest;
@@ -21,7 +23,7 @@ curl_exited (GPid pid, int status, gpointer data)
 }
 
 static void
-do_test (int n, SoupURI *base_uri, const char *path,
+do_test (SoupURI *base_uri, const char *path,
 	 gboolean good_user, gboolean good_password,
 	 gboolean offer_basic, gboolean offer_digest,
 	 gboolean client_sends_basic, gboolean client_sends_digest,
@@ -33,12 +35,6 @@ do_test (int n, SoupURI *base_uri, const char *path,
 	GPtrArray *args;
 	GPid pid;
 	gboolean done;
-
-	debug_printf (1, "%2d. %s, %soffer Basic, %soffer Digest, %s user, %s password\n",
-		      n, path, offer_basic ? "" : "don't ",
-		      offer_digest ? "" : "don't ",
-		      good_user ? "good" : "bad",
-		      good_password ? "good" : "bad");
 
 	uri = soup_uri_new_with_base (base_uri, path);
 	uri_str = soup_uri_to_string (uri, FALSE);
@@ -96,104 +92,95 @@ do_test (int n, SoupURI *base_uri, const char *path,
 	g_assert_cmpint (success, ==, test_data.succeeded);
 }
 
+#define TEST_USES_BASIC(t)    (((t) & 1) == 1)
+#define TEST_USES_DIGEST(t)   (((t) & 2) == 2)
+#define TEST_GOOD_USER(t)     (((t) & 4) == 4)
+#define TEST_GOOD_PASSWORD(t) (((t) & 8) == 8)
+
+#define TEST_GOOD_AUTH(t)        (TEST_GOOD_USER (t) && TEST_GOOD_PASSWORD (t))
+#define TEST_PREEMPTIVE_BASIC(t) (TEST_USES_BASIC (t) && !TEST_USES_DIGEST (t))
+
 static void
-do_auth_tests (gconstpointer data)
+do_server_auth_test (gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
-	int i, n = 1;
-	gboolean use_basic, use_digest, good_user, good_password;
-	gboolean preemptive_basic, good_auth;
+	int i = GPOINTER_TO_INT (data);
 
 #ifndef HAVE_CURL
 	g_test_skip ("/usr/bin/curl is not available");
 	return;
 #endif
 
-	for (i = 0; i < 16; i++) {
-		use_basic     = (i & 1) == 1;
-		use_digest    = (i & 2) == 2;
-		good_user     = (i & 4) == 4;
-		good_password = (i & 8) == 8;
+	/* 1. No auth required. The server will ignore the
+	 * Authorization headers completely, and the request
+	 * will always succeed.
+	 */
+	do_test (base_uri, "/foo",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), FALSE,
+		 /* expected from server */
+		 FALSE, FALSE,
+		 /* success? */
+		 TRUE);
 
-		good_auth = good_user && good_password;
+	/* 2. Basic auth required. The server will send
+	 * "WWW-Authenticate: Basic" if the client fails to
+	 * send an Authorization: Basic on the first request,
+	 * or if it sends a bad password.
+	 */
+	do_test (base_uri, "/Basic/foo",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_USES_BASIC (i), FALSE,
+		 /* expected from server */
+		 !TEST_PREEMPTIVE_BASIC (i) || !TEST_GOOD_AUTH (i), FALSE,
+		 /* success? */
+		 TEST_USES_BASIC (i) && TEST_GOOD_AUTH (i));
 
-		/* Curl will preemptively send Basic if it's told to
-		 * use Basic but not Digest.
-		 */
-		preemptive_basic = use_basic && !use_digest;
+	/* 3. Digest auth required. Simpler than the basic
+	 * case because the client can't send Digest auth
+	 * premptively.
+	 */
+	do_test (base_uri, "/Digest/foo",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from server */
+		 FALSE, TRUE,
+		 /* success? */
+		 TEST_USES_DIGEST (i) && TEST_GOOD_AUTH (i));
 
-		/* 1. No auth required. The server will ignore the
-		 * Authorization headers completely, and the request
-		 * will always succeed.
-		 */
-		do_test (n++, base_uri, "/foo",
-			 good_user, good_password,
-			 /* request */
-			 use_basic, use_digest,
-			 /* expected from client */
-			 preemptive_basic, FALSE,
-			 /* expected from server */
-			 FALSE, FALSE,
-			 /* success? */
-			 TRUE);
+	/* 4. Any auth required. */
+	do_test (base_uri, "/Any/foo",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from server */
+		 !TEST_PREEMPTIVE_BASIC (i) || !TEST_GOOD_AUTH (i), !TEST_PREEMPTIVE_BASIC (i) || !TEST_GOOD_AUTH (i),
+		 /* success? */
+		 (TEST_USES_BASIC (i) || TEST_USES_DIGEST (i)) && TEST_GOOD_AUTH (i));
 
-		/* 2. Basic auth required. The server will send
-		 * "WWW-Authenticate: Basic" if the client fails to
-		 * send an Authorization: Basic on the first request,
-		 * or if it sends a bad password.
-		 */
-		do_test (n++, base_uri, "/Basic/foo",
-			 good_user, good_password,
-			 /* request */
-			 use_basic, use_digest,
-			 /* expected from client */
-			 use_basic, FALSE,
-			 /* expected from server */
-			 !preemptive_basic || !good_auth, FALSE,
-			 /* success? */
-			 use_basic && good_auth);
-
-		/* 3. Digest auth required. Simpler than the basic
-		 * case because the client can't send Digest auth
-		 * premptively.
-		 */
-		do_test (n++, base_uri, "/Digest/foo",
-			 good_user, good_password,
-			 /* request */
-			 use_basic, use_digest,
-			 /* expected from client */
-			 preemptive_basic, use_digest,
-			 /* expected from server */
-			 FALSE, TRUE,
-			 /* success? */
-			 use_digest && good_auth);
-
-		/* 4. Any auth required. */
-		do_test (n++, base_uri, "/Any/foo",
-			 good_user, good_password,
-			 /* request */
-			 use_basic, use_digest,
-			 /* expected from client */
-			 preemptive_basic, use_digest,
-			 /* expected from server */
-			 !preemptive_basic || !good_auth, !preemptive_basic || !good_auth,
-			 /* success? */
-			 (use_basic || use_digest) && good_auth);
-
-		/* 5. No auth required again. (Makes sure that
-		 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
-		 */
-		do_test (n++, base_uri, "/Any/Not/foo",
-			 good_user, good_password,
-			 /* request */
-			 use_basic, use_digest,
-			 /* expected from client */
-			 preemptive_basic, FALSE,
-			 /* expected from server */
-			 FALSE, FALSE,
-			 /* success? */
-			 TRUE);
-	}
+	/* 5. No auth required again. (Makes sure that
+	 * SOUP_AUTH_DOMAIN_REMOVE_PATH works.)
+	 */
+	do_test (base_uri, "/Any/Not/foo",
+		 TEST_GOOD_USER (i), TEST_GOOD_PASSWORD (i),
+		 /* request */
+		 TEST_USES_BASIC (i), TEST_USES_DIGEST (i),
+		 /* expected from client */
+		 TEST_PREEMPTIVE_BASIC (i), FALSE,
+		 /* expected from server */
+		 FALSE, FALSE,
+		 /* success? */
+		 TRUE);
 }
 
 static gboolean
@@ -290,7 +277,6 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	SoupURI *uri;
 	SoupAuthDomain *auth_domain;
 	int ret;
 
@@ -325,15 +311,41 @@ main (int argc, char **argv)
 	loop = g_main_loop_new (NULL, TRUE);
 
 	if (run_tests) {
-		uri = soup_uri_new ("http://127.0.0.1");
-		soup_uri_set_port (uri, soup_server_get_port (server));
+		int i;
 
-		/* FIXME: split this up! */
-		g_test_add_data_func ("/server-auth", uri, do_auth_tests);
+		base_uri = soup_uri_new ("http://127.0.0.1");
+		soup_uri_set_port (base_uri, soup_server_get_port (server));
+
+		for (i = 0; i < 16; i++) {
+			char *path;
+			const char *authtypes;
+
+			if (!TEST_GOOD_USER (i) && !TEST_GOOD_PASSWORD (i))
+				continue;
+			if (TEST_USES_BASIC (i)) {
+				if (TEST_USES_DIGEST (i))
+					authtypes = "basic+digest";
+				else
+					authtypes = "basic";
+			} else {
+				if (TEST_USES_DIGEST (i))
+					authtypes = "digest";
+				else
+					authtypes = "none";
+			}
+
+			path = g_strdup_printf ("/server-auth/%s/%s-user%c%s-password",
+						authtypes,
+						TEST_GOOD_USER (i) ? "good" : "bad",
+						TEST_GOOD_USER (i) ? '/' : '\0',
+						TEST_GOOD_PASSWORD (i) ? "good" : "bad");
+			g_test_add_data_func (path, GINT_TO_POINTER (i), do_server_auth_test);
+			g_free (path);
+		}
 
 		ret = g_test_run ();
 
-		soup_uri_free (uri);
+		soup_uri_free (base_uri);
 	} else {
 		g_print ("Listening on port %d\n", soup_server_get_port (server));
 		g_main_loop_run (loop);

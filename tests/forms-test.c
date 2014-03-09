@@ -96,20 +96,61 @@ do_hello_tests (gconstpointer uri)
 #endif
 
 	debug_printf (1, "Hello tests (GET, application/x-www-form-urlencoded)\n");
+
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
 		do_hello_test (n, FALSE, uri);
 		do_hello_test (n, TRUE, uri);
 	}
 }
 
-static void
-do_md5_test_curl (const char *uri, const char *file, const char *md5)
+#define MD5_TEST_FILE (g_test_get_filename (G_TEST_DIST, "index.txt", NULL))
+#define MD5_TEST_FILE_BASENAME "index.txt"
+#define MD5_TEST_FILE_MIME_TYPE "text/plain"
+
+static char *
+get_md5_data (char **contents, gsize *length)
 {
+	char *my_contents, *md5;
+	gsize my_length;
+	GError *error = NULL;
+
+	if (!g_file_get_contents (MD5_TEST_FILE, &my_contents, &my_length, &error)) {
+		g_assert_no_error (error);
+		g_error_free (error);
+		return NULL;
+	}
+
+	md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, my_contents, my_length);
+
+	if (contents)
+		*contents = my_contents;
+	else
+		g_free (my_contents);
+	if (length)
+		*length = my_length;
+
+	return md5;
+}
+
+static void
+do_md5_test_curl (gconstpointer data)
+{
+	const char *uri = data;
+	char *md5;
 	GPtrArray *args;
 	char *file_arg, *str_stdout;
 	GError *error = NULL;
 
-	debug_printf (1, "  via curl: ");
+#ifndef HAVE_CURL
+	g_test_skip ("/usr/bin/curl is not available");
+	return;
+#endif
+
+	debug_printf (1, "\nMD5 test via curl (POST, multipart/form-data)\n");
+
+	md5 = get_md5_data (NULL, NULL);
+	if (!md5)
+		return;
 
 	args = g_ptr_array_new ();
 	g_ptr_array_add (args, "curl");
@@ -117,7 +158,7 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 	g_ptr_array_add (args, "*");
 	g_ptr_array_add (args, "-L");
 	g_ptr_array_add (args, "-F");
-	file_arg = g_strdup_printf ("file=@%s", file);
+	file_arg = g_strdup_printf ("file=@%s", MD5_TEST_FILE);
 	g_ptr_array_add (args, file_arg);
 	g_ptr_array_add (args, "-F");
 	g_ptr_array_add (args, "fmt=txt");
@@ -136,22 +177,26 @@ do_md5_test_curl (const char *uri, const char *file, const char *md5)
 	}
 	g_ptr_array_free (args, TRUE);
 	g_free (file_arg);
+
+	g_free (md5);
 }
 
-#define MD5_TEST_FILE (g_test_get_filename (G_TEST_DIST, "index.txt", NULL))
-#define MD5_TEST_FILE_BASENAME "index.txt"
-#define MD5_TEST_FILE_MIME_TYPE "text/plain"
-
 static void
-do_md5_test_libsoup (const char *uri, const char *contents,
-		     gsize length, const char *md5)
+do_md5_test_libsoup (gconstpointer data)
 {
+	const char *uri = data;
+	char *contents, *md5;
+	gsize length;
 	SoupMultipart *multipart;
 	SoupBuffer *buffer;
 	SoupMessage *msg;
 	SoupSession *session;
 
-	debug_printf (1, "  via libsoup: ");
+	debug_printf (1, "\nMD5 test via libsoup (POST, multipart/form-data)\n");
+
+	md5 = get_md5_data (&contents, &length);
+	if (!md5)
+		return;
 
 	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
 	buffer = soup_buffer_new (SOUP_MEMORY_COPY, contents, length);
@@ -173,37 +218,10 @@ do_md5_test_libsoup (const char *uri, const char *contents,
 
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
-}
-
-static void
-do_md5_tests (gconstpointer uri)
-{
-	char *contents, *md5;
-	gsize length;
-	GError *error = NULL;
-
-#ifndef HAVE_CURL
-	g_test_skip ("/usr/bin/curl is not available");
-	return;
-#endif
-
-	debug_printf (1, "\nMD5 tests (POST, multipart/form-data)\n");
-
-	if (!g_file_get_contents (MD5_TEST_FILE, &contents, &length, &error)) {
-		g_assert_no_error (error);
-		g_error_free (error);
-		return;
-	}
-
-	md5 = g_compute_checksum_for_string (G_CHECKSUM_MD5, contents, length);
-
-	do_md5_test_curl (uri, MD5_TEST_FILE, md5);
-	do_md5_test_libsoup (uri, contents, length, md5);
 
 	g_free (contents);
 	g_free (md5);
 }
-
 
 static void
 do_form_decode_test (void)
@@ -428,7 +446,9 @@ main (int argc, char **argv)
 		g_test_add_data_func_full ("/forms/hello", uri_str, do_hello_tests, g_free);
 
 		uri_str = g_strdup_printf ("http://127.0.0.1:%u/md5", port);
-		g_test_add_data_func_full ("/forms/md5", uri_str, do_md5_tests, g_free);
+		g_test_add_data_func_full ("/forms/md5/curl", g_strdup (uri_str), do_md5_test_curl, g_free);
+		g_test_add_data_func_full ("/forms/md5/libsoup", g_strdup (uri_str), do_md5_test_libsoup, g_free);
+		g_free (uri_str);
 
 		g_test_add_func ("/forms/decode", do_form_decode_test);
 

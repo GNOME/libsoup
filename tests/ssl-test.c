@@ -2,6 +2,8 @@
 
 #include "test-utils.h"
 
+static char *uri;
+
 static void
 do_properties_test_for_session (SoupSession *session, const char *uri)
 {
@@ -24,7 +26,7 @@ do_properties_test_for_session (SoupSession *session, const char *uri)
 }
 
 static void
-do_async_properties_tests (gconstpointer uri)
+do_async_properties_tests (void)
 {
 	SoupSession *session;
 
@@ -40,7 +42,7 @@ do_async_properties_tests (gconstpointer uri)
 }
 
 static void
-do_sync_properties_tests (gconstpointer uri)
+do_sync_properties_tests (void)
 {
 	SoupSession *session;
 
@@ -55,80 +57,70 @@ do_sync_properties_tests (gconstpointer uri)
 	soup_test_session_abort_unref (session);
 }
 
+typedef struct {
+	const char *name;
+	gboolean sync;
+	gboolean strict;
+	gboolean with_ca_list;
+	guint expected_status;
+} StrictnessTest;
+
+static const StrictnessTest strictness_tests[] = {
+	{ "/ssl/strictness/async/strict/with-ca",
+	  FALSE, TRUE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/async/strict/without-ca",
+	  FALSE, TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
+	{ "/ssl/strictness/async/non-strict/with-ca",
+	  FALSE, FALSE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/async/non-strict/without-ca",
+	  FALSE, FALSE, FALSE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/sync/strict/with-ca",
+	  TRUE, TRUE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/sync/strict/without-ca",
+	  TRUE, TRUE, FALSE, SOUP_STATUS_SSL_FAILED },
+	{ "/ssl/strictness/sync/non-strict/with-ca",
+	  TRUE, FALSE, TRUE, SOUP_STATUS_OK },
+	{ "/ssl/strictness/sync/non-strict/without-ca",
+	  TRUE, FALSE, FALSE, SOUP_STATUS_OK },
+};
+
 static void
-do_one_strict_test (SoupSession *session, const char *uri,
-		    gboolean strict, gboolean with_ca_list,
-		    guint expected_status)
+do_strictness_test (gconstpointer data)
 {
+	const StrictnessTest *test = data;
+	SoupSession *session;
 	SoupMessage *msg;
+	GTlsCertificateFlags flags = 0;
 
-	/* Note that soup_test_session_new() sets
-	 * SOUP_SESSION_SSL_CA_FILE by default, and turns off
-	 * SOUP_SESSION_SSL_STRICT.
-	 */
+	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_SSL_STRICT, strict,
-		      SOUP_SESSION_SSL_CA_FILE,
-		      (with_ca_list ?
-		       g_test_get_filename (G_TEST_DIST, "/test-cert.pem", NULL) :
-		       "/dev/null"),
-		      NULL);
-	/* Close existing connections with old params */
-	soup_session_abort (session);
+	session = soup_test_session_new (test->sync ? SOUP_TYPE_SESSION_SYNC : SOUP_TYPE_SESSION_ASYNC,
+					 NULL);
+	if (!test->strict) {
+		g_object_set (G_OBJECT (session),
+			      SOUP_SESSION_SSL_STRICT, FALSE,
+			      NULL);
+	}
+	if (!test->with_ca_list) {
+		g_object_set (G_OBJECT (session),
+			      SOUP_SESSION_SSL_CA_FILE, "/dev/null",
+			      NULL);
+	}
 
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
-	if (msg->status_code != expected_status) {
-		debug_printf (1, "      FAILED: %d %s (expected %d %s)\n",
-			      msg->status_code, msg->reason_phrase,
-			      expected_status,
-			      soup_status_get_phrase (expected_status));
-		if (msg->status_code == SOUP_STATUS_SSL_FAILED) {
-			GTlsCertificateFlags flags = 0;
-
-			soup_message_get_https_status (msg, NULL, &flags);
-			debug_printf (1, "              tls error flags: 0x%x\n", flags);
-		}
-	} else if (with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
+	soup_test_assert_message_status (msg, test->expected_status);
+	g_assert_true (soup_message_get_https_status (msg, NULL, &flags));
+	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
 		g_assert_true (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 	else
 		g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 
-	g_assert_true (soup_message_get_https_status (msg, NULL, NULL));
+	if (msg->status_code == SOUP_STATUS_SSL_FAILED &&
+	    test->expected_status != SOUP_STATUS_SSL_FAILED)
+		debug_printf (1, "              tls error flags: 0x%x\n", flags);
 
 	g_object_unref (msg);
-}
-
-static void
-do_strict_tests (gconstpointer uri)
-{
-	SoupSession *session;
-
-	SOUP_TEST_SKIP_IF_NO_TLS;
-
-	debug_printf (1, "\nstrict/nonstrict\n");
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	debug_printf (1, "  async with CA list\n");
-	do_one_strict_test (session, uri, TRUE, TRUE, SOUP_STATUS_OK);
-	debug_printf (1, "  async without CA list\n");
-	do_one_strict_test (session, uri, TRUE, FALSE, SOUP_STATUS_SSL_FAILED);
-	debug_printf (1, "  async non-strict with CA list\n");
-	do_one_strict_test (session, uri, FALSE, TRUE, SOUP_STATUS_OK);
-	debug_printf (1, "  async non-strict without CA list\n");
-	do_one_strict_test (session, uri, FALSE, FALSE, SOUP_STATUS_OK);
-	soup_test_session_abort_unref (session);
-
-	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	debug_printf (1, "  sync with CA list\n");
-	do_one_strict_test (session, uri, TRUE, TRUE, SOUP_STATUS_OK);
-	debug_printf (1, "  sync without CA list\n");
-	do_one_strict_test (session, uri, TRUE, FALSE, SOUP_STATUS_SSL_FAILED);
-	debug_printf (1, "  sync non-strict with CA list\n");
-	do_one_strict_test (session, uri, FALSE, TRUE, SOUP_STATUS_OK);
-	debug_printf (1, "  sync non-strict without CA list\n");
-	do_one_strict_test (session, uri, FALSE, FALSE, SOUP_STATUS_OK);
 	soup_test_session_abort_unref (session);
 }
 
@@ -254,8 +246,7 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
-	char *uri;
-	int ret;
+	int i, ret;
 
 	test_init (argc, argv, NULL);
 
@@ -267,11 +258,14 @@ main (int argc, char **argv)
 	}
 
 	g_test_add_func ("/ssl/session-properties", do_session_property_tests);
-	g_test_add_data_func ("/ssl/message-properties/async", uri, do_async_properties_tests);
-	g_test_add_data_func ("/ssl/message-properties/sync", uri, do_sync_properties_tests);
+	g_test_add_func ("/ssl/message-properties/async", do_async_properties_tests);
+	g_test_add_func ("/ssl/message-properties/sync", do_sync_properties_tests);
 
-	/* FIXME: split this up */
-	g_test_add_data_func ("/ssl/strict", uri, do_strict_tests);
+	for (i = 0; i < G_N_ELEMENTS (strictness_tests); i++) {
+		g_test_add_data_func (strictness_tests[i].name,
+				      &strictness_tests[i],
+				      do_strictness_test);
+	}
 
 	ret = g_test_run ();
 

@@ -541,7 +541,7 @@ async_authenticate_assert_once_and_stop (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-do_async_auth_test (void)
+do_async_auth_good_password_test (void)
 {
 	SoupSession *session;
 	SoupMessage *msg1, *msg2, *msg3, msg2_bak;
@@ -549,7 +549,6 @@ do_async_auth_test (void)
 	char *uri;
 	SoupAuth *auth = NULL;
 	int remaining;
-	gboolean been_there;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -557,9 +556,8 @@ do_async_auth_test (void)
 
 	loop = g_main_loop_new (NULL, TRUE);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	remaining = 0;
-
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
+	remaining = 0;
 
 	msg1 = soup_message_new ("GET", uri);
 	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
@@ -621,27 +619,46 @@ do_async_auth_test (void)
 	memcpy (msg2, &msg2_bak, sizeof (SoupMessage));
 	g_object_unref (msg2);
 
+	g_free (uri);
+	g_main_loop_unref (loop);
+}
+
+static void
+do_async_auth_bad_password_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	guint auth_id;
+	char *uri;
+	SoupAuth *auth = NULL;
+	int remaining;
+	gboolean been_there;
+
 	/* Test that giving the wrong password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
 	debug_printf (1, "\nTesting async auth with wrong password (#522601):\n");
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	loop = g_main_loop_new (NULL, TRUE);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 	auth = NULL;
 
-	msg1 = soup_message_new ("GET", uri);
-	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
+	msg = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), &auth);
-	g_object_ref (msg1);
+	g_object_ref (msg);
 	remaining++;
-	soup_session_queue_message (session, msg1, async_finished, &remaining);
+	soup_session_queue_message (session, msg, async_finished, &remaining);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 	soup_auth_authenticate (auth, "user1", "wrong");
 	g_object_unref (auth);
-	soup_session_unpause_message (session, msg1);
+	soup_session_unpause_message (session, msg);
 
 	been_there = FALSE;
 	auth_id = g_signal_connect (session, "authenticate",
@@ -654,49 +671,67 @@ do_async_auth_test (void)
 			  "authenticate not emitted");
 
 	soup_test_session_abort_unref (session);
-	g_object_unref (msg1);
+	g_object_unref (msg);
+
+	g_free (uri);
+	g_main_loop_unref (loop);
+}
+
+static void
+do_async_auth_no_password_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	guint auth_id;
+	char *uri;
+	int remaining;
+	gboolean been_there;
 
 	/* Test that giving no password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
 	debug_printf (1, "\nTesting async auth with no password (#583462):\n");
 
+	SOUP_TEST_SKIP_IF_NO_APACHE;
+
+	loop = g_main_loop_new (NULL, TRUE);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
 	remaining = 0;
 
 	/* Send a message that doesn't actually authenticate
 	 */
-	msg1 = soup_message_new ("GET", uri);
-	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (1));
+	msg = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (1));
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate), NULL);
-	g_object_ref (msg1);
+	g_object_ref (msg);
 	remaining++;
-	soup_session_queue_message (session, msg1, async_finished, &remaining);
+	soup_session_queue_message (session, msg, async_finished, &remaining);
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
-	soup_session_unpause_message (session, msg1);
+	soup_session_unpause_message (session, msg);
 	g_main_loop_run (loop);
-	g_object_unref(msg1);
+	g_object_unref(msg);
 
 	/* Now send a second message */
-	msg1 = soup_message_new ("GET", uri);
-	g_object_set_data (G_OBJECT (msg1), "id", GINT_TO_POINTER (2));
-	g_object_ref (msg1);
+	msg = soup_message_new ("GET", uri);
+	g_object_set_data (G_OBJECT (msg), "id", GINT_TO_POINTER (2));
+	g_object_ref (msg);
 	been_there = FALSE;
 	auth_id = g_signal_connect (session, "authenticate",
 				    G_CALLBACK (async_authenticate_assert_once_and_stop),
 				    &been_there);
 	remaining++;
-	soup_session_queue_message (session, msg1, async_finished, &remaining);
+	soup_session_queue_message (session, msg, async_finished, &remaining);
 	g_main_loop_run (loop);
-	soup_session_unpause_message (session, msg1);
+	soup_session_unpause_message (session, msg);
 
 	g_main_loop_run (loop);
 	g_signal_handler_disconnect (session, auth_id);
 
 	soup_test_session_abort_unref (session);
-	g_object_unref (msg1);
+	g_object_unref (msg);
 
 	g_free (uri);
 	g_main_loop_unref (loop);
@@ -1243,7 +1278,9 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/auth/relogin-tests", relogin_tests, do_batch_tests);
 	g_test_add_func ("/auth/pipelined-auth", do_pipelined_auth_test);
 	g_test_add_func ("/auth/digest-expiration", do_digest_expiration_test);
-	g_test_add_func ("/auth/async-auth", do_async_auth_test);
+	g_test_add_func ("/auth/async-auth/good-password", do_async_auth_good_password_test);
+	g_test_add_func ("/auth/async-auth/bad-password", do_async_auth_bad_password_test);
+	g_test_add_func ("/auth/async-auth/no-password", do_async_auth_no_password_test);
 	g_test_add_func ("/auth/select-auth", do_select_auth_test);
 	g_test_add_func ("/auth/auth-close", do_auth_close_test);
 	g_test_add_func ("/auth/infinite-auth", do_infinite_auth_test);

@@ -11,6 +11,8 @@
 
 #include "test-utils.h"
 
+static SoupURI *uri;
+
 typedef enum {
 	NTLM_UNAUTHENTICATED,
 	NTLM_RECEIVED_REQUEST,
@@ -430,71 +432,84 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 	soup_test_session_abort_unref (session);
 }
 
-static void
-do_ntlm_tests (SoupURI *base_uri, gboolean use_builtin_ntlm)
-{
-	debug_printf (1, "Round 1: Non-NTLM Connection, no auth\n");
-	do_ntlm_round (base_uri, FALSE, NULL, use_builtin_ntlm);
-	debug_printf (1, "Round 2: NTLM Connection, user=alice\n");
-	do_ntlm_round (base_uri, TRUE, "alice", use_builtin_ntlm);
-	debug_printf (1, "Round 3: NTLM Connection, user=bob\n");
-	do_ntlm_round (base_uri, TRUE, "bob", use_builtin_ntlm);
-	debug_printf (1, "Round 4: Non-NTLM Connection, user=alice\n");
-	do_ntlm_round (base_uri, FALSE, "alice", use_builtin_ntlm);
-}
+typedef enum {
+	BUILTIN,
+	WINBIND,
+	FALLBACK
+} NtlmType;
+
+typedef struct {
+	const char *name, *user;
+	gboolean conn_uses_ntlm;
+	NtlmType ntlm_type;
+} NtlmTest;
+
+static const NtlmTest ntlm_tests[] = {
+	{ "/ntlm/builtin/none",   NULL,    FALSE, BUILTIN },
+	{ "/ntlm/builtin/alice",  "alice", TRUE,  BUILTIN },
+	{ "/ntlm/builtin/bob",    "bob",   TRUE,  BUILTIN },
+	{ "/ntlm/builtin/basic",  "alice", FALSE, BUILTIN },
+
+	{ "/ntlm/winbind/none",   NULL,    FALSE, WINBIND },
+	{ "/ntlm/winbind/alice",  "alice", TRUE,  WINBIND },
+	{ "/ntlm/winbind/bob",    "bob",   TRUE,  WINBIND },
+	{ "/ntlm/winbind/basic",  "alice", FALSE, WINBIND },
+
+	{ "/ntlm/fallback/none",  NULL,    FALSE, FALLBACK },
+	{ "/ntlm/fallback/alice", "alice", TRUE,  FALLBACK },
+	{ "/ntlm/fallback/bob",   "bob",   TRUE,  FALLBACK },
+	{ "/ntlm/fallback/basic", "alice", FALSE, FALLBACK }
+};
 
 static void
-do_builtin_ntlm_test (gconstpointer data)
+do_ntlm_test (gconstpointer data)
 {
-	SoupURI *uri = (SoupURI *)data;
+	const NtlmTest *test = data;
+	gboolean use_builtin_ntlm = TRUE;
 
-	/* Built-in NTLM auth support. (We set SOUP_NTLM_AUTH_DEBUG to
-	 * an empty string to ensure that the built-in support is
-	 * being used, even if /usr/bin/ntlm_auth is available.)
-	 */
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
-	do_ntlm_tests (uri, TRUE);
-}
+	switch (test->ntlm_type) {
+	case BUILTIN:
+		/* Built-in NTLM auth support. (We set SOUP_NTLM_AUTH_DEBUG to
+		 * an empty string to ensure that the built-in support is
+		 * being used, even if /usr/bin/ntlm_auth is available.)
+		 */
+		g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
+		break;
 
-static void
-do_winbind_ntlm_test (gconstpointer data)
-{
-	SoupURI *uri = (SoupURI *)data;
-
+	case WINBIND:
 #ifndef USE_NTLM_AUTH
-	g_test_skip ("/usr/bin/ntlm_auth is not available");
-	return;
+		g_test_skip ("/usr/bin/ntlm_auth is not available");
+		return;
 #endif
 
-	/* Samba winbind /usr/bin/ntlm_auth helper support (via a
-	 * helper program that emulates its interface).
-	 */
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG",
-		  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
-		  TRUE);
-	g_unsetenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS");
-	do_ntlm_tests (uri, FALSE);
-}
+		/* Samba winbind /usr/bin/ntlm_auth helper support (via a
+		 * helper program that emulates its interface).
+		 */
+		g_setenv ("SOUP_NTLM_AUTH_DEBUG",
+			  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
+			  TRUE);
+		g_unsetenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS");
+		use_builtin_ntlm = FALSE;
+		break;
 
-static void
-do_fallback_ntlm_test (gconstpointer data)
-{
-	SoupURI *uri = (SoupURI *)data;
-
+	case FALLBACK:
 #ifndef USE_NTLM_AUTH
-	g_test_skip ("/usr/bin/ntlm_auth is not available");
-	return;
+		g_test_skip ("/usr/bin/ntlm_auth is not available");
+		return;
 #endif
 
-	/* Support for when ntlm_auth is installed, but the user has
-	 * no cached credentials (and thus we have to fall back to
-	 * libsoup's built-in NTLM support).
-	 */
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG",
-		  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
-		  TRUE);
-	g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
-	do_ntlm_tests (uri, TRUE);
+		/* Support for when ntlm_auth is installed, but the user has
+		 * no cached credentials (and thus we have to fall back to
+		 * libsoup's built-in NTLM support).
+		 */
+		g_setenv ("SOUP_NTLM_AUTH_DEBUG",
+			  g_test_get_filename (G_TEST_BUILT, "ntlm-test-helper", NULL),
+			  TRUE);
+		g_setenv ("SOUP_NTLM_AUTH_DEBUG_NOCREDS", "1", TRUE);
+		break;
+	}
+
+	do_ntlm_round (uri, test->conn_uses_ntlm, test->user, use_builtin_ntlm);
 }
 
 static void
@@ -576,8 +591,7 @@ main (int argc, char **argv)
 {
 	SoupServer *server;
 	GHashTable *connections;
-	SoupURI *uri;
-	int ret;
+	int i, ret;
 
 	test_init (argc, argv, NULL);
 
@@ -589,9 +603,8 @@ main (int argc, char **argv)
 	uri = soup_uri_new ("http://127.0.0.1/");
 	soup_uri_set_port (uri, soup_server_get_port (server));
 
-	g_test_add_data_func ("/ntlm/builtin", uri, do_builtin_ntlm_test);
-	g_test_add_data_func ("/ntlm/winbind", uri, do_winbind_ntlm_test);
-	g_test_add_data_func ("/ntlm/fallback", uri, do_fallback_ntlm_test);
+	for (i = 0; i < G_N_ELEMENTS (ntlm_tests); i++)
+		g_test_add_data_func (ntlm_tests[i].name, &ntlm_tests[i], do_ntlm_test);
 	g_test_add_data_func ("/ntlm/retry", uri, do_retrying_test);
 
 	ret = g_test_run ();

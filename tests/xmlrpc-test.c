@@ -504,7 +504,7 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, xmlrpc_entries);
 
-	if (!uri) {
+	if (!uri && !server_test) {
 		apache_init ();
 		uri = default_uri;
 	}

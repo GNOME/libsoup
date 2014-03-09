@@ -741,7 +741,7 @@ do_cancel_while_reading_req_test_for_session (SoupSession *session,
 }
 
 static void
-do_cancel_while_reading_req_test (void)
+do_cancel_while_reading_immediate_req_test (void)
 {
 	SoupSession *session;
 	guint flags;
@@ -761,6 +761,13 @@ do_cancel_while_reading_req_test (void)
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
+}
+
+static void
+do_cancel_while_reading_delayed_req_test (void)
+{
+	SoupSession *session;
+	guint flags;
 
 	debug_printf (1, "\nCancelling (after 100ms) message while reading response (request api)\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
@@ -777,6 +784,13 @@ do_cancel_while_reading_req_test (void)
 					 NULL);
 	do_cancel_while_reading_req_test_for_session (session, flags);
 	soup_test_session_abort_unref (session);
+}
+
+static void
+do_cancel_while_reading_preemptive_req_test (void)
+{
+	SoupSession *session;
+	guint flags;
 
 	debug_printf (1, "\nCancelling (preemptively) message while reading response (request api)\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
@@ -939,7 +953,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/early-abort/req", do_early_abort_req_test);
 	g_test_add_func ("/misc/accept-language", do_accept_language_test);
 	g_test_add_func ("/misc/cancel-while-reading/msg", do_cancel_while_reading_test);
-	g_test_add_func ("/misc/cancel-while-reading/req", do_cancel_while_reading_req_test);
+	g_test_add_func ("/misc/cancel-while-reading/req/immediate", do_cancel_while_reading_immediate_req_test);
+	g_test_add_func ("/misc/cancel-while-reading/req/delayed", do_cancel_while_reading_delayed_req_test);
+	g_test_add_func ("/misc/cancel-while-reading/req/preemptive", do_cancel_while_reading_preemptive_req_test);
 	g_test_add_func ("/misc/aliases", do_aliases_test);
 	g_test_add_func ("/misc/idle-on-dispose", do_idle_on_dispose_test);
 	g_test_add_func ("/misc/pause-abort", do_pause_abort_test);
