@@ -373,10 +373,7 @@ test_echo (void)
 
 	for (i = 0; i < echoes->n_values; i++) {
 		if (!server_test && strcmp (echo_strings_broken[i], g_value_get_string (&echoes->values[i])) == 0) {
-			/* We want to call g_test_skip(), but as of glib 2.38
-			 * that marks the test as failed rather than succeeded.
-			 */
-			// FIXME g_test_skip ("PHP bug");
+			g_test_skip ("PHP bug");
 			g_value_array_free (echoes);
 			return;
 		}
