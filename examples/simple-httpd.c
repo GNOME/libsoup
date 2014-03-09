@@ -107,6 +107,7 @@ do_get (SoupServer *server, SoupMessage *msg, const char *path)
 		soup_message_set_response (msg, "text/html",
 					   SOUP_MEMORY_TAKE,
 					   listing->str, listing->len);
+		soup_message_set_status (msg, SOUP_STATUS_OK);
 		g_string_free (listing, FALSE);
 		return;
 	}
@@ -213,22 +214,19 @@ quit (int sig)
 	exit (0);
 }
 
-static int port, ssl_port;
-static const char *ssl_cert_file, *ssl_key_file;
+static int port;
+static const char *tls_cert_file, *tls_key_file;
 
 static GOptionEntry entries[] = {
 	{ "cert-file", 'c', 0,
-	  G_OPTION_ARG_STRING, &ssl_cert_file,
+	  G_OPTION_ARG_STRING, &tls_cert_file,
 	  "Use FILE as the TLS certificate file", "FILE" },
 	{ "key-file", 'k', 0,
-	  G_OPTION_ARG_STRING, &ssl_key_file,
+	  G_OPTION_ARG_STRING, &tls_key_file,
 	  "Use FILE as the TLS private key file", "FILE" },
 	{ "port", 'p', 0,
 	  G_OPTION_ARG_INT, &port,
 	  "Port to listen on", NULL },
-	{ "ssl-port", 's', 0,
-	  G_OPTION_ARG_INT, &port,
-	  "Port to listen on for TLS traffic", NULL },
 	{ NULL }
 };
 
@@ -237,7 +235,10 @@ main (int argc, char **argv)
 {
 	GOptionContext *opts;
 	GMainLoop *loop;
-	SoupServer *server, *ssl_server;
+	SoupServer *server;
+	GSList *uris, *u;
+	char *str;
+	GTlsCertificate *cert;
 	GError *error = NULL;
 
 	opts = g_option_context_new (NULL);
@@ -258,36 +259,35 @@ main (int argc, char **argv)
 
 	signal (SIGINT, quit);
 
-	server = soup_server_new (SOUP_SERVER_PORT, port,
-				  SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
-				  NULL);
-	if (!server) {
-		g_printerr ("Unable to bind to server port %d\n", port);
-		exit (1);
-	}
-	soup_server_add_handler (server, NULL,
-				 server_callback, NULL, NULL);
-	g_print ("\nStarting Server on port %d\n",
-		 soup_server_get_port (server));
-	soup_server_run_async (server);
-
-	if (ssl_cert_file && ssl_key_file) {
-		ssl_server = soup_server_new (
-			SOUP_SERVER_PORT, ssl_port,
-			SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
-			SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
-			NULL);
-
-		if (!ssl_server) {
-			g_printerr ("Unable to bind to SSL server port %d\n", ssl_port);
+	if (tls_cert_file && tls_key_file) {
+		cert = g_tls_certificate_new_from_files (tls_cert_file, tls_key_file, &error);
+		if (error) {
+			g_printerr ("Unable to create server: %s\n", error->message);
 			exit (1);
 		}
-		soup_server_add_handler (ssl_server, NULL,
-					 server_callback, NULL, NULL);
-		g_print ("Starting SSL Server on port %d\n", 
-			 soup_server_get_port (ssl_server));
-		soup_server_run_async (ssl_server);
+		server = soup_server_new (SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
+					  SOUP_SERVER_TLS_CERTIFICATE, cert,
+					  NULL);
+		g_object_unref (cert);
+
+		soup_server_listen_all (server, port, SOUP_SERVER_LISTEN_HTTPS, &error);
+	} else {
+		server = soup_server_new (SOUP_SERVER_SERVER_HEADER, "simple-httpd ",
+					  NULL);
+		soup_server_listen_all (server, port, 0, &error);
 	}
+
+	soup_server_add_handler (server, NULL,
+				 server_callback, NULL, NULL);
+
+	uris = soup_server_get_uris (server);
+	for (u = uris; u; u = u->next) {
+		str = soup_uri_to_string (u->data, FALSE);
+		g_print ("Listening on %s\n", str);
+		g_free (str);
+		soup_uri_free (u->data);
+	}
+	g_slist_free (uris);
 
 	g_print ("\nWaiting for requests...\n");
 
