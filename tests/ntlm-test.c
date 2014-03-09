@@ -44,7 +44,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 SoupClientContext *client, gpointer data)
 {
 	GHashTable *connections = data;
-	SoupSocket *socket;
+	GSocket *socket;
 	const char *auth;
 	NTLMServerState state, required_user = 0;
 	gboolean auth_required, not_found = FALSE;
@@ -70,7 +70,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (strstr (path, "/404"))
 		not_found = TRUE;
 
-	socket = soup_client_context_get_socket (client);
+	socket = soup_client_context_get_gsocket (client);
 	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, socket));
 	auth = soup_message_headers_get_one (msg->request_headers,
 					     "Authorization");
@@ -597,21 +597,18 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	connections = g_hash_table_new (NULL, NULL);
 	soup_server_add_handler (server, NULL,
 				 server_callback, connections, NULL);
 
-	uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (uri, soup_server_get_port (server));
+	uri = soup_test_server_get_uri (server, "http", NULL);
 
 	for (i = 0; i < G_N_ELEMENTS (ntlm_tests); i++)
 		g_test_add_data_func (ntlm_tests[i].name, &ntlm_tests[i], do_ntlm_test);
 	g_test_add_data_func ("/ntlm/retry", uri, do_retrying_test);
 
 	ret = g_test_run ();
-
-	soup_uri_free (uri);
 
 	soup_test_server_quit_unref (server);
 	test_cleanup ();

@@ -73,7 +73,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/slow")) {
 		soup_server_pause_message (server, msg);
 		g_object_set_data (G_OBJECT (msg), "server", server);
-		soup_add_timeout (soup_server_get_async_context (server),
+		soup_add_timeout (g_main_context_get_thread_default (),
 				  1000, timeout_finish_message, msg);
 	}
 
@@ -151,35 +151,28 @@ static void
 do_callback_unref_test (void)
 {
 	SoupServer *bad_server;
-	SoupAddress *addr;
 	SoupSession *session;
 	SoupMessage *one, *two;
 	GMainLoop *loop;
-	char *bad_uri;
+	SoupURI *bad_uri;
 
 	g_test_bug ("533473");
 
 	/* Get a guaranteed-bad URI */
-	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
-	soup_address_resolve_sync (addr, NULL);
-	bad_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
-				      NULL);
-	g_object_unref (addr);
-
-	bad_uri = g_strdup_printf ("http://127.0.0.1:%u/",
-				   soup_server_get_port (bad_server));
-	g_object_unref (bad_server);
+	bad_server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
+	bad_uri = soup_test_server_get_uri (bad_server, "http", NULL);
+	soup_test_server_quit_unref (bad_server);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_object_add_weak_pointer (G_OBJECT (session), (gpointer *)&session);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	one = soup_message_new ("GET", bad_uri);
+	one = soup_message_new_from_uri ("GET", bad_uri);
 	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-	two = soup_message_new ("GET", bad_uri);
+	two = soup_message_new_from_uri ("GET", bad_uri);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-	g_free (bad_uri);
+	soup_uri_free (bad_uri);
 
 	soup_session_queue_message (session, one, cu_one_completed, loop);
 	soup_session_queue_message (session, two, cu_two_completed, loop);
@@ -245,22 +238,15 @@ static void
 do_callback_unref_req_test (void)
 {
 	SoupServer *bad_server;
-	SoupAddress *addr;
 	SoupSession *session;
 	SoupRequest *one, *two;
 	GMainLoop *loop;
-	char *bad_uri;
+	SoupURI *bad_uri;
 
 	/* Get a guaranteed-bad URI */
-	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
-	soup_address_resolve_sync (addr, NULL);
-	bad_server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
-				      NULL);
-	g_object_unref (addr);
-
-	bad_uri = g_strdup_printf ("http://127.0.0.1:%u/",
-				   soup_server_get_port (bad_server));
-	g_object_unref (bad_server);
+	bad_server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
+	bad_uri = soup_test_server_get_uri (bad_server, "http", NULL);
+	soup_test_server_quit_unref (bad_server);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -269,11 +255,11 @@ do_callback_unref_req_test (void)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	one = soup_session_request (session, bad_uri, NULL);
+	one = soup_session_request_uri (session, bad_uri, NULL);
 	g_object_add_weak_pointer (G_OBJECT (one), (gpointer *)&one);
-	two = soup_session_request (session, bad_uri, NULL);
+	two = soup_session_request_uri (session, bad_uri, NULL);
 	g_object_add_weak_pointer (G_OBJECT (two), (gpointer *)&two);
-	g_free (bad_uri);
+	soup_uri_free (bad_uri);
 
 	soup_request_send_async (one, NULL, cur_one_completed, session);
 	g_object_unref (one);
@@ -922,10 +908,9 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
 		SOUP_AUTH_DOMAIN_REALM, "misc-test",
@@ -936,10 +921,9 @@ main (int argc, char **argv)
 	g_object_unref (auth_domain);
 
 	if (tls_available) {
-		ssl_server = soup_test_server_new_ssl (TRUE);
+		ssl_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 		soup_server_add_handler (ssl_server, NULL, server_callback, "https", NULL);
-		ssl_base_uri = soup_uri_new ("https://127.0.0.1/");
-		soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
+		ssl_base_uri = soup_test_server_get_uri (ssl_server, "https", "127.0.0.1");
 	}
 
 	g_test_add_func ("/misc/host", do_host_test);

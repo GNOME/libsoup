@@ -10,7 +10,6 @@ force_io_streams_init (void)
 {
 	SoupServer *server;
 	SoupSession *session;
-	guint port;
 	SoupURI *base_uri;
 	SoupMessage *msg;
 
@@ -20,10 +19,7 @@ force_io_streams_init (void)
 	 */
 
 	server = soup_test_server_new (TRUE);
-	port = 	soup_server_get_port (server);
-
-	base_uri = soup_uri_new ("http://127.0.0.1");
-	soup_uri_set_port (base_uri, port);
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	msg = soup_message_new_from_uri ("POST", base_uri);

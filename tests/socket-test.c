@@ -114,6 +114,7 @@ static void
 do_socket_from_fd_client_test (void)
 {
 	SoupServer *server;
+	SoupURI *uri;
 	GSocket *gsock;
 	SoupSocket *sock;
 	SoupAddress *local, *remote;
@@ -122,7 +123,8 @@ do_socket_from_fd_client_test (void)
 	int type;
 	GError *error = NULL;
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
 
 	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
 			      G_SOCKET_TYPE_STREAM,
@@ -130,7 +132,7 @@ do_socket_from_fd_client_test (void)
 			      &error);
 	g_assert_no_error (error);
 
-	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", soup_server_get_port (server));
+	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", uri->port);
 	g_socket_connect (gsock, gaddr, NULL, &error);
 	g_object_unref (gaddr);
 	g_assert_no_error (error);
@@ -158,7 +160,7 @@ do_socket_from_fd_client_test (void)
 	g_assert_cmpstr (soup_address_get_physical (local), ==, "127.0.0.1");
 	g_assert_cmpint (soup_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
 	g_assert_cmpstr (soup_address_get_physical (remote), ==, "127.0.0.1");
-	g_assert_cmpint (soup_address_get_port (remote), ==, soup_server_get_port (server));
+	g_assert_cmpint (soup_address_get_port (remote), ==, uri->port);
 
 	g_object_unref (local);
 	g_object_unref (remote);

@@ -51,10 +51,12 @@ timeout_request_started (SoupServer *server, SoupMessage *msg,
 			 SoupClientContext *client, gpointer user_data)
 {
 	SoupSocket *sock;
-	GMainContext *context = soup_server_get_async_context (server);
+	GMainContext *context = g_main_context_get_thread_default ();
 	guint readable;
 
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	sock = soup_client_context_get_socket (client);
+	G_GNUC_END_IGNORE_DEPRECATIONS;
 	readable = g_signal_connect (sock, "readable",
 				    G_CALLBACK (timeout_socket), NULL);
 	while (soup_socket_is_connected (sock))
@@ -130,7 +132,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 			 * the declared Content-Length. Instead, we
 			 * forcibly close the socket at that point.
 			 */
+			G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			sock = soup_client_context_get_socket (context);
+			G_GNUC_END_IGNORE_DEPRECATIONS;
 			g_signal_connect (msg, "wrote-chunk",
 					  G_CALLBACK (close_socket), sock);
 		} else if (no_close) {
@@ -148,7 +152,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	if (!strcmp (path, "/timeout-persistent")) {
 		SoupSocket *sock;
 
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 		sock = soup_client_context_get_socket (context);
+		G_GNUC_END_IGNORE_DEPRECATIONS;
 		setup_timeout_persistent (server, sock);
 	}
 
@@ -849,10 +855,9 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 	apache_init ();
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, "http", NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_test_add_func ("/connection/content-length-framing", do_content_length_framing_test);
 	g_test_add_func ("/connection/persistent-connection-timeout", do_persistent_connection_timeout_test);
