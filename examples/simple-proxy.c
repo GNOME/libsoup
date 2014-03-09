@@ -141,6 +141,8 @@ main (int argc, char **argv)
 {
 	GOptionContext *opts;
 	GMainLoop *loop;
+	GSList *uris, *u;
+	char *str;
 	GError *error = NULL;
 
 	opts = g_option_context_new (NULL);
@@ -162,12 +164,7 @@ main (int argc, char **argv)
 
 	signal (SIGINT, quit);
 
-	server = soup_server_new (SOUP_SERVER_PORT, port,
-				  NULL);
-	if (!server) {
-		g_printerr ("Unable to bind to server port %d\n", port);
-		exit (1);
-	}
+	server = g_object_new (SOUP_TYPE_SERVER, NULL);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 	if (require_auth) {
@@ -182,9 +179,20 @@ main (int argc, char **argv)
 		g_object_unref (auth_domain);
 	}
 
-	g_print ("\nStarting proxy on port %d\n",
-		 soup_server_get_port (server));
-	soup_server_run_async (server);
+	soup_server_listen_all (server, port, 0, &error);
+	if (error) {
+		g_printerr ("Unable to create server: %s\n", error->message);
+		exit (1);
+	}
+
+	uris = soup_server_get_uris (server);
+	for (u = uris; u; u = u->next) {
+		str = soup_uri_to_string (u->data, FALSE);
+		g_print ("Listening on %s\n", str);
+		g_free (str);
+		soup_uri_free (u->data);
+	}
+	g_slist_free (uris);
 
 	session = soup_session_async_new ();
 

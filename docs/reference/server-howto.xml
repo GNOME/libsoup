@@ -3,17 +3,17 @@
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <refentry id="libsoup-server-howto">
 <refmeta>
-<refentrytitle>Soup Server Basics</refentrytitle>
+<refentrytitle>libsoup Server Basics</refentrytitle>
 <manvolnum>3</manvolnum>
 <refmiscinfo>LIBSOUP Library</refmiscinfo>
 </refmeta>
 
 <refnamediv>
-<refname>Soup Server Basics</refname><refpurpose>Server-side tutorial</refpurpose>
+<refname>libsoup Server Basics</refname><refpurpose>Server-side tutorial</refpurpose>
 </refnamediv>
 
 <refsect2>
-<title>Creating a SoupSession</title>
+<title>Creating a SoupServer</title>
 
 <para>
 As with the client API, there is a single object that will encapsulate
@@ -25,51 +25,17 @@ linkend="SoupServer"><type>SoupServer</type></link>.
 You create the server with <link
 linkend="soup-server-new"><function>soup_server_new</function></link>,
 and as with the <type>SoupSession</type> constructor, you can specify
-various additional options:
+a few additional options:
 </para>
 
 <variablelist>
     <varlistentry>
-	<term><link linkend="SOUP-SERVER-PORT:CAPS"><literal>SOUP_SERVER_PORT</literal></link></term>
+	<term><link linkend="SOUP-SERVER-TLS-CERTIFICATE:CAPS"><literal>SOUP_SERVER_TLS_CERTIFICATE</literal></link></term>
 	<listitem><para>
-	    The TCP port to listen on. If <literal>0</literal> (or
-	    left unspecified), some unused port will be selected for
-	    you. (You can find out what port by calling <link
-	    linkend="soup-server-get-port"><function>soup_server_get_port</function></link>.
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SOUP-SERVER-INTERFACE:CAPS"><literal>SOUP_SERVER_INTERFACE</literal></link></term>
-	<listitem><para>
-	    A <link linkend="SoupAddress"><type>SoupAddress</type></link>,
-	    specifying the IP address of the network interface to run
-	    the server on. If <literal>NULL</literal> (or left
-	    unspecified), the server will listen on all interfaces.
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SOUP-SERVER-SSL-CERT-FILE:CAPS"><literal>SOUP_SERVER_SSL_CERT_FILE</literal></link></term>
-	<listitem><para>
-	    Points to a file containing an SSL certificate to use. If
-	    this is set, then the server will speak HTTPS; otherwise
-	    it will speak HTTP.
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SOUP-SERVER-SSL-KEY-FILE:CAPS"><literal>SOUP_SERVER_SSL_KEY_FILE</literal></link></term>
-	<listitem><para>
-	    Points to a file containing the private key for the
-	    <literal>SOUP_SERVER_SSL_CERT_FILE</literal>. (It may
-	    point to the same file.)
-	</para></listitem>
-    </varlistentry>
-    <varlistentry>
-	<term><link linkend="SOUP-SERVER-ASYNC-CONTEXT:CAPS"><literal>SOUP_SERVER_ASYNC_CONTEXT</literal></link></term>
-	<listitem><para>
-	    A <link linkend="GMainContext"><type>GMainContext</type></link> which
-	    the server will use for asynchronous operations. This can
-	    be set if you want to use a SoupServer in a thread
-	    other than the main thread.
+	    A <link
+	    linkend="GTlsCertificate"><type>GTlsCertificate</type></link>
+	    (containing a private key) that will be used when handling
+	    HTTPS requests on the server.
 	</para></listitem>
     </varlistentry>
     <varlistentry>
@@ -82,7 +48,109 @@ various additional options:
 	    <literal>"/foo%2Fbar"</literal> as different paths.
 	</para></listitem>
     </varlistentry>
+    <varlistentry>
+	<term><link linkend="SOUP-SERVER-SERVER-HEADER:CAPS"><literal>SOUP_SERVER_SERVER_HEADER</literal></link></term>
+	<listitem><para>
+	    Allows you to set a Server header string that will be sent
+	    on all responses.
+	</para></listitem>
+    </varlistentry>
+    <varlistentry>
+	<term><link linkend="SOUP-SERVER-HTTP-ALIASES:CAPS"><literal>SOUP_SERVER_HTTP_ALIASES</literal></link>
+	and <link linkend="SOUP-SERVER-HTTPS-ALIASES:CAPS"><literal>SOUP_SERVER_HTTPS_ALIASES</literal></link></term>
+	<listitem><para>
+	    Allow you to tell the server to recognize additional URI
+	    schemes as aliases for "<literal>http</literal>" or
+	    <literal>https</literal>. You can set this if you are
+	    serving URIs with schemes like "<literal>dav</literal>" or
+	    "<literal>webcal</literal>".
+	</para></listitem>
+    </varlistentry>
 </variablelist>
+
+</refsect2>
+
+<refsect2>
+<title>Adding Listening Sockets</title>
+
+<para>
+  To tell the server where to listen, call <link
+  linkend="soup-server-listen"><function>soup_server_listen</function></link>
+  (to listen on a specific <link
+  linkend="GSocketAddress"><type>GSocketAddress</type></link>), <link
+  linkend="soup-server-listen-all"><function>soup_server_listen_all</function></link>
+  (to listen on a given port on all network interfaces), or <link
+  linkend="soup-server-listen-local"><function>soup_server_listen_local</function></link>
+  (to listen to a given port on the loopback interface only). You can
+  call any of these functions multiple times, to set up multiple
+  listening sockets.
+</para>
+
+<para>
+  To set up an HTTPS server, you must first either set the <link
+  linkend="SOUP-SERVER-TLS-CERTIFICATE:CAPS"><literal>SOUP_SERVER_TLS_CERTIFICATE</literal></link>
+  property, or else call <link
+  linkend="soup-server-set-ssl-cert-file"><function>soup_server_set_ssl_cert_file</function></link>.
+  After that you can pass the <link
+  linkend="SOUP-SERVER-LISTEN-HTTPS:CAPS"><literal>SOUP_SERVER_LISTEN_HTTPS</literal></link>
+  option to <link
+  linkend="soup-server-listen"><function>soup_server_listen</function></link>,
+  etc.
+</para>
+
+<para>
+  By default, servers listen for both IPv4 and IPv6 connections; if
+  you don't want this, use the <link
+  linkend="SOUP-SERVER-LISTEN-IPV4-ONLY:CAPS"><literal>SOUP_SERVER_LISTEN_IPV4_ONLY</literal></link>
+  or <link
+  linkend="SOUP-SERVER-LISTEN-IPV6-ONLY:CAPS"><literal>SOUP_SERVER_LISTEN_IPV6_ONLY</literal></link>
+  options.
+</para>
+
+<para>
+  The server runs asynchronously, in the thread-default
+  <link linkend="GMainContext"><type>GMainContext</type></link> of the
+  thread in which the "listen" calls were made.
+</para>
+</refsect2>
+
+<refsect2 id="soup-server-old-api">
+<title>The Old SoupServer Listening API</title>
+
+<para>
+<link
+linkend="soup-server-listen"><function>soup_server_listen</function></link>,
+etc, are available only in <application>libsoup</application> 2.46 and
+later. In earlier versions, there was a simpler API, in which a server
+could only listen on a single port, determined at construct time
+either by passing the <link
+linkend="SOUP-SERVER-INTERFACE:CAPS"><literal>SOUP_SERVER_INTERFACE</literal></link>
+property (to specify a <link
+linkend="SoupAddress"><type>SoupAddress</type></link> to listen on),
+or the <link
+linkend="SOUP-SERVER-PORT:CAPS"><literal>SOUP_SERVER_PORT</literal></link>
+property (to specify a port to listen on, on all interfaces). The <link
+linkend="SOUP-SERVER-SSL-CERT-FILE:CAPS"><literal>SOUP_SERVER_SSL_CERT_FILE</literal></link>
+and <link
+linkend="SOUP-SERVER-SSL-KEY-FILE:CAPS"><literal>SOUP_SERVER_SSL_KEY_FILE</literal></link>
+properties could be used to create an HTTP server.
+</para>
+
+<para>
+When using this API, if <link
+linkend="SoupServer"><type>SoupServer</type></link> is unable to bind
+the listening socket, or unable to read the provided certificate or
+key files, then it will return <literal>NULL</literal> from its
+constructor (with no further indication of what exactly went wrong).
+</para>
+
+<para>
+Additionally, when using this API, it is necessary to call <link
+linkend="soup-server-run"><function>soup_server_run</function></link>
+or <link
+linkend="soup-server-run-async"><function>soup_server_run_async</function></link>
+to start the server after creating it.
+</para>
 
 </refsect2>
 

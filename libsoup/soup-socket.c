@@ -55,6 +55,7 @@ enum {
 	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_ADDRESS,
 	PROP_NON_BLOCKING,
+	PROP_IPV6_ONLY,
 	PROP_IS_SERVER,
 	PROP_SSL_CREDENTIALS,
 	PROP_SSL_STRICT,
@@ -82,6 +83,7 @@ typedef struct {
 	GProxyResolver *proxy_resolver;
 
 	guint non_blocking:1;
+	guint ipv6_only:1;
 	guint is_server:1;
 	guint ssl:1;
 	guint ssl_strict:1;
@@ -273,6 +275,9 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	case PROP_NON_BLOCKING:
 		priv->non_blocking = g_value_get_boolean (value);
 		break;
+	case PROP_IPV6_ONLY:
+		priv->ipv6_only = g_value_get_boolean (value);
+		break;
 	case PROP_SSL_CREDENTIALS:
 		priv->ssl_creds = g_value_get_pointer (value);
 		break;
@@ -328,6 +333,9 @@ soup_socket_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_NON_BLOCKING:
 		g_value_set_boolean (value, priv->non_blocking);
+		break;
+	case PROP_IPV6_ONLY:
+		g_value_set_boolean (value, priv->ipv6_only);
 		break;
 	case PROP_IS_SERVER:
 		g_value_set_boolean (value, priv->is_server);
@@ -558,6 +566,13 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "Non-blocking",
 				      "Whether or not the socket uses non-blocking I/O",
 				      TRUE,
+				      G_PARAM_READWRITE));
+	g_object_class_install_property (
+		object_class, PROP_IPV6_ONLY,
+		g_param_spec_boolean (SOUP_SOCKET_IPV6_ONLY,
+				      "IPv6 only",
+				      "IPv6 only",
+				      FALSE,
 				      G_PARAM_READWRITE));
 	/**
 	 * SOUP_SOCKET_IS_SERVER:
@@ -1190,6 +1205,17 @@ soup_socket_listen (SoupSocket *sock)
 	if (!priv->gsock)
 		goto cant_listen;
 	finish_socket_setup (sock);
+
+#if defined (IPPROTO_IPV6) && defined (IPV6_V6ONLY)
+	if (priv->ipv6_only) {
+		int fd, v6_only;
+
+		fd = g_socket_get_fd (priv->gsock);
+		v6_only = TRUE;
+		setsockopt (fd, IPPROTO_IPV6, IPV6_V6ONLY,
+			    &v6_only, sizeof (v6_only));
+	}
+#endif
 
 	/* Bind */
 	if (!g_socket_bind (priv->gsock, addr, TRUE, NULL))

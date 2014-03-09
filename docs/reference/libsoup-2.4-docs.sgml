@@ -11,8 +11,8 @@
     <xi:include href="build-howto.xml"/>
     <xi:include href="client-howto.xml"/>
     <xi:include href="request-howto.xml"/>
-    <xi:include href="server-howto.xml"/>
     <xi:include href="session-porting.xml"/>
+    <xi:include href="server-howto.xml"/>
   </chapter>
 
   <chapter>
@@ -35,6 +35,7 @@
     <xi:include href="xml/soup-request-file.xml"/>
     <xi:include href="xml/soup-request-data.xml"/>
     <xi:include href="xml/soup-server.xml"/>
+    <xi:include href="xml/soup-server-deprecated.xml"/>
     <xi:include href="xml/soup-session.xml"/>
     <xi:include href="xml/soup-session-async.xml"/>
     <xi:include href="xml/soup-session-sync.xml"/>
