@@ -262,79 +262,217 @@ soup_test_session_abort_unref (SoupSession *session)
 	g_object_unref (session);
 }
 
-static gpointer run_server_thread (gpointer user_data);
-
-static SoupServer *
-test_server_new (gboolean in_own_thread, gboolean ssl)
+static void
+server_listen (SoupServer *server)
 {
-	SoupServer *server;
-	GMainContext *async_context;
-	char *ssl_cert_file, *ssl_key_file;
-	SoupAddress *addr;
+	GError *error = NULL;
+	SoupServerListenOptions options =
+		GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (server), "listen-options"));
 
-	async_context = in_own_thread ? g_main_context_new () : NULL;
-
-	if (ssl) {
-		ssl_cert_file = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
-		ssl_key_file = g_test_build_filename (G_TEST_DIST, "test-key.pem", NULL);
-	} else
-		ssl_cert_file = ssl_key_file = NULL;
-
-	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
-	soup_address_resolve_sync (addr, NULL);
-
-	server = soup_server_new (SOUP_SERVER_INTERFACE, addr,
-				  SOUP_SERVER_ASYNC_CONTEXT, async_context,
-				  SOUP_SERVER_SSL_CERT_FILE, ssl_cert_file,
-				  SOUP_SERVER_SSL_KEY_FILE, ssl_key_file,
-				  NULL);
-	g_object_unref (addr);
-	if (async_context)
-		g_main_context_unref (async_context);
-	g_free (ssl_cert_file);
-	g_free (ssl_key_file);
-
-	if (!server) {
-		g_printerr ("Unable to create server\n");
+	soup_server_listen_local (server, 0, options, &error);
+	if (error) {
+		g_printerr ("Unable to create server: %s\n", error->message);
 		exit (1);
 	}
-
-	if (in_own_thread) {
-		GThread *thread;
-
-		thread = g_thread_new ("server_thread", run_server_thread, server);
-		g_object_set_data (G_OBJECT (server), "thread", thread);
-	} else
-		soup_server_run_async (server);
-
-	return server;
 }
 
-SoupServer *
-soup_test_server_new (gboolean in_own_thread)
-{
-	return test_server_new (in_own_thread, FALSE);
-}
-
-SoupServer *
-soup_test_server_new_ssl (gboolean in_own_thread)
-{
-	return test_server_new (in_own_thread, TRUE);
-}
+static GMutex server_start_mutex;
+static GCond server_start_cond;
 
 static gpointer
 run_server_thread (gpointer user_data)
 {
 	SoupServer *server = user_data;
+	GMainContext *context;
+	GMainLoop *loop;
 
-	soup_server_run (server);
+	context = g_main_context_new ();
+	g_main_context_push_thread_default (context);
+	loop = g_main_loop_new (context, FALSE);
+	g_object_set_data (G_OBJECT (server), "GMainLoop", loop);
+
+	server_listen (server);
+
+	g_mutex_lock (&server_start_mutex);
+	g_cond_signal (&server_start_cond);
+	g_mutex_unlock (&server_start_mutex);
+
+	g_main_loop_run (loop);
+	g_main_loop_unref (loop);
+
+	soup_server_disconnect (server);
+
+	g_main_context_pop_thread_default (context);
+	g_main_context_unref (context);
+
 	return NULL;
 }
 
-static gboolean
-idle_quit_server (gpointer server)
+SoupServer *
+soup_test_server_new (SoupTestServerOptions options)
 {
-	soup_server_quit (server);
+	SoupServer *server;
+	GTlsCertificate *cert = NULL;
+	GError *error = NULL;
+
+	if (tls_available) {
+		char *ssl_cert_file, *ssl_key_file;
+
+		ssl_cert_file = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
+		ssl_key_file = g_test_build_filename (G_TEST_DIST, "test-key.pem", NULL);
+		cert = g_tls_certificate_new_from_files (ssl_cert_file,
+							 ssl_key_file,
+							 &error);
+		g_free (ssl_cert_file);
+		g_free (ssl_key_file);
+		if (error) {
+			g_printerr ("Unable to create server: %s\n", error->message);
+			exit (1);
+		}
+	}
+
+	server = soup_server_new (SOUP_SERVER_TLS_CERTIFICATE, cert,
+				  NULL);
+	g_clear_object (&cert);
+
+	g_object_set_data (G_OBJECT (server), "options", GUINT_TO_POINTER (options));
+
+	if (options & SOUP_TEST_SERVER_IN_THREAD) {
+		GThread *thread;
+
+		g_mutex_lock (&server_start_mutex);
+
+		thread = g_thread_new ("server_thread", run_server_thread, server);
+		g_object_set_data (G_OBJECT (server), "thread", thread);
+
+		if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER)) {
+			/* We have to call soup_server_listen() from the server's
+			 * thread, but want to be sure we don't return from here
+			 * until it happens, hence the locking.
+			 */
+			g_cond_wait (&server_start_cond, &server_start_mutex);
+			g_mutex_unlock (&server_start_mutex);
+		}
+	} else if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER))
+		server_listen (server);
+
+	return server;
+}
+
+static SoupURI *
+find_server_uri (SoupServer *server, const char *scheme, const char *host)
+{
+	GSList *uris, *u;
+	SoupURI *uri, *ret_uri = NULL;
+
+	uris = soup_server_get_uris (server);
+	for (u = uris; u; u = u->next) {
+		uri = u->data;
+
+		if (scheme && strcmp (uri->scheme, scheme) != 0)
+			continue;
+		if (host && strcmp (uri->host, host) != 0)
+			continue;
+
+		ret_uri = soup_uri_copy (uri);
+		break;
+	}
+	g_slist_free_full (uris, (GDestroyNotify)soup_uri_free);
+
+	return ret_uri;
+}
+
+static SoupURI *
+add_listener (SoupServer *server, const char *scheme, const char *host)
+{
+	SoupServerListenOptions options = 0;
+	GError *error = NULL;
+
+	if (!g_strcmp0 (scheme, SOUP_URI_SCHEME_HTTPS))
+		options |= SOUP_SERVER_LISTEN_HTTPS;
+	if (!g_strcmp0 (host, "127.0.0.1"))
+		options |= SOUP_SERVER_LISTEN_IPV4_ONLY;
+	else if (!g_strcmp0 (host, "::1"))
+		options |= SOUP_SERVER_LISTEN_IPV6_ONLY;
+
+	soup_server_listen_local (server, 0, options, &error);
+	g_assert_no_error (error);
+
+	return find_server_uri (server, scheme, host);
+}
+
+typedef struct {
+	GMutex mutex;
+	GCond cond;
+
+	SoupServer *server;
+	const char *scheme;
+	const char *host;
+
+	SoupURI *uri;
+} AddListenerData;
+
+static gboolean
+add_listener_in_thread (gpointer user_data)
+{
+	AddListenerData *data = user_data;
+
+	data->uri = add_listener (data->server, data->scheme, data->host);
+	g_mutex_lock (&data->mutex);
+	g_cond_signal (&data->cond);
+	g_mutex_unlock (&data->mutex);
+
+	return FALSE;
+}
+
+SoupURI *
+soup_test_server_get_uri (SoupServer    *server,
+			  const char    *scheme,
+			  const char    *host)
+{
+	SoupURI *uri;
+	GMainLoop *loop;
+
+	uri = find_server_uri (server, scheme, host);
+	if (uri)
+		return uri;
+
+	/* Need to add a new listener */
+	uri = soup_uri_new (NULL);
+	soup_uri_set_scheme (uri, scheme);
+	soup_uri_set_host (uri, host);
+
+	loop = g_object_get_data (G_OBJECT (server), "GMainLoop");
+	if (loop) {
+		GMainContext *context = g_main_loop_get_context (loop);
+		AddListenerData data;
+
+		g_mutex_init (&data.mutex);
+		g_cond_init (&data.cond);
+		data.server = server;
+		data.scheme = scheme;
+		data.host = host;
+		data.uri = NULL;
+
+		g_mutex_lock (&data.mutex);
+		soup_add_completion (context, add_listener_in_thread, &data);
+
+		while (!data.uri)
+			g_cond_wait (&data.cond, &data.mutex);
+
+		g_mutex_clear (&data.mutex);
+		g_cond_clear (&data.cond);
+		uri = data.uri;
+	} else
+		uri = add_listener (server, scheme, host);
+
+	return uri;
+}
+
+static gboolean
+idle_quit_server (gpointer loop)
+{
+	g_main_loop_quit (loop);
 	return FALSE;
 }
 
@@ -345,11 +483,15 @@ soup_test_server_quit_unref (SoupServer *server)
 
 	thread = g_object_get_data (G_OBJECT (server), "thread");
 	if (thread) {
-		soup_add_completion (soup_server_get_async_context (server),
-				     idle_quit_server, server);
+		GMainLoop *loop;
+		GMainContext *context;
+
+		loop = g_object_get_data (G_OBJECT (server), "GMainLoop");
+		context = g_main_loop_get_context (loop);
+		soup_add_completion (context, idle_quit_server, loop);
 		g_thread_join (thread);
 	} else
-		soup_server_quit (server);
+		soup_server_disconnect (server);
 
 	g_assert_cmpint (G_OBJECT (server)->ref_count, ==, 1);
 	g_object_unref (server);

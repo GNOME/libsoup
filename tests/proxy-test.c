@@ -338,10 +338,9 @@ main (int argc, char **argv)
 			g_simple_proxy_resolver_new (proxies[i], (char **) ignore_hosts);
 	}
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	for (i = 0; i < ntests; i++) {
 		path = g_strdup_printf ("/proxy/async/%s", tests[i].explanation);

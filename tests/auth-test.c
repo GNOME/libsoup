@@ -864,12 +864,10 @@ do_select_auth_test (void)
 	 * side of this scenario correctly, because we test it against
 	 * curl in server-auth-test.
 	 */
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-
-	uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (uri, soup_server_get_port (server));
+	uri = soup_test_server_get_uri (server, "http", NULL);
 
 	basic_auth_domain = soup_auth_domain_basic_new (
 		SOUP_AUTH_DOMAIN_REALM, "auth-test",
@@ -1012,12 +1010,12 @@ do_auth_close_test (void)
 	SoupURI *uri;
 	AuthCloseData acd;
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
 
-	uri = soup_uri_new ("http://127.0.0.1/close");
-	soup_uri_set_port (uri, soup_server_get_port (server));
+	uri = soup_test_server_get_uri (server, "http", NULL);
+	soup_uri_set_path (uri, "/close");
 
 	basic_auth_domain = soup_auth_domain_basic_new (
 		SOUP_AUTH_DOMAIN_REALM, "auth-test",
@@ -1128,9 +1126,7 @@ do_disappearing_auth_test (void)
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-
-	uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (uri, soup_server_get_port (server));
+	uri = soup_test_server_get_uri (server, "http", NULL);
 
 	auth_domain = soup_auth_domain_basic_new (
 						  SOUP_AUTH_DOMAIN_REALM, "auth-test",

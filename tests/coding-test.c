@@ -486,10 +486,9 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_test_add ("/coding/message/plain", CodingTestData,
 		    GINT_TO_POINTER (CODING_TEST_NO_DECODER),

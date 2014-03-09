@@ -282,7 +282,7 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, no_test_entry);
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	g_signal_connect (server, "request_started",
 			  G_CALLBACK (request_started_callback), NULL);
 	soup_server_add_handler (server, NULL,
@@ -310,11 +310,9 @@ main (int argc, char **argv)
 
 	loop = g_main_loop_new (NULL, TRUE);
 
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 	if (run_tests) {
 		int i;
-
-		base_uri = soup_uri_new ("http://127.0.0.1");
-		soup_uri_set_port (base_uri, soup_server_get_port (server));
 
 		for (i = 0; i < 16; i++) {
 			char *path;
@@ -344,13 +342,12 @@ main (int argc, char **argv)
 		}
 
 		ret = g_test_run ();
-
-		soup_uri_free (base_uri);
 	} else {
-		g_print ("Listening on port %d\n", soup_server_get_port (server));
+		g_print ("Listening on port %d\n", base_uri->port);
 		g_main_loop_run (loop);
 		ret = 0;
 	}
+	soup_uri_free (base_uri);
 
 	g_main_loop_unref (loop);
 	soup_test_server_quit_unref (server);

@@ -310,15 +310,17 @@ int
 main (int argc, char **argv)
 {
 	SoupServer *server;
+	SoupURI *server_uri;
 	int ret;
 
 	test_init (argc, argv, no_test_entry);
 
-	server = soup_test_server_new (run_tests);
+	server = soup_test_server_new (run_tests ? SOUP_TEST_SERVER_IN_THREAD : SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (server, "/xmlrpc-server.php",
 				 server_callback, NULL, NULL);
-	uri = g_strdup_printf ("http://127.0.0.1:%u/xmlrpc-server.php",
-			       soup_server_get_port (server));
+	server_uri = soup_test_server_get_uri (server, "http", NULL);
+	soup_uri_set_path (server_uri, "/xmlrpc-server.php");
+	uri = soup_uri_to_string (server_uri, FALSE);
 
 	if (run_tests) {
 		char *out, **tests, *path;
@@ -363,6 +365,7 @@ main (int argc, char **argv)
 	}
 
 	soup_test_server_quit_unref (server);
+	soup_uri_free (server_uri);
 	g_free (uri);
 	if (run_tests)
 		test_cleanup ();

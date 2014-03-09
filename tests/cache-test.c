@@ -641,8 +641,7 @@ main (int argc, char **argv)
 
 	server = soup_test_server_new (TRUE);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_test_add_data_func ("/cache/basics", base_uri, do_basics_test);
 	g_test_add_data_func ("/cache/cancellation", base_uri, do_cancel_test);

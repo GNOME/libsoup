@@ -5,7 +5,9 @@
 
 #include "test-utils.h"
 
-SoupServer *server, *ssl_server;
+#include <gio/gnetworking.h>
+
+SoupServer *server;
 SoupURI *base_uri, *ssl_base_uri;
 
 static void
@@ -220,10 +222,13 @@ ipv6_server_callback (SoupServer *server, SoupMessage *msg,
 		      SoupClientContext *context, gpointer data)
 {
 	const char *host;
+	GSocketAddress *addr;
 	char expected_host[128];
 
+	addr = soup_client_context_get_local_address (context);
 	g_snprintf (expected_host, sizeof (expected_host),
-		    "[::1]:%d", soup_server_get_port (server));
+		    "[::1]:%d",
+		    g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (addr)));
 
 	host = soup_message_headers_get_one (msg->request_headers, "Host");
 	g_assert_cmpstr (host, ==, expected_host);
@@ -239,27 +244,18 @@ do_ipv6_test (void)
 {
 	SoupServer *ipv6_server;
 	SoupURI *ipv6_uri;
-	SoupAddress *ipv6_addr;
 	SoupSession *session;
 	SoupMessage *msg;
 
 	g_test_bug ("666399");
 
-	ipv6_addr = soup_address_new ("::1", SOUP_ADDRESS_ANY_PORT);
-	soup_address_resolve_sync (ipv6_addr, NULL);
-	ipv6_server = soup_server_new (SOUP_SERVER_INTERFACE, ipv6_addr,
-				       NULL);
-	g_object_unref (ipv6_addr);
-	if (!ipv6_server) {
-		debug_printf (1, "  skipping due to lack of IPv6 support\n");
-		return;
-	}
+	/* FIXME: deal with lack of IPv6 support */
 
+	debug_printf (1, "\nIPv6 server test\n");
+
+	ipv6_server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 	soup_server_add_handler (ipv6_server, NULL, ipv6_server_callback, NULL, NULL);
-	soup_server_run_async (ipv6_server);
-
-	ipv6_uri = soup_uri_new ("http://[::1]/");
-	soup_uri_set_port (ipv6_uri, soup_server_get_port (ipv6_server));
+	ipv6_uri = soup_test_server_get_uri (ipv6_server, "http", "::1");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
@@ -281,6 +277,136 @@ do_ipv6_test (void)
 	soup_test_server_quit_unref (ipv6_server);
 }
 
+static void
+do_gsocket_import_test (void)
+{
+	GSocket *gsock;
+	GSocketAddress *gaddr;
+	SoupServer *server;
+	GSList *listeners;
+	SoupURI *uri;
+	SoupSession *session;
+	SoupMessage *msg;
+	GError *error = NULL;
+
+	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
+			      G_SOCKET_TYPE_STREAM,
+			      G_SOCKET_PROTOCOL_DEFAULT,
+			      &error);
+	g_assert_no_error (error);
+
+	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
+	g_socket_bind (gsock, gaddr, TRUE, &error);
+	g_object_unref (gaddr);
+	g_assert_no_error (error);
+	g_socket_listen (gsock, &error);
+	g_assert_no_error (error);
+
+	gaddr = g_socket_get_local_address (gsock, &error);
+	g_assert_no_error (error);
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 0);
+	g_slist_free (listeners);
+
+	soup_server_listen_socket (server, gsock, 0, &error);
+	g_assert_no_error (error);
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 1);
+	g_slist_free (listeners);
+
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
+	g_assert_nonnull (uri);
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 1);
+	g_slist_free (listeners);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+
+	soup_uri_free (uri);
+	soup_test_server_quit_unref (server);
+
+	g_assert_false (g_socket_is_connected (gsock));
+	g_object_unref (gsock);
+}
+
+static void
+do_fd_import_test (void)
+{
+	GSocket *gsock;
+	GSocketAddress *gaddr;
+	SoupServer *server;
+	GSList *listeners;
+	SoupURI *uri;
+	SoupSession *session;
+	SoupMessage *msg;
+	int type;
+	GError *error = NULL;
+
+	gsock = g_socket_new (G_SOCKET_FAMILY_IPV4,
+			      G_SOCKET_TYPE_STREAM,
+			      G_SOCKET_PROTOCOL_DEFAULT,
+			      &error);
+	g_assert_no_error (error);
+
+	gaddr = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
+	g_socket_bind (gsock, gaddr, TRUE, &error);
+	g_object_unref (gaddr);
+	g_assert_no_error (error);
+	g_socket_listen (gsock, &error);
+	g_assert_no_error (error);
+
+	gaddr = g_socket_get_local_address (gsock, &error);
+	g_assert_no_error (error);
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 0);
+	g_slist_free (listeners);
+
+	soup_server_listen_fd (server, g_socket_get_fd (gsock), 0, &error);
+	g_assert_no_error (error);
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 1);
+	g_slist_free (listeners);
+
+	uri = soup_test_server_get_uri (server, "http", "127.0.0.1");
+	g_assert_nonnull (uri);
+	listeners = soup_server_get_listeners (server);
+	g_assert_cmpint (g_slist_length (listeners), ==, 1);
+	g_slist_free (listeners);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+
+	soup_uri_free (uri);
+	soup_test_server_quit_unref (server);
+
+	/* @server should have closed our socket, although @gsock doesn't
+	 * know this.
+	 */
+	g_socket_get_option (gsock, SOL_SOCKET, SO_TYPE, &type, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_clear_error (&error);
+	g_object_unref (gsock);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -290,21 +416,17 @@ main (int argc, char **argv)
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_uri_new ("http://127.0.0.1/");
-	soup_uri_set_port (base_uri, soup_server_get_port (server));
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_object_set (G_OBJECT (server),
 		      SOUP_SERVER_HTTP_ALIASES, http_aliases,
 		      NULL);
 
 	if (tls_available) {
-		ssl_server = soup_test_server_new_ssl (TRUE);
-		soup_server_add_handler (ssl_server, NULL, server_callback, NULL, NULL);
-		ssl_base_uri = soup_uri_new ("https://127.0.0.1/");
-		soup_uri_set_port (ssl_base_uri, soup_server_get_port (ssl_server));
-		g_object_set (G_OBJECT (ssl_server),
+		ssl_base_uri = soup_test_server_get_uri (server, "https", NULL);
+		g_object_set (G_OBJECT (server),
 			      SOUP_SERVER_HTTPS_ALIASES, https_aliases,
 			      NULL);
 	}
@@ -313,16 +435,16 @@ main (int argc, char **argv)
 	g_test_add_func ("/server/aliases", do_server_aliases_test);
 	g_test_add_func ("/server/..-in-path", do_dot_dot_test);
 	g_test_add_func ("/server/ipv6", do_ipv6_test);
+	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
+	g_test_add_func ("/server/import/fd", do_fd_import_test);
 
 	ret = g_test_run ();
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
 
-	if (tls_available) {
+	if (tls_available)
 		soup_uri_free (ssl_base_uri);
-		soup_test_server_quit_unref (ssl_server);
-	}
 
 	test_cleanup ();
 	return ret;

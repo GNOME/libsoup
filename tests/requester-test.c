@@ -279,7 +279,7 @@ do_async_test (SoupSession *session, SoupURI *uri,
 }
 
 static void
-do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
+do_test_for_thread_and_context (SoupSession *session, SoupURI *base_uri)
 {
 	SoupRequester *requester;
 	SoupURI *uri;
@@ -292,39 +292,33 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 	soup_session_add_feature_by_type (session, SOUP_TYPE_CONTENT_SNIFFER);
 
 	debug_printf (1, "    basic test\n");
-	uri = soup_uri_new (base_uri);
-	do_async_test (session, uri, test_sent,
+	do_async_test (session, base_uri, test_sent,
 		       SOUP_STATUS_OK, response,
 		       TRUE, FALSE);
-	soup_uri_free (uri);
 
 	debug_printf (1, "    chunked test\n");
-	uri = soup_uri_new (base_uri);
-	soup_uri_set_path (uri, "/chunked");
+	uri = soup_uri_new_with_base (base_uri, "/chunked");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_OK, response,
 		       TRUE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    auth test\n");
-	uri = soup_uri_new (base_uri);
-	soup_uri_set_path (uri, "/auth");
+	uri = soup_uri_new_with_base (base_uri, "/auth");
 	do_async_test (session, uri, auth_test_sent,
 		       SOUP_STATUS_UNAUTHORIZED, auth_response,
 		       TRUE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    non-persistent test\n");
-	uri = soup_uri_new (base_uri);
-	soup_uri_set_path (uri, "/non-persistent");
+	uri = soup_uri_new_with_base (base_uri, "/non-persistent");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_OK, response,
 		       FALSE, FALSE);
 	soup_uri_free (uri);
 
 	debug_printf (1, "    cancellation test\n");
-	uri = soup_uri_new (base_uri);
-	soup_uri_set_path (uri, "/");
+	uri = soup_uri_new_with_base (base_uri, "/");
 	do_async_test (session, uri, test_sent,
 		       SOUP_STATUS_FORBIDDEN, NULL,
 		       FALSE, TRUE);
@@ -332,8 +326,9 @@ do_test_for_thread_and_context (SoupSession *session, const char *base_uri)
 }
 
 static void
-do_simple_plain_test (gconstpointer uri)
+do_simple_plain_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 
 	g_test_bug ("653707");
@@ -344,8 +339,9 @@ do_simple_plain_test (gconstpointer uri)
 }
 
 static void
-do_simple_async_test (gconstpointer uri)
+do_simple_async_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 
 	g_test_bug ("653707");
@@ -358,7 +354,7 @@ do_simple_async_test (gconstpointer uri)
 }
 
 static void
-do_test_with_context_and_type (const char *uri, gboolean plain_session)
+do_test_with_context_and_type (SoupURI *uri, gboolean plain_session)
 {
 	GMainContext *async_context;
 	SoupSession *session;
@@ -381,14 +377,18 @@ do_test_with_context_and_type (const char *uri, gboolean plain_session)
 }
 
 static void
-do_async_test_with_context (gconstpointer uri)
+do_async_test_with_context (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
+
 	do_test_with_context_and_type (uri, FALSE);
 }
 
 static void
-do_plain_test_with_context (gconstpointer uri)
+do_plain_test_with_context (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
+
 	do_test_with_context_and_type (uri, TRUE);
 }
 
@@ -407,8 +407,9 @@ plain_test_thread (gpointer uri)
 }
 
 static void
-do_async_test_in_thread (gconstpointer uri)
+do_async_test_in_thread (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	GThread *thread;
 
 	thread = g_thread_new ("do_async_test_in_thread",
@@ -418,8 +419,9 @@ do_async_test_in_thread (gconstpointer uri)
 }
 
 static void
-do_plain_test_in_thread (gconstpointer uri)
+do_plain_test_in_thread (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	GThread *thread;
 
 	thread = g_thread_new ("do_plain_test_in_thread",
@@ -504,7 +506,7 @@ do_sync_request (SoupSession *session, SoupRequest *request,
 }
 
 static void
-do_sync_tests_for_session (SoupSession *session, const char *uri_string)
+do_sync_tests_for_session (SoupSession *session, SoupURI *base_uri)
 {
 	SoupRequester *requester;
 	SoupRequest *request;
@@ -512,7 +514,7 @@ do_sync_tests_for_session (SoupSession *session, const char *uri_string)
 
 	requester = SOUP_REQUESTER (soup_session_get_feature (session, SOUP_TYPE_REQUESTER));
 
-	uri = soup_uri_new (uri_string);
+	uri = soup_uri_copy (base_uri);
 
 	debug_printf (1, "    basic test\n");
 	if (requester)
@@ -572,8 +574,9 @@ do_sync_tests_for_session (SoupSession *session, const char *uri_string)
 }
 
 static void
-do_plain_sync_test (gconstpointer uri)
+do_plain_sync_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
@@ -582,8 +585,9 @@ do_plain_sync_test (gconstpointer uri)
 }
 
 static void
-do_sync_sync_test (gconstpointer uri)
+do_sync_sync_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 	SoupRequester *requester;
 
@@ -751,16 +755,16 @@ do_close_test_for_session (SoupSession *session,
 }
 
 static void
-do_async_close_test (gconstpointer uri)
+do_async_close_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 	SoupURI *slow_uri;
 
 	g_test_bug ("695652");
 	g_test_bug ("711260");
 
-	slow_uri = soup_uri_new (uri);
-	soup_uri_set_path (slow_uri, "/slow");
+	slow_uri = soup_uri_new_with_base ((SoupURI *)uri, "/slow");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -772,18 +776,17 @@ do_async_close_test (gconstpointer uri)
 }
 
 static void
-do_sync_close_test (gconstpointer uri)
+do_sync_close_test (gconstpointer data)
 {
+	SoupURI *uri = (SoupURI *)data;
 	SoupSession *session;
 	SoupURI *slow_uri;
 
 	g_test_bug ("695652");
 	g_test_bug ("711260");
 
-	slow_uri = soup_uri_new (uri);
-	soup_uri_set_path (slow_uri, "/slow");
+	slow_uri = soup_uri_new_with_base ((SoupURI *)uri, "/slow");
 
-	debug_printf (1, "  SoupSessionSync\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
@@ -796,7 +799,7 @@ do_sync_close_test (gconstpointer uri)
 int
 main (int argc, char **argv)
 {
-	char *uri;
+	SoupURI *uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
@@ -806,10 +809,11 @@ main (int argc, char **argv)
 					 AUTH_HTML_BODY,
 					 strlen (AUTH_HTML_BODY));
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
 
-	uri = g_strdup_printf ("http://127.0.0.1:%u/foo", soup_server_get_port (server));
+	uri = soup_test_server_get_uri (server, "http", NULL);
+	soup_uri_set_path (uri, "/foo");
 
 	g_test_add_data_func ("/requester/simple/SoupSession", uri, do_simple_plain_test);
 	g_test_add_data_func ("/requester/simple/SoupSessionAsync", uri, do_simple_async_test);
@@ -826,7 +830,8 @@ main (int argc, char **argv)
 
 	ret = g_test_run ();
 
-	g_free (uri);
+	soup_uri_free (uri);
+	soup_buffer_free (response);
 	soup_buffer_free (auth_response);
 	soup_test_server_quit_unref (server);
 

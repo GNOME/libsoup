@@ -10,7 +10,7 @@
 
 #define MAX_POST_LENGTH (sizeof (SHORT_BODY))
 
-static int port;
+static SoupURI *base_uri;
 static GSList *events;
 
 static void
@@ -54,17 +54,20 @@ do_message (const char *path, gboolean long_body,
 	SoupSession *session;
 	SoupMessage *msg;
 	const char *body;
-	char *uri;
+	SoupURI *uri;
 	va_list ap;
 	const char *expected_event;
 	char *actual_event;
 	int expected_status, actual_status;
 
-	uri = g_strdup_printf ("http://%s127.0.0.1:%d/%s",
-			       auth ? "user:pass@" : "",
-			       port, path);
-	msg = soup_message_new ("POST", uri);
-	g_free (uri);
+	uri = soup_uri_copy (base_uri);
+	if (auth) {
+		soup_uri_set_user (uri, "user");
+		soup_uri_set_password (uri, "pass");
+	}
+	soup_uri_set_path (uri, path);
+	msg = soup_message_new_from_uri ("POST", uri);
+	soup_uri_free (uri);
 
 	body = long_body ? LONG_BODY : SHORT_BODY;
 	soup_message_set_request (msg, "text/plain", SOUP_MEMORY_STATIC,
@@ -148,7 +151,7 @@ do_message (const char *path, gboolean long_body,
 static void
 do_test_unauth_short_noexpect_nopass (void)
 {
-	do_message ("unauth", FALSE, FALSE, FALSE,
+	do_message ("/unauth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -165,7 +168,7 @@ do_test_unauth_short_noexpect_nopass (void)
 static void
 do_test_unauth_long_noexpect_nopass (void)
 {
-	do_message ("unauth", TRUE, FALSE, FALSE,
+	do_message ("/unauth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -182,7 +185,7 @@ do_test_unauth_long_noexpect_nopass (void)
 static void
 do_test_unauth_short_expect_nopass (void)
 {
-	do_message ("unauth", FALSE, TRUE, FALSE,
+	do_message ("/unauth", FALSE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_informational", SOUP_STATUS_CONTINUE,
@@ -201,7 +204,7 @@ do_test_unauth_short_expect_nopass (void)
 static void
 do_test_unauth_long_expect_nopass (void)
 {
-	do_message ("unauth", TRUE, TRUE, FALSE,
+	do_message ("/unauth", TRUE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
@@ -216,7 +219,7 @@ do_test_unauth_long_expect_nopass (void)
 static void
 do_test_auth_short_noexpect_nopass (void)
 {
-	do_message ("auth", FALSE, FALSE, FALSE,
+	do_message ("/auth", FALSE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -233,7 +236,7 @@ do_test_auth_short_noexpect_nopass (void)
 static void
 do_test_auth_long_noexpect_nopass (void)
 {
-	do_message ("auth", TRUE, FALSE, FALSE,
+	do_message ("/auth", TRUE, FALSE, FALSE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -250,7 +253,7 @@ do_test_auth_long_noexpect_nopass (void)
 static void
 do_test_auth_short_expect_nopass (void)
 {
-	do_message ("auth", FALSE, TRUE, FALSE,
+	do_message ("/auth", FALSE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
@@ -265,7 +268,7 @@ do_test_auth_short_expect_nopass (void)
 static void
 do_test_auth_long_expect_nopass (void)
 {
-	do_message ("auth", TRUE, TRUE, FALSE,
+	do_message ("/auth", TRUE, TRUE, FALSE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
@@ -280,7 +283,7 @@ do_test_auth_long_expect_nopass (void)
 static void
 do_test_auth_short_noexpect_pass (void)
 {
-	do_message ("auth", FALSE, FALSE, TRUE,
+	do_message ("/auth", FALSE, FALSE, TRUE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -306,7 +309,7 @@ do_test_auth_short_noexpect_pass (void)
 static void
 do_test_auth_long_noexpect_pass (void)
 {
-	do_message ("auth", TRUE, FALSE, TRUE,
+	do_message ("/auth", TRUE, FALSE, TRUE,
 		    "client-wrote_headers",
 		    "client-wrote_body",
 		    "server-got_headers",
@@ -332,7 +335,7 @@ do_test_auth_long_noexpect_pass (void)
 static void
 do_test_auth_short_expect_pass (void)
 {
-	do_message ("auth", FALSE, TRUE, TRUE,
+	do_message ("/auth", FALSE, TRUE, TRUE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
@@ -358,7 +361,7 @@ do_test_auth_short_expect_pass (void)
 static void
 do_test_auth_long_expect_pass (void)
 {
-	do_message ("auth", TRUE, TRUE, TRUE,
+	do_message ("/auth", TRUE, TRUE, TRUE,
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
@@ -452,7 +455,7 @@ setup_server (void)
 	SoupServer *server;
 	SoupAuthDomain *auth_domain;
 
-	server = soup_test_server_new (FALSE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
 
 	g_signal_connect (server, "request-started",
 			  G_CALLBACK (request_started), NULL);
@@ -481,7 +484,7 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	server = setup_server ();
-	port = soup_server_get_port (server);
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
 	g_test_add_func ("/continue/unauth_short_noexpect_nopass", do_test_unauth_short_noexpect_nopass);
 	g_test_add_func ("/continue/unauth_long_noexpect_nopass", do_test_unauth_long_noexpect_nopass);
@@ -499,6 +502,8 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	soup_test_server_quit_unref (server);
+	soup_uri_free (base_uri);
+
 	test_cleanup ();
 
 	return ret;
