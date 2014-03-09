@@ -154,17 +154,25 @@ const char     *soup_client_context_get_auth_user      (SoupClientContext *clien
 #define SOUP_SERVER_SSL_CERT_FILE "ssl-cert-file"
 #define SOUP_SERVER_SSL_KEY_FILE  "ssl-key-file"
 
+SOUP_DEPRECATED_IN_2_48
 guint         soup_server_get_port            (SoupServer        *server);
 
+SOUP_DEPRECATED_IN_2_48
 SoupSocket   *soup_server_get_listener        (SoupServer        *server);
 
+SOUP_DEPRECATED_IN_2_48
 GMainContext *soup_server_get_async_context   (SoupServer        *server);
 
+SOUP_DEPRECATED_IN_2_48
 void          soup_server_run                 (SoupServer        *server);
+SOUP_DEPRECATED_IN_2_48
 void          soup_server_run_async           (SoupServer        *server);
+SOUP_DEPRECATED_IN_2_48
 void          soup_server_quit                (SoupServer        *server);
 
+SOUP_DEPRECATED_IN_2_48
 SoupAddress  *soup_client_context_get_address (SoupClientContext *client);
+SOUP_DEPRECATED_IN_2_48
 SoupSocket   *soup_client_context_get_socket  (SoupClientContext *client);
 
 G_END_DECLS
