@@ -301,107 +301,6 @@ do_sync_req_api_test (gconstpointer test)
 	do_request_api_test (sync_session, (TestCase *)test);
 }
 
-typedef struct {
-	SoupSession *session;
-	SoupMessage *msg1, *msg2;
-	SoupURI *uri1, *uri2;
-	SoupSocket *sock1, *sock2;
-} ConnectionTestData;
-
-static void
-msg2_finished (SoupSession *session, SoupMessage *msg2, gpointer user_data)
-{
-	soup_test_assert_message_status (msg2, SOUP_STATUS_OK);
-}
-
-static void
-unpause_msg1 (SoupMessage *msg2, gpointer user_data)
-{
-       ConnectionTestData *data = user_data;
-
-       soup_test_assert (data->sock1 != NULL,
-			 "msg1 has no connection");
-       soup_test_assert (data->sock2 != NULL,
-			 "msg2 has no connection");
-       soup_test_assert (data->sock1 != data->sock2,
-			 "Both messages sharing the same connection");
-
-       soup_session_unpause_message (data->session, data->msg1);
-}
-
-static gboolean
-msg1_just_restarted (gpointer user_data)
-{
-	ConnectionTestData *data = user_data;
-
-	soup_session_pause_message (data->session, data->msg1);
-
-	data->msg2 = soup_message_new_from_uri ("GET", data->uri2);
-
-	g_signal_connect (data->msg2, "got_body",
-			  G_CALLBACK (unpause_msg1), data);
-
-	soup_session_queue_message (data->session, data->msg2, msg2_finished, data);
-	return FALSE;
-}
-
-static void
-msg1_about_to_restart (SoupMessage *msg1, gpointer user_data)
-{
-	ConnectionTestData *data = user_data;
-
-	/* Do nothing when loading the redirected-to resource */
-	if (!SOUP_STATUS_IS_REDIRECTION (data->msg1->status_code))
-		return;
-
-	/* We have to pause msg1 after the I/O finishes, but before
-	 * the queue runs again.
-	 */
-	g_idle_add_full (G_PRIORITY_HIGH, msg1_just_restarted, data, NULL);
-}
-
-static void
-request_started (SoupSession *session, SoupMessage *msg,
-		 SoupSocket *socket, gpointer user_data)
-{
-	ConnectionTestData *data = user_data;
-
-	if (msg == data->msg1)
-		data->sock1 = socket;
-	else if (msg == data->msg2)
-		data->sock2 = socket;
-	else
-		g_warn_if_reached ();
-}
-
-static void
-do_connection_test (void)
-{
-	ConnectionTestData data;
-
-	memset (&data, 0, sizeof (data));
-
-	data.session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	g_signal_connect (data.session, "request-started",
-			  G_CALLBACK (request_started), &data);
-
-	data.uri1 = soup_uri_new_with_base (base_uri, "/301");
-	data.uri2 = soup_uri_new_with_base (base_uri, "/");
-	data.msg1 = soup_message_new_from_uri ("GET", data.uri1);
-
-	g_signal_connect (data.msg1, "got-body",
-			  G_CALLBACK (msg1_about_to_restart), &data);
-	soup_session_send_message (data.session, data.msg1);
-
-	soup_test_assert_message_status (data.msg1, SOUP_STATUS_OK);
-
-	g_object_unref (data.msg1);
-	soup_uri_free (data.uri1);
-	soup_uri_free (data.uri2);
-
-	soup_test_session_abort_unref (data.session);
-}
-
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
@@ -555,8 +454,6 @@ main (int argc, char **argv)
 		g_test_add_data_func (path, &tests[n], do_sync_req_api_test);
 		g_free (path);
 	}
-
-	g_test_add_func ("/redirect/reuse", do_connection_test);
 
 	ret = g_test_run ();
 
