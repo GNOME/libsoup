@@ -10,6 +10,8 @@
 
 #define SOUP_SOCKET_SOCKET_PROPERTIES "socket-properties"
 #define SOUP_SOCKET_CLOSE_ON_DISPOSE  "close-on-dispose"
+#define SOUP_SOCKET_FD                "fd"
+#define SOUP_SOCKET_GSOCKET           "gsocket"
 
 gboolean   soup_socket_connect_sync_internal   (SoupSocket           *sock,
 						GCancellable         *cancellable,

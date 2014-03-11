@@ -11,6 +11,7 @@
 
 #include <string.h>
 
+#include <glib/gi18n-lib.h>
 #include <gio/gnetworking.h>
 
 #include "soup-socket.h"
@@ -29,7 +30,11 @@
  * soup_socket_get_remote_address()) may be useful to applications.
  **/
 
-G_DEFINE_TYPE (SoupSocket, soup_socket, G_TYPE_OBJECT)
+static void soup_socket_initable_interface_init (GInitableIface *initable_interface);
+
+G_DEFINE_TYPE_WITH_CODE (SoupSocket, soup_socket, G_TYPE_OBJECT,
+			 G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
+						soup_socket_initable_interface_init))
 
 enum {
 	READABLE,
@@ -45,6 +50,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
+	PROP_FD,
+	PROP_GSOCKET,
 	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_ADDRESS,
 	PROP_NON_BLOCKING,
@@ -91,12 +98,15 @@ typedef struct {
 	guint timeout;
 
 	GCancellable *connect_cancel;
+	int fd;
 } SoupSocketPrivate;
 #define SOUP_SOCKET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_SOCKET, SoupSocketPrivate))
 
 static void soup_socket_peer_certificate_changed (GObject *conn,
 						  GParamSpec *pspec,
 						  gpointer user_data);
+static void finish_socket_setup (SoupSocket *sock);
+static void finish_listener_setup (SoupSocket *sock);
 
 static void
 soup_socket_init (SoupSocket *sock)
@@ -104,8 +114,61 @@ soup_socket_init (SoupSocket *sock)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	priv->non_blocking = TRUE;
+	priv->fd = -1;
 	g_mutex_init (&priv->addrlock);
 	g_mutex_init (&priv->iolock);
+}
+
+static gboolean
+soup_socket_initable_init (GInitable     *initable,
+			   GCancellable  *cancellable,
+			   GError       **error)
+{
+	SoupSocket *sock = SOUP_SOCKET (initable);
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	if (priv->fd != -1) {
+		guint type, len = sizeof (type);
+
+		g_warn_if_fail (priv->gsock == NULL);
+
+		/* GSocket will g_error() this, so we have to check ourselves. */
+		if (getsockopt (priv->fd, SOL_SOCKET, SO_TYPE,
+				(gpointer)&type, (gpointer)&len) == -1) {
+			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+					     _("Can't import non-socket as SoupSocket"));
+			return FALSE;
+		}
+
+		priv->gsock = g_socket_new_from_fd (priv->fd, error);
+		if (!priv->gsock)
+			return FALSE;
+	}
+
+	if (priv->gsock != NULL) {
+		int listening;
+
+		g_warn_if_fail (priv->local_addr == NULL);
+		g_warn_if_fail (priv->remote_addr == NULL);
+
+		if (!g_socket_get_option (priv->gsock,
+					  SOL_SOCKET, SO_ACCEPTCONN,
+					  &listening, error)) {
+			g_prefix_error (error, _("Could not import existing socket: "));
+			return FALSE;
+		}
+
+		finish_socket_setup (sock);
+		if (listening)
+			finish_listener_setup (sock);
+		else if (!g_socket_is_connected (priv->gsock)) {
+			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+					     _("Can't import unconnected socket"));
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 static void
@@ -167,10 +230,11 @@ soup_socket_finalize (GObject *object)
 	G_OBJECT_CLASS (soup_socket_parent_class)->finalize (object);
 }
 
-
 static void
-finish_socket_setup (SoupSocketPrivate *priv)
+finish_socket_setup (SoupSocket *sock)
 {
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
 	if (!priv->gsock)
 		return;
 
@@ -195,11 +259,17 @@ soup_socket_set_property (GObject *object, guint prop_id,
 	SoupSocketProperties *props;
 
 	switch (prop_id) {
+	case PROP_FD:
+		priv->fd = g_value_get_int (value);
+		break;
+	case PROP_GSOCKET:
+		priv->gsock = g_value_dup_object (value);
+		break;
 	case PROP_LOCAL_ADDRESS:
-		priv->local_addr = (SoupAddress *)g_value_dup_object (value);
+		priv->local_addr = g_value_dup_object (value);
 		break;
 	case PROP_REMOTE_ADDRESS:
-		priv->remote_addr = (SoupAddress *)g_value_dup_object (value);
+		priv->remote_addr = g_value_dup_object (value);
 		break;
 	case PROP_NON_BLOCKING:
 		priv->non_blocking = g_value_get_boolean (value);
@@ -271,6 +341,9 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (object);
 
 	switch (prop_id) {
+	case PROP_FD:
+		g_value_set_int (value, priv->fd);
+		break;
 	case PROP_LOCAL_ADDRESS:
 		g_value_set_object (value, soup_socket_get_local_address (SOUP_SOCKET (object)));
 		break;
@@ -430,6 +503,21 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 
 
 	/* properties */
+	g_object_class_install_property (
+		 object_class, PROP_FD,
+		 g_param_spec_int (SOUP_SOCKET_FD,
+				   "FD",
+				   "The socket's file descriptor",
+				   -1, G_MAXINT, -1,
+				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		 object_class, PROP_GSOCKET,
+		 g_param_spec_object (SOUP_SOCKET_GSOCKET,
+				      "GSocket",
+				      "The socket's underlying GSocket",
+				      G_TYPE_SOCKET,
+				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
 	/**
 	 * SOUP_SOCKET_LOCAL_ADDRESS:
 	 *
@@ -496,8 +584,18 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 	/**
 	 * SOUP_SOCKET_IS_SERVER:
 	 *
-	 * Alias for the #SoupSocket:is-server property. (Whether or
-	 * not the socket is a server socket.)
+	 * Alias for the #SoupSocket:is-server property, qv.
+	 **/
+	/**
+	 * SoupSocket:is-server:
+	 *
+	 * Whether or not the socket is a server socket.
+	 *
+	 * Note that for "ordinary" #SoupSockets this will be set for
+	 * both listening sockets and the sockets emitted by
+	 * #SoupSocket::new-connection, but for sockets created by
+	 * setting #SoupSocket:fd, it will only be set for listening
+	 * sockets.
 	 **/
 	g_object_class_install_property (
 		object_class, PROP_IS_SERVER,
@@ -661,6 +759,12 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 }
 
+static void
+soup_socket_initable_interface_init (GInitableIface *initable_interface)
+{
+	initable_interface->init = soup_socket_initable_init;
+}
+
 
 /**
  * soup_socket_new:
@@ -708,7 +812,7 @@ socket_connect_finish (SoupSocket *sock, GSocketConnection *conn)
 	if (conn) {
 		priv->conn = (GIOStream *)conn;
 		priv->gsock = g_object_ref (g_socket_connection_get_socket (conn));
-		finish_socket_setup (priv);
+		finish_socket_setup (sock);
 		return TRUE;
 	} else
 		return FALSE;
@@ -1032,11 +1136,12 @@ listen_watch (GObject *pollable, gpointer data)
 		new_priv->async_context = g_main_context_ref (priv->async_context);
 	new_priv->use_thread_context = priv->use_thread_context;
 	new_priv->non_blocking = priv->non_blocking;
+	new_priv->clean_dispose = priv->clean_dispose;
 	new_priv->is_server = TRUE;
 	new_priv->ssl = priv->ssl;
 	if (priv->ssl_creds)
 		new_priv->ssl_creds = g_object_ref (priv->ssl_creds);
-	finish_socket_setup (new_priv);
+	finish_socket_setup (new);
 
 	if (new_priv->ssl_creds) {
 		if (!soup_socket_start_proxy_ssl (new, NULL, NULL)) {
@@ -1049,6 +1154,17 @@ listen_watch (GObject *pollable, gpointer data)
 	g_object_unref (new);
 
 	return TRUE;
+}
+
+static void
+finish_listener_setup (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	priv->is_server = TRUE;
+	priv->watch_src = soup_socket_create_watch (priv, G_IO_IN,
+						    listen_watch, sock,
+						    NULL);
 }
 
 /**
@@ -1073,8 +1189,6 @@ soup_socket_listen (SoupSocket *sock)
 	g_return_val_if_fail (priv->gsock == NULL, FALSE);
 	g_return_val_if_fail (priv->local_addr != NULL, FALSE);
 
-	priv->is_server = TRUE;
-
 	/* @local_addr may have its port set to 0. So we intentionally
 	 * don't store it in priv->local_addr, so that if the
 	 * caller calls soup_socket_get_local_address() later, we'll
@@ -1090,7 +1204,7 @@ soup_socket_listen (SoupSocket *sock)
 				    NULL);
 	if (!priv->gsock)
 		goto cant_listen;
-	finish_socket_setup (priv);
+	finish_socket_setup (sock);
 
 	/* Bind */
 	if (!g_socket_bind (priv->gsock, addr, TRUE, NULL))
@@ -1102,10 +1216,8 @@ soup_socket_listen (SoupSocket *sock)
 	/* Listen */
 	if (!g_socket_listen (priv->gsock, NULL))
 		goto cant_listen;
+	finish_listener_setup (sock);
 
-	priv->watch_src = soup_socket_create_watch (priv, G_IO_IN,
-						    listen_watch, sock,
-						    NULL);
 	g_object_unref (addr);
 	return TRUE;
 
