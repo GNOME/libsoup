@@ -12,7 +12,7 @@
 #include "soup-connection.h"
 #include "soup.h"
 #include "soup-message-queue.h"
-#include "soup-misc-private.h"
+#include "soup-socket-private.h"
 
 typedef struct {
 	SoupSocket  *socket;

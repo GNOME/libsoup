@@ -14,10 +14,10 @@
 #include <gio/gnetworking.h>
 
 #include "soup-socket.h"
+#include "soup-socket-private.h"
 #include "soup.h"
 #include "soup-filter-input-stream.h"
 #include "soup-io-stream.h"
-#include "soup-misc-private.h"
 
 /**
  * SECTION:soup-socket
