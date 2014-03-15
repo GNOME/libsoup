@@ -9,6 +9,7 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <glib/gi18n-lib.h>
 
 #include "soup-session.h"
@@ -1637,7 +1638,11 @@ tunnel_complete (SoupMessageQueueItem *tunnel_item,
 			soup_session_set_item_status (session, item, status, error);
 	}
 
-	item->state = SOUP_MESSAGE_READY;
+	if (item->proxy_connect)
+		item->state = SOUP_MESSAGE_FINISHING;
+	else
+		item->state = SOUP_MESSAGE_READY;
+
 	if (item->async)
 		soup_session_kick_queue (session);
 	soup_message_queue_item_unref (item);
@@ -1662,6 +1667,7 @@ tunnel_message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_
 	SoupMessageQueueItem *tunnel_item = user_data;
 	SoupMessageQueueItem *item = tunnel_item->related;
 	SoupSession *session = tunnel_item->session;
+	gboolean is_ssl;
 	guint status;
 
 	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
@@ -1681,6 +1687,12 @@ tunnel_message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_
 
 	status = tunnel_item->msg->status_code;
 	if (!SOUP_STATUS_IS_SUCCESSFUL (status)) {
+		tunnel_complete (tunnel_item, status, NULL);
+		return;
+	}
+
+	g_object_get (G_OBJECT (item->conn), "ssl", &is_ssl, NULL);
+	if (!is_ssl) {
 		tunnel_complete (tunnel_item, status, NULL);
 		return;
 	}
@@ -1773,6 +1785,49 @@ connect_async_complete (GObject      *object,
 
 /* requires conn_lock */
 static SoupConnection *
+new_connection_for_host (SoupSession *session,
+			 SoupSessionHost *host)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupConnection *conn;
+
+	ensure_socket_props (session);
+	conn = g_object_new (SOUP_TYPE_CONNECTION,
+			     SOUP_CONNECTION_REMOTE_URI, host->uri,
+			     SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
+			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
+			     NULL);
+
+	g_signal_connect (conn, "disconnected",
+			  G_CALLBACK (connection_disconnected),
+			  session);
+	g_signal_connect (conn, "notify::state",
+			  G_CALLBACK (connection_state_changed),
+			  session);
+
+	/* This is a debugging-related signal, and so can ignore the
+	 * usual rule about not emitting signals while holding
+	 * conn_lock.
+	 */
+	g_signal_emit (session, signals[CONNECTION_CREATED], 0, conn);
+
+	g_hash_table_insert (priv->conns, conn, host);
+
+	priv->num_conns++;
+	host->num_conns++;
+	host->connections = g_slist_prepend (host->connections, conn);
+
+	if (host->keep_alive_src) {
+		g_source_destroy (host->keep_alive_src);
+		g_source_unref (host->keep_alive_src);
+		host->keep_alive_src = NULL;
+	}
+
+	return conn;
+}
+
+/* requires conn_lock */
+static SoupConnection *
 get_connection_for_host (SoupSession *session,
 			 SoupMessageQueueItem *item,
 			 SoupSessionHost *host,
@@ -1819,39 +1874,7 @@ get_connection_for_host (SoupSession *session,
 		return NULL;
 	}
 
-	ensure_socket_props (session);
-	conn = g_object_new (SOUP_TYPE_CONNECTION,
-			     SOUP_CONNECTION_REMOTE_URI, host->uri,
-			     SOUP_CONNECTION_SSL_FALLBACK, host->ssl_fallback,
-			     SOUP_CONNECTION_SOCKET_PROPERTIES, priv->socket_props,
-			     NULL);
-
-	g_signal_connect (conn, "disconnected",
-			  G_CALLBACK (connection_disconnected),
-			  session);
-	g_signal_connect (conn, "notify::state",
-			  G_CALLBACK (connection_state_changed),
-			  session);
-
-	/* This is a debugging-related signal, and so can ignore the
-	 * usual rule about not emitting signals while holding
-	 * conn_lock.
-	 */
-	g_signal_emit (session, signals[CONNECTION_CREATED], 0, conn);
-
-	g_hash_table_insert (priv->conns, conn, host);
-
-	priv->num_conns++;
-	host->num_conns++;
-	host->connections = g_slist_prepend (host->connections, conn);
-
-	if (host->keep_alive_src) {
-		g_source_destroy (host->keep_alive_src);
-		g_source_unref (host->keep_alive_src);
-		host->keep_alive_src = NULL;
-	}
-
-	return conn;
+	return new_connection_for_host (session, host);
 }
 
 static gboolean
@@ -1943,7 +1966,13 @@ soup_session_process_queue_item (SoupSession          *session,
 			break;
 
 		case SOUP_MESSAGE_CONNECTED:
-			if (soup_connection_is_tunnelled (item->conn))
+			if (item->proxy_connect) {
+				if (soup_connection_is_via_proxy (item->conn))
+					tunnel_connect (item);
+				else
+					item->state = SOUP_MESSAGE_FINISHING;
+				break;
+			} else if (soup_connection_is_tunnelled (item->conn))
 				tunnel_connect (item);
 			else
 				item->state = SOUP_MESSAGE_READY;
@@ -4627,4 +4656,152 @@ soup_request_error_quark (void)
 	if (!error)
 		error = g_quark_from_static_string ("soup_request_error_quark");
 	return error;
+}
+
+/**
+ * soup_session_proxy_connect:
+ * @session: a #SoupSession
+ * @host: the host to connect to
+ * @port: the port on @hostname to connect to
+ * @cancellable: a #GCancellable
+ * @error: return location for a #GError, or %NULL
+ *
+ * Opens a connection to @host and @port. If @session is not
+ * configured to use an HTTP proxy for @host, then this is more or
+ * less equivalent to g_socket_client_connect_to_host().
+ *
+ * However, if an HTTP proxy is required to connect to @host, then
+ * this will connect to that proxy and then send a CONNECT request to
+ * create a tunnel to @host.
+ *
+ * Return value: a #GIOStream to the destination, or %NULL on error.
+ *
+ * Since: 2.48
+ */
+GIOStream *
+soup_session_proxy_connect (SoupSession   *session,
+			    const char    *host,
+			    guint          port,
+			    GCancellable  *cancellable,
+			    GError       **error)
+{
+	return NULL;
+}
+
+static void
+proxy_connect_async_cb (SoupSession *session,
+			SoupMessage *msg,
+			gpointer     user_data)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item = user_data;
+	SoupSocket *sock;
+	SoupSessionHost *host;
+	GIOStream *iostream;
+	GError *error;
+	SoupConnection *conn;
+
+	conn = item->conn;
+	item->conn = NULL;
+	error = (!conn && item->error) ? g_error_copy (item->error) : NULL;
+	soup_session_set_item_connection (session, item, NULL);
+
+	if (!conn) {
+		g_task_return_error (item->task, error);
+		return;
+	}
+
+	g_mutex_lock (&priv->conn_lock);
+	host = get_host_for_message (session, item->msg);
+	g_hash_table_remove (priv->conns, conn);
+	drop_connection (session, host, conn);
+	g_mutex_unlock (&priv->conn_lock);
+
+	sock = soup_connection_get_socket (conn);
+	g_object_set (G_OBJECT (sock),
+		      SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
+		      NULL);
+	iostream = soup_socket_get_connection (sock);
+	g_object_ref (iostream);
+	g_object_unref (conn);
+
+	g_task_return_pointer (item->task, iostream, g_object_unref);
+}
+
+/**
+ * soup_session_proxy_connect_async:
+ * @session: a #SoupSession
+ * @host: the host to connect to
+ * @port: the port on @hostname to connect to
+ * @cancellable: a #GCancellable
+ * @callback: a callback to call when the connection is established
+ * @user_data: data for @callback
+ *
+ * Asynchronously begins connecting to @host and @port. If @session is
+ * not configured to use an HTTP proxy for @host, then this is more or
+ * less equivalent to g_socket_client_connect_to_host_async().
+ *
+ * However, if an HTTP proxy is required to connect to @host, then
+ * this will connect to that proxy and then send a CONNECT request to
+ * create a tunnel to @host.
+ *
+ * Since: 2.48
+ */
+void
+soup_session_proxy_connect_async (SoupSession         *session,
+				  const char          *host,
+				  guint                port,
+				  GCancellable        *cancellable,
+				  GAsyncReadyCallback  callback,
+				  gpointer             user_data)
+{
+	SoupSessionPrivate *priv;
+	SoupMessage *msg;
+	SoupMessageQueueItem *item;
+	gboolean use_thread_context;
+	char *uri;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (!SOUP_IS_SESSION_SYNC (session));
+
+	priv = SOUP_SESSION_GET_PRIVATE (session);
+	g_return_if_fail (priv->use_thread_context == TRUE);
+
+	uri = g_strdup_printf ("http://%s:%u", host, port);
+	msg = soup_message_new (SOUP_METHOD_HEAD, uri);
+	g_free (uri);
+	item = soup_session_append_queue_item (session, msg, TRUE, TRUE,
+					       NULL, NULL);
+	item->callback = proxy_connect_async_cb;
+	item->callback_data = item;
+	soup_message_queue_item_ref (item);
+
+	item->new_api = TRUE;
+	item->proxy_connect = TRUE;
+	item->task = g_task_new (session, NULL, callback, user_data);
+	g_task_set_task_data (item->task, item, (GDestroyNotify) soup_message_queue_item_unref);
+	soup_session_kick_queue (session);
+}
+
+/**
+ * soup_session_proxy_connect_finish:
+ * @session: a #SoupSession
+ * @result: the #GAsyncResult from the connect operation
+ * @error: return location for a #GError, or %NULL
+ *
+ * Retrieves the result of a soup_session_proxy_connect_async()
+ * operation.
+ *
+ * Return value: a #GIOStream to the destination, or %NULL on error.
+ *
+ * Since: 2.48
+ */
+GIOStream *
+soup_session_proxy_connect_finish (SoupSession   *session,
+				   GAsyncResult  *result,
+				   GError       **error)
+{
+	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+	return g_task_propagate_pointer (G_TASK (result), error);
 }

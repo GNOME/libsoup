@@ -206,6 +206,24 @@ typedef enum {
 	SOUP_REQUEST_ERROR_ENCODING
 } SoupRequestError;
 
+SOUP_AVAILABLE_IN_2_48
+GIOStream *soup_session_proxy_connect        (SoupSession          *session,
+					      const char           *host,
+					      guint                 port,
+					      GCancellable         *cancellable,
+					      GError              **error);
+SOUP_AVAILABLE_IN_2_48
+void       soup_session_proxy_connect_async  (SoupSession          *session,
+					      const char           *host,
+					      guint                 port,
+					      GCancellable         *cancellable,
+					      GAsyncReadyCallback   callback,
+					      gpointer              user_data);
+SOUP_AVAILABLE_IN_2_48
+GIOStream *soup_session_proxy_connect_finish (SoupSession          *session,
+					      GAsyncResult         *result,
+					      GError              **error);
+
 G_END_DECLS
 
 #endif /* SOUP_SESSION_H */
