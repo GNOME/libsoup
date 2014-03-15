@@ -105,6 +105,8 @@ do_cookies_parsing_test (void)
 	SoupCookie *cookie;
 	gboolean got1, got2, got3;
 
+	g_test_bug ("678753");
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));

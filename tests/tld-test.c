@@ -157,6 +157,9 @@ do_non_inet_tests (void)
 {
 	int i;
 
+	g_test_bug ("679230");
+	g_test_bug ("681085");
+
 	for (i = 0; i < G_N_ELEMENTS (non_inet_tld_tests); i++) {
 		gboolean is_public;
 		const char *base_domain;

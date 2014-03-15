@@ -3,154 +3,154 @@
 #include "test-utils.h"
 
 static struct {
-	const char *uri_string, *result;
+	const char *uri_string, *result, *bugref;
 	const SoupURI bits;
 } abs_tests[] = {
-	{ "foo:", "foo:",
+	{ "foo:", "foo:", NULL,
 	  { "foo", NULL, NULL, NULL, 0, "", NULL, NULL } },
-	{ "file:/dev/null", "file:/dev/null",
+	{ "file:/dev/null", "file:/dev/null", NULL,
 	  { "file", NULL, NULL, NULL, 0, "/dev/null", NULL, NULL } },
-	{ "file:///dev/null", "file:///dev/null",
+	{ "file:///dev/null", "file:///dev/null", NULL,
 	  { "file", NULL, NULL, "", 0, "/dev/null", NULL, NULL } },
-	{ "ftp://user@host/path", "ftp://user@host/path",
+	{ "ftp://user@host/path", "ftp://user@host/path", NULL,
 	  { "ftp", "user", NULL, "host", 21, "/path", NULL, NULL } },
-	{ "ftp://user@host:9999/path", "ftp://user@host:9999/path",
+	{ "ftp://user@host:9999/path", "ftp://user@host:9999/path", NULL,
 	  { "ftp", "user", NULL, "host", 9999, "/path", NULL, NULL } },
-	{ "ftp://user:password@host/path", "ftp://user@host/path",
+	{ "ftp://user:password@host/path", "ftp://user@host/path", NULL,
 	  { "ftp", "user", "password", "host", 21, "/path", NULL, NULL } },
-	{ "ftp://user:password@host:9999/path", "ftp://user@host:9999/path",
+	{ "ftp://user:password@host:9999/path", "ftp://user@host:9999/path", NULL,
 	  { "ftp", "user", "password", "host", 9999, "/path", NULL, NULL } },
-	{ "ftp://user:password@host", "ftp://user@host",
+	{ "ftp://user:password@host", "ftp://user@host", NULL,
 	  { "ftp", "user", "password", "host", 21, "", NULL, NULL } },
-	{ "http://us%65r@host", "http://user@host/",
+	{ "http://us%65r@host", "http://user@host/", NULL,
 	  { "http", "user", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://us%40r@host", "http://us%40r@host/",
+	{ "http://us%40r@host", "http://us%40r@host/", NULL,
 	  { "http", "us\x40r", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://us%3ar@host", "http://us%3Ar@host/",
+	{ "http://us%3ar@host", "http://us%3Ar@host/", NULL,
 	  { "http", "us\x3ar", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://us%2fr@host", "http://us%2Fr@host/",
+	{ "http://us%2fr@host", "http://us%2Fr@host/", NULL,
 	  { "http", "us\x2fr", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://us%3fr@host", "http://us%3Fr@host/",
+	{ "http://us%3fr@host", "http://us%3Fr@host/", NULL,
 	  { "http", "us\x3fr", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://host?query", "http://host/?query",
+	{ "http://host?query", "http://host/?query", NULL,
 	  { "http", NULL, NULL, "host", 80, "/", "query", NULL } },
 	{ "http://host/path?query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value",
-	  "http://host/path?query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value",
+	  "http://host/path?query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value", NULL,
 	  { "http", NULL, NULL, "host", 80, "/path", "query=http%3A%2F%2Fhost%2Fpath%3Fchildparam%3Dchildvalue&param=value", NULL } },
 	{ "http://control-chars/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F",
-	  "http://control-chars/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F",
+	  "http://control-chars/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F", NULL,
 	  { "http", NULL, NULL, "control-chars", 80, "/%01%02%03%04%05%06%07%08%09%0A%0B%0C%0D%0E%0F%10%11%12%13%14%15%16%17%18%19%1A%1B%1C%1D%1E%1F%7F", NULL, NULL } },
 	{ "http://space/%20",
-	  "http://space/%20",
+	  "http://space/%20", NULL,
 	  { "http", NULL, NULL, "space", 80, "/%20", NULL, NULL } },
 	{ "http://delims/%3C%3E%23%25%22",
-	  "http://delims/%3C%3E%23%25%22",
+	  "http://delims/%3C%3E%23%25%22", NULL,
 	  { "http", NULL, NULL, "delims", 80, "/%3C%3E%23%25%22", NULL, NULL } },
 	{ "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60",
-	  "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60",
+	  "http://unwise-chars/%7B%7D%7C%5C%5E%5B%5D%60", NULL,
 	  { "http", NULL, NULL, "unwise-chars", 80, "/%7B%7D%7C%5C%5E%5B%5D%60", NULL, NULL } },
 
 	/* From RFC 2732 */
 	{ "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html",
-	  "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/index.html",
+	  "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/index.html", NULL,
 	  { "http", NULL, NULL, "FEDC:BA98:7654:3210:FEDC:BA98:7654:3210", 80, "/index.html", NULL, NULL } },
 	{ "http://[1080:0:0:0:8:800:200C:417A]/index.html",
-	  "http://[1080:0:0:0:8:800:200C:417A]/index.html",
+	  "http://[1080:0:0:0:8:800:200C:417A]/index.html", NULL,
 	  { "http", NULL, NULL, "1080:0:0:0:8:800:200C:417A", 80, "/index.html", NULL, NULL } },
 	{ "http://[3ffe:2a00:100:7031::1]",
-	  "http://[3ffe:2a00:100:7031::1]/",
+	  "http://[3ffe:2a00:100:7031::1]/", NULL,
 	  { "http", NULL, NULL, "3ffe:2a00:100:7031::1", 80, "/", NULL, NULL } },
 	{ "http://[1080::8:800:200C:417A]/foo",
-	  "http://[1080::8:800:200C:417A]/foo",
+	  "http://[1080::8:800:200C:417A]/foo", NULL,
 	  { "http", NULL, NULL, "1080::8:800:200C:417A", 80, "/foo", NULL, NULL } },
 	{ "http://[::192.9.5.5]/ipng",
-	  "http://[::192.9.5.5]/ipng",
+	  "http://[::192.9.5.5]/ipng", NULL,
 	  { "http", NULL, NULL, "::192.9.5.5", 80, "/ipng", NULL, NULL } },
 	{ "http://[::FFFF:129.144.52.38]:80/index.html",
-	  "http://[::FFFF:129.144.52.38]/index.html",
+	  "http://[::FFFF:129.144.52.38]/index.html", NULL,
 	  { "http", NULL, NULL, "::FFFF:129.144.52.38", 80, "/index.html", NULL, NULL } },
 	{ "http://[2010:836B:4179::836B:4179]",
-	  "http://[2010:836B:4179::836B:4179]/",
+	  "http://[2010:836B:4179::836B:4179]/", NULL,
 	  { "http", NULL, NULL, "2010:836B:4179::836B:4179", 80, "/", NULL, NULL } },
 
 	/* Try to recover certain kinds of invalid URIs */
 	{ "http://host/path with spaces",
-	  "http://host/path%20with%20spaces",
+	  "http://host/path%20with%20spaces", "566530",
 	  { "http", NULL, NULL, "host", 80, "/path%20with%20spaces", NULL, NULL } },
-	{ "  http://host/path", "http://host/path",
+	{ "  http://host/path", "http://host/path", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, NULL } },
-	{ "http://host/path  ", "http://host/path",
+	{ "http://host/path  ", "http://host/path", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, NULL } },
-	{ "http://host  ", "http://host/",
+	{ "http://host  ", "http://host/", "594405",
 	  { "http", NULL, NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://host:999  ", "http://host:999/",
+	{ "http://host:999  ", "http://host:999/", "594405",
 	  { "http", NULL, NULL, "host", 999, "/", NULL, NULL } },
-	{ "http://host/pa\nth", "http://host/path",
+	{ "http://host/pa\nth", "http://host/path", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, NULL } },
-	{ "http:\r\n//host/path", "http://host/path",
+	{ "http:\r\n//host/path", "http://host/path", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, NULL } },
-	{ "http://\thost/path", "http://host/path",
+	{ "http://\thost/path", "http://host/path", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, NULL } },
 
-	/* Bug 594405; 0-length is different from not-present */
-	{ "http://host/path?", "http://host/path?",
+	/* 0-length is different from not-present */
+	{ "http://host/path?", "http://host/path?", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", "", NULL } },
-	{ "http://host/path#", "http://host/path#",
+	{ "http://host/path#", "http://host/path#", "594405",
 	  { "http", NULL, NULL, "host", 80, "/path", NULL, "" } },
 
-	/* Bug 590524; ignore badly-%-encoding */
-	{ "http://host/path%", "http://host/path%",
+	/* ignore bad %-encoding */
+	{ "http://host/path%", "http://host/path%", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%", NULL, NULL } },
-	{ "http://h%ost/path", "http://h%25ost/path",
+	{ "http://h%ost/path", "http://h%25ost/path", "590524",
 	  { "http", NULL, NULL, "h%ost", 80, "/path", NULL, NULL } },
-	{ "http://host/path%%", "http://host/path%%",
+	{ "http://host/path%%", "http://host/path%%", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%%", NULL, NULL } },
-	{ "http://host/path%%%", "http://host/path%%%",
+	{ "http://host/path%%%", "http://host/path%%%", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%%%", NULL, NULL } },
-	{ "http://host/path%/x/", "http://host/path%/x/",
+	{ "http://host/path%/x/", "http://host/path%/x/", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%/x/", NULL, NULL } },
-	{ "http://host/path%0x/", "http://host/path%0x/",
+	{ "http://host/path%0x/", "http://host/path%0x/", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%0x/", NULL, NULL } },
-	{ "http://host/path%ax", "http://host/path%ax",
+	{ "http://host/path%ax", "http://host/path%ax", "590524",
 	  { "http", NULL, NULL, "host", 80, "/path%ax", NULL, NULL } },
 
-	/* Bug 662806; %-encode non-ASCII characters */
-	{ "http://host/p\xc3\xa4th/", "http://host/p%C3%A4th/",
+	/* %-encode non-ASCII characters */
+	{ "http://host/p\xc3\xa4th/", "http://host/p%C3%A4th/", "662806",
 	  { "http", NULL, NULL, "host", 80, "/p%C3%A4th/", NULL, NULL } },
 
-	{ "HTTP:////////////////", "http:////////////////",
+	{ "HTTP:////////////////", "http:////////////////", "667637",
 	  { "http", NULL, NULL, "", 80, "//////////////", NULL, NULL } },
 
-	{ "http://@host", "http://@host/",
+	{ "http://@host", "http://@host/", NULL,
 	  { "http", "", NULL, "host", 80, "/", NULL, NULL } },
-	{ "http://:@host", "http://@host/",
+	{ "http://:@host", "http://@host/", NULL,
 	  { "http", "", "", "host", 80, "/", NULL, NULL } },
 
-	{ "http://host/keep%00nuls", "http://host/keep%00nuls",
+	{ "http://host/keep%00nuls", "http://host/keep%00nuls", NULL,
 	  { "http", NULL, NULL, "host", 80, "/keep%00nuls", NULL, NULL } },
 
-	/* Bug 703776; scheme parsing */
-	{ "foo0://host/path", "foo0://host/path",
+	/* scheme parsing */
+	{ "foo0://host/path", "foo0://host/path", "703776",
 	  { "foo0", NULL, NULL, "host", 0, "/path", NULL, NULL } },
-	{ "f0.o://host/path", "f0.o://host/path",
+	{ "f0.o://host/path", "f0.o://host/path", "703776",
 	  { "f0.o", NULL, NULL, "host", 0, "/path", NULL, NULL } },
-	{ "http++://host/path", "http++://host/path",
+	{ "http++://host/path", "http++://host/path", "703776",
 	  { "http++", NULL, NULL, "host", 0, "/path", NULL, NULL } },
-	{ "http-ish://host/path", "http-ish://host/path",
+	{ "http-ish://host/path", "http-ish://host/path", "703776",
 	  { "http-ish", NULL, NULL, "host", 0, "/path", NULL, NULL } },
-	{ "99http://host/path", NULL,
+	{ "99http://host/path", NULL, "703776",
 	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
-	{ ".http://host/path", NULL,
+	{ ".http://host/path", NULL, "703776",
 	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
-	{ "+http://host/path", NULL,
+	{ "+http://host/path", NULL, "703776",
 	  { NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL } },
 
 	/* IPv6 scope ID parsing (both correct and incorrect) */
-	{ "http://[fe80::dead:beef%em1]/", "http://[fe80::dead:beef%25em1]/",
+	{ "http://[fe80::dead:beef%em1]/", "http://[fe80::dead:beef%25em1]/", NULL,
 	  { "http", NULL, NULL, "fe80::dead:beef%em1", 80, "/", NULL, NULL } },
-	{ "http://[fe80::dead:beef%25em1]/", "http://[fe80::dead:beef%25em1]/",
+	{ "http://[fe80::dead:beef%25em1]/", "http://[fe80::dead:beef%25em1]/", NULL,
 	  { "http", NULL, NULL, "fe80::dead:beef%em1", 80, "/", NULL, NULL } },
-	{ "http://[fe80::dead:beef%10]/", "http://[fe80::dead:beef%2510]/",
+	{ "http://[fe80::dead:beef%10]/", "http://[fe80::dead:beef%2510]/", NULL,
 	  { "http", NULL, NULL, "fe80::dead:beef%10", 80, "/", NULL, NULL } }
 };
 static int num_abs_tests = G_N_ELEMENTS(abs_tests);
@@ -255,14 +255,14 @@ static struct {
 static int num_rel_tests = G_N_ELEMENTS(rel_tests);
 
 static struct {
-	const char *one, *two;
+	const char *one, *two, *bugref;
 } eq_tests[] = {
-	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D" },
-	{ "http://example.com", "http://example.com/" },
+	{ "example://a/b/c/%7Bfoo%7D", "eXAMPLE://a/./b/../b/%63/%7Bfoo%7D", "628728" },
+	{ "http://example.com", "http://example.com/", NULL },
 	/* From RFC 2616 */
-	{ "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html" },
-	{ "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html" },
-	{ "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html" },
+	{ "http://abc.com:80/~smith/home.html", "http://abc.com:80/~smith/home.html", NULL },
+	{ "http://abc.com:80/~smith/home.html", "http://ABC.com/%7Esmith/home.html", NULL },
+	{ "http://abc.com:80/~smith/home.html", "http://ABC.com:/%7esmith/home.html", NULL },
 };
 static int num_eq_tests = G_N_ELEMENTS(eq_tests);
 
@@ -313,6 +313,8 @@ do_absolute_uri_tests (void)
 	int i;
 
 	for (i = 0; i < num_abs_tests; i++) {
+		if (abs_tests[i].bugref)
+			g_test_bug (abs_tests[i].bugref);
 		do_uri (NULL, NULL, abs_tests[i].uri_string,
 			abs_tests[i].result, &abs_tests[i].bits);
 	}
@@ -349,6 +351,9 @@ do_equality_tests (void)
 	int i;
 
 	for (i = 0; i < num_eq_tests; i++) {
+		if (eq_tests[i].bugref)
+			g_test_bug (eq_tests[i].bugref);
+
 		uri1 = soup_uri_new (eq_tests[i].one);
 		uri2 = soup_uri_new (eq_tests[i].two);
 
@@ -365,6 +370,9 @@ do_soup_uri_null_tests (void)
 {
 	SoupURI *uri, *uri2;
 	char *uri_string;
+
+	g_test_bug ("667637");
+	g_test_bug ("670431");
 
 	uri = soup_uri_new (NULL);
 	g_assert_false (SOUP_URI_IS_VALID (uri));
@@ -463,6 +471,8 @@ do_normalization_tests (void)
 {
 	char *normalized;
 	int i;
+
+	g_test_bug ("680018");
 
 	for (i = 0; i < num_normalization_tests; i++) {
 		if (normalization_tests[i].unescape_extra) {

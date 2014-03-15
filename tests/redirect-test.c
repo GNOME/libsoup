@@ -19,7 +19,7 @@ typedef struct {
 typedef struct {
 	TestRequest requests[3];
 	guint final_status;
-	guint request_api_final_status;
+	const char *bugref;
 } TestCase;
 
 static TestCase tests[] = {
@@ -27,95 +27,95 @@ static TestCase tests[] = {
 
 	{ { { "GET", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "GET", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "GET", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "GET", "/307", 307 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "HEAD", "/301", 301 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "551190" },
 	{ { { "HEAD", "/302", 302 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "551190" },
 	/* 303 is a nonsensical response to HEAD, but some sites do
 	 * it anyway. :-/
 	 */
 	{ { { "HEAD", "/303", 303 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "600830" },
 	{ { { "HEAD", "/307", 307 },
 	    { "HEAD", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "551190" },
 
 	/* A non-redirecty response to a GET or HEAD should not */
 
 	{ { { "GET", "/300", 300 },
-	    { NULL } }, 300 },
+	    { NULL } }, 300, NULL },
 	{ { { "GET", "/304", 304 },
-	    { NULL } }, 304 },
+	    { NULL } }, 304, NULL },
 	{ { { "GET", "/305", 305 },
-	    { NULL } }, 305 },
+	    { NULL } }, 305, NULL },
 	{ { { "GET", "/306", 306 },
-	    { NULL } }, 306 },
+	    { NULL } }, 306, NULL },
 	{ { { "GET", "/308", 308 },
-	    { NULL } }, 308 },
+	    { NULL } }, 308, NULL },
 	{ { { "HEAD", "/300", 300 },
-	    { NULL } }, 300 },
+	    { NULL } }, 300, "551190" },
 	{ { { "HEAD", "/304", 304 },
-	    { NULL } }, 304 },
+	    { NULL } }, 304, "551190" },
 	{ { { "HEAD", "/305", 305 },
-	    { NULL } }, 305 },
+	    { NULL } }, 305, "551190" },
 	{ { { "HEAD", "/306", 306 },
-	    { NULL } }, 306 },
+	    { NULL } }, 306, "551190" },
 	{ { { "HEAD", "/308", 308 },
-	    { NULL } }, 308 },
+	    { NULL } }, 308, "551190" },
 	
 	/* Test double-redirect */
 
 	{ { { "GET", "/301/302", 301 },
 	    { "GET", "/302", 302 },
-	    { "GET", "/", 200 } }, 200 },
+	    { "GET", "/", 200 } }, 200, NULL },
 	{ { { "HEAD", "/301/302", 301 },
 	    { "HEAD", "/302", 302 },
-	    { "HEAD", "/", 200 } }, 200 },
+	    { "HEAD", "/", 200 } }, 200, "551190" },
 
 	/* POST should only automatically redirect on 301, 302 and 303 */
 
 	{ { { "POST", "/301", 301 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "586692" },
 	{ { { "POST", "/302", 302 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "POST", "/303", 303 },
 	    { "GET", "/", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 	{ { { "POST", "/307", 307 },
-	    { NULL } }, 307 },
+	    { NULL } }, 307, NULL },
 
 	/* Test behavior with recoverably-bad Location header */
 	{ { { "GET", "/bad", 302 },
 	    { "GET", "/bad%20with%20spaces", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, "566530" },
 
 	/* Test behavior with irrecoverably-bad Location header */
 	{ { { "GET", "/bad-no-host", 302 },
-	    { NULL } }, SOUP_STATUS_MALFORMED, 302 },
+	    { NULL } }, SOUP_STATUS_MALFORMED, "528882" },
 
 	/* Test infinite redirection */
 	{ { { "GET", "/bad-recursive", 302, TRUE },
-	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS },
+	    { NULL } }, SOUP_STATUS_TOO_MANY_REDIRECTS, "604383" },
 
 	/* Test redirection to a different server */
 	{ { { "GET", "/server2", 302 },
 	    { "GET", "/on-server2", 200 },
-	    { NULL } }, 200 },
+	    { NULL } }, 200, NULL },
 };
 static const int n_tests = G_N_ELEMENTS (tests);
 
@@ -163,6 +163,9 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	SoupMessage *msg;
 	TestRequest *treq;
 
+	if (test->bugref)
+		g_test_bug (test->bugref);
+
 	uri = soup_uri_new_with_base (base_uri, test->requests[0].path);
 	msg = soup_message_new_from_uri (test->requests[0].method, uri);
 	soup_uri_free (uri);
@@ -196,11 +199,9 @@ do_request_api_test (SoupSession *session, TestCase *test)
 	TestRequest *treq;
 	GInputStream *stream;
 	GError *error = NULL;
-	guint final_status;
 
-	final_status = test->request_api_final_status;
-	if (!final_status)
-		final_status = test->final_status;
+	if (test->bugref)
+		g_test_bug (test->bugref);
 
 	uri = soup_uri_new_with_base (base_uri, test->requests[0].path);
 	reqh = soup_session_request_http_uri (session,
@@ -229,8 +230,9 @@ do_request_api_test (SoupSession *session, TestCase *test)
 
 	stream = soup_test_request_send (SOUP_REQUEST (reqh), NULL, 0, &error);
 
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (final_status)) {
-		g_assert_error (error, SOUP_HTTP_ERROR, final_status);
+	if (SOUP_STATUS_IS_TRANSPORT_ERROR (test->final_status) &&
+	    test->final_status != SOUP_STATUS_MALFORMED) {
+		g_assert_error (error, SOUP_HTTP_ERROR, test->final_status);
 		g_clear_error (&error);
 
 		g_assert_null (stream);
@@ -258,7 +260,10 @@ do_request_api_test (SoupSession *session, TestCase *test)
 	g_clear_error (&error);
 	g_object_unref (stream);
 
-	g_assert_cmpint (msg->status_code, ==, final_status);
+	if (test->final_status == SOUP_STATUS_MALFORMED)
+		g_assert_cmpint (msg->status_code, ==, test->requests[0].status_code);
+	else
+		g_assert_cmpint (msg->status_code, ==, test->final_status);
 
 	g_object_unref (msg);
 	g_object_unref (reqh);

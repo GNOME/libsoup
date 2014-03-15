@@ -540,6 +540,8 @@ do_retrying_test (gconstpointer data)
 	SoupURI *uri;
 	gboolean retried = FALSE;
 
+	g_test_bug ("693222");
+
 	g_setenv ("SOUP_NTLM_AUTH_DEBUG", "", TRUE);
 
 	debug_printf (1, "  /alice\n");

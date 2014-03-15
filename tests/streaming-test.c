@@ -126,6 +126,8 @@ do_eof_test (gconstpointer data)
 	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
 
+	g_test_bug ("572153");
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_request (session, base_uri, "eof");
 	soup_test_session_abort_unref (session);

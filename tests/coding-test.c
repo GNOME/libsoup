@@ -238,6 +238,9 @@ do_coding_test_gzip (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("606352");
+	g_test_bug ("676477");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "trailing-junk");
 
@@ -248,6 +251,8 @@ do_coding_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode");
 
@@ -273,6 +278,9 @@ do_coding_test_deflate (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("606352");
+	g_test_bug ("676477");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
 	soup_session_send_message (data->session, data->msg);
@@ -283,6 +291,8 @@ do_coding_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
 	soup_session_send_message (data->session, data->msg);
@@ -303,6 +313,8 @@ do_coding_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
 	soup_session_send_message (data->session, data->msg);
@@ -379,6 +391,9 @@ do_coding_req_test_gzip (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_req_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("606352");
+	g_test_bug ("676477");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "trailing-junk");
 
@@ -388,6 +403,8 @@ do_coding_req_test_gzip_with_junk (CodingTestData *data, gconstpointer test_data
 static void
 do_coding_req_test_gzip_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode");
 	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_NOT_DECODED);
@@ -404,6 +421,9 @@ do_coding_req_test_deflate (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_req_test_deflate_with_junk (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("606352");
+	g_test_bug ("676477");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "prefer-deflate-zlib, trailing-junk");
 	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_DECODED);
@@ -412,6 +432,8 @@ do_coding_req_test_deflate_with_junk (CodingTestData *data, gconstpointer test_d
 static void
 do_coding_req_test_deflate_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-zlib");
 	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_NOT_DECODED);
@@ -428,6 +450,8 @@ do_coding_req_test_deflate_raw (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_req_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("613361");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "force-encode, prefer-deflate-raw");
 	do_single_coding_req_test (data, "deflate", "text/plain", EXPECT_NOT_DECODED);
@@ -436,6 +460,8 @@ do_coding_req_test_deflate_raw_bad_server (CodingTestData *data, gconstpointer t
 static void
 do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("697527");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "empty");
 	soup_session_send_message (data->session, data->msg);
@@ -446,6 +472,8 @@ do_coding_msg_empty_test (CodingTestData *data, gconstpointer test_data)
 static void
 do_coding_req_empty_test (CodingTestData *data, gconstpointer test_data)
 {
+	g_test_bug ("697527");
+
 	soup_message_headers_append (data->msg->request_headers,
 				     "X-Test-Options", "empty");
 	do_single_coding_req_test (data, "gzip", "text/plain", EXPECT_NOT_DECODED);

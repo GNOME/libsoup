@@ -20,6 +20,8 @@ do_properties_test_for_session (SoupSession *session, const char *uri)
 		g_assert_cmpuint (flags, ==, G_TLS_CERTIFICATE_UNKNOWN_CA);
 	} else
 		soup_test_assert (FALSE, "Response not https");
+
+	g_test_bug ("665182");
 	g_assert_false (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 
 	g_object_unref (msg);
@@ -110,7 +112,11 @@ do_strictness_test (gconstpointer data)
 	msg = soup_message_new ("GET", uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, test->expected_status);
+
+	g_test_bug ("690176");
 	g_assert_true (soup_message_get_https_status (msg, NULL, &flags));
+
+	g_test_bug ("665182");
 	if (test->with_ca_list && SOUP_STATUS_IS_SUCCESSFUL (msg->status_code))
 		g_assert_true (soup_message_get_flags (msg) & SOUP_MESSAGE_CERTIFICATE_TRUSTED);
 	else
@@ -140,6 +146,8 @@ do_session_property_tests (void)
 	GTlsDatabase *tlsdb;
 	char *ca_file;
 	SoupSession *session;
+
+	g_test_bug ("673678");
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 

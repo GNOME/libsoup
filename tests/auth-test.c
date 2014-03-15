@@ -292,6 +292,8 @@ do_pipelined_auth_test (void)
 	char *uri;
 	int i;
 
+	g_test_bug ("271540");
+
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -632,6 +634,7 @@ do_async_auth_bad_password_test (void)
 	/* Test that giving the wrong password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
+	g_test_bug ("522601");
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -684,6 +687,7 @@ do_async_auth_no_password_test (void)
 	/* Test that giving no password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
+	g_test_bug ("583462");
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -851,6 +855,8 @@ do_select_auth_test (void)
 	SoupServer *server;
 	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
 	SoupURI *uri;
+
+	g_test_bug ("562339");
 
 	/* It doesn't seem to be possible to configure Apache to serve
 	 * multiple auth types for a single URL. So we have to use
@@ -1116,6 +1122,8 @@ do_disappearing_auth_test (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
+
+	g_test_bug ("https://bugzilla.redhat.com/show_bug.cgi?id=916224");
 
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,

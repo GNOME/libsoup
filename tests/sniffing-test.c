@@ -302,6 +302,7 @@ do_signals_tests (gconstpointer data)
 	do_signals_test (should_content_sniff,
 			 TRUE, FALSE, TRUE, FALSE);
 
+	/* FIXME g_test_bug ("587907") */
 	do_signals_test (should_content_sniff,
 			 TRUE, TRUE, FALSE, TRUE);
 	do_signals_test (should_content_sniff,
@@ -396,6 +397,8 @@ test_disabled (gconstpointer data)
 	char *sniffed_type = NULL;
 	const char *sniffed_content_type;
 	GError *error = NULL;
+
+	g_test_bug ("574773");
 
 	uri = soup_uri_new_with_base (base_uri, path);
 
@@ -522,6 +525,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/sniffing/type/unknown-binary",
 			      "unknown/text_binary.txt => application/octet-stream",
 			      do_sniffing_test);
+	/* FIXME g_test_bug ("715126") */
 	g_test_add_data_func ("/sniffing/type/unknown-leading-space",
 			      "unknown/leading_space.html => text/html",
 			      do_sniffing_test);

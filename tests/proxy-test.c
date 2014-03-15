@@ -6,15 +6,16 @@ typedef struct {
 	const char *explanation;
 	const char *url;
 	const guint final_status;
+	const char *bugref;
 } SoupProxyTest;
 
 static SoupProxyTest tests[] = {
-	{ "GET -> 200", "", SOUP_STATUS_OK },
-	{ "GET -> 404", "/not-found", SOUP_STATUS_NOT_FOUND },
-	{ "GET -> 401 -> 200", "/Basic/realm1/", SOUP_STATUS_OK },
-	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED },
-	{ "GET -> 403", "http://no-such-hostname.xx/", SOUP_STATUS_FORBIDDEN },
-	{ "GET -> 200 (unproxied)", "http://localhost:47524/", SOUP_STATUS_OK },
+	{ "GET -> 200", "", SOUP_STATUS_OK, NULL },
+	{ "GET -> 404", "/not-found", SOUP_STATUS_NOT_FOUND, NULL },
+	{ "GET -> 401 -> 200", "/Basic/realm1/", SOUP_STATUS_OK, NULL },
+	{ "GET -> 401 -> 401", "/Basic/realm2/", SOUP_STATUS_UNAUTHORIZED, NULL },
+	{ "GET -> 403", "http://no-such-hostname.xx/", SOUP_STATUS_FORBIDDEN, "577532" },
+	{ "GET -> 200 (unproxied)", "http://localhost:47524/", SOUP_STATUS_OK, "700472" },
 };
 static const int ntests = sizeof (tests) / sizeof (tests[0]);
 
@@ -101,6 +102,7 @@ test_url (const char *url, int proxy, guint expected,
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	if (close) {
+		/* FIXME g_test_bug ("611663") */
 		g_signal_connect (session, "request-started",
 				  G_CALLBACK (set_close_on_connect), NULL);
 	}
@@ -131,6 +133,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	GError *error = NULL;
 	gboolean noproxy = !!strstr (url, "localhost");
 
+	/* FIXME g_test_skip() FIXME g_test_bug ("675865") */
 	if (!tls_available && g_str_has_prefix (url, "https:"))
 		return;
 
@@ -151,6 +154,7 @@ test_url_new_api (const char *url, int proxy, guint expected,
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (authenticate), NULL);
 	if (close) {
+		/* FIXME g_test_bug ("611663") */
 		g_signal_connect (session, "request-started",
 				  G_CALLBACK (set_close_on_connect), NULL);
 	}
@@ -182,6 +186,9 @@ static void
 do_proxy_test (SoupProxyTest *test, gboolean sync)
 {
 	char *http_url, *https_url;
+
+	if (test->bugref)
+		g_test_bug (test->bugref);
 
 	if (!strncmp (test->url, "http", 4)) {
 		SoupURI *uri;
@@ -285,6 +292,8 @@ do_proxy_redirect_test (void)
 	SoupSession *session;
 	SoupURI *proxy_uri, *req_uri, *new_uri;
 	SoupMessage *msg;
+
+	g_test_bug ("631368");
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 	SOUP_TEST_SKIP_IF_NO_TLS;

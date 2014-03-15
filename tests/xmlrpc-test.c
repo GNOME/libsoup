@@ -393,6 +393,8 @@ test_ping (gconstpointer include_params)
 	char *out;
 	gboolean ret;
 
+	g_test_bug ("671661");
+
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
 	debug_printf (2, "ping (void (%s) -> string)\n",

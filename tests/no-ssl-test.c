@@ -28,6 +28,8 @@ do_ssl_tests (gconstpointer uri)
 {
 	SoupSession *session;
 
+	g_test_bug ("700518");
+
 	debug_printf (1, "  plain\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_ssl_test_for_session (session, uri);
@@ -51,6 +53,8 @@ do_session_property_tests (void)
 	GTlsDatabase *tlsdb;
 	char *ca_file;
 	SoupSession *session;
+
+	g_test_bug ("700518");
 
 	session = soup_session_async_new ();
 
@@ -101,7 +105,7 @@ do_session_property_tests (void)
 
 static void
 server_handler (SoupServer        *server,
-		SoupMessage       *msg, 
+		SoupMessage       *msg,
 		const char        *path,
 		GHashTable        *query,
 		SoupClientContext *client,

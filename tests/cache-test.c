@@ -437,6 +437,8 @@ do_cancel_test (gconstpointer data)
 	char *body1, *body2;
 	guint flags;
 
+	g_test_bug ("692310");
+
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
@@ -521,6 +523,8 @@ do_refcounting_test (gconstpointer data)
 	GError *error = NULL;
 	guint flags;
 	GMainLoop *loop;
+
+	g_test_bug ("682527");
 
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);

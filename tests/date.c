@@ -24,18 +24,40 @@ make_date (const char *strdate)
 	return date;
 }
 
+static SoupDate *
+check_correct_date (const char *strdate)
+{
+	SoupDate *date;
+
+	date = make_date (strdate);
+	if (!date) {
+		g_assert_nonnull (date);
+		return NULL;
+	}
+
+	g_assert_cmpint (date->year,   ==, 2004);
+	g_assert_cmpint (date->month,  ==, 11);
+	g_assert_cmpint (date->day,    ==, 6);
+	g_assert_cmpint (date->hour,   ==, 8);
+	g_assert_cmpint (date->minute, ==, 9);
+	g_assert_cmpint (date->second, ==, 7);
+
+	return date;
+}
+
 typedef struct {
 	SoupDateFormat format;
 	const char *date;
+	const char *bugref;
 } GoodDate;
 
 static const GoodDate good_dates[] = {
-	{ SOUP_DATE_HTTP,            "Sat, 06 Nov 2004 08:09:07 GMT" },
-	{ SOUP_DATE_COOKIE,          "Sat, 06-Nov-2004 08:09:07 GMT" },
-	{ SOUP_DATE_RFC2822,         "Sat, 6 Nov 2004 08:09:07 -0430" },
-	{ SOUP_DATE_ISO8601_COMPACT, "20041106T080907" },
-	{ SOUP_DATE_ISO8601_FULL,    "2004-11-06T08:09:07" },
-	{ SOUP_DATE_ISO8601_XMLRPC,  "20041106T08:09:07" }
+	{ SOUP_DATE_HTTP,            "Sat, 06 Nov 2004 08:09:07 GMT", NULL },
+	{ SOUP_DATE_COOKIE,          "Sat, 06-Nov-2004 08:09:07 GMT", NULL },
+	{ SOUP_DATE_RFC2822,         "Sat, 6 Nov 2004 08:09:07 -0430", "579055" },
+	{ SOUP_DATE_ISO8601_COMPACT, "20041106T080907", NULL },
+	{ SOUP_DATE_ISO8601_FULL,    "2004-11-06T08:09:07", NULL },
+	{ SOUP_DATE_ISO8601_XMLRPC,  "20041106T08:09:07", NULL }
 };
 
 static void
@@ -45,9 +67,13 @@ check_good (gconstpointer data)
 	SoupDate *date;
 	char *strdate2;
 
-	check_ok (good->date);
+	if (good->bugref)
+		g_test_bug (good->bugref);
 
-	date = make_date (good->date);
+	date = check_correct_date (good->date);
+	if (!date)
+		return;
+
 	strdate2 = soup_date_to_string (date, good->format);
 	soup_date_free (date);
 
@@ -57,82 +83,82 @@ check_good (gconstpointer data)
 	g_free (strdate2);
 }
 
-static const char *ok_dates[] = {
+typedef struct {
+	const char *date;
+	const char *bugref;
+} OkDate;
+
+static const OkDate ok_dates[] = {
 	/* rfc1123-date, and broken variants */
-	"Sat, 06 Nov 2004 08:09:07 GMT",
-	"Sat, 6 Nov 2004 08:09:07 GMT",
-	"Sat,  6 Nov 2004 08:09:07 GMT",
-	"Sat, 06 Nov 2004 08:09:07",
-	"06 Nov 2004 08:09:07 GMT",
-	"SAT, 06 NOV 2004 08:09:07 +1000",
+	{ "Sat, 06 Nov 2004 08:09:07 GMT", NULL },
+	{ "Sat, 6 Nov 2004 08:09:07 GMT", NULL },
+	{ "Sat,  6 Nov 2004 08:09:07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 08:09:07", NULL },
+	{ "06 Nov 2004 08:09:07 GMT", NULL },
+	{ "SAT, 06 NOV 2004 08:09:07 +1000", "644048" },
 
 	/* rfc850-date, and broken variants */
-	"Saturday, 06-Nov-04 08:09:07 GMT",
-	"Saturday, 6-Nov-04 08:09:07 GMT",
-	"Saturday,  6-Nov-04 08:09:07 GMT",
-	"Saturday, 06-Nov-104 08:09:07 GMT",
-	"Saturday, 06-Nov-04 08:09:07",
-	"06-Nov-04 08:09:07 GMT",
+	{ "Saturday, 06-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, 6-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday,  6-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-104 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 08:09:07", NULL },
+	{ "06-Nov-04 08:09:07 GMT", NULL },
 
 	/* asctime-date, and broken variants */
-	"Sat Nov  6 08:09:07 2004",
-	"Sat Nov 06 08:09:07 2004",
-	"Sat Nov 6 08:09:07 2004",
-	"Sat Nov  6 08:09:07 2004 GMT",
+	{ "Sat Nov  6 08:09:07 2004", NULL },
+	{ "Sat Nov 06 08:09:07 2004", NULL },
+	{ "Sat Nov 6 08:09:07 2004", NULL },
+	{ "Sat Nov  6 08:09:07 2004 GMT", NULL },
 
 	/* ISO 8601 */
-	"2004-11-06T08:09:07Z",
-	"20041106T08:09:07Z",
-	"20041106T08:09:07+00:00",
-	"20041106T080907+00:00",
+	{ "2004-11-06T08:09:07Z", NULL },
+	{ "20041106T08:09:07Z", NULL },
+	{ "20041106T08:09:07+00:00", NULL },
+	{ "20041106T080907+00:00", NULL },
 
 	/* Netscape cookie spec date, and broken variants */
-	"Sat, 06-Nov-2004 08:09:07 GMT",
-	"Sat, 6-Nov-2004 08:09:07 GMT",
-	"Sat,  6-Nov-2004 08:09:07 GMT",
-	"Sat, 06-Nov-2004 08:09:07",
+	{ "Sat, 06-Nov-2004 08:09:07 GMT", NULL },
+	{ "Sat, 6-Nov-2004 08:09:07 GMT", NULL },
+	{ "Sat,  6-Nov-2004 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-2004 08:09:07", NULL },
 
 	/* Original version of Netscape cookie spec, and broken variants */
-	"Sat, 06-Nov-04 08:09:07 GMT",
-	"Sat, 6-Nov-04 08:09:07 GMT",
-	"Sat,  6-Nov-04 08:09:07 GMT",
-	"Sat, 06-Nov-104 08:09:07 GMT",
-	"Sat, 06-Nov-04 08:09:07",
+	{ "Sat, 06-Nov-04 08:09:07 GMT", NULL },
+	{ "Sat, 6-Nov-04 08:09:07 GMT", NULL },
+	{ "Sat,  6-Nov-04 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-104 08:09:07 GMT", NULL },
+	{ "Sat, 06-Nov-04 08:09:07", NULL },
 
 	/* Netscape cookie spec example syntax, and broken variants */
-	"Saturday, 06-Nov-04 08:09:07 GMT",
-	"Saturday, 6-Nov-04 08:09:07 GMT",
-	"Saturday,  6-Nov-04 08:09:07 GMT",
-	"Saturday, 06-Nov-104 08:09:07 GMT",
-	"Saturday, 06-Nov-2004 08:09:07 GMT",
-	"Saturday, 6-Nov-2004 08:09:07 GMT",
-	"Saturday,  6-Nov-2004 08:09:07 GMT",
-	"Saturday, 06-Nov-04 08:09:07",
+	{ "Saturday, 06-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, 6-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday,  6-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-104 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-2004 08:09:07 GMT", NULL },
+	{ "Saturday, 6-Nov-2004 08:09:07 GMT", NULL },
+	{ "Saturday,  6-Nov-2004 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 08:09:07", NULL },
 
 	/* Miscellaneous broken formats seen on the web */
-	"Sat 06-Nov-2004  08:9:07",
-	"Saturday, 06-Nov-04 8:9:07 GMT",
-	"Sat, 06 Nov 2004 08:09:7 GMT"
+	{ "Sat 06-Nov-2004  08:9:07", NULL },
+	{ "Saturday, 06-Nov-04 8:9:07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 08:09:7 GMT", NULL }
 };
 
 static void
 check_ok (gconstpointer data)
 {
-	const char *strdate = data;
+	OkDate *ok = (OkDate *)data;
 	SoupDate *date;
 
-	date = make_date (strdate);
-	if (!date) {
-		g_assert_true (date != NULL);
-		return;
-	}
+	if (ok->bugref)
+		g_test_bug (ok->bugref);
 
-	g_assert_cmpint (date->year,   ==, 2004);
-	g_assert_cmpint (date->month,  ==, 11);
-	g_assert_cmpint (date->day,    ==, 6);
-	g_assert_cmpint (date->hour,   ==, 8);
-	g_assert_cmpint (date->minute, ==, 9);
-	g_assert_cmpint (date->second, ==, 7);
+	date = check_correct_date (ok->date);
+	if (!date)
+		return;
+	soup_date_free (date);
 }
 
 #define TIME_T 1099728547L
@@ -153,52 +179,60 @@ check_ok_time_t (void)
 	g_assert_cmpint (date->second, ==, 7);
 }
 
-static const char *bad_dates[] = {
+typedef struct {
+	const char *date;
+	const char *bugref;
+} BadDate;
+
+static const BadDate bad_dates[] = {
 	/* broken rfc1123-date */
-	", 06 Nov 2004 08:09:07 GMT",
-	"Sat, Nov 2004 08:09:07 GMT",
-	"Sat, 06 2004 08:09:07 GMT",
-	"Sat, 06 Nov 08:09:07 GMT",
-	"Sat, 06 Nov 2004 :09:07 GMT",
-	"Sat, 06 Nov 2004 09:07 GMT",
-	"Sat, 06 Nov 2004 08::07 GMT",
-	"Sat, 06 Nov 2004 08:09: GMT",
+	{ ", 06 Nov 2004 08:09:07 GMT", NULL },
+	{ "Sat, Nov 2004 08:09:07 GMT", NULL },
+	{ "Sat, 06 2004 08:09:07 GMT", NULL },
+	{ "Sat, 06 Nov 08:09:07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 :09:07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 09:07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 08::07 GMT", NULL },
+	{ "Sat, 06 Nov 2004 08:09: GMT", NULL },
 
 	/* broken rfc850-date */
-	", 06-Nov-04 08:09:07 GMT",
-	"Saturday, -Nov-04 08:09:07 GMT",
-	"Saturday, Nov-04 08:09:07 GMT",
-	"Saturday, 06-04 08:09:07 GMT",
-	"Saturday, 06--04 08:09:07 GMT",
-	"Saturday, 06-Nov- 08:09:07 GMT",
-	"Saturday, 06-Nov 08:09:07 GMT",
-	"Saturday, 06-Nov-04 :09:07 GMT",
-	"Saturday, 06-Nov-04 09:07 GMT",
-	"Saturday, 06-Nov-04 08::07 GMT",
-	"Saturday, 06-Nov-04 08:09: GMT",
+	{ ", 06-Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, -Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, Nov-04 08:09:07 GMT", NULL },
+	{ "Saturday, 06-04 08:09:07 GMT", NULL },
+	{ "Saturday, 06--04 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov- 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov 08:09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 :09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 09:07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 08::07 GMT", NULL },
+	{ "Saturday, 06-Nov-04 08:09: GMT", NULL },
 
 	/* broken asctime-date */
-	"Nov  6 08:09:07 2004",
-	"Sat  6 08:09:07 2004",
-	"Sat Nov 08:09:07 2004",
-	"Sat Nov  6 :09:07 2004",
-	"Sat Nov  6 09:07 2004",
-	"Sat Nov  6 08::07 2004",
-	"Sat Nov  6 08:09: 2004",
-	"Sat Nov  6 08:09:07",
-	"Sat Nov  6 08:09:07 GMT 2004"
+	{ "Nov  6 08:09:07 2004", NULL },
+	{ "Sat  6 08:09:07 2004", NULL },
+	{ "Sat Nov 08:09:07 2004", NULL },
+	{ "Sat Nov  6 :09:07 2004", NULL },
+	{ "Sat Nov  6 09:07 2004", NULL },
+	{ "Sat Nov  6 08::07 2004", NULL },
+	{ "Sat Nov  6 08:09: 2004", NULL },
+	{ "Sat Nov  6 08:09:07", NULL },
+	{ "Sat Nov  6 08:09:07 GMT 2004", NULL }
 };
 
 static void
 check_bad (gconstpointer data)
 {
-	const char *strdate = data;
+	BadDate *bad = (BadDate *)data;
 	SoupDate *date;
 
-	date = make_date (strdate);
+	if (bad->bugref)
+		g_test_bug (bad->bugref);
+
+	date = make_date (bad->date);
 	soup_test_assert (date == NULL,
 			  "date parsing succeeded for '%s': %d %d %d - %d %d %d",
-			  strdate,
+			  bad->date,
 			  date->year, date->month, date->day,
 			  date->hour, date->minute, date->second);
 	g_clear_pointer (&date, soup_date_free);
@@ -356,15 +390,15 @@ main (int argc, char **argv)
 	}
 
 	for (i = 0; i < G_N_ELEMENTS (ok_dates); i++) {
-		path = g_strdup_printf ("/date/ok/%s", ok_dates[i]);
-		g_test_add_data_func (path, ok_dates[i], check_ok);
+		path = g_strdup_printf ("/date/ok/%s", ok_dates[i].date);
+		g_test_add_data_func (path, &ok_dates[i], check_ok);
 		g_free (path);
 	}
 	g_test_add_func ("/date/ok/" TIME_T_STRING, check_ok_time_t);
 
 	for (i = 0; i < G_N_ELEMENTS (bad_dates); i++) {
-		path = g_strdup_printf ("/date/bad/%s", bad_dates[i]);
-		g_test_add_data_func (path, bad_dates[i], check_bad);
+		path = g_strdup_printf ("/date/bad/%s", bad_dates[i].date);
+		g_test_add_data_func (path, &bad_dates[i], check_bad);
 		g_free (path);
 	}
 

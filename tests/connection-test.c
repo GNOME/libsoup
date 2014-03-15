@@ -166,6 +166,8 @@ do_content_length_framing_test (void)
 	SoupURI *request_uri;
 	goffset declared_length;
 
+	g_test_bug ("611481");
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "  Content-Length larger than message body length\n");
@@ -351,6 +353,8 @@ do_persistent_connection_timeout_test (void)
 {
 	SoupSession *session;
 
+	g_test_bug ("631525");
+
 	debug_printf (1, "  Async session, message API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_timeout_test_for_session (session);
@@ -471,6 +475,8 @@ do_max_conns_test (void)
 {
 	SoupSession *session;
 
+	g_test_bug ("634422");
+
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
@@ -547,6 +553,8 @@ static void
 do_non_persistent_connection_test (void)
 {
 	SoupSession *session;
+
+	g_test_bug ("578990");
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);

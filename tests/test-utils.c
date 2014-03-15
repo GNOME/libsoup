@@ -76,6 +76,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 
 	g_test_init (&argc, &argv, NULL);
 	g_test_set_nonfatal_assertions ();
+	g_test_bug_base ("https://bugzilla.gnome.org/");
 
 	opts = g_option_context_new (NULL);
 	g_option_context_add_main_entries (opts, debug_entry, NULL);

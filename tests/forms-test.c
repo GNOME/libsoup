@@ -188,6 +188,8 @@ do_md5_test_libsoup (gconstpointer data)
 	SoupMessage *msg;
 	SoupSession *session;
 
+	g_test_bug ("601640");
+
 	md5 = get_md5_data (&contents, &length);
 	if (!md5)
 		return;

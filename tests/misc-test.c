@@ -91,13 +91,14 @@ server_callback (SoupServer *server, SoupMessage *msg,
 
 /* Host header handling: client must be able to override the default
  * value, server must be able to recognize different Host values.
- * #539803.
  */
 static void
 do_host_test (void)
 {
 	SoupSession *session;
 	SoupMessage *one, *two;
+
+	g_test_bug ("539803");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
@@ -121,7 +122,7 @@ do_host_test (void)
 
 /* Dropping the application's ref on the session from a callback
  * should not cause the session to be freed at an incorrect time.
- * (This test will crash if it fails.) #533473
+ * (This test will crash if it fails.)
  */
 static void
 cu_one_completed (SoupSession *session, SoupMessage *msg, gpointer loop)
@@ -155,6 +156,8 @@ do_callback_unref_test (void)
 	SoupMessage *one, *two;
 	GMainLoop *loop;
 	char *bad_uri;
+
+	g_test_bug ("533473");
 
 	/* Get a guaranteed-bad URI */
 	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
@@ -301,7 +304,6 @@ do_callback_unref_req_test (void)
 
 /* SoupSession should clean up all signal handlers on a message after
  * it is finished, allowing the message to be reused if desired.
- * #559054
  */
 static void
 ensure_no_signal_handlers (SoupMessage *msg, guint *signal_ids, guint n_signal_ids)
@@ -336,6 +338,8 @@ do_msg_reuse_test (void)
 	SoupMessage *msg;
 	SoupURI *uri;
 	guint *signal_ids, n_signal_ids;
+
+	g_test_bug ("559054");
 
 	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
@@ -375,7 +379,7 @@ do_msg_reuse_test (void)
 	g_free (signal_ids);
 }
 
-/* Handle unexpectedly-early aborts. #596074, #618641 */
+/* Handle unexpectedly-early aborts. */
 static void
 ea_msg_completed_one (SoupSession *session, SoupMessage *msg, gpointer loop)
 {
@@ -427,6 +431,9 @@ do_early_abort_test (void)
 	GMainContext *context;
 	GMainLoop *loop;
 
+	g_test_bug ("596074");
+	g_test_bug ("618641");
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
@@ -456,6 +463,8 @@ do_early_abort_test (void)
 		g_main_context_iteration (context, FALSE);
 
 	soup_test_session_abort_unref (session);
+
+	g_test_bug ("668098");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
@@ -608,6 +617,8 @@ do_accept_language_test (void)
 {
 	const char *orig_language;
 
+	g_test_bug ("602547");
+
 	orig_language = g_getenv ("LANGUAGE");
 	do_one_accept_language_test ("C", "en");
 	do_one_accept_language_test ("fr_FR", "fr-fr, fr;q=0.9");
@@ -691,6 +702,9 @@ do_cancel_while_reading_test (void)
 {
 	SoupSession *session;
 
+	g_test_bug ("637741");
+	g_test_bug ("676038");
+
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_cancel_while_reading_test_for_session (session);
@@ -729,6 +743,8 @@ do_cancel_while_reading_immediate_req_test (void)
 {
 	SoupSession *session;
 	guint flags;
+
+	g_test_bug ("692310");
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
@@ -773,6 +789,8 @@ do_cancel_while_reading_preemptive_req_test (void)
 {
 	SoupSession *session;
 	guint flags;
+
+	g_test_bug ("637039");
 
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
@@ -852,6 +870,8 @@ do_idle_on_dispose_test (void)
 	SoupMessage *msg;
 	GMainContext *async_context;
 
+	g_test_bug ("667364");
+
 	async_context = g_main_context_new ();
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_ASYNC_CONTEXT, async_context,
@@ -879,6 +899,8 @@ do_pause_abort_test (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	gpointer ptr;
+
+	g_test_bug ("673905");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 

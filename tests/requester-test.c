@@ -336,6 +336,8 @@ do_simple_plain_test (gconstpointer uri)
 {
 	SoupSession *session;
 
+	g_test_bug ("653707");
+
 	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
 	do_test_for_thread_and_context (session, uri);
 	soup_test_session_abort_unref (session);
@@ -345,6 +347,8 @@ static void
 do_simple_async_test (gconstpointer uri)
 {
 	SoupSession *session;
+
+	g_test_bug ("653707");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
@@ -358,6 +362,8 @@ do_test_with_context_and_type (const char *uri, gboolean plain_session)
 {
 	GMainContext *async_context;
 	SoupSession *session;
+
+	g_test_bug ("653707");
 
 	async_context = g_main_context_new ();
 	g_main_context_push_thread_default (async_context);
@@ -750,6 +756,9 @@ do_async_close_test (gconstpointer uri)
 	SoupSession *session;
 	SoupURI *slow_uri;
 
+	g_test_bug ("695652");
+	g_test_bug ("711260");
+
 	slow_uri = soup_uri_new (uri);
 	soup_uri_set_path (slow_uri, "/slow");
 
@@ -767,6 +776,9 @@ do_sync_close_test (gconstpointer uri)
 {
 	SoupSession *session;
 	SoupURI *slow_uri;
+
+	g_test_bug ("695652");
+	g_test_bug ("711260");
 
 	slow_uri = soup_uri_new (uri);
 	soup_uri_set_path (slow_uri, "/slow");

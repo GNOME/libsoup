@@ -8,6 +8,7 @@ typedef struct {
 
 static struct RequestTest {
 	const char *description;
+	const char *bugref;
 	const char *request;
 	int length;
 	guint status;
@@ -19,14 +20,14 @@ static struct RequestTest {
 	/*** VALID REQUESTS ***/
 	/**********************/
 
-	{ "HTTP 1.0 request with no headers",
+	{ "HTTP 1.0 request with no headers", NULL,
 	  "GET / HTTP/1.0\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_0,
 	  { { NULL } }
 	},
 
-	{ "Req w/ 1 header",
+	{ "Req w/ 1 header", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -35,7 +36,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header, no leading whitespace",
+	{ "Req w/ 1 header, no leading whitespace", NULL,
 	  "GET / HTTP/1.1\r\nHost:example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -44,7 +45,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header including trailing whitespace",
+	{ "Req w/ 1 header including trailing whitespace", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com \r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -53,7 +54,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header, wrapped",
+	{ "Req w/ 1 header, wrapped", NULL,
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n baz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -62,7 +63,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header, wrapped with additional whitespace",
+	{ "Req w/ 1 header, wrapped with additional whitespace", NULL,
 	  "GET / HTTP/1.1\r\nFoo: bar \r\n  baz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -71,7 +72,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header, wrapped with tab",
+	{ "Req w/ 1 header, wrapped with tab", NULL,
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n\tbaz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -80,7 +81,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header, wrapped before value",
+	{ "Req w/ 1 header, wrapped before value", NULL,
 	  "GET / HTTP/1.1\r\nFoo:\r\n bar baz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -89,7 +90,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 1 header with empty value",
+	{ "Req w/ 1 header with empty value", NULL,
 	  "GET / HTTP/1.1\r\nHost:\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -98,7 +99,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 2 headers",
+	{ "Req w/ 2 headers", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -108,7 +109,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 3 headers",
+	{ "Req w/ 3 headers", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\nBlah: blah\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -119,7 +120,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 3 headers, 1st wrapped",
+	{ "Req w/ 3 headers, 1st wrapped", NULL,
 	  "GET / HTTP/1.1\r\nFoo: bar\r\n baz\r\nConnection: close\r\nBlah: blah\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -130,7 +131,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 3 headers, 2nd wrapped",
+	{ "Req w/ 3 headers, 2nd wrapped", NULL,
 	  "GET / HTTP/1.1\r\nConnection: close\r\nBlah: blah\r\nFoo: bar\r\n baz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -141,7 +142,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ 3 headers, 3rd wrapped",
+	{ "Req w/ 3 headers, 3rd wrapped", NULL,
 	  "GET / HTTP/1.1\r\nConnection: close\r\nBlah: blah\r\nFoo: bar\r\n baz\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -152,7 +153,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ same header multiple times",
+	{ "Req w/ same header multiple times", NULL,
 	  "GET / HTTP/1.1\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -161,7 +162,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Connection header on HTTP/1.0 message",
+	{ "Connection header on HTTP/1.0 message", NULL,
 	  "GET / HTTP/1.0\r\nFoo: bar\r\nConnection: Bar, Quux\r\nBar: baz\r\nQuux: foo\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_0,
@@ -171,14 +172,14 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "GET with full URI",
+	{ "GET with full URI", "667637",
 	  "GET http://example.com HTTP/1.1\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "http://example.com", SOUP_HTTP_1_1,
 	  { { NULL } }
 	},
 
-	{ "GET with full URI in upper-case",
+	{ "GET with full URI in upper-case", "667637",
 	  "GET HTTP://example.com HTTP/1.1\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "HTTP://example.com", SOUP_HTTP_1_1,
@@ -188,7 +189,7 @@ static struct RequestTest {
 	/* It's better for this to be passed through: this means a SoupServer
 	 * could implement ftp-over-http proxying, for instance
 	 */
-	{ "GET with full URI of unrecognised scheme",
+	{ "GET with full URI of unrecognised scheme", "667637",
 	  "GET AbOuT: HTTP/1.1\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "AbOuT:", SOUP_HTTP_1_1,
@@ -201,7 +202,7 @@ static struct RequestTest {
 
 	/* RFC 2616 section 4.1 says we SHOULD accept this */
 
-	{ "Spurious leading CRLF",
+	{ "Spurious leading CRLF", NULL,
 	  "\r\nGET / HTTP/1.1\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -212,7 +213,7 @@ static struct RequestTest {
 
 	/* RFC 2616 section 3.1 says we MUST accept this */
 
-	{ "HTTP/01.01 request",
+	{ "HTTP/01.01 request", NULL,
 	  "GET / HTTP/01.01\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -223,7 +224,7 @@ static struct RequestTest {
 
 	/* RFC 2616 section 19.3 says we SHOULD accept these */
 
-	{ "LF instead of CRLF after header",
+	{ "LF instead of CRLF after header", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com\nConnection: close\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -233,7 +234,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "LF instead of CRLF after Request-Line",
+	{ "LF instead of CRLF after Request-Line", NULL,
 	  "GET / HTTP/1.1\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -242,7 +243,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Mixed CRLF/LF",
+	{ "Mixed CRLF/LF", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\nc: d\ne: f\r\ng: h\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -254,7 +255,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ incorrect whitespace in Request-Line",
+	{ "Req w/ incorrect whitespace in Request-Line", NULL,
 	  "GET  /\tHTTP/1.1\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -263,7 +264,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Req w/ incorrect whitespace after Request-Line",
+	{ "Req w/ incorrect whitespace after Request-Line", "475169",
 	  "GET / HTTP/1.1 \r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -274,10 +275,9 @@ static struct RequestTest {
 
 	/* If the request/status line is parseable, then we
 	 * just ignore any invalid-looking headers after that.
-	 * (qv bug 579318).
 	 */
 
-	{ "Req w/ mangled header",
+	{ "Req w/ mangled header", "579318",
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nFoo one\r\nBar: two\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -287,7 +287,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "First header line is continuation",
+	{ "First header line is continuation", "666316",
 	  "GET / HTTP/1.1\r\n b\r\nHost: example.com\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -297,7 +297,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Zero-length header name",
+	{ "Zero-length header name", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\n: example.com\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -307,7 +307,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "CR in header name",
+	{ "CR in header name", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\na\rb: cd\r\nx\r: y\r\n\rz: w\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -317,7 +317,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "CR in header value",
+	{ "CR in header value", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\nHost: example\rcom\r\np: \rq\r\ns: t\r\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -330,7 +330,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Tab in header name",
+	{ "Tab in header name", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\na\tb: cd\r\nx\t: y\r\np: q\r\n\tz: w\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -345,7 +345,7 @@ static struct RequestTest {
 	  }
 	},
 
-	{ "Tab in header value",
+	{ "Tab in header value", "666316",
 	  "GET / HTTP/1.1\r\na: b\r\nab: c\td\r\nx: \ty\r\nz: w\t\r\nc: d\r\n", -1,
 	  SOUP_STATUS_OK,
 	  "GET", "/", SOUP_HTTP_1_1,
@@ -362,84 +362,84 @@ static struct RequestTest {
 	/*** INVALID REQUESTS ***/
 	/************************/
 
-	{ "HTTP 0.9 request; not supported",
+	{ "HTTP 0.9 request; not supported", NULL,
 	  "GET /\r\n", -1,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "HTTP 1.2 request (no such thing)",
+	{ "HTTP 1.2 request (no such thing)", NULL,
 	  "GET / HTTP/1.2\r\n", -1,
 	  SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "HTTP 2000 request (no such thing)",
+	{ "HTTP 2000 request (no such thing)", NULL,
 	  "GET / HTTP/2000.0\r\n", -1,
 	  SOUP_STATUS_HTTP_VERSION_NOT_SUPPORTED,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "Non-HTTP request",
+	{ "Non-HTTP request", NULL,
 	  "GET / SOUP/1.1\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "Junk after Request-Line",
+	{ "Junk after Request-Line", NULL,
 	  "GET / HTTP/1.1 blah\r\nHost: example.com\r\n", -1,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "NUL in Method",
+	{ "NUL in Method", NULL,
 	  "G\x00T / HTTP/1.1\r\nHost: example.com\r\n", 37,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "NUL at beginning of Method",
+	{ "NUL at beginning of Method", "666316",
 	  "\x00 / HTTP/1.1\r\nHost: example.com\r\n", 35,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "NUL in Path",
+	{ "NUL in Path", NULL,
 	  "GET /\x00 HTTP/1.1\r\nHost: example.com\r\n", 38,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "NUL in header name",
+	{ "NUL in header name", "666316",
 	  "GET / HTTP/1.1\r\n\x00: silly\r\n", 37,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "NUL in header value",
+	{ "NUL in header value", NULL,
 	  "GET / HTTP/1.1\r\nHost: example\x00com\r\n", 37,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "No terminating CRLF",
+	{ "No terminating CRLF", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com", -1,
 	  SOUP_STATUS_BAD_REQUEST,
 	  NULL, NULL, -1,
 	  { { NULL } }
 	},
 
-	{ "Unrecognized expectation",
+	{ "Unrecognized expectation", NULL,
 	  "GET / HTTP/1.1\r\nHost: example.com\r\nExpect: the-impossible\r\n", -1,
 	  SOUP_STATUS_EXPECTATION_FAILED,
 	  NULL, NULL, -1,
@@ -450,6 +450,7 @@ static const int num_reqtests = G_N_ELEMENTS (reqtests);
 
 static struct ResponseTest {
 	const char *description;
+	const char *bugref;
 	const char *response;
 	int length;
 	SoupHTTPVersion version;
@@ -461,25 +462,25 @@ static struct ResponseTest {
 	/*** VALID RESPONSES ***/
 	/***********************/
 
-	{ "HTTP 1.0 response w/ no headers",
+	{ "HTTP 1.0 response w/ no headers", NULL,
 	  "HTTP/1.0 200 ok\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
 	  { { NULL } }
 	},
 
-	{ "HTTP 1.1 response w/ no headers",
+	{ "HTTP 1.1 response w/ no headers", NULL,
 	  "HTTP/1.1 200 ok\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { NULL } }
 	},
 
-	{ "Response w/ multi-word Reason-Phrase",
+	{ "Response w/ multi-word Reason-Phrase", NULL,
 	  "HTTP/1.1 400 bad request\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_BAD_REQUEST, "bad request",
 	  { { NULL } }
 	},
 
-	{ "Response w/ 1 header",
+	{ "Response w/ 1 header", NULL,
 	  "HTTP/1.1 200 ok\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -487,7 +488,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ 2 headers",
+	{ "Response w/ 2 headers", NULL,
 	  "HTTP/1.1 200 ok\r\nFoo: bar\r\nBaz: quux\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -496,7 +497,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ same header multiple times",
+	{ "Response w/ same header multiple times", NULL,
 	  "HTTP/1.1 200 ok\r\nFoo: bar\r\nFoo: baz\r\nFoo: quux\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar, baz, quux" },
@@ -504,7 +505,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ no reason phrase",
+	{ "Response w/ no reason phrase", NULL,
 	  "HTTP/1.1 200 \r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "",
 	  { { "Foo", "bar" },
@@ -512,7 +513,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Connection header on HTTP/1.0 message",
+	{ "Connection header on HTTP/1.0 message", NULL,
 	  "HTTP/1.0 200 ok\r\nFoo: bar\r\nConnection: Bar\r\nBar: quux\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -523,7 +524,7 @@ static struct ResponseTest {
 
 	/* Tests from Cockpit */
 
-	{ "Response w/ 3 headers, check case-insensitivity",
+	{ "Response w/ 3 headers, check case-insensitivity", "722341",
 	  "HTTP/1.0 200 ok\r\nHeader1: value3\r\nHeader2:  field\r\nHead3:  Another \r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "ok",
 	  { { "header1", "value3" },
@@ -540,7 +541,7 @@ static struct ResponseTest {
 
 	/* RFC 2616 section 3.1 says we MUST accept this */
 
-	{ "HTTP/01.01 response",
+	{ "HTTP/01.01 response", NULL,
 	  "HTTP/01.01 200 ok\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -550,7 +551,7 @@ static struct ResponseTest {
 
 	/* RFC 2616 section 19.3 says we SHOULD accept these */
 
-	{ "Response w/ LF instead of CRLF after Status-Line",
+	{ "Response w/ LF instead of CRLF after Status-Line", NULL,
 	  "HTTP/1.1 200 ok\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -558,7 +559,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ incorrect spacing in Status-Line",
+	{ "Response w/ incorrect spacing in Status-Line", NULL,
 	  "HTTP/1.1  200\tok\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -566,7 +567,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ no reason phrase or preceding SP",
+	{ "Response w/ no reason phrase or preceding SP", NULL,
 	  "HTTP/1.1 200\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "",
 	  { { "Foo", "bar" },
@@ -574,7 +575,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	{ "Response w/ no whitespace after status code",
+	{ "Response w/ no whitespace after status code", NULL,
 	  "HTTP/1.1 200ok\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -583,7 +584,7 @@ static struct ResponseTest {
 	},
 
 	/* Shoutcast support */
-	{ "Shoutcast server not-quite-HTTP",
+	{ "Shoutcast server not-quite-HTTP", "502325",
 	  "ICY 200 OK\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_0, SOUP_STATUS_OK, "OK",
 	  { { "Foo", "bar" },
@@ -591,8 +592,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	/* qv bug 579318, do_bad_header_tests() below */
-	{ "Response w/ mangled header",
+	{ "Response w/ mangled header", "579318",
 	  "HTTP/1.1 200 ok\r\nFoo: one\r\nBar two:2\r\nBaz: three\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "one" },
@@ -601,8 +601,7 @@ static struct ResponseTest {
 	  }
 	},
 
-	/* qv bug 602863 */
-	{ "HTTP 1.1 response with leading line break",
+	{ "HTTP 1.1 response with leading line break", "602863",
 	  "\nHTTP/1.1 200 ok\r\nFoo: bar\r\n", -1,
 	  SOUP_HTTP_1_1, SOUP_STATUS_OK, "ok",
 	  { { "Foo", "bar" },
@@ -613,79 +612,79 @@ static struct ResponseTest {
 	/*** INVALID RESPONSES ***/
 	/*************************/
 
-	{ "Invalid HTTP version",
+	{ "Invalid HTTP version", NULL,
 	  "HTTP/1.2 200 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Non-HTTP response",
+	{ "Non-HTTP response", NULL,
 	  "SOUP/1.1 200 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Non-numeric status code",
+	{ "Non-numeric status code", NULL,
 	  "HTTP/1.1 XXX OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "No status code",
+	{ "No status code", NULL,
 	  "HTTP/1.1 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "One-digit status code",
+	{ "One-digit status code", NULL,
 	  "HTTP/1.1 2 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Two-digit status code",
+	{ "Two-digit status code", NULL,
 	  "HTTP/1.1 20 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Four-digit status code",
+	{ "Four-digit status code", NULL,
 	  "HTTP/1.1 2000 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Status code < 100",
+	{ "Status code < 100", NULL,
 	  "HTTP/1.1 001 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "Status code > 599",
+	{ "Status code > 599", NULL,
 	  "HTTP/1.1 600 OK\r\nFoo: bar\r\n", -1,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "NUL at start",
+	{ "NUL at start", "666316",
 	  "\x00HTTP/1.1 200 OK\r\nFoo: bar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "NUL in Reason Phrase",
+	{ "NUL in Reason Phrase", NULL,
 	  "HTTP/1.1 200 O\x00K\r\nFoo: bar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "NUL in header name",
+	{ "NUL in header name", NULL,
 	  "HTTP/1.1 200 OK\r\nF\x00oo: bar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
 	},
 
-	{ "NUL in header value",
+	{ "NUL in header value", NULL,
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00ar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
@@ -939,7 +938,8 @@ do_content_disposition_tests (void)
 
 	soup_message_headers_free (hdrs);
 
-	/* Ensure that soup-multipart always quotes filename (bug 641280) */
+	/* Ensure that soup-multipart always quotes filename */
+	g_test_bug ("641280");
 	multipart = soup_multipart_new (SOUP_FORM_MIME_TYPE_MULTIPART);
 	buffer = soup_buffer_new (SOUP_MEMORY_STATIC, "foo", 3);
 	soup_multipart_append_form_file (multipart, "test", "token",
@@ -974,6 +974,8 @@ do_content_type_tests (void)
 	GHashTable *params;
 	const char *header, *mime_type;
 
+	g_test_bug ("576760");
+
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
 	g_hash_table_insert (params, CONTENT_TYPE_TEST_ATTRIBUTE,
@@ -996,6 +998,8 @@ do_content_type_tests (void)
 	g_assert_cmpint (g_hash_table_size (params), ==, 0);
 	if (params)
 		g_hash_table_destroy (params);
+
+	g_test_bug ("577630");
 
 	soup_message_headers_clear (hdrs);
 	soup_message_headers_append (hdrs, "Content-Type",
@@ -1023,6 +1027,8 @@ do_append_param_tests (void)
 {
 	GString *params;
 	int i;
+
+	g_test_bug ("577728");
 
 	params = g_string_new (NULL);
 	for (i = 0; i < G_N_ELEMENTS (test_params); i++) {

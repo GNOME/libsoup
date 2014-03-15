@@ -18,6 +18,8 @@ do_unconnected_socket_test (void)
 	guint res;
 	struct sockaddr_in in_localhost;
 
+	g_test_bug ("673083");
+
 	in_localhost.sin_family = AF_INET;
 	in_localhost.sin_port = 0;
 	in_localhost.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
