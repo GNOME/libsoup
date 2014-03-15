@@ -51,7 +51,6 @@ enum {
 	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_URI,
 	PROP_PROXY_RESOLVER,
-	PROP_SSL,
 	PROP_SSL_CREDS,
 	PROP_SSL_STRICT,
 	PROP_SSL_FALLBACK,
@@ -119,12 +118,13 @@ soup_connection_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_REMOTE_URI:
 		priv->remote_uri = g_value_dup_boxed (value);
+		if (priv->remote_uri)
+			priv->ssl = (priv->remote_uri->scheme == SOUP_URI_SCHEME_HTTPS);
+		else
+			priv->ssl = FALSE;
 		break;
 	case PROP_PROXY_RESOLVER:
 		priv->proxy_resolver = g_value_dup_object (value);
-		break;
-	case PROP_SSL:
-		priv->ssl = g_value_get_boolean (value);
 		break;
 	case PROP_SSL_CREDS:
 		if (priv->tlsdb)
@@ -172,9 +172,6 @@ soup_connection_get_property (GObject *object, guint prop_id,
 		break;
 	case PROP_REMOTE_URI:
 		g_value_set_boxed (value, priv->remote_uri);
-		break;
-	case PROP_SSL:
-		g_value_set_boolean (value, priv->ssl);
 		break;
 	case PROP_SSL_CREDS:
 		g_value_set_object (value, priv->tlsdb);
@@ -261,13 +258,6 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				     "GProxyResolver to use",
 				     G_TYPE_PROXY_RESOLVER,
 				     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_SSL,
-		g_param_spec_boolean (SOUP_CONNECTION_SSL,
-				      "SSL",
-				      "Whether this is an SSL connection",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SSL_CREDS,
 		g_param_spec_object (SOUP_CONNECTION_SSL_CREDENTIALS,

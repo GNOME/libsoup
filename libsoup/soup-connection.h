@@ -38,7 +38,6 @@ GType soup_connection_get_type (void);
 #define SOUP_CONNECTION_LOCAL_ADDRESS   "local-address"
 #define SOUP_CONNECTION_REMOTE_URI      "remote-uri"
 #define SOUP_CONNECTION_PROXY_RESOLVER  "proxy-resolver"
-#define SOUP_CONNECTION_SSL             "ssl"
 #define SOUP_CONNECTION_SSL_CREDENTIALS "ssl-creds"
 #define SOUP_CONNECTION_SSL_STRICT      "ssl-strict"
 #define SOUP_CONNECTION_SSL_FALLBACK    "ssl-fallback"

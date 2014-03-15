@@ -959,17 +959,27 @@ get_host_for_uri (SoupSession *session, SoupURI *uri)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
+	gboolean https;
+	SoupURI *uri_tmp = NULL;
 
-	if (soup_uri_is_https (uri, priv->https_aliases))
+	https = soup_uri_is_https (uri, priv->https_aliases);
+	if (https)
 		host = g_hash_table_lookup (priv->https_hosts, uri);
 	else
 		host = g_hash_table_lookup (priv->http_hosts, uri);
 	if (host)
 		return host;
 
+	if (uri->scheme != SOUP_URI_SCHEME_HTTP &&
+	    uri->scheme != SOUP_URI_SCHEME_HTTPS) {
+		uri = uri_tmp = soup_uri_copy (uri);
+		uri->scheme = https ? SOUP_URI_SCHEME_HTTPS : SOUP_URI_SCHEME_HTTP;
+	}
 	host = soup_session_host_new (session, uri);
+	if (uri_tmp)
+		soup_uri_free (uri_tmp);
 
-	if (soup_uri_is_https (uri, priv->https_aliases))
+	if (https)
 		g_hash_table_insert (priv->https_hosts, host->uri, host);
 	else
 		g_hash_table_insert (priv->http_hosts, host->uri, host);
@@ -1774,7 +1784,6 @@ get_connection_for_host (SoupSession *session,
 		SOUP_TYPE_CONNECTION,
 		SOUP_CONNECTION_REMOTE_URI, host->uri,
 		SOUP_CONNECTION_PROXY_RESOLVER, proxy_resolver,
-		SOUP_CONNECTION_SSL, soup_uri_is_https (soup_message_get_uri (item->msg), priv->https_aliases),
 		SOUP_CONNECTION_SSL_CREDENTIALS, tlsdb,
 		SOUP_CONNECTION_SSL_STRICT, priv->ssl_strict && (tlsdb != NULL || SOUP_IS_PLAIN_SESSION (session)),
 		SOUP_CONNECTION_ASYNC_CONTEXT, priv->async_context,
