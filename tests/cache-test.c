@@ -272,8 +272,6 @@ do_basics_test (gconstpointer data)
 	char *cache_dir;
 	char *body1, *body2, *body3, *body4, *body5, *cmp;
 
-	debug_printf (1, "Cache basics\n");
-
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
@@ -439,8 +437,6 @@ do_cancel_test (gconstpointer data)
 	char *body1, *body2;
 	guint flags;
 
-	debug_printf (1, "Cache cancel tests\n");
-
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
@@ -526,8 +522,6 @@ do_refcounting_test (gconstpointer data)
 	guint flags;
 	GMainLoop *loop;
 
-	debug_printf (1, "Cache refcounting tests\n");
-
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);
 	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
@@ -581,8 +575,6 @@ do_headers_test (gconstpointer data)
 	char *cache_dir;
 	char *body1, *cmp;
 	const char *header_value;
-
-	debug_printf (1, "Cache basics\n");
 
 	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
 	debug_printf (2, "  Caching to %s\n", cache_dir);

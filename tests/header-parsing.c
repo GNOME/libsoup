@@ -758,9 +758,8 @@ do_request_tests (void)
 	SoupMessageHeaders *headers;
 	guint status;
 
-	debug_printf (1, "Request tests\n");
 	for (i = 0; i < num_reqtests; i++) {
-		debug_printf (1, "%2d. %s (%s): ", i + 1, reqtests[i].description,
+		debug_printf (1, "%2d. %s (%s)\n", i + 1, reqtests[i].description,
 			      soup_status_get_phrase (reqtests[i].status));
 
 		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_REQUEST);
@@ -786,7 +785,6 @@ do_request_tests (void)
 		g_free (path);
 		soup_message_headers_free (headers);
 	}
-	debug_printf (1, "\n");
 }
 
 static void
@@ -798,9 +796,8 @@ do_response_tests (void)
 	SoupHTTPVersion version;
 	SoupMessageHeaders *headers;
 
-	debug_printf (1, "Response tests\n");
 	for (i = 0; i < num_resptests; i++) {
-		debug_printf (1, "%2d. %s (%s): ", i + 1, resptests[i].description,
+		debug_printf (1, "%2d. %s (%s)\n", i + 1, resptests[i].description,
 			      resptests[i].reason_phrase ? "should parse" : "should NOT parse");
 
 		headers = soup_message_headers_new (SOUP_MESSAGE_HEADERS_RESPONSE);
@@ -824,7 +821,6 @@ do_response_tests (void)
 		g_free (reason_phrase);
 		soup_message_headers_free (headers);
 	}
-	debug_printf (1, "\n");
 }
 
 static void
@@ -833,7 +829,6 @@ do_qvalue_tests (void)
 	int i, j;
 	GSList *acceptable, *unacceptable, *iter;
 
-	debug_printf (1, "qvalue tests\n");
 	for (i = 0; i < num_qvaluetests; i++) {
 		debug_printf (1, "%2d. %s:\n", i + 1, qvaluetests[i].header_value);
 
@@ -862,8 +857,6 @@ do_qvalue_tests (void)
 			soup_header_free_list (unacceptable);
 		} else
 			debug_printf (1, "(none)\n");
-
-		debug_printf (1, "\n");
 	}
 }
 
@@ -886,8 +879,6 @@ do_content_disposition_tests (void)
 	SoupBuffer *buffer;
 	SoupMultipart *multipart;
 	SoupMessageBody *body;
-
-	debug_printf (1, "Content-Disposition tests\n");
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
@@ -967,8 +958,6 @@ do_content_disposition_tests (void)
 	g_assert_true (strstr (buffer->data, "filename=\"token\""));
 
 	soup_buffer_free (buffer);
-
-	debug_printf (1, "\n");
 }
 
 #define CONTENT_TYPE_TEST_MIME_TYPE "text/plain"
@@ -984,8 +973,6 @@ do_content_type_tests (void)
 	SoupMessageHeaders *hdrs;
 	GHashTable *params;
 	const char *header, *mime_type;
-
-	debug_printf (1, "Content-Type tests\n");
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	params = g_hash_table_new (g_str_hash, g_str_equal);
@@ -1017,8 +1004,6 @@ do_content_type_tests (void)
 	g_assert_null (mime_type);
 
 	soup_message_headers_free (hdrs);
-
-	debug_printf (1, "\n");
 }
 
 struct {
@@ -1039,8 +1024,6 @@ do_append_param_tests (void)
 	GString *params;
 	int i;
 
-	debug_printf (1, "soup_header_g_string_append_param() tests\n");
-
 	params = g_string_new (NULL);
 	for (i = 0; i < G_N_ELEMENTS (test_params); i++) {
 		if (i > 0)
@@ -1051,8 +1034,6 @@ do_append_param_tests (void)
 	}
 	g_assert_cmpstr (params->str, ==, TEST_PARAMS_RESULT);
 	g_string_free (params, TRUE);
-
-	debug_printf (1, "\n");
 }
 
 static const struct {
@@ -1074,8 +1055,6 @@ do_bad_header_tests (void)
 {
 	SoupMessageHeaders *hdrs;
 	int i;
-
-	debug_printf (1, "bad header rejection tests\n");
 
 	hdrs = soup_message_headers_new (SOUP_MESSAGE_HEADERS_MULTIPART);
 	for (i = 0; i < G_N_ELEMENTS (bad_headers); i++) {

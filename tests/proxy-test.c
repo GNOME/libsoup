@@ -220,8 +220,6 @@ do_proxy_test (SoupProxyTest *test, gboolean sync)
 
 	g_free (http_url);
 	g_free (https_url);
-
-	debug_printf (1, "\n");
 }
 
 static void
@@ -264,8 +262,6 @@ do_proxy_fragment_test (gconstpointer data)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "\nTesting request with fragment via proxy\n");
-
 	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_PROXY_URI, proxy_uri,
@@ -292,8 +288,6 @@ do_proxy_redirect_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 	SOUP_TEST_SKIP_IF_NO_TLS;
-
-	debug_printf (1, "\nTesting redirection through proxy\n");
 
 	proxy_uri = soup_uri_new (proxies[SIMPLE_PROXY]);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,

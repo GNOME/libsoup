@@ -202,8 +202,6 @@ do_priority_tests (gconstpointer data)
 		  SOUP_MESSAGE_PRIORITY_HIGH,
 		  SOUP_MESSAGE_PRIORITY_NORMAL };
 
-	debug_printf (1, "\nSoupSessionAsync\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_object_set (session, "max-conns", 1, NULL);
 
@@ -262,8 +260,6 @@ do_property_tests (void)
 	GProxyResolver *proxy_resolver, *default_proxy_resolver;
 	GTlsDatabase *tlsdb, *default_tlsdb;
 	SoupURI *uri;
-
-	debug_printf (1, "\nTesting session init properties\n");
 
 	default_proxy_resolver = g_proxy_resolver_get_default ();
 	default_tlsdb = g_tls_backend_get_default_database (g_tls_backend_get_default ());

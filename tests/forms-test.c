@@ -95,8 +95,6 @@ do_hello_tests (gconstpointer uri)
 	return;
 #endif
 
-	debug_printf (1, "Hello tests (GET, application/x-www-form-urlencoded)\n");
-
 	for (n = 0; n < G_N_ELEMENTS (tests); n++) {
 		do_hello_test (n, FALSE, uri);
 		do_hello_test (n, TRUE, uri);
@@ -146,8 +144,6 @@ do_md5_test_curl (gconstpointer data)
 	return;
 #endif
 
-	debug_printf (1, "\nMD5 test via curl (POST, multipart/form-data)\n");
-
 	md5 = get_md5_data (NULL, NULL);
 	if (!md5)
 		return;
@@ -192,8 +188,6 @@ do_md5_test_libsoup (gconstpointer data)
 	SoupMessage *msg;
 	SoupSession *session;
 
-	debug_printf (1, "\nMD5 test via libsoup (POST, multipart/form-data)\n");
-
 	md5 = get_md5_data (&contents, &length);
 	if (!md5)
 		return;
@@ -234,8 +228,6 @@ do_form_decode_test (void)
 	g_test_skip ("/usr/bin/curl is not available");
 	return;
 #endif
-
-	debug_printf (1, "\nDecode tests\n");
 
 	/*  Test that the code handles multiple values with the same key.  */
 	table = soup_form_decode ("foo=first&foo=second&foo=third");

@@ -88,12 +88,6 @@ do_test1 (gconstpointer data)
 {
 	gboolean use_thread_context = GPOINTER_TO_INT (data);
 
-	debug_printf (1, "\nBlocking the main thread does not block other thread\n");
-	if (use_thread_context)
-		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
-	else
-		debug_printf (1, "(Using SOUP_SESSION_ASYNC_CONTEXT)\n");
-
 	test1_loop = g_main_loop_new (NULL, FALSE);
 	g_idle_add (idle_start_test1_thread, GINT_TO_POINTER (use_thread_context));
 	g_main_loop_run (test1_loop);
@@ -198,12 +192,6 @@ do_test2 (gconstpointer data)
 	char *uri;
 	SoupMessage *msg;
 
-	debug_printf (1, "\nA session with its own context is independent of the main loop.\n");
-	if (use_thread_context)
-		debug_printf (1, "(Using g_main_context_push_thread_default())\n");
-	else
-		debug_printf (1, "(Using SOUP_SESSION_ASYNC_CONTEXT)\n");
-
 	idle = g_idle_add_full (G_PRIORITY_HIGH, idle_test2_fail, NULL, NULL);
 
 	async_context = g_main_context_new ();
@@ -274,8 +262,6 @@ do_multicontext_test (void)
 	SoupMessage *msg1, *msg2;
 	GMainContext *context1, *context2;
 	GMainLoop *loop1, *loop2;
-
-	debug_printf (1, "\nUsing multiple async contexts\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,

@@ -294,7 +294,6 @@ do_pipelined_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "Testing pipelined auth (bug 271540):\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	authenticated = FALSE;
@@ -447,8 +446,6 @@ do_digest_expiration_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "\nTesting digest nonce expiration:\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	uri = g_strconcat (base_uri, "Digest/realm1/", NULL);
@@ -552,8 +549,6 @@ do_async_auth_good_password_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "\nTesting async auth:\n");
-
 	loop = g_main_loop_new (NULL, TRUE);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	uri = g_strconcat (base_uri, "Basic/realm1/", NULL);
@@ -637,7 +632,6 @@ do_async_auth_bad_password_test (void)
 	/* Test that giving the wrong password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
-	debug_printf (1, "\nTesting async auth with wrong password (#522601):\n");
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -690,7 +684,6 @@ do_async_auth_no_password_test (void)
 	/* Test that giving no password doesn't cause multiple
 	 * authenticate signals the second time.
 	 */
-	debug_printf (1, "\nTesting async auth with no password (#583462):\n");
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
@@ -859,8 +852,6 @@ do_select_auth_test (void)
 	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
 	SoupURI *uri;
 
-	debug_printf (1, "\nTesting selection among multiple auths:\n");
-
 	/* It doesn't seem to be possible to configure Apache to serve
 	 * multiple auth types for a single URL. So we have to use
 	 * SoupServer here. We know that SoupServer handles the server
@@ -1015,8 +1006,6 @@ do_auth_close_test (void)
 	SoupURI *uri;
 	AuthCloseData acd;
 
-	debug_printf (1, "\nTesting auth when server times out connection:\n");
-
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
@@ -1074,8 +1063,6 @@ do_infinite_auth_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "\nTesting broken infinite-loop auth:\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (infinite_authenticate), NULL);
@@ -1129,8 +1116,6 @@ do_disappearing_auth_test (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
-
-	debug_printf (1, "\nTesting auth when server does not repeat challenge on failure:\n");
 
 	server = soup_test_server_new (FALSE);
 	soup_server_add_handler (server, NULL,

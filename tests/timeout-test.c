@@ -155,8 +155,6 @@ do_req_tests_for_session (SoupSession *timeout_session,
 	SoupSocket *ret, *idle_first, *idle_second;
 	SoupSocket *plain_first, *plain_second;
 
-	debug_printf (1, "\n");
-
 	if (idle_session) {
 		g_signal_connect (idle_session, "request-started",
 				  G_CALLBACK (request_started_cb), &ret);

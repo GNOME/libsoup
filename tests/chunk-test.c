@@ -142,24 +142,17 @@ static void
 do_request_test (gconstpointer data)
 {
 	RequestTestFlags flags = GPOINTER_TO_UINT (data);
-	SoupURI *uri = base_uri;
+	SoupURI *uri;
 	PutTestData ptd;
 	SoupMessage *msg;
 	const char *client_md5, *server_md5;
 	GChecksum *check;
 	int i, length;
 
-	debug_printf (1, "PUT");
-	if (flags & HACKY_STREAMING)
-		debug_printf (1, " w/ hacky streaming");
-	else if (flags & PROPER_STREAMING)
-		debug_printf (1, " w/ proper streaming");
-	if (flags & RESTART) {
-		debug_printf (1, " and restart");
+	if (flags & RESTART)
+		uri = soup_uri_new_with_base (base_uri, "/redirect");
+	else
 		uri = soup_uri_copy (base_uri);
-		soup_uri_set_path (uri, "/redirect");
-	}
-	debug_printf (1, "\n");
 
 	ptd.session = session;
 	setup_request_body (&ptd);
@@ -215,8 +208,7 @@ do_request_test (gconstpointer data)
 	g_object_unref (msg);
 	g_checksum_free (check);
 
-	if (uri != base_uri)
-		soup_uri_free (uri);
+	soup_uri_free (uri);
 }
 
 typedef struct {
@@ -262,8 +254,6 @@ do_response_test (void)
 	GetTestData gtd;
 	SoupMessage *msg;
 	const char *client_md5, *server_md5;
-
-	debug_printf (1, "GET\n");
 
 	gtd.current_chunk = NULL;
 	gtd.length = 0;
@@ -324,8 +314,6 @@ do_temporary_test (void)
 	char *client_md5;
 	const char *server_md5;
 
-	debug_printf (1, "PUT w/ temporary buffers\n");
-
 	msg = soup_message_new_from_uri ("PUT", base_uri);
 	soup_message_body_append (msg->request_body, SOUP_MEMORY_TEMPORARY,
 				  "one\r\n", 5);
@@ -374,8 +362,6 @@ do_large_chunk_test (void)
 	char *buf_data;
 	int i;
 	LargeChunkData lcd;
-
-	debug_printf (1, "PUT w/ large chunk\n");
 
 	msg = soup_message_new_from_uri ("PUT", base_uri);
 

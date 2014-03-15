@@ -117,7 +117,7 @@ test_sum (void)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "sum (array of int -> int): ");
+	debug_printf (2, "sum (array of int -> int): ");
 
 	ints = g_value_array_new (10);
 	for (i = sum = 0; i < 10; i++) {
@@ -153,7 +153,7 @@ test_countBools (void)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "countBools (array of boolean -> struct of ints): ");
+	debug_printf (2, "countBools (array of boolean -> struct of ints): ");
 
 	bools = g_value_array_new (10);
 	for (i = trues = falses = 0; i < 10; i++) {
@@ -198,7 +198,7 @@ test_md5sum (void)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "md5sum (base64 -> base64)\n");
+	debug_printf (2, "md5sum (base64 -> base64)\n");
 
 	data = g_byte_array_new ();
 	g_byte_array_set_size (data, 256);
@@ -234,7 +234,7 @@ test_dateChange (void)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "dateChange (date, struct of ints -> time)\n");
+	debug_printf (2, "dateChange (date, struct of ints -> time)\n");
 
 	date = soup_date_new (1970 + (g_random_int_range (0, 50)),
 			      1 + g_random_int_range (0, 12),
@@ -343,7 +343,7 @@ test_echo (void)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "echo (array of string -> array of string):\n");
+	debug_printf (2, "echo (array of string -> array of string):\n");
 
 	originals = g_value_array_new (N_ECHO_STRINGS);
 	for (i = 0; i < N_ECHO_STRINGS; i++) {
@@ -395,7 +395,7 @@ test_ping (gconstpointer include_params)
 
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "ping (void (%s) -> string)\n",
+	debug_printf (2, "ping (void (%s) -> string)\n",
 		      include_params ? "empty <params>" : "no <params>");
 
 	params = soup_value_array_new ();
@@ -464,8 +464,6 @@ test_fault_malformed (void)
 {
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "malformed request: ");
-
 	do_bad_xmlrpc ("<methodCall/>");
 }
 
@@ -474,8 +472,6 @@ test_fault_method (void)
 {
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
 
-	debug_printf (1, "request to non-existent method: ");
-
 	do_bad_xmlrpc ("<methodCall><methodName>no_such_method</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
 }
 
@@ -483,8 +479,6 @@ static void
 test_fault_args (void)
 {
 	SOUP_TEST_SKIP_IF_NO_XMLRPC_SERVER;
-
-	debug_printf (1, "request with invalid args: ");
 
 	do_bad_xmlrpc ("<methodCall><methodName>sum</methodName><params><param><value><int>1</int></value></param></params></methodCall>");
 }

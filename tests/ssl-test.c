@@ -143,8 +143,6 @@ do_session_property_tests (void)
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	debug_printf (1, "session properties\n");
-
 	session = soup_session_async_new ();
 	g_signal_connect (session, "notify::ssl-use-system-ca-file",
 			  G_CALLBACK (property_changed), &use_system_changed);

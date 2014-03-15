@@ -166,8 +166,6 @@ do_content_length_framing_test (void)
 	SoupURI *request_uri;
 	goffset declared_length;
 
-	debug_printf (1, "\nInvalid Content-Length framing tests\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "  Content-Length larger than message body length\n");
@@ -353,8 +351,6 @@ do_persistent_connection_timeout_test (void)
 {
 	SoupSession *session;
 
-	debug_printf (1, "\nUnexpected timing out of persistent connections\n");
-
 	debug_printf (1, "  Async session, message API\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_timeout_test_for_session (session);
@@ -475,8 +471,6 @@ do_max_conns_test (void)
 {
 	SoupSession *session;
 
-	debug_printf (1, "\nExceeding max-conns\n");
-
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_MAX_CONNS, MAX_CONNS,
@@ -554,8 +548,6 @@ do_non_persistent_connection_test (void)
 {
 	SoupSession *session;
 
-	debug_printf (1, "\nNon-persistent connections are closed immediately\n");
-
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_non_persistent_test_for_session (session);
@@ -607,8 +599,6 @@ static void
 do_non_idempotent_connection_test (void)
 {
 	SoupSession *session;
-
-	debug_printf (1, "\nNon-idempotent methods are always sent on new connections\n");
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -724,8 +714,6 @@ do_connection_state_test (void)
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
 
-	debug_printf (1, "\nConnection states\n");
-
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_connection_state_test_for_session (session);
@@ -833,8 +821,6 @@ do_connection_event_test (void)
 	SoupSession *session;
 
 	SOUP_TEST_SKIP_IF_NO_APACHE;
-
-	debug_printf (1, "\nConnection events\n");
 
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);

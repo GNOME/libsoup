@@ -409,19 +409,6 @@ sync_multipart_handling_cb (GObject *source, GAsyncResult *res, gpointer data)
 	g_object_unref (multipart);
 }
 
-static const char*
-multipart_mode_to_string (MultipartMode mode)
-{
-	if (mode == NO_MULTIPART)
-		return "NO_MULTIPART";
-	else if (mode == SYNC_MULTIPART)
-		return "SYNC_MULTIPART";
-	else if (mode == ASYNC_MULTIPART_SMALL_READS)
-		return "SYNC_MULTIPART_SMALL_READS";
-
-	return "ASYNC_MULTIPART";
-}
-
 static void
 test_multipart (gconstpointer data)
 {
@@ -436,8 +423,6 @@ test_multipart (gconstpointer data)
 	const char *content_type;
 	gboolean message_is_multipart = FALSE;
 	GError* error = NULL;
-
-	debug_printf (1, "test_multipart(%s)\n", multipart_mode_to_string (multipart_mode));
 
 	request = soup_session_request (session, base_uri_string, &error);
 	g_assert_no_error (error);

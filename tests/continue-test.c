@@ -59,13 +59,6 @@ do_message (const char *path, gboolean long_body,
 	const char *expected_event;
 	char *actual_event;
 	int expected_status, actual_status;
-	static int count = 1;
-
-	debug_printf (1, "%d. /%s, %s body, %sExpect, %s password\n",
-		      count++, path,
-		      long_body ? "long" : "short",
-		      expect_continue ? "" : "no ",
-		      auth ? "with" : "without");
 
 	uri = g_strdup_printf ("http://%s127.0.0.1:%d/%s",
 			       auth ? "user:pass@" : "",

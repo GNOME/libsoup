@@ -99,8 +99,6 @@ do_host_test (void)
 	SoupSession *session;
 	SoupMessage *one, *two;
 
-	debug_printf (1, "Host handling\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
 	one = soup_message_new_from_uri ("GET", base_uri);
@@ -157,8 +155,6 @@ do_callback_unref_test (void)
 	SoupMessage *one, *two;
 	GMainLoop *loop;
 	char *bad_uri;
-
-	debug_printf (1, "\nCallback unref handling (msg api)\n");
 
 	/* Get a guaranteed-bad URI */
 	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
@@ -252,8 +248,6 @@ do_callback_unref_req_test (void)
 	GMainLoop *loop;
 	char *bad_uri;
 
-	debug_printf (1, "\nCallback unref handling (request api)\n");
-
 	/* Get a guaranteed-bad URI */
 	addr = soup_address_new ("127.0.0.1", SOUP_ADDRESS_ANY_PORT);
 	soup_address_resolve_sync (addr, NULL);
@@ -342,8 +336,6 @@ do_msg_reuse_test (void)
 	SoupMessage *msg;
 	SoupURI *uri;
 	guint *signal_ids, n_signal_ids;
-
-	debug_printf (1, "\nSoupMessage reuse\n");
 
 	signal_ids = g_signal_list_ids (SOUP_TYPE_MESSAGE, &n_signal_ids);
 
@@ -434,8 +426,6 @@ do_early_abort_test (void)
 	SoupMessage *msg;
 	GMainContext *context;
 	GMainLoop *loop;
-
-	debug_printf (1, "\nAbort with pending connection (msg api)\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
@@ -537,8 +527,6 @@ do_early_abort_req_test (void)
 	GMainLoop *loop;
 	GCancellable *cancellable;
 
-	debug_printf (1, "\nAbort with pending connection (request api)\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 NULL);
@@ -619,8 +607,6 @@ static void
 do_accept_language_test (void)
 {
 	const char *orig_language;
-
-	debug_printf (1, "\nAutomatic Accept-Language processing\n");
 
 	orig_language = g_getenv ("LANGUAGE");
 	do_one_accept_language_test ("C", "en");
@@ -705,8 +691,6 @@ do_cancel_while_reading_test (void)
 {
 	SoupSession *session;
 
-	debug_printf (1, "\nCancelling message while reading response (msg api)\n");
-
 	debug_printf (1, "  Async session\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_cancel_while_reading_test_for_session (session);
@@ -746,7 +730,6 @@ do_cancel_while_reading_immediate_req_test (void)
 	SoupSession *session;
 	guint flags;
 
-	debug_printf (1, "\nCancelling (immediately) message while reading response (request api)\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 
 	debug_printf (1, "  Async session\n");
@@ -769,7 +752,6 @@ do_cancel_while_reading_delayed_req_test (void)
 	SoupSession *session;
 	guint flags;
 
-	debug_printf (1, "\nCancelling (after 100ms) message while reading response (request api)\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_SOON;
 
 	debug_printf (1, "  Async session\n");
@@ -792,7 +774,6 @@ do_cancel_while_reading_preemptive_req_test (void)
 	SoupSession *session;
 	guint flags;
 
-	debug_printf (1, "\nCancelling (preemptively) message while reading response (request api)\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE;
 
 	debug_printf (1, "  Async session\n");
@@ -841,8 +822,6 @@ do_aliases_test (void)
 	SoupSession *session;
 	char *aliases[] = { "foo", NULL };
 
-	debug_printf (1, "\nhttp-aliases / https-aliases\n");
-
 	debug_printf (1, "  Default behavior\n");
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	do_aliases_test_for_session (session, "http");
@@ -873,8 +852,6 @@ do_idle_on_dispose_test (void)
 	SoupMessage *msg;
 	GMainContext *async_context;
 
-	debug_printf (1, "\nTesting SoupSessionAsync dispose behavior\n");
-
 	async_context = g_main_context_new ();
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
 					 SOUP_SESSION_ASYNC_CONTEXT, async_context,
@@ -902,8 +879,6 @@ do_pause_abort_test (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	gpointer ptr;
-
-	debug_printf (1, "\nTesting paused messages don't get leaked on abort\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 

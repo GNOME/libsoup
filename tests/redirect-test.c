@@ -163,10 +163,6 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	SoupMessage *msg;
 	TestRequest *treq;
 
-	debug_printf (1, "%s %s\n",
-		      test->requests[0].method,
-		      test->requests[0].path);
-
 	uri = soup_uri_new_with_base (base_uri, test->requests[0].path);
 	msg = soup_message_new_from_uri (test->requests[0].method, uri);
 	soup_uri_free (uri);
@@ -189,7 +185,6 @@ do_message_api_test (SoupSession *session, TestCase *test)
 	soup_test_assert_message_status (msg, test->final_status);
 
 	g_object_unref (msg);
-	debug_printf (2, "\n");
 }
 
 static void
@@ -203,10 +198,6 @@ do_request_api_test (SoupSession *session, TestCase *test)
 	GError *error = NULL;
 	guint final_status;
 
-	debug_printf (1, "%s %s\n",
-		      test->requests[0].method,
-		      test->requests[0].path);
-
 	final_status = test->request_api_final_status;
 	if (!final_status)
 		final_status = test->final_status;
@@ -219,7 +210,6 @@ do_request_api_test (SoupSession *session, TestCase *test)
 	g_assert_no_error (error);
 	if (error) {
 		g_error_free (error);
-		debug_printf (2, "\n");
 		return;
 	}
 
@@ -248,7 +238,6 @@ do_request_api_test (SoupSession *session, TestCase *test)
 
 		g_object_unref (msg);
 		g_object_unref (reqh);
-		debug_printf (2, "\n");
 		return;
 	}
 
@@ -257,7 +246,6 @@ do_request_api_test (SoupSession *session, TestCase *test)
 		g_error_free (error);
 		g_object_unref (msg);
 		g_object_unref (reqh);
-		debug_printf (2, "\n");
 		return;
 	}
 
@@ -274,7 +262,6 @@ do_request_api_test (SoupSession *session, TestCase *test)
 
 	g_object_unref (msg);
 	g_object_unref (reqh);
-	debug_printf (2, "\n");
 }
 
 static void

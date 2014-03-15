@@ -358,8 +358,6 @@ do_io_tests (void)
 	gssize nread, nwrote, total;
 	gssize chunk_length, chunk_total;
 
-	debug_printf (1, "\nI/O tests\n");
-
 	raw_contents = soup_test_get_index ();
 	chunkified = chunkify (raw_contents->data, raw_contents->length);
 

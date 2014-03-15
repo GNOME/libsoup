@@ -397,8 +397,6 @@ test_disabled (gconstpointer data)
 	const char *sniffed_content_type;
 	GError *error = NULL;
 
-	debug_printf (1, "test_disabled(\"%s\")\n", path);
-
 	uri = soup_uri_new_with_base (base_uri, path);
 
 	msg = soup_message_new_from_uri ("GET", uri);

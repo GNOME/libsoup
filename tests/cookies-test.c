@@ -55,8 +55,6 @@ do_cookies_accept_policy_test (void)
 	GSList *l, *p;
 	int i;
 
-	debug_printf (1, "SoupCookieJarAcceptPolicy test\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);
 	jar = SOUP_COOKIE_JAR (soup_session_get_feature (session, SOUP_TYPE_COOKIE_JAR));
@@ -106,8 +104,6 @@ do_cookies_parsing_test (void)
 	GSList *cookies, *iter;
 	SoupCookie *cookie;
 	gboolean got1, got2, got3;
-
-	debug_printf (1, "\nSoupCookie parsing test\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	soup_session_add_feature_by_type (session, SOUP_TYPE_COOKIE_JAR);

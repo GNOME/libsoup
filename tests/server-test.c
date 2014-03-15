@@ -65,8 +65,6 @@ do_star_test (void)
 	SoupURI *star_uri;
 	const char *handled_by;
 
-	debug_printf (1, "\nOPTIONS *\n");
-
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 	star_uri = soup_uri_copy (base_uri);
 	soup_uri_set_path (star_uri, "*");
@@ -177,8 +175,6 @@ do_server_aliases_test (void)
 	char *https_bad[] = { "http", "dav", "fred", NULL };
 	int i;
 
-	debug_printf (1, "\nserver aliases test\n");
-
 	for (i = 0; http_good[i]; i++)
 		do_one_server_aliases_test (base_uri, http_good[i], TRUE);
 	for (i = 0; http_bad[i]; i++)
@@ -198,8 +194,6 @@ do_dot_dot_test (void)
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
-
-	debug_printf (1, "\n'..' smuggling test\n");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
@@ -242,8 +236,6 @@ do_ipv6_test (void)
 	SoupAddress *ipv6_addr;
 	SoupSession *session;
 	SoupMessage *msg;
-
-	debug_printf (1, "\nIPv6 server test\n");
 
 	ipv6_addr = soup_address_new ("::1", SOUP_ADDRESS_ANY_PORT);
 	soup_address_resolve_sync (ipv6_addr, NULL);
