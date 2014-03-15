@@ -48,14 +48,14 @@ struct _SoupMessageQueueItem {
 	guint new_api           : 1;
 	guint io_started        : 1;
 	guint async             : 1;
-	guint resend_count      : 28;
+	guint priority          : 3;
+	guint resend_count      : 25;
 
 	SoupMessageQueueItemState state;
 
 	/*< private >*/
-	guint removed              : 1;
-	guint priority             : 3;
-	guint ref_count            : 28;
+	guint removed           : 1;
+	guint ref_count         : 31;
 	SoupMessageQueueItem *prev, *next;
 	SoupMessageQueueItem *related;
 };
