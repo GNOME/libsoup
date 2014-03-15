@@ -824,8 +824,6 @@ do_select_auth_test (void)
 	SoupAuthDomain *basic_auth_domain, *digest_auth_domain;
 	SoupURI *uri;
 
-	SOUP_TEST_SKIP_IF_NO_APACHE;
-
 	debug_printf (1, "\nTesting selection among multiple auths:\n");
 
 	/* It doesn't seem to be possible to configure Apache to serve
@@ -982,8 +980,6 @@ do_auth_close_test (void)
 	SoupURI *uri;
 	AuthCloseData acd;
 
-	SOUP_TEST_SKIP_IF_NO_APACHE;
-
 	debug_printf (1, "\nTesting auth when server times out connection:\n");
 
 	server = soup_test_server_new (FALSE);
@@ -1098,8 +1094,6 @@ do_disappearing_auth_test (void)
 	SoupMessage *msg;
 	SoupSession *session;
 	int counter;
-
-	SOUP_TEST_SKIP_IF_NO_APACHE;
 
 	debug_printf (1, "\nTesting auth when server does not repeat challenge on failure:\n");
 
