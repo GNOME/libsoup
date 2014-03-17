@@ -1,3 +1,25 @@
+Changes in libsoup from 2.45.90 to 2.45.92:
+
+	* Fixed problems with using an http proxy on port 80. [patch
+          from Slava Monich on libsoup-list]
+
+	* Plugged a small per-connection leak. [patch from Slava
+          Monich on libsoup-list]
+
+	* Belatedly bumped up the glib requirement to 2.38, which is
+          required for the TAP driver.
+
+	* Fixed up some leftover issues from the test porting to
+          gtestutils:
+
+	      test-utils: change http_debug command-line flag
+	      xmlrpc-test: use g_test_skip()
+	      redirect-test: remove a flaky test
+	      auth-test: remove some erroneous SKIP_IF_NO_APACHEs
+	      tests: split up some test programs into more tests
+	      tests: remove debug_printf()s that are redundant with test names
+	      tests: use g_test_bug() to annotate test cases
+
 Changes in libsoup from 2.45.3 to 2.45.90:
 
 	* Fixed a problem where libsoup would use the "http" proxy
