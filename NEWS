@@ -1,3 +1,7 @@
+Changes in libsoup from 2.45.92 to 2.46.0:
+
+	* (No changes, just a version bump)
+
 Changes in libsoup from 2.45.90 to 2.45.92:
 
 	* Fixed problems with using an http proxy on port 80. [patch
