@@ -37,9 +37,16 @@
  * handler by calling soup_server_add_handler(); the handler will be
  * called to process any requests underneath the path passed to
  * soup_server_add_handler(). (If you want all requests to go to the
- * same handler, just pass "/" (or %NULL) for the path.) Any request
- * that does not match any handler will automatically be returned to
- * the client with a 404 (Not Found) status.
+ * same handler, just pass "/" (or %NULL) for the path.)
+ *
+ * Handlers added with soup_server_add_handler() will be invoked after
+ * #SoupServer has finished reading the message body. To begin
+ * processing the message before the body has been read, use
+ * soup_server_add_early_handler() (in which case your handler will be
+ * invoked after the headers have been read, but before the body).
+ *
+ * Any request that does not match any handler will automatically be
+ * returned to the client with a 404 (Not Found) status.
  *
  * If you want to handle the special "*" URI (eg, "OPTIONS *"), you
  * must explicitly register a handler for "*"; the default handler
@@ -122,8 +129,7 @@ typedef struct {
 	GMainLoop         *loop;
 
 	gboolean           raw_paths;
-	SoupPathMap       *handlers;
-	SoupServerHandler *default_handler;
+	SoupPathMap       *handlers, *early_handlers;
 	
 	GSList            *auth_domains;
 
@@ -162,10 +168,10 @@ static SoupClientContext *soup_client_context_ref (SoupClientContext *client);
 static void soup_client_context_unref (SoupClientContext *client);
 
 static void
-free_handler (SoupServerHandler *hand)
+free_handler (SoupServerHandler *handler)
 {
-	g_free (hand->path);
-	g_slice_free (SoupServerHandler, hand);
+	g_free (handler->path);
+	g_slice_free (SoupServerHandler, handler);
 }
 
 static void
@@ -174,6 +180,7 @@ soup_server_init (SoupServer *server)
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 
 	priv->handlers = soup_path_map_new ((GDestroyNotify)free_handler);
+	priv->early_handlers = soup_path_map_new ((GDestroyNotify)free_handler);
 
 	priv->http_aliases = g_new (char *, 2);
 	priv->http_aliases[0] = (char *)g_intern_string ("*");
@@ -232,8 +239,8 @@ soup_server_finalize (GObject *object)
 		soup_client_context_unref (client);
 	}
 
-	g_clear_pointer (&priv->default_handler, free_handler);
 	soup_path_map_free (priv->handlers);
+	soup_path_map_free (priv->early_handlers);
 
 	g_slist_free_full (priv->auth_domains, g_object_unref);
 
@@ -537,9 +544,9 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * @message will have all of its request-side information
 	 * filled in, and if the message was authenticated, @client
 	 * will have information about that. This signal is emitted
-	 * before any handlers are called for the message, and if it
-	 * sets the message's #status_code, then normal handler
-	 * processing will be skipped.
+	 * before any (non-early) handlers are called for the message,
+	 * and if it sets the message's #status_code, then normal
+	 * handler processing will be skipped.
 	 **/
 	signals[REQUEST_READ] =
 		g_signal_new ("request-read",
@@ -1148,23 +1155,44 @@ request_finished (SoupMessage *msg, gboolean io_complete, gpointer user_data)
 	g_object_unref (sock);
 }
 
-static SoupServerHandler *
-soup_server_get_handler (SoupServer *server, const char *path)
+/* Returns FALSE if no handler has run */
+static gboolean
+call_handler (SoupServer *server, SoupClientContext *client,
+	      SoupMessage *msg, gboolean early)
 {
-	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerHandler *handler;
+	SoupURI *uri;
+	const char *path;
+	GHashTable *form_data_set;
 
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
+	if (msg->status_code != 0)
+		return TRUE;
 
-	if (path) {
-		hand = soup_path_map_lookup (priv->handlers, path);
-		if (hand)
-			return hand;
-		if (!strcmp (path, "*"))
-			return NULL;
+	uri = soup_message_get_uri (msg);
+	path = *uri->path ? uri->path : "/";
+
+	handler = soup_path_map_lookup (early ? priv->early_handlers : priv->handlers, path);
+	if (!handler) {
+		if (early)
+			return FALSE;
+		else
+			return soup_path_map_lookup (priv->early_handlers, path) != NULL;
 	}
-	return priv->default_handler;
+
+	if (uri->query)
+		form_data_set = soup_form_decode (uri->query);
+	else
+		form_data_set = NULL;
+
+	(*handler->callback) (server, msg,
+			      uri->path, form_data_set,
+			      client, handler->user_data);
+
+	if (form_data_set)
+		g_hash_table_unref (form_data_set);
+
+	return TRUE;
 }
 
 static void
@@ -1232,53 +1260,30 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 		}
 	}
 
-	/* If no auth domain rejected it, then it's ok. */
-	if (!rejected)
+	/* If any auth domain rejected it, then it will need authentication. */
+	if (rejected) {
+		for (iter = priv->auth_domains; iter; iter = iter->next) {
+			domain = iter->data;
+
+			if (soup_auth_domain_covers (domain, msg))
+				soup_auth_domain_challenge (domain, msg);
+		}
 		return;
-
-	for (iter = priv->auth_domains; iter; iter = iter->next) {
-		domain = iter->data;
-
-		if (soup_auth_domain_covers (domain, msg))
-			soup_auth_domain_challenge (domain, msg);
 	}
+
+	/* Otherwise, call the early handlers. */
+	call_handler (server, client, msg, TRUE);
 }
 
 static void
-call_handler (SoupMessage *msg, SoupClientContext *client)
+got_body (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
-	SoupServerHandler *hand;
-	SoupURI *uri;
 
 	g_signal_emit (server, signals[REQUEST_READ], 0, msg, client);
 
-	if (msg->status_code != 0)
-		return;
-
-	uri = soup_message_get_uri (msg);
-	hand = soup_server_get_handler (server, uri->path);
-	if (!hand) {
+	if (!call_handler (server, client, msg, FALSE))
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
-		return;
-	}
-
-	if (hand->callback) {
-		GHashTable *form_data_set;
-
-		if (uri->query)
-			form_data_set = soup_form_decode (uri->query);
-		else
-			form_data_set = NULL;
-
-		/* Call method handler */
-		(*hand->callback) (server, msg,
-				   uri->path, form_data_set,
-				   client, hand->user_data);
-
-		if (form_data_set)
-			g_hash_table_unref (form_data_set);
-	}
 }
 
 static void
@@ -1301,7 +1306,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 	}
 
 	g_signal_connect (msg, "got_headers", G_CALLBACK (got_headers), client);
-	g_signal_connect (msg, "got_body", G_CALLBACK (call_handler), client);
+	g_signal_connect (msg, "got_body", G_CALLBACK (got_body), client);
 
 	g_signal_emit (server, signals[REQUEST_STARTED], 0,
 		       msg, client);
@@ -2181,14 +2186,12 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * @msg: the message being processed
  * @path: the path component of @msg's Request-URI
  * @query: (element-type utf8 utf8) (allow-none): the parsed query
- *         component of @msg's Request-URI
+ *   component of @msg's Request-URI
  * @client: additional contextual information about the client
- * @user_data: the data passed to @soup_server_add_handler
+ * @user_data: the data passed to soup_server_add_handler() or
+ *   soup_server_add_early_handler().
  *
- * A callback used to handle requests to a #SoupServer. The callback
- * will be invoked after receiving the request body; @msg's
- * #SoupMessage:method, #SoupMessage:request_headers, and
- * #SoupMessage:request_body fields will be filled in.
+ * A callback used to handle requests to a #SoupServer.
  *
  * @path and @query contain the likewise-named components of the
  * Request-URI, subject to certain assumptions. By default,
@@ -2209,30 +2212,37 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * and call soup_message_get_uri() and parse the URI's query field
  * yourself.
  *
- * After determining what to do with the request, the callback must at
- * a minimum call soup_message_set_status() (or
- * soup_message_set_status_full()) on @msg to set the response status
- * code. Additionally, it may set response headers and/or fill in the
- * response body.
- *
- * If the callback cannot fully fill in the response before returning
- * (eg, if it needs to wait for information from a database, or
- * another network server), it should call soup_server_pause_message()
- * to tell #SoupServer to not send the response right away. When the
- * response is ready, call soup_server_unpause_message() to cause it
- * to be sent.
- *
- * To send the response body a bit at a time using "chunked" encoding,
- * first call soup_message_headers_set_encoding() to set
- * %SOUP_ENCODING_CHUNKED on the #SoupMessage:response_headers. Then call
- * soup_message_body_append() (or soup_message_body_append_buffer())
- * to append each chunk as it becomes ready, and
- * soup_server_unpause_message() to make sure it's running. (The
- * server will automatically pause the message if it is using chunked
- * encoding but no more chunks are available.) When you are done, call
- * soup_message_body_complete() to indicate that no more chunks are
- * coming.
+ * See soup_server_add_handler() and soup_server_add_early_handler()
+ * for details of what handlers can/should do.
  **/
+
+static void
+add_handler_internal (SoupServer            *server,
+		      SoupPathMap           *handlers,
+		      const char            *path,
+		      SoupServerCallback     callback,
+		      gpointer               user_data,
+		      GDestroyNotify         destroy)
+{
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerHandler *handler;
+
+	/* "" was never documented as meaning the same thing as "/",
+	 * but it effectively was. We have to special case it now or
+	 * otherwise it would match "*" too.
+	 */
+	if (!path || !*path)
+		path = "/";
+
+	handler = g_slice_new0 (SoupServerHandler);
+	handler->path       = g_strdup (path);
+	handler->callback   = callback;
+	handler->destroy    = destroy;
+	handler->user_data  = user_data;
+
+	soup_server_remove_handler (server, path);
+	soup_path_map_add (priv->handlers, path, handler);
+}
 
 /**
  * soup_server_add_handler:
@@ -2242,15 +2252,43 @@ soup_client_context_get_auth_user (SoupClientContext *client)
  * @user_data: data for @callback
  * @destroy: destroy notifier to free @user_data
  *
- * Adds a handler to @server for requests under @path. See the
- * documentation for #SoupServerCallback for information about
- * how callbacks should behave.
+ * Adds a handler to @server for requests under @path. If @path is
+ * %NULL or "/", then this will be the default handler for all
+ * requests that don't have a more specific handler. (Note though that
+ * if you want to handle requests to the special "*" URI, you must
+ * explicitly register a handler for "*"; the default handler will not
+ * be used for that case.)
  *
- * If @path is %NULL or "/", then this will be the default handler for
- * all requests that don't have a more specific handler. Note though
- * that if you want to handle requests to the special "*" URI, you
- * must explicitly register a handler for "*"; the default handler
- * will not be used for that case.
+ * For requests under @path (that have not already been assigned a
+ * status code by a #SoupAuthDomain, an early #SoupServerHandler, or a
+ * signal handler), @callback will be invoked after receiving the
+ * request body; the message's #SoupMessage:method,
+ * #SoupMessage:request-headers, and #SoupMessage:request-body fields
+ * will be filled in.
+ *
+ * After determining what to do with the request, the callback must at
+ * a minimum call soup_message_set_status() (or
+ * soup_message_set_status_full()) on the message to set the response
+ * status code. Additionally, it may set response headers and/or fill
+ * in the response body.
+ *
+ * If the callback cannot fully fill in the response before returning
+ * (eg, if it needs to wait for information from a database, or
+ * another network server), it should call soup_server_pause_message()
+ * to tell @server to not send the response right away. When the
+ * response is ready, call soup_server_unpause_message() to cause it
+ * to be sent.
+ *
+ * To send the response body a bit at a time using "chunked" encoding,
+ * first call soup_message_headers_set_encoding() to set
+ * %SOUP_ENCODING_CHUNKED on the #SoupMessage:response-headers. Then call
+ * soup_message_body_append() (or soup_message_body_append_buffer())
+ * to append each chunk as it becomes ready, and
+ * soup_server_unpause_message() to make sure it's running. (The
+ * server will automatically pause the message if it is using chunked
+ * encoding but no more chunks are available.) When you are done, call
+ * soup_message_body_complete() to indicate that no more chunks are
+ * coming.
  **/
 void
 soup_server_add_handler (SoupServer            *server,
@@ -2260,37 +2298,85 @@ soup_server_add_handler (SoupServer            *server,
 			 GDestroyNotify         destroy)
 {
 	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	/* "" was never documented as meaning the same this as "/",
-	 * but it effectively was. We have to special case it now or
-	 * otherwise it would match "*" too.
-	 */
-	if (path && (!*path || !strcmp (path, "/")))
-		path = NULL;
+	add_handler_internal (server, priv->handlers,
+			      path, callback, user_data, destroy);
+}
 
-	hand = g_slice_new0 (SoupServerHandler);
-	hand->path       = g_strdup (path);
-	hand->callback   = callback;
-	hand->destroy    = destroy;
-	hand->user_data  = user_data;
+/**
+ * soup_server_add_early_handler:
+ * @server: a #SoupServer
+ * @path: (allow-none): the toplevel path for the handler
+ * @callback: callback to invoke for requests under @path
+ * @user_data: data for @callback
+ * @destroy: destroy notifier to free @user_data
+ *
+ * Adds an "early" handler to @server for requests under @path. If
+ * @path is %NULL or "/", then this will be the default handler for
+ * all requests that don't have a more specific handler. (Note though
+ * that if you want to handle requests to the special "*" URI, you
+ * must explicitly register a handler for "*"; the default handler
+ * will not be used for that case.)
+ *
+ * For requests under @path (that have not already been assigned a
+ * status code by a #SoupAuthDomain or a signal handler), @callback
+ * will be invoked after receiving the request headers, but before
+ * receiving the request body; the message's #SoupMessage:method and
+ * #SoupMessage:request-headers fields will be filled in.
+ *
+ * Early handlers are generally used for processing requests with
+ * request bodies in a streaming fashion. If you determine that the
+ * request will contain a message body, normally you would call
+ * soup_message_body_set_accumulate() on the message's
+ * #SoupMessage:request-body to turn off request-body accumulation,
+ * and connect to the message's #SoupMessage::got-chunk signal to
+ * process each chunk as it comes in.
+ *
+ * To complete the message processing after the full message body has
+ * been read, you can either also connect to #SoupMessage::got-body,
+ * or else you can register a non-early handler for @path as well. As
+ * long as you have not set the #SoupMessage:status-code by the time
+ * #SoupMessage::got-body is emitted, the non-early handler will be
+ * run as well.
+ *
+ * Since: 2.48
+ **/
+void
+soup_server_add_early_handler (SoupServer            *server,
+			       const char            *path,
+			       SoupServerCallback     callback,
+			       gpointer               user_data,
+			       GDestroyNotify         destroy)
+{
+	SoupServerPrivate *priv;
 
-	soup_server_remove_handler (server, path);
-	if (path)
-		soup_path_map_add (priv->handlers, path, hand);
-	else
-		priv->default_handler = hand;
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	g_return_if_fail (callback != NULL);
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	add_handler_internal (server, priv->early_handlers,
+			      path, callback, user_data, destroy);
 }
 
 static void
-unregister_handler (SoupServerHandler *handler)
+remove_handler_internal (SoupServer *server, SoupPathMap *handlers, const char *path)
 {
-	if (handler->destroy)
-		handler->destroy (handler->user_data);
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerHandler *handler;
+
+	if (!path || !*path)
+		path = "/";
+
+	handler = soup_path_map_lookup (handlers, path);
+	if (handler && !strcmp (path, handler->path)) {
+		if (handler->destroy)
+			handler->destroy (handler->user_data);
+		soup_path_map_remove (priv->handlers, path);
+	}
 }
 
 /**
@@ -2298,31 +2384,37 @@ unregister_handler (SoupServerHandler *handler)
  * @server: a #SoupServer
  * @path: the toplevel path for the handler
  *
- * Removes the handler registered at @path.
+ * Removes the (non-early) handler registered at @path.
  **/
 void
 soup_server_remove_handler (SoupServer *server, const char *path)
 {
 	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (!path || !*path || !strcmp (path, "/")) {
-		if (priv->default_handler) {
-			unregister_handler (priv->default_handler);
-			free_handler (priv->default_handler);
-			priv->default_handler = NULL;
-		}
-		return;
-	}
+	remove_handler_internal (server, priv->handlers, path);
+}
 
-	hand = soup_path_map_lookup (priv->handlers, path);
-	if (hand && !strcmp (path, hand->path)) {
-		unregister_handler (hand);
-		soup_path_map_remove (priv->handlers, path);
-	}
+/**
+ * soup_server_remove_early_handler:
+ * @server: a #SoupServer
+ * @path: the toplevel path for the handler
+ *
+ * Removes the early handler registered at @path.
+ *
+ * Since: 2.48
+ **/
+void
+soup_server_remove_early_handler (SoupServer *server, const char *path)
+{
+	SoupServerPrivate *priv;
+
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	priv = SOUP_SERVER_GET_PRIVATE (server);
+
+	remove_handler_internal (server, priv->handlers, path);
 }
 
 /**
