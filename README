@@ -12,7 +12,7 @@ Features:
 
 See the documentation in docs/reference/ and the test programs in
 tests/ for simple examples of how to use the code. The
-evolution-data-server and evolution-exchange modules in GNOME CVS have
+evolution-data-server and evolution-exchange modules in GNOME git have
 some more complicated examples.
 
 There is a mailing list for libsoup-related questions/discussions at
@@ -20,10 +20,10 @@ gnome.org. Visit http://mail.gnome.org/mailman/listinfo/libsoup-list
 to subscribe or read the archives.
 
 Bugs against libsoup can be filed at the GNOME bugzilla:
-http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup
+https://bugzilla.gnome.org/enter_bug.cgi?product=libsoup
 
 More information (including the libsoup To Do list) is available at
-http://live.gnome.org/LibSoup
+https://wiki.gnome.org/Projects/libsoup
 
 Licensing:
 libsoup is licensed under the LGPL, see COPYING for more details.
