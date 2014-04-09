@@ -751,16 +751,13 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 {
 	SoupCookieJarPrivate *priv;
 	GSList *cookies, *p;
-	char *domain;
 
 	g_return_if_fail (SOUP_IS_COOKIE_JAR (jar));
 	g_return_if_fail (cookie != NULL);
 
 	priv = SOUP_COOKIE_JAR_GET_PRIVATE (jar);
 
-	domain = g_strdup (cookie->domain);
-
-	cookies = g_hash_table_lookup (priv->domains, domain);
+	cookies = g_hash_table_lookup (priv->domains, cookie->domain);
 	if (cookies == NULL)
 		return;
 
@@ -769,7 +766,7 @@ soup_cookie_jar_delete_cookie (SoupCookieJar *jar,
 		if (soup_cookie_equal (cookie, c)) {
 			cookies = g_slist_delete_link (cookies, p);
 			g_hash_table_insert (priv->domains,
-					     domain,
+					     g_strdup (cookie->domain),
 					     cookies);
 			soup_cookie_jar_changed (jar, c, NULL);
 			soup_cookie_free (c);
