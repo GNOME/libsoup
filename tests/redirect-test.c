@@ -395,24 +395,24 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server, *server2;
-	guint port;
+	SoupURI *uri2;
 	char *path;
 	int n, ret;
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-	port = soup_server_get_port (server);
-	base_uri = soup_uri_new ("http://127.0.0.1");
-	soup_uri_set_port (base_uri, port);
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 
-	server2 = soup_test_server_new (TRUE);
+	server2 = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server2, NULL,
 				 server2_callback, NULL, NULL);
-	server2_uri = g_strdup_printf ("http://127.0.0.1:%d/on-server2",
-				       soup_server_get_port (server2));
+	uri2 = soup_test_server_get_uri (server2, "http", NULL);
+	soup_uri_set_path (uri2, "/on-server2");
+	server2_uri = soup_uri_to_string (uri2, FALSE);
+	soup_uri_free (uri2);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
@@ -422,8 +422,8 @@ main (int argc, char **argv)
 	sync_session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
 	for (n = 0; n < n_tests; n++) {
-		path = g_strdup_printf ("/redirect/async/msg/%d-%s-%d", n
-					, tests[n].requests[0].method,
+		path = g_strdup_printf ("/redirect/async/msg/%d-%s-%d", n,
+					tests[n].requests[0].method,
 					tests[n].requests[0].status_code);
 		g_test_add_data_func (path, &tests[n], do_async_msg_api_test);
 		g_free (path);

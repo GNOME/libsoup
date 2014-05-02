@@ -55,9 +55,17 @@ typedef enum {
 SoupSession *soup_test_session_new         (GType type, ...);
 void         soup_test_session_abort_unref (SoupSession *session);
 
-SoupServer  *soup_test_server_new        (gboolean in_own_thread);
-SoupServer  *soup_test_server_new_ssl    (gboolean in_own_thread);
-void         soup_test_server_quit_unref (SoupServer *server);
+typedef enum {
+	SOUP_TEST_SERVER_DEFAULT             = 0,
+	SOUP_TEST_SERVER_IN_THREAD           = (1 << 0),
+	SOUP_TEST_SERVER_NO_DEFAULT_LISTENER = (1 << 1)
+} SoupTestServerOptions;
+
+SoupServer  *soup_test_server_new            (SoupTestServerOptions  options);
+SoupURI     *soup_test_server_get_uri        (SoupServer            *server,
+					      const char            *scheme,
+					      const char            *host);
+void         soup_test_server_quit_unref     (SoupServer            *server);
 
 GInputStream *soup_test_request_send         (SoupRequest  *req,
 					      GCancellable *cancellable,

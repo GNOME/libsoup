@@ -167,16 +167,19 @@ do_cookies_parsing_test (void)
 int
 main (int argc, char **argv)
 {
+	SoupURI *server_uri;
 	int ret;
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
+	server_uri = soup_test_server_get_uri (server, "http", NULL);
+
 	first_party_uri = soup_uri_new (first_party);
 	third_party_uri = soup_uri_new (third_party);
-	soup_uri_set_port (first_party_uri, soup_server_get_port (server));
-	soup_uri_set_port (third_party_uri, soup_server_get_port (server));
+	soup_uri_set_port (first_party_uri, server_uri->port);
+	soup_uri_set_port (third_party_uri, server_uri->port);
 
 	g_test_add_func ("/cookies/accept-policy", do_cookies_accept_policy_test);
 	g_test_add_func ("/cookies/parsing", do_cookies_parsing_test);
@@ -185,6 +188,7 @@ main (int argc, char **argv)
 
 	soup_uri_free (first_party_uri);
 	soup_uri_free (third_party_uri);
+	soup_uri_free (server_uri);
 	soup_test_server_quit_unref (server);
 
 	test_cleanup ();

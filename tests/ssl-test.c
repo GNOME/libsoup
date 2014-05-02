@@ -2,16 +2,16 @@
 
 #include "test-utils.h"
 
-static char *uri;
+SoupURI *uri;
 
 static void
-do_properties_test_for_session (SoupSession *session, const char *uri)
+do_properties_test_for_session (SoupSession *session)
 {
 	SoupMessage *msg;
 	GTlsCertificate *cert;
 	GTlsCertificateFlags flags;
 
-	msg = soup_message_new ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 
@@ -39,7 +39,7 @@ do_async_properties_tests (void)
 		      SOUP_SESSION_SSL_CA_FILE, "/dev/null",
 		      SOUP_SESSION_SSL_STRICT, FALSE,
 		      NULL);
-	do_properties_test_for_session (session, uri);
+	do_properties_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 
@@ -55,7 +55,7 @@ do_sync_properties_tests (void)
 		      SOUP_SESSION_SSL_CA_FILE, "/dev/null",
 		      SOUP_SESSION_SSL_STRICT, FALSE,
 		      NULL);
-	do_properties_test_for_session (session, uri);
+	do_properties_test_for_session (session);
 	soup_test_session_abort_unref (session);
 }
 
@@ -109,7 +109,7 @@ do_strictness_test (gconstpointer data)
 			      NULL);
 	}
 
-	msg = soup_message_new ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, test->expected_status);
 
@@ -127,6 +127,7 @@ do_strictness_test (gconstpointer data)
 		debug_printf (1, "              tls error flags: 0x%x\n", flags);
 
 	g_object_unref (msg);
+
 	soup_test_session_abort_unref (session);
 }
 
@@ -257,11 +258,11 @@ main (int argc, char **argv)
 	test_init (argc, argv, NULL);
 
 	if (tls_available) {
-		server = soup_test_server_new_ssl (TRUE);
+		server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 		soup_server_add_handler (server, NULL, server_handler, NULL, NULL);
-		uri = g_strdup_printf ("https://127.0.0.1:%u/",
-				       soup_server_get_port (server));
-	}
+		uri = soup_test_server_get_uri (server, "https", "127.0.0.1");
+	} else
+		uri = NULL;
 
 	g_test_add_func ("/ssl/session-properties", do_session_property_tests);
 	g_test_add_func ("/ssl/message-properties/async", do_async_properties_tests);
@@ -276,7 +277,7 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	if (tls_available) {
-		g_free (uri);
+		soup_uri_free (uri);
 		soup_test_server_quit_unref (server);
 	}
 

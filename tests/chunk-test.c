@@ -427,21 +427,17 @@ main (int argc, char **argv)
 {
 	GMainLoop *loop;
 	SoupServer *server;
-	guint port;
 	int ret;
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (TRUE);
+	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	soup_server_add_handler (server, NULL,
 				 server_callback, NULL, NULL);
-	port = 	soup_server_get_port (server);
 
 	loop = g_main_loop_new (NULL, TRUE);
 
-	base_uri = soup_uri_new ("http://127.0.0.1");
-	soup_uri_set_port (base_uri, port);
-
+	base_uri = soup_test_server_get_uri (server, "http", NULL);
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	g_test_add_data_func ("/chunks/request/unstreamed", GINT_TO_POINTER (0), do_request_test);

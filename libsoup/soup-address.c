@@ -384,6 +384,17 @@ soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
 			     NULL);
 }
 
+SoupAddress *
+soup_address_new_from_gsockaddr (GSocketAddress *addr)
+{
+	struct sockaddr_storage sa;
+
+	g_socket_address_to_native (addr, &sa, sizeof (sa), NULL);
+	return g_object_new (SOUP_TYPE_ADDRESS,
+			     SOUP_ADDRESS_SOCKADDR, &sa,
+			     NULL);
+}
+
 /**
  * SoupAddressFamily:
  * @SOUP_ADDRESS_FAMILY_INVALID: an invalid %SoupAddress
