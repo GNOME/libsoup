@@ -2482,14 +2482,20 @@ soup_session_abort (SoupSession *session)
 
 	SOUP_SESSION_GET_CLASS (session)->flush_queue (session);
 
-	/* Close all connections */
+	/* Close all idle connections */
 	g_mutex_lock (&priv->conn_lock);
 	conns = NULL;
 	g_hash_table_iter_init (&iter, priv->conns);
 	while (g_hash_table_iter_next (&iter, &conn, &host)) {
-		conns = g_slist_prepend (conns, g_object_ref (conn));
-		g_hash_table_iter_remove (&iter);
-		drop_connection (session, host, conn);
+		SoupConnectionState state;
+
+		state = soup_connection_get_state (conn);
+		if (state == SOUP_CONNECTION_IDLE ||
+		    state == SOUP_CONNECTION_REMOTE_DISCONNECTED) {
+			conns = g_slist_prepend (conns, g_object_ref (conn));
+			g_hash_table_iter_remove (&iter);
+			drop_connection (session, host, conn);
+		}
 	}
 	g_mutex_unlock (&priv->conn_lock);
 
