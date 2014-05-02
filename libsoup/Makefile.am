@@ -176,6 +176,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-session-private.h		\
 	soup-session-sync.c		\
 	soup-socket.c			\
+	soup-socket-private.h		\
+	soup-socket-properties.c	\
 	soup-status.c			\
 	soup-tld.c			\
 	soup-tld-private.h		\

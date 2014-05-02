@@ -12,24 +12,18 @@
 #include "soup-connection.h"
 #include "soup.h"
 #include "soup-message-queue.h"
-#include "soup-misc-private.h"
+#include "soup-socket-private.h"
 
 typedef struct {
 	SoupSocket  *socket;
+	SoupSocketProperties *socket_props;
 
-	SoupAddress *local_addr;
 	SoupURI *remote_uri, *proxy_uri;
-	GProxyResolver *proxy_resolver;
-	GTlsDatabase *tlsdb;
-	gboolean ssl, ssl_strict, ssl_fallback;
-
-	GMainContext *async_context;
-	gboolean      use_thread_context;
+	gboolean ssl, ssl_fallback;
 
 	SoupMessage *current_msg;
 	SoupConnectionState state;
 	time_t       unused_timeout;
-	guint        io_timeout, idle_timeout;
 	GSource     *idle_timeout_src;
 	gboolean     reusable;
 } SoupConnectionPrivate;
@@ -48,16 +42,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 enum {
 	PROP_0,
 
-	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_URI,
-	PROP_PROXY_RESOLVER,
-	PROP_SSL_CREDS,
-	PROP_SSL_STRICT,
 	PROP_SSL_FALLBACK,
-	PROP_ASYNC_CONTEXT,
-	PROP_USE_THREAD_CONTEXT,
-	PROP_TIMEOUT,
-	PROP_IDLE_TIMEOUT,
+	PROP_SOCKET_PROPERTIES,
 	PROP_STATE,
 
 	LAST_PROP
@@ -82,10 +69,7 @@ soup_connection_finalize (GObject *object)
 
 	g_clear_pointer (&priv->remote_uri, soup_uri_free);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
-	g_clear_object (&priv->tlsdb);
-	g_clear_object (&priv->proxy_resolver);
-	g_clear_object (&priv->local_addr);
-	g_clear_pointer (&priv->async_context, g_main_context_unref);
+	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }
@@ -108,9 +92,6 @@ soup_connection_set_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
 	switch (prop_id) {
-	case PROP_LOCAL_ADDRESS:
-		priv->local_addr = g_value_dup_object (value);
-		break;
 	case PROP_REMOTE_URI:
 		priv->remote_uri = g_value_dup_boxed (value);
 		if (priv->remote_uri)
@@ -118,33 +99,12 @@ soup_connection_set_property (GObject *object, guint prop_id,
 		else
 			priv->ssl = FALSE;
 		break;
-	case PROP_PROXY_RESOLVER:
-		priv->proxy_resolver = g_value_dup_object (value);
-		break;
-	case PROP_SSL_CREDS:
-		if (priv->tlsdb)
-			g_object_unref (priv->tlsdb);
-		priv->tlsdb = g_value_dup_object (value);
-		break;
-	case PROP_SSL_STRICT:
-		priv->ssl_strict = g_value_get_boolean (value);
 		break;
 	case PROP_SSL_FALLBACK:
 		priv->ssl_fallback = g_value_get_boolean (value);
 		break;
-	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		priv->use_thread_context = g_value_get_boolean (value);
-		break;
-	case PROP_TIMEOUT:
-		priv->io_timeout = g_value_get_uint (value);
-		break;
-	case PROP_IDLE_TIMEOUT:
-		priv->idle_timeout = g_value_get_uint (value);
+	case PROP_SOCKET_PROPERTIES:
+		priv->socket_props = g_value_dup_boxed (value);
 		break;
 	case PROP_STATE:
 		soup_connection_set_state (SOUP_CONNECTION (object), g_value_get_uint (value));
@@ -162,32 +122,14 @@ soup_connection_get_property (GObject *object, guint prop_id,
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (object);
 
 	switch (prop_id) {
-	case PROP_LOCAL_ADDRESS:
-		g_value_set_object (value, priv->local_addr);
-		break;
 	case PROP_REMOTE_URI:
 		g_value_set_boxed (value, priv->remote_uri);
-		break;
-	case PROP_SSL_CREDS:
-		g_value_set_object (value, priv->tlsdb);
-		break;
-	case PROP_SSL_STRICT:
-		g_value_set_boolean (value, priv->ssl_strict);
 		break;
 	case PROP_SSL_FALLBACK:
 		g_value_set_boolean (value, priv->ssl_fallback);
 		break;
-	case PROP_ASYNC_CONTEXT:
-		g_value_set_pointer (value, priv->async_context ? g_main_context_ref (priv->async_context) : NULL);
-		break;
-	case PROP_USE_THREAD_CONTEXT:
-		g_value_set_boolean (value, priv->use_thread_context);
-		break;
-	case PROP_TIMEOUT:
-		g_value_set_uint (value, priv->io_timeout);
-		break;
-	case PROP_IDLE_TIMEOUT:
-		g_value_set_uint (value, priv->idle_timeout);
+	case PROP_SOCKET_PROPERTIES:
+		g_value_set_boxed (value, priv->socket_props);
 		break;
 	case PROP_STATE:
 		g_value_set_enum (value, priv->state);
@@ -233,40 +175,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 
 	/* properties */
 	g_object_class_install_property (
-		object_class, PROP_LOCAL_ADDRESS,
-		g_param_spec_object (SOUP_CONNECTION_LOCAL_ADDRESS,
-				     "Local address",
-				     "Address of local end of socket",
-				     SOUP_TYPE_ADDRESS,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
 		object_class, PROP_REMOTE_URI,
 		g_param_spec_boxed (SOUP_CONNECTION_REMOTE_URI,
 				    "Remote URI",
 				    "The URI of the HTTP server",
 				    SOUP_TYPE_URI,
 				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_PROXY_RESOLVER,
-		g_param_spec_object (SOUP_CONNECTION_PROXY_RESOLVER,
-				     "Proxy resolver",
-				     "GProxyResolver to use",
-				     G_TYPE_PROXY_RESOLVER,
-				     G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_SSL_CREDS,
-		g_param_spec_object (SOUP_CONNECTION_SSL_CREDENTIALS,
-				     "SSL credentials",
-				     "SSL credentials for this connection",
-				     G_TYPE_TLS_DATABASE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_SSL_STRICT,
-		g_param_spec_boolean (SOUP_CONNECTION_SSL_STRICT,
-				      "Strictly validate SSL certificates",
-				      "Whether certificate errors should be considered a connection error",
-				      TRUE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_SSL_FALLBACK,
 		g_param_spec_boolean (SOUP_CONNECTION_SSL_FALLBACK,
@@ -275,32 +189,12 @@ soup_connection_class_init (SoupConnectionClass *connection_class)
 				      FALSE,
 				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
-		object_class, PROP_ASYNC_CONTEXT,
-		g_param_spec_pointer (SOUP_CONNECTION_ASYNC_CONTEXT,
-				      "Async GMainContext",
-				      "GMainContext to dispatch this connection's async I/O in",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_USE_THREAD_CONTEXT,
-		g_param_spec_boolean (SOUP_CONNECTION_USE_THREAD_CONTEXT,
-				      "Use thread context",
-				      "Use g_main_context_get_thread_default",
-				      FALSE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-	g_object_class_install_property (
-		object_class, PROP_TIMEOUT,
-		g_param_spec_uint (SOUP_CONNECTION_TIMEOUT,
-				   "Timeout value",
-				   "Value in seconds to timeout a blocking I/O",
-				   0, G_MAXUINT, 0,
-				   G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class, PROP_IDLE_TIMEOUT,
-		g_param_spec_uint (SOUP_CONNECTION_IDLE_TIMEOUT,
-				   "Idle Timeout",
-				   "Connection lifetime when idle",
-				   0, G_MAXUINT, 0,
-				   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+		object_class, PROP_SOCKET_PROPERTIES,
+		g_param_spec_boxed (SOUP_CONNECTION_SOCKET_PROPERTIES,
+				    "Socket properties",
+				    "Socket properties",
+				    SOUP_TYPE_SOCKET_PROPERTIES,
+				    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property (
 		object_class, PROP_STATE,
 		g_param_spec_enum (SOUP_CONNECTION_STATE,
@@ -336,10 +230,10 @@ start_idle_timer (SoupConnection *conn)
 {
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	if (priv->idle_timeout > 0 && !priv->idle_timeout_src) {
+	if (priv->socket_props->idle_timeout > 0 && !priv->idle_timeout_src) {
 		priv->idle_timeout_src =
-			soup_add_timeout (priv->async_context,
-					  priv->idle_timeout * 1000,
+			soup_add_timeout (priv->socket_props->async_context,
+					  priv->socket_props->idle_timeout * 1000,
 					  idle_timeout, conn);
 	}
 }
@@ -433,8 +327,7 @@ socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 	SoupConnection *conn = g_task_get_source_object (task);
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_pop_thread_default (priv->async_context);
+	soup_socket_properties_pop_async_context (priv->socket_props);
 
 	g_signal_handlers_disconnect_by_func (sock, G_CALLBACK (re_emit_socket_event), conn);
 
@@ -527,23 +420,15 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
-				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
-				 SOUP_SOCKET_ASYNC_CONTEXT, priv->async_context,
-				 SOUP_SOCKET_USE_THREAD_CONTEXT, priv->use_thread_context,
-				 SOUP_SOCKET_PROXY_RESOLVER, priv->proxy_resolver,
-				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
-				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
-				 SOUP_SOCKET_LOCAL_ADDRESS, priv->local_addr,
+				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 NULL);
 	g_object_unref (remote_addr);
 
 	g_signal_connect (priv->socket, "event",
 			  G_CALLBACK (re_emit_socket_event), conn);
 
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_push_thread_default (priv->async_context);
+	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
 
 	soup_socket_connect_async_internal (priv->socket, cancellable,
@@ -584,14 +469,9 @@ soup_connection_connect_sync (SoupConnection  *conn,
 
 	priv->socket =
 		soup_socket_new (SOUP_SOCKET_REMOTE_ADDRESS, remote_addr,
-				 SOUP_SOCKET_PROXY_RESOLVER, priv->proxy_resolver,
-				 SOUP_SOCKET_SSL_CREDENTIALS, priv->tlsdb,
-				 SOUP_SOCKET_SSL_STRICT, priv->ssl_strict,
 				 SOUP_SOCKET_SSL_FALLBACK, priv->ssl_fallback,
+				 SOUP_SOCKET_SOCKET_PROPERTIES, priv->socket_props,
 				 SOUP_SOCKET_FLAG_NONBLOCKING, FALSE,
-				 SOUP_SOCKET_TIMEOUT, priv->io_timeout,
-				 SOUP_SOCKET_CLEAN_DISPOSE, TRUE,
-				 SOUP_SOCKET_LOCAL_ADDRESS, priv->local_addr,
 				 NULL);
 	g_object_unref (remote_addr);
 
@@ -674,8 +554,7 @@ start_ssl_completed (GObject *object, GAsyncResult *result, gpointer user_data)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	GError *error = NULL;
 
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_pop_thread_default (priv->async_context);
+	soup_socket_properties_pop_async_context (priv->socket_props);
 
 	if (soup_socket_handshake_finish (priv->socket, result, &error)) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
@@ -700,8 +579,7 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 
 	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_push_thread_default (priv->async_context);
+	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
 
 	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,

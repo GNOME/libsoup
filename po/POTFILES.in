@@ -6,4 +6,5 @@ libsoup/soup-message-io.c
 libsoup/soup-message-server-io.c
 libsoup/soup-request.c
 libsoup/soup-session.c
+libsoup/soup-socket.c
 libsoup/soup-tld.c

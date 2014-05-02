@@ -16,6 +16,7 @@
 #include "soup.h"
 #include "soup-message-private.h"
 #include "soup-misc-private.h"
+#include "soup-socket-private.h"
 
 static guint
 parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
