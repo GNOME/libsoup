@@ -7,14 +7,15 @@
 #include "soup.h"
 
 SoupSocketProperties *
-soup_socket_properties_new (GMainContext   *async_context,
-			    gboolean        use_thread_context,
-			    GProxyResolver *proxy_resolver,
-			    SoupAddress    *local_addr,
-			    GTlsDatabase   *tlsdb,
-			    gboolean        ssl_strict,
-			    guint           io_timeout,
-			    guint           idle_timeout)
+soup_socket_properties_new (GMainContext    *async_context,
+			    gboolean         use_thread_context,
+			    GProxyResolver  *proxy_resolver,
+			    SoupAddress     *local_addr,
+			    GTlsDatabase    *tlsdb,
+			    GTlsInteraction *tls_interaction,
+			    gboolean         ssl_strict,
+			    guint            io_timeout,
+			    guint            idle_timeout)
 {
 	SoupSocketProperties *props;
 
@@ -28,6 +29,7 @@ soup_socket_properties_new (GMainContext   *async_context,
 	props->local_addr = local_addr ? g_object_ref (local_addr) : NULL;
 
 	props->tlsdb = tlsdb ? g_object_ref (tlsdb) : NULL;
+	props->tls_interaction = tls_interaction ? g_object_ref (tls_interaction) : NULL;
 	props->ssl_strict = ssl_strict;
 
 	props->io_timeout = io_timeout;
@@ -53,6 +55,7 @@ soup_socket_properties_unref (SoupSocketProperties *props)
 	g_clear_object (&props->proxy_resolver);
 	g_clear_object (&props->local_addr);
 	g_clear_object (&props->tlsdb);
+	g_clear_object (&props->tls_interaction);
 
 	g_slice_free (SoupSocketProperties, props);
 }

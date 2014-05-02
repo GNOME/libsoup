@@ -53,6 +53,7 @@ typedef struct {
 	SoupAddress *local_addr;
 
 	GTlsDatabase *tlsdb;
+	GTlsInteraction *tls_interaction;
 	gboolean ssl_strict;
 
 	guint io_timeout;
@@ -65,14 +66,15 @@ typedef struct {
 GType soup_socket_properties_get_type (void);
 #define SOUP_TYPE_SOCKET_PROPERTIES (soup_socket_properties_get_type ())
 
-SoupSocketProperties *soup_socket_properties_new   (GMainContext   *async_context,
-						    gboolean        use_thread_context,
-						    GProxyResolver *proxy_resolver,
-						    SoupAddress    *local_addr,
-						    GTlsDatabase   *tlsdb,
-						    gboolean        ssl_strict,
-						    guint           io_timeout,
-						    guint           idle_timeout);
+SoupSocketProperties *soup_socket_properties_new   (GMainContext    *async_context,
+						    gboolean         use_thread_context,
+						    GProxyResolver  *proxy_resolver,
+						    SoupAddress     *local_addr,
+						    GTlsDatabase    *tlsdb,
+						    GTlsInteraction *tls_interaction,
+						    gboolean         ssl_strict,
+						    guint            io_timeout,
+						    guint            idle_timeout);
 
 SoupSocketProperties *soup_socket_properties_ref   (SoupSocketProperties *props);
 void                  soup_socket_properties_unref (SoupSocketProperties *props);

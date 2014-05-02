@@ -79,6 +79,7 @@ typedef struct {
 	GInputStream *istream;
 	GOutputStream *ostream;
 	GTlsCertificateFlags tls_errors;
+	GTlsInteraction *tls_interaction;
 	GProxyResolver *proxy_resolver;
 
 	guint non_blocking:1;
@@ -216,6 +217,7 @@ soup_socket_finalize (GObject *object)
 	g_clear_object (&priv->local_addr);
 	g_clear_object (&priv->remote_addr);
 
+	g_clear_object (&priv->tls_interaction);
 	g_clear_object (&priv->proxy_resolver);
 	g_clear_object (&priv->ssl_creds);
 
@@ -314,6 +316,7 @@ soup_socket_set_property (GObject *object, guint prop_id,
 			g_clear_object (&priv->proxy_resolver);
 			if (props->proxy_resolver)
 				priv->proxy_resolver = g_object_ref (props->proxy_resolver);
+
 			g_clear_object (&priv->local_addr);
 			if (props->local_addr)
 				priv->local_addr = g_object_ref (props->local_addr);
@@ -321,6 +324,9 @@ soup_socket_set_property (GObject *object, guint prop_id,
 			g_clear_object (&priv->ssl_creds);
 			if (props->tlsdb)
 				priv->ssl_creds = g_object_ref (props->tlsdb);
+			g_clear_object (&priv->tls_interaction);
+			if (props->tls_interaction)
+				priv->tls_interaction = g_object_ref (props->tls_interaction);
 			priv->ssl_strict = props->ssl_strict;
 
 			priv->timeout = props->io_timeout;
@@ -1308,6 +1314,14 @@ soup_socket_setup_ssl (SoupSocket    *sock,
 
 		if (!conn)
 			return FALSE;
+
+		/* GLib < 2.41 mistakenly doesn't implement this property in the
+		 * dummy TLS backend, so we don't include it in the g_initable_new()
+		 * call above.
+		 */
+		g_object_set (G_OBJECT (conn),
+			      "interaction", priv->tls_interaction,
+			      NULL);
 
 		g_object_unref (priv->conn);
 		priv->conn = G_IO_STREAM (conn);

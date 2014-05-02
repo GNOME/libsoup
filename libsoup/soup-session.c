@@ -87,6 +87,7 @@ typedef struct {
 	gboolean disposed;
 
 	GTlsDatabase *tlsdb;
+	GTlsInteraction *tls_interaction;
 	char *ssl_ca_file;
 	gboolean ssl_strict;
 	gboolean tlsdb_use_default;
@@ -200,6 +201,7 @@ enum {
 	PROP_HTTP_ALIASES,
 	PROP_HTTPS_ALIASES,
 	PROP_LOCAL_ADDRESS,
+	PROP_TLS_INTERACTION,
 
 	LAST_PROP
 };
@@ -337,6 +339,7 @@ soup_session_finalize (GObject *object)
 	g_free (priv->accept_language);
 
 	g_clear_object (&priv->tlsdb);
+	g_clear_object (&priv->tls_interaction);
 	g_free (priv->ssl_ca_file);
 
 	g_clear_pointer (&priv->async_context, g_main_context_unref);
@@ -384,6 +387,7 @@ ensure_socket_props (SoupSession *session)
 							 priv->proxy_resolver,
 							 priv->local_addr,
 							 priv->tlsdb,
+							 priv->tls_interaction,
 							 ssl_strict,
 							 priv->io_timeout,
 							 priv->idle_timeout);
@@ -683,6 +687,10 @@ soup_session_set_property (GObject *object, guint prop_id,
 		set_tlsdb (session, g_value_get_object (value));
 		socket_props_changed = TRUE;
 		break;
+	case PROP_TLS_INTERACTION:
+		priv->tls_interaction = g_value_dup_object (value);
+		socket_props_changed = TRUE;
+		break;
 	case PROP_SSL_STRICT:
 		priv->ssl_strict = g_value_get_boolean (value);
 		socket_props_changed = TRUE;
@@ -820,6 +828,9 @@ soup_session_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_DATABASE:
 		ensure_socket_props (session);
 		g_value_set_object (value, priv->tlsdb);
+		break;
+	case PROP_TLS_INTERACTION:
+		g_value_set_object (value, priv->tls_interaction);
 		break;
 	case PROP_SSL_STRICT:
 		g_value_set_boolean (value, priv->ssl_strict);
@@ -3748,6 +3759,30 @@ soup_session_class_init (SoupSessionClass *session_class)
 				     "Address of local end of socket",
 				     SOUP_TYPE_ADDRESS,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
+	 * SOUP_SESSION_TLS_INTERACTION:
+	 *
+	 * Alias for the #SoupSession:tls-interaction property, qv.
+	 *
+	 * Since: 2.48
+	 **/
+	/**
+	 * SoupSession:tls-interaction:
+	 *
+	 * A #GTlsInteraction object that will be passed on to any
+	 * #GTlsConnections created by the session. (This can be used to
+	 * provide client-side certificates, for example.)
+	 *
+	 * Since: 2.48
+	 **/
+	g_object_class_install_property (
+		object_class, PROP_TLS_INTERACTION,
+		g_param_spec_object (SOUP_SESSION_TLS_INTERACTION,
+				     "TLS Interaction",
+				     "TLS interaction to use",
+				     G_TYPE_TLS_INTERACTION,
+				     G_PARAM_READWRITE));
 }
 
 
