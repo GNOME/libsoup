@@ -955,13 +955,9 @@ legacy_connect_async_cb (GObject       *object,
 			 gpointer       user_data)
 {
 	SoupSocket *sock = SOUP_SOCKET (object);
-	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 	SoupSocketAsyncConnectData *sacd = user_data;
 	GError *error = NULL;
 	guint status;
-
-	if (priv->async_context && !priv->use_thread_context)
-		g_main_context_pop_thread_default (priv->async_context);
 
 	if (soup_socket_connect_finish_internal (sock, result, &error))
 		status = SOUP_STATUS_OK;
@@ -1012,6 +1008,9 @@ soup_socket_connect_async (SoupSocket *sock, GCancellable *cancellable,
 	soup_socket_connect_async_internal (sock, cancellable,
 					    legacy_connect_async_cb,
 					    sacd);
+
+	if (priv->async_context && !priv->use_thread_context)
+		g_main_context_pop_thread_default (priv->async_context);
 }
 
 gboolean

@@ -327,8 +327,6 @@ socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 	SoupConnection *conn = g_task_get_source_object (task);
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	soup_socket_properties_pop_async_context (priv->socket_props);
-
 	g_signal_handlers_disconnect_by_func (sock, G_CALLBACK (re_emit_socket_event), conn);
 
 	if (!error) {
@@ -433,6 +431,7 @@ soup_connection_connect_async (SoupConnection      *conn,
 
 	soup_socket_connect_async_internal (priv->socket, cancellable,
 					    socket_connect_complete, task);
+	soup_socket_properties_pop_async_context (priv->socket_props);
 }
 
 gboolean
@@ -554,8 +553,6 @@ start_ssl_completed (GObject *object, GAsyncResult *result, gpointer user_data)
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 	GError *error = NULL;
 
-	soup_socket_properties_pop_async_context (priv->socket_props);
-
 	if (soup_socket_handshake_finish (priv->socket, result, &error)) {
 		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
 		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
@@ -584,6 +581,8 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 
 	soup_socket_handshake_async (priv->socket, priv->remote_uri->host,
 				     cancellable, start_ssl_completed, task);
+
+	soup_socket_properties_pop_async_context (priv->socket_props);
 }
 
 gboolean
