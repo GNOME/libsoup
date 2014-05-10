@@ -1,15 +1,16 @@
 # Brazilian Portuguese translation for libsoup.
-# Copyright (C) 2013 libsoup's COPYRIGHT HOLDER
+# Copyright (C) 2014 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 # Gabriel F. Vilar <cogumm@gmail.com>, 2012.
-# Enrico Nicoletto <liverig@gmail.com>, 2013.
+# Enrico Nicoletto <liverig@gmail.com>, 2013, 2014.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-03-06 19:50+0000\n"
-"PO-Revision-Date: 2013-02-28 10:19-0300\n"
+"POT-Creation-Date: 2014-05-09 21:33+0000\n"
+"PO-Revision-Date: 2014-05-09 22:04-0300\n"
 "Last-Translator: Enrico Nicoletto <liverig@gmail.com>\n"
 "Language-Team: Brazilian Portuguese <gnome-pt_br-list@gnome.org>\n"
 "Language: pt_BR\n"
@@ -19,25 +20,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Poedit 1.5.4\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "A conexão terminou inesperadamente"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Requisição de busca inválida"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Não foi possível truncar SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "O fluxo de rede fechou de forma inesperada"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "Falha ao armazenar completamente em cache o recurso"
 
@@ -54,15 +55,15 @@ msgstr "Não foi possível analisar a resposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificação de resposta HTTP não reconhecível"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "A operação foi cancelada"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "A operação será bloqueada"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "Não foi possível analisar a solicitação HTTP"
 
@@ -76,33 +77,54 @@ msgstr "Nenhuma URI foi fornecida"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI: %s inválida '%s'"
 
-#: ../libsoup/soup-session.c:4208
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Não foi possível criar um servidor TLS sem um certificado TLS"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Não foi possível escutar o endereço %s, porta %d"
+
+#: ../libsoup/soup-session.c:4465
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Não foi possível analisar URI '%s'"
 
-#: ../libsoup/soup-session.c:4245
+#: ../libsoup/soup-session.c:4502
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Esquema de URI não suportado '%s'"
 
-#: ../libsoup/soup-session.c:4267
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Não é um URI do tipo HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Não foi possível importar um não-socket como SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "Não foi possível importar o socket existente: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "Não foi possível importar socket desconectado"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "O nome da máquina é um endereço de IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "O nome da máquina é inválido"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "Nome da máquina não está na base do domínio"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Não há domínios suficientes"
