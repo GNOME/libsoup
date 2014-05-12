@@ -949,8 +949,8 @@ soup_message_class_init (SoupMessageClass *message_class)
  * 
  * Creates a new empty #SoupMessage, which will connect to @uri
  *
- * Return value: the new #SoupMessage (or %NULL if @uri could not
- * be parsed).
+ * Return value: (nullable): the new #SoupMessage (or %NULL if @uri
+ * could not be parsed).
  */
 SoupMessage *
 soup_message_new (const char *method, const char *uri_string)
@@ -1705,7 +1705,7 @@ soup_message_set_status_full (SoupMessage *msg,
  * up to the application to make sure that it gets unpaused when it
  * becomes possible to allocate a new buffer.
  *
- * Return value: the new buffer (or %NULL)
+ * Return value: (nullable): the new buffer (or %NULL)
  *
  * Deprecated: Use #SoupRequest if you want to read into your
  * own buffers.

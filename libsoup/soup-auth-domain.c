@@ -572,8 +572,8 @@ soup_auth_domain_covers (SoupAuthDomain *domain, SoupMessage *msg)
  * This is used by #SoupServer internally and is probably of no use to
  * anyone else.
  *
- * Return value: the username that @msg has authenticated as, if in
- * fact it has authenticated. %NULL otherwise.
+ * Return value: (nullable): the username that @msg has authenticated
+ * as, if in fact it has authenticated. %NULL otherwise.
  **/
 char *
 soup_auth_domain_accepts (SoupAuthDomain *domain, SoupMessage *msg)

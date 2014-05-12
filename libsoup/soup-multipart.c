@@ -130,8 +130,8 @@ find_boundary (const char *start, const char *end,
  *
  * Parses @headers and @body to form a new #SoupMultipart
  *
- * Return value: a new #SoupMultipart (or %NULL if the message couldn't
- * be parsed or wasn't multipart).
+ * Return value: (nullable): a new #SoupMultipart (or %NULL if the
+ * message couldn't be parsed or wasn't multipart).
  *
  * Since: 2.26
  **/

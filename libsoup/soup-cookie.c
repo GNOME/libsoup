@@ -403,9 +403,9 @@ soup_cookie_new (const char *name, const char *value,
  * appropriate string for the domain if you want to actually make use
  * of the cookie.
  *
- * Return value: a new #SoupCookie, or %NULL if it could not be
- * parsed, or contained an illegal "domain" attribute for a cookie
- * originating from @origin.
+ * Return value: (nullable): a new #SoupCookie, or %NULL if it could
+ * not be parsed, or contained an illegal "domain" attribute for a
+ * cookie originating from @origin.
  *
  * Since: 2.24
  **/

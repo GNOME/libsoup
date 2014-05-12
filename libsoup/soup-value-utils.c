@@ -266,7 +266,8 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
  * by %G_TYPE_INVALID. (The array will contain copies of the provided
  * data rather than pointing to the passed-in data directly.)
  *
- * Return value: a new #GValueArray, or %NULL if an error occurred.
+ * Return value: (nullable): a new #GValueArray, or %NULL if an error
+ * occurred.
  **/
 GValueArray *
 soup_value_array_from_args (va_list args)

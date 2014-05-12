@@ -150,7 +150,8 @@ G_GNUC_END_IGNORE_DEPRECATIONS
  * For structs, use a #GHashTable that maps strings to #GValue;
  * soup_value_hash_new() and related methods can help with this.
  *
- * Return value: the text of the methodCall, or %NULL on error
+ * Return value: (nullable): the text of the methodCall, or %NULL on
+ * error
  **/
 char *
 soup_xmlrpc_build_method_call (const char *method_name,
@@ -256,7 +257,8 @@ soup_xmlrpc_request_new (const char *uri, const char *method_name, ...)
  * The glib type to XML-RPC type mapping is as with
  * soup_xmlrpc_build_method_call(), qv.
  *
- * Return value: the text of the methodResponse, or %NULL on error
+ * Return value: (nullable): the text of the methodResponse, or %NULL
+ * on error
  **/
 char *
 soup_xmlrpc_build_method_response (GValue *value)

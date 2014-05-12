@@ -170,8 +170,8 @@ soup_path_map_remove (SoupPathMap *map, const char *path)
  * specifically associated with @path, it will return the data for the
  * closest parent directory of @path that has data associated with it.
  *
- * Return value: the data set with soup_path_map_add(), or %NULL if no
- * data could be found for @path or any of its ancestors.
+ * Return value: (nullable): the data set with soup_path_map_add(), or
+ * %NULL if no data could be found for @path or any of its ancestors.
  **/
 gpointer
 soup_path_map_lookup (SoupPathMap *map, const char *path)

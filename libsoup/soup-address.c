@@ -370,7 +370,7 @@ soup_address_new (const char *name, guint port)
  * Returns a #SoupAddress equivalent to @sa (or %NULL if @sa's
  * address family isn't supported)
  *
- * Return value: (allow-none): the new #SoupAddress
+ * Return value: (nullable): the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_from_sockaddr (struct sockaddr *sa, int len)
@@ -420,7 +420,7 @@ soup_address_new_from_gsockaddr (GSocketAddress *addr)
  * for @family (or %NULL if @family isn't supported), suitable for
  * using as a listening #SoupSocket.
  *
- * Return value: (allow-none): the new #SoupAddress
+ * Return value: (nullable): the new #SoupAddress
  **/
 SoupAddress *
 soup_address_new_any (SoupAddressFamily family, guint port)
@@ -445,7 +445,7 @@ soup_address_new_any (SoupAddressFamily family, guint port)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: (allow-none): the hostname, or %NULL if it is not known.
+ * Return value: (nullable): the hostname, or %NULL if it is not known.
  **/
 const char *
 soup_address_get_name (SoupAddress *addr)
@@ -468,7 +468,7 @@ soup_address_get_name (SoupAddress *addr)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: (allow-none) (transfer none): the sockaddr, or %NULL
+ * Return value: (nullable) (transfer none): the sockaddr, or %NULL
  **/
 struct sockaddr *
 soup_address_get_sockaddr (SoupAddress *addr, int *len)
@@ -530,7 +530,7 @@ soup_address_make_inet_address (SoupAddress *addr)
  * soup_address_is_resolved() to safely test whether or not an address
  * is resolved before fetching its name or address.
  *
- * Return value: (allow-none): the physical address, or %NULL
+ * Return value: (nullable): the physical address, or %NULL
  **/
 const char *
 soup_address_get_physical (SoupAddress *addr)

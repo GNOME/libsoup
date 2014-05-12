@@ -145,8 +145,9 @@ soup_auth_domain_digest_new (const char *optname1, ...)
  * and return the corresponding encoded password (see
  * soup_auth_domain_digest_encode_password()).
  *
- * Return value: the encoded password, or %NULL if @username is not a
- * valid user. @domain will free the password when it is done with it.
+ * Return value: (nullable): the encoded password, or %NULL if
+ * @username is not a valid user. @domain will free the password when
+ * it is done with it.
  **/
 
 /**

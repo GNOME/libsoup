@@ -139,8 +139,8 @@ soup_form_decode (const char *encoded_form)
  * need to decode it manually, using soup_multipart_new_from_message()
  * and soup_multipart_get_part().
  *
- * Return value: (element-type utf8 utf8) (transfer full): a hash
- * table containing the name/value pairs (other than
+ * Return value: (nullable) (element-type utf8 utf8) (transfer full):
+ * a hash table containing the name/value pairs (other than
  * @file_control_name) from @msg, which you can free with
  * g_hash_table_destroy(). On error, it will return %NULL.
  *

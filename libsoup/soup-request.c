@@ -393,8 +393,8 @@ soup_request_get_content_length (SoupRequest *request)
  * As in the HTTP Content-Type header, this may include parameters
  * after the MIME type.
  *
- * Return value: the type of the data represented by @request,
- *   or %NULL if not known.
+ * Return value: (nullable): the type of the data represented by
+ *   @request, or %NULL if not known.
  *
  * Since: 2.42
  */

@@ -903,8 +903,9 @@ soup_server_class_init (SoupServerClass *server_class)
  * Creates a new #SoupServer. This is exactly equivalent to calling
  * g_object_new() and specifying %SOUP_TYPE_SERVER as the type.
  *
- * Return value: a new #SoupServer. If you are using certain legacy
- * properties, this may also return %NULL if an error occurs.
+ * Return value: (nullable): a new #SoupServer. If you are using
+ * certain legacy properties, this may also return %NULL if an error
+ * occurs.
  **/
 SoupServer *
 soup_server_new (const char *optname1, ...)
@@ -1962,8 +1963,8 @@ soup_server_get_uris (SoupServer *server)
  * This does not add a ref to the context, so you will need to ref it
  * yourself if you want it to outlive its server.
  *
- * Return value: (transfer none): @server's #GMainContext, which may
- * be %NULL
+ * Return value: (nullable) (transfer none): @server's #GMainContext,
+ * which may be %NULL
  *
  * Deprecated: If you are using soup_server_listen(), etc, then
  * the server listens on the thread-default #GMainContext, and this
@@ -2145,7 +2146,7 @@ soup_client_context_get_host (SoupClientContext *client)
  * authenticated, and if so returns the #SoupAuthDomain that
  * authenticated it.
  *
- * Return value: (transfer none) (allow-none): a #SoupAuthDomain, or
+ * Return value: (transfer none) (nullable): a #SoupAuthDomain, or
  * %NULL if the request was not authenticated.
  **/
 SoupAuthDomain *
@@ -2164,8 +2165,8 @@ soup_client_context_get_auth_domain (SoupClientContext *client)
  * authenticated, and if so returns the username that the client
  * authenticated as.
  *
- * Return value: the authenticated-as user, or %NULL if the request
- * was not authenticated.
+ * Return value: (nullable): the authenticated-as user, or %NULL if
+ * the request was not authenticated.
  **/
 const char *
 soup_client_context_get_auth_user (SoupClientContext *client)

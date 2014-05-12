@@ -466,8 +466,8 @@ parse_textual_date (SoupDate *date, const char *date_string)
  * and reasonable approximations thereof. (Eg, it is lenient about
  * whitespace, leading "0"s, etc.)
  *
- * Return value: a new #SoupDate, or %NULL if @date_string could not
- * be parsed.
+ * Return value: (nullable): a new #SoupDate, or %NULL if @date_string
+ * could not be parsed.
  **/
 SoupDate *
 soup_date_new_from_string (const char *date_string)

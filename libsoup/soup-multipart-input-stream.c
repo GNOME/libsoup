@@ -457,8 +457,8 @@ soup_multipart_input_stream_new (SoupMessage  *msg,
  * the part; a new call to this function should be done at that point,
  * to obtain the next part.
  *
- * Return value: (transfer full): a new #GInputStream, or %NULL if
- * there are no more parts
+ * Return value: (nullable) (transfer full): a new #GInputStream, or
+ * %NULL if there are no more parts
  *
  * Since: 2.40
  */
@@ -546,12 +546,13 @@ soup_multipart_input_stream_next_part_async (SoupMultipartInputStream *multipart
  * soup_multipart_input_stream_next_part_finish:
  * @multipart: a #SoupMultipartInputStream.
  * @result: a #GAsyncResult.
- * @error: a #GError location to store any error, or NULL to ignore.
+ * @error: a #GError location to store any error, or %NULL to ignore.
  *
  * Finishes an asynchronous request for the next part.
  *
- * Return value: (transfer full): a newly created #GInputStream for
- * reading the next part or %NULL if there are no more parts.
+ * Return value: (nullable) (transfer full): a newly created
+ * #GInputStream for reading the next part or %NULL if there are no
+ * more parts.
  *
  * Since: 2.40
  */
@@ -579,9 +580,9 @@ soup_multipart_input_stream_next_part_finish (SoupMultipartInputStream	*multipar
  * Note that if a part had no headers at all an empty #SoupMessageHeaders
  * will be returned.
  *
- * Return value: (transfer none): a #SoupMessageHeaders containing the headers
- * for the part currently being processed or %NULL if the headers failed to
- * parse.
+ * Return value: (nullable) (transfer none): a #SoupMessageHeaders
+ * containing the headers for the part currently being processed or
+ * %NULL if the headers failed to parse.
  *
  * Since: 2.40
  */

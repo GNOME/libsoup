@@ -939,8 +939,8 @@ soup_session_new_with_options (const char *optname1,
  * For a modern #SoupSession, this will always just return the
  * thread-default #GMainContext, and so is not especially useful.
  *
- * Return value: (transfer none): @session's #GMainContext, which may
- * be %NULL
+ * Return value: (nullable) (transfer none): @session's #GMainContext,
+ * which may be %NULL
  **/
 GMainContext *
 soup_session_get_async_context (SoupSession *session)
@@ -2892,8 +2892,8 @@ soup_session_get_features (SoupSession *session, GType feature_type)
  * features where there may be more than one feature of a given type,
  * use soup_session_get_features().
  *
- * Return value: (transfer none): a #SoupSessionFeature, or %NULL. The
- * feature is owned by @session.
+ * Return value: (nullable) (transfer none): a #SoupSessionFeature, or
+ * %NULL. The feature is owned by @session.
  *
  * Since: 2.26
  **/
@@ -2939,7 +2939,7 @@ soup_session_get_feature (SoupSession *session, GType feature_type)
  * disabled on @msg, and the second is not, then this will return
  * %NULL, not the second feature.
  *
- * Return value: (transfer none): a #SoupSessionFeature, or %NULL. The
+ * Return value: (nullable) (transfer none): a #SoupSessionFeature, or %NULL. The
  * feature is owned by @session.
  *
  * Since: 2.28

@@ -219,8 +219,8 @@ soup_auth_class_init (SoupAuthClass *auth_class)
  * This is called by #SoupSession; you will normally not create auths
  * yourself.
  *
- * Return value: the new #SoupAuth, or %NULL if it could not be
- * created
+ * Return value: (nullable): the new #SoupAuth, or %NULL if it could
+ * not be created
  **/
 SoupAuth *
 soup_auth_new (GType type, SoupMessage *msg, const char *auth_header)

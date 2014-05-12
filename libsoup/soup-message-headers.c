@@ -299,7 +299,7 @@ soup_message_headers_remove (SoupMessageHeaders *hdrs, const char *name)
  * whichever one makes libsoup most compatible with other HTTP
  * implementations.)
  *
- * Return value: the header's value or %NULL if not found.
+ * Return value: (nullable): the header's value or %NULL if not found.
  *
  * Since: 2.28
  **/
@@ -337,7 +337,7 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
  * transformation is allowed, and so an upstream proxy could do the
  * same thing.
  * 
- * Return value: the header's value or %NULL if not found.
+ * Return value: (nullable): the header's value or %NULL if not found.
  *
  * Since: 2.28
  **/
@@ -393,7 +393,7 @@ soup_message_headers_get_list (SoupMessageHeaders *hdrs, const char *name)
  * soup_message_headers_get_list() were introduced, so callers can
  * explicitly state which behavior they are expecting.
  *
- * Return value: as with soup_message_headers_get_list().
+ * Return value: (nullable): as with soup_message_headers_get_list().
  * 
  * Deprecated: Use soup_message_headers_get_one() or
  * soup_message_headers_get_list() instead.
@@ -1273,9 +1273,10 @@ content_type_setter (SoupMessageHeaders *hdrs, const char *value)
  * its value in *@content_type and *@params. @params can be %NULL if you
  * are only interested in the content type itself.
  *
- * Return value: a string with the value of the "Content-Type" header
- * or NULL if @hdrs does not contain that header or it cannot be
- * parsed (in which case *@params will be unchanged).
+ * Return value: (nullable): a string with the value of the
+ * "Content-Type" header or %NULL if @hdrs does not contain that
+ * header or it cannot be parsed (in which case *@params will be
+ * unchanged).
  *
  * Since: 2.26
  **/

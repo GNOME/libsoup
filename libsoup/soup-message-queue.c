@@ -204,7 +204,7 @@ soup_message_queue_item_unref (SoupMessageQueueItem *item)
  * the item with soup_message_queue_unref_item() when you are done
  * with it.
  *
- * Return value: the queue item for @msg, or %NULL
+ * Return value: (nullable): the queue item for @msg, or %NULL
  **/ 
 SoupMessageQueueItem *
 soup_message_queue_lookup (SoupMessageQueue *queue, SoupMessage *msg)

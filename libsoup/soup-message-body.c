@@ -625,7 +625,7 @@ soup_message_body_flatten (SoupMessageBody *body)
  * @body may still potentially have more data, but that data is not
  * currently available).
  *
- * Return value: a #SoupBuffer, or %NULL.
+ * Return value: (nullable): a #SoupBuffer, or %NULL.
  **/
 SoupBuffer *
 soup_message_body_get_chunk (SoupMessageBody *body, goffset offset)

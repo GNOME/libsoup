@@ -371,8 +371,8 @@ get_cookies (SoupCookieJar *jar, SoupURI *uri, gboolean for_http, gboolean copy_
  * almost certainly be setting @for_http to %FALSE if you are calling
  * this.
  *
- * Return value: the cookies, in string form, or %NULL if there are no
- * cookies for @uri.
+ * Return value: (nullable): the cookies, in string form, or %NULL if
+ * there are no cookies for @uri.
  *
  * Since: 2.24
  **/
