@@ -1726,7 +1726,8 @@ translate_read_status (SoupSocket *sock, GCancellable *cancellable,
 /**
  * soup_socket_read:
  * @sock: the socket
- * @buffer: buffer to read into
+ * @buffer: (array length=len) (element-type guint8): buffer to read
+ *   into
  * @len: size of @buffer in bytes
  * @nread: (out): on return, the number of bytes read into @buffer
  * @cancellable: a #GCancellable, or %NULL
@@ -1791,7 +1792,8 @@ out:
 /**
  * soup_socket_read_until:
  * @sock: the socket
- * @buffer: buffer to read into
+ * @buffer: (array length=len) (element-type guint8): buffer to read
+ *   into
  * @len: size of @buffer in bytes
  * @boundary: boundary to read until
  * @boundary_len: length of @boundary in bytes
@@ -1867,7 +1869,7 @@ socket_write_watch (GObject *pollable, gpointer user_data)
 /**
  * soup_socket_write:
  * @sock: the socket
- * @buffer: data to write
+ * @buffer: (array length=len) (element-type guint8): data to write
  * @len: size of @buffer, in bytes
  * @nwrote: (out): on return, number of bytes written
  * @cancellable: a #GCancellable, or %NULL

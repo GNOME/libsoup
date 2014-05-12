@@ -958,7 +958,8 @@ soup_message_headers_get_ranges_internal (SoupMessageHeaders  *hdrs,
  * soup_message_headers_get_ranges:
  * @hdrs: a #SoupMessageHeaders
  * @total_length: the total_length of the response body
- * @ranges: (out): return location for an array of #SoupRange
+ * @ranges: (out) (array length=length): return location for an array
+ * of #SoupRange
  * @length: the length of the returned array
  *
  * Parses @hdrs's Range header and returns an array of the requested

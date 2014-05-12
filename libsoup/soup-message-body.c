@@ -79,7 +79,7 @@ typedef struct {
 /**
  * soup_buffer_new:
  * @use: how @data is to be used by the buffer
- * @data: data
+ * @data: (array length=length) (element-type guint8): data
  * @length: length of @data
  *
  * Creates a new #SoupBuffer containing @length bytes from @data.
@@ -166,7 +166,7 @@ soup_buffer_new_subbuffer (SoupBuffer *parent, gsize offset, gsize length)
 
 /**
  * soup_buffer_new_with_owner:
- * @data: data
+ * @data: (array length=length) (element-type guint8): data
  * @length: length of @data
  * @owner: pointer to an object that owns @data
  * @owner_dnotify: (allow-none): a function to free/unref @owner when
