@@ -2,16 +2,17 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Yosef Or Boczko <yoseforb@gnome.org>, 2014.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup gnome\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-21 19:54+0200\n"
-"PO-Revision-Date: 2013-02-21 19:55+0200\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
-"Language-Team: Hebrew <sh.yaron@gmail.com>\n"
-"Language: \n"
+"POT-Creation-Date: 2014-05-16 04:43+0300\n"
+"PO-Revision-Date: 2014-05-16 04:44+0300\n"
+"Last-Translator: Yosef Or Boczko <yoseforb@gnome.org>\n"
+"Language-Team: עברית <>\n"
+"Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,27 +20,27 @@ msgstr ""
 "X-Poedit-Language: Hebrew\n"
 "X-Poedit-Country: ISRAEL\n"
 "X-Poedit-SourceCharset: utf-8\n"
+"X-Generator: Gtranslator 2.91.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205
-#: ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "החיבור הופסק באופן בלתי צפוי"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "בקשת חיפוש שגויה"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "לא ניתן לקצץ את SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "תזרים הרשת נסגר בפתאומיות"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "שמירת המשאב במלואו במטמון נכשלה"
 
@@ -56,16 +57,15 @@ msgstr "לא ניתן לנתח את תגובת ה־HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "קידוד תגובת ה־HTTP אינו מוכר"
 
-#: ../libsoup/soup-message-io.c:846
-#: ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "הפעולה בוטלה"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "הפעולה תיחסם"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "לא ניתן לנתח את תגובת ה־HTTP"
 
@@ -79,34 +79,54 @@ msgstr "לא סופקה כתובת"
 msgid "Invalid '%s' URI: %s"
 msgstr "כתובת '%s' שגויה: %s"
 
-#: ../libsoup/soup-session.c:4211
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "לא ניתן ליצור שרות TLS ללא תעודת TLS"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "לא ניתן להאזין לכתובת %s, פתחה %d"
+
+#: ../libsoup/soup-session.c:4465
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "לא ניתן לנתח את הכתובת '%s'"
 
-#: ../libsoup/soup-session.c:4248
+#: ../libsoup/soup-session.c:4502
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "תבנית הכתובת אינה נתמכת '%s'"
 
-#: ../libsoup/soup-session.c:4270
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "כתובת שאינה HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "לא ניתן לייבא לא-שקע כ־SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "לא ניתן לייבא שקע קיים:"
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "לא ניתן לייבא שקע לא מחובר"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "שם המארח הוא כתובת IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "שם מארח שגוי"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "לשם המארח אין שם מתחם בסיסי"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "אין מספיק שמות מתחם"
-
