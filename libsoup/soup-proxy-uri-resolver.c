@@ -15,7 +15,7 @@
 #include "soup-proxy-uri-resolver.h"
 #include "soup.h"
 
-/*
+/**
  * SECTION:soup-proxy-uri-resolver
  * @short_description: Interface for locating HTTP proxies
  *
@@ -40,7 +40,7 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
 {
 }
 
-/*
+/**
  * SoupProxyURIResolverCallback:
  * @resolver: the #SoupProxyURIResolver
  * @status: a #SoupStatus
@@ -50,7 +50,7 @@ soup_proxy_uri_resolver_default_init (SoupProxyURIResolverInterface *iface)
  * Callback for soup_proxy_uri_resolver_get_proxy_uri_async()
  */
 
-/*
+/**
  * soup_proxy_uri_resolver_get_proxy_uri_async:
  * @proxy_uri_resolver: the #SoupProxyURIResolver
  * @uri: the #SoupURI you want a proxy for
@@ -81,7 +81,7 @@ soup_proxy_uri_resolver_get_proxy_uri_async (SoupProxyURIResolver  *proxy_uri_re
 				     callback, user_data);
 }
 
-/*
+/**
  * soup_proxy_uri_resolver_get_proxy_uri_sync:
  * @proxy_uri_resolver: the #SoupProxyURIResolver
  * @uri: the #SoupURI you want a proxy for

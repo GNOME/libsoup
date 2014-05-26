@@ -110,7 +110,7 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
 }
 
 /**
- * soup_buffer_new_take:
+ * soup_buffer_new_take: (rename-to soup_buffer_new)
  * @data: (array length=length) (transfer full): data
  * @length: length of @data
  *
@@ -122,7 +122,6 @@ soup_buffer_new (SoupMemoryUse use, gconstpointer data, gsize length)
  *
  * Return value: the new #SoupBuffer.
  *
- * Rename to: soup_buffer_new
  * Since: 2.32
  **/
 SoupBuffer *
@@ -488,7 +487,7 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
 }
 
 /**
- * soup_message_body_append_take:
+ * soup_message_body_append_take: (rename-to soup_message_body_append)
  * @body: a #SoupMessageBody
  * @data: (array length=length) (transfer full): data to append
  * @length: length of @data
@@ -499,7 +498,6 @@ soup_message_body_append (SoupMessageBody *body, SoupMemoryUse use,
  * with %SOUP_MEMORY_TAKE as second argument; it exists mainly for
  * convenience and simplifying language bindings.
  *
- * Rename to: soup_message_body_append
  * Since: 2.32
  **/
 void
