@@ -526,6 +526,17 @@ soup_connection_is_tunnelled (SoupConnection *conn)
 }
 
 gboolean
+soup_connection_is_ssl (SoupConnection *conn)
+{
+	SoupConnectionPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
+	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
+
+	return priv->ssl;
+}
+
+gboolean
 soup_connection_start_ssl_sync (SoupConnection  *conn,
 				GCancellable    *cancellable,
 				GError         **error)

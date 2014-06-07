@@ -1667,7 +1667,6 @@ tunnel_message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_
 	SoupMessageQueueItem *tunnel_item = user_data;
 	SoupMessageQueueItem *item = tunnel_item->related;
 	SoupSession *session = tunnel_item->session;
-	gboolean is_ssl;
 	guint status;
 
 	if (tunnel_item->state == SOUP_MESSAGE_RESTARTING) {
@@ -1691,8 +1690,7 @@ tunnel_message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_
 		return;
 	}
 
-	g_object_get (G_OBJECT (item->conn), "ssl", &is_ssl, NULL);
-	if (!is_ssl) {
+	if (!soup_connection_is_ssl (item->conn)) {
 		tunnel_complete (tunnel_item, status, NULL);
 		return;
 	}
@@ -4758,7 +4756,6 @@ soup_session_proxy_connect_async (SoupSession         *session,
 	SoupSessionPrivate *priv;
 	SoupMessage *msg;
 	SoupMessageQueueItem *item;
-	gboolean use_thread_context;
 	char *uri;
 
 	g_return_if_fail (SOUP_IS_SESSION (session));

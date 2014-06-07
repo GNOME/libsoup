@@ -68,6 +68,7 @@ SoupURI        *soup_connection_get_remote_uri (SoupConnection   *conn);
 SoupURI        *soup_connection_get_proxy_uri  (SoupConnection   *conn);
 gboolean        soup_connection_is_via_proxy   (SoupConnection   *conn);
 gboolean        soup_connection_is_tunnelled   (SoupConnection   *conn);
+gboolean        soup_connection_is_ssl         (SoupConnection   *conn);
 
 SoupConnectionState soup_connection_get_state  (SoupConnection   *conn);
 void                soup_connection_set_state  (SoupConnection   *conn,
