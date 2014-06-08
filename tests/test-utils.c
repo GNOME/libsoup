@@ -277,10 +277,8 @@ static void
 server_listen (SoupServer *server)
 {
 	GError *error = NULL;
-	SoupServerListenOptions options =
-		GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (server), "listen-options"));
 
-	soup_server_listen_local (server, 0, options, &error);
+	soup_server_listen_local (server, 0, 0, &error);
 	if (error) {
 		g_printerr ("Unable to create server: %s\n", error->message);
 		exit (1);
@@ -294,6 +292,8 @@ static gpointer
 run_server_thread (gpointer user_data)
 {
 	SoupServer *server = user_data;
+	SoupTestServerOptions options =
+		GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (server), "options"));
 	GMainContext *context;
 	GMainLoop *loop;
 
@@ -302,7 +302,8 @@ run_server_thread (gpointer user_data)
 	loop = g_main_loop_new (context, FALSE);
 	g_object_set_data (G_OBJECT (server), "GMainLoop", loop);
 
-	server_listen (server);
+	if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER))
+		server_listen (server);
 
 	g_mutex_lock (&server_start_mutex);
 	g_cond_signal (&server_start_cond);
@@ -354,16 +355,10 @@ soup_test_server_new (SoupTestServerOptions options)
 		g_mutex_lock (&server_start_mutex);
 
 		thread = g_thread_new ("server_thread", run_server_thread, server);
-		g_object_set_data (G_OBJECT (server), "thread", thread);
+		g_cond_wait (&server_start_cond, &server_start_mutex);
+		g_mutex_unlock (&server_start_mutex);
 
-		if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER)) {
-			/* We have to call soup_server_listen() from the server's
-			 * thread, but want to be sure we don't return from here
-			 * until it happens, hence the locking.
-			 */
-			g_cond_wait (&server_start_cond, &server_start_mutex);
-			g_mutex_unlock (&server_start_mutex);
-		}
+		g_object_set_data (G_OBJECT (server), "thread", thread);
 	} else if (!(options & SOUP_TEST_SERVER_NO_DEFAULT_LISTENER))
 		server_listen (server);
 
