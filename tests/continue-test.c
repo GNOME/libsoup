@@ -44,7 +44,6 @@ EVENT_HANDLER (got_body)
 EVENT_HANDLER (wrote_informational)
 EVENT_HANDLER (wrote_headers)
 EVENT_HANDLER (wrote_body)
-EVENT_HANDLER (finished)
 
 static void
 do_message (const char *path, gboolean long_body,
@@ -90,8 +89,6 @@ do_message (const char *path, gboolean long_body,
 			  G_CALLBACK (wrote_headers), "client");
 	g_signal_connect (msg, "wrote_body",
 			  G_CALLBACK (wrote_body), "client");
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (finished), "client");
 
 	events = NULL;
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
@@ -158,10 +155,8 @@ do_test_unauth_short_noexpect_nopass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -175,10 +170,8 @@ do_test_unauth_long_noexpect_nopass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -194,10 +187,8 @@ do_test_unauth_short_expect_nopass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -209,10 +200,8 @@ do_test_unauth_long_expect_nopass (void)
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -226,10 +215,8 @@ do_test_auth_short_noexpect_nopass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -243,10 +230,8 @@ do_test_auth_long_noexpect_nopass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -258,10 +243,8 @@ do_test_auth_short_expect_nopass (void)
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -273,10 +256,8 @@ do_test_auth_long_expect_nopass (void)
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -290,7 +271,6 @@ do_test_auth_short_noexpect_pass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
@@ -299,10 +279,8 @@ do_test_auth_short_noexpect_pass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -316,7 +294,6 @@ do_test_auth_long_noexpect_pass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
@@ -325,10 +302,8 @@ do_test_auth_long_noexpect_pass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -340,7 +315,6 @@ do_test_auth_short_expect_pass (void)
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
@@ -351,10 +325,8 @@ do_test_auth_short_expect_pass (void)
 		    "server-got_body",
 		    "server-wrote_headers", SOUP_STATUS_CREATED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -366,17 +338,14 @@ do_test_auth_long_expect_pass (void)
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_UNAUTHORIZED,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
 		    "client-wrote_headers",
 		    "server-got_headers",
 		    "server-wrote_headers", SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE,
 		    "server-wrote_body",
-		    "server-finished",
 		    "client-got_headers",
 		    "client-got_body",
-		    "client-finished",
 		    NULL);
 }
 
@@ -423,8 +392,6 @@ request_started (SoupServer *server, SoupMessage *msg,
 			  G_CALLBACK (wrote_headers), "server");
 	g_signal_connect (msg, "wrote_body",
 			  G_CALLBACK (wrote_body), "server");
-	g_signal_connect (msg, "finished",
-			  G_CALLBACK (finished), "server");
 }
 
 static gboolean
