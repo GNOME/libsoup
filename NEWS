@@ -1,3 +1,49 @@
+Changes in libsoup from 2.46.0 to 2.47.3:
+
+	* Added new-and-improved SoupServer API, and deprecated much
+          of the existing API:
+
+	      * Servers can now listen on multiple ports, including
+	        listening on both IPv4 and IPv6 (which is the default
+	        behavior when using the new API), or serving both http
+	        and https from a single SoupServer.
+
+	      * You can create a SoupServer from an existing listening
+	        socket (either a file descriptor or a GSocket).
+
+	      * When using the new APIs, SoupServer now obeys the
+	        thread-default GMainContext rather than using the
+	        :async-context property.
+
+	      * soup_server_set_ssl_cert_file() allows setting the
+	        certificate and key files with feedback if it fails
+	        (unlike the old construct-time "ssl-cert-file" and
+	        "ssl-key-file" properties, which fail with a
+	        g_warning() and a NULL return from g_object_new() if
+	        they fail).
+
+	      * SoupClientContext has new methods that return GSocket
+	        and GSocketAddress, rather than SoupSocket and
+	        SoupAddress.
+
+	* SoupSession now has a :tls-interaction property, which can
+          be used to add a GTlsInteraction to a session, allowing it
+          to provide a client-side certificate if the server requests
+          one. [#334021, Colin Walters]
+
+	* soup_session_abort() no longer tries to close active
+          connections, which was causing crashes in evolution
+          [rh#1093314]
+
+	* Fixed a GMainContext-handling bug that could cause crashes
+          in gstreamer's souphttpsrc. [#729737, Dmitry Shatrov]
+
+	* Fixed a memory leak when requesting to delete a cookie that
+          didn't exist [Joseph Artsimovich]
+
+	* Updated translations:
+	  Brazilian Portuguese, Czech, Hebrew, Spanish
+
 Changes in libsoup from 2.45.92 to 2.46.0:
 
 	* (No changes, just a version bump)
