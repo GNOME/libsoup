@@ -89,7 +89,7 @@ soup_request_data_send (SoupRequest   *request,
 	comma = strchr (start, ',');
 	if (comma && comma != start) {
 		/* Deal with MIME type / params */
-		if (comma > start + BASE64_INDICATOR_LEN && !g_ascii_strncasecmp (comma - BASE64_INDICATOR_LEN, BASE64_INDICATOR, BASE64_INDICATOR_LEN)) {
+		if (comma >= start + BASE64_INDICATOR_LEN && !g_ascii_strncasecmp (comma - BASE64_INDICATOR_LEN, BASE64_INDICATOR, BASE64_INDICATOR_LEN)) {
 			end = comma - BASE64_INDICATOR_LEN;
 			base64 = TRUE;
 		} else
