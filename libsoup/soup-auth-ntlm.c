@@ -835,7 +835,8 @@ md4sum (const unsigned char *in, int nbytes, unsigned char digest[16])
 	guint32 A, B, C, D, AA, BB, CC, DD, X[16];
 	int pbytes, nbits = nbytes * 8, i, j;
 
-	pbytes = (120 - (nbytes % 64)) % 64;
+	/* There is *always* padding of at least one bit. */
+	pbytes = ((119 - (nbytes % 64)) % 64) + 1;
 	M = alloca (nbytes + pbytes + 8);
 	memcpy (M, in, nbytes);
 	memset (M + nbytes, 0, pbytes + 8);
