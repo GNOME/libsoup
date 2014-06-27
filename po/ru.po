@@ -1,16 +1,16 @@
 # Russian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# 
-# Yuri Myasoedov <omerta13@yandex.ru>, 2012, 2013., 2013.
+#
+# Yuri Myasoedov <omerta13@yandex.ru>, 2012, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-03-15 11:36+0000\n"
-"PO-Revision-Date: 2013-03-16 22:47+0400\n"
+"POT-Creation-Date: 2014-06-27 09:41+0000\n"
+"PO-Revision-Date: 2014-06-27 17:39+0300\n"
 "Last-Translator: Yuri Myasoedov <omerta13@yandex.ru>\n"
 "Language-Team: русский <gnome-cyr@gnome.org>\n"
 "Language: ru\n"
@@ -18,27 +18,28 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 1.5.4\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "Соединение было неожиданно разорвано"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Неверный запрос поиска"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Не удалось отсечь SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "Сетевой поток неожиданно закрылся"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "Не удалось полностью закэшировать ресурс"
 
@@ -55,15 +56,15 @@ msgstr "Не удалось разобрать HTTP-ответ"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Нераспознанная кодировка HTTP-ответа"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "Действие отменено"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "Действие заблокировано"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "Не удалось разобрать HTTP-запрос"
 
@@ -77,33 +78,55 @@ msgstr "Не указан URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Недопустимый URI «%s»: %s"
 
-#: ../libsoup/soup-session.c:4252
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Невозможно создать TLS-сервер  без TLS-сертификата"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Не удалось начать прослушивание по адресу %s (порт — %d)"
+
+#: ../libsoup/soup-session.c:4465
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Не удалось разобрать URI «%s»"
 
-#: ../libsoup/soup-session.c:4289
+#: ../libsoup/soup-session.c:4502
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Неподдерживаемая схема URI «%s»"
 
-#: ../libsoup/soup-session.c:4311
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Формат URI отличается от HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr ""
+"Невозможно импортировать объект, отличный от сокета, в качестве SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "Не удалось импортировать существующий сокет:"
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "Невозможно импортировать неподключенный сокет"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "Имя компьютера является IP-адресом"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "Неверное имя компьютера"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "Имя компьютера не содержит доменной части"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Недостаточно доменных имён в адресе"
