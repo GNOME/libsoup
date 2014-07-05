@@ -1,15 +1,15 @@
 # Lithuanian translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# Aurimas Černius <aurisc4@gmail.com>, 2012, 2013.
+# Aurimas Černius <aurisc4@gmail.com>, 2012, 2013, 2014.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-02-24 21:55+0200\n"
+"POT-Creation-Date: 2014-07-05 09:45+0000\n"
+"PO-Revision-Date: 2014-07-05 13:52+0300\n"
 "Last-Translator: Aurimas Černius <aurisc4@gmail.com>\n"
 "Language-Team: Lietuvių <gnome-lt@lists.akl.lt>\n"
 "Language: lt\n"
@@ -20,25 +20,25 @@ msgstr ""
 "%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Gtranslator 2.91.6\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "Ryšys netikėtai nutrūko"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Netinkama paieškos užklausa"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Negalima trumpinti SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "Tinklo srautas netikėtai užsivėrė"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "Nepavyko visiškai patalpinti resurso į podėlį"
 
@@ -48,7 +48,6 @@ msgid "Output buffer is too small"
 msgstr "Išvesties buferis yra per mažas"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
 
@@ -56,16 +55,15 @@ msgstr "Nepavyko perskaityti URI „%s“Nepavyko perskaityti HTTP atsako"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Neatpažinta HTTP atsako koduotė"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "Veiksmas buvo nutrauktas"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "Veiksmas blokuosis"
 
-#: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "Nepavyko perskaityti HTTP užklausos"
 
@@ -79,33 +77,54 @@ msgstr "Nepateiktas URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Netinkamas „%s“ URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Negalima sukurti TLS serverio be TLS liudijimo"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Nepavyksta klausytis adreso %s, prievadu %d"
+
+#: ../libsoup/soup-session.c:4465
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Nepavyko perskaityti URI „%s“"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4502
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nepalaikoma URI schema „%s“"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ne HTTP URI"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Negalima importuoti ne lizdo kaip SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "Nepavyko importuoti esamo lizdo: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "Negalima importuoti neprijungto lizdo"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "Serverio vardas arba IP adresas"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "Netinkamas serverio vardas"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "Serverio vardas neturi bazinio domeno"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Nepakanka domenų"
