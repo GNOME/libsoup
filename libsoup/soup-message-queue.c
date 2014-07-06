@@ -139,7 +139,9 @@ soup_message_queue_append (SoupMessageQueue *queue, SoupMessage *msg,
 void
 soup_message_queue_item_ref (SoupMessageQueueItem *item)
 {
+	g_mutex_lock (&item->queue->mutex);
 	item->ref_count++;
+	g_mutex_unlock (&item->queue->mutex);
 }
 
 /**
