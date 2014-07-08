@@ -2033,7 +2033,8 @@ async_run_queue (SoupSession *session)
 		if (msg->method == SOUP_METHOD_CONNECT)
 			continue;
 
-		if (item->async_context != soup_session_get_async_context (session))
+		if (!item->async ||
+		    item->async_context != soup_session_get_async_context (session))
 			continue;
 
 		soup_session_process_queue_item (session, item, &should_cleanup, TRUE);
