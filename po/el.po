@@ -6,39 +6,39 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsou"
-"p&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-09 11:44+0300\n"
-"Last-Translator: Dimitris Spingos (Δημήτρης Σπίγγος) <dmtrs32@gmail.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-07-03 21:40+0000\n"
+"PO-Revision-Date: 2014-07-07 11:16+0200\n"
+"Last-Translator: Tom Tryfonidis <tomtryf@gmail.com>\n"
 "Language-Team: team@gnome.gr\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Virtaal 0.7.1\n"
+"X-Generator: Poedit 1.6.5\n"
 "X-Project-Style: gnome\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "Η σύνδεση τερματίστηκε απρόσμενα"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Άκυρη αίτηση αναζήτησης"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Αδυναμία περικοπής του SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
-msgstr "Η ροή του δικτύου έκλεισε αναπάντεχα"
+msgstr "Η ροή του δικτύου έκλεισε απρόσμενα"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "Αποτυχία πλήρους απόκρυψης του πόρου"
 
@@ -48,7 +48,6 @@ msgid "Output buffer is too small"
 msgstr "Η ενδιάμεση μνήμη εξόδου είναι πολύ μικρή"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "Αδυναμία ανάλυσης της απάντησης HTTP"
 
@@ -56,16 +55,15 @@ msgstr "Αδυναμία ανάλυσης της απάντησης HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Μη αναγνωρίσιμη κωδικοποίηση απάντησης HTTP"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "Η λειτουργία ακυρώθηκε"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "Η λειτουργία θα μπλοκαριστεί"
 
-#: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "Αδυναμία ανάλυσης αιτήματος HTTP"
 
@@ -79,33 +77,54 @@ msgstr "Δεν έχει δοθεί URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Μη έγκυρο '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Αδύνατη η δημιουργία ενός διακομιστή TLS χωρίς πιστοποιητικό TLS"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Αδυναμία ακρόασης στη διεύθυνση %s, θύρα %d"
+
+#: ../libsoup/soup-session.c:4465
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Αδυναμία ανάλυσης URI '%s'"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4502
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr "Μη υποστηριζόμενο URI σχήμα '%s'"
+msgstr "Μη υποστηριζόμενο σχήμα URI '%s'"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4524
 #, c-format
 msgid "Not an HTTP URI"
-msgstr "Δεν είναι URI HTTP"
+msgstr "Δεν είναι ένα HTTP URI"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Αδύνατη η εισαγωγή μιας μη υποδοχής ως SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "Αδυναμία εισαγωγής υπάρχουσας υποδοχής"
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "Αδύνατη η εισαγωγή μιας μη συνδεμένης υποδοχής"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
-msgstr "Το όνομα συστήματος είναι μια διεύθυνση IP"
+msgstr "Το όνομα κεντρικού υπολογιστή είναι μια διεύθυνση IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
-msgstr "Μη έγκυρο όνομα συστήματος"
+msgstr "Μη έγκυρο όνομα κεντρικού υπολογιστή"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
-msgstr "Το όνομα συστήματος δεν έχει βασικό τομέα"
+msgstr "Το όνομα κεντρικού υπολογιστή δεν έχει βασικό τομέα"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Δεν υπάρχουν αρκετοί τομείς"
