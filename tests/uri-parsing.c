@@ -493,6 +493,72 @@ do_normalization_tests (void)
 	}
 }
 
+typedef struct {
+	const char *uri;
+	const char *mime_type;
+	const char *body;
+} DataURITest;
+
+static const DataURITest data_tests[] = {
+	{ "data:text/plain,foo%20bar",
+	  "text/plain",
+	  "foo bar" },
+	{ "data:text/plain;charset=utf-8,foo%20bar",
+	  "text/plain;charset=utf-8",
+	  "foo bar" },
+	{ "data:text/plain;base64,Zm9vIGJhcg==",
+	  "text/plain",
+	  "foo bar" },
+	{ "data:,foo%20bar",
+	  "text/plain;charset=US-ASCII",
+	  "foo bar" },
+	{ "data:;base64,Zm9vIGJhcg==",
+	  "text/plain;charset=US-ASCII",
+	  "foo bar" },
+	{ "data:,",
+	  "text/plain;charset=US-ASCII",
+	  "" },
+	{ "data:text/plain,",
+	  "text/plain",
+	  "" }
+};
+
+static void
+do_data_tests (void)
+{
+	SoupSession *session;
+	SoupRequest *req;
+	GInputStream *stream;
+	char buf[128];
+	gsize nread;
+	int i;
+	GError *error = NULL;
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	for (i = 0; i < G_N_ELEMENTS (data_tests); i++) {
+		req = soup_session_request (session, data_tests[i].uri, &error);
+		g_assert_no_error (error);
+
+		stream = soup_request_send (req, NULL, &error);
+		g_assert_no_error (error);
+
+		g_input_stream_read_all (stream, buf, sizeof (buf), &nread, NULL, &error);
+
+		g_assert_no_error (error);
+		g_assert_cmpint (nread, ==, strlen (data_tests[i].body));
+		buf[nread] = 0;
+		g_assert_cmpstr (buf, ==, data_tests[i].body);
+
+		g_assert_cmpstr (soup_request_get_content_type (req), ==, data_tests[i].mime_type);
+
+		g_input_stream_close (stream, NULL, &error);
+		g_assert_no_error (error);
+		g_object_unref (stream);
+		g_object_unref (req);
+	}
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -505,6 +571,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/uri/equality", do_equality_tests);
 	g_test_add_func ("/uri/null", do_soup_uri_null_tests);
 	g_test_add_func ("/uri/normalization", do_normalization_tests);
+	g_test_add_func ("/uri/data", do_data_tests);
 
 	ret = g_test_run ();
 
