@@ -228,7 +228,9 @@ soup_test_session_new (GType type, ...)
 	va_list args;
 	const char *propname;
 	SoupSession *session;
+	GTlsDatabase *tlsdb;
 	char *cafile;
+	GError *error = NULL;
 
 	va_start (args, type);
 	propname = va_arg (args, const char *);
@@ -236,10 +238,19 @@ soup_test_session_new (GType type, ...)
 	va_end (args);
 
 	cafile = g_test_build_filename (G_TEST_DIST, "test-cert.pem", NULL);
-	g_object_set (G_OBJECT (session),
-		      SOUP_SESSION_SSL_CA_FILE, cafile,
-		      NULL);
+	tlsdb = g_tls_file_database_new (cafile, &error);
 	g_free (cafile);
+	if (error) {
+		if (g_strcmp0 (g_getenv ("GIO_USE_TLS"), "dummy") == 0)
+			g_clear_error (&error);
+		else
+			g_assert_no_error (error);
+	}
+
+	g_object_set (G_OBJECT (session),
+		      SOUP_SESSION_TLS_DATABASE, tlsdb,
+		      NULL);
+	g_clear_object (&tlsdb);
 
 	if (http_debug_level && !logger) {
 		SoupLoggerLogLevel level = MIN ((SoupLoggerLogLevel)http_debug_level, SOUP_LOGGER_LOG_BODY);

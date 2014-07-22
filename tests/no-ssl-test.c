@@ -54,10 +54,16 @@ do_session_property_tests (void)
 	GTlsDatabase *tlsdb;
 	char *ca_file;
 	SoupSession *session;
+	GParamSpec *pspec;
 
 	g_test_bug ("700518");
 
 	session = soup_session_async_new ();
+
+	/* Temporarily undeprecate SOUP_SESSION_SSL_CA_FILE to avoid warnings. */
+	pspec = g_object_class_find_property (g_type_class_peek (SOUP_TYPE_SESSION),
+					      SOUP_SESSION_SSL_CA_FILE);
+	pspec->flags &= ~G_PARAM_DEPRECATED;
 
 	g_object_get (G_OBJECT (session),
 		      "ssl-use-system-ca-file", &use_system,
@@ -102,6 +108,9 @@ do_session_property_tests (void)
 	soup_test_assert (ca_file == NULL, "setting tls-database NULL set ssl-ca-file");
 
 	soup_test_session_abort_unref (session);
+
+	/* Re-deprecate SOUP_SESSION_SSL_CA_FILE */
+	pspec->flags |= G_PARAM_DEPRECATED;
 }
 
 static void
