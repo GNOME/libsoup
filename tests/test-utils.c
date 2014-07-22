@@ -460,6 +460,7 @@ soup_test_server_get_uri (SoupServer    *server,
 		while (!data.uri)
 			g_cond_wait (&data.cond, &data.mutex);
 
+		g_mutex_unlock (&data.mutex);
 		g_mutex_clear (&data.mutex);
 		g_cond_clear (&data.cond);
 		uri = data.uri;
