@@ -1,3 +1,23 @@
+Changes in libsoup from 2.47.3 to 2.47.4:
+
+	* Fixed two crashes that could occur in multithreaded use
+          (in particular, with the latest git gvfs). [#732783,
+          #732925, Ross Lagerwall]
+
+	* Fixed the handling of data: URIs with base64-encoded data
+          but no explicit MIME type. [#732112, Raveendra Karu]. Added
+          tests for this and other data: URI cases. [Dan]
+
+	* Fixed a bug in SoupAuthNTLM that affected 28-character-long
+          passwords. [#732087, David Woodhouse]
+
+	* Fixed tests to pass with GLib git master (which warns if you
+	  use deprecated GObject properties, and which also caught a
+	  mutex-handling bug in test-utils.c)
+
+	* Updated translations:
+	  Galician, Greek, Lithuanian, Russian
+
 Changes in libsoup from 2.46.0 to 2.47.3:
 
 	* Added new-and-improved SoupServer API, and deprecated much
