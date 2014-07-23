@@ -1155,7 +1155,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 			return SOUP_CACHE_RESPONSE_STALE;
 		}
 
-		if (g_hash_table_lookup_extended (hash, "max-age", NULL, &value)) {
+		if (g_hash_table_lookup_extended (hash, "max-age", NULL, &value) && value) {
 			max_age = (int)MIN (g_ascii_strtoll (value, NULL, 10), G_MAXINT32);
 			/* Forcing cache revalidaton
 			 */
