@@ -1,14 +1,14 @@
 # Catalan translation for libsoup.
 # Copyright (C) 2012 Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Gil Forcada <gilforcada@guifi.net>, 2012, 2013.
+# Gil Forcada <gilforcada@guifi.net>, 2012, 2013, 2014.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-03-12 23:07+0100\n"
-"PO-Revision-Date: 2012-09-23 17:22+0200\n"
+"POT-Creation-Date: 2014-08-17 13:31+0200\n"
+"PO-Revision-Date: 2014-08-17 13:30+0200\n"
 "Last-Translator: Gil Forcada <gilforcada@guifi.net>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "Language: ca-XV\n"
@@ -16,27 +16,26 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bits\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Gtranslator 2.91.5\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "S'ha finalitzat la connexió inesperadament"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "La petició de cerca no és vàlida"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No es pot truncar el SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "S'ha tancat inesperadament el flux de xarxa"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "No s'ha pogut carregar completament el recurs a la memòria cau"
 
@@ -53,15 +52,15 @@ msgstr "No s'ha pogut analitzar la resposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "No es reconeix la codificació de la resposta HTTP"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "S'ha cancel·lat l'operació"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "L'operació bloquejaria"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "No s'ha pogut analitzar la petició HTTP"
 
@@ -75,33 +74,54 @@ msgstr "No s'ha proporcionat cap URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "L'URI «%s» no és vàlid: %s"
 
-#: ../libsoup/soup-session.c:4252
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "No es pot crear un servidor de TLS sense un certificat TLS"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "No es pot escoltar a l'adreça %s, port %d"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "No s'ha pogut analitzar l'URI «%s»"
 
-#: ../libsoup/soup-session.c:4289
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "No es sap gestionar l'esquema d'URI «%s»"
 
-#: ../libsoup/soup-session.c:4311
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No és un URI HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "No es pot importar un objecte que no siga un sòcol com a SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "No s'ha pogut importar un sòcol existent: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "No es pot importar un sòcol desconnectat"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "El nom d'ordinador és una adreça IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "El nom d'ordinador no és vàlid"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "El nom d'ordinador no té cap domini base"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "No hi ha prou dominis"
