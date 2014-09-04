@@ -3,14 +3,15 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # eukim <eukim@redhat.com>, 2012.
-# Changwoo Ryu <cwryu@debian.org>, 2013.
+# Changwoo Ryu <cwryu@debian.org>, 2013-2014.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-22 04:46+0900\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-09-04 09:45+0000\n"
+"PO-Revision-Date: 2014-09-05 06:21+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: Korean <gnome-kr@googlegroups.com>\n"
 "Language: ko\n"
@@ -20,25 +21,25 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Lokalize 1.0\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "예상치 않게 연결이 중지됨"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "탐색 요청이 잘못되었습니다"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream을 자를 수 없습니다"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "네트워크 스트림이 예상치 못하게 닫혔습니다"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "리소스를 완전히 캐시에 저장하는데 실패했습니다"
 
@@ -55,15 +56,15 @@ msgstr "HTTP 응답을 구문 분석할 수 없습니다"
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP 응답 인코딩을 알 수 없습니다"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "작업이 취소되었습니다"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "작업이 블럭되었습니다"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "HTTP 요청을 구문 분석할 수 없습니다"
 
@@ -77,33 +78,54 @@ msgstr "URI가 없습니다"
 msgid "Invalid '%s' URI: %s"
 msgstr "잘못된 '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "TLS 인증서 없이 TLS 서버를 만들 수 없습니다"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "'%s' URI를 구문 분석할 수 없습니다"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "'%s' URI 스킴을 지원하지 않습니다"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI가 아닙니다"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "소켓이 아닌 핸들을 SoupSocket으로 가져올 수 없습니다"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "기존 소켓을 가져올 수 없습니다: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "연결하지 않은 소켓을 가져올 수 없습니다"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "호스트 이름은 IP 주소입니다"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "잘못된 호스트 이름입니다"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "호스트 이름에 기본 도메인이 없습니다"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "도메인이 충분하지 않습니다"
