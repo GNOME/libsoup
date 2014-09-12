@@ -2,14 +2,14 @@
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 #
-# , 2013.
+# , 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
 "cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-12 16:21+0530\n"
+"POT-Creation-Date: 2014-09-11 21:40+0000\n"
+"PO-Revision-Date: 2014-09-12 12:08+0530\n"
 "Last-Translator: \n"
 "Language-Team: American English <kde-i18n-doc@kde.org>\n"
 "Language: gu\n"
@@ -19,25 +19,25 @@ msgstr ""
 "X-Generator: Lokalize 1.0\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "જોડાણ અનિચ્છનીય રીતે તૂટી ગયુ"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "અયોગ્ય સીક માંગણી"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream કાઢી શકાતુ નથી"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "નેટવર્ક સ્ટ્રીમ અનિચ્છનીય રીતે બંધ થઇ ગઇ"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "સ્ત્રોતને સંપૂર્ણપણે કેશ કરવામાં નિષ્ફળતા"
 
@@ -47,7 +47,6 @@ msgid "Output buffer is too small"
 msgstr "આઉટપુટ બફર ઘણુ નાનું છે"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "HTTP જવાબનું પદચ્છેદન કરી શક્યા નહિં"
 
@@ -55,16 +54,15 @@ msgstr "HTTP જવાબનું પદચ્છેદન કરી શક્�
 msgid "Unrecognized HTTP response encoding"
 msgstr "બિનઓળખાયેલ HTTP જવાબ એનકોડીંગ"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "ક્રિયા રદ થયેલ હતી"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "ક્રિયા રોકી રખાશે"
 
-#: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "HTTP માંગણીનુ પદચ્છેદન કરી શક્યા નહિં"
 
@@ -78,34 +76,55 @@ msgstr "URI પૂરુ પાડેલ નથી"
 msgid "Invalid '%s' URI: %s"
 msgstr "અમાન્ય '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "TLS પ્રમાણપત્ર વગર TLS સર્વરને બનાવી શકાતુ નથી"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "સરનામાં %s પર સાંભળી શક્યા નહિં, પોર્ટ %d"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' ને પદચ્છેદન કરી શક્યા નહિં"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "બિનઆધારભૂત URI યોજના '%s'"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI નથી"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "SoupSocket તરીકે બિન-સોકેટને આયાત કરી શકાતુ નથી"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "હાલનાં સોકેટને આયાત કરી શક્યા નહિં: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "બિનજોડાયેલ સોકેટને આયાત કરી શકાતુ નથી"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "યજમાનનામ એ IP સરનામું છે"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "અમાન્ય યજમાનનામ"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "યજમાન પાસે મૂળ ડોમેઇન નથી"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "પૂરતુ ડોમેઇન નથી"
 
