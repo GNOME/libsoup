@@ -3,44 +3,44 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Dr.T.Vasudevan <agnihot3@gmail.com>, 2012.
-# Shantha kumar <shkumar@redhat.com>, 2013.
+# Shantha kumar <shkumar@redhat.com>, 2012, 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
-"cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-25 10:44+0530\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-07-19 15:23+0000\n"
+"PO-Revision-Date: 2014-09-13 21:44+0630\n"
 "Last-Translator: Shantha kumar <shkumar@redhat.com>\n"
-"Language-Team: Tamil <>\n"
+"Language-Team: Tamil <kde-i18n-doc@kde.org>\n"
 "Language: ta\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.0\n"
+"X-Generator: Lokalize 1.5\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "இணைப்பு எதிர்பாராமல் துண்டிக்கப்பட்டது"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
-msgstr "செல்லுபடியாகாத தேடல் கோரிக்கை"
+msgstr "தவறான தேடும் கோரிக்கை"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
-msgstr "SoupBodyInputStream ஐ பிரிக்க இயலாது"
+msgstr "SoupBodyInputStream ஐ தசமிடமுடியவில்லை"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
-msgstr "பிணைய ஸ்ட்ரீம் எதிர்பாராமல் முடிந்துவிட்டது"
+msgstr "பிணைய ஸ்ட்ரீம் எதிர்பாரா விதமாக மூடப்பட்டது"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
-msgstr "வளத்தை முழுவதுமாக தேக்ககப்படுத்துவதில் தோல்வியடைந்தது"
+msgstr "வளத்தை முழுமையாக தேக்ககப்படுத்துதல் தோல்வியடைந்தது"
 
 #: ../libsoup/soup-converter-wrapper.c:192
 #, c-format
@@ -50,24 +50,24 @@ msgstr "வெளியீட்டு இடைநினைவு மிகச�
 #: ../libsoup/soup-message-client-io.c:41
 #| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
-msgstr "HTTP பதிலை பாகுபடுத்த முடியவில்லை"
+msgstr "HTTP பதிலைப் பாகுபடுத்த முடியவில்லை"
 
 #: ../libsoup/soup-message-client-io.c:66
 msgid "Unrecognized HTTP response encoding"
-msgstr "அடையாளம் காண முடியாத HTTP பதிலளிப்பு குறியீடாக்கம்"
+msgstr "அறியப்படாத HTTP பதிலளிப்புக் குறியீடாக்கம்"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "செயல்பாடு ரத்து செய்யப்பட்டது"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "செயல்பாடு தடை செய்யும்"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 #| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP request"
-msgstr "HTTP கோரிக்கையை பாகுபடுத்த முடியவில்லை"
+msgstr "HTTP கோரிக்கையைப் பாகுபடுத்த முடியவில்லை"
 
 #: ../libsoup/soup-request.c:140
 #, c-format
@@ -79,34 +79,55 @@ msgstr "யூஆர்ஐ ஏதும் தரப்படவில்லை"
 msgid "Invalid '%s' URI: %s"
 msgstr "செல்லுபடியாகாத '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "TLS சான்றிதழ் இல்லாமல் TLS சேவையகத்தை உருவாக்க முடியாது"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "முகவரி %s, துறை %d இல் கவனிக்க முடியவில்லை"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "'%s' யூஆர்ஐ ஐ அலகிட முடியவில்லை"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "ஆதரவு இல்லாத யூஆர்ஐ திட்டம்  '%s'"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI அல்ல"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "நான் சாக்கெட்டை சூப்சாக்கெட்டாக இறக்குமதி செய்ய முடியாது"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "முன்பே உள்ள சாக்கெட்டை இறக்குமதி செய்ய முடியாது"
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "இணைக்கப்படாத சாக்கெட்டை இறக்குமதி செய்ய முடியாது"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "புரவலன் பெயர் ஒரு ஐபி முகவரி"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "செல்லுபடியாகாத கணிணிப்பெயர்"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "புரவலன் பெயருக்கு ஒரு செயற்களம் இல்லை"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "போதிய செயற்களம் இல்லை"
 
