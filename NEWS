@@ -1,3 +1,14 @@
+Changes in libsoup from 2.47.4 to 2.47.92:
+
+	* Fixed a crash in SoupCache when receiving certain invalid
+          Cache-Control headers. [#733587, Raveendra Karu]
+
+	* Updated translations:
+	  Assamese, Basque, Catalan (Valencian), Catalan, Chinese
+	  (Traditional), French, Gujarati, Hungarian, Indonesian,
+	  Korean, Marathi, Norwegian bokmål, Oriya, Polish, Swedish,
+	  Tamil
+
 Changes in libsoup from 2.47.3 to 2.47.4:
 
 	* Fixed two crashes that could occur in multithreaded use
