@@ -1,14 +1,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 #
-# Manoj Kumar Giri <mgiri@redhat.com>, 2012, 2013.
+# Manoj Kumar Giri <mgiri@redhat.com>, 2012, 2013, 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-03-22 18:02+0530\n"
+"POT-Creation-Date: 2014-09-15 09:44+0000\n"
+"PO-Revision-Date: 2014-09-15 18:37+0530\n"
 "Last-Translator: Manoj Kumar Giri <mgiri@redhat.com>\n"
 "Language-Team: Oriya <oriya-it@googlegroups.com>\n"
 "Language: or\n"
@@ -18,25 +18,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Lokalize 1.5\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "ସଂଯୋଗଟି ଅପ୍ରତ୍ୟାଶିତ ଭାବରେ ବନ୍ଦ ହୋଇଛି"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "ଅବୈଧ ଅନୁସନ୍ଧାନ ଅନୁରୋଧ"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr " SoupBodyInputStream କୁ ବିଚ୍ଛିନ୍ନ କରିହେବ ନାହିଁ "
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "ନେଟୱର୍କ୍‌ ଧାରା ଅପ୍ରତ୍ୟାଶିତ ଭାବରେ ବନ୍ଦ ହୋଇଛି"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "ଉତ୍ସକୁ ସମ୍ପୂର୍ଣ୍ଣ ଭାବରେ କ୍ୟାଶେ କରିବାରେ ବିଫଳ"
 
@@ -46,7 +46,6 @@ msgid "Output buffer is too small"
 msgstr "ଫଳାଫଳ ବଫରଟି ଅତି ଛୋଟ ଅଟେ"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "HTTP ଉତ୍ତର ବିଶ୍ଳେଷଣ କରିପାରିଲା ନାହିଁ"
 
@@ -54,16 +53,15 @@ msgstr "HTTP ଉତ୍ତର ବିଶ୍ଳେଷଣ କରିପାରିଲ�
 msgid "Unrecognized HTTP response encoding"
 msgstr "ଅଚିହ୍ନା HTTP ଉତ୍ତର ସାଙ୍କେତିକରଣ"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "ପ୍ରୟୋଗକୁ ବାତିଲ କରାଯାଇଛି"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "ପ୍ରୟୋଗଟି ବନ୍ଦ ହୋଇପାରେ"
 
-#: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "HTTP ଅନୁରୋଧକୁ ବିଶ୍ଳେଷଣ କରିପାରିଲା ନାହିଁ"
 
@@ -77,34 +75,55 @@ msgstr "କୌଣସି URI ଦିଆଯାଇ ନାହିଁ"
 msgid "Invalid '%s' URI: %s"
 msgstr "ଅବୈଧ '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "TLS ପ୍ରମାଣପତ୍ର ବିନା TLS ସର୍ଭର ସୃଷ୍ଟି କରିପାରିବେ ନାହିଁ"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "ଠିକଣା %s, ପୋର୍ଟ %d ରେ ଶୁଣିପାରିବେ ନାହିଁ"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s'କୁ ବିଶ୍ଳେଷଣ କରିପାରିଲା ନାହିଁ"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "ଅସମର୍ଥିତ URI ଯୋଜନା '%s'"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "ଏହା ଏକ HTTP URI ନୁହଁ"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "non-socket କୁ SoupSocket ଭାବରେ ଆମଦାନୀ କରିପାରିବେ ନାହିଁ"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "ସ୍ଥିତବାନ ସକେଟକୁ ଆମଦାନୀ କରିପାରିବେ ନାହିଁ: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "ଅସଂଯୁକ୍ତ ସକେଟକୁ ଆମଦାନୀ କରିପାରିବେ ନାହିଁ"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "ହୋଷ୍ଟନାମଟି ଏକ IP ଠିକଣା ଅଟେ"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "ଅବୈଧ ହୋଷ୍ଟ ନାମ"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "ହୋଷ୍ଟ ନାମରେ କୌଣସି ମୂଳ ଡମେନ ନଥାଏ"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "ଯଥେଷ୍ଟ ଡମେନ ନାହିଁ"
 
