@@ -2,14 +2,14 @@
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
 #
-# A S Alam <aalam@users.sf.net>, 2012, 2013.
+# A S Alam <aalam@users.sf.net>, 2012, 2013, 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-18 10:20+0000\n"
-"PO-Revision-Date: 2013-02-26 07:36+0530\n"
+"POT-Creation-Date: 2014-09-21 09:39+0000\n"
+"PO-Revision-Date: 2014-09-21 08:57-0500\n"
 "Last-Translator: A S Alam <aalam@users.sf.net>\n"
 "Language-Team: Punjabi/Panjabi <punjabi-users@lists.sf.net>\n"
 "Language: pa\n"
@@ -19,25 +19,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Lokalize 1.5\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205 ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "ਕੁਨੈਕਸ਼ਨ ਅਚਾਨਕ ਬੰਦ ਹੋ ਗਿਆ"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "ਸੀਕ ਮੰਗ ਗਲਤ ਹੈ"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ਨੂੰ ਛੋਟਾ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "ਨੈੱਟਵਰਕ ਸਟਰੀਮ ਅਚਾਨਕ ਬੰਦ ਹੋਈ"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "ਸਰੋਤ ਨੂੰ ਪੂਰੀ ਕੈਸ਼ ਕਰਨ ਲਈ ਫੇਲ੍ਹ ਹੈ"
 
@@ -47,7 +47,6 @@ msgid "Output buffer is too small"
 msgstr "ਆਉਟਪੁੱਟ ਬਫ਼ਰ ਬਹੁਤ ਛੋਟਾ ਹੈ"
 
 #: ../libsoup/soup-message-client-io.c:41
-#| msgid "Could not parse URI '%s'"
 msgid "Could not parse HTTP response"
 msgstr "HTTP ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
@@ -55,16 +54,15 @@ msgstr "HTTP ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿ�
 msgid "Unrecognized HTTP response encoding"
 msgstr "ਬੇਪਛਾਣ HTTP ਜਵਾਬ ਇੰਕੋਡਿੰਗ"
 
-#: ../libsoup/soup-message-io.c:846 ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "ਕਾਰਵਾਈ ਰੱਦ ਕੀਤੀ ਗਈ"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "ਕਾਰਵਾਈ ਉੱਤੇ ਪਾਬੰਦੀ ਹੋਵੇਗੀ"
 
-#: ../libsoup/soup-message-server-io.c:40
-#| msgid "Could not parse URI '%s'"
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "HTTP ਮੰਗ ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
@@ -78,34 +76,55 @@ msgstr "ਕੋਈ URI ਨਹੀਂ ਦਿੱਤਾ"
 msgid "Invalid '%s' URI: %s"
 msgstr "ਗਲਤ '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4209
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "TLS ਸਰਟੀਫਿਕੇਟ ਦੇ ਬਿਨਾਂ TLS ਸਰਵਰ ਬਣਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "ਸਿਰਨਾਵਾਂ %s, ਪੋਰਟ %d ਉੱਤੇ ਸੁਣਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
-#: ../libsoup/soup-session.c:4246
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "ਗ਼ੈਰ-ਸਹਾਇਕ URI ਸਕੀਮ '%s'"
 
-#: ../libsoup/soup-session.c:4268
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI ਨਹੀਂ ਹੈ"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "SoupSocket ਵਜੋਂ ਗ਼ੈਰ-ਸਾਕਟ ਨੂੰ ਦਰਾਮਦ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "ਮੌਜੂਦਾ ਸਾਕਟ ਨੂੰ ਦਰਾਮਦ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "ਨਾ-ਕੁਨੈਕਟ ਹੋਈ ਸਾਕਟ ਦਰਾਮਦ ਨਹੀਂ ਕੀਤੀ ਜਾ ਸਕਦੀ"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "ਹੋਸਟ ਨਾਂ IP ਐਡਰੈਸ ਹੈ"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "ਗਲਤ ਹੋਸਟ-ਨਾਂ"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "ਹੋਸਟ-ਨਾਂ ਲਈ ਬੇਸ ਡੋਮੇਮ ਨਹੀਂ ਹੈ"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "ਲੋੜੀਦੀਆਂ ਡੋਮੇਨ ਨਹੀਂ ਹੈ"
 
