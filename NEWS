@@ -1,3 +1,8 @@
+Changes in libsoup from 2.47.92 to 2.48.0:
+
+	* Updated translations:
+	  Bengali (India), Danish, German, Hindi, Kannada, Punjabi
+
 Changes in libsoup from 2.47.4 to 2.47.92:
 
 	* Fixed a crash in SoupCache when receiving certain invalid
