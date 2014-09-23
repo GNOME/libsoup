@@ -11,9 +11,9 @@ msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-11-11 22:47+0000\n"
-"PO-Revision-Date: 2013-09-07 14:07+0700\n"
-"Last-Translator: 甘露(Gan Lu) <rhythm.gan@gmail.com>\n"
+"POT-Creation-Date: 2014-08-02 09:41+0000\n"
+"PO-Revision-Date: 2014-08-02 21:00+0800\n"
+"Last-Translator: irisgyq <gouyingqiyanxuan321@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
@@ -24,7 +24,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:197
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "连接异常终止"
 
@@ -57,15 +57,15 @@ msgstr "无法解析 HTTP 响应"
 msgid "Unrecognized HTTP response encoding"
 msgstr "未识别的 HTTP 响应编码"
 
-#: ../libsoup/soup-message-io.c:855 ../libsoup/soup-message-io.c:891
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "操作被取消"
 
-#: ../libsoup/soup-message-io.c:902
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "操作将阻塞"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "无法解析 HTTP 请求"
 
@@ -79,33 +79,54 @@ msgstr "未提供 URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "无效的“%s”URI：%s"
 
-#: ../libsoup/soup-session.c:4302
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "没有 TLS 证书不能创建一个 TLS 服务器"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "不能监听 %s 地址的 %d 端口"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "无法解析 URI：“%s”"
 
-#: ../libsoup/soup-session.c:4339
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "不支持的 URI 方案：“%s”"
 
-#: ../libsoup/soup-session.c:4361
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "不是一个 HTTP URI"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "不能将 non-socket 作为 SoupSocket 导入"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "不能导入已存在的套接口:"
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "不能导入未连接的套接口"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "主机名是一个 IP 地址"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "主机名无效"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "主机名没有基域"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "没有足够的域"
