@@ -30,6 +30,7 @@
 #endif
 
 #include <string.h>
+#include <glib/gstdio.h>
 
 #include "soup-cache.h"
 #include "soup-body-input-stream.h"
@@ -1274,6 +1275,25 @@ soup_cache_flush (SoupCache *cache)
 		g_warning ("Cache flush finished despite %d pending requests", cache->priv->n_pending);
 }
 
+typedef void (* SoupCacheForeachFileFunc) (SoupCache *cache, const char *name, gpointer user_data);
+
+static void
+soup_cache_foreach_file (SoupCache *cache, SoupCacheForeachFileFunc func, gpointer user_data)
+{
+	GDir *dir;
+	const char *name;
+	SoupCachePrivate *priv = cache->priv;
+
+	dir = g_dir_open (priv->cache_dir, 0, NULL);
+	while ((name = g_dir_read_name (dir))) {
+		if (g_str_has_prefix (name, "soup."))
+		    continue;
+
+		func (cache, name, user_data);
+	}
+	g_dir_close (dir);
+}
+
 static void
 clear_cache_item (gpointer data,
 		  gpointer user_data)
@@ -1282,28 +1302,19 @@ clear_cache_item (gpointer data,
 }
 
 static void
+delete_cache_file (SoupCache *cache, const char *name, gpointer user_data)
+{
+	gchar *path;
+
+	path = g_build_filename (cache->priv->cache_dir, name, NULL);
+	g_unlink (path);
+	g_free (path);
+}
+
+static void
 clear_cache_files (SoupCache *cache)
 {
-	GFileInfo *file_info;
-	GFileEnumerator *file_enumerator;
-	GFile *cache_dir_file = g_file_new_for_path (cache->priv->cache_dir);
-
-	file_enumerator = g_file_enumerate_children (cache_dir_file, G_FILE_ATTRIBUTE_STANDARD_NAME,
-						     G_FILE_QUERY_INFO_NONE, NULL, NULL);
-	if (file_enumerator) {
-		while ((file_info = g_file_enumerator_next_file (file_enumerator, NULL, NULL)) != NULL) {
-			const char *filename = g_file_info_get_name (file_info);
-
-			if (strcmp (filename, SOUP_CACHE_FILE) != 0) {
-				GFile *cache_file = g_file_get_child (cache_dir_file, filename);
-				g_file_delete (cache_file, NULL, NULL);
-				g_object_unref (cache_file);
-			}
-			g_object_unref (file_info);
-		}
-		g_object_unref (file_enumerator);
-	}
-	g_object_unref (cache_dir_file);
+	soup_cache_foreach_file (cache, delete_cache_file, NULL);
 }
 
 /**
@@ -1490,6 +1501,32 @@ soup_cache_dump (SoupCache *cache)
 	g_variant_unref (cache_variant);
 }
 
+static inline guint32
+get_key_from_cache_filename (const char *name)
+{
+	guint64 key;
+
+	key = g_ascii_strtoull (name, NULL, 10);
+	return key ? (guint32)key : 0;
+}
+
+static void
+insert_cache_file (SoupCache *cache, const char *name, GHashTable *leaked_entries)
+{
+	gchar *path;
+
+	path = g_build_filename (cache->priv->cache_dir, name, NULL);
+	if (g_file_test (path, G_FILE_TEST_IS_REGULAR)) {
+		guint32 key = get_key_from_cache_filename (name);
+
+		if (key) {
+			g_hash_table_insert (leaked_entries, GUINT_TO_POINTER (key), path);
+			return;
+		}
+	}
+	g_free (path);
+}
+
 /**
  * soup_cache_load:
  * @cache: a #SoupCache
@@ -1511,6 +1548,9 @@ soup_cache_load (SoupCache *cache)
 	SoupCacheEntry *entry;
 	SoupCachePrivate *priv = cache->priv;
 	guint16 version, status_code;
+	GHashTable *leaked_entries = NULL;
+	GHashTableIter iter;
+	gpointer value;
 
 	filename = g_build_filename (priv->cache_dir, SOUP_CACHE_FILE, NULL);
 	if (!g_file_get_contents (filename, &contents, &length, NULL)) {
@@ -1530,6 +1570,9 @@ soup_cache_load (SoupCache *cache)
 		clear_cache_files (cache);
 		return;
 	}
+
+	leaked_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
+	soup_cache_foreach_file (cache, (SoupCacheForeachFileFunc)insert_cache_file, leaked_entries);
 
 	while (g_variant_iter_loop (entries_iter, SOUP_CACHE_PHEADERS_FORMAT,
 				    &url, &must_revalidate, &freshness_lifetime, &corrected_initial_age,
@@ -1566,7 +1609,15 @@ soup_cache_load (SoupCache *cache)
 
 		if (!soup_cache_entry_insert (cache, entry, FALSE))
 			soup_cache_entry_free (entry);
+		else
+			g_hash_table_remove (leaked_entries, GUINT_TO_POINTER (entry->key));
 	}
+
+	/* Remove the leaked files */
+	g_hash_table_iter_init (&iter, leaked_entries);
+	while (g_hash_table_iter_next (&iter, NULL, &value))
+		g_unlink ((char *)value);
+	g_hash_table_destroy (leaked_entries);
 
 	cache->priv->lru_start = g_list_reverse (cache->priv->lru_start);
 

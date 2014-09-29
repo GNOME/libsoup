@@ -630,6 +630,85 @@ do_headers_test (gconstpointer data)
 	g_free (body1);
 }
 
+static guint
+count_cached_resources_in_dir (const char *cache_dir)
+{
+	GDir *dir;
+	const char *name;
+	guint retval = 0;
+
+	dir = g_dir_open (cache_dir, 0, NULL);
+	while ((name = g_dir_read_name (dir))) {
+		if (g_str_has_prefix (name, "soup."))
+			continue;
+
+		retval++;
+	}
+	g_dir_close (dir);
+
+	return retval;
+}
+
+static void
+do_leaks_test (gconstpointer data)
+{
+	SoupURI *base_uri = (SoupURI *)data;
+	SoupSession *session;
+	SoupCache *cache;
+	char *cache_dir;
+	char *body;
+
+	cache_dir = g_dir_make_tmp ("cache-test-XXXXXX", NULL);
+	debug_printf (2, "  Caching to %s\n", cache_dir);
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC,
+					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+					 SOUP_SESSION_ADD_FEATURE, cache,
+					 NULL);
+
+	debug_printf (2, "  Initial requests\n");
+	body = do_request (session, base_uri, "GET", "/1", NULL,
+			   "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			   NULL);
+	g_free (body);
+	body = do_request (session, base_uri, "GET", "/2", NULL,
+			   "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			   NULL);
+	g_free (body);
+	body = do_request (session, base_uri, "GET", "/3", NULL,
+			   "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			   NULL);
+	g_free (body);
+
+	debug_printf (2, "  Dumping the cache\n");
+	soup_cache_dump (cache);
+
+	g_assert_cmpuint (count_cached_resources_in_dir (cache_dir), ==, 3);
+
+	body = do_request (session, base_uri, "GET", "/4", NULL,
+			   "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			   NULL);
+	g_free (body);
+	body = do_request (session, base_uri, "GET", "/5", NULL,
+			   "Test-Set-Expires", "Fri, 01 Jan 2100 00:00:00 GMT",
+			   NULL);
+	g_free (body);
+
+	/* Destroy the cache without dumping the last two resources */
+	soup_test_session_abort_unref (session);
+	g_object_unref (cache);
+
+	cache = soup_cache_new (cache_dir, SOUP_CACHE_SINGLE_USER);
+
+	debug_printf (2, "  Loading the cache\n");
+	g_assert_cmpuint (count_cached_resources_in_dir (cache_dir), ==, 5);
+	soup_cache_load (cache);
+	g_assert_cmpuint (count_cached_resources_in_dir (cache_dir), ==, 3);
+
+	g_object_unref (cache);
+	g_free (cache_dir);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -647,6 +726,7 @@ main (int argc, char **argv)
 	g_test_add_data_func ("/cache/cancellation", base_uri, do_cancel_test);
 	g_test_add_data_func ("/cache/refcounting", base_uri, do_refcounting_test);
 	g_test_add_data_func ("/cache/headers", base_uri, do_headers_test);
+	g_test_add_data_func ("/cache/leaks", base_uri, do_leaks_test);
 
 	ret = g_test_run ();
 
