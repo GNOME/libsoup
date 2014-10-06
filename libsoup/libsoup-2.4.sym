@@ -348,7 +348,6 @@ soup_server_disconnect
 soup_server_get_async_context
 soup_server_get_listener
 soup_server_get_listeners
-soup_server_get_gsocket
 soup_server_get_port
 soup_server_get_type
 soup_server_get_uris
