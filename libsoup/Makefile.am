@@ -295,3 +295,11 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 CLEANFILES = $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
+
+check-local:
+	@echo Checking libsoup-2.4.so symbols
+	@nm $(builddir)/.libs/libsoup-2.4.so | \
+		grep "^[[:xdigit:]]\+ [BTR] " | \
+		sed "s/^[[:xdigit:]]\+ [BTR] //" | \
+		env LANG=C sort -u | \
+		diff -U0 $(srcdir)/libsoup-2.4.sym - >&2
