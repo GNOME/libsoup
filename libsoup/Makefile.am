@@ -296,6 +296,9 @@ CLEANFILES = $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
 
+# We only do this check on Linux, so we don't have to worry about
+# different "nm" output on other platforms
+if OS_LINUX
 check-local:
 	@echo Checking libsoup-2.4.so symbols
 	@nm $(builddir)/.libs/libsoup-2.4.so | \
@@ -303,3 +306,4 @@ check-local:
 		sed "s/^[[:xdigit:]]\+ [BTR] //" | \
 		env LANG=C sort -u | \
 		diff -U0 $(srcdir)/libsoup-2.4.sym - >&2
+endif

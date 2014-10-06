@@ -106,14 +106,21 @@ AC_MSG_CHECKING([for Win32])
 case "$host" in
   *-*-mingw*)
     os_win32=yes
+    os_linux=yes
     CFLAGS="$CFLAGS -D_REENTRANT"
+    ;;
+  *-*-linux*)
+    os_win32=no
+    os_linux=yes
     ;;
   *)
     os_win32=no
+    os_linux=no
     ;;
 esac
 AC_MSG_RESULT([$os_win32])
 AM_CONDITIONAL(OS_WIN32, [test $os_win32 = yes])
+AM_CONDITIONAL(OS_LINUX, [test $os_linux = yes])
 
 dnl ************************
 dnl *** gettext/intltool ***
