@@ -1,45 +1,44 @@
 # Bengali (India) translation for libsoup.
 # Copyright (C) 2012 libsoup's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libsoup package.
-# 
+#
 # Sayak Sarkar <sayak.bugsmith@gmail.com>, 2012.
-# sray <sray@redhat.com>, 2013. #zanata
+# sray <sray@redhat.com>, 2013, 2014. #zanata.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product="
-"libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2012-09-20 11:30+0000\n"
-"PO-Revision-Date: 2013-10-07 08:10-0400\n"
-"Last-Translator: sray <sray@redhat.com>\n"
-"Language-Team: Bengali (India) <anubad@lists.ankur.org.in>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-10-06 21:59+0000\n"
+"PO-Revision-Date: 2014-10-07 13:28+0000\n"
+"Last-Translator: \n"
+"Language-Team: Bengali (India) <kde-i18n-doc@kde.org>\n"
+"Language: bn-IN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: bn-IN\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Zanata 3.1.2\n"
+"X-Generator: Lokalize 1.5\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205
-#: ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
 msgid "Connection terminated unexpectedly"
 msgstr "সংযোগ অপ্রত্যাশিতভাবে পর্যবসিত"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "অবৈধ সিক্ অনুরোধ"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream ছাঁটা যাচ্ছে না।"
 
-#: ../libsoup/soup-cache-input-stream.c:74
+#: ../libsoup/soup-cache-input-stream.c:73
 msgid "Network stream unexpectedly closed"
 msgstr "নেটওয়ার্ক স্ট্রীম অপ্রত্যাশিত ভাবে বন্ধ হয়েছে"
 
-#: ../libsoup/soup-cache-input-stream.c:291
+#: ../libsoup/soup-cache-input-stream.c:290
 msgid "Failed to completely cache the resource"
 msgstr "রিসোর্স সম্পূর্ণ ভাবে ক্যাশ করতে ব্যর্থ"
 
@@ -56,16 +55,15 @@ msgstr "HTTP প্রত্যুত্তর পার্জ করা গে�
 msgid "Unrecognized HTTP response encoding"
 msgstr "অস্বীকৃত HTTP প্রত্যুত্তর এনকোডিং"
 
-#: ../libsoup/soup-message-io.c:846
-#: ../libsoup/soup-message-io.c:882
+#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
 msgid "Operation was cancelled"
 msgstr "অপারেশন বাতিল হয়েছে"
 
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:901
 msgid "Operation would block"
 msgstr "অপারেশন ব্লক করবে"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-server-io.c:41
 msgid "Could not parse HTTP request"
 msgstr "HTTP অনুরোধ পার্জ করা গেল না"
 
@@ -79,33 +77,55 @@ msgstr "কোন URI দেওয়া হয়নি"
 msgid "Invalid '%s' URI: %s"
 msgstr "অবৈধ '%s' URI: %s"
 
-#: ../libsoup/soup-session.c:4252
+#: ../libsoup/soup-server.c:1528
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "একটি TLS সার্টিফিকেট ছাড়া একটি TLS সার্ভার তৈরি করা সম্ভব নয়"
+
+#: ../libsoup/soup-server.c:1547
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "ঠিকানা %s, পোর্ট %d এ শোনা যায়নি"
+
+#: ../libsoup/soup-session.c:4466
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' পার্স করা যায়নি"
 
-#: ../libsoup/soup-session.c:4289
+#: ../libsoup/soup-session.c:4503
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "অসমর্থিত URI স্কিম '%s'"
 
-#: ../libsoup/soup-session.c:4311
+#: ../libsoup/soup-session.c:4525
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "একটি HTTP URI নয়"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "নন-সকেট SoupSocket হিসাবে অামদানি করা সম্ভব নয়"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "বিদ্যমান সকেট অামদানি করা যায়নি: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "অসংযুক্ত সকেট অামদানি করা সম্ভব নয়"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "হোস্টনেমটি একটি IP অ্যাড্রেস"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "অবৈধ হোস্টনেম"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "হোস্টনেমটির কোনো বেস ডোমেইন নেই"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "ডোমেইনগুলি পর্যাপ্ত নয়"
+
