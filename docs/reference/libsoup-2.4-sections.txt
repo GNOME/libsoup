@@ -224,6 +224,7 @@ soup_server_listen_all
 soup_server_listen_local
 soup_server_listen_socket
 soup_server_listen_fd
+soup_server_get_uris
 soup_server_disconnect
 soup_server_is_https
 <SUBSECTION>
