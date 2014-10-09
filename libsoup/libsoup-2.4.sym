@@ -386,6 +386,7 @@ soup_server_remove_auth_domain
 soup_server_remove_handler
 soup_server_run
 soup_server_run_async
+soup_server_set_ssl_cert_file
 soup_server_unpause_message
 soup_session_abort
 soup_session_add_feature
