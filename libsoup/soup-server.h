@@ -80,7 +80,7 @@ gboolean        soup_server_is_https           (SoupServer               *server
 
 SOUP_AVAILABLE_IN_2_48
 gboolean        soup_server_listen             (SoupServer               *server,
-					        GSocketAddress           *interface,
+					        GSocketAddress           *address,
 					        SoupServerListenOptions   options,
 					        GError                  **error);
 SOUP_AVAILABLE_IN_2_48
