@@ -1914,6 +1914,9 @@ soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
  * showing what problems, if any, have been found with that
  * certificate.
  *
+ * <note><para>This is only meaningful with messages processed by a #SoupSession and is
+ * not useful for messages received by a #SoupServer</para></note>
+ *
  * Return value: %TRUE if @msg used/attempted https, %FALSE if not
  *
  * Since: 2.34
