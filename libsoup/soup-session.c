@@ -54,6 +54,25 @@
  * behaves like it traditionally did on a #SoupSessionAsync, and
  * soup_session_send_message() behaves like it traditionally did on a
  * #SoupSessionSync.)
+ *
+ * Additional #SoupSession functionality is provided by
+ * #SoupSessionFeature objects, which can be added to a session with
+ * soup_session_add_feature() or soup_session_add_feature_by_type()
+ * (or at construct time with the %SOUP_SESSION_ADD_FEATURE_BY_TYPE
+ * pseudo-property). For example, #SoupLogger provides support for
+ * logging HTTP traffic, #SoupContentDecoder provides support for
+ * compressed response handling, and #SoupContentSniffer provides
+ * support for HTML5-style response body content sniffing.
+ * Additionally, subtypes of #SoupAuth and #SoupRequest can be added
+ * as features, to add support for additional authentication and URI
+ * types.
+ *
+ * All #SoupSessions are created with a #SoupAuthManager, and support
+ * for %SOUP_TYPE_AUTH_BASIC and %SOUP_TYPE_AUTH_DIGEST. For
+ * #SoupRequest types, #SoupRequestHTTP, #SoupRequestFile, and
+ * #SoupRequestData are supported. Additionally, sessions using the
+ * plain #SoupSession class (rather than one of its deprecated
+ * subtypes) have a #SoupContentDecoder by default.
  **/
 
 static void
@@ -2616,8 +2635,8 @@ soup_session_prefetch_dns (SoupSession *session, const char *hostname,
  * feature to the session at construct time by using the
  * %SOUP_SESSION_ADD_FEATURE property.
  *
- * Note that a #SoupContentDecoder is added to the session by default
- * (unless you are using one of the deprecated session subclasses).
+ * See the main #SoupSession documentation for information on what
+ * features are present in sessions by default.
  *
  * Since: 2.24
  **/
@@ -2662,8 +2681,8 @@ soup_session_add_feature (SoupSession *session, SoupSessionFeature *feature)
  * You can also add a feature to the session at construct time by
  * using the %SOUP_SESSION_ADD_FEATURE_BY_TYPE property.
  *
- * Note that a #SoupContentDecoder is added to the session by default
- * (unless you are using one of the deprecated session subclasses).
+ * See the main #SoupSession documentation for information on what
+ * features are present in sessions by default.
  *
  * Since: 2.24
  **/
