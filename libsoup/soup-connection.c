@@ -327,14 +327,7 @@ socket_connect_finished (GTask *task, SoupSocket *sock, GError *error)
 	SoupConnection *conn = g_task_get_source_object (task);
 	SoupConnectionPrivate *priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	g_signal_handlers_disconnect_by_func (sock, G_CALLBACK (re_emit_socket_event), conn);
-
 	if (!error) {
-		if (priv->ssl && !priv->proxy_uri) {
-			soup_connection_event (conn,
-					       G_SOCKET_CLIENT_TLS_HANDSHAKED,
-					       NULL);
-		}
 		if (!priv->ssl || !priv->proxy_uri) {
 			soup_connection_event (conn,
 					       G_SOCKET_CLIENT_COMPLETE,
@@ -379,10 +372,6 @@ socket_connect_complete (GObject *object, GAsyncResult *result, gpointer user_da
 	priv->proxy_uri = soup_socket_get_http_proxy_uri (sock);
 
 	if (priv->ssl && !priv->proxy_uri) {
-		soup_connection_event (conn,
-				       G_SOCKET_CLIENT_TLS_HANDSHAKING,
-				       NULL);
-
 		soup_socket_handshake_async (sock, priv->remote_uri->host,
 					     g_task_get_cancellable (task),
 					     socket_handshake_complete, task);
@@ -448,9 +437,7 @@ soup_connection_connect_sync (SoupConnection  *conn,
 			      GError         **error)
 {
 	SoupConnectionPrivate *priv;
-	guint event_id = 0;
 	SoupAddress *remote_addr;
-	gboolean success = TRUE;
 
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
@@ -474,28 +461,18 @@ soup_connection_connect_sync (SoupConnection  *conn,
 				 NULL);
 	g_object_unref (remote_addr);
 
-	event_id = g_signal_connect (priv->socket, "event",
-				     G_CALLBACK (re_emit_socket_event), conn);
-	if (!soup_socket_connect_sync_internal (priv->socket, cancellable, error)) {
-		success = FALSE;
-		goto done;
-	}
+	g_signal_connect (priv->socket, "event",
+			  G_CALLBACK (re_emit_socket_event), conn);
+	if (!soup_socket_connect_sync_internal (priv->socket, cancellable, error))
+		return FALSE;
 
 	priv->proxy_uri = soup_socket_get_http_proxy_uri (priv->socket);
 
 	if (priv->ssl && !priv->proxy_uri) {
-		soup_connection_event (conn,
-				       G_SOCKET_CLIENT_TLS_HANDSHAKING,
-				       NULL);
 		if (!soup_socket_handshake_sync (priv->socket,
 						 priv->remote_uri->host,
-						 cancellable, error)) {
-			success = FALSE;
-			goto done;
-		}
-		soup_connection_event (conn,
-				       G_SOCKET_CLIENT_TLS_HANDSHAKED,
-				       NULL);
+						 cancellable, error))
+			return FALSE;
 	}
 
 	if (!priv->ssl || !priv->proxy_uri) {
@@ -507,11 +484,7 @@ soup_connection_connect_sync (SoupConnection  *conn,
 	priv->unused_timeout = time (NULL) + SOUP_CONNECTION_UNUSED_TIMEOUT;
 	start_idle_timer (conn);
 
- done:
-	if (priv->socket && event_id)
-		g_signal_handler_disconnect (priv->socket, event_id);
-
-	return success;
+	return TRUE;
 }
 
 gboolean
@@ -535,10 +508,8 @@ soup_connection_start_ssl_sync (SoupConnection  *conn,
 	g_return_val_if_fail (SOUP_IS_CONNECTION (conn), FALSE);
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
-	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 	if (soup_socket_handshake_sync (priv->socket, priv->remote_uri->host,
 					cancellable, error)) {
-		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
 		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
 		return TRUE;
 	} else
@@ -554,7 +525,6 @@ start_ssl_completed (GObject *object, GAsyncResult *result, gpointer user_data)
 	GError *error = NULL;
 
 	if (soup_socket_handshake_finish (priv->socket, result, &error)) {
-		soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKED, NULL);
 		soup_connection_event (conn, G_SOCKET_CLIENT_COMPLETE, NULL);
 		g_task_return_boolean (task, TRUE);
 	} else
@@ -573,8 +543,6 @@ soup_connection_start_ssl_async (SoupConnection      *conn,
 
 	g_return_if_fail (SOUP_IS_CONNECTION (conn));
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
-
-	soup_connection_event (conn, G_SOCKET_CLIENT_TLS_HANDSHAKING, NULL);
 
 	soup_socket_properties_push_async_context (priv->socket_props);
 	task = g_task_new (conn, cancellable, callback, user_data);
@@ -615,6 +583,8 @@ soup_connection_disconnect (SoupConnection *conn)
 
 	if (priv->socket) {
 		SoupSocket *socket = priv->socket;
+
+		g_signal_handlers_disconnect_by_func (socket, G_CALLBACK (re_emit_socket_event), conn);
 
 		priv->socket = NULL;
 		soup_socket_disconnect (socket);

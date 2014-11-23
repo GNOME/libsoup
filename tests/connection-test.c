@@ -768,11 +768,46 @@ network_event (SoupMessage *msg, GSocketClientEvent event,
 {
 	const char **events = user_data;
 
-	debug_printf (2, "      %s\n", event_name_from_abbrev (**events));
+	debug_printf (2, "      %s\n", event_names[event]);
 	soup_test_assert (**events == event_abbrevs[event],
-			  "Unexpected event: %s (expected %s)\n",
+			  "Unexpected event: %s (expected %s)",
 			  event_names[event],
 			  event_name_from_abbrev (**events));
+
+	if (**events == event_abbrevs[event]) {
+		if (event == G_SOCKET_CLIENT_RESOLVING ||
+		    event == G_SOCKET_CLIENT_RESOLVED) {
+			soup_test_assert (connection == NULL,
+					  "Unexpectedly got connection (%s) with '%s' event",
+					  G_OBJECT_TYPE_NAME (connection),
+					  event_names[event]);
+		} else if (event < G_SOCKET_CLIENT_TLS_HANDSHAKING) {
+			soup_test_assert (G_IS_SOCKET_CONNECTION (connection),
+					  "Unexpectedly got %s with '%s' event",
+					  G_OBJECT_TYPE_NAME (connection),
+					  event_names[event]);
+		} else if (event == G_SOCKET_CLIENT_TLS_HANDSHAKING ||
+			   event == G_SOCKET_CLIENT_TLS_HANDSHAKED) {
+			soup_test_assert (G_IS_TLS_CLIENT_CONNECTION (connection),
+					  "Unexpectedly got %s with '%s' event",
+					  G_OBJECT_TYPE_NAME (connection),
+					  event_names[event]);
+		} else if (event == G_SOCKET_CLIENT_COMPLETE) {
+			/* See if the previous expected event was TLS_HANDSHAKED */
+			if ((*events)[-1] == 'T') {
+				soup_test_assert (G_IS_TLS_CLIENT_CONNECTION (connection),
+						  "Unexpectedly got %s with '%s' event",
+						  G_OBJECT_TYPE_NAME (connection),
+						  event_names[event]);
+			} else {
+				soup_test_assert (G_IS_SOCKET_CONNECTION (connection),
+						  "Unexpectedly got %s with '%s' event",
+						  G_OBJECT_TYPE_NAME (connection),
+						  event_names[event]);
+			}
+		}
+	}
+
 	*events = *events + 1;
 }
 

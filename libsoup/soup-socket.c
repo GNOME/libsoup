@@ -811,6 +811,15 @@ soup_socket_new (const char *optname1, ...)
 }
 
 static void
+soup_socket_event (SoupSocket         *sock,
+		   GSocketClientEvent  event,
+		   GIOStream          *connection)
+{
+	g_signal_emit (sock, signals[EVENT], 0,
+		       event, connection);
+}
+
+static void
 re_emit_socket_client_event (GSocketClient       *client,
 			     GSocketClientEvent   event,
 			     GSocketConnectable  *connectable,
@@ -819,8 +828,7 @@ re_emit_socket_client_event (GSocketClient       *client,
 {
 	SoupSocket *sock = user_data;
 
-	g_signal_emit (sock, signals[EVENT], 0,
-		       event, connection);
+	soup_socket_event (sock, event, connection);
 }
 
 static gboolean
@@ -1407,8 +1415,14 @@ soup_socket_handshake_sync (SoupSocket    *sock,
 	if (!soup_socket_setup_ssl (sock, ssl_host, cancellable, error))
 		return FALSE;
 
-	return g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
-					   cancellable, error);
+	soup_socket_event (sock, G_SOCKET_CLIENT_TLS_HANDSHAKING, priv->conn);
+
+	if (!g_tls_connection_handshake (G_TLS_CONNECTION (priv->conn),
+					 cancellable, error))
+		return FALSE;
+
+	soup_socket_event (sock, G_SOCKET_CLIENT_TLS_HANDSHAKED, priv->conn);
+	return TRUE;
 }
 
 static void
@@ -1418,9 +1432,13 @@ handshake_async_ready (GObject *source, GAsyncResult *result, gpointer user_data
 	GError *error = NULL;
 
 	if (g_tls_connection_handshake_finish (G_TLS_CONNECTION (source),
-					       result, &error))
+					       result, &error)) {
+		SoupSocket *sock = g_task_get_source_object (task);
+		SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+		soup_socket_event (sock, G_SOCKET_CLIENT_TLS_HANDSHAKED, priv->conn);
 		g_task_return_boolean (task, TRUE);
-	else
+	} else
 		g_task_return_error (task, error);
 	g_object_unref (task);
 }
@@ -1443,6 +1461,8 @@ soup_socket_handshake_async (SoupSocket          *sock,
 		g_object_unref (task);
 		return;
 	}
+
+	soup_socket_event (sock, G_SOCKET_CLIENT_TLS_HANDSHAKING, priv->conn);
 
 	g_tls_connection_handshake_async (G_TLS_CONNECTION (priv->conn),
 					  G_PRIORITY_DEFAULT,
