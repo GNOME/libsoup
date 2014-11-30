@@ -41,6 +41,7 @@ test_programs =			\
 	timeout-test		\
 	tld-test		\
 	uri-parsing		\
+	websocket-test		\
 	xmlrpc-server-test	\
 	xmlrpc-test
 

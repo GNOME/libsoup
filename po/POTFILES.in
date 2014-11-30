@@ -8,4 +8,5 @@ libsoup/soup-request.c
 libsoup/soup-server.c
 libsoup/soup-session.c
 libsoup/soup-socket.c
+libsoup/soup-websocket.c
 libsoup/soup-tld.c

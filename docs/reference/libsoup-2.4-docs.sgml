@@ -63,6 +63,7 @@
     <xi:include href="xml/soup-form.xml"/>
     <xi:include href="xml/soup-xmlrpc.xml"/>
     <xi:include href="xml/soup-value-utils.xml"/>
+    <xi:include href="xml/soup-websocket.xml"/>
   </chapter>
 
   <chapter>
