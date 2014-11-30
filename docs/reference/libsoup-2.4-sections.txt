@@ -118,6 +118,10 @@ soup_message_headers_clean_connection_headers
 soup_message_headers_get_one
 soup_message_headers_get_list
 soup_message_headers_get
+soup_message_headers_get_headers_type
+<SUBSECTION>
+soup_message_headers_header_contains
+soup_message_headers_header_equals
 <SUBSECTION>
 SoupMessageHeadersForeachFunc
 soup_message_headers_foreach
