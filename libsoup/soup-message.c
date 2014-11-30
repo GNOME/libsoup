@@ -1528,13 +1528,6 @@ soup_message_get_http_version (SoupMessage *msg)
 gboolean
 soup_message_is_keepalive (SoupMessage *msg)
 {
-	const char *c_conn, *s_conn;
-
-	c_conn = soup_message_headers_get_list (msg->request_headers,
-						"Connection");
-	s_conn = soup_message_headers_get_list (msg->response_headers,
-						"Connection");
-
 	if (msg->status_code == SOUP_STATUS_OK &&
 	    msg->method == SOUP_METHOD_CONNECT)
 		return TRUE;
@@ -1550,13 +1543,15 @@ soup_message_is_keepalive (SoupMessage *msg)
 		 * doesn't request it. So ignore c_conn.
 		 */
 
-		if (!s_conn || !soup_header_contains (s_conn, "Keep-Alive"))
+		if (!soup_message_headers_header_contains (msg->response_headers,
+							   "Connection", "Keep-Alive"))
 			return FALSE;
 	} else {
 		/* Normally persistent unless either side requested otherwise */
-		if (c_conn && soup_header_contains (c_conn, "close"))
-			return FALSE;
-		if (s_conn && soup_header_contains (s_conn, "close"))
+		if (soup_message_headers_header_contains (msg->request_headers,
+							  "Connection", "close") ||
+		    soup_message_headers_header_contains (msg->response_headers,
+							  "Connection", "close"))
 			return FALSE;
 
 		return TRUE;

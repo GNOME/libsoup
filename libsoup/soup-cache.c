@@ -1069,7 +1069,7 @@ SoupCacheResponse
 soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheEntry *entry;
-	const char *cache_control, *pragma;
+	const char *cache_control;
 	gpointer value;
 	int max_age, max_stale, min_fresh;
 	GList *lru_item, *item;
@@ -1130,8 +1130,7 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 
 	/* For HTTP 1.0 compatibility. RFC2616 section 14.9.4
 	 */
-	pragma = soup_message_headers_get_list (msg->request_headers, "Pragma");
-	if (pragma && soup_header_contains (pragma, "no-cache"))
+	if (soup_message_headers_header_contains (msg->request_headers, "Pragma", "no-cache"))
 		return SOUP_CACHE_RESPONSE_STALE;
 
 	cache_control = soup_message_headers_get_list (msg->request_headers, "Cache-Control");

@@ -1316,7 +1316,6 @@ soup_session_send_queue_item (SoupSession *session,
 			      SoupMessageCompletionFn completion_cb)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
-	const char *conn_header;
 
 	if (priv->user_agent) {
 		soup_message_headers_replace (item->msg->request_headers,
@@ -1336,12 +1335,13 @@ soup_session_send_queue_item (SoupSession *session,
 	 * a short period of time, as we wouldn't need to establish
 	 * new connections. Keep alive is implicit for HTTP 1.1.
 	 */
-	conn_header = soup_message_headers_get_list (item->msg->request_headers, "Connection");
-	if (!conn_header ||
-	    (!soup_header_contains (conn_header, "Keep-Alive") &&
-	     !soup_header_contains (conn_header, "close")))
+	if (!soup_message_headers_header_contains (item->msg->request_headers,
+						   "Connection", "Keep-Alive") &&
+	    !soup_message_headers_header_contains (item->msg->request_headers,
+						   "Connection", "close")) {
 		soup_message_headers_append (item->msg->request_headers,
 					     "Connection", "Keep-Alive");
+	}
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       item->msg, soup_connection_get_socket (item->conn));
