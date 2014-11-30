@@ -68,6 +68,8 @@ soup_headers =			\
 	soup-types.h		\
 	soup-uri.h		\
 	soup-value-utils.h	\
+	soup-websocket.h	\
+	soup-websocket-connection.h	\
 	soup-xmlrpc.h
 
 libsoupinclude_HEADERS =	\
@@ -186,6 +188,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-uri.c			\
 	soup-value-utils.c		\
 	soup-version.c			\
+	soup-websocket.c		\
+	soup-websocket-connection.c	\
 	soup-xmlrpc.c
 
 # TLD rules

@@ -608,6 +608,30 @@ static struct ResponseTest {
 	    { NULL } }
 	},
 
+	/********************************/
+	/*** VALID CONTINUE RESPONSES ***/
+	/********************************/
+
+	/* Tests from Cockpit project */
+
+	{ "Response w/ 101 Switching Protocols + spaces after new line", NULL,
+	  "HTTP/1.0 101 Switching Protocols\r\n  \r\n", 38,
+	  SOUP_HTTP_1_0, SOUP_STATUS_SWITCHING_PROTOCOLS, "Switching Protocols",
+	  { { NULL } }
+	},
+
+	{ "Response w/ 101 Switching Protocols missing \\r + spaces", NULL,
+	  "HTTP/1.0  101  Switching Protocols\r\n  \r\n", 40,
+	  SOUP_HTTP_1_0, SOUP_STATUS_SWITCHING_PROTOCOLS, "Switching Protocols",
+	  { { NULL } }
+	},
+
+	{ "Response w/ 101 Switching Protocols + spaces after & before new line", NULL,
+	  "HTTP/1.1  101  Switching Protocols  \r\n  \r\n", 42,
+	  SOUP_HTTP_1_1, SOUP_STATUS_SWITCHING_PROTOCOLS, "Switching Protocols",
+	  { { NULL } }
+	},
+
 	/*************************/
 	/*** INVALID RESPONSES ***/
 	/*************************/
@@ -688,6 +712,45 @@ static struct ResponseTest {
 	  "HTTP/1.1 200 OK\r\nFoo: b\x00ar\r\n", 28,
 	  -1, 0, NULL,
 	  { { NULL } }
+	},
+
+	/* Failing test from Cockpit */
+
+	{ "Partial response stops after HTTP/", NULL,
+	  "HTTP/", -1,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "Space before HTTP/", NULL,
+	  " HTTP/1.0 101 Switching Protocols\r\n  ", -1,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "Missing reason", NULL,
+	  "HTTP/1.0  101\r\n  ", -1,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "Response code containing alphabetic character", NULL,
+	  "HTTP/1.1  1A01  Switching Protocols  \r\n  ", -1,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "TESTONE\\r\\n", NULL,
+	  "TESTONE\r\n  ", -1,
+	  -1, 0, NULL,
+	  { { NULL } }
+	},
+
+	{ "Response w/ 3 headers truncated", NULL,
+	  "HTTP/1.0 200 ok\r\nHeader1: value3\r\nHeader2:  field\r\nHead3:  Anothe", -1,
+	  -1, 0, NULL,
+	  { { NULL }
+	  }
 	},
 };
 static const int num_resptests = G_N_ELEMENTS (resptests);
