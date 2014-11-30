@@ -9,6 +9,7 @@
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-address.h>
 #include <libsoup/soup-message.h>
+#include <libsoup/soup-websocket-connection.h>
 
 G_BEGIN_DECLS
 
@@ -209,6 +210,20 @@ typedef enum {
 SOUP_AVAILABLE_IN_2_50
 GIOStream *soup_session_steal_connection (SoupSession *session,
 					  SoupMessage *msg);
+
+SOUP_AVAILABLE_IN_2_50
+void                     soup_session_websocket_connect_async  (SoupSession          *session,
+								SoupMessage          *msg,
+								const char           *origin,
+								char                **protocols,
+								GCancellable         *cancellable,
+								GAsyncReadyCallback   callback,
+								gpointer              user_data);
+
+SOUP_AVAILABLE_IN_2_50
+SoupWebsocketConnection *soup_session_websocket_connect_finish (SoupSession          *session,
+								GAsyncResult         *result,
+								GError              **error);
 
 G_END_DECLS
 

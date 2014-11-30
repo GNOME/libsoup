@@ -373,6 +373,7 @@ soup_server_accept_iostream
 soup_server_add_auth_domain
 soup_server_add_early_handler
 soup_server_add_handler
+soup_server_add_websocket_handler
 soup_server_disconnect
 soup_server_get_async_context
 soup_server_get_listener
@@ -438,6 +439,8 @@ soup_session_sync_get_type
 soup_session_sync_new
 soup_session_sync_new_with_options
 soup_session_unpause_message
+soup_session_websocket_connect_async
+soup_session_websocket_connect_finish
 soup_session_would_redirect
 soup_socket_connect_async
 soup_socket_connect_sync

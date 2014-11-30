@@ -8,6 +8,7 @@
 
 #include <libsoup/soup-types.h>
 #include <libsoup/soup-uri.h>
+#include <libsoup/soup-websocket-connection.h>
 
 G_BEGIN_DECLS
 
@@ -130,6 +131,20 @@ void            soup_server_add_early_handler  (SoupServer         *server,
 						SoupServerCallback  callback,
 						gpointer            user_data,
 						GDestroyNotify      destroy);
+
+typedef void (*SoupServerWebsocketCallback) (SoupServer              *server,
+					     SoupWebsocketConnection *connection,
+					     const char              *path,
+					     SoupClientContext       *client,
+					     gpointer                 user_data);
+SOUP_AVAILABLE_IN_2_50
+void            soup_server_add_websocket_handler (SoupServer                   *server,
+						   const char                   *path,
+						   const char                   *origin,
+						   char                        **protocols,
+						   SoupServerWebsocketCallback   callback,
+						   gpointer                      user_data,
+						   GDestroyNotify                destroy);
 
 void            soup_server_remove_handler     (SoupServer         *server,
 					        const char         *path);
