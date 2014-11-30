@@ -31,21 +31,27 @@
 /**
  * SECTION:soup-websocket
  * @short_description: The WebSocket Protocol
+ * @see_also: soup_session_websocket_connect_async(),
+ *   soup_server_add_websocket_handler()
  *
  * #SoupWebsocketConnection provides support for the <ulink
  * url="http://tools.ietf.org/html/rfc6455">WebSocket</ulink> protocol.
  *
- * soup_websocket_client_prepare_handshake() and
- * soup_websocket_client_verify_handshake() are low-level functions
- * for handling the client side of the WebSocket handshake.
- * soup_websocket_server_process_handshake() is the low-level function
- * for handling the server side.
+ * To connect to a WebSocket server, create a #SoupSession and call
+ * soup_session_websocket_connect_async(). To accept WebSocket
+ * connections, create a #SoupServer and add a handler to it with
+ * soup_server_add_websocket_handler().
  *
- * After completing a handshake, you can wrap the underlying
- * #GIOStream in a #SoupWebsocketConnection, which handles the details
- * of WebSocket communication. You can then use
- * soup_websocket_connection_send_text() and
- * soup_websocket_connection_send_binary() to send data, and the
+ * (Lower-level support is available via
+ * soup_websocket_client_prepare_handshake() and
+ * soup_websocket_client_verify_handshake(), for handling the client
+ * side of the WebSocket handshake, and
+ * soup_websocket_server_process_handshake() for handling the server
+ * side.)
+ *
+ * #SoupWebsocketConnection handles the details of WebSocket
+ * communication. You can use soup_websocket_connection_send_text()
+ * and soup_websocket_connection_send_binary() to send data, and the
  * #SoupWebsocketConnection::message signal to receive data.
  * (#SoupWebsocketConnection currently only supports asynchronous
  * I/O.)
@@ -246,6 +252,10 @@ choose_subprotocol (SoupMessage  *msg,
  * handshake. The message body and non-WebSocket-related headers are
  * not modified.
  *
+ * This is a low-level function; if you use
+ * soup_session_websocket_connect_async() to create a WebSocket
+ * connection, it will call this for you.
+ *
  * Since: 2.50
  */
 void
@@ -297,6 +307,13 @@ soup_websocket_client_prepare_handshake (SoupMessage  *msg,
  * "Origin" header will be accepted. If @protocols is non-%NULL, then
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted.
+ *
+ * Normally soup_websocket_server_process_handshake() will take care
+ * of this for you, and if you use soup_server_add_websocket_handler()
+ * to handle accepting WebSocket connections, it will call that for
+ * you. However, this function may be useful if you need to perform
+ * more complicated validation; eg, accepting multiple different Origins,
+ * or handling different protocols depending on the path.
  *
  * Returns: %TRUE if @msg contained a valid WebSocket handshake,
  *   %FALSE and an error if not.
@@ -412,6 +429,10 @@ respond_handshake_bad (SoupMessage *msg, const char *why)
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted.
  *
+ * This is a low-level function; if you use
+ * soup_server_add_websocket_handler() to handle accepting WebSocket
+ * connections, it will call this for you.
+ *
  * Returns: %TRUE if @msg contained a valid WebSocket handshake
  *   request and was updated to contain a handshake response. %FALSE
  *   and an error if not.
@@ -464,6 +485,10 @@ soup_websocket_server_process_handshake (SoupMessage  *msg,
  * Looks at the response status code and headers in @msg and
  * determines if they contain a valid WebSocket handshake response
  * (given the handshake request in @msg's request headers).
+ *
+ * This is a low-level function; if you use
+ * soup_session_websocket_connect_async() to create a WebSocket
+ * connection, it will call this for you.
  *
  * Returns: %TRUE if @msg contains a completed valid WebSocket
  *   handshake, %FALSE and an error if not.

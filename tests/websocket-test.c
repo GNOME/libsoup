@@ -26,7 +26,12 @@ typedef struct {
 	GSocket *listener;
 	gushort port;
 
+	SoupSession *session;
+	SoupMessage *msg;
 	SoupWebsocketConnection *client;
+	GError *client_error;
+
+	SoupServer *soup_server;
 	SoupWebsocketConnection *server;
 
 	gboolean no_server;
@@ -184,6 +189,96 @@ teardown_direct_connection (Test *test,
 }
 
 static void
+setup_soup_server (Test *test,
+		   const char *origin,
+		   const char **protocols,
+		   SoupServerWebsocketCallback callback,
+		   gpointer user_data)
+{
+	GError *error = NULL;
+
+	setup_listener (test);
+
+	test->soup_server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	soup_server_listen_socket (test->soup_server, test->listener, 0, &error);
+	g_assert_no_error (error);
+
+	soup_server_add_websocket_handler (test->soup_server, "/unix",
+					   origin, (char **) protocols,
+					   callback, user_data, NULL);
+}
+
+static void
+client_connect (Test *test,
+		const char *origin,
+		const char **protocols,
+		GAsyncReadyCallback callback,
+		gpointer user_data)
+{
+	char *url;
+
+	if (!test->session)
+		test->session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+
+	url = g_strdup_printf ("ws://127.0.0.1:%u/unix", test->port);
+	test->msg = soup_message_new ("GET", url);
+	g_free (url);
+
+	soup_session_websocket_connect_async (test->session, test->msg,
+					      origin, (char **) protocols,
+					      NULL, callback, user_data);
+}
+
+static void
+got_server_connection (SoupServer              *server,
+		       SoupWebsocketConnection *connection,
+		       const char              *path,
+		       SoupClientContext       *client,
+		       gpointer                 user_data)
+{
+	Test *test = user_data;
+
+	test->server = g_object_ref (connection);
+}
+
+static void
+got_client_connection (GObject *object,
+		       GAsyncResult *result,
+		       gpointer user_data)
+{
+	Test *test = user_data;
+
+	test->client = soup_session_websocket_connect_finish (SOUP_SESSION (object),
+							      result, &test->client_error);
+}
+
+static void
+setup_soup_connection (Test *test,
+		       gconstpointer data)
+{
+	setup_soup_server (test, NULL, NULL, got_server_connection, test);
+	client_connect (test, NULL, NULL, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+}
+
+static void
+teardown_soup_connection (Test *test,
+			  gconstpointer data)
+{
+	g_clear_object (&test->client);
+	g_clear_error (&test->client_error);
+
+	if (test->session)
+		soup_test_session_abort_unref (test->session);
+
+	if (test->soup_server)
+		soup_test_server_quit_unref (test->soup_server);
+}
+
+
+static void
 on_text_message (SoupWebsocketConnection *ws,
                  SoupWebsocketDataType type,
                  GBytes *message,
@@ -209,6 +304,14 @@ on_close_set_flag (SoupWebsocketConnection *ws,
 	*flag = TRUE;
 }
 
+
+static void
+test_handshake (Test *test,
+                gconstpointer data)
+{
+	g_assert_cmpint (soup_websocket_connection_get_state (test->client), ==, SOUP_WEBSOCKET_STATE_OPEN);
+	g_assert_cmpint (soup_websocket_connection_get_state (test->server), ==, SOUP_WEBSOCKET_STATE_OPEN);
+}
 
 #define TEST_STRING "this is a test"
 
@@ -348,6 +451,20 @@ test_protocol_negotiate_direct (Test *test,
 	g_object_unref (msg);
 }
 
+static void
+test_protocol_negotiate_soup (Test *test,
+			      gconstpointer unused)
+{
+	setup_soup_server (test, NULL, negotiate_server_protocols, got_server_connection, test);
+	client_connect (test, NULL, negotiate_client_protocols, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->client), ==, negotiated_protocol);
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->server), ==, negotiated_protocol);
+}
+
 static const char *mismatch_client_protocols[] = { "ddd", NULL };
 static const char *mismatch_server_protocols[] = { "aaa", "bbb", "ccc", NULL };
 
@@ -387,6 +504,17 @@ test_protocol_mismatch_direct (Test *test,
 	g_object_unref (msg);
 }
 
+static void
+test_protocol_mismatch_soup (Test *test,
+			     gconstpointer unused)
+{
+	setup_soup_server (test, NULL, mismatch_server_protocols, got_server_connection, test);
+	client_connect (test, NULL, mismatch_client_protocols, got_client_connection, test);
+	WAIT_UNTIL (test->client_error != NULL);
+
+	g_assert_error (test->client_error, SOUP_WEBSOCKET_ERROR, SOUP_WEBSOCKET_ERROR_NOT_WEBSOCKET);
+}
+
 static const char *all_protocols[] = { "aaa", "bbb", "ccc", NULL };
 
 static void
@@ -419,6 +547,21 @@ test_protocol_server_any_direct (Test *test,
 }
 
 static void
+test_protocol_server_any_soup (Test *test,
+			       gconstpointer unused)
+{
+	setup_soup_server (test, NULL, NULL, got_server_connection, test);
+	client_connect (test, NULL, all_protocols, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->client), ==, NULL);
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->server), ==, NULL);
+	g_assert_cmpstr (soup_message_headers_get_one (test->msg->response_headers, "Sec-WebSocket-Protocol"), ==, NULL);
+}
+
+static void
 test_protocol_client_any_direct (Test *test,
 				 gconstpointer unused)
 {
@@ -445,6 +588,21 @@ test_protocol_client_any_direct (Test *test,
 	g_assert_true (ok);
 
 	g_object_unref (msg);
+}
+
+static void
+test_protocol_client_any_soup (Test *test,
+			       gconstpointer unused)
+{
+	setup_soup_server (test, NULL, all_protocols, got_server_connection, test);
+	client_connect (test, NULL, NULL, got_client_connection, test);
+	WAIT_UNTIL (test->server != NULL);
+	WAIT_UNTIL (test->client != NULL || test->client_error != NULL);
+	g_assert_no_error (test->client_error);
+
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->client), ==, NULL);
+	g_assert_cmpstr (soup_websocket_connection_get_protocol (test->server), ==, NULL);
+	g_assert_cmpstr (soup_message_headers_get_one (test->msg->response_headers, "Sec-WebSocket-Protocol"), ==, NULL);
 }
 
 static void
@@ -631,47 +789,103 @@ main (int argc,
 
 	test_init (argc, argv, NULL);
 
+	g_test_add ("/websocket/soup/handshake", Test, NULL, 
+		    setup_soup_connection,
+		    test_handshake,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/send-client-to-server", Test, NULL,
 		    setup_direct_connection,
 		    test_send_client_to_server,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-client-to-server", Test, NULL, 
+		    setup_soup_connection,
+		    test_send_client_to_server,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/send-server-to-client", Test, NULL,
 		    setup_direct_connection,
 		    test_send_server_to_client,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-server-to-client", Test, NULL,
+		    setup_soup_connection,
+		    test_send_server_to_client,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/send-big-packets", Test, NULL,
 		    setup_direct_connection,
 		    test_send_big_packets,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-big-packets", Test, NULL,
+		    setup_soup_connection,
+		    test_send_big_packets,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/send-bad-data", Test, NULL,
 		    setup_direct_connection,
 		    test_send_bad_data,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/send-bad-data", Test, NULL,
+		    setup_soup_connection,
+		    test_send_bad_data,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/close-clean-client", Test, NULL,
 		    setup_direct_connection,
 		    test_close_clean_client,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/close-clean-client", Test, NULL,
+		    setup_soup_connection,
+		    test_close_clean_client,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/close-clean-server", Test, NULL,
 		    setup_direct_connection,
 		    test_close_clean_server,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/close-clean-server", Test, NULL,
+		    setup_soup_connection,
+		    test_close_clean_server,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/message-after-closing", Test, NULL,
 		    setup_direct_connection,
 		    test_message_after_closing,
 		    teardown_direct_connection);
+	g_test_add ("/websocket/soup/message-after-closing", Test, NULL,
+		    setup_soup_connection,
+		    test_message_after_closing,
+		    teardown_soup_connection);
+
 
 	g_test_add ("/websocket/direct/protocol-negotiate", Test, NULL, NULL,
 		    test_protocol_negotiate_direct,
 		    NULL);
+	g_test_add ("/websocket/soup/protocol-negotiate", Test, NULL, NULL,
+		    test_protocol_negotiate_soup,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/protocol-mismatch", Test, NULL, NULL,
 		    test_protocol_mismatch_direct,
 		    NULL);
+	g_test_add ("/websocket/soup/protocol-mismatch", Test, NULL, NULL,
+		    test_protocol_mismatch_soup,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/protocol-server-any", Test, NULL, NULL,
 		    test_protocol_server_any_direct,
 		    NULL);
+	g_test_add ("/websocket/soup/protocol-server-any", Test, NULL, NULL,
+		    test_protocol_server_any_soup,
+		    teardown_soup_connection);
+
 	g_test_add ("/websocket/direct/protocol-client-any", Test, NULL, NULL,
 		    test_protocol_client_any_direct,
 		    NULL);
+	g_test_add ("/websocket/soup/protocol-client-any", Test, NULL, NULL,
+		    test_protocol_client_any_soup,
+		    teardown_soup_connection);
+
 
 	g_test_add ("/websocket/direct/receive-fragmented", Test, NULL,
 		    setup_half_direct_connection,

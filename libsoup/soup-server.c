@@ -19,6 +19,8 @@
 #include "soup-misc-private.h"
 #include "soup-path-map.h" 
 #include "soup-socket-private.h"
+#include "soup-websocket.h"
+#include "soup-websocket-connection.h"
 
 /**
  * SECTION:soup-server
@@ -68,16 +70,26 @@
  * #SoupServer will return a %SOUP_STATUS_CONTINUE status before
  * continuing.)
  *
- * The server will then read in the response body (if present), and
- * then (assuming no previous step assigned a status to the message)
- * call any "normal" handler (added with soup_server_add_handler())
- * for the message's Request-URI.
+ * The server will then read in the response body (if present). At
+ * this point, if there are no handlers at all defined for the
+ * Request-URI, then the server will return %SOUP_STATUS_NOT_FOUND to
+ * the client.
  *
- * If the message still has no status code after this step (and has
- * not been paused with soup_server_pause_message()), then it will
- * automatically be given a status of %SOUP_STATUS_NOT_FOUND (if there
- * was no handler for the path) or %SOUP_STATUS_INTERNAL_SERVER_ERROR
- * (if a handler ran but did not assign a status).
+ * Otherwise (assuming no previous step assigned a status to the
+ * message) any "normal" handlers (added with
+ * soup_server_add_handler()) for the message's Request-URI will be
+ * run.
+ *
+ * Then, if the path has a WebSocket handler registered (and has
+ * not yet been assigned a status), #SoupServer will attempt to
+ * validate the WebSocket handshake, filling in the response and
+ * setting a status of %SOUP_STATUS_SWITCHING_PROTOCOLS or
+ * %SOUP_STATUS_BAD_REQUEST accordingly.
+ *
+ * If the message still has no status code at this point (and has not
+ * been paused with soup_server_pause_message()), then it will be
+ * given a status of %SOUP_STATUS_INTERNAL_SERVER_ERROR (because at
+ * least one handler ran, but returned without assigning a status).
  *
  * Finally, the server will emit #SoupServer::request-finished (or
  * #SoupServer::request-aborted if an I/O error occurred before
@@ -141,6 +153,12 @@ typedef struct {
 	SoupServerCallback  callback;
 	GDestroyNotify      destroy;
 	gpointer            user_data;
+
+	char                         *websocket_origin;
+	char                        **websocket_protocols;
+	SoupServerWebsocketCallback   websocket_callback;
+	GDestroyNotify                websocket_destroy;
+	gpointer                      websocket_user_data;
 } SoupServerHandler;
 
 typedef struct {
@@ -157,7 +175,7 @@ typedef struct {
 
 	gboolean           raw_paths;
 	SoupPathMap       *handlers;
-	
+
 	GSList            *auth_domains;
 
 	char             **http_aliases, **https_aliases;
@@ -198,10 +216,14 @@ static void
 free_handler (SoupServerHandler *handler)
 {
 	g_free (handler->path);
+	g_free (handler->websocket_origin);
+	g_strfreev (handler->websocket_protocols);
 	if (handler->early_destroy)
 		handler->early_destroy (handler->early_user_data);
 	if (handler->destroy)
 		handler->destroy (handler->user_data);
+	if (handler->websocket_destroy)
+		handler->websocket_destroy (handler->websocket_user_data);
 	g_slice_free (SoupServerHandler, handler);
 }
 
@@ -1201,28 +1223,33 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
  */
 #define NORMALIZED_PATH(path) ((path) && *(path) ? (path) : "/")
 
-/* Returns TRUE if a handler exists, FALSE if not */
-static gboolean
-call_handler (SoupServer *server, SoupClientContext *client,
-	      SoupMessage *msg, gboolean early)
+static SoupServerHandler *
+get_handler (SoupServer *server, SoupMessage *msg)
 {
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
-	SoupServerHandler *handler;
 	SoupURI *uri;
-	GHashTable *form_data_set;
 
 	uri = soup_message_get_uri (msg);
-	handler = soup_path_map_lookup (priv->handlers, NORMALIZED_PATH (uri->path));
-	if (!handler)
-		return FALSE;
-	else if (early && !handler->early_callback)
-		return TRUE;
+	return soup_path_map_lookup (priv->handlers, NORMALIZED_PATH (uri->path));
+}
+
+static void
+call_handler (SoupServer *server, SoupServerHandler *handler,
+	      SoupClientContext *client, SoupMessage *msg,
+	      gboolean early)
+{
+	GHashTable *form_data_set;
+	SoupURI *uri;
+
+	if (early && !handler->early_callback)
+		return;
 	else if (!early && !handler->callback)
-		return TRUE;
+		return;
 
 	if (msg->status_code != 0)
-		return TRUE;
+		return;
 
+	uri = soup_message_get_uri (msg);
 	if (uri->query)
 		form_data_set = soup_form_decode (uri->query);
 	else
@@ -1240,8 +1267,6 @@ call_handler (SoupServer *server, SoupClientContext *client,
 
 	if (form_data_set)
 		g_hash_table_unref (form_data_set);
-
-	return TRUE;
 }
 
 static void
@@ -1249,6 +1274,7 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
+	SoupServerHandler *handler;
 	SoupURI *uri;
 	SoupDate *date;
 	char *date_string;
@@ -1324,22 +1350,67 @@ got_headers (SoupMessage *msg, SoupClientContext *client)
 	}
 
 	/* Otherwise, call the early handlers. */
-	call_handler (server, client, msg, TRUE);
+	handler = get_handler (server, msg);
+	if (handler)
+		call_handler (server, handler, client, msg, TRUE);
+}
+
+static void
+complete_websocket_upgrade (SoupMessage *msg, gpointer user_data)
+{
+	SoupClientContext *client = user_data;
+	SoupServer *server = client->server;
+	SoupURI *uri = soup_message_get_uri (msg);
+	SoupServerHandler *handler;
+	GIOStream *stream;
+	SoupWebsocketConnection *conn;
+
+	handler = get_handler (server, msg);
+	if (!handler || !handler->websocket_callback)
+		return;
+
+	stream = soup_client_context_steal_connection (client);
+	conn = soup_websocket_connection_new (stream, uri,
+					      SOUP_WEBSOCKET_CONNECTION_SERVER,
+					      soup_message_headers_get_one (msg->request_headers, "Origin"),
+					      soup_message_headers_get_one (msg->response_headers, "Sec-WebSocket-Protocol"));
+	g_object_unref (stream);
+	soup_client_context_unref (client);
+
+	(*handler->websocket_callback) (server, conn, uri->path, client,
+					handler->websocket_user_data);
+	g_object_unref (conn);
 }
 
 static void
 got_body (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
+	SoupServerHandler *handler;
 
 	g_signal_emit (server, signals[REQUEST_READ], 0, msg, client);
 
 	if (msg->status_code != 0)
 		return;
 
-	if (!call_handler (server, client, msg, FALSE)) {
-		if (msg->status_code == 0)
-			soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+	handler = get_handler (server, msg);
+	if (!handler) {
+		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+		return;
+	}
+
+	call_handler (server, handler, client, msg, FALSE);
+	if (msg->status_code != 0)
+		return;
+
+	if (handler->websocket_callback && msg->status_code == 0) {
+		if (soup_websocket_server_process_handshake (msg,
+							     handler->websocket_origin,
+							     handler->websocket_protocols)) {
+			g_signal_connect (msg, "wrote-informational",
+					  G_CALLBACK (complete_websocket_upgrade),
+					  soup_client_context_ref (client));
+		}
 	}
 }
 
@@ -2395,40 +2466,23 @@ soup_client_context_steal_connection (SoupClientContext *client)
  * for details of what handlers can/should do.
  **/
 
-static void
-add_handler_internal (SoupServer            *server,
-		      const char            *path,
-		      gboolean               early,
-		      SoupServerCallback     callback,
-		      gpointer               user_data,
-		      GDestroyNotify         destroy)
+static SoupServerHandler *
+get_or_create_handler (SoupServer *server, const char *exact_path)
 {
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupServerHandler *handler;
 
-	path = NORMALIZED_PATH (path);
+	exact_path = NORMALIZED_PATH (exact_path);
 
-	handler = soup_path_map_lookup (priv->handlers, path);
-	if (handler && !strcmp (handler->path, path)) {
-		if (early && handler->early_destroy)
-			handler->early_destroy (handler->early_user_data);
-		else if (!early && handler->destroy)
-			handler->destroy (handler->user_data);
-	} else {
-		handler = g_slice_new0 (SoupServerHandler);
-		handler->path = g_strdup (path);
-		soup_path_map_add (priv->handlers, path, handler);
-	}
+	handler = soup_path_map_lookup (priv->handlers, exact_path);
+	if (handler && !strcmp (handler->path, exact_path))
+		return handler;
 
-	if (early) {
-		handler->early_callback   = callback;
-		handler->early_destroy    = destroy;
-		handler->early_user_data  = user_data;
-	} else {
-		handler->callback   = callback;
-		handler->destroy    = destroy;
-		handler->user_data  = user_data;
-	}
+	handler = g_slice_new0 (SoupServerHandler);
+	handler->path = g_strdup (exact_path);
+	soup_path_map_add (priv->handlers, exact_path, handler);
+
+	return handler;
 }
 
 /**
@@ -2484,11 +2538,18 @@ soup_server_add_handler (SoupServer            *server,
 			 gpointer               user_data,
 			 GDestroyNotify         destroy)
 {
+	SoupServerHandler *handler;
+
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 
-	add_handler_internal (server, path, FALSE,
-			      callback, user_data, destroy);
+	handler = get_or_create_handler (server, path);
+	if (handler->destroy)
+		handler->destroy (handler->user_data);
+
+	handler->callback   = callback;
+	handler->destroy    = destroy;
+	handler->user_data  = user_data;
 }
 
 /**
@@ -2536,11 +2597,94 @@ soup_server_add_early_handler (SoupServer            *server,
 			       gpointer               user_data,
 			       GDestroyNotify         destroy)
 {
+	SoupServerHandler *handler;
+
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
 
-	add_handler_internal (server, path, TRUE,
-			      callback, user_data, destroy);
+	handler = get_or_create_handler (server, path);
+	if (handler->early_destroy)
+		handler->early_destroy (handler->early_user_data);
+
+	handler->early_callback   = callback;
+	handler->early_destroy    = destroy;
+	handler->early_user_data  = user_data;
+}
+
+/**
+ * SoupServerWebsocketCallback:
+ * @server: the #SoupServer
+ * @path: the path component of @msg's Request-URI
+ * @connection: the newly created WebSocket connection
+ * @client: additional contextual information about the client
+ * @user_data: the data passed to @soup_server_add_handler
+ *
+ * A callback used to handle WebSocket requests to a #SoupServer. The
+ * callback will be invoked after sending the handshake response back
+ * to the client (and is only invoked if the handshake was
+ * successful).
+ *
+ * @path contains the path of the Request-URI, subject to the same
+ * rules as #SoupServerCallback (qv).
+ **/
+
+/**
+ * soup_server_add_websocket_handler:
+ * @server: a #SoupServer
+ * @path: (allow-none): the toplevel path for the handler
+ * @origin: (allow-none): the origin of the connection
+ * @protocols: (allow-none) (array zero-terminated=1): the protocols
+ *   supported by this handler
+ * @callback: callback to invoke for successful WebSocket requests under @path
+ * @user_data: data for @callback
+ * @destroy: destroy notifier to free @user_data
+ *
+ * Adds a WebSocket handler to @server for requests under @path. (If
+ * @path is %NULL or "/", then this will be the default handler for
+ * all requests that don't have a more specific handler.)
+ *
+ * When a path has a WebSocket handler registered, @server will check
+ * incoming requests for WebSocket handshakes after all other handlers
+ * have run (unless some earlier handler has already set a status code
+ * on the message), and update the request's status, response headers,
+ * and response body accordingly.
+ *
+ * If @origin is non-%NULL, then only requests containing a matching
+ * "Origin" header will be accepted. If @protocols is non-%NULL, then
+ * only requests containing a compatible "Sec-WebSocket-Protocols"
+ * header will be accepted. More complicated requirements can be
+ * handled by adding a normal handler to @path, and having it perform
+ * whatever checks are needed (possibly calling
+ * soup_server_check_websocket_handshake() one or more times), and
+ * setting a failure status code if the handshake should be rejected.
+ **/
+void
+soup_server_add_websocket_handler (SoupServer                   *server,
+				   const char                   *path,
+				   const char                   *origin,
+				   char                        **protocols,
+				   SoupServerWebsocketCallback   callback,
+				   gpointer                      user_data,
+				   GDestroyNotify                destroy)
+{
+	SoupServerHandler *handler;
+
+	g_return_if_fail (SOUP_IS_SERVER (server));
+	g_return_if_fail (callback != NULL);
+
+	handler = get_or_create_handler (server, path);
+	if (handler->websocket_destroy)
+		handler->websocket_destroy (handler->websocket_user_data);
+	if (handler->websocket_origin)
+		g_free (handler->websocket_origin);
+	if (handler->websocket_protocols)
+		g_strfreev (handler->websocket_protocols);
+
+	handler->websocket_callback   = callback;
+	handler->websocket_destroy    = destroy;
+	handler->websocket_user_data  = user_data;
+	handler->websocket_origin     = g_strdup (origin);
+	handler->websocket_protocols  = g_strdupv (protocols);
 }
 
 /**
