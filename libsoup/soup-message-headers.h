@@ -49,6 +49,14 @@ const char         *soup_message_headers_get_one  (SoupMessageHeaders *hdrs,
 SOUP_AVAILABLE_IN_2_28
 const char         *soup_message_headers_get_list (SoupMessageHeaders *hdrs,
 						   const char         *name);
+SOUP_AVAILABLE_IN_2_50
+gboolean            soup_message_headers_header_contains (SoupMessageHeaders *hdrs,
+							  const char         *name,
+							  const char         *token);
+SOUP_AVAILABLE_IN_2_50
+gboolean            soup_message_headers_header_equals   (SoupMessageHeaders *hdrs,
+							  const char         *name,
+							  const char         *value);
 
 typedef void      (*SoupMessageHeadersForeachFunc)(const char         *name,
 						   const char         *value,
@@ -57,6 +65,9 @@ typedef void      (*SoupMessageHeadersForeachFunc)(const char         *name,
 void                soup_message_headers_foreach  (SoupMessageHeaders *hdrs,
 						   SoupMessageHeadersForeachFunc func,
 						   gpointer            user_data);
+
+SOUP_AVAILABLE_IN_2_50
+SoupMessageHeadersType soup_message_headers_get_headers_type (SoupMessageHeaders *hdrs);
 
 typedef struct {
 	/*< private >*/

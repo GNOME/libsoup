@@ -110,6 +110,22 @@ soup_message_headers_free (SoupMessageHeaders *hdrs)
 G_DEFINE_BOXED_TYPE (SoupMessageHeaders, soup_message_headers, soup_message_headers_copy, soup_message_headers_free)
 
 /**
+ * soup_message_headers_get_headers_type:
+ * @hdrs: a #SoupMessageHeaders
+ *
+ * Gets the type of headers.
+ *
+ * Return value: the header's type.
+ *
+ * Since: 2.50
+ **/
+SoupMessageHeadersType
+soup_message_headers_get_headers_type (SoupMessageHeaders *hdrs)
+{
+	return hdrs->type;
+}
+
+/**
  * soup_message_headers_clear:
  * @hdrs: a #SoupMessageHeaders
  *
@@ -317,6 +333,59 @@ soup_message_headers_get_one (SoupMessageHeaders *hdrs, const char *name)
 	index = find_last_header (hdr_array, hdr_length, name, 0);
 
 	return (index == -1) ? NULL : hdr_array[index].value;
+}
+
+/**
+ * soup_message_headers_header_contains:
+ * @hdrs: a #SoupMessageHeaders
+ * @name: header name
+ * @token: token to look for
+ *
+ * Checks whether the list-valued header @name is present in @hdrs,
+ * and contains a case-insensitive match for @token.
+ *
+ * (If @name is present in @hdrs, then this is equivalent to calling
+ * soup_header_contains() on its value.)
+ *
+ * Return value: %TRUE if the header is present and contains @token,
+ *   %FALSE otherwise.
+ *
+ * Since: 2.50
+ **/
+gboolean
+soup_message_headers_header_contains (SoupMessageHeaders *hdrs, const char *name, const char *token)
+{
+	const char *value;
+
+	value = soup_message_headers_get_list (hdrs, name);
+	if (!value)
+		return FALSE;
+	return soup_header_contains (value, token);
+}
+
+/**
+ * soup_message_headers_header_equals:
+ * @hdrs: a #SoupMessageHeaders
+ * @name: header name
+ * @value: expected value
+ *
+ * Checks whether the header @name is present in @hdrs and is
+ * (case-insensitively) equal to @value.
+ *
+ * Return value: %TRUE if the header is present and its value is
+ *   @value, %FALSE otherwise.
+ *
+ * Since: 2.50
+ **/
+gboolean
+soup_message_headers_header_equals (SoupMessageHeaders *hdrs, const char *name, const char *value)
+{
+        const char *internal_value;
+
+        internal_value = soup_message_headers_get_list (hdrs, name);
+	if (!internal_value)
+		return FALSE;
+        return !g_ascii_strcasecmp (internal_value, value);
 }
 
 /**
