@@ -49,6 +49,7 @@ gboolean soup_check_version     (guint major,
 #define SOUP_VERSION_2_44 (SOUP_ENCODE_VERSION (2, 44))
 #define SOUP_VERSION_2_46 (SOUP_ENCODE_VERSION (2, 46))
 #define SOUP_VERSION_2_48 (SOUP_ENCODE_VERSION (2, 48))
+#define SOUP_VERSION_2_50 (SOUP_ENCODE_VERSION (2, 50))
 
 /* evaluates to the current stable version; for development cycles,
  * this means the next stable target
@@ -269,6 +270,20 @@ gboolean soup_check_version     (guint major,
 # define SOUP_AVAILABLE_IN_2_48                 GLIB_UNAVAILABLE(2, 48)
 #else
 # define SOUP_AVAILABLE_IN_2_48
+#endif
+
+#if SOUP_VERSION_MIN_REQUIRED >= SOUP_VERSION_2_50
+# define SOUP_DEPRECATED_IN_2_50                GLIB_DEPRECATED
+# define SOUP_DEPRECATED_IN_2_50_FOR(f)         GLIB_DEPRECATED_FOR(f)
+#else
+# define SOUP_DEPRECATED_IN_2_50
+# define SOUP_DEPRECATED_IN_2_50_FOR(f)
+#endif
+
+#if SOUP_VERSION_MAX_ALLOWED < SOUP_VERSION_2_50
+# define SOUP_AVAILABLE_IN_2_50                 GLIB_UNAVAILABLE(2, 50)
+#else
+# define SOUP_AVAILABLE_IN_2_50
 #endif
 
 G_END_DECLS
