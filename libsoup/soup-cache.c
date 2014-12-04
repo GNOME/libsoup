@@ -670,7 +670,6 @@ GInputStream *
 soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheEntry *entry;
-	char *current_age;
 	GInputStream *file_stream, *body_stream, *cache_stream;
 	GFile *file;
 
@@ -703,13 +702,6 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 
 	/* Headers */
 	copy_end_to_end_headers (entry->headers, msg->response_headers);
-
-	/* Add 'Age' header with the current age */
-	current_age = g_strdup_printf ("%d", soup_cache_entry_get_current_age (entry));
-	soup_message_headers_replace (msg->response_headers,
-				      "Age",
-				      current_age);
-	g_free (current_age);
 
 	/* Create the cache stream. */
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
