@@ -1432,11 +1432,10 @@ drop_connection (SoupSession *session, SoupSessionHost *host, SoupConnection *co
 		 */
 		if (host->num_conns == 0) {
 			g_assert (host->keep_alive_src == NULL);
-			host->keep_alive_src = soup_add_timeout (priv->async_context,
-								 HOST_KEEP_ALIVE,
-								 free_unused_host,
-								 host);
-			host->keep_alive_src = g_source_ref (host->keep_alive_src);
+			host->keep_alive_src = soup_add_timeout_reffed (priv->async_context,
+									HOST_KEEP_ALIVE,
+									free_unused_host,
+									host);
 		}
 
 		if (soup_connection_get_ssl_fallback (conn))

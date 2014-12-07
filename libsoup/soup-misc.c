@@ -153,6 +153,17 @@ soup_add_completion (GMainContext *async_context,
 	return source;
 }
 
+GSource *
+soup_add_timeout_reffed (GMainContext *async_context,
+			 guint interval,
+			 GSourceFunc function, gpointer data)
+{
+	GSource *source = g_timeout_source_new (interval);
+	g_source_set_callback (source, function, data, NULL);
+	g_source_attach (source, async_context);
+	return source;
+}
+
 /**
  * soup_add_timeout: (skip)
  * @async_context: (allow-none): the #GMainContext to dispatch the I/O
@@ -172,9 +183,9 @@ soup_add_timeout (GMainContext *async_context,
 		  guint interval,
 		  GSourceFunc function, gpointer data)
 {
-	GSource *source = g_timeout_source_new (interval);
-	g_source_set_callback (source, function, data, NULL);
-	g_source_attach (source, async_context);
+	GSource *source;
+
+	source = soup_add_timeout_reffed (async_context, interval, function, data);
 	g_source_unref (source);
 	return source;
 }
