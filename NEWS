@@ -1,3 +1,29 @@
+Changes in libsoup from 2.48.0 to 2.48.1:
+
+	* Fixed a bug in the SoupMessage:event signal that broke
+	  evolution's ability to connect to https hosts with "bad"
+	  certificates. [#739951, Dan Winship]
+
+	* Fixed a case where the async codepaths could potentially
+          block on a synchronous write [#727138, Dan Winship]
+
+	* Fixed the symbol soup_server_set_ssl_cert_file() to get
+          exported, and added soup_server_get_uris() to the
+          documentation. [Tristan Van Berkom]
+
+	* Improved a bunch of introspection annotations [#729987, Evan
+          Nemerson]
+
+	* Clarified some documentation. [Tristan Van Berkom, Dan
+          Winship]
+
+	* Fixed Windows build, twice [#738003, Kouhei Sutou, and
+          #738551, Kalev Lember].
+
+	* Updated translations:
+	  Bengali (Indian), Chinese (Traditional), Italian, Latvian,
+	  Serbian, Telugu, Ukranian
+
 Changes in libsoup from 2.47.92 to 2.48.0:
 
 	* Updated translations:
