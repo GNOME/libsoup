@@ -165,6 +165,8 @@ static void
 free_handler (SoupServerHandler *hand)
 {
 	g_free (hand->path);
+	if (hand->destroy)
+		hand->destroy (hand->user_data);
 	g_slice_free (SoupServerHandler, hand);
 }
 
@@ -2363,13 +2365,6 @@ soup_server_add_handler (SoupServer            *server,
 		priv->default_handler = hand;
 }
 
-static void
-unregister_handler (SoupServerHandler *handler)
-{
-	if (handler->destroy)
-		handler->destroy (handler->user_data);
-}
-
 /**
  * soup_server_remove_handler:
  * @server: a #SoupServer
@@ -2381,25 +2376,15 @@ void
 soup_server_remove_handler (SoupServer *server, const char *path)
 {
 	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
 	if (!path || !*path || !strcmp (path, "/")) {
-		if (priv->default_handler) {
-			unregister_handler (priv->default_handler);
-			free_handler (priv->default_handler);
-			priv->default_handler = NULL;
-		}
+		g_clear_pointer (&priv->default_handler, free_handler);
 		return;
-	}
-
-	hand = soup_path_map_lookup (priv->handlers, path);
-	if (hand && !strcmp (path, hand->path)) {
-		unregister_handler (hand);
+	} else
 		soup_path_map_remove (priv->handlers, path);
-	}
 }
 
 /**
