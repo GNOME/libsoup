@@ -360,6 +360,15 @@ io_write (SoupMessage *msg, gboolean blocking,
 
 	switch (io->write_state) {
 	case SOUP_MESSAGE_IO_STATE_HEADERS:
+		if (io->mode == SOUP_MESSAGE_IO_SERVER &&
+		    io->read_state == SOUP_MESSAGE_IO_STATE_BLOCKING &&
+		    msg->status_code == 0) {
+			/* Client requested "Expect: 100-continue", and
+			 * server did not set an error.
+			 */
+			soup_message_set_status (msg, SOUP_STATUS_CONTINUE);
+		}
+
 		if (!io->write_buf->len) {
 			io->get_headers_cb (msg, io->write_buf,
 					    &io->write_encoding,
@@ -606,11 +615,11 @@ io_read (SoupMessage *msg, gboolean blocking,
 			break;
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&
 			   soup_message_headers_get_expectations (msg->request_headers) & SOUP_EXPECTATION_CONTINUE) {
-			/* The client requested a Continue response. The
-			 * got_headers handler may change this to something
-			 * else though.
+			/* We must return a status code and response
+			 * headers to the client; either an error to
+			 * be set by a got-headers handler below, or
+			 * else %SOUP_STATUS_CONTINUE otherwise.
 			 */
-			soup_message_set_status (msg, SOUP_STATUS_CONTINUE);
 			io->write_state = SOUP_MESSAGE_IO_STATE_HEADERS;
 			io->read_state = SOUP_MESSAGE_IO_STATE_BLOCKING;
 		} else {

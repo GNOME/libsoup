@@ -58,6 +58,17 @@ server_add_handler (ServerData         *sd,
 }
 
 static void
+server_add_early_handler (ServerData         *sd,
+			  const char         *path,
+			  SoupServerCallback  callback,
+			  gpointer            user_data,
+			  GDestroyNotify      destroy)
+{
+	soup_server_add_early_handler (sd->server, path, callback, user_data, destroy);
+	sd->handlers = g_slist_prepend (sd->handlers, g_strdup (path));
+}
+
+static void
 server_setup (ServerData *sd, gconstpointer test_data)
 {
 	server_setup_nohandler (sd, test_data);
@@ -854,6 +865,194 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 	soup_test_session_abort_unref (session);
 }
 
+static void
+stream_got_chunk (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
+{
+	GChecksum *checksum = user_data;
+
+	g_checksum_update (checksum, (const guchar *)chunk->data, chunk->length);
+}
+
+static void
+stream_got_body (SoupMessage *msg, gpointer user_data)
+{
+	GChecksum *checksum = user_data;
+	const char *md5 = g_checksum_get_string (checksum);
+
+	soup_message_set_status (msg, SOUP_STATUS_OK);
+	soup_message_set_response (msg, "text/plain", SOUP_MEMORY_COPY,
+				   md5, strlen (md5));
+	g_checksum_free (checksum);
+}
+
+static void
+early_stream_callback (SoupServer *server, SoupMessage *msg,
+		       const char *path, GHashTable *query,
+		       SoupClientContext *context, gpointer data)
+{
+	GChecksum *checksum;
+
+	if (msg->method != SOUP_METHOD_POST) {
+		soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+		return;
+	}
+
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_signal_connect (msg, "got-chunk",
+			  G_CALLBACK (stream_got_chunk), checksum);
+	g_signal_connect (msg, "got-body",
+			  G_CALLBACK (stream_got_body), checksum);
+
+	soup_message_body_set_accumulate (msg->request_body, TRUE);
+}
+
+static void
+do_early_stream_test (ServerData *sd, gconstpointer test_data)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupBuffer *index;
+	char *md5;
+
+	server_add_early_handler (sd, NULL, early_stream_callback, NULL, NULL);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	msg = soup_message_new_from_uri ("POST", sd->base_uri);
+
+	index = soup_test_get_index ();
+	soup_message_body_append (msg->request_body, SOUP_MEMORY_COPY,
+				  index->data, index->length);
+	soup_session_send_message (session, msg);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+
+	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
+					   (guchar *) index->data, index->length);
+	g_assert_cmpstr (md5, ==, msg->response_body->data);
+	g_free (md5);
+
+	g_object_unref (msg);
+	soup_test_session_abort_unref (session);
+}
+
+static void
+early_respond_callback (SoupServer *server, SoupMessage *msg,
+			const char *path, GHashTable *query,
+			SoupClientContext *context, gpointer data)
+{
+	if (!strcmp (path, "/"))
+		soup_message_set_status (msg, SOUP_STATUS_FORBIDDEN);
+}
+
+static void
+do_early_respond_test (ServerData *sd, gconstpointer test_data)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri2;
+
+	server_add_early_handler (sd, NULL, early_respond_callback, NULL, NULL);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	/* The early handler will intercept, and the normal handler will be skipped */
+	msg = soup_message_new_from_uri ("GET", sd->base_uri);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_FORBIDDEN);
+	g_assert_cmpint (msg->response_body->length, ==, 0);
+	g_object_unref (msg);
+
+	/* The early handler will ignore this one */
+	uri2 = soup_uri_new_with_base (sd->base_uri, "/subdir");
+	msg = soup_message_new_from_uri ("GET", uri2);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+	g_assert_cmpstr (msg->response_body->data, ==, "index");
+	g_object_unref (msg);
+	soup_uri_free (uri2);
+
+	soup_test_session_abort_unref (session);
+}
+
+static void
+early_multi_callback (SoupServer *server, SoupMessage *msg,
+		      const char *path, GHashTable *query,
+		      SoupClientContext *context, gpointer data)
+{
+	soup_message_headers_append (msg->response_headers, "X-Early", "yes");
+}
+
+static void
+do_early_multi_test (ServerData *sd, gconstpointer test_data)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	SoupURI *uri;
+	struct {
+		const char *path;
+		gboolean expect_normal, expect_early;
+	} multi_tests[] = {
+		{ "/", FALSE, FALSE },
+		{ "/normal", TRUE, FALSE },
+		{ "/normal/subdir", TRUE, FALSE },
+		{ "/normal/early", FALSE, TRUE },
+		{ "/normal/early/subdir", FALSE, TRUE },
+		{ "/early", FALSE, TRUE },
+		{ "/early/subdir", FALSE, TRUE },
+		{ "/early/normal", TRUE, FALSE },
+		{ "/early/normal/subdir", TRUE, FALSE },
+		{ "/both", TRUE, TRUE },
+		{ "/both/subdir", TRUE, TRUE }
+	};
+	int i;
+	const char *header;
+
+	server_add_handler (sd, "/normal", server_callback, NULL, NULL);
+	server_add_early_handler (sd, "/normal/early", early_multi_callback, NULL, NULL);
+	server_add_early_handler (sd, "/early", early_multi_callback, NULL, NULL);
+	server_add_handler (sd, "/early/normal", server_callback, NULL, NULL);
+	server_add_handler (sd, "/both", server_callback, NULL, NULL);
+	server_add_early_handler (sd, "/both", early_multi_callback, NULL, NULL);
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
+
+	for (i = 0; i < G_N_ELEMENTS (multi_tests); i++) {
+		uri = soup_uri_new_with_base (sd->base_uri, multi_tests[i].path);
+		msg = soup_message_new_from_uri ("GET", uri);
+		soup_uri_free (uri);
+
+		soup_session_send_message (session, msg);
+
+		/* The normal handler sets status to OK. The early handler doesn't
+		 * touch status, meaning that if it runs and the normal handler doesn't,
+		 * then SoupServer will set the status to INTERNAL_SERVER_ERROR
+		 * (since a handler ran, but didn't set the status). If neither handler
+		 * runs then SoupServer will set the status to NOT_FOUND.
+		 */
+		if (multi_tests[i].expect_normal)
+			soup_test_assert_message_status (msg, SOUP_STATUS_OK);
+		else if (multi_tests[i].expect_early)
+			soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+		else
+			soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
+
+		header = soup_message_headers_get_one (msg->response_headers, "X-Early");
+		if (multi_tests[i].expect_early)
+			g_assert_cmpstr (header, ==, "yes");
+		else
+			g_assert_cmpstr (header, ==, NULL);
+		if (multi_tests[i].expect_normal)
+			g_assert_cmpstr (msg->response_body->data, ==, "index");
+		else
+			g_assert_cmpint (msg->response_body->length, ==, 0);
+
+		g_object_unref (msg);
+	}
+
+	soup_test_session_abort_unref (session);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -884,6 +1083,12 @@ main (int argc, char **argv)
 		    server_setup_nohandler, do_fail_500_test, server_teardown);
 	g_test_add ("/server/fail/500-pause", ServerData, GINT_TO_POINTER (TRUE),
 		    server_setup_nohandler, do_fail_500_test, server_teardown);
+	g_test_add ("/server/early/stream", ServerData, NULL,
+		    server_setup_nohandler, do_early_stream_test, server_teardown);
+	g_test_add ("/server/early/respond", ServerData, NULL,
+		    server_setup, do_early_respond_test, server_teardown);
+	g_test_add ("/server/early/multi", ServerData, NULL,
+		    server_setup_nohandler, do_early_multi_test, server_teardown);
 
 	ret = g_test_run ();
 
