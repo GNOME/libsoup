@@ -231,6 +231,7 @@ soup_server_accept_iostream
 <SUBSECTION>
 SoupServerCallback
 soup_server_add_handler
+soup_server_add_early_handler
 soup_server_remove_handler
 <SUBSECTION>
 SoupClientContext
