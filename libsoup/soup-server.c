@@ -162,12 +162,12 @@ static SoupClientContext *soup_client_context_ref (SoupClientContext *client);
 static void soup_client_context_unref (SoupClientContext *client);
 
 static void
-free_handler (SoupServerHandler *hand)
+free_handler (SoupServerHandler *handler)
 {
-	g_free (hand->path);
-	if (hand->destroy)
-		hand->destroy (hand->user_data);
-	g_slice_free (SoupServerHandler, hand);
+	g_free (handler->path);
+	if (handler->destroy)
+		handler->destroy (handler->user_data);
+	g_slice_free (SoupServerHandler, handler);
 }
 
 static void
@@ -1155,15 +1155,15 @@ static SoupServerHandler *
 soup_server_get_handler (SoupServer *server, const char *path)
 {
 	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
+	SoupServerHandler *handler;
 
 	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
 	if (path) {
-		hand = soup_path_map_lookup (priv->handlers, path);
-		if (hand)
-			return hand;
+		handler = soup_path_map_lookup (priv->handlers, path);
+		if (handler)
+			return handler;
 		if (!strcmp (path, "*"))
 			return NULL;
 	}
@@ -1251,7 +1251,7 @@ static void
 call_handler (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
-	SoupServerHandler *hand;
+	SoupServerHandler *handler;
 	SoupURI *uri;
 
 	g_signal_emit (server, signals[REQUEST_READ], 0, msg, client);
@@ -1260,13 +1260,13 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 		return;
 
 	uri = soup_message_get_uri (msg);
-	hand = soup_server_get_handler (server, uri->path);
-	if (!hand) {
+	handler = soup_server_get_handler (server, uri->path);
+	if (!handler) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
 	}
 
-	if (hand->callback) {
+	if (handler->callback) {
 		GHashTable *form_data_set;
 
 		if (uri->query)
@@ -1275,9 +1275,9 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 			form_data_set = NULL;
 
 		/* Call method handler */
-		(*hand->callback) (server, msg,
-				   uri->path, form_data_set,
-				   client, hand->user_data);
+		(*handler->callback) (server, msg,
+				      uri->path, form_data_set,
+				      client, handler->user_data);
 
 		if (form_data_set)
 			g_hash_table_unref (form_data_set);
@@ -2339,7 +2339,7 @@ soup_server_add_handler (SoupServer            *server,
 			 GDestroyNotify         destroy)
 {
 	SoupServerPrivate *priv;
-	SoupServerHandler *hand;
+	SoupServerHandler *handler;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	g_return_if_fail (callback != NULL);
@@ -2352,17 +2352,17 @@ soup_server_add_handler (SoupServer            *server,
 	if (path && (!*path || !strcmp (path, "/")))
 		path = NULL;
 
-	hand = g_slice_new0 (SoupServerHandler);
-	hand->path       = g_strdup (path);
-	hand->callback   = callback;
-	hand->destroy    = destroy;
-	hand->user_data  = user_data;
+	handler = g_slice_new0 (SoupServerHandler);
+	handler->path       = g_strdup (path);
+	handler->callback   = callback;
+	handler->destroy    = destroy;
+	handler->user_data  = user_data;
 
 	soup_server_remove_handler (server, path);
 	if (path)
-		soup_path_map_add (priv->handlers, path, hand);
+		soup_path_map_add (priv->handlers, path, handler);
 	else
-		priv->default_handler = hand;
+		priv->default_handler = handler;
 }
 
 /**
