@@ -3976,14 +3976,13 @@ send_async_maybe_complete (SoupMessageQueueItem *item,
 
 static void try_run_until_read (SoupMessageQueueItem *item);
 
-static gboolean
+static void
 read_ready_cb (SoupMessage *msg, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
 	g_clear_pointer (&item->io_source, g_source_unref);
 	try_run_until_read (item);
-	return FALSE;
 }
 
 static void
@@ -4018,8 +4017,8 @@ try_run_until_read (SoupMessageQueueItem *item)
 	}
 
 	g_clear_error (&error);
-	item->io_source = soup_message_io_get_source (item->msg, item->cancellable,
-						      read_ready_cb, item);
+	item->io_source = soup_message_io_get_oneshot_source (item->msg, item->cancellable,
+							      read_ready_cb, item);
 	g_source_attach (item->io_source, soup_session_get_async_context (item->session));
 }
 

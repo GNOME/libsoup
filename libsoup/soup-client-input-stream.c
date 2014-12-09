@@ -136,18 +136,8 @@ soup_client_input_stream_close_fn (GInputStream  *stream,
 	return success;
 }
 
-static gboolean
-idle_finish_close (gpointer user_data)
-{
-	GTask *task = user_data;
-
-	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
-	return FALSE;
-}
-
-static gboolean
-close_async_ready (SoupMessage *msg, gpointer user_data)
+static void
+try_close_async (SoupMessage *msg, gpointer user_data)
 {
 	GTask *task = user_data;
 	SoupClientInputStream *cistream = g_task_get_source_object (task);
@@ -157,25 +147,23 @@ close_async_ready (SoupMessage *msg, gpointer user_data)
 					       g_task_get_cancellable (task),
 					       &error) &&
 	    g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
+		GSource *source;
+
 		g_error_free (error);
-		return TRUE;
+		source = soup_message_io_get_oneshot_source (msg,
+							     g_task_get_cancellable (task),
+							     NULL, NULL);
+		g_task_attach_source (task, source, (GSourceFunc) try_close_async);
+		g_source_unref (source);
 	}
 
-	soup_message_io_finished (cistream->priv->msg);
+	soup_message_io_finished (msg);
 
-	if (error) {
+	if (error)
 		g_task_return_error (task, error);
-		g_object_unref (task);
-		return FALSE;
-	}
-
-	/* Due to a historical accident, SoupSessionAsync relies on us
-	 * waiting one extra cycle after run_until_finish() returns.
-	 * Ugh. FIXME later when it's easier to do.
-	 */
-	soup_add_idle (g_main_context_get_thread_default (),
-		       idle_finish_close, task);
-	return FALSE;
+	else
+		g_task_return_boolean (task, TRUE);
+	g_object_unref (task);
 }
 
 static void
@@ -187,18 +175,10 @@ soup_client_input_stream_close_async (GInputStream        *stream,
 {
 	SoupClientInputStream *cistream = SOUP_CLIENT_INPUT_STREAM (stream);
 	GTask *task;
-	GSource *source;
 
 	task = g_task_new (stream, cancellable, callback, user_data);
 	g_task_set_priority (task, priority);
-
-	if (close_async_ready (cistream->priv->msg, task) == G_SOURCE_CONTINUE) {
-		source = soup_message_io_get_source (cistream->priv->msg,
-						     cancellable, NULL, NULL);
-
-		g_task_attach_source (task, source, (GSourceFunc) close_async_ready);
-		g_source_unref (source);
-	}
+	try_close_async (cistream->priv->msg, task);
 }
 
 static gboolean

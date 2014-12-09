@@ -781,7 +781,8 @@ message_source_dispatch (GSource     *source,
 	SoupMessageSourceFunc func = (SoupMessageSourceFunc)callback;
 	SoupMessageSource *message_source = (SoupMessageSource *)source;
 
-	return (*func) (message_source->msg, user_data);
+	(*func) (message_source->msg, user_data);
+	return G_SOURCE_REMOVE;
 }
 
 static void
@@ -825,9 +826,13 @@ static GSourceFuncs message_source_funcs =
 	(GSourceDummyMarshal)g_cclosure_marshal_generic,
 };
 
+/* The source returned by this function is only usable in the current
+ * state; after it fires, you need a new one if you want to wait
+ * again.
+ */
 GSource *
-soup_message_io_get_source (SoupMessage *msg, GCancellable *cancellable,
-			    SoupMessageSourceFunc callback, gpointer user_data)
+soup_message_io_get_oneshot_source (SoupMessage *msg, GCancellable *cancellable,
+				    SoupMessageSourceFunc callback, gpointer user_data)
 {
 	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
 	SoupMessageIOData *io = priv->io_data;
@@ -966,11 +971,10 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 	return done;
 }
 
-static gboolean
+static void
 io_run_ready (SoupMessage *msg, gpointer user_data)
 {
 	io_run (msg, FALSE);
-	return FALSE;
 }
 
 static void
@@ -997,7 +1001,7 @@ io_run (SoupMessage *msg, gboolean blocking)
 		soup_message_io_finished (msg);
 	} else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK)) {
 		g_clear_error (&error);
-		io->io_source = soup_message_io_get_source (msg, NULL, io_run_ready, msg);
+		io->io_source = soup_message_io_get_oneshot_source (msg, NULL, io_run_ready, msg);
 		g_source_attach (io->io_source, io->async_context);
 	} else if (error && priv->io_data == io) {
 		if (g_error_matches (error, SOUP_HTTP_ERROR, SOUP_STATUS_TRY_AGAIN))
