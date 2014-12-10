@@ -302,8 +302,8 @@ if OS_LINUX
 check-local:
 	@echo Checking libsoup-2.4.so symbols
 	@nm $(builddir)/.libs/libsoup-2.4.so | \
-		grep "^[[:xdigit:]]\+ [BTR] " | \
-		sed "s/^[[:xdigit:]]\+ [BTR] //" | \
+		grep "^[[:xdigit:]]\+ [BGTRS] " | \
+		sed "s/^[[:xdigit:]]\+ [BGTRS] //" | \
 		env LANG=C sort -u | \
 		diff -U0 $(srcdir)/libsoup-2.4.sym - >&2
 endif
