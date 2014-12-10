@@ -48,6 +48,11 @@ typedef struct {
 
 void             soup_message_cleanup_response (SoupMessage      *msg);
 
+typedef enum {
+	SOUP_MESSAGE_IO_COMPLETE,
+	SOUP_MESSAGE_IO_INTERRUPTED,
+	SOUP_MESSAGE_IO_STOLEN
+} SoupMessageIOCompletion;
 
 typedef void     (*SoupMessageGetHeadersFn)  (SoupMessage      *msg,
 					      GString          *headers,
@@ -60,7 +65,7 @@ typedef guint    (*SoupMessageParseHeadersFn)(SoupMessage      *msg,
 					      gpointer          user_data,
 					      GError          **error);
 typedef void     (*SoupMessageCompletionFn)  (SoupMessage      *msg,
-					      gboolean          io_complete,
+					      SoupMessageIOCompletion completion,
 					      gpointer          user_data);
 
 
@@ -89,7 +94,6 @@ void soup_message_io_server    (SoupMessage               *msg,
 				gpointer                   headers_data,
 				SoupMessageCompletionFn    completion_cb,
 				gpointer                   user_data);
-void soup_message_io_cleanup   (SoupMessage               *msg);
 
 /* Auth handling */
 void           soup_message_set_auth       (SoupMessage *msg,
@@ -100,11 +104,14 @@ void           soup_message_set_proxy_auth (SoupMessage *msg,
 SoupAuth      *soup_message_get_proxy_auth (SoupMessage *msg);
 
 /* I/O */
-void                soup_message_io_stop        (SoupMessage          *msg);
-void                soup_message_io_finished    (SoupMessage          *msg);
-void                soup_message_io_pause       (SoupMessage          *msg);
-void                soup_message_io_unpause     (SoupMessage          *msg);
-gboolean            soup_message_io_in_progress (SoupMessage          *msg);
+void       soup_message_io_stop        (SoupMessage *msg);
+void       soup_message_io_finished    (SoupMessage *msg);
+void       soup_message_io_cleanup     (SoupMessage *msg);
+void       soup_message_io_pause       (SoupMessage *msg);
+void       soup_message_io_unpause     (SoupMessage *msg);
+gboolean   soup_message_io_in_progress (SoupMessage *msg);
+GIOStream *soup_message_io_steal       (SoupMessage *msg);
+
 
 gboolean soup_message_io_run_until_write  (SoupMessage   *msg,
 					   gboolean       blocking,

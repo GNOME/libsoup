@@ -156,7 +156,7 @@ soup_message_io_finished (SoupMessage *msg)
 	SoupMessageIOData *io = priv->io_data;
 	SoupMessageCompletionFn completion_cb;
 	gpointer completion_data;
-	gboolean complete;
+	SoupMessageIOCompletion completion;
 
 	if (!io)
 		return;
@@ -164,14 +164,42 @@ soup_message_io_finished (SoupMessage *msg)
 	completion_cb = io->completion_cb;
 	completion_data = io->completion_data;
 
-	complete = (io->read_state >= SOUP_MESSAGE_IO_STATE_FINISHING &&
-		    io->write_state >= SOUP_MESSAGE_IO_STATE_FINISHING);
+	if ((io->read_state >= SOUP_MESSAGE_IO_STATE_FINISHING &&
+	     io->write_state >= SOUP_MESSAGE_IO_STATE_FINISHING))
+		completion = SOUP_MESSAGE_IO_COMPLETE;
+	else
+		completion = SOUP_MESSAGE_IO_INTERRUPTED;
 
 	g_object_ref (msg);
 	soup_message_io_cleanup (msg);
 	if (completion_cb)
-		completion_cb (msg, complete, completion_data);
+		completion_cb (msg, completion, completion_data);
 	g_object_unref (msg);
+}
+
+GIOStream *
+soup_message_io_steal (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	SoupMessageIOData *io = priv->io_data;
+	SoupMessageCompletionFn completion_cb;
+	gpointer completion_data;
+	GIOStream *iostream;
+
+	if (!io || !io->iostream)
+		return NULL;
+
+	iostream = g_object_ref (io->iostream);
+	completion_cb = io->completion_cb;
+	completion_data = io->completion_data;
+
+	g_object_ref (msg);
+	soup_message_io_cleanup (msg);
+	if (completion_cb)
+		completion_cb (msg, SOUP_MESSAGE_IO_STOLEN, completion_data);
+	g_object_unref (msg);
+
+	return iostream;
 }
 
 static gboolean
@@ -407,6 +435,13 @@ io_write (SoupMessage *msg, gboolean blocking,
 			}
 
 			soup_message_wrote_informational (msg);
+
+			/* If this was "101 Switching Protocols", then
+			 * the server probably stole the connection...
+			 */
+			if (io != priv->io_data)
+				return FALSE;
+
 			soup_message_cleanup_response (msg);
 			break;
 		}
@@ -611,6 +646,13 @@ io_read (SoupMessage *msg, gboolean blocking,
 			 * bail out here rather than parsing encoding, etc
 			 */
 			soup_message_got_informational (msg);
+
+			/* If this was "101 Switching Protocols", then
+			 * the session may have stolen the connection...
+			 */
+			if (io != priv->io_data)
+				return FALSE;
+
 			soup_message_cleanup_response (msg);
 			break;
 		} else if (io->mode == SOUP_MESSAGE_IO_SERVER &&

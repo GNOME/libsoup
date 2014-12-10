@@ -1570,7 +1570,7 @@ soup_session_set_item_status (SoupSession          *session,
 
 
 static void
-message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_data)
+message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer user_data)
 {
 	SoupMessageQueueItem *item = user_data;
 
@@ -1676,7 +1676,8 @@ tunnel_handshake_complete (GObject      *object,
 }
 
 static void
-tunnel_message_completed (SoupMessage *msg, gboolean io_complete, gpointer user_data)
+tunnel_message_completed (SoupMessage *msg, SoupMessageIOCompletion completion,
+			  gpointer user_data)
 {
 	SoupMessageQueueItem *tunnel_item = user_data;
 	SoupMessageQueueItem *item = tunnel_item->related;
