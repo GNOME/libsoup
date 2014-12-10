@@ -428,6 +428,7 @@ soup_session_send
 soup_session_send_async
 soup_session_send_finish
 soup_session_send_message
+soup_session_steal_connection
 soup_session_sync_get_type
 soup_session_sync_new
 soup_session_sync_new_with_options

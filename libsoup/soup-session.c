@@ -1577,6 +1577,12 @@ message_completed (SoupMessage *msg, SoupMessageIOCompletion completion, gpointe
 	if (item->async)
 		soup_session_kick_queue (item->session);
 
+	if (completion == SOUP_MESSAGE_IO_STOLEN) {
+		item->state = SOUP_MESSAGE_FINISHED;
+		soup_session_unqueue_item (item->session, item);
+		return;
+	}
+
 	if (item->state != SOUP_MESSAGE_RESTARTING) {
 		item->state = SOUP_MESSAGE_FINISHING;
 
@@ -4654,4 +4660,66 @@ soup_request_error_quark (void)
 	if (!error)
 		error = g_quark_from_static_string ("soup_request_error_quark");
 	return error;
+}
+
+/**
+ * soup_session_steal_connection:
+ * @session: a #SoupSession
+ * @msg: the message whose connection is to be stolen
+ *
+ * "Steals" the HTTP connection associated with @msg from @session.
+ * This happens immediately, regardless of the current state of the
+ * connection, and @msg's callback will not be called. You can steal
+ * the connection from a #SoupMessage signal handler if you need to
+ * wait for part or all of the response to be received first.
+ *
+ * Calling this function may cause @msg to be freed if you are not
+ * holding any other reference to it.
+ *
+ * Return value: (transfer full): the #GIOStream formerly associated
+ *   with @msg (or %NULL if @msg was no longer associated with a
+ *   connection). No guarantees are made about what kind of #GIOStream
+ *   is returned.
+ *
+ * Since: 2.50
+ **/
+GIOStream *
+soup_session_steal_connection (SoupSession *session,
+			       SoupMessage *msg)
+{
+	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
+	SoupMessageQueueItem *item;
+	SoupConnection *conn;
+	SoupSocket *sock;
+	SoupSessionHost *host;
+	GIOStream *stream;
+
+	item = soup_message_queue_lookup (priv->queue, msg);
+	if (!item)
+		return NULL;
+	if (!item->conn ||
+	    soup_connection_get_state (item->conn) != SOUP_CONNECTION_IN_USE) {
+		soup_message_queue_item_unref (item);
+		return NULL;
+	}
+
+	conn = g_object_ref (item->conn);
+	soup_session_set_item_connection (session, item, NULL);
+
+	g_mutex_lock (&priv->conn_lock);
+	host = get_host_for_message (session, item->msg);
+	g_hash_table_remove (priv->conns, conn);
+	drop_connection (session, host, conn);
+	g_mutex_unlock (&priv->conn_lock);
+
+	sock = soup_connection_get_socket (conn);
+	g_object_set (G_OBJECT (sock),
+		      SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
+		      NULL);
+	g_object_unref (conn);
+
+	stream = soup_message_io_steal (item->msg);
+
+	soup_message_queue_item_unref (item);
+	return stream;
 }
