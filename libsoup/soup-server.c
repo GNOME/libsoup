@@ -1159,23 +1159,26 @@ soup_client_context_unref (SoupClientContext *client)
 }
 
 static void
-request_finished (SoupMessage *msg, gboolean io_complete, gpointer user_data)
+request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer user_data)
 {
 	SoupClientContext *client = user_data;
 	SoupServer *server = client->server;
 	SoupSocket *sock = client->sock;
+	gboolean failed;
 
 	soup_message_finished (msg);
 
+	failed = (completion == SOUP_MESSAGE_IO_INTERRUPTED ||
+		  msg->status_code == SOUP_STATUS_IO_ERROR);
 	g_signal_emit (server,
-		       (!io_complete || msg->status_code == SOUP_STATUS_IO_ERROR) ?
-		       signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
+		       failed ? signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
 		       0, msg, client);
 
-	soup_client_context_cleanup (client);
-	if (io_complete && soup_socket_is_connected (sock) &&
+	if (completion == SOUP_MESSAGE_IO_COMPLETE &&
+	    soup_socket_is_connected (sock) &&
 	    soup_message_is_keepalive (msg)) {
 		/* Start a new request */
+		soup_client_context_cleanup (client);
 		start_request (server, client);
 	} else {
 		soup_socket_disconnect (sock);
@@ -2600,4 +2603,3 @@ soup_server_unpause_message (SoupServer *server,
 
 	soup_message_io_unpause (msg);
 }
-
