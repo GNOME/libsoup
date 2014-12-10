@@ -206,6 +206,10 @@ typedef enum {
 	SOUP_REQUEST_ERROR_ENCODING
 } SoupRequestError;
 
+SOUP_AVAILABLE_IN_2_50
+GIOStream *soup_session_steal_connection (SoupSession *session,
+					  SoupMessage *msg);
+
 G_END_DECLS
 
 #endif /* SOUP_SESSION_H */
