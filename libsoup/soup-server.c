@@ -123,7 +123,6 @@ typedef struct {
 
 	gboolean           raw_paths;
 	SoupPathMap       *handlers;
-	SoupServerHandler *default_handler;
 	
 	GSList            *auth_domains;
 
@@ -234,7 +233,6 @@ soup_server_finalize (GObject *object)
 		soup_client_context_unref (client);
 	}
 
-	g_clear_pointer (&priv->default_handler, free_handler);
 	soup_path_map_free (priv->handlers);
 
 	g_slist_free_full (priv->auth_domains, g_object_unref);
@@ -1151,24 +1149,11 @@ request_finished (SoupMessage *msg, gboolean io_complete, gpointer user_data)
 	g_object_unref (sock);
 }
 
-static SoupServerHandler *
-soup_server_get_handler (SoupServer *server, const char *path)
-{
-	SoupServerPrivate *priv;
-	SoupServerHandler *handler;
-
-	g_return_val_if_fail (SOUP_IS_SERVER (server), NULL);
-	priv = SOUP_SERVER_GET_PRIVATE (server);
-
-	if (path) {
-		handler = soup_path_map_lookup (priv->handlers, path);
-		if (handler)
-			return handler;
-		if (!strcmp (path, "*"))
-			return NULL;
-	}
-	return priv->default_handler;
-}
+/* "" was never documented as meaning the same thing as "/", but it
+ * effectively was. We have to special case it now or otherwise it
+ * would match "*" too.
+ */
+#define NORMALIZED_PATH(path) ((path) && *(path) ? (path) : "/")
 
 static void
 got_headers (SoupMessage *msg, SoupClientContext *client)
@@ -1251,6 +1236,7 @@ static void
 call_handler (SoupMessage *msg, SoupClientContext *client)
 {
 	SoupServer *server = client->server;
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupServerHandler *handler;
 	SoupURI *uri;
 
@@ -1260,7 +1246,7 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 		return;
 
 	uri = soup_message_get_uri (msg);
-	handler = soup_server_get_handler (server, uri->path);
+	handler = soup_path_map_lookup (priv->handlers, NORMALIZED_PATH (uri->path));
 	if (!handler) {
 		soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
 		return;
@@ -2345,12 +2331,7 @@ soup_server_add_handler (SoupServer            *server,
 	g_return_if_fail (callback != NULL);
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	/* "" was never documented as meaning the same this as "/",
-	 * but it effectively was. We have to special case it now or
-	 * otherwise it would match "*" too.
-	 */
-	if (path && (!*path || !strcmp (path, "/")))
-		path = NULL;
+	path = NORMALIZED_PATH (path);
 
 	handler = g_slice_new0 (SoupServerHandler);
 	handler->path       = g_strdup (path);
@@ -2358,11 +2339,7 @@ soup_server_add_handler (SoupServer            *server,
 	handler->destroy    = destroy;
 	handler->user_data  = user_data;
 
-	soup_server_remove_handler (server, path);
-	if (path)
-		soup_path_map_add (priv->handlers, path, handler);
-	else
-		priv->default_handler = handler;
+	soup_path_map_add (priv->handlers, path, handler);
 }
 
 /**
@@ -2380,11 +2357,7 @@ soup_server_remove_handler (SoupServer *server, const char *path)
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
 
-	if (!path || !*path || !strcmp (path, "/")) {
-		g_clear_pointer (&priv->default_handler, free_handler);
-		return;
-	} else
-		soup_path_map_remove (priv->handlers, path);
+	soup_path_map_remove (priv->handlers, NORMALIZED_PATH (path));
 }
 
 /**
