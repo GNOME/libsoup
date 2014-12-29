@@ -25,13 +25,15 @@ static void        soup_ntlm_nt_hash           (const char  *password,
 static char       *soup_ntlm_request           (void);
 static gboolean    soup_ntlm_parse_challenge   (const char  *challenge,
 						char       **nonce,
-						char       **default_domain);
+						char       **default_domain,
+						gboolean    *ntlmv2_session);
 static char       *soup_ntlm_response          (const char  *nonce, 
 						const char  *user,
 						guchar       nt_hash[21],
 						guchar       lm_hash[21],
 						const char  *host, 
-						const char  *domain);
+						const char  *domain,
+						gboolean     ntlmv2_session);
 
 typedef enum {
 	SOUP_NTLM_NEW,
@@ -46,6 +48,7 @@ typedef struct {
 	SoupNTLMState state;
 	char *nonce;
 	char *response_header;
+	gboolean ntlmv2_session;
 } SoupNTLMConnectionState;
 
 typedef enum {
@@ -327,7 +330,8 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 		return TRUE;
 
 	if (!soup_ntlm_parse_challenge (auth_header + 5, &conn->nonce,
-					priv->domain ? NULL : &priv->domain)) {
+					priv->domain ? NULL : &priv->domain,
+					&conn->ntlmv2_session)) {
 		conn->state = SOUP_NTLM_FAILED;
 		return FALSE;
 	}
@@ -502,7 +506,8 @@ soup_auth_ntlm_get_connection_authorization (SoupConnectionAuth *auth,
 						     priv->nt_hash,
 						     priv->lm_hash,
 						     NULL,
-						     priv->domain);
+						     priv->domain,
+						     conn->ntlmv2_session);
 		}
 		g_clear_pointer (&conn->nonce, g_free);
 		conn->state = SOUP_NTLM_SENT_RESPONSE;
@@ -631,8 +636,12 @@ typedef struct {
 #define NTLM_CHALLENGE_NONCE_LENGTH          8
 #define NTLM_CHALLENGE_DOMAIN_STRING_OFFSET 12
 
+#define NTLM_CHALLENGE_FLAGS_OFFSET         20
+#define NTLM_FLAGS_NEGOTIATE_NTLMV2 0x00080000
+
 #define NTLM_RESPONSE_HEADER "NTLMSSP\x00\x03\x00\x00\x00"
 #define NTLM_RESPONSE_FLAGS 0x8201
+#define NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY 0x00080000
 
 typedef struct {
         guchar     header[12];
@@ -658,17 +667,19 @@ ntlm_set_string (NTLMString *string, int *offset, int len)
 static char *
 soup_ntlm_request (void)
 {
-	return g_strdup ("NTLM TlRMTVNTUAABAAAABYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAwAAAA");
+	return g_strdup ("NTLM TlRMTVNTUAABAAAABYIIAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAwAAAA");
 }
 
 static gboolean
 soup_ntlm_parse_challenge (const char *challenge,
 			   char      **nonce,
-			   char      **default_domain)
+			   char      **default_domain,
+			   gboolean   *ntlmv2_session)
 {
 	gsize clen;
 	NTLMString domain;
 	guchar *chall;
+	guint32 flags;
 
 	chall = g_base64_decode (challenge, &clen);
 	if (clen < NTLM_CHALLENGE_DOMAIN_STRING_OFFSET ||
@@ -676,6 +687,10 @@ soup_ntlm_parse_challenge (const char *challenge,
 		g_free (chall);
 		return FALSE;
 	}
+
+	memcpy (&flags, chall + NTLM_CHALLENGE_FLAGS_OFFSET, sizeof(flags));
+	flags = GUINT_FROM_LE (flags);
+	*ntlmv2_session = (flags & NTLM_FLAGS_NEGOTIATE_NTLMV2) ? TRUE : FALSE;
 
 	if (default_domain) {
 		memcpy (&domain, chall + NTLM_CHALLENGE_DOMAIN_STRING_OFFSET, sizeof (domain));
@@ -701,13 +716,48 @@ soup_ntlm_parse_challenge (const char *challenge,
 	return TRUE;
 }
 
+static void
+calc_ntlm2_session_response (const char *nonce,
+			     guchar      nt_hash[21],
+			     guchar      lm_hash[21],
+			     guchar     *lm_resp,
+			     gsize       lm_resp_sz,
+			     guchar     *nt_resp)
+{
+	guint32 client_nonce[2];
+	guchar ntlmv2_hash[16];
+	GChecksum *ntlmv2_cksum;
+	gsize ntlmv2_hash_sz = sizeof (ntlmv2_hash);
+
+	/* FIXME: if GLib ever gets a more secure random number
+	 * generator, use it here
+	 */
+	client_nonce[0] = g_random_int();
+	client_nonce[1] = g_random_int();
+
+	ntlmv2_cksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (ntlmv2_cksum, (const guchar *) nonce, 8);
+	g_checksum_update (ntlmv2_cksum, (const guchar *) client_nonce, sizeof (client_nonce));
+	g_checksum_get_digest (ntlmv2_cksum, ntlmv2_hash, &ntlmv2_hash_sz);
+	g_checksum_free (ntlmv2_cksum);
+
+	/* Send the padded client nonce as a fake lm_resp */
+	memset (lm_resp, 0, lm_resp_sz);
+	memcpy (lm_resp, client_nonce, sizeof (client_nonce));
+
+	/* Compute nt_hash as usual but with a new nonce */
+	calc_response (nt_hash, ntlmv2_hash, nt_resp);
+}
+
+
 static char *
 soup_ntlm_response (const char *nonce, 
 		    const char *user,
 		    guchar      nt_hash[21],
 		    guchar      lm_hash[21],
 		    const char *host, 
-		    const char *domain)
+		    const char *domain,
+		    gboolean    ntlmv2_session)
 {
 	int offset;
 	gsize hlen, dlen, ulen;
@@ -717,12 +767,20 @@ soup_ntlm_response (const char *nonce,
 	char *out, *p;
 	int state, save;
 
-	calc_response (nt_hash, (guchar *)nonce, nt_resp);
-	calc_response (lm_hash, (guchar *)nonce, lm_resp);
+	if (ntlmv2_session) {
+		calc_ntlm2_session_response (nonce, nt_hash, lm_hash,
+					     lm_resp, sizeof(lm_resp), nt_resp);
+	} else {
+		/* Compute a regular response */
+		calc_response (nt_hash, (guchar *) nonce, nt_resp);
+		calc_response (lm_hash, (guchar *) nonce, lm_resp);
+	}
 
 	memset (&resp, 0, sizeof (resp));
 	memcpy (resp.header, NTLM_RESPONSE_HEADER, sizeof (resp.header));
 	resp.flags = GUINT32_TO_LE (NTLM_RESPONSE_FLAGS);
+	if (ntlmv2_session)
+		resp.flags |= GUINT32_TO_LE (NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY);
 
 	offset = sizeof (resp);
 

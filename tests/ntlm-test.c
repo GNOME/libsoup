@@ -11,8 +11,6 @@
 
 #include "test-utils.h"
 
-static SoupURI *uri;
-
 typedef enum {
 	NTLM_UNAUTHENTICATED,
 	NTLM_RECEIVED_REQUEST,
@@ -29,8 +27,16 @@ static const char *state_name[] = {
 #define NTLM_RESPONSE_START "TlRMTVNTUAADAAAA"
 
 #define NTLM_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAoEAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
+#define NTLMSSP_CHALLENGE "TlRMTVNTUAACAAAADAAMADAAAAABAokAASNFZ4mrze8AAAAAAAAAAGIAYgA8AAAARABPAE0AQQBJAE4AAgAMAEQATwBNAEEASQBOAAEADABTAEUAUgBWAEUAUgAEABQAZABvAG0AYQBpAG4ALgBjAG8AbQADACIAcwBlAHIAdgBlAHIALgBkAG8AbQBhAGkAbgAuAGMAbwBtAAAAAAA="
 
 #define NTLM_RESPONSE_USER(response) ((response)[86] == 'E' ? NTLM_AUTHENTICATED_ALICE : ((response)[86] == 'I' ? NTLM_AUTHENTICATED_BOB : NTLM_UNAUTHENTICATED))
+
+typedef struct {
+	SoupServer *server;
+	GHashTable *connections;
+	SoupURI *uri;
+	gboolean ntlmssp;
+} TestServer;
 
 static void
 clear_state (gpointer connections, GObject *ex_connection)
@@ -43,7 +49,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		 const char *path, GHashTable *query,
 		 SoupClientContext *client, gpointer data)
 {
-	GHashTable *connections = data;
+	TestServer *ts = data;
 	GSocket *socket;
 	const char *auth;
 	NTLMServerState state, required_user = 0;
@@ -71,7 +77,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		not_found = TRUE;
 
 	socket = soup_client_context_get_gsocket (client);
-	state = GPOINTER_TO_INT (g_hash_table_lookup (connections, socket));
+	state = GPOINTER_TO_INT (g_hash_table_lookup (ts->connections, socket));
 	auth = soup_message_headers_get_one (msg->request_headers,
 					     "Authorization");
 
@@ -121,7 +127,7 @@ server_callback (SoupServer *server, SoupMessage *msg,
 		if (ntlm_allowed && state == NTLM_RECEIVED_REQUEST) {
 			soup_message_headers_append (msg->response_headers,
 						     "WWW-Authenticate",
-						     "NTLM " NTLM_CHALLENGE);
+						     ts->ntlmssp ? ("NTLM " NTLMSSP_CHALLENGE) : ("NTLM " NTLM_CHALLENGE));
 			state = NTLM_SENT_CHALLENGE;
 		} else if (ntlm_allowed) {
 			soup_message_headers_append (msg->response_headers,
@@ -141,8 +147,37 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	}
 
 	debug_printf (2, " (S:%s)", state_name[state]);
-	g_hash_table_insert (connections, socket, GINT_TO_POINTER (state));
-	g_object_weak_ref (G_OBJECT (socket), clear_state, connections);
+	g_hash_table_insert (ts->connections, socket, GINT_TO_POINTER (state));
+	g_object_weak_ref (G_OBJECT (socket), clear_state, ts->connections);
+}
+
+static void
+setup_server (TestServer *ts,
+	      gconstpointer test_data)
+{
+	ts->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	ts->connections = g_hash_table_new (NULL, NULL);
+	ts->ntlmssp = FALSE;
+	soup_server_add_handler (ts->server, NULL, server_callback, ts, NULL);
+
+	ts->uri = soup_test_server_get_uri (ts->server, "http", NULL);
+}
+
+static void
+setup_ntlmssp_server (TestServer *ts,
+		      gconstpointer test_data)
+{
+	setup_server (ts, test_data);
+	ts->ntlmssp = TRUE;
+}
+
+static void
+teardown_server (TestServer *ts,
+		 gconstpointer test_data)
+{
+	soup_uri_free (ts->uri);
+	soup_test_server_quit_unref (ts->server);
+	g_hash_table_destroy (ts->connections);
 }
 
 static gboolean authenticated_ntlm = FALSE;
@@ -178,8 +213,10 @@ prompt_check (SoupMessage *msg, gpointer user_data)
 	if (header && strstr (header, "Basic "))
 		state->got_basic_prompt = TRUE;
 	if (header && strstr (header, "NTLM") &&
-	    !strstr (header, NTLM_CHALLENGE))
+	    (!strstr (header, NTLM_CHALLENGE) &&
+	     !strstr (header, NTLMSSP_CHALLENGE))) {
 		state->got_ntlm_prompt = TRUE;
+	}
 }
 
 static void
@@ -461,8 +498,16 @@ static const NtlmTest ntlm_tests[] = {
 	{ "/ntlm/fallback/basic", "alice", FALSE, FALLBACK }
 };
 
+static const NtlmTest ntlmssp_tests[] = {
+	{ "/ntlm/ssp/none",  NULL,    FALSE, BUILTIN },
+	{ "/ntlm/ssp/alice", "alice", TRUE,  BUILTIN },
+	{ "/ntlm/ssp/bob",   "bob",   TRUE,  BUILTIN },
+	{ "/ntlm/ssp/basic", "alice", FALSE, BUILTIN }
+};
+
 static void
-do_ntlm_test (gconstpointer data)
+do_ntlm_test (TestServer *ts,
+	      gconstpointer data)
 {
 	const NtlmTest *test = data;
 	gboolean use_builtin_ntlm = TRUE;
@@ -509,7 +554,7 @@ do_ntlm_test (gconstpointer data)
 		break;
 	}
 
-	do_ntlm_round (uri, test->conn_uses_ntlm, test->user, use_builtin_ntlm);
+	do_ntlm_round (ts->uri, test->conn_uses_ntlm, test->user, use_builtin_ntlm);
 }
 
 static void
@@ -532,9 +577,9 @@ retry_test_authenticate (SoupSession *session, SoupMessage *msg,
 }
 
 static void
-do_retrying_test (gconstpointer data)
+do_retrying_test (TestServer *ts,
+		  gconstpointer data)
 {
-	SoupURI *base_uri = (SoupURI *)data;
 	SoupSession *session;
 	SoupMessage *msg;
 	SoupURI *uri;
@@ -552,7 +597,7 @@ do_retrying_test (gconstpointer data)
 	g_signal_connect (session, "authenticate",
 			  G_CALLBACK (retry_test_authenticate), &retried);
 
-	uri = soup_uri_new_with_base (base_uri, "/alice");
+	uri = soup_uri_new_with_base (ts->uri, "/alice");
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
@@ -574,7 +619,7 @@ do_retrying_test (gconstpointer data)
 			  G_CALLBACK (retry_test_authenticate), &retried);
 	retried = FALSE;
 
-	uri = soup_uri_new_with_base (base_uri, "/bob");
+	uri = soup_uri_new_with_base (ts->uri, "/bob");
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
@@ -591,28 +636,25 @@ do_retrying_test (gconstpointer data)
 int
 main (int argc, char **argv)
 {
-	SoupServer *server;
-	GHashTable *connections;
 	int i, ret;
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	connections = g_hash_table_new (NULL, NULL);
-	soup_server_add_handler (server, NULL,
-				 server_callback, connections, NULL);
+	for (i = 0; i < G_N_ELEMENTS (ntlm_tests); i++) {
+		g_test_add (ntlm_tests[i].name, TestServer, &ntlm_tests[i],
+			    setup_server, do_ntlm_test, teardown_server);
+	}
+	for (i = 0; i < G_N_ELEMENTS (ntlmssp_tests); i++) {
+		g_test_add (ntlmssp_tests[i].name, TestServer, &ntlmssp_tests[i],
+			    setup_ntlmssp_server, do_ntlm_test, teardown_server);
+	}
 
-	uri = soup_test_server_get_uri (server, "http", NULL);
-
-	for (i = 0; i < G_N_ELEMENTS (ntlm_tests); i++)
-		g_test_add_data_func (ntlm_tests[i].name, &ntlm_tests[i], do_ntlm_test);
-	g_test_add_data_func ("/ntlm/retry", uri, do_retrying_test);
+	g_test_add ("/ntlm/retry", TestServer, NULL,
+		    setup_server, do_retrying_test, teardown_server);
 
 	ret = g_test_run ();
 
-	soup_test_server_quit_unref (server);
 	test_cleanup ();
-	g_hash_table_destroy (connections);
 
 	return ret;
 }
