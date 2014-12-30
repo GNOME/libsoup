@@ -1239,6 +1239,7 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupServerHandler *handler;
 	SoupURI *uri;
+	GHashTable *form_data_set;
 
 	g_signal_emit (server, signals[REQUEST_READ], 0, msg, client);
 
@@ -1252,22 +1253,18 @@ call_handler (SoupMessage *msg, SoupClientContext *client)
 		return;
 	}
 
-	if (handler->callback) {
-		GHashTable *form_data_set;
+	if (uri->query)
+		form_data_set = soup_form_decode (uri->query);
+	else
+		form_data_set = NULL;
 
-		if (uri->query)
-			form_data_set = soup_form_decode (uri->query);
-		else
-			form_data_set = NULL;
+	/* Call method handler */
+	(*handler->callback) (server, msg,
+			      uri->path, form_data_set,
+			      client, handler->user_data);
 
-		/* Call method handler */
-		(*handler->callback) (server, msg,
-				      uri->path, form_data_set,
-				      client, handler->user_data);
-
-		if (form_data_set)
-			g_hash_table_unref (form_data_set);
-	}
+	if (form_data_set)
+		g_hash_table_unref (form_data_set);
 }
 
 static void
