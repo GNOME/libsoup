@@ -221,6 +221,9 @@ get_response_headers (SoupMessage *msg, GString *headers,
 	SoupMessageHeadersIter iter;
 	const char *name, *value;
 
+	if (msg->status_code == 0)
+		soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+
 	handle_partial_get (msg);
 
 	g_string_append_printf (headers, "HTTP/1.%c %d %s\r\n",
