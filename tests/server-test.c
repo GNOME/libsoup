@@ -730,6 +730,100 @@ do_iostream_accept_test (void)
 	g_clear_error (&error);
 }
 
+typedef struct {
+	SoupServer *server;
+	SoupMessage *smsg;
+	gboolean handler_called;
+	gboolean paused;
+} UnhandledServerData;
+
+static gboolean
+idle_unpause_message (gpointer user_data)
+{
+	UnhandledServerData *usd = user_data;
+
+	soup_server_unpause_message (usd->server, usd->smsg);
+	return FALSE;
+}
+
+static void
+unhandled_server_callback (SoupServer *server, SoupMessage *msg,
+			   const char *path, GHashTable *query,
+			   SoupClientContext *context, gpointer data)
+{
+	UnhandledServerData *usd = data;
+
+	usd->handler_called = TRUE;
+
+	if (soup_message_headers_get_one (msg->request_headers, "X-Test-Server-Pause")) {
+		usd->paused = TRUE;
+		usd->smsg = msg;
+		soup_server_pause_message (server, msg);
+		g_idle_add (idle_unpause_message, usd);
+	}
+}
+
+static void
+do_fail_404_test (void)
+{
+	SoupURI *uri;
+	SoupSession *session;
+	SoupMessage *msg;
+	UnhandledServerData usd;
+
+	usd.handler_called = usd.paused = FALSE;
+
+	usd.server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
+	soup_server_add_handler (usd.server, "/not-a-match", unhandled_server_callback, &usd, NULL);
+
+	uri = soup_test_server_get_uri (usd.server, "http", "127.0.0.1");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
+
+	g_assert_false (usd.handler_called);
+	g_assert_false (usd.paused);
+
+	soup_test_session_abort_unref (session);
+	soup_test_server_quit_unref (usd.server);
+	soup_uri_free (uri);
+}
+
+static void
+do_fail_500_test (gconstpointer pause)
+{
+	SoupURI *uri;
+	SoupSession *session;
+	SoupMessage *msg;
+	UnhandledServerData usd;
+
+	usd.handler_called = usd.paused = FALSE;
+
+	usd.server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
+	soup_server_add_handler (usd.server, NULL, unhandled_server_callback, &usd, NULL);
+
+	uri = soup_test_server_get_uri (usd.server, "http", "127.0.0.1");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
+	msg = soup_message_new_from_uri ("GET", uri);
+	if (pause)
+		soup_message_headers_append (msg->request_headers, "X-Test-Server-Pause", "true");
+	soup_session_send_message (session, msg);
+	soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+
+	g_assert_true (usd.handler_called);
+	if (pause)
+		g_assert_true (usd.paused);
+	else
+		g_assert_false (usd.paused);
+
+	soup_test_session_abort_unref (session);
+	soup_test_server_quit_unref (usd.server);
+	soup_uri_free (uri);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -764,6 +858,9 @@ main (int argc, char **argv)
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
 	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
+	g_test_add_func ("/server/fail/404", do_fail_404_test);
+	g_test_add_data_func ("/server/fail/500", GINT_TO_POINTER (FALSE), do_fail_500_test);
+	g_test_add_data_func ("/server/fail/500-pause", GINT_TO_POINTER (TRUE), do_fail_500_test);
 
 	ret = g_test_run ();
 
