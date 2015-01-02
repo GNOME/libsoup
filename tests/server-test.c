@@ -7,8 +7,11 @@
 
 #include <gio/gnetworking.h>
 
-SoupServer *server;
-SoupURI *base_uri, *ssl_base_uri;
+typedef struct {
+	SoupServer *server;
+	SoupURI *base_uri, *ssl_base_uri;
+	GSList *handlers;
+} ServerData;
 
 static void
 server_callback (SoupServer *server, SoupMessage *msg,
@@ -32,6 +35,47 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	soup_message_set_status (msg, SOUP_STATUS_OK);
 	soup_message_set_response (msg, "text/plain",
 				   SOUP_MEMORY_STATIC, "index", 5);
+}
+
+static void
+server_setup_nohandler (ServerData *sd, gconstpointer test_data)
+{
+	sd->server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
+	sd->base_uri = soup_test_server_get_uri (sd->server, "http", NULL);
+	if (tls_available)
+		sd->ssl_base_uri = soup_test_server_get_uri (sd->server, "https", NULL);
+}
+
+static void
+server_add_handler (ServerData         *sd,
+		    const char         *path,
+		    SoupServerCallback  callback,
+		    gpointer            user_data,
+		    GDestroyNotify      destroy)
+{
+	soup_server_add_handler (sd->server, path, callback, user_data, destroy);
+	sd->handlers = g_slist_prepend (sd->handlers, g_strdup (path));
+}
+
+static void
+server_setup (ServerData *sd, gconstpointer test_data)
+{
+	server_setup_nohandler (sd, test_data);
+	server_add_handler (sd, NULL, server_callback, NULL, NULL);
+}
+
+static void
+server_teardown (ServerData *sd, gconstpointer test_data)
+{
+	GSList *iter;
+
+	for (iter = sd->handlers; iter; iter = iter->next)
+		soup_server_remove_handler (sd->server, iter->data);
+	g_slist_free_full (sd->handlers, g_free);
+
+	soup_test_server_quit_unref (sd->server);
+	g_clear_pointer (&sd->base_uri, soup_uri_free);
+	g_clear_pointer (&sd->ssl_base_uri, soup_uri_free);
 }
 
 static void
@@ -60,7 +104,7 @@ server_star_callback (SoupServer *server, SoupMessage *msg,
  * all other URIs. #590751
  */
 static void
-do_star_test (void)
+do_star_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
@@ -70,7 +114,7 @@ do_star_test (void)
 	g_test_bug ("590751");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
-	star_uri = soup_uri_copy (base_uri);
+	star_uri = soup_uri_copy (sd->base_uri);
 	soup_uri_set_path (star_uri, "*");
 
 	debug_printf (1, "  Testing with no handler\n");
@@ -83,7 +127,7 @@ do_star_test (void)
 	g_assert_cmpstr (handled_by, ==, NULL);
 	g_object_unref (msg);
 
-	soup_server_add_handler (server, "*", server_star_callback, NULL, NULL);
+	server_add_handler (sd, "*", server_star_callback, NULL, NULL);
 
 	debug_printf (1, "  Testing with handler\n");
 	msg = soup_message_new_from_uri ("OPTIONS", star_uri);
@@ -171,8 +215,10 @@ do_one_server_aliases_test (SoupURI    *uri,
 }
 
 static void
-do_server_aliases_test (void)
+do_server_aliases_test (ServerData *sd, gconstpointer test_data)
 {
+	char *http_aliases[] = { "dav", NULL };
+	char *https_aliases[] = { "davs", NULL };
 	char *http_good[] = { "http", "dav", NULL };
 	char *http_bad[] = { "https", "davs", "fred", NULL };
 	char *https_good[] = { "https", "davs", NULL };
@@ -181,21 +227,26 @@ do_server_aliases_test (void)
 
 	g_test_bug ("703694");
 
+	g_object_set (G_OBJECT (sd->server),
+		      SOUP_SERVER_HTTP_ALIASES, http_aliases,
+		      SOUP_SERVER_HTTPS_ALIASES, https_aliases,
+		      NULL);
+
 	for (i = 0; http_good[i]; i++)
-		do_one_server_aliases_test (base_uri, http_good[i], TRUE);
+		do_one_server_aliases_test (sd->base_uri, http_good[i], TRUE);
 	for (i = 0; http_bad[i]; i++)
-		do_one_server_aliases_test (base_uri, http_bad[i], FALSE);
+		do_one_server_aliases_test (sd->base_uri, http_bad[i], FALSE);
 
 	if (tls_available) {
 		for (i = 0; https_good[i]; i++)
-			do_one_server_aliases_test (ssl_base_uri, https_good[i], TRUE);
+			do_one_server_aliases_test (sd->ssl_base_uri, https_good[i], TRUE);
 		for (i = 0; https_bad[i]; i++)
-			do_one_server_aliases_test (ssl_base_uri, https_bad[i], FALSE);
+			do_one_server_aliases_test (sd->ssl_base_uri, https_bad[i], FALSE);
 	}
 }
 
 static void
-do_dot_dot_test (void)
+do_dot_dot_test (ServerData *sd, gconstpointer test_data)
 {
 	SoupSession *session;
 	SoupMessage *msg;
@@ -205,7 +256,7 @@ do_dot_dot_test (void)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
-	uri = soup_uri_new_with_base (base_uri, "/..%2ftest");
+	uri = soup_uri_new_with_base (sd->base_uri, "/..%2ftest");
 	msg = soup_message_new_from_uri ("GET", uri);
 	soup_uri_free (uri);
 
@@ -240,20 +291,18 @@ ipv6_server_callback (SoupServer *server, SoupMessage *msg,
 }
 
 static void
-do_ipv6_test (void)
+do_ipv6_test (ServerData *sd, gconstpointer test_data)
 {
-	SoupServer *ipv6_server;
-	SoupURI *ipv6_uri;
 	SoupSession *session;
 	SoupMessage *msg;
 	GError *error = NULL;
 
 	g_test_bug ("666399");
 
-	ipv6_server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
-	soup_server_add_handler (ipv6_server, NULL, ipv6_server_callback, NULL, NULL);
+	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	server_add_handler (sd, NULL, ipv6_server_callback, NULL, NULL);
 
-	if (!soup_server_listen_local (ipv6_server, 0,
+	if (!soup_server_listen_local (sd->server, 0,
 				       SOUP_SERVER_LISTEN_IPV6_ONLY,
 				       &error)) {
 #if GLIB_CHECK_VERSION (2, 41, 0)
@@ -263,26 +312,24 @@ do_ipv6_test (void)
 		return;
 	}
 
-	ipv6_uri = soup_test_server_get_uri (ipv6_server, "http", "::1");
+	sd->base_uri = soup_test_server_get_uri (sd->server, "http", "::1");
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
 	debug_printf (1, "  HTTP/1.1\n");
-	msg = soup_message_new_from_uri ("GET", ipv6_uri);
+	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
 	debug_printf (1, "  HTTP/1.0\n");
-	msg = soup_message_new_from_uri ("GET", ipv6_uri);
+	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_message_set_http_version (msg, SOUP_HTTP_1_0);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_OK);
 	g_object_unref (msg);
 
-	soup_uri_free (ipv6_uri);
 	soup_test_session_abort_unref (session);
-	soup_test_server_quit_unref (ipv6_server);
 }
 
 static void
@@ -315,13 +362,13 @@ multi_server_callback (SoupServer *server, SoupMessage *msg,
 }
 
 static void
-do_multi_test (SoupServer *server, SoupURI *uri1, SoupURI *uri2)
+do_multi_test (ServerData *sd, SoupURI *uri1, SoupURI *uri2)
 {
 	char *uristr;
 	SoupSession *session;
 	SoupMessage *msg;
 
-	soup_server_add_handler (server, NULL, multi_server_callback, NULL, NULL);
+	server_add_handler (sd, NULL, multi_server_callback, NULL, NULL);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 
@@ -343,33 +390,31 @@ do_multi_test (SoupServer *server, SoupURI *uri1, SoupURI *uri2)
 
 	soup_test_session_abort_unref (session);
 
-	soup_test_server_quit_unref (server);
 	soup_uri_free (uri1);
 	soup_uri_free (uri2);
 }
 
 static void
-do_multi_port_test (void)
+do_multi_port_test (ServerData *sd, gconstpointer test_data)
 {
-	SoupServer *server;
 	GSList *uris;
 	SoupURI *uri1, *uri2;
 	GError *error = NULL;
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 
-	if (!soup_server_listen_local (server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
+	if (!soup_server_listen_local (sd->server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
 		g_assert_no_error (error);
 		g_error_free (error);
 		return;
 	}
-	if (!soup_server_listen_local (server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
+	if (!soup_server_listen_local (sd->server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
 		g_assert_no_error (error);
 		g_error_free (error);
 		return;
 	}
 
-	uris = soup_server_get_uris (server);
+	uris = soup_server_get_uris (sd->server);
 	g_assert_cmpint (g_slist_length (uris), ==, 2);
 	uri1 = uris->data;
 	uri2 = uris->next->data;
@@ -377,27 +422,26 @@ do_multi_port_test (void)
 
 	g_assert_cmpint (uri1->port, !=, uri2->port);
 
-	do_multi_test (server, uri1, uri2);
+	do_multi_test (sd, uri1, uri2);
 }
 
 static void
-do_multi_scheme_test (void)
+do_multi_scheme_test (ServerData *sd, gconstpointer test_data)
 {
-	SoupServer *server;
 	GSList *uris;
 	SoupURI *uri1, *uri2;
 	GError *error = NULL;
 
 	SOUP_TEST_SKIP_IF_NO_TLS;
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 
-	if (!soup_server_listen_local (server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
+	if (!soup_server_listen_local (sd->server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error)) {
 		g_assert_no_error (error);
 		g_error_free (error);
 		return;
 	}
-	if (!soup_server_listen_local (server, 0,
+	if (!soup_server_listen_local (sd->server, 0,
 				       SOUP_SERVER_LISTEN_IPV4_ONLY | SOUP_SERVER_LISTEN_HTTPS,
 				       &error)) {
 		g_assert_no_error (error);
@@ -405,7 +449,7 @@ do_multi_scheme_test (void)
 		return;
 	}
 
-	uris = soup_server_get_uris (server);
+	uris = soup_server_get_uris (sd->server);
 	g_assert_cmpint (g_slist_length (uris), ==, 2);
 	uri1 = uris->data;
 	uri2 = uris->next->data;
@@ -413,33 +457,30 @@ do_multi_scheme_test (void)
 
 	g_assert_cmpstr (uri1->scheme, !=, uri2->scheme);
 
-	do_multi_test (server, uri1, uri2);
+	do_multi_test (sd, uri1, uri2);
 }
 
 static void
-do_multi_family_test (void)
+do_multi_family_test (ServerData *sd, gconstpointer test_data)
 {
-	SoupServer *server;
 	GSList *uris;
 	SoupURI *uri1, *uri2;
 	GError *error = NULL;
 
-	SOUP_TEST_SKIP_IF_NO_TLS;
+	sd->server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
-
-	if (!soup_server_listen_local (server, 0, 0, &error)) {
+	if (!soup_server_listen_local (sd->server, 0, 0, &error)) {
 		g_assert_no_error (error);
 		g_error_free (error);
 		return;
 	}
 
-	uris = soup_server_get_uris (server);
+	uris = soup_server_get_uris (sd->server);
 	if (g_slist_length (uris) == 1) {
 		gboolean ipv6_works;
 
 		/* No IPv6? Double-check */
-		ipv6_works = soup_server_listen_local (server, 0,
+		ipv6_works = soup_server_listen_local (sd->server, 0,
 						       SOUP_SERVER_LISTEN_IPV6_ONLY,
 						       NULL);
 		if (ipv6_works)
@@ -457,7 +498,7 @@ do_multi_family_test (void)
 	g_assert_cmpstr (uri1->host, !=, uri2->host);
 	g_assert_cmpint (uri1->port, ==, uri2->port);
 
-	do_multi_test (server, uri1, uri2);
+	do_multi_test (sd, uri1, uri2);
 }
 
 static void
@@ -757,6 +798,7 @@ unhandled_server_callback (SoupServer *server, SoupMessage *msg,
 
 	if (soup_message_headers_get_one (msg->request_headers, "X-Test-Server-Pause")) {
 		usd->paused = TRUE;
+		usd->server = server;
 		usd->smsg = msg;
 		soup_server_pause_message (server, msg);
 		g_idle_add (idle_unpause_message, usd);
@@ -764,22 +806,18 @@ unhandled_server_callback (SoupServer *server, SoupMessage *msg,
 }
 
 static void
-do_fail_404_test (void)
+do_fail_404_test (ServerData *sd, gconstpointer test_data)
 {
-	SoupURI *uri;
 	SoupSession *session;
 	SoupMessage *msg;
 	UnhandledServerData usd;
 
 	usd.handler_called = usd.paused = FALSE;
 
-	usd.server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
-	soup_server_add_handler (usd.server, "/not-a-match", unhandled_server_callback, &usd, NULL);
-
-	uri = soup_test_server_get_uri (usd.server, "http", "127.0.0.1");
+	server_add_handler (sd, "/not-a-match", unhandled_server_callback, &usd, NULL);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
 
@@ -787,27 +825,21 @@ do_fail_404_test (void)
 	g_assert_false (usd.paused);
 
 	soup_test_session_abort_unref (session);
-	soup_test_server_quit_unref (usd.server);
-	soup_uri_free (uri);
 }
 
 static void
-do_fail_500_test (gconstpointer pause)
+do_fail_500_test (ServerData *sd, gconstpointer pause)
 {
-	SoupURI *uri;
 	SoupSession *session;
 	SoupMessage *msg;
 	UnhandledServerData usd;
 
 	usd.handler_called = usd.paused = FALSE;
 
-	usd.server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
-	soup_server_add_handler (usd.server, NULL, unhandled_server_callback, &usd, NULL);
-
-	uri = soup_test_server_get_uri (usd.server, "http", "127.0.0.1");
+	server_add_handler (sd, NULL, unhandled_server_callback, &usd, NULL);
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
-	msg = soup_message_new_from_uri ("GET", uri);
+	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	if (pause)
 		soup_message_headers_append (msg->request_headers, "X-Test-Server-Pause", "true");
 	soup_session_send_message (session, msg);
@@ -820,55 +852,40 @@ do_fail_500_test (gconstpointer pause)
 		g_assert_false (usd.paused);
 
 	soup_test_session_abort_unref (session);
-	soup_test_server_quit_unref (usd.server);
-	soup_uri_free (uri);
 }
 
 int
 main (int argc, char **argv)
 {
-	char *http_aliases[] = { "dav", NULL };
-	char *https_aliases[] = { "davs", NULL };
 	int ret;
 
 	test_init (argc, argv, NULL);
 
-	server = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
-	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
-	base_uri = soup_test_server_get_uri (server, "http", NULL);
-
-	g_object_set (G_OBJECT (server),
-		      SOUP_SERVER_HTTP_ALIASES, http_aliases,
-		      NULL);
-
-	if (tls_available) {
-		ssl_base_uri = soup_test_server_get_uri (server, "https", NULL);
-		g_object_set (G_OBJECT (server),
-			      SOUP_SERVER_HTTPS_ALIASES, https_aliases,
-			      NULL);
-	}
-
-	g_test_add_func ("/server/OPTIONS *", do_star_test);
-	g_test_add_func ("/server/aliases", do_server_aliases_test);
-	g_test_add_func ("/server/..-in-path", do_dot_dot_test);
-	g_test_add_func ("/server/ipv6", do_ipv6_test);
-	g_test_add_func ("/server/multi/port", do_multi_port_test);
-	g_test_add_func ("/server/multi/scheme", do_multi_scheme_test);
-	g_test_add_func ("/server/multi/family", do_multi_family_test);
+	g_test_add ("/server/OPTIONS *", ServerData, NULL,
+		    server_setup, do_star_test, server_teardown);
+	g_test_add ("/server/aliases", ServerData, NULL,
+		    server_setup, do_server_aliases_test, server_teardown);
+	g_test_add ("/server/..-in-path", ServerData, NULL,
+		    server_setup, do_dot_dot_test, server_teardown);
+	g_test_add ("/server/ipv6", ServerData, NULL,
+		    NULL, do_ipv6_test, server_teardown);
+	g_test_add ("/server/multi/port", ServerData, NULL,
+		    NULL, do_multi_port_test, server_teardown);
+	g_test_add ("/server/multi/scheme", ServerData, NULL,
+		    NULL, do_multi_scheme_test, server_teardown);
+	g_test_add ("/server/multi/family", ServerData, NULL,
+		    NULL, do_multi_family_test, server_teardown);
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
 	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
-	g_test_add_func ("/server/fail/404", do_fail_404_test);
-	g_test_add_data_func ("/server/fail/500", GINT_TO_POINTER (FALSE), do_fail_500_test);
-	g_test_add_data_func ("/server/fail/500-pause", GINT_TO_POINTER (TRUE), do_fail_500_test);
+	g_test_add ("/server/fail/404", ServerData, NULL,
+		    server_setup_nohandler, do_fail_404_test, server_teardown);
+	g_test_add ("/server/fail/500", ServerData, GINT_TO_POINTER (FALSE),
+		    server_setup_nohandler, do_fail_500_test, server_teardown);
+	g_test_add ("/server/fail/500-pause", ServerData, GINT_TO_POINTER (TRUE),
+		    server_setup_nohandler, do_fail_500_test, server_teardown);
 
 	ret = g_test_run ();
-
-	soup_uri_free (base_uri);
-	soup_test_server_quit_unref (server);
-
-	if (tls_available)
-		soup_uri_free (ssl_base_uri);
 
 	test_cleanup ();
 	return ret;
