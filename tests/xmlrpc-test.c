@@ -327,13 +327,6 @@ static const char *const echo_strings[] = {
 };
 #define N_ECHO_STRINGS G_N_ELEMENTS (echo_strings)
 
-static const char *const echo_strings_broken[] = {
-	"This is a test",
-	" so is this",
-	"and so is this",
-	"amp; so is lt;thisgt;"
-};
-
 static void
 test_echo (void)
 {
@@ -371,15 +364,8 @@ test_echo (void)
 
 	g_assert_cmpint (echoes->n_values, ==, N_ECHO_STRINGS);
 
-	for (i = 0; i < echoes->n_values; i++) {
-		if (!server_test && strcmp (echo_strings_broken[i], g_value_get_string (&echoes->values[i])) == 0) {
-			g_test_skip ("PHP bug");
-			g_value_array_free (echoes);
-			return;
-		}
-
+	for (i = 0; i < echoes->n_values; i++)
 		g_assert_cmpstr (echo_strings[i], ==, g_value_get_string (&echoes->values[i]));
-	}
 
 	g_value_array_free (echoes);
 }
