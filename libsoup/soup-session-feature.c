@@ -119,6 +119,9 @@ void
 soup_session_feature_attach (SoupSessionFeature *feature,
 			     SoupSession        *session)
 {
+	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->attach (feature, session);
 }
 
@@ -138,6 +141,9 @@ void
 soup_session_feature_detach (SoupSessionFeature *feature,
 			     SoupSession        *session)
 {
+	g_return_if_fail (SOUP_IS_SESSION_FEATURE (feature));
+	g_return_if_fail (SOUP_IS_SESSION (session));
+
 	SOUP_SESSION_FEATURE_GET_CLASS (feature)->detach (feature, session);
 }
 
