@@ -35,27 +35,50 @@
  * 
  * To begin, create a server using soup_server_new(). Add at least one
  * handler by calling soup_server_add_handler(); the handler will be
- * called to process any requests underneath the path passed to
- * soup_server_add_handler(). (If you want all requests to go to the
- * same handler, just pass "/" (or %NULL) for the path.) Any request
- * that does not match any handler will automatically be returned to
- * the client with a 404 (Not Found) status.
+ * called to process any requests underneath the path you pass. (If
+ * you want all requests to go to the same handler, just pass "/" (or
+ * %NULL) for the path.)
+ *
+ * When a new connection is accepted (or a new request is started on
+ * an existing persistent connection), the #SoupServer will emit
+ * #SoupServer::request-started and then begin processing the request
+ * as described below, but note that once the message is assigned a
+ * #SoupMessage:status-code, then callbacks after that point will be
+ * skipped. Note also that it is not defined when the callbacks happen
+ * relative to various #SoupMessage signals.
+ *
+ * Once the headers have been read, #SoupServer will check if there is
+ * a #SoupAuthDomain (qv) covering the Request-URI; if so, and if the
+ * message does not contain suitable authorization, then the
+ * #SoupAuthDomain will set a status of %SOUP_STATUS_UNAUTHORIZED on
+ * the message.
+ *
+ * (At this point, if the request headers contain "<literal>Expect:
+ * 100-continue</literal>", and a status code has been set, then
+ * #SoupServer will skip the remaining steps and return the response.
+ * If the request headers contain "<literal>Expect:
+ * 100-continue</literal>" and no status code has been set,
+ * #SoupServer will return a %SOUP_STATUS_CONTINUE status before
+ * continuing.)
+ *
+ * The server will then read in the response body (if present), and
+ * then (assuming no previous step assigned a status to the message)
+ * call any "normal" handler (added with soup_server_add_handler())
+ * for the message's Request-URI.
+ *
+ * If the message still has no status code after this step (and has
+ * not been paused with soup_server_pause_message()), then it will
+ * automatically be given a status of %SOUP_STATUS_NOT_FOUND (if there
+ * was no handler for the path) or %SOUP_STATUS_INTERNAL_SERVER_ERROR
+ * (if a handler ran but did not assign a status).
+ *
+ * Finally, the server will emit #SoupServer::request-finished (or
+ * #SoupServer::request-aborted if an I/O error occurred before
+ * handling was completed).
  *
  * If you want to handle the special "*" URI (eg, "OPTIONS *"), you
  * must explicitly register a handler for "*"; the default handler
  * will not be used for that case.
- * 
- * To add authentication to some or all paths, create an appropriate
- * #SoupAuthDomain (qv), and add it to the server via
- * soup_server_add_auth_domain(). (As with handlers, you must
- * explicitly add "*" to an auth domain if you want it to be covered.)
- * 
- * Additional processing options are available via #SoupServer's
- * signals; Connect to #SoupServer::request-started to be notified
- * every time a new request is being processed. (This gives you a
- * chance to connect to the #SoupMessage "<literal>got-</literal>"
- * signals in case you want to do processing before the body has been
- * fully read.)
  * 
  * If you want to process https connections in addition to (or instead
  * of) http connections, you can either set the
