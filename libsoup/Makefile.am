@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST =
+CLEANFILES =
 
 include $(GLIB_MAKEFILE)
 
@@ -265,6 +266,15 @@ Soup_2_4_gir_FILES = \
 
 INTROSPECTION_GIRS += Soup-2.4.gir
 
+if ENABLE_VAPIGEN
+libsoup-2.4.vapi: Soup-2.4.gir
+	$(VAPIGEN) --metadatadir=$(top_srcdir)/libsoup --pkg gio-2.0 --library=libsoup-2.4 $^
+
+vapidir=$(VAPIDIR)
+vapi_DATA=libsoup-2.4.vapi
+CLEANFILES += $(vapi_DATA)
+endif
+
 if BUILD_LIBSOUP_GNOME
 
 # GNOME extensions
@@ -292,7 +302,7 @@ gir_DATA = $(INTROSPECTION_GIRS)
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-CLEANFILES = $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
+CLEANFILES += $(gir_DATA) $(typelib_DATA) $(BUILT_SOURCES)
 
 endif
 

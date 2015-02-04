@@ -1,0 +1,4 @@
+
+AuthDomain
+  .accepts#virtual_method abstract name="_accepts"
+  .challenge#virtual_method abstract name="_challenge"
