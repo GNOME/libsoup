@@ -52,6 +52,7 @@ enum {
 
 	PROP_FD,
 	PROP_GSOCKET,
+	PROP_IOSTREAM,
 	PROP_LOCAL_ADDRESS,
 	PROP_REMOTE_ADDRESS,
 	PROP_NON_BLOCKING,
@@ -129,6 +130,13 @@ soup_socket_initable_init (GInitable     *initable,
 {
 	SoupSocket *sock = SOUP_SOCKET (initable);
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	if (priv->conn) {
+		g_warn_if_fail (priv->gsock == NULL);
+		g_warn_if_fail (priv->fd == -1);
+
+		finish_socket_setup (sock);
+	}
 
 	if (priv->fd != -1) {
 		guint type, len = sizeof (type);
@@ -239,20 +247,23 @@ finish_socket_setup (SoupSocket *sock)
 {
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
-	if (!priv->gsock)
-		return;
+	if (priv->gsock) {
+		if (!priv->conn)
+			priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
+
+		g_socket_set_timeout (priv->gsock, priv->timeout);
+		g_socket_set_option (priv->gsock, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
+	}
 
 	if (!priv->conn)
-		priv->conn = (GIOStream *)g_socket_connection_factory_create_connection (priv->gsock);
+		return;
+
 	if (!priv->iostream)
 		priv->iostream = soup_io_stream_new (priv->conn, FALSE);
 	if (!priv->istream)
 		priv->istream = g_object_ref (g_io_stream_get_input_stream (priv->iostream));
 	if (!priv->ostream)
 		priv->ostream = g_object_ref (g_io_stream_get_output_stream (priv->iostream));
-
-	g_socket_set_timeout (priv->gsock, priv->timeout);
-	g_socket_set_option (priv->gsock, IPPROTO_TCP, TCP_NODELAY, TRUE, NULL);
 }
 
 static void
@@ -268,6 +279,9 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		break;
 	case PROP_GSOCKET:
 		priv->gsock = g_value_dup_object (value);
+		break;
+	case PROP_IOSTREAM:
+		priv->conn = g_value_dup_object (value);
 		break;
 	case PROP_LOCAL_ADDRESS:
 		priv->local_addr = g_value_dup_object (value);
@@ -530,6 +544,13 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				      "GSocket",
 				      "The socket's underlying GSocket",
 				      G_TYPE_SOCKET,
+				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property (
+		 object_class, PROP_IOSTREAM,
+		 g_param_spec_object (SOUP_SOCKET_IOSTREAM,
+				      "GIOStream",
+				      "The socket's underlying GIOStream",
+				      G_TYPE_IO_STREAM,
 				      G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
@@ -1385,7 +1406,7 @@ soup_socket_start_ssl (SoupSocket *sock, GCancellable *cancellable)
 	return soup_socket_setup_ssl (sock, soup_address_get_name (priv->remote_addr),
 				      cancellable, NULL);
 }
-	
+
 /**
  * soup_socket_start_proxy_ssl:
  * @sock: the socket

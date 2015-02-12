@@ -12,6 +12,7 @@
 #define SOUP_SOCKET_CLOSE_ON_DISPOSE  "close-on-dispose"
 #define SOUP_SOCKET_FD                "fd"
 #define SOUP_SOCKET_GSOCKET           "gsocket"
+#define SOUP_SOCKET_IOSTREAM          "iostream"
 #define SOUP_SOCKET_IPV6_ONLY         "ipv6-only"
 
 gboolean   soup_socket_connect_sync_internal   (SoupSocket           *sock,
