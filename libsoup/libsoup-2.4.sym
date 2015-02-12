@@ -363,6 +363,7 @@ soup_requester_get_type
 soup_requester_new
 soup_requester_request
 soup_requester_request_uri
+soup_server_accept_iostream
 soup_server_add_auth_domain
 soup_server_add_handler
 soup_server_disconnect

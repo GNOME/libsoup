@@ -110,6 +110,12 @@ GSList         *soup_server_get_listeners      (SoupServer               *server
 
 void            soup_server_disconnect         (SoupServer               *server);
 
+SOUP_AVAILABLE_IN_2_50
+gboolean        soup_server_accept_iostream    (SoupServer               *server,
+						GIOStream                *stream,
+						GSocketAddress           *local_addr,
+						GSocketAddress           *remote_addr,
+						GError                  **error);
 
 /* Handlers and auth */
 

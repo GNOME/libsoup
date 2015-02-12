@@ -227,6 +227,7 @@ soup_server_listen_fd
 soup_server_get_uris
 soup_server_disconnect
 soup_server_is_https
+soup_server_accept_iostream
 <SUBSECTION>
 SoupServerCallback
 soup_server_add_handler

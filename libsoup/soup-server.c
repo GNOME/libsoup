@@ -1325,9 +1325,9 @@ socket_disconnected (SoupSocket *sock, SoupClientContext *client)
 }
 
 static void
-new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
+soup_server_accept_socket (SoupServer *server,
+			   SoupSocket *sock)
 {
-	SoupServer *server = user_data;
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupClientContext *client;
 
@@ -1336,6 +1336,62 @@ new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
 	g_signal_connect (sock, "disconnected",
 			  G_CALLBACK (socket_disconnected), client);
 	start_request (server, client);
+}
+
+/**
+ * soup_server_accept_iostream:
+ * @server: a #SoupServer
+ * @stream: a #GIOStream
+ * @local_addr: (allow-none): the local #GSocketAddress associated with the @stream
+ * @remote_addr: (allow-none): the remote #GSocketAddress associated with the @stream
+ * @error: return location for a #GError
+ *
+ * Add a new client stream to the @server.
+ *
+ * Return value: %TRUE on success, %FALSE if the stream could not be
+ * accepted or any other error occurred (in which case @error will be
+ * set).
+ *
+ * Since: 2.50
+ **/
+gboolean
+soup_server_accept_iostream   (SoupServer     *server,
+			       GIOStream      *stream,
+			       GSocketAddress *local_addr,
+			       GSocketAddress *remote_addr,
+			       GError        **error)
+{
+	SoupSocket *sock;
+	SoupAddress *local = NULL, *remote = NULL;
+
+	if (local_addr)
+		local = soup_address_new_from_gsockaddr (local_addr);
+	if (remote_addr)
+		remote = soup_address_new_from_gsockaddr (remote_addr);
+
+	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, error,
+			       "iostream", stream,
+			       "local-address", local,
+			       "remote-address", remote,
+			       NULL);
+
+	g_clear_object (&local);
+	g_clear_object (&remote);
+
+	if (!sock)
+		return FALSE;
+
+	soup_server_accept_socket (server, sock);
+
+	return TRUE;
+}
+
+static void
+new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
+{
+	SoupServer *server = user_data;
+
+	soup_server_accept_socket (server, sock);
 }
 
 /**
