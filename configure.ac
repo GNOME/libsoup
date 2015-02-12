@@ -5,8 +5,6 @@ dnl *******************************************
 m4_define([soup_major_version], [2])
 m4_define([soup_minor_version], [49])
 m4_define([soup_micro_version], [1])
-AC_CONFIG_MACRO_DIR([m4])
-m4_include(m4/vapigen.m4)
 
 AC_PREREQ(2.63)
 AC_INIT([libsoup],[soup_major_version.soup_minor_version.soup_micro_version],[http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup])
@@ -163,10 +161,6 @@ dnl *****************************
 dnl *** gobject-introspection ***
 dnl *****************************
 GOBJECT_INTROSPECTION_CHECK([0.9.5])
-
-if test "x$found_introspection" = "xyes"; then
-  VAPIGEN_CHECK()
-fi
 
 AC_MSG_CHECKING([for glib-networking (glib TLS implementation)])
 save_CFLAGS="$CFLAGS"
