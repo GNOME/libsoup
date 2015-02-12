@@ -592,6 +592,144 @@ do_fd_import_test (void)
 	g_object_unref (gsock);
 }
 
+typedef struct
+{
+	GIOStream parent;
+	GInputStream *input_stream;
+	GOutputStream *output_stream;
+} GTestIOStream;
+
+typedef struct
+{
+	GIOStreamClass parent_class;
+} GTestIOStreamClass;
+
+static GType g_test_io_stream_get_type (void);
+G_DEFINE_TYPE (GTestIOStream, g_test_io_stream, G_TYPE_IO_STREAM);
+
+
+static GInputStream *
+get_input_stream (GIOStream *io_stream)
+{
+	GTestIOStream *self =  (GTestIOStream *) io_stream;
+
+	return self->input_stream;
+}
+
+static GOutputStream *
+get_output_stream (GIOStream *io_stream)
+{
+	GTestIOStream *self =  (GTestIOStream *) io_stream;
+
+	return self->output_stream;
+}
+
+static void
+finalize (GObject *object)
+{
+	GTestIOStream *self = (GTestIOStream *) object;
+
+	if (self->input_stream != NULL)
+		g_object_unref (self->input_stream);
+
+	if (self->output_stream != NULL)
+		g_object_unref (self->output_stream);
+
+	G_OBJECT_CLASS (g_test_io_stream_parent_class)->finalize (object);
+}
+
+static void
+g_test_io_stream_class_init (GTestIOStreamClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	GIOStreamClass *io_class = G_IO_STREAM_CLASS (klass);
+
+	object_class->finalize = finalize;
+
+	io_class->get_input_stream = get_input_stream;
+	io_class->get_output_stream = get_output_stream;
+}
+
+static void
+g_test_io_stream_init (GTestIOStream *self)
+{
+}
+
+static GIOStream *
+g_test_io_stream_new (GInputStream *input, GOutputStream *output)
+{
+	GTestIOStream *self;
+
+	self = g_object_new (g_test_io_stream_get_type (), NULL);
+	self->input_stream = g_object_ref (input);
+	self->output_stream = g_object_ref (output);
+
+	return G_IO_STREAM (self);
+}
+
+static void
+mem_server_callback (SoupServer *server, SoupMessage *msg,
+		     const char *path, GHashTable *query,
+		     SoupClientContext *context, gpointer data)
+{
+	GSocketAddress *addr;
+	GSocket *sock;
+	const char *host;
+
+	addr = soup_client_context_get_local_address (context);
+	g_assert_nonnull (addr);
+
+	addr = soup_client_context_get_remote_address (context);
+	g_assert_nonnull (addr);
+
+	sock = soup_client_context_get_gsocket (context);
+	g_assert_null (sock);
+
+	host = soup_client_context_get_host (context);
+	g_assert_cmpstr (host, ==, "127.0.0.1");
+
+	server_callback (server, msg, path, query, context, data);
+}
+
+static void
+do_iostream_accept_test (void)
+{
+	GError *error = NULL;
+	SoupServer *server;
+	GInputStream *input;
+	GOutputStream *output;
+	GIOStream *stream;
+	GSocketAddress *addr;
+	const char req[] = "GET / HTTP/1.0\r\n\r\n";
+	gchar *reply;
+	gsize reply_size;
+
+	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
+	soup_server_add_handler (server, NULL, mem_server_callback, NULL, NULL);
+
+	input = g_memory_input_stream_new_from_data (req, sizeof(req), NULL);
+	output = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+	stream = g_test_io_stream_new (input, output);
+
+	addr = g_inet_socket_address_new_from_string ("127.0.0.1", 0);
+
+	soup_server_accept_iostream (server, stream, addr, addr, &error);
+	g_assert_no_error (error);
+
+	soup_test_server_quit_unref (server);
+
+	reply = g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (output));
+	reply_size = g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (output));
+	g_assert_true (reply_size > 0);
+	g_assert_true (g_str_has_prefix (reply, "HTTP/1.0 200 OK"));
+
+	g_clear_object (&addr);
+	g_clear_object (&stream);
+	g_clear_object (&input);
+	g_clear_object (&output);
+	g_clear_error (&error);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -625,6 +763,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/server/multi/family", do_multi_family_test);
 	g_test_add_func ("/server/import/gsocket", do_gsocket_import_test);
 	g_test_add_func ("/server/import/fd", do_fd_import_test);
+	g_test_add_func ("/server/accept/iostream", do_iostream_accept_test);
 
 	ret = g_test_run ();
 
