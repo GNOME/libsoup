@@ -288,9 +288,11 @@ do_basics_test (gconstpointer data)
 			    NULL);
 	body2 = do_request (session, base_uri, "GET", "/2", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
 	body3 = do_request (session, base_uri, "GET", "/3", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			    "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT",
 			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
 	body4 = do_request (session, base_uri, "GET", "/4", NULL,
@@ -316,6 +318,9 @@ do_basics_test (gconstpointer data)
 	debug_printf (1, "  Heuristically-fresh cached resource\n");
 	cmp = do_request (session, base_uri, "GET", "/2", NULL,
 			  NULL);
+	/* Not validated even if it has must-revalidate, because it hasn't expired */
+	soup_test_assert (!last_request_validated,
+			  "Request for /2 was validated");
 	soup_test_assert (!last_request_hit_network,
 			  "Request for /2 not filled from cache");
 	g_assert_cmpstr (body2, ==, cmp);
@@ -338,10 +343,11 @@ do_basics_test (gconstpointer data)
 	g_free (cmp);
 
 
-	/* Last-Modified + must-revalidate causes a conditional request */
+	/* Expired + must-revalidate causes a conditional request */
 	debug_printf (1, "  Unchanged must-revalidate resource w/ Last-Modified\n");
 	cmp = do_request (session, base_uri, "GET", "/3", NULL,
 			  "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			  "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT",
 			  "Test-Set-Cache-Control", "must-revalidate",
 			  NULL);
 	soup_test_assert (last_request_validated,
@@ -356,6 +362,7 @@ do_basics_test (gconstpointer data)
 	debug_printf (1, "  Changed must-revalidate resource w/ Last-Modified\n");
 	cmp = do_request (session, base_uri, "GET", "/3", NULL,
 			  "Test-Set-Last-Modified", "Sat, 02 Jan 2010 00:00:00 GMT",
+			  "Test-Set-Expires", "Sat, 02 Jan 2011 00:00:00 GMT",
 			  "Test-Set-Cache-Control", "must-revalidate",
 			  NULL);
 	soup_test_assert (last_request_validated,
@@ -455,6 +462,7 @@ do_cancel_test (gconstpointer data)
 			    NULL);
 	body2 = do_request (session, base_uri, "GET", "/2", NULL,
 			    "Test-Set-Last-Modified", "Fri, 01 Jan 2010 00:00:00 GMT",
+			    "Test-Set-Expires", "Fri, 01 Jan 2011 00:00:00 GMT",
 			    "Test-Set-Cache-Control", "must-revalidate",
 			    NULL);
 

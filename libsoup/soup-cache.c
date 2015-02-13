@@ -1186,12 +1186,17 @@ soup_cache_has_response (SoupCache *cache, SoupMessage *msg)
 	/* 6. The stored response is either: fresh, allowed to be
 	 * served stale or succesfully validated
 	 */
-	/* TODO consider also proxy-revalidate & s-maxage */
-	if (entry->must_revalidate)
-		return SOUP_CACHE_RESPONSE_NEEDS_VALIDATION;
-
 	if (!soup_cache_entry_is_fresh_enough (entry, min_fresh)) {
 		/* Not fresh, can it be served stale? */
+
+		/* When the must-revalidate directive is present in a
+		 * response received by a cache, that cache MUST NOT
+		 * use the entry after it becomes stale
+		 */
+		/* TODO consider also proxy-revalidate & s-maxage */
+		if (entry->must_revalidate)
+			return SOUP_CACHE_RESPONSE_NEEDS_VALIDATION;
+
 		if (max_stale != -1) {
 			/* G_MAXINT32 means we accept any staleness */
 			if (max_stale == G_MAXINT32)
