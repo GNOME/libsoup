@@ -188,8 +188,10 @@ disconnect_internal (SoupSocket *sock, gboolean close)
 	SoupSocketPrivate *priv = SOUP_SOCKET_GET_PRIVATE (sock);
 
 	g_clear_object (&priv->gsock);
-	if (priv->conn && close)
+	if (priv->conn && close) {
 		g_io_stream_close (priv->conn, NULL, NULL);
+		g_clear_object (&priv->conn);
+	}
 
 	if (priv->read_src) {
 		g_source_destroy (priv->read_src);
@@ -211,7 +213,7 @@ soup_socket_finalize (GObject *object)
 			g_warning ("Disposing socket %p during connect", object);
 		g_object_unref (priv->connect_cancel);
 	}
-	if (priv->gsock && priv->close_on_dispose) {
+	if (priv->conn && priv->close_on_dispose) {
 		if (priv->clean_dispose)
 			g_warning ("Disposing socket %p while still connected", object);
 		disconnect_internal (SOUP_SOCKET (object), TRUE);
@@ -1536,7 +1538,7 @@ soup_socket_disconnect (SoupSocket *sock)
 		g_cancellable_cancel (priv->connect_cancel);
 		return;
 	} else if (g_mutex_trylock (&priv->iolock)) {
-		if (priv->gsock)
+		if (priv->conn)
 			disconnect_internal (sock, TRUE);
 		else
 			already_disconnected = TRUE;
