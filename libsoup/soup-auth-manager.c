@@ -647,33 +647,9 @@ proxy_auth_got_body (SoupMessage *msg, gpointer manager)
 }
 
 static void
-soup_auth_manager_request_queued (SoupSessionFeature *manager,
-				  SoupSession *session,
-				  SoupMessage *msg)
+auth_msg_starting (SoupMessage *msg, gpointer manager)
 {
-	soup_message_add_status_code_handler (
-		msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
-		G_CALLBACK (auth_got_headers), manager);
-	soup_message_add_status_code_handler (
-		msg, "got_body", SOUP_STATUS_UNAUTHORIZED,
-		G_CALLBACK (auth_got_body), manager);
-
-	soup_message_add_status_code_handler (
-		msg, "got_headers", SOUP_STATUS_PROXY_UNAUTHORIZED,
-		G_CALLBACK (proxy_auth_got_headers), manager);
-	soup_message_add_status_code_handler (
-		msg, "got_body", SOUP_STATUS_PROXY_UNAUTHORIZED,
-		G_CALLBACK (proxy_auth_got_body), manager);
-}
-
-static void
-soup_auth_manager_request_started (SoupSessionFeature *feature,
-				   SoupSession *session,
-				   SoupMessage *msg,
-				   SoupSocket *socket)
-{
-	SoupAuthManager *manager = SOUP_AUTH_MANAGER (feature);
-	SoupAuthManagerPrivate *priv = manager->priv;
+	SoupAuthManagerPrivate *priv = SOUP_AUTH_MANAGER (manager)->priv;
 	SoupAuth *auth;
 
 	g_mutex_lock (&priv->lock);
@@ -697,6 +673,29 @@ soup_auth_manager_request_started (SoupSessionFeature *feature,
 	soup_message_set_proxy_auth (msg, auth);
 
 	g_mutex_unlock (&priv->lock);
+}
+
+static void
+soup_auth_manager_request_queued (SoupSessionFeature *manager,
+				  SoupSession *session,
+				  SoupMessage *msg)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (auth_msg_starting), manager);
+
+	soup_message_add_status_code_handler (
+		msg, "got_headers", SOUP_STATUS_UNAUTHORIZED,
+		G_CALLBACK (auth_got_headers), manager);
+	soup_message_add_status_code_handler (
+		msg, "got_body", SOUP_STATUS_UNAUTHORIZED,
+		G_CALLBACK (auth_got_body), manager);
+
+	soup_message_add_status_code_handler (
+		msg, "got_headers", SOUP_STATUS_PROXY_UNAUTHORIZED,
+		G_CALLBACK (proxy_auth_got_headers), manager);
+	soup_message_add_status_code_handler (
+		msg, "got_body", SOUP_STATUS_PROXY_UNAUTHORIZED,
+		G_CALLBACK (proxy_auth_got_body), manager);
 }
 
 static void
@@ -747,7 +746,6 @@ soup_auth_manager_session_feature_init (SoupSessionFeatureInterface *feature_int
 
 	feature_interface->attach = soup_auth_manager_attach;
 	feature_interface->request_queued = soup_auth_manager_request_queued;
-	feature_interface->request_started = soup_auth_manager_request_started;
 	feature_interface->request_unqueued = soup_auth_manager_request_unqueued;
 	feature_interface->add_feature = soup_auth_manager_add_feature;
 	feature_interface->remove_feature = soup_auth_manager_remove_feature;

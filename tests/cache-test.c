@@ -242,8 +242,7 @@ do_request_with_cancel (SoupSession          *session,
 }
 
 static void
-request_started (SoupSession *session, SoupMessage *msg,
-		 SoupSocket *socket)
+message_starting (SoupMessage *msg, gpointer data)
 {
 	if (soup_message_headers_get_one (msg->request_headers,
 					  "If-Modified-Since") ||
@@ -253,6 +252,15 @@ request_started (SoupSession *session, SoupMessage *msg,
 			      soup_message_get_uri (msg)->path);
 		last_request_validated = TRUE;
 	}
+}
+
+static void
+request_queued (SoupSession *session, SoupMessage *msg,
+		gpointer data)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (message_starting),
+			  data);
 }
 
 static void
@@ -279,8 +287,8 @@ do_basics_test (gconstpointer data)
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started), NULL);
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued), NULL);
 
 	debug_printf (2, "  Initial requests\n");
 	body1 = do_request (session, base_uri, "GET", "/1", NULL,
@@ -596,8 +604,8 @@ do_headers_test (gconstpointer data)
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (request_started), NULL);
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (request_queued), NULL);
 
 	debug_printf (2, "  Initial requests\n");
 	body1 = do_request (session, base_uri, "GET", "/1", NULL,

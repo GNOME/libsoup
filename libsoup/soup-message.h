@@ -50,12 +50,12 @@ typedef struct {
 	void     (*got_body)            (SoupMessage *msg);
 	void     (*restarted)           (SoupMessage *msg);
 	void     (*finished)            (SoupMessage *msg);
+	void     (*starting)            (SoupMessage *msg);
 
 	/* Padding for future expansion */
 	void (*_libsoup_reserved1) (void);
 	void (*_libsoup_reserved2) (void);
 	void (*_libsoup_reserved3) (void);
-	void (*_libsoup_reserved4) (void);
 } SoupMessageClass;
 
 GType soup_message_get_type (void);
@@ -216,6 +216,10 @@ void soup_message_got_headers         (SoupMessage *msg);
 void soup_message_got_chunk           (SoupMessage *msg, SoupBuffer *chunk);
 void soup_message_got_body            (SoupMessage *msg);
 void soup_message_content_sniffed     (SoupMessage *msg, const char *content_type, GHashTable *params);
+
+SOUP_AVAILABLE_IN_2_50
+void soup_message_starting            (SoupMessage *msg);
+
 void soup_message_restarted           (SoupMessage *msg);
 void soup_message_finished            (SoupMessage *msg);
 

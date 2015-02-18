@@ -317,6 +317,7 @@ soup_message_set_response
 soup_message_set_status
 soup_message_set_status_full
 soup_message_set_uri
+soup_message_starting
 soup_message_wrote_body
 soup_message_wrote_body_data
 soup_message_wrote_chunk

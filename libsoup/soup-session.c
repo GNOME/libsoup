@@ -1347,6 +1347,7 @@ soup_session_send_queue_item (SoupSession *session,
 
 	g_signal_emit (session, signals[REQUEST_STARTED], 0,
 		       item->msg, soup_connection_get_socket (item->conn));
+	soup_message_starting (item->msg);
 	if (item->state == SOUP_MESSAGE_RUNNING)
 		soup_connection_send_request (item->conn, item, completion_cb, item);
 }
@@ -3057,6 +3058,8 @@ soup_session_class_init (SoupSessionClass *session_class)
 	 * Emitted just before a request is sent. See
 	 * #SoupSession::request_queued for a detailed description of
 	 * the message lifecycle within a session.
+	 *
+	 * Deprecated: 2.50. Use #SoupMessage::starting instead.
 	 **/
 	signals[REQUEST_STARTED] =
 		g_signal_new ("request-started",

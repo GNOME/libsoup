@@ -655,21 +655,7 @@ process_set_cookie_header (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-soup_cookie_jar_request_queued (SoupSessionFeature *feature,
-				SoupSession *session,
-				SoupMessage *msg)
-{
-	soup_message_add_header_handler (msg, "got-headers",
-					 "Set-Cookie",
-					 G_CALLBACK (process_set_cookie_header),
-					 feature);
-}
-
-static void
-soup_cookie_jar_request_started (SoupSessionFeature *feature,
-				 SoupSession *session,
-				 SoupMessage *msg,
-				 SoupSocket *socket)
+msg_starting_cb (SoupMessage *msg, gpointer feature)
 {
 	SoupCookieJar *jar = SOUP_COOKIE_JAR (feature);
 	char *cookies;
@@ -681,6 +667,21 @@ soup_cookie_jar_request_started (SoupSessionFeature *feature,
 		g_free (cookies);
 	} else
 		soup_message_headers_remove (msg->request_headers, "Cookie");
+}
+
+static void
+soup_cookie_jar_request_queued (SoupSessionFeature *feature,
+				SoupSession *session,
+				SoupMessage *msg)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (msg_starting_cb),
+			  feature);
+
+	soup_message_add_header_handler (msg, "got-headers",
+					 "Set-Cookie",
+					 G_CALLBACK (process_set_cookie_header),
+					 feature);
 }
 
 static void
@@ -696,7 +697,6 @@ soup_cookie_jar_session_feature_init (SoupSessionFeatureInterface *feature_inter
 				      gpointer interface_data)
 {
 	feature_interface->request_queued = soup_cookie_jar_request_queued;
-	feature_interface->request_started = soup_cookie_jar_request_started;
 	feature_interface->request_unqueued = soup_cookie_jar_request_unqueued;
 }
 

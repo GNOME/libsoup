@@ -698,6 +698,9 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 	   in course is over by now */
 	entry->being_validated = FALSE;
 
+	/* Message starting */
+	soup_message_starting (msg);
+
 	/* Status */
 	soup_message_set_status (msg, entry->status_code);
 
@@ -722,11 +725,17 @@ msg_got_headers_cb (SoupMessage *msg, gpointer user_data)
 }
 
 static void
-request_started (SoupSessionFeature *feature, SoupSession *session,
-		 SoupMessage *msg, SoupSocket *socket)
+msg_starting_cb (SoupMessage *msg, gpointer user_data)
 {
 	g_object_set_data (G_OBJECT (msg), "request-time", GINT_TO_POINTER (time (NULL)));
-	g_signal_connect (msg, "got-headers", G_CALLBACK (msg_got_headers_cb), NULL);
+	g_signal_connect (msg, "got-headers", G_CALLBACK (msg_got_headers_cb), user_data);
+	g_signal_handlers_disconnect_by_func (msg, msg_starting_cb, user_data);
+}
+
+static void
+request_queued (SoupSessionFeature *feature, SoupSession *session, SoupMessage *msg)
+{
+	g_signal_connect (msg, "starting", G_CALLBACK (msg_starting_cb), feature);
 }
 
 static void
@@ -746,7 +755,7 @@ soup_cache_session_feature_init (SoupSessionFeatureInterface *feature_interface,
 		g_type_default_interface_peek (SOUP_TYPE_SESSION_FEATURE);
 
 	feature_interface->attach = attach;
-	feature_interface->request_started = request_started;
+	feature_interface->request_queued = request_queued;
 }
 
 typedef struct {

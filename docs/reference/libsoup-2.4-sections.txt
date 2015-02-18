@@ -80,6 +80,7 @@ soup_message_got_chunk
 soup_message_got_body
 soup_message_finished
 soup_message_restarted
+soup_message_starting
 </SECTION>
 
 <SECTION>

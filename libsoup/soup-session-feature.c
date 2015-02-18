@@ -41,7 +41,7 @@
  * @attach: Perform setup when a feature is added to a session
  * @detach: Perform cleanup when a feature is removed from a session
  * @request_queued: Proxies the session's #SoupSession::request_queued signal
- * @request_started: Proxies the session's #SoupSession::request_started signal
+ * @request_started: Proxies the session's #SoupSession::request_started signal. Deprecated 2.50. Use #SoupMessage::starting instead.
  * @request_unqueued: Proxies the session's #SoupSession::request_unqueued signal
  * @add_feature: adds a sub-feature to the main feature
  * @remove_feature: removes a sub-feature from the main feature

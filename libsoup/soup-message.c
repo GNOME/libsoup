@@ -109,6 +109,7 @@ enum {
 	GOT_BODY,
 	CONTENT_SNIFFED,
 
+	STARTING,
 	RESTARTED,
 	FINISHED,
 
@@ -597,6 +598,23 @@ soup_message_class_init (SoupMessageClass *message_class)
 			      G_TYPE_NONE, 2,
 			      G_TYPE_STRING,
 			      G_TYPE_HASH_TABLE);
+
+	/**
+	 * SoupMessage::starting:
+	 * @msg: the message
+	 *
+	 * Emitted just before a message is sent.
+	 *
+	 * Since: 2.50
+	 */
+	signals[STARTING] =
+		g_signal_new ("starting",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_FIRST,
+			      G_STRUCT_OFFSET (SoupMessageClass, starting),
+			      NULL, NULL,
+			      NULL,
+			      G_TYPE_NONE, 0);
 
 	/**
 	 * SoupMessage::restarted:
@@ -1122,6 +1140,12 @@ void
 soup_message_content_sniffed (SoupMessage *msg, const char *content_type, GHashTable *params)
 {
 	g_signal_emit (msg, signals[CONTENT_SNIFFED], 0, content_type, params);
+}
+
+void
+soup_message_starting (SoupMessage *msg)
+{
+	g_signal_emit (msg, signals[STARTING], 0);
 }
 
 void

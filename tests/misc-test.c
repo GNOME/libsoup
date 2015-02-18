@@ -404,7 +404,7 @@ ea_connection_created (SoupSession *session, GObject *conn, gpointer user_data)
 }
 
 static void
-ea_request_started (SoupSession *session, SoupMessage *msg, SoupSocket *socket, gpointer user_data)
+ea_message_starting (SoupMessage *msg, SoupSession *session)
 {
 	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
 }
@@ -455,8 +455,8 @@ do_early_abort_test (void)
 	session = soup_test_session_new (SOUP_TYPE_SESSION_ASYNC, NULL);
 	msg = soup_message_new_from_uri ("GET", base_uri);
 
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (ea_request_started), NULL);
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (ea_message_starting), session);
 	soup_session_send_message (session, msg);
 	debug_printf (2, "  Message 3 completed\n");
 
@@ -507,10 +507,18 @@ ear_three_completed (GObject *source, GAsyncResult *result, gpointer loop)
 }
 
 static void
-ear_request_started (SoupSession *session, SoupMessage *msg,
-		     SoupSocket *socket, gpointer cancellable)
+ear_message_starting (SoupMessage *msg, gpointer cancellable)
 {
 	g_cancellable_cancel (cancellable);
+}
+
+static void
+ear_request_queued (SoupSession *session, SoupMessage *msg,
+		    gpointer cancellable)
+{
+	g_signal_connect (msg, "starting",
+			  G_CALLBACK (ear_message_starting),
+			  cancellable);
 }
 
 static void
@@ -560,8 +568,8 @@ do_early_abort_req_test (void)
 	req = soup_session_request_uri (session, base_uri, NULL);
 
 	cancellable = g_cancellable_new ();
-	g_signal_connect (session, "request-started",
-			  G_CALLBACK (ear_request_started), cancellable);
+	g_signal_connect (session, "request-queued",
+			  G_CALLBACK (ear_request_queued), cancellable);
 	soup_request_send_async (req, cancellable, ear_three_completed, loop);
 	g_main_loop_run (loop);
 	g_object_unref (req);
