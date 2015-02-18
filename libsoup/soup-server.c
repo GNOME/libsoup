@@ -2146,10 +2146,18 @@ soup_client_context_get_address (SoupClientContext *client)
 GSocketAddress *
 soup_client_context_get_remote_address (SoupClientContext *client)
 {
+	GSocket *sock;
+
 	g_return_val_if_fail (client != NULL, NULL);
 
-	if (!client->remote_addr)
-		client->remote_addr = g_socket_get_remote_address (soup_client_context_get_gsocket (client), NULL);
+	if (client->remote_addr)
+		return client->remote_addr;
+
+	sock = soup_client_context_get_gsocket (client);
+	client->remote_addr = sock ?
+		g_socket_get_remote_address (sock, NULL) :
+		soup_address_get_gsockaddr (soup_socket_get_remote_address (client->sock));
+
 	return client->remote_addr;
 }
 
@@ -2169,10 +2177,18 @@ soup_client_context_get_remote_address (SoupClientContext *client)
 GSocketAddress *
 soup_client_context_get_local_address (SoupClientContext *client)
 {
+	GSocket *sock;
+
 	g_return_val_if_fail (client != NULL, NULL);
 
-	if (!client->local_addr)
-		client->local_addr = g_socket_get_local_address (soup_client_context_get_gsocket (client), NULL);
+	if (client->local_addr)
+		return client->local_addr;
+
+	sock = soup_client_context_get_gsocket (client);
+	client->local_addr = sock ?
+		g_socket_get_local_address (sock, NULL) :
+		soup_address_get_gsockaddr (soup_socket_get_local_address (client->sock));
+
 	return client->local_addr;
 }
 
