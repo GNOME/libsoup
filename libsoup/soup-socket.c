@@ -1128,6 +1128,17 @@ soup_socket_get_gsocket (SoupSocket *sock)
 	return SOUP_SOCKET_GET_PRIVATE (sock)->gsock;
 }
 
+gboolean
+soup_socket_is_readable (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), FALSE);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (priv->istream));
+}
+
 GIOStream *
 soup_socket_get_connection (SoupSocket *sock)
 {

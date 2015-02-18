@@ -637,7 +637,8 @@ soup_connection_get_state (SoupConnection *conn)
 	priv = SOUP_CONNECTION_GET_PRIVATE (conn);
 
 	if (priv->state == SOUP_CONNECTION_IDLE &&
-	    g_socket_condition_check (soup_socket_get_gsocket (priv->socket), G_IO_IN))
+	    (!soup_socket_is_connected (priv->socket) ||
+	     soup_socket_is_readable (priv->socket)))
 		soup_connection_set_state (conn, SOUP_CONNECTION_REMOTE_DISCONNECTED);
 
 	if (priv->state == SOUP_CONNECTION_IDLE &&
