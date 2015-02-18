@@ -1253,6 +1253,7 @@ soup_session_set_item_connection (SoupSession          *session,
 	}
 
 	item->conn = conn;
+	item->conn_is_dedicated = FALSE;
 	soup_message_set_connection (item->msg, conn);
 
 	if (item->conn) {
@@ -1496,10 +1497,13 @@ soup_session_unqueue_item (SoupSession          *session,
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupSessionHost *host;
+	SoupConnection *dedicated_conn = NULL;
 
 	if (item->conn) {
-		if (item->msg->method != SOUP_METHOD_CONNECT ||
-		    !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code))
+		if (item->conn_is_dedicated)
+			dedicated_conn = g_object_ref (item->conn);
+		else if (item->msg->method != SOUP_METHOD_CONNECT ||
+			 !SOUP_STATUS_IS_SUCCESSFUL (item->msg->status_code))
 			soup_connection_set_state (item->conn, SOUP_CONNECTION_IDLE);
 		soup_session_set_item_connection (session, item, NULL);
 	}
@@ -1514,8 +1518,20 @@ soup_session_unqueue_item (SoupSession          *session,
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
 	host->num_messages--;
+	if (dedicated_conn) {
+		/* FIXME: Do not drop the connection if current number of connections
+		 * is no longer over the limits, just mark it as IDLE so it can be reused.
+		 */
+		g_hash_table_remove (priv->conns, dedicated_conn);
+		drop_connection (session, host, dedicated_conn);
+	}
 	g_cond_broadcast (&priv->conn_cond);
 	g_mutex_unlock (&priv->conn_lock);
+
+	if (dedicated_conn) {
+		soup_connection_disconnect (dedicated_conn);
+		g_object_unref (dedicated_conn);
+	}
 
 	/* g_signal_handlers_disconnect_by_func doesn't work if you
 	 * have a metamarshal, meaning it doesn't work with
@@ -1806,7 +1822,9 @@ get_connection_for_host (SoupSession *session,
 			 SoupMessageQueueItem *item,
 			 SoupSessionHost *host,
 			 gboolean need_new_connection,
-			 gboolean *try_cleanup)
+			 gboolean ignore_connection_limits,
+			 gboolean *try_cleanup,
+			 gboolean *is_dedicated_connection)
 {
 	SoupSessionPrivate *priv = SOUP_SESSION_GET_PRIVATE (session);
 	SoupConnection *conn;
@@ -1834,18 +1852,30 @@ get_connection_for_host (SoupSession *session,
 	/* Limit the number of pending connections; num_messages / 2
 	 * is somewhat arbitrary...
 	 */
-	if (num_pending > host->num_messages / 2)
-		return NULL;
+	if (num_pending > host->num_messages / 2) {
+		if (!ignore_connection_limits)
+			return NULL;
+
+		*is_dedicated_connection = TRUE;
+	}
 
 	if (host->num_conns >= priv->max_conns_per_host) {
-		if (need_new_connection)
-			*try_cleanup = TRUE;
-		return NULL;
+		if (!ignore_connection_limits) {
+			if (need_new_connection)
+				*try_cleanup = TRUE;
+			return NULL;
+		}
+
+		*is_dedicated_connection = TRUE;
 	}
 
 	if (priv->num_conns >= priv->max_conns) {
-		*try_cleanup = TRUE;
-		return NULL;
+		if (!ignore_connection_limits) {
+			*try_cleanup = TRUE;
+			return NULL;
+		}
+
+		*is_dedicated_connection = TRUE;
 	}
 
 	ensure_socket_props (session);
@@ -1892,6 +1922,8 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	SoupConnection *conn = NULL;
 	gboolean my_should_cleanup = FALSE;
 	gboolean need_new_connection;
+	gboolean ignore_connection_limits;
+	gboolean is_dedicated_connection = FALSE;
 
 	soup_session_cleanup_connections (session, FALSE);
 
@@ -1899,13 +1931,17 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_NEW_CONNECTION) ||
 		(!(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IDEMPOTENT) &&
 		 !SOUP_METHOD_IS_IDEMPOTENT (item->msg->method));
+	ignore_connection_limits =
+		(soup_message_get_flags (item->msg) & SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
 
 	g_mutex_lock (&priv->conn_lock);
 	host = get_host_for_message (session, item->msg);
 	while (TRUE) {
 		conn = get_connection_for_host (session, item, host,
 						need_new_connection,
-						&my_should_cleanup);
+						ignore_connection_limits,
+						&my_should_cleanup,
+						&is_dedicated_connection);
 		if (conn || item->async)
 			break;
 
@@ -1929,6 +1965,7 @@ get_connection (SoupMessageQueueItem *item, gboolean *should_cleanup)
 	}
 
 	soup_session_set_item_connection (session, item, conn);
+	item->conn_is_dedicated = is_dedicated_connection;
 
 	if (soup_connection_get_state (item->conn) != SOUP_CONNECTION_NEW) {
 		item->state = SOUP_MESSAGE_READY;

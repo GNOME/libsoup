@@ -404,7 +404,7 @@ static GMainLoop *max_conns_loop;
 static int msgs_done;
 static guint quit_loop_timeout;
 #define MAX_CONNS 2
-#define TEST_CONNS (MAX_CONNS * 2)
+#define TEST_CONNS (MAX_CONNS * 2) + 1
 
 static gboolean
 idle_start_server (gpointer data)
@@ -425,7 +425,7 @@ static void
 max_conns_request_started (SoupSession *session, SoupMessage *msg,
 			   SoupSocket *socket, gpointer user_data)
 {
-	if (++msgs_done == MAX_CONNS) {
+	if (++msgs_done >= MAX_CONNS) {
 		if (quit_loop_timeout)
 			g_source_remove (quit_loop_timeout);
 		quit_loop_timeout = g_timeout_add (100, quit_loop, NULL);
@@ -442,7 +442,8 @@ max_conns_message_complete (SoupSession *session, SoupMessage *msg, gpointer use
 static void
 do_max_conns_test_for_session (SoupSession *session)
 {
-	SoupMessage *msgs[TEST_CONNS];
+	SoupMessage *msgs[TEST_CONNS + 1];
+	SoupMessageFlags flags;
 	int i;
 
 	max_conns_loop = g_main_loop_new (NULL, TRUE);
@@ -452,7 +453,7 @@ do_max_conns_test_for_session (SoupSession *session)
 	g_signal_connect (session, "request-started",
 			  G_CALLBACK (max_conns_request_started), NULL);
 	msgs_done = 0;
-	for (i = 0; i < TEST_CONNS; i++) {
+	for (i = 0; i < TEST_CONNS - 1; i++) {
 		msgs[i] = soup_message_new_from_uri ("GET", base_uri);
 		g_object_ref (msgs[i]);
 		soup_session_queue_message (session, msgs[i],
@@ -461,6 +462,21 @@ do_max_conns_test_for_session (SoupSession *session)
 
 	g_main_loop_run (max_conns_loop);
 	g_assert_cmpint (msgs_done, ==, MAX_CONNS);
+
+	if (quit_loop_timeout)
+		g_source_remove (quit_loop_timeout);
+	quit_loop_timeout = g_timeout_add (1000, quit_loop, NULL);
+
+	/* Message with SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS should start */
+	msgs[i] = soup_message_new_from_uri ("GET", base_uri);
+	flags = soup_message_get_flags (msgs[i]);
+	soup_message_set_flags (msgs[i], flags | SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS);
+	g_object_ref (msgs[i]);
+	soup_session_queue_message (session, msgs[i],
+				    max_conns_message_complete, NULL);
+
+	g_main_loop_run (max_conns_loop);
+	g_assert_cmpint (msgs_done, ==, MAX_CONNS + 1);
 	g_signal_handlers_disconnect_by_func (session, max_conns_request_started, NULL);
 
 	msgs_done = 0;

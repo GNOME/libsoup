@@ -1383,6 +1383,7 @@ soup_cache_generate_conditional_request (SoupCache *cache, SoupMessage *original
 	/* Copy the data we need from the original message */
 	uri = soup_message_get_uri (original);
 	msg = soup_message_new_from_uri (original->method, uri);
+	soup_message_set_flags (msg, soup_message_get_flags (original));
 	soup_message_disable_feature (msg, SOUP_TYPE_CACHE);
 
 	soup_message_headers_foreach (original->request_headers,
