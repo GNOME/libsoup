@@ -2095,8 +2095,8 @@ soup_client_context_get_socket (SoupClientContext *client)
  * not get fooled when the allocator reuses the memory address of a
  * previously-destroyed socket to represent a new socket.
  *
- * Return value: (transfer none): the #GSocket that @client is
- * associated with.
+ * Return value: (nullable) (transfer none): the #GSocket that @client is
+ * associated with, %NULL if you used soup_server_accept_iostream().
  *
  * Since: 2.48
  **/
@@ -2115,8 +2115,9 @@ soup_client_context_get_gsocket (SoupClientContext *client)
  * Retrieves the #SoupAddress associated with the remote end
  * of a connection.
  *
- * Return value: (transfer none): the #SoupAddress associated with the
- * remote end of a connection.
+ * Return value: (nullable) (transfer none): the #SoupAddress
+ * associated with the remote end of a connection, it may be
+ * %NULL if you used soup_server_accept_iostream().
  *
  * Deprecated: Use soup_client_context_get_remote_address(), which returns
  * a #GSocketAddress.
@@ -2136,8 +2137,9 @@ soup_client_context_get_address (SoupClientContext *client)
  * Retrieves the #GSocketAddress associated with the remote end
  * of a connection.
  *
- * Return value: (transfer none): the #GSocketAddress associated with
- * the remote end of a connection.
+ * Return value: (nullable) (transfer none): the #GSocketAddress
+ * associated with the remote end of a connection, it may be
+ * %NULL if you used soup_server_accept_iostream().
  *
  * Since: 2.48
  **/
@@ -2158,8 +2160,9 @@ soup_client_context_get_remote_address (SoupClientContext *client)
  * Retrieves the #GSocketAddress associated with the local end
  * of a connection.
  *
- * Return value: (transfer none): the #GSocketAddress associated with
- * the local end of a connection.
+ * Return value: (nullable) (transfer none): the #GSocketAddress
+ * associated with the local end of a connection, it may be
+ * %NULL if you used soup_server_accept_iostream().
  *
  * Since: 2.48
  **/
@@ -2180,8 +2183,9 @@ soup_client_context_get_local_address (SoupClientContext *client)
  * Retrieves the IP address associated with the remote end of a
  * connection.
  *
- * Return value: the IP address associated with the remote end of a
- * connection.
+ * Return value: (nullable): the IP address associated with the remote
+ * end of a connection, it may be %NULL if you used
+ * soup_server_accept_iostream().
  **/
 const char *
 soup_client_context_get_host (SoupClientContext *client)
