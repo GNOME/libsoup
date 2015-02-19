@@ -34,6 +34,7 @@
 
 #include "soup-cache.h"
 #include "soup-body-input-stream.h"
+#include "soup-cache-client-input-stream.h"
 #include "soup-cache-input-stream.h"
 #include "soup-cache-private.h"
 #include "soup-content-processor.h"
@@ -671,7 +672,7 @@ GInputStream *
 soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 {
 	SoupCacheEntry *entry;
-	GInputStream *file_stream, *body_stream, *cache_stream;
+	GInputStream *file_stream, *body_stream, *cache_stream, *client_stream;
 	GFile *file;
 
 	g_return_val_if_fail (SOUP_IS_CACHE (cache), NULL);
@@ -714,7 +715,10 @@ soup_cache_send_response (SoupCache *cache, SoupMessage *msg)
 							SOUP_STAGE_ENTITY_BODY);
 	g_object_unref (body_stream);
 
-	return cache_stream;
+	client_stream = soup_cache_client_input_stream_new (cache_stream);
+	g_object_unref (cache_stream);
+
+	return client_stream;
 }
 
 static void

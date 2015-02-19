@@ -183,6 +183,12 @@ do_request (SoupSession        *session,
 
 	g_object_unref (msg);
 
+	if (last_request_validated)
+		last_request_unqueued = FALSE;
+	else
+		soup_test_assert (!last_request_unqueued,
+				  "Request unqueued before finishing");
+
 	last_request_hit_network = is_network_stream (stream);
 
 	g_input_stream_read_all (stream, buf, sizeof (buf), &nread,
@@ -221,7 +227,7 @@ do_request_with_cancel (SoupSession          *session,
 	GError *error = NULL;
 	GCancellable *cancellable;
 
-	last_request_validated = last_request_hit_network = FALSE;
+	last_request_validated = last_request_hit_network = last_request_unqueued = FALSE;
 	cancelled_requests = 0;
 
 	uri = soup_uri_new_with_base (base_uri, path);
@@ -503,11 +509,15 @@ do_cancel_test (gconstpointer data)
 	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
 	g_assert_cmpint (cancelled_requests, ==, 1);
+	soup_test_assert (last_request_unqueued,
+			  "Cancelled request /1 not unqueued");
 
 	debug_printf (1, "  Cancel fresh resource with g_cancellable_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/1", flags);
 	g_assert_cmpint (cancelled_requests, ==, 1);
+	soup_test_assert (last_request_unqueued,
+			  "Cancelled request /1 not unqueued");
 
 	soup_test_session_abort_unref (session);
 
@@ -523,11 +533,15 @@ do_cancel_test (gconstpointer data)
 	flags = SOUP_TEST_REQUEST_CANCEL_MESSAGE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
 	g_assert_cmpint (cancelled_requests, ==, 2);
+	soup_test_assert (last_request_unqueued,
+			  "Cancelled request /2 not unqueued");
 
 	debug_printf (1, "  Cancel a revalidating resource with g_cancellable_cancel()\n");
 	flags = SOUP_TEST_REQUEST_CANCEL_CANCELLABLE | SOUP_TEST_REQUEST_CANCEL_IMMEDIATE;
 	do_request_with_cancel (session, base_uri, "GET", "/2", flags);
 	g_assert_cmpint (cancelled_requests, ==, 2);
+	soup_test_assert (last_request_unqueued,
+			  "Cancelled request /2 not unqueued");
 
 	soup_test_session_abort_unref (session);
 

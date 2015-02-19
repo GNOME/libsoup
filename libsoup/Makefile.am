@@ -113,6 +113,8 @@ libsoup_2_4_la_SOURCES =		\
 	soup-body-output-stream.h	\
 	soup-body-output-stream.c	\
 	soup-cache.c			\
+	soup-cache-client-input-stream.h\
+	soup-cache-client-input-stream.c\
 	soup-cache-input-stream.h	\
 	soup-cache-input-stream.c	\
 	soup-cache-private.h		\

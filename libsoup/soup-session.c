@@ -4086,6 +4086,17 @@ async_send_request_running (SoupSession *session, SoupMessageQueueItem *item)
 }
 
 static void
+cache_stream_finished (GInputStream         *stream,
+		       SoupMessageQueueItem *item)
+{
+	g_signal_handlers_disconnect_matched (stream, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, item);
+	item->state = SOUP_MESSAGE_FINISHING;
+	soup_session_kick_queue (item->session);
+	soup_message_queue_item_unref (item);
+}
+
+static void
 async_return_from_cache (SoupMessageQueueItem *item,
 			 GInputStream         *stream)
 {
@@ -4100,9 +4111,11 @@ async_return_from_cache (SoupMessageQueueItem *item,
 		g_hash_table_unref (params);
 	}
 
+	soup_message_queue_item_ref (item);
+	g_signal_connect (stream, "eof", G_CALLBACK (cache_stream_finished), item);
+	g_signal_connect (stream, "closed", G_CALLBACK (cache_stream_finished), item);
+
 	async_send_request_return_result (item, g_object_ref (stream), NULL);
-	item->state = SOUP_MESSAGE_FINISHING;
-	soup_session_kick_queue (item->session);
 }
 
 typedef struct {
