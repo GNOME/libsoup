@@ -4100,8 +4100,9 @@ async_return_from_cache (SoupMessageQueueItem *item,
 		g_hash_table_unref (params);
 	}
 
-	item->state = SOUP_MESSAGE_FINISHING;
 	async_send_request_return_result (item, g_object_ref (stream), NULL);
+	item->state = SOUP_MESSAGE_FINISHING;
+	soup_session_kick_queue (item->session);
 }
 
 typedef struct {

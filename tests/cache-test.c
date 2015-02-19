@@ -122,6 +122,7 @@ static char *do_request (SoupSession        *session,
 
 static gboolean last_request_hit_network;
 static gboolean last_request_validated;
+static gboolean last_request_unqueued;
 static guint cancelled_requests;
 
 static void
@@ -152,6 +153,7 @@ do_request (SoupSession        *session,
 	GError *error = NULL;
 
 	last_request_validated = last_request_hit_network = FALSE;
+	last_request_unqueued = FALSE;
 
 	uri = soup_uri_new_with_base (base_uri, path);
 	req = soup_session_request_http_uri (session, method, uri, NULL);
@@ -269,6 +271,7 @@ request_unqueued (SoupSession *session, SoupMessage *msg,
 {
 	if (msg->status_code == SOUP_STATUS_CANCELLED)
 		cancelled_requests++;
+	last_request_unqueued = TRUE;
 }
 
 static void
@@ -287,8 +290,11 @@ do_basics_test (gconstpointer data)
 					 SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
 					 SOUP_SESSION_ADD_FEATURE, cache,
 					 NULL);
+
 	g_signal_connect (session, "request-queued",
 			  G_CALLBACK (request_queued), NULL);
+	g_signal_connect (session, "request-unqueued",
+			  G_CALLBACK (request_unqueued), NULL);
 
 	debug_printf (2, "  Initial requests\n");
 	body1 = do_request (session, base_uri, "GET", "/1", NULL,
@@ -318,6 +324,8 @@ do_basics_test (gconstpointer data)
 			  NULL);
 	soup_test_assert (!last_request_hit_network,
 			  "Request for /1 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /1 not unqueued");
 	g_assert_cmpstr (body1, ==, cmp);
 	g_free (cmp);
 
@@ -331,6 +339,8 @@ do_basics_test (gconstpointer data)
 			  "Request for /2 was validated");
 	soup_test_assert (!last_request_hit_network,
 			  "Request for /2 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /2 not unqueued");
 	g_assert_cmpstr (body2, ==, cmp);
 	g_free (cmp);
 
@@ -341,12 +351,16 @@ do_basics_test (gconstpointer data)
 			  NULL);
 	soup_test_assert (last_request_hit_network,
 			  "Request for /1?attr=value filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /1?attr=value not unqueued");
 	g_free (cmp);
 	debug_printf (2, "  Second request\n");
 	cmp = do_request (session, base_uri, "GET", "/1", NULL,
 			  NULL);
 	soup_test_assert (!last_request_hit_network,
 			  "Second request for /1 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Request for /1 not unqueued");
 	g_assert_cmpstr (body1, ==, cmp);
 	g_free (cmp);
 
@@ -362,6 +376,8 @@ do_basics_test (gconstpointer data)
 			  "Request for /3 not validated");
 	soup_test_assert (!last_request_hit_network,
 			  "Request for /3 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /3 not unqueued");
 	g_assert_cmpstr (body3, ==, cmp);
 	g_free (cmp);
 
@@ -377,6 +393,8 @@ do_basics_test (gconstpointer data)
 			  "Request for /3 not validated");
 	soup_test_assert (last_request_hit_network,
 			  "Request for /3 filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Request for /3 not unqueued");
 	g_assert_cmpstr (body3, !=, cmp);
 	g_free (cmp);
 
@@ -389,6 +407,8 @@ do_basics_test (gconstpointer data)
 			  "Second request for /3 not validated");
 	soup_test_assert (!last_request_hit_network,
 			  "Second request for /3 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /3 not unqueued");
 	g_assert_cmpstr (body3, !=, cmp);
 	g_free (cmp);
 
@@ -401,6 +421,8 @@ do_basics_test (gconstpointer data)
 			  "Request for /4 not validated");
 	soup_test_assert (!last_request_hit_network,
 			  "Request for /4 not filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Cached resource /4 not unqueued");
 	g_assert_cmpstr (body4, ==, cmp);
 	g_free (cmp);
 
@@ -412,6 +434,8 @@ do_basics_test (gconstpointer data)
 			  NULL);
 	soup_test_assert (last_request_hit_network,
 			  "Request for /5 filled from cache");
+	soup_test_assert (last_request_unqueued,
+			  "Request for /5 not unqueued");
 	g_assert_cmpstr (body5, ==, cmp);
 	g_free (cmp);
 
