@@ -487,6 +487,7 @@ do_gsocket_import_test (void)
 
 	gaddr = g_socket_get_local_address (gsock, &error);
 	g_assert_no_error (error);
+	g_object_unref (gaddr);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
@@ -550,6 +551,7 @@ do_fd_import_test (void)
 
 	gaddr = g_socket_get_local_address (gsock, &error);
 	g_assert_no_error (error);
+	g_object_unref (gaddr);
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_NO_DEFAULT_LISTENER);
 	soup_server_add_handler (server, NULL, server_callback, NULL, NULL);
