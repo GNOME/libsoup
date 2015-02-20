@@ -14,12 +14,12 @@ typedef struct {
 } SlowData;
 
 static void
-request_failed (SoupMessage *msg, gpointer data)
+request_finished (SoupMessage *msg, gpointer data)
 {
 	SlowData *sd = data;
 
-	if (SOUP_STATUS_IS_TRANSPORT_ERROR (msg->status_code))
-		g_source_destroy (sd->timeout);
+	g_source_destroy (sd->timeout);
+	g_source_unref (sd->timeout);
 	g_free (sd);
 }
 
@@ -67,8 +67,9 @@ server_callback (SoupServer *server, SoupMessage *msg,
 	sd->timeout = soup_add_timeout (
 		g_main_context_get_thread_default (),
 		200, add_body_chunk, sd);
+	g_source_ref (sd->timeout);
 	g_signal_connect (msg, "finished",
-			  G_CALLBACK (request_failed), sd);
+			  G_CALLBACK (request_finished), sd);
 }
 
 /* Test 1: An async session in another thread with its own
