@@ -23,5 +23,3 @@ pkgconfig_DATA = libsoup-2.4.pc
 if BUILD_LIBSOUP_GNOME
 pkgconfig_DATA += libsoup-gnome-2.4.pc
 endif
-
-@CODE_COVERAGE_RULES@

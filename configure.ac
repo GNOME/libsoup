@@ -47,7 +47,7 @@ dnl ***************************
 debug_default=minimum
 
 # Declare --enable-* args and collect ac_help strings
-AC_ARG_ENABLE(debug,
+AC_ARG_ENABLE(debug, 
 	      AS_HELP_STRING([--enable-debug=[no/minimum/yes]],
 			     [turn on debugging (default=$debug_default)]),,
 	      enable_debug=$debug_default)
@@ -312,8 +312,6 @@ if test "$ntlm_auth" != "no"; then
 fi
 AC_SUBST(ntlm_auth)
 AC_DEFINE_UNQUOTED(NTLM_AUTH, "$ntlm_auth", [Samba's 'winbind' daemon helper 'ntlm_auth' which can be used for NTLM single-sign-on])
-
-AX_CODE_COVERAGE
 
 dnl ****************************************************
 dnl *** Warnings to show if using GCC                ***
