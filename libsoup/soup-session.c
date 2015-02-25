@@ -2372,7 +2372,13 @@ soup_session_real_cancel_message (SoupSession *session, SoupMessage *msg, guint 
 	item = soup_message_queue_lookup (priv->queue, msg);
 	g_return_if_fail (item != NULL);
 
-	item->paused = FALSE;
+	if (item->paused) {
+		item->paused = FALSE;
+
+		if (item->state == SOUP_MESSAGE_RUNNING)
+			soup_message_io_unpause (msg);
+	}
+
 	soup_message_set_status (msg, status_code);
 	g_cancellable_cancel (item->cancellable);
 
