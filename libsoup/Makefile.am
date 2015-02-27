@@ -16,7 +16,8 @@ AM_CPPFLAGS = 				\
 	$(SOUP_DEBUG_FLAGS)		\
 	$(GLIB_CFLAGS)			\
 	$(XML_CFLAGS)			\
-	$(SQLITE_CFLAGS)
+	$(SQLITE_CFLAGS)		\
+	$(CODE_COVERAGE_CFLAGS)
 
 libsoupincludedir = $(includedir)/libsoup-2.4/libsoup
 
@@ -81,7 +82,8 @@ lib_LTLIBRARIES = libsoup-2.4.la
 libsoup_2_4_la_LDFLAGS =	\
 	-version-info $(SOUP_CURRENT):$(SOUP_REVISION):$(SOUP_AGE) \
 	-no-undefined \
-	-export-symbols $(srcdir)/libsoup-2.4.sym
+	-export-symbols $(srcdir)/libsoup-2.4.sym \
+	$(CODE_COVERAGE_LDFLAGS)
 
 EXTRA_DIST += libsoup-2.4.sym
 
