@@ -900,6 +900,74 @@ do_pause_abort_test (void)
 	g_assert_null (ptr);
 }
 
+static GMainLoop *pause_cancel_loop;
+
+static void
+pause_cancel_got_headers (SoupMessage *msg, gpointer user_data)
+{
+	SoupSession *session = user_data;
+
+	soup_session_pause_message (session, msg);
+	g_main_loop_quit (pause_cancel_loop);
+}
+
+static void
+pause_cancel_finished (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	gboolean *finished = user_data;
+
+	*finished = TRUE;
+	g_main_loop_quit (pause_cancel_loop);
+}
+
+static gboolean
+pause_cancel_timeout (gpointer user_data)
+{
+	gboolean *timed_out = user_data;
+
+	*timed_out = TRUE;
+	g_main_loop_quit (pause_cancel_loop);
+	return FALSE;
+}
+
+static void
+do_pause_cancel_test (void)
+{
+	SoupSession *session;
+	SoupMessage *msg;
+	gboolean finished = FALSE, timed_out = FALSE;
+	guint timeout_id;
+
+	g_test_bug ("745094");
+
+	session = soup_test_session_new (SOUP_TYPE_SESSION, NULL);
+	pause_cancel_loop = g_main_loop_new (NULL, FALSE);
+
+	timeout_id = g_timeout_add_seconds (5, pause_cancel_timeout, &timed_out);
+
+	msg = soup_message_new_from_uri ("GET", base_uri);
+	g_object_ref (msg);
+	g_signal_connect (msg, "got-headers",
+			  G_CALLBACK (pause_cancel_got_headers), session);
+
+	soup_session_queue_message (session, msg, pause_cancel_finished, &finished);
+	g_main_loop_run (pause_cancel_loop);
+	g_assert_false (finished);
+
+	soup_session_cancel_message (session, msg, SOUP_STATUS_CANCELLED);
+	g_main_loop_run (pause_cancel_loop);
+	g_assert_true (finished);
+	g_assert_false (timed_out);
+
+	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
+	g_object_unref (msg);
+
+	soup_test_session_abort_unref (session);
+	g_main_loop_unref (pause_cancel_loop);
+	if (!timed_out)
+		g_source_remove (timeout_id);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -940,6 +1008,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/misc/aliases", do_aliases_test);
 	g_test_add_func ("/misc/idle-on-dispose", do_idle_on_dispose_test);
 	g_test_add_func ("/misc/pause-abort", do_pause_abort_test);
+	g_test_add_func ("/misc/pause-cancel", do_pause_cancel_test);
 
 	ret = g_test_run ();
 

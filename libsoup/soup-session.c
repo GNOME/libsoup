@@ -2375,7 +2375,7 @@ soup_session_real_cancel_message (SoupSession *session, SoupMessage *msg, guint 
 	if (item->paused) {
 		item->paused = FALSE;
 
-		if (item->state == SOUP_MESSAGE_RUNNING)
+		if (soup_message_io_in_progress (msg))
 			soup_message_io_unpause (msg);
 	}
 
