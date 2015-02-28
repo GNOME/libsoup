@@ -262,8 +262,8 @@ else
     have_apache=0
 fi
 AM_CONDITIONAL(HAVE_APACHE, test "$have_apache" = 1)
-AM_CONDITIONAL(HAVE_APACHE_2_2, test "$apache_version" = 2.2)
-AM_CONDITIONAL(HAVE_APACHE_2_4, test "$apache_version" = 2.4)
+AM_CONDITIONAL(HAVE_APACHE_2_2, test "$have_apache" = 1 -a "$apache_version" = 2.2)
+AM_CONDITIONAL(HAVE_APACHE_2_4, test "$have_apache" = 1 -a "$apache_version" = 2.4)
 
 if test "$have_apache" = 1; then
     AC_CHECK_PROGS(PHP, php php5)
