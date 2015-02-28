@@ -309,12 +309,18 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		priv->ssl_fallback = g_value_get_boolean (value);
 		break;
 	case PROP_ASYNC_CONTEXT:
-		priv->async_context = g_value_get_pointer (value);
-		if (priv->async_context)
-			g_main_context_ref (priv->async_context);
+		if (!priv->use_thread_context) {
+			priv->async_context = g_value_get_pointer (value);
+			if (priv->async_context)
+				g_main_context_ref (priv->async_context);
+		}
 		break;
 	case PROP_USE_THREAD_CONTEXT:
 		priv->use_thread_context = g_value_get_boolean (value);
+		if (priv->use_thread_context) {
+			g_clear_pointer (&priv->async_context, g_main_context_unref);
+			priv->async_context = g_main_context_ref_thread_default ();
+		}
 		break;
 	case PROP_TIMEOUT:
 		priv->timeout = g_value_get_uint (value);
@@ -325,9 +331,14 @@ soup_socket_set_property (GObject *object, guint prop_id,
 		props = g_value_get_boxed (value);
 		if (props) {
 			g_clear_pointer (&priv->async_context, g_main_context_unref);
-			if (props->async_context)
-				priv->async_context = g_main_context_ref (props->async_context);
-			priv->use_thread_context = props->use_thread_context;
+			if (props->use_thread_context) {
+				priv->use_thread_context = TRUE;
+				priv->async_context = g_main_context_ref_thread_default ();
+			} else {
+				priv->use_thread_context = FALSE;
+				if (props->async_context)
+					priv->async_context = g_main_context_ref (props->async_context);
+			}
 
 			g_clear_object (&priv->proxy_resolver);
 			if (props->proxy_resolver)
@@ -1161,7 +1172,6 @@ soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 			  GCancellable *cancellable)
 {
 	GSource *watch;
-	GMainContext *async_context;
 
 	if (cond == G_IO_IN)
 		watch = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->istream), cancellable);
@@ -1169,12 +1179,7 @@ soup_socket_create_watch (SoupSocketPrivate *priv, GIOCondition cond,
 		watch = g_pollable_output_stream_create_source (G_POLLABLE_OUTPUT_STREAM (priv->ostream), cancellable);
 	g_source_set_callback (watch, (GSourceFunc)callback, user_data, NULL);
 
-	if (priv->use_thread_context)
-		async_context = g_main_context_get_thread_default ();
-	else
-		async_context = priv->async_context;
-
-	g_source_attach (watch, async_context);
+	g_source_attach (watch, priv->async_context);
 	g_source_unref (watch);
 
 	return watch;
