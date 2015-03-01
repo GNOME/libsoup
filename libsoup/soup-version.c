@@ -305,3 +305,23 @@ soup_check_version (guint major,
  *
  * Since: 2.46
  */
+
+/**
+ * SOUP_VERSION_2_48:
+ *
+ * A macro that evaluates to the 2.48 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.48
+ */
+
+/**
+ * SOUP_VERSION_2_50:
+ *
+ * A macro that evaluates to the 2.50 version of libsoup, in a format
+ * that can be used by %SOUP_VERSION_MIN_REQUIRED and
+ * %SOUP_VERSION_MAX_ALLOWED.
+ *
+ * Since: 2.50
+ */

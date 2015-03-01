@@ -854,7 +854,7 @@ soup_server_class_init (SoupServerClass *server_class)
 	 * Since: 2.44
 	 */
 	/**
-	 * SOUP_SERVERI_HTTP_ALIASES:
+	 * SOUP_SERVER_HTTP_ALIASES:
 	 *
 	 * Alias for the #SoupServer:http-aliases property, qv.
 	 *
