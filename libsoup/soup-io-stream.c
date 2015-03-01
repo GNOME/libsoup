@@ -137,6 +137,21 @@ soup_io_stream_close (GIOStream     *stream,
 				  cancellable, error);
 }
 
+static void
+close_async_complete (GObject      *object,
+		      GAsyncResult *result,
+		      gpointer      user_data)
+{
+	GTask *task = user_data;
+	GError *error = NULL;
+
+	if (g_io_stream_close_finish (G_IO_STREAM (object), result, &error))
+		g_task_return_boolean (task, TRUE);
+	else
+		g_task_return_error (task, error);
+	g_object_unref (task);
+}
+
 static void    
 soup_io_stream_close_async (GIOStream           *stream,
 			    int                  io_priority,
@@ -144,8 +159,12 @@ soup_io_stream_close_async (GIOStream           *stream,
 			    GAsyncReadyCallback  callback,
 			    gpointer             user_data)
 {
+	GTask *task;
+
+	task = g_task_new (stream, cancellable, callback, user_data);
 	g_io_stream_close_async (SOUP_IO_STREAM (stream)->priv->base_iostream,
-				 io_priority, cancellable, callback, user_data);
+				 io_priority, cancellable,
+				 close_async_complete, task);
 }
 
 static gboolean
@@ -153,8 +172,7 @@ soup_io_stream_close_finish (GIOStream     *stream,
                              GAsyncResult  *result,
 			     GError       **error)
 {
-	return g_io_stream_close_finish (SOUP_IO_STREAM (stream)->priv->base_iostream,
-					 result, error);
+	return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void
