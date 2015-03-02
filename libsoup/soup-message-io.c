@@ -36,6 +36,7 @@ typedef enum {
 	SOUP_MESSAGE_IO_STATE_BODY_START,
 	SOUP_MESSAGE_IO_STATE_BODY,
 	SOUP_MESSAGE_IO_STATE_BODY_DATA,
+	SOUP_MESSAGE_IO_STATE_BODY_FLUSH,
 	SOUP_MESSAGE_IO_STATE_BODY_DONE,
 	SOUP_MESSAGE_IO_STATE_FINISHING,
 	SOUP_MESSAGE_IO_STATE_DONE
@@ -486,7 +487,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 		if (!io->write_length &&
 		    io->write_encoding != SOUP_ENCODING_EOF &&
 		    io->write_encoding != SOUP_ENCODING_CHUNKED) {
-			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_FLUSH;
 			break;
 		}
 
@@ -498,7 +499,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 				return FALSE;
 			}
 			if (!io->write_chunk->length) {
-				io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+				io->write_state = SOUP_MESSAGE_IO_STATE_BODY_FLUSH;
 				break;
 			}
 		}
@@ -528,7 +529,7 @@ io_write (SoupMessage *msg, gboolean blocking,
 	case SOUP_MESSAGE_IO_STATE_BODY_DATA:
 		io->written = 0;
 		if (io->write_chunk->length == 0) {
-			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+			io->write_state = SOUP_MESSAGE_IO_STATE_BODY_FLUSH;
 			break;
 		}
 
@@ -544,9 +545,9 @@ io_write (SoupMessage *msg, gboolean blocking,
 		break;
 
 
-	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
+	case SOUP_MESSAGE_IO_STATE_BODY_FLUSH:
 		if (io->body_ostream) {
-			if (blocking) {
+			if (blocking || io->write_encoding != SOUP_ENCODING_CHUNKED) {
 				if (!g_output_stream_close (io->body_ostream, cancellable, error))
 					return FALSE;
 				g_clear_object (&io->body_ostream);
@@ -562,11 +563,13 @@ io_write (SoupMessage *msg, gboolean blocking,
 			}
 		}
 
+		io->write_state = SOUP_MESSAGE_IO_STATE_BODY_DONE;
+		break;
+
+
+	case SOUP_MESSAGE_IO_STATE_BODY_DONE:
 		io->write_state = SOUP_MESSAGE_IO_STATE_FINISHING;
 		soup_message_wrote_body (msg);
-
-		if (io->async_close_wait)
-			return TRUE;
 		break;
 
 
