@@ -250,7 +250,7 @@ soup_server_dispose (GObject *object)
 	priv->disposed = TRUE;
 	soup_server_disconnect (server);
 
-	G_OBJECT_CLASS (soup_server_parent_class)->finalize (object);
+	G_OBJECT_CLASS (soup_server_parent_class)->dispose (object);
 }
 
 static void
@@ -266,30 +266,6 @@ soup_server_finalize (GObject *object)
 	g_clear_object (&priv->tls_cert);
 
 	g_free (priv->server_header);
-
-	while (priv->clients) {
-		SoupClientContext *client = priv->clients->data;
-		SoupSocket *sock = g_object_ref (client->sock);
-
-		priv->clients = g_slist_remove (priv->clients, client);
-
-		/* keep a ref on the client context so it doesn't get destroyed
-		 * when we finish the message; the SoupSocket::disconnect
-		 * handler will refer to client->server later when the socket is
-		 * disconnected.
-		 */
-		soup_client_context_ref (client);
-
-		if (client->msg) {
-			soup_message_set_status (client->msg, SOUP_STATUS_IO_ERROR);
-			soup_message_io_finished (client->msg);
-		}
-
-		soup_socket_disconnect (sock);
-		g_object_unref (sock);
-
-		soup_client_context_unref (client);
-	}
 
 	soup_path_map_free (priv->handlers);
 
@@ -1140,6 +1116,7 @@ soup_server_get_listeners (SoupServer *server)
 }
 
 static void start_request (SoupServer *, SoupClientContext *);
+static void socket_disconnected (SoupSocket *sock, SoupClientContext *client);
 
 static SoupClientContext *
 soup_client_context_new (SoupServer *server, SoupSocket *sock)
@@ -1147,7 +1124,9 @@ soup_client_context_new (SoupServer *server, SoupSocket *sock)
 	SoupClientContext *client = g_slice_new0 (SoupClientContext);
 
 	client->server = server;
-	client->sock = sock;
+	client->sock = g_object_ref (sock);
+	g_signal_connect (sock, "disconnected",
+			  G_CALLBACK (socket_disconnected), client);
 	client->ref_count = 1;
 
 	return client;
@@ -1174,10 +1153,14 @@ soup_client_context_ref (SoupClientContext *client)
 static void
 soup_client_context_unref (SoupClientContext *client)
 {
-	if (--client->ref_count == 0) {
-		soup_client_context_cleanup (client);
-		g_slice_free (SoupClientContext, client);
-	}
+	if (--client->ref_count != 0)
+		return;
+
+	soup_client_context_cleanup (client);
+
+	g_signal_handlers_disconnect_by_func (client->sock, socket_disconnected, client);
+	g_object_unref (client->sock);
+	g_slice_free (SoupClientContext, client);
 }
 
 static void
@@ -1185,36 +1168,37 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
 {
 	SoupClientContext *client = user_data;
 	SoupServer *server = client->server;
+	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupSocket *sock = client->sock;
 	gboolean failed;
 
 	if (completion == SOUP_MESSAGE_IO_STOLEN) {
 		soup_client_context_unref (client);
 		g_object_unref (msg);
-		g_object_unref (sock);
 		return;
 	}
 
-	soup_message_finished (msg);
+	/* Complete the message, assuming it actually really started. */
+	if (msg->method) {
+		soup_message_finished (msg);
 
-	failed = (completion == SOUP_MESSAGE_IO_INTERRUPTED ||
-		  msg->status_code == SOUP_STATUS_IO_ERROR);
-	g_signal_emit (server,
-		       failed ? signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
-		       0, msg, client);
+		failed = (completion == SOUP_MESSAGE_IO_INTERRUPTED ||
+			  msg->status_code == SOUP_STATUS_IO_ERROR);
+		g_signal_emit (server,
+			       failed ? signals[REQUEST_ABORTED] : signals[REQUEST_FINISHED],
+			       0, msg, client);
+	}
 
 	if (completion == SOUP_MESSAGE_IO_COMPLETE &&
 	    soup_socket_is_connected (sock) &&
-	    soup_message_is_keepalive (msg)) {
-		/* Start a new request */
-		soup_client_context_cleanup (client);
+	    soup_message_is_keepalive (msg) &&
+	    priv->listeners) {
 		start_request (server, client);
 	} else {
-		soup_socket_disconnect (sock);
+		soup_socket_disconnect (client->sock);
 		soup_client_context_unref (client);
 	}
 	g_object_unref (msg);
-	g_object_unref (sock);
 }
 
 /* "" was never documented as meaning the same thing as "/", but it
@@ -1439,8 +1423,6 @@ start_request (SoupServer *server, SoupClientContext *client)
 	g_signal_emit (server, signals[REQUEST_STARTED], 0,
 		       msg, client);
 
-	g_object_ref (client->sock);
-
 	soup_message_read_request (msg, client->sock,
 				   priv->legacy_iface == NULL,
 				   request_finished, client);
@@ -1452,8 +1434,11 @@ socket_disconnected (SoupSocket *sock, SoupClientContext *client)
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (client->server);
 
 	priv->clients = g_slist_remove (priv->clients, client);
-	g_signal_handlers_disconnect_by_func (sock, socket_disconnected, client);
-	g_object_unref (sock);
+
+	if (client->msg) {
+		soup_message_set_status (client->msg, SOUP_STATUS_IO_ERROR);
+		soup_message_io_finished (client->msg);
+	}
 }
 
 static void
@@ -1463,10 +1448,8 @@ soup_server_accept_socket (SoupServer *server,
 	SoupServerPrivate *priv = SOUP_SERVER_GET_PRIVATE (server);
 	SoupClientContext *client;
 
-	client = soup_client_context_new (server, g_object_ref (sock));
+	client = soup_client_context_new (server, sock);
 	priv->clients = g_slist_prepend (priv->clients, client);
-	g_signal_connect (sock, "disconnected",
-			  G_CALLBACK (socket_disconnected), client);
 	start_request (server, client);
 }
 
@@ -1514,6 +1497,7 @@ soup_server_accept_iostream   (SoupServer     *server,
 		return FALSE;
 
 	soup_server_accept_socket (server, sock);
+	g_object_unref (sock);
 
 	return TRUE;
 }
@@ -1661,8 +1645,9 @@ void
 soup_server_disconnect (SoupServer *server)
 {
 	SoupServerPrivate *priv;
-	GSList *listeners, *iter;
+	GSList *listeners, *clients, *iter;
 	SoupSocket *listener;
+	SoupClientContext *client;
 
 	g_return_if_fail (SOUP_IS_SERVER (server));
 	priv = SOUP_SERVER_GET_PRIVATE (server);
@@ -1673,8 +1658,17 @@ soup_server_disconnect (SoupServer *server)
 		G_GNUC_END_IGNORE_DEPRECATIONS;
 	}
 
+	clients = priv->clients;
+	priv->clients = NULL;
 	listeners = priv->listeners;
 	priv->listeners = NULL;
+
+	for (iter = clients; iter; iter = iter->next) {
+		client = iter->data;
+		soup_socket_disconnect (client->sock);
+	}
+	g_slist_free (clients);
+
 	for (iter = listeners; iter; iter = iter->next) {
 		listener = iter->data;
 		soup_socket_disconnect (listener);
