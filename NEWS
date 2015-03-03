@@ -1,8 +1,12 @@
-Changes in libsoup from 2.49.1 to 2.49.91:
+Changes in libsoup from 2.49.1 to 2.49.91.1:
 
 	* WebSockets! Libsoup now has support for WebSockets in both
 	  SoupSession and SoupServer. [#627738, Dan Winship and Lionel
 	  Landwerlin, based on code from the Cockpit project]
+
+	      * The WebSocket code in libsoup 2.49.91 did not build on
+                32-bit architectures. 2.49.91.1 was released to fix
+                this.
 
 	* Added support for NTLMv2 Session Security to SoupAuthNTLM.
           (This is transparent to the app/user; if the server supports
