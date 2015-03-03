@@ -360,6 +360,8 @@ main (int argc, char **argv)
 
 	soup_uri_free (base_uri);
 	soup_test_server_quit_unref (server);
+	for (i = 0; i < 3; i++)
+		g_object_unref (proxy_resolvers[i]);
 
 	test_cleanup ();
 	return ret;

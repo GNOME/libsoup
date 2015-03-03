@@ -976,22 +976,16 @@ do_pause_cancel_test (void)
 		g_source_remove (timeout_id);
 }
 
-static void
-steal_after_upgrade (SoupMessage *msg, gpointer user_data)
+static gboolean
+run_echo_server (gpointer user_data)
 {
-	SoupClientContext *context = user_data;
-	GIOStream *stream;
+	GIOStream *stream = user_data;
 	GInputStream *istream;
 	GDataInputStream *distream;
 	GOutputStream *ostream;
 	char *str, *caps;
 	gssize n;
 	GError *error = NULL;
-
-	/* This should not ever be seen. */
-	soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-
-	stream = soup_client_context_steal_connection (context);
 
 	istream = g_io_stream_get_input_stream (stream);
 	distream = G_DATA_INPUT_STREAM (g_data_input_stream_new (istream));
@@ -1020,6 +1014,26 @@ steal_after_upgrade (SoupMessage *msg, gpointer user_data)
 	g_io_stream_close (stream, NULL, &error);
 	g_assert_no_error (error);
 	g_object_unref (stream);
+
+	return FALSE;
+}
+
+static void
+steal_after_upgrade (SoupMessage *msg, gpointer user_data)
+{
+	SoupClientContext *context = user_data;
+	GIOStream *stream;
+	GSource *source;
+
+	/* This should not ever be seen. */
+	soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+
+	stream = soup_client_context_steal_connection (context);
+
+	source = g_idle_source_new ();
+	g_source_set_callback (source, run_echo_server, stream, NULL);
+	g_source_attach (source, g_main_context_get_thread_default ());
+	g_source_unref (source);
 }
 
 static void
@@ -1196,5 +1210,6 @@ main (int argc, char **argv)
 		soup_test_server_quit_unref (ssl_server);
 	}
 
+	test_cleanup ();
 	return ret;
 }

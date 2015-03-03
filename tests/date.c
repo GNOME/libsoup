@@ -177,6 +177,8 @@ check_ok_time_t (void)
 	g_assert_cmpint (date->hour,   ==, 8);
 	g_assert_cmpint (date->minute, ==, 9);
 	g_assert_cmpint (date->second, ==, 7);
+
+	soup_date_free (date);
 }
 
 typedef struct {

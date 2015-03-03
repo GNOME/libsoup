@@ -265,6 +265,8 @@ do_sync_timeout_tests (gconstpointer data)
 	do_req_tests_for_session (timeout_session, NULL, plain_session, fast_uri, slow_uri);
 	soup_test_session_abort_unref (timeout_session);
 	soup_test_session_abort_unref (plain_session);
+
+	soup_uri_free (slow_uri);
 }
 
 static gboolean

@@ -112,6 +112,7 @@ direct_connection_complete (GObject *object,
 						      SOUP_WEBSOCKET_CONNECTION_CLIENT,
 						      NULL, NULL);
 	soup_uri_free (uri);
+	g_object_unref (conn);
 }
 
 static gboolean
@@ -140,6 +141,7 @@ got_connection (GSocket *listener,
 							      SOUP_WEBSOCKET_CONNECTION_SERVER,
 							      NULL, NULL);
 		soup_uri_free (uri);
+		g_object_unref (conn);
 	}
 
 	return FALSE;
@@ -162,7 +164,7 @@ setup_direct_connection (Test *test,
 	g_source_set_callback (listen_source, (GSourceFunc) got_connection, test, NULL);
 	g_source_attach (listen_source, NULL);
 
-	while (test->client == NULL || (test->server == NULL && !test->no_server))
+	while (test->client == NULL || (test->server == NULL && test->raw_server == NULL))
  		g_main_context_iteration (NULL, TRUE);
 	
 	g_source_destroy (listen_source);
@@ -267,14 +269,12 @@ static void
 teardown_soup_connection (Test *test,
 			  gconstpointer data)
 {
-	g_clear_object (&test->client);
+	teardown_direct_connection (test, data);
+
+	g_clear_object (&test->msg);
 	g_clear_error (&test->client_error);
-
-	if (test->session)
-		soup_test_session_abort_unref (test->session);
-
-	if (test->soup_server)
-		soup_test_server_quit_unref (test->soup_server);
+	g_clear_pointer (&test->session, soup_test_session_abort_unref);
+	g_clear_pointer (&test->soup_server, soup_test_server_quit_unref);
 }
 
 
@@ -779,6 +779,8 @@ test_receive_fragmented (Test *test,
 	g_bytes_unref (received);
 
 	g_thread_join (thread);
+
+	WAIT_UNTIL (soup_websocket_connection_get_state (test->client) == SOUP_WEBSOCKET_STATE_CLOSED);
 }
 
 int

@@ -831,6 +831,7 @@ do_fail_404_test (ServerData *sd, gconstpointer test_data)
 	msg = soup_message_new_from_uri ("GET", sd->base_uri);
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_NOT_FOUND);
+	g_object_unref (msg);
 
 	g_assert_false (usd.handler_called);
 	g_assert_false (usd.paused);
@@ -855,6 +856,7 @@ do_fail_500_test (ServerData *sd, gconstpointer pause)
 		soup_message_headers_append (msg->request_headers, "X-Test-Server-Pause", "true");
 	soup_session_send_message (session, msg);
 	soup_test_assert_message_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+	g_object_unref (msg);
 
 	g_assert_true (usd.handler_called);
 	if (pause)
@@ -1097,8 +1099,8 @@ tunnel_close (Tunnel *tunnel)
 	g_free (tunnel->client.buffer);
 	g_free (tunnel->server.buffer);
 
-	g_object_unref (tunnel->self);
-	g_object_unref (tunnel->msg);
+	g_clear_object (&tunnel->self);
+	g_clear_object (&tunnel->msg);
 
 	g_free (tunnel);
 }
@@ -1196,6 +1198,8 @@ start_tunnel (SoupMessage *msg, gpointer user_data)
 	tunnel->client.iostream = soup_client_context_steal_connection (tunnel->context);
 	tunnel->client.istream = g_io_stream_get_input_stream (tunnel->client.iostream);
 	tunnel->client.ostream = g_io_stream_get_output_stream (tunnel->client.iostream);
+	g_clear_object (&tunnel->self);
+	g_clear_object (&tunnel->msg);
 
 	tunnel->client.buffer = g_malloc (BUFSIZE);
 	tunnel->server.buffer = g_malloc (BUFSIZE);
@@ -1296,6 +1300,7 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 
 	g_object_unref (msg);
 	soup_test_session_abort_unref (session);
+
 	soup_test_server_quit_unref (proxy);
 	soup_uri_free (proxy_uri);
 }

@@ -167,7 +167,8 @@ do_socket_from_fd_client_test (void)
 	g_object_unref (sock);
 	g_object_unref (gsock);
 
-	g_object_unref (server);
+	soup_test_server_quit_unref (server);
+	soup_uri_free (uri);
 }
 
 static void
@@ -214,6 +215,7 @@ do_socket_from_fd_server_test (void)
 	g_assert_cmpstr (soup_address_get_physical (local), ==, "127.0.0.1");
 	g_assert_cmpint (soup_address_get_port (local), ==, g_inet_socket_address_get_port (G_INET_SOCKET_ADDRESS (gaddr)));
 	g_object_unref (local);
+	g_object_unref (gaddr);
 
 	g_object_unref (sock);
 

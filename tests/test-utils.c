@@ -66,6 +66,7 @@ test_init (int argc, char **argv, GOptionEntry *entries)
 	setlocale (LC_ALL, "");
 	g_setenv ("GSETTINGS_BACKEND", "memory", TRUE);
 	g_setenv ("GIO_USE_PROXY_RESOLVER", "dummy", TRUE);
+	g_setenv ("GIO_USE_VFS", "local", TRUE);
 
 	name = strrchr (argv[0], '/');
 	if (!name++)
@@ -444,10 +445,6 @@ soup_test_server_get_uri (SoupServer    *server,
 		return uri;
 
 	/* Need to add a new listener */
-	uri = soup_uri_new (NULL);
-	soup_uri_set_scheme (uri, scheme);
-	soup_uri_set_host (uri, host);
-
 	loop = g_object_get_data (G_OBJECT (server), "GMainLoop");
 	if (loop) {
 		GMainContext *context = g_main_loop_get_context (loop);
@@ -477,8 +474,39 @@ soup_test_server_get_uri (SoupServer    *server,
 }
 
 static gboolean
-idle_quit_server (gpointer loop)
+done_waiting (gpointer user_data)
 {
+	gboolean *done = user_data;
+
+	*done = TRUE;
+	return FALSE;
+}
+
+static void
+disconnect_and_wait (SoupServer *server,
+		     GMainContext *context)
+{
+	GSource *source;
+	gboolean done = FALSE;
+
+	source = g_idle_source_new ();
+	g_source_set_priority (source, G_PRIORITY_LOW);
+	g_source_set_callback (source, done_waiting, &done, NULL);
+	g_source_attach (source, context);
+	g_source_unref (source);
+
+	soup_server_disconnect (server);
+	while (!done)
+		g_main_context_iteration (context, TRUE);
+}
+
+static gboolean
+idle_quit_server (gpointer user_data)
+{
+	SoupServer *server = user_data;
+	GMainLoop *loop = g_object_get_data (G_OBJECT (server), "GMainLoop");
+
+	disconnect_and_wait (server, g_main_loop_get_context (loop));
 	g_main_loop_quit (loop);
 	return FALSE;
 }
@@ -495,10 +523,12 @@ soup_test_server_quit_unref (SoupServer *server)
 
 		loop = g_object_get_data (G_OBJECT (server), "GMainLoop");
 		context = g_main_loop_get_context (loop);
-		soup_add_completion (context, idle_quit_server, loop);
+		g_main_context_ref (context);
+		soup_add_completion (context, idle_quit_server, server);
+		g_main_context_unref (context);
 		g_thread_join (thread);
 	} else
-		soup_server_disconnect (server);
+		disconnect_and_wait (server, NULL);
 
 	g_assert_cmpint (G_OBJECT (server)->ref_count, ==, 1);
 	g_object_unref (server);
@@ -610,7 +640,7 @@ soup_test_request_send (SoupRequest   *req,
 		g_timeout_add_full (G_PRIORITY_HIGH, interval, cancel_request_timeout, cancel_data, NULL);
 	}
 	if (cancel_data && (flags & SOUP_TEST_REQUEST_CANCEL_PREEMPTIVE))
-		g_cancellable_cancel (cancellable);
+		cancel_message_or_cancellable (cancel_data);
 	soup_request_send_async (req, cancellable, async_as_sync_callback, &data);
 	g_main_loop_run (data.loop);
 

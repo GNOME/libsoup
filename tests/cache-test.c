@@ -240,7 +240,8 @@ do_request_with_cancel (SoupSession          *session,
 		g_object_unref (stream);
 		g_object_unref (req);
 		return;
-	}
+	} else
+		g_clear_error (&error);
 
 	g_clear_object (&cancellable);
 	g_clear_object (&stream);

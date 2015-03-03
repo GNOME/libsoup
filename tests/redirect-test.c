@@ -458,5 +458,6 @@ main (int argc, char **argv)
 	soup_test_session_abort_unref (async_session);
 	soup_test_session_abort_unref (sync_session);
 
+	test_cleanup ();
 	return ret;
 }

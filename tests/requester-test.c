@@ -747,6 +747,7 @@ do_close_test_for_session (SoupSession *session,
 	if (error)
 		g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
+	g_object_unref (cancellable);
 
 	g_assert_true (finished);
 
@@ -831,7 +832,6 @@ main (int argc, char **argv)
 	ret = g_test_run ();
 
 	soup_uri_free (uri);
-	soup_buffer_free (response);
 	soup_buffer_free (auth_response);
 	soup_test_server_quit_unref (server);
 

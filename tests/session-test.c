@@ -101,6 +101,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 	server_processed_message = local_timeout = FALSE;
 	timeout_id = g_idle_add_full (G_PRIORITY_HIGH, timeout_cb, &local_timeout, NULL);
 	soup_session_send_message (session, msg);
+	g_object_unref (msg);
 
 	g_assert_true (server_processed_message);
 
@@ -139,6 +140,7 @@ do_test_for_session (SoupSession *session, SoupURI *uri,
 		while (!finished)
 			g_main_context_iteration (NULL, TRUE);
 	}
+	g_main_loop_unref (loop);
 
 	soup_test_assert_message_status (msg, SOUP_STATUS_CANCELLED);
 	g_object_unref (msg);
