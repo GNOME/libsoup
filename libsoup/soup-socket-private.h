@@ -9,7 +9,6 @@
 #include "soup-socket.h"
 
 #define SOUP_SOCKET_SOCKET_PROPERTIES "socket-properties"
-#define SOUP_SOCKET_CLOSE_ON_DISPOSE  "close-on-dispose"
 #define SOUP_SOCKET_FD                "fd"
 #define SOUP_SOCKET_GSOCKET           "gsocket"
 #define SOUP_SOCKET_IOSTREAM          "iostream"
@@ -41,6 +40,7 @@ gboolean   soup_socket_handshake_finish        (SoupSocket           *sock,
 
 gboolean   soup_socket_is_readable             (SoupSocket           *sock);
 GSocket   *soup_socket_get_gsocket             (SoupSocket           *sock);
+GSocket   *soup_socket_steal_gsocket           (SoupSocket           *sock);
 GIOStream *soup_socket_get_connection          (SoupSocket           *sock);
 GIOStream *soup_socket_get_iostream            (SoupSocket           *sock);
 

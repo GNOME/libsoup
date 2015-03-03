@@ -2412,9 +2412,9 @@ soup_client_context_steal_connection (SoupClientContext *client)
 
 	stream = soup_message_io_steal (client->msg);
 	if (stream) {
-		g_object_set (G_OBJECT (client->sock),
-			      SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
-			      NULL);
+		g_object_set_data_full (G_OBJECT (stream), "GSocket",
+					soup_socket_steal_gsocket (client->sock),
+					g_object_unref);
 	}
 
 	socket_disconnected (client->sock, client);

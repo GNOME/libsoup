@@ -67,7 +67,6 @@ enum {
 	PROP_TRUSTED_CERTIFICATE,
 	PROP_TLS_CERTIFICATE,
 	PROP_TLS_ERRORS,
-	PROP_CLOSE_ON_DISPOSE,
 	PROP_SOCKET_PROPERTIES,
 
 	LAST_PROP
@@ -90,7 +89,6 @@ typedef struct {
 	guint ssl_strict:1;
 	guint ssl_fallback:1;
 	guint clean_dispose:1;
-	guint close_on_dispose:1;
 	guint use_thread_context:1;
 	gpointer ssl_creds;
 
@@ -213,7 +211,7 @@ soup_socket_finalize (GObject *object)
 			g_warning ("Disposing socket %p during connect", object);
 		g_object_unref (priv->connect_cancel);
 	}
-	if (priv->conn && priv->close_on_dispose) {
+	if (priv->conn) {
 		if (priv->clean_dispose)
 			g_warning ("Disposing socket %p while still connected", object);
 		disconnect_internal (SOUP_SOCKET (object), TRUE);
@@ -363,9 +361,6 @@ soup_socket_set_property (GObject *object, guint prop_id,
 			priv->clean_dispose = TRUE;
 		}
 		break;
-	case PROP_CLOSE_ON_DISPOSE:
-		priv->close_on_dispose = g_value_get_boolean (value);
-		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 		break;
@@ -427,9 +422,6 @@ soup_socket_get_property (GObject *object, guint prop_id,
 	case PROP_TLS_ERRORS:
 		g_value_set_flags (value, priv->tls_errors);
 		break;
-		break;
-	case PROP_CLOSE_ON_DISPOSE:
-		g_value_set_boolean (value, priv->close_on_dispose);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -804,14 +796,6 @@ soup_socket_class_init (SoupSocketClass *socket_class)
 				     "Socket properties",
 				     SOUP_TYPE_SOCKET_PROPERTIES,
 				     G_PARAM_WRITABLE));
-
-	g_object_class_install_property (
-		object_class, PROP_CLOSE_ON_DISPOSE,
-		g_param_spec_boolean (SOUP_SOCKET_CLOSE_ON_DISPOSE,
-				      "Close socket on disposal",
-				      "Whether the socket is closed on disposal",
-				      TRUE,
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 }
 
 static void
@@ -1137,6 +1121,23 @@ soup_socket_get_gsocket (SoupSocket *sock)
 	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
 
 	return SOUP_SOCKET_GET_PRIVATE (sock)->gsock;
+}
+
+GSocket *
+soup_socket_steal_gsocket (SoupSocket *sock)
+{
+	SoupSocketPrivate *priv;
+	GSocket *gsock;
+
+	g_return_val_if_fail (SOUP_IS_SOCKET (sock), NULL);
+	priv = SOUP_SOCKET_GET_PRIVATE (sock);
+
+	gsock = priv->gsock;
+	priv->gsock = NULL;
+	g_clear_object (&priv->conn);
+	g_clear_object (&priv->iostream);
+
+	return gsock;
 }
 
 gboolean

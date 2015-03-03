@@ -120,7 +120,6 @@ do_socket_from_fd_client_test (void)
 	SoupAddress *local, *remote;
 	GSocketAddress *gaddr;
 	gboolean is_server;
-	int type;
 	GError *error = NULL;
 
 	server = soup_test_server_new (SOUP_TEST_SERVER_DEFAULT);
@@ -143,7 +142,6 @@ do_socket_from_fd_client_test (void)
 
 	sock = g_initable_new (SOUP_TYPE_SOCKET, NULL, &error,
 			       SOUP_SOCKET_FD, g_socket_get_fd (gsock),
-			       SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
 			       NULL);
 	g_assert_no_error (error);
 	g_assert_nonnull (sock);
@@ -167,10 +165,6 @@ do_socket_from_fd_client_test (void)
 	g_object_unref (gaddr);
 
 	g_object_unref (sock);
-	/* We specified close-on-dispose=FALSE */
-	g_socket_get_option (gsock, SOL_SOCKET, SO_TYPE, &type, &error);
-	g_assert_no_error (error);
-
 	g_object_unref (gsock);
 
 	g_object_unref (server);

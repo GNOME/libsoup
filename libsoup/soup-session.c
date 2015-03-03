@@ -4769,13 +4769,15 @@ soup_session_steal_connection (SoupSession *session,
 	g_mutex_unlock (&priv->conn_lock);
 
 	sock = soup_connection_get_socket (conn);
-	g_object_set (G_OBJECT (sock),
-		      SOUP_SOCKET_CLOSE_ON_DISPOSE, FALSE,
+	g_object_set (sock,
 		      SOUP_SOCKET_TIMEOUT, 0,
 		      NULL);
-	g_object_unref (conn);
 
 	stream = soup_message_io_steal (item->msg);
+	g_object_set_data_full (G_OBJECT (stream), "GSocket",
+				soup_socket_steal_gsocket (sock),
+				g_object_unref);
+	g_object_unref (conn);
 
 	soup_message_queue_item_unref (item);
 	return stream;
