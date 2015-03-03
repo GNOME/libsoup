@@ -354,10 +354,14 @@ send_message (SoupWebsocketConnection *self,
 		bytes->len = 4;
 	} else {
 		outer[1] = 127; /* mask | 64-bit-len */
+#if GLIB_SIZEOF_SIZE_T > 4
 		outer[2] = (length >> 56) & 0xFF;
 		outer[3] = (length >> 48) & 0xFF;
 		outer[4] = (length >> 40) & 0xFF;
 		outer[5] = (length >> 32) & 0xFF;
+#else
+		outer[2] = outer[3] = outer[4] = outer[5] = 0;
+#endif
 		outer[6] = (length >> 24) & 0xFF;
 		outer[7] = (length >> 16) & 0xFF;
 		outer[8] = (length >> 8) & 0xFF;
@@ -488,7 +492,7 @@ bad_data_error_and_close (SoupWebsocketConnection *self)
 
 static void
 too_big_error_and_close (SoupWebsocketConnection *self,
-                         gsize payload_len)
+                         guint64 payload_len)
 {
 	GError *error;
 
