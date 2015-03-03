@@ -1,3 +1,71 @@
+Changes in libsoup from 2.49.1 to 2.49.91:
+
+	* WebSockets! Libsoup now has support for WebSockets in both
+	  SoupSession and SoupServer. [#627738, Dan Winship and Lionel
+	  Landwerlin, based on code from the Cockpit project]
+
+	* Added support for NTLMv2 Session Security to SoupAuthNTLM.
+          (This is transparent to the app/user; if the server supports
+          it, it will be used.) [#739192, Adam Seering]
+
+	* Added soup_server_accept_iostream() to allow feeding a
+          non-GSocketConnection GIOStream to SoupServer (eg, when
+          accepting HTTP requests on some other sort of connection).
+          [#744186, Marc-André Lureau]
+
+	* Added soup_session_steal_connection() and
+          soup_client_context_steal_connection(), to allow you to
+          steal a GIOStream from a SoupSession or SoupServer and then
+          use it for non-HTTP purposes. [#721343, Dan Winship]
+
+	* Added soup_server_add_early_handler(), for adding SoupServer
+          handlers to run at :got-headers time rather than :got-body
+          (eg, to set up a streaming read of the request body).
+          [#625645, Dan Winship]
+
+	* Added a new SOUP_MESSAGE_IGNORE_CONNECTION_LIMITS flag,
+          which can be used to bypass SoupSession:max-conns and
+          SoupSession:max-conns-per-host on a per-message basis.
+          [#744720, Carlos Garcia Campos]
+
+	* Multiple SoupCache fixes from Carlos Garcia Campos:
+
+	      * Leaked resources are now cleaned up when opening the
+                cache. [#667682]
+
+	      * The "Age" header is no longer added to cached
+                responses. [#741108]
+
+	      * Fixed the interpretation of the "must-revalidate"
+                directive to not be stricter than required. [#744468]
+
+	      * Messages retrieved from cache now behave slightly more
+                like non-cache messages in terms of SoupSession
+                signals and timing. [#744788] Additionally, there is a
+                new SoupMessage::starting signal, which is like
+                SoupSession::request-started, but emitted for cached
+                resources as well. [#731153]
+
+	* Fixed soup_session_cancel_message() to work reliably on
+          paused messages. [#745094, Sven Neumann]
+
+	* Added code-coverage support to the build. [#744744,
+          Marc-André Lureau]
+
+	* Fixed the library symbol check in "make check" to work when
+          building with linker options that result in slightly
+          different organization. [#741348, Iain Lane]
+
+	* Added a hack to SoupSessionFeature so that people will stop
+          re-reporting an old Eclipse bug against libsoup. [#710242]
+
+	* Miscellaneous bug and leak fixes in the test programs, leak
+          fixes in libsoup, and documentation updates.
+
+	* Updated translations:
+	  Brazilian Portuguese, French, Galician, Hungarian, Slovak,
+	  Slovenian, Spanish, Turkish
+
 Changes in libsoup from 2.48.0 to 2.49.1:
 
 	* Fixed a bug in the SoupMessage:event signal that broke
