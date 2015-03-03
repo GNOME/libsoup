@@ -125,6 +125,12 @@ soup_message_io_cleanup (SoupMessage *msg)
 	if (io->write_chunk)
 		soup_buffer_free (io->write_chunk);
 
+	if (io->async_close_wait) {
+		g_cancellable_cancel (io->async_close_wait);
+		g_clear_object (&io->async_close_wait);
+	}
+	g_clear_error (&io->async_close_error);
+
 	g_slice_free (SoupMessageIOData, io);
 }
 
@@ -993,14 +999,14 @@ io_run_until (SoupMessage *msg, gboolean blocking,
 		g_propagate_error (error, my_error);
 		g_object_unref (msg);
 		return FALSE;
-	} else if (!io->async_close_wait &&
-		   g_cancellable_set_error_if_cancelled (cancellable, error)) {
-		g_object_unref (msg);
-		return FALSE;
 	} else if (priv->io_data != io) {
 		g_set_error_literal (error, G_IO_ERROR,
 				     G_IO_ERROR_CANCELLED,
 				     _("Operation was cancelled"));
+		g_object_unref (msg);
+		return FALSE;
+	} else if (!io->async_close_wait &&
+		   g_cancellable_set_error_if_cancelled (cancellable, error)) {
 		g_object_unref (msg);
 		return FALSE;
 	}

@@ -80,9 +80,11 @@ soup_auth_set_property (GObject *object, guint prop_id,
 
 	switch (prop_id) {
 	case PROP_REALM:
+		g_free (auth->realm);
 		auth->realm = g_value_dup_string (value);
 		break;
 	case PROP_HOST:
+		g_free (priv->host);
 		priv->host = g_value_dup_string (value);
 		break;
 	case PROP_IS_FOR_PROXY:

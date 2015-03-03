@@ -70,6 +70,12 @@ soup_connection_finalize (GObject *object)
 	g_clear_pointer (&priv->remote_uri, soup_uri_free);
 	g_clear_pointer (&priv->proxy_uri, soup_uri_free);
 	g_clear_pointer (&priv->socket_props, soup_socket_properties_unref);
+	g_clear_object (&priv->current_msg);
+
+	if (priv->socket) {
+		g_signal_handlers_disconnect_by_data (priv->socket, object);
+		g_object_unref (priv->socket);
+	}
 
 	G_OBJECT_CLASS (soup_connection_parent_class)->finalize (object);
 }

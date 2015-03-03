@@ -56,6 +56,7 @@ notify_and_clear (SoupCacheInputStream *istream, GError *error)
 
 	g_clear_object (&priv->cancellable);
 	g_clear_object (&priv->output_stream);
+	g_clear_error (&error);
 }
 
 static inline void
