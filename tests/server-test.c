@@ -84,7 +84,7 @@ server_teardown (ServerData *sd, gconstpointer test_data)
 		soup_server_remove_handler (sd->server, iter->data);
 	g_slist_free_full (sd->handlers, g_free);
 
-	soup_test_server_quit_unref (sd->server);
+	g_clear_pointer (&sd->server, soup_test_server_quit_unref);
 	g_clear_pointer (&sd->base_uri, soup_uri_free);
 	g_clear_pointer (&sd->ssl_base_uri, soup_uri_free);
 }
@@ -1283,6 +1283,8 @@ do_steal_connect_test (ServerData *sd, gconstpointer test_data)
 	SoupSession *session;
 	SoupMessage *msg;
 	const char *handled_by;
+
+	SOUP_TEST_SKIP_IF_NO_TLS;
 
 	proxy = soup_test_server_new (SOUP_TEST_SERVER_IN_THREAD);
 	proxy_uri = soup_test_server_get_uri (proxy, SOUP_URI_SCHEME_HTTP, "127.0.0.1");
