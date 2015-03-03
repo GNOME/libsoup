@@ -628,7 +628,7 @@ process_contents (SoupWebsocketConnection *self,
 
 		if (opcode) {
 			pv->message_opcode = opcode;
-			pv->message_data = g_byte_array_sized_new (payload_len);
+			pv->message_data = g_byte_array_sized_new (payload_len + 1);
 		}
 
 		switch (pv->message_opcode) {
