@@ -4,14 +4,14 @@
 # pomóc w jego rozwijaniu i pielęgnowaniu, napisz do nas:
 # gnomepl@aviary.pl
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Piotr Drąg <piotrdrag@gmail.com>, 2012-2014.
-# Aviary.pl <gnomepl@aviary.pl>, 2012-2014.
+# Piotr Drąg <piotrdrag@gmail.com>, 2012-2015.
+# Aviary.pl <gnomepl@aviary.pl>, 2012-2015.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-09-07 03:15+0200\n"
-"PO-Revision-Date: 2014-09-07 03:17+0200\n"
+"POT-Creation-Date: 2015-03-05 00:19+0100\n"
+"PO-Revision-Date: 2015-03-05 00:20+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <gnomepl@aviary.pl>\n"
 "Language: pl\n"
@@ -25,7 +25,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Połączenie zostało nieoczekiwanie zakończone"
 
@@ -37,11 +37,11 @@ msgstr "Nieprawidłowe żądanie przewinięcia"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Nie można skrócić SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Strumień sieciowy został nieoczekiwanie zamknięty"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Całkowite umieszczenie zasobu w pamięci podręcznej się nie powiodło"
 
@@ -58,15 +58,15 @@ msgstr "Nie można przetworzyć odpowiedzi HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Nierozpoznane kodowanie odpowiedzi HTTP"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "Anulowano działanie"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "Działanie spowodowałoby zablokowanie"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "Anulowano działanie"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Nie można przetworzyć żądania HTTP"
 
@@ -80,41 +80,87 @@ msgstr "Nie podano adresu URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "Nieprawidłowy adres URI \"%s\": %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Nie można utworzyć serwera TLS bez certyfikatu TLS"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "Nie można nasłuchiwać na adresie %s, porcie %d"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Nie można przetworzyć adresu URI \"%s\""
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Nieobsługiwany schemat adresu URI \"%s\""
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Nie jest adresem URI protokołu HTTP"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Serwer nie przyjął powitania WebSocket."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "Nie można zaimportować niegniazda jako SoupSocket"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Nie można zaimportować istniejącego gniazda: "
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "Nie można zaimportować niepołączonego gniazda"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "Oczekiwano powitania WebSocket"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Nieobsługiwana wersja WebSocket"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Nieprawidłowy klucz WebSocket"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Niepoprawny nagłówek \"%s\" WebSocket"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Nieobsługiwany podprotokół WebSocket"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "Serwer odrzucił powitanie WebSocket"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "Serwer zignorował powitanie WebSocket"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Serwer zażądał nieobsługiwanego protokołu"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Serwer zażądał nieobsługiwanego rozszerzenia"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Serwer zwrócił niepoprawny klucz \"%s\""
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
