@@ -1,15 +1,15 @@
 # Italian translations for libsoup package
-# Copyright (C) 2012, 2013, 2014 the Free Software Foundation, Inc.
+# Copyright (C) 2012, 2013, 2014, 2015 the Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
-# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014.
+# Milo Casagrande <milo@milo.name>, 2012, 2013, 2014, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-10-05 10:00+0000\n"
-"PO-Revision-Date: 2014-10-05 14:54+0100\n"
+"POT-Creation-Date: 2015-03-04 23:00+0000\n"
+"PO-Revision-Date: 2015-03-05 09:13+0100\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
 "Language: it\n"
@@ -17,11 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
-"X-Generator: Poedit 1.6.9\n"
+"X-Generator: Poedit 1.7.4\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Connessione terminata inaspettatamente"
 
@@ -33,11 +33,11 @@ msgstr "Richiesta di posizionamento non valida"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Impossibile troncare SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Flusso di rete chiuso inaspettatamente"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Salvataggio in memoria della risorsa non riuscito"
 
@@ -54,15 +54,15 @@ msgstr "Impossibile analizzare la risposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codifica risposta HTTP non riconosciuta"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "L'operazione è stata annullata"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "L'operazione potrebbe bloccarsi"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "L'operazione è stata annullata"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Impossibile analizzare la richiesta HTTP"
 
@@ -76,41 +76,87 @@ msgstr "Nessun URI fornito"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI «%s» non valido: %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Impossibile creare un server TLS senza un certificato TLS"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "Impossibile restare in ascolto sull'indirizzo %s, porta %d"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Impossibile analizzare l'URI «%s»"
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Schema URI «%s» non supportato"
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Non è uno URI HTTP"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Il server non ha accettato l'handshake WebSocket."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "Impossibile importare un non-socket come SoupSocket"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Impossibile importare il socket esistente:"
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "Impossibile importare un socket non connesso"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "Atteso handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Version WebSocket non supportata"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Chiave WebSocket non valida"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Intestazione WebSocket «%s» non valida"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Sotto-protocollo WebSocket non supportato"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "Il server ha rifiutato l'handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "Il server ha ignorato l'handshake WebSocket"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Il server ha richiesto un protocollo non supportato"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Il server ha richiesto un'estensione non supportata"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Il server ha restituito una chiave «%s» non corretta"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
