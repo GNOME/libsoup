@@ -303,12 +303,15 @@ soup_auth_ntlm_update_connection (SoupConnectionAuth *auth, SoupMessage *msg,
 	if (conn->state > SOUP_NTLM_SENT_REQUEST) {
 		if (priv->password_state == SOUP_NTLM_PASSWORD_ACCEPTED) {
 			/* We know our password is correct, so a 401
-			 * means "permission denied". Since the conn
-			 * state is now FAILED, the auth is no longer
-			 * is_ready() for this message, so this will
-			 * cause a "retrying" authenticate signal.
+			 * means "permission denied". The code can't deal
+			 * with re-authenticating correctly, so make sure
+			 * we don't try.
 			 */
 			conn->state = SOUP_NTLM_FAILED;
+			if (soup_message_is_keepalive (msg)) {
+				soup_message_headers_append (msg->response_headers,
+							     "Connection", "close");
+			}
 			return TRUE;
 		}
 

@@ -456,12 +456,12 @@ do_ntlm_round (SoupURI *base_uri, gboolean use_ntlm,
 		    SOUP_STATUS_UNAUTHORIZED);
 
 	/* 8. Server accepts Basic or NTLM from either user.
-	 * Alice-via-NTLM is still authenticated at this point from #6,
-	 * and Bob-via-NTLM is authenticated from #7, so neither
-	 * of them will do anything.
+	 * NTLM users will try NTLM without getting a prompt (their
+	 * previous NTLM connections will have been closed by the 401
+	 * from /basic). Non-NTLM users will be prompted for either.
 	 */
 	do_message (session, base_uri, "/either",
-		    !use_ntlm, FALSE,
+		    !use_ntlm, use_ntlm,
 		    !use_ntlm, !use_ntlm && user != NULL,
 		    user != NULL ? SOUP_STATUS_OK :
 		    SOUP_STATUS_UNAUTHORIZED);
