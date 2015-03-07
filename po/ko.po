@@ -3,15 +3,15 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # eukim <eukim@redhat.com>, 2012.
-# Changwoo Ryu <cwryu@debian.org>, 2013-2014.
+# Changwoo Ryu <cwryu@debian.org>, 2013-2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-04 09:45+0000\n"
-"PO-Revision-Date: 2014-09-05 06:21+0900\n"
+"POT-Creation-Date: 2015-03-07 11:02+0000\n"
+"PO-Revision-Date: 2015-03-08 03:42+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: Korean <gnome-kr@googlegroups.com>\n"
 "Language: ko\n"
@@ -23,7 +23,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "예상치 않게 연결이 중지됨"
 
@@ -35,11 +35,11 @@ msgstr "탐색 요청이 잘못되었습니다"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream을 자를 수 없습니다"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "네트워크 스트림이 예상치 못하게 닫혔습니다"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "리소스를 완전히 캐시에 저장하는데 실패했습니다"
 
@@ -56,15 +56,15 @@ msgstr "HTTP 응답을 구문 분석할 수 없습니다"
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP 응답 인코딩을 알 수 없습니다"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "작업이 취소되었습니다"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "작업이 블럭되었습니다"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "작업이 취소되었습니다"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "HTTP 요청을 구문 분석할 수 없습니다"
 
@@ -78,41 +78,87 @@ msgstr "URI가 없습니다"
 msgid "Invalid '%s' URI: %s"
 msgstr "잘못된 '%s' URI: %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "TLS 인증서 없이 TLS 서버를 만들 수 없습니다"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "주소 %s, 포트 %d번에 연결을 받을 수 없습니다"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "'%s' URI를 구문 분석할 수 없습니다"
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "'%s' URI 스킴을 지원하지 않습니다"
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI가 아닙니다"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "서버에서 웹소켓 핸드셰이크를 받아들이지 않습니다."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "소켓이 아닌 핸들을 SoupSocket으로 가져올 수 없습니다"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "기존 소켓을 가져올 수 없습니다: "
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "연결하지 않은 소켓을 가져올 수 없습니다"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "웹소켓 핸드셰이크가 와야 합니다"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "웹소켓 버전을 지원하지 않습니다"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "웹소켓 키가 올바르지 않습니다"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "웹소켓 \"%s\" 헤더가 올바르지 않습니다"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "웹소켓 서브프로토콜을 지원하지 않습니다"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "서버에서 웹소켓 핸드셰이크를 거부했습니다"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "서버에서 웹소켓 핸드셰이크를 무시헀습니다"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "서버에서 지원하지 않는 프로토콜을 요청했습니다"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "서버에서 지원하지 않는 확장 기능을 요청했습니다"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "서버에서 올바르지 않은 \"%s\" 키를 리턴했습니다"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
