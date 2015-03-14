@@ -1,0 +1,124 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: libsoup2.4\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=libsoup&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2015-02-26 23:06+0000\n"
+"PO-Revision-Date: 2015-02-04 15:38+0000\n"
+"Last-Translator: Samir Ribić <Unknown>\n"
+"Language-Team: Bosnian <bs@li.org>\n"
+"Language: bs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2015-02-05 06:47+0000\n"
+"X-Generator: Launchpad (build 17331)\n"
+
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:200
+msgid "Connection terminated unexpectedly"
+msgstr "Konekcija je neočekivano završena"
+
+#: ../libsoup/soup-body-input-stream.c:462
+msgid "Invalid seek request"
+msgstr "Zatražena je neispravna pretraga"
+
+#: ../libsoup/soup-body-input-stream.c:490
+msgid "Cannot truncate SoupBodyInputStream"
+msgstr "Ne mogu odsjećie SoupBodyInputStream"
+
+#: ../libsoup/soup-cache-input-stream.c:73
+msgid "Network stream unexpectedly closed"
+msgstr "Mrežni protok neočekivano zatvoren"
+
+#: ../libsoup/soup-cache-input-stream.c:290
+msgid "Failed to completely cache the resource"
+msgstr "Nije uspjelo u potpunosti keširanje resursa"
+
+#: ../libsoup/soup-converter-wrapper.c:192
+#, c-format
+msgid "Output buffer is too small"
+msgstr "Izlazni bafer je premali"
+
+#: ../libsoup/soup-message-client-io.c:41
+msgid "Could not parse HTTP response"
+msgstr "Nije moguće analizirati HTTP odgovor"
+
+#: ../libsoup/soup-message-client-io.c:66
+msgid "Unrecognized HTTP response encoding"
+msgstr "Neprepoznato HTTP kodiranje odgovora"
+
+#: ../libsoup/soup-message-io.c:357 ../libsoup/soup-message-io.c:960
+msgid "Operation would block"
+msgstr "Operacija bi se blokirala"
+
+#: ../libsoup/soup-message-io.c:912 ../libsoup/soup-message-io.c:949
+msgid "Operation was cancelled"
+msgstr "Operacija je prekinuta"
+
+#: ../libsoup/soup-message-server-io.c:41
+msgid "Could not parse HTTP request"
+msgstr "Nije moguće analizirati HTTP zahtjeve"
+
+#: ../libsoup/soup-request.c:140
+#, c-format
+msgid "No URI provided"
+msgstr "URI nije naveden"
+
+#: ../libsoup/soup-request.c:150
+#, c-format
+msgid "Invalid '%s' URI: %s"
+msgstr "Nevažeći '%s' URI: %s"
+
+#: ../libsoup/soup-server.c:1529
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "Ne mogu stvoriti TLS poslužitelja bez TLS certifikat"
+
+#: ../libsoup/soup-server.c:1548
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "Ne mogu slušati na adresi %s,%d port"
+
+#: ../libsoup/soup-session.c:4485
+#, c-format
+msgid "Could not parse URI '%s'"
+msgstr "Ne mogu analizirati URI '%s'"
+
+#: ../libsoup/soup-session.c:4522
+#, c-format
+msgid "Unsupported URI scheme '%s'"
+msgstr "Nepodržana URI šema '%s'"
+
+#: ../libsoup/soup-session.c:4544
+#, c-format
+msgid "Not an HTTP URI"
+msgstr "Nije HTTP URI"
+
+#: ../libsoup/soup-socket.c:142
+msgid "Can't import non-socket as SoupSocket"
+msgstr "Ne možete uvesti ne-utičnice kao SoupSocket"
+
+#: ../libsoup/soup-socket.c:160
+msgid "Could not import existing socket: "
+msgstr "Ne mogu se uvesti postojeće utičnice: "
+
+#: ../libsoup/soup-socket.c:169
+msgid "Can't import unconnected socket"
+msgstr "Ne mogu uvesti nepovezane utičnice"
+
+#: ../libsoup/soup-tld.c:188
+msgid "Hostname is an IP address"
+msgstr "Ime domaćina je IP adresa"
+
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
+msgid "Invalid hostname"
+msgstr "Loše ime domaćina"
+
+#: ../libsoup/soup-tld.c:250
+msgid "Hostname has no base domain"
+msgstr "Ime domaćina nema baznu domenu"
+
+#: ../libsoup/soup-tld.c:304
+msgid "Not enough domains"
+msgstr "Nema dovoljno domena"
