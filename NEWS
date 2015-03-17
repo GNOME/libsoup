@@ -1,3 +1,12 @@
+Changes in libsoup from 2.49.91.1 to 2.49.92:
+
+	* Fixed an NTLM problem that caused spurious "Authentication
+          Failed" errors in evolution-ews. [#735197]
+
+	* New/updated translations:
+	  Bosnian, Czech, Greek, Hebrew, Italian, Korean, Lithuanian,
+	  Polish, Serbian, Slovak, Slovenian, Spanish, Swedish
+
 Changes in libsoup from 2.49.1 to 2.49.91.1:
 
 	* WebSockets! Libsoup now has support for WebSockets in both
