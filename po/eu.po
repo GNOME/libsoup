@@ -2,15 +2,15 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 #
-# Iñaki Larrañaga Murgoitio <dooteo@zundan.com>, 2013, 2014.
+# Iñaki Larrañaga Murgoitio <dooteo@zundan.com>, 2013, 2014, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-08-07 15:14+0200\n"
-"PO-Revision-Date: 2014-08-05 17:32+0200\n"
+"POT-Creation-Date: 2015-03-21 15:54+0100\n"
+"PO-Revision-Date: 2015-03-21 15:57+0100\n"
 "Last-Translator: Iñaki Larrañaga Murgoitio <dooteo@zundan.com>\n"
 "Language-Team: Basque <librezale@librezale.org>\n"
 "Language: eu\n"
@@ -22,7 +22,7 @@ msgstr ""
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Konexioa ustekabean amaitu da"
 
@@ -34,11 +34,11 @@ msgstr "Bilaketa-eskaera baliogabea"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "Ezin da SoupBodyInputStream trunkatu"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Sarearen korrontea ustekabean itxi da"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Huts egin du baliabidea erabat cachean gordetzean"
 
@@ -55,15 +55,15 @@ msgstr "Ezin izan da HTTP erantzuna analizatu"
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP erantzunaren kodeketa ezezaguna"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "Eragiketa bertan behera utzi da"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "Eragiketak blokea dezake"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "Eragiketa bertan behera utzi da"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "Ezin izan da HTTP eskaera analizatu"
 
@@ -77,41 +77,87 @@ msgstr "Ez da URIrik eman"
 msgid "Invalid '%s' URI: %s"
 msgstr "Baliogabeko '%s' URIa: %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Ezin da TLS zerbitzaria sortu TLS ziurtagirik gabe"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "Ezin izan da '%s:%d' helbidean entzun"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "Ezin izan da '%s' URIa analizatu"
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Onartu gabeko '%s' URI eskema"
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "Ez da HTTP URIa"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Zerbitzariak ez du WebSocket diosala onartu"
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "Ezin da SoupSocket bezalako ez-socketa inportatu"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Ezin izan da dagoen socket-a inportatu:"
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "Ezin da deskonektatutako socket-a inportatu"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "WebSocket diosala espero zen"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Onartu gabeko WebSocket bertsioa"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Baliogabeko WebSocket gakoa"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Okerreko \"%s\" WebSocket-aren goiburua"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Onartu gabeko WebSocket azpi-protokoloa"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "Zerbitzariak ukatu egin du WebSocket diosala"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "Zerbitzariak ez ikusi egin dio WebSocket diosalari"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "Zerbitzariak onartu gabeko protokoloa eskatu du"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "Zerbitzariak onartu gabeko hedapena eskatu du"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Zerbitzariak okerreko \"%s\" gakoa itzuli du"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
@@ -128,3 +174,4 @@ msgstr "Ostalari-izenak ez dauka oinarrizko domeinurik"
 #: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "Ez dago nahikoa domeinurik"
+
