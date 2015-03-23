@@ -1,3 +1,9 @@
+Changes in libsoup from 2.49.92 to 2.50:
+
+	* Updated translations:
+	  Basque, Chinese (Taiwan), Danish, Indonesian,
+	  Norwegian bokmål
+
 Changes in libsoup from 2.49.91.1 to 2.49.92:
 
 	* Fixed an NTLM problem that caused spurious "Authentication
