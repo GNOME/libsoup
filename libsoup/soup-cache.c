@@ -295,7 +295,7 @@ remove_headers (const char *name, const char *value, SoupMessageHeaders *headers
 	soup_message_headers_remove (headers, name);
 }
 
-static char *hop_by_hop_headers[] = {"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade"};
+static char *hop_by_hop_headers[] = {"Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade", "Set-Cookie"};
 
 static void
 copy_end_to_end_headers (SoupMessageHeaders *source, SoupMessageHeaders *destination)
