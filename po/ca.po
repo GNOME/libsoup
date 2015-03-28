@@ -2,25 +2,26 @@
 # Copyright (C) 2012 Free Software Foundation, Inc.
 # This file is distributed under the same license as the libsoup package.
 # Gil Forcada <gilforcada@guifi.net>, 2012, 2013, 2014.
-#
+# Xavi Ivars <xavi.ivars@gmail.com>, 2015.
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-08-17 09:44+0000\n"
-"PO-Revision-Date: 2014-08-17 13:30+0200\n"
-"Last-Translator: Gil Forcada <gilforcada@guifi.net>\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-03-28 20:03+0100\n"
+"PO-Revision-Date: 2015-03-28 13:19+0200\n"
+"Last-Translator: Xavi Ivars <xavi.ivars@gmail.com>\n"
 "Language-Team: Catalan <tradgnome@softcatala.org>\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bits\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.7.1\n"
+"X-Project-Style: gnome\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:196
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "S'ha finalitzat la connexió inesperadament"
 
@@ -32,11 +33,11 @@ msgstr "La petició de cerca no és vàlida"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No es pot truncar el SoupBodyInputStream"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "S'ha tancat inesperadament el flux de xarxa"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "No s'ha pogut carregar completament el recurs a la memòria cau"
 
@@ -53,15 +54,15 @@ msgstr "No s'ha pogut analitzar la resposta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "No es reconeix la codificació de la resposta HTTP"
 
-#: ../libsoup/soup-message-io.c:854 ../libsoup/soup-message-io.c:890
-msgid "Operation was cancelled"
-msgstr "S'ha cancel·lat l'operació"
-
-#: ../libsoup/soup-message-io.c:901
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "L'operació bloquejaria"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "S'ha cancel·lat l'operació"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "No s'ha pogut analitzar la petició HTTP"
 
@@ -75,41 +76,88 @@ msgstr "No s'ha proporcionat cap URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "L'URI «%s» no és vàlid: %s"
 
-#: ../libsoup/soup-server.c:1528
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "No es pot crear un servidor de TLS sense un certificat TLS"
 
-#: ../libsoup/soup-server.c:1547
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "No es pot escoltar a l'adreça %s, port %d"
 
-#: ../libsoup/soup-session.c:4466
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "No s'ha pogut analitzar l'URI «%s»"
 
-#: ../libsoup/soup-session.c:4503
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "No es sap gestionar l'esquema d'URI «%s»"
 
-#: ../libsoup/soup-session.c:4525
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No és un URI HTTP"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr ""
+"El servidor no ha acceptat la conformitat de la connexió del WebSocket."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "No es pot importar un objecte que no sigui un sòcol com a SoupSocket"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "No s'ha pogut importar un sòcol existent: "
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "No es pot importar un sòcol desconnectat"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "S'esperava una conformitat de la connexió del WebSocket"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Versió del WebSocket no implementada"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Clau del WebSocket invàlida"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "La capçalera «%s» del WebSocket és incorrecta"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Subprotocol del WebSocket no implementat"
+
+#: ../libsoup/soup-websocket.c:510
+msgid "Server rejected WebSocket handshake"
+msgstr "El servidor ha rebutjat la conformitat de la connexió del WebSocket"
+
+#: ../libsoup/soup-websocket.c:518 ../libsoup/soup-websocket.c:527
+msgid "Server ignored WebSocket handshake"
+msgstr "El servidor ha ignorat la conformitat de la connexió del WebSocket"
+
+#: ../libsoup/soup-websocket.c:539
+msgid "Server requested unsupported protocol"
+msgstr "El servidor ha demanat un protocol no implementat"
+
+#: ../libsoup/soup-websocket.c:549
+msgid "Server requested unsupported extension"
+msgstr "El servidor ha demanat una extensió no implementada"
+
+#: ../libsoup/soup-websocket.c:562
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "El servidor ha enviat una clau «%s» incorrecta"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
