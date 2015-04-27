@@ -54,8 +54,8 @@ do_msg_tests_for_session (SoupSession *timeout_session,
 			  SoupURI *fast_uri,
 			  SoupURI *slow_uri)
 {
-	SoupSocket *ret, *idle_first, *idle_second;
-	SoupSocket *plain_first, *plain_second;
+	SoupSocket *ret, *idle_first = NULL, *idle_second;
+	SoupSocket *plain_first = NULL, *plain_second;
 
 	if (idle_session) {
 		g_signal_connect (idle_session, "request-started",
@@ -152,8 +152,8 @@ do_req_tests_for_session (SoupSession *timeout_session,
 			  SoupURI *fast_uri,
 			  SoupURI *slow_uri)
 {
-	SoupSocket *ret, *idle_first, *idle_second;
-	SoupSocket *plain_first, *plain_second;
+	SoupSocket *ret, *idle_first = NULL, *idle_second;
+	SoupSocket *plain_first = NULL, *plain_second;
 
 	if (idle_session) {
 		g_signal_connect (idle_session, "request-started",
