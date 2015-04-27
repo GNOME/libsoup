@@ -898,7 +898,7 @@ soup_content_sniffer_session_feature_init (SoupSessionFeatureInterface *feature_
  * Since: 2.28
  **/
 SoupContentSniffer *
-soup_content_sniffer_new ()
+soup_content_sniffer_new (void)
 {
 	return g_object_new (SOUP_TYPE_CONTENT_SNIFFER, NULL);
 }

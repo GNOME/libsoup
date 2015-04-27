@@ -581,7 +581,7 @@ create_cancel_data (SoupRequest          *req,
 	return cancel_data;
 }
 
-static void inline
+inline static void
 cancel_message_or_cancellable (CancelData *cancel_data)
 {
 	if (cancel_data->flags & SOUP_TEST_REQUEST_CANCEL_MESSAGE) {
