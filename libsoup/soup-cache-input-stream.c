@@ -286,10 +286,10 @@ soup_cache_input_stream_close_fn (GInputStream  *stream,
 			if (g_output_stream_has_pending (priv->output_stream))
 				g_cancellable_cancel (priv->cancellable);
 			else {
-				GError *error = NULL;
-				g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT,
+				GError *notify_error = NULL;
+				g_set_error_literal (&notify_error, G_IO_ERROR, G_IO_ERROR_PARTIAL_INPUT,
 						     _("Failed to completely cache the resource"));
-				notify_and_clear (istream, error);
+				notify_and_clear (istream, notify_error);
 			}
 		} else if (priv->cancellable)
 			/* The file_replace_async() hasn't finished yet */

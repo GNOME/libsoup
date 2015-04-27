@@ -13,22 +13,20 @@ G_BEGIN_DECLS
 
 #define SOUP_VALUE_SETV(val, type, args)				\
 G_STMT_START {								\
-	char *error = NULL;						\
+	char *setv_error = NULL;					\
 									\
 	memset (val, 0, sizeof (GValue));				\
 	g_value_init (val, type);					\
-	G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &error);	\
-	if (error)							\
-		g_free (error);						\
+	G_VALUE_COLLECT (val, args, G_VALUE_NOCOPY_CONTENTS, &setv_error);	\
+	g_free (setv_error);						\
 } G_STMT_END
 
 #define SOUP_VALUE_GETV(val, type, args)				\
 G_STMT_START {								\
-	char *error = NULL;						\
+	char *getv_error = NULL;					\
 									\
-	G_VALUE_LCOPY (val, args, G_VALUE_NOCOPY_CONTENTS, &error);	\
-	if (error)							\
-		g_free (error);						\
+	G_VALUE_LCOPY (val, args, G_VALUE_NOCOPY_CONTENTS, &getv_error);	\
+	g_free (getv_error);						\
 } G_STMT_END
 
 GHashTable  *soup_value_hash_new            (void);
