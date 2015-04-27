@@ -11,8 +11,6 @@
 #include "soup-content-processor.h"
 #include "soup.h"
 
-static void soup_content_processor_default_init (SoupContentProcessorInterface *interface);
-
 G_DEFINE_INTERFACE (SoupContentProcessor, soup_content_processor, G_TYPE_OBJECT)
 
 static GInputStream *

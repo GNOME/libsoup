@@ -12,8 +12,6 @@
 #include "soup-proxy-resolver.h"
 #include "soup.h"
 
-static void soup_proxy_resolver_default_init (SoupProxyResolverInterface *iface);
-
 G_DEFINE_INTERFACE_WITH_CODE (SoupProxyResolver, soup_proxy_resolver, G_TYPE_OBJECT,
 			      g_type_interface_add_prerequisite (g_define_type_id, SOUP_TYPE_SESSION_FEATURE);
 			      )

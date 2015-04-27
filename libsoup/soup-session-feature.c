@@ -52,8 +52,6 @@
  * Since: 2.24
  **/
 
-static void soup_session_feature_default_init (SoupSessionFeatureInterface *iface);
-
 G_DEFINE_INTERFACE (SoupSessionFeature, soup_session_feature, G_TYPE_OBJECT)
 
 static void
