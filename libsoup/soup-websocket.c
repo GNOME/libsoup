@@ -415,16 +415,15 @@ respond_handshake_bad (SoupMessage *msg, const char *why)
 /**
  * soup_websocket_server_process_handshake:
  * @msg: #SoupMessage containing the client side of a WebSocket handshake
- * @origin: (allow-none): expected Origin header
+ * @expected_origin: (allow-none): expected Origin header
  * @protocols: (allow-none) (array zero-terminated=1): allowed WebSocket
  *   protocols.
- * @error: return location for a #GError
  *
  * Examines the method and request headers in @msg and (assuming @msg
  * contains a valid handshake request), fills in the handshake
  * response.
  *
- * If @origin is non-%NULL, then only requests containing a matching
+ * If @expected_origin is non-%NULL, then only requests containing a matching
  * "Origin" header will be accepted. If @protocols is non-%NULL, then
  * only requests containing a compatible "Sec-WebSocket-Protocols"
  * header will be accepted.
@@ -434,8 +433,7 @@ respond_handshake_bad (SoupMessage *msg, const char *why)
  * connections, it will call this for you.
  *
  * Returns: %TRUE if @msg contained a valid WebSocket handshake
- *   request and was updated to contain a handshake response. %FALSE
- *   and an error if not.
+ *   request and was updated to contain a handshake response. %FALSE if not.
  *
  * Since: 2.50
  */

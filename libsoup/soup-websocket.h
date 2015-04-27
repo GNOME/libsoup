@@ -85,7 +85,7 @@ gboolean soup_websocket_server_check_handshake   (SoupMessage  *msg,
 
 SOUP_AVAILABLE_IN_2_50
 gboolean soup_websocket_server_process_handshake (SoupMessage  *msg,
-						  const char   *origin,
+						  const char   *expected_origin,
 						  char        **protocols);
 
 G_END_DECLS
