@@ -6,28 +6,31 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2013-02-19 15:37+0000\n"
-"PO-Revision-Date: 2013-02-19 23:17+0100\n"
-"Last-Translator: Daniel Martinez <entaltoaragon@gmail.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=libsoup"
+"&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2015-05-06 22:23+0000\n"
+"PO-Revision-Date: 2015-05-07 23:03+0200\n"
+"Last-Translator: Daniel <entaltoaragon@gmail.com>\n"
 "Language-Team: Aragonese <softaragones@googlegroups.com>\n"
 "Language: an\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.5.1.1\n"
+"X-POOTLE-MTIME: 1431036239.000000\n"
 
-#: ../libsoup/soup-body-input-stream.c:141
-#: ../libsoup/soup-body-input-stream.c:172
-#: ../libsoup/soup-body-input-stream.c:205
-#: ../libsoup/soup-message-io.c:191
+#: ../libsoup/soup-body-input-stream.c:140
+#: ../libsoup/soup-body-input-stream.c:171
+#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "A connexión remató inasperadament"
 
-#: ../libsoup/soup-body-input-stream.c:463
+#: ../libsoup/soup-body-input-stream.c:462
 msgid "Invalid seek request"
 msgstr "Petición de búsqueda no válida"
 
-#: ../libsoup/soup-body-input-stream.c:491
+#: ../libsoup/soup-body-input-stream.c:490
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "No se puede truncar SoupBodyInputStream"
 
@@ -52,16 +55,15 @@ msgstr "No se podió analisar a respuesta HTTP"
 msgid "Unrecognized HTTP response encoding"
 msgstr "Codificación d'a respuesta HTTP no reconoixida"
 
-#: ../libsoup/soup-message-io.c:846
-#: ../libsoup/soup-message-io.c:882
-msgid "Operation was cancelled"
-msgstr "Se canceló a operación"
-
-#: ../libsoup/soup-message-io.c:893
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "A operación se blocará"
 
-#: ../libsoup/soup-message-server-io.c:40
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
+msgid "Operation was cancelled"
+msgstr "Se canceló a operación"
+
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "No se podió analisar a solicitut HTTP"
 
@@ -75,34 +77,100 @@ msgstr "No s'ha proporcionau un URI"
 msgid "Invalid '%s' URI: %s"
 msgstr "URI '%s' no válida: %s"
 
-#: ../libsoup/soup-session.c:4211
+#: ../libsoup/soup-server.c:1711
+msgid "Can't create a TLS server without a TLS certificate"
+msgstr "No se puede creyar un servidor TLS sin un certificau TLS"
+
+#: ../libsoup/soup-server.c:1730
+#, c-format
+msgid "Could not listen on address %s, port %d"
+msgstr "No se puede escuitar en l'adreza %s, puerto %d"
+
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
-msgstr "No se podió analisar l'URI «%s»"
+msgstr "No se podió analisar l'URI '%s'"
 
-#: ../libsoup/soup-session.c:4248
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
-msgstr "Esquema %s d'URI no suportau"
+msgstr "Esquema '%s' d'URI no suportau"
 
-#: ../libsoup/soup-session.c:4270
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "No ye un URI HTTP"
 
-#: ../libsoup/soup-tld.c:185
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "O servidor no ha acceptau a negociación WebSocket."
+
+#: ../libsoup/soup-socket.c:148
+msgid "Can't import non-socket as SoupSocket"
+msgstr "No se puede importar bella cosa que no ye un socket como SoupSocket"
+
+#: ../libsoup/soup-socket.c:166
+msgid "Could not import existing socket: "
+msgstr "No se podió importar o socket existent: "
+
+#: ../libsoup/soup-socket.c:175
+msgid "Can't import unconnected socket"
+msgstr "No se puede importar un socket no connectau"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "S'asperaba a negociación WebSocket"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Versión de Websocket no suportada"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Clau de WebSocket no valida"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Capitero \"%s\" de WebSocket no valida"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Subprotocolo de WebSocket no suportau"
+
+#: ../libsoup/soup-websocket.c:508
+msgid "Server rejected WebSocket handshake"
+msgstr "O servidor ha refusau a negociación de WebSocket"
+
+#: ../libsoup/soup-websocket.c:516 ../libsoup/soup-websocket.c:525
+msgid "Server ignored WebSocket handshake"
+msgstr "O servidor ha ignorau a negociación de WebSocket"
+
+#: ../libsoup/soup-websocket.c:537
+msgid "Server requested unsupported protocol"
+msgstr "O servidor ha solicitau un protocolo no suportau"
+
+#: ../libsoup/soup-websocket.c:547
+msgid "Server requested unsupported extension"
+msgstr "O servidor ha solicitau una extensión no suportada"
+
+#: ../libsoup/soup-websocket.c:560
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "O servidor ha tornau una clau \"%s\" incorrecta"
+
+#: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
 msgstr "O nombre de l'equipo ye una adreza IP"
 
-#: ../libsoup/soup-tld.c:206
+#: ../libsoup/soup-tld.c:198 ../libsoup/soup-tld.c:220
 msgid "Invalid hostname"
 msgstr "O nombre de l'equipo no ye válido"
 
-#: ../libsoup/soup-tld.c:235
+#: ../libsoup/soup-tld.c:250
 msgid "Hostname has no base domain"
 msgstr "O nombre de l'equipo no tiene un dominio base"
 
-#: ../libsoup/soup-tld.c:257
+#: ../libsoup/soup-tld.c:304
 msgid "Not enough domains"
 msgstr "No i hai suficients dominios"
-
