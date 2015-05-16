@@ -76,7 +76,10 @@ do_unconnected_socket_test (void)
 
 	/* listening socket fails with ENOTCONN */
 	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
-			       "*endpoint is not connected*");
+			       /* We can't check the error message since it comes from
+				* libc and is locale-dependent.
+				*/
+			       "*");
 	addr = soup_socket_get_remote_address (sock);
 	g_test_assert_expected_messages ();
 	g_assert_null (addr);
@@ -84,6 +87,7 @@ do_unconnected_socket_test (void)
 	soup_socket_disconnect (sock);
 
 	g_test_expect_message ("libsoup", G_LOG_LEVEL_WARNING,
+			       /* This error message comes from soup-socket.c though */
 			       "*socket not connected*");
 	addr = soup_socket_get_remote_address (sock);
 	g_test_assert_expected_messages ();
