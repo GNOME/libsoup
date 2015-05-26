@@ -312,6 +312,6 @@ check-local:
 	@nm $(builddir)/.libs/libsoup-2.4.so | \
 		grep "^[[:xdigit:]]\+ [BGTRS] " | \
 		sed "s/^[[:xdigit:]]\+ [BGTRS] //" | \
-		env LANG=C sort -u | \
+		env LC_ALL=C sort -u | \
 		diff -U0 $(srcdir)/libsoup-2.4.sym - >&2
 endif
