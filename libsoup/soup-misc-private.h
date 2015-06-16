@@ -46,4 +46,9 @@ SoupAddress *soup_address_new_from_gsockaddr (GSocketAddress *addr);
 gboolean           soup_host_matches_host    (const gchar *host,
 					      const gchar *compare_with);
 
+SoupServer *soup_server_new_reverse_http (GIOStream       *stream,
+					  GSocketAddress  *local_addr,
+					  GSocketAddress  *remote_addr,
+					  GError         **error);
+
 #endif /* __SOUP_MISC_PRIVATE_H__ */

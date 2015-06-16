@@ -1918,6 +1918,24 @@ soup_message_set_https_status (SoupMessage *msg, SoupConnection *conn)
 	}
 }
 
+void
+soup_message_set_is_reverse_http (SoupMessage *msg, gboolean is_reverse_http)
+{
+	SoupMessagePrivate *priv;
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	priv->is_reverse_http = is_reverse_http;
+}
+
+gboolean
+soup_message_get_is_reverse_http (SoupMessage *msg)
+{
+	SoupMessagePrivate *priv;
+
+	priv = SOUP_MESSAGE_GET_PRIVATE (msg);
+	return priv->is_reverse_http;
+}
+
 /**
  * soup_message_get_https_status:
  * @msg: a #SoupMessage

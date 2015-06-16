@@ -252,6 +252,27 @@ GIOStream *soup_session_connect_finish (SoupSession                       *sessi
 					GAsyncResult                      *result,
 					GError                           **error);
 
+SOUP_AVAILABLE_IN_2_66
+GQuark soup_reverse_http_error_quark (void);
+#define SOUP_REVERSE_HTTP_ERROR soup_reverse_http_error_quark ()
+
+typedef enum {
+	SOUP_REVERSE_HTTP_ERROR_NOT_REVERSE_HTTP,
+	SOUP_REVERSE_HTTP_ERROR_BAD_HANDSHAKE
+} SoupReverseHTTPError;
+
+SOUP_AVAILABLE_IN_2_66
+void                     soup_session_reverse_http_connect_async  (SoupSession          *session,
+								   SoupMessage          *msg,
+								   GCancellable         *cancellable,
+								   GAsyncReadyCallback   callback,
+								   gpointer              user_data);
+
+SOUP_AVAILABLE_IN_2_66
+SoupServer              *soup_session_reverse_http_connect_finish (SoupSession      *session,
+								   GAsyncResult     *result,
+								   GError          **error);
+
 G_END_DECLS
 
 #endif /* __SOUP_SESSION_H__ */

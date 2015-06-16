@@ -183,6 +183,8 @@ typedef struct {
 	SoupAddress       *legacy_iface;
 	int                legacy_port;
 
+	gboolean           is_reverse_http;
+
 	gboolean           disposed;
 
 } SoupServerPrivate;
@@ -1204,7 +1206,7 @@ request_finished (SoupMessage *msg, SoupMessageIOCompletion completion, gpointer
 	if (completion == SOUP_MESSAGE_IO_COMPLETE &&
 	    soup_socket_is_connected (sock) &&
 	    soup_message_is_keepalive (msg) &&
-	    priv->listeners) {
+	    (priv->listeners || priv->is_reverse_http)) {
 		start_request (server, client);
 	} else {
 		soup_socket_disconnect (client->sock);
@@ -1424,6 +1426,7 @@ start_request (SoupServer *server, SoupClientContext *client)
 	msg = g_object_new (SOUP_TYPE_MESSAGE,
 			    SOUP_MESSAGE_SERVER_SIDE, TRUE,
 			    NULL);
+	soup_message_set_is_reverse_http (msg, priv->is_reverse_http);
 	client->msg = msg;
 
 	if (priv->server_header) {
@@ -1522,6 +1525,29 @@ new_connection (SoupSocket *listener, SoupSocket *sock, gpointer user_data)
 	SoupServer *server = user_data;
 
 	soup_server_accept_socket (server, sock);
+}
+
+SoupServer *
+soup_server_new_reverse_http (GIOStream       *stream,
+			      GSocketAddress  *local_addr,
+			      GSocketAddress  *remote_addr,
+			      GError         **error)
+{
+	SoupServer *server;
+	SoupServerPrivate *priv;
+
+	g_return_val_if_fail (local_addr, NULL);
+	g_return_val_if_fail (remote_addr, NULL);
+
+	server = soup_server_new (NULL, NULL);
+	priv = soup_server_get_instance_private (server);
+	priv->is_reverse_http = TRUE;
+	if (!soup_server_accept_iostream (server, stream, local_addr, remote_addr, error)) {
+		g_object_unref (server);
+		return NULL;
+	}
+
+	return server;
 }
 
 /**

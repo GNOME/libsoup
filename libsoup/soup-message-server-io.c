@@ -103,13 +103,14 @@ parse_request_headers (SoupMessage *msg, char *headers, guint headers_len,
 	} else if (*req_path != '/') {
 		/* Absolute URI */
 		uri = soup_uri_new (req_path);
-	} else if (req_host) {
+	} else if (req_host && *req_host != '\0') {
 		url = g_strdup_printf ("%s://%s%s",
 				       soup_socket_is_ssl (sock) ? "https" : "http",
 				       req_host, req_path);
 		uri = soup_uri_new (url);
 		g_free (url);
-	} else if (priv->http_version == SOUP_HTTP_1_0) {
+	} else if (priv->http_version == SOUP_HTTP_1_0 ||
+		   soup_message_get_is_reverse_http (msg)) {
 		/* No Host header, no AbsoluteUri */
 		SoupAddress *addr = soup_socket_get_local_address (sock);
 

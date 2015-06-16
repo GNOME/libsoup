@@ -43,6 +43,8 @@ typedef struct {
 	SoupRequest       *request;
 
 	SoupMessagePriority priority;
+
+	gboolean           is_reverse_http;
 } SoupMessagePrivate;
 #define SOUP_MESSAGE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), SOUP_TYPE_MESSAGE, SoupMessagePrivate))
 
@@ -144,6 +146,10 @@ gboolean soup_message_disables_feature (SoupMessage *msg,
 
 void soup_message_set_https_status (SoupMessage    *msg,
 				    SoupConnection *conn);
+
+void soup_message_set_is_reverse_http (SoupMessage *msg,
+				       gboolean     is_reverse_http);
+gboolean soup_message_get_is_reverse_http (SoupMessage *msg);
 
 void soup_message_network_event (SoupMessage         *msg,
 				 GSocketClientEvent   event,

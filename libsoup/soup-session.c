@@ -5062,3 +5062,206 @@ soup_session_connect_finish (SoupSession  *session,
 
         return g_task_propagate_pointer (G_TASK (result), error);
 }
+
+/**
+ * SOUP_REVERSE_HTTP_ERROR:
+ *
+ * A #GError domain for reverse-HTTP-related errors. Used with
+ * #SoupReverseHTTPError.
+ *
+ * Since: 2.54
+ */
+/**
+ * SoupReverseHTTPError:
+ * @SOUP_REVERSE_HTTP_ERROR_NOT_REVERSE_HTTP: attempted to handshake with a
+ *   server that does not appear to understand reverse-HTTP.
+ * @SOUP_REVERSE_HTTP_ERROR_BAD_HANDSHAKE: the reverse-HTTP handshake failed
+ *   because some detail was invalid.
+ *
+ * reverse-HTTP-related errors.
+ *
+ * Since: 2.54
+ */
+
+GQuark
+soup_reverse_http_error_quark (void)
+{
+	static GQuark error;
+	if (!error)
+		return g_quark_from_static_string ("reverse-http-error-quark");
+	return error;
+}
+
+static void reverse_http_connect_async_stop (SoupMessage *msg, gpointer user_data);
+
+static void
+reverse_http_connect_async_complete (SoupSession *session, SoupMessage *msg, gpointer user_data)
+{
+	GTask *task = user_data;
+
+	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, task);
+
+	g_task_return_new_error (task,
+				 SOUP_REVERSE_HTTP_ERROR, SOUP_REVERSE_HTTP_ERROR_NOT_REVERSE_HTTP,
+				 "%s", _("The server did not accept the Reverse HTTP handshake."));
+	g_object_unref (task);
+}
+
+static gboolean
+soup_reverse_http_client_verify_handshake (SoupMessage  *msg,
+					   GError      **error)
+{
+	if (msg->status_code == SOUP_STATUS_BAD_REQUEST) {
+		g_set_error_literal (error,
+				     SOUP_REVERSE_HTTP_ERROR,
+				     SOUP_REVERSE_HTTP_ERROR_BAD_HANDSHAKE,
+				     _("Server rejected reverse-HTTP handshake"));
+		return FALSE;
+	}
+
+	if (msg->status_code != SOUP_STATUS_SWITCHING_PROTOCOLS) {
+		g_set_error_literal (error,
+				     SOUP_REVERSE_HTTP_ERROR,
+				     SOUP_REVERSE_HTTP_ERROR_BAD_HANDSHAKE,
+				     _("Server ignored reverse-HTTP handshake"));
+		return FALSE;
+	}
+
+	if (!soup_message_headers_header_equals (msg->response_headers, "Upgrade", "PTTH/1.0")) {
+		g_set_error_literal (error,
+				     SOUP_REVERSE_HTTP_ERROR,
+				     SOUP_REVERSE_HTTP_ERROR_BAD_HANDSHAKE,
+				     _("Server ignored reverse-HTTP handshake"));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void
+reverse_http_connect_async_stop (SoupMessage *msg, gpointer user_data)
+{
+	GTask *task = user_data;
+	SoupMessageQueueItem *item = g_task_get_task_data (task);
+	GError *error = NULL;
+
+	g_signal_handlers_disconnect_matched (msg, G_SIGNAL_MATCH_DATA,
+					      0, 0, NULL, NULL, task);
+
+	if (soup_reverse_http_client_verify_handshake (item->msg, &error)) {
+		SoupServer *server;
+		GIOStream *stream;
+		GSocket *socket;
+		GSocketAddress *local_addr, *remote_addr;
+
+		stream = soup_session_steal_connection (item->session, item->msg);
+		socket = g_object_get_data (G_OBJECT (stream), "GSocket");
+		local_addr = g_socket_get_local_address (socket, NULL);
+		remote_addr = g_socket_get_remote_address (socket, NULL);
+
+		if (!local_addr || !remote_addr) {
+			g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_NOT_CONNECTED,
+						 _("Local or remote address not connected"));
+			return;
+		} else {
+			server = soup_server_new_reverse_http (stream, local_addr, remote_addr, &error);
+			if (!server)
+				g_task_return_error (task, error);
+			else
+				g_task_return_pointer (task, server, g_object_unref);
+		}
+
+		g_clear_object (&local_addr);
+		g_clear_object (&remote_addr);
+	} else
+		g_task_return_error (task, error);
+	g_object_unref (task);
+}
+
+/**
+ * soup_session_reverse_http_connect_async:
+ * @session: a #SoupSession
+ * @msg: #SoupMessage indicating the reverse HTTP server to connect to
+ * @cancellable: a #GCancellable
+ * @callback: the callback to invoke
+ * @user_data: data for @callback
+ *
+ * Asynchronously creates a #SoupServer to communicate
+ * with a remote server. The path and method to use when creating the
+ * #SoupMessage are specific to the application you're connecting to.
+ *
+ * All necessary reverse-HTTP-related headers will be added to @msg, and
+ * it will then be sent and asynchronously processed normally.
+ *
+ * If the server returns "101 Switching Protocols", then @msg's status
+ * code and response headers will be updated, and then the reverse HTTP
+ * handshake will be completed. On success,
+ * soup_reverse_http_connect_finish() will return a new
+ * #SoupServer. On failure it will return a #GError.
+ *
+ * If the server returns a status other than "101 Switching
+ * Protocols", then @msg will contain the complete response headers
+ * and body from the server's response, and
+ * soup_reverse_http_connect_finish() will return
+ * %SOUP_REVERSE_HTTP_ERROR_NOT_REVERSE_HTTP.
+ *
+ * The <ulink
+ * url="http://tools.ietf.org/html/draft-lentczner-rhttp-00">Reverse HTTP draft RFC</ulink>
+ * contains more details about the mechanism.
+ *
+ * Since: 2.54
+ */
+void
+soup_session_reverse_http_connect_async (SoupSession          *session,
+					 SoupMessage          *msg,
+					 GCancellable         *cancellable,
+					 GAsyncReadyCallback   callback,
+					 gpointer              user_data)
+{
+	SoupSessionPrivate *priv;
+	SoupMessageQueueItem *item;
+	GTask *task;
+
+	g_return_if_fail (SOUP_IS_SESSION (session));
+	g_return_if_fail (SOUP_IS_MESSAGE (msg));
+
+	priv = soup_session_get_instance_private (session);
+	g_return_if_fail (priv->use_thread_context);
+
+	soup_message_headers_replace (msg->request_headers, "Upgrade", "PTTH/1.0");
+	soup_message_headers_append (msg->request_headers, "Connection", "Upgrade");
+
+	task = g_task_new (session, cancellable, callback, user_data);
+	item = soup_session_append_queue_item (session, msg, TRUE, FALSE,
+					       reverse_http_connect_async_complete, task);
+	g_task_set_task_data (task, item, (GDestroyNotify) soup_message_queue_item_unref);
+
+	soup_message_add_status_code_handler (msg, "got-informational",
+					      SOUP_STATUS_SWITCHING_PROTOCOLS,
+					      G_CALLBACK (reverse_http_connect_async_stop), task);
+	soup_session_kick_queue (session);
+}
+
+/**
+ * soup_session_reverse_http_connect_finish:
+ * Gets the response to a
+ * soup_session_reverse_http_connect_async() call and (if successful),
+ * returns a SoupServer that can be used to communicate
+ * with the server (which will now be the client).
+ *
+ * Return value: (transfer full): a new #SoupServer, or
+ *   %NULL on error.
+ *
+ * Since: 2.54
+ */
+SoupServer *
+soup_session_reverse_http_connect_finish (SoupSession      *session,
+				       GAsyncResult     *result,
+				       GError          **error)
+{
+	g_return_val_if_fail (SOUP_IS_SESSION (session), NULL);
+	g_return_val_if_fail (g_task_is_valid (result, session), NULL);
+
+	return g_task_propagate_pointer (G_TASK (result), error);
+}
