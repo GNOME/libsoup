@@ -1,3 +1,13 @@
+Changes in libsoup from 2.50.0 to 2.51.3:
+
+	* Fixed "make check" in non-English locales [rh #1224989,
+	  #749397]
+
+	* Fixed some compiler warnings [#748514, Philip Withnall]
+
+	* New/Updated translations:
+	  Aragonese, Catalan, Occitan, Russian
+
 Changes in libsoup from 2.49.92 to 2.50:
 
 	* Updated translations:
