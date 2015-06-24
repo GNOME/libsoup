@@ -105,7 +105,6 @@ soup_connection_set_property (GObject *object, guint prop_id,
 		else
 			priv->ssl = FALSE;
 		break;
-		break;
 	case PROP_SSL_FALLBACK:
 		priv->ssl_fallback = g_value_get_boolean (value);
 		break;
