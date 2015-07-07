@@ -273,15 +273,6 @@ Soup_2_4_gir_FILES = \
 
 INTROSPECTION_GIRS += Soup-2.4.gir
 
-if ENABLE_VAPIGEN
-libsoup-2.4.vapi: Soup-2.4.gir Soup-2.4.metadata
-	$(VAPIGEN) --metadatadir=$(top_srcdir)/libsoup --pkg gio-2.0 --library=libsoup-2.4 $^
-
-vapidir=$(VAPIDIR)
-vapi_DATA=libsoup-2.4.vapi
-CLEANFILES += $(vapi_DATA)
-endif
-
 if BUILD_LIBSOUP_GNOME
 
 # GNOME extensions
