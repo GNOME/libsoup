@@ -3,16 +3,16 @@
 # This file is distributed under the same license as the libsoup package.
 #
 # Ozan Çağlayan <ozancag@gmail.com>, 2013.
-# Necdet Yücel <necdetyucel@gmail.com>, 2014.
-# Muhammet Kara <muhammetk@gmail.com>, 2012, 2014.
+# Necdet Yücel <necdetyucel@gmail.com>, 2014, 2015.
+# Muhammet Kara <muhammetk@gmail.com>, 2012, 2014, 2015.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libsoup master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=libsoup&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-11-30 10:47+0000\n"
-"PO-Revision-Date: 2014-12-04 10:10+0200\n"
+"POT-Creation-Date: 2015-06-16 10:46+0000\n"
+"PO-Revision-Date: 2015-07-13 15:35+0300\n"
 "Last-Translator: Muhammet Kara <muhammetk@gmail.com>\n"
 "Language-Team: Türkçe <gnome-turk@gnome.org>\n"
 "Language: tr\n"
@@ -20,12 +20,13 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Gtranslator 2.91.6\n"
-"X-POOTLE-MTIME: 1416185481.000000\n"
+"X-Generator: Poedit 1.8.2\n"
+"X-POOTLE-MTIME: 1433280627.000000\n"
 
 #: ../libsoup/soup-body-input-stream.c:140
 #: ../libsoup/soup-body-input-stream.c:171
-#: ../libsoup/soup-body-input-stream.c:204 ../libsoup/soup-message-io.c:200
+#: ../libsoup/soup-body-input-stream.c:204
+#: ../libsoup/soup-message-io.c:235
 msgid "Connection terminated unexpectedly"
 msgstr "Bağlantı beklenmeyen bir şekilde sonlandı"
 
@@ -37,11 +38,11 @@ msgstr "Geçersiz arama talebi"
 msgid "Cannot truncate SoupBodyInputStream"
 msgstr "SoupBodyInputStream kesilemiyor"
 
-#: ../libsoup/soup-cache-input-stream.c:73
+#: ../libsoup/soup-cache-input-stream.c:74
 msgid "Network stream unexpectedly closed"
 msgstr "Ağ akışı beklenmeyen bir şekilde sonlandı"
 
-#: ../libsoup/soup-cache-input-stream.c:290
+#: ../libsoup/soup-cache-input-stream.c:291
 msgid "Failed to completely cache the resource"
 msgstr "Özkaynak tamamen önbelleğe alınamadı"
 
@@ -58,15 +59,15 @@ msgstr "HTTP cevabı ayrıştırılamadı"
 msgid "Unrecognized HTTP response encoding"
 msgstr "HTTP cevabı tanınmayan bir şekilde kodlanmış"
 
-#: ../libsoup/soup-message-io.c:357 ../libsoup/soup-message-io.c:960
+#: ../libsoup/soup-message-io.c:392 ../libsoup/soup-message-io.c:1020
 msgid "Operation would block"
 msgstr "İşlem bloke edebilir"
 
-#: ../libsoup/soup-message-io.c:912 ../libsoup/soup-message-io.c:949
+#: ../libsoup/soup-message-io.c:972 ../libsoup/soup-message-io.c:1005
 msgid "Operation was cancelled"
 msgstr "İşlem iptal edildi"
 
-#: ../libsoup/soup-message-server-io.c:41
+#: ../libsoup/soup-message-server-io.c:64
 msgid "Could not parse HTTP request"
 msgstr "HTTP talebi ayrıştırılamadı"
 
@@ -80,41 +81,87 @@ msgstr "URI verilmedi"
 msgid "Invalid '%s' URI: %s"
 msgstr "Geçersiz '%s' URI: %s"
 
-#: ../libsoup/soup-server.c:1529
+#: ../libsoup/soup-server.c:1711
 msgid "Can't create a TLS server without a TLS certificate"
 msgstr "Bir TLS sertifikası olmadan TLS sunucusu oluşturulamaz"
 
-#: ../libsoup/soup-server.c:1548
+#: ../libsoup/soup-server.c:1730
 #, c-format
 msgid "Could not listen on address %s, port %d"
 msgstr "%s adresinin %d bağlantı noktası dinlenemedi"
 
-#: ../libsoup/soup-session.c:4485
+#: ../libsoup/soup-session.c:4554
 #, c-format
 msgid "Could not parse URI '%s'"
 msgstr "URI '%s' ayrıştırılamadı"
 
-#: ../libsoup/soup-session.c:4522
+#: ../libsoup/soup-session.c:4591
 #, c-format
 msgid "Unsupported URI scheme '%s'"
 msgstr "Desteklenmeyen URI şeması '%s'"
 
-#: ../libsoup/soup-session.c:4544
+#: ../libsoup/soup-session.c:4613
 #, c-format
 msgid "Not an HTTP URI"
 msgstr "HTTP URI değil"
 
-#: ../libsoup/soup-socket.c:142
+#: ../libsoup/soup-session.c:4797
+msgid "The server did not accept the WebSocket handshake."
+msgstr "Sunucu WebSocket el sıkışmasını kabul etmedi."
+
+#: ../libsoup/soup-socket.c:148
 msgid "Can't import non-socket as SoupSocket"
 msgstr "SoupSocket olmayan soket içe aktarılamıyor"
 
-#: ../libsoup/soup-socket.c:160
+#: ../libsoup/soup-socket.c:166
 msgid "Could not import existing socket: "
 msgstr "Mevcut soket içe aktarılamadı: "
 
-#: ../libsoup/soup-socket.c:169
+#: ../libsoup/soup-socket.c:175
 msgid "Can't import unconnected socket"
 msgstr "Bağlı olmayan soket içe aktarılamıyor"
+
+#: ../libsoup/soup-websocket.c:336 ../libsoup/soup-websocket.c:345
+msgid "WebSocket handshake expected"
+msgstr "WebSocket el sıkışması bekleniyor"
+
+#: ../libsoup/soup-websocket.c:353
+msgid "Unsupported WebSocket version"
+msgstr "Desteklenmeyen WebSocket sürümü"
+
+#: ../libsoup/soup-websocket.c:362
+msgid "Invalid WebSocket key"
+msgstr "Geçersiz WebSocket anahtarı"
+
+#: ../libsoup/soup-websocket.c:372
+#, c-format
+msgid "Incorrect WebSocket \"%s\" header"
+msgstr "Hatalı WebSocket \"%s\" başlığı"
+
+#: ../libsoup/soup-websocket.c:381
+msgid "Unsupported WebSocket subprotocol"
+msgstr "Desteklenmeyen WebSocket alt iletişim kuralı"
+
+#: ../libsoup/soup-websocket.c:508
+msgid "Server rejected WebSocket handshake"
+msgstr "Sunucu WebSocket el sıkışmasını reddetti"
+
+#: ../libsoup/soup-websocket.c:516 ../libsoup/soup-websocket.c:525
+msgid "Server ignored WebSocket handshake"
+msgstr "Sunucu WebSocket el sıkışmasını yoksaydı"
+
+#: ../libsoup/soup-websocket.c:537
+msgid "Server requested unsupported protocol"
+msgstr "Sunucu desteklenmeyen iletişim kuralı isteğinde bulundu"
+
+#: ../libsoup/soup-websocket.c:547
+msgid "Server requested unsupported extension"
+msgstr "Sunucu desteklenmeyen eklenti isteğinde bulundu"
+
+#: ../libsoup/soup-websocket.c:560
+#, c-format
+msgid "Server returned incorrect \"%s\" key"
+msgstr "Sunucu hatalı \"%s\" anahtarı döndürdü"
 
 #: ../libsoup/soup-tld.c:188
 msgid "Hostname is an IP address"
