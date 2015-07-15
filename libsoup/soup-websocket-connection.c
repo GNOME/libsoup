@@ -24,7 +24,6 @@
 
 #include "soup-websocket-connection.h"
 #include "soup-enum-types.h"
-#include "soup-message.h"
 #include "soup-uri.h"
 
 /*
