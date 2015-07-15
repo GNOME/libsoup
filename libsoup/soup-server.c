@@ -1387,7 +1387,7 @@ got_body (SoupMessage *msg, SoupClientContext *client)
 	if (msg->status_code != 0)
 		return;
 
-	if (handler->websocket_callback && msg->status_code == 0) {
+	if (handler->websocket_callback) {
 		if (soup_websocket_server_process_handshake (msg,
 							     handler->websocket_origin,
 							     handler->websocket_protocols)) {
