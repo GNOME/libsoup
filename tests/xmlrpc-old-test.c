@@ -475,7 +475,7 @@ static GOptionEntry xmlrpc_entries[] = {
         { "uri", 'U', 0, G_OPTION_ARG_STRING, &uri,
           "Alternate URI for server", NULL },
         { "server-test", 'S', 0, G_OPTION_ARG_NONE, &server_test,
-          "If this is being run from xmlrpc-server-test", NULL },
+          "If this is being run from xmlrpc-old-server-test", NULL },
         { NULL }
 };
 
@@ -493,16 +493,16 @@ main (int argc, char **argv)
 
 	session = soup_test_session_new (SOUP_TYPE_SESSION_SYNC, NULL);
 
-	g_test_add_func ("/xmlrpc/sum", test_sum);
-	g_test_add_func ("/xmlrpc/countBools", test_countBools);
-	g_test_add_func ("/xmlrpc/md5sum", test_md5sum);
-	g_test_add_func ("/xmlrpc/dateChange", test_dateChange);
-	g_test_add_func ("/xmlrpc/echo", test_echo);
-	g_test_add_data_func ("/xmlrpc/ping/empty-params", GINT_TO_POINTER (TRUE), test_ping);
-	g_test_add_data_func ("/xmlrpc/ping/no-params", GINT_TO_POINTER (FALSE), test_ping);
-	g_test_add_func ("/xmlrpc/fault/malformed", test_fault_malformed);
-	g_test_add_func ("/xmlrpc/fault/method", test_fault_method);
-	g_test_add_func ("/xmlrpc/fault/args", test_fault_args);
+	g_test_add_func ("/xmlrpc-old/sum", test_sum);
+	g_test_add_func ("/xmlrpc-old/countBools", test_countBools);
+	g_test_add_func ("/xmlrpc-old/md5sum", test_md5sum);
+	g_test_add_func ("/xmlrpc-old/dateChange", test_dateChange);
+	g_test_add_func ("/xmlrpc-old/echo", test_echo);
+	g_test_add_data_func ("/xmlrpc-old/ping/empty-params", GINT_TO_POINTER (TRUE), test_ping);
+	g_test_add_data_func ("/xmlrpc-old/ping/no-params", GINT_TO_POINTER (FALSE), test_ping);
+	g_test_add_func ("/xmlrpc-old/fault/malformed", test_fault_malformed);
+	g_test_add_func ("/xmlrpc-old/fault/method", test_fault_method);
+	g_test_add_func ("/xmlrpc-old/fault/args", test_fault_args);
 
 	ret = g_test_run ();
 

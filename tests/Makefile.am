@@ -42,8 +42,8 @@ test_programs =			\
 	tld-test		\
 	uri-parsing		\
 	websocket-test		\
-	xmlrpc-server-test	\
-	xmlrpc-test
+	xmlrpc-old-server-test	\
+	xmlrpc-old-test
 
 test_extra_programs =		\
 	ntlm-test-helper	\
