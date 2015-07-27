@@ -552,6 +552,7 @@ soup_xmlrpc_extract_method_response
 soup_xmlrpc_fault_get_type
 soup_xmlrpc_fault_quark
 soup_xmlrpc_message_new
+soup_xmlrpc_message_set_fault
 soup_xmlrpc_message_set_response
 soup_xmlrpc_new_custom
 soup_xmlrpc_new_datetime
