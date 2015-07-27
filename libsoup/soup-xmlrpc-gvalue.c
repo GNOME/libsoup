@@ -13,7 +13,7 @@
 
 #include <libxml/tree.h>
 
-#include "soup-xmlrpc.h"
+#include "soup-xmlrpc-gvalue.h"
 #include "soup.h"
 
 /**

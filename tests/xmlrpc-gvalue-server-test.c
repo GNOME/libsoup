@@ -246,7 +246,7 @@ run_xmlrpc_test (char **argv,
 	gboolean ok;
 	int status;
 
-	argv[0] = g_test_build_filename (G_TEST_BUILT, "xmlrpc-test", NULL);
+	argv[0] = g_test_build_filename (G_TEST_BUILT, "xmlrpc-gvalue-test", NULL);
 	ok = g_spawn_sync (NULL, argv, NULL, 0, NULL, NULL,
 			   stdout_out, stderr_out, &status,
 			   error);
@@ -334,7 +334,7 @@ main (int argc, char **argv)
 		list_argv[3] = NULL;
 
 		if (!run_xmlrpc_test (list_argv, &out, NULL, &error)) {
-			g_printerr ("'xmlrpc-test -l' failed: %s\n", error->message);
+			g_printerr ("'xmlrpc-gvalue-test -l' failed: %s\n", error->message);
 			g_error_free (error);
 			return 1;
 		}

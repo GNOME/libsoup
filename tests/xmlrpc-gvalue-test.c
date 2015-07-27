@@ -475,7 +475,7 @@ static GOptionEntry xmlrpc_entries[] = {
         { "uri", 'U', 0, G_OPTION_ARG_STRING, &uri,
           "Alternate URI for server", NULL },
         { "server-test", 'S', 0, G_OPTION_ARG_NONE, &server_test,
-          "If this is being run from xmlrpc-server-test", NULL },
+          "If this is being run from xmlrpc-gvalue-server-test", NULL },
         { NULL }
 };
 

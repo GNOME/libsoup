@@ -3,8 +3,8 @@
  * Copyright (C) 2007 Red Hat, Inc.
  */
 
-#ifndef SOUP_XMLRPC_H
-#define SOUP_XMLRPC_H 1
+#ifndef SOUP_XMLRPC_GVALUE_H
+#define SOUP_XMLRPC_GVALUE_H 1
 
 #include <libsoup/soup-types.h>
 
@@ -76,4 +76,4 @@ typedef enum {
 
 G_END_DECLS
 
-#endif /* SOUP_XMLRPC_H */
+#endif /* SOUP_XMLRPC_GVALUE_H */
